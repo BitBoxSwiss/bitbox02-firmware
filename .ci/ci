@@ -7,10 +7,6 @@ set -e
 ./.ci/check-style
 make -C py
 ./.ci/check-pep8
-# implicit-reexport: `from foo import bar` re-exports (normal Python3 behavior), otherwise mypy expects
-# `from foo import bar as bar`.
-# namespace-packages: follow imports in subfolders without `__init__.py` (also normal Python3 behavior).
-(cd py && mypy --implicit-reexport --namespace-packages --ignore-missing-imports --strict .)
 
 # Bootloader variants
 make -j8 bootloader
@@ -19,12 +15,16 @@ make -j8 bootloader-production
 
 # Firmware
 make -j8 firmware
-./scripts/tidy # run tidy on the firmware build
 
 make -j8 factory-setup
 
-# Unit tests
+# Build and run Unit tests
+make -j8 unit-test
 make -j8 run-unit-tests
 
+make -C tools/go/src/atecc608a test
+
 # Build device tests
-make -j8 device-test
+# make -j8 device-test
+
+# ./scripts/tidy # run tidy on the firmware build

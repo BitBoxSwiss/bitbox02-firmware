@@ -17,7 +17,7 @@
 
 #include <time.h>
 
-#include <generated/backup.pb.h>
+#include <backup.pb.h>
 #include <wally_crypto.h>
 
 typedef enum {

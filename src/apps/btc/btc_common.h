@@ -23,7 +23,7 @@
 
 #include <compiler_util.h>
 
-#include <generated/hww.pb.h>
+#include <hww.pb.h>
 
 #include <wally_bip32.h>
 #include <wally_crypto.h>

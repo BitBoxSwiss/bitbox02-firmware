@@ -15,7 +15,7 @@
 #ifndef _APPS_ETH_PARAMS_H
 #define _APPS_ETH_PARAMS_H
 
-#include <generated/hww.pb.h>
+#include <hww.pb.h>
 
 typedef struct {
     uint32_t bip44_coin;

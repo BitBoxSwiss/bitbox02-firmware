@@ -17,7 +17,7 @@
 
 #include "commander.h"
 
-#include <generated/hww.pb.h>
+#include <hww.pb.h>
 
 commander_error_t commander_eth(const ETHRequest* request, ETHResponse* response);
 #endif

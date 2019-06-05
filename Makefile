@@ -12,29 +12,46 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This makefile is used as a command runner and not for tracking dependencies between recipies
 
-firmware:
-	$(MAKE) -C py/bitbox02
-	mkdir -p build; cd build; cmake .. -DBUILD_TYPE=firmware && $(MAKE)
-bootloader:
-	mkdir -p build; cd build; cmake .. -DBUILD_TYPE=bootloader && $(MAKE)
-bootloader-devdevice:
-	mkdir -p build; cd build; cmake .. -DBUILD_TYPE=bootloader -DBOOTLOADER_DEVDEVICE=ON && $(MAKE)
-bootloader-production:
-	mkdir -p build; cd build; cmake .. -DBUILD_TYPE=bootloader -DBOOTLOADER_PRODUCTION=ON && $(MAKE)
-factory-setup:
-	mkdir -p build; cd build; cmake .. -DBUILD_TYPE=factory-setup && $(MAKE)
-docs:
-	mkdir -p build; cd build; cmake .. -DBUILD_TYPE=firmware -DBUILD_DOCUMENTATION=ON && $(MAKE) doc
-unit-test:
-	mkdir -p build; cd build; cmake .. -DBUILD_TYPE=unit-test && $(MAKE)
+.DEFAULT_GOAL := firmware
+
+bootstrap:
+	git submodule update --init --recursive
+# Directory for building for "host" machine according to gcc convention
+build:
+	mkdir -p build
+	cd build && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake ..
+
+# Directory for building for "build" machine according to gcc convention
+build-build:
+	mkdir -p build-build
+	cd build-build && cmake .. -DCOVERAGE=ON -DSANITIZE_ADDRESS=ON -DSANITIZE_UNDEFINED=ON
+
+firmware: | build
+# Generate python bindings for protobuf for test scripts
+	$(MAKE) -C py
+	$(MAKE) -C build firmware.elf
+bootloader: | build
+	$(MAKE) -C build bootloader.elf
+bootloader-devdevice: | build
+	$(MAKE) -C build bootloader-development.elf
+bootloader-production: | build
+	$(MAKE) -C build bootloader-production.elf
+factory-setup: | build
+	$(MAKE) -C build factory-setup.elf
+docs: | build-build
+	$(MAKE) -C build-build doc
+unit-test: | build-build
+	$(MAKE) -C build-build
 device-test:
-	mkdir -p build; cd build; cmake .. -DBUILD_TYPE=device-test -DMAIN-SOURCE:STRING=src/test_button_tap.c && $(MAKE)
-run-unit-tests:
-	$(MAKE) unit-test
-# TODO: wrap all unit tests in one script
-	cd build; $(MAKE) test;
-	cd build; lcov --quiet --capture --directory . --output-file raw_coverage.info; lcov --remove raw_coverage.info --output-file coverage.info '*/test/*' '*/external/*' '*/src/drivers/*'; genhtml --quiet coverage.info --output-directory coverage_html
+	mkdir -p build; cd build; cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake .. -DBUILD_TYPE=device-test -DMAIN-SOURCE:STRING=src/test_button_tap.c && $(MAKE)
+# Must compile tests before running them
+run-unit-tests: | build-build
+	$(MAKE) -C build-build test
+# Must run tests before creating coverage report
+coverage: | build-build
+	${MAKE} -C build-build coverage
 	echo "coverage report in build/coverage_html/index.html"
 #./build/bin/test_ui_component_gestures;
 run-valgrind-on-unit-tests:
@@ -54,10 +71,10 @@ run-valgrind-on-unit-tests:
 #		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_ui_component_gestures;'
 flash-dev-firmware:
 	./py/load_firmware.py build/bin/firmware.bin debug
-jlink-flash-bootloader:
-	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/bootloader.jlink
-jlink-flash-firmware:
-	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/firmware.jlink
+jlink-flash-bootloader: | build
+	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-development.jlink
+jlink-flash-firmware: | build
+	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware.jlink
 dockerinit:
 	docker build --pull --force-rm  -t shiftcrypto/firmware_v2 .
 dockerdev:
@@ -65,8 +82,8 @@ dockerdev:
 dockerrun:
 	docker-compose run -w /firmware_v2 firmware_v2
 generate-atecc608-config:
-	cd tools/go/src/atecc608a/ && $(MAKE) run
+	${MAKE} -C tools/go/src/atecc608a run
 ci:
 	./.ci/ci
 clean:
-	rm -rf build/*
+	rm -rf build build-build

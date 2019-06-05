@@ -1,0 +1,30 @@
+#!/usr/bin/env python
+"""Expand python templates"""
+
+from string import Template
+import argparse
+import sys
+
+def main():
+    """Main function"""
+    parser = argparse.ArgumentParser(
+        description="Expands files according to python string.Template rules.")
+    parser.add_argument("file")
+    parser.add_argument("-o", "--output")
+    parser.add_argument("mapping", metavar="NAME=VALUE", nargs="*")
+
+    args = parser.parse_args()
+
+    kwargs = {pair[0]: pair[1] for pair in [x.split("=") for x in args.mapping]}
+    with open(args.file) as template_file:
+        template = Template(template_file.read())
+        res = template.substitute(**kwargs)
+
+    if args.output:
+        with open(args.output, "w") as output_file:
+            output_file.write(res)
+    else:
+        sys.stdout.write(res)
+
+if __name__ == "__main__":
+    main()

@@ -14,7 +14,7 @@
 
 #include "workflow.h"
 #include <backup.h>
-#include <generated/hww.pb.h>
+#include <hww.pb.h>
 #include <memory.h>
 #include <sd.h>
 #include <stdio.h>

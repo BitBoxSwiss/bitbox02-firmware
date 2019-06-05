@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "generated/hww.pb.h"
+#include "hww.pb.h"
 
 #ifndef _SDCARD_H_
 #define _SDCARD_H_

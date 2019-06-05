@@ -17,7 +17,7 @@
 
 #include "eth_verify.h"
 
-#include <generated/hww.pb.h>
+#include <hww.pb.h>
 
 app_eth_sign_error_t app_eth_sign(const ETHSignRequest* request, ETHSignResponse* response);
 

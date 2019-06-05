@@ -16,7 +16,7 @@
 #define _APPS_ETH_SIGHASH_H
 
 #include <compiler_util.h>
-#include <generated/hww.pb.h>
+#include <hww.pb.h>
 
 #include <stdbool.h>
 #include <stdint.h>

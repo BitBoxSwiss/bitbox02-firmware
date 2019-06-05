@@ -21,7 +21,7 @@
 
 #include <compiler_util.h>
 
-#include <generated/hww.pb.h>
+#include <hww.pb.h>
 
 /**
  * Retrieves a specified encoding of an ethereum address.

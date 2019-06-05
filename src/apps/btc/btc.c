@@ -18,7 +18,7 @@
 #include "btc_common.h"
 #include "btc_params.h"
 
-#include <generated/hww.pb.h>
+#include <hww.pb.h>
 #include <keystore.h>
 
 static const uint8_t _xpub_version[4] = {0x04, 0x88, 0xb2, 0x1e};

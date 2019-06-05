@@ -15,7 +15,7 @@
 #ifndef _WORKFLOW_RESTORE_H_
 #define _WORKFLOW_RESTORE_H_
 
-#include <generated/hww.pb.h>
+#include <hww.pb.h>
 #include <stdbool.h>
 
 /**

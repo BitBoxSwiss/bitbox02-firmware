@@ -1,0 +1,3 @@
+loadbin $file 0x10000
+r
+q

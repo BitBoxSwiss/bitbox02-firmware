@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "generated/hww.pb.h"
+#include "hww.pb.h"
 
 bool attestation_perform(const uint8_t* host_challenge, PerformAttestationResponse* result_out);
 

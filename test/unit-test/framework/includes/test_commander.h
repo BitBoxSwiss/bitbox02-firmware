@@ -16,7 +16,7 @@
 #define _TEST_COMMANDER_H
 
 #include <commander/commander.h>
-#include <generated/hww.pb.h>
+#include <hww.pb.h>
 
 commander_error_t commander_api_set_device_name(const SetDeviceNameRequest* request);
 commander_error_t commander_api_set_mnemonic_passphrase_enabled(

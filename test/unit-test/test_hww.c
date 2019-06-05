@@ -19,7 +19,7 @@
 
 // including C file to test static functions
 #include <commander/commander.c>
-#include <generated/hww.pb.h>
+#include <hww.pb.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
 #include <random.h>

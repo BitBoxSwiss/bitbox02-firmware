@@ -21,7 +21,7 @@
 
 #include <compiler_util.h>
 
-#include <generated/hww.pb.h>
+#include <hww.pb.h>
 
 USE_RESULT bool app_btc_address(
     BTCCoin coin,

@@ -52,7 +52,7 @@ static void _display_index(component_t* scroll_through_all_variants)
 {
     scroll_through_all_variants_data_t* data =
         (scroll_through_all_variants_data_t*)scroll_through_all_variants->data;
-    snprintf(data->index_str, sizeof(data->index_str), "%02u", (data->index + 1));
+    snprintf(data->index_str, sizeof(data->index_str), "%02u", (data->index + 1u));
     label_update(data->index_label, data->index_str);
 }
 

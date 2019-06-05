@@ -10,10 +10,12 @@ set -o pipefail
 
 PYLINT=${PYLINT:-pylint}
 BLACK=${BLACK:-black}
+MYPY=${MYPY:-mypy}
 
 command -v git >/dev/null 2>&1 || { echo >&2 "git is missing"; exit 1; }
 command -v ${PYLINT} >/dev/null 2>&1 || { echo >&2 "${PYLINT} is missing"; exit 1; }
 command -v ${BLACK} >/dev/null 2>&1 || { echo >&2 "${BLACK} is missing"; exit 1; }
+command -v ${MYPY} >/dev/null 2>&1 || { echo >&2 "${MYPY} is missing"; exit 1; }
 
 # check if stdout is a terminal.
 if test -t 1; then
@@ -37,12 +39,17 @@ fi
 # 32    usage error
 
 # grep will exit with 1 if no lines are found
-FILES=$(git --no-pager diff --diff-filter=d --name-only origin/master | grep -v "old/" | grep -E ".py\$" || exit 0)
+FILES=$(git --no-pager diff --diff-filter=d --name-only origin/master | grep -v -e "old/" -e "generated/" | grep -E ".py\$" || exit 0)
 if [ -z "${FILES}" ] ; then
        exit 0
 fi
 
 ${BLACK} --check --fast ${FILES}
+
+# implicit-reexport: `from foo import bar` re-exports (normal Python3 behavior), otherwise mypy expects
+# `from foo import bar as bar`.
+# namespace-packages: follow imports in subfolders without `__init__.py` (also normal Python3 behavior).
+${MYPY} --implicit-reexport --namespace-packages --ignore-missing-imports --strict py
 
 ${PYLINT} --persistent=no ${FILES} || {
 	pylint_status=$?

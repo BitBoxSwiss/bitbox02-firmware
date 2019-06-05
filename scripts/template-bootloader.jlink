@@ -1,0 +1,3 @@
+loadfile $file
+r
+q

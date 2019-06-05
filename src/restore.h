@@ -15,8 +15,8 @@
 #ifndef _RESTORE_H_
 #define _RESTORE_H_
 
-#include <generated/backup.pb.h>
-#include <generated/hww.pb.h>
+#include <backup.pb.h>
+#include <hww.pb.h>
 
 typedef enum {
     RESTORE_OK,

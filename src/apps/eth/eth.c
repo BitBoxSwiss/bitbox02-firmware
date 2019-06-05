@@ -19,7 +19,7 @@
 #include <keystore.h>
 #include <util.h>
 
-#include <generated/hww.pb.h>
+#include <hww.pb.h>
 #include <secp256k1.h>
 #include <sha3.h>
 

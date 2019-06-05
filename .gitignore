@@ -1,31 +1,11 @@
-build
-build-vagrant
-version.h
+/build/
+/build-*/
 NOTES.md
-.vagrant
-.DS_Store
-.ycm*
-*.o
+.vagrant/
 *.pyc
-*.sw*
-*.bak
-*.bin
-!*.c
+.mypy_cache/
 
 # gnu global
 /src/GPATH
 /src/GRTAGS
 /src/GTAGS
-
-.vimrc
-external/*
-!external/cryptoauthlib
-!external/ctaes
-!external/FatFs
-!external/sha3
-!external/bignum
-!external/base32
-!external/CMakeLists.txt
-src/generated
-py/bitbox02/generated
-py/.mypy_cache

@@ -1,36 +1,108 @@
-include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
-if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/noise-c-${TARGET_CODE}-build/libnoiseprotocol.a)
-    set(NOISEC_CONFIGURE ${CMAKE_CURRENT_SOURCE_DIR}/noise-c-config/configure_${TARGET_CODE}.sh)
-    file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/noise-c-${TARGET_CODE}-build/)
-    ExternalProject_Add(noise-c
-        GIT_REPOSITORY https://github.com/shiftdevices/noise-c.git
-        GIT_TAG        firmware_v2
-        PREFIX         ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_CODE}/noise-c
-        STEP_TARGETS   build-noise-c
-        SOURCE_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/noise-c
-        CONFIGURE_COMMAND ${NOISEC_CONFIGURE}
-        BUILD_COMMAND make -C src/protocol
-        BUILD_IN_SOURCE 1
-        INSTALL_COMMAND cmake -E copy ${CMAKE_CURRENT_SOURCE_DIR}/noise-c/src/protocol/libnoiseprotocol.a ${CMAKE_CURRENT_SOURCE_DIR}/noise-c-${TARGET_CODE}-build/libnoiseprotocol.a
-  )
-else()
-    add_custom_target(noise-c COMMAND echo "noise-c already built")
+include(ExternalProject)
+
+if(CMAKE_CROSSCOMPILING)
+  set(CONFIGURE_FLAGS
+    --host=${CMAKE_SYSTEM_PROCESSOR}-none-eabi --build=${CMAKE_HOST_SYSTEM_PROCESSOR}-linux-gnu)
 endif()
 
-if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core-${TARGET_CODE}-build/.libs/)
-    set(LIBWALLY_CONFIGURE ${CMAKE_CURRENT_SOURCE_DIR}/libwally-config/configure_${TARGET_CODE}.sh)
+# Remove parameters to make build identical to older build
+# TODO: Remove the below hack (Use CMAKE_C_FLAGS directly instead of MODIFIED_C_FLAGS)
+string(REPLACE "-mfloat-abi=softfp" "" MODIFIED_C_FLAGS_TMP ${CMAKE_C_FLAGS})
+string(REPLACE "-mfpu=fpv4-sp-d16" "" MODIFIED_C_FLAGS ${MODIFIED_C_FLAGS_TMP})
 
-    file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core-${TARGET_CODE}-build/)
-    ExternalProject_Add(libwally-core
-      GIT_REPOSITORY https://github.com/shiftdevices/libwally-core.git
-      GIT_TAG        bitbox02-firmware
-      PREFIX         ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_CODE}/libwally-core
-      STEP_TARGETS   build-libwally
-      SOURCE_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core
-      CONFIGURE_COMMAND ${LIBWALLY_CONFIGURE}
-      BUILD_COMMAND  make
-      INSTALL_COMMAND cmake -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_CODE}/libwally-core/src/libwally-core-build/src/ ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core-${TARGET_CODE}-build/
-      )
-else()
-    add_custom_target(libwally-core COMMAND echo "libwally already built")
+#-----------------------
+# noise-c
+
+set(NOISEC_CONFIGURE_FLAGS "--with-libsodium=no --with-openssl=no")
+if(SANITIZE_ADDRESS)
+  set(NOISEC_CFLAGS "-fsanitize=address")
 endif()
+if(SANITIZE_UNDEFINED)
+  set(NOISEC_CFLAGS "${NOISEC_CFLAGS} -fsanitize=undefined")
+endif()
+set(NOISEC_CFLAGS "\
+  ${NOISEC_CFLAGS} \
+  ${MODIFIED_C_FLAGS} ${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE}} \
+  -fno-strict-aliasing \
+")
+# Hide some warnings
+set(NOISEC_CFLAGS "${NOISEC_CFLAGS} -Wformat=0 -Wno-implicit-fallthrough -Wno-undef -Wno-cast-qual -Wno-switch-default -Wno-packed -Wno-pedantic -Wno-missing-prototypes -Wno-unused-parameter -Wno-redundant-decls -Wno-missing-declarations -Wno-shadow")
+set(NOISEC_LDFLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_C_LINK_FLAGS} -lc")
+
+ExternalProject_Add(noise-c
+  PREFIX          ${CMAKE_CURRENT_BINARY_DIR}/noise-c
+  STEP_TARGETS    build-noise-c
+  SOURCE_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/noise-c
+  CONFIGURE_COMMAND autoreconf --install --force ${CMAKE_CURRENT_SOURCE_DIR}/noise-c
+  COMMAND ${CMAKE_COMMAND} -E env env
+  COMMAND         ${CMAKE_COMMAND} -E env
+                  "CFLAGS=${NOISEC_CFLAGS}"
+                  "LDFLAGS=${NOISEC_LDFLAGS}"
+                  ${CMAKE_CURRENT_SOURCE_DIR}/noise-c/configure
+                  ${CONFIGURE_FLAGS}
+                  ${NOISEC_CONFIGURE_FLAGS}
+  BUILD_COMMAND   ${CMAKE_MAKE_PROGRAM} -C src/protocol
+  INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}
+  COMMAND         ${CMAKE_COMMAND} -E copy
+                  ${CMAKE_CURRENT_BINARY_DIR}/noise-c/src/noise-c-build/src/protocol/libnoiseprotocol.a
+                  ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libnoiseprotocol.a
+)
+
+add_library(noiseprotocol STATIC IMPORTED GLOBAL)
+set_property(TARGET noiseprotocol
+  PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libnoiseprotocol.a)
+
+#----------------------
+# wally-core
+
+set(LIBWALLY_CONFIGURE_FLAGS --enable-static --disable-shared --disable-tests)
+if(SANITIZE_ADDRESS)
+  set(LIBWALLY_CFLAGS "-fsanitize=address")
+endif()
+if(SANITIZE_UNDEFINED)
+  set(LIBWALLY_CFLAGS "${LIBWALLY_CFLAGS} -fsanitize=undefined")
+endif()
+set(LIBWALLY_CFLAGS  "\
+  ${LIBWALLY_CFLAGS} \
+  ${MODIFIED_C_FLAGS} ${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE}} \
+  -DUSE_BASIC_CONFIG=1 -DUSE_ECMULT_STATIC_PRECOMPUTATION=1 \
+  -fno-strict-aliasing \
+")
+
+# Hide some warnings
+set(LIBWALLY_CFLAGS "${LIBWALLY_CFLAGS} -Wno-cast-qual -Wno-cast-align \
+  -Wno-missing-prototypes -Wno-redundant-decls \
+  -Wno-switch-default -Wno-missing-declarations \
+  -Wno-array-bounds \
+")
+set(LIBWALLY_LDFLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_C_LINK_FLAGS}")
+
+ExternalProject_Add(libwally-core
+  PREFIX          ${CMAKE_CURRENT_BINARY_DIR}/libwally-core
+  STEP_TARGETS   build-libwally
+  SOURCE_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core
+  CONFIGURE_COMMAND autoreconf --install --force ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core
+  COMMAND         ${CMAKE_COMMAND} -E env
+                  "CFLAGS=${LIBWALLY_CFLAGS}"
+                  "LDFLAGS=${LIBWALLY_LDFLAGS}"
+                  ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core/configure
+                  ${CONFIGURE_FLAGS}
+                  ${LIBWALLY_CONFIGURE_FLAGS}
+  # TODO: Add darwin hack to libwally repo
+  BUILD_COMMAND   ${CMAKE_MAKE_PROGRAM}
+  INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}
+  COMMAND         ${CMAKE_COMMAND} -E copy
+                  ${CMAKE_CURRENT_BINARY_DIR}/libwally-core/src/libwally-core-build/src/.libs/libwallycore.a
+                  ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libwallycore.a
+  COMMAND         ${CMAKE_COMMAND} -E copy
+                  ${CMAKE_CURRENT_BINARY_DIR}/libwally-core/src/libwally-core-build/src/secp256k1/.libs/libsecp256k1.a
+                  ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libsecp256k1.a
+)
+
+add_library(wallycore STATIC IMPORTED GLOBAL)
+set_property(TARGET wallycore
+  PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libwallycore.a)
+
+add_library(secp256k1 STATIC IMPORTED GLOBAL)
+set_property(TARGET secp256k1
+  PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libsecp256k1.a)

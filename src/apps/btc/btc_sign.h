@@ -20,7 +20,7 @@
 
 #include <compiler_util.h>
 
-#include <generated/hww.pb.h>
+#include <hww.pb.h>
 
 typedef enum {
     APP_BTC_SIGN_OK,

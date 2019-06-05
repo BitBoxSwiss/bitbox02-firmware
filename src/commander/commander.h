@@ -19,7 +19,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "generated/hww.pb.h"
+#include "hww.pb.h"
 
 // error flags. From this, commander_error_t and the static
 // commander_error_code, commander_error_message are produced.

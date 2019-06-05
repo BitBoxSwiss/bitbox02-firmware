@@ -23,7 +23,7 @@
 
 #include <bignum/bignum.h>
 
-#include <generated/hww.pb.h>
+#include <hww.pb.h>
 
 #define APP_ETH_RECIPIENT_BYTES_LEN (20)
 // including 0x prefix and null terminator.

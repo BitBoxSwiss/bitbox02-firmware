@@ -17,7 +17,7 @@
 #include "blocking.h"
 #include "workflow.h"
 
-#include "generated/hww.pb.h"
+#include "hww.pb.h"
 
 #include <ui/components/ui_components.h>
 #include <ui/screen_stack.h>

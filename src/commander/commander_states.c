@@ -14,8 +14,8 @@
 
 #include "commander_states.h"
 
-#include "generated/hww.pb.h"
 #include "hardfault.h"
+#include "hww.pb.h"
 #include "memory.h"
 
 // If non-zero (set), only this api endpoint can be called next.

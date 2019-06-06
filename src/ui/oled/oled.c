@@ -1,0 +1,251 @@
+/**
+ * \file
+ *
+ * \brief SSD1306 OLED display controller driver.
+ *
+ * Copyright (c) 2013-2015 Atmel Corporation. All rights reserved.
+ *
+ * \asf_license_start
+ *
+ * \page License
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * 3. The name of Atmel may not be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * 4. This software may only be redistributed and used in connection with an
+ *    Atmel microcontroller product.
+ *
+ * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
+ * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * \asf_license_stop
+ *
+ */
+/*
+ * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
+ */
+// Copyright 2019 Shift Cryptosecurity AG
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "oled.h"
+
+#include <drivers/driver_init.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+#include <ui/ugui/ugui.h>
+
+#define OLED_CMD_SET_LOW_COL(column) (0x00 | (column))
+#define OLED_CMD_SET_HIGH_COL(column) (0x10 | (column))
+#define OLED_CMD_SET_MEMORY_ADDRESSING_MODE 0x20
+#define OLED_CMD_SET_COLUMN_ADDRESS 0x21
+#define OLED_CMD_SET_PAGE_ADDRESS 0x22
+#define OLED_CMD_SET_START_LINE(line) (0x40 | (line))
+#define OLED_CMD_SET_CONTRAST_CONTROL_FOR_BANK0 0x81
+#define OLED_CMD_SET_CHARGE_PUMP_SETTING 0x8D
+#define OLED_CMD_SET_SEGMENT_RE_MAP_COL0_SEG0 0xA0
+#define OLED_CMD_SET_SEGMENT_RE_MAP_COL127_SEG0 0xA1
+#define OLED_CMD_ENTIRE_DISPLAY_AND_GDDRAM_ON 0xA4
+#define OLED_CMD_ENTIRE_DISPLAY_ON 0xA5
+#define OLED_CMD_SET_NORMAL_DISPLAY 0xA6
+#define OLED_CMD_SET_INVERSE_DISPLAY 0xA7
+#define OLED_CMD_SET_MULTIPLEX_RATIO 0xA8
+#define OLED_CMD_SET_DISPLAY_ON 0xAF
+#define OLED_CMD_SET_DISPLAY_OFF 0xAE
+#define OLED_CMD_SET_PAGE_START_ADDRESS(page) \
+    (0xB0 | (page & 0x0f)) // changed to 0x0f for SH1107 (128x64) OLED
+#define OLED_CMD_SET_COM_OUTPUT_SCAN_UP 0xC0
+#define OLED_CMD_SET_COM_OUTPUT_SCAN_DOWN 0xC8
+#define OLED_CMD_SET_DISPLAY_OFFSET 0xD3
+#define OLED_CMD_SET_DISPLAY_CLOCK_DIVIDE_RATIO 0xD5
+#define OLED_CMD_SET_PRE_CHARGE_PERIOD 0xD9
+#define OLED_CMD_SET_COM_PINS 0xDA
+#define OLED_CMD_SET_VCOMH_DESELECT_LEVEL 0xDB
+#define OLED_CMD_NOP 0xE3
+
+#define OLED_CMD_SCROLL_H_RIGHT 0x26
+#define OLED_CMD_SCROLL_H_LEFT 0x27
+#define OLED_CMD_CONTINUOUS_SCROLL_V_AND_H_RIGHT 0x29
+#define OLED_CMD_CONTINUOUS_SCROLL_V_AND_H_LEFT 0x2A
+#define OLED_CMD_DEACTIVATE_SCROLL 0x2E
+#define OLED_CMD_ACTIVATE_SCROLL 0x2F
+#define OLED_CMD_SET_VERTICAL_SCROLL_AREA 0xA3
+
+static bool _mirror = false;
+static bool _frame_buffer_updated = false;
+static uint8_t _frame_buffer[128 * 8];
+static uint8_t _output_buffer[128 * 8];
+
+/**
+ * Pulls the pin D/C# low before writing to the controller.
+ * [in] command to write
+ */
+static inline void _write_command(uint8_t command)
+{
+    uint8_t spi_output[32];
+    spi_output[0] = command;
+    gpio_set_pin_level(PIN_OLED_CMD, 0);
+    gpio_set_pin_level(PIN_OLED_CS, 0);
+    SPI_0_write_block((void*)spi_output, 1);
+    gpio_set_pin_level(PIN_OLED_CS, 1);
+}
+
+void oled_init(void)
+{
+    // DC-DC OFF
+    gpio_set_pin_level(PIN_OLED_ON, 0);
+    delay_us(5);
+
+    // Hard reset OLED display controller
+    gpio_set_pin_level(PIN_OLED_RES, 0);
+    delay_us(5);
+    gpio_set_pin_level(PIN_OLED_RES, 1);
+    delay_us(5);
+
+    // Initialize
+    _write_command(OLED_CMD_SET_DISPLAY_OFF);
+    _write_command(OLED_CMD_SET_LOW_COL(0));
+    _write_command(OLED_CMD_SET_HIGH_COL(0));
+    _write_command(OLED_CMD_SET_PAGE_START_ADDRESS(0));
+    _write_command(0xdc); /*set display start line*/
+    _write_command(0x00); // +0x7f
+    _write_command(OLED_CMD_SET_CONTRAST_CONTROL_FOR_BANK0);
+    _write_command(0x80); /* 0x00..0xff */
+    _write_command(OLED_CMD_SET_MEMORY_ADDRESSING_MODE);
+    _write_command(OLED_CMD_SET_SEGMENT_RE_MAP_COL0_SEG0);
+    _write_command(OLED_CMD_SET_COM_OUTPUT_SCAN_UP);
+    _write_command(OLED_CMD_SET_NORMAL_DISPLAY);
+    _write_command(OLED_CMD_SET_MULTIPLEX_RATIO);
+    _write_command(0x3f); /* duty = 1/64; 0x00..0x7f */
+    _write_command(OLED_CMD_SET_DISPLAY_OFFSET);
+    _write_command(0x60); // /* 0x00..0x7f */ <- todo set value ?? 96  col32..c95 are used
+    _write_command(OLED_CMD_SET_DISPLAY_CLOCK_DIVIDE_RATIO);
+    _write_command(0x51); // 41);//0x51);
+    _write_command(OLED_CMD_SET_PRE_CHARGE_PERIOD);
+    _write_command(0x22); /* 0x00..0xff */
+    _write_command(OLED_CMD_SET_VCOMH_DESELECT_LEVEL);
+    _write_command(0x35); /* 0x00..0xff */ // 53 (?)
+    _write_command(0xad); /* DC-DC control mode set*/
+    _write_command(0x8a); /* built-in DC-DC enable (8a:disable; 8b:enable) */
+    _write_command(OLED_CMD_ENTIRE_DISPLAY_AND_GDDRAM_ON);
+    oled_clear_buffer();
+    oled_send_buffer();
+    _write_command(OLED_CMD_SET_DISPLAY_ON);
+    delay_ms(100);
+
+    // DC-DC ON
+    gpio_set_pin_level(PIN_OLED_ON, 1);
+}
+
+void oled_send_buffer(void)
+{
+    uint32_t i, n, x;
+    if (_frame_buffer_updated) { // 1.4msec
+        _frame_buffer_updated = false;
+        memset(_output_buffer, 0, sizeof(_output_buffer));
+        for (n = 0; n < 8; n++) {
+            for (i = 0; i < 128; i++) { // framebuffer columns
+                uint32_t target;
+                if (!_mirror) {
+                    // 0..127 x 8x [bit0..7] -> translate 16 x [0..7] 0..63
+                    target = 64 * (15 - i / 8) + n * 8;
+                    x = _frame_buffer[i + n * 128];
+                    if (x & 0x01) _output_buffer[target + 0] |= 0x01 << (7 - (i % 8));
+                    if (x & 0x02) _output_buffer[target + 1] |= 0x01 << (7 - (i % 8));
+                    if (x & 0x04) _output_buffer[target + 2] |= 0x01 << (7 - (i % 8));
+                    if (x & 0x08) _output_buffer[target + 3] |= 0x01 << (7 - (i % 8));
+                    if (x & 0x10) _output_buffer[target + 4] |= 0x01 << (7 - (i % 8));
+                    if (x & 0x20) _output_buffer[target + 5] |= 0x01 << (7 - (i % 8));
+                    if (x & 0x40) _output_buffer[target + 6] |= 0x01 << (7 - (i % 8));
+                    if (x & 0x80) _output_buffer[target + 7] |= 0x01 << (7 - (i % 8));
+                } else {
+                    // 0..127 x 8x [0..7] -> translate 16 x [0..7] 0..63
+                    target = 64 * (i / 8) + (7 - n) * 8;
+                    x = _frame_buffer[i + n * 128];
+                    if (x & 0x01) _output_buffer[target + 7] |= 0x01 << (0 + (i % 8));
+                    if (x & 0x02) _output_buffer[target + 6] |= 0x01 << (0 + (i % 8));
+                    if (x & 0x04) _output_buffer[target + 5] |= 0x01 << (0 + (i % 8));
+                    if (x & 0x08) _output_buffer[target + 4] |= 0x01 << (0 + (i % 8));
+                    if (x & 0x10) _output_buffer[target + 3] |= 0x01 << (0 + (i % 8));
+                    if (x & 0x20) _output_buffer[target + 2] |= 0x01 << (0 + (i % 8));
+                    if (x & 0x40) _output_buffer[target + 1] |= 0x01 << (0 + (i % 8));
+                    if (x & 0x80) _output_buffer[target + 0] |= 0x01 << (0 + (i % 8));
+                }
+            }
+        }
+    }
+
+    // 3.5msec
+    for (i = 0; i < 128 / 8; i++) {
+        _write_command(0x10); /*set higher column address*/
+        _write_command(0x00); /*set lower column address*/
+        _write_command(OLED_CMD_SET_PAGE_START_ADDRESS(i));
+        gpio_set_pin_level(PIN_OLED_CMD, 1);
+        gpio_set_pin_level(PIN_OLED_CS, 0);
+        SPI_0_write_block((unsigned char*)&_output_buffer[i * 64], 64);
+        gpio_set_pin_level(PIN_OLED_CS, 1);
+    }
+}
+
+void oled_clear_buffer(void)
+{
+    memset(_output_buffer, 0, sizeof(_output_buffer));
+    memset(_frame_buffer, 0, sizeof(_frame_buffer));
+}
+
+void oled_brightness(uint8_t brightness)
+{
+    _write_command(0x81); /* contrast control */
+    _write_command(brightness); /* 0..255 */
+}
+
+void oled_mirror(bool mirror)
+{
+    _mirror = mirror;
+}
+
+void oled_set_pixel(uint16_t x, uint16_t y, uint8_t c) // y x instead x y
+{
+    uint32_t p;
+    if (x > 127) return;
+    if (y > 63) return;
+    p = y >> 3; // :8
+    p = p << 7; // *128
+    p += x;
+    if (c) {
+        _frame_buffer[p] |= 1 << (y % 8);
+    } else {
+        _frame_buffer[p] &= ~(1 << (y % 8));
+    }
+    _frame_buffer_updated = true;
+}

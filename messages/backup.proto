@@ -1,0 +1,64 @@
+// Copyright 2019 Shift Cryptosecurity AG
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+enum BackupMode {
+    PLAINTEXT = 0;
+}
+
+message BackupMetaData {
+    uint32 timestamp = 1;
+    string name = 2;
+    BackupMode mode = 3;
+}
+
+/**
+ * BackupData is encoded in the data field of the BackupContent
+ * and depends on the BackupMode.
+ * Defining it as a protobuf message allows language/architecture independent
+ * encoding/decoding.
+ */
+message BackupData {
+    uint32 seed_length = 1;
+    bytes seed = 2;
+    uint32 birthdate = 3;
+    string generator = 4;
+}
+
+message BackupContent {
+    bytes checksum = 1;
+    BackupMetaData metadata = 2;
+    uint32 length = 3;
+    bytes data = 4;
+}
+
+/* NOTE! Once the firmware is released to the general public and there are actual backups it is
+ * strictly forbidden to modify BackupV1 and any types contained within BackupV1 because the
+ * checksum covers all fields. */
+
+message BackupV1 {
+    BackupContent content = 1;
+}
+
+/*message Backup_V2 {
+    RSBackupContent rs_content = 1;
+}*/
+
+message Backup {
+    oneof backup_version {
+        BackupV1 backup_v1 = 1;
+//        Backup_V2 backup_V2 = 2;
+    }
+}

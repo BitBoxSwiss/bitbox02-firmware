@@ -1,0 +1,4 @@
+loadfile ../build/bin/device-test.bin
+r
+g
+q

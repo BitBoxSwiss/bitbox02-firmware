@@ -1,0 +1,31 @@
+// Copyright 2019 Shift Cryptosecurity AG
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef _BOOTLOADER_VERSION_H
+#define _BOOTLOADER_VERSION_H
+
+// 16 bit wide char version to be used in usb descriptors.
+#define BOOTLOADER_VERSION "@BOOTLOADER_VERSION_STRING@"
+#define BOOTLOADER_VERSION_SHORT_W16 @BOOTLOADER_VERSION_STRING_SHORT_W16@
+#define BOOTLOADER_VERSION_SHORT "@BOOTLOADER_VERSION_STRING_SHORT@"
+#define BOOTLOADER_VERSION_SHORT_LEN @BOOTLOADER_VERSION_STRING_SHORT_LEN@
+
+#ifdef BOOTLOADER_DEVDEVICE
+#define BOOTLOADER_VERSION_APPEND_W16 '-', 0, 'd', 0, 'e', 0, 'v', 0,
+#define BOOTLOADER_VERSION_APPEND_LEN 4
+#else
+#define BOOTLOADER_VERSION_APPEND_W16
+#define BOOTLOADER_VERSION_APPEND_LEN 0
+#endif
+#endif

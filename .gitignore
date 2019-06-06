@@ -1,0 +1,26 @@
+build
+build-vagrant
+version.h
+NOTES.md
+.vagrant
+.DS_Store
+.ycm*
+*.o
+*.pyc
+*.sw*
+*.bak
+*.bin
+!*.c
+
+# gnu global
+/src/GPATH
+/src/GRTAGS
+/src/GTAGS
+
+.vimrc
+external/*
+!external/cryptoauthlib
+!external/ctaes
+!external/CMakeLists.txt
+src/generated
+py/bitbox02/generated

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+# This script checks only that the modified files follow the code style.
+
+# Fail on error
+set -e
+
+# Exit on pipe fail
+set -o pipefail
+
+CLANGFORMAT=${CLANGFORMAT:-clang-format-7}
+
+command -v git >/dev/null 2>&1 || { echo >&2 "git is missing"; exit 1; }
+command -v xargs >/dev/null 2>&1 || { echo >&2 "xargs is missing"; exit 1; }
+command -v ${CLANGFORMAT} >/dev/null 2>&1 || { echo >&2 "${CLANGFORMAT} is missing"; exit 1; }
+
+# check if stdout is a terminal.
+if test -t 1; then
+	# see if it supports colors.
+	ncolors=$(tput colors)
+	if test -n "$ncolors" && test $ncolors -ge 8; then
+		normal="$(tput sgr0)"
+		red="$(tput setaf 1)"
+		green="$(tput setaf 2)"
+	fi
+fi
+
+if git --no-pager diff --diff-filter=d --name-only origin/master | grep -v -E "(^src/(drivers|ui/fonts)|.*ugui.*|.*base32.*)" | grep -E "^(src|test)" | grep -E "\.(c|h)\$" | xargs -n1 "$CLANGFORMAT" -output-replacements-xml | grep -c "<replacement " >/dev/null; then
+	echo -e "${red}Not $CLANGFORMAT clean${normal}"
+	# Apply CF to the files
+	git --no-pager diff --diff-filter=d --name-only origin/master | grep -v -E "(^src/(drivers|ui/fonts)|.*ugui.*|.*base32.*)" | grep -E "^(src|test)" | grep -E "\.(c|h)\$" | xargs -n1 "$CLANGFORMAT" -i
+	# Print list of files that weren't formatted correctly
+	echo -e "Incorrectly formatted files:"
+	git --no-pager diff --name-only
+	# Print the diff
+	echo -e "Detailed git diff"
+	git --no-pager diff
+	exit 1
+fi

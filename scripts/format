@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+# Format all files in repository that we should be formatting
+
+# Exit on error
+set -e
+
+# Exit on pipe fail
+set -o pipefail
+
+CLANGFORMAT=${CLANGFORMAT:-clang-format-7}
+CLANGFORMAT_FLAGS=${CLANGFORMAT_FLAGS:--i}
+VERBOSE=${VERBOSE:-NO}
+
+command -v ${CLANGFORMAT} >/dev/null 2>&1 || { echo >&2 "${CLANGFORMAT} is missing"; exit 1; }
+
+# TODO: Put all external code in "external"
+FILES=$(find src/ test/ \
+	\( \
+		-path src/drivers -o \
+		-path src/generated -o \
+		-path src/ui/fonts -o \
+		-name "ugui*" -o \
+		-name "base32.*" \
+	\) -prune -o \( -name "*.c" -o -name "*.h" \) -print)
+
+if [ "${VERBOSE}" != "NO" ] ; then
+	echo ${FILES}
+fi
+
+${CLANGFORMAT} ${CLANGFORMAT_FLAGS} ${FILES}

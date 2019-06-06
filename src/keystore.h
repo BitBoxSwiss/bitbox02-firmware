@@ -1,0 +1,150 @@
+// Copyright 2019 Shift Cryptosecurity AG
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef _KEYSTORE_H_
+#define _KEYSTORE_H_
+
+#include "compiler_util.h"
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#include <secp256k1.h>
+#include <wally_bip32.h>
+
+#define KEYSTORE_SEED_LENGTH (32)
+
+typedef enum {
+    KEYSTORE_OK,
+    KEYSTORE_ERR_INCORRECT_PASSWORD,
+    KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED,
+    KEYSTORE_ERR_GENERIC,
+} keystore_error_t;
+
+#ifdef TESTING
+/**
+ * convenience to mock the keystore state (locked, seed) in tests.
+ */
+void mock_state(const uint8_t* retained_seed, const uint8_t* retained_bip39_seed);
+#endif
+
+/**
+ * Copies the retained seed into the given buffer. The caller must
+ * zero the seed with util_zero once it is no longer needed.
+ * @param[out] seed_out The seed bytes copied from the retained seed.
+ * The buffer should be 32 bytes long.
+ * @param[out] length_out The seed length.
+ * @return true if the seed was still retained.
+ */
+USE_RESULT bool keystore_copy_seed(uint8_t* seed_out, uint32_t* length_out);
+
+/**
+ * Restores a seed.
+ * @param[in] seed The seed that is to be restored.
+ * @param[in] seed_length The length of the seed (max. 32 bytes).
+ * @param[in] password The password with which we encrypt the seed.
+ */
+USE_RESULT bool keystore_encrypt_and_store_seed(
+    const uint8_t* seed,
+    uint32_t seed_length,
+    const char* password);
+
+/**
+   Generates 32 bytes of entropy, mixes it with host_entropy, and stores it encrypted with the
+   password.
+   @param[in] host_entropy 32 bytes of entropy to be mixed in.
+*/
+USE_RESULT bool keystore_create_and_store_seed(const char* password, const uint8_t* host_entropy);
+
+/** Unlocks the keystore seed:
+ * 1) loads the stored seed and tries to decrypt using password.
+ * 2) if successful, the bip39 seed should be derived using keystore_unlock_bip39().
+ * @param[in] password keystore password, used to decrypt the seed.
+ * If it is false, the keystore is not unlocked.
+ * @param[out] remaining_attempts_out will have the number of remaining attempts.
+ * If zero, the keystore is locked until the device is reset.
+ * @return
+ * - KEYSTORE_OK if they keystore was successfully unlocked
+ * - KEYSTORE_ERR_INCORRECT_PASSWORD if the password was wrong
+ * - KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED if there were too many unsuccessful
+ * - KEYSTORE_ERR_GENERIC if there was a fatal memory error.
+ * attempts.
+ * Only call this if memory_is_seeded() returns true.
+ */
+USE_RESULT keystore_error_t keystore_unlock(const char* password, uint8_t* remaining_attempts_out);
+
+/** Unlocks the bip39 seed.
+ * @param[in] mnemonic_passphrase bip39 passphrase used in the derivation. Use the
+ * empty string if no passphrase is needed or provided.
+ * @return returns false if there was a critital memory error, otherwise true.
+ */
+USE_RESULT bool keystore_unlock_bip39(const char* mnemonic_passphrase);
+
+/**
+ * @return ture if the keystore is unlocked (keystore_unlock() followed by
+ * keystore_unlock_bip39()).
+ */
+USE_RESULT bool keystore_is_unlocked(void);
+
+/**
+ * @return returns false if the keystore is not unlocked. String returned
+ * should be freed using `wally_free_string`.
+ */
+USE_RESULT bool keystore_get_bip39_mnemonic(char** mnemonic_out);
+
+/**
+ * Can be used only if the keystore is unlocked. Returns the derived xpub,
+ * using bip32 derivation. Derivation is done from the xprv master, so hardened
+ * derivation is allowed.
+ * On success, xpub_out must be destroyed using keystore_zero_xkey().
+ * @return true on success, false on failure.
+ */
+USE_RESULT bool keystore_get_xpub(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    struct ext_key* hdkey_neutered_out);
+
+/**
+ * Safely destroy a xpub or xprv.
+ */
+void keystore_zero_xkey(struct ext_key* xkey);
+
+/*
+ * Returns the length of the active BIP32 wordlist.
+ */
+USE_RESULT uint16_t keystore_get_bip39_wordlist_length(void);
+
+/**
+ * Returns the pointer to a word in the word list for the given index.
+ * @param[in] idx The index into the word list.
+ * @param[out] word_out The pointer to the character array for the given index.
+ */
+USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);
+
+/**
+ * Sign message with private key at the given keypath. Keystore must be unlocked.
+ * @param[in] keypath derivation keypath
+ * @param[in] keypath_len size of keypath buffer
+ * @param[in] msg32 32 byte message to sign
+ * @param[out] sig resulting signature in compact format. Must be 64 bytes.
+ * Parse with secp256k1_ecdsa_signature_serialize_compact().
+ * @return true on success, false if the keystore is locked.
+ */
+USE_RESULT bool keystore_sign_secp256k1(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    const uint8_t* msg32,
+    uint8_t* sig_compact_out);
+
+#endif

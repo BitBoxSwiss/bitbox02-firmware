@@ -1,0 +1,22 @@
+---
+Language: Cpp
+BasedOnStyle: Chromium
+ColumnLimit: 100
+IndentWidth:     4
+AlignAfterOpenBracket: AlwaysBreak
+AlignTrailingComments: false
+AllowShortLoopsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: true
+BinPackArguments: false
+BreakBeforeBraces: Linux
+IndentCaseLabels: false
+PenaltyReturnTypeOnItsOwnLine: 1000
+SpacesBeforeTrailingComments: 1
+# cmocka must come after some std includes
+IncludeCategories:
+  - Regex:           '^(<|")cmocka'
+    Priority:        2
+  - Regex:           '.*'
+    Priority:        1
+...
+

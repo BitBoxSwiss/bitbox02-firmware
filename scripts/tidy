@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# Run clang-tidy on all sources that were built
+
+# Exit on error
+set -e
+
+# Exit on pipe fail
+set -o pipefail
+
+RUNCLANGTIDY=${RUNCLANGTIDY:-run-clang-tidy-7}
+
+command -v ${RUNCLANGTIDY} >/dev/null 2>&1 || { echo >&2 "${RUNCLANGTIDY} is missing"; exit 1; }
+
+if ! test -d build; then
+	echo >&2 "build is not a directory"
+	echo >&2 "please run 'make <target>' before running tidy to generate compile_commands.json"
+	exit 1
+fi
+
+# Filter out some commands that are not understood by clang-tidy
+sed -i 's/-mcpu=cortex-m4//g; s/-mfloat-abi=softfp//g; s/-mlong-calls//g; s/-mthumb//g;
+        s/-Wno-cast-function-type//g; s/-mfpu=fpv4-sp-d16//g' build/compile_commands.json
+
+${RUNCLANGTIDY} -p build

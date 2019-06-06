@@ -1,0 +1,232 @@
+#!/usr/bin/env python
+"""
+Parse the tags and strip the prefix
+First argument should be prefix to match against
+We only support annotated tags, you can check the signature with --verify.
+
+NOTE: annotated tags have "taggerdate" and "objecttype==tag"
+      unannotated tags will have "objecttype==commit" since they are metadataless
+
+Requires python3.6
+"""
+
+import subprocess
+import shutil
+import argparse
+import os
+import sys
+import textwrap
+import re
+
+SEMVER_RE = re.compile(
+    r"""
+    ^v
+    (?:0|[1-9][0-9]*)
+    \.
+    (?:0|[1-9][0-9]*)
+    \.
+    (?:0|[1-9][0-9]*)
+    (\-
+        (?:0|[1-9A-Za-z-][0-9A-Za-z-]*)
+        (\.(?:0|[1-9A-Za-z-][0-9A-Za-z-]*))*
+    )?
+    (\+
+        [0-9A-Za-z-]+
+        (\.[0-9A-Za-z-]+)*
+    )?
+    $
+    """,
+    re.VERBOSE,
+)
+
+
+def parse_tags(rows, only_signed, prefix):
+    """Parses the rows given by `git tag`. Removes the objectypes and signatures and returns the
+    refnames"""
+    # Removes any line that doesn't start with 'tag' and strip 'tag ' from those lines
+    rows = [x[4:] for x in rows if x.startswith("tag")]
+    # Strips "Y " or "N " and removes non-signed if requested
+    rows = [x[2:] for x in rows if x[0] == "Y" or not only_signed]
+    if prefix is None:
+        rows = [x for x in rows if "/" not in x]
+    return rows
+
+
+def system(*args):
+    """Wrapper around subprocess.run"""
+    res = subprocess.run(
+        *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
+    )
+    if res.returncode != 0:
+        eprintln(f"Failed to run `{args[0]}`")
+        eprintln(f"stderr: {res.stderr}")
+    return res
+
+
+def eprintln(*args, **kwargs):
+    """Helper for printing to stderr"""
+    print(*args, **kwargs, file=os.sys.stderr)
+
+
+def git_list_cmd(prefix, extra_args=None):
+    """The arguments to launch git tag.  The output will be something like `tag Y v1.0.0` or
+    `commit N v0.0.1`"""
+    if extra_args is None:
+        extra_args = []
+    cmd = ["git", "tag", "--list", "--sort=taggerdate"]
+    cmd += extra_args
+    if prefix is None:
+        cmd += [
+            "--format=%(objecttype) %(if)%(contents:signature)%(then)Y%(else)N%(end) %(refname:strip=2)"
+        ]
+    else:
+        cmd += [
+            "--format=%(objecttype) %(if)%(contents:signature)%(then)Y%(else)N%(end) %(refname:strip=3)",
+            f"{prefix}/*",
+        ]
+    return cmd
+
+
+def main():
+    """Main function"""
+    # pylint: disable=too-many-return-statements,too-many-branches,too-many-statements
+    parser = argparse.ArgumentParser(
+        description=textwrap.dedent(
+            """
+        %(prog)s is a tool for creating a version string out of annotated tags. If there isn't any
+        tag on the current HEAD it will print the newest tag concatenated with the count of commits
+        since that commit (i.e. vX.Y.Z-COUNT, similar to git-describe).
+
+        If there are modified or untracked files in the repository it will append `+dirty` to the
+        version.
+
+        Optionally it is also possible to enforce that the tag is signed and return an error
+        otherwise.
+
+        Using `prefix` it supports "monorepo" style repositories, where many "components" live in
+        the same repository with individual release schedules. Releases must then be tagged with
+        <prefix>/vX.Y.Z. If `prefix` is used and there isn't any tag on HEAD it will count the
+        commits since the newest tag with the correct prefix.
+
+        `--list` can be used for debugging, it will print all tags in the repository with
+        information about if the tags. The first column indicates if it is a lightweight (commit)
+        tag or if it is an annotated tag (tag). The second column shows if it contains a signature
+        (Y) or not (N). The third column is the ref/tag name.
+        """
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("prefix", nargs="?", default=None)
+    # TODO: Check if there is signature with `contents:signature`
+    parser.add_argument(
+        "--check-gpg", help="Require a gpg signature of chosen tag", action="store_true"
+    )
+    parser.add_argument(
+        "--verify", help="Verify gpg signature of chosen tag", action="store_true"
+    )
+    parser.add_argument(
+        "--check-semver",
+        help="Require tag to follow `vX.Y.Z` naming scheme",
+        action="store_true",
+    )
+    parser.add_argument("--list", help="List all tags", action="store_true")
+    args = parser.parse_args()
+
+    git = shutil.which("git")
+    if git is None:
+        eprintln("Command `git` not found.")
+        return 1
+
+    if args.list:
+        res = system(git_list_cmd(None))
+        if res.returncode != 0:
+            return res.returncode
+        sys.stdout.write(res.stdout)
+        return 0
+
+    res = system(git_list_cmd(args.prefix, ["--points-at", "HEAD"]))
+    if res.returncode != 0:
+        return res.returncode
+
+    rows = res.stdout.strip().splitlines()
+    tags = parse_tags(rows, args.check_gpg, args.prefix)
+
+    # If there were no tags on current HEAD, get the last created tag and count commits since then
+    if not tags:
+        res = system(git_list_cmd(args.prefix))
+        if res.returncode != 0:
+            return res.returncode
+
+        rows = res.stdout.strip().splitlines()
+        tags = parse_tags(rows, args.check_gpg, args.prefix)
+
+        if not tags:
+            annotated = "annotated"
+            if args.check_gpg:
+                annotated = "signed"
+            if args.prefix is not None:
+                eprintln(f"No {annotated} tags found with prefix {args.prefix}")
+            else:
+                eprintln(f"No {annotated} tags found without prefix")
+            return 1
+
+        # The last one should be the newest
+        version = tags[-1]
+        selected_tag = version
+
+        if args.prefix is not None:
+            selected_tag = f"{args.prefix}/{version}"
+
+        if args.check_semver:
+            if not SEMVER_RE.match(version):
+                eprintln(f"Invalid format of tag '{selected_tag}'")
+                return 1
+
+        if args.verify:
+            res = system(["git", "tag", "-v", f"{selected_tag}"])
+            if res.returncode != 0:
+                return res.returncode
+
+        res = system(["git", "rev-list", "--count", f"{selected_tag}..HEAD"])
+        if res.returncode != 0:
+            return res.returncode
+
+        count = 0
+        try:
+            count = int(res.stdout.strip())
+        except ValueError:
+            eprintln(
+                f"Failed to parse `git rev-list --count` as integer: {res.stdout.strip()}"
+            )
+
+        version += f"-{count}"
+    else:
+        version = tags[0]
+        selected_tag = version
+
+        if args.prefix is not None:
+            selected_tag = f"{args.prefix}/{version}"
+
+        if args.check_semver:
+            if not SEMVER_RE.match(version):
+                eprintln(f"Invalid format of tag '{selected_tag}'")
+                return 1
+
+        if args.verify:
+            res = system(["git", "tag", "-v", f"{selected_tag}"])
+            if res.returncode != 0:
+                return res.returncode
+
+    res = system(["git", "status", "--porcelain"])
+    if res.returncode != 0:
+        return res.returncode
+
+    if res.stdout.strip():
+        version += "+dirty"
+
+    print(version)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

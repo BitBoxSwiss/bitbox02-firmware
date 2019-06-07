@@ -66,5 +66,7 @@ dockerrun:
 	docker-compose run -w /firmware_v2 firmware_v2
 generate-atecc608-config:
 	cd tools/go/src/atecc608a/ && $(MAKE) run
+ci:
+	./.ci/ci.sh
 clean:
 	rm -rf build/*

@@ -1,0 +1,5 @@
+#!/bin/bash -e
+
+docker run -v ${TRAVIS_BUILD_DIR}:/bitbox02-firmware/ \
+       -i shiftcrypto/firmware_v2 \
+       bash -c "make -C /bitbox02-firmware ci"

@@ -1,0 +1,17 @@
+dist: trusty
+
+sudo: true
+
+services:
+  - docker
+
+os:
+  - linux
+
+addons:
+  apt:
+    packages:
+      - make
+
+script:
+- ./.ci/travis-ci.sh

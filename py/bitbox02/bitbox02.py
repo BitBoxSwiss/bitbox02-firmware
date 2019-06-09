@@ -330,7 +330,8 @@ class BitBox02:
         self._msg_query(request, expected_response="success")
 
     def perform_attestation(self):
-        """TODO: Document"""
+        """Sends a random challenge and verifies that the response can be verified with
+        Shift's root attestation pubkeys. Returns True if the verification is successful."""
         # pylint: disable=no-member
         request = hww.Request()
         challenge = os.urandom(32)

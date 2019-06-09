@@ -116,6 +116,7 @@ static bool _stretch_password(const char* password, uint8_t* kdf_out)
     }
 
     uint8_t kdf_in[32] = {0};
+    UTIL_CLEANUP_32(kdf_in);
     memcpy(kdf_in, password_salted_hashed, 32);
 
     // First KDF on SECURECHIP_SLOT_ROLLKEY increments the monotonic
@@ -159,6 +160,7 @@ static bool _get_and_decrypt_seed(
         return false;
     }
     uint8_t secret[32];
+    UTIL_CLEANUP_32(secret);
     if (!_stretch_password(password, secret)) {
         return false;
     }
@@ -210,6 +212,7 @@ bool keystore_encrypt_and_store_seed(
         return false;
     }
     uint8_t secret[32] = {0};
+    UTIL_CLEANUP_32(secret);
     if (!_stretch_password(password, secret)) {
         return false;
     }

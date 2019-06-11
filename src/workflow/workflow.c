@@ -14,13 +14,13 @@
 
 #include <string.h>
 
+#include "attestation.h"
 #include "password.h"
 #include "unlock.h"
 #include "workflow.h"
 
 #include <hardfault.h>
 #include <hww.h>
-#include <memory.h>
 #include <sd.h>
 #include <ui/components/ui_components.h>
 #include <ui/screen_stack.h>
@@ -60,12 +60,9 @@ static void _select_orientation_done(bool upside_down)
 
 void workflow_start(void)
 {
+    usb_start(hww_setup);
     ui_screen_stack_pop_all();
-    if (memory_is_initialized()) {
-        workflow_unlock();
-        return;
-    }
-    workflow_change_state(WORKFLOW_STATE_NOT_PAIRED);
+    ui_screen_stack_push(info_centered_create("See the BitBox App", NULL));
 }
 
 void workflow_change_state(workflow_state_t state)
@@ -76,11 +73,6 @@ void workflow_change_state(workflow_state_t state)
         ui_screen_stack_switch(select_orientation);
         break;
     }
-    case WORKFLOW_STATE_NOT_PAIRED:
-        usb_start(hww_setup);
-        ui_screen_stack_push(info_centered_create("See the BitBox App", NULL));
-        // noise setup function pops this screen again.
-        break;
     default:
         Abort("invalid state");
         break;

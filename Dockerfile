@@ -78,7 +78,8 @@ RUN pip3 install \
     noiseprotocol \
     protobuf \
     ecdsa \
-    tzlocal
+    tzlocal \
+    semver
 
 # Python modules for CI
 RUN pip3 install \

@@ -20,11 +20,18 @@
 #include <reset.h>
 #include <string.h>
 #include <ui/components/ui_components.h>
+#include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 #include <util.h>
 #ifndef TESTING
 #include <hal_delay.h>
 #endif
+
+static bool _done = true;
+static bool _is_done(void)
+{
+    return _done;
+}
 
 static void _enter_mnemonic_passphrase(void);
 
@@ -46,7 +53,7 @@ static void _finish_bip39(const char* passphrase)
     if (!keystore_unlock_bip39(passphrase)) {
         Abort("bip39 unlock failed");
     }
-    workflow_change_state(WORKFLOW_STATE_NOT_PAIRED);
+    _done = true;
 }
 
 static void _mnemonic_passphrase_confirm_done(const char* passphrase)
@@ -96,6 +103,12 @@ static void _enter(void)
     ui_screen_stack_switch(set_password_create(workflow_unlock_enter_done));
 }
 
+static void _workflow_unlock(void)
+{
+    // "Enter password"
+    ui_screen_stack_push(entry_screen_create("Enter password", _enter));
+}
+
 void workflow_unlock_enter_done(const char* password)
 {
     uint8_t remaining_attempts = 0;
@@ -116,7 +129,7 @@ void workflow_unlock_enter_done(const char* password)
         } else {
             snprintf(msg, sizeof(msg), "Wrong password\n%d tries remain", remaining_attempts);
         }
-        ui_screen_stack_switch(status_create(msg, false, STATUS_DEFAULT_DELAY, workflow_unlock));
+        ui_screen_stack_switch(status_create(msg, false, STATUS_DEFAULT_DELAY, _workflow_unlock));
         break;
     }
     case KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED:
@@ -132,6 +145,12 @@ void workflow_unlock_enter_done(const char* password)
 
 void workflow_unlock(void)
 {
-    // "Enter password"
-    ui_screen_stack_switch(entry_screen_create("Enter password", _enter));
+    if (!memory_is_initialized() || keystore_is_unlocked()) {
+        return;
+    }
+    _done = false;
+    ui_screen_stack_pop_all();
+    _workflow_unlock();
+    ui_screen_process(_is_done);
+    ui_screen_stack_pop();
 }

@@ -38,6 +38,6 @@ except AttributeError:
     sys.exit(1)
 
 # pylint: disable=wrong-import-position
-from .bitbox02 import BitBox02, Bitbox02Exception, HARDENED, hww
+from .bitbox02 import BitBox02, Bitbox02Exception, AttestationException, HARDENED, hww
 from .bootloader import Bootloader
-from .devices import get_bitbox02_devices
+from .devices import get_bitbox02_devices, parse_device_version

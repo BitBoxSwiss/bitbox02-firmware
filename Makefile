@@ -67,6 +67,6 @@ dockerrun:
 generate-atecc608-config:
 	cd tools/go/src/atecc608a/ && $(MAKE) run
 ci:
-	./.ci/ci.sh
+	./.ci/ci
 clean:
 	rm -rf build/*

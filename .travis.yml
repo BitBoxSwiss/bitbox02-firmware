@@ -9,4 +9,4 @@ os:
   - linux
 
 script:
-- ./.ci/travis-ci.sh
+- ./.ci/travis-ci

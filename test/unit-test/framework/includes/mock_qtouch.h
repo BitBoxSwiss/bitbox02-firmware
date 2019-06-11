@@ -29,4 +29,6 @@ uint8_t qtouch_is_scroller_active(uint16_t sensor_node);
 
 uint16_t qtouch_get_scroller_position(uint16_t sensor_node);
 
+void qtouch_force_calibrate(void);
+
 #endif

@@ -53,6 +53,7 @@ uint16_t qtouch_get_scroller_position(uint16_t sensor_node);
 void qtouch_timer_handler(void);
 void qtouch_init(void);
 void qtouch_process(void);
+void qtouch_force_calibrate(void);
 
 void qtimer_task_cb(const struct timer_task *const timer_task);
 void qtouch_timer_config(void);

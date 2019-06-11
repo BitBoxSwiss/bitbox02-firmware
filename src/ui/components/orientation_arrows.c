@@ -17,6 +17,12 @@
 #include <hardfault.h>
 #include <util.h>
 
+#if !defined(TESTING)
+#include <qtouch.h>
+#else
+#include <mock_qtouch.h>
+#endif
+
 #define SCALE 2 // Divide `count` by scale to slow down motion
 #define TEXT "Tap this side"
 #define COUNT_CHANGE_DIRECTION (SCREEN_WIDTH / 2 + IMAGE_DEFAULT_ARROW_HEIGHT - 2)
@@ -116,6 +122,7 @@ static void _render(component_t* component)
         }
         data->enable_touch = true;
     }
+    qtouch_force_calibrate();
     data->screen_count++;
 }
 

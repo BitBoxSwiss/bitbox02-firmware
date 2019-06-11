@@ -221,6 +221,14 @@ extern "C" {
  */
 #define DEF_MAX_ON_DURATION 0
 
+
+/*
+ * The count that the reference value must be above the measured value to
+ * allow the force calibrate procedure to overwrite the reference to the
+ * current measured value.
+ */
+#define KEY_FORCE_CALIBRATE_THRESHOLD 10
+
 /**********************************************************/
 /***************** Slider/Wheel Parameters ****************/
 /**********************************************************/

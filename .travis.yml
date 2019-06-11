@@ -8,10 +8,5 @@ services:
 os:
   - linux
 
-addons:
-  apt:
-    packages:
-      - make
-
 script:
 - ./.ci/travis-ci.sh

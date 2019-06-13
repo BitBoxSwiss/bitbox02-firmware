@@ -33,7 +33,6 @@ uint16_t qtouch_get_scroller_position(uint16_t sensor_node)
     return (uint16_t)mock();
 }
 
-void qtouch_process(void)
-{
-    ;
-}
+void qtouch_process(void) {}
+
+void qtouch_force_calibrate(void) {}

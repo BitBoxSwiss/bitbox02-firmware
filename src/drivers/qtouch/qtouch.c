@@ -273,6 +273,26 @@ static touch_ret_t touch_sensors_config(void)
 	return (touch_ret);
 }
 
+
+/*
+ * Force calibrate
+ *
+ * Call this function when the user "probably" isn't touching the device to reset all the
+ * calibration values. It will only reset inputs that are not considered to be in "touched" states
+ */
+void qtouch_force_calibrate(void) {
+    qtm_touch_key_data_t* key;
+    for (uint16_t i = 0u; i < DEF_NUM_CHANNELS; i++) {
+        key = &qtlib_key_data_set1[i];
+        uint16_t value = key->node_data_struct_ptr->node_acq_signals;
+        uint16_t reference = key->channel_reference;
+        int32_t diff = (int32_t)reference - (int32_t)value;
+        if(!(key->sensor_state & KEY_TOUCHED_MASK) && diff > KEY_FORCE_CALIBRATE_THRESHOLD){
+            key->channel_reference = key->node_data_struct_ptr->node_acq_signals;
+        }
+    }
+}
+
 /*============================================================================
 static void init_complete_callback(void)
 ------------------------------------------------------------------------------

@@ -249,17 +249,20 @@ def main():
         print("Please compare and confirm the pairing code on your BitBox02:")
         print(code)
 
-    device = bitbox02.BitBox02(device_path=bitboxes[0]["path"], show_pairing_callback=show_pairing)
+    def attestation_check(result):
+        if result:
+            print("Device attestation PASSED")
+        else:
+            print("Device attestation FAILED")
+
+    device = bitbox02.BitBox02(
+        device_info=bitboxes[0],
+        show_pairing_callback=show_pairing,
+        attestation_check_callback=attestation_check,
+    )
     if args.debug:
         device.debug = True
 
-    try:
-        if not device.perform_attestation():
-            print("Device attestation FAILED")
-        else:
-            print("Device attestation PASSED")
-    except bitbox02.Bitbox02Exception:
-        print("Device attestation not ready")
     cont = True
     while cont:
         cont = menu(device)

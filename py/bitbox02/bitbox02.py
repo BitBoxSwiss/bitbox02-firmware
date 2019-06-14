@@ -25,8 +25,10 @@ import hashlib
 import ecdsa
 from noise.connection import NoiseConnection, Keypair
 import hid
+import semver
 
 from .usb import hid_send_frames, hid_read_frames
+from .devices import parse_device_version
 
 try:
     from .generated import hww_pb2 as hww
@@ -49,6 +51,8 @@ ATTESTATION_PUBKEYS = [
 
 ATTESTATION_PUBKEYS_MAP = {hashlib.sha256(val).digest(): val for val in ATTESTATION_PUBKEYS}
 
+OP_ATTESTATION = b"a"
+OP_UNLOCK = b"u"
 OP_I_CAN_HAS_HANDSHAEK = b"h"
 OP_I_CAN_HAS_PAIRIN_VERIFICASHUN = b"v"
 
@@ -66,13 +70,30 @@ class Bitbox02Exception(Exception):
         return f"error code: {self.code}, message: {self.message}"
 
 
+class AttestationException(Exception):
+    pass
+
+
 class BitBox02:
     """Class to communicate with a BitBox02"""
 
-    def __init__(self, device_path, show_pairing_callback):
+    def __init__(self, device_info, show_pairing_callback, attestation_check_callback=None):
         self.debug = False
+        serial_number = device_info["serial_number"]
+        self.version = parse_device_version(serial_number)
+        if self.version is None:
+            raise ValueError(f"Could not parse version from {serial_number}")
         self.device = hid.device()
-        self.device.open_path(device_path)
+        self.device.open_path(device_info["path"])
+
+        if self.version > semver.VersionInfo(1, 0, 0):
+            if attestation_check_callback is not None:
+                # Perform attestation
+                attestation_check_callback(self._perform_attestation())
+
+            # Invoke unlock workflow on the device.
+            # In version <=1.0.0, the device did this automatically.
+            self._query(OP_UNLOCK)
 
         if self._query(OP_I_CAN_HAS_HANDSHAEK) != RESPONSE_SUCCESS:
             raise Exception("Couldn't kick off handshake")
@@ -329,38 +350,44 @@ class BitBox02:
         request.set_mnemonic_passphrase_enabled.enabled = enabled
         self._msg_query(request, expected_response="success")
 
-    def perform_attestation(self):
-        """TODO: Document"""
-        # pylint: disable=no-member
-        request = hww.Request()
+    def _perform_attestation(self):
+        """Sends a random challenge and verifies that the response can be verified with
+        Shift's root attestation pubkeys. Returns True if the verification is successful."""
+
         challenge = os.urandom(32)
-        request.perform_attestation.challenge = challenge
-        response = self._msg_query(request, expected_response="perform_attestation")
+        response = self._query(OP_ATTESTATION + challenge)
+        if response[:1] != RESPONSE_SUCCESS:
+            return False
 
-        data = response.perform_attestation
+        # parse data
+        response = response[1:]
+        bootloader_hash, response = response[:32], response[32:]
+        device_pubkey_bytes, response = response[:64], response[64:]
+        certificate, response = response[:64], response[64:]
+        root_pubkey_identifier, response = response[:32], response[32:]
+        challenge_signature, response = response[:64], response[64:]
 
-        if data.root_pubkey_identifier not in ATTESTATION_PUBKEYS_MAP:
+        # check attestation
+        if root_pubkey_identifier not in ATTESTATION_PUBKEYS_MAP:
             # root pubkey could not be identified.
             return False
 
-        root_pubkey_bytes_uncompressed = ATTESTATION_PUBKEYS_MAP[data.root_pubkey_identifier]
+        root_pubkey_bytes_uncompressed = ATTESTATION_PUBKEYS_MAP[root_pubkey_identifier]
         root_pubkey = ecdsa.VerifyingKey.from_string(
             root_pubkey_bytes_uncompressed[1:], ecdsa.curves.SECP256k1
         )
 
-        device_pubkey = ecdsa.VerifyingKey.from_string(data.device_pubkey, ecdsa.curves.NIST256p)
+        device_pubkey = ecdsa.VerifyingKey.from_string(device_pubkey_bytes, ecdsa.curves.NIST256p)
 
         try:
             # Verify certificate
             if not root_pubkey.verify(
-                data.certificate, data.bootloader_hash + data.device_pubkey, hashfunc=hashlib.sha256
+                certificate, bootloader_hash + device_pubkey_bytes, hashfunc=hashlib.sha256
             ):
                 return False
 
             # Verify challenge
-            if not device_pubkey.verify(
-                data.challenge_signature, challenge, hashfunc=hashlib.sha256
-            ):
+            if not device_pubkey.verify(challenge_signature, challenge, hashfunc=hashlib.sha256):
                 return False
         except ecdsa.BadSignatureError:
             return False

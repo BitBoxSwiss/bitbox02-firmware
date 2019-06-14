@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef enum { WORKFLOW_STATE_CHOOSE_ORIENTATION, WORKFLOW_STATE_NOT_PAIRED } workflow_state_t;
+typedef enum { WORKFLOW_STATE_CHOOSE_ORIENTATION } workflow_state_t;
 
 /**
  * Pushes a confirm string on the screen a with a "Dismiss" button, to show data

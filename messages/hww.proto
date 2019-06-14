@@ -189,11 +189,13 @@ message SetMnemonicPassphraseEnabledRequest {
   bool enabled = 1;
 }
 
+// Deprecated, last used in v1.0.0
 message PerformAttestationRequest {
   // 32 bytes challenge.
   bytes challenge = 1;
 }
 
+// Deprecated, last used in v1.0.0
 message PerformAttestationResponse {
   bytes bootloader_hash = 1;
   bytes device_pubkey = 2;

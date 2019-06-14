@@ -14,11 +14,58 @@
 
 #include "hww.h"
 
+#include <attestation.h>
 #include <commander/commander.h>
+#include <keystore.h>
+#include <memory.h>
 #include <usb/noise.h>
 #include <usb/usb_packet.h>
 #include <usb/usb_processing.h>
 #include <workflow/status.h>
+#include <workflow/unlock.h>
+
+#define OP_ATTESTATION ((uint8_t)'a')
+#define OP_UNLOCK ((uint8_t)'u')
+
+#define OP_STATUS_SUCCESS ((uint8_t)0);
+#define OP_STATUS_FAILURE ((uint8_t)1);
+
+// in: 'a' + 32 bytes host challenge
+// out: bootloader_hash 32 | device_pubkey 64 | certificate 64 | root_pubkey_identifier 32 |
+// challenge_signature 64
+static void _api_attestation(const Packet* in_packet, Packet* out_packet)
+{
+    if (in_packet->len != 33) {
+        out_packet->len = 1;
+        out_packet->data_addr[0] = OP_STATUS_FAILURE;
+        return;
+    }
+    PerformAttestationResponse result;
+    if (!attestation_perform(in_packet->data_addr + 1, &result)) {
+        out_packet->len = 1;
+        out_packet->data_addr[0] = OP_STATUS_FAILURE;
+        return;
+    }
+    out_packet->len = 1 + sizeof(result.bootloader_hash) + sizeof(result.device_pubkey) +
+                      sizeof(result.certificate) + sizeof(result.root_pubkey_identifier) +
+                      sizeof(result.challenge_signature);
+
+    uint8_t* data = out_packet->data_addr;
+
+    data[0] = OP_STATUS_SUCCESS;
+    data += 1;
+
+    memcpy(data, result.bootloader_hash, sizeof(result.bootloader_hash));
+    data += sizeof(result.bootloader_hash);
+    memcpy(data, result.device_pubkey, sizeof(result.device_pubkey));
+    data += sizeof(result.device_pubkey);
+    memcpy(data, result.certificate, sizeof(result.certificate));
+    data += sizeof(result.certificate);
+    memcpy(data, result.root_pubkey_identifier, sizeof(result.root_pubkey_identifier));
+    data += sizeof(result.root_pubkey_identifier);
+    memcpy(data, result.challenge_signature, sizeof(result.challenge_signature));
+    data += sizeof(result.challenge_signature);
+}
 
 /**
  * Executes the HWW packet.
@@ -28,14 +75,32 @@
  */
 static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_out_len)
 {
+    if (in_packet->len >= 1) {
+        switch (in_packet->data_addr[0]) {
+        case OP_ATTESTATION:
+            _api_attestation(in_packet, out_packet);
+            return;
+        case OP_UNLOCK:
+            workflow_unlock();
+            out_packet->len = 0;
+            return;
+        default:
+            break;
+        }
+    }
+
+    // No other message than the attestation and unlock calls shall pass until the device is
+    // unlocked or ready to be initialized.
+    if (memory_is_initialized() && keystore_is_locked()) {
+        return;
+    }
+
+    // Process protofbuf/noise api calls.
     if (!bb_noise_process_msg(in_packet, out_packet, max_out_len, commander)) {
         workflow_status_create("Could not\npair with app");
     }
 }
 
-/**
- * Set up the HWW command.
- */
 void hww_setup(void)
 {
     const CMD_Callback hww_cmd_callbacks[] = {{HWW_MSG, _msg}};

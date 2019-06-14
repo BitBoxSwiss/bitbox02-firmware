@@ -16,7 +16,6 @@
 #include "commander/commander_btc.h"
 #include "commander/commander_states.h"
 
-#include <attestation.h>
 #include <flags.h>
 #include <hardfault.h>
 #include <memory.h>
@@ -188,16 +187,6 @@ static commander_error_t _api_set_mnemonic_passphrase_enabled(
     return COMMANDER_OK;
 }
 
-static commander_error_t _api_perform_attestation(
-    const PerformAttestationRequest* request,
-    PerformAttestationResponse* response)
-{
-    if (!attestation_perform(request->challenge, response)) {
-        return COMMANDER_ERR_GENERIC;
-    }
-    return COMMANDER_OK;
-}
-
 static commander_error_t _api_reboot(void)
 {
     if (!workflow_reboot()) {
@@ -272,10 +261,6 @@ static commander_error_t _api_process(const Request* request, Response* response
         response->which_response = Response_check_backup_tag;
         return _api_check_backup(
             &(request->request.check_backup), &(response->response.check_backup));
-    case Request_perform_attestation_tag:
-        response->which_response = Response_perform_attestation_tag;
-        return _api_perform_attestation(
-            &(request->request.perform_attestation), &(response->response.perform_attestation));
     case Request_reboot_tag:
         response->which_response = Response_success_tag;
         return _api_reboot();

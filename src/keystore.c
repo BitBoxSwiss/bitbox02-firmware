@@ -326,14 +326,15 @@ bool keystore_unlock_bip39(const char* mnemonic_passphrase)
     return true;
 }
 
-bool keystore_is_unlocked(void)
+bool keystore_is_locked(void)
 {
-    return _is_unlocked_device && _is_unlocked_bip39;
+    bool unlocked = _is_unlocked_device && _is_unlocked_bip39;
+    return !unlocked;
 }
 
 bool keystore_get_bip39_mnemonic(char** mnemonic_out)
 {
-    if (!keystore_is_unlocked()) {
+    if (keystore_is_locked()) {
         return false;
     }
     uint8_t* seed = _get_seed();
@@ -345,7 +346,7 @@ bool keystore_get_bip39_mnemonic(char** mnemonic_out)
 
 static bool _get_xprv(const uint32_t* keypath, const size_t keypath_len, struct ext_key* xprv_out)
 {
-    if (!keystore_is_unlocked()) {
+    if (keystore_is_locked()) {
         return false;
     }
     uint8_t* bip39_seed = _get_bip39_seed();
@@ -462,7 +463,7 @@ bool keystore_sign_secp256k1(
     const uint8_t* msg32,
     uint8_t* sig_compact_out)
 {
-    if (!keystore_is_unlocked()) {
+    if (keystore_is_locked()) {
         return false;
     }
     struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};

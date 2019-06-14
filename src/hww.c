@@ -91,7 +91,7 @@ static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_o
 
     // No other message than the attestation and unlock calls shall pass until the device is
     // unlocked or ready to be initialized.
-    if (memory_is_initialized() && !keystore_is_unlocked()) {
+    if (memory_is_initialized() && keystore_is_locked()) {
         return;
     }
 

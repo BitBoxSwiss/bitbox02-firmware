@@ -145,7 +145,7 @@ void workflow_unlock_enter_done(const char* password)
 
 void workflow_unlock(void)
 {
-    if (!memory_is_initialized() || keystore_is_unlocked()) {
+    if (!memory_is_initialized() || !keystore_is_locked()) {
         return;
     }
     _done = false;

@@ -92,10 +92,10 @@ USE_RESULT keystore_error_t keystore_unlock(const char* password, uint8_t* remai
 USE_RESULT bool keystore_unlock_bip39(const char* mnemonic_passphrase);
 
 /**
- * @return ture if the keystore is unlocked (keystore_unlock() followed by
- * keystore_unlock_bip39()).
+ * @return false if the keystore is unlocked (keystore_unlock() followed by
+ * keystore_unlock_bip39()), true otherwise.
  */
-USE_RESULT bool keystore_is_unlocked(void);
+USE_RESULT bool keystore_is_locked(void);
 
 /**
  * @return returns false if the keystore is not unlocked. String returned

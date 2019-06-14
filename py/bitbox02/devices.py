@@ -40,7 +40,7 @@ def get_bitbox02_devices(product_string=BITBOX02):
 
 
 def parse_device_version(serial_number):
-    match = re.search(r"v([0-9]+\.[0-9]+\.[0-9]+)", serial_number)
+    match = re.search(r"v([0-9]+\.[0-9]+\.[0-9]+.*)", serial_number)
     if match is None:
         return None
 

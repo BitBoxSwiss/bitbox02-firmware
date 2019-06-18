@@ -457,7 +457,7 @@ bool keystore_get_bip39_word(uint16_t idx, char** word_out)
     return bip39_get_word(NULL, idx, word_out) == WALLY_OK;
 }
 
-bool keystore_sign_secp256k1(
+bool keystore_secp256k1_sign(
     const uint32_t* keypath,
     size_t keypath_len,
     const uint8_t* msg32,

@@ -141,7 +141,7 @@ USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);
  * Parse with secp256k1_ecdsa_signature_serialize_compact().
  * @return true on success, false if the keystore is locked.
  */
-USE_RESULT bool keystore_sign_secp256k1(
+USE_RESULT bool keystore_secp256k1_sign(
     const uint32_t* keypath,
     size_t keypath_len,
     const uint8_t* msg32,

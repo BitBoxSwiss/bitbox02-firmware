@@ -239,15 +239,21 @@ static app_btc_sign_error_t _sign_input_pass2(
     }
 
     { // Sign input.
-        struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-        if (!keystore_get_xpub(request->keypath, request->keypath_count, &derived_xpub)) {
+        uint8_t pubkey_hash160[20];
+        UTIL_CLEANUP_20(pubkey_hash160);
+        if (!keystore_secp256k1_pubkey(
+                KEYSTORE_SECP256K1_PUBKEY_HASH160,
+                request->keypath,
+                request->keypath_count,
+                pubkey_hash160,
+                sizeof(pubkey_hash160))) {
             return _error(APP_BTC_SIGN_ERR_UNKNOWN);
         }
 
         uint8_t sighash_script[MAX_SIGHASH_SCRIPT_SIZE] = {0};
         size_t sighash_script_size = sizeof(sighash_script);
         if (!btc_common_sighash_script_from_pubkeyhash(
-                _script_type, derived_xpub.hash160, sighash_script, &sighash_script_size)) {
+                _script_type, pubkey_hash160, sighash_script, &sighash_script_size)) {
             return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
         }
         uint8_t sighash[32] = {0};
@@ -342,14 +348,20 @@ app_btc_sign_error_t app_btc_sign_output(
                 true)) {
             return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
         }
-        struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-        if (!keystore_get_xpub(request->keypath, request->keypath_count, &derived_xpub)) {
+        uint8_t pubkey_hash160[20];
+        UTIL_CLEANUP_20(pubkey_hash160);
+        if (!keystore_secp256k1_pubkey(
+                KEYSTORE_SECP256K1_PUBKEY_HASH160,
+                request->keypath,
+                request->keypath_count,
+                pubkey_hash160,
+                sizeof(pubkey_hash160))) {
             return _error(APP_BTC_SIGN_ERR_UNKNOWN);
         }
         // construct pkScript
         size_t out_size = 0;
         if (!btc_common_outputhash_from_pubkeyhash(
-                _script_type, derived_xpub.hash160, hash.bytes, &out_size)) {
+                _script_type, pubkey_hash160, hash.bytes, &out_size)) {
             return _error(APP_BTC_SIGN_ERR_UNKNOWN);
         }
         hash.size = (pb_size_t)out_size;

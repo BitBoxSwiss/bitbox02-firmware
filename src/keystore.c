@@ -457,6 +457,60 @@ bool keystore_get_bip39_word(uint16_t idx, char** word_out)
     return bip39_get_word(NULL, idx, word_out) == WALLY_OK;
 }
 
+// Reformats xpub from compressed 33 bytes to uncompressed 65 bytes (<0x04><64 bytes X><64 bytes
+// Y>),
+// pubkey must be 33 bytes
+// uncompressed_out must be 65 bytes.
+static bool _compressed_to_uncompressed(const uint8_t* pubkey_bytes, uint8_t* uncompressed_out)
+{
+    secp256k1_context* ctx = wally_get_secp_context();
+    secp256k1_pubkey pubkey;
+    if (!secp256k1_ec_pubkey_parse(ctx, &pubkey, pubkey_bytes, 33)) {
+        return false;
+    }
+    size_t len = 65;
+    if (!secp256k1_ec_pubkey_serialize(
+            ctx, uncompressed_out, &len, &pubkey, SECP256K1_EC_UNCOMPRESSED)) {
+        return false;
+    }
+    return true;
+}
+
+bool keystore_secp256k1_pubkey(
+    keystore_secp256k1_pubkey_format format,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint8_t* pubkey_out,
+    size_t pubkey_out_len)
+{
+    if (keystore_is_locked()) {
+        return false;
+    }
+    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
+    if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
+        return false;
+    }
+    switch (format) {
+    case KEYSTORE_SECP256K1_PUBKEY_HASH160:
+        if (pubkey_out_len != sizeof(xprv.hash160)) {
+            return false;
+        }
+        memcpy(pubkey_out, xprv.hash160, sizeof(xprv.hash160));
+        break;
+    case KEYSTORE_SECP256K1_PUBKEY_UNCOMPRESSED:
+        if (pubkey_out_len != EC_PUBLIC_KEY_UNCOMPRESSED_LEN) {
+            return false;
+        }
+        if (!_compressed_to_uncompressed(xprv.pub_key, pubkey_out)) {
+            return false;
+        }
+        break;
+    default:
+        return false;
+    }
+    return true;
+}
+
 bool keystore_secp256k1_sign(
     const uint32_t* keypath,
     size_t keypath_len,

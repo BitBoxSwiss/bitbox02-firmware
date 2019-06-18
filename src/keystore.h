@@ -132,6 +132,27 @@ USE_RESULT uint16_t keystore_get_bip39_wordlist_length(void);
  */
 USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);
 
+typedef enum {
+    KEYSTORE_SECP256K1_PUBKEY_HASH160,
+    KEYSTORE_SECP256K1_PUBKEY_UNCOMPRESSED,
+} keystore_secp256k1_pubkey_format;
+
+/**
+ * Return the serialized secp256k1 public key at the keypath.
+ * @param[in] format Output format. For HASH160, the output is the hash of the public key.
+ * @param[in] keypath derivation keypath
+ * @param[in] keypath_len size of keypath buffer
+ * @param[out] pubkey_out serialized output
+ * @param[in] pubkey_out_len: must be 20 for HASH160, 65 for UNCOMPRESSED.
+ * @return true on success, false if the keystore is locked or the input is invalid.
+ */
+USE_RESULT bool keystore_secp256k1_pubkey(
+    keystore_secp256k1_pubkey_format format,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint8_t* pubkey_out,
+    size_t pubkey_out_len);
+
 /**
  * Sign message with private key at the given keypath. Keystore must be unlocked.
  * @param[in] keypath derivation keypath

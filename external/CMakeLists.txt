@@ -23,7 +23,7 @@ if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core-${TARGET_CODE}-build/.li
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core-${TARGET_CODE}-build/)
     ExternalProject_Add(libwally-core
       GIT_REPOSITORY https://github.com/shiftdevices/libwally-core.git
-      GIT_TAG        firmware_v2
+      GIT_TAG        bitbox02-firmware
       PREFIX         ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_CODE}/libwally-core
       STEP_TARGETS   build-libwally
       SOURCE_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core

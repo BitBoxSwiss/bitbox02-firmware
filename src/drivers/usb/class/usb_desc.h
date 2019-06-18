@@ -129,33 +129,36 @@
 
 #define USB_DESC_ISERIALNUM 3
 
+#if defined(BOOTLOADER_DEVDEVICE) && defined(BOOTLOADER_VERSION_HAS_METADATA)
+#define BOOTLOADER_VERSION_APPEND_LEN 4
+#define BOOTLOADER_VERSION_APPEND_W16 \
+        '.', 0, \
+        'd', 0, \
+        'e', 0, \
+        'v', 0,
+#elif defined(BOOTLOADER_DEVDEVICE)
+#define BOOTLOADER_VERSION_APPEND_LEN 4
+#define BOOTLOADER_VERSION_APPEND_W16 \
+        '+', 0, \
+        'd', 0, \
+        'e', 0, \
+        'v', 0,
+#else
+#define BOOTLOADER_VERSION_APPEND_LEN 0
+#define BOOTLOADER_VERSION_APPEND_W16
+#endif
+
 #ifdef BOOTLOADER
 #define USB_DESC_ISERIALNUM_STR_DESC \
-        (18 + BOOTLOADER_VERSION_SHORT_LEN * 2 + BOOTLOADER_VERSION_APPEND_LEN * 2), /* bLength */\
+        (2 + BOOTLOADER_VERSION_LEN * 2 + BOOTLOADER_VERSION_APPEND_LEN * 2), /* bLength */\
         0x03,  /* bDescriptorType */\
-        'b', 0,\
-        'b', 0,\
-        '0', 0,\
-        '2', 0,\
-        '.', 0,\
-        'b', 0,\
-        'l', 0,\
-        ':', 0,\
-        BOOTLOADER_VERSION_SHORT_W16 \
+        BOOTLOADER_VERSION_W16 \
         BOOTLOADER_VERSION_APPEND_W16
 #else
 #define USB_DESC_ISERIALNUM_STR_DESC \
-        (18 + DIGITAL_BITBOX_VERSION_SHORT_LEN * 2), /* bLength */\
+        (2 + DIGITAL_BITBOX_VERSION_LEN * 2), /* bLength */\
         0x03,  /* bDescriptorType */\
-        'b', 0,\
-        'b', 0,\
-        '0', 0,\
-        '2', 0,\
-        '.', 0,\
-        'f', 0,\
-        'w', 0,\
-        ':', 0,\
-        DIGITAL_BITBOX_VERSION_SHORT_W16
+        DIGITAL_BITBOX_VERSION_W16
 #endif
 
 #define USB_STR_DESC \

@@ -91,23 +91,38 @@ endif()
 
 #-----------------------------------------------------------------------------
 # Create version header file
+#
+# Versions MUST contain three parts and start with lowercase 'v'.
+# Example 'v1.0.0'. They MUST not contain a pre-release label such as '-beta'.
+set(FIRMWARE_VERSION "v2.0.0")
+set(BOOTLOADER_VERSION "v1.0.1")
 
 find_package(PythonInterp 3.6 REQUIRED)
 
 find_package(Git)
 if(GIT_FOUND AND PYTHONINTERP_FOUND)
-    # TODO: --check-gpg cannot be used in container. Add our pubkeys to image?
-    # For firmware version
+    # TODO: --verify cannot be used in container. Add our pubkeys to image?
     execute_process(
         COMMAND ${PYTHON_EXECUTABLE} ./scripts/get_version firmware --check-semver --check-gpg
         RESULT_VARIABLE exit_code
-        OUTPUT_VARIABLE FIRMWARE_VERSION
+        OUTPUT_VARIABLE GIT_FIRMWARE_VERSION_STRING
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
     if(NOT exit_code EQUAL "0")
-        set(FIRMWARE_VERSION "v0.0.0")
+        set(GIT_FIRMWARE_VERSION_STRING "v0.0.0")
     endif()
+    execute_process(
+        COMMAND ${PYTHON_EXECUTABLE} ./scripts/get_version bootloader --check-semver --check-gpg
+        RESULT_VARIABLE exit_code
+        OUTPUT_VARIABLE GIT_BOOTLOADER_VERSION_STRING
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(NOT exit_code EQUAL "0")
+        set(GIT_BOOTLOADER_VERSION_STRING "v0.0.0")
+    endif()
+
     execute_process(
         COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
         RESULT_VARIABLE exit_code
@@ -116,7 +131,7 @@ if(GIT_FOUND AND PYTHONINTERP_FOUND)
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
     if(NOT exit_code EQUAL "0")
-        set(GIT_COMMIT_HASH "000000")
+        set(GIT_COMMIT_HASH "0000000000000000000000000000000000000000")
     endif()
     execute_process(
         COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
@@ -128,49 +143,38 @@ if(GIT_FOUND AND PYTHONINTERP_FOUND)
     if(NOT exit_code EQUAL "0")
         set(GIT_COMMIT_HASH_SHORT "000000")
     endif()
-
-    # For bootloader version
-    execute_process(
-        COMMAND ${PYTHON_EXECUTABLE} ./scripts/get_version bootloader --check-semver --check-gpg
-        RESULT_VARIABLE exit_code
-        OUTPUT_VARIABLE BOOTLOADER_VERSION_STRING
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if(NOT exit_code EQUAL "0")
-        set(BOOTLOADER_VERSION_STRING "v0.0.0")
-    endif()
-
-    # Firmware
-    string(REPLACE "." ";" VERSION_LIST ${FIRMWARE_VERSION})
-    list(GET VERSION_LIST 0 vMAJOR)
-    list(GET VERSION_LIST 1 MINOR)
-    list(GET VERSION_LIST 2 PATCH)
-    string(REPLACE "v" "" MAJOR ${vMAJOR})
-
-    # Bootloader
-    STRING(REGEX REPLACE "-.*$" "" BOOTLOADER_VERSION_STRING_SHORT ${BOOTLOADER_VERSION_STRING})
-    STRING(REGEX REPLACE "\\+.*$" "" BOOTLOADER_VERSION_STRING_SHORT ${BOOTLOADER_VERSION_STRING_SHORT})
-    string(LENGTH ${BOOTLOADER_VERSION_STRING_SHORT} BOOTLOADER_VERSION_STRING_SHORT_LEN)
-    string(REGEX REPLACE "(.)" "'\\1', 0, " BOOTLOADER_VERSION_STRING_SHORT_W16 ${BOOTLOADER_VERSION_STRING_SHORT})
 else()
-    set(FIRMWARE_VERSION "v0.0.0")
-    set(GIT_COMMIT_HASH "000000")
+    set(GIT_FIRMWARE_VERSION_STRING "v0.0.0")
+    set(GIT_BOOTLOADER_VERSION_STRING "v0.0.0")
+    set(GIT_COMMIT_HASH "0000000000000000000000000000000000000000")
     set(GIT_COMMIT_HASH_SHORT "000000")
 endif()
-STRING(REGEX REPLACE "-.*$" "" PATCH ${PATCH})
-STRING(REGEX REPLACE "\\+.*$" "" PATCH ${PATCH})
-set(VERSION_STRING "${FIRMWARE_VERSION}")
-set(VERSION_STRING_SHORT "v${MAJOR}.${MINOR}.${PATCH}")
-set(GITHASH_STRING "${GIT_COMMIT_HASH}")
-set(GITHASH_SHORT_STRING "${GIT_COMMIT_HASH_SHORT}")
-string(REGEX REPLACE "(.)" "'\\1', 0, " VERSION_STRING_SHORT_W16 ${VERSION_STRING_SHORT})
-string(LENGTH ${GITHASH_STRING} GITHASH_STRING_LEN)
-string(LENGTH ${GITHASH_SHORT_STRING} GITHASH_SHORT_STRING_LEN)
-string(LENGTH ${VERSION_STRING_SHORT} VERSION_STRING_SHORT_LEN)
-set(VERSION_STRING_MAJOR ${MAJOR})
-set(VERSION_STRING_MINOR ${MINOR})
-set(VERSION_STRING_PATCH ${PATCH})
+
+# If the current HEAD is not on the matching tag append '-pre' for "pre-release"
+set(FIRMWARE_VERSION_FULL ${FIRMWARE_VERSION})
+if(NOT FIRMWARE_VERSION STREQUAL GIT_FIRMWARE_VERSION_STRING)
+        string(APPEND FIRMWARE_VERSION_FULL "-pre+${GIT_COMMIT_HASH_SHORT}")
+endif()
+set(BOOTLOADER_VERSION_FULL ${BOOTLOADER_VERSION})
+if(NOT BOOTLOADER_VERSION STREQUAL GIT_BOOTLOADER_VERSION_STRING)
+        string(APPEND BOOTLOADER_VERSION_FULL "-pre+${GIT_COMMIT_HASH_SHORT}")
+        add_definitions("-DBOOTLOADER_VERSION_HAS_METADATA")
+endif()
+
+string(REPLACE "." ";" VERSION_LIST ${FIRMWARE_VERSION})
+list(GET VERSION_LIST 0 vMAJOR)
+list(GET VERSION_LIST 1 MINOR)
+list(GET VERSION_LIST 2 PATCH)
+string(REPLACE "v" "" MAJOR ${vMAJOR})
+
+string(LENGTH ${BOOTLOADER_VERSION_FULL} BOOTLOADER_VERSION_FULL_LEN)
+string(REGEX REPLACE "(.)" "'\\1', 0, " BOOTLOADER_VERSION_FULL_W16 ${BOOTLOADER_VERSION_FULL})
+
+string(LENGTH ${FIRMWARE_VERSION_FULL} FIRMWARE_VERSION_FULL_LEN)
+string(REGEX REPLACE "(.)" "'\\1', 0, " FIRMWARE_VERSION_FULL_W16 ${FIRMWARE_VERSION_FULL})
+set(FIRMWARE_VERSION_MAJOR ${MAJOR})
+set(FIRMWARE_VERSION_MINOR ${MINOR})
+set(FIRMWARE_VERSION_PATCH ${PATCH})
 
 configure_file(src/version.h.in src/version.h)
 configure_file(src/bootloader/bootloader_version.h.in src/bootloader/bootloader_version.h)
@@ -218,6 +222,10 @@ message(STATUS "Compiler version:       ${CMAKE_C_COMPILER_ID} ${C_COMPILER_VERS
 message(STATUS "Compiler:               ${CMAKE_C_COMPILER}")
 message(STATUS "Linker:                 ${CMAKE_LINKER}")
 message(STATUS "Archiver:               ${CMAKE_AR}")
+message(STATUS "Firmware version:       ${FIRMWARE_VERSION_FULL}")
+message(STATUS "Bootloader version:     ${BOOTLOADER_VERSION_FULL}")
+message(STATUS "Firmware v. (git):      ${GIT_FIRMWARE_VERSION_STRING}")
+message(STATUS "Bootloader v. (git):    ${GIT_BOOTLOADER_VERSION_STRING}")
 message(STATUS "            - Options -")
 message(STATUS "Build type:             ${MYPROJECT}")
 message(STATUS "Hardware version:       ${HARDWARE}")

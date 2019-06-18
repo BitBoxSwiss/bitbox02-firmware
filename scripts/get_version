@@ -199,7 +199,7 @@ def main():
                 f"Failed to parse `git rev-list --count` as integer: {res.stdout.strip()}"
             )
 
-        version += f"-{count}"
+        version += f"+{count}"
     else:
         version = tags[0]
         selected_tag = version
@@ -222,7 +222,11 @@ def main():
         return res.returncode
 
     if res.stdout.strip():
-        version += "+dirty"
+        # semver metadata fields are separated by dots
+        if '+' in version:
+            version += ".dirty"
+        else:
+            version += "+dirty"
 
     print(version)
     return 0

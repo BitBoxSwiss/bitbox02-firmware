@@ -45,7 +45,8 @@ HARDENED = 0x80000000
 # values: uncompressed secp256k1 pubkey serialization.
 ATTESTATION_PUBKEYS = [
     binascii.unhexlify(
-        "04074ff1273b36c24e80fe3d59e0e897a81732d3f8e9cd07e17e9fc06319cd16b25cf74255674477b3ac9cbac2d12f0dc27a662681fcbc12955b0bccdcbbdcfd01"
+        "04074ff1273b36c24e80fe3d59e0e897a81732d3f8e9cd07e17e9fc06319cd16b"
+        "25cf74255674477b3ac9cbac2d12f0dc27a662681fcbc12955b0bccdcbbdcfd01"
     )
 ]
 
@@ -406,3 +407,37 @@ class BitBox02:
         except Bitbox02Exception:
             return False
         return True
+
+    def _eth_msg_query(self, eth_request, expected_response=None):
+        """
+        Same as _msg_query, but one nesting deeper for ethereum messages.
+        """
+        request = hww.Request()
+        # pylint: disable=no-member
+        request.eth.CopyFrom(eth_request)
+        eth_response = self._msg_query(request, expected_response="eth").eth
+        if (
+            expected_response is not None
+            and eth_response.WhichOneof("response") != expected_response
+        ):
+            raise Exception(
+                "Unexpected response: {}, expected: {}".format(
+                    eth_response.WhichOneof("response"), expected_response
+                )
+            )
+        return eth_response
+
+    def eth_pub(
+        self, keypath=None, coin=hww.ETH, output_type=hww.ETHPubRequest.ADDRESS, display=True
+    ):
+        """
+        keypath is a list of child derivation numbers.
+        e.g. m/44'/60'/0'/0/5 corresponds to [44+HARDENED, 60+HARDENED, 0+HARDENED, 0, 5].
+        """
+        # pylint: disable=no-member,too-many-arguments
+        keypath = [] if keypath is None else keypath
+        request = hww.ETHRequest()
+        request.pub.CopyFrom(
+            hww.ETHPubRequest(coin=coin, keypath=keypath, output_type=output_type, display=display)
+        )
+        return self._eth_msg_query(request, expected_response="pub").pub.pub

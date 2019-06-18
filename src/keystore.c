@@ -24,6 +24,7 @@
 #include "securechip/securechip.h"
 #include "util.h"
 
+#include <secp256k1.h>
 #include <wally_bip39.h>
 #include <wally_crypto.h>
 

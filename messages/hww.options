@@ -40,3 +40,4 @@ PerformAttestationResponse.device_pubkey fixed_length:true max_size:64
 PerformAttestationResponse.certificate fixed_length:true max_size:64
 PerformAttestationResponse.root_pubkey_identifier fixed_length:true max_size:32
 PerformAttestationResponse.challenge_signature fixed_length:true max_size:64
+ETHPubRequest.keypath max_count:10

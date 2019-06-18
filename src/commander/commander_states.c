@@ -56,6 +56,7 @@ static commander_states_endpoint_id _commands_initialized[] = {
     Request_create_backup_tag,
     Request_show_mnemonic_tag,
     Request_set_mnemonic_passphrase_enabled_tag,
+    Request_eth_tag,
 };
 
 commander_states_state_t commander_states_state(void)

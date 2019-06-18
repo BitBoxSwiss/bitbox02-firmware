@@ -142,6 +142,7 @@ def print_menu(mnemonic_passphrase_enabled):
         print("- (11) Disable BIP39 Mnemonic Passphrase")
     else:
         print("- (11) Enable BIP39 Mnemonic Passphrase")
+    print("- (12) Retrieve Ethereum address")
     print("- (q) Quit")
 
 
@@ -215,6 +216,17 @@ def select_option(device):
         if mnemonic_passphrase_enabled:
             print("You can enter a mnemonic passphrase on the next unlock.")
             print("Replug your BitBox02.")
+    elif choice == 12:
+
+        def address(display=False):
+            return device.eth_pub(
+                keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
+                output_type=bitbox02.hww.ETHPubRequest.ADDRESS,  # pylint: disable=no-member
+                display=display,
+            )
+
+        print("Ethereum address: {}".format(address(display=False)))
+        address(display=True)
     else:
         print("Input unknown, please try again...")
     return True

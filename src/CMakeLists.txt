@@ -235,6 +235,8 @@ set_source_files_properties(
 
 set(ETHEREUM-SOURCES
     ${SHA3-SOURCES}
+    ${CMAKE_SOURCE_DIR}/src/apps/eth/eth.c
+    ${CMAKE_SOURCE_DIR}/src/commander/commander_eth.c
 )
 
 set(FIRMWARE-DRIVER-SOURCES

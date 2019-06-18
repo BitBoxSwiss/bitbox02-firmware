@@ -14,6 +14,7 @@
 
 #include "commander.h"
 #include "commander/commander_btc.h"
+#include "commander/commander_eth.h"
 #include "commander/commander_states.h"
 
 #include <flags.h>
@@ -264,6 +265,9 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_reboot_tag:
         response->which_response = Response_success_tag;
         return _api_reboot();
+    case Request_eth_tag:
+        response->which_response = Response_eth_tag;
+        return commander_eth(&(request->request.eth), &(response->response.eth));
     default:
         screen_print_debug("command unknown", 1000);
         return COMMANDER_ERR_INVALID_INPUT;

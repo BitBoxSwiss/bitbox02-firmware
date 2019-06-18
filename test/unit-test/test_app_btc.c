@@ -19,10 +19,12 @@
 
 #include <apps/btc/btc.h>
 #include <keystore.h>
+#include <util.h>
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <util.h>
+
 #include <wally_bip32.h>
 
 #pragma GCC diagnostic push

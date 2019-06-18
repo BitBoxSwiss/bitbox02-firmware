@@ -156,3 +156,7 @@ add_test(NAME test_cipher COMMAND test_cipher)
 add_executable(test_sha3 test_sha3.c)
 target_link_libraries(test_sha3 bitbox cmocka)
 add_test(NAME test_sha3 COMMAND test_sha3)
+
+add_executable(test_app_eth test_app_eth.c)
+target_link_libraries(test_app_eth bitbox cmocka "-Wl,--wrap=keystore_secp256k1_pubkey")
+add_test(NAME test_app_eth COMMAND test_app_eth)

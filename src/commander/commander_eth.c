@@ -22,8 +22,8 @@
 #include <wally_bip32.h> // for BIP32_INITIAL_HARDENED_CHILD
 
 static const char* _coin_eth = "Ethereum";
-static const char* _coin_ropsten_eth = "Rinkeby";
-static const char* _coin_rinkeby_eth = "Ropsten";
+static const char* _coin_ropsten_eth = "Ropsten";
+static const char* _coin_rinkeby_eth = "Rinkeby";
 
 static commander_error_t _api_pub(const ETHPubRequest* request, PubResponse* response)
 {
@@ -37,6 +37,10 @@ static commander_error_t _api_pub(const ETHPubRequest* request, PubResponse* res
         return COMMANDER_ERR_GENERIC;
     }
     if (request->display) {
+        if (request->output_type != ETHPubRequest_OutputType_ADDRESS) {
+            // Only support displaying the address for now.
+            return COMMANDER_ERR_GENERIC;
+        }
         const char* coin;
         switch (request->coin) {
         case ETHCoin_ETH:

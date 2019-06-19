@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "eth_common.h"
+#include "eth_params.h"
 
 #include <sha3.h>
 #include <util.h>
@@ -25,27 +26,17 @@
 
 bool eth_common_is_valid_keypath(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
 {
+    app_eth_coin_params_t* params = app_eth_params_get(coin);
+    if (params == NULL) {
+        return false;
+    }
     if (keypath_len != 5) {
         return false;
     }
     if (keypath[0] != 44 + BIP32_INITIAL_HARDENED_CHILD) {
         return false;
     }
-    uint32_t expected_purpose;
-    switch (coin) {
-    case ETHCoin_ETH:
-        expected_purpose = 60; // mainnet
-        break;
-    case ETHCoin_RopstenETH:
-        expected_purpose = 1; // testnet
-        break;
-    case ETHCoin_RinkebyETH:
-        expected_purpose = 1; // testnet
-        break;
-    default:
-        return false;
-    }
-    if (keypath[1] != expected_purpose + BIP32_INITIAL_HARDENED_CHILD) {
+    if (keypath[1] != params->bip44_coin) {
         return false;
     }
     if (keypath[2] != 0 + BIP32_INITIAL_HARDENED_CHILD) {

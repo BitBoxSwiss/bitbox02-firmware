@@ -17,6 +17,7 @@
 #include <stdio.h>
 
 #include <apps/eth/eth.h>
+#include <apps/eth/eth_sign.h>
 #include <workflow/verify_pub.h>
 
 #include <wally_bip32.h> // for BIP32_INITIAL_HARDENED_CHILD
@@ -60,12 +61,27 @@ static commander_error_t _api_pub(const ETHPubRequest* request, PubResponse* res
     return COMMANDER_OK;
 }
 
+static commander_error_t _api_sign(const ETHSignRequest* request, ETHSignResponse* response)
+{
+    app_eth_sign_error_t result = app_eth_sign(request, response);
+    if (result == APP_ETH_SIGN_ERR_USER_ABORT) {
+        return COMMANDER_ERR_USER_ABORT;
+    }
+    if (result != APP_ETH_SIGN_OK) {
+        return COMMANDER_ERR_GENERIC;
+    }
+    return COMMANDER_OK;
+}
+
 commander_error_t commander_eth(const ETHRequest* request, ETHResponse* response)
 {
     switch (request->which_request) {
     case ETHRequest_pub_tag:
         response->which_response = PubResponse_pub_tag;
         return _api_pub(&(request->request.pub), &response->response.pub);
+    case ETHRequest_sign_tag:
+        response->which_response = ETHResponse_sign_tag;
+        return _api_sign(&(request->request.sign), &response->response.sign);
     default:
         return COMMANDER_ERR_GENERIC;
     }

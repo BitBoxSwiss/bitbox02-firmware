@@ -24,7 +24,8 @@
 #include <generated/hww.pb.h>
 
 #define APP_ETH_RECIPIENT_BYTES_LEN (20)
-#define APP_ETH_ADDRESS_HEX_LEN (APP_ETH_RECIPIENT_BYTES_LEN * 2 + 1) // including null terminator
+// including 0x prefix and null terminator.
+#define APP_ETH_ADDRESS_HEX_LEN (APP_ETH_RECIPIENT_BYTES_LEN * 2 + 2 + 1)
 
 /**
  * Does limit checks the keypath, whitelisting bip44 purpose and accounts.

@@ -412,8 +412,8 @@ class BitBox02:
         """
         Same as _msg_query, but one nesting deeper for ethereum messages.
         """
-        request = hww.Request()
         # pylint: disable=no-member
+        request = hww.Request()
         request.eth.CopyFrom(eth_request)
         eth_response = self._msg_query(request, expected_response="eth").eth
         if (
@@ -434,10 +434,35 @@ class BitBox02:
         keypath is a list of child derivation numbers.
         e.g. m/44'/60'/0'/0/5 corresponds to [44+HARDENED, 60+HARDENED, 0+HARDENED, 0, 5].
         """
-        # pylint: disable=no-member,too-many-arguments
+        # pylint: disable=no-member
         keypath = [] if keypath is None else keypath
         request = hww.ETHRequest()
         request.pub.CopyFrom(
             hww.ETHPubRequest(coin=coin, keypath=keypath, output_type=output_type, display=display)
         )
         return self._eth_msg_query(request, expected_response="pub").pub.pub
+
+    def eth_sign(self, transaction, keypath=None, coin=hww.ETH):
+        """
+        transaction should be given as a full rlp encoded eth transaction.
+        """
+        # pylint: disable=import-error
+        import rlp  # pip3 install rlp
+
+        nonce, gas_price, gas_limit, recipient, value, data, _, _, _ = rlp.decode(transaction)
+        keypath = [] if keypath is None else keypath
+        request = hww.ETHRequest()
+        # pylint: disable=no-member
+        request.sign.CopyFrom(
+            hww.ETHSignRequest(
+                coin=coin,
+                keypath=keypath,
+                nonce=nonce,
+                gas_price=gas_price,
+                gas_limit=gas_limit,
+                recipient=recipient,
+                value=value,
+                data=data,
+            )
+        )
+        return self._eth_msg_query(request, expected_response="sign").sign

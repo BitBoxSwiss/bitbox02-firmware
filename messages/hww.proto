@@ -225,15 +225,32 @@ message ETHPubRequest {
   bool display = 4;
 }
 
+message ETHSignRequest {
+  ETHCoin coin = 1;
+  repeated uint32 keypath = 2;
+  bytes nonce = 3;
+  bytes gas_price = 4;
+  bytes gas_limit = 5;
+  bytes recipient = 6;
+  bytes value = 7;
+  bytes data = 8;
+}
+
+message ETHSignResponse {
+  bytes signature = 1; // 65 bytes, last byte is the recid
+}
+
 message ETHRequest {
   oneof request {
     ETHPubRequest pub = 1;
+    ETHSignRequest sign = 2;
   }
 }
 
 message ETHResponse {
   oneof response {
     PubResponse pub = 1;
+    ETHSignResponse sign = 2;
   }
 }
 

@@ -25,7 +25,7 @@
 
 #define BIP44_ETH_ACCOUNT_MAX (99) // 100 accounts
 
-static bool _is_valid_keypath(const uint32_t* keypath, size_t keypath_len)
+static bool _is_valid_keypath(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
 {
     if (keypath_len != 5) {
         return false;
@@ -33,7 +33,21 @@ static bool _is_valid_keypath(const uint32_t* keypath, size_t keypath_len)
     if (keypath[0] != 44 + BIP32_INITIAL_HARDENED_CHILD) {
         return false;
     }
-    if (keypath[1] != 60 + BIP32_INITIAL_HARDENED_CHILD) {
+    uint32_t expected_purpose;
+    switch (coin) {
+    case ETHCoin_ETH:
+        expected_purpose = 60; // mainnet
+        break;
+    case ETHCoin_RopstenETH:
+        expected_purpose = 1; // testnet
+        break;
+    case ETHCoin_RinkebyETH:
+        expected_purpose = 1; // testnet
+        break;
+    default:
+        return false;
+    }
+    if (keypath[1] != expected_purpose + BIP32_INITIAL_HARDENED_CHILD) {
         return false;
     }
     if (keypath[2] != 0 + BIP32_INITIAL_HARDENED_CHILD) {
@@ -48,37 +62,11 @@ static bool _is_valid_keypath(const uint32_t* keypath, size_t keypath_len)
     return true;
 }
 
-bool app_eth_address(
-    ETHCoin coin,
-    ETHPubRequest_OutputType output_type,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    char* out,
-    size_t out_len)
+static bool _address(const uint8_t* pubkey_uncompressed, char* out, size_t out_len)
 {
-    if (coin > _ETHCoin_MAX) {
-        return false;
-    }
-    if (output_type != ETHPubRequest_OutputType_ADDRESS) {
-        return false;
-    }
-    if (!_is_valid_keypath(keypath, keypath_len)) {
-        return false;
-    }
     if (out_len < 43) {
         return false;
     }
-
-    uint8_t pubkey_uncompressed[65];
-    if (!keystore_secp256k1_pubkey(
-            KEYSTORE_SECP256K1_PUBKEY_UNCOMPRESSED,
-            keypath,
-            keypath_len,
-            pubkey_uncompressed,
-            sizeof(pubkey_uncompressed))) {
-        return false;
-    }
-
     uint8_t hash[32];
     sha3_ctx ctx;
     rhash_sha3_256_init(&ctx);
@@ -106,4 +94,43 @@ bool app_eth_address(
 
     snprintf(out, out_len, "0x%s", hex);
     return true;
+}
+
+bool app_eth_address(
+    ETHCoin coin,
+    ETHPubRequest_OutputType output_type,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    char* out,
+    size_t out_len)
+{
+    if (coin > _ETHCoin_MAX) {
+        return false;
+    }
+    if (!_is_valid_keypath(coin, keypath, keypath_len)) {
+        return false;
+    }
+
+    uint8_t pubkey_uncompressed[65];
+    if (!keystore_secp256k1_pubkey(
+            KEYSTORE_SECP256K1_PUBKEY_UNCOMPRESSED,
+            keypath,
+            keypath_len,
+            pubkey_uncompressed,
+            sizeof(pubkey_uncompressed))) {
+        return false;
+    }
+
+    switch (output_type) {
+    case ETHPubRequest_OutputType_ADDRESS:
+        return _address(pubkey_uncompressed, out, out_len);
+    case ETHPubRequest_OutputType_PUBLICKEY:
+        if (out_len < (65 * 2 + 1)) {
+            return false;
+        }
+        util_uint8_to_hex(pubkey_uncompressed, sizeof(pubkey_uncompressed), out);
+        return true;
+    default:
+        return false;
+    }
 }

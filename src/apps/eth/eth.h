@@ -21,6 +21,14 @@
 
 #include <generated/hww.pb.h>
 
+/**
+ * Retrieves a specified encoding of an ethereum address.
+ * @param[in] output_type
+ * if ADDRESS, produces a checksummed ethereum address.
+ * if PUBLICKEY, produces the hex encoding of the 65 uncompressed public key.
+ * @param[out] out will hold the result.
+ * @param[in] out_len must be at least 43 for ADDRESS, and at least 131 for PUBLICKEY.
+ */
 bool app_eth_address(
     ETHCoin coin,
     ETHPubRequest_OutputType output_type,

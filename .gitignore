@@ -22,6 +22,7 @@ external/*
 !external/cryptoauthlib
 !external/ctaes
 !external/sha3
+!external/bignum
 !external/CMakeLists.txt
 src/generated
 py/bitbox02/generated

@@ -15,55 +15,17 @@
 #include <stdio.h>
 
 #include "eth.h"
+#include "eth_common.h"
+
 #include <keystore.h>
 #include <util.h>
 
 #include <generated/hww.pb.h>
 #include <secp256k1.h>
 #include <sha3.h>
-#include <wally_bip32.h> // for BIP32_INITIAL_HARDENED_CHILD
-
-#define BIP44_ETH_ACCOUNT_MAX (99) // 100 accounts
 
 #define ETH_RECIPIENT_BYTES_LEN (20)
 #define ETH_ADDRESS_HEX_LEN (ETH_RECIPIENT_BYTES_LEN * 2)
-
-static bool _is_valid_keypath(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
-{
-    if (keypath_len != 5) {
-        return false;
-    }
-    if (keypath[0] != 44 + BIP32_INITIAL_HARDENED_CHILD) {
-        return false;
-    }
-    uint32_t expected_purpose;
-    switch (coin) {
-    case ETHCoin_ETH:
-        expected_purpose = 60; // mainnet
-        break;
-    case ETHCoin_RopstenETH:
-        expected_purpose = 1; // testnet
-        break;
-    case ETHCoin_RinkebyETH:
-        expected_purpose = 1; // testnet
-        break;
-    default:
-        return false;
-    }
-    if (keypath[1] != expected_purpose + BIP32_INITIAL_HARDENED_CHILD) {
-        return false;
-    }
-    if (keypath[2] != 0 + BIP32_INITIAL_HARDENED_CHILD) {
-        return false;
-    }
-    if (keypath[3] != 0) {
-        return false;
-    }
-    if (keypath[4] > BIP44_ETH_ACCOUNT_MAX) {
-        return false;
-    }
-    return true;
-}
 
 static bool _address(const uint8_t* pubkey_uncompressed, char* out, size_t out_len)
 {
@@ -110,7 +72,7 @@ bool app_eth_address(
     if (coin > _ETHCoin_MAX) {
         return false;
     }
-    if (!_is_valid_keypath(coin, keypath, keypath_len)) {
+    if (!eth_common_is_valid_keypath(coin, keypath, keypath_len)) {
         return false;
     }
 

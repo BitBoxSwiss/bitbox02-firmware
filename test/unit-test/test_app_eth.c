@@ -30,6 +30,18 @@
 #pragma GCC diagnostic ignored "-Wmissing-prototypes"
 #pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
 
+static bool _is_valid_keypath = true;
+
+bool __wrap_eth_common_is_valid_keypath(
+    ETHCoin coin,
+    const uint32_t* keypath,
+    size_t keypath_len) {
+    (void)coin;
+    (void)keypath;
+    (void)keypath_len;
+    return _is_valid_keypath;
+}
+
 bool __wrap_keystore_secp256k1_pubkey(
     keystore_secp256k1_pubkey_format format,
     const uint32_t* keypath,
@@ -108,74 +120,21 @@ static void _test_app_eth_address_invalid(void** state)
         assert_false(
             app_eth_address(_ETHCoin_MAX + 1, ETHPubRequest_OutputType_ADDRESS, NULL, 0, NULL, 0));
     }
+    { // invalid keypath
+        _is_valid_keypath = false;
+        assert_false(
+            app_eth_address(ETHCoin_ETH, ETHPubRequest_OutputType_ADDRESS, NULL, 0, NULL, 0));
+        _is_valid_keypath = true;
+    }
     { // invalid output type
+        uint8_t pubkey[65] = {0};
+        will_return(__wrap_keystore_secp256k1_pubkey, pubkey);
         assert_false(
             app_eth_address(ETHCoin_ETH, _ETHPubRequest_OutputType_MIN - 1, NULL, 0, NULL, 0));
-        assert_false(
-            app_eth_address(ETHCoin_ETH, _ETHPubRequest_OutputType_MIN + 1, NULL, 0, NULL, 0));
-    }
-    { // invalid keypaths
-        uint32_t keypath[6] = {
-            44 + BIP32_INITIAL_HARDENED_CHILD,
-            60 + BIP32_INITIAL_HARDENED_CHILD,
-            0 + BIP32_INITIAL_HARDENED_CHILD,
-            0,
-            0,
-            0,
-        };
-
-        // too short
-        assert_false(
-            app_eth_address(ETHCoin_ETH, ETHPubRequest_OutputType_ADDRESS, keypath, 4, NULL, 0));
-
-        // too long
-        assert_false(
-            app_eth_address(ETHCoin_ETH, ETHPubRequest_OutputType_ADDRESS, keypath, 6, NULL, 0));
-
-        char address[43];
-        // tweak keypath elements (except for the last, see `_test_app_eth_address_accounts` for
-        // that)
-        for (size_t i = 0; i < 4; i++) {
-            {
-                keypath[i]++;
-                assert_false(app_eth_address(
-                    ETHCoin_ETH,
-                    ETHPubRequest_OutputType_ADDRESS,
-                    keypath,
-                    5,
-                    address,
-                    sizeof(address)));
-                keypath[i]--;
-            }
-        }
-    }
-}
-
-static void _test_app_eth_address_accounts(void** state)
-{
-    (void)state;
-    uint32_t keypath[5] = {
-        44 + BIP32_INITIAL_HARDENED_CHILD,
-        60 + BIP32_INITIAL_HARDENED_CHILD,
-        0 + BIP32_INITIAL_HARDENED_CHILD,
-        0,
-        0,
-    };
-
-    static uint8_t pubkey[65] = {0};
-    char address[43];
-
-    // 100 valid accounts
-    for (size_t i = 0; i < 100; i++) {
-        keypath[4] = i;
         will_return(__wrap_keystore_secp256k1_pubkey, pubkey);
-        assert_true(app_eth_address(
-            ETHCoin_ETH, ETHPubRequest_OutputType_ADDRESS, keypath, 5, address, sizeof(address)));
+        assert_false(
+            app_eth_address(ETHCoin_ETH, _ETHPubRequest_OutputType_MAX + 1, NULL, 0, NULL, 0));
     }
-    // invalid account
-    keypath[4] = 100;
-    assert_false(app_eth_address(
-        ETHCoin_ETH, ETHPubRequest_OutputType_ADDRESS, keypath, 5, address, sizeof(address)));
 }
 
 static void _test_app_eth_address(void** state)
@@ -204,7 +163,6 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_app_eth_address_invalid),
-        cmocka_unit_test(_test_app_eth_address_accounts),
         cmocka_unit_test(_test_app_eth_address),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);

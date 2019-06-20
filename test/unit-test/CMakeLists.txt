@@ -158,5 +158,9 @@ target_link_libraries(test_sha3 bitbox cmocka)
 add_test(NAME test_sha3 COMMAND test_sha3)
 
 add_executable(test_app_eth test_app_eth.c)
-target_link_libraries(test_app_eth bitbox cmocka "-Wl,--wrap=keystore_secp256k1_pubkey")
+target_link_libraries(test_app_eth bitbox cmocka "-Wl,--wrap=keystore_secp256k1_pubkey,--wrap=eth_common_is_valid_keypath")
 add_test(NAME test_app_eth COMMAND test_app_eth)
+
+add_executable(test_app_eth_common test_app_eth_common.c)
+target_link_libraries(test_app_eth_common bitbox cmocka)
+add_test(NAME test_app_eth_common COMMAND test_app_eth_common)

@@ -208,6 +208,35 @@ message RebootRequest {
 
 }
 
+enum ETHCoin {
+  ETH = 0;
+  RopstenETH = 1;
+  RinkebyETH = 2;
+}
+
+message ETHPubRequest {
+  repeated uint32 keypath = 1;
+  ETHCoin coin = 2;
+  enum OutputType {
+    ADDRESS = 0;
+    PUBLICKEY = 1; // uncompressed format, hex encoded
+  }
+  OutputType output_type = 3;
+  bool display = 4;
+}
+
+message ETHRequest {
+  oneof request {
+    ETHPubRequest pub = 1;
+  }
+}
+
+message ETHResponse {
+  oneof response {
+    PubResponse pub = 1;
+  }
+}
+
 message Request {
     oneof request {
         RandomNumberRequest random_number = 1;
@@ -229,6 +258,7 @@ message Request {
         PerformAttestationRequest perform_attestation = 17;
         RebootRequest reboot = 18;
         CheckBackupRequest check_backup = 19;
+        ETHRequest eth = 20;
     }
 }
 
@@ -244,5 +274,6 @@ message Response {
         CheckBackupResponse check_backup = 8;
         PerformAttestationResponse perform_attestation = 9;
         CheckSDCardResponse check_sdcard = 10;
+        ETHResponse eth = 11;
     }
 }

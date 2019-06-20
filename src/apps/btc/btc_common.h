@@ -21,6 +21,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <compiler_util.h>
+
 #include <generated/hww.pb.h>
 
 #include <wally_bip32.h>
@@ -43,14 +45,14 @@
  * (change) addressses.
  * @return true if the keypath is valid, false if it is invalid.
  */
-bool btc_common_is_valid_keypath(
+USE_RESULT bool btc_common_is_valid_keypath(
     BTCPubRequest_OutputType output_type,
     BTCScriptType script_type,
     const uint32_t* keypath,
     size_t keypath_len,
     uint32_t expected_coin);
 
-bool btc_common_encode_xpub(
+USE_RESULT bool btc_common_encode_xpub(
     const struct ext_key* derived_xpub,
     const uint8_t* version, // must be 4 bytes
     char* out,
@@ -63,7 +65,7 @@ bool btc_common_encode_xpub(
  * @param[in] out_len size allocation of `out`. Should be at least 30 bytes.
  * return true on succes, false on failure.
  */
-bool btc_common_format_amount(uint64_t satoshi, char* out, size_t out_len);
+USE_RESULT bool btc_common_format_amount(uint64_t satoshi, char* out, size_t out_len);
 
 /**
  * Converts a pubkeyhash to a hash used in an output script, e.g. pubkeyhash or script hash.
@@ -75,7 +77,7 @@ bool btc_common_format_amount(uint64_t satoshi, char* out, size_t out_len);
  * all others.
  * return true on succes, false on failure.
  */
-bool btc_common_outputhash_from_pubkeyhash(
+USE_RESULT bool btc_common_outputhash_from_pubkeyhash(
     BTCScriptType script_type,
     const uint8_t* pubkey_hash,
     uint8_t* output_hash,
@@ -90,7 +92,7 @@ bool btc_common_outputhash_from_pubkeyhash(
  * @param[out] script_size the size of the produced subscript/scriptCode.
  * return true on succes, false on failure.
  */
-bool btc_common_sighash_script_from_pubkeyhash(
+USE_RESULT bool btc_common_sighash_script_from_pubkeyhash(
     BTCScriptType script_type,
     const uint8_t* pubkey_hash,
     uint8_t* script,
@@ -99,12 +101,12 @@ bool btc_common_sighash_script_from_pubkeyhash(
 /**
  * For an input type (e.g. a script wrapped in p2sh), determine the output type.
  */
-BTCOutputType btc_common_determine_output_type(BTCScriptType script_type);
+USE_RESULT BTCOutputType btc_common_determine_output_type(BTCScriptType script_type);
 /**
  * Converts an output script or publickey hash to an address.
  * hash, hash_size can be obtained from btc_common_outputhash_from_pubkeyhash().
  */
-bool btc_common_address_from_outputhash(
+USE_RESULT bool btc_common_address_from_outputhash(
     app_btc_coin_params_t* params,
     BTCOutputType output_type,
     const uint8_t* hash,
@@ -119,7 +121,7 @@ bool btc_common_address_from_outputhash(
  * @param[in] hash pubkey hash or script hash
  * @param[inout] pk_script_len: size of pk_script IN, size of the resulting pk_script OUT.
  */
-bool btc_common_pkscript_from_outputhash(
+USE_RESULT bool btc_common_pkscript_from_outputhash(
     BTCOutputType output_type,
     const uint8_t* hash,
     size_t hash_size,

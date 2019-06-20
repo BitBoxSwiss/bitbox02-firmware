@@ -12,24 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _APPS_BTC_H
-#define _APPS_BTC_H
+#ifndef _COMMANDER_ETH_H_
+#define _COMMANDER_ETH_H_
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-
-#include <compiler_util.h>
+#include "commander.h"
 
 #include <generated/hww.pb.h>
 
-USE_RESULT bool app_btc_address(
-    BTCCoin coin,
-    BTCPubRequest_OutputType output_type,
-    BTCScriptType script_type,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    char* out,
-    size_t out_len);
-
+commander_error_t commander_eth(const ETHRequest* request, ETHResponse* response);
 #endif

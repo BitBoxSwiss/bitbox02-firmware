@@ -12,35 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _APPS_BTC_SIGN_H
-#define _APPS_BTC_SIGN_H
+#ifndef _APPS_ETH_H
+#define _APPS_ETH_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include <compiler_util.h>
 
 #include <generated/hww.pb.h>
 
-typedef enum {
-    APP_BTC_SIGN_OK,
-    APP_BTC_SIGN_ERR_UNKNOWN,
-    APP_BTC_SIGN_ERR_INVALID_INPUT,
-    APP_BTC_SIGN_ERR_USER_ABORT,
-    APP_BTC_SIGN_ERR_STATE,
-} app_btc_sign_error_t;
-
-USE_RESULT app_btc_sign_error_t
-app_btc_sign_init(const BTCSignInitRequest* request, BTCSignNextResponse* next_out);
-
-USE_RESULT app_btc_sign_error_t
-app_btc_sign_input(const BTCSignInputRequest* request, BTCSignNextResponse* next_out);
-
-USE_RESULT app_btc_sign_error_t
-app_btc_sign_output(const BTCSignOutputRequest* request, BTCSignNextResponse* next_out);
-
-#ifdef TESTING
-void tst_app_btc_reset(void);
-#endif
+/**
+ * Retrieves a specified encoding of an ethereum address.
+ * @param[in] output_type
+ * if ADDRESS, produces a checksummed ethereum address.
+ * if PUBLICKEY, produces the hex encoding of the 65 uncompressed public key.
+ * @param[out] out will hold the result.
+ * @param[in] out_len must be at least 43 for ADDRESS, and at least 131 for PUBLICKEY.
+ */
+USE_RESULT bool app_eth_address(
+    ETHCoin coin,
+    ETHPubRequest_OutputType output_type,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    char* out,
+    size_t out_len);
 
 #endif

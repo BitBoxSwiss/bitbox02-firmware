@@ -145,7 +145,7 @@ static void _test_keystore_sign_secp256k1(void** state)
     {
         // fails because keystore is locked
         assert_false(
-            keystore_sign_secp256k1(keypath, sizeof(keypath) / sizeof(uint32_t), msg, sig));
+            keystore_secp256k1_sign(keypath, sizeof(keypath) / sizeof(uint32_t), msg, sig));
     }
     {
         mock_state(_mock_seed, _mock_bip39_seed);
@@ -158,7 +158,7 @@ static void _test_keystore_sign_secp256k1(void** state)
         expect_memory(__wrap_secp256k1_ecdsa_sign, seckey, expected_seckey, 32);
         expect_memory(__wrap_secp256k1_ecdsa_sign, msg32, msg, sizeof(msg));
         // check sig by verifying it against the msg.
-        assert_true(keystore_sign_secp256k1(keypath, sizeof(keypath) / sizeof(uint32_t), msg, sig));
+        assert_true(keystore_secp256k1_sign(keypath, sizeof(keypath) / sizeof(uint32_t), msg, sig));
         secp256k1_pubkey pubkey = {0};
         assert_true(_get_pubkey(keypath, sizeof(keypath) / sizeof(uint32_t), &pubkey));
         secp256k1_ecdsa_signature secp256k1_sig = {0};

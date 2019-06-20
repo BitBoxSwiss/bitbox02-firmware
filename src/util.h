@@ -49,8 +49,12 @@ void util_uint8_to_hex(const uint8_t* in_bin, size_t in_len, char* out);
 
 void util_reverse_bin(uint8_t* b, int len);
 
+void util_cleanup_20(uint8_t** buf);
 void util_cleanup_32(uint8_t** buf);
 void util_cleanup_64(uint8_t** buf);
+#define UTIL_CLEANUP_20(var)                                                                     \
+    uint8_t* __attribute__((__cleanup__(util_cleanup_20))) var##_clean __attribute__((unused)) = \
+        var;
 #define UTIL_CLEANUP_32(var)                                                                     \
     uint8_t* __attribute__((__cleanup__(util_cleanup_32))) var##_clean __attribute__((unused)) = \
         var;

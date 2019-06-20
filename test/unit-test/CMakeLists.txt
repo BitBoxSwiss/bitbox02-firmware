@@ -39,6 +39,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/external/noise-c/include
   ${CMAKE_SOURCE_DIR}/external/noise-c/src
   ${CMAKE_SOURCE_DIR}/external/ctaes
+  ${CMAKE_SOURCE_DIR}/external/sha3
   ${CMAKE_SOURCE_DIR}/external/libwally-core/include
   ${CMAKE_SOURCE_DIR}/external/libwally-core/src/secp256k1/include
   ${CMAKE_BINARY_DIR}/src
@@ -55,6 +56,7 @@ add_library(bitbox
     ${DBB-FIRMWARE-PROTOBUF-SOURCES}
     ${DBB-FIRMWARE-USB-SOURCES}
     ${CTAES-SOURCES}
+    ${ETHEREUM-SOURCES}
     framework/mock_screen.c
     framework/mock_memory.c
     framework/mock_qtouch.c
@@ -150,3 +152,11 @@ add_test(NAME test_restore COMMAND test_restore)
 add_executable(test_cipher test_cipher.c)
 target_link_libraries(test_cipher bitbox cmocka "-Wl,--wrap=random_32_bytes")
 add_test(NAME test_cipher COMMAND test_cipher)
+
+add_executable(test_sha3 test_sha3.c)
+target_link_libraries(test_sha3 bitbox cmocka)
+add_test(NAME test_sha3 COMMAND test_sha3)
+
+add_executable(test_app_eth test_app_eth.c)
+target_link_libraries(test_app_eth bitbox cmocka "-Wl,--wrap=keystore_secp256k1_pubkey")
+add_test(NAME test_app_eth COMMAND test_app_eth)

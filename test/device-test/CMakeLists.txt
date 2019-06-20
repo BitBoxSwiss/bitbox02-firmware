@@ -29,6 +29,7 @@ set(SOURCES
     ${DBB-FIRMWARE-UI-SOURCES}
     ${CRYPTOAUTHLIB-SOURCES}
     ${CTAES-SOURCES}
+    ${ETHEREUM-SOURCES}
     ${FIRMWARE-DRIVER-SOURCES}
     ${DRIVER-SOURCES}
     src/framework/test_common.c
@@ -54,6 +55,7 @@ include_directories(${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib)
 include_directories(${CMAKE_SOURCE_DIR}/external/noise-c/include)
 include_directories(${CMAKE_SOURCE_DIR}/external/noise-c/src)
 include_directories(${CMAKE_SOURCE_DIR}/external/ctaes)
+include_directories(${CMAKE_SOURCE_DIR}/external/sha3)
 include_directories(${CMAKE_SOURCE_DIR}/external/libwally-core/include)
 include_directories(${CMAKE_SOURCE_DIR}/external/libwally-core/src/secp256k1/include)
 

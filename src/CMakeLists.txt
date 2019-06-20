@@ -221,6 +221,24 @@ set_source_files_properties(
     COMPILE_FLAGS "-Wno-pedantic -Wno-incompatible-pointer-types -Wno-incompatible-pointer-types -Wno-unused-parameter -Wno-unused-variable"
 )
 
+set(SHA3-SOURCES
+    ${CMAKE_SOURCE_DIR}/external/sha3/sha3.c
+)
+
+add_definitions(-DUSE_KECCAK)
+# disable some warnings for the external library
+set_source_files_properties(
+    ${SHA3-SOURCES}
+    PROPERTIES
+    COMPILE_FLAGS "-Wno-cast-qual"
+)
+
+set(ETHEREUM-SOURCES
+    ${SHA3-SOURCES}
+    ${CMAKE_SOURCE_DIR}/src/apps/eth/eth.c
+    ${CMAKE_SOURCE_DIR}/src/commander/commander_eth.c
+)
+
 set(FIRMWARE-DRIVER-SOURCES
     ${CMAKE_SOURCE_DIR}/src/drivers/usb/class/hid/u2f/hid_u2f.c
     ${CMAKE_SOURCE_DIR}/src/drivers/hal/src/hal_mci_sync.c
@@ -326,6 +344,7 @@ if(BUILD_TYPE_FIRMWARE_OR_SETUP OR BUILD_TYPE STREQUAL "bootloader")
             ${CTAES-SOURCES}
             ${MAIN-SOURCE}
             ${CMAKE_SOURCE_DIR}/src/common_main.c
+            ${ETHEREUM-SOURCES}
         )
         set(CMAKE_LINKER_SCRIPT "${CMAKE_SOURCE_DIR}/firmware.ld")
 
@@ -333,6 +352,7 @@ if(BUILD_TYPE_FIRMWARE_OR_SETUP OR BUILD_TYPE STREQUAL "bootloader")
         # needed for cryptoauthlib itself
         include_directories(${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib)
         include_directories(${CMAKE_SOURCE_DIR}/external/ctaes)
+        include_directories(${CMAKE_SOURCE_DIR}/external/sha3)
         include_directories(${CMAKE_SOURCE_DIR}/external/noise-c/include)
         include_directories(${CMAKE_SOURCE_DIR}/external/noise-c/src)
         include_directories(${CMAKE_SOURCE_DIR}/external/libwally-core/include)

@@ -19,9 +19,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <compiler_util.h>
+
 #include <generated/hww.pb.h>
 
-bool app_btc_address(
+USE_RESULT bool app_btc_address(
     BTCCoin coin,
     BTCPubRequest_OutputType output_type,
     BTCScriptType script_type,

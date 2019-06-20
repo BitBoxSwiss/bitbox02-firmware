@@ -18,6 +18,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <compiler_util.h>
+
 #include <generated/hww.pb.h>
 
 typedef enum {
@@ -28,17 +30,14 @@ typedef enum {
     APP_BTC_SIGN_ERR_STATE,
 } app_btc_sign_error_t;
 
-app_btc_sign_error_t app_btc_sign_init(
-    const BTCSignInitRequest* request,
-    BTCSignNextResponse* next_out);
+USE_RESULT app_btc_sign_error_t
+app_btc_sign_init(const BTCSignInitRequest* request, BTCSignNextResponse* next_out);
 
-app_btc_sign_error_t app_btc_sign_input(
-    const BTCSignInputRequest* request,
-    BTCSignNextResponse* next_out);
+USE_RESULT app_btc_sign_error_t
+app_btc_sign_input(const BTCSignInputRequest* request, BTCSignNextResponse* next_out);
 
-app_btc_sign_error_t app_btc_sign_output(
-    const BTCSignOutputRequest* request,
-    BTCSignNextResponse* next_out);
+USE_RESULT app_btc_sign_error_t
+app_btc_sign_output(const BTCSignOutputRequest* request, BTCSignNextResponse* next_out);
 
 #ifdef TESTING
 void tst_app_btc_reset(void);

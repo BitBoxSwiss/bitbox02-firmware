@@ -19,6 +19,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <compiler_util.h>
+
 #include <generated/hww.pb.h>
 
 /**
@@ -29,7 +31,7 @@
  * @param[out] out will hold the result.
  * @param[in] out_len must be at least 43 for ADDRESS, and at least 131 for PUBLICKEY.
  */
-bool app_eth_address(
+USE_RESULT bool app_eth_address(
     ETHCoin coin,
     ETHPubRequest_OutputType output_type,
     const uint32_t* keypath,

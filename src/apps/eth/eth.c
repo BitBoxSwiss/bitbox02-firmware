@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdio.h>
-
 #include "eth.h"
 #include "eth_common.h"
 
@@ -24,41 +22,15 @@
 #include <secp256k1.h>
 #include <sha3.h>
 
-#define ETH_RECIPIENT_BYTES_LEN (20)
-#define ETH_ADDRESS_HEX_LEN (ETH_RECIPIENT_BYTES_LEN * 2)
-
 static bool _address(const uint8_t* pubkey_uncompressed, char* out, size_t out_len)
 {
-    if (out_len < ETH_ADDRESS_HEX_LEN + 1) {
-        return false;
-    }
     uint8_t hash[32];
     sha3_ctx ctx;
     rhash_sha3_256_init(&ctx);
     rhash_sha3_update(&ctx, pubkey_uncompressed + 1, 64);
     rhash_keccak_final(&ctx, hash);
-    uint8_t* last20 = hash + sizeof(hash) - ETH_RECIPIENT_BYTES_LEN;
-    char hex[ETH_ADDRESS_HEX_LEN + 1];
-    util_uint8_to_hex(last20, ETH_RECIPIENT_BYTES_LEN, hex);
-
-    // checksum encoded in lowercase vs uppercase letters
-    rhash_sha3_256_init(&ctx);
-    rhash_sha3_update(&ctx, (const uint8_t*)hex, sizeof(hex) - 1);
-    rhash_keccak_final(&ctx, hash);
-    for (size_t i = 0; i < sizeof(hex) - 1; i++) {
-        uint8_t hash_byte = hash[i / 2];
-        if (i % 2 == 0) {
-            hash_byte >>= 4;
-        } else {
-            hash_byte &= 0xf;
-        }
-        if (hex[i] > '9' && hash_byte > 7) {
-            hex[i] -= 32; // convert to uppercase
-        }
-    }
-
-    snprintf(out, out_len, "0x%s", hex);
-    return true;
+    uint8_t* last20 = hash + sizeof(hash) - APP_ETH_RECIPIENT_BYTES_LEN;
+    return eth_common_hexaddress(last20, out, out_len);
 }
 
 bool app_eth_address(

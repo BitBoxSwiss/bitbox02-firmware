@@ -159,6 +159,7 @@ USE_RESULT bool keystore_secp256k1_pubkey(
  * @param[in] keypath_len size of keypath buffer
  * @param[in] msg32 32 byte message to sign
  * @param[out] sig resulting signature in compact format. Must be 64 bytes.
+ * @param[out] recid recoverable id. Can be NULL if not needed.
  * Parse with secp256k1_ecdsa_signature_serialize_compact().
  * @return true on success, false if the keystore is locked.
  */
@@ -166,6 +167,7 @@ USE_RESULT bool keystore_secp256k1_sign(
     const uint32_t* keypath,
     size_t keypath_len,
     const uint8_t* msg32,
-    uint8_t* sig_compact_out);
+    uint8_t* sig_compact_out,
+    int* recid_out);
 
 #endif

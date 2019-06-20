@@ -94,7 +94,7 @@ target_link_libraries(test_hww bitbox cmocka "-Wl,--wrap=random_32_bytes,--wrap=
 add_test(NAME test_hww COMMAND test_hww)
 
 add_executable(test_keystore test_keystore.c)
-target_link_libraries(test_keystore bitbox cmocka "-Wl,--wrap=secp256k1_ecdsa_sign,--wrap=memory_is_initialized,--wrap=memory_set_encrypted_seed_and_hmac,--wrap=memory_get_encrypted_seed_and_hmac,--wrap=salt_hash_data,--wrap=cipher_aes_hmac_encrypt")
+target_link_libraries(test_keystore bitbox cmocka "-Wl,--wrap=secp256k1_ecdsa_sign_recoverable,--wrap=memory_is_initialized,--wrap=memory_set_encrypted_seed_and_hmac,--wrap=memory_get_encrypted_seed_and_hmac,--wrap=salt_hash_data,--wrap=cipher_aes_hmac_encrypt")
 add_test(NAME test_keystore COMMAND test_keystore)
 
 add_executable(test_gestures test_gestures.c)

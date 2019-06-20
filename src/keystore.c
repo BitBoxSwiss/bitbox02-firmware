@@ -24,7 +24,7 @@
 #include "securechip/securechip.h"
 #include "util.h"
 
-#include <secp256k1.h>
+#include <secp256k1_recovery.h>
 #include <wally_bip39.h>
 #include <wally_crypto.h>
 
@@ -516,7 +516,8 @@ bool keystore_secp256k1_sign(
     const uint32_t* keypath,
     size_t keypath_len,
     const uint8_t* msg32,
-    uint8_t* sig_compact_out)
+    uint8_t* sig_compact_out,
+    int* recid_out)
 {
     if (keystore_is_locked()) {
         return false;
@@ -526,8 +527,8 @@ bool keystore_secp256k1_sign(
         return false;
     }
     secp256k1_context* ctx = wally_get_secp_context();
-    secp256k1_ecdsa_signature secp256k1_sig = {0};
-    if (!secp256k1_ecdsa_sign(
+    secp256k1_ecdsa_recoverable_signature secp256k1_sig = {0};
+    if (!secp256k1_ecdsa_sign_recoverable(
             ctx,
             &secp256k1_sig,
             msg32,
@@ -536,5 +537,13 @@ bool keystore_secp256k1_sign(
             NULL)) {
         return false;
     }
-    return secp256k1_ecdsa_signature_serialize_compact(ctx, sig_compact_out, &secp256k1_sig) == 1;
+    int recid = 0;
+    if (!secp256k1_ecdsa_recoverable_signature_serialize_compact(
+            ctx, sig_compact_out, &recid, &secp256k1_sig)) {
+        return false;
+    }
+    if (recid_out != NULL) {
+        *recid_out = recid;
+    }
+    return true;
 }

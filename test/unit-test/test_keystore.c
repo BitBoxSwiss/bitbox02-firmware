@@ -18,7 +18,7 @@
 #include <cmocka.h>
 
 #include <keystore.h>
-#include <secp256k1.h>
+#include <secp256k1_recovery.h>
 #include <securechip/securechip.h>
 #include <util.h>
 
@@ -68,17 +68,17 @@ static uint8_t _kdf_out_3[32] = {
     0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33,
 };
 
-int __real_secp256k1_ecdsa_sign(
+int __real_secp256k1_ecdsa_sign_recoverable(
     const secp256k1_context* ctx,
-    secp256k1_ecdsa_signature* sig,
+    secp256k1_ecdsa_recoverable_signature* sig,
     const unsigned char* msg32,
     const unsigned char* seckey,
     secp256k1_nonce_function noncefp,
     const void* ndata);
 
-int __wrap_secp256k1_ecdsa_sign(
+int __wrap_secp256k1_ecdsa_sign_recoverable(
     const secp256k1_context* ctx,
-    secp256k1_ecdsa_signature* sig,
+    secp256k1_ecdsa_recoverable_signature* sig,
     const unsigned char* msg32,
     const unsigned char* seckey,
     secp256k1_nonce_function noncefp,
@@ -86,7 +86,7 @@ int __wrap_secp256k1_ecdsa_sign(
 {
     check_expected(msg32);
     check_expected(seckey);
-    return __real_secp256k1_ecdsa_sign(ctx, sig, msg32, seckey, noncefp, ndata);
+    return __real_secp256k1_ecdsa_sign_recoverable(ctx, sig, msg32, seckey, noncefp, ndata);
 }
 
 bool __wrap_salt_hash_data(
@@ -145,7 +145,7 @@ static void _test_keystore_sign_secp256k1(void** state)
     {
         // fails because keystore is locked
         assert_false(
-            keystore_secp256k1_sign(keypath, sizeof(keypath) / sizeof(uint32_t), msg, sig));
+            keystore_secp256k1_sign(keypath, sizeof(keypath) / sizeof(uint32_t), msg, sig, NULL));
     }
     {
         mock_state(_mock_seed, _mock_bip39_seed);
@@ -155,10 +155,11 @@ static void _test_keystore_sign_secp256k1(void** state)
             0xf0, 0x2e, 0xe8, 0xae, 0x3f, 0x58, 0x92, 0x32, 0x9d, 0x67, 0xdf,
             0xd4, 0xad, 0x05, 0xe9, 0xc3, 0xd0, 0x6e, 0xdf, 0x74, 0xfb,
         };
-        expect_memory(__wrap_secp256k1_ecdsa_sign, seckey, expected_seckey, 32);
-        expect_memory(__wrap_secp256k1_ecdsa_sign, msg32, msg, sizeof(msg));
+        expect_memory(__wrap_secp256k1_ecdsa_sign_recoverable, seckey, expected_seckey, 32);
+        expect_memory(__wrap_secp256k1_ecdsa_sign_recoverable, msg32, msg, sizeof(msg));
         // check sig by verifying it against the msg.
-        assert_true(keystore_secp256k1_sign(keypath, sizeof(keypath) / sizeof(uint32_t), msg, sig));
+        assert_true(
+            keystore_secp256k1_sign(keypath, sizeof(keypath) / sizeof(uint32_t), msg, sig, NULL));
         secp256k1_pubkey pubkey = {0};
         assert_true(_get_pubkey(keypath, sizeof(keypath) / sizeof(uint32_t), &pubkey));
         secp256k1_ecdsa_signature secp256k1_sig = {0};

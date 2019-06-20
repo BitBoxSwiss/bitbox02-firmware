@@ -29,7 +29,8 @@
  * if ADDRESS, produces a checksummed ethereum address.
  * if PUBLICKEY, produces the hex encoding of the 65 uncompressed public key.
  * @param[out] out will hold the result.
- * @param[in] out_len must be at least 43 for ADDRESS, and at least 131 for PUBLICKEY.
+ * @param[in] out_len must be at least APP_ETH_ADDRESS_HEX_LEN for ADDRESS, and at least 131 for
+ * PUBLICKEY.
  */
 USE_RESULT bool app_eth_address(
     ETHCoin coin,

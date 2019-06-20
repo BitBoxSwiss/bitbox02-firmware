@@ -65,7 +65,7 @@ bool eth_common_hexaddress(const uint8_t* recipient, char* out, size_t out_len)
     if (out_len < APP_ETH_ADDRESS_HEX_LEN) {
         return false;
     }
-    char hex[APP_ETH_ADDRESS_HEX_LEN];
+    char hex[APP_ETH_RECIPIENT_BYTES_LEN * 2 + 1];
     util_uint8_to_hex(recipient, APP_ETH_RECIPIENT_BYTES_LEN, hex);
 
     // checksum encoded in lowercase vs uppercase letters

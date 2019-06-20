@@ -25,6 +25,9 @@
 
 #define BIP44_ETH_ACCOUNT_MAX (99) // 100 accounts
 
+#define ETH_RECIPIENT_BYTES_LEN (20)
+#define ETH_ADDRESS_HEX_LEN (ETH_RECIPIENT_BYTES_LEN * 2)
+
 static bool _is_valid_keypath(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
 {
     if (keypath_len != 5) {
@@ -64,7 +67,7 @@ static bool _is_valid_keypath(ETHCoin coin, const uint32_t* keypath, size_t keyp
 
 static bool _address(const uint8_t* pubkey_uncompressed, char* out, size_t out_len)
 {
-    if (out_len < 43) {
+    if (out_len < ETH_ADDRESS_HEX_LEN + 1) {
         return false;
     }
     uint8_t hash[32];
@@ -72,9 +75,9 @@ static bool _address(const uint8_t* pubkey_uncompressed, char* out, size_t out_l
     rhash_sha3_256_init(&ctx);
     rhash_sha3_update(&ctx, pubkey_uncompressed + 1, 64);
     rhash_keccak_final(&ctx, hash);
-    uint8_t* last20 = hash + 12;
-    char hex[20 * 2 + 1];
-    util_uint8_to_hex(last20, 20, hex);
+    uint8_t* last20 = hash + sizeof(hash) - ETH_RECIPIENT_BYTES_LEN;
+    char hex[ETH_ADDRESS_HEX_LEN + 1];
+    util_uint8_to_hex(last20, ETH_RECIPIENT_BYTES_LEN, hex);
 
     // checksum encoded in lowercase vs uppercase letters
     rhash_sha3_256_init(&ctx);

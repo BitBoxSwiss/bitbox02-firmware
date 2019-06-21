@@ -394,12 +394,13 @@ app_btc_sign_error_t app_btc_sign_output(
 
         // Verify output if it is not a change output.
         char formatted_value[100] = {0};
-        if (!btc_common_format_amount(request->value, formatted_value, sizeof(formatted_value))) {
+        if (!btc_common_format_amount(
+                request->value, _coin_params->unit, formatted_value, sizeof(formatted_value))) {
             return _error(APP_BTC_SIGN_ERR_UNKNOWN);
         }
 
         // This call blocks.
-        if (!workflow_verify_recipient(_coin_params->unit, address, formatted_value)) {
+        if (!workflow_verify_recipient(address, formatted_value)) {
             return _error(APP_BTC_SIGN_ERR_USER_ABORT);
         }
     }
@@ -446,15 +447,16 @@ app_btc_sign_error_t app_btc_sign_output(
 
         char formatted_total_out[100] = {0};
         if (!btc_common_format_amount(
-                total_out, formatted_total_out, sizeof(formatted_total_out))) {
+                total_out, _coin_params->unit, formatted_total_out, sizeof(formatted_total_out))) {
             return _error(APP_BTC_SIGN_ERR_UNKNOWN);
         }
         char formatted_fee[100] = {0};
-        if (!btc_common_format_amount(fee, formatted_fee, sizeof(formatted_fee))) {
+        if (!btc_common_format_amount(
+                fee, _coin_params->unit, formatted_fee, sizeof(formatted_fee))) {
             return _error(APP_BTC_SIGN_ERR_UNKNOWN);
         }
         // This call blocks.
-        if (!workflow_verify_total(_coin_params->unit, formatted_total_out, formatted_fee)) {
+        if (!workflow_verify_total(formatted_total_out, formatted_fee)) {
             return _error(APP_BTC_SIGN_ERR_USER_ABORT);
         }
 

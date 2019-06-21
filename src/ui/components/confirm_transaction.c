@@ -58,7 +58,7 @@ static const component_functions_t _component_functions = {
 /********************************** Create Instance **********************************/
 
 static component_t* _confirm_transaction_create(
-    const char* unit,
+    const char* prefix,
     const char* amount,
     const char* address,
     const char* fee,
@@ -105,36 +105,34 @@ static component_t* _confirm_transaction_create(
         ui_util_add_sub_component(confirm, label_create_scrollable(addr, NULL, CENTER, confirm));
     }
     if (strlens(fee)) {
-        char formatted_fee[32];
+        char formatted_fee[64];
         snprintf(formatted_fee, sizeof(formatted_fee), " \n \n \nFee: %s", fee);
         ui_util_add_sub_component(confirm, label_create(formatted_fee, NULL, CENTER_TOP, confirm));
     }
     {
-        char amt[32];
-        snprintf(amt, sizeof(amt), " \n \n%s %s", amount, unit);
-        ui_util_add_sub_component(confirm, label_create(amt, NULL, CENTER_TOP, confirm));
+        char formatted_amt[64];
+        snprintf(formatted_amt, sizeof(formatted_amt), " \n \n%s%s", prefix, amount);
+        ui_util_add_sub_component(confirm, label_create(formatted_amt, NULL, CENTER_TOP, confirm));
     }
     return confirm;
 }
 
 component_t* confirm_transaction_address_create(
-    const char* unit,
     const char* amount,
     const char* address,
     void (*confirm_callback)(component_t*),
     void (*cancel_callback)(component_t*))
 {
     return _confirm_transaction_create(
-        unit, amount, address, NULL, false, confirm_callback, cancel_callback);
+        "", amount, address, NULL, false, confirm_callback, cancel_callback);
 }
 
 component_t* confirm_transaction_fee_create(
-    const char* unit,
     const char* amount,
     const char* fee,
     void (*confirm_callback)(component_t*),
     void (*cancel_callback)(component_t*))
 {
     return _confirm_transaction_create(
-        unit, amount, NULL, fee, true, confirm_callback, cancel_callback);
+        "Total: ", amount, NULL, fee, true, confirm_callback, cancel_callback);
 }

@@ -151,9 +151,9 @@ static void _sprint_uint64(uint64_t value, char* out, char** out_start)
     *out_start = p;
 }
 
-bool btc_common_format_amount(uint64_t satoshi, char* out, size_t out_len)
+bool btc_common_format_amount(uint64_t satoshi, const char* unit, char* out, size_t out_len)
 {
-    if (out == NULL || out_len < 30) {
+    if (unit == NULL || out == NULL || out_len < 31 + strlen(unit)) {
         return false;
     }
     int64_t satoshi_in_btc = 100000000;
@@ -165,21 +165,22 @@ bool btc_common_format_amount(uint64_t satoshi, char* out, size_t out_len)
     char remainder_str[21] = {0};
     char* remainder_str_start = NULL;
     _sprint_uint64(remainder, remainder_str, &remainder_str_start);
+    char amount_str[30] = {0};
     int sprintf_result = snprintf(
-        out,
-        out_len,
+        amount_str,
+        sizeof(amount_str),
         "%s.%.*s%s",
         quotient_str_start,
-        // pad up to 8 zeroes
+        // left pad 'remainder_str' up to 8 zeros
         (int)(8 - strlen(remainder_str_start)),
         "00000000",
         remainder_str_start);
-    if (sprintf_result < 0 || sprintf_result >= (int)out_len) {
+    if (sprintf_result < 0 || sprintf_result >= (int)sizeof(amount_str)) {
         return false;
     }
     // trim right zeroes
-    char* end = out + strlen(out) - 1;
-    while (end > out && *end == '0') {
+    char* end = amount_str + strlen(amount_str) - 1;
+    while (end > amount_str && *end == '0') {
         end--;
     }
     // trim potential right '.'
@@ -187,6 +188,10 @@ bool btc_common_format_amount(uint64_t satoshi, char* out, size_t out_len)
         end--;
     }
     end[1] = '\0';
+    sprintf_result = snprintf(out, out_len, "%s %s", amount_str, unit);
+    if (sprintf_result < 0 || sprintf_result >= (int)out_len) {
+        return false;
+    }
     return true;
 }
 

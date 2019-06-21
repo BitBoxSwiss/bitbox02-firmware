@@ -27,10 +27,10 @@
  * Retrieves a specified encoding of an ethereum address.
  * @param[in] output_type
  * if ADDRESS, produces a checksummed ethereum address.
- * if PUBLICKEY, produces the hex encoding of the 65 uncompressed public key.
+ * if XPUB, produces the xpub.
  * @param[out] out will hold the result.
- * @param[in] out_len must be at least APP_ETH_ADDRESS_HEX_LEN for ADDRESS, and at least 131 for
- * PUBLICKEY.
+ * @param[in] out_len must be at least APP_ETH_ADDRESS_HEX_LEN for ADDRESS, and at least 80
+ * (BIP32_SERIALIZED_LEN+1) for XPUB.
  */
 USE_RESULT bool app_eth_address(
     ETHCoin coin,

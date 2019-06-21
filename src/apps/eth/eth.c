@@ -14,6 +14,7 @@
 
 #include "eth.h"
 #include "eth_common.h"
+#include <apps/btc/btc_common.h>
 
 #include <keystore.h>
 #include <util.h>
@@ -48,25 +49,27 @@ bool app_eth_address(
         return false;
     }
 
-    uint8_t pubkey_uncompressed[65];
-    if (!keystore_secp256k1_pubkey(
-            KEYSTORE_SECP256K1_PUBKEY_UNCOMPRESSED,
-            keypath,
-            keypath_len,
-            pubkey_uncompressed,
-            sizeof(pubkey_uncompressed))) {
-        return false;
-    }
-
     switch (output_type) {
-    case ETHPubRequest_OutputType_ADDRESS:
-        return _address(pubkey_uncompressed, out, out_len);
-    case ETHPubRequest_OutputType_PUBLICKEY:
-        if (out_len < (65 * 2 + 1)) {
+    case ETHPubRequest_OutputType_ADDRESS: {
+        uint8_t pubkey_uncompressed[65];
+        if (!keystore_secp256k1_pubkey(
+                KEYSTORE_SECP256K1_PUBKEY_UNCOMPRESSED,
+                keypath,
+                keypath_len,
+                pubkey_uncompressed,
+                sizeof(pubkey_uncompressed))) {
             return false;
         }
-        util_uint8_to_hex(pubkey_uncompressed, sizeof(pubkey_uncompressed), out);
-        return true;
+        return _address(pubkey_uncompressed, out, out_len);
+    }
+    case ETHPubRequest_OutputType_XPUB: {
+        struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
+        if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
+            return false;
+        }
+        const uint8_t version[4] = {0x04, 0x88, 0xb2, 0x1e}; // xpub
+        return btc_common_encode_xpub(&derived_xpub, version, out, out_len);
+    }
     default:
         return false;
     }

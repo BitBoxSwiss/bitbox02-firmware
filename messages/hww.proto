@@ -219,7 +219,7 @@ message ETHPubRequest {
   ETHCoin coin = 2;
   enum OutputType {
     ADDRESS = 0;
-    PUBLICKEY = 1; // uncompressed format, hex encoded
+    XPUB = 1;
   }
   OutputType output_type = 3;
   bool display = 4;

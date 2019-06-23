@@ -24,10 +24,25 @@ typedef struct {
     const char* unit;
 } app_eth_coin_params_t;
 
+typedef struct {
+    ETHCoin coin;
+    const char* unit;
+    const uint8_t contract_address[20];
+    unsigned int decimals;
+} app_eth_erc20_params_t;
+
 /**
- * @return pointer to static coin params on success. NULL if the coin is
- * unknown.
+ * @return pointer to static coin params on success. NULL if the coin is unknown.
  */
 app_eth_coin_params_t* app_eth_params_get(ETHCoin coin);
+
+/**
+ * @param[in] coin where the the token lives.
+ * @param[in] contract_address 20 bytes erc20 token contract address.
+ * @return pointer to static erc20 params on success. NULL if the contract address is unknown.
+ */
+const app_eth_erc20_params_t* app_eth_erc20_params_get(
+    ETHCoin coin,
+    const uint8_t* contract_address);
 
 #endif

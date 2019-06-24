@@ -8,7 +8,7 @@ set -e
 # Exit on pipe fail
 set -o pipefail
 
-RUNCLANGTIDY=${RUNCLANGTIDY:-run-clang-tidy-7}
+RUNCLANGTIDY=${RUNCLANGTIDY:-run-clang-tidy-8}
 
 command -v ${RUNCLANGTIDY} >/dev/null 2>&1 || { echo >&2 "${RUNCLANGTIDY} is missing"; exit 1; }
 

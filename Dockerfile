@@ -16,7 +16,12 @@
 FROM ubuntu:18.04
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y wget rsync curl
+RUN apt-get update && apt-get upgrade -y && apt-get install -y wget nano rsync curl gnupg2 jq
+
+# for clang-*-8, see https://apt.llvm.org/
+RUN echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main" >> /etc/apt/sources.list && \
+    echo "deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main" >> /etc/apt/sources.list && \
+    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 
 # Install gcc8-arm-none-eabi
 RUN mkdir ~/Downloads &&\
@@ -69,8 +74,8 @@ RUN update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-8 100
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
-    clang-format-7 \
-    clang-tidy-7
+    clang-format-8 \
+    clang-tidy-8
 
 # Python modules
 RUN pip3 install \

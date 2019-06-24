@@ -236,57 +236,14 @@ static void _emit_continuous_tap_event(void)
 
 /********************************** MEASURE, DETECT and CALLBACK **********************************/
 
-static void _get_lock(volatile uint32_t* lock_variable)
-{
-#ifndef TESTING
-    // Note: __LDREXW and __STREXW are CMSIS functions
-    int status = 0;
-    do {
-        int count = 0;
-        while (__LDREXW(lock_variable) != 0) {
-            if (count > 10) {
-                screen_print_debug(
-                    "You must not call gesture detection from a callback called during gesture "
-                    "detection",
-                    1000);
-            }
-            count++;
-        }
-        // Lock_Variable is free
-        status = __STREXW(1, lock_variable); // Try to set
-        // Lock_Variable
-    } while (status != 0); // retry until lock successfully
-    __DMB(); // Do not start any other memory access
-    // until memory barrier is completed
-#else
-    (void)lock_variable;
-#endif
-}
-
-static void _free_lock(volatile uint32_t* lock_variable)
-{
-#ifndef TESTING
-    __DMB(); // Ensure memory operations completed before
-    // releasing lock
-    *lock_variable = 0;
-#else
-    (void)lock_variable;
-#endif
-}
-
-static volatile uint32_t _gestures_lock = 0;
-
 /**
  * Measures the slider usage and calls registered callbacks to inform a client
  * about a detected gesture.
  */
-static void gestures_measure_and_emit(void)
+static void _measure_and_emit(void)
 {
-    _get_lock(&_gestures_lock);
-
     qtouch_process(); // Non blocking
     if (measurement_done_touch != 1) {
-        _free_lock(&_gestures_lock);
         return;
     }
 
@@ -316,7 +273,6 @@ static void gestures_measure_and_emit(void)
         _reset_state();
         _released_since_new_screen = true;
     }
-    _free_lock(&_gestures_lock);
 }
 
 void gestures_detect(bool reset, bool emit_without_release)
@@ -325,5 +281,5 @@ void gestures_detect(bool reset, bool emit_without_release)
         _reset_state();
         _released_since_new_screen = emit_without_release;
     }
-    gestures_measure_and_emit();
+    _measure_and_emit();
 }

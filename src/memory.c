@@ -130,6 +130,10 @@ static void _clean_chunk(uint8_t** chunk_bytes)
     util_zero(*chunk_bytes, CHUNK_SIZE);
 }
 
+#define CLEANUP_CHUNK(var)                                                                    \
+    uint8_t* __attribute__((__cleanup__(_clean_chunk))) __attribute__((unused)) var##_bytes = \
+        var.bytes;
+
 // chunk must have size CHUNK_SIZE. if chunk is NULL, the chunk is erased,
 // i.e. filled with 0xFF.
 static bool _write_to_address(uint32_t addr, uint8_t* chunk)
@@ -212,7 +216,7 @@ bool memory_set_device_name(const char* name)
     }
 
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     util_zero(chunk.fields.device_name, sizeof(chunk.fields.device_name));
     snprintf((char*)&chunk.fields.device_name, MEMORY_DEVICE_NAME_MAX_LEN, "%s", name);
@@ -222,7 +226,7 @@ bool memory_set_device_name(const char* name)
 void memory_get_device_name(char* name_out)
 {
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     if (chunk.fields.device_name[0] == 0xFF) {
         strncpy(name_out, MEMORY_DEFAULT_DEVICE_NAME, MEMORY_DEVICE_NAME_MAX_LEN);
@@ -235,7 +239,7 @@ void memory_get_device_name(char* name_out)
 bool memory_set_seed_birthdate(uint32_t timestamp)
 {
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     chunk.fields.seed_birthdate = timestamp;
     return _write_chunk(CHUNK_1, chunk.bytes);
@@ -244,7 +248,7 @@ bool memory_set_seed_birthdate(uint32_t timestamp)
 void memory_get_seed_birthdate(uint32_t* timestamp_out)
 {
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     if (chunk.fields.seed_birthdate == 0xFFFFFFFF) {
         *timestamp_out = 0;
@@ -261,7 +265,7 @@ bool memory_setup(memory_interface_functions_t* ifs)
     _interface_functions = ifs;
 
     chunk_0_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
     if (chunk.fields.factory_setup_done == sectrue_u8) {
         // already factory installed
@@ -273,7 +277,7 @@ bool memory_setup(memory_interface_functions_t* ifs)
     }
 
     chunk_shared_t shared_chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) shared_chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(shared_chunk);
     _read_shared_bootdata(shared_chunk.bytes);
 
     // Sanity check: io/auth keys must not have been set before.
@@ -317,7 +321,7 @@ bool memory_reset_hww(void)
     // Initialize hww memory
 
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
 
     // Set salt root
@@ -331,7 +335,7 @@ bool memory_reset_hww(void)
 static bool _is_bitmask_flag_set(uint8_t flag)
 {
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     return ~chunk.fields.bitmask & flag;
 }
@@ -352,7 +356,7 @@ bool memory_set_initialized(void)
         return false;
     }
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     uint8_t bitmask = ~chunk.fields.bitmask;
     bitmask |= BITMASK_INITIALIZED;
@@ -368,7 +372,7 @@ bool memory_is_mnemonic_passphrase_enabled(void)
 bool memory_set_mnemonic_passphrase_enabled(bool enabled)
 {
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     uint8_t bitmask = ~chunk.fields.bitmask;
     if (enabled) {
@@ -383,7 +387,7 @@ bool memory_set_mnemonic_passphrase_enabled(bool enabled)
 uint8_t memory_get_failed_unlock_attempts(void)
 {
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     return 0xFF - chunk.fields.failed_unlock_attempts;
 }
@@ -391,7 +395,7 @@ uint8_t memory_get_failed_unlock_attempts(void)
 bool memory_increment_failed_unlock_attempts(void)
 {
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     if (chunk.fields.failed_unlock_attempts == 0) {
         return false;
@@ -405,7 +409,7 @@ bool memory_increment_failed_unlock_attempts(void)
 bool memory_reset_failed_unlock_attempts(void)
 {
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     // Save a write instruction if already reset.
     if (chunk.fields.failed_unlock_attempts == 0xFF) {
@@ -418,7 +422,7 @@ bool memory_reset_failed_unlock_attempts(void)
 bool memory_set_encrypted_seed_and_hmac(const uint8_t* encrypted_seed_and_hmac, uint8_t len)
 {
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     chunk.fields.encrypted_seed_and_hmac_len = len;
     memset(
@@ -437,7 +441,7 @@ bool memory_get_encrypted_seed_and_hmac(uint8_t* encrypted_seed_and_hmac_out, ui
         return false;
     }
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     memcpy(
         encrypted_seed_and_hmac_out,
@@ -450,7 +454,7 @@ bool memory_get_encrypted_seed_and_hmac(uint8_t* encrypted_seed_and_hmac_out, ui
 void memory_get_io_protection_key(uint8_t* key_out)
 {
     chunk_0_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
 
     memcpy(key_out, chunk.fields.io_protection_key, sizeof(chunk.fields.io_protection_key));
@@ -458,7 +462,7 @@ void memory_get_io_protection_key(uint8_t* key_out)
     // xor with the second part
 
     chunk_shared_t shared_chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) shared_chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(shared_chunk);
     _read_shared_bootdata(shared_chunk.bytes);
 
     // check assumption
@@ -475,14 +479,14 @@ void memory_get_io_protection_key(uint8_t* key_out)
 void memory_get_authorization_key(uint8_t* key_out)
 {
     chunk_0_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
     memcpy(key_out, chunk.fields.authorization_key, sizeof(chunk.fields.authorization_key));
 
     // xor with the second part
 
     chunk_shared_t shared_chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) shared_chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(shared_chunk);
     _read_shared_bootdata(shared_chunk.bytes);
 
     // check assumption
@@ -499,14 +503,14 @@ void memory_get_authorization_key(uint8_t* key_out)
 void memory_get_encryption_key(uint8_t* key_out)
 {
     chunk_0_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
     memcpy(key_out, chunk.fields.encryption_key, sizeof(chunk.fields.encryption_key));
 
     // xor with the second part
 
     chunk_shared_t shared_chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) shared_chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(shared_chunk);
     _read_shared_bootdata(shared_chunk.bytes);
 
     // check assumption
@@ -522,7 +526,7 @@ void memory_get_encryption_key(uint8_t* key_out)
 bool memory_is_attestation_setup_done(void)
 {
     chunk_0_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
 
     uint8_t empty[64] = {0};
@@ -533,7 +537,7 @@ bool memory_is_attestation_setup_done(void)
 bool memory_set_attestation_device_pubkey(const uint8_t* attestation_device_pubkey)
 {
     chunk_0_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
     memcpy(chunk.fields.attestation.device_pubkey, attestation_device_pubkey, 64);
     return _write_chunk(CHUNK_0_PERMANENT, chunk.bytes);
@@ -545,7 +549,7 @@ bool memory_set_attestation_certificate(
     const uint8_t* root_pubkey_identifier)
 {
     chunk_0_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
     if (!MEMEQ(attestation_device_pubkey, chunk.fields.attestation.device_pubkey, 64)) {
         return false;
@@ -564,7 +568,7 @@ bool memory_get_attestation_pubkey_and_certificate(
         return false;
     }
     chunk_0_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
     memcpy(
         pubkey_out,
@@ -594,7 +598,7 @@ void memory_bootloader_hash(uint8_t* hash_out)
 bool memory_bootloader_set_flags(auto_enter_t auto_enter, upside_down_t upside_down)
 {
     chunk_shared_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_shared_bootdata(chunk.bytes);
     chunk.fields.auto_enter = auto_enter.value;
     chunk.fields.upside_down = upside_down.value ? 1 : 0;
@@ -613,7 +617,7 @@ bool memory_bootloader_set_flags(auto_enter_t auto_enter, upside_down_t upside_d
 bool memory_get_salt_root(uint8_t* salt_root_out)
 {
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     memcpy(salt_root_out, chunk.fields.salt_root, sizeof(chunk.fields.salt_root));
     uint8_t empty[32];
@@ -624,7 +628,7 @@ bool memory_get_salt_root(uint8_t* salt_root_out)
 bool memory_get_noise_static_private_key(uint8_t* private_key_out)
 {
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     memcpy(
         private_key_out,
@@ -638,7 +642,7 @@ bool memory_get_noise_static_private_key(uint8_t* private_key_out)
 bool memory_check_noise_remote_static_pubkey(const uint8_t* pubkey)
 {
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
 
     const size_t number_of_slots = sizeof(chunk.fields.noise_remote_static_pubkeys) /
@@ -661,7 +665,7 @@ bool memory_add_noise_remote_static_pubkey(const uint8_t* pubkey)
     }
 
     chunk_1_t chunk = {0};
-    uint8_t* __attribute__((__cleanup__(_clean_chunk))) chunk_bytes = chunk.bytes;
+    CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
 
     uint8_t empty[NOISE_PUBKEY_SIZE];

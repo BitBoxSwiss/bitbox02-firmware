@@ -20,11 +20,10 @@
 /**
  * Shows a confirmation dialog to the user to confirm the total amount being
  * sent, and the tx fee. This call blocks until the user confirms or rejects.
- * @param[in] unit, e.g. "BTC"
- * @param[in] total formatted total amount sent, including the fee. e.g. " 123.12345678".
- * @param[in] fee formatted tx fee, part of the total, e.g. " 123.12345678".
+ * @param[in] total formatted total amount sent, including the fee. e.g. " 123.12345678 BTC".
+ * @param[in] fee formatted tx fee, part of the total, e.g. " 123.12345678 BTC".
  * @return true if the user confirms, false if the user rejects.
  */
-bool workflow_verify_total(const char* unit, const char* total, const char* fee);
+bool workflow_verify_total(const char* total, const char* fee);
 
 #endif

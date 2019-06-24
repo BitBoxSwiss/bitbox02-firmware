@@ -20,11 +20,10 @@
 /**
  * Shows a confirmation dialog to the user to confirm that an amount is being
  * sent to recipient. This call blocks until the user confirms or rejects.
- * @param[in] unit, e.g. "BTC"
  * @param[in] recipient recipient address/identifier/etc.
- * @param[in] amount formatted amount including unit, e.g. " 123.12345678"
+ * @param[in] amount formatted amount including unit, e.g. " 123.12345678 BTC"
  * @return true if the user confirms, false if the user rejects.
  */
-bool workflow_verify_recipient(const char* unit, const char* recipient, const char* amount);
+bool workflow_verify_recipient(const char* recipient, const char* amount);
 
 #endif

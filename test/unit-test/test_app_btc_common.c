@@ -30,11 +30,11 @@ static void _test_btc_common_format_amount_invalid_params(void** state)
 {
     char out[100] = {0};
 
-    assert_false(btc_common_format_amount(0, NULL, sizeof(out)));
+    assert_false(btc_common_format_amount(0, "", NULL, sizeof(out)));
     for (size_t wrong_out_len = 0; wrong_out_len < 30; wrong_out_len++) {
-        assert_false(btc_common_format_amount(0, out, wrong_out_len));
+        assert_false(btc_common_format_amount(0, "", out, wrong_out_len));
     }
-    assert_true(btc_common_format_amount(0, out, 31));
+    assert_true(btc_common_format_amount(0, "", out, 31));
 }
 
 typedef struct {
@@ -45,40 +45,40 @@ typedef struct {
 static void _test_btc_common_format_amount(void** state)
 {
     const btc_format_test_t tests[] = {
-        {0, "0"},
-        {1, "0.00000001"},
-        {2, "0.00000002"},
-        {10, "0.0000001"},
-        {15, "0.00000015"},
-        {20, "0.0000002"},
-        {300, "0.000003"},
-        {370, "0.0000037"},
-        {371, "0.00000371"},
-        {40000000000, "400"},
-        {4000000000, "40"},
-        {400000000, "4"},
-        {40000000, "0.4"},
-        {4000000, "0.04"},
-        {400000, "0.004"},
-        {40000, "0.0004"},
-        {4000, "0.00004"},
-        {400, "0.000004"},
-        {40, "0.0000004"},
-        {4, "0.00000004"},
-        {5432345, "0.05432345"},
-        {54323452, "0.54323452"},
-        {543234527, "5.43234527"},
-        {5432345270, "54.3234527"},
-        {54323452708, "543.23452708"},
-        {100000000, "1"},
-        {1234567800000001, "12345678.00000001"},
-        {0xffffffffffffffff, "184467440737.09551615"},
-        {0xffffffffffffffff - 5, "184467440737.0955161"},
+        {0, "0 LOL"},
+        {1, "0.00000001 LOL"},
+        {2, "0.00000002 LOL"},
+        {10, "0.0000001 LOL"},
+        {15, "0.00000015 LOL"},
+        {20, "0.0000002 LOL"},
+        {300, "0.000003 LOL"},
+        {370, "0.0000037 LOL"},
+        {371, "0.00000371 LOL"},
+        {40000000000, "400 LOL"},
+        {4000000000, "40 LOL"},
+        {400000000, "4 LOL"},
+        {40000000, "0.4 LOL"},
+        {4000000, "0.04 LOL"},
+        {400000, "0.004 LOL"},
+        {40000, "0.0004 LOL"},
+        {4000, "0.00004 LOL"},
+        {400, "0.000004 LOL"},
+        {40, "0.0000004 LOL"},
+        {4, "0.00000004 LOL"},
+        {5432345, "0.05432345 LOL"},
+        {54323452, "0.54323452 LOL"},
+        {543234527, "5.43234527 LOL"},
+        {5432345270, "54.3234527 LOL"},
+        {54323452708, "543.23452708 LOL"},
+        {100000000, "1 LOL"},
+        {1234567800000001, "12345678.00000001 LOL"},
+        {0xffffffffffffffff, "184467440737.09551615 LOL"},
+        {0xffffffffffffffff - 5, "184467440737.0955161 LOL"},
     };
     for (unsigned int i = 0; i < sizeof(tests) / sizeof(btc_format_test_t); i++) {
         const btc_format_test_t* test = &tests[i];
         char out[100] = {0};
-        assert_true(btc_common_format_amount(test->satoshi, out, sizeof(out)));
+        assert_true(btc_common_format_amount(test->satoshi, "LOL", out, sizeof(out)));
         assert_string_equal(test->out, out);
     }
 }

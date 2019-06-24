@@ -27,25 +27,24 @@
 #pragma GCC diagnostic ignored "-Wmissing-prototypes"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
-bool __wrap_workflow_verify_recipient(const char* unit, const char* recipient, const char* amount)
+bool __wrap_workflow_verify_recipient(const char* recipient, const char* amount)
 {
-    check_expected(unit);
     check_expected(recipient);
     check_expected(amount);
     return mock();
 }
 
-bool __wrap_workflow_verify_total(const char* unit, const char* total, const char* fee)
+bool __wrap_workflow_verify_total(const char* total, const char* fee)
 {
-    check_expected(unit);
     check_expected(total);
     check_expected(fee);
     return mock();
 }
 
-bool __wrap_btc_common_format_amount(uint64_t satoshi, char* out, size_t out_len)
+bool __wrap_btc_common_format_amount(uint64_t satoshi, const char* unit, char* out, size_t out_len)
 {
     check_expected(satoshi);
+    check_expected(unit);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wbad-function-cast"
     snprintf(out, out_len, "%s", (const char*)(mock()));
@@ -396,8 +395,8 @@ static void _sign(const _modification_t* mod)
         return;
     }
     expect_value(__wrap_btc_common_format_amount, satoshi, outputs[0].value);
+    expect_string(__wrap_btc_common_format_amount, unit, "BTC");
     will_return(__wrap_btc_common_format_amount, "amount0");
-    expect_string(__wrap_workflow_verify_recipient, unit, "BTC");
     expect_string(
         __wrap_workflow_verify_recipient, recipient, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
     expect_string(__wrap_workflow_verify_recipient, amount, "amount0");
@@ -413,8 +412,8 @@ static void _sign(const _modification_t* mod)
         return;
     }
     expect_value(__wrap_btc_common_format_amount, satoshi, outputs[1].value);
+    expect_string(__wrap_btc_common_format_amount, unit, "BTC");
     will_return(__wrap_btc_common_format_amount, "amount1");
-    expect_string(__wrap_workflow_verify_recipient, unit, "BTC");
     expect_string(
         __wrap_workflow_verify_recipient, recipient, "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ");
     expect_string(__wrap_workflow_verify_recipient, amount, "amount1");
@@ -432,8 +431,8 @@ static void _sign(const _modification_t* mod)
 
     // Third output
     expect_value(__wrap_btc_common_format_amount, satoshi, outputs[2].value);
+    expect_string(__wrap_btc_common_format_amount, unit, "BTC");
     will_return(__wrap_btc_common_format_amount, "amount2");
-    expect_string(__wrap_workflow_verify_recipient, unit, "BTC");
     expect_string(
         __wrap_workflow_verify_recipient, recipient, "bc1qxvenxvenxvenxvenxvenxvenxvenxven2ymjt8");
     expect_string(__wrap_workflow_verify_recipient, amount, "amount2");
@@ -445,8 +444,8 @@ static void _sign(const _modification_t* mod)
 
     // Fourth output
     expect_value(__wrap_btc_common_format_amount, satoshi, outputs[3].value);
+    expect_string(__wrap_btc_common_format_amount, unit, "BTC");
     will_return(__wrap_btc_common_format_amount, "amount3");
-    expect_string(__wrap_workflow_verify_recipient, unit, "BTC");
     expect_string(
         __wrap_workflow_verify_recipient,
         recipient,
@@ -480,10 +479,11 @@ static void _sign(const _modification_t* mod)
         return;
     }
     expect_value(__wrap_btc_common_format_amount, satoshi, total);
+    expect_string(__wrap_btc_common_format_amount, unit, "BTC");
     will_return(__wrap_btc_common_format_amount, "amount total");
     expect_value(__wrap_btc_common_format_amount, satoshi, fee);
+    expect_string(__wrap_btc_common_format_amount, unit, "BTC");
     will_return(__wrap_btc_common_format_amount, "amount fee");
-    expect_string(__wrap_workflow_verify_total, unit, "BTC");
     expect_string(__wrap_workflow_verify_total, total, "amount total");
     expect_string(__wrap_workflow_verify_total, fee, "amount fee");
     will_return(__wrap_workflow_verify_total, !mod->user_aborts_total);

@@ -46,11 +46,11 @@ static void _reject(component_t* component)
         status_create("Transaction\ncanceled", _result, STATUS_DEFAULT_DELAY, _finish));
 }
 
-bool workflow_verify_total(const char* unit, const char* total, const char* fee)
+bool workflow_verify_total(const char* total, const char* fee)
 {
     _done = false;
     _result = false;
-    ui_screen_stack_push(confirm_transaction_fee_create(unit, total, fee, _confirm, _reject));
+    ui_screen_stack_push(confirm_transaction_fee_create(total, fee, _confirm, _reject));
     ui_screen_process(_is_done);
     ui_screen_stack_pop();
     return _result;

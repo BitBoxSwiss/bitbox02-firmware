@@ -18,7 +18,7 @@
 #include "CryptoLib_JumpTable_pb.h"
 #include "CryptoLib_typedef_pb.h"
 #include "curve_p256.h"
-#include <drivers/driver_init.h>
+#include <driver_init.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>

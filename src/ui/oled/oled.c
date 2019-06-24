@@ -59,7 +59,7 @@
 
 #include "oled.h"
 
-#include <drivers/driver_init.h>
+#include <driver_init.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>

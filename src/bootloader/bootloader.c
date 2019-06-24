@@ -16,11 +16,11 @@
 #include "bootloader_version.h"
 #include "mpu.h"
 
-#include <drivers/driver_init.h>
+#include <driver_init.h>
 #include <stdint.h>
 #include <string.h>
 #ifdef BOOTLOADER_DEVDEVICE
-#include <drivers/qtouch/qtouch.h>
+#include <qtouch/qtouch.h>
 #endif
 #include <flags.h>
 #include <pukcc/curve_p256.h>

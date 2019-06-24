@@ -30,7 +30,7 @@
 #include <ui/ui_util.h>
 
 #ifndef TESTING
-#include <drivers/driver_init.h>
+#include <driver_init.h>
 #endif
 
 #define EMPTY_CHAR '_'

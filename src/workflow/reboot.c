@@ -19,7 +19,7 @@
 #include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 #ifndef TESTING
-#include <drivers/driver_init.h>
+#include <driver_init.h>
 #endif
 
 static bool _done = false;

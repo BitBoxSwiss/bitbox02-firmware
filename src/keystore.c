@@ -165,7 +165,7 @@ static bool _get_and_decrypt_seed(
     if (!_stretch_password(password, secret)) {
         return false;
     }
-    int decrypted_len = encrypted_len - 48;
+    size_t decrypted_len = encrypted_len - 48;
     uint8_t decrypted[decrypted_len];
     *password_correct_out = cipher_aes_hmac_decrypt(
         encrypted_seed_and_hmac, encrypted_len, decrypted, &decrypted_len, secret);

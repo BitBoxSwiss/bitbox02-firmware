@@ -115,10 +115,10 @@ static restore_error_t _recover_defective_contents(
     }
 
     for (uint32_t i = 0; i < assumed_file_length; i++) {
-        for (int b = 0; b < 8; b++) {
-            int bit_f0 = (broken_backups[0].content[i] >> b) & 1U;
-            int bit_f1 = (broken_backups[1].content[i] >> b) & 1U;
-            int bit_f2 = (broken_backups[2].content[i] >> b) & 1U;
+        for (unsigned int b = 0; b < 8; b++) {
+            unsigned int bit_f0 = (broken_backups[0].content[i] >> b) & 1U;
+            unsigned int bit_f1 = (broken_backups[1].content[i] >> b) & 1U;
+            unsigned int bit_f2 = (broken_backups[2].content[i] >> b) & 1U;
 
             if (bit_f0 != bit_f1 && bit_f0 != bit_f2) {
                 broken_backups[0].content[i] ^= 1U << b;
@@ -140,9 +140,8 @@ static restore_error_t _recover_defective_contents(
             memcpy(good_backup->content, broken_backups[0].content, assumed_file_length);
             good_backup->file_length = assumed_file_length;
             return RESTORE_OK;
-        } else {
-            return RESTORE_ERR_CHECK;
         }
+        return RESTORE_ERR_CHECK;
     }
     return res;
 }

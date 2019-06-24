@@ -78,10 +78,10 @@ static int32_t _cmd_continue(const USB_FRAME* frame, State* state)
         return ERR_INVALID_SEQ;
     }
 
-    int already_read = (state->buf_ptr - state->data);
+    size_t already_read = (state->buf_ptr - state->data);
     // Check bounds
-    if (already_read >= (signed)state->len ||
-        (already_read + sizeof(frame->cont.data)) > (signed)sizeof(state->data)) {
+    if (already_read >= state->len ||
+        (already_read + sizeof(frame->cont.data)) > sizeof(state->data)) {
         return ERR_INVALID_LENGTH;
     }
 

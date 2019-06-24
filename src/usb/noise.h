@@ -30,7 +30,7 @@ typedef size_t (*bb_noise_process_msg_callback)(
 bool bb_noise_process_msg(
     const Packet* in_packet,
     Packet* out_packet,
-    const size_t max_out_len,
+    size_t max_out_len,
     bb_noise_process_msg_callback process_msg);
 
 /**

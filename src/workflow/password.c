@@ -27,9 +27,9 @@
 static char _password_candidate[SET_PASSWORD_MAX_PASSWORD_LENGTH];
 // true after the workflow has finished (passwords entered and match or do not
 // match).
-static char _done = true;
+static bool _done = true;
 // whether the passwords match or do not match (undefined if _done is false).
-static char _result = false;
+static bool _result = false;
 static bool _is_done(void)
 {
     return _done;

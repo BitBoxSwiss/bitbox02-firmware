@@ -105,27 +105,23 @@ typedef struct {
  * @param[in] add_frame_callback The callback to which the prepared frames are passed to.
  */
 uint8_t usb_frame_reply(
-    const uint8_t cmd,
+    uint8_t cmd,
     const uint8_t* data,
-    const uint32_t len,
-    const uint32_t cid,
+    uint32_t len,
+    uint32_t cid,
     uint8_t(add_frame_callback)(const uint8_t*));
 
 /**
  * Takes data and a channel id and constructs USB frames that are added
  * to the USB queue and send back to the host as a FRAME_MSG.
  */
-void usb_frame_send_message(const uint8_t* data, const uint32_t len, const uint8_t cid);
+void usb_frame_send_message(const uint8_t* data, uint32_t len, uint8_t cid);
 
 /**
  * Takes data and a channel id and constructs USB frames that are added
  * to the USB queue and send back to the host with the given cmd identifier.
  */
-void usb_frame_send_cmd(
-    const uint8_t cmd,
-    const uint8_t* data,
-    const uint32_t len,
-    const uint8_t cid);
+void usb_frame_send_cmd(uint8_t cmd, const uint8_t* data, uint32_t len, uint8_t cid);
 
 /**
  * Prepares an error USB frame, containing the channel id

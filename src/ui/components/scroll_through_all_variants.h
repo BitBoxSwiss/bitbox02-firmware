@@ -33,7 +33,7 @@
 component_t* scroll_through_all_variants_create(
     const char** words,
     void (*callback)(uint8_t),
-    const uint8_t length,
+    uint8_t length,
     bool show_index,
     void (*continue_on_last)(void),
     component_t* parent);

@@ -62,7 +62,8 @@ static void _stay(component_t* component)
 static void _render(component_t* component)
 {
     orientation_data_t* data = (orientation_data_t*)component->data;
-    int16_t x, y;
+    int16_t x;
+    int16_t y;
     int16_t height = IMAGE_DEFAULT_ARROW_HEIGHT;
     int16_t position = data->screen_count / SCALE;
     if (position < COUNT_CHANGE_DIRECTION) {

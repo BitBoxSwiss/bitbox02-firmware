@@ -89,12 +89,12 @@ static void _render(component_t* component)
 
     bool confirm_gesture_active = confirm_gesture_is_active(data->confirm_gesture_component);
     // Password
-    uint8_t x, y, i;
+    uint8_t x = 10;
+    uint8_t y = 30;
     UG_FontSelect(&font_font_a_11X12);
-    for (i = 0, x = 10; i < strlens(data->password); i++) {
+    for (size_t i = 0; i < strlens(data->password); i++) {
         char chr = data->password[i];
         uint8_t w = font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
-        y = 30;
         if (i == strlens(data->password) - 1) {
             if (data->password[i] == EMPTY_CHAR && confirm_gesture_active) {
                 // Don't show trailing char during confirm, to make it clear

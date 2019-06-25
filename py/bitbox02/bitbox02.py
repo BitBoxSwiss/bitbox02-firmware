@@ -36,6 +36,14 @@ except ModuleNotFoundError:
     print("Run `make messages` to generate the protobuf messages")
     sys.exit()
 
+try:
+    # Optional rlp dependency only needed to sign ethereum transactions.
+    # pylint: disable=import-error
+    import rlp
+except ModuleNotFoundError:
+    pass
+
+
 HWW_CMD = 0x80 + 0x40 + 0x01
 
 ERR_GENERIC = 103
@@ -446,9 +454,6 @@ class BitBox02:
         """
         transaction should be given as a full rlp encoded eth transaction.
         """
-        # pylint: disable=import-error
-        import rlp  # pip3 install rlp
-
         nonce, gas_price, gas_limit, recipient, value, data, _, _, _ = rlp.decode(transaction)
         keypath = [] if keypath is None else keypath
         request = hww.ETHRequest()

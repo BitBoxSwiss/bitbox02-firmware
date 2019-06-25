@@ -45,6 +45,8 @@ static void _hash_header(
     if (sizeof(len) != 2) {
         Abort("_hash_header: unexpected size");
     }
+    // According to the RLP spec., buffer headers are encoded differently for lengths below and
+    // above 55 (for >55, length of length is encoded).
     if (len <= 55) {
         if (ctx != NULL) {
             uint8_t byte = small_tag + len;
@@ -144,6 +146,8 @@ static void _bigendian_to_scalar(const uint8_t* bytes, size_t len, bignum256* ou
     if (len > 32) {
         Abort("_bigendian_to_scalar: unexpected size");
     }
+    // bn_read_be requires a 32 byte big endian input, so we pad our big endian number to the
+    // required size.
     uint8_t buf[32] = {0};
     memcpy(buf + sizeof(buf) - len, bytes, len);
     bn_read_be(buf, out);

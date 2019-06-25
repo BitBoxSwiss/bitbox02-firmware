@@ -18,25 +18,25 @@
 
 #include <wally_bip32.h>
 
-app_eth_coin_params_t app_eth_params_eth = {
+static const app_eth_coin_params_t app_eth_params_eth = {
     .bip44_coin = 60 + BIP32_INITIAL_HARDENED_CHILD,
     .chain_id = 1,
     .unit = "ETH",
 };
 
-app_eth_coin_params_t app_eth_params_ropsten_eth = {
+static const app_eth_coin_params_t app_eth_params_ropsten_eth = {
     .bip44_coin = 1 + BIP32_INITIAL_HARDENED_CHILD,
     .chain_id = 3,
     .unit = "TETH",
 };
 
-app_eth_coin_params_t app_eth_params_rinkeby_eth = {
+static const app_eth_coin_params_t app_eth_params_rinkeby_eth = {
     .bip44_coin = 1 + BIP32_INITIAL_HARDENED_CHILD,
     .chain_id = 4,
     .unit = "TETH",
 };
 
-app_eth_coin_params_t* app_eth_params_get(ETHCoin coin)
+const app_eth_coin_params_t* app_eth_params_get(ETHCoin coin)
 {
     switch (coin) {
     case ETHCoin_ETH:

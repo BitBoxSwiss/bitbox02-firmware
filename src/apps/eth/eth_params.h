@@ -34,7 +34,7 @@ typedef struct {
 /**
  * @return pointer to static coin params on success. NULL if the coin is unknown.
  */
-app_eth_coin_params_t* app_eth_params_get(ETHCoin coin);
+const app_eth_coin_params_t* app_eth_params_get(ETHCoin coin);
 
 /**
  * @param[in] coin where the the token lives.

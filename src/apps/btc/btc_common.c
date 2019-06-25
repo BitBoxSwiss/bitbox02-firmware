@@ -288,7 +288,7 @@ static bool _encode_base58_address(uint8_t version, const uint8_t* hash, char* o
 }
 
 bool btc_common_address_from_outputhash(
-    app_btc_coin_params_t* params,
+    const app_btc_coin_params_t* params,
     BTCOutputType output_type,
     const uint8_t* hash,
     size_t hash_size,

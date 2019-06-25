@@ -30,6 +30,6 @@ typedef struct {
  * @return pointer to static coin params on success. NULL if the coin is
  * unknown.
  */
-app_btc_coin_params_t* app_btc_params_get(BTCCoin coin);
+const app_btc_coin_params_t* app_btc_params_get(BTCCoin coin);
 
 #endif

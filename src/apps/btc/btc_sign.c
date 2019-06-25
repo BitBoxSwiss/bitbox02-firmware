@@ -34,7 +34,7 @@ typedef enum {
 } _signing_state_t;
 
 static _signing_state_t _state = STATE_INIT;
-static app_btc_coin_params_t* _coin_params = NULL;
+static const app_btc_coin_params_t* _coin_params = NULL;
 // Inputs and changes are of this type.
 static BTCScriptType _script_type;
 // Inputs and changes keypaths must have this account.
@@ -126,7 +126,7 @@ app_btc_sign_error_t app_btc_sign_init(
     if (request->locktime != 0) {
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
     }
-    app_btc_coin_params_t* coin_params = app_btc_params_get(request->coin);
+    const app_btc_coin_params_t* coin_params = app_btc_params_get(request->coin);
     if (coin_params == NULL) {
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
     }

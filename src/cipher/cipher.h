@@ -16,6 +16,7 @@
 #define _CIPHER_H_
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 /**
@@ -37,9 +38,9 @@ bool cipher_aes_hmac_encrypt(
  */
 bool cipher_aes_hmac_decrypt(
     const uint8_t* in,
-    int in_len,
+    size_t in_len,
     uint8_t* out,
-    int* outlen,
+    size_t* outlen,
     const uint8_t* key);
 
 #endif

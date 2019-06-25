@@ -438,7 +438,8 @@ static bool _delete_file(const char* fn, const char* subdir)
     if (result != FR_OK) {
         return false;
     }
-    DWORD f_ps, fsize;
+    DWORD f_ps;
+    DWORD fsize;
     fsize = file_object.obj.objsize < ULONG_MAX ? file_object.obj.objsize : ULONG_MAX;
     for (f_ps = 0; f_ps < fsize; f_ps++) {
         f_putc('\xAC', &file_object); // overwrite data

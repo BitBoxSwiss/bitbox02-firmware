@@ -19,7 +19,7 @@
 #include "usbdc.h"
 #ifndef BOOTLOADER
 #include "u2f.h"
-#include <drivers/usb/class/hid/u2f/hid_u2f.h>
+#include <usb/class/hid/u2f/hid_u2f.h>
 #endif
 #endif
 

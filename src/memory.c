@@ -132,7 +132,7 @@ static void _clean_chunk(uint8_t** chunk_bytes)
 
 #define CLEANUP_CHUNK(var)                                                                    \
     uint8_t* __attribute__((__cleanup__(_clean_chunk))) __attribute__((unused)) var##_bytes = \
-        var.bytes;
+        (var).bytes;
 
 // chunk must have size CHUNK_SIZE. if chunk is NULL, the chunk is erased,
 // i.e. filled with 0xFF.

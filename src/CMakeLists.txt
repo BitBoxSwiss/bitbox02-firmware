@@ -256,6 +256,9 @@ set(FIRMWARE-DRIVER-SOURCES
 
 set(INCLUDES
     ${CMAKE_SOURCE_DIR}/src
+)
+set(SYSTEMINCLUDES
+    ${CMAKE_SOURCE_DIR}/src/drivers
     ${CMAKE_SOURCE_DIR}/src/drivers/CMSIS/5.0.1/Include
     ${CMAKE_SOURCE_DIR}/src/drivers/SAMD51_DFP/1.0.70/include
     ${CMAKE_SOURCE_DIR}/src/drivers/Config
@@ -333,7 +336,7 @@ if(BUILD_TYPE_FIRMWARE_OR_SETUP OR BUILD_TYPE STREQUAL "bootloader")
     if(BUILD_TYPE_FIRMWARE_OR_SETUP)
         set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/tools/nanopb/extra)
         find_package(Nanopb REQUIRED)
-        include_directories(${NANOPB_INCLUDE_DIRS})
+        include_directories(SYSTEM ${NANOPB_INCLUDE_DIRS})
         set(SOURCES
             ${DBB-FIRMWARE-SOURCES}
             ${DBB-FIRMWARE-USB-SOURCES}
@@ -349,15 +352,15 @@ if(BUILD_TYPE_FIRMWARE_OR_SETUP OR BUILD_TYPE STREQUAL "bootloader")
         )
         set(CMAKE_LINKER_SCRIPT "${CMAKE_SOURCE_DIR}/firmware.ld")
 
-        include_directories(${CMAKE_SOURCE_DIR}/external)
+        include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external)
         # needed for cryptoauthlib itself
-        include_directories(${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib)
-        include_directories(${CMAKE_SOURCE_DIR}/external/ctaes)
-        include_directories(${CMAKE_SOURCE_DIR}/external/sha3)
-        include_directories(${CMAKE_SOURCE_DIR}/external/noise-c/include)
-        include_directories(${CMAKE_SOURCE_DIR}/external/noise-c/src)
-        include_directories(${CMAKE_SOURCE_DIR}/external/libwally-core/include)
-        include_directories(${CMAKE_SOURCE_DIR}/external/libwally-core/src/secp256k1/include)
+        include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib)
+        include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external/ctaes)
+        include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external/sha3)
+        include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external/noise-c/include)
+        include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external/noise-c/src)
+        include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external/libwally-core/include)
+        include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external/libwally-core/src/secp256k1/include)
         # needed to find version.h
         include_directories(${CMAKE_CURRENT_BINARY_DIR})
     elseif(BUILD_TYPE STREQUAL "bootloader")
@@ -382,6 +385,7 @@ if(BUILD_TYPE_FIRMWARE_OR_SETUP OR BUILD_TYPE STREQUAL "bootloader")
 
     message(STATUS "C link flags:     ${CMAKE_C_LINK_FLAGS}\n")
     include_directories(${INCLUDES})
+    include_directories(SYSTEM ${SYSTEMINCLUDES})
 
     add_library(qtouchlib_a STATIC IMPORTED)
     set_property(TARGET qtouchlib_a PROPERTY

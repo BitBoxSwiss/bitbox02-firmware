@@ -143,7 +143,7 @@ static void _sprint_uint64(uint64_t value, char* out, char** out_start)
     *p = '\0';
     for (bool first = true; value || first; first = false) {
         const uint32_t digit = value % 10;
-        const char c = '0' + digit;
+        const char c = (char)('0' + digit);
         p--;
         *p = c;
         value = value / 10;

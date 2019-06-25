@@ -31,10 +31,10 @@
  */
 component_t* image_create(
     const uint8_t* image_bytes,
-    const uint16_t num_bytes,
-    const uint16_t width,
-    const uint16_t height,
-    const enum screen_position_t position,
+    uint16_t num_bytes,
+    uint16_t width,
+    uint16_t height,
+    enum screen_position_t position,
     component_t* parent);
 
 #endif

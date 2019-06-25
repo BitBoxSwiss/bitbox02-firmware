@@ -89,8 +89,9 @@ bool cipher_aes_hmac_encrypt(
     if (*out_len != in_len + N_BLOCK + N_BLOCK + 32) {
         return false;
     }
-    uint8_t encryption_key[32], authentication_key[32];
+    uint8_t encryption_key[32];
     UTIL_CLEANUP_32(encryption_key);
+    uint8_t authentication_key[32];
     UTIL_CLEANUP_32(authentication_key);
     if (!_derive_hmac_keys(secret, encryption_key, authentication_key)) {
         return false;
@@ -115,9 +116,9 @@ bool cipher_aes_hmac_encrypt(
 // out_len must be at least in_len - 16
 static bool _aes_decrypt(
     const uint8_t* in,
-    int in_len,
+    size_t in_len,
     uint8_t* out,
-    int* out_len,
+    size_t* out_len,
     const uint8_t* key)
 {
     uint8_t dec_pad[in_len - N_BLOCK];
@@ -150,9 +151,9 @@ error:
 
 bool cipher_aes_hmac_decrypt(
     const uint8_t* in,
-    int in_len,
+    size_t in_len,
     uint8_t* out,
-    int* out_len,
+    size_t* out_len,
     const uint8_t* key)
 {
     // in_len - iv - hmac
@@ -160,8 +161,9 @@ bool cipher_aes_hmac_decrypt(
         return false;
     }
 
-    uint8_t encryption_key[32], authentication_key[32];
+    uint8_t encryption_key[32];
     UTIL_CLEANUP_32(encryption_key);
+    uint8_t authentication_key[32];
     UTIL_CLEANUP_32(authentication_key);
 
     if (!_derive_hmac_keys(key, encryption_key, authentication_key)) {
@@ -170,7 +172,7 @@ bool cipher_aes_hmac_decrypt(
 
     uint8_t hmac[32];
     UTIL_CLEANUP_32(hmac);
-    if ((size_t)in_len < sizeof(hmac)) {
+    if (in_len < sizeof(hmac)) {
         return false;
     }
     if (wally_hmac_sha256(

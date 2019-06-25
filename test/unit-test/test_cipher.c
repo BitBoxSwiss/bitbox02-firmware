@@ -3748,7 +3748,7 @@ static void _test_cipher_aes_hmac_encrypt(void** state)
             cipher_aes_hmac_encrypt(test->msg, test->msg_len, cipher, &cipher_len, test->secret));
         assert_non_null(cipher);
         assert_int_equal(cipher_len, test->cipher_len);
-        int plaintext_len = test->cipher_len - 16 - 32;
+        size_t plaintext_len = test->cipher_len - 16 - 32;
         uint8_t plaintext[plaintext_len];
         assert_true(
             cipher_aes_hmac_decrypt(cipher, cipher_len, plaintext, &plaintext_len, test->secret));

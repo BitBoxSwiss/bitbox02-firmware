@@ -16,7 +16,7 @@
 #include <screen.h>
 #include <usb/usb.h>
 #ifndef TESTING
-#include <drivers/driver_init.h>
+#include <driver_init.h>
 
 void HardFault_Handler(void)
 {

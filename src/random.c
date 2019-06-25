@@ -44,7 +44,7 @@ void random_32_bytes_mcu(uint8_t* buf)
 #else
     rand_sync_read_buf8(&RAND_0, random, sizeof(random));
 #endif
-    for (uint32_t i = 0; i < sizeof(random); i++) {
+    for (size_t i = 0; i < sizeof(random); i++) {
         buf[i] ^= random[i];
     }
 }
@@ -80,7 +80,7 @@ static void random_32_bytes_sec(uint8_t* buf)
         Abort("Abort: securechip_random");
     }
 #endif
-    for (uint32_t i = 0; i < sizeof(random); i++) {
+    for (size_t i = 0; i < sizeof(random); i++) {
         buf[i] ^= random[i];
     }
 }

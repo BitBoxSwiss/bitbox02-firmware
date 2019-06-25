@@ -59,7 +59,7 @@
 
 #include "oled.h"
 
-#include <drivers/driver_init.h>
+#include <driver_init.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -83,7 +83,7 @@
 #define OLED_CMD_SET_DISPLAY_ON 0xAF
 #define OLED_CMD_SET_DISPLAY_OFF 0xAE
 #define OLED_CMD_SET_PAGE_START_ADDRESS(page) \
-    (0xB0 | (page & 0x0f)) // changed to 0x0f for SH1107 (128x64) OLED
+    (0xB0 | ((page)&0x0f)) // changed to 0x0f for SH1107 (128x64) OLED
 #define OLED_CMD_SET_COM_OUTPUT_SCAN_UP 0xC0
 #define OLED_CMD_SET_COM_OUTPUT_SCAN_DOWN 0xC8
 #define OLED_CMD_SET_DISPLAY_OFFSET 0xD3

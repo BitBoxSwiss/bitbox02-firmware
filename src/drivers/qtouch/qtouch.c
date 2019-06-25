@@ -26,7 +26,7 @@ Copyright (c) 2017 Microchip. All rights reserved.
  *     include files
  *----------------------------------------------------------------------------*/
 
-#include <drivers/driver_init.h>
+#include <driver_init.h>
 #include "qtouch.h"
 #include "touch_api_ptc.h"
 #include "license.h"

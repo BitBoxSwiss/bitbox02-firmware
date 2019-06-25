@@ -14,7 +14,7 @@
 
 #include "bootloader.h"
 #include <bootloader/mpu.h>
-#include <drivers/driver_init.h>
+#include <driver_init.h>
 #include <hardfault.h>
 #include <qtouch.h>
 #include <screen.h>

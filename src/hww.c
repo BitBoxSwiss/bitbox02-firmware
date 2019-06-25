@@ -64,7 +64,6 @@ static void _api_attestation(const Packet* in_packet, Packet* out_packet)
     memcpy(data, result.root_pubkey_identifier, sizeof(result.root_pubkey_identifier));
     data += sizeof(result.root_pubkey_identifier);
     memcpy(data, result.challenge_signature, sizeof(result.challenge_signature));
-    data += sizeof(result.challenge_signature);
 }
 
 /**

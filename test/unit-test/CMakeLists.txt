@@ -34,14 +34,19 @@ set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -lm")
 
 message(STATUS "C link flags:     ${CMAKE_C_LINK_FLAGS}\n")
 include_directories(
-  ${INCLUDES}
-  ${CMAKE_SOURCE_DIR}/test/unit-test/framework/includes
+  SYSTEM
+  ${SYSTEMINCLUDES}
+  ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/noise-c/include
   ${CMAKE_SOURCE_DIR}/external/noise-c/src
   ${CMAKE_SOURCE_DIR}/external/ctaes
   ${CMAKE_SOURCE_DIR}/external/sha3
   ${CMAKE_SOURCE_DIR}/external/libwally-core/include
   ${CMAKE_SOURCE_DIR}/external/libwally-core/src/secp256k1/include
+)
+include_directories(
+  ${INCLUDES}
+  ${CMAKE_SOURCE_DIR}/test/unit-test/framework/includes
   ${CMAKE_BINARY_DIR}/src
 )
 

@@ -33,12 +33,12 @@ static void _render(component_t* component)
 {
     knight_rider_data_t* data = (knight_rider_data_t*)component->data;
     int x, y;
-    float cos = (512 / 4 + data->screen_count++) % (512 + 1);
-    cos = cos / 512 * 3.14 * 2 - 3.14;
+    float cos = (float)((512 / 4 + data->screen_count++) % (512 + 1));
+    cos = (float)(cos / 512 * 3.14 * 2 - 3.14);
     if (cos > 0) {
-        cos = 1.27323954 * cos - 0.405284735 * cos * cos;
+        cos = 1.27323954F * cos - 0.405284735F * cos * cos;
     } else {
-        cos = 1.27323954 * cos + 0.405284735 * cos * cos;
+        cos = 1.27323954F * cos + 0.405284735F * cos * cos;
     }
     x = (int)(cos * 32) + SCREEN_WIDTH / 2 - 2;
     y = data->height;

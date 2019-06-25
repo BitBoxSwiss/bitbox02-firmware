@@ -190,7 +190,7 @@ static void _UG_PutString( UG_S16 x, UG_S16 y, UG_S16 *xout, UG_S16 *yout, const
     uint8_t line = 0;
 
     for (int i = 0; i < str_length; i++) {
-        chr = inverted ? str[str_length - 1 - i] : str[i];
+        chr = (char)(inverted ? str[str_length - 1 - i] : str[i]);
         if (chr != '\n' && (chr < gui->font.start_char || chr > gui->font.end_char)) {
             continue;
         }

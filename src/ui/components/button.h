@@ -28,8 +28,8 @@
  */
 component_t* button_create(
     const char* text,
-    const slider_location_t location,
-    const uint8_t screen_position,
+    slider_location_t location,
+    uint8_t screen_position,
     void (*callback)(component_t*),
     component_t* parent);
 
@@ -42,7 +42,7 @@ component_t* button_create(
  */
 component_t* button_create_wide(
     const char* text,
-    const slider_location_t location,
+    slider_location_t location,
     void (*callback)(component_t*),
     component_t* parent);
 
@@ -56,8 +56,8 @@ component_t* button_create_wide(
  */
 component_t* button_create_upside_down(
     const char* text,
-    const slider_location_t location,
-    const uint8_t screen_position,
+    slider_location_t location,
+    uint8_t screen_position,
     void (*callback)(component_t*),
     component_t* parent);
 
@@ -70,7 +70,7 @@ component_t* button_create_upside_down(
  */
 component_t* button_create_wide_upside_down(
     const char* text,
-    const slider_location_t location,
+    slider_location_t location,
     void (*callback)(component_t*),
     component_t* parent);
 

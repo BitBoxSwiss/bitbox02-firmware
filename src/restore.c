@@ -273,15 +273,20 @@ restore_error_t restore_list_backups(ListBackupsResponse* backups)
             continue;
         }
         backups->info[backups->info_count].timestamp = backup.backup_v1.content.metadata.timestamp;
-        memcpy(
-            backups->info[backups->info_count].id,
-            dir,
-            sizeof(backups->info[backups->info_count].id));
-        snprintf(
+        size_t id_size = sizeof(backups->info[backups->info_count].id);
+        int snprintf_result = snprintf(backups->info[backups->info_count].id, id_size, "%s", dir);
+        if (snprintf_result < 0 || snprintf_result >= (int)id_size) {
+            return RESTORE_ERR_SD_LIST;
+        }
+        size_t name_size = sizeof(backups->info[backups->info_count].name);
+        snprintf_result = snprintf(
             backups->info[backups->info_count].name,
-            sizeof(backups->info[backups->info_count].name),
+            name_size,
             "%s",
             backup.backup_v1.content.metadata.name);
+        if (snprintf_result < 0 || snprintf_result >= (int)name_size) {
+            return RESTORE_ERR_SD_LIST;
+        }
         backups->info_count++;
     }
 

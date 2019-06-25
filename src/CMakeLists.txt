@@ -233,10 +233,24 @@ set_source_files_properties(
     COMPILE_FLAGS "-Wno-cast-qual"
 )
 
+set(BIGNUM-SOURCES
+    ${CMAKE_SOURCE_DIR}/external/bignum/bignum.c
+    ${CMAKE_SOURCE_DIR}/external/bignum/largeprime.c
+)
+# disable some warnings for the external library
+set_source_files_properties(
+    ${BIGNUM-SOURCES}
+    PROPERTIES
+    COMPILE_FLAGS "-Wno-missing-prototypes -Wno-missing-declarations -Wno-switch-default"
+)
+
 set(ETHEREUM-SOURCES
     ${SHA3-SOURCES}
+    ${BIGNUM-SOURCES}
     ${CMAKE_SOURCE_DIR}/src/apps/eth/eth.c
     ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_common.c
+    ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_params.c
+    ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_sign.c
     ${CMAKE_SOURCE_DIR}/src/commander/commander_eth.c
 )
 

@@ -13,39 +13,31 @@
 // limitations under the License.
 
 #include "eth_common.h"
+#include "eth_params.h"
 
-#include <sha3.h>
+#include <hardfault.h>
 #include <util.h>
 
-#include <stdio.h>
-
+#include <sha3.h>
 #include <wally_bip32.h> // for BIP32_INITIAL_HARDENED_CHILD
+
+#include <stdio.h>
 
 #define BIP44_ETH_ACCOUNT_MAX (99) // 100 accounts
 
 bool eth_common_is_valid_keypath(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
 {
+    app_eth_coin_params_t* params = app_eth_params_get(coin);
+    if (params == NULL) {
+        return false;
+    }
     if (keypath_len != 5) {
         return false;
     }
     if (keypath[0] != 44 + BIP32_INITIAL_HARDENED_CHILD) {
         return false;
     }
-    uint32_t expected_purpose;
-    switch (coin) {
-    case ETHCoin_ETH:
-        expected_purpose = 60; // mainnet
-        break;
-    case ETHCoin_RopstenETH:
-        expected_purpose = 1; // testnet
-        break;
-    case ETHCoin_RinkebyETH:
-        expected_purpose = 1; // testnet
-        break;
-    default:
-        return false;
-    }
-    if (keypath[1] != expected_purpose + BIP32_INITIAL_HARDENED_CHILD) {
+    if (keypath[1] != params->bip44_coin) {
         return false;
     }
     if (keypath[2] != 0 + BIP32_INITIAL_HARDENED_CHILD) {
@@ -88,4 +80,19 @@ bool eth_common_hexaddress(const uint8_t* recipient, char* out, size_t out_len)
 
     snprintf(out, out_len, "0x%s", hex);
     return true;
+}
+
+void eth_common_format_amount(
+    const bignum256* scalar,
+    const char* unit,
+    unsigned int decimals,
+    char* out,
+    size_t out_len)
+{
+    if (out == NULL || out_len < 100) {
+        Abort("eth_common_format_amount");
+    }
+    char unit_with_space[strlen(unit) + 2];
+    snprintf(unit_with_space, sizeof(unit_with_space), " %s", unit);
+    bn_format(scalar, "", unit_with_space, decimals, 0, false, out, out_len);
 }

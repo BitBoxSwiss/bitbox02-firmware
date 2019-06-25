@@ -21,10 +21,13 @@
 
 #include <compiler_util.h>
 
+#include <bignum/bignum.h>
+
 #include <generated/hww.pb.h>
 
 #define APP_ETH_RECIPIENT_BYTES_LEN (20)
-#define APP_ETH_ADDRESS_HEX_LEN (APP_ETH_RECIPIENT_BYTES_LEN * 2 + 1) // including null terminator
+// including 0x prefix and null terminator.
+#define APP_ETH_ADDRESS_HEX_LEN (APP_ETH_RECIPIENT_BYTES_LEN * 2 + 2 + 1)
 
 /**
  * Does limit checks the keypath, whitelisting bip44 purpose and accounts.
@@ -42,5 +45,19 @@ USE_RESULT bool eth_common_is_valid_keypath(
  * @param[in] out_len must be at least APP_ETH_ADDRESS_HEX_LEN (includes null terminator).
  */
 USE_RESULT bool eth_common_hexaddress(const uint8_t* recipient, char* out, size_t out_len);
+
+/**
+ * Formats an ethereum or erc20 token amount given in the smallest unit. out_len must be at least
+ * 100.
+ * @param[in] scalar value to format
+ * @param[in] unit suffix
+ * @param[in] decimals Divide scalar by 10^decimals. Should be 18 to format WEI as ETH.
+ */
+void eth_common_format_amount(
+    const bignum256* scalar,
+    const char* unit,
+    unsigned int decimals,
+    char* out,
+    size_t out_len);
 
 #endif

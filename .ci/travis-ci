@@ -5,5 +5,5 @@ git remote set-branches --add origin master
 git fetch
 
 docker run -v ${TRAVIS_BUILD_DIR}:/bitbox02-firmware/ \
-       -i shiftcrypto/firmware_v2:1 \
+       -i shiftcrypto/firmware_v2:2 \
        bash -c "make -C /bitbox02-firmware ci"

@@ -74,8 +74,8 @@ static void _test_backup(time_t timestamp)
     case BACKUP_OK:
         screen_print_debug("backup OK", 1000);
         break;
-    case BACKUP_SEED_UNACCESSIBLE:
-        screen_print_debug("backup failed: seed unaccessible", 1000);
+    case BACKUP_SEED_INACCESSIBLE:
+        screen_print_debug("backup failed: seed inaccessible", 1000);
         break;
     case BACKUP_ERR_ENCODE:
         screen_print_debug("backup failed: encoding failed", 1000);

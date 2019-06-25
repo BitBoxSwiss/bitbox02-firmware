@@ -25,13 +25,19 @@ typedef enum {
     // the backup was successfully created, but the old
     // backup couldn't be deleted for some reason.
     BACKUP_STALE,
-    BACKUP_SEED_UNACCESSIBLE,
+    BACKUP_SEED_INACCESSIBLE,
     BACKUP_ERR_ENCODE,
     BACKUP_ERR_SD_LIST,
     BACKUP_ERR_SD_READ,
     BACKUP_ERR_SD_WRITE,
     BACKUP_ERR_CHECK,
 } backup_error_t;
+
+/**
+ * enum to string conversion
+ */
+
+const char* backup_error_str(backup_error_t err);
 
 void backup_cleanup_backup(Backup* backup);
 void backup_cleanup_backup_data(BackupData* backup_data);

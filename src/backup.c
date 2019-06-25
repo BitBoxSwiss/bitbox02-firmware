@@ -27,6 +27,30 @@
 #include <util.h>
 #include <version.h>
 
+const char* backup_error_str(backup_error_t err)
+{
+    switch (err) {
+    case BACKUP_OK:
+        return "OK";
+    case BACKUP_STALE:
+        return "STALE";
+    case BACKUP_SEED_INACCESSIBLE:
+        return "SEED_INACCESSIBLE";
+    case BACKUP_ERR_ENCODE:
+        return "ENCODE";
+    case BACKUP_ERR_SD_LIST:
+        return "SD_LIST";
+    case BACKUP_ERR_SD_READ:
+        return "SD_READ";
+    case BACKUP_ERR_SD_WRITE:
+        return "SD_WRITE";
+    case BACKUP_ERR_CHECK:
+        return "CHECK";
+    default:
+        return "UNKNOWN";
+    }
+}
+
 /**
  * Data used during encode.
  */
@@ -163,7 +187,7 @@ static backup_error_t _fill_backup(
         backup_data->birthdate = seed_birthdate;
 
         if (!keystore_copy_seed(backup_data->seed, &backup_data->seed_length)) {
-            return BACKUP_SEED_UNACCESSIBLE;
+            return BACKUP_SEED_INACCESSIBLE;
         }
         encode_data->backup_data = backup_data;
         encode_data->mode = &backup_metadata->mode;

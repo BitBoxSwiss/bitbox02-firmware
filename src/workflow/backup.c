@@ -88,12 +88,20 @@ static void _backup(void)
                 STATUS_DEFAULT_DELAY,
                 _dismiss);
         } else {
-            snprintf(msg, sizeof(msg), "Backup not created\nPlease contact\nsupport (%d)", res);
+            snprintf(
+                msg,
+                sizeof(msg),
+                "Backup not created\nPlease contact\nsupport (%s)",
+                backup_error_str(res));
             status_info = status_create(msg, false, STATUS_DEFAULT_DELAY, _dismiss);
         }
         break;
     default:
-        snprintf(msg, sizeof(msg), "Backup not created\nPlease contact\nsupport (%d)", res);
+        snprintf(
+            msg,
+            sizeof(msg),
+            "Backup not created\nPlease contact\nsupport (%s)",
+            backup_error_str(res));
         status_info = status_create(msg, false, STATUS_DEFAULT_DELAY, _dismiss);
         break;
     }
@@ -209,7 +217,7 @@ bool workflow_backup_check(char* id_out, bool silent)
         return true;
     default: {
         char err_msg[100];
-        snprintf(err_msg, 100, "Could not check\nbackup (%d)", res);
+        snprintf(err_msg, 100, "Could not check\nbackup (%s)", backup_error_str(res));
         ui_screen_stack_push(status_create(err_msg, false, STATUS_DEFAULT_DELAY, _dismiss));
         return false;
     }

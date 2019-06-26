@@ -35,7 +35,7 @@ bool app_btc_address(
     char* out,
     size_t out_len)
 {
-    app_btc_coin_params_t* params = app_btc_params_get(coin);
+    const app_btc_coin_params_t* params = app_btc_params_get(coin);
     if (params == NULL) {
         return false;
     }

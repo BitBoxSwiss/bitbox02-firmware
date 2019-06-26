@@ -289,7 +289,7 @@ static app_eth_sign_error_t _verify_standard_transaction(
 
 app_eth_sign_error_t app_eth_sign(const ETHSignRequest* request, ETHSignResponse* response)
 {
-    app_eth_coin_params_t* params = app_eth_params_get(request->coin);
+    const app_eth_coin_params_t* params = app_eth_params_get(request->coin);
     if (params == NULL) {
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }

@@ -27,7 +27,7 @@
 
 bool eth_common_is_valid_keypath(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
 {
-    app_eth_coin_params_t* params = app_eth_params_get(coin);
+    const app_eth_coin_params_t* params = app_eth_params_get(coin);
     if (params == NULL) {
         return false;
     }

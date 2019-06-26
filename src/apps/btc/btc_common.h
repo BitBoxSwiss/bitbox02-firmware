@@ -112,7 +112,7 @@ USE_RESULT BTCOutputType btc_common_determine_output_type(BTCScriptType script_t
  * hash, hash_size can be obtained from btc_common_outputhash_from_pubkeyhash().
  */
 USE_RESULT bool btc_common_address_from_outputhash(
-    app_btc_coin_params_t* params,
+    const app_btc_coin_params_t* params,
     BTCOutputType output_type,
     const uint8_t* hash,
     size_t hash_size,

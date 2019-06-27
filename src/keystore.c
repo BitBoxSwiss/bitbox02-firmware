@@ -37,7 +37,7 @@
 // password.
 #define KDF_NUM_ITERATIONS (2)
 
-// change this ONLY via keystore_unlock()
+// change this ONLY via keystore_unlock() or keystore_lock()
 static bool _is_unlocked_device = false;
 // seed length defaults to 32 bytes, but we could accept smaller seeds in the future.
 static uint8_t _seed_length = KEYSTORE_SEED_LENGTH;
@@ -343,6 +343,14 @@ bool keystore_unlock_bip39(const char* mnemonic_passphrase)
     memcpy(_retained_bip39_seed, bip39_seed, sizeof(bip39_seed));
     _is_unlocked_bip39 = true;
     return true;
+}
+
+void keystore_lock(void)
+{
+    _is_unlocked_device = false;
+    _is_unlocked_bip39 = false;
+    util_zero(_retained_seed, sizeof(_retained_seed));
+    util_zero(_retained_bip39_seed, sizeof(_retained_bip39_seed));
 }
 
 bool keystore_is_locked(void)

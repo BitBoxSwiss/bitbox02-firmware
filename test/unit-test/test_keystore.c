@@ -212,11 +212,24 @@ static void _test_keystore_encrypt_and_store_seed(void** state)
     assert_true(keystore_encrypt_and_store_seed(_mock_seed, 32, password));
 }
 
+static void _test_keystore_lock(void** state)
+{
+    mock_state(NULL, NULL);
+    assert_true(keystore_is_locked());
+    mock_state(_mock_seed, NULL);
+    assert_true(keystore_is_locked());
+    mock_state(_mock_seed, _mock_bip39_seed);
+    assert_false(keystore_is_locked());
+    keystore_lock();
+    assert_true(keystore_is_locked());
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_keystore_sign_secp256k1),
         cmocka_unit_test(_test_keystore_encrypt_and_store_seed),
+        cmocka_unit_test(_test_keystore_lock),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

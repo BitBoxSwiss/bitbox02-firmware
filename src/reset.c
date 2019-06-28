@@ -22,12 +22,12 @@
 
 void reset_reset(void)
 {
-    if (!memory_reset_hww()) {
-        Abort("Could not reset memory.");
-    }
 #ifndef TESTING
     if (!securechip_update_keys()) {
         Abort("Could not reset secure chip.");
     }
 #endif
+    if (!memory_reset_hww()) {
+        Abort("Could not reset memory.");
+    }
 }

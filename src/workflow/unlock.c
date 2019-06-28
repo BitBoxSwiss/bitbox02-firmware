@@ -106,7 +106,14 @@ static void _enter(void)
 static void _workflow_unlock(void)
 {
     // "Enter password"
+    ui_screen_stack_pop_all();
     ui_screen_stack_push(entry_screen_create("Enter password", _enter));
+}
+
+static void _start(void)
+{
+    _done = true;
+    workflow_start();
 }
 
 void workflow_unlock_enter_done(const char* password)
@@ -134,8 +141,7 @@ void workflow_unlock_enter_done(const char* password)
     }
     case KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED:
         reset_reset();
-        ui_screen_stack_switch(
-            status_create("Device reset", false, STATUS_DEFAULT_DELAY, workflow_start));
+        ui_screen_stack_switch(status_create("Device reset", false, STATUS_DEFAULT_DELAY, _start));
         break;
     default:
         Abort("keystore unlock failed");
@@ -149,7 +155,6 @@ void workflow_unlock(void)
         return;
     }
     _done = false;
-    ui_screen_stack_pop_all();
     _workflow_unlock();
     ui_screen_process(_is_done);
     ui_screen_stack_pop();

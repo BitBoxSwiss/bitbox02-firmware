@@ -16,9 +16,9 @@
 #define _FLAGS_H_
 
 #ifdef TESTING
-#define FLASH_ADDR (0x00000000u)
-#define FLASH_SIZE (0x00100000u)
-#define FLASH_PAGE_SIZE (512u)
+#define FLASH_ADDR (0x00000000U)
+#define FLASH_SIZE (0x00100000U)
+#define FLASH_PAGE_SIZE (512U)
 #else
 #include <samd51j20a.h>
 #endif
@@ -28,17 +28,17 @@
 // Erase granularity is 1 block (8kB; 16 pages)
 // Can (un)lock exactly 64 pages (32kB) at a time,
 // aligned at 16 pages (8kB); app start must be multiple of 8kB.
-#define FLASH_REGION_NUM (32u)
+#define FLASH_REGION_NUM (32U)
 #define FLASH_REGION_PAGE_NUM (FLASH_SIZE / (FLASH_REGION_NUM * FLASH_PAGE_SIZE)) // = 64
 // Erase granularity: can only erase this many pages at a time in a single flash_erase() call.
 // (erasing more does not work due to a bug (?) with _flash_erase_block() not working as expected.
-#define FLASH_ERASE_PAGE_NUM (16u)
+#define FLASH_ERASE_PAGE_NUM (16U)
 #define FLASH_ERASE_MIN_LEN \
     (FLASH_ERASE_PAGE_NUM * FLASH_PAGE_SIZE) // 8kB; minimum erase granularity
 // Bootloader memory area - 64kB total, first 56kB read-only, last 8kB R/W data reserved for
 // bootloader
 #define FLASH_BOOT_START (FLASH_ADDR)
-#define FLASH_BOOT_LEN (0x0000E000u) // 56kB
+#define FLASH_BOOT_LEN (0x0000E000U) // 56kB
 #define FLASH_SHARED_DATA_START \
     (FLASH_BOOT_START +         \
      FLASH_BOOT_LEN) // Do NOT change! The fixed bootloader needs access to data here
@@ -54,7 +54,7 @@
 #define FLASH_APP_START (FLASH_BOOT_START + FLASH_BOOT_LEN + FLASH_SHARED_DATA_LEN)
 // Appdata is 64kB of the flash space after the app and is reserved for app data.
 // Must be a multiple of FLASH_REGION_PAGE_NUM (0x8000 kB = 32kB), the minimum lock/unlock size.
-#define FLASH_APPDATA_LEN (0x000010000u)
+#define FLASH_APPDATA_LEN (0x000010000U)
 // Appdata start: If app length is changed, may need to subtract an offset in order to satisfy
 // the MPU setup conditions tested below.
 #define FLASH_APPDATA_START (FLASH_END - FLASH_BOOTDATA_LEN - FLASH_APPDATA_LEN)

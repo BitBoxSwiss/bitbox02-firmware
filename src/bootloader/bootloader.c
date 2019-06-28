@@ -84,7 +84,7 @@ COMPILER_ALIGNED(128)
 static struct sha_context _pukcc_sha256_context;
 COMPILER_PACK_RESET()
 
-#define FIRMWARE_CHUNK_LEN (8u * FLASH_PAGE_SIZE) // 4kB
+#define FIRMWARE_CHUNK_LEN (8U * FLASH_PAGE_SIZE) // 4kB
 #define FIRMWARE_MAX_NUM_CHUNKS \
     (FLASH_APP_LEN / FIRMWARE_CHUNK_LEN) // app len must be a multiple of chunk len
 #if (FIRMWARE_MAX_NUM_CHUNKS > UINT8_MAX)
@@ -236,8 +236,8 @@ static void _load_logo(void)
 {
     int x = 0;
     int y = 0;
-    for (uint16_t i = 0; i < sizeof(IMAGE_BB2_LOGO); i++) {
-        char b = IMAGE_BB2_LOGO[i];
+    for (size_t i = 0; i < sizeof(IMAGE_BB2_LOGO); i++) {
+        uint8_t b = IMAGE_BB2_LOGO[i];
         for (int j = 0; j < 8; j++) {
             if (b & 0x80) {
                 UG_DrawPixel(x, y, C_WHITE);
@@ -389,7 +389,7 @@ static size_t _api_firmware_erase(uint8_t firmware_num_chunks, uint8_t* output)
         _render_progress(0);
     }
     _loading_ready = 0;
-    for (uint32_t i = 0; i < FLASH_APP_PAGE_NUM; i += FLASH_REGION_PAGE_NUM) {
+    for (uint32_t i = 0; i < (uint32_t)FLASH_APP_PAGE_NUM; i += FLASH_REGION_PAGE_NUM) {
         if (flash_unlock(&FLASH_0, FLASH_APP_START + i * FLASH_PAGE_SIZE, FLASH_REGION_PAGE_NUM) !=
             FLASH_REGION_PAGE_NUM) {
             return _report_status(OP_STATUS_ERR_UNLOCK, output);
@@ -398,7 +398,8 @@ static size_t _api_firmware_erase(uint8_t firmware_num_chunks, uint8_t* output)
     uint8_t empty_page[FLASH_PAGE_SIZE];
     memset(empty_page, 0xff, sizeof(empty_page));
     uint16_t firmware_num_pages = firmware_num_chunks * FIRMWARE_CHUNK_LEN / FLASH_PAGE_SIZE;
-    for (uint32_t i = firmware_num_pages; i < FLASH_APP_PAGE_NUM; i += FLASH_ERASE_PAGE_NUM) {
+    for (uint32_t i = firmware_num_pages; i < (uint32_t)FLASH_APP_PAGE_NUM;
+         i += FLASH_ERASE_PAGE_NUM) {
         const uint32_t addr = FLASH_APP_START + i * FLASH_PAGE_SIZE;
         if (MEMEQ((const void*)addr, empty_page, sizeof(empty_page))) {
             continue;
@@ -501,7 +502,7 @@ static secbool_u32 _firmware_verified_jump(const boot_data_t* data, secbool_u32 
         _maybe_show_hash();
     }
 
-    for (uint32_t i = 0; i < FLASH_APP_PAGE_NUM; i += FLASH_REGION_PAGE_NUM) {
+    for (uint32_t i = 0; i < (uint32_t)FLASH_APP_PAGE_NUM; i += FLASH_REGION_PAGE_NUM) {
         flash_lock(&FLASH_0, FLASH_APP_START + i * FLASH_PAGE_SIZE, FLASH_REGION_PAGE_NUM);
     }
 
@@ -746,7 +747,7 @@ static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t m
         if (output[1] != OP_STATUS_OK) {
             _render_default_screen();
         } else {
-            _render_progress(chunk_num / (float)(_firmware_num_chunks - 1));
+            _render_progress((float)chunk_num / (float)(_firmware_num_chunks - 1));
         }
         break;
     }

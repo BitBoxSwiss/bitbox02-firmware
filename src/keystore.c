@@ -165,6 +165,9 @@ static bool _get_and_decrypt_seed(
     if (!_stretch_password(password, secret)) {
         return false;
     }
+    if (encrypted_len < 49) {
+        Abort("_get_and_decrypt_seed: underflow / zero size");
+    }
     size_t decrypted_len = encrypted_len - 48;
     uint8_t decrypted[decrypted_len];
     *password_correct_out = cipher_aes_hmac_decrypt(

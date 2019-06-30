@@ -171,10 +171,12 @@ static bool _get_and_decrypt_seed(
         encrypted_seed_and_hmac, encrypted_len, decrypted, &decrypted_len, secret);
     if (*password_correct_out) {
         if (decrypted_len != KEYSTORE_SEED_LENGTH) {
+            util_zero(decrypted, sizeof(decrypted));
             return false;
         }
         memcpy(decrypted_seed_out, decrypted, decrypted_len);
     }
+    util_zero(decrypted, sizeof(decrypted));
     return true;
 }
 

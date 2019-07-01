@@ -17,7 +17,6 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory.h>
-#include <reset.h>
 #include <string.h>
 #include <ui/components/ui_components.h>
 #include <ui/screen_process.h>
@@ -140,7 +139,6 @@ void workflow_unlock_enter_done(const char* password)
         break;
     }
     case KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED:
-        reset_reset();
         ui_screen_stack_switch(status_create("Device reset", false, STATUS_DEFAULT_DELAY, _start));
         break;
     default:

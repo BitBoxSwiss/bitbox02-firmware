@@ -80,9 +80,9 @@ USE_RESULT bool keystore_create_and_store_seed(const char* password, const uint8
  * @return
  * - KEYSTORE_OK if they keystore was successfully unlocked
  * - KEYSTORE_ERR_INCORRECT_PASSWORD if the password was wrong
- * - KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED if there were too many unsuccessful
+ * - KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED if there were too many unsuccessful attempts. The device is
+ *   reset in this case.
  * - KEYSTORE_ERR_GENERIC if there was a fatal memory error.
- * attempts.
  * Only call this if memory_is_seeded() returns true.
  */
 USE_RESULT keystore_error_t keystore_unlock(const char* password, uint8_t* remaining_attempts_out);

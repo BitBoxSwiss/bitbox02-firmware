@@ -59,12 +59,10 @@ static void _get_mnemonic_passphrase(char* passphrase_out)
 {
     char mnemonic_passphrase[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     char mnemonic_passphrase_repeat[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
-    bool equal = false;
-    while (!equal) {
+    while (true) {
         password_enter("Enter\nmnemonic passphrase", mnemonic_passphrase);
         password_enter("Confirm\nmnemonic passphrase", mnemonic_passphrase_repeat);
-        equal = STREQ(mnemonic_passphrase, mnemonic_passphrase_repeat);
-        if (equal) {
+        if (STREQ(mnemonic_passphrase, mnemonic_passphrase_repeat)) {
             snprintf(passphrase_out, SET_PASSWORD_MAX_PASSWORD_LENGTH, "%s", mnemonic_passphrase);
             break;
         }

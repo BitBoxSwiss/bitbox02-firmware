@@ -165,16 +165,21 @@ static bool _get_and_decrypt_seed(
     if (!_stretch_password(password, secret)) {
         return false;
     }
+    if (encrypted_len < 49) {
+        Abort("_get_and_decrypt_seed: underflow / zero size");
+    }
     size_t decrypted_len = encrypted_len - 48;
     uint8_t decrypted[decrypted_len];
     *password_correct_out = cipher_aes_hmac_decrypt(
         encrypted_seed_and_hmac, encrypted_len, decrypted, &decrypted_len, secret);
     if (*password_correct_out) {
         if (decrypted_len != KEYSTORE_SEED_LENGTH) {
+            util_zero(decrypted, sizeof(decrypted));
             return false;
         }
         memcpy(decrypted_seed_out, decrypted, decrypted_len);
     }
+    util_zero(decrypted, sizeof(decrypted));
     return true;
 }
 

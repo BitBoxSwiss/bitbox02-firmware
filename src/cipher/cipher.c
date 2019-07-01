@@ -113,7 +113,6 @@ bool cipher_aes_hmac_encrypt(
                32) == WALLY_OK;
 }
 
-// out_len must be at least in_len - 16
 static bool _aes_decrypt(
     const uint8_t* in,
     size_t in_len,

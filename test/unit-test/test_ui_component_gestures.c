@@ -21,6 +21,7 @@
 
 #include <touch/gestures.h>
 #include <ui/components/ui_components.h>
+#include <ui/screen_stack.h>
 
 #include "mock_component.h"
 #include "mock_gestures.h"
@@ -29,13 +30,15 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
-static event_t event;
-static component_t* component;
+static uint8_t _correct_event;
+static bool _correct_event_seen = false;
 
 static void test_on_event(const event_t* _event, component_t* _component)
 {
-    memcpy(&event, _event, sizeof(event_t));
-    component = _component;
+    (void)_component;
+    if (_event->id == _correct_event) {
+        _correct_event_seen = true;
+    }
 }
 
 static void test_ui_right_arrow_tap(void** state)
@@ -47,13 +50,16 @@ static void test_ui_right_arrow_tap(void** state)
         .render = ui_util_component_render_subcomponents,
         .on_event = test_on_event};
 
-    memset(&event, 0, sizeof(event_t));
-
     component_t* mock_component = mock_component_create();
     mock_component->f = &modified_functions;
+    ui_screen_stack_push(mock_component);
 
     component_t* right_arrow = right_arrow_create(top_slider, mock_component);
     assert_non_null(right_arrow);
+    ui_util_add_sub_component(mock_component, right_arrow);
+
+    _correct_event_seen = false;
+    _correct_event = EVENT_FORWARD;
 
     mock_gestures_touch_init();
     for (int i = 0; i < 11; i++) {
@@ -61,9 +67,8 @@ static void test_ui_right_arrow_tap(void** state)
     }
     mock_gestures_touch_release();
 
-    assert_int_equal(event.id, EVENT_FORWARD);
+    assert_true(_correct_event_seen);
 
-    right_arrow->f->cleanup(right_arrow);
     mock_component->f->cleanup(mock_component);
 }
 
@@ -76,13 +81,16 @@ static void test_ui_left_arrow_tap(void** state)
         .render = ui_util_component_render_subcomponents,
         .on_event = test_on_event};
 
-    memset(&event, 0, sizeof(event_t));
-
     component_t* mock_component = mock_component_create();
     mock_component->f = &modified_functions;
+    ui_screen_stack_push(mock_component);
 
     component_t* left_arrow = left_arrow_create(top_slider, mock_component);
     assert_non_null(left_arrow);
+    ui_util_add_sub_component(mock_component, left_arrow);
+
+    _correct_event_seen = false;
+    _correct_event = EVENT_BACKWARD;
 
     mock_gestures_touch_init();
     for (int i = 0; i < 11; i++) {
@@ -90,9 +98,8 @@ static void test_ui_left_arrow_tap(void** state)
     }
     mock_gestures_touch_release();
 
-    assert_int_equal(event.id, EVENT_BACKWARD);
+    assert_true(_correct_event_seen);
 
-    left_arrow->f->cleanup(left_arrow);
     mock_component->f->cleanup(mock_component);
 }
 

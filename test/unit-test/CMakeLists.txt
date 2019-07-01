@@ -132,7 +132,7 @@ add_test(NAME test_ui_util COMMAND test_ui_util)
 
 add_executable(test_ui_component_gestures test_ui_component_gestures.c)
 target_link_libraries(test_ui_component_gestures bitbox cmocka)
-#add_test(NAME test_ui_component_gestures COMMAND test_ui_component_gestures)
+add_test(NAME test_ui_component_gestures COMMAND test_ui_component_gestures)
 
 add_executable(test_btc_sign test_btc_sign.c)
 target_link_libraries(test_btc_sign bitbox cmocka "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=btc_common_format_amount")

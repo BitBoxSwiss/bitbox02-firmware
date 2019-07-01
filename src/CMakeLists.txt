@@ -51,6 +51,7 @@ set(DBB-FIRMWARE-SOURCES
     ${CMAKE_SOURCE_DIR}/src/workflow/workflow.c
     ${CMAKE_SOURCE_DIR}/src/workflow/status.c
     ${CMAKE_SOURCE_DIR}/src/workflow/password.c
+    ${CMAKE_SOURCE_DIR}/src/workflow/password_enter.c
     ${CMAKE_SOURCE_DIR}/src/workflow/create_seed.c
     ${CMAKE_SOURCE_DIR}/src/workflow/unlock.c
     ${CMAKE_SOURCE_DIR}/src/workflow/mnemonic.c

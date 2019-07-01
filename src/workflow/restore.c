@@ -40,13 +40,11 @@ static bool _result = false;
 static bool _restore(const char* password)
 {
     bool res = restore_seed(&_backup_data, password);
-    component_t* status;
     if (res) {
         res = memory_set_initialized();
     }
     if (res) {
         _result = true;
-        status = status_create("Success", true, 50, NULL);
         uint8_t remaining_attempts;
         if (keystore_unlock(password, &remaining_attempts) != KEYSTORE_OK) {
             // This should/can never happen, but let's check anyway.
@@ -57,13 +55,14 @@ static bool _restore(const char* password)
         }
     } else {
         _result = false;
-        status = status_create("Could not\nrestore backup", false, STATUS_DEFAULT_DELAY, NULL);
-    }
-    ui_screen_render_component(status);
-    ui_util_component_cleanup(status);
+        component_t* status =
+            status_create("Could not\nrestore backup", false, STATUS_DEFAULT_DELAY, NULL);
+        ui_screen_render_component(status);
+        ui_util_component_cleanup(status);
 #ifndef TESTING
-    delay_ms(2000);
+        delay_ms(2000);
 #endif
+    }
     if (res) {
         // Unlock after restore.
         workflow_unlock_enter_done(password);

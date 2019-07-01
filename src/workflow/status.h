@@ -15,6 +15,8 @@
 #ifndef _WORKFLOW_STATUS_H_
 #define _WORKFLOW_STATUS_H_
 
+#include <stdbool.h>
+
 void workflow_status_create(const char* msg);
 
 #endif

@@ -43,7 +43,7 @@ void mock_state(const uint8_t* retained_seed, const uint8_t* retained_bip39_seed
  * Copies the retained seed into the given buffer. The caller must
  * zero the seed with util_zero once it is no longer needed.
  * @param[out] seed_out The seed bytes copied from the retained seed.
- * The buffer should be 32 bytes long.
+ * The buffer should be KEYSTORE_SEED_LENGTH bytes long.
  * @param[out] length_out The seed length.
  * @return true if the seed was still retained.
  */
@@ -67,9 +67,12 @@ USE_RESULT bool keystore_encrypt_and_store_seed(
 */
 USE_RESULT bool keystore_create_and_store_seed(const char* password, const uint8_t* host_entropy);
 
-/** Unlocks the keystore seed:
+/** Unlocks the keystore seed or checks the password:
+ * If the keystore is locked, it decrypts and loads the seed, unlocking the keystore:
  * 1) loads the stored seed and tries to decrypt using password.
  * 2) if successful, the bip39 seed should be derived using keystore_unlock_bip39().
+ * If the keystore is already unlocked, this function does *not* change the state (can be used to
+ * check the password).
  * @param[in] password keystore password, used to decrypt the seed.
  * If it is false, the keystore is not unlocked.
  * @param[out] remaining_attempts_out will have the number of remaining attempts.
@@ -77,9 +80,9 @@ USE_RESULT bool keystore_create_and_store_seed(const char* password, const uint8
  * @return
  * - KEYSTORE_OK if they keystore was successfully unlocked
  * - KEYSTORE_ERR_INCORRECT_PASSWORD if the password was wrong
- * - KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED if there were too many unsuccessful
+ * - KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED if there were too many unsuccessful attempts. The device is
+ *   reset in this case.
  * - KEYSTORE_ERR_GENERIC if there was a fatal memory error.
- * attempts.
  * Only call this if memory_is_seeded() returns true.
  */
 USE_RESULT keystore_error_t keystore_unlock(const char* password, uint8_t* remaining_attempts_out);

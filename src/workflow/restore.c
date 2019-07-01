@@ -79,7 +79,7 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
     memcpy(_restored_name, backup.backup_v1.content.metadata.name, sizeof(_restored_name));
     if (res != RESTORE_OK) {
         ui_screen_stack_switch(
-            status_create("Could not\nrestore backup", false, STATUS_DEFAULT_DELAY * 10, NULL));
+            status_create("Could not\nrestore backup", false, STATUS_DEFAULT_DELAY, NULL));
         return false;
     }
     // blocking call until password is entered and backup is either restored or restoring failed.

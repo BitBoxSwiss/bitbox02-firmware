@@ -229,11 +229,10 @@ void memory_get_device_name(char* name_out)
     CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     if (chunk.fields.device_name[0] == 0xFF) {
-        strncpy(name_out, MEMORY_DEFAULT_DEVICE_NAME, MEMORY_DEVICE_NAME_MAX_LEN);
+        snprintf(name_out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", MEMORY_DEFAULT_DEVICE_NAME);
     } else {
-        memcpy(name_out, chunk.fields.device_name, MEMORY_DEVICE_NAME_MAX_LEN);
+        snprintf(name_out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", chunk.fields.device_name);
     }
-    name_out[MEMORY_DEVICE_NAME_MAX_LEN - 1] = 0;
 }
 
 bool memory_set_seed_birthdate(uint32_t timestamp)

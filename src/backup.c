@@ -156,7 +156,7 @@ static backup_error_t _fill_backup(
         memory_get_device_name(backup_metadata->name);
         memset(backup_data, 0, sizeof(BackupData));
         const char* firmware_v = DIGITAL_BITBOX_VERSION_SHORT;
-        memcpy(backup_data->generator, firmware_v, strlens(firmware_v) + 1);
+        snprintf(backup_data->generator, sizeof(backup_data->generator), "%s", firmware_v);
 
         uint32_t seed_birthdate;
         memory_get_seed_birthdate(&seed_birthdate);

@@ -280,6 +280,9 @@ static void _free_string(char** str)
 
 keystore_error_t keystore_unlock(const char* password, uint8_t* remaining_attempts_out)
 {
+    if (!memory_is_seeded()) {
+        return KEYSTORE_ERR_GENERIC;
+    }
     uint8_t failed_attempts = memory_get_failed_unlock_attempts();
     if (failed_attempts >= MAX_UNLOCK_ATTEMPTS) {
         *remaining_attempts_out = 0;
@@ -292,8 +295,15 @@ keystore_error_t keystore_unlock(const char* password, uint8_t* remaining_attemp
         return KEYSTORE_ERR_GENERIC;
     }
     if (password_correct) {
-        memcpy(_retained_seed, seed, sizeof(_retained_seed));
-        _is_unlocked_device = true;
+        if (_is_unlocked_device) {
+            // Already unlocked. Fail if the seed changed under our feet (should never happen).
+            if (!MEMEQ(_retained_seed, seed, sizeof(_retained_seed))) {
+                return KEYSTORE_ERR_GENERIC;
+            }
+        } else {
+            memcpy(_retained_seed, seed, sizeof(_retained_seed));
+            _is_unlocked_device = true;
+        }
         if (!memory_reset_failed_unlock_attempts()) {
             return KEYSTORE_ERR_GENERIC;
         }

@@ -47,6 +47,30 @@ bool __wrap_memory_is_initialized(void)
     return mock();
 }
 
+bool __wrap_memory_is_seeded(void)
+{
+    return mock();
+}
+
+static uint32_t _failed_unlock_attempts = 0;
+
+uint8_t __wrap_memory_get_failed_unlock_attempts(void)
+{
+    return (uint8_t)_failed_unlock_attempts;
+}
+
+bool __wrap_memory_reset_failed_unlock_attempts(void)
+{
+    _failed_unlock_attempts = 0;
+    return true;
+}
+
+bool __wrap_memory_increment_failed_unlock_attempts(void)
+{
+    _failed_unlock_attempts++;
+    return true;
+}
+
 static uint8_t _encrypted_seed_and_hmac[96];
 static uint8_t _encrypted_seed_and_hmac_len;
 

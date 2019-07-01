@@ -36,6 +36,11 @@ static uint8_t _mock_seed[32] = {
     0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
 };
 
+static uint8_t _mock_seed_2[32] = {
+    0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
+    0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
+};
+
 static uint8_t _mock_bip39_seed[64] = {
     0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
     0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
@@ -50,6 +55,11 @@ static uint8_t _password_salted_hashed_stretch_in[32] = {
 
 static uint8_t _password_salted_hashed_stretch_out[32] = {
     0x73, 0x60, 0x3d, 0x0d, 0x6a, 0xab, 0xbd, 0xd6, 0x2a, 0x11, 0xef, 0x72, 0x1d, 0x15, 0x42, 0xd8,
+    0x5e, 0x88, 0x48, 0x98, 0xda, 0x28, 0x04, 0x71, 0x51, 0xd0, 0xe5, 0x6f, 0x8d, 0xc6, 0x29, 0x27,
+};
+
+static uint8_t _password_salted_hashed_stretch_out_invalid[32] = {
+    0x72, 0x60, 0x3d, 0x0d, 0x6a, 0xab, 0xbd, 0xd6, 0x2a, 0x11, 0xef, 0x72, 0x1d, 0x15, 0x42, 0xd8,
     0x5e, 0x88, 0x48, 0x98, 0xda, 0x28, 0x04, 0x71, 0x51, 0xd0, 0xe5, 0x6f, 0x8d, 0xc6, 0x29, 0x27,
 };
 
@@ -168,7 +178,7 @@ static void _test_keystore_sign_secp256k1(void** state)
     }
 }
 
-static void _expect_stretch(void)
+static void _expect_stretch(bool valid)
 {
     expect_string(__wrap_salt_hash_data, purpose, "keystore_seed_access_in");
     will_return(__wrap_salt_hash_data, _password_salted_hashed_stretch_in);
@@ -189,16 +199,17 @@ static void _expect_stretch(void)
     will_return(securechip_kdf, _kdf_out_3);
 
     expect_string(__wrap_salt_hash_data, purpose, "keystore_seed_access_out");
-    will_return(__wrap_salt_hash_data, _password_salted_hashed_stretch_out);
+    will_return(
+        __wrap_salt_hash_data,
+        valid ? _password_salted_hashed_stretch_out : _password_salted_hashed_stretch_out_invalid);
 }
 
-static void _test_keystore_encrypt_and_store_seed(void** state)
+static void _expect_encrypt_and_store_seed(void)
 {
     will_return(__wrap_memory_is_initialized, false);
-    const char* password = "password";
 
-    _expect_stretch(); // first stretch to encrypt
-    _expect_stretch(); // second stretch to verify
+    _expect_stretch(true); // first stretch to encrypt
+    _expect_stretch(true); // second stretch to verify
 
     // Fixture: hmac.new(_password_salted_hashed_stretch_out, _kdf_out_3,
     // hashlib.sha256).hexdigest()
@@ -208,8 +219,73 @@ static void _test_keystore_encrypt_and_store_seed(void** state)
         0x97, 0x55, 0xd7, 0xcc, 0xe9, 0x26, 0x1e, 0x16, 0x91, 0x71,
     };
     expect_memory(__wrap_cipher_aes_hmac_encrypt, secret, expected_secret, 32);
+}
 
+static void _test_keystore_encrypt_and_store_seed(void** state)
+{
+    const char* password = "password";
+    _expect_encrypt_and_store_seed();
     assert_true(keystore_encrypt_and_store_seed(_mock_seed, 32, password));
+}
+
+static void _expect_seeded(bool seeded)
+{
+    uint8_t seed[KEYSTORE_SEED_LENGTH];
+    uint32_t len;
+    assert_int_equal(seeded, keystore_copy_seed(seed, &len));
+}
+
+static void _test_keystore_unlock(void** state)
+{
+    mock_state(NULL, NULL); // reset to locked
+
+    const char* password = "password";
+    const uint8_t max_attempts = 10;
+    uint8_t remaining_attempts;
+
+    will_return(__wrap_memory_is_seeded, false);
+    assert_int_equal(KEYSTORE_ERR_GENERIC, keystore_unlock(password, &remaining_attempts));
+
+    _expect_encrypt_and_store_seed();
+    assert_true(keystore_encrypt_and_store_seed(_mock_seed, 32, password));
+    _expect_seeded(false);
+    // Loop to check that unlocking unlocked works while unlocked.
+    for (int i = 0; i < 3; i++) {
+        will_return(__wrap_memory_is_seeded, true);
+        _expect_stretch(true);
+        assert_int_equal(KEYSTORE_OK, keystore_unlock(password, &remaining_attempts));
+        assert_int_equal(remaining_attempts, max_attempts);
+        _expect_seeded(true);
+    }
+
+    { // Test that unlocking the keystore fails if it is already unlocked and the seed changed.
+        // a) store different seed
+        _expect_encrypt_and_store_seed();
+        assert_true(keystore_encrypt_and_store_seed(_mock_seed_2, 32, password));
+        // b) fail to unlock (despite a correct password)
+        will_return(__wrap_memory_is_seeded, true);
+        _expect_stretch(true);
+        assert_int_equal(KEYSTORE_ERR_GENERIC, keystore_unlock(password, &remaining_attempts));
+    }
+
+    // Invalid passwords until we run out of attempts.
+    for (int i = 1; i <= max_attempts; i++) {
+        will_return(__wrap_memory_is_seeded, true);
+        _expect_stretch(false);
+        assert_int_equal(
+            i >= max_attempts ? KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED
+                              : KEYSTORE_ERR_INCORRECT_PASSWORD,
+            keystore_unlock(password, &remaining_attempts));
+        assert_int_equal(remaining_attempts, max_attempts - i);
+        // Wrong password does not lock the keystore again if already unlocked.
+        _expect_seeded(true);
+    }
+
+    // Trying again after max attempts is blocked immediately.
+    will_return(__wrap_memory_is_seeded, true);
+    assert_int_equal(
+        KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED, keystore_unlock(password, &remaining_attempts));
+    assert_int_equal(remaining_attempts, 0);
 }
 
 int main(void)
@@ -217,6 +293,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_keystore_sign_secp256k1),
         cmocka_unit_test(_test_keystore_encrypt_and_store_seed),
+        cmocka_unit_test(_test_keystore_unlock),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

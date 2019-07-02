@@ -173,3 +173,7 @@ add_test(NAME test_app_eth_common COMMAND test_app_eth_common)
 add_executable(test_util test_util.c)
 target_link_libraries(test_util bitbox cmocka)
 add_test(NAME test_util COMMAND test_util)
+
+add_executable(test_commander_set_device_name commander/test_commander_set_device_name.c)
+target_link_libraries(test_commander_set_device_name bitbox cmocka "-Wl,--wrap=workflow_confirm_scrollable,--wrap=memory_set_device_name")
+add_test(NAME test_commander_set_device_name COMMAND test_commander_set_device_name)

@@ -28,6 +28,8 @@
 
 #ifndef TESTING
 #include <securechip/securechip.h>
+#else
+#include <test_commander.h>
 #endif
 
 #include <workflow/backup.h>
@@ -314,3 +316,10 @@ size_t commander(
     }
     return out_stream.bytes_written;
 }
+
+#ifdef TESTING
+commander_error_t commander_api_set_device_name(const SetDeviceNameRequest* request)
+{
+    return _api_set_device_name(request);
+}
+#endif

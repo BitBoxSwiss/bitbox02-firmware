@@ -215,11 +215,15 @@ def select_option(device):
         print(f"SD Card inserted: {device.check_sdcard()}")
     elif choice == 11:
         mnemonic_passphrase_enabled = not mnemonic_passphrase_enabled
-        device.set_mnemonic_passphrase_enabled(mnemonic_passphrase_enabled)
-        print("Success.")
-        if mnemonic_passphrase_enabled:
-            print("You can enter a mnemonic passphrase on the next unlock.")
-            print("Replug your BitBox02.")
+        try:
+            device.set_mnemonic_passphrase_enabled(mnemonic_passphrase_enabled)
+        except bitbox02.UserAbortException:
+            print("Aborted by user")
+        else:
+            print("Success.")
+            if mnemonic_passphrase_enabled:
+                print("You can enter a mnemonic passphrase on the next unlock.")
+                print("Replug your BitBox02.")
     elif choice == 12:
 
         def address(display=False):

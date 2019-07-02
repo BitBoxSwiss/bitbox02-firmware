@@ -100,4 +100,10 @@ bool __wrap_memory_set_device_name(const char* name)
     return mock();
 }
 
+bool __wrap_memory_set_mnemonic_passphrase_enabled(bool enabled)
+{
+    check_expected(enabled);
+    return mock();
+}
+
 #pragma GCC diagnostic pop

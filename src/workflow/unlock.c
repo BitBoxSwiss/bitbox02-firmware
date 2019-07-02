@@ -74,10 +74,10 @@ static void _get_mnemonic_passphrase(char* passphrase_out)
 
 void workflow_unlock_enter_done(const char* password)
 {
-    uint8_t remaining_attempts = 0;
-    keystore_error_t unlock_result = keystore_unlock(password, &remaining_attempts);
-    switch (unlock_result) {
-    case KEYSTORE_OK: {
+    keystore_error_t unlock_result = workflow_unlock_and_handle_error(password);
+    if (unlock_result == KEYSTORE_OK) {
+        // Keystore unlocked, now unlock bip39 seed.
+
         // Empty passphrase by default.
         char mnemonic_passphrase[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
         if (memory_is_mnemonic_passphrase_enabled()) {
@@ -85,8 +85,21 @@ void workflow_unlock_enter_done(const char* password)
         }
         _finish_bip39(mnemonic_passphrase);
         util_zero(mnemonic_passphrase, sizeof(mnemonic_passphrase));
-        break;
+        return;
     }
+    if (unlock_result == KEYSTORE_ERR_INCORRECT_PASSWORD) {
+        // Try again.
+        _workflow_unlock();
+    }
+}
+
+keystore_error_t workflow_unlock_and_handle_error(const char* password)
+{
+    uint8_t remaining_attempts = 0;
+    keystore_error_t unlock_result = keystore_unlock(password, &remaining_attempts);
+    switch (unlock_result) {
+    case KEYSTORE_OK:
+        break;
     case KEYSTORE_ERR_INCORRECT_PASSWORD: {
         char msg[100] = {0};
         if (remaining_attempts == 1) {
@@ -95,7 +108,6 @@ void workflow_unlock_enter_done(const char* password)
             snprintf(msg, sizeof(msg), "Wrong password\n%d tries remain", remaining_attempts);
         }
         workflow_status_create(msg, false);
-        _workflow_unlock();
         break;
     }
     case KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED:
@@ -104,8 +116,8 @@ void workflow_unlock_enter_done(const char* password)
         break;
     default:
         Abort("keystore unlock failed");
-        break;
     }
+    return unlock_result;
 }
 
 void workflow_unlock(void)

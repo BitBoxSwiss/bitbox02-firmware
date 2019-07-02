@@ -96,7 +96,7 @@ static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_o
 
     // Process protofbuf/noise api calls.
     if (!bb_noise_process_msg(in_packet, out_packet, max_out_len, commander)) {
-        workflow_status_create("Could not\npair with app");
+        workflow_status_create("Could not\npair with app", false);
     }
 }
 

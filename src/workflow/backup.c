@@ -90,7 +90,7 @@ static bool _confirm_time(const CreateBackupRequest* request)
     static char local_timestring[100] = {0};
     strftime(local_timestring, sizeof(local_timestring), "%a %Y-%m-%d", local_time);
 
-    return workflow_confirm("Is today?", local_timestring);
+    return workflow_confirm("Is today?", local_timestring, false);
 }
 
 bool workflow_backup_create(const CreateBackupRequest* request)
@@ -99,6 +99,13 @@ bool workflow_backup_create(const CreateBackupRequest* request)
         request->timezone_offset > MAX_EAST_UTC_OFFSET) {
         return false;
     }
+
+    // Wait for sd card.
+    const InsertRemoveSDCardRequest sd = {
+        .action = InsertRemoveSDCardRequest_SDCardAction_INSERT_CARD,
+    };
+    sdcard_handle(&sd);
+
     if (!_confirm_time(request)) {
         return false;
     }
@@ -110,12 +117,6 @@ bool workflow_backup_create(const CreateBackupRequest* request)
             return false;
         }
     }
-
-    // Wait for sd card.
-    const InsertRemoveSDCardRequest sd = {
-        .action = InsertRemoveSDCardRequest_SDCardAction_INSERT_CARD,
-    };
-    sdcard_handle(&sd);
 
     return _backup(request);
 }

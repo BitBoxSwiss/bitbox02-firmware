@@ -19,6 +19,7 @@
 #include <ui/screen_stack.h>
 #include <util.h>
 #include <workflow/mnemonic.h>
+#include <workflow/password.h>
 
 #include "workflow.h"
 
@@ -162,9 +163,11 @@ static void _check_word(uint8_t selection)
 
 bool workflow_show_mnemonic_create(void)
 {
-    if (!workflow_get_interface_functions()->get_bip39_mnemonic(&_mnemonic)) {
-        screen_sprintf_debug(1000, "mnemonic create not possible");
+    if (!password_check()) {
         return false;
+    }
+    if (!workflow_get_interface_functions()->get_bip39_mnemonic(&_mnemonic)) {
+        Abort("mnemonic create not possible");
     }
     // This field must be set before we tokenize the _mnemonic,
     // because we use the length when we zero the memory after confirmation.

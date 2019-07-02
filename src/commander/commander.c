@@ -167,7 +167,7 @@ static commander_error_t _api_show_mnemonic(void)
     return COMMANDER_OK;
 }
 
-static commander_error_t commander_check_sdcard(CheckSDCardResponse* response)
+static commander_error_t _api_check_sdcard(CheckSDCardResponse* response)
 {
     response->inserted = sd_card_inserted();
     return COMMANDER_OK;
@@ -243,7 +243,7 @@ static commander_error_t _api_process(const Request* request, Response* response
         return commander_btc_sign(request, response);
     case Request_check_sdcard_tag:
         response->which_response = Response_check_sdcard_tag;
-        return commander_check_sdcard(&(response->response.check_sdcard));
+        return _api_check_sdcard(&(response->response.check_sdcard));
     case Request_insert_remove_sdcard_tag:
         response->which_response = Response_success_tag;
         _api_insert_remove_sdcard(&(request->request.insert_remove_sdcard));

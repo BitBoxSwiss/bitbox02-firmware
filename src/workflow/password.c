@@ -16,13 +16,17 @@
 
 #include "password.h"
 
+#include "password_enter.h"
+#include "unlock.h"
 #include "workflow.h"
 #include <hardfault.h>
-#include <stdio.h>
+#include <memory.h>
 #include <ui/components/ui_components.h>
 #include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 #include <util.h>
+
+#include <stdio.h>
 
 static char _password_candidate[SET_PASSWORD_MAX_PASSWORD_LENGTH];
 // true after the workflow has finished (passwords entered and match or do not
@@ -101,4 +105,16 @@ bool password_set(bool (*callback)(const char* password))
     ui_screen_stack_push(entry_screen_create("Set password", _set_enter));
     ui_screen_process(_is_done);
     return _result;
+}
+
+bool password_check(void)
+{
+    if (!memory_is_seeded()) {
+        Abort("password_check: must be seeded");
+    }
+    char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    password_enter("Unlocking device\nrequired", password);
+    keystore_error_t unlock_result = workflow_unlock_and_handle_error(password);
+    util_zero(password, sizeof(password));
+    return unlock_result == KEYSTORE_OK;
 }

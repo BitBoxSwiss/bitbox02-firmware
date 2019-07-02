@@ -66,7 +66,7 @@ static void _get_mnemonic_passphrase(char* passphrase_out)
             snprintf(passphrase_out, SET_PASSWORD_MAX_PASSWORD_LENGTH, "%s", mnemonic_passphrase);
             break;
         }
-        workflow_status_create("Passphrases\ndo not match");
+        workflow_status_create("Passphrases\ndo not match", false);
     }
     util_zero(mnemonic_passphrase, sizeof(mnemonic_passphrase));
     util_zero(mnemonic_passphrase_repeat, sizeof(mnemonic_passphrase_repeat));
@@ -94,12 +94,12 @@ void workflow_unlock_enter_done(const char* password)
         } else {
             snprintf(msg, sizeof(msg), "Wrong password\n%d tries remain", remaining_attempts);
         }
-        workflow_status_create(msg);
+        workflow_status_create(msg, false);
         _workflow_unlock();
         break;
     }
     case KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED:
-        workflow_status_create("Device reset");
+        workflow_status_create("Device reset", false);
         workflow_start();
         break;
     default:

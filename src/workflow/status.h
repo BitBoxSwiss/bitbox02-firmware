@@ -17,6 +17,12 @@
 
 #include <stdbool.h>
 
-void workflow_status_create(const char* msg);
+/**
+ * Create a centered label with a checkmark for success or a cross for failure.
+ * @param msg Message to print
+ * @param status_success true/false if screen should indicate success / failure
+ */
+
+void workflow_status_create(const char* msg, bool status_success);
 
 #endif

@@ -52,7 +52,7 @@ static bool _restore(const char* password)
         }
     } else {
         _result = false;
-        workflow_status_create("Could not\nrestore backup");
+        workflow_status_create("Could not\nrestore backup", false);
     }
     if (res) {
         // Unlock after restore.

@@ -31,6 +31,7 @@
 #endif
 
 #include <workflow/backup.h>
+#include <workflow/confirm.h>
 #include <workflow/create_seed.h>
 #include <workflow/mnemonic.h>
 #include <workflow/password.h>
@@ -106,9 +107,12 @@ static commander_error_t _api_get_info(DeviceInfoResponse* device_info)
     return COMMANDER_OK;
 }
 
-static commander_error_t _api_set_device_name(const SetDeviceNameRequest* device_name)
+static commander_error_t _api_set_device_name(const SetDeviceNameRequest* request)
 {
-    if (!memory_set_device_name(device_name->name)) {
+    if (!workflow_confirm_scrollable("Name", request->name, false)) {
+        return COMMANDER_ERR_USER_ABORT;
+    }
+    if (!memory_set_device_name(request->name)) {
         return COMMANDER_ERR_MEMORY;
     }
     return COMMANDER_OK;

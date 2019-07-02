@@ -27,10 +27,14 @@ from bitbox02 import HARDENED
 def change_name(device, name):
     info = device.device_info()
     print(f"\nOld device name: {info['name']}")
-    device.set_device_name(name)
-    print("\nSetting new device name.")
-    info = device.device_info()
-    print(f"\nNew device name: {info['name']}")
+    try:
+        device.set_device_name(name)
+    except bitbox02.UserAbortException:
+        print("Aborted by user")
+    else:
+        print("\nSetting new device name.")
+        info = device.device_info()
+        print(f"\nNew device name: {info['name']}")
 
 
 def setup_workflow(device):

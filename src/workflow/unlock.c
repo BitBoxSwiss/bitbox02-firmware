@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "unlock.h"
+#include "password_enter.h"
+#include "status.h"
 #include "workflow.h"
 #include <hardfault.h>
 #include <keystore.h>
@@ -25,16 +27,6 @@
 #ifndef TESTING
 #include <hal_delay.h>
 #endif
-
-static bool _done = true;
-static bool _is_done(void)
-{
-    return _done;
-}
-
-static void _enter_mnemonic_passphrase(void);
-
-static char _mnemonic_passphrase_unconfirmed[SET_PASSWORD_MAX_PASSWORD_LENGTH];
 
 static void _finish_bip39(const char* passphrase)
 {
@@ -52,67 +44,32 @@ static void _finish_bip39(const char* passphrase)
     if (!keystore_unlock_bip39(passphrase)) {
         Abort("bip39 unlock failed");
     }
-    _done = true;
-}
-
-static void _mnemonic_passphrase_confirm_done(const char* passphrase)
-{
-    bool equal = STREQ(_mnemonic_passphrase_unconfirmed, passphrase);
-    util_zero(_mnemonic_passphrase_unconfirmed, sizeof(_mnemonic_passphrase_unconfirmed));
-    if (equal) {
-        _finish_bip39(passphrase);
-    } else {
-        ui_screen_stack_switch(status_create(
-            "Passphrases\ndo not match", false, STATUS_DEFAULT_DELAY, _enter_mnemonic_passphrase));
-    }
-}
-
-static void _passphrase_confirm_enter(void)
-{
-    ui_screen_stack_switch(set_password_create(_mnemonic_passphrase_confirm_done));
-}
-
-static void _mnemonic_passphrase_enter_done(const char* passphrase)
-{
-    int snprintf_result = snprintf(
-        _mnemonic_passphrase_unconfirmed,
-        sizeof(_mnemonic_passphrase_unconfirmed),
-        "%s",
-        passphrase);
-    if (snprintf_result < 0 || snprintf_result >= (int)sizeof(_mnemonic_passphrase_unconfirmed)) {
-        Abort("length mismatch");
-    }
-    ui_screen_stack_switch(
-        entry_screen_create("Confirm\nmnemonic passphrase", _passphrase_confirm_enter));
-}
-
-static void _passphrase_enter(void)
-{
-    ui_screen_stack_switch(set_password_create(_mnemonic_passphrase_enter_done));
-}
-
-static void _enter_mnemonic_passphrase(void)
-{
-    memset(_mnemonic_passphrase_unconfirmed, 0, sizeof(_mnemonic_passphrase_unconfirmed));
-    ui_screen_stack_switch(entry_screen_create("Enter\nmnemonic passphrase", _passphrase_enter));
-}
-
-static void _enter(void)
-{
-    ui_screen_stack_switch(set_password_create(workflow_unlock_enter_done));
 }
 
 static void _workflow_unlock(void)
 {
-    // "Enter password"
     ui_screen_stack_pop_all();
-    ui_screen_stack_push(entry_screen_create("Enter password", _enter));
+    char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    password_enter("Enter password", password);
+    workflow_unlock_enter_done(password);
+    util_zero(password, sizeof(password));
 }
 
-static void _start(void)
+static void _get_mnemonic_passphrase(char* passphrase_out)
 {
-    _done = true;
-    workflow_start();
+    char mnemonic_passphrase[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    char mnemonic_passphrase_repeat[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    while (true) {
+        password_enter("Enter\nmnemonic passphrase", mnemonic_passphrase);
+        password_enter("Confirm\nmnemonic passphrase", mnemonic_passphrase_repeat);
+        if (STREQ(mnemonic_passphrase, mnemonic_passphrase_repeat)) {
+            snprintf(passphrase_out, SET_PASSWORD_MAX_PASSWORD_LENGTH, "%s", mnemonic_passphrase);
+            break;
+        }
+        workflow_status_create("Passphrases\ndo not match");
+    }
+    util_zero(mnemonic_passphrase, sizeof(mnemonic_passphrase));
+    util_zero(mnemonic_passphrase_repeat, sizeof(mnemonic_passphrase_repeat));
 }
 
 void workflow_unlock_enter_done(const char* password)
@@ -120,14 +77,16 @@ void workflow_unlock_enter_done(const char* password)
     uint8_t remaining_attempts = 0;
     keystore_error_t unlock_result = keystore_unlock(password, &remaining_attempts);
     switch (unlock_result) {
-    case KEYSTORE_OK:
+    case KEYSTORE_OK: {
+        // Empty passphrase by default.
+        char mnemonic_passphrase[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
         if (memory_is_mnemonic_passphrase_enabled()) {
-            _enter_mnemonic_passphrase();
-        } else {
-            // Empty passphrase by default.
-            _finish_bip39("");
+            _get_mnemonic_passphrase(mnemonic_passphrase);
         }
+        _finish_bip39(mnemonic_passphrase);
+        util_zero(mnemonic_passphrase, sizeof(mnemonic_passphrase));
         break;
+    }
     case KEYSTORE_ERR_INCORRECT_PASSWORD: {
         char msg[100] = {0};
         if (remaining_attempts == 1) {
@@ -135,11 +94,13 @@ void workflow_unlock_enter_done(const char* password)
         } else {
             snprintf(msg, sizeof(msg), "Wrong password\n%d tries remain", remaining_attempts);
         }
-        ui_screen_stack_switch(status_create(msg, false, STATUS_DEFAULT_DELAY, _workflow_unlock));
+        workflow_status_create(msg);
+        _workflow_unlock();
         break;
     }
     case KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED:
-        ui_screen_stack_switch(status_create("Device reset", false, STATUS_DEFAULT_DELAY, _start));
+        workflow_status_create("Device reset");
+        workflow_start();
         break;
     default:
         Abort("keystore unlock failed");
@@ -152,8 +113,5 @@ void workflow_unlock(void)
     if (!memory_is_initialized() || !keystore_is_locked()) {
         return;
     }
-    _done = false;
     _workflow_unlock();
-    ui_screen_process(_is_done);
-    ui_screen_stack_pop();
 }

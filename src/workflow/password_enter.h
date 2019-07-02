@@ -12,11 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _WORKFLOW_STATUS_H_
-#define _WORKFLOW_STATUS_H_
+#ifndef _PASSWORD_ENTER_H_
+#define _PASSWORD_ENTER_H_
 
-#include <stdbool.h>
+#include <ui/components/set_password.h> // for SET_PASSWORD_MAX_PASSWORD_LENGTH
 
-void workflow_status_create(const char* msg);
+/**
+ * Starts the enter password workflow.
+ * This call blocks.
+ * @param[in] title screen
+ * @param[out] password_out must be SET_PASSWORD_MAX_PASSWORD_LENGTH bytes (including null
+ * terminator).
+ */
+void password_enter(const char* title, char* password_out);
 
 #endif

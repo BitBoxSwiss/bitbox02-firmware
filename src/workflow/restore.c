@@ -24,12 +24,9 @@
 #include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 #include <workflow/password.h>
+#include <workflow/status.h>
 #include <workflow/unlock.h>
 #include <workflow/workflow.h>
-
-#ifndef TESTING
-#include <hal_delay.h>
-#endif
 
 static BackupData _backup_data;
 static char _restored_name[MEMORY_DEVICE_NAME_MAX_LEN];
@@ -55,13 +52,7 @@ static bool _restore(const char* password)
         }
     } else {
         _result = false;
-        component_t* status =
-            status_create("Could not\nrestore backup", false, STATUS_DEFAULT_DELAY, NULL);
-        ui_screen_render_component(status);
-        ui_util_component_cleanup(status);
-#ifndef TESTING
-        delay_ms(2000);
-#endif
+        workflow_status_create("Could not\nrestore backup");
     }
     if (res) {
         // Unlock after restore.

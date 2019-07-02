@@ -48,3 +48,14 @@ bool workflow_confirm(const char* title, const char* body)
     ui_screen_stack_pop();
     return _result;
 }
+
+bool workflow_confirm_scrollable(const char* title, const char* body, bool accept_only)
+{
+    _result = false;
+    _done = false;
+    ui_screen_stack_push(
+        confirm_create_scrollable(title, body, _confirm, accept_only ? NULL : _reject));
+    ui_screen_process(_is_done);
+    ui_screen_stack_pop();
+    return _result;
+}

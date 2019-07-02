@@ -23,4 +23,11 @@
  */
 bool workflow_confirm(const char* title, const char* body);
 
+/**
+ * Confirm something with the user.
+ * @param[in] accept_only if true, the user can only confirm, not reject.
+ * @return true if the user accepted, false if the user rejected.
+ */
+bool workflow_confirm_scrollable(const char* title, const char* body, bool accept_only);
+
 #endif

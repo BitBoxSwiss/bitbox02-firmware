@@ -13,28 +13,15 @@
 // limitations under the License.
 
 #include "reboot.h"
+#include "confirm.h"
 #include <memory.h>
 #include <screen.h>
-#include <ui/components/ui_components.h>
-#include <ui/screen_process.h>
-#include <ui/screen_stack.h>
 #ifndef TESTING
 #include <driver_init.h>
 #endif
 
-static bool _done = false;
-static bool _result = false;
-static bool _is_done(void)
+static void _reboot(void)
 {
-    return _done;
-}
-
-static void _confirm(component_t* component)
-{
-    (void)component;
-    _result = true;
-    _done = true;
-
     auto_enter_t auto_enter = {
         .value = sectrue_u8,
     };
@@ -50,19 +37,11 @@ static void _confirm(component_t* component)
 #endif
 }
 
-static void _reject(component_t* component)
-{
-    (void)component;
-    _result = false;
-    _done = true;
-}
-
 bool workflow_reboot(void)
 {
-    _done = false;
-    _result = false;
-    ui_screen_stack_push(confirm_create("", "Proceed to upgrade?", _confirm, _reject));
-    ui_screen_process(_is_done);
-    ui_screen_stack_pop();
-    return _result;
+    if (!workflow_confirm("", "Proceed to upgrade?")) {
+        return false;
+    }
+    _reboot();
+    return true;
 }

@@ -66,12 +66,13 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
     _result = false;
     Backup backup;
     restore_error_t res = restore_from_directory(restore_request->id, &backup, &_backup_data);
-    memcpy(_restored_name, backup.backup_v1.content.metadata.name, sizeof(_restored_name));
     if (res != RESTORE_OK) {
         ui_screen_stack_switch(
             status_create("Could not\nrestore backup", false, STATUS_DEFAULT_DELAY, NULL));
         return false;
     }
+    snprintf(_restored_name, sizeof(_restored_name), "%s", backup.backup_v1.content.metadata.name);
+
     // blocking call until password is entered and backup is either restored or restoring failed.
     password_set(_restore);
     return _result;

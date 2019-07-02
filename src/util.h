@@ -21,8 +21,24 @@
 #include <string.h>
 
 #define UTIL_BUFFER_LEN 0x1000
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define MIN(a, b)                                       \
+    __extension__({                                     \
+        _Pragma("GCC diagnostic push");                 \
+        _Pragma("GCC diagnostic ignored \"-Wshadow\""); \
+        __typeof__(a) _a = (a);                         \
+        __typeof__(b) _b = (b);                         \
+        _Pragma("GCC diagnostic pop");                  \
+        _a > _b ? _b : _a;                              \
+    })
+#define MAX(a, b)                                       \
+    __extension__({                                     \
+        _Pragma("GCC diagnostic push");                 \
+        _Pragma("GCC diagnostic ignored \"-Wshadow\""); \
+        __typeof__(a) _a = (a);                         \
+        __typeof__(b) _b = (b);                         \
+        _Pragma("GCC diagnostic pop");                  \
+        _a > _b ? _a : _b;                              \
+    })
 #define strlens(s) ((s) == NULL ? 0 : strlen(s))
 #define STREQ(a, b) (strcmp((a), (b)) == 0)
 #define MEMEQ(a, b, c) (memcmp((a), (b), (c)) == 0)

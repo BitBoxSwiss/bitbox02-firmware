@@ -24,4 +24,9 @@
  */
 bool password_set(bool (*callback)(const char* password));
 
+/**
+ * Promps the user for the password and returns true if the password is the valid keystore password.
+ */
+bool password_check(void);
+
 #endif

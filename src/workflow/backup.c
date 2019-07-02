@@ -25,10 +25,9 @@
 #include <ui/screen_stack.h>
 #include <workflow/backup.h>
 #include <workflow/confirm.h>
-#include <workflow/password_enter.h>
+#include <workflow/password.h>
 #include <workflow/sdcard.h>
 #include <workflow/status.h>
-#include <workflow/unlock.h>
 
 #define MAX_EAST_UTC_OFFSET (50400) // 14 hours in seconds
 #define MAX_WEST_UTC_OFFSET (-43200) // 12 hours in seconds
@@ -112,12 +111,10 @@ bool workflow_backup_create(const CreateBackupRequest* request)
         return false;
     }
 
-    char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
-    password_enter("Unlocking device\nrequired", password);
-    keystore_error_t unlock_result = workflow_unlock_and_handle_error(password);
-    util_zero(password, sizeof(password));
-    if (unlock_result != KEYSTORE_OK) {
-        return false;
+    if (memory_is_initialized()) {
+        if (!password_check()) {
+            return false;
+        }
     }
 
     if (!_confirm_time(request)) {

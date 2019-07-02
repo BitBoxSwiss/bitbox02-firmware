@@ -25,8 +25,10 @@
 #include <ui/screen_stack.h>
 #include <workflow/backup.h>
 #include <workflow/confirm.h>
+#include <workflow/password_enter.h>
 #include <workflow/sdcard.h>
 #include <workflow/status.h>
+#include <workflow/unlock.h>
 
 #define MAX_EAST_UTC_OFFSET (50400) // 14 hours in seconds
 #define MAX_WEST_UTC_OFFSET (-43200) // 12 hours in seconds
@@ -90,7 +92,7 @@ static bool _confirm_time(const CreateBackupRequest* request)
     static char local_timestring[100] = {0};
     strftime(local_timestring, sizeof(local_timestring), "%a %Y-%m-%d", local_time);
 
-    return workflow_confirm("Is today?", local_timestring);
+    return workflow_confirm("Is today?", local_timestring, false);
 }
 
 bool workflow_backup_create(const CreateBackupRequest* request)
@@ -99,6 +101,25 @@ bool workflow_backup_create(const CreateBackupRequest* request)
         request->timezone_offset > MAX_EAST_UTC_OFFSET) {
         return false;
     }
+
+    // Wait for sd card.
+    const InsertRemoveSDCardRequest sd = {
+        .action = InsertRemoveSDCardRequest_SDCardAction_INSERT_CARD,
+    };
+    sdcard_handle(&sd);
+
+    if (!workflow_confirm("", "I understand that\nthe backup is NOT\npassword protected", false)) {
+        return false;
+    }
+
+    char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    password_enter("Unlocking device\nrequired", password);
+    keystore_error_t unlock_result = workflow_unlock_and_handle_error(password);
+    util_zero(password, sizeof(password));
+    if (unlock_result != KEYSTORE_OK) {
+        return false;
+    }
+
     if (!_confirm_time(request)) {
         return false;
     }
@@ -110,12 +131,6 @@ bool workflow_backup_create(const CreateBackupRequest* request)
             return false;
         }
     }
-
-    // Wait for sd card.
-    const InsertRemoveSDCardRequest sd = {
-        .action = InsertRemoveSDCardRequest_SDCardAction_INSERT_CARD,
-    };
-    sdcard_handle(&sd);
 
     return _backup(request);
 }

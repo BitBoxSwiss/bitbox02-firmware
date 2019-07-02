@@ -35,5 +35,5 @@ bool workflow_pairing_create(const uint8_t* hash)
         base32 + 10,
         base32 + 15);
 
-    return workflow_confirm("Pairing code", base32_formatted);
+    return workflow_confirm("Pairing code", base32_formatted, false);
 }

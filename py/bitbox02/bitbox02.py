@@ -21,6 +21,7 @@ import base64
 import binascii
 from datetime import datetime
 import hashlib
+import typing
 
 import ecdsa
 from noise.connection import NoiseConnection, Keypair
@@ -52,14 +53,16 @@ ERR_USER_ABORT = 104
 HARDENED = 0x80000000
 
 # values: uncompressed secp256k1 pubkey serialization.
-ATTESTATION_PUBKEYS = [
+ATTESTATION_PUBKEYS: typing.List[bytes] = [
     binascii.unhexlify(
         "04074ff1273b36c24e80fe3d59e0e897a81732d3f8e9cd07e17e9fc06319cd16b"
         "25cf74255674477b3ac9cbac2d12f0dc27a662681fcbc12955b0bccdcbbdcfd01"
     )
 ]
 
-ATTESTATION_PUBKEYS_MAP = {hashlib.sha256(val).digest(): val for val in ATTESTATION_PUBKEYS}
+ATTESTATION_PUBKEYS_MAP: typing.Dict[bytes, bytes] = {
+    hashlib.sha256(val).digest(): val for val in ATTESTATION_PUBKEYS
+}
 
 OP_ATTESTATION = b"a"
 OP_UNLOCK = b"u"
@@ -71,7 +74,7 @@ RESPONSE_FAILURE = b"\x01"
 
 
 class Bitbox02Exception(Exception):
-    def __init__(self, code, message):
+    def __init__(self, code: str, message: str):
         self.code = code
         self.message = message
         super().__init__()
@@ -91,7 +94,12 @@ class AttestationException(Exception):
 class BitBox02:
     """Class to communicate with a BitBox02"""
 
-    def __init__(self, device_info, show_pairing_callback, attestation_check_callback=None):
+    def __init__(
+        self,
+        device_info,
+        show_pairing_callback: typing.Callable[[str], None],
+        attestation_check_callback: typing.Callable[[bool], None] = None,
+    ):
         self.debug = False
         serial_number = device_info["serial_number"]
         self.version = parse_device_version(serial_number)
@@ -148,20 +156,20 @@ class BitBox02:
     def close(self):
         self.device.close()
 
-    def _query(self, msg):
+    def _query(self, msg: bytes) -> bytes:
         """
         Sends msg bytes and retrieves response bytes.
         """
         hid_send_frames(self.device, msg, cmd=HWW_CMD)
         return bytes(hid_read_frames(self.device, cmd=HWW_CMD))
 
-    def _encrypted_query(self, msg):
+    def _encrypted_query(self, msg: bytes) -> bytes:
         """
         Sends msg bytes and reads response bytes over an encrypted channel.
         """
         return self.noise.decrypt(self._query(self.noise.encrypt(msg)))
 
-    def _msg_query(self, request, expected_response=None):
+    def _msg_query(self, request, expected_response: typing.Optional[str] = None):
         """
         Sends protobuf msg and retrieves protobuf response over an encrypted
         channel.
@@ -186,14 +194,14 @@ class BitBox02:
             print(response)
         return response
 
-    def random_number(self):
+    def random_number(self) -> bytes:
         # pylint: disable=no-member
         request = hww.Request()
         request.random_number.CopyFrom(hww.RandomNumberRequest())
         response = self._msg_query(request, expected_response="random_number")
         return response.random_number.number
 
-    def device_info(self):
+    def device_info(self) -> typing.Dict[str, typing.Any]:
         # pylint: disable=no-member
         request = hww.Request()
         device_info_request = hww.DeviceInfoRequest()
@@ -207,13 +215,13 @@ class BitBox02:
             "monotonic_increments_remaining": response.device_info.monotonic_increments_remaining,
         }
 
-    def set_device_name(self, device_name):
+    def set_device_name(self, device_name: str):
         # pylint: disable=no-member
         request = hww.Request()
         request.device_name.name = device_name
         self._msg_query(request, expected_response="success")
 
-    def set_password(self):
+    def set_password(self) -> bool:
         """
         Returns True if the user entered the password correctly (passwords match).
         Returns False otherwise.
@@ -229,7 +237,7 @@ class BitBox02:
             raise
         return True
 
-    def create_backup(self):
+    def create_backup(self) -> bool:
         """
         Returns True if the backup was created successfully.
         Returns False otherwise.
@@ -246,7 +254,7 @@ class BitBox02:
             raise
         return True
 
-    def list_backups(self):
+    def list_backups(self) -> typing.Generator[typing.Tuple[str, str, datetime], None, None]:
         """
         Returns a pair of id and timestamp's strings that identify the backups.
         """
@@ -259,7 +267,7 @@ class BitBox02:
             utcdate = datetime.utcfromtimestamp(info.timestamp)
             yield (info.id, info.name, utcdate)
 
-    def restore_backup(self, backup_id):
+    def restore_backup(self, backup_id: str) -> bool:
         """
         Sends a restore API call to the BitBox.
         """
@@ -274,7 +282,7 @@ class BitBox02:
             raise
         return True
 
-    def check_backup(self, silent=False):
+    def check_backup(self, silent: bool = False) -> typing.Optional[str]:
         """
         Sends a check backup API call to the BitBox.
         Returns the backup ID if the backup was found and can be restored.
@@ -292,7 +300,7 @@ class BitBox02:
             raise
         return response.check_backup.id
 
-    def show_mnemonic(self):
+    def show_mnemonic(self) -> bool:
         """
         Returns True if mnemonic was successfully shown and confirmed.
         Returns False otherwise.
@@ -310,11 +318,11 @@ class BitBox02:
 
     def btc_pub(
         self,
-        keypath=None,
+        keypath: typing.List[int] = None,
         coin=hww.BTC,
         output_type=hww.BTCPubRequest.XPUB,
         script_type=hww.SCRIPT_UNKNOWN,
-        display=True,
+        display: bool = True,
     ):
         """
         keypath is a list of child derivation numbers.
@@ -334,14 +342,14 @@ class BitBox02:
         )
         return self._msg_query(request).pub.pub
 
-    def check_sdcard(self):
+    def check_sdcard(self) -> bool:
         # pylint: disable=no-member
         request = hww.Request()
         request.check_sdcard.CopyFrom(hww.CheckSDCardRequest())
         response = self._msg_query(request, expected_response="check_sdcard")
         return response.check_sdcard.inserted
 
-    def insert_or_remove_sdcard(self, insert=False, remove=False):
+    def insert_or_remove_sdcard(self, insert: bool = False, remove: bool = False):
         """TODO: document"""
         # pylint: disable=no-member
         request = hww.Request()
@@ -357,7 +365,7 @@ class BitBox02:
             raise Exception("Invalid action")
         self._msg_query(request, expected_response="success")
 
-    def set_mnemonic_passphrase_enabled(self, enabled):
+    def set_mnemonic_passphrase_enabled(self, enabled: bool):
         """
         Enable or disable the bip39 passphrase.
         """
@@ -366,7 +374,7 @@ class BitBox02:
         request.set_mnemonic_passphrase_enabled.enabled = enabled
         self._msg_query(request, expected_response="success")
 
-    def _perform_attestation(self):
+    def _perform_attestation(self) -> bool:
         """Sends a random challenge and verifies that the response can be verified with
         Shift's root attestation pubkeys. Returns True if the verification is successful."""
 
@@ -409,7 +417,7 @@ class BitBox02:
             return False
         return True
 
-    def reboot(self):
+    def reboot(self) -> bool:
         """TODO: Document"""
         # pylint: disable=no-member
         request = hww.Request()
@@ -423,7 +431,7 @@ class BitBox02:
             return False
         return True
 
-    def _eth_msg_query(self, eth_request, expected_response=None):
+    def _eth_msg_query(self, eth_request, expected_response: typing.Optional[str] = None):
         """
         Same as _msg_query, but one nesting deeper for ethereum messages.
         """
@@ -443,7 +451,11 @@ class BitBox02:
         return eth_response
 
     def eth_pub(
-        self, keypath=None, coin=hww.ETH, output_type=hww.ETHPubRequest.ADDRESS, display=True
+        self,
+        keypath: typing.List[int] = None,
+        coin=hww.ETH,
+        output_type=hww.ETHPubRequest.ADDRESS,
+        display: bool = True,
     ):
         """
         keypath is a list of child derivation numbers.
@@ -457,7 +469,7 @@ class BitBox02:
         )
         return self._eth_msg_query(request, expected_response="pub").pub.pub
 
-    def eth_sign(self, transaction, keypath=None, coin=hww.ETH):
+    def eth_sign(self, transaction: bytes, keypath: typing.List[int] = None, coin=hww.ETH):
         """
         transaction should be given as a full rlp encoded eth transaction.
         """

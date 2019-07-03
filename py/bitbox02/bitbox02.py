@@ -47,6 +47,7 @@ except ModuleNotFoundError:
 HWW_CMD = 0x80 + 0x40 + 0x01
 
 ERR_GENERIC = 103
+ERR_USER_ABORT = 104
 
 HARDENED = 0x80000000
 
@@ -77,6 +78,10 @@ class Bitbox02Exception(Exception):
 
     def __str__(self):
         return f"error code: {self.code}, message: {self.message}"
+
+
+class UserAbortException(Bitbox02Exception):
+    pass
 
 
 class AttestationException(Exception):
@@ -168,6 +173,8 @@ class BitBox02:
         response = hww.Response()
         response.ParseFromString(response_bytes)
         if response.WhichOneof("response") == "error":
+            if response.error.code == ERR_USER_ABORT:
+                raise UserAbortException(response.error.code, response.error.message)
             raise Bitbox02Exception(response.error.code, response.error.message)
         if expected_response is not None and response.WhichOneof("response") != expected_response:
             raise Exception(

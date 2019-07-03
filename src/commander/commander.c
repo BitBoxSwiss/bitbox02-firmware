@@ -28,12 +28,14 @@
 
 #ifndef TESTING
 #include <securechip/securechip.h>
+#else
+#include <test_commander.h>
 #endif
 
 #include <workflow/backup.h>
+#include <workflow/confirm.h>
 #include <workflow/create_seed.h>
 #include <workflow/mnemonic.h>
-#include <workflow/password.h>
 #include <workflow/reboot.h>
 #include <workflow/restore.h>
 #include <workflow/sdcard.h>
@@ -106,9 +108,12 @@ static commander_error_t _api_get_info(DeviceInfoResponse* device_info)
     return COMMANDER_OK;
 }
 
-static commander_error_t _api_set_device_name(const SetDeviceNameRequest* device_name)
+static commander_error_t _api_set_device_name(const SetDeviceNameRequest* request)
 {
-    if (!memory_set_device_name(device_name->name)) {
+    if (!workflow_confirm_scrollable("Name", request->name, false)) {
+        return COMMANDER_ERR_USER_ABORT;
+    }
+    if (!memory_set_device_name(request->name)) {
         return COMMANDER_ERR_MEMORY;
     }
     return COMMANDER_OK;
@@ -182,6 +187,15 @@ static commander_error_t _api_insert_remove_sdcard(const InsertRemoveSDCardReque
 static commander_error_t _api_set_mnemonic_passphrase_enabled(
     const SetMnemonicPassphraseEnabledRequest* request)
 {
+    char msg[100] = {0};
+    if (request->enabled) {
+        snprintf(msg, sizeof(msg), "Enable\nmnemonic passphrase?");
+    } else {
+        snprintf(msg, sizeof(msg), "Disable\nmnemonic passphrase?");
+    }
+    if (!workflow_confirm("", msg, false)) {
+        return COMMANDER_ERR_USER_ABORT;
+    }
     if (!memory_set_mnemonic_passphrase_enabled(request->enabled)) {
         return COMMANDER_ERR_MEMORY;
     }
@@ -310,3 +324,15 @@ size_t commander(
     }
     return out_stream.bytes_written;
 }
+
+#ifdef TESTING
+commander_error_t commander_api_set_device_name(const SetDeviceNameRequest* request)
+{
+    return _api_set_device_name(request);
+}
+commander_error_t commander_api_set_mnemonic_passphrase_enabled(
+    const SetMnemonicPassphraseEnabledRequest* request)
+{
+    return _api_set_mnemonic_passphrase_enabled(request);
+}
+#endif

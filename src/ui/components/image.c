@@ -35,7 +35,7 @@ static void _render(component_t* component)
     int x = component->position.left;
     int y = component->position.top;
     for (uint16_t i = 0; i < data->num_bytes; i++) {
-        char b = data->image_bytes[i];
+        uint8_t b = data->image_bytes[i];
         for (int j = 0; j < 8; j++) {
             if (b & 0x80) {
                 UG_DrawPixel(x, y, screen_front_color);

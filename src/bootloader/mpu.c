@@ -74,9 +74,8 @@ static uint32_t _region_size(uint32_t size)
     while (ret < 31) {
         if (size <= regionSize) {
             break;
-        } else {
-            ret++;
         }
+        ret++;
         regionSize <<= 1;
     }
     return (ret << MPU_RASR_SIZE_Pos);

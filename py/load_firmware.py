@@ -67,7 +67,7 @@ def main():
             eprint("Please compare and confirm the pairing code on your BitBox02:")
             eprint(code)
 
-        bitbox = BitBox02(device_path=bitboxes[0]["path"], show_pairing_callback=show_pairing)
+        bitbox = BitBox02(device_info=bitboxes[0], show_pairing_callback=show_pairing)
         bitbox.reboot()
         bootloaders = _wait_for_bootloaders()
 

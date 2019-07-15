@@ -97,7 +97,7 @@ class Bootloader:
         """
         return bool(self._query(b"H\xFF")[0])
 
-    def set_show_firmware_hash(self, enable: bool) -> bool:
+    def set_show_firmware_hash(self, enable: bool):
         """
         Enables/disables whether the bootloader will automatically show the firmware hash on boot.
         """

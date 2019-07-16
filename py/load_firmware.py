@@ -17,17 +17,22 @@
 
 import sys
 import pprint
+from typing import Any, List
 from time import sleep
 
 from bitbox02 import devices
 from bitbox02 import Bootloader, BitBox02
 
 
-def eprint(*args, **kwargs):
-    print(*args, **kwargs, file=sys.stderr)
+def eprint(*args: Any, **kwargs: Any) -> None:
+    """
+    Like print, but defaults to stderr.
+    """
+    kwargs.setdefault("file", sys.stderr)
+    print(*args, **kwargs)
 
 
-def main():
+def main() -> int:
     """Main function"""
     debug = len(sys.argv) == 3 and sys.argv[2] == "debug"
     if not (len(sys.argv) == 2 or debug):
@@ -46,7 +51,7 @@ def main():
     bootloaders = devices.get_bitbox02_devices(devices.BOOTLOADER)
     bitboxes = devices.get_bitbox02_devices()
 
-    def _wait_for_bootloaders():
+    def _wait_for_bootloaders() -> List[devices.DeviceInfo]:
         while True:
             bootloaders = devices.get_bitbox02_devices(devices.BOOTLOADER)
             if bootloaders:
@@ -63,7 +68,7 @@ def main():
             return 1
 
         # bitbox02 detected -> send command to reboot into bootloader to upgrade.
-        def show_pairing(code):
+        def show_pairing(code: str) -> None:
             eprint("Please compare and confirm the pairing code on your BitBox02:")
             eprint(code)
 
@@ -82,7 +87,7 @@ def main():
     with open(filename, "rb") as file:
         firmware = file.read()
 
-    def progress(perc):
+    def progress(perc: float) -> None:
         sys.stdout.write(f"{perc*100:.02f}%\r")
 
     if bootloader.erased():

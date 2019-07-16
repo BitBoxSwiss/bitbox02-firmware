@@ -43,6 +43,7 @@ from .bitbox02 import (
     Bitbox02Exception,
     UserAbortException,
     AttestationException,
+    Backup,
     HARDENED,
     hww,
 )

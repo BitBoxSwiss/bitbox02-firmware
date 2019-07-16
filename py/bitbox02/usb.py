@@ -14,6 +14,7 @@
 """ Util functions to interact with usb/hid devices. """
 
 import struct
+import typing_extensions
 
 USB_REPORT_SIZE = 64
 HWW_CID = 0xFF000000
@@ -21,7 +22,17 @@ HWW_CID = 0xFF000000
 FRAME_ERROR = 0x80 | 0x3F
 
 
-def hid_send_frames(hid_device, data, cmd):
+class SupportsReadWrite(typing_extensions.Protocol):
+    # pylint: disable=unused-argument,no-self-use
+
+    def write(self, msg: bytes) -> None:
+        ...
+
+    def read(self, size: int, timeout_ms: int) -> bytes:
+        ...
+
+
+def hid_send_frames(hid_device: SupportsReadWrite, data: bytes, cmd: int) -> None:
     """
     Send data to the device.
     """
@@ -29,7 +40,7 @@ def hid_send_frames(hid_device, data, cmd):
     data_len = len(data)
     seq = 0
     idx = 0
-    write = []
+    write = b""
     while idx < data_len:
         if idx == 0:
             # INIT frame
@@ -53,7 +64,7 @@ def hid_send_frames(hid_device, data, cmd):
         idx += len(write)
 
 
-def hid_read_frames(hid_device, cmd, timeout=5000):
+def hid_read_frames(hid_device: SupportsReadWrite, cmd: int, timeout: int = 5000) -> bytes:
     """
     Receive data from the device.
     """

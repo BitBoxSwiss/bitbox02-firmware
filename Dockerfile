@@ -90,7 +90,9 @@ RUN pip3 install \
 RUN pip3 install \
     pylint \
     pylint-protobuf \
-    black
+    black \
+    mypy==0.720 \
+    mypy-protobuf==1.13
 
 # Install Go, used for the tools in tools/go and for test/gounittest
 ENV GOPATH /opt/go

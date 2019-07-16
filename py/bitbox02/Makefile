@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-all: generated/hww_pb2.py
+all: generated/hww_pb2.py generated/hww_pb2.pyi
 
-generated/hww_pb2.py: ../../messages/hww.proto
+generated/hww_pb2.py generated/hww_pb2.pyi: ../../messages/hww.proto
 	mkdir -p generated/
-	protoc --proto_path=../../messages --python_out=generated/ $^
+	protoc --proto_path=../../messages --python_out=generated/ --mypy_out=generated/ $^

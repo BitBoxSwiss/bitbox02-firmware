@@ -21,6 +21,7 @@ import hashlib
 
 import hid
 from .usb import hid_send_frames, hid_read_frames
+from .devices import DeviceInfo
 
 BOOTLOADER_CMD = 0x80 + 0x40 + 0x03
 NUM_ROOT_KEYS = 3
@@ -57,11 +58,11 @@ class Bootloader:
     One instance of a BitBox02 Bootloader, exposing the bootloader API.
     """
 
-    def __init__(self, device_info):
+    def __init__(self, device_info: DeviceInfo):
         self.device = hid.device()
         self.device.open_path(device_info["path"])
 
-    def _query(self, msg: bytes):
+    def _query(self, msg: bytes) -> bytes:
         hid_send_frames(self.device, msg, cmd=BOOTLOADER_CMD)
         response = bytes(hid_read_frames(self.device, cmd=BOOTLOADER_CMD))
         if response[0] != msg[0]:
@@ -97,23 +98,25 @@ class Bootloader:
         """
         return bool(self._query(b"H\xFF")[0])
 
-    def set_show_firmware_hash(self, enable: bool):
+    def set_show_firmware_hash(self, enable: bool) -> None:
         """
         Enables/disables whether the bootloader will automatically show the firmware hash on boot.
         """
         self._query(b"H" + bytes([int(enable)]))
 
-    def _erase(self, firmware_num_chunks: int):
+    def _erase(self, firmware_num_chunks: int) -> None:
         self._query(b"e" + bytes([firmware_num_chunks]))
 
-    def _write_chunk(self, chunk_num: int, chunk: bytes):
+    def _write_chunk(self, chunk_num: int, chunk: bytes) -> None:
         if len(chunk) != CHUNK_SIZE:
             raise ValueError("chunk must be 4kB")
         self._query(b"w" + bytes([chunk_num]) + chunk)
 
     def flash_unsigned_firmware(
-        self, firmware: bytes, progress_callback: typing.Callable[[float], None] = None
-    ):
+        self,
+        firmware: bytes,
+        progress_callback: typing.Optional[typing.Callable[[float], None]] = None,
+    ) -> None:
         """
         Flashes a firmware image onto the bootloader by invoking the erase and write chunk api
         calls. Expects the raw firmware without signatures, and does not flash the signatures.
@@ -138,8 +141,10 @@ class Bootloader:
                 progress_callback(chunk_num / num_chunks)
 
     def flash_signed_firmware(
-        self, firmware: bytes, progress_callback: typing.Callable[[float], None] = None
-    ):
+        self,
+        firmware: bytes,
+        progress_callback: typing.Optional[typing.Callable[[float], None]] = None,
+    ) -> None:
         """
         Flashes a signed firmware image. The firmware itself is extracted and flashed, then the
         signatures are extracted and flashed.
@@ -149,7 +154,7 @@ class Bootloader:
         self.flash_unsigned_firmware(firmware, progress_callback=progress_callback)
         self._query(b"s" + sigdata)
 
-    def erase(self):
+    def erase(self) -> None:
         """
         Erases the firmware from the device.
         """
@@ -159,19 +164,20 @@ class Bootloader:
         """
         Returns True if the the device contains no firmware.
         """
-        # We check by comparing the device reported firmware hash. If erased, the firmware is all '\xFF'.
+        # We check by comparing the device reported firmware hash.
+        # If erased, the firmware is all '\xFF'.
         firmware_v, _ = self.versions()
         empty_firmware = struct.pack("<I", firmware_v) + b"\xFF" * MAX_FIRMWARE_SIZE
         empty_firmware_hash = hashlib.sha256(hashlib.sha256(empty_firmware).digest()).digest()
         reported_firmware_hash, _ = self.get_hashes()
         return empty_firmware_hash == reported_firmware_hash
 
-    def reboot(self):
+    def reboot(self) -> None:
         hid_send_frames(self.device, b"r", cmd=BOOTLOADER_CMD)
         self.device.close()
 
-    def screen_rotate(self):
+    def screen_rotate(self) -> None:
         self._query(b"f")
 
-    def close(self):
+    def close(self) -> None:
         self.device.close()

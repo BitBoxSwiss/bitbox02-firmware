@@ -32,17 +32,15 @@
 #define FRAME_ERROR (FRAME_TYPE_INIT | 0x3f) // Error response
 
 #define FRAME_ERR_INVALID_CMD 0x01
+#define FRAME_ERR_INVALID_PAR 0x02
 #define FRAME_ERR_INVALID_LEN 0x03
 #define FRAME_ERR_INVALID_SEQ 0x04
+#define FRAME_ERR_MSG_TIMEOUT 0x05
 #define FRAME_ERR_CHANNEL_BUSY 0x06
 #define FRAME_ERR_OTHER 0x7f
 
-#define ERR_UNEXPECTED_CMD_INIT 1
-#define ERR_UNEXPECTED_CMD_CONT 2
-#define ERR_INVALID_LENGTH 3
-#define ERR_INVALID_SEQ 4
-#define ERR_INVALID_CMD 5
-#define ERR_CHANNEL_BUSY 6
+// Internal error message to ignore a frame
+#define FRAME_ERR_IGNORE 0x80
 
 // https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-hid-protocol-v1.2-ps-20170411.html
 //
@@ -60,7 +58,7 @@
 //
 // With a packet size of 64 bytes (max for full-speed devices), this means that
 // the maximum message payload length is 64 - 7 + 128 * (64 - 5) = 7609 bytes.
-#define USB_DATA_MAX_LEN 7609
+#define USB_DATA_MAX_LEN 7609U
 
 #define HID_VENDOR_FIRST (FRAME_TYPE_INIT | 0x40) // First vendor defined command
 #define HID_VENDOR_LAST (FRAME_TYPE_INIT | 0x7f) // Last vendor defined command

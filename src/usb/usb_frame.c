@@ -14,6 +14,8 @@
 
 #include "usb_frame.h"
 #include "err_codes.h"
+#include "usb/u2f/u2f_hid.h"
+#include "usb/usb_packet.h"
 #include "util.h"
 #include <stdbool.h>
 #include <stdio.h>
@@ -37,15 +39,31 @@ static void _read_data(State* state, const uint8_t* data, size_t length)
  */
 static int32_t _cmd_init(const USB_FRAME* frame, State* state)
 {
-    if (state->initialized) {
-        return ERR_UNEXPECTED_CMD_INIT;
+    // It is allowed to resynchronize a channel so only abort if another application tries to send
+    // an init command
+    if (state->initialized && frame->cid != state->cid && state->cmd == U2FHID_INIT) {
+        return FRAME_ERR_CHANNEL_BUSY;
     }
-    // TODO: check if cmd is supported and if cid is fine.
-    // we can abort the processing immediately if somethings not ok.
+
+    // The device is only busy if an app has successfully sent a complete INIT request. Any other
+    // requests can be aborted by new requsts from other apps.
+    if (state->initialized && frame->cid != state->cid && frame->type != U2FHID_INIT &&
+        state->cmd != U2FHID_INIT) {
+        return FRAME_ERR_CHANNEL_BUSY;
+    }
+
+    // Don't expect an initial usb report if we already have received one. Except if it is a
+    // app trying to resynchronize.
+    if (state->initialized && frame->cid == state->cid && (frame->type != U2FHID_INIT)) {
+        return FRAME_ERR_INVALID_SEQ;
+    }
 
     if ((unsigned)FRAME_MSG_LEN(*frame) > sizeof(state->data)) {
-        return ERR_INVALID_LENGTH;
+        return FRAME_ERR_INVALID_LEN;
     }
+
+    // Enable timer for this packet
+    usb_packet_timeout_enable(frame->cid);
 
     memset(state, 0, sizeof(State));
     state->seq = 0;
@@ -64,25 +82,26 @@ static int32_t _cmd_init(const USB_FRAME* frame, State* state)
  */
 static int32_t _cmd_continue(const USB_FRAME* frame, State* state)
 {
+    // Silently drop unsolicited continuation frames
     if (!state->initialized) {
-        return ERR_UNEXPECTED_CMD_CONT;
+        return FRAME_ERR_IGNORE;
     }
 
     // expected a continuation frame with channel id 'cid', but received
     // another continuation frame
     if (state->cid != frame->cid) {
-        return ERR_CHANNEL_BUSY;
+        return FRAME_ERR_CHANNEL_BUSY;
     }
 
     if (state->seq != FRAME_SEQ(*frame)) {
-        return ERR_INVALID_SEQ;
+        return FRAME_ERR_INVALID_SEQ;
     }
 
     size_t already_read = (state->buf_ptr - state->data);
     // Check bounds
     if (already_read >= state->len ||
         (already_read + sizeof(frame->cont.data)) > sizeof(state->data)) {
-        return ERR_INVALID_LENGTH;
+        return FRAME_ERR_INVALID_LEN;
     }
 
     state->seq++;
@@ -173,5 +192,5 @@ int32_t usb_frame_process(const USB_FRAME* frame, State* state)
     if ((frame->type & FRAME_TYPE_MASK) == FRAME_TYPE_CONT) {
         return _cmd_continue(frame, state);
     }
-    return ERR_INVALID_CMD;
+    return FRAME_ERR_INVALID_CMD;
 }

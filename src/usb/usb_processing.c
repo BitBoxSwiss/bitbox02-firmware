@@ -97,12 +97,26 @@ bool usb_processing_enqueue(const State* in_state, void (*send)(void))
     }
     _build_packet(in_state);
     _in_packet_queued = true;
-    _send = send;
+    usb_processing_set_send(send);
     return true;
 }
 
+void usb_processing_set_send(void (*send)(void))
+{
+    _send = send;
+}
+
+#include "screen.h"
+
 void usb_processing_process(void)
 {
+    uint32_t timeout_cid;
+    // If there are any timeouts, send them first
+    while (usb_packet_timeout_get(&timeout_cid)) {
+        // screen_sprintf_debug(100, "%u timed out", timeout_cid);
+        usb_packet_timeout(timeout_cid);
+        _send();
+    }
     if (!_in_packet_queued) {
         return;
     }

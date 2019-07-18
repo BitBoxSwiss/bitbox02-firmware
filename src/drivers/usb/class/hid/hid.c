@@ -285,6 +285,11 @@ int32_t hid_read(struct hid_func_data* func_data, uint8_t *buf, uint32_t size)
     if (!hid_is_enabled(func_data)) {
         return ERR_DENIED;
     }
+    struct usb_d_ep_status status;
+    usb_d_ep_get_status(func_data->func_ep_in, &status);
+    while(status.state != USB_EP_S_IDLE) {
+        usb_d_ep_get_status(func_data->func_ep_in, &status);
+    }
     return usbdc_xfer(func_data->func_ep_out, buf, size, false);
 }
 
@@ -298,6 +303,11 @@ int32_t hid_write(struct hid_func_data* func_data, uint8_t *buf, uint32_t size)
 {
     if (!hid_is_enabled(func_data)) {
         return ERR_DENIED;
+    }
+    struct usb_d_ep_status status;
+    usb_d_ep_get_status(func_data->func_ep_in, &status);
+    while(status.state != USB_EP_S_IDLE) {
+        usb_d_ep_get_status(func_data->func_ep_in, &status);
     }
     return usbdc_xfer(func_data->func_ep_in, buf, size, false);
 }

@@ -265,6 +265,9 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -W -Wall -Wextra -Wpedantic -Wmissin
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections -fstack-protector-all")
 
+# For `struct timespec` and `strdup`
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_XOPEN_SOURCE=600")
+
 if(NOT BUILD_TYPE STREQUAL "bootloader")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1")
 endif()

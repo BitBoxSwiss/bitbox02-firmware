@@ -16,6 +16,7 @@
 #define _WORKFLOW_CONFIRM_H_
 
 #include <stdbool.h>
+#include <stdint.h>
 
 /**
  * Confirm something with the user.
@@ -26,9 +27,23 @@ bool workflow_confirm(const char* title, const char* body, bool accept_only);
 
 /**
  * Confirm something with the user.
+ * @param[in] title title
+ * @param[in] body body
  * @param[in] accept_only if true, the user can only confirm, not reject.
  * @return true if the user accepted, false if the user rejected.
  */
 bool workflow_confirm_scrollable(const char* title, const char* body, bool accept_only);
 
+/**
+ * Confirm something with the user.
+ * @param[in] title title
+ * @param[in] body body
+ * @param[in] accept_only if trye, tue user can only confirm, not reject.
+ * @param[in] timeout screen refreshes until timeout
+ */
+bool workflow_confirm_with_timeout(
+    const char* title,
+    const char* body,
+    bool accept_only,
+    uint32_t timeout);
 #endif

@@ -39,6 +39,25 @@ static void _reject(component_t* component)
     _done = true;
 }
 
+static void _on_timeout(void)
+{
+    _reject(NULL);
+}
+
+bool workflow_confirm_with_timeout(
+    const char* title,
+    const char* body,
+    bool accept_only,
+    uint32_t timeout)
+{
+    _result = false;
+    _done = false;
+    ui_screen_stack_push(confirm_create(title, body, _confirm, accept_only ? NULL : _reject));
+    ui_screen_process_with_timeout(_is_done, _on_timeout, timeout);
+    ui_screen_stack_pop();
+    return _result;
+}
+
 bool workflow_confirm(const char* title, const char* body, bool accept_only)
 {
     _result = false;

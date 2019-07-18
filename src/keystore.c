@@ -573,3 +573,21 @@ bool keystore_secp256k1_sign(
     }
     return true;
 }
+
+bool keystore_get_u2f_seed(uint8_t* seed_out)
+{
+    if (keystore_is_locked()) {
+        return false;
+    }
+    const uint8_t message[] = "u2f";
+    if (wally_hmac_sha256(
+            _retained_seed,
+            sizeof(_retained_seed),
+            message,
+            sizeof(message),
+            seed_out,
+            SHA256_LEN) != WALLY_OK) {
+        return false;
+    }
+    return true;
+}

@@ -61,6 +61,23 @@ static uint8_t _configuration[ATCA_ECC_CONFIG_SIZE] = {
 // Number of times the first kdf slot can be used.
 #define MONOTONIC_COUNTER_MAX_USE (730500)
 
+// The total individual size of the public key data slots (slots 9-15) is 72 bytes. Using encrypted
+// read/write it is only possible to transmit 32 bytes. The last block is therefore 8 (72 =
+// 32+32+8).
+#define DATA_PUBLIC_KEY_SLOT_BLOCK_SIZE 32
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpacked"
+#pragma GCC diagnostic ignored "-Wattributes"
+typedef union {
+    struct __attribute__((__packed__)) {
+        uint32_t u2f_counter;
+    } fields;
+    uint8_t bytes[DATA_PUBLIC_KEY_SLOT_BLOCK_SIZE];
+} data_9_0_t;
+
+#pragma GCC diagnostic pop
+
 static securechip_interface_functions_t* _interface_functions = NULL;
 
 /** \brief initialize an I2C interface using given config.
@@ -517,4 +534,129 @@ bool securechip_monotonic_increments_remaining(uint32_t* remaining_out)
 bool securechip_random(uint8_t* rand_out)
 {
     return atcab_random(rand_out) == ATCA_SUCCESS;
+}
+
+// Length of priv_key must be 32 bytes
+static ATCA_STATUS _ecc_write_priv_key(const uint8_t* priv_key)
+{
+    uint8_t atca_priv_key[36] = {0};
+    memcpy(atca_priv_key + 4, priv_key, 32);
+
+    uint8_t encryption_key[32] = {0};
+    UTIL_CLEANUP_32(encryption_key);
+    _interface_functions->get_encryption_key(encryption_key);
+
+    ATCA_STATUS result = _authorize_key();
+    if (result != ATCA_SUCCESS) {
+        return result;
+    }
+
+    return atcab_priv_write(
+        SECURECHIP_SLOT_ECC_UNSAFE_SIGN,
+        atca_priv_key,
+        SECURECHIP_SLOT_ENCRYPTION_KEY,
+        encryption_key);
+}
+
+bool securechip_ecc_generate_public_key(uint8_t* priv_key, uint8_t* pub_key)
+{
+    ATCA_STATUS result = _ecc_write_priv_key(priv_key);
+    if (result != ATCA_SUCCESS) {
+        return false;
+    }
+
+    result = _authorize_key();
+    if (result != ATCA_SUCCESS) {
+        return false;
+    }
+
+    result = atcab_get_pubkey(SECURECHIP_SLOT_ECC_UNSAFE_SIGN, pub_key);
+    if (result != ATCA_SUCCESS) {
+        return false;
+    }
+
+    return true;
+}
+
+bool securechip_ecc_unsafe_sign(const uint8_t* priv_key, const uint8_t* msg, uint8_t* sig)
+{
+    ATCA_STATUS result = _ecc_write_priv_key(priv_key);
+    if (result != ATCA_SUCCESS) {
+        return false;
+    }
+
+    result = _authorize_key();
+    if (result != ATCA_SUCCESS) {
+        return false;
+    }
+
+    result = atcab_sign(SECURECHIP_SLOT_ECC_UNSAFE_SIGN, msg, sig);
+    if (result != ATCA_SUCCESS) {
+        return false;
+    }
+
+    return true;
+}
+
+// Read a "standard" sized block from a data slot (must be 32 bytes)
+static ATCA_STATUS _read_data_slot_block(uint8_t* bytes, uint16_t slot, uint8_t block)
+{
+    uint8_t encryption_key[32] = {0};
+    UTIL_CLEANUP_32(encryption_key);
+    _interface_functions->get_encryption_key(encryption_key);
+
+    ATCA_STATUS result = _authorize_key();
+    if (result != ATCA_SUCCESS) {
+        return result;
+    }
+    return atcab_read_enc(slot, block, bytes, encryption_key, SECURECHIP_SLOT_ENCRYPTION_KEY);
+}
+
+// Write a "standard" sized block from a data slot (must be 32 bytes)
+static ATCA_STATUS _write_data_slot_block(uint8_t* bytes, uint16_t slot, uint8_t block)
+{
+    uint8_t encryption_key[32] = {0};
+    UTIL_CLEANUP_32(encryption_key);
+    _interface_functions->get_encryption_key(encryption_key);
+
+    ATCA_STATUS result = _authorize_key();
+    if (result != ATCA_SUCCESS) {
+        return result;
+    }
+    return atcab_write_enc(slot, block, bytes, encryption_key, SECURECHIP_SLOT_ENCRYPTION_KEY);
+}
+
+bool securechip_u2f_counter_set(uint32_t value)
+{
+    data_9_0_t data = {0};
+    ATCA_STATUS result = _read_data_slot_block(&data.bytes, SECURECHIP_SLOT_DATA0, 0);
+    if (result != ATCA_SUCCESS) {
+        return false;
+    }
+
+    data.fields.u2f_counter = value;
+
+    result = _write_data_slot_block(&data.bytes, SECURECHIP_SLOT_DATA0, 0);
+    if (result != ATCA_SUCCESS) {
+        return false;
+    }
+    return true;
+}
+
+bool securechip_u2f_counter_inc(uint32_t* counter)
+{
+    data_9_0_t data = {0};
+    ATCA_STATUS result = _read_data_slot_block(&data.bytes, SECURECHIP_SLOT_DATA0, 0);
+    if (result != ATCA_SUCCESS) {
+        return false;
+    }
+
+    data.fields.u2f_counter += 1;
+    *counter = data.fields.u2f_counter;
+
+    result = _write_data_slot_block(&data.bytes, SECURECHIP_SLOT_DATA0, 0);
+    if (result != ATCA_SUCCESS) {
+        return false;
+    }
+    return true;
 }

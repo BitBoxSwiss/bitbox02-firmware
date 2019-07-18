@@ -24,6 +24,7 @@
 #include <wally_bip32.h>
 
 #define KEYSTORE_SEED_LENGTH (32)
+#define KEYSTORE_U2F_SEED_LENGTH SHA256_LEN
 
 typedef enum {
     KEYSTORE_OK,
@@ -177,5 +178,12 @@ USE_RESULT bool keystore_secp256k1_sign(
     const uint8_t* msg32,
     uint8_t* sig_compact_out,
     int* recid_out);
+
+/**
+ * Get the seed to be used for u2f
+ * @param seed_out Buffer for seed, must be KEYSTORE_U2F_SEED_LENGTH
+ * @return true if succes
+ */
+USE_RESULT bool keystore_get_u2f_seed(uint8_t* seed_out);
 
 #endif

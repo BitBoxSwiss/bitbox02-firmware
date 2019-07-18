@@ -34,9 +34,10 @@ void ui_screen_render_component(component_t* component)
     UG_SendBuffer();
 }
 
-void ui_screen_process(bool (*is_done)(void))
+static void _screen_process(bool (*is_done)(void), void (*on_timeout)(void), const uint32_t timeout)
 {
     static component_t* waiting_screen = NULL;
+    uint32_t timeout_cnt = 0;
     if (waiting_screen == NULL) {
         waiting_screen = waiting_create();
         if (waiting_screen == NULL) {
@@ -58,7 +59,11 @@ void ui_screen_process(bool (*is_done)(void))
         }
         gestures_detect(screen_new, component->emit_without_release);
         if ((screen_frame_cnt % SCREEN_FRAME_RATE) == 0) {
+            if (is_done != NULL && on_timeout != NULL && timeout_cnt > timeout) {
+                on_timeout();
+            }
             screen_frame_cnt = 0;
+            timeout_cnt += 1;
             ui_screen_render_component(component);
         }
         screen_frame_cnt++;
@@ -67,4 +72,17 @@ void ui_screen_process(bool (*is_done)(void))
             usb_processing_process();
         }
     }
+}
+
+void ui_screen_process(bool (*is_done)(void))
+{
+    _screen_process(is_done, NULL, 0);
+}
+
+void ui_screen_process_with_timeout(
+    bool (*is_done)(void),
+    void (*on_timeout)(void),
+    uint32_t timeout)
+{
+    _screen_process(is_done, on_timeout, timeout);
 }

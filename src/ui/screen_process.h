@@ -28,4 +28,15 @@ void ui_screen_render_component(component_t* component);
  */
 void ui_screen_process(bool (*is_done)(void));
 
+/**
+ * Process screen, gestures, in a loop with timeout.
+ * @param[in] is_done
+ * @param[in] on_timeout called when timout occurs
+ * @param[in] timeout number of screen refreshes until timeout
+ */
+void ui_screen_process_with_timeout(
+    bool (*is_done)(void),
+    void (*on_timeout)(void),
+    uint32_t timeout);
+
 #endif

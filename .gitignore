@@ -26,3 +26,4 @@ external/*
 !external/CMakeLists.txt
 src/generated
 py/bitbox02/generated
+py/.mypy_cache

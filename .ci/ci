@@ -7,6 +7,10 @@ set -e
 ./.ci/check-style
 make -C py
 ./.ci/check-pep8
+# implicit-reexport: `from foo import bar` re-exports (normal Python3 behavior), otherwise mypy expects
+# `from foo import bar as bar`.
+# namespace-packages: follow imports in subfolders without `__init__.py` (also normal Python3 behavior).
+(cd py && mypy --implicit-reexport --namespace-packages --ignore-missing-imports --strict .)
 
 # Bootloader variants
 make -j8 bootloader

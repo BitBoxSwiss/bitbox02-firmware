@@ -18,13 +18,17 @@
 import argparse
 import pprint
 import sys
+import typing
 
 from tzlocal import get_localzone
 import bitbox02
 from bitbox02 import HARDENED
 
 
-def change_name(device, name):
+def change_name(device: bitbox02.BitBox02, name: str) -> None:
+    """
+    Invoke change name workfow.
+    """
     info = device.device_info()
     print(f"\nOld device name: {info['name']}")
     try:
@@ -37,7 +41,7 @@ def change_name(device, name):
         print(f"\nNew device name: {info['name']}")
 
 
-def setup_workflow(device):
+def setup_workflow(device: bitbox02.BitBox02) -> None:
     """TODO: Document"""
     device.insert_or_remove_sdcard(insert=True)
     print("SD Card Inserted")
@@ -60,7 +64,7 @@ def setup_workflow(device):
     device.insert_or_remove_sdcard(remove=True)
 
 
-def print_backups(backups):
+def print_backups(backups: typing.List[bitbox02.Backup]) -> None:
     local_timezone = get_localzone()
     backups = list(backups)
     if not backups:
@@ -72,7 +76,7 @@ def print_backups(backups):
         print(f"[{i+1}] Backup Name: {backup_name}, Time: {date.strftime(fmt)}, ID: {backup_id}")
 
 
-def restore_backup_workflow(device):
+def restore_backup_workflow(device: bitbox02.BitBox02) -> None:
     """TODO: Document"""
     backups = list(device.list_backups())
     print_backups(backups)
@@ -88,7 +92,7 @@ def restore_backup_workflow(device):
     device.insert_or_remove_sdcard(remove=True)
 
 
-def select_init_option(device):
+def select_init_option(device: bitbox02.BitBox02) -> bool:
     """TODO: Document
 
     Returns:
@@ -128,7 +132,7 @@ def select_init_option(device):
     return True
 
 
-def print_menu(mnemonic_passphrase_enabled):
+def print_menu(mnemonic_passphrase_enabled: bool) -> None:
     """Print the menu"""
 
     print("What would you like to do?")
@@ -150,7 +154,7 @@ def print_menu(mnemonic_passphrase_enabled):
     print("- (q) Quit")
 
 
-def select_option(device):
+def select_option(device: bitbox02.BitBox02) -> bool:
     """TODO: Document
     TODO: Refactor code so that it doesn't have too many branches
 
@@ -187,7 +191,7 @@ def select_option(device):
             ),
         )
     elif choice == 5:
-        print_backups(device.list_backups())
+        print_backups(list(device.list_backups()))
     elif choice == 6:
         print("Your BitBox02 will now perform a backup check")
         backup_id = device.check_backup()
@@ -226,7 +230,7 @@ def select_option(device):
                 print("Replug your BitBox02.")
     elif choice == 12:
 
-        def address(display=False):
+        def address(display: bool = False) -> str:
             return device.eth_pub(
                 keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
                 output_type=bitbox02.hww.ETHPubRequest.ADDRESS,  # pylint: disable=no-member
@@ -240,13 +244,13 @@ def select_option(device):
     return True
 
 
-def menu(device):
+def menu(device: bitbox02.BitBox02) -> bool:
     if not device.device_info()["initialized"]:
         return select_init_option(device)
     return select_option(device)
 
 
-def main():
+def main() -> int:
     """Main function"""
     parser = argparse.ArgumentParser(description="Tool for communicating with bitbox device")
     parser.add_argument("--debug", action="store_true", help="Print messages sent and received")
@@ -265,11 +269,11 @@ def main():
     print("Device Info:")
     pprint.pprint(bitboxes[0])
 
-    def show_pairing(code):
+    def show_pairing(code: str) -> None:
         print("Please compare and confirm the pairing code on your BitBox02:")
         print(code)
 
-    def attestation_check(result):
+    def attestation_check(result: bool) -> None:
         if result:
             print("Device attestation PASSED")
         else:

@@ -14,15 +14,23 @@
 """USB device utility functions"""
 
 import re
+import typing
+from typing_extensions import TypedDict
 
 import hid
 import semver
+
 
 BOOTLOADER = "bb02-bootloader"
 BITBOX02 = "BitBox02"
 
 
-def get_bitbox02_devices(product_string=BITBOX02):
+class DeviceInfo(TypedDict):
+    serial_number: str
+    path: bytes
+
+
+def get_bitbox02_devices(product_string: str = BITBOX02) -> typing.List[DeviceInfo]:
     """
     Scans devices and returns a list of hid device info objects.
     """
@@ -39,7 +47,7 @@ def get_bitbox02_devices(product_string=BITBOX02):
     ]
 
 
-def parse_device_version(serial_number):
+def parse_device_version(serial_number: str) -> semver.VersionInfo:
     match = re.search(r"v([0-9]+\.[0-9]+\.[0-9]+.*)", serial_number)
     if match is None:
         return None

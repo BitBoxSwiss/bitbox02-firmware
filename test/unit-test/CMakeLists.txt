@@ -170,6 +170,10 @@ add_executable(test_app_eth_common test_app_eth_common.c)
 target_link_libraries(test_app_eth_common bitbox cmocka)
 add_test(NAME test_app_eth_common COMMAND test_app_eth_common)
 
+add_executable(test_app_eth_sighash test_app_eth_sighash.c)
+target_link_libraries(test_app_eth_sighash bitbox cmocka)
+add_test(NAME test_app_eth_sighash COMMAND test_app_eth_sighash)
+
 add_executable(test_util test_util.c)
 target_link_libraries(test_util bitbox cmocka)
 add_test(NAME test_util COMMAND test_util)

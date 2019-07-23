@@ -13,10 +13,13 @@
 // limitations under the License.
 
 #include "pairing.h"
-#include <base32.h>
+
 #include <hardfault.h>
-#include <stdio.h>
 #include <workflow/confirm.h>
+
+#include <base32/base32.h>
+
+#include <stdio.h>
 
 bool workflow_pairing_create(const uint8_t* hash)
 {

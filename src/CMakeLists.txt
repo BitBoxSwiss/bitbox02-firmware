@@ -34,7 +34,6 @@ set(DBB-FIRMWARE-SOURCES
     ${CMAKE_SOURCE_DIR}/src/random.c
     ${CMAKE_SOURCE_DIR}/src/attestation.c
     ${CMAKE_SOURCE_DIR}/src/hardfault.c
-    ${CMAKE_SOURCE_DIR}/src/base32.c
     ${CMAKE_SOURCE_DIR}/src/util.c
     ${CMAKE_SOURCE_DIR}/src/sd.c
     ${CMAKE_SOURCE_DIR}/src/hww.c
@@ -69,6 +68,7 @@ set(DBB-FIRMWARE-SOURCES
     ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_params.c
     ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign.c
     ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_bip143.c
+    ${CMAKE_SOURCE_DIR}/external/base32/base32.c
 )
 
 set(DBB-FIRMWARE-PROTOBUF-SOURCES

@@ -21,6 +21,7 @@ NOTES.md
 external/*
 !external/cryptoauthlib
 !external/ctaes
+!external/FatFs
 !external/sha3
 !external/bignum
 !external/base32

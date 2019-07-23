@@ -25,8 +25,8 @@
 #include <restore.h>
 #include <util.h>
 
+#include <FatFs/source/ff.h>
 #include <assert_sd.h>
-#include <ff.h>
 #include <sd.h>
 
 // so that we can use static functions

@@ -264,8 +264,15 @@ set(FIRMWARE-DRIVER-SOURCES
     ${CMAKE_SOURCE_DIR}/src/drivers/hpl/sercom/hpl_sercom.c
     ${CMAKE_SOURCE_DIR}/src/drivers/sd_mmc/sd_mmc.c
     ${CMAKE_SOURCE_DIR}/src/drivers/diskio/sdmmc_diskio.c
-    ${CMAKE_SOURCE_DIR}/src/drivers/ff13a/src/ff.c
-    ${CMAKE_SOURCE_DIR}/src/drivers/ff13a/src/ffunicode.c
+    ${CMAKE_SOURCE_DIR}/external/FatFs/source/ff.c
+    ${CMAKE_SOURCE_DIR}/external/FatFs/source/ffunicode.c
+    )
+
+# disable some warnings for the external drivers
+set_source_files_properties(
+    ${FIRMWARE-DRIVER-SOURCES}
+    PROPERTIES
+    COMPILE_FLAGS "-Wno-switch-default"
 )
 
 #-----------------------------------------------------------------------------
@@ -307,7 +314,6 @@ set(SYSTEMINCLUDES
     ${CMAKE_SOURCE_DIR}/src/drivers/usb/class/hid/hww
     ${CMAKE_SOURCE_DIR}/src/drivers/sd_mmc
     ${CMAKE_SOURCE_DIR}/src/drivers/diskio
-    ${CMAKE_SOURCE_DIR}/src/drivers/ff13a/src
 )
 
 #-----------------------------------------------------------------------------

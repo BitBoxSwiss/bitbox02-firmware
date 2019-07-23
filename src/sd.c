@@ -23,12 +23,19 @@
 #include "sd_mmc.h"
 #endif
 
-#include "drivers/ff13a/src/ff.h"
 #include "flags.h"
 #include "hardfault.h"
 #include "screen.h"
 #include "sd.h"
 #include "util.h"
+
+#include <FatFs/source/ff.h>
+
+// max number of files returned by sd_list/sd_list_subdir.
+#define LIST_MAX 200u
+#if LIST_MAX < 1
+#error LIST_MAX must be at least 1
+#endif
 
 static const char* ROOTDIR = "0:/bitbox02";
 FATFS fs;

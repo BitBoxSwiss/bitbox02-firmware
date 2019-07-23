@@ -7,3 +7,6 @@
 [submodule "external/ctaes"]
 	path = external/ctaes
 	url = https://github.com/digitalbitbox/ctaes.git
+[submodule "external/FatFs"]
+	path = external/FatFs
+	url = https://github.com/digitalbitbox/FatFs.git

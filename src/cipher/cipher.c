@@ -119,11 +119,14 @@ static bool _aes_decrypt(
     AES256_CBC_decrypt(&ctx, in_len / N_BLOCK - 1, dec_pad, in + N_BLOCK);
 
     // Strip PKCS7 padding
-    int padlen = dec_pad[in_len - N_BLOCK - 1];
-    if (in_len - N_BLOCK - padlen <= 0) {
+    uint8_t padlen = dec_pad[in_len - N_BLOCK - 1];
+    if (padlen > N_BLOCK) {
         goto error;
     }
-    for (int i = 0; i < padlen; i++) {
+    if (in_len < N_BLOCK + padlen) {
+        goto error;
+    }
+    for (size_t i = 0; i < padlen; i++) {
         if (dec_pad[in_len - N_BLOCK - 1 - i] != padlen) {
             goto error;
         }

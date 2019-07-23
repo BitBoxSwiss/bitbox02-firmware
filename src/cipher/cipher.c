@@ -22,7 +22,7 @@
 #include <util.h>
 #include <wally_crypto.h>
 
-#define N_BLOCK (16)
+#define N_BLOCK (16U)
 
 static bool _derive_hmac_keys(
     const uint8_t* secret,
@@ -42,19 +42,19 @@ static bool _derive_hmac_keys(
 // out_len must be at least in_in + N_BLOCK + N_BLOCK
 static void _aes_encrypt(
     const uint8_t* in,
-    int in_len,
+    size_t in_len,
     uint8_t* out,
-    int* out_len,
+    size_t* out_len,
     const uint8_t* key)
 {
-    int padlen = N_BLOCK - in_len % N_BLOCK;
-    int inpadlen = in_len + padlen;
+    size_t padlen = N_BLOCK - in_len % N_BLOCK;
+    size_t inpadlen = in_len + padlen;
     uint8_t inpad[inpadlen];
     *out_len = inpadlen + N_BLOCK;
 
     // PKCS7 padding
     memcpy(inpad, in, in_len);
-    for (int i = 0; i < padlen; i++) {
+    for (size_t i = 0; i < padlen; i++) {
         inpad[in_len + i] = padlen;
     }
 
@@ -73,9 +73,9 @@ static void _aes_encrypt(
 
 bool cipher_aes_hmac_encrypt(
     const unsigned char* in,
-    int in_len,
+    size_t in_len,
     uint8_t* out,
-    int* out_len,
+    size_t* out_len,
     const uint8_t* secret)
 {
     // in_len + iv + pad + hmac
@@ -90,7 +90,7 @@ bool cipher_aes_hmac_encrypt(
         return false;
     }
 
-    int encrypt_len = in_len + 32;
+    size_t encrypt_len = in_len + 32;
     _aes_encrypt(in, in_len, out, &encrypt_len, encryption_key);
 
     *out_len = encrypt_len + 32;

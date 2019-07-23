@@ -27,9 +27,9 @@
  */
 bool cipher_aes_hmac_encrypt(
     const uint8_t* in,
-    int in_len,
+    size_t in_len,
     uint8_t* out,
-    int* out_len,
+    size_t* out_len,
     const uint8_t* secret);
 
 /**

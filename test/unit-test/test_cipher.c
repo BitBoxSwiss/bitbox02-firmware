@@ -3742,7 +3742,7 @@ static void _test_cipher_aes_hmac_encrypt(void** state)
         uint8_t rand_mock[32] = {0};
         memcpy(rand_mock, test->iv, 16);
         will_return(__wrap_random_32_bytes, rand_mock);
-        int cipher_len = test->msg_len + 64;
+        size_t cipher_len = test->msg_len + 64;
         uint8_t cipher[cipher_len];
         assert_true(
             cipher_aes_hmac_encrypt(test->msg, test->msg_len, cipher, &cipher_len, test->secret));
@@ -3764,7 +3764,7 @@ static void _test_cipher_aes_hmac_encrypt_unhappy(void** state)
     const uint8_t secret[32] = {0};
     const uint8_t in[100] = {0};
     uint8_t out[164] = {0};
-    int outlen = sizeof(out) - 1; // outlen too small
+    size_t outlen = sizeof(out) - 1; // outlen too small
     assert_false(cipher_aes_hmac_encrypt(in, sizeof(in), out, &outlen, secret));
 
     outlen = sizeof(out);

@@ -39,7 +39,8 @@ static bool _derive_hmac_keys(
     return true;
 }
 
-static bool _aes_encrypt(
+// out_len must be at least in_in + N_BLOCK + N_BLOCK
+static void _aes_encrypt(
     const uint8_t* in,
     int in_len,
     uint8_t* out,
@@ -49,9 +50,6 @@ static bool _aes_encrypt(
     int padlen = N_BLOCK - in_len % N_BLOCK;
     int inpadlen = in_len + padlen;
     uint8_t inpad[inpadlen];
-    if (*out_len < inpadlen + N_BLOCK) {
-        return false;
-    }
     *out_len = inpadlen + N_BLOCK;
 
     // PKCS7 padding
@@ -71,13 +69,8 @@ static bool _aes_encrypt(
 
     util_zero(inpad, inpadlen);
     util_zero(&ctx, sizeof(ctx));
-    return true;
 }
 
-// Encrypts a given constant char array of length in_len using the AES algorithm with CBC mode
-// and appends its SHA256 HMAC.
-//
-// Must free() returned value
 bool cipher_aes_hmac_encrypt(
     const unsigned char* in,
     int in_len,
@@ -98,9 +91,7 @@ bool cipher_aes_hmac_encrypt(
     }
 
     int encrypt_len = in_len + 32;
-    if (!_aes_encrypt(in, in_len, out, &encrypt_len, encryption_key)) {
-        return false;
-    }
+    _aes_encrypt(in, in_len, out, &encrypt_len, encryption_key);
 
     *out_len = encrypt_len + 32;
 
@@ -155,7 +146,11 @@ bool cipher_aes_hmac_decrypt(
     size_t* out_len,
     const uint8_t* key)
 {
-    // in_len - iv - hmac
+    // iv + pad + hmac
+    if (in_len < N_BLOCK + N_BLOCK + 32) {
+        return false;
+    }
+    // have space for at least in_len - iv - hmac
     if (*out_len != in_len - N_BLOCK - 32) {
         return false;
     }
@@ -171,9 +166,6 @@ bool cipher_aes_hmac_decrypt(
 
     uint8_t hmac[32];
     UTIL_CLEANUP_32(hmac);
-    if (in_len < sizeof(hmac)) {
-        return false;
-    }
     if (wally_hmac_sha256(
             authentication_key,
             sizeof(authentication_key),

@@ -23,6 +23,7 @@
  * @param[out] must have inlen + 64 bytes.
  * @param[inout] out_len must be inlen + 64 incoming, and will be the actual
  * length of the output.
+ * @param[in] secret 32 bytes secret
  */
 bool cipher_aes_hmac_encrypt(
     const uint8_t* in,
@@ -32,6 +33,7 @@ bool cipher_aes_hmac_encrypt(
     const uint8_t* secret);
 
 /**
+ * @param[in] must have at least 64 bytes.
  * @param[out] must have in_len - 48 bytes.
  * @param[inout] out_len must be inlen - 48 incoming, and will be the actual
  * length of the output.

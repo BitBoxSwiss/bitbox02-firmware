@@ -215,7 +215,7 @@ restore_error_t restore_from_directory(const char* dir, Backup* backup, BackupDa
             list_backups.files, dir, &good_backup, &broken_backups)) {
         bool all_loaded = true;
         for (int i = 0; i < 3; i++) {
-            all_loaded |= broken_backups.backups[i].loaded;
+            all_loaded &= broken_backups.backups[i].loaded;
         }
         if (!all_loaded) {
             return RESTORE_ERR_SD_READ;

@@ -193,14 +193,6 @@ static bool _load_good_and_bad_backup_contents(
     return false;
 }
 
-/**
- * Restore a backup from directory.
- * @param[in] dir The directory from which we want to restore the backup.
- * @param[out] backup_data The restored backup_data.
- * @return RESTORE_OK if the error correction was successful, RESTORE_ERR_DECODE if we couldn't
- * decode, RESTORE_ERR_CHECK if the integrity check failed, and RESTORE_ERR_RECOVER if we couldn't
- * recover for other reasons.
- */
 restore_error_t restore_from_directory(const char* dir, Backup* backup, BackupData* backup_data)
 {
     sd_list_t list_backups __attribute__((__cleanup__(sd_free_list)));
@@ -223,7 +215,7 @@ restore_error_t restore_from_directory(const char* dir, Backup* backup, BackupDa
             list_backups.files, dir, &good_backup, &broken_backups)) {
         bool all_loaded = true;
         for (int i = 0; i < 3; i++) {
-            all_loaded |= broken_backups.backups[i].loaded;
+            all_loaded &= broken_backups.backups[i].loaded;
         }
         if (!all_loaded) {
             return RESTORE_ERR_SD_READ;
@@ -252,9 +244,6 @@ restore_error_t restore_from_directory(const char* dir, Backup* backup, BackupDa
     return RESTORE_OK;
 }
 
-/**
- * Lists the backups available on the SD card.
- */
 restore_error_t restore_list_backups(ListBackupsResponse* backups)
 {
     sd_list_t list_subdirs __attribute__((__cleanup__(sd_free_list)));

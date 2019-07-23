@@ -109,6 +109,7 @@ static bool _setup_and_init_handshake(void)
         return false;
     }
     uint8_t static_private_key[32];
+    UTIL_CLEANUP_32(static_private_key);
     if (!memory_get_noise_static_private_key(static_private_key)) {
         return false;
     }

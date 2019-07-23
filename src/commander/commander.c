@@ -193,7 +193,7 @@ static commander_error_t _api_set_mnemonic_passphrase_enabled(
     } else {
         snprintf(msg, sizeof(msg), "Disable\nmnemonic passphrase?");
     }
-    if (!workflow_confirm("", msg, false)) {
+    if (!workflow_confirm("", msg, true, false)) {
         return COMMANDER_ERR_USER_ABORT;
     }
     if (!memory_set_mnemonic_passphrase_enabled(request->enabled)) {

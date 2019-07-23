@@ -78,7 +78,7 @@ component_t* remove_sd_card_create(void (*continue_callback)(void))
             NULL,
             screen_is_upside_down() ? RIGHT_CENTER : LEFT_CENTER,
             remove_sd_card));
-    ui_util_add_sub_component(remove_sd_card, confirm_create("", "", _dismiss, NULL));
+    ui_util_add_sub_component(remove_sd_card, confirm_create("", "", false, _dismiss, NULL));
 
     return remove_sd_card;
 }

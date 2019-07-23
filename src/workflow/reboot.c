@@ -39,7 +39,7 @@ static void _reboot(void)
 
 bool workflow_reboot(void)
 {
-    if (!workflow_confirm("", "Proceed to upgrade?", false)) {
+    if (!workflow_confirm("", "Proceed to upgrade?", false, false)) {
         return false;
     }
     _reboot();

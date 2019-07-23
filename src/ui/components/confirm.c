@@ -19,6 +19,22 @@
 #include <screen.h>
 #include <string.h>
 
+typedef struct {
+    void (*confirm_callback)(component_t*);
+} data_t;
+
+static void _on_event(const event_t* event, component_t* component)
+{
+    (void)component;
+    if (event->id == EVENT_CONFIRM) {
+        data_t* data = (data_t*)component->data;
+        if (data->confirm_callback) {
+            data->confirm_callback(NULL);
+            data->confirm_callback = NULL;
+        }
+    }
+}
+
 /********************************** Component Functions **********************************/
 
 /**
@@ -27,7 +43,7 @@
 static const component_functions_t _component_functions = {
     .cleanup = ui_util_component_cleanup,
     .render = ui_util_component_render_subcomponents,
-    .on_event = ui_util_on_event_noop,
+    .on_event = _on_event,
 };
 
 /********************************** Create Instance **********************************/
@@ -36,6 +52,7 @@ static component_t* _confirm_create(
     const char* title,
     const char* body,
     bool scrollable,
+    bool longtouch,
     void (*confirm_callback)(component_t*),
     void (*cancel_callback)(component_t*))
 {
@@ -45,10 +62,18 @@ static component_t* _confirm_create(
     }
     memset(confirm, 0, sizeof(component_t));
 
+    data_t* data = malloc(sizeof(data_t));
+    if (!data) {
+        Abort("Error: malloc confirm data");
+    }
+    memset(data, 0, sizeof(data_t));
+    data->confirm_callback = confirm_callback;
+
+    confirm->data = data;
     confirm->f = &_component_functions;
     confirm->dimension.width = SCREEN_WIDTH;
     confirm->dimension.height = SCREEN_HEIGHT;
-    uint8_t slider_position = scrollable ? top_slider : bottom_slider;
+    uint8_t slider_position = scrollable || longtouch ? top_slider : bottom_slider;
     // Create labels
     if (scrollable) {
         ui_util_add_sub_component(confirm, label_create_scrollable(body, NULL, CENTER, confirm));
@@ -62,8 +87,12 @@ static component_t* _confirm_create(
             confirm, icon_button_create(slider_position, ICON_BUTTON_CROSS, cancel_callback));
     }
     if (confirm_callback != NULL) {
-        ui_util_add_sub_component(
-            confirm, icon_button_create(slider_position, ICON_BUTTON_CHECK, confirm_callback));
+        if (longtouch) {
+            ui_util_add_sub_component(confirm, confirm_gesture_create(confirm));
+        } else {
+            ui_util_add_sub_component(
+                confirm, icon_button_create(slider_position, ICON_BUTTON_CHECK, confirm_callback));
+        }
     }
 
     return confirm;
@@ -72,10 +101,11 @@ static component_t* _confirm_create(
 component_t* confirm_create(
     const char* title,
     const char* body,
+    bool longtouch,
     void (*confirm_callback)(component_t*),
     void (*cancel_callback)(component_t*))
 {
-    return _confirm_create(title, body, false, confirm_callback, cancel_callback);
+    return _confirm_create(title, body, false, longtouch, confirm_callback, cancel_callback);
 }
 
 component_t* confirm_create_scrollable(
@@ -84,5 +114,5 @@ component_t* confirm_create_scrollable(
     void (*confirm_callback)(component_t*),
     void (*cancel_callback)(component_t*))
 {
-    return _confirm_create(title, body, true, confirm_callback, cancel_callback);
+    return _confirm_create(title, body, true, false, confirm_callback, cancel_callback);
 }

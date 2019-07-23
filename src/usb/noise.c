@@ -68,7 +68,7 @@ static bool _get_remote_static_public_key(const NoiseHandshakeState* handshake, 
 // previous handshake, it will be discarded.
 static bool _setup_and_init_handshake(void)
 {
-    if (_handshake == NULL) {
+    if (_handshake != NULL) {
         noise_handshakestate_free(_handshake);
         _handshake = NULL;
     }

@@ -31,7 +31,7 @@ bool __wrap_workflow_confirm(const char* title, const char* body, bool accept_on
     return mock();
 }
 
-static void _test_api_set_device_name(void** state)
+static void _test_api_set_mnemonic_passphrase_enabled(void** state)
 {
     (void)state;
     expect_string_count(__wrap_workflow_confirm, title, "", -1);
@@ -71,7 +71,7 @@ static void _test_api_set_device_name(void** state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(_test_api_set_device_name),
+        cmocka_unit_test(_test_api_set_mnemonic_passphrase_enabled),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

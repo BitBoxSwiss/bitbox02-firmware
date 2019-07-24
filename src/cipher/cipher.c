@@ -39,7 +39,8 @@ static bool _derive_hmac_keys(
     return true;
 }
 
-// out_len must be at least in_in + N_BLOCK + N_BLOCK
+// out_len must be at least in_len + N_BLOCK + N_BLOCK
+// necessary in_len/out_len range checks are done in cipher_aes_hmac_encrypt().
 static void _aes_encrypt(
     const uint8_t* in,
     size_t in_len,
@@ -104,6 +105,7 @@ bool cipher_aes_hmac_encrypt(
                32) == WALLY_OK;
 }
 
+// necessary in_len/out_len range checks are done in cipher_aes_hmac_decrypt().
 static bool _aes_decrypt(
     const uint8_t* in,
     size_t in_len,

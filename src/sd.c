@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,12 +22,19 @@
 #include "sd_mmc.h"
 #endif
 
-#include "drivers/ff13a/src/ff.h"
 #include "flags.h"
 #include "hardfault.h"
 #include "screen.h"
 #include "sd.h"
 #include "util.h"
+
+#include <FatFs/source/ff.h>
+
+// max number of files returned by sd_list/sd_list_subdir.
+#define LIST_MAX 200u
+#if LIST_MAX < 1
+#error LIST_MAX must be at least 1
+#endif
 
 static const char* ROOTDIR = "0:/bitbox02";
 FATFS fs;
@@ -330,6 +336,9 @@ bool sd_list_subdir(sd_list_t* list_out, const char* subdir)
         }
         list_out->files[list_out->num_files] = fn_copy;
         list_out->num_files++;
+        if (list_out->num_files >= LIST_MAX) {
+            break;
+        }
         if (list_out->num_files == allocated_files) {
             char** new_list_out_files;
             allocated_files *= 2;
@@ -438,10 +447,7 @@ static bool _delete_file(const char* fn, const char* subdir)
     if (result != FR_OK) {
         return false;
     }
-    DWORD f_ps;
-    DWORD fsize;
-    fsize = file_object.obj.objsize < ULONG_MAX ? file_object.obj.objsize : ULONG_MAX;
-    for (f_ps = 0; f_ps < fsize; f_ps++) {
+    for (DWORD f_ps = 0; f_ps < file_object.obj.objsize; f_ps++) {
         f_putc('\xAC', &file_object); // overwrite data
     }
     if (f_close(&file_object) != FR_OK) {

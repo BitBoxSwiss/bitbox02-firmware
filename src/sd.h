@@ -15,6 +15,8 @@
 #ifndef _SD_H_
 #define _SD_H_
 
+#include "compiler_util.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -28,23 +30,23 @@ typedef struct {
 
 // the caller must free list_out using sd_free_list(). list_out itself is not
 // freed, as it could be passed as a stack var.
-bool sd_list(sd_list_t* list_out);
-bool sd_list_subdir(sd_list_t* list_out, const char* subdir);
+USE_RESULT bool sd_list(sd_list_t* list_out);
+USE_RESULT bool sd_list_subdir(sd_list_t* list_out, const char* subdir);
 void sd_free_list(sd_list_t* list);
-bool sd_card_inserted(void);
+USE_RESULT bool sd_card_inserted(void);
 // returns false on error. If no error, exists_out will have the result.
-bool sd_file_exists(const char* fn, bool* exists_out);
-bool sd_file_exists_subdir(const char* fn, const char* subdir, bool* exists_out);
+USE_RESULT bool sd_file_exists(const char* fn, bool* exists_out);
+USE_RESULT bool sd_file_exists_subdir(const char* fn, const char* subdir, bool* exists_out);
 // returns true if the erase was successful.
-bool sd_erase_file(const char* fn);
-bool sd_erase_dir(const char* directory_name);
-bool sd_erase_file_in_subdir(const char* fn, const char* subdir);
+USE_RESULT bool sd_erase_file(const char* fn);
+USE_RESULT bool sd_erase_dir(const char* directory_name);
+USE_RESULT bool sd_erase_file_in_subdir(const char* fn, const char* subdir);
 // text_out must of of size SD_MAX_FILE_SIZE+1, and will be null terminated.
-bool sd_load(const char* fn, const char* dir, char* text_out);
+USE_RESULT bool sd_load(const char* fn, const char* dir, char* text_out);
 // files are text-based, not binary.  text, excluding null terminator, cant
 // exceed SD_MAX_FILE_SIZE.
-bool sd_write(const char* fn, const char* dir, const char* text, bool replace);
-bool sd_file_rename(const char* from, const char* to, const char* dir);
+USE_RESULT bool sd_write(const char* fn, const char* dir, const char* text, bool replace);
+USE_RESULT bool sd_file_rename(const char* from, const char* to, const char* dir);
 
 /**
  * Reads binary data from SD card.
@@ -54,7 +56,7 @@ bool sd_file_rename(const char* from, const char* to, const char* dir);
  * @param[out] length_out The length of the data byte array.
  * @return true if mounting and opening the file is OK, false otherwise.
  */
-bool sd_load_bin(const char* fn, const char* dir, uint8_t* buffer, size_t* length_out);
+USE_RESULT bool sd_load_bin(const char* fn, const char* dir, uint8_t* buffer, size_t* length_out);
 
 /**
  * Writes binary data to SD card.
@@ -65,7 +67,7 @@ bool sd_load_bin(const char* fn, const char* dir, uint8_t* buffer, size_t* lengt
  * @param[in] replace Whether the file can be replaced.
  * @return true if mounting and opening the file is OK, false otherwise.
  */
-bool sd_write_bin(
+USE_RESULT bool sd_write_bin(
     const char* fn,
     const char* dir,
     const uint8_t* data,

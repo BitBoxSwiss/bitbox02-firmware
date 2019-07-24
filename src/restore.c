@@ -196,7 +196,9 @@ static bool _load_good_and_bad_backup_contents(
 restore_error_t restore_from_directory(const char* dir, Backup* backup, BackupData* backup_data)
 {
     sd_list_t list_backups __attribute__((__cleanup__(sd_free_list)));
-    sd_list_subdir(&list_backups, dir);
+    if (!sd_list_subdir(&list_backups, dir)) {
+        return RESTORE_ERR_SD_READ;
+    }
     // sanity check.
     if (list_backups.num_files != 3) {
         return RESTORE_ERR_RECOVER;

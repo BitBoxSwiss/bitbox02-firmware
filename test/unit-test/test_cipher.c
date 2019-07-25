@@ -3742,7 +3742,7 @@ static void _test_cipher_aes_hmac_encrypt(void** state)
         uint8_t rand_mock[32] = {0};
         memcpy(rand_mock, test->iv, 16);
         will_return(__wrap_random_32_bytes, rand_mock);
-        int cipher_len = test->msg_len + 64;
+        size_t cipher_len = test->msg_len + 64;
         uint8_t cipher[cipher_len];
         assert_true(
             cipher_aes_hmac_encrypt(test->msg, test->msg_len, cipher, &cipher_len, test->secret));
@@ -3759,10 +3759,42 @@ static void _test_cipher_aes_hmac_encrypt(void** state)
     }
 }
 
+static void _test_cipher_aes_hmac_encrypt_unhappy(void** state)
+{
+    const uint8_t secret[32] = {0};
+    const uint8_t in[100] = {0};
+    uint8_t out[164] = {0};
+    size_t outlen = sizeof(out) - 1; // outlen too small
+    assert_false(cipher_aes_hmac_encrypt(in, sizeof(in), out, &outlen, secret));
+
+    outlen = sizeof(out);
+    assert_false(cipher_aes_hmac_encrypt(in, sizeof(in), out, &outlen, NULL));
+}
+
+static void _test_cipher_aes_hmac_decrypt_unhappy(void** state)
+{
+    const uint8_t secret[32] = {0};
+    const uint8_t in[64] = {0};
+    uint8_t out[sizeof(in) - 48] = {0};
+    size_t outlen = sizeof(out);
+
+    // inlen too small - must be at least 64
+    assert_false(cipher_aes_hmac_decrypt(in, sizeof(in) - 1, out, &outlen, secret));
+
+    // wrong secret
+    assert_false(cipher_aes_hmac_decrypt(in, sizeof(in), out, &outlen, secret));
+
+    // outlen too small
+    outlen--;
+    assert_false(cipher_aes_hmac_decrypt(in, sizeof(in), out, &outlen, secret));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_cipher_aes_hmac_encrypt),
+        cmocka_unit_test(_test_cipher_aes_hmac_encrypt_unhappy),
+        cmocka_unit_test(_test_cipher_aes_hmac_decrypt_unhappy),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

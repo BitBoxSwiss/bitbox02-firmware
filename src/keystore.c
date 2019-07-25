@@ -224,11 +224,14 @@ bool keystore_encrypt_and_store_seed(
         return false;
     }
 
-    int encrypted_seed_len = 32 + 64;
+    size_t encrypted_seed_len = 32 + 64;
     uint8_t encrypted_seed[encrypted_seed_len];
     UTIL_CLEANUP_32(encrypted_seed);
     if (!cipher_aes_hmac_encrypt(seed, 32, encrypted_seed, &encrypted_seed_len, secret)) {
         return false;
+    }
+    if (encrypted_seed_len > 255) { // sanity check, can't happen
+        Abort("keystore_encrypt_and_store_seed");
     }
     if (!memory_set_encrypted_seed_and_hmac(encrypted_seed, encrypted_seed_len)) {
         return false;

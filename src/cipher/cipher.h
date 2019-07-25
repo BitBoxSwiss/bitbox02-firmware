@@ -20,21 +20,27 @@
 #include <stdint.h>
 
 /**
- * @param[out] must have inlen + 64 bytes.
+ * @param[in] in bytes to encrypt
+ * @param[in] in_len size of `in`
+ * @param[out] out must have inlen + 64 bytes.
  * @param[inout] out_len must be inlen + 64 incoming, and will be the actual
  * length of the output.
+ * @param[in] secret 32 bytes secret from which the encryption/auth keys are derived.
  */
 bool cipher_aes_hmac_encrypt(
     const uint8_t* in,
-    int in_len,
+    size_t in_len,
     uint8_t* out,
-    int* out_len,
+    size_t* out_len,
     const uint8_t* secret);
 
 /**
+ * @param[in] bytes to decrypt.
+ * @param[in] in_len size of `in`, must be at least 64 bytes (IV, padding, HMAC).
  * @param[out] must have in_len - 48 bytes.
  * @param[inout] out_len must be inlen - 48 incoming, and will be the actual
  * length of the output.
+ * @param[in] secret 32 bytes secret from which the encryption/auth keys are derived.
  */
 bool cipher_aes_hmac_decrypt(
     const uint8_t* in,

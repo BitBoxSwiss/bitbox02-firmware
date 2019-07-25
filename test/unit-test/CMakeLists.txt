@@ -47,6 +47,7 @@ include_directories(
 include_directories(
   ${INCLUDES}
   ${CMAKE_SOURCE_DIR}/test/unit-test/framework/includes
+  ${CMAKE_SOURCE_DIR}/test/unit-test
   ${CMAKE_BINARY_DIR}/src
 )
 
@@ -71,10 +72,15 @@ add_library(bitbox
     framework/mock_ff.c
     framework/mock_sd.c
     framework/mock_securechip.c
+    u2f/sha2.c
+    u2f/ecc.c
+    u2f/uECC.c
+    u2f/u2f_util_t.c
 )
 
 add_dependencies(bitbox noise-c)
 add_dependencies(bitbox libwally-core)
+target_link_libraries(bitbox hidapi-hidraw)
 
 target_link_libraries(bitbox "${CMAKE_SOURCE_DIR}/external/noise-c-${TARGET_CODE}-build/libnoiseprotocol.a")
 target_link_libraries(bitbox "${CMAKE_SOURCE_DIR}/external/libwally-core-${TARGET_CODE}-build/.libs/libwallycore.a")
@@ -185,3 +191,13 @@ add_test(NAME test_commander_set_device_name COMMAND test_commander_set_device_n
 add_executable(test_commander_set_mnemonic_passphrase_enabled commander/test_commander_set_mnemonic_passphrase_enabled.c)
 target_link_libraries(test_commander_set_mnemonic_passphrase_enabled bitbox cmocka "-Wl,--wrap=workflow_confirm,--wrap=memory_set_mnemonic_passphrase_enabled")
 add_test(NAME test_commander_set_mnemonic_passphrase_enabled COMMAND test_commander_set_mnemonic_passphrase_enabled)
+
+# This test requires hardware connected
+add_executable(test_u2f_standard test_u2f_standard.c)
+target_link_libraries(test_u2f_standard bitbox cmocka)
+#add_test(NAME test_u2f_standard COMMAND test_u2f_standard)
+
+# This test requires hardware connected
+add_executable(test_u2f_hid test_u2f_hid.c)
+target_link_libraries(test_u2f_hid bitbox cmocka)
+#add_test(NAME test_u2f_hid COMMAND test_u2f_hid)

@@ -43,6 +43,8 @@ typedef enum {
     SECURECHIP_SLOT_ROLLKEY = 3,
     SECURECHIP_SLOT_KDF = 4,
     SECURECHIP_SLOT_ATTESTATION = 5,
+    SECURECHIP_SLOT_ECC_UNSAFE_SIGN = 6,
+    SECURECHIP_SLOT_DATA0 = 9,
 } securechip_slot_t;
 
 /**
@@ -99,5 +101,37 @@ bool securechip_monotonic_increments_remaining(uint32_t* remaining_out);
  * @param[out] rand_out must be 32 bytes.
  */
 bool securechip_random(uint8_t* rand_out);
+
+/**
+ * Generates the matching public key to the provided private key. Will put private key in unsafe
+ * ECC slot.
+ * @param[in] priv_key Private key (32 bytes).
+ * @param[out] pub_key Public key. Format will be the X and Y coordinates in big-endian (64 bytes).
+ * @return True if success
+ */
+bool securechip_ecc_generate_public_key(uint8_t* priv_key, uint8_t* pub_key);
+
+/**
+ * Sign hash with private key. Will put private key in unsafe ECC slot.
+ * @param[in] priv_key Private key to use for signing (32 bytes)
+ * @param[in] msg Message to sign (32 bytes)
+ * @param[out] sig Signature (64 bytes)
+ * @return True if success
+ */
+bool securechip_ecc_unsafe_sign(const uint8_t* priv_key, const uint8_t* msg, uint8_t* sig);
+
+/**
+ * Set the u2f counter to `counter`. Should only be used for initialization.
+ * @param[in] counter Value to set counter to
+ * @return True if success
+ */
+bool securechip_u2f_counter_set(uint32_t counter);
+
+/**
+ * Monotonically increase the U2F counter and return the current value
+ * @param[out] counter Next counter value
+ * @return True if success
+ */
+bool securechip_u2f_counter_inc(uint32_t* counter);
 
 #endif

@@ -2,7 +2,7 @@
 
 set -e
 
-CONTAINER=shiftcrypto/firmware_v2:3
+CONTAINER=shiftcrypto/firmware_v2:4
 
 # Fetch origin/master so that we can diff when checking coding style.
 git remote set-branches --add origin master

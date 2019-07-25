@@ -64,7 +64,8 @@ RUN apt-get update && apt-get install -y \
     lib32stdc++6 \
     lib32z1 \
     libusb-1.0-0-dev \
-    libudev-dev
+    libudev-dev \
+    libhidapi-dev
 
 # Set gcc-8 as the default gcc
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100

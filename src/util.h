@@ -78,8 +78,6 @@ void util_cleanup_64(uint8_t** buf);
     uint8_t* __attribute__((__cleanup__(util_cleanup_64))) var##_clean __attribute__((unused)) = \
         var;
 
-char* strdup(const char* s);
-
 /**
  * adds b to a safely.
  * @return Returns false if the operation would overflow.

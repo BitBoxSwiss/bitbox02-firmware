@@ -24,6 +24,14 @@
 #endif
 
 #ifndef TESTING
+#include <hal_timer.h>
+#include <usb/usb_packet.h>
+extern struct timer_descriptor TIMER_0;
+#endif
+
+#define TIMEOUT_TICK_PERIOD_MS 100
+
+#ifndef TESTING
 static uint8_t _ctrl_endpoint_buffer[USB_REPORT_SIZE];
 static uint8_t _descriptor_bytes[] = {
     USB_DESC_FS}; // Device descriptors and Configuration descriptors list.
@@ -60,9 +68,25 @@ static void _u2f_endpoint_available(void)
 #endif
 #endif
 
+#ifndef TESTING
+static void _timeout_cb(const struct timer_task* const timer_task)
+{
+    (void)timer_task;
+    usb_packet_timeout_tick();
+}
+#endif
+
 int32_t usb_start(void (*on_hww_init)(void))
 {
 #ifndef TESTING
+    static struct timer_task Timer_task;
+    Timer_task.interval = TIMEOUT_TICK_PERIOD_MS;
+    Timer_task.cb = _timeout_cb;
+    Timer_task.mode = TIMER_TASK_REPEAT;
+    timer_stop(&TIMER_0);
+    timer_add_task(&TIMER_0, &Timer_task);
+    timer_start(&TIMER_0);
+
     // required before hid init
     int32_t ret = 0;
     ret = usbdc_init(_ctrl_endpoint_buffer);

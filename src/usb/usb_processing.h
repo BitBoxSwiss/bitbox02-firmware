@@ -38,4 +38,6 @@ void usb_processing_register_cmds(const CMD_Callback* cmd_callbacks, int num_cmd
 bool usb_processing_enqueue(const State* in_state, void (*send)(void));
 void usb_processing_process(void);
 
+void usb_processing_set_send(void (*send)(void));
+
 #endif

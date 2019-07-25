@@ -15,6 +15,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "util.h"
 
@@ -50,17 +51,6 @@ void util_cleanup_32(uint8_t** buf)
 void util_cleanup_64(uint8_t** buf)
 {
     util_zero(*buf, 64);
-}
-
-char* strdup(const char* s)
-{
-    const size_t len = strlen(s) + 1;
-    char* new = malloc(len);
-    if (new == NULL) {
-        return NULL;
-    }
-    snprintf(new, len, "%s", s);
-    return new;
 }
 
 bool safe_uint64_add(uint64_t* a, uint64_t b)

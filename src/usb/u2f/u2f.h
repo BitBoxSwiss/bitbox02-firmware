@@ -10,6 +10,10 @@
 
 #include <stdint.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpacked"
+#pragma GCC diagnostic ignored "-Wattributes"
+
 // General constants
 #define U2F_EC_KEY_SIZE 32
 #define U2F_EC_POINT_SIZE ((U2F_EC_KEY_SIZE * 2) + 1)
@@ -17,6 +21,7 @@
 #define U2F_MAX_ATT_CERT_SIZE 1024 // Max size of attestation certificate
 #define U2F_MAX_EC_SIG_SIZE 72 // Max size of ANS.1 DER encoded EC signature
 #define U2F_CTR_SIZE 4 // Size of counter field
+#define U2F_FRAME_SIZE (3 + U2F_CTR_SIZE) // 1-byte flag | 4-byte counter | 2-byte status
 #define U2F_APPID_SIZE 32 // Size of application id
 #define U2F_NONCE_LENGTH 32 // Size of challenge nonce
 #define U2F_UNCOMPRESSED_POINT 0x04 // Uncompressed point format
@@ -43,7 +48,7 @@ typedef struct {
     uint8_t appId[U2F_APPID_SIZE];
 } U2F_REGISTER_REQ;
 
-typedef struct {
+typedef struct __attribute__((__packed__)) {
     uint8_t registerId; // U2F_REGISTER_ID_V2
     U2F_EC_POINT pubKey;
     uint8_t keyHandleLen;
@@ -58,11 +63,11 @@ typedef struct {
 typedef struct {
     uint8_t challenge[U2F_NONCE_LENGTH];
     uint8_t appId[U2F_APPID_SIZE];
-    uint8_t keyHandleLen;
+    uint8_t keyHandleLength;
     uint8_t keyHandle[U2F_MAX_KH_SIZE];
 } U2F_AUTHENTICATE_REQ;
 
-typedef struct {
+typedef struct __attribute__((__packed__)) {
     uint8_t flags;
     uint8_t ctr[U2F_CTR_SIZE];
     uint8_t sig[U2F_MAX_EC_SIG_SIZE];
@@ -88,5 +93,7 @@ typedef struct {
 #define U2F_SW_WRONG_DATA 0x6a80
 #define U2F_SW_INS_NOT_SUPPORTED 0x6d00
 #define U2F_SW_CLA_NOT_SUPPORTED 0x6e00
+
+#pragma GCC diagnostic pop
 
 #endif

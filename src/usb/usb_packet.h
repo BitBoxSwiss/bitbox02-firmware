@@ -47,4 +47,23 @@ typedef struct {
  */
 bool usb_packet_process(const USB_FRAME* frame, void (*send_packet)(void));
 
+/**
+ * Checks if there has been a timeout
+ */
+bool usb_packet_timeout_get(uint32_t* cid);
+
+/**
+ * Queue a timeout packet for cid
+ */
+void usb_packet_timeout(uint32_t cid);
+
+/**
+ * Increase the timout timers with 1 step (steps in 100ms)
+ */
+void usb_packet_timeout_tick(void);
+
+/**
+ * Enable timer for this cid
+ */
+void usb_packet_timeout_enable(uint32_t cid);
 #endif

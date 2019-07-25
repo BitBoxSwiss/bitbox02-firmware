@@ -38,6 +38,11 @@ void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
     out[in_len * 2] = '\0';
 }
 
+void util_cleanup_str(char** str)
+{
+    util_zero(*str, strlens(*str));
+}
+
 void util_cleanup_20(uint8_t** buf)
 {
     util_zero(*buf, 20);

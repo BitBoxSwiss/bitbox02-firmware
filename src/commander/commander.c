@@ -312,6 +312,7 @@ size_t commander(
             commander_states_clear_force_next();
 
             err = _api_process(&request, &response);
+            util_zero(&request, sizeof(request));
         }
     }
     if (err != COMMANDER_OK) {

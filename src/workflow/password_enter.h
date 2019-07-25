@@ -22,7 +22,7 @@
  * This call blocks.
  * @param[in] title screen
  * @param[out] password_out must be SET_PASSWORD_MAX_PASSWORD_LENGTH bytes (including null
- * terminator).
+ * terminator). Use `UTIL_CLEANUP_STR` to make sure that the password is destroyed after use.
  */
 void password_enter(const char* title, char* password_out);
 

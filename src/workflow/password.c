@@ -17,94 +17,31 @@
 #include "password.h"
 
 #include "password_enter.h"
+#include "status.h"
 #include "unlock.h"
 #include "workflow.h"
+
 #include <hardfault.h>
 #include <memory.h>
-#include <ui/components/ui_components.h>
-#include <ui/screen_process.h>
-#include <ui/screen_stack.h>
 #include <util.h>
 
 #include <stdio.h>
 
-static char _password_candidate[SET_PASSWORD_MAX_PASSWORD_LENGTH];
-// true after the workflow has finished (passwords entered and match or do not
-// match).
-static bool _done = true;
-// whether the passwords match or do not match (undefined if _done is false).
-static bool _result = false;
-static bool _is_done(void)
+bool password_set(char* password_out)
 {
-    return _done;
-}
-// The callback that is called if the passwords match
-static bool (*_callback)(const char* password) = NULL;
-
-static void _match_callback(void)
-{
-    // Need to pop here before the callback is called, as the callback can add
-    // more screens.
-    ui_screen_stack_pop();
-
-    _result = _callback(_password_candidate);
-    util_zero(_password_candidate, sizeof(_password_candidate));
-    _done = true;
-}
-
-static void _no_match_callback(void)
-{
-    util_zero(_password_candidate, sizeof(_password_candidate));
-    _result = false;
-    ui_screen_stack_pop();
-    _done = true;
-}
-
-static void _confirm_done(const char* password)
-{
-    if (STREQ(_password_candidate, password)) {
-        component_t* password_match =
-            status_create("Success", true, STATUS_DEFAULT_DELAY, _match_callback);
-        ui_screen_stack_switch(password_match);
-    } else {
-        component_t* password_no_match = status_create(
-            "Passwords\ndo not match", false, STATUS_DEFAULT_DELAY, _no_match_callback);
-        ui_screen_stack_switch(password_no_match);
-    }
-}
-
-static void _confirm_enter(void)
-{
-    ui_screen_stack_switch(set_password_create(_confirm_done));
-}
-
-static void _set_done(const char* password)
-{
-    int snprintf_result =
-        snprintf(_password_candidate, sizeof(_password_candidate), "%s", password);
-    if (snprintf_result < 0 || snprintf_result >= (int)sizeof(_password_candidate)) {
-        Abort("length mismatch");
-    }
-    ui_screen_stack_switch(entry_screen_create("Repeat password", _confirm_enter));
-}
-
-static void _set_enter(void)
-{
-    ui_screen_stack_switch(set_password_create(_set_done));
-}
-
-bool password_set(bool (*callback)(const char* password))
-{
-    if (!_done) {
+    char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    UTIL_CLEANUP_STR(password);
+    char password_repeat[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    UTIL_CLEANUP_STR(password_repeat);
+    password_enter("Set password", password);
+    password_enter("Repeat password", password_repeat);
+    if (!STREQ(password, password_repeat)) {
+        workflow_status_create("Passwords\ndo not match", false);
         return false;
     }
-    _done = false;
-    _result = false;
-    _callback = callback;
-    memset(_password_candidate, 0, sizeof(_password_candidate));
-    ui_screen_stack_push(entry_screen_create("Set password", _set_enter));
-    ui_screen_process(_is_done);
-    return _result;
+    snprintf(password_out, SET_PASSWORD_MAX_PASSWORD_LENGTH, "%s", password);
+    workflow_status_create("Success", true);
+    return true;
 }
 
 bool password_check(void)
@@ -113,8 +50,7 @@ bool password_check(void)
         Abort("password_check: must be seeded");
     }
     char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    UTIL_CLEANUP_STR(password);
     password_enter("Unlocking device\nrequired", password);
-    keystore_error_t unlock_result = workflow_unlock_and_handle_error(password);
-    util_zero(password, sizeof(password));
-    return unlock_result == KEYSTORE_OK;
+    return workflow_unlock_and_handle_error(password) == KEYSTORE_OK;
 }

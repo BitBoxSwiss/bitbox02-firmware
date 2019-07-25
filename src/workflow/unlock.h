@@ -18,12 +18,6 @@
 #include <keystore.h>
 
 /**
- * Unlocks the keystore and stretches the seed with
- * a BIP39 passphrase.
- */
-void workflow_unlock_enter_done(const char* password);
-
-/**
  * Prompts the user for the password and unlocks the keystore. It is blocking until either the user
  * enters the correct password, or the device is reset after too many failed attempts.
  */
@@ -34,5 +28,12 @@ void workflow_unlock(void);
  * If the error is KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED (device reset), we return to workflow_start.
  */
 keystore_error_t workflow_unlock_and_handle_error(const char* password);
+
+/**
+ * Unlocks BIP39 with the default empty passphrase, or with a user provided passphrase if
+ * mnemonic passphrase support is enabled.
+ * Displays a simple unlock animation.
+ */
+void workflow_unlock_bip39(void);
 
 #endif

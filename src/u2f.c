@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "u2f.h"
+#include "u2f/u2f_app.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include <keystore.h>
@@ -289,7 +291,7 @@ static void _register(const USB_APDU* apdu, Packet* out_packet)
     }
 
     if (!is_bogus) { // bogus request already confirmed/rejected above
-        if (!workflow_confirm_with_timeout("U2F", "Register?", false, 1000)) {
+        if (!u2f_app_confirm(U2F_APP_REGISTER, reg_request->appId)) {
             _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
             return;
         }
@@ -400,7 +402,8 @@ static void _authenticate(const USB_APDU* apdu, Packet* out_packet)
         _error(U2F_SW_INS_NOT_SUPPORTED, out_packet);
         return;
     }
-    if (!workflow_confirm_with_timeout("U2F", "Authenticate?", false, 1000)) {
+
+    if (!u2f_app_confirm(U2F_APP_AUTHENTICATE, auth_request->appId)) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }

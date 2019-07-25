@@ -58,11 +58,10 @@ static const component_functions_t _component_functions = {
 /********************************** Create Instance **********************************/
 
 static component_t* _confirm_transaction_create(
-    const char* prefix,
     const char* amount,
     const char* address,
     const char* fee,
-    bool longtouch,
+    bool verify_total, /* if true, verify total and fee, otherwise verify amount and address */
     void (*confirm_callback)(component_t*),
     void (*cancel_callback)(component_t*))
 {
@@ -92,7 +91,7 @@ static component_t* _confirm_transaction_create(
 
     ui_util_add_sub_component(
         confirm, icon_button_create(top_slider, ICON_BUTTON_CROSS, cancel_callback));
-    if (longtouch) {
+    if (verify_total) {
         ui_util_add_sub_component(confirm, confirm_gesture_create(confirm));
     } else {
         ui_util_add_sub_component(
@@ -106,14 +105,21 @@ static component_t* _confirm_transaction_create(
     }
     if (strlens(fee)) {
         char formatted_fee[64];
-        snprintf(formatted_fee, sizeof(formatted_fee), " \n \n \nFee: %s", fee);
+        snprintf(formatted_fee, sizeof(formatted_fee), "\n\n\n\n\n%s", fee);
+        ui_util_add_sub_component(confirm, label_create("\n\n\n\nFee:", NULL, CENTER_TOP, confirm));
         ui_util_add_sub_component(confirm, label_create(formatted_fee, NULL, CENTER_TOP, confirm));
     }
-    {
+    if (verify_total) {
         char formatted_amt[64];
-        snprintf(formatted_amt, sizeof(formatted_amt), " \n \n%s%s", prefix, amount);
+        snprintf(formatted_amt, sizeof(formatted_amt), "\n\n%s", amount);
+        ui_util_add_sub_component(confirm, label_create("\nTotal", NULL, CENTER_TOP, confirm));
+        ui_util_add_sub_component(confirm, label_create(formatted_amt, NULL, CENTER_TOP, confirm));
+    } else {
+        char formatted_amt[64];
+        snprintf(formatted_amt, sizeof(formatted_amt), "\n\n%s", amount);
         ui_util_add_sub_component(confirm, label_create(formatted_amt, NULL, CENTER_TOP, confirm));
     }
+
     return confirm;
 }
 
@@ -124,7 +130,7 @@ component_t* confirm_transaction_address_create(
     void (*cancel_callback)(component_t*))
 {
     return _confirm_transaction_create(
-        "", amount, address, NULL, false, confirm_callback, cancel_callback);
+        amount, address, NULL, false, confirm_callback, cancel_callback);
 }
 
 component_t* confirm_transaction_fee_create(
@@ -133,6 +139,5 @@ component_t* confirm_transaction_fee_create(
     void (*confirm_callback)(component_t*),
     void (*cancel_callback)(component_t*))
 {
-    return _confirm_transaction_create(
-        "Total: ", amount, NULL, fee, true, confirm_callback, cancel_callback);
+    return _confirm_transaction_create(amount, NULL, fee, true, confirm_callback, cancel_callback);
 }

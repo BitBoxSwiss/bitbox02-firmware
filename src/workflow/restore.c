@@ -35,13 +35,12 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
     }
 
     char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    UTIL_CLEANUP_STR(password);
     if (!password_set(password)) {
-        util_zero(password, sizeof(password));
         return false;
     }
 
     if (!restore_seed(&backup_data, password)) {
-        util_zero(password, sizeof(password));
         workflow_status_create("Could not\nrestore backup", false);
         return false;
     }
@@ -50,11 +49,9 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
     }
     uint8_t remaining_attempts;
     if (keystore_unlock(password, &remaining_attempts) != KEYSTORE_OK) {
-        util_zero(password, sizeof(password));
         // This should/can never happen, but let's check anyway.
         Abort("Unexpected error during restore: unlock failed.");
     }
-    util_zero(password, sizeof(password));
     if (!memory_set_device_name(backup.backup_v1.content.metadata.name)) {
         /* Ignore errors for now */
     }

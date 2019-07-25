@@ -22,8 +22,8 @@
 
 /**
  * Asks the user to set a password by entering it once and then confirming it.
- * @param[out] password_out must be of size SET_PASSWORD_MAX_PASSWORD_LENGTH. Must be util_zero()'d
- * after use.
+ * @param[out] password_out must be of size SET_PASSWORD_MAX_PASSWORD_LENGTH.
+ * Use `UTIL_CLEANUP_STR` to destroy the password after use.
  * @return true if the the two entered passwords match. Returns false otherwise.
  */
 USE_RESULT bool password_set(char* password_out);

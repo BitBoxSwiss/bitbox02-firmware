@@ -32,15 +32,17 @@ static void _workflow_unlock(void)
 {
     ui_screen_stack_pop_all();
     char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    UTIL_CLEANUP_STR(password);
     password_enter("Enter password", password);
     workflow_unlock_enter_done(password);
-    util_zero(password, sizeof(password));
 }
 
 static void _get_mnemonic_passphrase(char* passphrase_out)
 {
     char mnemonic_passphrase[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    UTIL_CLEANUP_STR(mnemonic_passphrase);
     char mnemonic_passphrase_repeat[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    UTIL_CLEANUP_STR(mnemonic_passphrase_repeat);
     while (true) {
         password_enter("Enter\nmnemonic passphrase", mnemonic_passphrase);
         password_enter("Confirm\nmnemonic passphrase", mnemonic_passphrase_repeat);
@@ -58,6 +60,7 @@ void workflow_unlock_bip39(void)
 {
     // Empty passphrase by default.
     char mnemonic_passphrase[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    UTIL_CLEANUP_STR(mnemonic_passphrase);
     if (memory_is_mnemonic_passphrase_enabled()) {
         _get_mnemonic_passphrase(mnemonic_passphrase);
     }
@@ -79,8 +82,6 @@ void workflow_unlock_bip39(void)
     if (!keystore_unlock_bip39(mnemonic_passphrase)) {
         Abort("bip39 unlock failed");
     }
-
-    util_zero(mnemonic_passphrase, sizeof(mnemonic_passphrase));
 }
 
 void workflow_unlock_enter_done(const char* password)

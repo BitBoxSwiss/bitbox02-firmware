@@ -20,18 +20,15 @@
 #include <keystore.h>
 #include <util.h>
 
-#include <string.h>
-
 bool workflow_create_seed(const uint8_t* host_entropy)
 {
     char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    UTIL_CLEANUP_STR(password);
     if (!password_set(password)) {
-        util_zero(password, sizeof(password));
         return false;
     }
     bool result = keystore_create_and_store_seed(password, host_entropy);
     if (!result) {
-        util_zero(password, sizeof(password));
         return false;
     }
     uint8_t remaining_attempts;

@@ -30,16 +30,15 @@
 bool password_set(char* password_out)
 {
     char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    UTIL_CLEANUP_STR(password);
     char password_repeat[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    UTIL_CLEANUP_STR(password_repeat);
     password_enter("Set password", password);
     password_enter("Repeat password", password_repeat);
     if (!STREQ(password, password_repeat)) {
-        util_zero(password, sizeof(password));
-        util_zero(password_repeat, sizeof(password_repeat));
         workflow_status_create("Passwords\ndo not match", false);
         return false;
     }
-    util_zero(password_repeat, sizeof(password_repeat));
     snprintf(password_out, SET_PASSWORD_MAX_PASSWORD_LENGTH, "%s", password);
     workflow_status_create("Success", true);
     return true;
@@ -51,8 +50,7 @@ bool password_check(void)
         Abort("password_check: must be seeded");
     }
     char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    UTIL_CLEANUP_STR(password);
     password_enter("Unlocking device\nrequired", password);
-    keystore_error_t unlock_result = workflow_unlock_and_handle_error(password);
-    util_zero(password, sizeof(password));
-    return unlock_result == KEYSTORE_OK;
+    return workflow_unlock_and_handle_error(password) == KEYSTORE_OK;
 }

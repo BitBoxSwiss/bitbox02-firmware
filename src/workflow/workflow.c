@@ -46,7 +46,7 @@ static void _confirm_dismiss(component_t* component)
 
 void workflow_confirm_dismiss(const char* title, const char* body)
 {
-    ui_screen_stack_switch(confirm_create(title, body, _confirm_dismiss, NULL));
+    ui_screen_stack_switch(confirm_create(title, body, false, _confirm_dismiss, NULL));
 }
 
 static void _select_orientation_done(bool upside_down)

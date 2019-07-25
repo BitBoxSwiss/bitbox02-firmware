@@ -91,7 +91,7 @@ static bool _confirm_time(const CreateBackupRequest* request)
     static char local_timestring[100] = {0};
     strftime(local_timestring, sizeof(local_timestring), "%a %Y-%m-%d", local_time);
 
-    return workflow_confirm("Is today?", local_timestring, false);
+    return workflow_confirm("Is today?", local_timestring, false, false);
 }
 
 bool workflow_backup_create(const CreateBackupRequest* request)
@@ -107,7 +107,8 @@ bool workflow_backup_create(const CreateBackupRequest* request)
     };
     sdcard_handle(&sd);
 
-    if (!workflow_confirm("", "I understand that\nthe backup is NOT\npassword protected", false)) {
+    if (!workflow_confirm(
+            "", "I understand that\nthe backup is NOT\npassword protected", true, false)) {
         return false;
     }
 

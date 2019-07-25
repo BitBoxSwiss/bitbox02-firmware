@@ -115,7 +115,7 @@ static void test_ui_components_confirm(void** state)
     (void)state;
 
     component_t* confirm =
-        confirm_create("Is the Code correct?", "CODE", confirm_callback, cancel_callback);
+        confirm_create("Is the Code correct?", "CODE", false, confirm_callback, cancel_callback);
     assert_non_null(confirm);
     assert_ui_component_functions(confirm);
     confirm->f->cleanup(confirm);

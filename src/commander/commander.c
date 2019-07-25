@@ -37,6 +37,7 @@
 #include <workflow/create_seed.h>
 #include <workflow/mnemonic.h>
 #include <workflow/reboot.h>
+#include <workflow/reset.h>
 #include <workflow/restore.h>
 #include <workflow/sdcard.h>
 #include <workflow/workflow.h>
@@ -193,7 +194,7 @@ static commander_error_t _api_set_mnemonic_passphrase_enabled(
     } else {
         snprintf(msg, sizeof(msg), "Disable\nmnemonic passphrase?");
     }
-    if (!workflow_confirm("", msg, false)) {
+    if (!workflow_confirm("", msg, true, false)) {
         return COMMANDER_ERR_USER_ABORT;
     }
     if (!memory_set_mnemonic_passphrase_enabled(request->enabled)) {
@@ -205,6 +206,14 @@ static commander_error_t _api_set_mnemonic_passphrase_enabled(
 static commander_error_t _api_reboot(void)
 {
     if (!workflow_reboot()) {
+        return COMMANDER_ERR_GENERIC;
+    }
+    return COMMANDER_OK;
+}
+
+static commander_error_t _api_reset(void)
+{
+    if (!workflow_reset()) {
         return COMMANDER_ERR_GENERIC;
     }
     return COMMANDER_OK;
@@ -282,6 +291,9 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_eth_tag:
         response->which_response = Response_eth_tag;
         return commander_eth(&(request->request.eth), &(response->response.eth));
+    case Request_reset_tag:
+        response->which_response = Response_success_tag;
+        return _api_reset();
     default:
         screen_print_debug("command unknown", 1000);
         return COMMANDER_ERR_INVALID_INPUT;

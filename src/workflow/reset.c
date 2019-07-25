@@ -12,36 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "reboot.h"
+#include "reset.h"
 #include "confirm.h"
-#include <memory.h>
-#include <screen.h>
-#ifndef TESTING
-#include <driver_init.h>
-#endif
+#include "password.h"
+#include "status.h"
+#include "workflow.h"
 
-static void _reboot(void)
-{
-    auto_enter_t auto_enter = {
-        .value = sectrue_u8,
-    };
-    upside_down_t upside_down = {
-        .value = screen_is_upside_down(),
-    };
-    if (!memory_bootloader_set_flags(auto_enter, upside_down)) {
-        // If this failed, we might not be able to reboot into the bootloader.
-        // We will try anyway, no point in aborting here.
-    }
-#ifndef TESTING
-    _reset_mcu();
-#endif
-}
+#include <reset.h>
 
-bool workflow_reboot(void)
+bool workflow_reset(void)
 {
-    if (!workflow_confirm("", "Proceed to upgrade?", false, false)) {
+    if (!password_check()) {
         return false;
     }
-    _reboot();
+    if (!workflow_confirm("RESET", "Proceed to\nfactory reset?", true, false)) {
+        return false;
+    }
+
+    reset_reset();
+    workflow_status_create("Device reset", true);
+    workflow_start();
+
     return true;
 }

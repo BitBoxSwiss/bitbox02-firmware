@@ -20,15 +20,18 @@
 
 /**
  * Confirm something with the user.
+ * @param[in] title shown at the top
+ * @param[in] body shown in the center
  * @param[in] accept_only if true, the user can only confirm, not reject.
+ * @param[in] longtouch if true, require the hold gesture to confirm instead of tap.
  * @return true if the user accepted, false if the user rejected.
  */
-bool workflow_confirm(const char* title, const char* body, bool accept_only);
+bool workflow_confirm(const char* title, const char* body, bool longtouch, bool accept_only);
 
 /**
  * Confirm something with the user.
- * @param[in] title title
- * @param[in] body body
+ * @param[in] title shown at the top
+ * @param[in] body shown in the center; horizontally scrollable.
  * @param[in] accept_only if true, the user can only confirm, not reject.
  * @return true if the user accepted, false if the user rejected.
  */

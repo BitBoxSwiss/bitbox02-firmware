@@ -254,6 +254,8 @@ message ETHResponse {
   }
 }
 
+message ResetRequest {}
+
 message Request {
     oneof request {
         RandomNumberRequest random_number = 1;
@@ -276,6 +278,7 @@ message Request {
         RebootRequest reboot = 18;
         CheckBackupRequest check_backup = 19;
         ETHRequest eth = 20;
+        ResetRequest reset = 21;
     }
 }
 

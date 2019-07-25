@@ -497,3 +497,15 @@ class BitBox02:
             )
         )
         return self._eth_msg_query(request, expected_response="sign").sign.signature
+
+    def reset(self) -> bool:
+        request = hww.Request()
+        # pylint: disable=no-member
+        request.reset.CopyFrom(hww.ResetRequest())
+        try:
+            self._msg_query(request)
+        except Bitbox02Exception as err:
+            if err.code == ERR_GENERIC:
+                return False
+            raise
+        return True

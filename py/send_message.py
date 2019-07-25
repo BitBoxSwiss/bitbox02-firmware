@@ -151,6 +151,7 @@ def print_menu(mnemonic_passphrase_enabled: bool) -> None:
     else:
         print("- (11) Enable BIP39 Mnemonic Passphrase")
     print("- (12) Retrieve Ethereum address")
+    print("- (13) Reset Device")
     print("- (q) Quit")
 
 
@@ -239,6 +240,11 @@ def select_option(device: bitbox02.BitBox02) -> bool:
 
         print("Ethereum address: {}".format(address(display=False)))
         address(display=True)
+    elif choice == 13:
+        if device.reset():
+            print("Device RESET")
+        else:
+            print("Device NOT reset")
     else:
         print("Input unknown, please try again...")
     return True

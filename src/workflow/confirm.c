@@ -52,17 +52,19 @@ bool workflow_confirm_with_timeout(
 {
     _result = false;
     _done = false;
-    ui_screen_stack_push(confirm_create(title, body, _confirm, accept_only ? NULL : _reject));
+    ui_screen_stack_push(
+        confirm_create(title, body, false, _confirm, accept_only ? NULL : _reject));
     ui_screen_process_with_timeout(_is_done, _on_timeout, timeout);
     ui_screen_stack_pop();
     return _result;
 }
 
-bool workflow_confirm(const char* title, const char* body, bool accept_only)
+bool workflow_confirm(const char* title, const char* body, bool longtouch, bool accept_only)
 {
     _result = false;
     _done = false;
-    ui_screen_stack_push(confirm_create(title, body, _confirm, accept_only ? NULL : _reject));
+    ui_screen_stack_push(
+        confirm_create(title, body, longtouch, _confirm, accept_only ? NULL : _reject));
     ui_screen_process(_is_done);
     ui_screen_stack_pop();
     return _result;

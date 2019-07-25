@@ -19,59 +19,48 @@
 #include <keystore.h>
 #include <memory.h>
 #include <restore.h>
-#include <screen.h>
-#include <ui/components/ui_components.h>
-#include <ui/screen_process.h>
-#include <ui/screen_stack.h>
 #include <workflow/password.h>
 #include <workflow/status.h>
 #include <workflow/unlock.h>
 #include <workflow/workflow.h>
 
-static BackupData _backup_data;
-static char _restored_name[MEMORY_DEVICE_NAME_MAX_LEN];
-
-// true after the workflow has finished.
-static bool _result = false;
-
-static bool _restore(const char* password)
+bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
 {
-    _result = restore_seed(&_backup_data, password);
-    if (!_result) {
+    Backup __attribute__((__cleanup__(backup_cleanup_backup))) backup;
+    BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data;
+
+    if (restore_from_directory(restore_request->id, &backup, &backup_data) != RESTORE_OK) {
+        workflow_status_create("Could not\nrestore backup", false);
+        return false;
+    }
+
+    char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    if (!password_set(password)) {
+        util_zero(password, sizeof(password));
+        return false;
+    }
+
+    if (!restore_seed(&backup_data, password)) {
+        util_zero(password, sizeof(password));
         workflow_status_create("Could not\nrestore backup", false);
         return false;
     }
     if (!memory_set_initialized()) {
-        _result = false;
         return false;
     }
     uint8_t remaining_attempts;
     if (keystore_unlock(password, &remaining_attempts) != KEYSTORE_OK) {
+        util_zero(password, sizeof(password));
         // This should/can never happen, but let's check anyway.
         Abort("Unexpected error during restore: unlock failed.");
     }
-    if (!memory_set_device_name(_restored_name)) {
+    util_zero(password, sizeof(password));
+    if (!memory_set_device_name(backup.backup_v1.content.metadata.name)) {
         /* Ignore errors for now */
     }
     workflow_unlock_bip39();
+
     return true;
-}
-
-bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
-{
-    _result = false;
-    Backup backup;
-    restore_error_t res = restore_from_directory(restore_request->id, &backup, &_backup_data);
-    if (res != RESTORE_OK) {
-        ui_screen_stack_switch(
-            status_create("Could not\nrestore backup", false, STATUS_DEFAULT_DELAY, NULL));
-        return false;
-    }
-    snprintf(_restored_name, sizeof(_restored_name), "%s", backup.backup_v1.content.metadata.name);
-
-    // blocking call until password is entered and backup is either restored or restoring failed.
-    password_set(_restore);
-    return _result;
 }
 
 bool workflow_list_backups(ListBackupsResponse* backups)

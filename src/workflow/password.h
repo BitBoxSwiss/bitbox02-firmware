@@ -15,18 +15,22 @@
 #ifndef _PASSWORD_H_
 #define _PASSWORD_H_
 
+#include <compiler_util.h>
+#include <ui/components/set_password.h> // for SET_PASSWORD_MAX_PASSWORD_LENGTH
+
 #include <stdbool.h>
 
 /**
- * Starts the set password workflow.
- * @return true if the the two entered passwords match.  Returns false
- * otherwise.
+ * Asks the user to set a password by entering it once and then confirming it.
+ * @param[out] password_out must be of size SET_PASSWORD_MAX_PASSWORD_LENGTH. Must be util_zero()'d
+ * after use.
+ * @return true if the the two entered passwords match. Returns false otherwise.
  */
-bool password_set(bool (*callback)(const char* password));
+USE_RESULT bool password_set(char* password_out);
 
 /**
  * Promps the user for the password and returns true if the password is the valid keystore password.
  */
-bool password_check(void);
+USE_RESULT bool password_check(void);
 
 #endif

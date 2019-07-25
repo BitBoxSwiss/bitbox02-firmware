@@ -28,24 +28,6 @@
 #include <hal_delay.h>
 #endif
 
-static void _finish_bip39(const char* passphrase)
-{
-    // Cannot render screens during unlocking (unlocking blocks)
-    // Therefore hardcode a status screen
-    UG_ClearBuffer();
-    image_lock(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 1, IMAGE_DEFAULT_LOCK_RADIUS);
-    UG_SendBuffer();
-#ifndef TESTING
-    delay_ms(1200);
-#endif
-    UG_ClearBuffer();
-    image_unlock(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 1, IMAGE_DEFAULT_LOCK_RADIUS);
-    UG_SendBuffer();
-    if (!keystore_unlock_bip39(passphrase)) {
-        Abort("bip39 unlock failed");
-    }
-}
-
 static void _workflow_unlock(void)
 {
     ui_screen_stack_pop_all();
@@ -72,19 +54,41 @@ static void _get_mnemonic_passphrase(char* passphrase_out)
     util_zero(mnemonic_passphrase_repeat, sizeof(mnemonic_passphrase_repeat));
 }
 
+void workflow_unlock_bip39(void)
+{
+    // Empty passphrase by default.
+    char mnemonic_passphrase[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    if (memory_is_mnemonic_passphrase_enabled()) {
+        _get_mnemonic_passphrase(mnemonic_passphrase);
+    }
+
+    { // animation
+        // Cannot render screens during unlocking (unlocking blocks)
+        // Therefore hardcode a status screen
+        UG_ClearBuffer();
+        image_lock(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 1, IMAGE_DEFAULT_LOCK_RADIUS);
+        UG_SendBuffer();
+#ifndef TESTING
+        delay_ms(1200);
+#endif
+        UG_ClearBuffer();
+        image_unlock(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 1, IMAGE_DEFAULT_LOCK_RADIUS);
+        UG_SendBuffer();
+    }
+
+    if (!keystore_unlock_bip39(mnemonic_passphrase)) {
+        Abort("bip39 unlock failed");
+    }
+
+    util_zero(mnemonic_passphrase, sizeof(mnemonic_passphrase));
+}
+
 void workflow_unlock_enter_done(const char* password)
 {
     keystore_error_t unlock_result = workflow_unlock_and_handle_error(password);
     if (unlock_result == KEYSTORE_OK) {
         // Keystore unlocked, now unlock bip39 seed.
-
-        // Empty passphrase by default.
-        char mnemonic_passphrase[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
-        if (memory_is_mnemonic_passphrase_enabled()) {
-            _get_mnemonic_passphrase(mnemonic_passphrase);
-        }
-        _finish_bip39(mnemonic_passphrase);
-        util_zero(mnemonic_passphrase, sizeof(mnemonic_passphrase));
+        workflow_unlock_bip39();
         return;
     }
     if (unlock_result == KEYSTORE_ERR_INCORRECT_PASSWORD) {

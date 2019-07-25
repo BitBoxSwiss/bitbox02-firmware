@@ -36,29 +36,25 @@ static bool _result = false;
 
 static bool _restore(const char* password)
 {
-    bool res = restore_seed(&_backup_data, password);
-    if (res) {
-        res = memory_set_initialized();
-    }
-    if (res) {
-        _result = true;
-        uint8_t remaining_attempts;
-        if (keystore_unlock(password, &remaining_attempts) != KEYSTORE_OK) {
-            // This should/can never happen, but let's check anyway.
-            Abort("Unexpected error during restore: unlock failed.");
-        }
-        if (!memory_set_device_name(_restored_name)) {
-            /* Ignore errors for now */
-        }
-    } else {
-        _result = false;
+    _result = restore_seed(&_backup_data, password);
+    if (!_result) {
         workflow_status_create("Could not\nrestore backup", false);
+        return false;
     }
-    if (res) {
-        // Unlock after restore.
-        workflow_unlock_enter_done(password);
+    if (!memory_set_initialized()) {
+        _result = false;
+        return false;
     }
-    return res;
+    uint8_t remaining_attempts;
+    if (keystore_unlock(password, &remaining_attempts) != KEYSTORE_OK) {
+        // This should/can never happen, but let's check anyway.
+        Abort("Unexpected error during restore: unlock failed.");
+    }
+    if (!memory_set_device_name(_restored_name)) {
+        /* Ignore errors for now */
+    }
+    workflow_unlock_bip39();
+    return true;
 }
 
 bool workflow_restore_backup(const RestoreBackupRequest* restore_request)

@@ -35,4 +35,11 @@ void workflow_unlock(void);
  */
 keystore_error_t workflow_unlock_and_handle_error(const char* password);
 
+/**
+ * Unlocks BIP39 with the default empty passphrase, or with a user provided passphrase if
+ * mnemonic passphrase support is enabled.
+ * Displays a simple unlock animation.
+ */
+void workflow_unlock_bip39(void);
+
 #endif

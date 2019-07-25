@@ -18,12 +18,6 @@
 #include <keystore.h>
 
 /**
- * Unlocks the keystore and stretches the seed with
- * a BIP39 passphrase.
- */
-void workflow_unlock_enter_done(const char* password);
-
-/**
  * Prompts the user for the password and unlocks the keystore. It is blocking until either the user
  * enters the correct password, or the device is reset after too many failed attempts.
  */

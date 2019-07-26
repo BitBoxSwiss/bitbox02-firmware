@@ -35,7 +35,7 @@ bool __wrap_workflow_confirm(const char* title, const char* body, bool longtouch
 static void _test_api_set_mnemonic_passphrase_enabled(void** state)
 {
     (void)state;
-    expect_string_count(__wrap_workflow_confirm, title, "", -1);
+    expect_string_count(__wrap_workflow_confirm, body, "Mnemonic\npassphrase", -1);
     expect_value_count(__wrap_workflow_confirm, longtouch, true, -1);
     expect_value_count(__wrap_workflow_confirm, accept_only, false, -1);
 
@@ -47,10 +47,7 @@ static void _test_api_set_mnemonic_passphrase_enabled(void** state)
 
         // All A-Okay.
         expect_string_count(
-            __wrap_workflow_confirm,
-            body,
-            request.enabled ? "Enable\nmnemonic passphrase?" : "Disable\nmnemonic passphrase?",
-            3);
+            __wrap_workflow_confirm, title, request.enabled ? "Enable" : "Disable", 3);
 
         will_return(__wrap_workflow_confirm, true);
         expect_value(__wrap_memory_set_mnemonic_passphrase_enabled, enabled, request.enabled);

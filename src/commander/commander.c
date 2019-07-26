@@ -188,13 +188,8 @@ static commander_error_t _api_insert_remove_sdcard(const InsertRemoveSDCardReque
 static commander_error_t _api_set_mnemonic_passphrase_enabled(
     const SetMnemonicPassphraseEnabledRequest* request)
 {
-    char msg[100] = {0};
-    if (request->enabled) {
-        snprintf(msg, sizeof(msg), "Enable\nmnemonic passphrase?");
-    } else {
-        snprintf(msg, sizeof(msg), "Disable\nmnemonic passphrase?");
-    }
-    if (!workflow_confirm("", msg, true, false)) {
+    if (!workflow_confirm(
+            request->enabled ? "Enable" : "Disable", "Mnemonic\npassphrase", true, false)) {
         return COMMANDER_ERR_USER_ABORT;
     }
     if (!memory_set_mnemonic_passphrase_enabled(request->enabled)) {

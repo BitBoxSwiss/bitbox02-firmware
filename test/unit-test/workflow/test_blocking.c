@@ -38,6 +38,27 @@ void __wrap_ui_screen_process(bool (*is_done)(void))
     assert_true(is_done());
 }
 
+static bool _timeout = false;
+void __wrap_ui_screen_process_with_timeout(
+    bool (*is_done)(void),
+    void (*on_timeout)(void),
+    uint32_t timeout)
+{
+    check_expected(timeout);
+
+    assert_false(is_done());
+    assert_false(is_done());
+    if (_timeout) {
+        on_timeout();
+    } else if (_force_unblock) {
+        workflow_blocking_unblock_force();
+    } else {
+        workflow_blocking_unblock();
+    }
+    assert_true(is_done());
+    assert_true(is_done());
+}
+
 static void _test_workflow_blocking(void** state)
 {
     _force_unblock = false;
@@ -47,10 +68,29 @@ static void _test_workflow_blocking(void** state)
     assert_false(workflow_blocking_block());
 }
 
+static void _test_workflow_blocking_with_timeout(void** state)
+{
+    const uint32_t timeout = 123;
+    _timeout = false;
+    _force_unblock = false;
+    expect_value(__wrap_ui_screen_process_with_timeout, timeout, timeout);
+    assert_true(workflow_blocking_block_with_timeout(timeout));
+
+    _timeout = false;
+    _force_unblock = true;
+    expect_value(__wrap_ui_screen_process_with_timeout, timeout, timeout);
+    assert_false(workflow_blocking_block_with_timeout(timeout));
+
+    _timeout = true;
+    expect_value(__wrap_ui_screen_process_with_timeout, timeout, timeout);
+    assert_false(workflow_blocking_block_with_timeout(timeout));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_workflow_blocking),
+        cmocka_unit_test(_test_workflow_blocking_with_timeout),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

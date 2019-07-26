@@ -18,6 +18,7 @@
 #include <compiler_util.h>
 
 #include <stdbool.h>
+#include <stdint.h>
 
 /**
  * Start a blocking workflow. Call workflow_blocking_end() to unblock this call.
@@ -25,6 +26,13 @@
  * @return false if the workflow was forcibly unlocked
  */
 USE_RESULT bool workflow_blocking_block(void);
+
+/**
+ * Same as `workflow_blocking_block`, but returns false after the timeout.
+ * @param[in] timeout number of screen refreshes until timeout
+ * @return false if the workflow was forcibly unlocked or if we time out.
+ */
+USE_RESULT bool workflow_blocking_block_with_timeout(uint32_t timeout);
 
 /**
  * Unblocks the workflow. Use this to terminate the worklow after the workflow finishes normally by

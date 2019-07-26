@@ -203,5 +203,5 @@ target_link_libraries(test_u2f_hid bitbox cmocka)
 #add_test(NAME test_u2f_hid COMMAND test_u2f_hid)
 
 add_executable(test_workflow_blocking workflow/test_blocking.c)
-target_link_libraries(test_workflow_blocking bitbox cmocka "-Wl,--wrap=ui_screen_process")
+target_link_libraries(test_workflow_blocking bitbox cmocka "-Wl,--wrap=ui_screen_process,--wrap=ui_screen_process_with_timeout")
 add_test(NAME test_workflow_blocking COMMAND test_workflow_blocking)

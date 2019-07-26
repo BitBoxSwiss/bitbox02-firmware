@@ -14,34 +14,25 @@
 
 #include "confirm.h"
 
+#include "blocking.h"
+
 #include <ui/components/ui_components.h>
-#include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 
 static bool _result = false;
-static bool _done = true;
-static bool _is_done(void)
-{
-    return _done;
-}
 
 static void _confirm(component_t* component)
 {
     (void)component;
     _result = true;
-    _done = true;
+    workflow_blocking_unblock();
 }
 
 static void _reject(component_t* component)
 {
     (void)component;
     _result = false;
-    _done = true;
-}
-
-static void _on_timeout(void)
-{
-    _reject(NULL);
+    workflow_blocking_unblock();
 }
 
 bool workflow_confirm_with_timeout(
@@ -51,32 +42,38 @@ bool workflow_confirm_with_timeout(
     uint32_t timeout)
 {
     _result = false;
-    _done = false;
     ui_screen_stack_push(
         confirm_create(title, body, false, _confirm, accept_only ? NULL : _reject));
-    ui_screen_process_with_timeout(_is_done, _on_timeout, timeout);
+    bool blocking_result = workflow_blocking_block_with_timeout(timeout);
     ui_screen_stack_pop();
+    if (!blocking_result) {
+        return false;
+    }
     return _result;
 }
 
 bool workflow_confirm(const char* title, const char* body, bool longtouch, bool accept_only)
 {
     _result = false;
-    _done = false;
     ui_screen_stack_push(
         confirm_create(title, body, longtouch, _confirm, accept_only ? NULL : _reject));
-    ui_screen_process(_is_done);
+    bool blocking_result = workflow_blocking_block();
     ui_screen_stack_pop();
+    if (!blocking_result) {
+        return false;
+    }
     return _result;
 }
 
 bool workflow_confirm_scrollable(const char* title, const char* body, bool accept_only)
 {
     _result = false;
-    _done = false;
     ui_screen_stack_push(
         confirm_create_scrollable(title, body, _confirm, accept_only ? NULL : _reject));
-    ui_screen_process(_is_done);
+    bool blocking_result = workflow_blocking_block();
     ui_screen_stack_pop();
+    if (!blocking_result) {
+        return false;
+    }
     return _result;
 }

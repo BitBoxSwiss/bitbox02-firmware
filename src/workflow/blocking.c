@@ -26,6 +26,16 @@ bool workflow_blocking_block(void)
     return _done == UNBLOCKED_NORMAL;
 }
 
+bool workflow_blocking_block_with_timeout(uint32_t timeout)
+{
+    if (!_is_done()) {
+        Abort("workflow_blocking_block");
+    }
+    _done = BLOCKED;
+    ui_screen_process_with_timeout(_is_done, workflow_blocking_unblock_force, timeout);
+    return _done == UNBLOCKED_NORMAL;
+}
+
 void workflow_blocking_unblock(void)
 {
     _done = UNBLOCKED_NORMAL;

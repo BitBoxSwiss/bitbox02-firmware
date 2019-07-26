@@ -13,49 +13,40 @@
 // limitations under the License.
 
 #include "sdcard.h"
+
+#include "blocking.h"
+#include "workflow.h"
+
 #include "generated/hww.pb.h"
-#include "workflow/workflow.h"
 
 #include <ui/components/ui_components.h>
-#include <ui/screen_process.h>
 #include <ui/screen_stack.h>
-
-static bool _done = false;
-
-static bool _is_done(void)
-{
-    return _done;
-}
-
-static void _continue(void)
-{
-    _done = true;
-}
 
 void sdcard_handle(const InsertRemoveSDCardRequest* insert_remove_sdcard)
 {
-    _done = false;
-    bool pushed = false;
-    if (insert_remove_sdcard->action == InsertRemoveSDCardRequest_SDCardAction_INSERT_CARD &&
-        !workflow_get_interface_functions()->sd_card_inserted()) {
-        component_t* screen = insert_sd_card_create(_continue);
-        pushed = true;
-        ui_screen_stack_push(screen);
-    } else if (
-        insert_remove_sdcard->action == InsertRemoveSDCardRequest_SDCardAction_INSERT_CARD &&
-        workflow_get_interface_functions()->sd_card_inserted()) {
-        _continue();
-    } else if (
-        insert_remove_sdcard->action == InsertRemoveSDCardRequest_SDCardAction_REMOVE_CARD &&
-        workflow_get_interface_functions()->sd_card_inserted()) {
-        component_t* screen = remove_sd_card_create(_continue);
-        pushed = true;
-        ui_screen_stack_push(screen);
-    } else {
-        _continue();
+    bool inserted = workflow_get_interface_functions()->sd_card_inserted();
+
+    // No action required, already inserted (INSERT request) or not inserted (REMOVE request)
+    if ((insert_remove_sdcard->action == InsertRemoveSDCardRequest_SDCardAction_INSERT_CARD &&
+         inserted) ||
+        (insert_remove_sdcard->action == InsertRemoveSDCardRequest_SDCardAction_REMOVE_CARD &&
+         !inserted)) {
+        return;
     }
-    ui_screen_process(_is_done);
-    if (pushed) {
-        ui_screen_stack_pop();
+
+    component_t* screen;
+    if (insert_remove_sdcard->action == InsertRemoveSDCardRequest_SDCardAction_INSERT_CARD) {
+        screen = insert_sd_card_create(workflow_blocking_unblock);
+    } else if (insert_remove_sdcard->action == InsertRemoveSDCardRequest_SDCardAction_REMOVE_CARD) {
+        screen = remove_sd_card_create(workflow_blocking_unblock);
+    } else {
+        return;
+    }
+
+    ui_screen_stack_push(screen);
+    bool blocking_result = workflow_blocking_block();
+    ui_screen_stack_pop();
+    if (!blocking_result) {
+        // No meaningful error handling here.
     }
 }

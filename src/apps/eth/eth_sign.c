@@ -55,12 +55,12 @@ app_eth_sign_error_t app_eth_sign(const ETHSignRequest* request, ETHSignResponse
     bool is_erc20_transfer = request->value.size == 0 && request->data.size == 68 &&
                              MEMEQ(request->data.bytes, erc20_transfer, sizeof(erc20_transfer));
     if (is_erc20_transfer) {
-        app_eth_sign_error_t result = app_eth_verify_erc20_transaction(request, params);
+        app_eth_sign_error_t result = app_eth_verify_erc20_transaction(request);
         if (result != APP_ETH_SIGN_OK) {
             return result;
         }
     } else {
-        app_eth_sign_error_t result = app_eth_verify_standard_transaction(request, params);
+        app_eth_sign_error_t result = app_eth_verify_standard_transaction(request);
         if (result != APP_ETH_SIGN_OK) {
             return result;
         }

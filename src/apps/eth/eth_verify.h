@@ -28,12 +28,8 @@ typedef enum {
     APP_ETH_SIGN_ERR_USER_ABORT,
 } app_eth_sign_error_t;
 
-USE_RESULT app_eth_sign_error_t app_eth_verify_standard_transaction(
-    const ETHSignRequest* request,
-    const app_eth_coin_params_t* params);
+USE_RESULT app_eth_sign_error_t app_eth_verify_standard_transaction(const ETHSignRequest* request);
 
-USE_RESULT app_eth_sign_error_t app_eth_verify_erc20_transaction(
-    const ETHSignRequest* request,
-    const app_eth_coin_params_t* params);
+USE_RESULT app_eth_sign_error_t app_eth_verify_erc20_transaction(const ETHSignRequest* request);
 
 #endif

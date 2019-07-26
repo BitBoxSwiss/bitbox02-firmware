@@ -81,10 +81,12 @@ static app_eth_sign_error_t _verify_total_fee(
 // preconditions:
 // 1) data starts with 0xa9059cbb and has a total size of 68 bytes.
 // 2) value is 0.
-app_eth_sign_error_t app_eth_verify_erc20_transaction(
-    const ETHSignRequest* request,
-    const app_eth_coin_params_t* params)
+app_eth_sign_error_t app_eth_verify_erc20_transaction(const ETHSignRequest* request)
 {
+    const app_eth_coin_params_t* params = app_eth_params_get(request->coin);
+    if (params == NULL) {
+        return APP_ETH_SIGN_ERR_INVALID_INPUT;
+    }
     const app_eth_erc20_params_t* erc20_params =
         app_eth_erc20_params_get(request->coin, request->recipient);
     if (erc20_params == NULL) {
@@ -124,15 +126,16 @@ app_eth_sign_error_t app_eth_verify_erc20_transaction(
     return APP_ETH_SIGN_OK;
 }
 
-app_eth_sign_error_t app_eth_verify_standard_transaction(
-    const ETHSignRequest* request,
-    const app_eth_coin_params_t* params)
+app_eth_sign_error_t app_eth_verify_standard_transaction(const ETHSignRequest* request)
 {
+    const app_eth_coin_params_t* params = app_eth_params_get(request->coin);
+    if (params == NULL) {
+        return APP_ETH_SIGN_ERR_INVALID_INPUT;
+    }
     if (request->data.size != 0) {
         // Standard tx has no data.
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }
-
     // a) recipient and value
     bignum256 value_scalar;
     _bigendian_to_scalar(request->value.bytes, request->value.size, &value_scalar);

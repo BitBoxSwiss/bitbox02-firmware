@@ -180,6 +180,10 @@ add_executable(test_app_eth_sighash test_app_eth_sighash.c)
 target_link_libraries(test_app_eth_sighash bitbox cmocka)
 add_test(NAME test_app_eth_sighash COMMAND test_app_eth_sighash)
 
+add_executable(test_app_eth_sign test_app_eth_sign.c)
+target_link_libraries(test_app_eth_sign bitbox cmocka "-Wl,--wrap=app_eth_verify_standard_transaction,--wrap=app_eth_verify_erc20_transaction,--wrap=keystore_secp256k1_sign")
+add_test(NAME test_app_eth_sign COMMAND test_app_eth_sign)
+
 add_executable(test_util test_util.c)
 target_link_libraries(test_util bitbox cmocka)
 add_test(NAME test_util COMMAND test_util)

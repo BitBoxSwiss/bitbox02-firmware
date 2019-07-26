@@ -15,7 +15,7 @@
 #include "btc_params.h"
 #include <wally_bip32.h>
 
-static const app_btc_coin_params_t app_btc_params_btc = {
+static const app_btc_coin_params_t _params_btc = {
     .bip44_coin = 0 + BIP32_INITIAL_HARDENED_CHILD,
     .base58_version_p2pkh = 0x00, // starts with 1
     .base58_version_p2sh = 0x05, // starts with 3
@@ -23,7 +23,7 @@ static const app_btc_coin_params_t app_btc_params_btc = {
     .unit = "BTC",
 };
 
-static const app_btc_coin_params_t app_btc_params_tbtc = {
+static const app_btc_coin_params_t _params_tbtc = {
     .bip44_coin = 1 + BIP32_INITIAL_HARDENED_CHILD,
     .base58_version_p2pkh = 0x6f, // starts with m or n
     .base58_version_p2sh = 0xc4, // starts with 2
@@ -31,7 +31,7 @@ static const app_btc_coin_params_t app_btc_params_tbtc = {
     .unit = "TBTC",
 };
 
-static const app_btc_coin_params_t app_btc_params_ltc = {
+static const app_btc_coin_params_t _params_ltc = {
     .bip44_coin = 2 + BIP32_INITIAL_HARDENED_CHILD,
     .base58_version_p2pkh = 0x30, // starts with L
     .base58_version_p2sh = 0x32, // starts with M
@@ -39,7 +39,7 @@ static const app_btc_coin_params_t app_btc_params_ltc = {
     .unit = "LTC",
 };
 
-static const app_btc_coin_params_t app_btc_params_tltc = {
+static const app_btc_coin_params_t _params_tltc = {
     .bip44_coin = 1 + BIP32_INITIAL_HARDENED_CHILD,
     .base58_version_p2pkh = 0x6f, // starts with m or n
     .base58_version_p2sh = 0xc4, // starts with 2
@@ -51,13 +51,13 @@ const app_btc_coin_params_t* app_btc_params_get(BTCCoin coin)
 {
     switch (coin) {
     case BTCCoin_BTC:
-        return &app_btc_params_btc;
+        return &_params_btc;
     case BTCCoin_TBTC:
-        return &app_btc_params_tbtc;
+        return &_params_tbtc;
     case BTCCoin_LTC:
-        return &app_btc_params_ltc;
+        return &_params_ltc;
     case BTCCoin_TLTC:
-        return &app_btc_params_tltc;
+        return &_params_tltc;
     default:
         return NULL;
     }

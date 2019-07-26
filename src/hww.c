@@ -27,8 +27,8 @@
 #define OP_ATTESTATION ((uint8_t)'a')
 #define OP_UNLOCK ((uint8_t)'u')
 
-#define OP_STATUS_SUCCESS ((uint8_t)0);
-#define OP_STATUS_FAILURE ((uint8_t)1);
+#define OP_STATUS_SUCCESS ((uint8_t)0)
+#define OP_STATUS_FAILURE ((uint8_t)1)
 
 // in: 'a' + 32 bytes host challenge
 // out: bootloader_hash 32 | device_pubkey 64 | certificate 64 | root_pubkey_identifier 32 |

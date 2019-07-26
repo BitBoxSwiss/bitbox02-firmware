@@ -42,7 +42,7 @@ app_eth_sign_error_t app_eth_sign(const ETHSignRequest* request, ETHSignResponse
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }
     uint8_t empty[20] = {0};
-    if (MEMEQ(request->recipient, empty, 20)) {
+    if (MEMEQ(request->recipient, empty, sizeof(empty))) {
         // Reserved for contract creation.
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }

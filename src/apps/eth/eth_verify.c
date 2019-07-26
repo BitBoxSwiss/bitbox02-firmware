@@ -103,6 +103,10 @@ app_eth_sign_error_t app_eth_verify_erc20_transaction(const ETHSignRequest* requ
     }
     const uint8_t* recipient = request->data.bytes + method + 32 - APP_ETH_RECIPIENT_BYTES_LEN;
     const uint8_t* value = recipient + APP_ETH_RECIPIENT_BYTES_LEN;
+    uint8_t empty[32] = {0};
+    if (MEMEQ(value, empty, sizeof(empty))) {
+        return APP_ETH_SIGN_ERR_INVALID_INPUT;
+    }
     bignum256 value_scalar;
     _bigendian_to_scalar(value, 32, &value_scalar);
     const _amount_t amount = {
@@ -130,6 +134,10 @@ app_eth_sign_error_t app_eth_verify_standard_transaction(const ETHSignRequest* r
 {
     const app_eth_coin_params_t* params = app_eth_params_get(request->coin);
     if (params == NULL) {
+        return APP_ETH_SIGN_ERR_INVALID_INPUT;
+    }
+    if (request->value.size == 0) {
+        // Must transfer non-zero value.
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }
     if (request->data.size != 0) {

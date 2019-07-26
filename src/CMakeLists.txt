@@ -47,6 +47,7 @@ set(DBB-FIRMWARE-SOURCES
     ${CMAKE_SOURCE_DIR}/src/restore.c
     ${CMAKE_SOURCE_DIR}/src/reset.c
     ${CMAKE_SOURCE_DIR}/src/cipher/cipher.c
+    ${CMAKE_SOURCE_DIR}/src/workflow/blocking.c
     ${CMAKE_SOURCE_DIR}/src/workflow/workflow.c
     ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
     ${CMAKE_SOURCE_DIR}/src/workflow/status.c

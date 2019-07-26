@@ -36,6 +36,5 @@ bool workflow_create_seed(const uint8_t* host_entropy)
         // This should/can never happen, but let's check anyway.
         Abort("Unexpected error during restore: unlock failed.");
     }
-    workflow_unlock_bip39();
-    return true;
+    return workflow_unlock_bip39();
 }

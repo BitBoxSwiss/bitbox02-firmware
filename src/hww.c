@@ -80,8 +80,8 @@ static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_o
             _api_attestation(in_packet, out_packet);
             return;
         case OP_UNLOCK:
-            workflow_unlock();
-            out_packet->len = 0;
+            out_packet->data_addr[0] = workflow_unlock() ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
+            out_packet->len = 1;
             return;
         default:
             break;

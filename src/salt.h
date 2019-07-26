@@ -22,7 +22,7 @@
 /**
  * Creates sha256(<salt root><purpose><data>), where <salt root> is a persisted salt (static until
  * device reset).
- * @param[in] data data to salt and hash
+ * @param[in] data data to salt and hash.
  * @param[in] purpose a string which is part of the hash, to put a namespace on the use.
  * @param[out] hash_out must be 32 bytes.
  * @return false if the salt root could not be retrieved.

@@ -50,10 +50,30 @@ static void _test_salt_hash_data(void** state)
     assert_memory_equal(hash, expected_result, 32);
 }
 
+static void _test_salt_hash_data_empty(void** state)
+{
+    const char* data = "";
+    uint8_t hash[32];
+    uint8_t expected_result[32] = {
+        0x2d, 0xbb, 0x05, 0xdd, 0x73, 0xd9, 0x4e, 0xdb, 0xa6, 0x94, 0x66,
+        0x11, 0xaa, 0xca, 0x36, 0x7f, 0x76, 0xc8, 0x09, 0xe9, 0x6f, 0x20,
+        0x49, 0x9a, 0xd6, 0x74, 0xe5, 0x96, 0x05, 0x0f, 0x98, 0x33,
+    };
+
+    assert_true(salt_hash_data((const uint8_t*)data, 0, "", hash));
+    assert_memory_equal(hash, expected_result, 32);
+
+    assert_true(salt_hash_data(NULL, 0, "", hash));
+    assert_memory_equal(hash, expected_result, 32);
+
+    assert_false(salt_hash_data(NULL, 1, "", hash));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_salt_hash_data),
+        cmocka_unit_test(_test_salt_hash_data_empty),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

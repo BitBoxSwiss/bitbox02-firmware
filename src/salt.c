@@ -7,7 +7,10 @@
 
 bool salt_hash_data(const uint8_t* data, size_t data_len, const char* purpose, uint8_t* hash_out)
 {
-    if (!data || !data_len || !purpose || !hash_out) {
+    if (data_len > 0 && data == NULL) {
+        return false;
+    }
+    if (!purpose || !hash_out) {
         return false;
     }
 
@@ -20,7 +23,9 @@ bool salt_hash_data(const uint8_t* data, size_t data_len, const char* purpose, u
     sha256_reset(&ctx);
     noise_sha256_update(&ctx, salt_root, sizeof(salt_root));
     noise_sha256_update(&ctx, purpose, strlen(purpose));
-    noise_sha256_update(&ctx, data, data_len);
+    if (data != NULL) {
+        noise_sha256_update(&ctx, data, data_len);
+    }
     sha256_finish(&ctx, hash_out);
     return true;
 }

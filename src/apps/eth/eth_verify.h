@@ -12,13 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _APPS_ETH_SIGN_H
-#define _APPS_ETH_SIGN_H
+#ifndef _APPS_ETH_VERIFY_H
+#define _APPS_ETH_VERIFY_H
 
-#include "eth_verify.h"
+#include "eth_params.h"
+
+#include <compiler_util.h>
 
 #include <generated/hww.pb.h>
 
-app_eth_sign_error_t app_eth_sign(const ETHSignRequest* request, ETHSignResponse* response);
+typedef enum {
+    APP_ETH_SIGN_OK,
+    APP_ETH_SIGN_ERR_UNKNOWN,
+    APP_ETH_SIGN_ERR_INVALID_INPUT,
+    APP_ETH_SIGN_ERR_USER_ABORT,
+} app_eth_sign_error_t;
+
+USE_RESULT app_eth_sign_error_t app_eth_verify_standard_transaction(
+    const ETHSignRequest* request,
+    const app_eth_coin_params_t* params);
+
+USE_RESULT app_eth_sign_error_t app_eth_verify_erc20_transaction(
+    const ETHSignRequest* request,
+    const app_eth_coin_params_t* params);
 
 #endif

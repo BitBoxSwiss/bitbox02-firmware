@@ -27,9 +27,6 @@
 #include "mock_gestures.h"
 #include "mock_qtouch.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-
 static uint8_t _correct_event;
 static bool _correct_event_seen = false;
 
@@ -112,5 +109,3 @@ int main(void)
 
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

@@ -23,9 +23,6 @@
 
 #include "mock_component.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-
 static void test_ui_util_position_center(void** state)
 {
     (void)state;
@@ -222,5 +219,3 @@ int main(void)
 
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

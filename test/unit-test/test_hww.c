@@ -24,10 +24,6 @@
 #include <pb_encode.h>
 #include <random.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wbad-function-cast"
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-
 void __wrap_random_32_bytes(uint8_t* buf);
 void __wrap_random_32_bytes(uint8_t* buf)
 {
@@ -65,4 +61,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-#pragma GCC diagnostic pop

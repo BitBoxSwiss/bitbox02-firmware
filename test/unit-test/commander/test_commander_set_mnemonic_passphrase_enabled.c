@@ -19,10 +19,6 @@
 
 #include <test_commander.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
-
 bool __wrap_workflow_confirm(const char* title, const char* body, bool longtouch, bool accept_only)
 {
     check_expected(title);
@@ -74,5 +70,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

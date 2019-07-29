@@ -27,9 +27,6 @@
 
 #include <wally_bip32.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-
 // We mock all called functions to make sure they are actually called. For some,
 // the real function is called as it's easier to check all function input/output
 // this way.
@@ -296,5 +293,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

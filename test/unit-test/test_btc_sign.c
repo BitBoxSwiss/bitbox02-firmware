@@ -23,10 +23,6 @@
 #include <keystore.h>
 #include <wally_bip32.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
 bool __wrap_workflow_verify_recipient(const char* recipient, const char* amount)
 {
     check_expected(recipient);
@@ -45,10 +41,7 @@ bool __wrap_btc_common_format_amount(uint64_t satoshi, const char* unit, char* o
 {
     check_expected(satoshi);
     check_expected(unit);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wbad-function-cast"
     snprintf(out, out_len, "%s", (const char*)(mock()));
-#pragma GCC diagnostic pop
     return true;
 }
 
@@ -684,5 +677,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

@@ -24,9 +24,6 @@
 #include "mock_gestures.h"
 #include "mock_qtouch.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-
 // TODO: PR381 replaced callbacks with emitted events.
 //       This test now has nothing to test. Need to check
 //       instead that an event was emitted by `gestures.c`.
@@ -175,5 +172,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

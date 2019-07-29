@@ -24,9 +24,6 @@
 #include "mock_component.h"
 #include "mock_qtouch.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-
 static void assert_ui_component_functions(component_t* component)
 {
     assert_non_null(component->f->render);
@@ -155,11 +152,6 @@ static void test_ui_components_status(void** state)
     status->f->cleanup(status);
 }
 
-static void set_password_callback(const char* password)
-{
-    (void)password;
-}
-
 static void test_ui_components_set_password(void** state)
 {
     (void)state;
@@ -184,5 +176,3 @@ int main(void)
 
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

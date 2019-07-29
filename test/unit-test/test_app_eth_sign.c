@@ -22,11 +22,6 @@
 
 #include <wally_bip32.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
-
 static uint8_t _recid = 3;
 
 // sig with _recid at the end
@@ -217,5 +212,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

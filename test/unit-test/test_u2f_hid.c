@@ -27,9 +27,6 @@
 #include "usb/u2f/u2f_hid.h"
 #include "usb/usb.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-
 struct U2Fob* device;
 
 #define SEND(f) CHECK_EQ(0, U2Fob_sendHidFrame(device, &f))
@@ -666,5 +663,3 @@ int main(void)
     printf("\nALL TESTS PASSED\n\n");
     return 0;
 }
-
-#pragma GCC diagnostic pop

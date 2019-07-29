@@ -29,10 +29,6 @@
 #include <assert_sd.h>
 #include <sd.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#pragma GCC diagnostic ignored "-Wunused-function"
-
 #define DEVICE_NAME "TestDeviceName"
 static const uint32_t _current_timestamp = 1553098951;
 
@@ -69,19 +65,6 @@ static void _will_mock_backup_queries(const uint32_t seed_birthdate, const uint8
         will_return(__wrap_keystore_copy_seed, _mock_seed_length);
         will_return(__wrap_keystore_copy_seed, cast_ptr_to_largest_integral_type(seed));
     }
-}
-
-static void _get_expected_directory_name(char* dir_name)
-{
-    uint8_t hmac_seed[HMAC_SHA256_LEN];
-    wally_hmac_sha256(
-        (const unsigned char*)"backup",
-        strlens("backup"),
-        _mock_seed,
-        _mock_seed_length,
-        hmac_seed,
-        HMAC_SHA256_LEN);
-    util_uint8_to_hex(hmac_seed, sizeof(hmac_seed), dir_name);
 }
 
 /**
@@ -250,5 +233,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

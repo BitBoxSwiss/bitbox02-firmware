@@ -95,6 +95,10 @@ RUN pip3 install \
     mypy==0.720 \
     mypy-protobuf==1.13
 
+# Developer tools
+RUN apt-get update && apt-get install -y \
+    bash-completion
+
 # Install Go, used for the tools in tools/go and for test/gounittest
 ENV GOPATH /opt/go
 ENV GOROOT /opt/go_dist/go

@@ -19,7 +19,6 @@
 include(${CMAKE_SOURCE_DIR}/src/CMakeLists.txt)
 message(STATUS "includes: ${INCLUDES}")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-bad-function-cast")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-implicit-function-declaration -Wno-bad-function-cast")
 
 set(FILTERED_SOURCES "")
@@ -66,7 +65,9 @@ add_library(bitbox
     ${DBB-FIRMWARE-USB-SOURCES}
     ${CTAES-SOURCES}
     ${ETHEREUM-SOURCES}
+    framework/mock_blocking.c
     framework/mock_screen.c
+    framework/mock_screen_stack.c
     framework/mock_memory.c
     framework/mock_qtouch.c
     framework/mock_gestures.c
@@ -218,5 +219,5 @@ target_link_libraries(test_workflow_blocking bitbox cmocka "-Wl,--wrap=ui_screen
 add_test(NAME test_workflow_blocking COMMAND test_workflow_blocking)
 
 add_executable(test_workflow_status workflow/test_status.c)
-target_link_libraries(test_workflow_status bitbox cmocka "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_process_with_timeout")
+target_link_libraries(test_workflow_status bitbox cmocka "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=status_create,--wrap=workflow_blocking_block,--wrap=workflow_blocking_unblock")
 add_test(NAME test_workflow_status COMMAND test_workflow_status)

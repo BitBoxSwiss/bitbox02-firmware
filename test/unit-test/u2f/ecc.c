@@ -227,12 +227,6 @@ int ecc_recover_public_key(
     ecc_curve_id curve)
 {
     /* not implemented for uECC */
-    (void)sig;
-    (void)msg;
-    (void)msg_len;
-    (void)pubkey_65;
-    (void)recid;
-    (void)curve;
     return 1;
 }
 

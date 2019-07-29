@@ -32,8 +32,6 @@ bool securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint
 {
     check_expected(slot);
     check_expected(msg);
-    (void)len;
-    (void)kdf_out;
     // wally_sha256(msg, len, kdf_out, 32);
     memcpy(kdf_out, (const uint8_t*)mock(), 32);
     return true;

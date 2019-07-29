@@ -48,8 +48,6 @@ static void reset_state(void)
  */
 static void test_gestures_slide_tap_slide_detected(void** state)
 {
-    (void)state;
-
     component_t* mock_component = mock_component_create();
 
     mock_gestures_touch_init();
@@ -98,8 +96,6 @@ static void test_gestures_slide_tap_slide_detected(void** state)
  */
 static void test_gestures_slide_and_tap_detected(void** state)
 {
-    (void)state;
-
     component_t* mock_component = mock_component_create();
 
     // SLIDE:
@@ -134,8 +130,6 @@ static void test_gestures_slide_and_tap_detected(void** state)
  */
 static void test_gestures_slide_left_to_right_detected(void** state)
 {
-    (void)state;
-
     component_t* mock_component = mock_component_create();
 
     mock_gestures_touch_init();

@@ -32,7 +32,6 @@ static bool _correct_event_seen = false;
 
 static void test_on_event(const event_t* _event, component_t* _component)
 {
-    (void)_component;
     if (_event->id == _correct_event) {
         _correct_event_seen = true;
     }
@@ -40,8 +39,6 @@ static void test_on_event(const event_t* _event, component_t* _component)
 
 static void test_ui_right_arrow_tap(void** state)
 {
-    (void)state;
-
     const component_functions_t modified_functions = {
         .cleanup = ui_util_component_cleanup,
         .render = ui_util_component_render_subcomponents,
@@ -71,8 +68,6 @@ static void test_ui_right_arrow_tap(void** state)
 
 static void test_ui_left_arrow_tap(void** state)
 {
-    (void)state;
-
     const component_functions_t modified_functions = {
         .cleanup = ui_util_component_cleanup,
         .render = ui_util_component_render_subcomponents,

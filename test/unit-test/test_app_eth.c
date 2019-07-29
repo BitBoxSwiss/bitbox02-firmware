@@ -30,9 +30,6 @@ static bool _is_valid_keypath = true;
 
 bool __wrap_eth_common_is_valid_keypath(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
 {
-    (void)coin;
-    (void)keypath;
-    (void)keypath_len;
     return _is_valid_keypath;
 }
 
@@ -43,12 +40,7 @@ bool __wrap_keystore_secp256k1_pubkey(
     uint8_t* pubkey_out,
     size_t pubkey_out_len)
 {
-    (void)format;
-    (void)keypath;
-    (void)keypath_len;
     memcpy(pubkey_out, (const void*)mock(), pubkey_out_len);
-    (void)pubkey_out;
-    (void)pubkey_out_len;
     return true;
 }
 
@@ -106,7 +98,6 @@ static _test_case_t _test_cases[] = {
 
 static void _test_app_eth_address_invalid(void** state)
 {
-    (void)state;
     { // invalid coin
         assert_false(
             app_eth_address(_ETHCoin_MAX + 1, ETHPubRequest_OutputType_ADDRESS, NULL, 0, NULL, 0));
@@ -127,7 +118,6 @@ static void _test_app_eth_address_invalid(void** state)
 
 static void _test_app_eth_address(void** state)
 {
-    (void)state;
     const uint32_t keypath[5] = {
         44 + BIP32_INITIAL_HARDENED_CHILD,
         60 + BIP32_INITIAL_HARDENED_CHILD,

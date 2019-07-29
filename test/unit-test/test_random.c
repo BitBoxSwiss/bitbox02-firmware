@@ -40,8 +40,6 @@ int __wrap_wally_sha256(
 
 static void test_random(void** state)
 {
-    (void)state;
-
     uint8_t expected[RANDOM_NUM_SIZE] = {0};
     uint8_t buf[RANDOM_NUM_SIZE];
     // mock mcu rand()

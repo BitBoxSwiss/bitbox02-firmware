@@ -53,7 +53,6 @@ bool __wrap_btc_common_is_valid_keypath(
     check_expected(script_type);
     check_expected(keypath);
     check_expected(keypath_len);
-    (void)expected_coin;
     return mock();
 }
 
@@ -207,7 +206,6 @@ static testcase_t _tests[] = {
 
 static void _test_app_btc_address(void** state)
 {
-    (void)state;
     { // invalid coin
         bool result = app_btc_address(
             _BTCCoin_MIN - 1,

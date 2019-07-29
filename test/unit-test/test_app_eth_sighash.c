@@ -2062,7 +2062,6 @@ static const _test_t _tests[] = {
 
 static void _test_app_eth_sighash(void** state)
 {
-    (void)state;
     uint8_t sighash[32];
     for (size_t i = 0; i < sizeof(_tests) / sizeof(_tests[0]); i++) {
         const _test_t* test = &_tests[i];

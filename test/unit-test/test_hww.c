@@ -38,7 +38,6 @@ void __wrap_workflow_confirm_dismiss(const char* title, const char* body)
 
 static void test_random(void** state)
 {
-    (void)state;
     RandomNumberResponse random_number_response;
     uint8_t expected[RANDOM_NUM_SIZE] = {0x00, 0x11, 0x22, 0x33, 0x00, 0x11, 0x22, 0x33,
                                          0x00, 0x11, 0x22, 0x33, 0x00, 0x11, 0x22, 0x33,

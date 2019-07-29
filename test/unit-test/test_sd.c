@@ -27,7 +27,6 @@
 
 static void _test_sd_write(void** state)
 {
-    (void)state;
     assert_false(sd_write("test.pdf", NULL, NULL, false));
     assert_false(sd_write("test.pdf", NULL, "", false));
     assert_false(sd_write("", NULL, "text", false));

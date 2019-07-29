@@ -40,7 +40,6 @@ U2F_REGISTER_RESP regRsp;
 
 static void WaitForUserPresence(struct U2Fob* dev, bool hasButton)
 {
-    //(void)hasButton;
     char msg[1];
     U2Fob_close(dev);
     if (U2Fob_liveDeviceTesting()) {

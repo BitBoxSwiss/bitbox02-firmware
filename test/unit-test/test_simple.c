@@ -19,7 +19,6 @@
 
 static void test_unit(void** state)
 {
-    (void)state;
     assert_true(1);
 }
 

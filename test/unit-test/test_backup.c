@@ -119,13 +119,11 @@ static void _load_first_backup(Backup* backup, BackupData* backup_data)
 
 static int test_setup(void** state)
 {
-    (void)state;
     return 0;
 }
 
 static int test_teardown(void** state)
 {
-    (void)state;
     reset_sd();
     return 0;
 }
@@ -135,8 +133,6 @@ static int test_teardown(void** state)
  */
 static void test_backup_calculate_checksum(void** state)
 {
-    (void)state;
-
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
     assert_int_equal(backup_create(_current_timestamp), BACKUP_OK);
 
@@ -157,7 +153,6 @@ static void test_backup_calculate_checksum(void** state)
  */
 static void test_backup_create(void** state)
 {
-    (void)state;
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
     assert_int_equal(backup_create(_current_timestamp), BACKUP_OK);
 
@@ -196,7 +191,6 @@ static void test_backup_create(void** state)
 
 static void test_backup_check(void** state)
 {
-    (void)state;
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
     assert_int_equal(backup_create(_current_timestamp), BACKUP_OK);
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
@@ -207,7 +201,6 @@ static void test_backup_check(void** state)
 
 static void test_backup_check_fail(void** state)
 {
-    (void)state;
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
     assert_int_equal(backup_create(_current_timestamp), BACKUP_OK);
 

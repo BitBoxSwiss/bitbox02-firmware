@@ -29,7 +29,6 @@ bool __wrap_workflow_confirm_scrollable(const char* title, const char* body, boo
 
 static void _test_api_set_device_name(void** state)
 {
-    (void)state;
     static SetDeviceNameRequest request = {
         .name = "Mia",
     };

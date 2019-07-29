@@ -26,39 +26,27 @@ static uint8_t hid_init(void)
     return 0;
 }
 
-static void hid_close(void* dev)
-{
-    (void)dev;
-}
+static void hid_close(void* dev) {}
 
 static void* hid_open(uint16_t vid, uint16_t pid, char* path)
 {
-    (void)vid;
-    (void)pid;
-    (void)path;
     static char sham[] = "sham";
     return &sham;
 }
 
 static void* hid_open_path(char* path)
 {
-    (void)path;
     static char sham[] = "sham";
     return &sham;
 }
 
 static int hid_write(void* dev, uint8_t* d, size_t d_len)
 {
-    (void)dev;
-    (void)d;
     return d_len;
 }
 
 static int hid_read_timeout(void* dev, uint8_t* r, size_t r_len, int to)
 {
-    (void)dev;
-    (void)r;
-    (void)to;
     return r_len;
 }
 #endif
@@ -72,7 +60,6 @@ static int U2F_TEST_LIVE_DEVICE = 0;
 #define CLOCK_MONOTONIC 0
 static void clock_gettime(int which, struct timespec* ts)
 {
-    (void)which;
     static mach_timebase_info_data_t __clock_gettime_inf;
     uint64_t now, nano;
 
@@ -109,7 +96,6 @@ float U2Fob_deltaTime(uint64_t* state)
     *state = now;
     return (float)(delta / 1.0e9);
 #else
-    (void)state;
     return 0.0;
 #endif
 }
@@ -624,8 +610,6 @@ bool getCertSignature(const char* cert, size_t cert_len, char* sig, size_t* sig_
 
 bool verifyCertificate(const char* pk, const char* cert)
 {
-    (void)pk;
-    (void)cert;
     CHECK_EQ(true, false); // not yet implemented
     return true;
 }

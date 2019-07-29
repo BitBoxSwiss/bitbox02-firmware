@@ -104,20 +104,33 @@ class BitBox02:
     ):
         self.debug = False
         serial_number = device_info["serial_number"]
+
         self.version = parse_device_version(serial_number)
         if self.version is None:
             raise ValueError(f"Could not parse version from {serial_number}")
+        # Delete the prelease part, as it messes with the comparison (e.g. 3.0.0-pre < 3.0.0 is
+        # True, but the 3.0.0-pre has already the same API breaking changes like 3.0.0...).
+        self.version = semver.VersionInfo(
+            self.version.major, self.version.minor, self.version.patch, build=self.version.build
+        )
+
         self.device = hid.device()
         self.device.open_path(device_info["path"])
 
-        if self.version > semver.VersionInfo(1, 0, 0):
+        if self.version >= semver.VersionInfo(2, 0, 0):
             if attestation_check_callback is not None:
                 # Perform attestation
                 attestation_check_callback(self._perform_attestation())
 
             # Invoke unlock workflow on the device.
-            # In version <=1.0.0, the device did this automatically.
-            self._query(OP_UNLOCK)
+            # In version <2.0.0, the device did this automatically.
+            unlock_result = self._query(OP_UNLOCK)
+            if self.version < semver.VersionInfo(3, 0, 0):
+                assert unlock_result == b""
+            else:
+                # since 3.0.0, unlock can fail if cancelled
+                if unlock_result == RESPONSE_FAILURE:
+                    raise Exception("Unlock process aborted")
 
         if self._query(OP_I_CAN_HAS_HANDSHAEK) != RESPONSE_SUCCESS:
             raise Exception("Couldn't kick off handshake")

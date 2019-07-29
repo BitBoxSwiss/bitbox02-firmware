@@ -13,44 +13,39 @@
 // limitations under the License.
 
 #include "verify_recipient.h"
-#include <stdio.h>
+
+#include "blocking.h"
+#include "status.h"
+
 #include <ui/components/ui_components.h>
-#include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 
-static bool _done = false;
 static bool _result = false;
-static bool _is_done(void)
-{
-    return _done;
-}
-
-static void _finish(void)
-{
-    _done = true;
-}
-
 static void _confirm(component_t* component)
 {
     (void)component;
     _result = true;
-    _finish();
+    workflow_blocking_unblock();
 }
 
 static void _reject(component_t* component)
 {
     (void)component;
     _result = false;
-    ui_screen_stack_switch(
-        status_create("Transaction\ncanceled", _result, STATUS_DEFAULT_DELAY, _finish));
+    workflow_blocking_unblock();
 }
 
 bool workflow_verify_recipient(const char* recipient, const char* amount)
 {
-    _done = false;
     _result = false;
     ui_screen_stack_push(confirm_transaction_address_create(amount, recipient, _confirm, _reject));
-    ui_screen_process(_is_done);
+    bool result = workflow_blocking_block();
     ui_screen_stack_pop();
+    if (!result) {
+        return false;
+    }
+    if (!_result) {
+        workflow_status_create("Transaction\ncanceled", false);
+    }
     return _result;
 }

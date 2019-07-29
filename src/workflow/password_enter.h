@@ -15,7 +15,10 @@
 #ifndef _PASSWORD_ENTER_H_
 #define _PASSWORD_ENTER_H_
 
+#include <compiler_util.h>
 #include <ui/components/set_password.h> // for SET_PASSWORD_MAX_PASSWORD_LENGTH
+
+#include <stdbool.h>
 
 /**
  * Starts the enter password workflow.
@@ -23,7 +26,8 @@
  * @param[in] title screen
  * @param[out] password_out must be SET_PASSWORD_MAX_PASSWORD_LENGTH bytes (including null
  * terminator). Use `UTIL_CLEANUP_STR` to make sure that the password is destroyed after use.
+ * @return false if the call was cancelled.
  */
-void password_enter(const char* title, char* password_out);
+USE_RESULT bool password_enter(const char* title, char* password_out);
 
 #endif

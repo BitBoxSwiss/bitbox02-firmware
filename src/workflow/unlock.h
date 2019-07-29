@@ -15,25 +15,28 @@
 #ifndef _WORKFLOW_UNLOCK_H_
 #define _WORKFLOW_UNLOCK_H_
 
+#include <compiler_util.h>
 #include <keystore.h>
 
 /**
  * Prompts the user for the password and unlocks the keystore. It is blocking until either the user
  * enters the correct password, or the device is reset after too many failed attempts.
+ * @return false if the call was cancelled.
  */
-void workflow_unlock(void);
+USE_RESULT bool workflow_unlock(void);
 
 /**
  * Tries to unlock the key store, showing appropriate error messages.
  * If the error is KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED (device reset), we return to workflow_start.
  */
-keystore_error_t workflow_unlock_and_handle_error(const char* password);
+USE_RESULT keystore_error_t workflow_unlock_and_handle_error(const char* password);
 
 /**
  * Unlocks BIP39 with the default empty passphrase, or with a user provided passphrase if
  * mnemonic passphrase support is enabled.
  * Displays a simple unlock animation.
+ * @return false if the call was cancelled.
  */
-void workflow_unlock_bip39(void);
+USE_RESULT bool workflow_unlock_bip39(void);
 
 #endif

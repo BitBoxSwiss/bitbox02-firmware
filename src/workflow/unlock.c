@@ -30,32 +30,37 @@
 
 #include <stdio.h>
 
-static void _get_mnemonic_passphrase(char* passphrase_out)
+static bool _get_mnemonic_passphrase(char* passphrase_out)
 {
     char mnemonic_passphrase[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     UTIL_CLEANUP_STR(mnemonic_passphrase);
     char mnemonic_passphrase_repeat[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     UTIL_CLEANUP_STR(mnemonic_passphrase_repeat);
     while (true) {
-        password_enter("Enter\nmnemonic passphrase", mnemonic_passphrase);
-        password_enter("Confirm\nmnemonic passphrase", mnemonic_passphrase_repeat);
+        if (!password_enter("Enter\nmnemonic passphrase", mnemonic_passphrase)) {
+            return false;
+        }
+        if (!password_enter("Confirm\nmnemonic passphrase", mnemonic_passphrase_repeat)) {
+            return false;
+        }
         if (STREQ(mnemonic_passphrase, mnemonic_passphrase_repeat)) {
             snprintf(passphrase_out, SET_PASSWORD_MAX_PASSWORD_LENGTH, "%s", mnemonic_passphrase);
             break;
         }
         workflow_status_create("Passphrases\ndo not match", false);
     }
-    util_zero(mnemonic_passphrase, sizeof(mnemonic_passphrase));
-    util_zero(mnemonic_passphrase_repeat, sizeof(mnemonic_passphrase_repeat));
+    return true;
 }
 
-void workflow_unlock_bip39(void)
+bool workflow_unlock_bip39(void)
 {
     // Empty passphrase by default.
     char mnemonic_passphrase[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     UTIL_CLEANUP_STR(mnemonic_passphrase);
     if (memory_is_mnemonic_passphrase_enabled()) {
-        _get_mnemonic_passphrase(mnemonic_passphrase);
+        if (!_get_mnemonic_passphrase(mnemonic_passphrase)) {
+            return false;
+        }
     }
 
     { // animation
@@ -75,6 +80,7 @@ void workflow_unlock_bip39(void)
     if (!keystore_unlock_bip39(mnemonic_passphrase)) {
         Abort("bip39 unlock failed");
     }
+    return true;
 }
 
 keystore_error_t workflow_unlock_and_handle_error(const char* password)
@@ -104,10 +110,13 @@ keystore_error_t workflow_unlock_and_handle_error(const char* password)
     return unlock_result;
 }
 
-void workflow_unlock(void)
+bool workflow_unlock(void)
 {
-    if (!memory_is_initialized() || !keystore_is_locked()) {
-        return;
+    if (!memory_is_initialized()) {
+        return false;
+    }
+    if (!keystore_is_locked()) {
+        return true;
     }
 
     ui_screen_stack_pop_all();
@@ -116,12 +125,16 @@ void workflow_unlock(void)
     while (true) {
         char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
         UTIL_CLEANUP_STR(password);
-        password_enter("Enter password", password);
+        if (!password_enter("Enter password", password)) {
+            return false;
+        }
 
         keystore_error_t unlock_result = workflow_unlock_and_handle_error(password);
         if (unlock_result == KEYSTORE_OK) {
             // Keystore unlocked, now unlock bip39 seed.
-            workflow_unlock_bip39();
+            if (!workflow_unlock_bip39()) {
+                return false;
+            }
             break;
         }
         if (unlock_result == KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED) {
@@ -129,4 +142,5 @@ void workflow_unlock(void)
             break;
         }
     }
+    return true;
 }

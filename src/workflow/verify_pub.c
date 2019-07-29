@@ -15,26 +15,24 @@
 #include <stddef.h>
 
 #include "verify_pub.h"
-#include <ui/components/ui_components.h>
-#include <ui/screen_process.h>
-#include <ui/screen_stack.h>
 
-static bool _done = false;
-static bool _is_done(void)
-{
-    return _done;
-}
+#include "blocking.h"
+
+#include <ui/components/ui_components.h>
+#include <ui/screen_stack.h>
 
 static void _dismiss(component_t* component)
 {
     (void)component;
-    ui_screen_stack_switch(waiting_create());
-    _done = true;
+    workflow_blocking_unblock();
 }
 
 void workflow_verify_pub(const char* title, const char* pub)
 {
-    _done = false;
-    ui_screen_stack_switch(confirm_create_scrollable(title, pub, _dismiss, NULL));
-    ui_screen_process(_is_done);
+    ui_screen_stack_push(confirm_create_scrollable(title, pub, _dismiss, NULL));
+    bool result = workflow_blocking_block();
+    ui_screen_stack_pop();
+    if (!result) {
+        // No meaningful error to return here.
+    }
 }

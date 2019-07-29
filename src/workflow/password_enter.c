@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "password_enter.h"
+#include "blocking.h"
 
 #include <hardfault.h>
 #include <ui/components/ui_components.h>
@@ -24,37 +25,29 @@
 
 static char _password[SET_PASSWORD_MAX_PASSWORD_LENGTH];
 
-static bool _done = true;
-static bool _is_done(void)
-{
-    return _done;
-}
-static void _set_done(void)
-{
-    _done = true;
-}
-
 static void _pw_entered(const char* password)
 {
     int snprintf_result = snprintf(_password, sizeof(_password), "%s", password);
     if (snprintf_result < 0 || snprintf_result >= (int)sizeof(_password)) {
         Abort("length mismatch");
     }
-    _done = true;
+    workflow_blocking_unblock();
 }
 
-void password_enter(const char* title, char* password_out)
+bool password_enter(const char* title, char* password_out)
 {
-    if (!_done) {
-        return;
+    ui_screen_stack_push(entry_screen_create(title, workflow_blocking_unblock));
+    if (!workflow_blocking_block()) {
+        ui_screen_stack_pop();
+        return false;
     }
-    _done = false;
-    ui_screen_stack_push(entry_screen_create(title, _set_done));
-    ui_screen_process(_is_done);
-    _done = false;
     ui_screen_stack_switch(set_password_create(_pw_entered));
-    ui_screen_process(_is_done);
+    bool result = workflow_blocking_block();
     ui_screen_stack_pop();
+    if (!result) {
+        return false;
+    }
     snprintf(password_out, SET_PASSWORD_MAX_PASSWORD_LENGTH, "%s", _password);
     util_zero(_password, sizeof(_password));
+    return true;
 }

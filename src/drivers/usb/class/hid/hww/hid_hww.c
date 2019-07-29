@@ -85,7 +85,6 @@ static uint8_t _out(const uint8_t ep, const enum usb_xfer_code rc,
     (void) ep;
     (void) rc;
     (void) count;
-
     bool need_more = usb_packet_process((const USB_FRAME *) _out_report, _send_next);
     if (need_more) {
         _read();

@@ -279,18 +279,7 @@ static void _register(const USB_APDU* apdu, Packet* out_packet)
         return;
     }
 
-    // TODO: Remove this check when workflow_unlock resturns boolean
-    if (!memory_is_initialized()) {
-        _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
-        return;
-    }
-
-    if (keystore_is_locked()) {
-        workflow_unlock();
-    }
-
-    // TODO: Remove this check when workflow_unlock resturns boolean
-    if (!memory_is_initialized()) {
+    if (!workflow_unlock()) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
@@ -380,12 +369,7 @@ static void _authenticate(const USB_APDU* apdu, Packet* out_packet)
         return;
     }
 
-    if (keystore_is_locked()) {
-        workflow_unlock();
-    }
-
-    // TODO: Remove this check when workflow_unlock resturns boolean
-    if (!memory_is_initialized()) {
+    if (!workflow_unlock()) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }

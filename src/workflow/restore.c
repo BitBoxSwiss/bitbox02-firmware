@@ -55,9 +55,7 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
     if (!memory_set_device_name(backup.backup_v1.content.metadata.name)) {
         /* Ignore errors for now */
     }
-    workflow_unlock_bip39();
-
-    return true;
+    return workflow_unlock_bip39();
 }
 
 bool workflow_list_backups(ListBackupsResponse* backups)

@@ -33,8 +33,12 @@ bool password_set(char* password_out)
     UTIL_CLEANUP_STR(password);
     char password_repeat[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     UTIL_CLEANUP_STR(password_repeat);
-    password_enter("Set password", password);
-    password_enter("Repeat password", password_repeat);
+    if (!password_enter("Set password", password)) {
+        return false;
+    }
+    if (!password_enter("Repeat password", password_repeat)) {
+        return false;
+    }
     if (!STREQ(password, password_repeat)) {
         workflow_status_create("Passwords\ndo not match", false);
         return false;
@@ -51,6 +55,8 @@ bool password_check(void)
     }
     char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     UTIL_CLEANUP_STR(password);
-    password_enter("Unlocking device\nrequired", password);
+    if (!password_enter("Unlocking device\nrequired", password)) {
+        return false;
+    }
     return workflow_unlock_and_handle_error(password) == KEYSTORE_OK;
 }

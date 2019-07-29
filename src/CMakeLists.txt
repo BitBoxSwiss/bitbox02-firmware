@@ -372,9 +372,9 @@ if(BUILD_TYPE_FIRMWARE_OR_SETUP OR BUILD_TYPE STREQUAL "bootloader")
             ${DBB-FIRMWARE-PROTOBUF-SOURCES}
             ${CRYPTOAUTHLIB-SOURCES}
             ${CTAES-SOURCES}
-            ${MAIN-SOURCE}
-            ${CMAKE_SOURCE_DIR}/src/common_main.c
             ${ETHEREUM-SOURCES}
+            ${CMAKE_SOURCE_DIR}/src/common_main.c
+            ${MAIN-SOURCE}
         )
         set(CMAKE_LINKER_SCRIPT "${CMAKE_SOURCE_DIR}/firmware.ld")
 

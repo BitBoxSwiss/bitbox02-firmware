@@ -1,4 +1,4 @@
 ignore:
-  - 'test'
-  - 'external'
+  - 'test/**/*'
+  - 'external/**/*'
   - 'src/drivers/**/*'

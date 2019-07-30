@@ -30,37 +30,23 @@
 #define MAX_WORDLENGTH 20
 
 #define NUM_RANDOM_WORDS 5
-#define NUM_CONFIRM_SCREEN_WORDS (NUM_RANDOM_WORDS + 1)
-
-// The
-static char* _mnemonic;
-static uint16_t _mnemonic_length;
-static const char* _wordlist[BIP39_NUM_WORDS];
-
-// The list of randomly selected, unique words + the word form the seed phrase at the
-// _check_word_idx.
-static const char* _confirm_wordlist[NUM_CONFIRM_SCREEN_WORDS];
-// The position of the correct word in the random word list generated during the seed phrase
-// checkup.
-static uint8_t _current_correct_idx;
-// During seed phrase confirmation, this index is used to go to the seed phrase.
-static uint8_t _check_word_idx = 0;
-
-static void _check_word(uint8_t selection);
 
 static const char* _back_label = "Back to seed phrase";
 
-static void _split_and_save_wordlist(uint8_t* length)
+static void _split_and_save_wordlist(
+    char* mnemonic,
+    const char** wordlist_out,
+    uint8_t* words_count_out)
 {
-    char* next_word = strtok(_mnemonic, " ");
+    char* next_word = strtok(mnemonic, " ");
 
     int i = 0;
     while (next_word != NULL) {
-        _wordlist[i] = next_word;
+        wordlist_out[i] = next_word;
         next_word = strtok(NULL, " ");
         i++;
     }
-    *length = i;
+    *words_count_out = i;
 }
 
 static bool _is_in_list(uint8_t number, const uint8_t list[], uint8_t length)
@@ -118,42 +104,33 @@ static uint8_t _create_random_unique_words(const char** wordlist, uint8_t length
     return index_word;
 }
 
-/**
- * Creates a list of random, unique words and displays them to the user. The
- * user must identify, which of the words was at the _check_word_idx of the
- * seed phrase.
- */
-static void _confirm_mnemonic(void)
+static uint8_t _selection_idx;
+static void _select_word(uint8_t selection_idx)
 {
-    if (_check_word_idx == BIP39_NUM_WORDS) {
-        // If we're at the last screen, we pop the check-word screen for the last word and replace
-        // the underlying BIP39 seed phrase screen. We can only replace it now, because during
-        // word-checking, the user might still want to go back to the seed phrase.
-        util_zero(_mnemonic, _mnemonic_length);
-        free(_mnemonic);
-        workflow_blocking_unblock();
-        return;
-    }
-    _current_correct_idx = _create_random_unique_words(
-        _confirm_wordlist, NUM_RANDOM_WORDS, _wordlist[_check_word_idx]);
-    _confirm_wordlist[NUM_CONFIRM_SCREEN_WORDS - 1] = _back_label;
-    component_t* confirm_mnemonic = confirm_mnemonic_create(
-        _confirm_wordlist, NUM_CONFIRM_SCREEN_WORDS, _check_word_idx, _check_word);
-    ui_screen_stack_push(confirm_mnemonic);
+    _selection_idx = selection_idx;
+    workflow_blocking_unblock();
 }
 
-static void _check_word(uint8_t selection)
+static bool _show_words(const char** words, uint8_t words_count)
 {
-    if (selection == NUM_CONFIRM_SCREEN_WORDS - 1) {
-        ui_screen_stack_pop();
-    } else if (_current_correct_idx == selection) {
-        _check_word_idx++;
-        ui_screen_stack_pop();
-        _confirm_mnemonic();
-    } else {
-        // TODO: indicate that the wrong word was selected
-        screen_print_debug("incorrect word selected. Try again", 1000);
-    }
+    ui_screen_stack_push(scroll_through_all_variants_create(
+        words, NULL, words_count, true, workflow_blocking_unblock, NULL));
+    bool unblock_result = workflow_blocking_block();
+    ui_screen_stack_pop();
+    return unblock_result;
+}
+
+typedef struct {
+    char* mnemonic;
+    // Keep len as mnemonic is tokenized using strtok, so util_cleanup_str() does not work anymore
+    // to clean the string.
+    size_t len;
+} mnemonic_t;
+
+static void _cleanup_mnemonic(mnemonic_t* mnemonic)
+{
+    util_zero(mnemonic->mnemonic, mnemonic->len);
+    free(mnemonic->mnemonic);
 }
 
 bool workflow_show_mnemonic_create(void)
@@ -161,18 +138,53 @@ bool workflow_show_mnemonic_create(void)
     if (!password_check()) {
         return false;
     }
-    if (!workflow_get_interface_functions()->get_bip39_mnemonic(&_mnemonic)) {
+    mnemonic_t __attribute__((__cleanup__(_cleanup_mnemonic))) mnemonic;
+    if (!workflow_get_interface_functions()->get_bip39_mnemonic(&mnemonic.mnemonic)) {
         Abort("mnemonic create not possible");
     }
-    // This field must be set before we tokenize the _mnemonic,
-    // because we use the length when we zero the memory after confirmation.
-    _mnemonic_length = strlens(_mnemonic);
-    uint8_t length;
-    _split_and_save_wordlist(&length);
-    ui_screen_stack_push(
-        scroll_through_all_variants_create(_wordlist, NULL, length, true, _confirm_mnemonic, NULL));
-    bool unblock_result = workflow_blocking_block();
-    ui_screen_stack_pop();
+    // This field must be set before we tokenize the mnemonic, because we use the length when we
+    // zero the memory after confirmation.
+    mnemonic.len = strlens(mnemonic.mnemonic);
+
+    // No malloc elements point into parts of the tokenized `mnemonic`.
+    const char* words[BIP39_NUM_WORDS];
+    uint8_t words_count;
+    _split_and_save_wordlist(mnemonic.mnemonic, words, &words_count);
+
+    // Part 1) Scroll through words
+    if (!_show_words(words, words_count)) {
+        return false;
+    }
+
+    // Part 2) Confirm words
+    for (size_t word_idx = 0; word_idx < words_count; word_idx++) {
+        const char* confirm_wordlist[NUM_RANDOM_WORDS + 1];
+        const int back_idx = NUM_RANDOM_WORDS;
+        size_t correct_idx =
+            _create_random_unique_words(confirm_wordlist, NUM_RANDOM_WORDS, words[word_idx]);
+        confirm_wordlist[back_idx] = _back_label;
+
+        while (true) {
+            ui_screen_stack_push(confirm_mnemonic_create(
+                confirm_wordlist, NUM_RANDOM_WORDS + 1, word_idx, _select_word));
+            bool unblock_result = workflow_blocking_block();
+            ui_screen_stack_pop();
+            if (!unblock_result) {
+                return false;
+            }
+            if (_selection_idx == correct_idx) {
+                break;
+            }
+            if (_selection_idx == back_idx) {
+                if (!_show_words(words, words_count)) {
+                    return false;
+                }
+                continue;
+            }
+            workflow_status_create("Incorrect word\nTry again", false);
+        }
+    }
+
     workflow_status_create("Success", true);
-    return unblock_result;
+    return true;
 }

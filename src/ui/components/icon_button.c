@@ -122,7 +122,7 @@ static void _on_event(const event_t* event, component_t* component)
     case EVENT_TOP_SHORT_TAP:
     case EVENT_BOTTOM_SHORT_TAP:
         if (data->callback) {
-            data->callback(component->parent);
+            data->callback(component);
         }
         break;
     default:

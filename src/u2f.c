@@ -283,18 +283,14 @@ static void _register(const USB_APDU* apdu, Packet* out_packet)
             _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
             return;
         }
+    } else if (!u2f_app_confirm(U2F_APP_REGISTER, reg_request->appId)) {
+        _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
+        return;
     }
 
     if (!workflow_unlock()) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
-    }
-
-    if (!is_bogus) { // bogus request already confirmed/rejected above
-        if (!u2f_app_confirm(U2F_APP_REGISTER, reg_request->appId)) {
-            _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
-            return;
-        }
     }
 
     // Generate keys until a valid one is found

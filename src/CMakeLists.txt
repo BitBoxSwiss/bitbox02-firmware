@@ -43,7 +43,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/password_enter.c
   ${CMAKE_SOURCE_DIR}/src/workflow/create_seed.c
   ${CMAKE_SOURCE_DIR}/src/workflow/unlock.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/mnemonic.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/show_mnemonic.c
   ${CMAKE_SOURCE_DIR}/src/workflow/pairing.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_pub.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c

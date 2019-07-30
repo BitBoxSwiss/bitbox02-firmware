@@ -18,8 +18,8 @@
 #include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 #include <util.h>
-#include <workflow/mnemonic.h>
 #include <workflow/password.h>
+#include <workflow/show_mnemonic.h>
 
 #include "workflow.h"
 

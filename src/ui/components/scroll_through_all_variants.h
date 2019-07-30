@@ -22,20 +22,20 @@
  * before and after on the left and right.
  * @param[in] words The words that are displayed on the screen, and through which you can slide
  * through.
- * @param[in] callback If specified, the callback will be called if the user selects a word. The
- * parameter is the index of the selected word.
+ * @param[in] select_word_cb If specified, the callback will be called if the user selects a word.
+ * The parameter is the index of the selected word.
  * @param[in] length The word list length.
  * @param[in] show_index If true, displays the index of the current word (starting at 1).
- * @param[in] continue_on_last If set, the left bottom button will update when the last word is
- * reached.
+ * @param[in] continue_on_last_cb If set, a checkmark appears when reaching the last word, calling
+ * this callback.
  * @param[in] parent The parent component.
  */
 component_t* scroll_through_all_variants_create(
-    const char*const* words,
-    void (*callback)(uint8_t),
+    const char* const* words,
+    void (*select_word_cb)(uint8_t),
     uint8_t length,
     bool show_index,
-    void (*continue_on_last)(void),
+    void (*continue_on_last_cb)(void),
     component_t* parent);
 
 #endif

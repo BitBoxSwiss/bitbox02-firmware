@@ -33,7 +33,7 @@ static uint8_t _update_iteration = 0;
  * Scroll-through data.
  */
 typedef struct {
-    const char*const* words;
+    const char* const* words;
     component_t** labels;
     uint8_t length;
     uint8_t index;
@@ -41,12 +41,26 @@ typedef struct {
     component_t* index_label;
     bool show_index;
     int32_t diff_to_middle;
-    void (*callback)(uint8_t);
-    component_t* right_bottom;
-    void (*continue_on_last)(void);
+    void (*select_word_cb)(uint8_t);
+    component_t* continue_on_last_button;
+    void (*continue_on_last_cb)(void);
 } scroll_through_all_variants_data_t;
 
 static const uint8_t part_width = 15;
+
+static void _continue(component_t* component)
+{
+    scroll_through_all_variants_data_t* data =
+        (scroll_through_all_variants_data_t*)component->parent->data;
+    data->continue_on_last_cb();
+}
+
+static void _select(component_t* button)
+{
+    scroll_through_all_variants_data_t* data =
+        (scroll_through_all_variants_data_t*)button->parent->data;
+    data->select_word_cb(data->index);
+}
 
 static void _display_index(component_t* scroll_through_all_variants)
 {
@@ -76,8 +90,16 @@ static void _update_positions(component_t* scroll_through_all_variants, int32_t 
             data->diff_to_middle = diff_to_middle;
         }
     }
+
     if (data->show_index) {
         _display_index(scroll_through_all_variants);
+    }
+
+    if (data->index == data->length - 1 && data->continue_on_last_cb != NULL &&
+        data->continue_on_last_button == NULL) {
+        data->continue_on_last_button = button_create(
+            "Continue", top_slider, SCREEN_WIDTH - 23, _continue, scroll_through_all_variants);
+        ui_util_add_sub_component(scroll_through_all_variants, data->continue_on_last_button);
     }
 }
 
@@ -121,38 +143,22 @@ static void _slide_release(gestures_slider_data_t* gestures_slider_data, compone
 
 static void _back(component_t* component)
 {
-    scroll_through_all_variants_data_t* data =
-        (scroll_through_all_variants_data_t*)component->parent->data;
+    scroll_through_all_variants_data_t* data = (scroll_through_all_variants_data_t*)component->data;
     uint8_t new_index = data->index > 0 ? data->index - 1 : data->index;
     int32_t diff_to_middle = (data->labels[new_index]->position.left +
                               data->labels[new_index]->dimension.width / 2 - SCREEN_WIDTH / 2) *
                              -1;
-    _update_positions(component->parent, diff_to_middle);
+    _update_positions(component, diff_to_middle);
 }
 
 static void _forward(component_t* component)
 {
-    scroll_through_all_variants_data_t* data =
-        (scroll_through_all_variants_data_t*)component->parent->data;
+    scroll_through_all_variants_data_t* data = (scroll_through_all_variants_data_t*)component->data;
     uint8_t new_index = data->index < (data->length - 1) ? data->index + 1 : data->index;
     int32_t diff_to_middle = (data->labels[new_index]->position.left +
                               data->labels[new_index]->dimension.width / 2 - SCREEN_WIDTH / 2) *
                              -1;
-    _update_positions(component->parent, diff_to_middle);
-}
-
-static void _continue(component_t* button)
-{
-    scroll_through_all_variants_data_t* data =
-        (scroll_through_all_variants_data_t*)button->parent->data;
-    data->continue_on_last();
-}
-
-static void _select(component_t* button)
-{
-    scroll_through_all_variants_data_t* data =
-        (scroll_through_all_variants_data_t*)button->parent->data;
-    data->callback(data->index);
+    _update_positions(component, diff_to_middle);
 }
 
 /**
@@ -162,9 +168,6 @@ static void _render(component_t* component)
 {
     scroll_through_all_variants_data_t* data = (scroll_through_all_variants_data_t*)component->data;
 
-    if (data->index == data->length - 1 && data->continue_on_last != NULL) {
-        button_update(data->right_bottom, "Continue", _continue);
-    }
     UG_S16 x1 = data->labels[data->index]->position.left - 1;
     UG_S16 x2 = x1 + data->labels[data->index]->dimension.width - 1;
     UG_S16 y =
@@ -176,15 +179,23 @@ static void _render(component_t* component)
 
 static void _on_event(const event_t* event, component_t* component)
 {
-    gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
+    // gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
     switch (event->id) {
     case EVENT_TOP_SLIDE:
     case EVENT_BOTTOM_SLIDE:
-        _slide(slider_data, component);
+        //_slide(slider_data, component);
+        (void)_slide;
         break;
     case EVENT_TOP_SLIDE_RELEASED:
     case EVENT_BOTTOM_SLIDE_RELEASED:
-        _slide_release(slider_data, component);
+        (void)_slide_release;
+        //_slide_release(slider_data, component);
+        break;
+    case EVENT_BACKWARD:
+        _back(component);
+        break;
+    case EVENT_FORWARD:
+        _forward(component);
         break;
     default:
         break;
@@ -227,11 +238,11 @@ static const component_functions_t _component_functions = {
  * @param[in] parent The parent component.
  */
 component_t* scroll_through_all_variants_create(
-    const char*const* words,
-    void (*callback)(uint8_t),
+    const char* const* words,
+    void (*select_word_cb)(uint8_t),
     const uint8_t length,
     bool show_index,
-    void (*continue_on_last)(void),
+    void (*continue_on_last_cb)(void),
     component_t* parent)
 {
     component_t** labels = malloc(sizeof(component_t*) * length);
@@ -258,11 +269,12 @@ component_t* scroll_through_all_variants_create(
 
     data->labels = labels;
     data->words = words;
-    data->callback = callback;
+    data->select_word_cb = select_word_cb;
     data->length = length;
     data->index = 0;
     data->show_index = show_index;
-
+    data->continue_on_last_cb = continue_on_last_cb;
+    data->continue_on_last_button = NULL;
     scroll_through_all_variants->data = data;
 
     for (int i = 0; i < length; i++) {
@@ -275,27 +287,23 @@ component_t* scroll_through_all_variants_create(
         _display_index(scroll_through_all_variants);
         ui_util_add_sub_component(scroll_through_all_variants, data->index_label);
     }
-    ui_util_add_sub_component(
-        scroll_through_all_variants,
-        button_create("", top_slider, 0, _back, scroll_through_all_variants));
-    ui_util_add_sub_component(
-        scroll_through_all_variants,
-        button_create("", top_slider, SCREEN_WIDTH, _forward, scroll_through_all_variants));
-    ui_util_add_sub_component(
-        scroll_through_all_variants,
-        button_create("", bottom_slider, 0, _back, scroll_through_all_variants));
 
-    data->right_bottom =
-        button_create("", bottom_slider, SCREEN_WIDTH, _forward, scroll_through_all_variants);
-    data->continue_on_last = continue_on_last;
-    ui_util_add_sub_component(scroll_through_all_variants, data->right_bottom);
-
-    if (callback != NULL) {
+    if (select_word_cb != NULL) {
         ui_util_add_sub_component(
             scroll_through_all_variants,
             button_create(
                 "", bottom_slider, SCREEN_WIDTH / 2, _select, scroll_through_all_variants));
+        ui_util_add_sub_component(
+            scroll_through_all_variants,
+            icon_button_create(top_slider, ICON_BUTTON_CHECK, _select));
     }
+
+    ui_util_add_sub_component(
+        scroll_through_all_variants, left_arrow_create(bottom_slider, scroll_through_all_variants));
+    ui_util_add_sub_component(
+        scroll_through_all_variants,
+        right_arrow_create(bottom_slider, scroll_through_all_variants));
+
     _init_positions(scroll_through_all_variants);
     return scroll_through_all_variants;
 }

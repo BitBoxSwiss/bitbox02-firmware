@@ -31,6 +31,8 @@
 
 #define NUM_RANDOM_WORDS 5
 
+static bool _cancel_pressed = false;
+
 static const char* _back_label = "Back to seed phrase";
 
 static void _split_and_save_wordlist(
@@ -111,13 +113,20 @@ static void _select_word(uint8_t selection_idx)
     workflow_blocking_unblock();
 }
 
+static void _cancel(void)
+{
+    _cancel_pressed = true;
+    workflow_blocking_unblock();
+}
+
 static bool _show_words(const char** words, uint8_t words_count)
 {
+    _cancel_pressed = false;
     ui_screen_stack_push(scroll_through_all_variants_create(
-        words, NULL, words_count, true, workflow_blocking_unblock, NULL));
+        words, NULL, words_count, true, workflow_blocking_unblock, _cancel, NULL));
     bool unblock_result = workflow_blocking_block();
     ui_screen_stack_pop();
-    return unblock_result;
+    return unblock_result && !_cancel_pressed;
 }
 
 typedef struct {
@@ -138,6 +147,7 @@ bool workflow_show_mnemonic_create(void)
     if (!password_check()) {
         return false;
     }
+
     mnemonic_t __attribute__((__cleanup__(_cleanup_mnemonic))) mnemonic;
     if (!workflow_get_interface_functions()->get_bip39_mnemonic(&mnemonic.mnemonic)) {
         Abort("mnemonic create not possible");
@@ -165,11 +175,12 @@ bool workflow_show_mnemonic_create(void)
         confirm_wordlist[back_idx] = _back_label;
 
         while (true) {
+            _cancel_pressed = false;
             ui_screen_stack_push(confirm_mnemonic_create(
-                confirm_wordlist, NUM_RANDOM_WORDS + 1, word_idx, _select_word));
-            bool unblock_result = workflow_blocking_block();
+                confirm_wordlist, NUM_RANDOM_WORDS + 1, word_idx, _select_word, _cancel));
+            bool unblock_cancel_pressed = workflow_blocking_block();
             ui_screen_stack_pop();
-            if (!unblock_result) {
+            if (_cancel_pressed || !unblock_cancel_pressed) {
                 return false;
             }
             if (_selection_idx == correct_idx) {

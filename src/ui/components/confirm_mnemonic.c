@@ -37,7 +37,8 @@ component_t* confirm_mnemonic_create(
     const char** wordlist,
     uint8_t length,
     uint8_t index,
-    void (*check_word)(uint8_t))
+    void (*check_word_cb)(uint8_t),
+    void (*cancel_cb)(void))
 {
     component_t* confirm_mnemonic = malloc(sizeof(component_t));
     if (!confirm_mnemonic) {
@@ -50,14 +51,14 @@ component_t* confirm_mnemonic_create(
     confirm_mnemonic->dimension.height = SCREEN_HEIGHT;
 
     char title[100];
-    snprintf(title, sizeof(title), "Confirm %02d", index + 1);
+    snprintf(title, sizeof(title), "%02d", index + 1);
     ui_util_add_sub_component(
         confirm_mnemonic, label_create(title, NULL, CENTER_TOP, confirm_mnemonic));
 
     ui_util_add_sub_component(
         confirm_mnemonic,
         scroll_through_all_variants_create(
-            wordlist, check_word, length, false, NULL, confirm_mnemonic));
+            wordlist, check_word_cb, length, false, NULL, cancel_cb, confirm_mnemonic));
 
     return confirm_mnemonic;
 }

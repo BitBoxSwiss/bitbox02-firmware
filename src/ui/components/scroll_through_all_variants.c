@@ -44,6 +44,7 @@ typedef struct {
     void (*select_word_cb)(uint8_t);
     component_t* continue_on_last_button;
     void (*continue_on_last_cb)(void);
+    void (*cancel_cb)(void);
 } scroll_through_all_variants_data_t;
 
 static const uint8_t part_width = 15;
@@ -60,6 +61,13 @@ static void _select(component_t* button)
     scroll_through_all_variants_data_t* data =
         (scroll_through_all_variants_data_t*)button->parent->data;
     data->select_word_cb(data->index);
+}
+
+static void _cancel(component_t* component)
+{
+    scroll_through_all_variants_data_t* data =
+        (scroll_through_all_variants_data_t*)component->parent->data;
+    data->cancel_cb();
 }
 
 static void _display_index(component_t* scroll_through_all_variants)
@@ -243,6 +251,7 @@ component_t* scroll_through_all_variants_create(
     const uint8_t length,
     bool show_index,
     void (*continue_on_last_cb)(void),
+    void (*cancel_cb)(void),
     component_t* parent)
 {
     component_t** labels = malloc(sizeof(component_t*) * length);
@@ -275,6 +284,7 @@ component_t* scroll_through_all_variants_create(
     data->show_index = show_index;
     data->continue_on_last_cb = continue_on_last_cb;
     data->continue_on_last_button = NULL;
+    data->cancel_cb = cancel_cb;
     scroll_through_all_variants->data = data;
 
     for (int i = 0; i < length; i++) {
@@ -292,10 +302,13 @@ component_t* scroll_through_all_variants_create(
         ui_util_add_sub_component(
             scroll_through_all_variants,
             button_create(
-                "", bottom_slider, SCREEN_WIDTH / 2, _select, scroll_through_all_variants));
+                "Select", top_slider, SCREEN_WIDTH - 20, _select, scroll_through_all_variants));
+    }
+
+    if (cancel_cb != NULL) {
         ui_util_add_sub_component(
             scroll_through_all_variants,
-            icon_button_create(top_slider, ICON_BUTTON_CHECK, _select));
+            button_create("Cancel", top_slider, 0, _cancel, scroll_through_all_variants));
     }
 
     ui_util_add_sub_component(

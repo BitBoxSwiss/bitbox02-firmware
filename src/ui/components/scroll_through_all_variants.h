@@ -28,6 +28,7 @@
  * @param[in] show_index If true, displays the index of the current word (starting at 1).
  * @param[in] continue_on_last_cb If set, a checkmark appears when reaching the last word, calling
  * this callback.
+ * @param[in] cancel_cb Called when the cancel button is pressed.
  * @param[in] parent The parent component.
  */
 component_t* scroll_through_all_variants_create(
@@ -36,6 +37,7 @@ component_t* scroll_through_all_variants_create(
     uint8_t length,
     bool show_index,
     void (*continue_on_last_cb)(void),
+    void (*cancel_cb)(void),
     component_t* parent);
 
 #endif

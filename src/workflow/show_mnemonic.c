@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "show_mnemonic.h"
+
+#include "blocking.h"
+#include "password.h"
+#include "status.h"
+#include "workflow.h"
+
 #include <hardfault.h>
 #include <random.h>
 #include <ui/components/ui_components.h>
 #include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 #include <util.h>
-#include <workflow/password.h>
-#include <workflow/show_mnemonic.h>
-
-#include "workflow.h"
 
 #define BIP39_NUM_WORDS 24
 #define MAX_WORDLENGTH 20
@@ -46,12 +49,6 @@ static uint8_t _check_word_idx = 0;
 static void _check_word(uint8_t selection);
 
 static const char* _back_label = "Back to seed phrase";
-
-static bool _done = false;
-static bool _is_done(void)
-{
-    return _done;
-}
 
 static void _split_and_save_wordlist(uint8_t* length)
 {
@@ -132,11 +129,9 @@ static void _confirm_mnemonic(void)
         // If we're at the last screen, we pop the check-word screen for the last word and replace
         // the underlying BIP39 seed phrase screen. We can only replace it now, because during
         // word-checking, the user might still want to go back to the seed phrase.
-        ui_screen_stack_pop();
-        ui_screen_stack_switch(status_create("Success", true, -1, NULL));
         util_zero(_mnemonic, _mnemonic_length);
         free(_mnemonic);
-        _done = true;
+        workflow_blocking_unblock();
         return;
     }
     _current_correct_idx = _create_random_unique_words(
@@ -174,10 +169,10 @@ bool workflow_show_mnemonic_create(void)
     _mnemonic_length = strlens(_mnemonic);
     uint8_t length;
     _split_and_save_wordlist(&length);
-    component_t* show_mnemonic =
-        scroll_through_all_variants_create(_wordlist, NULL, length, true, _confirm_mnemonic, NULL);
-    ui_screen_stack_switch(show_mnemonic);
-    _done = false;
-    ui_screen_process(_is_done);
-    return true;
+    ui_screen_stack_push(
+        scroll_through_all_variants_create(_wordlist, NULL, length, true, _confirm_mnemonic, NULL));
+    bool unblock_result = workflow_blocking_block();
+    ui_screen_stack_pop();
+    workflow_status_create("Success", true);
+    return unblock_result;
 }

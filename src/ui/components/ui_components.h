@@ -42,7 +42,6 @@
 #include "scroll_through_all_variants.h"
 #include "set_password.h"
 #include "show_logo.h"
-#include "show_mnemonic.h"
 #include "status.h"
 #include "ui_images.h"
 #include "waiting.h"

@@ -174,7 +174,8 @@ bool workflow_show_mnemonic_create(void)
     _mnemonic_length = strlens(_mnemonic);
     uint8_t length;
     _split_and_save_wordlist(&length);
-    component_t* show_mnemonic = show_mnemonic_create(_wordlist, length, _confirm_mnemonic);
+    component_t* show_mnemonic =
+        scroll_through_all_variants_create(_wordlist, NULL, length, true, _confirm_mnemonic, NULL);
     ui_screen_stack_switch(show_mnemonic);
     _done = false;
     ui_screen_process(_is_done);

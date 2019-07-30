@@ -31,7 +31,7 @@
  * @param[in] parent The parent component.
  */
 component_t* scroll_through_all_variants_create(
-    const char** words,
+    const char*const* words,
     void (*callback)(uint8_t),
     uint8_t length,
     bool show_index,

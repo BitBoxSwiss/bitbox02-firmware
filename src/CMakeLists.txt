@@ -38,6 +38,7 @@ set(DBB-FIRMWARE-SOURCES
     ${CMAKE_SOURCE_DIR}/src/sd.c
     ${CMAKE_SOURCE_DIR}/src/hww.c
     ${CMAKE_SOURCE_DIR}/src/u2f.c
+    ${CMAKE_SOURCE_DIR}/src/u2f/u2f_app.c
     ${CMAKE_SOURCE_DIR}/src/memory.c
     ${CMAKE_SOURCE_DIR}/src/salt.c
     ${CMAKE_SOURCE_DIR}/src/i2c_ecc.c

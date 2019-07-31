@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "u2f.h"
+#include "u2f/u2f_app.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include <keystore.h>
@@ -247,6 +249,11 @@ static int _sig_to_der(const uint8_t* sig, uint8_t* der)
     return *len + 2;
 }
 
+static bool _bogus_confirmation(void)
+{
+    return workflow_confirm_with_timeout("", "Use U2F?", false, 1000);
+}
+
 /**
  * Initiates the U2F registration workflow.
  * @param[in] apdu The APDU packet.
@@ -267,24 +274,21 @@ static void _register(const USB_APDU* apdu, Packet* out_packet)
         return;
     }
 
-    // If the authentication fails with the "Bad key handle" the browser will execute bogous
-    // registrations to make the device blink. Simply ignore these.
-    if (MEMEQ(reg_request->appId, APPID_BOGUS_CHROMIUM, U2F_APPID_SIZE)) {
-        _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
-        return;
-    }
-
-    if (MEMEQ(reg_request->appId, APPID_BOGUS_FIREFOX, U2F_APPID_SIZE)) {
+    // If the authentication fails with the "Bad key handle" the browser will execute bogus
+    // registrations to make the device blink.
+    bool is_bogus = MEMEQ(reg_request->appId, APPID_BOGUS_CHROMIUM, U2F_APPID_SIZE) ||
+                    MEMEQ(reg_request->appId, APPID_BOGUS_FIREFOX, U2F_APPID_SIZE);
+    if (is_bogus) {
+        if (!_bogus_confirmation()) {
+            _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
+            return;
+        }
+    } else if (!u2f_app_confirm(U2F_APP_REGISTER, reg_request->appId)) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
 
     if (!workflow_unlock()) {
-        _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
-        return;
-    }
-
-    if (!workflow_confirm_with_timeout("U2F", "Register?", false, 1000)) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
@@ -363,12 +367,6 @@ static void _authenticate(const USB_APDU* apdu, Packet* out_packet)
         return;
     }
 
-    // TODO: Remove this check when workflow_unlock resturns boolean
-    if (!memory_is_initialized()) {
-        _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
-        return;
-    }
-
     if (!workflow_unlock()) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
@@ -382,31 +380,26 @@ static void _authenticate(const USB_APDU* apdu, Packet* out_packet)
             return;
         }
     }
-
     memcpy(nonce, auth_request->keyHandle + sizeof(mac), sizeof(nonce));
     if (!_keyhandle_gen(auth_request->appId, nonce, privkey, mac)) {
         _error(U2F_SW_WRONG_DATA, out_packet);
         return;
     }
-
     if (!MEMEQ(auth_request->keyHandle, mac, SHA256_LEN)) {
-        workflow_status_create("App not registered", false);
         _error(U2F_SW_WRONG_DATA, out_packet);
         return;
     }
-
     if (apdu->p1 == U2F_AUTH_CHECK_ONLY) {
         // success: "error:test-of-user-presense"
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
-
     if (apdu->p1 != U2F_AUTH_ENFORCE) {
         _error(U2F_SW_INS_NOT_SUPPORTED, out_packet);
         return;
     }
 
-    if (!workflow_confirm_with_timeout("U2F", "Authenticate?", false, 1000)) {
+    if (!u2f_app_confirm(U2F_APP_AUTHENTICATE, auth_request->appId)) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }

@@ -21,16 +21,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
 void __wrap_random_32_bytes(uint8_t* buf)
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wbad-function-cast"
     memcpy(buf, (const uint8_t*)mock(), 32);
-#pragma GCC diagnostic pop
 }
 
 typedef struct {
@@ -3798,5 +3791,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

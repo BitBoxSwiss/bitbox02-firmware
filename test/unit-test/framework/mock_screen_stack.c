@@ -17,15 +17,22 @@
 #include <stddef.h>
 #include <cmocka.h>
 
-static void test_unit(void** state)
+#include <ui/screen_stack.h>
+
+static int _stack_counter = 0;
+void __wrap_ui_screen_stack_push(component_t* component)
 {
-    assert_true(1);
+    _stack_counter++;
+    check_expected(component);
 }
 
-int main(void)
+void __wrap_ui_screen_stack_pop(void)
 {
-    const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_unit),
-    };
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    _stack_counter--;
+    assert_true(_stack_counter >= 0);
+}
+
+void mock_screen_stack_assert_clean(void)
+{
+    assert_int_equal(_stack_counter, 0);
 }

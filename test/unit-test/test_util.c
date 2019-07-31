@@ -23,8 +23,6 @@
 
 static void test_minmax(void** state)
 {
-    (void)state;
-
     assert_true(1);
 
     int res = MIN(5, 10);

@@ -19,9 +19,6 @@
 #include <ui/ugui/ugui.h>
 #include <util.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
 void UG_PutString(UG_S16 x, UG_S16 y, const char* str, bool inverted) {}
 
 void UG_PutStringNoBreak(UG_S16 x, UG_S16 y, const char* str, bool inverted) {}
@@ -90,5 +87,3 @@ void UG_ClearBuffer(void) {}
 void UG_PutChar(char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc, bool inverted) {}
 
 void UG_FillCircle(UG_S16 x0, UG_S16 y0, UG_S16 r, UG_COLOR c) {}
-
-#pragma GCC diagnostic pop

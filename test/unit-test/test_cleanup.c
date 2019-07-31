@@ -44,7 +44,6 @@ static void cleanvar(void)
 
 static void test_cleanup(void** state)
 {
-    (void)state;
     expect_memory(__wrap_util_cleanup_32, *buf, expected, 32);
     cleanvar();
     assert_true(cleanup_done);

@@ -29,10 +29,6 @@
 #include <assert_sd.h>
 #include <sd.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#pragma GCC diagnostic ignored "-Wunused-function"
-
 #define DEVICE_NAME "TestDeviceName"
 static const uint32_t _current_timestamp = 1553098951;
 
@@ -69,19 +65,6 @@ static void _will_mock_backup_queries(const uint32_t seed_birthdate, const uint8
         will_return(__wrap_keystore_copy_seed, _mock_seed_length);
         will_return(__wrap_keystore_copy_seed, cast_ptr_to_largest_integral_type(seed));
     }
-}
-
-static void _get_expected_directory_name(char* dir_name)
-{
-    uint8_t hmac_seed[HMAC_SHA256_LEN];
-    wally_hmac_sha256(
-        (const unsigned char*)"backup",
-        strlens("backup"),
-        _mock_seed,
-        _mock_seed_length,
-        hmac_seed,
-        HMAC_SHA256_LEN);
-    util_uint8_to_hex(hmac_seed, sizeof(hmac_seed), dir_name);
 }
 
 /**
@@ -136,13 +119,11 @@ static void _load_first_backup(Backup* backup, BackupData* backup_data)
 
 static int test_setup(void** state)
 {
-    (void)state;
     return 0;
 }
 
 static int test_teardown(void** state)
 {
-    (void)state;
     reset_sd();
     return 0;
 }
@@ -152,8 +133,6 @@ static int test_teardown(void** state)
  */
 static void test_backup_calculate_checksum(void** state)
 {
-    (void)state;
-
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
     assert_int_equal(backup_create(_current_timestamp), BACKUP_OK);
 
@@ -174,7 +153,6 @@ static void test_backup_calculate_checksum(void** state)
  */
 static void test_backup_create(void** state)
 {
-    (void)state;
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
     assert_int_equal(backup_create(_current_timestamp), BACKUP_OK);
 
@@ -213,7 +191,6 @@ static void test_backup_create(void** state)
 
 static void test_backup_check(void** state)
 {
-    (void)state;
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
     assert_int_equal(backup_create(_current_timestamp), BACKUP_OK);
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
@@ -224,7 +201,6 @@ static void test_backup_check(void** state)
 
 static void test_backup_check_fail(void** state)
 {
-    (void)state;
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
     assert_int_equal(backup_create(_current_timestamp), BACKUP_OK);
 
@@ -250,5 +226,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

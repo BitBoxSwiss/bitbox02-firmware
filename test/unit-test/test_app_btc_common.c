@@ -22,10 +22,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
 static void _test_btc_common_format_amount_invalid_params(void** state)
 {
     char out[100] = {0};
@@ -91,5 +87,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

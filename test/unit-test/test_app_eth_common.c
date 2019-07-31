@@ -25,7 +25,6 @@
 
 static void _test_eth_common_is_valid_keypath_invalid(void** state)
 {
-    (void)state;
     uint32_t keypath[6] = {
         44 + BIP32_INITIAL_HARDENED_CHILD,
         60 + BIP32_INITIAL_HARDENED_CHILD,
@@ -61,7 +60,6 @@ static void _test_eth_common_is_valid_keypath_invalid(void** state)
 
 static void _test_eth_common_is_valid_keypath_accounts(void** state)
 {
-    (void)state;
     uint32_t keypath[5] = {
         44 + BIP32_INITIAL_HARDENED_CHILD,
         60 + BIP32_INITIAL_HARDENED_CHILD,

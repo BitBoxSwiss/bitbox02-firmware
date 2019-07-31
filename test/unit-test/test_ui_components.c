@@ -24,9 +24,6 @@
 #include "mock_component.h"
 #include "mock_qtouch.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-
 static void assert_ui_component_functions(component_t* component)
 {
     assert_non_null(component->f->render);
@@ -35,8 +32,6 @@ static void assert_ui_component_functions(component_t* component)
 
 static void test_ui_components_label(void** state)
 {
-    (void)state;
-
     component_t* mock_component = mock_component_create();
 
     component_t* label = label_create("Test", NULL, CENTER, mock_component);
@@ -49,8 +44,6 @@ static void test_ui_components_label(void** state)
 
 static void test_ui_components_right_arrow(void** state)
 {
-    (void)state;
-
     component_t* mock_component = mock_component_create();
 
     component_t* right_arrow = right_arrow_create(top_slider, mock_component);
@@ -63,8 +56,6 @@ static void test_ui_components_right_arrow(void** state)
 
 static void test_ui_components_left_arrow(void** state)
 {
-    (void)state;
-
     component_t* mock_component = mock_component_create();
 
     component_t* left_arrow = left_arrow_create(top_slider, mock_component);
@@ -77,7 +68,6 @@ static void test_ui_components_left_arrow(void** state)
 
 static void test_ui_components_image(void** state)
 {
-    (void)state;
     const unsigned char logo_bytes[] = {
         0x00, 0xc0, 0x3f, 0xff, 0x80, 0x00, 0x60, 0x3f, 0xff, 0xc0, 0x00, 0x78, 0x00, 0x00, 0x60,
         0x00, 0xff, 0x00, 0x00, 0x30, 0x00, 0x7f, 0x80, 0x00, 0x18, 0x00, 0xff, 0xf0, 0x00, 0x0c,
@@ -100,20 +90,12 @@ static void test_ui_components_image(void** state)
     mock_component->f->cleanup(mock_component);
 }
 
-static void confirm_callback(component_t* component)
-{
-    (void)component;
-}
+static void confirm_callback(component_t* component) {}
 
-static void cancel_callback(component_t* component)
-{
-    (void)component;
-}
+static void cancel_callback(component_t* component) {}
 
 static void test_ui_components_confirm(void** state)
 {
-    (void)state;
-
     component_t* confirm =
         confirm_create("Is the Code correct?", "CODE", false, confirm_callback, cancel_callback);
     assert_non_null(confirm);
@@ -123,8 +105,6 @@ static void test_ui_components_confirm(void** state)
 
 static void test_ui_components_info_centered(void** state)
 {
-    (void)state;
-
     component_t* info_centered = info_centered_create("Some info", NULL);
     assert_non_null(info_centered);
     assert_ui_component_functions(info_centered);
@@ -133,8 +113,6 @@ static void test_ui_components_info_centered(void** state)
 
 static void test_ui_components_keyboard_switch(void** state)
 {
-    (void)state;
-
     component_t* mock_component = mock_component_create();
 
     component_t* keyboard_switch = keyboard_switch_create(top_slider, mock_component);
@@ -147,23 +125,14 @@ static void test_ui_components_keyboard_switch(void** state)
 
 static void test_ui_components_status(void** state)
 {
-    (void)state;
-
     component_t* status = status_create("Password created", true, 10, NULL);
     assert_non_null(status);
     assert_ui_component_functions(status);
     status->f->cleanup(status);
 }
 
-static void set_password_callback(const char* password)
-{
-    (void)password;
-}
-
 static void test_ui_components_set_password(void** state)
 {
-    (void)state;
-
     component_t* set_password = set_password_create(NULL);
     assert_non_null(set_password);
     assert_ui_component_functions(set_password);
@@ -184,5 +153,3 @@ int main(void)
 
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

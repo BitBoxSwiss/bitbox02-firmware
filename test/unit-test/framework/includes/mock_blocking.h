@@ -12,20 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <setjmp.h>
-#include <stdarg.h>
-#include <stddef.h>
-#include <cmocka.h>
+#ifndef _TEST_BLOCKING_H
+#define _TEST_BLOCKING_H
 
-static void test_unit(void** state)
-{
-    assert_true(1);
-}
+#include <stdbool.h>
 
-int main(void)
-{
-    const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_unit),
-    };
-    return cmocka_run_group_tests(tests, NULL, NULL);
-}
+bool mock_blocking_is_unblocked(void);
+#endif

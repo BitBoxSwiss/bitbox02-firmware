@@ -30,13 +30,11 @@ void screen_init(void) {}
 
 void screen_print_debug(const char* message, int duration)
 {
-    (void)duration;
     printf("%s\n", message);
 }
 
 void screen_sprintf_debug(int duration, const char* message, ...)
 {
-    (void)duration;
     va_list args;
     va_start(args, message);
     char print[100] = {0};

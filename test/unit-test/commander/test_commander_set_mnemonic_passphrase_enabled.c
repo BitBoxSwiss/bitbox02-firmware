@@ -19,10 +19,6 @@
 
 #include <test_commander.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
-
 bool __wrap_workflow_confirm(const char* title, const char* body, bool longtouch, bool accept_only)
 {
     check_expected(title);
@@ -34,7 +30,6 @@ bool __wrap_workflow_confirm(const char* title, const char* body, bool longtouch
 
 static void _test_api_set_mnemonic_passphrase_enabled(void** state)
 {
-    (void)state;
     expect_string_count(__wrap_workflow_confirm, body, "Mnemonic\npassphrase", -1);
     expect_value_count(__wrap_workflow_confirm, longtouch, true, -1);
     expect_value_count(__wrap_workflow_confirm, accept_only, false, -1);
@@ -74,5 +69,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

@@ -24,9 +24,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 #define CHUNK_SIZE (16 * 512) // 8kB.
 
 #define FLASH_APP_DATA_LEN (0x000010000)
@@ -73,18 +70,12 @@ __extension__ static uint8_t _salt_root[] = {[0 ... 32 - 1] = 0x84};
 void __wrap_memory_read_chunk_mock(uint32_t chunk_num, uint8_t* chunk_out)
 {
     check_expected(chunk_num);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wbad-function-cast"
     memcpy(chunk_out, (uint8_t*)mock(), CHUNK_SIZE);
-#pragma GCC diagnostic pop
 }
 
 void __wrap_memory_read_shared_bootdata_mock(uint8_t* chunk_out)
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wbad-function-cast"
     memcpy(chunk_out, (uint8_t*)mock(), CHUNK_SIZE);
-#pragma GCC diagnostic pop
 }
 
 bool __wrap_memory_write_chunk_mock(uint32_t chunk_num, uint8_t* chunk)
@@ -114,10 +105,7 @@ bool __wrap_bb_noise_generate_static_private_key(uint8_t* private_key_out)
 
 static void _mock_random_32_bytes(uint8_t* buf)
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wbad-function-cast"
     memcpy(buf, (uint8_t*)mock(), 32);
-#pragma GCC diagnostic pop
 }
 
 static memory_interface_functions_t _ifs = {
@@ -546,5 +534,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

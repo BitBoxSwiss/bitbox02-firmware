@@ -17,15 +17,23 @@
 #include <stddef.h>
 #include <cmocka.h>
 
-static void test_unit(void** state)
+#include <workflow/blocking.h>
+
+static bool _blocked = false;
+bool __wrap_workflow_blocking_block(void)
 {
-    assert_true(1);
+    assert_false(_blocked);
+    _blocked = true;
+    return mock();
 }
 
-int main(void)
+void __wrap_workflow_blocking_unblock(void)
 {
-    const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_unit),
-    };
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    assert_true(_blocked);
+    _blocked = false;
+}
+
+bool mock_blocking_is_unblocked(void)
+{
+    return !_blocked;
 }

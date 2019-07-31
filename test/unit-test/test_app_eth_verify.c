@@ -21,13 +21,6 @@
 
 #include <wally_bip32.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#pragma GCC diagnostic ignored "-Wunused-function"
-#pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
-#pragma GCC diagnostic ignored "-Wbad-function-cast"
-
 #define ERC20_METHOD "\xa9\x05\x9c\xbb"
 #define ERC20_METHOD_SIZE 4
 #define RECIPIENT "\x53\x8c\x7f\x96\xb1\x64\xbf\x1b\x97\xbb\x9f\x4b\xb4\x72\xe8\x9f\x5b\x14\x84\xf2"
@@ -229,5 +222,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

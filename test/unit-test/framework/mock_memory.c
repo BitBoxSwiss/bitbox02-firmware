@@ -23,11 +23,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#pragma GCC diagnostic ignored "-Wbad-function-cast"
-
 bool memory_write_to_address_mock(uint32_t addr, uint8_t* chunk)
 {
     return true;
@@ -105,5 +100,3 @@ bool __wrap_memory_set_mnemonic_passphrase_enabled(bool enabled)
     check_expected(enabled);
     return mock();
 }
-
-#pragma GCC diagnostic pop

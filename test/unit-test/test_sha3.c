@@ -21,8 +21,6 @@
 
 static void _test_sha3_256(void** state)
 {
-    (void)state;
-
     sha3_ctx ctx;
     rhash_sha3_256_init(&ctx);
     const char* msg = "message";
@@ -39,8 +37,6 @@ static void _test_sha3_256(void** state)
 
 static void _test_keccak_256(void** state)
 {
-    (void)state;
-
     sha3_ctx ctx;
     rhash_sha3_256_init(&ctx);
     const char* msg = "message";

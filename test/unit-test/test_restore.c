@@ -33,11 +33,6 @@
 #include <backup.c>
 #include <restore.c>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#pragma GCC diagnostic ignored "-Wunused-function"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
 #define DEVICE_NAME "TestDeviceName"
 static const uint32_t _current_timestamp = 1553098951;
 
@@ -291,7 +286,6 @@ static void test_restore_list_backups_multiple_seeds(void** state)
  */
 static void test_restore_good_backup_from_directory(void** state)
 {
-    (void)state;
     Backup copy_backup;
     BackupData copy_backup_data;
     assert_int_equal(
@@ -304,7 +298,6 @@ static void test_restore_good_backup_from_directory(void** state)
  */
 static void test_restore_1_corrupt_backup_from_directory(void** state)
 {
-    (void)state;
     _create_and_store_corrupt_backup(&_backup, 0);
 
     assert_false(_restore_backup_file(_file_name_0));
@@ -323,7 +316,6 @@ static void test_restore_1_corrupt_backup_from_directory(void** state)
  */
 static void test_restore_2_corrupt_backups_from_directory(void** state)
 {
-    (void)state;
     _create_and_store_corrupt_backup(&_backup, 0);
     _create_and_store_corrupt_backup(&_backup, 1);
 
@@ -345,7 +337,6 @@ static void test_restore_2_corrupt_backups_from_directory(void** state)
  */
 static void test_restore_3_corrupt_backups_from_directory(void** state)
 {
-    (void)state;
     _create_and_store_corrupt_backup(&_backup, 0);
     _create_and_store_corrupt_backup(&_backup, 1);
     _create_and_store_corrupt_backup(&_backup, 2);
@@ -369,7 +360,6 @@ static void test_restore_3_corrupt_backups_from_directory(void** state)
  */
 static void test_fail_restore_if_majority_vote_fails(void** state)
 {
-    (void)state;
     _create_and_store_corrupt_backup(&_backup, 0);
     _create_and_store_corrupt_backup(&_backup, 1);
     _copy_backup_file(_file_name_0, _file_name_2);
@@ -389,7 +379,6 @@ static void test_fail_restore_if_majority_vote_fails(void** state)
  */
 static void test_restore_seed(void** state)
 {
-    (void)state;
     assert_true(restore_seed(&_backup_data, "secret"));
 }
 
@@ -417,5 +406,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

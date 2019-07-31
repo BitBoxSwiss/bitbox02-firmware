@@ -24,62 +24,47 @@
 
 int f_putc(TCHAR c, FIL* fp)
 {
-    (void)c;
-    (void)fp;
     return 0;
 }
 
 TCHAR* f_gets(TCHAR* buff, int len, FIL* fp)
 {
-    (void)buff;
-    (void)len;
-    (void)fp;
     return NULL;
 }
 
 FRESULT f_opendir(DIR* dp, const TCHAR* path)
 {
-    (void)dp;
-    (void)path;
     return FR_OK;
 }
 
 FRESULT f_closedir(DIR* dp)
 {
-    (void)dp;
     return FR_OK;
 }
 
 FRESULT f_readdir(DIR* dp, FILINFO* fno)
 {
-    (void)dp;
-    (void)fno;
     return FR_OK;
 }
 
 FRESULT f_close(FIL* fp)
 {
-    (void)fp;
     return FR_OK;
 }
 
 FRESULT f_mkdir(const TCHAR* path)
 {
-    (void)path;
     return FR_OK;
 }
 
 FRESULT f_unlink(const TCHAR* path)
 {
-    (void)path;
     return FR_OK;
 }
 
 FRESULT f_open(FIL* fp, const TCHAR* path, BYTE mode)
 {
-    (void)fp;
     check_expected(path);
-    (void)mode;
     return FR_OK;
 }
 
@@ -96,15 +81,12 @@ void assert_will_mount_unmount(void)
 FRESULT f_mount(FATFS* fs, const TCHAR* path, BYTE opt)
 {
     check_expected(fs);
-    (void)path;
-    (void)opt;
     return mock();
 }
 
 int f_puts(const TCHAR* str, FIL* fp)
 {
     check_expected(str);
-    (void)fp;
     return strlen(str);
 }
 
@@ -113,7 +95,6 @@ FRESULT f_write(FIL* fp, const void* buff, UINT btw, UINT* bw)
     check_expected(buff);
     check_expected(bw);
     check_expected(btw);
-    (void)fp;
     *bw = btw;
     return FR_OK;
 }
@@ -121,14 +102,11 @@ FRESULT f_write(FIL* fp, const void* buff, UINT btw, UINT* bw)
 FRESULT f_read(FIL* fp, void* buff, UINT btr, UINT* br)
 {
     check_expected(fp);
-    (void)buff;
     *br = btr;
     return FR_OK;
 }
 
 FRESULT f_rename(const TCHAR* path_old, const TCHAR* path_new)
 {
-    (void)path_old;
-    (void)path_new;
     return FR_OK;
 }

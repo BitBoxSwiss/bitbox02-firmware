@@ -19,11 +19,6 @@
 
 #include <workflow/blocking.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
-
 static bool _force_unblock = false;
 void __wrap_ui_screen_process(bool (*is_done)(void))
 {
@@ -94,5 +89,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

@@ -24,9 +24,6 @@
 #include "mock_gestures.h"
 #include "mock_qtouch.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-
 // TODO: PR381 replaced callbacks with emitted events.
 //       This test now has nothing to test. Need to check
 //       instead that an event was emitted by `gestures.c`.
@@ -51,8 +48,6 @@ static void reset_state(void)
  */
 static void test_gestures_slide_tap_slide_detected(void** state)
 {
-    (void)state;
-
     component_t* mock_component = mock_component_create();
 
     mock_gestures_touch_init();
@@ -101,8 +96,6 @@ static void test_gestures_slide_tap_slide_detected(void** state)
  */
 static void test_gestures_slide_and_tap_detected(void** state)
 {
-    (void)state;
-
     component_t* mock_component = mock_component_create();
 
     // SLIDE:
@@ -137,8 +130,6 @@ static void test_gestures_slide_and_tap_detected(void** state)
  */
 static void test_gestures_slide_left_to_right_detected(void** state)
 {
-    (void)state;
-
     component_t* mock_component = mock_component_create();
 
     mock_gestures_touch_init();
@@ -175,5 +166,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

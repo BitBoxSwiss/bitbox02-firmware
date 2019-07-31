@@ -20,10 +20,6 @@
 #include <string.h>
 #include <util.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#pragma GCC diagnostic ignored "-Wunused-function"
-
 typedef struct {
     char name[256];
     char data[SD_MAX_FILE_SIZE];
@@ -221,5 +217,3 @@ void reset_sd(void)
     _dir_count = 0;
     memset(_directories, 0, sizeof(_directories));
 }
-
-#pragma GCC diagnostic pop

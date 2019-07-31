@@ -27,9 +27,6 @@
 
 #include <wally_bip32.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-
 // We mock all called functions to make sure they are actually called. For some,
 // the real function is called as it's easier to check all function input/output
 // this way.
@@ -56,7 +53,6 @@ bool __wrap_btc_common_is_valid_keypath(
     check_expected(script_type);
     check_expected(keypath);
     check_expected(keypath_len);
-    (void)expected_coin;
     return mock();
 }
 
@@ -210,7 +206,6 @@ static testcase_t _tests[] = {
 
 static void _test_app_btc_address(void** state)
 {
-    (void)state;
     { // invalid coin
         bool result = app_btc_address(
             _BTCCoin_MIN - 1,
@@ -296,5 +291,3 @@ int main(void)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-#pragma GCC diagnostic pop

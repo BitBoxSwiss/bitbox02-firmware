@@ -52,7 +52,6 @@ run-unit-tests: | build-build
 # Must run tests before creating coverage report
 coverage: | build-build
 	${MAKE} -C build-build coverage
-	echo "coverage report in build/coverage_html/index.html"
 #./build/bin/test_ui_component_gestures;
 run-valgrind-on-unit-tests:
 	$(MAKE) unit-test

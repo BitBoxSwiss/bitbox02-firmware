@@ -192,19 +192,3 @@ foreach(I RANGE 0 ${TEST_LIST_LEN} 2)
     ${CMOCKA_LIBRARIES} ${TEST_LINK_ARGS})
   add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
 endforeach()
-
-if(COVERAGE)
-  find_program(LCOV lcov REQUIRED)
-  find_program(GENHTML genhtml REQUIRED)
-
-  add_custom_command(
-    OUTPUT coverage_html
-    COMMAND ${LCOV} --capture --directory ${CMAKE_BINARY_DIR} --output-file raw_coverage.info
-    COMMAND ${LCOV} --remove raw_coverage.info --output-file coverage.info '*/test/*' '*/external/*' '*/src/drivers/*'
-    COMMAND ${GENHTML} coverage.info --output-directory coverage_html
-  )
-  add_custom_target(
-    coverage
-    DEPENDS coverage_html
-  )
-endif()

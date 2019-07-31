@@ -98,6 +98,8 @@ RUN pip3 install \
 # Developer tools
 RUN apt-get update && apt-get install -y \
     bash-completion
+# Install gcovr from PIP to get a newer version than in apt repositories
+RUN pip3 install gcovr
 
 # Install Go, used for the tools in tools/go and for test/gounittest
 ENV GOPATH /opt/go

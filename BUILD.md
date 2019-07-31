@@ -159,7 +159,19 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib64/
 Then you can run the tests by executing
 
 ```
-make run-unit-tests
+make run-unit-tests # or make -C build-build test
+```
+
+### Coverage
+
+gcovr or lcov/genhtml can be used to generate HTML coverage reports using the following commands:
+
+```
+make coverage # or make -C build-build coverage
+```
+
+```
+make -C build-build coverage-lcovr
 ```
 
 ### Device Tests

@@ -24,6 +24,7 @@
 
 #include "button.h"
 #include "confirm.h"
+#include "confirm_button.h"
 #include "confirm_gesture.h"
 #include "confirm_mnemonic.h"
 #include "confirm_transaction.h"

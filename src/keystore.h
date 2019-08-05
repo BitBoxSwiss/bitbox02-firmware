@@ -114,6 +114,18 @@ USE_RESULT bool keystore_is_locked(void);
 USE_RESULT bool keystore_get_bip39_mnemonic(char** mnemonic_out);
 
 /**
+ * Turn a bip39 mnemonic into a seed. Make sure to use UTIL_CLEANUP_32 to destroy it.
+ * Output can be fed into `keystore_encrypt_and_store_seed` to create a keystore from the mnemonic.
+ * @param[in] mnemonic 12/18/24 word bip39 mnemonic
+ * @param[out] seed_out must be 32 bytes
+ * @param[out] seed_len_out will be the size of the seed
+ */
+USE_RESULT bool keystore_bip39_mnemonic_to_seed(
+    const char* mnemonic,
+    uint8_t* seed_out,
+    size_t* seed_len_out);
+
+/**
  * Can be used only if the keystore is unlocked. Returns the derived xpub,
  * using bip32 derivation. Derivation is done from the xprv master, so hardened
  * derivation is allowed.

@@ -21,9 +21,9 @@
 #include "workflow.h"
 
 #include <hardfault.h>
+#include <keystore.h>
 #include <random.h>
 #include <ui/components/ui_components.h>
-#include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 #include <util.h>
 
@@ -87,8 +87,7 @@ static uint8_t _create_random_unique_words(const char** wordlist, uint8_t length
         }
         uint8_t random_num_b1 = random_byte_mcu();
         uint8_t random_num_b2 = random_byte_mcu();
-        uint16_t random_num = (random_num_b1 << 8 | random_num_b2) %
-                              workflow_get_interface_functions()->get_bip39_wordlist_length();
+        uint16_t random_num = (random_num_b1 << 8 | random_num_b2) % BIP39_WORDLIST_LEN;
         if (_is_in_list(random_num, random_numbers, current_length)) {
             // already chose that word, so select a different word
             continue;

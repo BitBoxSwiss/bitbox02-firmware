@@ -28,7 +28,7 @@ static workflow_interface_functions_t _workflow_interface_functions = {
     .sd_card_inserted = sd_card_inserted,
     .get_bip39_mnemonic = keystore_get_bip39_mnemonic,
     .get_bip39_word = keystore_get_bip39_word,
-    .get_bip39_wordlist_length = keystore_get_bip39_wordlist_length};
+};
 
 uint32_t __stack_chk_guard = 0;
 

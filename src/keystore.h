@@ -22,6 +22,7 @@
 
 #include <secp256k1.h>
 #include <wally_bip32.h>
+#include <wally_bip39.h> // for BIP39_WORDLIST_LEN
 
 #define KEYSTORE_MAX_SEED_LENGTH (32)
 #define KEYSTORE_U2F_SEED_LENGTH SHA256_LEN
@@ -129,14 +130,9 @@ USE_RESULT bool keystore_get_xpub(
  */
 void keystore_zero_xkey(struct ext_key* xkey);
 
-/*
- * Returns the length of the active BIP32 wordlist.
- */
-USE_RESULT uint16_t keystore_get_bip39_wordlist_length(void);
-
 /**
  * Returns the pointer to a word in the word list for the given index.
- * @param[in] idx The index into the word list.
+ * @param[in] idx The index into the word list. Must be smaller than BIP39_WORDLIST_LEN.
  * @param[out] word_out The pointer to the character array for the given index.
  */
 USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);

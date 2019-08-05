@@ -497,13 +497,6 @@ void keystore_zero_xkey(struct ext_key* xkey)
     util_zero(xkey, sizeof(struct ext_key));
 }
 
-#define LEN_WORDLIST_EN 2048
-
-uint16_t keystore_get_bip39_wordlist_length(void)
-{
-    return LEN_WORDLIST_EN;
-}
-
 bool keystore_get_bip39_word(uint16_t idx, char** word_out)
 {
     return bip39_get_word(NULL, idx, word_out) == WALLY_OK;

@@ -42,7 +42,6 @@ typedef struct {
     bool (*const get_bip39_mnemonic)(char** mnemonic_out);
     bool (*const sd_card_inserted)(void);
     bool (*const get_bip39_word)(uint16_t idx, char** word_out);
-    uint16_t (*const get_bip39_wordlist_length)(void);
 } workflow_interface_functions_t;
 
 /**

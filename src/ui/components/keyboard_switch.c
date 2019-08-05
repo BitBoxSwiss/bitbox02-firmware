@@ -105,9 +105,6 @@ static void _on_event(const event_t* event, component_t* component)
         if (ks_data->location == top_slider && slider_data->position > SLIDER_POSITION_ONE_THIRD &&
             slider_data->position <= SLIDER_POSITION_TWO_THIRD) {
             ks_data->active = true;
-            event_t e;
-            e.id = EVENT_TOGGLE_ALPHANUMERIC;
-            emit_event(&e);
             break;
         }
         /* FALLTHROUGH */

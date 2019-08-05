@@ -87,7 +87,6 @@ static const component_functions_t _component_functions = {
 };
 
 /********************************** Create Instance **********************************/
-
 static component_t* _button_create(
     const char* text,
     const slider_location_t location,
@@ -100,10 +99,8 @@ static component_t* _button_create(
         Abort("Error: malloc button data");
     }
     memset(data, 0, sizeof(button_data_t));
-    data->text = text;
     data->location = location;
     data->upside_down = upside_down;
-    data->callback = callback;
     data->span_over_slider = false;
 
     component_t* button = malloc(sizeof(component_t));
@@ -115,13 +112,7 @@ static component_t* _button_create(
     button->parent = parent;
     button->f = &_component_functions;
 
-    UG_FontSelect(&font_font_a_9X9);
-    UG_FontSetHSpace(0);
-    UG_MeasureString(&(button->dimension.width), &(button->dimension.height), text);
-    if (button->dimension.width < MIN_BUTTON_WIDTH) {
-        button->dimension.width = MIN_BUTTON_WIDTH;
-    }
-    UG_FontSetHSpace(1);
+    button_update(button, text, callback);
 
     return button;
 }
@@ -214,4 +205,11 @@ void button_update(component_t* button, const char* text, void (*callback)(compo
     button_data_t* data = (button_data_t*)button->data;
     data->callback = callback;
     data->text = text;
+    UG_FontSelect(&font_font_a_9X9);
+    UG_FontSetHSpace(0);
+    UG_MeasureString(&(button->dimension.width), &(button->dimension.height), text);
+    if (button->dimension.width < MIN_BUTTON_WIDTH) {
+        button->dimension.width = MIN_BUTTON_WIDTH;
+    }
+    UG_FontSetHSpace(1);
 }

@@ -29,6 +29,7 @@
 
 #define OP_STATUS_SUCCESS ((uint8_t)0)
 #define OP_STATUS_FAILURE ((uint8_t)1)
+#define OP_STATUS_FAILURE_UNINITIALIZED ((uint8_t)2)
 
 // in: 'a' + 32 bytes host challenge
 // out: bootloader_hash 32 | device_pubkey 64 | certificate 64 | root_pubkey_identifier 32 |
@@ -80,7 +81,12 @@ static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_o
             _api_attestation(in_packet, out_packet);
             return;
         case OP_UNLOCK:
-            out_packet->data_addr[0] = workflow_unlock() ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
+            if (!memory_is_initialized()) {
+                out_packet->data_addr[0] = OP_STATUS_FAILURE_UNINITIALIZED;
+            } else {
+                out_packet->data_addr[0] =
+                    workflow_unlock() ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
+            }
             out_packet->len = 1;
             return;
         default:

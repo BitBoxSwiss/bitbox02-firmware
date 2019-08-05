@@ -21,6 +21,7 @@ component_t* confirm_mnemonic_create(
     const char** wordlist,
     uint8_t length,
     uint8_t index,
-    void (*check_word)(uint8_t));
+    void (*check_word_cb)(uint8_t),
+    void (*cancel_cb)(void));
 
 #endif

@@ -43,7 +43,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/password_enter.c
   ${CMAKE_SOURCE_DIR}/src/workflow/create_seed.c
   ${CMAKE_SOURCE_DIR}/src/workflow/unlock.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/mnemonic.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/show_mnemonic.c
   ${CMAKE_SOURCE_DIR}/src/workflow/pairing.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_pub.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
@@ -81,41 +81,40 @@ set(DBB-FIRMWARE-USB-SOURCES
 set(DBB-FIRMWARE-USB-SOURCES ${DBB-FIRMWARE-USB-SOURCES} PARENT_SCOPE)
 
 set(DBB-FIRMWARE-UI-SOURCES
-  ${CMAKE_SOURCE_DIR}/src/screen.c
-  ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
-  ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_9X9.c
-  ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_11X12.c
-  ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_13X14.c
-  ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_15X16.c
-  ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_17X18.c
-  ${CMAKE_SOURCE_DIR}/src/ui/screen_stack.c
-  ${CMAKE_SOURCE_DIR}/src/ui/screen_process.c
-  ${CMAKE_SOURCE_DIR}/src/ui/event_handler.c
-  ${CMAKE_SOURCE_DIR}/src/ui/ui_util.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/show_logo.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/waiting.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/entry_screen.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/knight_rider.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/right_arrow.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/left_arrow.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/icon_button.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_gesture.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/label.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/confirm.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/set_password.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/keyboard_switch.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/orientation_arrows.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/info_centered.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/scroll_through_all_variants.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/status.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/image.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/button.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/insert_sd_card.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/remove_sd_card.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/show_mnemonic.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_mnemonic.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/ui_images.c
-  ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_transaction.c
+    ${CMAKE_SOURCE_DIR}/src/screen.c
+    ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
+    ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_9X9.c
+    ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_11X12.c
+    ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_13X14.c
+    ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_15X16.c
+    ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_17X18.c
+    ${CMAKE_SOURCE_DIR}/src/ui/screen_stack.c
+    ${CMAKE_SOURCE_DIR}/src/ui/screen_process.c
+    ${CMAKE_SOURCE_DIR}/src/ui/event_handler.c
+    ${CMAKE_SOURCE_DIR}/src/ui/ui_util.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/show_logo.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/waiting.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/entry_screen.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/knight_rider.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/right_arrow.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/left_arrow.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/icon_button.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_gesture.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/label.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/confirm.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/set_password.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/keyboard_switch.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/orientation_arrows.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/info_centered.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/scroll_through_all_variants.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/status.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/image.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/button.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/insert_sd_card.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/remove_sd_card.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_mnemonic.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/ui_images.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_transaction.c
 )
 set(DBB-FIRMWARE-UI-SOURCES ${DBB-FIRMWARE-UI-SOURCES} PARENT_SCOPE)
 

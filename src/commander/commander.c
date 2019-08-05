@@ -35,11 +35,11 @@
 #include <workflow/backup.h>
 #include <workflow/confirm.h>
 #include <workflow/create_seed.h>
-#include <workflow/mnemonic.h>
 #include <workflow/reboot.h>
 #include <workflow/reset.h>
 #include <workflow/restore.h>
 #include <workflow/sdcard.h>
+#include <workflow/show_mnemonic.h>
 #include <workflow/workflow.h>
 
 #include "hww.pb.h"

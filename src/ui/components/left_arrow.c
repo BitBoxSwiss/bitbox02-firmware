@@ -27,6 +27,8 @@
 #include "../event_handler.h"
 #include "ui_images.h"
 
+#define HEIGHT (5u)
+
 typedef struct {
     uint8_t location;
     bool active; // Marker is 'active', i.e., touched
@@ -49,7 +51,7 @@ static void _render(component_t* component)
         active_count = MAX(scale - 1, active_count - scale);
     }
     j_start -= active_count / scale;
-    image_arrow(j_start, component->position.top, 5, ARROW_LEFT);
+    image_arrow(j_start, component->position.top, HEIGHT, ARROW_LEFT);
 }
 
 static void _on_event(const event_t* event, component_t* component)
@@ -58,7 +60,14 @@ static void _on_event(const event_t* event, component_t* component)
     gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
     switch (event->id) {
     case EVENT_TOP_SHORT_TAP:
-        if (data->location == top_slider && slider_data->position <= SLIDER_POSITION_ONE_THIRD) {
+    case EVENT_BOTTOM_SHORT_TAP:
+        if (data->location == top_slider && event->id == EVENT_BOTTOM_SHORT_TAP) {
+            break;
+        }
+        if (data->location == bottom_slider && event->id == EVENT_TOP_SHORT_TAP) {
+            break;
+        }
+        if (slider_data->position <= SLIDER_POSITION_ONE_THIRD) {
             data->active = false;
             event_t e;
             e.id = EVENT_BACKWARD;
@@ -67,7 +76,14 @@ static void _on_event(const event_t* event, component_t* component)
         }
         /* FALLTHROUGH */
     case EVENT_TOP_CONTINUOUS_TAP:
-        if (data->location == top_slider && slider_data->position <= SLIDER_POSITION_ONE_THIRD) {
+    case EVENT_BOTTOM_CONTINUOUS_TAP:
+        if (data->location == top_slider && event->id == EVENT_BOTTOM_CONTINUOUS_TAP) {
+            break;
+        }
+        if (data->location == bottom_slider && event->id == EVENT_TOP_CONTINUOUS_TAP) {
+            break;
+        }
+        if (slider_data->position <= SLIDER_POSITION_ONE_THIRD) {
             data->active = true;
             break;
         }
@@ -112,7 +128,8 @@ component_t* left_arrow_create(slider_location_t location, component_t* parent)
     left_arrow->data = data;
     left_arrow->f = &_component_functions;
     left_arrow->parent = parent;
-
+    left_arrow->dimension.height = HEIGHT * 2 - 1;
+    left_arrow->dimension.width = HEIGHT;
     if (location == top_slider) {
         ui_util_position_left_top(parent, left_arrow);
     } else {

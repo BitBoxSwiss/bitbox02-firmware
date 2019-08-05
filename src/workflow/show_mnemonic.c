@@ -15,6 +15,7 @@
 #include "show_mnemonic.h"
 
 #include "blocking.h"
+#include "confirm.h"
 #include "password.h"
 #include "status.h"
 #include "workflow.h"
@@ -119,14 +120,34 @@ static void _cancel(void)
     workflow_blocking_unblock();
 }
 
+static bool _workflow_cancel(component_t* component)
+{
+    ui_screen_stack_push(component);
+    while (true) {
+        _cancel_pressed = false;
+        bool unblock_result = workflow_blocking_block();
+        if (!unblock_result) {
+            ui_screen_stack_pop();
+            return false;
+        }
+        if (_cancel_pressed) {
+            if (!workflow_confirm(
+                    "Export Mnemonic", "Do you really\nwant to cancel?", false, false)) {
+                continue;
+            }
+            ui_screen_stack_pop();
+            workflow_status_create("Cancelled", false);
+            return false;
+        }
+        ui_screen_stack_pop();
+        return true;
+    }
+}
+
 static bool _show_words(const char** words, uint8_t words_count)
 {
-    _cancel_pressed = false;
-    ui_screen_stack_push(scroll_through_all_variants_create(
+    return _workflow_cancel(scroll_through_all_variants_create(
         words, NULL, words_count, true, workflow_blocking_unblock, _cancel, NULL));
-    bool unblock_result = workflow_blocking_block();
-    ui_screen_stack_pop();
-    return unblock_result && !_cancel_pressed;
 }
 
 typedef struct {
@@ -175,12 +196,8 @@ bool workflow_show_mnemonic_create(void)
         confirm_wordlist[back_idx] = _back_label;
 
         while (true) {
-            _cancel_pressed = false;
-            ui_screen_stack_push(confirm_mnemonic_create(
-                confirm_wordlist, NUM_RANDOM_WORDS + 1, word_idx, _select_word, _cancel));
-            bool unblock_cancel_pressed = workflow_blocking_block();
-            ui_screen_stack_pop();
-            if (_cancel_pressed || !unblock_cancel_pressed) {
+            if (!_workflow_cancel(confirm_mnemonic_create(
+                    confirm_wordlist, NUM_RANDOM_WORDS + 1, word_idx, _select_word, _cancel))) {
                 return false;
             }
             if (_selection_idx == correct_idx) {

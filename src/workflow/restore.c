@@ -50,7 +50,7 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
     uint8_t remaining_attempts;
     if (keystore_unlock(password, &remaining_attempts) != KEYSTORE_OK) {
         // This should/can never happen, but let's check anyway.
-        Abort("Unexpected error during restore: unlock failed.");
+        Abort("workflow_restore_backup: unlock failed");
     }
     if (!memory_set_device_name(backup.backup_v1.content.metadata.name)) {
         /* Ignore errors for now */

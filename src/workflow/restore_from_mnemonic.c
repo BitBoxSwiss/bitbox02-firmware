@@ -14,6 +14,7 @@
 
 #include "restore_from_mnemonic.h"
 
+#include "confirm.h"
 #include "password.h"
 #include "status.h"
 #include "trinary_input.h"
@@ -101,8 +102,16 @@ bool workflow_restore_from_mnemonic(void)
 
     char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     UTIL_CLEANUP_STR(password);
-    if (!password_set(password)) {
-        return false;
+    // If entering password fails (repeat password does not match the first), we don't want to abort
+    // the process immediately. We break out only if the user confirms.
+    while (true) {
+        if (!password_set(password)) {
+            if (!workflow_confirm("", "Passwords\ndo not match.\nTry again?", false, false)) {
+                return false;
+            }
+            continue;
+        }
+        break;
     }
     if (!keystore_encrypt_and_store_seed(seed, seed_len, password)) {
         workflow_status_create("Could not\nrestore backup", false);

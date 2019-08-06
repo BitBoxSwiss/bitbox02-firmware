@@ -118,7 +118,7 @@ uint8_t usb_frame_reply(
     const uint8_t* data,
     const uint32_t len,
     const uint32_t cid,
-    uint8_t(add_frame_callback)(const uint8_t*))
+    int32_t(add_frame_callback)(const uint8_t*))
 {
     USB_FRAME frame;
     uint32_t cnt = 0;
@@ -135,7 +135,7 @@ uint8_t usb_frame_reply(
     // Init frame
     psz = MIN(sizeof(frame.init.data), l);
     memcpy(frame.init.data, data, psz);
-    uint8_t err = add_frame_callback((const uint8_t*)&frame);
+    int32_t err = add_frame_callback((const uint8_t*)&frame);
     if (err != ERR_NONE) {
         return err;
     }
@@ -166,7 +166,7 @@ uint8_t usb_frame_reply(
 uint8_t usb_frame_prepare_err(
     uint8_t err,
     uint32_t cid,
-    uint8_t(add_frame_callback)(const uint8_t*))
+    int32_t(add_frame_callback)(const uint8_t*))
 {
     USB_FRAME frame;
 

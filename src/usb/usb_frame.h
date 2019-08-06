@@ -107,7 +107,7 @@ uint8_t usb_frame_reply(
     const uint8_t* data,
     uint32_t len,
     uint32_t cid,
-    uint8_t(add_frame_callback)(const uint8_t*));
+    int32_t(add_frame_callback)(const uint8_t*));
 
 /**
  * Takes data and a channel id and constructs USB frames that are added
@@ -131,7 +131,7 @@ void usb_frame_send_cmd(uint8_t cmd, const uint8_t* data, uint32_t len, uint8_t 
 uint8_t usb_frame_prepare_err(
     uint8_t err,
     uint32_t cid,
-    uint8_t(add_frame_callback)(const uint8_t*));
+    int32_t(add_frame_callback)(const uint8_t*));
 
 /**
  * Processes usb frame requests.

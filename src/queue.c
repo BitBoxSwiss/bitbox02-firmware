@@ -19,48 +19,63 @@
 // removed.
 #include "usb/usb_frame.h"
 
-static uint32_t _index_start = 0;
-static uint32_t _index_end = 0;
-// We use the queue to send and receive usb packets. Allocate enough space in
-// case all pulls come after all pushes.
-#define QUEUE_NUM_PACKETS ((USB_DATA_MAX_LEN / USB_REPORT_SIZE) * 2)
 // TODO: specify generic size
-static uint8_t _packets[QUEUE_NUM_PACKETS][USB_REPORT_SIZE];
+// The queue has enough room for a single maximum size packet
+#define QUEUE_NUM_REPORTS (USB_DATA_MAX_LEN / USB_REPORT_SIZE)
 
-void queue_clear(void)
+// `start` and `end` are indices into `items`
+struct queue {
+    uint32_t start;
+    uint32_t end;
+    uint8_t items[QUEUE_NUM_REPORTS][USB_REPORT_SIZE];
+};
+
+void queue_clear(struct queue* ctx)
 {
-    util_zero(_packets, sizeof(_packets));
-    _index_start = _index_end;
+    util_zero(ctx->items, sizeof(ctx->items));
+    ctx->start = ctx->end;
 }
 
-const uint8_t* queue_pull(void)
+const uint8_t* queue_pull(struct queue* ctx)
 {
-    uint32_t p = _index_start;
-    if (p == _index_end) {
+    uint32_t p = ctx->start;
+    if (p == ctx->end) {
         // queue is empty
         return NULL;
     }
-    _index_start = (p + 1) % QUEUE_NUM_PACKETS;
-    return _packets[p];
+    ctx->start = (p + 1) % QUEUE_NUM_REPORTS;
+    return ctx->items[p];
 }
 
-uint8_t queue_push(const uint8_t* data)
+int32_t queue_push(struct queue* ctx, const uint8_t* data)
 {
-    uint32_t next = (_index_end + 1) % QUEUE_NUM_PACKETS;
-    if (_index_start == next) {
-        return ERR_QUEUE_FULL; // Buffer full
+    uint32_t next = (ctx->end + 1) % QUEUE_NUM_REPORTS;
+    if (ctx->start == next) {
+        return QUEUE_ERR_FULL; // Buffer full
     }
-    memcpy(_packets[_index_end], data, USB_REPORT_SIZE);
-    _index_end = next;
-    return ERR_NONE;
+    memcpy(ctx->items[ctx->end], data, USB_REPORT_SIZE);
+    ctx->end = next;
+    return QUEUE_ERR_NONE;
 }
 
-const uint8_t* queue_peek(void)
+const uint8_t* queue_peek(struct queue* ctx)
 {
-    uint32_t p = _index_start;
-    if (p == _index_end) {
+    uint32_t p = ctx->start;
+    if (p == ctx->end) {
         // queue is empty
         return NULL;
     }
-    return _packets[p];
+    return ctx->items[p];
+}
+
+struct queue* queue_hww_queue(void)
+{
+    static struct queue queue;
+    return &queue;
+}
+
+struct queue* queue_u2f_queue(void)
+{
+    static struct queue queue;
+    return &queue;
 }

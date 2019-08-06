@@ -65,7 +65,7 @@ static int32_t _read(void)
  * Sends the next data, if the USB interface is ready.
  */
 static void _send_next(void) {
-    const uint8_t *data = queue_pull();
+    const uint8_t *data = queue_pull(queue_hww_queue());
     if (data != NULL) {
         hid_write(&_func_data, data, USB_HID_REPORT_OUT_SIZE);
     } else {

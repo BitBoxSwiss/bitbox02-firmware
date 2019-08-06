@@ -16,6 +16,7 @@
 #include "queue.h"
 #include "screen.h"
 #include "usb_processing.h"
+#include <err_codes.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -59,9 +60,14 @@ static State _in_state;
  */
 static void _reset_state(void)
 {
-    queue_clear();
+    queue_clear(queue_hww_queue());
     _timeout_disable(_in_state.cid);
     memset(&_in_state, 0, sizeof(_in_state));
+}
+
+static int32_t _queue_push(const uint8_t* data)
+{
+    return queue_push(queue_hww_queue(), data);
 }
 
 /**
@@ -72,7 +78,7 @@ static void _reset_state(void)
  */
 static void _queue_err(const uint8_t err, uint32_t cid)
 {
-    usb_frame_prepare_err(err, cid, queue_push);
+    usb_frame_prepare_err(err, cid, _queue_push);
 }
 
 static bool _need_more_data(void)

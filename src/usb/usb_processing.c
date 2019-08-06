@@ -30,14 +30,26 @@ static Packet _in_packet = {0};
 static bool _in_packet_queued = false;
 static void (*_send)(void) = NULL;
 
+// TODO: remove this global in future refactoring
+static struct queue* _global_queue;
+
+static int32_t _queue_push(const uint8_t* data)
+{
+    if (_global_queue == NULL) {
+        Abort("usb_processing: Internal error");
+    }
+    return queue_push(_global_queue, data);
+}
+
 /**
  * Responds with data of a certain length.
  * @param[in] packet The packet to be sent.
  */
 static uint8_t _enqueue_frames(const Packet* out_packet)
 {
+    _global_queue = queue_hww_queue();
     return usb_frame_reply(
-        out_packet->cmd, out_packet->data_addr, out_packet->len, out_packet->cid, queue_push);
+        out_packet->cmd, out_packet->data_addr, out_packet->len, out_packet->cid, _queue_push);
 }
 
 /**
@@ -140,7 +152,8 @@ void usb_processing_process(void)
         // cmd in '_registered_cmds' if the U2F bit it not set (== U2F disabled).
         // TODO: figure out the consequences and either implement a solution or
         // inform U2F hijack vendors.
-        usb_frame_prepare_err(FRAME_ERR_INVALID_CMD, _in_packet.cid, queue_push);
+        _global_queue = queue_hww_queue();
+        usb_frame_prepare_err(FRAME_ERR_INVALID_CMD, _in_packet.cid, _queue_push);
     }
     _send();
     _in_packet_queued = false;

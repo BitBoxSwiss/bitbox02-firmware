@@ -139,7 +139,7 @@ int hid_read_timeout(hid_device* dev, unsigned char* r, size_t r_len, int to)
         usb_processing_process();
     }
     usb_processing_process();
-    uint8_t* p = queue_pull();
+    uint8_t* p = queue_pull(queue_hww_queue());
     // printf("Queue: %p\n", p);
     if (p != NULL) {
         memcpy(r, p, MIN(r_len, BUFSIZE));
@@ -148,7 +148,7 @@ int hid_read_timeout(hid_device* dev, unsigned char* r, size_t r_len, int to)
         _delay(600);
         return -127;
     }
-    if (queue_peek() == NULL) {
+    if (queue_peek(queue_hww_queue()) == NULL) {
         _have_data = false;
     }
     _expect_more = false;

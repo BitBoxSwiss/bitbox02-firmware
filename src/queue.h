@@ -18,25 +18,42 @@
 #include <stdint.h>
 #include <string.h>
 
-#define ERR_NONE 0
-#define ERR_QUEUE_FULL 7
+#define QUEUE_ERR_NONE 0
+#define QUEUE_ERR_FULL -1
+
+struct queue;
 
 /**
  * Append the given data to the queue.
- * Returns ERR_NONE if the data was added and ERR_QUEUE_FULL if the buffer was full.
+ * Returns QUEUE_ERR_NONE if the data was added and QUEUE_ERR_FULL if the buffer was full.
+ * data must be USB_REPORT_SIZE large
  */
-uint8_t queue_push(const uint8_t* data);
+int32_t queue_push(struct queue* ctx, const uint8_t* data);
 
 /**
  * Return the first data that was added to the queue.
+ * Returns NULL if empty
  */
-const uint8_t* queue_pull(void);
+const uint8_t* queue_pull(struct queue* ctx);
 
 /**
  * Clear the queue.
  */
-void queue_clear(void);
+void queue_clear(struct queue* ctx);
 
-const uint8_t* queue_peek(void);
+/**
+ * Peek at the tip of the queue. Returns NULL if queue is empty.
+ */
+const uint8_t* queue_peek(struct queue* ctx);
+
+/**
+ * Get a pointer to the hww queue
+ */
+struct queue* queue_hww_queue(void);
+
+/**
+ * Get a pointer ot the u2f queue
+ */
+struct queue* queue_u2f_queue(void);
 
 #endif

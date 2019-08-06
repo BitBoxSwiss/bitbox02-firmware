@@ -27,8 +27,8 @@
 component_t* confirm_transaction_address_create(
     const char* amount,
     const char* address,
-    void (*confirm_callback)(component_t*),
-    void (*cancel_callback)(component_t*));
+    void (*confirm_callback)(void),
+    void (*cancel_callback)(void));
 
 /**
  * Creates a confirm screen.
@@ -40,7 +40,7 @@ component_t* confirm_transaction_address_create(
 component_t* confirm_transaction_fee_create(
     const char* amount,
     const char* fee,
-    void (*confirm_callback)(component_t*),
-    void (*cancel_callback)(component_t*));
+    void (*confirm_callback)(void),
+    void (*cancel_callback)(void));
 
 #endif

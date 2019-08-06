@@ -21,16 +21,14 @@
 
 static bool _result = false;
 
-static void _confirm(component_t* component)
+static void _confirm(void)
 {
-    (void)component;
     _result = true;
     workflow_blocking_unblock();
 }
 
-static void _reject(component_t* component)
+static void _reject(void)
 {
-    (void)component;
     _result = false;
     workflow_blocking_unblock();
 }

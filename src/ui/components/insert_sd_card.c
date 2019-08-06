@@ -82,7 +82,7 @@ component_t* insert_sd_card_create(void (*continue_callback)(void))
             screen_is_upside_down() ? RIGHT_CENTER : LEFT_CENTER,
             insert_sd_card));
     ui_util_add_sub_component(
-        insert_sd_card, confirm_create("", "", false, _continue_callback, NULL));
+        insert_sd_card, icon_button_create(bottom_slider, ICON_BUTTON_CHECK, _continue_callback));
 
     return insert_sd_card;
 }

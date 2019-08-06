@@ -19,11 +19,15 @@
 
 #include <workflow/blocking.h>
 
+static void (*_unblock_func)(void) = NULL;
 static bool _blocked = false;
 bool __wrap_workflow_blocking_block(void)
 {
     assert_false(_blocked);
     _blocked = true;
+    if (_unblock_func != NULL) {
+        _unblock_func();
+    }
     return mock();
 }
 
@@ -36,4 +40,9 @@ void __wrap_workflow_blocking_unblock(void)
 bool mock_blocking_is_unblocked(void)
 {
     return !_blocked;
+}
+
+void mock_blocking_set_unblock_func(void (*unblock_func)(void))
+{
+    _unblock_func = unblock_func;
 }

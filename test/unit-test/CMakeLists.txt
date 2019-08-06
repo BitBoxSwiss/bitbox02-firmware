@@ -175,6 +175,8 @@ set(TEST_LIST
    "-Wl,--wrap=ui_screen_process,--wrap=ui_screen_process_with_timeout"
    workflow_status
    "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=status_create,--wrap=workflow_blocking_block,--wrap=workflow_blocking_unblock"
+   workflow_cancel
+   "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=workflow_blocking_unblock,--wrap=workflow_blocking_block,--wrap=workflow_confirm,--wrap=workflow_status_create"
 )
 
 find_package(CMocka REQUIRED)

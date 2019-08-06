@@ -27,7 +27,6 @@
 const char* _msg = "message foo";
 
 static component_t _component;
-static void (*_callback)(void);
 component_t* __wrap_status_create(
     const char* text,
     bool status_success,
@@ -36,7 +35,7 @@ component_t* __wrap_status_create(
 {
     assert_string_equal(text, _msg);
     check_expected(status_success);
-    _callback = callback;
+    mock_blocking_set_unblock_func(callback);
     return &_component;
 }
 
@@ -50,7 +49,6 @@ static void _test_workflow_status(void** state)
         expect_value(__wrap_status_create, status_success, status);
         expect_value(__wrap_ui_screen_stack_push, component, &_component);
         workflow_status_create(_msg, status);
-        _callback();
         mock_screen_stack_assert_clean();
         assert_true(mock_blocking_is_unblocked());
     }

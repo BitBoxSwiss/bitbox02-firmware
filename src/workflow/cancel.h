@@ -12,11 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _TEST_BLOCKING_H
-#define _TEST_BLOCKING_H
+#ifndef _WORKFLOW_CANCEL_H_
+#define _WORKFLOW_CANCEL_H_
+
+#include <compiler_util.h>
+#include <ui/component.h>
 
 #include <stdbool.h>
 
-bool mock_blocking_is_unblocked(void);
-void mock_blocking_set_unblock_func(void (*unblock_func)(void));
+void workflow_cancel(void);
+
+/**
+ * Blocks on showing/running a component until `workflow_cancel` or `workflow_blocking_unblock` is
+ * called. In the former, a prompt with the given title to confirm cancellation is shown.
+ * @param[in] title title to show in the cancel confirm prompt.
+ * @param[in] component to process.
+ */
+USE_RESULT bool workflow_cancel_run(const char* title, component_t* component);
+
 #endif

@@ -38,6 +38,7 @@
 #include <workflow/reboot.h>
 #include <workflow/reset.h>
 #include <workflow/restore.h>
+#include <workflow/restore_from_mnemonic.h>
 #include <workflow/sdcard.h>
 #include <workflow/show_mnemonic.h>
 #include <workflow/workflow.h>
@@ -214,6 +215,14 @@ static commander_error_t _api_reset(void)
     return COMMANDER_OK;
 }
 
+static commander_error_t _api_restore_from_mnemonic(void)
+{
+    if (!workflow_restore_from_mnemonic()) {
+        return COMMANDER_ERR_GENERIC;
+    }
+    return COMMANDER_OK;
+}
+
 // ------------------------------------ Parse ------------------------------------- //
 
 /**
@@ -289,6 +298,9 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_reset_tag:
         response->which_response = Response_success_tag;
         return _api_reset();
+    case Request_restore_from_mnemonic_tag:
+        response->which_response = Response_success_tag;
+        return _api_restore_from_mnemonic();
     default:
         screen_print_debug("command unknown", 1000);
         return COMMANDER_ERR_INVALID_INPUT;

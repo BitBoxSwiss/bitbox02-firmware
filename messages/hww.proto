@@ -256,6 +256,8 @@ message ETHResponse {
 
 message ResetRequest {}
 
+message RestoreFromMnemonicRequest {}
+
 message Request {
     oneof request {
         RandomNumberRequest random_number = 1;
@@ -279,6 +281,7 @@ message Request {
         CheckBackupRequest check_backup = 19;
         ETHRequest eth = 20;
         ResetRequest reset = 21;
+        RestoreFromMnemonicRequest restore_from_mnemonic = 22;
     }
 }
 

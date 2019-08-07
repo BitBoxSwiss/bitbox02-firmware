@@ -26,8 +26,8 @@ for dir in build build-build; do
 	fi
 	# Filter out some commands that are not understood by clang-tidy
 	sed -i 's/-mcpu=cortex-m4//g; s/-mfloat-abi=softfp//g; s/-mlong-calls//g; s/-mthumb//g;
-	        s/-Wno-cast-function-type//g; s/-mfpu=fpv4-sp-d16//g' ${dir}/compile_commands.json
-	
+	        s/-Wno-cast-function-type//g; s/-mfpu=fpv4-sp-d16//g; s/-Wformat-signedness//g' ${dir}/compile_commands.json
+
 	# Exclude drivers and external for now. We get the base file set from compile_commands.json, as
 	# clang-tidy unfortunately tries to lint a provided source anyway even if it is not part of the
 	# build.

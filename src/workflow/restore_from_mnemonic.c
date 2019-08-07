@@ -14,6 +14,7 @@
 
 #include "restore_from_mnemonic.h"
 
+#include "blocking.h"
 #include "confirm.h"
 #include "password.h"
 #include "status.h"
@@ -23,13 +24,51 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory.h>
+#include <ui/component.h>
+#include <ui/components/trinary_choice.h>
 #include <ui/components/trinary_input_string.h>
+#include <ui/screen_stack.h>
+#include <ui/ui_util.h>
 #include <util.h>
 
 #include <stdio.h>
 #include <string.h>
 
 #define WORKFLOW_RESTORE_FROM_MNEMONIC_MAX_WORDS 24
+
+static trinary_choice_t _number_of_words_choice;
+static void _number_of_words_picked(component_t* trinary_choice, trinary_choice_t choice)
+{
+    (void)trinary_choice;
+    _number_of_words_choice = choice;
+    workflow_blocking_unblock();
+}
+
+/**
+ * Workflow to pick how many words.
+ * @param[out] number_of_words_out 12, 18 or 24.
+ */
+static bool _pick_number_of_words(uint8_t* number_of_words_out)
+{
+    ui_screen_stack_push(
+        trinary_choice_create("How many words?", "12", "18", "24", _number_of_words_picked, NULL));
+    bool result = workflow_blocking_block();
+    ui_screen_stack_pop();
+    switch (_number_of_words_choice) {
+    case TRINARY_CHOICE_LEFT:
+        *number_of_words_out = 12;
+        break;
+    case TRINARY_CHOICE_MIDDLE:
+        *number_of_words_out = 18;
+        break;
+    case TRINARY_CHOICE_RIGHT:
+        *number_of_words_out = 24;
+        break;
+    default:
+        Abort("restore_from_mnemonic: unreachable");
+    }
+    return result;
+}
 
 static void _cleanup_wordlist(char*** wordlist)
 {
@@ -65,7 +104,14 @@ static bool _get_mnemonic(char* mnemonic_out)
         }
     }
 
-    const uint8_t num_words = 24;
+    uint8_t num_words;
+    if (!_pick_number_of_words(&num_words)) {
+        return false;
+    }
+    char num_words_success_msg[20];
+    snprintf(num_words_success_msg, sizeof(num_words_success_msg), "Enter %d words", num_words);
+    workflow_status_create(num_words_success_msg, true);
+
     for (uint8_t word_idx = 0; word_idx < num_words; word_idx++) {
         char word[WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH] = {0};
         char title[50] = {0};

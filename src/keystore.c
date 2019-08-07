@@ -582,14 +582,13 @@ bool keystore_get_u2f_seed(uint8_t* seed_out)
     if (keystore_is_locked()) {
         return false;
     }
+    uint8_t* bip39_seed = _get_bip39_seed();
+    if (bip39_seed == NULL) {
+        return false;
+    }
     const uint8_t message[] = "u2f";
-    if (wally_hmac_sha256(
-            _retained_seed,
-            sizeof(_retained_seed),
-            message,
-            sizeof(message),
-            seed_out,
-            SHA256_LEN) != WALLY_OK) {
+    if (wally_hmac_sha256(bip39_seed, 64, message, sizeof(message), seed_out, SHA256_LEN) !=
+        WALLY_OK) {
         return false;
     }
     return true;

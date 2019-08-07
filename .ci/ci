@@ -21,6 +21,8 @@ make -j8 factory-setup
 # Build and run Unit tests
 make -j8 unit-test
 make -j8 run-unit-tests
+# Check that coverage report building is working.
+make coverage
 
 make -C tools/go/src/atecc608a test
 

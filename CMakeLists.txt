@@ -220,8 +220,7 @@ message(STATUS "Build type:             ${CMAKE_BUILD_TYPE}")
 message(STATUS "Hardware version:       ${HARDWARE}")
 message(STATUS "Verbose:                ${CMAKE_VERBOSE_MAKEFILE}")
 message(STATUS "Documentation:          ${BUILD_DOCUMENTATION}  (make doc)")
-message(STATUS "Coverage flags:         ${BUILD_COVERAGE}")
-message(STATUS "Debug symbols:          ${BUILD_VALGRIND}")
+message(STATUS "Coverage flags:         ${COVERAGE}")
 message(STATUS "\n=============================================\n\n")
 
 #-----------------------------------------------------------------------------

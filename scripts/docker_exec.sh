@@ -15,6 +15,9 @@
 
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+PROJECT_NAME="$(basename $(realpath "$DIR/.."))"
+CONTAINER_NAME=$PROJECT_NAME-dev
+
 
 function docker_cleanup {
     docker exec $IMAGE bash -c "if [ -f $PIDFILE ]; then kill -TERM -\$(cat $PIDFILE); rm $PIDFILE; fi"
@@ -33,4 +36,4 @@ function docker_exec {
     wait $PID
 }
 
-docker_exec firmware_v2-dev "$@"
+docker_exec $CONTAINER_NAME "$@"

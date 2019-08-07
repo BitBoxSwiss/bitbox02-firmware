@@ -23,4 +23,4 @@ docker run ${ci_env} \
 	--volume ${TRAVIS_BUILD_DIR}:/bitbox02-firmware/ \
 	--workdir /bitbox02-firmware \
 	${CONTAINER} \
-	bash -c "bash <(curl -s https://codecov.io/bash) -x gcov-8"
+	bash -c "bash <(curl --fail -s https://codecov.io/bash) -x gcov-8"

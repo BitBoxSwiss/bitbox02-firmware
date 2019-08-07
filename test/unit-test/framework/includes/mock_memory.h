@@ -22,4 +22,5 @@ bool memory_write_to_address_mock(uint32_t addr, uint8_t* chunk);
 bool memory_write_chunk_mock(uint32_t chunk_num, uint8_t* chunk);
 void memory_read_chunk_mock(uint32_t chunk_num, uint8_t* chunk_out);
 void memory_read_shared_bootdata_mock(uint8_t* chunk_out);
+void mock_memory_set_salt_root(const uint8_t* salt_root);
 #endif

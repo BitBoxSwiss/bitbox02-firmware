@@ -23,7 +23,7 @@
  * @param[in] words The words that are displayed on the screen, and through which you can slide
  * through.
  * @param[in] select_word_cb If specified, the callback will be called if the user selects a word.
- * The parameter is the index of the selected word.
+ * The parameter is the index of the selected word. Should not be used with show_index.
  * @param[in] length The word list length.
  * @param[in] show_index If true, displays the index of the current word (starting at 1).
  * @param[in] continue_on_last_cb If set, a checkmark appears when reaching the last word, calling

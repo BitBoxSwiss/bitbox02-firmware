@@ -75,7 +75,7 @@ jlink-flash-bootloader: | build
 jlink-flash-firmware: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware.jlink
 dockerinit:
-	docker build --pull --force-rm  -t shiftcrypto/firmware_v2 .
+	docker build --pull --force-rm -t shiftcrypto/firmware_v2 .
 dockerdev:
 	./scripts/dockerdev.sh
 dockerrun:

@@ -23,7 +23,7 @@
 #include <secp256k1.h>
 #include <wally_bip32.h>
 
-#define KEYSTORE_SEED_LENGTH (32)
+#define KEYSTORE_MAX_SEED_LENGTH (32)
 #define KEYSTORE_U2F_SEED_LENGTH SHA256_LEN
 
 typedef enum {
@@ -44,7 +44,7 @@ void mock_state(const uint8_t* retained_seed, const uint8_t* retained_bip39_seed
  * Copies the retained seed into the given buffer. The caller must
  * zero the seed with util_zero once it is no longer needed.
  * @param[out] seed_out The seed bytes copied from the retained seed.
- * The buffer should be KEYSTORE_SEED_LENGTH bytes long.
+ * The buffer should be KEYSTORE_MAX_SEED_LENGTH bytes long.
  * @param[out] length_out The seed length.
  * @return true if the seed was still retained.
  */

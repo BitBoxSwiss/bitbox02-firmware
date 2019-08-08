@@ -44,6 +44,7 @@
 #include "set_password.h"
 #include "show_logo.h"
 #include "status.h"
+#include "trinary_input_string.h"
 #include "ui_images.h"
 #include "waiting.h"
 

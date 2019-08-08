@@ -93,6 +93,7 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/event_handler.c
     ${CMAKE_SOURCE_DIR}/src/ui/ui_util.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/trinary_input_char.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/trinary_input_string.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/show_logo.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/waiting.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/entry_screen.c

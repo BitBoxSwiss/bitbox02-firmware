@@ -127,10 +127,18 @@ static void _on_event(const event_t* event, component_t* component)
     }
 }
 
+static void _cleanup(component_t* component)
+{
+    data_t* data = (data_t*)component->data;
+    // Just in case something sensitive is shown in a label.
+    util_zero(data->text, sizeof(data->text));
+    ui_util_component_cleanup(component);
+}
+
 /********************************** Label Functions **********************************/
 
 static const component_functions_t _component_functions = {
-    .cleanup = ui_util_component_cleanup,
+    .cleanup = _cleanup,
     .render = _render,
     .on_event = _on_event,
 };

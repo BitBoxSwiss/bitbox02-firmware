@@ -293,7 +293,7 @@ component_t* scroll_through_all_variants_create(
         labels[i] = label;
     }
     if (show_index) {
-        data->index_label = label_create("01", NULL, CENTER_BOTTOM, scroll_through_all_variants);
+        data->index_label = label_create("01", NULL, CENTER_TOP, scroll_through_all_variants);
         _display_index(scroll_through_all_variants);
         ui_util_add_sub_component(scroll_through_all_variants, data->index_label);
     }
@@ -302,7 +302,7 @@ component_t* scroll_through_all_variants_create(
         ui_util_add_sub_component(
             scroll_through_all_variants,
             button_create(
-                "Select", top_slider, SCREEN_WIDTH - 20, _select, scroll_through_all_variants));
+                "Select", bottom_slider, SCREEN_WIDTH / 2, _select, scroll_through_all_variants));
     }
 
     if (cancel_cb != NULL) {

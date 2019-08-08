@@ -36,12 +36,7 @@ static void _pw_entered(const char* password)
 
 bool password_enter(const char* title, char* password_out)
 {
-    ui_screen_stack_push(entry_screen_create(title, workflow_blocking_unblock));
-    if (!workflow_blocking_block()) {
-        ui_screen_stack_pop();
-        return false;
-    }
-    ui_screen_stack_switch(set_password_create(_pw_entered));
+    ui_screen_stack_push(trinary_input_string_create_password(title, _pw_entered, NULL));
     bool result = workflow_blocking_block();
     ui_screen_stack_pop();
     if (!result) {

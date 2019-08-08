@@ -17,8 +17,12 @@
 
 #include <ui/component.h>
 
+#include <stddef.h>
+
 // including null terminator
 #define INPUT_STRING_MAX_SIZE 150
+// to allow drop in replacement to set_password.h
+#define SET_PASSWORD_MAX_PASSWORD_LENGTH INPUT_STRING_MAX_SIZE
 
 /********************************** Create Instance **********************************/
 

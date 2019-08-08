@@ -19,6 +19,7 @@
 #include <cmocka.h>
 
 #include <touch/gestures.h>
+#include <ui/components/set_password.h>
 #include <ui/components/ui_components.h>
 
 #include "mock_component.h"

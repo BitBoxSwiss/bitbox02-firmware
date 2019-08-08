@@ -16,7 +16,7 @@
 #define _PASSWORD_H_
 
 #include <compiler_util.h>
-#include <ui/components/set_password.h> // for SET_PASSWORD_MAX_PASSWORD_LENGTH
+#include <ui/components/trinary_input_string.h> // for SET_PASSWORD_MAX_PASSWORD_LENGTH
 
 #include <stdbool.h>
 

@@ -35,7 +35,17 @@
 #endif
 
 #define EMPTY_CHAR '_'
+#define MASK_CHAR '*'
 #define BLINK_RATE 200
+
+#define STRING_POS_X_START 5
+#define STRING_POS_Y 30
+
+// After entering too many chars and exceeding the screen width, the right end of the last char will
+// end up be at this position.
+#define SCROLL_LEFT_PAD 35
+// Slide to left after exceeding this position
+#define SCROLL_RIGHT_LIMIT (SCREEN_WIDTH - 10)
 
 static char ALPHABET[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 static char alphabet[] = "abcdefghijklmnopqrstuvwxyz";
@@ -55,6 +65,11 @@ typedef struct {
     void (*cancel_cb)(void);
 
     // Internals follow.
+
+    // Start rendering string here
+    UG_S16 start_x;
+    // Slide to target.
+    UG_S16 target_x;
 
     // Only applies if wordlist = NULL, in which case the user can select the keyboard mode.
     keyboard_mode_t input_mode;
@@ -80,6 +95,35 @@ static void _cleanup(component_t* component)
     ui_util_component_cleanup(component);
 }
 
+/**
+ * Computes width of inputted string, including trailing underscore.  If hidden, the last letter is
+ * treated as masked as well, so that different widths of letters do not change the total width for
+ * the purpose of scrolling (since going backwards would be a different width than going forward,
+ * with the last letter never being shown when going backwards).
+ *
+ */
+static UG_S16 _constant_string_width(const component_t* component)
+{
+    data_t* data = (data_t*)component->data;
+    UG_S16 width = 0;
+    for (size_t i = 0; i <= data->string_index; i++) {
+        char chr;
+        if (i == data->string_index) {
+            chr = EMPTY_CHAR;
+        } else if (!data->hide) {
+            chr = data->string[i];
+        } else {
+            chr = MASK_CHAR;
+        }
+        width += font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
+        width += 1;
+        if (data->hide) {
+            width += 1;
+        }
+    }
+    return width;
+}
+
 static void _render(component_t* component)
 {
     static int frame_counter = 0;
@@ -91,10 +135,19 @@ static void _render(component_t* component)
         data->can_confirm && data->longtouch && confirm_gesture_is_active(data->confirm_component);
     bool show_title =
         data->string_index == 0 && !trinary_input_char_in_progress(data->trinary_char_component);
-    uint8_t string_x = 5;
+
+    UG_S16 string_x = data->start_x;
+
+    if (frame_counter % 3 == 0 && data->target_x != data->start_x) {
+        int fx = data->target_x > data->start_x ? 1 : -1;
+        int offset = (data->target_x - data->start_x) / 5;
+        if (offset == 0) offset = fx;
+        data->start_x += offset;
+    }
+
     UG_FontSelect(&font_font_a_11X12);
     for (size_t i = 0; i <= data->string_index; i++) {
-        uint8_t string_y = 30;
+        uint8_t string_y = STRING_POS_Y;
 
         if (i == data->string_index &&
             (confirm_gesture_active || show_title || blink ||
@@ -112,17 +165,27 @@ static void _render(component_t* component)
             // Show character (or only last entered character in if input is hidden).
             chr = data->string[i];
         } else {
-            chr = '*';
+            chr = MASK_CHAR;
             // render vertically in middle, not at the top.
             string_y += 3;
         }
-        UG_PutChar(chr, string_x, string_y, screen_front_color, screen_back_color, false);
+        if (string_x >= 0) {
+            UG_PutChar(chr, string_x, string_y, screen_front_color, screen_back_color, false);
+        }
         const uint8_t width = font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
         string_x += width + 1;
         if (data->hide) {
             // A bit more horizontal spacing if the input is masked.
             string_x += 1;
         }
+    }
+
+    // Draw '...' when the left part scrolled out of view.
+    if (data->target_x < STRING_POS_X_START) {
+        // HACK: blank out the chars rendered at this position first.
+        UG_FillFrame(
+            0, STRING_POS_Y, 11, STRING_POS_Y + font_font_a_11X12.char_height, screen_back_color);
+        UG_PutString(0, STRING_POS_Y, "...", false);
     }
 
     // Render sub-components
@@ -229,6 +292,12 @@ static void _on_event(const event_t* event, component_t* component)
             data->string_index--;
             data->string[data->string_index] = '\0';
             data->show_last_character = false;
+            UG_S16 string_width = _constant_string_width(component);
+            if (data->target_x < STRING_POS_X_START &&
+                data->target_x + string_width < SCROLL_LEFT_PAD) {
+                data->target_x = SCROLL_RIGHT_LIMIT - string_width;
+                // data->target_x += MIN(SCREEN_WIDTH - SCROLL_RIGHT_LIMIT, string_width);
+            }
         } else if (data->cancel_cb != NULL) {
             data->cancel_cb();
         }
@@ -237,12 +306,6 @@ static void _on_event(const event_t* event, component_t* component)
         break;
     default:
         break;
-    }
-
-    if (data->string_index + 1 >= INPUT_STRING_MAX_SIZE) {
-        event_t e;
-        e.id = EVENT_CONFIRM;
-        emit_event(&e);
     }
 }
 
@@ -262,6 +325,16 @@ static void _letter_chosen(component_t* trinary_char, char chosen)
     data->show_last_character = true;
     _set_alphabet(trinary_input_string);
     _set_can_confirm(trinary_input_string);
+    UG_S16 string_width = _constant_string_width(trinary_input_string);
+    if (data->target_x + string_width > SCROLL_RIGHT_LIMIT) {
+        data->target_x = -string_width + SCROLL_LEFT_PAD;
+    }
+
+    if (data->string_index + 1 >= INPUT_STRING_MAX_SIZE) {
+        event_t e;
+        e.id = EVENT_CONFIRM;
+        emit_event(&e);
+    }
 }
 
 static const component_functions_t component_functions = {
@@ -299,6 +372,8 @@ static component_t* _create(
     data->hide = hide;
     data->longtouch = longtouch;
 
+    data->target_x = STRING_POS_X_START;
+    data->start_x = data->target_x;
     data->input_mode = LOWER_CASE;
 
     component->data = data;
@@ -327,6 +402,7 @@ static component_t* _create(
     ui_util_add_sub_component(component, data->trinary_char_component);
     _set_alphabet(component);
     _set_can_confirm(component);
+
     return component;
 }
 

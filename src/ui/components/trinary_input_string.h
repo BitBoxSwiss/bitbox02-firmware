@@ -17,7 +17,8 @@
 
 #include <ui/component.h>
 
-#define INPUT_STRING_MAX_SIZE 10
+// including null terminator
+#define INPUT_STRING_MAX_SIZE 150
 
 /********************************** Create Instance **********************************/
 

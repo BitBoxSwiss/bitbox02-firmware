@@ -15,6 +15,7 @@
 #include "reset.h"
 
 #include "hardfault.h"
+#include "keystore.h"
 #include "memory.h"
 #ifndef TESTING
 #include "securechip/securechip.h"
@@ -22,6 +23,7 @@
 
 void reset_reset(void)
 {
+    keystore_lock();
 #ifndef TESTING
     if (!securechip_update_keys()) {
         Abort("Could not reset secure chip.");

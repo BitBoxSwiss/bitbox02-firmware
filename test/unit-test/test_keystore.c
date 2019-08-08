@@ -231,7 +231,7 @@ static void _test_keystore_encrypt_and_store_seed(void** state)
 
 static void _expect_seeded(bool seeded)
 {
-    uint8_t seed[KEYSTORE_SEED_LENGTH];
+    uint8_t seed[KEYSTORE_MAX_SEED_LENGTH];
     uint32_t len;
     assert_int_equal(seeded, keystore_copy_seed(seed, &len));
 }

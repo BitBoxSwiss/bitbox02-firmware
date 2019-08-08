@@ -100,3 +100,14 @@ bool __wrap_memory_set_mnemonic_passphrase_enabled(bool enabled)
     check_expected(enabled);
     return mock();
 }
+
+static uint8_t _salt_root[32];
+void mock_memory_set_salt_root(const uint8_t* salt_root)
+{
+    memcpy(_salt_root, salt_root, 32);
+}
+bool __wrap_memory_get_salt_root(uint8_t* salt_root_out)
+{
+    memcpy(salt_root_out, _salt_root, 32);
+    return true;
+}

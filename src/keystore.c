@@ -40,9 +40,9 @@
 // change this ONLY via keystore_unlock() or keystore_lock()
 static bool _is_unlocked_device = false;
 // seed length defaults to 32 bytes, but we could accept smaller seeds in the future.
-static uint8_t _seed_length = KEYSTORE_SEED_LENGTH;
+static uint8_t _seed_length = KEYSTORE_MAX_SEED_LENGTH;
 // must be defined if is_unlocked is true. ONLY ACCESS THIS WITH _get_seed()
-static uint8_t _retained_seed[KEYSTORE_SEED_LENGTH] = {0};
+static uint8_t _retained_seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
 
 // change this ONLY via keystore_unlock_bip39().
 static bool _is_unlocked_bip39 = false;
@@ -54,6 +54,7 @@ void mock_state(const uint8_t* retained_seed, const uint8_t* retained_bip39_seed
 {
     _is_unlocked_device = retained_seed != NULL;
     if (retained_seed != NULL) {
+        _seed_length = KEYSTORE_MAX_SEED_LENGTH;
         memcpy(_retained_seed, retained_seed, sizeof(_retained_seed));
     }
     _is_unlocked_bip39 = retained_bip39_seed != NULL;
@@ -63,15 +64,23 @@ void mock_state(const uint8_t* retained_seed, const uint8_t* retained_bip39_seed
 }
 #endif
 
+/**
+ * We allow seeds of 16, 24 or 32 bytes.
+ */
+static bool _validate_seed_length(size_t seed_len)
+{
+    return seed_len == 16 || seed_len == 24 || seed_len == 32;
+}
+
 static uint8_t* _get_seed(void)
 {
     if (!_is_unlocked_device) {
         return NULL;
     }
     // sanity check
-    uint8_t zero[KEYSTORE_SEED_LENGTH] = {0};
+    uint8_t zero[KEYSTORE_MAX_SEED_LENGTH] = {0};
     util_zero(zero, sizeof(zero));
-    if (MEMEQ(_retained_seed, zero, KEYSTORE_SEED_LENGTH)) {
+    if (MEMEQ(_retained_seed, zero, KEYSTORE_MAX_SEED_LENGTH)) {
         return NULL;
     }
     return _retained_seed;
@@ -149,10 +158,10 @@ static bool _stretch_password(const char* password, uint8_t* kdf_out)
 
     return true;
 }
-
 static bool _get_and_decrypt_seed(
     const char* password,
     uint8_t* decrypted_seed_out,
+    size_t* decrypted_seed_len_out,
     bool* password_correct_out)
 {
     uint8_t encrypted_seed_and_hmac[96];
@@ -174,28 +183,36 @@ static bool _get_and_decrypt_seed(
     *password_correct_out = cipher_aes_hmac_decrypt(
         encrypted_seed_and_hmac, encrypted_len, decrypted, &decrypted_len, secret);
     if (*password_correct_out) {
-        if (decrypted_len != KEYSTORE_SEED_LENGTH) {
+        if (!_validate_seed_length(decrypted_len)) {
             util_zero(decrypted, sizeof(decrypted));
             return false;
         }
+        *decrypted_seed_len_out = decrypted_len;
         memcpy(decrypted_seed_out, decrypted, decrypted_len);
     }
     util_zero(decrypted, sizeof(decrypted));
     return true;
 }
 
-static bool _verify_seed(const char* password, const uint8_t* expected_seed)
+static bool _verify_seed(
+    const char* password,
+    const uint8_t* expected_seed,
+    size_t expected_seed_len)
 {
-    uint8_t decrypted_seed[KEYSTORE_SEED_LENGTH] = {0};
+    uint8_t decrypted_seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
+    size_t seed_len;
     UTIL_CLEANUP_32(decrypted_seed);
     bool password_correct = false;
-    if (!_get_and_decrypt_seed(password, decrypted_seed, &password_correct)) {
+    if (!_get_and_decrypt_seed(password, decrypted_seed, &seed_len, &password_correct)) {
         return false;
     }
     if (!password_correct) {
         return false;
     }
-    if (!MEMEQ(expected_seed, decrypted_seed, sizeof(decrypted_seed))) {
+    if (expected_seed_len != seed_len) {
+        return false;
+    }
+    if (!MEMEQ(expected_seed, decrypted_seed, seed_len)) {
         return false;
     }
     return true;
@@ -209,7 +226,7 @@ bool keystore_encrypt_and_store_seed(
     if (memory_is_initialized()) {
         return false;
     }
-    if (seed_length > 32) {
+    if (!_validate_seed_length(seed_length)) {
         return false;
     }
     // Update the two kdf keys before setting a new password. This already
@@ -224,10 +241,10 @@ bool keystore_encrypt_and_store_seed(
         return false;
     }
 
-    size_t encrypted_seed_len = 32 + 64;
+    size_t encrypted_seed_len = seed_length + 64;
     uint8_t encrypted_seed[encrypted_seed_len];
     UTIL_CLEANUP_32(encrypted_seed);
-    if (!cipher_aes_hmac_encrypt(seed, 32, encrypted_seed, &encrypted_seed_len, secret)) {
+    if (!cipher_aes_hmac_encrypt(seed, seed_length, encrypted_seed, &encrypted_seed_len, secret)) {
         return false;
     }
     if (encrypted_seed_len > 255) { // sanity check, can't happen
@@ -236,7 +253,7 @@ bool keystore_encrypt_and_store_seed(
     if (!memory_set_encrypted_seed_and_hmac(encrypted_seed, encrypted_seed_len)) {
         return false;
     }
-    if (!_verify_seed(password, seed)) {
+    if (!_verify_seed(password, seed, seed_length)) {
         if (!memory_reset_hww()) {
             return false;
         }
@@ -247,20 +264,20 @@ bool keystore_encrypt_and_store_seed(
 
 bool keystore_create_and_store_seed(const char* password, const uint8_t* host_entropy)
 {
-    if (KEYSTORE_SEED_LENGTH != RANDOM_NUM_SIZE) {
+    if (KEYSTORE_MAX_SEED_LENGTH != RANDOM_NUM_SIZE) {
         Abort("keystore create: size mismatch");
     }
-    uint8_t seed[KEYSTORE_SEED_LENGTH];
+    uint8_t seed[KEYSTORE_MAX_SEED_LENGTH];
     UTIL_CLEANUP_32(seed);
     random_32_bytes(seed);
 
     // Mix in Host entropy.
-    for (size_t i = 0; i < KEYSTORE_SEED_LENGTH; i++) {
+    for (size_t i = 0; i < KEYSTORE_MAX_SEED_LENGTH; i++) {
         seed[i] ^= host_entropy[i];
     }
 
     // Mix in entropy derived from the user password.
-    uint8_t password_salted_hashed[KEYSTORE_SEED_LENGTH] = {0};
+    uint8_t password_salted_hashed[KEYSTORE_MAX_SEED_LENGTH] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
     if (!salt_hash_data(
             (const uint8_t*)password,
@@ -270,11 +287,11 @@ bool keystore_create_and_store_seed(const char* password, const uint8_t* host_en
         return false;
     }
 
-    for (size_t i = 0; i < KEYSTORE_SEED_LENGTH; i++) {
+    for (size_t i = 0; i < KEYSTORE_MAX_SEED_LENGTH; i++) {
         seed[i] ^= password_salted_hashed[i];
     }
 
-    return keystore_encrypt_and_store_seed(seed, KEYSTORE_SEED_LENGTH, password);
+    return keystore_encrypt_and_store_seed(seed, KEYSTORE_MAX_SEED_LENGTH, password);
 }
 
 static void _free_string(char** str)
@@ -293,20 +310,22 @@ keystore_error_t keystore_unlock(const char* password, uint8_t* remaining_attemp
         reset_reset();
         return KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED;
     }
-    uint8_t seed[KEYSTORE_SEED_LENGTH] = {0};
+    uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
     UTIL_CLEANUP_32(seed);
+    size_t seed_len;
     bool password_correct = false;
-    if (!_get_and_decrypt_seed(password, seed, &password_correct)) {
+    if (!_get_and_decrypt_seed(password, seed, &seed_len, &password_correct)) {
         return KEYSTORE_ERR_GENERIC;
     }
     if (password_correct) {
         if (_is_unlocked_device) {
             // Already unlocked. Fail if the seed changed under our feet (should never happen).
-            if (!MEMEQ(_retained_seed, seed, sizeof(_retained_seed))) {
+            if (seed_len != _seed_length || !MEMEQ(_retained_seed, seed, _seed_length)) {
                 return KEYSTORE_ERR_GENERIC;
             }
         } else {
-            memcpy(_retained_seed, seed, sizeof(_retained_seed));
+            memcpy(_retained_seed, seed, seed_len);
+            _seed_length = seed_len;
             _is_unlocked_device = true;
         }
         if (!memory_reset_failed_unlock_attempts()) {
@@ -332,9 +351,12 @@ bool keystore_unlock_bip39(const char* mnemonic_passphrase)
     if (!_is_unlocked_device) {
         return false;
     }
+    uint8_t* seed = _get_seed();
+    if (seed == NULL) {
+        return false;
+    }
     char* mnemonic __attribute__((__cleanup__(_free_string))) = NULL;
-    if (bip39_mnemonic_from_bytes(NULL, _retained_seed, sizeof(_retained_seed), &mnemonic) !=
-        WALLY_OK) {
+    if (bip39_mnemonic_from_bytes(NULL, seed, _seed_length, &mnemonic) != WALLY_OK) {
         return false;
     }
     uint8_t bip39_seed[BIP39_SEED_LEN_512] = {0};
@@ -352,6 +374,7 @@ void keystore_lock(void)
 {
     _is_unlocked_device = false;
     _is_unlocked_bip39 = false;
+    _seed_length = KEYSTORE_MAX_SEED_LENGTH;
     util_zero(_retained_seed, sizeof(_retained_seed));
     util_zero(_retained_bip39_seed, sizeof(_retained_bip39_seed));
 }
@@ -371,7 +394,7 @@ bool keystore_get_bip39_mnemonic(char** mnemonic_out)
     if (seed == NULL) {
         return false;
     }
-    return bip39_mnemonic_from_bytes(NULL, seed, KEYSTORE_SEED_LENGTH, mnemonic_out) == WALLY_OK;
+    return bip39_mnemonic_from_bytes(NULL, seed, _seed_length, mnemonic_out) == WALLY_OK;
 }
 
 static bool _get_xprv(const uint32_t* keypath, const size_t keypath_len, struct ext_key* xprv_out)
@@ -582,14 +605,13 @@ bool keystore_get_u2f_seed(uint8_t* seed_out)
     if (keystore_is_locked()) {
         return false;
     }
+    uint8_t* bip39_seed = _get_bip39_seed();
+    if (bip39_seed == NULL) {
+        return false;
+    }
     const uint8_t message[] = "u2f";
-    if (wally_hmac_sha256(
-            _retained_seed,
-            sizeof(_retained_seed),
-            message,
-            sizeof(message),
-            seed_out,
-            SHA256_LEN) != WALLY_OK) {
+    if (wally_hmac_sha256(bip39_seed, 64, message, sizeof(message), seed_out, SHA256_LEN) !=
+        WALLY_OK) {
         return false;
     }
     return true;

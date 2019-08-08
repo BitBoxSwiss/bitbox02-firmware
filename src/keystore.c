@@ -21,7 +21,6 @@
 #include "random.h"
 #include "reset.h"
 #include "salt.h"
-#include "screen.h"
 #include "securechip/securechip.h"
 #include "util.h"
 

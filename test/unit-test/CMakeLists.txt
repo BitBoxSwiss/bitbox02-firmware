@@ -22,12 +22,12 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-missing-prototype
 
 set(FILTERED_SOURCES "")
 foreach(file IN ITEMS ${DBB-FIRMWARE-UI-SOURCES})
-    if(NOT ${file} MATCHES "src/screen.c$" AND NOT ${file} MATCHES "ugui.c$")
-    set(FILTERED_SOURCES
-        ${FILTERED_SOURCES}
-        ${file}
-    )
-    endif()
+  if(NOT ${file} MATCHES "src/screen.c$" AND NOT ${file} MATCHES "ugui.c$")
+  set(FILTERED_SOURCES
+    ${FILTERED_SOURCES}
+    ${file}
+  )
+  endif()
 endforeach(file)
 set(DBB-FIRMWARE-UI-SOURCES ${FILTERED_SOURCES})
 
@@ -71,10 +71,6 @@ add_library(bitbox
   framework/mock_ff.c
   framework/mock_sd.c
   framework/mock_securechip.c
-  u2f/sha2.c
-  u2f/ecc.c
-  u2f/uECC.c
-  u2f/u2f_util_t.c
 )
 
 set_source_files_properties(
@@ -102,10 +98,20 @@ if(COVERAGE)
   target_compile_options(bitbox PUBLIC "--coverage")
 endif()
 
-target_link_libraries(bitbox PRIVATE hidapi-hidraw)
 target_link_libraries(bitbox PRIVATE "noiseprotocol")
 target_link_libraries(bitbox PRIVATE "wallycore")
 target_link_libraries(bitbox PRIVATE "secp256k1")
+
+add_library(u2f-util
+  STATIC
+  u2f/sha2.c
+  u2f/ecc.c
+  u2f/uECC.c
+  u2f/u2f_util_t.c
+)
+target_compile_definitions(u2f-util PUBLIC "TESTING")
+target_compile_definitions(u2f-util PUBLIC "USE_KECCAK")
+
 
 #-----------------------------------------------------------------------------
 # Tests
@@ -167,10 +173,6 @@ set(TEST_LIST
    "-Wl,--wrap=workflow_confirm_scrollable,--wrap=memory_set_device_name"
    commander_set_mnemonic_passphrase_enabled
    "-Wl,--wrap=workflow_confirm,--wrap=memory_set_mnemonic_passphrase_enabled"
-   u2f_standard
-   ""
-   u2f_hid
-   ""
    workflow_blocking
    "-Wl,--wrap=ui_screen_process,--wrap=ui_screen_process_with_timeout"
    workflow_status
@@ -190,9 +192,56 @@ foreach(I RANGE 0 ${TEST_LIST_LEN} 2)
   set(EXE test_${TEST_NAME})
   add_executable(${EXE} test_${TEST_NAME}.c)
   # asan must be first library in linking order
-  target_link_libraries(${EXE} bitbox
+  target_link_libraries(${EXE} PRIVATE
     $<$<BOOL:SANITIZE_ADDRESS>:asan>
     $<$<BOOL:SANITIZE_UNDEFINED>:-fsanitize=undefined>
-    ${CMOCKA_LIBRARIES} ${TEST_LINK_ARGS})
+    bitbox
+    ${CMOCKA_LIBRARIES}
+    ${TEST_LINK_ARGS}
+  )
   add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
+endforeach()
+
+
+# These unit tests for U2F are special because they don't call any bitbox functions directly, instead they go through hid_read/write.
+# They are copied from https://github.com/google/u2f-ref-code/tree/master/u2f-tests/HID
+set(U2F_TESTS
+   u2f_standard
+   "-Wl,--wrap=workflow_confirm_with_timeout,--wrap=workflow_unlock"
+   u2f_hid
+   "-Wl,--wrap=workflow_status_create"
+)
+list(LENGTH U2F_TESTS U2F_TESTS_LEN)
+math(EXPR U2F_TESTS_LEN ${U2F_TESTS_LEN}-1)
+foreach(I RANGE 0 ${U2F_TESTS_LEN} 2)
+  math(EXPR I2 ${I}+1)
+  list(GET U2F_TESTS ${I} TEST_NAME)
+  list(GET U2F_TESTS ${I2} TEST_LINK_ARGS)
+  set(EXE test_${TEST_NAME})
+
+  # This tests link to our code
+  add_executable(${EXE} test_${TEST_NAME}.c framework/mock_hidapi.c)
+  target_link_libraries(${EXE} PRIVATE
+    $<$<BOOL:SANITIZE_ADDRESS>:asan>
+    $<$<BOOL:SANITIZE_UNDEFINED>:-fsanitize=undefined>
+    bitbox
+    u2f-util
+    ${CMOCKA_LIBRARIES}
+    ${TEST_LINK_ARGS}
+  )
+  target_compile_definitions(${EXE} PRIVATE "TESTING")
+  add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
+
+  # Running these two tests require a hardware device connected and they link to the real libhidapi.
+  set(EXE test_${TEST_NAME}_with_hardware)
+  add_executable(${EXE} test_${TEST_NAME}.c)
+  # asan must be first library in linking order
+  target_link_libraries(${EXE} PRIVATE
+    $<$<BOOL:SANITIZE_ADDRESS>:asan>
+    $<$<BOOL:SANITIZE_UNDEFINED>:-fsanitize=undefined>
+    u2f-util
+    hidapi-hidraw
+    ${CMOCKA_LIBRARIES}
+  )
+  target_compile_definitions(${EXE} PRIVATE "TESTING" "WITH_HARDWARE")
 endforeach()

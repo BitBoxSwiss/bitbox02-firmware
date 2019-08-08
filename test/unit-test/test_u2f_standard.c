@@ -21,11 +21,8 @@
 #include <string.h>
 #include <time.h>
 
-#include "memory.h"
-#include "random.h"
 #include "u2f/ecc.h"
 #include "u2f/sha2.h"
-#include "util.h"
 
 #include "u2f.h"
 #include "u2f/u2f_util_t.h"
@@ -38,21 +35,32 @@ struct U2Fob* device;
 U2F_REGISTER_REQ regReq;
 U2F_REGISTER_RESP regRsp;
 
+static void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
+{
+    static char digits[] = "0123456789abcdef";
+    size_t i;
+    for (i = 0; i < in_len; i++) {
+        out[i * 2] = digits[(in_bin[i] >> 4) & 0xF];
+        out[i * 2 + 1] = digits[in_bin[i] & 0xF];
+    }
+    out[in_len * 2] = '\0';
+}
+
+#if defined(WITH_HARDWARE)
 static void WaitForUserPresence(struct U2Fob* dev, bool hasButton)
 {
     char msg[1];
     U2Fob_close(dev);
-    if (U2Fob_liveDeviceTesting()) {
-        if (hasButton) {
-            PRINT_MESSAGE("Hit enter then CONFIRM on the device...");
-        }
-        if (scanf("%c", msg)) {
-            (void)msg;
-        }
+    if (hasButton) {
+        PRINT_MESSAGE("Hit enter then CONFIRM on the device...");
+    }
+    if (scanf("%c", msg)) {
+        (void)msg;
     }
     CHECK_EQ(0, U2Fob_reopen(dev));
     CHECK_EQ(0, U2Fob_init(dev));
 }
+#endif
 
 static void test_Version(void)
 {
@@ -206,6 +214,8 @@ static void test_Enroll(int expectedSW12, int printinfo)
 }
 
 // returns ctr
+// TODO: Test without hardware as well.
+#if defined(WITH_HARDWARE)
 static uint32_t test_Sign(int expectedSW12, bool checkOnly)
 {
     U2F_AUTHENTICATE_REQ authReq;
@@ -282,6 +292,7 @@ static uint32_t test_Sign(int expectedSW12, bool checkOnly)
 
     return ((resp.ctr[0] << 24) + (resp.ctr[1] << 16) + (resp.ctr[2] << 8) + (resp.ctr[3]));
 }
+#endif
 
 static void check_Compilation(void)
 {
@@ -306,16 +317,19 @@ static void run_tests(void)
         PASS(test_BadCLA());
 
         // Fob with button should need touch.
-        if (U2Fob_liveDeviceTesting() && arg_hasButton) {
+        if (arg_hasButton) {
             // Timeout
             PRINT_MESSAGE("PRESS abort or WAIT for device to timeout.\n");
             PASS(test_Enroll(0x6985, 1));
         }
+        // TODO: Wrap lower level functions to run below tests without hardware
+        // Since we are using securechip for signing, we need to emulate that in software.
+#if defined(WITH_HARDWARE)
         WaitForUserPresence(device, arg_hasButton);
         PASS(test_Enroll(0x9000, 1));
 
         // Fob with button should have consumed touch.
-        if (U2Fob_liveDeviceTesting() && arg_hasButton) {
+        if (arg_hasButton) {
             // Timeout
             PRINT_MESSAGE("Press ABORT or wait for device to timeout.\n");
             PASS(test_Sign(0x6985, false));
@@ -340,19 +354,16 @@ static void run_tests(void)
 
         uint32_t ctr1;
         PASS(ctr1 = test_Sign(0x9000, false)); // < fails
-        if (U2Fob_liveDeviceTesting()) {
-            // Timeout
-            PRINT_MESSAGE("Press ABORT or wait for device to timeout.\n");
-            PASS(test_Sign(0x6985, false));
-        }
+        // Timeout
+        PRINT_MESSAGE("Press ABORT or wait for device to timeout.\n");
+        PASS(test_Sign(0x6985, false));
 
         WaitForUserPresence(device, arg_hasButton);
-
         uint32_t ctr2;
         PASS(ctr2 = test_Sign(0x9000, false));
-
         // Ctr should have incremented by 1.
         CHECK_EQ(ctr2, ctr1 + 1);
+#endif
 
     } else {
         PRINT_MESSAGE("\n\nNot testing HID API. A device is not connected.\n\n");
@@ -366,12 +377,8 @@ static void run_tests(void)
 int main(void)
 {
     // Live test of the HID API
-#ifndef CONTINUOUS_INTEGRATION
-    U2Fob_testLiveDevice(1);
     PRINT_MESSAGE("\n\nHID API Result:\n");
     run_tests();
-#endif
-
     PRINT_MESSAGE("\nALL TESTS PASSED\n\n");
     return 0;
 }

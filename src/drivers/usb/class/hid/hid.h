@@ -84,7 +84,7 @@ int32_t hid_read(struct hid_func_data* func_data, uint8_t *buf, uint32_t size);
  * @param[IN] buf The address of the buffer from which we read.
  * @param[IN] size The size of the buffer.
  */
-int32_t hid_write(struct hid_func_data* func_data, uint8_t *buf, uint32_t size);
+int32_t hid_write(struct hid_func_data* func_data, const uint8_t *buf, uint32_t size);
 
 /**
  * Registers a callback for a given transfer type.

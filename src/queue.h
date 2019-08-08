@@ -30,11 +30,13 @@ uint8_t queue_push(const uint8_t* data);
 /**
  * Return the first data that was added to the queue.
  */
-uint8_t* queue_pull(void);
+const uint8_t* queue_pull(void);
 
 /**
  * Clear the queue.
  */
 void queue_clear(void);
+
+const uint8_t* queue_peek(void);
 
 #endif

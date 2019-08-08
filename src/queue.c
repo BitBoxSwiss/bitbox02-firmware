@@ -33,7 +33,7 @@ void queue_clear(void)
     _index_start = _index_end;
 }
 
-uint8_t* queue_pull(void)
+const uint8_t* queue_pull(void)
 {
     uint32_t p = _index_start;
     if (p == _index_end) {
@@ -53,4 +53,14 @@ uint8_t queue_push(const uint8_t* data)
     memcpy(_packets[_index_end], data, USB_REPORT_SIZE);
     _index_end = next;
     return ERR_NONE;
+}
+
+const uint8_t* queue_peek(void)
+{
+    uint32_t p = _index_start;
+    if (p == _index_end) {
+        // queue is empty
+        return NULL;
+    }
+    return _packets[p];
 }

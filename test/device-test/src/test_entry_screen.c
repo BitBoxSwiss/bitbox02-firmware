@@ -85,30 +85,30 @@ static const component_functions_t component_functions = {.cleanup = ui_util_com
  * Creates an entry screen.
  * @param[in] done_callback The callback that is called when the user touches to enter.
  */
-static component_t* entry_screen_create(const char* text, void (*done_callback)(void))
-{
-    component_t* entry_screen = malloc(sizeof(component_t));
-    if (!entry_screen) Abort("Error: malloc entry_screen");
-    entry_screen_data* data = malloc(sizeof(entry_screen_data));
-    if (!data) Abort("Error: malloc entry_screen data");
-    memset(entry_screen, 0, sizeof(component_t));
-    memset(data, 0, sizeof(entry_screen_data));
-
-    data->done_callback = done_callback;
-
-    entry_screen->data = data;
-    entry_screen->parent = NULL;
-    entry_screen->f = &component_functions;
-    entry_screen->dimension.width = SCREEN_WIDTH;
-    entry_screen->dimension.height = SCREEN_HEIGHT;
-    entry_screen->position.top = 0;
-    entry_screen->position.left = 0;
-
-    ui_util_add_sub_component(entry_screen, knight_rider_create(entry_screen));
-    ui_util_add_sub_component(entry_screen, label_create_big(text, CENTER, 0, entry_screen));
-
-    return entry_screen;
-}
+// static component_t* entry_screen_create(const char* text, void (*done_callback)(void))
+//{
+//    component_t* entry_screen = malloc(sizeof(component_t));
+//    if (!entry_screen) Abort("Error: malloc entry_screen");
+//    entry_screen_data* data = malloc(sizeof(entry_screen_data));
+//    if (!data) Abort("Error: malloc entry_screen data");
+//    memset(entry_screen, 0, sizeof(component_t));
+//    memset(data, 0, sizeof(entry_screen_data));
+//
+//    data->done_callback = done_callback;
+//
+//    entry_screen->data = data;
+//    entry_screen->parent = NULL;
+//    entry_screen->f = &component_functions;
+//    entry_screen->dimension.width = SCREEN_WIDTH;
+//    entry_screen->dimension.height = SCREEN_HEIGHT;
+//    entry_screen->position.top = 0;
+//    entry_screen->position.left = 0;
+//
+//    ui_util_add_sub_component(entry_screen, knight_rider_create(entry_screen));
+//    ui_util_add_sub_component(entry_screen, label_create_big(text, CENTER, 0, entry_screen));
+//
+//    return entry_screen;
+//}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 

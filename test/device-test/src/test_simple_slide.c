@@ -48,12 +48,12 @@ typedef struct {
 static void test_slide_on_event(const event_t* event, component_t* component)
 {
     test_slide_data_t* data = (test_slide_data_t*)component->data;
-    input_event_data_t* event_data = (input_event_data_t*)event->data;
-    if (event_data->direction == FORWARD) {
-        label_update(data->label, "slide forward");
-    } else {
-        label_update(data->label, "slide backward");
-    }
+    // gestures_slider_data_t* event_data = (gestures_slider_data_t*)event->data;
+    // if (event_data->direction == FORWARD) {
+    //    label_update(data->label, "slide forward");
+    //} else {
+    //    label_update(data->label, "slide backward");
+    //}
 }
 
 /**
@@ -84,8 +84,8 @@ static component_t* test_slide_create(void)
     data->label = label;
     ui_util_add_sub_component(test_slide, label);
 
-    ui_util_add_sub_component(test_slide, slider_bar_create(top_slider, test_slide));
-    ui_util_add_sub_component(test_slide, slider_bar_create(bottom_slider, test_slide));
+    // ui_util_add_sub_component(test_slide, slider_bar_create(top_slider, test_slide));
+    // ui_util_add_sub_component(test_slide, slider_bar_create(bottom_slider, test_slide));
 
     return test_slide;
 }

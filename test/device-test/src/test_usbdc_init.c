@@ -12,29 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "common_main.h"
 #include "driver_init.h"
 #include "memory.h"
 #include "qtouch.h"
 #include "random.h"
 #include "screen.h"
-#include "ssd1306.h"
-#include "touch.h"
-#include "ugui.h"
-#include "usb.h"
+#include "ui/oled/oled.h"
+#include "ui/ugui/ugui.h"
 #include "usb_desc.h"
 #include "usbdc.h"
 #include "utils.h"
 #include <string.h>
+#include <ui/fonts/arial_fonts.h>
+#include <usb/usb.h>
 
 uint32_t __stack_chk_guard = 0;
-
-extern void __attribute__((noreturn)) __stack_chk_fail(void);
-void __attribute__((noreturn)) __stack_chk_fail(void)
-{
-    screen_print_debug("Stack smashing detected", 0);
-    while (1) {
-    }
-}
 
 // USB_REPORT_SIZE = 0x40
 static uint8_t usb_ctrl_endpoint_buffer[USB_REPORT_SIZE];
@@ -42,11 +35,15 @@ static uint8_t usb_ctrl_endpoint_buffer[USB_REPORT_SIZE];
 int main(void)
 {
     system_init();
-    __stack_chk_guard = random_uint32();
+    __stack_chk_guard = common_stack_chk_guard();
 
     UG_GUI guioled; // Global GUI structure (OLED)
-    UG_Init(&guioled, (void (*)(UG_S16, UG_S16, UG_COLOR))OLED_PSET, SCREEN_WIDTH, SCREEN_HEIGHT);
-    UG_SelectGUI(&guioled);
+    UG_Init(
+        &guioled,
+        (void (*)(UG_S16, UG_S16, UG_COLOR))oled_set_pixel,
+        &font_font_a_9X9,
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT);
     screen_print_debug("before test", 1000);
 
     int32_t init_error = usbdc_init(usb_ctrl_endpoint_buffer);

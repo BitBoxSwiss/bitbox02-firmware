@@ -115,6 +115,8 @@ static uint8_t _create_random_unique_words(const char** wordlist, uint8_t length
     return index_word;
 }
 
+static void _cancel(void) {}
+
 #define NUM_RANDOM_WORDS 5
 #define NUM_CONFIRM_WORDS (NUM_RANDOM_WORDS + 1)
 
@@ -131,7 +133,7 @@ int main(void)
     wordlist[NUM_CONFIRM_WORDS - 1] = "Back to seed phrase";
 
     component_t* confirm_mnemonic =
-        confirm_mnemonic_create(wordlist, NUM_CONFIRM_WORDS, 0, _confirm_mnemonic);
+        confirm_mnemonic_create(wordlist, NUM_CONFIRM_WORDS, 0, _confirm_mnemonic, _cancel);
     ui_screen_stack_switch(confirm_mnemonic);
 
     ui_screen_process(NULL);

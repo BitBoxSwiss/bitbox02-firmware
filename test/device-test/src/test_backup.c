@@ -69,7 +69,7 @@ static bool _setup_wally(void)
 
 static void _test_backup(time_t timestamp)
 {
-    backup_error_t res = backup_create(timestamp, 3600);
+    backup_error_t res = backup_create(timestamp);
     switch (res) {
     case BACKUP_OK:
         screen_print_debug("backup OK", 1000);
@@ -132,13 +132,13 @@ int main(void)
     }
     // securechip_setup must come after memory_setup, so the io/auth keys to be
     // used are already initialized.
-    if (securechip_setup(&_securechip_interface_functions) != ATCA_SUCCESS) {
+    if (!securechip_setup(&_securechip_interface_functions)) {
         Abort("securechip_setup failed");
     }
 
     screen_print_debug("Creating initial backup...", 1000);
 
-    keystore_create_and_store_seed("device-test");
+    keystore_create_and_store_seed("device-test", "host-entropy");
     bool is_correct = false;
     if (!keystore_unlock("device-test", &is_correct) || !is_correct) {
         Abort("Failed to unlock keystore");

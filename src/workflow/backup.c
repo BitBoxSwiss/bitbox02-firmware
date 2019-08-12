@@ -21,8 +21,6 @@
 #include <time.h>
 #include <ui/components/confirm.h>
 #include <ui/components/ui_components.h>
-#include <ui/screen_process.h>
-#include <ui/screen_stack.h>
 #include <workflow/backup.h>
 #include <workflow/confirm.h>
 #include <workflow/password.h>
@@ -35,9 +33,9 @@
 /**
  * Creates a backup and does error handling.
  */
-static bool _backup(const CreateBackupRequest* request)
+static bool _backup(uint32_t backup_create_timestamp, uint32_t seed_birthdate_timestamp)
 {
-    backup_error_t res = backup_create(request->timestamp);
+    backup_error_t res = backup_create(backup_create_timestamp, seed_birthdate_timestamp);
     switch (res) {
     case BACKUP_OK:
         if (!memory_set_initialized()) {
@@ -118,25 +116,34 @@ bool workflow_backup_create(const CreateBackupRequest* request)
         }
     }
 
-    if (!_confirm_time(request)) {
-        return false;
-    }
-
-    uint32_t seed_birthdate;
-    memory_get_seed_birthdate(&seed_birthdate);
-    if (seed_birthdate == 0) {
-        if (!memory_set_seed_birthdate(request->timestamp)) {
+    uint32_t seed_birthdate = 0;
+    if (!memory_is_initialized()) {
+        if (!_confirm_time(request)) {
             return false;
         }
-    }
 
-    return _backup(request);
+        seed_birthdate = request->timestamp;
+        if (!memory_set_seed_birthdate(seed_birthdate)) {
+            return false;
+        }
+    } else {
+        // If adding new backup after initialized, we do not know the seed bithdate.
+        // If re-creating it, we use the already existing one.
+
+        uint32_t existing_seed_birthdate;
+        char backup_id[256];
+        backup_error_t res = backup_check(backup_id, NULL, &existing_seed_birthdate);
+        if (res == BACKUP_OK) {
+            seed_birthdate = existing_seed_birthdate;
+        }
+    }
+    return _backup(request->timestamp, seed_birthdate);
 }
 
 bool workflow_backup_check(char* id_out, bool silent)
 {
     char backup_name[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
-    backup_error_t res = backup_check(id_out, backup_name);
+    backup_error_t res = backup_check(id_out, backup_name, NULL);
     switch (res) {
     case BACKUP_ERR_SD_LIST:
     case BACKUP_ERR_SD_READ:

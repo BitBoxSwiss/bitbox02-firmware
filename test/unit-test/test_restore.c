@@ -84,7 +84,6 @@ static void _will_mock_backup_queries(const uint32_t seed_birthdate, const uint8
 {
     for (int i = 0; i < 3; i++) {
         will_return(__wrap_memory_get_device_name, DEVICE_NAME);
-        will_return(__wrap_memory_get_seed_birthdate, seed_birthdate);
         will_return(__wrap_keystore_copy_seed, _mock_seed_length);
         will_return(__wrap_keystore_copy_seed, cast_ptr_to_largest_integral_type(seed));
     }
@@ -95,11 +94,13 @@ static int test_setup(void** state)
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
 
     assert_int_equal(
-        _fill_backup(_current_timestamp, &_backup, &_backup_data, &_encode_data), BACKUP_OK);
+        _fill_backup(
+            _current_timestamp, _mock_seed_birthdate, &_backup, &_backup_data, &_encode_data),
+        BACKUP_OK);
 
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
 
-    assert_int_equal(backup_create(_current_timestamp), BACKUP_OK);
+    assert_int_equal(backup_create(_current_timestamp, _mock_seed_birthdate), BACKUP_OK);
 
     // assert directory name is salted hash of seed
     _get_directory_name(_mock_seed, _dir_name);
@@ -226,7 +227,7 @@ static void test_restore_list_backups_single_seed(void** state)
 
     // now let's make another backup
     const uint32_t newer_timestamp = _current_timestamp + 2 + 24 * 60 * 60 * 1000;
-    assert_int_equal(backup_create(newer_timestamp), BACKUP_OK);
+    assert_int_equal(backup_create(newer_timestamp, _mock_seed_birthdate), BACKUP_OK);
 
     assert_int_equal(restore_list_backups(&list_backups_response), RESTORE_OK);
     assert_int_equal(list_backups_response.info_count, 1);
@@ -255,7 +256,7 @@ static void test_restore_list_backups_multiple_seeds(void** state)
 
     // now let's make another backup
     const uint32_t newer_timestamp = _current_timestamp + 2 + 24 * 60 * 60 * 1000;
-    assert_int_equal(backup_create(newer_timestamp), BACKUP_OK);
+    assert_int_equal(backup_create(newer_timestamp, _mock_seed_birthdate), BACKUP_OK);
 
     assert_int_equal(restore_list_backups(&list_backups_response), RESTORE_OK);
     assert_int_equal(list_backups_response.info_count, 2);

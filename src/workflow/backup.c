@@ -21,8 +21,6 @@
 #include <time.h>
 #include <ui/components/confirm.h>
 #include <ui/components/ui_components.h>
-#include <ui/screen_process.h>
-#include <ui/screen_stack.h>
 #include <workflow/backup.h>
 #include <workflow/confirm.h>
 #include <workflow/password.h>

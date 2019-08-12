@@ -46,7 +46,8 @@ static void usb_hww_endpoint_available(void)
         screen_print_debug("HWW interface disabled", 1000);
         return;
     };
-    usb_processing_register_cmds(hww_cmd_callbacks, NUM_REGISTERED_HWW_COMMANDS);
+    usb_processing_register_cmds(
+        usb_processing_hww(), hww_cmd_callbacks, NUM_REGISTERED_HWW_COMMANDS);
 
     hid_hww_setup();
 }
@@ -59,7 +60,8 @@ static void usb_u2f_endpoint_available(void)
         screen_print_debug("U2F interface disabled", 1000);
         return;
     };
-    usb_processing_register_cmds(u2f_cmd_callbacks, NUM_REGISTERED_U2F_COMMANDS);
+    usb_processing_register_cmds(
+        usb_processing_u2f(), u2f_cmd_callbacks, NUM_REGISTERED_U2F_COMMANDS);
 
     hid_u2f_setup();
 }

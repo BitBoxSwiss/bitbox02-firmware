@@ -170,7 +170,8 @@ static void _api_msg(const Packet* in_packet, Packet* out_packet, const size_t m
 static void _api_setup(void)
 {
     const CMD_Callback cmd_callbacks[] = {{FACTORYSETUP_CMD, _api_msg}};
-    usb_processing_register_cmds(cmd_callbacks, sizeof(cmd_callbacks) / sizeof(CMD_Callback));
+    usb_processing_register_cmds(
+        usb_processing_hww(), cmd_callbacks, sizeof(cmd_callbacks) / sizeof(CMD_Callback));
     screen_print_debug("READY", 0);
 }
 
@@ -197,6 +198,6 @@ int main(void)
     }
     usb_start(_api_setup);
     while (1) {
-        usb_processing_process();
+        usb_processing_process(usb_processing_hww());
     }
 }

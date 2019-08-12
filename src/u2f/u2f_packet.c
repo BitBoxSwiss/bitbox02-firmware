@@ -12,14 +12,43 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "usb_packet.h"
+#include "u2f_packet.h"
 #include "err_codes.h"
 #include "queue.h"
 #include "screen.h"
-#include "usb_processing.h"
-#include <err_codes.h>
+#include "usb/usb_processing.h"
 #include <stdbool.h>
 #include <stdlib.h>
+
+// We can handle up to NUM_TIMEOUT_COUNTERS missing continuation frames
+#define NUM_TIMEOUT_COUNTERS 3
+
+struct frame_counter {
+    uint32_t cid;
+    uint8_t counter;
+};
+
+// cid == 0 indicates that there isn't any active timer for that slot
+static volatile struct frame_counter _timeout_counters[NUM_TIMEOUT_COUNTERS];
+
+static void _reset_timeout(uint32_t cid)
+{
+    for (int i = 0; i < NUM_TIMEOUT_COUNTERS; ++i) {
+        if (_timeout_counters[i].cid == cid) {
+            _timeout_counters[i].counter = 0;
+        }
+    }
+}
+
+static void _timeout_disable(uint32_t cid)
+{
+    for (int i = 0; i < NUM_TIMEOUT_COUNTERS; ++i) {
+        if (_timeout_counters[i].cid == cid) {
+            _timeout_counters[i].cid = 0;
+            _timeout_counters[i].counter = 0;
+        }
+    }
+}
 
 /**
  * Keeps a state for the frame processing of incoming frames.
@@ -31,13 +60,14 @@ static State _in_state;
  */
 static void _reset_state(void)
 {
-    queue_clear(queue_hww_queue());
+    queue_clear(queue_u2f_queue());
+    _timeout_disable(_in_state.cid);
     memset(&_in_state, 0, sizeof(_in_state));
 }
 
 static queue_error_t _queue_push(const uint8_t* data)
 {
-    return queue_push(queue_hww_queue(), data);
+    return queue_push(queue_u2f_queue(), data);
 }
 
 /**
@@ -56,9 +86,49 @@ static bool _need_more_data(void)
     return (_in_state.buf_ptr - _in_state.data) < (signed)_in_state.len;
 }
 
-bool usb_packet_process(const USB_FRAME* frame, void (*send_packet)(void))
+void u2f_packet_timeout_enable(uint32_t cid)
 {
-    struct usb_processing* ctx = usb_processing_hww();
+    for (int i = 0; i < NUM_TIMEOUT_COUNTERS; ++i) {
+        if (_timeout_counters[i].cid == 0) {
+            _timeout_counters[i].cid = cid;
+            _timeout_counters[i].counter = 0;
+            return;
+        }
+    }
+}
+
+bool u2f_packet_timeout_get(uint32_t* cid)
+{
+    for (int i = 0; i < NUM_TIMEOUT_COUNTERS; ++i) {
+        *cid = _timeout_counters[i].cid;
+        if (_timeout_counters[i].cid != 0 && _timeout_counters[i].counter >= 5) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void u2f_packet_timeout_tick(void)
+{
+    for (int i = 0; i < NUM_TIMEOUT_COUNTERS; ++i) {
+        if (_timeout_counters[i].cid != 0) {
+            _timeout_counters[i].counter += 1;
+        }
+    }
+}
+
+void u2f_packet_timeout(uint32_t cid)
+{
+    _timeout_disable(cid);
+    if (cid == _in_state.cid) {
+        _reset_state();
+    }
+    usb_frame_prepare_err(FRAME_ERR_MSG_TIMEOUT, cid, _queue_push);
+}
+
+bool u2f_packet_process(const USB_FRAME* frame, void (*send_packet)(void))
+{
+    struct usb_processing* ctx = usb_processing_u2f();
     switch (usb_frame_process(frame, &_in_state)) {
     case FRAME_ERR_IGNORE:
         // Ignore this frame, i.e. no response.
@@ -79,6 +149,7 @@ bool usb_packet_process(const USB_FRAME* frame, void (*send_packet)(void))
         _queue_err(FRAME_ERR_INVALID_LEN, frame->cid);
         break;
     case ERR_NONE:
+        _reset_timeout(frame->cid);
         if (_need_more_data()) {
             // Do not send a message yet
             return true;
@@ -89,6 +160,7 @@ bool usb_packet_process(const USB_FRAME* frame, void (*send_packet)(void))
             return false;
         }
         // Else: Currently processing a message, reset the state and forget about this packet
+        _timeout_disable(frame->cid);
         _reset_state();
         _queue_err(FRAME_ERR_CHANNEL_BUSY, frame->cid);
         break;
@@ -98,7 +170,6 @@ bool usb_packet_process(const USB_FRAME* frame, void (*send_packet)(void))
         _queue_err(FRAME_ERR_OTHER, frame->cid);
         break;
     }
-    // Send one of the error packets we have queued
     send_packet();
     return false;
 }

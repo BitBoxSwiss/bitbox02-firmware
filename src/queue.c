@@ -25,8 +25,8 @@
 
 // `start` and `end` are indices into `items`
 struct queue {
-    uint32_t start;
-    uint32_t end;
+    uint32_t volatile start;
+    uint32_t volatile end;
     uint8_t items[QUEUE_NUM_REPORTS][USB_REPORT_SIZE];
 };
 
@@ -47,7 +47,7 @@ const uint8_t* queue_pull(struct queue* ctx)
     return ctx->items[p];
 }
 
-int32_t queue_push(struct queue* ctx, const uint8_t* data)
+queue_error_t queue_push(struct queue* ctx, const uint8_t* data)
 {
     uint32_t next = (ctx->end + 1) % QUEUE_NUM_REPORTS;
     if (ctx->start == next) {

@@ -13,10 +13,11 @@
 // limitations under the License.
 
 #include <string.h>
-#include <usb/usb_packet.h>
+#include <u2f/u2f_packet.h>
 #include <queue.h>
 #include "hid_u2f.h"
 #include "usb_desc.h"
+#include "usb/usb_processing.h"
 
 #define HID_U2F_VERSION 0x00000001u
 
@@ -65,7 +66,7 @@ static int32_t _read(void)
  * Sends the next data, if the USB interface is ready.
  */
 static void _send_next(void) {
-    const uint8_t *data = queue_pull(queue_hww_queue());
+    const uint8_t *data = queue_pull(queue_u2f_queue());
     if (data != NULL) {
         hid_write(&_func_data, data, USB_HID_REPORT_OUT_SIZE);
     } else {
@@ -86,7 +87,7 @@ static uint8_t _out(const uint8_t ep, const enum usb_xfer_code rc,
     (void) rc;
     (void) count;
 
-    bool need_more = usb_packet_process((const USB_FRAME *) _out_report, _send_next);
+    bool need_more = u2f_packet_process((const USB_FRAME *) _out_report, _send_next);
     if (need_more) {
         _read();
     }
@@ -124,6 +125,8 @@ void hid_u2f_setup(void) {
     hid_u2f_register_callback(HID_CB_READ, (FUNC_PTR) _out);
     // usb_report_sent is called when the outgoing usb frame is fully transmitted.
     hid_u2f_register_callback(HID_CB_WRITE, (FUNC_PTR) _sent_done);
+
+    usb_processing_set_send(usb_processing_u2f(), _send_next);
 
     // Wait for data
     _read();

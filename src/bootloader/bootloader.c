@@ -779,7 +779,7 @@ static void _api_setup(void)
 {
     const CMD_Callback cmd_callbacks[] = {{BOOTLOADER_CMD, _api_msg}};
 
-    usb_processing_register_cmds(cmd_callbacks, 1);
+    usb_processing_register_cmds(usb_processing_hww(), cmd_callbacks, 1);
 }
 
 #ifdef BOOTLOADER_PRODUCTION

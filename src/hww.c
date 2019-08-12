@@ -110,5 +110,5 @@ void hww_setup(void)
 {
     const CMD_Callback hww_cmd_callbacks[] = {{HWW_MSG, _msg}};
     usb_processing_register_cmds(
-        hww_cmd_callbacks, sizeof(hww_cmd_callbacks) / sizeof(CMD_Callback));
+        usb_processing_hww(), hww_cmd_callbacks, sizeof(hww_cmd_callbacks) / sizeof(CMD_Callback));
 }

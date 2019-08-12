@@ -12,7 +12,7 @@
 
 #include "queue.h"
 #include "u2f.h"
-#include "usb/usb_packet.h"
+#include "u2f/u2f_packet.h"
 #include "usb/usb_processing.h"
 
 #pragma GCC diagnostic push
@@ -39,12 +39,18 @@ static void _delay(uint32_t msec)
     nanosleep(&ts, &rem);
 }
 
+// function for sending packets?
+static void _send_packet_cb(void)
+{
+    // printf("send\n");
+}
+
 void* timer_task(void* args)
 {
     (void)args;
     for (;;) {
         // printf("tick\n");
-        usb_packet_timeout_tick();
+        u2f_packet_timeout_tick();
         _delay(90);
         pthread_mutex_lock(&mutex);
         if (timer_thread_stop) {
@@ -80,7 +86,9 @@ void hid_close(hid_device* dev)
 
 static void _hid_open(void)
 {
+    usb_processing_init();
     u2f_device_setup();
+    usb_processing_set_send(usb_processing_u2f(), _send_packet_cb);
     timer_thread_stop = false;
     int res = pthread_create(&thread, NULL, &timer_task, NULL);
     if (res != 0) {
@@ -103,12 +111,6 @@ hid_device* hid_open_path(const char* path)
     return (hid_device*)&sham;
 }
 
-// function for sending packets?
-static void _send_packet_cb(void)
-{
-    // printf("send\n");
-}
-
 int hid_write(hid_device* dev, const unsigned char* d, size_t d_len)
 {
     if (d_len > BUFSIZE + 1) {
@@ -117,7 +119,7 @@ int hid_write(hid_device* dev, const unsigned char* d, size_t d_len)
     }
     memcpy(_buf, d + 1, d_len - 1);
     _buf_len = d_len - 1;
-    _expect_more = usb_packet_process((const USB_FRAME*)_buf, _send_packet_cb);
+    _expect_more = u2f_packet_process((const USB_FRAME*)_buf, _send_packet_cb);
     if (!_expect_more) {
         // printf("Got complete packet\n");
         _have_data = true;
@@ -136,10 +138,10 @@ int hid_read_timeout(hid_device* dev, unsigned char* r, size_t r_len, int to)
             // printf("No data yet\n");
         }
         _delay(600);
-        usb_processing_process();
+        usb_processing_process(usb_processing_u2f());
     }
-    usb_processing_process();
-    uint8_t* p = queue_pull(queue_hww_queue());
+    usb_processing_process(usb_processing_u2f());
+    uint8_t* p = queue_pull(queue_u2f_queue());
     // printf("Queue: %p\n", p);
     if (p != NULL) {
         memcpy(r, p, MIN(r_len, BUFSIZE));
@@ -148,7 +150,7 @@ int hid_read_timeout(hid_device* dev, unsigned char* r, size_t r_len, int to)
         _delay(600);
         return -127;
     }
-    if (queue_peek(queue_hww_queue()) == NULL) {
+    if (queue_peek(queue_u2f_queue()) == NULL) {
         _have_data = false;
     }
     _expect_more = false;

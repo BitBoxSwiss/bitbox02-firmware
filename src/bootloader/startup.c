@@ -50,7 +50,7 @@ int main(void)
 
     // If did not jump to firmware code, begin USB processing
     while (1) {
-        usb_processing_process();
+        usb_processing_process(usb_processing_hww());
     }
 
     return 0;

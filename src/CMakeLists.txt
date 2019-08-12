@@ -78,6 +78,7 @@ set(DBB-FIRMWARE-USB-SOURCES
   ${CMAKE_SOURCE_DIR}/src/usb/usb.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_frame.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_packet.c
+  ${CMAKE_SOURCE_DIR}/src/u2f/u2f_packet.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
 )

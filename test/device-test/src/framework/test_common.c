@@ -297,7 +297,7 @@ uint8_t test_usb_init(
  */
 void test_hid_send(enum interface_type interface)
 {
-    uint8_t* data = queue_pull();
+    uint8_t* data = queue_pull(queue_hww_queue());
     if (data != NULL) {
         (void)interface;
         // TODO: marko refactored the USB stuff, needs to be fixed

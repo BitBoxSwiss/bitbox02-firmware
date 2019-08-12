@@ -69,7 +69,8 @@ static void _screen_process(bool (*is_done)(void), void (*on_timeout)(void), con
         screen_frame_cnt++;
         ui_screen_stack_cleanup();
         if (is_done == NULL) {
-            usb_processing_process();
+            usb_processing_process(usb_processing_hww());
+            usb_processing_process(usb_processing_u2f());
         }
     }
 }

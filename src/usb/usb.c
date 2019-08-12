@@ -22,9 +22,11 @@
 #include <usb/class/hid/u2f/hid_u2f.h>
 #endif
 #endif
+#include "usb_processing.h"
 
 #ifndef TESTING
 #include <hal_timer.h>
+#include <u2f/u2f_packet.h>
 #include <usb/usb_packet.h>
 extern struct timer_descriptor TIMER_0;
 #endif
@@ -72,7 +74,7 @@ static void _u2f_endpoint_available(void)
 static void _timeout_cb(const struct timer_task* const timer_task)
 {
     (void)timer_task;
-    usb_packet_timeout_tick();
+    u2f_packet_timeout_tick();
 }
 #endif
 
@@ -109,6 +111,7 @@ int32_t usb_start(void (*on_hww_init)(void))
 #else
     (void)on_hww_init;
 #endif
+    usb_processing_init();
     return 0;
 }
 

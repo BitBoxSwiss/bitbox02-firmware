@@ -17,6 +17,7 @@
 #include <queue.h>
 #include "hid_hww.h"
 #include "usb_desc.h"
+#include "usb/usb_processing.h"
 
 #define HID_HWW_VERSION 0x00000001u
 
@@ -124,6 +125,8 @@ void hid_hww_setup(void) {
     hid_hww_register_callback(HID_CB_READ, (FUNC_PTR) _out);
     // usb_report_sent is called when the outgoing usb frame is fully transmitted.
     hid_hww_register_callback(HID_CB_WRITE, (FUNC_PTR) _sent_done);
+
+    usb_processing_set_send(usb_processing_hww(), _send_next);
 
     // Wait for data
     _read();

@@ -577,6 +577,6 @@ void u2f_device_setup(void)
         {U2FHID_MSG, _cmd_msg},
     };
     usb_processing_register_cmds(
-        u2f_cmd_callbacks, sizeof(u2f_cmd_callbacks) / sizeof(CMD_Callback));
+        usb_processing_u2f(), u2f_cmd_callbacks, sizeof(u2f_cmd_callbacks) / sizeof(CMD_Callback));
 #endif
 }

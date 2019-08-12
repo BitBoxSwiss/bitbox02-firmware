@@ -18,26 +18,34 @@
 #include "usb_frame.h"
 #include "usb_packet.h"
 
+struct usb_processing;
+
 /**
  * Register a command callback that is executed when a USB frame with
  * a specific cmd id is received.
  * @param[in] cmd_callbacks The available callbacks for incoming commands.
  * @param[in] num_cmds The number of registered commands.
  */
-void usb_processing_register_cmds(const CMD_Callback* cmd_callbacks, int num_cmds);
+void usb_processing_register_cmds(
+    struct usb_processing*,
+    const CMD_Callback* cmd_callbacks,
+    int num_cmds);
 
 /**
  * Enqueues a usb packet for processing. Ownership is transferred, and the
  * memory will be freed in `usb_processing_dequeue`.
  * @param[in] in_state The packet is built from in_state and queued.
- * @param[in] function to be called to send the response. This is passed as it
- * could be one of multiple USB interfaces.
  * @return false if there is already a packet in the queue (need to process it
  * first).
  */
-bool usb_processing_enqueue(const State* in_state, void (*send)(void));
-void usb_processing_process(void);
+bool usb_processing_enqueue(struct usb_processing*, const State* in_state);
+void usb_processing_process(struct usb_processing*);
 
-void usb_processing_set_send(void (*send)(void));
+void usb_processing_set_send(struct usb_processing*, void (*send)(void));
+
+struct usb_processing* usb_processing_u2f(void);
+struct usb_processing* usb_processing_hww(void);
+
+void usb_processing_init(void);
 
 #endif

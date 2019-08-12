@@ -14,6 +14,8 @@
 
 #include "usb_frame.h"
 #include "err_codes.h"
+#include "queue.h"
+#include "u2f/u2f_packet.h"
 #include "usb/u2f/u2f_hid.h"
 #include "usb/usb_packet.h"
 #include "util.h"
@@ -63,7 +65,9 @@ static int32_t _cmd_init(const USB_FRAME* frame, State* state)
     }
 
     // Enable timer for this packet
-    usb_packet_timeout_enable(frame->cid);
+    if (frame->type < U2FHID_VENDOR_FIRST) {
+        u2f_packet_timeout_enable(frame->cid);
+    }
 
     memset(state, 0, sizeof(State));
     state->seq = 0;
@@ -113,12 +117,12 @@ static int32_t _cmd_continue(const USB_FRAME* frame, State* state)
  * Prepares USB frames to be send to the host.
  * param[in] data The data is copied into one or more frames
  */
-uint8_t usb_frame_reply(
+queue_error_t usb_frame_reply(
     const uint8_t cmd,
     const uint8_t* data,
     const uint32_t len,
     const uint32_t cid,
-    int32_t(add_frame_callback)(const uint8_t*))
+    queue_error_t(add_frame_callback)(const uint8_t*))
 {
     USB_FRAME frame;
     uint32_t cnt = 0;
@@ -135,8 +139,8 @@ uint8_t usb_frame_reply(
     // Init frame
     psz = MIN(sizeof(frame.init.data), l);
     memcpy(frame.init.data, data, psz);
-    int32_t err = add_frame_callback((const uint8_t*)&frame);
-    if (err != ERR_NONE) {
+    queue_error_t err = add_frame_callback((const uint8_t*)&frame);
+    if (err != QUEUE_ERR_NONE) {
         return err;
     }
     l -= psz;
@@ -149,11 +153,11 @@ uint8_t usb_frame_reply(
         psz = MIN(sizeof(frame.cont.data), l);
         memcpy(frame.cont.data, data + cnt, psz);
         err = add_frame_callback((const uint8_t*)&frame);
-        if (err != ERR_NONE) {
+        if (err != QUEUE_ERR_NONE) {
             return err;
         }
     }
-    return ERR_NONE;
+    return QUEUE_ERR_NONE;
 }
 
 /**
@@ -163,10 +167,10 @@ uint8_t usb_frame_reply(
  * @param[in] cid The channel id.
  * @param[in] add_frame_callback The callback to which we add the frame.
  */
-uint8_t usb_frame_prepare_err(
+queue_error_t usb_frame_prepare_err(
     uint8_t err,
     uint32_t cid,
-    int32_t(add_frame_callback)(const uint8_t*))
+    queue_error_t(add_frame_callback)(const uint8_t*))
 {
     USB_FRAME frame;
 

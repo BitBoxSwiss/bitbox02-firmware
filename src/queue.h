@@ -18,8 +18,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#define QUEUE_ERR_NONE 0
-#define QUEUE_ERR_FULL -1
+typedef enum {
+    QUEUE_ERR_NONE = 0,
+    QUEUE_ERR_FULL = 1,
+} queue_error_t;
 
 struct queue;
 
@@ -28,7 +30,7 @@ struct queue;
  * Returns QUEUE_ERR_NONE if the data was added and QUEUE_ERR_FULL if the buffer was full.
  * data must be USB_REPORT_SIZE large
  */
-int32_t queue_push(struct queue* ctx, const uint8_t* data);
+queue_error_t queue_push(struct queue* ctx, const uint8_t* data);
 
 /**
  * Return the first data that was added to the queue.

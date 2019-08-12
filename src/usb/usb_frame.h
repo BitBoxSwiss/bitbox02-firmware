@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 
+#include "queue.h"
 #include <usb/class/usb_desc.h>
 
 #define FRAME_TYPE_MASK 0x80 // Frame type mask
@@ -102,12 +103,12 @@ typedef struct {
  * @param[in] cid The channel ID.
  * @param[in] add_frame_callback The callback to which the prepared frames are passed to.
  */
-uint8_t usb_frame_reply(
+queue_error_t usb_frame_reply(
     uint8_t cmd,
     const uint8_t* data,
     uint32_t len,
     uint32_t cid,
-    int32_t(add_frame_callback)(const uint8_t*));
+    queue_error_t(add_frame_callback)(const uint8_t*));
 
 /**
  * Takes data and a channel id and constructs USB frames that are added
@@ -128,10 +129,10 @@ void usb_frame_send_cmd(uint8_t cmd, const uint8_t* data, uint32_t len, uint8_t 
  * @param[in] err The error send to the host.
  * @param[in] add_frame_callback The callback to which we add the frame.
  */
-uint8_t usb_frame_prepare_err(
+queue_error_t usb_frame_prepare_err(
     uint8_t err,
     uint32_t cid,
-    int32_t(add_frame_callback)(const uint8_t*));
+    queue_error_t(add_frame_callback)(const uint8_t*));
 
 /**
  * Processes usb frame requests.

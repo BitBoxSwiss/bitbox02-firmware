@@ -42,7 +42,7 @@ const char* backup_error_str(backup_error_t err);
 void backup_cleanup_backup(Backup* backup);
 void backup_cleanup_backup_data(BackupData* backup_data);
 
-backup_error_t backup_create(uint32_t unix_timestamp);
+backup_error_t backup_create(uint32_t backup_create_timestamp);
 
 /**
  * id_out must have max 256 bytes in size; hww.options BackupInfo.id

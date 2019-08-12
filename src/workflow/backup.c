@@ -35,9 +35,9 @@
 /**
  * Creates a backup and does error handling.
  */
-static bool _backup(const CreateBackupRequest* request)
+static bool _backup(uint32_t backup_create_timestamp)
 {
-    backup_error_t res = backup_create(request->timestamp);
+    backup_error_t res = backup_create(backup_create_timestamp);
     switch (res) {
     case BACKUP_OK:
         if (!memory_set_initialized()) {
@@ -130,7 +130,7 @@ bool workflow_backup_create(const CreateBackupRequest* request)
         }
     }
 
-    return _backup(request);
+    return _backup(request->timestamp);
 }
 
 bool workflow_backup_check(char* id_out, bool silent)

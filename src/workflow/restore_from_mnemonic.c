@@ -146,6 +146,8 @@ bool workflow_restore_from_mnemonic(void)
         return false;
     }
 
+    workflow_status_create("Mnemonic valid", true);
+
     char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     UTIL_CLEANUP_STR(password);
     // If entering password fails (repeat password does not match the first), we don't want to abort

@@ -228,7 +228,7 @@ foreach(I RANGE 0 ${U2F_TESTS_LEN} 2)
     ${TEST_LINK_ARGS}
   )
   target_compile_definitions(${EXE} PRIVATE "TESTING")
-#  add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
+  add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
 
   # Running these two tests require a hardware device connected and they link to the real libhidapi.
   set(EXE test_${TEST_NAME}_with_hardware)

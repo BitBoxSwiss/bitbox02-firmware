@@ -312,7 +312,9 @@ add_subdirectory(external)
 add_subdirectory(src)
 add_subdirectory(scripts)
 
-if(NOT CMAKE_CROSSCOMPILING)
+if(CMAKE_CROSSCOMPILING)
+  add_subdirectory(test/device-test)
+else()
   include(CTest)
   add_subdirectory(test/unit-test)
   if(COVERAGE)
@@ -349,9 +351,6 @@ if(NOT CMAKE_CROSSCOMPILING)
       )
     endif()
   endif()
-else()
-  # TODO: Fix device tests
-  #add_subdirectory(test/device-test)
 endif()
 
 #-----------------------------------------------------------------------------

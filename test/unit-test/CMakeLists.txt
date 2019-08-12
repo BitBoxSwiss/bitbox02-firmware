@@ -16,8 +16,6 @@
 #-----------------------------------------------------------------------------
 # Build bitbox lib to use in tests
 
-message(STATUS "includes: ${INCLUDES}")
-
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-implicit-function-declaration -Wno-bad-function-cast")
 
 set(FILTERED_SOURCES "")

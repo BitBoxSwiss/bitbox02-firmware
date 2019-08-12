@@ -23,18 +23,22 @@ find_package(Nanopb REQUIRED)
 include_directories(${NANOPB_INCLUDE_DIRS})
 
 set(SOURCES
-    ${DBB-FIRMWARE-SOURCES}
-    ${DBB-FIRMWARE-USB-SOURCES}
-    ${DBB-FIRMWARE-PROTOBUF-SOURCES}
-    ${DBB-FIRMWARE-UI-SOURCES}
-    ${CRYPTOAUTHLIB-SOURCES}
-    ${CTAES-SOURCES}
-    ${ETHEREUM-SOURCES}
-    ${FIRMWARE-DRIVER-SOURCES}
-    ${DRIVER-SOURCES}
-    src/framework/test_common.c
-    ${MAIN-SOURCE}
+  ${DBB-FIRMWARE-SOURCES}
+  ${DBB-FIRMWARE-USB-SOURCES}
+  ${DBB-FIRMWARE-UI-SOURCES}
+  ${FIRMWARE-DRIVER-SOURCES}
+  ${DRIVER-SOURCES}
+  ${DBB-FIRMWARE-PROTOBUF-SOURCES}
+  ${CRYPTOAUTHLIB-SOURCES}
+  ${CTAES-SOURCES}
+  ${ETHEREUM-SOURCES}
+  ${CMAKE_SOURCE_DIR}/src/common_main.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/framework/test_common.c
 )
+
+# CMake is a bit retarted and doesn't keep some properties between directories...
+set_property(SOURCE ${CMAKE_BINARY_DIR}/src/backup.pb.c PROPERTY GENERATED 1)
+set_property(SOURCE ${CMAKE_BINARY_DIR}/src/hww.pb.c PROPERTY GENERATED 1)
 
 set(INCLUDES
     include/
@@ -43,49 +47,100 @@ set(INCLUDES
     ${CMAKE_BINARY_DIR}/src
 )
 
-# In our test cases, we disregard the bootloader since we flash with JSEGGER JLinkExe
-set(CMAKE_LINKER_SCRIPT "${CMAKE_SOURCE_DIR}/test/device-test/device-test.ld")
+add_library(bitbox
+  STATIC
+  ${SOURCES}
+)
 
-set(CMAKE_C_LINK_FLAGS "-mthumb -Wl,-Map=\"../../bin/${MYPROJECT}.map\" --specs=nosys.specs --specs=nano.specs -Wl,--start-group -u _printf_float -lm  -Wl,--end-group -Wl,--gc-sections -mcpu=cortex-m4 -T\"${CMAKE_LINKER_SCRIPT}\"")
-
-message(STATUS "C link flags:     ${CMAKE_C_LINK_FLAGS}\n")
-include_directories(SYSTEM ${SYSTEMINCLUDES})
-include_directories(${INCLUDES})
-include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external)
-include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib)
-include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external/noise-c/include)
-include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external/noise-c/src)
-include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external/ctaes)
-include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external/sha3)
-include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external/libwally-core/include)
-include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/external/libwally-core/src/secp256k1/include)
+target_include_directories(bitbox PUBLIC ${INCLUDES})
+target_include_directories(bitbox SYSTEM PUBLIC ${SYSTEMINCLUDES})
+target_include_directories(bitbox PUBLIC ${NANOPB_INCLUDE_DIRS})
+target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
+add_dependencies(bitbox generate-hww generate-backup)
+# Include and provide configuration for nanopb
+target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external)
+# needed for cryptoauthlib itself
+target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib)
+target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/ctaes)
+target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/sha3)
+# enable KECCAK in sha3
+target_compile_definitions(bitbox PUBLIC "USE_KECCAK")
+target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/noise-c/include)
+target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/noise-c/src)
+target_include_directories(bitbox SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/external/libwally-core/include)
+target_include_directories(bitbox SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/external/libwally-core/src/secp256k1/include)
+# needed to find version.h
+target_include_directories(bitbox SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
 
 add_library(qtouchlib_a STATIC IMPORTED)
-set_property(TARGET qtouchlib_a PROPERTY
-            IMPORTED_LOCATION
-            ${CMAKE_SOURCE_DIR}/src/drivers/qtouch/lib/gcc/libqtm_acq_samd51_0x000f.a
-            )
+set_property(TARGET qtouchlib_a PROPERTY IMPORTED_LOCATION
+  ${CMAKE_SOURCE_DIR}/src/drivers/qtouch/lib/gcc/libqtm_acq_samd51_0x000f.a
+)
 add_library(qtouchlib_b STATIC IMPORTED)
-set_property(TARGET qtouchlib_b PROPERTY
-            IMPORTED_LOCATION
-            ${CMAKE_SOURCE_DIR}/src/drivers/qtouch/lib/gcc/libqtm_binding_layer_cm4_0x0005.a
-            )
+set_property(TARGET qtouchlib_b PROPERTY IMPORTED_LOCATION
+  ${CMAKE_SOURCE_DIR}/src/drivers/qtouch/lib/gcc/libqtm_binding_layer_cm4_0x0005.a
+)
 add_library(qtouchlib_t STATIC IMPORTED)
-set_property(TARGET qtouchlib_t PROPERTY
-            IMPORTED_LOCATION
-            ${CMAKE_SOURCE_DIR}/src/drivers/qtouch/lib/gcc/libqtm_touch_key_cm4_0x0002.a
-            )
+set_property(TARGET qtouchlib_t PROPERTY IMPORTED_LOCATION
+  ${CMAKE_SOURCE_DIR}/src/drivers/qtouch/lib/gcc/libqtm_touch_key_cm4_0x0002.a
+)
 
-link_directories(${CMAKE_SOURCE_DIR}/src/drivers/qtouch/lib/gcc)
+set(TEST_LIST
+  all_variants_menu
+  backup
+  bip39
+  button_tap
+  confirm_bip39
+  entry_screen
+  password
+  scroll_menu
+  scroll_menu_2
+  simple_slide
+  slide_info
+  ssp
+  tap_menu
+  usb_cmd_process
+  usb_composed_ep_in
+  usb_composed_ep_out
+  usb_d_init
+  usb_hww_ep_in
+  usb_hww_ep_out
+  usb_u2f_ep_in
+  usb_u2f_ep_out
+  usbdc_init
+  write_sd
+)
 
-link_directories(${CMAKE_SOURCE_DIR}/src/drivers/lib/ssp)
+add_custom_target(device-tests)
 
-add_executable(${ELF} ${SOURCES})
+foreach(name ${TEST_LIST})
+  set(elf fw_test_${name}.elf)
+  add_executable(${elf} ${CMAKE_CURRENT_SOURCE_DIR}/src/test_${name}.c)
 
-add_dependencies(${ELF} noise-c)
-target_link_libraries(${ELF} "${CMAKE_SOURCE_DIR}/external/noise-c-${TARGET_CODE}-build/libnoiseprotocol.a")
-add_dependencies(${ELF} libwally-core)
-target_link_libraries(${ELF} "${CMAKE_SOURCE_DIR}/external/libwally-core-${TARGET_CODE}-build/.libs/libwallycore.a")
-target_link_libraries(${ELF} "${CMAKE_SOURCE_DIR}/external/libwally-core-${TARGET_CODE}-build/secp256k1/.libs/libsecp256k1.a")
+  target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_${name}.map\" -T\"${CMAKE_CURRENT_SOURCE_DIR}/device-test.ld\"")
+  target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
 
-target_link_libraries(${ELF} qtouchlib_a qtouchlib_b qtouchlib_t)
+  add_dependencies(${elf} noise-c)
+  target_link_libraries(${elf} PRIVATE noiseprotocol)
+
+  add_dependencies(${elf} libwally-core)
+  # We must link against libc before libbitbox because malloc depends on _sbrk
+  target_link_libraries(${elf} PRIVATE c bitbox)
+  target_link_libraries(${elf} PRIVATE wallycore secp256k1)
+  target_link_libraries(${elf} PRIVATE qtouchlib_a qtouchlib_b qtouchlib_t)
+
+  add_custom_command(
+    TARGET ${elf} POST_BUILD
+    COMMAND ${CMAKE_SIZE} ${elf}
+    COMMAND ${CMAKE_OBJCOPY} -O binary ${elf} fw_test_${name}.bin
+    WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+    COMMENT "\nGenerating binary fw_test_${name}.bin"
+  )
+  if(PYTHONINTERP_FOUND)
+    execute_process(
+      COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/expand_template ${CMAKE_SOURCE_DIR}/scripts/template-firmware.jlink file=build/bin/fw_test_${name}.bin -o fw_test_${name}.jlink
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+  add_dependencies(device-tests ${elf})
+  endif()
+endforeach()

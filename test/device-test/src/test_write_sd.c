@@ -238,7 +238,7 @@ int main(void)
         Abort("Write failed");
     }
     if (files.num_files > 0) {
-        sd_erase_in_subdir(to_delete, hmac_seed_hex);
+        sd_erase_file_in_subdir(to_delete, hmac_seed_hex);
     }
     sd_free_list(&files);
 

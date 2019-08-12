@@ -17,7 +17,7 @@
 #include "drivers/driver_init.h"
 #include "qtouch.h"
 #endif
-#include <workflow/mnemonic.h>
+#include <workflow/show_mnemonic.h>
 #include <workflow/workflow.h>
 
 #include <wally_bip39.h>
@@ -63,17 +63,19 @@ static bool _unlock(const char* password)
     return false;
 }
 
+static const uint8_t host_entropy[32] = "host-entropy";
+
 static void _create_and_store_seed(const char* password)
 {
-    if (!keystore_create_and_store_seed(password)) {
+    if (!keystore_create_and_store_seed(password, host_entropy)) {
         Abort("create_and_store_seed");
     }
 }
 
 static workflow_interface_functions_t _workflow_interface_functions = {
-    .create_and_store_seed = _create_and_store_seed,
+    //.create_and_store_seed = _create_and_store_seed,
     .is_seeded = memory_is_seeded,
-    .unlock = _unlock,
+    //.unlock = _unlock,
     .sd_card_inserted = sd_card_inserted,
     .get_bip39_mnemonic = _mock_get_bip_39_mnemonic,
     .get_bip39_word = keystore_get_bip39_word,

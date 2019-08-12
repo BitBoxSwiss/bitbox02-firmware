@@ -25,7 +25,7 @@ extern void __attribute__((noreturn)) __stack_chk_fail(void);
 void __attribute__((noreturn)) __stack_chk_fail(void)
 {
     screen_print_debug("Stack smash detected", 0);
-    usb_deinit();
+    usb_stop();
     while (1) {
     }
 }

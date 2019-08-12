@@ -44,8 +44,8 @@ docs: | build-build
 	$(MAKE) -C build-build doc
 unit-test: | build-build
 	$(MAKE) -C build-build
-device-test:
-	mkdir -p build; cd build; cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake .. -DBUILD_TYPE=device-test -DMAIN-SOURCE:STRING=src/test_button_tap.c && $(MAKE)
+device-tests: | build
+	${MAKE} -C build device-tests
 # Must compile tests before running them
 run-unit-tests: | build-build
 	$(MAKE) -C build-build test

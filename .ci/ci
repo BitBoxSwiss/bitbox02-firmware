@@ -27,6 +27,6 @@ make coverage
 make -C tools/go/src/atecc608a test
 
 # Build device tests
-# make -j8 device-test
+make -j8 device-tests
 
 # ./scripts/tidy # run tidy on the firmware build

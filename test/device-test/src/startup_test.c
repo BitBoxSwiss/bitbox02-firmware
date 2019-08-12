@@ -17,7 +17,7 @@
 #include "screen.h"
 #include <string.h>
 
-#include "usb.h"
+#include <usb/usb.h>
 
 void HardFault_Handler(void)
 {

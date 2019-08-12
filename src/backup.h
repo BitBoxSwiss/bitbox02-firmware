@@ -46,9 +46,10 @@ backup_error_t backup_create(uint32_t unix_timestamp);
 
 /**
  * id_out must have max 256 bytes in size; hww.options BackupInfo.id
- * name_out must have max MEMORY_DEVICE_NAME_MAX_LEN (64) bytes in size; hww.options BackupInfo.name
+ * @param[out] name_out must have max MEMORY_DEVICE_NAME_MAX_LEN (64) bytes in size; hww.options BackupInfo.name
+ * @param[out] timestamp_out can be NULL.
  */
-backup_error_t backup_check(char* id_out, char* name_out);
+backup_error_t backup_check(char* id_out, char* name_out, uint32_t* timestamp_out);
 
 void backup_calculate_checksum(
     BackupContent* content,

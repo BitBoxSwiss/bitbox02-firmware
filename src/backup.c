@@ -324,7 +324,8 @@ backup_error_t backup_create(uint32_t unix_timestamp)
     return BACKUP_OK;
 }
 
-backup_error_t backup_check(char* id_out, char* name_out)
+backup_error_t backup_check(char* id_out, char* name_out, uint32_t* timestamp_out)
+backup_error_t backup_check(char* id_out, char* name_out, uint32_t* birthdate_out)
 {
     Backup __attribute__((__cleanup__(backup_cleanup_backup))) backup;
     BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data;
@@ -347,7 +348,15 @@ backup_error_t backup_check(char* id_out, char* name_out)
         backup_data.seed_length != backup_data_copy.seed_length) {
         return BACKUP_ERR_CHECK;
     }
-    snprintf(
-        name_out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", backup_copy.backup_v1.content.metadata.name);
+    if (name_out != NULL) {
+        snprintf(
+            name_out,
+            MEMORY_DEVICE_NAME_MAX_LEN,
+            "%s",
+            backup_copy.backup_v1.content.metadata.name);
+    }
+    if (birthdate_out != NULL) {
+        *birthdate_out = backup_data_copy.birthdate;
+    }
     return BACKUP_OK;
 }

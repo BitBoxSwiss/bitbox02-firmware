@@ -344,8 +344,7 @@ backup_error_t backup_check(char* id_out, char* name_out)
     }
 
     if (!MEMEQ(backup_data.seed, backup_data_copy.seed, 32) ||
-        backup_data.seed_length != backup_data_copy.seed_length ||
-        backup_data.birthdate != backup_data_copy.birthdate) {
+        backup_data.seed_length != backup_data_copy.seed_length) {
         return BACKUP_ERR_CHECK;
     }
     snprintf(

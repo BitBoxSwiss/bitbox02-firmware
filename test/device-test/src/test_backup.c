@@ -67,9 +67,9 @@ static bool _setup_wally(void)
     return wally_set_operations(&_ops) == WALLY_OK;
 }
 
-static void _test_backup(time_t timestamp)
+static void _test_backup(time_t timestamp, time_t birthdate)
 {
-    backup_error_t res = backup_create(timestamp);
+    backup_error_t res = backup_create(timestamp, birthdate);
     switch (res) {
     case BACKUP_OK:
         screen_print_debug("backup OK", 1000);
@@ -138,19 +138,19 @@ int main(void)
 
     screen_print_debug("Creating initial backup...", 1000);
 
-    keystore_create_and_store_seed("device-test", "host-entropy");
-    bool is_correct = false;
-    if (!keystore_unlock("device-test", &is_correct) || !is_correct) {
+    if (!keystore_create_and_store_seed("device-test", "host-entropy")) {
+        Abort("Failed to create keystore");
+    }
+    uint8_t remaining_attempts;
+    if (keystore_unlock("device-test", &remaining_attempts) != KEYSTORE_OK) {
         Abort("Failed to unlock keystore");
     }
-    memory_set_seed_birthdate(_timestamp);
-
-    _test_backup(_timestamp);
+    _test_backup(_timestamp, _timestamp);
 
     screen_print_debug("Creating another backup...", 1000);
 
     _timestamp = _timestamp + 24 * 3600;
-    _test_backup(_timestamp);
+    _test_backup(_timestamp, _timestamp);
     // after the test, the SD card should only contain 3 files under the sub-directory for the seed
     char id[256];
     _test_list_backups(id);

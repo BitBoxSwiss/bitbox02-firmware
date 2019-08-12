@@ -79,7 +79,7 @@ static workflow_interface_functions_t _workflow_interface_functions = {
     .sd_card_inserted = sd_card_inserted,
     .get_bip39_mnemonic = _mock_get_bip_39_mnemonic,
     .get_bip39_word = keystore_get_bip39_word,
-    .get_bip39_wordlist_length = keystore_get_bip39_wordlist_length};
+};
 
 int main(void)
 {

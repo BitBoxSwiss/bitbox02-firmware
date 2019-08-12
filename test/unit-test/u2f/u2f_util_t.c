@@ -16,42 +16,35 @@
 #include "u2f_util_t.h"
 #include "usb/usb.h"
 //#include "u2f_device.h"
-#include "util.h"
+#define MIN(a, b)                                       \
+    __extension__({                                     \
+        _Pragma("GCC diagnostic push");                 \
+        _Pragma("GCC diagnostic ignored \"-Wshadow\""); \
+        __typeof__(a) _a = (a);                         \
+        __typeof__(b) _b = (b);                         \
+        _Pragma("GCC diagnostic pop");                  \
+        _a > _b ? _b : _a;                              \
+    })
+#define MAX(a, b)                                       \
+    __extension__({                                     \
+        _Pragma("GCC diagnostic push");                 \
+        _Pragma("GCC diagnostic ignored \"-Wshadow\""); \
+        __typeof__(a) _a = (a);                         \
+        __typeof__(b) _b = (b);                         \
+        _Pragma("GCC diagnostic pop");                  \
+        _a > _b ? _a : _b;                              \
+    })
 
-#ifdef CONTINUOUS_INTEGRATION
-static void hid_exit(void) {}
-
-static uint8_t hid_init(void)
+static void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
 {
-    return 0;
+    static char digits[] = "0123456789abcdef";
+    size_t i;
+    for (i = 0; i < in_len; i++) {
+        out[i * 2] = digits[(in_bin[i] >> 4) & 0xF];
+        out[i * 2 + 1] = digits[in_bin[i] & 0xF];
+    }
+    out[in_len * 2] = '\0';
 }
-
-static void hid_close(void* dev) {}
-
-static void* hid_open(uint16_t vid, uint16_t pid, char* path)
-{
-    static char sham[] = "sham";
-    return &sham;
-}
-
-static void* hid_open_path(char* path)
-{
-    static char sham[] = "sham";
-    return &sham;
-}
-
-static int hid_write(void* dev, uint8_t* d, size_t d_len)
-{
-    return d_len;
-}
-
-static int hid_read_timeout(void* dev, uint8_t* r, size_t r_len, int to)
-{
-    return r_len;
-}
-#endif
-
-static int U2F_TEST_LIVE_DEVICE = 0;
 
 #ifdef __APPLE__
 #ifndef CLOCK_MONOTONIC
@@ -75,19 +68,8 @@ static void clock_gettime(int which, struct timespec* ts)
 #endif
 #endif // __APPLE__
 
-void U2Fob_testLiveDevice(uint8_t test)
-{
-    U2F_TEST_LIVE_DEVICE = test;
-}
-
-uint8_t U2Fob_liveDeviceTesting(void)
-{
-    return U2F_TEST_LIVE_DEVICE;
-}
-
 float U2Fob_deltaTime(uint64_t* state)
 {
-#ifndef CONTINUOUS_INTEGRATION
     uint64_t now, delta;
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -95,9 +77,6 @@ float U2Fob_deltaTime(uint64_t* state)
     delta = *state ? now - *state : 0;
     *state = now;
     return (float)(delta / 1.0e9);
-#else
-    return 0.0;
-#endif
 }
 
 struct U2Fob* U2Fob_create(void)
@@ -130,7 +109,6 @@ static char* U2Fob_path(void)
     // Enumerate and print the HID devices on the system
     static char path[1024];
     memset(path, 0, sizeof(path));
-#ifndef CONTINUOUS_INTEGRATION
     struct hid_device_info *devs, *cur_dev;
     hid_init();
     devs = hid_enumerate(0x0, 0x0);
@@ -159,17 +137,11 @@ static char* U2Fob_path(void)
     }
     hid_free_enumeration(devs);
     hid_exit();
-#else
-    memcpy(path, "sham", 4);
-#endif
     return path;
 }
 
 int U2Fob_open(struct U2Fob* device)
 {
-    if (!U2F_TEST_LIVE_DEVICE) {
-        return -U2FHID_ERR_NONE;
-    }
     U2Fob_close(device);
     device->path = U2Fob_path();
     device->dev = hid_open_path(device->path);
@@ -178,7 +150,7 @@ int U2Fob_open(struct U2Fob* device)
 
 void U2Fob_close(struct U2Fob* device)
 {
-    if (U2F_TEST_LIVE_DEVICE && device->dev) {
+    if (device->dev) {
         hid_close(device->dev);
         device->dev = NULL;
     }
@@ -186,9 +158,6 @@ void U2Fob_close(struct U2Fob* device)
 
 int U2Fob_reopen(struct U2Fob* device)
 {
-    if (!U2F_TEST_LIVE_DEVICE) {
-        return -U2FHID_ERR_NONE;
-    }
     U2Fob_close(device);
     device->dev = hid_open_path(device->path);
     return device->dev != NULL ? -U2FHID_ERR_NONE : -U2FHID_ERR_OTHER;
@@ -204,16 +173,11 @@ int U2Fob_sendHidFrame(struct U2Fob* device, USB_FRAME* f)
     memcpy(d + 1, f, sizeof(USB_FRAME));
     f->cid = ntohl(f->cid);
 
-    if (U2F_TEST_LIVE_DEVICE) {
-        if (!device->dev) {
-            return -U2FHID_ERR_OTHER;
-        }
-        res = hid_write(device->dev, d, sizeof(d));
-        // printf("%d\n", res);
-    } else {
-        // u2f_device_run((USB_FRAME *)f);
-        res = sizeof(d);
+    if (!device->dev) {
+        return -U2FHID_ERR_OTHER;
     }
+    res = hid_write(device->dev, d, sizeof(d));
+    // printf("%d\n", res);
 
     if (res == sizeof(d)) {
         return 0;
@@ -228,29 +192,16 @@ int U2Fob_receiveHidFrame(struct U2Fob* device, USB_FRAME* r, float to)
         return -U2FHID_ERR_MSG_TIMEOUT;
     }
 
-    if (U2F_TEST_LIVE_DEVICE && !device->dev) {
+    if (!device->dev) {
         return -U2FHID_ERR_OTHER;
     }
     memset((int8_t*)r, 0xEE, sizeof(USB_FRAME));
 
     int res = 0;
-    if (U2F_TEST_LIVE_DEVICE) {
-        res = hid_read_timeout(device->dev, (uint8_t*)r, sizeof(USB_FRAME), (int)(to * 1000));
-    } else {
-        // static uint8_t *data;
-        // data = usb_reply_queue_read();
-        // if (data) {
-        //    memcpy(r, data, sizeof(USB_FRAME));
-        //    res = sizeof(USB_FRAME);
-        //} else {
-        //    res = 0;
-        //}
-    }
+    res = hid_read_timeout(device->dev, (uint8_t*)r, sizeof(USB_FRAME), (int)(to * 1000));
 
     if (res == sizeof(USB_FRAME)) {
-        if (U2F_TEST_LIVE_DEVICE) {
-            r->cid = ntohl(r->cid);
-        }
+        r->cid = ntohl(r->cid);
         return 0;
     }
 

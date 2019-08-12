@@ -23,6 +23,8 @@
 #include <string.h>
 #include <wally_crypto.h>
 
+static uint32_t _u2f_counter;
+
 bool securechip_update_keys(void)
 {
     return true;
@@ -35,4 +37,20 @@ bool securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint
     // wally_sha256(msg, len, kdf_out, 32);
     memcpy(kdf_out, (const uint8_t*)mock(), 32);
     return true;
+}
+
+bool securechip_u2f_counter_inc(uint32_t* counter)
+{
+    *counter = _u2f_counter++;
+    return true;
+}
+
+bool securechip_ecc_unsafe_sign(const uint8_t* priv_key, const uint8_t* msg, uint8_t* sig)
+{
+    return false;
+}
+
+bool securechip_ecc_generate_public_key(uint8_t* priv_key, uint8_t* pub_key)
+{
+    return false;
 }

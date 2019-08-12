@@ -299,7 +299,7 @@ int32_t hid_read(struct hid_func_data* func_data, uint8_t *buf, uint32_t size)
  * @param[IN] buf The address of the buffer from which we read.
  * @param[IN] size The size of the buffer.
  */
-int32_t hid_write(struct hid_func_data* func_data, uint8_t *buf, uint32_t size)
+int32_t hid_write(struct hid_func_data* func_data, const uint8_t *buf, uint32_t size)
 {
     if (!hid_is_enabled(func_data)) {
         return ERR_DENIED;
@@ -309,7 +309,11 @@ int32_t hid_write(struct hid_func_data* func_data, uint8_t *buf, uint32_t size)
     while(status.state != USB_EP_S_IDLE) {
         usb_d_ep_get_status(func_data->func_ep_in, &status);
     }
-    return usbdc_xfer(func_data->func_ep_in, buf, size, false);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+    // usbdc_xfer is not supposed to modify "buf" in this direction so we can cast it to non-const
+    return usbdc_xfer(func_data->func_ep_in, (uint8_t*)buf, size, false);
+#pragma GCC diagnostic pop
 }
 
 /**

@@ -124,10 +124,8 @@ static void test_LongEcho(void)
 
     // Expected transfer times for 2ms bInterval.
     // We do not want fobs to be too slow or too agressive.
-    if (U2Fob_liveDeviceTesting()) {
-        CHECK_GE(sent, .020);
-        CHECK_GE(received, .020);
-    }
+    CHECK_GE(sent, .020);
+    CHECK_GE(received, .020);
     CHECK_LE(sent, .090);
     CHECK_LE(received, .090);
 }
@@ -182,9 +180,7 @@ static void test_Idle(float timeOut)
 
     U2Fob_deltaTime(&t);
     CHECK_EQ(-U2FHID_ERR_MSG_TIMEOUT, U2Fob_receiveHidFrame(device, &r, timeOut));
-    if (U2Fob_liveDeviceTesting()) {
-        CHECK_GE(U2Fob_deltaTime(&t), .2);
-    }
+    CHECK_GE(U2Fob_deltaTime(&t), .2);
     CHECK_LE(U2Fob_deltaTime(&t), .5);
 }
 
@@ -442,12 +438,10 @@ static void test_InitOnNonBroadcastEchoesCID(void)
     CHECK_EQ(U2FHID_MSG_LEN(r), U2FHID_INIT_RESP_SIZE);
     CHECK_EQ(0, memcmp(f.init.data, r.init.data, cs));
 
-    if (U2Fob_liveDeviceTesting()) {
-        uint32_t cid = (r.init.data[cs + 0] << 24) | (r.init.data[cs + 1] << 16) |
-                       (r.init.data[cs + 2] << 8) | (r.init.data[cs + 3] << 0);
+    uint32_t cid = (r.init.data[cs + 0] << 24) | (r.init.data[cs + 1] << 16) |
+                   (r.init.data[cs + 2] << 8) | (r.init.data[cs + 3] << 0);
 
-        CHECK_EQ(cid, 0xdeadbeef);
-    }
+    CHECK_EQ(cid, 0xdeadbeef);
 }
 
 static uint32_t test_Init(bool check)
@@ -564,7 +558,7 @@ static void test_NothingOnChannel0(void)
 
 static void test_Descriptor(void)
 {
-#if !defined(CONTINUOUS_INTEGRATION) && defined(__linux__)
+#if defined(WITH_HARDWARE) && defined(__linux__)
     struct hidraw_report_descriptor rpt_desc;
     int res, desc_size;
     // hidapi hides internal struct.
@@ -612,12 +606,10 @@ static void run_tests(void)
         PASS(test_NotCont());
         PASS(test_NotFirst());
         PASS(test_Limits());
-        if (U2Fob_liveDeviceTesting()) {
-            PASS(test_InitOther());
-            PASS(test_Timeout());
-            PASS(test_Busy());
-            PASS(test_Descriptor());
-        }
+        PASS(test_InitOther());
+        PASS(test_Timeout());
+        PASS(test_Busy());
+        PASS(test_Descriptor());
         PASS(test_LeadingZero());
         PASS(test_Idle(2.0));
         PASS(test_NothingOnChannel0());
@@ -641,24 +633,9 @@ void __attribute__((noreturn)) __stack_chk_fail(void)
 
 int main(void)
 {
-    srand((unsigned int)time(NULL));
-
-    //// Test the C code API
-    // U2Fob_testLiveDevice(0);
-    //__stack_chk_guard = rand();
-    // ecc_context_init();
-    ////memory_setup();
-    ////memory_setup(); // run twice
-    // printf("\n\nInternal API Result:\n");
-    // run_tests();
-    // ecc_context_destroy();
-
     // Live test of the HID API
-#ifndef CONTINUOUS_INTEGRATION
-    U2Fob_testLiveDevice(1);
     printf("\n\nHID API Result:\n");
     run_tests();
-#endif
 
     printf("\nALL TESTS PASSED\n\n");
     return 0;

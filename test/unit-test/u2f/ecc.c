@@ -29,12 +29,23 @@
 #include <string.h>
 
 #include "sha2.h"
-//#include "flags.h"
-#include "random.h"
 #include "u2f/ecc.h"
-#include "util.h"
 
 #include "u2f/uECC.h"
+
+static void random_32_bytes(uint8_t* buf)
+{
+    if (buf == NULL) {
+        return;
+    }
+    uint8_t random[32] = {0};
+    for (uint32_t i = 0; i < sizeof(random); i++) {
+        random[i] = rand();
+    }
+    for (size_t i = 0; i < sizeof(random); i++) {
+        buf[i] ^= random[i];
+    }
+}
 
 #ifndef ECC_USE_SECP256K1_LIB
 /* link the bitcoin ECC wrapper to uECC if secp256k1 is not available */

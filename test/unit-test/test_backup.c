@@ -61,7 +61,6 @@ static void _will_mock_backup_queries(const uint32_t seed_birthdate, const uint8
 {
     for (int i = 0; i < 3; i++) {
         will_return(__wrap_memory_get_device_name, DEVICE_NAME);
-        will_return(__wrap_memory_get_seed_birthdate, seed_birthdate);
         will_return(__wrap_keystore_copy_seed, _mock_seed_length);
         will_return(__wrap_keystore_copy_seed, cast_ptr_to_largest_integral_type(seed));
     }
@@ -134,7 +133,7 @@ static int test_teardown(void** state)
 static void test_backup_calculate_checksum(void** state)
 {
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
-    assert_int_equal(backup_create(_current_timestamp), BACKUP_OK);
+    assert_int_equal(backup_create(_current_timestamp, _mock_seed_birthdate), BACKUP_OK);
 
     Backup backup;
     BackupData backup_data;
@@ -154,7 +153,7 @@ static void test_backup_calculate_checksum(void** state)
 static void test_backup_create(void** state)
 {
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
-    assert_int_equal(backup_create(_current_timestamp), BACKUP_OK);
+    assert_int_equal(backup_create(_current_timestamp, _mock_seed_birthdate), BACKUP_OK);
 
     // assert directory name is salted hash of seed
     char dir_name[257];
@@ -192,17 +191,19 @@ static void test_backup_create(void** state)
 static void test_backup_check(void** state)
 {
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
-    assert_int_equal(backup_create(_current_timestamp), BACKUP_OK);
+    assert_int_equal(backup_create(_current_timestamp, _mock_seed_birthdate), BACKUP_OK);
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
     char id[256];
     char name[64];
-    assert_int_equal(backup_check(id, name), BACKUP_OK);
+    uint32_t birthdate;
+    assert_int_equal(backup_check(id, name, &birthdate), BACKUP_OK);
+    assert_int_equal(birthdate, _mock_seed_birthdate);
 }
 
 static void test_backup_check_fail(void** state)
 {
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
-    assert_int_equal(backup_create(_current_timestamp), BACKUP_OK);
+    assert_int_equal(backup_create(_current_timestamp, _mock_seed_birthdate), BACKUP_OK);
 
     const uint32_t new_seed_birthdate = _mock_seed_birthdate + 24 * 60 * 60 * 1000;
     const uint8_t new_seed[32] = {16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
@@ -211,7 +212,7 @@ static void test_backup_check_fail(void** state)
     _will_mock_backup_queries(new_seed_birthdate, new_seed);
     char id[256];
     char name[64];
-    assert_int_not_equal(backup_check(id, name), BACKUP_OK);
+    assert_int_not_equal(backup_check(id, name, NULL), BACKUP_OK);
 }
 
 // TODO: test that repeated backup should override existing one

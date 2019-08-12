@@ -38,6 +38,7 @@ static commander_states_endpoint_id _commands_anytime[] = {
 static commander_states_endpoint_id _commands_uninitialized[] = {
     Request_set_password_tag,
     Request_restore_backup_tag,
+    Request_restore_from_mnemonic_tag,
 };
 
 // api commands the host can invoke when the device is seeded.
@@ -45,6 +46,7 @@ static commander_states_endpoint_id _commands_seeded[] = {
     Request_create_backup_tag,
     Request_set_password_tag,
     Request_restore_backup_tag,
+    Request_restore_from_mnemonic_tag,
 };
 
 // api commands the host can invoke when the device is initialized.

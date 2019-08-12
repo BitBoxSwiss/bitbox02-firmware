@@ -12,11 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _TEST_BLOCKING_H
-#define _TEST_BLOCKING_H
+#ifndef _WORKFLOW_RESTORE_FROM_MNEMONIC_H_
+#define _WORKFLOW_RESTORE_FROM_MNEMONIC_H_
 
 #include <stdbool.h>
 
-bool mock_blocking_is_unblocked(void);
-void mock_blocking_set_unblock_func(void (*unblock_func)(void));
+/**
+ * Enter a 12/18/24 word mnemonic and set the keystore seed from it.
+ * @return true on success, false on abort or failure.
+ */
+bool workflow_restore_from_mnemonic(void);
+
 #endif

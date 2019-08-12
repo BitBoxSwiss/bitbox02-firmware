@@ -12,25 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _PASSWORD_H_
-#define _PASSWORD_H_
+#ifndef _WORKFLOW_TRINARY_INPUT_H_
+#define _WORKFLOW_TRINARY_INPUT_H_
 
 #include <compiler_util.h>
-#include <ui/components/trinary_input_string.h> // for SET_PASSWORD_MAX_PASSWORD_LENGTH
 
 #include <stdbool.h>
+#include <stddef.h>
 
-/**
- * Asks the user to set a password by entering it once and then confirming it.
- * @param[out] password_out must be of size SET_PASSWORD_MAX_PASSWORD_LENGTH.
- * Use `UTIL_CLEANUP_STR` to destroy the password after use.
- * @return true if the the two entered passwords match. Returns false otherwise.
- */
-USE_RESULT bool password_set(char* password_out);
+// including null terminator. 8 is the longest bip39 word.
+#define WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH (9u)
 
-/**
- * Promps the user for the password and returns true if the password is the valid keystore password.
- */
-USE_RESULT bool password_check(void);
+USE_RESULT bool workflow_trinary_input_wordlist(
+    const char* title,
+    const char* const* wordlist,
+    size_t wordlist_size,
+    char* word_out);
 
 #endif

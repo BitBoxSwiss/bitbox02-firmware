@@ -12,37 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "password_enter.h"
+#include "trinary_input.h"
+
 #include "blocking.h"
+#include "cancel.h"
 
 #include <hardfault.h>
-#include <ui/components/ui_components.h>
-#include <ui/screen_process.h>
-#include <ui/screen_stack.h>
+#include <ui/components/trinary_input_string.h>
 #include <util.h>
 
 #include <stdio.h>
 
-static char _password[SET_PASSWORD_MAX_PASSWORD_LENGTH];
+static char _word[WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH];
 
-static void _pw_entered(const char* password)
+static void _confirm(const char* word)
 {
-    int snprintf_result = snprintf(_password, sizeof(_password), "%s", password);
-    if (snprintf_result < 0 || snprintf_result >= (int)sizeof(_password)) {
+    int snprintf_result = snprintf(_word, sizeof(_word), "%s", word);
+    if (snprintf_result < 0 || snprintf_result >= (int)sizeof(_word)) {
         Abort("length mismatch");
     }
     workflow_blocking_unblock();
 }
 
-bool password_enter(const char* title, char* password_out)
+bool workflow_trinary_input_wordlist(
+    const char* title,
+    const char* const* wordlist,
+    size_t wordlist_size,
+    char* word_out)
 {
-    ui_screen_stack_push(trinary_input_string_create_password(title, _pw_entered, NULL));
-    bool result = workflow_blocking_block();
-    ui_screen_stack_pop();
-    if (!result) {
+    if (!workflow_cancel_run(
+            "Restore",
+            trinary_input_string_create_wordlist(
+                title, wordlist, wordlist_size, _confirm, workflow_cancel))) {
         return false;
     }
-    snprintf(password_out, SET_PASSWORD_MAX_PASSWORD_LENGTH, "%s", _password);
-    util_zero(_password, sizeof(_password));
+    snprintf(word_out, WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH, "%s", _word);
+    util_zero(_word, sizeof(_word));
     return true;
 }

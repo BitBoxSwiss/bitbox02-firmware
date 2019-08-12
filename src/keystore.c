@@ -396,6 +396,11 @@ bool keystore_get_bip39_mnemonic(char** mnemonic_out)
     return bip39_mnemonic_from_bytes(NULL, seed, _seed_length, mnemonic_out) == WALLY_OK;
 }
 
+bool keystore_bip39_mnemonic_to_seed(const char* mnemonic, uint8_t* seed_out, size_t* seed_len_out)
+{
+    return bip39_mnemonic_to_bytes(NULL, mnemonic, seed_out, 32, seed_len_out) == WALLY_OK;
+}
+
 static bool _get_xprv(const uint32_t* keypath, const size_t keypath_len, struct ext_key* xprv_out)
 {
     if (keystore_is_locked()) {
@@ -495,13 +500,6 @@ bool keystore_get_xpub(
 void keystore_zero_xkey(struct ext_key* xkey)
 {
     util_zero(xkey, sizeof(struct ext_key));
-}
-
-#define LEN_WORDLIST_EN 2048
-
-uint16_t keystore_get_bip39_wordlist_length(void)
-{
-    return LEN_WORDLIST_EN;
 }
 
 bool keystore_get_bip39_word(uint16_t idx, char** word_out)

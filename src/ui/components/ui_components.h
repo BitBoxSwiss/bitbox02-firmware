@@ -41,7 +41,6 @@
 #include "remove_sd_card.h"
 #include "right_arrow.h"
 #include "scroll_through_all_variants.h"
-#include "set_password.h"
 #include "show_logo.h"
 #include "status.h"
 #include "ui_images.h"

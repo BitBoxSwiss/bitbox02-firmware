@@ -101,9 +101,10 @@ def select_init_option(device: bitbox02.BitBox02) -> bool:
     print("What would you like to do?")
     print("- (1) Set up new wallet")
     print("- (2) Restore from backup")
-    print("- (3) List device info")
-    print("- (4) Reboot into bootloader")
-    print("- (5) Check if SD card inserted")
+    print("- (3) Restore from mnemonic")
+    print("- (4) List device info")
+    print("- (5) Reboot into bootloader")
+    print("- (6) Check if SD card inserted")
     ans = input("")
     if ans == "q":
         return False
@@ -117,15 +118,20 @@ def select_init_option(device: bitbox02.BitBox02) -> bool:
     elif choice == 2:
         restore_backup_workflow(device)
     elif choice == 3:
+        if device.restore_from_mnemonic():
+            print("Restore successful")
+        else:
+            print("Restore was NOT successful")
+    elif choice == 4:
         info = device.device_info()
         print(f"\nAll info: {info}")
-    elif choice == 4:
+    elif choice == 5:
         if device.reboot():
             print("Device rebooted")
         else:
             print("User aborted")
         return False
-    elif choice == 5:
+    elif choice == 6:
         print(f"SD Card inserted: {device.check_sdcard()}")
     else:
         print("Input unknown, please try again...")

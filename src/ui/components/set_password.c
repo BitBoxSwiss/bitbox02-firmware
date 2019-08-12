@@ -16,7 +16,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "ui_components.h"
+#include "confirm_gesture.h"
+#include "keyboard_switch.h"
+#include "left_arrow.h"
+#include "set_password.h"
 
 #include "hardfault.h"
 #include "screen.h"

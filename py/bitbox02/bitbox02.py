@@ -522,3 +522,18 @@ class BitBox02:
                 return False
             raise
         return True
+
+    def restore_from_mnemonic(self) -> bool:
+        """
+        Restore from mnemonic. Returns True on success, False on failure or user abort.
+        """
+        request = hww.Request()
+        # pylint: disable=no-member
+        request.restore_from_mnemonic.CopyFrom(hww.RestoreFromMnemonicRequest())
+        try:
+            self._msg_query(request)
+        except Bitbox02Exception as err:
+            if err.code == ERR_GENERIC:
+                return False
+            raise
+        return True

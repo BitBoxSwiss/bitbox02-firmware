@@ -12,25 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _PASSWORD_H_
-#define _PASSWORD_H_
+#ifndef _WORKFLOW_CANCEL_H_
+#define _WORKFLOW_CANCEL_H_
 
 #include <compiler_util.h>
-#include <ui/components/trinary_input_string.h> // for SET_PASSWORD_MAX_PASSWORD_LENGTH
+#include <ui/component.h>
 
 #include <stdbool.h>
 
-/**
- * Asks the user to set a password by entering it once and then confirming it.
- * @param[out] password_out must be of size SET_PASSWORD_MAX_PASSWORD_LENGTH.
- * Use `UTIL_CLEANUP_STR` to destroy the password after use.
- * @return true if the the two entered passwords match. Returns false otherwise.
- */
-USE_RESULT bool password_set(char* password_out);
+void workflow_cancel(void);
 
 /**
- * Promps the user for the password and returns true if the password is the valid keystore password.
+ * Blocks on showing/running a component until `workflow_cancel` or `workflow_blocking_unblock` is
+ * called. In the former, a prompt with the given title to confirm cancellation is shown.
+ * @param[in] title title to show in the cancel confirm prompt.
+ * @param[in] component to process.
  */
-USE_RESULT bool password_check(void);
+USE_RESULT bool workflow_cancel_run(const char* title, component_t* component);
 
 #endif

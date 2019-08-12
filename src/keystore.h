@@ -22,6 +22,7 @@
 
 #include <secp256k1.h>
 #include <wally_bip32.h>
+#include <wally_bip39.h> // for BIP39_WORDLIST_LEN
 
 #define KEYSTORE_MAX_SEED_LENGTH (32)
 #define KEYSTORE_U2F_SEED_LENGTH SHA256_LEN
@@ -113,6 +114,18 @@ USE_RESULT bool keystore_is_locked(void);
 USE_RESULT bool keystore_get_bip39_mnemonic(char** mnemonic_out);
 
 /**
+ * Turn a bip39 mnemonic into a seed. Make sure to use UTIL_CLEANUP_32 to destroy it.
+ * Output can be fed into `keystore_encrypt_and_store_seed` to create a keystore from the mnemonic.
+ * @param[in] mnemonic 12/18/24 word bip39 mnemonic
+ * @param[out] seed_out must be 32 bytes
+ * @param[out] seed_len_out will be the size of the seed
+ */
+USE_RESULT bool keystore_bip39_mnemonic_to_seed(
+    const char* mnemonic,
+    uint8_t* seed_out,
+    size_t* seed_len_out);
+
+/**
  * Can be used only if the keystore is unlocked. Returns the derived xpub,
  * using bip32 derivation. Derivation is done from the xprv master, so hardened
  * derivation is allowed.
@@ -129,14 +142,9 @@ USE_RESULT bool keystore_get_xpub(
  */
 void keystore_zero_xkey(struct ext_key* xkey);
 
-/*
- * Returns the length of the active BIP32 wordlist.
- */
-USE_RESULT uint16_t keystore_get_bip39_wordlist_length(void);
-
 /**
  * Returns the pointer to a word in the word list for the given index.
- * @param[in] idx The index into the word list.
+ * @param[in] idx The index into the word list. Must be smaller than BIP39_WORDLIST_LEN.
  * @param[out] word_out The pointer to the character array for the given index.
  */
 USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);

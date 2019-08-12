@@ -15,16 +15,15 @@
 #include "show_mnemonic.h"
 
 #include "blocking.h"
-#include "confirm.h"
+#include "cancel.h"
 #include "password.h"
 #include "status.h"
 #include "workflow.h"
 
 #include <hardfault.h>
+#include <keystore.h>
 #include <random.h>
 #include <ui/components/ui_components.h>
-#include <ui/screen_process.h>
-#include <ui/screen_stack.h>
 #include <util.h>
 
 #define BIP39_NUM_WORDS 24
@@ -32,9 +31,8 @@
 
 #define NUM_RANDOM_WORDS 5
 
-static bool _cancel_pressed = false;
-
 static const char* _back_label = "Back to seed phrase";
+static const char* _cancel_confirm_title = "Export Mnemonic";
 
 static void _split_and_save_wordlist(
     char* mnemonic,
@@ -87,8 +85,7 @@ static uint8_t _create_random_unique_words(const char** wordlist, uint8_t length
         }
         uint8_t random_num_b1 = random_byte_mcu();
         uint8_t random_num_b2 = random_byte_mcu();
-        uint16_t random_num = (random_num_b1 << 8 | random_num_b2) %
-                              workflow_get_interface_functions()->get_bip39_wordlist_length();
+        uint16_t random_num = (random_num_b1 << 8 | random_num_b2) % BIP39_WORDLIST_LEN;
         if (_is_in_list(random_num, random_numbers, current_length)) {
             // already chose that word, so select a different word
             continue;
@@ -114,40 +111,12 @@ static void _select_word(uint8_t selection_idx)
     workflow_blocking_unblock();
 }
 
-static void _cancel(void)
-{
-    _cancel_pressed = true;
-    workflow_blocking_unblock();
-}
-
-static bool _workflow_cancel(component_t* component)
-{
-    ui_screen_stack_push(component);
-    while (true) {
-        _cancel_pressed = false;
-        bool unblock_result = workflow_blocking_block();
-        if (!unblock_result) {
-            ui_screen_stack_pop();
-            return false;
-        }
-        if (_cancel_pressed) {
-            if (!workflow_confirm(
-                    "Export Mnemonic", "Do you really\nwant to cancel?", false, false)) {
-                continue;
-            }
-            ui_screen_stack_pop();
-            workflow_status_create("Cancelled", false);
-            return false;
-        }
-        ui_screen_stack_pop();
-        return true;
-    }
-}
-
 static bool _show_words(const char** words, uint8_t words_count)
 {
-    return _workflow_cancel(scroll_through_all_variants_create(
-        words, NULL, words_count, true, workflow_blocking_unblock, _cancel, NULL));
+    return workflow_cancel_run(
+        _cancel_confirm_title,
+        scroll_through_all_variants_create(
+            words, NULL, words_count, true, workflow_blocking_unblock, workflow_cancel, NULL));
 }
 
 typedef struct {
@@ -196,8 +165,14 @@ bool workflow_show_mnemonic_create(void)
         confirm_wordlist[back_idx] = _back_label;
 
         while (true) {
-            if (!_workflow_cancel(confirm_mnemonic_create(
-                    confirm_wordlist, NUM_RANDOM_WORDS + 1, word_idx, _select_word, _cancel))) {
+            if (!workflow_cancel_run(
+                    _cancel_confirm_title,
+                    confirm_mnemonic_create(
+                        confirm_wordlist,
+                        NUM_RANDOM_WORDS + 1,
+                        word_idx,
+                        _select_word,
+                        workflow_cancel))) {
                 return false;
             }
             if (_selection_idx == correct_idx) {

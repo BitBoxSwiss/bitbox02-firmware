@@ -15,6 +15,9 @@
 #ifndef _CONFIRM_GESTURE_
 #define _CONFIRM_GESTURE_
 
+#include <stdbool.h>
+#include <ui/component.h>
+
 /********************************** Create Instance **********************************/
 
 /**

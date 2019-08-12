@@ -36,7 +36,9 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/reset.c
   ${CMAKE_SOURCE_DIR}/src/cipher/cipher.c
   ${CMAKE_SOURCE_DIR}/src/workflow/blocking.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/cancel.c
   ${CMAKE_SOURCE_DIR}/src/workflow/workflow.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/trinary_input.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c
   ${CMAKE_SOURCE_DIR}/src/workflow/password.c
@@ -44,6 +46,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/create_seed.c
   ${CMAKE_SOURCE_DIR}/src/workflow/unlock.c
   ${CMAKE_SOURCE_DIR}/src/workflow/show_mnemonic.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/restore_from_mnemonic.c
   ${CMAKE_SOURCE_DIR}/src/workflow/pairing.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_pub.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
@@ -92,6 +95,9 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/screen_process.c
     ${CMAKE_SOURCE_DIR}/src/ui/event_handler.c
     ${CMAKE_SOURCE_DIR}/src/ui/ui_util.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/trinary_choice.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/trinary_input_char.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/trinary_input_string.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/show_logo.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/waiting.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/entry_screen.c

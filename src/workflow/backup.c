@@ -35,9 +35,9 @@
 /**
  * Creates a backup and does error handling.
  */
-static bool _backup(uint32_t backup_create_timestamp)
+static bool _backup(uint32_t backup_create_timestamp, uint32_t seed_birthdate_timestamp)
 {
-    backup_error_t res = backup_create(backup_create_timestamp);
+    backup_error_t res = backup_create(backup_create_timestamp, seed_birthdate_timestamp);
     switch (res) {
     case BACKUP_OK:
         if (!memory_set_initialized()) {
@@ -118,19 +118,28 @@ bool workflow_backup_create(const CreateBackupRequest* request)
         }
     }
 
-    if (!_confirm_time(request)) {
-        return false;
-    }
-
-    uint32_t seed_birthdate;
-    memory_get_seed_birthdate(&seed_birthdate);
-    if (seed_birthdate == 0) {
-        if (!memory_set_seed_birthdate(request->timestamp)) {
+    uint32_t seed_birthdate = 0;
+    if (!memory_is_initialized()) {
+        if (!_confirm_time(request)) {
             return false;
         }
-    }
 
-    return _backup(request->timestamp);
+        seed_birthdate = request->timestamp;
+        if (!memory_set_seed_birthdate(seed_birthdate)) {
+            return false;
+        }
+    } else {
+        // If adding new backup after initialized, we do not know the seed bithdate.
+        // If re-creating it, we use the already existing one.
+
+        uint32_t existing_seed_birthdate;
+        char backup_id[256];
+        backup_error_t res = backup_check(backup_id, NULL, &existing_seed_birthdate);
+        if (res == BACKUP_OK) {
+            seed_birthdate = existing_seed_birthdate;
+        }
+    }
+    return _backup(request->timestamp, seed_birthdate);
 }
 
 bool workflow_backup_check(char* id_out, bool silent)

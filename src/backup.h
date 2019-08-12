@@ -42,14 +42,15 @@ const char* backup_error_str(backup_error_t err);
 void backup_cleanup_backup(Backup* backup);
 void backup_cleanup_backup_data(BackupData* backup_data);
 
-backup_error_t backup_create(uint32_t backup_create_timestamp);
+backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_birthdate_timestamp);
 
 /**
  * id_out must have max 256 bytes in size; hww.options BackupInfo.id
- * @param[out] name_out must have max MEMORY_DEVICE_NAME_MAX_LEN (64) bytes in size; hww.options BackupInfo.name
- * @param[out] timestamp_out can be NULL.
+ * @param[out] name_out must have max MEMORY_DEVICE_NAME_MAX_LEN (64) bytes in size;
+ // hww.options BackupInfo.name; can be NULL.
+ * @param[out] birthdate_out can be NULL.
  */
-backup_error_t backup_check(char* id_out, char* name_out, uint32_t* timestamp_out);
+backup_error_t backup_check(char* id_out, char* name_out, uint32_t* birthdate_out);
 
 void backup_calculate_checksum(
     BackupContent* content,

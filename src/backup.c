@@ -163,6 +163,7 @@ static bool _encode_backup_data(pb_ostream_t* ostream, const pb_field_t* field, 
  */
 static backup_error_t _fill_backup(
     uint32_t backup_create_timestamp,
+    uint32_t seed_birthdate_timestamp,
     Backup* backup,
     BackupData* backup_data,
     encode_data_t* encode_data)
@@ -182,9 +183,7 @@ static backup_error_t _fill_backup(
         const char* firmware_v = DIGITAL_BITBOX_VERSION_SHORT;
         snprintf(backup_data->generator, sizeof(backup_data->generator), "%s", firmware_v);
 
-        uint32_t seed_birthdate;
-        memory_get_seed_birthdate(&seed_birthdate);
-        backup_data->birthdate = seed_birthdate;
+        backup_data->birthdate = seed_birthdate_timestamp;
 
         if (!keystore_copy_seed(backup_data->seed, &backup_data->seed_length)) {
             return BACKUP_SEED_INACCESSIBLE;
@@ -264,12 +263,13 @@ static backup_error_t _check_backup(uint8_t* output, size_t output_length, const
 /**
  * Creates a backup using the given timestamp.
  */
-backup_error_t backup_create(uint32_t backup_create_timestamp)
+backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_birthdate_timestamp)
 {
     Backup __attribute__((__cleanup__(backup_cleanup_backup))) backup;
     BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data;
     encode_data_t encode_data;
-    backup_error_t res = _fill_backup(backup_create_timestamp, &backup, &backup_data, &encode_data);
+    backup_error_t res = _fill_backup(
+        backup_create_timestamp, seed_birthdate_timestamp, &backup, &backup_data, &encode_data);
     if (res != BACKUP_OK) {
         return res;
     }
@@ -324,13 +324,12 @@ backup_error_t backup_create(uint32_t backup_create_timestamp)
     return BACKUP_OK;
 }
 
-backup_error_t backup_check(char* id_out, char* name_out, uint32_t* timestamp_out)
 backup_error_t backup_check(char* id_out, char* name_out, uint32_t* birthdate_out)
 {
     Backup __attribute__((__cleanup__(backup_cleanup_backup))) backup;
     BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data;
     encode_data_t encode_data;
-    backup_error_t backup_res = _fill_backup(0, &backup, &backup_data, &encode_data);
+    backup_error_t backup_res = _fill_backup(0, 0, &backup, &backup_data, &encode_data);
     if (backup_res != BACKUP_OK) {
         return backup_res;
     }

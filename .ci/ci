@@ -8,6 +8,10 @@ set -e
 make -C py
 ./.ci/check-pep8
 
+# Make build directories so we can do some static analysis
+make prepare-tidy
+./.ci/check-tidy
+
 # Bootloader variants
 make -j8 bootloader
 make -j8 bootloader-devdevice
@@ -32,5 +36,3 @@ make -C tools/go/src/atecc608a test
 
 # Build device tests
 make -j8 device-tests
-
-# ./scripts/tidy # run tidy on the firmware build

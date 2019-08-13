@@ -410,7 +410,7 @@ set_property(TARGET qtouchlib_t PROPERTY IMPORTED_LOCATION
 if(CMAKE_CROSSCOMPILING)
   set(STACK_SIZE "0x10000" CACHE STRING "Specify stack size for bootloader/firmware")
   set(STACK_SIZE ${STACK_SIZE} PARENT_SCOPE)
-  set(HEAP_SIZE "0x20000" CACHE STRING "Specify heap size for bootloader/firmware")
+  set(HEAP_SIZE "0x18000" CACHE STRING "Specify heap size for bootloader/firmware")
   set(HEAP_SIZE ${HEAP_SIZE} PARENT_SCOPE)
   foreach(bootloader bootloader bootloader-development bootloader-production)
     set(elf ${bootloader}.elf)

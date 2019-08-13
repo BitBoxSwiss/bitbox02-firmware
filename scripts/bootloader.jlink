@@ -1,3 +1,0 @@
-loadfile build/bin/bootloader.bin
-r
-q

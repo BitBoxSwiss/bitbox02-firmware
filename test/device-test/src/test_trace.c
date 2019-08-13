@@ -13,22 +13,14 @@
 // limitations under the License.
 
 #include "common_main.h"
-#include "drivers/driver_init.h"
+#include "driver_init.h"
 #include "hardfault.h"
-#include "keystore.h"
-#include "memory.h"
 #include "qtouch.h"
 #include "screen.h"
-#include "sd.h"
-#include "ui/screen_process.h"
-#include "workflow/workflow.h"
+#include "util.h"
+#include <string.h>
 
-static workflow_interface_functions_t _workflow_interface_functions = {
-    .is_seeded = memory_is_seeded,
-    .sd_card_inserted = sd_card_inserted,
-    .get_bip39_mnemonic = keystore_get_bip39_mnemonic,
-    .get_bip39_word = keystore_get_bip39_word,
-};
+#include <usb/usb.h>
 
 uint32_t __stack_chk_guard = 0;
 
@@ -38,13 +30,12 @@ int main(void)
     system_init();
     __stack_chk_guard = common_stack_chk_guard();
     screen_init();
+    screen_print_debug("hej", 1001);
     screen_splash();
     qtouch_init();
-    common_main();
-    traceln("%s", "Device initialized");
-    // dev convenience
-    // if (memory_is_seeded()) { memory_reset_hww(); }
-    workflow_set_interface_functions(&_workflow_interface_functions);
-    workflow_change_state(WORKFLOW_STATE_CHOOSE_ORIENTATION);
-    ui_screen_process(NULL);
+    traceln("%s", "testytest");
+    traceln("%lu", __stack_chk_guard);
+    Abort("End of main");
+    while (1) {
+    }
 }

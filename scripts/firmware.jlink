@@ -1,3 +1,0 @@
-loadbin build/bin/firmware.bin 0x10000
-r
-q

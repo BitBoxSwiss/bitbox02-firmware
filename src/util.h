@@ -94,4 +94,36 @@ bool safe_uint64_add(uint64_t* a, uint64_t b);
 #define UTIL_WARN_UNUSED_RESULT
 #endif
 
+/**
+ * Tracing tools. Only enabled in semihosting builds
+ *
+ * Since we are using C99 it is necessary to provide at least 1 argument to "...". To print a
+ * string, provide the format string "%s" and your string as the second argument.
+ *
+ * "do {} while" is a hack to make a macro work like a function in some cases.
+ *
+ * stderr is not buffered and takes forever to print stdout is used instead.
+ *
+ * SOURCE_PATH_SIZE is a definition provided from the command line which is the length of the path
+ * to the project directory.
+ */
+
+#if defined(SEMIHOSTING)
+#define LOG_LEVEL 1
+#else
+#define LOG_LEVEL 0
+#endif
+#define FILENAME (__FILE__ + SOURCE_PATH_SIZE)
+
+#define trace(format, ...)                                                                     \
+    do {                                                                                       \
+        if (LOG_LEVEL > 0) fprintf(stdout, "%s:%d: " format, FILENAME, __LINE__, __VA_ARGS__); \
+    } while (0)
+
+#define traceln(format, ...)                                                         \
+    do {                                                                             \
+        if (LOG_LEVEL > 0)                                                           \
+            fprintf(stdout, "%s:%d: " format "\n", FILENAME, __LINE__, __VA_ARGS__); \
+    } while (0)
+
 #endif

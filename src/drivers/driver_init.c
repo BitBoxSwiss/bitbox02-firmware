@@ -29,6 +29,8 @@ struct rand_sync_desc RAND_0;
 PPUKCL_PARAM pvPUKCLParam;
 PUKCL_PARAM PUKCLParam;
 
+extern void initialise_monitor_handles(void);
+
 bool _is_initialized = false;
 
 /**
@@ -302,6 +304,9 @@ void system_init(void)
     _flash_memory_init();
     // USB
     _usb_init();
+#if defined(SEMIHOSTING)
+    initialise_monitor_handles();
+#endif
     _is_initialized = true;
 }
 

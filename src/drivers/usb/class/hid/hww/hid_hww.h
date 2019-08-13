@@ -18,13 +18,6 @@
 #include "hid.h"
 
 /**
- * Sets the buffer address for the outgoing endpoint.
- * The length of the data to be written is defined in USB_HID_REPORT_OUT_SIZE.
- * @param[IN] size The size of the buffer.
- */
-int32_t hid_hww_write(uint8_t *buf);
-
-/**
  * Initializes a HWW HID interface.
  * @param[in] callback The callback that is called upon status update (enabling/disabling or the endpoints).
  */

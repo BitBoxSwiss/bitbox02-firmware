@@ -17,6 +17,6 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
-# Avoid linking error:
-#    exit.c:(.text.exit+0x2c): undefined reference to `_exit'
-set(CMAKE_EXE_LINKER_FLAGS "--specs=nosys.specs --specs=nano.specs" CACHE INTERNAL "")
+# nosys selects an weak "no-op" implementation of the system commands. This allows CMake to link its test executables.
+# weak means that if a symbol is provided, like _break, that will be used instead.
+set(CMAKE_EXE_LINKER_FLAGS "--specs=nosys.specs" CACHE INTERNAL "")

@@ -72,6 +72,11 @@ target_include_directories(bitbox SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/external/lib
 # needed to find version.h
 target_include_directories(bitbox SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
 
+# Always enable semihosting for the test firmwares
+target_compile_definitions(bitbox PUBLIC SEMIHOSTING)
+target_link_libraries(bitbox PUBLIC --specs=nano.specs --specs=rdimon.specs)
+target_compile_options(bitbox PUBLIC --specs=nano.specs --specs=rdimon.specs)
+
 add_library(qtouchlib_a STATIC IMPORTED)
 set_property(TARGET qtouchlib_a PROPERTY IMPORTED_LOCATION
   ${CMAKE_SOURCE_DIR}/src/drivers/qtouch/lib/gcc/libqtm_acq_samd51_0x000f.a
@@ -99,6 +104,7 @@ set(TEST_LIST
   slide_info
   ssp
   tap_menu
+  trace
   usb_cmd_process
   usb_composed_ep_in
   usb_composed_ep_out
@@ -121,11 +127,11 @@ foreach(name ${TEST_LIST})
   target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
 
   add_dependencies(${elf} noise-c)
-  target_link_libraries(${elf} PRIVATE noiseprotocol)
-
   add_dependencies(${elf} libwally-core)
   # We must link against libc before libbitbox because malloc depends on _sbrk
-  target_link_libraries(${elf} PRIVATE c bitbox)
+  # We must mark "exception_table" as used, otherwise it won't be linked in since it is in a static library
+  target_link_libraries(${elf} PRIVATE c bitbox -Wl,-u,exception_table)
+  target_link_libraries(${elf} PRIVATE noiseprotocol)
   target_link_libraries(${elf} PRIVATE wallycore secp256k1)
   target_link_libraries(${elf} PRIVATE qtouchlib_a qtouchlib_b qtouchlib_t)
 

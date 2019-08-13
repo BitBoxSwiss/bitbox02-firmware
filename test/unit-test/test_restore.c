@@ -241,7 +241,7 @@ static void test_restore_list_backups_single_seed(void** state)
  */
 static void test_restore_list_backups_multiple_seeds(void** state)
 {
-    ListBackupsResponse list_backups_response;
+    ListBackupsResponse list_backups_response = {0};
     assert_int_equal(restore_list_backups(&list_backups_response), RESTORE_OK);
     assert_int_equal(list_backups_response.info_count, 1);
     assert_string_equal(list_backups_response.info[0].id, _dir_name);

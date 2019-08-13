@@ -70,12 +70,12 @@ static void _render(component_t* component)
         UG_PutString(8, 26, "   Enter a password", false);
 
         // Night rider (cosine wave movement)
-        float cos = (512 / 4 + init_screen_count++) % (512 + 1);
-        cos = cos / 512 * 3.14 * 2 - 3.14;
+        float cos = (float)((512 / 4 + init_screen_count++) % (512 + 1));
+        cos = cos / 512 * 3.14F * 2 - 3.14F;
         if (cos > 0) {
-            cos = 1.27323954 * cos - 0.405284735 * cos * cos;
+            cos = 1.27323954F * cos - 0.405284735F * cos * cos;
         } else {
-            cos = 1.27323954 * cos + 0.405284735 * cos * cos;
+            cos = 1.27323954F * cos + 0.405284735F * cos * cos;
         }
         x = (int)(cos * 32) + SCREEN_WIDTH / 2 - 2;
         y = SCREEN_HEIGHT - 1;
@@ -97,9 +97,9 @@ static void _render(component_t* component)
     }
 
     // Password
-    uint8_t x, y, i;
+    uint8_t x, y;
     UG_FontSelect(&font_font_a_11X12);
-    for (i = 0, x = 10; i < strlens(data->password); i++) {
+    for (size_t i = 0, x = 10; i < strlens(data->password); i++) {
         char chr = data->password[i];
         uint8_t w = font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
         y = 30;
@@ -120,7 +120,7 @@ static void _render(component_t* component)
         }
         x += 11;
     }
-    x = x - 11 - 2;
+    // x = x - 11 - 2;
 
     // Slider indicators
     y = SCREEN_HEIGHT - 1;
@@ -130,7 +130,7 @@ static void _render(component_t* component)
     }
 
     // Render sub-components
-    for (i = 0; i < component->sub_components.amount; i++) {
+    for (uint8_t i = 0; i < component->sub_components.amount; i++) {
         component->sub_components.sub_components[i]->f->render(
             component->sub_components.sub_components[i]);
     }
@@ -154,8 +154,8 @@ static void _on_event(const event_t* event, component_t* component)
 
         // Variable scroll speed
         position_diff +=
-            0.005 * slider_data->velocity * abs(slider_data->velocity) /
-            (1 + 0.002 * slider_data->velocity * slider_data->velocity); // sigmoid function
+            (float) (0.005 * slider_data->velocity * abs(slider_data->velocity) /
+            (1 + 0.002 * slider_data->velocity * slider_data->velocity)); // sigmoid function
 
         // Divide by 10 in order to allow `position_diff` to change value and
         // accumulate, without changing the displayed character. This

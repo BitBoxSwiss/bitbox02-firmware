@@ -23,7 +23,7 @@
 
 #include <stdio.h>
 
-static char _word[WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH];
+static char _word[WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1];
 
 static void _confirm(const char* word)
 {
@@ -46,7 +46,7 @@ bool workflow_trinary_input_wordlist(
                 title, wordlist, wordlist_size, _confirm, workflow_cancel))) {
         return false;
     }
-    snprintf(word_out, WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH, "%s", _word);
+    snprintf(word_out, WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1, "%s", _word);
     util_zero(_word, sizeof(_word));
     return true;
 }

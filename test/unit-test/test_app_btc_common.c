@@ -71,7 +71,7 @@ static void _test_btc_common_format_amount(void** state)
         {0xffffffffffffffff, "184467440737.09551615 LOL"},
         {0xffffffffffffffff - 5, "184467440737.0955161 LOL"},
     };
-    for (unsigned int i = 0; i < sizeof(tests) / sizeof(btc_format_test_t); i++) {
+    for (size_t i = 0; i < sizeof(tests) / sizeof(btc_format_test_t); i++) {
         const btc_format_test_t* test = &tests[i];
         char out[100] = {0};
         assert_true(btc_common_format_amount(test->satoshi, "LOL", out, sizeof(out)));

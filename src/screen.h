@@ -35,8 +35,7 @@ extern slider_location_t bottom_slider;
 
 void screen_init(void);
 void screen_print_debug(const char* message, int duration);
-void screen_sprintf_debug(int duration, const char* message, ...)
-    __attribute__((format(printf, 2, 0)));
+void screen_sprintf_debug(int duration, const char* fmt, ...) __attribute__((format(printf, 2, 0)));
 void screen_print_debug_hex(const uint8_t* bytes, size_t len, int duration);
 
 void screen_splash(void);

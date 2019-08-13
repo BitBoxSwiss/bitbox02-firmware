@@ -27,7 +27,7 @@ struct usb_processing;
  * @param[in] num_cmds The number of registered commands.
  */
 void usb_processing_register_cmds(
-    struct usb_processing*,
+    struct usb_processing* ctx,
     const CMD_Callback* cmd_callbacks,
     int num_cmds);
 
@@ -38,10 +38,10 @@ void usb_processing_register_cmds(
  * @return false if there is already a packet in the queue (need to process it
  * first).
  */
-bool usb_processing_enqueue(struct usb_processing*, const State* in_state);
-void usb_processing_process(struct usb_processing*);
+bool usb_processing_enqueue(struct usb_processing* ctx, const State* in_state);
+void usb_processing_process(struct usb_processing* ctx);
 
-void usb_processing_set_send(struct usb_processing*, void (*send)(void));
+void usb_processing_set_send(struct usb_processing* ctx, void (*send)(void));
 
 struct usb_processing* usb_processing_u2f(void);
 struct usb_processing* usb_processing_hww(void);

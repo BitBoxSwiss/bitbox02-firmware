@@ -84,8 +84,9 @@ void hid_close(hid_device* dev)
     }
 }
 
-static void _hid_open(void)
+hid_device* hid_open_path(const char* path)
 {
+    static char sham[] = "sham";
     usb_processing_init();
     u2f_device_setup();
     usb_processing_set_send(usb_processing_u2f(), _send_packet_cb);
@@ -95,40 +96,27 @@ static void _hid_open(void)
         printf("failed to create thread\n");
     }
     pthread_mutex_init(&mutex, NULL);
-}
-
-hid_device* hid_open(unsigned short vid, unsigned short pid, const wchar_t* path)
-{
-    static char sham[] = "sham";
-    _hid_open();
     return (hid_device*)&sham;
 }
 
-hid_device* hid_open_path(const char* path)
+int hid_write(hid_device* dev, const unsigned char* data, size_t length)
 {
-    static char sham[] = "sham";
-    _hid_open();
-    return (hid_device*)&sham;
-}
-
-int hid_write(hid_device* dev, const unsigned char* d, size_t d_len)
-{
-    if (d_len > BUFSIZE + 1) {
-        printf("Internal test error: %lu > %lu\n", d_len - 1, BUFSIZE);
+    if (length > BUFSIZE + 1) {
+        printf("Internal test error: %lu > %lu\n", length - 1, BUFSIZE);
         return 0;
     }
-    memcpy(_buf, d + 1, d_len - 1);
-    _buf_len = d_len - 1;
+    memcpy(_buf, data + 1, length - 1);
+    _buf_len = length - 1;
     _expect_more = u2f_packet_process((const USB_FRAME*)_buf, _send_packet_cb);
     if (!_expect_more) {
         // printf("Got complete packet\n");
         _have_data = true;
     }
     _delay(2);
-    return d_len;
+    return length;
 }
 
-int hid_read_timeout(hid_device* dev, unsigned char* r, size_t r_len, int to)
+int hid_read_timeout(hid_device* dev, unsigned char* data, size_t length, int milliseconds)
 {
     if (_expect_more || !_have_data) {
         if (_expect_more) {
@@ -144,7 +132,7 @@ int hid_read_timeout(hid_device* dev, unsigned char* r, size_t r_len, int to)
     uint8_t* p = queue_pull(queue_u2f_queue());
     // printf("Queue: %p\n", p);
     if (p != NULL) {
-        memcpy(r, p, MIN(r_len, BUFSIZE));
+        memcpy(data, p, MIN(length, BUFSIZE));
     } else {
         // printf("No data in queue\n");
         _delay(600);
@@ -155,10 +143,10 @@ int hid_read_timeout(hid_device* dev, unsigned char* r, size_t r_len, int to)
     }
     _expect_more = false;
     _delay(2);
-    return r_len;
+    return length;
 }
 
-struct hid_device_info* hid_enumerate(unsigned short a, unsigned short b)
+struct hid_device_info* hid_enumerate(unsigned short vendor_id, unsigned short product_id)
 {
     static struct hid_device_info dev = {
         .path = "sham",

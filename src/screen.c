@@ -38,8 +38,7 @@ slider_location_t bottom_slider = 0;
 void screen_print_debug(const char* message, int duration)
 {
     char print[100];
-    strncpy(print, message, sizeof(print));
-    print[sizeof(print) - 1] = 0;
+    snprintf(print, sizeof(print), "%s", message);
     UG_ClearBuffer();
     UG_FontSelect(&font_font_a_9X9);
     UG_PutString(0, 0, print, false);
@@ -47,12 +46,14 @@ void screen_print_debug(const char* message, int duration)
     delay_ms(duration);
 }
 
-void screen_sprintf_debug(int duration, const char* message, ...)
+void screen_sprintf_debug(int duration, const char* fmt, ...)
 {
     va_list args;
-    va_start(args, message);
-    char print[100] = {0};
-    vsnprintf(print, sizeof(print) - 1, message, args);
+    va_start(args, fmt);
+    char print[100];
+    // There is a bug in clang-tidy
+    // See https://bugs.llvm.org/show_bug.cgi?id=41311
+    vsnprintf(print, sizeof(print), fmt, args); // NOLINT
     va_end(args);
     screen_print_debug(print, duration);
 }

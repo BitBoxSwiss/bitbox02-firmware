@@ -54,7 +54,7 @@ add_library(bitbox
 
 target_include_directories(bitbox PUBLIC ${INCLUDES})
 target_include_directories(bitbox SYSTEM PUBLIC ${SYSTEMINCLUDES})
-target_include_directories(bitbox PUBLIC ${NANOPB_INCLUDE_DIRS})
+target_include_directories(bitbox SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
 target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 add_dependencies(bitbox generate-hww generate-backup)
 # Include and provide configuration for nanopb

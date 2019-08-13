@@ -43,7 +43,7 @@ int main(void)
     screen_init();
     qtouch_init();
 
-    const char* words[] = {"first", "second", "third", "forth"};
+    // const char* words[] = {"first", "second", "third", "forth"};
     // component_t* test_scroll_through = scroll_through_create(words, NULL, 4, true);
 
     // ui_screen_stack_push(test_scroll_through);

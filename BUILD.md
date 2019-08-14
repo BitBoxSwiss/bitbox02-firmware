@@ -71,9 +71,9 @@ Plug in both the J-Link hardware and the BitBox02 device into USB ports on your 
 
 Build the firmware:
 ```
-git clone --recurse-submodules https://github.com/shiftdevices/firmware_v2 && cd firmware_v2
+git clone --recurse-submodules https://github.com/digitalbitbox/bitbox02-firmware && cd firmware_v2
 # or via ssh
-git clone --recurse-submodules git@github.com:shiftdevices/firmware_v2.git && cd firmware_v2
+git clone --recurse-submodules git@github.com:digitalbitbox/bitbox02-firmware.git && cd firmware_v2
 make firmware # requires a GNU ARM toolchain for cross-compiling
 ```
 

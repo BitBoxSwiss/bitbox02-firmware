@@ -14,7 +14,8 @@ The main functionality of the firmware is the following:
 * Safely receive and send coins.
 * Interacting with the user through touch sliders and a display.
 * Back up the seed to a microSD card.
-* Back up the seed by displaying the mnemonic encoding on the screen.
+* Back up the seed by displaying the BIP39 mnemonic encoding on the screen.
+* Import 12, 18 or 24 word BIP39 mnemonics
 * Generate a random seed from multiple strong sources of entropy.
 * Protect the seed from attackers.
 * Derive keys from the seed according to BIP39 and BIP32.

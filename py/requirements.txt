@@ -1,3 +1,4 @@
 tzlocal==1.5.1
 mypy==0.720
 mypy-protobuf==1.13
+semver==2.8.1

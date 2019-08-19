@@ -14,14 +14,15 @@
 """USB device utility functions"""
 
 import re
-import typing
+from typing import List
 from typing_extensions import TypedDict
 
 import hid
 import semver
 
 
-BOOTLOADER = "bb02-bootloader"
+BB02_BOOTLOADER = "bb02-bootloader"
+BB02BTC_BOOTLOADER = "bb02btc-bootloader"
 BITBOX02 = "BitBox02"
 
 
@@ -30,7 +31,7 @@ class DeviceInfo(TypedDict):
     path: bytes
 
 
-def get_bitbox02_devices(product_string: str = BITBOX02) -> typing.List[DeviceInfo]:
+def get_bitbox02_devices(product_string: str = BITBOX02) -> List[DeviceInfo]:
     """
     Scans devices and returns a list of hid device info objects.
     """

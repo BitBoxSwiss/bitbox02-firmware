@@ -38,6 +38,12 @@ bootloader-devdevice: | build
 	$(MAKE) -C build bootloader-development.elf
 bootloader-production: | build
 	$(MAKE) -C build bootloader-production.elf
+bootloader-btc: | build
+	$(MAKE) -C build bootloader-btc.elf
+bootloader-btc-devdevice: | build
+	$(MAKE) -C build bootloader-btc-development.elf
+bootloader-btc-production: | build
+	$(MAKE) -C build bootloader-btc-production.elf
 factory-setup: | build
 	$(MAKE) -C build factory-setup.elf
 docs: | build-build

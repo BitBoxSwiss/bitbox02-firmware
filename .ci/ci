@@ -13,6 +13,10 @@ make -j8 bootloader
 make -j8 bootloader-devdevice
 make -j8 bootloader-production
 
+make -j8 bootloader-btc
+make -j8 bootloader-btc-devdevice
+make -j8 bootloader-btc-production
+
 # Firmware
 make -j8 firmware
 

@@ -79,6 +79,29 @@
 
 #define USB_DESC_IPRODUCT 2
 #if defined(BOOTLOADER)
+#if defined(BOOTLOADER_BTC)
+#define USB_DESC_IPRODUCT_STR_DESC \
+        38,    /* bLength */\
+        0x03,  /* bDescriptorType */\
+        'b', 0,\
+        'b', 0,\
+        '0', 0,\
+        '2', 0,\
+        'b', 0,\
+        't', 0,\
+        'c', 0,\
+        '-', 0,\
+        'b', 0,\
+        'o', 0,\
+        'o', 0,\
+        't', 0,\
+        'l', 0,\
+        'o', 0,\
+        'a', 0,\
+        'd', 0,\
+        'e', 0,\
+        'r', 0,
+#else
 #define USB_DESC_IPRODUCT_STR_DESC \
         32,    /* bLength */\
         0x03,  /* bDescriptorType */\
@@ -97,6 +120,7 @@
         'd', 0,\
         'e', 0,\
         'r', 0,
+#endif
 #elif defined(FACTORYSETUP)
 #define USB_DESC_IPRODUCT_STR_DESC \
         26,    /* bLength */\

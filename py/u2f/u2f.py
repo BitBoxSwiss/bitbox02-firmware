@@ -12,17 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """U2F packet types"""
-
 import binascii
 import hashlib
 import base64
 import json
 import random
 from typing import Tuple
-import typing_extensions
+from typing_extensions import Protocol
 
 import ecdsa
-
 
 U2F_REGISTER = 0x01
 U2F_AUTHENTICATE = 0x02
@@ -115,7 +113,7 @@ def _der_to_sig(der: bytes) -> Tuple[int, bytes]:
     return (seq_len + 2, sig_64)
 
 
-class U2FSender(typing_extensions.Protocol):
+class U2FSender(Protocol):
     # pylint: disable=too-few-public-methods,unused-argument,no-self-use
     def u2fhid_msg(self, msg: bytes) -> bytes:
         ...
@@ -334,3 +332,28 @@ class AuthenticationRequest:
         return AuthenticationResponse(
             response_bytes, self._app_parameter, self._challenge_parameter
         )
+
+
+class InitResponse:
+    """Reponse to Init"""
+
+    # pylint: disable=too-few-public-methods
+
+    def __init__(
+        self,
+        nonce: bytes,
+        cid: bytes,
+        version_interface: bytes,
+        version_major: bytes,
+        version_minor: bytes,
+        version_build: bytes,
+        cap_flags: bytes,
+    ):
+        # pylint: disable=too-many-arguments
+        self.nonce = nonce
+        self.cid = int.from_bytes(cid, "big")
+        self.version_interface = version_interface
+        self.version_major = version_major
+        self.version_minor = version_minor
+        self.version_build = version_build
+        self.cap_flags = cap_flags

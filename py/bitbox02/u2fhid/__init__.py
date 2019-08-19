@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-all: generated/hww_pb2.py generated/hww_pb2.pyi
+"""Util functions to interact with u2fhid devices."""
 
-generated/hww_pb2.py generated/hww_pb2.pyi: ../../messages/hww.proto
-	mkdir -p generated/
-	protoc --proto_path=../../messages --python_out=generated/ --mypy_out=generated/ $^
+from .u2fhid import *

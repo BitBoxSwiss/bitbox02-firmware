@@ -1,3 +1,0 @@
-hidapi==0.7.99.post21
-noiseprotocol==0.3.0
-protobuf==3.7.0

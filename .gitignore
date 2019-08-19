@@ -2,10 +2,14 @@
 /build-*/
 NOTES.md
 .vagrant/
-*.pyc
-.mypy_cache/
 
 # gnu global
 /src/GPATH
 /src/GRTAGS
 /src/GTAGS
+
+*.pyc
+.mypy_cache/
+bitbox02.egg-info
+/py/bitbox02/build
+/py/bitbox02/dist

@@ -29,7 +29,7 @@ from noise.connection import NoiseConnection, Keypair
 import hid
 import semver
 
-from .usb import hid_send_frames, hid_read_frames
+import u2fhid
 from .devices import parse_device_version, DeviceInfo
 
 try:
@@ -148,6 +148,8 @@ class AttestationException(Exception):
 class BitBox02:
     """Class to communicate with a BitBox02"""
 
+    # pylint: disable=too-many-public-methods
+
     def __init__(
         self,
         device_info: DeviceInfo,
@@ -227,8 +229,9 @@ class BitBox02:
         """
         Sends msg bytes and retrieves response bytes.
         """
-        hid_send_frames(self.device, msg, cmd=HWW_CMD)
-        return bytes(hid_read_frames(self.device, cmd=HWW_CMD))
+        cid = u2fhid.generate_cid()
+        u2fhid.write(self.device, msg, HWW_CMD, cid)
+        return bytes(u2fhid.read(self.device, HWW_CMD, cid))
 
     def _encrypted_query(self, msg: bytes) -> bytes:
         """
@@ -334,7 +337,7 @@ class BitBox02:
         Returns a pair of id and timestamp's strings that identify the backups.
         """
         # pylint: disable=no-member
-        self.insert_or_remove_sdcard(insert=True)
+        self.insert_sdcard()
         request = hww.Request()
         request.list_backups.CopyFrom(hww.ListBackupsRequest())
         response = self._msg_query(request, expected_response="list_backups")
@@ -366,7 +369,7 @@ class BitBox02:
         Otherwise, returns None. If silent is True, the result won't be shown on the device screen.
         """
         # pylint: disable=no-member
-        self.insert_or_remove_sdcard(insert=True)
+        self.insert_sdcard()
         request = hww.Request()
         request.check_backup.CopyFrom(hww.CheckBackupRequest(silent=silent))
         try:
@@ -525,29 +528,38 @@ class BitBox02:
         response = self._msg_query(request, expected_response="check_sdcard")
         return response.check_sdcard.inserted
 
-    def insert_or_remove_sdcard(self, insert: bool = False, remove: bool = False) -> None:
-        """TODO: document"""
+    def insert_sdcard(self) -> None:
         # pylint: disable=no-member
         request = hww.Request()
-        if insert:
-            request.insert_remove_sdcard.CopyFrom(
-                hww.InsertRemoveSDCardRequest(action=hww.InsertRemoveSDCardRequest.INSERT_CARD)
-            )
-        elif remove:
-            request.insert_remove_sdcard.CopyFrom(
-                hww.InsertRemoveSDCardRequest(action=hww.InsertRemoveSDCardRequest.REMOVE_CARD)
-            )
-        else:
-            raise Exception("Invalid action")
+        request.insert_remove_sdcard.CopyFrom(
+            hww.InsertRemoveSDCardRequest(action=hww.InsertRemoveSDCardRequest.INSERT_CARD)
+        )
         self._msg_query(request, expected_response="success")
 
-    def set_mnemonic_passphrase_enabled(self, enabled: bool) -> None:
+    def remove_sdcard(self) -> None:
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.insert_remove_sdcard.CopyFrom(
+            hww.InsertRemoveSDCardRequest(action=hww.InsertRemoveSDCardRequest.REMOVE_CARD)
+        )
+        self._msg_query(request, expected_response="success")
+
+    def enable_mnemonic_passphrase(self) -> None:
         """
-        Enable or disable the bip39 passphrase.
+        Enable the bip39 passphrase.
         """
         # pylint: disable=no-member
         request = hww.Request()
-        request.set_mnemonic_passphrase_enabled.enabled = enabled
+        request.set_mnemonic_passphrase_enabled.enabled = True
+        self._msg_query(request, expected_response="success")
+
+    def disable_mnemonic_passphrase(self) -> None:
+        """
+        Disable the bip39 passphrase.
+        """
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.set_mnemonic_passphrase_enabled.enabled = False
         self._msg_query(request, expected_response="success")
 
     def _perform_attestation(self) -> bool:

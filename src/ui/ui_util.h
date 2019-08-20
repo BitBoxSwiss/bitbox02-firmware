@@ -40,13 +40,6 @@ enum screen_position_t {
 void ui_util_add_sub_component(component_t* parent, component_t* child);
 
 /**
- * A utility function that removes the child component from a parent component.
- * @param[OUT] parent The given child component was added to the parent's sub components.
- * @param[in] child The child component that is removed.
- */
-void ui_util_remove_sub_component(component_t* parent, component_t* child);
-
-/**
  * A utility function that renders all sub-components.
  * @param[in] component The rendered component.
  */

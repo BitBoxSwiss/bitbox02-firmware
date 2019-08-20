@@ -18,12 +18,10 @@
 #include "keystore.h"
 #include "qtouch.h"
 #include "screen.h"
-#include "sd.h"
 #include "ui/screen_process.h"
 #include "workflow/workflow.h"
 
 static workflow_interface_functions_t _workflow_interface_functions = {
-    .sd_card_inserted = sd_card_inserted,
     .get_bip39_word = keystore_get_bip39_word,
 };
 

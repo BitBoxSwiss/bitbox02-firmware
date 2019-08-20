@@ -19,12 +19,13 @@
 
 #include "hww.pb.h"
 
+#include <sd.h>
 #include <ui/components/ui_components.h>
 #include <ui/screen_stack.h>
 
 void sdcard_handle(const InsertRemoveSDCardRequest* insert_remove_sdcard)
 {
-    bool inserted = workflow_get_interface_functions()->sd_card_inserted();
+    bool inserted = sd_card_inserted();
 
     // No action required, already inserted (INSERT request) or not inserted (REMOVE request)
     if ((insert_remove_sdcard->action == InsertRemoveSDCardRequest_SDCardAction_INSERT_CARD &&

@@ -47,7 +47,7 @@ static bool _backup(uint32_t backup_create_timestamp, uint32_t seed_birthdate_ti
         return true;
     case BACKUP_ERR_SD_WRITE:
     case BACKUP_ERR_SD_LIST:
-        if (!workflow_get_interface_functions()->sd_card_inserted()) {
+        if (!sd_card_inserted()) {
             workflow_status_create("Backup not created\nIs the SD card\ninserted?", false);
         } else {
             char msg[100];

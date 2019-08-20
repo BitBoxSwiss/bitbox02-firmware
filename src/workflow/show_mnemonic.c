@@ -91,7 +91,9 @@ static uint8_t _create_random_unique_words(const char** wordlist, uint8_t length
             continue;
         }
         char* picked_word;
-        workflow_get_interface_functions()->get_bip39_word(random_num, &picked_word);
+        if (!keystore_get_bip39_word(random_num, &picked_word)) {
+            Abort("keystore_get_bip39_word: alloc");
+        }
         wordlist[i] = picked_word;
         if (STREQ(wordlist[i], word)) {
             // if it's the same as the correct word, select a different word

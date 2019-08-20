@@ -27,17 +27,6 @@
 #include <usb/usb.h>
 #include <util.h>
 
-static workflow_interface_functions_t* _interface_functions = NULL;
-void workflow_set_interface_functions(workflow_interface_functions_t* ifs)
-{
-    _interface_functions = ifs;
-}
-
-workflow_interface_functions_t* workflow_get_interface_functions(void)
-{
-    return _interface_functions;
-}
-
 static void _confirm_dismiss(component_t* component)
 {
     (void)component;

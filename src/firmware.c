@@ -15,15 +15,10 @@
 #include "common_main.h"
 #include "drivers/driver_init.h"
 #include "hardfault.h"
-#include "keystore.h"
 #include "qtouch.h"
 #include "screen.h"
 #include "ui/screen_process.h"
 #include "workflow/workflow.h"
-
-static workflow_interface_functions_t _workflow_interface_functions = {
-    .get_bip39_word = keystore_get_bip39_word,
-};
 
 uint32_t __stack_chk_guard = 0;
 
@@ -36,7 +31,6 @@ int main(void)
     screen_splash();
     qtouch_init();
     common_main();
-    workflow_set_interface_functions(&_workflow_interface_functions);
     workflow_change_state(WORKFLOW_STATE_CHOOSE_ORIENTATION);
     ui_screen_process(NULL);
 }

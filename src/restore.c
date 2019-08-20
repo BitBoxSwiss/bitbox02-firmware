@@ -108,7 +108,7 @@ static restore_error_t _recover_defective_contents(
 {
     uint32_t assumed_file_length = broken_backups[0].file_length;
     for (int i = 1; i < 3; i++) {
-        if (assumed_file_length != broken_backups[0].file_length) {
+        if (assumed_file_length != broken_backups[i].file_length) {
             // Fail to recover, because we do not know how long the file is supposed to be.
             return RESTORE_ERR_RECOVER;
         }

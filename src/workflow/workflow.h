@@ -38,7 +38,6 @@ void workflow_change_state(workflow_state_t state);
 void workflow_start(void);
 
 typedef struct {
-    bool (*const get_bip39_mnemonic)(char** mnemonic_out);
     bool (*const sd_card_inserted)(void);
     bool (*const get_bip39_word)(uint16_t idx, char** word_out);
 } workflow_interface_functions_t;

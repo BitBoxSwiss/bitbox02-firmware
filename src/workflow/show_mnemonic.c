@@ -139,7 +139,7 @@ bool workflow_show_mnemonic_create(void)
     }
 
     mnemonic_t __attribute__((__cleanup__(_cleanup_mnemonic))) mnemonic;
-    if (!workflow_get_interface_functions()->get_bip39_mnemonic(&mnemonic.mnemonic)) {
+    if (!keystore_get_bip39_mnemonic(&mnemonic.mnemonic)) {
         Abort("mnemonic create not possible");
     }
     // This field must be set before we tokenize the mnemonic, because we use the length when we

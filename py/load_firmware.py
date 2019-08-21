@@ -48,12 +48,14 @@ def main() -> int:
         eprint("Expecting signed firmware")
         return 1
 
-    bootloaders = devices.get_bitbox02_devices(devices.BOOTLOADER)
+    bootloaders = devices.get_bitbox02_devices(devices.BB02_BOOTLOADER)
+    bootloaders.extend(devices.get_bitbox02_devices(devices.BB02BTC_BOOTLOADER))
     bitboxes = devices.get_bitbox02_devices()
 
     def _wait_for_bootloaders() -> List[devices.DeviceInfo]:
         while True:
-            bootloaders = devices.get_bitbox02_devices(devices.BOOTLOADER)
+            bootloaders = devices.get_bitbox02_devices(devices.BB02_BOOTLOADER)
+            bootloaders.extend(devices.get_bitbox02_devices(devices.BB02BTC_BOOTLOADER))
             if bootloaders:
                 return bootloaders
             sys.stdout.write(".")

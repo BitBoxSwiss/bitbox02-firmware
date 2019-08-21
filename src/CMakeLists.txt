@@ -413,7 +413,7 @@ if(CMAKE_CROSSCOMPILING)
   set(STACK_SIZE ${STACK_SIZE} PARENT_SCOPE)
   set(HEAP_SIZE "0x18000" CACHE STRING "Specify heap size for bootloader/firmware")
   set(HEAP_SIZE ${HEAP_SIZE} PARENT_SCOPE)
-  foreach(bootloader bootloader bootloader-development bootloader-production)
+  foreach(bootloader bootloader bootloader-development bootloader-production bootloader-btc bootloader-btc-development bootloader-btc-production)
     set(elf ${bootloader}.elf)
     add_executable(${elf} ${BOOTLOADER-SOURCES})
     target_include_directories(${elf} PRIVATE ${INCLUDES})
@@ -431,6 +431,11 @@ if(CMAKE_CROSSCOMPILING)
   target_compile_definitions(bootloader-development.elf PRIVATE BOOTLOADER_DEVDEVICE)
   target_compile_definitions(bootloader-production.elf PRIVATE BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
+
+  target_compile_definitions(bootloader-btc.elf PRIVATE BOOTLOADER_BTC)
+  target_compile_definitions(bootloader-btc-development.elf PRIVATE BOOTLOADER_DEVDEVICE BOOTLOADER_BTC)
+  target_compile_definitions(bootloader-btc-production.elf PRIVATE BOOTLOADER_PRODUCTION BOOTLOADER_BTC)
+  set_property(TARGET bootloader-btc-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
   foreach(firmware firmware factory-setup)
     set(elf ${firmware}.elf)
@@ -472,7 +477,7 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE FACTORYSETUP)
 
-  foreach(name bootloader bootloader-development bootloader-production firmware factory-setup)
+  foreach(name bootloader bootloader-development bootloader-production bootloader-btc bootloader-btc-development bootloader-btc-production firmware factory-setup)
     add_custom_command(
       TARGET ${name}.elf POST_BUILD
       COMMAND ${CMAKE_SIZE} ${name}.elf

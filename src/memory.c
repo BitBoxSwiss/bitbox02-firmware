@@ -327,7 +327,9 @@ bool memory_reset_hww(void)
     _interface_functions->random_32_bytes(chunk.fields.salt_root);
 
     // Set a new noise static private key.
-    bb_noise_generate_static_private_key(chunk.fields.noise_static_private_key);
+    if (!bb_noise_generate_static_private_key(chunk.fields.noise_static_private_key)) {
+        Abort("memory_reset_hww:\ncould not generate\nnoise key");
+    }
     return _write_chunk(CHUNK_1, chunk.bytes);
 }
 

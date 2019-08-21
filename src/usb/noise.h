@@ -15,7 +15,8 @@
 #ifndef _NOISE_H_
 #define _NOISE_H_
 
-#include "usb_packet.h"
+#include <compiler_util.h>
+#include <usb/usb_packet.h>
 
 #include <stdbool.h>
 
@@ -27,7 +28,7 @@ typedef size_t (*bb_noise_process_msg_callback)(
     uint8_t* response,
     const size_t max_out_len);
 
-bool bb_noise_process_msg(
+USE_RESULT bool bb_noise_process_msg(
     const Packet* in_packet,
     Packet* out_packet,
     size_t max_out_len,
@@ -36,6 +37,6 @@ bool bb_noise_process_msg(
 /**
  * @param[out] private_key_out must be 32 bytes.
  */
-bool bb_noise_generate_static_private_key(uint8_t* private_key_out);
+USE_RESULT bool bb_noise_generate_static_private_key(uint8_t* private_key_out);
 
 #endif

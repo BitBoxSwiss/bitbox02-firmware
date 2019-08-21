@@ -1,5 +1,6 @@
 #include "salt.h"
 #include "memory.h"
+#include "util.h"
 
 #include <string.h>
 
@@ -15,6 +16,7 @@ bool salt_hash_data(const uint8_t* data, size_t data_len, const char* purpose, u
     }
 
     uint8_t salt_root[32];
+    UTIL_CLEANUP_32(salt_root);
     if (!memory_get_salt_root(salt_root)) {
         return false;
     }

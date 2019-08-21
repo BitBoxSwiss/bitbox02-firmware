@@ -72,22 +72,12 @@ static void _create_and_store_seed(const char* password)
     }
 }
 
-static workflow_interface_functions_t _workflow_interface_functions = {
-    //.create_and_store_seed = _create_and_store_seed,
-    .is_seeded = memory_is_seeded,
-    //.unlock = _unlock,
-    .sd_card_inserted = sd_card_inserted,
-    .get_bip39_mnemonic = _mock_get_bip_39_mnemonic,
-    .get_bip39_word = keystore_get_bip39_word,
-};
-
 int main(void)
 {
     system_init();
     screen_init();
     qtouch_init();
 
-    workflow_set_interface_functions(&_workflow_interface_functions);
     workflow_show_mnemonic_create();
 
     ui_screen_process(NULL);

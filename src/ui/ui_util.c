@@ -36,30 +36,6 @@ void ui_util_add_sub_component(component_t* parent, component_t* child)
 }
 
 /**
- * A utility function that removes the last child component from a parent component.
- * @param[out] parent The given child component was added to the parent's sub components.
- * @param[in] child The child component that is removed.
- */
-void ui_util_remove_sub_component(component_t* parent, component_t* child)
-{
-    bool move = false;
-    for (int i = 0; i < parent->sub_components.amount - 1; i++) {
-        if (parent->sub_components.sub_components[parent->sub_components.amount] == child) {
-            move = true;
-        }
-        if (move) {
-            parent->sub_components.sub_components[parent->sub_components.amount] =
-                parent->sub_components.sub_components[parent->sub_components.amount + 1];
-        }
-    }
-    if (parent->sub_components.amount == 0) {
-        Abort("Remove is called on component without sub-components");
-    }
-    parent->sub_components.amount--;
-    child->f->cleanup(child);
-}
-
-/**
  * A utility function that renders all sub-components.
  * @param[in] component The rendered component.
  */

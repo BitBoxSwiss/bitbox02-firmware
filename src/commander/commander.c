@@ -13,8 +13,12 @@
 // limitations under the License.
 
 #include "commander.h"
+#if defined(APP_BTC) || defined(APP_LTC)
 #include "commander/commander_btc.h"
+#endif
+#if defined(APP_ETH)
 #include "commander/commander_eth.h"
+#endif
 #include "commander/commander_states.h"
 
 #include <flags.h>
@@ -261,6 +265,7 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_show_mnemonic_tag:
         response->which_response = Response_success_tag;
         return _api_show_mnemonic();
+#if defined(APP_BTC) || defined(APP_LTC)
     case Request_btc_pub_tag:
         response->which_response = Response_pub_tag;
         return commander_btc_pub(&(request->request.btc_pub), &(response->response.pub));
@@ -268,6 +273,7 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_btc_sign_input_tag:
     case Request_btc_sign_output_tag:
         return commander_btc_sign(request, response);
+#endif
     case Request_check_sdcard_tag:
         response->which_response = Response_check_sdcard_tag;
         return _api_check_sdcard(&(response->response.check_sdcard));
@@ -292,9 +298,11 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_reboot_tag:
         response->which_response = Response_success_tag;
         return _api_reboot();
+#if defined(APP_ETH)
     case Request_eth_tag:
         response->which_response = Response_eth_tag;
         return commander_eth(&(request->request.eth), &(response->response.eth));
+#endif
     case Request_reset_tag:
         response->which_response = Response_success_tag;
         return _api_reset();

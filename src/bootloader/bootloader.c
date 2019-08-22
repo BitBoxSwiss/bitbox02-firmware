@@ -234,26 +234,17 @@ static void _binary_exec(void)
 
 static void _load_logo(void)
 {
-#if defined(BOOTLOADER_BTC)
-    const uint8_t* data = IMAGE_BB2BTC_LOGO;
-    const uint16_t width = IMAGE_BB2BTC_LOGO_W;
-    const size_t size = sizeof(IMAGE_BB2BTC_LOGO);
-#else
-    const uint8_t* data = IMAGE_BB2_LOGO;
-    const uint16_t width = IMAGE_BB2_LOGO_W;
-    const size_t size = sizeof(IMAGE_BB2_LOGO);
-#endif
     uint16_t x = 0;
     uint16_t y = 0;
-    for (size_t i = 0; i < size; i++) {
-        uint8_t b = data[i];
+    for (size_t i = 0; i < sizeof(IMAGE_BB2_LOGO); i++) {
+        uint8_t b = IMAGE_BB2_LOGO[i];
         for (uint8_t j = 0; j < 8; j++) {
             if (b & 0x80) {
                 UG_DrawPixel(x, y, C_WHITE);
             }
             b <<= 1;
             x++;
-            if ((x % width) == 0) {
+            if ((x % IMAGE_BB2_LOGO_W) == 0) {
                 x = 0;
                 y++;
             }

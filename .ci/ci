@@ -23,7 +23,8 @@ make -j8 bootloader-btc-production
 
 # Firmware
 make -j8 firmware
-
+make -j8 firmware-semihosting
+make -j8 firmware-btc
 make -j8 factory-setup
 
 # Build and run Unit tests

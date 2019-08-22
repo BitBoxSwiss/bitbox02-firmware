@@ -564,12 +564,6 @@ static void _cmd_msg(const Packet* in_packet, Packet* out_packet, const size_t m
  */
 void u2f_device_setup(void)
 {
-#if 0
-    (void)_cmd_wink;
-    (void)_cmd_ping;
-    (void)_cmd_init;
-    (void)_cmd_msg;
-#else
     const CMD_Callback u2f_cmd_callbacks[] = {
         {U2FHID_PING, _cmd_ping},
         {U2FHID_WINK, _cmd_wink},
@@ -578,5 +572,4 @@ void u2f_device_setup(void)
     };
     usb_processing_register_cmds(
         usb_processing_u2f(), u2f_cmd_callbacks, sizeof(u2f_cmd_callbacks) / sizeof(CMD_Callback));
-#endif
 }

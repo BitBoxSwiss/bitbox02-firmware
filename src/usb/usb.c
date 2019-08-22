@@ -17,7 +17,7 @@
 #include "hid_hww.h"
 #include "usb_desc.h"
 #include "usbdc.h"
-#ifndef BOOTLOADER
+#if defined(APP_U2F)
 #include "u2f.h"
 #include <usb/class/hid/u2f/hid_u2f.h>
 #endif
@@ -41,7 +41,7 @@ static struct usbd_descriptors _descriptor[] = {
     {_descriptor_bytes, _descriptor_bytes + sizeof(_descriptor_bytes)}};
 static void (*_on_hww_init)(void) = NULL;
 static void _hww_endpoint_available(void);
-#ifndef BOOTLOADER
+#if defined(APP_U2F)
 static void _u2f_endpoint_available(void);
 #endif
 
@@ -57,7 +57,7 @@ static void _hww_endpoint_available(void)
     hid_hww_setup();
 }
 
-#ifndef BOOTLOADER
+#if defined(APP_U2F)
 /* ==== U2F ==== */
 static void _u2f_endpoint_available(void)
 {
@@ -100,7 +100,7 @@ int32_t usb_start(void (*on_hww_init)(void))
     if (ret != 0) {
         return ret;
     }
-#ifndef BOOTLOADER
+#if defined(APP_U2F)
     ret = hid_u2f_init(_u2f_endpoint_available);
     if (ret != 0) {
         return ret;

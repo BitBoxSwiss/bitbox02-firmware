@@ -413,7 +413,10 @@ if(CMAKE_CROSSCOMPILING)
   set(STACK_SIZE ${STACK_SIZE} PARENT_SCOPE)
   set(HEAP_SIZE "0x18000" CACHE STRING "Specify heap size for bootloader/firmware")
   set(HEAP_SIZE ${HEAP_SIZE} PARENT_SCOPE)
-  foreach(bootloader bootloader bootloader-development bootloader-semihosting bootloader-production bootloader-btc bootloader-btc-development bootloader-btc-production)
+
+  set(BOOTLOADERS bootloader bootloader-development bootloader-semihosting bootloader-production bootloader-btc bootloader-btc-development bootloader-btc-production)
+  set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
+  foreach(bootloader ${BOOTLOADERS})
     set(elf ${bootloader}.elf)
     add_executable(${elf} ${BOOTLOADER-SOURCES})
     target_include_directories(${elf} PRIVATE ${INCLUDES})
@@ -445,12 +448,14 @@ if(CMAKE_CROSSCOMPILING)
   target_compile_definitions(bootloader-production.elf PRIVATE BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  target_compile_definitions(bootloader-btc.elf PRIVATE BOOTLOADER_BTC)
-  target_compile_definitions(bootloader-btc-development.elf PRIVATE BOOTLOADER_DEVDEVICE BOOTLOADER_BTC)
-  target_compile_definitions(bootloader-btc-production.elf PRIVATE BOOTLOADER_PRODUCTION BOOTLOADER_BTC)
+  target_compile_definitions(bootloader-btc.elf PRIVATE BOOTLOADER_BTC_ONLY)
+  target_compile_definitions(bootloader-btc-development.elf PRIVATE BOOTLOADER_DEVDEVICE BOOTLOADER_BTC_ONLY)
+  target_compile_definitions(bootloader-btc-production.elf PRIVATE BOOTLOADER_PRODUCTION BOOTLOADER_BTC_ONLY)
   set_property(TARGET bootloader-btc-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  foreach(firmware firmware firmware-semihosting factory-setup)
+  set(FIRMWARES firmware firmware-semihosting firmware-btc factory-setup)
+  set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
+  foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)
     add_executable(${elf} ${FIRMWARE-SOURCES})
     add_dependencies(${elf} generate-hww generate-backup)
@@ -491,21 +496,25 @@ if(CMAKE_CROSSCOMPILING)
       target_compile_options(${elf} PRIVATE --specs=nosys.specs)
       target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
     endif()
-
   endforeach(firmware)
 
   target_sources(firmware.elf PRIVATE firmware.c)
+  target_compile_definitions(firmware.elf PRIVATE APP_BTC APP_LTC APP_ETH APP_U2F)
 
   target_sources(firmware-semihosting.elf PRIVATE firmware.c)
   # Select an implementation of the system calls that can communicate with the debugger
   target_compile_options(firmware-semihosting.elf PRIVATE --specs=rdimon.specs)
   target_link_libraries(firmware-semihosting.elf PRIVATE --specs=rdimon.specs)
+  target_compile_definitions(firmware-semihosting.elf PRIVATE APP_BTC APP_LTC APP_ETH APP_U2F)
   target_compile_definitions(firmware-semihosting.elf PRIVATE SEMIHOSTING)
+
+  target_sources(firmware-btc.elf PRIVATE firmware.c)
+  target_compile_definitions(firmware-btc.elf PRIVATE FIRMWARE_BTC_ONLY APP_BTC)
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE FACTORYSETUP)
 
-  foreach(name bootloader bootloader-development bootloader-semihosting bootloader-production bootloader-btc bootloader-btc-development bootloader-btc-production firmware firmware-semihosting factory-setup)
+  foreach(name ${BOOTLOADERS} ${FIRMWARES})
     add_custom_command(
       TARGET ${name}.elf POST_BUILD
       COMMAND ${CMAKE_SIZE} ${name}.elf

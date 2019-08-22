@@ -3730,7 +3730,7 @@ for i in range(100):
 
 static void _test_cipher_aes_hmac_encrypt(void** state)
 {
-    for (unsigned int i = 0; i < sizeof(_tests) / sizeof(test_t); i++) {
+    for (size_t i = 0; i < sizeof(_tests) / sizeof(test_t); i++) {
         const test_t* test = &_tests[i];
         uint8_t rand_mock[32] = {0};
         memcpy(rand_mock, test->iv, 16);

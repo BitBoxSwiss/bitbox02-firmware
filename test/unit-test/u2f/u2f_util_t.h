@@ -117,8 +117,8 @@ int U2Fob_apdu(
     char* in,
     size_t* in_len);
 
-bool getCertificate(const U2F_REGISTER_RESP rsp, char* cert, size_t* cert_len);
-bool getSignature(const U2F_REGISTER_RESP rsp, char* sig, size_t* sig_len);
+bool getCertificate(U2F_REGISTER_RESP rsp, char* cert, size_t* cert_len);
+bool getSignature(U2F_REGISTER_RESP rsp, char* sig, size_t* sig_len);
 bool getSubjectPublicKey(const char* cert, size_t cert_len, char* pk, size_t* pk_len);
 bool getCertSignature(const char* cert, size_t cert_len, char* sig, size_t* sig_len);
 bool verifyCertificate(const char* pk, const char* cert);

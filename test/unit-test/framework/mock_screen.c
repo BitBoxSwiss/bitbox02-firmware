@@ -33,12 +33,12 @@ void screen_print_debug(const char* message, int duration)
     printf("%s\n", message);
 }
 
-void screen_sprintf_debug(int duration, const char* message, ...)
+void screen_sprintf_debug(int duration, const char* fmt, ...)
 {
     va_list args;
-    va_start(args, message);
+    va_start(args, fmt);
     char print[100] = {0};
-    vsnprintf(print, sizeof(print) - 1, message, args);
+    vsnprintf(print, sizeof(print) - 1, fmt, args); // NOLINT
     va_end(args);
     printf("%s\n", print);
 }

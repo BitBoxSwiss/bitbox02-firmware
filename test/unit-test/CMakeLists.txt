@@ -29,24 +29,6 @@ foreach(file IN ITEMS ${DBB-FIRMWARE-UI-SOURCES})
 endforeach(file)
 set(DBB-FIRMWARE-UI-SOURCES ${FILTERED_SOURCES})
 
-include_directories(
-  SYSTEM
-  ${SYSTEMINCLUDES}
-  ${CMAKE_SOURCE_DIR}/external
-  ${CMAKE_SOURCE_DIR}/external/noise-c/include
-  ${CMAKE_SOURCE_DIR}/external/noise-c/src
-  ${CMAKE_SOURCE_DIR}/external/ctaes
-  ${CMAKE_SOURCE_DIR}/external/sha3
-  ${CMAKE_SOURCE_DIR}/external/libwally-core/include
-  ${CMAKE_SOURCE_DIR}/external/libwally-core/src/secp256k1/include
-)
-include_directories(
-  ${INCLUDES}
-  ${CMAKE_CURRENT_SOURCE_DIR}/framework/includes
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_BINARY_DIR}/src
-)
-
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/tools/nanopb/extra)
 find_package(Nanopb REQUIRED)
 
@@ -71,12 +53,33 @@ add_library(bitbox
   framework/mock_securechip.c
 )
 
+target_include_directories(
+  bitbox
+  SYSTEM PUBLIC
+  ${SYSTEMINCLUDES}
+  ${CMAKE_SOURCE_DIR}/external
+  ${CMAKE_SOURCE_DIR}/external/noise-c/include
+  ${CMAKE_SOURCE_DIR}/external/noise-c/src
+  ${CMAKE_SOURCE_DIR}/external/ctaes
+  ${CMAKE_SOURCE_DIR}/external/sha3
+  ${CMAKE_SOURCE_DIR}/external/libwally-core/include
+  ${CMAKE_SOURCE_DIR}/external/libwally-core/src/secp256k1/include
+)
+target_include_directories(
+  bitbox
+  PUBLIC
+  ${INCLUDES}
+  ${CMAKE_CURRENT_SOURCE_DIR}/framework/includes
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_BINARY_DIR}/src
+)
+
 set_source_files_properties(
   ${CMAKE_BINARY_DIR}/src/hww.pb.c
   ${CMAKE_BINARY_DIR}/src/backup.pb.c
   PROPERTIES GENERATED TRUE
 )
-target_include_directories(bitbox PUBLIC ${NANOPB_INCLUDE_DIRS})
+target_include_directories(bitbox SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
 target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 add_dependencies(bitbox generate-hww generate-backup)
 
@@ -106,6 +109,18 @@ add_library(u2f-util
   u2f/ecc.c
   u2f/uECC.c
   u2f/u2f_util_t.c
+)
+target_include_directories(
+  u2f-util
+  SYSTEM PUBLIC
+  ${SYSTEMINCLUDES}
+  ${CMAKE_CURRENT_SOURCE_DIR}
+)
+target_include_directories(
+  u2f-util
+  PUBLIC
+  ${INCLUDES}
+  ${CMAKE_BINARY_DIR}/src
 )
 target_compile_definitions(u2f-util PUBLIC "TESTING")
 target_compile_definitions(u2f-util PUBLIC "USE_KECCAK")

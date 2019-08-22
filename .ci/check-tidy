@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+# This script checks only that the modified files pass tidy
+
+# Fail on error
+set -e
+
+# Exit on pipe fail
+set -o pipefail
+
+CLANGTIDY=${CLANGTIDY:-clang-tidy-8}
+
+command -v git >/dev/null 2>&1 || { echo >&2 "git is missing"; exit 1; }
+command -v xargs >/dev/null 2>&1 || { echo >&2 "xargs is missing"; exit 1; }
+command -v ${CLANGTIDY} >/dev/null 2>&1 || { echo >&2 "${CLANGTIDY} is missing"; exit 1; }
+
+# check if stdout is a terminal.
+if test -t 1; then
+	# see if it supports colors.
+	ncolors=$(tput colors)
+	if test -n "$ncolors" && test $ncolors -ge 8; then
+		normal="$(tput sgr0)"
+		red="$(tput setaf 1)"
+		green="$(tput setaf 2)"
+	fi
+fi
+
+for dir in build build-build; do
+	if ! test -d ${dir}; then
+		echo "Missing ${dir}"
+		exit 1
+	fi
+
+	# Remove flags unknown to tidy
+	sed -i 's/-mcpu=cortex-m4//g; s/-mfloat-abi=softfp//g; s/-mlong-calls//g; s/-mthumb//g;
+	        s/-Wno-cast-function-type//g; s/-mfpu=fpv4-sp-d16//g; s/-Wformat-signedness//g' ${dir}/compile_commands.json
+
+	# Only check our files
+	SOURCES1=$(git --no-pager diff --diff-filter=d --name-only origin/master |\
+		grep -v -E "(^src/(drivers|ui/fonts)|.*ugui.*|.*base32.*)" |\
+		grep -E "^(src|test)" |\
+		grep -E "\.c\$" || true)
+
+	# Only check files if they are in the compile_commands.json file
+	SOURCES=""
+	for SOURCE in ${SOURCES1}; do
+		if grep -q ${SOURCE} ${dir}/compile_commands.json; then
+			SOURCES+=" $SOURCE"
+		fi
+	done
+
+	if [ -z "${SOURCES}" ] ; then
+		exit 0
+	fi
+
+	echo "Checking $(echo ${SOURCES} | wc -w) files with clang-tidy"
+
+	# The list of tidy checks must stay in sync with scripts/tidy
+	${CLANGTIDY} -quiet -p ${dir} -checks=-*,clang-analyzer-*,-clang-analyzer-cplusplus*,bugprone-*,performance-*,portability-*,readability-*,-readability-braces-around-statements,-readability-magic-numbers,-readability-isolate-declaration -warnings-as-errors=* -header-filter '.*' ${SOURCES}
+done

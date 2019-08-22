@@ -371,7 +371,6 @@ static void run_tests(void)
     }
 
     U2Fob_destroy(device);
-    return;
 }
 
 int main(void)

@@ -38,7 +38,7 @@ void random_32_bytes_mcu(uint8_t* buf)
     UTIL_CLEANUP_32(random);
 #ifdef TESTING
     // Use standard libary for off chip RNG
-    for (uint32_t i = 0; i < sizeof(random); i++) {
+    for (size_t i = 0; i < sizeof(random); i++) {
         random[i] = rand();
     }
 #else
@@ -72,7 +72,7 @@ static void random_32_bytes_sec(uint8_t* buf)
     UTIL_CLEANUP_32(random);
 #ifdef TESTING
     // Use standard libary for off chip RNG
-    for (uint32_t i = 0; i < sizeof(random); i++) {
+    for (size_t i = 0; i < sizeof(random); i++) {
         random[i] = rand();
     }
 #else

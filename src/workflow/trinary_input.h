@@ -20,8 +20,12 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-// including null terminator. 8 is the longest bip39 word.
-#define WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH (9u)
+// Excluding null terminator. 8 is the longest bip39 word.
+#define WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH (8U)
+
+/**
+ * The length of word_out must be WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1
+ */
 
 USE_RESULT bool workflow_trinary_input_wordlist(
     const char* title,

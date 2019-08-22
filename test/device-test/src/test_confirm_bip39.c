@@ -71,7 +71,7 @@ static void _confirm_mnemonic(uint8_t index)
     }
 }
 
-static bool _is_in_list(uint8_t number, uint8_t list[], uint8_t length)
+static bool _is_in_list(uint8_t number, const uint8_t list[], uint8_t length)
 {
     for (int i = 0; i < length; i++) {
         if (number == list[i]) {

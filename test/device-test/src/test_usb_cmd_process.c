@@ -24,14 +24,11 @@
 
 // uint32_t __stack_chk_guard = 0;
 
-static void process_hww_cmd_cb(
-    const Packet* in_packet,
-    Packet* out_packet,
-    const size_t max_out_len);
+static void process_hww_cmd_cb(const Packet* in_packet, Packet* out_packet, size_t max_out_len);
 static void process_u2f_ping_cmd_cb(
     const Packet* in_packet,
     Packet* out_packet,
-    const size_t max_out_len);
+    size_t max_out_len);
 
 #define NUM_REGISTERED_U2F_COMMANDS 1
 #define NUM_REGISTERED_HWW_COMMANDS 1

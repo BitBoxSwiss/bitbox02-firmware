@@ -95,5 +95,8 @@ generate-atecc608-config:
 	${MAKE} -C tools/go/src/atecc608a run
 ci:
 	./.ci/ci
+prepare-tidy: | build build-build
+	make -C build generate-hww generate-backup
+	make -C build-build generate-hww generate-backup
 clean:
 	rm -rf build build-build

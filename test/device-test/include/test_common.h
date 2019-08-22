@@ -43,7 +43,7 @@ struct test_usb_metadata {
     int cnt;
     Packet packet;
     USB_FRAME write_frame;
-    void (*usb_cb_out)(const uint8_t ep, const enum usb_xfer_code rc, const uint32_t count);
+    void (*usb_cb_out)(uint8_t ep, enum usb_xfer_code rc, uint32_t count);
     void (*usb_cb_in)(void);
     void (*endpoint_available_cb)(void);
 };
@@ -54,13 +54,13 @@ uint8_t test_usb_init(
 
 void test_hid_send(enum interface_type interface);
 
-void test_hww_out_print2screen(const uint8_t ep, const enum usb_xfer_code rc, const uint32_t count);
+void test_hww_out_print2screen(uint8_t ep, enum usb_xfer_code rc, uint32_t count);
 
-void test_hww_out_echo(const uint8_t ep, const enum usb_xfer_code rc, const uint32_t count);
+void test_hww_out_echo(uint8_t ep, enum usb_xfer_code rc, uint32_t count);
 
-void test_u2f_out_print2screen(const uint8_t ep, const enum usb_xfer_code rc, const uint32_t count);
+void test_u2f_out_print2screen(uint8_t ep, enum usb_xfer_code rc, uint32_t count);
 
-void test_u2f_out_echo(const uint8_t ep, const enum usb_xfer_code rc, const uint32_t count);
+void test_u2f_out_echo(uint8_t ep, enum usb_xfer_code rc, uint32_t count);
 
 void test_in(void);
 

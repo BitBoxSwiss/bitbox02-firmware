@@ -29,8 +29,8 @@
 
 struct U2Fob* device;
 
-#define SEND(f) CHECK_EQ(0, U2Fob_sendHidFrame(device, &f))
-#define RECV(f, t) CHECK_EQ(0, U2Fob_receiveHidFrame(device, &f, t))
+#define SEND(f) CHECK_EQ(0, U2Fob_sendHidFrame(device, &(f)))
+#define RECV(f, t) CHECK_EQ(0, U2Fob_receiveHidFrame(device, &(f), t))
 
 // Initialize a frame with |len| random payload, or data.
 static void initFrame(USB_FRAME* f, uint32_t cid, uint8_t cmd, size_t len, const void* data)
@@ -249,7 +249,7 @@ static void test_Lock(void)
         if (++count < 2) {
             test_Echo();
         }
-        sleep(0.1);
+        sleep(1);
         initFrame(&f, U2Fob_getCid(device) ^ 1, U2FHID_PING, 1, NULL);
 
         SEND(f);
@@ -284,7 +284,7 @@ static void test_NotCont(void)
     CHECK_EQ(isError(r, U2FHID_ERR_INVALID_SEQ), true);
 
     // Check there are no further messages.
-    CHECK_EQ(-U2FHID_ERR_MSG_TIMEOUT, U2Fob_receiveHidFrame(device, &r, 0.6f));
+    CHECK_EQ(-U2FHID_ERR_MSG_TIMEOUT, U2Fob_receiveHidFrame(device, &r, 0.6F));
 }
 
 // Check we get a error when sending wrong sequence in continuation frame.
@@ -308,7 +308,7 @@ static void test_WrongSeq(void)
     CHECK_EQ(isError(r, U2FHID_ERR_INVALID_SEQ), true);
 
     // Check there are no further messages.
-    CHECK_EQ(-U2FHID_ERR_MSG_TIMEOUT, U2Fob_receiveHidFrame(device, &r, 0.6f));
+    CHECK_EQ(-U2FHID_ERR_MSG_TIMEOUT, U2Fob_receiveHidFrame(device, &r, 0.6F));
 }
 
 // Check we hear nothing if we send a random CONT frame.
@@ -321,7 +321,7 @@ static void test_NotFirst(void)
     f.cont.seq = 0 | U2FHID_TYPE_CONT; // Make continuation packet.
 
     SEND(f);
-    int res = U2Fob_receiveHidFrame(device, &r, 1.0);
+    int res = U2Fob_receiveHidFrame(device, &r, 1.0F);
     CHECK_EQ(-U2FHID_ERR_MSG_TIMEOUT, res);
 }
 

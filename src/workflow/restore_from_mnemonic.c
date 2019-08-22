@@ -113,7 +113,7 @@ static bool _get_mnemonic(char* mnemonic_out)
     workflow_status_create(num_words_success_msg, true);
 
     for (uint8_t word_idx = 0; word_idx < num_words; word_idx++) {
-        char word[WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH] = {0};
+        char word[WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1] = {0};
         char title[50] = {0};
         _set_title(word_idx, title, sizeof(title));
         if (!workflow_trinary_input_wordlist(
@@ -121,19 +121,21 @@ static bool _get_mnemonic(char* mnemonic_out)
             return false;
         }
         if (word_idx != 0) {
-            strcat(mnemonic_out, " ");
+            strcat(mnemonic_out, " "); // NOLINT (gcc and clang cannot agree on best practice here)
         }
-        strcat(mnemonic_out, word);
+        strncat(mnemonic_out, word, WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH);
     }
     return true;
 }
 
 bool workflow_restore_from_mnemonic(void)
 {
-    // same as: (MAX_WORD_LENGTH-1) * MAX_WORDS + (MAX_WORDS-1) + 1
-    // (chars per word without null terminator) * max_words + spaces between words + null terminator
+    // same as: MAX_WORD_LENGTH * MAX_WORDS + (MAX_WORDS - 1) + 1
+    // (chars per word without null terminator) * (max words) + (spaces between words) + (null
+    // terminator)
     char mnemonic
-        [WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH * WORKFLOW_RESTORE_FROM_MNEMONIC_MAX_WORDS] = {0};
+        [(WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1) * WORKFLOW_RESTORE_FROM_MNEMONIC_MAX_WORDS] =
+            {0};
     UTIL_CLEANUP_STR(mnemonic);
     if (!_get_mnemonic(mnemonic)) {
         return false;

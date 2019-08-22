@@ -24,6 +24,7 @@
 #include <usb/usb.h>
 
 #include "screen.h"
+#include "util.h"
 
 /* endpoint direction */
 #define DIR_OUT 1
@@ -107,13 +108,18 @@ int write_single_frame(const Packet* packet, USB_FRAME* frame)
 /**
  * Returns the packet data as a string.
  * @param[in] packet The packet from where we extract the string.
- * @return string The packet data as string. The caller must free the returned value.
+ * @return string The packet data as string. The returned pointer is to a statically allocated
+ * buffer
  */
 char* data_to_string(const Packet* packet)
 {
-    char* string = malloc(packet->len + 1);
-    snprintf(string, packet->len + 1, "%s", packet->data_addr);
-    return string;
+    static char buf[2048];
+    int wrote = snprintf(buf, sizeof(buf), "%s", packet->data_addr);
+    if (wrote >= (int)sizeof(buf)) {
+        // TODO convert to traceln
+        printf("%s\n", "Internal error: packet to large to print as string");
+    }
+    return buf;
 }
 
 // USB_REPORT_SIZE = 0x40
@@ -297,7 +303,7 @@ uint8_t test_usb_init(
  */
 void test_hid_send(enum interface_type interface)
 {
-    uint8_t* data = queue_pull(queue_hww_queue());
+    const uint8_t* data = queue_pull(queue_hww_queue());
     if (data != NULL) {
         (void)interface;
         // TODO: marko refactored the USB stuff, needs to be fixed

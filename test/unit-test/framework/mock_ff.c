@@ -84,10 +84,10 @@ FRESULT f_mount(FATFS* fs, const TCHAR* path, BYTE opt)
     return mock();
 }
 
-int f_puts(const TCHAR* str, FIL* fp)
+int f_puts(const TCHAR* str, FIL* cp)
 {
     check_expected(str);
-    return strlen(str);
+    return (int)strlen(str);
 }
 
 FRESULT f_write(FIL* fp, const void* buff, UINT btw, UINT* bw)

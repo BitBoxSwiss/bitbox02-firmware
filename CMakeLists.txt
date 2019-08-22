@@ -38,6 +38,11 @@ endif()
 
 project(bitbox02 C)
 
+# nosys is set in arm.cmake so that `project(c)` above works. Remove it since it interferes with compile options
+if(CMAKE_CROSSCOMPILING)
+  string(REPLACE "--specs=nosys.specs" "" CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS})
+endif()
+
 # Where to find custom cmake modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/tools/nanopb/extra)
@@ -74,6 +79,7 @@ if(CMAKE_CROSSCOMPILING)
   find_program(CMAKE_SIZE "${TOOLCHAIN_PREFIX}size" HINTS /usr/local/bin)
   message(STATUS size: ${CMAKE_SIZE} ${TOOLCHAIN_PREFIX}size)
 endif()
+
 
 #-----------------------------------------------------------------------------
 # Create version header file
@@ -277,6 +283,9 @@ string(APPEND CMAKE_C_FLAGS " -fstack-protector-all")
 
 # For `struct timespec` and `strdup`
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_XOPEN_SOURCE=600")
+
+string(LENGTH "${CMAKE_SOURCE_DIR}/" SOURCE_PATH_SIZE)
+add_definitions("-DSOURCE_PATH_SIZE=${SOURCE_PATH_SIZE}")
 
 
 #-----------------------------------------------------------------------------

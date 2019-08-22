@@ -27,7 +27,10 @@ set(NOISEC_CFLAGS "\
 ")
 # Hide some warnings
 set(NOISEC_CFLAGS "${NOISEC_CFLAGS} -Wformat=0 -Wno-implicit-fallthrough -Wno-undef -Wno-cast-qual -Wno-switch-default -Wno-packed -Wno-pedantic -Wno-missing-prototypes -Wno-unused-parameter -Wno-redundant-decls -Wno-missing-declarations -Wno-shadow")
-set(NOISEC_LDFLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_C_LINK_FLAGS} -lc")
+if(CMAKE_CROSSCOMPILING)
+  set(NOISEC_LDFLAGS "--specs=nosys.specs")
+endif()
+set(NOISEC_LDFLAGS "${NOISEC_LDFLAGS} ${CMAKE_C_LINK_FLAGS} -lc")
 
 ExternalProject_Add(noise-c
   PREFIX          ${CMAKE_CURRENT_BINARY_DIR}/noise-c
@@ -75,7 +78,10 @@ set(LIBWALLY_CFLAGS "${LIBWALLY_CFLAGS} -Wno-cast-qual -Wno-cast-align \
   -Wno-switch-default -Wno-missing-declarations \
   -Wno-array-bounds \
 ")
-set(LIBWALLY_LDFLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_C_LINK_FLAGS}")
+if(CMAKE_CROSSCOMPILING)
+  set(LIBWALLY_LDFLAGS --specs=nosys.specs)
+endif()
+set(LIBWALLY_LDFLAGS "${LIBWALLY_LDFLAGS} ${CMAKE_C_LINK_FLAGS}")
 
 ExternalProject_Add(libwally-core
   PREFIX          ${CMAKE_CURRENT_BINARY_DIR}/libwally-core

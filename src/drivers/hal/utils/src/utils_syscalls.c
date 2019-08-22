@@ -104,6 +104,8 @@ extern int link(char *old, char *_new)
 	return -1;
 }
 
+#if !defined(SEMIHOSTING)
+
 /**
  * \brief Replacement of C library of _close
  */
@@ -169,6 +171,8 @@ extern int _getpid(void)
 {
 	return -1;
 }
+
+#endif
 
 #ifdef __cplusplus
 }

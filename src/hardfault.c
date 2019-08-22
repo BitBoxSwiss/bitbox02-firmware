@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "hardfault.h"
+#include "util.h"
 #include <screen.h>
 #include <usb/usb.h>
 #ifndef TESTING
@@ -32,6 +33,7 @@ void MemManage_Handler(void)
 void Abort(const char* msg)
 {
     screen_print_debug(msg, 0);
+    traceln("Aborted: %s", msg);
     usb_stop();
 #ifndef TESTING
     system_close_interfaces();

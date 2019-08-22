@@ -335,7 +335,7 @@ void test_hww_out_echo(const uint8_t ep, const enum usb_xfer_code rc, const uint
     read_and_print2screen(hww_metadata);
 
     echo_data(&hww_metadata->packet, &hww_metadata->write_frame);
-    hid_hww_write((uint8_t*)&hww_metadata->write_frame);
+    // hid_hww_write((uint8_t*)&hww_metadata->write_frame);
 
     // Wait for data
     // TODO: marko refactored the USB stuff, needs to be fixed

@@ -413,7 +413,7 @@ if(CMAKE_CROSSCOMPILING)
   set(STACK_SIZE ${STACK_SIZE} PARENT_SCOPE)
   set(HEAP_SIZE "0x18000" CACHE STRING "Specify heap size for bootloader/firmware")
   set(HEAP_SIZE ${HEAP_SIZE} PARENT_SCOPE)
-  foreach(bootloader bootloader bootloader-development bootloader-production bootloader-btc bootloader-btc-development bootloader-btc-production)
+  foreach(bootloader bootloader bootloader-development bootloader-semihosting bootloader-production bootloader-btc bootloader-btc-development bootloader-btc-production)
     set(elf ${bootloader}.elf)
     add_executable(${elf} ${BOOTLOADER-SOURCES})
     target_include_directories(${elf} PRIVATE ${INCLUDES})
@@ -426,9 +426,22 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${bootloader}.map\" -T\"${CMAKE_SOURCE_DIR}/bootloader.ld\"")
     target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
     target_link_libraries(${elf} PRIVATE qtouchlib_a qtouchlib_b qtouchlib_t)
+    # Select the smaller version of libc called nano.
+    target_compile_options(${elf} PRIVATE --specs=nano.specs)
+    target_link_libraries(${elf} PRIVATE --specs=nano.specs)
+    if(NOT bootloader STREQUAL "bootloader-semihosting")
+      target_compile_options(${elf} PRIVATE --specs=nosys.specs)
+      target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
+    endif()
   endforeach(bootloader)
 
   target_compile_definitions(bootloader-development.elf PRIVATE BOOTLOADER_DEVDEVICE)
+
+  # Select an implementation of the system calls that can communicate with the debugger
+  target_compile_options(bootloader-semihosting.elf PRIVATE --specs=rdimon.specs)
+  target_link_libraries(bootloader-semihosting.elf PRIVATE --specs=rdimon.specs)
+  target_compile_definitions(bootloader-semihosting.elf PRIVATE BOOTLOADER_DEVDEVICE SEMIHOSTING)
+
   target_compile_definitions(bootloader-production.elf PRIVATE BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
@@ -437,7 +450,7 @@ if(CMAKE_CROSSCOMPILING)
   target_compile_definitions(bootloader-btc-production.elf PRIVATE BOOTLOADER_PRODUCTION BOOTLOADER_BTC)
   set_property(TARGET bootloader-btc-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  foreach(firmware firmware factory-setup)
+  foreach(firmware firmware firmware-semihosting factory-setup)
     set(elf ${firmware}.elf)
     add_executable(${elf} ${FIRMWARE-SOURCES})
     add_dependencies(${elf} generate-hww generate-backup)
@@ -471,13 +484,28 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE wallycore secp256k1)
     target_link_libraries(${elf} PRIVATE qtouchlib_a qtouchlib_b qtouchlib_t)
 
+    # Select the smaller version of libc called nano.
+    target_compile_options(${elf} PRIVATE --specs=nano.specs)
+    target_link_libraries(${elf} PRIVATE --specs=nano.specs)
+    if(NOT firmware STREQUAL "firmware-semihosting")
+      target_compile_options(${elf} PRIVATE --specs=nosys.specs)
+      target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
+    endif()
+
   endforeach(firmware)
 
   target_sources(firmware.elf PRIVATE firmware.c)
+
+  target_sources(firmware-semihosting.elf PRIVATE firmware.c)
+  # Select an implementation of the system calls that can communicate with the debugger
+  target_compile_options(firmware-semihosting.elf PRIVATE --specs=rdimon.specs)
+  target_link_libraries(firmware-semihosting.elf PRIVATE --specs=rdimon.specs)
+  target_compile_definitions(firmware-semihosting.elf PRIVATE SEMIHOSTING)
+
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE FACTORYSETUP)
 
-  foreach(name bootloader bootloader-development bootloader-production bootloader-btc bootloader-btc-development bootloader-btc-production firmware factory-setup)
+  foreach(name bootloader bootloader-development bootloader-semihosting bootloader-production bootloader-btc bootloader-btc-development bootloader-btc-production firmware firmware-semihosting factory-setup)
     add_custom_command(
       TARGET ${name}.elf POST_BUILD
       COMMAND ${CMAKE_SIZE} ${name}.elf

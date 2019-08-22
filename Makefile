@@ -32,6 +32,9 @@ firmware: | build
 # Generate python bindings for protobuf for test scripts
 	$(MAKE) -C py
 	$(MAKE) -C build firmware.elf
+firmware-semihosting: | build
+	$(MAKE) -C py
+	$(MAKE) -C build firmware-semihosting.elf
 bootloader: | build
 	$(MAKE) -C build bootloader.elf
 bootloader-devdevice: | build
@@ -80,6 +83,8 @@ jlink-flash-bootloader: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-development.jlink
 jlink-flash-firmware: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware.jlink
+jlink-flash-firmware-semihosting: | build
+	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-semihosting.jlink
 dockerinit:
 	docker build --pull --force-rm -t shiftcrypto/firmware_v2 .
 dockerdev:

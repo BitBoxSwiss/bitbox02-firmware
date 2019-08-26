@@ -3,7 +3,7 @@
 	url = https://github.com/shiftdevices/nanopb.git
 [submodule "external/cryptoauthlib"]
 	path = external/cryptoauthlib
-	url = https://github.com/shiftdevices/cryptoauthlib.git
+	url = https://github.com/digitalbitbox/cryptoauthlib.git
 [submodule "external/ctaes"]
 	path = external/ctaes
 	url = https://github.com/digitalbitbox/ctaes.git

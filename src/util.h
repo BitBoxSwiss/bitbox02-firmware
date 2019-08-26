@@ -19,6 +19,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 
 #define UTIL_BUFFER_LEN 0x1000
 #define MIN(a, b)                                       \
@@ -113,7 +114,7 @@ bool safe_uint64_add(uint64_t* a, uint64_t b);
 #else
 #define LOG_LEVEL 0
 #endif
-#define FILENAME (__FILE__ + SOURCE_PATH_SIZE)
+#define FILENAME (&__FILE__[SOURCE_PATH_SIZE])
 
 #define trace(format, ...)                                                                     \
     do {                                                                                       \

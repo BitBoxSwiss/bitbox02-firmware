@@ -18,6 +18,7 @@
 #include "qtouch.h"
 #include "screen.h"
 #include "ui/screen_process.h"
+#include "util.h"
 #include "workflow/workflow.h"
 
 uint32_t __stack_chk_guard = 0;

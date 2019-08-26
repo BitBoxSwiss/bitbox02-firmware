@@ -151,9 +151,15 @@ static void _api_msg(const Packet* in_packet, Packet* out_packet, const size_t m
         if (!securechip_update_keys()) {
             screen_print_debug("rollkeys: failed", 0);
             result = ERR_FAILED;
-        } else {
-            screen_print_debug("rollkeys: success", 0);
+            break;
         }
+        screen_print_debug("rollkeys: success", 100);
+        if (!securechip_u2f_counter_set(0)) {
+            screen_print_debug("reset u2f counter", 0);
+            result = ERR_FAILED;
+            break;
+        }
+        screen_print_debug("reset u2f counter: success", 0);
         break;
     case OP_REBOOT:
         _reset_mcu();

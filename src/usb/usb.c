@@ -70,7 +70,7 @@ static void _u2f_endpoint_available(void)
 #endif
 #endif
 
-#ifndef TESTING
+#if !defined(TESTING) && defined(APP_U2F)
 static void _timeout_cb(const struct timer_task* const timer_task)
 {
     (void)timer_task;
@@ -80,7 +80,7 @@ static void _timeout_cb(const struct timer_task* const timer_task)
 
 int32_t usb_start(void (*on_hww_init)(void))
 {
-#ifndef TESTING
+#if !defined(TESTING) && defined(APP_U2F)
     static struct timer_task Timer_task;
     Timer_task.interval = TIMEOUT_TICK_PERIOD_MS;
     Timer_task.cb = _timeout_cb;
@@ -88,7 +88,8 @@ int32_t usb_start(void (*on_hww_init)(void))
     timer_stop(&TIMER_0);
     timer_add_task(&TIMER_0, &Timer_task);
     timer_start(&TIMER_0);
-
+#endif
+#if !defined(TESTING)
     // required before hid init
     int32_t ret = 0;
     ret = usbdc_init(_ctrl_endpoint_buffer);
@@ -117,7 +118,7 @@ int32_t usb_start(void (*on_hww_init)(void))
 
 void usb_stop(void)
 {
-#ifndef TESTING
+#if !defined(TESTING)
     usbdc_detach();
     usbdc_stop();
     usbdc_deinit();

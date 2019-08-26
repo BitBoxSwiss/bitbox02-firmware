@@ -273,6 +273,12 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_btc_sign_input_tag:
     case Request_btc_sign_output_tag:
         return commander_btc_sign(request, response);
+#else
+    case Request_btc_pub_tag:
+    case Request_btc_sign_init_tag:
+    case Request_btc_sign_input_tag:
+    case Request_btc_sign_output_tag:
+        return COMMANDER_ERR_DISABLED;
 #endif
     case Request_check_sdcard_tag:
         response->which_response = Response_check_sdcard_tag;
@@ -302,6 +308,9 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_eth_tag:
         response->which_response = Response_eth_tag;
         return commander_eth(&(request->request.eth), &(response->response.eth));
+#else
+    case Request_eth_tag:
+        return COMMANDER_ERR_DISABLED;
 #endif
     case Request_reset_tag:
         response->which_response = Response_success_tag;

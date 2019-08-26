@@ -75,3 +75,23 @@ bool app_btc_address(
         return false;
     }
 }
+
+bool app_btc_enabled(BTCCoin coin)
+{
+    switch (coin) {
+#if defined(APP_BTC)
+    case BTCCoin_BTC:
+        /* PASSTHRU */
+    case BTCCoin_TBTC:
+        return true;
+#endif
+#if defined(APP_LTC)
+    case BTCCoin_LTC:
+        /* PASSTHRU */
+    case BTCCoin_TLTC:
+        return true;
+#endif
+    default:
+        return false;
+    }
+}

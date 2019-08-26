@@ -74,8 +74,10 @@ struct queue* queue_hww_queue(void)
     return &queue;
 }
 
+#if defined(APP_U2F)
 struct queue* queue_u2f_queue(void)
 {
     static struct queue queue;
     return &queue;
 }
+#endif

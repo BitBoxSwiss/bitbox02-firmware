@@ -70,7 +70,9 @@ static void _screen_process(bool (*is_done)(void), void (*on_timeout)(void), con
         ui_screen_stack_cleanup();
         if (is_done == NULL) {
             usb_processing_process(usb_processing_hww());
+#if defined(APP_U2F)
             usb_processing_process(usb_processing_u2f());
+#endif
         }
     }
 }

@@ -21,7 +21,8 @@ import base64
 import binascii
 from datetime import datetime
 import hashlib
-from typing import Optional, Callable, List, Dict, Tuple, Any, Generator
+from typing import Optional, Callable, List, Dict, Tuple, Any, Generator, Union
+from typing_extensions import TypedDict
 
 import ecdsa
 from noise.connection import NoiseConnection, Keypair
@@ -74,6 +75,40 @@ RESPONSE_SUCCESS = b"\x00"
 RESPONSE_FAILURE = b"\x01"
 
 Backup = Tuple[str, str, datetime]
+
+
+class BTCInputType(TypedDict):
+    prev_out_hash: bytes
+    prev_out_index: int
+    prev_out_value: int
+    sequence: int
+    keypath: List[int]
+
+
+class BTCOutputInternal:
+    # pylint: disable=too-few-public-methods
+    # TODO: Use NamedTuple, but not playing well with protobuf types.
+
+    def __init__(self, keypath: List[int], value: int):
+        """
+        keypath: keypath to the change output.
+        """
+        self.keypath = keypath
+        self.value = value
+
+
+class BTCOutputExternal:
+    # pylint: disable=too-few-public-methods
+
+    # TODO: Use NamedTuple, but not playing well with protobuf types.
+
+    def __init__(self, output_type: hww.BTCOutputType, output_hash: bytes, value: int):
+        self.type = output_type
+        self.hash = output_hash
+        self.value = value
+
+
+BTCOutputType = Union[BTCOutputInternal, BTCOutputExternal]
 
 
 class Bitbox02Exception(Exception):
@@ -364,6 +399,106 @@ class BitBox02:
             )
         )
         return self._msg_query(request).pub.pub
+
+    # pylint: disable=too-many-arguments
+    def btc_sign(
+        self,
+        coin: hww.BTCCoin,
+        script_type: hww.BTCScriptType,
+        bip44_account: int,
+        inputs: List[BTCInputType],
+        outputs: List[BTCOutputType],
+        version: int = 1,
+        locktime: int = 0,
+    ) -> List[Tuple[int, bytes]]:
+        """
+        coin: the first element of all provided keypaths must match the coin:
+        - BTC: 0 + HARDENED
+        - Testnets: 1 + HARDENED
+        - LTC: 2 + HARDENED
+        script_type: type of all inputs and change outputs. The first element of all provided
+        keypaths must match this type:
+        - SCRIPT_P2PKH: 44 + HARDENED
+        - SCRIPT_P2WPKH_P2SH: 49 + HARDENED
+        - SCRIPT_P2WPKH: 84 + HARDENED
+        bip44_account: Starting at (0 + HARDENED), must be the third element of all provided
+        keypaths.
+        inputs: transaction inputs.
+        outputs: transaction outputs. Can be an external output
+        (BTCOutputExternal) or an internal output for change (BTCOutputInternal).
+        version, locktime: reserved for future use.
+        Returns: list of (input index, signature) tuples.
+        Raises Bitbox02Exception with ERR_USER_ABORT on user abort.
+        """
+        # pylint: disable=too-many-locals,no-member
+
+        # Reserved for future use.
+        assert version == 1 and locktime == 0
+
+        sigs: List[Tuple[int, bytes]] = []
+
+        # Init request
+        request = hww.Request()
+        request.btc_sign_init.CopyFrom(
+            hww.BTCSignInitRequest(
+                coin=coin,
+                script_type=script_type,
+                bip44_account=bip44_account,
+                version=version,
+                num_inputs=len(inputs),
+                num_outputs=len(outputs),
+                locktime=locktime,
+            )
+        )
+        next_response = self._msg_query(request, expected_response="btc_sign_next").btc_sign_next
+        while True:
+            if next_response.type == hww.BTCSignNextResponse.INPUT:
+                input_index = next_response.index
+                tx_input = inputs[input_index]
+
+                request = hww.Request()
+                request.btc_sign_input.CopyFrom(
+                    hww.BTCSignInputRequest(
+                        prevOutHash=tx_input["prev_out_hash"],
+                        prevOutIndex=tx_input["prev_out_index"],
+                        prevOutValue=tx_input["prev_out_value"],
+                        sequence=tx_input["sequence"],
+                        keypath=tx_input["keypath"],
+                    )
+                )
+                next_response = self._msg_query(
+                    request, expected_response="btc_sign_next"
+                ).btc_sign_next
+                if next_response.has_signature:
+                    sigs.append((input_index, next_response.signature))
+            elif next_response.type == hww.BTCSignNextResponse.OUTPUT:
+                output_index = next_response.index
+                tx_output = outputs[output_index]
+
+                request = hww.Request()
+                if isinstance(tx_output, BTCOutputInternal):
+                    request.btc_sign_output.CopyFrom(
+                        hww.BTCSignOutputRequest(
+                            ours=True, value=tx_output.value, keypath=tx_output.keypath
+                        )
+                    )
+                elif isinstance(tx_output, BTCOutputExternal):
+                    request.btc_sign_output.CopyFrom(
+                        hww.BTCSignOutputRequest(
+                            ours=False,
+                            type=tx_output.type,
+                            hash=tx_output.hash,
+                            value=tx_output.value,
+                        )
+                    )
+                next_response = self._msg_query(
+                    request, expected_response="btc_sign_next"
+                ).btc_sign_next
+            elif next_response.type == hww.BTCSignNextResponse.DONE:
+                break
+            else:
+                raise Exception("unexpected response")
+        return sigs
 
     def check_sdcard(self) -> bool:
         # pylint: disable=no-member

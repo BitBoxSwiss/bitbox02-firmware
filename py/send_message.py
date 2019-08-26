@@ -18,7 +18,7 @@
 import argparse
 import pprint
 import sys
-import typing
+from typing import List
 
 from tzlocal import get_localzone
 import bitbox02
@@ -64,7 +64,7 @@ def setup_workflow(device: bitbox02.BitBox02) -> None:
     device.insert_or_remove_sdcard(remove=True)
 
 
-def print_backups(backups: typing.List[bitbox02.Backup]) -> None:
+def print_backups(backups: List[bitbox02.Backup]) -> None:
     local_timezone = get_localzone()
     backups = list(backups)
     if not backups:
@@ -98,6 +98,7 @@ def select_init_option(device: bitbox02.BitBox02) -> bool:
     Returns:
         bool: If the user should be prompted again
     """
+    # pylint: disable=too-many-branches
     print("What would you like to do?")
     print("- (1) Set up new wallet")
     print("- (2) Restore from backup")
@@ -146,18 +147,19 @@ def print_menu(mnemonic_passphrase_enabled: bool) -> None:
     print("- (2) Change device name")
     print("- (3) Display random number")
     print("- (4) Retrieve master xpub")
-    print("- (5) List backups")
-    print("- (6) Check backup")
-    print("- (7) Show mnemonic")
-    print("- (8) Create backup")
-    print("- (9) Reboot into bootloader")
-    print("- (10) Check if SD card inserted")
+    print("- (5) Sign a BTC tx.")
+    print("- (6) List backups")
+    print("- (7) Check backup")
+    print("- (8) Show mnemonic")
+    print("- (9) Create backup")
+    print("- (10) Reboot into bootloader")
+    print("- (11) Check if SD card inserted")
     if mnemonic_passphrase_enabled:
-        print("- (11) Disable BIP39 Mnemonic Passphrase")
+        print("- (12) Disable BIP39 Mnemonic Passphrase")
     else:
-        print("- (11) Enable BIP39 Mnemonic Passphrase")
-    print("- (12) Retrieve Ethereum address")
-    print("- (13) Reset Device")
+        print("- (12) Enable BIP39 Mnemonic Passphrase")
+    print("- (13) Retrieve Ethereum address")
+    print("- (14) Reset Device")
     print("- (q) Quit")
 
 
@@ -198,18 +200,56 @@ def select_option(device: bitbox02.BitBox02) -> bool:
             ),
         )
     elif choice == 5:
-        print_backups(list(device.list_backups()))
+        # Dummy transaction to invoke a demo.
+        bip44_account: int = 0 + HARDENED
+        inputs: List[bitbox02.BTCInputType] = [
+            {
+                "prev_out_hash": b"11111111111111111111111111111111",
+                "prev_out_index": 1,
+                "prev_out_value": int(1e8 * 0.60005),
+                "sequence": 0xFFFFFFFF,
+                "keypath": [84 + HARDENED, 0 + HARDENED, bip44_account, 0, 0],
+            },
+            {
+                "prev_out_hash": b"11111111111111111111111111111111",
+                "prev_out_index": 1,
+                "prev_out_value": int(1e8 * 0.60005),
+                "sequence": 0xFFFFFFFF,
+                "keypath": [84 + HARDENED, 0 + HARDENED, bip44_account, 0, 1],
+            },
+        ]
+        outputs: List[bitbox02.BTCOutputType] = [
+            bitbox02.BTCOutputInternal(
+                keypath=[84 + HARDENED, 0 + HARDENED, bip44_account, 1, 0], value=int(1e8 * 1)
+            ),
+            bitbox02.BTCOutputExternal(
+                output_type=bitbox02.hww.P2WSH,
+                output_hash=b"11111111111111111111111111111111",
+                value=int(1e8 * 0.2),
+            ),
+        ]
+        sigs = device.btc_sign(
+            bitbox02.hww.BTC,
+            bitbox02.hww.SCRIPT_P2WPKH,
+            bip44_account=bip44_account,
+            inputs=inputs,
+            outputs=outputs,
+        )
+        for input_index, sig in sigs:
+            print("Signature for input {}: {}".format(input_index, sig.hex()))
     elif choice == 6:
+        print_backups(list(device.list_backups()))
+    elif choice == 7:
         print("Your BitBox02 will now perform a backup check")
         backup_id = device.check_backup()
         if backup_id:
             print(f"Check successful. Backup with ID {backup_id} matches")
         else:
             print("No matching backup found")
-    elif choice == 7:
+    elif choice == 8:
         print("Your BitBox02 will now show the mnemonic seed phrase")
         print(device.show_mnemonic())
-    elif choice == 8:
+    elif choice == 9:
         if device.check_backup(silent=True) is not None:
             if input("A backup already exists, continue? Y/n: ") not in ("", "Y"):
                 return True
@@ -217,14 +257,14 @@ def select_option(device: bitbox02.BitBox02) -> bool:
             print("Creating the backup failed")
         else:
             print("Backup created sucessfully")
-    elif choice == 9:
+    elif choice == 10:
         if device.reboot():
             print("Device rebooted")
             return False
         print("User aborted")
-    elif choice == 10:
-        print(f"SD Card inserted: {device.check_sdcard()}")
     elif choice == 11:
+        print(f"SD Card inserted: {device.check_sdcard()}")
+    elif choice == 12:
         mnemonic_passphrase_enabled = not mnemonic_passphrase_enabled
         try:
             device.set_mnemonic_passphrase_enabled(mnemonic_passphrase_enabled)
@@ -235,7 +275,7 @@ def select_option(device: bitbox02.BitBox02) -> bool:
             if mnemonic_passphrase_enabled:
                 print("You can enter a mnemonic passphrase on the next unlock.")
                 print("Replug your BitBox02.")
-    elif choice == 12:
+    elif choice == 13:
 
         def address(display: bool = False) -> str:
             return device.eth_pub(
@@ -246,7 +286,7 @@ def select_option(device: bitbox02.BitBox02) -> bool:
 
         print("Ethereum address: {}".format(address(display=False)))
         address(display=True)
-    elif choice == 13:
+    elif choice == 14:
         if device.reset():
             print("Device RESET")
         else:

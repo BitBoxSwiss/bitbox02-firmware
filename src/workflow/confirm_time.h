@@ -12,16 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _WORKFLOW_RESTORE_FROM_MNEMONIC_H_
-#define _WORKFLOW_RESTORE_FROM_MNEMONIC_H_
-
-#include <hww.pb.h>
 #include <stdbool.h>
+#include <stdint.h>
 
-/**
- * Enter a 12/18/24 word mnemonic and set the keystore seed from it.
- * @return true on success, false on abort or failure.
- */
-bool workflow_restore_from_mnemonic(const RestoreFromMnemonicRequest* request);
-
-#endif
+bool workflow_confirm_time(uint32_t timestamp, int32_t timezone_offset, bool date_only);

@@ -19,6 +19,8 @@
 #include <keystore.h>
 #include <memory.h>
 #include <restore.h>
+#include <securechip/securechip.h>
+#include <workflow/confirm_time.h>
 #include <workflow/password.h>
 #include <workflow/status.h>
 #include <workflow/unlock.h>
@@ -44,6 +46,15 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
         workflow_status_create("Could not\nrestore backup", false);
         return false;
     }
+#if defined(APP_U2F)
+    if (!workflow_confirm_time(
+            restore_request->timestamp, restore_request->timezone_offset, false)) {
+        return false;
+    }
+    if (!securechip_u2f_counter_set(restore_request->timestamp)) {
+        // ignore error
+    }
+#endif
     if (!memory_set_initialized()) {
         return false;
     }

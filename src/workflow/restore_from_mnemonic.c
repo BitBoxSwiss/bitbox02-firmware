@@ -24,12 +24,14 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory.h>
+#include <securechip/securechip.h>
 #include <ui/component.h>
 #include <ui/components/trinary_choice.h>
 #include <ui/components/trinary_input_string.h>
 #include <ui/screen_stack.h>
 #include <ui/ui_util.h>
 #include <util.h>
+#include <workflow/confirm_time.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -128,7 +130,7 @@ static bool _get_mnemonic(char* mnemonic_out)
     return true;
 }
 
-bool workflow_restore_from_mnemonic(void)
+bool workflow_restore_from_mnemonic(const RestoreFromMnemonicRequest* request)
 {
     // same as: MAX_WORD_LENGTH * MAX_WORDS + (MAX_WORDS - 1) + 1
     // (chars per word without null terminator) * (max words) + (spaces between words) + (null
@@ -167,6 +169,16 @@ bool workflow_restore_from_mnemonic(void)
         workflow_status_create("Could not\nrestore backup", false);
         return false;
     }
+#if defined(U2F_APP)
+    if (!workflow_confirm_time(request->timestamp, request->timezone_offset, false)) {
+        return false;
+    }
+    if (!securechip_u2f_counter_set(request->timestamp)) {
+        // ignore error
+    }
+#else
+    (void)request;
+#endif
     if (!memory_set_initialized()) {
         return false;
     }

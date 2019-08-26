@@ -24,8 +24,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/util.c
   ${CMAKE_SOURCE_DIR}/src/sd.c
   ${CMAKE_SOURCE_DIR}/src/hww.c
-  ${CMAKE_SOURCE_DIR}/src/u2f.c
-  ${CMAKE_SOURCE_DIR}/src/u2f/u2f_app.c
   ${CMAKE_SOURCE_DIR}/src/memory.c
   ${CMAKE_SOURCE_DIR}/src/salt.c
   ${CMAKE_SOURCE_DIR}/src/i2c_ecc.c
@@ -40,6 +38,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/workflow.c
   ${CMAKE_SOURCE_DIR}/src/workflow/trinary_input.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/confirm_time.c
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c
   ${CMAKE_SOURCE_DIR}/src/workflow/password.c
   ${CMAKE_SOURCE_DIR}/src/workflow/password_enter.c
@@ -290,6 +289,12 @@ set_source_files_properties(
   COMPILE_FLAGS "-Wno-switch-default"
 )
 
+set(FIRMWARE-U2F-SOURCES
+  ${CMAKE_SOURCE_DIR}/src/u2f.c
+  ${CMAKE_SOURCE_DIR}/src/u2f/u2f_app.c
+)
+set(FIRMWARE-U2F-SOURCES ${FIRMWARE-U2F-SOURCES} PARENT_SCOPE)
+
 #-----------------------------------------------------------------------------
 # Include directories
 
@@ -502,8 +507,10 @@ if(CMAKE_CROSSCOMPILING)
 
   target_sources(firmware.elf PRIVATE firmware.c)
   target_compile_definitions(firmware.elf PRIVATE APP_BTC APP_LTC APP_ETH APP_U2F)
+  target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES})
 
   target_sources(firmware-semihosting.elf PRIVATE firmware.c)
+  target_sources(firmware-semihosting.elf PRIVATE ${FIRMWARE-U2F-SOURCES})
   # Select an implementation of the system calls that can communicate with the debugger
   target_compile_options(firmware-semihosting.elf PRIVATE --specs=rdimon.specs)
   target_link_libraries(firmware-semihosting.elf PRIVATE --specs=rdimon.specs)

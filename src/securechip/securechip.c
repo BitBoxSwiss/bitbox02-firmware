@@ -660,6 +660,7 @@ bool securechip_ecc_unsafe_sign(const uint8_t* priv_key, const uint8_t* msg, uin
     return true;
 }
 
+#if defined(APP_U2F) || defined(FACTORYSETUP)
 // Read a "standard" sized block from a data slot (must be 32 bytes)
 static ATCA_STATUS _read_data_slot_block(uint8_t* bytes, uint16_t slot, uint8_t block)
 {
@@ -688,7 +689,7 @@ static ATCA_STATUS _write_data_slot_block(uint8_t* bytes, uint16_t slot, uint8_t
     return atcab_write_enc(slot, block, bytes, encryption_key, SECURECHIP_SLOT_ENCRYPTION_KEY);
 }
 
-bool securechip_u2f_counter_set(uint32_t value)
+bool securechip_u2f_counter_set(uint32_t counter)
 {
     data_9_0_t data = {0};
     ATCA_STATUS result = _read_data_slot_block(&data.bytes, SECURECHIP_SLOT_DATA0, 0);
@@ -696,7 +697,7 @@ bool securechip_u2f_counter_set(uint32_t value)
         return false;
     }
 
-    data.fields.u2f_counter = value;
+    data.fields.u2f_counter = counter;
 
     result = _write_data_slot_block(&data.bytes, SECURECHIP_SLOT_DATA0, 0);
     if (result != ATCA_SUCCESS) {
@@ -704,7 +705,9 @@ bool securechip_u2f_counter_set(uint32_t value)
     }
     return true;
 }
+#endif
 
+#if defined(APP_U2F)
 bool securechip_u2f_counter_inc(uint32_t* counter)
 {
     data_9_0_t data = {0};
@@ -722,3 +725,4 @@ bool securechip_u2f_counter_inc(uint32_t* counter)
     }
     return true;
 }
+#endif

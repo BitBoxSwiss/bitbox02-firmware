@@ -349,6 +349,8 @@ class BitBox02:
         # pylint: disable=no-member
         request = hww.Request()
         request.restore_backup.id = backup_id
+        request.restore_backup.timestamp = int(time.time())
+        request.restore_backup.timezone_offset = time.localtime().tm_gmtoff
         try:
             self._msg_query(request, expected_response="success")
         except Bitbox02Exception as err:
@@ -695,7 +697,11 @@ class BitBox02:
         """
         request = hww.Request()
         # pylint: disable=no-member
-        request.restore_from_mnemonic.CopyFrom(hww.RestoreFromMnemonicRequest())
+        request.restore_from_mnemonic.CopyFrom(
+            hww.RestoreFromMnemonicRequest(
+                timestamp=int(time.time()), timezone_offset=time.localtime().tm_gmtoff
+            )
+        )
         try:
             self._msg_query(request)
         except Bitbox02Exception as err:

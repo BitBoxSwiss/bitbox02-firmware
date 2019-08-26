@@ -23,6 +23,7 @@
 #include <ui/components/ui_components.h>
 #include <workflow/backup.h>
 #include <workflow/confirm.h>
+#include <workflow/confirm_time.h>
 #include <workflow/password.h>
 #include <workflow/sdcard.h>
 #include <workflow/status.h>
@@ -72,26 +73,6 @@ static bool _backup(uint32_t backup_create_timestamp, uint32_t seed_birthdate_ti
     }
 }
 
-static bool _confirm_time(const CreateBackupRequest* request)
-{
-    if (request->timestamp == 0) {
-        return false;
-    }
-    // TODO: Use utc_timestring for backup filename, human readable UTC time
-    char utc_timestring[40] = {0};
-    time_t timestamp = (time_t)request->timestamp;
-    struct tm* utc_time = gmtime(&timestamp);
-    strftime(utc_timestring, sizeof(utc_timestring), "%a %Y-%m-%d", utc_time);
-
-    // Local time for confirming on screen
-    time_t local_timestamp = timestamp + request->timezone_offset;
-    struct tm* local_time = localtime(&local_timestamp);
-    static char local_timestring[100] = {0};
-    strftime(local_timestring, sizeof(local_timestring), "%a %Y-%m-%d", local_time);
-
-    return workflow_confirm("Is today?", local_timestring, false, false);
-}
-
 bool workflow_backup_create(const CreateBackupRequest* request)
 {
     if (request->timezone_offset < MAX_WEST_UTC_OFFSET ||
@@ -113,7 +94,7 @@ bool workflow_backup_create(const CreateBackupRequest* request)
 
     uint32_t seed_birthdate = 0;
     if (!memory_is_initialized()) {
-        if (!_confirm_time(request)) {
+        if (!workflow_confirm_time(request->timestamp, request->timezone_offset, true)) {
             return false;
         }
 

@@ -18,8 +18,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #define UTIL_BUFFER_LEN 0x1000
 #define MIN(a, b)                                       \

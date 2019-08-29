@@ -98,7 +98,10 @@ int32_t flash_read(struct flash_descriptor *flash, uint32_t src_addr, uint8_t *b
 	uint32_t page_size   = _flash_get_page_size(&flash->dev);
 	uint32_t total_pages = _flash_get_total_pages(&flash->dev);
 
-	/* Check if the address is valid */
+	/* Check if the address/length is valid */
+	if (src_addr > UINT32_MAX - length) {
+		return ERR_BAD_ADDRESS;
+	}
 	if ((src_addr > page_size * total_pages) || (src_addr + length > page_size * total_pages)) {
 		return ERR_BAD_ADDRESS;
 	}
@@ -118,7 +121,10 @@ int32_t flash_write(struct flash_descriptor *flash, uint32_t dst_addr, const uin
 	uint32_t page_size   = _flash_get_page_size(&flash->dev);
 	uint32_t total_pages = _flash_get_total_pages(&flash->dev);
 
-	/* Check if the address is valid */
+	/* Check if the address/length is valid */
+	if (dst_addr > UINT32_MAX - length) {
+		return ERR_BAD_ADDRESS;
+	}
 	if ((dst_addr > page_size * total_pages) || (dst_addr + length > page_size * total_pages)) {
 		return ERR_BAD_ADDRESS;
 	}
@@ -142,7 +148,10 @@ int32_t flash_append(struct flash_descriptor *flash, uint32_t dst_addr, uint8_t 
 	uint32_t page_size   = _flash_get_page_size(&flash->dev);
 	uint32_t total_pages = _flash_get_total_pages(&flash->dev);
 
-	/* Check if the address is valid */
+	/* Check if the address/length is valid */
+	if (dst_addr > UINT32_MAX - length) {
+		return ERR_BAD_ADDRESS;
+	}
 	if ((dst_addr > page_size * total_pages) || (dst_addr + length > page_size * total_pages)) {
 		return ERR_BAD_ADDRESS;
 	}

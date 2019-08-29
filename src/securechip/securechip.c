@@ -210,6 +210,20 @@ static bool _slot_is_locked(securechip_slot_t slot)
     return is_locked;
 }
 
+/**
+ * Check if a zone is locked.
+ * @param[in] zone LOCK_ZONE_CONFIG or LOCK_ZONE_DATA.
+ */
+static bool _zone_is_locked(uint8_t zone)
+{
+    bool is_locked = false;
+    ATCA_STATUS result = atcab_is_locked(zone, &is_locked);
+    if (result != ATCA_SUCCESS) {
+        return false;
+    }
+    return is_locked;
+}
+
 #if defined(FACTORYSETUP)
 /**
  * Individually locks a slot. Used to lock the io protection and auth key so
@@ -324,21 +338,10 @@ static bool _factory_setup(void)
 
 static bool _verify_config(void)
 {
-    bool is_config_locked = false;
-    ATCA_STATUS result = atcab_is_locked(LOCK_ZONE_CONFIG, &is_config_locked);
-    if (result != ATCA_SUCCESS) {
+    if (!_zone_is_locked(LOCK_ZONE_CONFIG)) {
         return false;
     }
-    if (!is_config_locked) {
-        return false;
-    }
-
-    bool is_data_locked;
-    result = atcab_is_locked(LOCK_ZONE_DATA, &is_data_locked);
-    if (result != ATCA_SUCCESS) {
-        return false;
-    }
-    if (!is_data_locked) {
+    if (!_zone_is_locked(LOCK_ZONE_DATA)) {
         return false;
     }
 

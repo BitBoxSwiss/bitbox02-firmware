@@ -35,6 +35,9 @@ firmware: | build
 firmware-semihosting: | build
 	$(MAKE) -C py
 	$(MAKE) -C build firmware-semihosting.elf
+firmware-btc: | build
+	$(MAKE) -C py
+	$(MAKE) -C build firmware-btc.elf
 bootloader: | build
 	$(MAKE) -C build bootloader.elf
 bootloader-devdevice: | build
@@ -81,8 +84,12 @@ flash-dev-firmware:
 	./py/load_firmware.py build/bin/firmware.bin debug
 jlink-flash-bootloader: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-development.jlink
+jlink-flash-bootloader-btc: | build
+	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-btc-development.jlink
 jlink-flash-firmware: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware.jlink
+jlink-flash-firmware-btc: | build
+	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-btc.jlink
 jlink-flash-firmware-semihosting: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-semihosting.jlink
 dockerinit:

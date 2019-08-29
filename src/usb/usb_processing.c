@@ -128,7 +128,7 @@ void usb_processing_set_send(struct usb_processing* ctx, void (*send)(void))
 
 void usb_processing_process(struct usb_processing* ctx)
 {
-#if !defined(BOOTLOADER)
+#if defined(APP_U2F)
     uint32_t timeout_cid;
     // If there are any timeouts, send them first
     while (u2f_packet_timeout_get(&timeout_cid)) {
@@ -141,7 +141,7 @@ void usb_processing_process(struct usb_processing* ctx)
     if (ctx == usb_processing_hww() && _in_packet_queued != HWW_PACKET) {
         return;
     }
-#if !defined(BOOTLOADER)
+#if defined(APP_U2F)
 
     if (ctx == usb_processing_u2f() && _in_packet_queued != U2F_PACKET) {
         return;
@@ -179,11 +179,13 @@ void usb_processing_process(struct usb_processing* ctx)
     util_zero(&ctx->in_packet, sizeof(ctx->in_packet));
 }
 
+#if defined(APP_U2F)
 struct usb_processing* usb_processing_u2f(void)
 {
     static struct usb_processing usb_processing;
     return &usb_processing;
 }
+#endif
 
 struct usb_processing* usb_processing_hww(void)
 {
@@ -193,6 +195,8 @@ struct usb_processing* usb_processing_hww(void)
 
 void usb_processing_init(void)
 {
+#if defined(APP_U2F)
     usb_processing_u2f()->out_queue = queue_u2f_queue;
+#endif
     usb_processing_hww()->out_queue = queue_hww_queue;
 }

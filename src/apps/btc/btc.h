@@ -32,4 +32,9 @@ USE_RESULT bool app_btc_address(
     char* out,
     size_t out_len);
 
+/**
+ * @return true if coin is enabled
+ */
+bool app_btc_enabled(BTCCoin coin);
+
 #endif

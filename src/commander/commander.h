@@ -23,13 +23,14 @@
 
 // error flags. From this, commander_error_t and the static
 // commander_error_code, commander_error_message are produced.
-#define COMMANDER_ERROR_TABLE                               \
-    X(COMMANDER_OK, 0, "")                                  \
-    X(COMMANDER_ERR_INVALID_INPUT, 101, "invalid input")    \
-    X(COMMANDER_ERR_MEMORY, 102, "memory")                  \
-    X(COMMANDER_ERR_GENERIC, 103, "generic error")          \
-    X(COMMANDER_ERR_USER_ABORT, 104, "aborted by the user") \
-    X(COMMANDER_ERR_INVALID_STATE, 105, "can't call this endpoint: wrong state")
+#define COMMANDER_ERROR_TABLE                                                    \
+    X(COMMANDER_OK, 0, "")                                                       \
+    X(COMMANDER_ERR_INVALID_INPUT, 101, "invalid input")                         \
+    X(COMMANDER_ERR_MEMORY, 102, "memory")                                       \
+    X(COMMANDER_ERR_GENERIC, 103, "generic error")                               \
+    X(COMMANDER_ERR_USER_ABORT, 104, "aborted by the user")                      \
+    X(COMMANDER_ERR_INVALID_STATE, 105, "can't call this endpoint: wrong state") \
+    X(COMMANDER_ERR_DISABLED, 106, "function disabled")
 
 #define X(a, b, c) a,
 typedef enum { COMMANDER_ERROR_TABLE } commander_error_t;

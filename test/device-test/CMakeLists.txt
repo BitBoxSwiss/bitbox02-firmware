@@ -56,6 +56,7 @@ target_include_directories(bitbox PUBLIC ${INCLUDES})
 target_include_directories(bitbox SYSTEM PUBLIC ${SYSTEMINCLUDES})
 target_include_directories(bitbox SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
 target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
+target_compile_definitions(bitbox PUBLIC APP_BTC APP_LTC APP_U2F APP_ETH)
 add_dependencies(bitbox generate-hww generate-backup)
 # Include and provide configuration for nanopb
 target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external)

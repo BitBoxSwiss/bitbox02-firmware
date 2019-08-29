@@ -79,7 +79,7 @@
 
 #define USB_DESC_IPRODUCT 2
 #if defined(BOOTLOADER)
-#if defined(BOOTLOADER_BTC)
+#if defined(BOOTLOADER_BTC_ONLY)
 #define USB_DESC_IPRODUCT_STR_DESC \
         38,    /* bLength */\
         0x03,  /* bDescriptorType */\
@@ -137,6 +137,21 @@
         'o', 0,\
         'r', 0,\
         'y', 0,
+#elif defined(FIRMWARE_BTC_ONLY)
+#define USB_DESC_IPRODUCT_STR_DESC \
+        24,    /* bLength */\
+        0x03,  /* bDescriptorType */\
+        'B', 0,\
+        'i', 0,\
+        't', 0,\
+        'B', 0,\
+        'o', 0,\
+        'x', 0,\
+        '0', 0,\
+        '2', 0,\
+        'B', 0,\
+        'T', 0,\
+        'C', 0,
 #else
 #define USB_DESC_IPRODUCT_STR_DESC \
         18,    /* bLength */\
@@ -265,7 +280,7 @@
         USB_DESC_LE16(USB_DESC_HID_EP_SIZE),/* ep_out.wMaxPacketSize */\
         4                                   /* ep_out.bInterval */
 
-#ifndef BOOTLOADER
+#if defined(APP_U2F)
 #define USB_DESC_IFACE_U2F \
         9,                                  /* iface.bLength */ \
         0x04,                               /* iface.bDescriptorType: INTERFACE */ \
@@ -327,7 +342,7 @@
 // TODO: USB_DESC_D_MAX_EP_N doesn't exist, but there is CONF_USB_D_NUM_EP_SP
 // (= supported endpoints) - is that the one that needs to change?
 //  ** If add more endpoints, adjust USB_DESC_D_MAX_EP_N  **
-#if defined(BOOTLOADER) || defined(FACTORYSETUP)
+#if !defined(APP_U2F)
 #define USB_DESC_FS USB_DEV_DESC, USB_DESC_CONFIG, USB_DESC_IFACE_HWW, USB_STR_DESC
 #else
 #define USB_DESC_FS USB_DEV_DESC, USB_DESC_CONFIG, USB_DESC_IFACE_HWW, USB_DESC_IFACE_U2F, USB_STR_DESC

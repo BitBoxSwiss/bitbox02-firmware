@@ -24,13 +24,15 @@
 void reset_reset(void)
 {
     keystore_lock();
-#ifndef TESTING
+#if !defined(TESTING)
     if (!securechip_update_keys()) {
         Abort("Could not reset secure chip.");
     }
+#if defined(APP_U2F)
     if (!securechip_u2f_counter_set(0)) {
         Abort("Could not initialize U2F counter.");
     }
+#endif
 #endif
     if (!memory_reset_hww()) {
         Abort("Could not reset memory.");

@@ -30,6 +30,9 @@ static const char* _coin_tltc = "LTC Testnet";
 
 commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* response)
 {
+    if (!app_btc_enabled(request->coin)) {
+        return COMMANDER_ERR_DISABLED;
+    }
     if (!app_btc_address(
             request->coin,
             request->output_type,
@@ -101,6 +104,9 @@ commander_error_t commander_btc_sign(const Request* request, Response* response)
     app_btc_sign_error_t result;
     switch (request->which_request) {
     case Request_btc_sign_init_tag:
+        if (!app_btc_enabled(request->request.btc_sign_init.coin)) {
+            return COMMANDER_ERR_DISABLED;
+        }
         result =
             app_btc_sign_init(&(request->request.btc_sign_init), &response->response.btc_sign_next);
         break;

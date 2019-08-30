@@ -37,6 +37,7 @@ static bool _require_pairing_verification = false;
 
 #define OP_I_CAN_HAS_HANDSHAKE ((uint8_t)'h')
 #define OP_I_CAN_HAS_PAIRIN_VERIFICASHUN ((uint8_t)'v')
+#define OP_NOISE_MSG ((uint8_t)'n')
 
 #define OP_STATUS_SUCCESS ((uint8_t)0);
 #define OP_STATUS_FAILURE ((uint8_t)1);
@@ -273,23 +274,32 @@ bool bb_noise_process_msg(
             return true;
         }
     }
-    // Otherwise decrypt, process, encrypt.
-    NoiseBuffer noise_buffer;
+    if (in_packet->len >= 1 && in_packet->data_addr[0] == OP_NOISE_MSG) {
+        // Otherwise decrypt, process, encrypt.
+        NoiseBuffer noise_buffer;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-    uint8_t* in_data = (uint8_t*)in_packet->data_addr;
+        uint8_t* in_data = (uint8_t*)in_packet->data_addr;
 #pragma GCC diagnostic pop
-    noise_buffer_set_inout(noise_buffer, in_data, in_packet->len, max_out_len);
-    if (noise_cipherstate_decrypt(_recv_cipher, &noise_buffer) != NOISE_ERROR_NONE) {
-        return false;
+        noise_buffer_set_inout(noise_buffer, in_data + 1, in_packet->len - 1, max_out_len);
+        if (noise_cipherstate_decrypt(_recv_cipher, &noise_buffer) != NOISE_ERROR_NONE) {
+            return false;
+        }
+        size_t len = process_msg(
+            (const uint8_t*)noise_buffer.data,
+            noise_buffer.size,
+            out_packet->data_addr,
+            max_out_len);
+        noise_buffer_set_inout(noise_buffer, out_packet->data_addr, len, max_out_len);
+        if (noise_cipherstate_encrypt(_send_cipher, &noise_buffer) != NOISE_ERROR_NONE) {
+            return false;
+        }
+        out_packet->len = noise_buffer.size;
+        return true;
     }
-    size_t len = process_msg(
-        (const uint8_t*)noise_buffer.data, noise_buffer.size, out_packet->data_addr, max_out_len);
-    noise_buffer_set_inout(noise_buffer, out_packet->data_addr, len, max_out_len);
-    if (noise_cipherstate_encrypt(_send_cipher, &noise_buffer) != NOISE_ERROR_NONE) {
-        return false;
-    }
-    out_packet->len = noise_buffer.size;
+    // Unrecognized request, respond with error.
+    out_packet->len = 1;
+    out_packet->data_addr[0] = OP_STATUS_FAILURE;
     return true;
 }
 

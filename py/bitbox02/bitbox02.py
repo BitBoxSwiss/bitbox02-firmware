@@ -68,6 +68,7 @@ OP_ATTESTATION = b"a"
 OP_UNLOCK = b"u"
 OP_I_CAN_HAS_HANDSHAEK = b"h"
 OP_I_CAN_HAS_PAIRIN_VERIFICASHUN = b"v"
+OP_NOISE_MSG = b"n"
 
 RESPONSE_SUCCESS = b"\x00"
 RESPONSE_FAILURE = b"\x01"
@@ -182,7 +183,11 @@ class BitBox02:
         """
         Sends msg bytes and reads response bytes over an encrypted channel.
         """
-        result = self.noise.decrypt(self._query(self.noise.encrypt(msg)))
+        encrypted_msg = self.noise.encrypt(msg)
+        if self.version >= semver.VersionInfo(4, 0, 0):
+            encrypted_msg = OP_NOISE_MSG + encrypted_msg
+
+        result = self.noise.decrypt(self._query(encrypted_msg))
         assert isinstance(result, bytes)
         return result
 
@@ -512,6 +517,9 @@ class BitBox02:
         return self._eth_msg_query(request, expected_response="sign").sign.signature
 
     def reset(self) -> bool:
+        """
+        Factory reset the device. Returns True on success.
+        """
         request = hww.Request()
         # pylint: disable=no-member
         request.reset.CopyFrom(hww.ResetRequest())

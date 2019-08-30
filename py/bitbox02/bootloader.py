@@ -33,7 +33,9 @@ CHUNK_SIZE = 4096
 assert MAX_FIRMWARE_SIZE % CHUNK_SIZE == 0
 FIRMWARE_CHUNKS = MAX_FIRMWARE_SIZE // CHUNK_SIZE
 
-SIGDATA_MAGIC = struct.pack(">I", 0x653F362B)
+SIGDATA_MAGIC_STANDARD = struct.pack(">I", 0x653F362B)
+SIGDATA_MAGIC_BTCONLY = struct.pack(">I", 0x11233B0B)
+
 MAGIC_LEN = 4
 
 VERSION_LEN = 4
@@ -42,15 +44,15 @@ FIRMWARE_DATA_LEN = VERSION_LEN + NUM_SIGNING_KEYS * 64
 SIGDATA_LEN = SIGNING_PUBKEYS_DATA_LEN + FIRMWARE_DATA_LEN
 
 
-def parse_signed_firmware(firmware: bytes) -> typing.Tuple[bytes, bytes]:
+def parse_signed_firmware(firmware: bytes) -> typing.Tuple[bytes, bytes, bytes]:
     if len(firmware) < MAGIC_LEN + SIGDATA_LEN:
         raise ValueError("firmware too small")
     magic, firmware = firmware[:MAGIC_LEN], firmware[MAGIC_LEN:]
-    if magic != SIGDATA_MAGIC:
+    if magic not in (SIGDATA_MAGIC_STANDARD, SIGDATA_MAGIC_BTCONLY):
         raise ValueError("invalid magic")
 
     sigdata, firmware = firmware[:SIGDATA_LEN], firmware[SIGDATA_LEN:]
-    return sigdata, firmware
+    return magic, sigdata, firmware
 
 
 class Bootloader:
@@ -61,6 +63,11 @@ class Bootloader:
     def __init__(self, device_info: DeviceInfo):
         self.device = hid.device()
         self.device.open_path(device_info["path"])
+        self.expected_magic = {
+            "bb02-bootloader": SIGDATA_MAGIC_STANDARD,
+            "bb02btc-bootloader": SIGDATA_MAGIC_BTCONLY,
+        }.get(device_info["product_string"])
+        assert self.expected_magic
 
     def _query(self, msg: bytes) -> bytes:
         hid_send_frames(self.device, msg, cmd=BOOTLOADER_CMD)
@@ -150,7 +157,9 @@ class Bootloader:
         signatures are extracted and flashed.
         """
 
-        sigdata, firmware = parse_signed_firmware(firmware)
+        magic, sigdata, firmware = parse_signed_firmware(firmware)
+        if magic != self.expected_magic:
+            raise ValueError("wrong firmware edition")
         self.flash_unsigned_firmware(firmware, progress_callback=progress_callback)
         self._query(b"s" + sigdata)
 

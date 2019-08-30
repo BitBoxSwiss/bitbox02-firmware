@@ -29,6 +29,7 @@ BITBOX02 = "BitBox02"
 class DeviceInfo(TypedDict):
     serial_number: str
     path: bytes
+    product_string: str
 
 
 def get_bitbox02_devices(product_string: str = BITBOX02) -> List[DeviceInfo]:

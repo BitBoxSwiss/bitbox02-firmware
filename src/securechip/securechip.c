@@ -198,6 +198,34 @@ static ATCAIfaceCfg cfg = {
     .cfg_data = NULL};
 
 /**
+ * Check if a slot is individually locked.
+ */
+static bool _slot_is_locked(securechip_slot_t slot)
+{
+    bool is_locked = false;
+    ATCA_STATUS result = atcab_is_slot_locked(slot, &is_locked);
+    if (result != ATCA_SUCCESS) {
+        return false;
+    }
+    return is_locked;
+}
+
+/**
+ * Check if a zone is locked.
+ * @param[in] zone LOCK_ZONE_CONFIG or LOCK_ZONE_DATA.
+ */
+static bool _zone_is_locked(uint8_t zone)
+{
+    bool is_locked = false;
+    ATCA_STATUS result = atcab_is_locked(zone, &is_locked);
+    if (result != ATCA_SUCCESS) {
+        return false;
+    }
+    return is_locked;
+}
+
+#if defined(FACTORYSETUP)
+/**
  * Individually locks a slot. Used to lock the io protection and auth key so
  * they can never change.
  */
@@ -214,18 +242,13 @@ static ATCA_STATUS _lock_slot(securechip_slot_t slot)
     return ATCA_SUCCESS;
 }
 
-bool securechip_setup(securechip_interface_functions_t* ifs)
+static bool _factory_setup(void)
 {
-    if (ifs == NULL) {
-        return false;
-    }
-    _interface_functions = ifs;
-    ATCA_STATUS result = atcab_init(&cfg);
-    if (result != ATCA_SUCCESS) {
+    if (_interface_functions == NULL) {
         return false;
     }
     bool is_config_locked = false;
-    result = atcab_is_locked(LOCK_ZONE_CONFIG, &is_config_locked);
+    ATCA_STATUS result = atcab_is_locked(LOCK_ZONE_CONFIG, &is_config_locked);
     if (result != ATCA_SUCCESS) {
         return false;
     }
@@ -309,18 +332,57 @@ bool securechip_setup(securechip_interface_functions_t* ifs)
             return false;
         }
     }
+    return true;
+}
+#endif
 
-    // Validate config.
-    if (is_config_locked && is_data_locked) {
-        bool same_config = false;
-        if (atcab_cmp_config_zone(_configuration, &same_config) != ATCA_SUCCESS) {
-            return false;
-        }
-        if (!same_config) {
-            return false;
-        }
+static bool _verify_config(void)
+{
+    if (!_zone_is_locked(LOCK_ZONE_CONFIG)) {
+        return false;
+    }
+    if (!_zone_is_locked(LOCK_ZONE_DATA)) {
+        return false;
+    }
+
+    bool same_config = false;
+    if (atcab_cmp_config_zone(_configuration, &same_config) != ATCA_SUCCESS) {
+        return false;
+    }
+    if (!same_config) {
+        return false;
+    }
+
+    if (!_slot_is_locked(SECURECHIP_SLOT_IO_PROTECTION_KEY)) {
+        return false;
+    }
+    if (!_slot_is_locked(SECURECHIP_SLOT_AUTHKEY)) {
+        return false;
+    }
+    if (!_slot_is_locked(SECURECHIP_SLOT_ENCRYPTION_KEY)) {
+        return false;
     }
     return true;
+}
+
+bool securechip_setup(securechip_interface_functions_t* ifs)
+{
+    if (ifs == NULL) {
+        return false;
+    }
+    _interface_functions = ifs;
+    ATCA_STATUS result = atcab_init(&cfg);
+    if (result != ATCA_SUCCESS) {
+        return false;
+    }
+
+#if defined(FACTORYSETUP)
+    if (!_factory_setup()) {
+        return false;
+    }
+#endif
+
+    return _verify_config();
 }
 
 /**

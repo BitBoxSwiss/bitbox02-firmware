@@ -20,10 +20,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef enum {
+enum u2f_app_confirm_t {
     U2F_APP_REGISTER,
     U2F_APP_AUTHENTICATE,
-} u2f_app_confirm_t;
+    U2F_APP_BOGUS,
+};
 
 /**
  * User confirm auth/registration for a website given by the U2F app ID.
@@ -31,6 +32,6 @@ typedef enum {
  * @param[in] app_id U2F app ID to identify the website.
  * @return true if the user accepts, false for rejection or timeout.
  */
-USE_RESULT bool u2f_app_confirm(u2f_app_confirm_t type, const uint8_t* app_id);
+USE_RESULT bool u2f_app_confirm(enum u2f_app_confirm_t type, const uint8_t* app_id);
 
 #endif

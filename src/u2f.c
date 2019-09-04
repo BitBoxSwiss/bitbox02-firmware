@@ -249,11 +249,6 @@ static int _sig_to_der(const uint8_t* sig, uint8_t* der)
     return *len + 2;
 }
 
-static bool _bogus_confirmation(void)
-{
-    return workflow_confirm_with_timeout("", "Use U2F?", false, 1000);
-}
-
 /**
  * Initiates the U2F registration workflow.
  * @param[in] apdu The APDU packet.
@@ -278,12 +273,7 @@ static void _register(const USB_APDU* apdu, Packet* out_packet)
     // registrations to make the device blink.
     bool is_bogus = MEMEQ(reg_request->appId, APPID_BOGUS_CHROMIUM, U2F_APPID_SIZE) ||
                     MEMEQ(reg_request->appId, APPID_BOGUS_FIREFOX, U2F_APPID_SIZE);
-    if (is_bogus) {
-        if (!_bogus_confirmation()) {
-            _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
-            return;
-        }
-    } else if (!u2f_app_confirm(U2F_APP_REGISTER, reg_request->appId)) {
+    if (!u2f_app_confirm(is_bogus ? U2F_APP_BOGUS : U2F_APP_REGISTER, reg_request->appId)) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }

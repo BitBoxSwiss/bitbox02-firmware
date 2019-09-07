@@ -37,9 +37,9 @@ for communication to the BitBox App via USB, the User via the sliders and to the
 ### Sliders
 
 The sliders along the edges of the device are used for user input.  There are three input gestures:
-* Tap,
-* Slide, and
-* Hold to confirm.
+* Tap
+* Slide
+* Hold to confirm
 
 <p align="center"><img src="./doc/bb02PwEntry.gif" /></p>
 

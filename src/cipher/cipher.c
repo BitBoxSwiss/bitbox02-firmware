@@ -23,6 +23,8 @@
 #include <wally_crypto.h>
 
 #define N_BLOCK (16U)
+// Used to sanity-check input to avoid large stack allocations
+#define CIPHER_MAX_ALLOC (200U)
 
 static bool _derive_hmac_keys(
     const uint8_t* secret,
@@ -41,13 +43,16 @@ static bool _derive_hmac_keys(
 
 // out_len must be at least in_len + N_BLOCK + N_BLOCK
 // necessary in_len/out_len range checks are done in cipher_aes_hmac_encrypt().
-static void _aes_encrypt(
+static bool _aes_encrypt(
     const uint8_t* in,
     size_t in_len,
     uint8_t* out,
     size_t* out_len,
     const uint8_t* key)
 {
+    if (in_len > CIPHER_MAX_ALLOC) {
+        return false;
+    }
     size_t padlen = N_BLOCK - in_len % N_BLOCK;
     size_t inpadlen = in_len + padlen;
     uint8_t inpad[inpadlen];
@@ -70,6 +75,7 @@ static void _aes_encrypt(
 
     util_zero(inpad, inpadlen);
     util_zero(&ctx, sizeof(ctx));
+    return true;
 }
 
 bool cipher_aes_hmac_encrypt(
@@ -92,7 +98,9 @@ bool cipher_aes_hmac_encrypt(
     }
 
     size_t encrypt_len = in_len + 32;
-    _aes_encrypt(in, in_len, out, &encrypt_len, encryption_key);
+    if (!_aes_encrypt(in, in_len, out, &encrypt_len, encryption_key)) {
+        return false;
+    }
 
     *out_len = encrypt_len + 32;
 
@@ -113,6 +121,9 @@ static bool _aes_decrypt(
     size_t* out_len,
     const uint8_t* key)
 {
+    if (in_len > CIPHER_MAX_ALLOC) {
+        return false;
+    }
     uint8_t dec_pad[in_len - N_BLOCK];
     const uint8_t* iv = in; // first 16 bytes
 

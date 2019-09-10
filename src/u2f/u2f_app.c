@@ -1,5 +1,6 @@
 #include "u2f_app.h"
 
+#include <hardfault.h>
 #include <util.h>
 #include <workflow/confirm.h>
 
@@ -42,12 +43,27 @@ static void _app_string(const uint8_t* app_id, char* out, size_t out_len)
     snprintf(out, out_len, "Unknown Site:\n%.16s\n%.16s", appid_hex, appid_hex + 16);
 }
 
-bool u2f_app_confirm(u2f_app_confirm_t type, const uint8_t* app_id)
+bool u2f_app_confirm(enum u2f_app_confirm_t type, const uint8_t* app_id)
 {
-    static const char* title_register = "U2F Register";
-    static const char* title_authenticate = "U2F Authenticate";
     char app_string[100] = {0};
-    _app_string(app_id, app_string, sizeof(app_string));
-    return workflow_confirm_with_timeout(
-        type == U2F_APP_REGISTER ? title_register : title_authenticate, app_string, false, 1000);
+    const char* title;
+    switch (type) {
+    case U2F_APP_REGISTER:
+        title = "U2F Register";
+        _app_string(app_id, app_string, sizeof(app_string));
+        break;
+    case U2F_APP_AUTHENTICATE:
+        title = "U2F Authenticate";
+        _app_string(app_id, app_string, sizeof(app_string));
+        break;
+    case U2F_APP_BOGUS:
+        title = "";
+        snprintf(app_string, sizeof(app_string), "%s", "Use U2F?");
+        break;
+    default:
+        Abort("u2f_app_confirm: Internal error");
+    }
+    // 75 here is approximately 1 second. According to the protocol we need to respond within 3s
+    // and the rest of the code need something like 1-1.5s.
+    return workflow_confirm_with_timeout(title, app_string, false, 75);
 }

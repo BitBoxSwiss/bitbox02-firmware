@@ -54,6 +54,14 @@ middlewares:
       IO Bus: MCI_0
       Write Protect 0: null
       Card Detect 0: null
+  DISKIO_0:
+    user_label: DISKIO_0
+    configuration: {}
+    definition: Atmel:DiskIO:1.0.0::SD_MMC
+    functionality: DISKIO
+    api: DiskIO:Storage-Abstractions:API
+    dependencies:
+      SDMMC: SDMMC_ACCESS_0
 drivers:
   CMCC:
     user_label: CMCC

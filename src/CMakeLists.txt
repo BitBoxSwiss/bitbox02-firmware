@@ -142,39 +142,7 @@ set(DBB-BOOTLOADER-SOURCES ${DBB-BOOTLOADER-SOURCES} PARENT_SCOPE)
 
 set(DRIVER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/ui/oled/oled.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/driver_init.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/utils/src/utils_syscalls.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/utils/src/utils_list.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/src/hal_atomic.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/src/hal_gpio.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/src/hal_init.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/src/hal_delay.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/src/hal_timer.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/src/hal_usb_device.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/src/hal_rand_sync.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/src/hal_flash.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/src/hal_pac.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/src/hal_sha_sync.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/src/hal_i2c_m_sync.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/systick/hpl_systick.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/gclk/hpl_gclk.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/oscctrl/hpl_oscctrl.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/mclk/hpl_mclk.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/osc32kctrl/hpl_osc32kctrl.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/core/hpl_init.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/core/hpl_core_m4.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/spi/spi_lite.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/usb/hpl_usb.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/rtc/hpl_rtc.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/trng/hpl_trng.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/nvmctrl/hpl_nvmctrl.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/icm/hpl_icm.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/pac/hpl_pac.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/qtouch/qtouch.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/usb/usb_protocol.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/usb/device/usbdc.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/usb/class/hid/hww/hid_hww.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/usb/class/hid/hid.c
+  ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hww/hid_hww.c
 )
 set(DRIVER-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
 
@@ -269,12 +237,7 @@ set(CTAES-SOURCES
 set(CTAES-SOURCES ${CTAES-SOURCES} PARENT_SCOPE)
 
 set(FIRMWARE-DRIVER-SOURCES
-  ${CMAKE_SOURCE_DIR}/src/drivers/usb/class/hid/u2f/hid_u2f.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/src/hal_mci_sync.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/sdhc/hpl_sdhc.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/sercom/hpl_sercom.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/sd_mmc/sd_mmc.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/diskio/sdmmc_diskio.c
+  ${CMAKE_SOURCE_DIR}/src/usb/class/hid/u2f/hid_u2f.c
   ${CMAKE_SOURCE_DIR}/external/FatFs/source/ff.c
   ${CMAKE_SOURCE_DIR}/external/FatFs/source/ffunicode.c
 )
@@ -420,7 +383,7 @@ if(CMAKE_CROSSCOMPILING)
   foreach(bootloader ${BOOTLOADERS})
     set(elf ${bootloader}.elf)
     add_executable(${elf} ${BOOTLOADER-SOURCES})
-    target_link_libraries(${elf} PRIVATE samd51a-ds)
+    target_link_libraries(${elf} PRIVATE asf4-drivers-min)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_include_directories(${elf} SYSTEM PRIVATE ${SYSTEMINCLUDES})
     target_compile_definitions(${elf} PRIVATE BOOTLOADER)
@@ -463,7 +426,7 @@ if(CMAKE_CROSSCOMPILING)
     set(elf ${firmware}.elf)
     add_executable(${elf} ${FIRMWARE-SOURCES})
     add_dependencies(${elf} generate-hww generate-backup)
-    target_link_libraries(${elf} PRIVATE samd51a-ds)
+    target_link_libraries(${elf} PRIVATE asf4-drivers)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_include_directories(${elf} SYSTEM PRIVATE ${SYSTEMINCLUDES})
 

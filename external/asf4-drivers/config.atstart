@@ -14,13 +14,6 @@ board:
 details: null
 application: null
 middlewares:
-  QTOUCH_LIBRARY_0:
-    user_label: QTOUCH_LIBRARY_0
-    configuration: {}
-    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Standard_Library
-    functionality: QTouch_Library
-    api: QTouch:General:Core
-    dependencies: {}
   USB_CHAPTER_9:
     user_label: USB_CHAPTER_9
     configuration: {}
@@ -62,7 +55,467 @@ middlewares:
     api: DiskIO:Storage-Abstractions:API
     dependencies:
       SDMMC: SDMMC_ACCESS_0
+  QTOUCH_LIBRARY_0:
+    user_label: QTOUCH_LIBRARY_0
+    configuration: {}
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Standard_Library
+    functionality: QTouch_Library
+    api: QTouch:General:Core
+    dependencies: {}
+  QTOUCH_TIMER:
+    user_label: QTOUCH_TIMER
+    configuration: {}
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Timer
+    functionality: QTouch_Timer
+    api: QTouch:Driver:Timer
+    dependencies:
+      Timer: Timer
+  QTOUCH_NODE:
+    user_label: QTOUCH_NODE
+    configuration:
+      order: 1
+      ptc_analog_gain: '1'
+      ptc_csd: 0
+      ptc_digital_gain: '1'
+      ptc_filter_level: '16'
+      ptc_prescaler: No Division
+      ptc_rsel: No Resistor
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_selfcap_node
+    functionality: QTouch_Node
+    api: QTouch:General:Node
+    dependencies:
+      QTouch Acquisition: QTOUCH_ACQUISITION
+      Y-line: PTC:Y/1
+      PTC: PTC
+  QTOUCH_NODE_0:
+    user_label: QTOUCH_NODE_0
+    configuration:
+      order: 0
+      ptc_analog_gain: '1'
+      ptc_csd: 0
+      ptc_digital_gain: '1'
+      ptc_filter_level: '16'
+      ptc_prescaler: No Division
+      ptc_rsel: No Resistor
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_selfcap_node
+    functionality: QTouch_Node
+    api: QTouch:General:Node
+    dependencies:
+      QTouch Acquisition: QTOUCH_ACQUISITION
+      Y-line: PTC:Y/0
+      PTC: PTC
+  QTOUCH_NODE_1:
+    user_label: QTOUCH_NODE_1
+    configuration:
+      order: 2
+      ptc_analog_gain: '1'
+      ptc_csd: 0
+      ptc_digital_gain: '1'
+      ptc_filter_level: '16'
+      ptc_prescaler: No Division
+      ptc_rsel: No Resistor
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_selfcap_node
+    functionality: QTouch_Node
+    api: QTouch:General:Node
+    dependencies:
+      QTouch Acquisition: QTOUCH_ACQUISITION
+      Y-line: PTC:Y/2
+      PTC: PTC
+  QTOUCH_NODE_2:
+    user_label: QTOUCH_NODE_2
+    configuration:
+      order: 3
+      ptc_analog_gain: '1'
+      ptc_csd: 0
+      ptc_digital_gain: '1'
+      ptc_filter_level: '16'
+      ptc_prescaler: No Division
+      ptc_rsel: No Resistor
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_selfcap_node
+    functionality: QTouch_Node
+    api: QTouch:General:Node
+    dependencies:
+      QTouch Acquisition: QTOUCH_ACQUISITION
+      Y-line: PTC:Y/4
+      PTC: PTC
+  QTOUCH_NODE_3:
+    user_label: QTOUCH_NODE_3
+    configuration:
+      order: 5
+      ptc_analog_gain: '1'
+      ptc_csd: 0
+      ptc_digital_gain: '1'
+      ptc_filter_level: '16'
+      ptc_prescaler: No Division
+      ptc_rsel: No Resistor
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_selfcap_node
+    functionality: QTouch_Node
+    api: QTouch:General:Node
+    dependencies:
+      QTouch Acquisition: QTOUCH_ACQUISITION
+      Y-line: PTC:Y/13
+      PTC: PTC
+  QTOUCH_NODE_4:
+    user_label: QTOUCH_NODE_4
+    configuration:
+      order: 4
+      ptc_analog_gain: '1'
+      ptc_csd: 0
+      ptc_digital_gain: '1'
+      ptc_filter_level: '16'
+      ptc_prescaler: No Division
+      ptc_rsel: No Resistor
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_selfcap_node
+    functionality: QTouch_Node
+    api: QTouch:General:Node
+    dependencies:
+      QTouch Acquisition: QTOUCH_ACQUISITION
+      Y-line: PTC:Y/5
+      PTC: PTC
+  QTOUCH_NODE_5:
+    user_label: QTOUCH_NODE_5
+    configuration:
+      order: 6
+      ptc_analog_gain: '1'
+      ptc_csd: 0
+      ptc_digital_gain: '1'
+      ptc_filter_level: '16'
+      ptc_prescaler: No Division
+      ptc_rsel: No Resistor
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_selfcap_node
+    functionality: QTouch_Node
+    api: QTouch:General:Node
+    dependencies:
+      QTouch Acquisition: QTOUCH_ACQUISITION
+      Y-line: PTC:Y/14
+      PTC: PTC
+  QTOUCH_NODE_6:
+    user_label: QTOUCH_NODE_6
+    configuration:
+      order: 7
+      ptc_analog_gain: '1'
+      ptc_csd: 0
+      ptc_digital_gain: '1'
+      ptc_filter_level: '16'
+      ptc_prescaler: No Division
+      ptc_rsel: No Resistor
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_selfcap_node
+    functionality: QTouch_Node
+    api: QTouch:General:Node
+    dependencies:
+      QTouch Acquisition: QTOUCH_ACQUISITION
+      Y-line: PTC:Y/15
+      PTC: PTC
+  QTOUCH_SENSOR:
+    user_label: QTOUCH_SENSOR
+    configuration:
+      anti_tch_drift_rate: 5
+      anti_tch_recal_thrshld: 100 percent of Touch threshold
+      anti_touch_count: 5
+      drift_hold_time: 20
+      max_on_duration: 0
+      reburst_mode: Reburst sensors only in process of calibration / filter in / filter
+        out and AKS groups
+      tch_drift_rate: 20
+      touch_det_int: 4
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Sensor
+    functionality: QTouch_Sensor
+    api: QTouch:General:Sensor
+    dependencies: {}
+  QTOUCH_KEY_0:
+    user_label: QTOUCH_KEY_0
+    configuration:
+      order: 0
+      radius: 30
+      touch_sensor_aks: AKS Group 1
+      touch_sensor_hysterisis: 25 percent of Sensor Threshold
+      touch_sensor_threshold: 20
+      x_position: 0
+      y_position: 0
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Key
+    functionality: QTouch_Key
+    api: QTouch:General:Key
+    dependencies:
+      QTouch Sensor: QTOUCH_SENSOR
+      QTouch Node: QTOUCH_NODE_0
+  QTOUCH_KEY_1:
+    user_label: QTOUCH_KEY_1
+    configuration:
+      order: 1
+      radius: 30
+      touch_sensor_aks: AKS Group 1
+      touch_sensor_hysterisis: 25 percent of Sensor Threshold
+      touch_sensor_threshold: 20
+      x_position: 0
+      y_position: 0
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Key
+    functionality: QTouch_Key
+    api: QTouch:General:Key
+    dependencies:
+      QTouch Sensor: QTOUCH_SENSOR
+      QTouch Node: QTOUCH_NODE
+  QTOUCH_KEY_2:
+    user_label: QTOUCH_KEY_2
+    configuration:
+      order: 2
+      radius: 30
+      touch_sensor_aks: AKS Group 1
+      touch_sensor_hysterisis: 25 percent of Sensor Threshold
+      touch_sensor_threshold: 20
+      x_position: 0
+      y_position: 0
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Key
+    functionality: QTouch_Key
+    api: QTouch:General:Key
+    dependencies:
+      QTouch Sensor: QTOUCH_SENSOR
+      QTouch Node: QTOUCH_NODE_1
+  QTOUCH_KEY_3:
+    user_label: QTOUCH_KEY_3
+    configuration:
+      order: 3
+      radius: 30
+      touch_sensor_aks: AKS Group 1
+      touch_sensor_hysterisis: 25 percent of Sensor Threshold
+      touch_sensor_threshold: 20
+      x_position: 0
+      y_position: 0
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Key
+    functionality: QTouch_Key
+    api: QTouch:General:Key
+    dependencies:
+      QTouch Sensor: QTOUCH_SENSOR
+      QTouch Node: QTOUCH_NODE_2
+  QTOUCH_KEY_0_0:
+    user_label: QTOUCH_KEY_0_0
+    configuration:
+      order: 4
+      radius: 30
+      touch_sensor_aks: AKS Group 2
+      touch_sensor_hysterisis: 25 percent of Sensor Threshold
+      touch_sensor_threshold: 20
+      x_position: 0
+      y_position: 0
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Key
+    functionality: QTouch_Key
+    api: QTouch:General:Key
+    dependencies:
+      QTouch Sensor: QTOUCH_SENSOR
+      QTouch Node: QTOUCH_NODE_4
+  QTOUCH_KEY_1_0:
+    user_label: QTOUCH_KEY_1_0
+    configuration:
+      order: 5
+      radius: 30
+      touch_sensor_aks: AKS Group 2
+      touch_sensor_hysterisis: 25 percent of Sensor Threshold
+      touch_sensor_threshold: 20
+      x_position: 0
+      y_position: 0
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Key
+    functionality: QTouch_Key
+    api: QTouch:General:Key
+    dependencies:
+      QTouch Sensor: QTOUCH_SENSOR
+      QTouch Node: QTOUCH_NODE_3
+  QTOUCH_KEY_2_0:
+    user_label: QTOUCH_KEY_2_0
+    configuration:
+      order: 6
+      radius: 30
+      touch_sensor_aks: AKS Group 2
+      touch_sensor_hysterisis: 25 percent of Sensor Threshold
+      touch_sensor_threshold: 20
+      x_position: 0
+      y_position: 0
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Key
+    functionality: QTouch_Key
+    api: QTouch:General:Key
+    dependencies:
+      QTouch Sensor: QTOUCH_SENSOR
+      QTouch Node: QTOUCH_NODE_5
+  QTOUCH_KEY_3_0:
+    user_label: QTOUCH_KEY_3_0
+    configuration:
+      order: 7
+      radius: 30
+      touch_sensor_aks: AKS Group 2
+      touch_sensor_hysterisis: 25 percent of Sensor Threshold
+      touch_sensor_threshold: 20
+      x_position: 0
+      y_position: 0
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Key
+    functionality: QTouch_Key
+    api: QTouch:General:Key
+    dependencies:
+      QTouch Sensor: QTOUCH_SENSOR
+      QTouch Node: QTOUCH_NODE_6
+  QTOUCH_SLIDER:
+    user_label: QTOUCH_SLIDER
+    configuration:
+      height: 30
+      touch_contact_min_threshold: 20
+      touch_scroller_deadband: 10percent
+      touch_scroller_hysterisis: 8
+      touch_scroller_resolution: 8 bit
+      touch_scroller_size: 4
+      touch_scroller_type: Slider
+      touch_start_key: 0
+      width: 100
+      x_position: 20
+      y_position: 40
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Scroller
+    functionality: QTouch_Scroller
+    api: QTouch:General:Scroller
+    dependencies:
+      QTouch Key:
+      - QTOUCH_KEY_0
+      - QTOUCH_KEY_1
+      - QTOUCH_KEY_2
+      - QTOUCH_KEY_3
+  QTOUCH_SLIDER_0:
+    user_label: QTOUCH_SLIDER_0
+    configuration:
+      height: 30
+      touch_contact_min_threshold: 20
+      touch_scroller_deadband: 10percent
+      touch_scroller_hysterisis: 8
+      touch_scroller_resolution: 8 bit
+      touch_scroller_size: 4
+      touch_scroller_type: Slider
+      touch_start_key: 4
+      width: 100
+      x_position: 154
+      y_position: 40
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Scroller
+    functionality: QTouch_Scroller
+    api: QTouch:General:Scroller
+    dependencies:
+      QTouch Key:
+      - QTOUCH_KEY_0_0
+      - QTOUCH_KEY_1_0
+      - QTOUCH_KEY_2_0
+      - QTOUCH_KEY_3_0
+  QTOUCH_BINDING:
+    user_label: QTOUCH_BINDING
+    configuration: {}
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Binding
+    functionality: QTouch_Binding
+    api: QTouch:General:Binding
+    dependencies: {}
+  QTOUCH_REMOVE_BINDING_0:
+    user_label: QTOUCH_REMOVE_BINDING_0
+    configuration: {}
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Remove_Binding
+    functionality: QTouch_Remove_Binding
+    api: QTouch:General:RemoveBinding
+    dependencies: {}
+  QTOUCH_DATASTREAMER_0:
+    user_label: QTOUCH_DATASTREAMER_0
+    configuration:
+      debug_board_type: USER_BOARD
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::Data_Streamer_UART_Interface
+    functionality: QTouch_DataStreamer
+    api: QTouch:General:Datastreamer
+    dependencies:
+      QTouch Usart: QTOUCH_USART
+  QTOUCH_USART:
+    user_label: QTOUCH_USART
+    configuration: {}
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Usart
+    functionality: QTouch_Usart
+    api: QTouch:Driver:USART
+    dependencies:
+      USART: USART
+  QTOUCH_ACQUISITION:
+    user_label: QTOUCH_ACQUISITION
+    configuration:
+      acquisition_frequency: FREQ_SEL_0
+      ptc_acq_tune: Manual user setting of Prescaler, Charge share delay & Series
+        resistor
+      ptc_interrupt_priority: 2
+      ptc_measurement_time: 20
+      ptc_sensor_type: Selfcap
+    definition: Atmel:QTOUCH_SAM_E54:1.0.0::QTouch_Acquisition_-_Manual_Tuning
+    functionality: QTouch_Acquisition
+    api: QTouch:General:Acquisition
+    dependencies:
+      QTouch Timer: QTOUCH_TIMER
+      QTouch Binding: QTOUCH_BINDING
 drivers:
+  PTC:
+    user_label: PTC
+    definition: 'Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::ADC0::driver_config_definition::PTC::Drivers:PTC:'
+    functionality: PTC
+    api: 'Drivers:PTC:'
+    configuration: {}
+    optional_signals:
+    - identifier: PTC:Y/0
+      pad: PA03
+      mode: Enabled
+      configuration: null
+      definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::optional_signal_definition::ADC0.Y.0
+      name: ADC0/Y/0
+      label: Y/0
+    - identifier: PTC:Y/1
+      pad: PB08
+      mode: Enabled
+      configuration: null
+      definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::optional_signal_definition::ADC0.Y.1
+      name: ADC0/Y/1
+      label: Y/1
+    - identifier: PTC:Y/2
+      pad: PB09
+      mode: Enabled
+      configuration: null
+      definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::optional_signal_definition::ADC0.Y.2
+      name: ADC0/Y/2
+      label: Y/2
+    - identifier: PTC:Y/4
+      pad: PA06
+      mode: Enabled
+      configuration: null
+      definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::optional_signal_definition::ADC0.Y.4
+      name: ADC0/Y/4
+      label: Y/4
+    - identifier: PTC:Y/5
+      pad: PA07
+      mode: Enabled
+      configuration: null
+      definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::optional_signal_definition::ADC0.Y.5
+      name: ADC0/Y/5
+      label: Y/5
+    - identifier: PTC:Y/13
+      pad: PA19
+      mode: Enabled
+      configuration: null
+      definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::optional_signal_definition::ADC0.Y.13
+      name: ADC0/Y/13
+      label: Y/13
+    - identifier: PTC:Y/14
+      pad: PA20
+      mode: Enabled
+      configuration: null
+      definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::optional_signal_definition::ADC0.Y.14
+      name: ADC0/Y/14
+      label: Y/14
+    - identifier: PTC:Y/15
+      pad: PA21
+      mode: Enabled
+      configuration: null
+      definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::optional_signal_definition::ADC0.Y.15
+      name: ADC0/Y/15
+      label: Y/15
+    variant: null
+    clocks:
+      domain_group:
+        nodes:
+        - name: ADC
+          input: Generic clock generator 1
+          external: false
+          external_frequency: 0
+        configuration:
+          adc_gclk_selection: Generic clock generator 1
   CMCC:
     user_label: CMCC
     definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::CMCC::driver_config_definition::CMCC::HAL:HPL:CMCC
@@ -622,11 +1075,11 @@ drivers:
     api: HAL:HPL:GCLK
     configuration:
       enable_gclk_gen_0: true
-      enable_gclk_gen_1: false
+      enable_gclk_gen_1: true
       enable_gclk_gen_10: false
       enable_gclk_gen_11: false
       enable_gclk_gen_2: false
-      enable_gclk_gen_3: false
+      enable_gclk_gen_3: true
       enable_gclk_gen_4: false
       enable_gclk_gen_5: false
       enable_gclk_gen_6: false
@@ -648,7 +1101,7 @@ drivers:
       gclk_arch_gen_11_oe: false
       gclk_arch_gen_11_oov: false
       gclk_arch_gen_11_runstdby: false
-      gclk_arch_gen_1_enable: false
+      gclk_arch_gen_1_enable: true
       gclk_arch_gen_1_idc: false
       gclk_arch_gen_1_oe: false
       gclk_arch_gen_1_oov: false
@@ -658,7 +1111,7 @@ drivers:
       gclk_arch_gen_2_oe: false
       gclk_arch_gen_2_oov: false
       gclk_arch_gen_2_runstdby: false
-      gclk_arch_gen_3_enable: false
+      gclk_arch_gen_3_enable: true
       gclk_arch_gen_3_idc: false
       gclk_arch_gen_3_oe: false
       gclk_arch_gen_3_oov: false
@@ -695,14 +1148,14 @@ drivers:
       gclk_arch_gen_9_runstdby: false
       gclk_gen_0_div: 1
       gclk_gen_0_div_sel: false
-      gclk_gen_0_oscillator: External Crystal Oscillator 8-48MHz (XOSC1)
+      gclk_gen_0_oscillator: Digital Frequency Locked Loop (DFLL48M)
       gclk_gen_10_div: 1
       gclk_gen_10_div_sel: false
       gclk_gen_10_oscillator: External Crystal Oscillator 8-48MHz (XOSC1)
       gclk_gen_11_div: 1
       gclk_gen_11_div_sel: false
       gclk_gen_11_oscillator: External Crystal Oscillator 8-48MHz (XOSC1)
-      gclk_gen_1_div: 1
+      gclk_gen_1_div: 6
       gclk_gen_1_div_sel: false
       gclk_gen_1_oscillator: Digital Frequency Locked Loop (DFLL48M)
       gclk_gen_2_div: 1
@@ -710,7 +1163,7 @@ drivers:
       gclk_gen_2_oscillator: External Crystal Oscillator 8-48MHz (XOSC1)
       gclk_gen_3_div: 1
       gclk_gen_3_div_sel: false
-      gclk_gen_3_oscillator: 32kHz External Crystal Oscillator (XOSC32K)
+      gclk_gen_3_oscillator: 32kHz Ultra Low Power Internal Oscillator (OSCULP32K)
       gclk_gen_4_div: 1
       gclk_gen_4_div_sel: false
       gclk_gen_4_oscillator: External Crystal Oscillator 8-48MHz (XOSC1)
@@ -745,7 +1198,7 @@ drivers:
       mclk_arch_bupdiv: Divide by 8
       mclk_arch_hsdiv: Divide by 1
       mclk_arch_lpdiv: Divide by 4
-      nvm_wait_states: '0'
+      nvm_wait_states: '5'
     optional_signals: []
     variant: null
     clocks:
@@ -807,25 +1260,25 @@ drivers:
       dfll_arch_calibration: false
       dfll_arch_ccdis: false
       dfll_arch_coarse: 31
-      dfll_arch_cstep: 1
-      dfll_arch_enable: false
+      dfll_arch_cstep: 10
+      dfll_arch_enable: true
       dfll_arch_fine: 128
-      dfll_arch_fstep: 1
+      dfll_arch_fstep: 10
       dfll_arch_llaw: false
       dfll_arch_ondemand: false
       dfll_arch_qldis: false
       dfll_arch_runstdby: false
       dfll_arch_stable: false
-      dfll_arch_usbcrm: false
-      dfll_arch_waitlock: true
-      dfll_mode: Open Loop Mode
-      dfll_mul: 0
+      dfll_arch_usbcrm: true
+      dfll_arch_waitlock: false
+      dfll_mode: Closed Loop Mode
+      dfll_mul: 1464
       dfll_ref_clock: Generic clock generator 3
-      enable_dfll: false
+      enable_dfll: true
       enable_fdpll0: false
       enable_fdpll1: false
       enable_xosc0: false
-      enable_xosc1: true
+      enable_xosc1: false
       fdpll0_arch_dcoen: false
       fdpll0_arch_enable: false
       fdpll0_arch_filter: 0
@@ -855,7 +1308,7 @@ drivers:
       fdpll1_ldrfrac: 13
       fdpll1_ref_clock: 32kHz External Crystal Oscillator (XOSC32K)
       xosc0_arch_cfden: false
-      xosc0_arch_enable: false
+      xosc0_arch_enable: true
       xosc0_arch_enalc: false
       xosc0_arch_lowbufgain: false
       xosc0_arch_ondemand: false
@@ -946,8 +1399,8 @@ drivers:
     variant: null
     clocks:
       domain_group: null
-  TIMER_0:
-    user_label: TIMER_0
+  Timer:
+    user_label: Timer
     definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::RTC::driver_config_definition::Timer::HAL:Driver:Timer
     functionality: Timer
     api: HAL:Driver:Timer
@@ -1036,6 +1489,55 @@ drivers:
         label: TX
       - name: SERCOM0/PAD/1
         pad: PA05
+        label: RX
+    clocks:
+      domain_group:
+        nodes:
+        - name: Core
+          input: Generic clock generator 0
+          external: false
+          external_frequency: 0
+        - name: Slow
+          input: Generic clock generator 3
+          external: false
+          external_frequency: 0
+        configuration:
+          core_gclk_selection: Generic clock generator 0
+          slow_gclk_selection: Generic clock generator 3
+  USART:
+    user_label: USART
+    definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::SERCOM1::driver_config_definition::UART::HAL:Driver:USART.Async
+    functionality: USART
+    api: HAL:Driver:USART_Async
+    configuration:
+      usart_advanced: false
+      usart_arch_clock_mode: USART with internal clock
+      usart_arch_cloden: false
+      usart_arch_dbgstop: Keep running
+      usart_arch_dord: LSB is transmitted first
+      usart_arch_enc: No encoding
+      usart_arch_fractional: 0
+      usart_arch_ibon: false
+      usart_arch_lin_slave_enable: Disable
+      usart_arch_runstdby: false
+      usart_arch_sampa: 7-8-9 (3-4-5 8-bit over-sampling)
+      usart_arch_sampr: 16x arithmetic
+      usart_arch_sfde: false
+      usart_baud_rate: 115200
+      usart_character_size: 8 bits
+      usart_parity: No parity
+      usart_rx_enable: true
+      usart_stop_bit: One stop bit
+      usart_tx_enable: true
+    optional_signals: []
+    variant:
+      specification: TXPO=0, RXPO=1, CMODE=0
+      required_signals:
+      - name: SERCOM1/PAD/0
+        pad: PA00
+        label: TX
+      - name: SERCOM1/PAD/1
+        pad: PA01
         label: RX
     clocks:
       domain_group:
@@ -1234,6 +1736,36 @@ drivers:
         configuration:
           usb_gclk_selection: Generic clock generator 0
 pads:
+  PA00:
+    name: PA00
+    definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::pad::PA00
+    mode: Peripheral IO
+    user_label: PA00
+    configuration: null
+  PA01:
+    name: PA01
+    definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::pad::PA01
+    mode: Peripheral IO
+    user_label: PA01
+    configuration: null
+  PA03:
+    name: PA03
+    definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::pad::PA03
+    mode: Peripheral IO
+    user_label: PA03
+    configuration: null
+  PB08:
+    name: PB08
+    definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::pad::PB08
+    mode: Peripheral IO
+    user_label: PB08
+    configuration: null
+  PB09:
+    name: PB09
+    definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::pad::PB09
+    mode: Peripheral IO
+    user_label: PB09
+    configuration: null
   PA04:
     name: PA04
     definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::pad::PA04
@@ -1245,6 +1777,18 @@ pads:
     definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::pad::PA05
     mode: Peripheral IO
     user_label: PA05
+    configuration: null
+  PA06:
+    name: PA06
+    definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::pad::PA06
+    mode: Peripheral IO
+    user_label: PA06
+    configuration: null
+  PA07:
+    name: PA07
+    definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::pad::PA07
+    mode: Peripheral IO
+    user_label: PA07
     configuration: null
   PA08:
     name: PA08
@@ -1299,6 +1843,24 @@ pads:
     definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::pad::PA18
     mode: Digital input
     user_label: PA18
+    configuration: null
+  PA19:
+    name: PA19
+    definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::pad::PA19
+    mode: Peripheral IO
+    user_label: PA19
+    configuration: null
+  PA20:
+    name: PA20
+    definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::pad::PA20
+    mode: Peripheral IO
+    user_label: PA20
+    configuration: null
+  PA21:
+    name: PA21
+    definition: Atmel:SAMD51_Drivers:0.0.1::SAMD51J20A-AF::pad::PA21
+    mode: Peripheral IO
+    user_label: PA21
     configuration: null
   PA22:
     name: PA22

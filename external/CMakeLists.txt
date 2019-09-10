@@ -117,4 +117,18 @@ if(CMAKE_CROSSCOMPILING)
   # Cortex Microcontroller Software Interface Standard
   add_library(CMSIS INTERFACE)
   target_include_directories(CMSIS SYSTEM INTERFACE CMSIS/Include)
+
+  # Atmel SAMD51 Series Device Support
+  add_library(samd51a-ds STATIC
+    samd51a-ds/gcc/system_samd51.c
+    samd51a-ds/gcc/gcc/startup_samd51.c
+  )
+  target_include_directories(samd51a-ds SYSTEM
+    PUBLIC
+      samd51a-ds/include
+  )
+  target_link_libraries(samd51a-ds
+    PUBLIC
+      CMSIS
+  )
 endif()

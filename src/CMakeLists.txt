@@ -177,8 +177,6 @@ set(DRIVER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/drivers/usb/device/usbdc.c
   ${CMAKE_SOURCE_DIR}/src/drivers/usb/class/hid/hww/hid_hww.c
   ${CMAKE_SOURCE_DIR}/src/drivers/usb/class/hid/hid.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/SAMD51_DFP/1.0.70/gcc/system_samd51.c
-  ${CMAKE_SOURCE_DIR}/src/drivers/SAMD51_DFP/1.0.70/gcc/gcc/startup_samd51.c
 )
 set(DRIVER-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
 
@@ -306,7 +304,6 @@ set(INCLUDES
 set(INCLUDES ${INCLUDES} PARENT_SCOPE)
 set(SYSTEMINCLUDES
   ${CMAKE_SOURCE_DIR}/src/drivers
-  ${CMAKE_SOURCE_DIR}/src/drivers/SAMD51_DFP/1.0.70/include
   ${CMAKE_SOURCE_DIR}/src/drivers/Config
   ${CMAKE_SOURCE_DIR}/src/drivers/hal/include
   ${CMAKE_SOURCE_DIR}/src/drivers/hal/utils/include
@@ -425,7 +422,7 @@ if(CMAKE_CROSSCOMPILING)
   foreach(bootloader ${BOOTLOADERS})
     set(elf ${bootloader}.elf)
     add_executable(${elf} ${BOOTLOADER-SOURCES})
-    target_link_libraries(${elf} PRIVATE CMSIS)
+    target_link_libraries(${elf} PRIVATE samd51a-ds -Wl,-u,exception_table)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_include_directories(${elf} SYSTEM PRIVATE ${SYSTEMINCLUDES})
     target_compile_definitions(${elf} PRIVATE BOOTLOADER)
@@ -468,7 +465,7 @@ if(CMAKE_CROSSCOMPILING)
     set(elf ${firmware}.elf)
     add_executable(${elf} ${FIRMWARE-SOURCES})
     add_dependencies(${elf} generate-hww generate-backup)
-    target_link_libraries(${elf} PRIVATE CMSIS)
+    target_link_libraries(${elf} PRIVATE samd51a-ds -Wl,-u,exception_table)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_include_directories(${elf} SYSTEM PRIVATE ${SYSTEMINCLUDES})
 

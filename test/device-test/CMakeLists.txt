@@ -53,7 +53,7 @@ add_library(bitbox
   ${SOURCES}
 )
 
-target_link_libraries(bitbox PUBLIC CMSIS)
+target_link_libraries(bitbox PUBLIC samd51a-ds)
 
 target_include_directories(bitbox PUBLIC ${INCLUDES})
 target_include_directories(bitbox SYSTEM PUBLIC ${SYSTEMINCLUDES})

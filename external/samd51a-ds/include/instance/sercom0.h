@@ -3,7 +3,7 @@
  *
  * \brief Instance description for SERCOM0
  *
- * Copyright (c) 2017 Microchip Technology Inc.
+ * Copyright (c) 2019 Microchip Technology Inc.
  *
  * \asf_license_start
  *
@@ -14,9 +14,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the Licence at
- *
+ * 
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -142,10 +142,22 @@
 #define SERCOM0_DMAC_ID_RX          4        // Index of DMA RX trigger
 #define SERCOM0_DMAC_ID_TX          5        // Index of DMA TX trigger
 #define SERCOM0_FIFO_DEPTH_POWER    1        // 2^FIFO_DEPTH_POWER gives rx FIFO depth.
-#define SERCOM0_GCLK_ID_CORE        7
-#define SERCOM0_GCLK_ID_SLOW        3
-#define SERCOM0_INT_MSB             6
-#define SERCOM0_PMSB                3
+#define SERCOM0_GCLK_ID_CORE        7       
+#define SERCOM0_GCLK_ID_SLOW        3       
+#define SERCOM0_INT_MSB             6       
+#define SERCOM0_I2CM                1        // I2C Master mode implemented?
+#define SERCOM0_I2CS                1        // I2C Slave mode implemented?
+#define SERCOM0_I2CS_AUTO_ACK       1        // I2C slave automatic acknowledge implemented?
+#define SERCOM0_I2CS_GROUP_CMD      1        // I2C slave group command implemented?
+#define SERCOM0_I2CS_SDASETUP_CNT_SIZE 8        // I2CS sda setup count size
+#define SERCOM0_I2CS_SDASETUP_SIZE  4        // I2CS sda setup size
+#define SERCOM0_I2CS_SUDAT          1        // I2C slave SDA setup implemented?
+#define SERCOM0_I2C_FASTMP          1        // I2C fast mode plus implemented?
+#define SERCOM0_I2C_HSMODE          1        // USART mode implemented?
+#define SERCOM0_I2C_SCLSM_MODE      1        // I2C SCL clock stretch mode implemented?
+#define SERCOM0_I2C_SMB_TIMEOUTS    1        // I2C SMBus timeouts implemented?
+#define SERCOM0_I2C_TENBIT_ADR      1        // I2C ten bit enabled?
+#define SERCOM0_PMSB                3       
 #define SERCOM0_RETENTION_SUPPORT   0        // Retention supported?
 #define SERCOM0_SE_CNT              1        // SE counter included?
 #define SERCOM0_SPI                 1        // SPI mode implemented?
@@ -154,18 +166,6 @@
 #define SERCOM0_SPI_OZMO            0        // OZMO features implemented?
 #define SERCOM0_SPI_WAKE_ON_SSL     1        // _SS low detect implemented?
 #define SERCOM0_TTBIT_EXTENSION     1        // 32-bit extension implemented?
-#define SERCOM0_TWIM                1        // TWI Master mode implemented?
-#define SERCOM0_TWIS                1        // TWI Slave mode implemented?
-#define SERCOM0_TWIS_AUTO_ACK       1        // TWI slave automatic acknowledge implemented?
-#define SERCOM0_TWIS_GROUP_CMD      1        // TWI slave group command implemented?
-#define SERCOM0_TWIS_SDASETUP_CNT_SIZE 8        // TWIS sda setup count size
-#define SERCOM0_TWIS_SDASETUP_SIZE  4        // TWIS sda setup size
-#define SERCOM0_TWIS_SUDAT          1        // TWI slave SDA setup implemented?
-#define SERCOM0_TWI_FASTMP          1        // TWI fast mode plus implemented?
-#define SERCOM0_TWI_HSMODE          1        // USART mode implemented?
-#define SERCOM0_TWI_SCLSM_MODE      1        // TWI SCL clock stretch mode implemented?
-#define SERCOM0_TWI_SMB_TIMEOUTS    1        // TWI SMBus timeouts implemented?
-#define SERCOM0_TWI_TENBIT_ADR      1        // TWI ten bit enabled?
 #define SERCOM0_USART               1        // USART mode implemented?
 #define SERCOM0_USART_AUTOBAUD      1        // USART autobaud implemented?
 #define SERCOM0_USART_COLDET        1        // USART collision detection implemented?

@@ -3,7 +3,7 @@
  *
  * \brief Peripheral I/O description for SAMD51J20A
  *
- * Copyright (c) 2017 Microchip Technology Inc.
+ * Copyright (c) 2019 Microchip Technology Inc.
  *
  * \asf_license_start
  *
@@ -14,9 +14,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the Licence at
- *
+ * 
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -901,15 +901,6 @@
 #define MUX_PA19E_TC3_WO1               _L_(4)
 #define PINMUX_PA19E_TC3_WO1       ((PIN_PA19E_TC3_WO1 << 16) | MUX_PA19E_TC3_WO1)
 #define PORT_PA19E_TC3_WO1     (_UL_(1) << 19)
-/* ========== PORT definition for TAL peripheral ========== */
-#define PIN_PA27H_TAL_BRK              _L_(27) /**< \brief TAL signal: BRK on PA27 mux H */
-#define MUX_PA27H_TAL_BRK               _L_(7)
-#define PINMUX_PA27H_TAL_BRK       ((PIN_PA27H_TAL_BRK << 16) | MUX_PA27H_TAL_BRK)
-#define PORT_PA27H_TAL_BRK     (_UL_(1) << 27)
-#define PIN_PB31H_TAL_BRK              _L_(63) /**< \brief TAL signal: BRK on PB31 mux H */
-#define MUX_PB31H_TAL_BRK               _L_(7)
-#define PINMUX_PB31H_TAL_BRK       ((PIN_PB31H_TAL_BRK << 16) | MUX_PB31H_TAL_BRK)
-#define PORT_PB31H_TAL_BRK     (_UL_(1) << 31)
 /* ========== PORT definition for TCC2 peripheral ========== */
 #define PIN_PA14F_TCC2_WO0             _L_(14) /**< \brief TCC2 signal: WO0 on PA14 mux F */
 #define MUX_PA14F_TCC2_WO0              _L_(5)
@@ -1582,6 +1573,10 @@
 #define MUX_PA17B_ADC0_PTCXY11          _L_(1)
 #define PINMUX_PA17B_ADC0_PTCXY11  ((PIN_PA17B_ADC0_PTCXY11 << 16) | MUX_PA17B_ADC0_PTCXY11)
 #define PORT_PA17B_ADC0_PTCXY11  (_UL_(1) << 17)
+#define PIN_PA18B_ADC0_PTCXY12         _L_(18) /**< \brief ADC0 signal: PTCXY12 on PA18 mux B */
+#define MUX_PA18B_ADC0_PTCXY12          _L_(1)
+#define PINMUX_PA18B_ADC0_PTCXY12  ((PIN_PA18B_ADC0_PTCXY12 << 16) | MUX_PA18B_ADC0_PTCXY12)
+#define PORT_PA18B_ADC0_PTCXY12  (_UL_(1) << 18)
 #define PIN_PA19B_ADC0_PTCXY13         _L_(19) /**< \brief ADC0 signal: PTCXY13 on PA19 mux B */
 #define MUX_PA19B_ADC0_PTCXY13          _L_(1)
 #define PINMUX_PA19B_ADC0_PTCXY13  ((PIN_PA19B_ADC0_PTCXY13 << 16) | MUX_PA19B_ADC0_PTCXY13)

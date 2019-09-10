@@ -3,7 +3,7 @@
  *
  * \brief Instance description for SDHC1
  *
- * Copyright (c) 2017 Microchip Technology Inc.
+ * Copyright (c) 2019 Microchip Technology Inc.
  *
  * \asf_license_start
  *
@@ -14,9 +14,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the Licence at
- *
+ * 
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -136,12 +136,12 @@
 #endif /* (defined(__ASSEMBLY__) || defined(__IAR_SYSTEMS_ASM__)) */
 
 /* ========== Instance parameters for SDHC1 peripheral ========== */
-#define SDHC1_CARD_DATA_SIZE        4
-#define SDHC1_CLK_AHB_ID            16
-#define SDHC1_GCLK_ID               46
-#define SDHC1_GCLK_ID_SLOW          3
-#define SDHC1_NB_OF_DEVICES         1
-#define SDHC1_NB_REG_PVR            8
-#define SDHC1_NB_REG_RR             4
+#define SDHC1_CARD_DATA_SIZE        4       
+#define SDHC1_CLK_AHB_ID            16      
+#define SDHC1_GCLK_ID               46      
+#define SDHC1_GCLK_ID_SLOW          3       
+#define SDHC1_NB_OF_DEVICES         1       
+#define SDHC1_NB_REG_PVR            8       
+#define SDHC1_NB_REG_RR             4       
 
 #endif /* _SAMD51_SDHC1_INSTANCE_ */

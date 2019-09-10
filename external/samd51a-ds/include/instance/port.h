@@ -3,7 +3,7 @@
  *
  * \brief Instance description for PORT
  *
- * Copyright (c) 2017 Microchip Technology Inc.
+ * Copyright (c) 2019 Microchip Technology Inc.
  *
  * \asf_license_start
  *
@@ -14,9 +14,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the Licence at
- *
+ * 
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -101,8 +101,8 @@
 #define REG_PORT_CTRL0             (*(RwReg  *)0x41008024UL) /**< \brief (PORT) Control 0 */
 #define REG_PORT_WRCONFIG0         (*(WoReg  *)0x41008028UL) /**< \brief (PORT) Write Configuration 0 */
 #define REG_PORT_EVCTRL0           (*(RwReg  *)0x4100802CUL) /**< \brief (PORT) Event Input Control 0 */
-#define REG_PORT_PMUX0             (*(RwReg  *)0x41008030UL) /**< \brief (PORT) Peripheral Multiplexing 0 */
-#define REG_PORT_PINCFG0           (*(RwReg  *)0x41008040UL) /**< \brief (PORT) Pin Configuration 0 */
+#define REG_PORT_PMUX0             (*(RwReg8 *)0x41008030UL) /**< \brief (PORT) Peripheral Multiplexing 0 */
+#define REG_PORT_PINCFG0           (*(RwReg8 *)0x41008040UL) /**< \brief (PORT) Pin Configuration 0 */
 #define REG_PORT_DIR1              (*(RwReg  *)0x41008080UL) /**< \brief (PORT) Data Direction 1 */
 #define REG_PORT_DIRCLR1           (*(RwReg  *)0x41008084UL) /**< \brief (PORT) Data Direction Clear 1 */
 #define REG_PORT_DIRSET1           (*(RwReg  *)0x41008088UL) /**< \brief (PORT) Data Direction Set 1 */
@@ -115,8 +115,8 @@
 #define REG_PORT_CTRL1             (*(RwReg  *)0x410080A4UL) /**< \brief (PORT) Control 1 */
 #define REG_PORT_WRCONFIG1         (*(WoReg  *)0x410080A8UL) /**< \brief (PORT) Write Configuration 1 */
 #define REG_PORT_EVCTRL1           (*(RwReg  *)0x410080ACUL) /**< \brief (PORT) Event Input Control 1 */
-#define REG_PORT_PMUX1             (*(RwReg  *)0x410080B0UL) /**< \brief (PORT) Peripheral Multiplexing 1 */
-#define REG_PORT_PINCFG1           (*(RwReg  *)0x410080C0UL) /**< \brief (PORT) Pin Configuration 1 */
+#define REG_PORT_PMUX1             (*(RwReg8 *)0x410080B0UL) /**< \brief (PORT) Peripheral Multiplexing 1 */
+#define REG_PORT_PINCFG1           (*(RwReg8 *)0x410080C0UL) /**< \brief (PORT) Pin Configuration 1 */
 #define REG_PORT_DIR2              (*(RwReg  *)0x41008100UL) /**< \brief (PORT) Data Direction 2 */
 #define REG_PORT_DIRCLR2           (*(RwReg  *)0x41008104UL) /**< \brief (PORT) Data Direction Clear 2 */
 #define REG_PORT_DIRSET2           (*(RwReg  *)0x41008108UL) /**< \brief (PORT) Data Direction Set 2 */
@@ -129,8 +129,8 @@
 #define REG_PORT_CTRL2             (*(RwReg  *)0x41008124UL) /**< \brief (PORT) Control 2 */
 #define REG_PORT_WRCONFIG2         (*(WoReg  *)0x41008128UL) /**< \brief (PORT) Write Configuration 2 */
 #define REG_PORT_EVCTRL2           (*(RwReg  *)0x4100812CUL) /**< \brief (PORT) Event Input Control 2 */
-#define REG_PORT_PMUX2             (*(RwReg  *)0x41008130UL) /**< \brief (PORT) Peripheral Multiplexing 2 */
-#define REG_PORT_PINCFG2           (*(RwReg  *)0x41008140UL) /**< \brief (PORT) Pin Configuration 2 */
+#define REG_PORT_PMUX2             (*(RwReg8 *)0x41008130UL) /**< \brief (PORT) Peripheral Multiplexing 2 */
+#define REG_PORT_PINCFG2           (*(RwReg8 *)0x41008140UL) /**< \brief (PORT) Pin Configuration 2 */
 #define REG_PORT_DIR3              (*(RwReg  *)0x41008180UL) /**< \brief (PORT) Data Direction 3 */
 #define REG_PORT_DIRCLR3           (*(RwReg  *)0x41008184UL) /**< \brief (PORT) Data Direction Clear 3 */
 #define REG_PORT_DIRSET3           (*(RwReg  *)0x41008188UL) /**< \brief (PORT) Data Direction Set 3 */
@@ -143,19 +143,19 @@
 #define REG_PORT_CTRL3             (*(RwReg  *)0x410081A4UL) /**< \brief (PORT) Control 3 */
 #define REG_PORT_WRCONFIG3         (*(WoReg  *)0x410081A8UL) /**< \brief (PORT) Write Configuration 3 */
 #define REG_PORT_EVCTRL3           (*(RwReg  *)0x410081ACUL) /**< \brief (PORT) Event Input Control 3 */
-#define REG_PORT_PMUX3             (*(RwReg  *)0x410081B0UL) /**< \brief (PORT) Peripheral Multiplexing 3 */
-#define REG_PORT_PINCFG3           (*(RwReg  *)0x410081C0UL) /**< \brief (PORT) Pin Configuration 3 */
+#define REG_PORT_PMUX3             (*(RwReg8 *)0x410081B0UL) /**< \brief (PORT) Peripheral Multiplexing 3 */
+#define REG_PORT_PINCFG3           (*(RwReg8 *)0x410081C0UL) /**< \brief (PORT) Pin Configuration 3 */
 #endif /* (defined(__ASSEMBLY__) || defined(__IAR_SYSTEMS_ASM__)) */
 
 /* ========== Instance parameters for PORT peripheral ========== */
-#define PORT_BITS                   118
+#define PORT_BITS                   118     
 #define PORT_DIR_DEFAULT_VAL        { 0x00000000, 0x00000000, 0x00000000, 0x00000000 }
 #define PORT_DIR_IMPLEMENTED        { 0xCBFFFFFF, 0xFFFFFFFF, 0xDFFFFCFF, 0x00301F03 }
 #define PORT_DRVSTR                 1        // DRVSTR supported
 #define PORT_DRVSTR_DEFAULT_VAL     { 0x00000000, 0x00000000, 0x00000000, 0x00000000 }
 #define PORT_DRVSTR_IMPLEMENTED     { 0xC8FFFFFF, 0xFFFFFFFF, 0xDFFFFCFF, 0x00301F03 }
 #define PORT_EVENT_IMPLEMENTED      { 0xCBFFFFFF, 0xFFFFFFFF, 0xDFFFFCFF, 0x00301F03 }
-#define PORT_EV_NUM                 4
+#define PORT_EV_NUM                 4       
 #define PORT_INEN_DEFAULT_VAL       { 0x00000000, 0x00000000, 0x00000000, 0x00000000 }
 #define PORT_INEN_IMPLEMENTED       { 0xCBFFFFFF, 0xFFFFFFFF, 0xDFFFFCFF, 0x00301F03 }
 #define PORT_ODRAIN                 0        // ODRAIN supported

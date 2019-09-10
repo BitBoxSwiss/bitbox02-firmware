@@ -3,7 +3,7 @@
  *
  * \brief Instance description for OSCCTRL
  *
- * Copyright (c) 2017 Microchip Technology Inc.
+ * Copyright (c) 2019 Microchip Technology Inc.
  *
  * \asf_license_start
  *
@@ -14,9 +14,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the Licence at
- *
+ * 
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -68,15 +68,15 @@
 #define REG_OSCCTRL_DFLLMUL        (*(RwReg  *)0x40001028UL) /**< \brief (OSCCTRL) DFLL48M Multiplier */
 #define REG_OSCCTRL_DFLLSYNC       (*(RwReg8 *)0x4000102CUL) /**< \brief (OSCCTRL) DFLL48M Synchronization */
 #define REG_OSCCTRL_DPLLCTRLA0     (*(RwReg8 *)0x40001030UL) /**< \brief (OSCCTRL) DPLL Control A 0 */
-#define REG_OSCCTRL_DPLLRATIO0     (*(RwReg8 *)0x40001034UL) /**< \brief (OSCCTRL) DPLL Ratio Control 0 */
-#define REG_OSCCTRL_DPLLCTRLB0     (*(RwReg8 *)0x40001038UL) /**< \brief (OSCCTRL) DPLL Control B 0 */
-#define REG_OSCCTRL_DPLLSYNCBUSY0  (*(RoReg8 *)0x4000103CUL) /**< \brief (OSCCTRL) DPLL Synchronization Busy 0 */
-#define REG_OSCCTRL_DPLLSTATUS0    (*(RoReg8 *)0x40001040UL) /**< \brief (OSCCTRL) DPLL Status 0 */
+#define REG_OSCCTRL_DPLLRATIO0     (*(RwReg  *)0x40001034UL) /**< \brief (OSCCTRL) DPLL Ratio Control 0 */
+#define REG_OSCCTRL_DPLLCTRLB0     (*(RwReg  *)0x40001038UL) /**< \brief (OSCCTRL) DPLL Control B 0 */
+#define REG_OSCCTRL_DPLLSYNCBUSY0  (*(RoReg  *)0x4000103CUL) /**< \brief (OSCCTRL) DPLL Synchronization Busy 0 */
+#define REG_OSCCTRL_DPLLSTATUS0    (*(RoReg  *)0x40001040UL) /**< \brief (OSCCTRL) DPLL Status 0 */
 #define REG_OSCCTRL_DPLLCTRLA1     (*(RwReg8 *)0x40001044UL) /**< \brief (OSCCTRL) DPLL Control A 1 */
-#define REG_OSCCTRL_DPLLRATIO1     (*(RwReg8 *)0x40001048UL) /**< \brief (OSCCTRL) DPLL Ratio Control 1 */
-#define REG_OSCCTRL_DPLLCTRLB1     (*(RwReg8 *)0x4000104CUL) /**< \brief (OSCCTRL) DPLL Control B 1 */
-#define REG_OSCCTRL_DPLLSYNCBUSY1  (*(RoReg8 *)0x40001050UL) /**< \brief (OSCCTRL) DPLL Synchronization Busy 1 */
-#define REG_OSCCTRL_DPLLSTATUS1    (*(RoReg8 *)0x40001054UL) /**< \brief (OSCCTRL) DPLL Status 1 */
+#define REG_OSCCTRL_DPLLRATIO1     (*(RwReg  *)0x40001048UL) /**< \brief (OSCCTRL) DPLL Ratio Control 1 */
+#define REG_OSCCTRL_DPLLCTRLB1     (*(RwReg  *)0x4000104CUL) /**< \brief (OSCCTRL) DPLL Control B 1 */
+#define REG_OSCCTRL_DPLLSYNCBUSY1  (*(RoReg  *)0x40001050UL) /**< \brief (OSCCTRL) DPLL Synchronization Busy 1 */
+#define REG_OSCCTRL_DPLLSTATUS1    (*(RoReg  *)0x40001054UL) /**< \brief (OSCCTRL) DPLL Status 1 */
 #endif /* (defined(__ASSEMBLY__) || defined(__IAR_SYSTEMS_ASM__)) */
 
 /* ========== Instance parameters for OSCCTRL peripheral ========== */
@@ -110,7 +110,7 @@
 #define OSCCTRL_GCLK_ID_FDPLL132K   3        // Index of Generic Clock for DPLL1 32K
 #define OSCCTRL_OSC16M_IMPLEMENTED  0        // OSC16M implemented
 #define OSCCTRL_OSC48M_IMPLEMENTED  0        // OSC48M implemented
-#define OSCCTRL_OSC48M_NUM          1
+#define OSCCTRL_OSC48M_NUM          1       
 #define OSCCTRL_RCOSCS_NUM          1        // Number of RCOSCs (min 1)
 #define OSCCTRL_XOSCS_NUM           2        // Number of XOSCs
 #define OSCCTRL_XOSC0_CFD_CLK_SELECT_SIZE 4        // Clock fail prescaler size
@@ -123,8 +123,8 @@
 #define OSCCTRL_XOSC1_IMPLEMENTED   1        // XOSC1 implemented
 #define OSCCTRL_XOSC1_ONDEMAND_RESET_VALUE 1        // Run oscillator always or only when requested
 #define OSCCTRL_XOSC1_RUNSTDBY_RESET_VALUE 0        // Run oscillator even if standby mode
-#define OSCCTRL_DFLL48M_VERSION     0x100
-#define OSCCTRL_FDPLL_VERSION       0x100
-#define OSCCTRL_XOSC_VERSION        0x100
+#define OSCCTRL_DFLL48M_VERSION     0x100   
+#define OSCCTRL_FDPLL_VERSION       0x100   
+#define OSCCTRL_XOSC_VERSION        0x100   
 
 #endif /* _SAMD51_OSCCTRL_INSTANCE_ */

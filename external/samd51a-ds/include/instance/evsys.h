@@ -3,7 +3,7 @@
  *
  * \brief Instance description for EVSYS
  *
- * Copyright (c) 2017 Microchip Technology Inc.
+ * Copyright (c) 2019 Microchip Technology Inc.
  *
  * \asf_license_start
  *
@@ -14,9 +14,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the Licence at
- *
+ * 
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -275,165 +275,165 @@
 #define REG_EVSYS_BUSYCH           (*(RoReg  *)0x4100E018UL) /**< \brief (EVSYS) Busy Channels */
 #define REG_EVSYS_READYUSR         (*(RoReg  *)0x4100E01CUL) /**< \brief (EVSYS) Ready Users */
 #define REG_EVSYS_CHANNEL0         (*(RwReg  *)0x4100E020UL) /**< \brief (EVSYS) Channel 0 Control */
-#define REG_EVSYS_CHINTENCLR0      (*(RwReg  *)0x4100E024UL) /**< \brief (EVSYS) Channel 0 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET0      (*(RwReg  *)0x4100E025UL) /**< \brief (EVSYS) Channel 0 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG0       (*(RwReg  *)0x4100E026UL) /**< \brief (EVSYS) Channel 0 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS0        (*(RoReg  *)0x4100E027UL) /**< \brief (EVSYS) Channel 0 Status */
+#define REG_EVSYS_CHINTENCLR0      (*(RwReg8 *)0x4100E024UL) /**< \brief (EVSYS) Channel 0 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET0      (*(RwReg8 *)0x4100E025UL) /**< \brief (EVSYS) Channel 0 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG0       (*(RwReg8 *)0x4100E026UL) /**< \brief (EVSYS) Channel 0 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS0        (*(RoReg8 *)0x4100E027UL) /**< \brief (EVSYS) Channel 0 Status */
 #define REG_EVSYS_CHANNEL1         (*(RwReg  *)0x4100E028UL) /**< \brief (EVSYS) Channel 1 Control */
-#define REG_EVSYS_CHINTENCLR1      (*(RwReg  *)0x4100E02CUL) /**< \brief (EVSYS) Channel 1 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET1      (*(RwReg  *)0x4100E02DUL) /**< \brief (EVSYS) Channel 1 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG1       (*(RwReg  *)0x4100E02EUL) /**< \brief (EVSYS) Channel 1 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS1        (*(RoReg  *)0x4100E02FUL) /**< \brief (EVSYS) Channel 1 Status */
+#define REG_EVSYS_CHINTENCLR1      (*(RwReg8 *)0x4100E02CUL) /**< \brief (EVSYS) Channel 1 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET1      (*(RwReg8 *)0x4100E02DUL) /**< \brief (EVSYS) Channel 1 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG1       (*(RwReg8 *)0x4100E02EUL) /**< \brief (EVSYS) Channel 1 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS1        (*(RoReg8 *)0x4100E02FUL) /**< \brief (EVSYS) Channel 1 Status */
 #define REG_EVSYS_CHANNEL2         (*(RwReg  *)0x4100E030UL) /**< \brief (EVSYS) Channel 2 Control */
-#define REG_EVSYS_CHINTENCLR2      (*(RwReg  *)0x4100E034UL) /**< \brief (EVSYS) Channel 2 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET2      (*(RwReg  *)0x4100E035UL) /**< \brief (EVSYS) Channel 2 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG2       (*(RwReg  *)0x4100E036UL) /**< \brief (EVSYS) Channel 2 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS2        (*(RoReg  *)0x4100E037UL) /**< \brief (EVSYS) Channel 2 Status */
+#define REG_EVSYS_CHINTENCLR2      (*(RwReg8 *)0x4100E034UL) /**< \brief (EVSYS) Channel 2 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET2      (*(RwReg8 *)0x4100E035UL) /**< \brief (EVSYS) Channel 2 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG2       (*(RwReg8 *)0x4100E036UL) /**< \brief (EVSYS) Channel 2 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS2        (*(RoReg8 *)0x4100E037UL) /**< \brief (EVSYS) Channel 2 Status */
 #define REG_EVSYS_CHANNEL3         (*(RwReg  *)0x4100E038UL) /**< \brief (EVSYS) Channel 3 Control */
-#define REG_EVSYS_CHINTENCLR3      (*(RwReg  *)0x4100E03CUL) /**< \brief (EVSYS) Channel 3 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET3      (*(RwReg  *)0x4100E03DUL) /**< \brief (EVSYS) Channel 3 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG3       (*(RwReg  *)0x4100E03EUL) /**< \brief (EVSYS) Channel 3 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS3        (*(RoReg  *)0x4100E03FUL) /**< \brief (EVSYS) Channel 3 Status */
+#define REG_EVSYS_CHINTENCLR3      (*(RwReg8 *)0x4100E03CUL) /**< \brief (EVSYS) Channel 3 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET3      (*(RwReg8 *)0x4100E03DUL) /**< \brief (EVSYS) Channel 3 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG3       (*(RwReg8 *)0x4100E03EUL) /**< \brief (EVSYS) Channel 3 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS3        (*(RoReg8 *)0x4100E03FUL) /**< \brief (EVSYS) Channel 3 Status */
 #define REG_EVSYS_CHANNEL4         (*(RwReg  *)0x4100E040UL) /**< \brief (EVSYS) Channel 4 Control */
-#define REG_EVSYS_CHINTENCLR4      (*(RwReg  *)0x4100E044UL) /**< \brief (EVSYS) Channel 4 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET4      (*(RwReg  *)0x4100E045UL) /**< \brief (EVSYS) Channel 4 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG4       (*(RwReg  *)0x4100E046UL) /**< \brief (EVSYS) Channel 4 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS4        (*(RoReg  *)0x4100E047UL) /**< \brief (EVSYS) Channel 4 Status */
+#define REG_EVSYS_CHINTENCLR4      (*(RwReg8 *)0x4100E044UL) /**< \brief (EVSYS) Channel 4 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET4      (*(RwReg8 *)0x4100E045UL) /**< \brief (EVSYS) Channel 4 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG4       (*(RwReg8 *)0x4100E046UL) /**< \brief (EVSYS) Channel 4 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS4        (*(RoReg8 *)0x4100E047UL) /**< \brief (EVSYS) Channel 4 Status */
 #define REG_EVSYS_CHANNEL5         (*(RwReg  *)0x4100E048UL) /**< \brief (EVSYS) Channel 5 Control */
-#define REG_EVSYS_CHINTENCLR5      (*(RwReg  *)0x4100E04CUL) /**< \brief (EVSYS) Channel 5 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET5      (*(RwReg  *)0x4100E04DUL) /**< \brief (EVSYS) Channel 5 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG5       (*(RwReg  *)0x4100E04EUL) /**< \brief (EVSYS) Channel 5 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS5        (*(RoReg  *)0x4100E04FUL) /**< \brief (EVSYS) Channel 5 Status */
+#define REG_EVSYS_CHINTENCLR5      (*(RwReg8 *)0x4100E04CUL) /**< \brief (EVSYS) Channel 5 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET5      (*(RwReg8 *)0x4100E04DUL) /**< \brief (EVSYS) Channel 5 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG5       (*(RwReg8 *)0x4100E04EUL) /**< \brief (EVSYS) Channel 5 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS5        (*(RoReg8 *)0x4100E04FUL) /**< \brief (EVSYS) Channel 5 Status */
 #define REG_EVSYS_CHANNEL6         (*(RwReg  *)0x4100E050UL) /**< \brief (EVSYS) Channel 6 Control */
-#define REG_EVSYS_CHINTENCLR6      (*(RwReg  *)0x4100E054UL) /**< \brief (EVSYS) Channel 6 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET6      (*(RwReg  *)0x4100E055UL) /**< \brief (EVSYS) Channel 6 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG6       (*(RwReg  *)0x4100E056UL) /**< \brief (EVSYS) Channel 6 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS6        (*(RoReg  *)0x4100E057UL) /**< \brief (EVSYS) Channel 6 Status */
+#define REG_EVSYS_CHINTENCLR6      (*(RwReg8 *)0x4100E054UL) /**< \brief (EVSYS) Channel 6 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET6      (*(RwReg8 *)0x4100E055UL) /**< \brief (EVSYS) Channel 6 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG6       (*(RwReg8 *)0x4100E056UL) /**< \brief (EVSYS) Channel 6 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS6        (*(RoReg8 *)0x4100E057UL) /**< \brief (EVSYS) Channel 6 Status */
 #define REG_EVSYS_CHANNEL7         (*(RwReg  *)0x4100E058UL) /**< \brief (EVSYS) Channel 7 Control */
-#define REG_EVSYS_CHINTENCLR7      (*(RwReg  *)0x4100E05CUL) /**< \brief (EVSYS) Channel 7 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET7      (*(RwReg  *)0x4100E05DUL) /**< \brief (EVSYS) Channel 7 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG7       (*(RwReg  *)0x4100E05EUL) /**< \brief (EVSYS) Channel 7 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS7        (*(RoReg  *)0x4100E05FUL) /**< \brief (EVSYS) Channel 7 Status */
+#define REG_EVSYS_CHINTENCLR7      (*(RwReg8 *)0x4100E05CUL) /**< \brief (EVSYS) Channel 7 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET7      (*(RwReg8 *)0x4100E05DUL) /**< \brief (EVSYS) Channel 7 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG7       (*(RwReg8 *)0x4100E05EUL) /**< \brief (EVSYS) Channel 7 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS7        (*(RoReg8 *)0x4100E05FUL) /**< \brief (EVSYS) Channel 7 Status */
 #define REG_EVSYS_CHANNEL8         (*(RwReg  *)0x4100E060UL) /**< \brief (EVSYS) Channel 8 Control */
-#define REG_EVSYS_CHINTENCLR8      (*(RwReg  *)0x4100E064UL) /**< \brief (EVSYS) Channel 8 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET8      (*(RwReg  *)0x4100E065UL) /**< \brief (EVSYS) Channel 8 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG8       (*(RwReg  *)0x4100E066UL) /**< \brief (EVSYS) Channel 8 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS8        (*(RoReg  *)0x4100E067UL) /**< \brief (EVSYS) Channel 8 Status */
+#define REG_EVSYS_CHINTENCLR8      (*(RwReg8 *)0x4100E064UL) /**< \brief (EVSYS) Channel 8 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET8      (*(RwReg8 *)0x4100E065UL) /**< \brief (EVSYS) Channel 8 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG8       (*(RwReg8 *)0x4100E066UL) /**< \brief (EVSYS) Channel 8 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS8        (*(RoReg8 *)0x4100E067UL) /**< \brief (EVSYS) Channel 8 Status */
 #define REG_EVSYS_CHANNEL9         (*(RwReg  *)0x4100E068UL) /**< \brief (EVSYS) Channel 9 Control */
-#define REG_EVSYS_CHINTENCLR9      (*(RwReg  *)0x4100E06CUL) /**< \brief (EVSYS) Channel 9 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET9      (*(RwReg  *)0x4100E06DUL) /**< \brief (EVSYS) Channel 9 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG9       (*(RwReg  *)0x4100E06EUL) /**< \brief (EVSYS) Channel 9 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS9        (*(RoReg  *)0x4100E06FUL) /**< \brief (EVSYS) Channel 9 Status */
+#define REG_EVSYS_CHINTENCLR9      (*(RwReg8 *)0x4100E06CUL) /**< \brief (EVSYS) Channel 9 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET9      (*(RwReg8 *)0x4100E06DUL) /**< \brief (EVSYS) Channel 9 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG9       (*(RwReg8 *)0x4100E06EUL) /**< \brief (EVSYS) Channel 9 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS9        (*(RoReg8 *)0x4100E06FUL) /**< \brief (EVSYS) Channel 9 Status */
 #define REG_EVSYS_CHANNEL10        (*(RwReg  *)0x4100E070UL) /**< \brief (EVSYS) Channel 10 Control */
-#define REG_EVSYS_CHINTENCLR10     (*(RwReg  *)0x4100E074UL) /**< \brief (EVSYS) Channel 10 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET10     (*(RwReg  *)0x4100E075UL) /**< \brief (EVSYS) Channel 10 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG10      (*(RwReg  *)0x4100E076UL) /**< \brief (EVSYS) Channel 10 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS10       (*(RoReg  *)0x4100E077UL) /**< \brief (EVSYS) Channel 10 Status */
+#define REG_EVSYS_CHINTENCLR10     (*(RwReg8 *)0x4100E074UL) /**< \brief (EVSYS) Channel 10 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET10     (*(RwReg8 *)0x4100E075UL) /**< \brief (EVSYS) Channel 10 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG10      (*(RwReg8 *)0x4100E076UL) /**< \brief (EVSYS) Channel 10 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS10       (*(RoReg8 *)0x4100E077UL) /**< \brief (EVSYS) Channel 10 Status */
 #define REG_EVSYS_CHANNEL11        (*(RwReg  *)0x4100E078UL) /**< \brief (EVSYS) Channel 11 Control */
-#define REG_EVSYS_CHINTENCLR11     (*(RwReg  *)0x4100E07CUL) /**< \brief (EVSYS) Channel 11 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET11     (*(RwReg  *)0x4100E07DUL) /**< \brief (EVSYS) Channel 11 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG11      (*(RwReg  *)0x4100E07EUL) /**< \brief (EVSYS) Channel 11 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS11       (*(RoReg  *)0x4100E07FUL) /**< \brief (EVSYS) Channel 11 Status */
+#define REG_EVSYS_CHINTENCLR11     (*(RwReg8 *)0x4100E07CUL) /**< \brief (EVSYS) Channel 11 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET11     (*(RwReg8 *)0x4100E07DUL) /**< \brief (EVSYS) Channel 11 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG11      (*(RwReg8 *)0x4100E07EUL) /**< \brief (EVSYS) Channel 11 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS11       (*(RoReg8 *)0x4100E07FUL) /**< \brief (EVSYS) Channel 11 Status */
 #define REG_EVSYS_CHANNEL12        (*(RwReg  *)0x4100E080UL) /**< \brief (EVSYS) Channel 12 Control */
-#define REG_EVSYS_CHINTENCLR12     (*(RwReg  *)0x4100E084UL) /**< \brief (EVSYS) Channel 12 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET12     (*(RwReg  *)0x4100E085UL) /**< \brief (EVSYS) Channel 12 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG12      (*(RwReg  *)0x4100E086UL) /**< \brief (EVSYS) Channel 12 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS12       (*(RoReg  *)0x4100E087UL) /**< \brief (EVSYS) Channel 12 Status */
+#define REG_EVSYS_CHINTENCLR12     (*(RwReg8 *)0x4100E084UL) /**< \brief (EVSYS) Channel 12 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET12     (*(RwReg8 *)0x4100E085UL) /**< \brief (EVSYS) Channel 12 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG12      (*(RwReg8 *)0x4100E086UL) /**< \brief (EVSYS) Channel 12 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS12       (*(RoReg8 *)0x4100E087UL) /**< \brief (EVSYS) Channel 12 Status */
 #define REG_EVSYS_CHANNEL13        (*(RwReg  *)0x4100E088UL) /**< \brief (EVSYS) Channel 13 Control */
-#define REG_EVSYS_CHINTENCLR13     (*(RwReg  *)0x4100E08CUL) /**< \brief (EVSYS) Channel 13 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET13     (*(RwReg  *)0x4100E08DUL) /**< \brief (EVSYS) Channel 13 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG13      (*(RwReg  *)0x4100E08EUL) /**< \brief (EVSYS) Channel 13 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS13       (*(RoReg  *)0x4100E08FUL) /**< \brief (EVSYS) Channel 13 Status */
+#define REG_EVSYS_CHINTENCLR13     (*(RwReg8 *)0x4100E08CUL) /**< \brief (EVSYS) Channel 13 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET13     (*(RwReg8 *)0x4100E08DUL) /**< \brief (EVSYS) Channel 13 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG13      (*(RwReg8 *)0x4100E08EUL) /**< \brief (EVSYS) Channel 13 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS13       (*(RoReg8 *)0x4100E08FUL) /**< \brief (EVSYS) Channel 13 Status */
 #define REG_EVSYS_CHANNEL14        (*(RwReg  *)0x4100E090UL) /**< \brief (EVSYS) Channel 14 Control */
-#define REG_EVSYS_CHINTENCLR14     (*(RwReg  *)0x4100E094UL) /**< \brief (EVSYS) Channel 14 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET14     (*(RwReg  *)0x4100E095UL) /**< \brief (EVSYS) Channel 14 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG14      (*(RwReg  *)0x4100E096UL) /**< \brief (EVSYS) Channel 14 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS14       (*(RoReg  *)0x4100E097UL) /**< \brief (EVSYS) Channel 14 Status */
+#define REG_EVSYS_CHINTENCLR14     (*(RwReg8 *)0x4100E094UL) /**< \brief (EVSYS) Channel 14 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET14     (*(RwReg8 *)0x4100E095UL) /**< \brief (EVSYS) Channel 14 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG14      (*(RwReg8 *)0x4100E096UL) /**< \brief (EVSYS) Channel 14 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS14       (*(RoReg8 *)0x4100E097UL) /**< \brief (EVSYS) Channel 14 Status */
 #define REG_EVSYS_CHANNEL15        (*(RwReg  *)0x4100E098UL) /**< \brief (EVSYS) Channel 15 Control */
-#define REG_EVSYS_CHINTENCLR15     (*(RwReg  *)0x4100E09CUL) /**< \brief (EVSYS) Channel 15 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET15     (*(RwReg  *)0x4100E09DUL) /**< \brief (EVSYS) Channel 15 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG15      (*(RwReg  *)0x4100E09EUL) /**< \brief (EVSYS) Channel 15 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS15       (*(RoReg  *)0x4100E09FUL) /**< \brief (EVSYS) Channel 15 Status */
+#define REG_EVSYS_CHINTENCLR15     (*(RwReg8 *)0x4100E09CUL) /**< \brief (EVSYS) Channel 15 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET15     (*(RwReg8 *)0x4100E09DUL) /**< \brief (EVSYS) Channel 15 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG15      (*(RwReg8 *)0x4100E09EUL) /**< \brief (EVSYS) Channel 15 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS15       (*(RoReg8 *)0x4100E09FUL) /**< \brief (EVSYS) Channel 15 Status */
 #define REG_EVSYS_CHANNEL16        (*(RwReg  *)0x4100E0A0UL) /**< \brief (EVSYS) Channel 16 Control */
-#define REG_EVSYS_CHINTENCLR16     (*(RwReg  *)0x4100E0A4UL) /**< \brief (EVSYS) Channel 16 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET16     (*(RwReg  *)0x4100E0A5UL) /**< \brief (EVSYS) Channel 16 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG16      (*(RwReg  *)0x4100E0A6UL) /**< \brief (EVSYS) Channel 16 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS16       (*(RoReg  *)0x4100E0A7UL) /**< \brief (EVSYS) Channel 16 Status */
+#define REG_EVSYS_CHINTENCLR16     (*(RwReg8 *)0x4100E0A4UL) /**< \brief (EVSYS) Channel 16 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET16     (*(RwReg8 *)0x4100E0A5UL) /**< \brief (EVSYS) Channel 16 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG16      (*(RwReg8 *)0x4100E0A6UL) /**< \brief (EVSYS) Channel 16 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS16       (*(RoReg8 *)0x4100E0A7UL) /**< \brief (EVSYS) Channel 16 Status */
 #define REG_EVSYS_CHANNEL17        (*(RwReg  *)0x4100E0A8UL) /**< \brief (EVSYS) Channel 17 Control */
-#define REG_EVSYS_CHINTENCLR17     (*(RwReg  *)0x4100E0ACUL) /**< \brief (EVSYS) Channel 17 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET17     (*(RwReg  *)0x4100E0ADUL) /**< \brief (EVSYS) Channel 17 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG17      (*(RwReg  *)0x4100E0AEUL) /**< \brief (EVSYS) Channel 17 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS17       (*(RoReg  *)0x4100E0AFUL) /**< \brief (EVSYS) Channel 17 Status */
+#define REG_EVSYS_CHINTENCLR17     (*(RwReg8 *)0x4100E0ACUL) /**< \brief (EVSYS) Channel 17 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET17     (*(RwReg8 *)0x4100E0ADUL) /**< \brief (EVSYS) Channel 17 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG17      (*(RwReg8 *)0x4100E0AEUL) /**< \brief (EVSYS) Channel 17 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS17       (*(RoReg8 *)0x4100E0AFUL) /**< \brief (EVSYS) Channel 17 Status */
 #define REG_EVSYS_CHANNEL18        (*(RwReg  *)0x4100E0B0UL) /**< \brief (EVSYS) Channel 18 Control */
-#define REG_EVSYS_CHINTENCLR18     (*(RwReg  *)0x4100E0B4UL) /**< \brief (EVSYS) Channel 18 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET18     (*(RwReg  *)0x4100E0B5UL) /**< \brief (EVSYS) Channel 18 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG18      (*(RwReg  *)0x4100E0B6UL) /**< \brief (EVSYS) Channel 18 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS18       (*(RoReg  *)0x4100E0B7UL) /**< \brief (EVSYS) Channel 18 Status */
+#define REG_EVSYS_CHINTENCLR18     (*(RwReg8 *)0x4100E0B4UL) /**< \brief (EVSYS) Channel 18 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET18     (*(RwReg8 *)0x4100E0B5UL) /**< \brief (EVSYS) Channel 18 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG18      (*(RwReg8 *)0x4100E0B6UL) /**< \brief (EVSYS) Channel 18 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS18       (*(RoReg8 *)0x4100E0B7UL) /**< \brief (EVSYS) Channel 18 Status */
 #define REG_EVSYS_CHANNEL19        (*(RwReg  *)0x4100E0B8UL) /**< \brief (EVSYS) Channel 19 Control */
-#define REG_EVSYS_CHINTENCLR19     (*(RwReg  *)0x4100E0BCUL) /**< \brief (EVSYS) Channel 19 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET19     (*(RwReg  *)0x4100E0BDUL) /**< \brief (EVSYS) Channel 19 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG19      (*(RwReg  *)0x4100E0BEUL) /**< \brief (EVSYS) Channel 19 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS19       (*(RoReg  *)0x4100E0BFUL) /**< \brief (EVSYS) Channel 19 Status */
+#define REG_EVSYS_CHINTENCLR19     (*(RwReg8 *)0x4100E0BCUL) /**< \brief (EVSYS) Channel 19 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET19     (*(RwReg8 *)0x4100E0BDUL) /**< \brief (EVSYS) Channel 19 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG19      (*(RwReg8 *)0x4100E0BEUL) /**< \brief (EVSYS) Channel 19 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS19       (*(RoReg8 *)0x4100E0BFUL) /**< \brief (EVSYS) Channel 19 Status */
 #define REG_EVSYS_CHANNEL20        (*(RwReg  *)0x4100E0C0UL) /**< \brief (EVSYS) Channel 20 Control */
-#define REG_EVSYS_CHINTENCLR20     (*(RwReg  *)0x4100E0C4UL) /**< \brief (EVSYS) Channel 20 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET20     (*(RwReg  *)0x4100E0C5UL) /**< \brief (EVSYS) Channel 20 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG20      (*(RwReg  *)0x4100E0C6UL) /**< \brief (EVSYS) Channel 20 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS20       (*(RoReg  *)0x4100E0C7UL) /**< \brief (EVSYS) Channel 20 Status */
+#define REG_EVSYS_CHINTENCLR20     (*(RwReg8 *)0x4100E0C4UL) /**< \brief (EVSYS) Channel 20 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET20     (*(RwReg8 *)0x4100E0C5UL) /**< \brief (EVSYS) Channel 20 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG20      (*(RwReg8 *)0x4100E0C6UL) /**< \brief (EVSYS) Channel 20 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS20       (*(RoReg8 *)0x4100E0C7UL) /**< \brief (EVSYS) Channel 20 Status */
 #define REG_EVSYS_CHANNEL21        (*(RwReg  *)0x4100E0C8UL) /**< \brief (EVSYS) Channel 21 Control */
-#define REG_EVSYS_CHINTENCLR21     (*(RwReg  *)0x4100E0CCUL) /**< \brief (EVSYS) Channel 21 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET21     (*(RwReg  *)0x4100E0CDUL) /**< \brief (EVSYS) Channel 21 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG21      (*(RwReg  *)0x4100E0CEUL) /**< \brief (EVSYS) Channel 21 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS21       (*(RoReg  *)0x4100E0CFUL) /**< \brief (EVSYS) Channel 21 Status */
+#define REG_EVSYS_CHINTENCLR21     (*(RwReg8 *)0x4100E0CCUL) /**< \brief (EVSYS) Channel 21 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET21     (*(RwReg8 *)0x4100E0CDUL) /**< \brief (EVSYS) Channel 21 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG21      (*(RwReg8 *)0x4100E0CEUL) /**< \brief (EVSYS) Channel 21 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS21       (*(RoReg8 *)0x4100E0CFUL) /**< \brief (EVSYS) Channel 21 Status */
 #define REG_EVSYS_CHANNEL22        (*(RwReg  *)0x4100E0D0UL) /**< \brief (EVSYS) Channel 22 Control */
-#define REG_EVSYS_CHINTENCLR22     (*(RwReg  *)0x4100E0D4UL) /**< \brief (EVSYS) Channel 22 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET22     (*(RwReg  *)0x4100E0D5UL) /**< \brief (EVSYS) Channel 22 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG22      (*(RwReg  *)0x4100E0D6UL) /**< \brief (EVSYS) Channel 22 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS22       (*(RoReg  *)0x4100E0D7UL) /**< \brief (EVSYS) Channel 22 Status */
+#define REG_EVSYS_CHINTENCLR22     (*(RwReg8 *)0x4100E0D4UL) /**< \brief (EVSYS) Channel 22 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET22     (*(RwReg8 *)0x4100E0D5UL) /**< \brief (EVSYS) Channel 22 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG22      (*(RwReg8 *)0x4100E0D6UL) /**< \brief (EVSYS) Channel 22 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS22       (*(RoReg8 *)0x4100E0D7UL) /**< \brief (EVSYS) Channel 22 Status */
 #define REG_EVSYS_CHANNEL23        (*(RwReg  *)0x4100E0D8UL) /**< \brief (EVSYS) Channel 23 Control */
-#define REG_EVSYS_CHINTENCLR23     (*(RwReg  *)0x4100E0DCUL) /**< \brief (EVSYS) Channel 23 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET23     (*(RwReg  *)0x4100E0DDUL) /**< \brief (EVSYS) Channel 23 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG23      (*(RwReg  *)0x4100E0DEUL) /**< \brief (EVSYS) Channel 23 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS23       (*(RoReg  *)0x4100E0DFUL) /**< \brief (EVSYS) Channel 23 Status */
+#define REG_EVSYS_CHINTENCLR23     (*(RwReg8 *)0x4100E0DCUL) /**< \brief (EVSYS) Channel 23 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET23     (*(RwReg8 *)0x4100E0DDUL) /**< \brief (EVSYS) Channel 23 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG23      (*(RwReg8 *)0x4100E0DEUL) /**< \brief (EVSYS) Channel 23 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS23       (*(RoReg8 *)0x4100E0DFUL) /**< \brief (EVSYS) Channel 23 Status */
 #define REG_EVSYS_CHANNEL24        (*(RwReg  *)0x4100E0E0UL) /**< \brief (EVSYS) Channel 24 Control */
-#define REG_EVSYS_CHINTENCLR24     (*(RwReg  *)0x4100E0E4UL) /**< \brief (EVSYS) Channel 24 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET24     (*(RwReg  *)0x4100E0E5UL) /**< \brief (EVSYS) Channel 24 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG24      (*(RwReg  *)0x4100E0E6UL) /**< \brief (EVSYS) Channel 24 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS24       (*(RoReg  *)0x4100E0E7UL) /**< \brief (EVSYS) Channel 24 Status */
+#define REG_EVSYS_CHINTENCLR24     (*(RwReg8 *)0x4100E0E4UL) /**< \brief (EVSYS) Channel 24 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET24     (*(RwReg8 *)0x4100E0E5UL) /**< \brief (EVSYS) Channel 24 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG24      (*(RwReg8 *)0x4100E0E6UL) /**< \brief (EVSYS) Channel 24 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS24       (*(RoReg8 *)0x4100E0E7UL) /**< \brief (EVSYS) Channel 24 Status */
 #define REG_EVSYS_CHANNEL25        (*(RwReg  *)0x4100E0E8UL) /**< \brief (EVSYS) Channel 25 Control */
-#define REG_EVSYS_CHINTENCLR25     (*(RwReg  *)0x4100E0ECUL) /**< \brief (EVSYS) Channel 25 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET25     (*(RwReg  *)0x4100E0EDUL) /**< \brief (EVSYS) Channel 25 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG25      (*(RwReg  *)0x4100E0EEUL) /**< \brief (EVSYS) Channel 25 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS25       (*(RoReg  *)0x4100E0EFUL) /**< \brief (EVSYS) Channel 25 Status */
+#define REG_EVSYS_CHINTENCLR25     (*(RwReg8 *)0x4100E0ECUL) /**< \brief (EVSYS) Channel 25 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET25     (*(RwReg8 *)0x4100E0EDUL) /**< \brief (EVSYS) Channel 25 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG25      (*(RwReg8 *)0x4100E0EEUL) /**< \brief (EVSYS) Channel 25 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS25       (*(RoReg8 *)0x4100E0EFUL) /**< \brief (EVSYS) Channel 25 Status */
 #define REG_EVSYS_CHANNEL26        (*(RwReg  *)0x4100E0F0UL) /**< \brief (EVSYS) Channel 26 Control */
-#define REG_EVSYS_CHINTENCLR26     (*(RwReg  *)0x4100E0F4UL) /**< \brief (EVSYS) Channel 26 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET26     (*(RwReg  *)0x4100E0F5UL) /**< \brief (EVSYS) Channel 26 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG26      (*(RwReg  *)0x4100E0F6UL) /**< \brief (EVSYS) Channel 26 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS26       (*(RoReg  *)0x4100E0F7UL) /**< \brief (EVSYS) Channel 26 Status */
+#define REG_EVSYS_CHINTENCLR26     (*(RwReg8 *)0x4100E0F4UL) /**< \brief (EVSYS) Channel 26 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET26     (*(RwReg8 *)0x4100E0F5UL) /**< \brief (EVSYS) Channel 26 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG26      (*(RwReg8 *)0x4100E0F6UL) /**< \brief (EVSYS) Channel 26 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS26       (*(RoReg8 *)0x4100E0F7UL) /**< \brief (EVSYS) Channel 26 Status */
 #define REG_EVSYS_CHANNEL27        (*(RwReg  *)0x4100E0F8UL) /**< \brief (EVSYS) Channel 27 Control */
-#define REG_EVSYS_CHINTENCLR27     (*(RwReg  *)0x4100E0FCUL) /**< \brief (EVSYS) Channel 27 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET27     (*(RwReg  *)0x4100E0FDUL) /**< \brief (EVSYS) Channel 27 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG27      (*(RwReg  *)0x4100E0FEUL) /**< \brief (EVSYS) Channel 27 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS27       (*(RoReg  *)0x4100E0FFUL) /**< \brief (EVSYS) Channel 27 Status */
+#define REG_EVSYS_CHINTENCLR27     (*(RwReg8 *)0x4100E0FCUL) /**< \brief (EVSYS) Channel 27 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET27     (*(RwReg8 *)0x4100E0FDUL) /**< \brief (EVSYS) Channel 27 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG27      (*(RwReg8 *)0x4100E0FEUL) /**< \brief (EVSYS) Channel 27 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS27       (*(RoReg8 *)0x4100E0FFUL) /**< \brief (EVSYS) Channel 27 Status */
 #define REG_EVSYS_CHANNEL28        (*(RwReg  *)0x4100E100UL) /**< \brief (EVSYS) Channel 28 Control */
-#define REG_EVSYS_CHINTENCLR28     (*(RwReg  *)0x4100E104UL) /**< \brief (EVSYS) Channel 28 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET28     (*(RwReg  *)0x4100E105UL) /**< \brief (EVSYS) Channel 28 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG28      (*(RwReg  *)0x4100E106UL) /**< \brief (EVSYS) Channel 28 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS28       (*(RoReg  *)0x4100E107UL) /**< \brief (EVSYS) Channel 28 Status */
+#define REG_EVSYS_CHINTENCLR28     (*(RwReg8 *)0x4100E104UL) /**< \brief (EVSYS) Channel 28 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET28     (*(RwReg8 *)0x4100E105UL) /**< \brief (EVSYS) Channel 28 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG28      (*(RwReg8 *)0x4100E106UL) /**< \brief (EVSYS) Channel 28 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS28       (*(RoReg8 *)0x4100E107UL) /**< \brief (EVSYS) Channel 28 Status */
 #define REG_EVSYS_CHANNEL29        (*(RwReg  *)0x4100E108UL) /**< \brief (EVSYS) Channel 29 Control */
-#define REG_EVSYS_CHINTENCLR29     (*(RwReg  *)0x4100E10CUL) /**< \brief (EVSYS) Channel 29 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET29     (*(RwReg  *)0x4100E10DUL) /**< \brief (EVSYS) Channel 29 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG29      (*(RwReg  *)0x4100E10EUL) /**< \brief (EVSYS) Channel 29 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS29       (*(RoReg  *)0x4100E10FUL) /**< \brief (EVSYS) Channel 29 Status */
+#define REG_EVSYS_CHINTENCLR29     (*(RwReg8 *)0x4100E10CUL) /**< \brief (EVSYS) Channel 29 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET29     (*(RwReg8 *)0x4100E10DUL) /**< \brief (EVSYS) Channel 29 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG29      (*(RwReg8 *)0x4100E10EUL) /**< \brief (EVSYS) Channel 29 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS29       (*(RoReg8 *)0x4100E10FUL) /**< \brief (EVSYS) Channel 29 Status */
 #define REG_EVSYS_CHANNEL30        (*(RwReg  *)0x4100E110UL) /**< \brief (EVSYS) Channel 30 Control */
-#define REG_EVSYS_CHINTENCLR30     (*(RwReg  *)0x4100E114UL) /**< \brief (EVSYS) Channel 30 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET30     (*(RwReg  *)0x4100E115UL) /**< \brief (EVSYS) Channel 30 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG30      (*(RwReg  *)0x4100E116UL) /**< \brief (EVSYS) Channel 30 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS30       (*(RoReg  *)0x4100E117UL) /**< \brief (EVSYS) Channel 30 Status */
+#define REG_EVSYS_CHINTENCLR30     (*(RwReg8 *)0x4100E114UL) /**< \brief (EVSYS) Channel 30 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET30     (*(RwReg8 *)0x4100E115UL) /**< \brief (EVSYS) Channel 30 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG30      (*(RwReg8 *)0x4100E116UL) /**< \brief (EVSYS) Channel 30 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS30       (*(RoReg8 *)0x4100E117UL) /**< \brief (EVSYS) Channel 30 Status */
 #define REG_EVSYS_CHANNEL31        (*(RwReg  *)0x4100E118UL) /**< \brief (EVSYS) Channel 31 Control */
-#define REG_EVSYS_CHINTENCLR31     (*(RwReg  *)0x4100E11CUL) /**< \brief (EVSYS) Channel 31 Interrupt Enable Clear */
-#define REG_EVSYS_CHINTENSET31     (*(RwReg  *)0x4100E11DUL) /**< \brief (EVSYS) Channel 31 Interrupt Enable Set */
-#define REG_EVSYS_CHINTFLAG31      (*(RwReg  *)0x4100E11EUL) /**< \brief (EVSYS) Channel 31 Interrupt Flag Status and Clear */
-#define REG_EVSYS_CHSTATUS31       (*(RoReg  *)0x4100E11FUL) /**< \brief (EVSYS) Channel 31 Status */
+#define REG_EVSYS_CHINTENCLR31     (*(RwReg8 *)0x4100E11CUL) /**< \brief (EVSYS) Channel 31 Interrupt Enable Clear */
+#define REG_EVSYS_CHINTENSET31     (*(RwReg8 *)0x4100E11DUL) /**< \brief (EVSYS) Channel 31 Interrupt Enable Set */
+#define REG_EVSYS_CHINTFLAG31      (*(RwReg8 *)0x4100E11EUL) /**< \brief (EVSYS) Channel 31 Interrupt Flag Status and Clear */
+#define REG_EVSYS_CHSTATUS31       (*(RoReg8 *)0x4100E11FUL) /**< \brief (EVSYS) Channel 31 Status */
 #define REG_EVSYS_USER0            (*(RwReg  *)0x4100E120UL) /**< \brief (EVSYS) User Multiplexer 0 */
 #define REG_EVSYS_USER1            (*(RwReg  *)0x4100E124UL) /**< \brief (EVSYS) User Multiplexer 1 */
 #define REG_EVSYS_USER2            (*(RwReg  *)0x4100E128UL) /**< \brief (EVSYS) User Multiplexer 2 */
@@ -569,70 +569,68 @@
 #define EVSYS_ID_GEN_DMAC_CH_2      36
 #define EVSYS_ID_GEN_DMAC_CH_3      37
 #define EVSYS_ID_GEN_PAC_ACCERR     38
-#define EVSYS_ID_GEN_TAL_BRK        39
-#define EVSYS_ID_GEN_TAL_IRQMON_0   40
 #define EVSYS_ID_GEN_TCC0_OVF       41
 #define EVSYS_ID_GEN_TCC0_TRG       42
 #define EVSYS_ID_GEN_TCC0_CNT       43
-#define EVSYS_ID_GEN_TCC0_MCX_0     44
-#define EVSYS_ID_GEN_TCC0_MCX_1     45
-#define EVSYS_ID_GEN_TCC0_MCX_2     46
-#define EVSYS_ID_GEN_TCC0_MCX_3     47
-#define EVSYS_ID_GEN_TCC0_MCX_4     48
-#define EVSYS_ID_GEN_TCC0_MCX_5     49
+#define EVSYS_ID_GEN_TCC0_MC_0      44
+#define EVSYS_ID_GEN_TCC0_MC_1      45
+#define EVSYS_ID_GEN_TCC0_MC_2      46
+#define EVSYS_ID_GEN_TCC0_MC_3      47
+#define EVSYS_ID_GEN_TCC0_MC_4      48
+#define EVSYS_ID_GEN_TCC0_MC_5      49
 #define EVSYS_ID_GEN_TCC1_OVF       50
 #define EVSYS_ID_GEN_TCC1_TRG       51
 #define EVSYS_ID_GEN_TCC1_CNT       52
-#define EVSYS_ID_GEN_TCC1_MCX_0     53
-#define EVSYS_ID_GEN_TCC1_MCX_1     54
-#define EVSYS_ID_GEN_TCC1_MCX_2     55
-#define EVSYS_ID_GEN_TCC1_MCX_3     56
+#define EVSYS_ID_GEN_TCC1_MC_0      53
+#define EVSYS_ID_GEN_TCC1_MC_1      54
+#define EVSYS_ID_GEN_TCC1_MC_2      55
+#define EVSYS_ID_GEN_TCC1_MC_3      56
 #define EVSYS_ID_GEN_TCC2_OVF       57
 #define EVSYS_ID_GEN_TCC2_TRG       58
 #define EVSYS_ID_GEN_TCC2_CNT       59
-#define EVSYS_ID_GEN_TCC2_MCX_0     60
-#define EVSYS_ID_GEN_TCC2_MCX_1     61
-#define EVSYS_ID_GEN_TCC2_MCX_2     62
+#define EVSYS_ID_GEN_TCC2_MC_0      60
+#define EVSYS_ID_GEN_TCC2_MC_1      61
+#define EVSYS_ID_GEN_TCC2_MC_2      62
 #define EVSYS_ID_GEN_TCC3_OVF       63
 #define EVSYS_ID_GEN_TCC3_TRG       64
 #define EVSYS_ID_GEN_TCC3_CNT       65
-#define EVSYS_ID_GEN_TCC3_MCX_0     66
-#define EVSYS_ID_GEN_TCC3_MCX_1     67
+#define EVSYS_ID_GEN_TCC3_MC_0      66
+#define EVSYS_ID_GEN_TCC3_MC_1      67
 #define EVSYS_ID_GEN_TCC4_OVF       68
 #define EVSYS_ID_GEN_TCC4_TRG       69
 #define EVSYS_ID_GEN_TCC4_CNT       70
-#define EVSYS_ID_GEN_TCC4_MCX_0     71
-#define EVSYS_ID_GEN_TCC4_MCX_1     72
+#define EVSYS_ID_GEN_TCC4_MC_0      71
+#define EVSYS_ID_GEN_TCC4_MC_1      72
 #define EVSYS_ID_GEN_TC0_OVF        73
-#define EVSYS_ID_GEN_TC0_MCX_0      74
-#define EVSYS_ID_GEN_TC0_MCX_1      75
+#define EVSYS_ID_GEN_TC0_MC_0       74
+#define EVSYS_ID_GEN_TC0_MC_1       75
 #define EVSYS_ID_GEN_TC1_OVF        76
-#define EVSYS_ID_GEN_TC1_MCX_0      77
-#define EVSYS_ID_GEN_TC1_MCX_1      78
+#define EVSYS_ID_GEN_TC1_MC_0       77
+#define EVSYS_ID_GEN_TC1_MC_1       78
 #define EVSYS_ID_GEN_TC2_OVF        79
-#define EVSYS_ID_GEN_TC2_MCX_0      80
-#define EVSYS_ID_GEN_TC2_MCX_1      81
+#define EVSYS_ID_GEN_TC2_MC_0       80
+#define EVSYS_ID_GEN_TC2_MC_1       81
 #define EVSYS_ID_GEN_TC3_OVF        82
-#define EVSYS_ID_GEN_TC3_MCX_0      83
-#define EVSYS_ID_GEN_TC3_MCX_1      84
+#define EVSYS_ID_GEN_TC3_MC_0       83
+#define EVSYS_ID_GEN_TC3_MC_1       84
 #define EVSYS_ID_GEN_TC4_OVF        85
-#define EVSYS_ID_GEN_TC4_MCX_0      86
-#define EVSYS_ID_GEN_TC4_MCX_1      87
+#define EVSYS_ID_GEN_TC4_MC_0       86
+#define EVSYS_ID_GEN_TC4_MC_1       87
 #define EVSYS_ID_GEN_TC5_OVF        88
-#define EVSYS_ID_GEN_TC5_MCX_0      89
-#define EVSYS_ID_GEN_TC5_MCX_1      90
+#define EVSYS_ID_GEN_TC5_MC_0       89
+#define EVSYS_ID_GEN_TC5_MC_1       90
 #define EVSYS_ID_GEN_TC6_OVF        91
-#define EVSYS_ID_GEN_TC6_MCX_0      92
-#define EVSYS_ID_GEN_TC6_MCX_1      93
+#define EVSYS_ID_GEN_TC6_MC_0       92
+#define EVSYS_ID_GEN_TC6_MC_1       93
 #define EVSYS_ID_GEN_TC7_OVF        94
-#define EVSYS_ID_GEN_TC7_MCX_0      95
-#define EVSYS_ID_GEN_TC7_MCX_1      96
+#define EVSYS_ID_GEN_TC7_MC_0       95
+#define EVSYS_ID_GEN_TC7_MC_1       96
 #define EVSYS_ID_GEN_PDEC_OVF       97
 #define EVSYS_ID_GEN_PDEC_ERR       98
 #define EVSYS_ID_GEN_PDEC_DIR       99
 #define EVSYS_ID_GEN_PDEC_VLC       100
-#define EVSYS_ID_GEN_PDEC_MCX_0     101
-#define EVSYS_ID_GEN_PDEC_MCX_1     102
+#define EVSYS_ID_GEN_PDEC_MC_0      101
+#define EVSYS_ID_GEN_PDEC_MC_1      102
 #define EVSYS_ID_GEN_ADC0_RESRDY    103
 #define EVSYS_ID_GEN_ADC0_WINMON    104
 #define EVSYS_ID_GEN_ADC1_RESRDY    105
@@ -664,7 +662,6 @@
 #define EVSYS_ID_USER_DMAC_CH_5     10
 #define EVSYS_ID_USER_DMAC_CH_6     11
 #define EVSYS_ID_USER_DMAC_CH_7     12
-#define EVSYS_ID_USER_TAL_BRK       13
 #define EVSYS_ID_USER_CM4_TRACE_START 14
 #define EVSYS_ID_USER_CM4_TRACE_STOP 15
 #define EVSYS_ID_USER_CM4_TRACE_TRIG 16

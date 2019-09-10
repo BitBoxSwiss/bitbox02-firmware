@@ -14,8 +14,6 @@
 
 #include "driver_init.h"
 #include <utils.h>
-#include <ui/oled/oled.h>
-#include <usb/usb.h>
 
 #define PIN_HIGH 1
 #define PIN_LOW  0

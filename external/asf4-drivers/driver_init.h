@@ -16,7 +16,6 @@
 #define _DRIVER_INIT_H_
 
 #include <utils.h>
-#include <sd_mmc.h>
 #include <hal_atomic.h>
 #include <hal_delay.h>
 #include <hal_gpio.h>

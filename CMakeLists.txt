@@ -87,6 +87,7 @@ endif()
 # Versions MUST contain three parts and start with lowercase 'v'.
 # Example 'v1.0.0'. They MUST not contain a pre-release label such as '-beta'.
 set(FIRMWARE_VERSION "v4.0.0")
+set(FIRMWARE_BTC_ONLY_VERSION "v4.0.0")
 set(BOOTLOADER_VERSION "v1.0.1")
 
 find_package(PythonInterp 3.6 REQUIRED)
@@ -103,6 +104,16 @@ if(GIT_FOUND AND PYTHONINTERP_FOUND)
   )
   if(NOT exit_code EQUAL "0")
     set(GIT_FIRMWARE_VERSION_STRING "v0.0.0")
+  endif()
+  execute_process(
+    COMMAND ${PYTHON_EXECUTABLE} ./scripts/get_version firmware-btc-only --check-semver --check-gpg
+    RESULT_VARIABLE exit_code
+    OUTPUT_VARIABLE GIT_FIRMWARE_BTC_ONLY_VERSION_STRING
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  if(NOT exit_code EQUAL "0")
+    set(GIT_FIRMWARE_BTC_ONLY_VERSION_STRING "v0.0.0")
   endif()
   execute_process(
     COMMAND ${PYTHON_EXECUTABLE} ./scripts/get_version bootloader --check-semver --check-gpg
@@ -137,6 +148,7 @@ if(GIT_FOUND AND PYTHONINTERP_FOUND)
   endif()
 else()
   set(GIT_FIRMWARE_VERSION_STRING "v0.0.0")
+  set(GIT_FIRMWARE_BTC_ONLY_VERSION_STRING "v0.0.0")
   set(GIT_BOOTLOADER_VERSION_STRING "v0.0.0")
   set(GIT_COMMIT_HASH "0000000000000000000000000000000000000000")
   set(GIT_COMMIT_HASH_SHORT "000000")
@@ -146,6 +158,10 @@ endif()
 set(FIRMWARE_VERSION_FULL ${FIRMWARE_VERSION})
 if(NOT FIRMWARE_VERSION STREQUAL GIT_FIRMWARE_VERSION_STRING)
   string(APPEND FIRMWARE_VERSION_FULL "-pre+${GIT_COMMIT_HASH_SHORT}")
+endif()
+set(FIRMWARE_BTC_ONLY_VERSION_FULL ${FIRMWARE_BTC_ONLY_VERSION})
+if(NOT FIRMWARE_BTC_ONLY_VERSION STREQUAL GIT_FIRMWARE_BTC_ONLY_VERSION_STRING)
+  string(APPEND FIRMWARE_BTC_ONLY_VERSION_FULL "-pre+${GIT_COMMIT_HASH_SHORT}")
 endif()
 set(BOOTLOADER_VERSION_FULL ${BOOTLOADER_VERSION})
 if(NOT BOOTLOADER_VERSION STREQUAL GIT_BOOTLOADER_VERSION_STRING)
@@ -159,6 +175,12 @@ list(GET VERSION_LIST 1 MINOR)
 list(GET VERSION_LIST 2 PATCH)
 string(REPLACE "v" "" MAJOR ${vMAJOR})
 
+string(REPLACE "." ";" VERSION_LIST ${FIRMWARE_BTC_ONLY_VERSION})
+list(GET VERSION_LIST 0 vMAJOR)
+list(GET VERSION_LIST 1 MINOR_BTC_ONLY)
+list(GET VERSION_LIST 2 PATCH_BTC_ONLY)
+string(REPLACE "v" "" MAJOR_BTC_ONLY ${vMAJOR})
+
 string(LENGTH ${BOOTLOADER_VERSION_FULL} BOOTLOADER_VERSION_FULL_LEN)
 string(REGEX REPLACE "(.)" "'\\1', 0, " BOOTLOADER_VERSION_FULL_W16 ${BOOTLOADER_VERSION_FULL})
 
@@ -167,6 +189,12 @@ string(REGEX REPLACE "(.)" "'\\1', 0, " FIRMWARE_VERSION_FULL_W16 ${FIRMWARE_VER
 set(FIRMWARE_VERSION_MAJOR ${MAJOR})
 set(FIRMWARE_VERSION_MINOR ${MINOR})
 set(FIRMWARE_VERSION_PATCH ${PATCH})
+
+string(LENGTH ${FIRMWARE_BTC_ONLY_VERSION_FULL} FIRMWARE_BTC_ONLY_VERSION_FULL_LEN)
+string(REGEX REPLACE "(.)" "'\\1', 0, " FIRMWARE_BTC_ONLY_VERSION_FULL_W16 ${FIRMWARE_BTC_ONLY_VERSION_FULL})
+set(FIRMWARE_BTC_ONLY_VERSION_MAJOR ${MAJOR_BTC_ONLY})
+set(FIRMWARE_BTC_ONLY_VERSION_MINOR ${MINOR_BTC_ONLY})
+set(FIRMWARE_BTC_ONLY_VERSION_PATCH ${PATCH_BTC_ONLY})
 
 configure_file(src/version.h.in src/version.h)
 configure_file(src/bootloader/bootloader_version.h.in src/bootloader/bootloader_version.h)
@@ -208,8 +236,10 @@ execute_process(
 message(STATUS "\n\n=============================================")
 message(STATUS "            - General -")
 message(STATUS "Firmware version:       ${FIRMWARE_VERSION_FULL}")
+message(STATUS "Firmware (btc) version: ${FIRMWARE_BTC_ONLY_VERSION_FULL}")
 message(STATUS "Bootloader version:     ${BOOTLOADER_VERSION_FULL}")
 message(STATUS "Firmware v. (git):      ${GIT_FIRMWARE_VERSION_STRING}")
+message(STATUS "Firmware-btc v. (git):  ${GIT_FIRMWARE_BTC_ONLY_VERSION_STRING}")
 message(STATUS "Bootloader v. (git):    ${GIT_BOOTLOADER_VERSION_STRING}")
 message(STATUS "CMake version:          ${CMAKE_VERSION}")
 message(STATUS "System:                 ${CMAKE_SYSTEM}")

@@ -112,3 +112,9 @@ set_property(TARGET wallycore
 add_library(secp256k1 STATIC IMPORTED GLOBAL)
 set_property(TARGET secp256k1
   PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libsecp256k1.a)
+
+if(CMAKE_CROSSCOMPILING)
+  # Cortex Microcontroller Software Interface Standard
+  add_library(CMSIS INTERFACE)
+  target_include_directories(CMSIS SYSTEM INTERFACE CMSIS/Include)
+endif()

@@ -25,7 +25,7 @@
 // <i> This defines the clock source for generic clock generator 0
 // <id> gclk_gen_0_oscillator
 #ifndef CONF_GCLK_GEN_0_SOURCE
-#define CONF_GCLK_GEN_0_SOURCE GCLK_GENCTRL_SRC_DPLL1
+#define CONF_GCLK_GEN_0_SOURCE GCLK_GENCTRL_SRC_DFLL
 #endif
 
 // <q> Run in Standby
@@ -150,7 +150,7 @@
 //<o> Generic clock generator 1 division <0x0000-0xFFFF>
 // <id> gclk_gen_1_div
 #ifndef CONF_GCLK_GEN_1_DIV
-#define CONF_GCLK_GEN_1_DIV 24
+#define CONF_GCLK_GEN_1_DIV 6
 #endif
 // </h>
 // </e>
@@ -159,7 +159,7 @@
 // <i> Indicates whether generic clock 2 configuration is enabled or not
 // <id> enable_gclk_gen_2
 #ifndef CONF_GCLK_GENERATOR_2_CONFIG
-#define CONF_GCLK_GENERATOR_2_CONFIG 1
+#define CONF_GCLK_GENERATOR_2_CONFIG 0
 #endif
 
 // <h> Generic Clock Generator Control
@@ -176,7 +176,7 @@
 // <i> This defines the clock source for generic clock generator 2
 // <id> gclk_gen_2_oscillator
 #ifndef CONF_GCLK_GEN_2_SOURCE
-#define CONF_GCLK_GEN_2_SOURCE GCLK_GENCTRL_SRC_DFLL
+#define CONF_GCLK_GEN_2_SOURCE GCLK_GENCTRL_SRC_XOSC1
 #endif
 
 // <q> Run in Standby
@@ -190,7 +190,7 @@
 // <i> Indicates whether Divide Selection is enabled or not
 //<id> gclk_gen_2_div_sel
 #ifndef CONF_GCLK_GEN_2_DIVSEL
-#define CONF_GCLK_GEN_2_DIVSEL 0
+#define CONF_GCLK_GEN_2_DIVSEL 1
 #endif
 
 // <q> Output Enable
@@ -218,7 +218,7 @@
 // <i> Indicates whether Generic Clock Generator Enable is enabled or not
 // <id> gclk_arch_gen_2_enable
 #ifndef CONF_GCLK_GEN_2_GENEN
-#define CONF_GCLK_GEN_2_GENEN 1
+#define CONF_GCLK_GEN_2_GENEN 0
 #endif
 // </h>
 
@@ -226,7 +226,7 @@
 //<o> Generic clock generator 2 division <0x0000-0xFFFF>
 // <id> gclk_gen_2_div
 #ifndef CONF_GCLK_GEN_2_DIV
-#define CONF_GCLK_GEN_2_DIV 4
+#define CONF_GCLK_GEN_2_DIV 1
 #endif
 // </h>
 // </e>
@@ -252,7 +252,7 @@
 // <i> This defines the clock source for generic clock generator 3
 // <id> gclk_gen_3_oscillator
 #ifndef CONF_GCLK_GEN_3_SOURCE
-#define CONF_GCLK_GEN_3_SOURCE GCLK_GENCTRL_SRC_DFLL
+#define CONF_GCLK_GEN_3_SOURCE GCLK_GENCTRL_SRC_OSCULP32K
 #endif
 
 // <q> Run in Standby
@@ -311,7 +311,7 @@
 // <i> Indicates whether generic clock 4 configuration is enabled or not
 // <id> enable_gclk_gen_4
 #ifndef CONF_GCLK_GENERATOR_4_CONFIG
-#define CONF_GCLK_GENERATOR_4_CONFIG 1
+#define CONF_GCLK_GENERATOR_4_CONFIG 0
 #endif
 
 // <h> Generic Clock Generator Control
@@ -328,7 +328,7 @@
 // <i> This defines the clock source for generic clock generator 4
 // <id> gclk_gen_4_oscillator
 #ifndef CONF_GCLK_GEN_4_SOURCE
-#define CONF_GCLK_GEN_4_SOURCE GCLK_GENCTRL_SRC_OSCULP32K
+#define CONF_GCLK_GEN_4_SOURCE GCLK_GENCTRL_SRC_XOSC1
 #endif
 
 // <q> Run in Standby
@@ -370,7 +370,7 @@
 // <i> Indicates whether Generic Clock Generator Enable is enabled or not
 // <id> gclk_arch_gen_4_enable
 #ifndef CONF_GCLK_GEN_4_GENEN
-#define CONF_GCLK_GEN_4_GENEN 1
+#define CONF_GCLK_GEN_4_GENEN 0
 #endif
 // </h>
 
@@ -404,7 +404,7 @@
 // <i> This defines the clock source for generic clock generator 5
 // <id> gclk_gen_5_oscillator
 #ifndef CONF_GCLK_GEN_5_SOURCE
-#define CONF_GCLK_GEN_5_SOURCE GCLK_GENCTRL_SRC_GCLKGEN1
+#define CONF_GCLK_GEN_5_SOURCE GCLK_GENCTRL_SRC_XOSC1
 #endif
 
 // <q> Run in Standby
@@ -454,7 +454,7 @@
 //<o> Generic clock generator 5 division <0x0000-0xFFFF>
 // <id> gclk_gen_5_div
 #ifndef CONF_GCLK_GEN_5_DIV
-#define CONF_GCLK_GEN_5_DIV 62
+#define CONF_GCLK_GEN_5_DIV 1
 #endif
 // </h>
 // </e>
@@ -530,7 +530,7 @@
 //<o> Generic clock generator 6 division <0x0000-0xFFFF>
 // <id> gclk_gen_6_div
 #ifndef CONF_GCLK_GEN_6_DIV
-#define CONF_GCLK_GEN_6_DIV 400
+#define CONF_GCLK_GEN_6_DIV 1
 #endif
 // </h>
 // </e>
@@ -570,7 +570,7 @@
 // <i> Indicates whether Divide Selection is enabled or not
 //<id> gclk_gen_7_div_sel
 #ifndef CONF_GCLK_GEN_7_DIVSEL
-#define CONF_GCLK_GEN_7_DIVSEL 1
+#define CONF_GCLK_GEN_7_DIVSEL 0
 #endif
 
 // <q> Output Enable
@@ -606,7 +606,7 @@
 //<o> Generic clock generator 7 division <0x0000-0xFFFF>
 // <id> gclk_gen_7_div
 #ifndef CONF_GCLK_GEN_7_DIV
-#define CONF_GCLK_GEN_7_DIV 4
+#define CONF_GCLK_GEN_7_DIV 1
 #endif
 // </h>
 // </e>
@@ -910,7 +910,7 @@
 //<o> Generic clock generator 11 division <0x0000-0xFFFF>
 // <id> gclk_gen_11_div
 #ifndef CONF_GCLK_GEN_11_DIV
-#define CONF_GCLK_GEN_11_DIV 255
+#define CONF_GCLK_GEN_11_DIV 1
 #endif
 // </h>
 // </e>

@@ -3,7 +3,7 @@ Filename : qtm_common_components_api.h
 Project : QTouch Modular Library
 Purpose : Stucts and definitions for use within modules
 ------------------------------------------------------------------------------
-Copyright (c) 2017 Microchip /Atmel. All rights reserved.
+Copyright (C) 2019 Microchip /Atmel. All rights reserved.
 ------------------------------------------------------------------------------
 ============================================================================*/
 

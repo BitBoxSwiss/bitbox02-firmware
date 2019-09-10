@@ -59,6 +59,7 @@
 #include "CryptoLib_Smult_pb.h"
 #include "CryptoLib_Square_pb.h"
 #include "CryptoLib_Swap_pb.h"
+#include "CryptoLib_JumpTable_pb.h"
 
 /* Include headers for ECC */
 #include "CryptoLib_ZpEccAdd_pb.h"
@@ -116,7 +117,7 @@ typedef struct _PUKCL_param {
 		_PUKCL_SQUARE     PUKCL_Square;
 		_PUKCL_SWAP       PUKCL_Swap;
 
-		// ECC
+		/* ECC on Prime Field */
 		_PUKCL_ZPECCADD                   PUKCL_ZpEccAdd;
 		_PUKCL_ZPECCDBL                   PUKCL_ZpEccDbl;
 		_PUKCL_ZPECCADDSUB                PUKCL_ZpEccAddSub;
@@ -130,7 +131,7 @@ typedef struct _PUKCL_param {
 		_PUKCL_ZPECRANDOMIZECOORDINATE    PUKCL_ZpEcRandomiseCoordinate;
 		_PUKCL_ZPECPOINTISONCURVE         PUKCL_ZpEcPointIsOnCurve;
 
-		// ECC
+		/* ECC on Binary Field */
 		_PUKCL_GF2NECCADD                   PUKCL_GF2NEccAdd;
 		_PUKCL_GF2NECCDBL                   PUKCL_GF2NEccDbl;
 		_PUKCL_GF2NECCMUL                   PUKCL_GF2NEccMul;
@@ -142,14 +143,9 @@ typedef struct _PUKCL_param {
 		_PUKCL_GF2NECPOINTISONCURVE         PUKCL_GF2NEcPointIsOnCurve;
 
 	} P;
-} PUKCL_PARAM, *PPUKCL_PARAM, *PFPUKCL_PARAM;
+} PUKCL_PARAM, *PFPUKCL_PARAM;
 
-
-/* Include the services headers that require defining PUKCL_PARAM */
-#include "CryptoLib_JumpTable_pb.h"
-
-
-// PUKCL helpers
+/* PUKCL helpers */
 #define DEF_PARAM pvoid pvPUKCLParam
 #define GET_PARAM()
 #define USE_PARAM (PPUKCL_PARAM) pvPUKCLParam
@@ -197,17 +193,18 @@ typedef struct _PUKCL_param {
 #define PUKCL_GF2NEcRandomiseCoordinate(a) (USE_PARAM)->P.PUKCL_GF2NEcRandomiseCoordinate.a
 #define PUKCL_GF2NEcPointIsOnCurve(a) (USE_PARAM)->P.PUKCL_GF2NEcPointIsOnCurve.a
 
-// Services options helpers
+/* Services options helpers */
 #define MULTIPLIEROPTION_MASK 0x0003
 #define CARRYOPTION_MASK 0x00fc
 #define REDUCTIONOPTION_MASK 0xff00
 
-// Common carry options to all services supporting arithmetic operations
-// These two definitions are internal only
+/* Common carry options to all services supporting arithmetic operations
+ * These two definitions are internal only
+ */
 #define FORCE_CARRYIN 0x10
 #define FORCE_NOCARRYIN 0x08
 
-// These definitions are available for final user use
+/* These definitions are available for final user use */
 #define MISC_COMMAND 0x00
 #define ADD_CARRY 0x01
 #define SUB_CARRY 0x02
@@ -218,24 +215,24 @@ typedef struct _PUKCL_param {
 #define SUB_1 SUB_CARRY | FORCE_CARRYIN
 #define ADD_2 ADD_1_PLUS_CARRY | FORCE_CARRYIN
 
-// Common multiplier options to all services supporting arithmetic operations
+/* Common multiplier options to all services supporting arithmetic operations */
 #define MULT_ONLY 0x01
 #define MULT_ADD 0x02
 #define MULT_SUB 0x03
 
-// Macro enabling to have access to the Carry Options
+/* Macro enabling to have access to the Carry Options */
 #define CARRYOPTION() ((PUKCL(u2Option) & CARRYOPTION_MASK) >> 2)
 #define SET_CARRYOPTION(a) (u2)((a) << 2)
 
-// Macro enabling to have access to the Multiplier Options
+/* Macro enabling to have access to the Multiplier Options */
 #define MULTIPLIEROPTION() (PUKCL(u2Option) & MULTIPLIEROPTION_MASK)
 #define SET_MULTIPLIEROPTION(a) (u2)(a)
 
-// Macro enabling to have access to the Multiplier Options
+/* Macro enabling to have access to the Multiplier Options */
 #define REDUCTIONOPTION() ((PUKCL(u2Option) & REDUCTIONOPTION_MASK) >> 8)
 #define SET_REDUCTIONOPTION(a) (u2)((a) << 8)
 
-// Calling a cryptographic service
+/* Calling a cryptographic service */
 #define vPUKCL_Process(a, b)                                                                                           \
 	{                                                                                                                  \
 		b->PUKCL_Header.u1Service = PUKCL_SERVICE_##a;                                                                 \

@@ -3,45 +3,35 @@
  *
  * \brief SD/MMC protocol definitions.
  *
- * Copyright (c) 2014-2016 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2014-2018 Microchip Technology Inc. and its subsidiaries.
  *
  * \asf_license_start
  *
  * \page License
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * Subject to your compliance with these terms, you may use Microchip
+ * software and any derivatives exclusively with Microchip products.
+ * It is your responsibility to comply with third party license terms applicable
+ * to your use of third party software (including open source software) that
+ * may accompany Microchip software.
  *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. The name of Atmel may not be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * 4. This software may only be redistributed and used in connection with an
- *    Atmel microcontroller product.
- *
- * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
- * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES,
+ * WHETHER EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE,
+ * INCLUDING ANY IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY,
+ * AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT WILL MICROCHIP BE
+ * LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE, INCIDENTAL OR CONSEQUENTIAL
+ * LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND WHATSOEVER RELATED TO THE
+ * SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS BEEN ADVISED OF THE
+ * POSSIBILITY OR THE DAMAGES ARE FORESEEABLE.  TO THE FULLEST EXTENT
+ * ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN ANY WAY
+ * RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
+ * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
  *
  * \asf_license_stop
  *
  */
 /*
- * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
+ * Support and FAQ: visit <a href="https://www.microchip.com/support/">Microchip Support</a>
  */
 
 #ifndef SD_MMC_PROTOCOL_H_INCLUDED
@@ -736,15 +726,15 @@ static inline uint32_t SDMMC_UNSTUFF_BITS(uint8_t *reg, uint16_t reg_size, uint1
 	if (((pos % 8) + size) > 16) {
 		value |= (uint32_t)reg[((reg_size - pos + 7) / 8) - 3] << (16 - (pos % 8));
 	}
-	if (((pos % 8) + size) > 16) {
-		value |= (uint32_t)reg[((reg_size - pos + 7) / 8) - 3] << (16 - (pos % 8));
+	if (((pos % 8) + size) > 24) {
+		value |= (uint32_t)reg[((reg_size - pos + 7) / 8) - 3] << (24 - (pos % 8));
 	}
 	value &= ((uint32_t)1 << size) - 1;
 	return value;
 }
 
-//! \name CSD Fields
-//! @{
+	//! \name CSD Fields
+	//! @{
 #define CSD_REG_BIT_SIZE 128                 //!< 128 bits
 #define CSD_REG_BSIZE (CSD_REG_BIT_SIZE / 8) //!< 16 bytes
 #define CSD_STRUCTURE(csd, pos, size) SDMMC_UNSTUFF_BITS(csd, CSD_REG_BIT_SIZE, pos, size)
@@ -763,10 +753,10 @@ static inline uint32_t SDMMC_UNSTUFF_BITS(uint8_t *reg, uint16_t reg_size, uint1
 #define MMC_CSD_C_SIZE_MULT(csd) CSD_STRUCTURE(csd, 47, 3)
 #define MMC_CSD_READ_BL_LEN(csd) CSD_STRUCTURE(csd, 80, 4)
 #define MMC_CSD_SPEC_VERS(csd) CSD_STRUCTURE(csd, 122, 4)
-//! @}
+	//! @}
 
-//! \name OCR Register Fields
-//! @{
+	//! \name OCR Register Fields
+	//! @{
 #define OCR_REG_BSIZE (32 / 8) /**< 32 bits, 4 bytes */
 #define OCR_VDD_170_195 (1lu << 7)
 #define OCR_VDD_20_21 (1lu << 8)
@@ -793,10 +783,10 @@ static inline uint32_t SDMMC_UNSTUFF_BITS(uint8_t *reg, uint16_t reg_size, uint1
 #define OCR_ACCESS_MODE_SECTOR (2lu << 29) /**< (MMC) Sector access mode */
 #define OCR_CCS (1lu << 30)                /**< (SD) Card Capacity Status */
 #define OCR_POWER_UP_BUSY (1lu << 31)      /**< Card power up status bit */
-                                           //! @}
+	                                       //! @}
 
-//! \name SD SCR Register Fields
-//! @{
+	//! \name SD SCR Register Fields
+	//! @{
 #define SD_SCR_REG_BIT_SIZE 64                     //!< 64 bits
 #define SD_SCR_REG_BSIZE (SD_SCR_REG_BIT_SIZE / 8) //!< 8 bytes
 #define SD_SCR_STRUCTURE(scr, pos, size) SDMMC_UNSTUFF_BITS(scr, SD_SCR_REG_BIT_SIZE, pos, size)
@@ -820,10 +810,10 @@ static inline uint32_t SDMMC_UNSTUFF_BITS(uint8_t *reg, uint16_t reg_size, uint1
 #define SD_SCR_SD_SPEC_3_00 1
 #define SD_SCR_SD_EX_SECURITY(scr) SD_SCR_STRUCTURE(scr, 43, 4)
 #define SD_SCR_SD_CMD_SUPPORT(scr) SD_SCR_STRUCTURE(scr, 32, 2)
-//! @}
+	//! @}
 
-//! \name SD Switch Status Fields
-//! @{
+	//! \name SD Switch Status Fields
+	//! @{
 #define SD_SW_STATUS_BIT_SIZE 512                      //!< 512 bits
 #define SD_SW_STATUS_BSIZE (SD_SW_STATUS_BIT_SIZE / 8) //!< 64 bytes
 #define SD_SW_STATUS_STRUCTURE(sd_sw_status, pos, size)                                                                \
@@ -849,10 +839,10 @@ static inline uint32_t SDMMC_UNSTUFF_BITS(uint8_t *reg, uint16_t reg_size, uint1
 #define SD_SW_STATUS_FUN_GRP3_BUSY(status) SD_SW_STATUS_STRUCTURE(status, 304, 16)
 #define SD_SW_STATUS_FUN_GRP2_BUSY(status) SD_SW_STATUS_STRUCTURE(status, 288, 16)
 #define SD_SW_STATUS_FUN_GRP1_BUSY(status) SD_SW_STATUS_STRUCTURE(status, 272, 16)
-//! @}
+	//! @}
 
-//! \name Card Status Fields
-//! @{
+	//! \name Card Status Fields
+	//! @{
 #define CARD_STATUS_APP_CMD (1lu << 5)
 #define CARD_STATUS_SWITCH_ERROR (1lu << 7)
 #define CARD_STATUS_READY_FOR_DATA (1lu << 8)
@@ -887,19 +877,16 @@ static inline uint32_t SDMMC_UNSTUFF_BITS(uint8_t *reg, uint16_t reg_size, uint1
 
 #define CARD_STATUS_ERR_RD_WR                                                                                          \
 	(CARD_STATUS_ADDR_OUT_OF_RANGE | CARD_STATUS_ADDRESS_MISALIGN | CARD_STATUS_BLOCK_LEN_ERROR                        \
-	 | CARD_STATUS_WP_VIOLATION                                                                                        \
-	 | CARD_STATUS_ILLEGAL_COMMAND                                                                                     \
-	 | CARD_STATUS_CC_ERROR                                                                                            \
-	 | CARD_STATUS_ERROR)
-//! @}
+	 | CARD_STATUS_WP_VIOLATION | CARD_STATUS_ILLEGAL_COMMAND | CARD_STATUS_CC_ERROR | CARD_STATUS_ERROR)
+	//! @}
 
-//! \name SD Status Field
-//! @{
+	//! \name SD Status Field
+	//! @{
 #define SD_STATUS_BSIZE (512 / 8) /**< 512 bits, 64bytes */
-                                  //! @}
+	                              //! @}
 
-//! \name MMC Extended CSD Register Field
-//! @{
+	//! \name MMC Extended CSD Register Field
+	//! @{
 #define EXT_CSD_BSIZE 512 /**< 512 bytes. */
 /* Below belongs to Properties Segment */
 #define EXT_CSD_S_CMD_SET_INDEX 504lu
@@ -941,7 +928,7 @@ static inline uint32_t SDMMC_UNSTUFF_BITS(uint8_t *reg, uint16_t reg_size, uint1
 #define EXT_CSD_BOOT_CONFIG_INDEX 179lu
 #define EXT_CSD_BOOT_BUS_WIDTH_INDEX 177lu
 #define EXT_CSD_ERASE_GROUP_DEF_INDEX 175lu
-//! @}
+	//! @}
 //! @}
 
 //! \name Definition for SPI mode only
@@ -990,9 +977,9 @@ static inline uint32_t SDMMC_UNSTUFF_BITS(uint8_t *reg, uint16_t reg_size, uint1
 #define SPI_TOKEN_DATA_ERROR_CC_ERROR (1lu << 1)
 #define SPI_TOKEN_DATA_ERROR_ECC_ERROR (1lu << 2)
 #define SPI_TOKEN_DATA_ERROR_OUT_RANGE (1lu << 3)
-//! @}
-//! \name Tokens used for a write operation
-//! @{
+	//! @}
+	//! \name Tokens used for a write operation
+	//! @{
 #define SPI_TOKEN_SINGLE_WRITE 0xFE
 #define SPI_TOKEN_MULTI_WRITE 0xFC
 #define SPI_TOKEN_STOP_TRAN 0xFD
@@ -1001,11 +988,11 @@ static inline uint32_t SDMMC_UNSTUFF_BITS(uint8_t *reg, uint16_t reg_size, uint1
 #define SPI_TOKEN_DATA_RESP_ACCEPTED (2lu << 1)
 #define SPI_TOKEN_DATA_RESP_CRC_ERR (5lu << 1)
 #define SPI_TOKEN_DATA_RESP_WRITE_ERR (6lu << 1)
-//! @}
-//! @}
-//! @}
+	//! @}
+	//! @}
+	//! @}
 
-//! @} end of sd_mmc_protocol
+	//! @} end of sd_mmc_protocol
 
 #ifdef __cplusplus
 }

@@ -3,39 +3,29 @@
  *
  * \brief Core related functionality implementation.
  *
- * Copyright (C) 2016 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2016-2018 Microchip Technology Inc. and its subsidiaries.
  *
  * \asf_license_start
  *
  * \page License
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * Subject to your compliance with these terms, you may use Microchip
+ * software and any derivatives exclusively with Microchip products.
+ * It is your responsibility to comply with third party license terms applicable
+ * to your use of third party software (including open source software) that
+ * may accompany Microchip software.
  *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. The name of Atmel may not be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * 4. This software may only be redistributed and used in connection with an
- *    Atmel microcontroller product.
- *
- * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
- * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES,
+ * WHETHER EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE,
+ * INCLUDING ANY IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY,
+ * AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT WILL MICROCHIP BE
+ * LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE, INCIDENTAL OR CONSEQUENTIAL
+ * LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND WHATSOEVER RELATED TO THE
+ * SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS BEEN ADVISED OF THE
+ * POSSIBILITY OR THE DAMAGES ARE FORESEEABLE.  TO THE FULLEST EXTENT
+ * ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN ANY WAY
+ * RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
+ * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
  *
  * \asf_license_stop
  *
@@ -43,9 +33,6 @@
 
 #include <hpl_core.h>
 #include <hpl_irq.h>
-#include <hpl_delay.h>
-#include <hpl_reset.h>
-#include <hpl_sleep.h>
 #ifndef _UNIT_TEST_
 #include <utils.h>
 #endif
@@ -147,13 +134,11 @@ void _irq_register(const uint8_t n, struct _irq_descriptor *const irq)
 /**
  * \brief Default interrupt handler for unused IRQs.
  */
-/*
 void Default_Handler(void)
 {
 	while (1) {
 	}
 }
-*/
 
 /**
  * \brief Retrieve the amount of cycles to delay for the given amount of us
@@ -162,19 +147,19 @@ static inline uint32_t _get_cycles_for_us_internal(const uint16_t us, const uint
 {
 	switch (power) {
 	case 9:
-		return (us * (freq / 1000000) - 1) + 1;
+		return (us * (freq / 1000000) + 2) / 3;
 	case 8:
-		return (us * (freq / 100000) - 1) / 10 + 1;
+		return (us * (freq / 100000) + 29) / 30;
 	case 7:
-		return (us * (freq / 10000) - 1) / 100 + 1;
+		return (us * (freq / 10000) + 299) / 300;
 	case 6:
-		return (us * (freq / 1000) - 1) / 1000 + 1;
+		return (us * (freq / 1000) + 2999) / 3000;
 	case 5:
-		return (us * (freq / 100) - 1) / 10000 + 1;
+		return (us * (freq / 100) + 29999) / 30000;
 	case 4:
-		return (us * (freq / 10) - 1) / 100000 + 1;
+		return (us * (freq / 10) + 299999) / 300000;
 	default:
-		return (us * freq - 1) / 1000000 + 1;
+		return (us * freq + 2999999) / 3000000;
 	}
 }
 
@@ -193,19 +178,19 @@ static inline uint32_t _get_cycles_for_ms_internal(const uint16_t ms, const uint
 {
 	switch (power) {
 	case 9:
-		return (ms * (freq / 1000000)) * 1000;
+		return (ms * (freq / 1000000) + 2) / 3 * 1000;
 	case 8:
-		return (ms * (freq / 100000)) * 100;
+		return (ms * (freq / 100000) + 2) / 3 * 100;
 	case 7:
-		return (ms * (freq / 10000)) * 10;
+		return (ms * (freq / 10000) + 2) / 3 * 10;
 	case 6:
-		return (ms * (freq / 1000));
+		return (ms * (freq / 1000) + 2) / 3;
 	case 5:
-		return (ms * (freq / 100) - 1) / 10 + 1;
+		return (ms * (freq / 100) + 29) / 30;
 	case 4:
-		return (ms * (freq / 10) - 1) / 100 + 1;
+		return (ms * (freq / 10) + 299) / 300;
 	default:
-		return (ms * freq - 1) / 1000 + 1;
+		return (ms * (freq / 1) + 2999) / 3000;
 	}
 }
 
@@ -215,4 +200,42 @@ static inline uint32_t _get_cycles_for_ms_internal(const uint16_t ms, const uint
 uint32_t _get_cycles_for_ms(const uint16_t ms)
 {
 	return _get_cycles_for_ms_internal(ms, CONF_CPU_FREQUENCY, CPU_FREQ_POWER);
+}
+/**
+ * \brief Initialize delay functionality
+ */
+void _delay_init(void *const hw)
+{
+	(void)hw;
+}
+/**
+ * \brief Delay loop to delay n number of cycles
+ */
+void _delay_cycles(void *const hw, uint32_t cycles)
+{
+#ifndef _UNIT_TEST_
+	(void)hw;
+	(void)cycles;
+#if defined(__GNUC__) && (__ARMCOMPILER_VERSION > 6000000) /*  Keil MDK with ARM Compiler 6 */
+	__asm(".align 3 \n"
+	      "__delay:\n"
+	      "subs r1, r1, #1\n"
+	      "bhi __delay\n");
+#elif defined __GNUC__
+	__asm(".syntax unified\n"
+	      ".align 3 \n"
+	      "__delay:\n"
+	      "subs r1, r1, #1\n"
+	      "bhi __delay\n"
+	      ".syntax divided");
+#elif defined __CC_ARM
+	__asm("__delay:\n"
+	      "subs cycles, cycles, #1\n"
+	      "bhi __delay\n");
+#elif defined __ICCARM__
+	__asm("__delay:\n"
+	      "subs r1, r1, #1\n"
+	      "bhi.n __delay\n");
+#endif
+#endif
 }

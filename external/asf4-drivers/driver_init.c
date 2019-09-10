@@ -1,356 +1,676 @@
-// Copyright 2019 Shift Cryptosecurity AG
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * Code generated from Atmel Start.
+ *
+ * This file will be overwritten when reconfiguring your Atmel Start project.
+ * Please copy examples or other code you want to keep to a separate file
+ * to avoid losing it when reconfiguring.
+ */
 
 #include "driver_init.h"
+#include <peripheral_clk_config.h>
 #include <utils.h>
+#include <hal_init.h>
 
-#define PIN_HIGH 1
-#define PIN_LOW  0
+#include <hpl_rtc_base.h>
 
-struct sha_sync_descriptor HASH_ALGORITHM_0;
-struct timer_descriptor TIMER_0;
+/*! The buffer size for USART */
+#define USART_BUFFER_SIZE 16
+
+PPUKCL_PARAM                  pvPUKCLParam;
+PUKCL_PARAM                   PUKCLParam;
+struct timer_descriptor       Timer;
+struct usart_async_descriptor USART;
+struct spi_m_sync_descriptor  SPI_0;
+
+static uint8_t USART_buffer[USART_BUFFER_SIZE];
+
 struct flash_descriptor FLASH_0;
-struct i2c_m_sync_desc I2C_0;
-struct mci_sync_desc MCI_0;
-struct rand_sync_desc RAND_0;
-PPUKCL_PARAM pvPUKCLParam;
-PUKCL_PARAM PUKCLParam;
 
-bool _is_initialized = false;
+struct usart_sync_descriptor USART_0;
+
+struct i2c_m_sync_desc I2C_0;
+
+struct mci_sync_desc MCI_0;
+
+struct rand_sync_desc RAND_0;
 
 /**
+ * \brief PTC initialization function
+ *
  * Enables PTC peripheral, clocks and initializes PTC driver
  */
-static void _ptc_clock_init(void)
+static void PTC_clock_init(void)
 {
-    hri_mclk_set_APBDMASK_ADC0_bit(MCLK);
-    hri_gclk_write_PCHCTRL_reg(GCLK, ADC0_GCLK_ID, CONF_GCLK_ADC0_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+	hri_mclk_set_APBDMASK_ADC0_bit(MCLK);
+	hri_gclk_write_PCHCTRL_reg(GCLK, ADC0_GCLK_ID, CONF_GCLK_ADC0_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+}
+
+void FLASH_0_CLOCK_init(void)
+{
+
+	hri_mclk_set_AHBMASK_NVMCTRL_bit(MCLK);
+}
+
+void FLASH_0_init(void)
+{
+	FLASH_0_CLOCK_init();
+	flash_init(&FLASH_0, NVMCTRL);
 }
 
 /**
+ * \brief PUKCC initialization function
+ *
  * Enables PUKCC peripheral, clocks and initializes PUKCC driver
- * for hardware ECDSA
  */
-static void _ecdsa_init(void)
+void CRYPTOGRAPHY_0_init(void)
 {
-    hri_mclk_set_AHBMASK_PUKCC_bit(MCLK);
+	hri_mclk_set_AHBMASK_PUKCC_bit(MCLK);
 }
 
 /**
- * Enables SHA peripheral, clocks and initializes SHA driver
- * for hardware hash function
- */
-static void _sha_init(void)
-{
-    hri_mclk_set_AHBMASK_ICM_bit(MCLK);
-    hri_mclk_set_APBCMASK_ICM_bit(MCLK);
-    sha_sync_init(&HASH_ALGORITHM_0, ICM);
-    sha_sync_enable(&HASH_ALGORITHM_0);
-}
-
-/**
- * Enables FLASH memory access
- */
-static void _flash_memory_init(void)
-{
-    hri_mclk_set_AHBMASK_NVMCTRL_bit(MCLK);
-    flash_init(&FLASH_0, NVMCTRL);
-}
-
-/**
+ * \brief Timer initialization function
+ *
  * Enables Timer peripheral, clocks and initializes Timer driver
  */
-static void _timer_peripheral_init(void)
+static void Timer_init(void)
 {
-    hri_mclk_set_APBAMASK_RTC_bit(MCLK);
-    timer_init(&TIMER_0, RTC, _rtc_get_timer());
+	hri_mclk_set_APBAMASK_RTC_bit(MCLK);
+	timer_init(&Timer, RTC, _rtc_get_timer());
+}
+
+void USART_0_PORT_init(void)
+{
+
+	gpio_set_pin_function(PA04, PINMUX_PA04D_SERCOM0_PAD0);
+
+	gpio_set_pin_function(PA05, PINMUX_PA05D_SERCOM0_PAD1);
+}
+
+void USART_0_CLOCK_init(void)
+{
+	hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM0_GCLK_ID_CORE, CONF_GCLK_SERCOM0_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+	hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM0_GCLK_ID_SLOW, CONF_GCLK_SERCOM0_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+
+	hri_mclk_set_APBAMASK_SERCOM0_bit(MCLK);
+}
+
+void USART_0_init(void)
+{
+	USART_0_CLOCK_init();
+	usart_sync_init(&USART_0, SERCOM0, (void *)NULL);
+	USART_0_PORT_init();
 }
 
 /**
- * Set pins for SPI peripheral
+ * \brief USART Clock initialization function
+ *
+ * Enables register interface and peripheral clock
  */
-static void _spi_set_pins(void)
+void USART_CLOCK_init()
 {
-    // CLK
-    gpio_set_pin_direction(PIN_SPI_CLK, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_SPI_CLK, PIN_LOW);
-    gpio_set_pin_function(PIN_SPI_CLK, PINMUX_PA16D_SERCOM3_PAD1);
-    // MOSI
-    gpio_set_pin_direction(PIN_SPI_MOSI, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_SPI_MOSI, PIN_LOW);
-    gpio_set_pin_function(PIN_SPI_MOSI, PINMUX_PA17D_SERCOM3_PAD0);
-    // MISO
-    gpio_set_pin_direction(PIN_SPI_MISO, GPIO_DIRECTION_IN);
-    gpio_set_pin_pull_mode(PIN_SPI_MISO, GPIO_PULL_OFF);
-    gpio_set_pin_function(PIN_SPI_MISO, PINMUX_PA18D_SERCOM3_PAD2);
+
+	hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM1_GCLK_ID_CORE, CONF_GCLK_SERCOM1_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+	hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM1_GCLK_ID_SLOW, CONF_GCLK_SERCOM1_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+
+	hri_mclk_set_APBAMASK_SERCOM1_bit(MCLK);
 }
 
 /**
- * Initialize SPI peripheral
+ * \brief USART pinmux initialization function
+ *
+ * Set each required pin to USART functionality
  */
-static void _spi_init(void)
+void USART_PORT_init()
 {
-    hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM3_GCLK_ID_CORE, CONF_GCLK_SERCOM3_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
-    hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM3_GCLK_ID_SLOW, CONF_GCLK_SERCOM3_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
-    hri_mclk_set_APBBMASK_SERCOM3_bit(MCLK);
-    SPI_0_init();
-    _spi_set_pins();
-    SPI_0_enable();
-}
 
-#ifndef BOOTLOADER
-/**
- * Set pins for I2C peripheral
- */
-static void _i2c_set_pins(void)
-{
-    // SDA
-    gpio_set_pin_pull_mode(PIN_I2C_SDA,  GPIO_PULL_OFF);
-    gpio_set_pin_function(PIN_I2C_SDA, PINMUX_PA23D_SERCOM5_PAD0);
-    // SCL
-    gpio_set_pin_pull_mode(PIN_I2C_SCL, GPIO_PULL_OFF);
-    gpio_set_pin_function(PIN_I2C_SCL, PINMUX_PA22D_SERCOM5_PAD1);
+	gpio_set_pin_function(PA00, PINMUX_PA00D_SERCOM1_PAD0);
+
+	gpio_set_pin_function(PA01, PINMUX_PA01D_SERCOM1_PAD1);
 }
 
 /**
- * Initialize I2C peripheral
+ * \brief USART initialization function
+ *
+ * Enables USART peripheral, clocks and initializes USART driver
  */
-static void _i2c_init(void)
+void USART_init(void)
 {
-    hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM5_GCLK_ID_CORE, CONF_GCLK_SERCOM5_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
-    hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM5_GCLK_ID_SLOW, CONF_GCLK_SERCOM5_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
-    hri_mclk_set_APBDMASK_SERCOM5_bit(MCLK);
-    i2c_m_sync_init(&I2C_0, SERCOM5);
-    _i2c_set_pins();
-    i2c_m_sync_enable(&I2C_0);
+	USART_CLOCK_init();
+	usart_async_init(&USART, SERCOM1, USART_buffer, USART_BUFFER_SIZE, (void *)NULL);
+	USART_PORT_init();
 }
 
-/**
- * Set pins for SD/MMC peripheral
- */
-static void _mci_set_pins(void)
+void SPI_0_PORT_init(void)
 {
-    // CLK
-    gpio_set_pin_direction(PIN_SD_CLK, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_SD_CLK, PIN_LOW);
-    gpio_set_pin_pull_mode(PIN_SD_CLK, GPIO_PULL_OFF);
-    gpio_set_pin_function(PIN_SD_CLK, PINMUX_PB11I_SDHC0_SDCK);
-    // CMD
-    gpio_set_pin_direction(PIN_SD_CMD, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_SD_CMD, PIN_LOW);
-    gpio_set_pin_pull_mode(PIN_SD_CMD, GPIO_PULL_OFF);
-    gpio_set_pin_function(PIN_SD_CMD, PINMUX_PA08I_SDHC0_SDCMD);
-    // DATA0
-    gpio_set_pin_direction(PIN_SD_DATA0,  GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_SD_DATA0, PIN_LOW);
-    gpio_set_pin_pull_mode(PIN_SD_DATA0, GPIO_PULL_OFF);
-    gpio_set_pin_function(PIN_SD_DATA0, PINMUX_PA09I_SDHC0_SDDAT0);
-    // DATA1
-    gpio_set_pin_direction(PIN_SD_DATA1, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_SD_DATA1, PIN_LOW);
-    gpio_set_pin_pull_mode(PIN_SD_DATA1, GPIO_PULL_OFF);
-    gpio_set_pin_function(PIN_SD_DATA1, PINMUX_PA10I_SDHC0_SDDAT1);
-    // DATA2
-    gpio_set_pin_direction(PIN_SD_DATA2, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_SD_DATA2, PIN_LOW);
-    gpio_set_pin_pull_mode(PIN_SD_DATA2, GPIO_PULL_OFF);
-    gpio_set_pin_function(PIN_SD_DATA2, PINMUX_PA11I_SDHC0_SDDAT2);
-    // DATA3
-    gpio_set_pin_direction(PIN_SD_DATA3, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_SD_DATA3, PIN_LOW);
-    gpio_set_pin_pull_mode(PIN_SD_DATA3, GPIO_PULL_OFF);
-    gpio_set_pin_function(PIN_SD_DATA3, PINMUX_PB10I_SDHC0_SDDAT3);
+
+	gpio_set_pin_level(PA17,
+	                   // <y> Initial level
+	                   // <id> pad_initial_level
+	                   // <false"> Low
+	                   // <true"> High
+	                   false);
+
+	// Set pin direction to output
+	gpio_set_pin_direction(PA17, GPIO_DIRECTION_OUT);
+
+	gpio_set_pin_function(PA17, PINMUX_PA17D_SERCOM3_PAD0);
+
+	gpio_set_pin_level(PA16,
+	                   // <y> Initial level
+	                   // <id> pad_initial_level
+	                   // <false"> Low
+	                   // <true"> High
+	                   false);
+
+	// Set pin direction to output
+	gpio_set_pin_direction(PA16, GPIO_DIRECTION_OUT);
+
+	gpio_set_pin_function(PA16, PINMUX_PA16D_SERCOM3_PAD1);
+
+	// Set pin direction to input
+	gpio_set_pin_direction(PA18, GPIO_DIRECTION_IN);
+
+	gpio_set_pin_pull_mode(PA18,
+	                       // <y> Pull configuration
+	                       // <id> pad_pull_config
+	                       // <GPIO_PULL_OFF"> Off
+	                       // <GPIO_PULL_UP"> Pull-up
+	                       // <GPIO_PULL_DOWN"> Pull-down
+	                       GPIO_PULL_OFF);
+
+	gpio_set_pin_function(PA18, PINMUX_PA18D_SERCOM3_PAD2);
 }
 
-/**
- * Initialize SD/MMC peripheral
- */
-
-
-static void _mci_init(void)
+void SPI_0_CLOCK_init(void)
 {
-    hri_mclk_set_AHBMASK_SDHC0_bit(MCLK);
-    hri_gclk_write_PCHCTRL_reg(GCLK, SDHC0_GCLK_ID, CONF_GCLK_SDHC0_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
-    hri_gclk_write_PCHCTRL_reg(GCLK, SDHC0_GCLK_ID_SLOW, CONF_GCLK_SDHC0_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
-    _mci_set_pins();
-}
-#endif
+	hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM3_GCLK_ID_CORE, CONF_GCLK_SERCOM3_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+	hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM3_GCLK_ID_SLOW, CONF_GCLK_SERCOM3_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
 
-/**
- * Initialize delay driver
- */
-static void _delay_driver_init(void)
-{
-    delay_init(SysTick);
+	hri_mclk_set_APBBMASK_SERCOM3_bit(MCLK);
 }
 
-/**
- * Initialize hardware random number generator
- */
-static void _rand_init(void)
+void SPI_0_init(void)
 {
-    hri_mclk_set_APBCMASK_TRNG_bit(MCLK);
-    rand_sync_init(&RAND_0, TRNG);
-    rand_sync_enable(&RAND_0);
+	SPI_0_CLOCK_init();
+	spi_m_sync_init(&SPI_0, SERCOM3);
+	SPI_0_PORT_init();
 }
 
-/**
- * Set pins for USB peripheral
- */
-static void _usb_set_pins(void)
+void I2C_0_PORT_init(void)
 {
-    // DM
-    gpio_set_pin_direction(PIN_USB_DM, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_USB_DM, PIN_LOW);
-    gpio_set_pin_pull_mode(PIN_USB_DM, GPIO_PULL_OFF);
-    gpio_set_pin_function(PIN_USB_DM, PINMUX_PA24H_USB_DM);
-    // DP
-    gpio_set_pin_direction(PIN_USB_DP, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_USB_DP, PIN_LOW);
-    gpio_set_pin_pull_mode(PIN_USB_DP, GPIO_PULL_OFF);
-    gpio_set_pin_function(PIN_USB_DP, PINMUX_PA25H_USB_DP);
+
+	gpio_set_pin_pull_mode(PA23,
+	                       // <y> Pull configuration
+	                       // <id> pad_pull_config
+	                       // <GPIO_PULL_OFF"> Off
+	                       // <GPIO_PULL_UP"> Pull-up
+	                       // <GPIO_PULL_DOWN"> Pull-down
+	                       GPIO_PULL_OFF);
+
+	gpio_set_pin_function(PA23, PINMUX_PA23D_SERCOM5_PAD0);
+
+	gpio_set_pin_pull_mode(PA22,
+	                       // <y> Pull configuration
+	                       // <id> pad_pull_config
+	                       // <GPIO_PULL_OFF"> Off
+	                       // <GPIO_PULL_UP"> Pull-up
+	                       // <GPIO_PULL_DOWN"> Pull-down
+	                       GPIO_PULL_OFF);
+
+	gpio_set_pin_function(PA22, PINMUX_PA22D_SERCOM5_PAD1);
 }
 
-/**
- * The USB module requires a GCLK_USB of 48 MHz ~ 0.25% clock
- * for low speed and full speed operation.
- */
+void I2C_0_CLOCK_init(void)
+{
+	hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM5_GCLK_ID_CORE, CONF_GCLK_SERCOM5_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+	hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM5_GCLK_ID_SLOW, CONF_GCLK_SERCOM5_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+
+	hri_mclk_set_APBDMASK_SERCOM5_bit(MCLK);
+}
+
+void I2C_0_init(void)
+{
+	I2C_0_CLOCK_init();
+	i2c_m_sync_init(&I2C_0, SERCOM5);
+	I2C_0_PORT_init();
+}
+
+void MCI_0_PORT_init(void)
+{
+
+	gpio_set_pin_direction(PB11,
+	                       // <y> Pin direction
+	                       // <id> pad_direction
+	                       // <GPIO_DIRECTION_OFF"> Off
+	                       // <GPIO_DIRECTION_IN"> In
+	                       // <GPIO_DIRECTION_OUT"> Out
+	                       GPIO_DIRECTION_OUT);
+
+	gpio_set_pin_level(PB11,
+	                   // <y> Initial level
+	                   // <id> pad_initial_level
+	                   // <false"> Low
+	                   // <true"> High
+	                   false);
+
+	gpio_set_pin_pull_mode(PB11,
+	                       // <y> Pull configuration
+	                       // <id> pad_pull_config
+	                       // <GPIO_PULL_OFF"> Off
+	                       // <GPIO_PULL_UP"> Pull-up
+	                       // <GPIO_PULL_DOWN"> Pull-down
+	                       GPIO_PULL_OFF);
+
+	gpio_set_pin_function(PB11,
+	                      // <y> Pin function
+	                      // <id> pad_function
+	                      // <i> Auto : use driver pinmux if signal is imported by driver, else turn off function
+	                      // <PINMUX_PB11I_SDHC0_SDCK"> Auto
+	                      // <GPIO_PIN_FUNCTION_OFF"> Off
+	                      // <GPIO_PIN_FUNCTION_A"> A
+	                      // <GPIO_PIN_FUNCTION_B"> B
+	                      // <GPIO_PIN_FUNCTION_C"> C
+	                      // <GPIO_PIN_FUNCTION_D"> D
+	                      // <GPIO_PIN_FUNCTION_E"> E
+	                      // <GPIO_PIN_FUNCTION_F"> F
+	                      // <GPIO_PIN_FUNCTION_G"> G
+	                      // <GPIO_PIN_FUNCTION_H"> H
+	                      // <GPIO_PIN_FUNCTION_I"> I
+	                      // <GPIO_PIN_FUNCTION_J"> J
+	                      // <GPIO_PIN_FUNCTION_K"> K
+	                      // <GPIO_PIN_FUNCTION_L"> L
+	                      // <GPIO_PIN_FUNCTION_M"> M
+	                      // <GPIO_PIN_FUNCTION_N"> N
+	                      PINMUX_PB11I_SDHC0_SDCK);
+
+	gpio_set_pin_direction(PA08,
+	                       // <y> Pin direction
+	                       // <id> pad_direction
+	                       // <GPIO_DIRECTION_OFF"> Off
+	                       // <GPIO_DIRECTION_IN"> In
+	                       // <GPIO_DIRECTION_OUT"> Out
+	                       GPIO_DIRECTION_OUT);
+
+	gpio_set_pin_level(PA08,
+	                   // <y> Initial level
+	                   // <id> pad_initial_level
+	                   // <false"> Low
+	                   // <true"> High
+	                   false);
+
+	gpio_set_pin_pull_mode(PA08,
+	                       // <y> Pull configuration
+	                       // <id> pad_pull_config
+	                       // <GPIO_PULL_OFF"> Off
+	                       // <GPIO_PULL_UP"> Pull-up
+	                       // <GPIO_PULL_DOWN"> Pull-down
+	                       GPIO_PULL_OFF);
+
+	gpio_set_pin_function(PA08,
+	                      // <y> Pin function
+	                      // <id> pad_function
+	                      // <i> Auto : use driver pinmux if signal is imported by driver, else turn off function
+	                      // <PINMUX_PA08I_SDHC0_SDCMD"> Auto
+	                      // <GPIO_PIN_FUNCTION_OFF"> Off
+	                      // <GPIO_PIN_FUNCTION_A"> A
+	                      // <GPIO_PIN_FUNCTION_B"> B
+	                      // <GPIO_PIN_FUNCTION_C"> C
+	                      // <GPIO_PIN_FUNCTION_D"> D
+	                      // <GPIO_PIN_FUNCTION_E"> E
+	                      // <GPIO_PIN_FUNCTION_F"> F
+	                      // <GPIO_PIN_FUNCTION_G"> G
+	                      // <GPIO_PIN_FUNCTION_H"> H
+	                      // <GPIO_PIN_FUNCTION_I"> I
+	                      // <GPIO_PIN_FUNCTION_J"> J
+	                      // <GPIO_PIN_FUNCTION_K"> K
+	                      // <GPIO_PIN_FUNCTION_L"> L
+	                      // <GPIO_PIN_FUNCTION_M"> M
+	                      // <GPIO_PIN_FUNCTION_N"> N
+	                      PINMUX_PA08I_SDHC0_SDCMD);
+
+	gpio_set_pin_direction(PA09,
+	                       // <y> Pin direction
+	                       // <id> pad_direction
+	                       // <GPIO_DIRECTION_OFF"> Off
+	                       // <GPIO_DIRECTION_IN"> In
+	                       // <GPIO_DIRECTION_OUT"> Out
+	                       GPIO_DIRECTION_OUT);
+
+	gpio_set_pin_level(PA09,
+	                   // <y> Initial level
+	                   // <id> pad_initial_level
+	                   // <false"> Low
+	                   // <true"> High
+	                   false);
+
+	gpio_set_pin_pull_mode(PA09,
+	                       // <y> Pull configuration
+	                       // <id> pad_pull_config
+	                       // <GPIO_PULL_OFF"> Off
+	                       // <GPIO_PULL_UP"> Pull-up
+	                       // <GPIO_PULL_DOWN"> Pull-down
+	                       GPIO_PULL_OFF);
+
+	gpio_set_pin_function(PA09,
+	                      // <y> Pin function
+	                      // <id> pad_function
+	                      // <i> Auto : use driver pinmux if signal is imported by driver, else turn off function
+	                      // <PINMUX_PA09I_SDHC0_SDDAT0"> Auto
+	                      // <GPIO_PIN_FUNCTION_OFF"> Off
+	                      // <GPIO_PIN_FUNCTION_A"> A
+	                      // <GPIO_PIN_FUNCTION_B"> B
+	                      // <GPIO_PIN_FUNCTION_C"> C
+	                      // <GPIO_PIN_FUNCTION_D"> D
+	                      // <GPIO_PIN_FUNCTION_E"> E
+	                      // <GPIO_PIN_FUNCTION_F"> F
+	                      // <GPIO_PIN_FUNCTION_G"> G
+	                      // <GPIO_PIN_FUNCTION_H"> H
+	                      // <GPIO_PIN_FUNCTION_I"> I
+	                      // <GPIO_PIN_FUNCTION_J"> J
+	                      // <GPIO_PIN_FUNCTION_K"> K
+	                      // <GPIO_PIN_FUNCTION_L"> L
+	                      // <GPIO_PIN_FUNCTION_M"> M
+	                      // <GPIO_PIN_FUNCTION_N"> N
+	                      PINMUX_PA09I_SDHC0_SDDAT0);
+
+	gpio_set_pin_direction(PA10,
+	                       // <y> Pin direction
+	                       // <id> pad_direction
+	                       // <GPIO_DIRECTION_OFF"> Off
+	                       // <GPIO_DIRECTION_IN"> In
+	                       // <GPIO_DIRECTION_OUT"> Out
+	                       GPIO_DIRECTION_OUT);
+
+	gpio_set_pin_level(PA10,
+	                   // <y> Initial level
+	                   // <id> pad_initial_level
+	                   // <false"> Low
+	                   // <true"> High
+	                   false);
+
+	gpio_set_pin_pull_mode(PA10,
+	                       // <y> Pull configuration
+	                       // <id> pad_pull_config
+	                       // <GPIO_PULL_OFF"> Off
+	                       // <GPIO_PULL_UP"> Pull-up
+	                       // <GPIO_PULL_DOWN"> Pull-down
+	                       GPIO_PULL_OFF);
+
+	gpio_set_pin_function(PA10,
+	                      // <y> Pin function
+	                      // <id> pad_function
+	                      // <i> Auto : use driver pinmux if signal is imported by driver, else turn off function
+	                      // <PINMUX_PA10I_SDHC0_SDDAT1"> Auto
+	                      // <GPIO_PIN_FUNCTION_OFF"> Off
+	                      // <GPIO_PIN_FUNCTION_A"> A
+	                      // <GPIO_PIN_FUNCTION_B"> B
+	                      // <GPIO_PIN_FUNCTION_C"> C
+	                      // <GPIO_PIN_FUNCTION_D"> D
+	                      // <GPIO_PIN_FUNCTION_E"> E
+	                      // <GPIO_PIN_FUNCTION_F"> F
+	                      // <GPIO_PIN_FUNCTION_G"> G
+	                      // <GPIO_PIN_FUNCTION_H"> H
+	                      // <GPIO_PIN_FUNCTION_I"> I
+	                      // <GPIO_PIN_FUNCTION_J"> J
+	                      // <GPIO_PIN_FUNCTION_K"> K
+	                      // <GPIO_PIN_FUNCTION_L"> L
+	                      // <GPIO_PIN_FUNCTION_M"> M
+	                      // <GPIO_PIN_FUNCTION_N"> N
+	                      PINMUX_PA10I_SDHC0_SDDAT1);
+
+	gpio_set_pin_direction(PA11,
+	                       // <y> Pin direction
+	                       // <id> pad_direction
+	                       // <GPIO_DIRECTION_OFF"> Off
+	                       // <GPIO_DIRECTION_IN"> In
+	                       // <GPIO_DIRECTION_OUT"> Out
+	                       GPIO_DIRECTION_OUT);
+
+	gpio_set_pin_level(PA11,
+	                   // <y> Initial level
+	                   // <id> pad_initial_level
+	                   // <false"> Low
+	                   // <true"> High
+	                   false);
+
+	gpio_set_pin_pull_mode(PA11,
+	                       // <y> Pull configuration
+	                       // <id> pad_pull_config
+	                       // <GPIO_PULL_OFF"> Off
+	                       // <GPIO_PULL_UP"> Pull-up
+	                       // <GPIO_PULL_DOWN"> Pull-down
+	                       GPIO_PULL_OFF);
+
+	gpio_set_pin_function(PA11,
+	                      // <y> Pin function
+	                      // <id> pad_function
+	                      // <i> Auto : use driver pinmux if signal is imported by driver, else turn off function
+	                      // <PINMUX_PA11I_SDHC0_SDDAT2"> Auto
+	                      // <GPIO_PIN_FUNCTION_OFF"> Off
+	                      // <GPIO_PIN_FUNCTION_A"> A
+	                      // <GPIO_PIN_FUNCTION_B"> B
+	                      // <GPIO_PIN_FUNCTION_C"> C
+	                      // <GPIO_PIN_FUNCTION_D"> D
+	                      // <GPIO_PIN_FUNCTION_E"> E
+	                      // <GPIO_PIN_FUNCTION_F"> F
+	                      // <GPIO_PIN_FUNCTION_G"> G
+	                      // <GPIO_PIN_FUNCTION_H"> H
+	                      // <GPIO_PIN_FUNCTION_I"> I
+	                      // <GPIO_PIN_FUNCTION_J"> J
+	                      // <GPIO_PIN_FUNCTION_K"> K
+	                      // <GPIO_PIN_FUNCTION_L"> L
+	                      // <GPIO_PIN_FUNCTION_M"> M
+	                      // <GPIO_PIN_FUNCTION_N"> N
+	                      PINMUX_PA11I_SDHC0_SDDAT2);
+
+	gpio_set_pin_direction(PB10,
+	                       // <y> Pin direction
+	                       // <id> pad_direction
+	                       // <GPIO_DIRECTION_OFF"> Off
+	                       // <GPIO_DIRECTION_IN"> In
+	                       // <GPIO_DIRECTION_OUT"> Out
+	                       GPIO_DIRECTION_OUT);
+
+	gpio_set_pin_level(PB10,
+	                   // <y> Initial level
+	                   // <id> pad_initial_level
+	                   // <false"> Low
+	                   // <true"> High
+	                   false);
+
+	gpio_set_pin_pull_mode(PB10,
+	                       // <y> Pull configuration
+	                       // <id> pad_pull_config
+	                       // <GPIO_PULL_OFF"> Off
+	                       // <GPIO_PULL_UP"> Pull-up
+	                       // <GPIO_PULL_DOWN"> Pull-down
+	                       GPIO_PULL_OFF);
+
+	gpio_set_pin_function(PB10,
+	                      // <y> Pin function
+	                      // <id> pad_function
+	                      // <i> Auto : use driver pinmux if signal is imported by driver, else turn off function
+	                      // <PINMUX_PB10I_SDHC0_SDDAT3"> Auto
+	                      // <GPIO_PIN_FUNCTION_OFF"> Off
+	                      // <GPIO_PIN_FUNCTION_A"> A
+	                      // <GPIO_PIN_FUNCTION_B"> B
+	                      // <GPIO_PIN_FUNCTION_C"> C
+	                      // <GPIO_PIN_FUNCTION_D"> D
+	                      // <GPIO_PIN_FUNCTION_E"> E
+	                      // <GPIO_PIN_FUNCTION_F"> F
+	                      // <GPIO_PIN_FUNCTION_G"> G
+	                      // <GPIO_PIN_FUNCTION_H"> H
+	                      // <GPIO_PIN_FUNCTION_I"> I
+	                      // <GPIO_PIN_FUNCTION_J"> J
+	                      // <GPIO_PIN_FUNCTION_K"> K
+	                      // <GPIO_PIN_FUNCTION_L"> L
+	                      // <GPIO_PIN_FUNCTION_M"> M
+	                      // <GPIO_PIN_FUNCTION_N"> N
+	                      PINMUX_PB10I_SDHC0_SDDAT3);
+}
+
+void MCI_0_CLOCK_init(void)
+{
+	hri_mclk_set_AHBMASK_SDHC0_bit(MCLK);
+	hri_gclk_write_PCHCTRL_reg(GCLK, SDHC0_GCLK_ID, CONF_GCLK_SDHC0_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+	hri_gclk_write_PCHCTRL_reg(GCLK, SDHC0_GCLK_ID_SLOW, CONF_GCLK_SDHC0_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+}
+
+void MCI_0_init(void)
+{
+	MCI_0_CLOCK_init();
+	mci_sync_init(&MCI_0, SDHC0);
+	MCI_0_PORT_init();
+}
+
+void RAND_0_CLOCK_init(void)
+{
+	hri_mclk_set_APBCMASK_TRNG_bit(MCLK);
+}
+
+void RAND_0_init(void)
+{
+	RAND_0_CLOCK_init();
+	rand_sync_init(&RAND_0, TRNG);
+}
+
+void USB_0_PORT_init(void)
+{
+
+	gpio_set_pin_direction(PA24,
+	                       // <y> Pin direction
+	                       // <id> pad_direction
+	                       // <GPIO_DIRECTION_OFF"> Off
+	                       // <GPIO_DIRECTION_IN"> In
+	                       // <GPIO_DIRECTION_OUT"> Out
+	                       GPIO_DIRECTION_OUT);
+
+	gpio_set_pin_level(PA24,
+	                   // <y> Initial level
+	                   // <id> pad_initial_level
+	                   // <false"> Low
+	                   // <true"> High
+	                   false);
+
+	gpio_set_pin_pull_mode(PA24,
+	                       // <y> Pull configuration
+	                       // <id> pad_pull_config
+	                       // <GPIO_PULL_OFF"> Off
+	                       // <GPIO_PULL_UP"> Pull-up
+	                       // <GPIO_PULL_DOWN"> Pull-down
+	                       GPIO_PULL_OFF);
+
+	gpio_set_pin_function(PA24,
+	                      // <y> Pin function
+	                      // <id> pad_function
+	                      // <i> Auto : use driver pinmux if signal is imported by driver, else turn off function
+	                      // <PINMUX_PA24H_USB_DM"> Auto
+	                      // <GPIO_PIN_FUNCTION_OFF"> Off
+	                      // <GPIO_PIN_FUNCTION_A"> A
+	                      // <GPIO_PIN_FUNCTION_B"> B
+	                      // <GPIO_PIN_FUNCTION_C"> C
+	                      // <GPIO_PIN_FUNCTION_D"> D
+	                      // <GPIO_PIN_FUNCTION_E"> E
+	                      // <GPIO_PIN_FUNCTION_F"> F
+	                      // <GPIO_PIN_FUNCTION_G"> G
+	                      // <GPIO_PIN_FUNCTION_H"> H
+	                      // <GPIO_PIN_FUNCTION_I"> I
+	                      // <GPIO_PIN_FUNCTION_J"> J
+	                      // <GPIO_PIN_FUNCTION_K"> K
+	                      // <GPIO_PIN_FUNCTION_L"> L
+	                      // <GPIO_PIN_FUNCTION_M"> M
+	                      // <GPIO_PIN_FUNCTION_N"> N
+	                      PINMUX_PA24H_USB_DM);
+
+	gpio_set_pin_direction(PA25,
+	                       // <y> Pin direction
+	                       // <id> pad_direction
+	                       // <GPIO_DIRECTION_OFF"> Off
+	                       // <GPIO_DIRECTION_IN"> In
+	                       // <GPIO_DIRECTION_OUT"> Out
+	                       GPIO_DIRECTION_OUT);
+
+	gpio_set_pin_level(PA25,
+	                   // <y> Initial level
+	                   // <id> pad_initial_level
+	                   // <false"> Low
+	                   // <true"> High
+	                   false);
+
+	gpio_set_pin_pull_mode(PA25,
+	                       // <y> Pull configuration
+	                       // <id> pad_pull_config
+	                       // <GPIO_PULL_OFF"> Off
+	                       // <GPIO_PULL_UP"> Pull-up
+	                       // <GPIO_PULL_DOWN"> Pull-down
+	                       GPIO_PULL_OFF);
+
+	gpio_set_pin_function(PA25,
+	                      // <y> Pin function
+	                      // <id> pad_function
+	                      // <i> Auto : use driver pinmux if signal is imported by driver, else turn off function
+	                      // <PINMUX_PA25H_USB_DP"> Auto
+	                      // <GPIO_PIN_FUNCTION_OFF"> Off
+	                      // <GPIO_PIN_FUNCTION_A"> A
+	                      // <GPIO_PIN_FUNCTION_B"> B
+	                      // <GPIO_PIN_FUNCTION_C"> C
+	                      // <GPIO_PIN_FUNCTION_D"> D
+	                      // <GPIO_PIN_FUNCTION_E"> E
+	                      // <GPIO_PIN_FUNCTION_F"> F
+	                      // <GPIO_PIN_FUNCTION_G"> G
+	                      // <GPIO_PIN_FUNCTION_H"> H
+	                      // <GPIO_PIN_FUNCTION_I"> I
+	                      // <GPIO_PIN_FUNCTION_J"> J
+	                      // <GPIO_PIN_FUNCTION_K"> K
+	                      // <GPIO_PIN_FUNCTION_L"> L
+	                      // <GPIO_PIN_FUNCTION_M"> M
+	                      // <GPIO_PIN_FUNCTION_N"> N
+	                      PINMUX_PA25H_USB_DP);
+}
+
+/* The USB module requires a GCLK_USB of 48 MHz ~ 0.25% clock
+ * for low speed and full speed operation. */
 #if (CONF_GCLK_USB_FREQUENCY > (48000000 + 48000000 / 400)) || (CONF_GCLK_USB_FREQUENCY < (48000000 - 48000000 / 400))
 #warning USB clock should be 48MHz ~ 0.25% clock, check your configuration!
 #endif
 
-/**
- * Initialize USB peripheral
- */
-static void _usb_init(void)
+void USB_0_CLOCK_init(void)
 {
-    hri_gclk_write_PCHCTRL_reg(GCLK, USB_GCLK_ID, CONF_GCLK_USB_SRC | GCLK_PCHCTRL_CHEN);
-    hri_mclk_set_AHBMASK_USB_bit(MCLK);
-    hri_mclk_set_APBBMASK_USB_bit(MCLK);
-    usb_d_init();
-    _usb_set_pins();
+
+	hri_gclk_write_PCHCTRL_reg(GCLK, USB_GCLK_ID, CONF_GCLK_USB_SRC | GCLK_PCHCTRL_CHEN);
+	hri_mclk_set_AHBMASK_USB_bit(MCLK);
+	hri_mclk_set_APBBMASK_USB_bit(MCLK);
 }
 
-static void _oled_set_pins(void) {
-    gpio_set_pin_direction(PIN_OLED_CS, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_OLED_CS, PIN_HIGH);
-    gpio_set_pin_function(PIN_OLED_CS, GPIO_PIN_FUNCTION_OFF);
-
-    gpio_set_pin_direction(PIN_OLED_ON, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_OLED_ON, PIN_LOW);
-    gpio_set_pin_function(PIN_OLED_ON, GPIO_PIN_FUNCTION_OFF);
-
-    gpio_set_pin_direction(PIN_OLED_RES, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_OLED_RES, PIN_HIGH);
-    gpio_set_pin_function(PIN_OLED_RES, GPIO_PIN_FUNCTION_OFF);
-
-    gpio_set_pin_direction(PIN_OLED_CMD, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_OLED_CMD, PIN_HIGH);
-    gpio_set_pin_function(PIN_OLED_CMD, GPIO_PIN_FUNCTION_OFF);
-
-    gpio_set_pin_direction(PIN_SD_CD, GPIO_DIRECTION_IN);
-    gpio_set_pin_pull_mode(PIN_SD_CD, GPIO_PULL_OFF);
-    gpio_set_pin_function(PIN_SD_CD, GPIO_PIN_FUNCTION_OFF);
-
-    gpio_set_pin_direction(PIN_SD_PWON, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_SD_PWON, PIN_HIGH);
-    gpio_set_pin_function(PIN_SD_PWON, GPIO_PIN_FUNCTION_OFF);
+void USB_0_init(void)
+{
+	USB_0_CLOCK_init();
+	usb_d_init();
+	USB_0_PORT_init();
 }
 
 void system_init(void)
 {
-    _oled_set_pins();
-    _ptc_clock_init();
+	init_mcu();
 
-    _timer_peripheral_init();
-    _delay_driver_init();
+	PTC_clock_init();
 
-    // OLED
-    _spi_init();
-    // ATECC608A
-    _i2c_init();
-    // uSD
-    _mci_init();
+	FLASH_0_init();
 
-    // Hardware crypto
-    _ecdsa_init();
-    _sha_init();
-    _rand_init();
-    // Flash
-    _flash_memory_init();
-    // USB
-    _usb_init();
-    _is_initialized = true;
-}
+	CRYPTOGRAPHY_0_init();
 
-void bootloader_init(void) {
-    _oled_set_pins();
-    _ptc_clock_init();
+	Timer_init();
 
-    _timer_peripheral_init();
-    _delay_driver_init();
+	USART_0_init();
+	USART_init();
 
-    // OLED
-    _spi_init();
+	SPI_0_init();
 
-    // Hardware crypto
-    _ecdsa_init();
-    _sha_init();
-    _rand_init();
-    // Flash
-    _flash_memory_init();
-    // USB
-    _usb_init();
-    _is_initialized = true;
-}
+	I2C_0_init();
 
-void system_close_interfaces(void)
-{
-    if (!_is_initialized) {
-        return;
-    }
-#ifndef BOOTLOADER
-    // uSD
-    mci_sync_deinit(&MCI_0);
-    // ATECC608A
-    i2c_m_sync_deinit(&I2C_0);
-#endif
-    // OLED interface bus
-    // Display remains on last screen
-    SPI_0_disable();
-    // Flash
-    flash_deinit(&FLASH_0);
-    // USB
-    usb_d_deinit();
-    // Hardware crypto
-    sha_sync_deinit(&HASH_ALGORITHM_0);
-    rand_sync_deinit(&RAND_0);
-}
+	MCI_0_init();
 
-void bootloader_close_interfaces(void) {
-    if (!_is_initialized) {
-        return;
-    }
-    // OLED interface bus
-    // Display remains on last screen
-    SPI_0_disable();
-    // Flash
-    flash_deinit(&FLASH_0);
-    // USB
-    usb_d_deinit();
-    // Hardware crypto
-    sha_sync_deinit(&HASH_ALGORITHM_0);
-    rand_sync_deinit(&RAND_0);
+	RAND_0_init();
 
+	USB_0_init();
 }

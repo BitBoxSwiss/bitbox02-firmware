@@ -4,39 +4,29 @@
  *
  * \brief Generic DMAC related functionality.
  *
- * Copyright (C) 2016 - 2017 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2016-2018 Microchip Technology Inc. and its subsidiaries.
  *
  * \asf_license_start
  *
  * \page License
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * Subject to your compliance with these terms, you may use Microchip
+ * software and any derivatives exclusively with Microchip products.
+ * It is your responsibility to comply with third party license terms applicable
+ * to your use of third party software (including open source software) that
+ * may accompany Microchip software.
  *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. The name of Atmel may not be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * 4. This software may only be redistributed and used in connection with an
- *    Atmel microcontroller product.
- *
- * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
- * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES,
+ * WHETHER EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE,
+ * INCLUDING ANY IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY,
+ * AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT WILL MICROCHIP BE
+ * LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE, INCIDENTAL OR CONSEQUENTIAL
+ * LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND WHATSOEVER RELATED TO THE
+ * SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS BEEN ADVISED OF THE
+ * POSSIBILITY OR THE DAMAGES ARE FORESEEABLE.  TO THE FULLEST EXTENT
+ * ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN ANY WAY
+ * RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
+ * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
  *
  * \asf_license_stop
  *
@@ -50,11 +40,11 @@
 #if CONF_DMAC_ENABLE
 /* Section containing first descriptors for all DMAC channels */
 COMPILER_ALIGNED(16)
-static DmacDescriptor _descriptor_section[DMAC_CH_NUM];
+DmacDescriptor _descriptor_section[DMAC_CH_NUM];
 
 /* Section containing current descriptors for all DMAC channels */
 COMPILER_ALIGNED(16)
-static DmacDescriptor _write_back_section[DMAC_CH_NUM];
+DmacDescriptor _write_back_section[DMAC_CH_NUM];
 
 /* Array containing callbacks for DMAC channels */
 static struct _dma_resource _resources[DMAC_CH_NUM];
@@ -70,10 +60,8 @@ static void _dmac_handler(void);
 	 (CONF_DMAC_EVIE_##n << DMAC_CHEVCTRL_EVIE_Pos) | (CONF_DMAC_EVOE_##n << DMAC_CHEVCTRL_EVOE_Pos)                   \
 	     | (CONF_DMAC_EVACT_##n << DMAC_CHEVCTRL_EVACT_Pos),                                                           \
 	 DMAC_BTCTRL_STEPSIZE(CONF_DMAC_STEPSIZE_##n) | (CONF_DMAC_STEPSEL_##n << DMAC_BTCTRL_STEPSEL_Pos)                 \
-	     | (CONF_DMAC_DSTINC_##n << DMAC_BTCTRL_DSTINC_Pos)                                                            \
-	     | (CONF_DMAC_SRCINC_##n << DMAC_BTCTRL_SRCINC_Pos)                                                            \
-	     | DMAC_BTCTRL_BEATSIZE(CONF_DMAC_BEATSIZE_##n)                                                                \
-	     | DMAC_BTCTRL_BLOCKACT(CONF_DMAC_BLOCKACT_##n)                                                                \
+	     | (CONF_DMAC_DSTINC_##n << DMAC_BTCTRL_DSTINC_Pos) | (CONF_DMAC_SRCINC_##n << DMAC_BTCTRL_SRCINC_Pos)         \
+	     | DMAC_BTCTRL_BEATSIZE(CONF_DMAC_BEATSIZE_##n) | DMAC_BTCTRL_BLOCKACT(CONF_DMAC_BLOCKACT_##n)                 \
 	     | DMAC_BTCTRL_EVOSEL(CONF_DMAC_EVOSEL_##n)},
 
 /* DMAC channel configuration */
@@ -106,14 +94,12 @@ int32_t _dma_init(void)
 	                            | (CONF_DMAC_LVLEN3 << DMAC_CTRL_LVLEN3_Pos));
 	hri_dmac_write_DBGCTRL_DBGRUN_bit(DMAC, CONF_DMAC_DBGRUN);
 
-	hri_dmac_write_PRICTRL0_reg(DMAC,
-	                            DMAC_PRICTRL0_LVLPRI0(CONF_DMAC_LVLPRI0) | DMAC_PRICTRL0_LVLPRI1(CONF_DMAC_LVLPRI1)
-	                                | DMAC_PRICTRL0_LVLPRI2(CONF_DMAC_LVLPRI2)
-	                                | DMAC_PRICTRL0_LVLPRI3(CONF_DMAC_LVLPRI3)
-	                                | (CONF_DMAC_RRLVLEN0 << DMAC_PRICTRL0_RRLVLEN0_Pos)
-	                                | (CONF_DMAC_RRLVLEN1 << DMAC_PRICTRL0_RRLVLEN1_Pos)
-	                                | (CONF_DMAC_RRLVLEN2 << DMAC_PRICTRL0_RRLVLEN2_Pos)
-	                                | (CONF_DMAC_RRLVLEN3 << DMAC_PRICTRL0_RRLVLEN3_Pos));
+	hri_dmac_write_PRICTRL0_reg(
+	    DMAC,
+	    DMAC_PRICTRL0_LVLPRI0(CONF_DMAC_LVLPRI0) | DMAC_PRICTRL0_LVLPRI1(CONF_DMAC_LVLPRI1)
+	        | DMAC_PRICTRL0_LVLPRI2(CONF_DMAC_LVLPRI2) | DMAC_PRICTRL0_LVLPRI3(CONF_DMAC_LVLPRI3)
+	        | (CONF_DMAC_RRLVLEN0 << DMAC_PRICTRL0_RRLVLEN0_Pos) | (CONF_DMAC_RRLVLEN1 << DMAC_PRICTRL0_RRLVLEN1_Pos)
+	        | (CONF_DMAC_RRLVLEN2 << DMAC_PRICTRL0_RRLVLEN2_Pos) | (CONF_DMAC_RRLVLEN3 << DMAC_PRICTRL0_RRLVLEN3_Pos));
 	hri_dmac_write_BASEADDR_reg(DMAC, (uint32_t)_descriptor_section);
 	hri_dmac_write_WRBADDR_reg(DMAC, (uint32_t)_write_back_section);
 
@@ -122,6 +108,7 @@ int32_t _dma_init(void)
 		hri_dmac_write_CHPRILVL_reg(DMAC, i, _cfgs[i].prilvl);
 		hri_dmac_write_CHEVCTRL_reg(DMAC, i, _cfgs[i].evctrl);
 		hri_dmacdescriptor_write_BTCTRL_reg(&_descriptor_section[i], _cfgs[i].btctrl);
+		hri_dmacdescriptor_write_DESCADDR_reg(&_descriptor_section[i], 0x0);
 	}
 
 	for (i = 0; i < 5; i++) {
@@ -215,6 +202,12 @@ int32_t _dma_get_channel_resource(struct _dma_resource **resource, const uint8_t
 	return ERR_NONE;
 }
 
+int32_t _dma_dstinc_enable(const uint8_t channel, const bool enable)
+{
+	hri_dmacdescriptor_write_BTCTRL_DSTINC_bit(&_descriptor_section[channel], enable);
+
+	return ERR_NONE;
+}
 /**
  * \internal DMAC interrupt handler
  */
@@ -232,36 +225,36 @@ static void _dmac_handler(void)
 	}
 }
 /**
-* \brief DMAC interrupt handler
-*/
+ * \brief DMAC interrupt handler
+ */
 void DMAC_0_Handler(void)
 {
 	_dmac_handler();
 }
 /**
-* \brief DMAC interrupt handler
-*/
+ * \brief DMAC interrupt handler
+ */
 void DMAC_1_Handler(void)
 {
 	_dmac_handler();
 }
 /**
-* \brief DMAC interrupt handler
-*/
+ * \brief DMAC interrupt handler
+ */
 void DMAC_2_Handler(void)
 {
 	_dmac_handler();
 }
 /**
-* \brief DMAC interrupt handler
-*/
+ * \brief DMAC interrupt handler
+ */
 void DMAC_3_Handler(void)
 {
 	_dmac_handler();
 }
 /**
-* \brief DMAC interrupt handler
-*/
+ * \brief DMAC interrupt handler
+ */
 void DMAC_4_Handler(void)
 {
 	_dmac_handler();

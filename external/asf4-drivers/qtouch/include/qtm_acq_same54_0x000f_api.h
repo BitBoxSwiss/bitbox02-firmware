@@ -3,7 +3,7 @@ Filename : qtm_acq_same54_0x000f_api.h
 Project : QTouch Modular Library
 Purpose : API for Acquisition module - SAME54/PTC
 ------------------------------------------------------------------------------
-Copyright (c) 2017 Microchip Inc. All rights reserved.
+Copyright (C) 2019 Microchip Inc. All rights reserved.
 ------------------------------------------------------------------------------
 ============================================================================*/
 
@@ -36,10 +36,10 @@ Copyright (c) 2017 Microchip Inc. All rights reserved.
 
 /* X line bit position */
 #define X_NONE 0u
-#define X_LINE(n) ((uint32_t)(1u << (n)))
+#define X(n) ((uint32_t)(1u << (n)))
 
 /* Y line bit position */
-#define Y_LINE(n) ((uint32_t)(1u << (n)))
+#define Y(n) ((uint32_t)(1u << (n)))
 
 /* Extract Analog / Digital Gain */
 #define NODE_GAIN_ANA(m) (uint8_t)(((m)&0xF0u) >> 4u)

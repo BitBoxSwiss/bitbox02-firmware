@@ -39,7 +39,7 @@
 // <CONF_USB_D_N_EP_MAX"> Max possible (by "Max Endpoint Number" config)
 // <id> usbd_num_ep_sp
 #ifndef CONF_USB_D_NUM_EP_SP
-#define CONF_USB_D_NUM_EP_SP CONF_USB_N_8
+#define CONF_USB_D_NUM_EP_SP CONF_USB_N_4
 #endif
 
 // </h>
@@ -60,7 +60,7 @@
 // <i> The number of physical endpoints - 1
 // <id> usbd_arch_max_ep_n
 #ifndef CONF_USB_D_MAX_EP_N
-#define CONF_USB_D_MAX_EP_N CONF_USB_N_4
+#define CONF_USB_D_MAX_EP_N CONF_USB_N_2
 #endif
 
 // <y> USB Speed Limit

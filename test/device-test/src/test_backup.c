@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "securechip/securechip.h"
-#include <drivers/driver_init.h>
+#include <driver_init.h>
 #include <hardfault.h>
 #include <qtouch.h>
 #include <random.h>

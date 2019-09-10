@@ -131,4 +131,89 @@ if(CMAKE_CROSSCOMPILING)
     PUBLIC
       CMSIS
   )
-endif()
+
+  # Advanced Software Framework Drivers
+  # Only drivers needed for bootloader (minimal set)
+  add_library(asf4-drivers-min STATIC
+    asf4-drivers/driver_init.c
+    asf4-drivers/hal/utils/src/utils_syscalls.c
+    asf4-drivers/hal/utils/src/utils_list.c
+    asf4-drivers/hal/src/hal_atomic.c
+    asf4-drivers/hal/src/hal_gpio.c
+    asf4-drivers/hal/src/hal_init.c
+    asf4-drivers/hal/src/hal_delay.c
+    asf4-drivers/hal/src/hal_timer.c
+    asf4-drivers/hal/src/hal_usb_device.c
+    asf4-drivers/hal/src/hal_rand_sync.c
+    asf4-drivers/hal/src/hal_flash.c
+    asf4-drivers/hal/src/hal_pac.c
+    asf4-drivers/hal/src/hal_sha_sync.c
+    asf4-drivers/hpl/systick/hpl_systick.c
+    asf4-drivers/hpl/gclk/hpl_gclk.c
+    asf4-drivers/hpl/oscctrl/hpl_oscctrl.c
+    asf4-drivers/hpl/mclk/hpl_mclk.c
+    asf4-drivers/hpl/osc32kctrl/hpl_osc32kctrl.c
+    asf4-drivers/hpl/core/hpl_init.c
+    asf4-drivers/hpl/core/hpl_core_m4.c
+    asf4-drivers/hpl/spi/spi_lite.c
+    asf4-drivers/hpl/usb/hpl_usb.c
+    asf4-drivers/hpl/rtc/hpl_rtc.c
+    asf4-drivers/hpl/trng/hpl_trng.c
+    asf4-drivers/hpl/nvmctrl/hpl_nvmctrl.c
+    asf4-drivers/hpl/icm/hpl_icm.c
+    asf4-drivers/hpl/pac/hpl_pac.c
+    asf4-drivers/qtouch/qtouch.c
+    asf4-drivers/usb/usb_protocol.c
+    asf4-drivers/usb/device/usbdc.c
+    )
+
+  target_link_libraries(asf4-drivers-min samd51a-ds)
+
+  target_include_directories(asf4-drivers-min SYSTEM
+    PUBLIC
+      asf4-drivers
+      asf4-drivers/Config
+      asf4-drivers/hal/include
+      asf4-drivers/hal/include
+      asf4-drivers/hal/utils/include
+      asf4-drivers/hpl/core
+      asf4-drivers/hpl/gclk
+      asf4-drivers/hpl/pm
+      asf4-drivers/hpl/port
+      asf4-drivers/hpl/pukcc
+      asf4-drivers/hpl/rtc
+      asf4-drivers/hpl/spi
+      asf4-drivers/hri
+      asf4-drivers/qtouch
+      asf4-drivers/qtouch/include
+      asf4-drivers/sd_mmc
+      asf4-drivers/usb
+      asf4-drivers/usb/class
+      asf4-drivers/usb/class/hid
+      asf4-drivers/usb/device
+  )
+
+  # Advanced Software Framework Drivers
+  # All drivers
+  add_library(asf4-drivers STATIC
+    asf4-drivers/hal/src/hal_mci_sync.c
+    asf4-drivers/hal/src/hal_i2c_m_sync.c
+    asf4-drivers/hpl/sdhc/hpl_sdhc.c
+    asf4-drivers/hpl/sercom/hpl_sercom.c
+    asf4-drivers/sd_mmc/sd_mmc.c
+    asf4-drivers/diskio/sdmmc_diskio.c
+  )
+  target_link_libraries(asf4-drivers
+    PUBLIC
+      asf4-drivers-min
+  )
+
+  target_include_directories(asf4-drivers SYSTEM
+    PUBLIC
+      asf4-drivers/diskio
+  )
+
+  find_library(QTOUCHLIB_A qtm_acq_samd51_0x000f PATHS asf4-drivers/qtouch/lib/gcc)
+  find_library(QTOUCHLIB_B qtm_binding_layer_cm4_0x0005 PATHS asf4-drivers/qtouch/lib/gcc)
+  find_library(QTOUCHLIB_T qtm_touch_key_cm4_0x0002 PATHS asf4-drivers/qtouch/lib/gcc)
+endif() # CMAKE_CROSSCOMPILING

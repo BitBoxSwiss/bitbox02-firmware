@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "usb_frame.h"
-#include "err_codes.h"
 #include "queue.h"
 #if defined(APP_U2F)
 #include "u2f/u2f_packet.h"
@@ -25,6 +24,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define ERR_NONE 0
 
 /**
  * Copies the given data to the buffer and either waits for more data to

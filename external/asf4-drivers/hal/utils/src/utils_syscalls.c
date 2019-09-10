@@ -104,7 +104,9 @@ extern int link(char *old, char *_new)
 	return -1;
 }
 
-#if !defined(SEMIHOSTING)
+// We don't need implementations of these. Either they aren't used or they are used in a
+// semihosting environment and implemented elsewhere.
+#if 0
 
 /**
  * \brief Replacement of C library of _close

@@ -20,8 +20,6 @@
 void Dummy_Handler(void);
 
 void HardFault_Handler(void) __attribute__((weak));
-#else
-#include "drivers/driver_init.h"
 #endif
 
 // Abort is for manual calls to stop execution, providing a message for

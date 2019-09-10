@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "common_main.h"
-#include "drivers/driver_init.h"
+#include "driver_init.h"
 #include "flags.h"
 #include "hardfault.h"
 #include "memory.h"

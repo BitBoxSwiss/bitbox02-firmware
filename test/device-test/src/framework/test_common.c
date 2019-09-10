@@ -17,10 +17,10 @@
 #include "test_common.h"
 
 #include "queue.h"
-#include <drivers/usb/class/hid/hww/hid_hww.h>
-#include <drivers/usb/class/hid/u2f/hid_u2f.h>
-#include <drivers/usb/class/usb_desc.h>
-#include <drivers/usb/device/usbdc.h>
+#include <usb/class/hid/hww/hid_hww.h>
+#include <usb/class/hid/u2f/hid_u2f.h>
+#include <usb/class/usb_desc.h>
+#include <usb/device/usbdc.h>
 #include <usb/usb.h>
 
 #include "screen.h"

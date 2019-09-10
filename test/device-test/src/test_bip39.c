@@ -14,7 +14,7 @@
 
 #include <string.h>
 #ifndef TESTING
-#include "drivers/driver_init.h"
+#include "driver_init.h"
 #include "qtouch.h"
 #endif
 #include <workflow/show_mnemonic.h>

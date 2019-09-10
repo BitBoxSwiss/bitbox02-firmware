@@ -304,7 +304,6 @@ set(INCLUDES
 set(INCLUDES ${INCLUDES} PARENT_SCOPE)
 set(SYSTEMINCLUDES
   ${CMAKE_SOURCE_DIR}/src/drivers
-  ${CMAKE_SOURCE_DIR}/src/drivers/CMSIS/5.0.1/Include
   ${CMAKE_SOURCE_DIR}/src/drivers/SAMD51_DFP/1.0.70/include
   ${CMAKE_SOURCE_DIR}/src/drivers/Config
   ${CMAKE_SOURCE_DIR}/src/drivers/hal/include
@@ -424,6 +423,7 @@ if(CMAKE_CROSSCOMPILING)
   foreach(bootloader ${BOOTLOADERS})
     set(elf ${bootloader}.elf)
     add_executable(${elf} ${BOOTLOADER-SOURCES})
+    target_link_libraries(${elf} PRIVATE CMSIS)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_include_directories(${elf} SYSTEM PRIVATE ${SYSTEMINCLUDES})
     target_compile_definitions(${elf} PRIVATE BOOTLOADER)
@@ -466,6 +466,7 @@ if(CMAKE_CROSSCOMPILING)
     set(elf ${firmware}.elf)
     add_executable(${elf} ${FIRMWARE-SOURCES})
     add_dependencies(${elf} generate-hww generate-backup)
+    target_link_libraries(${elf} PRIVATE CMSIS)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_include_directories(${elf} SYSTEM PRIVATE ${SYSTEMINCLUDES})
 

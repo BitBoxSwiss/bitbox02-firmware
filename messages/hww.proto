@@ -131,7 +131,7 @@ message PubResponse {
 message BackupInfo {
   string id = 1;
   uint32 timestamp = 2;
-  uint32 timezone_offset = 3;
+  // uint32 timezone_offset = 3;
   string name = 4;
 }
 

@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='hww.proto',
   package='',
   syntax='proto3',
-  serialized_pb=_b('\n\thww.proto\"&\n\x05\x45rror\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"\t\n\x07Success\"&\n\x14RandomNumberResponse\x12\x0e\n\x06number\x18\x01 \x01(\x0c\"\x15\n\x13RandomNumberRequest\"\x13\n\x11\x44\x65viceInfoRequest\"\x95\x01\n\x12\x44\x65viceInfoResponse\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x13\n\x0binitialized\x18\x02 \x01(\x08\x12\x0f\n\x07version\x18\x03 \x01(\t\x12#\n\x1bmnemonic_passphrase_enabled\x18\x04 \x01(\x08\x12&\n\x1emonotonic_increments_remaining\x18\x05 \x01(\r\"$\n\x14SetDeviceNameRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\",\n\x18SetDeviceLanguageRequest\x12\x10\n\x08language\x18\x01 \x01(\t\"%\n\x12SetPasswordRequest\x12\x0f\n\x07\x65ntropy\x18\x01 \x01(\x0c\"A\n\x13\x43reateBackupRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\r\x12\x17\n\x0ftimezone_offset\x18\x02 \x01(\x05\"N\n\x14RestoreBackupRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\r\x12\x17\n\x0ftimezone_offset\x18\x03 \x01(\x05\"\x14\n\x12ListBackupsRequest\"$\n\x12\x43heckBackupRequest\x12\x0e\n\x06silent\x18\x01 \x01(\x08\"!\n\x13\x43heckBackupResponse\x12\n\n\x02id\x18\x01 \x01(\t\"\x15\n\x13ShowMnemonicRequest\"\x86\x01\n\x19InsertRemoveSDCardRequest\x12\x37\n\x06\x61\x63tion\x18\x01 \x01(\x0e\x32\'.InsertRemoveSDCardRequest.SDCardAction\"0\n\x0cSDCardAction\x12\x0f\n\x0bREMOVE_CARD\x10\x00\x12\x0f\n\x0bINSERT_CARD\x10\x01\"\x14\n\x12\x43heckSDCardRequest\"\'\n\x13\x43heckSDCardResponse\x12\x10\n\x08inserted\x18\x01 \x01(\x08\"\xe1\x01\n\rBTCPubRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\x12#\n\x0bscript_type\x18\x02 \x01(\x0e\x32\x0e.BTCScriptType\x12\x16\n\x04\x63oin\x18\x03 \x01(\x0e\x32\x08.BTCCoin\x12.\n\x0boutput_type\x18\x04 \x01(\x0e\x32\x19.BTCPubRequest.OutputType\x12\x0f\n\x07\x64isplay\x18\x05 \x01(\x08\"A\n\nOutputType\x12\x08\n\x04TPUB\x10\x00\x12\x08\n\x04XPUB\x10\x01\x12\x08\n\x04YPUB\x10\x02\x12\x08\n\x04ZPUB\x10\x03\x12\x0b\n\x07\x41\x44\x44RESS\x10\x04\"\x1a\n\x0bPubResponse\x12\x0b\n\x03pub\x18\x01 \x01(\t\"R\n\nBackupInfo\x12\n\n\x02id\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\r\x12\x17\n\x0ftimezone_offset\x18\x03 \x01(\r\x12\x0c\n\x04name\x18\x04 \x01(\t\"0\n\x13ListBackupsResponse\x12\x19\n\x04info\x18\x01 \x03(\x0b\x32\x0b.BackupInfo\"\xb4\x01\n\x12\x42TCSignInitRequest\x12\x16\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x08.BTCCoin\x12#\n\x0bscript_type\x18\x02 \x01(\x0e\x32\x0e.BTCScriptType\x12\x15\n\rbip44_account\x18\x03 \x01(\r\x12\x0f\n\x07version\x18\x04 \x01(\r\x12\x12\n\nnum_inputs\x18\x05 \x01(\r\x12\x13\n\x0bnum_outputs\x18\x06 \x01(\r\x12\x10\n\x08locktime\x18\x07 \x01(\r\"\xa0\x01\n\x13\x42TCSignNextResponse\x12\'\n\x04type\x18\x01 \x01(\x0e\x32\x19.BTCSignNextResponse.Type\x12\r\n\x05index\x18\x02 \x01(\r\x12\x15\n\rhas_signature\x18\x03 \x01(\x08\x12\x11\n\tsignature\x18\x04 \x01(\x0c\"\'\n\x04Type\x12\t\n\x05INPUT\x10\x00\x12\n\n\x06OUTPUT\x10\x01\x12\x08\n\x04\x44ONE\x10\x02\"y\n\x13\x42TCSignInputRequest\x12\x13\n\x0bprevOutHash\x18\x01 \x01(\x0c\x12\x14\n\x0cprevOutIndex\x18\x02 \x01(\r\x12\x14\n\x0cprevOutValue\x18\x03 \x01(\x04\x12\x10\n\x08sequence\x18\x04 \x01(\r\x12\x0f\n\x07keypath\x18\x06 \x03(\r\"p\n\x14\x42TCSignOutputRequest\x12\x0c\n\x04ours\x18\x01 \x01(\x08\x12\x1c\n\x04type\x18\x02 \x01(\x0e\x32\x0e.BTCOutputType\x12\r\n\x05value\x18\x03 \x01(\x04\x12\x0c\n\x04hash\x18\x04 \x01(\x0c\x12\x0f\n\x07keypath\x18\x05 \x03(\r\"6\n#SetMnemonicPassphraseEnabledRequest\x12\x0f\n\x07\x65nabled\x18\x01 \x01(\x08\".\n\x19PerformAttestationRequest\x12\x11\n\tchallenge\x18\x01 \x01(\x0c\"\x9e\x01\n\x1aPerformAttestationResponse\x12\x17\n\x0f\x62ootloader_hash\x18\x01 \x01(\x0c\x12\x15\n\rdevice_pubkey\x18\x02 \x01(\x0c\x12\x13\n\x0b\x63\x65rtificate\x18\x03 \x01(\x0c\x12\x1e\n\x16root_pubkey_identifier\x18\x04 \x01(\x0c\x12\x1b\n\x13\x63hallenge_signature\x18\x05 \x01(\x0c\"\x0f\n\rRebootRequest\"\xb8\x01\n\rETHPubRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\x12\x16\n\x04\x63oin\x18\x02 \x01(\x0e\x32\x08.ETHCoin\x12.\n\x0boutput_type\x18\x03 \x01(\x0e\x32\x19.ETHPubRequest.OutputType\x12\x0f\n\x07\x64isplay\x18\x04 \x01(\x08\x12\x18\n\x10\x63ontract_address\x18\x05 \x01(\x0c\"#\n\nOutputType\x12\x0b\n\x07\x41\x44\x44RESS\x10\x00\x12\x08\n\x04XPUB\x10\x01\"\x9e\x01\n\x0e\x45THSignRequest\x12\x16\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x08.ETHCoin\x12\x0f\n\x07keypath\x18\x02 \x03(\r\x12\r\n\x05nonce\x18\x03 \x01(\x0c\x12\x11\n\tgas_price\x18\x04 \x01(\x0c\x12\x11\n\tgas_limit\x18\x05 \x01(\x0c\x12\x11\n\trecipient\x18\x06 \x01(\x0c\x12\r\n\x05value\x18\x07 \x01(\x0c\x12\x0c\n\x04\x64\x61ta\x18\x08 \x01(\x0c\"$\n\x0f\x45THSignResponse\x12\x11\n\tsignature\x18\x01 \x01(\x0c\"W\n\nETHRequest\x12\x1d\n\x03pub\x18\x01 \x01(\x0b\x32\x0e.ETHPubRequestH\x00\x12\x1f\n\x04sign\x18\x02 \x01(\x0b\x32\x0f.ETHSignRequestH\x00\x42\t\n\x07request\"X\n\x0b\x45THResponse\x12\x1b\n\x03pub\x18\x01 \x01(\x0b\x32\x0c.PubResponseH\x00\x12 \n\x04sign\x18\x02 \x01(\x0b\x32\x10.ETHSignResponseH\x00\x42\n\n\x08response\"\x0e\n\x0cResetRequest\"H\n\x1aRestoreFromMnemonicRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\r\x12\x17\n\x0ftimezone_offset\x18\x02 \x01(\x05\"\xac\x08\n\x07Request\x12-\n\rrandom_number\x18\x01 \x01(\x0b\x32\x14.RandomNumberRequestH\x00\x12,\n\x0b\x64\x65vice_name\x18\x02 \x01(\x0b\x32\x15.SetDeviceNameRequestH\x00\x12\x34\n\x0f\x64\x65vice_language\x18\x03 \x01(\x0b\x32\x19.SetDeviceLanguageRequestH\x00\x12)\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32\x12.DeviceInfoRequestH\x00\x12+\n\x0cset_password\x18\x05 \x01(\x0b\x32\x13.SetPasswordRequestH\x00\x12-\n\rcreate_backup\x18\x06 \x01(\x0b\x32\x14.CreateBackupRequestH\x00\x12-\n\rshow_mnemonic\x18\x07 \x01(\x0b\x32\x14.ShowMnemonicRequestH\x00\x12!\n\x07\x62tc_pub\x18\x08 \x01(\x0b\x32\x0e.BTCPubRequestH\x00\x12,\n\rbtc_sign_init\x18\t \x01(\x0b\x32\x13.BTCSignInitRequestH\x00\x12.\n\x0e\x62tc_sign_input\x18\n \x01(\x0b\x32\x14.BTCSignInputRequestH\x00\x12\x30\n\x0f\x62tc_sign_output\x18\x0b \x01(\x0b\x32\x15.BTCSignOutputRequestH\x00\x12:\n\x14insert_remove_sdcard\x18\x0c \x01(\x0b\x32\x1a.InsertRemoveSDCardRequestH\x00\x12+\n\x0c\x63heck_sdcard\x18\r \x01(\x0b\x32\x13.CheckSDCardRequestH\x00\x12O\n\x1fset_mnemonic_passphrase_enabled\x18\x0e \x01(\x0b\x32$.SetMnemonicPassphraseEnabledRequestH\x00\x12+\n\x0clist_backups\x18\x0f \x01(\x0b\x32\x13.ListBackupsRequestH\x00\x12/\n\x0erestore_backup\x18\x10 \x01(\x0b\x32\x15.RestoreBackupRequestH\x00\x12\x39\n\x13perform_attestation\x18\x11 \x01(\x0b\x32\x1a.PerformAttestationRequestH\x00\x12 \n\x06reboot\x18\x12 \x01(\x0b\x32\x0e.RebootRequestH\x00\x12+\n\x0c\x63heck_backup\x18\x13 \x01(\x0b\x32\x13.CheckBackupRequestH\x00\x12\x1a\n\x03\x65th\x18\x14 \x01(\x0b\x32\x0b.ETHRequestH\x00\x12\x1e\n\x05reset\x18\x15 \x01(\x0b\x32\r.ResetRequestH\x00\x12<\n\x15restore_from_mnemonic\x18\x16 \x01(\x0b\x32\x1b.RestoreFromMnemonicRequestH\x00\x42\t\n\x07request\"\xd7\x03\n\x08Response\x12\x1b\n\x07success\x18\x01 \x01(\x0b\x32\x08.SuccessH\x00\x12\x17\n\x05\x65rror\x18\x02 \x01(\x0b\x32\x06.ErrorH\x00\x12.\n\rrandom_number\x18\x03 \x01(\x0b\x32\x15.RandomNumberResponseH\x00\x12*\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32\x13.DeviceInfoResponseH\x00\x12\x1b\n\x03pub\x18\x05 \x01(\x0b\x32\x0c.PubResponseH\x00\x12-\n\rbtc_sign_next\x18\x06 \x01(\x0b\x32\x14.BTCSignNextResponseH\x00\x12,\n\x0clist_backups\x18\x07 \x01(\x0b\x32\x14.ListBackupsResponseH\x00\x12,\n\x0c\x63heck_backup\x18\x08 \x01(\x0b\x32\x14.CheckBackupResponseH\x00\x12:\n\x13perform_attestation\x18\t \x01(\x0b\x32\x1b.PerformAttestationResponseH\x00\x12,\n\x0c\x63heck_sdcard\x18\n \x01(\x0b\x32\x14.CheckSDCardResponseH\x00\x12\x1b\n\x03\x65th\x18\x0b \x01(\x0b\x32\x0c.ETHResponseH\x00\x42\n\n\x08response*/\n\x07\x42TCCoin\x12\x07\n\x03\x42TC\x10\x00\x12\x08\n\x04TBTC\x10\x01\x12\x07\n\x03LTC\x10\x02\x12\x08\n\x04TLTC\x10\x03*`\n\rBTCScriptType\x12\x12\n\x0eSCRIPT_UNKNOWN\x10\x00\x12\x10\n\x0cSCRIPT_P2PKH\x10\x01\x12\x16\n\x12SCRIPT_P2WPKH_P2SH\x10\x02\x12\x11\n\rSCRIPT_P2WPKH\x10\x03*H\n\rBTCOutputType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\t\n\x05P2PKH\x10\x01\x12\x08\n\x04P2SH\x10\x02\x12\n\n\x06P2WPKH\x10\x03\x12\t\n\x05P2WSH\x10\x04*2\n\x07\x45THCoin\x12\x07\n\x03\x45TH\x10\x00\x12\x0e\n\nRopstenETH\x10\x01\x12\x0e\n\nRinkebyETH\x10\x02\x62\x06proto3')
+  serialized_pb=_b('\n\thww.proto\"&\n\x05\x45rror\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"\t\n\x07Success\"&\n\x14RandomNumberResponse\x12\x0e\n\x06number\x18\x01 \x01(\x0c\"\x15\n\x13RandomNumberRequest\"\x13\n\x11\x44\x65viceInfoRequest\"\x95\x01\n\x12\x44\x65viceInfoResponse\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x13\n\x0binitialized\x18\x02 \x01(\x08\x12\x0f\n\x07version\x18\x03 \x01(\t\x12#\n\x1bmnemonic_passphrase_enabled\x18\x04 \x01(\x08\x12&\n\x1emonotonic_increments_remaining\x18\x05 \x01(\r\"$\n\x14SetDeviceNameRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\",\n\x18SetDeviceLanguageRequest\x12\x10\n\x08language\x18\x01 \x01(\t\"%\n\x12SetPasswordRequest\x12\x0f\n\x07\x65ntropy\x18\x01 \x01(\x0c\"A\n\x13\x43reateBackupRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\r\x12\x17\n\x0ftimezone_offset\x18\x02 \x01(\x05\"N\n\x14RestoreBackupRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\r\x12\x17\n\x0ftimezone_offset\x18\x03 \x01(\x05\"\x14\n\x12ListBackupsRequest\"$\n\x12\x43heckBackupRequest\x12\x0e\n\x06silent\x18\x01 \x01(\x08\"!\n\x13\x43heckBackupResponse\x12\n\n\x02id\x18\x01 \x01(\t\"\x15\n\x13ShowMnemonicRequest\"\x86\x01\n\x19InsertRemoveSDCardRequest\x12\x37\n\x06\x61\x63tion\x18\x01 \x01(\x0e\x32\'.InsertRemoveSDCardRequest.SDCardAction\"0\n\x0cSDCardAction\x12\x0f\n\x0bREMOVE_CARD\x10\x00\x12\x0f\n\x0bINSERT_CARD\x10\x01\"\x14\n\x12\x43heckSDCardRequest\"\'\n\x13\x43heckSDCardResponse\x12\x10\n\x08inserted\x18\x01 \x01(\x08\"\xe1\x01\n\rBTCPubRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\x12#\n\x0bscript_type\x18\x02 \x01(\x0e\x32\x0e.BTCScriptType\x12\x16\n\x04\x63oin\x18\x03 \x01(\x0e\x32\x08.BTCCoin\x12.\n\x0boutput_type\x18\x04 \x01(\x0e\x32\x19.BTCPubRequest.OutputType\x12\x0f\n\x07\x64isplay\x18\x05 \x01(\x08\"A\n\nOutputType\x12\x08\n\x04TPUB\x10\x00\x12\x08\n\x04XPUB\x10\x01\x12\x08\n\x04YPUB\x10\x02\x12\x08\n\x04ZPUB\x10\x03\x12\x0b\n\x07\x41\x44\x44RESS\x10\x04\"\x1a\n\x0bPubResponse\x12\x0b\n\x03pub\x18\x01 \x01(\t\"9\n\nBackupInfo\x12\n\n\x02id\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\r\x12\x0c\n\x04name\x18\x04 \x01(\t\"0\n\x13ListBackupsResponse\x12\x19\n\x04info\x18\x01 \x03(\x0b\x32\x0b.BackupInfo\"\xb4\x01\n\x12\x42TCSignInitRequest\x12\x16\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x08.BTCCoin\x12#\n\x0bscript_type\x18\x02 \x01(\x0e\x32\x0e.BTCScriptType\x12\x15\n\rbip44_account\x18\x03 \x01(\r\x12\x0f\n\x07version\x18\x04 \x01(\r\x12\x12\n\nnum_inputs\x18\x05 \x01(\r\x12\x13\n\x0bnum_outputs\x18\x06 \x01(\r\x12\x10\n\x08locktime\x18\x07 \x01(\r\"\xa0\x01\n\x13\x42TCSignNextResponse\x12\'\n\x04type\x18\x01 \x01(\x0e\x32\x19.BTCSignNextResponse.Type\x12\r\n\x05index\x18\x02 \x01(\r\x12\x15\n\rhas_signature\x18\x03 \x01(\x08\x12\x11\n\tsignature\x18\x04 \x01(\x0c\"\'\n\x04Type\x12\t\n\x05INPUT\x10\x00\x12\n\n\x06OUTPUT\x10\x01\x12\x08\n\x04\x44ONE\x10\x02\"y\n\x13\x42TCSignInputRequest\x12\x13\n\x0bprevOutHash\x18\x01 \x01(\x0c\x12\x14\n\x0cprevOutIndex\x18\x02 \x01(\r\x12\x14\n\x0cprevOutValue\x18\x03 \x01(\x04\x12\x10\n\x08sequence\x18\x04 \x01(\r\x12\x0f\n\x07keypath\x18\x06 \x03(\r\"p\n\x14\x42TCSignOutputRequest\x12\x0c\n\x04ours\x18\x01 \x01(\x08\x12\x1c\n\x04type\x18\x02 \x01(\x0e\x32\x0e.BTCOutputType\x12\r\n\x05value\x18\x03 \x01(\x04\x12\x0c\n\x04hash\x18\x04 \x01(\x0c\x12\x0f\n\x07keypath\x18\x05 \x03(\r\"6\n#SetMnemonicPassphraseEnabledRequest\x12\x0f\n\x07\x65nabled\x18\x01 \x01(\x08\".\n\x19PerformAttestationRequest\x12\x11\n\tchallenge\x18\x01 \x01(\x0c\"\x9e\x01\n\x1aPerformAttestationResponse\x12\x17\n\x0f\x62ootloader_hash\x18\x01 \x01(\x0c\x12\x15\n\rdevice_pubkey\x18\x02 \x01(\x0c\x12\x13\n\x0b\x63\x65rtificate\x18\x03 \x01(\x0c\x12\x1e\n\x16root_pubkey_identifier\x18\x04 \x01(\x0c\x12\x1b\n\x13\x63hallenge_signature\x18\x05 \x01(\x0c\"\x0f\n\rRebootRequest\"\xb8\x01\n\rETHPubRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\x12\x16\n\x04\x63oin\x18\x02 \x01(\x0e\x32\x08.ETHCoin\x12.\n\x0boutput_type\x18\x03 \x01(\x0e\x32\x19.ETHPubRequest.OutputType\x12\x0f\n\x07\x64isplay\x18\x04 \x01(\x08\x12\x18\n\x10\x63ontract_address\x18\x05 \x01(\x0c\"#\n\nOutputType\x12\x0b\n\x07\x41\x44\x44RESS\x10\x00\x12\x08\n\x04XPUB\x10\x01\"\x9e\x01\n\x0e\x45THSignRequest\x12\x16\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x08.ETHCoin\x12\x0f\n\x07keypath\x18\x02 \x03(\r\x12\r\n\x05nonce\x18\x03 \x01(\x0c\x12\x11\n\tgas_price\x18\x04 \x01(\x0c\x12\x11\n\tgas_limit\x18\x05 \x01(\x0c\x12\x11\n\trecipient\x18\x06 \x01(\x0c\x12\r\n\x05value\x18\x07 \x01(\x0c\x12\x0c\n\x04\x64\x61ta\x18\x08 \x01(\x0c\"$\n\x0f\x45THSignResponse\x12\x11\n\tsignature\x18\x01 \x01(\x0c\"W\n\nETHRequest\x12\x1d\n\x03pub\x18\x01 \x01(\x0b\x32\x0e.ETHPubRequestH\x00\x12\x1f\n\x04sign\x18\x02 \x01(\x0b\x32\x0f.ETHSignRequestH\x00\x42\t\n\x07request\"X\n\x0b\x45THResponse\x12\x1b\n\x03pub\x18\x01 \x01(\x0b\x32\x0c.PubResponseH\x00\x12 \n\x04sign\x18\x02 \x01(\x0b\x32\x10.ETHSignResponseH\x00\x42\n\n\x08response\"\x0e\n\x0cResetRequest\"H\n\x1aRestoreFromMnemonicRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\r\x12\x17\n\x0ftimezone_offset\x18\x02 \x01(\x05\"\xac\x08\n\x07Request\x12-\n\rrandom_number\x18\x01 \x01(\x0b\x32\x14.RandomNumberRequestH\x00\x12,\n\x0b\x64\x65vice_name\x18\x02 \x01(\x0b\x32\x15.SetDeviceNameRequestH\x00\x12\x34\n\x0f\x64\x65vice_language\x18\x03 \x01(\x0b\x32\x19.SetDeviceLanguageRequestH\x00\x12)\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32\x12.DeviceInfoRequestH\x00\x12+\n\x0cset_password\x18\x05 \x01(\x0b\x32\x13.SetPasswordRequestH\x00\x12-\n\rcreate_backup\x18\x06 \x01(\x0b\x32\x14.CreateBackupRequestH\x00\x12-\n\rshow_mnemonic\x18\x07 \x01(\x0b\x32\x14.ShowMnemonicRequestH\x00\x12!\n\x07\x62tc_pub\x18\x08 \x01(\x0b\x32\x0e.BTCPubRequestH\x00\x12,\n\rbtc_sign_init\x18\t \x01(\x0b\x32\x13.BTCSignInitRequestH\x00\x12.\n\x0e\x62tc_sign_input\x18\n \x01(\x0b\x32\x14.BTCSignInputRequestH\x00\x12\x30\n\x0f\x62tc_sign_output\x18\x0b \x01(\x0b\x32\x15.BTCSignOutputRequestH\x00\x12:\n\x14insert_remove_sdcard\x18\x0c \x01(\x0b\x32\x1a.InsertRemoveSDCardRequestH\x00\x12+\n\x0c\x63heck_sdcard\x18\r \x01(\x0b\x32\x13.CheckSDCardRequestH\x00\x12O\n\x1fset_mnemonic_passphrase_enabled\x18\x0e \x01(\x0b\x32$.SetMnemonicPassphraseEnabledRequestH\x00\x12+\n\x0clist_backups\x18\x0f \x01(\x0b\x32\x13.ListBackupsRequestH\x00\x12/\n\x0erestore_backup\x18\x10 \x01(\x0b\x32\x15.RestoreBackupRequestH\x00\x12\x39\n\x13perform_attestation\x18\x11 \x01(\x0b\x32\x1a.PerformAttestationRequestH\x00\x12 \n\x06reboot\x18\x12 \x01(\x0b\x32\x0e.RebootRequestH\x00\x12+\n\x0c\x63heck_backup\x18\x13 \x01(\x0b\x32\x13.CheckBackupRequestH\x00\x12\x1a\n\x03\x65th\x18\x14 \x01(\x0b\x32\x0b.ETHRequestH\x00\x12\x1e\n\x05reset\x18\x15 \x01(\x0b\x32\r.ResetRequestH\x00\x12<\n\x15restore_from_mnemonic\x18\x16 \x01(\x0b\x32\x1b.RestoreFromMnemonicRequestH\x00\x42\t\n\x07request\"\xd7\x03\n\x08Response\x12\x1b\n\x07success\x18\x01 \x01(\x0b\x32\x08.SuccessH\x00\x12\x17\n\x05\x65rror\x18\x02 \x01(\x0b\x32\x06.ErrorH\x00\x12.\n\rrandom_number\x18\x03 \x01(\x0b\x32\x15.RandomNumberResponseH\x00\x12*\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32\x13.DeviceInfoResponseH\x00\x12\x1b\n\x03pub\x18\x05 \x01(\x0b\x32\x0c.PubResponseH\x00\x12-\n\rbtc_sign_next\x18\x06 \x01(\x0b\x32\x14.BTCSignNextResponseH\x00\x12,\n\x0clist_backups\x18\x07 \x01(\x0b\x32\x14.ListBackupsResponseH\x00\x12,\n\x0c\x63heck_backup\x18\x08 \x01(\x0b\x32\x14.CheckBackupResponseH\x00\x12:\n\x13perform_attestation\x18\t \x01(\x0b\x32\x1b.PerformAttestationResponseH\x00\x12,\n\x0c\x63heck_sdcard\x18\n \x01(\x0b\x32\x14.CheckSDCardResponseH\x00\x12\x1b\n\x03\x65th\x18\x0b \x01(\x0b\x32\x0c.ETHResponseH\x00\x42\n\n\x08response*/\n\x07\x42TCCoin\x12\x07\n\x03\x42TC\x10\x00\x12\x08\n\x04TBTC\x10\x01\x12\x07\n\x03LTC\x10\x02\x12\x08\n\x04TLTC\x10\x03*`\n\rBTCScriptType\x12\x12\n\x0eSCRIPT_UNKNOWN\x10\x00\x12\x10\n\x0cSCRIPT_P2PKH\x10\x01\x12\x16\n\x12SCRIPT_P2WPKH_P2SH\x10\x02\x12\x11\n\rSCRIPT_P2WPKH\x10\x03*H\n\rBTCOutputType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\t\n\x05P2PKH\x10\x01\x12\x08\n\x04P2SH\x10\x02\x12\n\n\x06P2WPKH\x10\x03\x12\t\n\x05P2WSH\x10\x04*2\n\x07\x45THCoin\x12\x07\n\x03\x45TH\x10\x00\x12\x0e\n\nRopstenETH\x10\x01\x12\x0e\n\nRinkebyETH\x10\x02\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -49,8 +49,8 @@ _BTCCOIN = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=4343,
-  serialized_end=4390,
+  serialized_start=4318,
+  serialized_end=4365,
 )
 _sym_db.RegisterEnumDescriptor(_BTCCOIN)
 
@@ -80,8 +80,8 @@ _BTCSCRIPTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=4392,
-  serialized_end=4488,
+  serialized_start=4367,
+  serialized_end=4463,
 )
 _sym_db.RegisterEnumDescriptor(_BTCSCRIPTTYPE)
 
@@ -115,8 +115,8 @@ _BTCOUTPUTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=4490,
-  serialized_end=4562,
+  serialized_start=4465,
+  serialized_end=4537,
 )
 _sym_db.RegisterEnumDescriptor(_BTCOUTPUTTYPE)
 
@@ -142,8 +142,8 @@ _ETHCOIN = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=4564,
-  serialized_end=4614,
+  serialized_start=4539,
+  serialized_end=4589,
 )
 _sym_db.RegisterEnumDescriptor(_ETHCOIN)
 
@@ -243,8 +243,8 @@ _BTCSIGNNEXTRESPONSE_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1583,
-  serialized_end=1622,
+  serialized_start=1558,
+  serialized_end=1597,
 )
 _sym_db.RegisterEnumDescriptor(_BTCSIGNNEXTRESPONSE_TYPE)
 
@@ -265,8 +265,8 @@ _ETHPUBREQUEST_OUTPUTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=2293,
-  serialized_end=2328,
+  serialized_start=2268,
+  serialized_end=2303,
 )
 _sym_db.RegisterEnumDescriptor(_ETHPUBREQUEST_OUTPUTTYPE)
 
@@ -957,14 +957,7 @@ _BACKUPINFO = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='timezone_offset', full_name='BackupInfo.timezone_offset', index=2,
-      number=3, type=13, cpp_type=3, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='name', full_name='BackupInfo.name', index=3,
+      name='name', full_name='BackupInfo.name', index=2,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -983,7 +976,7 @@ _BACKUPINFO = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=1144,
-  serialized_end=1226,
+  serialized_end=1201,
 )
 
 
@@ -1013,8 +1006,8 @@ _LISTBACKUPSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1228,
-  serialized_end=1276,
+  serialized_start=1203,
+  serialized_end=1251,
 )
 
 
@@ -1086,8 +1079,8 @@ _BTCSIGNINITREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1279,
-  serialized_end=1459,
+  serialized_start=1254,
+  serialized_end=1434,
 )
 
 
@@ -1139,8 +1132,8 @@ _BTCSIGNNEXTRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1462,
-  serialized_end=1622,
+  serialized_start=1437,
+  serialized_end=1597,
 )
 
 
@@ -1198,8 +1191,8 @@ _BTCSIGNINPUTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1624,
-  serialized_end=1745,
+  serialized_start=1599,
+  serialized_end=1720,
 )
 
 
@@ -1257,8 +1250,8 @@ _BTCSIGNOUTPUTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1747,
-  serialized_end=1859,
+  serialized_start=1722,
+  serialized_end=1834,
 )
 
 
@@ -1288,8 +1281,8 @@ _SETMNEMONICPASSPHRASEENABLEDREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1861,
-  serialized_end=1915,
+  serialized_start=1836,
+  serialized_end=1890,
 )
 
 
@@ -1319,8 +1312,8 @@ _PERFORMATTESTATIONREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1917,
-  serialized_end=1963,
+  serialized_start=1892,
+  serialized_end=1938,
 )
 
 
@@ -1378,8 +1371,8 @@ _PERFORMATTESTATIONRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1966,
-  serialized_end=2124,
+  serialized_start=1941,
+  serialized_end=2099,
 )
 
 
@@ -1402,8 +1395,8 @@ _REBOOTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2126,
-  serialized_end=2141,
+  serialized_start=2101,
+  serialized_end=2116,
 )
 
 
@@ -1462,8 +1455,8 @@ _ETHPUBREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2144,
-  serialized_end=2328,
+  serialized_start=2119,
+  serialized_end=2303,
 )
 
 
@@ -1542,8 +1535,8 @@ _ETHSIGNREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2331,
-  serialized_end=2489,
+  serialized_start=2306,
+  serialized_end=2464,
 )
 
 
@@ -1573,8 +1566,8 @@ _ETHSIGNRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2491,
-  serialized_end=2527,
+  serialized_start=2466,
+  serialized_end=2502,
 )
 
 
@@ -1614,8 +1607,8 @@ _ETHREQUEST = _descriptor.Descriptor(
       name='request', full_name='ETHRequest.request',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=2529,
-  serialized_end=2616,
+  serialized_start=2504,
+  serialized_end=2591,
 )
 
 
@@ -1655,8 +1648,8 @@ _ETHRESPONSE = _descriptor.Descriptor(
       name='response', full_name='ETHResponse.response',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=2618,
-  serialized_end=2706,
+  serialized_start=2593,
+  serialized_end=2681,
 )
 
 
@@ -1679,8 +1672,8 @@ _RESETREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2708,
-  serialized_end=2722,
+  serialized_start=2683,
+  serialized_end=2697,
 )
 
 
@@ -1717,8 +1710,8 @@ _RESTOREFROMMNEMONICREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2724,
-  serialized_end=2796,
+  serialized_start=2699,
+  serialized_end=2771,
 )
 
 
@@ -1898,8 +1891,8 @@ _REQUEST = _descriptor.Descriptor(
       name='request', full_name='Request.request',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=2799,
-  serialized_end=3867,
+  serialized_start=2774,
+  serialized_end=3842,
 )
 
 
@@ -2002,8 +1995,8 @@ _RESPONSE = _descriptor.Descriptor(
       name='response', full_name='Response.response',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=3870,
-  serialized_end=4341,
+  serialized_start=3845,
+  serialized_end=4316,
 )
 
 _INSERTREMOVESDCARDREQUEST.fields_by_name['action'].enum_type = _INSERTREMOVESDCARDREQUEST_SDCARDACTION

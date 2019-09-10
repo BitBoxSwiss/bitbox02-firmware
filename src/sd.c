@@ -18,7 +18,7 @@
 #include <string.h>
 
 #ifndef TESTING
-#include "drivers/driver_init.h"
+#include "driver_init.h"
 #include "sd_mmc.h"
 #endif
 

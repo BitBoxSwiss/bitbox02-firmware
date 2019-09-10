@@ -15,9 +15,19 @@
 #ifndef _HID_H_
 #define _HID_H_
 
-#include "usbdc.h"
+#include <stdbool.h>
+#include <stdint.h>
+
+#if !defined(TESTING)
 #include "usb_protocol.h"
 #include "usb_protocol_hid.h"
+#include "usbdc.h"
+#else
+struct usbdc_handler;
+struct usbdf_handler;
+struct usbdf_driver;
+typedef void (*FUNC_PTR)(void);
+#endif
 
 /* endpoint direction */
 #define DIR_OUT 1
@@ -27,14 +37,14 @@
  * The callback that is called when a set report USB request
  * is received. Can be set with hid_register_callback via hid_trans_type=HID_CB_SET_REPORT.
  */
-typedef bool (*hid_set_report_t)(uint8_t *, uint16_t);
+typedef bool (*hid_set_report_t)(uint8_t*, uint16_t);
 
 /**
  * Holds descriptor and endpoint meta-data.
  */
 struct hid_func_data {
-    uint8_t *hid_desc;
-    uint8_t *report_desc;
+    uint8_t* hid_desc;
+    uint8_t* report_desc;
     uint32_t report_desc_len;
     uint8_t func_iface;
     uint8_t func_ep_in;
@@ -76,7 +86,7 @@ bool hid_is_enabled(struct hid_func_data* func_data);
  * @param[OUT] buf The address of the buffer to which we write.
  * @param[IN] size The size of the buffer.
  */
-int32_t hid_read(struct hid_func_data* func_data, uint8_t *buf, uint32_t size);
+int32_t hid_read(struct hid_func_data* func_data, uint8_t* buf, uint32_t size);
 
 /**
  * Sets the buffer address for the outgoing endpoint.
@@ -84,7 +94,7 @@ int32_t hid_read(struct hid_func_data* func_data, uint8_t *buf, uint32_t size);
  * @param[IN] buf The address of the buffer from which we read.
  * @param[IN] size The size of the buffer.
  */
-int32_t hid_write(struct hid_func_data* func_data, const uint8_t *buf, uint32_t size);
+int32_t hid_write(struct hid_func_data* func_data, const uint8_t* buf, uint32_t size);
 
 /**
  * Registers a callback for a given transfer type.
@@ -93,7 +103,10 @@ int32_t hid_write(struct hid_func_data* func_data, const uint8_t *buf, uint32_t 
  *            which can be READ, WRITE or SET_REPORT.
  * @param[in] fund The function that is registered as a callback.
  */
-int32_t hid_register_callback(struct hid_func_data* func_data, enum hid_trans_type cb_type, FUNC_PTR func);
+int32_t hid_register_callback(
+    struct hid_func_data* func_data,
+    enum hid_trans_type cb_type,
+    FUNC_PTR func);
 
 /**
  * Returns the endpoint for the given direction.
@@ -111,7 +124,11 @@ uint8_t hid_get_ep(struct usbdf_driver* func_driver, uint8_t dir);
  * @param[in] req The usb request.
  * @param[in] stage The usb control stage.
  */
-int32_t hid_req(struct usbdf_driver *drv, uint8_t ep, struct usb_req *req, enum usb_ctrl_stage stage);
+int32_t hid_req(
+    struct usbdf_driver* drv,
+    uint8_t ep,
+    struct usb_req* req,
+    enum usb_ctrl_stage stage);
 
 /**
  * The control callback that is called to enable or disable the interface.
@@ -119,6 +136,6 @@ int32_t hid_req(struct usbdf_driver *drv, uint8_t ep, struct usb_req *req, enum 
  * @param[in] ctrl The control flag which indicates which action to take.
  * @param[in] param Additional parameters passed to the callback.
  */
-//int32_t hid_ctrl(struct usbdf_driver *drv, enum usbdf_control ctrl, void *param);
+// int32_t hid_ctrl(struct usbdf_driver *drv, enum usbdf_control ctrl, void *param);
 
 #endif

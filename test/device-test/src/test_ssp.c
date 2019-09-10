@@ -13,8 +13,8 @@
 // limitations under the License.
 
 #include "random.h"
-#include <drivers/driver_init.h>
-#include <drivers/qtouch/qtouch.h>
+#include <driver_init.h>
+#include <qtouch/qtouch.h>
 #include <screen.h>
 #include <string.h>
 #include <usb/usb.h>

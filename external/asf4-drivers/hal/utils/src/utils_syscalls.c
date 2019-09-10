@@ -104,7 +104,7 @@ extern int link(char *old, char *_new)
 	return -1;
 }
 
-#if !defined(SEMIHOSTING)
+#if 0
 
 /**
  * \brief Replacement of C library of _close

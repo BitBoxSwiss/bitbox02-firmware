@@ -78,4 +78,15 @@ void system_close_interfaces(void);
  */
 void system_init(void);
 
+/**
+ * Close peripheral interfaces
+ */
+void bootloader_close_interfaces(void);
+
+/**
+ * Perform system initialization, initialize pins and clocks for
+ * peripherals
+ */
+void bootloader_init(void);
+
 #endif

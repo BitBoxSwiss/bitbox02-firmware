@@ -27,8 +27,6 @@ struct rand_sync_desc RAND_0;
 PPUKCL_PARAM pvPUKCLParam;
 PUKCL_PARAM PUKCLParam;
 
-extern void initialise_monitor_handles(void);
-
 bool _is_initialized = false;
 
 /**
@@ -179,22 +177,12 @@ static void _mci_set_pins(void)
  * Initialize SD/MMC peripheral
  */
 
-// Card Detect (CD) {pin, detection level}
-static sd_mmc_detect_t _sd_access_card_detect[CONF_SD_MMC_MEM_CNT] = {
-    {PIN_SD_CD, PIN_LOW},
-};
-
-// Write Protect (WP) {pin, detection level}
-static sd_mmc_detect_t _sd_access_write_protect[CONF_SD_MMC_MEM_CNT] = {
-    {-1, PIN_HIGH},
-};
 
 static void _mci_init(void)
 {
     hri_mclk_set_AHBMASK_SDHC0_bit(MCLK);
     hri_gclk_write_PCHCTRL_reg(GCLK, SDHC0_GCLK_ID, CONF_GCLK_SDHC0_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_gclk_write_PCHCTRL_reg(GCLK, SDHC0_GCLK_ID_SLOW, CONF_GCLK_SDHC0_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
-    sd_mmc_init(&MCI_0, _sd_access_card_detect, _sd_access_write_protect);
     _mci_set_pins();
 }
 #endif
@@ -254,8 +242,7 @@ static void _usb_init(void)
     _usb_set_pins();
 }
 
-void system_init(void)
-{
+static void _oled_set_pins(void) {
     gpio_set_pin_direction(PIN_OLED_CS, GPIO_DIRECTION_OUT);
     gpio_set_pin_level(PIN_OLED_CS, PIN_HIGH);
     gpio_set_pin_function(PIN_OLED_CS, GPIO_PIN_FUNCTION_OFF);
@@ -279,7 +266,11 @@ void system_init(void)
     gpio_set_pin_direction(PIN_SD_PWON, GPIO_DIRECTION_OUT);
     gpio_set_pin_level(PIN_SD_PWON, PIN_HIGH);
     gpio_set_pin_function(PIN_SD_PWON, GPIO_PIN_FUNCTION_OFF);
+}
 
+void system_init(void)
+{
+    _oled_set_pins();
     _ptc_clock_init();
 
     _timer_peripheral_init();
@@ -287,13 +278,11 @@ void system_init(void)
 
     // OLED
     _spi_init();
-    oled_init();
-#ifndef BOOTLOADER
     // ATECC608A
     _i2c_init();
     // uSD
     _mci_init();
-#endif
+
     // Hardware crypto
     _ecdsa_init();
     _sha_init();
@@ -302,9 +291,27 @@ void system_init(void)
     _flash_memory_init();
     // USB
     _usb_init();
-#if defined(SEMIHOSTING)
-    initialise_monitor_handles();
-#endif
+    _is_initialized = true;
+}
+
+void bootloader_init(void) {
+    _oled_set_pins();
+    _ptc_clock_init();
+
+    _timer_peripheral_init();
+    _delay_driver_init();
+
+    // OLED
+    _spi_init();
+
+    // Hardware crypto
+    _ecdsa_init();
+    _sha_init();
+    _rand_init();
+    // Flash
+    _flash_memory_init();
+    // USB
+    _usb_init();
     _is_initialized = true;
 }
 
@@ -329,4 +336,21 @@ void system_close_interfaces(void)
     // Hardware crypto
     sha_sync_deinit(&HASH_ALGORITHM_0);
     rand_sync_deinit(&RAND_0);
+}
+
+void bootloader_close_interfaces(void) {
+    if (!_is_initialized) {
+        return;
+    }
+    // OLED interface bus
+    // Display remains on last screen
+    SPI_0_disable();
+    // Flash
+    flash_deinit(&FLASH_0);
+    // USB
+    usb_d_deinit();
+    // Hardware crypto
+    sha_sync_deinit(&HASH_ALGORITHM_0);
+    rand_sync_deinit(&RAND_0);
+
 }

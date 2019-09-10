@@ -12,36 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "hardfault.h"
-#include "util.h"
-#include <screen.h>
-#include <usb/usb.h>
-#ifndef TESTING
+#include "peripherals_init.h"
 #include <driver_init.h>
-
-void HardFault_Handler(void)
-{
-    Abort("Hard Fault");
-}
-
-void MemManage_Handler(void)
-{
-    Abort("Memory Fault");
-}
+#include <ui/oled/oled.h>
+#if !defined(BOOTLOADER)
+#include "sd_mmc/sd_mmc_start.h"
 #endif
 
-void Abort(const char* msg)
+extern void initialise_monitor_handles(void);
+
+void peripherals_init(void)
 {
-    screen_print_debug(msg, 0);
-    traceln("Aborted: %s", msg);
-    usb_stop();
-#if !defined(TESTING)
-#if defined(BOOTLOADER)
-    bootloader_close_interfaces();
-#else
-    system_close_interfaces();
+#if defined(SEMIHOSTING)
+    initialise_monitor_handles();
 #endif
+    oled_init();
+#if !defined(BOOTLOADER)
+    sd_mmc_init();
 #endif
-    while (1) {
-    }
 }

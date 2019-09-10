@@ -113,19 +113,29 @@ add_library(secp256k1 STATIC IMPORTED GLOBAL)
 set_property(TARGET secp256k1
   PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libsecp256k1.a)
 
+if(CMAKE_CROSSCOMPILING)
 # Cortex Microcontroller Software Interface Standard
 add_library(CMSIS INTERFACE)
 target_include_directories(CMSIS INTERFACE CMSIS/Include)
 
 # Atmel SAMD51 Series Device Support
-add_library(samd51a-ds samd51a-ds/gcc/system_samd51.c samd51a-ds/gcc/gcc/startup_samd51.c)
-target_include_directories(samd51a-ds PUBLIC samd51a-ds/include)
-target_link_libraries(samd51a-ds PUBLIC CMSIS)
+add_library(samd51a-ds STATIC
+  samd51a-ds/gcc/system_samd51.c
+  samd51a-ds/gcc/gcc/startup_samd51.c
+)
+target_include_directories(samd51a-ds
+  PUBLIC
+    samd51a-ds/include
+)
+target_link_libraries(samd51a-ds
+  PUBLIC
+    CMSIS
+)
 
 
 # Advanced Software Framework Drivers
 # Only drivers needed for bootloader (minimal set)
-add_library(asf4-drivers-min
+add_library(asf4-drivers-min STATIC
   asf4-drivers/driver_init.c
   asf4-drivers/hal/utils/src/utils_syscalls.c
   asf4-drivers/hal/utils/src/utils_list.c
@@ -138,8 +148,7 @@ add_library(asf4-drivers-min
   asf4-drivers/hal/src/hal_rand_sync.c
   asf4-drivers/hal/src/hal_flash.c
   asf4-drivers/hal/src/hal_pac.c
-  #asf4-drivers/hal/src/hal_sha_sync.c
-  asf4-drivers/hal/src/hal_i2c_m_sync.c
+  asf4-drivers/hal/src/hal_sha_sync.c
   asf4-drivers/hpl/systick/hpl_systick.c
   asf4-drivers/hpl/gclk/hpl_gclk.c
   asf4-drivers/hpl/oscctrl/hpl_oscctrl.c
@@ -157,16 +166,17 @@ add_library(asf4-drivers-min
   asf4-drivers/qtouch/qtouch.c
   asf4-drivers/usb/usb_protocol.c
   asf4-drivers/usb/device/usbdc.c
-  asf4-drivers/usb/class/hid/hid.c
   )
 
 target_link_libraries(asf4-drivers-min samd51a-ds)
 
-# only used internally
 target_include_directories(asf4-drivers-min
-  PRIVATE
+  PUBLIC
+    asf4-drivers
     asf4-drivers/Config
     asf4-drivers/hal/include
+    asf4-drivers/hal/include
+    asf4-drivers/hal/utils/include
     asf4-drivers/hpl/core
     asf4-drivers/hpl/gclk
     asf4-drivers/hpl/pm
@@ -175,30 +185,34 @@ target_include_directories(asf4-drivers-min
     asf4-drivers/hpl/rtc
     asf4-drivers/hpl/spi
     asf4-drivers/hri
-)
-# used internally and externally
-target_include_directories(asf4-drivers-min
-  PUBLIC
-    asf4-drivers/hal/utils/include
+    asf4-drivers/qtouch
+    asf4-drivers/qtouch/include
+    asf4-drivers/usb
+    asf4-drivers/usb/class
+    asf4-drivers/usb/class/hid
+    asf4-drivers/usb/device
 )
 
 # Advanced Software Framework Drivers
 # All drivers
-add_library(asf4-drivers
+add_library(asf4-drivers STATIC
   asf4-drivers/hal/src/hal_mci_sync.c
+  asf4-drivers/hal/src/hal_i2c_m_sync.c
   asf4-drivers/hpl/sdhc/hpl_sdhc.c
   asf4-drivers/hpl/sercom/hpl_sercom.c
   asf4-drivers/sd_mmc/sd_mmc.c
-  #asf4-drivers/diskio/sdmmc_diskio.c
+  asf4-drivers/diskio/sdmmc_diskio.c
 )
 target_link_libraries(asf4-drivers asf4-drivers-min)
 
-# only used internally
-target_include_directories(asf4-drivers
-  PRIVATE
-    asf4-drivers/hal/include
-)
 target_include_directories(asf4-drivers
   PUBLIC
+    asf4-drivers/diskio
     asf4-drivers/sd_mmc
 )
+
+find_library(QTOUCHLIB_A qtm_acq_samd51_0x000f PATHS asf4-drivers/qtouch/lib/gcc)
+find_library(QTOUCHLIB_B qtm_binding_layer_cm4_0x0005 PATHS asf4-drivers/qtouch/lib/gcc)
+find_library(QTOUCHLIB_T qtm_touch_key_cm4_0x0002 PATHS asf4-drivers/qtouch/lib/gcc)
+
+endif() # CMAKE_CROSSCOMPILING

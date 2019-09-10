@@ -141,7 +141,9 @@ set(DBB-BOOTLOADER-SOURCES
 set(DBB-BOOTLOADER-SOURCES ${DBB-BOOTLOADER-SOURCES} PARENT_SCOPE)
 
 set(DRIVER-SOURCES
+  ${CMAKE_SOURCE_DIR}/src/peripherals_init.c
   ${CMAKE_SOURCE_DIR}/src/ui/oled/oled.c
+  ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hid.c
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hww/hid_hww.c
 )
 set(DRIVER-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
@@ -261,41 +263,45 @@ set(FIRMWARE-U2F-SOURCES ${FIRMWARE-U2F-SOURCES} PARENT_SCOPE)
 
 set(INCLUDES
   ${CMAKE_SOURCE_DIR}/src
+  ${CMAKE_SOURCE_DIR}/src/usb/class
+  ${CMAKE_SOURCE_DIR}/src/usb/class/hid
+  ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hww
+  ${CMAKE_SOURCE_DIR}/src/usb/class/hid/u2f
 )
 set(INCLUDES ${INCLUDES} PARENT_SCOPE)
-set(SYSTEMINCLUDES
-  ${CMAKE_SOURCE_DIR}/src/drivers
-  ${CMAKE_SOURCE_DIR}/src/drivers/Config
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/include
-  ${CMAKE_SOURCE_DIR}/src/drivers/hal/utils/include
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/core
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/dmac
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/gclk
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/mclk
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/osc32kctrl
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/oscctrl
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/pm
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/port
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/ramecc
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/rtc
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/sdhc
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/sercom
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/spi
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/usb
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/trng
-  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/pukcc
-  ${CMAKE_SOURCE_DIR}/src/drivers/hri
-  ${CMAKE_SOURCE_DIR}/src/drivers/qtouch
-  ${CMAKE_SOURCE_DIR}/src/drivers/qtouch/include
-  ${CMAKE_SOURCE_DIR}/src/drivers/usb
-  ${CMAKE_SOURCE_DIR}/src/drivers/usb/device
-  ${CMAKE_SOURCE_DIR}/src/drivers/usb/class
-  ${CMAKE_SOURCE_DIR}/src/drivers/usb/class/hid
-  ${CMAKE_SOURCE_DIR}/src/drivers/usb/class/hid/hww
-  ${CMAKE_SOURCE_DIR}/src/drivers/sd_mmc
-  ${CMAKE_SOURCE_DIR}/src/drivers/diskio
-)
-set(SYSTEMINCLUDES ${SYSTEMINCLUDES} PARENT_SCOPE)
+#set(SYSTEMINCLUDES
+#  ${CMAKE_SOURCE_DIR}/src/drivers
+#  ${CMAKE_SOURCE_DIR}/src/drivers/Config
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hal/include
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hal/utils/include
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/core
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/dmac
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/gclk
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/mclk
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/osc32kctrl
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/oscctrl
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/pm
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/port
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/ramecc
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/rtc
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/sdhc
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/sercom
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/spi
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/usb
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/trng
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hpl/pukcc
+#  ${CMAKE_SOURCE_DIR}/src/drivers/hri
+#  ${CMAKE_SOURCE_DIR}/src/drivers/qtouch
+#  ${CMAKE_SOURCE_DIR}/src/drivers/qtouch/include
+#  ${CMAKE_SOURCE_DIR}/src/drivers/usb
+#  ${CMAKE_SOURCE_DIR}/src/drivers/usb/device
+#  ${CMAKE_SOURCE_DIR}/src/drivers/usb/class
+#  ${CMAKE_SOURCE_DIR}/src/drivers/usb/class/hid
+#  ${CMAKE_SOURCE_DIR}/src/drivers/usb/class/hid/hww
+#  ${CMAKE_SOURCE_DIR}/src/drivers/sd_mmc
+#  ${CMAKE_SOURCE_DIR}/src/drivers/diskio
+#)
+#set(SYSTEMINCLUDES ${SYSTEMINCLUDES} PARENT_SCOPE)
 
 #-----------------------------------------------------------------------------
 # Build embedded firmware
@@ -359,19 +365,6 @@ set(BOOTLOADER-SOURCES
   ${DRIVER-SOURCES}
 )
 
-add_library(qtouchlib_a STATIC IMPORTED)
-set_property(TARGET qtouchlib_a PROPERTY IMPORTED_LOCATION
-  ${CMAKE_SOURCE_DIR}/src/drivers/qtouch/lib/gcc/libqtm_acq_samd51_0x000f.a
-)
-add_library(qtouchlib_b STATIC IMPORTED)
-set_property(TARGET qtouchlib_b PROPERTY IMPORTED_LOCATION
-  ${CMAKE_SOURCE_DIR}/src/drivers/qtouch/lib/gcc/libqtm_binding_layer_cm4_0x0005.a
-)
-add_library(qtouchlib_t STATIC IMPORTED)
-set_property(TARGET qtouchlib_t PROPERTY IMPORTED_LOCATION
-  ${CMAKE_SOURCE_DIR}/src/drivers/qtouch/lib/gcc/libqtm_touch_key_cm4_0x0002.a
-)
-
 if(CMAKE_CROSSCOMPILING)
   set(STACK_SIZE "0x10000" CACHE STRING "Specify stack size for bootloader/firmware")
   set(STACK_SIZE ${STACK_SIZE} PARENT_SCOPE)
@@ -383,7 +376,7 @@ if(CMAKE_CROSSCOMPILING)
   foreach(bootloader ${BOOTLOADERS})
     set(elf ${bootloader}.elf)
     add_executable(${elf} ${BOOTLOADER-SOURCES})
-    target_link_libraries(${elf} PRIVATE asf4-drivers-min)
+    target_link_libraries(${elf} PRIVATE c asf4-drivers-min -Wl,-u,exception_table)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_include_directories(${elf} SYSTEM PRIVATE ${SYSTEMINCLUDES})
     target_compile_definitions(${elf} PRIVATE BOOTLOADER)
@@ -393,7 +386,7 @@ if(CMAKE_CROSSCOMPILING)
     target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/bootloader)
     target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${bootloader}.map\" -T\"${CMAKE_SOURCE_DIR}/bootloader.ld\"")
     target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
-    target_link_libraries(${elf} PRIVATE qtouchlib_a qtouchlib_b qtouchlib_t)
+    target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
     # Select the smaller version of libc called nano.
     target_compile_options(${elf} PRIVATE --specs=nano.specs)
     target_link_libraries(${elf} PRIVATE --specs=nano.specs)
@@ -425,8 +418,8 @@ if(CMAKE_CROSSCOMPILING)
   foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)
     add_executable(${elf} ${FIRMWARE-SOURCES})
+    target_link_libraries(${elf} PRIVATE c samd51a-ds asf4-drivers-min asf4-drivers -Wl,-u,exception_table)
     add_dependencies(${elf} generate-hww generate-backup)
-    target_link_libraries(${elf} PRIVATE asf4-drivers)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_include_directories(${elf} SYSTEM PRIVATE ${SYSTEMINCLUDES})
 
@@ -455,7 +448,8 @@ if(CMAKE_CROSSCOMPILING)
 
     add_dependencies(${elf} libwally-core)
     target_link_libraries(${elf} PRIVATE wallycore secp256k1)
-    target_link_libraries(${elf} PRIVATE qtouchlib_a qtouchlib_b qtouchlib_t)
+    target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
+    # Must manually link against C so that malloc can find _sbrk
 
     # Select the smaller version of libc called nano.
     target_compile_options(${elf} PRIVATE --specs=nano.specs)

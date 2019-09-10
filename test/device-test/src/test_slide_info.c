@@ -15,7 +15,7 @@
 #include "qtouch.h"
 #include "random.h"
 #include "util.h"
-#include <drivers/driver_init.h>
+#include <driver_init.h>
 #include <screen.h>
 #include <string.h>
 #include <touch/gestures.h>

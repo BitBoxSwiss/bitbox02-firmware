@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <driver_init.h>
 #include <screen.h>
 #include <touch/gestures.h>
 #include <ui/components/ui_components.h>

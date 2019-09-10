@@ -13,8 +13,9 @@
 // limitations under the License.
 
 #include "common_main.h"
-#include "drivers/driver_init.h"
+#include "driver_init.h"
 #include "hardfault.h"
+#include "peripherals_init.h"
 #include "qtouch.h"
 #include "screen.h"
 #include "ui/screen_process.h"
@@ -27,6 +28,7 @@ int main(void)
 {
     init_mcu();
     system_init();
+    peripherals_init();
     __stack_chk_guard = common_stack_chk_guard();
     screen_init();
     screen_splash();

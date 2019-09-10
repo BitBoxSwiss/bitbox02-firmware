@@ -97,22 +97,23 @@
 // Note: Always at least one i.e. Report descriptor.
 #define USB_HID_NUM_DESC 0x01
 // Country code
-#define USB_HID_NO_COUNTRY_CODE 0// Not Supported
+#define USB_HID_NO_COUNTRY_CODE 0 // Not Supported
 
-#define USB_HID_DESC_BYTES(bLength, bCountryCode, bNumDescriptors, bDescriptorType, bDescriptorLength)                 \
-    bLength, 0x21, 0x10, 0x01, bCountryCode, bNumDescriptors, bDescriptorType, LE_BYTE0(bDescriptorLength),            \
-        LE_BYTE1(bDescriptorLength)
+#define USB_HID_DESC_BYTES(                                                     \
+    bLength, bCountryCode, bNumDescriptors, bDescriptorType, bDescriptorLength) \
+    bLength, 0x21, 0x10, 0x01, bCountryCode, bNumDescriptors, bDescriptorType,  \
+        LE_BYTE0(bDescriptorLength), LE_BYTE1(bDescriptorLength)
 
 // HID Descriptor
 COMPILER_PACK_SET(1)
 typedef struct usb_hid_descriptor {
-    uint8_t bLength;           // Size of this descriptor in bytes
-    uint8_t bDescriptorType;   // HID descriptor type
-    le16_t  bcdHID;            // Binary Coded Decimal Spec. release
-    uint8_t bCountryCode;      // Hardware target country
-    uint8_t bNumDescriptors;   // Number of HID class descriptors to follow
-    uint8_t bRDescriptorType;  // Report descriptor type
-    le16_t  wDescriptorLength; // Total length of Report descriptor
+    uint8_t bLength; // Size of this descriptor in bytes
+    uint8_t bDescriptorType; // HID descriptor type
+    le16_t bcdHID; // Binary Coded Decimal Spec. release
+    uint8_t bCountryCode; // Hardware target country
+    uint8_t bNumDescriptors; // Number of HID class descriptors to follow
+    uint8_t bRDescriptorType; // Report descriptor type
+    le16_t wDescriptorLength; // Total length of Report descriptor
 } usb_hid_descriptor_t;
 COMPILER_PACK_RESET()
 
@@ -124,14 +125,18 @@ COMPILER_PACK_RESET()
  * @param[in]  iface Interface Number
  * @param[in]  len   Descriptor Length
  */
-static inline void usb_fill_GetHIDDesc_req(struct usb_req *req, uint8_t type, uint8_t index, uint8_t iface,
-                                           uint16_t len)
+static inline void usb_fill_GetHIDDesc_req(
+    struct usb_req* req,
+    uint8_t type,
+    uint8_t index,
+    uint8_t iface,
+    uint16_t len)
 {
     req->bmRequestType = 0x81;
-    req->bRequest      = USB_REQ_GET_DESC;
-    req->V.wValue      = (type << 8) | index;
-    req->I.wIndex      = iface;
-    req->L.wLength     = len;
+    req->bRequest = USB_REQ_GET_DESC;
+    req->V.wValue = (type << 8) | index;
+    req->I.wIndex = iface;
+    req->L.wLength = len;
 }
 
 /**
@@ -142,14 +147,18 @@ static inline void usb_fill_GetHIDDesc_req(struct usb_req *req, uint8_t type, ui
  * @param[in]  iface Interface Number
  * @param[in]  len   Descriptor Length
  */
-static inline void usb_fill_SetHIDDesc_req(struct usb_req *req, uint8_t type, uint8_t index, uint8_t iface,
-                                           uint16_t len)
+static inline void usb_fill_SetHIDDesc_req(
+    struct usb_req* req,
+    uint8_t type,
+    uint8_t index,
+    uint8_t iface,
+    uint16_t len)
 {
     req->bmRequestType = 0x01;
-    req->bRequest      = USB_REQ_SET_DESC;
-    req->V.wValue      = (type << 8) | index;
-    req->I.wIndex      = iface;
-    req->L.wLength     = len;
+    req->bRequest = USB_REQ_SET_DESC;
+    req->V.wValue = (type << 8) | index;
+    req->I.wIndex = iface;
+    req->L.wLength = len;
 }
 
 /**
@@ -160,13 +169,18 @@ static inline void usb_fill_SetHIDDesc_req(struct usb_req *req, uint8_t type, ui
  * @param[in]  iface Interface Number
  * @param[in]  len   Report Length
  */
-static inline void usb_fill_GetReport_req(struct usb_req *req, uint8_t type, uint8_t id, uint8_t iface, uint16_t len)
+static inline void usb_fill_GetReport_req(
+    struct usb_req* req,
+    uint8_t type,
+    uint8_t id,
+    uint8_t iface,
+    uint16_t len)
 {
     req->bmRequestType = 0xA1;
-    req->bRequest      = USB_REQ_HID_GET_REPORT;
-    req->V.wValue      = (type << 8) | id;
-    req->I.wIndex      = iface;
-    req->L.wLength     = len;
+    req->bRequest = USB_REQ_HID_GET_REPORT;
+    req->V.wValue = (type << 8) | id;
+    req->I.wIndex = iface;
+    req->L.wLength = len;
 }
 
 /**
@@ -177,13 +191,18 @@ static inline void usb_fill_GetReport_req(struct usb_req *req, uint8_t type, uin
  * @param[in]  iface Interface Number
  * @param[in]  len   Report Length
  */
-static inline void usb_fill_SetReport_req(struct usb_req *req, uint8_t type, uint8_t id, uint8_t iface, uint16_t len)
+static inline void usb_fill_SetReport_req(
+    struct usb_req* req,
+    uint8_t type,
+    uint8_t id,
+    uint8_t iface,
+    uint16_t len)
 {
     req->bmRequestType = 0x21;
-    req->bRequest      = USB_REQ_HID_GET_REPORT;
-    req->V.wValue      = (type << 8) | id;
-    req->I.wIndex      = iface;
-    req->L.wLength     = len;
+    req->bRequest = USB_REQ_HID_GET_REPORT;
+    req->V.wValue = (type << 8) | id;
+    req->I.wIndex = iface;
+    req->L.wLength = len;
 }
 
 /**
@@ -192,13 +211,13 @@ static inline void usb_fill_SetReport_req(struct usb_req *req, uint8_t type, uin
  * @param[in]  id    Report ID
  * @param[in]  iface Interface Number
  */
-static inline void usb_fill_GetIdle_req(struct usb_req *req, uint8_t id, uint8_t iface)
+static inline void usb_fill_GetIdle_req(struct usb_req* req, uint8_t id, uint8_t iface)
 {
     req->bmRequestType = 0xA1;
-    req->bRequest      = USB_REQ_HID_GET_IDLE;
-    req->V.wValue      = id;
-    req->I.wIndex      = iface;
-    req->L.wLength     = 1;
+    req->bRequest = USB_REQ_HID_GET_IDLE;
+    req->V.wValue = id;
+    req->I.wIndex = iface;
+    req->L.wLength = 1;
 }
 
 /**
@@ -208,13 +227,17 @@ static inline void usb_fill_GetIdle_req(struct usb_req *req, uint8_t id, uint8_t
  * @param[in]  id       Report ID
  * @param[in]  iface    Interface Number
  */
-static inline void usb_fill_SetIdle_req(struct usb_req *req, uint8_t duration, uint8_t id, uint8_t iface)
+static inline void usb_fill_SetIdle_req(
+    struct usb_req* req,
+    uint8_t duration,
+    uint8_t id,
+    uint8_t iface)
 {
     req->bmRequestType = 0x21;
-    req->bRequest      = USB_REQ_HID_SET_IDLE;
-    req->V.wValue      = (duration << 8) | id;
-    req->I.wIndex      = iface;
-    req->L.wLength     = 0;
+    req->bRequest = USB_REQ_HID_SET_IDLE;
+    req->V.wValue = (duration << 8) | id;
+    req->I.wIndex = iface;
+    req->L.wLength = 0;
 }
 
 /**
@@ -222,13 +245,13 @@ static inline void usb_fill_SetIdle_req(struct usb_req *req, uint8_t duration, u
  * @param[out] req   Pointer to the request to fill
  * @param[in]  iface Interface Number
  */
-static inline void usb_fill_GetProtocol_req(struct usb_req *req, uint8_t iface)
+static inline void usb_fill_GetProtocol_req(struct usb_req* req, uint8_t iface)
 {
     req->bmRequestType = 0xA1;
-    req->bRequest      = USB_REQ_HID_GET_PROTOCOL;
-    req->V.wValue      = 0;
-    req->I.wIndex      = iface;
-    req->L.wLength     = 1;
+    req->bRequest = USB_REQ_HID_GET_PROTOCOL;
+    req->V.wValue = 0;
+    req->I.wIndex = iface;
+    req->L.wLength = 1;
 }
 
 /**
@@ -236,13 +259,13 @@ static inline void usb_fill_GetProtocol_req(struct usb_req *req, uint8_t iface)
  * @param[out] req   Pointer to the request to fill
  * @param[in]  iface Interface Number
  */
-static inline void usb_fill_SetProtocol_req(struct usb_req *req, uint8_t protocol, uint8_t iface)
+static inline void usb_fill_SetProtocol_req(struct usb_req* req, uint8_t protocol, uint8_t iface)
 {
     req->bmRequestType = 0x21;
-    req->bRequest      = USB_REQ_HID_SET_PROTOCOL;
-    req->V.wValue      = protocol;
-    req->I.wIndex      = iface;
-    req->L.wLength     = 0;
+    req->bRequest = USB_REQ_HID_SET_PROTOCOL;
+    req->V.wValue = protocol;
+    req->I.wIndex = iface;
+    req->L.wLength = 0;
 }
 
 #endif

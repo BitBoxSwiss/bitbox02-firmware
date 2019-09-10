@@ -24,7 +24,7 @@
 #include "util.h"
 
 #ifndef TESTING
-#include "drivers/driver_init.h"
+#include "driver_init.h"
 #include <hal_delay.h>
 #else
 #include <mock_memory.h>

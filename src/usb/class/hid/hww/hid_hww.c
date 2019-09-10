@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "hid_hww.h"
+#include "usb/usb_processing.h"
+#include "usb_desc.h"
+#include <queue.h>
 #include <string.h>
 #include <usb/usb_packet.h>
-#include <queue.h>
-#include "hid_hww.h"
-#include "usb_desc.h"
-#include "usb/usb_processing.h"
 
 #define HID_HWW_VERSION 0x00000001u
 
@@ -41,7 +41,7 @@ static uint8_t _report_descriptor[] = {USB_DESC_HWW_REPORT};
 /**
  * The USB device core request handler callback for the HWW interface.
  */
-static int32_t _request(uint8_t ep, struct usb_req *req, enum usb_ctrl_stage stage)
+static int32_t _request(uint8_t ep, struct usb_req* req, enum usb_ctrl_stage stage)
 {
     return hid_req(&_func_driver, ep, req, stage);
 }
@@ -65,8 +65,9 @@ static int32_t _read(void)
 /**
  * Sends the next frame, if the USB interface is ready.
  */
-static void _send_next(void) {
-    const uint8_t *data = queue_pull(queue_hww_queue());
+static void _send_next(void)
+{
+    const uint8_t* data = queue_pull(queue_hww_queue());
     if (data != NULL) {
         hid_write(&_func_data, data, USB_HID_REPORT_OUT_SIZE);
     } else {
@@ -80,13 +81,12 @@ static void _send_next(void) {
  * This is a result of calling _read().
  * The received data is stored in '_out_report'.
  */
-static uint8_t _out(const uint8_t ep, const enum usb_xfer_code rc,
-                    const uint32_t count)
+static uint8_t _out(const uint8_t ep, const enum usb_xfer_code rc, const uint32_t count)
 {
-    (void) ep;
-    (void) rc;
-    (void) count;
-    bool need_more = usb_packet_process((const USB_FRAME *) _out_report, _send_next);
+    (void)ep;
+    (void)rc;
+    (void)count;
+    bool need_more = usb_packet_process((const USB_FRAME*)_out_report, _send_next);
     if (need_more) {
         _read();
     }
@@ -106,7 +106,8 @@ static void _sent_done(void)
 
 /**
  * Initializes a HWW HID interface.
- * @param[in] callback The callback that is called upon status update (enabling/disabling or the endpoints).
+ * @param[in] callback The callback that is called upon status update (enabling/disabling or the
+ * endpoints).
  */
 int32_t hid_hww_init(void (*callback)(void))
 {
@@ -121,10 +122,11 @@ int32_t hid_hww_init(void (*callback)(void))
 /**
  * Registers the HID HWW read and write callbacks and start listening for data.
  */
-void hid_hww_setup(void) {
-    hid_hww_register_callback(HID_CB_READ, (FUNC_PTR) _out);
+void hid_hww_setup(void)
+{
+    hid_hww_register_callback(HID_CB_READ, (FUNC_PTR)_out);
     // usb_report_sent is called when the outgoing usb frame is fully transmitted.
-    hid_hww_register_callback(HID_CB_WRITE, (FUNC_PTR) _sent_done);
+    hid_hww_register_callback(HID_CB_WRITE, (FUNC_PTR)_sent_done);
 
     usb_processing_set_send(usb_processing_hww(), _send_next);
 
@@ -145,7 +147,8 @@ int32_t hid_hww_deinit(void)
  * dir == 1: outgoing (host -> BitBox)
  * dir == 0: incoming (BitBox -> host)
  */
-uint8_t hid_hww_get_ep(uint8_t dir) {
+uint8_t hid_hww_get_ep(uint8_t dir)
+{
     return hid_get_ep(&_func_driver, dir);
 }
 

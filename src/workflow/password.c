@@ -20,6 +20,7 @@
 #include "status.h"
 #include "unlock.h"
 #include "workflow.h"
+#include "workflow/confirm.h"
 
 #include <hardfault.h>
 #include <memory.h>
@@ -42,6 +43,15 @@ bool password_set(char* password_out)
     if (!STREQ(password, password_repeat)) {
         workflow_status_create("Passwords\ndo not match", false);
         return false;
+    }
+    if (strlen(password) < 4) {
+        if (!workflow_confirm(
+                "Warning",
+                "Your password has fewer\n than 4 characters.\nContinue?",
+                true,
+                false)) {
+            return false;
+        }
     }
     snprintf(password_out, SET_PASSWORD_MAX_PASSWORD_LENGTH, "%s", password);
     workflow_status_create("Success", true);

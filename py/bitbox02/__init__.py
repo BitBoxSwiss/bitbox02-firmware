@@ -41,6 +41,10 @@ except AttributeError:
 from .bitbox02 import (
     BitBox02,
     Bitbox02Exception,
+    BTCOutputInternal,
+    BTCOutputExternal,
+    BTCInputType,
+    BTCOutputType,
     UserAbortException,
     AttestationException,
     Backup,

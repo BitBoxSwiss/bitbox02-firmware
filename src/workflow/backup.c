@@ -105,11 +105,6 @@ bool workflow_backup_create(const CreateBackupRequest* request)
     };
     sdcard_handle(&sd);
 
-    if (!workflow_confirm(
-            "", "I understand that\nthe backup is NOT\npassword protected", true, false)) {
-        return false;
-    }
-
     if (memory_is_initialized()) {
         if (!password_check()) {
             return false;

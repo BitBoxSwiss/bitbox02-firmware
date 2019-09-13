@@ -22,6 +22,7 @@ from typing import List
 
 from tzlocal import get_localzone
 import bitbox02
+from bitbox02 import devices
 from bitbox02 import HARDENED
 
 
@@ -308,7 +309,9 @@ def main() -> int:
     parser.add_argument("--debug", action="store_true", help="Print messages sent and received")
     args = parser.parse_args()
 
-    bitboxes = bitbox02.get_bitbox02_devices()
+    bitboxes = bitbox02.get_bitbox02_devices(devices.BITBOX02) + bitbox02.get_bitbox02_devices(
+        devices.BITBOX02BTC
+    )
 
     if not bitboxes:
         print("No bitbox detected")

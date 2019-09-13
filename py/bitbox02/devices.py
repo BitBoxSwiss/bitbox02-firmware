@@ -24,6 +24,7 @@ import semver
 BB02_BOOTLOADER = "bb02-bootloader"
 BB02BTC_BOOTLOADER = "bb02btc-bootloader"
 BITBOX02 = "BitBox02"
+BITBOX02BTC = "BitBox02BTC"
 
 
 class DeviceInfo(TypedDict):

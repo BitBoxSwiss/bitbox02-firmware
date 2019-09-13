@@ -15,6 +15,7 @@
 
 
 import os
+import enum
 import sys
 import time
 import base64
@@ -30,7 +31,7 @@ import hid
 import semver
 
 from .usb import hid_send_frames, hid_read_frames
-from .devices import parse_device_version, DeviceInfo
+from .devices import parse_device_version, DeviceInfo, BITBOX02, BITBOX02BTC
 
 try:
     from .generated import hww_pb2 as hww
@@ -127,6 +128,11 @@ class BTCOutputExternal:
 BTCOutputType = Union[BTCOutputInternal, BTCOutputExternal]
 
 
+class Edition(enum.Enum):
+    STANDARD = "standard"
+    BTCONLY = "btconly"
+
+
 class Bitbox02Exception(Exception):
     def __init__(self, code: int, message: str):
         self.code = code
@@ -145,6 +151,11 @@ class AttestationException(Exception):
     pass
 
 
+class UnsupportedException(Exception):
+    def __init__(self, edition: Edition):
+        super().__init__("This operation is not supported in this edition: {}".format(edition))
+
+
 class BitBox02:
     """Class to communicate with a BitBox02"""
 
@@ -155,6 +166,11 @@ class BitBox02:
         attestation_check_callback: Optional[Callable[[bool], None]] = None,
     ):
         self.debug = False
+        self.edition = {BITBOX02: Edition.STANDARD, BITBOX02BTC: Edition.BTCONLY}.get(
+            device_info["product_string"]
+        )
+        assert self.edition, "unrecognized edition"
+
         serial_number = device_info["serial_number"]
 
         self.version = parse_device_version(serial_number)
@@ -612,6 +628,10 @@ class BitBox02:
         Same as _msg_query, but one nesting deeper for ethereum messages.
         """
         # pylint: disable=no-member
+
+        if self.edition == Edition.BTCONLY:
+            raise UnsupportedException(self.edition)
+
         request = hww.Request()
         request.eth.CopyFrom(eth_request)
         eth_response = self._msg_query(request, expected_response="eth").eth

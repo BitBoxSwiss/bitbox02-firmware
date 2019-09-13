@@ -50,7 +50,9 @@ def main() -> int:
 
     bootloaders = devices.get_bitbox02_devices(devices.BB02_BOOTLOADER)
     bootloaders.extend(devices.get_bitbox02_devices(devices.BB02BTC_BOOTLOADER))
-    bitboxes = devices.get_bitbox02_devices()
+    bitboxes = devices.get_bitbox02_devices(devices.BITBOX02) + devices.get_bitbox02_devices(
+        devices.BITBOX02BTC
+    )
 
     def _wait_for_bootloaders() -> List[devices.DeviceInfo]:
         while True:

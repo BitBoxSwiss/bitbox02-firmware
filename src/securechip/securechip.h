@@ -15,6 +15,7 @@
 #ifndef _SECURECHIP_H_
 #define _SECURECHIP_H_
 
+#include "compiler_util.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -53,7 +54,7 @@ typedef enum {
  * is configured and locked.
  * @param[in] ifs Interface functions.
  */
-bool securechip_setup(securechip_interface_functions_t* ifs);
+USE_RESULT bool securechip_setup(securechip_interface_functions_t* ifs);
 
 /**
  * Updates the two KDF keys (rollkey and kdf key). The previous keys are lost
@@ -61,7 +62,7 @@ bool securechip_setup(securechip_interface_functions_t* ifs);
  * monotonic counter Counter0.
  * @return true on success.
  */
-bool securechip_update_keys(void);
+USE_RESULT bool securechip_update_keys(void);
 
 /**
  * Perform KDF using the key in predefined slot with the input msg.
@@ -75,19 +76,23 @@ bool securechip_update_keys(void);
  * Cannot be the same as `msg`.
  * @return true on success.
  */
-bool securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out);
+USE_RESULT bool securechip_kdf(
+    securechip_slot_t slot,
+    const uint8_t* msg,
+    size_t len,
+    uint8_t* kdf_out);
 
 /**
  * Generates a new attestation device key and outputs the public key.
  * @param[out] pubkey_out
  */
-bool securechip_gen_attestation_key(uint8_t* pubkey_out);
+USE_RESULT bool securechip_gen_attestation_key(uint8_t* pubkey_out);
 
 /**
  * @param[in] msg 32 byte message to sign.
  * @param[out] signature_out must be 64 bytes. R/S P256 signature.
  */
-bool securechip_attestation_sign(const uint8_t* challenge, uint8_t* signature_out);
+USE_RESULT bool securechip_attestation_sign(const uint8_t* challenge, uint8_t* signature_out);
 
 /**
  * Retrieves the number of remaining possible counter increments (max value - Counter0).
@@ -95,12 +100,12 @@ bool securechip_attestation_sign(const uint8_t* challenge, uint8_t* signature_ou
  * @param[out] remaining_out current value of the monotonic counter.
  * @return false if there was a communication error with the SC.
  */
-bool securechip_monotonic_increments_remaining(uint32_t* remaining_out);
+USE_RESULT bool securechip_monotonic_increments_remaining(uint32_t* remaining_out);
 
 /**
  * @param[out] rand_out must be 32 bytes.
  */
-bool securechip_random(uint8_t* rand_out);
+USE_RESULT bool securechip_random(uint8_t* rand_out);
 
 /**
  * Generates the matching public key to the provided private key. Will put private key in unsafe
@@ -109,7 +114,7 @@ bool securechip_random(uint8_t* rand_out);
  * @param[out] pub_key Public key. Format will be the X and Y coordinates in big-endian (64 bytes).
  * @return True if success
  */
-bool securechip_ecc_generate_public_key(uint8_t* priv_key, uint8_t* pub_key);
+USE_RESULT bool securechip_ecc_generate_public_key(uint8_t* priv_key, uint8_t* pub_key);
 
 /**
  * Sign hash with private key. Will put private key in unsafe ECC slot.
@@ -118,20 +123,23 @@ bool securechip_ecc_generate_public_key(uint8_t* priv_key, uint8_t* pub_key);
  * @param[out] sig Signature (64 bytes)
  * @return True if success
  */
-bool securechip_ecc_unsafe_sign(const uint8_t* priv_key, const uint8_t* msg, uint8_t* sig);
+USE_RESULT bool securechip_ecc_unsafe_sign(
+    const uint8_t* priv_key,
+    const uint8_t* msg,
+    uint8_t* sig);
 
 /**
  * Set the u2f counter to `counter`. Should only be used for initialization.
  * @param[in] counter Value to set counter to
  * @return True if success
  */
-bool securechip_u2f_counter_set(uint32_t counter);
+USE_RESULT bool securechip_u2f_counter_set(uint32_t counter);
 
 /**
  * Monotonically increase the U2F counter and return the current value
  * @param[out] counter Next counter value
  * @return True if success
  */
-bool securechip_u2f_counter_inc(uint32_t* counter);
+USE_RESULT bool securechip_u2f_counter_inc(uint32_t* counter);
 
 #endif

@@ -693,6 +693,7 @@ class ETHPubRequest(google___protobuf___message___Message):
     coin = ... # type: ETHCoin
     output_type = ... # type: ETHPubRequest.OutputType
     display = ... # type: bool
+    contract_address = ... # type: bytes
 
     def __init__(self,
         *,
@@ -700,15 +701,16 @@ class ETHPubRequest(google___protobuf___message___Message):
         coin : typing___Optional[ETHCoin] = None,
         output_type : typing___Optional[ETHPubRequest.OutputType] = None,
         display : typing___Optional[bool] = None,
+        contract_address : typing___Optional[bytes] = None,
         ) -> None: ...
     @classmethod
     def FromString(cls, s: bytes) -> ETHPubRequest: ...
     def MergeFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     if sys.version_info >= (3,):
-        def ClearField(self, field_name: typing_extensions___Literal[u"coin",u"display",u"keypath",u"output_type"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"coin",u"contract_address",u"display",u"keypath",u"output_type"]) -> None: ...
     else:
-        def ClearField(self, field_name: typing_extensions___Literal[u"coin",b"coin",u"display",b"display",u"keypath",b"keypath",u"output_type",b"output_type"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"coin",b"coin",u"contract_address",b"contract_address",u"display",b"display",u"keypath",b"keypath",u"output_type",b"output_type"]) -> None: ...
 
 class ETHSignRequest(google___protobuf___message___Message):
     coin = ... # type: ETHCoin

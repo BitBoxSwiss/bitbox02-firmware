@@ -223,6 +223,7 @@ message ETHPubRequest {
   }
   OutputType output_type = 3;
   bool display = 4;
+  bytes contract_address = 5;
 }
 
 message ETHSignRequest {

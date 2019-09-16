@@ -59,7 +59,7 @@ commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* r
             coin = _coin_tltc;
             break;
         default:
-            return false;
+            return COMMANDER_ERR_GENERIC;
         }
         char title[100] = {0};
         switch (request->output_type) {

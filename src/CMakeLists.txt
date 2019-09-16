@@ -414,7 +414,7 @@ if(CMAKE_CROSSCOMPILING)
   set(HEAP_SIZE "0x18000" CACHE STRING "Specify heap size for bootloader/firmware")
   set(HEAP_SIZE ${HEAP_SIZE} PARENT_SCOPE)
 
-  set(BOOTLOADERS bootloader bootloader-development bootloader-semihosting bootloader-production bootloader-btc bootloader-btc-development bootloader-btc-production)
+  set(BOOTLOADERS bootloader bootloader-development bootloader-development-locked bootloader-semihosting bootloader-production bootloader-btc bootloader-btc-development bootloader-btc-production)
   set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
   foreach(bootloader ${BOOTLOADERS})
     set(elf ${bootloader}.elf)
@@ -439,6 +439,8 @@ if(CMAKE_CROSSCOMPILING)
   endforeach(bootloader)
 
   target_compile_definitions(bootloader-development.elf PRIVATE BOOTLOADER_DEVDEVICE)
+  target_compile_definitions(bootloader-development-locked.elf PRIVATE BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
+  set_property(TARGET bootloader-development-locked.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
   # Select an implementation of the system calls that can communicate with the debugger
   target_compile_options(bootloader-semihosting.elf PRIVATE --specs=rdimon.specs)

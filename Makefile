@@ -42,6 +42,8 @@ bootloader: | build
 	$(MAKE) -C build bootloader.elf
 bootloader-devdevice: | build
 	$(MAKE) -C build bootloader-development.elf
+bootloader-devdevice-locked: | build
+	$(MAKE) -C build bootloader-development-locked.elf
 bootloader-production: | build
 	$(MAKE) -C build bootloader-production.elf
 bootloader-btc: | build

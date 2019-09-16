@@ -41,6 +41,7 @@ PerformAttestationResponse.certificate fixed_length:true max_size:64
 PerformAttestationResponse.root_pubkey_identifier fixed_length:true max_size:32
 PerformAttestationResponse.challenge_signature fixed_length:true max_size:64
 ETHPubRequest.keypath max_count:10
+ETHPubRequest.contract_address fixed_length:true max_size:20
 ETHSignRequest.keypath max_count:10
 ETHSignRequest.nonce max_size:16
 ETHSignRequest.gas_price max_size:16

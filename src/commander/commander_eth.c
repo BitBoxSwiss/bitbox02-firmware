@@ -18,6 +18,7 @@
 
 #include <apps/eth/eth.h>
 #include <apps/eth/eth_sign.h>
+#include <util.h>
 #include <workflow/verify_pub.h>
 
 #include <wally_bip32.h> // for BIP32_INITIAL_HARDENED_CHILD
@@ -43,18 +44,30 @@ static commander_error_t _api_pub(const ETHPubRequest* request, PubResponse* res
             return COMMANDER_ERR_GENERIC;
         }
         const char* coin;
-        switch (request->coin) {
-        case ETHCoin_ETH:
-            coin = _coin_eth;
-            break;
-        case ETHCoin_RopstenETH:
-            coin = _coin_ropsten_eth;
-            break;
-        case ETHCoin_RinkebyETH:
-            coin = _coin_rinkeby_eth;
-            break;
-        default:
-            return false;
+
+        // Check for ERC20-Address
+        uint8_t zero[20] = {0};
+        if (!MEMEQ(request->contract_address, zero, sizeof(zero))) {
+            const app_eth_erc20_params_t* erc20_params =
+                app_eth_erc20_params_get(request->coin, request->contract_address);
+            if (erc20_params == NULL) {
+                return COMMANDER_ERR_GENERIC;
+            }
+            coin = erc20_params->unit;
+        } else {
+            switch (request->coin) {
+            case ETHCoin_ETH:
+                coin = _coin_eth;
+                break;
+            case ETHCoin_RopstenETH:
+                coin = _coin_ropsten_eth;
+                break;
+            case ETHCoin_RinkebyETH:
+                coin = _coin_rinkeby_eth;
+                break;
+            default:
+                return COMMANDER_ERR_GENERIC;
+            }
         }
         workflow_verify_pub(coin, response->pub);
     }

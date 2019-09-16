@@ -632,6 +632,7 @@ class BitBox02:
         coin: hww.ETHCoin = hww.ETH,
         output_type: hww.ETHPubRequest.OutputType = hww.ETHPubRequest.ADDRESS,
         display: bool = True,
+        contract_address: bytes = b"",
     ) -> str:
         """
         keypath is a list of child derivation numbers.
@@ -640,7 +641,13 @@ class BitBox02:
         # pylint: disable=no-member
         request = hww.ETHRequest()
         request.pub.CopyFrom(
-            hww.ETHPubRequest(coin=coin, keypath=keypath, output_type=output_type, display=display)
+            hww.ETHPubRequest(
+                coin=coin,
+                keypath=keypath,
+                output_type=output_type,
+                display=display,
+                contract_address=contract_address,
+            )
         )
         return self._eth_msg_query(request, expected_response="pub").pub.pub
 

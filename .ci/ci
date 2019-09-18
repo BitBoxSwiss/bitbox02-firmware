@@ -15,6 +15,7 @@ make prepare-tidy
 # Bootloader variants
 make -j8 bootloader
 make -j8 bootloader-devdevice
+make -j8 bootloader-devdevice-locked
 make -j8 bootloader-production
 
 make -j8 bootloader-btc

@@ -316,11 +316,19 @@ string(LENGTH "${CMAKE_SOURCE_DIR}/" SOURCE_PATH_SIZE)
 add_definitions("-DSOURCE_PATH_SIZE=${SOURCE_PATH_SIZE}")
 
 
+# protoc is used to generate API messages
+find_program(PROTOC protoc)
+if (PROTOC STREQUAL "PROTOC-NOTFOUND")
+  message(FATAL_ERROR "Could not find 'protoc'.")
+endif()
+# used when generating docs from proto files
+find_program(PROTOC_GEN_DOC protoc-gen-doc)
 
 #-----------------------------------------------------------------------------
 # Build
 
 add_subdirectory(external)
+add_subdirectory(messages)
 add_subdirectory(src)
 add_subdirectory(scripts)
 
@@ -345,7 +353,11 @@ if(DOXYGEN_FOUND)
     ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generating API documentation with Doxygen.." VERBATIM)
-  add_dependencies(doc generate-hww generate-backup)
+  add_dependencies(doc generate-protobufs)
+
+  if(NOT PROTOC_GEN_DOC STREQUAL "PROTOC_GEN_DOC-NOTFOUND")
+    add_dependencies(doc protobuf-docs)
+  endif()
 else()
   message("Doxygen: doxygen not found - docs disabled")
 endif()

@@ -12,4 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-Error.message max_size:255
+ETHPubRequest.keypath max_count:10
+ETHPubRequest.contract_address fixed_length:true max_size:20
+ETHSignRequest.keypath max_count:10
+ETHSignRequest.nonce max_size:16
+ETHSignRequest.gas_price max_size:16
+ETHSignRequest.gas_limit max_size:16;
+ETHSignRequest.recipient fixed_length:true max_size:20
+ETHSignRequest.value max_size:32
+ETHSignRequest.data max_size:100
+ETHSignResponse.signature fixed_length:true max_size:65

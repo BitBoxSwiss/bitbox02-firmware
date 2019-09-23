@@ -34,6 +34,13 @@ from .devices import parse_device_version, DeviceInfo
 
 try:
     from .generated import hww_pb2 as hww
+    from .generated import eth_pb2 as eth
+    from .generated import btc_pb2 as btc
+    from .generated import mnemonic_pb2 as mnemonic
+    from .generated import bitbox02_system_pb2 as bitbox02_system
+    from .generated import random_number_pb2 as random_number
+    from .generated import backup_commands_pb2 as backup
+    from .generated import system_pb2 as system
 except ModuleNotFoundError:
     print("Run `make messages` to generate the protobuf messages")
     sys.exit()
@@ -118,7 +125,7 @@ class BTCOutputExternal:
 
     # TODO: Use NamedTuple, but not playing well with protobuf types.
 
-    def __init__(self, output_type: hww.BTCOutputType, output_hash: bytes, value: int):
+    def __init__(self, output_type: btc.BTCOutputType, output_hash: bytes, value: int):
         self.type = output_type
         self.hash = output_hash
         self.value = value
@@ -275,14 +282,14 @@ class BitBox02:
     def random_number(self) -> bytes:
         # pylint: disable=no-member
         request = hww.Request()
-        request.random_number.CopyFrom(hww.RandomNumberRequest())
+        request.random_number.CopyFrom(random_number.RandomNumberRequest())
         response = self._msg_query(request, expected_response="random_number")
         return response.random_number.number
 
     def device_info(self) -> Dict[str, Any]:
         # pylint: disable=no-member
         request = hww.Request()
-        device_info_request = hww.DeviceInfoRequest()
+        device_info_request = bitbox02_system.DeviceInfoRequest()
         request.device_info.CopyFrom(device_info_request)
         response = self._msg_query(request, expected_response="device_info")
         return {
@@ -339,7 +346,7 @@ class BitBox02:
         # pylint: disable=no-member
         self.insert_sdcard()
         request = hww.Request()
-        request.list_backups.CopyFrom(hww.ListBackupsRequest())
+        request.list_backups.CopyFrom(backup.ListBackupsRequest())
         response = self._msg_query(request, expected_response="list_backups")
         for info in response.list_backups.info:
             utcdate = datetime.utcfromtimestamp(info.timestamp)
@@ -371,7 +378,7 @@ class BitBox02:
         # pylint: disable=no-member
         self.insert_sdcard()
         request = hww.Request()
-        request.check_backup.CopyFrom(hww.CheckBackupRequest(silent=silent))
+        request.check_backup.CopyFrom(backup.CheckBackupRequest(silent=silent))
         try:
             response = self._msg_query(request, expected_response="check_backup")
         except Bitbox02Exception as err:
@@ -387,7 +394,7 @@ class BitBox02:
         """
         # pylint: disable=no-member
         request = hww.Request()
-        request.show_mnemonic.CopyFrom(hww.ShowMnemonicRequest())
+        request.show_mnemonic.CopyFrom(mnemonic.ShowMnemonicRequest())
         try:
             self._msg_query(request, expected_response="success")
         except Bitbox02Exception as err:
@@ -399,9 +406,9 @@ class BitBox02:
     def btc_pub(
         self,
         keypath: List[int],
-        coin: hww.BTCCoin = hww.BTC,
-        output_type: hww.BTCPubRequest.OutputType = hww.BTCPubRequest.XPUB,
-        script_type: hww.BTCScriptType = hww.SCRIPT_UNKNOWN,
+        coin: btc.BTCCoin = btc.BTC,
+        output_type: btc.BTCPubRequest.OutputType = btc.BTCPubRequest.XPUB,
+        script_type: btc.BTCScriptType = btc.SCRIPT_UNKNOWN,
         display: bool = True,
     ) -> str:
         """
@@ -411,7 +418,7 @@ class BitBox02:
         # pylint: disable=no-member,too-many-arguments
         request = hww.Request()
         request.btc_pub.CopyFrom(
-            hww.BTCPubRequest(
+            btc.BTCPubRequest(
                 coin=coin,
                 keypath=keypath,
                 output_type=output_type,
@@ -424,8 +431,8 @@ class BitBox02:
     # pylint: disable=too-many-arguments
     def btc_sign(
         self,
-        coin: hww.BTCCoin,
-        script_type: hww.BTCScriptType,
+        coin: btc.BTCCoin,
+        script_type: btc.BTCScriptType,
         bip44_account: int,
         inputs: List[BTCInputType],
         outputs: List[BTCOutputType],
@@ -461,7 +468,7 @@ class BitBox02:
         # Init request
         request = hww.Request()
         request.btc_sign_init.CopyFrom(
-            hww.BTCSignInitRequest(
+            btc.BTCSignInitRequest(
                 coin=coin,
                 script_type=script_type,
                 bip44_account=bip44_account,
@@ -473,13 +480,13 @@ class BitBox02:
         )
         next_response = self._msg_query(request, expected_response="btc_sign_next").btc_sign_next
         while True:
-            if next_response.type == hww.BTCSignNextResponse.INPUT:
+            if next_response.type == btc.BTCSignNextResponse.INPUT:
                 input_index = next_response.index
                 tx_input = inputs[input_index]
 
                 request = hww.Request()
                 request.btc_sign_input.CopyFrom(
-                    hww.BTCSignInputRequest(
+                    btc.BTCSignInputRequest(
                         prevOutHash=tx_input["prev_out_hash"],
                         prevOutIndex=tx_input["prev_out_index"],
                         prevOutValue=tx_input["prev_out_value"],
@@ -492,20 +499,20 @@ class BitBox02:
                 ).btc_sign_next
                 if next_response.has_signature:
                     sigs.append((input_index, next_response.signature))
-            elif next_response.type == hww.BTCSignNextResponse.OUTPUT:
+            elif next_response.type == btc.BTCSignNextResponse.OUTPUT:
                 output_index = next_response.index
                 tx_output = outputs[output_index]
 
                 request = hww.Request()
                 if isinstance(tx_output, BTCOutputInternal):
                     request.btc_sign_output.CopyFrom(
-                        hww.BTCSignOutputRequest(
+                        btc.BTCSignOutputRequest(
                             ours=True, value=tx_output.value, keypath=tx_output.keypath
                         )
                     )
                 elif isinstance(tx_output, BTCOutputExternal):
                     request.btc_sign_output.CopyFrom(
-                        hww.BTCSignOutputRequest(
+                        btc.BTCSignOutputRequest(
                             ours=False,
                             type=tx_output.type,
                             hash=tx_output.hash,
@@ -515,7 +522,7 @@ class BitBox02:
                 next_response = self._msg_query(
                     request, expected_response="btc_sign_next"
                 ).btc_sign_next
-            elif next_response.type == hww.BTCSignNextResponse.DONE:
+            elif next_response.type == btc.BTCSignNextResponse.DONE:
                 break
             else:
                 raise Exception("unexpected response")
@@ -524,7 +531,7 @@ class BitBox02:
     def check_sdcard(self) -> bool:
         # pylint: disable=no-member
         request = hww.Request()
-        request.check_sdcard.CopyFrom(hww.CheckSDCardRequest())
+        request.check_sdcard.CopyFrom(backup.CheckSDCardRequest())
         response = self._msg_query(request, expected_response="check_sdcard")
         return response.check_sdcard.inserted
 
@@ -532,7 +539,9 @@ class BitBox02:
         # pylint: disable=no-member
         request = hww.Request()
         request.insert_remove_sdcard.CopyFrom(
-            hww.InsertRemoveSDCardRequest(action=hww.InsertRemoveSDCardRequest.INSERT_CARD)
+            bitbox02_system.InsertRemoveSDCardRequest(
+                action=bitbox02_system.InsertRemoveSDCardRequest.INSERT_CARD
+            )
         )
         self._msg_query(request, expected_response="success")
 
@@ -540,7 +549,9 @@ class BitBox02:
         # pylint: disable=no-member
         request = hww.Request()
         request.insert_remove_sdcard.CopyFrom(
-            hww.InsertRemoveSDCardRequest(action=hww.InsertRemoveSDCardRequest.REMOVE_CARD)
+            bitbox02_system.InsertRemoveSDCardRequest(
+                action=bitbox02_system.InsertRemoveSDCardRequest.REMOVE_CARD
+            )
         )
         self._msg_query(request, expected_response="success")
 
@@ -609,7 +620,7 @@ class BitBox02:
         """TODO: Document"""
         # pylint: disable=no-member
         request = hww.Request()
-        request.reboot.CopyFrom(hww.RebootRequest())
+        request.reboot.CopyFrom(system.RebootRequest())
         try:
             self._msg_query(request)
         except OSError:
@@ -620,8 +631,8 @@ class BitBox02:
         return True
 
     def _eth_msg_query(
-        self, eth_request: hww.ETHRequest, expected_response: Optional[str] = None
-    ) -> hww.ETHResponse:
+        self, eth_request: eth.ETHRequest, expected_response: Optional[str] = None
+    ) -> eth.ETHResponse:
         """
         Same as _msg_query, but one nesting deeper for ethereum messages.
         """
@@ -643,8 +654,8 @@ class BitBox02:
     def eth_pub(
         self,
         keypath: List[int],
-        coin: hww.ETHCoin = hww.ETH,
-        output_type: hww.ETHPubRequest.OutputType = hww.ETHPubRequest.ADDRESS,
+        coin: eth.ETHCoin = eth.ETH,
+        output_type: eth.ETHPubRequest.OutputType = eth.ETHPubRequest.ADDRESS,
         display: bool = True,
         contract_address: bytes = b"",
     ) -> str:
@@ -653,9 +664,9 @@ class BitBox02:
         e.g. m/44'/60'/0'/0/5 corresponds to [44+HARDENED, 60+HARDENED, 0+HARDENED, 0, 5].
         """
         # pylint: disable=no-member
-        request = hww.ETHRequest()
+        request = eth.ETHRequest()
         request.pub.CopyFrom(
-            hww.ETHPubRequest(
+            eth.ETHPubRequest(
                 coin=coin,
                 keypath=keypath,
                 output_type=output_type,
@@ -666,16 +677,16 @@ class BitBox02:
         return self._eth_msg_query(request, expected_response="pub").pub.pub
 
     def eth_sign(
-        self, transaction: bytes, keypath: List[int], coin: hww.ETHCoin = hww.ETH
+        self, transaction: bytes, keypath: List[int], coin: eth.ETHCoin = eth.ETH
     ) -> bytes:
         """
         transaction should be given as a full rlp encoded eth transaction.
         """
         nonce, gas_price, gas_limit, recipient, value, data, _, _, _ = rlp.decode(transaction)
-        request = hww.ETHRequest()
+        request = eth.ETHRequest()
         # pylint: disable=no-member
         request.sign.CopyFrom(
-            hww.ETHSignRequest(
+            eth.ETHSignRequest(
                 coin=coin,
                 keypath=keypath,
                 nonce=nonce,
@@ -694,7 +705,7 @@ class BitBox02:
         """
         request = hww.Request()
         # pylint: disable=no-member
-        request.reset.CopyFrom(hww.ResetRequest())
+        request.reset.CopyFrom(bitbox02_system.ResetRequest())
         try:
             self._msg_query(request)
         except Bitbox02Exception as err:
@@ -710,7 +721,7 @@ class BitBox02:
         request = hww.Request()
         # pylint: disable=no-member
         request.restore_from_mnemonic.CopyFrom(
-            hww.RestoreFromMnemonicRequest(
+            mnemonic.RestoreFromMnemonicRequest(
                 timestamp=int(time.time()), timezone_offset=time.localtime().tm_gmtoff
             )
         )

@@ -72,15 +72,14 @@ target_include_directories(
 )
 
 set_source_files_properties(
-  ${CMAKE_BINARY_DIR}/src/hww.pb.c
-  ${CMAKE_BINARY_DIR}/src/backup.pb.c
+  ${DBB-FIRMWARE-PROTOBUF-SOURCES}
   PROPERTIES GENERATED TRUE
 )
 target_include_directories(bitbox SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
 target_include_directories(bitbox PRIVATE ${CMAKE_SOURCE_DIR}/external/FatFs/source)
 target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 target_compile_definitions(bitbox PUBLIC APP_BTC APP_LTC APP_U2F APP_ETH)
-add_dependencies(bitbox generate-hww generate-backup)
+add_dependencies(bitbox generate-protobufs)
 
 # Since noiseprotocol and wallycore are external projects we need to specify the dependency
 add_dependencies(bitbox noise-c)

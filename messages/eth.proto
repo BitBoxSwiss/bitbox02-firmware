@@ -1,0 +1,64 @@
+// Copyright 2019 Shift Cryptosecurity AG
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "common.proto";
+
+enum ETHCoin {
+  ETH = 0;
+  RopstenETH = 1;
+  RinkebyETH = 2;
+}
+
+message ETHPubRequest {
+  repeated uint32 keypath = 1;
+  ETHCoin coin = 2;
+  enum OutputType {
+    ADDRESS = 0;
+    XPUB = 1;
+  }
+  OutputType output_type = 3;
+  bool display = 4;
+  bytes contract_address = 5;
+}
+
+message ETHSignRequest {
+  ETHCoin coin = 1;
+  repeated uint32 keypath = 2;
+  bytes nonce = 3; // smallest big endian serialization, max. 16 bytes
+  bytes gas_price = 4; // smallest big endian serialization, max. 16 bytes
+  bytes gas_limit = 5; // smallest big endian serialization, max. 16 bytes
+  bytes recipient = 6; // 20 byte recipient
+  bytes value = 7; // smallest big endian serialization, max. 32 bytes
+  bytes data = 8;
+}
+
+message ETHSignResponse {
+  bytes signature = 1; // 65 bytes, last byte is the recid
+}
+
+message ETHRequest {
+  oneof request {
+    ETHPubRequest pub = 1;
+    ETHSignRequest sign = 2;
+  }
+}
+
+message ETHResponse {
+  oneof response {
+    PubResponse pub = 1;
+    ETHSignResponse sign = 2;
+  }
+}

@@ -12,4 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-Error.message max_size:255
+PubResponse.pub max_size:500

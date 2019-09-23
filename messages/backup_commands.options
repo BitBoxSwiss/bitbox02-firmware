@@ -12,4 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-Error.message max_size:255
+CheckBackupResponse.id fixed_length:true max_size:256
+ListBackupsResponse.info fixed_length:true max_count:100
+// One backup per seed -> 100 seeds may be backed up per SD card. Adapt this number if it is too small.
+BackupInfo.id fixed_length:true max_size:256
+BackupInfo.name fixed_length:true max_size:64
+RestoreBackupRequest.id fixed_length:true max_size:256

@@ -194,7 +194,7 @@ static commander_error_t _api_set_mnemonic_passphrase_enabled(
     const SetMnemonicPassphraseEnabledRequest* request)
 {
     if (!workflow_confirm(
-            request->enabled ? "Enable" : "Disable", "Mnemonic\npassphrase", true, false)) {
+            request->enabled ? "Enable" : "Disable", "Optional\npassphrase", true, false)) {
         return COMMANDER_ERR_USER_ABORT;
     }
     if (!memory_set_mnemonic_passphrase_enabled(request->enabled)) {

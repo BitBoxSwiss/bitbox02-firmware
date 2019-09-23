@@ -53,7 +53,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/tools/nanopb/extr
 option(COVERAGE "Compile with test coverage flags." OFF)
 option(SANITIZE_ADDRESS "Compile with asan." OFF)
 option(SANITIZE_UNDEFINED "Compile with ubsan." OFF)
-option(BUILD_DOCUMENTATION "Build the Doxygen documentation." OFF)
 option(CMAKE_VERBOSE_MAKEFILE "Verbose build." OFF)
 # Generate compile_command.json (for tidy and other tools)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -255,7 +254,6 @@ message(STATUS "            - Options -")
 message(STATUS "Build type:             ${CMAKE_BUILD_TYPE}")
 message(STATUS "Hardware version:       ${HARDWARE}")
 message(STATUS "Verbose:                ${CMAKE_VERBOSE_MAKEFILE}")
-message(STATUS "Documentation:          ${BUILD_DOCUMENTATION}  (make doc)")
 message(STATUS "Coverage flags:         ${COVERAGE}")
 message(STATUS "\n=============================================\n\n")
 
@@ -318,31 +316,6 @@ string(LENGTH "${CMAKE_SOURCE_DIR}/" SOURCE_PATH_SIZE)
 add_definitions("-DSOURCE_PATH_SIZE=${SOURCE_PATH_SIZE}")
 
 
-#-----------------------------------------------------------------------------
-# Build Documentation
-
-
-if(BUILD_DOCUMENTATION)
-  set(DOC_GRAPHS "YES" CACHE STRING "Create dependency graphs (needs graphviz)")
-  set(DOC_FULLGRAPHS "NO" CACHE STRING "Create call/callee graphs (large)")
-
-  find_program(DOT_PATH dot)
-
-  if(DOT_PATH STREQUAL "DOT_PATH-NOTFOUND")
-    message("Doxygen: graphviz not found - graphs disabled")
-    set(DOC_GRAPHS "NO")
-  endif()
-
-  find_package(Doxygen)
-  if(DOXYGEN_FOUND)
-    configure_file("doc/Doxyfile.in" "Doxyfile" @ONLY)
-    add_custom_target(doc
-      ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMENT "Generating API documentation with Doxygen.." VERBATIM)
-  endif()
-endif()
-
 
 #-----------------------------------------------------------------------------
 # Build
@@ -350,6 +323,32 @@ endif()
 add_subdirectory(external)
 add_subdirectory(src)
 add_subdirectory(scripts)
+
+#-----------------------------------------------------------------------------
+# Build Documentation
+
+
+set(DOC_GRAPHS "YES" CACHE STRING "Create dependency graphs (needs graphviz)")
+set(DOC_FULLGRAPHS "NO" CACHE STRING "Create call/callee graphs (large)")
+
+find_program(DOT_PATH dot)
+
+if(DOT_PATH STREQUAL "DOT_PATH-NOTFOUND")
+  message("Doxygen: graphviz not found - graphs disabled")
+  set(DOC_GRAPHS "NO")
+endif()
+
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+  configure_file("doc/Doxyfile.in" "Doxyfile" @ONLY)
+  add_custom_target(doc
+    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Generating API documentation with Doxygen.." VERBATIM)
+  add_dependencies(doc generate-hww generate-backup)
+else()
+  message("Doxygen: doxygen not found - docs disabled")
+endif()
 
 if(CMAKE_CROSSCOMPILING)
   add_subdirectory(test/device-test)

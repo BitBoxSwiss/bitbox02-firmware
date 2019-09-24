@@ -22,8 +22,8 @@
 #pragma GCC diagnostic ignored "-Wint-conversion"
 #pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <cryptoauthlib/lib/cryptoauthlib.h>
-#include <cryptoauthlib/lib/host/atca_host.h>
+#include <cryptoauthlib.h>
+#include <host/atca_host.h>
 #pragma GCC diagnostic pop
 
 // Chip Configuration, generated with "make generate-atecc608-config"
@@ -692,14 +692,14 @@ static ATCA_STATUS _write_data_slot_block(uint8_t* bytes, uint16_t slot, uint8_t
 bool securechip_u2f_counter_set(uint32_t counter)
 {
     data_9_0_t data = {0};
-    ATCA_STATUS result = _read_data_slot_block(&data.bytes, SECURECHIP_SLOT_DATA0, 0);
+    ATCA_STATUS result = _read_data_slot_block(&data.bytes[0], SECURECHIP_SLOT_DATA0, 0);
     if (result != ATCA_SUCCESS) {
         return false;
     }
 
     data.fields.u2f_counter = counter;
 
-    result = _write_data_slot_block(&data.bytes, SECURECHIP_SLOT_DATA0, 0);
+    result = _write_data_slot_block(&data.bytes[0], SECURECHIP_SLOT_DATA0, 0);
     if (result != ATCA_SUCCESS) {
         return false;
     }
@@ -711,7 +711,7 @@ bool securechip_u2f_counter_set(uint32_t counter)
 bool securechip_u2f_counter_inc(uint32_t* counter)
 {
     data_9_0_t data = {0};
-    ATCA_STATUS result = _read_data_slot_block(&data.bytes, SECURECHIP_SLOT_DATA0, 0);
+    ATCA_STATUS result = _read_data_slot_block(&data.bytes[0], SECURECHIP_SLOT_DATA0, 0);
     if (result != ATCA_SUCCESS) {
         return false;
     }
@@ -719,7 +719,7 @@ bool securechip_u2f_counter_inc(uint32_t* counter)
     data.fields.u2f_counter += 1;
     *counter = data.fields.u2f_counter;
 
-    result = _write_data_slot_block(&data.bytes, SECURECHIP_SLOT_DATA0, 0);
+    result = _write_data_slot_block(&data.bytes[0], SECURECHIP_SLOT_DATA0, 0);
     if (result != ATCA_SUCCESS) {
         return false;
     }

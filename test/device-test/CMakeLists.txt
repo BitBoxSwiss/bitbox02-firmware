@@ -61,10 +61,7 @@ target_include_directories(bitbox SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
 target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 target_compile_definitions(bitbox PUBLIC APP_BTC APP_LTC APP_U2F APP_ETH)
 add_dependencies(bitbox generate-hww generate-backup)
-# Include and provide configuration for nanopb
 target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external)
-# needed for cryptoauthlib itself
-target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib)
 target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/ctaes)
 target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/sha3)
 # enable KECCAK in sha3
@@ -75,6 +72,8 @@ target_include_directories(bitbox SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/external/lib
 target_include_directories(bitbox SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/external/libwally-core/src/secp256k1/include)
 # needed to find version.h
 target_include_directories(bitbox SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
+
+target_link_libraries(bitbox PUBLIC cryptoauthlib)
 
 # Always enable semihosting for the test firmwares
 target_compile_definitions(bitbox PUBLIC SEMIHOSTING)

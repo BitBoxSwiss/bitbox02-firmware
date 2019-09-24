@@ -151,50 +151,8 @@ set(DRIVER-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
 
 set(CRYPTOAUTHLIB-SOURCES
   ${CMAKE_SOURCE_DIR}/src/securechip/securechip.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/atca_cfgs.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/atca_command.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/atca_device.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/atca_execution.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/atca_iface.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/hal/atca_hal.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/hal/hal_timer_start.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_counter.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_gendig.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_nonce.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_checkmac.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_info.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_derivekey.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_random.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_selftest.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_read.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_privwrite.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_verify.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_write.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_updateextra.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_lock.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_kdf.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_genkey.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/basic/atca_basic_sign.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/host/atca_host.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/crypto/hashes/sha2_routines.c
-  ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/crypto/atca_crypto_sw_sha2.c
-  # Add more as needed basic functions as needed.
 )
 set(CRYPTOAUTHLIB-SOURCES ${CRYPTOAUTHLIB-SOURCES} PARENT_SCOPE)
-
-# in securechip/securechip.h, we define our own i2c chip communication.
-set_property(
-  SOURCE ${CRYPTOAUTHLIB-SOURCES}
-  PROPERTY COMPILE_DEFINITIONS ATCA_HAL_CUSTOM ATCA_NO_POLL
-)
-
-# disable some warnings for the cryptoauthlib
-set_source_files_properties(
-  ${CRYPTOAUTHLIB-SOURCES}
-  PROPERTIES
-  COMPILE_FLAGS "-Wno-pedantic -Wno-incompatible-pointer-types -Wno-incompatible-pointer-types -Wno-unused-parameter -Wno-unused-variable"
-)
 
 set(SHA3-SOURCES
   ${CMAKE_SOURCE_DIR}/external/sha3/sha3.c
@@ -386,7 +344,14 @@ if(CMAKE_CROSSCOMPILING)
   foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)
     add_executable(${elf} ${FIRMWARE-SOURCES})
-    target_link_libraries(${elf} PRIVATE c samd51a-ds asf4-drivers-min asf4-drivers -Wl,-u,exception_table)
+    target_link_libraries(${elf}
+      PRIVATE
+        cryptoauthlib
+        c
+        samd51a-ds
+        asf4-drivers-min
+        asf4-drivers
+        -Wl,-u,exception_table)
     add_dependencies(${elf} generate-hww generate-backup)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_include_directories(${elf} SYSTEM PRIVATE ${SYSTEMINCLUDES})
@@ -396,8 +361,6 @@ if(CMAKE_CROSSCOMPILING)
     target_compile_definitions(${elf} PRIVATE "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 
     target_include_directories(${elf} SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external)
-    # needed for cryptoauthlib itself
-    target_include_directories(${elf} SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib)
     target_include_directories(${elf} SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/ctaes)
     target_include_directories(${elf} SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/sha3)
     # enable KECCAK in sha3

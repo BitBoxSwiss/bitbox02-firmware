@@ -89,7 +89,8 @@ void eth_common_format_amount(
     char* out,
     size_t out_len)
 {
-    if (out == NULL || out_len < 100) {
+    // Since scalar is at most 32 bytes, 100 chars is plenty of space for the output.
+    if (out == NULL || out_len < 100 || strlen(unit) > 10) {
         Abort("eth_common_format_amount");
     }
     char unit_with_space[strlen(unit) + 2];

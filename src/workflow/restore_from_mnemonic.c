@@ -169,7 +169,7 @@ bool workflow_restore_from_mnemonic(const RestoreFromMnemonicRequest* request)
         workflow_status_create("Could not\nrestore backup", false);
         return false;
     }
-#if defined(U2F_APP)
+#if defined(APP_U2F)
     if (!workflow_confirm_time(request->timestamp, request->timezone_offset, false)) {
         return false;
     }

@@ -49,6 +49,8 @@ USE_RESULT bool eth_common_hexaddress(const uint8_t* recipient, char* out, size_
 /**
  * Formats an ethereum or erc20 token amount given in the smallest unit. out_len must be at least
  * 100.
+ * If the number part (without unit) is bigger than 13 chars, it is truncated with '...'.
+ * Result example: "1.3 ETH", "12.4567890123... ETH".
  * @param[in] scalar value to format
  * @param[in] unit suffix
  * @param[in] decimals Divide scalar by 10^decimals. Should be 18 to format WEI as ETH.

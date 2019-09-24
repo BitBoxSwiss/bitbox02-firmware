@@ -77,16 +77,28 @@ set_source_files_properties(
   PROPERTIES GENERATED TRUE
 )
 target_include_directories(bitbox SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
+target_include_directories(bitbox PRIVATE ${CMAKE_SOURCE_DIR}/external/FatFs/source)
 target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 target_compile_definitions(bitbox PUBLIC APP_BTC APP_LTC APP_U2F APP_ETH)
 add_dependencies(bitbox generate-hww generate-backup)
 
-target_compile_definitions(bitbox PUBLIC "TESTING")
-target_compile_definitions(bitbox PUBLIC "USE_KECCAK")
-target_link_libraries(bitbox PUBLIC noiseprotocol wallycore secp256k1)
 # Since noiseprotocol and wallycore are external projects we need to specify the dependency
 add_dependencies(bitbox noise-c)
 add_dependencies(bitbox libwally-core)
+
+target_compile_definitions(bitbox PUBLIC TESTING)
+
+target_link_libraries(bitbox
+  PUBLIC
+    noiseprotocol
+    wallycore
+    secp256k1
+    bignum
+  PRIVATE
+    base32
+    ctaes
+    sha3
+)
 
 if(SANITIZE_ADDRESS)
   target_compile_options(bitbox PUBLIC "-fsanitize=address")

@@ -28,7 +28,7 @@
 #include "sd.h"
 #include "util.h"
 
-#include <FatFs/source/ff.h>
+#include <ff.h>
 
 // max number of files returned by sd_list/sd_list_subdir.
 #define LIST_MAX 200u

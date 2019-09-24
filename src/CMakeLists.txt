@@ -60,7 +60,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_params.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_bip143.c
-  ${CMAKE_SOURCE_DIR}/external/base32/base32.c
 )
 set(DBB-FIRMWARE-SOURCES ${DBB-FIRMWARE-SOURCES} PARENT_SCOPE)
 
@@ -154,33 +153,7 @@ set(CRYPTOAUTHLIB-SOURCES
 )
 set(CRYPTOAUTHLIB-SOURCES ${CRYPTOAUTHLIB-SOURCES} PARENT_SCOPE)
 
-set(SHA3-SOURCES
-  ${CMAKE_SOURCE_DIR}/external/sha3/sha3.c
-)
-set(SHA3-SOURCES ${SHA3-SOURCES} PARENT_SCOPE)
-
-# disable some warnings for the external library
-set_source_files_properties(
-  ${SHA3-SOURCES}
-  PROPERTIES
-  COMPILE_FLAGS "-Wno-cast-qual"
-)
-
-set(BIGNUM-SOURCES
-  ${CMAKE_SOURCE_DIR}/external/bignum/bignum.c
-  ${CMAKE_SOURCE_DIR}/external/bignum/largeprime.c
-)
-set(BIGNUM-SOURCES ${BIGNUM-SOURCES} PARENT_SCOPE)
-# disable some warnings for the external library
-set_source_files_properties(
-  ${BIGNUM-SOURCES}
-  PROPERTIES
-  COMPILE_FLAGS "-Wno-missing-prototypes -Wno-missing-declarations -Wno-switch-default"
-)
-
 set(ETHEREUM-SOURCES
-  ${SHA3-SOURCES}
-  ${BIGNUM-SOURCES}
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth.c
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_common.c
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_params.c
@@ -191,25 +164,10 @@ set(ETHEREUM-SOURCES
 )
 set(ETHEREUM-SOURCES ${ETHEREUM-SOURCES} PARENT_SCOPE)
 
-set(CTAES-SOURCES
-  ${CMAKE_SOURCE_DIR}/external/ctaes/ctaes.c
-  ${CMAKE_SOURCE_DIR}/external/ctaes/ctaes-cbc.c
-)
-set(CTAES-SOURCES ${CTAES-SOURCES} PARENT_SCOPE)
-
 set(FIRMWARE-DRIVER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid/u2f/hid_u2f.c
-  ${CMAKE_SOURCE_DIR}/external/FatFs/source/ff.c
-  ${CMAKE_SOURCE_DIR}/external/FatFs/source/ffunicode.c
 )
 set(FIRMWARE-DRIVER-SOURCES ${FIRMWARE-DRIVER-SOURCES} PARENT_SCOPE)
-
-set_source_files_properties(
-  ${CMAKE_SOURCE_DIR}/external/FatFs/source/ff.c
-  ${CMAKE_SOURCE_DIR}/external/FatFs/source/ffunicode.c
-  PROPERTIES
-  COMPILE_FLAGS "-Wno-switch-default"
-)
 
 set(FIRMWARE-U2F-SOURCES
   ${CMAKE_SOURCE_DIR}/src/u2f.c
@@ -280,7 +238,6 @@ set(FIRMWARE-SOURCES
   ${DRIVER-SOURCES}
   ${DBB-FIRMWARE-PROTOBUF-SOURCES}
   ${CRYPTOAUTHLIB-SOURCES}
-  ${CTAES-SOURCES}
   ${ETHEREUM-SOURCES}
   ${CMAKE_SOURCE_DIR}/src/common_main.c
 )
@@ -347,6 +304,11 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf}
       PRIVATE
         cryptoauthlib
+        fatfs
+        base32
+        bignum # TODO: only eth
+        sha3   # TODO: Only eth
+        ctaes
         c
         samd51a-ds
         asf4-drivers-min
@@ -360,11 +322,6 @@ if(CMAKE_CROSSCOMPILING)
     target_include_directories(${elf} SYSTEM PRIVATE ${NANOPB_INCLUDE_DIRS})
     target_compile_definitions(${elf} PRIVATE "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 
-    target_include_directories(${elf} SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external)
-    target_include_directories(${elf} SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/ctaes)
-    target_include_directories(${elf} SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/sha3)
-    # enable KECCAK in sha3
-    target_compile_definitions(${elf} PRIVATE "USE_KECCAK")
     # needed to find version.h
     target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
     target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${firmware}.map\" -T\"${CMAKE_SOURCE_DIR}/firmware.ld\"")

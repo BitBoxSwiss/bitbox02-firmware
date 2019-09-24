@@ -30,7 +30,6 @@ set(SOURCES
   ${DRIVER-SOURCES}
   ${DBB-FIRMWARE-PROTOBUF-SOURCES}
   ${CRYPTOAUTHLIB-SOURCES}
-  ${CTAES-SOURCES}
   ${ETHEREUM-SOURCES}
   ${FIRMWARE-U2F-SOURCES}
   ${CMAKE_SOURCE_DIR}/src/common_main.c
@@ -53,23 +52,28 @@ add_library(bitbox
   ${SOURCES}
 )
 
-target_link_libraries(bitbox PUBLIC asf4-drivers)
-
 target_include_directories(bitbox PUBLIC ${INCLUDES})
 target_include_directories(bitbox SYSTEM PUBLIC ${SYSTEMINCLUDES})
 target_include_directories(bitbox SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
 target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 target_compile_definitions(bitbox PUBLIC APP_BTC APP_LTC APP_U2F APP_ETH)
 add_dependencies(bitbox generate-hww generate-backup)
-target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external)
-target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/ctaes)
-target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/sha3)
-# enable KECCAK in sha3
-target_compile_definitions(bitbox PUBLIC "USE_KECCAK")
 # needed to find version.h
 target_include_directories(bitbox SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
-
-target_link_libraries(bitbox PRIVATE noiseprotocol secp256k1 wallycore cryptoauthlib)
+target_link_libraries(bitbox
+  PUBLIC
+    wallycore
+    secp256k1
+  PRIVATE
+    fatfs
+    noiseprotocol
+    cryptoauthlib
+    base32
+    bignum # TODO: only eth
+    sha3   # TODO: Only eth
+    ctaes
+    -Wl,-u,exception_table
+)
 
 # Always enable semihosting for the test firmwares
 target_compile_definitions(bitbox PUBLIC SEMIHOSTING)
@@ -117,10 +121,15 @@ foreach(name ${TEST_LIST})
   add_dependencies(${elf} libwally-core)
   # We must link against libc before libbitbox because malloc depends on _sbrk
   # We must mark "exception_table" as used, otherwise it won't be linked in since it is in a static library
-  target_link_libraries(${elf} PRIVATE c bitbox asf4-drivers asf4-drivers-min -Wl,-u,exception_table)
-  target_link_libraries(${elf} PRIVATE noiseprotocol)
-  target_link_libraries(${elf} PRIVATE wallycore secp256k1)
-  target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
+  target_link_libraries(${elf}
+    PRIVATE
+      c
+      bitbox
+      asf4-drivers-min
+      ${QTOUCHLIB_A}
+      ${QTOUCHLIB_B}
+      ${QTOUCHLIB_T}
+  )
 
   add_custom_command(
     TARGET ${elf} POST_BUILD

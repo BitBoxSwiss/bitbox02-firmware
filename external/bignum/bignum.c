@@ -28,7 +28,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <util.h>
+inline static volatile void* util_zero(volatile void* dst, size_t len)
+{
+    volatile char* buf;
+    for (buf = (volatile char*)dst; len; buf[--len] = 0)
+        ;
+    return dst;
+}
 
 /* big number library */
 

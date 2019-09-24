@@ -283,6 +283,31 @@ if(CMAKE_CROSSCOMPILING)
     FatFs/source/ffunicode.c
   )
   target_link_libraries(fatfs asf4-drivers)
-  target_include_directories(fatfs PUBLIC FatFs/source)
+  target_include_directories(fatfs SYSTEM PUBLIC FatFs/source)
   target_compile_options(fatfs PRIVATE -Wno-switch-default)
 endif() # CMAKE_CROSSCOMPILING
+
+add_library(base32
+  base32/base32.c
+)
+target_include_directories(base32 SYSTEM PUBLIC base32)
+
+add_library(ctaes
+  ctaes/ctaes.c
+  ctaes/ctaes-cbc.c
+)
+target_include_directories(ctaes SYSTEM PUBLIC ctaes)
+
+add_library(sha3
+  sha3/sha3.c
+)
+target_include_directories(sha3 SYSTEM PUBLIC sha3)
+target_compile_definitions(sha3 PUBLIC USE_KECCAK)
+target_compile_options(sha3 PRIVATE -Wno-cast-qual)
+
+add_library(bignum
+  bignum/bignum.c
+  bignum/largeprime.c
+)
+target_include_directories(bignum SYSTEM PUBLIC bignum)
+target_compile_options(bignum PRIVATE -Wno-missing-prototypes -Wno-missing-declarations -Wno-switch-default)

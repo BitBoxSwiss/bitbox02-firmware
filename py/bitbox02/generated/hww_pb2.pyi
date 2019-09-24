@@ -264,19 +264,23 @@ class CreateBackupRequest(google___protobuf___message___Message):
 
 class RestoreBackupRequest(google___protobuf___message___Message):
     id = ... # type: typing___Text
+    timestamp = ... # type: int
+    timezone_offset = ... # type: int
 
     def __init__(self,
         *,
         id : typing___Optional[typing___Text] = None,
+        timestamp : typing___Optional[int] = None,
+        timezone_offset : typing___Optional[int] = None,
         ) -> None: ...
     @classmethod
     def FromString(cls, s: bytes) -> RestoreBackupRequest: ...
     def MergeFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     if sys.version_info >= (3,):
-        def ClearField(self, field_name: typing_extensions___Literal[u"id"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"id",u"timestamp",u"timezone_offset"]) -> None: ...
     else:
-        def ClearField(self, field_name: typing_extensions___Literal[u"id",b"id"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"id",b"id",u"timestamp",b"timestamp",u"timezone_offset",b"timezone_offset"]) -> None: ...
 
 class ListBackupsRequest(google___protobuf___message___Message):
 
@@ -452,14 +456,12 @@ class PubResponse(google___protobuf___message___Message):
 class BackupInfo(google___protobuf___message___Message):
     id = ... # type: typing___Text
     timestamp = ... # type: int
-    timezone_offset = ... # type: int
     name = ... # type: typing___Text
 
     def __init__(self,
         *,
         id : typing___Optional[typing___Text] = None,
         timestamp : typing___Optional[int] = None,
-        timezone_offset : typing___Optional[int] = None,
         name : typing___Optional[typing___Text] = None,
         ) -> None: ...
     @classmethod
@@ -467,9 +469,9 @@ class BackupInfo(google___protobuf___message___Message):
     def MergeFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     if sys.version_info >= (3,):
-        def ClearField(self, field_name: typing_extensions___Literal[u"id",u"name",u"timestamp",u"timezone_offset"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"id",u"name",u"timestamp"]) -> None: ...
     else:
-        def ClearField(self, field_name: typing_extensions___Literal[u"id",b"id",u"name",b"name",u"timestamp",b"timestamp",u"timezone_offset",b"timezone_offset"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"id",b"id",u"name",b"name",u"timestamp",b"timestamp"]) -> None: ...
 
 class ListBackupsResponse(google___protobuf___message___Message):
 
@@ -818,13 +820,22 @@ class ResetRequest(google___protobuf___message___Message):
     def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
 
 class RestoreFromMnemonicRequest(google___protobuf___message___Message):
+    timestamp = ... # type: int
+    timezone_offset = ... # type: int
 
     def __init__(self,
+        *,
+        timestamp : typing___Optional[int] = None,
+        timezone_offset : typing___Optional[int] = None,
         ) -> None: ...
     @classmethod
     def FromString(cls, s: bytes) -> RestoreFromMnemonicRequest: ...
     def MergeFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
+    if sys.version_info >= (3,):
+        def ClearField(self, field_name: typing_extensions___Literal[u"timestamp",u"timezone_offset"]) -> None: ...
+    else:
+        def ClearField(self, field_name: typing_extensions___Literal[u"timestamp",b"timestamp",u"timezone_offset",b"timezone_offset"]) -> None: ...
 
 class Request(google___protobuf___message___Message):
 

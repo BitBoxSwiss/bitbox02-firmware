@@ -32,6 +32,7 @@ set(SOURCES
   ${CRYPTOAUTHLIB-SOURCES}
   ${CTAES-SOURCES}
   ${ETHEREUM-SOURCES}
+  ${FIRMWARE-U2F-SOURCES}
   ${CMAKE_SOURCE_DIR}/src/common_main.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/framework/test_common.c
 )

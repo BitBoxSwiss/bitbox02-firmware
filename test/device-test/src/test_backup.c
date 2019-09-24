@@ -106,12 +106,7 @@ static void _test_list_backups(char id[256])
     } else {
         for (int i = 0; i < backups.info_count; i++) {
             screen_sprintf_debug(
-                1000,
-                "%d: %s %d %d",
-                (i + 1),
-                backups.info[i].id,
-                backups.info[i].timestamp,
-                backups.info[i].timezone_offset);
+                1000, "%d: %s %d", (i + 1), backups.info[i].id, backups.info[i].timestamp);
             if (backups.info[i].timestamp == _timestamp) {
                 memcpy(id, backups.info[i].id, 256);
             }

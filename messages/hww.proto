@@ -62,6 +62,8 @@ message CreateBackupRequest {
 
 message RestoreBackupRequest {
   string id = 1;
+  uint32 timestamp = 2;
+  int32 timezone_offset = 3;
 }
 
 message ListBackupsRequest {
@@ -129,7 +131,7 @@ message PubResponse {
 message BackupInfo {
   string id = 1;
   uint32 timestamp = 2;
-  uint32 timezone_offset = 3;
+  // uint32 timezone_offset = 3;
   string name = 4;
 }
 
@@ -257,7 +259,10 @@ message ETHResponse {
 
 message ResetRequest {}
 
-message RestoreFromMnemonicRequest {}
+message RestoreFromMnemonicRequest {
+  uint32 timestamp = 1;
+  int32 timezone_offset = 2;
+}
 
 message Request {
     oneof request {

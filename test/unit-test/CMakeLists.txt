@@ -40,6 +40,7 @@ add_library(bitbox
   ${DBB-FIRMWARE-USB-SOURCES}
   ${CTAES-SOURCES}
   ${ETHEREUM-SOURCES}
+  ${FIRMWARE-U2F-SOURCES}
   framework/mock_blocking.c
   framework/mock_screen.c
   framework/mock_screen_stack.c

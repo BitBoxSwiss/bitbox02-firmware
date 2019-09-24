@@ -39,6 +39,12 @@ bool securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint
     return true;
 }
 
+bool securechip_u2f_counter_set(uint32_t counter)
+{
+    _u2f_counter = counter;
+    return true;
+}
+
 bool securechip_u2f_counter_inc(uint32_t* counter)
 {
     *counter = _u2f_counter++;

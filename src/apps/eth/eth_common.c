@@ -90,10 +90,20 @@ void eth_common_format_amount(
     size_t out_len)
 {
     // Since scalar is at most 32 bytes, 100 chars is plenty of space for the output.
-    if (out == NULL || out_len < 100 || strlen(unit) > 10) {
+    const size_t min_out_len = 100;
+    // Truncate the number at this many chars and append '...' if truncated.
+    // Empirically found to fit on one line on the screen (including unit).
+    const size_t truncate_len = 13;
+
+    if (out == NULL || out_len < min_out_len || strlen(unit) > 10) {
         Abort("eth_common_format_amount");
     }
     char unit_with_space[strlen(unit) + 2];
     snprintf(unit_with_space, sizeof(unit_with_space), " %s", unit);
-    bn_format(scalar, "", unit_with_space, decimals, 0, false, out, out_len);
+    bn_format(scalar, "", "", decimals, 0, false, out, out_len);
+    if (strlen(out) > truncate_len) {
+        snprintf(&out[truncate_len], out_len - truncate_len, "...%s", unit_with_space);
+    } else {
+        snprintf(&out[strlen(out)], out_len - strlen(out), "%s", unit_with_space);
+    }
 }

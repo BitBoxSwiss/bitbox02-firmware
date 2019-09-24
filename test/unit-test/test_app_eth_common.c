@@ -133,7 +133,7 @@ static void _test_eth_common_format_amount(void** state)
             .bigendian_len = 11,
             .decimals = 18,
             .unit = "LOL",
-            .expected_result = "38723987.932742983742983742 LOL",
+            .expected_result = "38723987.9327... LOL",
         },
         {
             // 123456
@@ -142,6 +142,30 @@ static void _test_eth_common_format_amount(void** state)
             .decimals = 8,
             .unit = "LOL",
             .expected_result = "0.00123456 LOL",
+        },
+        {
+            // 123456
+            .bigendian = "\x01\xe2\x40",
+            .bigendian_len = 3,
+            .decimals = 8,
+            .unit = "LOL",
+            .expected_result = "0.00123456 LOL",
+        },
+        {
+            // 124567890123
+            .bigendian = "\x1d\x00\xd3\x28\xcb",
+            .bigendian_len = 5,
+            .decimals = 10,
+            .unit = "LOL",
+            .expected_result = "12.4567890123 LOL",
+        },
+        {
+            // 1245678901234
+            .bigendian = "\x01\x22\x08\x3f\x97\xf2",
+            .bigendian_len = 6,
+            .decimals = 11,
+            .unit = "LOL",
+            .expected_result = "12.4567890123... LOL",
         },
     };
     for (size_t i = 0; i < sizeof(tests) / sizeof(_format_test_t); i++) {

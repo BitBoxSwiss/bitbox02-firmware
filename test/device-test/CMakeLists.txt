@@ -66,14 +66,10 @@ target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/ct
 target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/sha3)
 # enable KECCAK in sha3
 target_compile_definitions(bitbox PUBLIC "USE_KECCAK")
-target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/noise-c/include)
-target_include_directories(bitbox SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/noise-c/src)
-target_include_directories(bitbox SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/external/libwally-core/include)
-target_include_directories(bitbox SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/external/libwally-core/src/secp256k1/include)
 # needed to find version.h
 target_include_directories(bitbox SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
 
-target_link_libraries(bitbox PUBLIC cryptoauthlib)
+target_link_libraries(bitbox PRIVATE noiseprotocol secp256k1 wallycore cryptoauthlib)
 
 # Always enable semihosting for the test firmwares
 target_compile_definitions(bitbox PUBLIC SEMIHOSTING)
@@ -116,6 +112,7 @@ foreach(name ${TEST_LIST})
   target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_${name}.map\" -T\"${CMAKE_CURRENT_SOURCE_DIR}/device-test.ld\"")
   target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
 
+  # Since noiseprotocol and wallycore are external projects we need to specify the dependency
   add_dependencies(${elf} noise-c)
   add_dependencies(${elf} libwally-core)
   # We must link against libc before libbitbox because malloc depends on _sbrk

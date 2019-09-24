@@ -59,12 +59,8 @@ target_include_directories(
   SYSTEM PUBLIC
   ${SYSTEMINCLUDES}
   ${CMAKE_SOURCE_DIR}/external
-  ${CMAKE_SOURCE_DIR}/external/noise-c/include
-  ${CMAKE_SOURCE_DIR}/external/noise-c/src
   ${CMAKE_SOURCE_DIR}/external/ctaes
   ${CMAKE_SOURCE_DIR}/external/sha3
-  ${CMAKE_SOURCE_DIR}/external/libwally-core/include
-  ${CMAKE_SOURCE_DIR}/external/libwally-core/src/secp256k1/include
 )
 target_include_directories(
   bitbox
@@ -87,9 +83,11 @@ add_dependencies(bitbox generate-hww generate-backup)
 
 target_compile_definitions(bitbox PUBLIC "TESTING")
 target_compile_definitions(bitbox PUBLIC "USE_KECCAK")
-
+target_link_libraries(bitbox PUBLIC noiseprotocol wallycore secp256k1)
+# Since noiseprotocol and wallycore are external projects we need to specify the dependency
 add_dependencies(bitbox noise-c)
 add_dependencies(bitbox libwally-core)
+
 if(SANITIZE_ADDRESS)
   target_compile_options(bitbox PUBLIC "-fsanitize=address")
 endif()
@@ -100,10 +98,6 @@ if(COVERAGE)
   target_link_libraries(bitbox PUBLIC "--coverage")
   target_compile_options(bitbox PUBLIC "--coverage")
 endif()
-
-target_link_libraries(bitbox PRIVATE "noiseprotocol")
-target_link_libraries(bitbox PRIVATE "wallycore")
-target_link_libraries(bitbox PRIVATE "secp256k1")
 
 add_library(u2f-util
   STATIC

@@ -365,10 +365,6 @@ if(CMAKE_CROSSCOMPILING)
     target_include_directories(${elf} SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/sha3)
     # enable KECCAK in sha3
     target_compile_definitions(${elf} PRIVATE "USE_KECCAK")
-    target_include_directories(${elf} SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/noise-c/include)
-    target_include_directories(${elf} SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/noise-c/src)
-    target_include_directories(${elf} SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/libwally-core/include)
-    target_include_directories(${elf} SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/libwally-core/src/secp256k1/include)
     # needed to find version.h
     target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
     target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${firmware}.map\" -T\"${CMAKE_SOURCE_DIR}/firmware.ld\"")

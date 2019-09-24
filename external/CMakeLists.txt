@@ -54,6 +54,27 @@ ExternalProject_Add(noise-c
 add_library(noiseprotocol STATIC IMPORTED GLOBAL)
 set_property(TARGET noiseprotocol
   PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libnoiseprotocol.a)
+set_target_properties(noiseprotocol
+  PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES
+      ${CMAKE_CURRENT_SOURCE_DIR}/noise-c/include
+)
+# INTERFACE_SYSTEM_INCLUDE_DIRECTORIES only modifies existing directories. WTF CMake...
+set_target_properties(noiseprotocol
+  PROPERTIES
+    INTERFACE_SYSTEM_INCLUDE_DIRECTORIES
+      ${CMAKE_CURRENT_SOURCE_DIR}/noise-c/include
+)
+set_property(
+  TARGET noiseprotocol APPEND
+  PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+    ${CMAKE_CURRENT_SOURCE_DIR}/noise-c/src
+)
+set_property(
+  TARGET noiseprotocol APPEND
+  PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES
+    ${CMAKE_CURRENT_SOURCE_DIR}/noise-c/src
+)
 
 #----------------------
 # wally-core
@@ -108,10 +129,15 @@ ExternalProject_Add(libwally-core
 add_library(wallycore STATIC IMPORTED GLOBAL)
 set_property(TARGET wallycore
   PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libwallycore.a)
+set_target_properties(wallycore PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core/include)
+set_target_properties(wallycore PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core/include)
 
 add_library(secp256k1 STATIC IMPORTED GLOBAL)
 set_property(TARGET secp256k1
   PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libsecp256k1.a)
+set_target_properties(secp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core/src/secp256k1/include)
+set_target_properties(secp256k1 PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core/src/secp256k1/include)
+
 
 if(CMAKE_CROSSCOMPILING)
   # Cortex Microcontroller Software Interface Standard

@@ -8,35 +8,7 @@ set -e
 # Exit on pipe fail
 set -o pipefail
 
-PYLINT=${PYLINT:-pylint}
-BLACK=${BLACK:-black}
-MYPY=${MYPY:-mypy}
-
 command -v git >/dev/null 2>&1 || { echo >&2 "git is missing"; exit 1; }
-command -v ${PYLINT} >/dev/null 2>&1 || { echo >&2 "${PYLINT} is missing"; exit 1; }
-command -v ${BLACK} >/dev/null 2>&1 || { echo >&2 "${BLACK} is missing"; exit 1; }
-command -v ${MYPY} >/dev/null 2>&1 || { echo >&2 "${MYPY} is missing"; exit 1; }
-
-# check if stdout is a terminal.
-if test -t 1; then
-	# see if it supports colors.
-	ncolors=$(tput colors)
-	if test -n "$ncolors" && test $ncolors -ge 8; then
-		normal="$(tput sgr0)"
-		red="$(tput setaf 1)"
-		green="$(tput setaf 2)"
-	fi
-fi
-
-# pylint returns a bitmask as status code:
-#
-# 0     no error
-# 1     fatal message issued
-# 2     error message issued
-# 4     warning message issued
-# 8     refactor message issued
-# 16    convention message issued
-# 32    usage error
 
 # grep will exit with 1 if no lines are found
 FILES=$(git --no-pager diff --diff-filter=d --name-only origin/master | grep -v -e "old/" -e "generated/" | grep -E ".py\$" || exit 0)
@@ -44,38 +16,5 @@ if [ -z "${FILES}" ] ; then
        exit 0
 fi
 
-${BLACK} --check --fast ${FILES}
-
-# implicit-reexport: `from foo import bar` re-exports (normal Python3 behavior), otherwise mypy expects
-# `from foo import bar as bar`.
-# namespace-packages: follow imports in subfolders without `__init__.py` (also normal Python3 behavior).
-${MYPY} --implicit-reexport --namespace-packages --ignore-missing-imports --strict py
-
-${PYLINT} --persistent=no ${FILES} || {
-	pylint_status=$?
-	exitcode=0
-	if (( ${pylint_status} \& 1 )); then
-		echo fatal messsage >&2
-		exitcode=2
-	fi
-	if (( ${pylint_status} \& 2 )); then
-		echo error messsage >&2
-		exitcode=2
-	fi
-	if (( ${pylint_status} \& 4 )); then
-		echo warning messsage >&2
-		exitcode=2
-	fi
-	if (( ${pylint_status} \& 8 )); then
-		echo refactor messsage >&2
-	fi
-	if (( ${pylint_status} \& 16 )); then
-		echo convention messsage >&2
-	fi
-	# This should not happen!
-	if (( ${pylint_status} \& 32 )); then
-		echo usage error >&2
-		exitcode=2
-	fi
-	exit ${exitcode}
-}
+./scripts/format-python --check --fast ${FILES}
+./scripts/lint-python ${FILES}

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# Run black on some of the code, or pass files as arguments
+
+# Exit on error
+set -e
+
+# Exit on pipe fail
+set -o pipefail
+
+BLACK=${BLACK:-black}
+command -v ${BLACK} >/dev/null 2>&1 || { echo >&2 "${BLACK} is missing"; exit 1; }
+
+# Store arguments as array in ARGS
+ARGS=("$@")
+
+if [ $# -eq 0 ] ; then
+	# Store default files as array in ARGS
+	ARGS=($(find py -name '*.py' | grep -v -e generated -e old))
+fi
+
+${BLACK} "${ARGS[@]}"

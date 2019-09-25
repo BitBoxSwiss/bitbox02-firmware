@@ -67,39 +67,51 @@ RUN apt-get update && apt-get install -y \
     libudev-dev \
     libhidapi-dev
 
+RUN apt-get update && apt-get install -y \
+    doxygen
+
 # Set gcc-8 as the default gcc
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100
 RUN update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-8 100
 
 # Tools for CI
 RUN apt-get update && apt-get install -y \
+    python \
     python3 \
     python3-pip \
     clang-format-8 \
     clang-tidy-8
 
+RUN python3 -m pip install --upgrade pip
+
 # Python modules
-RUN pip3 install \
-    hidapi \
-    noiseprotocol \
-    protobuf \
-    ecdsa \
-    tzlocal \
-    semver
+COPY py/bitbox02/requirements.txt /tmp
+RUN python3 -m pip install --upgrade --requirement /tmp/requirements.txt
+COPY py/requirements.txt /tmp
+RUN python3 -m pip install --upgrade --requirement /tmp/requirements.txt
+RUN rm /tmp/requirements.txt
 
 # Python modules for CI
-RUN pip3 install \
-    pylint \
-    pylint-protobuf \
-    black \
+# TODO: This emits a warning about astroid that is safe to ignore?
+#       https://github.com/PyCQA/astroid/issues/699
+RUN python3 -m pip install --upgrade \
+    pylint==2.4.1 \
+    pylint-protobuf==0.11 \
+    black==19.3b0 \
     mypy==0.720 \
     mypy-protobuf==1.13
+
+# Python modules for packaging
+RUN python3 -m pip install --upgrade \
+    setuptools==41.2.0 \
+    wheel==0.33.6 \
+    twine==1.15.0
 
 # Developer tools
 RUN apt-get update && apt-get install -y \
     bash-completion
 # Install gcovr from PIP to get a newer version than in apt repositories
-RUN pip3 install gcovr
+RUN python3 -m pip install gcovr
 
 # Install Go, used for the tools in tools/go and for test/gounittest
 ENV GOPATH /opt/go
@@ -107,6 +119,8 @@ ENV GOROOT /opt/go_dist/go
 ENV PATH $GOROOT/bin:$GOPATH/bin:$PATH
 RUN mkdir -p /opt/go_dist && \
     curl https://dl.google.com/go/go1.11.linux-amd64.tar.gz | tar -xz -C /opt/go_dist
+
+RUN go get -v -u github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc
 
 # Install lcov from release (the one from the repos is too old).
 RUN cd /opt && wget https://github.com/linux-test-project/lcov/releases/download/v1.14/lcov-1.14.tar.gz && tar -xf lcov-1.14.tar.gz

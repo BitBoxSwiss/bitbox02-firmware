@@ -1,3 +1,4 @@
-tzlocal==1.5.1
-mypy==0.720
-mypy-protobuf==1.13
+# Modules needed to run scripts in this directory
+tzlocal>=1.5,<2.0
+# Enable when bitbox02 package is released
+#bitbox02

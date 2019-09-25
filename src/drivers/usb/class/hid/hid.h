@@ -101,11 +101,11 @@ int32_t hid_write(struct hid_func_data* func_data, const uint8_t* buf, uint32_t 
  * @param[IN] func_data The interface meta data.
  * @param[in] trans_type The transfer type for which the callback should be registered,
  *            which can be READ, WRITE or SET_REPORT.
- * @param[in] fund The function that is registered as a callback.
+ * @param[in] func The function that is registered as a callback.
  */
 int32_t hid_register_callback(
     struct hid_func_data* func_data,
-    enum hid_trans_type cb_type,
+    enum hid_trans_type trans_type,
     FUNC_PTR func);
 
 /**

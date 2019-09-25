@@ -43,11 +43,11 @@ static int32_t _enable(struct usbd_descriptors* desc, struct usbdf_driver* drv)
     if (HID_CLASS == ifc_desc.bInterfaceClass) {
         if (func_data->func_iface == ifc_desc.bInterfaceNumber) { // Initialized
             return ERR_ALREADY_INITIALIZED;
-        } else if (func_data->func_iface != 0xFF) { // Occupied
-            return ERR_NO_RESOURCE;
-        } else {
-            func_data->func_iface = ifc_desc.bInterfaceNumber;
         }
+        if (func_data->func_iface != 0xFF) { // Occupied
+            return ERR_NO_RESOURCE;
+        }
+        func_data->func_iface = ifc_desc.bInterfaceNumber;
     } else { // Not supported by this function driver
         return ERR_NOT_FOUND;
     }
@@ -186,36 +186,34 @@ int32_t hid_req(
     if ((0x81 == req->bmRequestType) && (0x06 == req->bRequest) &&
         (req->I.wIndex == func_data->func_iface)) {
         return _get_descriptor(drv, ep, req);
-    } else {
-        if (0x01 != ((req->bmRequestType >> 5) & 0x03)) { // class request
-            return ERR_NOT_FOUND;
+    }
+    if (0x01 != ((req->bmRequestType >> 5) & 0x03)) { // class request
+        return ERR_NOT_FOUND;
+    }
+    if (req->I.wIndex == func_data->func_iface) {
+        if (req->bmRequestType & USB_EP_DIR_IN) {
+            return ERR_INVALID_ARG;
         }
-        if (req->I.wIndex == func_data->func_iface) {
-            if (req->bmRequestType & USB_EP_DIR_IN) {
-                return ERR_INVALID_ARG;
+        switch (req->bRequest) {
+        case 0x03: /* Get Protocol */
+            return usbdc_xfer(ep, &func_data->protocol, 1, 0);
+        case 0x0B: /* Set Protocol */
+            func_data->protocol = req->V.wValue;
+            return usbdc_xfer(ep, NULL, 0, 0);
+        case USB_REQ_HID_SET_REPORT:
+            if (USB_SETUP_STAGE == stage) {
+                return usbdc_xfer(ep, ctrl_buf, len, false);
             } else {
-                switch (req->bRequest) {
-                case 0x03: /* Get Protocol */
-                    return usbdc_xfer(ep, &func_data->protocol, 1, 0);
-                case 0x0B: /* Set Protocol */
-                    func_data->protocol = req->V.wValue;
-                    return usbdc_xfer(ep, NULL, 0, 0);
-                case USB_REQ_HID_SET_REPORT:
-                    if (USB_SETUP_STAGE == stage) {
-                        return usbdc_xfer(ep, ctrl_buf, len, false);
-                    } else {
-                        if (NULL != func_data->hid_set_report) {
-                            func_data->hid_set_report(ctrl_buf, len);
-                        }
-                        return ERR_NONE;
-                    }
-                default:
-                    return ERR_INVALID_ARG;
+                if (NULL != func_data->hid_set_report) {
+                    func_data->hid_set_report(ctrl_buf, len);
                 }
+                return ERR_NONE;
             }
-        } else {
-            return ERR_NOT_FOUND;
+        default:
+            return ERR_INVALID_ARG;
         }
+    } else {
+        return ERR_NOT_FOUND;
     }
 }
 
@@ -267,9 +265,8 @@ uint8_t hid_get_ep(struct usbdf_driver* func_driver, uint8_t dir)
 {
     if (dir == DIR_OUT) {
         return ((struct hid_func_data*)func_driver->func_data)->func_ep_out;
-    } else {
-        return ((struct hid_func_data*)func_driver->func_data)->func_ep_in;
     }
+    return ((struct hid_func_data*)func_driver->func_data)->func_ep_in;
 }
 
 /**

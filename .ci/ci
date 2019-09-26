@@ -8,6 +8,9 @@ set -e
 make -C py
 ./.ci/check-pep8
 
+# check ./releases sigs
+./.ci/check-release-sigs
+
 # Make build directories so we can do some static analysis
 make prepare-tidy
 ./.ci/check-tidy

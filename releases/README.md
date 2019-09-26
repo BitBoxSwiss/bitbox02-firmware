@@ -22,7 +22,7 @@ The purpose is twofold:
   that the released binary was created correctly, even if it becomes infeasible to re-build the
   binary.
 
-# Verify assertions by the community
+## Verify assertions by the community
 
 Inspect the `assertion.txt` file of the relevant subdir,
 e.g. [firmware-v4.1.0/assertion.txt](firmware-v4.1.0/assertion.txt).

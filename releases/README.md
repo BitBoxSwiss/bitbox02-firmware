@@ -33,6 +33,8 @@ Verify a signature confirming its contents, for example:
 
 ```sh
 cd firmware-v4.1.0/
+# import any missing public keys
+gpg --import pubkeys/benma.asc
 gpg --verify assertion-benma.sig assertion.txt
 ```
 
@@ -78,4 +80,9 @@ cd firmware/v4.1.0 # go to the relevant subfolder
 gpg -o assertion-YOURNAME.sig --detach-sign assertion.txt
 ```
 
-Open a PR adding your signature file to this folder.
+Open a PR adding your signature file to this folder. Also add your pgp pubkey to the
+[./pubkeys](./pubkeys) folder:
+
+```sh
+ gpg --export --armor YOUR_PGP_KEY_ID  > ./pubkeys/YOURNAME.asc
+```

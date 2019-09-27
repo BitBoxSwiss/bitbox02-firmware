@@ -18,7 +18,7 @@ The purpose is twofold:
   binaries themselves.
 - The firmware binaries are only practically reproducible for a limited amount of time after the
   release. In the future, the dependencies of our Dockerfile might have changed, or Docker itself
-  might even become incompatible or obsolete. This historic record allow you to be reasonably sure
+  might even become incompatible or obsolete. This historic record allows you to be reasonably sure
   that the released binary was created correctly, even if it becomes infeasible to re-build the
   binary.
 
@@ -84,5 +84,5 @@ Open a PR adding your signature file to this folder. Also add your pgp pubkey to
 [./pubkeys](./pubkeys) folder:
 
 ```sh
- gpg --export --armor YOUR_PGP_KEY_ID  > ./pubkeys/YOURNAME.asc
+gpg --export --armor YOUR_PGP_KEY_ID  > ./pubkeys/YOURNAME.asc
 ```

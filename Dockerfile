@@ -85,8 +85,9 @@ RUN apt-get update && apt-get install -y \
 RUN python3 -m pip install --upgrade pip
 
 # Python modules
-COPY py/bitbox02/requirements.txt /tmp
-RUN python3 -m pip install --upgrade --requirement /tmp/requirements.txt
+COPY py/bitbox02 /tmp/bitbox02
+RUN python3 -m pip install /tmp/bitbox02
+RUN rm -r /tmp/bitbox02
 COPY py/requirements.txt /tmp
 RUN python3 -m pip install --upgrade --requirement /tmp/requirements.txt
 RUN rm /tmp/requirements.txt

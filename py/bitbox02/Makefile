@@ -22,3 +22,13 @@ all: ${TARGETS}
 ${TARGETS}: ../../messages/hww.proto
 	mkdir -p ${OUT_DIR}
 	protoc --proto_path=../../messages --python_out=${OUT_DIR} --mypy_out=${OUT_DIR} $^
+
+release-test: all
+	rm -rf dist/*
+	python3 setup.py sdist bdist_wheel
+	python3 -m twine upload --sign --repository-url https://test.pypi.org/legacy/ dist/*
+
+release-live: all
+	rm -rf dist/*
+	python3 setup.py sdist bdist_wheel
+	python3 -m twine upload --sign dist/*

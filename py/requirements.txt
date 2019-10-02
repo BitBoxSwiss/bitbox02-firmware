@@ -1,4 +1,4 @@
 # Modules needed to run scripts in this directory
 tzlocal>=1.5,<2.0
-# Enable when bitbox02 package is released
-#bitbox02
+# until bitbox02 is released it must be installed from py/bitbox02
+bitbox02

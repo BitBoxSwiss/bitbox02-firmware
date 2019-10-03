@@ -64,7 +64,7 @@ static void _screen_process(bool (*is_done)(void), void (*on_timeout)(void), con
             component = next_component;
         }
         gestures_detect(screen_new, component->emit_without_release);
-        if ((screen_frame_cnt % SCREEN_FRAME_RATE) == 0) {
+        if (screen_frame_cnt == SCREEN_FRAME_RATE) {
             if (is_done != NULL && on_timeout != NULL && timeout_cnt > timeout) {
                 on_timeout();
             }

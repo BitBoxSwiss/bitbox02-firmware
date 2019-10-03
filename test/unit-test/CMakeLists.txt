@@ -195,7 +195,7 @@ set(TEST_LIST
    commander_set_mnemonic_passphrase_enabled
    "-Wl,--wrap=workflow_confirm,--wrap=memory_set_mnemonic_passphrase_enabled"
    workflow_blocking
-   "-Wl,--wrap=ui_screen_process,--wrap=ui_screen_process_with_timeout"
+   "-Wl,--wrap=screen_process"
    workflow_status
    "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=status_create,--wrap=workflow_blocking_block,--wrap=workflow_blocking_unblock"
    workflow_cancel

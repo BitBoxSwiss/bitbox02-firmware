@@ -87,47 +87,17 @@ static component_t* _get_ui_top_component(void)
     return result;
 }
 
-static void _run_blocking_ui(
-    bool (*is_done)(void*),
-    void* is_done_param,
-    void (*on_timeout)(void),
-    const uint32_t timeout)
+void screen_process(void)
 {
-    if (is_done == NULL) {
-        Abort("is_done function\nis NULL.");
-    }
-    uint32_t timeout_cnt = 0;
+    component_t* component = _get_ui_top_component();
+    _screen_draw(component);
 
-    while (!is_done(is_done_param)) {
-        if (on_timeout != NULL && timeout_cnt > timeout) {
-            on_timeout();
-        }
-        timeout_cnt += 1;
+    /*
+     * If we have changed activity, the gestures
+     * detection must start over.
+     */
+    bool screen_new = _screen_has_changed(component);
+    gestures_detect(screen_new, component->emit_without_release);
 
-        component_t* component = _get_ui_top_component();
-        _screen_draw(component);
-
-        /*
-         * If we have changed activity, the gestures
-         * detection must start over.
-         */
-        bool screen_new = _screen_has_changed(component);
-        gestures_detect(screen_new, component->emit_without_release);
-
-        ui_screen_stack_cleanup();
-    }
-}
-
-void ui_screen_process(bool (*is_done)(void*), void* is_done_param)
-{
-    _run_blocking_ui(is_done, is_done_param, NULL, 0);
-}
-
-void ui_screen_process_with_timeout(
-    bool (*is_done)(void*),
-    void* is_done_param,
-    void (*on_timeout)(void),
-    uint32_t timeout)
-{
-    _run_blocking_ui(is_done, is_done_param, on_timeout, timeout);
+    ui_screen_stack_cleanup();
 }

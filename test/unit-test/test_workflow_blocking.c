@@ -20,64 +20,45 @@
 #include <workflow/blocking.h>
 
 static bool _force_unblock = false;
-void __wrap_ui_screen_process(bool (*is_done)(void))
+static bool _unblock = false;
+
+void __wrap_screen_process(void)
 {
-    assert_false(is_done());
-    assert_false(is_done());
     if (_force_unblock) {
         workflow_blocking_unblock_force();
-    } else {
+    } else if (_unblock) {
         workflow_blocking_unblock();
     }
-    assert_true(is_done());
-    assert_true(is_done());
-}
-
-static bool _timeout = false;
-void __wrap_ui_screen_process_with_timeout(
-    bool (*is_done)(void),
-    void (*on_timeout)(void),
-    uint32_t timeout)
-{
-    check_expected(timeout);
-
-    assert_false(is_done());
-    assert_false(is_done());
-    if (_timeout) {
-        on_timeout();
-    } else if (_force_unblock) {
-        workflow_blocking_unblock_force();
-    } else {
-        workflow_blocking_unblock();
-    }
-    assert_true(is_done());
-    assert_true(is_done());
 }
 
 static void _test_workflow_blocking(void** state)
 {
     _force_unblock = false;
+    _unblock = true;
     assert_true(workflow_blocking_block());
 
     _force_unblock = true;
+    _unblock = false;
     assert_false(workflow_blocking_block());
 }
 
 static void _test_workflow_blocking_with_timeout(void** state)
 {
     const uint32_t timeout = 123;
-    _timeout = false;
+
+    /* Normal unblock. */
     _force_unblock = false;
-    expect_value(__wrap_ui_screen_process_with_timeout, timeout, timeout);
+    _unblock = true;
     assert_true(workflow_blocking_block_with_timeout(timeout));
 
-    _timeout = false;
+    /* No timeout, forced unblock. */
     _force_unblock = true;
-    expect_value(__wrap_ui_screen_process_with_timeout, timeout, timeout);
+    _unblock = false;
     assert_false(workflow_blocking_block_with_timeout(timeout));
 
-    _timeout = true;
-    expect_value(__wrap_ui_screen_process_with_timeout, timeout, timeout);
+    /* Let the workflow timeout. */
+    _force_unblock = false;
+    _unblock = false;
     assert_false(workflow_blocking_block_with_timeout(timeout));
 }
 

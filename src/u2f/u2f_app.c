@@ -1,6 +1,7 @@
 #include "u2f_app.h"
 
 #include <hardfault.h>
+#include <ui/screen_process.h>
 #include <util.h>
 #include <workflow/confirm.h>
 
@@ -65,5 +66,5 @@ bool u2f_app_confirm(enum u2f_app_confirm_t type, const uint8_t* app_id)
     }
     // 75 here is approximately 1 second. According to the protocol we need to respond within 3s
     // and the rest of the code need something like 1-1.5s.
-    return workflow_confirm_with_timeout(title, app_string, false, 75);
+    return workflow_confirm_with_timeout(title, app_string, false, 75 * SCREEN_FRAME_RATE);
 }

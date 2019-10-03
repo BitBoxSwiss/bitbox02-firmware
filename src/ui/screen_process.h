@@ -42,4 +42,10 @@ void ui_screen_process_with_timeout(
     void (*on_timeout)(void),
     uint32_t timeout);
 
+/**
+ * Period of screen updates.
+ * The screen is refreshed every SCREEN_FRAME_RATE event loops cycles.
+ */
+#define SCREEN_FRAME_RATE 30
+
 #endif

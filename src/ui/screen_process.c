@@ -20,8 +20,6 @@
 #include <ui/screen_process.h>
 #include <ui/ugui/ugui.h>
 
-#define SCREEN_FRAME_RATE 30
-
 static uint8_t screen_frame_cnt = 0;
 
 void ui_screen_render_component(component_t* component)
@@ -62,50 +60,67 @@ static component_t* _get_waiting_screen(void)
     return waiting_screen;
 }
 
-static void _screen_process(
+/**
+ * Renders the provided component on the display.
+ *
+ * @param[in] component Screen to draw.
+ */
+static void _screen_draw(component_t* component)
+{
+    if (screen_frame_cnt == SCREEN_FRAME_RATE) {
+        screen_frame_cnt = 0;
+        ui_screen_render_component(component);
+    }
+    screen_frame_cnt++;
+}
+
+/*
+ * Select which activity we should draw next
+ * (or fallback to the idle screen).
+ */
+static component_t* _get_ui_top_component(void)
+{
+    component_t* result = ui_screen_stack_top();
+    if (!result) {
+        return _get_waiting_screen();
+    }
+    return result;
+}
+
+static void _run_blocking_ui(
     bool (*is_done)(void*),
     void* is_done_param,
     void (*on_timeout)(void),
     const uint32_t timeout)
 {
-    component_t* waiting_screen = _get_waiting_screen();
-    uint32_t timeout_cnt = 0;
-
-    component_t* component = NULL;
-
     if (is_done == NULL) {
         Abort("is_done function\nis NULL.");
     }
+    uint32_t timeout_cnt = 0;
 
     while (!is_done(is_done_param)) {
+        if (on_timeout != NULL && timeout_cnt > timeout) {
+            on_timeout();
+        }
+        timeout_cnt += 1;
+
+        component_t* component = _get_ui_top_component();
+        _screen_draw(component);
+
         /*
-         * Pick which activity we should draw next
-         * (or fallback to the idle screen).
          * If we have changed activity, the gestures
          * detection must start over.
          */
-        component = ui_screen_stack_top();
-        if (component == NULL) {
-            component = waiting_screen;
-        }
         bool screen_new = _screen_has_changed(component);
         gestures_detect(screen_new, component->emit_without_release);
-        if (screen_frame_cnt == SCREEN_FRAME_RATE) {
-            if (on_timeout != NULL && timeout_cnt > timeout) {
-                on_timeout();
-            }
-            screen_frame_cnt = 0;
-            timeout_cnt += 1;
-            ui_screen_render_component(component);
-        }
-        screen_frame_cnt++;
+
         ui_screen_stack_cleanup();
     }
 }
 
 void ui_screen_process(bool (*is_done)(void*), void* is_done_param)
 {
-    _screen_process(is_done, is_done_param, NULL, 0);
+    _run_blocking_ui(is_done, is_done_param, NULL, 0);
 }
 
 void ui_screen_process_with_timeout(
@@ -114,5 +129,5 @@ void ui_screen_process_with_timeout(
     void (*on_timeout)(void),
     uint32_t timeout)
 {
-    _screen_process(is_done, is_done_param, on_timeout, timeout);
+    _run_blocking_ui(is_done, is_done_param, on_timeout, timeout);
 }

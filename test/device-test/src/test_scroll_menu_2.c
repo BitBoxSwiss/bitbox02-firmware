@@ -13,9 +13,9 @@
 // limitations under the License.
 
 #include <driver_init.h>
+#include <firmware_main_loop.h>
 #include <screen.h>
 #include <string.h>
-#include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 #include <usb/usb.h>
 
@@ -46,7 +46,7 @@ int main(void)
     // component_t* test_scroll_through_2 = scroll_through_2_create(words, NULL, 4, true);
 
     // ui_screen_stack_push(test_scroll_through_2);
-    ui_screen_process(NULL);
+    firmware_main_loop();
 }
 
 #pragma GCC diagnostic pop

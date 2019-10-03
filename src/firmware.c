@@ -14,11 +14,11 @@
 
 #include "common_main.h"
 #include "driver_init.h"
+#include "firmware_main_loop.h"
 #include "hardfault.h"
 #include "peripherals_init.h"
 #include "qtouch.h"
 #include "screen.h"
-#include "ui/screen_process.h"
 #include "util.h"
 #include "workflow/workflow.h"
 
@@ -36,5 +36,6 @@ int main(void)
     common_main();
     traceln("%s", "Device initialized");
     workflow_change_state(WORKFLOW_STATE_CHOOSE_ORIENTATION);
-    ui_screen_process(NULL);
+    firmware_main_loop();
+    return 0;
 }

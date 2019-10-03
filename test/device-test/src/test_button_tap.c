@@ -16,11 +16,11 @@
 #include "random.h"
 #include "util.h"
 #include <driver_init.h>
+#include <firmware_main_loop.h>
 #include <screen.h>
 #include <string.h>
 #include <ui/components/button.h>
 #include <ui/components/label.h>
-#include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 #include <ui/ui_util.h>
 #include <usb/usb.h>
@@ -190,7 +190,7 @@ int main(void)
 
     component_t* test_buttons_screen = test_buttons_create();
     ui_screen_stack_push(test_buttons_screen);
-    ui_screen_process(NULL);
+    firmware_main_loop();
 }
 
 #pragma GCC diagnostic pop

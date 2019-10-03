@@ -1,6 +1,7 @@
 #include "blocking.h"
 
 #include <hardfault.h>
+#include <stddef.h>
 #include <ui/screen_process.h>
 
 typedef enum {
@@ -11,28 +12,31 @@ typedef enum {
 
 static _done_t _done = UNBLOCKED_NORMAL;
 
-static bool _is_done(void)
+static bool _is_done(void* param)
 {
+    if (param) {
+        Abort("Unexpected is_done param\n");
+    }
     return _done != BLOCKED;
 }
 
 bool workflow_blocking_block(void)
 {
-    if (!_is_done()) {
+    if (!_is_done(NULL)) {
         Abort("workflow_blocking_block");
     }
     _done = BLOCKED;
-    ui_screen_process(_is_done);
+    ui_screen_process(_is_done, NULL);
     return _done == UNBLOCKED_NORMAL;
 }
 
 bool workflow_blocking_block_with_timeout(uint32_t timeout)
 {
-    if (!_is_done()) {
+    if (!_is_done(NULL)) {
         Abort("workflow_blocking_block");
     }
     _done = BLOCKED;
-    ui_screen_process_with_timeout(_is_done, workflow_blocking_unblock_force, timeout);
+    ui_screen_process_with_timeout(_is_done, NULL, workflow_blocking_unblock_force, timeout);
     return _done == UNBLOCKED_NORMAL;
 }
 

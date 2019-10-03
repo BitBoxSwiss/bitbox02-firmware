@@ -23,10 +23,12 @@ void ui_screen_render_component(component_t* component);
 /**
  * Process screen, gestures, in a loop. If is_done is NULL, usb packets are also
  * processed.
- * @param[in] is_done if NULL, runs forever. Otherwise runs until is_done().
- * This mode should only be called during the processing of a usb packet.
+ * @param[in] is_done Runs until is_done(is_done_param).
+ *            This should return true if and only if this GUI should
+ *            terminate.
+ * @param[in] is_done_param Parameter to be passed to \a is_done (can be NULL).
  */
-void ui_screen_process(bool (*is_done)(void));
+void ui_screen_process(bool (*is_done)(void*), void* is_done_param);
 
 /**
  * Process screen, gestures, in a loop with timeout.
@@ -35,7 +37,8 @@ void ui_screen_process(bool (*is_done)(void));
  * @param[in] timeout number of screen refreshes until timeout
  */
 void ui_screen_process_with_timeout(
-    bool (*is_done)(void),
+    bool (*is_done)(void*),
+    void* is_done_param,
     void (*on_timeout)(void),
     uint32_t timeout);
 

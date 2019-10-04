@@ -13,12 +13,13 @@
 // limitations under the License.
 
 #include "u2f_packet.h"
-#include "err_codes.h"
 #include "queue.h"
 #include "screen.h"
 #include "usb/usb_processing.h"
 #include <stdbool.h>
 #include <stdlib.h>
+
+#define ERR_NONE 0
 
 // We can handle up to NUM_TIMEOUT_COUNTERS missing continuation frames
 #define NUM_TIMEOUT_COUNTERS 3

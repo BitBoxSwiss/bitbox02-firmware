@@ -15,7 +15,7 @@
 #ifndef _TEST_COMMON_H_
 #define _TEST_COMMON_H_
 
-#include <drivers/usb/class/hid/hid.h>
+#include <usb/class/hid/hid.h>
 #include <usb/usb_frame.h>
 #include <usb/usb_packet.h>
 

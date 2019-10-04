@@ -20,7 +20,6 @@
 #include "memory.h"
 #include "random.h"
 #include "u2f/ecc.h"
-#include "utils.h"
 
 #include "u2f.h"
 #include "u2f/u2f_util_t.h"

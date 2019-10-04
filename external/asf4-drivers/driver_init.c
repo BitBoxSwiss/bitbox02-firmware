@@ -109,7 +109,6 @@ static void _spi_init(void)
     SPI_0_enable();
 }
 
-#if !defined(BOOTLOADER)
 /**
  * Set pins for I2C peripheral
  */
@@ -183,7 +182,6 @@ static void _mci_init(void)
     hri_gclk_write_PCHCTRL_reg(GCLK, SDHC0_GCLK_ID_SLOW, CONF_GCLK_SDHC0_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     _mci_set_pins();
 }
-#endif
 
 /**
  * Initialize delay driver
@@ -266,7 +264,6 @@ static void _oled_set_pins(void) {
     gpio_set_pin_function(PIN_SD_PWON, GPIO_PIN_FUNCTION_OFF);
 }
 
-#if !defined(BOOTLOADER)
 void system_init(void)
 {
     _oled_set_pins();
@@ -292,7 +289,6 @@ void system_init(void)
     _usb_init();
     _is_initialized = true;
 }
-#endif
 
 void bootloader_init(void) {
     _oled_set_pins();
@@ -315,7 +311,6 @@ void bootloader_init(void) {
     _is_initialized = true;
 }
 
-#if !defined(BOOTLOADER)
 void system_close_interfaces(void)
 {
     if (!_is_initialized) {
@@ -336,7 +331,6 @@ void system_close_interfaces(void)
     sha_sync_deinit(&HASH_ALGORITHM_0);
     rand_sync_deinit(&RAND_0);
 }
-#endif
 
 void bootloader_close_interfaces(void) {
     if (!_is_initialized) {

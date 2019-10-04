@@ -7,8 +7,8 @@
 #include <workflow/verify_recipient.h>
 #include <workflow/verify_total.h>
 
-#include <bignum/bignum.h>
-#include <bignum/largeprime.h>
+#include <bignum.h>
+#include <largeprime.h>
 
 #define WEI_DECIMALS (18)
 

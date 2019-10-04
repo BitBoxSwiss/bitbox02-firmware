@@ -14,9 +14,9 @@
 
 #include "common_main.h"
 #include "screen.h"
-#include <drivers/driver_init.h>
-#include <drivers/usb/class/hid/hww/hid_hww.h>
-#include <drivers/usb/class/hid/u2f/hid_u2f.h>
+#include <driver_init.h>
+#include <usb/class/hid/hww/hid_hww.h>
+#include <usb/class/hid/u2f/hid_u2f.h>
 #include <usb/usb_processing.h>
 
 // common test functions

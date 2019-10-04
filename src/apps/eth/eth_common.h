@@ -21,7 +21,7 @@
 
 #include <compiler_util.h>
 
-#include <bignum/bignum.h>
+#include <bignum.h>
 
 #include <hww.pb.h>
 

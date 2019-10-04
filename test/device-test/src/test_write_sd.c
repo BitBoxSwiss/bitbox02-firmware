@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include <backup.pb.h>
-#include <drivers/driver_init.h>
+#include <driver_init.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
 #include <screen.h>

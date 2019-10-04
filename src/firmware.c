@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "common_main.h"
-#include "drivers/driver_init.h"
+#include "driver_init.h"
 #include "hardfault.h"
 #include "peripherals_init.h"
 #include "qtouch.h"

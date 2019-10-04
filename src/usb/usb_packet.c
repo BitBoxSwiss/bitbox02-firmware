@@ -13,13 +13,13 @@
 // limitations under the License.
 
 #include "usb_packet.h"
-#include "err_codes.h"
 #include "queue.h"
 #include "screen.h"
 #include "usb_processing.h"
-#include <err_codes.h>
 #include <stdbool.h>
 #include <stdlib.h>
+
+#define ERR_NONE 0
 
 /**
  * Keeps a state for the frame processing of incoming frames.

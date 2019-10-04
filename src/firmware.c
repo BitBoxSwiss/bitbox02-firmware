@@ -19,6 +19,7 @@
 #include "peripherals_init.h"
 #include "qtouch.h"
 #include "screen.h"
+#include "ui/screen_stack.h"
 #include "util.h"
 #include "workflow/workflow.h"
 
@@ -35,7 +36,7 @@ int main(void)
     qtouch_init();
     common_main();
     traceln("%s", "Device initialized");
-    workflow_change_state(WORKFLOW_STATE_CHOOSE_ORIENTATION);
+    workflow_start_orientation_screen();
     firmware_main_loop();
     return 0;
 }

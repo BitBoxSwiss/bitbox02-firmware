@@ -18,8 +18,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef enum { WORKFLOW_STATE_CHOOSE_ORIENTATION } workflow_state_t;
-
 /**
  * Pushes a confirm string on the screen a with a "Dismiss" button, to show data
  * on the screen for the user to verify.
@@ -27,14 +25,14 @@ typedef enum { WORKFLOW_STATE_CHOOSE_ORIENTATION } workflow_state_t;
 void workflow_confirm_dismiss(const char* title, const char* body);
 
 /**
- * Invokes a workflow based on the input.
- */
-void workflow_change_state(workflow_state_t state);
-
-/**
  * Switches to either the initialization or the unlock state depending on if the
  * device is initialized or not.
  */
 void workflow_start(void);
+
+/**
+ * Loads the "Select orientation" screen.
+ */
+void workflow_start_orientation_screen(void);
 
 #endif

@@ -43,6 +43,17 @@ void workflow_confirm_dismiss(const char* title, const char* body)
     ui_screen_stack_switch(confirm_create(title, body, false, _confirm_dismiss, NULL));
 }
 
+void workflow_start(void)
+{
+    usb_start(hww_setup);
+    ui_screen_stack_pop_all();
+    ui_screen_stack_push(info_centered_create("See the BitBox App", NULL));
+}
+
+/**
+ * Called when the "select orientation" screen is over.
+ * Switch to the main view.
+ */
 static void _select_orientation_done(bool upside_down)
 {
     if (upside_down) {
@@ -52,23 +63,8 @@ static void _select_orientation_done(bool upside_down)
     ui_screen_stack_switch(show_logo);
 }
 
-void workflow_start(void)
+void workflow_start_orientation_screen(void)
 {
-    usb_start(hww_setup);
-    ui_screen_stack_pop_all();
-    ui_screen_stack_push(info_centered_create("See the BitBox App", NULL));
-}
-
-void workflow_change_state(workflow_state_t state)
-{
-    switch (state) {
-    case WORKFLOW_STATE_CHOOSE_ORIENTATION: {
-        component_t* select_orientation = orientation_arrows_create(_select_orientation_done);
-        ui_screen_stack_switch(select_orientation);
-        break;
-    }
-    default:
-        Abort("invalid state");
-        break;
-    }
+    component_t* select_orientation = orientation_arrows_create(_select_orientation_done);
+    ui_screen_stack_switch(select_orientation);
 }

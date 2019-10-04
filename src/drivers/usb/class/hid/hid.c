@@ -12,23 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <string.h>
 #include "hid.h"
 #include "usb_desc.h"
+#if !defined(TESTING)
 #include "usb_protocol.h"
+#endif
+#include <string.h>
 
 /**
  * Enables the endpoints for the interface described in the given descriptor.
  * @param desc The descriptor contains information about the interface configuration.
  * @param[out] drv The driver is filled with meta-data about the interface endpoints.
  */
-static int32_t _enable(struct usbd_descriptors *desc, struct usbdf_driver *drv)
+static int32_t _enable(struct usbd_descriptors* desc, struct usbdf_driver* drv)
 {
-    uint8_t *        ifc, *ep, i;
+    uint8_t *ifc, *ep, i;
     usb_iface_desc_t ifc_desc;
-    usb_ep_desc_t    ep_desc;
+    usb_ep_desc_t ep_desc;
 
-    struct hid_func_data *func_data = (struct hid_func_data *)(drv->func_data);
+    struct hid_func_data* func_data = (struct hid_func_data*)(drv->func_data);
 
     ifc = desc->sod;
     if (NULL == ifc) {
@@ -36,16 +38,16 @@ static int32_t _enable(struct usbd_descriptors *desc, struct usbdf_driver *drv)
     }
 
     ifc_desc.bInterfaceNumber = ifc[2];
-    ifc_desc.bInterfaceClass  = ifc[5];
+    ifc_desc.bInterfaceClass = ifc[5];
 
     if (HID_CLASS == ifc_desc.bInterfaceClass) {
         if (func_data->func_iface == ifc_desc.bInterfaceNumber) { // Initialized
             return ERR_ALREADY_INITIALIZED;
-        } else if (func_data->func_iface != 0xFF) { // Occupied
-            return ERR_NO_RESOURCE;
-        } else {
-            func_data->func_iface = ifc_desc.bInterfaceNumber;
         }
+        if (func_data->func_iface != 0xFF) { // Occupied
+            return ERR_NO_RESOURCE;
+        }
+        func_data->func_iface = ifc_desc.bInterfaceNumber;
     } else { // Not supported by this function driver
         return ERR_NOT_FOUND;
     }
@@ -55,13 +57,14 @@ static int32_t _enable(struct usbd_descriptors *desc, struct usbdf_driver *drv)
 
     // Install endpoints
     for (i = 0; i < 2; i++) {
-        ep        = usb_find_ep_desc(usb_desc_next(desc->sod), desc->eod);
+        ep = usb_find_ep_desc(usb_desc_next(desc->sod), desc->eod);
         desc->sod = ep;
         if (NULL != ep) {
             ep_desc.bEndpointAddress = ep[2];
-            ep_desc.bmAttributes     = ep[3];
-            ep_desc.wMaxPacketSize   = usb_get_u16(ep + 4);
-            if (usb_d_ep_init(ep_desc.bEndpointAddress, ep_desc.bmAttributes, ep_desc.wMaxPacketSize)) {
+            ep_desc.bmAttributes = ep[3];
+            ep_desc.wMaxPacketSize = usb_get_u16(ep + 4);
+            if (usb_d_ep_init(
+                    ep_desc.bEndpointAddress, ep_desc.bmAttributes, ep_desc.wMaxPacketSize)) {
                 return ERR_NOT_INITIALIZED;
             }
             if (ep_desc.bEndpointAddress & USB_EP_DIR_IN) {
@@ -78,10 +81,9 @@ static int32_t _enable(struct usbd_descriptors *desc, struct usbdf_driver *drv)
 
     // Installed
     func_data->protocol = 1;
-    func_data->enabled  = true;
+    func_data->enabled = true;
 
-    if (func_data->hid_status_callback)
-    {
+    if (func_data->hid_status_callback) {
         func_data->hid_status_callback();
     }
     return ERR_NONE;
@@ -92,9 +94,9 @@ static int32_t _enable(struct usbd_descriptors *desc, struct usbdf_driver *drv)
  * @param[in] desc The descriptor contains information about the interface configuration.
  * @param[out] drv The driver is reset to a state that indicates that the interface is disabled.
  */
-static int32_t _disable(const struct usbd_descriptors *desc, struct usbdf_driver *drv)
+static int32_t _disable(const struct usbd_descriptors* desc, struct usbdf_driver* drv)
 {
-    struct hid_func_data *func_data = (struct hid_func_data *)(drv->func_data);
+    struct hid_func_data* func_data = (struct hid_func_data*)(drv->func_data);
 
     usb_iface_desc_t ifc_desc;
 
@@ -129,14 +131,14 @@ static int32_t _disable(const struct usbd_descriptors *desc, struct usbdf_driver
  * @param[in] ctrl The control flag which indicates which action to take.
  * @param[in] param Additional parameters passed to the callback.
  */
-static int32_t _ctrl(struct usbdf_driver *drv, enum usbdf_control ctrl, void *param)
+static int32_t _ctrl(struct usbdf_driver* drv, enum usbdf_control ctrl, void* param)
 {
     switch (ctrl) {
     case USBDF_ENABLE:
-        return _enable((struct usbd_descriptors *)param, drv);
+        return _enable((struct usbd_descriptors*)param, drv);
 
     case USBDF_DISABLE:
-        return _disable((const struct usbd_descriptors *)param, drv);
+        return _disable((const struct usbd_descriptors*)param, drv);
 
     case USBDF_GET_IFACE:
         return ERR_UNSUPPORTED_OP;
@@ -151,9 +153,9 @@ static int32_t _ctrl(struct usbdf_driver *drv, enum usbdf_control ctrl, void *pa
  * @param[out] drv The driver is reset to a state that indicates that the interface is disabled.
  * @param[in] req The usb request.
  */
-static int32_t _get_descriptor(struct usbdf_driver *drv, uint8_t ep, struct usb_req *req)
+static int32_t _get_descriptor(struct usbdf_driver* drv, uint8_t ep, struct usb_req* req)
 {
-    struct hid_func_data *func_data = (struct hid_func_data *)(drv->func_data);
+    struct hid_func_data* func_data = (struct hid_func_data*)(drv->func_data);
     switch (req->V.wValue >> 8) {
     case USB_DT_HID:
         return usbdc_xfer(ep, func_data->hid_desc, func_data->hid_desc[0], false);
@@ -171,44 +173,47 @@ static int32_t _get_descriptor(struct usbdf_driver *drv, uint8_t ep, struct usb_
  * @param[in] req The usb request.
  * @param[in] stage The usb control stage.
  */
-int32_t hid_req(struct usbdf_driver *drv, uint8_t ep, struct usb_req *req, enum usb_ctrl_stage stage)
+int32_t hid_req(
+    struct usbdf_driver* drv,
+    uint8_t ep,
+    struct usb_req* req,
+    enum usb_ctrl_stage stage)
 {
-    struct hid_func_data *func_data = (struct hid_func_data *)(drv->func_data);
-    uint8_t *ctrl_buf = usbdc_get_ctrl_buffer();
-    uint16_t len      = req->L.wLength;
+    struct hid_func_data* func_data = (struct hid_func_data*)(drv->func_data);
+    uint8_t* ctrl_buf = usbdc_get_ctrl_buffer();
+    uint16_t len = req->L.wLength;
 
-    if ((0x81 == req->bmRequestType) && (0x06 == req->bRequest) && (req->I.wIndex == func_data->func_iface)) {
+    if ((0x81 == req->bmRequestType) && (0x06 == req->bRequest) &&
+        (req->I.wIndex == func_data->func_iface)) {
         return _get_descriptor(drv, ep, req);
-    } else {
-        if (0x01 != ((req->bmRequestType >> 5) & 0x03)) { // class request
-            return ERR_NOT_FOUND;
+    }
+    if (0x01 != ((req->bmRequestType >> 5) & 0x03)) { // class request
+        return ERR_NOT_FOUND;
+    }
+    if (req->I.wIndex == func_data->func_iface) {
+        if (req->bmRequestType & USB_EP_DIR_IN) {
+            return ERR_INVALID_ARG;
         }
-        if (req->I.wIndex == func_data->func_iface) {
-            if (req->bmRequestType & USB_EP_DIR_IN) {
-                return ERR_INVALID_ARG;
+        switch (req->bRequest) {
+        case 0x03: /* Get Protocol */
+            return usbdc_xfer(ep, &func_data->protocol, 1, 0);
+        case 0x0B: /* Set Protocol */
+            func_data->protocol = req->V.wValue;
+            return usbdc_xfer(ep, NULL, 0, 0);
+        case USB_REQ_HID_SET_REPORT:
+            if (USB_SETUP_STAGE == stage) {
+                return usbdc_xfer(ep, ctrl_buf, len, false);
             } else {
-                switch (req->bRequest) {
-                case 0x03: /* Get Protocol */
-                    return usbdc_xfer(ep, &func_data->protocol, 1, 0);
-                case 0x0B: /* Set Protocol */
-                    func_data->protocol = req->V.wValue;
-                    return usbdc_xfer(ep, NULL, 0, 0);
-                case USB_REQ_HID_SET_REPORT:
-                    if (USB_SETUP_STAGE == stage) {
-                        return usbdc_xfer(ep, ctrl_buf, len, false);
-                    } else {
-                        if (NULL != func_data->hid_set_report) {
-                            func_data->hid_set_report(ctrl_buf, len);
-                        }
-                        return ERR_NONE;
-                    }
-                default:
-                    return ERR_INVALID_ARG;
+                if (NULL != func_data->hid_set_report) {
+                    func_data->hid_set_report(ctrl_buf, len);
                 }
+                return ERR_NONE;
             }
-        } else {
-            return ERR_NOT_FOUND;
+        default:
+            return ERR_INVALID_ARG;
         }
+    } else {
+        return ERR_NOT_FOUND;
     }
 }
 
@@ -241,7 +246,7 @@ int32_t hid_deinit(struct usbdf_driver* func_driver, struct usbdc_handler* hid_r
         return ERR_DENIED;
     }
 
-    func_driver->ctrl      = NULL;
+    func_driver->ctrl = NULL;
     func_driver->func_data = NULL;
 
     usbdc_unregister_function(func_driver);
@@ -259,10 +264,9 @@ int32_t hid_deinit(struct usbdf_driver* func_driver, struct usbdc_handler* hid_r
 uint8_t hid_get_ep(struct usbdf_driver* func_driver, uint8_t dir)
 {
     if (dir == DIR_OUT) {
-        return ((struct hid_func_data*) func_driver->func_data)->func_ep_out;
-    } else {
-        return ((struct hid_func_data*) func_driver->func_data)->func_ep_in;
+        return ((struct hid_func_data*)func_driver->func_data)->func_ep_out;
     }
+    return ((struct hid_func_data*)func_driver->func_data)->func_ep_in;
 }
 
 /**
@@ -280,14 +284,14 @@ bool hid_is_enabled(struct hid_func_data* func_data)
  * @param[OUT] buf The address of the buffer to which we write.
  * @param[IN] size The size of the buffer.
  */
-int32_t hid_read(struct hid_func_data* func_data, uint8_t *buf, uint32_t size)
+int32_t hid_read(struct hid_func_data* func_data, uint8_t* buf, uint32_t size)
 {
     if (!hid_is_enabled(func_data)) {
         return ERR_DENIED;
     }
     struct usb_d_ep_status status;
     usb_d_ep_get_status(func_data->func_ep_in, &status);
-    while(status.state != USB_EP_S_IDLE) {
+    while (status.state != USB_EP_S_IDLE) {
         usb_d_ep_get_status(func_data->func_ep_in, &status);
     }
     return usbdc_xfer(func_data->func_ep_out, buf, size, false);
@@ -299,14 +303,14 @@ int32_t hid_read(struct hid_func_data* func_data, uint8_t *buf, uint32_t size)
  * @param[IN] buf The address of the buffer from which we read.
  * @param[IN] size The size of the buffer.
  */
-int32_t hid_write(struct hid_func_data* func_data, const uint8_t *buf, uint32_t size)
+int32_t hid_write(struct hid_func_data* func_data, const uint8_t* buf, uint32_t size)
 {
     if (!hid_is_enabled(func_data)) {
         return ERR_DENIED;
     }
     struct usb_d_ep_status status;
     usb_d_ep_get_status(func_data->func_ep_in, &status);
-    while(status.state != USB_EP_S_IDLE) {
+    while (status.state != USB_EP_S_IDLE) {
         usb_d_ep_get_status(func_data->func_ep_in, &status);
     }
 #pragma GCC diagnostic push
@@ -323,7 +327,10 @@ int32_t hid_write(struct hid_func_data* func_data, const uint8_t *buf, uint32_t 
  *            which can be READ, WRITE or SET_REPORT.
  * @param[in] func The function that is registered as a callback.
  */
-int32_t hid_register_callback(struct hid_func_data* func_data, enum hid_trans_type trans_type, FUNC_PTR func)
+int32_t hid_register_callback(
+    struct hid_func_data* func_data,
+    enum hid_trans_type trans_type,
+    FUNC_PTR func)
 {
     if (!hid_is_enabled(func_data)) {
         return ERR_DENIED;

@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "hid_u2f.h"
+#include "usb/usb_processing.h"
+#include "usb_desc.h"
+#include <queue.h>
 #include <string.h>
 #include <u2f/u2f_packet.h>
-#include <queue.h>
-#include "hid_u2f.h"
-#include "usb_desc.h"
-#include "usb/usb_processing.h"
 
 #define HID_U2F_VERSION 0x00000001u
 
@@ -41,7 +41,7 @@ static uint8_t _report_descriptor[] = {USB_DESC_U2F_REPORT};
 /**
  * The USB device core request handler callback for the U2F interface.
  */
-static int32_t _request(uint8_t ep, struct usb_req *req, enum usb_ctrl_stage stage)
+static int32_t _request(uint8_t ep, struct usb_req* req, enum usb_ctrl_stage stage)
 {
     return hid_req(&_func_driver, ep, req, stage);
 }
@@ -65,8 +65,9 @@ static int32_t _read(void)
 /**
  * Sends the next data, if the USB interface is ready.
  */
-static void _send_next(void) {
-    const uint8_t *data = queue_pull(queue_u2f_queue());
+static void _send_next(void)
+{
+    const uint8_t* data = queue_pull(queue_u2f_queue());
     if (data != NULL) {
         hid_write(&_func_data, data, USB_HID_REPORT_OUT_SIZE);
     } else {
@@ -80,14 +81,13 @@ static void _send_next(void) {
  * This is a result of calling _read().
  * The received data is stored in '_out_report'.
  */
-static uint8_t _out(const uint8_t ep, const enum usb_xfer_code rc,
-                                        const uint32_t count)
+static uint8_t _out(const uint8_t ep, const enum usb_xfer_code rc, const uint32_t count)
 {
-    (void) ep;
-    (void) rc;
-    (void) count;
+    (void)ep;
+    (void)rc;
+    (void)count;
 
-    bool need_more = u2f_packet_process((const USB_FRAME *) _out_report, _send_next);
+    bool need_more = u2f_packet_process((const USB_FRAME*)_out_report, _send_next);
     if (need_more) {
         _read();
     }
@@ -106,7 +106,8 @@ static void _sent_done(void)
 
 /**
  * Initializes a U2F HID interface.
- * @param[in] callback The callback that is called upon status update (enabling/disabling or the endpoints).
+ * @param[in] callback The callback that is called upon status update (enabling/disabling or the
+ * endpoints).
  */
 int32_t hid_u2f_init(void (*callback)(void))
 {
@@ -121,18 +122,17 @@ int32_t hid_u2f_init(void (*callback)(void))
 /**
  * Registers the HID U2F read and write callbacks and start listening for data.
  */
-void hid_u2f_setup(void) {
-    hid_u2f_register_callback(HID_CB_READ, (FUNC_PTR) _out);
+void hid_u2f_setup(void)
+{
+    hid_u2f_register_callback(HID_CB_READ, (FUNC_PTR)_out);
     // usb_report_sent is called when the outgoing usb frame is fully transmitted.
-    hid_u2f_register_callback(HID_CB_WRITE, (FUNC_PTR) _sent_done);
+    hid_u2f_register_callback(HID_CB_WRITE, (FUNC_PTR)_sent_done);
 
     usb_processing_set_send(usb_processing_u2f(), _send_next);
 
     // Wait for data
     _read();
 }
-
-
 
 /**
  * Deinitializes the U2F HID interface.
@@ -147,7 +147,8 @@ int32_t hid_u2f_deinit(void)
  * dir == 1: outgoing (host -> BitBox)
  * dir == 0: incoming (BitBox -> host)
  */
-uint8_t hid_u2f_get_ep(uint8_t dir) {
+uint8_t hid_u2f_get_ep(uint8_t dir)
+{
     return hid_get_ep(&_func_driver, dir);
 }
 
@@ -184,7 +185,7 @@ uint32_t hid_u2f_get_version(void)
 // TODO: start timer when U2F message is received
 // TODO: add function to stop timer when u2f msg was processed in time.
 // TODO: if timer can finish without being cancelled, return a U2FHID_ERR_MSG_TIMEOUT.
-//static void hid_u2f_timeout(void)
+// static void hid_u2f_timeout(void)
 //{
 //    if (!u2f_state_continue) {
 //        return;

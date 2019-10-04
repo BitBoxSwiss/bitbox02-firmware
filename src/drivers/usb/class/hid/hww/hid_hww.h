@@ -19,7 +19,8 @@
 
 /**
  * Initializes a HWW HID interface.
- * @param[in] callback The callback that is called upon status update (enabling/disabling or the endpoints).
+ * @param[in] callback The callback that is called upon status update (enabling/disabling or the
+ * endpoints).
  */
 int32_t hid_hww_init(void (*callback)(void));
 

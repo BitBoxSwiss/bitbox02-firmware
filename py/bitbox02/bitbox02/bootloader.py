@@ -20,7 +20,7 @@ import math
 import hashlib
 
 import hid
-from .usb import hid_send_frames, hid_read_frames
+import u2fhid
 from .devices import DeviceInfo
 
 BOOTLOADER_CMD = 0x80 + 0x40 + 0x03
@@ -70,8 +70,9 @@ class Bootloader:
         assert self.expected_magic
 
     def _query(self, msg: bytes) -> bytes:
-        hid_send_frames(self.device, msg, cmd=BOOTLOADER_CMD)
-        response = bytes(hid_read_frames(self.device, cmd=BOOTLOADER_CMD))
+        cid = u2fhid.generate_cid()
+        u2fhid.write(self.device, msg, BOOTLOADER_CMD, cid)
+        response = bytes(u2fhid.read(self.device, BOOTLOADER_CMD, cid))
         if response[0] != msg[0]:
             raise Exception("bootloader api error, expected {}, got {}".format(msg[0], response[0]))
         if response[1] != 0:
@@ -182,7 +183,7 @@ class Bootloader:
         return empty_firmware_hash == reported_firmware_hash
 
     def reboot(self) -> None:
-        hid_send_frames(self.device, b"r", cmd=BOOTLOADER_CMD)
+        u2fhid.write(self.device, b"r", BOOTLOADER_CMD, u2fhid.generate_cid())
         self.device.close()
 
     def screen_rotate(self) -> None:

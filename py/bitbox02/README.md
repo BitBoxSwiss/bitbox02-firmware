@@ -1,4 +1,16 @@
-# BitBox02 Python API
+# BitBox02 python API
+
+This repository contains two packages
+
+* u2fhid
+* bitbox02
+
+## u2fhid
+
+This is a small package that contains read/write primitives for u2fhid devices such as the
+bitbox02.
+
+## bitbox02
 
 In this folder is the Python API for communicating with the BitBox02 device.
 

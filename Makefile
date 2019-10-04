@@ -22,21 +22,20 @@ bootstrap:
 build:
 	mkdir -p build
 	cd build && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake ..
+	$(MAKE) -C py/bitbox02
 
 # Directory for building for "build" machine according to gcc convention
 build-build:
 	mkdir -p build-build
 	cd build-build && cmake .. -DCOVERAGE=ON -DSANITIZE_ADDRESS=ON -DSANITIZE_UNDEFINED=ON
+	$(MAKE) -C py/bitbox02
 
 firmware: | build
 # Generate python bindings for protobuf for test scripts
-	$(MAKE) -C py
 	$(MAKE) -C build firmware.elf
 firmware-semihosting: | build
-	$(MAKE) -C py
 	$(MAKE) -C build firmware-semihosting.elf
 firmware-btc: | build
-	$(MAKE) -C py
 	$(MAKE) -C build firmware-btc.elf
 bootloader: | build
 	$(MAKE) -C build bootloader.elf

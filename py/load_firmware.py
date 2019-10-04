@@ -17,11 +17,12 @@
 
 import sys
 import pprint
-from typing import Any, List
+from typing import Any
 from time import sleep
 
 from bitbox02 import devices
 from bitbox02 import Bootloader, BitBox02
+from bitbox02 import TooManyFoundException, NoneFoundException
 
 
 def eprint(*args: Any, **kwargs: Any) -> None:
@@ -30,6 +31,30 @@ def eprint(*args: Any, **kwargs: Any) -> None:
     """
     kwargs.setdefault("file", sys.stderr)
     print(*args, **kwargs)
+
+
+def get_bitbox_and_reboot() -> devices.DeviceInfo:
+    """Search for a bitbox and then reboot it into bootloader"""
+    device = devices.get_any_bitbox02()
+
+    # bitbox02 detected -> send command to reboot into bootloader to upgrade.
+    def _show_pairing(code: str) -> None:
+        print("Please compare and confirm the pairing code on your BitBox02:")
+        print(code)
+
+    bitbox = BitBox02(device_info=device, show_pairing_callback=_show_pairing)
+    bitbox.reboot()
+
+    # wait for it to reboot
+    while True:
+        try:
+            bootloader_device = devices.get_any_bitbox02_bootloader()
+        except NoneFoundException:
+            sys.stdout.write(".")
+            sys.stdout.flush()
+            sleep(1)
+            continue
+        return bootloader_device
 
 
 def main() -> int:
@@ -45,46 +70,31 @@ def main() -> int:
 
     filename = sys.argv[1]
     if not debug and ".signed.bin" not in filename:
-        eprint("Expecting signed firmware")
+        eprint("Expecting firmware to end with '.signed.bin'")
         return 1
 
-    bootloaders = devices.get_bitbox02_devices(devices.BB02_BOOTLOADER)
-    bootloaders.extend(devices.get_bitbox02_devices(devices.BB02BTC_BOOTLOADER))
-    bitboxes = devices.get_bitbox02_devices()
+    bootloader_device = None
+    try:
+        bootloader_device = devices.get_any_bitbox02_bootloader()
+    except TooManyFoundException:
+        eprint("Found multiple bb02 bootloader standard editions. Only one supported.")
+        return 1
+    except NoneFoundException:
+        pass
 
-    def _wait_for_bootloaders() -> List[devices.DeviceInfo]:
-        while True:
-            bootloaders = devices.get_bitbox02_devices(devices.BB02_BOOTLOADER)
-            bootloaders.extend(devices.get_bitbox02_devices(devices.BB02BTC_BOOTLOADER))
-            if bootloaders:
-                return bootloaders
-            sys.stdout.write(".")
-            sleep(1)
-
-    if not bootloaders:
-        if len(bitboxes) != 1:
-            eprint(
-                "No bitbox02 bootloader detected. Insert exactly one bootloader or "
-                "bitbox02 device."
-            )
+    if bootloader_device is None:
+        try:
+            bootloader_device = get_bitbox_and_reboot()
+        except TooManyFoundException:
+            eprint("Found multiple bitboxes. Only one supported.")
+            return 1
+        except NoneFoundException:
+            eprint("Neither bootloader nor bitbox found.")
             return 1
 
-        # bitbox02 detected -> send command to reboot into bootloader to upgrade.
-        def show_pairing(code: str) -> None:
-            eprint("Please compare and confirm the pairing code on your BitBox02:")
-            eprint(code)
+    pprint.pprint(bootloader_device)
 
-        bitbox = BitBox02(device_info=bitboxes[0], show_pairing_callback=show_pairing)
-        bitbox.reboot()
-        bootloaders = _wait_for_bootloaders()
-
-    if len(bootloaders) > 1:
-        eprint("Multiple bootloaders detected. Only one supported")
-        return 1
-
-    pprint.pprint(bootloaders[0])
-
-    bootloader = Bootloader(bootloaders[0])
+    bootloader = Bootloader(bootloader_device)
 
     with open(filename, "rb") as file:
         firmware = file.read()

@@ -1,3 +1,6 @@
 all:
 	${MAKE} -C bitbox02
-	${MAKE} -C bitbox02u2f
+
+clean:
+	find -name *.pyc -delete
+	find -name __pycache__ -empty -delete

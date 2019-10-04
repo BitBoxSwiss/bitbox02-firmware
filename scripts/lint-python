@@ -28,7 +28,7 @@ fi
 # behavior).
 # We must typecheck the whole `py` directory even if only a few files are modified so that mypy
 # sees all types
-${MYPY} --implicit-reexport --namespace-packages --ignore-missing-imports --strict py
+${MYPY} --implicit-reexport --namespace-packages --ignore-missing-imports --strict py py/bitbox02
 
 # Must run from root directory where .pylintrc is
 # We ignore refactor and convention messages because they can differ with `black`

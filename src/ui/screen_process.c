@@ -34,16 +34,22 @@ void ui_screen_render_component(component_t* component)
     UG_SendBuffer();
 }
 
-static void _screen_process(bool (*is_done)(void), void (*on_timeout)(void), const uint32_t timeout)
+static component_t* _get_waiting_screen(void)
 {
     static component_t* waiting_screen = NULL;
-    uint32_t timeout_cnt = 0;
     if (waiting_screen == NULL) {
         waiting_screen = waiting_create();
         if (waiting_screen == NULL) {
-            Abort("could not create\nwaiting screen");
+            Abort("Could not create\nwaiting screen");
         }
     }
+    return waiting_screen;
+}
+
+static void _screen_process(bool (*is_done)(void), void (*on_timeout)(void), const uint32_t timeout)
+{
+    component_t* waiting_screen = _get_waiting_screen();
+    uint32_t timeout_cnt = 0;
 
     bool screen_new = false;
     component_t* component = NULL;
@@ -58,7 +64,7 @@ static void _screen_process(bool (*is_done)(void), void (*on_timeout)(void), con
             component = next_component;
         }
         gestures_detect(screen_new, component->emit_without_release);
-        if ((screen_frame_cnt % SCREEN_FRAME_RATE) == 0) {
+        if (screen_frame_cnt == SCREEN_FRAME_RATE) {
             if (is_done != NULL && on_timeout != NULL && timeout_cnt > timeout) {
                 on_timeout();
             }

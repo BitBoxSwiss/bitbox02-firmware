@@ -2,11 +2,12 @@
 
 from typing import Tuple
 import binascii
+import struct
 
 import hid
+import u2fhid
 from bitbox02.devices import get_device, BITBOX02MULTI, DeviceInfo
 from bitbox02 import Bitbox02Exception
-import u2fhid
 from . import u2f
 
 
@@ -33,8 +34,8 @@ class BitBox02U2F:
         """
         if self.debug:
             print(f"msg: {msg}, cid: {cid}, cmd: {cmd}")
-        u2fhid.write(self._device, msg, cid, cmd)
-        response_bytes = u2fhid.read(self._device, cid, cmd)
+        u2fhid.write(self._device, msg, cmd, cid)
+        response_bytes = u2fhid.read(self._device, cmd, cid)
         if self.debug:
             print(f"response {len(response_bytes)}: {binascii.hexlify(bytes(response_bytes))}")
         return bytes(response_bytes)
@@ -88,6 +89,9 @@ class BitBox02U2F:
         self.u2fhid_init(True)
         req = u2f.AuthenticationRequest(appid, key_handle)
         response = req.send(self)
+        if self.debug:
+            counter = struct.unpack(">L", response.ctr)[0]
+            print(f"Counter is: {counter}")
         return response.verify(pub_key)
 
     def u2f_register_bogus(self, vendor: str) -> None:

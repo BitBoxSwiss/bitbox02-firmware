@@ -141,6 +141,8 @@ set(DBB-BOOTLOADER-SOURCES
 set(DBB-BOOTLOADER-SOURCES ${DBB-BOOTLOADER-SOURCES} PARENT_SCOPE)
 
 set(DRIVER-SOURCES
+  ${CMAKE_SOURCE_DIR}/src/peripherals_init.c
+  ${CMAKE_SOURCE_DIR}/src/sd_mmc/sd_mmc_start.c
   ${CMAKE_SOURCE_DIR}/src/ui/oled/oled.c
   ${CMAKE_SOURCE_DIR}/src/drivers/driver_init.c
   ${CMAKE_SOURCE_DIR}/src/drivers/hal/utils/src/utils_syscalls.c

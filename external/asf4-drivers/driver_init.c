@@ -290,6 +290,31 @@ void system_init(void)
     _is_initialized = true;
 }
 
+void bitboxbase_init(void)
+{
+    _oled_set_pins();
+    _ptc_clock_init();
+
+    _timer_peripheral_init();
+    _delay_driver_init();
+
+    // OLED
+    _spi_init();
+    // ATECC608A
+    _i2c_init();
+
+    // Hardware crypto
+    _ecdsa_init();
+    _sha_init();
+    _rand_init();
+    // Flash
+    _flash_memory_init();
+
+    // TODO: remove usb_init when usart is up and running
+    _usb_init();
+    _is_initialized = true;
+}
+
 void bootloader_init(void) {
     _oled_set_pins();
     _ptc_clock_init();

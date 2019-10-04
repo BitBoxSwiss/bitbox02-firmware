@@ -128,7 +128,7 @@ USE_RESULT bool securechip_ecc_unsafe_sign(
     const uint8_t* msg,
     uint8_t* sig);
 
-#if defined(APP_U2F) || defined(FACTORYSETUP)
+#if defined(APP_U2F) || defined(PRODUCT_FACTORYSETUP)
 /**
  * Set the u2f counter to `counter`. Should only be used for initialization.
  * @param[in] counter Value to set counter to

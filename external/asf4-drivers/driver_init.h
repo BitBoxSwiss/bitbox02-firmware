@@ -77,6 +77,12 @@ void system_close_interfaces(void);
  * Perform system initialization, initialize pins and clocks for
  * peripherals
  */
+void bitboxbase_init(void);
+
+/**
+ * Perform system initialization, initialize pins and clocks for
+ * peripherals
+ */
 void system_init(void);
 
 /**

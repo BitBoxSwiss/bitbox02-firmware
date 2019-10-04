@@ -80,13 +80,13 @@
         'b', 0, 'b', 0, '0', 0, '2', 0, '-', 0, 'b', 0, 'o', 0, 'o', 0, 't', 0, 'l', 0, 'o', 0, \
         'a', 0, 'd', 0, 'e', 0, 'r', 0,
 #endif
-#elif defined(FACTORYSETUP)
+#elif defined(PRODUCT_FACTORYSETUP)
 #define USB_DESC_IPRODUCT_STR_DESC                                                              \
     26, /* bLength */                                                                           \
         0x03, /* bDescriptorType */                                                             \
         'b', 0, 'b', 0, '0', 0, '2', 0, '-', 0, 'f', 0, 'a', 0, 'c', 0, 't', 0, 'o', 0, 'r', 0, \
         'y', 0,
-#elif defined(FIRMWARE_BTC_ONLY)
+#elif defined(PRODUCT_BITBOX_BTCONLY)
 #define USB_DESC_IPRODUCT_STR_DESC  \
     24, /* bLength */               \
         0x03, /* bDescriptorType */ \

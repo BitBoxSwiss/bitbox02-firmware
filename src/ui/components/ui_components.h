@@ -44,6 +44,5 @@
 #include "show_logo.h"
 #include "status.h"
 #include "ui_images.h"
-#include "waiting.h"
 
 #endif

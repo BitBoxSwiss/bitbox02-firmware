@@ -23,6 +23,7 @@
 #include <hww.h>
 #include <sd.h>
 #include <ui/components/ui_components.h>
+#include <ui/components/waiting.h>
 #include <ui/screen_stack.h>
 #include <usb/usb.h>
 #include <util.h>

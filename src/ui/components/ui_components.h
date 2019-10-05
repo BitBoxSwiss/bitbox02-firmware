@@ -36,6 +36,5 @@
 #include "keyboard_switch.h"
 #include "knight_rider.h"
 #include "label.h"
-#include "left_arrow.h"
 
 #endif

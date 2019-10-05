@@ -16,6 +16,7 @@
 #define _LEFT_ARROW_H_
 
 #include <screen.h>
+#include <ui/component.h>
 
 /********************************** Create Instance **********************************/
 

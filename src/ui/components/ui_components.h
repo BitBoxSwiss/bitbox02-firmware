@@ -39,6 +39,5 @@
 #include "left_arrow.h"
 #include "orientation_arrows.h"
 #include "remove_sd_card.h"
-#include "right_arrow.h"
 
 #endif

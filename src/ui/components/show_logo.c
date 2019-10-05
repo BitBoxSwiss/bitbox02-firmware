@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "show_logo.h"
 #include "ui_components.h"
 #include "ui_images.h"
 #include <hardfault.h>

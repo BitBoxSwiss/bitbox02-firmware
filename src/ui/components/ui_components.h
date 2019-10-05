@@ -41,6 +41,5 @@
 #include "remove_sd_card.h"
 #include "right_arrow.h"
 #include "scroll_through_all_variants.h"
-#include "show_logo.h"
 
 #endif

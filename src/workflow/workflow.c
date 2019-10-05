@@ -22,6 +22,7 @@
 #include <hardfault.h>
 #include <hww.h>
 #include <sd.h>
+#include <ui/components/show_logo.h>
 #include <ui/components/ui_components.h>
 #include <ui/components/waiting.h>
 #include <ui/screen_stack.h>

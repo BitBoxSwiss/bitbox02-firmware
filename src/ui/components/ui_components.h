@@ -37,6 +37,5 @@
 #include "knight_rider.h"
 #include "label.h"
 #include "left_arrow.h"
-#include "orientation_arrows.h"
 
 #endif

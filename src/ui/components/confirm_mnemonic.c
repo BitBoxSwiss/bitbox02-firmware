@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdio.h>
-#include <string.h>
+#include "confirm_mnemonic.h"
+#include "label.h"
+#include "scroll_through_all_variants.h"
+#include "ui_components.h"
 
 #include <hardfault.h>
-#include <ui/components/scroll_through_all_variants.h>
-#include <ui/components/ui_components.h>
 #include <ui/ui_util.h>
 
-#include "confirm_mnemonic.h"
+#include <stdio.h>
+#include <string.h>
 
 /**
  * Collects all component functions.

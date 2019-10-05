@@ -35,6 +35,5 @@
 #include "insert_sd_card.h"
 #include "keyboard_switch.h"
 #include "knight_rider.h"
-#include "label.h"
 
 #endif

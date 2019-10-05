@@ -14,6 +14,7 @@
 
 #include "confirm.h"
 #include "../event.h"
+#include "label.h"
 #include "ui_components.h"
 #include <hardfault.h>
 #include <screen.h>

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "trinary_input_string.h"
+#include "label.h"
 #include "left_arrow.h"
 
 #include <stdbool.h>

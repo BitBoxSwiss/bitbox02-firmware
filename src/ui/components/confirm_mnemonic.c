@@ -16,6 +16,7 @@
 #include <string.h>
 
 #include <hardfault.h>
+#include <ui/components/scroll_through_all_variants.h>
 #include <ui/components/ui_components.h>
 #include <ui/ui_util.h>
 

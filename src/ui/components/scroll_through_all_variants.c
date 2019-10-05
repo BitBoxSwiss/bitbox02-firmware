@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <string.h>
-
-#include <hardfault.h>
-#include <touch/gestures.h>
+#include "scroll_through_all_variants.h"
+#include "../event.h"
 
 #include "ui_components.h"
 
-#include "../event.h"
-#include "screen.h"
-#include "scroll_through_all_variants.h"
+#include <hardfault.h>
+#include <screen.h>
+#include <touch/gestures.h>
+
+#include <string.h>
 
 // the rate at which the _update_positions function is called
 static const uint8_t UPDATE_RATE = 30;

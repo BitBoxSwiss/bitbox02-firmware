@@ -23,6 +23,7 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <random.h>
+#include <ui/components/scroll_through_all_variants.h>
 #include <ui/components/ui_components.h>
 #include <util.h>
 

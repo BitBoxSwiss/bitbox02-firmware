@@ -20,6 +20,7 @@
 #include "hww.pb.h"
 
 #include <sd.h>
+#include <ui/components/remove_sd_card.h>
 #include <ui/components/ui_components.h>
 #include <ui/screen_stack.h>
 

@@ -21,6 +21,7 @@
 #include <memory.h>
 #include <string.h>
 #include <ui/components/ui_components.h>
+#include <ui/components/ui_images.h>
 #include <ui/screen_stack.h>
 #include <ui/ugui/ugui.h>
 #include <util.h>

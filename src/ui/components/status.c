@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "ui_components.h"
+#include "ui_images.h"
+
 #include <hardfault.h>
 #include <screen.h>
 #include <stdbool.h>

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "remove_sd_card.h"
+#include "ui_images.h"
 #include <hardfault.h>
 #include <screen.h>
 #include <string.h>

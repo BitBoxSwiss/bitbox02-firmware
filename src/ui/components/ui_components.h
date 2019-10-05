@@ -42,6 +42,5 @@
 #include "right_arrow.h"
 #include "scroll_through_all_variants.h"
 #include "show_logo.h"
-#include "status.h"
 
 #endif

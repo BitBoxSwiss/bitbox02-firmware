@@ -34,6 +34,5 @@
 #include "info_centered.h"
 #include "insert_sd_card.h"
 #include "keyboard_switch.h"
-#include "knight_rider.h"
 
 #endif

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "label.h"
+#include "knight_rider.h"
 
 #include <stdbool.h>
 #include <string.h>

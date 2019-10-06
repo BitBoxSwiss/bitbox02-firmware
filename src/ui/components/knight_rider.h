@@ -16,6 +16,9 @@
 #define _KNIGHT_RIDER_H_
 
 #include <screen.h>
+#include <ui/component.h>
+
+#include <stdint.h>
 
 /********************************** Create Instance **********************************/
 

@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "label.h"
+#include "knight_rider.h"
+
 #include <hardfault.h>
 #include <screen.h>
 #include <string.h>

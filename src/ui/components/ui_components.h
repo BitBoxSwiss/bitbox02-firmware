@@ -32,6 +32,5 @@
 #include "icon_button.h"
 #include "image.h"
 #include "info_centered.h"
-#include "insert_sd_card.h"
 
 #endif

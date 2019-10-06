@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "info_centered.h"
 #include "../event.h"
 #include "label.h"
 #include "ui_components.h"

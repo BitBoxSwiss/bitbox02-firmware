@@ -31,6 +31,5 @@
 #include "entry_screen.h"
 #include "icon_button.h"
 #include "image.h"
-#include "info_centered.h"
 
 #endif

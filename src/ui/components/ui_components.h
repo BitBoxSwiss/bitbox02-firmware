@@ -28,6 +28,5 @@
 #include "confirm_gesture.h"
 #include "confirm_mnemonic.h"
 #include "confirm_transaction.h"
-#include "entry_screen.h"
 
 #endif

@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "label.h"
+#include "entry_screen.h"
 #include "knight_rider.h"
+#include "label.h"
 
 #include <stdbool.h>
 #include <string.h>

@@ -25,7 +25,6 @@
 #include <random.h>
 #include <ui/components/confirm_mnemonic.h>
 #include <ui/components/scroll_through_all_variants.h>
-#include <ui/components/ui_components.h>
 #include <util.h>
 
 #define BIP39_NUM_WORDS 24

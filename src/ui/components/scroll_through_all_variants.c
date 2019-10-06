@@ -19,8 +19,6 @@
 #include "left_arrow.h"
 #include "right_arrow.h"
 
-#include "ui_components.h"
-
 #include <hardfault.h>
 #include <screen.h>
 #include <touch/gestures.h>

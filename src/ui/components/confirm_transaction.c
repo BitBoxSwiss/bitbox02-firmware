@@ -16,7 +16,6 @@
 #include "confirm_button.h"
 #include "icon_button.h"
 #include "label.h"
-#include "ui_components.h"
 #include "ui_images.h"
 
 #include <hardfault.h>

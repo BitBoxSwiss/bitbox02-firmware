@@ -20,8 +20,10 @@
 #include <cmocka.h>
 
 #include <touch/gestures.h>
-#include <ui/components/ui_components.h>
+#include <ui/components/left_arrow.h>
+#include <ui/components/right_arrow.h>
 #include <ui/screen_stack.h>
+#include <ui/ui_util.h>
 
 #include "mock_component.h"
 #include "mock_gestures.h"

@@ -18,9 +18,11 @@
 #include <driver_init.h>
 #include <screen.h>
 #include <string.h>
-#include <ui/components/ui_components.h>
+#include <ui/components/button.h>
+#include <ui/components/label.h>
 #include <ui/screen_process.h>
 #include <ui/screen_stack.h>
+#include <ui/ui_util.h>
 #include <usb/usb.h>
 
 #pragma GCC diagnostic push

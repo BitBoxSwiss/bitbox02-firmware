@@ -14,7 +14,6 @@
 
 #include "status.h"
 #include "label.h"
-#include "ui_components.h"
 #include "ui_images.h"
 
 #include <hardfault.h>

@@ -19,7 +19,6 @@
 #include "label.h"
 #include "left_arrow.h"
 #include "trinary_input_char.h"
-#include "ui_components.h"
 
 #include <hardfault.h>
 #include <screen.h>

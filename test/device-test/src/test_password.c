@@ -19,11 +19,15 @@
 #include <driver_init.h>
 #include <screen.h>
 #include <touch/gestures.h>
-#include <ui/components/ui_components.h>
+#include <ui/components/confirm_gesture.h>
+#include <ui/components/keyboard_switch.h>
+#include <ui/components/left_arrow.h>
 #include <ui/event.h>
 #include <ui/event_handler.h>
+#include <ui/fonts/arial_fonts.h>
 #include <ui/screen_process.h>
 #include <ui/screen_stack.h>
+#include <ui/ui_util.h>
 
 #include "hardfault.h"
 #include "qtouch.h"

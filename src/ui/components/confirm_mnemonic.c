@@ -15,7 +15,6 @@
 #include "confirm_mnemonic.h"
 #include "label.h"
 #include "scroll_through_all_variants.h"
-#include "ui_components.h"
 
 #include <hardfault.h>
 #include <screen.h>

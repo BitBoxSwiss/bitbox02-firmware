@@ -21,7 +21,6 @@
 #include <sd.h>
 #include <string.h>
 #include <touch/gestures.h>
-#include <ui/components/ui_components.h>
 #include <ui/screen_stack.h>
 
 typedef struct {

@@ -27,7 +27,6 @@
 #include <ui/components/info_centered.h>
 #include <ui/components/orientation_arrows.h>
 #include <ui/components/show_logo.h>
-#include <ui/components/ui_components.h>
 #include <ui/components/waiting.h>
 #include <ui/screen_stack.h>
 #include <usb/usb.h>

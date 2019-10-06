@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "insert_sd_card.h"
+#include "icon_button.h"
 #include "label.h"
 #include "ui_images.h"
 #include <hardfault.h>

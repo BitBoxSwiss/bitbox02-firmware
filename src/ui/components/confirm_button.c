@@ -15,6 +15,7 @@
 #include "confirm_button.h"
 #include "../event.h"
 #include "../event_handler.h"
+#include "icon_button.h"
 #include "ui_components.h"
 
 static void _confirm(component_t* confirm_button)

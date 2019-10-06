@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "confirm_transaction.h"
+#include "icon_button.h"
 #include "label.h"
 #include "ui_components.h"
 #include "ui_images.h"

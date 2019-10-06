@@ -14,10 +14,13 @@
 
 #include "confirm.h"
 #include "../event.h"
+#include "icon_button.h"
 #include "label.h"
 #include "ui_components.h"
+
 #include <hardfault.h>
 #include <screen.h>
+
 #include <string.h>
 
 typedef struct {

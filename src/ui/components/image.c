@@ -13,8 +13,12 @@
 // limitations under the License.
 
 #include "image.h"
+
 #include <hardfault.h>
 #include <screen.h>
+#include <ui/component.h>
+
+#include <stdint.h>
 #include <string.h>
 
 /**

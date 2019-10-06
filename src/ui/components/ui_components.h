@@ -30,6 +30,5 @@
 #include "confirm_transaction.h"
 #include "entry_screen.h"
 #include "icon_button.h"
-#include "image.h"
 
 #endif

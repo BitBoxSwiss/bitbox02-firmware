@@ -16,6 +16,7 @@
 #include "blocking.h"
 #include "status.h"
 
+#include <ui/components/confirm_transaction.h>
 #include <ui/components/ui_components.h>
 #include <ui/screen_stack.h>
 

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "trinary_input_string.h"
+#include "confirm_gesture.h"
 #include "keyboard_switch.h"
 #include "label.h"
 #include "left_arrow.h"

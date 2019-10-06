@@ -13,26 +13,25 @@
 // limitations under the License.
 
 #include "trinary_input_string.h"
+#include "keyboard_switch.h"
 #include "label.h"
 #include "left_arrow.h"
-
-#include <stdbool.h>
-#include <stdint.h>
-#include <string.h>
-
 #include "trinary_input_char.h"
 #include "ui_components.h"
 
-#include "hardfault.h"
-#include "screen.h"
-#include "util.h"
-
+#include <hardfault.h>
+#include <screen.h>
 #include <touch/gestures.h>
 #include <ui/event.h>
 #include <ui/event_handler.h>
 #include <ui/fonts/arial_fonts.h>
 #include <ui/ugui/ugui.h>
 #include <ui/ui_util.h>
+#include <util.h>
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
 
 #ifndef TESTING
 #include <driver_init.h>

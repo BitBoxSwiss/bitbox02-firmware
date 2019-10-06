@@ -33,6 +33,5 @@
 #include "image.h"
 #include "info_centered.h"
 #include "insert_sd_card.h"
-#include "keyboard_switch.h"
 
 #endif

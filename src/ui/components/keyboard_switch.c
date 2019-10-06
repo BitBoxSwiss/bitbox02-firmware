@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdbool.h>
-#include <string.h>
+#include "keyboard_switch.h"
+#include "../event.h"
+#include "../event_handler.h"
 
 #include <hardfault.h>
 #include <screen.h>
@@ -21,11 +22,8 @@
 #include <ui/fonts/arial_fonts.h>
 #include <ui/ui_util.h>
 
-#include "keyboard_switch.h"
-
-#include "../../hardfault.h"
-#include "../event.h"
-#include "../event_handler.h"
+#include <stdbool.h>
+#include <string.h>
 
 /**
  * Data that is required for the keyboard switch.

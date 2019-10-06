@@ -23,6 +23,5 @@
 #include "../component.h"
 
 #include "button.h"
-#include "confirm.h"
 
 #endif

@@ -22,6 +22,7 @@
 #include <hardfault.h>
 #include <hww.h>
 #include <sd.h>
+#include <ui/components/confirm.h>
 #include <ui/components/info_centered.h>
 #include <ui/components/orientation_arrows.h>
 #include <ui/components/show_logo.h>

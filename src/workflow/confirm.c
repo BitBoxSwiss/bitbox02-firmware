@@ -16,6 +16,7 @@
 
 #include "blocking.h"
 
+#include <ui/components/confirm.h>
 #include <ui/components/ui_components.h>
 #include <ui/screen_stack.h>
 

@@ -21,6 +21,7 @@
 
 #include <hardfault.h>
 #include <hww.h>
+#include <screen.h>
 #include <sd.h>
 #include <ui/components/confirm.h>
 #include <ui/components/info_centered.h>

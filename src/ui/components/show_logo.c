@@ -18,6 +18,7 @@
 #include "ui_images.h"
 
 #include <hardfault.h>
+#include <screen.h>
 #include <ui/ui_util.h>
 #include <util.h>
 

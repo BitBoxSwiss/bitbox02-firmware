@@ -22,6 +22,4 @@
 
 #include "../component.h"
 
-#include "button.h"
-
 #endif

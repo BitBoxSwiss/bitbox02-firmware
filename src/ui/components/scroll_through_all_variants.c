@@ -14,6 +14,7 @@
 
 #include "scroll_through_all_variants.h"
 #include "../event.h"
+#include "button.h"
 #include "label.h"
 #include "left_arrow.h"
 #include "right_arrow.h"

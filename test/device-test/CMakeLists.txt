@@ -87,7 +87,6 @@ set(TEST_LIST
   button_tap
   confirm_bip39
   entry_screen
-  password
   scroll_menu
   scroll_menu_2
   simple_slide

@@ -26,7 +26,6 @@
 #include <ui/components/label.h>
 #include <ui/components/left_arrow.h>
 #include <ui/components/right_arrow.h>
-#include <ui/components/set_password.h>
 #include <ui/components/status.h>
 #include <ui/ui_util.h>
 
@@ -140,14 +139,6 @@ static void test_ui_components_status(void** state)
     status->f->cleanup(status);
 }
 
-static void test_ui_components_set_password(void** state)
-{
-    component_t* set_password = set_password_create(NULL);
-    assert_non_null(set_password);
-    assert_ui_component_functions(set_password);
-    set_password->f->cleanup(set_password);
-}
-
 int main(void)
 {
     const struct CMUnitTest tests[] = {cmocka_unit_test(test_ui_components_label),
@@ -157,7 +148,6 @@ int main(void)
                                        cmocka_unit_test(test_ui_components_info_centered),
                                        cmocka_unit_test(test_ui_components_keyboard_switch),
                                        cmocka_unit_test(test_ui_components_status),
-                                       cmocka_unit_test(test_ui_components_set_password),
                                        cmocka_unit_test(test_ui_components_confirm)};
 
     return cmocka_run_group_tests(tests, NULL, NULL);

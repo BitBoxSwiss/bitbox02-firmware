@@ -164,3 +164,9 @@ component_t* keyboard_switch_create(slider_location_t location, component_t* par
 
     return keyboard_switch;
 }
+
+keyboard_mode_t keyboard_current_mode(const component_t* component)
+{
+    keyboard_switch_data_t* ks_data = (keyboard_switch_data_t*)component->data;
+    return ks_data->mode;
+}

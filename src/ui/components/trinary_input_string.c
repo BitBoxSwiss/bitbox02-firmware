@@ -75,9 +75,6 @@ typedef struct {
     // Slide to target.
     UG_S16 target_x;
 
-    // Only applies if wordlist = NULL, in which case the user can select the keyboard mode.
-    keyboard_mode_t input_mode;
-
     // Current state of input.
     size_t string_index;
     char string[INPUT_STRING_MAX_SIZE];
@@ -234,7 +231,8 @@ static void _set_alphabet(component_t* trinary_input_string)
         trinary_input_char_set_alphabet(trinary_char, charset);
     } else {
         // Otherwise set the input charset based on the user selected keyboard mode.
-        switch (data->input_mode) {
+        keyboard_mode_t keyboard_mode = keyboard_current_mode(data->keyboard_switch_component);
+        switch (keyboard_mode) {
         case DIGITS:
             trinary_input_char_set_alphabet(trinary_char, digits);
             break;
@@ -283,7 +281,6 @@ static void _on_event(const event_t* event, component_t* component)
 
     switch (event->id) {
     case EVENT_TOGGLE_ALPHANUMERIC:
-        data->input_mode = (data->input_mode + 1) % NUM_INPUT_TYPES;
         _set_alphabet(component);
         break;
     case EVENT_BACKWARD:
@@ -378,7 +375,6 @@ static component_t* _create(
 
     data->target_x = STRING_POS_X_START;
     data->start_x = data->target_x;
-    data->input_mode = LOWER_CASE;
 
     component->data = data;
     component->parent = NULL;

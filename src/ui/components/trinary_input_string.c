@@ -236,22 +236,22 @@ static void _set_alphabet(component_t* trinary_input_string)
             }
         }
         // Since wordlist is sorted, charset is sorted automatically.
-        trinary_input_char_set_alphabet(trinary_char, charset);
+        trinary_input_char_set_alphabet(trinary_char, charset, 1);
     } else {
         // Otherwise set the input charset based on the user selected keyboard mode.
         keyboard_mode_t keyboard_mode = keyboard_current_mode(data->keyboard_switch_component);
         switch (keyboard_mode) {
         case DIGITS:
-            trinary_input_char_set_alphabet(trinary_char, digits);
+            trinary_input_char_set_alphabet(trinary_char, digits, 1);
             break;
         case LOWER_CASE:
-            trinary_input_char_set_alphabet(trinary_char, alphabet);
+            trinary_input_char_set_alphabet(trinary_char, alphabet, 1);
             break;
         case UPPER_CASE:
-            trinary_input_char_set_alphabet(trinary_char, ALPHABET);
+            trinary_input_char_set_alphabet(trinary_char, ALPHABET, 1);
             break;
         case SPECIAL_CHARS:
-            trinary_input_char_set_alphabet(trinary_char, special_chars);
+            trinary_input_char_set_alphabet(trinary_char, special_chars, 2);
             break;
         default:
             break;

@@ -56,6 +56,8 @@ typedef struct {
     bool in_progress;
     // true if there are no available characters
     bool alphabet_is_empty;
+    // Horizontal space between characters in a group.
+    UG_S16 horiz_space;
 } data_t;
 
 static void _set_alphabet(component_t* component, const char* alphabet)
@@ -72,7 +74,7 @@ static void _set_alphabet(component_t* component, const char* alphabet)
         data->in_progress = false;
         return;
     }
-    trinary_input_char_set_alphabet(component, alphabet);
+    trinary_input_char_set_alphabet(component, alphabet, data->horiz_space);
 }
 
 static void _on_event(const event_t* event, component_t* component)
@@ -159,11 +161,10 @@ static const component_functions_t _component_functions = {
 static void _put_string(
     UG_S16 x_offset,
     UG_S16 y_offset,
+    UG_S16 horiz_space,
     _element_t** elements,
     size_t elements_size)
 {
-    UG_S16 horiz_space = 1;
-
     UG_S16 total_width = 0;
     for (size_t idx = 0; idx < elements_size; idx++) {
         char c = elements[idx]->character;
@@ -176,8 +177,8 @@ static void _put_string(
     if (elements_size > 6) {
         // split in two halfs; size/2 rounded up
         const size_t half = (elements_size + 1) / 2;
-        _put_string(x_offset, y_offset - _font->char_height - 1, elements, half);
-        _put_string(x_offset, y_offset, elements + half, elements_size - half);
+        _put_string(x_offset, y_offset - _font->char_height - 1, horiz_space, elements, half);
+        _put_string(x_offset, y_offset, horiz_space, elements + half, elements_size - half);
         return;
     }
 
@@ -198,9 +199,13 @@ static void _put_string(
     }
 }
 
-void trinary_input_char_set_alphabet(component_t* component, const char* alphabet_input)
+void trinary_input_char_set_alphabet(
+    component_t* component,
+    const char* alphabet_input,
+    UG_S16 horiz_space)
 {
     data_t* data = (data_t*)component->data;
+    data->horiz_space = horiz_space;
     // copy so that alphabet_input can overlap with left_alphabet, middle_alphabet, right_alphabet
     // overwritten below.
     char alphabet[MAX_CHARS + 1];
@@ -256,14 +261,19 @@ void trinary_input_char_set_alphabet(component_t* component, const char* alphabe
 
     UG_S16 y_offset = SCREEN_HEIGHT - _font->char_height;
     { // left
-        _put_string(0, y_offset, elements_lookup, left_size);
+        _put_string(0, y_offset, data->horiz_space, elements_lookup, left_size);
     }
     { // middle
-        _put_string(_group_width, y_offset, elements_lookup + left_size, middle_size);
+        _put_string(
+            _group_width, y_offset, data->horiz_space, elements_lookup + left_size, middle_size);
     }
     { // right
         _put_string(
-            2 * _group_width, y_offset, elements_lookup + left_size + middle_size, right_size);
+            2 * _group_width,
+            y_offset,
+            data->horiz_space,
+            elements_lookup + left_size + middle_size,
+            right_size);
     }
 
     snprintf(data->left_alphabet, sizeof(data->left_alphabet), "%.*s", (int)left_size, alphabet);
@@ -310,7 +320,7 @@ component_t* trinary_input_char_create(
 
     data->character_chosen_cb = character_chosen_cb;
 
-    trinary_input_char_set_alphabet(component, alphabet);
+    trinary_input_char_set_alphabet(component, alphabet, 1);
 
     return component;
 }

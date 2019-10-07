@@ -160,13 +160,6 @@ static void _put_string(
 {
     UG_S16 horiz_space = 1;
 
-    UG_S16 total_width = 0;
-    for (size_t idx = 0; idx < elements_size; idx++) {
-        char c = elements[idx]->character;
-        total_width += _font->widths[c - _font->start_char];
-        total_width += horiz_space;
-    }
-
     // Split into two rows of roughly equal size by number of elements if too big.
     if (elements_size > 5) {
         // split in two halfs; size/2 rounded up
@@ -175,21 +168,6 @@ static void _put_string(
         _put_string(x_offset, y_offset, elements + half, elements_size - half);
         return;
     }
-
-    // Split into two rows of roughly equal size by width if too big.
-    /* if (total_width > _group_width) { */
-    /*     UG_S16 half_width = 0; */
-    /*     for (size_t idx = 0; idx < elements_size; idx++) { */
-    /*         char c = elements[idx]->character; */
-    /*         half_width += _font->widths[c - _font->start_char]; */
-    /*         half_width += horiz_space; */
-    /*         if ((half_width - horiz_space) > total_width / 2) { */
-    /*             _put_string(x_offset, y_offset - _font->char_height, elements, idx); */
-    /*             _put_string(x_offset, y_offset, elements + idx, elements_size - idx); */
-    /*             return; */
-    /*         } */
-    /*     } */
-    /* } */
 
     UG_S16 x = x_offset + _group_width / 2 - total_width / 2;
     for (size_t idx = 0; idx < elements_size; idx++) {
@@ -203,39 +181,6 @@ static void _put_string(
             element->x = element->target_x;
             element->y = element->target_y;
         }
-    }
-}
-
-static void _align_left(_element_t** elements, size_t elements_size)
-{
-    UG_S16 min_x = SCREEN_WIDTH;
-    for (size_t idx = 0; idx < elements_size; idx++) {
-        const _element_t* element = elements[idx];
-        if (element->target_x < min_x) {
-            min_x = element->target_x;
-        }
-    }
-    const UG_S16 padding = 5;
-    for (size_t idx = 0; idx < elements_size; idx++) {
-        _element_t* element = elements[idx];
-        element->target_x -= min_x - padding;
-    }
-}
-
-static void _align_right(_element_t** elements, size_t elements_size)
-{
-    UG_S16 max_x = 0;
-    for (size_t idx = 0; idx < elements_size; idx++) {
-        const _element_t* element = elements[idx];
-        const UG_S16 x = element->target_x + _font->widths[element->character - _font->start_char];
-        if (x > max_x) {
-            max_x = x;
-        }
-    }
-    const UG_S16 padding = 5;
-    for (size_t idx = 0; idx < elements_size; idx++) {
-        _element_t* element = elements[idx];
-        element->target_x += SCREEN_WIDTH - max_x - padding;
     }
 }
 
@@ -298,8 +243,6 @@ void trinary_input_char_set_alphabet(component_t* component, const char* alphabe
     UG_S16 y_offset = SCREEN_HEIGHT - _font->char_height;
     { // left
         _put_string(0, y_offset, elements_lookup, left_size);
-        //_align_left(elements_lookup, left_size);
-        (void)_align_left;
     }
     { // middle
         _put_string(_group_width, y_offset, elements_lookup + left_size, middle_size);
@@ -307,8 +250,6 @@ void trinary_input_char_set_alphabet(component_t* component, const char* alphabe
     { // right
         _put_string(
             2 * _group_width, y_offset, elements_lookup + left_size + middle_size, right_size);
-        //_align_right(elements_lookup + left_size + middle_size, right_size);
-        (void)_align_right;
     }
 
     snprintf(data->left_alphabet, sizeof(data->left_alphabet), "%.*s", (int)left_size, alphabet);

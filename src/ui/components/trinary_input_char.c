@@ -35,7 +35,7 @@ typedef struct {
 } _element_t;
 
 // excluding null terminator
-#define MAX_CHARS 26
+#define MAX_CHARS 33
 
 static const UG_FONT* _font = &font_font_a_9X9;
 
@@ -161,10 +161,10 @@ static void _put_string(
     UG_S16 horiz_space = 1;
 
     // Split into two rows of roughly equal size by number of elements if too big.
-    if (elements_size > 5) {
+    if (elements_size > 6) {
         // split in two halfs; size/2 rounded up
         const size_t half = (elements_size + 1) / 2;
-        _put_string(x_offset, y_offset - _font->char_height, elements, half);
+        _put_string(x_offset, y_offset - _font->char_height - 1, elements, half);
         _put_string(x_offset, y_offset, elements + half, elements_size - half);
         return;
     }

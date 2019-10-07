@@ -43,7 +43,7 @@
 #define BLINK_RATE 200
 
 #define STRING_POS_X_START 5
-#define STRING_POS_Y 30
+#define STRING_POS_Y 29
 
 // After entering too many chars and exceeding the screen width, the right end of the last char will
 // end up be at this position.
@@ -54,6 +54,7 @@
 static char ALPHABET[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 static char alphabet[] = "abcdefghijklmnopqrstuvwxyz";
 static char digits[] = "0123456789";
+static char special_chars[] = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
 
 typedef struct {
     // Can be NULL.
@@ -241,6 +242,9 @@ static void _set_alphabet(component_t* trinary_input_string)
             break;
         case UPPER_CASE:
             trinary_input_char_set_alphabet(trinary_char, ALPHABET);
+            break;
+        case SPECIAL_CHARS:
+            trinary_input_char_set_alphabet(trinary_char, special_chars);
             break;
         default:
             break;

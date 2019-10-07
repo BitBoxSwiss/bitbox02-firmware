@@ -56,6 +56,10 @@ static void _render(component_t* component)
         UG_MeasureString(&w, &h, "ABC");
         UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "ABC", false);
         break;
+    case SPECIAL_CHARS:
+        UG_MeasureString(&w, &h, "&?+");
+        UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "&?+", false);
+        break;
     default:
         Abort("Keyboard mode unrecognized");
         break;
@@ -82,13 +86,16 @@ static void _on_event(const event_t* event, component_t* component)
     case EVENT_TOGGLE_ALPHANUMERIC:
         switch (ks_data->mode) {
         case DIGITS:
-            ks_data->mode = LOWER_CASE;
+            ks_data->mode = SPECIAL_CHARS;
             break;
         case LOWER_CASE:
             ks_data->mode = UPPER_CASE;
             break;
         case UPPER_CASE:
             ks_data->mode = DIGITS;
+            break;
+        case SPECIAL_CHARS:
+            ks_data->mode = LOWER_CASE;
             break;
         default:
             Abort("Keyboard mode unrecognized");

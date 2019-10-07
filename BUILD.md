@@ -77,6 +77,11 @@ git clone --recurse-submodules git@github.com:digitalbitbox/bitbox02-firmware.gi
 make firmware # requires a GNU ARM toolchain for cross-compiling
 ```
 
+If you have already cloned the repository without the `--recurse-submodules` argument, run:
+```
+git submodule update --init --recursive
+```
+
 Build the bootloader:
 ```
 make bootloader

@@ -132,6 +132,10 @@ static void _render(component_t* component)
         if (element->character == '\0') {
             continue;
         }
+        if (element->character == ' ') {
+            ui_util_draw_visible_space(element->x, element->y, _font);
+            continue;
+        }
         UG_PutChar(
             element->character,
             element->x,
@@ -160,6 +164,14 @@ static void _put_string(
 {
     UG_S16 horiz_space = 1;
 
+    UG_S16 total_width = 0;
+    for (size_t idx = 0; idx < elements_size; idx++) {
+        char c = elements[idx]->character;
+        total_width +=
+            c == ' ' ? UI_UTIL_VISIBLE_SPACE_WIDTH : _font->widths[c - _font->start_char];
+        total_width += horiz_space;
+    }
+
     // Split into two rows of roughly equal size by number of elements if too big.
     if (elements_size > 6) {
         // split in two halfs; size/2 rounded up
@@ -172,9 +184,11 @@ static void _put_string(
     UG_S16 x = x_offset + _group_width / 2 - total_width / 2;
     for (size_t idx = 0; idx < elements_size; idx++) {
         _element_t* element = elements[idx];
+        char c = elements[idx]->character;
         bool update_position = !element->newly_born;
         element->target_x = x;
-        x += _font->widths[element->character - _font->start_char];
+        x += c == ' ' ? UI_UTIL_VISIBLE_SPACE_WIDTH
+                      : _font->widths[element->character - _font->start_char];
         x += horiz_space;
         element->target_y = y_offset;
         if (!update_position) {

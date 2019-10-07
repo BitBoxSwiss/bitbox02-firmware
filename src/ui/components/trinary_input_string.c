@@ -54,7 +54,7 @@
 static char ALPHABET[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 static char alphabet[] = "abcdefghijklmnopqrstuvwxyz";
 static char digits[] = "0123456789";
-static char special_chars[] = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
+static char special_chars[] = " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
 
 typedef struct {
     // Can be NULL.
@@ -117,7 +117,8 @@ static UG_S16 _constant_string_width(const component_t* component)
         } else {
             chr = MASK_CHAR;
         }
-        width += font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
+        width += chr == ' ' ? UI_UTIL_VISIBLE_SPACE_WIDTH
+                            : font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
         width += 1;
         if (data->hide) {
             width += 1;
@@ -172,9 +173,15 @@ static void _render(component_t* component)
             string_y += 3;
         }
         if (string_x >= 0) {
-            UG_PutChar(chr, string_x, string_y, screen_front_color, screen_back_color, false);
+            if (chr == ' ') {
+                ui_util_draw_visible_space(string_x, string_y, &font_font_a_11X12);
+            } else {
+                UG_PutChar(chr, string_x, string_y, screen_front_color, screen_back_color, false);
+            }
         }
-        const uint8_t width = font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
+        const uint8_t width = chr == ' '
+                                  ? UI_UTIL_VISIBLE_SPACE_WIDTH
+                                  : font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
         string_x += width + 1;
         if (data->hide) {
             // A bit more horizontal spacing if the input is masked.

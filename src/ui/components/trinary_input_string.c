@@ -51,10 +51,10 @@
 // Slide to left after exceeding this position
 #define SCROLL_RIGHT_LIMIT (SCREEN_WIDTH - 10)
 
-static char ALPHABET[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-static char alphabet[] = "abcdefghijklmnopqrstuvwxyz";
-static char digits[] = "0123456789";
-static char special_chars[] = " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
+static char _alphabet_uppercase[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+static char _alphabet_lowercase[] = "abcdefghijklmnopqrstuvwxyz";
+static char _digits[] = "0123456789";
+static char _special_chars[] = " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
 
 typedef struct {
     // Can be NULL.
@@ -246,16 +246,16 @@ static void _set_alphabet(component_t* trinary_input_string)
         keyboard_mode_t keyboard_mode = keyboard_current_mode(data->keyboard_switch_component);
         switch (keyboard_mode) {
         case DIGITS:
-            trinary_input_char_set_alphabet(trinary_char, digits, 1);
+            trinary_input_char_set_alphabet(trinary_char, _digits, 1);
             break;
         case LOWER_CASE:
-            trinary_input_char_set_alphabet(trinary_char, alphabet, 1);
+            trinary_input_char_set_alphabet(trinary_char, _alphabet_lowercase, 1);
             break;
         case UPPER_CASE:
-            trinary_input_char_set_alphabet(trinary_char, ALPHABET, 1);
+            trinary_input_char_set_alphabet(trinary_char, _alphabet_uppercase, 1);
             break;
         case SPECIAL_CHARS:
-            trinary_input_char_set_alphabet(trinary_char, special_chars, 2);
+            trinary_input_char_set_alphabet(trinary_char, _special_chars, 2);
             break;
         default:
             break;
@@ -366,6 +366,7 @@ static component_t* _create(
     const char* const* wordlist,
     size_t wordlist_size,
     bool hide,
+    bool special_chars,
     bool longtouch,
     void (*confirm_cb)(const char* input),
     void (*cancel_cb)(void))
@@ -406,7 +407,8 @@ static component_t* _create(
     ui_util_add_sub_component(component, data->confirm_component);
 
     if (wordlist == NULL) {
-        data->keyboard_switch_component = keyboard_switch_create(top_slider, component);
+        data->keyboard_switch_component =
+            keyboard_switch_create(top_slider, special_chars, component);
         ui_util_add_sub_component(component, data->keyboard_switch_component);
     }
 
@@ -431,13 +433,14 @@ component_t* trinary_input_string_create_wordlist(
     if (wordlist == NULL) {
         Abort("trinary_input_string_\ncreate_wordlist");
     }
-    return _create(title, wordlist, wordlist_size, false, false, confirm_cb, cancel_cb);
+    return _create(title, wordlist, wordlist_size, false, false, false, confirm_cb, cancel_cb);
 }
 
 component_t* trinary_input_string_create_password(
     const char* title,
+    bool special_chars,
     void (*confirm_cb)(const char* input),
     void (*cancel_cb)(void))
 {
-    return _create(title, NULL, 0, true, true, confirm_cb, cancel_cb);
+    return _create(title, NULL, 0, true, special_chars, true, confirm_cb, cancel_cb);
 }

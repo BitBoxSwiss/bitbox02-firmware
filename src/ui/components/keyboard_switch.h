@@ -25,9 +25,13 @@ typedef enum { DIGITS, LOWER_CASE, UPPER_CASE, SPECIAL_CHARS } keyboard_mode_t;
 /**
  * Creates a keyboard switch component.
  * @param[in] location The slider location.
+ * @param[in] make special chars keyboard mode available.
  * @param[in] parent The parent component.
  */
-component_t* keyboard_switch_create(slider_location_t location, component_t* parent);
+component_t* keyboard_switch_create(
+    slider_location_t location,
+    bool special_chars,
+    component_t* parent);
 
 /**
  * @return the currently selected keyboard

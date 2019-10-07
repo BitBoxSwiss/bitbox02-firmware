@@ -123,7 +123,7 @@ static void test_ui_components_keyboard_switch(void** state)
 {
     component_t* mock_component = mock_component_create();
 
-    component_t* keyboard_switch = keyboard_switch_create(top_slider, mock_component);
+    component_t* keyboard_switch = keyboard_switch_create(top_slider, true, mock_component);
     assert_non_null(keyboard_switch);
     assert_ui_component_functions(keyboard_switch);
     keyboard_switch->f->cleanup(keyboard_switch);

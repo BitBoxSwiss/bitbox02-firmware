@@ -247,14 +247,14 @@ static void _set_alphabet(component_t* trinary_input_string)
         // Otherwise set the input charset based on the user selected keyboard mode.
         keyboard_mode_t keyboard_mode = keyboard_current_mode(data->keyboard_switch_component);
         switch (keyboard_mode) {
-        case DIGITS:
-            trinary_input_char_set_alphabet(trinary_char, _digits, 1);
-            break;
         case LOWER_CASE:
             trinary_input_char_set_alphabet(trinary_char, _alphabet_lowercase, 1);
             break;
         case UPPER_CASE:
             trinary_input_char_set_alphabet(trinary_char, _alphabet_uppercase, 1);
+            break;
+        case DIGITS:
+            trinary_input_char_set_alphabet(trinary_char, _digits, 1);
             break;
         case SPECIAL_CHARS:
             trinary_input_char_set_alphabet(trinary_char, _special_chars, 2);

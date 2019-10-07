@@ -46,10 +46,6 @@ static void _render(component_t* component)
     UG_FontSelect(&font_font_a_9X9);
     UG_S16 w = 0, h = 0;
     switch (ks_data->mode) {
-    case DIGITS:
-        UG_MeasureString(&w, &h, "123");
-        UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "123", false);
-        break;
     case LOWER_CASE:
         UG_MeasureString(&w, &h, "abc");
         UG_PutString((SCREEN_WIDTH - w) / 2 + 2, 1, "abc", false);
@@ -57,6 +53,10 @@ static void _render(component_t* component)
     case UPPER_CASE:
         UG_MeasureString(&w, &h, "ABC");
         UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "ABC", false);
+        break;
+    case DIGITS:
+        UG_MeasureString(&w, &h, "123");
+        UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "123", false);
         break;
     case SPECIAL_CHARS:
         UG_MeasureString(&w, &h, "&?+");
@@ -87,14 +87,14 @@ static void _on_event(const event_t* event, component_t* component)
     switch (event->id) {
     case EVENT_TOGGLE_ALPHANUMERIC:
         switch (ks_data->mode) {
-        case DIGITS:
-            ks_data->mode = ks_data->special_chars ? SPECIAL_CHARS : LOWER_CASE;
-            break;
         case LOWER_CASE:
             ks_data->mode = UPPER_CASE;
             break;
         case UPPER_CASE:
             ks_data->mode = DIGITS;
+            break;
+        case DIGITS:
+            ks_data->mode = ks_data->special_chars ? SPECIAL_CHARS : LOWER_CASE;
             break;
         case SPECIAL_CHARS:
             ks_data->mode = LOWER_CASE;

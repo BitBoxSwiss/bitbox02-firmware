@@ -60,7 +60,7 @@ brew install arm-gcc-bin
 Add the following directory in this repository to your `PATH` in `~/.bash_login`:
 
 ```bash
-export PATH="$PATH:[…]/firmware_v2/tools/nanopb/generator"
+export PATH="$PATH:[…]/bitbox02-firmware/tools/nanopb/generator"
 ```
 
 ## Instructions
@@ -71,9 +71,9 @@ Plug in both the J-Link hardware and the BitBox02 device into USB ports on your 
 
 Build the firmware:
 ```
-git clone --recurse-submodules https://github.com/digitalbitbox/bitbox02-firmware && cd firmware_v2
+git clone --recurse-submodules https://github.com/digitalbitbox/bitbox02-firmware && cd bitbox02-firmware
 # or via ssh
-git clone --recurse-submodules git@github.com:digitalbitbox/bitbox02-firmware.git && cd firmware_v2
+git clone --recurse-submodules git@github.com:digitalbitbox/bitbox02-firmware.git && cd bitbox02-firmware
 make firmware # requires a GNU ARM toolchain for cross-compiling
 ```
 

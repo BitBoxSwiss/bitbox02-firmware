@@ -95,6 +95,8 @@ Load the bootloader by JLink (requires JLinkExe in PATH).
 make jlink-flash-bootloader
 ```
 
+You need to install the [BitBox02 Python Library](py/README.md) before you can flash the built firmware.
+
 Load the firmware by the bootloader (requires loading bootloader.bin by JLink, if not already loaded on the device):
 ```
 make flash-dev-firmware
@@ -119,7 +121,7 @@ make docs
 
 To view the results, open `build/docs/html/index.html` in a web browser.
 
-### Python Lib
+### BitBox02 Python Library
 
 There is a Python api library in `py/bitbox02`.
 

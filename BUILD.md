@@ -21,15 +21,13 @@
 - Install the pre-built [protobuf python binary](https://github.com/protocolbuffers/protobuf/releases)
   - Then install the included [Python Protocol Buffers](https://github.com/protocolbuffers/protobuf/tree/master/python#installation) runtime library
 
-
 ## Reporting issues
 
 <!-- TODO: Write section on reporting issues -->
 
 For security related issues please see [SECURITY.md](SECURITY.md).
 
-## Development Environment
-
+## Development environment
 
 ### Install development environment as a Docker container
 
@@ -60,7 +58,7 @@ brew install arm-gcc-bin
 Add the following directory in this repository to your `PATH` in `~/.bash_login`:
 
 ```bash
-export PATH="$PATH:[…]/firmware_v2/tools/nanopb/generator"
+export PATH="$PATH:[…]/bitbox02-firmware/tools/nanopb/generator"
 ```
 
 ## Instructions
@@ -71,10 +69,15 @@ Plug in both the J-Link hardware and the BitBox02 device into USB ports on your 
 
 Build the firmware:
 ```
-git clone --recurse-submodules https://github.com/digitalbitbox/bitbox02-firmware && cd firmware_v2
+git clone --recurse-submodules https://github.com/digitalbitbox/bitbox02-firmware && cd bitbox02-firmware
 # or via ssh
-git clone --recurse-submodules git@github.com:digitalbitbox/bitbox02-firmware.git && cd firmware_v2
+git clone --recurse-submodules git@github.com:digitalbitbox/bitbox02-firmware.git && cd bitbox02-firmware
 make firmware # requires a GNU ARM toolchain for cross-compiling
+```
+
+If you have already cloned the repository without the `--recurse-submodules` argument, run:
+```
+git submodule update --init --recursive
 ```
 
 Build the bootloader:
@@ -89,6 +92,8 @@ Load the bootloader by JLink (requires JLinkExe in PATH).
 ```
 make jlink-flash-bootloader
 ```
+
+You need to install the [BitBox02 Python Library](py/README.md) before you can flash the built firmware.
 
 Load the firmware by the bootloader (requires loading bootloader.bin by JLink, if not already loaded on the device):
 ```
@@ -114,7 +119,7 @@ make docs
 
 To view the results, open `build/docs/html/index.html` in a web browser.
 
-### Python Lib
+### BitBox02 Python library
 
 There is a Python api library in `py/bitbox02`.
 
@@ -128,7 +133,7 @@ To kick off some api calls:
 ./py/send_message.py
 ```
 
-### Unit Tests
+### Unit tests
 
 We are using CMocka (https://cmocka.org/) for unit tests. To run the tests, the CMocka library
 needs to be installed on your system.
@@ -174,21 +179,21 @@ make coverage # or make -C build-build coverage
 make -C build-build coverage-lcovr
 ```
 
-### Device Tests
+### Device tests
 
 If you have a developer device at hand you can run device tests on it. Device tests help to verify functionality on an actual device.
 Feedback can be provided via the screen or via USB. They are especially useful to test low-level, driver-specific features.
 
 Device tests replace the source file where the main function resides, but otherwise have access to all firmware functions.
 
-#### Code and Build Structure
+#### Code and build structure
 
 The python scripts for setting up and running the test can be found under `test/device-test`. Firmware test code can be found
 under `test/device-test/src`. `test/device-test/src/common` contains common C code functions that many test cases might need.
 
 The object and binary files are built into `test/device-test/build`.
 
-#### How to Set Up a Test
+#### How to set up a test
 
 The `test/device-test/setup_test.py` script assists you in building the binary with a given test case, flashing the device
 with the resulting `device-test.bin` that gets built into `test/device-test/build/bin` and resetting the device so that the test is started.
@@ -201,7 +206,7 @@ You can run `setup_test.py` as follows:
 
 If you run it successfully, the device should print `Integration test` on the screen.
 
-#### How to Write a Test
+#### How to write a test
 
 The test becomes more interesting as we add the ability to function in a python script.
 Here is an example for a python test:

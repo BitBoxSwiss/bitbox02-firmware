@@ -39,7 +39,7 @@
 #endif
 
 #define EMPTY_CHAR '_'
-#define MASK_CHAR '*'
+#define MASK_CHAR_WIDTH 6
 #define BLINK_RATE 200
 
 #define STRING_POS_X_START 5
@@ -109,16 +109,17 @@ static UG_S16 _constant_string_width(const component_t* component)
     data_t* data = (data_t*)component->data;
     UG_S16 width = 0;
     for (size_t i = 0; i <= data->string_index; i++) {
-        char chr;
         if (i == data->string_index) {
-            chr = EMPTY_CHAR;
+            char chr = EMPTY_CHAR;
+            width += font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
         } else if (!data->hide) {
-            chr = data->string[i];
+            char chr = data->string[i];
+            width += chr == ' ' ? UI_UTIL_VISIBLE_SPACE_WIDTH
+                                : font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
         } else {
-            chr = MASK_CHAR;
+            width += MASK_CHAR_WIDTH;
         }
-        width += chr == ' ' ? UI_UTIL_VISIBLE_SPACE_WIDTH
-                            : font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
+
         width += 1;
         if (data->hide) {
             width += 1;
@@ -162,26 +163,29 @@ static void _render(component_t* component)
         }
 
         char chr;
+        uint8_t width;
         if (i == data->string_index) {
             chr = EMPTY_CHAR;
+            width = font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
         } else if ((data->show_last_character && i == data->string_index - 1) || !data->hide) {
             // Show character (or only last entered character in if input is hidden).
             chr = data->string[i];
+            width = chr == ' ' ? UI_UTIL_VISIBLE_SPACE_WIDTH
+                               : font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
         } else {
-            chr = MASK_CHAR;
-            // render vertically in middle, not at the top.
-            string_y += 3;
+            // ad-hoc encoding of the masked char, which will be drawn as a filled circle below.
+            chr = '\0';
+            width = MASK_CHAR_WIDTH;
         }
         if (string_x >= 0) {
             if (chr == ' ') {
                 ui_util_draw_visible_space(string_x, string_y, &font_font_a_11X12);
+            } else if (chr == '\0') {
+                UG_FillCircle(string_x + 3, string_y + 4, 2, screen_front_color);
             } else {
                 UG_PutChar(chr, string_x, string_y, screen_front_color, screen_back_color, false);
             }
         }
-        const uint8_t width = chr == ' '
-                                  ? UI_UTIL_VISIBLE_SPACE_WIDTH
-                                  : font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
         string_x += width + 1;
         if (data->hide) {
             // A bit more horizontal spacing if the input is masked.

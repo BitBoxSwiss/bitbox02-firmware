@@ -54,7 +54,9 @@
 static char _alphabet_uppercase[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 static char _alphabet_lowercase[] = "abcdefghijklmnopqrstuvwxyz";
 static char _digits[] = "0123456789";
-static char _special_chars[] = " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
+// ` and ~ are missing here as they don't legible on the device with arial 9x9. Can add them back
+// after tuning the font.
+static char _special_chars[] = " !\"#$%&'()*+,-./:;<=>?^[\\]@_{|}";
 
 typedef struct {
     // Can be NULL.

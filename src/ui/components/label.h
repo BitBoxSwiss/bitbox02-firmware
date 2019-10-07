@@ -15,6 +15,7 @@
 #ifndef _LABEL_H_
 #define _LABEL_H_
 
+#include <ui/component.h>
 #include <ui/ugui/ugui.h>
 #include <ui/ui_util.h>
 

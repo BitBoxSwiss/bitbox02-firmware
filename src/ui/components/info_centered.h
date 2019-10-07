@@ -15,6 +15,8 @@
 #ifndef _INFO_CENTERED_H_
 #define _INFO_CENTERED_H_
 
+#include <ui/component.h>
+
 /**
  * Creates an info centered screen with a given text and an optional skip callback.
  * @param[IN] text The text that is displayed in the middle of the screen.

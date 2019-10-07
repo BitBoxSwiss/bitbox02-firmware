@@ -13,11 +13,12 @@
 // limitations under the License.
 
 #include "label.h"
+#include "knight_rider.h"
+
 #include <hardfault.h>
 #include <screen.h>
 #include <string.h>
 #include <touch/gestures.h>
-#include <ui/components/ui_components.h>
 #include <ui/fonts/arial_fonts.h>
 #include <ui/ugui/ugui.h>
 #include <ui/ui_util.h>

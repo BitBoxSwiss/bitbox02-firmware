@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ui_components.h"
+#include "status.h"
+#include "label.h"
+#include "ui_images.h"
+
 #include <hardfault.h>
 #include <screen.h>
 #include <stdbool.h>

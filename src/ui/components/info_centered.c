@@ -12,14 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <string.h>
-
-#include "ui_components.h"
-
+#include "info_centered.h"
 #include "../event.h"
-#include "screen.h"
+#include "button.h"
+#include "label.h"
+
 #include <hardfault.h>
+#include <screen.h>
 #include <touch/gestures.h>
+
+#include <string.h>
 
 /********************************** Component Functions **********************************/
 

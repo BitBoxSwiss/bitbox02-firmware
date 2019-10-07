@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdbool.h>
-#include <string.h>
+#include "icon_button.h"
+#include "../event.h"
+#include "../event_handler.h"
+#include "ui_images.h"
 
 #include <hardfault.h>
 #include <screen.h>
@@ -21,11 +23,8 @@
 #include <ui/ui_util.h>
 #include <util.h>
 
-#include "icon_button.h"
-
-#include "../event.h"
-#include "../event_handler.h"
-#include "ui_images.h"
+#include <stdbool.h>
+#include <string.h>
 
 #define SCALE 4 // Divide active_count by scale to slow down motion
 

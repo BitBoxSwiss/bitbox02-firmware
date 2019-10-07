@@ -13,12 +13,14 @@
 // limitations under the License.
 
 #include "insert_sd_card.h"
+#include "icon_button.h"
+#include "label.h"
+#include "ui_images.h"
 #include <hardfault.h>
 #include <screen.h>
 #include <sd.h>
 #include <string.h>
 #include <touch/gestures.h>
-#include <ui/components/ui_components.h>
 #include <ui/screen_stack.h>
 
 typedef struct {

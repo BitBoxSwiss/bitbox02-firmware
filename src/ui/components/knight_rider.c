@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdbool.h>
-#include <string.h>
+#include "knight_rider.h"
 
+#include <hardfault.h>
 #include <ui/ui_util.h>
 #include <util.h>
 
-#include "knight_rider.h"
-#include <hardfault.h>
+#include <stdbool.h>
+#include <string.h>
 
 typedef struct {
     uint8_t height;

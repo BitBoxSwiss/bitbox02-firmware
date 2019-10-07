@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdbool.h>
-#include <string.h>
+#include "left_arrow.h"
 
 #include <hardfault.h>
 #include <screen.h>
@@ -21,11 +20,12 @@
 #include <ui/ui_util.h>
 #include <util.h>
 
-#include "left_arrow.h"
-
 #include "../event.h"
 #include "../event_handler.h"
 #include "ui_images.h"
+
+#include <stdbool.h>
+#include <string.h>
 
 #define HEIGHT (5u)
 

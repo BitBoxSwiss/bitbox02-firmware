@@ -16,6 +16,7 @@
 #define _ENTRY_SCREEN_H_
 
 #include <screen.h>
+#include <ui/component.h>
 
 /********************************** Create Instance **********************************/
 

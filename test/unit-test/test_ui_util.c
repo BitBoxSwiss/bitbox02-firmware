@@ -18,7 +18,6 @@
 #include <stddef.h>
 #include <cmocka.h>
 
-#include <ui/components/ui_components.h>
 #include <ui/ui_util.h>
 
 #include "mock_component.h"

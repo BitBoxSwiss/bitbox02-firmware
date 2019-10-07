@@ -13,8 +13,12 @@
 // limitations under the License.
 
 #include "orientation_arrows.h"
-#include "ui_components.h"
+#include "button.h"
+#include "image.h"
+#include "ui_images.h"
+
 #include <hardfault.h>
+#include <screen.h>
 #include <util.h>
 
 #if !defined(TESTING)

@@ -15,6 +15,8 @@
 #ifndef _WAITING_H_
 #define _WAITING_H_
 
+#include <ui/component.h>
+
 /**
  * Creates a waiting screen.
  */

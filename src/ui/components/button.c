@@ -12,18 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <string.h>
+#include "button.h"
+#include "ui_images.h"
 
 #include <hardfault.h>
 #include <screen.h>
+#include <touch/gestures.h>
 #include <ui/fonts/arial_fonts.h>
 #include <ui/ui_util.h>
 #include <util.h>
 
-#include <touch/gestures.h>
-
-#include "button.h"
-#include "ui_images.h"
+#include <string.h>
 
 static const uint8_t MIN_BUTTON_WIDTH = 32; // 0:SCREEN_WIDTH
 

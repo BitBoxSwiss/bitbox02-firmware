@@ -20,7 +20,6 @@
 #include <stdio.h>
 #include <time.h>
 #include <ui/components/confirm.h>
-#include <ui/components/ui_components.h>
 #include <workflow/backup.h>
 #include <workflow/confirm.h>
 #include <workflow/confirm_time.h>

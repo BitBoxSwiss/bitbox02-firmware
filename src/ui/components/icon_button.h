@@ -16,6 +16,7 @@
 #define _ICON_BUTTON_H_
 
 #include <screen.h>
+#include <ui/component.h>
 
 typedef enum {
     ICON_BUTTON_CHECK,

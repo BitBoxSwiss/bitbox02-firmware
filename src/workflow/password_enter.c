@@ -16,7 +16,6 @@
 #include "blocking.h"
 
 #include <hardfault.h>
-#include <ui/components/ui_components.h>
 #include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 #include <util.h>

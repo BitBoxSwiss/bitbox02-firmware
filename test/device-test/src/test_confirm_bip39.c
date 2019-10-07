@@ -17,10 +17,10 @@
 #include "driver_init.h"
 #include "qtouch.h"
 #endif
-#include <ui/components/ui_components.h>
 #include <ui/screen_stack.h>
 #include <wally_bip39.h>
 
+#include <ui/components/confirm_mnemonic.h>
 #include <ui/screen_process.h>
 
 #include "hardfault.h"

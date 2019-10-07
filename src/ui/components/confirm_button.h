@@ -17,6 +17,8 @@
 
 #include <ui/component.h>
 
+#include <stdbool.h>
+
 /**
  * Creates a confirm button. Confirming emits the EVENT_CONFIRM event.
  * @param[in] longtouch if true, hold gesture is required, otherwise a simple tap.

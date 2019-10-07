@@ -15,6 +15,8 @@
 #ifndef _SHOW_LOGO_H_
 #define _SHOW_LOGO_H_
 
+#include <ui/component.h>
+
 /**
  * Creates an show_logo screen and registers a done callback.
  * @param[in] done_callback The callback that is called when the show_logo has been selected.

@@ -17,6 +17,8 @@
 
 #include <ui/component.h>
 
+#include <stdint.h>
+
 component_t* confirm_mnemonic_create(
     const char** wordlist,
     uint8_t length,

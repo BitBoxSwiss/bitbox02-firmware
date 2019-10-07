@@ -17,6 +17,8 @@
 
 #include <ui/component.h>
 
+#include <stdbool.h>
+
 /**
  * Creates a confirm screen.
  * @param[in] title The confirmation title of the screen.

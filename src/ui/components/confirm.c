@@ -14,9 +14,13 @@
 
 #include "confirm.h"
 #include "../event.h"
-#include "ui_components.h"
+#include "confirm_gesture.h"
+#include "icon_button.h"
+#include "label.h"
+
 #include <hardfault.h>
 #include <screen.h>
+
 #include <string.h>
 
 typedef struct {

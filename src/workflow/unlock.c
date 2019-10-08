@@ -38,10 +38,10 @@ static bool _get_mnemonic_passphrase(char* passphrase_out)
     char mnemonic_passphrase_repeat[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     UTIL_CLEANUP_STR(mnemonic_passphrase_repeat);
     while (true) {
-        if (!password_enter("Enter\noptional passphrase", mnemonic_passphrase)) {
+        if (!password_enter("Enter\noptional passphrase", true, mnemonic_passphrase)) {
             return false;
         }
-        if (!password_enter("Confirm\noptional passphrase", mnemonic_passphrase_repeat)) {
+        if (!password_enter("Confirm\noptional passphrase", true, mnemonic_passphrase_repeat)) {
             return false;
         }
         if (STREQ(mnemonic_passphrase, mnemonic_passphrase_repeat)) {
@@ -126,7 +126,7 @@ bool workflow_unlock(void)
     while (true) {
         char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
         UTIL_CLEANUP_STR(password);
-        if (!password_enter("Enter password", password)) {
+        if (!password_enter("Enter password", false, password)) {
             return false;
         }
 

@@ -16,6 +16,9 @@
 #define _UI_UTIL_
 
 #include <ui/component.h>
+#include <ui/ugui/ugui.h>
+
+#define UI_UTIL_VISIBLE_SPACE_WIDTH 5
 
 enum screen_position_t {
     CENTER,
@@ -181,5 +184,11 @@ void ui_util_position_right_center_offset(
     component_t* parent,
     component_t* child,
     int16_t right_offset);
+
+/**
+ * Draw an underbracket for a space so it is visible.
+ * @param[in] font Font to guide the size of the underbracket.
+ */
+void ui_util_draw_visible_space(UG_S16 x, UG_S16 y, const UG_FONT* font);
 
 #endif

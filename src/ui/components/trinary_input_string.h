@@ -45,6 +45,7 @@ component_t* trinary_input_string_create_wordlist(
 
 component_t* trinary_input_string_create_password(
     const char* title,
+    bool special_chars,
     void (*confirm_cb)(const char* input),
     void (*cancel_cb)(void));
 

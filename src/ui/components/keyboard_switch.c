@@ -32,6 +32,8 @@ typedef struct {
     keyboard_mode_t mode;
     slider_location_t location;
     bool active; // Marker is 'active', i.e., touched
+    // if true, the special chars keyboard mode is available.
+    bool special_chars;
 } keyboard_switch_data_t;
 
 /**
@@ -44,10 +46,6 @@ static void _render(component_t* component)
     UG_FontSelect(&font_font_a_9X9);
     UG_S16 w = 0, h = 0;
     switch (ks_data->mode) {
-    case DIGITS:
-        UG_MeasureString(&w, &h, "123");
-        UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "123", false);
-        break;
     case LOWER_CASE:
         UG_MeasureString(&w, &h, "abc");
         UG_PutString((SCREEN_WIDTH - w) / 2 + 2, 1, "abc", false);
@@ -55,6 +53,14 @@ static void _render(component_t* component)
     case UPPER_CASE:
         UG_MeasureString(&w, &h, "ABC");
         UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "ABC", false);
+        break;
+    case DIGITS:
+        UG_MeasureString(&w, &h, "123");
+        UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "123", false);
+        break;
+    case SPECIAL_CHARS:
+        UG_MeasureString(&w, &h, "&?+");
+        UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "&?+", false);
         break;
     default:
         Abort("Keyboard mode unrecognized");
@@ -81,14 +87,17 @@ static void _on_event(const event_t* event, component_t* component)
     switch (event->id) {
     case EVENT_TOGGLE_ALPHANUMERIC:
         switch (ks_data->mode) {
-        case DIGITS:
-            ks_data->mode = LOWER_CASE;
-            break;
         case LOWER_CASE:
             ks_data->mode = UPPER_CASE;
             break;
         case UPPER_CASE:
             ks_data->mode = DIGITS;
+            break;
+        case DIGITS:
+            ks_data->mode = ks_data->special_chars ? SPECIAL_CHARS : LOWER_CASE;
+            break;
+        case SPECIAL_CHARS:
+            ks_data->mode = LOWER_CASE;
             break;
         default:
             Abort("Keyboard mode unrecognized");
@@ -135,12 +144,10 @@ static component_functions_t _component_functions = {
 
 /********************************** Create Instance **********************************/
 
-/**
- * Creates a keyboard switch component.
- * @param[in] location The slider location.
- * @param[in] parent The parent component.
- */
-component_t* keyboard_switch_create(slider_location_t location, component_t* parent)
+component_t* keyboard_switch_create(
+    slider_location_t location,
+    bool special_chars,
+    component_t* parent)
 {
     component_t* keyboard_switch = malloc(sizeof(component_t));
     if (!keyboard_switch) {
@@ -157,6 +164,7 @@ component_t* keyboard_switch_create(slider_location_t location, component_t* par
     ks_data->location = location;
     ks_data->mode = LOWER_CASE;
     ks_data->active = false;
+    ks_data->special_chars = special_chars;
 
     keyboard_switch->data = ks_data;
     keyboard_switch->f = &_component_functions;

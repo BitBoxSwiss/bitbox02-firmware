@@ -24,10 +24,11 @@
  * Starts the enter password workflow.
  * This call blocks.
  * @param[in] title screen
+ * @param[in] make the special characters keyboard available.
  * @param[out] password_out must be SET_PASSWORD_MAX_PASSWORD_LENGTH bytes (including null
  * terminator). Use `UTIL_CLEANUP_STR` to make sure that the password is destroyed after use.
  * @return false if the call was cancelled.
  */
-USE_RESULT bool password_enter(const char* title, char* password_out);
+USE_RESULT bool password_enter(const char* title, bool special_chars, char* password_out);
 
 #endif

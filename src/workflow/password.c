@@ -34,10 +34,10 @@ bool password_set(char* password_out)
     UTIL_CLEANUP_STR(password);
     char password_repeat[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     UTIL_CLEANUP_STR(password_repeat);
-    if (!password_enter("Set password", password)) {
+    if (!password_enter("Set password", false, password)) {
         return false;
     }
-    if (!password_enter("Repeat password", password_repeat)) {
+    if (!password_enter("Repeat password", false, password_repeat)) {
         return false;
     }
     if (!STREQ(password, password_repeat)) {
@@ -65,7 +65,7 @@ bool password_check(void)
     }
     char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     UTIL_CLEANUP_STR(password);
-    if (!password_enter("Unlocking device\nrequired", password)) {
+    if (!password_enter("Unlocking device\nrequired", false, password)) {
         return false;
     }
     return workflow_unlock_and_handle_error(password) == KEYSTORE_OK;

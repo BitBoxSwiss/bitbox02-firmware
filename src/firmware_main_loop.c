@@ -12,26 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _UI_SCREEN_PROCESS_H_
-#define _UI_SCREEN_PROCESS_H_
+#include "firmware_main_loop.h"
 
-#include "component.h"
-#include <stdbool.h>
+#include "ui/screen_process.h"
+#include "usb/usb_processing.h"
 
-void ui_screen_render_component(component_t* component);
-
-/**
- * Runs the UI once.
- *
- * This function will update the screen (if needed)
- * and process gesture-related events.
- */
-void screen_process(void);
-
-/**
- * Period of screen updates.
- * The screen is refreshed every SCREEN_FRAME_RATE event loops cycles.
- */
-#define SCREEN_FRAME_RATE 30
-
+void firmware_main_loop(void)
+{
+    while (1) {
+        screen_process();
+        usb_processing_process(usb_processing_hww());
+#if defined(APP_U2F)
+        usb_processing_process(usb_processing_u2f());
 #endif
+    }
+}

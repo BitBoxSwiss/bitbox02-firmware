@@ -22,7 +22,7 @@
 
 #include <wally_bip39.h>
 
-#include <ui/screen_process.h>
+#include <firmware_main_loop.h>
 
 #include "hardfault.h"
 #include "keystore.h"
@@ -80,7 +80,7 @@ int main(void)
 
     workflow_show_mnemonic_create();
 
-    ui_screen_process(NULL);
+    firmware_main_loop();
 }
 
 #pragma GCC diagnostic pop

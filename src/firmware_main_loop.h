@@ -12,26 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _UI_SCREEN_PROCESS_H_
-#define _UI_SCREEN_PROCESS_H_
-
-#include "component.h"
-#include <stdbool.h>
-
-void ui_screen_render_component(component_t* component);
+#ifndef _FIRMWARE_MAIN_LOOP_H_
+#define _FIRMWARE_MAIN_LOOP_H_
 
 /**
- * Runs the UI once.
- *
- * This function will update the screen (if needed)
- * and process gesture-related events.
+ * Runs the main UI of the bitbox.
  */
-void screen_process(void);
-
-/**
- * Period of screen updates.
- * The screen is refreshed every SCREEN_FRAME_RATE event loops cycles.
- */
-#define SCREEN_FRAME_RATE 30
+void firmware_main_loop(void);
 
 #endif

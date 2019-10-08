@@ -19,9 +19,6 @@
 #include <ui/components/waiting.h>
 #include <ui/screen_process.h>
 #include <ui/ugui/ugui.h>
-#include <usb/usb_processing.h>
-
-#define SCREEN_FRAME_RATE 30
 
 static uint8_t screen_frame_cnt = 0;
 
@@ -32,6 +29,23 @@ void ui_screen_render_component(component_t* component)
     component->position.top = 0;
     component->f->render(component);
     UG_SendBuffer();
+}
+
+/**
+ * Detects if the screen component being displayed has changed
+ * since the last time this function was called.
+ * This stores the last observed component into a global.
+ *
+ * @param[in] current_component Current on-screen component.
+ */
+static bool _screen_has_changed(const component_t* current_component)
+{
+    static const component_t* last_observed_comp = NULL;
+    if (last_observed_comp != current_component) {
+        last_observed_comp = current_component;
+        return true;
+    }
+    return false;
 }
 
 static component_t* _get_waiting_screen(void)
@@ -46,52 +60,44 @@ static component_t* _get_waiting_screen(void)
     return waiting_screen;
 }
 
-static void _screen_process(bool (*is_done)(void), void (*on_timeout)(void), const uint32_t timeout)
+/**
+ * Renders the provided component on the display.
+ *
+ * @param[in] component Screen to draw.
+ */
+static void _screen_draw(component_t* component)
 {
-    component_t* waiting_screen = _get_waiting_screen();
-    uint32_t timeout_cnt = 0;
-
-    bool screen_new = false;
-    component_t* component = NULL;
-    while (is_done == NULL || !is_done()) {
-        component_t* next_component = ui_screen_stack_top();
-        if (next_component == NULL) {
-            next_component = waiting_screen;
-        }
-        screen_new = false;
-        if (next_component != component) {
-            screen_new = true;
-            component = next_component;
-        }
-        gestures_detect(screen_new, component->emit_without_release);
-        if (screen_frame_cnt == SCREEN_FRAME_RATE) {
-            if (is_done != NULL && on_timeout != NULL && timeout_cnt > timeout) {
-                on_timeout();
-            }
-            screen_frame_cnt = 0;
-            timeout_cnt += 1;
-            ui_screen_render_component(component);
-        }
-        screen_frame_cnt++;
-        ui_screen_stack_cleanup();
-        if (is_done == NULL) {
-            usb_processing_process(usb_processing_hww());
-#if defined(APP_U2F)
-            usb_processing_process(usb_processing_u2f());
-#endif
-        }
+    if (screen_frame_cnt == SCREEN_FRAME_RATE) {
+        screen_frame_cnt = 0;
+        ui_screen_render_component(component);
     }
+    screen_frame_cnt++;
 }
 
-void ui_screen_process(bool (*is_done)(void))
+/*
+ * Select which activity we should draw next
+ * (or fallback to the idle screen).
+ */
+static component_t* _get_ui_top_component(void)
 {
-    _screen_process(is_done, NULL, 0);
+    component_t* result = ui_screen_stack_top();
+    if (!result) {
+        return _get_waiting_screen();
+    }
+    return result;
 }
 
-void ui_screen_process_with_timeout(
-    bool (*is_done)(void),
-    void (*on_timeout)(void),
-    uint32_t timeout)
+void screen_process(void)
 {
-    _screen_process(is_done, on_timeout, timeout);
+    component_t* component = _get_ui_top_component();
+    _screen_draw(component);
+
+    /*
+     * If we have changed activity, the gestures
+     * detection must start over.
+     */
+    bool screen_new = _screen_has_changed(component);
+    gestures_detect(screen_new, component->emit_without_release);
+
+    ui_screen_stack_cleanup();
 }

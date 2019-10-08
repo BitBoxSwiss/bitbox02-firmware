@@ -297,7 +297,6 @@ void trinary_input_char_set_alphabet(
 /********************************** Create Instance **********************************/
 
 component_t* trinary_input_char_create(
-    const char* alphabet,
     void (*character_chosen_cb)(component_t*, char),
     component_t* parent)
 {
@@ -319,8 +318,6 @@ component_t* trinary_input_char_create(
     component->dimension.height = SCREEN_HEIGHT;
 
     data->character_chosen_cb = character_chosen_cb;
-
-    trinary_input_char_set_alphabet(component, alphabet, 1);
 
     return component;
 }

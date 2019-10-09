@@ -42,9 +42,8 @@ typedef struct {
 /**
  * Processes an incoming USB packet.
  * @param[in] frame The frame that is to be processed.
- * @param[in] send_packet The function to be called to send the response packet.
  * @return true if we are waiting for more frames to complete a packet, false otherwise.
  */
-bool usb_packet_process(const USB_FRAME* frame, void (*send_packet)(void));
+bool usb_packet_process(const USB_FRAME* frame);
 
 #endif

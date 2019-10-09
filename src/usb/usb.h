@@ -15,6 +15,7 @@
 #ifndef _USB_H_
 #define _USB_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 /**
@@ -26,5 +27,7 @@ int32_t usb_start(void (*on_hww_init)(void));
  * Stop the USB interfaces.
  */
 void usb_stop(void);
+
+bool usb_is_enabled(void);
 
 #endif

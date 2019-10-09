@@ -14,16 +14,25 @@
 
 #include "firmware_main_loop.h"
 
+#include "hww.h"
+#include "u2f.h"
 #include "ui/screen_process.h"
+#include "usb/usb.h"
 #include "usb/usb_processing.h"
 
 void firmware_main_loop(void)
 {
     while (1) {
         screen_process();
-        usb_processing_process(usb_processing_hww());
+        if (usb_is_enabled()) {
+            usb_processing_process(usb_processing_hww());
 #if APP_U2F == 1
-        usb_processing_process(usb_processing_u2f());
+            usb_processing_process(usb_processing_u2f());
 #endif
+            hww_process();
+#if APP_U2F == 1
+            u2f_process();
+#endif
+        }
     }
 }

@@ -20,13 +20,11 @@
 
 /**
  * Presents user input in form of three buttons at the bottom, with at most three taps needed to
- * select a character.
- * @param[in] alphabet are the available characters. Can be at most 26 chars (27 including null).
+ * select a character. Use `trinary_input_char_set_alphabet()` to set the current keyboard.
  * @param[in] character_chosen_cb will be called after a letter is chosen.
  * @param[in] parent parent component.
  */
 component_t* trinary_input_char_create(
-    const char* alphabet,
     void (*character_chosen_cb)(component_t*, char),
     component_t* parent);
 

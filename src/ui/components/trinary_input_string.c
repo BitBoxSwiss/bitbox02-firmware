@@ -417,7 +417,7 @@ static component_t* _create(
     data->title_component = label_create(title, NULL, CENTER, component);
     ui_util_add_sub_component(component, data->title_component);
 
-    data->trinary_char_component = trinary_input_char_create("", _letter_chosen, component);
+    data->trinary_char_component = trinary_input_char_create(_letter_chosen, component);
     ui_util_add_sub_component(component, data->trinary_char_component);
     _set_alphabet(component);
     _set_can_confirm(component);

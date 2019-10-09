@@ -15,16 +15,21 @@
 #ifndef _U2F_APP_H_
 #define _U2F_APP_H_
 
-#include "workflow/async.h"
 #include <compiler_util.h>
 
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <util.h>
+#include <workflow/workflow.h>
+
+/** Size of application IDs */
+#define U2F_APPID_SIZE 32
+
 enum u2f_app_confirm_t {
+    U2F_APP_NONE,
     U2F_APP_REGISTER,
     U2F_APP_AUTHENTICATE,
-    U2F_APP_BOGUS,
 };
 
 /**
@@ -34,9 +39,13 @@ enum u2f_app_confirm_t {
  * @param[out] result true if the user accepts, false for rejection.
  * @return Ready if result is ready, NotReady otherwise
  */
-USE_RESULT enum workflow_async_ready u2f_app_confirm(
-    enum u2f_app_confirm_t type,
-    const uint8_t* app_id,
-    bool* result);
+void u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id);
+
+async_op_result_t u2f_app_confirm_retry(enum u2f_app_confirm_t type, const uint8_t* app_id);
+
+/**
+ * Clears any outstanding confirmation.
+ */
+void u2f_app_confirm_finish(void);
 
 #endif

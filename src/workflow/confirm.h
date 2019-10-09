@@ -15,7 +15,6 @@
 #ifndef _WORKFLOW_CONFIRM_H_
 #define _WORKFLOW_CONFIRM_H_
 
-#include "async.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <ui/components/confirm.h>
@@ -32,28 +31,6 @@ workflow_t* workflow_confirm(
     const confirm_params_t* params,
     void (*callback)(bool, void*),
     void* callback_param);
-
-/**
- * Confirm something with the user asynchronously.
- *
- * Call this function with the same parameters until it returns WORKFLOW_ASYNC_READY. Then and only
- * then the `result` argument is set to a valid value.
- *
- * @param[in] title shown at the top
- * @param[in] body shown in the center
- * @param[in] font if not NULL will use the specified font for the body
- * @param[in] accept_only if true, the user can only confirm, not reject.
- * @param[in] longtouch if true, require the hold gesture to confirm instead of tap.
- * @param[out] result true if the user accepted, false if the user rejected.
- * @return WORKFLOW_ASYNC_NOT_READY if user has not repsonded yet, WORKFLOW_ASYNC_READY if user has
- * responded.
- */
-enum workflow_async_ready workflow_confirm_async(
-    const char* title,
-    const char* body,
-    const UG_FONT* font,
-    bool accept_only,
-    bool* result);
 
 /**
  * Confirm something with the user.

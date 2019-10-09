@@ -14,7 +14,6 @@
 
 #include "confirm.h"
 
-#include "async.h"
 #include "blocking.h"
 #include "hardfault.h"
 
@@ -124,50 +123,6 @@ workflow_t* workflow_confirm(
     data->callback_param = callback_param;
     result->data = data;
     return result;
-}
-
-static bool _async_result = false;
-static bool _have_async_result = false;
-
-static void _confirm_complete_async(bool result, void* param)
-{
-    (void)param;
-    _async_result = result;
-    _have_async_result = true;
-    ui_screen_stack_pop();
-}
-
-static enum _confirm_async_state {
-    CONFIRM_IDLE,
-    CONFIRM_WAIT,
-} _confirm_async_state = CONFIRM_IDLE;
-
-enum workflow_async_ready workflow_confirm_async(
-    const char* title,
-    const char* body,
-    const UG_FONT* font,
-    bool accept_only,
-    bool* result)
-{
-    switch (_confirm_async_state) {
-    case CONFIRM_IDLE:
-        _async_result = false;
-        const confirm_params_t params = {
-            .title = title, .body = body, .font = font, .accept_only = accept_only};
-        workflow_stack_start_workflow(workflow_confirm(&params, _confirm_complete_async, NULL));
-        _confirm_async_state = CONFIRM_WAIT;
-        /* FALLTHRU */
-    case CONFIRM_WAIT:
-        if (!_have_async_result) {
-            return WORKFLOW_ASYNC_NOT_READY;
-        }
-        _have_async_result = false;
-        _confirm_async_state = CONFIRM_IDLE;
-        *result = _async_result;
-        return WORKFLOW_ASYNC_READY;
-    default:
-        Abort("workflow_confirm: Internal error");
-    }
 }
 
 static void _confirm_blocking_cb(bool status, void* param)

@@ -2,11 +2,15 @@
 
 #include <hardfault.h>
 #include <ui/screen_process.h>
+#include <ui/workflow_stack.h>
 #include <util.h>
 #include <workflow/confirm.h>
 
 #include <stddef.h>
 #include <stdio.h>
+
+#define APPID_BOGUS_CHROMIUM "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+#define APPID_BOGUS_FIREFOX "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
 
 typedef struct {
     uint8_t app_id[32];
@@ -28,6 +32,17 @@ static const app_t _apps[] = {
     },
 };
 
+struct {
+    /** Type of outstanding async operation. */
+    enum u2f_app_confirm_t outstanding_confirm;
+    /** App ID of the outstanding async operation. */
+    uint8_t app_id[32];
+    /** Whether the outstanding async operation has been confirmed. */
+    bool confirmed;
+    /** Whether the confirmation step has finished. */
+    bool confirmed_done;
+} _state;
+
 // appid: 32 byte appid
 // out: string,
 static void _app_string(const uint8_t* app_id, char* out, size_t out_len)
@@ -44,28 +59,60 @@ static void _app_string(const uint8_t* app_id, char* out, size_t out_len)
     snprintf(out, out_len, "Unknown site:\n%.16s\n%.16s", appid_hex, appid_hex + 16);
 }
 
-enum workflow_async_ready u2f_app_confirm(
-    enum u2f_app_confirm_t type,
-    const uint8_t* app_id,
-    bool* result)
+static void _confirm_cb(bool result, void* param)
+{
+    (void)param;
+    _state.confirmed = result;
+    _state.confirmed_done = true;
+}
+
+static bool _is_app_id_bogus(const uint8_t* app_id)
+{
+    return MEMEQ(app_id, APPID_BOGUS_CHROMIUM, U2F_APPID_SIZE) ||
+           MEMEQ(app_id, APPID_BOGUS_FIREFOX, U2F_APPID_SIZE);
+}
+
+void u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
 {
     char app_string[100] = {0};
     const char* title;
     switch (type) {
     case U2F_APP_REGISTER:
-        title = "U2F register";
-        _app_string(app_id, app_string, sizeof(app_string));
+        if (!_is_app_id_bogus(app_id)) {
+            title = "U2F register";
+            _app_string(app_id, app_string, sizeof(app_string));
+        } else {
+            // If the authentication fails with the "Bad key handle" the browser will execute bogus
+            // registrations to make the device blink.
+            title = "";
+            snprintf(app_string, sizeof(app_string), "%s", "Use U2F?");
+        }
         break;
     case U2F_APP_AUTHENTICATE:
         title = "U2F authenticate";
         _app_string(app_id, app_string, sizeof(app_string));
         break;
-    case U2F_APP_BOGUS:
-        title = "";
-        snprintf(app_string, sizeof(app_string), "%s", "Use U2F?");
-        break;
     default:
         Abort("u2f_app_confirm: Internal error");
     }
-    return workflow_confirm_async(title, app_string, NULL, false, result);
+    confirm_params_t params = {
+        .title = title,
+        .body = app_string,
+    };
+    _state.confirmed_done = false;
+    _state.outstanding_confirm = type;
+    memcpy(_state.app_id, app_id, 32);
+    workflow_stack_start_workflow(workflow_confirm(&params, _confirm_cb, NULL));
+}
+
+async_op_result_t u2f_app_confirm_retry(enum u2f_app_confirm_t type, const uint8_t* app_id)
+{
+    if (_state.outstanding_confirm != type || !MEMEQ(app_id, _state.app_id, 32)) {
+        Abort("Arbitration failed for U2F confirmation.");
+    }
+    if (!_state.confirmed_done) {
+        return ASYNC_OP_NOT_READY;
+    }
+    _state.outstanding_confirm = U2F_APP_NONE;
+    return _state.confirmed ? ASYNC_OP_TRUE : ASYNC_OP_FALSE;
 }

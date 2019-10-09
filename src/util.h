@@ -156,4 +156,10 @@ typedef struct {
     const size_t len;
 } in_buffer_t;
 
+/**
+ * Enum used to represent the result of an operation
+ * which might return true, false, or "not finished yet".
+ */
+typedef enum { ASYNC_OP_TRUE, ASYNC_OP_FALSE, ASYNC_OP_NOT_READY } async_op_result_t;
+
 #endif

@@ -585,6 +585,12 @@ class BitBox02:
         request.display_base32.CopyFrom(hww.BitBoxBaseDisplayBase32Request(msg=msg))
         self._bitboxbase_query(request)
 
+    def base_set_config(self, hostname: str) -> None:
+        # pylint: disable=no-member
+        request = hww.BitBoxBaseRequest()
+        request.set_config.CopyFrom(hww.BitBoxBaseSetConfigRequest(hostname=hostname))
+        self._bitboxbase_query(request)
+
     def _perform_attestation(self) -> bool:
         """Sends a random challenge and verifies that the response can be verified with
         Shift's root attestation pubkeys. Returns True if the verification is successful."""

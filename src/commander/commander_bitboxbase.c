@@ -29,10 +29,25 @@ static commander_error_t _api_display_base32(const BitBoxBaseDisplayBase32Reques
     return COMMANDER_OK;
 }
 
+static commander_error_t _api_base_set_config(const BitBoxBaseSetConfigRequest* request)
+{
+    if (!bitboxbase_config_set(
+            request->status_led_mode,
+            request->status_screen_mode,
+            request->hostname,
+            strlen(request->hostname),
+            request->default_display_duration)) {
+        return COMMANDER_ERR_GENERIC;
+    }
+    return COMMANDER_OK;
+}
+
 commander_error_t commander_bitboxbase(const BitBoxBaseRequest* request) {
     switch(request->which_request) {
     case BitBoxBaseRequest_display_base32_tag:
         return _api_display_base32(&(request->request.display_base32));
+    case BitBoxBaseRequest_set_config_tag:
+        return _api_base_set_config(&(request->request.set_config));
     default:
         return COMMANDER_ERR_GENERIC;
     }

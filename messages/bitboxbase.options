@@ -13,3 +13,4 @@
 // limitations under the License.
 
 BitBoxBaseDisplayBase32Request.msg fixed_length:true max_size:32
+BitBoxBaseSetConfigRequest.hostname fixed_length:true max_size:64

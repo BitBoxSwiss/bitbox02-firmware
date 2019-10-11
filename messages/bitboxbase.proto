@@ -18,8 +18,25 @@ message BitBoxBaseDisplayBase32Request {
   bytes msg = 1;
 }
 
+message BitBoxBaseSetConfigRequest {
+  enum StatusLedMode {
+    LED_ALWAYS = 0; // display on led when status is OK, WARNING and ERROR
+    LED_ON_WARNING = 1; // display on led when status is WARNING and ERROR
+    LED_ON_ERROR = 2; // display on led when status is ERROR
+  }
+  StatusLedMode status_led_mode = 1;
+  enum StatusScreenMode {
+    SCREEN_ON_WARNING = 0; // display on screen when status is WARNING and ERROR
+    SCREEN_ON_ERROR = 1; // display on screen when status is ERROR
+  }
+  StatusScreenMode status_screen_mode = 2;
+  string hostname = 3;
+  uint32 default_display_duration = 4;
+}
+
 message BitBoxBaseRequest {
   oneof request {
     BitBoxBaseDisplayBase32Request display_base32 = 1;
+    BitBoxBaseSetConfigRequest set_config = 2;
   }
 }

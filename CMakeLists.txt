@@ -75,8 +75,8 @@ endif()
 # Finds objcopy and other utilities for us
 if(CMAKE_CROSSCOMPILING)
   include(CMakeFindBinUtils)
-  find_program(CMAKE_SIZE "${TOOLCHAIN_PREFIX}size" HINTS /usr/local/bin)
-  message(STATUS size: ${CMAKE_SIZE} ${TOOLCHAIN_PREFIX}size)
+  find_program(CMAKE_SIZE "${TOOLCHAIN_PREFIX}size")
+  message(STATUS "size: ${CMAKE_SIZE} ${TOOLCHAIN_PREFIX}size")
 endif()
 
 

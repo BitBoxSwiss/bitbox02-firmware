@@ -1,8 +1,10 @@
 set(CMAKE_SYSTEM_NAME "Generic")
 set(CMAKE_SYSTEM_PROCESSOR "arm")
 
-set(TOOLCHAIN_PREFIX "arm-none-eabi-")
+set(TOOLCHAIN_PREFIX_PREFIX "arm-none-eabi")
+set(TOOLCHAIN_PREFIX "${TOOLCHAIN_PREFIX_PREFIX}-")
 set(CMAKE_C_COMPILER "/usr/local/bin/${TOOLCHAIN_PREFIX}gcc")
+set(CMAKE_SYSROOT "/usr/local/${TOOLCHAIN_PREFIX_PREFIX}")
 
 # Search for programs in the build host directories
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)

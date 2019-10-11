@@ -16,10 +16,6 @@
 #-----------------------------------------------------------------------------
 # Source files
 
-#include(${CMAKE_SOURCE_DIR}/src/CMakeLists.txt)
-
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/tools/nanopb/extra)
-find_package(Nanopb REQUIRED)
 include_directories(${NANOPB_INCLUDE_DIRS})
 
 set(SOURCES

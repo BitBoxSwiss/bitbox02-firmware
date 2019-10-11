@@ -42,4 +42,6 @@ make -C tools/go/src/atecc608a test
 # Build device tests
 make -j8 device-tests
 
+# Don't generate graphics in CI
+(cd build; cmake -DDOC_GRAPHS=NO ..)
 make -j8 docs

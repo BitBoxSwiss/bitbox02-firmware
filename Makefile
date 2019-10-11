@@ -53,8 +53,8 @@ bootloader-btc-production: | build
 	$(MAKE) -C build bootloader-btc-production.elf
 factory-setup: | build
 	$(MAKE) -C build factory-setup.elf
-docs: | build-build
-	$(MAKE) -C build-build doc
+docs: | build
+	$(MAKE) -C build doc
 unit-test: | build-build
 	$(MAKE) -C build-build
 device-tests: | build
@@ -106,5 +106,6 @@ ci:
 prepare-tidy: | build build-build
 	make -C build generate-protobufs
 	make -C build-build generate-protobufs
+	make -C build rust-bindgen
 clean:
 	rm -rf build build-build

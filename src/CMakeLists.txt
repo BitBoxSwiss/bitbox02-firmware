@@ -237,7 +237,7 @@ if(CMAKE_CROSSCOMPILING)
   foreach(bootloader ${BOOTLOADERS})
     set(elf ${bootloader}.elf)
     add_executable(${elf} ${BOOTLOADER-SOURCES})
-    target_link_libraries(${elf} PRIVATE c asf4-drivers-min -Wl,-u,exception_table)
+    target_link_libraries(${elf} PRIVATE c asf4-drivers-min samd51a-ds CMSIS -Wl,-u,exception_table)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_include_directories(${elf} SYSTEM PRIVATE ${SYSTEMINCLUDES})
     target_compile_definitions(${elf} PRIVATE BOOTLOADER)
@@ -303,6 +303,7 @@ if(CMAKE_CROSSCOMPILING)
         samd51a-ds
         asf4-drivers-min
         asf4-drivers
+        CMSIS
         -Wl,-u,exception_table)
     add_dependencies(${elf} generate-protobufs)
     target_include_directories(${elf} PRIVATE ${INCLUDES})

@@ -159,7 +159,7 @@ if(CMAKE_CROSSCOMPILING)
       samd51a-ds/include
   )
   target_link_libraries(samd51a-ds
-    PUBLIC
+    PRIVATE
       CMSIS
   )
 
@@ -198,7 +198,8 @@ if(CMAKE_CROSSCOMPILING)
     asf4-drivers/usb/device/usbdc.c
     )
 
-  target_link_libraries(asf4-drivers-min samd51a-ds)
+  target_link_libraries(asf4-drivers-min
+    PRIVATE CMSIS samd51a-ds)
 
   target_include_directories(asf4-drivers-min SYSTEM
     PUBLIC
@@ -235,7 +236,9 @@ if(CMAKE_CROSSCOMPILING)
     asf4-drivers/diskio/sdmmc_diskio.c
   )
   target_link_libraries(asf4-drivers
-    PUBLIC
+    PRIVATE
+      CMSIS
+      samd51a-ds
       asf4-drivers-min
   )
 
@@ -278,7 +281,12 @@ if(CMAKE_CROSSCOMPILING)
     cryptoauthlib/lib/crypto/hashes/sha2_routines.c
     cryptoauthlib/lib/crypto/atca_crypto_sw_sha2.c
   )
-  target_link_libraries(cryptoauthlib asf4-drivers-min)
+  target_link_libraries(cryptoauthlib
+    PRIVATE
+      CMSIS
+      samd51a-ds
+      asf4-drivers-min
+  )
   target_compile_definitions(cryptoauthlib PUBLIC ATCA_HAL_CUSTOM ATCA_NO_POLL)
   target_include_directories(cryptoauthlib SYSTEM PUBLIC cryptoauthlib/lib)
   target_compile_options(cryptoauthlib PRIVATE -Wno-pedantic -Wno-incompatible-pointer-types -Wno-unused-parameter -Wno-unused-variable)
@@ -287,7 +295,13 @@ if(CMAKE_CROSSCOMPILING)
     FatFs/source/ff.c
     FatFs/source/ffunicode.c
   )
-  target_link_libraries(fatfs asf4-drivers)
+  target_link_libraries(fatfs
+    PRIVATE
+      CMSIS
+      samd51a-ds
+      asf4-drivers-min
+      asf4-drivers
+  )
   target_include_directories(fatfs SYSTEM PUBLIC FatFs/source)
   target_compile_options(fatfs PRIVATE -Wno-switch-default)
 endif() # CMAKE_CROSSCOMPILING

@@ -62,6 +62,7 @@ target_compile_definitions(bitbox PUBLIC APP_BTC APP_LTC APP_U2F APP_ETH)
 add_dependencies(bitbox generate-protobufs)
 # needed to find version.h
 target_include_directories(bitbox SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
+# We must mark "exception_table" as used, otherwise it won't be linked in since it is in a static library
 target_link_libraries(bitbox
   PUBLIC
     wallycore
@@ -74,6 +75,10 @@ target_link_libraries(bitbox
     bignum # TODO: only eth
     sha3   # TODO: Only eth
     ctaes
+    samd51a-ds
+    asf4-drivers-min
+    asf4-drivers
+    CMSIS
     -Wl,-u,exception_table
 )
 
@@ -121,12 +126,14 @@ foreach(name ${TEST_LIST})
   add_dependencies(${elf} noise-c)
   add_dependencies(${elf} libwally-core)
   # We must link against libc before libbitbox because malloc depends on _sbrk
-  # We must mark "exception_table" as used, otherwise it won't be linked in since it is in a static library
   target_link_libraries(${elf}
     PRIVATE
       c
       bitbox
+      samd51a-ds
       asf4-drivers-min
+      asf4-drivers
+      CMSIS
       ${QTOUCHLIB_A}
       ${QTOUCHLIB_B}
       ${QTOUCHLIB_T}

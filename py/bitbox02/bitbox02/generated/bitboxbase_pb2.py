@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='bitboxbase.proto',
   package='',
   syntax='proto3',
-  serialized_pb=_b('\n\x10\x62itboxbase.proto\"-\n\x1e\x42itBoxBaseDisplayBase32Request\x12\x0b\n\x03msg\x18\x01 \x01(\x0c\"\xe5\x02\n\x1a\x42itBoxBaseSetConfigRequest\x12\x42\n\x0fstatus_led_mode\x18\x01 \x01(\x0e\x32).BitBoxBaseSetConfigRequest.StatusLedMode\x12H\n\x12status_screen_mode\x18\x02 \x01(\x0e\x32,.BitBoxBaseSetConfigRequest.StatusScreenMode\x12\x10\n\x08hostname\x18\x03 \x01(\t\x12 \n\x18\x64\x65\x66\x61ult_display_duration\x18\x04 \x01(\r\"E\n\rStatusLedMode\x12\x0e\n\nLED_ALWAYS\x10\x00\x12\x12\n\x0eLED_ON_WARNING\x10\x01\x12\x10\n\x0cLED_ON_ERROR\x10\x02\">\n\x10StatusScreenMode\x12\x15\n\x11SCREEN_ON_WARNING\x10\x00\x12\x13\n\x0fSCREEN_ON_ERROR\x10\x01\"\x8c\x01\n\x11\x42itBoxBaseRequest\x12\x39\n\x0e\x64isplay_base32\x18\x01 \x01(\x0b\x32\x1f.BitBoxBaseDisplayBase32RequestH\x00\x12\x31\n\nset_config\x18\x02 \x01(\x0b\x32\x1b.BitBoxBaseSetConfigRequestH\x00\x42\t\n\x07requestb\x06proto3')
+  serialized_pb=_b('\n\x10\x62itboxbase.proto\"-\n\x1e\x42itBoxBaseDisplayBase32Request\x12\x0b\n\x03msg\x18\x01 \x01(\x0c\"\xe5\x02\n\x1a\x42itBoxBaseSetConfigRequest\x12\x42\n\x0fstatus_led_mode\x18\x01 \x01(\x0e\x32).BitBoxBaseSetConfigRequest.StatusLedMode\x12H\n\x12status_screen_mode\x18\x02 \x01(\x0e\x32,.BitBoxBaseSetConfigRequest.StatusScreenMode\x12\x10\n\x08hostname\x18\x03 \x01(\t\x12 \n\x18\x64\x65\x66\x61ult_display_duration\x18\x04 \x01(\r\"E\n\rStatusLedMode\x12\x0e\n\nLED_ALWAYS\x10\x00\x12\x12\n\x0eLED_ON_WARNING\x10\x01\x12\x10\n\x0cLED_ON_ERROR\x10\x02\">\n\x10StatusScreenMode\x12\x15\n\x11SCREEN_ON_WARNING\x10\x00\x12\x13\n\x0fSCREEN_ON_ERROR\x10\x01\"2\n\x1e\x42itBoxBaseDisplayStatusRequest\x12\x10\n\x08\x64uration\x18\x01 \x01(\r\"\xc7\x01\n\x11\x42itBoxBaseRequest\x12\x39\n\x0e\x64isplay_base32\x18\x01 \x01(\x0b\x32\x1f.BitBoxBaseDisplayBase32RequestH\x00\x12\x31\n\nset_config\x18\x02 \x01(\x0b\x32\x1b.BitBoxBaseSetConfigRequestH\x00\x12\x39\n\x0e\x64isplay_status\x18\x03 \x01(\x0b\x32\x1f.BitBoxBaseDisplayStatusRequestH\x00\x42\t\n\x07requestb\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -159,6 +159,37 @@ _BITBOXBASESETCONFIGREQUEST = _descriptor.Descriptor(
 )
 
 
+_BITBOXBASEDISPLAYSTATUSREQUEST = _descriptor.Descriptor(
+  name='BitBoxBaseDisplayStatusRequest',
+  full_name='BitBoxBaseDisplayStatusRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='duration', full_name='BitBoxBaseDisplayStatusRequest.duration', index=0,
+      number=1, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=427,
+  serialized_end=477,
+)
+
+
 _BITBOXBASEREQUEST = _descriptor.Descriptor(
   name='BitBoxBaseRequest',
   full_name='BitBoxBaseRequest',
@@ -180,6 +211,13 @@ _BITBOXBASEREQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='display_status', full_name='BitBoxBaseRequest.display_status', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -195,8 +233,8 @@ _BITBOXBASEREQUEST = _descriptor.Descriptor(
       name='request', full_name='BitBoxBaseRequest.request',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=428,
-  serialized_end=568,
+  serialized_start=480,
+  serialized_end=679,
 )
 
 _BITBOXBASESETCONFIGREQUEST.fields_by_name['status_led_mode'].enum_type = _BITBOXBASESETCONFIGREQUEST_STATUSLEDMODE
@@ -205,14 +243,19 @@ _BITBOXBASESETCONFIGREQUEST_STATUSLEDMODE.containing_type = _BITBOXBASESETCONFIG
 _BITBOXBASESETCONFIGREQUEST_STATUSSCREENMODE.containing_type = _BITBOXBASESETCONFIGREQUEST
 _BITBOXBASEREQUEST.fields_by_name['display_base32'].message_type = _BITBOXBASEDISPLAYBASE32REQUEST
 _BITBOXBASEREQUEST.fields_by_name['set_config'].message_type = _BITBOXBASESETCONFIGREQUEST
+_BITBOXBASEREQUEST.fields_by_name['display_status'].message_type = _BITBOXBASEDISPLAYSTATUSREQUEST
 _BITBOXBASEREQUEST.oneofs_by_name['request'].fields.append(
   _BITBOXBASEREQUEST.fields_by_name['display_base32'])
 _BITBOXBASEREQUEST.fields_by_name['display_base32'].containing_oneof = _BITBOXBASEREQUEST.oneofs_by_name['request']
 _BITBOXBASEREQUEST.oneofs_by_name['request'].fields.append(
   _BITBOXBASEREQUEST.fields_by_name['set_config'])
 _BITBOXBASEREQUEST.fields_by_name['set_config'].containing_oneof = _BITBOXBASEREQUEST.oneofs_by_name['request']
+_BITBOXBASEREQUEST.oneofs_by_name['request'].fields.append(
+  _BITBOXBASEREQUEST.fields_by_name['display_status'])
+_BITBOXBASEREQUEST.fields_by_name['display_status'].containing_oneof = _BITBOXBASEREQUEST.oneofs_by_name['request']
 DESCRIPTOR.message_types_by_name['BitBoxBaseDisplayBase32Request'] = _BITBOXBASEDISPLAYBASE32REQUEST
 DESCRIPTOR.message_types_by_name['BitBoxBaseSetConfigRequest'] = _BITBOXBASESETCONFIGREQUEST
+DESCRIPTOR.message_types_by_name['BitBoxBaseDisplayStatusRequest'] = _BITBOXBASEDISPLAYSTATUSREQUEST
 DESCRIPTOR.message_types_by_name['BitBoxBaseRequest'] = _BITBOXBASEREQUEST
 
 BitBoxBaseDisplayBase32Request = _reflection.GeneratedProtocolMessageType('BitBoxBaseDisplayBase32Request', (_message.Message,), dict(
@@ -228,6 +271,13 @@ BitBoxBaseSetConfigRequest = _reflection.GeneratedProtocolMessageType('BitBoxBas
   # @@protoc_insertion_point(class_scope:BitBoxBaseSetConfigRequest)
   ))
 _sym_db.RegisterMessage(BitBoxBaseSetConfigRequest)
+
+BitBoxBaseDisplayStatusRequest = _reflection.GeneratedProtocolMessageType('BitBoxBaseDisplayStatusRequest', (_message.Message,), dict(
+  DESCRIPTOR = _BITBOXBASEDISPLAYSTATUSREQUEST,
+  __module__ = 'bitboxbase_pb2'
+  # @@protoc_insertion_point(class_scope:BitBoxBaseDisplayStatusRequest)
+  ))
+_sym_db.RegisterMessage(BitBoxBaseDisplayStatusRequest)
 
 BitBoxBaseRequest = _reflection.GeneratedProtocolMessageType('BitBoxBaseRequest', (_message.Message,), dict(
   DESCRIPTOR = _BITBOXBASEREQUEST,

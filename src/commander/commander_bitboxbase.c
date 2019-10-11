@@ -42,12 +42,21 @@ static commander_error_t _api_base_set_config(const BitBoxBaseSetConfigRequest* 
     return COMMANDER_OK;
 }
 
-commander_error_t commander_bitboxbase(const BitBoxBaseRequest* request) {
-    switch(request->which_request) {
+static commander_error_t _api_display_status(const BitBoxBaseDisplayStatusRequest* request)
+{
+    bitboxbase_display_status(request->duration);
+    return COMMANDER_OK;
+}
+
+commander_error_t commander_bitboxbase(const BitBoxBaseRequest* request)
+{
+    switch (request->which_request) {
     case BitBoxBaseRequest_display_base32_tag:
         return _api_display_base32(&(request->request.display_base32));
     case BitBoxBaseRequest_set_config_tag:
         return _api_base_set_config(&(request->request.set_config));
+    case BitBoxBaseRequest_display_status_tag:
+        return _api_display_status(&(request->request.display_status));
     default:
         return COMMANDER_ERR_GENERIC;
     }

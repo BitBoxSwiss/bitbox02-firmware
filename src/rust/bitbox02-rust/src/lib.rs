@@ -77,3 +77,15 @@ pub extern "C" fn bitboxbase_config_set(
     }
     true
 }
+
+#[no_mangle]
+pub extern "C" fn bitboxbase_display_status(duration: u64) {
+    // It is not safe to call any functions that also touch CONFIG at the same time
+    let config = unsafe { &CONFIG };
+    let duration = if duration > 0 {
+        Some(Duration::from_millis(duration))
+    } else {
+        None
+    };
+    bitboxbase::display::display_status(config, duration);
+}

@@ -34,9 +34,14 @@ message BitBoxBaseSetConfigRequest {
   uint32 default_display_duration = 4;
 }
 
+message BitBoxBaseDisplayStatusRequest {
+  uint32 duration = 1;
+}
+
 message BitBoxBaseRequest {
   oneof request {
     BitBoxBaseDisplayBase32Request display_base32 = 1;
     BitBoxBaseSetConfigRequest set_config = 2;
+    BitBoxBaseDisplayStatusRequest display_status = 3;
   }
 }

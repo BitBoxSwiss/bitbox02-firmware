@@ -1,2 +1,3 @@
-/py/bitbox02/generated/* linguist-generated=true
-/py/bitbox02u2f/generated/* linguist-generated=true
+/py/bitbox02/bitbox02/generated/* linguist-generated=true
+/py/bitbox02/bitbox02/generated/commands/* linguist-generated=true
+/py/bitbox02/bitbox02/generated/deprecated/* linguist-generated=true

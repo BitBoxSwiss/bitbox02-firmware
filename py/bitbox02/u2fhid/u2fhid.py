@@ -84,9 +84,17 @@ def write(hid_device: SupportsReadWrite, data: bytes, cmd: int, cid: int) -> Non
         data: Data to send
         cmd: U2F HID command
         cid: U2F HID channel ID
+    Throws:
+        ValueError: In case any value is out of range
     """
+    if cmd < 0 or cmd > 0xFF:
+        raise ValueError("Channel command is out of range '0 < cmd <= 0xFF'")
+    if cid < 0 or cid > 0xFFFFFFFF:
+        raise ValueError("Channel id is out of range '0 < cid <= 0xFFFFFFFF'")
     data = bytearray(data)
     data_len = len(data)
+    if data_len > 0xFFFF:
+        raise ValueError("Data is too large 'size <= 0xFFFF'")
     seq = 0
     idx = 0
     buf = b""
@@ -98,7 +106,7 @@ def write(hid_device: SupportsReadWrite, data: bytes, cmd: int, cid: int) -> Non
             buf = data[idx : idx + min(data_len, USB_REPORT_SIZE - 7)]
             hid_device.write(
                 b"\0"
-                + struct.pack(">IBH", cid, cmd, data_len & 0xFFFF)
+                + struct.pack(">IBH", cid, cmd, data_len)
                 + buf
                 + b"\xEE" * (USB_REPORT_SIZE - 7 - len(buf))
             )
@@ -127,7 +135,14 @@ def read(hid_device: SupportsReadWrite, cmd: int, cid: int, timeout: int = 5000)
         timeout: For how long to wait for more bytes from hid_device
     Returns:
         The read message combined from the u2fhid packets
+    Throws:
+        ValueError: In case any value is out of range
+        Exception: In case of USB communication issues
     """
+    if cmd < 0 or cmd > 0xFF:
+        raise ValueError("Channel command is out of range '0 < cmd <= 0xFF'")
+    if cid < 0 or cid > 0xFFFFFFFF:
+        raise ValueError("Channel id is out of range '0 < cid <= 0xFFFFFFFF'")
     timeout_ms = timeout * 1000
     buf = hid_device.read(USB_REPORT_SIZE, timeout_ms)
     if len(buf) >= 3:

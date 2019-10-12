@@ -42,7 +42,7 @@ try:
     from .generated import backup_commands_pb2 as backup
     from .generated import system_pb2 as system
 except ModuleNotFoundError:
-    print("Run `make messages` to generate the protobuf messages")
+    print("Run `make py` to generate the protobuf messages")
     sys.exit()
 
 try:

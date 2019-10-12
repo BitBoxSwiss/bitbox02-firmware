@@ -68,7 +68,7 @@ void label_update(component_t* component, const char* text)
         ui_util_position_left_center(parent, component);
         break;
     case CUSTOM_OFFSET:
-        //ui_util_position_left_center_offset(parent, component, data->offset);
+        // ui_util_position_left_center_offset(parent, component, data->offset);
         break;
     case RIGHT_CENTER:
         ui_util_position_right_center(parent, component);

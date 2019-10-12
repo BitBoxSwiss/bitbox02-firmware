@@ -10,6 +10,7 @@ crate-type = ["staticlib"]
 
 [dependencies]
 bitbox02 = {path = "../bitbox02"}
+binascii = "0.1"
 
 # For stack allocated strings
 [dependencies.arrayvec]

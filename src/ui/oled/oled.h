@@ -86,6 +86,11 @@ void oled_clear_buffer(void);
 void oled_mirror(bool mirror);
 
 /**
+ * Turn off oled
+ */
+void oled_off(void);
+
+/**
  * Set a screen pixel. This fills the frame buffer
  * prior to it being sent to the screen by oled_send_buffer().
  */

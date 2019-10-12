@@ -18,6 +18,22 @@
 use bitbox02_sys::{self, delay_ms, delay_us};
 use core::time::Duration;
 
+// Reexport the protobuf types
+pub use bitbox02_sys::BitBoxBaseConfirmPairingRequest;
+pub use bitbox02_sys::BitBoxBaseDisplayStatusRequest;
+pub use bitbox02_sys::BitBoxBaseHeartbeatRequest;
+pub use bitbox02_sys::BitBoxBaseSetConfigRequest;
+
+// Reexport as u16 since this is the correct type (bindgen will generate them as u32)
+#[allow(non_upper_case_globals)]
+pub const BitBoxBaseSetConfigRequest_hostname_tag: u16 =
+    bitbox02_sys::BitBoxBaseSetConfigRequest_hostname_tag as u16;
+#[allow(non_upper_case_globals)]
+pub const BitBoxBaseSetConfigRequest_ip_tag: u16 =
+    bitbox02_sys::BitBoxBaseSetConfigRequest_ip_tag as u16;
+
+pub mod util;
+
 pub fn ug_put_string(x: i16, y: i16, input: &str, inverted: bool) {
     // rust strings (&str) are not null-terminated, ensure that there always is a \0 byte.
     let len = core::cmp::min(127, input.len());
@@ -90,5 +106,72 @@ pub fn workflow_confirm(title: &str, body: &str, longtouch: bool, accept_only: b
             longtouch,
             accept_only,
         )
+    }
+}
+
+pub fn screen_print_debug(msg: &str, duration: i32) {
+    match str_to_cstr!(msg, 200) {
+        Ok(cstr) => unsafe {
+            bitbox02_sys::screen_print_debug(cstr.as_ptr() as *const _, duration)
+        },
+        Err(cstr) => unsafe {
+            bitbox02_sys::screen_print_debug(cstr.as_ptr() as *const _, duration)
+        },
+    }
+}
+
+pub fn bitboxbase_watchdog_reset() {
+    unsafe { bitbox02_sys::bitboxbase_watchdog_reset() }
+}
+
+pub fn leds_turn_small_led(led: i32, enabled: bool) {
+    if led < 0 || led > 4 {
+        panic!("Invalid led");
+    }
+    unsafe { bitbox02_sys::leds_turn_small_led(led, enabled) }
+}
+
+pub enum Color {
+    White,
+    Red,
+    Green,
+    Blue,
+    Yellow,
+    Purple,
+    Cyan,
+}
+
+pub fn leds_turn_big_led(led: i32, color: Option<Color>) {
+    if led < 0 || led > 2 {
+        panic!("Invalid led");
+    }
+    let c = match color {
+        None => bitbox02_sys::led_color_t_LED_COLOR_NONE,
+        Some(c) => match c {
+            Color::White => bitbox02_sys::led_color_t_LED_COLOR_WHITE,
+            Color::Red => bitbox02_sys::led_color_t_LED_COLOR_RED,
+            Color::Green => bitbox02_sys::led_color_t_LED_COLOR_GREEN,
+            Color::Blue => bitbox02_sys::led_color_t_LED_COLOR_BLUE,
+            Color::Yellow => bitbox02_sys::led_color_t_LED_COLOR_YELLOW,
+            Color::Purple => bitbox02_sys::led_color_t_LED_COLOR_PURPLE,
+            Color::Cyan => bitbox02_sys::led_color_t_LED_COLOR_CYAN,
+        },
+    };
+    unsafe { bitbox02_sys::leds_turn_big_led(led, c) }
+}
+
+pub fn sha256(input: &[u8], output: &mut [u8]) -> Result<(), ()> {
+    let res = unsafe {
+        bitbox02_sys::wally_sha256(
+            input.as_ptr(),
+            input.len(),
+            output.as_mut_ptr(),
+            output.len(),
+        )
+    };
+    if res == bitbox02_sys::WALLY_OK as i32 {
+        Ok(())
+    } else {
+        Err(())
     }
 }

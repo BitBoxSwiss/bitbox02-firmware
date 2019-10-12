@@ -19,8 +19,19 @@
 
 use core::panic::PanicInfo;
 
+mod error;
 #[macro_use]
 mod general;
+mod commander;
+mod platform;
+mod util;
+mod workflow;
+
+// A trick to convince cbindgen that an u8 is char.
+// cbindgen will convert `u8` to `uint8_t` and `i8` to `int8_t` which are `unsigned char` and
+// `signed char` respectively. `c_char` is converted to `char` without `signed` or `unsigned`.
+#[allow(non_camel_case_types)]
+type c_char = u8;
 
 // Whenever execution reaches somewhere it isn't supposed to rust code will "panic". Our panic
 // handler will print the available information on the screen. If we compile with `panic=abort`

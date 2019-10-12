@@ -12,20 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bitboxbase.pb.h>
-#include <bitboxbase/bitboxbase_watchdog.h>
-#include <platform/bitboxbase/leds.h>
-#include <ui/components/label.h>
-#include <ui/fonts/arial_fonts.h>
-#include <ui/oled/oled.h>
-#include <ui/screen_stack.h>
-#include <ui/ugui/ugui.h>
-#include <wally_crypto.h>
-#include <workflow/confirm.h>
-
-#if !defined(TESTING)
-#include <hal_delay.h>
-#else
-void delay_us(const uint16_t us);
-void delay_ms(const uint16_t ms);
-#endif
+/**
+ * Create a bitboxbase status screen
+ */
+void bitboxbase_status(void);

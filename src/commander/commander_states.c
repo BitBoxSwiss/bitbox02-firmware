@@ -32,6 +32,7 @@ static commander_states_endpoint_id _commands_anytime[] = {
     Request_check_sdcard_tag,
     Request_insert_remove_sdcard_tag,
     Request_list_backups_tag,
+    Request_bitboxbase_tag,
 };
 
 // api commands the host can invoke when the device is uninitialized.

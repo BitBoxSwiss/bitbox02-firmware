@@ -12,20 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bitboxbase.pb.h>
-#include <bitboxbase/bitboxbase_watchdog.h>
-#include <platform/bitboxbase/leds.h>
-#include <ui/components/label.h>
-#include <ui/fonts/arial_fonts.h>
-#include <ui/oled/oled.h>
-#include <ui/screen_stack.h>
-#include <ui/ugui/ugui.h>
-#include <wally_crypto.h>
-#include <workflow/confirm.h>
+#ifndef _BITBOXBASE_SCREENSAVER_H
+#define _BITBOXBASE_SCREENSAVER_H
 
-#if !defined(TESTING)
-#include <hal_delay.h>
-#else
-void delay_us(const uint16_t us);
-void delay_ms(const uint16_t ms);
+#include <stdbool.h>
+
+/**
+ * @file
+ *
+ * bitboxbase screensaver is a timer that keeps track of whether to turn off the display or not.
+ */
+
+/**
+ * Initialize counter
+ */
+void bitboxbase_screensaver_init(void);
+
+/**
+ * Check if screensaver should be enabled
+ */
+bool bitboxbase_screensaver_check(void);
+
+/**
+ * Reset counter
+ */
+void bitboxbase_screensaver_reset(void);
+
 #endif

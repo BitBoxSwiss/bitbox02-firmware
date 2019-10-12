@@ -396,7 +396,7 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(firmware-btc.elf PRIVATE firmware.c)
   target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY APP_BTC)
 
-  target_sources(firmware-base.elf PRIVATE bitboxbase/bitboxbase.c)
+  target_sources(firmware-base.elf PRIVATE bitboxbase/bitboxbase.c commander/commander_bitboxbase.c)
   target_compile_definitions(firmware-base.elf PRIVATE PRODUCT_BITBOX_BASE APP_BTC)
 
   target_link_libraries(firmware-base.elf PRIVATE bitbox02_rust)

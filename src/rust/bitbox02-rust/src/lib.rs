@@ -18,9 +18,18 @@ use core::panic::PanicInfo;
 use core::time::Duration;
 
 mod general;
+mod bitboxbase;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     print_debug!(0, "Internal error: {}", info);
     loop {}
+}
+
+#[no_mangle]
+pub extern "C" fn bitboxbase_workflow_display_base32(bytes: *const u8, bytes_len: usize) -> bool {
+    assert!(!bytes.is_null());
+    assert!(bytes_len > 0 && bytes_len <= 32);
+    let bytes = unsafe { core::slice::from_raw_parts(bytes, bytes_len) };
+    bitboxbase::workflow::display_base32(bytes)
 }

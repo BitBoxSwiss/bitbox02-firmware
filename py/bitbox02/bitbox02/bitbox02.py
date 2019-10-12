@@ -573,6 +573,18 @@ class BitBox02:
         request.set_mnemonic_passphrase_enabled.enabled = False
         self._msg_query(request, expected_response="success")
 
+    def _bitboxbase_query(self, bbb_request: hww.BitBoxBaseRequest) -> None:
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.bitboxbase.CopyFrom(bbb_request)
+        self._msg_query(request, expected_response="success")
+
+    def display_base32(self, msg: bytes) -> None:
+        # pylint: disable=no-member
+        request = hww.BitBoxBaseRequest()
+        request.display_base32.CopyFrom(hww.BitBoxBaseDisplayBase32Request(msg=msg))
+        self._bitboxbase_query(request)
+
     def _perform_attestation(self) -> bool:
         """Sends a random challenge and verifies that the response can be verified with
         Shift's root attestation pubkeys. Returns True if the verification is successful."""

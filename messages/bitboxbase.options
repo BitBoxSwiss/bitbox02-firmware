@@ -12,4 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod workflow;
+BitBoxBaseDisplayBase32Request.msg fixed_length:true max_size:32

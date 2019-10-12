@@ -21,6 +21,10 @@ from .bitbox02_system_pb2 import (
     SetPasswordRequest as bitbox02_system_pb2___SetPasswordRequest,
 )
 
+from .bitboxbase_pb2 import (
+    BitBoxBaseRequest as bitboxbase_pb2___BitBoxBaseRequest,
+)
+
 from .btc_pb2 import (
     BTCPubRequest as btc_pb2___BTCPubRequest,
     BTCSignInitRequest as btc_pb2___BTCSignInitRequest,
@@ -36,10 +40,6 @@ from .common_pb2 import (
 from .eth_pb2 import (
     ETHRequest as eth_pb2___ETHRequest,
     ETHResponse as eth_pb2___ETHResponse,
-)
-
-from google.protobuf.descriptor import (
-    Descriptor as google___protobuf___descriptor___Descriptor,
 )
 
 from google.protobuf.message import (
@@ -77,7 +77,6 @@ from typing_extensions import (
 
 
 class Error(google___protobuf___message___Message):
-    DESCRIPTOR: google___protobuf___descriptor___Descriptor = ...
     code = ... # type: int
     message = ... # type: typing___Text
 
@@ -96,7 +95,6 @@ class Error(google___protobuf___message___Message):
         def ClearField(self, field_name: typing_extensions___Literal[u"code",b"code",u"message",b"message"]) -> None: ...
 
 class Success(google___protobuf___message___Message):
-    DESCRIPTOR: google___protobuf___descriptor___Descriptor = ...
 
     def __init__(self,
         ) -> None: ...
@@ -106,7 +104,6 @@ class Success(google___protobuf___message___Message):
     def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
 
 class Request(google___protobuf___message___Message):
-    DESCRIPTOR: google___protobuf___descriptor___Descriptor = ...
 
     @property
     def random_number(self) -> random_number_pb2___RandomNumberRequest: ...
@@ -174,6 +171,9 @@ class Request(google___protobuf___message___Message):
     @property
     def restore_from_mnemonic(self) -> mnemonic_pb2___RestoreFromMnemonicRequest: ...
 
+    @property
+    def bitboxbase(self) -> bitboxbase_pb2___BitBoxBaseRequest: ...
+
     def __init__(self,
         *,
         random_number : typing___Optional[random_number_pb2___RandomNumberRequest] = None,
@@ -198,21 +198,21 @@ class Request(google___protobuf___message___Message):
         eth : typing___Optional[eth_pb2___ETHRequest] = None,
         reset : typing___Optional[bitbox02_system_pb2___ResetRequest] = None,
         restore_from_mnemonic : typing___Optional[mnemonic_pb2___RestoreFromMnemonicRequest] = None,
+        bitboxbase : typing___Optional[bitboxbase_pb2___BitBoxBaseRequest] = None,
         ) -> None: ...
     @classmethod
     def FromString(cls, s: bytes) -> Request: ...
     def MergeFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     if sys.version_info >= (3,):
-        def HasField(self, field_name: typing_extensions___Literal[u"btc_pub",u"btc_sign_init",u"btc_sign_input",u"btc_sign_output",u"check_backup",u"check_sdcard",u"create_backup",u"device_info",u"device_language",u"device_name",u"eth",u"insert_remove_sdcard",u"list_backups",u"perform_attestation",u"random_number",u"reboot",u"request",u"reset",u"restore_backup",u"restore_from_mnemonic",u"set_mnemonic_passphrase_enabled",u"set_password",u"show_mnemonic"]) -> bool: ...
-        def ClearField(self, field_name: typing_extensions___Literal[u"btc_pub",u"btc_sign_init",u"btc_sign_input",u"btc_sign_output",u"check_backup",u"check_sdcard",u"create_backup",u"device_info",u"device_language",u"device_name",u"eth",u"insert_remove_sdcard",u"list_backups",u"perform_attestation",u"random_number",u"reboot",u"request",u"reset",u"restore_backup",u"restore_from_mnemonic",u"set_mnemonic_passphrase_enabled",u"set_password",u"show_mnemonic"]) -> None: ...
+        def HasField(self, field_name: typing_extensions___Literal[u"bitboxbase",u"btc_pub",u"btc_sign_init",u"btc_sign_input",u"btc_sign_output",u"check_backup",u"check_sdcard",u"create_backup",u"device_info",u"device_language",u"device_name",u"eth",u"insert_remove_sdcard",u"list_backups",u"perform_attestation",u"random_number",u"reboot",u"request",u"reset",u"restore_backup",u"restore_from_mnemonic",u"set_mnemonic_passphrase_enabled",u"set_password",u"show_mnemonic"]) -> bool: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"bitboxbase",u"btc_pub",u"btc_sign_init",u"btc_sign_input",u"btc_sign_output",u"check_backup",u"check_sdcard",u"create_backup",u"device_info",u"device_language",u"device_name",u"eth",u"insert_remove_sdcard",u"list_backups",u"perform_attestation",u"random_number",u"reboot",u"request",u"reset",u"restore_backup",u"restore_from_mnemonic",u"set_mnemonic_passphrase_enabled",u"set_password",u"show_mnemonic"]) -> None: ...
     else:
-        def HasField(self, field_name: typing_extensions___Literal[u"btc_pub",b"btc_pub",u"btc_sign_init",b"btc_sign_init",u"btc_sign_input",b"btc_sign_input",u"btc_sign_output",b"btc_sign_output",u"check_backup",b"check_backup",u"check_sdcard",b"check_sdcard",u"create_backup",b"create_backup",u"device_info",b"device_info",u"device_language",b"device_language",u"device_name",b"device_name",u"eth",b"eth",u"insert_remove_sdcard",b"insert_remove_sdcard",u"list_backups",b"list_backups",u"perform_attestation",b"perform_attestation",u"random_number",b"random_number",u"reboot",b"reboot",u"request",b"request",u"reset",b"reset",u"restore_backup",b"restore_backup",u"restore_from_mnemonic",b"restore_from_mnemonic",u"set_mnemonic_passphrase_enabled",b"set_mnemonic_passphrase_enabled",u"set_password",b"set_password",u"show_mnemonic",b"show_mnemonic"]) -> bool: ...
-        def ClearField(self, field_name: typing_extensions___Literal[u"btc_pub",b"btc_pub",u"btc_sign_init",b"btc_sign_init",u"btc_sign_input",b"btc_sign_input",u"btc_sign_output",b"btc_sign_output",u"check_backup",b"check_backup",u"check_sdcard",b"check_sdcard",u"create_backup",b"create_backup",u"device_info",b"device_info",u"device_language",b"device_language",u"device_name",b"device_name",u"eth",b"eth",u"insert_remove_sdcard",b"insert_remove_sdcard",u"list_backups",b"list_backups",u"perform_attestation",b"perform_attestation",u"random_number",b"random_number",u"reboot",b"reboot",u"request",b"request",u"reset",b"reset",u"restore_backup",b"restore_backup",u"restore_from_mnemonic",b"restore_from_mnemonic",u"set_mnemonic_passphrase_enabled",b"set_mnemonic_passphrase_enabled",u"set_password",b"set_password",u"show_mnemonic",b"show_mnemonic"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing_extensions___Literal[u"request",b"request"]) -> typing_extensions___Literal["random_number","device_name","device_language","device_info","set_password","create_backup","show_mnemonic","btc_pub","btc_sign_init","btc_sign_input","btc_sign_output","insert_remove_sdcard","check_sdcard","set_mnemonic_passphrase_enabled","list_backups","restore_backup","perform_attestation","reboot","check_backup","eth","reset","restore_from_mnemonic"]: ...
+        def HasField(self, field_name: typing_extensions___Literal[u"bitboxbase",b"bitboxbase",u"btc_pub",b"btc_pub",u"btc_sign_init",b"btc_sign_init",u"btc_sign_input",b"btc_sign_input",u"btc_sign_output",b"btc_sign_output",u"check_backup",b"check_backup",u"check_sdcard",b"check_sdcard",u"create_backup",b"create_backup",u"device_info",b"device_info",u"device_language",b"device_language",u"device_name",b"device_name",u"eth",b"eth",u"insert_remove_sdcard",b"insert_remove_sdcard",u"list_backups",b"list_backups",u"perform_attestation",b"perform_attestation",u"random_number",b"random_number",u"reboot",b"reboot",u"request",b"request",u"reset",b"reset",u"restore_backup",b"restore_backup",u"restore_from_mnemonic",b"restore_from_mnemonic",u"set_mnemonic_passphrase_enabled",b"set_mnemonic_passphrase_enabled",u"set_password",b"set_password",u"show_mnemonic",b"show_mnemonic"]) -> bool: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"bitboxbase",b"bitboxbase",u"btc_pub",b"btc_pub",u"btc_sign_init",b"btc_sign_init",u"btc_sign_input",b"btc_sign_input",u"btc_sign_output",b"btc_sign_output",u"check_backup",b"check_backup",u"check_sdcard",b"check_sdcard",u"create_backup",b"create_backup",u"device_info",b"device_info",u"device_language",b"device_language",u"device_name",b"device_name",u"eth",b"eth",u"insert_remove_sdcard",b"insert_remove_sdcard",u"list_backups",b"list_backups",u"perform_attestation",b"perform_attestation",u"random_number",b"random_number",u"reboot",b"reboot",u"request",b"request",u"reset",b"reset",u"restore_backup",b"restore_backup",u"restore_from_mnemonic",b"restore_from_mnemonic",u"set_mnemonic_passphrase_enabled",b"set_mnemonic_passphrase_enabled",u"set_password",b"set_password",u"show_mnemonic",b"show_mnemonic"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing_extensions___Literal[u"request",b"request"]) -> typing_extensions___Literal["random_number","device_name","device_language","device_info","set_password","create_backup","show_mnemonic","btc_pub","btc_sign_init","btc_sign_input","btc_sign_output","insert_remove_sdcard","check_sdcard","set_mnemonic_passphrase_enabled","list_backups","restore_backup","perform_attestation","reboot","check_backup","eth","reset","restore_from_mnemonic","bitboxbase"]: ...
 
 class Response(google___protobuf___message___Message):
-    DESCRIPTOR: google___protobuf___descriptor___Descriptor = ...
 
     @property
     def success(self) -> Success: ...

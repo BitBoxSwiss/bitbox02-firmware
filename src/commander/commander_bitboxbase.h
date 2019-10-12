@@ -12,4 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod workflow;
+#include "commander.h"
+#include "hww.pb.h"
+
+commander_error_t commander_bitboxbase(const BitBoxBaseRequest* request);

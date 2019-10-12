@@ -20,6 +20,9 @@
 #include "commander/commander_eth.h"
 #endif
 #include "commander/commander_states.h"
+#if defined(PRODUCT_BITBOX_BASE)
+#include "commander/commander_bitboxbase.h"
+#endif
 
 #include <flags.h>
 #include <hardfault.h>
@@ -318,6 +321,11 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_restore_from_mnemonic_tag:
         response->which_response = Response_success_tag;
         return _api_restore_from_mnemonic(&(request->request.restore_from_mnemonic));
+#endif
+#if defined(PRODUCT_BITBOX_BASE)
+    case Request_bitboxbase_tag:
+        response->which_response = Response_success_tag;
+        return commander_bitboxbase(&(request->request.bitboxbase));
 #endif
     case Request_reboot_tag:
         response->which_response = Response_success_tag;

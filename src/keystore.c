@@ -476,13 +476,6 @@ static bool _get_xprv_twice(
     return true;
 }
 
-static void _xkey_strip_private_key(struct ext_key* key_out)
-{
-    // copied from libwally's bip32.c.
-    key_out->priv_key[0] = BIP32_FLAG_KEY_PUBLIC;
-    util_zero(key_out->priv_key + 1, sizeof(key_out->priv_key) - 1);
-}
-
 bool keystore_get_xpub(
     const uint32_t* keypath,
     const size_t keypath_len,
@@ -492,7 +485,7 @@ bool keystore_get_xpub(
     if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
         return false;
     }
-    _xkey_strip_private_key(&xprv); // neuter
+    bip32_key_strip_private_key(&xprv); // neuter
     *hdkey_neutered_out = xprv;
     return true;
 }

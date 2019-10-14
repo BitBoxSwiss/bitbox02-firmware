@@ -79,17 +79,22 @@ set_property(
 #----------------------
 # wally-core
 
-set(LIBWALLY_CONFIGURE_FLAGS --enable-static --disable-shared --disable-tests)
+# configure flags for secp256k1 bundled in libwally core, to reduce memory consumption
+set(LIBWALLY_SECP256k1_FLAGS --with-ecmult-window=2 --with-ecmult-gen-precision=2 --enable-ecmult-static-precomputation)
+set(LIBWALLY_CONFIGURE_FLAGS --enable-static --disable-shared --disable-tests ${LIBWALLY_SECP256k1_FLAGS})
 if(SANITIZE_ADDRESS)
   set(LIBWALLY_CFLAGS "-fsanitize=address")
 endif()
 if(SANITIZE_UNDEFINED)
   set(LIBWALLY_CFLAGS "${LIBWALLY_CFLAGS} -fsanitize=undefined")
 endif()
+# USE_BASIC_CONFIG is for secp256k1
+# _DEFAULT_SOURCE enables the BSD explicit_bzero function referenced by libwally.
 set(LIBWALLY_CFLAGS  "\
   ${LIBWALLY_CFLAGS} \
   ${MODIFIED_C_FLAGS} ${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE}} \
-  -DUSE_BASIC_CONFIG=1 -DUSE_ECMULT_STATIC_PRECOMPUTATION=1 \
+  -DUSE_BASIC_CONFIG=1 \
+  -D_DEFAULT_SOURCE \
   -fno-strict-aliasing \
 ")
 

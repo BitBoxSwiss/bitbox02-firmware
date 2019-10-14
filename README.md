@@ -54,6 +54,6 @@ messages. The encryption protocol used is Noise with out-of-band authentication.
 The instructions for setting up a development environment can be found in [BUILD.md](BUILD.md).
 Please also read our [CONTRIBUTING.md](CONTRIBUTING.md) before filing issues and pull requests.
 
-## Reporting a Vulnerability
+## Reporting a vulnerability
 
 See our [security policy](SECURITY.md).

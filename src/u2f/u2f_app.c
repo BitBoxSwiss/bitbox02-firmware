@@ -41,7 +41,7 @@ static void _app_string(const uint8_t* app_id, char* out, size_t out_len)
     }
     char appid_hex[32 * 2 + 1] = {0};
     util_uint8_to_hex(app_id, 32, appid_hex);
-    snprintf(out, out_len, "Unknown Site:\n%.16s\n%.16s", appid_hex, appid_hex + 16);
+    snprintf(out, out_len, "Unknown site:\n%.16s\n%.16s", appid_hex, appid_hex + 16);
 }
 
 bool u2f_app_confirm(enum u2f_app_confirm_t type, const uint8_t* app_id)
@@ -50,11 +50,11 @@ bool u2f_app_confirm(enum u2f_app_confirm_t type, const uint8_t* app_id)
     const char* title;
     switch (type) {
     case U2F_APP_REGISTER:
-        title = "U2F Register";
+        title = "U2F register";
         _app_string(app_id, app_string, sizeof(app_string));
         break;
     case U2F_APP_AUTHENTICATE:
-        title = "U2F Authenticate";
+        title = "U2F authenticate";
         _app_string(app_id, app_string, sizeof(app_string));
         break;
     case U2F_APP_BOGUS:

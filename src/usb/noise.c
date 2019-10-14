@@ -174,7 +174,7 @@ static bool _process_handshake(
         noise_handshakestate_free(_handshake);
         _handshake = NULL;
 
-        // The previous screen was "See the BitBox App", waiting for the pairing.
+        // The previous screen was "See the BitBoxApp", waiting for the pairing.
         // We are paired now, so we pop that screen.
         // Pairing is the start of a session, so we clean the screen stack in case
         // we started a new session in the middle of something.

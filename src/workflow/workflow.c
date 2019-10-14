@@ -47,7 +47,7 @@ void workflow_start(void)
 {
     usb_start(hww_setup);
     ui_screen_stack_pop_all();
-    ui_screen_stack_push(info_centered_create("See the BitBox App", NULL));
+    ui_screen_stack_push(info_centered_create("See the BitBoxApp", NULL));
 }
 
 /**

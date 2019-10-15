@@ -31,7 +31,7 @@ The main functionality of the firmware is the following:
 <p align="center"><img src="./doc/bb02-firmware-arch.svg" width="80%" /></p>
 
 The main chip on the device is the microcontroller from Microchip (atsamd51j20a). This chip is used
-for communication to the BitBox App via USB, the User via the sliders and to the secure element
+for communication to the BitBoxApp via USB, to the user via the sliders and to the secure element
 (atecc608a) via I2C.
 
 ### Sliders
@@ -54,6 +54,6 @@ messages. The encryption protocol used is Noise with out-of-band authentication.
 The instructions for setting up a development environment can be found in [BUILD.md](BUILD.md).
 Please also read our [CONTRIBUTING.md](CONTRIBUTING.md) before filing issues and pull requests.
 
-## Reporting a Vulnerability
+## Reporting a vulnerability
 
 See our [security policy](SECURITY.md).

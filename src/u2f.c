@@ -466,7 +466,7 @@ static void _cmd_wink(const Packet* in_packet, Packet* out_packet, const size_t 
         return;
     }
 
-    workflow_status_create("U2F Wink", true);
+    workflow_status_create("U2F wink", true);
 
     util_zero(out_packet->data_addr, sizeof(out_packet->data_addr));
     out_packet->len = 0;

@@ -724,14 +724,17 @@ static bool _write_data_slot_block(uint8_t* bytes, uint16_t slot, uint8_t block)
     if (result != ATCA_SUCCESS) {
         return false;
     }
-    return atcab_write_enc(
-               slot,
-               block,
-               bytes,
-               encryption_key,
-               SECURECHIP_SLOT_ENCRYPTION_KEY,
-               nonce_contribution) == ATCA_SUCCESS;
-    ;
+    result = atcab_write_enc(
+        slot, block, bytes, encryption_key, SECURECHIP_SLOT_ENCRYPTION_KEY, nonce_contribution);
+    if (result != ATCA_SUCCESS) {
+        return false;
+    }
+    // Double-check by reading it back and comparing.
+    uint8_t written_bytes[32] = {0};
+    if (!_read_data_slot_block(written_bytes, slot, block)) {
+        return false;
+    }
+    return MEMEQ(written_bytes, bytes, sizeof(written_bytes));
 }
 
 bool securechip_u2f_counter_set(uint32_t counter)

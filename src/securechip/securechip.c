@@ -484,13 +484,25 @@ static ATCA_STATUS _update_kdf_key(void)
     UTIL_CLEANUP_32(encryption_key);
     _interface_functions->get_encryption_key(encryption_key);
 
+    uint8_t nonce_contribution[32] = {0};
+    UTIL_CLEANUP_32(nonce_contribution);
+    _interface_functions->random_32_bytes(nonce_contribution);
+#if NONCE_NUMIN_SIZE > 32
+#error "size mismatch"
+#endif
+
     ATCA_STATUS result = _authorize_key();
     if (result != ATCA_SUCCESS) {
         return result;
     }
 
     return atcab_write_enc(
-        SECURECHIP_SLOT_KDF, 0, new_key, encryption_key, SECURECHIP_SLOT_ENCRYPTION_KEY);
+        SECURECHIP_SLOT_KDF,
+        0,
+        new_key,
+        encryption_key,
+        SECURECHIP_SLOT_ENCRYPTION_KEY,
+        nonce_contribution);
 }
 
 bool securechip_update_keys(void)
@@ -608,16 +620,24 @@ static ATCA_STATUS _ecc_write_priv_key(const uint8_t* priv_key)
     UTIL_CLEANUP_32(encryption_key);
     _interface_functions->get_encryption_key(encryption_key);
 
+    uint8_t nonce_contribution[32] = {0};
+    UTIL_CLEANUP_32(nonce_contribution);
+    _interface_functions->random_32_bytes(nonce_contribution);
+#if NONCE_NUMIN_SIZE > 32
+#error "size mismatch"
+#endif
+
     ATCA_STATUS result = _authorize_key();
     if (result != ATCA_SUCCESS) {
         return result;
     }
 
     return atcab_priv_write(
-        SECURECHIP_SLOT_ECC_UNSAFE_SIGN,
-        atca_priv_key,
-        SECURECHIP_SLOT_ENCRYPTION_KEY,
-        encryption_key);
+               SECURECHIP_SLOT_ECC_UNSAFE_SIGN,
+               atca_priv_key,
+               SECURECHIP_SLOT_ENCRYPTION_KEY,
+               encryption_key,
+               nonce_contribution);
 }
 
 bool securechip_ecc_generate_public_key(uint8_t* priv_key, uint8_t* pub_key)
@@ -668,11 +688,19 @@ static ATCA_STATUS _read_data_slot_block(uint8_t* bytes, uint16_t slot, uint8_t 
     UTIL_CLEANUP_32(encryption_key);
     _interface_functions->get_encryption_key(encryption_key);
 
+    uint8_t nonce_contribution[32] = {0};
+    UTIL_CLEANUP_32(nonce_contribution);
+    _interface_functions->random_32_bytes(nonce_contribution);
+#if NONCE_NUMIN_SIZE > 32
+#error "size mismatch"
+#endif
+
     ATCA_STATUS result = _authorize_key();
     if (result != ATCA_SUCCESS) {
         return result;
     }
-    return atcab_read_enc(slot, block, bytes, encryption_key, SECURECHIP_SLOT_ENCRYPTION_KEY);
+    return atcab_read_enc(
+        slot, block, bytes, encryption_key, SECURECHIP_SLOT_ENCRYPTION_KEY, nonce_contribution);
 }
 
 // Write a "standard" sized block from a data slot (must be 32 bytes)
@@ -682,11 +710,19 @@ static ATCA_STATUS _write_data_slot_block(uint8_t* bytes, uint16_t slot, uint8_t
     UTIL_CLEANUP_32(encryption_key);
     _interface_functions->get_encryption_key(encryption_key);
 
+    uint8_t nonce_contribution[32] = {0};
+    UTIL_CLEANUP_32(nonce_contribution);
+    _interface_functions->random_32_bytes(nonce_contribution);
+#if NONCE_NUMIN_SIZE > 32
+#error "size mismatch"
+#endif
+
     ATCA_STATUS result = _authorize_key();
     if (result != ATCA_SUCCESS) {
         return result;
     }
-    return atcab_write_enc(slot, block, bytes, encryption_key, SECURECHIP_SLOT_ENCRYPTION_KEY);
+    return atcab_write_enc(
+        slot, block, bytes, encryption_key, SECURECHIP_SLOT_ENCRYPTION_KEY, nonce_contribution);
 }
 
 bool securechip_u2f_counter_set(uint32_t counter)

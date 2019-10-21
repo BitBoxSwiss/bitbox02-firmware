@@ -122,7 +122,7 @@ bool workflow_confirm_scrollable(const char* title, const char* body, bool accep
 {
     _result = false;
     ui_screen_stack_push(
-        confirm_create_scrollable(title, body, _confirm, accept_only ? NULL : _reject));
+        confirm_create_scrollable(title, body, false, _confirm, accept_only ? NULL : _reject));
     bool blocking_result = workflow_blocking_block();
     ui_screen_stack_pop();
     if (!blocking_result) {

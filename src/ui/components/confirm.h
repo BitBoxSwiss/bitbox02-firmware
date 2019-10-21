@@ -38,12 +38,14 @@ component_t* confirm_create(
  * Creates a confirm screen with a scrollable body.
  * @param[in] title The confirmation title of the screen.
  * @param[in] body The confirmation body of the screen.
+ * @param[in] longtouch if true, require the hold gesture to confirm instead of tap.
  * @param[in] confirm_callback The callback triggered when the user pushes the confirm button.
  * @param[in] cancel_callback The callback triggered when the user pushes the cancel button.
  */
 component_t* confirm_create_scrollable(
     const char* title,
     const char* body,
+    bool longtouch,
     void (*confirm_callback)(component_t*),
     void (*cancel_callback)(component_t*));
 

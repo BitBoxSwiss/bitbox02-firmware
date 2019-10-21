@@ -60,21 +60,34 @@ typedef struct {
     UG_S16 horiz_space;
 } data_t;
 
-static void _set_alphabet(component_t* component, const char* alphabet)
+/**
+ * Called when a selection on one of the alphabet options has been made.
+ *
+ * If the selected alphabet is a single letter, the input is completed.
+ * Otherwise, the selected alphabet replaces the current one and the
+ * input continues.
+ */
+static void _alphabet_selected(component_t* component, const char* alphabet)
 {
     data_t* data = (data_t*)component->data;
     size_t len = strlens(alphabet);
     if (len == 0) {
+        /* No letters available in this section of the screen. */
         return;
     }
     if (len == 1) {
-        // Reset elements so that the previous letters don't slide back on a new alphabet.
+        /*
+         * Reset elements so that the previous letters don't slide back
+         * on a new alphabet.
+         */
         memset(data->elements, 0, sizeof(data->elements));
         data->character_chosen_cb(component, alphabet[0]);
         data->in_progress = false;
-        return;
+    } else {
+        /* Select a sub-alphabet. */
+        trinary_input_char_set_alphabet(component, alphabet, data->horiz_space);
+        data->in_progress = true;
     }
-    trinary_input_char_set_alphabet(component, alphabet, data->horiz_space);
 }
 
 static void _on_event(const event_t* event, component_t* component)
@@ -84,16 +97,15 @@ static void _on_event(const event_t* event, component_t* component)
     }
     data_t* data = (data_t*)component->data;
     gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
+    const char* selected_alphabet;
     if (slider_data->position <= SLIDER_POSITION_ONE_THIRD) {
-        _set_alphabet(component, data->left_alphabet);
-        data->in_progress = true;
+        selected_alphabet = data->left_alphabet;
     } else if (slider_data->position <= SLIDER_POSITION_TWO_THIRD) {
-        _set_alphabet(component, data->middle_alphabet);
-        data->in_progress = true;
+        selected_alphabet = data->middle_alphabet;
     } else {
-        _set_alphabet(component, data->right_alphabet);
-        data->in_progress = true;
+        selected_alphabet = data->right_alphabet;
     }
+    _alphabet_selected(component, selected_alphabet);
 }
 
 static void _render(component_t* component)

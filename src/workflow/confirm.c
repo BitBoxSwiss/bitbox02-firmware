@@ -130,3 +130,19 @@ bool workflow_confirm_scrollable(const char* title, const char* body, bool accep
     }
     return _result;
 }
+
+bool workflow_confirm_scrollable_longtouch(
+    const char* title,
+    const char* body,
+    bool* cancel_forced_out)
+{
+    _result = false;
+    ui_screen_stack_push(confirm_create_scrollable(title, body, true, _confirm, _reject));
+    bool blocking_result = workflow_blocking_block();
+    ui_screen_stack_pop();
+    *cancel_forced_out = !blocking_result;
+    if (*cancel_forced_out) {
+        return false;
+    }
+    return _result;
+}

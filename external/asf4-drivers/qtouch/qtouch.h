@@ -184,7 +184,7 @@ extern "C" {
  * Range: RECAL_100/ RECAL_50 / RECAL_25 / RECAL_12_5 / RECAL_6_25 / MAX_RECAL
  * Default value: RECAL_100.
  */
-#define DEF_ANTI_TCH_RECAL_THRSHLD RECAL_12_5
+#define DEF_ANTI_TCH_RECAL_THRSHLD RECAL_50
 
 /* Rate at which sensor reference value is adjusted towards sensor signal value
  * when signal value is greater than reference.

@@ -62,17 +62,25 @@ static int32_t _read(void)
     return hid_read(&_func_data, _out_report, USB_HID_REPORT_OUT_SIZE);
 }
 
+/** Set when the send channel is busy sending data. */
+static bool _send_busy = false;
+
 /**
  * Sends the next frame, if the USB interface is ready.
  */
 static void _send_next(void)
 {
+    if (_send_busy) {
+        /*
+         * We can't send yet. Whenever the current sender finished, it will
+         * flush anything that's still queued.
+         */
+        return;
+    }
     const uint8_t* data = queue_pull(queue_hww_queue());
     if (data != NULL) {
+        _send_busy = true;
         hid_write(&_func_data, data, USB_HID_REPORT_OUT_SIZE);
-    } else {
-        // Read again after we sent everything.
-        _read();
     }
 }
 
@@ -86,11 +94,9 @@ static uint8_t _out(const uint8_t ep, const enum usb_xfer_code rc, const uint32_
     (void)ep;
     (void)rc;
     (void)count;
-    bool need_more = usb_packet_process((const USB_FRAME*)_out_report, _send_next);
-    if (need_more) {
-        _read();
-    }
-
+    usb_packet_process((const USB_FRAME*)_out_report);
+    /* Incoming data has been processed completely. Start a new read. */
+    _read();
     return ERR_NONE;
 }
 
@@ -100,7 +106,12 @@ static uint8_t _out(const uint8_t ep, const enum usb_xfer_code rc, const uint32_
  */
 static void _sent_done(void)
 {
-    // Continue sending from the queue.
+    _send_busy = false;
+    /*
+     * If there is more data queued, push it immediately to save some time.
+     * Otherwise, sending will stop until somebody explicitely queues
+     * a frame again.
+     */
     _send_next();
 }
 

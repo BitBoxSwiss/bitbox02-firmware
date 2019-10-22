@@ -127,7 +127,7 @@ void u2f_packet_timeout(uint32_t cid)
     usb_frame_prepare_err(FRAME_ERR_MSG_TIMEOUT, cid, _queue_push);
 }
 
-bool u2f_packet_process(const USB_FRAME* frame, void (*send_packet)(void))
+bool u2f_packet_process(const USB_FRAME* frame)
 {
     struct usb_processing* ctx = usb_processing_u2f();
     switch (usb_frame_process(frame, &_in_state)) {
@@ -155,6 +155,7 @@ bool u2f_packet_process(const USB_FRAME* frame, void (*send_packet)(void))
             // Do not send a message yet
             return true;
         }
+        /* We have received a complete frame. Buffer it for processing. */
         if (usb_processing_enqueue(ctx, &_in_state)) {
             // Queue filled and will be sent during usb processing
             _reset_state();
@@ -171,6 +172,5 @@ bool u2f_packet_process(const USB_FRAME* frame, void (*send_packet)(void))
         _queue_err(FRAME_ERR_OTHER, frame->cid);
         break;
     }
-    send_packet();
     return false;
 }

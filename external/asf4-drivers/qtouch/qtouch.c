@@ -573,6 +573,7 @@ void qtouch_process_scroller_positions(void)
     {
         uint8_t i, j;
         uint16_t sum = 0;
+        uint16_t max_sensor_reading = 0;
         uint16_t weighted_sum = 0;
         uint16_t sensor_location[DEF_SCROLLER_NUM_CHANNELS] = {
             1,// Offset by `1` because a `0` location cannot be weight-averaged
@@ -586,6 +587,7 @@ void qtouch_process_scroller_positions(void)
             value = qtouch_get_sensor_node_signal_filtered(i + (scroller ? DEF_SCROLLER_OFFSET_1 : DEF_SCROLLER_OFFSET_0));
             sum += value;
             weighted_sum += value * sensor_location[i];
+            max_sensor_reading = (value > max_sensor_reading) ? value : max_sensor_reading;
         }
 
         // Compensate for deadband (i.e. when only a single edge button gives a reading and neighbors do not)
@@ -616,9 +618,14 @@ void qtouch_process_scroller_positions(void)
         }
         if (sum >= DEF_SCROLLER_DET_THRESHOLD) {
             scroller_previous_position[scroller][DEF_SCROLLER_NUM_PREV_POS - 1] = scaled_value;
-            scroller_active[scroller] = true;
         } else {
             scroller_previous_position[scroller][DEF_SCROLLER_NUM_PREV_POS - 1] = DEF_SCROLLER_OFF;
+        }
+        // Use the maximum value of all sensor readings as an estimate of pressure.
+        // Put a threshold on this to detect whether we're touching or not.
+        if (max_sensor_reading >= DEF_SCROLLER_TOUCH_THRESHOLD) {
+            scroller_active[scroller] = true;
+        } else {
             scroller_active[scroller] = false;
         }
     }

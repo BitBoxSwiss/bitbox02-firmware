@@ -249,7 +249,7 @@ extern "C" {
 #define DEF_SCROLLER_OFFSET_1          0// Index of first button in scroller
 #define DEF_SCROLLER_NUM_PREV_POS      4// Number of previous scroller positions to remember; used in a simple filter
 #define DEF_SCROLLER_OFF          0xFFFF// Marker for indicating scroller reading does not exceed detection threshold
-#define DEF_SENSOR_EDGE_WEIGHT      0.05// Percent added weight to edge sensors, which are physically smaller
+#define DEF_SENSOR_EDGE_WEIGHT      0.15// Percent added weight to edge sensors, which are physically smaller
 #define DEF_SENSOR_NUM_PREV_POS        4// Number of previous sensor positions to remember; used in a simple filter
 
 #ifdef __cplusplus

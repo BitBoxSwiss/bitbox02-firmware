@@ -244,6 +244,7 @@ extern "C" {
 #define DEF_SCROLLER_RESOLUTION      256// Scroller resolution in bits
 #define DEF_SCROLLER_DET_THRESHOLD    25// Scroller detect threshold
 #define DEF_SCROLLER_TOUCH_THRESHOLD    25 // Scroller active threshold
+#define DEF_SCROLLER_UNTOUCH_THRESHOLD    20 // Scroller active threshold
 #define DEF_SCROLLER_DEADBAND         13// 13 bits = 5% of 256-bit range
 #define DEF_SCROLLER_OFFSET_0          4// Index of first button in scroller
 #define DEF_SCROLLER_OFFSET_1          0// Index of first button in scroller

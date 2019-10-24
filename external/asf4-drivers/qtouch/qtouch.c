@@ -625,7 +625,7 @@ void qtouch_process_scroller_positions(void)
         // Put a threshold on this to detect whether we're touching or not.
         if (max_sensor_reading >= DEF_SCROLLER_TOUCH_THRESHOLD) {
             scroller_active[scroller] = true;
-        } else {
+        } else if (max_sensor_reading <= DEF_SCROLLER_UNTOUCH_THRESHOLD) {
             scroller_active[scroller] = false;
         }
     }

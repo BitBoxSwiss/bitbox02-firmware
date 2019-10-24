@@ -32,9 +32,13 @@
 #define MAX_REGISTRATIONS 7
 #define MAX_HISTORY 30
 
-// The minimum amount of sliding difference required, so that the gesture is detected as slide, not
-// touch
+/** The minimum amount of sliding difference required, so that the gesture is detected as slide. */
 static const uint8_t SLIDE_DETECTION_DIFF = MAX_SLIDER_POS * 0.04; // Percent of slider range
+/**
+ * The maximum amount of sliding that the user's finger is allowed to move
+ * for its gesture to be still considered a tap.
+ */
+static const uint8_t TAP_SLIDE_TOLERANCE = MAX_SLIDER_POS * 0.1; // Percent of slider range
 
 extern volatile uint8_t measurement_done_touch;
 
@@ -59,11 +63,16 @@ typedef struct {
     uint16_t position_start;
     // The last measured position.
     uint16_t position_current;
+    /*
+     * The maximum distance the finger has travelled
+     * since starting the gesture.
+     */
+    uint16_t max_slide_travel;
     int32_t velocity_sum;
     uint16_t velocity_index;
     // Stores the velocities.
     int16_t velocity_values[MAX_HISTORY];
-    // The gesture type (tap, slide).
+    // The gesture type (tap, slide). FUTURE: remove this?
     enum gesture_type_t gesture_type;
     // The status of the slider.
     enum slider_status_t slider_status;
@@ -86,6 +95,7 @@ static void _slider_state_update(gestures_detection_state_t* state, uint16_t pos
     if (state->duration == 0) {
         state->position_start = position;
         state->position_current = position;
+        state->max_slide_travel = 0;
         state->gesture_type = TAP;
     }
     int16_t velocity_current = position - state->position_current;
@@ -94,6 +104,8 @@ static void _slider_state_update(gestures_detection_state_t* state, uint16_t pos
     state->velocity_sum = state->velocity_sum - velocity_removed + velocity_current;
     state->velocity_values[state->velocity_index] = velocity_current;
     state->velocity_index = (state->velocity_index + 1) % MAX_HISTORY;
+    uint16_t distance_from_start = abs((int)position - (int)state->position_start);
+    state->max_slide_travel = MAX(distance_from_start, state->max_slide_travel);
 
     state->slider_status = ACTIVE;
     if (abs(state->position_current - state->position_start) > SLIDE_DETECTION_DIFF) {
@@ -145,12 +157,14 @@ static void _collect_gestures_data(
 
 static bool _is_continuous_tap(uint8_t location)
 {
-    return _state[location].gesture_type == TAP && _state[location].slider_status == ACTIVE;
+    return _state[location].max_slide_travel < TAP_SLIDE_TOLERANCE &&
+           _state[location].slider_status == ACTIVE;
 }
 
 static bool _is_tap_release(uint8_t location)
 {
-    return _state[location].gesture_type == TAP && _state[location].slider_status == RELEASED;
+    return _state[location].max_slide_travel < TAP_SLIDE_TOLERANCE &&
+           _state[location].slider_status == RELEASED;
 }
 
 static bool _is_long_tap_release(uint8_t location)

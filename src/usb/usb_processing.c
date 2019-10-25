@@ -16,7 +16,9 @@
 #include "u2f/u2f_packet.h"
 #include "usb_frame.h"
 #include "usb_packet.h"
+
 #include <hardfault.h>
+
 #include <queue.h>
 #include <stdlib.h>
 #include <util.h>
@@ -24,17 +26,34 @@
 struct usb_processing {
     CMD_Callback* registered_cmds;
     uint32_t registered_cmds_len;
-    Packet in_packet;
+    /* Whether the content of in_packet is a new, complete incoming packet. */
+    bool has_packet;
     struct queue* (*out_queue)(void);
     void (*send)(void);
 };
 
-enum packet_queued {
-    NO_PACKET,
-    HWW_PACKET,
-    U2F_PACKET,
-};
-static volatile enum packet_queued _in_packet_queued;
+/*
+ * FUTURE: this can be removed and packets can be queued when
+ * hww workflows are independent from the USB processing layer.
+ *
+ * At that point, we can just use the usb_processing.has_packet flags to make
+ * sure that we don't drop packets, send FRAME_ERR_CHANNEL_BUSY when layer-1
+ * is busy (i.e. we are in the process of buffering a frame) and continuously accept
+ * frames from both stacks (so we don't send FRAME_ERR_CHANNEL_BUSY improperly when
+ * it's the user interface that is busy, and not the USB port).
+ *
+ * For now this is impossible as the UI being busy keeps the USB port busy as well...
+ */
+static volatile bool _in_packet_queued;
+
+/*
+ * Contains the USB packet that is currently being processed.
+ * This is only valid if _in_packet_queued is true.
+ * It is shared between all stacks (as we only process one packet at the time,
+ * and send out FRAME_ERR_CHANNEL_BUSY if we are still processing the buffered one
+ * and a new one arrives).
+ */
+static Packet _in_packet;
 
 // TODO: remove this global in future refactoring
 static struct queue* _global_queue;
@@ -62,12 +81,12 @@ static uint8_t _enqueue_frames(struct usb_processing* ctx, const Packet* out_pac
  * Builds a packet from the passed state.
  * @param[in] in_state The packet is loaded from the state.
  */
-static void _build_packet(struct usb_processing* ctx, const State* in_state)
+static void _build_packet(const State* in_state)
 {
-    memcpy(ctx->in_packet.data_addr, in_state->data, USB_DATA_MAX_LEN);
-    ctx->in_packet.len = in_state->len;
-    ctx->in_packet.cmd = in_state->cmd;
-    ctx->in_packet.cid = in_state->cid;
+    memcpy(_in_packet.data_addr, in_state->data, USB_DATA_MAX_LEN);
+    _in_packet.len = in_state->len;
+    _in_packet.cmd = in_state->cmd;
+    _in_packet.cid = in_state->cid;
 }
 
 /**
@@ -111,13 +130,18 @@ void usb_processing_register_cmds(
     ctx->registered_cmds_len += num_cmds;
 }
 
+/**
+ * Request to process a complete incoming USB packet.
+ */
 bool usb_processing_enqueue(struct usb_processing* ctx, const State* in_state)
 {
-    if (_in_packet_queued != NO_PACKET) {
+    if (_in_packet_queued) {
+        /* We already have a buffered packet. */
         return false;
     }
-    _build_packet(ctx, in_state);
-    _in_packet_queued = ctx == usb_processing_hww() ? HWW_PACKET : U2F_PACKET;
+    _build_packet(in_state);
+    _in_packet_queued = true;
+    ctx->has_packet = true;
     return true;
 }
 
@@ -126,37 +150,36 @@ void usb_processing_set_send(struct usb_processing* ctx, void (*send)(void))
     ctx->send = send;
 }
 
-void usb_processing_process(struct usb_processing* ctx)
+/**
+ * Marks any buffered RX packet as fully processed.
+ * This frees the RX buffer so that it's possible to
+ * receive further packets.
+ */
+static void _usb_processing_drop_received(struct usb_processing* ctx)
 {
-#if defined(APP_U2F)
-    uint32_t timeout_cid;
-    // If there are any timeouts, send them first
-    while (u2f_packet_timeout_get(&timeout_cid)) {
-        // screen_sprintf_debug(250, "u2f %u timed out", timeout_cid);
-        u2f_packet_timeout(timeout_cid);
-        usb_processing_u2f()->send();
+    // Mark the packet as processed.
+    if (ctx->has_packet) {
+        ctx->has_packet = false;
+        util_zero(&_in_packet, sizeof(_in_packet));
     }
+    _in_packet_queued = false;
+}
 
-#endif
-    if (ctx == usb_processing_hww() && _in_packet_queued != HWW_PACKET) {
+static void _usb_process_incoming_packet(struct usb_processing* ctx)
+{
+    if (!ctx->has_packet) {
         return;
     }
-#if defined(APP_U2F)
-
-    if (ctx == usb_processing_u2f() && _in_packet_queued != U2F_PACKET) {
-        return;
-    }
-#endif
     // Received all data
     int cmd_valid = 0;
     for (uint32_t i = 0; i < ctx->registered_cmds_len; i++) {
-        if (ctx->in_packet.cmd == ctx->registered_cmds[i].cmd) {
+        if (_in_packet.cmd == ctx->registered_cmds[i].cmd) {
             cmd_valid = 1;
             // process_cmd calls commander(...) or U2F functions.
 
             Packet out_packet;
-            _prepare_out_packet(&ctx->in_packet, &out_packet);
-            ctx->registered_cmds[i].process_cmd(&ctx->in_packet, &out_packet, USB_DATA_MAX_LEN);
+            _prepare_out_packet(&_in_packet, &out_packet);
+            ctx->registered_cmds[i].process_cmd(&_in_packet, &out_packet, USB_DATA_MAX_LEN);
             _enqueue_frames(ctx, (const Packet*)&out_packet);
             break;
         }
@@ -169,14 +192,30 @@ void usb_processing_process(struct usb_processing* ctx)
         // TODO: figure out the consequences and either implement a solution or
         // inform U2F hijack vendors.
         _global_queue = ctx->out_queue();
-        usb_frame_prepare_err(FRAME_ERR_INVALID_CMD, ctx->in_packet.cid, _queue_push);
+        usb_frame_prepare_err(FRAME_ERR_INVALID_CMD, _in_packet.cid, _queue_push);
     }
-    if (ctx->send == NULL) {
-        Abort("send is null");
+    _usb_processing_drop_received(ctx);
+}
+
+void usb_processing_process(struct usb_processing* ctx)
+{
+#if defined(APP_U2F)
+    uint32_t timeout_cid;
+    // If there are any timeouts, send them first
+    while (u2f_packet_timeout_get(&timeout_cid)) {
+        u2f_packet_timeout(timeout_cid);
+        usb_processing_u2f()->send();
     }
-    ctx->send();
-    _in_packet_queued = NO_PACKET;
-    util_zero(&ctx->in_packet, sizeof(ctx->in_packet));
+
+#endif
+    _usb_process_incoming_packet(ctx);
+    /*
+     * If USB sends are not enabled (yet), send will be NULL.
+     * Otherwise, we can call it now to flush outstanding writes.
+     */
+    if (ctx->send != NULL) {
+        ctx->send();
+    }
 }
 
 #if defined(APP_U2F)
@@ -197,6 +236,8 @@ void usb_processing_init(void)
 {
 #if defined(APP_U2F)
     usb_processing_u2f()->out_queue = queue_u2f_queue;
+    usb_processing_u2f()->has_packet = false;
 #endif
     usb_processing_hww()->out_queue = queue_hww_queue;
+    usb_processing_hww()->has_packet = false;
 }

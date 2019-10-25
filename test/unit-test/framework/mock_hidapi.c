@@ -107,7 +107,7 @@ int hid_write(hid_device* dev, const unsigned char* data, size_t length)
     }
     memcpy(_buf, data + 1, length - 1);
     _buf_len = length - 1;
-    _expect_more = u2f_packet_process((const USB_FRAME*)_buf, _send_packet_cb);
+    _expect_more = u2f_packet_process((const USB_FRAME*)_buf);
     if (!_expect_more) {
         // printf("Got complete packet\n");
         _have_data = true;

@@ -56,7 +56,7 @@ static bool _need_more_data(void)
     return (_in_state.buf_ptr - _in_state.data) < (signed)_in_state.len;
 }
 
-bool usb_packet_process(const USB_FRAME* frame, void (*send_packet)(void))
+bool usb_packet_process(const USB_FRAME* frame)
 {
     struct usb_processing* ctx = usb_processing_hww();
     switch (usb_frame_process(frame, &_in_state)) {
@@ -98,7 +98,5 @@ bool usb_packet_process(const USB_FRAME* frame, void (*send_packet)(void))
         _queue_err(FRAME_ERR_OTHER, frame->cid);
         break;
     }
-    // Send one of the error packets we have queued
-    send_packet();
     return false;
 }

@@ -61,6 +61,15 @@ bool __wrap_keystore_secp256k1_sign(
     return mock();
 }
 
+bool __real_eth_common_is_valid_keypath(ETHCoin coin, const uint32_t* keypath, size_t keypath_len);
+bool __wrap_eth_common_is_valid_keypath(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
+{
+    assert_int_equal(coin, ETHCoin_ETH);
+    check_expected(keypath);
+    assert_int_equal(keypath_len, 5);
+    return __real_eth_common_is_valid_keypath(coin, keypath, keypath_len);
+}
+
 static void _default_request(ETHSignRequest* request)
 {
     const ETHSignRequest r = {
@@ -94,6 +103,15 @@ static void _default_erc20_request(ETHSignRequest* request)
     memcpy(request->data.bytes, erc20_transfer, sizeof(erc20_transfer));
 }
 
+static void _expect_keypath(const ETHSignRequest* request)
+{
+    expect_memory(
+        __wrap_eth_common_is_valid_keypath,
+        keypath,
+        request->keypath,
+        request->keypath_count * sizeof(uint32_t));
+}
+
 static void _test_app_eth_sign(void** state)
 {
     ETHSignResponse response;
@@ -102,6 +120,7 @@ static void _test_app_eth_sign(void** state)
     _default_request(&request);
     expect_memory(__wrap_app_eth_verify_standard_transaction, request, &request, sizeof(request));
     will_return(__wrap_keystore_secp256k1_sign, true);
+    _expect_keypath(&request);
     assert_int_equal(APP_ETH_SIGN_OK, app_eth_sign(&request, &response));
     assert_memory_equal(response.signature, _sig, sizeof(_sig));
 }
@@ -120,6 +139,7 @@ static void _test_app_eth_sign_unhappy(void** state)
     { // invalid keypath
         _default_request(&request);
         request.keypath[0] = 44;
+        _expect_keypath(&request);
         assert_int_equal(APP_ETH_SIGN_ERR_INVALID_INPUT, app_eth_sign(&request, &response));
     }
 
@@ -127,10 +147,12 @@ static void _test_app_eth_sign_unhappy(void** state)
         _default_request(&request);
         request.nonce.size = 1;
         memcpy(request.nonce.bytes, "\x00", 1);
+        _expect_keypath(&request);
         assert_int_equal(APP_ETH_SIGN_ERR_INVALID_INPUT, app_eth_sign(&request, &response));
 
         request.nonce.size = 2;
         memcpy(request.nonce.bytes, "\x00\x01", 2);
+        _expect_keypath(&request);
         assert_int_equal(APP_ETH_SIGN_ERR_INVALID_INPUT, app_eth_sign(&request, &response));
     }
 
@@ -138,10 +160,12 @@ static void _test_app_eth_sign_unhappy(void** state)
         _default_request(&request);
         request.gas_price.size = 1;
         memcpy(request.gas_price.bytes, "\x00", 1);
+        _expect_keypath(&request);
         assert_int_equal(APP_ETH_SIGN_ERR_INVALID_INPUT, app_eth_sign(&request, &response));
 
         request.gas_price.size = 2;
         memcpy(request.gas_price.bytes, "\x00\x01", 2);
+        _expect_keypath(&request);
         assert_int_equal(APP_ETH_SIGN_ERR_INVALID_INPUT, app_eth_sign(&request, &response));
     }
 
@@ -149,16 +173,19 @@ static void _test_app_eth_sign_unhappy(void** state)
         _default_request(&request);
         request.gas_limit.size = 1;
         memcpy(request.gas_limit.bytes, "\x00", 1);
+        _expect_keypath(&request);
         assert_int_equal(APP_ETH_SIGN_ERR_INVALID_INPUT, app_eth_sign(&request, &response));
 
         request.gas_limit.size = 2;
         memcpy(request.gas_limit.bytes, "\x00\x01", 2);
+        _expect_keypath(&request);
         assert_int_equal(APP_ETH_SIGN_ERR_INVALID_INPUT, app_eth_sign(&request, &response));
     }
 
     { // recipient can't be zeroes
         _default_request(&request);
         memset(request.recipient, 0, sizeof(request.recipient));
+        _expect_keypath(&request);
         assert_int_equal(APP_ETH_SIGN_ERR_INVALID_INPUT, app_eth_sign(&request, &response));
     }
 
@@ -166,10 +193,12 @@ static void _test_app_eth_sign_unhappy(void** state)
         _default_request(&request);
         request.value.size = 1;
         memcpy(request.value.bytes, "\x00", 1);
+        _expect_keypath(&request);
         assert_int_equal(APP_ETH_SIGN_ERR_INVALID_INPUT, app_eth_sign(&request, &response));
 
         request.value.size = 2;
         memcpy(request.value.bytes, "\x00\x01", 2);
+        _expect_keypath(&request);
         assert_int_equal(APP_ETH_SIGN_ERR_INVALID_INPUT, app_eth_sign(&request, &response));
     }
 
@@ -179,6 +208,7 @@ static void _test_app_eth_sign_unhappy(void** state)
             _verify_transaction_result = _errors[i];
             expect_memory(
                 __wrap_app_eth_verify_erc20_transaction, request, &request, sizeof(request));
+            _expect_keypath(&request);
             assert_int_equal(_errors[i], app_eth_sign(&request, &response));
         }
         _verify_transaction_result = APP_ETH_SIGN_OK;
@@ -190,6 +220,7 @@ static void _test_app_eth_sign_unhappy(void** state)
             _verify_transaction_result = _errors[i];
             expect_memory(
                 __wrap_app_eth_verify_standard_transaction, request, &request, sizeof(request));
+            _expect_keypath(&request);
             assert_int_equal(_errors[i], app_eth_sign(&request, &response));
         }
         _verify_transaction_result = APP_ETH_SIGN_OK;
@@ -200,6 +231,7 @@ static void _test_app_eth_sign_unhappy(void** state)
         expect_memory(
             __wrap_app_eth_verify_standard_transaction, request, &request, sizeof(request));
         will_return(__wrap_keystore_secp256k1_sign, false);
+        _expect_keypath(&request);
         assert_int_equal(APP_ETH_SIGN_ERR_UNKNOWN, app_eth_sign(&request, &response));
     }
 }

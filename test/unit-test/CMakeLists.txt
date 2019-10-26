@@ -165,7 +165,7 @@ set(TEST_LIST
    ui_component_gestures
    ""
    btc_sign
-   "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=btc_common_format_amount"
+   "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=btc_common_format_amount,--wrap=btc_common_is_valid_keypath"
    memory
    "-Wl,--wrap=memory_read_chunk_mock,--wrap=memory_write_chunk_mock,--wrap=bb_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_mock,--wrap=memory_write_to_address_mock"
    salt

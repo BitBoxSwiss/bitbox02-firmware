@@ -45,6 +45,27 @@ bool __wrap_btc_common_format_amount(uint64_t satoshi, const char* unit, char* o
     return true;
 }
 
+bool __real_btc_common_is_valid_keypath(
+    BTCPubRequest_OutputType output_type,
+    BTCScriptType script_type,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint32_t expected_coin);
+bool __wrap_btc_common_is_valid_keypath(
+    BTCPubRequest_OutputType output_type,
+    BTCScriptType script_type,
+    const uint32_t* keypath,
+    const size_t keypath_len,
+    const uint32_t expected_coin)
+{
+    assert_int_equal(output_type, BTCPubRequest_OutputType_ADDRESS);
+    check_expected(script_type);
+    check_expected(keypath);
+    assert_int_equal(keypath_len, 5);
+    return __real_btc_common_is_valid_keypath(
+        output_type, script_type, keypath, keypath_len, expected_coin);
+}
+
 static uint8_t _mock_seed[32] = {
     0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
     0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
@@ -224,7 +245,6 @@ static void _sign(const _modification_t* mod)
         inputs[0].keypath[2] = inputs[0].keypath[2] + 1;
     }
     if (mod->wrong_coin_input) {
-        inputs[0].keypath[1] = 1;
         inputs[0].keypath[1] = 1 + BIP32_INITIAL_HARDENED_CHILD;
     }
     if (mod->wrong_sequence_number) {
@@ -361,6 +381,14 @@ static void _sign(const _modification_t* mod)
     // === Inputs Pass 1
 
     // First input, pass1.
+    if (!mod->wrong_sequence_number && !mod->wrong_input_value) {
+        expect_value(__wrap_btc_common_is_valid_keypath, script_type, init_req.script_type);
+        expect_memory(
+            __wrap_btc_common_is_valid_keypath,
+            keypath,
+            inputs[0].keypath,
+            inputs[0].keypath_count * sizeof(uint32_t));
+    }
     if (mod->wrong_coin_input || mod->wrong_account_input || mod->wrong_sequence_number ||
         mod->wrong_input_value) {
         assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[0], &next));
@@ -372,6 +400,12 @@ static void _sign(const _modification_t* mod)
     assert_false(next.has_signature);
 
     // Second input, pass1.
+    expect_value(__wrap_btc_common_is_valid_keypath, script_type, init_req.script_type);
+    expect_memory(
+        __wrap_btc_common_is_valid_keypath,
+        keypath,
+        inputs[1].keypath,
+        inputs[1].keypath_count * sizeof(uint32_t));
     if (mod->overflow_input_values_pass1) {
         assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[1], &next));
         return;
@@ -453,6 +487,12 @@ static void _sign(const _modification_t* mod)
 
     // Fifth output, change. Last output also invokes verification of total and
     // fee.
+    expect_value(__wrap_btc_common_is_valid_keypath, script_type, init_req.script_type);
+    expect_memory(
+        __wrap_btc_common_is_valid_keypath,
+        keypath,
+        outputs[4].keypath,
+        outputs[4].keypath_count * sizeof(uint32_t));
     if (!mod->seeded) {
         assert_int_equal(APP_BTC_SIGN_ERR_UNKNOWN, app_btc_sign_output(&outputs[4], &next));
         return;
@@ -468,6 +508,12 @@ static void _sign(const _modification_t* mod)
 
     // Sixth output, change. Last output also invokes verification of total and
     // fee.
+    expect_value(__wrap_btc_common_is_valid_keypath, script_type, init_req.script_type);
+    expect_memory(
+        __wrap_btc_common_is_valid_keypath,
+        keypath,
+        outputs[5].keypath,
+        outputs[5].keypath_count * sizeof(uint32_t));
     if (mod->overflow_output_ours) {
         assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_output(&outputs[5], &next));
         return;
@@ -505,6 +551,12 @@ static void _sign(const _modification_t* mod)
     }
 
     // First input, pass2.
+    expect_value(__wrap_btc_common_is_valid_keypath, script_type, init_req.script_type);
+    expect_memory(
+        __wrap_btc_common_is_valid_keypath,
+        keypath,
+        inputs[0].keypath,
+        inputs[0].keypath_count * sizeof(uint32_t));
     if (mod->input_sum_changes) {
         assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[0], &next));
         return;
@@ -515,6 +567,12 @@ static void _sign(const _modification_t* mod)
     assert_true(next.has_signature);
 
     // Second input, pass2.
+    expect_value(__wrap_btc_common_is_valid_keypath, script_type, init_req.script_type);
+    expect_memory(
+        __wrap_btc_common_is_valid_keypath,
+        keypath,
+        inputs[1].keypath,
+        inputs[1].keypath_count * sizeof(uint32_t));
     if (mod->input_sum_last_mismatch || mod->overflow_input_values_pass2) {
         assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[1], &next));
         return;

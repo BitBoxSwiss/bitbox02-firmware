@@ -225,6 +225,7 @@ static void _sign(const _modification_t* mod)
     }
     if (mod->wrong_coin_input) {
         inputs[0].keypath[1] = 1;
+        inputs[0].keypath[1] = 1 + BIP32_INITIAL_HARDENED_CHILD;
     }
     if (mod->wrong_sequence_number) {
         inputs[0].sequence = 0;
@@ -330,7 +331,7 @@ static void _sign(const _modification_t* mod)
         outputs[4].keypath[2] = outputs[4].keypath[2] + 1;
     }
     if (mod->wrong_coin_change) {
-        outputs[4].keypath[1] = 1;
+        outputs[4].keypath[1] = 1 + BIP32_INITIAL_HARDENED_CHILD;
     }
     if (mod->wrong_output_value) {
         outputs[0].value = 0;

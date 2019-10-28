@@ -15,13 +15,26 @@
 
 OUT_DIR=bitbox02/generated
 
-TARGETS=$(addprefix ${OUT_DIR}/, hww_pb2.py hww_pb2.pyi)
+PROTO_FILES=hww.proto common.proto backup_commands.proto bitbox02_system.proto btc.proto eth.proto mnemonic.proto random_number.proto system.proto perform_attestation.proto
+
+TARGETS=$(addprefix ${OUT_DIR}/, $(PROTO_FILES:.proto=_pb2.py))
 
 all: ${TARGETS}
 
-${TARGETS}: ../../messages/hww.proto
+# Explicit rules cannot have multiple outputs (it will be interpreted as multiple rules and
+# therefore the same command will be executed multiple times)
+# Instead we create a single implicit rule. Implicit rules allow multiple outputs without executing
+# the same command multiple times when multiple threads are used.
+# https://stackoverflow.com/questions/19822435/multiple-targets-from-one-recipe-and-parallel-execution
+TMP_TARGETS=$(addprefix %/, $(PROTO_FILES:.proto=_pb2.py))
+${TMP_TARGETS}: $(addprefix ../../messages/,${PROTO_FILES})
 	mkdir -p ${OUT_DIR}
 	protoc --proto_path=../../messages --python_out=${OUT_DIR} --mypy_out=${OUT_DIR} $^
+	touch ${@D}/__init__.py
+# The hack below is due to protobuf-python generating absolute paths (which are frowned upon) instead of relative paths.
+# https://github.com/protocolbuffers/protobuf/issues/1491
+	sed -i 's/^from \([^.]*_pb2\)/from .\1/g'  bitbox02/generated/*.pyi
+	sed -i 's/^import \([^.]*_pb2\) as \([^.]*__pb2\)/from . import \1 as \2/g' bitbox02/generated/*.py
 
 release-test: all
 	rm -rf dist/*

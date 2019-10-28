@@ -12,4 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-Error.message max_size:255
+syntax = "proto3";
+
+message RandomNumberResponse {
+    bytes number = 1;
+}
+
+message RandomNumberRequest {
+}
+

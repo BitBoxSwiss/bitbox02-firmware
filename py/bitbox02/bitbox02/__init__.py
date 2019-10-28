@@ -49,6 +49,7 @@ from .bitbox02 import (
     BTCOutputType,
     HARDENED,
     hww,
+    btc,
     UserAbortException,
 )
 from .bootloader import Bootloader

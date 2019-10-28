@@ -12,4 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-Error.message max_size:255
+syntax = "proto3";
+
+message ShowMnemonicRequest {
+}
+message RestoreFromMnemonicRequest {
+  uint32 timestamp = 1;
+  int32 timezone_offset = 2;
+}
+message SetMnemonicPassphraseEnabledRequest {
+  bool enabled = 1;
+}

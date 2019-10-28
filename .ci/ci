@@ -41,3 +41,5 @@ make -C tools/go/src/atecc608a test
 
 # Build device tests
 make -j8 device-tests
+
+make -j8 docs

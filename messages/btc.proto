@@ -1,0 +1,94 @@
+// Copyright 2019 Shift Cryptosecurity AG
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+enum BTCCoin {
+  BTC = 0;
+  TBTC = 1;
+  LTC = 2;
+  TLTC = 3;
+};
+
+enum BTCScriptType {
+  SCRIPT_UNKNOWN = 0;
+  SCRIPT_P2PKH = 1;
+  SCRIPT_P2WPKH_P2SH = 2;
+  SCRIPT_P2WPKH = 3;
+}
+
+message BTCPubRequest {
+  repeated uint32 keypath = 1;
+  enum OutputType {
+    TPUB = 0;
+    XPUB = 1;
+    YPUB = 2;
+    ZPUB = 3;
+    ADDRESS = 4;
+  }
+  BTCScriptType script_type = 2; // only applies for ADDRESS
+  BTCCoin coin = 3;
+  OutputType output_type = 4;
+  bool display = 5;
+}
+
+
+message BTCSignInitRequest {
+  BTCCoin coin = 1;
+  BTCScriptType script_type = 2; // script type for inputs and changes
+  uint32 bip44_account = 3;
+  uint32 version = 4; // reserved, must be 1
+  uint32 num_inputs = 5;
+  uint32 num_outputs = 6;
+  uint32 locktime = 7; // reserved, must be 0
+}
+
+message BTCSignNextResponse {
+  enum Type {
+    INPUT = 0;
+    OUTPUT = 1;
+    DONE = 2;
+  }
+  Type type = 1;
+  uint32 index = 2;
+  bool has_signature = 3; // only as a response to BTCSignInputRequest
+  // 64 bytes (32 bytes big endian R, 32 bytes big endian S). Only if has_signature is true.
+  bytes signature = 4;
+}
+
+message BTCSignInputRequest {
+  bytes prevOutHash = 1;
+  uint32 prevOutIndex = 2;
+  uint64 prevOutValue = 3;
+  uint32 sequence = 4; // reserved, must be 0xffffffff
+  repeated uint32 keypath = 6; // all inputs must be ours.
+}
+
+enum BTCOutputType {
+  UNKNOWN = 0;
+  P2PKH = 1;
+  P2SH = 2;
+  P2WPKH = 3;
+  P2WSH = 4;
+}
+
+message BTCSignOutputRequest {
+  bool ours = 1;
+  BTCOutputType type = 2; // if ours is false
+  // 20 bytes for p2pkh, p2sh, pw2wpkh. 32 bytes for p2wsh.
+  uint64 value = 3;
+  bytes hash = 4; // if ours is false
+  repeated uint32 keypath = 5; // if ours is true
+}
+

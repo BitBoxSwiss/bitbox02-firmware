@@ -37,8 +37,10 @@ set(SOURCES
 )
 
 # CMake is a bit retarted and doesn't keep some properties between directories...
-set_property(SOURCE ${CMAKE_BINARY_DIR}/src/backup.pb.c PROPERTY GENERATED 1)
-set_property(SOURCE ${CMAKE_BINARY_DIR}/src/hww.pb.c PROPERTY GENERATED 1)
+set_source_files_properties(
+  ${DBB-FIRMWARE-PROTOBUF-SOURCES}
+  PROPERTIES GENERATED TRUE
+)
 
 set(INCLUDES
     include/
@@ -57,7 +59,7 @@ target_include_directories(bitbox SYSTEM PUBLIC ${SYSTEMINCLUDES})
 target_include_directories(bitbox SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
 target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 target_compile_definitions(bitbox PUBLIC APP_BTC APP_LTC APP_U2F APP_ETH)
-add_dependencies(bitbox generate-hww generate-backup)
+add_dependencies(bitbox generate-protobufs)
 # needed to find version.h
 target_include_directories(bitbox SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
 target_link_libraries(bitbox

@@ -12,9 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Device intialization and Request random number
-
 syntax = "proto3";
+
+import "common.proto";
+
+import "backup_commands.proto";
+import "bitbox02_system.proto";
+import "btc.proto";
+import "eth.proto";
+import "mnemonic.proto";
+import "random_number.proto";
+import "system.proto";
+
+import "perform_attestation.proto";
 
 message Error {
     int32 code = 1;
@@ -22,246 +32,6 @@ message Error {
 }
 
 message Success {
-}
-
-message RandomNumberResponse {
-    bytes number = 1;
-}
-
-message RandomNumberRequest {
-}
-
-message DeviceInfoRequest {
-}
-
-message DeviceInfoResponse {
-    string name = 1;
-    bool initialized = 2;
-    string version = 3;
-    bool mnemonic_passphrase_enabled = 4;
-    uint32 monotonic_increments_remaining = 5;
-}
-
-message SetDeviceNameRequest {
-    string name = 1;
-}
-
-message SetDeviceLanguageRequest {
-    string language = 1;
-}
-
-message SetPasswordRequest {
-    bytes entropy = 1;
-}
-
-// Timestamp must be in UTC
-message CreateBackupRequest {
-  uint32 timestamp = 1;
-  int32 timezone_offset = 2;
-}
-
-message RestoreBackupRequest {
-  string id = 1;
-  uint32 timestamp = 2;
-  int32 timezone_offset = 3;
-}
-
-message ListBackupsRequest {
-}
-
-message CheckBackupRequest {
-    bool silent = 1;
-}
-
-message CheckBackupResponse {
-  string id = 1;
-}
-
-message ShowMnemonicRequest {
-}
-
-message InsertRemoveSDCardRequest {
-  enum SDCardAction {
-    REMOVE_CARD = 0;
-    INSERT_CARD = 1;
-  }
-  SDCardAction action = 1;
-}
-
-message CheckSDCardRequest {
-}
-
-message CheckSDCardResponse {
-  bool inserted = 1;
-}
-
-enum BTCCoin {
-  BTC = 0;
-  TBTC = 1;
-  LTC = 2;
-  TLTC = 3;
-};
-
-enum BTCScriptType {
-  SCRIPT_UNKNOWN = 0;
-  SCRIPT_P2PKH = 1;
-  SCRIPT_P2WPKH_P2SH = 2;
-  SCRIPT_P2WPKH = 3;
-}
-
-message BTCPubRequest {
-  repeated uint32 keypath = 1;
-  enum OutputType {
-    TPUB = 0;
-    XPUB = 1;
-    YPUB = 2;
-    ZPUB = 3;
-    ADDRESS = 4;
-  }
-  BTCScriptType script_type = 2; // only applies for ADDRESS
-  BTCCoin coin = 3;
-  OutputType output_type = 4;
-  bool display = 5;
-}
-
-message PubResponse {
-  string pub = 1;
-}
-
-message BackupInfo {
-  string id = 1;
-  uint32 timestamp = 2;
-  // uint32 timezone_offset = 3;
-  string name = 4;
-}
-
-message ListBackupsResponse {
-  repeated BackupInfo info = 1;
-}
-
-message BTCSignInitRequest {
-  BTCCoin coin = 1;
-  BTCScriptType script_type = 2; // script type for inputs and changes
-  uint32 bip44_account = 3;
-  uint32 version = 4; // reserved, must be 1
-  uint32 num_inputs = 5;
-  uint32 num_outputs = 6;
-  uint32 locktime = 7; // reserved, must be 0
-}
-
-message BTCSignNextResponse {
-  enum Type {
-    INPUT = 0;
-    OUTPUT = 1;
-    DONE = 2;
-  }
-  Type type = 1;
-  uint32 index = 2;
-  bool has_signature = 3; // only as a response to BTCSignInputRequest
-  // 64 bytes (32 bytes big endian R, 32 bytes big endian S). Only if has_signature is true.
-  bytes signature = 4;
-}
-
-message BTCSignInputRequest {
-  bytes prevOutHash = 1;
-  uint32 prevOutIndex = 2;
-  uint64 prevOutValue = 3;
-  uint32 sequence = 4; // reserved, must be 0xffffffff
-  repeated uint32 keypath = 6; // all inputs must be ours.
-}
-
-enum BTCOutputType {
-  UNKNOWN = 0;
-  P2PKH = 1;
-  P2SH = 2;
-  P2WPKH = 3;
-  P2WSH = 4;
-}
-
-message BTCSignOutputRequest {
-  bool ours = 1;
-  BTCOutputType type = 2; // if ours is false
-  // 20 bytes for p2pkh, p2sh, pw2wpkh. 32 bytes for p2wsh.
-  uint64 value = 3;
-  bytes hash = 4; // if ours is false
-  repeated uint32 keypath = 5; // if ours is true
-}
-
-message SetMnemonicPassphraseEnabledRequest {
-  bool enabled = 1;
-}
-
-// Deprecated, last used in v1.0.0
-message PerformAttestationRequest {
-  // 32 bytes challenge.
-  bytes challenge = 1;
-}
-
-// Deprecated, last used in v1.0.0
-message PerformAttestationResponse {
-  bytes bootloader_hash = 1;
-  bytes device_pubkey = 2;
-  bytes certificate = 3;
-  bytes root_pubkey_identifier = 4;
-  bytes challenge_signature = 5;
-}
-
-message RebootRequest {
-
-}
-
-enum ETHCoin {
-  ETH = 0;
-  RopstenETH = 1;
-  RinkebyETH = 2;
-}
-
-message ETHPubRequest {
-  repeated uint32 keypath = 1;
-  ETHCoin coin = 2;
-  enum OutputType {
-    ADDRESS = 0;
-    XPUB = 1;
-  }
-  OutputType output_type = 3;
-  bool display = 4;
-  bytes contract_address = 5;
-}
-
-message ETHSignRequest {
-  ETHCoin coin = 1;
-  repeated uint32 keypath = 2;
-  bytes nonce = 3; // smallest big endian serialization, max. 16 bytes
-  bytes gas_price = 4; // smallest big endian serialization, max. 16 bytes
-  bytes gas_limit = 5; // smallest big endian serialization, max. 16 bytes
-  bytes recipient = 6; // 20 byte recipient
-  bytes value = 7; // smallest big endian serialization, max. 32 bytes
-  bytes data = 8;
-}
-
-message ETHSignResponse {
-  bytes signature = 1; // 65 bytes, last byte is the recid
-}
-
-message ETHRequest {
-  oneof request {
-    ETHPubRequest pub = 1;
-    ETHSignRequest sign = 2;
-  }
-}
-
-message ETHResponse {
-  oneof response {
-    PubResponse pub = 1;
-    ETHSignResponse sign = 2;
-  }
-}
-
-message ResetRequest {}
-
-message RestoreFromMnemonicRequest {
-  uint32 timestamp = 1;
-  int32 timezone_offset = 2;
 }
 
 message Request {

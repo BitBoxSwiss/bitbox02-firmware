@@ -198,14 +198,14 @@ class SendMessage:
                 keypath=[84 + HARDENED, 0 + HARDENED, bip44_account, 1, 0], value=int(1e8 * 1)
             ),
             bitbox02.BTCOutputExternal(
-                output_type=bitbox02.hww.P2WSH,
+                output_type=bitbox02.btc.P2WSH,
                 output_hash=b"11111111111111111111111111111111",
                 value=int(1e8 * 0.2),
             ),
         ]
         sigs = self._device.btc_sign(
-            bitbox02.hww.BTC,
-            bitbox02.hww.SCRIPT_P2WPKH,
+            bitbox02.btc.BTC,
+            bitbox02.btc.SCRIPT_P2WPKH,
             bip44_account=bip44_account,
             inputs=inputs,
             outputs=outputs,

@@ -64,15 +64,6 @@ set(DBB-FIRMWARE-SOURCES
 )
 set(DBB-FIRMWARE-SOURCES ${DBB-FIRMWARE-SOURCES} PARENT_SCOPE)
 
-set(DBB-FIRMWARE-PROTOBUF-SOURCES
-  ${CMAKE_BINARY_DIR}/src/backup.pb.c
-  ${CMAKE_BINARY_DIR}/src/hww.pb.c
-  ${CMAKE_SOURCE_DIR}/tools/nanopb/pb_common.c
-  ${CMAKE_SOURCE_DIR}/tools/nanopb/pb_decode.c
-  ${CMAKE_SOURCE_DIR}/tools/nanopb/pb_encode.c
-)
-set(DBB-FIRMWARE-PROTOBUF-SOURCES ${DBB-FIRMWARE-PROTOBUF-SOURCES} PARENT_SCOPE)
-
 set(DBB-FIRMWARE-USB-SOURCES
   ${CMAKE_SOURCE_DIR}/src/usb/usb.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_frame.c
@@ -187,45 +178,14 @@ set(INCLUDES
 )
 set(INCLUDES ${INCLUDES} PARENT_SCOPE)
 
+set(SYSTEMINCLUDES
+  ${CMAKE_BINARY_DIR}/messages
+)
+set(SYSTEMINCLUDES ${SYSTEMINCLUDES} PARENT_SCOPE)
+
 #-----------------------------------------------------------------------------
 # Build embedded firmware
 
-execute_process(COMMAND "which" "protoc-gen-nanopb"
-  RESULT_VARIABLE protoc_nanopb_available
-  OUTPUT_QUIET)
-if (protoc_nanopb_available EQUAL 0)
-  add_custom_command(
-    OUTPUT hww.pb.c hww.pb.h
-    DEPENDS
-      ${CMAKE_SOURCE_DIR}/messages/hww.proto
-      ${CMAKE_SOURCE_DIR}/messages/hww.options
-    COMMAND
-      "protoc" "--nanopb_out=${CMAKE_CURRENT_BINARY_DIR}" "hww.proto"
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/messages
-  )
-  add_custom_target(
-    generate-hww
-    DEPENDS hww.pb.c hww.pb.h
-  )
-  add_custom_command(
-    OUTPUT backup.pb.c backup.pb.h
-    DEPENDS
-      ${CMAKE_SOURCE_DIR}/messages/backup.proto
-      ${CMAKE_SOURCE_DIR}/messages/backup.options
-    COMMAND
-      "protoc" "--nanopb_out=${CMAKE_CURRENT_BINARY_DIR}" "backup.proto"
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/messages
-  )
-  add_custom_target(
-    generate-backup
-    DEPENDS backup.pb.c backup.pb.h
-  )
-else ()
-  message(FATAL_ERROR
-    "\nCould not find 'protoc-gen-nanopb'.\n"
-    "Please install it from here: https://jpa.kapsi.fi/nanopb/download/\n"
-    "And add generator-bin/ to your path.\n")
-endif()
 
 # TODO: Not needed when building bootlaoder..
 find_package(Nanopb REQUIRED)
@@ -246,6 +206,11 @@ set(BOOTLOADER-SOURCES
   ${DBB-BOOTLOADER-SOURCES}
   ${DBB-FIRMWARE-USB-SOURCES}
   ${DRIVER-SOURCES}
+)
+
+set_source_files_properties(
+  ${DBB-FIRMWARE-PROTOBUF-SOURCES}
+  PROPERTIES GENERATED TRUE
 )
 
 if(CMAKE_CROSSCOMPILING)
@@ -314,7 +279,7 @@ if(CMAKE_CROSSCOMPILING)
         asf4-drivers-min
         asf4-drivers
         -Wl,-u,exception_table)
-    add_dependencies(${elf} generate-hww generate-backup)
+    add_dependencies(${elf} generate-protobufs)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_include_directories(${elf} SYSTEM PRIVATE ${SYSTEMINCLUDES})
 

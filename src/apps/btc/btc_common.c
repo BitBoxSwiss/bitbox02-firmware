@@ -19,14 +19,9 @@
 #include <util.h>
 #include <wally_address.h>
 
-static bool _validate_keypath_account(
-    const uint32_t* keypath,
-    const size_t keypath_len,
-    uint32_t expected_coin)
+// keypath_len is assumed to be greater or equal than 3.
+static bool _validate_keypath_account(const uint32_t* keypath, uint32_t expected_coin)
 {
-    if (keypath_len < 3) {
-        return false;
-    }
     uint32_t coin = keypath[1];
     uint32_t account = keypath[2];
     return coin == expected_coin && account >= BIP44_ACCOUNT_MIN && account <= BIP44_ACCOUNT_MAX;
@@ -45,7 +40,7 @@ static bool _validate_keypath_address(
     if (purpose != expected_purpose) {
         return false;
     }
-    if (!_validate_keypath_account(keypath, keypath_len, expected_coin)) {
+    if (!_validate_keypath_account(keypath, expected_coin)) {
         return false;
     }
     uint32_t change = keypath[3];
@@ -84,7 +79,7 @@ bool btc_common_is_valid_keypath(
         default:
             return false;
         }
-        return _validate_keypath_account(keypath, keypath_len, expected_coin);
+        return _validate_keypath_account(keypath, expected_coin);
     case BTCPubRequest_OutputType_ADDRESS:
         switch (script_type) {
         case BTCScriptType_SCRIPT_P2PKH:

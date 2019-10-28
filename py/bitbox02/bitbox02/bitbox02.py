@@ -15,6 +15,7 @@
 
 
 import os
+import enum
 import sys
 import time
 import base64
@@ -83,6 +84,7 @@ ATTESTATION_PUBKEYS_MAP: Dict[bytes, bytes] = {
 
 OP_ATTESTATION = b"a"
 OP_UNLOCK = b"u"
+OP_INFO = b"i"
 OP_I_CAN_HAS_HANDSHAEK = b"h"
 OP_I_CAN_HAS_PAIRIN_VERIFICASHUN = b"v"
 OP_NOISE_MSG = b"n"
@@ -125,6 +127,26 @@ class BTCOutputExternal:
 
 
 BTCOutputType = Union[BTCOutputInternal, BTCOutputExternal]
+
+
+class Platform(enum.Enum):
+    """ Available hardware platforms """
+
+    BITBOX02 = "bitbox02"
+    BITBOXBASE = "bitboxbase"
+
+
+class BitBox02Edition(enum.Enum):
+    """ Editions for the BitBox02 platform """
+
+    MULTI = "multi"
+    BTCONLY = "btconly"
+
+
+class BitBoxBaseEdition(enum.Enum):
+    """ Editions for the BitBoxBase platform """
+
+    STANDARD = "standard"
 
 
 class Bitbox02Exception(Exception):
@@ -170,7 +192,6 @@ class BitBox02:
 
         self.device = hid.device()
         self.device.open_path(device_info["path"])
-
         if self.version >= semver.VersionInfo(2, 0, 0):
             if attestation_check_callback is not None:
                 # Perform attestation
@@ -271,6 +292,28 @@ class BitBox02:
         if self.debug:
             print(response)
         return response
+
+    def get_info(self) -> Tuple[str, Platform, Union[BitBox02Edition, BitBoxBaseEdition], bool]:
+        """
+        Returns (version, platform, edition, unlocked).
+        """
+        response = self._query(OP_INFO)
+        version, response = response[:12], response[12:]
+        version_str = version.rstrip(b"\0").decode("ascii")
+
+        platform_byte, response = response[0], response[1:]
+        platform = {0x00: Platform.BITBOX02}[platform_byte]
+
+        edition_byte, response = response[0], response[1:]
+        edition: Union[BitBox02Edition, BitBoxBaseEdition]
+        if platform == Platform.BITBOX02:
+            edition = {0x00: BitBox02Edition.MULTI, 0x01: BitBox02Edition.BTCONLY}[edition_byte]
+        else:
+            edition = {0x00: BitBoxBaseEdition.STANDARD}[edition_byte]
+
+        unlocked_byte = response[0]
+        unlocked = {0x00: False, 0x01: True}[unlocked_byte]
+        return (version_str, platform, edition, unlocked)
 
     def random_number(self) -> bytes:
         # pylint: disable=no-member

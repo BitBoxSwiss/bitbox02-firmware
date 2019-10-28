@@ -236,8 +236,10 @@ void usb_processing_init(void)
 {
 #if defined(APP_U2F)
     usb_processing_u2f()->out_queue = queue_u2f_queue;
+    queue_init(queue_u2f_queue(), USB_REPORT_SIZE);
     usb_processing_u2f()->has_packet = false;
 #endif
     usb_processing_hww()->out_queue = queue_hww_queue;
+    queue_init(queue_hww_queue(), USB_REPORT_SIZE);
     usb_processing_hww()->has_packet = false;
 }

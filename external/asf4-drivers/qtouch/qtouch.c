@@ -517,24 +517,16 @@ static uint16_t sensor_previous_filtered_reading[DEF_NUM_SENSORS][DEF_SENSOR_NUM
 /* Custom sensor signal filter. */
 uint16_t qtouch_get_sensor_node_signal_filtered(uint16_t sensor_node)
 {
-    // Filter the sensor signal using the equation:
-    //     Y = X / (1 + 0.0001 * X^2)
+    // Filter the sensor signal.
     //
-    // The maximum Y value is 50 when X = 100, with a decreasing tail for X > 100.
-    // The equation can be plotted using: https://www.desmos.com/calculator
-    // and is an approximation of `Y = arctan(X)` but scaled in Y.
+    // Smooth it out and saturate it so that values never go beyond 50.
+    // This helps to mitigate 'jumpy' channels that exist at higher sensor readings when
+    // in noisy environments.
     //
-    // Smaller sensor readings will have higher relative weights, improving sensitivity of
-    // neighboring channels for better linearity and less deadband, while helping to mitigate
-    // 'jumpy' channels that exist at higher sensor readings when in noisy environments.
-    //
-    // The above empirically worked better than a sigmoid function Y = X / (1 + 0.015 * X).
-    //
-    uint8_t j;
-    double X, Y;
-    uint16_t Y_ave;
-    X = qtouch_get_sensor_node_signal(sensor_node) - qtouch_get_sensor_node_reference(sensor_node);
-    X = (X < 0) ? 0 : X;
+    uint16_t X;
+    uint16_t sensor_raw = qtouch_get_sensor_node_signal(sensor_node);
+    uint16_t sensor_reference = qtouch_get_sensor_node_reference(sensor_node);
+    X = sensor_raw < sensor_reference ? 0 : sensor_raw - sensor_reference;
     // Add more weight to edge buttons because they are physically smaller (smaller readings).
     if ((sensor_node == DEF_SCROLLER_OFFSET_0) ||
         (sensor_node == DEF_SCROLLER_OFFSET_1) ||
@@ -542,25 +534,26 @@ uint16_t qtouch_get_sensor_node_signal_filtered(uint16_t sensor_node)
         (sensor_node == DEF_SCROLLER_OFFSET_1 + DEF_SCROLLER_NUM_CHANNELS - 1)) {
         X = X * (1 + DEF_SENSOR_EDGE_WEIGHT);
     }
-    Y = X / (1 + 0.0001 * X * X);
+    // Saturate out-of-range readings.
+    X = (X > 50) ? 50 : X;
 
     // Calculate sensor readout using a moving average
     // The moving average wieghts previous N readings twice current reading
     uint16_t moving_average_cummulative_weight = 1;// Add one for current reading calculated above
-    Y_ave = (uint16_t) Y;
-    for (j = 0; j < DEF_SENSOR_NUM_PREV_POS; j++) {
+    uint16_t X_ave = X;
+    for (size_t j = 0; j < DEF_SENSOR_NUM_PREV_POS; j++) {
         moving_average_cummulative_weight += 2;
-        Y_ave += sensor_previous_filtered_reading[sensor_node][j] * 2;
+        X_ave += sensor_previous_filtered_reading[sensor_node][j] * 2;
     }
-    Y_ave = Y_ave / moving_average_cummulative_weight;
+    X_ave = X_ave / moving_average_cummulative_weight;
 
     // Update recorded previous positions
-    for (j = 0; j < DEF_SENSOR_NUM_PREV_POS - 1; j++) {
+    for (size_t j = 0; j < DEF_SENSOR_NUM_PREV_POS - 1; j++) {
         sensor_previous_filtered_reading[sensor_node][j] = sensor_previous_filtered_reading[sensor_node][j + 1];
     }
-    sensor_previous_filtered_reading[sensor_node][DEF_SENSOR_NUM_PREV_POS - 1] = Y;
+    sensor_previous_filtered_reading[sensor_node][DEF_SENSOR_NUM_PREV_POS - 1] = X;
 
-    return ((uint16_t) Y_ave);
+    return X_ave;
 }
 
 bool qtouch_is_scroller_active(uint16_t scroller)
@@ -580,6 +573,7 @@ void qtouch_process_scroller_positions(void)
     {
         uint8_t i, j;
         uint16_t sum = 0;
+        uint16_t max_sensor_reading = 0;
         uint16_t weighted_sum = 0;
         uint16_t sensor_location[DEF_SCROLLER_NUM_CHANNELS] = {
             1,// Offset by `1` because a `0` location cannot be weight-averaged
@@ -593,6 +587,7 @@ void qtouch_process_scroller_positions(void)
             value = qtouch_get_sensor_node_signal_filtered(i + (scroller ? DEF_SCROLLER_OFFSET_1 : DEF_SCROLLER_OFFSET_0));
             sum += value;
             weighted_sum += value * sensor_location[i];
+            max_sensor_reading = (value > max_sensor_reading) ? value : max_sensor_reading;
         }
 
         // Compensate for deadband (i.e. when only a single edge button gives a reading and neighbors do not)
@@ -623,9 +618,14 @@ void qtouch_process_scroller_positions(void)
         }
         if (sum >= DEF_SCROLLER_DET_THRESHOLD) {
             scroller_previous_position[scroller][DEF_SCROLLER_NUM_PREV_POS - 1] = scaled_value;
-            scroller_active[scroller] = true;
         } else {
             scroller_previous_position[scroller][DEF_SCROLLER_NUM_PREV_POS - 1] = DEF_SCROLLER_OFF;
+        }
+        // Use the maximum value of all sensor readings as an estimate of pressure.
+        // Put a threshold on this to detect whether we're touching or not.
+        if (max_sensor_reading >= DEF_SCROLLER_TOUCH_THRESHOLD) {
+            scroller_active[scroller] = true;
+        } else if (max_sensor_reading <= DEF_SCROLLER_UNTOUCH_THRESHOLD) {
             scroller_active[scroller] = false;
         }
     }

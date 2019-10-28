@@ -242,13 +242,15 @@ extern "C" {
 #define DEF_NUM_SCROLLERS              2// Number of scrollers (sliders or wheels)
 #define DEF_SCROLLER_NUM_CHANNELS   (DEF_NUM_CHANNELS / DEF_NUM_SCROLLERS)// Assumes same number for each scroller
 #define DEF_SCROLLER_RESOLUTION      256// Scroller resolution in bits
-#define DEF_SCROLLER_DET_THRESHOLD    32// Scroller detect threshold
+#define DEF_SCROLLER_DET_THRESHOLD    25// Scroller detect threshold
+#define DEF_SCROLLER_TOUCH_THRESHOLD    25 // Scroller active threshold
+#define DEF_SCROLLER_UNTOUCH_THRESHOLD    20 // Scroller active threshold
 #define DEF_SCROLLER_DEADBAND         13// 13 bits = 5% of 256-bit range
 #define DEF_SCROLLER_OFFSET_0          4// Index of first button in scroller
 #define DEF_SCROLLER_OFFSET_1          0// Index of first button in scroller
 #define DEF_SCROLLER_NUM_PREV_POS      4// Number of previous scroller positions to remember; used in a simple filter
 #define DEF_SCROLLER_OFF          0xFFFF// Marker for indicating scroller reading does not exceed detection threshold
-#define DEF_SENSOR_EDGE_WEIGHT      0.05// Percent added weight to edge sensors, which are physically smaller
+#define DEF_SENSOR_EDGE_WEIGHT      0.15// Percent added weight to edge sensors, which are physically smaller
 #define DEF_SENSOR_NUM_PREV_POS        4// Number of previous sensor positions to remember; used in a simple filter
 
 #ifdef __cplusplus

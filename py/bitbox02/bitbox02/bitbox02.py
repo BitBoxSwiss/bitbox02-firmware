@@ -298,7 +298,9 @@ class BitBox02:
         Returns (version, platform, edition, unlocked).
         """
         response = self._query(OP_INFO)
-        version, response = response[:12], response[12:]
+
+        version_str_len, response = int(response[0]), response[1:]
+        version, response = response[:version_str_len], response[version_str_len:]
         version_str = version.rstrip(b"\0").decode("ascii")
 
         platform_byte, response = response[0], response[1:]

@@ -16,6 +16,7 @@
 
 #include <attestation.h>
 #include <commander/commander.h>
+#include <hardfault.h>
 #include <keystore.h>
 #include <memory.h>
 #include <usb/noise.h>
@@ -73,7 +74,8 @@ static void _api_attestation(const Packet* in_packet, Packet* out_packet)
 /**
  * Serializes sytem information to the buffer.
  * The following bytes are written:
- * 12 bytes: short firmware version string, ascii encoded, right-padded with 0x00. E.g. "v4.12.2".
+ * 1 byte: length of the version string that follows.
+ * N bytes: short firmware version string, ascii encoded. E.g. "v4.12.2". Not null terminated.
  * 1 byte: platform code:
  * - 0x00 - BitBox02
  * - 0x01 - BitBoxBase
@@ -90,28 +92,33 @@ static void _api_attestation(const Packet* in_packet, Packet* out_packet)
 static size_t _api_info(uint8_t* buf)
 {
     uint8_t* current = buf;
-    { // 12 bytes version string, 0x00-padded
-        memset(current, 0x00, 12);
-        strncpy((char*)current, DIGITAL_BITBOX_VERSION_SHORT, 12);
-        current += 12;
+    // version string, 1 byte len prefix
+    size_t version_string_len = sizeof(DIGITAL_BITBOX_VERSION_SHORT) - 1;
+    if (version_string_len > 255) {
+        Abort("OP_INFO: version string too long");
     }
-    { // 1 byte platform code
-        // TODO: add BitBoxBase platform
-        *current = 0x00;
-        current++;
-    }
-    { // 1 byte edition code
+    *current = (uint8_t)version_string_len;
+    current++;
+    memcpy((char*)current, DIGITAL_BITBOX_VERSION_SHORT, version_string_len);
+    current += version_string_len;
+
+    // 1 byte platform code
+    // TODO: add BitBoxBase platform
+    *current = 0x00;
+    current++;
+
+    // 1 byte edition code
 #if !defined(FIRMWARE_BTC_ONLY)
-        *current = 0x00;
+    *current = 0x00;
 #else
-        *current = 0x01;
+    *current = 0x01;
 #endif
-        current++;
-    }
-    { // 1 byte locked status
-        *current = keystore_is_locked() ? 0x00 : 0x01;
-        current++;
-    }
+    current++;
+
+    // 1 byte locked status
+    *current = keystore_is_locked() ? 0x00 : 0x01;
+    current++;
+
     return current - buf;
 }
 

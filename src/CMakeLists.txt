@@ -132,6 +132,8 @@ set(DBB-BOOTLOADER-SOURCES ${DBB-BOOTLOADER-SOURCES} PARENT_SCOPE)
 
 set(DRIVER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/peripherals_init.c
+  ${CMAKE_SOURCE_DIR}/src/platform/driver_init.c
+  ${CMAKE_SOURCE_DIR}/src/qtouch/qtouch.c
   ${CMAKE_SOURCE_DIR}/src/ui/oled/oled.c
 )
 set(DRIVER-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
@@ -176,6 +178,8 @@ set(FIRMWARE-U2F-SOURCES ${FIRMWARE-U2F-SOURCES} PARENT_SCOPE)
 
 set(INCLUDES
   ${CMAKE_SOURCE_DIR}/src
+  ${CMAKE_SOURCE_DIR}/src/platform
+  ${CMAKE_SOURCE_DIR}/src/qtouch
   ${CMAKE_SOURCE_DIR}/src/usb/class
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hww

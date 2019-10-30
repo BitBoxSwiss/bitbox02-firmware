@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "bootloader.h"
-#include "peripherals_init.h"
+#include "platform_init.h"
 #include <bootloader/mpu.h>
 #include <driver_init.h>
 #include <hardfault.h>
@@ -44,7 +44,7 @@ int main(void)
     init_mcu();
     mpu_bootloader_init();
     bootloader_init();
-    peripherals_init();
+    platform_init();
     __stack_chk_guard = rand_sync_read32(&RAND_0);
     screen_init();
     qtouch_init();

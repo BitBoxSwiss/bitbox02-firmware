@@ -16,7 +16,7 @@
 #include "driver_init.h"
 #include "firmware_main_loop.h"
 #include "hardfault.h"
-#include "peripherals_init.h"
+#include "platform_init.h"
 #include "qtouch.h"
 #include "screen.h"
 #include "ui/screen_stack.h"
@@ -29,7 +29,7 @@ int main(void)
 {
     init_mcu();
     system_init();
-    peripherals_init();
+    platform_init();
     __stack_chk_guard = common_stack_chk_guard();
     screen_init();
     screen_splash();

@@ -39,9 +39,9 @@
 
 #include "platform_config.h"
 
-#if PLATFORM_BITBOX_02==1
+#if PLATFORM_BITBOX02 == 1
 #include <bitbox02_pins.h>
-#elif PLATFORM_BITBOX_BASE==1
+#elif PLATFORM_BITBOXBASE == 1
 #include <bitboxbase_pins.h>
 #endif
 

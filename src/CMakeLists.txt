@@ -146,6 +146,11 @@ set(PLATFORM-BITBOX02-SOURCES
 )
 set(PLATFORM-BITBOX02-SOURCES ${PLATFORM-BITBOX02-SOURCES} PARENT_SCOPE)
 
+set(PLATFORM-BITBOXBASE-SOURCES
+  ${CMAKE_SOURCE_DIR}/src/platform/bitboxbase/leds.c
+)
+set(PLATFORM-BITBOXBASE-SOURCES ${PLATFORM-BITBOXBASE-SOURCES} PARENT_SCOPE)
+
 set(CRYPTOAUTHLIB-SOURCES
   ${CMAKE_SOURCE_DIR}/src/securechip/securechip.c
 )
@@ -179,6 +184,7 @@ set(FIRMWARE-U2F-SOURCES ${FIRMWARE-U2F-SOURCES} PARENT_SCOPE)
 set(INCLUDES
   ${CMAKE_SOURCE_DIR}/src
   ${CMAKE_SOURCE_DIR}/src/platform
+  ${CMAKE_SOURCE_DIR}/src/platform/bitboxbase
   ${CMAKE_SOURCE_DIR}/src/qtouch
   ${CMAKE_SOURCE_DIR}/src/usb/class
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid
@@ -237,8 +243,15 @@ if(CMAKE_CROSSCOMPILING)
     bootloader-btc-development # Runs signed/unsigned firmware and has bootloader menu
     bootloader-btc-production # Runs signed (btc-only keys) firmware and bootloader is locked
   )
+  set(BOOTLOADERS-BITBOXBASE
+    bootloader-bitboxbase # Runs signed (base keys) firmware
+    bootloader-bitboxbase-development # Runs signed/unsigned firmware and has bootloader menu
+    bootloader-bitboxbase-semihosting # Runs signed/unsigned firmware, has bootloader menu and enables semihosting
+    bootloader-bitboxbase-production # Runs signed (base keys) firmware and bootloader is locked
+  )
   set(BOOTLOADERS
     ${BOOTLOADERS-BITBOX02}
+    ${BOOTLOADERS-BITBOXBASE}
   )
   set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
   foreach(bootloader ${BOOTLOADERS})
@@ -273,6 +286,10 @@ if(CMAKE_CROSSCOMPILING)
     target_sources(${bootloader}.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
   endforeach(bootloader)
 
+  foreach(bootloader ${BOOTLOADERS-BITBOXBASE})
+    target_sources(${bootloader}.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES})
+  endforeach(bootloader)
+
   target_compile_definitions(bootloader.elf PRIVATE PRODUCT_BITBOX_MULTI)
   target_compile_definitions(bootloader-development.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE)
   target_compile_definitions(bootloader-semihosting.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE SEMIHOSTING)
@@ -288,10 +305,18 @@ if(CMAKE_CROSSCOMPILING)
   target_compile_definitions(bootloader-btc-production.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-btc-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
+  target_compile_definitions(bootloader-bitboxbase.elf PRIVATE PRODUCT_BITBOX_BASE)
+  target_compile_definitions(bootloader-bitboxbase-development.elf PRIVATE BOOTLOADER_DEVDEVICE PRODUCT_BITBOX_BASE)
+  target_compile_definitions(bootloader-bitboxbase-semihosting.elf PRIVATE BOOTLOADER_DEVDEVICE PRODUCT_BITBOX_BASE SEMIHOSTING)
+  target_compile_definitions(bootloader-bitboxbase-production.elf PRIVATE BOOTLOADER_PRODUCTION PRODUCT_BITBOX_BASE)
+  set_property(TARGET bootloader-bitboxbase-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
+
   set(FIRMWARES
     firmware # Firmware MULTI
     firmware-semihosting # Firmware MULTI with semihosting enabled
     firmware-btc # Firmware BTC-ONLY
+    firmware-bitboxbase # Firmware BASE
+    firmware-bitboxbase-semihosting # Firmware BASE with semihosting
     factory-setup # Factory-setup
   )
   set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
@@ -359,6 +384,14 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(firmware-btc.elf PRIVATE firmware.c)
   target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY APP_BTC)
   target_sources(firmware-btc.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
+
+  target_sources(firmware-bitboxbase.elf PRIVATE bitboxbase/bitboxbase.c)
+  target_compile_definitions(firmware-bitboxbase.elf PRIVATE PRODUCT_BITBOX_BASE)
+  target_sources(firmware-bitboxbase.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES})
+
+  target_sources(firmware-bitboxbase-semihosting.elf PRIVATE bitboxbase/bitboxbase.c)
+  target_compile_definitions(firmware-bitboxbase-semihosting.elf PRIVATE PRODUCT_BITBOX_BASE SEMIHOSTING)
+  target_sources(firmware-bitboxbase-semihosting.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES})
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE FACTORYSETUP)

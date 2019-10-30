@@ -12,38 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "common_main.h"
+#include "driver_init.h"
+#include "firmware_main_loop.h"
 #include "hardfault.h"
+#include "platform_init.h"
+#include "qtouch.h"
+#include "screen.h"
+#include "ui/oled/oled.h"
+#include "ui/screen_process.h"
 #include "util.h"
-#include <screen.h>
-#include <usb/usb.h>
-#ifndef TESTING
-#include <driver_init.h>
+#include "workflow/workflow.h"
 
-void HardFault_Handler(void)
-{
-    Abort("Hard Fault");
-}
+#include <stdlib.h>
 
-void MemManage_Handler(void)
-{
-    Abort("Memory Fault");
-}
-#endif
+uint32_t __stack_chk_guard = 0;
 
-void Abort(const char* msg)
+/* This is the main function to the BitBox Base HSM */
+int main(void)
 {
-    screen_print_debug(msg, 0);
-    traceln("Aborted: %s", msg);
-#if PLATFORM_BITBOX02 == 1
-    usb_stop();
-#endif
-#if !defined(TESTING)
-#if defined(BOOTLOADER)
-    bootloader_close_interfaces();
-#else
-    system_close_interfaces();
-#endif
-#endif
-    while (1) {
+    init_mcu();
+    system_init();
+    platform_init();
+    __stack_chk_guard = common_stack_chk_guard();
+    screen_init();
+    screen_splash();
+    // qtouch_init();
+    common_main();
+    traceln("%s", "Device initialized");
+    for (;;) {
+        screen_process();
     }
+    return 0;
 }

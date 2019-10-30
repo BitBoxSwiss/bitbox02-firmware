@@ -51,9 +51,14 @@ int main(void)
     bootloader_jump();
 
     // If did not jump to firmware code, begin USB processing
+#if PLATFORM_BITBOX02 == 1
     while (1) {
         usb_processing_process(usb_processing_hww());
     }
+#elif PLATFORM_BITBOXBASE == 1
+    for (;;) {
+    }
+#endif
 
     return 0;
 }

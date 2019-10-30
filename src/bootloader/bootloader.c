@@ -802,7 +802,10 @@ static void _api_setup(void)
 {
     const CMD_Callback cmd_callbacks[] = {{BOOTLOADER_CMD, _api_msg}};
 
+    (void)cmd_callbacks;
+#if PLATFORM_BITBOX02 == 1
     usb_processing_register_cmds(usb_processing_hww(), cmd_callbacks, 1);
+#endif
 }
 
 #ifdef BOOTLOADER_PRODUCTION
@@ -924,19 +927,32 @@ void bootloader_jump(void)
 
     if (shared_data.fields.auto_enter != sectrue_u8) {
 #ifdef BOOTLOADER_DEVDEVICE
+#if PLATFORM_BITBOXBASE == 1
+        // We don't have touch on base dev bootloader yet
+        (void)_devdevice_enter;
+        _binary_exec();
+#elif PLATFORM_BITBOX02 == 1
         if (!_devdevice_enter(_firmware_verified_jump(&bootdata, secfalse_u32))) {
             _binary_exec();
             /* no return */
         }
+#endif
 #else
         _firmware_verified_jump(&bootdata, sectrue_u32); // no return if firmware is valid
         _render_message("Firmware\ninvalid\n \nEntering bootloader", 3000);
 #endif
     }
 
+#if PLATFORM_BITBOX02 == 1
     // App not entered. Start USB API to receive boot commands
     _render_default_screen();
     if (usb_start(_api_setup) != ERR_NONE) {
         _render_message("Failed to initialize USB", 0);
     }
+#elif PLATFORM_BITBOXBASE == 1
+    // Until we support flashing via bootloader, simply boot
+    (void)_api_setup;
+    screen_print_debug("Booting", 1500);
+    _binary_exec();
+#endif
 }

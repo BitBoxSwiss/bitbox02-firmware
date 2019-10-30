@@ -18,6 +18,9 @@
 #if !defined(BOOTLOADER)
 #include "sd_mmc/sd_mmc_start.h"
 #endif
+#if PLATFORM_BITBOXBASE == 1
+#include "leds.h"
+#endif
 
 extern void initialise_monitor_handles(void);
 
@@ -27,7 +30,10 @@ void platform_init(void)
     initialise_monitor_handles();
 #endif
     oled_init();
-#if !defined(BOOTLOADER)
+#if !defined(BOOTLOADER) && PLATFORM_BITBOX02 == 1
     sd_mmc_start();
+#endif
+#if PLATFORM_BITBOXBASE == 1
+    leds_init();
 #endif
 }

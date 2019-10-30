@@ -273,18 +273,19 @@ if(CMAKE_CROSSCOMPILING)
     target_sources(${bootloader}.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
   endforeach(bootloader)
 
-  target_compile_definitions(bootloader-development.elf PRIVATE BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bootloader-development-locked.elf PRIVATE BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
+  target_compile_definitions(bootloader.elf PRIVATE PRODUCT_BITBOX_MULTI)
+  target_compile_definitions(bootloader-development.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE)
+  target_compile_definitions(bootloader-semihosting.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE SEMIHOSTING)
+  target_compile_definitions(bootloader-development-locked.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-development-locked.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  target_compile_definitions(bootloader-semihosting.elf PRIVATE BOOTLOADER_DEVDEVICE SEMIHOSTING)
 
-  target_compile_definitions(bootloader-production.elf PRIVATE BOOTLOADER_PRODUCTION)
+  target_compile_definitions(bootloader-production.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  target_compile_definitions(bootloader-btc.elf PRIVATE BOOTLOADER_BTC_ONLY)
-  target_compile_definitions(bootloader-btc-development.elf PRIVATE BOOTLOADER_DEVDEVICE BOOTLOADER_BTC_ONLY)
-  target_compile_definitions(bootloader-btc-production.elf PRIVATE BOOTLOADER_PRODUCTION BOOTLOADER_BTC_ONLY)
+  target_compile_definitions(bootloader-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY)
+  target_compile_definitions(bootloader-btc-development.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_DEVDEVICE)
+  target_compile_definitions(bootloader-btc-production.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-btc-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
   set(FIRMWARES
@@ -346,17 +347,17 @@ if(CMAKE_CROSSCOMPILING)
   endforeach(firmware)
 
   target_sources(firmware.elf PRIVATE firmware.c)
-  target_compile_definitions(firmware.elf PRIVATE APP_BTC APP_LTC APP_ETH APP_U2F)
+  target_compile_definitions(firmware.elf PRIVATE PRODUCT_BITBOX_MULTI APP_BTC APP_LTC APP_ETH APP_U2F)
   target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
 
   target_sources(firmware-semihosting.elf PRIVATE firmware.c)
   target_sources(firmware-semihosting.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
   # Select an implementation of the system calls that can communicate with the debugger
-  target_compile_definitions(firmware-semihosting.elf PRIVATE APP_BTC APP_LTC APP_ETH APP_U2F)
+  target_compile_definitions(firmware-semihosting.elf PRIVATE PRODUCT_BITBOX_MULTI APP_BTC APP_LTC APP_ETH APP_U2F)
   target_compile_definitions(firmware-semihosting.elf PRIVATE SEMIHOSTING)
 
   target_sources(firmware-btc.elf PRIVATE firmware.c)
-  target_compile_definitions(firmware-btc.elf PRIVATE FIRMWARE_BTC_ONLY APP_BTC)
+  target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY APP_BTC)
   target_sources(firmware-btc.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)

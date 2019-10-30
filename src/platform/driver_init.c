@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// THIS IS A GENERATED FILE, MODIFY AS LITTLE AS POSSIBLE
+
 #include "driver_init.h"
 #include <utils.h>
 

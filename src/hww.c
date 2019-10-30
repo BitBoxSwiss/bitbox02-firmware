@@ -19,6 +19,7 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory.h>
+#include <platform_config.h>
 #include <usb/noise.h>
 #include <usb/usb_packet.h>
 #include <usb/usb_processing.h>
@@ -108,9 +109,11 @@ static size_t _api_info(uint8_t* buf)
     current++;
 
     // 1 byte edition code
-#if !defined(FIRMWARE_BTC_ONLY)
+#if PLATFORM_BITBOXBASE == 1
     *current = 0x00;
-#else
+#elif defined(PRODUCT_BITBOX_MULTI) || defined(FACTORYSETUP)
+    *current = 0x00;
+#elif defined(PRODUCT_BITBOX_BTCONLY)
     *current = 0x01;
 #endif
     current++;

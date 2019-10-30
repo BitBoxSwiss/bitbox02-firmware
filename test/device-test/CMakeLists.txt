@@ -78,7 +78,7 @@ target_link_libraries(bitbox
 )
 
 # Always enable semihosting for the test firmwares
-target_compile_definitions(bitbox PUBLIC SEMIHOSTING)
+target_compile_definitions(bitbox PUBLIC PRODUCT_BITBOX_MULTI SEMIHOSTING)
 target_link_libraries(bitbox PUBLIC --specs=nano.specs --specs=rdimon.specs)
 target_compile_options(bitbox PUBLIC --specs=nano.specs --specs=rdimon.specs)
 

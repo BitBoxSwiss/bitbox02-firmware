@@ -238,9 +238,14 @@ if(CMAKE_CROSSCOMPILING)
     # Select the smaller version of libc called nano.
     target_compile_options(${elf} PRIVATE --specs=nano.specs)
     target_link_libraries(${elf} PRIVATE --specs=nano.specs)
-    if(NOT bootloader STREQUAL "bootloader-semihosting")
+    string(FIND ${bootloader} semihosting SEMIHOSTING_FOUND)
+    if(SEMIHOSTING_FOUND EQUAL -1)
       target_compile_options(${elf} PRIVATE --specs=nosys.specs)
       target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
+    else()
+      # Select an implementation of the system calls that can communicate with the debugger
+      target_compile_options(${elf} PRIVATE --specs=rdimon.specs)
+      target_link_libraries(${elf} PRIVATE --specs=rdimon.specs)
     endif()
   endforeach(bootloader)
 
@@ -248,9 +253,6 @@ if(CMAKE_CROSSCOMPILING)
   target_compile_definitions(bootloader-development-locked.elf PRIVATE BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-development-locked.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  # Select an implementation of the system calls that can communicate with the debugger
-  target_compile_options(bootloader-semihosting.elf PRIVATE --specs=rdimon.specs)
-  target_link_libraries(bootloader-semihosting.elf PRIVATE --specs=rdimon.specs)
   target_compile_definitions(bootloader-semihosting.elf PRIVATE BOOTLOADER_DEVDEVICE SEMIHOSTING)
 
   target_compile_definitions(bootloader-production.elf PRIVATE BOOTLOADER_PRODUCTION)
@@ -303,9 +305,14 @@ if(CMAKE_CROSSCOMPILING)
     # Select the smaller version of libc called nano.
     target_compile_options(${elf} PRIVATE --specs=nano.specs)
     target_link_libraries(${elf} PRIVATE --specs=nano.specs)
-    if(NOT firmware STREQUAL "firmware-semihosting")
+    string(FIND ${firmware} semihosting SEMIHOSTING_FOUND)
+    if(SEMIHOSTING_FOUND EQUAL -1)
       target_compile_options(${elf} PRIVATE --specs=nosys.specs)
       target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
+    else()
+      # Select an implementation of the system calls that can communicate with the debugger
+      target_compile_options(${elf} PRIVATE --specs=rdimon.specs)
+      target_link_libraries(${elf} PRIVATE --specs=rdimon.specs)
     endif()
   endforeach(firmware)
 
@@ -316,8 +323,6 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(firmware-semihosting.elf PRIVATE firmware.c)
   target_sources(firmware-semihosting.elf PRIVATE ${FIRMWARE-U2F-SOURCES})
   # Select an implementation of the system calls that can communicate with the debugger
-  target_compile_options(firmware-semihosting.elf PRIVATE --specs=rdimon.specs)
-  target_link_libraries(firmware-semihosting.elf PRIVATE --specs=rdimon.specs)
   target_compile_definitions(firmware-semihosting.elf PRIVATE APP_BTC APP_LTC APP_ETH APP_U2F)
   target_compile_definitions(firmware-semihosting.elf PRIVATE SEMIHOSTING)
 

@@ -132,12 +132,17 @@ set(DBB-BOOTLOADER-SOURCES ${DBB-BOOTLOADER-SOURCES} PARENT_SCOPE)
 
 set(DRIVER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/peripherals_init.c
-  ${CMAKE_SOURCE_DIR}/src/sd_mmc/sd_mmc_start.c
   ${CMAKE_SOURCE_DIR}/src/ui/oled/oled.c
-  ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hid.c
-  ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hww/hid_hww.c
 )
 set(DRIVER-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
+
+set(PLATFORM-BITBOX02-SOURCES
+  ${CMAKE_SOURCE_DIR}/src/sd_mmc/sd_mmc_start.c
+  ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hid.c
+  ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hww/hid_hww.c
+  ${DBB-FIRMWARE-USB-SOURCES}
+)
+set(PLATFORM-BITBOX02-SOURCES ${PLATFORM-BITBOX02-SOURCES} PARENT_SCOPE)
 
 set(CRYPTOAUTHLIB-SOURCES
   ${CMAKE_SOURCE_DIR}/src/securechip/securechip.c
@@ -192,7 +197,6 @@ find_package(Nanopb REQUIRED)
 
 set(FIRMWARE-SOURCES
   ${DBB-FIRMWARE-SOURCES}
-  ${DBB-FIRMWARE-USB-SOURCES}
   ${DBB-FIRMWARE-UI-SOURCES}
   ${FIRMWARE-DRIVER-SOURCES}
   ${DRIVER-SOURCES}
@@ -204,7 +208,6 @@ set(FIRMWARE-SOURCES
 
 set(BOOTLOADER-SOURCES
   ${DBB-BOOTLOADER-SOURCES}
-  ${DBB-FIRMWARE-USB-SOURCES}
   ${DRIVER-SOURCES}
 )
 
@@ -219,7 +222,20 @@ if(CMAKE_CROSSCOMPILING)
   set(HEAP_SIZE "0x18000" CACHE STRING "Specify heap size for bootloader/firmware")
   set(HEAP_SIZE ${HEAP_SIZE} PARENT_SCOPE)
 
-  set(BOOTLOADERS bootloader bootloader-development bootloader-development-locked bootloader-semihosting bootloader-production bootloader-btc bootloader-btc-development bootloader-btc-production)
+  # If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
+  set(BOOTLOADERS-BITBOX02
+    bootloader # Runs signed firmware
+    bootloader-development # Runs signed/unsigned firmware and has bootloader menu
+    bootloader-development-locked # Runs signed/unsigned firmware, has bootloader menu and bootloader is locked
+    bootloader-semihosting # Runs signed/unsigned firmware, has bootloader menu and enables semihosting
+    bootloader-production # Runs signed firmware and bootloader is locked
+    bootloader-btc # Runs signed (btc-only keys) firmware
+    bootloader-btc-development # Runs signed/unsigned firmware and has bootloader menu
+    bootloader-btc-production # Runs signed (btc-only keys) firmware and bootloader is locked
+  )
+  set(BOOTLOADERS
+    ${BOOTLOADERS-BITBOX02}
+  )
   set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
   foreach(bootloader ${BOOTLOADERS})
     set(elf ${bootloader}.elf)
@@ -249,6 +265,10 @@ if(CMAKE_CROSSCOMPILING)
     endif()
   endforeach(bootloader)
 
+  foreach(bootloader ${BOOTLOADERS-BITBOX02})
+    target_sources(${bootloader}.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
+  endforeach(bootloader)
+
   target_compile_definitions(bootloader-development.elf PRIVATE BOOTLOADER_DEVDEVICE)
   target_compile_definitions(bootloader-development-locked.elf PRIVATE BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-development-locked.elf PROPERTY EXCLUDE_FROM_ALL ON)
@@ -263,7 +283,12 @@ if(CMAKE_CROSSCOMPILING)
   target_compile_definitions(bootloader-btc-production.elf PRIVATE BOOTLOADER_PRODUCTION BOOTLOADER_BTC_ONLY)
   set_property(TARGET bootloader-btc-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  set(FIRMWARES firmware firmware-semihosting firmware-btc factory-setup)
+  set(FIRMWARES
+    firmware # Firmware MULTI
+    firmware-semihosting # Firmware MULTI with semihosting enabled
+    firmware-btc # Firmware BTC-ONLY
+    factory-setup # Factory-setup
+  )
   set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
   foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)
@@ -318,19 +343,21 @@ if(CMAKE_CROSSCOMPILING)
 
   target_sources(firmware.elf PRIVATE firmware.c)
   target_compile_definitions(firmware.elf PRIVATE APP_BTC APP_LTC APP_ETH APP_U2F)
-  target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES})
+  target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
 
   target_sources(firmware-semihosting.elf PRIVATE firmware.c)
-  target_sources(firmware-semihosting.elf PRIVATE ${FIRMWARE-U2F-SOURCES})
+  target_sources(firmware-semihosting.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
   # Select an implementation of the system calls that can communicate with the debugger
   target_compile_definitions(firmware-semihosting.elf PRIVATE APP_BTC APP_LTC APP_ETH APP_U2F)
   target_compile_definitions(firmware-semihosting.elf PRIVATE SEMIHOSTING)
 
   target_sources(firmware-btc.elf PRIVATE firmware.c)
   target_compile_definitions(firmware-btc.elf PRIVATE FIRMWARE_BTC_ONLY APP_BTC)
+  target_sources(firmware-btc.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE FACTORYSETUP)
+  target_sources(factory-setup.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
 
   foreach(name ${BOOTLOADERS} ${FIRMWARES})
     add_custom_command(

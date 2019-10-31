@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "bootloader.h"
+#include "platform_config.h"
 #include "platform_init.h"
 #include <bootloader/mpu.h>
 #include <driver_init.h>
@@ -20,6 +21,9 @@
 #include <qtouch.h>
 #include <screen.h>
 #include <string.h>
+#if PLATFORM_BITBOXBASE == 1
+#include <usart/usart.h>
+#endif
 #include <usb/usb_processing.h>
 
 extern void __attribute__((noreturn)) __stack_chk_fail(void);
@@ -56,7 +60,9 @@ int main(void)
         usb_processing_process(usb_processing_hww());
     }
 #elif PLATFORM_BITBOXBASE == 1
-    for (;;) {
+    while (1) {
+        usart_receive();
+        usb_processing_process(usb_processing_hww());
     }
 #endif
 

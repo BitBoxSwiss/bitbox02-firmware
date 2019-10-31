@@ -16,11 +16,14 @@
 #include "driver_init.h"
 #include "firmware_main_loop.h"
 #include "hardfault.h"
+#include "hww.h"
 #include "platform_init.h"
 #include "qtouch.h"
 #include "screen.h"
 #include "ui/oled/oled.h"
 #include "ui/screen_process.h"
+#include "usart/usart.h"
+#include "usb/usb_processing.h"
 #include "util.h"
 #include "workflow/workflow.h"
 
@@ -38,10 +41,14 @@ int main(void)
     screen_init();
     screen_splash();
     // qtouch_init();
+    usart_start();
+    hww_setup();
     common_main();
     traceln("%s", "Device initialized");
     for (;;) {
         screen_process();
+        usart_receive();
+        usb_processing_process(usb_processing_hww());
     }
     return 0;
 }

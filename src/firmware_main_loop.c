@@ -22,9 +22,6 @@ void firmware_main_loop(void)
 {
     while (1) {
         screen_process();
-#if defined(BBBASE_HMS_BOARD)
-        usart_receive();
-#endif
         usb_processing_process(usb_processing_hww());
 #if defined(APP_U2F)
         usb_processing_process(usb_processing_u2f());

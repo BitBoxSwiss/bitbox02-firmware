@@ -112,7 +112,7 @@ static uint16_t _compute_checksum(const uint8_t* data, size_t payload_length)
  * to compute the checksum to send without having to repack
  * the frame first.
  *
- * @param[in] src_endpoint Source endpoint (U2F command byte) field
+ * @param[in] dst_endpoint Source endpoint (U2F command byte) field
  * @param[in] data payload
  * @param[in] len len of the payload.
  */
@@ -138,7 +138,7 @@ static void _usart_manage_frame_v1(const uint8_t* buf, size_t packet_len)
 {
     // Check the checksum, located in the last 2 bytes of the frame.
     size_t payload_length = packet_len - 2;
-    uint16_t checksum = *((uint16_t*)(buf + payload_length));
+    uint16_t checksum = *((const uint16_t*)(buf + payload_length));
     uint16_t exp_checksum = _compute_checksum(_usart_frame_parser_state.buf, payload_length);
     if (exp_checksum != checksum) {
         return;
@@ -175,7 +175,7 @@ static void _usart_manage_full_rx_frame(void)
     if (version != 1) {
         return;
     }
-    _usart_manage_frame_v1();
+    _usart_manage_frame_v1(_usart_frame_parser_state.buf, _usart_frame_parser_state.packet_size);
 }
 
 static void _usart_frame_packet_end(void)

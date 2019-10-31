@@ -15,6 +15,8 @@
 #ifndef __USART_H_
 #define __USART_H_
 
+#include <stdbool.h>
+
 /**
  * Start the USART interface.
  */
@@ -30,6 +32,6 @@ void usart_stop(void);
  * data available, it will unframe it and buffer any
  * resulting packet for later processing.
  */
-void usart_receive(void);
+bool usart_receive(void);
 
 #endif

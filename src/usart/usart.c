@@ -88,9 +88,10 @@ static bool _usart_hw_initialized = false;
  * data available, it will unframe it and buffer any
  * resulting packet for later processing.
  */
-void usart_receive(void)
+bool usart_receive(void)
 {
     struct io_descriptor* io;
+    bool read_smth = false;
     usart_async_get_io_descriptor(&_usart_descriptor, &io);
     while (usart_async_is_rx_not_empty(&_usart_descriptor)) {
         uint8_t buf[USART_RX_BUFFER_SIZE] = {0};
@@ -107,8 +108,10 @@ void usart_receive(void)
              * Investigate this better.
              */
         }
+        read_smth = true;
         usart_frame_process_rx(buf, (size_t)n_read);
     };
+    return read_smth;
 }
 
 void usart_start(void)

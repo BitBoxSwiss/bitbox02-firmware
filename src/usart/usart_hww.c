@@ -15,11 +15,10 @@
 #include "usart_hww.h"
 
 #include "hardfault.h"
-#include "spettacolino.h"
 #include "usart_frame.h"
 #include "usb/usb_processing.h"
 
-#include <bb_pins.h>
+#include <driver_init.h>
 #include <hal_usart_async.h>
 #include <peripheral_clk_config.h>
 #include <queue.h>

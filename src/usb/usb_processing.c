@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "usb_processing.h"
+#include "platform_config.h"
 #include "u2f/u2f_packet.h"
 #include "usb_frame.h"
 #include "usb_packet.h"
@@ -198,7 +199,7 @@ static void _usb_process_incoming_packet(struct usb_processing* ctx)
         // TODO: figure out the consequences and either implement a solution or
         // inform U2F hijack vendors.
         _global_queue = ctx->out_queue();
-        usb_frame_prepare_err(FRAME_ERR_INVALID_CMD, _in_packet.cid, _queue_push);
+        // usb_frame_prepare_err(FRAME_ERR_INVALID_CMD, _in_packet.cid, _queue_push);
     }
     _usb_processing_drop_received(ctx);
 }
@@ -247,7 +248,7 @@ void usb_processing_init(void)
     usb_processing_u2f()->has_packet = false;
 #endif
     usb_processing_hww()->out_queue = queue_hww_queue;
-#if defined(BBBASE_HMS_BOARD)
+#if PLATFORM_BITBOXBASE == 1
     queue_init(queue_hww_queue(), 1);
     usb_processing_hww()->format_frame = usart_format_frame;
 #else

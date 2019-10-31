@@ -38,7 +38,12 @@ void usb_processing_register_cmds(
  * @return false if there is already a packet in the queue (need to process it
  * first).
  */
-bool usb_processing_enqueue(struct usb_processing* ctx, const State* in_state);
+bool usb_processing_enqueue(
+    struct usb_processing* ctx,
+    const uint8_t* buf,
+    size_t length,
+    uint8_t cmd,
+    uint32_t cid);
 void usb_processing_process(struct usb_processing* ctx);
 
 void usb_processing_set_send(struct usb_processing* ctx, void (*send)(void));

@@ -83,7 +83,8 @@ bool usb_packet_process(const USB_FRAME* frame)
             // Do not send a message yet
             return true;
         }
-        if (usb_processing_enqueue(ctx, &_in_state)) {
+        if (usb_processing_enqueue(
+                ctx, _in_state.data, _in_state.len, _in_state.cmd, _in_state.cid)) {
             // Queue filled and will be sent during usb processing
             _reset_state();
             return false;

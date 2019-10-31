@@ -156,7 +156,8 @@ bool u2f_packet_process(const USB_FRAME* frame)
             return true;
         }
         /* We have received a complete frame. Buffer it for processing. */
-        if (usb_processing_enqueue(ctx, &_in_state)) {
+        if (usb_processing_enqueue(
+                ctx, _in_state.data, _in_state.len, _in_state.cmd, _in_state.cid)) {
             // Queue filled and will be sent during usb processing
             _reset_state();
             return false;

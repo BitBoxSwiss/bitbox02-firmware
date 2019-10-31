@@ -81,12 +81,12 @@ static uint8_t _enqueue_frames(struct usb_processing* ctx, const Packet* out_pac
  * Builds a packet from the passed state.
  * @param[in] in_state The packet is loaded from the state.
  */
-static void _build_packet(const State* in_state)
+static void _build_packet(const uint8_t* buf, size_t length, uint8_t cmd, uint32_t cid)
 {
-    memcpy(_in_packet.data_addr, in_state->data, USB_DATA_MAX_LEN);
-    _in_packet.len = in_state->len;
-    _in_packet.cmd = in_state->cmd;
-    _in_packet.cid = in_state->cid;
+    memcpy(_in_packet.data_addr, buf, MIN(USB_DATA_MAX_LEN, length));
+    _in_packet.len = length;
+    _in_packet.cmd = cmd;
+    _in_packet.cid = cid;
 }
 
 /**
@@ -133,13 +133,18 @@ void usb_processing_register_cmds(
 /**
  * Request to process a complete incoming USB packet.
  */
-bool usb_processing_enqueue(struct usb_processing* ctx, const State* in_state)
+bool usb_processing_enqueue(
+    struct usb_processing* ctx,
+    const uint8_t* buf,
+    size_t length,
+    uint8_t cmd,
+    uint32_t cid)
 {
     if (_in_packet_queued) {
         /* We already have a buffered packet. */
         return false;
     }
-    _build_packet(in_state);
+    _build_packet(buf, length, cmd, cid);
     _in_packet_queued = true;
     ctx->has_packet = true;
     return true;

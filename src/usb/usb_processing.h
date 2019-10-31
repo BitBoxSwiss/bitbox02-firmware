@@ -15,6 +15,7 @@
 #ifndef _USB_PROCESSING_H_
 #define _USB_PROCESSING_H_
 
+#include "queue.h"
 #include "usb_frame.h"
 #include "usb_packet.h"
 
@@ -30,6 +31,17 @@ void usb_processing_register_cmds(
     struct usb_processing* ctx,
     const CMD_Callback* cmd_callbacks,
     int num_cmds);
+
+/**
+ * Prepares USB frames to be send to the host.
+ * param[in] data The data is copied into one or more frames
+ */
+typedef queue_error_t (*usb_frame_formatter_t)(
+    const uint8_t cmd,
+    const uint8_t* data,
+    const uint32_t len,
+    const uint32_t cid,
+    queue_error_t(add_frame_callback)(const uint8_t*));
 
 /**
  * Enqueues a usb packet for processing. Ownership is transferred, and the

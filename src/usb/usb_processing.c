@@ -30,6 +30,7 @@ struct usb_processing {
     bool has_packet;
     struct queue* (*out_queue)(void);
     void (*send)(void);
+    usb_frame_formatter_t format_frame;
 };
 
 /*
@@ -70,10 +71,10 @@ static queue_error_t _queue_push(const uint8_t* data)
  * Responds with data of a certain length.
  * @param[in] packet The packet to be sent.
  */
-static uint8_t _enqueue_frames(struct usb_processing* ctx, const Packet* out_packet)
+static queue_error_t _enqueue_frames(struct usb_processing* ctx, const Packet* out_packet)
 {
     _global_queue = ctx->out_queue();
-    return usb_frame_reply(
+    return ctx->format_frame(
         out_packet->cmd, out_packet->data_addr, out_packet->len, out_packet->cid, _queue_push);
 }
 
@@ -242,9 +243,11 @@ void usb_processing_init(void)
 #if defined(APP_U2F)
     usb_processing_u2f()->out_queue = queue_u2f_queue;
     queue_init(queue_u2f_queue(), USB_REPORT_SIZE);
+    usb_processing_u2f()->format_frame = usb_frame_reply;
     usb_processing_u2f()->has_packet = false;
 #endif
     usb_processing_hww()->out_queue = queue_hww_queue;
     queue_init(queue_hww_queue(), USB_REPORT_SIZE);
+    usb_processing_hww()->format_frame = usb_frame_reply;
     usb_processing_hww()->has_packet = false;
 }

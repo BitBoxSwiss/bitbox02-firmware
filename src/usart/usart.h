@@ -12,22 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "firmware_main_loop.h"
+#ifndef __USART_H_
+#define __USART_H_
 
-#include "ui/screen_process.h"
-#include "usart/usart.h"
-#include "usb/usb_processing.h"
+/**
+ * Start the USART interface.
+ */
+void usart_start(void);
 
-void firmware_main_loop(void)
-{
-    while (1) {
-        screen_process();
-#if defined(BBBASE_HMS_BOARD)
-        usart_receive();
+/**
+ * Stop the USART interfaces.
+ */
+void usart_stop(void);
+
+/**
+ * This function polls the USART rx status. If there is
+ * data available, it will unframe it and buffer any
+ * resulting packet for later processing.
+ */
+void usart_receive(void);
+
 #endif
-        usb_processing_process(usb_processing_hww());
-#if defined(APP_U2F)
-        usb_processing_process(usb_processing_u2f());
-#endif
-    }
-}

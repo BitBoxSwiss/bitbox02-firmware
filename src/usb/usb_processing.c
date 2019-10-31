@@ -247,7 +247,12 @@ void usb_processing_init(void)
     usb_processing_u2f()->has_packet = false;
 #endif
     usb_processing_hww()->out_queue = queue_hww_queue;
+#if defined(BBBASE_HMS_BOARD)
+    queue_init(queue_hww_queue(), 1);
+    usb_processing_hww()->format_frame = usart_format_frame;
+#else
     queue_init(queue_hww_queue(), USB_REPORT_SIZE);
     usb_processing_hww()->format_frame = usb_frame_reply;
+#endif
     usb_processing_hww()->has_packet = false;
 }

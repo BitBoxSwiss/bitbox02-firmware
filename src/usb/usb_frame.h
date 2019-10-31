@@ -146,4 +146,14 @@ int32_t usb_frame_process(const USB_FRAME* frame, State* state);
  */
 void usb_frame_device_reset_state(void);
 
+/**
+ * Creates a data frame for sending over USART.
+ */
+queue_error_t usart_format_frame(
+    const uint8_t cmd,
+    const uint8_t* data,
+    const uint32_t len,
+    const uint32_t cid,
+    queue_error_t(add_frame_callback)(const uint8_t*));
+
 #endif

@@ -12,22 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "firmware_main_loop.h"
+#ifndef _USART_FRAME_H_
+#define _USART_FRAME_H_
 
-#include "ui/screen_process.h"
-#include "usart/usart.h"
-#include "usb/usb_processing.h"
+#include <stdint.h>
+#include <stdlib.h>
 
-void firmware_main_loop(void)
-{
-    while (1) {
-        screen_process();
-#if defined(BBBASE_HMS_BOARD)
-        usart_receive();
+// Maximum size that can be transmitted in a single UART frame.
+#define USART_FRAME_MAX_DATA_LEN (4096U)
+
+/**
+ * Processes new raw data read from the USART port.
+ * @param[in] buf Data that has been read.
+ * @param[in] size Number of bytes queued.
+ */
+void usart_frame_process_rx(uint8_t* buf, size_t size);
+
+/**
+ * Initializes the parser.
+ */
+void usart_frame_init(void);
+
 #endif
-        usb_processing_process(usb_processing_hww());
-#if defined(APP_U2F)
-        usb_processing_process(usb_processing_u2f());
-#endif
-    }
-}

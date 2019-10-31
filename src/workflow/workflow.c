@@ -29,6 +29,7 @@
 #include <ui/components/show_logo.h>
 #include <ui/components/waiting.h>
 #include <ui/screen_stack.h>
+#include <usart/usart.h>
 #include <usb/usb.h>
 #include <util.h>
 
@@ -45,7 +46,12 @@ void workflow_confirm_dismiss(const char* title, const char* body)
 
 void workflow_start(void)
 {
+#ifndef BBBASE_HMS_BOARD
     usb_start(hww_setup);
+#else
+    usart_start();
+    hww_setup();
+#endif
     ui_screen_stack_pop_all();
     ui_screen_stack_push(info_centered_create("See the BitBoxApp", NULL));
 }

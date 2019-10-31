@@ -222,7 +222,7 @@ Notes  :
 static void build_qtm_config(qtm_control_t* qtm)
 {
     /* Initialise the Flags by clearing them */
-    qtm->binding_layer_flags = 0x00u;
+    qtm->binding_layer_flags = 0x00U;
 
     /*!< List of function pointers to acquisition sets */
     qtm->library_modules_init = library_modules_init;
@@ -272,14 +272,14 @@ static touch_ret_t touch_sensors_config(void)
     qtm_ptc_qtlib_assign_signal_memory(&touch_acq_signals_raw[0]);
 
     /* Initialize sensor nodes */
-    for (sensor_nodes = 0u; sensor_nodes < DEF_NUM_CHANNELS; sensor_nodes++) {
+    for (sensor_nodes = 0U; sensor_nodes < DEF_NUM_CHANNELS; sensor_nodes++) {
         /* Enable each node for measurement and mark for calibration */
         qtm_enable_sensor_node(&qtlib_acq_set1, sensor_nodes);
         qtm_calibrate_sensor_node(&qtlib_acq_set1, sensor_nodes);
     }
 
     /* Enable sensor keys and assign nodes */
-    for (sensor_nodes = 0u; sensor_nodes < DEF_NUM_CHANNELS; sensor_nodes++) {
+    for (sensor_nodes = 0U; sensor_nodes < DEF_NUM_CHANNELS; sensor_nodes++) {
         qtm_init_sensor_key(&qtlib_key_set1, sensor_nodes, &ptc_qtlib_node_stat1[sensor_nodes]);
     }
     return (touch_ret);
@@ -294,7 +294,7 @@ static touch_ret_t touch_sensors_config(void)
 void qtouch_force_calibrate(void)
 {
     qtm_touch_key_data_t* key;
-    for (uint16_t i = 0u; i < DEF_NUM_CHANNELS; i++) {
+    for (uint16_t i = 0U; i < DEF_NUM_CHANNELS; i++) {
         key = &qtlib_key_data_set1[i];
         uint16_t value = key->node_data_struct_ptr->node_acq_signals;
         uint16_t reference = key->channel_reference;
@@ -348,8 +348,8 @@ Notes  :
 ============================================================================*/
 static void qtm_post_process_complete(void)
 {
-    if ((0u != (qtlib_key_set1.qtm_touch_key_group_data->qtm_keys_status & 0x80u))) {
-        p_qtm_control->binding_layer_flags |= (1u << reburst_request);
+    if ((0U != (qtlib_key_set1.qtm_touch_key_group_data->qtm_keys_status & 0x80U))) {
+        p_qtm_control->binding_layer_flags |= (1U << reburst_request);
     } else {
         measurement_done_touch = 1;
         qtouch_process_scroller_positions(); // Run the custom filter
@@ -433,19 +433,19 @@ void qtouch_process(void)
     touch_ret_t touch_ret;
 
     /* check the time_to_measure_touch flag for Touch Acquisition */
-    if (p_qtm_control->binding_layer_flags & (1u << time_to_measure_touch)) {
+    if (p_qtm_control->binding_layer_flags & (1U << time_to_measure_touch)) {
         /* Do the acquisition */
         touch_ret = qtm_lib_start_acquisition(0);
 
         /* if the Acquistion request was successful then clear the request flag */
         if (TOUCH_SUCCESS == touch_ret) {
             /* Clear the Measure request flag */
-            p_qtm_control->binding_layer_flags &= (uint8_t) ~(1u << time_to_measure_touch);
+            p_qtm_control->binding_layer_flags &= (uint8_t) ~(1U << time_to_measure_touch);
         }
     }
 
     /* check the flag for node level post processing */
-    if (p_qtm_control->binding_layer_flags & (1u << node_pp_request)) {
+    if (p_qtm_control->binding_layer_flags & (1U << node_pp_request)) {
         /* Run Acquisition moudle level post pocessing*/
         touch_ret = qtm_lib_acq_process();
 
@@ -459,11 +459,11 @@ void qtouch_process(void)
         }
 
         /* Reset the flags for node_level_post_processing */
-        p_qtm_control->binding_layer_flags &= (uint8_t) ~(1u << node_pp_request);
+        p_qtm_control->binding_layer_flags &= (uint8_t) ~(1U << node_pp_request);
 
-        if (p_qtm_control->binding_layer_flags & (1u << reburst_request)) {
-            p_qtm_control->binding_layer_flags |= (1u << time_to_measure_touch);
-            p_qtm_control->binding_layer_flags &= ~(1u << reburst_request);
+        if (p_qtm_control->binding_layer_flags & (1U << reburst_request)) {
+            p_qtm_control->binding_layer_flags |= (1U << time_to_measure_touch);
+            p_qtm_control->binding_layer_flags &= ~(1U << reburst_request);
         }
     }
 }
@@ -480,7 +480,7 @@ Notes  :
 void qtouch_timer_handler(void)
 {
     /* Count complete - Measure touch sensors */
-    qtm_control.binding_layer_flags |= (1u << time_to_measure_touch);
+    qtm_control.binding_layer_flags |= (1U << time_to_measure_touch);
     qtm_update_qtlib_timer(DEF_TOUCH_MEASUREMENT_PERIOD_MS);
 }
 
@@ -571,9 +571,9 @@ bool qtouch_is_scroller_active(uint16_t scroller)
     return scroller_active[scroller];
 }
 
-uint16_t qtouch_get_scroller_position(uint16_t scroller)
+uint16_t qtouch_get_scroller_position(uint16_t sensor_node)
 {
-    return scroller_position[scroller];
+    return scroller_position[sensor_node];
 }
 
 void qtouch_process_scroller_positions(void)
@@ -658,7 +658,7 @@ Notes    :  none
 ============================================================================*/
 void ADC0_1_Handler(void)
 {
-    ADC0->INTFLAG.reg |= 1u;
+    ADC0->INTFLAG.reg |= 1U;
     qtm_samd51_ptc_handler();
 }
 

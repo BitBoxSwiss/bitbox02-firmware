@@ -15,6 +15,12 @@ make -C py
 make prepare-tidy
 ./.ci/check-tidy
 
+# Build and run Unit tests
+make -j8 unit-test
+make -j8 run-unit-tests
+# Check that coverage report building is working.
+make coverage
+
 # Bootloader variants
 make -j8 bootloader
 make -j8 bootloader-devdevice
@@ -30,12 +36,6 @@ make -j8 firmware
 make -j8 firmware-semihosting
 make -j8 firmware-btc
 make -j8 factory-setup
-
-# Build and run Unit tests
-make -j8 unit-test
-make -j8 run-unit-tests
-# Check that coverage report building is working.
-make coverage
 
 make -C tools/go/src/atecc608a test
 

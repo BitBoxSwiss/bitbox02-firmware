@@ -373,7 +373,6 @@ else()
       # __dummy is used to always force regeneration of coverage file (There is no reasonable way to track generation of gcda files...)
       add_custom_command(
         OUTPUT gcovr/coverage.html __dummy
-        COMMAND ${CMAKE_COMMAND} --build . --target test
         COMMAND ${CMAKE_COMMAND} -E make_directory gcovr
         COMMAND ${GCOVR} --gcov-executable gcov-8 --html-details -o gcovr/coverage.html -r ${CMAKE_SOURCE_DIR} -f ${CMAKE_SOURCE_DIR}/src
       )
@@ -388,7 +387,6 @@ else()
     if(NOT LCOV STREQUAL "LOCV-NOTFOUND" AND NOT GENHTML STREQUAL "GENHTML-NOTFOUND")
       add_custom_command(
         OUTPUT lcovr/raw_coverage.info lcovr/coverage.info lcovr/index.html __dummy
-        COMMAND ${CMAKE_COMMAND} --build . --target test
         COMMAND ${CMAKE_COMMAND} -E make_directory lcovr
         COMMAND ${LCOV} --capture --directory ${CMAKE_BINARY_DIR} --output-file lcovr/raw_coverage.info
         COMMAND ${LCOV} --remove lcovr/raw_coverage.info --output-file lcovr/coverage.info '*/test/*' '*/external/*' '*/src/drivers/*' '/usr/include/*' '*/tools/*'

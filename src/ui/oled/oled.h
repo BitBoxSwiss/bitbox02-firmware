@@ -81,11 +81,6 @@ void oled_send_buffer(void);
 void oled_clear_buffer(void);
 
 /**
- * Adjusts screen brightness.
- */
-void oled_brightness(uint8_t brightness);
-
-/**
  * Sets displayed frames rotated by 180 degrees.
  */
 void oled_mirror(bool mirror);

@@ -137,7 +137,7 @@ void oled_init(void)
     _write_command(OLED_CMD_SET_DISPLAY_OFF);
     // Set brightness
     _write_command(OLED_CMD_SET_CONTRAST_CONTROL_FOR_BANK0);
-    _write_command(0x80); /* 0x00..0xff */
+    _write_command(0xff); /* 0x00..0xff */
     _write_command(0x21); // Set vertical addressing mode
     // Set scan directions for our non-mirrored orientation
     _write_command(OLED_CMD_SET_SEGMENT_RE_MAP_COL127_SEG0);

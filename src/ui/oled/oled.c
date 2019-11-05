@@ -60,10 +60,13 @@
 // BitBox02 controller SH1107:
 //   The actual size of the GDDR is something like 128x128. But our display only uses the middle 64
 //   columns. The start column is 32 and end column is 95.
+// BitBoxBase controller SPD0301:
+//   The size of the GDDR matches the display (128x64)
 
 #include "oled.h"
 
 #include <driver_init.h>
+#include <hardfault.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -149,6 +152,20 @@ static inline void _write_cmd_with_param(uint8_t command, uint8_t value)
     _write(INTERFACE_COMMAND, buf, sizeof(buf));
 }
 
+#if PLATFORM_BITBOX02 == 1
+// Vertical addressing mode
+#define ADDRESSING_MODE 0x21
+#define SEGMENT_REMAP OLED_CMD_SET_SEGMENT_RE_MAP_COL127_SEG0
+#define DISPLAY_OFFSET 0x60
+#define PRE_CHARGE_PERIOD 0x22
+#elif PLATFORM_BITBOXBASE == 1
+// Page addressing mode
+#define ADDRESSING_MODE OLED_CMD_SET_MEMORY_ADDRESSING_MODE
+#define SEGMENT_REMAP OLED_CMD_SET_SEGMENT_RE_MAP_COL0_SEG0
+#define DISPLAY_OFFSET 0x00
+#define PRE_CHARGE_PERIOD 0x88
+#endif
+
 void oled_init(void)
 {
     // DC-DC OFF
@@ -165,27 +182,27 @@ void oled_init(void)
     _write_cmd(OLED_CMD_SET_DISPLAY_OFF);
     // Set brightness (0x00..=0xff)
     _write_cmd_with_param(OLED_CMD_SET_CONTRAST_CONTROL_FOR_BANK0, 0xff);
-    // Set vertical addressing mode
-    _write_cmd(0x21);
-    // Set scan directions for our non-mirrored orientation
-    _write_cmd(OLED_CMD_SET_SEGMENT_RE_MAP_COL127_SEG0);
+    _write_cmd(ADDRESSING_MODE);
+    _write_cmd(SEGMENT_REMAP);
     _write_cmd(OLED_CMD_SET_COM_OUTPUT_SCAN_UP);
     // Set normal display (not inverted)
     _write_cmd(OLED_CMD_SET_NORMAL_DISPLAY);
     // We only activate the 64 lines we use (0x3f == 64 Multiplex ratio)
     _write_cmd_with_param(OLED_CMD_SET_MULTIPLEX_RATIO, 0x3f);
     // Shift the columns by 96 when display is in non-mirrored orientation
-    _write_cmd_with_param(OLED_CMD_SET_DISPLAY_OFFSET, 0x60);
+    _write_cmd_with_param(OLED_CMD_SET_DISPLAY_OFFSET, DISPLAY_OFFSET);
     // Set clock frequency and divisor
     // Upper 4 bits are freqency, lower 4 bits are divisor
     _write_cmd_with_param(OLED_CMD_SET_DISPLAY_CLOCK_DIVIDE_RATIO, 0xf0);
     // Set precharge and discharge
     // Upper 4 bits are dis-charge, lower 4 bits are pre-charge
-    _write_cmd_with_param(OLED_CMD_SET_PRE_CHARGE_PERIOD, 0x22);
+    _write_cmd_with_param(OLED_CMD_SET_PRE_CHARGE_PERIOD, PRE_CHARGE_PERIOD);
     _write_cmd_with_param(OLED_CMD_SET_VCOMH_DESELECT_LEVEL, 0x35);
+#if PLATFORM_BITBOX02 == 1
     // TODO(nc): Find in other docs (bitbox02 only?)
     // built-in DC-DC enable (8a:disable; 8b:enable)
     _write_cmd_with_param(0xad, 0x8a);
+#endif
     _write_cmd(OLED_CMD_ENTIRE_DISPLAY_AND_GDDRAM_ON);
     oled_clear_buffer();
     oled_send_buffer();
@@ -196,18 +213,24 @@ void oled_init(void)
     gpio_set_pin_level(PIN_OLED_ON, 1);
 }
 
-/*
- * The SH1107 Segment/Common driver specifies that there are 16 pages per column
- * In total we should be writing 64*128 pixels. 8 bits per page, 16 pages per column and 64 columns
- */
-
 void oled_send_buffer(void)
 {
+#if PLATFORM_BITBOX02 == 1
+    /* The SH1107 Segment/Common driver specifies that there are 16 pages per column
+     * In total we should be writing 64*128 pixels. 8 bits per page, 16 pages per column and 64
+     * columns */
     for (size_t i = 0; i < 64; i++) {
         _write_cmd(OLED_CMD_SET_LOW_COL(i));
         _write_cmd(OLED_CMD_SET_HIGH_COL(i));
         _write_data(&_frame_buffer[i * 16], 16);
     }
+#elif PLATFORM_BITBOXBASE == 1
+    /* The SPD0301 has one page per 8 rows. One page is 128 bytes. Every byte is 8 rows */
+    for (size_t i = 0; i < 64 / 8; i++) {
+        _write_cmd(OLED_CMD_SET_PAGE_START_ADDRESS(i));
+        _write_data(&_frame_buffer[i * 128], 128);
+    }
+#endif
 }
 
 void oled_clear_buffer(void)
@@ -217,6 +240,7 @@ void oled_clear_buffer(void)
 
 void oled_mirror(bool mirror)
 {
+#if PLATFORM_BITBOX02 == 1
     if (mirror) {
         _write_cmd(OLED_CMD_SET_SEGMENT_RE_MAP_COL0_SEG0);
         _write_cmd(OLED_CMD_SET_COM_OUTPUT_SCAN_DOWN);
@@ -227,13 +251,16 @@ void oled_mirror(bool mirror)
         _write_cmd(OLED_CMD_SET_SEGMENT_RE_MAP_COL127_SEG0);
         _write_cmd(OLED_CMD_SET_COM_OUTPUT_SCAN_UP);
     }
+#elif PLATFORM_BITBOXBASE == 1
+    (void)mirror;
+    Abort("BitBoxBase cannot mirror screen");
+#endif
 }
 
-/*
- * pixels can be accessed via buf[y*16+x/8] >> x%8
- */
 void oled_set_pixel(uint16_t x, uint16_t y, uint8_t c)
 {
+#if PLATFORM_BITBOX02 == 1
+    /* pixels can be accessed via buf[y*16+x/8] >> x%8 */
     uint32_t p;
     if (x > 127) return;
     if (y > 63) return;
@@ -244,5 +271,18 @@ void oled_set_pixel(uint16_t x, uint16_t y, uint8_t c)
     } else {
         _frame_buffer[p] &= ~(1 << (x % 8));
     }
+#elif PLATFORM_BITBOXBASE == 1
+    /* pixels can be accessed via buf[y/8*128+x] >> y%8 */
+    uint32_t p;
+    if (x > 127) return;
+    if (y > 63) return;
+    p = (y / 8) * 128;
+    p += x;
+    if (c) {
+        _frame_buffer[p] |= 1 << (y % 8);
+    } else {
+        _frame_buffer[p] &= ~(1 << (y % 8));
+    }
+#endif
     _frame_buffer_updated = true;
 }

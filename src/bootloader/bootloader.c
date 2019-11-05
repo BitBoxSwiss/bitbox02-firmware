@@ -31,6 +31,7 @@
 #include <ui/ugui/ugui.h>
 #if PLATFORM_BITBOXBASE == 1
 #include <usart/usart.h>
+#include <usart/usart_frame.h>
 #elif PLATFORM_BITBOX02 == 1
 #include <usb/usb.h>
 #include <usb/usb_packet.h>

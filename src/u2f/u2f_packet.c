@@ -66,11 +66,6 @@ static void _reset_state(void)
     memset(&_in_state, 0, sizeof(_in_state));
 }
 
-static queue_error_t _queue_push(const uint8_t* data)
-{
-    return queue_push(queue_u2f_queue(), data);
-}
-
 /**
  * Responds with an error.
  * @param[in] err The error.
@@ -79,12 +74,23 @@ static queue_error_t _queue_push(const uint8_t* data)
  */
 static void _queue_err(const uint8_t err, uint32_t cid)
 {
-    usb_frame_prepare_err(err, cid, _queue_push);
+    usb_frame_prepare_err(err, cid, queue_u2f_queue());
 }
 
 static bool _need_more_data(void)
 {
     return (_in_state.buf_ptr - _in_state.data) < (signed)_in_state.len;
+}
+
+void u2f_invalid_endpoint(struct queue* queue, uint32_t cmd, uint32_t cid)
+{
+    (void)cmd;
+    // TODO: if U2F is disabled, we used to return a 'channel busy' command.
+    // now we return an invalid cmd, because there is not going to be a matching
+    // cmd in '_registered_cmds' if the U2F bit it not set (== U2F disabled).
+    // TODO: figure out the consequences and either implement a solution or
+    // inform U2F hijack vendors.
+    usb_frame_prepare_err(FRAME_ERR_INVALID_CMD, cid, queue);
 }
 
 void u2f_packet_timeout_enable(uint32_t cid)
@@ -124,7 +130,7 @@ void u2f_packet_timeout(uint32_t cid)
     if (cid == _in_state.cid) {
         _reset_state();
     }
-    usb_frame_prepare_err(FRAME_ERR_MSG_TIMEOUT, cid, _queue_push);
+    usb_frame_prepare_err(FRAME_ERR_MSG_TIMEOUT, cid, queue_u2f_queue());
 }
 
 bool u2f_packet_process(const USB_FRAME* frame)

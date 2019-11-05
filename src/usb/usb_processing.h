@@ -41,7 +41,7 @@ typedef queue_error_t (*usb_frame_formatter_t)(
     const uint8_t* data,
     const uint32_t len,
     const uint32_t cid,
-    queue_error_t(add_frame_callback)(const uint8_t*));
+    struct queue* queue);
 
 /**
  * Enqueues a usb packet for processing. Ownership is transferred, and the

@@ -15,7 +15,6 @@
 #include "firmware_main_loop.h"
 
 #include "ui/screen_process.h"
-#include "usart/usart.h"
 #include "usb/usb_processing.h"
 
 void firmware_main_loop(void)

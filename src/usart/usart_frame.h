@@ -15,6 +15,9 @@
 #ifndef _USART_FRAME_H_
 #define _USART_FRAME_H_
 
+#include "queue.h"
+
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -22,6 +25,14 @@
 #define USART_FRAME_MAX_PAYLOAD_LEN (7609U)
 // Maximum total frame size that can be transmitted over UART (includes headers/checksums).
 #define USART_FRAME_MAX_DATA_LEN (USART_FRAME_MAX_PAYLOAD_LEN + 4)
+
+/**
+ * One of the available receivers that can be
+ * attached to the USART port. The host will
+ * distinguish what it is connected to based
+ * on whether each of these endpoints is available.
+ */
+typedef enum { USART_ENDPOINT_BOOTLOADER, USART_ENDPOINT_HWW } usart_endpoint_t;
 
 /**
  * Processes new raw data read from the USART port.
@@ -34,5 +45,20 @@ void usart_frame_process_rx(uint8_t* buf, size_t size);
  * Initializes the parser.
  */
 void usart_frame_init(void);
+
+/**
+ * Called when a message has been sent to a non-registered endpoint.
+ */
+void usart_invalid_endpoint(struct queue* queue, uint32_t src_endpoint, uint32_t cid);
+
+/**
+ * Creates a data frame for sending over USART.
+ */
+queue_error_t usart_format_frame(
+    uint8_t src_endpoint,
+    const uint8_t* data,
+    uint32_t len,
+    uint32_t cid,
+    struct queue* queue);
 
 #endif

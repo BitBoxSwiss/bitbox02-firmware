@@ -85,6 +85,19 @@ typedef struct {
  */
 static gestures_detection_state_t _state[TOUCH_NUM_SLIDERS] = {0};
 
+#if PLATFORM_BITBOXBASE == 1
+struct button_detection_state_t {
+    enum bitboxbase_button_id_t button_id;
+    uint32_t duration;
+    enum slider_status_t button_status;
+};
+
+enum button_id_t gestures_button_which(const event_t* event)
+{
+    return ((const struct button_detection_state_t*)event->data)->button_id;
+}
+#endif
+
 /********************************** STATE UPDATE **********************************/
 
 /**

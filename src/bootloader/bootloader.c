@@ -702,7 +702,7 @@ static size_t _api_set_show_firmware_hash(const uint8_t* input, uint8_t* output)
 }
 
 /*
- * output filled with bootloader version | firmware version | signing pubkeys version
+ * output filled with firmware version | signing pubkeys version
  */
 static size_t _api_versions(uint8_t* output)
 {
@@ -713,7 +713,7 @@ static size_t _api_versions(uint8_t* output)
         (const uint8_t*)&data->fields.signing_pubkeys_version,
         sizeof(version_t));
     _report_status(OP_STATUS_OK, output);
-    return BOOT_OP_LEN + sizeof(version_t) * 3;
+    return BOOT_OP_LEN + sizeof(version_t) * 2;
 }
 
 static void _api_reboot(void)

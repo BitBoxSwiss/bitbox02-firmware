@@ -1,0 +1,3 @@
+# bootloader v2.0.0 - (Not released yet; release notes are incomplete)
+
+* OP_INFO: return 8 bytes instead of 12 (the last four were unused and always zero)

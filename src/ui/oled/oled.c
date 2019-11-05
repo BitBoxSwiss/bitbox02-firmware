@@ -101,10 +101,8 @@
 #define OLED_CMD_ACTIVATE_SCROLL 0x2F
 #define OLED_CMD_SET_VERTICAL_SCROLL_AREA 0xA3
 
-static bool _mirror = false;
 static bool _frame_buffer_updated = false;
 static uint8_t _frame_buffer[128 * 8];
-static uint8_t _output_buffer[128 * 8];
 
 /**
  * Pulls the pin D/C# low before writing to the controller.
@@ -120,6 +118,9 @@ static inline void _write_command(uint8_t command)
     gpio_set_pin_level(PIN_OLED_CS, 1);
 }
 
+// The actual size of the GDDR is something like 128*128. But our display only uses the middle 64
+// columns. The start column is 32 and end column is 95.
+
 void oled_init(void)
 {
     // DC-DC OFF
@@ -134,27 +135,31 @@ void oled_init(void)
 
     // Initialize
     _write_command(OLED_CMD_SET_DISPLAY_OFF);
-    _write_command(OLED_CMD_SET_LOW_COL(0));
-    _write_command(OLED_CMD_SET_HIGH_COL(0));
-    _write_command(OLED_CMD_SET_PAGE_START_ADDRESS(0));
-    _write_command(0xdc); /*set display start line*/
-    _write_command(0x00); // +0x7f
+    // Set brightness
     _write_command(OLED_CMD_SET_CONTRAST_CONTROL_FOR_BANK0);
-    _write_command(0x80); /* 0x00..0xff */
-    _write_command(OLED_CMD_SET_MEMORY_ADDRESSING_MODE);
-    _write_command(OLED_CMD_SET_SEGMENT_RE_MAP_COL0_SEG0);
+    _write_command(0xff); /* 0x00..0xff */
+    _write_command(0x21); // Set vertical addressing mode
+    // Set scan directions for our non-mirrored orientation
+    _write_command(OLED_CMD_SET_SEGMENT_RE_MAP_COL127_SEG0);
     _write_command(OLED_CMD_SET_COM_OUTPUT_SCAN_UP);
+    // Set normal display (not inverted)
     _write_command(OLED_CMD_SET_NORMAL_DISPLAY);
+    // We only activate the 64 lines we use (0x3f == 64 Multiplex ratio)
     _write_command(OLED_CMD_SET_MULTIPLEX_RATIO);
     _write_command(0x3f); /* duty = 1/64; 0x00..0x7f */
+    // Shift the columns by 96 when display is in non-mirrored orientation
     _write_command(OLED_CMD_SET_DISPLAY_OFFSET);
-    _write_command(0x60); // /* 0x00..0x7f */ <- todo set value ?? 96  col32..c95 are used
+    _write_command(0x60);
+    // Set clock frequency and divisor
+    // Upper 4 bits are freqency, lower 4 bits are divisor
     _write_command(OLED_CMD_SET_DISPLAY_CLOCK_DIVIDE_RATIO);
-    _write_command(0x51); // 41);//0x51);
+    _write_command(0xf0);
+    // Set precharge and discharge
+    // Upper 4 bits are dis-charge, lower 4 bits are pre-charge
     _write_command(OLED_CMD_SET_PRE_CHARGE_PERIOD);
     _write_command(0x22); /* 0x00..0xff */
     _write_command(OLED_CMD_SET_VCOMH_DESELECT_LEVEL);
-    _write_command(0x35); /* 0x00..0xff */ // 53 (?)
+    _write_command(0x35); /* 0x00..0xff */
     _write_command(0xad); /* DC-DC control mode set*/
     _write_command(0x8a); /* built-in DC-DC enable (8a:disable; 8b:enable) */
     _write_command(OLED_CMD_ENTIRE_DISPLAY_AND_GDDRAM_ON);
@@ -167,85 +172,57 @@ void oled_init(void)
     gpio_set_pin_level(PIN_OLED_ON, 1);
 }
 
+/*
+ * The SH1107 Segment/Common driver specifies that there are 16 pages per column
+ * In total we should be writing 64*128 pixels. 8 bits per page, 16 pages per column and 64 columns
+ */
+
 void oled_send_buffer(void)
 {
-    uint32_t i, n, x;
-    if (_frame_buffer_updated) { // 1.4msec
-        _frame_buffer_updated = false;
-        memset(_output_buffer, 0, sizeof(_output_buffer));
-        for (n = 0; n < 8; n++) {
-            for (i = 0; i < 128; i++) { // framebuffer columns
-                uint32_t target;
-                if (!_mirror) {
-                    // 0..127 x 8x [bit0..7] -> translate 16 x [0..7] 0..63
-                    target = 64 * (15 - i / 8) + n * 8;
-                    x = _frame_buffer[i + n * 128];
-                    if (x & 0x01) _output_buffer[target + 0] |= 0x01 << (7 - (i % 8));
-                    if (x & 0x02) _output_buffer[target + 1] |= 0x01 << (7 - (i % 8));
-                    if (x & 0x04) _output_buffer[target + 2] |= 0x01 << (7 - (i % 8));
-                    if (x & 0x08) _output_buffer[target + 3] |= 0x01 << (7 - (i % 8));
-                    if (x & 0x10) _output_buffer[target + 4] |= 0x01 << (7 - (i % 8));
-                    if (x & 0x20) _output_buffer[target + 5] |= 0x01 << (7 - (i % 8));
-                    if (x & 0x40) _output_buffer[target + 6] |= 0x01 << (7 - (i % 8));
-                    if (x & 0x80) _output_buffer[target + 7] |= 0x01 << (7 - (i % 8));
-                } else {
-                    // 0..127 x 8x [0..7] -> translate 16 x [0..7] 0..63
-                    target = 64 * (i / 8) + (7 - n) * 8;
-                    x = _frame_buffer[i + n * 128];
-                    if (x & 0x01) _output_buffer[target + 7] |= 0x01 << (0 + (i % 8));
-                    if (x & 0x02) _output_buffer[target + 6] |= 0x01 << (0 + (i % 8));
-                    if (x & 0x04) _output_buffer[target + 5] |= 0x01 << (0 + (i % 8));
-                    if (x & 0x08) _output_buffer[target + 4] |= 0x01 << (0 + (i % 8));
-                    if (x & 0x10) _output_buffer[target + 3] |= 0x01 << (0 + (i % 8));
-                    if (x & 0x20) _output_buffer[target + 2] |= 0x01 << (0 + (i % 8));
-                    if (x & 0x40) _output_buffer[target + 1] |= 0x01 << (0 + (i % 8));
-                    if (x & 0x80) _output_buffer[target + 0] |= 0x01 << (0 + (i % 8));
-                }
-            }
-        }
-    }
-
     // 3.5msec
-    for (i = 0; i < 128 / 8; i++) {
-        _write_command(0x10); /*set higher column address*/
-        _write_command(0x00); /*set lower column address*/
-        _write_command(OLED_CMD_SET_PAGE_START_ADDRESS(i));
+    for (size_t i = 0; i < 64; i++) {
+        _write_command(0x00 + (i & 0xf)); /*set lower column address*/
+        _write_command(0x10 + ((i >> 4) & 0x7)); /*set higher column address*/
         gpio_set_pin_level(PIN_OLED_CMD, 1);
         gpio_set_pin_level(PIN_OLED_CS, 0);
-        SPI_0_write_block((unsigned char*)&_output_buffer[i * 64], 64);
+        SPI_0_write_block((unsigned char*)&_frame_buffer[i * 16], 16);
         gpio_set_pin_level(PIN_OLED_CS, 1);
     }
 }
 
 void oled_clear_buffer(void)
 {
-    memset(_output_buffer, 0, sizeof(_output_buffer));
     memset(_frame_buffer, 0, sizeof(_frame_buffer));
-}
-
-void oled_brightness(uint8_t brightness)
-{
-    _write_command(0x81); /* contrast control */
-    _write_command(brightness); /* 0..255 */
 }
 
 void oled_mirror(bool mirror)
 {
-    _mirror = mirror;
+    if (mirror) {
+        _write_command(OLED_CMD_SET_SEGMENT_RE_MAP_COL0_SEG0);
+        _write_command(OLED_CMD_SET_COM_OUTPUT_SCAN_DOWN);
+        // Shift the columns by 32 when display is in mirrored orientation
+        _write_command(OLED_CMD_SET_DISPLAY_OFFSET);
+        _write_command(0x20);
+    } else {
+        _write_command(OLED_CMD_SET_SEGMENT_RE_MAP_COL127_SEG0);
+        _write_command(OLED_CMD_SET_COM_OUTPUT_SCAN_UP);
+    }
 }
 
-void oled_set_pixel(uint16_t x, uint16_t y, uint8_t c) // y x instead x y
+/*
+ * pixels can be accessed via buf[y*16+x/8] >> x%8
+ */
+void oled_set_pixel(uint16_t x, uint16_t y, uint8_t c)
 {
     uint32_t p;
     if (x > 127) return;
     if (y > 63) return;
-    p = y >> 3; // :8
-    p = p << 7; // *128
-    p += x;
+    p = y * 16;
+    p += x / 8;
     if (c) {
-        _frame_buffer[p] |= 1 << (y % 8);
+        _frame_buffer[p] |= 1 << (x % 8);
     } else {
-        _frame_buffer[p] &= ~(1 << (y % 8));
+        _frame_buffer[p] &= ~(1 << (x % 8));
     }
     _frame_buffer_updated = true;
 }

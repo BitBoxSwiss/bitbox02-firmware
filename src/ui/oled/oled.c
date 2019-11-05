@@ -57,6 +57,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// BitBox02 controller SH1107:
+//   The actual size of the GDDR is something like 128x128. But our display only uses the middle 64
+//   columns. The start column is 32 and end column is 95.
+
 #include "oled.h"
 
 #include <driver_init.h>
@@ -65,8 +69,8 @@
 #include <string.h>
 #include <ui/ugui/ugui.h>
 
-#define OLED_CMD_SET_LOW_COL(column) (0x00 | (column))
-#define OLED_CMD_SET_HIGH_COL(column) (0x10 | (column))
+#define OLED_CMD_SET_LOW_COL(column) (0x00 | ((column)&0x0F))
+#define OLED_CMD_SET_HIGH_COL(column) (0x10 | (((column) >> 4) & 0x0F))
 #define OLED_CMD_SET_MEMORY_ADDRESSING_MODE 0x20
 #define OLED_CMD_SET_COLUMN_ADDRESS 0x21
 #define OLED_CMD_SET_PAGE_ADDRESS 0x22
@@ -104,22 +108,46 @@
 static bool _frame_buffer_updated = false;
 static uint8_t _frame_buffer[128 * 8];
 
+enum _interface_t {
+    INTERFACE_COMMAND,
+    INTERFACE_DATA,
+};
+
 /**
- * Pulls the pin D/C# low before writing to the controller.
- * [in] command to write
+ * Write to serial interface
+ * @param [in] interface which interface to talk to.
+ * @param [in] buf the bytes to write (must be at least buf_len long)
+ * @param [in] buf_len the number of bytes to write
  */
-static inline void _write_command(uint8_t command)
+static inline void _write(enum _interface_t interface, const uint8_t* buf, size_t buf_len)
 {
-    uint8_t spi_output[32];
-    spi_output[0] = command;
-    gpio_set_pin_level(PIN_OLED_CMD, 0);
+    uint8_t cmd = interface == INTERFACE_COMMAND ? 0 : 1;
+    gpio_set_pin_level(PIN_OLED_CMD, cmd);
     gpio_set_pin_level(PIN_OLED_CS, 0);
-    SPI_0_write_block((void*)spi_output, 1);
+    // It is safe to cast from const here because "write_block" only reads from buf
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+    SPI_0_write_block((void*)buf, buf_len);
+#pragma GCC diagnostic pop
     gpio_set_pin_level(PIN_OLED_CS, 1);
 }
 
-// The actual size of the GDDR is something like 128*128. But our display only uses the middle 64
-// columns. The start column is 32 and end column is 95.
+static inline void _write_data(const uint8_t* buf, size_t buf_len)
+{
+    _write(INTERFACE_DATA, buf, buf_len);
+}
+
+static inline void _write_cmd(uint8_t command)
+{
+    const uint8_t buf[] = {command};
+    _write(INTERFACE_COMMAND, buf, sizeof(buf));
+}
+
+static inline void _write_cmd_with_param(uint8_t command, uint8_t value)
+{
+    const uint8_t buf[] = {command, value};
+    _write(INTERFACE_COMMAND, buf, sizeof(buf));
+}
 
 void oled_init(void)
 {
@@ -134,38 +162,34 @@ void oled_init(void)
     delay_us(5);
 
     // Initialize
-    _write_command(OLED_CMD_SET_DISPLAY_OFF);
-    // Set brightness
-    _write_command(OLED_CMD_SET_CONTRAST_CONTROL_FOR_BANK0);
-    _write_command(0xff); /* 0x00..0xff */
-    _write_command(0x21); // Set vertical addressing mode
+    _write_cmd(OLED_CMD_SET_DISPLAY_OFF);
+    // Set brightness (0x00..=0xff)
+    _write_cmd_with_param(OLED_CMD_SET_CONTRAST_CONTROL_FOR_BANK0, 0xff);
+    // Set vertical addressing mode
+    _write_cmd(0x21);
     // Set scan directions for our non-mirrored orientation
-    _write_command(OLED_CMD_SET_SEGMENT_RE_MAP_COL127_SEG0);
-    _write_command(OLED_CMD_SET_COM_OUTPUT_SCAN_UP);
+    _write_cmd(OLED_CMD_SET_SEGMENT_RE_MAP_COL127_SEG0);
+    _write_cmd(OLED_CMD_SET_COM_OUTPUT_SCAN_UP);
     // Set normal display (not inverted)
-    _write_command(OLED_CMD_SET_NORMAL_DISPLAY);
+    _write_cmd(OLED_CMD_SET_NORMAL_DISPLAY);
     // We only activate the 64 lines we use (0x3f == 64 Multiplex ratio)
-    _write_command(OLED_CMD_SET_MULTIPLEX_RATIO);
-    _write_command(0x3f); /* duty = 1/64; 0x00..0x7f */
+    _write_cmd_with_param(OLED_CMD_SET_MULTIPLEX_RATIO, 0x3f);
     // Shift the columns by 96 when display is in non-mirrored orientation
-    _write_command(OLED_CMD_SET_DISPLAY_OFFSET);
-    _write_command(0x60);
+    _write_cmd_with_param(OLED_CMD_SET_DISPLAY_OFFSET, 0x60);
     // Set clock frequency and divisor
     // Upper 4 bits are freqency, lower 4 bits are divisor
-    _write_command(OLED_CMD_SET_DISPLAY_CLOCK_DIVIDE_RATIO);
-    _write_command(0xf0);
+    _write_cmd_with_param(OLED_CMD_SET_DISPLAY_CLOCK_DIVIDE_RATIO, 0xf0);
     // Set precharge and discharge
     // Upper 4 bits are dis-charge, lower 4 bits are pre-charge
-    _write_command(OLED_CMD_SET_PRE_CHARGE_PERIOD);
-    _write_command(0x22); /* 0x00..0xff */
-    _write_command(OLED_CMD_SET_VCOMH_DESELECT_LEVEL);
-    _write_command(0x35); /* 0x00..0xff */
-    _write_command(0xad); /* DC-DC control mode set*/
-    _write_command(0x8a); /* built-in DC-DC enable (8a:disable; 8b:enable) */
-    _write_command(OLED_CMD_ENTIRE_DISPLAY_AND_GDDRAM_ON);
+    _write_cmd_with_param(OLED_CMD_SET_PRE_CHARGE_PERIOD, 0x22);
+    _write_cmd_with_param(OLED_CMD_SET_VCOMH_DESELECT_LEVEL, 0x35);
+    // TODO(nc): Find in other docs (bitbox02 only?)
+    // built-in DC-DC enable (8a:disable; 8b:enable)
+    _write_cmd_with_param(0xad, 0x8a);
+    _write_cmd(OLED_CMD_ENTIRE_DISPLAY_AND_GDDRAM_ON);
     oled_clear_buffer();
     oled_send_buffer();
-    _write_command(OLED_CMD_SET_DISPLAY_ON);
+    _write_cmd(OLED_CMD_SET_DISPLAY_ON);
     delay_ms(100);
 
     // DC-DC ON
@@ -179,14 +203,10 @@ void oled_init(void)
 
 void oled_send_buffer(void)
 {
-    // 3.5msec
     for (size_t i = 0; i < 64; i++) {
-        _write_command(0x00 + (i & 0xf)); /*set lower column address*/
-        _write_command(0x10 + ((i >> 4) & 0x7)); /*set higher column address*/
-        gpio_set_pin_level(PIN_OLED_CMD, 1);
-        gpio_set_pin_level(PIN_OLED_CS, 0);
-        SPI_0_write_block((unsigned char*)&_frame_buffer[i * 16], 16);
-        gpio_set_pin_level(PIN_OLED_CS, 1);
+        _write_cmd(OLED_CMD_SET_LOW_COL(i));
+        _write_cmd(OLED_CMD_SET_HIGH_COL(i));
+        _write_data(&_frame_buffer[i * 16], 16);
     }
 }
 
@@ -198,14 +218,14 @@ void oled_clear_buffer(void)
 void oled_mirror(bool mirror)
 {
     if (mirror) {
-        _write_command(OLED_CMD_SET_SEGMENT_RE_MAP_COL0_SEG0);
-        _write_command(OLED_CMD_SET_COM_OUTPUT_SCAN_DOWN);
+        _write_cmd(OLED_CMD_SET_SEGMENT_RE_MAP_COL0_SEG0);
+        _write_cmd(OLED_CMD_SET_COM_OUTPUT_SCAN_DOWN);
         // Shift the columns by 32 when display is in mirrored orientation
-        _write_command(OLED_CMD_SET_DISPLAY_OFFSET);
-        _write_command(0x20);
+        _write_cmd(OLED_CMD_SET_DISPLAY_OFFSET);
+        _write_cmd(0x20);
     } else {
-        _write_command(OLED_CMD_SET_SEGMENT_RE_MAP_COL127_SEG0);
-        _write_command(OLED_CMD_SET_COM_OUTPUT_SCAN_UP);
+        _write_cmd(OLED_CMD_SET_SEGMENT_RE_MAP_COL127_SEG0);
+        _write_cmd(OLED_CMD_SET_COM_OUTPUT_SCAN_UP);
     }
 }
 

@@ -15,36 +15,74 @@
 #include "leds.h"
 #include "bitboxbase_pins.h"
 
-static void _turn_small_led(int led, bool level)
+#include <stdint.h>
+
+/** List of small LEDs (leftmost to rightmost) */
+static uint8_t small_leds[] = {PIN_LED_SMALL(0),
+                               PIN_LED_SMALL(1),
+                               PIN_LED_SMALL(2),
+                               PIN_LED_SMALL(3),
+                               PIN_LED_SMALL(4)};
+
+void leds_turn_small_led(int led, bool enabled)
 {
-    gpio_set_pin_level(led, level);
+    gpio_set_pin_level(small_leds[led], enabled);
 }
 
-static void _turn_big_led(int led, bool level)
+/**
+ * Turn on/off the given RBG LED pin. Note that these pins
+ * are active low!
+ */
+static void _leds_turn_big_led_component(uint8_t pin, bool level)
 {
-    gpio_set_pin_level(led, !level);
+    gpio_set_pin_level(pin, !level);
 }
 
-typedef enum { LED_WHITE, LED_RED, LED_GREEN, LED_BLUE } led_color_t;
+/** Position of each component in each RGB LED. */
+static const uint8_t big_leds[2][3] = {{PIN_BLED0_R, PIN_BLED0_G, PIN_BLED0_B},
+                                       {PIN_BLED1_R, PIN_BLED1_G, PIN_BLED1_B}};
 
-static const uint8_t big_leds[] =
-    {PIN_BLED0_R, PIN_BLED0_G, PIN_BLED0_B, PIN_BLED1_R, PIN_BLED1_G, PIN_BLED1_B};
-
-static void _set_pin_directions(void)
+void leds_turn_big_led(int led, led_color_t color)
 {
-    for (int i = 0; i < 5; ++i) {
-        gpio_set_pin_direction(PIN_LED_SMALL(i), GPIO_DIRECTION_OUT);
-        _turn_small_led(PIN_LED_SMALL(i), false);
+    switch (color) {
+    case LED_COLOR_WHITE:
+        _leds_turn_big_led_component(big_leds[led][0], false);
+        _leds_turn_big_led_component(big_leds[led][1], false);
+        _leds_turn_big_led_component(big_leds[led][2], false);
+        break;
+    case LED_COLOR_RED:
+        _leds_turn_big_led_component(big_leds[led][0], true);
+        _leds_turn_big_led_component(big_leds[led][1], false);
+        _leds_turn_big_led_component(big_leds[led][2], false);
+        break;
+    case LED_COLOR_GREEN:
+        _leds_turn_big_led_component(big_leds[led][0], false);
+        _leds_turn_big_led_component(big_leds[led][1], true);
+        _leds_turn_big_led_component(big_leds[led][2], false);
+        break;
+    case LED_COLOR_BLUE:
+        _leds_turn_big_led_component(big_leds[led][0], false);
+        _leds_turn_big_led_component(big_leds[led][1], false);
+        _leds_turn_big_led_component(big_leds[led][2], true);
+        break;
+    case LED_COLOR_NONE:
+    default:
+        _leds_turn_big_led_component(big_leds[led][0], false);
+        _leds_turn_big_led_component(big_leds[led][1], false);
+        _leds_turn_big_led_component(big_leds[led][2], false);
     }
-    for (size_t i = 0U; i < (sizeof(big_leds) / sizeof(*big_leds)); ++i) {
-        gpio_set_pin_direction(big_leds[i], GPIO_DIRECTION_OUT);
-        _turn_big_led(big_leds[i], false);
-    }
-    gpio_set_pin_direction(GPIO(GPIO_PORTB, 10), GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(GPIO(GPIO_PORTB, 10), true);
 }
 
 void leds_init(void)
 {
-    _set_pin_directions();
+    for (size_t i = 0; i < (sizeof(small_leds) / sizeof(*small_leds)); ++i) {
+        gpio_set_pin_direction(small_leds[i], GPIO_DIRECTION_OUT);
+        leds_turn_small_led(i, false);
+    }
+    for (size_t i = 0; i < (sizeof(big_leds) / sizeof(*big_leds)); ++i) {
+        for (size_t j = 0; j < 3; ++j) {
+            gpio_set_pin_direction(big_leds[i][j], GPIO_DIRECTION_OUT);
+            gpio_set_pin_level(big_leds[i][j], false);
+        }
+    }
 }

@@ -14,6 +14,7 @@
 
 #include "hardfault.h"
 #include "util.h"
+#include <platform_config.h>
 #include <screen.h>
 #include <usb/usb.h>
 #ifndef TESTING

@@ -19,12 +19,16 @@
 #include "platform_init.h"
 #include "qtouch.h"
 #include "screen.h"
-#include "ui/screen_stack.h"
+#include "ui/oled/oled.h"
+#include "ui/screen_process.h"
 #include "util.h"
 #include "workflow/workflow.h"
 
+#include <stdlib.h>
+
 uint32_t __stack_chk_guard = 0;
 
+/* This is the main function to the BitBox Base HSM */
 int main(void)
 {
     init_mcu();
@@ -33,10 +37,11 @@ int main(void)
     __stack_chk_guard = common_stack_chk_guard();
     screen_init();
     screen_splash();
-    qtouch_init();
+    // qtouch_init();
     common_main();
     traceln("%s", "Device initialized");
-    workflow_start_orientation_screen();
-    firmware_main_loop();
+    for (;;) {
+        screen_process();
+    }
     return 0;
 }

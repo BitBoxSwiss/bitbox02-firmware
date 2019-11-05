@@ -31,10 +31,15 @@ make -j8 bootloader-btc
 make -j8 bootloader-btc-devdevice
 make -j8 bootloader-btc-production
 
+make -j8 bootloader-bitboxbase
+make -j8 bootloader-bitboxbase-devdevice
+make -j8 bootloader-bitboxbase-production
+
 # Firmware
 make -j8 firmware
 make -j8 firmware-semihosting
 make -j8 firmware-btc
+make -j8 firmware-bitboxbase
 make -j8 factory-setup
 
 make -C tools/go/src/atecc608a test

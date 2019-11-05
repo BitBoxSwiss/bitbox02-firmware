@@ -12,31 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "common_main.h"
-#include "driver_init.h"
-#include "firmware_main_loop.h"
-#include "hardfault.h"
 #include "platform_init.h"
-#include "qtouch.h"
-#include "screen.h"
-#include "ui/screen_stack.h"
-#include "util.h"
-#include "workflow/workflow.h"
+#include <driver_init.h>
+#include <ui/oled/oled.h>
+#if !defined(BOOTLOADER)
+#include "sd_mmc/sd_mmc_start.h"
+#endif
+#if PLATFORM_BITBOXBASE == 1
+#include "leds.h"
+#endif
 
-uint32_t __stack_chk_guard = 0;
+extern void initialise_monitor_handles(void);
 
-int main(void)
+void platform_init(void)
 {
-    init_mcu();
-    system_init();
-    platform_init();
-    __stack_chk_guard = common_stack_chk_guard();
-    screen_init();
-    screen_splash();
-    qtouch_init();
-    common_main();
-    traceln("%s", "Device initialized");
-    workflow_start_orientation_screen();
-    firmware_main_loop();
-    return 0;
+#if defined(SEMIHOSTING)
+    initialise_monitor_handles();
+#endif
+    oled_init();
+#if !defined(BOOTLOADER) && PLATFORM_BITBOX02 == 1
+    sd_mmc_start();
+#endif
+#if PLATFORM_BITBOXBASE == 1
+    leds_init();
+#endif
 }

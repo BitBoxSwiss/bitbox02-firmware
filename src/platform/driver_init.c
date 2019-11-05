@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// THIS IS A GENERATED FILE, MODIFY AS LITTLE AS POSSIBLE
+
 #include "driver_init.h"
 #include <utils.h>
 
 #define PIN_HIGH 1
-#define PIN_LOW  0
+#define PIN_LOW 0
 
 struct sha_sync_descriptor HASH_ALGORITHM_0;
 struct timer_descriptor TIMER_0;
@@ -35,7 +37,8 @@ bool _is_initialized = false;
 static void _ptc_clock_init(void)
 {
     hri_mclk_set_APBDMASK_ADC0_bit(MCLK);
-    hri_gclk_write_PCHCTRL_reg(GCLK, ADC0_GCLK_ID, CONF_GCLK_ADC0_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+    hri_gclk_write_PCHCTRL_reg(
+        GCLK, ADC0_GCLK_ID, CONF_GCLK_ADC0_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
 }
 
 /**
@@ -101,8 +104,10 @@ static void _spi_set_pins(void)
  */
 static void _spi_init(void)
 {
-    hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM3_GCLK_ID_CORE, CONF_GCLK_SERCOM3_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
-    hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM3_GCLK_ID_SLOW, CONF_GCLK_SERCOM3_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+    hri_gclk_write_PCHCTRL_reg(
+        GCLK, SERCOM3_GCLK_ID_CORE, CONF_GCLK_SERCOM3_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+    hri_gclk_write_PCHCTRL_reg(
+        GCLK, SERCOM3_GCLK_ID_SLOW, CONF_GCLK_SERCOM3_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_mclk_set_APBBMASK_SERCOM3_bit(MCLK);
     SPI_0_init();
     _spi_set_pins();
@@ -115,7 +120,7 @@ static void _spi_init(void)
 static void _i2c_set_pins(void)
 {
     // SDA
-    gpio_set_pin_pull_mode(PIN_I2C_SDA,  GPIO_PULL_OFF);
+    gpio_set_pin_pull_mode(PIN_I2C_SDA, GPIO_PULL_OFF);
     gpio_set_pin_function(PIN_I2C_SDA, PINMUX_PA23D_SERCOM5_PAD0);
     // SCL
     gpio_set_pin_pull_mode(PIN_I2C_SCL, GPIO_PULL_OFF);
@@ -127,14 +132,17 @@ static void _i2c_set_pins(void)
  */
 static void _i2c_init(void)
 {
-    hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM5_GCLK_ID_CORE, CONF_GCLK_SERCOM5_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
-    hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM5_GCLK_ID_SLOW, CONF_GCLK_SERCOM5_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+    hri_gclk_write_PCHCTRL_reg(
+        GCLK, SERCOM5_GCLK_ID_CORE, CONF_GCLK_SERCOM5_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+    hri_gclk_write_PCHCTRL_reg(
+        GCLK, SERCOM5_GCLK_ID_SLOW, CONF_GCLK_SERCOM5_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_mclk_set_APBDMASK_SERCOM5_bit(MCLK);
     i2c_m_sync_init(&I2C_0, SERCOM5);
     _i2c_set_pins();
     i2c_m_sync_enable(&I2C_0);
 }
 
+#if PLATFORM_BITBOX02 == 1
 /**
  * Set pins for SD/MMC peripheral
  */
@@ -151,7 +159,7 @@ static void _mci_set_pins(void)
     gpio_set_pin_pull_mode(PIN_SD_CMD, GPIO_PULL_OFF);
     gpio_set_pin_function(PIN_SD_CMD, PINMUX_PA08I_SDHC0_SDCMD);
     // DATA0
-    gpio_set_pin_direction(PIN_SD_DATA0,  GPIO_DIRECTION_OUT);
+    gpio_set_pin_direction(PIN_SD_DATA0, GPIO_DIRECTION_OUT);
     gpio_set_pin_level(PIN_SD_DATA0, PIN_LOW);
     gpio_set_pin_pull_mode(PIN_SD_DATA0, GPIO_PULL_OFF);
     gpio_set_pin_function(PIN_SD_DATA0, PINMUX_PA09I_SDHC0_SDDAT0);
@@ -170,6 +178,14 @@ static void _mci_set_pins(void)
     gpio_set_pin_level(PIN_SD_DATA3, PIN_LOW);
     gpio_set_pin_pull_mode(PIN_SD_DATA3, GPIO_PULL_OFF);
     gpio_set_pin_function(PIN_SD_DATA3, PINMUX_PB10I_SDHC0_SDDAT3);
+
+    gpio_set_pin_direction(PIN_SD_CD, GPIO_DIRECTION_IN);
+    gpio_set_pin_pull_mode(PIN_SD_CD, GPIO_PULL_OFF);
+    gpio_set_pin_function(PIN_SD_CD, GPIO_PIN_FUNCTION_OFF);
+
+    gpio_set_pin_direction(PIN_SD_PWON, GPIO_DIRECTION_OUT);
+    gpio_set_pin_level(PIN_SD_PWON, PIN_HIGH);
+    gpio_set_pin_function(PIN_SD_PWON, GPIO_PIN_FUNCTION_OFF);
 }
 
 /**
@@ -178,10 +194,13 @@ static void _mci_set_pins(void)
 static void _mci_init(void)
 {
     hri_mclk_set_AHBMASK_SDHC0_bit(MCLK);
-    hri_gclk_write_PCHCTRL_reg(GCLK, SDHC0_GCLK_ID, CONF_GCLK_SDHC0_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
-    hri_gclk_write_PCHCTRL_reg(GCLK, SDHC0_GCLK_ID_SLOW, CONF_GCLK_SDHC0_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+    hri_gclk_write_PCHCTRL_reg(
+        GCLK, SDHC0_GCLK_ID, CONF_GCLK_SDHC0_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+    hri_gclk_write_PCHCTRL_reg(
+        GCLK, SDHC0_GCLK_ID_SLOW, CONF_GCLK_SDHC0_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     _mci_set_pins();
 }
+#endif
 
 /**
  * Initialize delay driver
@@ -201,6 +220,7 @@ static void _rand_init(void)
     rand_sync_enable(&RAND_0);
 }
 
+#if PLATFORM_BITBOX02 == 1
 /**
  * Set pins for USB peripheral
  */
@@ -222,7 +242,8 @@ static void _usb_set_pins(void)
  * The USB module requires a GCLK_USB of 48 MHz ~ 0.25% clock
  * for low speed and full speed operation.
  */
-#if (CONF_GCLK_USB_FREQUENCY > (48000000 + 48000000 / 400)) || (CONF_GCLK_USB_FREQUENCY < (48000000 - 48000000 / 400))
+#if (CONF_GCLK_USB_FREQUENCY > (48000000 + 48000000 / 400)) || \
+    (CONF_GCLK_USB_FREQUENCY < (48000000 - 48000000 / 400))
 #warning USB clock should be 48MHz ~ 0.25% clock, check your configuration!
 #endif
 
@@ -237,8 +258,10 @@ static void _usb_init(void)
     usb_d_init();
     _usb_set_pins();
 }
+#endif
 
-static void _oled_set_pins(void) {
+static void _oled_set_pins(void)
+{
     gpio_set_pin_direction(PIN_OLED_CS, GPIO_DIRECTION_OUT);
     gpio_set_pin_level(PIN_OLED_CS, PIN_HIGH);
     gpio_set_pin_function(PIN_OLED_CS, GPIO_PIN_FUNCTION_OFF);
@@ -254,14 +277,6 @@ static void _oled_set_pins(void) {
     gpio_set_pin_direction(PIN_OLED_CMD, GPIO_DIRECTION_OUT);
     gpio_set_pin_level(PIN_OLED_CMD, PIN_HIGH);
     gpio_set_pin_function(PIN_OLED_CMD, GPIO_PIN_FUNCTION_OFF);
-
-    gpio_set_pin_direction(PIN_SD_CD, GPIO_DIRECTION_IN);
-    gpio_set_pin_pull_mode(PIN_SD_CD, GPIO_PULL_OFF);
-    gpio_set_pin_function(PIN_SD_CD, GPIO_PIN_FUNCTION_OFF);
-
-    gpio_set_pin_direction(PIN_SD_PWON, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PIN_SD_PWON, PIN_HIGH);
-    gpio_set_pin_function(PIN_SD_PWON, GPIO_PIN_FUNCTION_OFF);
 }
 
 void system_init(void)
@@ -276,8 +291,10 @@ void system_init(void)
     _spi_init();
     // ATECC608A
     _i2c_init();
+#if PLATFORM_BITBOX02 == 1
     // uSD
     _mci_init();
+#endif
 
     // Hardware crypto
     _ecdsa_init();
@@ -286,11 +303,14 @@ void system_init(void)
     // Flash
     _flash_memory_init();
     // USB
+#if PLATFORM_BITBOX02 == 1
     _usb_init();
+#endif
     _is_initialized = true;
 }
 
-void bootloader_init(void) {
+void bootloader_init(void)
+{
     _oled_set_pins();
     _ptc_clock_init();
 
@@ -306,8 +326,10 @@ void bootloader_init(void) {
     _rand_init();
     // Flash
     _flash_memory_init();
+#if PLATFORM_BITBOX02 == 1
     // USB
     _usb_init();
+#endif
     _is_initialized = true;
 }
 
@@ -316,8 +338,10 @@ void system_close_interfaces(void)
     if (!_is_initialized) {
         return;
     }
+#if PLATFORM_BITBOX02 == 1
     // uSD
     mci_sync_deinit(&MCI_0);
+#endif
     // ATECC608A
     i2c_m_sync_deinit(&I2C_0);
     // OLED interface bus
@@ -325,14 +349,17 @@ void system_close_interfaces(void)
     SPI_0_disable();
     // Flash
     flash_deinit(&FLASH_0);
+#if PLATFORM_BITBOX02 == 1
     // USB
     usb_d_deinit();
+#endif
     // Hardware crypto
     sha_sync_deinit(&HASH_ALGORITHM_0);
     rand_sync_deinit(&RAND_0);
 }
 
-void bootloader_close_interfaces(void) {
+void bootloader_close_interfaces(void)
+{
     if (!_is_initialized) {
         return;
     }
@@ -346,5 +373,4 @@ void bootloader_close_interfaces(void) {
     // Hardware crypto
     sha_sync_deinit(&HASH_ALGORITHM_0);
     rand_sync_deinit(&RAND_0);
-
 }

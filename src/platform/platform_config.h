@@ -12,7 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _PERIPHERAL_INIT_H_
-#define _PERIPHERAL_INIT_H_
-void peripherals_init(void);
+#ifndef _PLATFORM_CONFIG_H
+#define _PLATFORM_CONFIG_H
+
+#if defined(PRODUCT_BITBOX_MULTI)
+#define PLATFORM_BITBOX02 1
+#define PLATFORM_BITBOXBASE 0
+#endif
+
+#if defined(PRODUCT_BITBOX_BTCONLY)
+#define PLATFORM_BITBOX02 1
+#define PLATFORM_BITBOXBASE 0
+#endif
+
+#if defined(PRODUCT_BITBOX_BASE)
+#define PLATFORM_BITBOX02 0
+#define PLATFORM_BITBOXBASE 1
+#endif
+
+// TODO(nc): should be two factory setups, one for bb02 and one for bbb
+#if defined(FACTORYSETUP)
+#define PLATFORM_BITBOX02 1
+#define PLATFORM_BITBOXBASE 0
+#endif
+
 #endif

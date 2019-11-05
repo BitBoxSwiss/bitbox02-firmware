@@ -12,22 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "peripherals_init.h"
-#include <driver_init.h>
-#include <ui/oled/oled.h>
-#if !defined(BOOTLOADER)
-#include "sd_mmc/sd_mmc_start.h"
+#ifndef _PLATFORM_INIT_H_
+#define _PLATFORM_INIT_H_
+void platform_init(void);
 #endif
-
-extern void initialise_monitor_handles(void);
-
-void peripherals_init(void)
-{
-#if defined(SEMIHOSTING)
-    initialise_monitor_handles();
-#endif
-    oled_init();
-#if !defined(BOOTLOADER)
-    sd_mmc_start();
-#endif
-}

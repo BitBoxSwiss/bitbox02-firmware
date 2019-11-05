@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "bootloader.h"
-#include "peripherals_init.h"
+#include "platform_init.h"
 #include <bootloader/mpu.h>
 #include <driver_init.h>
 #include <hardfault.h>
@@ -44,16 +44,21 @@ int main(void)
     init_mcu();
     mpu_bootloader_init();
     bootloader_init();
-    peripherals_init();
+    platform_init();
     __stack_chk_guard = rand_sync_read32(&RAND_0);
     screen_init();
     qtouch_init();
     bootloader_jump();
 
     // If did not jump to firmware code, begin USB processing
+#if PLATFORM_BITBOX02 == 1
     while (1) {
         usb_processing_process(usb_processing_hww());
     }
+#elif PLATFORM_BITBOXBASE == 1
+    for (;;) {
+    }
+#endif
 
     return 0;
 }

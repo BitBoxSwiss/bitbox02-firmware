@@ -166,7 +166,6 @@ if(CMAKE_CROSSCOMPILING)
   # Advanced Software Framework Drivers
   # Only drivers needed for bootloader (minimal set)
   add_library(asf4-drivers-min STATIC
-    asf4-drivers/driver_init.c
     asf4-drivers/hal/utils/src/utils_syscalls.c
     asf4-drivers/hal/utils/src/utils_list.c
     asf4-drivers/hal/src/hal_atomic.c
@@ -193,7 +192,6 @@ if(CMAKE_CROSSCOMPILING)
     asf4-drivers/hpl/nvmctrl/hpl_nvmctrl.c
     asf4-drivers/hpl/icm/hpl_icm.c
     asf4-drivers/hpl/pac/hpl_pac.c
-    asf4-drivers/qtouch/qtouch.c
     asf4-drivers/usb/usb_protocol.c
     asf4-drivers/usb/device/usbdc.c
     )

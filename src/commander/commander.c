@@ -24,6 +24,7 @@
 #include <flags.h>
 #include <hardfault.h>
 #include <memory.h>
+#include <platform_config.h>
 #include <random.h>
 #include <screen.h>
 #include <sd.h>
@@ -69,6 +70,7 @@ static void _report_error(Response* response, commander_error_t error_code)
 
 // ------------------------------------ API ------------------------------------- //
 
+#if PLATFORM_BITBOX02 == 1
 /**
  * Retrieves a random number, displays it and encodes it into the passed stream.
  * Returns 0 if the encoding failed and the message length if the encoding was
@@ -203,14 +205,6 @@ static commander_error_t _api_set_mnemonic_passphrase_enabled(
     return COMMANDER_OK;
 }
 
-static commander_error_t _api_reboot(void)
-{
-    if (!workflow_reboot()) {
-        return COMMANDER_ERR_GENERIC;
-    }
-    return COMMANDER_OK;
-}
-
 static commander_error_t _api_reset(void)
 {
     if (!workflow_reset()) {
@@ -222,6 +216,15 @@ static commander_error_t _api_reset(void)
 static commander_error_t _api_restore_from_mnemonic(const RestoreFromMnemonicRequest* request)
 {
     if (!workflow_restore_from_mnemonic(request)) {
+        return COMMANDER_ERR_GENERIC;
+    }
+    return COMMANDER_OK;
+}
+#endif
+
+static commander_error_t _api_reboot(void)
+{
+    if (!workflow_reboot()) {
         return COMMANDER_ERR_GENERIC;
     }
     return COMMANDER_OK;
@@ -246,6 +249,7 @@ static commander_error_t _parse(pb_istream_t* in_stream, Request* request)
 static commander_error_t _api_process(const Request* request, Response* response)
 {
     switch (request->which_request) {
+#if PLATFORM_BITBOX02 == 1
     case Request_random_number_tag:
         response->which_response = Response_random_number_tag;
         _api_process_random(&(response->response.random_number));
@@ -301,9 +305,6 @@ static commander_error_t _api_process(const Request* request, Response* response
         response->which_response = Response_check_backup_tag;
         return _api_check_backup(
             &(request->request.check_backup), &(response->response.check_backup));
-    case Request_reboot_tag:
-        response->which_response = Response_success_tag;
-        return _api_reboot();
 #if defined(APP_ETH)
     case Request_eth_tag:
         response->which_response = Response_eth_tag;
@@ -318,6 +319,10 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_restore_from_mnemonic_tag:
         response->which_response = Response_success_tag;
         return _api_restore_from_mnemonic(&(request->request.restore_from_mnemonic));
+#endif
+    case Request_reboot_tag:
+        response->which_response = Response_success_tag;
+        return _api_reboot();
     default:
         screen_print_debug("command unknown", 1000);
         return COMMANDER_ERR_INVALID_INPUT;

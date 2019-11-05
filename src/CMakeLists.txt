@@ -131,13 +131,25 @@ set(DBB-BOOTLOADER-SOURCES
 set(DBB-BOOTLOADER-SOURCES ${DBB-BOOTLOADER-SOURCES} PARENT_SCOPE)
 
 set(DRIVER-SOURCES
-  ${CMAKE_SOURCE_DIR}/src/peripherals_init.c
-  ${CMAKE_SOURCE_DIR}/src/sd_mmc/sd_mmc_start.c
+  ${CMAKE_SOURCE_DIR}/src/platform/platform_init.c
+  ${CMAKE_SOURCE_DIR}/src/platform/driver_init.c
+  ${CMAKE_SOURCE_DIR}/src/qtouch/qtouch.c
   ${CMAKE_SOURCE_DIR}/src/ui/oled/oled.c
-  ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hid.c
-  ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hww/hid_hww.c
 )
 set(DRIVER-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
+
+set(PLATFORM-BITBOX02-SOURCES
+  ${CMAKE_SOURCE_DIR}/src/sd_mmc/sd_mmc_start.c
+  ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hid.c
+  ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hww/hid_hww.c
+  ${DBB-FIRMWARE-USB-SOURCES}
+)
+set(PLATFORM-BITBOX02-SOURCES ${PLATFORM-BITBOX02-SOURCES} PARENT_SCOPE)
+
+set(PLATFORM-BITBOXBASE-SOURCES
+  ${CMAKE_SOURCE_DIR}/src/platform/bitboxbase/leds.c
+)
+set(PLATFORM-BITBOXBASE-SOURCES ${PLATFORM-BITBOXBASE-SOURCES} PARENT_SCOPE)
 
 set(CRYPTOAUTHLIB-SOURCES
   ${CMAKE_SOURCE_DIR}/src/securechip/securechip.c
@@ -171,6 +183,9 @@ set(FIRMWARE-U2F-SOURCES ${FIRMWARE-U2F-SOURCES} PARENT_SCOPE)
 
 set(INCLUDES
   ${CMAKE_SOURCE_DIR}/src
+  ${CMAKE_SOURCE_DIR}/src/platform
+  ${CMAKE_SOURCE_DIR}/src/platform/bitboxbase
+  ${CMAKE_SOURCE_DIR}/src/qtouch
   ${CMAKE_SOURCE_DIR}/src/usb/class
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hww
@@ -192,7 +207,6 @@ find_package(Nanopb REQUIRED)
 
 set(FIRMWARE-SOURCES
   ${DBB-FIRMWARE-SOURCES}
-  ${DBB-FIRMWARE-USB-SOURCES}
   ${DBB-FIRMWARE-UI-SOURCES}
   ${FIRMWARE-DRIVER-SOURCES}
   ${DRIVER-SOURCES}
@@ -204,7 +218,6 @@ set(FIRMWARE-SOURCES
 
 set(BOOTLOADER-SOURCES
   ${DBB-BOOTLOADER-SOURCES}
-  ${DBB-FIRMWARE-USB-SOURCES}
   ${DRIVER-SOURCES}
 )
 
@@ -219,7 +232,27 @@ if(CMAKE_CROSSCOMPILING)
   set(HEAP_SIZE "0x18000" CACHE STRING "Specify heap size for bootloader/firmware")
   set(HEAP_SIZE ${HEAP_SIZE} PARENT_SCOPE)
 
-  set(BOOTLOADERS bootloader bootloader-development bootloader-development-locked bootloader-semihosting bootloader-production bootloader-btc bootloader-btc-development bootloader-btc-production)
+  # If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
+  set(BOOTLOADERS-BITBOX02
+    bootloader # Runs signed firmware
+    bootloader-development # Runs signed/unsigned firmware and has bootloader menu
+    bootloader-development-locked # Runs signed/unsigned firmware, has bootloader menu and bootloader is locked
+    bootloader-semihosting # Runs signed/unsigned firmware, has bootloader menu and enables semihosting
+    bootloader-production # Runs signed firmware and bootloader is locked
+    bootloader-btc # Runs signed (btc-only keys) firmware
+    bootloader-btc-development # Runs signed/unsigned firmware and has bootloader menu
+    bootloader-btc-production # Runs signed (btc-only keys) firmware and bootloader is locked
+  )
+  set(BOOTLOADERS-BITBOXBASE
+    bootloader-bitboxbase # Runs signed (base keys) firmware
+    bootloader-bitboxbase-development # Runs signed/unsigned firmware and has bootloader menu
+    bootloader-bitboxbase-semihosting # Runs signed/unsigned firmware, has bootloader menu and enables semihosting
+    bootloader-bitboxbase-production # Runs signed (base keys) firmware and bootloader is locked
+  )
+  set(BOOTLOADERS
+    ${BOOTLOADERS-BITBOX02}
+    ${BOOTLOADERS-BITBOXBASE}
+  )
   set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
   foreach(bootloader ${BOOTLOADERS})
     set(elf ${bootloader}.elf)
@@ -238,30 +271,54 @@ if(CMAKE_CROSSCOMPILING)
     # Select the smaller version of libc called nano.
     target_compile_options(${elf} PRIVATE --specs=nano.specs)
     target_link_libraries(${elf} PRIVATE --specs=nano.specs)
-    if(NOT bootloader STREQUAL "bootloader-semihosting")
+    string(FIND ${bootloader} semihosting SEMIHOSTING_FOUND)
+    if(SEMIHOSTING_FOUND EQUAL -1)
       target_compile_options(${elf} PRIVATE --specs=nosys.specs)
       target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
+    else()
+      # Select an implementation of the system calls that can communicate with the debugger
+      target_compile_options(${elf} PRIVATE --specs=rdimon.specs)
+      target_link_libraries(${elf} PRIVATE --specs=rdimon.specs)
     endif()
   endforeach(bootloader)
 
-  target_compile_definitions(bootloader-development.elf PRIVATE BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bootloader-development-locked.elf PRIVATE BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
+  foreach(bootloader ${BOOTLOADERS-BITBOX02})
+    target_sources(${bootloader}.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
+  endforeach(bootloader)
+
+  foreach(bootloader ${BOOTLOADERS-BITBOXBASE})
+    target_sources(${bootloader}.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES})
+  endforeach(bootloader)
+
+  target_compile_definitions(bootloader.elf PRIVATE PRODUCT_BITBOX_MULTI)
+  target_compile_definitions(bootloader-development.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE)
+  target_compile_definitions(bootloader-semihosting.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE SEMIHOSTING)
+  target_compile_definitions(bootloader-development-locked.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-development-locked.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  # Select an implementation of the system calls that can communicate with the debugger
-  target_compile_options(bootloader-semihosting.elf PRIVATE --specs=rdimon.specs)
-  target_link_libraries(bootloader-semihosting.elf PRIVATE --specs=rdimon.specs)
-  target_compile_definitions(bootloader-semihosting.elf PRIVATE BOOTLOADER_DEVDEVICE SEMIHOSTING)
 
-  target_compile_definitions(bootloader-production.elf PRIVATE BOOTLOADER_PRODUCTION)
+  target_compile_definitions(bootloader-production.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  target_compile_definitions(bootloader-btc.elf PRIVATE BOOTLOADER_BTC_ONLY)
-  target_compile_definitions(bootloader-btc-development.elf PRIVATE BOOTLOADER_DEVDEVICE BOOTLOADER_BTC_ONLY)
-  target_compile_definitions(bootloader-btc-production.elf PRIVATE BOOTLOADER_PRODUCTION BOOTLOADER_BTC_ONLY)
+  target_compile_definitions(bootloader-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY)
+  target_compile_definitions(bootloader-btc-development.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_DEVDEVICE)
+  target_compile_definitions(bootloader-btc-production.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-btc-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  set(FIRMWARES firmware firmware-semihosting firmware-btc factory-setup)
+  target_compile_definitions(bootloader-bitboxbase.elf PRIVATE PRODUCT_BITBOX_BASE)
+  target_compile_definitions(bootloader-bitboxbase-development.elf PRIVATE BOOTLOADER_DEVDEVICE PRODUCT_BITBOX_BASE)
+  target_compile_definitions(bootloader-bitboxbase-semihosting.elf PRIVATE BOOTLOADER_DEVDEVICE PRODUCT_BITBOX_BASE SEMIHOSTING)
+  target_compile_definitions(bootloader-bitboxbase-production.elf PRIVATE BOOTLOADER_PRODUCTION PRODUCT_BITBOX_BASE)
+  set_property(TARGET bootloader-bitboxbase-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
+
+  set(FIRMWARES
+    firmware # Firmware MULTI
+    firmware-semihosting # Firmware MULTI with semihosting enabled
+    firmware-btc # Firmware BTC-ONLY
+    firmware-bitboxbase # Firmware BASE
+    firmware-bitboxbase-semihosting # Firmware BASE with semihosting
+    factory-setup # Factory-setup
+  )
   set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
   foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)
@@ -303,29 +360,42 @@ if(CMAKE_CROSSCOMPILING)
     # Select the smaller version of libc called nano.
     target_compile_options(${elf} PRIVATE --specs=nano.specs)
     target_link_libraries(${elf} PRIVATE --specs=nano.specs)
-    if(NOT firmware STREQUAL "firmware-semihosting")
+    string(FIND ${firmware} semihosting SEMIHOSTING_FOUND)
+    if(SEMIHOSTING_FOUND EQUAL -1)
       target_compile_options(${elf} PRIVATE --specs=nosys.specs)
       target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
+    else()
+      # Select an implementation of the system calls that can communicate with the debugger
+      target_compile_options(${elf} PRIVATE --specs=rdimon.specs)
+      target_link_libraries(${elf} PRIVATE --specs=rdimon.specs)
     endif()
   endforeach(firmware)
 
   target_sources(firmware.elf PRIVATE firmware.c)
-  target_compile_definitions(firmware.elf PRIVATE APP_BTC APP_LTC APP_ETH APP_U2F)
-  target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES})
+  target_compile_definitions(firmware.elf PRIVATE PRODUCT_BITBOX_MULTI APP_BTC APP_LTC APP_ETH APP_U2F)
+  target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
 
   target_sources(firmware-semihosting.elf PRIVATE firmware.c)
-  target_sources(firmware-semihosting.elf PRIVATE ${FIRMWARE-U2F-SOURCES})
+  target_sources(firmware-semihosting.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
   # Select an implementation of the system calls that can communicate with the debugger
-  target_compile_options(firmware-semihosting.elf PRIVATE --specs=rdimon.specs)
-  target_link_libraries(firmware-semihosting.elf PRIVATE --specs=rdimon.specs)
-  target_compile_definitions(firmware-semihosting.elf PRIVATE APP_BTC APP_LTC APP_ETH APP_U2F)
+  target_compile_definitions(firmware-semihosting.elf PRIVATE PRODUCT_BITBOX_MULTI APP_BTC APP_LTC APP_ETH APP_U2F)
   target_compile_definitions(firmware-semihosting.elf PRIVATE SEMIHOSTING)
 
   target_sources(firmware-btc.elf PRIVATE firmware.c)
-  target_compile_definitions(firmware-btc.elf PRIVATE FIRMWARE_BTC_ONLY APP_BTC)
+  target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY APP_BTC)
+  target_sources(firmware-btc.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
+
+  target_sources(firmware-bitboxbase.elf PRIVATE bitboxbase/bitboxbase.c)
+  target_compile_definitions(firmware-bitboxbase.elf PRIVATE PRODUCT_BITBOX_BASE)
+  target_sources(firmware-bitboxbase.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES})
+
+  target_sources(firmware-bitboxbase-semihosting.elf PRIVATE bitboxbase/bitboxbase.c)
+  target_compile_definitions(firmware-bitboxbase-semihosting.elf PRIVATE PRODUCT_BITBOX_BASE SEMIHOSTING)
+  target_sources(firmware-bitboxbase-semihosting.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES})
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE FACTORYSETUP)
+  target_sources(factory-setup.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
 
   foreach(name ${BOOTLOADERS} ${FIRMWARES})
     add_custom_command(

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 set -e
+set -x
 
 # Import all keys
-find ./releases/pubkeys -name '*.asc' -exec gpg --import {} \;
+find ./releases/pubkeys -name '*.asc' -exec gpg --quiet --import {} \;
 
 # Verify all sigs.
 find ./releases -name '*.sig' |
     while read file; do
-        echo "checking $file"
-        gpg --verify $file $(dirname $file)/assertion.txt
+        gpg --verify $file $(dirname $file)/assertion.txt 2>/dev/null
     done

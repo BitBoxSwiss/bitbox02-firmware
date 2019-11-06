@@ -39,9 +39,12 @@ static void _reboot(void)
 
 bool workflow_reboot(void)
 {
+#if PLATFORM_BITBOX02 == 1
+    // Only ask on the bitbox02 platform, bitboxbase will always reboot
     if (!workflow_confirm("", "Proceed to upgrade?", false, false)) {
         return false;
     }
+#endif
     _reboot();
     return true;
 }

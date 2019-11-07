@@ -1,6 +1,6 @@
 [MASTER]
 # hid is a c-extension, so we have to allow it to be loaded into python memory.
-extension-pkg-whitelist=hid
+extension-pkg-whitelist=hid,pyserial
 
 [BASIC]
 # Shorter functions are excempt from docstring

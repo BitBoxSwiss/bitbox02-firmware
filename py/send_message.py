@@ -21,9 +21,10 @@ import sys
 from typing import List, Any, Optional, Callable, Union, Tuple, Sequence
 
 from tzlocal import get_localzone
+import hid
 import bitbox02
 from bitbox02 import HARDENED
-from communication import devices
+from communication import devices, u2fhid
 import u2f
 import u2f.bitbox02
 
@@ -478,8 +479,10 @@ def main() -> int:
         except devices.NoneFoundException:
             print("No bitboxes detected")
         else:
-            u2fdevice = u2f.bitbox02.BitBox02U2F(u2fbitbox)
-            u2fapp = U2FApp(u2fdevice, args.debug)
+            hid_device = hid.device()
+            hid_device.open_path(u2fbitbox["path"])
+            u2f_connection = u2f.bitbox02.BitBox02U2F(u2fhid.U2FHid(hid_device))
+            u2fapp = U2FApp(u2f_connection, args.debug)
             return u2fapp.run()
         return 1
 
@@ -496,7 +499,10 @@ def main() -> int:
         except devices.NoneFoundException:
             print("Neither bitbox nor bootloader found.")
         else:
-            boot_app = SendMessageBootloader(bitbox02.Bootloader(bootloader))
+            hid_device = hid.device()
+            hid_device.open_path(bootloader["path"])
+            bootloader_connection = bitbox02.Bootloader(u2fhid.U2FHid(hid_device), bootloader)
+            boot_app = SendMessageBootloader(bootloader_connection)
             return boot_app.run()
     else:
 
@@ -510,7 +516,10 @@ def main() -> int:
             else:
                 print("Device attestation FAILED")
 
-        device = bitbox02.BitBox02(
+        hid_device = hid.device()
+        hid_device.open_path(bitbox["path"])
+        bitbox_connection = bitbox02.BitBox02(
+            transport=u2fhid.U2FHid(hid_device),
             device_info=bitbox,
             show_pairing_callback=show_pairing,
             attestation_check_callback=attestation_check,
@@ -520,7 +529,7 @@ def main() -> int:
             print("Device Info:")
             pprint.pprint(bitbox)
 
-        return SendMessage(device, args.debug).run()
+        return SendMessage(bitbox_connection, args.debug).run()
     return 1
 
 

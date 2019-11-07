@@ -14,14 +14,15 @@
 # limitations under the License.
 """TODO: document"""
 
-
 import sys
 import pprint
 from typing import Any
 from time import sleep
 
+import hid
 from communication import devices
 from communication.devices import TooManyFoundException, NoneFoundException
+from communication import u2fhid
 
 from bitbox02 import Bootloader, BitBox02
 
@@ -43,7 +44,11 @@ def get_bitbox_and_reboot() -> devices.DeviceInfo:
         print("Please compare and confirm the pairing code on your BitBox02:")
         print(code)
 
-    bitbox = BitBox02(device_info=device, show_pairing_callback=_show_pairing)
+    hid_device = hid.device()
+    hid_device.open_path(device["path"])
+    bitbox = BitBox02(
+        u2fhid.U2FHid(hid_device), device_info=device, show_pairing_callback=_show_pairing
+    )
     bitbox.reboot()
 
     # wait for it to reboot
@@ -95,7 +100,10 @@ def main() -> int:
 
     pprint.pprint(bootloader_device)
 
-    bootloader = Bootloader(bootloader_device)
+    hid_dev = hid.device()
+    hid_dev.open_path(bootloader_device["path"])
+
+    bootloader = Bootloader(u2fhid.U2FHid(hid_dev), bootloader_device)
 
     with open(filename, "rb") as file:
         firmware = file.read()

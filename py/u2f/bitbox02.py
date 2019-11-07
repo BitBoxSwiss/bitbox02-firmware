@@ -4,8 +4,7 @@ from typing import Tuple
 import binascii
 import struct
 
-import hid
-from communication import u2fhid
+import communication
 from communication.devices import get_device, BITBOX02MULTI, DeviceInfo
 from bitbox02 import Bitbox02Exception
 from . import u2f
@@ -18,15 +17,14 @@ def get_bitbox02_u2f_device() -> DeviceInfo:
 class BitBox02U2F:
     """Interact with a bitbox for u2f purposes"""
 
-    def __init__(self, device_info: DeviceInfo):
-        self._device = hid.device()
-        self._device.open_path(device_info["path"])
+    def __init__(self, transport: communication.TransportLayer):
+        self._transport = transport
         # 0 and 0xffffffff are reserved
-        self._cid = u2fhid.generate_cid()
+        self._cid = self._transport.generate_cid()
         self.debug = False
 
     def close(self) -> None:
-        self._device.close()
+        self._transport.close()
 
     def _query(self, cid: int, cmd: int, msg: bytes) -> bytes:
         """
@@ -34,8 +32,8 @@ class BitBox02U2F:
         """
         if self.debug:
             print(f"msg: {msg}, cid: {cid}, cmd: {cmd}")
-        u2fhid.write(self._device, msg, cmd, cid)
-        response_bytes = u2fhid.read(self._device, cmd, cid)
+        self._transport.write(msg, cmd, cid)
+        response_bytes = self._transport.read(cmd, cid)
         if self.debug:
             print(f"response {len(response_bytes)}: {binascii.hexlify(bytes(response_bytes))}")
         return bytes(response_bytes)
@@ -62,20 +60,20 @@ class BitBox02U2F:
         nonce = bytes([1, 2, 3, 4, 5, 6, 7, 8])
         cid = self._cid
         if allocate:
-            cid = u2fhid.CID_BROADCAST
-        response_bytes = self._query(cid, u2fhid.INIT, nonce)
+            cid = communication.u2fhid.CID_BROADCAST
+        response_bytes = self._query(cid, communication.u2fhid.INIT, nonce)
         init_response = self._parse_u2f_init_response(response_bytes)
         self._cid = init_response.cid
 
     def u2fhid_ping(self, msg: bytes) -> bytes:
-        return self._query(self._cid, u2fhid.PING, msg)
+        return self._query(self._cid, communication.u2fhid.PING, msg)
 
     def u2fhid_wink(self) -> bool:
-        _response_bytes = self._query(self._cid, u2fhid.WINK, bytes("", "utf-8"))
+        _response_bytes = self._query(self._cid, communication.u2fhid.WINK, bytes("", "utf-8"))
         return True
 
     def u2fhid_msg(self, msg: bytes) -> bytes:
-        return self._query(self._cid, u2fhid.MSG, msg)
+        return self._query(self._cid, communication.u2fhid.MSG, msg)
 
     def u2f_register(self, appid: str) -> Tuple[bytes, bytes]:
         self.u2fhid_init(True)

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Util functions to interact with u2fhid devices."""
+""" Library to interact with a BitBox device over USART. """
 
-from .u2fhid import CID_BROADCAST, INIT, MSG, PING, U2FHid, WINK
+import sys
+
+from .usart import SerialPort, U2FUsart, U2FUsartError, U2FUsartErrorResponse, U2FUsartTimeoutError

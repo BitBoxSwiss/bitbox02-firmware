@@ -27,10 +27,9 @@ from typing_extensions import TypedDict
 
 import ecdsa
 from noise.connection import NoiseConnection, Keypair
-import hid
 import semver
 
-from communication import u2fhid
+from communication import TransportLayer
 from communication.devices import parse_device_version, DeviceInfo
 
 try:
@@ -181,6 +180,7 @@ class BitBox02:
 
     def __init__(
         self,
+        transport: TransportLayer,
         device_info: DeviceInfo,
         show_pairing_callback: Callable[[str], None],
         attestation_check_callback: Optional[Callable[[bool], None]] = None,
@@ -197,8 +197,7 @@ class BitBox02:
             self.version.major, self.version.minor, self.version.patch, build=self.version.build
         )
 
-        self.device = hid.device()
-        self.device.open_path(device_info["path"])
+        self._transport = transport
         if self.version >= semver.VersionInfo(2, 0, 0):
             if attestation_check_callback is not None:
                 # Perform attestation
@@ -251,15 +250,14 @@ class BitBox02:
         self.noise = noise
 
     def close(self) -> None:
-        self.device.close()
+        self._transport.close()
 
     def _query(self, msg: bytes) -> bytes:
         """
         Sends msg bytes and retrieves response bytes.
         """
-        cid = u2fhid.generate_cid()
-        u2fhid.write(self.device, msg, HWW_CMD, cid)
-        return bytes(u2fhid.read(self.device, HWW_CMD, cid))
+        cid = self._transport.generate_cid()
+        return self._transport.query(msg, HWW_CMD, cid)
 
     def _encrypted_query(self, msg: bytes) -> bytes:
         """

@@ -47,4 +47,11 @@ void u2f_packet_timeout_tick(void);
  * Enable timer for this cid
  */
 void u2f_packet_timeout_enable(uint32_t cid);
+
+/**
+ * Called when a message has been received, but there is no
+ * API registered to handle the requested U2F Command (endpoint) byte.
+ */
+void u2f_invalid_endpoint(struct queue* queue, uint32_t cmd, uint32_t cid);
+
 #endif

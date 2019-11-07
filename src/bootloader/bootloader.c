@@ -14,6 +14,7 @@
 
 #include "bootloader.h"
 #include "bootloader_version.h"
+#include "leds.h"
 #include "mpu.h"
 
 #include <driver_init.h>
@@ -28,8 +29,13 @@
 #include <ui/components/ui_images.h>
 #include <ui/oled/oled.h>
 #include <ui/ugui/ugui.h>
+#if PLATFORM_BITBOXBASE == 1
+#include <usart/usart.h>
+#include <usart/usart_frame.h>
+#elif PLATFORM_BITBOX02 == 1
 #include <usb/usb.h>
 #include <usb/usb_packet.h>
+#endif
 #include <usb/usb_processing.h>
 #include <util.h>
 
@@ -802,10 +808,7 @@ static void _api_setup(void)
 {
     const CMD_Callback cmd_callbacks[] = {{BOOTLOADER_CMD, _api_msg}};
 
-    (void)cmd_callbacks;
-#if PLATFORM_BITBOX02 == 1
     usb_processing_register_cmds(usb_processing_hww(), cmd_callbacks, 1);
-#endif
 }
 
 #ifdef BOOTLOADER_PRODUCTION
@@ -877,6 +880,7 @@ static void _check_init(boot_data_t* data)
 }
 
 #ifdef BOOTLOADER_DEVDEVICE
+#if PLATFORM_BITBOX02 == 1
 static bool _devdevice_enter(secbool_u32 firmware_verified)
 {
     UG_ClearBuffer();
@@ -910,6 +914,7 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
     }
 }
 #endif
+#endif
 
 void bootloader_jump(void)
 {
@@ -929,7 +934,6 @@ void bootloader_jump(void)
 #ifdef BOOTLOADER_DEVDEVICE
 #if PLATFORM_BITBOXBASE == 1
         // We don't have touch on base dev bootloader yet
-        (void)_devdevice_enter;
         _binary_exec();
 #elif PLATFORM_BITBOX02 == 1
         if (!_devdevice_enter(_firmware_verified_jump(&bootdata, secfalse_u32))) {
@@ -943,16 +947,14 @@ void bootloader_jump(void)
 #endif
     }
 
-#if PLATFORM_BITBOX02 == 1
     // App not entered. Start USB API to receive boot commands
     _render_default_screen();
+#if PLATFORM_BITBOX02 == 1
     if (usb_start(_api_setup) != ERR_NONE) {
         _render_message("Failed to initialize USB", 0);
     }
 #elif PLATFORM_BITBOXBASE == 1
-    // Until we support flashing via bootloader, simply boot
-    (void)_api_setup;
-    screen_print_debug("Booting", 1500);
-    _binary_exec();
+    usart_start();
+    _api_setup();
 #endif
 }

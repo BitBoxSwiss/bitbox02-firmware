@@ -61,6 +61,8 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_params.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_bip143.c
+  ${CMAKE_SOURCE_DIR}/src/queue.c
+  ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
 )
 set(DBB-FIRMWARE-SOURCES ${DBB-FIRMWARE-SOURCES} PARENT_SCOPE)
 
@@ -69,8 +71,6 @@ set(DBB-FIRMWARE-USB-SOURCES
   ${CMAKE_SOURCE_DIR}/src/usb/usb_frame.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_packet.c
   ${CMAKE_SOURCE_DIR}/src/u2f/u2f_packet.c
-  ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
-  ${CMAKE_SOURCE_DIR}/src/queue.c
 )
 set(DBB-FIRMWARE-USB-SOURCES ${DBB-FIRMWARE-USB-SOURCES} PARENT_SCOPE)
 
@@ -122,6 +122,8 @@ set(DBB-BOOTLOADER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/startup.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/mpu.c
+  ${CMAKE_SOURCE_DIR}/src/queue.c
+  ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
   ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
   ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_9X9.c
   ${CMAKE_SOURCE_DIR}/src/screen.c
@@ -148,6 +150,9 @@ set(PLATFORM-BITBOX02-SOURCES ${PLATFORM-BITBOX02-SOURCES} PARENT_SCOPE)
 
 set(PLATFORM-BITBOXBASE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/platform/bitboxbase/leds.c
+  ${CMAKE_SOURCE_DIR}/src/usart/usart.c
+  ${CMAKE_SOURCE_DIR}/src/usart/usart_frame.c
+  ${CMAKE_SOURCE_DIR}/src/usart/usart_hww.c
 )
 set(PLATFORM-BITBOXBASE-SOURCES ${PLATFORM-BITBOXBASE-SOURCES} PARENT_SCOPE)
 

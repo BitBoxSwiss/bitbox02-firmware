@@ -39,6 +39,16 @@ queue_error_t queue_push(struct queue* ctx, const uint8_t* data);
 const uint8_t* queue_pull(struct queue* ctx);
 
 /**
+ * Initializes this queue object.
+ * The queue will handle elements with the given size.
+ *
+ * @param[size] Size of each element. This will decide how many
+ * bytes each push/pull operation will consume. This must be
+ * a submultiple of QUEUE_SIZE.
+ */
+void queue_init(struct queue* ctx, size_t item_size);
+
+/**
  * Clear the queue.
  */
 void queue_clear(struct queue* ctx);

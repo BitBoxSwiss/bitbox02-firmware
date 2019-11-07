@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include "usb_processing.h"
+#include "platform_config.h"
 #include "u2f/u2f_packet.h"
+#include "usart/usart_frame.h"
 #include "usb_frame.h"
 #include "usb_packet.h"
 
@@ -30,6 +32,12 @@ struct usb_processing {
     bool has_packet;
     struct queue* (*out_queue)(void);
     void (*send)(void);
+    usb_frame_formatter_t format_frame;
+    /**
+     * Function to call when a message has been received,
+     * but there is no registered API set to manage it.
+     */
+    void (*manage_invalid_endpoint)(struct queue* queue, uint32_t cmd, uint32_t cid);
 };
 
 /*
@@ -55,38 +63,26 @@ static volatile bool _in_packet_queued;
  */
 static Packet _in_packet;
 
-// TODO: remove this global in future refactoring
-static struct queue* _global_queue;
-
-static queue_error_t _queue_push(const uint8_t* data)
-{
-    if (_global_queue == NULL) {
-        Abort("usb_processing: Internal error");
-    }
-    return queue_push(_global_queue, data);
-}
-
 /**
  * Responds with data of a certain length.
  * @param[in] packet The packet to be sent.
  */
-static uint8_t _enqueue_frames(struct usb_processing* ctx, const Packet* out_packet)
+static queue_error_t _enqueue_frames(struct usb_processing* ctx, const Packet* out_packet)
 {
-    _global_queue = ctx->out_queue();
-    return usb_frame_reply(
-        out_packet->cmd, out_packet->data_addr, out_packet->len, out_packet->cid, _queue_push);
+    return ctx->format_frame(
+        out_packet->cmd, out_packet->data_addr, out_packet->len, out_packet->cid, ctx->out_queue());
 }
 
 /**
  * Builds a packet from the passed state.
  * @param[in] in_state The packet is loaded from the state.
  */
-static void _build_packet(const State* in_state)
+static void _build_packet(const uint8_t* buf, size_t length, uint8_t cmd, uint32_t cid)
 {
-    memcpy(_in_packet.data_addr, in_state->data, USB_DATA_MAX_LEN);
-    _in_packet.len = in_state->len;
-    _in_packet.cmd = in_state->cmd;
-    _in_packet.cid = in_state->cid;
+    memcpy(_in_packet.data_addr, buf, MIN(USB_DATA_MAX_LEN, length));
+    _in_packet.len = length;
+    _in_packet.cmd = cmd;
+    _in_packet.cid = cid;
 }
 
 /**
@@ -133,13 +129,18 @@ void usb_processing_register_cmds(
 /**
  * Request to process a complete incoming USB packet.
  */
-bool usb_processing_enqueue(struct usb_processing* ctx, const State* in_state)
+bool usb_processing_enqueue(
+    struct usb_processing* ctx,
+    const uint8_t* buf,
+    size_t length,
+    uint8_t cmd,
+    uint32_t cid)
 {
     if (_in_packet_queued) {
         /* We already have a buffered packet. */
         return false;
     }
-    _build_packet(in_state);
+    _build_packet(buf, length, cmd, cid);
     _in_packet_queued = true;
     ctx->has_packet = true;
     return true;
@@ -186,13 +187,7 @@ static void _usb_process_incoming_packet(struct usb_processing* ctx)
     }
 
     if (!cmd_valid) {
-        // TODO: if U2F is disabled, we used to return a 'channel busy' command.
-        // now we return an invalid cmd, because there is not going to be a matching
-        // cmd in '_registered_cmds' if the U2F bit it not set (== U2F disabled).
-        // TODO: figure out the consequences and either implement a solution or
-        // inform U2F hijack vendors.
-        _global_queue = ctx->out_queue();
-        usb_frame_prepare_err(FRAME_ERR_INVALID_CMD, _in_packet.cid, _queue_push);
+        ctx->manage_invalid_endpoint(ctx->out_queue(), _in_packet.cmd, _in_packet.cid);
     }
     _usb_processing_drop_received(ctx);
 }
@@ -236,8 +231,20 @@ void usb_processing_init(void)
 {
 #if defined(APP_U2F)
     usb_processing_u2f()->out_queue = queue_u2f_queue;
+    queue_init(queue_u2f_queue(), USB_REPORT_SIZE);
+    usb_processing_u2f()->format_frame = usb_frame_reply;
     usb_processing_u2f()->has_packet = false;
+    usb_processing_u2f()->manage_invalid_endpoint = u2f_invalid_endpoint;
 #endif
     usb_processing_hww()->out_queue = queue_hww_queue;
+#if PLATFORM_BITBOXBASE == 1
+    queue_init(queue_hww_queue(), 1);
+    usb_processing_hww()->format_frame = usart_format_frame;
+    usb_processing_hww()->manage_invalid_endpoint = usart_invalid_endpoint;
+#else
+    queue_init(queue_hww_queue(), USB_REPORT_SIZE);
+    usb_processing_hww()->format_frame = usb_frame_reply;
+    usb_processing_hww()->manage_invalid_endpoint = usb_invalid_endpoint;
+#endif
     usb_processing_hww()->has_packet = false;
 }

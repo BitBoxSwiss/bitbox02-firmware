@@ -38,6 +38,7 @@ add_library(bitbox
   ${DBB-FIRMWARE-UI-SOURCES}
   ${DBB-FIRMWARE-PROTOBUF-SOURCES}
   ${DBB-FIRMWARE-USB-SOURCES}
+  ${DBB-FIRMWARE-USART-SOURCES}
   ${CTAES-SOURCES}
   ${ETHEREUM-SOURCES}
   ${FIRMWARE-U2F-SOURCES}
@@ -187,6 +188,8 @@ set(TEST_LIST
    "-Wl,--wrap=app_eth_verify_standard_transaction,--wrap=app_eth_verify_erc20_transaction,--wrap=keystore_secp256k1_sign,--wrap=eth_common_is_valid_keypath"
    app_eth_verify
    "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=app_eth_erc20_params_get"
+   usart
+   "-Wl,--wrap=usb_processing_enqueue"
    util
    ""
    commander_set_device_name

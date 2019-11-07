@@ -38,10 +38,6 @@ from .eth_pb2 import (
     ETHResponse as eth_pb2___ETHResponse,
 )
 
-from google.protobuf.descriptor import (
-    Descriptor as google___protobuf___descriptor___Descriptor,
-)
-
 from google.protobuf.message import (
     Message as google___protobuf___message___Message,
 )
@@ -77,7 +73,6 @@ from typing_extensions import (
 
 
 class Error(google___protobuf___message___Message):
-    DESCRIPTOR: google___protobuf___descriptor___Descriptor = ...
     code = ... # type: int
     message = ... # type: typing___Text
 
@@ -96,7 +91,6 @@ class Error(google___protobuf___message___Message):
         def ClearField(self, field_name: typing_extensions___Literal[u"code",b"code",u"message",b"message"]) -> None: ...
 
 class Success(google___protobuf___message___Message):
-    DESCRIPTOR: google___protobuf___descriptor___Descriptor = ...
 
     def __init__(self,
         ) -> None: ...
@@ -106,7 +100,6 @@ class Success(google___protobuf___message___Message):
     def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
 
 class Request(google___protobuf___message___Message):
-    DESCRIPTOR: google___protobuf___descriptor___Descriptor = ...
 
     @property
     def random_number(self) -> random_number_pb2___RandomNumberRequest: ...
@@ -212,7 +205,6 @@ class Request(google___protobuf___message___Message):
     def WhichOneof(self, oneof_group: typing_extensions___Literal[u"request",b"request"]) -> typing_extensions___Literal["random_number","device_name","device_language","device_info","set_password","create_backup","show_mnemonic","btc_pub","btc_sign_init","btc_sign_input","btc_sign_output","insert_remove_sdcard","check_sdcard","set_mnemonic_passphrase_enabled","list_backups","restore_backup","perform_attestation","reboot","check_backup","eth","reset","restore_from_mnemonic"]: ...
 
 class Response(google___protobuf___message___Message):
-    DESCRIPTOR: google___protobuf___descriptor___Descriptor = ...
 
     @property
     def success(self) -> Success: ...

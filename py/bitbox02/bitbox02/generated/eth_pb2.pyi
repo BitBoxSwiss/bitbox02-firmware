@@ -5,7 +5,6 @@ from .common_pb2 import (
 )
 
 from google.protobuf.descriptor import (
-    Descriptor as google___protobuf___descriptor___Descriptor,
     EnumDescriptor as google___protobuf___descriptor___EnumDescriptor,
 )
 
@@ -50,7 +49,6 @@ RopstenETH = typing___cast(ETHCoin, 1)
 RinkebyETH = typing___cast(ETHCoin, 2)
 
 class ETHPubRequest(google___protobuf___message___Message):
-    DESCRIPTOR: google___protobuf___descriptor___Descriptor = ...
     class OutputType(int):
         DESCRIPTOR: google___protobuf___descriptor___EnumDescriptor = ...
         @classmethod
@@ -92,7 +90,6 @@ class ETHPubRequest(google___protobuf___message___Message):
         def ClearField(self, field_name: typing_extensions___Literal[u"coin",b"coin",u"contract_address",b"contract_address",u"display",b"display",u"keypath",b"keypath",u"output_type",b"output_type"]) -> None: ...
 
 class ETHSignRequest(google___protobuf___message___Message):
-    DESCRIPTOR: google___protobuf___descriptor___Descriptor = ...
     coin = ... # type: ETHCoin
     keypath = ... # type: google___protobuf___internal___containers___RepeatedScalarFieldContainer[int]
     nonce = ... # type: bytes
@@ -123,7 +120,6 @@ class ETHSignRequest(google___protobuf___message___Message):
         def ClearField(self, field_name: typing_extensions___Literal[u"coin",b"coin",u"data",b"data",u"gas_limit",b"gas_limit",u"gas_price",b"gas_price",u"keypath",b"keypath",u"nonce",b"nonce",u"recipient",b"recipient",u"value",b"value"]) -> None: ...
 
 class ETHSignResponse(google___protobuf___message___Message):
-    DESCRIPTOR: google___protobuf___descriptor___Descriptor = ...
     signature = ... # type: bytes
 
     def __init__(self,
@@ -140,7 +136,6 @@ class ETHSignResponse(google___protobuf___message___Message):
         def ClearField(self, field_name: typing_extensions___Literal[u"signature",b"signature"]) -> None: ...
 
 class ETHRequest(google___protobuf___message___Message):
-    DESCRIPTOR: google___protobuf___descriptor___Descriptor = ...
 
     @property
     def pub(self) -> ETHPubRequest: ...
@@ -166,7 +161,6 @@ class ETHRequest(google___protobuf___message___Message):
     def WhichOneof(self, oneof_group: typing_extensions___Literal[u"request",b"request"]) -> typing_extensions___Literal["pub","sign"]: ...
 
 class ETHResponse(google___protobuf___message___Message):
-    DESCRIPTOR: google___protobuf___descriptor___Descriptor = ...
 
     @property
     def pub(self) -> common_pb2___PubResponse: ...

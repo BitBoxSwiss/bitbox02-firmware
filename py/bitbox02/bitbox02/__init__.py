@@ -45,7 +45,6 @@ from .bitbox02 import (
     BTCOutputExternal,
     BTCOutputInternal,
     BTCOutputType,
-    HARDENED,
     hww,
     btc,
 )

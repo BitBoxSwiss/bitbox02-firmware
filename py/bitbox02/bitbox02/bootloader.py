@@ -64,6 +64,7 @@ class Bootloader:
         self.expected_magic = {
             "bb02-bootloader": SIGDATA_MAGIC_STANDARD,
             "bb02btc-bootloader": SIGDATA_MAGIC_BTCONLY,
+            "bb02-base": SIGDATA_MAGIC_STANDARD,
         }.get(device_info["product_string"])
         assert self.expected_magic
 

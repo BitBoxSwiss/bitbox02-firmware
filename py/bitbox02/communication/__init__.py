@@ -22,4 +22,5 @@ from .bitbox_api_protocol import (
     AttestationException,
     ERR_GENERIC,
     ERR_USER_ABORT,
+    HARDENED,
 )

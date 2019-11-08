@@ -16,4 +16,4 @@
 import sys
 
 # pylint: disable=wrong-import-position
-from .bitboxbase import BitBoxBase
+from .bitboxbase import BitBoxBase, get_bitboxbase_default_device

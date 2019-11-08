@@ -29,7 +29,9 @@ Copyright (c) 2017 Microchip. All rights reserved.
 #include "qtouch.h"
 #include "license.h"
 #include "touch_api_ptc.h"
+#include "util.h"
 #include <driver_init.h>
+#include <platform_config.h>
 
 /*----------------------------------------------------------------------------
  *   prototypes
@@ -63,6 +65,12 @@ static void qtm_error_callback(uint8_t err);
  */
 static void qtouch_process_scroller_positions(void);
 
+#if PLATFORM_BITBOXBASE == 1
+/* Calculate whether buttons have been pressed
+ */
+static void qtouch_process_buttons(void);
+#endif
+
 /*----------------------------------------------------------------------------
  *     Global Variables
  *----------------------------------------------------------------------------*/
@@ -91,6 +99,7 @@ qtm_acq_node_group_config_t ptc_qtlib_acq_gen1 = {DEF_NUM_CHANNELS,
 /* Node status, signal, calibration values */
 qtm_acq_node_data_t ptc_qtlib_node_stat1[DEF_NUM_CHANNELS];
 
+#if PLATFORM_BITBOX02 == 1
 /* Node configurations */
 qtm_acq_samd51_node_config_t ptc_seq_node_cfg1[DEF_NUM_CHANNELS] = {NODE_0_PARAMS,
                                                                     NODE_1_PARAMS,
@@ -100,6 +109,11 @@ qtm_acq_samd51_node_config_t ptc_seq_node_cfg1[DEF_NUM_CHANNELS] = {NODE_0_PARAM
                                                                     NODE_5_PARAMS,
                                                                     NODE_6_PARAMS,
                                                                     NODE_7_PARAMS};
+#elif PLATFORM_BITBOXBASE == 1
+/* Node configurations */
+qtm_acq_samd51_node_config_t ptc_seq_node_cfg1[DEF_NUM_CHANNELS] =
+    {NODE_0_PARAMS, NODE_1_PARAMS, NODE_2_PARAMS, NODE_3_PARAMS, NODE_4_PARAMS, NODE_5_PARAMS};
+#endif
 
 /* Container */
 qtm_acquisition_control_t qtlib_acq_set1 = {&ptc_qtlib_acq_gen1,
@@ -116,6 +130,10 @@ __extension__ static uint16_t scroller_position[] = {[0 ...(DEF_NUM_SCROLLERS - 
 
 /* Whether or not scroller reading exceeds threshold for custom filter */
 __extension__ static bool scroller_active[DEF_NUM_SCROLLERS] = {[0 ...(DEF_NUM_SCROLLERS - 1)] = 0};
+
+#if PLATFORM_BITBOXBASE == 1
+__extension__ static bool button_active[DEF_NUM_BUTTONS] = {[0 ...(DEF_NUM_BUTTONS - 1)] = false};
+#endif
 
 /**********************************************************/
 /*********************** Keys Module **********************/
@@ -137,6 +155,7 @@ qtm_touch_key_group_data_t qtlib_key_grp_data_set1;
 /* Key data */
 qtm_touch_key_data_t qtlib_key_data_set1[DEF_NUM_SENSORS];
 
+#if PLATFORM_BITBOX02 == 1
 /* Key Configurations */
 qtm_touch_key_config_t qtlib_key_configs_set1[DEF_NUM_SENSORS] = {KEY_0_PARAMS,
                                                                   KEY_1_PARAMS,
@@ -146,6 +165,11 @@ qtm_touch_key_config_t qtlib_key_configs_set1[DEF_NUM_SENSORS] = {KEY_0_PARAMS,
                                                                   KEY_5_PARAMS,
                                                                   KEY_6_PARAMS,
                                                                   KEY_7_PARAMS};
+#elif PLATFORM_BITBOXBASE == 1
+/* Key Configurations */
+qtm_touch_key_config_t qtlib_key_configs_set1[DEF_NUM_SENSORS] =
+    {KEY_0_PARAMS, KEY_1_PARAMS, KEY_2_PARAMS, KEY_3_PARAMS, KEY_4_PARAMS, KEY_5_PARAMS};
+#endif
 
 /* Container */
 qtm_touch_key_control_t qtlib_key_set1 = {&qtlib_key_grp_data_set1,
@@ -353,6 +377,9 @@ static void qtm_post_process_complete(void)
     } else {
         measurement_done_touch = 1;
         qtouch_process_scroller_positions(); // Run the custom filter
+#if PLATFORM_BITBOXBASE == 1
+        qtouch_process_buttons();
+#endif
     }
 }
 
@@ -578,8 +605,7 @@ uint16_t qtouch_get_scroller_position(uint16_t sensor_node)
 
 void qtouch_process_scroller_positions(void)
 {
-    uint8_t scroller;
-    for (scroller = 0; scroller < DEF_NUM_SCROLLERS; scroller++) {
+    for (uint8_t scroller = 0; scroller < DEF_NUM_SCROLLERS; scroller++) {
         uint8_t i, j;
         uint16_t sum = 0;
         uint16_t max_sensor_reading = 0;
@@ -647,6 +673,25 @@ void qtouch_process_scroller_positions(void)
         }
     }
 }
+
+#if PLATFORM_BITBOXBASE == 1
+bool qtouch_get_button_state(size_t idx)
+{
+    return button_active[idx];
+}
+
+void qtouch_process_buttons(void)
+{
+    for (size_t idx = 0; idx < DEF_NUM_BUTTONS; idx++) {
+        uint16_t value = qtouch_get_sensor_node_signal_filtered(DEF_BUTTON_OFFSET + idx);
+        if (value > DEF_SCROLLER_TOUCH_THRESHOLD) {
+            button_active[idx] = true;
+        } else {
+            button_active[idx] = false;
+        }
+    }
+}
+#endif
 
 /*============================================================================
 ISR(ADC0_RESRDY_vect)

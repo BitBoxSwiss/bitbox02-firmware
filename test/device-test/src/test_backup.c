@@ -24,7 +24,7 @@
 
 #include <backup.h>
 #include <keystore.h>
-#include <memory.h>
+#include <memory/memory.h>
 #include <restore.h>
 
 #pragma GCC diagnostic push

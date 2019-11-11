@@ -15,7 +15,6 @@
 #include "common_main.h"
 #include "driver_init.h"
 #include "hid_hww.h"
-#include "memory.h"
 #include "qtouch.h"
 #include "random.h"
 #include "screen.h"

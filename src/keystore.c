@@ -17,7 +17,7 @@
 #include "cipher/cipher.h"
 #include "hardfault.h"
 #include "keystore.h"
-#include "memory.h"
+#include "memory/memory.h"
 #include "random.h"
 #include "reset.h"
 #include "salt.h"

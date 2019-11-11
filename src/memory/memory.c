@@ -18,7 +18,7 @@
 
 #include "flags.h"
 #include "hardfault.h"
-#include "memory.h"
+#include "memory/memory.h"
 #include "random.h"
 #include "usb/noise.h"
 #include "util.h"

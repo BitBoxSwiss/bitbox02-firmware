@@ -16,7 +16,7 @@
 #include "driver_init.h"
 #include "flags.h"
 #include "hardfault.h"
-#include "memory.h"
+#include "memory/memory.h"
 #include "platform_init.h"
 #include "screen.h"
 #include "securechip/securechip.h"

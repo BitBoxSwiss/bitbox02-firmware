@@ -23,7 +23,7 @@
 #include "workflow/confirm.h"
 
 #include <hardfault.h>
-#include <memory.h>
+#include <memory/memory.h>
 #include <util.h>
 
 #include <stdio.h>

@@ -12,29 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "reset.h"
+#include "nvmctrl.h"
 
-#include "hardfault.h"
-#include "keystore.h"
-#include "memory/memory.h"
-#ifndef TESTING
-#include "securechip/securechip.h"
-#endif
+#include <driver_init.h>
 
-void reset_reset(void)
+void nvmctrl_exec_cmd(uint16_t cmd)
 {
-    keystore_lock();
-#if !defined(TESTING)
-    if (!securechip_update_keys()) {
-        Abort("Could not reset secure chip.");
-    }
-#if defined(APP_U2F)
-    if (!securechip_u2f_counter_set(0)) {
-        Abort("Could not initialize U2F counter.");
-    }
-#endif
-#endif
-    if (!memory_reset_hww()) {
-        Abort("Could not reset memory.");
-    }
+    NVMCTRL->ADDR.reg = (uint32_t)NVMCTRL_USER;
+    NVMCTRL->CTRLB.reg = NVMCTRL_CTRLB_CMDEX_KEY | cmd;
+    while (NVMCTRL->STATUS.bit.READY == 0)
+        ;
 }

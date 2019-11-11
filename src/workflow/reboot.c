@@ -14,7 +14,7 @@
 
 #include "reboot.h"
 #include "confirm.h"
-#include <memory.h>
+#include <memory/memory.h>
 #include <screen.h>
 #ifndef TESTING
 #include <driver_init.h>

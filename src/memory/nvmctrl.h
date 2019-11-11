@@ -12,29 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "reset.h"
+#ifndef __NVMCTRL_H
+#define __NVMCTRL_H
 
-#include "hardfault.h"
-#include "keystore.h"
-#include "memory/memory.h"
-#ifndef TESTING
-#include "securechip/securechip.h"
-#endif
+#include <stdint.h>
 
-void reset_reset(void)
-{
-    keystore_lock();
-#if !defined(TESTING)
-    if (!securechip_update_keys()) {
-        Abort("Could not reset secure chip.");
-    }
-#if defined(APP_U2F)
-    if (!securechip_u2f_counter_set(0)) {
-        Abort("Could not initialize U2F counter.");
-    }
-#endif
-#endif
-    if (!memory_reset_hww()) {
-        Abort("Could not reset memory.");
-    }
-}
+/**
+ * Writes a command to the NVM controller, and
+ * waits for it to be completed.
+ *
+ * @param[in] cmd Command the NVM controller must execute.
+ */
+void nvmctrl_exec_cmd(uint16_t cmd);
+
+#endif // __NVMCTRL_H

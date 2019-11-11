@@ -23,7 +23,7 @@
 
 #include <hardfault.h>
 #include <keystore.h>
-#include <memory.h>
+#include <memory/memory.h>
 #include <securechip/securechip.h>
 #include <ui/component.h>
 #include <ui/components/trinary_choice.h>

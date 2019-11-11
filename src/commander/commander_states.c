@@ -16,7 +16,7 @@
 
 #include "hardfault.h"
 #include "hww.pb.h"
-#include "memory.h"
+#include "memory/memory.h"
 
 // If non-zero (set), only this api endpoint can be called next.
 static commander_states_endpoint_id _force_next = 0;

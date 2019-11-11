@@ -24,6 +24,7 @@
 #include <qtouch/qtouch.h>
 #endif
 #include <flags.h>
+#include <memory/nvmctrl.h>
 #include <pukcc/curve_p256.h>
 #include <screen.h>
 #include <ui/components/ui_images.h>
@@ -855,16 +856,6 @@ static void _api_setup(void)
     usb_processing_register_cmds(usb_processing_hww(), cmd_callbacks, 1);
 }
 
-#ifdef BOOTLOADER_PRODUCTION
-static void _exec_nvmctrl_cmd(uint16_t cmd)
-{
-    NVMCTRL->ADDR.reg = (uint32_t)NVMCTRL_USER;
-    NVMCTRL->CTRLB.reg = NVMCTRL_CTRLB_CMDEX_KEY | cmd;
-    while (NVMCTRL->STATUS.bit.READY == 0) {
-    }
-}
-#endif
-
 static void _check_init(boot_data_t* data)
 {
 #ifdef BOOTLOADER_PRODUCTION
@@ -881,11 +872,11 @@ static void _check_init(boot_data_t* data)
                    (FLASH_BOOTPROTECTION << NVMCTRL_FUSES_BOOTPROT_Pos);
         // Write fuses
         NVMCTRL->CTRLA.bit.WMODE = NVMCTRL_CTRLA_WMODE_MAN; // Manual write
-        _exec_nvmctrl_cmd(NVMCTRL_CTRLB_CMD_EP); // Erase page
-        _exec_nvmctrl_cmd(NVMCTRL_CTRLB_CMD_PBC); // Clear page buffer
+        nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_EP); // Erase page
+        nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_PBC); // Clear page buffer
         *((uint32_t*)NVMCTRL_FUSES_BOOTPROT_ADDR) = fuses[0];
         *(((uint32_t*)NVMCTRL_FUSES_BOOTPROT_ADDR) + 1) = fuses[1];
-        _exec_nvmctrl_cmd(NVMCTRL_CTRLB_CMD_WQW); // Write a 128-bit word
+        nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_WQW); // Write a 128-bit word
         // Reboot for changes to take effect
         _reset_mcu();
     }

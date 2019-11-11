@@ -50,4 +50,18 @@ void mpu_disable_region(uint32_t region_number)
     MPU->RASR &= 0xfffffffe;
 }
 
+void mpu_bitbox02_init(void)
+{
+    uint32_t rbar;
+    uint32_t rasr;
+    rbar = (FLASH_APPDATA_START + (FLASH_APPDATA_LEN / 2)) | MPU_REGION_VALID |
+           MPU_REGION_NUMBER_APPDATA_1;
+    rasr = MPU_REGION_ENABLE | MPU_REGION_TYPE_NORMAL | MPU_REGION_EXECUTE_NEVER |
+           mpu_region_size(FLASH_APPDATA_LEN) | MPU_REGION_READ_WRITE;
+    /* Remove the current region setting. */
+    mpu_disable_region(MPU_REGION_NUMBER_APPDATA_1);
+    /* Reset the last selected region to the new setting. */
+    mpu_set_region(rbar, rasr);
+}
+
 #endif

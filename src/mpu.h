@@ -85,5 +85,13 @@ void mpu_set_region(uint32_t rbar, uint32_t rasr);
 /** Disable the region with the given number */
 void mpu_disable_region(uint32_t region_number);
 
+/**
+ * Sets the correct MPU configuration for BitBox firmwares.
+ *
+ * Extends the APPDATA_1 MPU region up to the end of the
+ * flash memory, and sets it to R/W.
+ */
+void mpu_bitbox02_init(void);
+
 #endif
 #endif

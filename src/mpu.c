@@ -12,25 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _MPU_H_
-#define _MPU_H_
+#include "mpu.h"
+
 #ifndef TESTING
 
-/**
- * Initializes the memory regions for bootloader mode.
- * The bootloader code is read-only, but the memory
- * region for the firmware code has full access. Bootdata,
- * Appdata, and SRAM are non-excutable.
- */
-void mpu_bootloader_init(void);
+/** Order of includes here is important. */
+#include <flags.h>
 
-/**
- * Updates the memory regions previously set in bootloader
- * mode for code run in firmware (app) mode. The memory
- * region for the firmware code is updated to read-only and
- * bootdata is updated to no-access.
- */
-void mpu_firmware_init(void);
+#include <core_cm4.h>
 
-#endif
+#include <stdint.h>
+
+uint32_t mpu_region_size(uint32_t size)
+{
+    uint32_t regionSize = 32;
+    uint32_t ret = 4;
+
+    while (ret < 31) {
+        if (size <= regionSize) {
+            break;
+        }
+        ret++;
+        regionSize <<= 1;
+    }
+    return (ret << MPU_RASR_SIZE_Pos);
+}
+
+void mpu_set_region(uint32_t rbar, uint32_t rasr)
+{
+    MPU->RBAR = rbar;
+    MPU->RASR = rasr;
+}
+
+void mpu_disable_region(uint32_t region_number)
+{
+    MPU->RNR = region_number;
+    MPU->RASR &= 0xfffffffe;
+}
+
 #endif

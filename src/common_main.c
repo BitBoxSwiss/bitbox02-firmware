@@ -19,6 +19,7 @@
 #include "keystore.h"
 #include "memory/memory.h"
 #include "memory/mpu.h"
+#include "memory/smarteeprom.h"
 #include "random.h"
 #include "screen.h"
 #include "securechip/securechip.h"
@@ -75,6 +76,9 @@ void common_main(void)
     if (!memory_setup(&_memory_interface_functions)) {
         Abort("memory_setup failed");
     }
+    /* Enable/configure SmartEEPROM. */
+    smarteeprom_bb02_config();
+
     // securechip_setup must come after memory_setup, so the io/auth keys to be
     // used are already initialized.
     if (!securechip_setup(&_securechip_interface_functions)) {

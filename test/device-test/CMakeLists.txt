@@ -90,6 +90,7 @@ set(BB02_TEST_LIST
   scroll_menu_2
   simple_slide
   slide_info
+  smarteeprom
   ssp
   tap_menu
   trace

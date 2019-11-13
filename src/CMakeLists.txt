@@ -27,6 +27,8 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/hww.c
   ${CMAKE_SOURCE_DIR}/src/memory/memory.c
   ${CMAKE_SOURCE_DIR}/src/memory/mpu.c
+  ${CMAKE_SOURCE_DIR}/src/memory/nvmctrl.c
+  ${CMAKE_SOURCE_DIR}/src/memory/smarteeprom.c
   ${CMAKE_SOURCE_DIR}/src/salt.c
   ${CMAKE_SOURCE_DIR}/src/i2c_ecc.c
   ${CMAKE_SOURCE_DIR}/src/touch/gestures.c

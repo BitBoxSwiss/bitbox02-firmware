@@ -18,30 +18,38 @@
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-implicit-function-declaration -Wno-bad-function-cast")
 
-set(FILTERED_SOURCES "")
-foreach(file IN ITEMS ${DBB-FIRMWARE-UI-SOURCES})
-  if(NOT ${file} MATCHES "src/screen.c$" AND NOT ${file} MATCHES "ugui.c$")
-  set(FILTERED_SOURCES
-    ${FILTERED_SOURCES}
-    ${file}
+
+set(DBB-FILTERED-SOURCES
+  ${DBB-FIRMWARE-SOURCES}
+  ${DBB-FIRMWARE-UI-SOURCES}
+  ${DBB-FIRMWARE-PROTOBUF-SOURCES}
+  ${FIRMWARE-U2F-SOURCES}
+  ${DBB-FIRMWARE-USB-SOURCES}
+  ${DBB-FIRMWARE-USART-SOURCES}
   )
-  endif()
-endforeach(file)
-set(DBB-FIRMWARE-UI-SOURCES ${FILTERED_SOURCES})
+
+set(IGNORE_SOURCES
+    "src/screen.c"
+    "src/ui/ugui/ugui.c"
+    "src/memory/nvmctrl.c"
+    "src/memory/smarteeprom.c"
+    )
+
+# Exclude some files which depends on the hardware.
+foreach(SOURCEFILE ${IGNORE_SOURCES})
+    list(FILTER DBB-FILTERED-SOURCES EXCLUDE REGEX ".*/${SOURCEFILE}$")
+endforeach()
+
+message("FILTERED SOURCES: ${DBB-FILTERED-SOURCES}")
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/tools/nanopb/extra)
 find_package(Nanopb REQUIRED)
 
 add_library(bitbox
   STATIC
-  ${DBB-FIRMWARE-SOURCES}
-  ${DBB-FIRMWARE-UI-SOURCES}
-  ${DBB-FIRMWARE-PROTOBUF-SOURCES}
-  ${DBB-FIRMWARE-USB-SOURCES}
-  ${DBB-FIRMWARE-USART-SOURCES}
+  ${DBB-FILTERED-SOURCES}
   ${CTAES-SOURCES}
   ${ETHEREUM-SOURCES}
-  ${FIRMWARE-U2F-SOURCES}
   framework/mock_blocking.c
   framework/mock_screen.c
   framework/mock_screen_stack.c

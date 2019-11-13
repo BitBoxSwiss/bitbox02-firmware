@@ -34,7 +34,9 @@ bool __wrap_usb_processing_enqueue(
     uint32_t cid)
 {
     check_expected(ctx);
-    check_expected(buf);
+    if (length > 0) {
+        check_expected(buf);
+    }
     check_expected(length);
     check_expected(cmd);
     (void)cid;
@@ -240,6 +242,32 @@ static void test_short_msgs(void** state)
     usart_frame_process_rx(short_msgs, sizeof(short_msgs));
 }
 
+/**
+ * Send a list of hard-coded test strings,
+ * check that they are decoded properly.
+ */
+static void test_basic(void** state)
+{
+    const char* encoded[] = {"\x7E\x01\x42Hello\x25\x14\x7E",
+                             "\x7E\x01\x00\x7D\x5D\x7D\x5D\x7D\x5E\x7D\x5E\xFC\xFB\x7E",
+                             "\x7E\x01\x05\x01\x05\x7E"};
+    /* Can't use strlen() because of NULL bytes... */
+    int encoded_len[] = {11, 14, 6};
+    const char* payload[] = {"Hello", "\x7D\x7D\x7E\x7E", ""};
+    int endpoints[] = {0x42, 0x00, 0x05};
+    for (size_t i = 0; i < sizeof(payload) / sizeof(*payload); ++i) {
+        size_t msg_len = strlen(payload[i]);
+        if (msg_len != 0) {
+            expect_memory(__wrap_usb_processing_enqueue, buf, payload[i], msg_len);
+        }
+        expect_value(__wrap_usb_processing_enqueue, ctx, usb_processing_hww());
+        expect_value(__wrap_usb_processing_enqueue, length, msg_len);
+        expect_value(__wrap_usb_processing_enqueue, cmd, endpoints[i]);
+        will_return(__wrap_usb_processing_enqueue, true);
+        _tx_buffer(encoded[i], encoded_len[i]);
+    }
+}
+
 static uint8_t* _realloc_or_die(uint8_t* buf, size_t new_size)
 {
     uint8_t* new_buf = realloc(buf, new_size);
@@ -334,6 +362,7 @@ static int _setup_test(void** state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup(test_basic, _setup_test),
         cmocka_unit_test_setup(test_normal_msgs, _setup_test),
         cmocka_unit_test_setup(test_short_msgs, _setup_test),
         cmocka_unit_test_setup(test_consecutive_msgs, _setup_test),

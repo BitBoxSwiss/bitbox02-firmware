@@ -20,11 +20,13 @@ import pprint
 import sys
 from typing import List, Any, Optional, Callable, Union, Tuple, Sequence
 
-from tzlocal import get_localzone
 import hid
+from tzlocal import get_localzone
+
+from communication import devices, UserAbortException, u2fhid
+
 import bitbox02
 from bitbox02 import HARDENED
-from communication import devices, u2fhid
 import u2f
 import u2f.bitbox02
 
@@ -81,7 +83,7 @@ class SendMessage:
         print(f"Old device name: {info['name']}")
         try:
             self._device.set_device_name(name)
-        except bitbox02.UserAbortException:
+        except UserAbortException:
             eprint("Aborted by user")
         else:
             print("Setting new device name.")
@@ -255,7 +257,7 @@ class SendMessage:
                     return
                 self._device.enable_mnemonic_passphrase()
             enabled = not enabled
-        except bitbox02.UserAbortException:
+        except UserAbortException:
             print("Aborted by user")
         print("Success.")
         if enabled:

@@ -11,15 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+""" Library to interact with a BitBoxBase device. """
 
-"""Abstraction for the transport layer used for transmitting U2F messages."""
+import sys
 
-from .communication import PhysicalLayer, TransportLayer
-from .bitbox_api_protocol import (
-    BitBoxCommonAPI,
-    Bitbox02Exception,
-    UserAbortException,
-    AttestationException,
-    ERR_GENERIC,
-    ERR_USER_ABORT,
-)
+# pylint: disable=wrong-import-position
+from .bitboxbase import BitBoxBase

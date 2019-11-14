@@ -39,10 +39,8 @@ except AttributeError:
 
 # pylint: disable=wrong-import-position
 from .bitbox02 import (
-    AttestationException,
     Backup,
     BitBox02,
-    Bitbox02Exception,
     BTCInputType,
     BTCOutputExternal,
     BTCOutputInternal,
@@ -50,6 +48,5 @@ from .bitbox02 import (
     HARDENED,
     hww,
     btc,
-    UserAbortException,
 )
 from .bootloader import Bootloader

@@ -20,9 +20,9 @@ from typing import Any
 from time import sleep
 
 import hid
-from communication import devices
+
+from communication import devices, u2fhid
 from communication.devices import TooManyFoundException, NoneFoundException
-from communication import u2fhid
 
 from bitbox02 import Bootloader, BitBox02
 

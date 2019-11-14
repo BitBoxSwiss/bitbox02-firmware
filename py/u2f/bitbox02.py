@@ -5,8 +5,9 @@ import binascii
 import struct
 
 import communication
+from communication import Bitbox02Exception
+
 from communication.devices import get_device, BITBOX02MULTI, DeviceInfo
-from bitbox02 import Bitbox02Exception
 from . import u2f
 
 

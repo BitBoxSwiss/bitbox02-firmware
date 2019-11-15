@@ -5,7 +5,7 @@ import binascii
 import struct
 
 import hid
-import u2fhid
+from communication import u2fhid
 from bitbox02.devices import get_device, BITBOX02MULTI, DeviceInfo
 from bitbox02 import Bitbox02Exception
 from . import u2f

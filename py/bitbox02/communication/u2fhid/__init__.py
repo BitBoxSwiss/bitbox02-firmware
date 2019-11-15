@@ -14,4 +14,4 @@
 
 """Util functions to interact with u2fhid devices."""
 
-from .u2fhid import *
+from .u2fhid import generate_cid, read, write, CID_BROADCAST, INIT, MSG, PING, WINK

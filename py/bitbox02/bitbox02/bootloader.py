@@ -20,7 +20,7 @@ import math
 import hashlib
 
 import hid
-import u2fhid
+from communication import u2fhid
 from .devices import DeviceInfo
 
 BOOTLOADER_CMD = 0x80 + 0x40 + 0x03

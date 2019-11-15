@@ -30,7 +30,7 @@ from noise.connection import NoiseConnection, Keypair
 import hid
 import semver
 
-import u2fhid
+from communication import u2fhid
 from .devices import parse_device_version, DeviceInfo
 
 try:

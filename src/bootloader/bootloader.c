@@ -159,7 +159,7 @@ typedef union {
 static uint8_t _loading_ready = 0;
 static uint8_t _firmware_num_chunks = 0;
 // clang-format off
-#if defined(BOOTLOADER_BTC_ONLY)
+#if defined(PRODUCT_BITBOX_BTCONLY)
 static const uint8_t _root_pubkeys[BOOT_NUM_ROOT_SIGNING_KEYS][BOOT_PUBKEY_LEN] = { // order is important
     {
         0xe7, 0x30, 0x92, 0x3f, 0x19, 0x04, 0xd3, 0xe8, 0x3e, 0x0a, 0xb0, 0x7f, 0x05, 0x0d, 0x8e, 0x4e,

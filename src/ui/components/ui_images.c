@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "ui_images.h"
+
+#include <platform/platform_config.h>
 #include <ui/ugui/ugui.h>
 
 void image_arrow(int x, int y, int height, arrow_orientation_t orientation)

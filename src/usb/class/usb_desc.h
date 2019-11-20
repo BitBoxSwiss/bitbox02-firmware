@@ -67,7 +67,7 @@
 
 #define USB_DESC_IPRODUCT 2
 #if defined(BOOTLOADER)
-#if defined(PRODUCT_BITBOX_BTCONLY)
+#if PRODUCT_BITBOX_BTCONLY == 1
 #define USB_DESC_IPRODUCT_STR_DESC                                                              \
     38, /* bLength */                                                                           \
         0x03, /* bDescriptorType */                                                             \
@@ -86,7 +86,7 @@
         0x03, /* bDescriptorType */                                                             \
         'b', 0, 'b', 0, '0', 0, '2', 0, '-', 0, 'f', 0, 'a', 0, 'c', 0, 't', 0, 'o', 0, 'r', 0, \
         'y', 0,
-#elif defined(PRODUCT_BITBOX_BTCONLY)
+#elif PRODUCT_BITBOX_BTCONLY == 1
 #define USB_DESC_IPRODUCT_STR_DESC  \
     24, /* bLength */               \
         0x03, /* bDescriptorType */ \

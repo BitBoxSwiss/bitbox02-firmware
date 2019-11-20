@@ -18,7 +18,6 @@
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-implicit-function-declaration -Wno-bad-function-cast")
 
-
 set(DBB-FILTERED-SOURCES
   ${DBB-FIRMWARE-SOURCES}
   ${DBB-FIRMWARE-UI-SOURCES}
@@ -60,6 +59,7 @@ add_library(bitbox
   framework/mock_component.c
   framework/mock_ff.c
   framework/mock_sd.c
+  framework/mock_smarteeprom.c
   framework/mock_securechip.c
 )
 

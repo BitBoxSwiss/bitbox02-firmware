@@ -17,6 +17,7 @@
 #include "cipher/cipher.h"
 #include "hardfault.h"
 #include "keystore.h"
+#include "memory/bitbox02_smarteeprom.h"
 #include "memory/memory.h"
 #include "random.h"
 #include "reset.h"
@@ -27,10 +28,6 @@
 #include <secp256k1_recovery.h>
 #include <wally_bip39.h>
 #include <wally_crypto.h>
-
-// After this many failed unlock attempts, the keystore becomes locked until a
-// device reset.
-#define MAX_UNLOCK_ATTEMPTS (10)
 
 // This number of KDF iterations on the 2nd kdf slot when stretching the device
 // password.
@@ -289,7 +286,6 @@ bool keystore_create_and_store_seed(const char* password, const uint8_t* host_en
     for (size_t i = 0; i < KEYSTORE_MAX_SEED_LENGTH; i++) {
         seed[i] ^= password_salted_hashed[i];
     }
-
     return keystore_encrypt_and_store_seed(seed, KEYSTORE_MAX_SEED_LENGTH, password);
 }
 
@@ -303,12 +299,18 @@ keystore_error_t keystore_unlock(const char* password, uint8_t* remaining_attemp
     if (!memory_is_seeded()) {
         return KEYSTORE_ERR_GENERIC;
     }
-    uint8_t failed_attempts = memory_get_failed_unlock_attempts();
+    uint8_t failed_attempts = bitbox02_smarteeprom_get_unlock_attempts();
     if (failed_attempts >= MAX_UNLOCK_ATTEMPTS) {
+        /*
+         * We reset the device as soon as the MAX_UNLOCK_ATTEMPTSth attempt
+         * is made. So we should never enter this branch...
+         * This is just an extraordinary measure for added resilience.
+         */
         *remaining_attempts_out = 0;
         reset_reset(false);
         return KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED;
     }
+    bitbox02_smarteeprom_increment_unlock_attempts();
     uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
     UTIL_CLEANUP_32(seed);
     size_t seed_len;
@@ -320,28 +322,25 @@ keystore_error_t keystore_unlock(const char* password, uint8_t* remaining_attemp
         if (_is_unlocked_device) {
             // Already unlocked. Fail if the seed changed under our feet (should never happen).
             if (seed_len != _seed_length || !MEMEQ(_retained_seed, seed, _seed_length)) {
-                return KEYSTORE_ERR_GENERIC;
+                Abort("Seed has suddenly changed. This should never happen.");
             }
         } else {
             memcpy(_retained_seed, seed, seed_len);
             _seed_length = seed_len;
             _is_unlocked_device = true;
         }
-        if (!memory_reset_failed_unlock_attempts()) {
-            return KEYSTORE_ERR_GENERIC;
-        }
-    } else if (!memory_increment_failed_unlock_attempts()) {
-        return KEYSTORE_ERR_GENERIC;
+        bitbox02_smarteeprom_reset_unlock_attempts();
     }
     // Compute remaining attempts
-    failed_attempts = memory_get_failed_unlock_attempts();
-    if (failed_attempts >= MAX_UNLOCK_ATTEMPTS) { // checks for uint8 overflow
+    failed_attempts = bitbox02_smarteeprom_get_unlock_attempts();
+
+    if (failed_attempts >= MAX_UNLOCK_ATTEMPTS) {
         *remaining_attempts_out = 0;
         reset_reset(false);
         return KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED;
     }
-    *remaining_attempts_out = MAX_UNLOCK_ATTEMPTS - failed_attempts;
 
+    *remaining_attempts_out = MAX_UNLOCK_ATTEMPTS - failed_attempts;
     return password_correct ? KEYSTORE_OK : KEYSTORE_ERR_INCORRECT_PASSWORD;
 }
 

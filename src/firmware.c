@@ -16,6 +16,7 @@
 #include "driver_init.h"
 #include "firmware_main_loop.h"
 #include "hardfault.h"
+#include "memory/bitbox02_smarteeprom.h"
 #include "platform_init.h"
 #include "qtouch.h"
 #include "screen.h"
@@ -35,6 +36,7 @@ int main(void)
     screen_splash();
     qtouch_init();
     common_main();
+    bitbox02_smarteeprom_init();
     traceln("%s", "Device initialized");
     workflow_start_orientation_screen();
     firmware_main_loop();

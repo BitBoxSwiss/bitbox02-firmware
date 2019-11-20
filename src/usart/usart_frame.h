@@ -49,7 +49,7 @@ void usart_frame_init(void);
 /**
  * Called when a message has been sent to a non-registered endpoint.
  */
-void usart_invalid_endpoint(struct queue* queue, uint32_t src_endpoint, uint32_t cid);
+void usart_invalid_endpoint(struct queue* queue, uint32_t cid);
 
 /**
  * Creates a data frame for sending over USART.

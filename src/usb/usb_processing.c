@@ -37,7 +37,7 @@ struct usb_processing {
      * Function to call when a message has been received,
      * but there is no registered API set to manage it.
      */
-    void (*manage_invalid_endpoint)(struct queue* queue, uint32_t cmd, uint32_t cid);
+    void (*manage_invalid_endpoint)(struct queue* queue, uint32_t cid);
 };
 
 /*
@@ -187,7 +187,7 @@ static void _usb_process_incoming_packet(struct usb_processing* ctx)
     }
 
     if (!cmd_valid) {
-        ctx->manage_invalid_endpoint(ctx->out_queue(), _in_packet.cmd, _in_packet.cid);
+        ctx->manage_invalid_endpoint(ctx->out_queue(), _in_packet.cid);
     }
     _usb_processing_drop_received(ctx);
 }

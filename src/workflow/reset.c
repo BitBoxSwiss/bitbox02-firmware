@@ -31,7 +31,5 @@ bool workflow_reset(void)
 
     reset_reset();
     workflow_status_create("Device reset", true);
-    workflow_start();
-
     return true;
 }

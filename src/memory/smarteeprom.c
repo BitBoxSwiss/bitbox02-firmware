@@ -17,6 +17,7 @@
 #include <driver_init.h>
 #include <hardfault.h>
 #include <inttypes.h>
+#include <memory/memory.h>
 #include <memory/nvmctrl.h>
 #include <screen.h>
 #include <stdint.h>
@@ -56,6 +57,22 @@ void smarteeprom_disable(void)
 
 void smarteeprom_setup(void)
 {
+    /*
+     * First, erase the last blocks of flash.
+     * So we are sure that there is no garbage data
+     * in them.
+     */
+    if (!memory_cleanup_smarteeprom()) {
+        /*
+         * Something has gone seriously wrong. We don't want to abort
+         * as it would brick the device (we are executing this code at boot time...),
+         * however, we want to inform the user that there's a big issue.
+         */
+        for (int i = 0; i < 3; ++i) {
+            workflow_status_create("Failed to erase SmartEEPROM memory area.", false);
+            workflow_status_create("We suggest you reset the device and contact support.", false);
+        }
+    }
     /*
      * Wrong config, overwrite it.
      */

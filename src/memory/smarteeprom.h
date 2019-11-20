@@ -95,6 +95,11 @@ void smarteeprom_disable(void);
 #define SMARTEEPROM_SBLK_VALUE (SMARTEEPROM_ALLOCATED_BLOCKS / 2)
 
 /**
+ * Number of flash pages allocated to the SmartEEPROM.
+ */
+#define SMARTEEPROM_RESERVED_FLASH_PAGES (SMARTEEPROM_ALLOCATED_BLOCKS * 8192 / FLASH_PAGE_SIZE)
+
+/**
  * Ensures that the system is running the correct configuration
  * for the BitBox02 SmartEEPROM. If the configuration is incorrect,
  * it is adjusted and the devices is rebooted.

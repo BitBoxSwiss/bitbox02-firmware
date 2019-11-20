@@ -36,6 +36,7 @@
 #include <version.h>
 
 #ifndef TESTING
+#include <driver_init.h>
 #include <securechip/securechip.h>
 #else
 #include <test_commander.h>
@@ -214,6 +215,9 @@ static commander_error_t _api_reset(void)
     if (!workflow_reset()) {
         return COMMANDER_ERR_GENERIC;
     }
+#ifndef TESTING
+    _reset_mcu();
+#endif
     return COMMANDER_OK;
 }
 

@@ -148,8 +148,19 @@ static bool _write_to_address(uint32_t addr, uint8_t* chunk)
     }
     // Locking granularity is 64 pages, aligned at 16 pages, so we lock/unlock
     // more than just the chunk we want to write.
-    const uint32_t lock_size = FLASH_ERASE_MIN_LEN;
-    int res = flash_unlock(&FLASH_0, addr & ~(lock_size - 1), FLASH_REGION_PAGE_NUM);
+    const uint32_t lock_size = FLASH_REGION_PAGE_NUM;
+    uint32_t lock_addr = addr & ~(lock_size - 1);
+    const uint32_t lock_page = lock_addr / FLASH_PAGE_SIZE;
+    const size_t n_pages = FLASH_SIZE / FLASH_PAGE_SIZE;
+    /*
+     * The last address we can unlock is (#pages) - FLASH_REGION_PAGE_NUM.
+     * Adjust the address if we are above this point.
+     */
+    if (lock_page > n_pages - FLASH_REGION_PAGE_NUM && lock_page < n_pages) {
+        lock_addr = (n_pages - FLASH_REGION_PAGE_NUM) * FLASH_PAGE_SIZE;
+    }
+
+    int res = flash_unlock(&FLASH_0, lock_addr, FLASH_REGION_PAGE_NUM);
     if (res != FLASH_REGION_PAGE_NUM) {
         return false;
     }
@@ -166,8 +177,7 @@ static bool _write_to_address(uint32_t addr, uint8_t* chunk)
             return false;
         }
     }
-    if (flash_lock(&FLASH_0, addr & ~(lock_size - 1), FLASH_REGION_PAGE_NUM) !=
-        FLASH_REGION_PAGE_NUM) {
+    if (flash_lock(&FLASH_0, lock_addr, FLASH_REGION_PAGE_NUM) != FLASH_REGION_PAGE_NUM) {
         // pass, not a critical error.
     }
     return true;
@@ -306,6 +316,18 @@ bool memory_setup(memory_interface_functions_t* ifs)
     // TODO: enable once factory install code is complete.
     chunk.fields.factory_setup_done = sectrue_u8;
     return _write_chunk(CHUNK_0_PERMANENT, chunk.bytes);
+}
+
+bool memory_cleanup_smarteeprom(void)
+{
+    // Erase all SmartEEPROM data chunks.
+    for (size_t i = 0; i < SMARTEEPROM_ALLOCATED_BLOCKS; ++i) {
+        uint32_t w_addr = FLASH_SMARTEEPROM_START + i * CHUNK_SIZE;
+        if (!_write_to_address(w_addr, NULL)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool memory_reset_hww(void)

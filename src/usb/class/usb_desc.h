@@ -67,7 +67,7 @@
 
 #define USB_DESC_IPRODUCT 2
 #if defined(BOOTLOADER)
-#if defined(BOOTLOADER_BTC_ONLY)
+#if defined(PRODUCT_BITBOX_BTCONLY)
 #define USB_DESC_IPRODUCT_STR_DESC                                                              \
     38, /* bLength */                                                                           \
         0x03, /* bDescriptorType */                                                             \

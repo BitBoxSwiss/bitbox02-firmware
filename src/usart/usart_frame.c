@@ -137,10 +137,10 @@ static uint16_t _compute_send_checksum(
     return cs;
 }
 
-static void _usart_send_frame_error(uint8_t error_code, uint32_t endpoint, struct queue* queue)
+static void _usart_send_frame_error(uint8_t error_code, struct queue* queue)
 {
-    uint8_t error_payload = endpoint;
-    usart_format_frame(error_code, &error_payload, 1, 0xFF, queue);
+    uint8_t error_payload = error_code;
+    usart_format_frame(0xFF, &error_payload, 1, 0x42 /* Unused */, queue);
 }
 
 /**
@@ -167,14 +167,14 @@ static void _usart_manage_frame_v1(const uint8_t* buf, size_t packet_len)
         dst_endpoint,
         /* We don't really have a CID... */ 0x42);
     if (!can_process) {
-        _usart_send_frame_error(USART_FRAME_ERROR_ENDPOINT_BUSY, dst_endpoint, queue_hww_queue());
+        _usart_send_frame_error(USART_FRAME_ERROR_ENDPOINT_BUSY, queue_hww_queue());
     }
 }
 
-void usart_invalid_endpoint(struct queue* queue, uint32_t src_endpoint, uint32_t cid)
+void usart_invalid_endpoint(struct queue* queue, uint32_t cid)
 {
     (void)cid;
-    _usart_send_frame_error(USART_FRAME_ERROR_ENDPOINT_UNAVAILABLE, src_endpoint, queue);
+    _usart_send_frame_error(USART_FRAME_ERROR_ENDPOINT_UNAVAILABLE, queue);
 }
 
 static void _usart_manage_full_rx_frame(void)

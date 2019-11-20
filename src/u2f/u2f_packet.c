@@ -82,9 +82,8 @@ static bool _need_more_data(void)
     return (_in_state.buf_ptr - _in_state.data) < (signed)_in_state.len;
 }
 
-void u2f_invalid_endpoint(struct queue* queue, uint32_t cmd, uint32_t cid)
+void u2f_invalid_endpoint(struct queue* queue, uint32_t cid)
 {
-    (void)cmd;
     // TODO: if U2F is disabled, we used to return a 'channel busy' command.
     // now we return an invalid cmd, because there is not going to be a matching
     // cmd in '_registered_cmds' if the U2F bit it not set (== U2F disabled).

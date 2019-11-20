@@ -15,10 +15,12 @@
 #ifndef _UI_IMAGES_H_
 #define _UI_IMAGES_H_
 
+#include <platform/platform_config.h>
+
 #include <stdbool.h>
 #include <stdint.h>
 
-#if defined(PRODUCT_BITBOX_BTCONLY)
+#if PRODUCT_BITBOX_BTCONLY == 1
 
 #define IMAGE_BB2_LOGO_W 79
 #define IMAGE_BB2_LOGO_H 25
@@ -41,7 +43,7 @@ static const uint8_t IMAGE_BB2_LOGO[] = {
     0xce, 0x92, 0x64, 0x80, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00};
 
-#elif defined(PRODUCT_BITBOX_BASE)
+#elif PRODUCT_BITBOX_BASE == 1
 
 #define IMAGE_BB2_LOGO_W 96
 #define IMAGE_BB2_LOGO_H 13
@@ -58,7 +60,7 @@ static const uint8_t IMAGE_BB2_LOGO[] = {
     0x09, 0x04, 0x04, 0x80, 0xff, 0x0c, 0x3c, 0x7f, 0x83, 0xf8, 0x63, 0x08, 0x11, 0x0c, 0x84, 0x41,
     0xfe, 0x0c, 0x1c, 0x7f, 0x01, 0xf0, 0xe3, 0x8f, 0xe0, 0xf4, 0x78, 0x3e};
 
-#elif defined(PRODUCT_BITBOX_MULTI) || defined(FACTORYSETUP)
+#elif (PRODUCT_BITBOX_MULTI == 1) || defined(FACTORYSETUP)
 
 #define IMAGE_BB2_LOGO_W 79
 #define IMAGE_BB2_LOGO_H 23

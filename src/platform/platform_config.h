@@ -15,17 +15,39 @@
 #ifndef _PLATFORM_CONFIG_H
 #define _PLATFORM_CONFIG_H
 
-#if defined(PRODUCT_BITBOX_MULTI)
+// Force the PRODUCT_ defines to be 0 or 1, so they can be used safely without risk of typos.
+
+#if !defined(PRODUCT_BITBOX_MULTI)
+#define PRODUCT_BITBOX_MULTI 0
+#elif PRODUCT_BITBOX_MULTI != 1
+#error "invalid product value"
+#endif
+
+#if !defined(PRODUCT_BITBOX_BTCONLY)
+#define PRODUCT_BITBOX_BTCONLY 0
+#elif PRODUCT_BITBOX_BTCONLY != 1
+#error "invalid product value"
+#endif
+
+#if !defined(PRODUCT_BITBOX_BASE)
+#define PRODUCT_BITBOX_BASE 0
+#elif PRODUCT_BITBOX_BASE != 1
+#error "invalid product value"
+#endif
+
+// Derive other useful definitions from the product.
+
+#if PRODUCT_BITBOX_MULTI == 1
 #define PLATFORM_BITBOX02 1
 #define PLATFORM_BITBOXBASE 0
 #endif
 
-#if defined(PRODUCT_BITBOX_BTCONLY)
+#if PRODUCT_BITBOX_BTCONLY == 1
 #define PLATFORM_BITBOX02 1
 #define PLATFORM_BITBOXBASE 0
 #endif
 
-#if defined(PRODUCT_BITBOX_BASE)
+#if PRODUCT_BITBOX_BASE == 1
 #define PLATFORM_BITBOX02 0
 #define PLATFORM_BITBOXBASE 1
 #endif

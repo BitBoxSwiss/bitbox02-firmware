@@ -18,6 +18,7 @@
 #include "ui_images.h"
 
 #include <hardfault.h>
+#include <platform/platform_config.h>
 #include <screen.h>
 #include <touch/gestures.h>
 #include <ui/ui_util.h>

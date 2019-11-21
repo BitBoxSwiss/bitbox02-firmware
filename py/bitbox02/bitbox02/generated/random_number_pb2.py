@@ -7,6 +7,7 @@ from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
 from google.protobuf import symbol_database as _symbol_database
+from google.protobuf import descriptor_pb2
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
@@ -18,9 +19,9 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='random_number.proto',
   package='',
   syntax='proto3',
-  serialized_options=None,
   serialized_pb=_b('\n\x13random_number.proto\"&\n\x14RandomNumberResponse\x12\x0e\n\x06number\x18\x01 \x01(\x0c\"\x15\n\x13RandomNumberRequestb\x06proto3')
 )
+_sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 
 
@@ -38,14 +39,14 @@ _RANDOMNUMBERRESPONSE = _descriptor.Descriptor(
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
+      options=None),
   ],
   extensions=[
   ],
   nested_types=[],
   enum_types=[
   ],
-  serialized_options=None,
+  options=None,
   is_extendable=False,
   syntax='proto3',
   extension_ranges=[],
@@ -69,7 +70,7 @@ _RANDOMNUMBERREQUEST = _descriptor.Descriptor(
   nested_types=[],
   enum_types=[
   ],
-  serialized_options=None,
+  options=None,
   is_extendable=False,
   syntax='proto3',
   extension_ranges=[],
@@ -81,7 +82,6 @@ _RANDOMNUMBERREQUEST = _descriptor.Descriptor(
 
 DESCRIPTOR.message_types_by_name['RandomNumberResponse'] = _RANDOMNUMBERRESPONSE
 DESCRIPTOR.message_types_by_name['RandomNumberRequest'] = _RANDOMNUMBERREQUEST
-_sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 RandomNumberResponse = _reflection.GeneratedProtocolMessageType('RandomNumberResponse', (_message.Message,), dict(
   DESCRIPTOR = _RANDOMNUMBERRESPONSE,

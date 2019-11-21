@@ -2,6 +2,9 @@
 
 set -e
 
+# Deny warnings in rust. CI will fail to compile any code with warnings in it.
+export RUSTFLAGS="-Dwarnings"
+
 # Check style
 
 ./.ci/check-style
@@ -47,4 +50,6 @@ make -C tools/go/src/atecc608a test
 # Build device tests
 make -j8 device-tests
 
+# Don't generate graphics in CI
+(cd build; cmake -DDOC_GRAPHS=NO ..)
 make -j8 docs

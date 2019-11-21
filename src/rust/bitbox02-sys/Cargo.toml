@@ -1,0 +1,11 @@
+[package]
+name = "bitbox02-sys"
+version = "0.1.0"
+authors = ["Shift Cryptosecurity AG <support@shiftcrypto.ch>"]
+edition = "2018"
+description = "Rust bindings for C code in bitbox02-firmware"
+
+[dependencies]
+
+[build-dependencies]
+bindgen = "0.49"

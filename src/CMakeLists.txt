@@ -208,7 +208,10 @@ set(SYSTEMINCLUDES ${SYSTEMINCLUDES} PARENT_SCOPE)
 
 
 # TODO: Not needed when building bootlaoder..
+# Since the nanopb is included in the source tree and not in the sysroot (/usr/local/arm-none-eabi) we have to disable searching in the sysroot.
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE NEVER)
 find_package(Nanopb REQUIRED)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 set(FIRMWARE-SOURCES
   ${DBB-FIRMWARE-SOURCES}
@@ -232,6 +235,66 @@ set_source_files_properties(
 )
 
 if(CMAKE_CROSSCOMPILING)
+  get_property(SAMD51A_INCLUDES TARGET samd51a-ds PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+  get_property(ASF4_MIN_INCLUDES TARGET asf4-drivers-min PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+  get_property(ASF4_INCLUDES TARGET asf4-drivers PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+  get_property(CMSIS_INCLUDES TARGET CMSIS PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+
+  set(RUST_INCLUDES ${INCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDES} ${ASF4_MIN_INCLUDES} ${CMSIS_INCLUDES})
+
+  if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+    set(RUST_PROFILE "debug")
+  else()
+    set(RUST_PROFILE "release")
+    set(RUST_CARGO_FLAG "--release")
+  endif()
+
+  set(LIBBITBOX02_RUST_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust)
+  set(LIBBITBOX02_RUST_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02-rust/target)
+  set(LIBBITBOX02_RUST ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02-rust/target/thumbv7em-none-eabi/${RUST_PROFILE}/libbitbox02_rust.a)
+
+  find_program(CBINDGEN cbindgen)
+  find_program(CARGO cargo)
+
+  add_custom_target(rust
+    # Build rust library
+    COMMAND
+      ${CMAKE_COMMAND} -E env SYSROOT=${CMAKE_SYSROOT} INCLUDES="${RUST_INCLUDES}" ${CARGO} build --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG} --target thumbv7em-none-eabi
+    # Rust packages stdlib functions which we must remove/weaken
+    COMMAND
+      ${CMAKE_OBJCOPY} -N memset -N memcpy -N memmove -W memcmp ${LIBBITBOX02_RUST}
+    BYPRODUCTS
+      ${LIBBITBOX02_RUST}
+  )
+
+  add_custom_target(rust-test
+    COMMAND
+      ${CMAKE_COMMAND} -E env INCLUDES="${RUST_INCLUDES}" ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
+    COMMAND
+      ${CMAKE_COMMAND} -E env INCLUDES="${RUST_INCLUDES}" ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
+    COMMAND
+      ${CMAKE_COMMAND} -E env INCLUDES="${RUST_INCLUDES}" ${CARGO} test --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
+    )
+
+  add_custom_target(rust-bindgen
+    # Generate c-headers for the rust library
+    COMMAND
+      ${CBINDGEN} --config ${CMAKE_CURRENT_SOURCE_DIR}/rust/cbindgen.toml --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02_rust.h ${LIBBITBOX02_RUST_SOURCE_DIR}
+    BYPRODUCTS
+      ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02_rust.h
+  )
+
+  # TODO(nc): Add dependency on global "doc" target on this when api-docs branch is merged
+  add_custom_target(rust-docs
+    COMMAND
+      ${CMAKE_COMMAND} -E env SYSROOT=${CMAKE_SYSROOT} INCLUDES="${RUST_INCLUDES}" ${CARGO} doc --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${CMAKE_BINARY_DIR}/docs-rust ${RUST_CARGO_FLAG} --target thumbv7em-none-eabi
+    COMMAND
+      ${CMAKE_COMMAND} -E echo "See docs at file://${CMAKE_BINARY_DIR}/docs-rust/thumbv7em-none-eabi/doc/bitbox02_rust/index.html"
+  )
+
+  add_library(bitbox02_rust STATIC IMPORTED)
+  set_property(TARGET bitbox02_rust PROPERTY IMPORTED_LOCATION ${LIBBITBOX02_RUST})
+
   set(STACK_SIZE "0x10000" CACHE STRING "Specify stack size for bootloader/firmware")
   set(STACK_SIZE ${STACK_SIZE} PARENT_SCOPE)
   set(HEAP_SIZE "0x18000" CACHE STRING "Specify heap size for bootloader/firmware")
@@ -397,6 +460,9 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(firmware-bitboxbase-semihosting.elf PRIVATE bitboxbase/bitboxbase.c)
   target_compile_definitions(firmware-bitboxbase-semihosting.elf PRIVATE PRODUCT_BITBOX_BASE SEMIHOSTING)
   target_sources(firmware-bitboxbase-semihosting.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES})
+
+  target_link_libraries(firmware-bitboxbase.elf PRIVATE bitbox02_rust)
+  add_dependencies(firmware-bitboxbase.elf rust rust-bindgen)
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE FACTORYSETUP)

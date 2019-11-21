@@ -49,6 +49,7 @@ RUN cd ~/Downloads &&\
 # Tools for building
 RUN apt-get update && apt-get install -y \
     build-essential \
+    llvm \
     gcc-8 \
     binutils \
     valgrind \
@@ -68,7 +69,8 @@ RUN apt-get update && apt-get install -y \
     libhidapi-dev
 
 RUN apt-get update && apt-get install -y \
-    doxygen
+    doxygen \
+    graphviz
 
 # Set gcc-8 as the default gcc
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100
@@ -126,6 +128,15 @@ RUN go get -v -u github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc
 # Install lcov from release (the one from the repos is too old).
 RUN cd /opt && wget https://github.com/linux-test-project/lcov/releases/download/v1.14/lcov-1.14.tar.gz && tar -xf lcov-1.14.tar.gz
 ENV PATH /opt/lcov-1.14/bin:$PATH
+
+# Install rust compiler
+ENV PATH /opt/cargo/bin:$PATH
+ENV RUSTUP_HOME=/opt/rustup
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain 1.38.0 -y
+RUN rustup target add thumbv7em-none-eabi
+RUN rustup component add rustfmt
+RUN rustup component add clippy
+RUN CARGO_HOME=/opt/cargo cargo install cbindgen
 
 # Clean temporary files to reduce image size
 RUN rm -rf /var/lib/apt/lists/*

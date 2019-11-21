@@ -40,7 +40,7 @@ int main(void)
     __stack_chk_guard = common_stack_chk_guard();
     screen_init();
     screen_splash();
-    // qtouch_init();
+    qtouch_init();
     usart_start();
     hww_setup();
     common_main();

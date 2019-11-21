@@ -46,9 +46,9 @@ void leds_turn_big_led(int led, led_color_t color)
 {
     switch (color) {
     case LED_COLOR_WHITE:
-        _leds_turn_big_led_component(big_leds[led][0], false);
-        _leds_turn_big_led_component(big_leds[led][1], false);
-        _leds_turn_big_led_component(big_leds[led][2], false);
+        _leds_turn_big_led_component(big_leds[led][0], true);
+        _leds_turn_big_led_component(big_leds[led][1], true);
+        _leds_turn_big_led_component(big_leds[led][2], true);
         break;
     case LED_COLOR_RED:
         _leds_turn_big_led_component(big_leds[led][0], true);
@@ -63,6 +63,21 @@ void leds_turn_big_led(int led, led_color_t color)
     case LED_COLOR_BLUE:
         _leds_turn_big_led_component(big_leds[led][0], false);
         _leds_turn_big_led_component(big_leds[led][1], false);
+        _leds_turn_big_led_component(big_leds[led][2], true);
+        break;
+    case LED_COLOR_YELLOW:
+        _leds_turn_big_led_component(big_leds[led][0], true);
+        _leds_turn_big_led_component(big_leds[led][1], true);
+        _leds_turn_big_led_component(big_leds[led][2], false);
+        break;
+    case LED_COLOR_PURPLE:
+        _leds_turn_big_led_component(big_leds[led][0], true);
+        _leds_turn_big_led_component(big_leds[led][1], false);
+        _leds_turn_big_led_component(big_leds[led][2], true);
+        break;
+    case LED_COLOR_CYAN:
+        _leds_turn_big_led_component(big_leds[led][0], false);
+        _leds_turn_big_led_component(big_leds[led][1], true);
         _leds_turn_big_led_component(big_leds[led][2], true);
         break;
     case LED_COLOR_NONE:

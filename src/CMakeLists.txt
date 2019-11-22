@@ -296,7 +296,7 @@ if(CMAKE_CROSSCOMPILING)
   # TODO(nc): Add dependency on global "doc" target on this when api-docs branch is merged
   add_custom_target(rust-docs
     COMMAND
-      ${CMAKE_COMMAND} -E env SYSROOT=${CMAKE_SYSROOT} INCLUDES="${RUST_INCLUDES}" ${CARGO} doc --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${CMAKE_BINARY_DIR}/docs-rust ${RUST_CARGO_FLAG} --target thumbv7em-none-eabi
+      ${CMAKE_COMMAND} -E env SYSROOT=${CMAKE_SYSROOT} INCLUDES="${RUST_INCLUDES}" ${CARGO} doc --document-private-items --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${CMAKE_BINARY_DIR}/docs-rust ${RUST_CARGO_FLAG} --target thumbv7em-none-eabi
     COMMAND
       ${CMAKE_COMMAND} -E echo "See docs at file://${CMAKE_BINARY_DIR}/docs-rust/thumbv7em-none-eabi/doc/bitbox02_rust/index.html"
   )

@@ -20,9 +20,10 @@ import pprint
 from typing import Any
 from time import sleep
 
-from bitbox02 import devices
+from communication import devices
+from communication.devices import TooManyFoundException, NoneFoundException
+
 from bitbox02 import Bootloader, BitBox02
-from bitbox02 import TooManyFoundException, NoneFoundException
 
 
 def eprint(*args: Any, **kwargs: Any) -> None:

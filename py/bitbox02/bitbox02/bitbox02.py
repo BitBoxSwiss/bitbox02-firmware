@@ -31,17 +31,17 @@ import hid
 import semver
 
 from communication import u2fhid
-from .devices import parse_device_version, DeviceInfo
+from communication.devices import parse_device_version, DeviceInfo
 
 try:
-    from .generated import hww_pb2 as hww
-    from .generated import eth_pb2 as eth
-    from .generated import btc_pb2 as btc
-    from .generated import mnemonic_pb2 as mnemonic
-    from .generated import bitbox02_system_pb2 as bitbox02_system
-    from .generated import random_number_pb2 as random_number
-    from .generated import backup_commands_pb2 as backup
-    from .generated import system_pb2 as system
+    from communication.generated import hww_pb2 as hww
+    from communication.generated import eth_pb2 as eth
+    from communication.generated import btc_pb2 as btc
+    from communication.generated import mnemonic_pb2 as mnemonic
+    from communication.generated import bitbox02_system_pb2 as bitbox02_system
+    from communication.generated import random_number_pb2 as random_number
+    from communication.generated import backup_commands_pb2 as backup
+    from communication.generated import system_pb2 as system
 except ModuleNotFoundError:
     print("Run `make py` to generate the protobuf messages")
     sys.exit()

@@ -21,7 +21,7 @@ import hashlib
 
 import hid
 from communication import u2fhid
-from .devices import DeviceInfo
+from communication.devices import DeviceInfo
 
 BOOTLOADER_CMD = 0x80 + 0x40 + 0x03
 NUM_ROOT_KEYS = 3

@@ -6,7 +6,7 @@ import struct
 
 import hid
 from communication import u2fhid
-from bitbox02.devices import get_device, BITBOX02MULTI, DeviceInfo
+from communication.devices import get_device, BITBOX02MULTI, DeviceInfo
 from bitbox02 import Bitbox02Exception
 from . import u2f
 

@@ -23,6 +23,7 @@ from typing import List, Any, Optional, Callable, Union, Tuple, Sequence
 from tzlocal import get_localzone
 import bitbox02
 from bitbox02 import HARDENED
+from communication import devices
 import u2f
 import u2f.bitbox02
 
@@ -472,9 +473,9 @@ def main() -> int:
     if args.u2f:
         try:
             u2fbitbox = u2f.bitbox02.get_bitbox02_u2f_device()
-        except bitbox02.TooManyFoundException:
+        except devices.TooManyFoundException:
             print("Multiple bitboxes detected. Only one supported")
-        except bitbox02.NoneFoundException:
+        except devices.NoneFoundException:
             print("No bitboxes detected")
         else:
             u2fdevice = u2f.bitbox02.BitBox02U2F(u2fbitbox)
@@ -483,16 +484,16 @@ def main() -> int:
         return 1
 
     try:
-        bitbox = bitbox02.get_any_bitbox02()
-    except bitbox02.TooManyFoundException:
+        bitbox = devices.get_any_bitbox02()
+    except devices.TooManyFoundException:
         print("Multiple bitboxes detected. Only one supported")
         return 1
-    except bitbox02.NoneFoundException:
+    except devices.NoneFoundException:
         try:
-            bootloader = bitbox02.get_any_bitbox02_bootloader()
-        except bitbox02.TooManyFoundException:
+            bootloader = devices.get_any_bitbox02_bootloader()
+        except devices.TooManyFoundException:
             print("Multiple bitbox bootloaders detected. Only one supported")
-        except bitbox02.NoneFoundException:
+        except devices.NoneFoundException:
             print("Neither bitbox nor bootloader found.")
         else:
             boot_app = SendMessageBootloader(bitbox02.Bootloader(bootloader))

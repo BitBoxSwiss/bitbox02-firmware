@@ -32,16 +32,15 @@ pub const BitBoxBaseSetConfigRequest_hostname_tag: u16 =
 pub const BitBoxBaseSetConfigRequest_ip_tag: u16 =
     bitbox02_sys::BitBoxBaseSetConfigRequest_ip_tag as u16;
 
+#[macro_use]
 pub mod util;
 
 pub fn ug_put_string(x: i16, y: i16, input: &str, inverted: bool) {
-    // rust strings (&str) are not null-terminated, ensure that there always is a \0 byte.
-    let len = core::cmp::min(127, input.len());
-    let mut buf = [0u8; 128];
-    let buf = &mut buf[0..len];
-    let input = &input.as_bytes()[0..len];
-    buf.copy_from_slice(input);
-    unsafe { bitbox02_sys::UG_PutString(x, y, buf.as_ptr() as *const _, inverted) }
+    if let Ok(buf) = str_to_cstr!(input, 128) {
+        unsafe { bitbox02_sys::UG_PutString(x, y, buf.as_ptr() as *const _, inverted) }
+    } else {
+        screen_print_debug("string didn't fit", 3000);
+    }
 }
 
 pub fn ug_clear_buffer() {
@@ -75,28 +74,20 @@ pub fn delay(duration: Duration) {
 
 // Safe wrapper for workflow_confirm
 pub fn workflow_confirm(title: &str, body: &str, longtouch: bool, accept_only: bool) -> bool {
-    // Ensure valid nullterminated C-str
-    // Will truncate title if it is too long
-    let title_cstr = {
-        const TITLE_LEN: usize = 20;
-        let len = core::cmp::min(TITLE_LEN, title.len());
-        let mut buf = [0u8; TITLE_LEN + 1];
-        // resize title to actual length
-        let title = &title.as_bytes()[0..len];
-        // copy from title to buf
-        buf[0..len].copy_from_slice(title);
-        buf
+    // Create null-terminated strings for title and body
+    let title_cstr = match str_to_cstr!(title, 20) {
+        Ok(cstr) => cstr,
+        Err(_) => {
+            screen_print_debug("string didn't fit", 3000);
+            return false;
+        }
     };
-    // same as title_cstr
-    let body_cstr = {
-        const BODY_LEN: usize = 100;
-        let len = core::cmp::min(BODY_LEN, body.len());
-        let mut buf = [0u8; BODY_LEN + 1];
-        // resize body to actual length
-        let body = &body.as_bytes()[0..len];
-        // copy from body to buf
-        buf[0..len].copy_from_slice(body);
-        buf
+    let body_cstr = match str_to_cstr!(body, 100) {
+        Ok(cstr) => cstr,
+        Err(_) => {
+            screen_print_debug("string didn't fit", 3000);
+            return false;
+        }
     };
 
     unsafe {

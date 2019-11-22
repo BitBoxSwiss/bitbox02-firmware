@@ -32,6 +32,7 @@ fn main() {
         .whitelist_function("UG_ClearBuffer")
         .whitelist_function("UG_SendBuffer")
         .whitelist_function("workflow_confirm")
+        .whitelist_function("screen_print_debug")
         .whitelist_function("ui_screen_stack_push")
         .whitelist_function("ui_screen_stack_pop")
         .whitelist_function("label_create")

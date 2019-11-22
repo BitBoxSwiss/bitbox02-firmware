@@ -15,6 +15,7 @@
 #include <bitboxbase.pb.h>
 #include <bitboxbase/bitboxbase_watchdog.h>
 #include <platform/bitboxbase/leds.h>
+#include <screen.h>
 #include <ui/components/label.h>
 #include <ui/fonts/arial_fonts.h>
 #include <ui/oled/oled.h>

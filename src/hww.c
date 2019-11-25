@@ -104,7 +104,7 @@ static size_t _api_info(uint8_t* buf)
     current += version_string_len;
 
     // 1 byte platform code and 1 byte edition code
-#if (PRODUCT_BITBOX_MULTI == 1) || defined(FACTORYSETUP)
+#if PRODUCT_BITBOX_MULTI == 1 || PRODUCT_BITBOX02_FACTORYSETUP == 1
     *current = 0x00;
     current++;
     *current = 0x00;
@@ -112,7 +112,7 @@ static size_t _api_info(uint8_t* buf)
     *current = 0x00;
     current++;
     *current = 0x01;
-#elif PRODUCT_BITBOX_BASE == 1
+#elif PRODUCT_BITBOX_BASE == 1 || PRODUCT_BITBOXBASE_FACTORYSETUP == 1
     *current = 0x01;
     current++;
     *current = 0x00;

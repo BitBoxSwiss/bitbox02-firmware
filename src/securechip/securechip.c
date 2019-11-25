@@ -224,7 +224,7 @@ static bool _zone_is_locked(uint8_t zone)
     return is_locked;
 }
 
-#if defined(FACTORYSETUP)
+#if FACTORYSETUP == 1
 /**
  * Individually locks a slot. Used to lock the io protection and auth key so
  * they can never change.
@@ -376,7 +376,7 @@ bool securechip_setup(securechip_interface_functions_t* ifs)
         return false;
     }
 
-#if defined(FACTORYSETUP)
+#if FACTORYSETUP == 1
     if (!_factory_setup()) {
         return false;
     }
@@ -660,7 +660,7 @@ bool securechip_ecc_unsafe_sign(const uint8_t* priv_key, const uint8_t* msg, uin
     return true;
 }
 
-#if defined(APP_U2F) || defined(FACTORYSETUP)
+#if defined(APP_U2F) || FACTORYSETUP == 1
 // Read a "standard" sized block from a data slot (must be 32 bytes)
 static ATCA_STATUS _read_data_slot_block(uint8_t* bytes, uint16_t slot, uint8_t block)
 {

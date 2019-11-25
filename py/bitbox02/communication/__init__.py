@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Util functions to interact with u2fhid devices."""
+"""Abstraction for the transport layer used for transmitting U2F messages."""
 
-from .u2fhid import *
+from .communication import PhysicalLayer, TransportLayer
+from .bitbox_api_protocol import (
+    BitBoxCommonAPI,
+    Bitbox02Exception,
+    UserAbortException,
+    AttestationException,
+    ERR_GENERIC,
+    ERR_USER_ABORT,
+    HARDENED,
+)

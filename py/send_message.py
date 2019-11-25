@@ -20,9 +20,14 @@ import pprint
 import sys
 from typing import List, Any, Optional, Callable, Union, Tuple, Sequence
 
+import hid
 from tzlocal import get_localzone
+
+
+from bitboxbase import BitBoxBase, get_bitboxbase_default_device
+from communication import devices, HARDENED, UserAbortException, u2fhid, usart
+
 import bitbox02
-from bitbox02 import HARDENED
 import u2f
 import u2f.bitbox02
 
@@ -79,7 +84,7 @@ class SendMessage:
         print(f"Old device name: {info['name']}")
         try:
             self._device.set_device_name(name)
-        except bitbox02.UserAbortException:
+        except UserAbortException:
             eprint("Aborted by user")
         else:
             print("Setting new device name.")
@@ -253,7 +258,7 @@ class SendMessage:
                     return
                 self._device.enable_mnemonic_passphrase()
             enabled = not enabled
-        except bitbox02.UserAbortException:
+        except UserAbortException:
             print("Aborted by user")
         print("Success.")
         if enabled:
@@ -330,6 +335,53 @@ class SendMessage:
             self._menu_notinit()
             return
         self._menu_init()
+
+    def run(self) -> int:
+        """Entry point for program"""
+        if self._debug:
+            self._device.debug = True
+
+        while not self._stop:
+            self._menu()
+        self._device.close()
+        return 0
+
+
+class SendMessageBitBoxBase:
+    """SendMessageBitBoxBase"""
+
+    # pylint: disable=too-few-public-methods
+
+    def __init__(self, device: BitBoxBase, debug: bool):
+        self._device = device
+        self._debug = debug
+        self._search_for_device = False
+        self._stop = False
+
+    def _reboot(self) -> None:
+        if self._device.reboot():
+            print("Device rebooted")
+            self._search_for_device = True
+        else:
+            print("User aborted")
+
+    def _reboot_bootloader(self) -> None:
+        if self._device.reboot():
+            print("Device rebooted")
+            self._stop = True
+            return
+        print("User aborted")
+
+    def _menu(self) -> None:
+        """Print the menu"""
+        choices = (("Reboot into bootloader", self._reboot_bootloader),)
+        choice = ask_user(choices)
+        if isinstance(choice, bool):
+            self._stop = True
+            return
+        if choice is None:
+            return
+        choice()
 
     def run(self) -> int:
         """Entry point for program"""
@@ -462,40 +514,30 @@ class U2FApp:
         return 0
 
 
-def main() -> int:
-    """Main function"""
-    parser = argparse.ArgumentParser(description="Tool for communicating with bitbox device")
-    parser.add_argument("--debug", action="store_true", help="Print messages sent and received")
-    parser.add_argument("--u2f", action="store_true", help="Use u2f menu instead")
-    args = parser.parse_args()
-
-    if args.u2f:
-        try:
-            u2fbitbox = u2f.bitbox02.get_bitbox02_u2f_device()
-        except bitbox02.TooManyFoundException:
-            print("Multiple bitboxes detected. Only one supported")
-        except bitbox02.NoneFoundException:
-            print("No bitboxes detected")
-        else:
-            u2fdevice = u2f.bitbox02.BitBox02U2F(u2fbitbox)
-            u2fapp = U2FApp(u2fdevice, args.debug)
-            return u2fapp.run()
-        return 1
-
+def connect_to_usb_bitbox(debug: bool) -> int:
+    """
+    Connects and runs the main menu on a BitBox02 connected
+    over USB.
+    """
     try:
-        bitbox = bitbox02.get_any_bitbox02()
-    except bitbox02.TooManyFoundException:
+        bitbox = devices.get_any_bitbox02()
+    except devices.TooManyFoundException:
         print("Multiple bitboxes detected. Only one supported")
         return 1
-    except bitbox02.NoneFoundException:
+    except devices.NoneFoundException:
         try:
-            bootloader = bitbox02.get_any_bitbox02_bootloader()
-        except bitbox02.TooManyFoundException:
+            bootloader = devices.get_any_bitbox02_bootloader()
+        except devices.TooManyFoundException:
             print("Multiple bitbox bootloaders detected. Only one supported")
-        except bitbox02.NoneFoundException:
+            return 1
+        except devices.NoneFoundException:
             print("Neither bitbox nor bootloader found.")
+            return 1
         else:
-            boot_app = SendMessageBootloader(bitbox02.Bootloader(bootloader))
+            hid_device = hid.device()
+            hid_device.open_path(bootloader["path"])
+            bootloader_connection = bitbox02.Bootloader(u2fhid.U2FHid(hid_device), bootloader)
+            boot_app = SendMessageBootloader(bootloader_connection)
             return boot_app.run()
     else:
 
@@ -509,17 +551,95 @@ def main() -> int:
             else:
                 print("Device attestation FAILED")
 
-        device = bitbox02.BitBox02(
+        hid_device = hid.device()
+        hid_device.open_path(bitbox["path"])
+        bitbox_connection = bitbox02.BitBox02(
+            transport=u2fhid.U2FHid(hid_device),
             device_info=bitbox,
             show_pairing_callback=show_pairing,
             attestation_check_callback=attestation_check,
         )
 
-        if args.debug:
+        if debug:
             print("Device Info:")
             pprint.pprint(bitbox)
+        return SendMessage(bitbox_connection, debug).run()
 
-        return SendMessage(device, args.debug).run()
+
+def connect_to_usart_bitboxbase(debug: bool, serial_port: usart.SerialPort) -> int:
+    """
+    Connects and runs the main menu over a BitBoxBase connected
+    over UART.
+    """
+    print("Trying to connect to BitBoxBase firmware...")
+    bootloader_device: devices.DeviceInfo = get_bitboxbase_default_device(serial_port.port)
+
+    def show_pairing(code: str) -> None:
+        print("(Pairing should be automatic) Pairing code:")
+        print(code)
+
+    def attestation_check(result: bool) -> None:
+        if result:
+            print("Device attestation PASSED")
+        else:
+            print("Device attestation FAILED")
+
+    try:
+        transport = usart.U2FUsart(serial_port)
+        base_dev = BitBoxBase(
+            transport,
+            bootloader_device,
+            show_pairing_callback=show_pairing,
+            attestation_check_callback=attestation_check,
+        )
+        if debug:
+            print("Device Info:")
+            pprint.pprint(base_dev)
+        return SendMessageBitBoxBase(base_dev, debug).run()
+    except usart.U2FUsartErrorResponse as err:
+        if err.error_code != usart.U2FUsartErrorResponse.ENDPOINT_UNAVAILABLE:
+            raise
+    except usart.U2FUsartTimeoutError:
+        print("Timed out. Maybe the device is not connected?", file=sys.stderr)
+        return 1
+
+    print("BitBox unavailable. Starting bootloader connection.")
+    transport = usart.U2FUsart(serial_port)
+    bootloader = bitbox02.Bootloader(transport, bootloader_device)
+    return SendMessageBootloader(bootloader).run()
+
+
+def main() -> int:
+    """Main function"""
+    parser = argparse.ArgumentParser(description="Tool for communicating with bitbox device")
+    parser.add_argument("--debug", action="store_true", help="Print messages sent and received")
+    parser.add_argument("--u2f", action="store_true", help="Use u2f menu instead")
+    parser.add_argument(
+        "--usart", action="store", help="Use USART (BitBoxBase) on the specified serial port."
+    )
+    args = parser.parse_args()
+
+    if args.u2f:
+        try:
+            u2fbitbox = u2f.bitbox02.get_bitbox02_u2f_device()
+        except devices.TooManyFoundException:
+            print("Multiple bitboxes detected. Only one supported")
+        except devices.NoneFoundException:
+            print("No bitboxes detected")
+        else:
+            hid_device = hid.device()
+            hid_device.open_path(u2fbitbox["path"])
+            u2fdevice = u2f.bitbox02.BitBox02U2F(hid_device)
+            u2fapp = U2FApp(u2fdevice, args.debug)
+            return u2fapp.run()
+        return 1
+
+    if args.usart is not None:
+        with usart.SerialPort(args.usart, 115200) as serial_port:
+            return connect_to_usart_bitboxbase(args.debug, serial_port)
+    else:
+        return connect_to_usb_bitbox(args.debug)
+
     return 1
 
 

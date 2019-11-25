@@ -465,7 +465,7 @@ if(CMAKE_CROSSCOMPILING)
   add_dependencies(firmware-bitboxbase.elf rust rust-bindgen)
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
-  target_compile_definitions(factory-setup.elf PRIVATE FACTORYSETUP)
+  target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP)
   target_sources(factory-setup.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
 
   foreach(name ${BOOTLOADERS} ${FIRMWARES})

@@ -17,8 +17,10 @@
 #include "flags.h"
 #include "hardfault.h"
 #include "memory.h"
+#include "platform_init.h"
 #include "screen.h"
 #include "securechip/securechip.h"
+#include "ui/screen_process.h"
 #include "usb/usb.h"
 #include "usb/usb_packet.h"
 #include "usb/usb_processing.h"
@@ -221,6 +223,7 @@ int main(void)
 {
     init_mcu();
     system_init();
+    platform_init();
     __stack_chk_guard = common_stack_chk_guard();
     screen_init();
     screen_splash();
@@ -238,8 +241,12 @@ int main(void)
             // Not much we can do here.
         }
     }
+#if PLATFORM_BITBOX02 == 1
     usb_start(_api_setup);
+#endif
+
     while (1) {
+        screen_process();
         usb_processing_process(usb_processing_hww());
     }
 }

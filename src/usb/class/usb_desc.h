@@ -80,7 +80,7 @@
         'b', 0, 'b', 0, '0', 0, '2', 0, '-', 0, 'b', 0, 'o', 0, 'o', 0, 't', 0, 'l', 0, 'o', 0, \
         'a', 0, 'd', 0, 'e', 0, 'r', 0,
 #endif
-#elif defined(FACTORYSETUP)
+#elif FACTORYSETUP == 1
 #define USB_DESC_IPRODUCT_STR_DESC                                                              \
     26, /* bLength */                                                                           \
         0x03, /* bDescriptorType */                                                             \

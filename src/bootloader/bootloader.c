@@ -360,13 +360,30 @@ static void _render_hash(const char* title, const uint8_t* hash)
     char message[16];
     char hash_hex[2 * SHA256_DIGEST_LENGTH + 1];
     util_uint8_to_hex(hash, SHA256_DIGEST_LENGTH, hash_hex);
+    char scratch = 0;
     for (uint8_t i = 1; i <= seconds; i++) {
         snprintf(message, sizeof(message), "HASH  (%2ds)", seconds - i);
         UG_ClearBuffer();
-        _load_logo();
         UG_PutString(0, SCREEN_HEIGHT - 9, message, false);
         UG_PutString(0, SCREEN_HEIGHT - 9 * 2, title, false);
-        UG_PutString(SCREEN_WIDTH / 2 - 2, 0, hash_hex, false);
+
+        scratch = hash_hex[16];
+        hash_hex[16] = 0;
+        UG_PutString(0, 0, hash_hex, false);
+        hash_hex[16] = scratch;
+
+        scratch = hash_hex[32];
+        hash_hex[32] = 0;
+        UG_PutString(0, 9, &hash_hex[16], false);
+        hash_hex[32] = scratch;
+
+        scratch = hash_hex[48];
+        hash_hex[48] = 0;
+        UG_PutString(0, 18, &hash_hex[32], false);
+        hash_hex[48] = scratch;
+
+        UG_PutString(0, 27, &hash_hex[48], false);
+
         UG_SendBuffer();
         delay_ms(1000);
     }

@@ -364,11 +364,19 @@ class SendMessageBootloader:
     def _erase(self) -> None:
         self._device.erase()
 
+    def _show_fw_hash(self) -> None:
+        self._device.set_show_firmware_hash(True)
+
+    def _dont_show_fw_hash(self) -> None:
+        self._device.set_show_firmware_hash(False)
+
     def _menu(self) -> None:
         choices = (
             ("Boot", self._boot),
             ("Print versions", self._get_versions),
             ("Erase firmware", self._erase),
+            ("Show firmware hash", self._show_fw_hash),
+            ("Don't show firmware hash", self._dont_show_fw_hash),
         )
         choice = ask_user(choices)
         if isinstance(choice, bool):

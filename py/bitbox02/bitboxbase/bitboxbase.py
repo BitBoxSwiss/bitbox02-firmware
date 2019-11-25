@@ -23,7 +23,11 @@ from communication.devices import DeviceInfo
 
 
 def get_bitboxbase_default_device(serial_port: serial.Serial) -> DeviceInfo:
-    return {"serial_number": "v4.2.0", "path": serial_port.port, "product_string": "bb02-base"}
+    return {
+        "serial_number": "v4.2.0",
+        "path": serial_port.port,
+        "product_string": "bitboxbase-bootloader",
+    }
 
 
 class BitBoxBase(communication.BitBoxCommonAPI):

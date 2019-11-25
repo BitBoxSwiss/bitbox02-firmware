@@ -34,6 +34,7 @@ FIRMWARE_CHUNKS = MAX_FIRMWARE_SIZE // CHUNK_SIZE
 
 SIGDATA_MAGIC_STANDARD = struct.pack(">I", 0x653F362B)
 SIGDATA_MAGIC_BTCONLY = struct.pack(">I", 0x11233B0B)
+SIGDATA_MAGIC_BITBOXBASE_STANDARD = struct.pack(">I", 0xAB6BD345)
 
 MAGIC_LEN = 4
 
@@ -64,7 +65,7 @@ class Bootloader:
         self.expected_magic = {
             "bb02-bootloader": SIGDATA_MAGIC_STANDARD,
             "bb02btc-bootloader": SIGDATA_MAGIC_BTCONLY,
-            "bb02-base": SIGDATA_MAGIC_STANDARD,
+            "bitboxbase-bootloader": SIGDATA_MAGIC_BITBOXBASE_STANDARD,
         }.get(device_info["product_string"])
         assert self.expected_magic
 

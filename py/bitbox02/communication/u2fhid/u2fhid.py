@@ -133,7 +133,7 @@ class U2FHid(TransportLayer):
             raise ValueError("Endpoint/U2F command is out of range '0 < endpoint <= 0xFF'")
         if cid < 0 or cid > 0xFFFFFFFF:
             raise ValueError("Channel id is out of range '0 < cid <= 0xFFFFFFFF'")
-        timeout_ms = 5000
+        timeout_ms = 5000000
         buf = self._device.read(USB_REPORT_SIZE, timeout_ms)
         if len(buf) >= 3:
             reply_cid = ((buf[0] * 256 + buf[1]) * 256 + buf[2]) * 256 + buf[3]
@@ -147,7 +147,7 @@ class U2FHid(TransportLayer):
                 # CONT response
                 buf = self._device.read(USB_REPORT_SIZE, timeout_ms)
                 if len(buf) < 3:
-                    raise Exception("Did not receive a continuation frame after 5 seconds.")
+                    raise Exception("Did not receive a continuation frame after 5000 seconds.")
                 data += buf[5:]
                 idx += len(buf) - 5
             if reply_cid != cid:
@@ -155,7 +155,7 @@ class U2FHid(TransportLayer):
             if reply_cmd != endpoint:
                 raise Exception(f"- USB command mismatch {reply_cmd:x} != {endpoint:x}")
             return bytes(data[:data_len])
-        raise Exception("Did not read anything after 5 seconds.")
+        raise Exception("Did not read anything after 5000 seconds.")
 
     def close(self) -> None:
         self._device.close()

@@ -91,9 +91,9 @@ run-valgrind-on-unit-tests:
 		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_backup;'
 #		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_ui_component_gestures;'
 flash-dev-firmware:
-	./py/load_firmware.py build/bin/firmware.bin debug
+	./py/load_firmware.py build/bin/firmware.bin --debug
 flash-dev-firmware-bitboxbase:
-	./py/load_firmware.py build/bin/firmware-bitboxbase.bin debug
+	./py/load_firmware.py build/bin/firmware-bitboxbase.bin --debug
 jlink-flash-bootloader: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-development.jlink
 jlink-flash-bootloader-btc: | build

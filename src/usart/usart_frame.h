@@ -27,14 +27,6 @@
 #define USART_FRAME_MAX_DATA_LEN (USART_FRAME_MAX_PAYLOAD_LEN + 4)
 
 /**
- * One of the available receivers that can be
- * attached to the USART port. The host will
- * distinguish what it is connected to based
- * on whether each of these endpoints is available.
- */
-typedef enum { USART_ENDPOINT_BOOTLOADER, USART_ENDPOINT_HWW } usart_endpoint_t;
-
-/**
  * Processes new raw data read from the USART port.
  * @param[in] buf Data that has been read.
  * @param[in] size Number of bytes queued.

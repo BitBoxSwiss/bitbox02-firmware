@@ -61,6 +61,7 @@ void workflow_start(void)
     ui_screen_stack_push(info_centered_create("See the BitBoxApp", NULL));
 }
 
+#if PLATFORM_BITBOX02 == 1
 /**
  * Called when the "select orientation" screen is over.
  * Switch to the main view.
@@ -73,11 +74,13 @@ static void _select_orientation_done(bool upside_down)
     component_t* show_logo = show_logo_create(workflow_start, 200);
     ui_screen_stack_switch(show_logo);
 }
+#endif
 
 void workflow_start_orientation_screen(void)
 {
 #if PLATFORM_BITBOXBASE == 1
-    _select_orientation_done(false);
+    component_t* show_logo = show_logo_create(workflow_start, 200);
+    ui_screen_stack_switch(show_logo);
 #elif PLATFORM_BITBOX02 == 1
     component_t* select_orientation = orientation_arrows_create(_select_orientation_done);
     ui_screen_stack_switch(select_orientation);

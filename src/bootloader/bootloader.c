@@ -775,12 +775,16 @@ static void _api_reboot(void)
 
 static size_t _api_screen_rotate(uint8_t* output)
 {
+#if PLATFORM_BITBOX02 == 1
     if (_loading_ready) {
         return _report_status(OP_STATUS_ERR_LOAD_FLAG, output);
     }
     screen_rotate();
     _render_default_screen();
     return _report_status(OP_STATUS_OK, output);
+#elif PLATFORM_BITBOXBASE == 1
+    return _report_status(OP_STATUS_ERR_INVALID_CMD, output);
+#endif
 }
 
 static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t max_out_len)
@@ -966,9 +970,11 @@ void bootloader_jump(void)
 
     _check_init(&bootdata);
 
+#if PLATFORM_BITBOX02 == 1
     if (shared_data.fields.upside_down) {
         screen_rotate();
     }
+#endif
 
     if (shared_data.fields.auto_enter != sectrue_u8) {
 #ifdef BOOTLOADER_DEVDEVICE

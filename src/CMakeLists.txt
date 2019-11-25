@@ -386,6 +386,7 @@ if(CMAKE_CROSSCOMPILING)
     firmware-bitboxbase # Firmware BASE
     firmware-bitboxbase-semihosting # Firmware BASE with semihosting
     factory-setup # Factory-setup
+    factory-setup-bitboxbase # Factory-setup
   )
   set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
   foreach(firmware ${FIRMWARES})
@@ -467,6 +468,10 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP)
   target_sources(factory-setup.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
+
+  target_sources(factory-setup-bitboxbase.elf PRIVATE factorysetup.c)
+  target_compile_definitions(factory-setup-bitboxbase.elf PRIVATE PRODUCT_BITBOXBASE_FACTORYSETUP)
+  target_sources(factory-setup-bitboxbase.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES})
 
   foreach(name ${BOOTLOADERS} ${FIRMWARES})
     add_custom_command(

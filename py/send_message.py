@@ -635,7 +635,7 @@ def main() -> int:
         return 1
 
     if args.usart is not None:
-        with usart.SerialPort(args.usart, 115200) as serial_port:
+        with usart.SerialPort(args.usart) as serial_port:
             return connect_to_usart_bitboxbase(args.debug, serial_port)
     else:
         return connect_to_usb_bitbox(args.debug)

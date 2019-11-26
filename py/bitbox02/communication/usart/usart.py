@@ -15,7 +15,7 @@
 """ U2F-over-USART module. """
 
 from types import TracebackType
-from typing import Any, Optional, Tuple, Type
+from typing import Optional, Tuple, Type
 import struct
 
 import serial
@@ -29,8 +29,8 @@ class SerialPort(PhysicalLayer):
     (i.e. to make it implement communication.PhysicalLayer).
     """
 
-    def __init__(self, *args: Any, **kwargs: Any):
-        self.port = serial.Serial(*args, **kwargs)
+    def __init__(self, port: str, timeout: Optional[int] = None):
+        self.port = serial.Serial(port, baudrate=115200, timeout=timeout)
 
     def __enter__(self) -> "SerialPort":
         self.port.__enter__()

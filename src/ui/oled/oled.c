@@ -67,6 +67,7 @@
 
 #include <driver_init.h>
 #include <hardfault.h>
+#include <screen.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -253,7 +254,8 @@ void oled_mirror(bool mirror)
     }
 #elif PLATFORM_BITBOXBASE == 1
     (void)mirror;
-    Abort("BitBoxBase cannot mirror screen");
+    // DON'T ABORT HERE, this is called in the bootloader
+    screen_print_debug("BitBoxBase cannot mirror screen", 5000);
 #endif
 }
 

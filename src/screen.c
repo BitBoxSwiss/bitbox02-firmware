@@ -26,7 +26,9 @@
 #include <util.h>
 
 static UG_GUI guioled; // Global GUI structure for OLED screen
+#if PLATFORM_BITBOX02 == 1 || defined(TESTING)
 static bool screen_upside_down = false;
+#endif
 
 UG_COLOR screen_front_color = C_WHITE;
 UG_COLOR screen_back_color = C_BLACK;
@@ -83,17 +85,24 @@ void screen_splash(void)
     UG_ClearBuffer();
 }
 
+// TODO(nc): Remove these 2 functions from bitboxbase
 void screen_rotate(void)
 {
+#if PLATFORM_BITBOX02 == 1 || defined(TESTING)
     screen_upside_down = !screen_upside_down;
     top_slider = 1 - top_slider;
     bottom_slider = 1 - bottom_slider;
     oled_mirror(screen_upside_down);
+#endif
 }
 
 bool screen_is_upside_down(void)
 {
+#if PLATFORM_BITBOX02 == 1 || defined(TESTING)
     return screen_upside_down;
+#else
+    return false;
+#endif
 }
 
 void screen_init(void)

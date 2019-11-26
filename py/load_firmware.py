@@ -203,7 +203,7 @@ def main() -> int:
         return 1
 
     if args.usart is not None:
-        serial_port = usart.SerialPort(args.usart, timeout=3)
+        serial_port = usart.SerialPort(args.usart)
         bootloader_device = _find_and_open_usart_bitbox(serial_port)
         transport: TransportLayer = usart.U2FUsart(serial_port)
         bootloader = Bootloader(transport, bootloader_device)

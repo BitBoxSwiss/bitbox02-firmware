@@ -29,8 +29,8 @@ class SerialPort(PhysicalLayer):
     (i.e. to make it implement communication.PhysicalLayer).
     """
 
-    def __init__(self, port: str, timeout: Optional[int] = None):
-        self.port = serial.Serial(port, baudrate=115200, timeout=timeout)
+    def __init__(self, port: str):
+        self.port = serial.Serial(port, baudrate=115200)
 
     def __enter__(self) -> "SerialPort":
         self.port.__enter__()

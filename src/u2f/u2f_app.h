@@ -15,6 +15,7 @@
 #ifndef _U2F_APP_H_
 #define _U2F_APP_H_
 
+#include "workflow/async.h"
 #include <compiler_util.h>
 
 #include <stdbool.h>
@@ -30,8 +31,12 @@ enum u2f_app_confirm_t {
  * User confirm auth/registration for a website given by the U2F app ID.
  * @param[in] type show registration or authentication screen.
  * @param[in] app_id U2F app ID to identify the website.
- * @return true if the user accepts, false for rejection or timeout.
+ * @param[out] result true if the user accepts, false for rejection.
+ * @return Ready if result is ready, NotReady otherwise
  */
-USE_RESULT bool u2f_app_confirm(enum u2f_app_confirm_t type, const uint8_t* app_id);
+USE_RESULT enum workflow_async_ready u2f_app_confirm(
+    enum u2f_app_confirm_t type,
+    const uint8_t* app_id,
+    bool* result);
 
 #endif

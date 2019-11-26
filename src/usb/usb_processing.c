@@ -18,6 +18,7 @@
 #include "usart/usart_frame.h"
 #include "usb_frame.h"
 #include "usb_packet.h"
+#include "workflow/async.h"
 
 #include <hardfault.h>
 
@@ -136,6 +137,13 @@ bool usb_processing_enqueue(
     uint8_t cmd,
     uint32_t cid)
 {
+    // Right now async workflows are only supported by the u2f endpoint.
+    // Ignore any messages on the HWW while an async workflow is in progress.
+#if defined(APP_U2F)
+    if (ctx == usb_processing_hww() && workflow_async_busy_check()) {
+        return false;
+    }
+#endif
     if (_in_packet_queued) {
         /* We already have a buffered packet. */
         return false;

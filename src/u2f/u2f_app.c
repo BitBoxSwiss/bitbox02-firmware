@@ -44,7 +44,10 @@ static void _app_string(const uint8_t* app_id, char* out, size_t out_len)
     snprintf(out, out_len, "Unknown site:\n%.16s\n%.16s", appid_hex, appid_hex + 16);
 }
 
-bool u2f_app_confirm(enum u2f_app_confirm_t type, const uint8_t* app_id)
+enum workflow_async_ready u2f_app_confirm(
+    enum u2f_app_confirm_t type,
+    const uint8_t* app_id,
+    bool* result)
 {
     char app_string[100] = {0};
     const char* title;
@@ -64,7 +67,5 @@ bool u2f_app_confirm(enum u2f_app_confirm_t type, const uint8_t* app_id)
     default:
         Abort("u2f_app_confirm: Internal error");
     }
-    // 75 here is approximately 1 second. According to the protocol we need to respond within 3s
-    // and the rest of the code need something like 1-1.5s.
-    return workflow_confirm_with_timeout(title, app_string, false, 75 * SCREEN_FRAME_RATE);
+    return workflow_confirm_async(title, app_string, false, result);
 }

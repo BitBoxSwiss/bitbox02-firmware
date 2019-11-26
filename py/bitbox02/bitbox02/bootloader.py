@@ -48,7 +48,11 @@ def parse_signed_firmware(firmware: bytes) -> typing.Tuple[bytes, bytes, bytes]:
     if len(firmware) < MAGIC_LEN + SIGDATA_LEN:
         raise ValueError("firmware too small")
     magic, firmware = firmware[:MAGIC_LEN], firmware[MAGIC_LEN:]
-    if magic not in (SIGDATA_MAGIC_STANDARD, SIGDATA_MAGIC_BTCONLY):
+    if magic not in (
+        SIGDATA_MAGIC_STANDARD,
+        SIGDATA_MAGIC_BTCONLY,
+        SIGDATA_MAGIC_BITBOXBASE_STANDARD,
+    ):
         raise ValueError("invalid magic")
 
     sigdata, firmware = firmware[:SIGDATA_LEN], firmware[SIGDATA_LEN:]

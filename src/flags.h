@@ -22,9 +22,14 @@
 #else
 #include <samd51j20a.h>
 #endif
+
+// The total size of the flash is 1MB (2048 pages).
+#define FLASH_END (2048 * FLASH_PAGE_SIZE)
+
 // Even though FLASH_SIZE is 1MB (1024*1024 bytes),
-// the total accessible pages are 2000, which is less than 1MB.
-#define FLASH_END (2000 * FLASH_PAGE_SIZE)
+// the portion of flash that we use ends at page 2000.
+#define FLASH_USER_END (2000 * FLASH_PAGE_SIZE)
+
 // Erase granularity is 1 block (8kB; 16 pages)
 // Can (un)lock exactly 64 pages (32kB) at a time,
 // aligned at 16 pages (8kB); app start must be multiple of 8kB.
@@ -45,7 +50,7 @@
 #define FLASH_SHARED_DATA_LEN (FLASH_ERASE_MIN_LEN) // 8kB
 #define FLASH_BOOTDATA_LEN (FLASH_ERASE_MIN_LEN) // 8kB
 #define FLASH_BOOTDATA_START \
-    (FLASH_END -             \
+    (FLASH_USER_END -        \
      FLASH_BOOTDATA_LEN) // Do NOT change! The fixed bootloader needs access to data here
 #define FLASH_BOOTPROTECTION \
     (15 - FLASH_BOOT_LEN / 8192) // Register value for the boot protection size
@@ -57,7 +62,7 @@
 #define FLASH_APPDATA_LEN (0x000010000U)
 // Appdata start: If app length is changed, may need to subtract an offset in order to satisfy
 // the MPU setup conditions tested below.
-#define FLASH_APPDATA_START (FLASH_END - FLASH_BOOTDATA_LEN - FLASH_APPDATA_LEN)
+#define FLASH_APPDATA_START (FLASH_USER_END - FLASH_BOOTDATA_LEN - FLASH_APPDATA_LEN)
 #define FLASH_APP_LEN (FLASH_APPDATA_START - FLASH_APP_START)
 #define FLASH_APP_PAGE_NUM (FLASH_APP_LEN / FLASH_PAGE_SIZE)
 #define FLASH_APP_VERSION_LEN (4) // 4 byte big endian unsigned int

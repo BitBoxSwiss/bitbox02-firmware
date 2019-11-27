@@ -43,6 +43,45 @@ void label_update(component_t* component, const char* text)
 {
     data_t* data = (data_t*)component->data;
     snprintf(data->text, sizeof(data->text), "%s", text);
+    UG_MeasureString(&(component->dimension.width), &(component->dimension.height), text);
+    if (component->parent == NULL) {
+        return;
+    }
+    component_t* parent = component->parent;
+    switch (data->position) {
+    case CENTER:
+        ui_util_position_center(parent, component);
+        break;
+    case CENTER_TOP:
+        ui_util_position_center_top(parent, component);
+        break;
+    case CENTER_BOTTOM:
+        ui_util_position_center_bottom(parent, component);
+        break;
+    case LEFT_TOP:
+        ui_util_position_left_top(parent, component);
+        break;
+    case LEFT_BOTTOM:
+        ui_util_position_left_bottom(parent, component);
+        break;
+    case LEFT_CENTER:
+        ui_util_position_left_center(parent, component);
+        break;
+    case CUSTOM_OFFSET:
+        // ui_util_position_left_center_offset(parent, component, data->offset);
+        break;
+    case RIGHT_CENTER:
+        ui_util_position_right_center(parent, component);
+        break;
+    case RIGHT_TOP:
+        ui_util_position_right_top(parent, component);
+        break;
+    case RIGHT_BOTTOM:
+        ui_util_position_right_bottom(parent, component);
+        break;
+    default:
+        Abort("position undefined or currently not implemented");
+    }
 }
 
 static void _render(component_t* component)

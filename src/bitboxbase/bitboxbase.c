@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "bitboxbase_background.h"
+#include "bitboxbase_screensaver.h"
+#include "bitboxbase_watchdog.h"
 #include "common_main.h"
 #include "driver_init.h"
 #include "firmware_main_loop.h"
@@ -19,6 +22,7 @@
 #include "hww.h"
 #include "platform_init.h"
 #include "qtouch.h"
+#include "rust/bitbox02_rust.h"
 #include "screen.h"
 #include "ui/oled/oled.h"
 #include "ui/screen_process.h"
@@ -45,7 +49,16 @@ int main(void)
     hww_setup();
     common_main();
     traceln("%s", "Device initialized");
+    bitboxbase_watchdog_init();
+    bitboxbase_screensaver_init();
+    bitboxbase_background();
     for (;;) {
+        if (bitboxbase_watchdog_check() && bitboxbase_state_get() != BBBWaiting) {
+            bitboxbase_state_set_not_alive();
+        }
+        if (bitboxbase_screensaver_check()) {
+            oled_off();
+        }
         screen_process();
         usart_receive();
         usb_processing_process(usb_processing_hww());

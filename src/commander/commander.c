@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <platform_config.h>
+
 #include "commander.h"
 #if defined(APP_BTC) || defined(APP_LTC)
 #include "commander/commander_btc.h"
@@ -20,11 +22,13 @@
 #include "commander/commander_eth.h"
 #endif
 #include "commander/commander_states.h"
+#if PRODUCT_BITBOX_BASE == 1
+#include "commander/commander_bitboxbase.h"
+#endif
 
 #include <flags.h>
 #include <hardfault.h>
 #include <memory.h>
-#include <platform_config.h>
 #include <random.h>
 #include <screen.h>
 #include <sd.h>
@@ -319,6 +323,11 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_restore_from_mnemonic_tag:
         response->which_response = Response_success_tag;
         return _api_restore_from_mnemonic(&(request->request.restore_from_mnemonic));
+#endif
+#if PRODUCT_BITBOX_BASE == 1
+    case Request_bitboxbase_tag:
+        response->which_response = Response_success_tag;
+        return commander_bitboxbase(&(request->request.bitboxbase));
 #endif
     case Request_reboot_tag:
         response->which_response = Response_success_tag;

@@ -179,7 +179,10 @@ static bool _process_handshake(
         // We are paired now, so we pop that screen.
         // Pairing is the start of a session, so we clean the screen stack in case
         // we started a new session in the middle of something.
+        // In bitboxbase the "background" screen should never be popped.
+#if PLATFORM_BITBOX02 == 1
         ui_screen_stack_pop_all();
+#endif
 
         out_packet->len = 1;
         out_packet->data_addr[0] = _require_pairing_verification;

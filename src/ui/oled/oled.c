@@ -117,6 +117,8 @@ enum _interface_t {
     INTERFACE_DATA,
 };
 
+static volatile bool _enabled = false;
+
 /**
  * Write to serial interface
  * @param [in] interface which interface to talk to.
@@ -169,6 +171,9 @@ static inline void _write_cmd_with_param(uint8_t command, uint8_t value)
 
 void oled_init(void)
 {
+    if (_enabled) {
+        return;
+    }
     // DC-DC OFF
     gpio_set_pin_level(PIN_OLED_ON, 0);
     delay_us(5);
@@ -212,6 +217,7 @@ void oled_init(void)
 
     // DC-DC ON
     gpio_set_pin_level(PIN_OLED_ON, 1);
+    _enabled = true;
 }
 
 void oled_send_buffer(void)
@@ -287,4 +293,15 @@ void oled_set_pixel(uint16_t x, uint16_t y, uint8_t c)
     }
 #endif
     _frame_buffer_updated = true;
+}
+
+void oled_off(void)
+{
+    if (!_enabled) {
+        return;
+    }
+    _write_cmd(OLED_CMD_SET_DISPLAY_OFF);
+    // OFF VCC
+    gpio_set_pin_level(PIN_OLED_ON, 0);
+    _enabled = false;
 }

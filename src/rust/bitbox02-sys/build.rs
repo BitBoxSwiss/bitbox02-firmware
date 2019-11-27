@@ -32,12 +32,25 @@ fn main() {
         .whitelist_function("UG_ClearBuffer")
         .whitelist_function("UG_SendBuffer")
         .whitelist_function("workflow_confirm")
+        .whitelist_function("screen_print_debug")
+        .whitelist_function("ui_screen_stack_push")
+        .whitelist_function("ui_screen_stack_pop")
+        .whitelist_function("label_create")
+        .whitelist_function("bitboxbase_watchdog_reset")
+        .whitelist_function("leds_turn_small_led")
+        .whitelist_function("leds_turn_big_led")
+        .whitelist_function("wally_sha256")
+        .whitelist_type("component_t")
+        .whitelist_type("BitBoxBaseRequest")
+        .whitelist_var(".*_tag")
         .whitelist_var("font_font_a_9X9")
+        .whitelist_var("WALLY_OK")
         .use_core()
         .ctypes_prefix("c_types")
         .clang_arg("-D__SAMD51J20A__")
         .clang_arg("-DPB_NO_PACKED_STRUCTS=1")
-        .clang_arg("-DPB_FIELD_16BIT=1");
+        .clang_arg("-DPB_FIELD_16BIT=1")
+        .clang_arg("-fshort-enums");
 
     // Fetch sysroot from the environment. If there isn't any sysroot assume we are building for
     // testing
@@ -53,7 +66,6 @@ fn main() {
             "-mcpu=cortex-m4",
             "-mthumb",
             "-mfloat-abi=soft",
-            "-fshort-enums",
         ]);
     } else {
         bindings = bindings.clang_arg("-DTESTING")

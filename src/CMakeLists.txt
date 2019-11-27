@@ -156,6 +156,14 @@ set(PLATFORM-BITBOXBASE-SOURCES
 )
 set(PLATFORM-BITBOXBASE-SOURCES ${PLATFORM-BITBOXBASE-SOURCES} PARENT_SCOPE)
 
+set(BITBOXBASE-FIRMWARE-SOURCES
+  ${CMAKE_SOURCE_DIR}/src/bitboxbase/bitboxbase_background.c
+  ${CMAKE_SOURCE_DIR}/src/bitboxbase/bitboxbase_watchdog.c
+  ${CMAKE_SOURCE_DIR}/src/bitboxbase/bitboxbase_screensaver.c
+  ${CMAKE_SOURCE_DIR}/src/bitboxbase/bitboxbase_status.c
+)
+set(BITBOXBASE-FIRMWARE-SOURCES ${BITBOXBASE-FIRMWARE-SOURCES} PARENT_SCOPE)
+
 set(CRYPTOAUTHLIB-SOURCES
   ${CMAKE_SOURCE_DIR}/src/securechip/securechip.c
 )
@@ -239,8 +247,9 @@ if(CMAKE_CROSSCOMPILING)
   get_property(ASF4_MIN_INCLUDES TARGET asf4-drivers-min PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
   get_property(ASF4_INCLUDES TARGET asf4-drivers PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
   get_property(CMSIS_INCLUDES TARGET CMSIS PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+  get_property(WALLY_INCLUDES TARGET wallycore PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
 
-  set(RUST_INCLUDES ${INCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDES} ${ASF4_MIN_INCLUDES} ${CMSIS_INCLUDES})
+  set(RUST_INCLUDES ${INCLUDES} ${SYSTEMINCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDES} ${ASF4_MIN_INCLUDES} ${CMSIS_INCLUDES} ${NANOPB_INCLUDE_DIRS} ${WALLY_INCLUDES})
 
   if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     set(RUST_PROFILE "debug")
@@ -287,7 +296,7 @@ if(CMAKE_CROSSCOMPILING)
   # TODO(nc): Add dependency on global "doc" target on this when api-docs branch is merged
   add_custom_target(rust-docs
     COMMAND
-      ${CMAKE_COMMAND} -E env SYSROOT=${CMAKE_SYSROOT} INCLUDES="${RUST_INCLUDES}" ${CARGO} doc --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${CMAKE_BINARY_DIR}/docs-rust ${RUST_CARGO_FLAG} --target thumbv7em-none-eabi
+      ${CMAKE_COMMAND} -E env SYSROOT=${CMAKE_SYSROOT} INCLUDES="${RUST_INCLUDES}" ${CARGO} doc --document-private-items --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${CMAKE_BINARY_DIR}/docs-rust ${RUST_CARGO_FLAG} --target thumbv7em-none-eabi
     COMMAND
       ${CMAKE_COMMAND} -E echo "See docs at file://${CMAKE_BINARY_DIR}/docs-rust/thumbv7em-none-eabi/doc/bitbox02_rust/index.html"
   )
@@ -454,13 +463,13 @@ if(CMAKE_CROSSCOMPILING)
   target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY APP_BTC)
   target_sources(firmware-btc.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
 
-  target_sources(firmware-bitboxbase.elf PRIVATE bitboxbase/bitboxbase.c)
+  target_sources(firmware-bitboxbase.elf PRIVATE bitboxbase/bitboxbase.c commander/commander_bitboxbase.c)
   target_compile_definitions(firmware-bitboxbase.elf PRIVATE PRODUCT_BITBOX_BASE)
-  target_sources(firmware-bitboxbase.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES})
+  target_sources(firmware-bitboxbase.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES} ${BITBOXBASE-FIRMWARE-SOURCES})
 
   target_sources(firmware-bitboxbase-semihosting.elf PRIVATE bitboxbase/bitboxbase.c)
   target_compile_definitions(firmware-bitboxbase-semihosting.elf PRIVATE PRODUCT_BITBOX_BASE SEMIHOSTING)
-  target_sources(firmware-bitboxbase-semihosting.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES})
+  target_sources(firmware-bitboxbase-semihosting.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES} ${BITBOXBASE-FIRMWARE-SOURCES})
 
   target_link_libraries(firmware-bitboxbase.elf PRIVATE bitbox02_rust)
   add_dependencies(firmware-bitboxbase.elf rust rust-bindgen)

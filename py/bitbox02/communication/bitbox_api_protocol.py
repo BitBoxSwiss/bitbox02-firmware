@@ -67,6 +67,10 @@ ATTESTATION_PUBKEYS: List[bytes] = [
         "04c4e82d6d1b91e7853eba96a871ad31fc62620b826b0b8acf815c03de31b792a"
         "98e05bb34d3b9e0df1040eac485f03ff8bbbf7a857ef1cf2a49a60ac084efb88f"
     ),
+    binascii.unhexlify(
+        "040526f5b8348a8d55e7b1cac043ce98c55bbdb3311b4d1bb2d654281edf8aeb2"
+        "1f018fb027a6b08e4ddc62c919e648690722d00c6f54c668c9bd8224a1d82423a"
+    ),
 ]
 
 ATTESTATION_PUBKEYS_MAP: Dict[bytes, bytes] = {

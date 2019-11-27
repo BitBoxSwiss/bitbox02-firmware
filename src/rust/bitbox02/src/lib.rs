@@ -22,15 +22,38 @@ use core::time::Duration;
 pub use bitbox02_sys::BitBoxBaseConfirmPairingRequest;
 pub use bitbox02_sys::BitBoxBaseDisplayStatusRequest;
 pub use bitbox02_sys::BitBoxBaseHeartbeatRequest;
+pub use bitbox02_sys::BitBoxBaseRequest;
 pub use bitbox02_sys::BitBoxBaseSetConfigRequest;
 
 // Reexport as u16 since this is the correct type (bindgen will generate them as u32)
 #[allow(non_upper_case_globals)]
-pub const BitBoxBaseSetConfigRequest_hostname_tag: u16 =
-    bitbox02_sys::BitBoxBaseSetConfigRequest_hostname_tag as u16;
-#[allow(non_upper_case_globals)]
 pub const BitBoxBaseSetConfigRequest_ip_tag: u16 =
     bitbox02_sys::BitBoxBaseSetConfigRequest_ip_tag as u16;
+
+#[allow(non_upper_case_globals)]
+pub const BitBoxBaseRequest_heartbeat_tag: u16 =
+    bitbox02_sys::BitBoxBaseRequest_heartbeat_tag as u16;
+#[allow(non_upper_case_globals)]
+pub const BitBoxBaseRequest_confirm_pairing_tag: u16 =
+    bitbox02_sys::BitBoxBaseRequest_confirm_pairing_tag as u16;
+#[allow(non_upper_case_globals)]
+pub const BitBoxBaseRequest_display_status_tag: u16 =
+    bitbox02_sys::BitBoxBaseRequest_display_status_tag as u16;
+#[allow(non_upper_case_globals)]
+pub const BitBoxBaseRequest_set_config_tag: u16 =
+    bitbox02_sys::BitBoxBaseRequest_set_config_tag as u16;
+
+// Use this for functions exported to "C"
+#[allow(non_camel_case_types)]
+pub type commander_error_t = bitbox02_sys::commander_error_t;
+pub type CommanderError = bitbox02_sys::commander_error_t;
+
+pub const COMMANDER_ERR_USER_ABORT: bitbox02_sys::commander_error_t =
+    bitbox02_sys::commander_error_t_COMMANDER_ERR_USER_ABORT;
+pub const COMMANDER_ERR_GENERIC: bitbox02_sys::commander_error_t =
+    bitbox02_sys::commander_error_t_COMMANDER_ERR_GENERIC;
+pub const COMMANDER_OK: bitbox02_sys::commander_error_t =
+    bitbox02_sys::commander_error_t_COMMANDER_OK;
 
 #[macro_use]
 pub mod util;

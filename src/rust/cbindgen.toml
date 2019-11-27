@@ -4,4 +4,4 @@ include_guard = "rust_h"
 
 include_version = true
 
-includes = ["bitboxbase.pb.h"]
+includes = ["commander/commander.h", "bitboxbase.pb.h"]

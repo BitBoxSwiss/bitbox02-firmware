@@ -298,6 +298,7 @@ if(CMAKE_CROSSCOMPILING)
       --whitelist-function leds_turn_big_led
       --whitelist-function wally_sha256
       --whitelist-type component_t
+      --whitelist-type commander_error_t
       --whitelist-type BitBoxBaseRequest
       --whitelist-var ".*_tag"
       --whitelist-var font_font_a_9X9
@@ -508,7 +509,7 @@ if(CMAKE_CROSSCOMPILING)
   target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY APP_BTC)
   target_sources(firmware-btc.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
 
-  target_sources(firmware-bitboxbase.elf PRIVATE bitboxbase/bitboxbase.c commander/commander_bitboxbase.c)
+  target_sources(firmware-bitboxbase.elf PRIVATE bitboxbase/bitboxbase.c)
   target_compile_definitions(firmware-bitboxbase.elf PRIVATE PRODUCT_BITBOX_BASE)
   target_sources(firmware-bitboxbase.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES} ${BITBOXBASE-FIRMWARE-SOURCES})
 

@@ -21,7 +21,7 @@
 // The periodicity to increment the timeout counter
 #define INTERVAL_MS 1000
 // Number of periods we wait until we raise an alarm.
-#define TIMEOUT 15
+#define TIMEOUT 300
 
 extern struct timer_descriptor TIMER_0;
 

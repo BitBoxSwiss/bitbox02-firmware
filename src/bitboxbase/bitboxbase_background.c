@@ -46,7 +46,7 @@ void _render(component_t* component)
     switch (bitboxbase_state_get()) {
     case BBBNotAlive:
         leds_turn_big_led(0, LED_COLOR_RED);
-        label_update(label, "Dead");
+        label_update(label, "Error, please restart");
         break;
     case BBBWaiting:
         leds_turn_big_led(0, LED_COLOR_GREEN);

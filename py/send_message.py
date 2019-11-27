@@ -19,12 +19,14 @@ import argparse
 import pprint
 import sys
 from typing import List, Any, Optional, Callable, Union, Tuple, Sequence
+import hashlib
+import base64
 
 import hid
 from tzlocal import get_localzone
 
 
-from bitboxbase import BitBoxBase, get_bitboxbase_default_device
+from bitboxbase import bitboxbase, BitBoxBase, get_bitboxbase_default_device
 from communication import devices, HARDENED, UserAbortException, u2fhid, usart
 
 import bitbox02
@@ -372,9 +374,44 @@ class SendMessageBitBoxBase:
             return
         print("User aborted")
 
+    def _set_config(self) -> None:
+        # pylint: disable=no-member
+        ip_str = input("Enter an IP: ")
+        ip_bytes = bytes([int(x) for x in ip_str.split(".")])
+        hostname = input("Enter hostname: ")
+        self._device.set_config(
+            bitboxbase.BitBoxBaseSetConfigRequest.LED_ALWAYS, ip_bytes, hostname
+        )
+
+    def _heartbeat(self) -> None:
+        # pylint: disable=no-member
+        print("States:")
+        for name, state_enum in bitboxbase.BitBoxBaseHeartbeatRequest.StateCode.items():
+            print(f"{state_enum}: {name}")
+        state = bitboxbase.BitBoxBaseHeartbeatRequest.StateCode.items()[int(input("state: "))][1]
+        for name, desc_enum in bitboxbase.BitBoxBaseHeartbeatRequest.DescriptionCode.items():
+            print(f"{desc_enum}: {name}")
+        description = bitboxbase.BitBoxBaseHeartbeatRequest.DescriptionCode.items()[
+            int(input("description: "))
+        ][1]
+        self._device.heartbeat(state, description)
+
+    def _confirm_pairing(self) -> None:
+        noise = input("noise: ").encode("utf-8")
+        # Always give API call 32 bytes of data
+        stretch = hashlib.sha256(noise)
+        hsh = hashlib.sha256(stretch.digest())
+        print(base64.b32encode(hsh.digest())[:20])
+        self._device.confirm_pairing(stretch.digest())
+
     def _menu(self) -> None:
         """Print the menu"""
-        choices = (("Reboot into bootloader", self._reboot_bootloader),)
+        choices = (
+            ("Reboot into bootloader", self._reboot_bootloader),
+            ("Heartbeat", self._heartbeat),
+            ("Set config", self._set_config),
+            ("Confirm pairing", self._confirm_pairing),
+        )
         choice = ask_user(choices)
         if isinstance(choice, bool):
             self._stop = True

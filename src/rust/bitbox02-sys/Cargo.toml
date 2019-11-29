@@ -6,6 +6,3 @@ edition = "2018"
 description = "Rust bindings for C code in bitbox02-firmware"
 
 [dependencies]
-
-[build-dependencies]
-bindgen = "0.49"

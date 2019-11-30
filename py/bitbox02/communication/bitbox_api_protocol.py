@@ -134,7 +134,7 @@ class BitBoxCommonAPI:
         self,
         transport: TransportLayer,
         device_info: DeviceInfo,
-        show_pairing_callback: Callable[[str], None],
+        show_pairing_callback: Callable[[str], bool],
         attestation_check_callback: Optional[Callable[[bool], None]] = None,
     ):
         self.debug = False
@@ -180,11 +180,6 @@ class BitBoxCommonAPI:
         send_msg = noise.write_message()
         assert noise.handshake_finished
         pairing_code = base64.b32encode(noise.get_handshake_hash()).decode("ascii")
-        show_pairing_callback(
-            "{} {}\n{} {}".format(
-                pairing_code[:5], pairing_code[5:10], pairing_code[10:15], pairing_code[15:20]
-            )
-        )
         response = self._query(send_msg)
 
         # Can be set to False if the remote static pubkey was previously confirmed.
@@ -192,7 +187,18 @@ class BitBoxCommonAPI:
 
         pairing_verification_required_by_device = response == b"\x01"
         if pairing_verification_required_by_host or pairing_verification_required_by_device:
-            pairing_response = self._query(OP_I_CAN_HAS_PAIRIN_VERIFICASHUN)
+            cid = self._transport.generate_cid()
+            self._transport.write(OP_I_CAN_HAS_PAIRIN_VERIFICASHUN, HWW_CMD, cid)
+            client_response_success = show_pairing_callback(
+                "{} {}\n{} {}".format(
+                    pairing_code[:5], pairing_code[5:10], pairing_code[10:15], pairing_code[15:20]
+                )
+            )
+            if not client_response_success:
+                self.close()
+                raise Exception("pairing rejected by the user on client")
+            pairing_response = self._transport.read(HWW_CMD, cid)
+
             if pairing_response == RESPONSE_SUCCESS:
                 pass
             elif pairing_response == RESPONSE_FAILURE:

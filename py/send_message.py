@@ -541,9 +541,10 @@ def connect_to_usb_bitbox(debug: bool) -> int:
             return boot_app.run()
     else:
 
-        def show_pairing(code: str) -> None:
+        def show_pairing(code: str) -> bool:
             print("Please compare and confirm the pairing code on your BitBox02:")
             print(code)
+            return True
 
         def attestation_check(result: bool) -> None:
             if result:
@@ -574,9 +575,10 @@ def connect_to_usart_bitboxbase(debug: bool, serial_port: usart.SerialPort) -> i
     print("Trying to connect to BitBoxBase firmware...")
     bootloader_device: devices.DeviceInfo = get_bitboxbase_default_device(serial_port.port)
 
-    def show_pairing(code: str) -> None:
+    def show_pairing(code: str) -> bool:
         print("(Pairing should be automatic) Pairing code:")
         print(code)
+        return True
 
     def attestation_check(result: bool) -> None:
         if result:

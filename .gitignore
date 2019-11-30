@@ -14,3 +14,15 @@ NOTES.md
 bitbox02.egg-info
 /py/bitbox02/build
 /py/bitbox02/dist
+
+### Vim ###
+# Swap
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# Session
+Session.vim
+

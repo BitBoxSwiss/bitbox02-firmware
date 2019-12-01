@@ -143,6 +143,7 @@ class BitBoxCommonAPI:
 
         self.version = parse_device_version(serial_number)
         if self.version is None:
+            self.close()
             raise ValueError(f"Could not parse version from {serial_number}")
         # Delete the prelease part, as it messes with the comparison (e.g. 3.0.0-pre < 3.0.0 is
         # True, but the 3.0.0-pre has already the same API breaking changes like 3.0.0...).
@@ -163,9 +164,11 @@ class BitBoxCommonAPI:
             else:
                 # since 3.0.0, unlock can fail if cancelled
                 if unlock_result == RESPONSE_FAILURE:
+                    self.close()
                     raise Exception("Unlock process aborted")
 
         if self._query(OP_I_CAN_HAS_HANDSHAEK) != RESPONSE_SUCCESS:
+            self.close()
             raise Exception("Couldn't kick off handshake")
 
         # init noise channel
@@ -196,8 +199,10 @@ class BitBoxCommonAPI:
             if pairing_response == RESPONSE_SUCCESS:
                 pass
             elif pairing_response == RESPONSE_FAILURE:
+                self.close()
                 raise Exception("pairing rejected by the user")
             else:
+                self.close()
                 raise Exception("unexpected response")
         self.noise = noise
 

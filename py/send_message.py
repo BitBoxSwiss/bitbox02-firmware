@@ -170,7 +170,7 @@ class SendMessage:
             "m/84'/0'/0' xpub: ",
             self._device.btc_pub(
                 keypath=[84 + HARDENED, 0 + HARDENED, 0 + HARDENED],
-                output_type=bitbox02.hww.BTCPubRequest.ZPUB,  # pylint: disable=no-member
+                output_type=bitbox02.btc.BTCPubRequest.ZPUB,  # pylint: disable=no-member
             ),
         )
 
@@ -264,7 +264,7 @@ class SendMessage:
         def address(display: bool = False) -> str:
             return self._device.eth_pub(
                 keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
-                output_type=bitbox02.hww.ETHPubRequest.ADDRESS,  # pylint: disable=no-member
+                output_type=bitbox02.eth.ETHPubRequest.ADDRESS,  # pylint: disable=no-member
                 display=display,
             )
 

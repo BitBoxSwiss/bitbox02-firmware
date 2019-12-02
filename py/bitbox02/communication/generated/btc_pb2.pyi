@@ -108,11 +108,15 @@ class BTCPubRequest(google___protobuf___message___Message):
         YPUB = typing___cast(BTCPubRequest.OutputType, 2)
         ZPUB = typing___cast(BTCPubRequest.OutputType, 3)
         ADDRESS = typing___cast(BTCPubRequest.OutputType, 4)
+        VPUB = typing___cast(BTCPubRequest.OutputType, 5)
+        UPUB = typing___cast(BTCPubRequest.OutputType, 6)
     TPUB = typing___cast(BTCPubRequest.OutputType, 0)
     XPUB = typing___cast(BTCPubRequest.OutputType, 1)
     YPUB = typing___cast(BTCPubRequest.OutputType, 2)
     ZPUB = typing___cast(BTCPubRequest.OutputType, 3)
     ADDRESS = typing___cast(BTCPubRequest.OutputType, 4)
+    VPUB = typing___cast(BTCPubRequest.OutputType, 5)
+    UPUB = typing___cast(BTCPubRequest.OutputType, 6)
 
     keypath = ... # type: google___protobuf___internal___containers___RepeatedScalarFieldContainer[int]
     script_type = ... # type: BTCScriptType

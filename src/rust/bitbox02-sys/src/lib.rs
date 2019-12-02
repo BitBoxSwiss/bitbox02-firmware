@@ -21,4 +21,8 @@
 pub mod c_types;
 
 // include our generated bindings
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+include!(concat!(
+    env!("CMAKE_CURRENT_BINARY_DIR"),
+    "/rust",
+    "/bindings.rs"
+));

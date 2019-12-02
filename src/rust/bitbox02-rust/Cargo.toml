@@ -8,6 +8,15 @@ description = "BitBox02 functionality implemented in rust"
 [lib]
 crate-type = ["staticlib"]
 
+[profile.release]
+debug = true
+opt-level = 'z'
+codegen-units = 1
+panic = 'abort'
+
+[profile.dev]
+opt-level = 'z'
+
 [dependencies]
 bitbox02 = {path = "../bitbox02"}
 binascii = "0.1"
@@ -17,6 +26,3 @@ binascii = "0.1"
 version  = "0.5.1"
 # Disable the "std" feature
 default-features = false
-
-[profile.release]
-debug = true

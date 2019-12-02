@@ -37,9 +37,13 @@ type c_char = u8;
 // handler will print the available information on the screen. If we compile with `panic=abort`
 // this code will never get executed.
 #[cfg(not(test))]
+#[cfg_attr(not(debug_assertions), allow(unused_variables))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    print_debug!(0, "Internal error: {}", info);
+    #[cfg(debug_assertions)]
+    print_debug!(0, "Error: {}", info);
+    #[cfg(not(debug_assertions))]
+    print_debug!(0, "Error");
     loop {}
 }
 

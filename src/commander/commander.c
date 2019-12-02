@@ -23,7 +23,7 @@
 #endif
 #include "commander/commander_states.h"
 #if PRODUCT_BITBOX_BASE == 1
-#include "commander/commander_bitboxbase.h"
+#include "rust/bitbox02_rust.h"
 #endif
 
 #include <flags.h>

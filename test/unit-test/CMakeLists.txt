@@ -19,7 +19,7 @@
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-implicit-function-declaration -Wno-bad-function-cast")
 
 set(DBB-FILTERED-SOURCES
-  ${DBB-FIRMWARE-SOURCES}
+  ${DBB-FIRMWARE-COMMON-SOURCES}
   ${DBB-FIRMWARE-UI-SOURCES}
   ${DBB-FIRMWARE-PROTOBUF-SOURCES}
   ${FIRMWARE-U2F-SOURCES}
@@ -46,9 +46,13 @@ find_package(Nanopb REQUIRED)
 
 add_library(bitbox
   STATIC
+  ${APP-BTC-SOURCES}
   ${DBB-FILTERED-SOURCES}
   ${CTAES-SOURCES}
   ${ETHEREUM-SOURCES}
+  # The usb.c file mixes together hardware and testing code... This should be split.
+  ${CMAKE_SOURCE_DIR}/src/usb/usb.c
+  ${CMAKE_SOURCE_DIR}/src/usb/usb_frame.c
   framework/mock_blocking.c
   framework/mock_screen.c
   framework/mock_screen_stack.c

@@ -18,8 +18,20 @@
 
 include_directories(${NANOPB_INCLUDE_DIRS})
 
-set(SOURCES
-  ${DBB-FIRMWARE-SOURCES}
+set(BBBASE-SOURCES
+  ${BITBOXBASE-FIRMWARE-SOURCES}
+  ${DBB-FIRMWARE-UI-SOURCES}
+  ${DRIVER-SOURCES}
+  ${DBB-FIRMWARE-PROTOBUF-SOURCES}
+  ${CRYPTOAUTHLIB-SOURCES}
+  ${ETHEREUM-SOURCES}
+  ${FIRMWARE-U2F-SOURCES}
+  ${CMAKE_SOURCE_DIR}/src/common_main.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/framework/test_common.c
+)
+
+set(BB02-SOURCES
+  ${BITBOX02-FIRMWARE-SOURCES}
   ${DBB-FIRMWARE-UI-SOURCES}
   ${FIRMWARE-DRIVER-SOURCES}
   ${DRIVER-SOURCES}
@@ -44,21 +56,21 @@ set(INCLUDES
     ${CMAKE_BINARY_DIR}/src
 )
 
-add_library(bitbox02-platform
+add_library(bitbox02-test-platform
   STATIC
-  ${SOURCES}
-  ${PLATFORM-BITBOX02-SOURCES}
+  ${BB02-SOURCES}
 )
 
-target_include_directories(bitbox02-platform PUBLIC ${INCLUDES})
-target_include_directories(bitbox02-platform SYSTEM PUBLIC ${SYSTEMINCLUDES})
-target_include_directories(bitbox02-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
-target_compile_definitions(bitbox02-platform PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
-target_compile_definitions(bitbox02-platform PUBLIC "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
-add_dependencies(bitbox02-platform generate-protobufs)
+target_link_libraries(bitbox02-test-platform PUBLIC bitbox02-platform)
+target_include_directories(bitbox02-test-platform PUBLIC ${INCLUDES})
+target_include_directories(bitbox02-test-platform SYSTEM PUBLIC ${SYSTEMINCLUDES})
+target_include_directories(bitbox02-test-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
+target_compile_definitions(bitbox02-test-platform PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
+target_compile_definitions(bitbox02-test-platform PUBLIC "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
+add_dependencies(bitbox02-test-platform generate-protobufs)
 # needed to find version.h
-target_include_directories(bitbox02-platform SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
-target_link_libraries(bitbox02-platform
+target_include_directories(bitbox02-test-platform SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
+target_link_libraries(bitbox02-test-platform
   PUBLIC
     wallycore
     secp256k1
@@ -74,9 +86,9 @@ target_link_libraries(bitbox02-platform
 )
 
 # Always enable semihosting for the test firmwares
-target_compile_definitions(bitbox02-platform PUBLIC PRODUCT_BITBOX_MULTI SEMIHOSTING)
-target_link_libraries(bitbox02-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
-target_compile_options(bitbox02-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
+target_compile_definitions(bitbox02-test-platform PUBLIC PRODUCT_BITBOX_MULTI SEMIHOSTING)
+target_link_libraries(bitbox02-test-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
+target_compile_options(bitbox02-test-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
 
 set(BB02_TEST_LIST
   all_variants_menu
@@ -123,7 +135,7 @@ foreach(name ${BB02_TEST_LIST})
   target_link_libraries(${elf}
     PRIVATE
       c
-      bitbox02-platform
+      bitbox02-test-platform
       asf4-drivers-min
       ${QTOUCHLIB_A}
       ${QTOUCHLIB_B}
@@ -147,21 +159,21 @@ foreach(name ${BB02_TEST_LIST})
 endforeach()
 
 
-add_library(bitboxbase-platform
+add_library(bitboxbase-test-platform
   STATIC
-  ${SOURCES}
-  ${PLATFORM-BITBOXBASE-SOURCES}
+  ${BBBASE-SOURCES}
 )
 
-target_include_directories(bitboxbase-platform PUBLIC ${INCLUDES})
-target_include_directories(bitboxbase-platform SYSTEM PUBLIC ${SYSTEMINCLUDES})
-target_include_directories(bitboxbase-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
-target_compile_definitions(bitboxbase-platform PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
-target_compile_definitions(bitboxbase-platform PUBLIC "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
-add_dependencies(bitboxbase-platform generate-protobufs)
+target_link_libraries(bitboxbase-test-platform PUBLIC bitboxbase-platform)
+target_include_directories(bitboxbase-test-platform PUBLIC ${INCLUDES})
+target_include_directories(bitboxbase-test-platform SYSTEM PUBLIC ${SYSTEMINCLUDES})
+target_include_directories(bitboxbase-test-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
+target_compile_definitions(bitboxbase-test-platform PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
+target_compile_definitions(bitboxbase-test-platform PUBLIC "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
+add_dependencies(bitboxbase-test-platform generate-protobufs)
 # needed to find version.h
-target_include_directories(bitboxbase-platform SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
-target_link_libraries(bitboxbase-platform
+target_include_directories(bitboxbase-test-platform SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
+target_link_libraries(bitboxbase-test-platform
   PUBLIC
     wallycore
     secp256k1
@@ -175,11 +187,12 @@ target_link_libraries(bitboxbase-platform
     ctaes
     -Wl,-u,exception_table
 )
+add_dependencies(bitboxbase-test-platform rust-cbindgen)
 
 # Always enable semihosting for the test firmwares
-target_compile_definitions(bitboxbase-platform PUBLIC PRODUCT_BITBOX_BASE SEMIHOSTING)
-target_link_libraries(bitboxbase-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
-target_compile_options(bitboxbase-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
+target_compile_definitions(bitboxbase-test-platform PUBLIC PRODUCT_BITBOX_BASE SEMIHOSTING)
+target_link_libraries(bitboxbase-test-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
+target_compile_options(bitboxbase-test-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
 
 set(BBB_TEST_LIST
   bitboxbase_touch_demo
@@ -201,7 +214,7 @@ foreach(name ${BBB_TEST_LIST})
     PRIVATE
       asf4-drivers-min
       asf4-drivers
-      bitboxbase-platform
+      bitboxbase-test-platform
       c
       ${QTOUCHLIB_A}
       ${QTOUCHLIB_B}

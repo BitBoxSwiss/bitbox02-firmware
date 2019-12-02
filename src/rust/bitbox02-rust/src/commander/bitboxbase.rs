@@ -30,6 +30,7 @@ fn confirm_pairing(
     bitbox02::leds_turn_big_led(0, None);
     bitbox02::leds_turn_big_led(1, None);
 
+    bitbox02::bitboxbase_screensaver_reset();
     let res = pairing::extra_hash_create(bytes);
     bitbox02::leds_turn_small_led(0, false);
     bitbox02::leds_turn_small_led(4, false);
@@ -47,11 +48,22 @@ fn heartbeat(request: &bitbox02::BitBoxBaseHeartbeatRequest) -> bitbox02::Comman
     if request.state_code > 3 {
         return bitbox02::COMMANDER_ERR_GENERIC;
     }
-    state.state = unsafe { core::mem::transmute(request.state_code + 2) };
+    // Transmute uint32 to BitBoxBaseBackgroundDescription
+    // This is safe for values 0 to 3.
     if request.description_code > 8 {
         return bitbox02::COMMANDER_ERR_GENERIC;
     }
-    state.description_code = unsafe { core::mem::transmute(request.description_code) };
+
+    let new_state = unsafe { core::mem::transmute(request.state_code + 2) };
+    if new_state != state.state {
+        bitbox02::bitboxbase_screensaver_reset();
+    }
+    state.state = new_state;
+    let new_description_code = unsafe { core::mem::transmute(request.description_code) };
+    if new_description_code != state.description_code {
+        bitbox02::bitboxbase_screensaver_reset();
+    }
+    state.description_code = new_description_code;
     bitbox02::bitboxbase_watchdog_reset();
 
     bitbox02::COMMANDER_OK
@@ -102,6 +114,7 @@ fn display_status(request: &bitbox02::BitBoxBaseDisplayStatusRequest) -> bitbox0
         None
     };
     // Accessing a mutable static is unsafe
+    bitbox02::bitboxbase_screensaver_reset();
     display::display_status(unsafe { Config::get_singleton() }, duration);
     bitbox02::COMMANDER_OK
 }

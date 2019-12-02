@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <bitboxbase.pb.h>
+#include <bitboxbase/bitboxbase_screensaver.h>
 #include <bitboxbase/bitboxbase_watchdog.h>
 #include <commander/commander.h>
 #include <platform/bitboxbase/leds.h>

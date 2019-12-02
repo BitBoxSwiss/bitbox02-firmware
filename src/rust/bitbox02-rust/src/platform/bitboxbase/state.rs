@@ -25,7 +25,7 @@ pub struct State {
 /// and have a long name.
 /// TODO: Shorten name when not used in C anymore.
 #[allow(dead_code)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 #[repr(u8)]
 pub enum BitBoxBaseBackgroundState {
     /// Waiting is the initial state before any heartbeat after power on.
@@ -44,7 +44,7 @@ pub enum BitBoxBaseBackgroundState {
 
 /// Strings that the MW can set
 #[allow(dead_code)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 #[repr(u8)]
 pub enum BitBoxBaseBackgroundDescription {
     Empty,
@@ -92,7 +92,10 @@ static mut STATE: State = State {
 #[no_mangle]
 pub extern "C" fn bitboxbase_state_set_not_alive() {
     let state = unsafe { State::get_singleton_mut() };
-    (*state).state = BitBoxBaseBackgroundState::BBBNotAlive;
+    if state.state != BitBoxBaseBackgroundState::BBBNotAlive {
+        (*state).state = BitBoxBaseBackgroundState::BBBNotAlive;
+        bitbox02::bitboxbase_screensaver_reset();
+    }
 }
 
 #[no_mangle]

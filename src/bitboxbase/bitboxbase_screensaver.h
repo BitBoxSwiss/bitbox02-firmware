@@ -15,8 +15,6 @@
 #ifndef _BITBOXBASE_SCREENSAVER_H
 #define _BITBOXBASE_SCREENSAVER_H
 
-#include <stdbool.h>
-
 /**
  * @file
  *
@@ -24,17 +22,17 @@
  */
 
 /**
- * Initialize counter
+ * Initialize screensaver
  */
 void bitboxbase_screensaver_init(void);
 
 /**
- * Check if screensaver should be enabled
+ * Check if screensaver should be enabled and enable it
  */
-bool bitboxbase_screensaver_check(void);
+void bitboxbase_screensaver_process(void);
 
 /**
- * Reset counter
+ * Reset counter and disable screensaver
  */
 void bitboxbase_screensaver_reset(void);
 

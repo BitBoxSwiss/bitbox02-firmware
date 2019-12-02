@@ -299,6 +299,7 @@ if(CMAKE_CROSSCOMPILING)
       --whitelist-function ui_screen_stack_pop
       --whitelist-function label_create
       --whitelist-function bitboxbase_watchdog_reset
+      --whitelist-function bitboxbase_screensaver_reset
       --whitelist-function leds_turn_small_led
       --whitelist-function leds_turn_big_led
       --whitelist-function wally_sha256

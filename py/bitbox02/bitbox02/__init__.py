@@ -50,6 +50,7 @@ from .bitbox02 import (
     HARDENED,
     hww,
     btc,
+    eth,
     UserAbortException,
 )
 from .bootloader import Bootloader

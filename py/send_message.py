@@ -175,7 +175,7 @@ class SendMessage:
             "m/84'/0'/0' xpub: ",
             self._device.btc_pub(
                 keypath=[84 + HARDENED, 0 + HARDENED, 0 + HARDENED],
-                output_type=bitbox02.hww.BTCPubRequest.ZPUB,  # pylint: disable=no-member
+                output_type=bitbox02.btc.BTCPubRequest.ZPUB,  # pylint: disable=no-member
             ),
         )
 
@@ -269,7 +269,7 @@ class SendMessage:
         def address(display: bool = False) -> str:
             return self._device.eth_pub(
                 keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
-                output_type=bitbox02.hww.ETHPubRequest.ADDRESS,  # pylint: disable=no-member
+                output_type=bitbox02.eth.ETHPubRequest.ADDRESS,  # pylint: disable=no-member
                 display=display,
             )
 
@@ -416,11 +416,19 @@ class SendMessageBootloader:
     def _erase(self) -> None:
         self._device.erase()
 
+    def _show_fw_hash(self) -> None:
+        self._device.set_show_firmware_hash(True)
+
+    def _dont_show_fw_hash(self) -> None:
+        self._device.set_show_firmware_hash(False)
+
     def _menu(self) -> None:
         choices = (
             ("Boot", self._boot),
             ("Print versions", self._get_versions),
             ("Erase firmware", self._erase),
+            ("Show firmware hash", self._show_fw_hash),
+            ("Don't show firmware hash", self._dont_show_fw_hash),
         )
         choice = ask_user(choices)
         if isinstance(choice, bool):

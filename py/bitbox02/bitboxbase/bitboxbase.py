@@ -42,7 +42,7 @@ class BitBoxBase(communication.BitBoxCommonAPI):
         self,
         device: communication.TransportLayer,
         device_info: DeviceInfo,
-        show_pairing_callback: Callable[[str], None],
+        show_pairing_callback: Callable[[str], bool],
         attestation_check_callback: Optional[Callable[[bool], None]] = None,
     ):
         communication.BitBoxCommonAPI.__init__(

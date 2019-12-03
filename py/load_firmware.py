@@ -44,9 +44,10 @@ def _get_bitbox_and_reboot() -> devices.DeviceInfo:
     device = devices.get_any_bitbox02()
 
     # bitbox02 detected -> send command to reboot into bootloader to upgrade.
-    def _show_pairing(code: str) -> None:
+    def _show_pairing(code: str) -> bool:
         print("Please compare and confirm the pairing code on your BitBox02:")
         print(code)
+        return True
 
     hid_device = hid.device()
     hid_device.open_path(device["path"])
@@ -155,9 +156,10 @@ def _find_and_open_usart_bitbox(serial_port: usart.SerialPort) -> devices.Device
     print("BitBox bootloader not available.")
     print("Trying to connect to BitBox firmware instead...")
 
-    def _show_pairing(code: str) -> None:
+    def _show_pairing(code: str) -> bool:
         print("(Pairing should be automatic) Pairing code:")
         print(code)
+        return True
 
     try:
         transport = usart.U2FUsart(serial_port)

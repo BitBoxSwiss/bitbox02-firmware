@@ -26,36 +26,17 @@ set(DBB-FIRMWARE-COMMON-SOURCES
   ${CMAKE_SOURCE_DIR}/src/memory/memory.c
   ${CMAKE_SOURCE_DIR}/src/salt.c
   ${CMAKE_SOURCE_DIR}/src/i2c_ecc.c
-  ${CMAKE_SOURCE_DIR}/src/touch/gestures.c
   ${CMAKE_SOURCE_DIR}/src/usb/noise.c
   ${CMAKE_SOURCE_DIR}/src/backup.c
   ${CMAKE_SOURCE_DIR}/src/restore.c
   ${CMAKE_SOURCE_DIR}/src/reset.c
   ${CMAKE_SOURCE_DIR}/src/cipher/cipher.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/blocking.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/cancel.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/workflow.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/trinary_input.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/confirm_time.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/status.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/password.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/password_enter.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/create_seed.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/unlock.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/show_mnemonic.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/restore_from_mnemonic.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/pairing.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/verify_pub.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/verify_total.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/reboot.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/sdcard.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/backup.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/reset.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/restore.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/reboot.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/restore.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/restore_from_mnemonic.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/workflow.c
 )
 set(DBB-FIRMWARE-COMMON-SOURCES ${DBB-FIRMWARE-COMMON-SOURCES} PARENT_SCOPE)
 
@@ -71,22 +52,33 @@ set(DBB-FIRMWARE-USART-SOURCES
 )
 set(DBB-FIRMWARE-USART-SOURCES ${DBB-FIRMWARE-USART-SOURCES} PARENT_SCOPE)
 
-set(DBB-FIRMWARE-UI-SOURCES
-    ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
+set(DBB-FIRMWARE-UI-COMMON-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_9X9.c
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_11X12.c
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_13X14.c
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_15X16.c
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_17X18.c
     ${CMAKE_SOURCE_DIR}/src/ui/screen_stack.c
-    ${CMAKE_SOURCE_DIR}/src/ui/screen_process.c
     ${CMAKE_SOURCE_DIR}/src/ui/event_handler.c
     ${CMAKE_SOURCE_DIR}/src/ui/ui_util.c
+)
+set(DBB-FIRMWARE-UI-COMMON-SOURCES ${DBB-FIRMWARE-UI-COMMON-SOURCES} PARENT_SCOPE)
+
+# UI items that are tied to their platform.
+set(DBB-FIRMWARE-UI-SOURCES
+    ${CMAKE_SOURCE_DIR}/src/ui/components/show_logo.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/waiting.c
+    ${CMAKE_SOURCE_DIR}/src/ui/screen_process.c
+    ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
+    ${CMAKE_SOURCE_DIR}/src/touch/gestures.c
+)
+set(DBB-FIRMWARE-UI-SOURCES ${DBB-FIRMWARE-UI-SOURCES} PARENT_SCOPE)
+
+# Component files that are not tied to a particular platform.
+set(DBB-FIRMWARE-COMPONENT-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/components/trinary_choice.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/trinary_input_char.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/trinary_input_string.c
-    ${CMAKE_SOURCE_DIR}/src/ui/components/show_logo.c
-    ${CMAKE_SOURCE_DIR}/src/ui/components/waiting.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/entry_screen.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/knight_rider.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/right_arrow.c
@@ -109,7 +101,30 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/components/ui_images.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_transaction.c
 )
-set(DBB-FIRMWARE-UI-SOURCES ${DBB-FIRMWARE-UI-SOURCES} PARENT_SCOPE)
+set(DBB-FIRMWARE-COMPONENT-SOURCES ${DBB-FIRMWARE-COMPONENT-SOURCES} PARENT_SCOPE)
+
+# All workflows that don't depend on a particular platform.
+set(DBB-FIRMWARE-WORKFLOW-SOURCES
+  ${CMAKE_SOURCE_DIR}/src/workflow/blocking.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/cancel.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/trinary_input.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/confirm_time.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/status.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/password.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/password_enter.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/create_seed.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/unlock.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/show_mnemonic.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/pairing.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/verify_pub.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/verify_total.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/sdcard.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/backup.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/reset.c
+)
+set(DBB-FIRMWARE-WORKFLOW-SOURCES ${DBB-FIRMWARE-WORKFLOW-SOURCES} PARENT_SCOPE)
 
 set(DBB-BOOTLOADER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/pukcc/curve_p256.c
@@ -117,13 +132,10 @@ set(DBB-BOOTLOADER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/startup.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/mpu_regions.c
-  ${CMAKE_SOURCE_DIR}/src/memory/mpu.c
-  ${CMAKE_SOURCE_DIR}/src/memory/nvmctrl.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
   ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
   ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_9X9.c
-  ${CMAKE_SOURCE_DIR}/src/screen.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
   ${CMAKE_SOURCE_DIR}/src/ui/components/ui_images.c
 )
@@ -265,23 +277,6 @@ target_include_directories(util SYSTEM PUBLIC ${SYSTEMINCLUDES})
 target_include_directories(util SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
 target_include_directories(util SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
 
-add_library(app_btc-btc ${APP-BTC-SOURCES})
-target_compile_definitions(app_btc-btc PUBLIC "APP_BTC=1" "APP_LTC=0")
-target_include_directories(app_btc-btc PRIVATE ${INCLUDES})
-target_include_directories(app_btc-btc SYSTEM PUBLIC ${SYSTEMINCLUDES})
-target_include_directories(app_btc-btc SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
-target_include_directories(app_btc-btc SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
-target_link_libraries(app_btc-btc noiseprotocol wallycore secp256k1 util)
-
-add_library(app_btc-multi ${APP-BTC-SOURCES})
-target_compile_definitions(app_btc-multi PUBLIC "APP_BTC=1" "APP_LTC=1")
-target_compile_definitions(app_btc-multi PRIVATE "NO_PLATFORM_CONFIGURED")
-target_include_directories(app_btc-multi PRIVATE ${INCLUDES})
-target_include_directories(app_btc-multi SYSTEM PUBLIC ${SYSTEMINCLUDES})
-target_include_directories(app_btc-multi SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
-target_include_directories(app_btc-multi SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
-target_link_libraries(app_btc-multi noiseprotocol wallycore secp256k1 util)
-
 set(FIRMWARE-SOURCES
   ${DBB-FIRMWARE-UI-SOURCES}
   ${FIRMWARE-DRIVER-SOURCES}
@@ -294,6 +289,7 @@ set(FIRMWARE-SOURCES
 
 set(BOOTLOADER-SOURCES
   ${DBB-BOOTLOADER-SOURCES}
+  ${DBB-FIRMWARE-UI-SOURCES}
   ${DRIVER-SOURCES}
 )
 
@@ -309,8 +305,33 @@ if(CMAKE_CROSSCOMPILING)
   get_property(CMSIS_INCLUDES TARGET CMSIS PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
   get_property(WALLY_INCLUDES TARGET wallycore PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
 
+  set(helper_libraries app_btc-btc app_btc-multi ui_common components workflows)
+  add_library(app_btc-btc ${APP-BTC-SOURCES})
+  target_compile_definitions(app_btc-btc PUBLIC "APP_BTC=1" "APP_LTC=0")
+
+  add_library(app_btc-multi ${APP-BTC-SOURCES})
+  target_compile_definitions(app_btc-multi PUBLIC "APP_BTC=1" "APP_LTC=1")
+  target_link_libraries(app_btc-multi noiseprotocol wallycore secp256k1 util)
+
+  add_library(ui_common ${DBB-FIRMWARE-UI-COMMON-SOURCES})
+
+  add_library(components ${DBB-FIRMWARE-COMPONENT-SOURCES})
+  target_link_libraries(components ui_common)
+
+  add_library(workflows ${DBB-FIRMWARE-WORKFLOW-SOURCES})
+  target_link_libraries(workflows components)
+
   foreach(include ${INCLUDES} ${SYSTEMINCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDES} ${ASF4_MIN_INCLUDES} ${CMSIS_INCLUDES} ${NANOPB_INCLUDE_DIRS} ${WALLY_INCLUDES})
     list(APPEND RUST_INCLUDES -I${include})
+    target_include_directories(components SYSTEM PRIVATE ${include})
+    target_include_directories(workflows SYSTEM PRIVATE ${include})
+    foreach (library ${helper_libraries})
+      target_include_directories(${library} PRIVATE ${INCLUDES})
+      target_include_directories(${library} SYSTEM PUBLIC ${SYSTEMINCLUDES})
+      target_include_directories(${library} SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
+      target_include_directories(${library} SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
+      target_link_libraries(${library} base32 noiseprotocol wallycore secp256k1 util)
+    endforeach()
   endforeach()
 
   if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
@@ -320,6 +341,8 @@ if(CMAKE_CROSSCOMPILING)
     set(RUST_CARGO_FLAG "--release")
     set(RUSTFLAGS --remap-path-prefix=${CMAKE_CURRENT_SOURCE_DIR}/rust=src)
   endif()
+
+  add_dependencies(workflows generate-protobufs)
 
   set(LIBBITBOX02_RUST_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust)
   set(LIBBITBOX02_RUST_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02-rust/target)
@@ -417,7 +440,7 @@ if(CMAKE_CROSSCOMPILING)
   set(HEAP_SIZE ${HEAP_SIZE} PARENT_SCOPE)
 
   add_library(bitbox02-platform ${PLATFORM-BITBOX02-SOURCES})
-  target_link_libraries(bitbox02-platform asf4-drivers-min util)
+  target_link_libraries(bitbox02-platform asf4-drivers-min util workflows)
   target_include_directories(bitbox02-platform PRIVATE ${INCLUDES})
   target_include_directories(bitbox02-platform SYSTEM PUBLIC ${SYSTEMINCLUDES})
   target_include_directories(bitbox02-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
@@ -431,7 +454,7 @@ if(CMAKE_CROSSCOMPILING)
   #endif()
 
   add_library(bitboxbase-platform ${PLATFORM-BITBOXBASE-SOURCES})
-  target_link_libraries(bitboxbase-platform asf4-drivers util)
+  target_link_libraries(bitboxbase-platform asf4-drivers util workflows)
   target_include_directories(bitboxbase-platform PRIVATE ${INCLUDES})
   target_include_directories(bitboxbase-platform SYSTEM PUBLIC ${SYSTEMINCLUDES})
   target_include_directories(bitboxbase-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})

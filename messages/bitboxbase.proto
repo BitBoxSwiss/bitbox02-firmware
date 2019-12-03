@@ -27,6 +27,11 @@ message BitBoxBaseHeartbeatRequest {
     INITIAL_BLOCK_SYNC = 1;
     DOWNLOAD_UPDATE = 2;
     OUT_OF_DISK_SPACE = 3;
+    REDIS_ERROR = 4;
+    REBOOT = 5;
+    SHUTDOWN = 6;
+    UPDATE_FAILED = 7;
+    NO_NETWORK_CONNECTION = 8;
   };
 
   StateCode state_code = 1;

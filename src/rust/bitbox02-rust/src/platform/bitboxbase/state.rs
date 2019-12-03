@@ -51,6 +51,11 @@ pub enum BitBoxBaseBackgroundDescription {
     InitialBlockDownload,
     UpdateDownload,
     OutOfDiskSpace,
+    RedisError,
+    Reboot,
+    Shutdown,
+    UpdateFailed,
+    NoNetworkConnection,
 }
 
 const DESCRIPTIONS: &[&str] = &[
@@ -58,6 +63,11 @@ const DESCRIPTIONS: &[&str] = &[
     "Initial block download",
     "Downloading update",
     "Out of disk space",
+    "Redis",
+    "Reboot",
+    "Shutdown",
+    "Update failed",
+    "No network connection",
 ];
 
 impl State {

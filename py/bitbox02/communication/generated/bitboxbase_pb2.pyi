@@ -59,10 +59,20 @@ class BitBoxBaseHeartbeatRequest(google___protobuf___message___Message):
         INITIAL_BLOCK_SYNC = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 1)
         DOWNLOAD_UPDATE = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 2)
         OUT_OF_DISK_SPACE = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 3)
+        REDIS_ERROR = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 4)
+        REBOOT = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 5)
+        SHUTDOWN = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 6)
+        UPDATE_FAILED = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 7)
+        NO_NETWORK_CONNECTION = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 8)
     EMPTY = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 0)
     INITIAL_BLOCK_SYNC = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 1)
     DOWNLOAD_UPDATE = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 2)
     OUT_OF_DISK_SPACE = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 3)
+    REDIS_ERROR = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 4)
+    REBOOT = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 5)
+    SHUTDOWN = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 6)
+    UPDATE_FAILED = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 7)
+    NO_NETWORK_CONNECTION = typing___cast(BitBoxBaseHeartbeatRequest.DescriptionCode, 8)
 
     state_code = ... # type: BitBoxBaseHeartbeatRequest.StateCode
     description_code = ... # type: BitBoxBaseHeartbeatRequest.DescriptionCode

@@ -48,7 +48,7 @@ fn heartbeat(request: &bitbox02::BitBoxBaseHeartbeatRequest) -> bitbox02::Comman
         return bitbox02::COMMANDER_ERR_GENERIC;
     }
     state.state = unsafe { core::mem::transmute(request.state_code + 2) };
-    if request.description_code > 3 {
+    if request.description_code > 8 {
         return bitbox02::COMMANDER_ERR_GENERIC;
     }
     state.description_code = unsafe { core::mem::transmute(request.description_code) };

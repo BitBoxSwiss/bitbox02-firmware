@@ -19,6 +19,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <platform_config.h>
 #include <ui/ugui/ugui.h>
 
 // TODO: allow updating

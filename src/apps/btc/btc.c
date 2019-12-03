@@ -25,6 +25,8 @@ static const uint8_t _xpub_version[4] = {0x04, 0x88, 0xb2, 0x1e};
 static const uint8_t _ypub_version[4] = {0x04, 0x9d, 0x7c, 0xb2};
 static const uint8_t _zpub_version[4] = {0x04, 0xb2, 0x47, 0x46};
 static const uint8_t _tpub_version[4] = {0x04, 0x35, 0x87, 0xcf};
+static const uint8_t _vpub_version[4] = {0x04, 0x5f, 0x1c, 0xf6};
+static const uint8_t _upub_version[4] = {0x04, 0x4a, 0x52, 0x62};
 
 bool app_btc_address(
     BTCCoin coin,
@@ -50,6 +52,10 @@ bool app_btc_address(
     switch (output_type) {
     case BTCPubRequest_OutputType_TPUB:
         return btc_common_encode_xpub(&derived_xpub, _tpub_version, out, out_len);
+    case BTCPubRequest_OutputType_VPUB:
+        return btc_common_encode_xpub(&derived_xpub, _vpub_version, out, out_len);
+    case BTCPubRequest_OutputType_UPUB:
+        return btc_common_encode_xpub(&derived_xpub, _upub_version, out, out_len);
     case BTCPubRequest_OutputType_XPUB:
         return btc_common_encode_xpub(&derived_xpub, _xpub_version, out, out_len);
     case BTCPubRequest_OutputType_YPUB:

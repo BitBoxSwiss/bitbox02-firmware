@@ -19,6 +19,7 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory.h>
+#include <platform_config.h>
 #include <usb/noise.h>
 #include <usb/usb_packet.h>
 #include <usb/usb_processing.h>
@@ -102,16 +103,19 @@ static size_t _api_info(uint8_t* buf)
     memcpy((char*)current, DIGITAL_BITBOX_VERSION_SHORT, version_string_len);
     current += version_string_len;
 
-    // 1 byte platform code
-    // TODO: add BitBoxBase platform
+    // 1 byte platform code and 1 byte edition code
+#if PRODUCT_BITBOX_MULTI == 1 || PRODUCT_BITBOX02_FACTORYSETUP == 1
     *current = 0x00;
     current++;
-
-    // 1 byte edition code
-#if !defined(FIRMWARE_BTC_ONLY)
     *current = 0x00;
-#else
+#elif PRODUCT_BITBOX_BTCONLY == 1
+    *current = 0x00;
+    current++;
     *current = 0x01;
+#elif PRODUCT_BITBOX_BASE == 1 || PRODUCT_BITBOXBASE_FACTORYSETUP == 1
+    *current = 0x01;
+    current++;
+    *current = 0x00;
 #endif
     current++;
 

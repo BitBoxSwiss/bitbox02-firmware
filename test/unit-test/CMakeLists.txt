@@ -38,6 +38,7 @@ add_library(bitbox
   ${DBB-FIRMWARE-UI-SOURCES}
   ${DBB-FIRMWARE-PROTOBUF-SOURCES}
   ${DBB-FIRMWARE-USB-SOURCES}
+  ${DBB-FIRMWARE-USART-SOURCES}
   ${CTAES-SOURCES}
   ${ETHEREUM-SOURCES}
   ${FIRMWARE-U2F-SOURCES}
@@ -78,7 +79,7 @@ set_source_files_properties(
 target_include_directories(bitbox SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
 target_include_directories(bitbox PRIVATE ${CMAKE_SOURCE_DIR}/external/FatFs/source)
 target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
-target_compile_definitions(bitbox PUBLIC APP_BTC APP_LTC APP_U2F APP_ETH)
+target_compile_definitions(bitbox PUBLIC PRODUCT_BITBOX_MULTI APP_BTC APP_LTC APP_U2F APP_ETH)
 add_dependencies(bitbox generate-protobufs)
 
 # Since noiseprotocol and wallycore are external projects we need to specify the dependency
@@ -129,7 +130,7 @@ target_include_directories(
   ${INCLUDES}
   ${CMAKE_BINARY_DIR}/src
 )
-target_compile_definitions(u2f-util PUBLIC "TESTING")
+target_compile_definitions(u2f-util PUBLIC "TESTING" PRODUCT_BITBOX_MULTI)
 target_compile_definitions(u2f-util PUBLIC "USE_KECCAK")
 
 
@@ -187,6 +188,8 @@ set(TEST_LIST
    "-Wl,--wrap=app_eth_verify_standard_transaction,--wrap=app_eth_verify_erc20_transaction,--wrap=keystore_secp256k1_sign,--wrap=eth_common_is_valid_keypath"
    app_eth_verify
    "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=app_eth_erc20_params_get"
+   usart
+   "-Wl,--wrap=usb_processing_enqueue"
    util
    ""
    commander_set_device_name

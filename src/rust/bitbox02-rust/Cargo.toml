@@ -1,0 +1,28 @@
+[package]
+name = "bitbox02-rust"
+version = "0.1.0"
+authors = ["Shift Cryptosecurity AG <support@shiftcrypto.ch>"]
+edition = "2018"
+description = "BitBox02 functionality implemented in rust"
+
+[lib]
+crate-type = ["staticlib"]
+
+[profile.release]
+debug = true
+opt-level = 'z'
+codegen-units = 1
+panic = 'abort'
+
+[profile.dev]
+opt-level = 'z'
+
+[dependencies]
+bitbox02 = {path = "../bitbox02"}
+binascii = "0.1"
+
+# For stack allocated strings
+[dependencies.arrayvec]
+version  = "0.5.1"
+# Disable the "std" feature
+default-features = false

@@ -63,6 +63,8 @@ bool btc_common_is_valid_keypath(
 {
     switch (output_type) {
     case BTCPubRequest_OutputType_TPUB:
+    case BTCPubRequest_OutputType_VPUB:
+    case BTCPubRequest_OutputType_UPUB:
     case BTCPubRequest_OutputType_XPUB:
     case BTCPubRequest_OutputType_YPUB:
     case BTCPubRequest_OutputType_ZPUB:

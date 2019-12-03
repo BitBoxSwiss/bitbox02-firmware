@@ -21,6 +21,7 @@
 #include "util.h"
 #include <hardfault.h>
 #include <memory.h>
+#include <platform_config.h>
 #include <random.h>
 #include <ui/screen_stack.h>
 #include <workflow/pairing.h>
@@ -178,7 +179,10 @@ static bool _process_handshake(
         // We are paired now, so we pop that screen.
         // Pairing is the start of a session, so we clean the screen stack in case
         // we started a new session in the middle of something.
+        // In bitboxbase the "background" screen should never be popped.
+#if PLATFORM_BITBOX02 == 1
         ui_screen_stack_pop_all();
+#endif
 
         out_packet->len = 1;
         out_packet->data_addr[0] = _require_pairing_verification;
@@ -246,7 +250,12 @@ bool bb_noise_process_msg(
     { // After the handshake we can perform the out of band pairing verification, if required by the
       // device or requested by the host app.
         if (in_packet->len == 1 && in_packet->data_addr[0] == OP_I_CAN_HAS_PAIRIN_VERIFICASHUN) {
-            if (workflow_pairing_create(_handshake_hash)) {
+#if PLATFORM_BITBOX02 == 1
+            bool result = workflow_pairing_create(_handshake_hash);
+#elif PLATFORM_BITBOXBASE == 1
+            bool result = true;
+#endif
+            if (result) {
                 out_packet->len = 1;
                 out_packet->data_addr[0] = OP_STATUS_SUCCESS;
                 _require_pairing_verification = false;

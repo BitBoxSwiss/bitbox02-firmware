@@ -1,0 +1,9 @@
+[package]
+name = "bitbox02"
+version = "0.1.0"
+authors = ["Shift Cryptosecurity AG <support@shiftcrypto.ch>"]
+edition = "2018"
+description = "Idiomatic rust bindings for C code in bitbox02-firmware"
+
+[dependencies]
+bitbox02-sys = {path="../bitbox02-sys"}

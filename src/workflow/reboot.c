@@ -26,7 +26,13 @@ static void _reboot(void)
         .value = sectrue_u8,
     };
     upside_down_t upside_down = {
+#if PLATFORM_BITBOX02 == 1 || defined(TESTING)
         .value = screen_is_upside_down(),
+#elif PLATFORM_BITBOXBASE == 1
+        .value = false,
+#else
+#error "No platform"
+#endif
     };
     if (!memory_bootloader_set_flags(auto_enter, upside_down)) {
         // If this failed, we might not be able to reboot into the bootloader.
@@ -39,9 +45,12 @@ static void _reboot(void)
 
 bool workflow_reboot(void)
 {
+#if PLATFORM_BITBOX02 == 1
+    // Only ask on the bitbox02 platform, bitboxbase will always reboot
     if (!workflow_confirm("", "Proceed to upgrade?", false, false)) {
         return false;
     }
+#endif
     _reboot();
     return true;
 }

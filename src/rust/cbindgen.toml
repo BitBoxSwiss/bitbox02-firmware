@@ -1,0 +1,7 @@
+language = "C"
+
+include_guard = "rust_h"
+
+include_version = true
+
+includes = ["commander/commander.h", "bitboxbase.pb.h"]

@@ -166,7 +166,6 @@ if(CMAKE_CROSSCOMPILING)
   # Advanced Software Framework Drivers
   # Only drivers needed for bootloader (minimal set)
   add_library(asf4-drivers-min STATIC
-    asf4-drivers/driver_init.c
     asf4-drivers/hal/utils/src/utils_syscalls.c
     asf4-drivers/hal/utils/src/utils_list.c
     asf4-drivers/hal/src/hal_atomic.c
@@ -178,8 +177,11 @@ if(CMAKE_CROSSCOMPILING)
     asf4-drivers/hal/src/hal_rand_sync.c
     asf4-drivers/hal/src/hal_flash.c
     asf4-drivers/hal/src/hal_pac.c
+    asf4-drivers/hal/src/hal_io.c
     asf4-drivers/hal/src/hal_sha_sync.c
     asf4-drivers/hpl/systick/hpl_systick.c
+    asf4-drivers/hal/src/hal_usart_async.c
+    asf4-drivers/hal/utils/src/utils_ringbuffer.c
     asf4-drivers/hpl/gclk/hpl_gclk.c
     asf4-drivers/hpl/oscctrl/hpl_oscctrl.c
     asf4-drivers/hpl/mclk/hpl_mclk.c
@@ -189,11 +191,11 @@ if(CMAKE_CROSSCOMPILING)
     asf4-drivers/hpl/spi/spi_lite.c
     asf4-drivers/hpl/usb/hpl_usb.c
     asf4-drivers/hpl/rtc/hpl_rtc.c
+    asf4-drivers/hpl/sercom/hpl_sercom.c
     asf4-drivers/hpl/trng/hpl_trng.c
     asf4-drivers/hpl/nvmctrl/hpl_nvmctrl.c
     asf4-drivers/hpl/icm/hpl_icm.c
     asf4-drivers/hpl/pac/hpl_pac.c
-    asf4-drivers/qtouch/qtouch.c
     asf4-drivers/usb/usb_protocol.c
     asf4-drivers/usb/device/usbdc.c
     )
@@ -244,9 +246,9 @@ if(CMAKE_CROSSCOMPILING)
       asf4-drivers/diskio
   )
 
-  find_library(QTOUCHLIB_A qtm_acq_samd51_0x000f PATHS asf4-drivers/qtouch/lib/gcc)
-  find_library(QTOUCHLIB_B qtm_binding_layer_cm4_0x0005 PATHS asf4-drivers/qtouch/lib/gcc)
-  find_library(QTOUCHLIB_T qtm_touch_key_cm4_0x0002 PATHS asf4-drivers/qtouch/lib/gcc)
+  find_library(QTOUCHLIB_A qtm_acq_samd51_0x000f PATHS asf4-drivers/qtouch/lib/gcc NO_CMAKE_FIND_ROOT_PATH)
+  find_library(QTOUCHLIB_B qtm_binding_layer_cm4_0x0005 PATHS asf4-drivers/qtouch/lib/gcc NO_CMAKE_FIND_ROOT_PATH)
+  find_library(QTOUCHLIB_T qtm_touch_key_cm4_0x0002 PATHS asf4-drivers/qtouch/lib/gcc NO_CMAKE_FIND_ROOT_PATH)
 
   add_library(cryptoauthlib
     cryptoauthlib/lib/atca_cfgs.c

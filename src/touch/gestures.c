@@ -18,6 +18,7 @@
 #include <stdlib.h>
 
 #ifndef TESTING
+#include "qtouch.h"
 #include <driver_init.h>
 #else
 #include "mock_qtouch.h"
@@ -27,6 +28,7 @@
 #include "ui/event.h"
 #include "ui/event_handler.h"
 #include "util.h"
+#include <platform_config.h>
 #include <ui/component.h>
 
 #define MAX_REGISTRATIONS 7
@@ -44,7 +46,11 @@ extern volatile uint8_t measurement_done_touch;
 
 /********************************** STATE **********************************/
 
+#if PLATFORM_BITBOX02 == 1
 static const uint16_t LONG_TOUCH = 500;
+#elif PLATFORM_BITBOXBASE == 1
+static const uint16_t LONG_TOUCH = 1000;
+#endif
 
 enum slider_status_t { INACTIVE, ACTIVE, RELEASED };
 
@@ -84,6 +90,24 @@ typedef struct {
  * state.
  */
 static gestures_detection_state_t _state[TOUCH_NUM_SLIDERS] = {0};
+
+#if PLATFORM_BITBOXBASE == 1
+struct button_detection_state_t {
+    enum bitboxbase_button_id_t button_id;
+    uint32_t duration;
+    enum slider_status_t button_status;
+};
+
+struct button_detection_state_t _bitboxbase_button_state[] = {
+    {BITBOXBASE_BUTTON_LEFT, 0, INACTIVE},
+    {BITBOXBASE_BUTTON_RIGHT, 0, INACTIVE},
+};
+
+enum bitboxbase_button_id_t gestures_button_which(const event_t* event)
+{
+    return ((const struct button_detection_state_t*)event->data)->button_id;
+}
+#endif
 
 /********************************** STATE UPDATE **********************************/
 
@@ -247,6 +271,59 @@ static void _emit_continuous_tap_event(void)
     }
 }
 
+#if PLATFORM_BITBOXBASE == 1
+static void _emit_button_short_tap(size_t idx)
+{
+    event_t event = {.data = &_bitboxbase_button_state[idx], .id = EVENT_BUTTON_SHORT_TAP};
+    emit_event(&event);
+}
+
+static void _emit_button_long_tap(size_t idx)
+{
+    event_t event = {.data = &_bitboxbase_button_state[idx], .id = EVENT_BUTTON_LONG_TAP};
+    emit_event(&event);
+}
+
+static void _emit_button_continouos_tap(size_t idx)
+{
+    event_t event = {.data = &_bitboxbase_button_state[idx], .id = EVENT_BUTTON_CONTINUOUS_TAP};
+    emit_event(&event);
+}
+
+static void _button_state_update_and_emit(size_t idx)
+{
+    bool active = qtouch_get_button_state(idx);
+    struct button_detection_state_t* current = &_bitboxbase_button_state[idx];
+    switch (current->button_status) {
+    case INACTIVE:
+        if (active) {
+            current->button_status = ACTIVE;
+        }
+        break;
+    case ACTIVE:
+        current->duration++;
+        if (current->duration > LONG_TOUCH) {
+            _emit_button_continouos_tap(idx);
+        }
+        if (!active) {
+            current->button_status = RELEASED;
+        }
+        break;
+    case RELEASED:
+        if (current->duration > LONG_TOUCH) {
+            _emit_button_long_tap(idx);
+        } else {
+            _emit_button_short_tap(idx);
+        }
+        current->button_status = INACTIVE;
+        current->duration = 0;
+        break;
+    default:;
+        // Do nothing
+    }
+}
+#endif
+
 /********************************** MEASURE, DETECT and CALLBACK **********************************/
 
 /**
@@ -266,6 +343,12 @@ static void _measure_and_emit(void)
         _slider_state_read_and_update(location);
         gesture_detected = gesture_detected || _state[location].gesture_type != NONE;
     }
+
+#if PLATFORM_BITBOXBASE == 1
+    for (size_t button = 0; button < DEF_NUM_BUTTONS; button++) {
+        _button_state_update_and_emit(button);
+    }
+#endif
 
     if (gesture_detected) {
         _emit_continuous_slide_event();

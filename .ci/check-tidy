@@ -36,7 +36,7 @@ for dir in build build-build; do
 	        s/-Wno-cast-function-type//g; s/-mfpu=fpv4-sp-d16//g; s/-Wformat-signedness//g' ${dir}/compile_commands.json
 
 	# Only check our files
-	SOURCES1=$(git --no-pager diff --diff-filter=d --name-only origin/master |\
+	SOURCES1=$(git --no-pager diff --diff-filter=d --name-only ${TARGET_BRANCH} |\
 		grep -v -E "(^src/(drivers|ui/fonts)|.*ugui.*|.*base32.*)" |\
 		grep -E "^(src|test)" |\
 		grep -E "\.c\$" || true)

@@ -1,14 +1,27 @@
 #!/bin/bash
 
 set -e
+set -x
 
-CONTAINER=shiftcrypto/firmware_v2:8
+CONTAINER=shiftcrypto/firmware_v2:10
+
+if [ "$1" == "pull" ] ; then
+	docker pull "$CONTAINER"
+	exit 0
+fi
+
+TARGET_BRANCH=master
+if [ "${TRAVIS_PULL_REQUEST}" != "false" ] ; then
+	TARGET_BRANCH=${TRAVIS_BRANCH}
+fi
 
 # Fetch origin/master so that we can diff when checking coding style.
-git remote set-branches --add origin master
-git fetch
+git remote set-branches --add origin ${TARGET_BRANCH}
+git fetch origin
 
-docker run \
+TARGET_BRANCH=origin/${TARGET_BRANCH}
+
+docker run -e TARGET_BRANCH="${TARGET_BRANCH}" \
 	--cap-add SYS_PTRACE \
 	--volume ${TRAVIS_BUILD_DIR}:/bitbox02-firmware/ \
 	--workdir /bitbox02-firmware \

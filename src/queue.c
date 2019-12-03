@@ -15,6 +15,8 @@
 #include "queue.h"
 #include <string.h>
 #include <util.h>
+
+#include "hardfault.h"
 // TODO: get rid of this dependency when USB_DATA_MAX_LEN/USB_REPORT_SIZE is
 // removed.
 #include "usb/usb_frame.h"
@@ -22,18 +24,33 @@
 // TODO: specify generic size
 // The queue has enough room for a single maximum size packet
 #define QUEUE_NUM_REPORTS (USB_DATA_MAX_LEN / USB_REPORT_SIZE)
+#define QUEUE_SIZE (QUEUE_NUM_REPORTS * USB_REPORT_SIZE)
 
 // `start` and `end` are indices into `items`
 struct queue {
     uint32_t volatile start;
     uint32_t volatile end;
-    uint8_t items[QUEUE_NUM_REPORTS][USB_REPORT_SIZE];
+    size_t item_size;
+    uint8_t items[QUEUE_SIZE];
 };
 
 void queue_clear(struct queue* ctx)
 {
     util_zero(ctx->items, sizeof(ctx->items));
-    ctx->start = ctx->end;
+    ctx->start = ctx->end = 0;
+}
+
+void queue_init(struct queue* ctx, size_t item_size)
+{
+    ctx->item_size = item_size;
+    /*
+     * The queue only works if the size of each item is a submultiple of
+     * QUEUE_SIZE.
+     */
+    if (QUEUE_SIZE % item_size != 0) {
+        Abort("Queue initialized with wrong item size.");
+    }
+    queue_clear(ctx);
 }
 
 const uint8_t* queue_pull(struct queue* ctx)
@@ -43,17 +60,17 @@ const uint8_t* queue_pull(struct queue* ctx)
         // queue is empty
         return NULL;
     }
-    ctx->start = (p + 1) % QUEUE_NUM_REPORTS;
-    return ctx->items[p];
+    ctx->start = (p + ctx->item_size) % QUEUE_SIZE;
+    return ctx->items + p;
 }
 
 queue_error_t queue_push(struct queue* ctx, const uint8_t* data)
 {
-    uint32_t next = (ctx->end + 1) % QUEUE_NUM_REPORTS;
+    uint32_t next = (ctx->end + ctx->item_size) % QUEUE_SIZE;
     if (ctx->start == next) {
         return QUEUE_ERR_FULL; // Buffer full
     }
-    memcpy(ctx->items[ctx->end], data, USB_REPORT_SIZE);
+    memcpy(ctx->items + ctx->end, data, ctx->item_size);
     ctx->end = next;
     return QUEUE_ERR_NONE;
 }
@@ -65,7 +82,7 @@ const uint8_t* queue_peek(struct queue* ctx)
         // queue is empty
         return NULL;
     }
-    return ctx->items[p];
+    return ctx->items + p;
 }
 
 struct queue* queue_hww_queue(void)

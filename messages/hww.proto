@@ -18,6 +18,7 @@ import "common.proto";
 
 import "backup_commands.proto";
 import "bitbox02_system.proto";
+import "bitboxbase.proto";
 import "btc.proto";
 import "eth.proto";
 import "mnemonic.proto";
@@ -58,6 +59,7 @@ message Request {
         ETHRequest eth = 20;
         ResetRequest reset = 21;
         RestoreFromMnemonicRequest restore_from_mnemonic = 22;
+        BitBoxBaseRequest bitboxbase = 23;
     }
 }
 

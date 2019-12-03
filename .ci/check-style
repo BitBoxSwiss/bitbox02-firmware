@@ -25,10 +25,10 @@ if test -t 1; then
 	fi
 fi
 
-if git --no-pager diff --diff-filter=d --name-only origin/master | grep -v -E "(^src/(drivers|ui/fonts)|.*ugui.*|.*base32.*)" | grep -E "^(src|test)" | grep -E "\.(c|h)\$" | xargs -n1 "$CLANGFORMAT" -output-replacements-xml | grep -c "<replacement " >/dev/null; then
+if git --no-pager diff --diff-filter=d --name-only ${TARGET_BRANCH} | grep -v -E "(^src/(drivers|ui/fonts)|.*ugui.*|.*base32.*)" | grep -E "^(src|test)" | grep -E "\.(c|h)\$" | xargs -n1 "$CLANGFORMAT" -output-replacements-xml | grep -c "<replacement " >/dev/null; then
 	echo -e "${red}Not $CLANGFORMAT clean${normal}"
 	# Apply CF to the files
-	git --no-pager diff --diff-filter=d --name-only origin/master | grep -v -E "(^src/(drivers|ui/fonts)|.*ugui.*|.*base32.*)" | grep -E "^(src|test)" | grep -E "\.(c|h)\$" | xargs -n1 "$CLANGFORMAT" -i
+	git --no-pager diff --diff-filter=d --name-only ${TARGET_BRANCH} | grep -v -E "(^src/(drivers|ui/fonts)|.*ugui.*|.*base32.*)" | grep -E "^(src|test)" | grep -E "\.(c|h)\$" | xargs -n1 "$CLANGFORMAT" -i
 	# Print list of files that weren't formatted correctly
 	echo -e "Incorrectly formatted files:"
 	git --no-pager diff --name-only

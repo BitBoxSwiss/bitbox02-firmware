@@ -108,7 +108,7 @@ queue_error_t usb_frame_reply(
     const uint8_t* data,
     uint32_t len,
     uint32_t cid,
-    queue_error_t(add_frame_callback)(const uint8_t*));
+    struct queue* queue);
 
 /**
  * Takes data and a channel id and constructs USB frames that are added
@@ -129,10 +129,7 @@ void usb_frame_send_cmd(uint8_t cmd, const uint8_t* data, uint32_t len, uint8_t 
  * @param[in] err The error send to the host.
  * @param[in] add_frame_callback The callback to which we add the frame.
  */
-queue_error_t usb_frame_prepare_err(
-    uint8_t err,
-    uint32_t cid,
-    queue_error_t(add_frame_callback)(const uint8_t*));
+queue_error_t usb_frame_prepare_err(uint8_t err, uint32_t cid, struct queue* queue);
 
 /**
  * Processes usb frame requests.

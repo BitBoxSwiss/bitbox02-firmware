@@ -37,6 +37,8 @@ firmware-semihosting: | build
 	$(MAKE) -C build firmware-semihosting.elf
 firmware-btc: | build
 	$(MAKE) -C build firmware-btc.elf
+firmware-bitboxbase: | build
+	$(MAKE) -C build firmware-bitboxbase.elf
 bootloader: | build
 	$(MAKE) -C build bootloader.elf
 bootloader-devdevice: | build
@@ -51,17 +53,26 @@ bootloader-btc-devdevice: | build
 	$(MAKE) -C build bootloader-btc-development.elf
 bootloader-btc-production: | build
 	$(MAKE) -C build bootloader-btc-production.elf
+bootloader-bitboxbase: | build
+	$(MAKE) -C build bootloader-bitboxbase.elf
+bootloader-bitboxbase-devdevice: | build
+	$(MAKE) -C build bootloader-bitboxbase-development.elf
+bootloader-bitboxbase-production: | build
+	$(MAKE) -C build bootloader-bitboxbase-production.elf
 factory-setup: | build
 	$(MAKE) -C build factory-setup.elf
-docs: | build-build
-	$(MAKE) -C build-build doc
+factory-setup-bitboxbase: | build
+	$(MAKE) -C build factory-setup-bitboxbase.elf
+docs: | build
+	$(MAKE) -C build doc
 unit-test: | build-build
 	$(MAKE) -C build-build
 device-tests: | build
 	${MAKE} -C build device-tests
-# Must compile tests before running them
-run-unit-tests: | build-build
+# Must compile C tests before running them
+run-unit-tests: | build build-build
 	$(MAKE) -C build-build test
+	${MAKE} -C build rust-test
 # Must run tests before creating coverage report
 coverage: | build-build
 	${MAKE} -C build-build coverage
@@ -82,7 +93,9 @@ run-valgrind-on-unit-tests:
 		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_backup;'
 #		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_ui_component_gestures;'
 flash-dev-firmware:
-	./py/load_firmware.py build/bin/firmware.bin debug
+	./py/load_firmware.py build/bin/firmware.bin --debug
+flash-dev-firmware-bitboxbase:
+	./py/load_firmware.py build/bin/firmware-bitboxbase.bin --debug
 jlink-flash-bootloader: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-development.jlink
 jlink-flash-bootloader-btc: | build
@@ -93,6 +106,8 @@ jlink-flash-firmware-btc: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-btc.jlink
 jlink-flash-firmware-semihosting: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-semihosting.jlink
+jlink-flash-firmware-bitboxbase: | build
+	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-bitboxbase.jlink
 dockerinit:
 	docker build --pull --force-rm --no-cache -t shiftcrypto/firmware_v2 .
 dockerdev:
@@ -104,7 +119,7 @@ generate-atecc608-config:
 ci:
 	./.ci/ci
 prepare-tidy: | build build-build
-	make -C build generate-protobufs
+	make -C build generate-protobufs rust-cbindgen
 	make -C build-build generate-protobufs
 clean:
 	rm -rf build build-build

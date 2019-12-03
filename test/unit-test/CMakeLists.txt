@@ -106,6 +106,7 @@ target_link_libraries(bitbox
     wallycore
     secp256k1
     bignum
+    util
   PRIVATE
     base32
     ctaes

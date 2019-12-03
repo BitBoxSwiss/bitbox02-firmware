@@ -27,10 +27,8 @@
 #define USB_DESC_IDPRODUCT 0x2403
 #define USB_DESC_HWW_EP_IN (1 | USB_EP_DIR_IN)
 #define USB_DESC_HWW_EP_OUT (2 | USB_EP_DIR_OUT)
-#define USB_DESC_IFACE_NUM_HWW 0
-#define USB_DESC_IFACE_LEN 32
-#define USB_DESC_CONFIG_LEN 9
-#define USB_DESC_WTOTALLEN (USB_DESC_CONFIG_LEN + USB_DESC_IFACE_LEN * USB_DESC_NUM_IFACES)
+#define USB_DESC_U2F_EP_IN (3 | USB_EP_DIR_IN)
+#define USB_DESC_U2F_EP_OUT (4 | USB_EP_DIR_OUT)
 #define USB_DESC_BMAXPKSZ0 0x40
 #define USB_DESC_BCDUSB 0x200 // 0x0200 => USB 2.0 version; 0x0210 => USB 2.1 version
 #define USB_DESC_BCDDEVICE 0x100
@@ -129,31 +127,5 @@
         0x03, /* ep_out.bmAttributes */                                     \
         USB_DESC_LE16(USB_DESC_HID_EP_SIZE), /* ep_out.wMaxPacketSize */    \
         4 /* ep_out.bInterval */
-
-#define USB_DESC_CONFIG                                       \
-    USB_DESC_CONFIG_LEN, /* bLength */                        \
-        0x02, /* bDescriptorType: CONFIGURATION */            \
-        USB_DESC_LE16(USB_DESC_WTOTALLEN), /* wTotalLength */ \
-        USB_DESC_NUM_IFACES, /* bNumInterfaces */             \
-        USB_DESC_BCONFIGVAL, /* bConfigurationValue */        \
-        0x00, /* iConfiguration */                            \
-        USB_DESC_BMATTRI, /* bmAttributes */                  \
-        USB_DESC_BMAXPOWER /* bMaxPower */
-
-#define USB_DEV_DESC                                       \
-    18, /* bLength */                                      \
-        0x01, /* bDescriptorType: DEVICE */                \
-        USB_DESC_LE16(USB_DESC_BCDUSB), /* bcdUSB */       \
-        USB_CLASS_NO, /* bDeviceClass */                   \
-        USB_SUBCLASS_NO, /* bDeviceSubClass */             \
-        USB_PROTOCOL_NO, /* bDeviceProtocol */             \
-        USB_DESC_BMAXPKSZ0, /* bMaxPacketSize0 */          \
-        USB_DESC_LE16(USB_DESC_IDVENDER), /* idVendor */   \
-        USB_DESC_LE16(USB_DESC_IDPRODUCT), /* idProduct */ \
-        USB_DESC_LE16(USB_DESC_BCDDEVICE), /* bcdDevice */ \
-        USB_DESC_IMANUFACT, /* iManufacturer */            \
-        USB_DESC_IPRODUCT, /* iProduct */                  \
-        USB_DESC_ISERIALNUM, /* iSerialNumber */           \
-        USB_DESC_BNUMCONFIG /* bNumConfigurations */
 
 #endif

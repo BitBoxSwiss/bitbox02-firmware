@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 
+#include <platform/platform_config.h>
 #include <screen.h>
 #include <ui/component.h>
 

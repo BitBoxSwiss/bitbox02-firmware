@@ -109,6 +109,19 @@ static testcase_t _tests[] = {
     },
     {
         .coin = BTCCoin_BTC,
+        .type = BTCPubRequest_OutputType_VPUB,
+        .out = "vpub5SLqN2bLY4WeZeEAtJZU1iVTewpdyE7vsZHiZaJuSa47cTQYsoEZDoZEpskmHCynVyMMukSnz3X3PVg"
+               "J5G1bo6YYoiNdwVeRzaNXeC1Tqgo",
+    },
+    {
+        .coin = BTCCoin_BTC,
+        .type = BTCPubRequest_OutputType_UPUB,
+        .out = "upub57Wa4MvRPNyAiM343wmqodPxUygC2c8RxSmVnBR24ZgEZMbKd94zbju6ofoBHJKs6LEZAGrEXPAVWD4"
+               "jMZbazrrwwNgDMapwirJtFbjQ8Nj",
+    },
+
+    {
+        .coin = BTCCoin_BTC,
         .type = BTCPubRequest_OutputType_XPUB,
         .out = "xpub661MyMwAqRbcGEcQZ28iRtgTzt7XrU6vhnLA8N6gCaosif31P7ZgTvsWsHfwH2HdKFayQhduuNE9A4u"
                "RWeqdPZukYPmV7KHQY2VpRNV7PiJ",
@@ -255,6 +268,8 @@ static void _test_app_btc_address(void** state)
             if (keypath_valid && get_xpub_success) {
                 switch (test_case->type) {
                 case BTCPubRequest_OutputType_TPUB:
+                case BTCPubRequest_OutputType_VPUB:
+                case BTCPubRequest_OutputType_UPUB:
                 case BTCPubRequest_OutputType_XPUB:
                 case BTCPubRequest_OutputType_YPUB:
                 case BTCPubRequest_OutputType_ZPUB:

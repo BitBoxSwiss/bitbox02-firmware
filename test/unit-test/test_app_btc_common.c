@@ -91,6 +91,8 @@ static void _test_btc_common_is_valid_keypath_xpubs(void** state)
     };
     const BTCOutputType output_types[] = {
         BTCPubRequest_OutputType_TPUB,
+        BTCPubRequest_OutputType_VPUB,
+        BTCPubRequest_OutputType_UPUB,
         BTCPubRequest_OutputType_XPUB,
         BTCPubRequest_OutputType_YPUB,
         BTCPubRequest_OutputType_ZPUB,

@@ -16,7 +16,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #ifndef TESTING
 #include "qtouch.h"
@@ -26,10 +25,10 @@
 #endif
 
 #include "gestures.h"
-#include "gestures_impl.h"
 #if PLATFORM_BITBOXBASE == 1
 #include "gestures_bitboxbase.h"
 #endif
+
 #include "ui/event.h"
 #include "ui/event_handler.h"
 #include "util.h"

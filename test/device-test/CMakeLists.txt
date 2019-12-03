@@ -136,7 +136,10 @@ foreach(name ${BB02_TEST_LIST})
   target_link_libraries(${elf}
     PRIVATE
       c
+      "-Wl,--start-group"
+      workflows
       bitbox02-test-platform
+      "-Wl,--end-group"
       asf4-drivers-min
       ${QTOUCHLIB_A}
       ${QTOUCHLIB_B}

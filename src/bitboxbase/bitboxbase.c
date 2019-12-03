@@ -56,9 +56,7 @@ int main(void)
         if (bitboxbase_watchdog_check() && bitboxbase_state_get() != BBBWaiting) {
             bitboxbase_state_set_not_alive();
         }
-        if (bitboxbase_screensaver_check()) {
-            oled_off();
-        }
+        bitboxbase_screensaver_process();
         screen_process();
         usart_receive();
         usb_processing_process(usb_processing_hww());

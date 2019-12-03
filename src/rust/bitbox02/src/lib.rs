@@ -189,3 +189,7 @@ pub fn sha256(input: &[u8], output: &mut [u8]) -> Result<(), ()> {
         Err(())
     }
 }
+
+pub fn bitboxbase_screensaver_reset() {
+    unsafe { bitbox02_sys::bitboxbase_screensaver_reset() }
+}

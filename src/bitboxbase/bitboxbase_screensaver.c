@@ -17,10 +17,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <ui/oled/oled.h>
 
 // The periodicity to increment the timeout counter
 #define INTERVAL_MS 1000
-// Number of periods we wait until we raise an alarm.
+// Number of periods we wait until we enable screensaver
 #define TIMEOUT 120
 
 extern struct timer_descriptor TIMER_0;
@@ -45,24 +46,21 @@ static void _timer_config(void)
     timer_start(&TIMER_0);
 }
 
-// Initialize screensaver
 void bitboxbase_screensaver_init(void)
 {
     bitboxbase_screensaver_reset();
     _timer_config();
 }
 
-// Checks the timer
-bool bitboxbase_screensaver_check(void)
+void bitboxbase_screensaver_process(void)
 {
     if (timeout_counter > TIMEOUT) {
-        return true;
+        oled_off();
     }
-    return false;
 }
 
-// Resets the screensaver
 void bitboxbase_screensaver_reset(void)
 {
     timeout_counter = 0;
+    oled_init();
 }

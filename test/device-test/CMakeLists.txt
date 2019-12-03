@@ -25,7 +25,6 @@ set(BBBASE-SOURCES
   ${DBB-FIRMWARE-PROTOBUF-SOURCES}
   ${CRYPTOAUTHLIB-SOURCES}
   ${ETHEREUM-SOURCES}
-  ${FIRMWARE-U2F-SOURCES}
   ${CMAKE_SOURCE_DIR}/src/common_main.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/framework/test_common.c
 )
@@ -66,7 +65,7 @@ target_include_directories(bitbox02-test-platform PUBLIC ${INCLUDES})
 target_include_directories(bitbox02-test-platform SYSTEM PUBLIC ${SYSTEMINCLUDES})
 target_include_directories(bitbox02-test-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
 target_compile_definitions(bitbox02-test-platform PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
-target_compile_definitions(bitbox02-test-platform PUBLIC "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
+target_compile_definitions(bitbox02-test-platform PUBLIC "APP_U2F=1" "APP_ETH=1")
 add_dependencies(bitbox02-test-platform generate-protobufs)
 # needed to find version.h
 target_include_directories(bitbox02-test-platform SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
@@ -82,6 +81,7 @@ target_link_libraries(bitbox02-test-platform
     bignum # TODO: only eth
     sha3   # TODO: Only eth
     ctaes
+    app_btc-multi
     -Wl,-u,exception_table
 )
 
@@ -170,7 +170,7 @@ target_include_directories(bitboxbase-test-platform PUBLIC ${INCLUDES})
 target_include_directories(bitboxbase-test-platform SYSTEM PUBLIC ${SYSTEMINCLUDES})
 target_include_directories(bitboxbase-test-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
 target_compile_definitions(bitboxbase-test-platform PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
-target_compile_definitions(bitboxbase-test-platform PUBLIC "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
+target_compile_definitions(bitboxbase-test-platform PUBLIC "APP_BTC=0" "APP_LTC=0" "APP_U2F=0" "APP_ETH=0")
 add_dependencies(bitboxbase-test-platform generate-protobufs)
 # needed to find version.h
 target_include_directories(bitboxbase-test-platform SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)

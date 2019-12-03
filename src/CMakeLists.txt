@@ -20,8 +20,6 @@ set(DBB-FIRMWARE-COMMON-SOURCES
   ${CMAKE_SOURCE_DIR}/src/random.c
   ${CMAKE_SOURCE_DIR}/src/attestation.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
-  ${CMAKE_SOURCE_DIR}/src/util.c
-  ${CMAKE_SOURCE_DIR}/src/util/util_string.c
   ${CMAKE_SOURCE_DIR}/src/sd.c
   ${CMAKE_SOURCE_DIR}/src/hww.c
   ${CMAKE_SOURCE_DIR}/src/memory/bitbox02_smarteeprom.c
@@ -118,7 +116,6 @@ set(DBB-FIRMWARE-UI-SOURCES
 set(DBB-FIRMWARE-UI-SOURCES ${DBB-FIRMWARE-UI-SOURCES} PARENT_SCOPE)
 
 set(DBB-BOOTLOADER-SOURCES
-  ${CMAKE_SOURCE_DIR}/src/util.c
   ${CMAKE_SOURCE_DIR}/src/pukcc/curve_p256.c
   ${CMAKE_SOURCE_DIR}/src/pukcc/pukcc.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader.c
@@ -147,18 +144,6 @@ set(DRIVER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/ui/oled/oled.c
 )
 set(DRIVER-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
-
-set(APP-BTC-SOURCES
-  ${CMAKE_SOURCE_DIR}/src/commander/commander_btc.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_common.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_params.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_bip143.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/confirm_multisig.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/confirm_locktime_rbf.c
-  )
-set(APP-BTC-SOURCES ${APP-BTC-SOURCES} PARENT_SCOPE)
 
 # Modules that provide HW support for the BitBox02,
 # and don't depend on any PRODUCT_* macro definition.
@@ -205,7 +190,6 @@ set(BITBOXBASE-FIRMWARE-SOURCES ${BITBOXBASE-FIRMWARE-SOURCES} PARENT_SCOPE)
 set(BITBOX02-FIRMWARE-SOURCES
   ${DBB-FIRMWARE-COMMON-SOURCES}
   ${BITBOX02-ONLY-SOURCES}
-  ${APP-BTC-SOURCES}
   ${CMAKE_SOURCE_DIR}/src/firmware_main_loop.c
 )
 set(BITBOX02-FIRMWARE-SOURCES ${BITBOX02-FIRMWARE-SOURCES} PARENT_SCOPE)
@@ -261,12 +245,51 @@ set(SYSTEMINCLUDES ${SYSTEMINCLUDES} PARENT_SCOPE)
 #-----------------------------------------------------------------------------
 # Build embedded firmware
 
-
 # TODO: Not needed when building bootlaoder..
 # Since the nanopb is included in the source tree and not in the sysroot (/usr/local/arm-none-eabi) we have to disable searching in the sysroot.
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE NEVER)
 find_package(Nanopb REQUIRED)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+set(APP-BTC-SOURCES
+  ${CMAKE_SOURCE_DIR}/src/commander/commander_btc.c
+  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc.c
+  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_common.c
+  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_params.c
+  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign.c
+  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_bip143.c
+  ${CMAKE_SOURCE_DIR}/src/apps/btc/confirm_multisig.c
+  ${CMAKE_SOURCE_DIR}/src/apps/btc/confirm_locktime_rbf.c
+  )
+set(APP-BTC-SOURCES ${APP-BTC-SOURCES} PARENT_SCOPE)
+
+get_property(WALLY_INCLUDES TARGET wallycore PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+
+add_library(util
+  ${CMAKE_SOURCE_DIR}/src/util.c
+  ${CMAKE_SOURCE_DIR}/src/util/util_string.c
+)
+target_include_directories(util PRIVATE ${INCLUDES})
+target_include_directories(util SYSTEM PUBLIC ${SYSTEMINCLUDES})
+target_include_directories(util SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
+target_include_directories(util SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
+
+add_library(app_btc-btc ${APP-BTC-SOURCES})
+target_compile_definitions(app_btc-btc PUBLIC "APP_BTC=1" "APP_LTC=0")
+target_include_directories(app_btc-btc PRIVATE ${INCLUDES})
+target_include_directories(app_btc-btc SYSTEM PUBLIC ${SYSTEMINCLUDES})
+target_include_directories(app_btc-btc SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
+target_include_directories(app_btc-btc SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
+target_link_libraries(app_btc-btc noiseprotocol wallycore secp256k1 util)
+
+add_library(app_btc-multi ${APP-BTC-SOURCES})
+target_compile_definitions(app_btc-multi PUBLIC "APP_BTC=1" "APP_LTC=1")
+target_compile_definitions(app_btc-multi PRIVATE "NO_PLATFORM_CONFIGURED")
+target_include_directories(app_btc-multi PRIVATE ${INCLUDES})
+target_include_directories(app_btc-multi SYSTEM PUBLIC ${SYSTEMINCLUDES})
+target_include_directories(app_btc-multi SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
+target_include_directories(app_btc-multi SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
+target_link_libraries(app_btc-multi noiseprotocol wallycore secp256k1 util)
 
 set(FIRMWARE-SOURCES
   ${DBB-FIRMWARE-SOURCES}
@@ -405,14 +428,14 @@ if(CMAKE_CROSSCOMPILING)
   set(HEAP_SIZE ${HEAP_SIZE} PARENT_SCOPE)
 
   add_library(bitbox02-platform ${PLATFORM-BITBOX02-SOURCES})
-  target_link_libraries(bitbox02-platform asf4-drivers-min)
+  target_link_libraries(bitbox02-platform asf4-drivers-min util)
   target_include_directories(bitbox02-platform PRIVATE ${INCLUDES})
   target_include_directories(bitbox02-platform SYSTEM PUBLIC ${SYSTEMINCLUDES})
   target_include_directories(bitbox02-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
   target_include_directories(bitbox02-platform SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
 
   add_library(bitboxbase-platform ${PLATFORM-BITBOXBASE-SOURCES})
-  target_link_libraries(bitboxbase-platform asf4-drivers)
+  target_link_libraries(bitboxbase-platform asf4-drivers util)
   target_include_directories(bitboxbase-platform PRIVATE ${INCLUDES})
   target_include_directories(bitboxbase-platform SYSTEM PUBLIC ${SYSTEMINCLUDES})
   target_include_directories(bitboxbase-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
@@ -458,6 +481,7 @@ if(CMAKE_CROSSCOMPILING)
     target_compile_options(${elf} PRIVATE --specs=nano.specs)
     target_link_libraries(${elf} PRIVATE --specs=nano.specs)
     string(FIND ${bootloader} semihosting SEMIHOSTING_FOUND)
+    target_compile_definitions(${elf} PRIVATE "APP_U2F=0" "APP_BTC=0" "APP_ETH=0" "APP_LTC=0")
     if(SEMIHOSTING_FOUND EQUAL -1)
       target_compile_options(${elf} PRIVATE --specs=nosys.specs)
       target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
@@ -572,21 +596,24 @@ if(CMAKE_CROSSCOMPILING)
   endforeach(firmware)
 
   target_sources(firmware.elf PRIVATE firmware.c)
-  target_compile_definitions(firmware.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_BTC=1" "APP_LTC=1" "APP_ETH=1" "APP_U2F=1")
+  target_compile_definitions(firmware.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_ETH=1" "APP_U2F=1")
   target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES})
   target_link_libraries(firmware.elf PRIVATE bitbox02-platform)
+  target_link_libraries(firmware.elf PRIVATE app_btc-multi)
 
   target_sources(firmware-semihosting.elf PRIVATE firmware.c)
   target_sources(firmware-semihosting.elf PRIVATE ${FIRMWARE-U2F-SOURCES})
   target_link_libraries(firmware-semihosting.elf PRIVATE bitbox02-platform)
+  target_link_libraries(firmware-semihosting.elf PRIVATE app_btc-multi)
 
   # Select an implementation of the system calls that can communicate with the debugger
-  target_compile_definitions(firmware-semihosting.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_BTC=1" "APP_LTC=1" "APP_ETH=1" "APP_U2F=1")
+  target_compile_definitions(firmware-semihosting.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_ETH=1" "APP_U2F=1")
   target_compile_definitions(firmware-semihosting.elf PRIVATE SEMIHOSTING)
 
   target_sources(firmware-btc.elf PRIVATE firmware.c)
-  target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_BTC=1" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
+  target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_ETH=0" "APP_U2F=0")
   target_link_libraries(firmware-btc.elf PRIVATE bitbox02-platform)
+  target_link_libraries(firmware-btc.elf PRIVATE app_btc-btc)
 
   target_sources(firmware-bitboxbase.elf PRIVATE bitboxbase/bitboxbase.c)
   target_compile_definitions(firmware-bitboxbase.elf PRIVATE PRODUCT_BITBOX_BASE "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")

@@ -106,6 +106,7 @@ target_link_libraries(bitbox
     secp256k1
     bignum
     sha3
+    util
   PRIVATE
     base32
     ctaes

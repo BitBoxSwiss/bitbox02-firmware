@@ -32,8 +32,18 @@ function docker_exec {
     docker exec --user=dockeruser --workdir="$DIR/.." -i $IMAGE bash -c "echo \"\$\$\" > $PIDFILE; eval $*" &
     PID=$!
     wait $PID
+    RESULT=$?
+    if [ ! $RESULT -ne 0 ]
+    then
+        exit $RESULT
+    fi
     trap - TERM INT
     wait $PID
+    RESULT=$?
+    if [ $RESULT -ne 0 ]
+    then
+        exit $RESULT
+    fi
 }
 
 docker_exec $CONTAINER_NAME "$@"

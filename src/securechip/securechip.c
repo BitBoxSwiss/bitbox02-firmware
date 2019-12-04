@@ -678,7 +678,7 @@ bool securechip_ecc_unsafe_sign(const uint8_t* priv_key, const uint8_t* msg, uin
     return true;
 }
 
-#if defined(APP_U2F) || FACTORYSETUP == 1
+#if APP_U2F == 1 || FACTORYSETUP == 1
 // Read a "standard" sized block from a data slot (must be 32 bytes)
 static bool _read_data_slot_block(uint8_t* bytes, uint16_t slot, uint8_t block)
 {
@@ -750,7 +750,7 @@ bool securechip_u2f_counter_set(uint32_t counter)
 }
 #endif
 
-#if defined(APP_U2F)
+#if APP_U2F == 1
 bool securechip_u2f_counter_inc(uint32_t* counter)
 {
     data_9_0_t data = {0};

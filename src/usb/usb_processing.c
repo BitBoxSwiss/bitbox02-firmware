@@ -139,7 +139,7 @@ bool usb_processing_enqueue(
 {
     // Right now async workflows are only supported by the u2f endpoint.
     // Ignore any messages on the HWW while an async workflow is in progress.
-#if defined(APP_U2F)
+#if APP_U2F == 1
     if (ctx == usb_processing_hww() && workflow_async_busy_check()) {
         return false;
     }
@@ -202,7 +202,7 @@ static void _usb_process_incoming_packet(struct usb_processing* ctx)
 
 void usb_processing_process(struct usb_processing* ctx)
 {
-#if defined(APP_U2F)
+#if APP_U2F == 1
     uint32_t timeout_cid;
     // If there are any timeouts, send them first
     while (u2f_packet_timeout_get(&timeout_cid)) {
@@ -221,7 +221,7 @@ void usb_processing_process(struct usb_processing* ctx)
     }
 }
 
-#if defined(APP_U2F)
+#if APP_U2F == 1
 struct usb_processing* usb_processing_u2f(void)
 {
     static struct usb_processing usb_processing;
@@ -237,7 +237,7 @@ struct usb_processing* usb_processing_hww(void)
 
 void usb_processing_init(void)
 {
-#if defined(APP_U2F)
+#if APP_U2F == 1
     usb_processing_u2f()->out_queue = queue_u2f_queue;
     queue_init(queue_u2f_queue(), USB_REPORT_SIZE);
     usb_processing_u2f()->format_frame = usb_frame_reply;

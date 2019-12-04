@@ -17,7 +17,7 @@
 #include "hid_hww.h"
 #include "usb_desc.h"
 #include "usbdc.h"
-#if defined(APP_U2F)
+#if APP_U2F == 1
 #include "u2f.h"
 #include <usb/class/hid/u2f/hid_u2f.h>
 #endif
@@ -41,7 +41,7 @@ static struct usbd_descriptors _descriptor[] = {
     {_descriptor_bytes, _descriptor_bytes + sizeof(_descriptor_bytes)}};
 static void (*_on_hww_init)(void) = NULL;
 static void _hww_endpoint_available(void);
-#if defined(APP_U2F)
+#if APP_U2F == 1
 static void _u2f_endpoint_available(void);
 #endif
 
@@ -57,7 +57,7 @@ static void _hww_endpoint_available(void)
     hid_hww_setup();
 }
 
-#if defined(APP_U2F)
+#if APP_U2F == 1
 /* ==== U2F ==== */
 static void _u2f_endpoint_available(void)
 {
@@ -70,7 +70,7 @@ static void _u2f_endpoint_available(void)
 #endif
 #endif
 
-#if !defined(TESTING) && defined(APP_U2F)
+#if !defined(TESTING) && APP_U2F == 1
 static void _timeout_cb(const struct timer_task* const timer_task)
 {
     (void)timer_task;
@@ -80,7 +80,7 @@ static void _timeout_cb(const struct timer_task* const timer_task)
 
 int32_t usb_start(void (*on_hww_init)(void))
 {
-#if !defined(TESTING) && defined(APP_U2F)
+#if !defined(TESTING) && APP_U2F == 1
     static struct timer_task Timer_task;
     Timer_task.interval = TIMEOUT_TICK_PERIOD_MS;
     Timer_task.cb = _timeout_cb;
@@ -101,7 +101,7 @@ int32_t usb_start(void (*on_hww_init)(void))
     if (ret != 0) {
         return ret;
     }
-#if defined(APP_U2F)
+#if APP_U2F == 1
     ret = hid_u2f_init(_u2f_endpoint_available);
     if (ret != 0) {
         return ret;

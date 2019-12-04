@@ -395,7 +395,7 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE c asf4-drivers-min -Wl,-u,exception_table)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_include_directories(${elf} SYSTEM PRIVATE ${SYSTEMINCLUDES})
-    target_compile_definitions(${elf} PRIVATE BOOTLOADER)
+    target_compile_definitions(${elf} PRIVATE BOOTLOADER "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
     # needed to find version.h
     target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
     # needed to find bootloader_version.h
@@ -508,36 +508,36 @@ if(CMAKE_CROSSCOMPILING)
   endforeach(firmware)
 
   target_sources(firmware.elf PRIVATE firmware.c)
-  target_compile_definitions(firmware.elf PRIVATE PRODUCT_BITBOX_MULTI APP_BTC APP_LTC APP_ETH APP_U2F)
+  target_compile_definitions(firmware.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_BTC=1" "APP_LTC=1" "APP_ETH=1" "APP_U2F=1")
   target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
 
   target_sources(firmware-semihosting.elf PRIVATE firmware.c)
   target_sources(firmware-semihosting.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
   # Select an implementation of the system calls that can communicate with the debugger
-  target_compile_definitions(firmware-semihosting.elf PRIVATE PRODUCT_BITBOX_MULTI APP_BTC APP_LTC APP_ETH APP_U2F)
+  target_compile_definitions(firmware-semihosting.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_BTC=1" "APP_LTC=1" "APP_ETH=1" "APP_U2F=1")
   target_compile_definitions(firmware-semihosting.elf PRIVATE SEMIHOSTING)
 
   target_sources(firmware-btc.elf PRIVATE firmware.c)
-  target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY APP_BTC)
+  target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_BTC=1" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(firmware-btc.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
 
   target_sources(firmware-bitboxbase.elf PRIVATE bitboxbase/bitboxbase.c)
-  target_compile_definitions(firmware-bitboxbase.elf PRIVATE PRODUCT_BITBOX_BASE)
+  target_compile_definitions(firmware-bitboxbase.elf PRIVATE PRODUCT_BITBOX_BASE "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(firmware-bitboxbase.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES} ${BITBOXBASE-FIRMWARE-SOURCES})
 
   target_sources(firmware-bitboxbase-semihosting.elf PRIVATE bitboxbase/bitboxbase.c)
-  target_compile_definitions(firmware-bitboxbase-semihosting.elf PRIVATE PRODUCT_BITBOX_BASE SEMIHOSTING)
+  target_compile_definitions(firmware-bitboxbase-semihosting.elf PRIVATE PRODUCT_BITBOX_BASE SEMIHOSTING "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(firmware-bitboxbase-semihosting.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES} ${BITBOXBASE-FIRMWARE-SOURCES})
 
   target_link_libraries(firmware-bitboxbase.elf PRIVATE bitbox02_rust)
   add_dependencies(firmware-bitboxbase.elf rust rust-cbindgen)
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
-  target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP)
+  target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(factory-setup.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
 
   target_sources(factory-setup-bitboxbase.elf PRIVATE factorysetup.c)
-  target_compile_definitions(factory-setup-bitboxbase.elf PRIVATE PRODUCT_BITBOXBASE_FACTORYSETUP)
+  target_compile_definitions(factory-setup-bitboxbase.elf PRIVATE PRODUCT_BITBOXBASE_FACTORYSETUP "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(factory-setup-bitboxbase.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES})
 
   foreach(name ${BOOTLOADERS} ${FIRMWARES})

@@ -85,13 +85,13 @@ bool app_btc_address(
 bool app_btc_enabled(BTCCoin coin)
 {
     switch (coin) {
-#if defined(APP_BTC)
+#if APP_BTC == 1
     case BTCCoin_BTC:
         /* PASSTHRU */
     case BTCCoin_TBTC:
         return true;
 #endif
-#if defined(APP_LTC)
+#if APP_LTC == 1
     case BTCCoin_LTC:
         /* PASSTHRU */
     case BTCCoin_TLTC:

@@ -22,7 +22,7 @@ void firmware_main_loop(void)
     while (1) {
         screen_process();
         usb_processing_process(usb_processing_hww());
-#if defined(APP_U2F)
+#if APP_U2F == 1
         usb_processing_process(usb_processing_u2f());
 #endif
     }

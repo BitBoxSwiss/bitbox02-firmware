@@ -340,7 +340,7 @@ if(CMAKE_CROSSCOMPILING)
   add_custom_target(rust-cbindgen
     # Generate c-headers for the rust library
     COMMAND
-      ${CBINDGEN} --config ${CMAKE_CURRENT_SOURCE_DIR}/rust/cbindgen.toml --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02_rust.h ${LIBBITBOX02_RUST_SOURCE_DIR}
+      ${CBINDGEN} --quiet --config ${CMAKE_CURRENT_SOURCE_DIR}/rust/cbindgen.toml --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02_rust.h ${LIBBITBOX02_RUST_SOURCE_DIR}
     BYPRODUCTS
       ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02_rust.h
   )

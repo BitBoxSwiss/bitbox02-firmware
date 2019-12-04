@@ -69,7 +69,6 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/components/show_logo.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/waiting.c
     ${CMAKE_SOURCE_DIR}/src/ui/screen_process.c
-    ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
     ${CMAKE_SOURCE_DIR}/src/touch/gestures.c
 )
 set(DBB-FIRMWARE-UI-SOURCES ${DBB-FIRMWARE-UI-SOURCES} PARENT_SCOPE)
@@ -134,7 +133,6 @@ set(DBB-BOOTLOADER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/bootloader/mpu_regions.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
-  ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
   ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_9X9.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
   ${CMAKE_SOURCE_DIR}/src/ui/components/ui_images.c
@@ -150,6 +148,7 @@ set(DRIVER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/platform/platform_init.c
   ${CMAKE_SOURCE_DIR}/src/qtouch/qtouch.c
   ${CMAKE_SOURCE_DIR}/src/ui/oled/oled.c
+  ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
 )
 set(DRIVER-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
 
@@ -521,25 +520,25 @@ if(CMAKE_CROSSCOMPILING)
     target_sources(${bootloader}.elf PRIVATE ${BITBOXBASE-ONLY-SOURCES})
   endforeach(bootloader)
 
-  target_compile_definitions(bootloader.elf PRIVATE PRODUCT_BITBOX_MULTI)
-  target_compile_definitions(bootloader-development.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bootloader-semihosting.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE SEMIHOSTING)
-  target_compile_definitions(bootloader-development-locked.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
+  target_compile_definitions(bootloader.elf PRIVATE "PLATFORM_BITBOX02=1" "EDITION_STANDARD=1")
+  target_compile_definitions(bootloader-development.elf PRIVATE "PLATFORM_BITBOX02=1" "EDITION_STANDARD=1" BOOTLOADER_DEVDEVICE)
+  target_compile_definitions(bootloader-semihosting.elf PRIVATE "PLATFORM_BITBOX02=1" "EDITION_STANDARD=1" BOOTLOADER_DEVDEVICE SEMIHOSTING)
+  target_compile_definitions(bootloader-development-locked.elf PRIVATE "PLATFORM_BITBOX02=1" "EDITION_STANDARD=1" BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-development-locked.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
 
-  target_compile_definitions(bootloader-production.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_PRODUCTION)
+  target_compile_definitions(bootloader-production.elf PRIVATE "PLATFORM_BITBOX02=1" "EDITION_STANDARD=1" BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  target_compile_definitions(bootloader-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY)
-  target_compile_definitions(bootloader-btc-development.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bootloader-btc-production.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_PRODUCTION)
+  target_compile_definitions(bootloader-btc.elf PRIVATE "PLATFORM_BITBOX02=1" "EDITION_BTCONLY=1")
+  target_compile_definitions(bootloader-btc-development.elf PRIVATE "PLATFORM_BITBOX02=1" "EDITION_BTCONLY=1" BOOTLOADER_DEVDEVICE)
+  target_compile_definitions(bootloader-btc-production.elf PRIVATE "PLATFORM_BITBOX02=1" "EDITION_BTCONLY=1" BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-btc-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  target_compile_definitions(bootloader-bitboxbase.elf PRIVATE PRODUCT_BITBOX_BASE)
-  target_compile_definitions(bootloader-bitboxbase-development.elf PRIVATE BOOTLOADER_DEVDEVICE PRODUCT_BITBOX_BASE)
-  target_compile_definitions(bootloader-bitboxbase-semihosting.elf PRIVATE BOOTLOADER_DEVDEVICE PRODUCT_BITBOX_BASE SEMIHOSTING)
-  target_compile_definitions(bootloader-bitboxbase-production.elf PRIVATE BOOTLOADER_PRODUCTION PRODUCT_BITBOX_BASE)
+  target_compile_definitions(bootloader-bitboxbase.elf PRIVATE "PLATFORM_BITBOXBASE=1" "EDITION_STANDARD=1")
+  target_compile_definitions(bootloader-bitboxbase-development.elf PRIVATE BOOTLOADER_DEVDEVICE "PLATFORM_BITBOXBASE=1" "EDITION_STANDARD=1")
+  target_compile_definitions(bootloader-bitboxbase-semihosting.elf PRIVATE BOOTLOADER_DEVDEVICE "PLATFORM_BITBOXBASE=1" "EDITION_STANDARD=1" SEMIHOSTING)
+  target_compile_definitions(bootloader-bitboxbase-production.elf PRIVATE BOOTLOADER_PRODUCTION "PLATFORM_BITBOXBASE=1" "EDITION_STANDARD=1")
   set_property(TARGET bootloader-bitboxbase-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
   set(FIRMWARES
@@ -610,7 +609,7 @@ if(CMAKE_CROSSCOMPILING)
   endforeach(firmware)
 
   target_sources(firmware.elf PRIVATE firmware.c)
-  target_compile_definitions(firmware.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_ETH=1" "APP_U2F=1")
+  target_compile_definitions(firmware.elf PRIVATE "PLATFORM_BITBOX02=1" "EDITION_STANDARD=1" "APP_ETH=1" "APP_U2F=1")
   target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES})
   target_link_libraries(firmware.elf PRIVATE bitbox02-platform)
   target_link_libraries(firmware.elf PRIVATE app_btc-multi)
@@ -621,21 +620,21 @@ if(CMAKE_CROSSCOMPILING)
   target_link_libraries(firmware-semihosting.elf PRIVATE app_btc-multi)
 
   # Select an implementation of the system calls that can communicate with the debugger
-  target_compile_definitions(firmware-semihosting.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_ETH=1" "APP_U2F=1")
+  target_compile_definitions(firmware-semihosting.elf PRIVATE "PLATFORM_BITBOX02=1" "EDITION_STANDARD=1" "APP_ETH=1" "APP_U2F=1")
   target_compile_definitions(firmware-semihosting.elf PRIVATE SEMIHOSTING)
 
   target_sources(firmware-btc.elf PRIVATE firmware.c)
-  target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_ETH=0" "APP_U2F=0")
+  target_compile_definitions(firmware-btc.elf PRIVATE "PLATFORM_BITBOX02=1" "EDITION_BTCONLY=1" "APP_ETH=0" "APP_U2F=0")
   target_link_libraries(firmware-btc.elf PRIVATE bitbox02-platform)
   target_link_libraries(firmware-btc.elf PRIVATE app_btc-btc)
 
   target_sources(firmware-bitboxbase.elf PRIVATE bitboxbase/bitboxbase.c)
-  target_compile_definitions(firmware-bitboxbase.elf PRIVATE PRODUCT_BITBOX_BASE "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
+  target_compile_definitions(firmware-bitboxbase.elf PRIVATE "PLATFORM_BITBOXBASE=1" "EDITION_STANDARD=1" "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(firmware-bitboxbase.elf PRIVATE ${BITBOXBASE-FIRMWARE-SOURCES})
   target_link_libraries(firmware-bitboxbase.elf PRIVATE bitboxbase-platform)
 
   target_sources(firmware-bitboxbase-semihosting.elf PRIVATE bitboxbase/bitboxbase.c)
-  target_compile_definitions(firmware-bitboxbase-semihosting.elf PRIVATE PRODUCT_BITBOX_BASE SEMIHOSTING "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
+  target_compile_definitions(firmware-bitboxbase-semihosting.elf PRIVATE "PLATFORM_BITBOXBASE=1" "EDITION_STANDARD=1" SEMIHOSTING "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(firmware-bitboxbase-semihosting.elf PRIVATE ${BITBOXBASE-FIRMWARE-SOURCES})
   target_link_libraries(firmware-bitboxbase-semihosting.elf PRIVATE bitboxbase-platform)
 
@@ -647,7 +646,7 @@ if(CMAKE_CROSSCOMPILING)
   target_link_libraries(factory-setup.elf PRIVATE bitbox02-platform)
 
   target_sources(factory-setup-bitboxbase.elf PRIVATE factorysetup.c)
-  target_compile_definitions(factory-setup-bitboxbase.elf PRIVATE PRODUCT_BITBOXBASE_FACTORYSETUP "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
+  target_compile_definitions(factory-setup-bitboxbase.elf PRIVATE  "PLATFORM_BITBOXBASE=1" "EDITION_FACTORYSETUP=1" "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_link_libraries(factory-setup-bitboxbase.elf PRIVATE bitboxbase-platform)
 
   foreach(name ${BOOTLOADERS} ${FIRMWARES})

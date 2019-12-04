@@ -86,7 +86,7 @@ target_link_libraries(bitbox02-test-platform
 )
 
 # Always enable semihosting for the test firmwares
-target_compile_definitions(bitbox02-test-platform PUBLIC PRODUCT_BITBOX_MULTI SEMIHOSTING)
+target_compile_definitions(bitbox02-test-platform PUBLIC "PLATFORM_BITBOX02=1" "EDITION_STANDARD=1" SEMIHOSTING)
 target_link_libraries(bitbox02-test-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
 target_compile_options(bitbox02-test-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
 
@@ -193,7 +193,7 @@ target_link_libraries(bitboxbase-test-platform
 add_dependencies(bitboxbase-test-platform rust-cbindgen)
 
 # Always enable semihosting for the test firmwares
-target_compile_definitions(bitboxbase-test-platform PUBLIC PRODUCT_BITBOX_BASE SEMIHOSTING)
+target_compile_definitions(bitboxbase-test-platform PUBLIC "PLATFORM_BITBOXBASE=1" "EDITION_STANDARD=1" SEMIHOSTING)
 target_link_libraries(bitboxbase-test-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
 target_compile_options(bitboxbase-test-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
 

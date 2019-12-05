@@ -12,30 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <stdlib.h>
 #include <string.h>
 
-#include "attestation.h"
-#include "password.h"
+#include "orientation_screen.h"
 #include "platform_config.h"
 #include "unlock.h"
 #include "workflow.h"
 
 #include <hardfault.h>
-#include <hww.h>
 #include <platform_config.h>
-#include <screen.h>
-#include <sd.h>
 #include <ui/components/confirm.h>
-#include <ui/components/info_centered.h>
-#include <ui/components/orientation_arrows.h>
-#include <ui/components/show_logo.h>
 #include <ui/components/waiting.h>
 #include <ui/screen_stack.h>
-#if PLATFORM_BITBOXBASE == 1
-#include <usart/usart.h>
-#elif PLATFORM_BITBOX02 == 1
-#include <usb/usb.h>
-#endif
+#include <ui/workflow_stack.h>
+#include <util.h>
 
 static void _confirm_dismiss(component_t* component)
 {
@@ -52,40 +43,44 @@ void workflow_confirm_dismiss(const char* title, const char* body)
     ui_screen_stack_switch(confirm_create(&params, _confirm_dismiss, NULL));
 }
 
+workflow_t* workflow_allocate(
+    workflow_method init,
+    workflow_method cleanup,
+    workflow_method spin,
+    size_t data_size)
+{
+    workflow_t* result = (workflow_t*)malloc(sizeof(*result));
+    if (!result) {
+        Abort("malloc failed in workflow_allocate");
+    }
+    result->init = init;
+    result->cleanup = cleanup;
+    result->spin = spin;
+    result->data_size = data_size;
+    if (!data_size) {
+        result->data = NULL;
+    } else {
+        result->data = calloc(1, data_size);
+        if (!result->data) {
+            Abort("Workflow data malloc failed.");
+        }
+    }
+    return result;
+}
+
 void workflow_start(void)
 {
-#if PLATFORM_BITBOXBASE == 1
-    usart_start();
-    hww_setup();
-#elif PLATFORM_BITBOX02 == 1
-    usb_start(hww_setup);
-#endif
-    ui_screen_stack_pop_all();
-    ui_screen_stack_push(info_centered_create("See the BitBoxApp", NULL));
+    workflow_stack_clear();
+    workflow_stack_start_workflow(orientation_screen());
 }
 
-#if PLATFORM_BITBOX02 == 1
-/**
- * Called when the "select orientation" screen is over.
- * Switch to the main view.
- */
-static void _select_orientation_done(bool upside_down)
+void workflow_destroy(workflow_t* workflow)
 {
-    if (upside_down) {
-        screen_rotate();
+    if (workflow->cleanup) {
+        workflow->cleanup(workflow);
     }
-    component_t* show_logo = show_logo_create(workflow_start, 200);
-    ui_screen_stack_switch(show_logo);
-}
-#endif
-
-void workflow_start_orientation_screen(void)
-{
-#if PLATFORM_BITBOXBASE == 1
-    component_t* show_logo = show_logo_create(workflow_start, 200);
-    ui_screen_stack_switch(show_logo);
-#elif PLATFORM_BITBOX02 == 1
-    component_t* select_orientation = orientation_arrows_create(_select_orientation_done);
-    ui_screen_stack_switch(select_orientation);
-#endif
+    util_zero(workflow->data, workflow->data_size);
+    free(workflow->data);
+    util_zero(workflow, sizeof(*workflow));
+    free(workflow);
 }

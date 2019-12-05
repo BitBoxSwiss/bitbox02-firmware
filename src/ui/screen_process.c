@@ -31,6 +31,40 @@ void ui_screen_render_component(component_t* component)
     UG_SendBuffer();
 }
 
+static component_t* _get_waiting_screen(void)
+{
+    static component_t* waiting_screen = NULL;
+    if (waiting_screen == NULL) {
+        waiting_screen = waiting_create();
+        if (waiting_screen == NULL) {
+            Abort("Could not create\nwaiting screen");
+        }
+    }
+    return waiting_screen;
+}
+
+/*
+ * Select which activity we should draw next
+ * (or fallback to the idle screen).
+ */
+static component_t* _get_ui_top_component(void)
+{
+    component_t* result = ui_screen_stack_top();
+    if (!result) {
+        return _get_waiting_screen();
+    }
+    return result;
+}
+
+static void _screen_draw(component_t* component)
+{
+    if (screen_frame_cnt == SCREEN_FRAME_RATE) {
+        screen_frame_cnt = 0;
+        ui_screen_render_component(component);
+    }
+    screen_frame_cnt++;
+}
+
 /**
  * Detects if the screen component being displayed has changed
  * since the last time this function was called.
@@ -46,45 +80,6 @@ static bool _screen_has_changed(const component_t* current_component)
         return true;
     }
     return false;
-}
-
-static component_t* _get_waiting_screen(void)
-{
-    static component_t* waiting_screen = NULL;
-    if (waiting_screen == NULL) {
-        waiting_screen = waiting_create();
-        if (waiting_screen == NULL) {
-            Abort("Could not create\nwaiting screen");
-        }
-    }
-    return waiting_screen;
-}
-
-/**
- * Renders the provided component on the display.
- *
- * @param[in] component Screen to draw.
- */
-static void _screen_draw(component_t* component)
-{
-    if (screen_frame_cnt == SCREEN_FRAME_RATE) {
-        screen_frame_cnt = 0;
-        ui_screen_render_component(component);
-    }
-    screen_frame_cnt++;
-}
-
-/*
- * Select which activity we should draw next
- * (or fallback to the idle screen).
- */
-static component_t* _get_ui_top_component(void)
-{
-    component_t* result = ui_screen_stack_top();
-    if (!result) {
-        return _get_waiting_screen();
-    }
-    return result;
 }
 
 void screen_process(void)

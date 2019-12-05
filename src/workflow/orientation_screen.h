@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _SHOW_LOGO_H_
-#define _SHOW_LOGO_H_
+#ifndef __ORIENTATION_SCREEN_H
+#define __ORIENTATION_SCREEN_H
 
-#include <ui/component.h>
+#include "workflow.h"
 
 /**
- * Creates an show_logo screen and registers a done callback.
- * @param[in] done_callback The callback that is called when the show_logo has been selected.
- * @param[in] timeout Time to display the logo in units of screen refresh counts
+ * Workflow to select the screen orientation and start
+ * the main bitbox activity afterwards.
  */
-component_t* show_logo_create(void);
+workflow_t* orientation_screen(void);
 
-#endif
+#endif // __ORIENTATION_SCREEN_H

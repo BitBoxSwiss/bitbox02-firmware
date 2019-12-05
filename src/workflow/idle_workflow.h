@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _SHOW_LOGO_H_
-#define _SHOW_LOGO_H_
+#ifndef __IDLE_WORKFLOW_H
+#define __IDLE_WORKFLOW_H
 
-#include <ui/component.h>
+#include "workflow.h"
 
 /**
- * Creates an show_logo screen and registers a done callback.
- * @param[in] done_callback The callback that is called when the show_logo has been selected.
- * @param[in] timeout Time to display the logo in units of screen refresh counts
+ * Base "idle" workflow that runs when nothing else is being done on the device.
+ * When started, it will show the logo for a while and then switch
+ * to a screen saying "See the BitBox App".
  */
-component_t* show_logo_create(void);
+workflow_t* idle_workflow(void);
 
-#endif
+#endif // __IDLE_WORKFLOW_H

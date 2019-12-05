@@ -40,7 +40,8 @@
 typedef struct {
     bool enable_touch;
     uint16_t screen_count;
-    void (*done_callback)(bool);
+    void (*done_callback)(bool, void*);
+    void* cb_param;
 } orientation_data_t;
 
 /**
@@ -50,7 +51,7 @@ static void _flip(component_t* component)
 {
     orientation_data_t* data = (orientation_data_t*)component->parent->data;
     if (data->enable_touch) {
-        data->done_callback(true);
+        data->done_callback(true, data->cb_param);
     }
 }
 
@@ -61,7 +62,7 @@ static void _stay(component_t* component)
 {
     orientation_data_t* data = (orientation_data_t*)component->parent->data;
     if (data->enable_touch) {
-        data->done_callback(false);
+        data->done_callback(false, data->cb_param);
     }
 }
 
@@ -146,7 +147,7 @@ static component_functions_t _component_functions = {
 
 /********************************** Create Instance **********************************/
 
-component_t* orientation_arrows_create(void (*done_callback)(bool))
+component_t* orientation_arrows_create(void (*done_callback)(bool, void*), void* cb_param)
 {
     component_t* orientation = malloc(sizeof(component_t));
     if (!orientation) {
@@ -160,6 +161,7 @@ component_t* orientation_arrows_create(void (*done_callback)(bool))
     memset(orientation, 0, sizeof(component_t));
 
     data->done_callback = done_callback;
+    data->cb_param = cb_param;
     data->screen_count = 0;
     data->enable_touch = false;
 

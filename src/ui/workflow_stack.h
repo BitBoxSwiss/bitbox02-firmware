@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _SHOW_LOGO_H_
-#define _SHOW_LOGO_H_
+#ifndef _UI_WORKFLOW_STACK_H_
+#define _UI_WORKFLOW_STACK_H_
 
-#include <ui/component.h>
+#include "event.h"
 
-/**
- * Creates an show_logo screen and registers a done callback.
- * @param[in] done_callback The callback that is called when the show_logo has been selected.
- * @param[in] timeout Time to display the logo in units of screen refresh counts
- */
-component_t* show_logo_create(void);
+#include <workflow/workflow.h>
+
+workflow_t* workflow_stack_top(void);
+
+void workflow_stack_start_workflow(workflow_t* workflow);
+
+void workflow_stack_stop_workflow(void);
+
+void workflow_stack_clear(void);
 
 #endif

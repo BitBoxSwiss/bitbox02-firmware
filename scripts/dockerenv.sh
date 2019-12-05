@@ -24,19 +24,19 @@ dockerdev () {
     local mount_dir="$DIR/.."
     local repo_path="$DIR/.."
 
-    if ! docker images | grep -q "${CONTAINER_IMAGE}"; then
+    if ! docker images --filter "reference=${CONTAINER_IMAGE}" | grep -q "${CONTAINER_IMAGE}"; then
         echo "No '${CONTAINER_IMAGE}' docker image found! Maybe you need to run
               'docker build --pull -t ${CONTAINER_IMAGE} .'?" >&2
         exit 1
     fi
 
     # If already running, enter the container.
-    if docker ps | grep -q "$CONTAINER_NAME"; then
+    if docker ps --filter "name=^${CONTAINER_NAME}$" | grep -q "$CONTAINER_NAME"; then
         docker exec --user=dockeruser --workdir="$mount_dir" -it "$CONTAINER_NAME" bash
         return
     fi
 
-    if docker ps -a | grep -q "$CONTAINER_NAME"; then
+    if docker ps --all --filter "name=^${CONTAINER_NAME}$" | grep -q "$CONTAINER_NAME"; then
         docker rm "$CONTAINER_NAME"
     fi
 

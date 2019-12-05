@@ -16,7 +16,7 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
-REPO=shiftcrypto/firmware_v2
+CONTAINER_IMAGE=shiftcrypto/firmware_v2
 PROJECT_NAME="$(basename "$(realpath "$DIR/..")")"
 CONTAINER_NAME="$PROJECT_NAME-dev"
 
@@ -24,9 +24,9 @@ dockerdev () {
     local mount_dir="$DIR/.."
     local repo_path="$DIR/.."
 
-    if ! docker images | grep -q "${REPO}"; then
-        echo "No '${REPO}' docker image found! Maybe you need to run
-              'docker build --pull -t ${REPO} .'?" >&2
+    if ! docker images | grep -q "${CONTAINER_IMAGE}"; then
+        echo "No '${CONTAINER_IMAGE}' docker image found! Maybe you need to run
+              'docker build --pull -t ${CONTAINER_IMAGE} .'?" >&2
         exit 1
     fi
 
@@ -47,7 +47,7 @@ dockerdev () {
            --name="$CONTAINER_NAME" \
            -v "$repo_path:$mount_dir" \
            --cap-add SYS_PTRACE \
-           ${REPO} bash
+           ${CONTAINER_IMAGE} bash
 
     # Use same user/group id as on the host, so that files are not created as root in the mounted
     # volume.

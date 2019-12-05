@@ -16,12 +16,19 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
+if [ "$1" = "release" ] ; then
+    MOUNT_DIR=/bb02
+    CONTAINER_NAME_SUFFIX=rel
+else
+    MOUNT_DIR="$DIR/.."
+    CONTAINER_NAME_SUFFIX=dev
+fi
+
 CONTAINER_IMAGE=shiftcrypto/firmware_v2
 PROJECT_NAME="$(basename "$(realpath "$DIR/..")")"
-CONTAINER_NAME="$PROJECT_NAME-dev"
+CONTAINER_NAME="$PROJECT_NAME-$CONTAINER_NAME_SUFFIX"
 
 dockerdev () {
-    local mount_dir="$DIR/.."
     local repo_path="$DIR/.."
 
     if ! docker images --filter "reference=${CONTAINER_IMAGE}" | grep -q "${CONTAINER_IMAGE}"; then
@@ -32,7 +39,7 @@ dockerdev () {
 
     # If already running, enter the container.
     if docker ps --filter "name=^${CONTAINER_NAME}$" | grep -q "$CONTAINER_NAME"; then
-        docker exec --user=dockeruser --workdir="$mount_dir" -it "$CONTAINER_NAME" bash
+        docker exec --user=dockeruser --workdir="$MOUNT_DIR" -it "$CONTAINER_NAME" bash
         return
     fi
 
@@ -45,7 +52,7 @@ dockerdev () {
            --detach \
            --interactive --tty \
            --name="$CONTAINER_NAME" \
-           -v "$repo_path:$mount_dir" \
+           -v "$repo_path":"$MOUNT_DIR" \
            --cap-add SYS_PTRACE \
            ${CONTAINER_IMAGE} bash
 

@@ -21,7 +21,7 @@
 #include <ui/components/confirm.h>
 #include <ui/ugui/ugui.h>
 
-bool __wrap_workflow_confirm(const confirm_params_t* params)
+bool __wrap_workflow_confirm_blocking(const confirm_params_t* params)
 {
     check_expected(params->title);
     check_expected(params->body);
@@ -33,10 +33,10 @@ bool __wrap_workflow_confirm(const confirm_params_t* params)
 
 static void _test_api_set_mnemonic_passphrase_enabled(void** state)
 {
-    expect_string_count(__wrap_workflow_confirm, params->body, "Optional\npassphrase", -1);
-    expect_value_count(__wrap_workflow_confirm, params->font, NULL, -1);
-    expect_value_count(__wrap_workflow_confirm, params->longtouch, true, -1);
-    expect_value_count(__wrap_workflow_confirm, params->accept_only, false, -1);
+    expect_string_count(__wrap_workflow_confirm_blocking, params->body, "Optional\npassphrase", -1);
+    expect_value_count(__wrap_workflow_confirm_blocking, params->font, NULL, -1);
+    expect_value_count(__wrap_workflow_confirm_blocking, params->longtouch, true, -1);
+    expect_value_count(__wrap_workflow_confirm_blocking, params->accept_only, false, -1);
 
     const bool bools[2] = {false, true};
     for (int i = 0; i < 2; i++) {
@@ -46,19 +46,22 @@ static void _test_api_set_mnemonic_passphrase_enabled(void** state)
 
         // All A-Okay.
         expect_string_count(
-            __wrap_workflow_confirm, params->title, request.enabled ? "Enable" : "Disable", 3);
+            __wrap_workflow_confirm_blocking,
+            params->title,
+            request.enabled ? "Enable" : "Disable",
+            3);
 
-        will_return(__wrap_workflow_confirm, true);
+        will_return(__wrap_workflow_confirm_blocking, true);
         expect_value(__wrap_memory_set_mnemonic_passphrase_enabled, enabled, request.enabled);
         will_return(__wrap_memory_set_mnemonic_passphrase_enabled, true);
         assert_int_equal(COMMANDER_OK, commander_api_set_mnemonic_passphrase_enabled(&request));
 
         // User rejects.
-        will_return(__wrap_workflow_confirm, false);
+        will_return(__wrap_workflow_confirm_blocking, false);
         assert_int_equal(
             COMMANDER_ERR_USER_ABORT, commander_api_set_mnemonic_passphrase_enabled(&request));
 
-        will_return(__wrap_workflow_confirm, true);
+        will_return(__wrap_workflow_confirm_blocking, true);
         expect_value(__wrap_memory_set_mnemonic_passphrase_enabled, enabled, request.enabled);
         will_return(__wrap_memory_set_mnemonic_passphrase_enabled, false);
         assert_int_equal(

@@ -21,12 +21,17 @@
 #include <ui/components/confirm.h>
 #include <ui/ugui/ugui.h>
 
+#include "workflow.h"
+
 /**
  * Confirm something with the user.
  * @param[in] params see confirm_params_t for details.
  * @return true if the user accepted, false if the user rejected.
  */
-bool workflow_confirm(const confirm_params_t* params);
+workflow_t* workflow_confirm(
+    const confirm_params_t* params,
+    void (*callback)(bool, void*),
+    void* callback_param);
 
 /**
  * Confirm something with the user asynchronously.
@@ -51,7 +56,17 @@ enum workflow_async_ready workflow_confirm_async(
     bool* result);
 
 /**
- * Confirm something with the user using longtouch.
+ * Confirm something with the user.
+ * Block until the user has either confirmed or rejected.
+ *
+ * @param[in] params see confirm_params_t for details.
+ * @return true if the user accepted, false if the user rejected.
+ */
+bool workflow_confirm_blocking(const confirm_params_t* params);
+
+/**
+ * Confirm something with the user using longtouch. Blocks until the user either confirms or
+ * cancels.
  * @param[in] title title
  * @param[in] body body
  * @param[in] font if not NULL will use the specified font for the body
@@ -59,7 +74,7 @@ enum workflow_async_ready workflow_confirm_async(
  * was forcibly unblocked.
  * @return true if the user confirmed, false if they rejected.
  */
-bool workflow_confirm_scrollable_longtouch(
+bool workflow_confirm_scrollable_longtouch_blocking(
     const char* title,
     const char* body,
     const UG_FONT* font,

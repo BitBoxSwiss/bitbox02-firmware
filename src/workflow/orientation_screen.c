@@ -57,9 +57,9 @@ static void _orientation_screen_init(workflow_t* self)
 
 static void _orientation_screen_cleanup(workflow_t* self)
 {
+    (void)self;
     ui_screen_stack_pop();
     ui_screen_stack_cleanup();
-    free(self);
 }
 
 static void _orientation_screen_spin(workflow_t* self)
@@ -81,6 +81,9 @@ workflow_t* orientation_screen(void)
     return idle_workflow();
 #elif PLATFORM_BITBOX02 == 1
     return workflow_allocate(
-        _orientation_screen_init, _orientation_screen_cleanup, _orientation_screen_spin, sizeof(orientation_screen_data_t));
+        _orientation_screen_init,
+        _orientation_screen_cleanup,
+        _orientation_screen_spin,
+        sizeof(orientation_screen_data_t));
 #endif
 }

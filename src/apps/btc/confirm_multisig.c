@@ -44,7 +44,7 @@ bool apps_btc_confirm_multisig(
         .body = basic_info,
         .accept_is_nextarrow = true,
     };
-    if (!workflow_confirm(&params_basic)) {
+    if (!workflow_confirm_blocking(&params_basic)) {
         return false;
     }
 
@@ -54,7 +54,7 @@ bool apps_btc_confirm_multisig(
         .scrollable = true,
         .accept_is_nextarrow = true,
     };
-    if (!workflow_confirm(&params_name)) {
+    if (!workflow_confirm_blocking(&params_name)) {
         return false;
     }
 
@@ -118,7 +118,7 @@ bool apps_btc_confirm_multisig(
             .longtouch = i == num_cosigners - 1,
             .accept_is_nextarrow = true,
         };
-        if (!workflow_confirm(&params_xpub)) {
+        if (!workflow_confirm_blocking(&params_xpub)) {
             return false;
         }
     }

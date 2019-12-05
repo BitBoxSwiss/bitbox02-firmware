@@ -22,12 +22,13 @@
 #include <mock_blocking.h>
 #include <mock_screen_stack.h>
 #include <ui/component.h>
+#include <ui/components/confirm.h>
 #include <workflow/blocking.h>
 
-bool __wrap_workflow_confirm(const char* title, const char* body, bool longtouch, bool accept_only)
+bool __wrap_workflow_confirm_blocking(const confirm_params_t* params)
 {
-    assert_false(longtouch);
-    assert_false(accept_only);
+    assert_false(params->longtouch);
+    assert_false(params->accept_only);
     return mock();
 }
 
@@ -55,7 +56,7 @@ static void _test_workflow_cancel(void** state)
     { // go through without cancel with normal unblocking
         _unblock_func_first = workflow_blocking_unblock;
         will_return(__wrap_workflow_blocking_block, true);
-        // will_return(__wrap_workflow_confirm, true);
+        // will_return(__wrap_workflow_confirm_blocking, true);
         assert_true(workflow_cancel_run("My Operation", &component));
         mock_screen_stack_assert_clean();
     }
@@ -63,7 +64,7 @@ static void _test_workflow_cancel(void** state)
         _unblock_func_first = workflow_cancel;
         _unblock_func_second = workflow_blocking_unblock;
         will_return(__wrap_workflow_blocking_block, true);
-        will_return(__wrap_workflow_confirm, false);
+        will_return(__wrap_workflow_confirm_blocking, false);
         will_return(__wrap_workflow_blocking_block, true);
 
         assert_true(workflow_cancel_run("My Operation", &component));
@@ -72,7 +73,7 @@ static void _test_workflow_cancel(void** state)
     { // pressing cancel, accepting cancel
         _unblock_func_first = workflow_cancel;
         will_return(__wrap_workflow_blocking_block, true);
-        will_return(__wrap_workflow_confirm, true);
+        will_return(__wrap_workflow_confirm_blocking, true);
         assert_false(workflow_cancel_run("My Operation", &component));
         mock_screen_stack_assert_clean();
     }

@@ -31,7 +31,7 @@ bool workflow_cancel_run(const char* title, component_t* component)
                 .title = title,
                 .body = "Do you really\nwant to cancel?",
             };
-            if (!workflow_confirm(&params)) {
+            if (!workflow_confirm_blocking(&params)) {
                 continue;
             }
             ui_screen_stack_pop();

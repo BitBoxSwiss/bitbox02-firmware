@@ -32,5 +32,5 @@ bool workflow_verify_pub(const char* title, const char* pub)
         .body = pub,
         .scrollable = true,
     };
-    return workflow_confirm(&params);
+    return workflow_confirm_blocking(&params);
 }

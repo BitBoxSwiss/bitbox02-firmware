@@ -30,7 +30,7 @@ typedef struct {
     void* cancel_callback_param;
 } data_t;
 
-static void _dispath_confirm(component_t* self)
+static void _dispatch_confirm(component_t* self)
 {
     data_t* data = (data_t*)self->data;
     if (data->confirm_callback) {
@@ -42,14 +42,14 @@ static void _dispath_confirm(component_t* self)
 static void _on_event(const event_t* event, component_t* component)
 {
     if (event->id == EVENT_CONFIRM) {
-        _dispath_confirm(component);
+        _dispatch_confirm(component);
     }
 }
 
 static void _on_confirm(component_t* component)
 {
     component_t* self = component->parent;
-    _dispath_confirm(self);
+    _dispatch_confirm(self);
 }
 
 static void _on_cancel(component_t* component)

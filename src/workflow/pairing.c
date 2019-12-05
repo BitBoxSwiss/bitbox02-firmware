@@ -44,5 +44,5 @@ bool workflow_pairing_create(const uint8_t* hash)
         .body = base32_formatted,
         .font = &font_monogram_5X9,
     };
-    return workflow_confirm(&params);
+    return workflow_confirm_blocking(&params);
 }

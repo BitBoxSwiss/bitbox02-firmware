@@ -137,7 +137,7 @@ bool workflow_backup_check(char* id_out, bool silent)
                 .body = backup_name,
                 .scrollable = true,
             };
-            if (!workflow_confirm(&params_name)) {
+            if (!workflow_confirm_blocking(&params_name)) {
                 // TODO Change to error "User Abort"
                 return false;
             }
@@ -146,7 +146,7 @@ bool workflow_backup_check(char* id_out, bool silent)
                 .body = id_out,
                 .scrollable = true,
             };
-            if (!workflow_confirm(&params_id)) {
+            if (!workflow_confirm_blocking(&params_id)) {
                 // TODO Change to error "User Abort"
                 return false;
             }

@@ -18,48 +18,106 @@
 #include "blocking.h"
 #include "hardfault.h"
 
+#include <hardfault.h>
+#include <ui/components/confirm.h>
 #include <ui/screen_stack.h>
+#include <ui/workflow_stack.h>
+#include <util.h>
 
 #include <stddef.h>
+#include <stdlib.h>
 
-static bool _result = false;
+typedef struct {
+    bool result;
+    bool done;
+    confirm_params_t params;
+    void (*callback)(bool, void*);
+    void* callback_param;
+} data_t;
 
 static void _confirm(void* param)
 {
-    (void)param;
-    _result = true;
-    workflow_blocking_unblock();
+    workflow_t* self = (workflow_t*)param;
+    data_t* data = (data_t*)self->data;
+    data->result = true;
+    data->done = true;
 }
 
 static void _reject(void* param)
 {
-    (void)param;
-    _result = false;
-    workflow_blocking_unblock();
+    workflow_t* self = (workflow_t*)param;
+    data_t* data = (data_t*)self->data;
+    data->result = false;
+    data->done = true;
 }
 
-static bool _have_result = false;
+/**
+ * Checks if the user has confirmed the choice.
+ */
+static void _workflow_confirm_spin(workflow_t* self)
+{
+    data_t* data = (data_t*)self->data;
+    if (data->done) {
+        /* Publish our result. */
+        data->callback(data->result, data->callback_param);
+        /* Time to go, goodbye. */
+        workflow_stack_stop_workflow();
+    }
+}
 
-static void _confirm_async(void* param)
+/**
+ * Starts this workflow.
+ */
+static void _workflow_confirm_init(workflow_t* self)
+{
+    data_t* data = (data_t*)self->data;
+    component_t* comp;
+    comp = confirm_create(
+        &data->params, _confirm, self, data->params.accept_only ? NULL : _reject, self);
+    ui_screen_stack_push(comp);
+}
+
+/**
+ * Destroys this workflow.
+ */
+static void _workflow_confirm_cleanup(workflow_t* self)
+{
+    (void)self;
+    ui_screen_stack_pop();
+    ui_screen_stack_cleanup();
+}
+
+workflow_t* workflow_confirm(
+    const confirm_params_t* params,
+    void (*callback)(bool, void*),
+    void* callback_param)
+{
+    workflow_t* result = workflow_allocate(
+        _workflow_confirm_init, _workflow_confirm_cleanup, _workflow_confirm_spin, sizeof(data_t));
+    data_t* data = (data_t*)result->data;
+    data->done = false;
+    data->params = *params;
+    data->callback = callback;
+    data->callback_param = callback_param;
+    result->data = data;
+    return result;
+}
+
+static bool _async_result = false;
+static bool _have_async_result = false;
+
+static void _confirm_complete_async(bool result, void* param)
 {
     (void)param;
-    _result = true;
-    _have_result = true;
+    _async_result = result;
+    _have_async_result = true;
     ui_screen_stack_pop();
 }
 
-static void _reject_async(void* param)
-{
-    (void)param;
-    _result = false;
-    _have_result = true;
-    ui_screen_stack_pop();
-}
-
-static enum _confirm_state {
+static enum _confirm_async_state {
     CONFIRM_IDLE,
     CONFIRM_WAIT,
-} _confirm_state = CONFIRM_IDLE;
+} _confirm_async_state = CONFIRM_IDLE;
 
 enum workflow_async_ready workflow_confirm_async(
     const char* title,
@@ -68,51 +126,53 @@ enum workflow_async_ready workflow_confirm_async(
     bool accept_only,
     bool* result)
 {
-    switch (_confirm_state) {
+    switch (_confirm_async_state) {
     case CONFIRM_IDLE:
-        _result = false;
+        _async_result = false;
         const confirm_params_t params = {
-            .title = title,
-            .body = body,
-            .font = font,
-        };
-        ui_screen_stack_push(confirm_create(
-            &params, _confirm_async, NULL, accept_only ? NULL : _reject_async, NULL));
-        _confirm_state = CONFIRM_WAIT;
+            .title = title, .body = body, .font = font, .accept_only = accept_only};
+        workflow_stack_start_workflow(workflow_confirm(&params, _confirm_complete_async, NULL));
+        _confirm_async_state = CONFIRM_WAIT;
         /* FALLTHRU */
     case CONFIRM_WAIT:
-        if (!_have_result) {
+        if (!_have_async_result) {
             return WORKFLOW_ASYNC_NOT_READY;
         }
-        _have_result = false;
-        _confirm_state = CONFIRM_IDLE;
-        *result = _result;
+        _have_async_result = false;
+        _confirm_async_state = CONFIRM_IDLE;
+        *result = _async_result;
         return WORKFLOW_ASYNC_READY;
     default:
         Abort("workflow_confirm: Internal error");
     }
 }
 
-bool workflow_confirm(const confirm_params_t* params)
+static void _confirm_blocking_cb(bool status, void* param)
 {
-    _result = false;
-    ui_screen_stack_push(
-        confirm_create(params, _confirm, NULL, params->accept_only ? NULL : _reject, NULL));
+    bool* result = param;
+    *result = status;
+    workflow_blocking_unblock();
+}
+
+bool workflow_confirm_blocking(const confirm_params_t* params)
+{
+    bool _result;
+    workflow_t* confirm_wf = workflow_confirm(params, _confirm_blocking_cb, &_result);
+    workflow_stack_start_workflow(confirm_wf);
     bool blocking_result = workflow_blocking_block();
-    ui_screen_stack_pop();
     if (!blocking_result) {
         return false;
     }
     return _result;
 }
 
-bool workflow_confirm_scrollable_longtouch(
+bool workflow_confirm_scrollable_longtouch_blocking(
     const char* title,
     const char* body,
     const UG_FONT* font,
     bool* cancel_forced_out)
 {
-    _result = false;
+    bool _result = false;
     const confirm_params_t params = {
         .title = title,
         .body = body,
@@ -120,9 +180,10 @@ bool workflow_confirm_scrollable_longtouch(
         .scrollable = true,
         .longtouch = true,
     };
-    ui_screen_stack_push(confirm_create(&params, _confirm, NULL, _reject, NULL));
+
+    workflow_t* confirm_wf = workflow_confirm(&params, _confirm_blocking_cb, &_result);
+    workflow_stack_start_workflow(confirm_wf);
     bool blocking_result = workflow_blocking_block();
-    ui_screen_stack_pop();
     *cancel_forced_out = !blocking_result;
     if (*cancel_forced_out) {
         return false;

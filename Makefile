@@ -111,7 +111,9 @@ jlink-flash-firmware-bitboxbase: | build
 dockerinit:
 	docker build --pull --force-rm --no-cache -t shiftcrypto/firmware_v2 .
 dockerdev:
-	./scripts/dockerdev.sh
+	./scripts/dockerenv.sh
+dockerrel:
+	./scripts/dockerenv.sh release
 dockerrun:
 	docker-compose run -w /firmware_v2 firmware_v2
 generate-atecc608-config:

@@ -39,14 +39,16 @@ typedef struct {
     int16_t text_position_last;
 } data_t;
 
+static void _measure_label_dimensions(component_t* label);
+
 void label_update(component_t* component, const char* text)
 {
     data_t* data = (data_t*)component->data;
     snprintf(data->text, sizeof(data->text), "%s", text);
-    UG_MeasureString(&(component->dimension.width), &(component->dimension.height), text);
     if (component->parent == NULL) {
         return;
     }
+    _measure_label_dimensions(component);
     component_t* parent = component->parent;
     switch (data->position) {
     case CENTER:
@@ -175,6 +177,28 @@ static void _cleanup(component_t* component)
     ui_util_component_cleanup(component);
 }
 
+void _measure_label_dimensions(component_t* label)
+{
+    data_t* data = (data_t*)label->data;
+
+    UG_FontSetVSpace(2);
+    UG_FontSelect(data->font);
+    if (data->scrollable) {
+        UG_MeasureStringNoBreak(&(label->dimension.width), &(label->dimension.height), data->text);
+        if (label->dimension.width < SCREEN_WIDTH) {
+            // Do not scroll if text already fits in the screen
+            data->scrollable = false;
+        }
+    } else if (
+        data->position == CENTER || data->position == CENTER_TOP ||
+        data->position == CENTER_BOTTOM) {
+        UG_MeasureStringCentered(&(label->dimension.width), &(label->dimension.height), data->text);
+    } else {
+        UG_MeasureString(&(label->dimension.width), &(label->dimension.height), data->text);
+    }
+    UG_FontSetVSpace(0);
+}
+
 /********************************** Label Functions **********************************/
 
 static const component_functions_t _component_functions = {
@@ -214,20 +238,7 @@ static component_t* _label_create(
     label->parent = parent;
     label->f = &_component_functions;
 
-    UG_FontSetVSpace(2);
-    UG_FontSelect(data->font);
-    if (data->scrollable) {
-        UG_MeasureStringNoBreak(&(label->dimension.width), &(label->dimension.height), text);
-        if (label->dimension.width < SCREEN_WIDTH) {
-            // Do not scroll if text already fits in the screen
-            data->scrollable = false;
-        }
-    } else if (position == CENTER || position == CENTER_TOP || position == CENTER_BOTTOM) {
-        UG_MeasureStringCentered(&(label->dimension.width), &(label->dimension.height), text);
-    } else {
-        UG_MeasureString(&(label->dimension.width), &(label->dimension.height), text);
-    }
-    UG_FontSetVSpace(0);
+    _measure_label_dimensions(label);
 
     if (data->scrollable) {
         ui_util_add_sub_component(label, knight_rider_create(label, SCREEN_HEIGHT - 1));

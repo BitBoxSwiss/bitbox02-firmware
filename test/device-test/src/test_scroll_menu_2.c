@@ -12,10 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <common_main.h>
 #include <driver_init.h>
 #include <firmware_main_loop.h>
+#include <platform_init.h>
 #include <screen.h>
 #include <string.h>
+#include <ui/components/scroll_through_all_variants.h>
 #include <ui/screen_stack.h>
 #include <usb/usb.h>
 
@@ -38,14 +41,18 @@ void __attribute__((noreturn)) __stack_chk_fail(void)
 
 int main(void)
 {
+    init_mcu();
     system_init();
+    platform_init();
+    //__stack_chk_guard = common_stack_chk_guard();
     screen_init();
     qtouch_init();
 
-    // const char* words[] = {"first", "second", "third", "forth"};
-    // component_t* test_scroll_through_2 = scroll_through_2_create(words, NULL, 4, true);
+    const char* words[] = {"first", "second", "third", "forth"};
+    component_t* test_scroll_through_2 =
+        scroll_through_all_variants_create(words, NULL, 4, true, NULL, NULL, NULL);
 
-    // ui_screen_stack_push(test_scroll_through_2);
+    ui_screen_stack_push(test_scroll_through_2);
     firmware_main_loop();
 }
 

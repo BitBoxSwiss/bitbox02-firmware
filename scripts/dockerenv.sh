@@ -17,51 +17,51 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 REPO=shiftcrypto/firmware_v2
-PROJECT_NAME="$(basename $(realpath "$DIR/.."))"
-CONTAINER_NAME=$PROJECT_NAME-dev
+PROJECT_NAME="$(basename "$(realpath "$DIR/..")")"
+CONTAINER_NAME="$PROJECT_NAME-dev"
 
 dockerdev () {
     local mount_dir="$DIR/.."
     local repo_path="$DIR/.."
 
-    if ! docker images | grep -q ${REPO}; then
+    if ! docker images | grep -q "${REPO}"; then
         echo "No '${REPO}' docker image found! Maybe you need to run
               'docker build --pull -t ${REPO} .'?" >&2
         exit 1
     fi
 
     # If already running, enter the container.
-    if docker ps | grep -q $CONTAINER_NAME; then
-        docker exec --user=dockeruser --workdir=$mount_dir -it $CONTAINER_NAME bash
+    if docker ps | grep -q "$CONTAINER_NAME"; then
+        docker exec --user=dockeruser --workdir="$mount_dir" -it "$CONTAINER_NAME" bash
         return
     fi
 
-    if docker ps -a | grep -q $CONTAINER_NAME; then
-        docker rm $CONTAINER_NAME
+    if docker ps -a | grep -q "$CONTAINER_NAME"; then
+        docker rm "$CONTAINER_NAME"
     fi
 
     # SYS_PTRACE is needed to run address sanitizer
     docker run \
            --detach \
            --interactive --tty \
-           --name=$CONTAINER_NAME \
-           -v $repo_path:$mount_dir \
+           --name="$CONTAINER_NAME" \
+           -v "$repo_path:$mount_dir" \
            --cap-add SYS_PTRACE \
            ${REPO} bash
 
     # Use same user/group id as on the host, so that files are not created as root in the mounted
     # volume.
-    docker exec -it $CONTAINER_NAME groupadd -g `id -g` dockergroup
-    docker exec -it $CONTAINER_NAME useradd -u `id -u` -m -g dockergroup dockeruser
+    docker exec -it "$CONTAINER_NAME" groupadd -g "$(id -g)" dockergroup
+    docker exec -it "$CONTAINER_NAME" useradd -u "$(id -u)" -m -g dockergroup dockeruser
 
     # Call a second time to enter the container.
     dockerdev
 }
 
 if test "$1" == "stop"; then
-	if docker ps -a | grep -q $CONTAINER_NAME; then
-		docker stop $CONTAINER_NAME
-	fi
+    if docker ps -a | grep -q "$CONTAINER_NAME"; then
+        docker stop "$CONTAINER_NAME"
+    fi
 else
-	dockerdev
+    dockerdev
 fi

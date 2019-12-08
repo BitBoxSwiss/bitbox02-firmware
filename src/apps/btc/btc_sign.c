@@ -16,6 +16,7 @@
 #include "btc_bip143.h"
 #include "btc_common.h"
 #include "btc_params.h"
+#include "confirm_locktime_rbf.h"
 
 #include <crypto/sha2/sha256.h>
 #include <keystore.h>
@@ -44,6 +45,8 @@ static uint32_t _num_inputs;
 static uint32_t _num_outputs;
 static uint32_t _locktime;
 static uint32_t _index;
+static enum apps_btc_rbf_flag _rbf;
+static bool _locktime_applies;
 
 // used during STATE_INPUTS_PASS1. Will contain the sum of all spent output
 // values.
@@ -92,6 +95,8 @@ static void _reset(void)
     _num_outputs = 0;
     _locktime = 0;
     _index = 0;
+    _rbf = CONFIRM_LOCKTIME_RBF_OFF;
+    _locktime_applies = false;
     _inputs_sum_pass1 = 0;
     _inputs_sum_pass2 = 0;
     _outputs_sum_out = 0;
@@ -114,16 +119,16 @@ app_btc_sign_error_t app_btc_sign_init(
     if (_state != STATE_INIT) {
         return _error(APP_BTC_SIGN_ERR_STATE);
     }
+    // Currently we do not support time-based nlocktime
+    if (request->locktime >= 500000000) {
+        return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
+    }
     // currently only support version 1 or version 2 tx.
     // version 2: https://github.com/bitcoin/bips/blob/master/bip-0068.mediawiki
     if (request->version != 1 && request->version != 2) {
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
     }
     if (request->num_inputs < 1 || request->num_outputs < 1) {
-        return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
-    }
-    // Locktime not yet supported.
-    if (request->locktime != 0) {
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
     }
     const app_btc_coin_params_t* coin_params = app_btc_params_get(request->coin);
@@ -305,8 +310,17 @@ app_btc_sign_error_t app_btc_sign_input(
     if (_state != STATE_INPUTS_PASS1 && _state != STATE_INPUTS_PASS2) {
         return _error(APP_BTC_SIGN_ERR_STATE);
     }
-    if (request->sequence != 0xffffffff) {
+    // relative locktime and sequence nummbers < 0xffffffff-2 are not supported
+    if (request->sequence < 0xffffffff - 2) {
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
+    }
+    if (_coin_params->rbf_support) {
+        if (request->sequence == 0xffffffff - 2) {
+            _rbf = CONFIRM_LOCKTIME_RBF_ON;
+        }
+    }
+    if (request->sequence < 0xffffffff) {
+        _locktime_applies = true;
     }
     if (request->prevOutValue == 0) {
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
@@ -433,7 +447,21 @@ app_btc_sign_error_t app_btc_sign_output(
         next_out->type = BTCSignNextResponse_Type_OUTPUT;
         next_out->index = _index;
     } else {
-        // Done with outputs. Verify total and fee.
+        // Done with outputs. Verify locktime, total and fee.
+        //
+        // This is not a security feature, a transaction that is not rbf
+        // and has a locktime of 0 will not be verified.
+        if (_locktime_applies || _rbf == CONFIRM_LOCKTIME_RBF_ON) {
+            // The RBF nsequence bytes are often set in conjunction with a locktime,
+            // so verify both simultaneously.
+            // There is no RBF in Litecoin, so make sure it is disabled.
+            if (!_coin_params->rbf_support) {
+                _rbf = CONFIRM_LOCKTIME_RBF_DISABLED;
+            }
+            if (!apps_btc_confirm_locktime_rbf(_locktime, _rbf)) {
+                return _error(APP_BTC_SIGN_ERR_USER_ABORT);
+            }
+        }
 
         // total_out, including fee.
         if (_inputs_sum_pass1 < _outputs_sum_ours) {

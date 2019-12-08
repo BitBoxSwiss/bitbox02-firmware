@@ -214,7 +214,6 @@ static testcase_t _tests[] = {
         .script_type = BTCScriptType_SCRIPT_P2WPKH,
         .out = "tltc1q0stgw6ehkx66r7g22056u0p95f9z4qydg2lue8",
     },
-
 };
 
 static void _test_app_btc_address(void** state)

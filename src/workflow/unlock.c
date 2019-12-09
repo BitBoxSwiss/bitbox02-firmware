@@ -39,9 +39,7 @@ static bool _get_mnemonic_passphrase(char* passphrase_out)
         Abort("_get_mnemonic_passphrase");
     }
     while (true) {
-        if (!password_enter("Enter\noptional passphrase", true, passphrase_out)) {
-            return false;
-        }
+        password_enter_blocking("Enter\noptional passphrase", true, passphrase_out);
         if (strlen(passphrase_out) == 0) {
             // No need to confirm the empty passphrase.
             break;
@@ -133,9 +131,7 @@ bool workflow_unlock(void)
     while (true) {
         char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
         UTIL_CLEANUP_STR(password);
-        if (!password_enter("Enter password", false, password)) {
-            return false;
-        }
+        password_enter_blocking("Enter password", false, password);
 
         keystore_error_t unlock_result = workflow_unlock_and_handle_error(password);
         if (unlock_result == KEYSTORE_OK) {

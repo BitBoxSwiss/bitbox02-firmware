@@ -17,8 +17,25 @@
 
 #include <compiler_util.h>
 #include <ui/components/trinary_input_string.h> // for SET_PASSWORD_MAX_PASSWORD_LENGTH
+#include <workflow/workflow.h>
 
 #include <stdbool.h>
+
+/**
+ * Creates a new enter password workflow.
+ *
+ * @param[in] title title screen
+ * @param[in] special_chars make the special characters keyboard available.
+ * @param[in] callback Function to be invoked when the password is ready.
+ *            It will receive a pointer to the password and the user-defined parameter.
+ * @param[in] callback_param User-defined parameter that will be passed to the callback.
+ * @return workflow_t object ready to be started.
+ */
+workflow_t* password_enter(
+    const char* title,
+    bool special_chars,
+    void callback(const char* password, void* param),
+    void* callback_param);
 
 /**
  * Starts the enter password workflow.
@@ -27,8 +44,6 @@
  * @param[in] make the special characters keyboard available.
  * @param[out] password_out must be SET_PASSWORD_MAX_PASSWORD_LENGTH bytes (including null
  * terminator). Use `UTIL_CLEANUP_STR` to make sure that the password is destroyed after use.
- * @return false if the call was cancelled.
  */
-USE_RESULT bool password_enter(const char* title, bool special_chars, char* password_out);
-
+void password_enter_blocking(const char* title, bool special_chars, char* password_out);
 #endif

@@ -24,8 +24,9 @@
 
 static char _password[SET_PASSWORD_MAX_PASSWORD_LENGTH];
 
-static void _pw_entered(const char* password)
+static void _pw_entered(const char* password, void* param)
 {
+    (void)param;
     int snprintf_result = snprintf(_password, sizeof(_password), "%s", password);
     if (snprintf_result < 0 || snprintf_result >= (int)sizeof(_password)) {
         Abort("length mismatch");
@@ -36,7 +37,7 @@ static void _pw_entered(const char* password)
 bool password_enter(const char* title, bool special_chars, char* password_out)
 {
     ui_screen_stack_push(
-        trinary_input_string_create_password(title, special_chars, _pw_entered, NULL));
+        trinary_input_string_create_password(title, special_chars, _pw_entered, NULL, NULL, NULL));
     workflow_blocking_block();
     ui_screen_stack_pop();
     snprintf(password_out, SET_PASSWORD_MAX_PASSWORD_LENGTH, "%s", _password);

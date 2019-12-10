@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _MPU_H_
-#define _MPU_H_
+#ifndef _MPU_REGIONS_H_
+#define _MPU_REGIONS_H_
 #ifndef TESTING
 
 /**
@@ -22,7 +22,7 @@
  * region for the firmware code has full access. Bootdata,
  * Appdata, and SRAM are non-excutable.
  */
-void mpu_bootloader_init(void);
+void mpu_regions_bootloader_init(void);
 
 /**
  * Updates the memory regions previously set in bootloader
@@ -30,7 +30,7 @@ void mpu_bootloader_init(void);
  * region for the firmware code is updated to read-only and
  * bootdata is updated to no-access.
  */
-void mpu_firmware_init(void);
+void mpu_regions_firmware_init(void);
 
 #endif
 #endif

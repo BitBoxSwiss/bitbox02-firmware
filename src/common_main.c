@@ -14,9 +14,11 @@
 
 #include "common_main.h"
 #include "driver_init.h"
+#include "flags.h"
 #include "hardfault.h"
 #include "keystore.h"
 #include "memory.h"
+#include "mpu.h"
 #include "random.h"
 #include "screen.h"
 #include "securechip/securechip.h"
@@ -66,6 +68,7 @@ static bool _setup_wally(void)
 
 void common_main(void)
 {
+    mpu_bitbox02_init();
     if (!_setup_wally()) {
         Abort("_setup_wally failed");
     }

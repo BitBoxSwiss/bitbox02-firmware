@@ -166,7 +166,8 @@ static void _process_packet(const in_buffer_t* in_req, buffer_t* out_rsp)
             if (!memory_is_initialized()) {
                 out_rsp->data[0] = OP_STATUS_FAILURE_UNINITIALIZED;
             } else {
-                out_rsp->data[0] = workflow_unlock() ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
+                out_rsp->data[0] =
+                    workflow_unlock_blocking() ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
             }
             out_rsp->len = 1;
             return;

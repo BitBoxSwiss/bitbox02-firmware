@@ -48,7 +48,7 @@ static void _unlock_bip39_init(workflow_t* self)
 {
     unlock_bip39_data_t* data = (unlock_bip39_data_t*)self->data;
     if (memory_is_mnemonic_passphrase_enabled()) {
-        workflow_stack_start_workflow(get_mnemonic_passphrase(_passphrase_ready, data));
+        workflow_stack_start_workflow(workflow_get_mnemonic_passphrase(_passphrase_ready, data));
     }
 }
 

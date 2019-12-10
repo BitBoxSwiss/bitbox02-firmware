@@ -165,7 +165,7 @@ void hid_free_enumeration(struct hid_device_info* devs) {}
 
 void __wrap_workflow_status_blocking(const char* msg, bool status_success) {}
 
-bool __wrap_workflow_unlock(void)
+bool __wrap_workflow_unlock_blocking(void)
 {
     return true;
 }

@@ -138,19 +138,3 @@ workflow_t* workflow_get_mnemonic_passphrase(void (*callback)(char*, void*), voi
     data->callback_param = callback_param;
     return result;
 }
-
-static void _unlock_cb(char* passphrase, void* param)
-{
-    char* passphrase_out = (char*)param;
-    int n_written = snprintf(passphrase_out, SET_PASSWORD_MAX_PASSWORD_LENGTH, "%s", passphrase);
-    if (n_written < 0 || n_written >= SET_PASSWORD_MAX_PASSWORD_LENGTH) {
-        Abort("Mnemonic passphrase invalid length.");
-    }
-    workflow_blocking_unblock();
-}
-
-void get_mnemonic_passphrase_blocking(char* passphrase_out)
-{
-    workflow_stack_start_workflow(get_mnemonic_passphrase(_unlock_cb, passphrase_out));
-    workflow_blocking_block();
-}

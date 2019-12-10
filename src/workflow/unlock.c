@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "unlock.h"
+
+#include "blocking.h"
 #include "password_enter.h"
 #include "status.h"
 #include "unlock_bip39.h"
@@ -23,10 +25,24 @@
 #include <screen.h>
 #include <string.h>
 #include <ui/screen_stack.h>
+#include <ui/workflow_stack.h>
 #include <util.h>
-#include <workflow/get_mnemonic_passphrase.h>
 
 #include <stdio.h>
+
+typedef enum {
+    UNLOCK_STATUS_PW_REQUEST,
+    UNLOCK_STATUS_PW_AVAILABLE,
+    UNLOCK_STATUS_FINISHED
+} unlock_state_t;
+
+typedef struct {
+    void (*callback)(bool result, void* param);
+    void* callback_param;
+    unlock_state_t state;
+    char* password;
+    bool result;
+} unlock_data_t;
 
 keystore_error_t workflow_unlock_and_handle_error(const char* password)
 {
@@ -35,6 +51,10 @@ keystore_error_t workflow_unlock_and_handle_error(const char* password)
     switch (unlock_result) {
     case KEYSTORE_OK:
     case KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED:
+        /*
+         * The MCU resets before entering this branch.
+         * Exit cleanly for testing purposes.
+         */
         break;
     case KEYSTORE_ERR_INCORRECT_PASSWORD: {
         char msg[100] = {0};
@@ -43,7 +63,7 @@ keystore_error_t workflow_unlock_and_handle_error(const char* password)
         } else {
             snprintf(msg, sizeof(msg), "Wrong password\n%d tries remain", remaining_attempts);
         }
-        workflow_status_blocking(msg, false);
+        workflow_stack_start_workflow(workflow_status(msg, false, NULL, NULL));
         break;
     }
     default:
@@ -52,33 +72,129 @@ keystore_error_t workflow_unlock_and_handle_error(const char* password)
     return unlock_result;
 }
 
-bool workflow_unlock(void)
+static void _unlock_cleanup_password(unlock_data_t* data)
 {
+    if (data->password) {
+        util_zero(data->password, sizeof(data->password));
+        free(data->password);
+        data->password = NULL;
+    }
+}
+
+/**
+ * Callback invoked when the password entry completes.
+ */
+static void _unlock_password_completed(const char* password, void* param)
+{
+    unlock_data_t* data = (unlock_data_t*)param;
+    _unlock_cleanup_password(data);
+    data->password = util_strdup(password);
+    data->state = UNLOCK_STATUS_PW_AVAILABLE;
+}
+
+static void _unlock_init(workflow_t* self)
+{
+    unlock_data_t* data = (unlock_data_t*)self->data;
     if (!memory_is_initialized()) {
-        return false;
+        data->state = UNLOCK_STATUS_FINISHED;
+        data->result = false;
+        return;
     }
     if (!keystore_is_locked()) {
-        return true;
+        data->state = UNLOCK_STATUS_FINISHED;
+        data->result = true;
+        return;
     }
 
+    /*
+     * FUTURE: maybe remove?
+     * It might be a "security" feature/hack, but it's not
+     * clear whether it's useful or not.
+     */
     ui_screen_stack_pop_all();
+    data->state = UNLOCK_STATUS_PW_REQUEST;
+}
 
-    // Repeat attempting to unlock until success or device reset.
-    while (true) {
-        char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
-        UTIL_CLEANUP_STR(password);
-        password_enter_blocking("Enter password", false, password);
+static void _unlock_cleanup(workflow_t* self)
+{
+    unlock_data_t* data = (unlock_data_t*)self->data;
+    _unlock_cleanup_password(data);
+    free(data);
+}
 
-        keystore_error_t unlock_result = workflow_unlock_and_handle_error(password);
-        if (unlock_result == KEYSTORE_OK) {
-            // Keystore unlocked, now unlock bip39 seed.
-            workflow_unlock_bip39_blocking();
-            break;
-        }
-        if (unlock_result == KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED) {
-            // Device reset
-            break;
-        }
+/**
+ * Try to unlock the device with the provided password.
+ * Request the password again on failure. If the maximum number of
+ * attempts have been exceeded, abort immediately as the device is going
+ * to be reset.
+ */
+static void _unlock_handle_password_entry(unlock_data_t* data)
+{
+    keystore_error_t unlock_result = workflow_unlock_and_handle_error(data->password);
+    if (unlock_result == KEYSTORE_OK) {
+        // Keystore unlocked, now unlock bip39 seed.
+        workflow_stack_start_workflow(workflow_unlock_bip39(NULL, NULL));
+        data->result = true;
+        data->state = UNLOCK_STATUS_FINISHED;
+    } else if (unlock_result == KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED) {
+        /*
+         * The MCU resets before entering this branch.
+         * Exit without doing anything for testing purposes.
+         */
+    } else {
+        /* Wrong password. Go back to the password entry. */
+        data->state = UNLOCK_STATUS_PW_REQUEST;
     }
-    return true;
+}
+
+static void _unlock_spin(workflow_t* self)
+{
+    unlock_data_t* data = (unlock_data_t*)self->data;
+    switch (data->state) {
+    case UNLOCK_STATUS_PW_REQUEST:
+        _unlock_cleanup_password(data);
+        workflow_stack_start_workflow(
+            password_enter("Enter password", false, _unlock_password_completed, (void*)data));
+        break;
+    case UNLOCK_STATUS_PW_AVAILABLE:
+        _unlock_handle_password_entry(data);
+        _unlock_cleanup_password(data);
+        break;
+    case UNLOCK_STATUS_FINISHED:
+        if (data->callback) {
+            data->callback(data->result, data->callback_param);
+            workflow_stack_stop_workflow();
+        }
+        break;
+    default:
+        Abort("Unknown _unlock_spin status.");
+    }
+}
+
+workflow_t* workflow_unlock(void (*callback)(bool result, void* param), void* callback_param)
+{
+    workflow_t* self =
+        workflow_allocate(_unlock_init, _unlock_cleanup, _unlock_spin, sizeof(unlock_data_t));
+    unlock_data_t* data = (unlock_data_t*)self->data;
+    data->callback = callback;
+    data->callback_param = callback_param;
+    return self;
+}
+
+/**
+ * Callback for the blocking wrapper to workflow_unlock.
+ */
+static void _workflow_unlock_completed(bool result, void* param)
+{
+    bool* result_ptr = (bool*)param;
+    *result_ptr = result;
+    workflow_blocking_unblock();
+}
+
+bool workflow_unlock_blocking(void)
+{
+    bool result = false;
+    workflow_stack_start_workflow(workflow_unlock(_workflow_unlock_completed, &result));
+    workflow_blocking_block();
+    return result;
 }

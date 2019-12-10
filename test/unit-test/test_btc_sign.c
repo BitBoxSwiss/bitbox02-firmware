@@ -100,7 +100,7 @@ static void _test_btc_sign_init(void** state)
         tst_app_btc_reset();
         BTCSignInitRequest invalid = init_req_valid;
         for (invalid.version = 0; invalid.version < 10; invalid.version++) {
-            if (invalid.version == 1) {
+            if (invalid.version == 1 || invalid.version == 2) {
                 continue;
             }
             assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_init(&invalid, &next));

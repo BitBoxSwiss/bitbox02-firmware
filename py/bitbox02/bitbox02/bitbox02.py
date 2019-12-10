@@ -268,7 +268,7 @@ class BitBox02(BitBoxCommonAPI):
         # pylint: disable=too-many-locals,no-member
 
         # Reserved for future use.
-        assert version == 1 and locktime == 0
+        assert version in (1, 2)
 
         sigs: List[Tuple[int, bytes]] = []
 

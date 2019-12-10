@@ -114,9 +114,9 @@ app_btc_sign_error_t app_btc_sign_init(
     if (_state != STATE_INIT) {
         return _error(APP_BTC_SIGN_ERR_STATE);
     }
-    // currently only support version 1 tx.
+    // currently only support version 1 or version 2 tx.
     // version 2: https://github.com/bitcoin/bips/blob/master/bip-0068.mediawiki
-    if (request->version != 1) {
+    if (request->version != 1 && request->version != 2) {
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
     }
     if (request->num_inputs < 1 || request->num_outputs < 1) {

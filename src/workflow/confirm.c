@@ -14,7 +14,9 @@
 
 #include "confirm.h"
 
+#include "async.h"
 #include "blocking.h"
+#include "hardfault.h"
 
 #include <ui/components/confirm.h>
 #include <ui/screen_stack.h>
@@ -52,6 +54,55 @@ bool workflow_confirm_with_timeout(
         return false;
     }
     return _result;
+}
+
+static bool _have_result = false;
+
+static void _confirm_async(component_t* component)
+{
+    (void)component;
+    _result = true;
+    _have_result = true;
+    ui_screen_stack_pop();
+}
+
+static void _reject_async(component_t* component)
+{
+    (void)component;
+    _result = false;
+    _have_result = true;
+    ui_screen_stack_pop();
+}
+
+static enum _confirm_state {
+    CONFIRM_IDLE,
+    CONFIRM_WAIT,
+} _confirm_state = CONFIRM_IDLE;
+
+enum workflow_async_ready workflow_confirm_async(
+    const char* title,
+    const char* body,
+    bool accept_only,
+    bool* result)
+{
+    switch (_confirm_state) {
+    case CONFIRM_IDLE:
+        _result = false;
+        ui_screen_stack_push(
+            confirm_create(title, body, false, _confirm_async, accept_only ? NULL : _reject_async));
+        _confirm_state = CONFIRM_WAIT;
+        /* FALLTHRU */
+    case CONFIRM_WAIT:
+        if (!_have_result) {
+            return WORKFLOW_ASYNC_NOT_READY;
+        }
+        _have_result = false;
+        _confirm_state = CONFIRM_IDLE;
+        *result = _result;
+        return WORKFLOW_ASYNC_READY;
+    default:
+        Abort("workflow_confirm: Internal error");
+    }
 }
 
 bool workflow_confirm(const char* title, const char* body, bool longtouch, bool accept_only)

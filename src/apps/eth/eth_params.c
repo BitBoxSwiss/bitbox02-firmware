@@ -69,6 +69,13 @@ static const app_eth_erc20_params_t _erc20_params[] = {
     },
     {
         .coin = ETHCoin_ETH,
+        .unit = "USDC",
+        .contract_address =
+            "\xa0\xb8\x69\x91\xc6\x21\x8b\x36\xc1\xd1\x9d\x4a\x2e\x9e\xb0\xce\x36\x06\xeb\x48",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
         .unit = "LINK",
         .contract_address =
             "\x51\x49\x10\x77\x1a\xf9\xca\x65\x6a\xf8\x40\xdf\xf8\x3e\x82\x64\xec\xf9\x86\xca",
@@ -97,9 +104,16 @@ static const app_eth_erc20_params_t _erc20_params[] = {
     },
     {
         .coin = ETHCoin_ETH,
-        .unit = "DAI",
+        .unit = "SAI",
         .contract_address =
             "\x89\xd2\x4a\x6b\x4c\xcb\x1b\x6f\xaa\x26\x25\xfe\x56\x2b\xdd\x9a\x23\x26\x03\x59",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .unit = "DAI",
+        .contract_address =
+            "\x6b\x17\x54\x74\xe8\x90\x94\xc4\x4d\xa9\x8b\x95\x4e\xed\xea\xc4\x95\x27\x1d\x0f",
         .decimals = 18,
     },
 };

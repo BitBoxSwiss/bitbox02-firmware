@@ -21,6 +21,7 @@
 #include "workflow/status.h"
 #ifndef TESTING
 #include "securechip/securechip.h"
+#include <driver_init.h>
 #endif
 
 void reset_reset(bool status)
@@ -45,4 +46,8 @@ void reset_reset(bool status)
 #endif
 
     workflow_status_create("Device reset", status);
+
+#ifndef TESTING
+    _reset_mcu();
+#endif
 }

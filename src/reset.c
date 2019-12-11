@@ -18,11 +18,12 @@
 #include "keystore.h"
 #include "memory/memory.h"
 #include "memory/smarteeprom.h"
+#include "workflow/status.h"
 #ifndef TESTING
 #include "securechip/securechip.h"
 #endif
 
-void reset_reset(void)
+void reset_reset(bool status)
 {
     keystore_lock();
 #if !defined(TESTING)
@@ -42,4 +43,6 @@ void reset_reset(void)
     /* Disable SmartEEPROM, so it will be erased on next reboot. */
     smarteeprom_disable();
 #endif
+
+    workflow_status_create("Device reset", status);
 }

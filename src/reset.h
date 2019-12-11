@@ -15,5 +15,17 @@
 #ifndef _RESET_H_
 #define _RESET_H_
 
-void reset_reset(void);
+#include <stdbool.h>
+
+/**
+ * Resets the device:
+ * - Updates secure chip KDF keys.
+ * - Resets the securechip eeprom (u2f counter).
+ * - Resets MCU flash app memory.
+ * - Resets smart eeprom memory.
+ * - Shows a "Device reset" status message.
+ * @param[in] status If the status message should indicate success or failure
+ * (the reset was user invoked or forced).
+ */
+void reset_reset(bool status);
 #endif

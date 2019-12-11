@@ -306,7 +306,7 @@ keystore_error_t keystore_unlock(const char* password, uint8_t* remaining_attemp
     uint8_t failed_attempts = memory_get_failed_unlock_attempts();
     if (failed_attempts >= MAX_UNLOCK_ATTEMPTS) {
         *remaining_attempts_out = 0;
-        reset_reset();
+        reset_reset(false);
         return KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED;
     }
     uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
@@ -337,7 +337,7 @@ keystore_error_t keystore_unlock(const char* password, uint8_t* remaining_attemp
     failed_attempts = memory_get_failed_unlock_attempts();
     if (failed_attempts >= MAX_UNLOCK_ATTEMPTS) { // checks for uint8 overflow
         *remaining_attempts_out = 0;
-        reset_reset();
+        reset_reset(false);
         return KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED;
     }
     *remaining_attempts_out = MAX_UNLOCK_ATTEMPTS - failed_attempts;

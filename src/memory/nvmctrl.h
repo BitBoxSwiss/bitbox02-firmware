@@ -12,24 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "reset.h"
-#include "confirm.h"
-#include "password.h"
-#include "status.h"
-#include "workflow.h"
+#ifndef __NVMCTRL_H
+#define __NVMCTRL_H
 
-#include <reset.h>
+#include <stdint.h>
 
-bool workflow_reset(void)
-{
-    if (!password_check()) {
-        return false;
-    }
-    if (!workflow_confirm("RESET", "Proceed to\nfactory reset?", true, false)) {
-        return false;
-    }
+/**
+ * Writes a command to the NVM controller, and
+ * waits for it to be completed.
+ *
+ * @param[in] cmd Command the NVM controller must execute.
+ */
+void nvmctrl_exec_cmd(uint16_t cmd);
 
-    reset_reset();
-    workflow_status_create("Device reset", true);
-    return true;
-}
+#endif // __NVMCTRL_H

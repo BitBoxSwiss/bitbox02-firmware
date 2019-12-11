@@ -18,7 +18,7 @@
 #include <stddef.h>
 #include <cmocka.h>
 
-#include <memory.h>
+#include <memory/memory.h>
 #include <mock_memory.h>
 #include <stdio.h>
 #include <string.h>

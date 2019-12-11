@@ -18,7 +18,7 @@
 #include "workflow.h"
 #include <hardfault.h>
 #include <keystore.h>
-#include <memory.h>
+#include <memory/memory.h>
 #include <screen.h>
 #include <string.h>
 #include <ui/components/ui_images.h>
@@ -103,7 +103,9 @@ keystore_error_t workflow_unlock_and_handle_error(const char* password)
     }
     case KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED:
         workflow_status_create("Device reset", false);
-        workflow_start();
+#ifndef TESTING
+        _reset_mcu();
+#endif
         break;
     default:
         Abort("keystore unlock failed");

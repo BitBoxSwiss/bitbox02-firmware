@@ -18,7 +18,7 @@
 #include <commander/commander.h>
 #include <hardfault.h>
 #include <keystore.h>
-#include <memory.h>
+#include <memory/memory.h>
 #include <platform_config.h>
 #include <usb/noise.h>
 #include <usb/usb_packet.h>

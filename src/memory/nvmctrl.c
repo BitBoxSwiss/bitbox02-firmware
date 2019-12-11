@@ -12,24 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "reset.h"
-#include "confirm.h"
-#include "password.h"
-#include "status.h"
-#include "workflow.h"
+#include "nvmctrl.h"
 
-#include <reset.h>
+#include <driver_init.h>
 
-bool workflow_reset(void)
+void nvmctrl_exec_cmd(uint16_t cmd)
 {
-    if (!password_check()) {
-        return false;
-    }
-    if (!workflow_confirm("RESET", "Proceed to\nfactory reset?", true, false)) {
-        return false;
-    }
-
-    reset_reset();
-    workflow_status_create("Device reset", true);
-    return true;
+    /* Wait until the NVM is ready to accept a new command. */
+    while (NVMCTRL->STATUS.bit.READY == 0)
+        ;
+    NVMCTRL->ADDR.reg = (uint32_t)NVMCTRL_USER;
+    NVMCTRL->CTRLB.reg = NVMCTRL_CTRLB_CMDEX_KEY | cmd;
+    while (NVMCTRL->STATUS.bit.READY == 0)
+        ;
 }

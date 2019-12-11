@@ -16,7 +16,8 @@
 
 #include "hardfault.h"
 #include "keystore.h"
-#include "memory.h"
+#include "memory/memory.h"
+#include "memory/smarteeprom.h"
 #ifndef TESTING
 #include "securechip/securechip.h"
 #endif
@@ -37,4 +38,8 @@ void reset_reset(void)
     if (!memory_reset_hww()) {
         Abort("Could not reset memory.");
     }
+#if !defined(TESTING)
+    /* Disable SmartEEPROM, so it will be erased on next reboot. */
+    smarteeprom_disable();
+#endif
 }

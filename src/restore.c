@@ -18,7 +18,7 @@
 
 #include <backup.h>
 #include <keystore.h>
-#include <memory.h>
+#include <memory/memory.h>
 #include <sd.h>
 #include <util.h>
 

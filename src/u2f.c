@@ -18,7 +18,7 @@
 #include <string.h>
 
 #include <keystore.h>
-#include <memory.h>
+#include <memory/memory.h>
 #include <random.h>
 #include <securechip/securechip.h>
 #include <ui/component.h>

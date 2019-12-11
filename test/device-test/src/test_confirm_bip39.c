@@ -25,7 +25,6 @@
 
 #include "hardfault.h"
 #include "keystore.h"
-#include "memory.h"
 #include "random.h"
 #include "screen.h"
 #include "sd.h"

@@ -20,7 +20,7 @@
 #include "noise.h"
 #include "util.h"
 #include <hardfault.h>
-#include <memory.h>
+#include <memory/memory.h>
 #include <platform_config.h>
 #include <random.h>
 #include <ui/screen_stack.h>

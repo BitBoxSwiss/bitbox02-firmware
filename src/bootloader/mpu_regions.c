@@ -17,7 +17,7 @@
 #ifndef TESTING
 
 #include <flags.h>
-#include <mpu.h>
+#include <memory/mpu.h>
 
 #include <core_cm4.h>
 #include <samd51j20a.h>

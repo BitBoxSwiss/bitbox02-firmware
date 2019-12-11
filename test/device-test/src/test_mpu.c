@@ -16,7 +16,7 @@
 #include "flags.h"
 #include "hardfault.h"
 #include "inttypes.h"
-#include "mpu.h"
+#include "memory/mpu.h"
 #include "qtouch.h"
 #include "screen.h"
 #include "ui/oled/oled.h"

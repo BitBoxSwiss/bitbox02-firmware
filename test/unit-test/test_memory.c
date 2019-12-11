@@ -17,7 +17,7 @@
 #include <stddef.h>
 #include <cmocka.h>
 
-#include <memory.h>
+#include <memory/memory.h>
 #include <usb/noise.h>
 
 #include <stdint.h>

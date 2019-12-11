@@ -23,6 +23,8 @@
 #include <samd51j20a.h>
 #endif
 
+#include "memory/smarteeprom.h"
+
 // The total size of the flash is 1MB (2048 pages).
 #define FLASH_END (2048 * FLASH_PAGE_SIZE)
 
@@ -67,6 +69,9 @@
 #define FLASH_APP_PAGE_NUM (FLASH_APP_LEN / FLASH_PAGE_SIZE)
 #define FLASH_APP_VERSION_LEN (4) // 4 byte big endian unsigned int
 #define FLASH_APP_VERSION_START (FLASH_APP_START + FLASH_APP_LEN - FLASH_APP_VERSION_LEN)
+
+// SmartEEPROM reserved memory start
+#define FLASH_SMARTEEPROM_START (FLASH_END - SMARTEEPROM_RESERVED_FLASH_PAGES * FLASH_PAGE_SIZE)
 
 // Check MPU conditions
 #if (FLASH_APP_START % FLASH_ERASE_MIN_LEN)

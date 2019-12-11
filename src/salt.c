@@ -1,5 +1,5 @@
 #include "salt.h"
-#include "memory.h"
+#include "memory/memory.h"
 #include "util.h"
 
 #include <string.h>

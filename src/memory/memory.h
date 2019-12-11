@@ -34,6 +34,11 @@ typedef struct {
 USE_RESULT bool memory_setup(memory_interface_functions_t* ifs);
 USE_RESULT bool memory_reset_hww(void);
 
+/**
+ * Erases the memory area reserved to SmartEEPROM.
+ */
+USE_RESULT bool memory_cleanup_smarteeprom(void);
+
 #define MEMORY_DEFAULT_DEVICE_NAME "My BitBox"
 // Don't change this without proper memory layout migration! (see chunk_1_t in
 // memory.c)

@@ -17,7 +17,7 @@
 #include <backup.h>
 #include <hardfault.h>
 #include <keystore.h>
-#include <memory.h>
+#include <memory/memory.h>
 #include <restore.h>
 #include <securechip/securechip.h>
 #include <workflow/confirm_time.h>

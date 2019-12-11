@@ -14,7 +14,7 @@
 
 #include "attestation.h"
 #include "hardfault.h"
-#include "memory.h"
+#include "memory/memory.h"
 #ifndef TESTING
 #include "securechip/securechip.h"
 #endif

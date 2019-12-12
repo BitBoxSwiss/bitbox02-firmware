@@ -71,7 +71,6 @@ class SendMessage:
     def __init__(self, device: bitbox02.BitBox02, debug: bool):
         self._device = device
         self._debug = debug
-        self._search_for_device = False
         self._stop = False
 
     def _change_name_workflow(self, name: Optional[str] = None) -> None:
@@ -162,7 +161,7 @@ class SendMessage:
     def _reboot(self) -> None:
         if self._device.reboot():
             print("Device rebooted")
-            self._search_for_device = True
+            self._stop = True
         else:
             print("User aborted")
 
@@ -281,6 +280,7 @@ class SendMessage:
     def _reset_device(self) -> None:
         if self._device.reset():
             print("Device RESET")
+            self._stop = True
         else:
             print("Device NOT reset")
 
@@ -357,13 +357,11 @@ class SendMessageBitBoxBase:
     def __init__(self, device: BitBoxBase, debug: bool):
         self._device = device
         self._debug = debug
-        self._search_for_device = False
         self._stop = False
 
     def _reboot(self) -> None:
         if self._device.reboot():
             print("Device rebooted")
-            self._search_for_device = True
         else:
             print("User aborted")
 

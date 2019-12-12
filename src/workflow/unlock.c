@@ -90,6 +90,7 @@ keystore_error_t workflow_unlock_and_handle_error(const char* password)
     keystore_error_t unlock_result = keystore_unlock(password, &remaining_attempts);
     switch (unlock_result) {
     case KEYSTORE_OK:
+    case KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED:
         break;
     case KEYSTORE_ERR_INCORRECT_PASSWORD: {
         char msg[100] = {0};
@@ -101,12 +102,6 @@ keystore_error_t workflow_unlock_and_handle_error(const char* password)
         workflow_status_create(msg, false);
         break;
     }
-    case KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED:
-        workflow_status_create("Device reset", false);
-#ifndef TESTING
-        _reset_mcu();
-#endif
-        break;
     default:
         Abort("keystore unlock failed");
     }

@@ -161,6 +161,7 @@ class SendMessage:
     def _reboot(self) -> None:
         if self._device.reboot():
             print("Device rebooted")
+            self._stop = True
         else:
             print("User aborted")
 
@@ -279,6 +280,7 @@ class SendMessage:
     def _reset_device(self) -> None:
         if self._device.reset():
             print("Device RESET")
+            self._stop = True
         else:
             print("Device NOT reset")
 

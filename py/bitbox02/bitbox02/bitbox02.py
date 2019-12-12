@@ -458,6 +458,9 @@ class BitBox02(BitBoxCommonAPI):
         request.reset.CopyFrom(bitbox02_system.ResetRequest())
         try:
             self._msg_query(request)
+        except OSError:
+            # In case of reboot we can't read the response.
+            return True
         except Bitbox02Exception as err:
             if err.code == ERR_GENERIC:
                 return False

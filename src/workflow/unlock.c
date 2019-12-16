@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "unlock.h"
+#include "confirm.h"
 #include "password_enter.h"
 #include "status.h"
 #include "workflow.h"
@@ -31,24 +32,77 @@
 
 #include <stdio.h>
 
+/**
+ * @return true if passphrase consists only of spaces, or is empty.
+ */
+static bool _is_only_spaces(const char* passphrase)
+{
+    for (const char* c = passphrase; *c != '\0'; c++) {
+        if (*c != ' ') {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * @return true if the passphrase starts or ends with a space or contains consecutive spaces.
+ */
+static bool _has_dangerous_spaces(const char* passphrase)
+{
+    size_t len = strlen(passphrase);
+    if (len == 0) {
+        return false;
+    }
+    if (passphrase[0] == ' ' || passphrase[len - 1] == ' ') {
+        return true;
+    }
+    // Check for consecutive spaces.
+    for (size_t i = 0; i < len - 1; i++) {
+        if (passphrase[i] == ' ' && passphrase[i + 1] == ' ') {
+            return true;
+        }
+    }
+    return false;
+}
+
 static bool _get_mnemonic_passphrase(char* passphrase_out)
 {
-    char mnemonic_passphrase[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
-    UTIL_CLEANUP_STR(mnemonic_passphrase);
-    char mnemonic_passphrase_repeat[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
-    UTIL_CLEANUP_STR(mnemonic_passphrase_repeat);
+    if (passphrase_out == NULL) {
+        Abort("_get_mnemonic_passphrase");
+    }
     while (true) {
-        if (!password_enter("Enter\noptional passphrase", true, mnemonic_passphrase)) {
+        if (!password_enter("Enter\noptional passphrase", true, passphrase_out)) {
             return false;
         }
-        if (!password_enter("Confirm\noptional passphrase", true, mnemonic_passphrase_repeat)) {
-            return false;
-        }
-        if (STREQ(mnemonic_passphrase, mnemonic_passphrase_repeat)) {
-            snprintf(passphrase_out, SET_PASSWORD_MAX_PASSWORD_LENGTH, "%s", mnemonic_passphrase);
+        if (strlen(passphrase_out) == 0) {
+            // No need to confirm the empty passphrase.
             break;
         }
-        workflow_status_create("Passphrases\ndo not match", false);
+        if (_is_only_spaces(passphrase_out)) {
+            workflow_status_create("Invalid passphrase\nPlease try again", false);
+            continue;
+        }
+        if (!workflow_confirm(
+                "", "You will be asked to\nvisually confirm your\npassphrase now.", false, true)) {
+            return false;
+        }
+        if (_has_dangerous_spaces(passphrase_out)) {
+            if (!workflow_confirm_scrollable(
+                    "Danger",
+                    "Your passphrase starts or ends with a space, or contains consecutive spaces.",
+                    true)) {
+                return false;
+            }
+        }
+        bool cancel_forced = false;
+        if (workflow_confirm_scrollable_longtouch("Confirm", passphrase_out, &cancel_forced)) {
+            break;
+        }
+        if (cancel_forced) {
+            return false;
+        }
+        workflow_status_create("Please try again", false);
     }
     return true;
 }

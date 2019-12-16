@@ -115,8 +115,9 @@ component_t* confirm_create(
 component_t* confirm_create_scrollable(
     const char* title,
     const char* body,
+    bool longtouch,
     void (*confirm_callback)(component_t*),
     void (*cancel_callback)(component_t*))
 {
-    return _confirm_create(title, body, true, false, confirm_callback, cancel_callback);
+    return _confirm_create(title, body, true, longtouch, confirm_callback, cancel_callback);
 }

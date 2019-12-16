@@ -70,4 +70,17 @@ bool workflow_confirm_with_timeout(
     const char* body,
     bool accept_only,
     uint32_t timeout);
+
+/**
+ * Confirm something with the user using longtouch.
+ * @param[in] title title
+ * @param[in] body body
+ * @param[out] cancel_forced_out if the function returns false, this param is true if the workflow
+ * was forcibly unblocked.
+ * @return true if the user confirmed, false if they rejected.
+ */
+bool workflow_confirm_scrollable_longtouch(
+    const char* title,
+    const char* body,
+    bool* cancel_forced_out);
 #endif

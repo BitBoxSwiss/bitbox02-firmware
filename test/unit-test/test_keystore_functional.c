@@ -55,8 +55,19 @@ bool __wrap_securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t le
     return true;
 }
 
+/** Reset the SmartEEPROM configuration. */
+static void _smarteeprom_reset(void)
+{
+    if (smarteeprom_is_enabled()) {
+        smarteeprom_disable();
+    }
+    smarteeprom_bb02_config();
+    bitbox02_smarteeprom_init();
+}
+
 static void _test_seeds(void** state)
 {
+    _smarteeprom_reset();
     assert_true(keystore_is_locked());
     uint8_t read_seed[KEYSTORE_MAX_SEED_LENGTH];
     uint32_t read_seed_len;

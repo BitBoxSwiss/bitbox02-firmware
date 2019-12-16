@@ -154,4 +154,13 @@ void smarteeprom_write(size_t address, size_t bytes, const uint8_t* buffer)
         ;
     while (NVMCTRL->SEESTAT.bit.BUSY != 0)
         ;
+    /*
+     * Read back the buffer.
+     * Check that it matches what we've just written.
+     */
+    uint8_t read_buf[bytes];
+    smarteeprom_read(address, bytes, read_buf);
+    if (memcmp(read_buf, buffer, bytes)) {
+        Abort("Write to SmartEEPROM failed to verify data.");
+    }
 }

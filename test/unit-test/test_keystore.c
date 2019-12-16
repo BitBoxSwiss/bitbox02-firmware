@@ -18,6 +18,8 @@
 #include <cmocka.h>
 
 #include <keystore.h>
+#include <memory/bitbox02_smarteeprom.h>
+#include <memory/smarteeprom.h>
 #include <secp256k1_recovery.h>
 #include <securechip/securechip.h>
 #include <util.h>
@@ -142,6 +144,16 @@ bool __wrap_cipher_aes_hmac_encrypt(
 {
     check_expected(secret);
     return __real_cipher_aes_hmac_encrypt(in, in_len, out, out_len, secret);
+}
+
+/** Reset the SmartEEPROM configuration. */
+static void _smarteeprom_reset(void)
+{
+    if (smarteeprom_is_enabled()) {
+        smarteeprom_disable();
+    }
+    smarteeprom_bb02_config();
+    bitbox02_smarteeprom_init();
 }
 
 static bool _reset_reset_called = false;
@@ -288,11 +300,12 @@ static void _expect_encrypt_and_store_seed(void)
     expect_memory(__wrap_cipher_aes_hmac_encrypt, secret, expected_secret, 32);
 }
 
+#define PASSWORD ("password")
+
 static void _test_keystore_encrypt_and_store_seed(void** state)
 {
-    const char* password = "password";
     _expect_encrypt_and_store_seed();
-    assert_true(keystore_encrypt_and_store_seed(_mock_seed, 32, password));
+    assert_true(keystore_encrypt_and_store_seed(_mock_seed, 32, PASSWORD));
 }
 
 static void _expect_seeded(bool seeded)
@@ -302,63 +315,57 @@ static void _expect_seeded(bool seeded)
     assert_int_equal(seeded, keystore_copy_seed(seed, &len));
 }
 
-static void _test_keystore_unlock(void** state)
+static void _perform_some_unlocks(void)
 {
-    mock_state(NULL, NULL); // reset to locked
-
-    const char* password = "password";
-    const uint8_t max_attempts = 10;
     uint8_t remaining_attempts;
-
-    will_return(__wrap_memory_is_seeded, false);
-    assert_int_equal(KEYSTORE_ERR_GENERIC, keystore_unlock(password, &remaining_attempts));
-    _expect_encrypt_and_store_seed();
-    assert_true(keystore_encrypt_and_store_seed(_mock_seed, 32, password));
-    _expect_seeded(false);
     // Loop to check that unlocking unlocked works while unlocked.
     for (int i = 0; i < 3; i++) {
         _reset_reset_called = false;
         will_return(__wrap_memory_is_seeded, true);
         _expect_stretch(true);
-        assert_int_equal(KEYSTORE_OK, keystore_unlock(password, &remaining_attempts));
-        assert_int_equal(remaining_attempts, max_attempts);
+        assert_int_equal(KEYSTORE_OK, keystore_unlock(PASSWORD, &remaining_attempts));
+        assert_int_equal(remaining_attempts, MAX_UNLOCK_ATTEMPTS);
         assert_false(_reset_reset_called);
         _expect_seeded(true);
     }
+}
 
-    { // Test that unlocking the keystore fails if it is already unlocked and the seed changed.
-        // a) store different seed
-        _reset_reset_called = false;
-        _expect_encrypt_and_store_seed();
-        assert_true(keystore_encrypt_and_store_seed(_mock_seed_2, 32, password));
-        // b) fail to unlock (despite a correct password)
-        will_return(__wrap_memory_is_seeded, true);
-        _expect_stretch(true);
-        assert_int_equal(KEYSTORE_ERR_GENERIC, keystore_unlock(password, &remaining_attempts));
-        assert_false(_reset_reset_called);
-    }
+static void _test_keystore_unlock(void** state)
+{
+    _smarteeprom_reset();
+    mock_state(NULL, NULL); // reset to locked
+
+    uint8_t remaining_attempts;
+
+    will_return(__wrap_memory_is_seeded, false);
+    assert_int_equal(KEYSTORE_ERR_GENERIC, keystore_unlock(PASSWORD, &remaining_attempts));
+    _expect_encrypt_and_store_seed();
+    assert_true(keystore_encrypt_and_store_seed(_mock_seed, 32, PASSWORD));
+    _expect_seeded(false);
+
+    _perform_some_unlocks();
 
     // Invalid passwords until we run out of attempts.
-    for (int i = 1; i <= max_attempts; i++) {
+    for (int i = 1; i <= MAX_UNLOCK_ATTEMPTS; i++) {
         _reset_reset_called = false;
         will_return(__wrap_memory_is_seeded, true);
         _expect_stretch(false);
         assert_int_equal(
-            i >= max_attempts ? KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED
-                              : KEYSTORE_ERR_INCORRECT_PASSWORD,
-            keystore_unlock(password, &remaining_attempts));
-        assert_int_equal(remaining_attempts, max_attempts - i);
+            i >= MAX_UNLOCK_ATTEMPTS ? KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED
+                                     : KEYSTORE_ERR_INCORRECT_PASSWORD,
+            keystore_unlock(PASSWORD, &remaining_attempts));
+        assert_int_equal(remaining_attempts, MAX_UNLOCK_ATTEMPTS - i);
         // Wrong password does not lock the keystore again if already unlocked.
         _expect_seeded(true);
         // reset_reset() called in last attempt
-        assert_int_equal(i == max_attempts, _reset_reset_called);
+        assert_int_equal(i == MAX_UNLOCK_ATTEMPTS, _reset_reset_called);
     }
 
     // Trying again after max attempts is blocked immediately.
     _reset_reset_called = false;
     will_return(__wrap_memory_is_seeded, true);
     assert_int_equal(
-        KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED, keystore_unlock(password, &remaining_attempts));
+        KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED, keystore_unlock(PASSWORD, &remaining_attempts));
     assert_int_equal(remaining_attempts, 0);
     assert_true(_reset_reset_called);
 }

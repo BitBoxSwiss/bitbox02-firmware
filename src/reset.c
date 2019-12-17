@@ -31,7 +31,7 @@ void reset_reset(bool status)
     if (!securechip_update_keys()) {
         Abort("Could not reset secure chip.");
     }
-#if defined(APP_U2F)
+#if APP_U2F == 1
     if (!securechip_u2f_counter_set(0)) {
         Abort("Could not initialize U2F counter.");
     }

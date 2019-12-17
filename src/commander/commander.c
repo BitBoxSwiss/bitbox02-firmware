@@ -15,10 +15,10 @@
 #include <platform_config.h>
 
 #include "commander.h"
-#if defined(APP_BTC) || defined(APP_LTC)
+#if APP_BTC == 1 || APP_LTC == 1
 #include "commander/commander_btc.h"
 #endif
-#if defined(APP_ETH)
+#if APP_ETH == 1
 #include "commander/commander_eth.h"
 #endif
 #include "commander/commander_states.h"
@@ -273,7 +273,7 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_show_mnemonic_tag:
         response->which_response = Response_success_tag;
         return _api_show_mnemonic();
-#if defined(APP_BTC) || defined(APP_LTC)
+#if APP_BTC == 1 || APP_LTC == 1
     case Request_btc_pub_tag:
         response->which_response = Response_pub_tag;
         return commander_btc_pub(&(request->request.btc_pub), &(response->response.pub));
@@ -309,7 +309,7 @@ static commander_error_t _api_process(const Request* request, Response* response
         response->which_response = Response_check_backup_tag;
         return _api_check_backup(
             &(request->request.check_backup), &(response->response.check_backup));
-#if defined(APP_ETH)
+#if APP_ETH == 1
     case Request_eth_tag:
         response->which_response = Response_eth_tag;
         return commander_eth(&(request->request.eth), &(response->response.eth));

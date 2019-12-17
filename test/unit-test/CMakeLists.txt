@@ -87,7 +87,7 @@ set_source_files_properties(
 target_include_directories(bitbox SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
 target_include_directories(bitbox PRIVATE ${CMAKE_SOURCE_DIR}/external/FatFs/source)
 target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
-target_compile_definitions(bitbox PUBLIC PRODUCT_BITBOX_MULTI APP_BTC APP_LTC APP_U2F APP_ETH)
+target_compile_definitions(bitbox PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 add_dependencies(bitbox generate-protobufs)
 
 # Since noiseprotocol and wallycore are external projects we need to specify the dependency
@@ -138,7 +138,7 @@ target_include_directories(
   ${INCLUDES}
   ${CMAKE_BINARY_DIR}/src
 )
-target_compile_definitions(u2f-util PUBLIC "TESTING" PRODUCT_BITBOX_MULTI)
+target_compile_definitions(u2f-util PUBLIC "TESTING" PRODUCT_BITBOX_MULTI "APP_U2F=1" "APP_BTC=1" "APP_LTC=1" "APP_ETH=1")
 target_compile_definitions(u2f-util PUBLIC "USE_KECCAK")
 
 

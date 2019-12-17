@@ -91,7 +91,7 @@ struct queue* queue_hww_queue(void)
     return &queue;
 }
 
-#if defined(APP_U2F)
+#if APP_U2F == 1
 struct queue* queue_u2f_queue(void)
 {
     static struct queue queue;

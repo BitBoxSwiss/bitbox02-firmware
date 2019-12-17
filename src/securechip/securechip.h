@@ -16,7 +16,7 @@
 #define _SECURECHIP_H_
 
 #include "compiler_util.h"
-#include <platform_config.h>
+#include <platform/platform_config.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -129,7 +129,7 @@ USE_RESULT bool securechip_ecc_unsafe_sign(
     const uint8_t* msg,
     uint8_t* sig);
 
-#if defined(APP_U2F) || FACTORYSETUP == 1
+#if APP_U2F == 1 || FACTORYSETUP == 1
 /**
  * Set the u2f counter to `counter`. Should only be used for initialization.
  * @param[in] counter Value to set counter to
@@ -138,7 +138,7 @@ USE_RESULT bool securechip_ecc_unsafe_sign(
 USE_RESULT bool securechip_u2f_counter_set(uint32_t counter);
 #endif
 
-#if defined(APP_U2F)
+#if APP_U2F == 1
 /**
  * Monotonically increase the U2F counter and return the current value
  * @param[out] counter Next counter value

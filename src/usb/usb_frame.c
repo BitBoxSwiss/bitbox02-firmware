@@ -14,7 +14,7 @@
 
 #include "usb_frame.h"
 #include "queue.h"
-#if defined(APP_U2F)
+#if APP_U2F == 1
 #include "u2f/u2f_packet.h"
 #endif
 #include "usb/u2f/u2f_hid.h"
@@ -68,7 +68,7 @@ static int32_t _cmd_init(const USB_FRAME* frame, State* state)
     }
 
     // Enable timer for this packet
-#if defined(APP_U2F)
+#if APP_U2F == 1
     if (frame->type < U2FHID_VENDOR_FIRST) {
         u2f_packet_timeout_enable(frame->cid);
     }

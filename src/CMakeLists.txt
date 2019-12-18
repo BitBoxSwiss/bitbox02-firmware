@@ -92,6 +92,7 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_13X14.c
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_15X16.c
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_17X18.c
+    ${CMAKE_SOURCE_DIR}/src/ui/fonts/monogram_5X9.c
     ${CMAKE_SOURCE_DIR}/src/ui/screen_stack.c
     ${CMAKE_SOURCE_DIR}/src/ui/screen_process.c
     ${CMAKE_SOURCE_DIR}/src/ui/event_handler.c

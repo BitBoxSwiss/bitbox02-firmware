@@ -84,19 +84,25 @@ static bool _get_mnemonic_passphrase(char* passphrase_out)
             continue;
         }
         if (!workflow_confirm(
-                "", "You will be asked to\nvisually confirm your\npassphrase now.", false, true)) {
+                "",
+                "You will be asked to\nvisually confirm your\npassphrase now.",
+                NULL,
+                false,
+                true)) {
             return false;
         }
         if (_has_dangerous_spaces(passphrase_out)) {
             if (!workflow_confirm_scrollable(
                     "Danger",
                     "Your passphrase starts or ends with a space, or contains consecutive spaces.",
+                    NULL,
                     true)) {
                 return false;
             }
         }
         bool cancel_forced = false;
-        if (workflow_confirm_scrollable_longtouch("Confirm", passphrase_out, &cancel_forced)) {
+        if (workflow_confirm_scrollable_longtouch(
+                "Confirm", passphrase_out, NULL, &cancel_forced)) {
             break;
         }
         if (cancel_forced) {

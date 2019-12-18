@@ -18,11 +18,18 @@
 #include <cmocka.h>
 
 #include <test_commander.h>
+#include <ui/ugui/ugui.h>
 
-bool __wrap_workflow_confirm(const char* title, const char* body, bool longtouch, bool accept_only)
+bool __wrap_workflow_confirm(
+    const char* title,
+    const char* body,
+    UG_FONT* font,
+    bool longtouch,
+    bool accept_only)
 {
     check_expected(title);
     check_expected(body);
+    check_expected(font);
     check_expected(longtouch);
     check_expected(accept_only);
     return mock();
@@ -31,6 +38,7 @@ bool __wrap_workflow_confirm(const char* title, const char* body, bool longtouch
 static void _test_api_set_mnemonic_passphrase_enabled(void** state)
 {
     expect_string_count(__wrap_workflow_confirm, body, "Optional\npassphrase", -1);
+    expect_value_count(__wrap_workflow_confirm, font, NULL, -1);
     expect_value_count(__wrap_workflow_confirm, longtouch, true, -1);
     expect_value_count(__wrap_workflow_confirm, accept_only, false, -1);
 

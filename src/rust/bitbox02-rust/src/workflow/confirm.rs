@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use arrayvec::ArrayString;
+use core::fmt::Write;
+
 /// This function takes a slice of bytes that must be at most 60 characters when base32
 /// encoded.
 pub fn pairing(bytes: &[u8]) -> bool {
@@ -32,5 +35,11 @@ pub fn pairing(bytes: &[u8]) -> bool {
     )
     .expect("failed to format");
 
-    bitbox02::workflow_confirm("Base pairing code", &formatted, false, false)
+    bitbox02::workflow_confirm(
+        "Base pairing code",
+        &formatted,
+        unsafe { &bitbox02::font_monogram_5X9 },
+        false,
+        false,
+    )
 }

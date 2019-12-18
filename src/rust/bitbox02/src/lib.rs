@@ -55,6 +55,8 @@ pub const COMMANDER_ERR_GENERIC: bitbox02_sys::commander_error_t =
 pub const COMMANDER_OK: bitbox02_sys::commander_error_t =
     bitbox02_sys::commander_error_t_COMMANDER_OK;
 
+pub use bitbox02_sys::font_monogram_5X9;
+
 #[macro_use]
 pub mod util;
 
@@ -96,7 +98,13 @@ pub fn delay(duration: Duration) {
 }
 
 // Safe wrapper for workflow_confirm
-pub fn workflow_confirm(title: &str, body: &str, longtouch: bool, accept_only: bool) -> bool {
+pub fn workflow_confirm(
+    title: &str,
+    body: &str,
+    font: *const bitbox02_sys::UG_FONT,
+    longtouch: bool,
+    accept_only: bool,
+) -> bool {
     // Create null-terminated strings for title and body
     let title_cstr = match str_to_cstr!(title, 20) {
         Ok(cstr) => cstr,
@@ -117,6 +125,7 @@ pub fn workflow_confirm(title: &str, body: &str, longtouch: bool, accept_only: b
         bitbox02_sys::workflow_confirm(
             title_cstr.as_ptr() as *const _,
             body_cstr.as_ptr() as *const _,
+            font,
             longtouch,
             accept_only,
         )

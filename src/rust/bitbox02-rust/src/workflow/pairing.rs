@@ -37,7 +37,13 @@ pub fn create(bytes: &[u8]) -> bool {
     )
     .expect("failed to format");
 
-    bitbox02::workflow_confirm("Base pairing code", &formatted, false, false)
+    bitbox02::workflow_confirm(
+        "Base pairing code",
+        &formatted,
+        unsafe { &bitbox02::font_monogram_5X9 },
+        false,
+        false,
+    )
 }
 
 pub fn extra_hash_create(bytes: &[u8]) -> bool {

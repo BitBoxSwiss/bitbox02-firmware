@@ -55,6 +55,7 @@ static const component_functions_t _component_functions = {
 static component_t* _confirm_create(
     const char* title,
     const char* body,
+    const UG_FONT* font,
     bool scrollable,
     bool longtouch,
     void (*confirm_callback)(component_t*),
@@ -77,12 +78,13 @@ static component_t* _confirm_create(
     confirm->f = &_component_functions;
     confirm->dimension.width = SCREEN_WIDTH;
     confirm->dimension.height = SCREEN_HEIGHT;
+
     uint8_t slider_position = scrollable || longtouch ? top_slider : bottom_slider;
     // Create labels
     if (scrollable) {
-        ui_util_add_sub_component(confirm, label_create_scrollable(body, NULL, CENTER, confirm));
+        ui_util_add_sub_component(confirm, label_create_scrollable(body, font, CENTER, confirm));
     } else {
-        ui_util_add_sub_component(confirm, label_create(body, NULL, CENTER, confirm));
+        ui_util_add_sub_component(confirm, label_create(body, font, CENTER, confirm));
     }
     ui_util_add_sub_component(confirm, label_create(title, NULL, CENTER_TOP, confirm));
     // Create buttons
@@ -105,19 +107,21 @@ static component_t* _confirm_create(
 component_t* confirm_create(
     const char* title,
     const char* body,
+    const UG_FONT* font,
     bool longtouch,
     void (*confirm_callback)(component_t*),
     void (*cancel_callback)(component_t*))
 {
-    return _confirm_create(title, body, false, longtouch, confirm_callback, cancel_callback);
+    return _confirm_create(title, body, font, false, longtouch, confirm_callback, cancel_callback);
 }
 
 component_t* confirm_create_scrollable(
     const char* title,
     const char* body,
+    const UG_FONT* font,
     bool longtouch,
     void (*confirm_callback)(component_t*),
     void (*cancel_callback)(component_t*))
 {
-    return _confirm_create(title, body, true, longtouch, confirm_callback, cancel_callback);
+    return _confirm_create(title, body, font, true, longtouch, confirm_callback, cancel_callback);
 }

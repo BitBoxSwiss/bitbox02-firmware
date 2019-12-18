@@ -42,12 +42,13 @@ static void _reject(component_t* component)
 bool workflow_confirm_with_timeout(
     const char* title,
     const char* body,
+    const UG_FONT* font,
     bool accept_only,
     uint32_t timeout)
 {
     _result = false;
     ui_screen_stack_push(
-        confirm_create(title, body, false, _confirm, accept_only ? NULL : _reject));
+        confirm_create(title, body, font, false, _confirm, accept_only ? NULL : _reject));
     bool blocking_result = workflow_blocking_block_with_timeout(timeout);
     ui_screen_stack_pop();
     if (!blocking_result) {
@@ -82,14 +83,15 @@ static enum _confirm_state {
 enum workflow_async_ready workflow_confirm_async(
     const char* title,
     const char* body,
+    const UG_FONT* font,
     bool accept_only,
     bool* result)
 {
     switch (_confirm_state) {
     case CONFIRM_IDLE:
         _result = false;
-        ui_screen_stack_push(
-            confirm_create(title, body, false, _confirm_async, accept_only ? NULL : _reject_async));
+        ui_screen_stack_push(confirm_create(
+            title, body, font, false, _confirm_async, accept_only ? NULL : _reject_async));
         _confirm_state = CONFIRM_WAIT;
         /* FALLTHRU */
     case CONFIRM_WAIT:
@@ -105,11 +107,16 @@ enum workflow_async_ready workflow_confirm_async(
     }
 }
 
-bool workflow_confirm(const char* title, const char* body, bool longtouch, bool accept_only)
+bool workflow_confirm(
+    const char* title,
+    const char* body,
+    const UG_FONT* font,
+    bool longtouch,
+    bool accept_only)
 {
     _result = false;
     ui_screen_stack_push(
-        confirm_create(title, body, longtouch, _confirm, accept_only ? NULL : _reject));
+        confirm_create(title, body, font, longtouch, _confirm, accept_only ? NULL : _reject));
     bool blocking_result = workflow_blocking_block();
     ui_screen_stack_pop();
     if (!blocking_result) {
@@ -118,11 +125,15 @@ bool workflow_confirm(const char* title, const char* body, bool longtouch, bool 
     return _result;
 }
 
-bool workflow_confirm_scrollable(const char* title, const char* body, bool accept_only)
+bool workflow_confirm_scrollable(
+    const char* title,
+    const char* body,
+    const UG_FONT* font,
+    bool accept_only)
 {
     _result = false;
-    ui_screen_stack_push(
-        confirm_create_scrollable(title, body, false, _confirm, accept_only ? NULL : _reject));
+    ui_screen_stack_push(confirm_create_scrollable(
+        title, body, font, false, _confirm, accept_only ? NULL : _reject));
     bool blocking_result = workflow_blocking_block();
     ui_screen_stack_pop();
     if (!blocking_result) {
@@ -134,10 +145,11 @@ bool workflow_confirm_scrollable(const char* title, const char* body, bool accep
 bool workflow_confirm_scrollable_longtouch(
     const char* title,
     const char* body,
+    const UG_FONT* font,
     bool* cancel_forced_out)
 {
     _result = false;
-    ui_screen_stack_push(confirm_create_scrollable(title, body, true, _confirm, _reject));
+    ui_screen_stack_push(confirm_create_scrollable(title, body, font, true, _confirm, _reject));
     bool blocking_result = workflow_blocking_block();
     ui_screen_stack_pop();
     *cancel_forced_out = !blocking_result;

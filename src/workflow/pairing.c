@@ -15,6 +15,7 @@
 #include "pairing.h"
 
 #include <hardfault.h>
+#include <ui/fonts/monogram_5X9.h>
 #include <workflow/confirm.h>
 
 #include <base32.h>
@@ -38,5 +39,5 @@ bool workflow_pairing_create(const uint8_t* hash)
         base32 + 10,
         base32 + 15);
 
-    return workflow_confirm("Pairing code", base32_formatted, false, false);
+    return workflow_confirm("Pairing code", base32_formatted, &font_monogram_5X9, false, false);
 }

@@ -34,5 +34,5 @@ bool workflow_confirm_time(uint32_t timestamp, int32_t timezone_offset, bool dat
         strftime(local_timestring, sizeof(local_timestring), "%a %Y-%m-%d\n%H:%M:%S", local_time);
     }
 
-    return workflow_confirm(title, local_timestring, false, false);
+    return workflow_confirm(title, local_timestring, NULL, false, false);
 }

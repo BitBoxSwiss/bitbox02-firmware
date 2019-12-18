@@ -27,6 +27,7 @@
 #include <ui/components/left_arrow.h>
 #include <ui/components/right_arrow.h>
 #include <ui/components/status.h>
+#include <ui/fonts/cour_7X10.h>
 #include <ui/ui_util.h>
 
 #include "mock_component.h"
@@ -104,8 +105,8 @@ static void cancel_callback(component_t* component) {}
 
 static void test_ui_components_confirm(void** state)
 {
-    component_t* confirm =
-        confirm_create("Is the Code correct?", "CODE", false, confirm_callback, cancel_callback);
+    component_t* confirm = confirm_create(
+        "Is the Code correct?", "CODE", &font_cour_7X10, false, confirm_callback, cancel_callback);
     assert_non_null(confirm);
     assert_ui_component_functions(confirm);
     confirm->f->cleanup(confirm);

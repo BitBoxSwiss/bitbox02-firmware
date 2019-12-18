@@ -96,7 +96,13 @@ pub fn delay(duration: Duration) {
 }
 
 // Safe wrapper for workflow_confirm
-pub fn workflow_confirm(title: &str, body: &str, longtouch: bool, accept_only: bool) -> bool {
+pub fn workflow_confirm(
+    title: &str,
+    body: &str,
+    longtouch: bool,
+    monospaced: bool,
+    accept_only: bool,
+) -> bool {
     // Create null-terminated strings for title and body
     let title_cstr = match str_to_cstr!(title, 20) {
         Ok(cstr) => cstr,
@@ -114,12 +120,23 @@ pub fn workflow_confirm(title: &str, body: &str, longtouch: bool, accept_only: b
     };
 
     unsafe {
-        bitbox02_sys::workflow_confirm(
-            title_cstr.as_ptr() as *const _,
-            body_cstr.as_ptr() as *const _,
-            longtouch,
-            accept_only,
-        )
+        if monospaced {
+            bitbox02_sys::workflow_confirm(
+                title_cstr.as_ptr() as *const _,
+                body_cstr.as_ptr() as *const _,
+                &bitbox02_sys::font_cour_7X10,
+                longtouch,
+                accept_only,
+            )
+        } else {
+            bitbox02_sys::workflow_confirm(
+                title_cstr.as_ptr() as *const _,
+                body_cstr.as_ptr() as *const _,
+                core::ptr::null(),
+                longtouch,
+                accept_only,
+            )
+        }
     }
 }
 

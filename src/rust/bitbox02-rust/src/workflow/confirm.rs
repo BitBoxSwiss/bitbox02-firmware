@@ -32,5 +32,5 @@ pub fn pairing(bytes: &[u8]) -> bool {
     )
     .expect("failed to format");
 
-    bitbox02::workflow_confirm("Base pairing code", &formatted, false, false)
+    bitbox02::workflow_confirm("Base pairing code", &formatted, false, true, false)
 }

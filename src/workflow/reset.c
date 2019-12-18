@@ -24,7 +24,7 @@ bool workflow_reset(void)
     if (!password_check()) {
         return false;
     }
-    if (!workflow_confirm("RESET", "Proceed to\nfactory reset?", true, false)) {
+    if (!workflow_confirm("RESET", "Proceed to\nfactory reset?", NULL, true, false)) {
         return false;
     }
 

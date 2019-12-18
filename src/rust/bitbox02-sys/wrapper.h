@@ -19,7 +19,8 @@
 #include <platform/bitboxbase/leds.h>
 #include <screen.h>
 #include <ui/components/label.h>
-#include <ui/fonts/arial_fonts.h>
+#include <ui/fonts/cour_7X10.h>
+#include <ui/fonts/font_a_9X9.h>
 #include <ui/oled/oled.h>
 #include <ui/screen_stack.h>
 #include <ui/ugui/ugui.h>

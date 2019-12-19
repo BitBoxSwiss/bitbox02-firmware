@@ -20,6 +20,7 @@
 #include <memory/memory.h>
 #include <restore.h>
 #include <securechip/securechip.h>
+#include <workflow/confirm.h>
 #include <workflow/confirm_time.h>
 #include <workflow/password.h>
 #include <workflow/status.h>
@@ -33,6 +34,20 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
 
     if (restore_from_directory(restore_request->id, &backup, &backup_data) != RESTORE_OK) {
         workflow_status_create("Could not\nrestore backup", false);
+        return false;
+    }
+
+    char buf[MEMORY_DEVICE_NAME_MAX_LEN + 20] = {0};
+    char* name = backup.backup_v1.content.metadata.name;
+    uint32_t* timestamp = &backup.backup_v1.content.metadata.timestamp;
+    time_t local_timestamp = *timestamp + restore_request->timezone_offset;
+    struct tm* local_time = localtime(&local_timestamp);
+    size_t len = snprintf(buf, sizeof(buf), "%s", name);
+    if (len < sizeof(buf)) {
+        strftime(&buf[len], sizeof(buf) - len, "\n(%Y-%m-%d)", local_time);
+    }
+
+    if (!workflow_confirm("Restore?", buf, true, false)) {
         return false;
     }
 

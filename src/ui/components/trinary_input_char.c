@@ -18,7 +18,7 @@
 
 #include <hardfault.h>
 #include <touch/gestures.h>
-#include <ui/fonts/arial_fonts.h>
+#include <ui/fonts/password_9X9.h>
 #include <ui/ui_util.h>
 #include <util.h>
 
@@ -37,7 +37,7 @@ typedef struct {
 // excluding null terminator
 #define MAX_CHARS 33
 
-static const UG_FONT* _font = &font_font_a_9X9;
+static const UG_FONT* _font = &font_password_9X9;
 
 // Each of the three groups can occupy roughly a third of the width.
 static const UG_S16 _group_width = SCREEN_WIDTH / 3;
@@ -146,10 +146,6 @@ static void _render(component_t* component)
         if (element->character == '\0') {
             continue;
         }
-        if (element->character == ' ') {
-            ui_util_draw_visible_space(element->x, element->y, _font);
-            continue;
-        }
         UG_PutChar(
             element->character,
             element->x,
@@ -180,8 +176,7 @@ static void _put_string(
     UG_S16 total_width = 0;
     for (size_t idx = 0; idx < elements_size; idx++) {
         char c = elements[idx]->character;
-        total_width +=
-            c == ' ' ? UI_UTIL_VISIBLE_SPACE_WIDTH : _font->widths[c - _font->start_char];
+        total_width += _font->widths[c - _font->start_char];
         total_width += horiz_space;
     }
 

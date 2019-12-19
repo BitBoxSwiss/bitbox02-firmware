@@ -257,20 +257,3 @@ void ui_util_position_right_center_offset(
         parent->position.top + (parent->dimension.height - child->dimension.height) / 2;
     child->position.left = parent->position.left + parent->dimension.width - right_offset;
 }
-
-void ui_util_draw_visible_space(UG_S16 x, UG_S16 y, const UG_FONT* font)
-{
-    UG_DrawLine(
-        x,
-        y + font->char_height - 1,
-        x + UI_UTIL_VISIBLE_SPACE_WIDTH,
-        y + font->char_height - 1,
-        screen_front_color);
-    UG_DrawLine(x, y + 2 * font->char_height / 3, x, y + font->char_height - 1, screen_front_color);
-    UG_DrawLine(
-        x + UI_UTIL_VISIBLE_SPACE_WIDTH,
-        y + 2 * font->char_height / 3,
-        x + UI_UTIL_VISIBLE_SPACE_WIDTH,
-        y + font->char_height - 1,
-        screen_front_color);
-}

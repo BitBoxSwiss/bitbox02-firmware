@@ -138,7 +138,7 @@ static void _on_event(const event_t* event, component_t* component)
         case EVENT_BOTTOM_SLIDE: {
             gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
             // Variable scroll speed
-            int16_t margin = SCREEN_WIDTH / 3;
+            int16_t margin = SCREEN_WIDTH / 5;
             data->slider_position_diff += SIGMOID(slider_data->velocity);
             data->text_position = data->text_position_last + (int16_t)data->slider_position_diff;
             data->text_position = MIN(

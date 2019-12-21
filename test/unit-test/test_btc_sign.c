@@ -152,7 +152,7 @@ typedef struct {
     // all change outputs should go the same account.
     bool wrong_account_change;
     // change num in bip44, should be 1.
-    bool bip44_change;
+    uint32_t bip44_change;
     // the sum of the inputs in the 2nd pass can't be higher than in the first
     // for all inputs.
     bool input_sum_changes;

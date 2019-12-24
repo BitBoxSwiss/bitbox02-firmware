@@ -22,6 +22,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/random.c
   ${CMAKE_SOURCE_DIR}/src/attestation.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
+  ${CMAKE_SOURCE_DIR}/src/systick.c
   ${CMAKE_SOURCE_DIR}/src/util.c
   ${CMAKE_SOURCE_DIR}/src/sd.c
   ${CMAKE_SOURCE_DIR}/src/hww.c

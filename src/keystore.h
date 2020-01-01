@@ -126,6 +126,15 @@ USE_RESULT bool keystore_bip39_mnemonic_to_seed(
     size_t* seed_len_out);
 
 /**
+ * Fills a uint8_t buffer with a fingerprint of the root public key at m/, which are the first four
+ * bytes of its hash160 according to:
+ * https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#serialization-format
+ * @param[out] fingerprint, buffer of the fingerprint that is supposed to be filled, has to be size
+ * 4
+ */
+USE_RESULT bool keystore_get_root_fingerprint(uint8_t* fingerprint);
+
+/**
  * Can be used only if the keystore is unlocked. Returns the derived xpub,
  * using bip32 derivation. Derivation is done from the xprv master, so hardened
  * derivation is allowed.

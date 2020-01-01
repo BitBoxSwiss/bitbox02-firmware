@@ -17,3 +17,10 @@ syntax = "proto3";
 message PubResponse {
   string pub = 1;
 }
+
+message RootFingerprintRequest {
+}
+
+message RootFingerprintResponse {
+  bytes fingerprint = 1;
+}

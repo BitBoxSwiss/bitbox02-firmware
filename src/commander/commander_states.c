@@ -53,6 +53,7 @@ static commander_states_endpoint_id _commands_seeded[] = {
 // api commands the host can invoke when the device is initialized.
 static commander_states_endpoint_id _commands_initialized[] = {
     Request_random_number_tag,
+    Request_fingerprint_tag,
     Request_btc_pub_tag,
     Request_btc_sign_init_tag,
     Request_check_backup_tag,

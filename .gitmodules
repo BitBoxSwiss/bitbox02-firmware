@@ -16,3 +16,6 @@
 [submodule "external/libwally-core"]
 	path = external/libwally-core
 	url = https://github.com/shiftdevices/libwally-core.git
+[submodule "tools/ttf2ugui"]
+	path = tools/ttf2ugui
+	url = https://github.com/digitalbitbox/ttf2ugui

@@ -56,8 +56,7 @@ void usb_invalid_endpoint(struct queue* queue, uint32_t cid)
     // TODO: if U2F is disabled, we used to return a 'channel busy' command.
     // now we return an invalid cmd, because there is not going to be a matching
     // cmd in '_registered_cmds' if the U2F bit it not set (== U2F disabled).
-    // TODO: figure out the consequences and either implement a solution or
-    // inform U2F hijack vendors.
+    // TODO: figure out the consequences.
     usb_frame_prepare_err(FRAME_ERR_INVALID_CMD, cid, queue);
 }
 

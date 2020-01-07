@@ -36,7 +36,6 @@
 #include <workflow/status.h>
 #include <workflow/unlock.h>
 
-#define U2F_HIJACK_ORIGIN_TOTAL 4
 #define APPID_BOGUS_CHROMIUM "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 #define APPID_BOGUS_FIREFOX "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
 
@@ -55,33 +54,6 @@ typedef struct {
 #endif
 
 static uint32_t _cid = 0;
-// TODO: Implement hijack
-static const uint8_t _hijack_code[U2F_HIJACK_ORIGIN_TOTAL][U2F_APPID_SIZE] = {
-    {
-        /* Corresponds to U2F client challenge filled with `0xdb` */
-        /* Origin `https://digitalbitbox.com` */
-        0x17, 0x9d, 0xc3, 0x1c, 0x3a, 0xd4, 0x0f, 0x05, 0xf0, 0x71, 0x71,
-        0xed, 0xf4, 0x46, 0x4a, 0x71, 0x0a, 0x2d, 0xd4, 0xde, 0xc7, 0xe6,
-        0x14, 0x41, 0xc5, 0xbd, 0x24, 0x97, 0x8a, 0x99, 0x2a, 0x1a,
-    },
-    {
-        /* Origin `https://www.myetherwallet.com` */
-        0x8e, 0x57, 0xf6, 0x48, 0xb9, 0x1b, 0x24, 0xfe, 0x27, 0x92, 0x3a,
-        0x75, 0xef, 0xa1, 0xd0, 0x62, 0xdc, 0xb5, 0x4d, 0x41, 0xfd, 0x0b,
-        0xee, 0x33, 0x9e, 0xf2, 0xa2, 0xb4, 0x55, 0x0c, 0xbe, 0x05,
-    },
-    {
-        /* Origin `https://vintage.myetherwallet.com` */
-        0x0f, 0x5b, 0x76, 0xef, 0x29, 0x8f, 0x15, 0x0b, 0x4d, 0x39, 0x9d,
-        0x2c, 0x3c, 0xb9, 0x0e, 0x86, 0x54, 0xa3, 0x7c, 0x60, 0x5f, 0x73,
-        0x35, 0x68, 0xee, 0x68, 0xec, 0x41, 0x48, 0x8d, 0x53, 0x14,
-    },
-    {
-        /* Origin `https://mycrypto.com` */
-        0xbd, 0x22, 0x66, 0x24, 0x02, 0x18, 0x8c, 0x4d, 0xba, 0x4b, 0xb3,
-        0xd7, 0xe3, 0x98, 0x00, 0x7c, 0x5b, 0x98, 0x6f, 0x46, 0x27, 0x1f,
-        0x6d, 0xf9, 0x2e, 0x24, 0x01, 0xa7, 0xce, 0xfd, 0x1a, 0xa8,
-    }};
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpacked"
@@ -403,13 +375,6 @@ static void _register(const USB_APDU* apdu, Packet* out_packet)
     workflow_async_busy_clear();
 }
 
-static void _hijack(const U2F_AUTHENTICATE_REQ* req, Packet* out_packet)
-{
-    // TODO - copy from v1 once finalized
-    (void)req;
-    (void)out_packet;
-}
-
 static void _authenticate(const USB_APDU* apdu, Packet* out_packet)
 {
     uint8_t privkey[U2F_EC_KEY_SIZE];
@@ -438,14 +403,6 @@ static void _authenticate(const USB_APDU* apdu, Packet* out_packet)
         return;
     }
 
-    for (uint8_t i = 0; i < U2F_HIJACK_ORIGIN_TOTAL; i++) {
-        // As an alternative interface, hijack the U2F AUTH key handle data field.
-        // Slower but works in browsers for specified sites without requiring an extension.
-        if (MEMEQ(auth_request->appId, _hijack_code[i], U2F_APPID_SIZE)) {
-            _hijack(auth_request, out_packet);
-            return;
-        }
-    }
     memcpy(nonce, auth_request->keyHandle + sizeof(mac), sizeof(nonce));
     if (!_keyhandle_gen(auth_request->appId, nonce, privkey, mac)) {
         _error(U2F_SW_WRONG_DATA, out_packet);

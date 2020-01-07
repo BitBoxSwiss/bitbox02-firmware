@@ -25,7 +25,7 @@
 #include <touch/gestures.h>
 #include <ui/event.h>
 #include <ui/event_handler.h>
-#include <ui/fonts/arial_fonts.h>
+#include <ui/fonts/password_11X12.h>
 #include <ui/ugui/ugui.h>
 #include <ui/ui_util.h>
 #include <util.h>
@@ -57,6 +57,8 @@ static char _digits[] = "0123456789";
 // ` and ~ are missing here as they don't legible on the device with arial 9x9. Can add them back
 // after tuning the font.
 static char _special_chars[] = " !\"#$%&'()*+,-./:;<=>?^[\\]@_{|}";
+
+static const UG_FONT* _font = &font_password_11X12;
 
 typedef struct {
     // Can be NULL.
@@ -113,11 +115,10 @@ static UG_S16 _constant_string_width(const component_t* component)
     for (size_t i = 0; i <= data->string_index; i++) {
         if (i == data->string_index) {
             char chr = EMPTY_CHAR;
-            width += font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
+            width += _font->widths[chr - _font->start_char];
         } else if (!data->hide) {
             char chr = data->string[i];
-            width += chr == ' ' ? UI_UTIL_VISIBLE_SPACE_WIDTH
-                                : font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
+            width += _font->widths[chr - _font->start_char];
         } else {
             width += MASK_CHAR_WIDTH;
         }
@@ -151,7 +152,7 @@ static void _render(component_t* component)
         data->start_x += offset;
     }
 
-    UG_FontSelect(&font_font_a_11X12);
+    UG_FontSelect(_font);
     for (size_t i = 0; i <= data->string_index; i++) {
         uint8_t string_y = STRING_POS_Y;
 
@@ -168,21 +169,18 @@ static void _render(component_t* component)
         uint8_t width;
         if (i == data->string_index) {
             chr = EMPTY_CHAR;
-            width = font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
+            width = _font->widths[chr - _font->start_char];
         } else if ((data->show_last_character && i == data->string_index - 1) || !data->hide) {
             // Show character (or only last entered character in if input is hidden).
             chr = data->string[i];
-            width = chr == ' ' ? UI_UTIL_VISIBLE_SPACE_WIDTH
-                               : font_font_a_11X12.widths[chr - font_font_a_11X12.start_char];
+            width = _font->widths[chr - _font->start_char];
         } else {
             // ad-hoc encoding of the masked char, which will be drawn as a filled circle below.
             chr = '\0';
             width = MASK_CHAR_WIDTH;
         }
         if (string_x >= 0) {
-            if (chr == ' ') {
-                ui_util_draw_visible_space(string_x, string_y, &font_font_a_11X12);
-            } else if (chr == '\0') {
+            if (chr == '\0') {
                 UG_FillCircle(string_x + 3, string_y + 4, 2, screen_front_color);
             } else {
                 UG_PutChar(chr, string_x, string_y, screen_front_color, screen_back_color, false);
@@ -198,8 +196,7 @@ static void _render(component_t* component)
     // Draw '...' when the left part scrolled out of view.
     if (data->target_x < STRING_POS_X_START) {
         // HACK: blank out the chars rendered at this position first.
-        UG_FillFrame(
-            0, STRING_POS_Y, 11, STRING_POS_Y + font_font_a_11X12.char_height, screen_back_color);
+        UG_FillFrame(0, STRING_POS_Y, 11, STRING_POS_Y + _font->char_height, screen_back_color);
         UG_PutString(0, STRING_POS_Y, "...", false);
     }
 

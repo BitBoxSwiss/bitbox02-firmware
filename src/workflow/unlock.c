@@ -23,6 +23,7 @@
 #include <screen.h>
 #include <string.h>
 #include <ui/components/ui_images.h>
+#include <ui/fonts/password_11X12.h>
 #include <ui/screen_stack.h>
 #include <ui/ugui/ugui.h>
 #include <util.h>
@@ -31,40 +32,6 @@
 #endif
 
 #include <stdio.h>
-
-/**
- * @return true if passphrase consists only of spaces, or is empty.
- */
-static bool _is_only_spaces(const char* passphrase)
-{
-    for (const char* c = passphrase; *c != '\0'; c++) {
-        if (*c != ' ') {
-            return false;
-        }
-    }
-    return true;
-}
-
-/**
- * @return true if the passphrase starts or ends with a space or contains consecutive spaces.
- */
-static bool _has_dangerous_spaces(const char* passphrase)
-{
-    size_t len = strlen(passphrase);
-    if (len == 0) {
-        return false;
-    }
-    if (passphrase[0] == ' ' || passphrase[len - 1] == ' ') {
-        return true;
-    }
-    // Check for consecutive spaces.
-    for (size_t i = 0; i < len - 1; i++) {
-        if (passphrase[i] == ' ' && passphrase[i + 1] == ' ') {
-            return true;
-        }
-    }
-    return false;
-}
 
 static bool _get_mnemonic_passphrase(char* passphrase_out)
 {
@@ -79,10 +46,6 @@ static bool _get_mnemonic_passphrase(char* passphrase_out)
             // No need to confirm the empty passphrase.
             break;
         }
-        if (_is_only_spaces(passphrase_out)) {
-            workflow_status_create("Invalid passphrase\nPlease try again", false);
-            continue;
-        }
         if (!workflow_confirm(
                 "",
                 "You will be asked to\nvisually confirm your\npassphrase now.",
@@ -91,18 +54,9 @@ static bool _get_mnemonic_passphrase(char* passphrase_out)
                 true)) {
             return false;
         }
-        if (_has_dangerous_spaces(passphrase_out)) {
-            if (!workflow_confirm_scrollable(
-                    "Danger",
-                    "Your passphrase starts or ends with a space, or contains consecutive spaces.",
-                    NULL,
-                    true)) {
-                return false;
-            }
-        }
         bool cancel_forced = false;
         if (workflow_confirm_scrollable_longtouch(
-                "Confirm", passphrase_out, NULL, &cancel_forced)) {
+                "Confirm", passphrase_out, &font_password_11X12, &cancel_forced)) {
             break;
         }
         if (cancel_forced) {

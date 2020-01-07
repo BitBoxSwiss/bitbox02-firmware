@@ -92,6 +92,7 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_13X14.c
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_15X16.c
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_17X18.c
+    ${CMAKE_SOURCE_DIR}/src/ui/fonts/monogram_5X9.c
     ${CMAKE_SOURCE_DIR}/src/ui/screen_stack.c
     ${CMAKE_SOURCE_DIR}/src/ui/screen_process.c
     ${CMAKE_SOURCE_DIR}/src/ui/event_handler.c
@@ -315,6 +316,7 @@ if(CMAKE_CROSSCOMPILING)
       --whitelist-type BitBoxBaseRequest
       --whitelist-var ".*_tag"
       --whitelist-var font_font_a_9X9
+      --whitelist-var font_monogram_5X9
       --whitelist-var WALLY_OK
       ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
       -D__SAMD51J20A__ -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums --target=thumbv7em-none-eabi -mcpu=cortex-m4 -mthumb -mfloat-abi=soft --sysroot=${CMAKE_SYSROOT} ${RUST_INCLUDES}

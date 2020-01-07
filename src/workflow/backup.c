@@ -133,7 +133,7 @@ bool workflow_backup_check(char* id_out, bool silent)
     case BACKUP_OK:
         if (!silent) {
             workflow_status_create("Backup valid\nConfirm details", true);
-            workflow_confirm_scrollable(backup_name, id_out, true);
+            workflow_confirm_scrollable(backup_name, id_out, NULL, true);
         }
         return true;
     default: {

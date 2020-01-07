@@ -29,7 +29,7 @@ static void _dismiss(component_t* component)
 
 void workflow_verify_pub(const char* title, const char* pub)
 {
-    ui_screen_stack_push(confirm_create_scrollable(title, pub, false, _dismiss, NULL));
+    ui_screen_stack_push(confirm_create_scrollable(title, pub, NULL, false, _dismiss, NULL));
     bool result = workflow_blocking_block();
     ui_screen_stack_pop();
     if (!result) {

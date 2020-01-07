@@ -67,5 +67,5 @@ enum workflow_async_ready u2f_app_confirm(
     default:
         Abort("u2f_app_confirm: Internal error");
     }
-    return workflow_confirm_async(title, app_string, false, result);
+    return workflow_confirm_async(title, app_string, NULL, false, result);
 }

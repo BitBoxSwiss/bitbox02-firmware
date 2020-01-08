@@ -51,11 +51,11 @@ messages. The encryption protocol used is Noise with out-of-band authentication.
 
 ### Hardware docs
 
-[PCB schematics V2.1](bb02_v2.10_schematics.pdf)
+[PCB schematics V2.1](./doc/bb02_v2.10_schematics.pdf)
 
-[PCB bill of materials (BOM) V2.1](bb02_bom_v2.10.pdf)
+[PCB bill of materials (BOM) V2.1](./doc/bb02_bom_v2.10.pdf)
 
-[PCB x-ray V2.1](bb02_xray_v2.10_top_pcb.png)
+[PCB x-ray V2.1](./doc/bb02_xray_v2.10_top_pcb.png)
 
 ## Contributing
 

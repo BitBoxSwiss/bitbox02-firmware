@@ -49,6 +49,14 @@ The sliders along the edges of the device are used for user input.  There are th
 The USB communication is implemented using the request-response pattern with enecrypted protobuf
 messages. The encryption protocol used is Noise with out-of-band authentication.
 
+### Hardware docs
+
+[PCB schematics v2.1](./doc/bb02_v2.10_schematics.pdf)
+
+[PCB bill of materials (BOM) v2.1](./doc/bb02_bom_v2.10.pdf)
+
+[PCB x-ray v2.1](./doc/bb02_xray_v2.10_top_pcb.png)
+
 ## Contributing
 
 The instructions for setting up a development environment can be found in [BUILD.md](BUILD.md).

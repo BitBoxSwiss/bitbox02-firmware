@@ -16,10 +16,13 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <fido2/ctap.h>
+#include <fido2/ctap_errors.h>
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory/memory.h>
 #include <random.h>
+#include <screen.h>
 #include <securechip/securechip.h>
 #include <ui/component.h>
 #include <ui/components/confirm.h>
@@ -478,7 +481,7 @@ static void _register_continue(const USB_APDU* apdu, Packet* out_packet)
 
     memcpy(response->keyHandleCertSig, mac, sizeof(mac));
     memcpy(response->keyHandleCertSig + sizeof(mac), nonce, sizeof(nonce));
-    memcpy(response->keyHandleCertSig + response->keyHandleLen, U2F_ATT_CERT, sizeof(U2F_ATT_CERT));
+    memcpy(response->keyHandleCertSig + response->keyHandleLen, U2F_ATT_CERT, U2F_ATT_CERT_SIZE);
 
     // Add signature using attestation key
     sig_base.reserved = 0;
@@ -495,9 +498,9 @@ static void _register_continue(const USB_APDU* apdu, Packet* out_packet)
         return;
     }
 
-    uint8_t* resp_sig = response->keyHandleCertSig + response->keyHandleLen + sizeof(U2F_ATT_CERT);
+    uint8_t* resp_sig = response->keyHandleCertSig + response->keyHandleLen + U2F_ATT_CERT_SIZE;
     int der_len = _sig_to_der(sig, resp_sig);
-    size_t kh_cert_sig_len = response->keyHandleLen + sizeof(U2F_ATT_CERT) + der_len;
+    size_t kh_cert_sig_len = response->keyHandleLen + U2F_ATT_CERT_SIZE + der_len;
 
     // Append success bytes
     memcpy(response->keyHandleCertSig + kh_cert_sig_len, "\x90\x00", 2);
@@ -735,6 +738,16 @@ static void _cmd_wink(const Packet* in_packet)
     free(out_packet);
 }
 
+static void _cmd_cancel(const Packet* in_packet)
+{
+    (void)in_packet;
+    //screen_print_debug("CANCEL", 500);
+    /*
+     * U2FHID_CANCEL messages should abort the current transaction,
+     * but no response should be given.
+     */
+}
+
 /**
  * Synchronize a channel and optionally requests a unique 32-bit channel identifier (CID)
  * that can be used by the requesting application during its lifetime.
@@ -776,7 +789,7 @@ static void _cmd_init(const Packet* in_packet)
     response.versionMajor = DIGITAL_BITBOX_VERSION_MAJOR;
     response.versionMinor = DIGITAL_BITBOX_VERSION_MINOR;
     response.versionBuild = DIGITAL_BITBOX_VERSION_PATCH;
-    response.capFlags = U2FHID_CAPFLAG_WINK;
+    response.capFlags = U2FHID_CAPFLAG_WINK | U2FHID_CAPFLAG_CBOR;
     util_zero(out_packet->data_addr, sizeof(out_packet->data_addr));
     memcpy(out_packet->data_addr, &response, sizeof(response));
     usb_processing_send_packet(usb_processing_u2f(), out_packet);
@@ -932,10 +945,52 @@ static void _cmd_msg(const Packet* in_packet)
     free(out_packet);
 }
 
+static void _cmd_cbor(const Packet* in_packet) {
+    Packet* out_packet = util_malloc(sizeof(*out_packet));
+    prepare_usb_packet(in_packet->cmd, in_packet->cid, out_packet);
+
+    if (in_packet->len == 0)
+    {
+        printf("Error,invalid 0 length field for cbor packet\n");
+        _error_hid(in_packet->cid, U2FHID_ERR_INVALID_LEN, out_packet);
+        usb_processing_send_packet(usb_processing_u2f(), out_packet);
+        free(out_packet);
+        return;
+    }
+    in_buffer_t request_buf = {
+        .data = in_packet->data_addr,
+        .len = in_packet->len
+    };
+    buffer_t response_buf = {
+        .data = out_packet->data_addr + 1,
+        .len = 0,
+        .max_len = USB_DATA_MAX_LEN - 1
+    };
+    ctap_request_result_t result = ctap_request(&request_buf, &response_buf);
+    if (!result.request_completed) {
+        /* Don't send a response yet. */
+        free(out_packet);
+        return;
+    }
+    if (result.status != CTAP1_ERR_SUCCESS) {
+        _error_hid(in_packet->cid, result.status, out_packet);
+    } else {
+        out_packet->data_addr[0] = result.status;
+    }
+    out_packet->len = response_buf.len + 1;
+    usb_processing_send_packet(usb_processing_u2f(), out_packet);
+    free(out_packet);
+}
+
 bool u2f_blocking_request_can_go_through(const Packet* in_packet)
 {
     if (!_state.locked) {
         Abort("USB stack thinks we're busy, but we're not.");
+    }
+
+    /* U2F keepalives should always be let through */
+    if (in_packet->cmd == U2FHID_KEEPALIVE || in_packet->cmd == U2FHID_CANCEL) {
+        return true;
     }
 
     if (!_state.allow_cmd_retries) {
@@ -1057,6 +1112,8 @@ void u2f_device_setup(void)
         {U2FHID_WINK, _cmd_wink},
         {U2FHID_INIT, _cmd_init},
         {U2FHID_MSG, _cmd_msg},
+        {U2FHID_CBOR, _cmd_cbor},
+        {U2FHID_CANCEL, _cmd_cancel},
     };
     usb_processing_register_cmds(
         usb_processing_u2f(), u2f_cmd_callbacks, sizeof(u2f_cmd_callbacks) / sizeof(CMD_Callback));

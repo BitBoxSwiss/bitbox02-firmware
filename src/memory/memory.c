@@ -810,3 +810,28 @@ bool memory_multisig_get_by_hash(const uint8_t* hash, char* name_out)
     }
     return false;
 }
+
+static ctap_resident_key_t rks[MEMORY_CTAP_RESIDENT_KEYS_MAX];
+static int rks_valid[MEMORY_CTAP_RESIDENT_KEYS_MAX] = {0};
+bool memory_get_ctap_resident_key(int key_idx, ctap_resident_key_t* key_out)
+{
+    /** TODO: simo: implement */
+    memcpy(key_out, &rks[key_idx], sizeof(*rks));
+    if (rks_valid[key_idx]) {
+        key_out->valid = CTAP_RESIDENT_KEY_VALID;
+    } else {
+        key_out->valid = CTAP_RESIDENT_KEY_INVALID;
+    }
+    return true;
+}
+
+void memory_store_ctap_resident_key(int store_location, const ctap_resident_key_t* rk_to_store)
+{
+    /** TODO: simo: implement */
+    memcpy(&rks[store_location], rk_to_store, sizeof(*rks));
+    if (rk_to_store->valid == CTAP_RESIDENT_KEY_VALID) {
+        rks_valid[store_location] = true;
+    } else {
+        rks_valid[store_location] = false;
+    }
+}

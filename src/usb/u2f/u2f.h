@@ -16,7 +16,7 @@
 
 // General constants
 /* Size of one of the point coordinates on the EC */
-#define U2F_EC_KEY_SIZE 32
+#define U2F_EC_KEY_SIZE (32)
 #define U2F_EC_POINT_SIZE ((U2F_EC_KEY_SIZE * 2) + 1)
 #define U2F_MAX_KH_SIZE 128 // Max size of key handle
 #define U2F_MAX_ATT_CERT_SIZE 1024 // Max size of attestation certificate

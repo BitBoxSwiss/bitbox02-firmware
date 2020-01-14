@@ -338,7 +338,7 @@ class BitBox02(BitBoxCommonAPI):
     def check_sdcard(self) -> bool:
         # pylint: disable=no-member
         request = hww.Request()
-        request.check_sdcard.CopyFrom(backup.CheckSDCardRequest())
+        request.check_sdcard.CopyFrom(bitbox02_system.CheckSDCardRequest())
         response = self._msg_query(request, expected_response="check_sdcard")
         return response.check_sdcard.inserted
 

@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='common.proto',
   package='',
   syntax='proto3',
-  serialized_pb=_b('\n\x0c\x63ommon.proto\"\x1a\n\x0bPubResponse\x12\x0b\n\x03pub\x18\x01 \x01(\tb\x06proto3')
+  serialized_pb=_b('\n\x0c\x63ommon.proto\"\x1a\n\x0bPubResponse\x12\x0b\n\x03pub\x18\x01 \x01(\t\"\x18\n\x16RootFingerprintRequest\".\n\x17RootFingerprintResponse\x12\x13\n\x0b\x66ingerprint\x18\x01 \x01(\x0c\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -56,7 +56,64 @@ _PUBRESPONSE = _descriptor.Descriptor(
   serialized_end=42,
 )
 
+
+_ROOTFINGERPRINTREQUEST = _descriptor.Descriptor(
+  name='RootFingerprintRequest',
+  full_name='RootFingerprintRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=44,
+  serialized_end=68,
+)
+
+
+_ROOTFINGERPRINTRESPONSE = _descriptor.Descriptor(
+  name='RootFingerprintResponse',
+  full_name='RootFingerprintResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='fingerprint', full_name='RootFingerprintResponse.fingerprint', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=70,
+  serialized_end=116,
+)
+
 DESCRIPTOR.message_types_by_name['PubResponse'] = _PUBRESPONSE
+DESCRIPTOR.message_types_by_name['RootFingerprintRequest'] = _ROOTFINGERPRINTREQUEST
+DESCRIPTOR.message_types_by_name['RootFingerprintResponse'] = _ROOTFINGERPRINTRESPONSE
 
 PubResponse = _reflection.GeneratedProtocolMessageType('PubResponse', (_message.Message,), dict(
   DESCRIPTOR = _PUBRESPONSE,
@@ -64,6 +121,20 @@ PubResponse = _reflection.GeneratedProtocolMessageType('PubResponse', (_message.
   # @@protoc_insertion_point(class_scope:PubResponse)
   ))
 _sym_db.RegisterMessage(PubResponse)
+
+RootFingerprintRequest = _reflection.GeneratedProtocolMessageType('RootFingerprintRequest', (_message.Message,), dict(
+  DESCRIPTOR = _ROOTFINGERPRINTREQUEST,
+  __module__ = 'common_pb2'
+  # @@protoc_insertion_point(class_scope:RootFingerprintRequest)
+  ))
+_sym_db.RegisterMessage(RootFingerprintRequest)
+
+RootFingerprintResponse = _reflection.GeneratedProtocolMessageType('RootFingerprintResponse', (_message.Message,), dict(
+  DESCRIPTOR = _ROOTFINGERPRINTRESPONSE,
+  __module__ = 'common_pb2'
+  # @@protoc_insertion_point(class_scope:RootFingerprintResponse)
+  ))
+_sym_db.RegisterMessage(RootFingerprintResponse)
 
 
 # @@protoc_insertion_point(module_scope)

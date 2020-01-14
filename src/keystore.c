@@ -26,6 +26,7 @@
 #include "util.h"
 
 #include <secp256k1_recovery.h>
+#include <wally_bip32.h>
 #include <wally_bip39.h>
 #include <wally_crypto.h>
 
@@ -422,6 +423,18 @@ static bool _get_xprv(const uint32_t* keypath, const size_t keypath_len, struct 
         bip32_key_from_parent_path(
             &xprv_master, keypath, keypath_len, BIP32_FLAG_KEY_PRIVATE, xprv_out) != WALLY_OK) {
         keystore_zero_xkey(xprv_out);
+        return false;
+    }
+    return true;
+}
+
+bool keystore_get_root_fingerprint(uint8_t* fingerprint)
+{
+    struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
+    if (!keystore_get_xpub(NULL, 0, &derived_xpub)) {
+        return false;
+    }
+    if (bip32_key_get_fingerprint(&derived_xpub, fingerprint, 4) != WALLY_OK) {
         return false;
     }
     return true;

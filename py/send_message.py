@@ -171,6 +171,9 @@ class SendMessage:
     def _display_random(self) -> None:
         print(f"Random number: {self._device.random_number().hex()}")
 
+    def _get_root_fingerprint(self) -> None:
+        print(f"Root fingerprint: {self._device.root_fingerprint().hex()}")
+
     def _display_master_xpub(self) -> None:
         print(
             "m/84'/0'/0' xpub: ",
@@ -312,6 +315,7 @@ class SendMessage:
             ("List device info", self._list_device_info),
             ("Change device name", self._change_name_workflow),
             ("Display random number", self._display_random),
+            ("Get root fingerprint", self._get_root_fingerprint),
             ("Retrieve master xpub", self._display_master_xpub),
             ("Sign a BTC tx", self._sign_btc_tx),
             ("List backups", self._print_backups),

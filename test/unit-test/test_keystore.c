@@ -209,6 +209,15 @@ static void _test_keystore_get_xpub(void** state)
     wally_free_string(xpub_string);
 }
 
+static void _test_keystore_get_root_fingerprint(void** state)
+{
+    mock_state(_mock_seed, _mock_bip39_seed);
+    uint8_t fingerprint[4];
+    assert_true(keystore_get_root_fingerprint(fingerprint));
+    uint8_t expected_fingerprint[4] = {0x9e, 0x1b, 0x2d, 0x1e};
+    assert_memory_equal(fingerprint, expected_fingerprint, 4);
+}
+
 static void _test_keystore_secp256k1_sign(void** state)
 {
     secp256k1_context* ctx = wally_get_secp_context();
@@ -386,6 +395,7 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_keystore_get_xpub),
+        cmocka_unit_test(_test_keystore_get_root_fingerprint),
         cmocka_unit_test(_test_keystore_secp256k1_sign),
         cmocka_unit_test(_test_keystore_encrypt_and_store_seed),
         cmocka_unit_test(_test_keystore_unlock),

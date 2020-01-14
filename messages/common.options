@@ -13,3 +13,4 @@
 // limitations under the License.
 
 PubResponse.pub max_size:500
+RootFingerprintResponse.fingerprint fixed_length:true max_size:4

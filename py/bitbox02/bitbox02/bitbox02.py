@@ -31,6 +31,7 @@ try:
     from communication.generated import bitbox02_system_pb2 as bitbox02_system
     from communication.generated import random_number_pb2 as random_number
     from communication.generated import backup_commands_pb2 as backup
+    from communication.generated import common_pb2 as common
 except ModuleNotFoundError:
     print("Run `make py` to generate the protobuf messages")
     sys.exit()
@@ -361,6 +362,16 @@ class BitBox02(BitBoxCommonAPI):
             )
         )
         self._msg_query(request, expected_response="success")
+
+    def root_fingerprint(self) -> bytes:
+        """
+        Get the root fingerprint from the bitbox02
+        """
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.fingerprint.CopyFrom(common.RootFingerprintRequest())
+        response = self._msg_query(request, expected_response="fingerprint")
+        return response.fingerprint.fingerprint
 
     def enable_mnemonic_passphrase(self) -> None:
         """

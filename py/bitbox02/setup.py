@@ -20,7 +20,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="bitbox02",
-    version="0.0.1",
+    version="1.0.0",
     author="Shift Cryptosecurity",
     author_email="support@shiftcrypto.ch",
     packages=setuptools.find_packages(),

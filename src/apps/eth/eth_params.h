@@ -45,4 +45,9 @@ const app_eth_erc20_params_t* app_eth_erc20_params_get(
     ETHCoin coin,
     const uint8_t* contract_address);
 
+/**
+ * @return pointer to static "unknown" erc20 params on success.
+ */
+const app_eth_erc20_params_t* app_eth_erc20_unknown_params_get(void);
+
 #endif

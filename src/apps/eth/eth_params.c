@@ -118,6 +118,13 @@ static const app_eth_erc20_params_t _erc20_params[] = {
     },
 };
 
+static const app_eth_erc20_params_t _erc20_unknown_params = {
+    .coin = ETHCoin_ETH,
+    .unit = "",
+    .contract_address = {0},
+    .decimals = 0,
+};
+
 const app_eth_erc20_params_t* app_eth_erc20_params_get(
     ETHCoin coin,
     const uint8_t* contract_address)
@@ -131,4 +138,9 @@ const app_eth_erc20_params_t* app_eth_erc20_params_get(
         }
     }
     return NULL;
+}
+
+const app_eth_erc20_params_t* app_eth_erc20_unknown_params_get(void)
+{
+    return &_erc20_unknown_params;
 }

@@ -4,6 +4,7 @@
 
 #include <hardfault.h>
 #include <util.h>
+#include <workflow/confirm.h>
 #include <workflow/verify_recipient.h>
 #include <workflow/verify_total.h>
 
@@ -83,7 +84,7 @@ static app_eth_sign_error_t _verify_total_fee(
 // 2) value is 0.
 app_eth_sign_error_t app_eth_verify_erc20_transaction(const ETHSignRequest* request)
 {
-    const app_eth_coin_params_t* params = app_eth_params_get(request->coin);
+    const app_eth_coin_params_t* const params = app_eth_params_get(request->coin);
     if (params == NULL) {
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }
@@ -91,7 +92,15 @@ app_eth_sign_error_t app_eth_verify_erc20_transaction(const ETHSignRequest* requ
         app_eth_erc20_params_get(request->coin, request->recipient);
     if (erc20_params == NULL) {
         // unsupported token.
-        return APP_ETH_SIGN_ERR_INVALID_INPUT;
+        if (!workflow_confirm(
+                "Continue?",
+                "Unknown token\nplease verify amount\nseparately.",
+                NULL,
+                false,
+                true)) {
+            return APP_ETH_SIGN_ERR_INVALID_INPUT;
+        }
+        erc20_params = app_eth_erc20_unknown_params_get();
     }
     // data is validated to have the following format:
     // <0xa9059cbb><32 bytes recipient><32 bytes value>

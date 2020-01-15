@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "u2f.h"
-#include "u2f/u2f_app.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -28,6 +27,8 @@
 #include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 #include <ui/workflow_stack.h>
+#include <u2f/u2f_app.h>
+#include <u2f/u2f_keyhandle.h>
 #include <usb/u2f/u2f.h>
 #include <usb/u2f/u2f_hid.h>
 #include <usb/u2f/u2f_keys.h>
@@ -288,46 +289,6 @@ static void _version(const USB_APDU* a, Packet* out_packet)
     _fill_message(version_response, sizeof(version_response), out_packet);
 }
 
-/**
- * Generates a key for the given app id, salted with the passed nonce.
- * @param[in] appId The app id of the RP which requests a registration or authentication process.
- * @param[in] nonce A random nonce with which the seed for the private key is salted.
- * @param[out] privkey The generated private key. Size must be HMAC_SHA256_LEN.
- * @param[out] mac The message authentication code for the private key. Size must be
- * HMAC_SHA256_LEN.
- */
-USE_RESULT static bool _keyhandle_gen(
-    const uint8_t* appId,
-    uint8_t* nonce,
-    uint8_t* privkey,
-    uint8_t* mac)
-{
-    uint8_t hmac_in[U2F_APPID_SIZE + U2F_NONCE_LENGTH];
-    uint8_t seed[32];
-    UTIL_CLEANUP_32(seed);
-    if (!keystore_get_u2f_seed(seed)) {
-        return false;
-    }
-
-    // Concatenate AppId and Nonce as input for the first HMAC round
-    memcpy(hmac_in, appId, U2F_APPID_SIZE);
-    memcpy(hmac_in + U2F_APPID_SIZE, nonce, U2F_NONCE_LENGTH);
-    int res = wally_hmac_sha256(
-        seed, KEYSTORE_U2F_SEED_LENGTH, hmac_in, sizeof(hmac_in), privkey, HMAC_SHA256_LEN);
-    if (res != WALLY_OK) {
-        return false;
-    }
-
-    // Concatenate AppId and privkey for the second HMAC round
-    memcpy(hmac_in + U2F_APPID_SIZE, privkey, HMAC_SHA256_LEN);
-    res = wally_hmac_sha256(
-        seed, KEYSTORE_U2F_SEED_LENGTH, hmac_in, sizeof(hmac_in), mac, HMAC_SHA256_LEN);
-    if (res != WALLY_OK) {
-        return false;
-    }
-    return true;
-}
-
 static int _sig_to_der(const uint8_t* sig, uint8_t* der)
 {
     int i;
@@ -498,7 +459,7 @@ static void _register_continue(const USB_APDU* apdu, Packet* out_packet)
             return;
         }
         random_32_bytes(nonce);
-        if (!_keyhandle_gen(reg_request->appId, nonce, privkey, mac)) {
+        if (!u2f_keyhandle_gen(reg_request->appId, nonce, privkey, mac)) {
             continue;
         }
         if (securechip_ecc_generate_public_key(privkey, (uint8_t*)&response->pubKey.x)) {
@@ -565,12 +526,13 @@ static uint16_t _authenticate_sanity_check_req(const USB_APDU* apdu)
 
 static uint16_t _authenticate_verify_key_valid(const USB_APDU* apdu)
 {
-    uint8_t nonce[U2F_NONCE_LENGTH];
-    uint8_t mac[HMAC_SHA256_LEN];
+    uint8_t nonce[U2F_NONCE_LENGTH] = {0};
+    uint8_t mac[HMAC_SHA256_LEN] = {0};
     uint8_t privkey[U2F_EC_KEY_SIZE];
+    UTIL_CLEANUP_32(privkey);
     const U2F_AUTHENTICATE_REQ* auth_request = (const U2F_AUTHENTICATE_REQ*)apdu->data;
     memcpy(nonce, auth_request->keyHandle + sizeof(mac), sizeof(nonce));
-    if (!_keyhandle_gen(auth_request->appId, nonce, privkey, mac)) {
+    if (!u2f_keyhandle_gen(auth_request->appId, nonce, privkey, mac)) {
         return U2F_SW_WRONG_DATA;
     }
     if (!MEMEQ(auth_request->keyHandle, mac, SHA256_LEN)) {
@@ -638,8 +600,6 @@ static void _authenticate_wait_refresh(const USB_APDU* apdu, Packet* out_packet)
 static void _authenticate_continue(const USB_APDU* apdu, Packet* out_packet)
 {
     uint8_t privkey[U2F_EC_KEY_SIZE];
-    uint8_t nonce[U2F_NONCE_LENGTH];
-    uint8_t mac[HMAC_SHA256_LEN];
     uint8_t sig[64] = {0};
     U2F_AUTHENTICATE_SIG_STR sig_base;
     uint16_t req_error = _authenticate_sanity_check_req(apdu);
@@ -664,12 +624,10 @@ static void _authenticate_continue(const USB_APDU* apdu, Packet* out_packet)
         return;
     }
 
-    memcpy(nonce, auth_request->keyHandle + sizeof(mac), sizeof(nonce));
-    if (!_keyhandle_gen(auth_request->appId, nonce, privkey, mac)) {
-        _error(U2F_SW_WRONG_DATA, out_packet);
-        return;
-    }
-    if (!MEMEQ(auth_request->keyHandle, mac, SHA256_LEN)) {
+    /* Decode the key handle into a private key. */
+    bool key_is_valid = u2f_keyhandle_verify(
+        auth_request->appId, auth_request->keyHandle, auth_request->keyHandleLength, privkey);
+    if (!key_is_valid) {
         _error(U2F_SW_WRONG_DATA, out_packet);
         return;
     }

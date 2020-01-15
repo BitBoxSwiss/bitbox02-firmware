@@ -174,9 +174,9 @@ class SendMessage:
     def _get_root_fingerprint(self) -> None:
         print(f"Root fingerprint: {self._device.root_fingerprint().hex()}")
 
-    def _display_master_xpub(self) -> None:
+    def _display_zpub(self) -> None:
         print(
-            "m/84'/0'/0' xpub: ",
+            "m/84'/0'/0' zpub: ",
             self._device.btc_pub(
                 keypath=[84 + HARDENED, 0 + HARDENED, 0 + HARDENED],
                 output_type=bitbox02.btc.BTCPubRequest.ZPUB,  # pylint: disable=no-member
@@ -316,7 +316,7 @@ class SendMessage:
             ("Change device name", self._change_name_workflow),
             ("Display random number", self._display_random),
             ("Get root fingerprint", self._get_root_fingerprint),
-            ("Retrieve master xpub", self._display_master_xpub),
+            ("Retrieve zpub of first account", self._display_zpub),
             ("Sign a BTC tx", self._sign_btc_tx),
             ("List backups", self._print_backups),
             ("Check backup", self._check_backup),

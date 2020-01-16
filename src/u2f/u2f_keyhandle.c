@@ -15,6 +15,8 @@
 #include "u2f_keyhandle.h"
 
 #include <keystore.h>
+#include <random.h>
+#include <securechip/securechip.h>
 #include <usb/u2f/u2f.h>
 #include <util.h>
 #include <wally_crypto.h>
@@ -67,4 +69,18 @@ bool u2f_keyhandle_verify(const uint8_t* appId, const uint8_t* key_handle_buf, s
 
     /* Verify the key handle's MAC against the actual one we compute. */
     return MEMEQ(key_handle->mac, mac, SHA256_LEN);
+}
+
+bool u2f_keyhandle_create_key(const uint8_t* app_id, uint8_t* nonce_out, uint8_t* privkey_out, uint8_t* mac_out, uint8_t* pubkey_out)
+{
+    for (int i = 0; i < 10; ++i) {
+        random_32_bytes(nonce_out);
+        if (!u2f_keyhandle_gen(app_id, nonce_out, privkey_out, mac_out)) {
+            continue;
+        }
+        if (securechip_ecc_generate_public_key(privkey_out, pubkey_out)) {
+            return true;
+        }
+    }
+    return false;
 }

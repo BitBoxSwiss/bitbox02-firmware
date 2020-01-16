@@ -452,19 +452,10 @@ static void _register_continue(const USB_APDU* apdu, Packet* out_packet)
     }
 
     // Generate keys until a valid one is found
-    int i = 0;
-    for (;; ++i) {
-        if (i == 10) {
-            _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
-            return;
-        }
-        random_32_bytes(nonce);
-        if (!u2f_keyhandle_gen(reg_request->appId, nonce, privkey, mac)) {
-            continue;
-        }
-        if (securechip_ecc_generate_public_key(privkey, (uint8_t*)&response->pubKey.x)) {
-            break;
-        }
+    bool key_create_success = u2f_keyhandle_create_key(reg_request->appId, nonce, privkey, mac, (uint8_t*)&response->pubKey.x);
+    if (!key_create_success) {
+        _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
+        return;
     }
 
     response->pubKey.format = U2F_UNCOMPRESSED_POINT;

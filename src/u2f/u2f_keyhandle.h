@@ -47,4 +47,6 @@ USE_RESULT bool u2f_keyhandle_verify(
     const uint8_t* appId, const uint8_t* key_handle_buf, size_t key_handle_len, uint8_t* privkey
 );
 
+USE_RESULT bool u2f_keyhandle_create_key(const uint8_t* app_id, uint8_t* nonce_out, uint8_t* privkey_out, uint8_t* mac_out, uint8_t* pubkey_out);
+
 #endif // _U2F_KEYHANDLE_H

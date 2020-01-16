@@ -12,20 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """BitBox python package"""
+import os.path
+import re
 from distutils.core import setup
 import setuptools
 
-with open("README.md", "r") as fh:
-    LONG_DESCRIPTION = fh.read()
+
+def read(*path: str) -> str:
+    cwd = os.path.dirname(os.path.realpath(__file__))
+    filename = os.path.join(cwd, *path)
+    with open(filename, "r") as filereader:
+        return filereader.read()
+
+
+def find_version() -> str:
+    version_file = read("bitbox02", "__init__.py")
+    version_match = re.search(r"^__version__ = \"(.*)\"$", version_file, re.M)
+    if version_match:
+        return version_match.group(1)
+    raise RuntimeError("Version string not found")
+
 
 setup(
     name="bitbox02",
-    version="1.0.0",
+    version=find_version(),
     author="Shift Cryptosecurity",
     author_email="support@shiftcrypto.ch",
     packages=setuptools.find_packages(),
     description="Python library for bitbox02 communication",
-    long_description=LONG_DESCRIPTION,
+    long_description=read("README.md"),
     long_description_content_type="text/markdown",
     url="https://github.com/digitalbitbox/bitbox02-firmware",
     python_requires=">=3.6",

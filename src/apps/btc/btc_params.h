@@ -24,6 +24,7 @@ typedef struct {
     const char* bech32_hrp;
     // unit to use in formatted amounts, e.g. "BTC".
     const char* unit;
+    bool rbf_support;
 } app_btc_coin_params_t;
 
 /**

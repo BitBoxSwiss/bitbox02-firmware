@@ -164,6 +164,8 @@ set(TEST_LIST
    "-Wl,--wrap=keystore_get_xpub,--wrap=btc_common_is_valid_keypath,--wrap=btc_common_encode_xpub,--wrap=btc_common_outputhash_from_pubkeyhash"
    app_btc_common
    ""
+   app_btc_confirm_locktime_rbf
+   "-Wl,--wrap=workflow_confirm,--wrap=workflow_status_create"
    sd
    ""
    ui_components
@@ -173,7 +175,7 @@ set(TEST_LIST
    ui_component_gestures
    ""
    btc_sign
-   "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=btc_common_format_amount,--wrap=btc_common_is_valid_keypath"
+   "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=apps_btc_confirm_locktime_rbf,--wrap=btc_common_format_amount,--wrap=btc_common_is_valid_keypath"
    memory
    "-Wl,--wrap=memory_read_chunk_mock,--wrap=memory_write_chunk_mock,--wrap=bb_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_mock,--wrap=memory_write_to_address_mock"
    salt

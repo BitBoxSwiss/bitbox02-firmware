@@ -52,7 +52,7 @@ typedef struct {
 #define APDU_LEN(A) (uint32_t)(((A).lc1 << 16) + ((A).lc2 << 8) + ((A).lc3))
 #define U2F_KEYHANDLE_LEN (U2F_NONCE_LENGTH + SHA256_LEN)
 
-#if (U2F_EC_KEY_SIZE != SHA256_LEN) || (U2F_EC_KEY_SIZE != U2F_NONCE_LENGTH)
+#if (U2F_EC_COORD_SIZE != SHA256_LEN) || (U2F_EC_COORD_SIZE != U2F_NONCE_LENGTH)
 #error "Incorrect macro values for u2f"
 #endif
 
@@ -528,7 +528,7 @@ static uint16_t _authenticate_verify_key_valid(const USB_APDU* apdu)
 {
     uint8_t nonce[U2F_NONCE_LENGTH] = {0};
     uint8_t mac[HMAC_SHA256_LEN] = {0};
-    uint8_t privkey[U2F_EC_KEY_SIZE];
+    uint8_t privkey[U2F_EC_COORD_SIZE];
     UTIL_CLEANUP_32(privkey);
     const U2F_AUTHENTICATE_REQ* auth_request = (const U2F_AUTHENTICATE_REQ*)apdu->data;
     memcpy(nonce, auth_request->keyHandle + sizeof(mac), sizeof(nonce));

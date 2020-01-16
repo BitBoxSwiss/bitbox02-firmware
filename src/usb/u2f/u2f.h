@@ -15,8 +15,9 @@
 #pragma GCC diagnostic ignored "-Wattributes"
 
 // General constants
-#define U2F_EC_KEY_SIZE 32
-#define U2F_EC_POINT_SIZE ((U2F_EC_KEY_SIZE * 2) + 1)
+/* Size of one of the point coordinates on the EC */
+#define U2F_EC_COORD_SIZE 32
+#define U2F_EC_POINT_SIZE ((U2F_EC_COORD_SIZE * 2) + 1)
 #define U2F_MAX_KH_SIZE 128 // Max size of key handle
 #define U2F_MAX_ATT_CERT_SIZE 1024 // Max size of attestation certificate
 #define U2F_MAX_EC_SIG_SIZE 72 // Max size of ANS.1 DER encoded EC signature
@@ -28,8 +29,8 @@
 
 typedef struct {
     uint8_t format;
-    uint8_t x[U2F_EC_KEY_SIZE];
-    uint8_t y[U2F_EC_KEY_SIZE];
+    uint8_t x[U2F_EC_COORD_SIZE];
+    uint8_t y[U2F_EC_COORD_SIZE];
 } U2F_EC_POINT;
 
 // U2F native commands

@@ -387,10 +387,10 @@ static void _sign(const _modification_t* mod)
         init_req.coin = BTCCoin_LTC;
         init_req.locktime = 1;
         inputs[0].sequence = 0xffffffff - 2;
-        inputs[0].keypath[1] += 2;
-        inputs[1].keypath[1] += 2;
-        outputs[4].keypath[1] += 2;
-        outputs[5].keypath[1] += 2;
+        inputs[0].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
+        inputs[1].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
+        outputs[4].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
+        outputs[5].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
     }
 
     BTCSignNextResponse next = {0};
@@ -594,19 +594,19 @@ static void _sign(const _modification_t* mod)
     if (mod->litecoin_rbf_disabled) {
         expect_value(__wrap_apps_btc_confirm_locktime_rbf, locktime, 1);
         expect_value(__wrap_apps_btc_confirm_locktime_rbf, rbf, CONFIRM_LOCKTIME_RBF_DISABLED);
-        will_return(__wrap_apps_btc_confirm_locktime_rbf, mod->litecoin_rbf_disabled);
+        will_return(__wrap_apps_btc_confirm_locktime_rbf, true);
     }
 
     if (mod->locktime_applies) {
         expect_value(__wrap_apps_btc_confirm_locktime_rbf, locktime, 1);
         expect_value(__wrap_apps_btc_confirm_locktime_rbf, rbf, CONFIRM_LOCKTIME_RBF_OFF);
-        will_return(__wrap_apps_btc_confirm_locktime_rbf, mod->locktime_applies);
+        will_return(__wrap_apps_btc_confirm_locktime_rbf, true);
     }
 
     if (mod->user_aborts_locktime_rbf) {
         expect_value(__wrap_apps_btc_confirm_locktime_rbf, locktime, 0);
         expect_value(__wrap_apps_btc_confirm_locktime_rbf, rbf, CONFIRM_LOCKTIME_RBF_ON);
-        will_return(__wrap_apps_btc_confirm_locktime_rbf, !mod->user_aborts_locktime_rbf);
+        will_return(__wrap_apps_btc_confirm_locktime_rbf, false);
 
         assert_int_equal(APP_BTC_SIGN_ERR_USER_ABORT, app_btc_sign_output(&outputs[5], &next));
         // Check the process is really aborted, can't proceed to next stage.

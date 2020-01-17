@@ -317,6 +317,30 @@ static void _test_keystore_encrypt_and_store_seed(void** state)
     assert_true(keystore_encrypt_and_store_seed(_mock_seed, 32, PASSWORD));
 }
 
+// this tests that you can create a keystore, unlock it, and then do this again. This is an expected
+// workflow for when the wallet setup process is restarted after seeding and unlocking, but before
+// creating a backup, in which case a new seed is created.
+static void _test_keystore_create_and_unlock_twice(void** state)
+{
+    _expect_encrypt_and_store_seed();
+    assert_true(keystore_encrypt_and_store_seed(_mock_seed, 32, PASSWORD));
+
+    uint8_t remaining_attempts;
+    _smarteeprom_reset();
+
+    will_return(__wrap_memory_is_seeded, true);
+    _expect_stretch(true);
+    assert_int_equal(KEYSTORE_OK, keystore_unlock(PASSWORD, &remaining_attempts));
+
+    // Create new (different) seed.
+    _expect_encrypt_and_store_seed();
+    assert_true(keystore_encrypt_and_store_seed(_mock_seed_2, 32, PASSWORD));
+
+    will_return(__wrap_memory_is_seeded, true);
+    _expect_stretch(true);
+    assert_int_equal(KEYSTORE_OK, keystore_unlock(PASSWORD, &remaining_attempts));
+}
+
 static void _expect_seeded(bool seeded)
 {
     uint8_t seed[KEYSTORE_MAX_SEED_LENGTH];
@@ -398,6 +422,7 @@ int main(void)
         cmocka_unit_test(_test_keystore_get_root_fingerprint),
         cmocka_unit_test(_test_keystore_secp256k1_sign),
         cmocka_unit_test(_test_keystore_encrypt_and_store_seed),
+        cmocka_unit_test(_test_keystore_create_and_unlock_twice),
         cmocka_unit_test(_test_keystore_unlock),
         cmocka_unit_test(_test_keystore_lock),
     };

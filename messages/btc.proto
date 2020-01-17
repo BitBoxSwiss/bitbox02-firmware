@@ -50,10 +50,10 @@ message BTCSignInitRequest {
   BTCCoin coin = 1;
   BTCScriptType script_type = 2; // script type for inputs and changes
   uint32 bip44_account = 3;
-  uint32 version = 4; // reserved, must be 1
+  uint32 version = 4; // must be 1 or 2
   uint32 num_inputs = 5;
   uint32 num_outputs = 6;
-  uint32 locktime = 7; // reserved, must be 0
+  uint32 locktime = 7; // must be <500000000
 }
 
 message BTCSignNextResponse {
@@ -73,7 +73,7 @@ message BTCSignInputRequest {
   bytes prevOutHash = 1;
   uint32 prevOutIndex = 2;
   uint64 prevOutValue = 3;
-  uint32 sequence = 4; // reserved, must be 0xffffffff
+  uint32 sequence = 4; // must be 0xffffffff-2, 0xffffffff-1 or 0xffffffff
   repeated uint32 keypath = 6; // all inputs must be ours.
 }
 
@@ -93,4 +93,3 @@ message BTCSignOutputRequest {
   bytes hash = 4; // if ours is false
   repeated uint32 keypath = 5; // if ours is true
 }
-

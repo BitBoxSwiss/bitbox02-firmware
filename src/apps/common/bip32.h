@@ -12,25 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto3";
+#ifndef _APPS_COMMON_BIP32_H
+#define _APPS_COMMON_BIP32_H
 
-message PubResponse {
-  string pub = 1;
-}
+#include <stdbool.h>
 
-message RootFingerprintRequest {
-}
+#include <common.pb.h>
+#include <compiler_util.h>
 
-message RootFingerprintResponse {
-  bytes fingerprint = 1;
-}
+#include <wally_bip32.h>
 
-// See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki.
-// version field dropped as it will set dynamically based on the context (xpub, ypub, etc.).
-message XPub {
-  bytes depth = 1;
-  bytes parent_fingerprint = 2;
-  uint32 child_num = 3;
-  bytes chain_code = 4;
-  bytes public_key = 5;
-}
+/**
+ * Converts between an xpub provided via a protobuf message to a libwally xpub.
+ */
+USE_RESULT bool apps_common_bip32_xpub_from_protobuf(const XPub* xpub_in, struct ext_key* xpub_out);
+
+#endif

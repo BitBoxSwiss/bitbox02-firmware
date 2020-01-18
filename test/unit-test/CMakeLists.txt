@@ -61,6 +61,7 @@ add_library(bitbox
   framework/mock_sd.c
   framework/mock_smarteeprom.c
   framework/mock_securechip.c
+  framework/btc_util.c
 )
 
 target_include_directories(
@@ -160,6 +161,8 @@ set(TEST_LIST
    ""
    random
    "-Wl,--wrap=rand,--wrap=wally_sha256"
+   apps_common_bip32
+   ""
    app_btc
    "-Wl,--wrap=keystore_get_xpub,--wrap=btc_common_is_valid_keypath,--wrap=btc_common_encode_xpub,--wrap=btc_common_outputhash_from_pubkeyhash"
    app_btc_common

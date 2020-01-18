@@ -60,6 +60,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/backup.c
   ${CMAKE_SOURCE_DIR}/src/workflow/reset.c
   ${CMAKE_SOURCE_DIR}/src/workflow/restore.c
+  ${CMAKE_SOURCE_DIR}/src/apps/common/bip32.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_common.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_params.c

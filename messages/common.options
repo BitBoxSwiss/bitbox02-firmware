@@ -14,3 +14,9 @@
 
 PubResponse.pub max_size:500
 RootFingerprintResponse.fingerprint fixed_length:true max_size:4
+
+// See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki.
+XPub.depth fixed_length:true max_size:1
+XPub.parent_fingerprint fixed_length:true max_size:4
+XPub.chain_code fixed_length:true max_size:32
+XPub.public_key fixed_length:true max_size:33

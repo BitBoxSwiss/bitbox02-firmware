@@ -400,6 +400,28 @@ static void _test_btc_common_is_valid_keypath_addresses(void** state)
     }
 }
 
+static void _test_btc_common_encode_xpub(void** state)
+{
+    struct ext_key xpub = {0};
+    assert_int_equal(
+        bip32_key_from_seed(
+            (const unsigned char*)"seedseedseedseed",
+            BIP32_ENTROPY_LEN_128,
+            BIP32_VER_MAIN_PRIVATE,
+            BIP32_FLAG_SKIP_HASH,
+            &xpub),
+        WALLY_OK);
+    assert_int_equal(bip32_key_strip_private_key(&xpub), WALLY_OK);
+    char out[113] = {0};
+    assert_false(btc_common_encode_xpub(&xpub, (const uint8_t*)"\x04\x88\xb2\x1e", out, 110));
+    assert_true(
+        btc_common_encode_xpub(&xpub, (const uint8_t*)"\x04\x88\xb2\x1e", out, sizeof(out)));
+    assert_string_equal(
+        out,
+        "xpub661MyMwAqRbcFLG1NSwsGkQxYGaRj3qDsDB6g64CviEc82D3r7Dp4eMnWdarcVkpPbMgwwuLLPPwCXVQFWWomv"
+        "yj6QKEuDXWvNbCDF98tgM");
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -407,6 +429,7 @@ int main(void)
         cmocka_unit_test(_test_btc_common_format_amount),
         cmocka_unit_test(_test_btc_common_is_valid_keypath_xpubs),
         cmocka_unit_test(_test_btc_common_is_valid_keypath_addresses),
+        cmocka_unit_test(_test_btc_common_encode_xpub),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

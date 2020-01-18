@@ -51,6 +51,14 @@ USE_RESULT bool btc_common_is_valid_keypath(
     size_t keypath_len,
     uint32_t expected_coin);
 
+/**
+ * Encode an xpub as a base58 string.
+ * @param[in] dervived_xpub the xpub to encode.
+ * @param[in] version 4 bytes version determining the prefix (e.g. 0x0488b21e for "xpub...")
+ * @param[out] out resulting string, must be at least of size 113 (including the null terminator).
+ * @param[in] out_len size of `out`.
+ * @return false on failure, true on success.
+ */
 USE_RESULT bool btc_common_encode_xpub(
     const struct ext_key* derived_xpub,
     const uint8_t* version, // must be 4 bytes

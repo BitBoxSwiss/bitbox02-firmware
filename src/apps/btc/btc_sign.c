@@ -127,10 +127,6 @@ app_btc_sign_error_t app_btc_sign_init(
     if (coin_params == NULL) {
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
     }
-    if (request->script_type == BTCScriptType_SCRIPT_P2PKH) {
-        // legacy not supported
-        return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
-    }
     _reset();
     _coin_params = coin_params;
     _init_request = *request;

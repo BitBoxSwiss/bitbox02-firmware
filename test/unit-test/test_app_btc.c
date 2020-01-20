@@ -157,11 +157,6 @@ static xpub_testcase_t _xpub_tests[] = {
 static address_testcase_t _address_tests[] = {
     {
         .coin = BTCCoin_BTC,
-        .script_type = BTCScriptType_SCRIPT_P2PKH,
-        .out = "1CK7n8RMJ66oMac58cbriBRbdxjDnzvvXv",
-    },
-    {
-        .coin = BTCCoin_BTC,
         .script_type = BTCScriptType_SCRIPT_P2WPKH_P2SH,
         .out = "3HNUdmEorEcqoknW5A5Wx6GZTkHPm5TeJg",
     },
@@ -171,11 +166,6 @@ static address_testcase_t _address_tests[] = {
         .out = "bc1q0stgw6ehkx66r7g22056u0p95f9z4qydmyx3ja",
     },
 
-    {
-        .coin = BTCCoin_TBTC,
-        .script_type = BTCScriptType_SCRIPT_P2PKH,
-        .out = "mrq55BWL77Y48h5grBaEY6dvVxKvicEaa7",
-    },
     {
         .coin = BTCCoin_TBTC,
         .script_type = BTCScriptType_SCRIPT_P2WPKH_P2SH,
@@ -189,11 +179,6 @@ static address_testcase_t _address_tests[] = {
 
     {
         .coin = BTCCoin_LTC,
-        .script_type = BTCScriptType_SCRIPT_P2PKH,
-        .out = "LWY53LjBNkLrcPJEJkb9zCVMrB6VvkGCzp",
-    },
-    {
-        .coin = BTCCoin_LTC,
         .script_type = BTCScriptType_SCRIPT_P2WPKH_P2SH,
         .out = "MPacweemoMUGcG4QB34rmjWxnSsqj8iQ5f",
     },
@@ -203,11 +188,6 @@ static address_testcase_t _address_tests[] = {
         .out = "ltc1q0stgw6ehkx66r7g22056u0p95f9z4qydlcu42d",
     },
 
-    {
-        .coin = BTCCoin_TLTC,
-        .script_type = BTCScriptType_SCRIPT_P2PKH,
-        .out = "mrq55BWL77Y48h5grBaEY6dvVxKvicEaa7",
-    },
     {
         .coin = BTCCoin_TLTC,
         .script_type = BTCScriptType_SCRIPT_P2WPKH_P2SH,
@@ -272,9 +252,9 @@ static void _test_app_btc_address(void** state)
 {
     { // invalid coin
         bool result =
-            app_btc_address(_BTCCoin_MIN - 1, BTCScriptType_SCRIPT_UNKNOWN, NULL, 0, NULL, 0);
+            app_btc_address(_BTCCoin_MIN - 1, BTCScriptType_SCRIPT_P2WPKH, NULL, 0, NULL, 0);
         assert_false(result);
-        result = app_btc_address(_BTCCoin_MAX + 1, BTCScriptType_SCRIPT_UNKNOWN, NULL, 0, NULL, 0);
+        result = app_btc_address(_BTCCoin_MAX + 1, BTCScriptType_SCRIPT_P2WPKH, NULL, 0, NULL, 0);
         assert_false(result);
     }
 

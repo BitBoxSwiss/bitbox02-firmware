@@ -93,8 +93,6 @@ bool btc_common_is_valid_keypath_address(
     const uint32_t expected_coin)
 {
     switch (script_type) {
-    case BTCScriptType_SCRIPT_P2PKH:
-        return false; // disable legacy
     case BTCScriptType_SCRIPT_P2WPKH_P2SH:
         return _validate_keypath_address(
             keypath, keypath_len, expected_coin, BTC_PURPOSE_P2WPKH_P2SH);
@@ -203,7 +201,6 @@ bool btc_common_outputhash_from_pubkeyhash(
     size_t* output_hash_size)
 {
     switch (script_type) {
-    case BTCScriptType_SCRIPT_P2PKH:
     case BTCScriptType_SCRIPT_P2WPKH:
         memcpy(output_hash, pubkey_hash, HASH160_LEN);
         *output_hash_size = HASH160_LEN;
@@ -255,8 +252,6 @@ bool btc_common_sighash_script_from_pubkeyhash(
 BTCOutputType btc_common_determine_output_type(BTCScriptType script_type)
 {
     switch (script_type) {
-    case BTCScriptType_SCRIPT_P2PKH:
-        return BTCOutputType_P2PKH;
     case BTCScriptType_SCRIPT_P2WPKH_P2SH:
         return BTCOutputType_P2SH;
     case BTCScriptType_SCRIPT_P2WPKH:

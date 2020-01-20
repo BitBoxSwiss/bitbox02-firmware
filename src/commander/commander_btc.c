@@ -102,9 +102,6 @@ static commander_error_t _btc_pub_address(const BTCPubRequest* request, PubRespo
         }
         char title[100] = {0};
         switch (request->output.script_type) {
-        case BTCScriptType_SCRIPT_P2PKH:
-            snprintf(title, sizeof(title), "%s\nLegacy", coin);
-            break;
         case BTCScriptType_SCRIPT_P2WPKH_P2SH:
             snprintf(title, sizeof(title), "%s", coin);
             break;

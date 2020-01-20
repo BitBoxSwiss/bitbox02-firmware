@@ -137,12 +137,6 @@ static void _test_btc_sign_init(void** state)
         invalid.coin = _BTCCoin_MAX + 1;
         assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_init(&invalid, &next));
     }
-    { // test unsupported p2pkh
-        tst_app_btc_reset();
-        BTCSignInitRequest invalid = init_req_valid;
-        invalid.script_type = BTCScriptType_SCRIPT_P2PKH;
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_init(&invalid, &next));
-    }
 }
 
 typedef struct {

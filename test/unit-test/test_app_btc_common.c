@@ -163,17 +163,6 @@ static void _test_btc_common_is_valid_keypath_addresses(void** state)
 {
     const uint32_t bip44_account = 99 + BIP32_INITIAL_HARDENED_CHILD;
     const uint32_t bip44_coin = 1 + BIP32_INITIAL_HARDENED_CHILD;
-    { // invalid script type (legacy)
-        const uint32_t keypath[] = {
-            44 + BIP32_INITIAL_HARDENED_CHILD,
-            bip44_coin,
-            bip44_account,
-            0,
-            0,
-        };
-        assert_false(btc_common_is_valid_keypath_address(
-            BTCScriptType_SCRIPT_P2PKH, keypath, 5, bip44_coin));
-    }
     { // valid p2wpkh-p2sh; receive
         const uint32_t keypath[] = {
             49 + BIP32_INITIAL_HARDENED_CHILD,

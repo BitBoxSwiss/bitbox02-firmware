@@ -58,14 +58,10 @@ class BTCScriptType(int):
     def values(cls) -> typing___List[BTCScriptType]: ...
     @classmethod
     def items(cls) -> typing___List[typing___Tuple[str, BTCScriptType]]: ...
-    SCRIPT_UNKNOWN = typing___cast(BTCScriptType, 0)
-    SCRIPT_P2PKH = typing___cast(BTCScriptType, 1)
-    SCRIPT_P2WPKH_P2SH = typing___cast(BTCScriptType, 2)
-    SCRIPT_P2WPKH = typing___cast(BTCScriptType, 3)
-SCRIPT_UNKNOWN = typing___cast(BTCScriptType, 0)
-SCRIPT_P2PKH = typing___cast(BTCScriptType, 1)
-SCRIPT_P2WPKH_P2SH = typing___cast(BTCScriptType, 2)
-SCRIPT_P2WPKH = typing___cast(BTCScriptType, 3)
+    SCRIPT_P2WPKH_P2SH = typing___cast(BTCScriptType, 0)
+    SCRIPT_P2WPKH = typing___cast(BTCScriptType, 1)
+SCRIPT_P2WPKH_P2SH = typing___cast(BTCScriptType, 0)
+SCRIPT_P2WPKH = typing___cast(BTCScriptType, 1)
 
 class BTCOutputType(int):
     DESCRIPTOR: google___protobuf___descriptor___EnumDescriptor = ...

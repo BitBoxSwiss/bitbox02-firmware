@@ -223,6 +223,7 @@ bool keystore_encrypt_and_store_seed(
     if (memory_is_initialized()) {
         return false;
     }
+    keystore_lock();
     if (!_validate_seed_length(seed_length)) {
         return false;
     }

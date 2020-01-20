@@ -54,3 +54,27 @@ class RootFingerprintResponse(google___protobuf___message___Message):
         def ClearField(self, field_name: typing_extensions___Literal[u"fingerprint"]) -> None: ...
     else:
         def ClearField(self, field_name: typing_extensions___Literal[u"fingerprint",b"fingerprint"]) -> None: ...
+
+class XPub(google___protobuf___message___Message):
+    depth = ... # type: bytes
+    parent_fingerprint = ... # type: bytes
+    child_num = ... # type: int
+    chain_code = ... # type: bytes
+    public_key = ... # type: bytes
+
+    def __init__(self,
+        *,
+        depth : typing___Optional[bytes] = None,
+        parent_fingerprint : typing___Optional[bytes] = None,
+        child_num : typing___Optional[int] = None,
+        chain_code : typing___Optional[bytes] = None,
+        public_key : typing___Optional[bytes] = None,
+        ) -> None: ...
+    @classmethod
+    def FromString(cls, s: bytes) -> XPub: ...
+    def MergeFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
+    def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
+    if sys.version_info >= (3,):
+        def ClearField(self, field_name: typing_extensions___Literal[u"chain_code",u"child_num",u"depth",u"parent_fingerprint",u"public_key"]) -> None: ...
+    else:
+        def ClearField(self, field_name: typing_extensions___Literal[u"chain_code",b"chain_code",u"child_num",b"child_num",u"depth",b"depth",u"parent_fingerprint",b"parent_fingerprint",u"public_key",b"public_key"]) -> None: ...

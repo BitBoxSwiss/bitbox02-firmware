@@ -12,25 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto3";
+#ifndef _TEST_BTC_UTIL
+#define _TEST_BTC_UTIL
 
-message PubResponse {
-  string pub = 1;
-}
+#include <common.pb.h>
 
-message RootFingerprintRequest {
-}
+XPub btc_util_parse_xpub(const char* base58);
 
-message RootFingerprintResponse {
-  bytes fingerprint = 1;
-}
-
-// See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki.
-// version field dropped as it will set dynamically based on the context (xpub, ypub, etc.).
-message XPub {
-  bytes depth = 1;
-  bytes parent_fingerprint = 2;
-  uint32 child_num = 3;
-  bytes chain_code = 4;
-  bytes public_key = 5;
-}
+#endif

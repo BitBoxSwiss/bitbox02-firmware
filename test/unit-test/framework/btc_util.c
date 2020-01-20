@@ -12,25 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto3";
+#include <setjmp.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <cmocka.h>
 
-message PubResponse {
-  string pub = 1;
-}
+#include <btc_util.h>
+#include <string.h>
+#include <wally_bip32.h>
 
-message RootFingerprintRequest {
-}
+XPub btc_util_parse_xpub(const char* base58)
+{
+    struct ext_key xpub = {0};
+    assert_int_equal(bip32_key_from_base58(base58, &xpub), WALLY_OK);
 
-message RootFingerprintResponse {
-  bytes fingerprint = 1;
-}
-
-// See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki.
-// version field dropped as it will set dynamically based on the context (xpub, ypub, etc.).
-message XPub {
-  bytes depth = 1;
-  bytes parent_fingerprint = 2;
-  uint32 child_num = 3;
-  bytes chain_code = 4;
-  bytes public_key = 5;
+    XPub xpub_out = {0};
+    xpub_out.depth[0] = xpub.depth;
+    memcpy(xpub_out.parent_fingerprint, xpub.parent160, 20);
+    xpub_out.child_num = xpub.child_num;
+    memcpy(xpub_out.chain_code, xpub.chain_code, 32);
+    memcpy(xpub_out.public_key, xpub.pub_key, 33);
+    return xpub_out;
 }

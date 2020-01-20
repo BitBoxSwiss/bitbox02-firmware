@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='common.proto',
   package='',
   syntax='proto3',
-  serialized_pb=_b('\n\x0c\x63ommon.proto\"\x1a\n\x0bPubResponse\x12\x0b\n\x03pub\x18\x01 \x01(\t\"\x18\n\x16RootFingerprintRequest\".\n\x17RootFingerprintResponse\x12\x13\n\x0b\x66ingerprint\x18\x01 \x01(\x0c\x62\x06proto3')
+  serialized_pb=_b('\n\x0c\x63ommon.proto\"\x1a\n\x0bPubResponse\x12\x0b\n\x03pub\x18\x01 \x01(\t\"\x18\n\x16RootFingerprintRequest\".\n\x17RootFingerprintResponse\x12\x13\n\x0b\x66ingerprint\x18\x01 \x01(\x0c\"l\n\x04XPub\x12\r\n\x05\x64\x65pth\x18\x01 \x01(\x0c\x12\x1a\n\x12parent_fingerprint\x18\x02 \x01(\x0c\x12\x11\n\tchild_num\x18\x03 \x01(\r\x12\x12\n\nchain_code\x18\x04 \x01(\x0c\x12\x12\n\npublic_key\x18\x05 \x01(\x0c\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -111,9 +111,69 @@ _ROOTFINGERPRINTRESPONSE = _descriptor.Descriptor(
   serialized_end=116,
 )
 
+
+_XPUB = _descriptor.Descriptor(
+  name='XPub',
+  full_name='XPub',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='depth', full_name='XPub.depth', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='parent_fingerprint', full_name='XPub.parent_fingerprint', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='child_num', full_name='XPub.child_num', index=2,
+      number=3, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='chain_code', full_name='XPub.chain_code', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='public_key', full_name='XPub.public_key', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=118,
+  serialized_end=226,
+)
+
 DESCRIPTOR.message_types_by_name['PubResponse'] = _PUBRESPONSE
 DESCRIPTOR.message_types_by_name['RootFingerprintRequest'] = _ROOTFINGERPRINTREQUEST
 DESCRIPTOR.message_types_by_name['RootFingerprintResponse'] = _ROOTFINGERPRINTRESPONSE
+DESCRIPTOR.message_types_by_name['XPub'] = _XPUB
 
 PubResponse = _reflection.GeneratedProtocolMessageType('PubResponse', (_message.Message,), dict(
   DESCRIPTOR = _PUBRESPONSE,
@@ -135,6 +195,13 @@ RootFingerprintResponse = _reflection.GeneratedProtocolMessageType('RootFingerpr
   # @@protoc_insertion_point(class_scope:RootFingerprintResponse)
   ))
 _sym_db.RegisterMessage(RootFingerprintResponse)
+
+XPub = _reflection.GeneratedProtocolMessageType('XPub', (_message.Message,), dict(
+  DESCRIPTOR = _XPUB,
+  __module__ = 'common_pb2'
+  # @@protoc_insertion_point(class_scope:XPub)
+  ))
+_sym_db.RegisterMessage(XPub)
 
 
 # @@protoc_insertion_point(module_scope)

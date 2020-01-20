@@ -29,7 +29,6 @@ set(DBB-FILTERED-SOURCES
 
 set(IGNORE_SOURCES
     "src/screen.c"
-    "src/ui/ugui/ugui.c"
     "src/memory/nvmctrl.c"
     "src/memory/smarteeprom.c"
     )
@@ -215,6 +214,8 @@ set(TEST_LIST
    "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=status_create,--wrap=workflow_blocking_block,--wrap=workflow_blocking_unblock"
    workflow_cancel
    "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=workflow_blocking_unblock,--wrap=workflow_blocking_block,--wrap=workflow_confirm,--wrap=workflow_status_create"
+   ugui
+   ""
 )
 
 find_package(CMocka REQUIRED)

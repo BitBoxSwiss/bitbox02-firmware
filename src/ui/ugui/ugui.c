@@ -630,6 +630,88 @@ void UG_MeasureStringCentered(UG_S16 *xout, UG_S16 *yout, const char *str)
     *xout = MAX(*xout, calc_width_line);
 }
 
+static bool _is_whitespace(char c) {
+    return c == '\n' || c == '\0' || c == ' ' || c == '\t' || c == '\r';
+}
+
+static UG_S16 _word_width(const char* p) {
+    const UG_FONT* font = &gui->font;
+    UG_S16 x = 0;
+    while(!_is_whitespace(*p)) {
+        x += font->widths[(UG_U8)*p - font->start_char];
+        p += 1;
+    }
+    return x;
+}
+
+// Try to wrap string at spaces if it is longer than `width` pixels.
+// Since the purpose of this function is to wrap title text, only wrap a single time. The rest of
+// the title may span/overflow the whole screen.
+//
+// str_out capacity must be at least strlen(str) + 1.
+void UG_WrapTitleString(const char* str, char* str_out, UG_S16 width) {
+    if (gui == NULL || str == NULL || str_out == NULL) {
+        return;
+    }
+    const char* start = str;
+    const UG_FONT* font = &gui->font;
+    UG_S16 x = 0;
+
+    // This loop will copy bytes until the first newline.
+    // * Either we find a newline in the input string, or,
+    // * a newline is inserted in case the content would overflow `width`.
+    //   A newline could be inserted:
+    //   - before the whole content in case the first word doesn't fit, or,
+    //   - where there is a space if the following word doesn't fit.
+    while(*str != '\0') {
+        if (*str == '\n') {
+            break;
+        }
+        if (*str == ' ') {
+            UG_S16 wwidth = _word_width(str+1);
+            if (x + font->widths[(UG_U8)' ' - font->start_char] + wwidth > width) {
+                *str_out = '\n';
+                str_out += 1;
+                str += 1;
+                break;
+            } else {
+                *str_out = *str;
+                str_out += 1;
+                str += 1;
+            }
+            while (!_is_whitespace(*str)) {
+                *str_out = *str;
+                if (*str >= font->start_char){
+                    x += font->widths[(UG_U8)*str - font->start_char];
+                }
+                str_out += 1;
+                str += 1;
+            }
+            continue;
+        }
+        // If the first word doesn't fit. Insert a newline
+        if(start == str) {
+            UG_S16 wwidth = _word_width(str);
+            if (wwidth > width) {
+                *str_out = '\n';
+                str_out++;
+                break;
+            }
+        }
+        *str_out = *str;
+        if (*str >= font->start_char && *str < font->end_char){
+            x += font->widths[(UG_U8)*str - font->start_char];
+        }
+        str_out += 1;
+        str += 1;
+    }
+
+    // Copy any bytes that are left
+    while(*str != '\0') {
+        *str_out++ = *str++;
+    }
+}
+
 void UG_PutString( UG_S16 x, UG_S16 y, const char *str, bool inverted)
 {
     _UG_PutString(x, y, NULL, NULL, str, 1, 0, inverted);
@@ -772,9 +854,13 @@ void UG_FontSetVSpace( UG_U16 s )
 }
 
 void UG_SendBuffer(void) {
+#ifndef TESTING
     oled_send_buffer();
+#endif
 }
 
 void UG_ClearBuffer(void) {
+#ifndef TESTING
     oled_clear_buffer();
+#endif
 }

@@ -108,7 +108,7 @@ static commander_error_t _btc_pub_address_simple(
             snprintf(title, sizeof(title), "%s", coin);
             break;
         case BTCScriptConfig_SimpleType_P2WPKH:
-            snprintf(title, sizeof(title), "%s\nbech32", coin);
+            snprintf(title, sizeof(title), "%s bech32", coin);
             break;
         default:
             return COMMANDER_ERR_GENERIC;

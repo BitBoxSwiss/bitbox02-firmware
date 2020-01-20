@@ -53,7 +53,7 @@ static commander_error_t _api_pub(const ETHPubRequest* request, PubResponse* res
             if (erc20_params == NULL) {
                 return COMMANDER_ERR_GENERIC;
             }
-            coin = erc20_params->unit;
+            coin = erc20_params->name;
         } else {
             switch (request->coin) {
             case ETHCoin_ETH:

@@ -118,6 +118,7 @@ void UG_DrawCircle( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_COLOR c );
 void UG_FillCircle( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_COLOR c );
 void UG_DrawArc( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_U8 s, UG_COLOR c );
 void UG_DrawLine( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c );
+void UG_WrapTitleString(const char* str, char* str_out, UG_S16 width);
 void UG_PutString( UG_S16 x, UG_S16 y, const char *str, bool inverted);
 void UG_PutStringNoBreak( UG_S16 x, UG_S16 y, const char *str, bool inverted);
 void UG_MeasureString( UG_S16 *xout, UG_S16 *yout, const char *str);

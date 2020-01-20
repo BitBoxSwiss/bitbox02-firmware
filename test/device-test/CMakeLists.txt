@@ -104,6 +104,7 @@ set(BB02_TEST_LIST
   usb_u2f_ep_out
   usbdc_init
   write_sd
+  token_pub
 )
 
 add_custom_target(device-tests)

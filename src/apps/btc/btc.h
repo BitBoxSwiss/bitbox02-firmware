@@ -23,9 +23,16 @@
 
 #include <hww.pb.h>
 
+USE_RESULT bool app_btc_xpub(
+    BTCCoin coin,
+    BTCPubRequest_XPubType xpub_type,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    char* out,
+    size_t out_len);
+
 USE_RESULT bool app_btc_address(
     BTCCoin coin,
-    BTCPubRequest_OutputType output_type,
     BTCScriptType script_type,
     const uint32_t* keypath,
     size_t keypath_len,

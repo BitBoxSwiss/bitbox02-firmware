@@ -198,12 +198,8 @@ static bool _is_valid_keypath(
     uint32_t expected_bip44_account,
     bool must_be_change)
 {
-    if (!btc_common_is_valid_keypath(
-            BTCPubRequest_OutputType_ADDRESS,
-            script_type,
-            keypath,
-            keypath_count,
-            expected_bip44_coin)) {
+    if (!btc_common_is_valid_keypath_address(
+            script_type, keypath, keypath_count, expected_bip44_coin)) {
         return false;
     }
     const uint32_t account = keypath[2];

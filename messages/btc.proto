@@ -29,19 +29,23 @@ enum BTCScriptType {
 }
 
 message BTCPubRequest {
-  repeated uint32 keypath = 1;
-  enum OutputType {
+  enum XPubType {
     TPUB = 0;
     XPUB = 1;
     YPUB = 2;
     ZPUB = 3;
-    ADDRESS = 4;
-    VPUB = 5;
-    UPUB = 6;
+    VPUB = 4;
+    UPUB = 5;
   }
-  BTCScriptType script_type = 2; // only applies for ADDRESS
-  BTCCoin coin = 3;
-  OutputType output_type = 4;
+
+  BTCCoin coin = 1;
+  repeated uint32 keypath = 2;
+
+  oneof output {
+    XPubType xpub_type = 3;
+    BTCScriptType script_type = 4;
+  }
+
   bool display = 5;
 }
 

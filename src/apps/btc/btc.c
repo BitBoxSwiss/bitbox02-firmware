@@ -28,10 +28,9 @@ static const uint8_t _tpub_version[4] = {0x04, 0x35, 0x87, 0xcf};
 static const uint8_t _vpub_version[4] = {0x04, 0x5f, 0x1c, 0xf6};
 static const uint8_t _upub_version[4] = {0x04, 0x4a, 0x52, 0x62};
 
-bool app_btc_address(
+bool app_btc_xpub(
     BTCCoin coin,
-    BTCPubRequest_OutputType output_type,
-    BTCScriptType script_type,
+    BTCPubRequest_XPubType xpub_type,
     const uint32_t* keypath,
     const size_t keypath_len,
     char* out,
@@ -41,45 +40,61 @@ bool app_btc_address(
     if (params == NULL) {
         return false;
     }
-    if (!btc_common_is_valid_keypath(
-            output_type, script_type, keypath, keypath_len, params->bip44_coin)) {
+    if (!btc_common_is_valid_keypath_xpub(xpub_type, keypath, keypath_len, params->bip44_coin)) {
+        return false;
+    }
+
+    struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
+    if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
+        return false;
+    }
+    switch (xpub_type) {
+    case BTCPubRequest_XPubType_TPUB:
+        return btc_common_encode_xpub(&derived_xpub, _tpub_version, out, out_len);
+    case BTCPubRequest_XPubType_VPUB:
+        return btc_common_encode_xpub(&derived_xpub, _vpub_version, out, out_len);
+    case BTCPubRequest_XPubType_UPUB:
+        return btc_common_encode_xpub(&derived_xpub, _upub_version, out, out_len);
+    case BTCPubRequest_XPubType_XPUB:
+        return btc_common_encode_xpub(&derived_xpub, _xpub_version, out, out_len);
+    case BTCPubRequest_XPubType_YPUB:
+        return btc_common_encode_xpub(&derived_xpub, _ypub_version, out, out_len);
+    case BTCPubRequest_XPubType_ZPUB:
+        return btc_common_encode_xpub(&derived_xpub, _zpub_version, out, out_len);
+    default:
+        return false;
+    }
+}
+
+bool app_btc_address(
+    BTCCoin coin,
+    BTCScriptType script_type,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    char* out,
+    size_t out_len)
+{
+    const app_btc_coin_params_t* params = app_btc_params_get(coin);
+    if (params == NULL) {
+        return false;
+    }
+    if (!btc_common_is_valid_keypath_address(
+            script_type, keypath, keypath_len, params->bip44_coin)) {
         return false;
     }
     struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
     if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
         return false;
     }
-    switch (output_type) {
-    case BTCPubRequest_OutputType_TPUB:
-        return btc_common_encode_xpub(&derived_xpub, _tpub_version, out, out_len);
-    case BTCPubRequest_OutputType_VPUB:
-        return btc_common_encode_xpub(&derived_xpub, _vpub_version, out, out_len);
-    case BTCPubRequest_OutputType_UPUB:
-        return btc_common_encode_xpub(&derived_xpub, _upub_version, out, out_len);
-    case BTCPubRequest_OutputType_XPUB:
-        return btc_common_encode_xpub(&derived_xpub, _xpub_version, out, out_len);
-    case BTCPubRequest_OutputType_YPUB:
-        return btc_common_encode_xpub(&derived_xpub, _ypub_version, out, out_len);
-    case BTCPubRequest_OutputType_ZPUB:
-        return btc_common_encode_xpub(&derived_xpub, _zpub_version, out, out_len);
-    case BTCPubRequest_OutputType_ADDRESS: {
-        uint8_t hash[32] = {0};
-        size_t hash_size_out = 0;
-        if (!btc_common_outputhash_from_pubkeyhash(
-                script_type, derived_xpub.hash160, hash, &hash_size_out)) {
-            return false;
-        }
-        return btc_common_address_from_outputhash(
-            params,
-            btc_common_determine_output_type(script_type),
-            hash,
-            hash_size_out,
-            out,
-            out_len);
-    }
-    default:
+
+    uint8_t hash[32] = {0};
+    size_t hash_size_out = 0;
+    if (!btc_common_outputhash_from_pubkeyhash(
+            script_type, derived_xpub.hash160, hash, &hash_size_out)) {
         return false;
     }
+    return btc_common_address_from_outputhash(
+        params, btc_common_determine_output_type(script_type), hash, hash_size_out, out, out_len);
 }
 
 bool app_btc_enabled(BTCCoin coin)

@@ -54,20 +54,19 @@ static bool _validate_keypath_address(
     return address <= BIP44_ADDRESS_MAX;
 }
 
-bool btc_common_is_valid_keypath(
-    BTCPubRequest_OutputType output_type,
-    BTCScriptType script_type,
+bool btc_common_is_valid_keypath_xpub(
+    BTCPubRequest_XPubType xpub_type,
     const uint32_t* keypath,
     const size_t keypath_len,
     const uint32_t expected_coin)
 {
-    switch (output_type) {
-    case BTCPubRequest_OutputType_TPUB:
-    case BTCPubRequest_OutputType_VPUB:
-    case BTCPubRequest_OutputType_UPUB:
-    case BTCPubRequest_OutputType_XPUB:
-    case BTCPubRequest_OutputType_YPUB:
-    case BTCPubRequest_OutputType_ZPUB:
+    switch (xpub_type) {
+    case BTCPubRequest_XPubType_TPUB:
+    case BTCPubRequest_XPubType_VPUB:
+    case BTCPubRequest_XPubType_UPUB:
+    case BTCPubRequest_XPubType_XPUB:
+    case BTCPubRequest_XPubType_YPUB:
+    case BTCPubRequest_XPubType_ZPUB:
         if (keypath_len != 3) {
             return false;
         }
@@ -82,20 +81,25 @@ bool btc_common_is_valid_keypath(
             return false;
         }
         return _validate_keypath_account(keypath, expected_coin);
-    case BTCPubRequest_OutputType_ADDRESS:
-        switch (script_type) {
-        case BTCScriptType_SCRIPT_P2PKH:
-            return false; // disable legacy
-        case BTCScriptType_SCRIPT_P2WPKH_P2SH:
-            return _validate_keypath_address(
-                keypath, keypath_len, expected_coin, BTC_PURPOSE_P2WPKH_P2SH);
-        case BTCScriptType_SCRIPT_P2WPKH:
-            return _validate_keypath_address(
-                keypath, keypath_len, expected_coin, BTC_PURPOSE_P2WPKH);
-        default:
-            return false;
-        }
-        break;
+    default:
+        return false;
+    }
+}
+
+bool btc_common_is_valid_keypath_address(
+    BTCScriptType script_type,
+    const uint32_t* keypath,
+    const size_t keypath_len,
+    const uint32_t expected_coin)
+{
+    switch (script_type) {
+    case BTCScriptType_SCRIPT_P2PKH:
+        return false; // disable legacy
+    case BTCScriptType_SCRIPT_P2WPKH_P2SH:
+        return _validate_keypath_address(
+            keypath, keypath_len, expected_coin, BTC_PURPOSE_P2WPKH_P2SH);
+    case BTCScriptType_SCRIPT_P2WPKH:
+        return _validate_keypath_address(keypath, keypath_len, expected_coin, BTC_PURPOSE_P2WPKH);
     default:
         return false;
     }

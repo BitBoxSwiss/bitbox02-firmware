@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='btc.proto',
   package='',
   syntax='proto3',
-  serialized_pb=_b('\n\tbtc.proto\"\xf5\x01\n\rBTCPubRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\x12#\n\x0bscript_type\x18\x02 \x01(\x0e\x32\x0e.BTCScriptType\x12\x16\n\x04\x63oin\x18\x03 \x01(\x0e\x32\x08.BTCCoin\x12.\n\x0boutput_type\x18\x04 \x01(\x0e\x32\x19.BTCPubRequest.OutputType\x12\x0f\n\x07\x64isplay\x18\x05 \x01(\x08\"U\n\nOutputType\x12\x08\n\x04TPUB\x10\x00\x12\x08\n\x04XPUB\x10\x01\x12\x08\n\x04YPUB\x10\x02\x12\x08\n\x04ZPUB\x10\x03\x12\x0b\n\x07\x41\x44\x44RESS\x10\x04\x12\x08\n\x04VPUB\x10\x05\x12\x08\n\x04UPUB\x10\x06\"\xb4\x01\n\x12\x42TCSignInitRequest\x12\x16\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x08.BTCCoin\x12#\n\x0bscript_type\x18\x02 \x01(\x0e\x32\x0e.BTCScriptType\x12\x15\n\rbip44_account\x18\x03 \x01(\r\x12\x0f\n\x07version\x18\x04 \x01(\r\x12\x12\n\nnum_inputs\x18\x05 \x01(\r\x12\x13\n\x0bnum_outputs\x18\x06 \x01(\r\x12\x10\n\x08locktime\x18\x07 \x01(\r\"\xa0\x01\n\x13\x42TCSignNextResponse\x12\'\n\x04type\x18\x01 \x01(\x0e\x32\x19.BTCSignNextResponse.Type\x12\r\n\x05index\x18\x02 \x01(\r\x12\x15\n\rhas_signature\x18\x03 \x01(\x08\x12\x11\n\tsignature\x18\x04 \x01(\x0c\"\'\n\x04Type\x12\t\n\x05INPUT\x10\x00\x12\n\n\x06OUTPUT\x10\x01\x12\x08\n\x04\x44ONE\x10\x02\"y\n\x13\x42TCSignInputRequest\x12\x13\n\x0bprevOutHash\x18\x01 \x01(\x0c\x12\x14\n\x0cprevOutIndex\x18\x02 \x01(\r\x12\x14\n\x0cprevOutValue\x18\x03 \x01(\x04\x12\x10\n\x08sequence\x18\x04 \x01(\r\x12\x0f\n\x07keypath\x18\x06 \x03(\r\"p\n\x14\x42TCSignOutputRequest\x12\x0c\n\x04ours\x18\x01 \x01(\x08\x12\x1c\n\x04type\x18\x02 \x01(\x0e\x32\x0e.BTCOutputType\x12\r\n\x05value\x18\x03 \x01(\x04\x12\x0c\n\x04hash\x18\x04 \x01(\x0c\x12\x0f\n\x07keypath\x18\x05 \x03(\r*/\n\x07\x42TCCoin\x12\x07\n\x03\x42TC\x10\x00\x12\x08\n\x04TBTC\x10\x01\x12\x07\n\x03LTC\x10\x02\x12\x08\n\x04TLTC\x10\x03*`\n\rBTCScriptType\x12\x12\n\x0eSCRIPT_UNKNOWN\x10\x00\x12\x10\n\x0cSCRIPT_P2PKH\x10\x01\x12\x16\n\x12SCRIPT_P2WPKH_P2SH\x10\x02\x12\x11\n\rSCRIPT_P2WPKH\x10\x03*H\n\rBTCOutputType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\t\n\x05P2PKH\x10\x01\x12\x08\n\x04P2SH\x10\x02\x12\n\n\x06P2WPKH\x10\x03\x12\t\n\x05P2WSH\x10\x04\x62\x06proto3')
+  serialized_pb=_b('\n\tbtc.proto\"\xf0\x01\n\rBTCPubRequest\x12\x16\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x08.BTCCoin\x12\x0f\n\x07keypath\x18\x02 \x03(\r\x12,\n\txpub_type\x18\x03 \x01(\x0e\x32\x17.BTCPubRequest.XPubTypeH\x00\x12%\n\x0bscript_type\x18\x04 \x01(\x0e\x32\x0e.BTCScriptTypeH\x00\x12\x0f\n\x07\x64isplay\x18\x05 \x01(\x08\"F\n\x08XPubType\x12\x08\n\x04TPUB\x10\x00\x12\x08\n\x04XPUB\x10\x01\x12\x08\n\x04YPUB\x10\x02\x12\x08\n\x04ZPUB\x10\x03\x12\x08\n\x04VPUB\x10\x04\x12\x08\n\x04UPUB\x10\x05\x42\x08\n\x06output\"\xb4\x01\n\x12\x42TCSignInitRequest\x12\x16\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x08.BTCCoin\x12#\n\x0bscript_type\x18\x02 \x01(\x0e\x32\x0e.BTCScriptType\x12\x15\n\rbip44_account\x18\x03 \x01(\r\x12\x0f\n\x07version\x18\x04 \x01(\r\x12\x12\n\nnum_inputs\x18\x05 \x01(\r\x12\x13\n\x0bnum_outputs\x18\x06 \x01(\r\x12\x10\n\x08locktime\x18\x07 \x01(\r\"\xa0\x01\n\x13\x42TCSignNextResponse\x12\'\n\x04type\x18\x01 \x01(\x0e\x32\x19.BTCSignNextResponse.Type\x12\r\n\x05index\x18\x02 \x01(\r\x12\x15\n\rhas_signature\x18\x03 \x01(\x08\x12\x11\n\tsignature\x18\x04 \x01(\x0c\"\'\n\x04Type\x12\t\n\x05INPUT\x10\x00\x12\n\n\x06OUTPUT\x10\x01\x12\x08\n\x04\x44ONE\x10\x02\"y\n\x13\x42TCSignInputRequest\x12\x13\n\x0bprevOutHash\x18\x01 \x01(\x0c\x12\x14\n\x0cprevOutIndex\x18\x02 \x01(\r\x12\x14\n\x0cprevOutValue\x18\x03 \x01(\x04\x12\x10\n\x08sequence\x18\x04 \x01(\r\x12\x0f\n\x07keypath\x18\x06 \x03(\r\"p\n\x14\x42TCSignOutputRequest\x12\x0c\n\x04ours\x18\x01 \x01(\x08\x12\x1c\n\x04type\x18\x02 \x01(\x0e\x32\x0e.BTCOutputType\x12\r\n\x05value\x18\x03 \x01(\x04\x12\x0c\n\x04hash\x18\x04 \x01(\x0c\x12\x0f\n\x07keypath\x18\x05 \x03(\r*/\n\x07\x42TCCoin\x12\x07\n\x03\x42TC\x10\x00\x12\x08\n\x04TBTC\x10\x01\x12\x07\n\x03LTC\x10\x02\x12\x08\n\x04TLTC\x10\x03*`\n\rBTCScriptType\x12\x12\n\x0eSCRIPT_UNKNOWN\x10\x00\x12\x10\n\x0cSCRIPT_P2PKH\x10\x01\x12\x16\n\x12SCRIPT_P2WPKH_P2SH\x10\x02\x12\x11\n\rSCRIPT_P2WPKH\x10\x03*H\n\rBTCOutputType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\t\n\x05P2PKH\x10\x01\x12\x08\n\x04P2SH\x10\x02\x12\n\n\x06P2WPKH\x10\x03\x12\t\n\x05P2WSH\x10\x04\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -49,8 +49,8 @@ _BTCCOIN = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=844,
-  serialized_end=891,
+  serialized_start=839,
+  serialized_end=886,
 )
 _sym_db.RegisterEnumDescriptor(_BTCCOIN)
 
@@ -80,8 +80,8 @@ _BTCSCRIPTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=893,
-  serialized_end=989,
+  serialized_start=888,
+  serialized_end=984,
 )
 _sym_db.RegisterEnumDescriptor(_BTCSCRIPTTYPE)
 
@@ -115,8 +115,8 @@ _BTCOUTPUTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=991,
-  serialized_end=1063,
+  serialized_start=986,
+  serialized_end=1058,
 )
 _sym_db.RegisterEnumDescriptor(_BTCOUTPUTTYPE)
 
@@ -136,9 +136,9 @@ P2WPKH = 3
 P2WSH = 4
 
 
-_BTCPUBREQUEST_OUTPUTTYPE = _descriptor.EnumDescriptor(
-  name='OutputType',
-  full_name='BTCPubRequest.OutputType',
+_BTCPUBREQUEST_XPUBTYPE = _descriptor.EnumDescriptor(
+  name='XPubType',
+  full_name='BTCPubRequest.XPubType',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -159,24 +159,20 @@ _BTCPUBREQUEST_OUTPUTTYPE = _descriptor.EnumDescriptor(
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='ADDRESS', index=4, number=4,
+      name='VPUB', index=4, number=4,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='VPUB', index=5, number=5,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='UPUB', index=6, number=6,
+      name='UPUB', index=5, number=5,
       options=None,
       type=None),
   ],
   containing_type=None,
   options=None,
   serialized_start=174,
-  serialized_end=259,
+  serialized_end=244,
 )
-_sym_db.RegisterEnumDescriptor(_BTCPUBREQUEST_OUTPUTTYPE)
+_sym_db.RegisterEnumDescriptor(_BTCPUBREQUEST_XPUBTYPE)
 
 _BTCSIGNNEXTRESPONSE_TYPE = _descriptor.EnumDescriptor(
   name='Type',
@@ -199,8 +195,8 @@ _BTCSIGNNEXTRESPONSE_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=566,
-  serialized_end=605,
+  serialized_start=561,
+  serialized_end=600,
 )
 _sym_db.RegisterEnumDescriptor(_BTCSIGNNEXTRESPONSE_TYPE)
 
@@ -213,28 +209,28 @@ _BTCPUBREQUEST = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='keypath', full_name='BTCPubRequest.keypath', index=0,
-      number=1, type=13, cpp_type=3, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='script_type', full_name='BTCPubRequest.script_type', index=1,
-      number=2, type=14, cpp_type=8, label=1,
+      name='coin', full_name='BTCPubRequest.coin', index=0,
+      number=1, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='coin', full_name='BTCPubRequest.coin', index=2,
+      name='keypath', full_name='BTCPubRequest.keypath', index=1,
+      number=2, type=13, cpp_type=3, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='xpub_type', full_name='BTCPubRequest.xpub_type', index=2,
       number=3, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='output_type', full_name='BTCPubRequest.output_type', index=3,
+      name='script_type', full_name='BTCPubRequest.script_type', index=3,
       number=4, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -252,16 +248,19 @@ _BTCPUBREQUEST = _descriptor.Descriptor(
   ],
   nested_types=[],
   enum_types=[
-    _BTCPUBREQUEST_OUTPUTTYPE,
+    _BTCPUBREQUEST_XPUBTYPE,
   ],
   options=None,
   is_extendable=False,
   syntax='proto3',
   extension_ranges=[],
   oneofs=[
+    _descriptor.OneofDescriptor(
+      name='output', full_name='BTCPubRequest.output',
+      index=0, containing_type=None, fields=[]),
   ],
   serialized_start=14,
-  serialized_end=259,
+  serialized_end=254,
 )
 
 
@@ -333,8 +332,8 @@ _BTCSIGNINITREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=262,
-  serialized_end=442,
+  serialized_start=257,
+  serialized_end=437,
 )
 
 
@@ -386,8 +385,8 @@ _BTCSIGNNEXTRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=445,
-  serialized_end=605,
+  serialized_start=440,
+  serialized_end=600,
 )
 
 
@@ -445,8 +444,8 @@ _BTCSIGNINPUTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=607,
-  serialized_end=728,
+  serialized_start=602,
+  serialized_end=723,
 )
 
 
@@ -504,14 +503,20 @@ _BTCSIGNOUTPUTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=730,
-  serialized_end=842,
+  serialized_start=725,
+  serialized_end=837,
 )
 
-_BTCPUBREQUEST.fields_by_name['script_type'].enum_type = _BTCSCRIPTTYPE
 _BTCPUBREQUEST.fields_by_name['coin'].enum_type = _BTCCOIN
-_BTCPUBREQUEST.fields_by_name['output_type'].enum_type = _BTCPUBREQUEST_OUTPUTTYPE
-_BTCPUBREQUEST_OUTPUTTYPE.containing_type = _BTCPUBREQUEST
+_BTCPUBREQUEST.fields_by_name['xpub_type'].enum_type = _BTCPUBREQUEST_XPUBTYPE
+_BTCPUBREQUEST.fields_by_name['script_type'].enum_type = _BTCSCRIPTTYPE
+_BTCPUBREQUEST_XPUBTYPE.containing_type = _BTCPUBREQUEST
+_BTCPUBREQUEST.oneofs_by_name['output'].fields.append(
+  _BTCPUBREQUEST.fields_by_name['xpub_type'])
+_BTCPUBREQUEST.fields_by_name['xpub_type'].containing_oneof = _BTCPUBREQUEST.oneofs_by_name['output']
+_BTCPUBREQUEST.oneofs_by_name['output'].fields.append(
+  _BTCPUBREQUEST.fields_by_name['script_type'])
+_BTCPUBREQUEST.fields_by_name['script_type'].containing_oneof = _BTCPUBREQUEST.oneofs_by_name['output']
 _BTCSIGNINITREQUEST.fields_by_name['coin'].enum_type = _BTCCOIN
 _BTCSIGNINITREQUEST.fields_by_name['script_type'].enum_type = _BTCSCRIPTTYPE
 _BTCSIGNNEXTRESPONSE.fields_by_name['type'].enum_type = _BTCSIGNNEXTRESPONSE_TYPE

@@ -28,15 +28,11 @@ static const char* _coin_tbtc = "BTC Testnet";
 static const char* _coin_ltc = "Litecoin";
 static const char* _coin_tltc = "LTC Testnet";
 
-commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* response)
+static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse* response)
 {
-    if (!app_btc_enabled(request->coin)) {
-        return COMMANDER_ERR_DISABLED;
-    }
-    if (!app_btc_address(
+    if (!app_btc_xpub(
             request->coin,
-            request->output_type,
-            request->script_type,
+            request->output.xpub_type,
             request->keypath,
             request->keypath_count,
             response->pub,
@@ -62,13 +58,13 @@ commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* r
             return COMMANDER_ERR_GENERIC;
         }
         char title[100] = {0};
-        switch (request->output_type) {
-        case BTCPubRequest_OutputType_TPUB:
-        case BTCPubRequest_OutputType_VPUB:
-        case BTCPubRequest_OutputType_UPUB:
-        case BTCPubRequest_OutputType_XPUB:
-        case BTCPubRequest_OutputType_YPUB:
-        case BTCPubRequest_OutputType_ZPUB:
+        switch (request->output.xpub_type) {
+        case BTCPubRequest_XPubType_TPUB:
+        case BTCPubRequest_XPubType_VPUB:
+        case BTCPubRequest_XPubType_UPUB:
+        case BTCPubRequest_XPubType_XPUB:
+        case BTCPubRequest_XPubType_YPUB:
+        case BTCPubRequest_XPubType_ZPUB:
             snprintf(
                 title,
                 sizeof(title),
@@ -76,28 +72,75 @@ commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* r
                 coin,
                 (unsigned long)request->keypath[2] - BIP32_INITIAL_HARDENED_CHILD + 1);
             break;
-        case BTCPubRequest_OutputType_ADDRESS: {
-            switch (request->script_type) {
-            case BTCScriptType_SCRIPT_P2PKH:
-                snprintf(title, sizeof(title), "%s\nLegacy", coin);
-                break;
-            case BTCScriptType_SCRIPT_P2WPKH_P2SH:
-                snprintf(title, sizeof(title), "%s", coin);
-                break;
-            case BTCScriptType_SCRIPT_P2WPKH:
-                snprintf(title, sizeof(title), "%s\nbech32", coin);
-                break;
-            default:
-                return COMMANDER_ERR_GENERIC;
-            }
-            break;
-        }
         default:
             return COMMANDER_ERR_GENERIC;
         }
         workflow_verify_pub(title, response->pub);
     }
     return COMMANDER_OK;
+}
+
+static commander_error_t _btc_pub_address(const BTCPubRequest* request, PubResponse* response)
+{
+    if (!app_btc_address(
+            request->coin,
+            request->output.script_type,
+            request->keypath,
+            request->keypath_count,
+            response->pub,
+            sizeof(response->pub))) {
+        return COMMANDER_ERR_GENERIC;
+    }
+    if (request->display) {
+        const char* coin;
+        switch (request->coin) {
+        case BTCCoin_BTC:
+            coin = _coin_btc;
+            break;
+        case BTCCoin_TBTC:
+            coin = _coin_tbtc;
+            break;
+        case BTCCoin_LTC:
+            coin = _coin_ltc;
+            break;
+        case BTCCoin_TLTC:
+            coin = _coin_tltc;
+            break;
+        default:
+            return COMMANDER_ERR_GENERIC;
+        }
+        char title[100] = {0};
+        switch (request->output.script_type) {
+        case BTCScriptType_SCRIPT_P2PKH:
+            snprintf(title, sizeof(title), "%s\nLegacy", coin);
+            break;
+        case BTCScriptType_SCRIPT_P2WPKH_P2SH:
+            snprintf(title, sizeof(title), "%s", coin);
+            break;
+        case BTCScriptType_SCRIPT_P2WPKH:
+            snprintf(title, sizeof(title), "%s\nbech32", coin);
+            break;
+        default:
+            return COMMANDER_ERR_GENERIC;
+        }
+        workflow_verify_pub(title, response->pub);
+    }
+    return COMMANDER_OK;
+}
+
+commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* response)
+{
+    if (!app_btc_enabled(request->coin)) {
+        return COMMANDER_ERR_DISABLED;
+    }
+    switch (request->which_output) {
+    case BTCPubRequest_xpub_type_tag:
+        return _btc_pub_xpub(request, response);
+    case BTCPubRequest_script_type_tag:
+        return _btc_pub_address(request, response);
+    default:
+        return COMMANDER_ERR_INVALID_INPUT;
+    }
 }
 
 commander_error_t commander_btc_sign(const Request* request, Response* response)

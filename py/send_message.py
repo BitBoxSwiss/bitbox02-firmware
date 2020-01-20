@@ -183,6 +183,18 @@ class SendMessage:
             ),
         )
 
+    def _btc_address(self) -> None:
+        def address(display: bool) -> str:
+            return self._device.btc_pub(
+                keypath=[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
+                output_type=bitbox02.btc.BTCPubRequest.ADDRESS,  # pylint: disable=no-member,
+                script_type=bitbox02.btc.SCRIPT_P2WPKH,
+                display=display,
+            )
+
+        print("m/84'/0'/0'/0/0 address: ", address(False))
+        address(True)
+
     def _sign_btc_tx(self) -> None:
         # Dummy transaction to invoke a demo.
         bip44_account: int = 0 + HARDENED
@@ -317,6 +329,7 @@ class SendMessage:
             ("Display random number", self._display_random),
             ("Get root fingerprint", self._get_root_fingerprint),
             ("Retrieve zpub of first account", self._display_zpub),
+            ("Retrieve a BTC address", self._btc_address),
             ("Sign a BTC tx", self._sign_btc_tx),
             ("List backups", self._print_backups),
             ("Check backup", self._check_backup),

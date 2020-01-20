@@ -16,6 +16,7 @@
 
 #include "btc_common.h"
 
+#include <keystore.h>
 #include <util.h>
 #include <wally_address.h>
 

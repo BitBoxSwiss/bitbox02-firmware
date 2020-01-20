@@ -164,7 +164,7 @@ set(TEST_LIST
    apps_common_bip32
    ""
    app_btc
-   "-Wl,--wrap=keystore_get_xpub,--wrap=btc_common_is_valid_keypath_xpub,--wrap=btc_common_is_valid_keypath_address,--wrap=btc_common_encode_xpub,--wrap=btc_common_outputhash_from_pubkeyhash"
+   "-Wl,--wrap=keystore_get_xpub,--wrap=btc_common_is_valid_keypath_xpub,--wrap=btc_common_is_valid_keypath_address,--wrap=btc_common_encode_xpub,--wrap=btc_common_address_from_outputhash"
    app_btc_common
    ""
    app_btc_confirm_locktime_rbf

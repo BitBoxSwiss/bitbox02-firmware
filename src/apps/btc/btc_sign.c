@@ -16,6 +16,7 @@
 #include "btc_bip143.h"
 #include "btc_common.h"
 #include "btc_params.h"
+#include "btc_script.h"
 #include "confirm_locktime_rbf.h"
 
 #include <crypto/sha2/sha256.h>
@@ -342,20 +343,13 @@ app_btc_sign_error_t app_btc_sign_output(
                 true)) {
             return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
         }
-        uint8_t pubkey_hash160[20];
-        UTIL_CLEANUP_20(pubkey_hash160);
-        if (!keystore_secp256k1_pubkey(
-                KEYSTORE_SECP256K1_PUBKEY_HASH160,
+        size_t out_size = 0;
+        if (!btc_script_outputhash_at_keypath(
+                _init_request.script_type,
                 request->keypath,
                 request->keypath_count,
-                pubkey_hash160,
-                sizeof(pubkey_hash160))) {
-            return _error(APP_BTC_SIGN_ERR_UNKNOWN);
-        }
-        // construct pkScript
-        size_t out_size = 0;
-        if (!btc_common_outputhash_from_pubkeyhash(
-                _init_request.script_type, pubkey_hash160, hash.bytes, &out_size)) {
+                hash.bytes,
+                &out_size)) {
             return _error(APP_BTC_SIGN_ERR_UNKNOWN);
         }
         hash.size = (pb_size_t)out_size;

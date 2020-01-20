@@ -17,6 +17,7 @@
 #include "btc.h"
 #include "btc_common.h"
 #include "btc_params.h"
+#include "btc_script.h"
 
 #include <hww.pb.h>
 #include <keystore.h>
@@ -82,19 +83,14 @@ bool app_btc_address(
             script_type, keypath, keypath_len, params->bip44_coin)) {
         return false;
     }
-    struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
-        return false;
-    }
 
     uint8_t hash[32] = {0};
-    size_t hash_size_out = 0;
-    if (!btc_common_outputhash_from_pubkeyhash(
-            script_type, derived_xpub.hash160, hash, &hash_size_out)) {
+    size_t hash_size = 0;
+    if (!btc_script_outputhash_at_keypath(script_type, keypath, keypath_len, hash, &hash_size)) {
         return false;
     }
     return btc_common_address_from_outputhash(
-        params, btc_common_determine_output_type(script_type), hash, hash_size_out, out, out_len);
+        params, btc_common_determine_output_type(script_type), hash, hash_size, out, out_len);
 }
 
 bool app_btc_enabled(BTCCoin coin)

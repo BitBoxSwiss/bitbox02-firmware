@@ -91,8 +91,8 @@ USE_RESULT bool btc_common_format_amount(
 
 /**
  * Converts a pubkeyhash to a hash used in an output script, e.g. pubkeyhash or script hash.
- * The pkScript to be hashed is created based on the script type (output type).
- * @param[in] script_type script type defining the pkScript.
+ * It can then be used to create an address.
+ * @param[in] script_type script type defining the hash.
  * @param[in] pubkey_hash hash160 of a public key. Must be of size HASH160_LEN.
  * @param[out] output_hash will have the resulting hash. Must be of size 32.
  * @param[out] output_hash_size will be 32 for p2wsh scripts, HASH160_LEN for
@@ -124,6 +124,7 @@ USE_RESULT bool btc_common_sighash_script_from_pubkeyhash(
  * For an input type (e.g. a script wrapped in p2sh), determine the output type.
  */
 USE_RESULT BTCOutputType btc_common_determine_output_type(BTCScriptType script_type);
+
 /**
  * Converts an output script or publickey hash to an address.
  * hash, hash_size can be obtained from btc_common_outputhash_from_pubkeyhash().

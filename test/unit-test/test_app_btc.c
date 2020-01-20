@@ -18,6 +18,7 @@
 #include <cmocka.h>
 
 #include <apps/btc/btc.h>
+#include <apps/btc/btc_params.h>
 #include <keystore.h>
 #include <util.h>
 
@@ -65,19 +66,23 @@ bool __wrap_btc_common_is_valid_keypath_address(
     return mock();
 }
 
-bool __real_btc_common_outputhash_from_pubkeyhash(
-    BTCScriptType script_type,
-    uint8_t* pubkey_hash,
-    uint8_t* output_hash,
-    size_t* output_hash_size);
-bool __wrap_btc_common_outputhash_from_pubkeyhash(
-    BTCScriptType script_type,
-    uint8_t* pubkey_hash,
-    uint8_t* output_hash,
-    size_t* output_hash_size)
+bool __real_btc_common_address_from_outputhash(
+    const app_btc_coin_params_t* params,
+    BTCOutputType output_type,
+    const uint8_t* hash,
+    size_t hash_size,
+    char* out,
+    size_t out_len);
+bool __wrap_btc_common_address_from_outputhash(
+    const app_btc_coin_params_t* params,
+    BTCOutputType output_type,
+    const uint8_t* hash,
+    size_t hash_size,
+    char* out,
+    size_t out_len)
 {
-    assert_true(__real_btc_common_outputhash_from_pubkeyhash(
-        script_type, pubkey_hash, output_hash, output_hash_size));
+    assert_true(__real_btc_common_address_from_outputhash(
+        params, output_type, hash, hash_size, out, out_len));
     return mock();
 }
 
@@ -285,7 +290,7 @@ static void _test_app_btc_address(void** state)
                 will_return(__wrap_keystore_get_xpub, get_xpub_success);
             }
             if (keypath_valid && get_xpub_success) {
-                will_return(__wrap_btc_common_outputhash_from_pubkeyhash, encode_success);
+                will_return(__wrap_btc_common_address_from_outputhash, encode_success);
             }
             bool result = app_btc_address(
                 test_case->coin, test_case->script_type, expected_keypath, 3, out, sizeof(out));

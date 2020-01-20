@@ -36,14 +36,11 @@ typedef enum {
 
 static _signing_state_t _state = STATE_INIT;
 static const app_btc_coin_params_t* _coin_params = NULL;
-// Inputs and changes are of this type.
-static BTCScriptType _script_type;
-// Inputs and changes keypaths must have this account.
-static uint32_t _bip44_account;
-static uint32_t _version;
-static uint32_t _num_inputs;
-static uint32_t _num_outputs;
-static uint32_t _locktime;
+
+// Inputs and changes must be of the type defined in _init_request.script_type.
+// Inputs and changes keypaths must have account _init_request.bip44_account
+static BTCSignInitRequest _init_request = {0};
+
 static uint32_t _index;
 static enum apps_btc_rbf_flag _rbf;
 static bool _locktime_applies;
@@ -88,12 +85,7 @@ static void _reset(void)
 {
     _state = STATE_INIT;
     _coin_params = NULL;
-    _version = 0;
-    _script_type = BTCScriptType_SCRIPT_P2WPKH;
-    _bip44_account = 0;
-    _num_inputs = 0;
-    _num_outputs = 0;
-    _locktime = 0;
+    util_zero(&_init_request, sizeof(_init_request));
     _index = 0;
     _rbf = CONFIRM_LOCKTIME_RBF_OFF;
     _locktime_applies = false;
@@ -141,12 +133,7 @@ app_btc_sign_error_t app_btc_sign_init(
     }
     _reset();
     _coin_params = coin_params;
-    _script_type = request->script_type;
-    _bip44_account = request->bip44_account;
-    _version = request->version;
-    _num_inputs = request->num_inputs;
-    _num_outputs = request->num_outputs;
-    _locktime = request->locktime;
+    _init_request = *request;
     // Want input #0
     _state = STATE_INPUTS_PASS1;
     next_out->type = BTCSignNextResponse_Type_INPUT;
@@ -178,7 +165,7 @@ static app_btc_sign_error_t _sign_input_pass1(
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
     }
 
-    if (_index < _num_inputs - 1) {
+    if (_index < _init_request.num_inputs - 1) {
         _index++;
         // Want next input
         next_out->type = BTCSignNextResponse_Type_INPUT;
@@ -234,7 +221,7 @@ static app_btc_sign_error_t _sign_input_pass2(
     if (!safe_uint64_add(&_inputs_sum_pass2, request->prevOutValue)) {
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
     }
-    if (_index == _num_inputs - 1) {
+    if (_index == _init_request.num_inputs - 1) {
         // In the last input, the two sums have to match.
         if (_inputs_sum_pass2 != _inputs_sum_pass1) {
             return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
@@ -258,13 +245,13 @@ static app_btc_sign_error_t _sign_input_pass2(
         uint8_t sighash_script[MAX_SIGHASH_SCRIPT_SIZE] = {0};
         size_t sighash_script_size = sizeof(sighash_script);
         if (!btc_common_sighash_script_from_pubkeyhash(
-                _script_type, pubkey_hash160, sighash_script, &sighash_script_size)) {
+                _init_request.script_type, pubkey_hash160, sighash_script, &sighash_script_size)) {
             return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
         }
         uint8_t sighash[32] = {0};
         // construct hash to sign
         btc_bip143_sighash(
-            _version,
+            _init_request.version,
             _hash_prevouts,
             _hash_sequence,
             request->prevOutHash,
@@ -274,7 +261,7 @@ static app_btc_sign_error_t _sign_input_pass2(
             request->prevOutValue,
             request->sequence,
             _hash_outputs,
-            _locktime,
+            _init_request.locktime,
             WALLY_SIGHASH_ALL,
             sighash);
         uint8_t sig_out[64] = {0};
@@ -290,7 +277,7 @@ static app_btc_sign_error_t _sign_input_pass2(
         next_out->has_signature = true;
     }
 
-    if (_index < _num_inputs - 1) {
+    if (_index < _init_request.num_inputs - 1) {
         _index++;
         // Want next input
         next_out->type = BTCSignNextResponse_Type_INPUT;
@@ -328,9 +315,9 @@ app_btc_sign_error_t app_btc_sign_input(
     if (!_is_valid_keypath(
             request->keypath,
             request->keypath_count,
-            _script_type,
+            _init_request.script_type,
             _coin_params->bip44_coin,
-            _bip44_account,
+            _init_request.bip44_account,
             false)) {
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
     }
@@ -357,9 +344,9 @@ app_btc_sign_error_t app_btc_sign_output(
         if (!_is_valid_keypath(
                 request->keypath,
                 request->keypath_count,
-                _script_type,
+                _init_request.script_type,
                 _coin_params->bip44_coin,
-                _bip44_account,
+                _init_request.bip44_account,
                 true)) {
             return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
         }
@@ -376,11 +363,11 @@ app_btc_sign_error_t app_btc_sign_output(
         // construct pkScript
         size_t out_size = 0;
         if (!btc_common_outputhash_from_pubkeyhash(
-                _script_type, pubkey_hash160, hash.bytes, &out_size)) {
+                _init_request.script_type, pubkey_hash160, hash.bytes, &out_size)) {
             return _error(APP_BTC_SIGN_ERR_UNKNOWN);
         }
         hash.size = (pb_size_t)out_size;
-        output_type = btc_common_determine_output_type(_script_type);
+        output_type = btc_common_determine_output_type(_init_request.script_type);
     } else {
         hash = request->hash;
         output_type = request->type;
@@ -441,7 +428,7 @@ app_btc_sign_error_t app_btc_sign_output(
         noise_sha256_update(&_hash_outputs_ctx, pk_script_serialized, pk_script_serialized_len);
     }
 
-    if (_index < _num_outputs - 1) {
+    if (_index < _init_request.num_outputs - 1) {
         _index++;
         // Want next output
         next_out->type = BTCSignNextResponse_Type_OUTPUT;
@@ -458,7 +445,7 @@ app_btc_sign_error_t app_btc_sign_output(
             if (!_coin_params->rbf_support) {
                 _rbf = CONFIRM_LOCKTIME_RBF_DISABLED;
             }
-            if (!apps_btc_confirm_locktime_rbf(_locktime, _rbf)) {
+            if (!apps_btc_confirm_locktime_rbf(_init_request.locktime, _rbf)) {
                 return _error(APP_BTC_SIGN_ERR_USER_ABORT);
             }
         }

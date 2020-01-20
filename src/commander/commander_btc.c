@@ -28,6 +28,23 @@ static const char* _coin_tbtc = "BTC Testnet";
 static const char* _coin_ltc = "Litecoin";
 static const char* _coin_tltc = "LTC Testnet";
 
+// Returns the string to be used in the confirm title. Returns NULL for an invalid coin.
+static const char* _coin_title(BTCCoin coin)
+{
+    switch (coin) {
+    case BTCCoin_BTC:
+        return _coin_btc;
+    case BTCCoin_TBTC:
+        return _coin_tbtc;
+    case BTCCoin_LTC:
+        return _coin_ltc;
+    case BTCCoin_TLTC:
+        return _coin_tltc;
+    default:
+        return NULL;
+    }
+}
+
 static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse* response)
 {
     if (!app_btc_xpub(
@@ -40,21 +57,8 @@ static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse
         return COMMANDER_ERR_GENERIC;
     }
     if (request->display) {
-        const char* coin;
-        switch (request->coin) {
-        case BTCCoin_BTC:
-            coin = _coin_btc;
-            break;
-        case BTCCoin_TBTC:
-            coin = _coin_tbtc;
-            break;
-        case BTCCoin_LTC:
-            coin = _coin_ltc;
-            break;
-        case BTCCoin_TLTC:
-            coin = _coin_tltc;
-            break;
-        default:
+        const char* coin = _coin_title(request->coin);
+        if (coin == NULL) {
             return COMMANDER_ERR_GENERIC;
         }
         char title[100] = {0};
@@ -92,21 +96,8 @@ static commander_error_t _btc_pub_address(const BTCPubRequest* request, PubRespo
         return COMMANDER_ERR_GENERIC;
     }
     if (request->display) {
-        const char* coin;
-        switch (request->coin) {
-        case BTCCoin_BTC:
-            coin = _coin_btc;
-            break;
-        case BTCCoin_TBTC:
-            coin = _coin_tbtc;
-            break;
-        case BTCCoin_LTC:
-            coin = _coin_ltc;
-            break;
-        case BTCCoin_TLTC:
-            coin = _coin_tltc;
-            break;
-        default:
+        const char* coin = _coin_title(request->coin);
+        if (coin == NULL) {
             return COMMANDER_ERR_GENERIC;
         }
         char title[100] = {0};

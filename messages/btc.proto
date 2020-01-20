@@ -21,9 +21,17 @@ enum BTCCoin {
   TLTC = 3;
 };
 
-enum BTCScriptType {
-  SCRIPT_P2WPKH_P2SH = 0;
-  SCRIPT_P2WPKH = 1;
+
+message BTCScriptConfig {
+  // SimpleType is a "simple" script: one public key, no additional inputs.
+  enum SimpleType {
+    P2WPKH_P2SH = 0;
+    P2WPKH = 1;
+  }
+
+  oneof config {
+    SimpleType simple_type = 1;
+  }
 }
 
 message BTCPubRequest {
@@ -41,7 +49,7 @@ message BTCPubRequest {
 
   oneof output {
     XPubType xpub_type = 3;
-    BTCScriptType script_type = 4;
+    BTCScriptConfig script_config = 4;
   }
 
   bool display = 5;
@@ -50,7 +58,7 @@ message BTCPubRequest {
 
 message BTCSignInitRequest {
   BTCCoin coin = 1;
-  BTCScriptType script_type = 2; // script type for inputs and changes
+  BTCScriptConfig script_config = 2; // script config for inputs and changes
   uint32 bip44_account = 3;
   uint32 version = 4; // must be 1 or 2
   uint32 num_inputs = 5;

@@ -53,13 +53,13 @@ bool __wrap_btc_common_format_amount(uint64_t satoshi, const char* unit, char* o
     return true;
 }
 
-bool __real_btc_common_is_valid_keypath_address(
-    BTCScriptType script_type,
+bool __real_btc_common_is_valid_keypath_address_simple(
+    BTCScriptConfig_SimpleType script_type,
     const uint32_t* keypath,
     size_t keypath_len,
     uint32_t expected_coin);
-bool __wrap_btc_common_is_valid_keypath_address(
-    BTCScriptType script_type,
+bool __wrap_btc_common_is_valid_keypath_address_simple(
+    BTCScriptConfig_SimpleType script_type,
     const uint32_t* keypath,
     const size_t keypath_len,
     const uint32_t expected_coin)
@@ -67,7 +67,7 @@ bool __wrap_btc_common_is_valid_keypath_address(
     check_expected(script_type);
     check_expected(keypath);
     assert_int_equal(keypath_len, 5);
-    return __real_btc_common_is_valid_keypath_address(
+    return __real_btc_common_is_valid_keypath_address_simple(
         script_type, keypath, keypath_len, expected_coin);
 }
 
@@ -88,7 +88,14 @@ static void _test_btc_sign_init(void** state)
     // establish valid request to modify
     const BTCSignInitRequest init_req_valid = {
         .coin = BTCCoin_BTC,
-        .script_type = BTCScriptType_SCRIPT_P2WPKH,
+        .script_config =
+            {
+                .which_config = BTCScriptConfig_simple_type_tag,
+                .config =
+                    {
+                        .simple_type = BTCScriptConfig_SimpleType_P2WPKH,
+                    },
+            },
         .bip44_account = BIP32_INITIAL_HARDENED_CHILD,
         .version = 1,
         .num_inputs = 1,
@@ -197,7 +204,14 @@ static void _sign(const _modification_t* mod)
 
     BTCSignInitRequest init_req = {
         .coin = BTCCoin_BTC,
-        .script_type = BTCScriptType_SCRIPT_P2WPKH,
+        .script_config =
+            {
+                .which_config = BTCScriptConfig_simple_type_tag,
+                .config =
+                    {
+                        .simple_type = BTCScriptConfig_SimpleType_P2WPKH,
+                    },
+            },
         .bip44_account = BIP32_INITIAL_HARDENED_CHILD + 10,
         .version = 1,
         .num_inputs = 2,
@@ -405,9 +419,12 @@ static void _sign(const _modification_t* mod)
 
     // First input, pass1.
     if (!mod->wrong_sequence_number && !mod->wrong_input_value) {
-        expect_value(__wrap_btc_common_is_valid_keypath_address, script_type, init_req.script_type);
+        expect_value(
+            __wrap_btc_common_is_valid_keypath_address_simple,
+            script_type,
+            init_req.script_config.config.simple_type);
         expect_memory(
-            __wrap_btc_common_is_valid_keypath_address,
+            __wrap_btc_common_is_valid_keypath_address_simple,
             keypath,
             inputs[0].keypath,
             inputs[0].keypath_count * sizeof(uint32_t));
@@ -423,9 +440,12 @@ static void _sign(const _modification_t* mod)
     assert_false(next.has_signature);
 
     // Second input, pass1.
-    expect_value(__wrap_btc_common_is_valid_keypath_address, script_type, init_req.script_type);
+    expect_value(
+        __wrap_btc_common_is_valid_keypath_address_simple,
+        script_type,
+        init_req.script_config.config.simple_type);
     expect_memory(
-        __wrap_btc_common_is_valid_keypath_address,
+        __wrap_btc_common_is_valid_keypath_address_simple,
         keypath,
         inputs[1].keypath,
         inputs[1].keypath_count * sizeof(uint32_t));
@@ -552,9 +572,12 @@ static void _sign(const _modification_t* mod)
 
     // Fifth output, change. Last output also invokes verification of total and
     // fee.
-    expect_value(__wrap_btc_common_is_valid_keypath_address, script_type, init_req.script_type);
+    expect_value(
+        __wrap_btc_common_is_valid_keypath_address_simple,
+        script_type,
+        init_req.script_config.config.simple_type);
     expect_memory(
-        __wrap_btc_common_is_valid_keypath_address,
+        __wrap_btc_common_is_valid_keypath_address_simple,
         keypath,
         outputs[4].keypath,
         outputs[4].keypath_count * sizeof(uint32_t));
@@ -573,9 +596,12 @@ static void _sign(const _modification_t* mod)
 
     // Sixth output, change. Last output also invokes verification of total and
     // fee.
-    expect_value(__wrap_btc_common_is_valid_keypath_address, script_type, init_req.script_type);
+    expect_value(
+        __wrap_btc_common_is_valid_keypath_address_simple,
+        script_type,
+        init_req.script_config.config.simple_type);
     expect_memory(
-        __wrap_btc_common_is_valid_keypath_address,
+        __wrap_btc_common_is_valid_keypath_address_simple,
         keypath,
         outputs[5].keypath,
         outputs[5].keypath_count * sizeof(uint32_t));
@@ -648,9 +674,12 @@ static void _sign(const _modification_t* mod)
     }
 
     // First input, pass2.
-    expect_value(__wrap_btc_common_is_valid_keypath_address, script_type, init_req.script_type);
+    expect_value(
+        __wrap_btc_common_is_valid_keypath_address_simple,
+        script_type,
+        init_req.script_config.config.simple_type);
     expect_memory(
-        __wrap_btc_common_is_valid_keypath_address,
+        __wrap_btc_common_is_valid_keypath_address_simple,
         keypath,
         inputs[0].keypath,
         inputs[0].keypath_count * sizeof(uint32_t));
@@ -673,9 +702,12 @@ static void _sign(const _modification_t* mod)
     }
 
     // Second input, pass2.
-    expect_value(__wrap_btc_common_is_valid_keypath_address, script_type, init_req.script_type);
+    expect_value(
+        __wrap_btc_common_is_valid_keypath_address_simple,
+        script_type,
+        init_req.script_config.config.simple_type);
     expect_memory(
-        __wrap_btc_common_is_valid_keypath_address,
+        __wrap_btc_common_is_valid_keypath_address_simple,
         keypath,
         inputs[1].keypath,
         inputs[1].keypath_count * sizeof(uint32_t));

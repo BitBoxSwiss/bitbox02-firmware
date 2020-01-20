@@ -84,11 +84,13 @@ static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse
     return COMMANDER_OK;
 }
 
-static commander_error_t _btc_pub_address(const BTCPubRequest* request, PubResponse* response)
+static commander_error_t _btc_pub_address_simple(
+    const BTCPubRequest* request,
+    PubResponse* response)
 {
-    if (!app_btc_address(
+    if (!app_btc_address_simple(
             request->coin,
-            request->output.script_type,
+            request->output.script_config.config.simple_type,
             request->keypath,
             request->keypath_count,
             response->pub,
@@ -101,11 +103,11 @@ static commander_error_t _btc_pub_address(const BTCPubRequest* request, PubRespo
             return COMMANDER_ERR_GENERIC;
         }
         char title[100] = {0};
-        switch (request->output.script_type) {
-        case BTCScriptType_SCRIPT_P2WPKH_P2SH:
+        switch (request->output.script_config.config.simple_type) {
+        case BTCScriptConfig_SimpleType_P2WPKH_P2SH:
             snprintf(title, sizeof(title), "%s", coin);
             break;
-        case BTCScriptType_SCRIPT_P2WPKH:
+        case BTCScriptConfig_SimpleType_P2WPKH:
             snprintf(title, sizeof(title), "%s\nbech32", coin);
             break;
         default:
@@ -124,8 +126,13 @@ commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* r
     switch (request->which_output) {
     case BTCPubRequest_xpub_type_tag:
         return _btc_pub_xpub(request, response);
-    case BTCPubRequest_script_type_tag:
-        return _btc_pub_address(request, response);
+    case BTCPubRequest_script_config_tag:
+        switch (request->output.script_config.which_config) {
+        case BTCScriptConfig_simple_type_tag:
+            return _btc_pub_address_simple(request, response);
+        default:
+            return COMMANDER_ERR_INVALID_INPUT;
+        }
     default:
         return COMMANDER_ERR_INVALID_INPUT;
     }

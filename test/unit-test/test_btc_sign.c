@@ -149,6 +149,8 @@ static void _test_btc_sign_init(void** state)
 }
 
 typedef struct {
+    // true for the happy test; false for all others.
+    bool is_valid;
     // keystore seeded?
     bool seeded;
     // all inputs should be the same coin type.
@@ -669,6 +671,15 @@ static void _sign(const _modification_t* mod)
     assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
     assert_int_equal(next.index, 1);
     assert_true(next.has_signature);
+    if (mod->is_valid) {
+        const uint8_t expected_signature[64] =
+            "\x91\x04\x8b\x6a\x46\x79\x89\x11\xfd\x2a\x11\x37\xc2\x8d\x1b\xa2\x66\x7e\x75\xf8\x42"
+            "\x4c"
+            "\x25\xfd\x38\x35\x3f\x5c\x6e\x51\x0f\xa9\x28\x49\x5c\xcd\x93\x51\x61\x21\xdd\xb3\xe7"
+            "\xc4"
+            "\xf6\xb8\x2b\x12\xe6\xb8\x3b\xb0\x9f\x09\x21\x49\x3c\xac\x0a\xa9\x54\xb9\xc5\x33";
+        assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+    }
 
     // Second input, pass2.
     expect_value(__wrap_btc_common_is_valid_keypath, script_type, init_req.script_type);
@@ -684,6 +695,14 @@ static void _sign(const _modification_t* mod)
     assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&inputs[1], &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_DONE);
     assert_true(next.has_signature);
+    if (mod->is_valid) {
+        const uint8_t expected_signature[64] =
+            "\x95\x09\x43\x09\xa2\xd2\x77\xd3\xa6\x8d\xde\xd3\x3d\x50\xa7\x47\xf2\xee\xfb\x3f\x54"
+            "\x8a\x92\x45\x15\xdb\x62\xbe\x06\xa1\xae\xa4\x56\x92\x91\xe5\x2e\x6f\xea\x95\xf8\xb6"
+            "\x75\x23\xb1\x9b\x35\x9a\x84\x85\xd8\xaa\x3c\xa0\x2d\xb3\x74\x70\x01\x0b\x19\x9b\x0c"
+            "\xe3";
+        assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+    }
 }
 
 static const _modification_t _valid = {
@@ -693,7 +712,9 @@ static const _modification_t _valid = {
 
 static void _test_btc_sign(void** state)
 {
-    _sign(&_valid);
+    _modification_t valid = _valid;
+    valid.is_valid = true;
+    _sign(&valid);
 }
 static void _test_seeded(void** state)
 {

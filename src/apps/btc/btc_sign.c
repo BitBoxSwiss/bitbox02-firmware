@@ -127,10 +127,6 @@ app_btc_sign_error_t app_btc_sign_init(
     if (coin_params == NULL) {
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
     }
-    if (request->script_type == BTCScriptType_SCRIPT_P2PKH) {
-        // legacy not supported
-        return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
-    }
     _reset();
     _coin_params = coin_params;
     _init_request = *request;
@@ -198,12 +194,8 @@ static bool _is_valid_keypath(
     uint32_t expected_bip44_account,
     bool must_be_change)
 {
-    if (!btc_common_is_valid_keypath(
-            BTCPubRequest_OutputType_ADDRESS,
-            script_type,
-            keypath,
-            keypath_count,
-            expected_bip44_coin)) {
+    if (!btc_common_is_valid_keypath_address(
+            script_type, keypath, keypath_count, expected_bip44_coin)) {
         return false;
     }
     const uint32_t account = keypath[2];

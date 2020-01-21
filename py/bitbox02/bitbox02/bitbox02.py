@@ -211,28 +211,39 @@ class BitBox02(BitBoxCommonAPI):
             raise
         return True
 
-    def btc_pub(
+    def btc_xpub(
         self,
         keypath: List[int],
         coin: btc.BTCCoin = btc.BTC,
-        output_type: btc.BTCPubRequest.OutputType = btc.BTCPubRequest.XPUB,
-        script_type: btc.BTCScriptType = btc.SCRIPT_UNKNOWN,
+        xpub_type: btc.BTCPubRequest.XPubType = btc.BTCPubRequest.XPUB,
         display: bool = True,
     ) -> str:
         """
         keypath is a list of child derivation numbers.
-        e.g. m/44'/0'/1'/5 corresponds to [44+HARDENED, 0+HARDENED, 1+HARDENED, 5].
+        e.g. m/44'/0'/1' corresponds to [44+HARDENED, 0+HARDENED, 1+HARDENED].
         """
         # pylint: disable=no-member,too-many-arguments
         request = hww.Request()
         request.btc_pub.CopyFrom(
-            btc.BTCPubRequest(
-                coin=coin,
-                keypath=keypath,
-                output_type=output_type,
-                script_type=script_type,
-                display=display,
-            )
+            btc.BTCPubRequest(coin=coin, keypath=keypath, xpub_type=xpub_type, display=display)
+        )
+        return self._msg_query(request).pub.pub
+
+    def btc_address(
+        self,
+        keypath: List[int],
+        coin: btc.BTCCoin = btc.BTC,
+        script_type: btc.BTCScriptType = btc.SCRIPT_P2WPKH,
+        display: bool = True,
+    ) -> str:
+        """
+        keypath is a list of child derivation numbers.
+        e.g. m/44'/0'/1'/5/10 corresponds to [44+HARDENED, 0+HARDENED, 1+HARDENED, 5, 10].
+        """
+        # pylint: disable=no-member,too-many-arguments
+        request = hww.Request()
+        request.btc_pub.CopyFrom(
+            btc.BTCPubRequest(coin=coin, keypath=keypath, script_type=script_type, display=display)
         )
         return self._msg_query(request).pub.pub
 

@@ -58,14 +58,10 @@ class BTCScriptType(int):
     def values(cls) -> typing___List[BTCScriptType]: ...
     @classmethod
     def items(cls) -> typing___List[typing___Tuple[str, BTCScriptType]]: ...
-    SCRIPT_UNKNOWN = typing___cast(BTCScriptType, 0)
-    SCRIPT_P2PKH = typing___cast(BTCScriptType, 1)
-    SCRIPT_P2WPKH_P2SH = typing___cast(BTCScriptType, 2)
-    SCRIPT_P2WPKH = typing___cast(BTCScriptType, 3)
-SCRIPT_UNKNOWN = typing___cast(BTCScriptType, 0)
-SCRIPT_P2PKH = typing___cast(BTCScriptType, 1)
-SCRIPT_P2WPKH_P2SH = typing___cast(BTCScriptType, 2)
-SCRIPT_P2WPKH = typing___cast(BTCScriptType, 3)
+    SCRIPT_P2WPKH_P2SH = typing___cast(BTCScriptType, 0)
+    SCRIPT_P2WPKH = typing___cast(BTCScriptType, 1)
+SCRIPT_P2WPKH_P2SH = typing___cast(BTCScriptType, 0)
+SCRIPT_P2WPKH = typing___cast(BTCScriptType, 1)
 
 class BTCOutputType(int):
     DESCRIPTOR: google___protobuf___descriptor___EnumDescriptor = ...
@@ -91,45 +87,43 @@ P2WPKH = typing___cast(BTCOutputType, 3)
 P2WSH = typing___cast(BTCOutputType, 4)
 
 class BTCPubRequest(google___protobuf___message___Message):
-    class OutputType(int):
+    class XPubType(int):
         DESCRIPTOR: google___protobuf___descriptor___EnumDescriptor = ...
         @classmethod
         def Name(cls, number: int) -> str: ...
         @classmethod
-        def Value(cls, name: str) -> BTCPubRequest.OutputType: ...
+        def Value(cls, name: str) -> BTCPubRequest.XPubType: ...
         @classmethod
         def keys(cls) -> typing___List[str]: ...
         @classmethod
-        def values(cls) -> typing___List[BTCPubRequest.OutputType]: ...
+        def values(cls) -> typing___List[BTCPubRequest.XPubType]: ...
         @classmethod
-        def items(cls) -> typing___List[typing___Tuple[str, BTCPubRequest.OutputType]]: ...
-        TPUB = typing___cast(BTCPubRequest.OutputType, 0)
-        XPUB = typing___cast(BTCPubRequest.OutputType, 1)
-        YPUB = typing___cast(BTCPubRequest.OutputType, 2)
-        ZPUB = typing___cast(BTCPubRequest.OutputType, 3)
-        ADDRESS = typing___cast(BTCPubRequest.OutputType, 4)
-        VPUB = typing___cast(BTCPubRequest.OutputType, 5)
-        UPUB = typing___cast(BTCPubRequest.OutputType, 6)
-    TPUB = typing___cast(BTCPubRequest.OutputType, 0)
-    XPUB = typing___cast(BTCPubRequest.OutputType, 1)
-    YPUB = typing___cast(BTCPubRequest.OutputType, 2)
-    ZPUB = typing___cast(BTCPubRequest.OutputType, 3)
-    ADDRESS = typing___cast(BTCPubRequest.OutputType, 4)
-    VPUB = typing___cast(BTCPubRequest.OutputType, 5)
-    UPUB = typing___cast(BTCPubRequest.OutputType, 6)
+        def items(cls) -> typing___List[typing___Tuple[str, BTCPubRequest.XPubType]]: ...
+        TPUB = typing___cast(BTCPubRequest.XPubType, 0)
+        XPUB = typing___cast(BTCPubRequest.XPubType, 1)
+        YPUB = typing___cast(BTCPubRequest.XPubType, 2)
+        ZPUB = typing___cast(BTCPubRequest.XPubType, 3)
+        VPUB = typing___cast(BTCPubRequest.XPubType, 4)
+        UPUB = typing___cast(BTCPubRequest.XPubType, 5)
+    TPUB = typing___cast(BTCPubRequest.XPubType, 0)
+    XPUB = typing___cast(BTCPubRequest.XPubType, 1)
+    YPUB = typing___cast(BTCPubRequest.XPubType, 2)
+    ZPUB = typing___cast(BTCPubRequest.XPubType, 3)
+    VPUB = typing___cast(BTCPubRequest.XPubType, 4)
+    UPUB = typing___cast(BTCPubRequest.XPubType, 5)
 
-    keypath = ... # type: google___protobuf___internal___containers___RepeatedScalarFieldContainer[int]
-    script_type = ... # type: BTCScriptType
     coin = ... # type: BTCCoin
-    output_type = ... # type: BTCPubRequest.OutputType
+    keypath = ... # type: google___protobuf___internal___containers___RepeatedScalarFieldContainer[int]
+    xpub_type = ... # type: BTCPubRequest.XPubType
+    script_type = ... # type: BTCScriptType
     display = ... # type: bool
 
     def __init__(self,
         *,
-        keypath : typing___Optional[typing___Iterable[int]] = None,
-        script_type : typing___Optional[BTCScriptType] = None,
         coin : typing___Optional[BTCCoin] = None,
-        output_type : typing___Optional[BTCPubRequest.OutputType] = None,
+        keypath : typing___Optional[typing___Iterable[int]] = None,
+        xpub_type : typing___Optional[BTCPubRequest.XPubType] = None,
+        script_type : typing___Optional[BTCScriptType] = None,
         display : typing___Optional[bool] = None,
         ) -> None: ...
     @classmethod
@@ -137,9 +131,12 @@ class BTCPubRequest(google___protobuf___message___Message):
     def MergeFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     if sys.version_info >= (3,):
-        def ClearField(self, field_name: typing_extensions___Literal[u"coin",u"display",u"keypath",u"output_type",u"script_type"]) -> None: ...
+        def HasField(self, field_name: typing_extensions___Literal[u"output",u"script_type",u"xpub_type"]) -> bool: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"coin",u"display",u"keypath",u"output",u"script_type",u"xpub_type"]) -> None: ...
     else:
-        def ClearField(self, field_name: typing_extensions___Literal[u"coin",b"coin",u"display",b"display",u"keypath",b"keypath",u"output_type",b"output_type",u"script_type",b"script_type"]) -> None: ...
+        def HasField(self, field_name: typing_extensions___Literal[u"output",b"output",u"script_type",b"script_type",u"xpub_type",b"xpub_type"]) -> bool: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"coin",b"coin",u"display",b"display",u"keypath",b"keypath",u"output",b"output",u"script_type",b"script_type",u"xpub_type",b"xpub_type"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing_extensions___Literal[u"output",b"output"]) -> typing_extensions___Literal["xpub_type","script_type"]: ...
 
 class BTCSignInitRequest(google___protobuf___message___Message):
     coin = ... # type: BTCCoin

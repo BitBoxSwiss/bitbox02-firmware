@@ -44,8 +44,18 @@
  * (change) addressses.
  * @return true if the keypath is valid, false if it is invalid.
  */
-USE_RESULT bool btc_common_is_valid_keypath(
-    BTCPubRequest_OutputType output_type,
+USE_RESULT bool btc_common_is_valid_keypath_xpub(
+    BTCPubRequest_XPubType xpub_type,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint32_t expected_coin);
+
+/**
+ * Does limit checks the keypath, whitelisting bip44 purposes, accounts and
+ * (change) addressses.
+ * @return true if the keypath is valid, false if it is invalid.
+ */
+USE_RESULT bool btc_common_is_valid_keypath_address(
     BTCScriptType script_type,
     const uint32_t* keypath,
     size_t keypath_len,

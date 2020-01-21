@@ -177,17 +177,16 @@ class SendMessage:
     def _display_zpub(self) -> None:
         print(
             "m/84'/0'/0' zpub: ",
-            self._device.btc_pub(
+            self._device.btc_xpub(
                 keypath=[84 + HARDENED, 0 + HARDENED, 0 + HARDENED],
-                output_type=bitbox02.btc.BTCPubRequest.ZPUB,  # pylint: disable=no-member
+                xpub_type=bitbox02.btc.BTCPubRequest.ZPUB,  # pylint: disable=no-member
             ),
         )
 
     def _btc_address(self) -> None:
         def address(display: bool) -> str:
-            return self._device.btc_pub(
+            return self._device.btc_address(
                 keypath=[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
-                output_type=bitbox02.btc.BTCPubRequest.ADDRESS,  # pylint: disable=no-member,
                 script_type=bitbox02.btc.SCRIPT_P2WPKH,
                 display=display,
             )

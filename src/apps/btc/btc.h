@@ -23,9 +23,36 @@
 
 #include <hww.pb.h>
 
+/**
+ * Returns the xpub at a given keypath.
+ * @param[in] coin Coin to generate address for.
+ * @param[in] xpub_type the xpub will be serialized using this versin specifier (xpub, ypub, etc.).
+ * @param[in] keypath keypath at which to get the xpub.
+ * @param[in] keypath_len number of keypath elements.
+ * @param[out] out will hold the xub.
+ * @param[in] out_len size of out.
+ * @return true on success, false on failure.m
+ */
+USE_RESULT bool app_btc_xpub(
+    BTCCoin coin,
+    BTCPubRequest_XPubType xpub_type,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    char* out,
+    size_t out_len);
+
+/**
+ * Creates an address from a public key at a given keypath.
+ * @param[in] coin Coin to generate address for.
+ * @param[in] script_type type of address to create.
+ * @param[in] keypath keypath at which to create the address.
+ * @param[in] keypath_len number of keypath elements.
+ * @param[out] out will hold the address.
+ * @param[in] out_len size of out.
+ * @return true on success.
+ */
 USE_RESULT bool app_btc_address(
     BTCCoin coin,
-    BTCPubRequest_OutputType output_type,
     BTCScriptType script_type,
     const uint32_t* keypath,
     size_t keypath_len,

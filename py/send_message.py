@@ -230,7 +230,7 @@ class SendMessage:
             bitbox02.btc.BTCScriptConfig(
                 simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH  # pylint: disable=no-member
             ),
-            bip44_account=bip44_account,
+            keypath_account=[84 + HARDENED, 0 + HARDENED, bip44_account],
             inputs=inputs,
             outputs=outputs,
         )

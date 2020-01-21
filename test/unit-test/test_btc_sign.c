@@ -96,7 +96,13 @@ static void _test_btc_sign_init(void** state)
                         .simple_type = BTCScriptConfig_SimpleType_P2WPKH,
                     },
             },
-        .bip44_account = BIP32_INITIAL_HARDENED_CHILD,
+        .keypath_account_count = 3,
+        .keypath_account =
+            {
+                84 + BIP32_INITIAL_HARDENED_CHILD,
+                0 + BIP32_INITIAL_HARDENED_CHILD,
+                0 + BIP32_INITIAL_HARDENED_CHILD,
+            },
         .version = 1,
         .num_inputs = 1,
         .num_outputs = 1,
@@ -212,7 +218,13 @@ static void _sign(const _modification_t* mod)
                         .simple_type = BTCScriptConfig_SimpleType_P2WPKH,
                     },
             },
-        .bip44_account = BIP32_INITIAL_HARDENED_CHILD + 10,
+        .keypath_account_count = 3,
+        .keypath_account =
+            {
+                84 + BIP32_INITIAL_HARDENED_CHILD,
+                0 + BIP32_INITIAL_HARDENED_CHILD,
+                10 + BIP32_INITIAL_HARDENED_CHILD,
+            },
         .version = 1,
         .num_inputs = 2,
         .num_outputs = 6,
@@ -233,9 +245,9 @@ static void _sign(const _modification_t* mod)
             .keypath_count = 5,
             .keypath =
                 {
-                    84 + BIP32_INITIAL_HARDENED_CHILD,
-                    0 + BIP32_INITIAL_HARDENED_CHILD,
-                    init_req.bip44_account,
+                    init_req.keypath_account[0],
+                    init_req.keypath_account[1],
+                    init_req.keypath_account[2],
                     0,
                     5,
                 },
@@ -253,9 +265,9 @@ static void _sign(const _modification_t* mod)
             .keypath_count = 5,
             .keypath =
                 {
-                    84 + BIP32_INITIAL_HARDENED_CHILD,
-                    0 + BIP32_INITIAL_HARDENED_CHILD,
-                    init_req.bip44_account,
+                    init_req.keypath_account[0],
+                    init_req.keypath_account[1],
+                    init_req.keypath_account[2],
                     0,
                     7,
                 },
@@ -350,9 +362,9 @@ static void _sign(const _modification_t* mod)
             .keypath_count = 5,
             .keypath =
                 {
-                    84 + BIP32_INITIAL_HARDENED_CHILD,
-                    0 + BIP32_INITIAL_HARDENED_CHILD,
-                    init_req.bip44_account,
+                    init_req.keypath_account[0],
+                    init_req.keypath_account[1],
+                    init_req.keypath_account[2],
                     mod->bip44_change,
                     3,
                 },
@@ -364,9 +376,9 @@ static void _sign(const _modification_t* mod)
             .keypath_count = 5,
             .keypath =
                 {
-                    84 + BIP32_INITIAL_HARDENED_CHILD,
-                    0 + BIP32_INITIAL_HARDENED_CHILD,
-                    init_req.bip44_account,
+                    init_req.keypath_account[0],
+                    init_req.keypath_account[1],
+                    init_req.keypath_account[2],
                     mod->bip44_change,
                     30,
                 },
@@ -393,6 +405,7 @@ static void _sign(const _modification_t* mod)
     if (mod->litecoin_rbf_disabled) {
         init_req.coin = BTCCoin_LTC;
         init_req.locktime = 1;
+        init_req.keypath_account[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
         inputs[0].sequence = 0xffffffff - 2;
         inputs[0].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
         inputs[1].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;

@@ -187,11 +187,12 @@ static app_btc_sign_error_t _sign_input_pass1(
 }
 
 static bool _is_valid_keypath(
+    const uint32_t* keypath_account,
+    size_t keypath_account_count,
     const uint32_t* keypath,
     size_t keypath_count,
     const BTCScriptConfig* script_config,
     uint32_t expected_bip44_coin,
-    uint32_t expected_bip44_account,
     bool must_be_change)
 {
     switch (script_config->which_config) {
@@ -200,15 +201,26 @@ static bool _is_valid_keypath(
                 script_config->config.simple_type, keypath, keypath_count, expected_bip44_coin)) {
             return false;
         }
-        const uint32_t account = keypath[2];
-        const uint32_t change = keypath[3];
-        if (account != expected_bip44_account || (must_be_change && change != 1)) {
-            return false;
-        }
-        return true;
+        break;
     default:
         return false;
     }
+
+    // check that keypath_account is a prefix to keypath with two elements left (change, address).
+    if (keypath_account_count + 2 != keypath_count) {
+        return false;
+    }
+    for (size_t i = 0; i < keypath_account_count; i++) {
+        if (keypath_account[i] != keypath[i]) {
+            return false;
+        }
+    }
+
+    const uint32_t change = keypath[keypath_count - 2];
+    if (must_be_change && change != 1) {
+        return false;
+    }
+    return true;
 }
 
 static app_btc_sign_error_t _sign_input_pass2(
@@ -319,11 +331,12 @@ app_btc_sign_error_t app_btc_sign_input(
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
     }
     if (!_is_valid_keypath(
+            _init_request.keypath_account,
+            _init_request.keypath_account_count,
             request->keypath,
             request->keypath_count,
             &_init_request.script_config,
             _coin_params->bip44_coin,
-            _init_request.bip44_account,
             false)) {
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
     }
@@ -348,11 +361,12 @@ app_btc_sign_error_t app_btc_sign_output(
     BTCOutputType output_type;
     if (request->ours) {
         if (!_is_valid_keypath(
+                _init_request.keypath_account,
+                _init_request.keypath_account_count,
                 request->keypath,
                 request->keypath_count,
                 &_init_request.script_config,
                 _coin_params->bip44_coin,
-                _init_request.bip44_account,
                 true)) {
             return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
         }

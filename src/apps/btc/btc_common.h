@@ -29,7 +29,11 @@
 #include <wally_crypto.h>
 #include <wally_script.h>
 
-#define MAX_SIGHASH_SCRIPT_SIZE (500)
+// see https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer
+#define MAX_VARINT_SIZE (9)
+// current expected max pk script size is a m-of-15 multisig. 700 is also enough for m-of-20, which
+// is technically possible to extend to if needed.
+#define MAX_PK_SCRIPT_SIZE (700)
 
 // Max. length of an xpub string, including the null terminator.
 #define XPUB_ENCODED_LEN 113

@@ -17,9 +17,11 @@
 #include "btc_common.h"
 #include "btc_params.h"
 #include "confirm_locktime_rbf.h"
+#include "confirm_multisig.h"
 
 #include <crypto/sha2/sha256.h>
 #include <keystore.h>
+#include <memory/memory.h>
 #include <util.h>
 #include <workflow/verify_recipient.h>
 #include <workflow/verify_total.h>
@@ -127,6 +129,41 @@ app_btc_sign_error_t app_btc_sign_init(
     if (coin_params == NULL) {
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
     }
+    switch (request->script_config.which_config) {
+    case BTCScriptConfig_simple_type_tag:
+        break;
+    case BTCScriptConfig_multisig_tag: {
+        const BTCScriptConfig_Multisig* multisig = &request->script_config.config.multisig;
+        if (!btc_common_multisig_is_valid(
+                multisig,
+                request->keypath_account,
+                request->keypath_account_count,
+                coin_params->bip44_coin)) {
+            return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
+        }
+        uint8_t multisig_hash[SHA256_LEN] = {0};
+        if (!btc_common_multisig_hash(
+                request->coin,
+                multisig,
+                request->keypath_account,
+                request->keypath_account_count,
+                multisig_hash)) {
+            return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
+        };
+        char multisig_registered_name[MEMORY_MULTISIG_NAME_MAX_LEN] = {0};
+        if (!memory_multisig_get_by_hash(multisig_hash, multisig_registered_name)) {
+            // Not previously registered -> fail.
+            return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
+        }
+        if (!apps_btc_confirm_multisig(
+                "Spend from", request->coin, multisig_registered_name, multisig, false)) {
+            return _error(APP_BTC_SIGN_ERR_USER_ABORT);
+        }
+        break;
+    }
+    default:
+        return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
+    }
     _reset();
     _coin_params = coin_params;
     _init_request = *request;
@@ -202,6 +239,12 @@ static bool _is_valid_keypath(
             return false;
         }
         break;
+    case BTCScriptConfig_multisig_tag:
+        if (!btc_common_is_valid_keypath_address_multisig_p2wsh(
+                keypath, keypath_count, expected_bip44_coin)) {
+            return false;
+        }
+        break;
     default:
         return false;
     }
@@ -251,7 +294,8 @@ static app_btc_sign_error_t _sign_input_pass2(
             return _error(APP_BTC_SIGN_ERR_UNKNOWN);
         }
 
-        uint8_t sighash_script[MAX_SIGHASH_SCRIPT_SIZE] = {0};
+        // A little more than the max pk script for the data push varint.
+        uint8_t sighash_script[MAX_PK_SCRIPT_SIZE + MAX_VARINT_SIZE] = {0};
         size_t sighash_script_size = sizeof(sighash_script);
         switch (_init_request.script_config.which_config) {
         case BTCScriptConfig_simple_type_tag:
@@ -263,6 +307,22 @@ static app_btc_sign_error_t _sign_input_pass2(
                 return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
             }
             break;
+        case BTCScriptConfig_multisig_tag: {
+            uint8_t sighash_script_tmp[MAX_PK_SCRIPT_SIZE] = {0};
+            sighash_script_size = sizeof(sighash_script_tmp);
+            if (!btc_common_pkscript_from_multisig(
+                    &_init_request.script_config.config.multisig,
+                    request->keypath[request->keypath_count - 2],
+                    request->keypath[request->keypath_count - 1],
+                    sighash_script_tmp,
+                    &sighash_script_size)) {
+                return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
+            }
+            sighash_script_size =
+                wally_varbuff_to_bytes(sighash_script_tmp, sighash_script_size, sighash_script);
+
+            break;
+        }
         default:
             return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
         }
@@ -399,6 +459,17 @@ app_btc_sign_error_t app_btc_sign_output(
             hash.size = (pb_size_t)out_size;
             break;
         }
+        case BTCScriptConfig_multisig_tag:
+            if (!btc_common_outputhash_from_multisig_p2wsh(
+                    &_init_request.script_config.config.multisig,
+                    request->keypath[request->keypath_count - 2],
+                    request->keypath[request->keypath_count - 1],
+                    hash.bytes)) {
+                return _error(APP_BTC_SIGN_ERR_UNKNOWN);
+            }
+            hash.size = 32;
+            output_type = BTCOutputType_P2WSH;
+            break;
         default:
             return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
         }
@@ -447,8 +518,7 @@ app_btc_sign_error_t app_btc_sign_output(
         // only SIGHASH_ALL supported.
 
         // create pk_script
-        // current expected output script size is 83 for OP_RETURN
-        uint8_t pk_script[100] = {0};
+        uint8_t pk_script[MAX_PK_SCRIPT_SIZE] = {0};
         size_t pk_script_len = sizeof(pk_script);
         if (!btc_common_pkscript_from_outputhash(
                 output_type, hash.bytes, hash.size, pk_script, &pk_script_len)) {

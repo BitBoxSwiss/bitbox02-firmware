@@ -224,21 +224,14 @@ static app_btc_sign_error_t _sign_input_pass2(
     }
 
     { // Sign input.
-        uint8_t pubkey_hash160[20];
-        UTIL_CLEANUP_20(pubkey_hash160);
-        if (!keystore_secp256k1_pubkey(
-                KEYSTORE_SECP256K1_PUBKEY_HASH160,
-                request->keypath,
-                request->keypath_count,
-                pubkey_hash160,
-                sizeof(pubkey_hash160))) {
-            return _error(APP_BTC_SIGN_ERR_UNKNOWN);
-        }
-
         uint8_t sighash_script[MAX_SIGHASH_SCRIPT_SIZE] = {0};
         size_t sighash_script_size = sizeof(sighash_script);
-        if (!btc_common_sighash_script_from_pubkeyhash(
-                _init_request.script_type, pubkey_hash160, sighash_script, &sighash_script_size)) {
+        if (!btc_script_sighash_script_at_keypath(
+                _init_request.script_type,
+                request->keypath,
+                request->keypath_count,
+                sighash_script,
+                &sighash_script_size)) {
             return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
         }
         uint8_t sighash[32] = {0};

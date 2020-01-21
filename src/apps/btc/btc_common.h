@@ -81,7 +81,7 @@ USE_RESULT bool btc_common_encode_xpub(
  * @param[in] unit suffix.
  * @param[out] out will contain the resulting string.
  * @param[in] out_len size allocation of `out`. Should be at least 31+len(unit) bytes.
- * return true on succes, false on failure.
+ * return true on success, false on failure.
  */
 USE_RESULT bool btc_common_format_amount(
     uint64_t satoshi,
@@ -97,7 +97,7 @@ USE_RESULT bool btc_common_format_amount(
  * @param[out] output_hash will have the resulting hash. Must be of size 32.
  * @param[out] output_hash_size will be 32 for p2wsh scripts, HASH160_LEN for
  * all others.
- * return true on succes, false on failure.
+ * return true on success, false on failure.
  */
 USE_RESULT bool btc_common_outputhash_from_pubkeyhash(
     BTCScriptType script_type,
@@ -111,8 +111,8 @@ USE_RESULT bool btc_common_outputhash_from_pubkeyhash(
  * @param[in] pubkey_hash hash160 of a public key. Must be of size HASH160_LEN.
  * @param[out] script will have the resulting subscript/scriptCode. Must be of size
  * MAX_SIGHASH_SCRIPT_SIZE.
- * @param[out] script_size the size of the produced subscript/scriptCode.
- * return true on succes, false on failure.
+ * @param[inout] script_size in: size of script. out: the size of the produced subscript/scriptCode.
+ * return true on success, false on failure.
  */
 USE_RESULT bool btc_common_sighash_script_from_pubkeyhash(
     BTCScriptType script_type,

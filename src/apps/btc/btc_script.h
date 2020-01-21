@@ -41,4 +41,21 @@ USE_RESULT bool btc_script_outputhash_at_keypath(
     uint8_t* output_hash,
     size_t* output_hash_size);
 
+/**
+ * Constructs a subscript/scriptCode used in the sighash algo from the pubkey at keypath.
+ * @param[in] script_type script type of the output to be spent.
+ * @param[in] keypath keypath at which to create the script.
+ * @param[in] keypath_len number of keypath elements.
+ * @param[out] script will have the resulting subscript/scriptCode. Must be of size
+ * MAX_SIGHASH_SCRIPT_SIZE.
+ * @param[inout] script_size in: size of script. out: the size of the produced subscript/scriptCode.
+ * return true on success, false on failure.
+ */
+USE_RESULT bool btc_script_sighash_script_at_keypath(
+    BTCScriptType script_type,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint8_t* script,
+    size_t* script_size);
+
 #endif

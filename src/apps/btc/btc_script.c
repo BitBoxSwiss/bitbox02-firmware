@@ -16,6 +16,7 @@
 #include "btc_common.h"
 
 #include <keystore.h>
+#include <util.h>
 #include <wally_bip32.h>
 
 bool btc_script_outputhash_at_keypath(
@@ -31,4 +32,19 @@ bool btc_script_outputhash_at_keypath(
     }
     return btc_common_outputhash_from_pubkeyhash(
         script_type, derived_xpub.hash160, output_hash, output_hash_size);
+}
+
+bool btc_script_sighash_script_at_keypath(
+    BTCScriptType script_type,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint8_t* script,
+    size_t* script_size)
+{
+    struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
+    if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
+        return false;
+    }
+    return btc_common_sighash_script_from_pubkeyhash(
+        script_type, derived_xpub.hash160, script, script_size);
 }

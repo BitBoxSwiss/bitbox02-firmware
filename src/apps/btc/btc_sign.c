@@ -417,7 +417,9 @@ app_btc_sign_error_t app_btc_sign_output(
     // get pubkeyhash or scripthash. If request->ours=true, we compute the hash
     // from the keystore, otherwise it is provided in request->hash.
 
-    BTCSignOutputRequest_hash_t hash = {0};
+    uint8_t hash_bytes[sizeof(request->hash.bytes)] = {0};
+    size_t hash_size;
+
     BTCOutputType output_type;
     if (request->ours) {
         if (!_is_valid_keypath(
@@ -444,19 +446,16 @@ app_btc_sign_error_t app_btc_sign_output(
                 return _error(APP_BTC_SIGN_ERR_UNKNOWN);
             }
 
-            size_t out_size = 0;
             // construct pkScript
             if (!btc_common_outputhash_from_pubkeyhash(
                     _init_request.script_config.config.simple_type,
                     pubkey_hash160,
-                    hash.bytes,
-                    &out_size)) {
+                    hash_bytes,
+                    &hash_size)) {
                 return _error(APP_BTC_SIGN_ERR_UNKNOWN);
             }
             output_type =
                 btc_common_determine_output_type(_init_request.script_config.config.simple_type);
-
-            hash.size = (pb_size_t)out_size;
             break;
         }
         case BTCScriptConfig_multisig_tag:
@@ -464,10 +463,10 @@ app_btc_sign_error_t app_btc_sign_output(
                     &_init_request.script_config.config.multisig,
                     request->keypath[request->keypath_count - 2],
                     request->keypath[request->keypath_count - 1],
-                    hash.bytes)) {
+                    hash_bytes)) {
                 return _error(APP_BTC_SIGN_ERR_UNKNOWN);
             }
-            hash.size = 32;
+            hash_size = 32;
             output_type = BTCOutputType_P2WSH;
             break;
         default:
@@ -475,7 +474,8 @@ app_btc_sign_error_t app_btc_sign_output(
         }
 
     } else {
-        hash = request->hash;
+        hash_size = request->hash.size;
+        memcpy(hash_bytes, request->hash.bytes, hash_size);
         output_type = request->type;
     }
     if (request->value == 0) {
@@ -495,7 +495,7 @@ app_btc_sign_error_t app_btc_sign_output(
         char address[100] = {0};
         // assemble address to display, get user confirmation
         if (!btc_common_address_from_outputhash(
-                _coin_params, output_type, hash.bytes, hash.size, address, sizeof(address))) {
+                _coin_params, output_type, hash_bytes, hash_size, address, sizeof(address))) {
             return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
         }
 
@@ -521,7 +521,7 @@ app_btc_sign_error_t app_btc_sign_output(
         uint8_t pk_script[MAX_PK_SCRIPT_SIZE] = {0};
         size_t pk_script_len = sizeof(pk_script);
         if (!btc_common_pkscript_from_outputhash(
-                output_type, hash.bytes, hash.size, pk_script, &pk_script_len)) {
+                output_type, hash_bytes, hash_size, pk_script, &pk_script_len)) {
             return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
         }
 

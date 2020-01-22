@@ -233,7 +233,9 @@ class BitBox02(BitBoxCommonAPI):
         self,
         keypath: List[int],
         coin: btc.BTCCoin = btc.BTC,
-        script_type: btc.BTCScriptType = btc.SCRIPT_P2WPKH,
+        script_config: btc.BTCScriptConfig = btc.BTCScriptConfig(
+            simple_type=btc.BTCScriptConfig.P2WPKH
+        ),
         display: bool = True,
     ) -> str:
         """
@@ -243,7 +245,9 @@ class BitBox02(BitBoxCommonAPI):
         # pylint: disable=no-member,too-many-arguments
         request = hww.Request()
         request.btc_pub.CopyFrom(
-            btc.BTCPubRequest(coin=coin, keypath=keypath, script_type=script_type, display=display)
+            btc.BTCPubRequest(
+                coin=coin, keypath=keypath, script_config=script_config, display=display
+            )
         )
         return self._msg_query(request).pub.pub
 
@@ -251,7 +255,7 @@ class BitBox02(BitBoxCommonAPI):
     def btc_sign(
         self,
         coin: btc.BTCCoin,
-        script_type: btc.BTCScriptType,
+        script_config: btc.BTCScriptConfig,
         bip44_account: int,
         inputs: List[BTCInputType],
         outputs: List[BTCOutputType],
@@ -289,7 +293,7 @@ class BitBox02(BitBoxCommonAPI):
         request.btc_sign_init.CopyFrom(
             btc.BTCSignInitRequest(
                 coin=coin,
-                script_type=script_type,
+                script_config=script_config,
                 bip44_account=bip44_account,
                 version=version,
                 num_inputs=len(inputs),

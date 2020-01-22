@@ -54,8 +54,8 @@ USE_RESULT bool btc_common_is_valid_keypath_xpub(
  * (change) addressses.
  * @return true if the keypath is valid, false if it is invalid.
  */
-USE_RESULT bool btc_common_is_valid_keypath_address(
-    BTCScriptType script_type,
+USE_RESULT bool btc_common_is_valid_keypath_address_simple(
+    BTCScriptConfig_SimpleType script_type,
     const uint32_t* keypath,
     size_t keypath_len,
     uint32_t expected_coin);
@@ -99,7 +99,7 @@ USE_RESULT bool btc_common_format_amount(
  * return true on succes, false on failure.
  */
 USE_RESULT bool btc_common_outputhash_from_pubkeyhash(
-    BTCScriptType script_type,
+    BTCScriptConfig_SimpleType script_type,
     const uint8_t* pubkey_hash,
     uint8_t* output_hash,
     size_t* output_hash_size);
@@ -114,7 +114,7 @@ USE_RESULT bool btc_common_outputhash_from_pubkeyhash(
  * return true on succes, false on failure.
  */
 USE_RESULT bool btc_common_sighash_script_from_pubkeyhash(
-    BTCScriptType script_type,
+    BTCScriptConfig_SimpleType script_type,
     const uint8_t* pubkey_hash,
     uint8_t* script,
     size_t* script_size);
@@ -122,7 +122,7 @@ USE_RESULT bool btc_common_sighash_script_from_pubkeyhash(
 /**
  * For an input type (e.g. a script wrapped in p2sh), determine the output type.
  */
-USE_RESULT BTCOutputType btc_common_determine_output_type(BTCScriptType script_type);
+USE_RESULT BTCOutputType btc_common_determine_output_type(BTCScriptConfig_SimpleType script_type);
 /**
  * Converts an output script or publickey hash to an address.
  * hash, hash_size can be obtained from btc_common_outputhash_from_pubkeyhash().

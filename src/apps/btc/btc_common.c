@@ -84,17 +84,17 @@ bool btc_common_is_valid_keypath_xpub(
     }
 }
 
-bool btc_common_is_valid_keypath_address(
-    BTCScriptType script_type,
+bool btc_common_is_valid_keypath_address_simple(
+    BTCScriptConfig_SimpleType script_type,
     const uint32_t* keypath,
     const size_t keypath_len,
     const uint32_t expected_coin)
 {
     switch (script_type) {
-    case BTCScriptType_SCRIPT_P2WPKH_P2SH:
+    case BTCScriptConfig_SimpleType_P2WPKH_P2SH:
         return _validate_keypath_address(
             keypath, keypath_len, expected_coin, BTC_PURPOSE_P2WPKH_P2SH);
-    case BTCScriptType_SCRIPT_P2WPKH:
+    case BTCScriptConfig_SimpleType_P2WPKH:
         return _validate_keypath_address(keypath, keypath_len, expected_coin, BTC_PURPOSE_P2WPKH);
     default:
         return false;
@@ -193,17 +193,17 @@ bool btc_common_format_amount(uint64_t satoshi, const char* unit, char* out, siz
 }
 
 bool btc_common_outputhash_from_pubkeyhash(
-    BTCScriptType script_type,
+    BTCScriptConfig_SimpleType script_type,
     const uint8_t* pubkey_hash,
     uint8_t* output_hash,
     size_t* output_hash_size)
 {
     switch (script_type) {
-    case BTCScriptType_SCRIPT_P2WPKH:
+    case BTCScriptConfig_SimpleType_P2WPKH:
         memcpy(output_hash, pubkey_hash, HASH160_LEN);
         *output_hash_size = HASH160_LEN;
         break;
-    case BTCScriptType_SCRIPT_P2WPKH_P2SH: {
+    case BTCScriptConfig_SimpleType_P2WPKH_P2SH: {
         uint8_t script[WALLY_SCRIPTPUBKEY_P2WPKH_LEN] = {0};
         size_t written = 0;
         if (wally_witness_program_from_bytes(
@@ -226,15 +226,15 @@ bool btc_common_outputhash_from_pubkeyhash(
 }
 
 bool btc_common_sighash_script_from_pubkeyhash(
-    BTCScriptType script_type,
+    BTCScriptConfig_SimpleType script_type,
     const uint8_t* pubkey_hash,
     uint8_t* script,
     size_t* script_size)
 {
     size_t size_in = *script_size;
     switch (script_type) {
-    case BTCScriptType_SCRIPT_P2WPKH_P2SH:
-    case BTCScriptType_SCRIPT_P2WPKH:
+    case BTCScriptConfig_SimpleType_P2WPKH_P2SH:
+    case BTCScriptConfig_SimpleType_P2WPKH:
         script[0] = 0x19; // 25 byte data push
         if (wally_scriptpubkey_p2pkh_from_bytes(
                 pubkey_hash, HASH160_LEN, 0, script + 1, size_in - 1, script_size) != WALLY_OK) {
@@ -247,12 +247,12 @@ bool btc_common_sighash_script_from_pubkeyhash(
     }
 }
 
-BTCOutputType btc_common_determine_output_type(BTCScriptType script_type)
+BTCOutputType btc_common_determine_output_type(BTCScriptConfig_SimpleType script_type)
 {
     switch (script_type) {
-    case BTCScriptType_SCRIPT_P2WPKH_P2SH:
+    case BTCScriptConfig_SimpleType_P2WPKH_P2SH:
         return BTCOutputType_P2SH;
-    case BTCScriptType_SCRIPT_P2WPKH:
+    case BTCScriptConfig_SimpleType_P2WPKH:
         return BTCOutputType_P2WPKH;
     default:
         return BTCOutputType_UNKNOWN;

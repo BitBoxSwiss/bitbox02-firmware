@@ -189,21 +189,26 @@ static app_btc_sign_error_t _sign_input_pass1(
 static bool _is_valid_keypath(
     const uint32_t* keypath,
     size_t keypath_count,
-    BTCScriptType script_type,
+    const BTCScriptConfig* script_config,
     uint32_t expected_bip44_coin,
     uint32_t expected_bip44_account,
     bool must_be_change)
 {
-    if (!btc_common_is_valid_keypath_address(
-            script_type, keypath, keypath_count, expected_bip44_coin)) {
+    switch (script_config->which_config) {
+    case BTCScriptConfig_simple_type_tag:
+        if (!btc_common_is_valid_keypath_address_simple(
+                script_config->config.simple_type, keypath, keypath_count, expected_bip44_coin)) {
+            return false;
+        }
+        const uint32_t account = keypath[2];
+        const uint32_t change = keypath[3];
+        if (account != expected_bip44_account || (must_be_change && change != 1)) {
+            return false;
+        }
+        return true;
+    default:
         return false;
     }
-    const uint32_t account = keypath[2];
-    const uint32_t change = keypath[3];
-    if (account != expected_bip44_account || (must_be_change && change != 1)) {
-        return false;
-    }
-    return true;
 }
 
 static app_btc_sign_error_t _sign_input_pass2(
@@ -236,8 +241,17 @@ static app_btc_sign_error_t _sign_input_pass2(
 
         uint8_t sighash_script[MAX_SIGHASH_SCRIPT_SIZE] = {0};
         size_t sighash_script_size = sizeof(sighash_script);
-        if (!btc_common_sighash_script_from_pubkeyhash(
-                _init_request.script_type, pubkey_hash160, sighash_script, &sighash_script_size)) {
+        switch (_init_request.script_config.which_config) {
+        case BTCScriptConfig_simple_type_tag:
+            if (!btc_common_sighash_script_from_pubkeyhash(
+                    _init_request.script_config.config.simple_type,
+                    pubkey_hash160,
+                    sighash_script,
+                    &sighash_script_size)) {
+                return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
+            }
+            break;
+        default:
             return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
         }
         uint8_t sighash[32] = {0};
@@ -307,7 +321,7 @@ app_btc_sign_error_t app_btc_sign_input(
     if (!_is_valid_keypath(
             request->keypath,
             request->keypath_count,
-            _init_request.script_type,
+            &_init_request.script_config,
             _coin_params->bip44_coin,
             _init_request.bip44_account,
             false)) {
@@ -336,30 +350,45 @@ app_btc_sign_error_t app_btc_sign_output(
         if (!_is_valid_keypath(
                 request->keypath,
                 request->keypath_count,
-                _init_request.script_type,
+                &_init_request.script_config,
                 _coin_params->bip44_coin,
                 _init_request.bip44_account,
                 true)) {
             return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
         }
-        uint8_t pubkey_hash160[20];
-        UTIL_CLEANUP_20(pubkey_hash160);
-        if (!keystore_secp256k1_pubkey(
-                KEYSTORE_SECP256K1_PUBKEY_HASH160,
-                request->keypath,
-                request->keypath_count,
-                pubkey_hash160,
-                sizeof(pubkey_hash160))) {
-            return _error(APP_BTC_SIGN_ERR_UNKNOWN);
+
+        switch (_init_request.script_config.which_config) {
+        case BTCScriptConfig_simple_type_tag: {
+            uint8_t pubkey_hash160[20];
+            UTIL_CLEANUP_20(pubkey_hash160);
+            if (!keystore_secp256k1_pubkey(
+                    KEYSTORE_SECP256K1_PUBKEY_HASH160,
+                    request->keypath,
+                    request->keypath_count,
+                    pubkey_hash160,
+                    sizeof(pubkey_hash160))) {
+                return _error(APP_BTC_SIGN_ERR_UNKNOWN);
+            }
+
+            size_t out_size = 0;
+            // construct pkScript
+            if (!btc_common_outputhash_from_pubkeyhash(
+                    _init_request.script_config.config.simple_type,
+                    pubkey_hash160,
+                    hash.bytes,
+                    &out_size)) {
+                return _error(APP_BTC_SIGN_ERR_UNKNOWN);
+            }
+            output_type =
+                btc_common_determine_output_type(_init_request.script_config.config.simple_type);
+
+            hash.size = (pb_size_t)out_size;
+            break;
         }
-        // construct pkScript
-        size_t out_size = 0;
-        if (!btc_common_outputhash_from_pubkeyhash(
-                _init_request.script_type, pubkey_hash160, hash.bytes, &out_size)) {
-            return _error(APP_BTC_SIGN_ERR_UNKNOWN);
+        default:
+            return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
         }
-        hash.size = (pb_size_t)out_size;
-        output_type = btc_common_determine_output_type(_init_request.script_type);
+
     } else {
         hash = request->hash;
         output_type = request->type;

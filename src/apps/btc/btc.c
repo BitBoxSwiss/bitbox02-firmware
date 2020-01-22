@@ -66,9 +66,9 @@ bool app_btc_xpub(
     }
 }
 
-bool app_btc_address(
+bool app_btc_address_simple(
     BTCCoin coin,
-    BTCScriptType script_type,
+    BTCScriptConfig_SimpleType script_type,
     const uint32_t* keypath,
     size_t keypath_len,
     char* out,
@@ -78,7 +78,7 @@ bool app_btc_address(
     if (params == NULL) {
         return false;
     }
-    if (!btc_common_is_valid_keypath_address(
+    if (!btc_common_is_valid_keypath_address_simple(
             script_type, keypath, keypath_len, params->bip44_coin)) {
         return false;
     }

@@ -187,7 +187,9 @@ class SendMessage:
         def address(display: bool) -> str:
             return self._device.btc_address(
                 keypath=[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
-                script_type=bitbox02.btc.SCRIPT_P2WPKH,
+                script_config=bitbox02.btc.BTCScriptConfig(
+                    simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH  # pylint: disable=no-member
+                ),
                 display=display,
             )
 
@@ -225,7 +227,9 @@ class SendMessage:
         ]
         sigs = self._device.btc_sign(
             bitbox02.btc.BTC,
-            bitbox02.btc.SCRIPT_P2WPKH,
+            bitbox02.btc.BTCScriptConfig(
+                simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH  # pylint: disable=no-member
+            ),
             bip44_account=bip44_account,
             inputs=inputs,
             outputs=outputs,

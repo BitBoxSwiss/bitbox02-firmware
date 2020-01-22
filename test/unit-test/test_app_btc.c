@@ -53,8 +53,8 @@ bool __wrap_btc_common_is_valid_keypath_xpub(
     check_expected(keypath_len);
     return mock();
 }
-bool __wrap_btc_common_is_valid_keypath_address(
-    BTCScriptType script_type,
+bool __wrap_btc_common_is_valid_keypath_address_simple(
+    BTCScriptConfig_SimpleType script_type,
     const uint32_t* keypath,
     const size_t keypath_len,
     const uint32_t expected_coin)
@@ -66,12 +66,12 @@ bool __wrap_btc_common_is_valid_keypath_address(
 }
 
 bool __real_btc_common_outputhash_from_pubkeyhash(
-    BTCScriptType script_type,
+    BTCScriptConfig_SimpleType script_type,
     uint8_t* pubkey_hash,
     uint8_t* output_hash,
     size_t* output_hash_size);
 bool __wrap_btc_common_outputhash_from_pubkeyhash(
-    BTCScriptType script_type,
+    BTCScriptConfig_SimpleType script_type,
     uint8_t* pubkey_hash,
     uint8_t* output_hash,
     size_t* output_hash_size)
@@ -110,7 +110,7 @@ typedef struct {
 
 typedef struct {
     BTCCoin coin;
-    BTCScriptType script_type;
+    BTCScriptConfig_SimpleType script_type;
     const char* out;
 } address_testcase_t;
 
@@ -157,45 +157,45 @@ static xpub_testcase_t _xpub_tests[] = {
 static address_testcase_t _address_tests[] = {
     {
         .coin = BTCCoin_BTC,
-        .script_type = BTCScriptType_SCRIPT_P2WPKH_P2SH,
+        .script_type = BTCScriptConfig_SimpleType_P2WPKH_P2SH,
         .out = "3HNUdmEorEcqoknW5A5Wx6GZTkHPm5TeJg",
     },
     {
         .coin = BTCCoin_BTC,
-        .script_type = BTCScriptType_SCRIPT_P2WPKH,
+        .script_type = BTCScriptConfig_SimpleType_P2WPKH,
         .out = "bc1q0stgw6ehkx66r7g22056u0p95f9z4qydmyx3ja",
     },
 
     {
         .coin = BTCCoin_TBTC,
-        .script_type = BTCScriptType_SCRIPT_P2WPKH_P2SH,
+        .script_type = BTCScriptConfig_SimpleType_P2WPKH_P2SH,
         .out = "2N8vghWAqTh8C1YR3kHhPa3Fpg6VZZRmwS8",
     },
     {
         .coin = BTCCoin_TBTC,
-        .script_type = BTCScriptType_SCRIPT_P2WPKH,
+        .script_type = BTCScriptConfig_SimpleType_P2WPKH,
         .out = "tb1q0stgw6ehkx66r7g22056u0p95f9z4qyd3zazfw",
     },
 
     {
         .coin = BTCCoin_LTC,
-        .script_type = BTCScriptType_SCRIPT_P2WPKH_P2SH,
+        .script_type = BTCScriptConfig_SimpleType_P2WPKH_P2SH,
         .out = "MPacweemoMUGcG4QB34rmjWxnSsqj8iQ5f",
     },
     {
         .coin = BTCCoin_LTC,
-        .script_type = BTCScriptType_SCRIPT_P2WPKH,
+        .script_type = BTCScriptConfig_SimpleType_P2WPKH,
         .out = "ltc1q0stgw6ehkx66r7g22056u0p95f9z4qydlcu42d",
     },
 
     {
         .coin = BTCCoin_TLTC,
-        .script_type = BTCScriptType_SCRIPT_P2WPKH_P2SH,
+        .script_type = BTCScriptConfig_SimpleType_P2WPKH_P2SH,
         .out = "2N8vghWAqTh8C1YR3kHhPa3Fpg6VZZRmwS8",
     },
     {
         .coin = BTCCoin_TLTC,
-        .script_type = BTCScriptType_SCRIPT_P2WPKH,
+        .script_type = BTCScriptConfig_SimpleType_P2WPKH,
         .out = "tltc1q0stgw6ehkx66r7g22056u0p95f9z4qydg2lue8",
     },
 };
@@ -248,13 +248,14 @@ static void _test_app_btc_xpub(void** state)
     }
 }
 
-static void _test_app_btc_address(void** state)
+static void _test_app_btc_address_simple(void** state)
 {
     { // invalid coin
-        bool result =
-            app_btc_address(_BTCCoin_MIN - 1, BTCScriptType_SCRIPT_P2WPKH, NULL, 0, NULL, 0);
+        bool result = app_btc_address_simple(
+            _BTCCoin_MIN - 1, BTCScriptConfig_SimpleType_P2WPKH, NULL, 0, NULL, 0);
         assert_false(result);
-        result = app_btc_address(_BTCCoin_MAX + 1, BTCScriptType_SCRIPT_P2WPKH, NULL, 0, NULL, 0);
+        result = app_btc_address_simple(
+            _BTCCoin_MAX + 1, BTCScriptConfig_SimpleType_P2WPKH, NULL, 0, NULL, 0);
         assert_false(result);
     }
 
@@ -269,13 +270,16 @@ static void _test_app_btc_address(void** state)
             char out[112] = {0};
             uint32_t expected_keypath[3] = {1, 2, 3};
             expect_value(
-                __wrap_btc_common_is_valid_keypath_address, script_type, test_case->script_type);
-            expect_memory(__wrap_btc_common_is_valid_keypath_address, keypath, expected_keypath, 3);
+                __wrap_btc_common_is_valid_keypath_address_simple,
+                script_type,
+                test_case->script_type);
+            expect_memory(
+                __wrap_btc_common_is_valid_keypath_address_simple, keypath, expected_keypath, 3);
             expect_value(
-                __wrap_btc_common_is_valid_keypath_address,
+                __wrap_btc_common_is_valid_keypath_address_simple,
                 keypath_len,
                 sizeof(expected_keypath) / sizeof(uint32_t));
-            will_return(__wrap_btc_common_is_valid_keypath_address, keypath_valid);
+            will_return(__wrap_btc_common_is_valid_keypath_address_simple, keypath_valid);
             if (keypath_valid) {
                 expect_memory(__wrap_keystore_get_xpub, keypath, expected_keypath, 3);
                 expect_value(
@@ -287,7 +291,7 @@ static void _test_app_btc_address(void** state)
             if (keypath_valid && get_xpub_success) {
                 will_return(__wrap_btc_common_outputhash_from_pubkeyhash, encode_success);
             }
-            bool result = app_btc_address(
+            bool result = app_btc_address_simple(
                 test_case->coin, test_case->script_type, expected_keypath, 3, out, sizeof(out));
             assert_int_equal(result, keypath_valid && get_xpub_success && encode_success);
             if (result) {
@@ -301,7 +305,7 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_app_btc_xpub),
-        cmocka_unit_test(_test_app_btc_address),
+        cmocka_unit_test(_test_app_btc_address_simple),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

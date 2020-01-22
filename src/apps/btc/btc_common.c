@@ -72,8 +72,6 @@ bool btc_common_is_valid_keypath_xpub(
         }
         uint32_t purpose = keypath[0];
         switch (purpose) {
-        case BTC_PURPOSE_P2PKH:
-            return false; // disable legacy
         case BTC_PURPOSE_P2WPKH_P2SH:
         case BTC_PURPOSE_P2WPKH:
             break;

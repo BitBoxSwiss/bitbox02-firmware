@@ -59,7 +59,7 @@ message BTCPubRequest {
 message BTCSignInitRequest {
   BTCCoin coin = 1;
   BTCScriptConfig script_config = 2; // script config for inputs and changes
-  uint32 bip44_account = 3;
+  repeated uint32 keypath_account = 3; // prefix to all input and change keypaths.
   uint32 version = 4; // must be 1 or 2
   uint32 num_inputs = 5;
   uint32 num_outputs = 6;

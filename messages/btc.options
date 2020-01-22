@@ -13,6 +13,7 @@
 // limitations under the License.
 
 BTCPubRequest.keypath max_count:10
+BTCSignInitRequest.keypath_account max_count:10
 BTCSignInputRequest.prevOutHash fixed_length:true max_size:32
 BTCSignInputRequest.keypath max_count:10
 BTCSignOutputRequest.hash max_size:32

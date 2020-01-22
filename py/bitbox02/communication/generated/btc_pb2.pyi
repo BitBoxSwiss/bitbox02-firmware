@@ -161,7 +161,7 @@ class BTCPubRequest(google___protobuf___message___Message):
 
 class BTCSignInitRequest(google___protobuf___message___Message):
     coin = ... # type: BTCCoin
-    bip44_account = ... # type: int
+    keypath_account = ... # type: google___protobuf___internal___containers___RepeatedScalarFieldContainer[int]
     version = ... # type: int
     num_inputs = ... # type: int
     num_outputs = ... # type: int
@@ -174,7 +174,7 @@ class BTCSignInitRequest(google___protobuf___message___Message):
         *,
         coin : typing___Optional[BTCCoin] = None,
         script_config : typing___Optional[BTCScriptConfig] = None,
-        bip44_account : typing___Optional[int] = None,
+        keypath_account : typing___Optional[typing___Iterable[int]] = None,
         version : typing___Optional[int] = None,
         num_inputs : typing___Optional[int] = None,
         num_outputs : typing___Optional[int] = None,
@@ -186,10 +186,10 @@ class BTCSignInitRequest(google___protobuf___message___Message):
     def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     if sys.version_info >= (3,):
         def HasField(self, field_name: typing_extensions___Literal[u"script_config"]) -> bool: ...
-        def ClearField(self, field_name: typing_extensions___Literal[u"bip44_account",u"coin",u"locktime",u"num_inputs",u"num_outputs",u"script_config",u"version"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"coin",u"keypath_account",u"locktime",u"num_inputs",u"num_outputs",u"script_config",u"version"]) -> None: ...
     else:
         def HasField(self, field_name: typing_extensions___Literal[u"script_config",b"script_config"]) -> bool: ...
-        def ClearField(self, field_name: typing_extensions___Literal[u"bip44_account",b"bip44_account",u"coin",b"coin",u"locktime",b"locktime",u"num_inputs",b"num_inputs",u"num_outputs",b"num_outputs",u"script_config",b"script_config",u"version",b"version"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"coin",b"coin",u"keypath_account",b"keypath_account",u"locktime",b"locktime",u"num_inputs",b"num_inputs",u"num_outputs",b"num_outputs",u"script_config",b"script_config",u"version",b"version"]) -> None: ...
 
 class BTCSignNextResponse(google___protobuf___message___Message):
     class Type(int):

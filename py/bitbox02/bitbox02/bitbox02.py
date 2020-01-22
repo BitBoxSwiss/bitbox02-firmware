@@ -256,7 +256,7 @@ class BitBox02(BitBoxCommonAPI):
         self,
         coin: btc.BTCCoin,
         script_config: btc.BTCScriptConfig,
-        bip44_account: int,
+        keypath_account: List[int],
         inputs: List[BTCInputType],
         outputs: List[BTCOutputType],
         version: int = 1,
@@ -294,7 +294,7 @@ class BitBox02(BitBoxCommonAPI):
             btc.BTCSignInitRequest(
                 coin=coin,
                 script_config=script_config,
-                bip44_account=bip44_account,
+                keypath_account=keypath_account,
                 version=version,
                 num_inputs=len(inputs),
                 num_outputs=len(outputs),

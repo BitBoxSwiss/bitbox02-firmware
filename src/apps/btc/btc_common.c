@@ -16,6 +16,7 @@
 
 #include "btc_common.h"
 
+#include <apps/common/bip32.h>
 #include <util.h>
 #include <wally_address.h>
 
@@ -354,5 +355,51 @@ bool btc_common_pkscript_from_outputhash(
     default:
         return false;
     }
+    return true;
+}
+
+bool btc_common_pkscript_from_multisig(
+    const BTCScriptConfig_Multisig* multisig,
+    uint32_t keypath_change,
+    uint32_t keypath_address,
+    uint8_t* script_out,
+    size_t* script_out_size)
+{
+    uint8_t pubkeys[sizeof(multisig->xpubs) / sizeof(XPub) * EC_PUBLIC_KEY_LEN];
+
+    for (size_t index = 0; index < multisig->xpubs_count; index++) {
+        const XPub* xpub_in = &multisig->xpubs[index];
+        struct ext_key xpub = {0};
+        if (!apps_common_bip32_xpub_from_protobuf(xpub_in, &xpub)) {
+            return false;
+        }
+        struct ext_key derived_cosigner_xpub = {0};
+        const uint32_t keypath[2] = {keypath_change, keypath_address};
+        if (bip32_key_from_parent_path(
+                &xpub, keypath, 2, BIP32_FLAG_KEY_PUBLIC, &derived_cosigner_xpub) != WALLY_OK) {
+            return false;
+        }
+        memcpy(
+            &pubkeys[index * EC_PUBLIC_KEY_LEN], derived_cosigner_xpub.pub_key, EC_PUBLIC_KEY_LEN);
+    }
+
+    size_t written;
+    if (wally_scriptpubkey_multisig_from_bytes(
+            pubkeys,
+            multisig->xpubs_count * EC_PUBLIC_KEY_LEN,
+            multisig->threshold,
+            WALLY_SCRIPT_MULTISIG_SORTED,
+            script_out,
+            *script_out_size,
+            &written) != WALLY_OK) {
+        return false;
+    }
+    if (written > *script_out_size) {
+        // Double check since the function above sets written to script_len if the buffer was too
+        // short.
+        return false;
+    }
+    *script_out_size = written;
+
     return true;
 }

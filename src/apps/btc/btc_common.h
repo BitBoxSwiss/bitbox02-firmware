@@ -149,4 +149,22 @@ USE_RESULT bool btc_common_pkscript_from_outputhash(
     uint8_t* pk_script,
     size_t* pk_script_len);
 
+/**
+ * Creates a n-of-m multisig script based on OP_CHECKMULTISIG. 0<n<=m<=15.
+ * Note that the multisig config and keypaths are *not* validated, this must be done before calling.
+ * @param[in] multisig Multisig configuration (threshold, signers). The xpubs are account-level
+ * xpubs.
+ * @param[in] keypath_change 0 for receive addresses, 1 for change addresses.
+ * @param[in] keypath_address receive address index.
+ * @param[out] script_out script to be created. Must be at least 517 bytes.
+ * @param[out] script_out_size The size of the generated script.
+ * @return true on success, false on failure.
+ */
+USE_RESULT bool btc_common_pkscript_from_multisig(
+    const BTCScriptConfig_Multisig* multisig,
+    uint32_t keypath_change,
+    uint32_t keypath_address,
+    uint8_t* script_out,
+    size_t* script_out_size);
+
 #endif

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+BTCScriptConfig.Multisig.xpubs max_count:15
 BTCPubRequest.keypath max_count:10
 BTCSignInitRequest.keypath_account max_count:10
 BTCSignInputRequest.prevOutHash fixed_length:true max_size:32

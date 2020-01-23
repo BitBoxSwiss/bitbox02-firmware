@@ -14,6 +14,8 @@
 
 syntax = "proto3";
 
+import "common.proto";
+
 enum BTCCoin {
   BTC = 0;
   TBTC = 1;
@@ -27,6 +29,13 @@ message BTCScriptConfig {
   enum SimpleType {
     P2WPKH_P2SH = 0;
     P2WPKH = 1;
+  }
+
+  message Multisig {
+    uint32 threshold = 1;
+    // xpubs are acount-level xpubs. Addresses are going to be derived from it using: m/<change>/<receive>.
+    // The number of xpubs defines the number of cosigners.
+    repeated XPub xpubs = 2;
   }
 
   oneof config {

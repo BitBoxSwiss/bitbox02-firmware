@@ -27,6 +27,7 @@ typedef struct {
 typedef struct {
     ETHCoin coin;
     const char* unit;
+    const char* name;
     const uint8_t contract_address[20];
     unsigned int decimals;
 } app_eth_erc20_params_t;

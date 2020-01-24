@@ -163,6 +163,8 @@ set(TEST_LIST
    ""
    app_btc
    "-Wl,--wrap=keystore_get_xpub,--wrap=btc_common_is_valid_keypath_xpub,--wrap=btc_common_is_valid_keypath_address_simple,--wrap=btc_common_encode_xpub,--wrap=btc_common_outputhash_from_pubkeyhash"
+   app_btc_multisig
+   "-Wl,--wrap=memory_multisig_get_by_hash,--wrap=apps_btc_confirm_multisig"
    app_btc_common
    ""
    app_btc_confirm_locktime_rbf

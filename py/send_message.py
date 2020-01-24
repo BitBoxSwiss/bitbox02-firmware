@@ -25,6 +25,7 @@ import base64
 import hid
 from tzlocal import get_localzone
 
+from bitbox02 import util
 from bitbox02 import bitbox02
 from bitbox02 import bitboxbase
 from bitbox02.bitboxbase import BitBoxBase, get_bitboxbase_default_device
@@ -207,6 +208,63 @@ class SendMessage:
         print("m/84'/0'/0'/0/0 address: ", address(False))
         address(True)
 
+    def _btc_multisig_config(self, coin: bitbox02.btc.BTCCoin) -> bitbox02.btc.BTCScriptConfig:
+        """
+        Get a mock multisig 1-of-2 multisig with the current device and some other arbitrary xpub.
+        Registers it on the device if not already registered.
+        """
+        account_keypath = [48 + HARDENED, 0 + HARDENED, 0 + HARDENED, 2 + HARDENED]
+
+        my_xpub = self._device.btc_xpub(
+            keypath=account_keypath,
+            coin=coin,
+            xpub_type=bitbox02.btc.BTCPubRequest.XPUB,  # pylint: disable=no-member,
+            display=False,
+        )
+        multisig_config = bitbox02.btc.BTCScriptConfig(
+            multisig=bitbox02.btc.BTCScriptConfig.Multisig(
+                threshold=1,
+                xpubs=[
+                    util.parse_xpub(my_xpub),
+                    util.parse_xpub(
+                        "xpub6FEZ9Bv73h1vnE4TJG4QFj2RPXJhhsPbnXgFyH3ErLvpcZrDcynY65bhWga8PazW"
+                        "HLSLi23PoBhGcLcYW6JRiJ12zXZ9Aop4LbAqsS3gtcy"
+                    ),
+                ],
+                our_xpub_index=0,
+            )
+        )
+
+        is_registered = self._device.btc_is_script_config_registered(
+            coin, multisig_config, account_keypath
+        )
+        if is_registered:
+            print("Multisig account already registered on the device.")
+        else:
+            multisig_name = input("Enter a name for the multisig account: ").strip()
+            self._device.btc_register_script_config(
+                coin=coin,
+                script_config=multisig_config,
+                keypath=account_keypath,
+                name=multisig_name,
+            )
+
+        return multisig_config
+
+    def _btc_multisig_address(self) -> None:
+        try:
+            coin = bitbox02.btc.BTC
+            print(
+                self._device.btc_address(
+                    coin=coin,
+                    keypath=[48 + HARDENED, 0 + HARDENED, 0 + HARDENED, 2 + HARDENED, 1, 2],
+                    script_config=self._btc_multisig_config(coin),
+                    display=True,
+                )
+            )
+        except UserAbortException:
+            print("Aborted by user")
+
     def _sign_btc_tx(self) -> None:
         # pylint: disable=no-member
         # Dummy transaction to invoke a demo.
@@ -372,6 +430,7 @@ class SendMessage:
             ("Get root fingerprint", self._get_root_fingerprint),
             ("Retrieve zpub of first account", self._display_zpub),
             ("Retrieve a BTC address", self._btc_address),
+            ("Retrieve a BTC Multisig address", self._btc_multisig_address),
             ("Sign a BTC tx", self._sign_btc_tx),
             ("List backups", self._print_backups),
             ("Check backup", self._check_backup),

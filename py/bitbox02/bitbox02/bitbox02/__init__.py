@@ -49,6 +49,7 @@ from .bitbox02 import (
     BTCOutputType,
     hww,
     btc,
+    common,
     eth,
 )
 from .bootloader import Bootloader

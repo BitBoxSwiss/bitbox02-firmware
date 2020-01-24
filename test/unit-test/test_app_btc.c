@@ -18,6 +18,7 @@
 #include <cmocka.h>
 
 #include <apps/btc/btc.h>
+#include <apps/btc/btc_common.h>
 #include <keystore.h>
 #include <util.h>
 
@@ -229,7 +230,7 @@ static void _test_app_btc_xpub(void** state)
              test_case_index < sizeof(_xpub_tests) / sizeof(xpub_testcase_t);
              test_case_index++) {
             const xpub_testcase_t* test_case = &_xpub_tests[test_case_index];
-            char out[112] = {0};
+            char out[XPUB_ENCODED_LEN] = {0};
             uint32_t expected_keypath[3] = {1, 2, 3};
             expect_value(__wrap_btc_common_is_valid_keypath_xpub, xpub_type, test_case->xpub_type);
             expect_memory(__wrap_btc_common_is_valid_keypath_xpub, keypath, expected_keypath, 3);
@@ -279,7 +280,7 @@ static void _test_app_btc_address_simple(void** state)
              test_case_index < sizeof(_address_tests) / sizeof(address_testcase_t);
              test_case_index++) {
             const address_testcase_t* test_case = &_address_tests[test_case_index];
-            char out[112] = {0};
+            char out[XPUB_ENCODED_LEN] = {0};
             uint32_t expected_keypath[3] = {1, 2, 3};
             expect_value(
                 __wrap_btc_common_is_valid_keypath_address_simple,

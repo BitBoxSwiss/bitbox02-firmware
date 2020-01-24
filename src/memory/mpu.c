@@ -14,8 +14,6 @@
 
 #include "mpu.h"
 
-#ifndef TESTING
-
 /** Order of includes here is important. */
 #include <flags.h>
 
@@ -63,5 +61,3 @@ void mpu_bitbox02_init(void)
     /* Reset the last selected region to the new setting. */
     mpu_set_region(rbar, rasr);
 }
-
-#endif

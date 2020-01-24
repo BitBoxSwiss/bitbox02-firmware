@@ -32,6 +32,7 @@ set(IGNORE_SOURCES
     "src/ui/ugui/ugui.c"
     "src/memory/nvmctrl.c"
     "src/memory/smarteeprom.c"
+    "src/memory.mpu.c"
     )
 
 # Exclude some files which depends on the hardware.

@@ -22,6 +22,14 @@
 #include <util.h>
 #include <wally_address.h>
 
+#define BTC_PURPOSE_P2WPKH_P2SH (49 + BIP32_INITIAL_HARDENED_CHILD)
+#define BTC_PURPOSE_P2WPKH (84 + BIP32_INITIAL_HARDENED_CHILD)
+#define BTC_PURPOSE_MULTISIG (48 + BIP32_INITIAL_HARDENED_CHILD)
+
+#define BIP44_ACCOUNT_MIN (BIP32_INITIAL_HARDENED_CHILD)
+#define BIP44_ACCOUNT_MAX (BIP32_INITIAL_HARDENED_CHILD + 99) // 100 accounts
+#define BIP44_ADDRESS_MAX (9999) // 10k addresses
+
 #define MULTISIG_P2WSH_MAX_SIGNERS 15
 
 // keypath_len is assumed to be greater or equal than 3.

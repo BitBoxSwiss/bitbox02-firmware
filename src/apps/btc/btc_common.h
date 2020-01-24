@@ -29,14 +29,6 @@
 #include <wally_crypto.h>
 #include <wally_script.h>
 
-#define BTC_PURPOSE_P2WPKH_P2SH (49 + BIP32_INITIAL_HARDENED_CHILD)
-#define BTC_PURPOSE_P2WPKH (84 + BIP32_INITIAL_HARDENED_CHILD)
-#define BTC_PURPOSE_MULTISIG (48 + BIP32_INITIAL_HARDENED_CHILD)
-
-#define BIP44_ACCOUNT_MIN (BIP32_INITIAL_HARDENED_CHILD)
-#define BIP44_ACCOUNT_MAX (BIP32_INITIAL_HARDENED_CHILD + 99) // 100 accounts
-#define BIP44_ADDRESS_MAX (9999) // 10k addresses
-
 #define MAX_SIGHASH_SCRIPT_SIZE (500)
 
 /**
@@ -176,7 +168,7 @@ USE_RESULT bool btc_common_pkscript_from_multisig(
  * keystore).
  * @param[in] multisig Multisig configuration (threshold, signers). The xpubs are account-level
  * xpubs.
- * @param[in] keypath address-level keypath, e.g. m/48'/0'/10'/2'/0/10
+ * @param[in] keypath account-level keypath, e.g. m/48'/0'/10'/2'
  * @param[in] keypath_len number of elements in keypath
  */
 USE_RESULT bool btc_common_multisig_is_valid(

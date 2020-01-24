@@ -20,10 +20,22 @@
 #include <btc_util.h>
 
 #include <apps/btc/btc_common.h>
+#include <keystore.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <util.h>
+
+static uint8_t _mock_seed[32] = {
+    0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
+    0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
+};
+
+// sudden tenant fault inject concert weather maid people chunk youth stumble grit
+static uint8_t _mock_bip39_seed[64] =
+    "\x5a\x11\x5b\xcd\xbe\x0f\xe1\x70\x0e\x60\x95\x74\xf3\x57\xb0\x8d\xca\x37\x15\xb0\x35\xe6\xc7"
+    "\x76\x77\x0a\xc7\xa0\xab\x2e\x2f\xea\x84\x0b\xa2\x76\x35\x06\xfa\x9c\x39\xde\x4d\xef\x27\xf6"
+    "\xf8\xeb\xce\x36\x37\x02\xe9\x83\xe5\x49\xbd\x7d\xef\x14\xa0\x31\xbf\xdd";
 
 static void _test_btc_common_format_amount_invalid_params(void** state)
 {
@@ -491,6 +503,118 @@ static void _test_btc_common_pkscript_from_multisig_unhappy(void** state)
     assert_false(btc_common_pkscript_from_multisig(&invalid, 1, 2, script, &script_size));
 }
 
+// get xpub at keypath derived form _mock_bip39_seed.
+static XPub _derive_our_xpub(const uint32_t* keypath, size_t keypath_len)
+{
+    struct ext_key xpub;
+    assert_true(keystore_get_xpub(keypath, keypath_len, &xpub));
+    char* xpub_str;
+    bip32_key_to_base58(&xpub, BIP32_FLAG_KEY_PUBLIC, &xpub_str);
+    XPub result = btc_util_parse_xpub(xpub_str);
+    free(xpub_str);
+    return result;
+}
+
+static void _test_btc_common_multisig_is_valid(void** state)
+{
+    mock_state(_mock_seed, _mock_bip39_seed);
+
+    const uint32_t expected_coin = 1 + BIP32_INITIAL_HARDENED_CHILD;
+    const uint32_t keypath[4] = {
+        48 + BIP32_INITIAL_HARDENED_CHILD,
+        expected_coin,
+        0 + BIP32_INITIAL_HARDENED_CHILD,
+        2 + BIP32_INITIAL_HARDENED_CHILD,
+    };
+
+    BTCScriptConfig_Multisig multisig = {
+        .threshold = 1,
+        .xpubs_count = 2,
+        .our_xpub_index = 1,
+    };
+    multisig.xpubs[0] = btc_util_parse_xpub(
+        "xpub6FMWuwbCA9KhoRzAMm63ZhLspk5S2DM5sePo8J8mQhcS1xyMbAqnc7Q7UescVEVFCS6qBMQLkEJWQ9Z3aDPgBo"
+        "v5nFUYxsJhwumsxM4npSo");
+    // this xpub corresponds to the mocked seed above at m/48'/1'/0'/2.
+    const char* our_xpub =
+        "xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYU"
+        "CugjeksHSbyZT7rq38VQF";
+    multisig.xpubs[multisig.our_xpub_index] = btc_util_parse_xpub(our_xpub);
+
+    mock_state(_mock_seed, NULL);
+    assert_false(btc_common_multisig_is_valid(
+        &multisig, keypath, sizeof(keypath) / sizeof(uint32_t), expected_coin));
+
+    mock_state(_mock_seed, _mock_bip39_seed);
+
+    // ok
+    assert_true(btc_common_multisig_is_valid(
+        &multisig, keypath, sizeof(keypath) / sizeof(uint32_t), expected_coin));
+
+    // number of cosigners too large
+    BTCScriptConfig_Multisig invalid = multisig;
+    invalid.xpubs_count = 16;
+    assert_false(btc_common_multisig_is_valid(
+        &invalid, keypath, sizeof(keypath) / sizeof(uint32_t), expected_coin));
+
+    // threshold larger than number of cosigners
+    invalid = multisig;
+    invalid.threshold = invalid.xpubs_count + 1;
+    assert_false(btc_common_multisig_is_valid(
+        &invalid, keypath, sizeof(keypath) / sizeof(uint32_t), expected_coin));
+
+    // threshold zero
+    invalid = multisig;
+    invalid.threshold = 0;
+    assert_false(btc_common_multisig_is_valid(
+        &invalid, keypath, sizeof(keypath) / sizeof(uint32_t), expected_coin));
+
+    uint32_t invalid_keypath[4];
+    // invalid keypath, wrong purpose
+    invalid = multisig;
+    memcpy(invalid_keypath, keypath, sizeof(keypath));
+    invalid_keypath[0]++;
+    invalid.xpubs[1] =
+        _derive_our_xpub(invalid_keypath, sizeof(invalid_keypath) / sizeof(uint32_t));
+    assert_false(btc_common_multisig_is_valid(
+        &invalid, invalid_keypath, sizeof(invalid_keypath) / sizeof(uint32_t), expected_coin));
+
+    // invalid keypath, wrong coin
+    invalid = multisig;
+    memcpy(invalid_keypath, keypath, sizeof(keypath));
+    invalid_keypath[1]++;
+    invalid.xpubs[1] =
+        _derive_our_xpub(invalid_keypath, sizeof(invalid_keypath) / sizeof(uint32_t));
+    assert_false(btc_common_multisig_is_valid(
+        &invalid, invalid_keypath, sizeof(invalid_keypath) / sizeof(uint32_t), expected_coin));
+
+    // invalid keypath, account too large
+    invalid = multisig;
+    memcpy(invalid_keypath, keypath, sizeof(keypath));
+    invalid_keypath[2] = 100 + BIP32_INITIAL_HARDENED_CHILD;
+    invalid.xpubs[1] =
+        _derive_our_xpub(invalid_keypath, sizeof(invalid_keypath) / sizeof(uint32_t));
+    assert_false(btc_common_multisig_is_valid(
+        &invalid, invalid_keypath, sizeof(invalid_keypath) / sizeof(uint32_t), expected_coin));
+
+    // invalid keypath, account script_type
+    invalid = multisig;
+    memcpy(invalid_keypath, keypath, sizeof(keypath));
+    invalid_keypath[3] = 1 + BIP32_INITIAL_HARDENED_CHILD;
+    invalid.xpubs[1] =
+        _derive_our_xpub(invalid_keypath, sizeof(invalid_keypath) / sizeof(uint32_t));
+    assert_false(btc_common_multisig_is_valid(
+        &invalid, invalid_keypath, sizeof(invalid_keypath) / sizeof(uint32_t), expected_coin));
+
+    // our xpub is not part of the multisig (overwrite our xpub with an arbitrary other one).
+    invalid = multisig;
+    invalid.xpubs[multisig.our_xpub_index] = btc_util_parse_xpub(
+        "xpub6FNT7x2ZEBMhs4jvZJSEBV2qBCBnRidNsyqe7inT9V2wmEn4sqidTEudB4dVSvEjXz2NytcymwWJb8PPYExRyc"
+        "Nf9SH8fAHzPWUsQJAmbR3");
+    assert_false(btc_common_multisig_is_valid(
+        &invalid, keypath, sizeof(keypath) / sizeof(uint32_t), expected_coin));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -501,6 +625,7 @@ int main(void)
         cmocka_unit_test(_test_btc_common_encode_xpub),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig_unhappy),
+        cmocka_unit_test(_test_btc_common_multisig_is_valid),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -29,13 +29,6 @@
 #include <wally_crypto.h>
 #include <wally_script.h>
 
-#define BTC_PURPOSE_P2WPKH_P2SH (49 + BIP32_INITIAL_HARDENED_CHILD)
-#define BTC_PURPOSE_P2WPKH (84 + BIP32_INITIAL_HARDENED_CHILD)
-
-#define BIP44_ACCOUNT_MIN (BIP32_INITIAL_HARDENED_CHILD)
-#define BIP44_ACCOUNT_MAX (BIP32_INITIAL_HARDENED_CHILD + 99) // 100 accounts
-#define BIP44_ADDRESS_MAX (9999) // 10k addresses
-
 #define MAX_SIGHASH_SCRIPT_SIZE (500)
 
 /**
@@ -166,5 +159,22 @@ USE_RESULT bool btc_common_pkscript_from_multisig(
     uint32_t keypath_address,
     uint8_t* script_out,
     size_t* script_out_size);
+
+/**
+ * Validate a m-of-n multisig account. This includes checking that:
+ * - 0 < m <= n <= 15
+ * - the keypath conforms to bip48 for p2wsh: m/48'/coin'/account'/2'
+ * - our designated xpub is actually ours (corresponds to the xpub of the currenty unlocked
+ * keystore).
+ * @param[in] multisig Multisig configuration (threshold, signers). The xpubs are account-level
+ * xpubs.
+ * @param[in] keypath account-level keypath, e.g. m/48'/0'/10'/2'
+ * @param[in] keypath_len number of elements in keypath
+ */
+USE_RESULT bool btc_common_multisig_is_valid(
+    const BTCScriptConfig_Multisig* multisig,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint32_t expected_coin);
 
 #endif

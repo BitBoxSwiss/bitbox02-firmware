@@ -15,10 +15,22 @@
 #include <stdio.h>
 
 #include "btc_common.h"
+#include <apps/common/bip32.h>
 
 #include <apps/common/bip32.h>
+#include <keystore.h>
 #include <util.h>
 #include <wally_address.h>
+
+#define BTC_PURPOSE_P2WPKH_P2SH (49 + BIP32_INITIAL_HARDENED_CHILD)
+#define BTC_PURPOSE_P2WPKH (84 + BIP32_INITIAL_HARDENED_CHILD)
+#define BTC_PURPOSE_MULTISIG (48 + BIP32_INITIAL_HARDENED_CHILD)
+
+#define BIP44_ACCOUNT_MIN (BIP32_INITIAL_HARDENED_CHILD)
+#define BIP44_ACCOUNT_MAX (BIP32_INITIAL_HARDENED_CHILD + 99) // 100 accounts
+#define BIP44_ADDRESS_MAX (9999) // 10k addresses
+
+#define MULTISIG_P2WSH_MAX_SIGNERS 15
 
 // keypath_len is assumed to be greater or equal than 3.
 static bool _validate_keypath_account(const uint32_t* keypath, uint32_t expected_coin)
@@ -53,6 +65,30 @@ static bool _validate_keypath_address(
 #error "possibly hardened address"
 #endif
     return address <= BIP44_ADDRESS_MAX;
+}
+
+// checks account level keypath derivation: m/48'/coin'/account'/2'
+static bool _is_valid_keypath_account_multisig_p2wsh(
+    const uint32_t* keypath,
+    const size_t keypath_len,
+    const uint32_t expected_coin)
+{
+    if (keypath_len != 4) {
+        return false;
+    }
+    uint32_t purpose = keypath[0];
+    if (purpose != BTC_PURPOSE_MULTISIG) {
+        return false;
+    }
+    if (!_validate_keypath_account(keypath, expected_coin)) {
+        return false;
+    }
+    uint32_t script_type = keypath[3];
+    // 2' for P2WSH.
+    if (script_type != 2 + BIP32_INITIAL_HARDENED_CHILD) {
+        return false;
+    }
+    return true;
 }
 
 bool btc_common_is_valid_keypath_xpub(
@@ -365,7 +401,7 @@ bool btc_common_pkscript_from_multisig(
     uint8_t* script_out,
     size_t* script_out_size)
 {
-    uint8_t pubkeys[sizeof(multisig->xpubs) / sizeof(XPub) * EC_PUBLIC_KEY_LEN];
+    uint8_t pubkeys[MULTISIG_P2WSH_MAX_SIGNERS * EC_PUBLIC_KEY_LEN];
 
     for (size_t index = 0; index < multisig->xpubs_count; index++) {
         const XPub* xpub_in = &multisig->xpubs[index];
@@ -401,5 +437,40 @@ bool btc_common_pkscript_from_multisig(
     }
     *script_out_size = written;
 
+    return true;
+}
+
+USE_RESULT bool btc_common_multisig_is_valid(
+    const BTCScriptConfig_Multisig* multisig,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint32_t expected_coin)
+{
+    if (multisig->xpubs_count > MULTISIG_P2WSH_MAX_SIGNERS) {
+        return false;
+    }
+    if (multisig->threshold == 0 || multisig->threshold > multisig->xpubs_count) {
+        return false;
+    }
+    if (multisig->our_xpub_index > multisig->xpubs_count) {
+        return false;
+    }
+    if (!_is_valid_keypath_account_multisig_p2wsh(keypath, keypath_len, expected_coin)) {
+        return false;
+    }
+
+    struct ext_key our_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
+    if (!keystore_get_xpub(keypath, keypath_len, &our_xpub)) {
+        return false;
+    }
+
+    const XPub* maybe_our_xpub_in = &multisig->xpubs[multisig->our_xpub_index];
+    struct ext_key maybe_our_xpub = {0};
+    if (!apps_common_bip32_xpub_from_protobuf(maybe_our_xpub_in, &maybe_our_xpub)) {
+        return false;
+    }
+    if (!apps_common_bip32_xpubs_equal(&our_xpub, &maybe_our_xpub)) {
+        return false;
+    }
     return true;
 }

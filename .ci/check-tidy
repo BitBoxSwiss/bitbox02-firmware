@@ -39,6 +39,7 @@ for dir in build build-build; do
 	SOURCES1=$(git --no-pager diff --diff-filter=d --name-only ${TARGET_BRANCH} |\
 		grep -v -E "(^src/(drivers|ui/fonts)|.*ugui.*|.*base32.*)" |\
 		grep -E "^(src|test)" |\
+		grep -v "^test/unit-test/u2f/" |\
 		grep -E "\.c\$" || true)
 
 	# Only check files if they are in the compile_commands.json file

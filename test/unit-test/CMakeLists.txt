@@ -71,7 +71,6 @@ target_include_directories(
   ${SYSTEMINCLUDES}
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/ctaes
-  ${CMAKE_SOURCE_DIR}/external/sha3
 )
 target_include_directories(
   bitbox
@@ -104,10 +103,10 @@ target_link_libraries(bitbox
     wallycore
     secp256k1
     bignum
+    sha3
   PRIVATE
     base32
     ctaes
-    sha3
 )
 
 if(SANITIZE_ADDRESS)

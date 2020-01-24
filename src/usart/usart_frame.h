@@ -31,7 +31,7 @@
  * @param[in] buf Data that has been read.
  * @param[in] size Number of bytes queued.
  */
-void usart_frame_process_rx(uint8_t* buf, size_t size);
+void usart_frame_process_rx(const uint8_t* buf, size_t size);
 
 /**
  * Initializes the parser.

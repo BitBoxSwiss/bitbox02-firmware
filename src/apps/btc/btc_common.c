@@ -18,6 +18,7 @@
 #include <apps/common/bip32.h>
 
 #include <apps/common/bip32.h>
+#include <crypto/sha2/sha256.h>
 #include <keystore.h>
 #include <util.h>
 #include <wally_address.h>
@@ -478,5 +479,80 @@ USE_RESULT bool btc_common_multisig_is_valid(
     if (!apps_common_bip32_xpubs_equal(&our_xpub, &maybe_our_xpub)) {
         return false;
     }
+    return true;
+}
+
+bool btc_common_multisig_hash(
+    BTCCoin coin,
+    const BTCScriptConfig_Multisig* multisig,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint8_t* hash_out)
+{
+    sha256_context_t ctx = {0};
+    sha256_reset(&ctx);
+
+    { // 1. coin
+        uint8_t byte;
+        switch (coin) {
+        case BTCCoin_BTC:
+            byte = 0x00;
+            break;
+        case BTCCoin_TBTC:
+            byte = 0x01;
+            break;
+        case BTCCoin_LTC:
+            byte = 0x02;
+            break;
+        case BTCCoin_TLTC:
+            byte = 0x03;
+            break;
+        default:
+            return false;
+        }
+        noise_sha256_update(&ctx, &byte, 1);
+    }
+    { // 2. script config type
+        // only one supported for now, op_checkmultisig-in-p2wsh.
+        uint8_t byte = 0x00;
+        noise_sha256_update(&ctx, &byte, 1);
+    }
+    { // 3. threshold
+        // assumes little endian environment
+        noise_sha256_update(&ctx, &multisig->threshold, sizeof(multisig->threshold));
+    }
+    { // 4. num xpubs
+        uint32_t num = multisig->xpubs_count; // cast to fixed size
+        // assumes little endian environment
+        noise_sha256_update(&ctx, &num, sizeof(num));
+    }
+    { // 5. xpubs
+        for (size_t i = 0; i < multisig->xpubs_count; i++) {
+            uint8_t xpub_serialized[BIP32_SERIALIZED_LEN] = {0};
+            struct ext_key xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
+            if (!apps_common_bip32_xpub_from_protobuf(&multisig->xpubs[i], &xpub)) {
+                return false;
+            }
+            if (bip32_key_serialize(
+                    &xpub, BIP32_FLAG_KEY_PUBLIC, xpub_serialized, sizeof(xpub_serialized)) !=
+                WALLY_OK) {
+                return false;
+            }
+            // Drop the first xpub version, which are the 4 first bytes. They are determined by the
+            // above `BIP32_FLAG_KEY_PUBLIC` flag and do not add anything, as the xpub version is
+            // chosen ad-hoc depending on the context it is used in.
+            noise_sha256_update(&ctx, xpub_serialized + 4, sizeof(xpub_serialized) - 4);
+        }
+    }
+    { // 6. keypath len
+        uint32_t len = keypath_len; // cast to fixed size
+        noise_sha256_update(&ctx, &len, sizeof(len));
+    }
+    { // 7. keypath
+        for (size_t i = 0; i < keypath_len; i++) {
+            noise_sha256_update(&ctx, &keypath[i], sizeof(keypath[i]));
+        }
+    }
+    sha256_finish(&ctx, hash_out);
     return true;
 }

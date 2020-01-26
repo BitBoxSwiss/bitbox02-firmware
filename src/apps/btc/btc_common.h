@@ -177,4 +177,21 @@ USE_RESULT bool btc_common_multisig_is_valid(
     size_t keypath_len,
     uint32_t expected_coin);
 
+/**
+ * Creates a hash of this multisig config, useful for multisig account registration and
+ * identification. The individual params are not validated, they must be pre-validated!
+ * @param[in] coin The coin this multisig is used with.
+ * @param[in] multisig The multisig config details.
+ * @param[in] keypath Account-level keypath.
+ * @param[in] keypath_len number of elements in keypath.
+ * @param[out] hash_out resulting hash; must be 32 bytes.
+ * @return true on success, false on failure.
+ */
+USE_RESULT bool btc_common_multisig_hash(
+    BTCCoin coin,
+    const BTCScriptConfig_Multisig* multisig,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint8_t* hash_out);
+
 #endif

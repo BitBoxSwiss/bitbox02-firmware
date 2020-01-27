@@ -284,6 +284,15 @@ class SendMessage:
             print("You can enter a mnemonic passphrase on the next unlock.")
             print("Replug your BitBox02.")
 
+    def _get_eth_xpub(self) -> None:
+        xpub = self._device.eth_pub(
+            keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0],
+            output_type=bitbox02.eth.ETHPubRequest.XPUB,  # pylint: disable=no-member
+            display=False,
+        )
+
+        print("Ethereum xpub: {}".format(xpub))
+
     def _display_eth_address(self) -> None:
         def address(display: bool = False) -> str:
             return self._device.eth_pub(
@@ -341,6 +350,7 @@ class SendMessage:
             ("Reboot into bootloader", self._reboot_bootloader),
             ("Check if SD card inserted", self._check_sd_presence),
             ("Toggle BIP39 Mnemonic Passphrase", self._toggle_mnemonic_passphrase),
+            ("Retrieve Ethereum xpub", self._get_eth_xpub),
             ("Retrieve Ethereum address", self._display_eth_address),
             ("Reset Device", self._reset_device),
         )

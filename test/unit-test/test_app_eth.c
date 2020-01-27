@@ -28,7 +28,10 @@
 
 static bool _is_valid_keypath = true;
 
-bool __wrap_eth_common_is_valid_keypath(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
+bool __wrap_eth_common_is_valid_keypath_address(
+    ETHCoin coin,
+    const uint32_t* keypath,
+    size_t keypath_len)
 {
     return _is_valid_keypath;
 }

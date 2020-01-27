@@ -36,28 +36,34 @@ static void _test_eth_common_is_valid_keypath_invalid(void** state)
         0,
     };
 
+    // too long
+    assert_false(eth_common_is_valid_keypath_xpub(ETHCoin_ETH, keypath, 5));
+
     // too short
-    assert_false(eth_common_is_valid_keypath(ETHCoin_ETH, keypath, 4));
+    assert_false(eth_common_is_valid_keypath_xpub(ETHCoin_ETH, keypath, 3));
+
+    // too short
+    assert_false(eth_common_is_valid_keypath_address(ETHCoin_ETH, keypath, 4));
 
     // too long
-    assert_false(eth_common_is_valid_keypath(ETHCoin_ETH, keypath, 6));
+    assert_false(eth_common_is_valid_keypath_address(ETHCoin_ETH, keypath, 6));
 
     // tweak keypath elements (except for the last, see `_test_eth_common_is_valid_keypath_accounts`
     // for that)
     for (size_t i = 0; i < 4; i++) {
         {
             keypath[i]++;
-            assert_false(eth_common_is_valid_keypath(ETHCoin_ETH, keypath, 5));
+            assert_false(eth_common_is_valid_keypath_address(ETHCoin_ETH, keypath, 5));
             keypath[i]--;
         }
     }
 
     // wrong purpose for coin
-    assert_false(eth_common_is_valid_keypath(ETHCoin_RopstenETH, keypath, 5));
-    assert_false(eth_common_is_valid_keypath(ETHCoin_RinkebyETH, keypath, 5));
+    assert_false(eth_common_is_valid_keypath_address(ETHCoin_RopstenETH, keypath, 5));
+    assert_false(eth_common_is_valid_keypath_address(ETHCoin_RinkebyETH, keypath, 5));
 
     // Invalid coin
-    assert_false(eth_common_is_valid_keypath(_ETHCoin_MAX + 1, keypath, 5));
+    assert_false(eth_common_is_valid_keypath_address(_ETHCoin_MAX + 1, keypath, 5));
 }
 
 static void _test_eth_common_is_valid_keypath_accounts(void** state)
@@ -70,14 +76,16 @@ static void _test_eth_common_is_valid_keypath_accounts(void** state)
         0,
     };
 
+    assert_true(eth_common_is_valid_keypath_xpub(ETHCoin_ETH, keypath, 4));
+
     // 100 valid accounts
     for (size_t i = 0; i < 100; i++) {
         keypath[4] = i;
-        assert_true(eth_common_is_valid_keypath(ETHCoin_ETH, keypath, 5));
+        assert_true(eth_common_is_valid_keypath_address(ETHCoin_ETH, keypath, 5));
     }
     // invalid account
     keypath[4] = 100;
-    assert_false(eth_common_is_valid_keypath(ETHCoin_ETH, keypath, 5));
+    assert_false(eth_common_is_valid_keypath_address(ETHCoin_ETH, keypath, 5));
 }
 
 static void _bigendian_to_scalar(const uint8_t* bytes, size_t len, bignum256* out)

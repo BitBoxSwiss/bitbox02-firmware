@@ -64,11 +64,13 @@ static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse
         char title[100] = {0};
         switch (request->output.xpub_type) {
         case BTCPubRequest_XPubType_TPUB:
-        case BTCPubRequest_XPubType_VPUB:
-        case BTCPubRequest_XPubType_UPUB:
         case BTCPubRequest_XPubType_XPUB:
         case BTCPubRequest_XPubType_YPUB:
         case BTCPubRequest_XPubType_ZPUB:
+        case BTCPubRequest_XPubType_VPUB:
+        case BTCPubRequest_XPubType_UPUB:
+        case BTCPubRequest_XPubType_CAPITAL_VPUB:
+        case BTCPubRequest_XPubType_CAPITAL_ZPUB:
             snprintf(
                 title,
                 sizeof(title),

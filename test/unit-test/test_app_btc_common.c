@@ -94,23 +94,26 @@ static void _test_btc_common_format_amount(void** state)
     }
 }
 
-static void _test_btc_common_is_valid_keypath_xpubs(void** state)
+// tests keypaths of len 3 - currently for p2wpkh-p2sh ad p2wpkh.
+static void _test_btc_common_is_valid_keypath_xpubs_len3(void** state)
 {
     const uint32_t bip44_account = 0 + BIP32_INITIAL_HARDENED_CHILD;
     const uint32_t bip44_coin = 1 + BIP32_INITIAL_HARDENED_CHILD;
 
-    // only p2wpkh-p2sh and p2wpkh are valid purposes
+    // only p2wpkh-p2sh and p2wpkh are tested here.
     const uint32_t valid_purposes[] = {
         49 + BIP32_INITIAL_HARDENED_CHILD,
         84 + BIP32_INITIAL_HARDENED_CHILD,
     };
     const BTCOutputType output_types[] = {
         BTCPubRequest_XPubType_TPUB,
-        BTCPubRequest_XPubType_VPUB,
-        BTCPubRequest_XPubType_UPUB,
         BTCPubRequest_XPubType_XPUB,
         BTCPubRequest_XPubType_YPUB,
         BTCPubRequest_XPubType_ZPUB,
+        BTCPubRequest_XPubType_VPUB,
+        BTCPubRequest_XPubType_UPUB,
+        BTCPubRequest_XPubType_CAPITAL_VPUB,
+        BTCPubRequest_XPubType_CAPITAL_ZPUB,
     };
     for (size_t purpose_idx = 0; purpose_idx < sizeof(valid_purposes) / sizeof(uint32_t);
          purpose_idx++) {
@@ -168,9 +171,103 @@ static void _test_btc_common_is_valid_keypath_xpubs(void** state)
         };
         assert_false(
             btc_common_is_valid_keypath_xpub(BTCPubRequest_XPubType_XPUB, keypath, 3, bip44_coin));
+        keypath[0] = 48 + BIP32_INITIAL_HARDENED_CHILD;
+        assert_false(
+            btc_common_is_valid_keypath_xpub(BTCPubRequest_XPubType_XPUB, keypath, 3, bip44_coin));
         keypath[0] = 100 + BIP32_INITIAL_HARDENED_CHILD;
         assert_false(
             btc_common_is_valid_keypath_xpub(BTCPubRequest_XPubType_XPUB, keypath, 3, bip44_coin));
+    }
+}
+
+static void _test_btc_common_is_valid_keypath_xpubs_multisig_p2wsh(void** state)
+{
+    const uint32_t bip44_account = 0 + BIP32_INITIAL_HARDENED_CHILD;
+    const uint32_t bip44_coin = 1 + BIP32_INITIAL_HARDENED_CHILD;
+
+    const BTCOutputType output_types[] = {
+        BTCPubRequest_XPubType_TPUB,
+        BTCPubRequest_XPubType_XPUB,
+        BTCPubRequest_XPubType_YPUB,
+        BTCPubRequest_XPubType_ZPUB,
+        BTCPubRequest_XPubType_VPUB,
+        BTCPubRequest_XPubType_UPUB,
+        BTCPubRequest_XPubType_CAPITAL_VPUB,
+        BTCPubRequest_XPubType_CAPITAL_ZPUB,
+    };
+    for (size_t output_type_idx = 0; output_type_idx < sizeof(output_types) / sizeof(BTCOutputType);
+         output_type_idx++) {
+        const uint32_t keypath[5] = {
+            48 + BIP32_INITIAL_HARDENED_CHILD,
+            bip44_coin,
+            bip44_account,
+            2 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+        };
+        assert_true(btc_common_is_valid_keypath_xpub(
+            output_types[output_type_idx], keypath, 4, bip44_coin));
+
+        { // invalid account
+            uint32_t invalid_keypath[4] = {
+                48 + BIP32_INITIAL_HARDENED_CHILD,
+                bip44_coin,
+                BIP32_INITIAL_HARDENED_CHILD - 1,
+                2 + BIP32_INITIAL_HARDENED_CHILD,
+            };
+            assert_false(btc_common_is_valid_keypath_xpub(
+                output_types[output_type_idx], invalid_keypath, 4, bip44_coin));
+            // max 100 accounts
+            invalid_keypath[2] = BIP32_INITIAL_HARDENED_CHILD + 100;
+            assert_false(btc_common_is_valid_keypath_xpub(
+                output_types[output_type_idx], invalid_keypath, 4, bip44_coin));
+        }
+        { // expected coin and keypath coin do not match
+            assert_false(btc_common_is_valid_keypath_xpub(
+                output_types[output_type_idx], keypath, 4, 2 + BIP32_INITIAL_HARDENED_CHILD));
+        }
+
+        { // invalid script types
+            uint32_t invalid_keypath[4] = {
+                48 + BIP32_INITIAL_HARDENED_CHILD,
+                bip44_coin,
+                bip44_account,
+                0 + BIP32_INITIAL_HARDENED_CHILD,
+            };
+            assert_false(btc_common_is_valid_keypath_xpub(
+                output_types[output_type_idx], invalid_keypath, 4, bip44_coin));
+            invalid_keypath[3] = 1 + BIP32_INITIAL_HARDENED_CHILD;
+            assert_false(btc_common_is_valid_keypath_xpub(
+                output_types[output_type_idx], invalid_keypath, 4, bip44_coin));
+        }
+
+        { // invalid keypath sizes
+            assert_false(btc_common_is_valid_keypath_xpub(
+                output_types[output_type_idx], keypath, 3, bip44_coin));
+            assert_false(btc_common_is_valid_keypath_xpub(
+                output_types[output_type_idx], keypath, 2, bip44_coin));
+            assert_false(btc_common_is_valid_keypath_xpub(
+                output_types[output_type_idx], keypath, 1, bip44_coin));
+            assert_false(btc_common_is_valid_keypath_xpub(
+                output_types[output_type_idx], keypath, 0, bip44_coin));
+            assert_false(btc_common_is_valid_keypath_xpub(
+                output_types[output_type_idx], keypath, 5, bip44_coin));
+        }
+    }
+
+    { // invalid purposes
+        uint32_t keypath[] = {
+            44 + BIP32_INITIAL_HARDENED_CHILD,
+            bip44_coin,
+            bip44_account,
+        };
+        assert_false(
+            btc_common_is_valid_keypath_xpub(BTCPubRequest_XPubType_XPUB, keypath, 4, bip44_coin));
+        keypath[0] = 49 + BIP32_INITIAL_HARDENED_CHILD;
+        assert_false(
+            btc_common_is_valid_keypath_xpub(BTCPubRequest_XPubType_XPUB, keypath, 4, bip44_coin));
+        keypath[0] = 100 + BIP32_INITIAL_HARDENED_CHILD;
+        assert_false(
+            btc_common_is_valid_keypath_xpub(BTCPubRequest_XPubType_XPUB, keypath, 4, bip44_coin));
     }
 }
 
@@ -620,7 +717,8 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_btc_common_format_amount_invalid_params),
         cmocka_unit_test(_test_btc_common_format_amount),
-        cmocka_unit_test(_test_btc_common_is_valid_keypath_xpubs),
+        cmocka_unit_test(_test_btc_common_is_valid_keypath_xpubs_len3),
+        cmocka_unit_test(_test_btc_common_is_valid_keypath_xpubs_multisig_p2wsh),
         cmocka_unit_test(_test_btc_common_is_valid_keypath_address_simple),
         cmocka_unit_test(_test_btc_common_encode_xpub),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig),

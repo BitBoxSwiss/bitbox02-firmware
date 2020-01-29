@@ -51,9 +51,11 @@ message BTCPubRequest {
     TPUB = 0;
     XPUB = 1;
     YPUB = 2;
-    ZPUB = 3;
-    VPUB = 4;
+    ZPUB = 3; // zpub
+    VPUB = 4; // vpub
     UPUB = 5;
+    CAPITAL_VPUB = 6; // Vpub
+    CAPITAL_ZPUB = 7; // Zpub
   }
 
   BTCCoin coin = 1;

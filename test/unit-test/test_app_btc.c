@@ -152,6 +152,18 @@ static xpub_testcase_t _xpub_tests[] = {
         .out = "zpub6jftahH18ngZxpzeDjhxr4sULpQRji5vY1Nbh9tSxbZdprfTtRtoi4Bnuhb7GqbU8Xpaueq2pgwEve8"
                "Yx3fez3GxH5ALH8vP5Ud7CUbyUKz",
     },
+    {
+        .coin = BTCCoin_BTC,
+        .xpub_type = BTCPubRequest_XPubType_CAPITAL_VPUB,
+        .out = "Vpub5dEvVGKn7251zDPYpy2SqnqGNjruBaoXBpwPUqaSpLtXEdyTeCcqJvRAdaiEqeCgjSRLnLSusFuYWfJ"
+               "4NVAYwafDeBV3Lu7RtJeQEBLEptm",
+    },
+    {
+        .coin = BTCCoin_BTC,
+        .xpub_type = BTCPubRequest_XPubType_CAPITAL_ZPUB,
+        .out = "Zpub6vZyhw1ShkEwPQA2AQAwg9DH4cSgx4mWrH2GcR9zLNQ3T3ENeqH5oB3iiQYaqGpNMztZnEq9huKk3ok"
+               "KFGpc8XPd7YGjgYPNyCtynNreibs",
+    },
 };
 
 static address_testcase_t _address_tests[] = {

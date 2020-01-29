@@ -99,11 +99,17 @@ bool btc_common_is_valid_keypath_xpub(
 {
     switch (xpub_type) {
     case BTCPubRequest_XPubType_TPUB:
-    case BTCPubRequest_XPubType_VPUB:
-    case BTCPubRequest_XPubType_UPUB:
     case BTCPubRequest_XPubType_XPUB:
     case BTCPubRequest_XPubType_YPUB:
     case BTCPubRequest_XPubType_ZPUB:
+    case BTCPubRequest_XPubType_VPUB:
+    case BTCPubRequest_XPubType_UPUB:
+    case BTCPubRequest_XPubType_CAPITAL_VPUB:
+    case BTCPubRequest_XPubType_CAPITAL_ZPUB:
+        if (_is_valid_keypath_account_multisig_p2wsh(keypath, keypath_len, expected_coin)) {
+            return true;
+        }
+
         if (keypath_len != 3) {
             return false;
         }

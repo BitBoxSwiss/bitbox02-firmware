@@ -151,12 +151,16 @@ class BTCPubRequest(google___protobuf___message___Message):
         ZPUB = typing___cast(BTCPubRequest.XPubType, 3)
         VPUB = typing___cast(BTCPubRequest.XPubType, 4)
         UPUB = typing___cast(BTCPubRequest.XPubType, 5)
+        CAPITAL_VPUB = typing___cast(BTCPubRequest.XPubType, 6)
+        CAPITAL_ZPUB = typing___cast(BTCPubRequest.XPubType, 7)
     TPUB = typing___cast(BTCPubRequest.XPubType, 0)
     XPUB = typing___cast(BTCPubRequest.XPubType, 1)
     YPUB = typing___cast(BTCPubRequest.XPubType, 2)
     ZPUB = typing___cast(BTCPubRequest.XPubType, 3)
     VPUB = typing___cast(BTCPubRequest.XPubType, 4)
     UPUB = typing___cast(BTCPubRequest.XPubType, 5)
+    CAPITAL_VPUB = typing___cast(BTCPubRequest.XPubType, 6)
+    CAPITAL_ZPUB = typing___cast(BTCPubRequest.XPubType, 7)
 
     coin = ... # type: BTCCoin
     keypath = ... # type: google___protobuf___internal___containers___RepeatedScalarFieldContainer[int]

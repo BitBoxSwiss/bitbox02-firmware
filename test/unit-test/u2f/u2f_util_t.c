@@ -8,6 +8,7 @@
 #include <time.h>
 
 #include <arpa/inet.h>
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -229,7 +230,7 @@ int U2Fob_init(struct U2Fob* device)
 
     res = U2Fob_sendHidFrame(device, &challenge);
     if (res != 0) {
-        printf("err other %d\n", device->cid);
+        printf("err other %" PRIu32 "\n", device->cid);
         return res;
     }
 

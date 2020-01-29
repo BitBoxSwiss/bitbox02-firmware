@@ -256,7 +256,7 @@ static void _usart_frame_process_byte(uint8_t b)
 }
 static int total_n_rcv_bytes = 0;
 
-void usart_frame_process_rx(uint8_t* buf, size_t size)
+void usart_frame_process_rx(const uint8_t* buf, size_t size)
 {
     for (size_t i = 0; i < size; ++i) {
         _usart_frame_process_byte(buf[i]);

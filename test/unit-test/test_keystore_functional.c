@@ -20,6 +20,8 @@
 #include <keystore.h>
 
 #include <apps/btc/btc_common.h>
+#include <memory/bitbox02_smarteeprom.h>
+#include <memory/smarteeprom.h>
 #include <mock_memory.h>
 #include <securechip/securechip.h>
 #include <util.h>

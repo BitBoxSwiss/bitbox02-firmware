@@ -136,7 +136,7 @@ static void _random_payload(uint8_t* buf, size_t length)
  *
  * Randomly splits the buffer into multiple segments.
  */
-static void _tx_buffer(uint8_t* buf, size_t length)
+static void _tx_buffer(const uint8_t* buf, size_t length)
 {
     /* Maybe split the message into two calls to usart_frame_process_rx. */
     bool split = (rand() % 2 == 0) && (length > 1);
@@ -264,7 +264,7 @@ static void test_basic(void** state)
         expect_value(__wrap_usb_processing_enqueue, length, msg_len);
         expect_value(__wrap_usb_processing_enqueue, cmd, endpoints[i]);
         will_return(__wrap_usb_processing_enqueue, true);
-        _tx_buffer(encoded[i], encoded_len[i]);
+        _tx_buffer((const uint8_t*)encoded[i], encoded_len[i]);
     }
 }
 

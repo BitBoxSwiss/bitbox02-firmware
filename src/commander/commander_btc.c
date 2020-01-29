@@ -53,6 +53,7 @@ static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse
     }
     if (request->display) {
         char title[100] = {0};
+        int n_written;
         switch (request->output.xpub_type) {
         case BTCPubRequest_XPubType_TPUB:
         case BTCPubRequest_XPubType_XPUB:
@@ -62,12 +63,20 @@ static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse
         case BTCPubRequest_XPubType_UPUB:
         case BTCPubRequest_XPubType_CAPITAL_VPUB:
         case BTCPubRequest_XPubType_CAPITAL_ZPUB:
-            snprintf(
+            n_written = snprintf(
                 title,
                 sizeof(title),
                 "%s\naccount #%lu",
                 btc_common_coin_name(request->coin),
                 (unsigned long)request->keypath[2] - BIP32_INITIAL_HARDENED_CHILD + 1);
+            if (n_written < 0 || n_written >= (int)sizeof(title)) {
+                /*
+                 * The message was truncated, or an error occurred.
+                 * We don't want to display it: there could
+                 * be some possibility for deceiving the user.
+                 */
+                return COMMANDER_ERR_GENERIC;
+            }
             break;
         default:
             return COMMANDER_ERR_GENERIC;
@@ -95,14 +104,23 @@ static commander_error_t _btc_pub_address_simple(
     if (request->display) {
         const char* coin = btc_common_coin_name(request->coin);
         char title[100] = {0};
+        int n_written;
         switch (request->output.script_config.config.simple_type) {
         case BTCScriptConfig_SimpleType_P2WPKH_P2SH:
-            snprintf(title, sizeof(title), "%s", coin);
+            n_written = snprintf(title, sizeof(title), "%s", coin);
             break;
         case BTCScriptConfig_SimpleType_P2WPKH:
-            snprintf(title, sizeof(title), "%s bech32", coin);
+            n_written = snprintf(title, sizeof(title), "%s bech32", coin);
             break;
         default:
+            return COMMANDER_ERR_GENERIC;
+        }
+        if (n_written < 0 || n_written >= (int)sizeof(title)) {
+            /*
+             * The message was truncated, or an error occurred.
+             * We don't want to display it: there could
+             * be some possibility for deceiving the user.
+             */
             return COMMANDER_ERR_GENERIC;
         }
         if (!workflow_verify_pub(title, response->pub)) {

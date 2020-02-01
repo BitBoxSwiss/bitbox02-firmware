@@ -32,6 +32,9 @@ typedef struct {
     bool longtouch;
     // If true, the user can only confirm, not reject.
     bool accept_only;
+    // if true, the accept icon is a right arrow instead of a checkmark (indicating going to the
+    // "next" screen).
+    bool accept_is_nextarrow;
 } confirm_params_t;
 
 /**

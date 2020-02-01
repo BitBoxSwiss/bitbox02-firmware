@@ -44,12 +44,22 @@ typedef struct {
 static void _render(component_t* component)
 {
     data_t* data = (data_t*)component->data;
-    uint16_t y;
-
-    if (data->location == top_slider) {
-        y = data->active_count / SCALE;
+    uint16_t y = 0;
+    uint16_t x = data->type == ICON_BUTTON_CROSS ? (SCREEN_WIDTH / 6) : (SCREEN_WIDTH / 6 * 5);
+    const uint16_t arrow_height = 4;
+    if (data->type == ICON_BUTTON_NEXT) {
+        if (data->location == bottom_slider) {
+            y = SCREEN_HEIGHT - arrow_height * 2;
+        }
+        // horizontal animation
+        x += data->active_count / SCALE;
     } else {
-        y = SCREEN_HEIGHT - data->active_count / SCALE - IMAGE_DEFAULT_ARROW_HEIGHT - 1;
+        // vertical animation
+        if (data->location == top_slider) {
+            y = data->active_count / SCALE;
+        } else {
+            y = SCREEN_HEIGHT - data->active_count / SCALE - IMAGE_DEFAULT_ARROW_HEIGHT - 1;
+        }
     }
 
     // Explicit upcast to signed int, avoids underflow (happens automatically,
@@ -59,10 +69,13 @@ static void _render(component_t* component)
 
     switch (data->type) {
     case ICON_BUTTON_CHECK:
-        image_checkmark(SCREEN_WIDTH / 6 * 5, y, IMAGE_DEFAULT_CHECKMARK_HEIGHT);
+        image_checkmark(x, y, IMAGE_DEFAULT_CHECKMARK_HEIGHT);
         break;
     case ICON_BUTTON_CROSS:
-        image_cross(SCREEN_WIDTH / 6, y, IMAGE_DEFAULT_CROSS_HEIGHT);
+        image_cross(x, y, IMAGE_DEFAULT_CROSS_HEIGHT);
+        break;
+    case ICON_BUTTON_NEXT:
+        image_arrow(x, y, arrow_height, ARROW_RIGHT);
         break;
     default:
         break;
@@ -99,6 +112,7 @@ static void _on_event(const event_t* event, component_t* component)
     gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
     switch (data->type) {
     case ICON_BUTTON_CHECK:
+    case ICON_BUTTON_NEXT:
         if (slider_data->position < SLIDER_POSITION_TWO_THIRD) {
             data->active = false;
             return;

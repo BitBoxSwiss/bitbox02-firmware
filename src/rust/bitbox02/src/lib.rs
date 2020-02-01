@@ -130,6 +130,7 @@ pub fn workflow_confirm(
         scrollable: false,
         longtouch: longtouch,
         accept_only: accept_only,
+        accept_is_nextarrow: false,
     };
 
     unsafe {

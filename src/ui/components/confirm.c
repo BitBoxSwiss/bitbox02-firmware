@@ -95,7 +95,11 @@ component_t* confirm_create(
             ui_util_add_sub_component(confirm, confirm_gesture_create(confirm));
         } else {
             ui_util_add_sub_component(
-                confirm, icon_button_create(slider_position, ICON_BUTTON_CHECK, confirm_callback));
+                confirm,
+                icon_button_create(
+                    slider_position,
+                    params->accept_is_nextarrow ? ICON_BUTTON_NEXT : ICON_BUTTON_CHECK,
+                    confirm_callback));
         }
     }
 

@@ -123,7 +123,12 @@ static commander_error_t _api_get_info(DeviceInfoResponse* device_info)
 
 static commander_error_t _api_set_device_name(const SetDeviceNameRequest* request)
 {
-    if (!workflow_confirm_scrollable("Name", request->name, NULL, false)) {
+    const confirm_params_t params = {
+        .title = "Name",
+        .body = request->name,
+        .scrollable = true,
+    };
+    if (!workflow_confirm(&params)) {
         return COMMANDER_ERR_USER_ABORT;
     }
     if (!memory_set_device_name(request->name)) {

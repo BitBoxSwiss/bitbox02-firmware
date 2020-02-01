@@ -51,20 +51,6 @@ enum workflow_async_ready workflow_confirm_async(
     bool* result);
 
 /**
- * Confirm something with the user.
- * @param[in] title shown at the top
- * @param[in] body shown in the center; horizontally scrollable.
- * @param[in] font if not NULL will use the specified font for the body
- * @param[in] accept_only if true, the user can only confirm, not reject.
- * @return true if the user accepted, false if the user rejected.
- */
-bool workflow_confirm_scrollable(
-    const char* title,
-    const char* body,
-    const UG_FONT* font,
-    bool accept_only);
-
-/**
  * Confirm something with the user using longtouch.
  * @param[in] title title
  * @param[in] body body

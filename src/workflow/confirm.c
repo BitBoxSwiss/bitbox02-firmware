@@ -105,28 +105,6 @@ bool workflow_confirm(const confirm_params_t* params)
     return _result;
 }
 
-bool workflow_confirm_scrollable(
-    const char* title,
-    const char* body,
-    const UG_FONT* font,
-    bool accept_only)
-{
-    _result = false;
-    const confirm_params_t params = {
-        .title = title,
-        .body = body,
-        .font = font,
-        .scrollable = true,
-    };
-    ui_screen_stack_push(confirm_create(&params, _confirm, accept_only ? NULL : _reject));
-    bool blocking_result = workflow_blocking_block();
-    ui_screen_stack_pop();
-    if (!blocking_result) {
-        return false;
-    }
-    return _result;
-}
-
 bool workflow_confirm_scrollable_longtouch(
     const char* title,
     const char* body,

@@ -73,21 +73,6 @@ bool workflow_confirm_scrollable(
     bool accept_only);
 
 /**
- * Confirm something with the user.
- * @param[in] title title
- * @param[in] body body
- * @param[in] font if not NULL will use the specified font for the body
- * @param[in] accept_only if trye, tue user can only confirm, not reject.
- * @param[in] timeout screen refreshes until timeout
- */
-bool workflow_confirm_with_timeout(
-    const char* title,
-    const char* body,
-    const UG_FONT* font,
-    bool accept_only,
-    uint32_t timeout);
-
-/**
  * Confirm something with the user using longtouch.
  * @param[in] title title
  * @param[in] body body

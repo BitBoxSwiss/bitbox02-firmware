@@ -165,15 +165,6 @@ void hid_free_enumeration(struct hid_device_info* devs) {}
 
 void __wrap_workflow_status_create(const char* msg, bool status_success) {}
 
-bool __wrap_workflow_confirm_with_timeout(
-    const char* title,
-    const char* body,
-    bool accept_only,
-    uint32_t timeout)
-{
-    return false;
-}
-
 bool __wrap_workflow_unlock(void)
 {
     return true;

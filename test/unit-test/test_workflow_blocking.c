@@ -42,31 +42,10 @@ static void _test_workflow_blocking(void** state)
     assert_false(workflow_blocking_block());
 }
 
-static void _test_workflow_blocking_with_timeout(void** state)
-{
-    const uint32_t timeout = 123;
-
-    /* Normal unblock. */
-    _force_unblock = false;
-    _unblock = true;
-    assert_true(workflow_blocking_block_with_timeout(timeout));
-
-    /* No timeout, forced unblock. */
-    _force_unblock = true;
-    _unblock = false;
-    assert_false(workflow_blocking_block_with_timeout(timeout));
-
-    /* Let the workflow timeout. */
-    _force_unblock = false;
-    _unblock = false;
-    assert_false(workflow_blocking_block_with_timeout(timeout));
-}
-
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_workflow_blocking),
-        cmocka_unit_test(_test_workflow_blocking_with_timeout),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -105,13 +105,12 @@ static void cancel_callback(component_t* component) {}
 
 static void test_ui_components_confirm(void** state)
 {
-    component_t* confirm = confirm_create(
-        "Is the Code correct?",
-        "CODE",
-        &font_monogram_5X9,
-        false,
-        confirm_callback,
-        cancel_callback);
+    const confirm_params_t params = {
+        .title = "Is the Code correct?",
+        .body = "CODE",
+        .font = &font_monogram_5X9,
+    };
+    component_t* confirm = confirm_create(&params, confirm_callback, cancel_callback);
     assert_non_null(confirm);
     assert_ui_component_functions(confirm);
     confirm->f->cleanup(confirm);

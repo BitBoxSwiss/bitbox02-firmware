@@ -52,12 +52,8 @@ static const component_functions_t _component_functions = {
 
 /********************************** Create Instance **********************************/
 
-static component_t* _confirm_create(
-    const char* title,
-    const char* body,
-    const UG_FONT* font,
-    bool scrollable,
-    bool longtouch,
+component_t* confirm_create(
+    const confirm_params_t* params,
     void (*confirm_callback)(component_t*),
     void (*cancel_callback)(component_t*))
 {
@@ -79,21 +75,23 @@ static component_t* _confirm_create(
     confirm->dimension.width = SCREEN_WIDTH;
     confirm->dimension.height = SCREEN_HEIGHT;
 
-    uint8_t slider_position = scrollable || longtouch ? top_slider : bottom_slider;
+    uint8_t slider_position = params->scrollable || params->longtouch ? top_slider : bottom_slider;
     // Create labels
-    if (scrollable) {
-        ui_util_add_sub_component(confirm, label_create_scrollable(body, font, CENTER, confirm));
+    if (params->scrollable) {
+        ui_util_add_sub_component(
+            confirm, label_create_scrollable(params->body, params->font, CENTER, confirm));
     } else {
-        ui_util_add_sub_component(confirm, label_create(body, font, CENTER, confirm));
+        ui_util_add_sub_component(
+            confirm, label_create(params->body, params->font, CENTER, confirm));
     }
-    ui_util_add_sub_component(confirm, label_create(title, NULL, CENTER_TOP, confirm));
+    ui_util_add_sub_component(confirm, label_create(params->title, NULL, CENTER_TOP, confirm));
     // Create buttons
     if (cancel_callback != NULL) {
         ui_util_add_sub_component(
             confirm, icon_button_create(slider_position, ICON_BUTTON_CROSS, cancel_callback));
     }
     if (confirm_callback != NULL) {
-        if (longtouch) {
+        if (params->longtouch) {
             ui_util_add_sub_component(confirm, confirm_gesture_create(confirm));
         } else {
             ui_util_add_sub_component(
@@ -102,26 +100,4 @@ static component_t* _confirm_create(
     }
 
     return confirm;
-}
-
-component_t* confirm_create(
-    const char* title,
-    const char* body,
-    const UG_FONT* font,
-    bool longtouch,
-    void (*confirm_callback)(component_t*),
-    void (*cancel_callback)(component_t*))
-{
-    return _confirm_create(title, body, font, false, longtouch, confirm_callback, cancel_callback);
-}
-
-component_t* confirm_create_scrollable(
-    const char* title,
-    const char* body,
-    const UG_FONT* font,
-    bool longtouch,
-    void (*confirm_callback)(component_t*),
-    void (*cancel_callback)(component_t*))
-{
-    return _confirm_create(title, body, font, true, longtouch, confirm_callback, cancel_callback);
 }

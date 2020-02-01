@@ -18,23 +18,16 @@
 #include "async.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include <ui/components/confirm.h>
 #include <ui/ugui/ugui.h>
 
 /**
  * Confirm something with the user.
- * @param[in] title shown at the top
- * @param[in] body shown in the center
- * @param[in] font if not NULL will use the specified font for the body
- * @param[in] longtouch if true, require the hold gesture to confirm instead of tap.
+ * @param[in] params see confirm_params_t for details.
  * @param[in] accept_only if true, the user can only confirm, not reject.
  * @return true if the user accepted, false if the user rejected.
  */
-bool workflow_confirm(
-    const char* title,
-    const char* body,
-    const UG_FONT* font,
-    bool longtouch,
-    bool accept_only);
+bool workflow_confirm(const confirm_params_t* params, bool accept_only);
 
 /**
  * Confirm something with the user asynchronously.

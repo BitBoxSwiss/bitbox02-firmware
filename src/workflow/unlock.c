@@ -46,12 +46,12 @@ static bool _get_mnemonic_passphrase(char* passphrase_out)
             // No need to confirm the empty passphrase.
             break;
         }
-        if (!workflow_confirm(
-                "",
-                "You will be asked to\nvisually confirm your\npassphrase now.",
-                NULL,
-                false,
-                true)) {
+        const confirm_params_t params = {
+            .title = "",
+            .body = "You will be asked to\nvisually confirm your\npassphrase now.",
+        };
+
+        if (!workflow_confirm(&params, true)) {
             return false;
         }
         bool cancel_forced = false;

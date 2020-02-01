@@ -47,7 +47,11 @@ bool workflow_reboot(void)
 {
 #if PLATFORM_BITBOX02 == 1
     // Only ask on the bitbox02 platform, bitboxbase will always reboot
-    if (!workflow_confirm("", "Proceed to upgrade?", NULL, false, false)) {
+    const confirm_params_t params = {
+        .title = "",
+        .body = "Proceed to upgrade?",
+    };
+    if (!workflow_confirm(&params, false)) {
         return false;
     }
 #endif

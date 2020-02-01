@@ -18,7 +18,6 @@
 #include "blocking.h"
 #include "hardfault.h"
 
-#include <ui/components/confirm.h>
 #include <ui/screen_stack.h>
 
 #include <stddef.h>
@@ -94,21 +93,10 @@ enum workflow_async_ready workflow_confirm_async(
     }
 }
 
-bool workflow_confirm(
-    const char* title,
-    const char* body,
-    const UG_FONT* font,
-    bool longtouch,
-    bool accept_only)
+bool workflow_confirm(const confirm_params_t* params, bool accept_only)
 {
     _result = false;
-    const confirm_params_t params = {
-        .title = title,
-        .body = body,
-        .font = font,
-        .longtouch = longtouch,
-    };
-    ui_screen_stack_push(confirm_create(&params, _confirm, accept_only ? NULL : _reject));
+    ui_screen_stack_push(confirm_create(params, _confirm, accept_only ? NULL : _reject));
     bool blocking_result = workflow_blocking_block();
     ui_screen_stack_pop();
     if (!blocking_result) {

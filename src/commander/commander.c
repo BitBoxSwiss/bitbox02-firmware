@@ -209,8 +209,12 @@ static commander_error_t _api_get_root_fingerprint(RootFingerprintResponse* resp
 static commander_error_t _api_set_mnemonic_passphrase_enabled(
     const SetMnemonicPassphraseEnabledRequest* request)
 {
-    if (!workflow_confirm(
-            request->enabled ? "Enable" : "Disable", "Optional\npassphrase", NULL, true, false)) {
+    const confirm_params_t params = {
+        .title = request->enabled ? "Enable" : "Disable",
+        .body = "Optional\npassphrase",
+        .longtouch = true,
+    };
+    if (!workflow_confirm(&params, false)) {
         return COMMANDER_ERR_USER_ABORT;
     }
     if (!memory_set_mnemonic_passphrase_enabled(request->enabled)) {

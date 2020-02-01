@@ -19,19 +19,15 @@
 #include <cmocka.h>
 
 #include <apps/btc/confirm_locktime_rbf.h>
+#include <ui/components/confirm.h>
 #include <ui/ugui/ugui.h>
 
-bool __wrap_workflow_confirm(
-    const char* title,
-    const char* body,
-    UG_FONT* font,
-    bool longtouch,
-    bool accept_only)
+bool __wrap_workflow_confirm(const confirm_params_t* params, bool accept_only)
 {
-    assert_false(longtouch);
+    assert_false(params->longtouch);
     assert_false(accept_only);
-    check_expected(title);
-    check_expected(body);
+    check_expected(params->title);
+    check_expected(params->body);
     return mock();
 }
 
@@ -43,8 +39,8 @@ void __wrap_workflow_status_create(const char* msg, bool status_success)
 
 static void _test_reject_locktime(void** state)
 {
-    expect_string(__wrap_workflow_confirm, title, "");
-    expect_string(__wrap_workflow_confirm, body, "Locktime on block:\n1\n");
+    expect_string(__wrap_workflow_confirm, params->title, "");
+    expect_string(__wrap_workflow_confirm, params->body, "Locktime on block:\n1\n");
     will_return(__wrap_workflow_confirm, false);
 
     expect_string(__wrap_workflow_status_create, msg, "Transaction\ncanceled");
@@ -53,8 +49,9 @@ static void _test_reject_locktime(void** state)
 
 static void _test_0_locktime_and_rbf(void** state)
 {
-    expect_string(__wrap_workflow_confirm, title, "");
-    expect_string(__wrap_workflow_confirm, body, "Locktime on block:\n0\nTransaction is RBF");
+    expect_string(__wrap_workflow_confirm, params->title, "");
+    expect_string(
+        __wrap_workflow_confirm, params->body, "Locktime on block:\n0\nTransaction is RBF");
     will_return(__wrap_workflow_confirm, true);
 
     assert_true(apps_btc_confirm_locktime_rbf(0, CONFIRM_LOCKTIME_RBF_ON));
@@ -62,9 +59,9 @@ static void _test_0_locktime_and_rbf(void** state)
 
 static void _test_high_locktime_and_rbf(void** state)
 {
-    expect_string(__wrap_workflow_confirm, title, "");
+    expect_string(__wrap_workflow_confirm, params->title, "");
     expect_string(
-        __wrap_workflow_confirm, body, "Locktime on block:\n100000000\nTransaction is RBF");
+        __wrap_workflow_confirm, params->body, "Locktime on block:\n100000000\nTransaction is RBF");
     will_return(__wrap_workflow_confirm, true);
 
     assert_true(apps_btc_confirm_locktime_rbf(100000000, CONFIRM_LOCKTIME_RBF_ON));
@@ -72,8 +69,9 @@ static void _test_high_locktime_and_rbf(void** state)
 
 static void _test_locktime_no_rbf(void** state)
 {
-    expect_string(__wrap_workflow_confirm, title, "");
-    expect_string(__wrap_workflow_confirm, body, "Locktime on block:\n10\nTransaction is not RBF");
+    expect_string(__wrap_workflow_confirm, params->title, "");
+    expect_string(
+        __wrap_workflow_confirm, params->body, "Locktime on block:\n10\nTransaction is not RBF");
     will_return(__wrap_workflow_confirm, true);
 
     assert_true(apps_btc_confirm_locktime_rbf(10, CONFIRM_LOCKTIME_RBF_OFF));
@@ -83,8 +81,8 @@ static void _test_no_locktime_no_rbf(void** state)
 {
     // it is the function caller's job to make sure there is something to verify
     // no values will just create an empty screen
-    expect_string(__wrap_workflow_confirm, title, "");
-    expect_string(__wrap_workflow_confirm, body, "Locktime on block:\n0\n");
+    expect_string(__wrap_workflow_confirm, params->title, "");
+    expect_string(__wrap_workflow_confirm, params->body, "Locktime on block:\n0\n");
     will_return(__wrap_workflow_confirm, true);
     assert_true(apps_btc_confirm_locktime_rbf(0, CONFIRM_LOCKTIME_RBF_DISABLED));
 }

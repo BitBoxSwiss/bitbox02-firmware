@@ -124,6 +124,10 @@ static void _UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc,
     actual_char_width = (font->widths ? font->widths[bt - font->start_char] :
                          font->char_width);
 
+    if (x + actual_char_width < 0 || x > gui->x_dim) {
+        return;
+    }
+
     if (font->font_type == FONT_TYPE_1BPP) {
         index = (bt - font->start_char) * font->char_height * bn;
         for ( j = 0; j < font->char_height; j++ ) {

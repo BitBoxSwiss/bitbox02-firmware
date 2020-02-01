@@ -49,9 +49,9 @@ static bool _get_mnemonic_passphrase(char* passphrase_out)
         const confirm_params_t params = {
             .title = "",
             .body = "You will be asked to\nvisually confirm your\npassphrase now.",
+            .accept_only = true,
         };
-
-        if (!workflow_confirm(&params, true)) {
+        if (!workflow_confirm(&params)) {
             return false;
         }
         bool cancel_forced = false;

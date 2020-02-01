@@ -93,10 +93,10 @@ enum workflow_async_ready workflow_confirm_async(
     }
 }
 
-bool workflow_confirm(const confirm_params_t* params, bool accept_only)
+bool workflow_confirm(const confirm_params_t* params)
 {
     _result = false;
-    ui_screen_stack_push(confirm_create(params, _confirm, accept_only ? NULL : _reject));
+    ui_screen_stack_push(confirm_create(params, _confirm, params->accept_only ? NULL : _reject));
     bool blocking_result = workflow_blocking_block();
     ui_screen_stack_pop();
     if (!blocking_result) {

@@ -214,7 +214,7 @@ static commander_error_t _api_set_mnemonic_passphrase_enabled(
         .body = "Optional\npassphrase",
         .longtouch = true,
     };
-    if (!workflow_confirm(&params, false)) {
+    if (!workflow_confirm(&params)) {
         return COMMANDER_ERR_USER_ABORT;
     }
     if (!memory_set_mnemonic_passphrase_enabled(request->enabled)) {

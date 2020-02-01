@@ -86,7 +86,7 @@ component_t* confirm_create(
     }
     ui_util_add_sub_component(confirm, label_create(params->title, NULL, CENTER_TOP, confirm));
     // Create buttons
-    if (cancel_callback != NULL) {
+    if (cancel_callback != NULL && !params->accept_only) {
         ui_util_add_sub_component(
             confirm, icon_button_create(slider_position, ICON_BUTTON_CROSS, cancel_callback));
     }

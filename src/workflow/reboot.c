@@ -51,7 +51,7 @@ bool workflow_reboot(void)
         .title = "",
         .body = "Proceed to upgrade?",
     };
-    if (!workflow_confirm(&params, false)) {
+    if (!workflow_confirm(&params)) {
         return false;
     }
 #endif

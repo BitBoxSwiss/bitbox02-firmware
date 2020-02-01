@@ -50,7 +50,7 @@ bool password_set(char* password_out)
             .body = "Your password\n has fewer than\n 4 characters.\nContinue?",
             .longtouch = true,
         };
-        if (!workflow_confirm(&params, false)) {
+        if (!workflow_confirm(&params)) {
             return false;
         }
     }

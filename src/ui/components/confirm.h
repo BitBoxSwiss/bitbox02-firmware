@@ -30,6 +30,8 @@ typedef struct {
     bool scrollable;
     // If true, require the hold gesture to confirm instead of tap.
     bool longtouch;
+    // If true, the user can only confirm, not reject.
+    bool accept_only;
 } confirm_params_t;
 
 /**

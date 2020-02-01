@@ -24,10 +24,9 @@
 /**
  * Confirm something with the user.
  * @param[in] params see confirm_params_t for details.
- * @param[in] accept_only if true, the user can only confirm, not reject.
  * @return true if the user accepted, false if the user rejected.
  */
-bool workflow_confirm(const confirm_params_t* params, bool accept_only);
+bool workflow_confirm(const confirm_params_t* params);
 
 /**
  * Confirm something with the user asynchronously.

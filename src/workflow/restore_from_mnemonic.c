@@ -163,7 +163,7 @@ bool workflow_restore_from_mnemonic(const RestoreFromMnemonicRequest* request)
                 .body = "Passwords\ndo not match.\nTry again?",
             };
 
-            if (!workflow_confirm(&params, false)) {
+            if (!workflow_confirm(&params)) {
                 return false;
             }
             continue;

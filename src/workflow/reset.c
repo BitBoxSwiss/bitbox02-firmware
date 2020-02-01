@@ -29,7 +29,7 @@ bool workflow_reset(void)
         .body = "Proceed to\nfactory reset?",
         .longtouch = true,
     };
-    if (!workflow_confirm(&params, false)) {
+    if (!workflow_confirm(&params)) {
         return false;
     }
 

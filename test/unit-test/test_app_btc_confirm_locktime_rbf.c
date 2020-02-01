@@ -22,10 +22,10 @@
 #include <ui/components/confirm.h>
 #include <ui/ugui/ugui.h>
 
-bool __wrap_workflow_confirm(const confirm_params_t* params, bool accept_only)
+bool __wrap_workflow_confirm(const confirm_params_t* params)
 {
     assert_false(params->longtouch);
-    assert_false(accept_only);
+    assert_false(params->accept_only);
     check_expected(params->title);
     check_expected(params->body);
     return mock();

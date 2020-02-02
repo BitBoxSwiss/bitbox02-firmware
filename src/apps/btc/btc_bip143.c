@@ -32,7 +32,7 @@ void btc_bip143_sighash(
     uint8_t* out // 32 bytes result
 )
 {
-    static sha256_context_t ctx = {0};
+    sha256_context_t ctx = {0};
     sha256_reset(&ctx);
     // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification
     // 1.

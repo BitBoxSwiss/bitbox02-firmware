@@ -14,6 +14,7 @@
 
 #include "commander_eth.h"
 
+#include <stdint.h>
 #include <stdio.h>
 
 #include <apps/eth/eth.h>

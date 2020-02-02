@@ -17,11 +17,11 @@
 #include "label.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 
 #include <hardfault.h>
 #include <ui/ui_util.h>
-#include <util.h>
 
 typedef struct {
     uint16_t screen_count;

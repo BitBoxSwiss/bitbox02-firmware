@@ -20,8 +20,8 @@
 #include <touch/gestures.h>
 #include <ui/fonts/arial_fonts.h>
 #include <ui/ui_util.h>
-#include <util.h>
 
+#include <stdbool.h>
 #include <string.h>
 
 static const uint8_t MIN_BUTTON_WIDTH = 32; // 0:SCREEN_WIDTH

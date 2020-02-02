@@ -15,7 +15,8 @@
 #ifndef _APPS_BTC_CONFIRM_LOCKTIME_RBF_H_
 #define _APPS_BTC_CONFIRM_LOCKTIME_RBF_H_
 
-#include <util.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 enum apps_btc_rbf_flag {
     CONFIRM_LOCKTIME_RBF_OFF,

@@ -18,6 +18,7 @@
 #include "usb_processing.h"
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define ERR_NONE 0
 

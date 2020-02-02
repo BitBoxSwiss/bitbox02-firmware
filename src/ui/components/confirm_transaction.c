@@ -20,6 +20,7 @@
 
 #include <hardfault.h>
 #include <screen.h>
+#include <stdbool.h>
 #include <string.h>
 #include <util.h>
 

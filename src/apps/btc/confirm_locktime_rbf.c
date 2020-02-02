@@ -14,13 +14,8 @@
 
 #include "confirm_locktime_rbf.h"
 
-#include <workflow/blocking.h>
-#include <workflow/status.h>
-
-#include <ui/components/confirm_transaction.h>
-#include <ui/screen_stack.h>
-#include <util.h>
 #include <workflow/confirm.h>
+#include <workflow/status.h>
 
 bool apps_btc_confirm_locktime_rbf(uint32_t locktime, enum apps_btc_rbf_flag rbf)
 {

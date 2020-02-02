@@ -25,6 +25,7 @@
 #include <util.h>
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 
 #define SCALE 6 // Divide active_count by scale to slow down motion

@@ -21,6 +21,8 @@
 #include <screen.h>
 #include <util.h>
 
+#include <string.h>
+
 #if !defined(TESTING)
 #include <qtouch.h>
 #else

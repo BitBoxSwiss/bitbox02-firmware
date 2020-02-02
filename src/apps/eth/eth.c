@@ -17,7 +17,6 @@
 #include <apps/btc/btc_common.h>
 
 #include <keystore.h>
-#include <util.h>
 
 #include <hww.pb.h>
 #include <secp256k1.h>

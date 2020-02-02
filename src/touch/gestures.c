@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifndef TESTING
 #include "qtouch.h"

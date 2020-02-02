@@ -17,6 +17,8 @@
 
 #include "ui/component.h"
 
+#include <stdbool.h>
+
 /**
  * Creates an orientation screen and registers a done callback.
  * @param[in] done_callback The callback that is called when the orientation has been selected.

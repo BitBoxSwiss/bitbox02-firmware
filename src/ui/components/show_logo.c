@@ -16,10 +16,12 @@
 #include "image.h"
 #include "ui_images.h"
 
+#include <stdint.h>
+#include <string.h>
+
 #include <hardfault.h>
 #include <screen.h>
 #include <ui/ui_util.h>
-#include <util.h>
 
 /**
  * The component data.

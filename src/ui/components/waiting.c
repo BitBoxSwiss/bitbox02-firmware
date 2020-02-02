@@ -18,10 +18,10 @@
 #include "ui_images.h"
 
 #include <hardfault.h>
-#include <random.h>
 #include <screen.h>
 #include <ui/ui_util.h>
-#include <util.h>
+
+#include <string.h>
 
 static void _render(component_t* component)
 {

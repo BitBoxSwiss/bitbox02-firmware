@@ -43,6 +43,7 @@ message BTCScriptConfig {
 
   oneof config {
     SimpleType simple_type = 1;
+    Multisig multisig = 2;
   }
 }
 

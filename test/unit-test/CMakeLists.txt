@@ -179,6 +179,8 @@ set(TEST_LIST
    "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=apps_btc_confirm_locktime_rbf,--wrap=btc_common_format_amount,--wrap=btc_common_is_valid_keypath_address_simple"
    memory
    "-Wl,--wrap=memory_read_chunk_mock,--wrap=memory_write_chunk_mock,--wrap=bb_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_mock,--wrap=memory_write_to_address_mock"
+   memory_functional
+   "-Wl,--wrap=memory_write_chunk_mock,--wrap=memory_read_chunk_mock"
    salt
    "-Wl,--wrap=memory_get_salt_root"
    backup

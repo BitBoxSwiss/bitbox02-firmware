@@ -712,6 +712,85 @@ static void _test_btc_common_multisig_is_valid(void** state)
         &invalid, keypath, sizeof(keypath) / sizeof(uint32_t), expected_coin));
 }
 
+static void _test_btc_common_multisig_hash(void** state)
+{
+    /* Fixture below verified with:
+import hashlib
+import base58
+
+threshold = 1
+xpubs = [
+    "xpub6FMWuwbCA9KhoRzAMm63ZhLspk5S2DM5sePo8J8mQhcS1xyMbAqnc7Q7UescVEVFCS6qBMQLkEJWQ9Z3aDPgBov5nFUYxsJhwumsxM4npSo",
+    "xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYUCugjeksHSbyZT7rq38VQF",
+]
+
+keypath = [48 + 0x80000000, 0 + 0x80000000, 10 + 0x80000000, 2 + 0x80000000]
+
+i32 = lambda i: i.to_bytes(4, 'little')
+
+msg = []
+msg.append(b'\x00') # coin
+msg.append(b'\x00') # script config type
+msg.append(i32(threshold))
+msg.append(i32(len(xpubs)))
+msg.extend(base58.b58decode_check(xpub)[4:] for xpub in xpubs)
+msg.append(i32(len(keypath)))
+msg.extend(i32(k) for k in keypath)
+print(hashlib.sha256(b''.join(msg)).hexdigest())
+
+*/
+
+    const uint32_t keypath[4] = {
+        48 + BIP32_INITIAL_HARDENED_CHILD,
+        0 + BIP32_INITIAL_HARDENED_CHILD,
+        10 + BIP32_INITIAL_HARDENED_CHILD,
+        2 + BIP32_INITIAL_HARDENED_CHILD,
+    };
+
+    BTCScriptConfig_Multisig multisig = {
+        .threshold = 1,
+        .xpubs_count = 2,
+    };
+    multisig.xpubs[0] = btc_util_parse_xpub(
+        "xpub6FMWuwbCA9KhoRzAMm63ZhLspk5S2DM5sePo8J8mQhcS1xyMbAqnc7Q7UescVEVFCS6qBMQLkEJWQ9Z3aDPgBo"
+        "v5nFUYxsJhwumsxM4npSo");
+    multisig.xpubs[1] = btc_util_parse_xpub(
+        "xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYU"
+        "CugjeksHSbyZT7rq38VQF");
+
+    uint8_t hash[32];
+
+    assert_true(btc_common_multisig_hash(BTCCoin_BTC, &multisig, keypath, 4, hash));
+    assert_memory_equal(
+        hash,
+        "\xb0\x26\x7f\xbb\x26\xba\x0e\x74\xba\xd8\x25\xc9\x87\x94\x9f\x58\xba\x22\xaa\x75\xf6\x3b"
+        "\x53\x99\x86\xdd\x93\x76\x07\xbb\x4d\xc3",
+        sizeof(hash));
+
+    assert_true(btc_common_multisig_hash(BTCCoin_TBTC, &multisig, keypath, 4, hash));
+    assert_memory_equal(
+        hash,
+        "\x38\x00\xcb\x87\xa1\xe3\x46\xeb\x4a\x61\xe2\x5c\x47\x75\xe6\x63\xf6\x13\x09\x0a\xa2\xbf"
+        "\x3f\xdd\xb0\x57\x46\x2d\x17\x4b\x56\xef",
+        sizeof(hash));
+
+    assert_true(btc_common_multisig_hash(BTCCoin_LTC, &multisig, keypath, 4, hash));
+    assert_memory_equal(
+        hash,
+        "\x6c\xf1\x81\xd3\xe1\x31\xea\xfe\xfd\x42\x58\x08\x4e\x5e\x48\x36\x6a\x32\xd5\x9b\xe8\x0a"
+        "\x0a\xfb\x13\x34\x55\x89\x29\x4c\xcf\x2d",
+        sizeof(hash));
+
+    assert_true(btc_common_multisig_hash(BTCCoin_TLTC, &multisig, keypath, 4, hash));
+    assert_memory_equal(
+        hash,
+        "\x0e\x5e\xe1\xd1\x8a\x74\xd2\x2c\xf7\xe3\x25\x5a\x35\x29\xb9\xa4\x53\xe9\xb0\x80\x00\x5c"
+        "\xa0\xbd\x88\x6f\x6d\xec\xf9\xe4\xb8\x45",
+        sizeof(hash));
+
+    assert_false(btc_common_multisig_hash(_BTCCoin_MAX + 1, &multisig, keypath, 4, hash));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -724,6 +803,7 @@ int main(void)
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig_unhappy),
         cmocka_unit_test(_test_btc_common_multisig_is_valid),
+        cmocka_unit_test(_test_btc_common_multisig_hash),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

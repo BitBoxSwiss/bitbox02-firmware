@@ -243,7 +243,7 @@ endforeach()
 # They are copied from https://github.com/google/u2f-ref-code/tree/master/u2f-tests/HID
 set(U2F_TESTS
    u2f_standard
-   "-Wl,--wrap=workflow_confirm_with_timeout,--wrap=workflow_unlock"
+   "-Wl,--wrap=workflow_unlock"
    u2f_hid
    "-Wl,--wrap=workflow_status_create"
 )

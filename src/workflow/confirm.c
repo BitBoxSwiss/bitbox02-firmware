@@ -39,24 +39,6 @@ static void _reject(component_t* component)
     workflow_blocking_unblock();
 }
 
-bool workflow_confirm_with_timeout(
-    const char* title,
-    const char* body,
-    const UG_FONT* font,
-    bool accept_only,
-    uint32_t timeout)
-{
-    _result = false;
-    ui_screen_stack_push(
-        confirm_create(title, body, font, false, _confirm, accept_only ? NULL : _reject));
-    bool blocking_result = workflow_blocking_block_with_timeout(timeout);
-    ui_screen_stack_pop();
-    if (!blocking_result) {
-        return false;
-    }
-    return _result;
-}
-
 static bool _have_result = false;
 
 static void _confirm_async(component_t* component)

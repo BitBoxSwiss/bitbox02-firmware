@@ -25,6 +25,7 @@
 #include "ui_images.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 
 #define HEIGHT (5u)

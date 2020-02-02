@@ -24,6 +24,7 @@
 
 #include <queue.h>
 #include <stdlib.h>
+#include <string.h>
 #include <util.h>
 
 struct usb_processing {

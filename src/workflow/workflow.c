@@ -36,7 +36,6 @@
 #elif PLATFORM_BITBOX02 == 1
 #include <usb/usb.h>
 #endif
-#include <util.h>
 
 static void _confirm_dismiss(component_t* component)
 {

@@ -22,6 +22,8 @@
 #include <ui/ui_util.h>
 #include <util.h>
 
+#include <string.h>
+
 typedef struct {
     char character;
     // Render position.

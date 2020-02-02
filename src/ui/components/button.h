@@ -19,6 +19,7 @@
 #include <ui/component.h>
 
 #include <stdint.h>
+
 /**
  * Creates a button with the given text.
  * @param[in] text The text of the button.

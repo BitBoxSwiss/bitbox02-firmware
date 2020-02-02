@@ -18,6 +18,8 @@
 #include <ui/component.h>
 #include <ui/ugui/ugui.h>
 
+#include <stdbool.h>
+
 /**
  * Presents user input in form of three buttons at the bottom, with at most three taps needed to
  * select a character. Use `trinary_input_char_set_alphabet()` to set the current keyboard.

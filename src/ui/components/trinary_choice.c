@@ -19,7 +19,8 @@
 
 #include <hardfault.h>
 #include <ui/ui_util.h>
-#include <util.h>
+
+#include <string.h>
 
 typedef struct {
     void (*chosen_cb)(component_t*, trinary_choice_t);

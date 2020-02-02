@@ -16,7 +16,6 @@
 
 #include <hardfault.h>
 #include <ui/ui_util.h>
-#include <util.h>
 
 #include <stdbool.h>
 #include <string.h>

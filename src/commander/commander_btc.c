@@ -18,32 +18,11 @@
 #include <stdio.h>
 
 #include <apps/btc/btc.h>
+#include <apps/btc/btc_common.h>
 #include <apps/btc/btc_sign.h>
 #include <workflow/verify_pub.h>
 
 #include <wally_bip32.h> // for BIP32_INITIAL_HARDENED_CHILD
-
-static const char* _coin_btc = "Bitcoin";
-static const char* _coin_tbtc = "BTC Testnet";
-static const char* _coin_ltc = "Litecoin";
-static const char* _coin_tltc = "LTC Testnet";
-
-// Returns the string to be used in the confirm title. Returns NULL for an invalid coin.
-static const char* _coin_title(BTCCoin coin)
-{
-    switch (coin) {
-    case BTCCoin_BTC:
-        return _coin_btc;
-    case BTCCoin_TBTC:
-        return _coin_tbtc;
-    case BTCCoin_LTC:
-        return _coin_ltc;
-    case BTCCoin_TLTC:
-        return _coin_tltc;
-    default:
-        return NULL;
-    }
-}
 
 static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse* response)
 {
@@ -57,10 +36,6 @@ static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse
         return COMMANDER_ERR_GENERIC;
     }
     if (request->display) {
-        const char* coin = _coin_title(request->coin);
-        if (coin == NULL) {
-            return COMMANDER_ERR_GENERIC;
-        }
         char title[100] = {0};
         switch (request->output.xpub_type) {
         case BTCPubRequest_XPubType_TPUB:
@@ -75,7 +50,7 @@ static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse
                 title,
                 sizeof(title),
                 "%s\naccount #%lu",
-                coin,
+                btc_common_coin_name(request->coin),
                 (unsigned long)request->keypath[2] - BIP32_INITIAL_HARDENED_CHILD + 1);
             break;
         default:
@@ -100,10 +75,7 @@ static commander_error_t _btc_pub_address_simple(
         return COMMANDER_ERR_GENERIC;
     }
     if (request->display) {
-        const char* coin = _coin_title(request->coin);
-        if (coin == NULL) {
-            return COMMANDER_ERR_GENERIC;
-        }
+        const char* coin = btc_common_coin_name(request->coin);
         char title[100] = {0};
         switch (request->output.script_config.config.simple_type) {
         case BTCScriptConfig_SimpleType_P2WPKH_P2SH:

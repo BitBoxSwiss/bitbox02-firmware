@@ -32,6 +32,12 @@
 #define MAX_SIGHASH_SCRIPT_SIZE (500)
 
 /**
+ * Returns the coin name to be used in confirm dialogs ("Bitcoin", "Litecoin", etc.). Aborts for an
+ * invalid coin.
+ */
+USE_RESULT const char* btc_common_coin_name(BTCCoin coin);
+
+/**
  * Does limit checks the keypath, whitelisting bip44 purposes, accounts and
  * (change) addressses.
  * @return true if the keypath is valid, false if it is invalid.

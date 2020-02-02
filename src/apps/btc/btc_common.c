@@ -18,6 +18,7 @@
 
 #include <apps/common/bip32.h>
 #include <crypto/sha2/sha256.h>
+#include <hardfault.h>
 #include <keystore.h>
 #include <util.h>
 #include <wally_address.h>
@@ -31,6 +32,27 @@
 #define BIP44_ADDRESS_MAX (9999) // 10k addresses
 
 #define MULTISIG_P2WSH_MAX_SIGNERS 15
+
+const char* btc_common_coin_name(BTCCoin coin)
+{
+    static const char* _coin_btc = "Bitcoin";
+    static const char* _coin_tbtc = "BTC Testnet";
+    static const char* _coin_ltc = "Litecoin";
+    static const char* _coin_tltc = "LTC Testnet";
+
+    switch (coin) {
+    case BTCCoin_BTC:
+        return _coin_btc;
+    case BTCCoin_TBTC:
+        return _coin_tbtc;
+    case BTCCoin_LTC:
+        return _coin_ltc;
+    case BTCCoin_TLTC:
+        return _coin_tltc;
+    default:
+        Abort("btc_common_coin_name");
+    }
+}
 
 // keypath_len is assumed to be greater or equal than 3.
 static bool _validate_keypath_account(const uint32_t* keypath, uint32_t expected_coin)

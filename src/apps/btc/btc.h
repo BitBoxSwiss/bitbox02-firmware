@@ -23,6 +23,13 @@
 
 #include <hww.pb.h>
 
+typedef enum {
+    APP_BTC_OK,
+    APP_BTC_ERR_USER_ABORT,
+    APP_BTC_ERR_INVALID_INPUT,
+    APP_BTC_ERR_UNKNOWN,
+} app_btc_result_t;
+
 /**
  * Returns the xpub at a given keypath.
  * @param[in] coin Coin to generate address for.
@@ -63,5 +70,31 @@ USE_RESULT bool app_btc_address_simple(
  * @return true if coin is enabled
  */
 bool app_btc_enabled(BTCCoin coin);
+
+/**
+ * @param[out] is_registered is true if the script config was previously registered on the device.
+ * @return true on success, false on failure.
+ */
+USE_RESULT bool app_btc_is_script_config_registered(
+    BTCCoin coin,
+    const BTCScriptConfig* script_config,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    bool* is_registered);
+
+/**
+ * Stores a script configuration alongside a user chosen name on the device. If the user aborts,
+ * nothing is stored.
+ * @param[in] name Name to give to the script config. Must be at most MEMORY_MULTISIG_NAME_MAX_LEN
+ * bytes (including null terminator).
+ * @return OK if the registration was successful, ERR_USER_ABORT if the user aborted, ERR_UNKNOWN
+ * for unknown errors.
+ */
+USE_RESULT app_btc_result_t app_btc_register_script_config(
+    BTCCoin coin,
+    const BTCScriptConfig* script_config,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    const char* name);
 
 #endif

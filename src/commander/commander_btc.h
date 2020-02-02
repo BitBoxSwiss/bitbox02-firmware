@@ -27,4 +27,6 @@ commander_error_t commander_btc_sign_input(const BTCSignInputRequest* request, R
 commander_error_t commander_btc_sign_output(
     const BTCSignOutputRequest* request,
     Response* response);
+
+commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response);
 #endif

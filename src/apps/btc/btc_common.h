@@ -200,7 +200,7 @@ USE_RESULT bool btc_common_multisig_is_valid(
  * @param[in] multisig The multisig config details.
  * @param[in] keypath Account-level keypath.
  * @param[in] keypath_len number of elements in keypath.
- * @param[out] hash_out resulting hash; must be 32 bytes.
+ * @param[out] hash_out resulting hash; must be `SHA256_LEN` bytes.
  * @return true on success, false on failure.
  */
 USE_RESULT bool btc_common_multisig_hash(

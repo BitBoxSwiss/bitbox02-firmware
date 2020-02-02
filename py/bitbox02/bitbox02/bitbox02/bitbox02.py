@@ -211,6 +211,27 @@ class BitBox02(BitBoxCommonAPI):
             raise
         return True
 
+    def _btc_msg_query(
+        self, btc_request: btc.BTCRequest, expected_response: Optional[str] = None
+    ) -> btc.BTCResponse:
+        """
+        Same as _msg_query, but one nesting deeper for bitcoin messages.
+        """
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.btc.CopyFrom(btc_request)
+        btc_response = self._msg_query(request, expected_response="btc").btc
+        if (
+            expected_response is not None
+            and btc_response.WhichOneof("response") != expected_response
+        ):
+            raise Exception(
+                "Unexpected response: {}, expected: {}".format(
+                    btc_response.WhichOneof("response"), expected_response
+                )
+            )
+        return btc_response
+
     def btc_xpub(
         self,
         keypath: List[int],
@@ -250,6 +271,45 @@ class BitBox02(BitBoxCommonAPI):
             )
         )
         return self._msg_query(request).pub.pub
+
+    def btc_is_script_config_registered(
+        self, coin: btc.BTCCoin, script_config: btc.BTCScriptConfig, keypath: List[int]
+    ) -> bool:
+        """
+        Returns True if the script config / account is already registered.
+        """
+        # pylint: disable=no-member
+        request = btc.BTCRequest()
+        request.is_script_config_registered.CopyFrom(
+            btc.BTCIsScriptConfigRegisteredRequest(
+                registration=btc.BTCScriptConfigRegistration(
+                    coin=coin, script_config=script_config, keypath=keypath
+                )
+            )
+        )
+        return self._btc_msg_query(
+            request, expected_response="is_script_config_registered"
+        ).is_script_config_registered.is_registered
+
+    def btc_register_script_config(
+        self, coin: btc.BTCCoin, script_config: btc.BTCScriptConfig, keypath: List[int], name: str
+    ) -> None:
+        """
+        Raises Bitbox02Exception with ERR_USER_ABORT on user abort.
+        """
+        assert len(name) <= 30
+
+        # pylint: disable=no-member
+        request = btc.BTCRequest()
+        request.register_script_config.CopyFrom(
+            btc.BTCRegisterScriptConfigRequest(
+                registration=btc.BTCScriptConfigRegistration(
+                    coin=coin, script_config=script_config, keypath=keypath
+                ),
+                name=name,
+            )
+        )
+        self._btc_msg_query(request, expected_response="success")
 
     # pylint: disable=too-many-arguments
     def btc_sign(

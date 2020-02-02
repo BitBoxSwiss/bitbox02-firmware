@@ -17,9 +17,12 @@
 #include "btc.h"
 #include "btc_common.h"
 #include "btc_params.h"
+#include "confirm_multisig.h"
 
 #include <hww.pb.h>
 #include <keystore.h>
+#include <memory/memory.h>
+#include <workflow/status.h>
 
 bool app_btc_xpub(
     BTCCoin coin,
@@ -93,4 +96,70 @@ bool app_btc_enabled(BTCCoin coin)
     default:
         return false;
     }
+}
+
+bool app_btc_is_script_config_registered(
+    BTCCoin coin,
+    const BTCScriptConfig* script_config,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    bool* is_registered)
+{
+    // Only multisig registration supported for now.
+    if (script_config->which_config != BTCScriptConfig_multisig_tag) {
+        return false;
+    }
+
+    uint8_t hash[SHA256_LEN] = {0};
+    if (!btc_common_multisig_hash(
+            coin, &script_config->config.multisig, keypath, keypath_len, hash)) {
+        return false;
+    }
+
+    *is_registered = memory_multisig_get_by_hash(hash, NULL);
+
+    return true;
+}
+
+app_btc_result_t app_btc_register_script_config(
+    BTCCoin coin,
+    const BTCScriptConfig* script_config,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    const char* name)
+{
+    const app_btc_coin_params_t* params = app_btc_params_get(coin);
+    if (params == NULL) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+
+    // Only multisig registration supported for now.
+    if (script_config->which_config != BTCScriptConfig_multisig_tag) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+    const BTCScriptConfig_Multisig* multisig = &script_config->config.multisig;
+
+    if (strlen(name) >= MEMORY_MULTISIG_NAME_MAX_LEN) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+
+    if (!btc_common_multisig_is_valid(multisig, keypath, keypath_len, params->bip44_coin)) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+
+    if (!apps_btc_confirm_multisig("Register", coin, name, multisig, true)) {
+        return APP_BTC_ERR_USER_ABORT;
+    }
+
+    uint8_t hash[SHA256_LEN] = {0};
+    if (!btc_common_multisig_hash(coin, multisig, keypath, keypath_len, hash)) {
+        return APP_BTC_ERR_UNKNOWN;
+    }
+    // This will rename the multisig config if it already exists.
+    if (memory_multisig_set_by_hash(hash, name) != MEMORY_OK) {
+        return APP_BTC_ERR_UNKNOWN;
+    }
+
+    workflow_status_create("Multisig account\nregistered", true);
+    return APP_BTC_OK;
 }

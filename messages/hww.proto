@@ -61,6 +61,7 @@ message Request {
         RestoreFromMnemonicRequest restore_from_mnemonic = 22;
         BitBoxBaseRequest bitboxbase = 23;
         RootFingerprintRequest fingerprint = 24;
+        BTCRequest btc = 25;
     }
 }
 
@@ -78,5 +79,6 @@ message Response {
         CheckSDCardResponse check_sdcard = 10;
         ETHResponse eth = 11;
         RootFingerprintResponse fingerprint = 12;
+        BTCResponse btc = 13;
     }
 }

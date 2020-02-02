@@ -153,3 +153,54 @@ commander_error_t commander_btc_sign(const Request* request, Response* response)
     }
     return COMMANDER_OK;
 }
+
+static commander_error_t _api_is_script_config_registered(
+    const BTCIsScriptConfigRegisteredRequest* request,
+    BTCIsScriptConfigRegisteredResponse* response)
+{
+    const BTCScriptConfigRegistration* reg = &request->registration;
+    if (!app_btc_is_script_config_registered(
+            reg->coin,
+            &reg->script_config,
+            reg->keypath,
+            reg->keypath_count,
+            &response->is_registered)) {
+        return COMMANDER_ERR_GENERIC;
+    }
+    return COMMANDER_OK;
+}
+
+static commander_error_t _api_register_script_config(const BTCRegisterScriptConfigRequest* request)
+{
+    app_btc_result_t result = app_btc_register_script_config(
+        request->registration.coin,
+        &request->registration.script_config,
+        request->registration.keypath,
+        request->registration.keypath_count,
+        request->name);
+    switch (result) {
+    case APP_BTC_OK:
+        return COMMANDER_OK;
+    case APP_BTC_ERR_USER_ABORT:
+        return COMMANDER_ERR_USER_ABORT;
+    default:
+        return COMMANDER_ERR_GENERIC;
+    }
+}
+
+commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response)
+{
+    switch (request->which_request) {
+    case BTCRequest_is_script_config_registered_tag:
+        response->which_response = BTCResponse_is_script_config_registered_tag;
+        return _api_is_script_config_registered(
+            &(request->request.is_script_config_registered),
+            &response->response.is_script_config_registered);
+    case BTCRequest_register_script_config_tag:
+        response->which_response = BTCResponse_success_tag;
+        return _api_register_script_config(&(request->request.register_script_config));
+    default:
+        return COMMANDER_ERR_GENERIC;
+    }
+    return COMMANDER_OK;
+}

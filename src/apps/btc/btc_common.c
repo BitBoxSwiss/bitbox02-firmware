@@ -15,7 +15,6 @@
 #include <stdio.h>
 
 #include "btc_common.h"
-#include <apps/common/bip32.h>
 
 #include <apps/common/bip32.h>
 #include <keystore.h>

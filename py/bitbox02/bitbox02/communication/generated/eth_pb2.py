@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='eth.proto',
   package='',
   syntax='proto3',
-  serialized_pb=_b('\n\teth.proto\x1a\x0c\x63ommon.proto\"\xb8\x01\n\rETHPubRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\x12\x16\n\x04\x63oin\x18\x02 \x01(\x0e\x32\x08.ETHCoin\x12.\n\x0boutput_type\x18\x03 \x01(\x0e\x32\x19.ETHPubRequest.OutputType\x12\x0f\n\x07\x64isplay\x18\x04 \x01(\x08\x12\x18\n\x10\x63ontract_address\x18\x05 \x01(\x0c\"#\n\nOutputType\x12\x0b\n\x07\x41\x44\x44RESS\x10\x00\x12\x08\n\x04XPUB\x10\x01\"\x9e\x01\n\x0e\x45THSignRequest\x12\x16\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x08.ETHCoin\x12\x0f\n\x07keypath\x18\x02 \x03(\r\x12\r\n\x05nonce\x18\x03 \x01(\x0c\x12\x11\n\tgas_price\x18\x04 \x01(\x0c\x12\x11\n\tgas_limit\x18\x05 \x01(\x0c\x12\x11\n\trecipient\x18\x06 \x01(\x0c\x12\r\n\x05value\x18\x07 \x01(\x0c\x12\x0c\n\x04\x64\x61ta\x18\x08 \x01(\x0c\"$\n\x0f\x45THSignResponse\x12\x11\n\tsignature\x18\x01 \x01(\x0c\"W\n\nETHRequest\x12\x1d\n\x03pub\x18\x01 \x01(\x0b\x32\x0e.ETHPubRequestH\x00\x12\x1f\n\x04sign\x18\x02 \x01(\x0b\x32\x0f.ETHSignRequestH\x00\x42\t\n\x07request\"X\n\x0b\x45THResponse\x12\x1b\n\x03pub\x18\x01 \x01(\x0b\x32\x0c.PubResponseH\x00\x12 \n\x04sign\x18\x02 \x01(\x0b\x32\x10.ETHSignResponseH\x00\x42\n\n\x08response*2\n\x07\x45THCoin\x12\x07\n\x03\x45TH\x10\x00\x12\x0e\n\nRopstenETH\x10\x01\x12\x0e\n\nRinkebyETH\x10\x02\x62\x06proto3')
+  serialized_pb=_b('\n\teth.proto\x1a\x0c\x63ommon.proto\"\xb8\x01\n\rETHPubRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\x12\x16\n\x04\x63oin\x18\x02 \x01(\x0e\x32\x08.ETHCoin\x12.\n\x0boutput_type\x18\x03 \x01(\x0e\x32\x19.ETHPubRequest.OutputType\x12\x0f\n\x07\x64isplay\x18\x04 \x01(\x08\x12\x18\n\x10\x63ontract_address\x18\x05 \x01(\x0c\"#\n\nOutputType\x12\x0b\n\x07\x41\x44\x44RESS\x10\x00\x12\x08\n\x04XPUB\x10\x01\"\x9e\x01\n\x0e\x45THSignRequest\x12\x16\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x08.ETHCoin\x12\x0f\n\x07keypath\x18\x02 \x03(\r\x12\r\n\x05nonce\x18\x03 \x01(\x0c\x12\x11\n\tgas_price\x18\x04 \x01(\x0c\x12\x11\n\tgas_limit\x18\x05 \x01(\x0c\x12\x11\n\trecipient\x18\x06 \x01(\x0c\x12\r\n\x05value\x18\x07 \x01(\x0c\x12\x0c\n\x04\x64\x61ta\x18\x08 \x01(\x0c\"M\n\x15\x45THSignMessageRequest\x12\x16\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x08.ETHCoin\x12\x0f\n\x07keypath\x18\x02 \x03(\r\x12\x0b\n\x03msg\x18\x03 \x01(\x0c\"$\n\x0f\x45THSignResponse\x12\x11\n\tsignature\x18\x01 \x01(\x0c\"\x83\x01\n\nETHRequest\x12\x1d\n\x03pub\x18\x01 \x01(\x0b\x32\x0e.ETHPubRequestH\x00\x12\x1f\n\x04sign\x18\x02 \x01(\x0b\x32\x0f.ETHSignRequestH\x00\x12*\n\x08sign_msg\x18\x03 \x01(\x0b\x32\x16.ETHSignMessageRequestH\x00\x42\t\n\x07request\"X\n\x0b\x45THResponse\x12\x1b\n\x03pub\x18\x01 \x01(\x0b\x32\x0c.PubResponseH\x00\x12 \n\x04sign\x18\x02 \x01(\x0b\x32\x10.ETHSignResponseH\x00\x42\n\n\x08response*2\n\x07\x45THCoin\x12\x07\n\x03\x45TH\x10\x00\x12\x0e\n\nRopstenETH\x10\x01\x12\x0e\n\nRinkebyETH\x10\x02\x62\x06proto3')
   ,
   dependencies=[common__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -47,8 +47,8 @@ _ETHCOIN = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=592,
-  serialized_end=642,
+  serialized_start=716,
+  serialized_end=766,
 )
 _sym_db.RegisterEnumDescriptor(_ETHCOIN)
 
@@ -221,6 +221,51 @@ _ETHSIGNREQUEST = _descriptor.Descriptor(
 )
 
 
+_ETHSIGNMESSAGEREQUEST = _descriptor.Descriptor(
+  name='ETHSignMessageRequest',
+  full_name='ETHSignMessageRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='coin', full_name='ETHSignMessageRequest.coin', index=0,
+      number=1, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='keypath', full_name='ETHSignMessageRequest.keypath', index=1,
+      number=2, type=13, cpp_type=3, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='msg', full_name='ETHSignMessageRequest.msg', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=375,
+  serialized_end=452,
+)
+
+
 _ETHSIGNRESPONSE = _descriptor.Descriptor(
   name='ETHSignResponse',
   full_name='ETHSignResponse',
@@ -247,8 +292,8 @@ _ETHSIGNRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=375,
-  serialized_end=411,
+  serialized_start=454,
+  serialized_end=490,
 )
 
 
@@ -273,6 +318,13 @@ _ETHREQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='sign_msg', full_name='ETHRequest.sign_msg', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -288,8 +340,8 @@ _ETHREQUEST = _descriptor.Descriptor(
       name='request', full_name='ETHRequest.request',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=413,
-  serialized_end=500,
+  serialized_start=493,
+  serialized_end=624,
 )
 
 
@@ -329,22 +381,27 @@ _ETHRESPONSE = _descriptor.Descriptor(
       name='response', full_name='ETHResponse.response',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=502,
-  serialized_end=590,
+  serialized_start=626,
+  serialized_end=714,
 )
 
 _ETHPUBREQUEST.fields_by_name['coin'].enum_type = _ETHCOIN
 _ETHPUBREQUEST.fields_by_name['output_type'].enum_type = _ETHPUBREQUEST_OUTPUTTYPE
 _ETHPUBREQUEST_OUTPUTTYPE.containing_type = _ETHPUBREQUEST
 _ETHSIGNREQUEST.fields_by_name['coin'].enum_type = _ETHCOIN
+_ETHSIGNMESSAGEREQUEST.fields_by_name['coin'].enum_type = _ETHCOIN
 _ETHREQUEST.fields_by_name['pub'].message_type = _ETHPUBREQUEST
 _ETHREQUEST.fields_by_name['sign'].message_type = _ETHSIGNREQUEST
+_ETHREQUEST.fields_by_name['sign_msg'].message_type = _ETHSIGNMESSAGEREQUEST
 _ETHREQUEST.oneofs_by_name['request'].fields.append(
   _ETHREQUEST.fields_by_name['pub'])
 _ETHREQUEST.fields_by_name['pub'].containing_oneof = _ETHREQUEST.oneofs_by_name['request']
 _ETHREQUEST.oneofs_by_name['request'].fields.append(
   _ETHREQUEST.fields_by_name['sign'])
 _ETHREQUEST.fields_by_name['sign'].containing_oneof = _ETHREQUEST.oneofs_by_name['request']
+_ETHREQUEST.oneofs_by_name['request'].fields.append(
+  _ETHREQUEST.fields_by_name['sign_msg'])
+_ETHREQUEST.fields_by_name['sign_msg'].containing_oneof = _ETHREQUEST.oneofs_by_name['request']
 _ETHRESPONSE.fields_by_name['pub'].message_type = common__pb2._PUBRESPONSE
 _ETHRESPONSE.fields_by_name['sign'].message_type = _ETHSIGNRESPONSE
 _ETHRESPONSE.oneofs_by_name['response'].fields.append(
@@ -355,6 +412,7 @@ _ETHRESPONSE.oneofs_by_name['response'].fields.append(
 _ETHRESPONSE.fields_by_name['sign'].containing_oneof = _ETHRESPONSE.oneofs_by_name['response']
 DESCRIPTOR.message_types_by_name['ETHPubRequest'] = _ETHPUBREQUEST
 DESCRIPTOR.message_types_by_name['ETHSignRequest'] = _ETHSIGNREQUEST
+DESCRIPTOR.message_types_by_name['ETHSignMessageRequest'] = _ETHSIGNMESSAGEREQUEST
 DESCRIPTOR.message_types_by_name['ETHSignResponse'] = _ETHSIGNRESPONSE
 DESCRIPTOR.message_types_by_name['ETHRequest'] = _ETHREQUEST
 DESCRIPTOR.message_types_by_name['ETHResponse'] = _ETHRESPONSE
@@ -373,6 +431,13 @@ ETHSignRequest = _reflection.GeneratedProtocolMessageType('ETHSignRequest', (_me
   # @@protoc_insertion_point(class_scope:ETHSignRequest)
   ))
 _sym_db.RegisterMessage(ETHSignRequest)
+
+ETHSignMessageRequest = _reflection.GeneratedProtocolMessageType('ETHSignMessageRequest', (_message.Message,), dict(
+  DESCRIPTOR = _ETHSIGNMESSAGEREQUEST,
+  __module__ = 'eth_pb2'
+  # @@protoc_insertion_point(class_scope:ETHSignMessageRequest)
+  ))
+_sym_db.RegisterMessage(ETHSignMessageRequest)
 
 ETHSignResponse = _reflection.GeneratedProtocolMessageType('ETHSignResponse', (_message.Message,), dict(
   DESCRIPTOR = _ETHSIGNRESPONSE,

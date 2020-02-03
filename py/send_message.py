@@ -21,6 +21,7 @@ import sys
 from typing import List, Any, Optional, Callable, Union, Tuple, Sequence
 import hashlib
 import base64
+import binascii
 
 import hid
 from tzlocal import get_localzone
@@ -325,6 +326,20 @@ class SendMessage:
         # fmt: on
         self._device.eth_sign(tx, keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0])
 
+    def _sign_eth_message(self) -> None:
+        msg = input("Message to sign: ")
+        if msg.startswith("0x"):
+            msg_bytes = binascii.unhexlify(msg[2:])
+        else:
+            msg_bytes = msg.encode("utf-8")
+        msg_hex = binascii.hexlify(msg_bytes).decode("utf-8")
+        print(f"signing\nbytes: {msg_bytes}\nhex: 0x{msg_hex}")
+        sig = self._device.eth_sign_msg(
+            msg=msg_bytes, keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0]
+        )
+
+        print("Signature: 0x{}".format(binascii.hexlify(sig).decode("utf-8")))
+
     def _reset_device(self) -> None:
         if self._device.reset():
             print("Device RESET")
@@ -373,7 +388,8 @@ class SendMessage:
             ("Toggle BIP39 Mnemonic Passphrase", self._toggle_mnemonic_passphrase),
             ("Retrieve Ethereum xpub", self._get_eth_xpub),
             ("Retrieve Ethereum address", self._display_eth_address),
-            ("Sign eth tx", self._sign_eth_tx),
+            ("Sign Ethereum tx", self._sign_eth_tx),
+            ("Sign Ethereum Message", self._sign_eth_message),
             ("Reset Device", self._reset_device),
         )
         choice = ask_user(choices)

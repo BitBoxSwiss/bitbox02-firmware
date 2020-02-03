@@ -19,6 +19,7 @@
 
 #include <apps/eth/eth.h>
 #include <apps/eth/eth_sign.h>
+#include <apps/eth/eth_sign_msg.h>
 #include <util.h>
 #include <workflow/verify_pub.h>
 
@@ -87,6 +88,20 @@ static commander_error_t _api_sign(const ETHSignRequest* request, ETHSignRespons
     return COMMANDER_OK;
 }
 
+static commander_error_t _api_sign_msg(
+    const ETHSignMessageRequest* request,
+    ETHSignResponse* response)
+{
+    app_eth_sign_error_t result = app_eth_sign_msg(request, response);
+    if (result == APP_ETH_SIGN_ERR_USER_ABORT) {
+        return COMMANDER_ERR_USER_ABORT;
+    }
+    if (result != APP_ETH_SIGN_OK) {
+        return COMMANDER_ERR_GENERIC;
+    }
+    return COMMANDER_OK;
+}
+
 commander_error_t commander_eth(const ETHRequest* request, ETHResponse* response)
 {
     switch (request->which_request) {
@@ -96,6 +111,9 @@ commander_error_t commander_eth(const ETHRequest* request, ETHResponse* response
     case ETHRequest_sign_tag:
         response->which_response = ETHResponse_sign_tag;
         return _api_sign(&(request->request.sign), &response->response.sign);
+    case ETHRequest_sign_msg_tag:
+        response->which_response = ETHResponse_sign_tag;
+        return _api_sign_msg(&(request->request.sign_msg), &response->response.sign);
     default:
         return COMMANDER_ERR_GENERIC;
     }

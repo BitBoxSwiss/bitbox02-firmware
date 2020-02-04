@@ -25,7 +25,31 @@
 
 #define BIP44_ETH_ACCOUNT_MAX (99) // 100 accounts
 
-bool eth_common_is_valid_keypath(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
+bool eth_common_is_valid_keypath_xpub(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
+{
+    const app_eth_coin_params_t* params = app_eth_params_get(coin);
+    if (params == NULL) {
+        return false;
+    }
+    if (keypath_len != 4) {
+        return false;
+    }
+    if (keypath[0] != 44 + BIP32_INITIAL_HARDENED_CHILD) {
+        return false;
+    }
+    if (keypath[1] != params->bip44_coin) {
+        return false;
+    }
+    if (keypath[2] != 0 + BIP32_INITIAL_HARDENED_CHILD) {
+        return false;
+    }
+    if (keypath[3] != 0) {
+        return false;
+    }
+    return true;
+}
+
+bool eth_common_is_valid_keypath_address(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
 {
     const app_eth_coin_params_t* params = app_eth_params_get(coin);
     if (params == NULL) {

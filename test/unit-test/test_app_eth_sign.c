@@ -61,13 +61,19 @@ bool __wrap_keystore_secp256k1_sign(
     return mock();
 }
 
-bool __real_eth_common_is_valid_keypath(ETHCoin coin, const uint32_t* keypath, size_t keypath_len);
-bool __wrap_eth_common_is_valid_keypath(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
+bool __real_eth_common_is_valid_keypath_address(
+    ETHCoin coin,
+    const uint32_t* keypath,
+    size_t keypath_len);
+bool __wrap_eth_common_is_valid_keypath_address(
+    ETHCoin coin,
+    const uint32_t* keypath,
+    size_t keypath_len)
 {
     assert_int_equal(coin, ETHCoin_ETH);
     check_expected(keypath);
     assert_int_equal(keypath_len, 5);
-    return __real_eth_common_is_valid_keypath(coin, keypath, keypath_len);
+    return __real_eth_common_is_valid_keypath_address(coin, keypath, keypath_len);
 }
 
 static void _default_request(ETHSignRequest* request)
@@ -106,7 +112,7 @@ static void _default_erc20_request(ETHSignRequest* request)
 static void _expect_keypath(const ETHSignRequest* request)
 {
     expect_memory(
-        __wrap_eth_common_is_valid_keypath,
+        __wrap_eth_common_is_valid_keypath_address,
         keypath,
         request->keypath,
         request->keypath_count * sizeof(uint32_t));

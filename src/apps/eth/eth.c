@@ -44,12 +44,12 @@ bool app_eth_address(
     if (coin > _ETHCoin_MAX) {
         return false;
     }
-    if (!eth_common_is_valid_keypath(coin, keypath, keypath_len)) {
-        return false;
-    }
 
     switch (output_type) {
     case ETHPubRequest_OutputType_ADDRESS: {
+        if (!eth_common_is_valid_keypath_address(coin, keypath, keypath_len)) {
+            return false;
+        }
         uint8_t pubkey_uncompressed[65];
         if (!keystore_secp256k1_pubkey(
                 KEYSTORE_SECP256K1_PUBKEY_UNCOMPRESSED,
@@ -62,6 +62,9 @@ bool app_eth_address(
         return _address(pubkey_uncompressed, out, out_len);
     }
     case ETHPubRequest_OutputType_XPUB: {
+        if (!eth_common_is_valid_keypath_xpub(coin, keypath, keypath_len)) {
+            return false;
+        }
         struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
         if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
             return false;

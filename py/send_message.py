@@ -185,10 +185,11 @@ class SendMessage:
 
     def _btc_address(self) -> None:
         def address(display: bool) -> str:
+            # pylint: disable=no-member
             return self._device.btc_address(
                 keypath=[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
                 script_config=bitbox02.btc.BTCScriptConfig(
-                    simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH  # pylint: disable=no-member
+                    simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH
                 ),
                 display=display,
             )
@@ -197,6 +198,7 @@ class SendMessage:
         address(True)
 
     def _sign_btc_tx(self) -> None:
+        # pylint: disable=no-member
         # Dummy transaction to invoke a demo.
         bip44_account: int = 0 + HARDENED
         inputs: List[bitbox02.BTCInputType] = [
@@ -227,9 +229,7 @@ class SendMessage:
         ]
         sigs = self._device.btc_sign(
             bitbox02.btc.BTC,
-            bitbox02.btc.BTCScriptConfig(
-                simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH  # pylint: disable=no-member
-            ),
+            bitbox02.btc.BTCScriptConfig(simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH),
             keypath_account=[84 + HARDENED, 0 + HARDENED, bip44_account],
             inputs=inputs,
             outputs=outputs,
@@ -283,6 +283,15 @@ class SendMessage:
         if enabled:
             print("You can enter a mnemonic passphrase on the next unlock.")
             print("Replug your BitBox02.")
+
+    def _get_eth_xpub(self) -> None:
+        xpub = self._device.eth_pub(
+            keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0],
+            output_type=bitbox02.eth.ETHPubRequest.XPUB,  # pylint: disable=no-member
+            display=False,
+        )
+
+        print("Ethereum xpub: {}".format(xpub))
 
     def _display_eth_address(self) -> None:
         def address(display: bool = False) -> str:
@@ -341,6 +350,7 @@ class SendMessage:
             ("Reboot into bootloader", self._reboot_bootloader),
             ("Check if SD card inserted", self._check_sd_presence),
             ("Toggle BIP39 Mnemonic Passphrase", self._toggle_mnemonic_passphrase),
+            ("Retrieve Ethereum xpub", self._get_eth_xpub),
             ("Retrieve Ethereum address", self._display_eth_address),
             ("Reset Device", self._reset_device),
         )

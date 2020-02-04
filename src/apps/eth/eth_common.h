@@ -30,10 +30,22 @@
 #define APP_ETH_ADDRESS_HEX_LEN (APP_ETH_RECIPIENT_BYTES_LEN * 2 + 2 + 1)
 
 /**
- * Does limit checks the keypath, whitelisting bip44 purpose and accounts.
+ * Does limit checks the keypath, whitelisting bip44 purpose, account and change.
  * @return true if the keypath is valid, false if it is invalid.
  */
-USE_RESULT bool eth_common_is_valid_keypath(
+USE_RESULT bool eth_common_is_valid_keypath_address(
+    ETHCoin coin,
+    const uint32_t* keypath,
+    size_t keypath_len);
+
+/**
+ * Does limit checks the keypath, whitelisting bip44 purpose, account and change.
+ * Only allows the well-known xpub of m'/44'/60'/0'/0 for now.
+ * Since ethereum doesn't use the "change" path part it is always 0 and have become part of the
+ * xpub keypath.
+ * @return true if the keypath is valid, false if it is invalid.
+ */
+USE_RESULT bool eth_common_is_valid_keypath_xpub(
     ETHCoin coin,
     const uint32_t* keypath,
     size_t keypath_len);

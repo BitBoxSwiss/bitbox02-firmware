@@ -192,13 +192,13 @@ set(TEST_LIST
    sha3
    ""
    app_eth
-   "-Wl,--wrap=keystore_secp256k1_pubkey,--wrap=eth_common_is_valid_keypath"
+   "-Wl,--wrap=keystore_secp256k1_pubkey,--wrap=eth_common_is_valid_keypath_address"
    app_eth_common
    ""
    app_eth_sighash
    ""
    app_eth_sign
-   "-Wl,--wrap=app_eth_verify_standard_transaction,--wrap=app_eth_verify_erc20_transaction,--wrap=keystore_secp256k1_sign,--wrap=eth_common_is_valid_keypath"
+   "-Wl,--wrap=app_eth_verify_standard_transaction,--wrap=app_eth_verify_erc20_transaction,--wrap=keystore_secp256k1_sign,--wrap=eth_common_is_valid_keypath_address"
    app_eth_verify
    "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=app_eth_erc20_params_get"
    usart

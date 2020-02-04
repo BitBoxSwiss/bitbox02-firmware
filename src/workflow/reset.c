@@ -24,7 +24,12 @@ bool workflow_reset(void)
     if (!password_check()) {
         return false;
     }
-    if (!workflow_confirm("RESET", "Proceed to\nfactory reset?", NULL, true, false)) {
+    const confirm_params_t params = {
+        .title = "RESET",
+        .body = "Proceed to\nfactory reset?",
+        .longtouch = true,
+    };
+    if (!workflow_confirm(&params)) {
         return false;
     }
 

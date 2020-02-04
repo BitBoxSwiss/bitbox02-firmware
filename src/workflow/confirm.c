@@ -18,7 +18,6 @@
 #include "blocking.h"
 #include "hardfault.h"
 
-#include <ui/components/confirm.h>
 #include <ui/screen_stack.h>
 
 #include <stddef.h>
@@ -72,8 +71,13 @@ enum workflow_async_ready workflow_confirm_async(
     switch (_confirm_state) {
     case CONFIRM_IDLE:
         _result = false;
-        ui_screen_stack_push(confirm_create(
-            title, body, font, false, _confirm_async, accept_only ? NULL : _reject_async));
+        const confirm_params_t params = {
+            .title = title,
+            .body = body,
+            .font = font,
+        };
+        ui_screen_stack_push(
+            confirm_create(&params, _confirm_async, accept_only ? NULL : _reject_async));
         _confirm_state = CONFIRM_WAIT;
         /* FALLTHRU */
     case CONFIRM_WAIT:
@@ -89,33 +93,10 @@ enum workflow_async_ready workflow_confirm_async(
     }
 }
 
-bool workflow_confirm(
-    const char* title,
-    const char* body,
-    const UG_FONT* font,
-    bool longtouch,
-    bool accept_only)
+bool workflow_confirm(const confirm_params_t* params)
 {
     _result = false;
-    ui_screen_stack_push(
-        confirm_create(title, body, font, longtouch, _confirm, accept_only ? NULL : _reject));
-    bool blocking_result = workflow_blocking_block();
-    ui_screen_stack_pop();
-    if (!blocking_result) {
-        return false;
-    }
-    return _result;
-}
-
-bool workflow_confirm_scrollable(
-    const char* title,
-    const char* body,
-    const UG_FONT* font,
-    bool accept_only)
-{
-    _result = false;
-    ui_screen_stack_push(confirm_create_scrollable(
-        title, body, font, false, _confirm, accept_only ? NULL : _reject));
+    ui_screen_stack_push(confirm_create(params, _confirm, params->accept_only ? NULL : _reject));
     bool blocking_result = workflow_blocking_block();
     ui_screen_stack_pop();
     if (!blocking_result) {
@@ -131,7 +112,14 @@ bool workflow_confirm_scrollable_longtouch(
     bool* cancel_forced_out)
 {
     _result = false;
-    ui_screen_stack_push(confirm_create_scrollable(title, body, font, true, _confirm, _reject));
+    const confirm_params_t params = {
+        .title = title,
+        .body = body,
+        .font = font,
+        .scrollable = true,
+        .longtouch = true,
+    };
+    ui_screen_stack_push(confirm_create(&params, _confirm, _reject));
     bool blocking_result = workflow_blocking_block();
     ui_screen_stack_pop();
     *cancel_forced_out = !blocking_result;

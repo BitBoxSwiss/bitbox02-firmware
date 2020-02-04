@@ -18,12 +18,13 @@
 #include <cmocka.h>
 
 #include <test_commander.h>
+#include <ui/components/confirm.h>
 
-bool __wrap_workflow_confirm_scrollable(const char* title, const char* body, bool accept_only)
+bool __wrap_workflow_confirm(const confirm_params_t* params)
 {
-    check_expected(title);
-    check_expected(body);
-    check_expected(accept_only);
+    check_expected(params->title);
+    check_expected(params->body);
+    check_expected(params->accept_only);
     return mock();
 }
 
@@ -33,21 +34,21 @@ static void _test_api_set_device_name(void** state)
         .name = "Mia",
     };
 
-    expect_string_count(__wrap_workflow_confirm_scrollable, title, "Name", -1);
-    expect_string_count(__wrap_workflow_confirm_scrollable, body, request.name, -1);
-    expect_value_count(__wrap_workflow_confirm_scrollable, accept_only, false, -1);
+    expect_string_count(__wrap_workflow_confirm, params->title, "Name", -1);
+    expect_string_count(__wrap_workflow_confirm, params->body, request.name, -1);
+    expect_value_count(__wrap_workflow_confirm, params->accept_only, false, -1);
 
     // All A-Okay.
-    will_return(__wrap_workflow_confirm_scrollable, true);
+    will_return(__wrap_workflow_confirm, true);
     will_return(__wrap_memory_set_device_name, true);
     assert_int_equal(COMMANDER_OK, commander_api_set_device_name(&request));
 
     // User rejects.
-    will_return(__wrap_workflow_confirm_scrollable, false);
+    will_return(__wrap_workflow_confirm, false);
     assert_int_equal(COMMANDER_ERR_USER_ABORT, commander_api_set_device_name(&request));
 
     // Setting name fails.
-    will_return(__wrap_workflow_confirm_scrollable, true);
+    will_return(__wrap_workflow_confirm, true);
     will_return(__wrap_memory_set_device_name, false);
     assert_int_equal(COMMANDER_ERR_MEMORY, commander_api_set_device_name(&request));
 }

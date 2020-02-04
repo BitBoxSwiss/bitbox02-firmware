@@ -45,12 +45,12 @@ bool password_set(char* password_out)
         return false;
     }
     if (strlen(password) < 4) {
-        if (!workflow_confirm(
-                "WARNING",
-                "Your password\n has fewer than\n 4 characters.\nContinue?",
-                NULL,
-                true,
-                false)) {
+        const confirm_params_t params = {
+            .title = "WARNING",
+            .body = "Your password\n has fewer than\n 4 characters.\nContinue?",
+            .longtouch = true,
+        };
+        if (!workflow_confirm(&params)) {
             return false;
         }
     }

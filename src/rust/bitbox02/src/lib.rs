@@ -57,6 +57,8 @@ pub const COMMANDER_OK: bitbox02_sys::commander_error_t =
 
 pub use bitbox02_sys::font_monogram_5X9;
 
+pub use bitbox02_sys::confirm_params_t;
+
 #[macro_use]
 pub mod util;
 
@@ -121,14 +123,17 @@ pub fn workflow_confirm(
         }
     };
 
+    let params: confirm_params_t = confirm_params_t {
+        title: title_cstr.as_ptr() as *const _,
+        body: body_cstr.as_ptr() as *const _,
+        font: font,
+        scrollable: false,
+        longtouch: longtouch,
+        accept_only: accept_only,
+    };
+
     unsafe {
-        bitbox02_sys::workflow_confirm(
-            title_cstr.as_ptr() as *const _,
-            body_cstr.as_ptr() as *const _,
-            font,
-            longtouch,
-            accept_only,
-        )
+        bitbox02_sys::workflow_confirm(&params)
     }
 }
 

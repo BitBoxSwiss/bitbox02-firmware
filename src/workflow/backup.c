@@ -132,11 +132,21 @@ bool workflow_backup_check(char* id_out, bool silent)
         return false;
     case BACKUP_OK:
         if (!silent) {
-            if (!workflow_confirm_scrollable("Name?", backup_name, NULL, false)) {
+            const confirm_params_t params_name = {
+                .title = "Name?",
+                .body = backup_name,
+                .scrollable = true,
+            };
+            if (!workflow_confirm(&params_name)) {
                 // TODO Change to error "User Abort"
                 return false;
             }
-            if (!workflow_confirm_scrollable("ID?", id_out, NULL, false)) {
+            const confirm_params_t params_id = {
+                .title = "ID?",
+                .body = id_out,
+                .scrollable = true,
+            };
+            if (!workflow_confirm(&params_id)) {
                 // TODO Change to error "User Abort"
                 return false;
             }

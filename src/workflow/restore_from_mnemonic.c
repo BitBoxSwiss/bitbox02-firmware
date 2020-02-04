@@ -158,7 +158,12 @@ bool workflow_restore_from_mnemonic(const RestoreFromMnemonicRequest* request)
     // the process immediately. We break out only if the user confirms.
     while (true) {
         if (!password_set(password)) {
-            if (!workflow_confirm("", "Passwords\ndo not match.\nTry again?", NULL, false, false)) {
+            const confirm_params_t params = {
+                .title = "",
+                .body = "Passwords\ndo not match.\nTry again?",
+            };
+
+            if (!workflow_confirm(&params)) {
                 return false;
             }
             continue;

@@ -39,5 +39,10 @@ bool workflow_pairing_create(const uint8_t* hash)
         base32 + 10,
         base32 + 15);
 
-    return workflow_confirm("Pairing code", base32_formatted, &font_monogram_5X9, false, false);
+    const confirm_params_t params = {
+        .title = "Pairing code",
+        .body = base32_formatted,
+        .font = &font_monogram_5X9,
+    };
+    return workflow_confirm(&params);
 }

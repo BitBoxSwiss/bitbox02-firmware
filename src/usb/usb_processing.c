@@ -22,9 +22,13 @@
 
 #include <hardfault.h>
 
+#if !defined(BOOTLOADER)
+#include <hww.h>
+#endif
 #include <queue.h>
 #include <stdlib.h>
 #include <string.h>
+#include <u2f.h>
 #include <util.h>
 
 struct usb_processing {
@@ -40,30 +44,64 @@ struct usb_processing {
      * but there is no registered API set to manage it.
      */
     void (*manage_invalid_endpoint)(struct queue* queue, uint32_t cid);
+#if !defined(BOOTLOADER)
+    /**
+     * Function to call when a message has been received,
+     * but the stack cannot process it because the device
+     * is busy processing another request.
+     */
+    void (*create_blocked_req_error)(Packet* out_packet, const Packet* in_packet);
+    /**
+     * Function to call to forcefully abort any operation
+     * that is keeping the USB stack busy.
+     */
+    void (*force_operation_abort)(void);
+    /**
+     * Function to call in order to know whether the given
+     * request can be passed to the stack, while the stack
+     * is blocked.
+     */
+    bool (*can_request_unblock)(const Packet* in_packet);
+#endif
 };
 
-/*
- * FUTURE: this can be removed and packets can be queued when
- * hww workflows are independent from the USB processing layer.
- *
- * At that point, we can just use the usb_processing.has_packet flags to make
- * sure that we don't drop packets, send FRAME_ERR_CHANNEL_BUSY when layer-1
- * is busy (i.e. we are in the process of buffering a frame) and continuously accept
- * frames from both stacks (so we don't send FRAME_ERR_CHANNEL_BUSY improperly when
- * it's the user interface that is busy, and not the USB port).
- *
- * For now this is impossible as the UI being busy keeps the USB port busy as well...
+/**
+ * Keeps track of the internal state of the USB processing stack.
  */
-static volatile bool _in_packet_queued;
+typedef struct {
+    /**
+     * FUTURE: this can be removed and packets can be queued when
+     * hww workflows are independent from the USB processing layer.
+     *
+     * At that point, we can just use the usb_processing.has_packet flags to make
+     * sure that we don't drop packets, send FRAME_ERR_CHANNEL_BUSY when layer-1
+     * is busy (i.e. we are in the process of buffering a frame) and continuously accept
+     * frames from both stacks (so we don't send FRAME_ERR_CHANNEL_BUSY improperly when
+     * it's the user interface that is busy, and not the USB port).
+     *
+     * For now this is impossible as the UI being busy keeps the USB port busy as well...
+     */
+    volatile bool in_packet_queued;
 
-/*
- * Contains the USB packet that is currently being processed.
- * This is only valid if _in_packet_queued is true.
- * It is shared between all stacks (as we only process one packet at the time,
- * and send out FRAME_ERR_CHANNEL_BUSY if we are still processing the buffered one
- * and a new one arrives).
- */
-static Packet _in_packet;
+    /**
+     * Contains the USB packet that is currently being processed.
+     * This is only valid if in_packet_queued is true.
+     * It is shared between all stacks (as we only process one packet at the time,
+     * and send out FRAME_ERR_CHANNEL_BUSY if we are still processing the buffered one
+     * and a new one arrives).
+     */
+    Packet in_packet;
+
+#if !defined(BOOTLOADER)
+    /**
+     * Pointer to the context that has locked the USB stack while
+     * handling a blocking request.
+     */
+    struct usb_processing* blocking_ctx;
+#endif
+} usb_processing_state_t;
+
+static usb_processing_state_t _usb_state = {0};
 
 /**
  * Responds with data of a certain length.
@@ -81,10 +119,10 @@ static queue_error_t _enqueue_frames(struct usb_processing* ctx, const Packet* o
  */
 static void _build_packet(const uint8_t* buf, size_t length, uint8_t cmd, uint32_t cid)
 {
-    memcpy(_in_packet.data_addr, buf, MIN(USB_DATA_MAX_LEN, length));
-    _in_packet.len = length;
-    _in_packet.cmd = cmd;
-    _in_packet.cid = cid;
+    memcpy(_usb_state.in_packet.data_addr, buf, MIN(USB_DATA_MAX_LEN, length));
+    _usb_state.in_packet.len = length;
+    _usb_state.in_packet.cmd = cmd;
+    _usb_state.in_packet.cid = cid;
 }
 
 /**
@@ -138,19 +176,12 @@ bool usb_processing_enqueue(
     uint8_t cmd,
     uint32_t cid)
 {
-    // Right now async workflows are only supported by the u2f endpoint.
-    // Ignore any messages on the HWW while an async workflow is in progress.
-#if APP_U2F == 1
-    if (ctx == usb_processing_hww() && workflow_async_busy_check()) {
-        return false;
-    }
-#endif
-    if (_in_packet_queued) {
+    if (_usb_state.in_packet_queued) {
         /* We already have a buffered packet. */
         return false;
     }
     _build_packet(buf, length, cmd, cid);
-    _in_packet_queued = true;
+    _usb_state.in_packet_queued = true;
     ctx->has_packet = true;
     return true;
 }
@@ -170,34 +201,94 @@ static void _usb_processing_drop_received(struct usb_processing* ctx)
     // Mark the packet as processed.
     if (ctx->has_packet) {
         ctx->has_packet = false;
-        util_zero(&_in_packet, sizeof(_in_packet));
+        util_zero(&_usb_state.in_packet, sizeof(_usb_state.in_packet));
     }
-    _in_packet_queued = false;
+    _usb_state.in_packet_queued = false;
 }
 
-static void _usb_process_incoming_packet(struct usb_processing* ctx)
+/**
+ * Executes a packet, making it go through the registered callbacks
+ * for the given context.
+ *
+ * @param ctx USB stack that should execute the packet.
+ * @param in_packet Packet to execute.
+ */
+static void _usb_execute_packet(struct usb_processing* ctx, const Packet* in_packet)
 {
-    if (!ctx->has_packet) {
-        return;
-    }
-    // Received all data
-    int cmd_valid = 0;
+    bool cmd_valid = false;
     for (uint32_t i = 0; i < ctx->registered_cmds_len; i++) {
-        if (_in_packet.cmd == ctx->registered_cmds[i].cmd) {
-            cmd_valid = 1;
+        if (in_packet->cmd == ctx->registered_cmds[i].cmd) {
+            cmd_valid = true;
             // process_cmd calls commander(...) or U2F functions.
 
             Packet out_packet;
-            _prepare_out_packet(&_in_packet, &out_packet);
-            ctx->registered_cmds[i].process_cmd(&_in_packet, &out_packet, USB_DATA_MAX_LEN);
+            _prepare_out_packet(in_packet, &out_packet);
+            ctx->registered_cmds[i].process_cmd(in_packet, &out_packet, USB_DATA_MAX_LEN);
             _enqueue_frames(ctx, (const Packet*)&out_packet);
             break;
         }
     }
 
     if (!cmd_valid) {
-        ctx->manage_invalid_endpoint(ctx->out_queue(), _in_packet.cid);
+        ctx->manage_invalid_endpoint(ctx->out_queue(), _usb_state.in_packet.cid);
     }
+}
+
+#if !defined(BOOTLOADER)
+/**
+ * Processes an incoming packet. If the packet cannot be processed,
+ * send an error response.
+ *
+ * @param ctx USB stack that received the packet.
+ * @param in_packet Packet to process.
+ */
+static void _usb_arbitrate_packet(struct usb_processing* ctx, const Packet* in_packet)
+{
+    bool can_go_through = true;
+
+    /*
+     * If we're busy on another request, check if this
+     * request matches.
+     */
+    if (_usb_state.blocking_ctx) {
+        if (ctx == _usb_state.blocking_ctx) {
+            /* Ask the lock owner to check if it will accept this request. */
+            can_go_through = ctx->can_request_unblock(in_packet);
+        } else {
+            can_go_through = false;
+        }
+    }
+
+    if (!can_go_through) {
+        /* The receiving state should send back an error */
+        Packet out_packet;
+        _prepare_out_packet(in_packet, &out_packet);
+        ctx->create_blocked_req_error(&out_packet, in_packet);
+        _enqueue_frames(ctx, &out_packet);
+    } else {
+        _usb_execute_packet(ctx, in_packet);
+    }
+}
+#endif
+
+/**
+ * Check if packets are buffered; if yes, process and pop them.
+ * @param ctx USB stack to process.
+ */
+static void _usb_consume_incoming_packets(struct usb_processing* ctx)
+{
+    if (!ctx->has_packet) {
+        return;
+    }
+/*
+ * The bootloader is not allowed to execute any blocking request.
+ * Remove all the arbitration logic.
+ */
+#if !defined(BOOTLOADER)
+    _usb_arbitrate_packet(ctx, &_usb_state.in_packet);
+#else
+    _usb_execute_packet(ctx, &_usb_state.in_packet);
+#endif
     _usb_processing_drop_received(ctx);
 }
 
@@ -212,7 +303,7 @@ void usb_processing_process(struct usb_processing* ctx)
     }
 
 #endif
-    _usb_process_incoming_packet(ctx);
+    _usb_consume_incoming_packets(ctx);
     /*
      * If USB sends are not enabled (yet), send will be NULL.
      * Otherwise, we can call it now to flush outstanding writes.
@@ -244,8 +335,14 @@ void usb_processing_init(void)
     usb_processing_u2f()->format_frame = usb_frame_reply;
     usb_processing_u2f()->has_packet = false;
     usb_processing_u2f()->manage_invalid_endpoint = u2f_invalid_endpoint;
+    usb_processing_u2f()->can_request_unblock = u2f_blocking_request_can_go_through;
+    usb_processing_u2f()->create_blocked_req_error = u2f_blocked_req_error;
 #endif
     usb_processing_hww()->out_queue = queue_hww_queue;
+#if !defined(BOOTLOADER)
+    usb_processing_hww()->can_request_unblock = hww_blocking_request_can_go_through;
+    usb_processing_hww()->create_blocked_req_error = hww_blocked_req_error;
+#endif
 #if PLATFORM_BITBOXBASE == 1
     queue_init(queue_hww_queue(), 1);
     usb_processing_hww()->format_frame = usart_format_frame;
@@ -257,3 +354,21 @@ void usb_processing_init(void)
 #endif
     usb_processing_hww()->has_packet = false;
 }
+
+#if !defined(BOOTLOADER)
+void usb_processing_lock(struct usb_processing* ctx)
+{
+    if (_usb_state.blocking_ctx) {
+        Abort("Tried to lock the USB stack while locked.");
+    }
+    _usb_state.blocking_ctx = ctx;
+}
+
+void usb_processing_unlock(void)
+{
+    if (!_usb_state.blocking_ctx) {
+        Abort("Tried to unlock the USB stack while not locked.");
+    }
+    _usb_state.blocking_ctx = NULL;
+}
+#endif

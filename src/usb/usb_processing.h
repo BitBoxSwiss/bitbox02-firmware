@@ -65,4 +65,10 @@ struct usb_processing* usb_processing_hww(void);
 
 void usb_processing_init(void);
 
+#if !defined(BOOTLOADER)
+void usb_processing_lock(struct usb_processing* ctx);
+
+void usb_processing_unlock(void);
+#endif
+
 #endif

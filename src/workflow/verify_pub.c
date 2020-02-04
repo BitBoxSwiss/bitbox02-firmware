@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <stddef.h>
+#include <string.h>
 
 #include "verify_pub.h"
 
@@ -29,6 +30,13 @@ static void _dismiss(component_t* component)
 
 void workflow_verify_pub(const char* title, const char* pub)
 {
+    const int buf_len = 128;
+    char buf[buf_len];
+    if (strlen(title) + 1 < buf_len) {
+        memset(buf, 0, buf_len);
+        UG_WrapTitleString(title, buf, 55);
+        title = buf;
+    }
     const confirm_params_t params = {
         .title = title,
         .body = pub,

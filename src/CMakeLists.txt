@@ -135,6 +135,11 @@ set(DBB-BOOTLOADER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/pukcc/curve_p256.c
   ${CMAKE_SOURCE_DIR}/src/pukcc/pukcc.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader.c
+  ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader_chunks.c
+  ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader_firmware_jump.c
+  ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader_hash.c
+  ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader_graphics.c
+  ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader_usb.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/startup.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/mpu_regions.c
   ${CMAKE_SOURCE_DIR}/src/memory/mpu.c

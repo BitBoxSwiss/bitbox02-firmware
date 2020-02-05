@@ -18,17 +18,22 @@
 
 bootstrap:
 	git submodule update --init --recursive
-# Directory for building for "host" machine according to gcc convention
-build:
+
+build/Makefile:
 	mkdir -p build
 	cd build && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake ..
 	$(MAKE) -C py/bitbox02
 
-# Directory for building for "build" machine according to gcc convention
-build-build:
+build-build/Makefile:
 	mkdir -p build-build
 	cd build-build && cmake .. -DCOVERAGE=ON -DSANITIZE_ADDRESS=ON -DSANITIZE_UNDEFINED=ON
 	$(MAKE) -C py/bitbox02
+
+# Directory for building for "host" machine according to gcc convention
+build: build/Makefile
+
+# Directory for building for "build" machine according to gcc convention
+build-build: build-build/Makefile
 
 firmware: | build
 # Generate python bindings for protobuf for test scripts

@@ -12,3 +12,8 @@ script:
 # Pull the docker image as a separate step to measure the time it takes
 - ./.ci/travis-ci pull
 - ./.ci/travis-ci
+
+cache:
+  directories:
+    - build/external
+    - build-build/external

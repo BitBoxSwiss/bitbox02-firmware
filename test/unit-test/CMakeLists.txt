@@ -55,7 +55,6 @@ add_library(bitbox
   framework/mock_memory.c
   framework/mock_qtouch.c
   framework/mock_gestures.c
-  framework/mock_ugui.c
   framework/mock_component.c
   framework/mock_ff.c
   framework/mock_sd.c

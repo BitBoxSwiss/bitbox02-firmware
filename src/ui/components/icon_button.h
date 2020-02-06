@@ -21,6 +21,7 @@
 typedef enum {
     ICON_BUTTON_CHECK,
     ICON_BUTTON_CROSS,
+    ICON_BUTTON_NEXT,
 } icon_button_type_t;
 
 /**

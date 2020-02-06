@@ -21,15 +21,6 @@
 #include <hww.pb.h>
 #include <keystore.h>
 
-static const uint8_t _xpub_version[4] = {0x04, 0x88, 0xb2, 0x1e};
-static const uint8_t _ypub_version[4] = {0x04, 0x9d, 0x7c, 0xb2};
-static const uint8_t _zpub_version[4] = {0x04, 0xb2, 0x47, 0x46};
-static const uint8_t _tpub_version[4] = {0x04, 0x35, 0x87, 0xcf};
-static const uint8_t _vpub_version[4] = {0x04, 0x5f, 0x1c, 0xf6};
-static const uint8_t _upub_version[4] = {0x04, 0x4a, 0x52, 0x62};
-static const uint8_t _capital_vpub_version[4] = {0x02, 0x57, 0x54, 0x83};
-static const uint8_t _capital_zpub_version[4] = {0x02, 0xaa, 0x7e, 0xd3};
-
 bool app_btc_xpub(
     BTCCoin coin,
     BTCPubRequest_XPubType xpub_type,
@@ -50,26 +41,7 @@ bool app_btc_xpub(
     if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
         return false;
     }
-    switch (xpub_type) {
-    case BTCPubRequest_XPubType_TPUB:
-        return btc_common_encode_xpub(&derived_xpub, _tpub_version, out, out_len);
-    case BTCPubRequest_XPubType_VPUB:
-        return btc_common_encode_xpub(&derived_xpub, _vpub_version, out, out_len);
-    case BTCPubRequest_XPubType_UPUB:
-        return btc_common_encode_xpub(&derived_xpub, _upub_version, out, out_len);
-    case BTCPubRequest_XPubType_XPUB:
-        return btc_common_encode_xpub(&derived_xpub, _xpub_version, out, out_len);
-    case BTCPubRequest_XPubType_YPUB:
-        return btc_common_encode_xpub(&derived_xpub, _ypub_version, out, out_len);
-    case BTCPubRequest_XPubType_ZPUB:
-        return btc_common_encode_xpub(&derived_xpub, _zpub_version, out, out_len);
-    case BTCPubRequest_XPubType_CAPITAL_VPUB:
-        return btc_common_encode_xpub(&derived_xpub, _capital_vpub_version, out, out_len);
-    case BTCPubRequest_XPubType_CAPITAL_ZPUB:
-        return btc_common_encode_xpub(&derived_xpub, _capital_zpub_version, out, out_len);
-    default:
-        return false;
-    }
+    return btc_common_encode_xpub(&derived_xpub, xpub_type, out, out_len);
 }
 
 bool app_btc_address_simple(

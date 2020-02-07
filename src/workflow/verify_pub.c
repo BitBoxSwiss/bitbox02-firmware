@@ -12,21 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "verify_pub.h"
+#include "confirm.h"
+
 #include <stddef.h>
 #include <string.h>
-
-#include "verify_pub.h"
-
-#include "blocking.h"
-
-#include <ui/components/confirm.h>
-#include <ui/screen_stack.h>
-
-static void _dismiss(component_t* component)
-{
-    (void)component;
-    workflow_blocking_unblock();
-}
 
 void workflow_verify_pub(const char* title, const char* pub)
 {
@@ -42,10 +32,7 @@ void workflow_verify_pub(const char* title, const char* pub)
         .body = pub,
         .scrollable = true,
     };
-    ui_screen_stack_push(confirm_create(&params, _dismiss, NULL));
-    bool result = workflow_blocking_block();
-    ui_screen_stack_pop();
-    if (!result) {
+    if (!workflow_confirm(&params)) {
         // No meaningful error to return here.
     }
 }

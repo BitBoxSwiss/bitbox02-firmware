@@ -45,7 +45,7 @@ static void _render(component_t* component)
 {
     data_t* data = (data_t*)component->data;
     uint16_t y = 0;
-    uint16_t x = data->type == ICON_BUTTON_CROSS ? (SCREEN_WIDTH / 6) : (SCREEN_WIDTH / 6 * 5);
+    uint16_t x = data->type == ICON_BUTTON_CROSS ? (SCREEN_WIDTH / 7) : (SCREEN_WIDTH / 7 * 6);
     const uint16_t arrow_height = 4;
     if (data->type == ICON_BUTTON_NEXT) {
         if (data->location == bottom_slider) {

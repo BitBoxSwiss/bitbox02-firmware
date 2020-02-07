@@ -75,7 +75,7 @@ component_t* confirm_create(
     confirm->dimension.width = SCREEN_WIDTH;
     confirm->dimension.height = SCREEN_HEIGHT;
 
-    uint8_t slider_position = params->scrollable || params->longtouch ? top_slider : bottom_slider;
+    slider_location_t slider_position = top_slider;
     // Create labels
     if (params->scrollable) {
         ui_util_add_sub_component(

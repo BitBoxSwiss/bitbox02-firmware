@@ -26,7 +26,7 @@ def read(*path: str) -> str:
 
 
 def find_version() -> str:
-    version_file = read("bitbox02", "__init__.py")
+    version_file = read("bitbox02/bitbox02", "__init__.py")
     version_match = re.search(r"^__version__ = \"(.*)\"$", version_file, re.M)
     if version_match:
         return version_match.group(1)

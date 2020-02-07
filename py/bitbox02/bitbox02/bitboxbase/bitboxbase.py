@@ -18,11 +18,11 @@ from typing import Optional, Callable
 
 import serial
 
-import communication
-from communication.devices import DeviceInfo
+from bitbox02 import communication
+from bitbox02.communication.devices import DeviceInfo
 
-from communication.generated import bitboxbase_pb2 as bitboxbase
-from communication.generated import hww_pb2 as hww
+from bitbox02.communication.generated import bitboxbase_pb2 as bitboxbase
+from bitbox02.communication.generated import hww_pb2 as hww
 
 
 def get_bitboxbase_default_device(serial_port: serial.Serial) -> DeviceInfo:

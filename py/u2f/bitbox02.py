@@ -4,10 +4,10 @@ from typing import Tuple
 import binascii
 import struct
 
-import communication
-from communication import Bitbox02Exception
+from bitbox02 import communication
+from bitbox02.communication import Bitbox02Exception
 
-from communication.devices import get_device, BITBOX02MULTI, DeviceInfo
+from bitbox02.communication.devices import get_device, BITBOX02MULTI, DeviceInfo
 from . import u2f
 
 

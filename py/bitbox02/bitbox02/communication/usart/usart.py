@@ -20,7 +20,7 @@ import struct
 
 import serial
 
-from communication import PhysicalLayer, TransportLayer
+from bitbox02.communication import PhysicalLayer, TransportLayer
 
 
 class SerialPort(PhysicalLayer):

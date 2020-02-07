@@ -21,17 +21,17 @@ from datetime import datetime
 from typing import Optional, List, Dict, Tuple, Any, Generator, Union
 from typing_extensions import TypedDict
 
-from communication import BitBoxCommonAPI, Bitbox02Exception, ERR_GENERIC
+from bitbox02.communication import BitBoxCommonAPI, Bitbox02Exception, ERR_GENERIC
 
 try:
-    from communication.generated import hww_pb2 as hww
-    from communication.generated import eth_pb2 as eth
-    from communication.generated import btc_pb2 as btc
-    from communication.generated import mnemonic_pb2 as mnemonic
-    from communication.generated import bitbox02_system_pb2 as bitbox02_system
-    from communication.generated import random_number_pb2 as random_number
-    from communication.generated import backup_commands_pb2 as backup
-    from communication.generated import common_pb2 as common
+    from bitbox02.communication.generated import hww_pb2 as hww
+    from bitbox02.communication.generated import eth_pb2 as eth
+    from bitbox02.communication.generated import btc_pb2 as btc
+    from bitbox02.communication.generated import mnemonic_pb2 as mnemonic
+    from bitbox02.communication.generated import bitbox02_system_pb2 as bitbox02_system
+    from bitbox02.communication.generated import random_number_pb2 as random_number
+    from bitbox02.communication.generated import backup_commands_pb2 as backup
+    from bitbox02.communication.generated import common_pb2 as common
 except ModuleNotFoundError:
     print("Run `make py` to generate the protobuf messages")
     sys.exit()

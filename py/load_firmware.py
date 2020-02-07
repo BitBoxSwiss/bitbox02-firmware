@@ -24,11 +24,11 @@ from time import sleep
 
 import hid
 
-from bitboxbase import BitBoxBase, get_bitboxbase_default_device
-from communication import devices, TransportLayer, u2fhid, usart
-from communication.devices import TooManyFoundException, NoneFoundException
+from bitbox02.bitboxbase import BitBoxBase, get_bitboxbase_default_device
+from bitbox02.communication import devices, TransportLayer, u2fhid, usart
+from bitbox02.communication.devices import TooManyFoundException, NoneFoundException
 
-from bitbox02 import Bootloader, BitBox02
+from bitbox02.bitbox02 import Bootloader, BitBox02
 
 
 def eprint(*args: Any, **kwargs: Any) -> None:

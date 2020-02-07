@@ -19,8 +19,8 @@ import io
 import math
 import hashlib
 
-from communication import TransportLayer
-from communication.devices import DeviceInfo
+from bitbox02.communication import TransportLayer
+from bitbox02.communication.devices import DeviceInfo
 
 BOOTLOADER_CMD = 0x80 + 0x40 + 0x03
 NUM_ROOT_KEYS = 3
@@ -45,6 +45,10 @@ SIGDATA_LEN = SIGNING_PUBKEYS_DATA_LEN + FIRMWARE_DATA_LEN
 
 
 def parse_signed_firmware(firmware: bytes) -> typing.Tuple[bytes, bytes, bytes]:
+    """
+    Split raw firmware bytes into magic, sigdata and firmware
+    """
+
     if len(firmware) < MAGIC_LEN + SIGDATA_LEN:
         raise ValueError("firmware too small")
     magic, firmware = firmware[:MAGIC_LEN], firmware[MAGIC_LEN:]

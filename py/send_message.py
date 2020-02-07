@@ -25,11 +25,11 @@ import base64
 import hid
 from tzlocal import get_localzone
 
+from bitbox02 import bitbox02
+from bitbox02 import bitboxbase
+from bitbox02.bitboxbase import BitBoxBase, get_bitboxbase_default_device
+from bitbox02.communication import devices, HARDENED, UserAbortException, u2fhid, usart
 
-from bitboxbase import bitboxbase, BitBoxBase, get_bitboxbase_default_device
-from communication import devices, HARDENED, UserAbortException, u2fhid, usart
-
-import bitbox02
 import u2f
 import u2f.bitbox02
 

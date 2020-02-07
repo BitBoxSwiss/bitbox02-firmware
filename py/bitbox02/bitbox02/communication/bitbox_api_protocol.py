@@ -20,7 +20,7 @@ import sys
 import base64
 import binascii
 import hashlib
-from typing import Optional, Callable, List, Dict, Tuple, Union
+from typing import Optional, List, Dict, Tuple, Union
 from typing_extensions import TypedDict
 
 import ecdsa
@@ -156,16 +156,35 @@ class AttestationException(Exception):
     pass
 
 
+class BitBoxNoiseConfig:
+    """ Stores Functions required setup a noise connection """
+
+    # pylint: disable=no-self-use,unused-argument
+    def show_pairing(self, code: str) -> bool:
+        return True
+
+    def attestation_check(self, result: bool) -> None:
+        return
+
+    def contains_device_static_pubkey(self, pubkey: bytes) -> bool:
+        return False
+
+    def add_device_static_pubkey(self, pubkey: bytes) -> None:
+        return
+
+    def get_app_static_privkey(self) -> Optional[bytes]:
+        return None
+
+    def set_app_static_privkey(self, privkey: bytes) -> None:
+        return
+
+
 class BitBoxCommonAPI:
     """Class to communicate with a BitBox device"""
 
-    # pylint: disable=too-many-public-methods
+    # pylint: disable=too-many-public-methods,too-many-arguments
     def __init__(
-        self,
-        transport: TransportLayer,
-        device_info: DeviceInfo,
-        show_pairing_callback: Callable[[str], bool],
-        attestation_check_callback: Optional[Callable[[bool], None]] = None,
+        self, transport: TransportLayer, device_info: DeviceInfo, noise_config: BitBoxNoiseConfig
     ):
         self.debug = False
         serial_number = device_info["serial_number"]
@@ -182,9 +201,7 @@ class BitBoxCommonAPI:
         )
 
         if self.version >= semver.VersionInfo(2, 0, 0):
-            if attestation_check_callback is not None:
-                # Perform attestation
-                attestation_check_callback(self._perform_attestation())
+            noise_config.attestation_check(self._perform_attestation())
 
             # Invoke unlock workflow on the device.
             # In version <2.0.0, the device did this automatically.
@@ -197,6 +214,10 @@ class BitBoxCommonAPI:
                     self.close()
                     raise Exception("Unlock process aborted")
 
+        self.noise = self._create_noise_channel(noise_config)
+
+    # pylint: disable=too-many-branches
+    def _create_noise_channel(self, noise_config: BitBoxNoiseConfig) -> NoiseConnection:
         if self._query(OP_I_CAN_HAS_HANDSHAEK) != RESPONSE_SUCCESS:
             self.close()
             raise Exception("Couldn't kick off handshake")
@@ -204,25 +225,31 @@ class BitBoxCommonAPI:
         # init noise channel
         noise = NoiseConnection.from_name(b"Noise_XX_25519_ChaChaPoly_SHA256")
         noise.set_as_initiator()
-        dummy_private_key = os.urandom(32)
-        noise.set_keypair_from_private_bytes(Keypair.STATIC, dummy_private_key)
+        private_key = noise_config.get_app_static_privkey()
+        if private_key is None:
+            private_key = os.urandom(32)
+            noise_config.set_app_static_privkey(private_key)
+        noise.set_keypair_from_private_bytes(Keypair.STATIC, private_key)
         noise.set_prologue(b"Noise_XX_25519_ChaChaPoly_SHA256")
         noise.start_handshake()
         noise.read_message(self._query(noise.write_message()))
+        remote_static_key = noise.noise_protocol.handshake_state.rs.public_bytes
         assert not noise.handshake_finished
         send_msg = noise.write_message()
         assert noise.handshake_finished
         pairing_code = base64.b32encode(noise.get_handshake_hash()).decode("ascii")
         response = self._query(send_msg)
 
-        # Can be set to False if the remote static pubkey was previously confirmed.
+        # Check if we recognize the device's public key
         pairing_verification_required_by_host = True
+        if noise_config.contains_device_static_pubkey(remote_static_key):
+            pairing_verification_required_by_host = False
 
         pairing_verification_required_by_device = response == b"\x01"
         if pairing_verification_required_by_host or pairing_verification_required_by_device:
             cid = self._transport.generate_cid()
             self._transport.write(OP_I_CAN_HAS_PAIRIN_VERIFICASHUN, HWW_CMD, cid)
-            client_response_success = show_pairing_callback(
+            client_response_success = noise_config.show_pairing(
                 "{} {}\n{} {}".format(
                     pairing_code[:5], pairing_code[5:10], pairing_code[10:15], pairing_code[15:20]
                 )
@@ -240,11 +267,13 @@ class BitBoxCommonAPI:
             else:
                 self.close()
                 raise Exception("unexpected response")
-        self.noise = noise
+            noise_config.add_device_static_pubkey(remote_static_key)
+        return noise
 
     def close(self) -> None:
         self._transport.close()
 
+    # pylint: disable=too-many-return-statements
     def _perform_attestation(self) -> bool:
         """Sends a random challenge and verifies that the response can be verified with
         Shift's root attestation pubkeys. Returns True if the verification is successful."""

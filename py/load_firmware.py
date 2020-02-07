@@ -25,7 +25,7 @@ from time import sleep
 import hid
 
 from bitbox02.bitboxbase import BitBoxBase, get_bitboxbase_default_device
-from bitbox02.communication import devices, TransportLayer, u2fhid, usart
+from bitbox02.communication import devices, TransportLayer, u2fhid, usart, bitbox_api_protocol
 from bitbox02.communication.devices import TooManyFoundException, NoneFoundException
 
 from bitbox02.bitbox02 import Bootloader, BitBox02
@@ -43,16 +43,16 @@ def _get_bitbox_and_reboot() -> devices.DeviceInfo:
     """Search for a bitbox and then reboot it into bootloader"""
     device = devices.get_any_bitbox02()
 
-    # bitbox02 detected -> send command to reboot into bootloader to upgrade.
-    def _show_pairing(code: str) -> bool:
-        print("Please compare and confirm the pairing code on your BitBox02:")
-        print(code)
-        return True
+    class NoiseConfig(bitbox_api_protocol.BitBoxNoiseConfig):
+        def show_pairing(self, code: str) -> bool:
+            print("Please compare and confirm the pairing code on your BitBox02:")
+            print(code)
+            return True
 
     hid_device = hid.device()
     hid_device.open_path(device["path"])
     bitbox = BitBox02(
-        transport=u2fhid.U2FHid(hid_device), device_info=device, show_pairing_callback=_show_pairing
+        transport=u2fhid.U2FHid(hid_device), device_info=device, noise_config=NoiseConfig()
     )
     bitbox.reboot()
 
@@ -156,16 +156,15 @@ def _find_and_open_usart_bitbox(serial_port: usart.SerialPort) -> devices.Device
     print("BitBox bootloader not available.")
     print("Trying to connect to BitBox firmware instead...")
 
-    def _show_pairing(code: str) -> bool:
-        print("(Pairing should be automatic) Pairing code:")
-        print(code)
-        return True
+    class NoiseConfig(bitbox_api_protocol.BitBoxNoiseConfig):
+        def show_pairing(self, code: str) -> bool:
+            print("(Pairing should be automatic) Pairing code:")
+            print(code)
+            return True
 
     try:
         transport = usart.U2FUsart(serial_port)
-        bitbox_attempt = BitBoxBase(
-            transport, bootloader_device, show_pairing_callback=_show_pairing
-        )
+        bitbox_attempt = BitBoxBase(transport, bootloader_device, noise_config=NoiseConfig())
         print("Connected. Rebooting.")
         bitbox_attempt.reboot()
     except usart.U2FUsartTimeoutError:

@@ -69,8 +69,7 @@ bool app_eth_address(
         if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
             return false;
         }
-        const uint8_t version[4] = {0x04, 0x88, 0xb2, 0x1e}; // xpub
-        return btc_common_encode_xpub(&derived_xpub, version, out, out_len);
+        return btc_common_encode_xpub(&derived_xpub, BTCPubRequest_XPubType_XPUB, out, out_len);
     }
     default:
         return false;

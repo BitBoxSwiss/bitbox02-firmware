@@ -38,7 +38,6 @@
 
 static const char* _some_password = "foo";
 static const char* _some_other_password = "bar";
-static const uint8_t _xpub_version[4] = {0x04, 0x88, 0xb2, 0x1e};
 
 static uint8_t _seed[KEYSTORE_MAX_SEED_LENGTH] =
     "\xcb\x33\xc2\x0c\xea\x62\xa5\xc2\x77\x52\x7e\x20\x02\xda\x82\xe6\xe2\xb3\x74\x50\xa7\x55\x14"
@@ -134,8 +133,8 @@ static void _check_pubs(
 
     assert_true(keystore_get_xpub(keypath, 3, &xpub));
     char xpub_serialized[120];
-    assert_true(
-        btc_common_encode_xpub(&xpub, _xpub_version, xpub_serialized, sizeof(xpub_serialized)));
+    assert_true(btc_common_encode_xpub(
+        &xpub, BTCPubRequest_XPubType_XPUB, xpub_serialized, sizeof(xpub_serialized)));
     assert_string_equal(xpub_serialized, expected_xpub);
 
     uint8_t hash160[20];

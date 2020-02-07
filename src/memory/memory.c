@@ -79,7 +79,7 @@ typedef union {
     uint8_t bytes[CHUNK_SIZE];
 } chunk_0_t;
 
-// CHUNK_1: Firmware data
+// CHUNK_1: Firmware system data
 #define CHUNK_1 (1)
 typedef union {
     struct __attribute__((__packed__)) {
@@ -97,6 +97,24 @@ typedef union {
     } fields;
     uint8_t bytes[CHUNK_SIZE];
 } chunk_1_t;
+
+typedef struct __attribute__((__packed__)) {
+    // version fixed at 0xFF for now - can be repurposed to turn this struct into an union to
+    // support other types of data.
+    // The multisig entry is considered empty/unset if the hash is filled with 0xFF.
+    uint8_t version;
+    char name[MEMORY_MULTISIG_NAME_MAX_LEN]; // user-given name for this multisig setup.
+    uint8_t hash[32]; // hash comitting to the multisig setup.
+} multisig_configuration_t;
+
+// CHUNK_2: Various app data
+#define CHUNK_2 (2)
+typedef union {
+    struct __attribute__((__packed__)) {
+        multisig_configuration_t multisig_configs[MEMORY_MULTISIG_NUM_ENTRIES];
+    } fields;
+    uint8_t bytes[CHUNK_SIZE];
+} chunk_2_t;
 
 // CHUNK_SHARED: Shared data between the bootloader and firmware.
 //    auto_enter: if sectrue_u8, bootloader mode is entered on reboot
@@ -709,4 +727,86 @@ bool memory_add_noise_remote_static_pubkey(const uint8_t* pubkey)
         chunk.fields.noise_remote_static_pubkeys[number_of_slots - 1], pubkey, NOISE_PUBKEY_SIZE);
 
     return _write_chunk(CHUNK_1, chunk.bytes);
+}
+
+memory_result_t memory_multisig_set_by_hash(const uint8_t* hash, const char* name)
+{
+    uint8_t empty[32];
+    memset(empty, 0xFF, sizeof(empty));
+
+    if (!strlens(name)) {
+        return MEMORY_ERR_INVALID_INPUT;
+    }
+    if (hash == NULL || MEMEQ(hash, empty, sizeof(empty))) {
+        return MEMORY_ERR_INVALID_INPUT;
+    }
+
+    chunk_2_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    _read_chunk(CHUNK_2, chunk.bytes);
+
+    // Error if there is already a different multisig config with the same name.
+    for (size_t i = 0; i < MEMORY_MULTISIG_NUM_ENTRIES; i++) {
+        const multisig_configuration_t* multisig = &chunk.fields.multisig_configs[i];
+        if (STREQ(multisig->name, name)) {
+            if (!MEMEQ(multisig->hash, hash, sizeof(multisig->hash))) {
+                return MEMORY_ERR_DUPLICATE_NAME;
+            }
+            // config already exists (equal), early abort, skipping another write.
+            return MEMORY_OK;
+        }
+    }
+
+    // This will be true if the hash already exists.
+    bool found = false;
+    // This is the slot we will write to.
+    size_t write_index = 0;
+    // This will be the index of an empty slot (if empty_found is true).
+    size_t empty_index = 0;
+    bool empty_found = false;
+    // This loop looks for the already existing entry with the hash to overwrite, or an empty slot.
+    for (size_t i = 0; i < MEMORY_MULTISIG_NUM_ENTRIES; i++) {
+        const multisig_configuration_t* multisig = &chunk.fields.multisig_configs[i];
+        if (!empty_found && MEMEQ(multisig->hash, empty, sizeof(multisig->hash))) {
+            empty_found = true;
+            empty_index = i;
+        }
+        if (MEMEQ(multisig->hash, hash, sizeof(multisig->hash))) {
+            write_index = i;
+            found = true;
+            break;
+        }
+    }
+    if (!found && !empty_found) {
+        return MEMORY_ERR_FULL;
+    }
+    if (!found) {
+        write_index = empty_index;
+    }
+    multisig_configuration_t* multisig = &chunk.fields.multisig_configs[write_index];
+    memcpy(multisig->hash, hash, sizeof(multisig->hash));
+    memset(multisig->name, '\0', sizeof(multisig->name));
+    snprintf(multisig->name, sizeof(multisig->name), "%s", name);
+    if (!_write_chunk(CHUNK_2, chunk.bytes)) {
+        return MEMORY_ERR_UNKNOWN;
+    }
+    return MEMORY_OK;
+}
+
+bool memory_multisig_get_by_hash(const uint8_t* hash, char* name_out)
+{
+    chunk_2_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    _read_chunk(CHUNK_2, chunk.bytes);
+
+    for (size_t i = 0; i < MEMORY_MULTISIG_NUM_ENTRIES; i++) {
+        const multisig_configuration_t* multisig = &chunk.fields.multisig_configs[i];
+        if (MEMEQ(multisig->hash, hash, sizeof(multisig->hash))) {
+            if (name_out != NULL) {
+                snprintf(name_out, sizeof(multisig->name), "%s", multisig->name);
+            }
+            return true;
+        }
+    }
+    return false;
 }

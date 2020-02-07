@@ -21,9 +21,28 @@
 #include "compiler_util.h"
 #include "util.h"
 
+// Including null terminator.
+#define MEMORY_MULTISIG_NAME_MAX_LEN (31)
+
+// How many multisig configurations (accounts) can be registered.
+#define MEMORY_MULTISIG_NUM_ENTRIES 5
+
 typedef struct {
     void (*const random_32_bytes)(uint8_t* buf_out);
 } memory_interface_functions_t;
+
+typedef enum {
+    // success
+    MEMORY_OK,
+    // invalid function parameters.
+    MEMORY_ERR_INVALID_INPUT,
+    // there was no more free slot available.
+    MEMORY_ERR_FULL,
+    // a different entry with the same name already exists.
+    MEMORY_ERR_DUPLICATE_NAME,
+    // memory write error or other unknown error.
+    MEMORY_ERR_UNKNOWN,
+} memory_result_t;
 
 /**
  * Initializes the flash memory (including factory install when running the
@@ -206,5 +225,27 @@ USE_RESULT bool memory_check_noise_remote_static_pubkey(const uint8_t* pubkey);
  * @return false on memory write error.
  */
 USE_RESULT bool memory_add_noise_remote_static_pubkey(const uint8_t* pubkey);
+
+/**
+ * Store a multisig name under the multisig configuration ID (the hash of the config). At most
+ * MEMORY_MULTISIG_NUM_ENTRIES different configs can be stored.
+ * If a name is already stored with this hash, the old name will be overwritten.
+ * It's the callers responsibility to validate the name (beyond that it must be non-empty).
+ * @param[in] hash hash identifying the multisig config. Can't be 0xfffff....
+ * @param[in] human readable name. Must be at most MEMORY_MULTISIG_NAME_MAX_LEN bytes,
+ * including the null terminator (otherwise the name will be truncated), and non-empty.
+ * @return see memory_result_t, can return MEMORY_OK, MEMORY_ERR_INVALID_INPUT, MEMORY_ERR_FULL,
+ * MEMORY_ERR_DUPLICATE_NAME, MEMORY_ERR_UNKNOWN.
+ */
+USE_RESULT memory_result_t memory_multisig_set_by_hash(const uint8_t* hash, const char* name);
+
+/**
+ * Retrieves the name of a previously stored multisig config identified by `hash`.
+ * @param[in] hash hash identifying the multisig config.
+ * @param[out] name_out will contain the name. Must have at least
+ * `MEMORY_MULTISIG_NAME_MAX_LEN` bytes. Can be NULL.
+ * @return true if the multisig config was found, false otherwise.
+ */
+USE_RESULT bool memory_multisig_get_by_hash(const uint8_t* hash, char* name_out);
 
 #endif // _MEMORY_H_

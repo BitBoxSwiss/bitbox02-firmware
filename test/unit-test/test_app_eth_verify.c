@@ -181,15 +181,10 @@ static void _test_app_eth_verify_standard_transaction(void** state)
         assert_int_equal(
             APP_ETH_SIGN_ERR_INVALID_INPUT, app_eth_verify_standard_transaction(&request));
     }
-    { // can't have a zero value
+    { // can't have a zero value and no data
         _default_request(&request);
         request.value.size = 0;
-        assert_int_equal(
-            APP_ETH_SIGN_ERR_INVALID_INPUT, app_eth_verify_standard_transaction(&request));
-    }
-    { // can't have data
-        _default_request(&request);
-        request.data.size = 1;
+        request.data.size = 0;
         assert_int_equal(
             APP_ETH_SIGN_ERR_INVALID_INPUT, app_eth_verify_standard_transaction(&request));
     }

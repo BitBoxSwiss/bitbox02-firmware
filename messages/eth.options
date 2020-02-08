@@ -20,5 +20,5 @@ ETHSignRequest.gas_price max_size:16
 ETHSignRequest.gas_limit max_size:16;
 ETHSignRequest.recipient fixed_length:true max_size:20
 ETHSignRequest.value max_size:32
-ETHSignRequest.data max_size:100
+ETHSignRequest.data max_size:1024
 ETHSignResponse.signature fixed_length:true max_size:65

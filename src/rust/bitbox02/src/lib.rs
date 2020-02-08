@@ -131,11 +131,11 @@ pub fn workflow_confirm(
         longtouch: longtouch,
         accept_only: accept_only,
         accept_is_nextarrow: false,
+        shorten_body: false,
+        display_size: 0,
     };
 
-    unsafe {
-        bitbox02_sys::workflow_confirm(&params)
-    }
+    unsafe { bitbox02_sys::workflow_confirm(&params) }
 }
 
 pub fn screen_print_debug(msg: &str, duration: i32) {

@@ -71,6 +71,17 @@ static bool _validate_keypath_account(const uint32_t* keypath, uint32_t expected
     return coin == expected_coin && account >= BIP44_ACCOUNT_MIN && account <= BIP44_ACCOUNT_MAX;
 }
 
+static bool _validate_keypath_change_address(uint32_t change, uint32_t address)
+{
+    if (change > 1) {
+        return false;
+    }
+#if (BIP44_ADDRESS_MAX >= BIP32_INITIAL_HARDENED_CHILD)
+#error "possibly hardened address"
+#endif
+    return address <= BIP44_ADDRESS_MAX;
+}
+
 static bool _validate_keypath_address(
     const uint32_t* keypath,
     const size_t keypath_len,
@@ -87,15 +98,7 @@ static bool _validate_keypath_address(
     if (!_validate_keypath_account(keypath, expected_coin)) {
         return false;
     }
-    uint32_t change = keypath[3];
-    if (change > 1) {
-        return false;
-    }
-    uint32_t address = keypath[4];
-#if (BIP44_ADDRESS_MAX >= BIP32_INITIAL_HARDENED_CHILD)
-#error "possibly hardened address"
-#endif
-    return address <= BIP44_ADDRESS_MAX;
+    return _validate_keypath_change_address(keypath[3], keypath[4]);
 }
 
 // checks account level keypath derivation: m/48'/coin'/account'/2'
@@ -173,6 +176,23 @@ bool btc_common_is_valid_keypath_address_simple(
     default:
         return false;
     }
+}
+
+bool btc_common_is_valid_keypath_address_multisig_p2wsh(
+    const uint32_t* keypath,
+    const size_t keypath_len,
+    const uint32_t expected_coin)
+{
+    if (keypath_len != 6) {
+        return false;
+    }
+    if (!_is_valid_keypath_account_multisig_p2wsh(keypath, 4, expected_coin)) {
+        return false;
+    }
+    if (!_validate_keypath_change_address(keypath[4], keypath[5])) {
+        return false;
+    }
+    return true;
 }
 
 bool btc_common_encode_xpub(

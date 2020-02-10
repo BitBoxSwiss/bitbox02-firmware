@@ -406,6 +406,108 @@ static void _test_btc_common_is_valid_keypath_address_simple(void** state)
     }
 }
 
+static void _test_btc_common_is_valid_keypath_address_multisig_p2wsh(void** state)
+{
+    const uint32_t bip44_coin = 1 + BIP32_INITIAL_HARDENED_CHILD;
+    { // valid
+        uint32_t keypath[] = {
+            48 + BIP32_INITIAL_HARDENED_CHILD,
+            bip44_coin,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            2 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            0,
+        };
+
+        assert_true(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 6, bip44_coin));
+    }
+    { // too short
+        uint32_t keypath[] = {
+            48 + BIP32_INITIAL_HARDENED_CHILD,
+            bip44_coin,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            2 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+        };
+
+        assert_false(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 5, bip44_coin));
+    }
+    { // too long
+        uint32_t keypath[] = {
+            48 + BIP32_INITIAL_HARDENED_CHILD,
+            bip44_coin,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            2 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            0,
+            0,
+        };
+
+        assert_false(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 7, bip44_coin));
+    }
+
+    { // wrong purpose
+        uint32_t keypath[] = {
+            49 + BIP32_INITIAL_HARDENED_CHILD, // <- wrong
+            bip44_coin,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            2 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            0,
+        };
+
+        assert_false(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 6, bip44_coin));
+    }
+    { // unhardened account
+        uint32_t keypath[] = {
+            48 + BIP32_INITIAL_HARDENED_CHILD,
+            bip44_coin,
+            0, // <- wrong
+            2 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            0,
+        };
+
+        assert_false(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 6, bip44_coin));
+    }
+    { // account too high
+        uint32_t keypath[] = {
+            48 + BIP32_INITIAL_HARDENED_CHILD,
+            bip44_coin,
+            100 + BIP32_INITIAL_HARDENED_CHILD, // <- wrong
+            2 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            0,
+        };
+
+        assert_false(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 6, bip44_coin));
+    }
+    { // wrong change
+        uint32_t keypath[] = {
+            48 + BIP32_INITIAL_HARDENED_CHILD,
+            bip44_coin,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            2 + BIP32_INITIAL_HARDENED_CHILD,
+            2, // <- wrong
+            0,
+        };
+
+        assert_false(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 6, bip44_coin));
+    }
+    { // address too high
+        uint32_t keypath[] = {
+            48 + BIP32_INITIAL_HARDENED_CHILD,
+            bip44_coin,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            2 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            10000, // <- wrong
+        };
+
+        assert_false(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 6, bip44_coin));
+    }
+}
+
 static void _test_btc_common_encode_xpub(void** state)
 {
     struct ext_key xpub = {0};
@@ -836,6 +938,7 @@ int main(void)
         cmocka_unit_test(_test_btc_common_is_valid_keypath_xpubs_len3),
         cmocka_unit_test(_test_btc_common_is_valid_keypath_xpubs_multisig_p2wsh),
         cmocka_unit_test(_test_btc_common_is_valid_keypath_address_simple),
+        cmocka_unit_test(_test_btc_common_is_valid_keypath_address_multisig_p2wsh),
         cmocka_unit_test(_test_btc_common_encode_xpub),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig_unhappy),

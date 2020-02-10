@@ -59,5 +59,6 @@ setup(
         # Needed as long as we support python < 3.7
         "typing>=3.7.4,<3.8",
         "typing_extensions>=3.7.4,<3.8",
+        "base58>=2.0.0,<3.0.0",
     ],
 )

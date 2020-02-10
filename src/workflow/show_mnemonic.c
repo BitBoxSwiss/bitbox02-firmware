@@ -33,7 +33,7 @@
 #define NUM_RANDOM_WORDS 5
 
 static const char* _back_label = "Back to seed phrase";
-static const char* _cancel_confirm_title = "Export Mnemonic";
+static const char* _cancel_confirm_title = "Mnemonic";
 
 static void _split_and_save_wordlist(
     char* mnemonic,

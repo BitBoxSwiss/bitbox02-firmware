@@ -50,11 +50,21 @@ USE_RESULT bool btc_common_is_valid_keypath_xpub(
 
 /**
  * Does limit checks the keypath, whitelisting bip44 purposes, accounts and
- * (change) addressses.
+ * (change) addresses.
  * @return true if the keypath is valid, false if it is invalid.
  */
 USE_RESULT bool btc_common_is_valid_keypath_address_simple(
     BTCScriptConfig_SimpleType script_type,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint32_t expected_coin);
+
+/**
+ * Checks that the keypath is m/48'/coin'/account'/2'/change/address, limiting the number of valid
+ * accounts/addresses.
+ * @return true if the keypath is valid, false if it is invalid.
+ */
+USE_RESULT bool btc_common_is_valid_keypath_address_multisig_p2wsh(
     const uint32_t* keypath,
     size_t keypath_len,
     uint32_t expected_coin);

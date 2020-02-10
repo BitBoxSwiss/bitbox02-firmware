@@ -13,7 +13,9 @@ script:
 - ./.ci/travis-ci pull
 - ./.ci/travis-ci
 
-cache:
-  directories:
-    - build/external
-    - build-build/external
+# Caching breaks the build right now because there is no dependency between the compiled external
+# library and the placement in the `bin` directory.
+#cache:
+#  directories:
+#    - build/external
+#    - build-build/external

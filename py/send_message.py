@@ -28,7 +28,14 @@ from tzlocal import get_localzone
 from bitbox02 import bitbox02
 from bitbox02 import bitboxbase
 from bitbox02.bitboxbase import BitBoxBase, get_bitboxbase_default_device
-from bitbox02.communication import devices, HARDENED, UserAbortException, u2fhid, usart
+from bitbox02.communication import (
+    devices,
+    HARDENED,
+    UserAbortException,
+    u2fhid,
+    usart,
+    bitbox_api_protocol,
+)
 
 import u2f
 import u2f.bitbox02
@@ -614,24 +621,24 @@ def connect_to_usb_bitbox(debug: bool) -> int:
             return boot_app.run()
     else:
 
-        def show_pairing(code: str) -> bool:
-            print("Please compare and confirm the pairing code on your BitBox02:")
-            print(code)
-            return True
+        class NoiseConfig(bitbox_api_protocol.BitBoxNoiseConfig):
+            """NoiseConfig extends BitBoxNoiseConfig"""
 
-        def attestation_check(result: bool) -> None:
-            if result:
-                print("Device attestation PASSED")
-            else:
-                print("Device attestation FAILED")
+            def show_pairing(self, code: str) -> bool:
+                print("Please compare and confirm the pairing code on your BitBox02:")
+                print(code)
+                return True
+
+            def attestation_check(self, result: bool) -> None:
+                if result:
+                    print("Device attestation PASSED")
+                else:
+                    print("Device attestation FAILED")
 
         hid_device = hid.device()
         hid_device.open_path(bitbox["path"])
         bitbox_connection = bitbox02.BitBox02(
-            transport=u2fhid.U2FHid(hid_device),
-            device_info=bitbox,
-            show_pairing_callback=show_pairing,
-            attestation_check_callback=attestation_check,
+            transport=u2fhid.U2FHid(hid_device), device_info=bitbox, noise_config=NoiseConfig()
         )
 
         if debug:
@@ -648,25 +655,23 @@ def connect_to_usart_bitboxbase(debug: bool, serial_port: usart.SerialPort) -> i
     print("Trying to connect to BitBoxBase firmware...")
     bootloader_device: devices.DeviceInfo = get_bitboxbase_default_device(serial_port.port)
 
-    def show_pairing(code: str) -> bool:
-        print("(Pairing should be automatic) Pairing code:")
-        print(code)
-        return True
+    class NoiseConfig(bitbox_api_protocol.BitBoxNoiseConfig):
+        """NoiseConfig extend BitBoxNoiseConfig"""
 
-    def attestation_check(result: bool) -> None:
-        if result:
-            print("Device attestation PASSED")
-        else:
-            print("Device attestation FAILED")
+        def show_pairing(self, code: str) -> bool:
+            print("(Pairing should be automatic) Pairing code:")
+            print(code)
+            return True
+
+        def attestation_check(self, result: bool) -> None:
+            if result:
+                print("Device attestation PASSED")
+            else:
+                print("Device attestation FAILED")
 
     try:
         transport = usart.U2FUsart(serial_port)
-        base_dev = BitBoxBase(
-            transport,
-            bootloader_device,
-            show_pairing_callback=show_pairing,
-            attestation_check_callback=attestation_check,
-        )
+        base_dev = BitBoxBase(transport, bootloader_device, NoiseConfig())
         if debug:
             print("Device Info:")
             pprint.pprint(base_dev)

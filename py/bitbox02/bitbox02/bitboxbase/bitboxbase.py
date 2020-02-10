@@ -13,7 +13,7 @@
 # limitations under the License.
 """BitBoxBase"""
 
-from typing import Optional, Callable
+from typing import Optional
 
 
 import serial
@@ -37,17 +37,13 @@ class BitBoxBase(communication.BitBoxCommonAPI):
     """Class to communicate with a BitBoxBase"""
 
     # pylint: disable=too-many-public-methods
-
     def __init__(
         self,
         device: communication.TransportLayer,
         device_info: DeviceInfo,
-        show_pairing_callback: Callable[[str], bool],
-        attestation_check_callback: Optional[Callable[[bool], None]] = None,
+        noise_config: communication.BitBoxNoiseConfig,
     ):
-        communication.BitBoxCommonAPI.__init__(
-            self, device, device_info, show_pairing_callback, attestation_check_callback
-        )
+        communication.BitBoxCommonAPI.__init__(self, device, device_info, noise_config)
 
     def _bbb_query(
         self, request: bitboxbase.BitBoxBaseRequest, _expected_response: Optional[str] = None

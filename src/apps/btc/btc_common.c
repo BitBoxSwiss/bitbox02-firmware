@@ -527,6 +527,27 @@ bool btc_common_pkscript_from_multisig(
     return true;
 }
 
+bool btc_common_outputhash_from_multisig_p2wsh(
+    const BTCScriptConfig_Multisig* multisig,
+    uint32_t keypath_change,
+    uint32_t keypath_address,
+    uint8_t* output_hash)
+{
+    uint8_t script[700] = {0};
+    size_t written = sizeof(script);
+    if (!btc_common_pkscript_from_multisig(
+            multisig, keypath_change, keypath_address, script, &written)) {
+        return false;
+    }
+
+    // TODO: double check that the witness script must be <= 10,000 bytes /
+    // 201 opCounts (consensus rule), resp. 3,600 bytes (standardness rule).
+    // See https://bitcoincore.org/en/segwit_wallet_dev/.
+    // Note that the witness script has an additional varint prefix.
+
+    return wally_sha256(script, written, output_hash, SHA256_LEN) == WALLY_OK;
+}
+
 USE_RESULT bool btc_common_multisig_is_valid(
     const BTCScriptConfig_Multisig* multisig,
     const uint32_t* keypath,

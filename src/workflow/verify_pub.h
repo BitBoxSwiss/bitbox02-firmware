@@ -15,12 +15,16 @@
 #ifndef _WORKFLOW_VERIFY_PUB_H_
 #define _WORKFLOW_VERIFY_PUB_H_
 
+#include <compiler_util.h>
+#include <stdbool.h>
+
 /**
  * Shows a confirmation dialog to the user to confirm an xpub/address.
  * This call blocks until the user dismisses the screen.
  * @param[in] title, e.g. "BTC Account #1", "BTC Address #10", etc.
  * @param[in] pub the xpub/address/...
+ * @return true on user ok, false on user rejection.
  */
-void workflow_verify_pub(const char* title, const char* pub);
+USE_RESULT bool workflow_verify_pub(const char* title, const char* pub);
 
 #endif

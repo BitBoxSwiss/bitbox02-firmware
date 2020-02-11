@@ -181,6 +181,21 @@ USE_RESULT bool btc_common_pkscript_from_multisig(
     size_t* script_out_size);
 
 /**
+ * Constructs sha256(<multisig pkScript>) from the provided multisig.
+ * Note that the multisig config and keypaths are *not* validated, this must be done before calling.
+ * @param[in] multisig Multisig configuration (threshold, signers). The xpubs are account-level
+ * xpubs.
+ * @param[in] keypath_change 0 for receive addresses, 1 for change addresses.
+ * @param[in] keypath_address receive address index.
+ * @param[out] output_hash result, must be `SHA256_LEN` bytes.
+ */
+USE_RESULT bool btc_common_outputhash_from_multisig_p2wsh(
+    const BTCScriptConfig_Multisig* multisig,
+    uint32_t keypath_change,
+    uint32_t keypath_address,
+    uint8_t* output_hash);
+
+/**
  * Validate a m-of-n multisig account. This includes checking that:
  * - 0 < m <= n <= 15
  * - the keypath conforms to bip48 for p2wsh: m/48'/coin'/account'/2'

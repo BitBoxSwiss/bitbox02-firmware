@@ -23,6 +23,7 @@
 #include <keystore.h>
 #include <memory/memory.h>
 #include <workflow/status.h>
+#include <workflow/verify_pub.h>
 
 bool app_btc_xpub(
     BTCCoin coin,
@@ -76,6 +77,62 @@ bool app_btc_address_simple(
     }
     return btc_common_address_from_outputhash(
         params, btc_common_determine_output_type(script_type), hash, hash_size_out, out, out_len);
+}
+
+app_btc_result_t app_btc_address_multisig_p2wsh(
+    BTCCoin coin,
+    const BTCScriptConfig_Multisig* multisig,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    char* out,
+    size_t out_len,
+    bool display)
+{
+    const app_btc_coin_params_t* params = app_btc_params_get(coin);
+    if (params == NULL) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+    if (!btc_common_is_valid_keypath_address_multisig_p2wsh(
+            keypath, keypath_len, params->bip44_coin)) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+
+    if (!btc_common_multisig_is_valid(multisig, keypath, keypath_len - 2, params->bip44_coin)) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+
+    // Confirm previously registered multisig.
+    uint8_t multisig_hash[SHA256_LEN] = {0};
+    if (!btc_common_multisig_hash(coin, multisig, keypath, keypath_len - 2, multisig_hash)) {
+        return APP_BTC_ERR_UNKNOWN;
+    }
+    char multisig_registered_name[MEMORY_MULTISIG_NAME_MAX_LEN] = {0};
+    if (!memory_multisig_get_by_hash(multisig_hash, multisig_registered_name)) {
+        // Not previously registered -> fail.
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+
+    const char* title = "Receive to";
+    if (!apps_btc_confirm_multisig(title, coin, multisig_registered_name, multisig, false)) {
+        return APP_BTC_ERR_USER_ABORT;
+    }
+
+    uint8_t hash[SHA256_LEN] = {0};
+    if (!btc_common_outputhash_from_multisig_p2wsh(multisig, keypath[4], keypath[5], hash)) {
+        return APP_BTC_ERR_UNKNOWN;
+    }
+
+    if (!btc_common_address_from_outputhash(
+            params, BTCOutputType_P2WSH, hash, sizeof(hash), out, out_len)) {
+        return APP_BTC_ERR_UNKNOWN;
+    }
+
+    if (display) {
+        if (!workflow_verify_pub(title, out)) {
+            return APP_BTC_ERR_USER_ABORT;
+        }
+    }
+    return APP_BTC_OK;
 }
 
 bool app_btc_enabled(BTCCoin coin)

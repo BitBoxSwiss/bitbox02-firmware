@@ -30,7 +30,7 @@ static void _test_apps_common_bip32_xpub_from_protobuf(void** state)
     struct ext_key xpub = {0};
     assert_true(apps_common_bip32_xpub_from_protobuf(&xpub_in, &xpub));
 
-    char xpub_str[113] = {0};
+    char xpub_str[XPUB_ENCODED_LEN] = {0};
     assert_true(
         btc_common_encode_xpub(&xpub, BTCPubRequest_XPubType_XPUB, xpub_str, sizeof(xpub_str)));
     assert_string_equal(xpub_str, test_xpub);

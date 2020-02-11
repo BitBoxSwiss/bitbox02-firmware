@@ -83,11 +83,11 @@ bool apps_btc_confirm_multisig(
         if (!apps_common_bip32_xpub_from_protobuf(xpub_in, &xpub)) {
             return false;
         }
-        char xpub_str[113] = {0};
+        char xpub_str[XPUB_ENCODED_LEN] = {0};
         if (!btc_common_encode_xpub(&xpub, xpub_type, xpub_str, sizeof(xpub_str))) {
             return false;
         }
-        char confirm[113 + 100] = {0};
+        char confirm[XPUB_ENCODED_LEN + 100] = {0};
         if (i == multisig->our_xpub_index) {
             snprintf_result = snprintf(
                 confirm,

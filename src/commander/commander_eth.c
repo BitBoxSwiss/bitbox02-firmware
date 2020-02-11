@@ -70,7 +70,9 @@ static commander_error_t _api_pub(const ETHPubRequest* request, PubResponse* res
                 return COMMANDER_ERR_GENERIC;
             }
         }
-        workflow_verify_pub(coin, response->pub);
+        if (!workflow_verify_pub(coin, response->pub)) {
+            return COMMANDER_ERR_USER_ABORT;
+        }
     }
     return COMMANDER_OK;
 }

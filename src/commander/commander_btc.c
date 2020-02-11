@@ -56,7 +56,9 @@ static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse
         default:
             return COMMANDER_ERR_GENERIC;
         }
-        workflow_verify_pub(title, response->pub);
+        if (!workflow_verify_pub(title, response->pub)) {
+            return COMMANDER_ERR_USER_ABORT;
+        }
     }
     return COMMANDER_OK;
 }
@@ -87,7 +89,9 @@ static commander_error_t _btc_pub_address_simple(
         default:
             return COMMANDER_ERR_GENERIC;
         }
-        workflow_verify_pub(title, response->pub);
+        if (!workflow_verify_pub(title, response->pub)) {
+            return COMMANDER_ERR_USER_ABORT;
+        }
     }
     return COMMANDER_OK;
 }

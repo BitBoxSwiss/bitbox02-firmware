@@ -18,7 +18,7 @@
 #include <stddef.h>
 #include <string.h>
 
-void workflow_verify_pub(const char* title, const char* pub)
+bool workflow_verify_pub(const char* title, const char* pub)
 {
     const int buf_len = 128;
     char buf[buf_len];
@@ -32,7 +32,5 @@ void workflow_verify_pub(const char* title, const char* pub)
         .body = pub,
         .scrollable = true,
     };
-    if (!workflow_confirm(&params)) {
-        // No meaningful error to return here.
-    }
+    return workflow_confirm(&params);
 }

@@ -182,13 +182,16 @@ class SendMessage:
         print(f"Root fingerprint: {self._device.root_fingerprint().hex()}")
 
     def _display_zpub(self) -> None:
-        print(
-            "m/84'/0'/0' zpub: ",
-            self._device.btc_xpub(
-                keypath=[84 + HARDENED, 0 + HARDENED, 0 + HARDENED],
-                xpub_type=bitbox02.btc.BTCPubRequest.ZPUB,  # pylint: disable=no-member
-            ),
-        )
+        try:
+            print(
+                "m/84'/0'/0' zpub: ",
+                self._device.btc_xpub(
+                    keypath=[84 + HARDENED, 0 + HARDENED, 0 + HARDENED],
+                    xpub_type=bitbox02.btc.BTCPubRequest.ZPUB,  # pylint: disable=no-member
+                ),
+            )
+        except UserAbortException:
+            eprint("Aborted by user")
 
     def _btc_address(self) -> None:
         def address(display: bool) -> str:
@@ -292,11 +295,14 @@ class SendMessage:
             print("Replug your BitBox02.")
 
     def _get_eth_xpub(self) -> None:
-        xpub = self._device.eth_pub(
-            keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0],
-            output_type=bitbox02.eth.ETHPubRequest.XPUB,  # pylint: disable=no-member
-            display=False,
-        )
+        try:
+            xpub = self._device.eth_pub(
+                keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0],
+                output_type=bitbox02.eth.ETHPubRequest.XPUB,  # pylint: disable=no-member
+                display=False,
+            )
+        except UserAbortException:
+            eprint("Aborted by user")
 
         print("Ethereum xpub: {}".format(xpub))
 
@@ -309,7 +315,10 @@ class SendMessage:
             )
 
         print("Ethereum address: {}".format(address(display=False)))
-        address(display=True)
+        try:
+            address(display=True)
+        except UserAbortException:
+            eprint("Aborted by user")
 
     def _sign_eth_tx(self) -> None:
         # fmt: off

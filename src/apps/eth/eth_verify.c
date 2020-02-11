@@ -4,6 +4,7 @@
 
 #include <hardfault.h>
 #include <util.h>
+#include <workflow/confirm.h>
 #include <workflow/verify_recipient.h>
 #include <workflow/verify_total.h>
 
@@ -85,12 +86,14 @@ app_eth_sign_error_t app_eth_verify_erc20_transaction(const ETHSignRequest* requ
 {
     const app_eth_coin_params_t* params = app_eth_params_get(request->coin);
     if (params == NULL) {
+        // TODO: This isn't technically invalid, it is just not supported
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }
     const app_eth_erc20_params_t* erc20_params =
         app_eth_erc20_params_get(request->coin, request->recipient);
     if (erc20_params == NULL) {
         // unsupported token.
+        // TODO: This isn't technically invalid, it is just not supported
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }
     // data is validated to have the following format:
@@ -134,15 +137,26 @@ app_eth_sign_error_t app_eth_verify_standard_transaction(const ETHSignRequest* r
 {
     const app_eth_coin_params_t* params = app_eth_params_get(request->coin);
     if (params == NULL) {
+        // TODO: This isn't technically invalid, it is just not supported
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }
-    if (request->value.size == 0) {
-        // Must transfer non-zero value.
+    if (request->data.size == 0 && request->value.size == 0) {
+        // TODO: This isn't technically invalid, it is just not supported
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }
     if (request->data.size != 0) {
-        // Standard tx has no data.
-        return APP_ETH_SIGN_ERR_INVALID_INPUT;
+        char hex[sizeof(request->data.bytes) * 2 + 1] = {0};
+        util_uint8_to_hex(request->data.bytes, request->data.size, hex);
+        confirm_params_t cparams = {
+            .title = "ETH TX data\n(hex)",
+            .body = hex,
+            .scrollable = true,
+            .shorten_body = true,
+            .display_size = request->data.size,
+        };
+        if (!workflow_confirm(&cparams)) {
+            return APP_ETH_SIGN_ERR_USER_ABORT;
+        }
     }
     // a) recipient and value
     bignum256 value_scalar;

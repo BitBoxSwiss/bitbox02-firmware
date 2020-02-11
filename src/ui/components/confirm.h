@@ -35,6 +35,10 @@ typedef struct {
     // if true, the accept icon is a right arrow instead of a checkmark (indicating going to the
     // "next" screen).
     bool accept_is_nextarrow;
+    // if true, will only show first and last 32 bytes.
+    bool shorten_body;
+    // Print the value of this variable in the corner. Will not print when 0
+    size_t display_size;
 } confirm_params_t;
 
 /**

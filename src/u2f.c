@@ -18,6 +18,7 @@
 
 #include <fido2/ctap.h>
 #include <fido2/ctap_errors.h>
+#include <fido2/device.h>
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory/memory.h>
@@ -37,6 +38,7 @@
 #include <usb/u2f/u2f_keys.h>
 #include <usb/usb_packet.h>
 #include <usb/usb_processing.h>
+#include <util.h>
 #include <wally_crypto.h>
 #include <workflow/status.h>
 #include <workflow/unlock.h>
@@ -119,6 +121,21 @@ typedef struct {
      * Will drop the refresh_webpage() screen after a few ticks.
      */
     uint16_t refresh_webpage_timeout;
+    /**
+     * If a CTAP operation is pending, it needs to be polled
+     * in the background.
+     */
+    bool ctap_op_pending;
+    /**
+     * This value is incremented by a timer every 20ms.
+     * It is used to periodically send CTAP keepalives to the host.
+     */
+    uint16_t ctap_keepalive_timer;
+    /**
+     * If a CTAP operation is pending, this pointer will point to
+     * a pre-allocated packet, prepared with the proper header.
+     */
+    Packet* ctap_pending_response;
 } u2f_state_t;
 
 static u2f_state_t _state = {0};
@@ -748,6 +765,20 @@ static void _cmd_cancel(const Packet* in_packet)
      */
 }
 
+static void _cmd_keepalive(const Packet* in_packet)
+{
+    Packet out_packet;
+    prepare_usb_packet(in_packet->cmd, in_packet->cid, &out_packet);
+
+    screen_print_debug("KEEPALIVE!!", 500);
+    util_zero(out_packet.data_addr, sizeof(out_packet.data_addr));
+    out_packet.len = 1;
+    out_packet.cmd = U2FHID_KEEPALIVE;
+    out_packet.cid = in_packet->cid;
+    out_packet.data_addr[0] = CTAPHID_STATUS_UPNEEDED;
+    usb_processing_send_packet(usb_processing_u2f(), &out_packet);
+}
+
 /**
  * Synchronize a channel and optionally requests a unique 32-bit channel identifier (CID)
  * that can be used by the requesting application during its lifetime.
@@ -969,6 +1000,19 @@ static void _cmd_cbor(const Packet* in_packet) {
     ctap_request_result_t result = ctap_request(&request_buf, &response_buf);
     if (!result.request_completed) {
         /* Don't send a response yet. */
+        _state.ctap_keepalive_timer = 0;
+        _state.ctap_op_pending = true;
+        _state.ctap_pending_response = malloc(sizeof(*_state.ctap_pending_response));
+        if (!_state.ctap_pending_response) {
+            /* Failed to allocate a big buffer - so we should be able to recover. */
+            _state.ctap_op_pending = false;
+            _unlock();
+            _error_hid(in_packet->cid, CTAP1_ERR_OTHER, out_packet);
+            usb_processing_send_packet(usb_processing_u2f(), out_packet);
+            return;
+        }
+        /* Save the output packet for later use. */
+        memcpy(_state.ctap_pending_response, out_packet, sizeof(*out_packet));
         free(out_packet);
         return;
     }
@@ -1084,21 +1128,55 @@ static void _process_authenticate(void)
     }
 }
 
+#define CTAP_KEEPALIVE_PERIOD (1)
+
 void u2f_process(void)
 {
     if (!_state.locked) {
         return;
     }
-    switch (_state.last_cmd) {
-    case U2F_REGISTER:
-        _process_register();
-        break;
-    case U2F_AUTHENTICATE:
-        _process_authenticate();
-        break;
-    default:
-        Abort("Bad U2F process state.");
+    if (_state.ctap_op_pending) {
+        if (!_state.ctap_pending_response) {
+            Abort("NULL pending response buffer in u2f_process.\n");
+        }
+        buffer_t out_buf = {
+            .data = _state.ctap_pending_response->data_addr + 1,
+            .len = 0,
+            .max_len = USB_DATA_MAX_LEN - 1
+        };
+        ctap_request_result_t result = ctap_retry(&out_buf);
+        if (!result.request_completed) {
+            if (_state.ctap_keepalive_timer >= CTAP_KEEPALIVE_PERIOD) {
+                _state.ctap_keepalive_timer = 0;
+                _state.ctap_pending_response->len = 1;
+                _state.ctap_pending_response->cmd = U2FHID_KEEPALIVE;
+                _state.ctap_pending_response->data_addr[0] = CTAPHID_STATUS_UPNEEDED;
+                usb_processing_send_packet(usb_processing_u2f(), _state.ctap_pending_response);
+            }
+        } else {
+            /*
+            * The CTAP operation has finished!
+            */
+            _unlock();
+            _state.ctap_op_pending = false;
+        }
+    } else {
+        switch (_state.last_cmd) {
+        case U2F_REGISTER:
+            _process_register();
+            break;
+        case U2F_AUTHENTICATE:
+            _process_authenticate();
+            break;
+        default:
+            Abort("Bad U2F process state.");
+        }
     }
+}
+
+void u2f_timer(void)
+{
+    _state.ctap_keepalive_timer++;
 }
 
 
@@ -1114,6 +1192,7 @@ void u2f_device_setup(void)
         {U2FHID_MSG, _cmd_msg},
         {U2FHID_CBOR, _cmd_cbor},
         {U2FHID_CANCEL, _cmd_cancel},
+        {U2FHID_KEEPALIVE, _cmd_keepalive},
     };
     usb_processing_register_cmds(
         usb_processing_u2f(), u2f_cmd_callbacks, sizeof(u2f_cmd_callbacks) / sizeof(CMD_Callback));

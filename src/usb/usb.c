@@ -76,6 +76,7 @@ static void _timeout_cb(const struct timer_task* const timer_task)
 {
     (void)timer_task;
     u2f_packet_timeout_tick();
+    u2f_timer();
 }
 #endif
 

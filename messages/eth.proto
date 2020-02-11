@@ -45,6 +45,12 @@ message ETHSignRequest {
   bytes data = 8;
 }
 
+message ETHSignMessageRequest {
+  ETHCoin coin = 1;
+  repeated uint32 keypath = 2;
+  bytes msg = 3;
+}
+
 message ETHSignResponse {
   bytes signature = 1; // 65 bytes, last byte is the recid
 }
@@ -53,6 +59,7 @@ message ETHRequest {
   oneof request {
     ETHPubRequest pub = 1;
     ETHSignRequest sign = 2;
+    ETHSignMessageRequest sign_msg = 3;
   }
 }
 

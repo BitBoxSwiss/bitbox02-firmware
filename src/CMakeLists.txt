@@ -193,6 +193,7 @@ set(ETHEREUM-SOURCES
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_params.c
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_sighash.c
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_sign.c
+  ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_sign_msg.c
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_verify.c
   ${CMAKE_SOURCE_DIR}/src/commander/commander_eth.c
 )

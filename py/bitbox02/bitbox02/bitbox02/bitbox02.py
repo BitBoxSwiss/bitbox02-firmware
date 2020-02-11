@@ -535,6 +535,16 @@ class BitBox02(BitBoxCommonAPI):
         )
         return self._eth_msg_query(request, expected_response="sign").sign.signature
 
+    def eth_sign_msg(self, msg: bytes, keypath: List[int], coin: eth.ETHCoin = eth.ETH) -> bytes:
+        """
+        Signs message, the msg will be prefixed with "\x19Ethereum message\n" + len(msg) in the
+        hardware
+        """
+        request = eth.ETHRequest()
+        # pylint: disable=no-member
+        request.sign_msg.CopyFrom(eth.ETHSignMessageRequest(coin=coin, keypath=keypath, msg=msg))
+        return self._eth_msg_query(request, expected_response="sign").sign.signature
+
     def reset(self) -> bool:
         """
         Factory reset the device. Returns True on success.

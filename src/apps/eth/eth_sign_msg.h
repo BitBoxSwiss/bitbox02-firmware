@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-ETHPubRequest.keypath max_count:10
-ETHPubRequest.contract_address fixed_length:true max_size:20
-ETHSignRequest.keypath max_count:10
-ETHSignRequest.nonce max_size:16
-ETHSignRequest.gas_price max_size:16
-ETHSignRequest.gas_limit max_size:16;
-ETHSignRequest.recipient fixed_length:true max_size:20
-ETHSignRequest.value max_size:32
-ETHSignRequest.data max_size:1024
-ETHSignMessageRequest.msg max_size:1024
-ETHSignMessageRequest.keypath max_count:10
-ETHSignResponse.signature fixed_length:true max_size:65
+#ifndef _APPS_ETH_SIGN_MSG_H
+#define _APPS_ETH_SIGN_MSG_H
+
+#include "eth_verify.h"
+
+#include <hww.pb.h>
+
+app_eth_sign_error_t app_eth_sign_msg(
+    const ETHSignMessageRequest* request,
+    ETHSignResponse* response);
+
+#endif

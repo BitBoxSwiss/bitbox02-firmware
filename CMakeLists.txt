@@ -416,7 +416,7 @@ else()
       add_custom_command(
         OUTPUT gcovr/coverage.html __dummy
         COMMAND ${CMAKE_COMMAND} -E make_directory gcovr
-        COMMAND ${GCOVR} --gcov-executable gcov-8 --html-details -o gcovr/coverage.html -r ${CMAKE_SOURCE_DIR} -f ${CMAKE_SOURCE_DIR}/src
+        COMMAND ${GCOVR} --gcov-executable gcov-8 --delete --html-details -o gcovr/coverage.html -r ${CMAKE_SOURCE_DIR} -f ${CMAKE_SOURCE_DIR}/src
       )
       add_custom_target(
         coverage

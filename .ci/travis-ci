@@ -27,13 +27,3 @@ docker run -e TARGET_BRANCH="${TARGET_BRANCH}" \
 	--workdir /bitbox02-firmware \
 	${CONTAINER} \
 	bash -c "./.ci/ci"
-
-# Codecov
-# Need to run inside container to find gcov-8
-# Need to detect environment variables outside of docker
-ci_env=$(bash <(curl -s https://codecov.io/env))
-docker run ${ci_env} \
-	--volume ${TRAVIS_BUILD_DIR}:/bitbox02-firmware/ \
-	--workdir /bitbox02-firmware \
-	${CONTAINER} \
-	bash -c "bash <(curl --fail -s https://codecov.io/bash) -x gcov-8"

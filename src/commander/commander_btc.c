@@ -24,6 +24,20 @@
 
 #include <wally_bip32.h> // for BIP32_INITIAL_HARDENED_CHILD
 
+static commander_error_t _result(app_btc_result_t result)
+{
+    switch (result) {
+    case APP_BTC_OK:
+        return COMMANDER_OK;
+    case APP_BTC_ERR_USER_ABORT:
+        return COMMANDER_ERR_USER_ABORT;
+    case APP_BTC_ERR_INVALID_INPUT:
+        return COMMANDER_ERR_INVALID_INPUT;
+    default:
+        return COMMANDER_ERR_GENERIC;
+    }
+}
+
 static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse* response)
 {
     if (!app_btc_xpub(
@@ -109,17 +123,7 @@ static commander_error_t _btc_pub_address_multisig(
         response->pub,
         sizeof(response->pub),
         request->display);
-
-    switch (result) {
-    case APP_BTC_OK:
-        return COMMANDER_OK;
-    case APP_BTC_ERR_USER_ABORT:
-        return COMMANDER_ERR_USER_ABORT;
-    case APP_BTC_ERR_INVALID_INPUT:
-        return COMMANDER_ERR_INVALID_INPUT;
-    default:
-        return COMMANDER_ERR_GENERIC;
-    }
+    return _result(result);
 }
 
 commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* response)
@@ -210,16 +214,7 @@ static commander_error_t _api_register_script_config(const BTCRegisterScriptConf
         request->registration.keypath,
         request->registration.keypath_count,
         request->name);
-    switch (result) {
-    case APP_BTC_OK:
-        return COMMANDER_OK;
-    case APP_BTC_ERR_USER_ABORT:
-        return COMMANDER_ERR_USER_ABORT;
-    case APP_BTC_ERR_INVALID_INPUT:
-        return COMMANDER_ERR_INVALID_INPUT;
-    default:
-        return COMMANDER_ERR_GENERIC;
-    }
+    return _result(result);
 }
 
 commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response)

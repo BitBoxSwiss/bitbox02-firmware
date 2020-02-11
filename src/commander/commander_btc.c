@@ -187,6 +187,8 @@ static commander_error_t _api_register_script_config(const BTCRegisterScriptConf
         return COMMANDER_OK;
     case APP_BTC_ERR_USER_ABORT:
         return COMMANDER_ERR_USER_ABORT;
+    case APP_BTC_ERR_INVALID_INPUT:
+        return COMMANDER_ERR_INVALID_INPUT;
     default:
         return COMMANDER_ERR_GENERIC;
     }

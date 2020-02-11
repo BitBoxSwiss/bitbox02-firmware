@@ -31,6 +31,9 @@
 
 #define MAX_SIGHASH_SCRIPT_SIZE (500)
 
+// Max. length of an xpub string, including the null terminator.
+#define XPUB_ENCODED_LEN 113
+
 /**
  * Returns the coin name to be used in confirm dialogs ("Bitcoin", "Litecoin", etc.). Aborts for an
  * invalid coin.
@@ -73,7 +76,8 @@ USE_RESULT bool btc_common_is_valid_keypath_address_multisig_p2wsh(
  * Encode an xpub as a base58 string.
  * @param[in] dervived_xpub the xpub to encode.
  * @param[in] xpub_type determines the xpub format, e.g. xpub, ypub, zpub, ...
- * @param[out] out resulting string, must be at least of size 113 (including the null terminator).
+ * @param[out] out resulting string, must be at least of size `XPUB_ENCODED_LEN` (including the null
+ * terminator).
  * @param[in] out_len size of `out`.
  * @return false on failure, true on success.
  */
@@ -200,7 +204,7 @@ USE_RESULT bool btc_common_multisig_is_valid(
  * @param[in] multisig The multisig config details.
  * @param[in] keypath Account-level keypath.
  * @param[in] keypath_len number of elements in keypath.
- * @param[out] hash_out resulting hash; must be 32 bytes.
+ * @param[out] hash_out resulting hash; must be `SHA256_LEN` bytes.
  * @return true on success, false on failure.
  */
 USE_RESULT bool btc_common_multisig_hash(

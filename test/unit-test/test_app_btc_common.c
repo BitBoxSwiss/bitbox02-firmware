@@ -520,7 +520,7 @@ static void _test_btc_common_encode_xpub(void** state)
             &xpub),
         WALLY_OK);
     assert_int_equal(bip32_key_strip_private_key(&xpub), WALLY_OK);
-    char out[113] = {0};
+    char out[XPUB_ENCODED_LEN] = {0};
     assert_false(btc_common_encode_xpub(&xpub, BTCPubRequest_XPubType_XPUB, out, 110));
 
     assert_true(btc_common_encode_xpub(&xpub, BTCPubRequest_XPubType_TPUB, out, sizeof(out)));
@@ -897,7 +897,7 @@ print(hashlib.sha256(b''.join(msg)).hexdigest())
         "xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYU"
         "CugjeksHSbyZT7rq38VQF");
 
-    uint8_t hash[32];
+    uint8_t hash[SHA256_LEN];
 
     assert_true(btc_common_multisig_hash(BTCCoin_BTC, &multisig, keypath, 4, hash));
     assert_memory_equal(

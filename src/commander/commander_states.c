@@ -56,6 +56,7 @@ static commander_states_endpoint_id _commands_initialized[] = {
     Request_fingerprint_tag,
     Request_btc_pub_tag,
     Request_btc_sign_init_tag,
+    Request_btc_tag,
     Request_check_backup_tag,
     Request_create_backup_tag,
     Request_show_mnemonic_tag,

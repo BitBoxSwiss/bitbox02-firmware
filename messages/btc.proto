@@ -43,6 +43,7 @@ message BTCScriptConfig {
 
   oneof config {
     SimpleType simple_type = 1;
+    Multisig multisig = 2;
   }
 }
 
@@ -116,4 +117,40 @@ message BTCSignOutputRequest {
   uint64 value = 3;
   bytes hash = 4; // if ours is false
   repeated uint32 keypath = 5; // if ours is true
+}
+
+message BTCScriptConfigRegistration {
+  BTCCoin coin = 1;
+  BTCScriptConfig script_config = 2;
+  repeated uint32 keypath = 3;
+}
+
+message BTCSuccess {
+}
+
+message BTCIsScriptConfigRegisteredRequest {
+  BTCScriptConfigRegistration registration = 1;
+}
+
+message BTCIsScriptConfigRegisteredResponse {
+  bool is_registered = 1;
+}
+
+message BTCRegisterScriptConfigRequest {
+  BTCScriptConfigRegistration registration = 1;
+  string name = 2;
+}
+
+message BTCRequest {
+  oneof request {
+    BTCIsScriptConfigRegisteredRequest is_script_config_registered = 1;
+    BTCRegisterScriptConfigRequest register_script_config = 2;
+  }
+}
+
+message BTCResponse {
+  oneof response {
+    BTCSuccess success = 1;
+    BTCIsScriptConfigRegisteredResponse is_script_config_registered = 2;
+  }
 }

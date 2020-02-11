@@ -300,6 +300,9 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_btc_sign_input_tag:
     case Request_btc_sign_output_tag:
         return commander_btc_sign(request, response);
+    case Request_btc_tag:
+        response->which_response = Response_btc_tag;
+        return commander_btc(&(request->request.btc), &(response->response.btc));
 #else
     case Request_btc_pub_tag:
     case Request_btc_sign_init_tag:

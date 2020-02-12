@@ -27,6 +27,7 @@ typedef enum {
     APP_BTC_OK,
     APP_BTC_ERR_USER_ABORT,
     APP_BTC_ERR_INVALID_INPUT,
+    APP_BTC_ERR_DUPLICATE,
     APP_BTC_ERR_UNKNOWN,
 } app_btc_result_t;
 

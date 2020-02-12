@@ -68,11 +68,7 @@ USE_RESULT bool memory_cleanup_smarteeprom(void);
 /* Each memory chunk can contain up to 23 resident keys. */
 #define MEMORY_CTAP_RESIDENT_KEYS_PER_CHUNK (23)
 #define MEMORY_CTAP_RESIDENT_KEYS_CHUNKS (2)
-#if 0
 #define MEMORY_CTAP_RESIDENT_KEYS_MAX (MEMORY_CTAP_RESIDENT_KEYS_CHUNKS * MEMORY_CTAP_RESIDENT_KEYS_PER_CHUNK)
-#else
-#define MEMORY_CTAP_RESIDENT_KEYS_MAX (5)
-#endif
 
 // set device name. name is an utf8-encoded string, and null terminated. The max
 // size (including the null terminator) is MEMORY_DEVICE_NAME_MAX_LEN bytes.

@@ -25,12 +25,6 @@
 
 #include <string.h>
 
-// the rate at which the _update_positions function is called
-static const uint8_t UPDATE_RATE = 30;
-// keeps track of the times that the _slide function is called, to trigger the call of
-// _update_positions.
-static uint8_t _update_iteration = 0;
-
 /**
  * Scroll-through data.
  */
@@ -129,28 +123,6 @@ static void _init_positions(component_t* scroll_through_all_variants)
     }
 }
 
-/**
- * Moves to the previous or next word in the words list.
- */
-static void _slide(gestures_slider_data_t* gestures_slider_data, component_t* component)
-{
-    if (_update_iteration % UPDATE_RATE == 0) {
-        if (abs(gestures_slider_data->velocity) > 0) {
-            _update_positions(component, gestures_slider_data->velocity / 2);
-        }
-        _update_iteration = 0;
-    }
-    _update_iteration++;
-}
-
-// animate quicker and snap to the item that is most visible. Update index.
-static void _slide_release(gestures_slider_data_t* gestures_slider_data, component_t* component)
-{
-    (void)gestures_slider_data;
-    scroll_through_all_variants_data_t* data = (scroll_through_all_variants_data_t*)component->data;
-    _update_positions(component, -1 * data->diff_to_middle);
-}
-
 static void _back(component_t* component)
 {
     scroll_through_all_variants_data_t* data = (scroll_through_all_variants_data_t*)component->data;
@@ -191,16 +163,6 @@ static void _on_event(const event_t* event, component_t* component)
 {
     // gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
     switch (event->id) {
-    case EVENT_TOP_SLIDE:
-    case EVENT_BOTTOM_SLIDE:
-        //_slide(slider_data, component);
-        (void)_slide;
-        break;
-    case EVENT_TOP_SLIDE_RELEASED:
-    case EVENT_BOTTOM_SLIDE_RELEASED:
-        (void)_slide_release;
-        //_slide_release(slider_data, component);
-        break;
     case EVENT_BACKWARD:
         _back(component);
         break;

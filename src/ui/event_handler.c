@@ -19,12 +19,13 @@
 
 static void _handle_event(component_t* component, const event_t* event)
 {
-    if (!component) {
+    if (!component || component->disabled) {
         return;
     }
     uint8_t num_components = component->sub_components.amount;
     for (int i = 0; i < num_components; i++) {
-        _handle_event(component->sub_components.sub_components[i], event);
+        component_t* comp = component->sub_components.sub_components[i];
+        _handle_event(comp, event);
     }
     if (component->f->on_event) {
         component->f->on_event(event, component);

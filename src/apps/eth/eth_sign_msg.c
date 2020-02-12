@@ -22,6 +22,7 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <util.h>
+#include <util/util_string.h>
 #include <workflow/confirm.h>
 
 app_eth_sign_error_t app_eth_sign_msg(
@@ -73,12 +74,7 @@ app_eth_sign_error_t app_eth_sign_msg(
     memcpy(&msg[payload_offset], request->msg.bytes, request->msg.size);
 
     // determine if the message is in ASCII
-    bool all_ascii = true;
-    for (size_t i = 0; i < request->msg.size; ++i) {
-        if (request->msg.bytes[i] < 20 || request->msg.bytes[i] > 127) {
-            all_ascii = false;
-        }
-    }
+    bool all_ascii = util_string_all_ascii_bytes(request->msg.bytes, request->msg.size);
 
     char body[sizeof(request->msg.bytes) * 2 + 1] = {0};
     confirm_params_t params = {

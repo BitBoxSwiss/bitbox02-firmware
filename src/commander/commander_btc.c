@@ -33,6 +33,8 @@ static commander_error_t _result(app_btc_result_t result)
         return COMMANDER_ERR_USER_ABORT;
     case APP_BTC_ERR_INVALID_INPUT:
         return COMMANDER_ERR_INVALID_INPUT;
+    case APP_BTC_ERR_DUPLICATE:
+        return COMMANDER_ERR_DUPLICATE;
     default:
         return COMMANDER_ERR_GENERIC;
     }

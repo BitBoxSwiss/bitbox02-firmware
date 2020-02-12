@@ -30,7 +30,8 @@
     X(COMMANDER_ERR_GENERIC, 103, "generic error")                               \
     X(COMMANDER_ERR_USER_ABORT, 104, "aborted by the user")                      \
     X(COMMANDER_ERR_INVALID_STATE, 105, "can't call this endpoint: wrong state") \
-    X(COMMANDER_ERR_DISABLED, 106, "function disabled")
+    X(COMMANDER_ERR_DISABLED, 106, "function disabled")                          \
+    X(COMMANDER_ERR_DUPLICATE, 107, "duplicate entry")
 
 #define X(a, b, c) a,
 typedef enum { COMMANDER_ERROR_TABLE } commander_error_t;

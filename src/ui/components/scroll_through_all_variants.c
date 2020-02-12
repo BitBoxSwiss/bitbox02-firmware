@@ -33,7 +33,6 @@ typedef struct {
     component_t** labels;
     uint8_t length;
     uint8_t index;
-    char index_str[4];
     component_t* index_label;
     component_t* back_arrow;
     component_t* forward_arrow;
@@ -72,8 +71,9 @@ static void _display_index(component_t* scroll_through_all_variants)
 {
     scroll_through_all_variants_data_t* data =
         (scroll_through_all_variants_data_t*)scroll_through_all_variants->data;
-    snprintf(data->index_str, sizeof(data->index_str), "%02u", (data->index + 1U));
-    label_update(data->index_label, data->index_str);
+    char index_str[4];
+    snprintf(index_str, sizeof(index_str), "%02u", (data->index + 1U));
+    label_update(data->index_label, index_str);
 }
 
 static void _update_positions(component_t* scroll_through_all_variants, int32_t velocity)
@@ -97,6 +97,7 @@ static void _update_positions(component_t* scroll_through_all_variants, int32_t 
         }
     }
 
+    /* When no title is provided, show the index instead. */
     if (data->show_index) {
         _display_index(scroll_through_all_variants);
     }
@@ -232,7 +233,7 @@ component_t* scroll_through_all_variants_create(
     const char* const* words,
     void (*select_word_cb)(uint8_t),
     const uint8_t length,
-    bool show_index,
+    const char* title,
     void (*continue_on_last_cb)(void),
     void (*cancel_cb)(void),
     component_t* parent)
@@ -264,7 +265,7 @@ component_t* scroll_through_all_variants_create(
     data->select_word_cb = select_word_cb;
     data->length = length;
     data->index = 0;
-    data->show_index = show_index;
+    data->show_index = !title;
     data->continue_on_last_cb = continue_on_last_cb;
     data->continue_on_last_button = NULL;
     data->cancel_cb = cancel_cb;
@@ -275,10 +276,12 @@ component_t* scroll_through_all_variants_create(
         ui_util_add_sub_component(scroll_through_all_variants, label);
         labels[i] = label;
     }
-    if (show_index) {
-        data->index_label = label_create("01", NULL, CENTER_TOP, scroll_through_all_variants);
+    data->index_label = label_create("", NULL, CENTER_TOP, scroll_through_all_variants);
+    ui_util_add_sub_component(scroll_through_all_variants, data->index_label);
+    if (data->show_index) {
         _display_index(scroll_through_all_variants);
-        ui_util_add_sub_component(scroll_through_all_variants, data->index_label);
+    } else {
+        label_update(data->index_label, title);
     }
 
     if (select_word_cb != NULL) {

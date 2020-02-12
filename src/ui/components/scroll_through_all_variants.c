@@ -35,6 +35,8 @@ typedef struct {
     uint8_t index;
     char index_str[4];
     component_t* index_label;
+    component_t* back_arrow;
+    component_t* forward_arrow;
     bool show_index;
     int32_t diff_to_middle;
     void (*select_word_cb)(uint8_t);
@@ -123,6 +125,21 @@ static void _init_positions(component_t* scroll_through_all_variants)
     }
 }
 
+static void _update_arrow_visibility(scroll_through_all_variants_data_t* data, uint8_t new_index)
+{
+    if (new_index == 0) {
+        data->back_arrow->disabled = true;
+    } else {
+        data->back_arrow->disabled = false;
+    }
+
+    if (new_index == data->length - 1) {
+        data->forward_arrow->disabled = true;
+    } else {
+        data->forward_arrow->disabled = false;
+    }
+}
+
 static void _back(component_t* component)
 {
     scroll_through_all_variants_data_t* data = (scroll_through_all_variants_data_t*)component->data;
@@ -130,6 +147,7 @@ static void _back(component_t* component)
     int32_t diff_to_middle = (data->labels[new_index]->position.left +
                               data->labels[new_index]->dimension.width / 2 - SCREEN_WIDTH / 2) *
                              -1;
+    _update_arrow_visibility(data, new_index);
     _update_positions(component, diff_to_middle);
 }
 
@@ -140,6 +158,7 @@ static void _forward(component_t* component)
     int32_t diff_to_middle = (data->labels[new_index]->position.left +
                               data->labels[new_index]->dimension.width / 2 - SCREEN_WIDTH / 2) *
                              -1;
+    _update_arrow_visibility(data, new_index);
     _update_positions(component, diff_to_middle);
 }
 
@@ -275,12 +294,13 @@ component_t* scroll_through_all_variants_create(
             button_create("Cancel", top_slider, 0, _cancel, scroll_through_all_variants));
     }
 
-    ui_util_add_sub_component(
-        scroll_through_all_variants, left_arrow_create(bottom_slider, scroll_through_all_variants));
-    ui_util_add_sub_component(
-        scroll_through_all_variants,
-        right_arrow_create(bottom_slider, scroll_through_all_variants));
+    data->back_arrow = left_arrow_create(bottom_slider, scroll_through_all_variants);
+    ui_util_add_sub_component(scroll_through_all_variants, data->back_arrow);
 
+    data->forward_arrow = right_arrow_create(bottom_slider, scroll_through_all_variants);
+    ui_util_add_sub_component(scroll_through_all_variants, data->forward_arrow);
+
+    _update_arrow_visibility(data, 0);
     _init_positions(scroll_through_all_variants);
     return scroll_through_all_variants;
 }

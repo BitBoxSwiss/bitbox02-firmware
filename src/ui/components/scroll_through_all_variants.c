@@ -15,6 +15,7 @@
 #include "scroll_through_all_variants.h"
 #include "../event.h"
 #include "button.h"
+#include "icon_button.h"
 #include "label.h"
 #include "left_arrow.h"
 #include "right_arrow.h"
@@ -294,7 +295,7 @@ component_t* scroll_through_all_variants_create(
     if (cancel_cb != NULL) {
         ui_util_add_sub_component(
             scroll_through_all_variants,
-            button_create("Cancel", top_slider, 0, _cancel, scroll_through_all_variants));
+            icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel));
     }
 
     data->back_arrow = left_arrow_create(bottom_slider, scroll_through_all_variants);

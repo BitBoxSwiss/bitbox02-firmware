@@ -49,6 +49,8 @@ typedef struct {
 
 static void test_slide_on_event(const event_t* event, component_t* component)
 {
+    (void)event;
+    (void)component;
     // test_slide_data_t* data = (test_slide_data_t*)component->data;
     // gestures_slider_data_t* event_data = (gestures_slider_data_t*)event->data;
     // if (event_data->direction == FORWARD) {

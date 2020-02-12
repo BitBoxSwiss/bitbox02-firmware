@@ -80,6 +80,15 @@ void util_cleanup_64(uint8_t** buf);
  */
 char* util_strdup(const char* str);
 
+/**
+ * Like sprintf, but creates the result buffer with the appropriate size.
+ * Guaranteed to return non-NULL (aborts if allocation fails).
+ *
+ * @param fmt Printf-like format string. 
+ */
+__attribute__ ((format (printf, 1, 2)))
+char* util_asprintf(const char* fmt, ...);
+
 #define UTIL_CLEANUP_20(var)                                                                     \
     uint8_t* __attribute__((__cleanup__(util_cleanup_20))) var##_clean __attribute__((unused)) = \
         var;

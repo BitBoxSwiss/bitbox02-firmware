@@ -105,9 +105,36 @@ typedef struct {
         CTAP_GET_ASSERTION_STARTED,
         CTAP_GET_ASSERTION_UNLOCKED,
         CTAP_GET_ASSERTION_WAIT_CONFIRM,
-        CTAP_GET_ASSERTION_FAILED,
+        CTAP_GET_ASSERTION_CONFIRMED,
+        CTAP_GET_ASSERTION_SELECT_CREDENTIAL,
+        CTAP_GET_ASSERTION_SELECTED_CREDENTIAL,
+        /** User aborted the request */
+        CTAP_GET_ASSERTION_DENIED,
+        /** No valid credentials were found. */
+        CTAP_GET_ASSERTION_NO_CREDENTIALS,
         CTAP_GET_ASSERTION_FINISHED,
     } state;
+    /** Key handle that was selected for authentication. */
+    u2f_keyhandle_t auth_credential;
+    /** Private key corresponding to auth_credential. */
+    uint8_t auth_privkey[HMAC_SHA256_LEN];
+    /** User ID corresponding to auth_credential.
+     *
+     * When no allow list is present, it's mandatory that
+     * we add a user ID to the credential we return.
+     */
+    uint8_t user_id[CTAP_USER_ID_MAX_SIZE];
+    /** Actual size of the user ID. */
+    size_t user_id_size;
+    /**
+     * List of valid credentials for this GA request.
+     */
+    ctap_credential_display_list_t cred_list;
+    /**
+     * For each credential in cred_list, save the index
+     * that that credential has in the RK memory.
+     */
+    int cred_idx[CTAP_CREDENTIAL_LIST_MAX_SIZE];
     ctap_get_assertion_req_t req;
 } ctap_get_assertion_state_t;
 
@@ -337,7 +364,7 @@ static void _copy_or_truncate(char* dst, size_t dst_size, const char* src)
     if (!truncate) {
         dst[src_size] = '\0';
     } else {
-        strcpy(dst, padding);
+        strcpy(dst + src_size, padding);
         dst[src_size + padding_size] = '\0';
     }
 }
@@ -356,7 +383,7 @@ static void _get_assertion_unlock_cb(bool result, void* param) {
          * User didn't authenticate.
          * Let's count this as a "user denied" error.
          */
-        _state.data.get_assertion.state = CTAP_GET_ASSERTION_FAILED;
+        _state.data.get_assertion.state = CTAP_GET_ASSERTION_DENIED;
         return;
     }
     _state.data.get_assertion.state = CTAP_GET_ASSERTION_UNLOCKED;
@@ -367,9 +394,9 @@ static void _get_assertion_allow_cb(bool result, void* param)
     (void)param;
     ctap_get_assertion_state_t* state = &_state.data.get_assertion;
     if (result) {
-        state->state = CTAP_GET_ASSERTION_FINISHED;
+        state->state = CTAP_GET_ASSERTION_CONFIRMED;
     } else {
-        state->state = CTAP_GET_ASSERTION_FAILED;
+        state->state = CTAP_GET_ASSERTION_DENIED;
     }
 }
 
@@ -1103,6 +1130,55 @@ static void _authenticate_with_allow_list(ctap_get_assertion_req_t* GA, u2f_keyh
 }
 
 /**
+ * Called when the user has selected one of the credentials from
+ * the available credential list for an authentication request.
+ *
+ * This function will decode the selected authentication key and
+ * move to the CTAP_GET_ASSERTION_SELECTED_CREDENTIAL state.
+ */
+static void _auth_credential_selected(int selected_cred, void* param)
+{
+    (void)param;
+    ctap_get_assertion_state_t* state = &_state.data.get_assertion;
+
+    if (selected_cred < 0) {
+        /* User aborted. */
+        state->state = CTAP_GET_ASSERTION_DENIED;
+        return;
+    }
+
+    /* Now load the credential that was selected in the output buffer. */
+    ctap_resident_key_t selected_key;
+    //screen_sprintf_debug(500, "Selected cred #%d", cred_idx[selected_cred]);
+    bool mem_result = memory_get_ctap_resident_key(state->cred_list.creds[selected_cred].mem_id, &selected_key);
+
+    if (!mem_result) {
+        /* Shouldn't happen, but if it does we effectively don't have any valid credential to provide. */
+        state->state = CTAP_GET_ASSERTION_NO_CREDENTIALS;
+        return;
+    }
+    /* Sanity check the stored credential. */
+    if (selected_key.valid != CTAP_RESIDENT_KEY_VALID ||
+        selected_key.user_id_size > CTAP_USER_ID_MAX_SIZE) {
+        state->state = CTAP_GET_ASSERTION_NO_CREDENTIALS;
+        return;
+    }
+    memcpy(&state->auth_credential, &selected_key.key_handle, sizeof(selected_key.key_handle));
+    state->user_id_size = selected_key.user_id_size;
+    memcpy(state->user_id, selected_key.user_id, state->user_id_size);
+
+    /* Sanity check the key and extract the private key. */
+    bool key_valid = u2f_keyhandle_verify(state->req.rp.id, (const uint8_t*)&state->auth_credential, sizeof(state->auth_credential), state->auth_privkey);
+    if (!key_valid) {
+        workflow_status_blocking("Internal error. Keyhandle verification failed.", false);
+        state->state = CTAP_GET_ASSERTION_NO_CREDENTIALS;
+        return;
+    }
+    state->state = CTAP_GET_ASSERTION_SELECTED_CREDENTIAL;
+}
+
+
+/**
  * Selects one of the stored credentials for authentication.
  *
  * @param GA getAssertion request that must be examined. Must contain
@@ -1114,14 +1190,10 @@ static void _authenticate_with_allow_list(ctap_get_assertion_req_t* GA, u2f_keyh
  *                    chosen credential. Must be CTAP_STORAGE_USER_NAME_LIMIT bytes long.
  * @param user_id_size_out Will be filled with the size of user_id.
  */
-static uint8_t _authenticate_with_rk(ctap_get_assertion_req_t* GA, u2f_keyhandle_t* chosen_credential_out, uint8_t* chosen_privkey, uint8_t* user_id_out, size_t* user_id_size_out)
+static workflow_t* _authenticate_with_rk(ctap_get_assertion_req_t* GA)
 {
-    /*
-     * For each credential that we display, save which RK id it corresponds to.
-     */
-    int cred_idx[CTAP_CREDENTIAL_LIST_MAX_SIZE];
-    ctap_credential_display_list_t creds;
-    creds.n_elems = 0;
+    ctap_get_assertion_state_t* state = &_state.data.get_assertion;
+    state->cred_list.n_elems = 0;
 
     /*
      * Compute the hash of the RP id so that we
@@ -1141,58 +1213,24 @@ static uint8_t _authenticate_with_rk(ctap_get_assertion_req_t* GA, u2f_keyhandle
              * This key matches the RP! Add its user information to
              * our list.
              */
-            cred_idx[creds.n_elems] = i;
-            ctap_credential_display_t* this_cred = creds.creds + creds.n_elems;
+            ctap_credential_display_t* this_cred = state->cred_list.creds + state->cred_list.n_elems;
+            this_cred->mem_id = i;
             memcpy(this_cred->username, this_key.user_name, sizeof(this_key.user_name));
             memcpy(this_cred->display_name, this_key.display_name, sizeof(this_key.display_name));
-            creds.n_elems++;
-            if (creds.n_elems == CTAP_CREDENTIAL_LIST_MAX_SIZE) {
+            state->cred_list.n_elems++;
+            if (state->cred_list.n_elems == CTAP_CREDENTIAL_LIST_MAX_SIZE) {
                 /* No more space */
                 break;
             }
         }
     }
-    if (creds.n_elems == 0) {
-        workflow_status_blocking("No credentials found on this device.", false);
-        return CTAP2_ERR_NO_CREDENTIALS;
+    if (state->cred_list.n_elems == 0) {
+        return NULL;
     }
     /* Sort credentials by creation time. */
-    qsort(creds.creds, creds.n_elems, sizeof(*creds.creds), _compare_display_credentials);
-    int selected_cred = workflow_select_ctap_credential(&creds);
-    if (selected_cred < 0) {
-        /* User aborted. */
-        workflow_status_blocking("Operation cancelled", false);
-        return CTAP2_ERR_OPERATION_DENIED;
-    }
-
-    /* Now load the credential that was selected in the output buffer. */
-    ctap_resident_key_t selected_key;
-    //screen_sprintf_debug(500, "Selected cred #%d", cred_idx[selected_cred]);
-    bool mem_result = memory_get_ctap_resident_key(cred_idx[selected_cred], &selected_key);
-
-    if (!mem_result) {
-        /* Shouldn't happen, but if it does we effectively don't have any valid credential to provide. */
-        workflow_status_blocking("Internal error. Operation cancelled", false);
-        return CTAP2_ERR_NO_CREDENTIALS;
-    }
-    /* Sanity check the stored credential. */
-    if (selected_key.valid != CTAP_RESIDENT_KEY_VALID ||
-        selected_key.user_id_size > CTAP_USER_ID_MAX_SIZE) {
-        //screen_sprintf_debug(1000, "BAD valid %d", selected_key.valid);
-        workflow_status_blocking("Internal error. Invalid key selected.", false);
-        return CTAP2_ERR_NO_CREDENTIALS;
-    }
-    memcpy(chosen_credential_out, &selected_key.key_handle, sizeof(selected_key.key_handle));
-    *user_id_size_out = selected_key.user_id_size;
-    memcpy(user_id_out, selected_key.user_id, *user_id_size_out);
-
-    /* Sanity check the key and extract the private key. */
-    bool key_valid = u2f_keyhandle_verify(GA->rp.id, (uint8_t*)chosen_credential_out, sizeof(*chosen_credential_out), chosen_privkey);
-    if (!key_valid) {
-        workflow_status_blocking("Internal error. Keyhandle verification failed.", false);
-        return CTAP2_ERR_NO_CREDENTIALS;
-    }
-    return CTAP1_ERR_SUCCESS;
+    qsort(state->cred_list.creds, state->cred_list.n_elems, sizeof(*state->cred_list.creds), _compare_display_credentials);
+    workflow_t* wf = workflow_select_ctap_credential(&state->cred_list, _auth_credential_selected, NULL);
+    return wf;
 }
 
 /**
@@ -1234,6 +1272,9 @@ static void _get_assertion_init_state(ctap_get_assertion_req_t* req)
 
 static void _get_assertion_free_state(void)
 {
+    util_zero(_state.data.get_assertion.auth_privkey,
+        sizeof(_state.data.get_assertion.auth_privkey)
+        );
 }
 
 static uint8_t ctap_get_assertion(const in_buffer_t* in_buffer)
@@ -1278,39 +1319,40 @@ static uint8_t ctap_get_assertion(const in_buffer_t* in_buffer)
  * Generates a new assertion in response to a GetAssertion request.
  * Only called when the user has already accepted and identified with the device.
  */
-static int _get_assertion_complete(buffer_t* out_buf)
+static ctap_request_result_t _get_assertion_select_credential(void)
 {
     ctap_get_assertion_state_t* state = &_state.data.get_assertion;
-    u2f_keyhandle_t auth_credential;
-    uint8_t auth_privkey[HMAC_SHA256_LEN];
-    UTIL_CLEANUP_32(auth_privkey);
-
-    /*
-     * When no allow list is present, it's mandatory that
-     * we add a user ID to the credential we return.
-     */
-    uint8_t user_id[CTAP_USER_ID_MAX_SIZE] = {0};
-    size_t user_id_size = 0;
 
     if (state->req.cred_len) {
         // allowlist is present -> check all the credentials that were actually generated by us.
         u2f_keyhandle_t* chosen_credential = NULL;
-        _authenticate_with_allow_list(&state->req, &chosen_credential, auth_privkey);
+        _authenticate_with_allow_list(&state->req, &chosen_credential, state->auth_privkey);
         if (!chosen_credential) {
             /* No credential selected (or no credential was known to the device). */
-            return CTAP2_ERR_NO_CREDENTIALS;
+            ctap_request_result_t result = {.status = CTAP2_ERR_NO_CREDENTIALS, .request_completed = true};
+            return result;
         }
-        memcpy(&auth_credential, chosen_credential, sizeof(auth_credential));
+        memcpy(&state->auth_credential, chosen_credential, sizeof(state->auth_credential));
+        state->state = CTAP_GET_ASSERTION_SELECTED_CREDENTIAL;
     } else {
         // No allowList, so use all matching RK's matching rpId
-        uint8_t auth_status = _authenticate_with_rk(&state->req, &auth_credential, auth_privkey, user_id, &user_id_size);
-        if (auth_status != 0) {
-            return auth_status;
+        workflow_t* select_cred_wf = _authenticate_with_rk(&state->req);
+        if (!select_cred_wf) {
+            ctap_request_result_t result = {.status = CTAP2_ERR_NO_CREDENTIALS, .request_completed = true};
+            return result;
         }
+        workflow_stack_start_workflow(select_cred_wf);
+        state->state = CTAP_GET_ASSERTION_SELECT_CREDENTIAL;
     }
+    ctap_request_result_t result = {.status = 0, .request_completed = false};
+    return result;
+}
 
+static uint8_t _get_assertion_complete(buffer_t* out_buf)
+{
     size_t actual_auth_data_size;
     uint8_t auth_data_buf[sizeof(ctap_auth_data_header_t) + 80];
+    ctap_get_assertion_state_t* state = &_state.data.get_assertion;
     uint8_t ret = _make_authentication_response(&state->req, auth_data_buf, &actual_auth_data_size);
     if (ret != CborNoError) {
         return ret;
@@ -1320,7 +1362,7 @@ static int _get_assertion_complete(buffer_t* out_buf)
     CborEncoder encoder;
     memset(&encoder, 0, sizeof(CborEncoder));
     cbor_encoder_init(&encoder, out_buf->data, out_buf->max_len, 0);
-    ret = ctap_end_get_assertion(&encoder, &auth_credential, auth_data_buf, actual_auth_data_size, auth_privkey, state->req.client_data_hash, user_id, user_id_size);
+    ret = ctap_end_get_assertion(&encoder, &state->auth_credential, auth_data_buf, actual_auth_data_size, state->auth_privkey, state->req.client_data_hash, state->user_id, state->user_id_size);
     if (ret != CborNoError) {
         return ret;
     }
@@ -1335,11 +1377,15 @@ static ctap_request_result_t _get_assertion_continue(buffer_t* out_buf)
     ctap_request_result_t result = {.status = 0, .request_completed = true};
     ctap_get_assertion_state_t* state = &_state.data.get_assertion;
     switch (state->state) {
-        case CTAP_GET_ASSERTION_FINISHED:
-            result.status = _get_assertion_complete(out_buf);
+        case CTAP_GET_ASSERTION_CONFIRMED:
+            result = _get_assertion_select_credential();
             return result;
-        case CTAP_GET_ASSERTION_FAILED:
+        case CTAP_GET_ASSERTION_DENIED:
             result.status = CTAP2_ERR_OPERATION_DENIED;
+            return result;
+        case CTAP_GET_ASSERTION_NO_CREDENTIALS:
+            workflow_status_blocking("No credentials found on this device.", false);
+            result.status = CTAP2_ERR_NO_CREDENTIALS;
             return result;
         case CTAP_GET_ASSERTION_UNLOCKED:
             /*
@@ -1352,8 +1398,12 @@ static ctap_request_result_t _get_assertion_continue(buffer_t* out_buf)
             state->state = CTAP_MAKE_CREDENTIAL_WAIT_CONFIRM;
             result.request_completed = false;
             return result;
+        case CTAP_GET_ASSERTION_SELECTED_CREDENTIAL:
+            result.status = _get_assertion_complete(out_buf);
+            return result;
         case CTAP_GET_ASSERTION_STARTED:
         case CTAP_GET_ASSERTION_WAIT_CONFIRM:
+        case CTAP_GET_ASSERTION_SELECT_CREDENTIAL:
             result.request_completed = false;
             return result;
         default:

@@ -33,6 +33,8 @@ typedef struct {
     confirm_params_t params;
     void (*callback)(bool, void*);
     void* callback_param;
+    char* title;
+    char* body;
 } data_t;
 
 static void _confirm(void* param)
@@ -82,9 +84,11 @@ static void _workflow_confirm_init(workflow_t* self)
  */
 static void _workflow_confirm_cleanup(workflow_t* self)
 {
-    (void)self;
     ui_screen_stack_pop();
     ui_screen_stack_cleanup();
+    data_t* data = (data_t*)self->data;
+    free(data->title);
+    free(data->body);
 }
 
 workflow_t* workflow_confirm(
@@ -97,6 +101,23 @@ workflow_t* workflow_confirm(
     data_t* data = (data_t*)result->data;
     data->done = false;
     data->params = *params;
+    /* Make a copy of the parameter strings. */
+    if (data->params.title) {
+        data->title = strdup(data->params.title);
+        data->params.title = data->title;
+    } else {
+        data->title = NULL;
+    }
+    if (data->params.body) {
+        data->body = strdup(data->params.body);
+        data->params.body = data->body;
+    } else {
+        data->body = NULL;
+    }
+    if (!data->params.title || !data->params.body) {
+        Abort("workflow_confirm\ntitle malloc");
+    }
+
     data->callback = callback;
     data->callback_param = callback_param;
     result->data = data;

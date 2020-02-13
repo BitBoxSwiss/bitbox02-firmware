@@ -560,7 +560,7 @@ USE_RESULT bool btc_common_multisig_is_valid(
     if (multisig->threshold == 0 || multisig->threshold > multisig->xpubs_count) {
         return false;
     }
-    if (multisig->our_xpub_index > multisig->xpubs_count) {
+    if (multisig->our_xpub_index >= multisig->xpubs_count) {
         return false;
     }
     if (!_is_valid_keypath_account_multisig_p2wsh(keypath, keypath_len, expected_coin)) {

@@ -799,6 +799,13 @@ static void _test_btc_common_multisig_is_valid(void** state)
     assert_false(btc_common_multisig_is_valid(
         &invalid, keypath, sizeof(keypath) / sizeof(uint32_t), expected_coin));
 
+    // our xpub index larger than number of cosigners (xpubs[our_xpb_index] would be out of
+    // bounds).
+    invalid = multisig;
+    invalid.our_xpub_index = invalid.xpubs_count;
+    assert_false(btc_common_multisig_is_valid(
+        &invalid, keypath, sizeof(keypath) / sizeof(uint32_t), expected_coin));
+
     // threshold zero
     invalid = multisig;
     invalid.threshold = 0;

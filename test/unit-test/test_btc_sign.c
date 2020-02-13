@@ -153,10 +153,11 @@ static void _test_btc_sign_init(void** state)
 }
 
 typedef struct {
-    // true for the happy test; false for all others.
-    bool is_valid;
+    // true if the sigs should be checked against fixtures.
+    bool check_sigs;
     // keystore seeded?
     bool seeded;
+    BTCScriptConfig_SimpleType script_type;
     // all inputs should be the same coin type.
     bool wrong_coin_input;
     // all change outputs should be the same coin type.
@@ -208,6 +209,18 @@ static void _sign(const _modification_t* mod)
     // Need keystore to derive change and input scripts
     mock_state(mod->seeded ? _mock_seed : NULL, mod->seeded ? _mock_bip39_seed : NULL);
 
+    uint32_t purpose;
+    switch (mod->script_type) {
+    case BTCScriptConfig_SimpleType_P2WPKH:
+        purpose = 84 + BIP32_INITIAL_HARDENED_CHILD;
+        break;
+    case BTCScriptConfig_SimpleType_P2WPKH_P2SH:
+        purpose = 49 + BIP32_INITIAL_HARDENED_CHILD;
+        break;
+    default:
+        assert_true(false);
+        return;
+    }
     BTCSignInitRequest init_req = {
         .coin = BTCCoin_BTC,
         .script_config =
@@ -215,13 +228,13 @@ static void _sign(const _modification_t* mod)
                 .which_config = BTCScriptConfig_simple_type_tag,
                 .config =
                     {
-                        .simple_type = BTCScriptConfig_SimpleType_P2WPKH,
+                        .simple_type = mod->script_type,
                     },
             },
         .keypath_account_count = 3,
         .keypath_account =
             {
-                84 + BIP32_INITIAL_HARDENED_CHILD,
+                purpose,
                 0 + BIP32_INITIAL_HARDENED_CHILD,
                 10 + BIP32_INITIAL_HARDENED_CHILD,
             },
@@ -704,14 +717,29 @@ static void _sign(const _modification_t* mod)
     assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
     assert_int_equal(next.index, 1);
     assert_true(next.has_signature);
-    if (mod->is_valid) {
-        const uint8_t expected_signature[64] =
-            "\x91\x04\x8b\x6a\x46\x79\x89\x11\xfd\x2a\x11\x37\xc2\x8d\x1b\xa2\x66\x7e\x75\xf8\x42"
-            "\x4c"
-            "\x25\xfd\x38\x35\x3f\x5c\x6e\x51\x0f\xa9\x28\x49\x5c\xcd\x93\x51\x61\x21\xdd\xb3\xe7"
-            "\xc4"
-            "\xf6\xb8\x2b\x12\xe6\xb8\x3b\xb0\x9f\x09\x21\x49\x3c\xac\x0a\xa9\x54\xb9\xc5\x33";
-        assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+    if (mod->check_sigs) {
+        switch (mod->script_type) {
+        case BTCScriptConfig_SimpleType_P2WPKH: {
+            const uint8_t expected_signature[64] =
+                "\x91\x04\x8b\x6a\x46\x79\x89\x11\xfd\x2a\x11\x37\xc2\x8d\x1b\xa2\x66\x7e\x75\xf8"
+                "\x42\x4c\x25\xfd\x38\x35\x3f\x5c\x6e\x51\x0f\xa9\x28\x49\x5c\xcd\x93\x51\x61\x21"
+                "\xdd\xb3\xe7\xc4\xf6\xb8\x2b\x12\xe6\xb8\x3b\xb0\x9f\x09\x21\x49\x3c\xac\x0a\xa9"
+                "\x54\xb9\xc5\x33";
+            assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+            break;
+        }
+        case BTCScriptConfig_SimpleType_P2WPKH_P2SH: {
+            const uint8_t expected_signature[64] =
+                "\x2b\x78\x5c\x23\x21\x6a\x00\xca\xf9\x83\x62\xeb\x4e\xa2\x46\xf5\xf4\x90\xad\xc8"
+                "\xe1\x1d\x3f\x42\x4b\xa2\x10\x5d\xea\x37\x0f\x55\x05\x85\xcc\x0b\x3a\x49\x1c\x0f"
+                "\xb4\xe0\x62\xb4\x38\x14\xa6\x43\x37\x88\x09\xaf\x80\x92\x62\x71\x4b\x15\x2b\xb6"
+                "\x1d\xfd\xaa\x85";
+            assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+            break;
+        }
+        default:
+            assert_true(false);
+        }
     }
 
     // Second input, pass2.
@@ -731,17 +759,37 @@ static void _sign(const _modification_t* mod)
     assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&inputs[1], &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_DONE);
     assert_true(next.has_signature);
-    if (mod->is_valid) {
-        const uint8_t expected_signature[64] =
-            "\x95\x09\x43\x09\xa2\xd2\x77\xd3\xa6\x8d\xde\xd3\x3d\x50\xa7\x47\xf2\xee\xfb\x3f\x54"
-            "\x8a\x92\x45\x15\xdb\x62\xbe\x06\xa1\xae\xa4\x56\x92\x91\xe5\x2e\x6f\xea\x95\xf8\xb6"
-            "\x75\x23\xb1\x9b\x35\x9a\x84\x85\xd8\xaa\x3c\xa0\x2d\xb3\x74\x70\x01\x0b\x19\x9b\x0c"
-            "\xe3";
-        assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+    if (mod->check_sigs) {
+        switch (mod->script_type) {
+        case BTCScriptConfig_SimpleType_P2WPKH: {
+            const uint8_t expected_signature[64] =
+                "\x95\x09\x43\x09\xa2\xd2\x77\xd3\xa6\x8d\xde\xd3\x3d\x50\xa7\x47\xf2\xee\xfb\x3f"
+                "\x54"
+                "\x8a\x92\x45\x15\xdb\x62\xbe\x06\xa1\xae\xa4\x56\x92\x91\xe5\x2e\x6f\xea\x95\xf8"
+                "\xb6"
+                "\x75\x23\xb1\x9b\x35\x9a\x84\x85\xd8\xaa\x3c\xa0\x2d\xb3\x74\x70\x01\x0b\x19\x9b"
+                "\x0c"
+                "\xe3";
+            assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+            break;
+        }
+        case BTCScriptConfig_SimpleType_P2WPKH_P2SH: {
+            const uint8_t expected_signature[64] =
+                "\x73\x18\xa7\x22\x5a\x53\xa7\x37\x67\x4c\x07\xb5\x9c\x46\xbe\x07\x38\xc5\x1b\x56"
+                "\x3a\x90\x25\xf4\x71\x70\x8d\xac\x0a\x93\xa3\x12\x2d\xc5\x9f\xa5\x1c\xbc\xd6\xa4"
+                "\xc0\xba\x16\xb5\xe4\x82\xc3\x92\x40\x1b\x99\x82\x05\x01\xb2\x35\x34\x70\x87\x8c"
+                "\x59\x8c\x52\x8a";
+            assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+            break;
+        }
+        default:
+            assert_false(true);
+        }
     }
 }
 
 static const _modification_t _valid = {
+    .script_type = BTCScriptConfig_SimpleType_P2WPKH,
     .seeded = true,
     .bip44_change = 1,
 };
@@ -749,13 +797,20 @@ static const _modification_t _valid = {
 static void _test_btc_sign(void** state)
 {
     _modification_t valid = _valid;
-    valid.is_valid = true;
+    valid.check_sigs = true;
     _sign(&valid);
 }
 static void _test_seeded(void** state)
 {
     _modification_t invalid = _valid;
     invalid.seeded = false;
+    _sign(&invalid);
+}
+static void _test_script_type_p2wpkh_p2sh(void** state)
+{
+    _modification_t invalid = _valid;
+    invalid.script_type = BTCScriptConfig_SimpleType_P2WPKH_P2SH;
+    invalid.check_sigs = true;
     _sign(&invalid);
 }
 static void _test_wrong_coin_input(void** state)
@@ -894,6 +949,7 @@ int main(void)
 
         cmocka_unit_test(_test_btc_sign),
         cmocka_unit_test(_test_seeded),
+        cmocka_unit_test(_test_script_type_p2wpkh_p2sh),
         cmocka_unit_test(_test_wrong_coin_input),
         cmocka_unit_test(_test_wrong_coin_change),
         cmocka_unit_test(_test_wrong_account_input),

@@ -111,6 +111,11 @@ static void _test_memory_multisig_full(void** state)
         "dddddddddddddddddddddddddddddddd",
         "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
         "ffffffffffffffffffffffffffffffff",
+        "gggggggggggggggggggggggggggggggg",
+        "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
+        "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+        "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj",
+        "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
     };
     const char* names[] = {
         "name1",
@@ -119,13 +124,18 @@ static void _test_memory_multisig_full(void** state)
         "name4",
         "name5",
         "name6",
+        "name7",
+        "name8",
+        "name9",
+        "name10",
+        "name11",
     };
 
     // Only 5 slots available.
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 10; i++) {
         assert_int_equal(MEMORY_OK, memory_multisig_set_by_hash(hashes[i], names[i]));
     }
-    assert_int_equal(MEMORY_ERR_FULL, memory_multisig_set_by_hash(hashes[5], names[5]));
+    assert_int_equal(MEMORY_ERR_FULL, memory_multisig_set_by_hash(hashes[10], names[10]));
 }
 
 int main(void)

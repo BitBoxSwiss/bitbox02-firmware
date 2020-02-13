@@ -25,7 +25,7 @@
 #define MEMORY_MULTISIG_NAME_MAX_LEN (31)
 
 // How many multisig configurations (accounts) can be registered.
-#define MEMORY_MULTISIG_NUM_ENTRIES 5
+#define MEMORY_MULTISIG_NUM_ENTRIES 10
 
 typedef struct {
     void (*const random_32_bytes)(uint8_t* buf_out);

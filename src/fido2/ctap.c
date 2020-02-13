@@ -406,11 +406,11 @@ static workflow_t* _get_assertion_confirm(ctap_rp_id_t* rp)
     size_t prompt_size;
     if (rp->name && rp->name[0] != '\0') {
         /* There is a human-readable name attached to this domain. */
-        prompt_size = snprintf(prompt_buf, 100, "Authenticate on\n%s\n(%.*s)\n",
-                                  rp->name, (int)rp->size, rp->id);
+        prompt_size = snprintf(prompt_buf, 100, "Authenticate on\n%s\n(%.*s)\nsize %u",
+                               rp->name, (int)rp->size, rp->id, sizeof(_state));
     } else {
-        prompt_size = snprintf(prompt_buf, 100, "Authenticate on\n%.*s\n",
-                                  (int)rp->size, rp->id);
+        prompt_size = snprintf(prompt_buf, 100, "Authenticate on\n%.*s\nsize %u",
+                               (int)rp->size, rp->id, sizeof(_state));
     }
     if (prompt_size >= 100) {
         prompt_buf[99] = '\0';
@@ -1189,8 +1189,10 @@ static void _auth_credential_selected(int selected_cred, void* param)
  * @param user_id_out Will be filled with the stored User ID corresponding to the
  *                    chosen credential. Must be CTAP_STORAGE_USER_NAME_LIMIT bytes long.
  * @param user_id_size_out Will be filled with the size of user_id.
+ *
+ * @return true if authentication was successful (operation should continue), false otherwise.
  */
-static workflow_t* _authenticate_with_rk(ctap_get_assertion_req_t* GA)
+static bool _authenticate_with_rk(ctap_get_assertion_req_t* GA)
 {
     ctap_get_assertion_state_t* state = &_state.data.get_assertion;
     state->cred_list.n_elems = 0;
@@ -1225,12 +1227,18 @@ static workflow_t* _authenticate_with_rk(ctap_get_assertion_req_t* GA)
         }
     }
     if (state->cred_list.n_elems == 0) {
-        return NULL;
+        return false;
     }
     /* Sort credentials by creation time. */
     qsort(state->cred_list.creds, state->cred_list.n_elems, sizeof(*state->cred_list.creds), _compare_display_credentials);
-    workflow_t* wf = workflow_select_ctap_credential(&state->cred_list, _auth_credential_selected, NULL);
-    return wf;
+    if (state->cred_list.n_elems > 1) {
+        workflow_t* wf = workflow_select_ctap_credential(&state->cred_list, _auth_credential_selected, NULL);
+        workflow_stack_start_workflow(wf);
+        state->state = CTAP_GET_ASSERTION_SELECT_CREDENTIAL;
+    } else {
+        _auth_credential_selected(0, NULL);
+    }
+    return true;
 }
 
 /**
@@ -1336,13 +1344,11 @@ static ctap_request_result_t _get_assertion_select_credential(void)
         state->state = CTAP_GET_ASSERTION_SELECTED_CREDENTIAL;
     } else {
         // No allowList, so use all matching RK's matching rpId
-        workflow_t* select_cred_wf = _authenticate_with_rk(&state->req);
-        if (!select_cred_wf) {
+        bool rk_result = _authenticate_with_rk(&state->req);
+        if (!rk_result) {
             ctap_request_result_t result = {.status = CTAP2_ERR_NO_CREDENTIALS, .request_completed = true};
             return result;
         }
-        workflow_stack_start_workflow(select_cred_wf);
-        state->state = CTAP_GET_ASSERTION_SELECT_CREDENTIAL;
     }
     ctap_request_result_t result = {.status = 0, .request_completed = false};
     return result;

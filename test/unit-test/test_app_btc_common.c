@@ -849,6 +849,12 @@ static void _test_btc_common_multisig_is_valid(void** state)
         "Nf9SH8fAHzPWUsQJAmbR3");
     assert_false(btc_common_multisig_is_valid(
         &invalid, keypath, sizeof(keypath) / sizeof(uint32_t), expected_coin));
+
+    // duplicate.
+    invalid = multisig;
+    invalid.xpubs[0] = invalid.xpubs[1];
+    assert_false(btc_common_multisig_is_valid(
+        &invalid, keypath, sizeof(keypath) / sizeof(uint32_t), expected_coin));
 }
 
 static void _test_btc_common_multisig_hash(void** state)

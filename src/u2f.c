@@ -356,8 +356,9 @@ static void _register(const USB_APDU* apdu, Packet* out_packet)
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
+    /* No more pending operations for U2F register */
+    _unlock();
     if (!result) {
-        _unlock();
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
@@ -412,7 +413,6 @@ static void _register(const USB_APDU* apdu, Packet* out_packet)
     size_t len =
         1 /* registerId */ + U2F_EC_POINT_SIZE + 1 /* keyhandleLen */ + kh_cert_sig_len + 2;
     _fill_message(data, len, out_packet);
-    _unlock();
 }
 
 static void _authenticate(const USB_APDU* apdu, Packet* out_packet)
@@ -468,8 +468,9 @@ static void _authenticate(const USB_APDU* apdu, Packet* out_packet)
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
+    /* No more blocking operations pending for authentication. */
+    _unlock();
     if (!result) {
-        _unlock();
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
@@ -511,7 +512,6 @@ static void _authenticate(const USB_APDU* apdu, Packet* out_packet)
     memcpy(buf + auth_packet_len, "\x90\x00", 2);
 
     _fill_message(buf, auth_packet_len + 2, out_packet);
-    _unlock();
 }
 
 static void _cmd_ping(const Packet* in_packet, Packet* out_packet, const size_t max_out_len)

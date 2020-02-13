@@ -54,7 +54,7 @@ static void _workflow_select_ctap_credential_init(workflow_t* self)
         _credential_selected,
         data,
         data->n_words,
-        false,
+        "Select user",
         NULL,
         _cancel_cb,
         data,
@@ -83,9 +83,9 @@ static void _workflow_select_ctap_credential_cleanup(workflow_t* self)
 static char* _credential_to_string(ctap_credential_display_t* cred)
 {
     if (strlen(cred->display_name) > 0) {
-        return util_asprintf("Login as:\n%s\n(%s)", cred->display_name, cred->username);
+        return util_asprintf("%s\n(%s)", cred->display_name, cred->username);
     }
-    return util_asprintf("Login as:\n%s", cred->username);
+    return util_asprintf("%s", cred->username);
 }
 
 workflow_t* workflow_select_ctap_credential(ctap_credential_display_list_t* credentials, void (*callback)(int, void *), void *cb_param)

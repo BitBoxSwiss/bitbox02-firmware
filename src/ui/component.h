@@ -66,6 +66,15 @@ struct component_t {
     struct component_t* parent;
     /* Whether or not to require touch release before emitting touch events. */
     bool emit_without_release;
+    /**
+     * Whether the component is disabled/invisible.
+     *
+     * On creation, every component is enabled.
+     * If a component is disabled, it won't be rendered unless
+     * its render function is called explicitely, and it won't
+     * receive events unless they're passed to it explicitely.
+     */
+    bool disabled;
 };
 
 #endif

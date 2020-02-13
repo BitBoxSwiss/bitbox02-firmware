@@ -119,7 +119,7 @@ static bool _show_words(const char** words, uint8_t words_count)
     return workflow_cancel_run(
         _cancel_confirm_title,
         scroll_through_all_variants_create(
-            words, NULL, words_count, true, workflow_blocking_unblock, workflow_cancel, NULL));
+            words, NULL, words_count, NULL, workflow_blocking_unblock, workflow_cancel, NULL));
 }
 
 typedef struct {

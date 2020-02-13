@@ -60,7 +60,7 @@ component_t* confirm_mnemonic_create(
     ui_util_add_sub_component(
         confirm_mnemonic,
         scroll_through_all_variants_create(
-            wordlist, check_word_cb, length, false, NULL, cancel_cb, confirm_mnemonic));
+            wordlist, check_word_cb, length, "", NULL, cancel_cb, confirm_mnemonic));
 
     return confirm_mnemonic;
 }

@@ -42,8 +42,10 @@ void ui_util_add_sub_component(component_t* parent, component_t* child)
 void ui_util_component_render_subcomponents(component_t* component)
 {
     for (int i = 0; i < component->sub_components.amount; i++) {
-        component->sub_components.sub_components[i]->f->render(
-            component->sub_components.sub_components[i]);
+        component_t* comp = component->sub_components.sub_components[i];
+        if (!comp->disabled) {
+            comp->f->render(comp);
+        }
     }
 }
 

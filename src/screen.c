@@ -42,7 +42,7 @@ void screen_print_debug(const char* message, int duration)
     char print[100];
     snprintf(print, sizeof(print), "%s", message);
     UG_ClearBuffer();
-    UG_FontSelect(&font_font_a_9X9);
+    UG_FontSelect(&font_font_a_11X10);
     UG_PutString(0, 0, print, false);
     UG_SendBuffer();
     delay_ms(duration);
@@ -110,7 +110,7 @@ void screen_init(void)
     UG_Init(
         &guioled,
         (void (*)(UG_S16, UG_S16, UG_COLOR))oled_set_pixel,
-        &font_font_a_9X9,
+        &font_font_a_11X10,
         SCREEN_WIDTH,
         SCREEN_HEIGHT);
 }

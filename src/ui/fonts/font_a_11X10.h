@@ -12,14 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _ARIAL_FONTS_H_
-#define _ARIAL_FONTS_H_
+#include <ui/ugui/ugui.h>
 
-#include "font_a_9X9.h"
-#include "font_a_11X10.h"
-#include "font_a_11X12.h"
-#include "font_a_13X14.h"
-#include "font_a_15X16.h"
-#include "font_a_17X18.h"
-
-#endif
+extern const UG_FONT font_font_a_11X10;

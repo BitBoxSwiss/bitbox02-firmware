@@ -170,13 +170,13 @@ class BitBoxNoiseConfig:
         return False
 
     def add_device_static_pubkey(self, pubkey: bytes) -> None:
-        return
+        pass
 
     def get_app_static_privkey(self) -> Optional[bytes]:
         return None
 
     def set_app_static_privkey(self, privkey: bytes) -> None:
-        return
+        pass
 
 
 class BitBoxCommonAPI:

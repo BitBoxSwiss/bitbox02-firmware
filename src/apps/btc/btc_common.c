@@ -580,6 +580,23 @@ USE_RESULT bool btc_common_multisig_is_valid(
     if (!apps_common_bip32_xpubs_equal(&our_xpub, &maybe_our_xpub)) {
         return false;
     }
+
+    // Check for duplicates.
+    for (size_t i = 0; i < multisig->xpubs_count; i++) {
+        struct ext_key xpub_i = {0};
+        if (!apps_common_bip32_xpub_from_protobuf(&multisig->xpubs[i], &xpub_i)) {
+            return false;
+        }
+        for (size_t j = i + 1; j < multisig->xpubs_count; j++) {
+            struct ext_key xpub_j = {0};
+            if (!apps_common_bip32_xpub_from_protobuf(&multisig->xpubs[j], &xpub_j)) {
+                return false;
+            }
+            if (apps_common_bip32_xpubs_equal(&xpub_i, &xpub_j)) {
+                return false;
+            }
+        }
+    }
     return true;
 }
 

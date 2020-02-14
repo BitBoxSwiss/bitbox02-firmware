@@ -204,11 +204,13 @@ USE_RESULT bool btc_common_outputhash_from_multisig_p2wsh(
  * - 0 < m <= n <= 15
  * - the keypath conforms to bip48 for p2wsh: m/48'/coin'/account'/2'
  * - our designated xpub is actually ours (corresponds to the xpub of the currenty unlocked
- * keystore).
+ *   keystore).
+ * - no two xpubs are the same.
  * @param[in] multisig Multisig configuration (threshold, signers). The xpubs are account-level
  * xpubs.
  * @param[in] keypath account-level keypath, e.g. m/48'/0'/10'/2'
  * @param[in] keypath_len number of elements in keypath
+ * @param[in] expected_coin expected bip44 coin in the keypath.
  */
 USE_RESULT bool btc_common_multisig_is_valid(
     const BTCScriptConfig_Multisig* multisig,

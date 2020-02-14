@@ -554,13 +554,13 @@ USE_RESULT bool btc_common_multisig_is_valid(
     size_t keypath_len,
     uint32_t expected_coin)
 {
-    if (multisig->xpubs_count > MULTISIG_P2WSH_MAX_SIGNERS) {
+    if (multisig->xpubs_count < 2 || multisig->xpubs_count > MULTISIG_P2WSH_MAX_SIGNERS) {
         return false;
     }
     if (multisig->threshold == 0 || multisig->threshold > multisig->xpubs_count) {
         return false;
     }
-    if (multisig->our_xpub_index > multisig->xpubs_count) {
+    if (multisig->our_xpub_index >= multisig->xpubs_count) {
         return false;
     }
     if (!_is_valid_keypath_account_multisig_p2wsh(keypath, keypath_len, expected_coin)) {

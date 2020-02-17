@@ -15,6 +15,7 @@
 #ifndef _UI_CONFIRM_BUTTON_H_
 #define _UI_CONFIRM_BUTTON_H_
 
+#include "icon_button.h"
 #include <ui/component.h>
 
 #include <stdbool.h>
@@ -22,7 +23,8 @@
 /**
  * Creates a confirm button. Confirming emits the EVENT_CONFIRM event.
  * @param[in] longtouch if true, hold gesture is required, otherwise a simple tap.
+ * @param[in] button_type if not longtouch, defines the icon to show.
  */
-component_t* confirm_button_create(bool longtouch);
+component_t* confirm_button_create(bool longtouch, icon_button_type_t button_type);
 
 #endif

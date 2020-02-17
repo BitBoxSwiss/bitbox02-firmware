@@ -29,6 +29,7 @@ from bitbox02.communication import devices, TransportLayer, u2fhid, usart, bitbo
 from bitbox02.communication.devices import TooManyFoundException, NoneFoundException
 
 from bitbox02.bitbox02 import Bootloader, BitBox02
+from bitbox02 import util
 
 
 def eprint(*args: Any, **kwargs: Any) -> None:
@@ -39,22 +40,39 @@ def eprint(*args: Any, **kwargs: Any) -> None:
     print(*args, **kwargs)
 
 
-def _get_bitbox_and_reboot() -> devices.DeviceInfo:
+def _get_bitbox_and_reboot(use_cache: bool) -> devices.DeviceInfo:
     """Search for a bitbox and then reboot it into bootloader"""
     device = devices.get_any_bitbox02()
 
-    class NoiseConfig(bitbox_api_protocol.BitBoxNoiseConfig):
+    class NoiseConfig(util.NoiseConfigUserCache):
+        """NoiseConfig extends NoiseConfigUserCache"""
+
+        def __init__(self) -> None:
+            super().__init__("shift/load_firmware")
+
         def show_pairing(self, code: str) -> bool:
             print("Please compare and confirm the pairing code on your BitBox02:")
             print(code)
             return True
 
+    class NoiseConfigNoCache(bitbox_api_protocol.BitBoxNoiseConfig):
+        """NoiseConfig extends BitBoxNoiseConfig"""
+
+        def show_pairing(self, code: str) -> bool:
+            print("Please compare and confirm the pairing code on your BitBox02:")
+            print(code)
+            return True
+
+    if use_cache:
+        config: bitbox_api_protocol.BitBoxNoiseConfig = NoiseConfig()
+    else:
+        config = NoiseConfigNoCache()
+
     hid_device = hid.device()
     hid_device.open_path(device["path"])
-    bitbox = BitBox02(
-        transport=u2fhid.U2FHid(hid_device), device_info=device, noise_config=NoiseConfig()
-    )
-    bitbox.reboot()
+    bitbox = BitBox02(transport=u2fhid.U2FHid(hid_device), device_info=device, noise_config=config)
+    if not bitbox.reboot():
+        raise RuntimeError("User aborted")
 
     # wait for it to reboot
     while True:
@@ -68,7 +86,7 @@ def _get_bitbox_and_reboot() -> devices.DeviceInfo:
         return bootloader_device
 
 
-def _find_and_open_usb_bitbox02() -> Tuple[devices.DeviceInfo, TransportLayer]:
+def _find_and_open_usb_bitbox02(use_cache: bool) -> Tuple[devices.DeviceInfo, TransportLayer]:
     """
     Connects to a BitBox02 bootloader over USB.
     If the BitBox02 is currently running a firmware, it will
@@ -86,7 +104,7 @@ def _find_and_open_usb_bitbox02() -> Tuple[devices.DeviceInfo, TransportLayer]:
 
     if bootloader_device is None:
         try:
-            bootloader_device = _get_bitbox_and_reboot()
+            bootloader_device = _get_bitbox_and_reboot(use_cache)
         except TooManyFoundException:
             eprint("Found multiple bitboxes. Only one supported.")
             sys.exit(1)
@@ -135,7 +153,9 @@ def _try_usart_bootloader_connection(
     return success
 
 
-def _find_and_open_usart_bitbox(serial_port: usart.SerialPort) -> devices.DeviceInfo:
+def _find_and_open_usart_bitbox(
+    serial_port: usart.SerialPort, use_cache: bool
+) -> devices.DeviceInfo:
     """
     Connects to a BitBoxBase bootloader over UART.
     If the BitBoxBase is currently running a firmware, it will
@@ -156,15 +176,33 @@ def _find_and_open_usart_bitbox(serial_port: usart.SerialPort) -> devices.Device
     print("BitBox bootloader not available.")
     print("Trying to connect to BitBox firmware instead...")
 
-    class NoiseConfig(bitbox_api_protocol.BitBoxNoiseConfig):
+    class NoiseConfig(util.NoiseConfigUserCache):
+        """NoiseConfig extends NoiseConfigUserCache"""
+
+        def __init__(self) -> None:
+            super().__init__("shift/load_firmware")
+
         def show_pairing(self, code: str) -> bool:
-            print("(Pairing should be automatic) Pairing code:")
+            print("Please compare and confirm the pairing code on your BitBox02:")
             print(code)
             return True
 
+    class NoiseConfigNoCache(bitbox_api_protocol.BitBoxNoiseConfig):
+        """NoiseConfig extends BitBoxNoiseConfig"""
+
+        def show_pairing(self, code: str) -> bool:
+            print("Please compare and confirm the pairing code on your BitBox02:")
+            print(code)
+            return True
+
+    if use_cache:
+        config: bitbox_api_protocol.BitBoxNoiseConfig = NoiseConfig()
+    else:
+        config = NoiseConfigNoCache()
+
     try:
         transport = usart.U2FUsart(serial_port)
-        bitbox_attempt = BitBoxBase(transport, bootloader_device, noise_config=NoiseConfig())
+        bitbox_attempt = BitBoxBase(transport, bootloader_device, noise_config=config)
         print("Connected. Rebooting.")
         bitbox_attempt.reboot()
     except usart.U2FUsartTimeoutError:
@@ -190,6 +228,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Tool for flashing a new firmware on BitBox devices."
     )
+    parser.add_argument(
+        "--no-cache", action="store_true", help="Don't use cached or store noise keys"
+    )
     parser.add_argument("--debug", action="store_true", help="Flash a debug (unsigned) firmware.")
     parser.add_argument(
         "--usart",
@@ -205,11 +246,11 @@ def main() -> int:
 
     if args.usart is not None:
         serial_port = usart.SerialPort(args.usart)
-        bootloader_device = _find_and_open_usart_bitbox(serial_port)
+        bootloader_device = _find_and_open_usart_bitbox(serial_port, not args.no_cache)
         transport: TransportLayer = usart.U2FUsart(serial_port)
         bootloader = Bootloader(transport, bootloader_device)
     else:
-        bootloader_device, transport = _find_and_open_usb_bitbox02()
+        bootloader_device, transport = _find_and_open_usb_bitbox02(not args.no_cache)
     bootloader = Bootloader(transport, bootloader_device)
 
     with open(args.firmware[0], "rb") as file:

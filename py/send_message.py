@@ -693,7 +693,7 @@ class U2FApp:
         return 0
 
 
-def connect_to_usb_bitbox(debug: bool) -> int:
+def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
     """
     Connects and runs the main menu on a BitBox02 connected
     over USB.
@@ -720,7 +720,24 @@ def connect_to_usb_bitbox(debug: bool) -> int:
             return boot_app.run()
     else:
 
-        class NoiseConfig(bitbox_api_protocol.BitBoxNoiseConfig):
+        class NoiseConfig(util.NoiseConfigUserCache):
+            """NoiseConfig extends NoiseConfigUserCache"""
+
+            def __init__(self) -> None:
+                super().__init__("shift/send_message")
+
+            def show_pairing(self, code: str) -> bool:
+                print("Please compare and confirm the pairing code on your BitBox02:")
+                print(code)
+                return True
+
+            def attestation_check(self, result: bool) -> None:
+                if result:
+                    print("Device attestation PASSED")
+                else:
+                    print("Device attestation FAILED")
+
+        class NoiseConfigNoCache(bitbox_api_protocol.BitBoxNoiseConfig):
             """NoiseConfig extends BitBoxNoiseConfig"""
 
             def show_pairing(self, code: str) -> bool:
@@ -734,10 +751,15 @@ def connect_to_usb_bitbox(debug: bool) -> int:
                 else:
                     print("Device attestation FAILED")
 
+        if use_cache:
+            config: bitbox_api_protocol.BitBoxNoiseConfig = NoiseConfig()
+        else:
+            config = NoiseConfigNoCache()
+
         hid_device = hid.device()
         hid_device.open_path(bitbox["path"])
         bitbox_connection = bitbox02.BitBox02(
-            transport=u2fhid.U2FHid(hid_device), device_info=bitbox, noise_config=NoiseConfig()
+            transport=u2fhid.U2FHid(hid_device), device_info=bitbox, noise_config=config
         )
 
         if debug:
@@ -746,7 +768,7 @@ def connect_to_usb_bitbox(debug: bool) -> int:
         return SendMessage(bitbox_connection, debug).run()
 
 
-def connect_to_usart_bitboxbase(debug: bool, serial_port: usart.SerialPort) -> int:
+def connect_to_usart_bitboxbase(debug: bool, serial_port: usart.SerialPort, use_cache: bool) -> int:
     """
     Connects and runs the main menu over a BitBoxBase connected
     over UART.
@@ -754,8 +776,11 @@ def connect_to_usart_bitboxbase(debug: bool, serial_port: usart.SerialPort) -> i
     print("Trying to connect to BitBoxBase firmware...")
     bootloader_device: devices.DeviceInfo = get_bitboxbase_default_device(serial_port.port)
 
-    class NoiseConfig(bitbox_api_protocol.BitBoxNoiseConfig):
-        """NoiseConfig extend BitBoxNoiseConfig"""
+    class NoiseConfig(util.NoiseConfigUserCache):
+        """NoiseConfig extends NoiseConfigUserCache"""
+
+        def __init__(self) -> None:
+            super().__init__("shift/send_message")
 
         def show_pairing(self, code: str) -> bool:
             print("(Pairing should be automatic) Pairing code:")
@@ -768,9 +793,28 @@ def connect_to_usart_bitboxbase(debug: bool, serial_port: usart.SerialPort) -> i
             else:
                 print("Device attestation FAILED")
 
+    class NoiseConfigNoCache(bitbox_api_protocol.BitBoxNoiseConfig):
+        """NoiseConfig extends BitBoxNoiseConfig"""
+
+        def show_pairing(self, code: str) -> bool:
+            print("Please compare and confirm the pairing code on your BitBox02:")
+            print(code)
+            return True
+
+        def attestation_check(self, result: bool) -> None:
+            if result:
+                print("Device attestation PASSED")
+            else:
+                print("Device attestation FAILED")
+
+    if use_cache:
+        config: bitbox_api_protocol.BitBoxNoiseConfig = NoiseConfig()
+    else:
+        config = NoiseConfigNoCache()
+
     try:
         transport = usart.U2FUsart(serial_port)
-        base_dev = BitBoxBase(transport, bootloader_device, NoiseConfig())
+        base_dev = BitBoxBase(transport, bootloader_device, config)
         if debug:
             print("Device Info:")
             pprint.pprint(base_dev)
@@ -794,6 +838,9 @@ def main() -> int:
     parser.add_argument("--debug", action="store_true", help="Print messages sent and received")
     parser.add_argument("--u2f", action="store_true", help="Use u2f menu instead")
     parser.add_argument(
+        "--no-cache", action="store_true", help="Don't use cached or store noise keys"
+    )
+    parser.add_argument(
         "--usart", action="store", help="Use USART (BitBoxBase) on the specified serial port."
     )
     args = parser.parse_args()
@@ -815,9 +862,9 @@ def main() -> int:
 
     if args.usart is not None:
         with usart.SerialPort(args.usart) as serial_port:
-            return connect_to_usart_bitboxbase(args.debug, serial_port)
+            return connect_to_usart_bitboxbase(args.debug, serial_port, not args.no_cache)
     else:
-        return connect_to_usb_bitbox(args.debug)
+        return connect_to_usb_bitbox(args.debug, not args.no_cache)
 
     return 1
 

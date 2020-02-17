@@ -15,7 +15,6 @@
 
 from typing import Optional
 
-
 import serial
 
 from bitbox02 import communication

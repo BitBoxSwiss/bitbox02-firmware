@@ -108,7 +108,7 @@ static component_t* _confirm_transaction_create(
     ui_util_add_sub_component(confirm, icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel));
 
     bool longtouch = verify_total;
-    ui_util_add_sub_component(confirm, confirm_button_create(longtouch));
+    ui_util_add_sub_component(confirm, confirm_button_create(longtouch, ICON_BUTTON_NEXT));
 
     if (data->has_address) {
         char addr[128];

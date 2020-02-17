@@ -16,7 +16,6 @@
 #include "../event.h"
 #include "../event_handler.h"
 #include "confirm_gesture.h"
-#include "icon_button.h"
 
 static void _confirm(component_t* confirm_button)
 {
@@ -26,10 +25,10 @@ static void _confirm(component_t* confirm_button)
     emit_event(&event);
 }
 
-component_t* confirm_button_create(bool longtouch)
+component_t* confirm_button_create(bool longtouch, icon_button_type_t button_type)
 {
     if (longtouch) {
         return confirm_gesture_create(NULL);
     }
-    return icon_button_create(top_slider, ICON_BUTTON_CHECK, _confirm);
+    return icon_button_create(top_slider, button_type, _confirm);
 }

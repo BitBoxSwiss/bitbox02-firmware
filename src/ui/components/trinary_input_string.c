@@ -402,7 +402,7 @@ static component_t* _create(
     data->left_arrow_component = left_arrow_create(top_slider, component);
     ui_util_add_sub_component(component, data->left_arrow_component);
 
-    data->confirm_component = confirm_button_create(longtouch);
+    data->confirm_component = confirm_button_create(longtouch, ICON_BUTTON_CHECK);
     ui_util_add_sub_component(component, data->confirm_component);
 
     if (wordlist == NULL) {

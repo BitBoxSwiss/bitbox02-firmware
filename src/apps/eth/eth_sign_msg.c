@@ -52,9 +52,10 @@ app_eth_sign_error_t app_eth_sign_msg(
     }
     {
         confirm_params_t params = {
-            .title = "Your\naddress",
+            .title = "Sign message\nYour address",
             .body = address,
             .scrollable = true,
+            .accept_is_nextarrow = true,
         };
         if (!workflow_confirm(&params)) {
             return APP_ETH_SIGN_ERR_USER_ABORT;
@@ -81,15 +82,16 @@ app_eth_sign_error_t app_eth_sign_msg(
         .body = body,
         .scrollable = true,
         .shorten_body = true,
+        .longtouch = true,
     };
     if (all_ascii) {
         // If it is all ASCII, copy the bytes over and ensure there is a null terminator
         snprintf(body, sizeof(body), "%.*s", request->msg.size, request->msg.bytes);
-        params.title = "Sign\nETH Message";
+        params.title = "Sign message\nData";
     } else {
         // If it is binary, convert to hex
         util_uint8_to_hex(request->msg.bytes, request->msg.size, body);
-        params.title = "Sign\nETH Message (hex)";
+        params.title = "Sign message\nData (hex)";
         params.display_size = request->msg.size;
     }
 

@@ -148,11 +148,12 @@ app_eth_sign_error_t app_eth_verify_standard_transaction(const ETHSignRequest* r
         char hex[sizeof(request->data.bytes) * 2 + 1] = {0};
         util_uint8_to_hex(request->data.bytes, request->data.size, hex);
         confirm_params_t cparams = {
-            .title = "ETH TX data\n(hex)",
+            .title = "Transaction\ndata",
             .body = hex,
             .scrollable = true,
             .shorten_body = true,
             .display_size = request->data.size,
+            .accept_is_nextarrow = true,
         };
         if (!workflow_confirm(&cparams)) {
             return APP_ETH_SIGN_ERR_USER_ABORT;

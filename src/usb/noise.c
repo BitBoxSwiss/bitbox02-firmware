@@ -38,6 +38,7 @@ static bool _require_pairing_verification = false;
 
 #define OP_I_CAN_HAS_HANDSHAKE ((uint8_t)'h')
 #define OP_I_CAN_HAS_PAIRIN_VERIFICASHUN ((uint8_t)'v')
+#define OP_HER_COMEZ_TEH_HANDSHAEK ((uint8_t)'H')
 #define OP_NOISE_MSG ((uint8_t)'n')
 
 #define OP_STATUS_SUCCESS ((uint8_t)0);
@@ -125,11 +126,24 @@ static bool _setup_and_init_handshake(void)
     return true;
 }
 
+/**
+ * @param in_data[in] Handshake process request.
+ * @param in_len[in] Length of the data pointed to by in_data.
+ * @param out_data[out] Buffer to fill with the handshake response.
+ * @param out_len[out] Resulting length of out_data.
+ * @param max_out_len[in] Size of out_data.
+ */
 static bool _process_handshake(
-    const Packet* in_packet,
-    Packet* out_packet,
+    const uint8_t* in_data,
+    size_t in_len,
+    uint8_t* out_data,
+    size_t* out_len,
     const size_t max_out_len)
 {
+    if (!_handshake) {
+        /* Handshake has not been started yet. */
+        return false;
+    }
     NoiseBuffer noise_buffer;
     if (noise_handshakestate_get_action(_handshake) != NOISE_ACTION_READ_MESSAGE) {
         // assert - cannot happen
@@ -137,20 +151,19 @@ static bool _process_handshake(
     }
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-    uint8_t* in_data = (uint8_t*)in_packet->data_addr;
+    noise_buffer_set_input(noise_buffer, (uint8_t*)in_data, in_len);
 #pragma GCC diagnostic pop
-    noise_buffer_set_input(noise_buffer, in_data, in_packet->len);
     if (noise_handshakestate_read_message(_handshake, &noise_buffer, NULL) != NOISE_ERROR_NONE) {
         return false;
     }
     switch (noise_handshakestate_get_action(_handshake)) {
     case NOISE_ACTION_WRITE_MESSAGE: // after first read
-        noise_buffer_set_output(noise_buffer, out_packet->data_addr, max_out_len);
+        noise_buffer_set_output(noise_buffer, out_data, max_out_len);
         if (noise_handshakestate_write_message(_handshake, &noise_buffer, NULL) !=
             NOISE_ERROR_NONE) {
             return false;
         }
-        out_packet->len = noise_buffer.size;
+        *out_len = noise_buffer.size;
         return true;
     case NOISE_ACTION_SPLIT: { // after second read
         if (noise_handshakestate_split(_handshake, &_send_cipher, &_recv_cipher) !=
@@ -184,8 +197,8 @@ static bool _process_handshake(
         ui_screen_stack_pop_all();
 #endif
 
-        out_packet->len = 1;
-        out_packet->data_addr[0] = _require_pairing_verification;
+        *out_len = 1;
+        *out_data = _require_pairing_verification;
         return true;
     }
     default:
@@ -227,8 +240,10 @@ static bool _check_message_length(const Packet* in_packet)
     case OP_I_CAN_HAS_HANDSHAKE:
     case OP_I_CAN_HAS_PAIRIN_VERIFICASHUN:
         return in_packet->len == 1;
+    case OP_HER_COMEZ_TEH_HANDSHAEK:
+        return in_packet->len > 1;
     default:
-        return in_packet->len >= 1;
+        return in_packet->len > 0;
     }
 }
 
@@ -259,17 +274,33 @@ bool bb_noise_process_msg(
         return true;
     }
     // If the handshake has been started, process the handshake messages.
-    if (_handshake != NULL) {
+    if (cmd == OP_HER_COMEZ_TEH_HANDSHAEK) {
         // Expected to be called twice (two client handshake messages), after
         // which handshake is freed.
-        return _process_handshake(in_packet, out_packet, max_out_len);
+        size_t out_len;
+        bool handshake_success = _process_handshake(
+            in_packet->data_addr + 1,
+            in_packet->len - 1,
+            out_packet->data_addr + 1,
+            &out_len,
+            max_out_len - 1);
+        if (handshake_success) {
+            out_packet->data_addr[0] = OP_STATUS_SUCCESS;
+            out_packet->len = out_len + 1;
+        } else {
+            out_packet->data_addr[0] = OP_STATUS_FAILURE;
+            out_packet->len = 1;
+        }
+        return handshake_success;
     }
-    if (_recv_cipher == NULL) {
+
+    if (!_recv_cipher) {
         // Not paired yet, abort
         out_packet->len = 1;
         out_packet->data_addr[0] = OP_I_CAN_HAS_HANDSHAEK;
         return true;
     }
+
     { // After the handshake we can perform the out of band pairing verification, if required by the
       // device or requested by the host app.
         if (cmd == OP_I_CAN_HAS_PAIRIN_VERIFICASHUN) {

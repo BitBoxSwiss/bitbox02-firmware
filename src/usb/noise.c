@@ -215,6 +215,23 @@ void noise_rand_bytes(void* bytes, size_t size)
     random_32_bytes_mcu(bytes);
 }
 
+/**
+ * Checks that a packet's length is valid for the message type.
+ *
+ * @param[in] in_packet Packet to process.
+ * @return Whether the packet's length is valid.
+ */
+static bool _check_message_length(const Packet* in_packet)
+{
+    switch (in_packet->data_addr[0]) {
+    case OP_I_CAN_HAS_HANDSHAKE:
+    case OP_I_CAN_HAS_PAIRIN_VERIFICASHUN:
+        return in_packet->len == 1;
+    default:
+        return in_packet->len >= 1;
+    }
+}
+
 // processes client messages. The first two messages are handshake messages
 // (see XX in https://noiseprotocol.org/noise.html#interactive-handshake-patterns-fundamental).
 // After, all incoming messages are decrypted and outgoing messages encrypted.
@@ -226,8 +243,13 @@ bool bb_noise_process_msg(
     const size_t max_out_len,
     bb_noise_process_msg_callback process_msg)
 {
+    if (!_check_message_length(in_packet)) {
+        out_packet->len = 1;
+        out_packet->data_addr[0] = OP_STATUS_FAILURE;
+        return false;
+    }
     // If this is a handshake init message, start the handshake.
-    if (in_packet->len == 1 && in_packet->data_addr[0] == OP_I_CAN_HAS_HANDSHAKE) {
+    if (in_packet->data_addr[0] == OP_I_CAN_HAS_HANDSHAKE) {
         if (!_setup_and_init_handshake()) {
             return false;
         }
@@ -249,7 +271,7 @@ bool bb_noise_process_msg(
     }
     { // After the handshake we can perform the out of band pairing verification, if required by the
       // device or requested by the host app.
-        if (in_packet->len == 1 && in_packet->data_addr[0] == OP_I_CAN_HAS_PAIRIN_VERIFICASHUN) {
+        if (in_packet->data_addr[0] == OP_I_CAN_HAS_PAIRIN_VERIFICASHUN) {
 #if PLATFORM_BITBOX02 == 1
             bool result = workflow_pairing_create(_handshake_hash);
 #elif PLATFORM_BITBOXBASE == 1
@@ -283,7 +305,7 @@ bool bb_noise_process_msg(
             return true;
         }
     }
-    if (in_packet->len >= 1 && in_packet->data_addr[0] == OP_NOISE_MSG) {
+    if (in_packet->data_addr[0] == OP_NOISE_MSG) {
         // Otherwise decrypt, process, encrypt.
         NoiseBuffer noise_buffer;
 #pragma GCC diagnostic push

@@ -248,8 +248,9 @@ bool bb_noise_process_msg(
         out_packet->data_addr[0] = OP_STATUS_FAILURE;
         return false;
     }
+    const uint8_t cmd = in_packet->data_addr[0];
     // If this is a handshake init message, start the handshake.
-    if (in_packet->data_addr[0] == OP_I_CAN_HAS_HANDSHAKE) {
+    if (cmd == OP_I_CAN_HAS_HANDSHAKE) {
         if (!_setup_and_init_handshake()) {
             return false;
         }
@@ -271,7 +272,7 @@ bool bb_noise_process_msg(
     }
     { // After the handshake we can perform the out of band pairing verification, if required by the
       // device or requested by the host app.
-        if (in_packet->data_addr[0] == OP_I_CAN_HAS_PAIRIN_VERIFICASHUN) {
+        if (cmd == OP_I_CAN_HAS_PAIRIN_VERIFICASHUN) {
 #if PLATFORM_BITBOX02 == 1
             bool result = workflow_pairing_create(_handshake_hash);
 #elif PLATFORM_BITBOXBASE == 1
@@ -305,7 +306,7 @@ bool bb_noise_process_msg(
             return true;
         }
     }
-    if (in_packet->data_addr[0] == OP_NOISE_MSG) {
+    if (cmd == OP_NOISE_MSG) {
         // Otherwise decrypt, process, encrypt.
         NoiseBuffer noise_buffer;
 #pragma GCC diagnostic push

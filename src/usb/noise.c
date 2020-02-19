@@ -41,10 +41,10 @@ static bool _require_pairing_verification = false;
 #define OP_HER_COMEZ_TEH_HANDSHAEK ((uint8_t)'H')
 #define OP_NOISE_MSG ((uint8_t)'n')
 
-#define OP_STATUS_SUCCESS ((uint8_t)0);
-#define OP_STATUS_FAILURE ((uint8_t)1);
-#define OP_I_CAN_HAS_HANDSHAEK ((uint8_t)2);
-#define OP_STATUS_FAILURE_REQUIRE_PAIRING_VERIFICATION ((uint8_t)3);
+#define OP_STATUS_SUCCESS ((uint8_t)0)
+#define OP_STATUS_FAILURE ((uint8_t)1)
+#define OP_I_CAN_HAS_HANDSHAEK ((uint8_t)2)
+#define OP_STATUS_FAILURE_REQUIRE_PAIRING_VERIFICATION ((uint8_t)3)
 
 /**
  * pubkey_out must be NOISE_PUBKEY_SIZE bytes
@@ -266,12 +266,10 @@ bool bb_noise_process_msg(
     const uint8_t cmd = in_packet->data_addr[0];
     // If this is a handshake init message, start the handshake.
     if (cmd == OP_I_CAN_HAS_HANDSHAKE) {
-        if (!_setup_and_init_handshake()) {
-            return false;
-        }
+        bool init_handshake_result = _setup_and_init_handshake();
         out_packet->len = 1;
-        out_packet->data_addr[0] = OP_STATUS_SUCCESS;
-        return true;
+        out_packet->data_addr[0] = init_handshake_result ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
+        return init_handshake_result;
     }
     // If the handshake has been started, process the handshake messages.
     if (cmd == OP_HER_COMEZ_TEH_HANDSHAEK) {
@@ -351,14 +349,18 @@ bool bb_noise_process_msg(
         size_t len = process_msg(
             (const uint8_t*)noise_buffer.data,
             noise_buffer.size,
-            out_packet->data_addr,
-            max_out_len);
-        noise_buffer_set_inout(noise_buffer, out_packet->data_addr, len, max_out_len);
-        if (noise_cipherstate_encrypt(_send_cipher, &noise_buffer) != NOISE_ERROR_NONE) {
-            return false;
+            out_packet->data_addr + 1,
+            max_out_len - 1);
+        noise_buffer_set_inout(noise_buffer, out_packet->data_addr + 1, len, max_out_len - 1);
+        bool noise_status =
+            noise_cipherstate_encrypt(_send_cipher, &noise_buffer) == NOISE_ERROR_NONE;
+        if (!noise_status) {
+            out_packet->len = 1;
+        } else {
+            out_packet->len = noise_buffer.size + 1;
         }
-        out_packet->len = noise_buffer.size;
-        return true;
+        out_packet->data_addr[0] = noise_status ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
+        return noise_status;
     }
     // Unrecognized request, respond with error.
     out_packet->len = 1;

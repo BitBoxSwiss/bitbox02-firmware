@@ -235,6 +235,11 @@ class BitBoxProtocol(ABC):
         ...
 
     @abstractmethod
+    def _decode_noise_response(self, encrypted_msg: bytes) -> Tuple[bytes, bytes]:
+        """ De-encapsulate an OP_NOISE_MSG response. """
+        ...
+
+    @abstractmethod
     def _handshake_query(self, req: bytes) -> Tuple[bytes, bytes]:
         """
         Executes a OP_HER_COMEZ_TEH_HANDSHAEK query with the given
@@ -251,6 +256,10 @@ class BitBoxProtocol(ABC):
         encrypted_msg = self._encode_noise_request(encrypted_msg)
 
         response = self._raw_query(encrypted_msg)
+        response_status, response = self._decode_noise_response(response)
+        if response_status != RESPONSE_SUCCESS:
+            raise Exception("Noise communication failed.")
+
         result = self._noise.decrypt(response)
         assert isinstance(result, bytes)
         return result
@@ -337,6 +346,16 @@ class BitBoxProtocolV1(BitBoxProtocol):
     def _encode_noise_request(self, encrypted_msg: bytes) -> bytes:
         return encrypted_msg
 
+    def _decode_noise_response(self, encrypted_msg: bytes) -> Tuple[bytes, bytes]:
+        """
+        Until V7 of the protocol, we don't encapsulate OP_NOISE_MSG responses.
+        Let's assume that if a response is empty, that means it
+        contains an error.
+        """
+        if len(encrypted_msg) == 0:
+            return RESPONSE_FAILURE, b""
+        return RESPONSE_SUCCESS, encrypted_msg
+
     def _handshake_query(self, req: bytes) -> Tuple[bytes, bytes]:
         """
         V1-6 of the BB noise protocol doesn't encapsulate handshake requests, and don't
@@ -379,6 +398,9 @@ class BitBoxProtocolV7(BitBoxProtocolV4):
 
     def _handshake_query(self, req: bytes) -> Tuple[bytes, bytes]:
         return self.query(OP_HER_COMEZ_TEH_HANDSHAEK, req)
+
+    def _decode_noise_response(self, encrypted_msg: bytes) -> Tuple[bytes, bytes]:
+        return encrypted_msg[:1], encrypted_msg[1:]
 
 
 class BitBoxCommonAPI:

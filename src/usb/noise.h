@@ -26,7 +26,7 @@
 typedef void (*bb_noise_process_msg_callback)(const in_buffer_t* input, buffer_t* output);
 
 USE_RESULT bool bb_noise_process_msg(
-    const Packet* in_packet,
+    const in_buffer_t* in_buf,
     buffer_t* out_buf,
     bb_noise_process_msg_callback process_msg);
 

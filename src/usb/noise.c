@@ -221,21 +221,24 @@ void noise_rand_bytes(void* bytes, size_t size)
 }
 
 /**
- * Checks that a packet's length is valid for the message type.
+ * Checks that a request's length is valid for the message type.
  *
- * @param[in] in_packet Packet to process.
- * @return Whether the packet's length is valid.
+ * @param[in] in_req Request to process.
+ * @return Whether the request's length is valid.
  */
-static bool _check_message_length(const Packet* in_packet)
+static bool _check_message_length(const in_buffer_t* in_req)
 {
-    switch (in_packet->data_addr[0]) {
+    if (in_req->len == 0) {
+        return false;
+    }
+    switch (in_req->data[0]) {
     case OP_I_CAN_HAS_HANDSHAKE:
     case OP_I_CAN_HAS_PAIRIN_VERIFICASHUN:
-        return in_packet->len == 1;
+        return in_req->len == 1;
     case OP_HER_COMEZ_TEH_HANDSHAEK:
-        return in_packet->len > 1;
+        return in_req->len > 1;
     default:
-        return in_packet->len > 0;
+        return in_req->len > 0;
     }
 }
 
@@ -243,18 +246,18 @@ static bool _check_message_length(const Packet* in_packet)
 // (see XX in https://noiseprotocol.org/noise.html#interactive-handshake-patterns-fundamental).
 // After, all incoming messages are decrypted and outgoing messages encrypted.
 bool bb_noise_process_msg(
-    const Packet* in_packet,
+    const in_buffer_t* in_buf,
     // TODO: max_len must be 0xFFFF=65535, max noise packet size, but currently is
     // USB_DATA_MAX_LEN
     buffer_t* out_buf,
     bb_noise_process_msg_callback process_msg)
 {
-    if (!_check_message_length(in_packet)) {
+    if (!_check_message_length(in_buf)) {
         out_buf->len = 1;
         out_buf->data[0] = OP_STATUS_FAILURE;
         return false;
     }
-    const uint8_t cmd = in_packet->data_addr[0];
+    const uint8_t cmd = in_buf->data[0];
     // If this is a handshake init message, start the handshake.
     if (cmd == OP_I_CAN_HAS_HANDSHAKE) {
         bool init_handshake_result = _setup_and_init_handshake();
@@ -266,7 +269,7 @@ bool bb_noise_process_msg(
     if (cmd == OP_HER_COMEZ_TEH_HANDSHAEK) {
         // Expected to be called twice (two client handshake messages), after
         // which handshake is freed.
-        in_buffer_t handshake_in = {.data = in_packet->data_addr + 1, .len = in_packet->len - 1};
+        in_buffer_t handshake_in = {.data = in_buf->data + 1, .len = in_buf->len - 1};
         buffer_t handshake_out = {
             .data = out_buf->data + 1, .len = 0, .max_len = out_buf->max_len - 1};
         bool handshake_success = _process_handshake(&handshake_in, &handshake_out);
@@ -328,9 +331,9 @@ bool bb_noise_process_msg(
         NoiseBuffer noise_buffer;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-        uint8_t* in_data = (uint8_t*)in_packet->data_addr;
+        uint8_t* in_data = (uint8_t*)in_buf->data;
 #pragma GCC diagnostic pop
-        noise_buffer_set_inout(noise_buffer, in_data + 1, in_packet->len - 1, out_buf->max_len);
+        noise_buffer_set_inout(noise_buffer, in_data + 1, in_buf->len - 1, out_buf->max_len);
         if (noise_cipherstate_decrypt(_recv_cipher, &noise_buffer) != NOISE_ERROR_NONE) {
             return false;
         }

@@ -36,27 +36,54 @@
 #define OP_STATUS_FAILURE ((uint8_t)1)
 #define OP_STATUS_FAILURE_UNINITIALIZED ((uint8_t)2)
 
+/** Request command for HWW packets. */
+typedef enum { HWW_REQ_NEW = 0, HWW_REQ_RETRY = 1, HWW_REQ_CANCEL = 2 } hww_req_t;
+
+/** Response status code for HWW packets. */
+typedef enum {
+    HWW_RSP_ACK = 0,
+    HWW_RSP_NOT_READY = 1,
+    HWW_RSP_BUSY = 2,
+    HWW_RSP_NACK = 3,
+} hww_rsp_t;
+
+/** A HWW Packet is composed of a HWW command and a payload. */
+typedef struct {
+    /** Command byte. */
+    hww_req_t cmd;
+    /** Payload of the message. */
+    in_buffer_t buffer;
+} hww_packet_req_t;
+
+/** A HWW response is composed of a status code and a payload. */
+typedef struct {
+    /** Status byte. */
+    hww_rsp_t status;
+    /** Payload of the message. */
+    buffer_t buffer;
+} hww_packet_rsp_t;
+
 // in: 'a' + 32 bytes host challenge
 // out: bootloader_hash 32 | device_pubkey 64 | certificate 64 | root_pubkey_identifier 32 |
 // challenge_signature 64
-static void _api_attestation(const Packet* in_packet, Packet* out_packet)
+static void _api_attestation(const in_buffer_t* in_packet, buffer_t* out_packet)
 {
     if (in_packet->len != 33) {
         out_packet->len = 1;
-        out_packet->data_addr[0] = OP_STATUS_FAILURE;
+        out_packet->data[0] = OP_STATUS_FAILURE;
         return;
     }
     PerformAttestationResponse result;
-    if (!attestation_perform(in_packet->data_addr + 1, &result)) {
+    if (!attestation_perform(in_packet->data + 1, &result)) {
         out_packet->len = 1;
-        out_packet->data_addr[0] = OP_STATUS_FAILURE;
+        out_packet->data[0] = OP_STATUS_FAILURE;
         return;
     }
     out_packet->len = 1 + sizeof(result.bootloader_hash) + sizeof(result.device_pubkey) +
                       sizeof(result.certificate) + sizeof(result.root_pubkey_identifier) +
                       sizeof(result.challenge_signature);
 
-    uint8_t* data = out_packet->data_addr;
+    uint8_t* data = out_packet->data;
 
     data[0] = OP_STATUS_SUCCESS;
     data += 1;
@@ -132,24 +159,23 @@ static size_t _api_info(uint8_t* buf)
  * @param[in] out_packet The outgoing HWW packet.
  * @param[in] max_out_len The maximum number of bytes that the outgoing HWW packet can hold.
  */
-static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_out_len)
+static void _process_packet(const in_buffer_t* in_req, buffer_t* out_rsp)
 {
-    if (in_packet->len >= 1) {
-        switch (in_packet->data_addr[0]) {
+    if (in_req->len >= 1) {
+        switch (in_req->data[0]) {
         case OP_ATTESTATION:
-            _api_attestation(in_packet, out_packet);
+            _api_attestation(in_req, out_rsp);
             return;
         case OP_UNLOCK:
             if (!memory_is_initialized()) {
-                out_packet->data_addr[0] = OP_STATUS_FAILURE_UNINITIALIZED;
+                out_rsp->data[0] = OP_STATUS_FAILURE_UNINITIALIZED;
             } else {
-                out_packet->data_addr[0] =
-                    workflow_unlock() ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
+                out_rsp->data[0] = workflow_unlock() ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
             }
-            out_packet->len = 1;
+            out_rsp->len = 1;
             return;
         case OP_INFO:
-            out_packet->len = _api_info(out_packet->data_addr);
+            out_rsp->len = _api_info(out_rsp->data);
             return;
         default:
             break;
@@ -163,11 +189,48 @@ static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_o
     }
 
     // Process protofbuf/noise api calls.
-    buffer_t out_buf = {.data = out_packet->data_addr, .len = 0, .max_len = max_out_len};
-    if (!bb_noise_process_msg(in_packet, &out_buf, commander)) {
+    if (!bb_noise_process_msg(in_req, out_rsp, commander)) {
         workflow_status_create("Could not\npair with app", false);
     }
-    out_packet->len = out_buf.len;
+}
+
+static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_out_len)
+{
+    if (in_packet->len == 0) {
+        out_packet->data_addr[0] = HWW_RSP_NACK;
+        out_packet->len = 1;
+        return;
+    }
+    hww_packet_req_t decoded = {.cmd = in_packet->data_addr[0],
+                                .buffer = {
+                                    .data = in_packet->data_addr + 1,
+                                    .len = in_packet->len - 1,
+                                }};
+    hww_packet_rsp_t response = {
+        .status = HWW_RSP_NACK,
+        .buffer = {.data = out_packet->data_addr + 1, .len = 0, .max_len = max_out_len - 1}};
+    switch (decoded.cmd) {
+    case HWW_REQ_NEW:
+        _process_packet(&decoded.buffer, &response.buffer);
+        response.status = HWW_RSP_ACK;
+        break;
+    case HWW_REQ_CANCEL:
+        /* We don't have anything to cancel yet. */
+        response.status = HWW_RSP_NACK;
+        break;
+    case HWW_REQ_RETRY:
+        /* We don't support async retries yet. */
+        response.status = HWW_RSP_NACK;
+        break;
+    default:
+        break;
+    }
+    out_packet->data_addr[0] = response.status;
+    if (response.status == HWW_RSP_ACK) {
+        out_packet->len = response.buffer.len + 1;
+    } else {
+        out_packet->len = 1;
+    }
 }
 
 void hww_setup(void)

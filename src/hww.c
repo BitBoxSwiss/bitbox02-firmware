@@ -163,9 +163,11 @@ static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_o
     }
 
     // Process protofbuf/noise api calls.
-    if (!bb_noise_process_msg(in_packet, out_packet, max_out_len, commander)) {
+    buffer_t out_buf = {.data = out_packet->data_addr, .len = 0, .max_len = max_out_len};
+    if (!bb_noise_process_msg(in_packet, &out_buf, commander)) {
         workflow_status_create("Could not\npair with app", false);
     }
+    out_packet->len = out_buf.len;
 }
 
 void hww_setup(void)

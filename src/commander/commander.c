@@ -366,15 +366,11 @@ static commander_error_t _api_process(const Request* request, Response* response
 /**
  * Receives and processes a command.
  */
-size_t commander(
-    const uint8_t* input,
-    const size_t in_len,
-    uint8_t* output,
-    const size_t max_out_len)
+void commander(const in_buffer_t* in_buf, buffer_t* out_buf)
 {
     Response response = Response_init_zero;
 
-    pb_istream_t in_stream = pb_istream_from_buffer(input, in_len);
+    pb_istream_t in_stream = pb_istream_from_buffer(in_buf->data, in_buf->len);
     Request request;
     commander_error_t err = _parse(&in_stream, &request);
     if (err == COMMANDER_OK) {
@@ -394,11 +390,11 @@ size_t commander(
         _report_error(&response, err);
     }
 
-    pb_ostream_t out_stream = pb_ostream_from_buffer(output, max_out_len);
+    pb_ostream_t out_stream = pb_ostream_from_buffer(out_buf->data, out_buf->max_len);
     if (!pb_encode(&out_stream, Response_fields, &response)) {
         Abort("Abort: pb_encode");
     }
-    return out_stream.bytes_written;
+    out_buf->len = out_stream.bytes_written;
 }
 
 #ifdef TESTING

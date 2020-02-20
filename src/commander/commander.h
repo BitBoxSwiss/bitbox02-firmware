@@ -19,6 +19,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <util.h>
+
 #include "hww.pb.h"
 
 // error flags. From this, commander_error_t and the static
@@ -39,7 +41,10 @@ typedef enum { COMMANDER_ERROR_TABLE } commander_error_t;
 
 /**
  * Receives and processes a command.
+ *
+ * @param[in] in_buf Buffer containing the commander request.
+ * @param[out] out_buf Buffer to fill with the response.
  */
-size_t commander(const uint8_t* input, size_t in_len, uint8_t* output, size_t max_out_len);
+void commander(const in_buffer_t* in_buf, buffer_t* out_buf);
 
 #endif

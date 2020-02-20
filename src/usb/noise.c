@@ -128,16 +128,9 @@ static bool _setup_and_init_handshake(void)
 /**
  * @param in_data[in] Handshake process request.
  * @param in_len[in] Length of the data pointed to by in_data.
- * @param out_data[out] Buffer to fill with the handshake response.
- * @param out_len[out] Resulting length of out_data.
- * @param max_out_len[in] Size of out_data.
+ * @param out_buf[out] Buffer to fill with the handshake response.
  */
-static bool _process_handshake(
-    const uint8_t* in_data,
-    size_t in_len,
-    uint8_t* out_data,
-    size_t* out_len,
-    const size_t max_out_len)
+static bool _process_handshake(const in_buffer_t* in_buf, buffer_t* out_buf)
 {
     if (!_handshake) {
         /* Handshake has not been started yet. */
@@ -150,19 +143,19 @@ static bool _process_handshake(
     }
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-    noise_buffer_set_input(noise_buffer, (uint8_t*)in_data, in_len);
+    noise_buffer_set_input(noise_buffer, (uint8_t*)in_buf->data, in_buf->len);
 #pragma GCC diagnostic pop
     if (noise_handshakestate_read_message(_handshake, &noise_buffer, NULL) != NOISE_ERROR_NONE) {
         return false;
     }
     switch (noise_handshakestate_get_action(_handshake)) {
     case NOISE_ACTION_WRITE_MESSAGE: // after first read
-        noise_buffer_set_output(noise_buffer, out_data, max_out_len);
+        noise_buffer_set_output(noise_buffer, out_buf->data, out_buf->max_len);
         if (noise_handshakestate_write_message(_handshake, &noise_buffer, NULL) !=
             NOISE_ERROR_NONE) {
             return false;
         }
-        *out_len = noise_buffer.size;
+        out_buf->len = noise_buffer.size;
         return true;
     case NOISE_ACTION_SPLIT: { // after second read
         if (noise_handshakestate_split(_handshake, &_send_cipher, &_recv_cipher) !=
@@ -196,8 +189,8 @@ static bool _process_handshake(
         ui_screen_stack_pop_all();
 #endif
 
-        *out_len = 1;
-        *out_data = _require_pairing_verification;
+        out_buf->len = 1;
+        *out_buf->data = _require_pairing_verification;
         return true;
     }
     default:
@@ -251,50 +244,46 @@ static bool _check_message_length(const Packet* in_packet)
 // After, all incoming messages are decrypted and outgoing messages encrypted.
 bool bb_noise_process_msg(
     const Packet* in_packet,
-    Packet* out_packet,
-    // TODO: max_out_len must be 0xFFFF=65535, max noise packet size, but currently is
+    // TODO: max_len must be 0xFFFF=65535, max noise packet size, but currently is
     // USB_DATA_MAX_LEN
-    const size_t max_out_len,
+    buffer_t* out_buf,
     bb_noise_process_msg_callback process_msg)
 {
     if (!_check_message_length(in_packet)) {
-        out_packet->len = 1;
-        out_packet->data_addr[0] = OP_STATUS_FAILURE;
+        out_buf->len = 1;
+        out_buf->data[0] = OP_STATUS_FAILURE;
         return false;
     }
     const uint8_t cmd = in_packet->data_addr[0];
     // If this is a handshake init message, start the handshake.
     if (cmd == OP_I_CAN_HAS_HANDSHAKE) {
         bool init_handshake_result = _setup_and_init_handshake();
-        out_packet->len = 1;
-        out_packet->data_addr[0] = init_handshake_result ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
+        out_buf->len = 1;
+        out_buf->data[0] = init_handshake_result ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
         return init_handshake_result;
     }
     // If the handshake has been started, process the handshake messages.
     if (cmd == OP_HER_COMEZ_TEH_HANDSHAEK) {
         // Expected to be called twice (two client handshake messages), after
         // which handshake is freed.
-        size_t out_len;
-        bool handshake_success = _process_handshake(
-            in_packet->data_addr + 1,
-            in_packet->len - 1,
-            out_packet->data_addr + 1,
-            &out_len,
-            max_out_len - 1);
+        in_buffer_t handshake_in = {.data = in_packet->data_addr + 1, .len = in_packet->len - 1};
+        buffer_t handshake_out = {
+            .data = out_buf->data + 1, .len = 0, .max_len = out_buf->max_len - 1};
+        bool handshake_success = _process_handshake(&handshake_in, &handshake_out);
         if (handshake_success) {
-            out_packet->data_addr[0] = OP_STATUS_SUCCESS;
-            out_packet->len = out_len + 1;
+            out_buf->data[0] = OP_STATUS_SUCCESS;
+            out_buf->len = handshake_out.len + 1;
         } else {
-            out_packet->data_addr[0] = OP_STATUS_FAILURE;
-            out_packet->len = 1;
+            out_buf->data[0] = OP_STATUS_FAILURE;
+            out_buf->len = 1;
         }
         return handshake_success;
     }
 
     if (!_recv_cipher) {
         // Not paired yet, abort
-        out_packet->len = 1;
-        out_packet->data_addr[0] = OP_STATUS_FAILURE;
+        out_buf->len = 1;
+        out_buf->data[0] = OP_STATUS_FAILURE;
         return true;
     }
 
@@ -307,8 +296,8 @@ bool bb_noise_process_msg(
             bool result = true;
 #endif
             if (result) {
-                out_packet->len = 1;
-                out_packet->data_addr[0] = OP_STATUS_SUCCESS;
+                out_buf->len = 1;
+                out_buf->data[0] = OP_STATUS_SUCCESS;
                 _require_pairing_verification = false;
 
                 if (!memory_add_noise_remote_static_pubkey(_remote_static_pubkey)) {
@@ -323,14 +312,14 @@ bool bb_noise_process_msg(
             _recv_cipher = NULL;
             noise_cipherstate_free(_send_cipher);
             _send_cipher = NULL;
-            out_packet->len = 1;
-            out_packet->data_addr[0] = OP_STATUS_FAILURE;
+            out_buf->len = 1;
+            out_buf->data[0] = OP_STATUS_FAILURE;
             return true;
         }
         if (_require_pairing_verification) {
             // Device requires pairing verification, abort.
-            out_packet->len = 1;
-            out_packet->data_addr[0] = OP_STATUS_FAILURE_REQUIRE_PAIRING_VERIFICATION;
+            out_buf->len = 1;
+            out_buf->data[0] = OP_STATUS_FAILURE_REQUIRE_PAIRING_VERIFICATION;
             return true;
         }
     }
@@ -341,29 +330,27 @@ bool bb_noise_process_msg(
 #pragma GCC diagnostic ignored "-Wcast-qual"
         uint8_t* in_data = (uint8_t*)in_packet->data_addr;
 #pragma GCC diagnostic pop
-        noise_buffer_set_inout(noise_buffer, in_data + 1, in_packet->len - 1, max_out_len);
+        noise_buffer_set_inout(noise_buffer, in_data + 1, in_packet->len - 1, out_buf->max_len);
         if (noise_cipherstate_decrypt(_recv_cipher, &noise_buffer) != NOISE_ERROR_NONE) {
             return false;
         }
-        size_t len = process_msg(
-            (const uint8_t*)noise_buffer.data,
-            noise_buffer.size,
-            out_packet->data_addr + 1,
-            max_out_len - 1);
-        noise_buffer_set_inout(noise_buffer, out_packet->data_addr + 1, len, max_out_len - 1);
+        in_buffer_t noise_in = {.data = noise_buffer.data, .len = noise_buffer.size};
+        buffer_t noise_out = {.data = out_buf->data + 1, .len = 0, .max_len = out_buf->max_len - 1};
+        process_msg(&noise_in, &noise_out);
+        noise_buffer_set_inout(noise_buffer, noise_out.data, noise_out.len, noise_out.max_len);
         bool noise_status =
             noise_cipherstate_encrypt(_send_cipher, &noise_buffer) == NOISE_ERROR_NONE;
         if (!noise_status) {
-            out_packet->len = 1;
+            out_buf->len = 1;
         } else {
-            out_packet->len = noise_buffer.size + 1;
+            out_buf->len = noise_buffer.size + 1;
         }
-        out_packet->data_addr[0] = noise_status ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
+        out_buf->data[0] = noise_status ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
         return noise_status;
     }
     // Unrecognized request, respond with error.
-    out_packet->len = 1;
-    out_packet->data_addr[0] = OP_STATUS_FAILURE;
+    out_buf->len = 1;
+    out_buf->data[0] = OP_STATUS_FAILURE;
     return true;
 }
 

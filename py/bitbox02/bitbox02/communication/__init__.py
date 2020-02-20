@@ -21,6 +21,7 @@ from .bitbox_api_protocol import (
     Bitbox02Exception,
     UserAbortException,
     AttestationException,
+    ERR_DUPLICATE_ENTRY,
     ERR_GENERIC,
     ERR_USER_ABORT,
     HARDENED,

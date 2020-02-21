@@ -21,6 +21,8 @@ from .bitbox_api_protocol import (
     Bitbox02Exception,
     UserAbortException,
     AttestationException,
+    FirmwareVersionOutdatedException,
+    LibraryVersionOutdatedException,
     ERR_DUPLICATE_ENTRY,
     ERR_GENERIC,
     ERR_USER_ABORT,

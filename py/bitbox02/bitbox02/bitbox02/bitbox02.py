@@ -328,8 +328,6 @@ class BitBox02(BitBoxCommonAPI):
                 )
             raise
 
-        self._btc_msg_query(request, expected_response="success")
-
     # pylint: disable=too-many-arguments
     def btc_sign(
         self,

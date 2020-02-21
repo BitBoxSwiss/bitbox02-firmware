@@ -30,6 +30,7 @@ import semver
 from .devices import parse_device_version, DeviceInfo
 
 from .communication import TransportLayer
+from .devices import BITBOX02MULTI, BITBOX02BTC
 
 try:
     from .generated import hww_pb2 as hww
@@ -118,6 +119,9 @@ OP_NOISE_MSG = b"n"
 RESPONSE_SUCCESS = b"\x00"
 RESPONSE_FAILURE = b"\x01"
 
+MIN_BITBOX02_MULTI_FIRMWARE_VERSION = semver.VersionInfo(6, 0, 0)
+MIN_BITBOX02_BTCONLY_FIRMWARE_VERSION = semver.VersionInfo(6, 0, 0)
+
 
 class Platform(enum.Enum):
     """ Available hardware platforms """
@@ -157,6 +161,24 @@ class AttestationException(Exception):
     pass
 
 
+class FirmwareVersionOutdatedException(Exception):
+    def __init__(self, version: semver.VersionInfo, required_version: semver.VersionInfo):
+        super().__init__(
+            "The BitBox02's firmware is not up to date. Device: {}, Required: {}".format(
+                version, required_version
+            )
+        )
+
+
+class LibraryVersionOutdatedException(Exception):
+    def __init__(self, version: semver.VersionInfo):
+        super().__init__(
+            "The BitBox02's firmware version {} is too new for this app. Update the app".format(
+                version
+            )
+        )
+
+
 class BitBoxNoiseConfig:
     """ Stores Functions required setup a noise connection """
 
@@ -187,14 +209,27 @@ class BitBoxCommonAPI:
     def __init__(
         self, transport: TransportLayer, device_info: DeviceInfo, noise_config: BitBoxNoiseConfig
     ):
+        """
+        Can raise LibraryVersionOutdatedException. check_min_version() should be called following
+        the instantiation.
+        """
         self.debug = False
         serial_number = device_info["serial_number"]
         self._transport = transport
+
+        if device_info["product_string"] == BITBOX02MULTI:
+            self.edition = BitBox02Edition.MULTI
+        elif device_info["product_string"] == BITBOX02BTC:
+            self.edition = BitBox02Edition.BTCONLY
 
         self.version = parse_device_version(serial_number)
         if self.version is None:
             self.close()
             raise ValueError(f"Could not parse version from {serial_number}")
+
+        # raises exceptions if the library is out of date, does not check BitBoxBase
+        self._check_max_version()
+
         # Delete the prelease part, as it messes with the comparison (e.g. 3.0.0-pre < 3.0.0 is
         # True, but the 3.0.0-pre has already the same API breaking changes like 3.0.0...).
         self.version = semver.VersionInfo(
@@ -408,3 +443,44 @@ class BitBoxCommonAPI:
         unlocked_byte = response[0]
         unlocked = {0x00: False, 0x01: True}[unlocked_byte]
         return (version_str, platform, edition, unlocked)
+
+    def check_min_version(self) -> None:
+        """
+        Raises FirmwareVersionOutdatedException if the device has an older firmware version than
+        required and the minimum required version. A check for the BitBoxBase is not implemented.
+        """
+        if self.edition == BitBox02Edition.MULTI:
+            if self.version < MIN_BITBOX02_MULTI_FIRMWARE_VERSION:
+                raise FirmwareVersionOutdatedException(
+                    self.version, MIN_BITBOX02_MULTI_FIRMWARE_VERSION
+                )
+            if self.version >= semver.VersionInfo(
+                MIN_BITBOX02_MULTI_FIRMWARE_VERSION.major + 1, 0, 0
+            ):
+                raise LibraryVersionOutdatedException(self.version)
+        elif self.edition == BitBox02Edition.BTCONLY:
+            if self.version < MIN_BITBOX02_BTCONLY_FIRMWARE_VERSION:
+                raise FirmwareVersionOutdatedException(
+                    self.version, MIN_BITBOX02_BTCONLY_FIRMWARE_VERSION
+                )
+            if self.version >= semver.VersionInfo(
+                MIN_BITBOX02_BTCONLY_FIRMWARE_VERSION.major + 1, 0, 0
+            ):
+                raise LibraryVersionOutdatedException(self.version)
+
+    def _check_max_version(self) -> None:
+        """
+        Raises LibraryVersionOutdatedException if the device has an firmware which is too new
+        (major version increased).
+        A check for the BitBoxBase is not implemented.
+        """
+        if self.edition == BitBox02Edition.MULTI:
+            if self.version >= semver.VersionInfo(
+                MIN_BITBOX02_MULTI_FIRMWARE_VERSION.major + 1, 0, 0
+            ):
+                raise LibraryVersionOutdatedException(self.version)
+        elif self.edition == BitBox02Edition.BTCONLY:
+            if self.version >= semver.VersionInfo(
+                MIN_BITBOX02_BTCONLY_FIRMWARE_VERSION.major + 1, 0, 0
+            ):
+                raise LibraryVersionOutdatedException(self.version)

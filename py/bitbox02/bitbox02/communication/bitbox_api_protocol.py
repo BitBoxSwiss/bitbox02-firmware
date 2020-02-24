@@ -427,14 +427,15 @@ class BitBoxCommonAPI:
             transport.close()
             raise ValueError(f"Could not parse version from {serial_number}")
 
-        # raises exceptions if the library is out of date, does not check BitBoxBase
-        self._check_max_version()
-
         # Delete the prelease part, as it messes with the comparison (e.g. 3.0.0-pre < 3.0.0 is
         # True, but the 3.0.0-pre has already the same API breaking changes like 3.0.0...).
         self.version = semver.VersionInfo(
             self.version.major, self.version.minor, self.version.patch, build=self.version.build
         )
+
+        # raises exceptions if the library is out of date, does not check BitBoxBase
+        self._check_max_version()
+
         self._bitbox_protocol: BitBoxProtocol
         if self.version >= semver.VersionInfo(7, 0, 0):
             self._bitbox_protocol = BitBoxProtocolV7(transport)

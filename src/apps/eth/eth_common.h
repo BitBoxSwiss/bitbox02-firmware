@@ -40,7 +40,7 @@ USE_RESULT bool eth_common_is_valid_keypath_address(
 
 /**
  * Does limit checks the keypath, whitelisting bip44 purpose, account and change.
- * Only allows the well-known xpub of m'/44'/60'/0'/0 for now.
+ * Allow m'/44'/60'/0'/0 for mainnet and  m'/44'/1'/0'/0 for testnet (Ropsten + Rinkeby)
  * Since ethereum doesn't use the "change" path part it is always 0 and have become part of the
  * xpub keypath.
  * @return true if the keypath is valid, false if it is invalid.

@@ -120,8 +120,10 @@ OP_NOISE_MSG = b"n"
 RESPONSE_SUCCESS = b"\x00"
 RESPONSE_FAILURE = b"\x01"
 
-MIN_BITBOX02_MULTI_FIRMWARE_VERSION = semver.VersionInfo(6, 0, 0)
-MIN_BITBOX02_BTCONLY_FIRMWARE_VERSION = semver.VersionInfo(6, 0, 0)
+MIN_SUPPORTED_BITBOX02_MULTI_FIRMWARE_VERSION = semver.VersionInfo(6, 0, 0)
+MIN_SUPPORTED_BITBOX02_BTCONLY_FIRMWARE_VERSION = semver.VersionInfo(6, 0, 0)
+MIN_UNSUPPORTED_BITBOX02_MULTI_FIRMWARE_VERSION = semver.VersionInfo(8, 0, 0)
+MIN_UNSUPPORTED_BITBOX02_BTCONLY_FIRMWARE_VERSION = semver.VersionInfo(8, 0, 0)
 
 
 class Platform(enum.Enum):
@@ -575,23 +577,15 @@ class BitBoxCommonAPI:
         required and the minimum required version. A check for the BitBoxBase is not implemented.
         """
         if self.edition == BitBox02Edition.MULTI:
-            if self.version < MIN_BITBOX02_MULTI_FIRMWARE_VERSION:
+            if self.version < MIN_SUPPORTED_BITBOX02_MULTI_FIRMWARE_VERSION:
                 raise FirmwareVersionOutdatedException(
-                    self.version, MIN_BITBOX02_MULTI_FIRMWARE_VERSION
+                    self.version, MIN_SUPPORTED_BITBOX02_MULTI_FIRMWARE_VERSION
                 )
-            if self.version >= semver.VersionInfo(
-                MIN_BITBOX02_MULTI_FIRMWARE_VERSION.major + 1, 0, 0
-            ):
-                raise LibraryVersionOutdatedException(self.version)
         elif self.edition == BitBox02Edition.BTCONLY:
-            if self.version < MIN_BITBOX02_BTCONLY_FIRMWARE_VERSION:
+            if self.version < MIN_SUPPORTED_BITBOX02_BTCONLY_FIRMWARE_VERSION:
                 raise FirmwareVersionOutdatedException(
-                    self.version, MIN_BITBOX02_BTCONLY_FIRMWARE_VERSION
+                    self.version, MIN_SUPPORTED_BITBOX02_BTCONLY_FIRMWARE_VERSION
                 )
-            if self.version >= semver.VersionInfo(
-                MIN_BITBOX02_BTCONLY_FIRMWARE_VERSION.major + 1, 0, 0
-            ):
-                raise LibraryVersionOutdatedException(self.version)
 
     def _check_max_version(self) -> None:
         """
@@ -600,14 +594,10 @@ class BitBoxCommonAPI:
         A check for the BitBoxBase is not implemented.
         """
         if self.edition == BitBox02Edition.MULTI:
-            if self.version >= semver.VersionInfo(
-                MIN_BITBOX02_MULTI_FIRMWARE_VERSION.major + 1, 0, 0
-            ):
+            if self.version >= MIN_UNSUPPORTED_BITBOX02_MULTI_FIRMWARE_VERSION:
                 raise LibraryVersionOutdatedException(self.version)
         elif self.edition == BitBox02Edition.BTCONLY:
-            if self.version >= semver.VersionInfo(
-                MIN_BITBOX02_BTCONLY_FIRMWARE_VERSION.major + 1, 0, 0
-            ):
+            if self.version >= MIN_UNSUPPORTED_BITBOX02_BTCONLY_FIRMWARE_VERSION:
                 raise LibraryVersionOutdatedException(self.version)
 
     def close(self) -> None:

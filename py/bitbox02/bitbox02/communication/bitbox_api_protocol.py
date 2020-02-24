@@ -13,7 +13,7 @@
 # limitations under the License.
 """BitBox02"""
 
-
+from abc import ABC, abstractmethod
 import os
 import enum
 import sys
@@ -30,6 +30,7 @@ import semver
 from .devices import parse_device_version, DeviceInfo
 
 from .communication import TransportLayer
+from .devices import BITBOX02MULTI, BITBOX02BTC
 
 try:
     from .generated import hww_pb2 as hww
@@ -42,6 +43,7 @@ except ModuleNotFoundError:
 HWW_CMD = 0x80 + 0x40 + 0x01
 
 ERR_GENERIC = 103
+ERR_DUPLICATE_ENTRY = 107
 ERR_USER_ABORT = 104
 
 HARDENED = 0x80000000
@@ -117,6 +119,9 @@ OP_NOISE_MSG = b"n"
 RESPONSE_SUCCESS = b"\x00"
 RESPONSE_FAILURE = b"\x01"
 
+MIN_BITBOX02_MULTI_FIRMWARE_VERSION = semver.VersionInfo(6, 0, 0)
+MIN_BITBOX02_BTCONLY_FIRMWARE_VERSION = semver.VersionInfo(6, 0, 0)
+
 
 class Platform(enum.Enum):
     """ Available hardware platforms """
@@ -156,6 +161,24 @@ class AttestationException(Exception):
     pass
 
 
+class FirmwareVersionOutdatedException(Exception):
+    def __init__(self, version: semver.VersionInfo, required_version: semver.VersionInfo):
+        super().__init__(
+            "The BitBox02's firmware is not up to date. Device: {}, Required: {}".format(
+                version, required_version
+            )
+        )
+
+
+class LibraryVersionOutdatedException(Exception):
+    def __init__(self, version: semver.VersionInfo):
+        super().__init__(
+            "The BitBox02's firmware version {} is too new for this app. Update the app".format(
+                version
+            )
+        )
+
+
 class BitBoxNoiseConfig:
     """ Stores Functions required setup a noise connection """
 
@@ -179,46 +202,52 @@ class BitBoxNoiseConfig:
         pass
 
 
-class BitBoxCommonAPI:
-    """Class to communicate with a BitBox device"""
+class BitBoxProtocol(ABC):
+    """
+    Class for executing versioned BitBox operations
+    (noise message transmissions, unlocks, etc).
+    """
 
-    # pylint: disable=too-many-public-methods,too-many-arguments
-    def __init__(
-        self, transport: TransportLayer, device_info: DeviceInfo, noise_config: BitBoxNoiseConfig
-    ):
-        self.debug = False
-        serial_number = device_info["serial_number"]
+    def __init__(self, transport: TransportLayer):
+        super().__init__()
         self._transport = transport
+        self._noise: NoiseConnection = None
 
-        self.version = parse_device_version(serial_number)
-        if self.version is None:
-            self.close()
-            raise ValueError(f"Could not parse version from {serial_number}")
-        # Delete the prelease part, as it messes with the comparison (e.g. 3.0.0-pre < 3.0.0 is
-        # True, but the 3.0.0-pre has already the same API breaking changes like 3.0.0...).
-        self.version = semver.VersionInfo(
-            self.version.major, self.version.minor, self.version.patch, build=self.version.build
-        )
+    def close(self) -> None:
+        self._transport.close()
 
-        if self.version >= semver.VersionInfo(2, 0, 0):
-            noise_config.attestation_check(self._perform_attestation())
+    def _raw_query(self, msg: bytes) -> bytes:
+        cid = self._transport.generate_cid()
+        return self._transport.query(msg, HWW_CMD, cid)
 
-            # Invoke unlock workflow on the device.
-            # In version <2.0.0, the device did this automatically.
-            unlock_result = self._query(OP_UNLOCK)
-            if self.version < semver.VersionInfo(3, 0, 0):
-                assert unlock_result == b""
-            else:
-                # since 3.0.0, unlock can fail if cancelled
-                if unlock_result == RESPONSE_FAILURE:
-                    self.close()
-                    raise Exception("Unlock process aborted")
+    def query(self, cmd: bytes, msg_data: bytes) -> Tuple[bytes, bytes]:
+        """
+        Encapsulates the given OP_* command and message data into a packet,
+        and unpacks the response status code and data.
+        """
+        response = self._raw_query(cmd + msg_data)
+        return response[:1], response[1:]
 
-        self.noise = self._create_noise_channel(noise_config)
+    @abstractmethod
+    def _encode_noise_request(self, encrypted_msg: bytes) -> bytes:
+        """ Encapsulates an OP_NOISE_MSG message. """
+        ...
+
+    def encrypted_query(self, msg: bytes) -> bytes:
+        """
+        Sends msg bytes and reads response bytes over an encrypted channel.
+        """
+        encrypted_msg = self._noise.encrypt(msg)
+        encrypted_msg = self._encode_noise_request(encrypted_msg)
+
+        response = self._raw_query(encrypted_msg)
+        result = self._noise.decrypt(response)
+        assert isinstance(result, bytes)
+        return result
 
     # pylint: disable=too-many-branches
     def _create_noise_channel(self, noise_config: BitBoxNoiseConfig) -> NoiseConnection:
-        if self._query(OP_I_CAN_HAS_HANDSHAEK) != RESPONSE_SUCCESS:
+        if self._raw_query(OP_I_CAN_HAS_HANDSHAEK) != RESPONSE_SUCCESS:
             self.close()
             raise Exception("Couldn't kick off handshake")
 
@@ -232,13 +261,13 @@ class BitBoxCommonAPI:
         noise.set_keypair_from_private_bytes(Keypair.STATIC, private_key)
         noise.set_prologue(b"Noise_XX_25519_ChaChaPoly_SHA256")
         noise.start_handshake()
-        noise.read_message(self._query(noise.write_message()))
+        noise.read_message(self._raw_query(noise.write_message()))
         remote_static_key = noise.noise_protocol.handshake_state.rs.public_bytes
         assert not noise.handshake_finished
         send_msg = noise.write_message()
         assert noise.handshake_finished
         pairing_code = base64.b32encode(noise.get_handshake_hash()).decode("ascii")
-        response = self._query(send_msg)
+        response = self._raw_query(send_msg)
 
         # Check if we recognize the device's public key
         pairing_verification_required_by_host = True
@@ -270,8 +299,103 @@ class BitBoxCommonAPI:
             noise_config.add_device_static_pubkey(remote_static_key)
         return noise
 
-    def close(self) -> None:
-        self._transport.close()
+    def noise_connect(self, noise_config: BitBoxNoiseConfig) -> None:
+        self._noise = self._create_noise_channel(noise_config)
+
+    @abstractmethod
+    def unlock_query(self) -> None:
+        """
+        Executes an unlock query.
+        Returns the bytes containing the response status.
+        """
+        ...
+
+
+class BitBoxProtocolV1(BitBoxProtocol):
+    """ BitBox Protocol from firmware V1.0.0 onwards. """
+
+    def unlock_query(self) -> None:
+        raise NotImplementedError("unlock_query is not supported in BitBox protocol V1")
+
+    def _encode_noise_request(self, encrypted_msg: bytes) -> bytes:
+        return encrypted_msg
+
+
+class BitBoxProtocolV2(BitBoxProtocolV1):
+    """ BitBox Protocol from firmware V2.0.0 onwards. """
+
+    def unlock_query(self) -> None:
+        unlock_data = self._raw_query(OP_UNLOCK)
+        if len(unlock_data) != 0:
+            raise ValueError(f"OP_UNLOCK (V2) replied with wrong length.")
+
+
+class BitBoxProtocolV3(BitBoxProtocolV2):
+    """ BitBox Protocol from firmware V3.0.0 onwards. """
+
+    def unlock_query(self) -> None:
+        unlock_result, unlock_data = self.query(OP_UNLOCK, b"")
+        if len(unlock_data) != 0:
+            raise ValueError(f"OP_UNLOCK (V3) replied with wrong length.")
+        if unlock_result != RESPONSE_SUCCESS:
+            self.close()
+            raise Exception("Unlock process aborted")
+
+
+class BitBoxProtocolV4(BitBoxProtocolV3):
+    """ BitBox Protocol from firmware V4.0.0 onwards. """
+
+    def _encode_noise_request(self, encrypted_msg: bytes) -> bytes:
+        return OP_NOISE_MSG + encrypted_msg
+
+
+class BitBoxCommonAPI:
+    """Class to communicate with a BitBox device"""
+
+    # pylint: disable=too-many-public-methods,too-many-arguments
+    def __init__(
+        self, transport: TransportLayer, device_info: DeviceInfo, noise_config: BitBoxNoiseConfig
+    ):
+        """
+        Can raise LibraryVersionOutdatedException. check_min_version() should be called following
+        the instantiation.
+        """
+        self.debug = False
+        serial_number = device_info["serial_number"]
+
+        if device_info["product_string"] == BITBOX02MULTI:
+            self.edition = BitBox02Edition.MULTI
+        elif device_info["product_string"] == BITBOX02BTC:
+            self.edition = BitBox02Edition.BTCONLY
+
+        self.version = parse_device_version(serial_number)
+        if self.version is None:
+            transport.close()
+            raise ValueError(f"Could not parse version from {serial_number}")
+
+        # raises exceptions if the library is out of date, does not check BitBoxBase
+        self._check_max_version()
+
+        # Delete the prelease part, as it messes with the comparison (e.g. 3.0.0-pre < 3.0.0 is
+        # True, but the 3.0.0-pre has already the same API breaking changes like 3.0.0...).
+        self.version = semver.VersionInfo(
+            self.version.major, self.version.minor, self.version.patch, build=self.version.build
+        )
+        self._bitbox_protocol: BitBoxProtocol
+        if self.version >= semver.VersionInfo(4, 0, 0):
+            self._bitbox_protocol = BitBoxProtocolV4(transport)
+        elif self.version >= semver.VersionInfo(3, 0, 0):
+            self._bitbox_protocol = BitBoxProtocolV3(transport)
+        elif self.version >= semver.VersionInfo(2, 0, 0):
+            self._bitbox_protocol = BitBoxProtocolV2(transport)
+        else:
+            self._bitbox_protocol = BitBoxProtocolV1(transport)
+
+        if self.version >= semver.VersionInfo(2, 0, 0):
+            noise_config.attestation_check(self._perform_attestation())
+            self._bitbox_protocol.unlock_query()
+
+        self._bitbox_protocol.noise_connect(noise_config)
 
     # pylint: disable=too-many-return-statements
     def _perform_attestation(self) -> bool:
@@ -279,12 +403,11 @@ class BitBoxCommonAPI:
         Shift's root attestation pubkeys. Returns True if the verification is successful."""
 
         challenge = os.urandom(32)
-        response = self._query(OP_ATTESTATION + challenge)
-        if response[:1] != RESPONSE_SUCCESS:
+        response_status, response = self._bitbox_protocol.query(OP_ATTESTATION, challenge)
+        if response_status != RESPONSE_SUCCESS:
             return False
 
         # parse data
-        response = response[1:]
         bootloader_hash, response = response[:32], response[32:]
         device_pubkey_bytes, response = response[:64], response[64:]
         certificate, response = response[:64], response[64:]
@@ -324,25 +447,6 @@ class BitBoxCommonAPI:
             return False
         return True
 
-    def _query(self, msg: bytes) -> bytes:
-        """
-        Sends msg bytes and retrieves response bytes.
-        """
-        cid = self._transport.generate_cid()
-        return self._transport.query(msg, HWW_CMD, cid)
-
-    def _encrypted_query(self, msg: bytes) -> bytes:
-        """
-        Sends msg bytes and reads response bytes over an encrypted channel.
-        """
-        encrypted_msg = self.noise.encrypt(msg)
-        if self.version >= semver.VersionInfo(4, 0, 0):
-            encrypted_msg = OP_NOISE_MSG + encrypted_msg
-
-        result = self.noise.decrypt(self._query(encrypted_msg))
-        assert isinstance(result, bytes)
-        return result
-
     def _msg_query(
         self, request: hww.Request, expected_response: Optional[str] = None
     ) -> hww.Response:
@@ -353,7 +457,7 @@ class BitBoxCommonAPI:
         # pylint: disable=no-member
         if self.debug:
             print(request)
-        response_bytes = self._encrypted_query(request.SerializeToString())
+        response_bytes = self._bitbox_protocol.encrypted_query(request.SerializeToString())
         response = hww.Response()
         response.ParseFromString(response_bytes)
         if response.WhichOneof("response") == "error":
@@ -388,9 +492,9 @@ class BitBoxCommonAPI:
         """
         Returns (version, platform, edition, unlocked).
         """
-        response = self._query(OP_INFO)
+        response_status, response = self._bitbox_protocol.query(OP_INFO, b"")
 
-        version_str_len, response = int(response[0]), response[1:]
+        version_str_len = int(response_status[0])
         version, response = response[:version_str_len], response[version_str_len:]
         version_str = version.rstrip(b"\0").decode("ascii")
 
@@ -407,3 +511,47 @@ class BitBoxCommonAPI:
         unlocked_byte = response[0]
         unlocked = {0x00: False, 0x01: True}[unlocked_byte]
         return (version_str, platform, edition, unlocked)
+
+    def check_min_version(self) -> None:
+        """
+        Raises FirmwareVersionOutdatedException if the device has an older firmware version than
+        required and the minimum required version. A check for the BitBoxBase is not implemented.
+        """
+        if self.edition == BitBox02Edition.MULTI:
+            if self.version < MIN_BITBOX02_MULTI_FIRMWARE_VERSION:
+                raise FirmwareVersionOutdatedException(
+                    self.version, MIN_BITBOX02_MULTI_FIRMWARE_VERSION
+                )
+            if self.version >= semver.VersionInfo(
+                MIN_BITBOX02_MULTI_FIRMWARE_VERSION.major + 1, 0, 0
+            ):
+                raise LibraryVersionOutdatedException(self.version)
+        elif self.edition == BitBox02Edition.BTCONLY:
+            if self.version < MIN_BITBOX02_BTCONLY_FIRMWARE_VERSION:
+                raise FirmwareVersionOutdatedException(
+                    self.version, MIN_BITBOX02_BTCONLY_FIRMWARE_VERSION
+                )
+            if self.version >= semver.VersionInfo(
+                MIN_BITBOX02_BTCONLY_FIRMWARE_VERSION.major + 1, 0, 0
+            ):
+                raise LibraryVersionOutdatedException(self.version)
+
+    def _check_max_version(self) -> None:
+        """
+        Raises LibraryVersionOutdatedException if the device has an firmware which is too new
+        (major version increased).
+        A check for the BitBoxBase is not implemented.
+        """
+        if self.edition == BitBox02Edition.MULTI:
+            if self.version >= semver.VersionInfo(
+                MIN_BITBOX02_MULTI_FIRMWARE_VERSION.major + 1, 0, 0
+            ):
+                raise LibraryVersionOutdatedException(self.version)
+        elif self.edition == BitBox02Edition.BTCONLY:
+            if self.version >= semver.VersionInfo(
+                MIN_BITBOX02_BTCONLY_FIRMWARE_VERSION.major + 1, 0, 0
+            ):
+                raise LibraryVersionOutdatedException(self.version)
+
+    def close(self) -> None:
+        self._bitbox_protocol.close()

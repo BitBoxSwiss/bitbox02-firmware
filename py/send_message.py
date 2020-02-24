@@ -34,6 +34,7 @@ from bitbox02.communication import (
     devices,
     HARDENED,
     UserAbortException,
+    FirmwareVersionOutdatedException,
     u2fhid,
     usart,
     bitbox_api_protocol,
@@ -761,6 +762,10 @@ def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
         bitbox_connection = bitbox02.BitBox02(
             transport=u2fhid.U2FHid(hid_device), device_info=bitbox, noise_config=config
         )
+        try:
+            bitbox_connection.check_min_version()
+        except FirmwareVersionOutdatedException as exc:
+            print("WARNING: ", exc)
 
         if debug:
             print("Device Info:")

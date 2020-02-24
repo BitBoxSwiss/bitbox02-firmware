@@ -47,6 +47,7 @@ from .bitbox02 import (
     BTCOutputExternal,
     BTCOutputInternal,
     BTCOutputType,
+    DuplicateEntryException,
     hww,
     btc,
     common,

@@ -21,7 +21,12 @@ from datetime import datetime
 from typing import Optional, List, Dict, Tuple, Any, Generator, Union
 from typing_extensions import TypedDict
 
-from bitbox02.communication import BitBoxCommonAPI, Bitbox02Exception, ERR_GENERIC
+from bitbox02.communication import (
+    BitBoxCommonAPI,
+    Bitbox02Exception,
+    ERR_GENERIC,
+    ERR_DUPLICATE_ENTRY,
+)
 
 try:
     from bitbox02.communication.generated import hww_pb2 as hww
@@ -46,6 +51,10 @@ except ModuleNotFoundError:
 HARDENED = 0x80000000
 
 Backup = Tuple[str, str, datetime]
+
+
+class DuplicateEntryException(Exception):
+    pass
 
 
 class BTCInputType(TypedDict):
@@ -309,7 +318,15 @@ class BitBox02(BitBoxCommonAPI):
                 name=name,
             )
         )
-        self._btc_msg_query(request, expected_response="success")
+        try:
+            self._btc_msg_query(request, expected_response="success")
+        except Bitbox02Exception as err:
+            if err.code == ERR_DUPLICATE_ENTRY:
+                raise DuplicateEntryException(
+                    "A multisig account configuration with this name already exists.\n"
+                    "Choose another name."
+                )
+            raise
 
     # pylint: disable=too-many-arguments
     def btc_sign(

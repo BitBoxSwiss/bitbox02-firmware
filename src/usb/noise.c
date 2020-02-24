@@ -43,7 +43,6 @@ static bool _require_pairing_verification = false;
 
 #define OP_STATUS_SUCCESS ((uint8_t)0)
 #define OP_STATUS_FAILURE ((uint8_t)1)
-#define OP_I_CAN_HAS_HANDSHAEK ((uint8_t)2)
 #define OP_STATUS_FAILURE_REQUIRE_PAIRING_VERIFICATION ((uint8_t)3)
 
 /**
@@ -295,7 +294,7 @@ bool bb_noise_process_msg(
     if (!_recv_cipher) {
         // Not paired yet, abort
         out_packet->len = 1;
-        out_packet->data_addr[0] = OP_I_CAN_HAS_HANDSHAEK;
+        out_packet->data_addr[0] = OP_STATUS_FAILURE;
         return true;
     }
 

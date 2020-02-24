@@ -113,6 +113,7 @@ OP_ATTESTATION = b"a"
 OP_UNLOCK = b"u"
 OP_INFO = b"i"
 OP_I_CAN_HAS_HANDSHAEK = b"h"
+OP_HER_COMEZ_TEH_HANDSHAEK = b"H"
 OP_I_CAN_HAS_PAIRIN_VERIFICASHUN = b"v"
 OP_NOISE_MSG = b"n"
 
@@ -233,6 +234,20 @@ class BitBoxProtocol(ABC):
         """ Encapsulates an OP_NOISE_MSG message. """
         ...
 
+    @abstractmethod
+    def _decode_noise_response(self, encrypted_msg: bytes) -> Tuple[bytes, bytes]:
+        """ De-encapsulate an OP_NOISE_MSG response. """
+        ...
+
+    @abstractmethod
+    def _handshake_query(self, req: bytes) -> Tuple[bytes, bytes]:
+        """
+        Executes a OP_HER_COMEZ_TEH_HANDSHAEK query with the given
+        request data.
+        Returns a pair (response status, response data).
+        """
+        ...
+
     def encrypted_query(self, msg: bytes) -> bytes:
         """
         Sends msg bytes and reads response bytes over an encrypted channel.
@@ -241,6 +256,10 @@ class BitBoxProtocol(ABC):
         encrypted_msg = self._encode_noise_request(encrypted_msg)
 
         response = self._raw_query(encrypted_msg)
+        response_status, response = self._decode_noise_response(response)
+        if response_status != RESPONSE_SUCCESS:
+            raise Exception("Noise communication failed.")
+
         result = self._noise.decrypt(response)
         assert isinstance(result, bytes)
         return result
@@ -261,13 +280,20 @@ class BitBoxProtocol(ABC):
         noise.set_keypair_from_private_bytes(Keypair.STATIC, private_key)
         noise.set_prologue(b"Noise_XX_25519_ChaChaPoly_SHA256")
         noise.start_handshake()
-        noise.read_message(self._raw_query(noise.write_message()))
+        start_handshake_status, start_handshake_reply = self._handshake_query(noise.write_message())
+        if start_handshake_status != RESPONSE_SUCCESS:
+            self.close()
+            raise Exception("Handshake process request failed.")
+        noise.read_message(start_handshake_reply)
         remote_static_key = noise.noise_protocol.handshake_state.rs.public_bytes
         assert not noise.handshake_finished
         send_msg = noise.write_message()
         assert noise.handshake_finished
         pairing_code = base64.b32encode(noise.get_handshake_hash()).decode("ascii")
-        response = self._raw_query(send_msg)
+        handshake_finish_status, response = self._handshake_query(send_msg)
+        if handshake_finish_status != RESPONSE_SUCCESS:
+            self.close()
+            raise Exception("Handshake conclusion failed.")
 
         # Check if we recognize the device's public key
         pairing_verification_required_by_host = True
@@ -320,6 +346,24 @@ class BitBoxProtocolV1(BitBoxProtocol):
     def _encode_noise_request(self, encrypted_msg: bytes) -> bytes:
         return encrypted_msg
 
+    def _decode_noise_response(self, encrypted_msg: bytes) -> Tuple[bytes, bytes]:
+        """
+        Until V7 of the protocol, we don't encapsulate OP_NOISE_MSG responses.
+        Let's assume that if a response is empty, that means it
+        contains an error.
+        """
+        if len(encrypted_msg) == 0:
+            return RESPONSE_FAILURE, b""
+        return RESPONSE_SUCCESS, encrypted_msg
+
+    def _handshake_query(self, req: bytes) -> Tuple[bytes, bytes]:
+        """
+        V1-6 of the BB noise protocol doesn't encapsulate handshake requests, and don't
+        send back a status code in the response.
+        """
+        noise_result = self._raw_query(req)
+        return RESPONSE_SUCCESS, noise_result
+
 
 class BitBoxProtocolV2(BitBoxProtocolV1):
     """ BitBox Protocol from firmware V2.0.0 onwards. """
@@ -347,6 +391,16 @@ class BitBoxProtocolV4(BitBoxProtocolV3):
 
     def _encode_noise_request(self, encrypted_msg: bytes) -> bytes:
         return OP_NOISE_MSG + encrypted_msg
+
+
+class BitBoxProtocolV7(BitBoxProtocolV4):
+    """ Noise Protocol from firmware V7.0.0 onwards. """
+
+    def _handshake_query(self, req: bytes) -> Tuple[bytes, bytes]:
+        return self.query(OP_HER_COMEZ_TEH_HANDSHAEK, req)
+
+    def _decode_noise_response(self, encrypted_msg: bytes) -> Tuple[bytes, bytes]:
+        return encrypted_msg[:1], encrypted_msg[1:]
 
 
 class BitBoxCommonAPI:
@@ -382,7 +436,9 @@ class BitBoxCommonAPI:
             self.version.major, self.version.minor, self.version.patch, build=self.version.build
         )
         self._bitbox_protocol: BitBoxProtocol
-        if self.version >= semver.VersionInfo(4, 0, 0):
+        if self.version >= semver.VersionInfo(7, 0, 0):
+            self._bitbox_protocol = BitBoxProtocolV7(transport)
+        elif self.version >= semver.VersionInfo(4, 0, 0):
             self._bitbox_protocol = BitBoxProtocolV4(transport)
         elif self.version >= semver.VersionInfo(3, 0, 0):
             self._bitbox_protocol = BitBoxProtocolV3(transport)

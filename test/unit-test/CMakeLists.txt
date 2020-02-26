@@ -67,6 +67,7 @@ add_library(bitbox
   framework/mock_leds.c
   framework/mock_delay.c
   framework/mock_bitboxbase.c
+  framework/mock_workflow.c
   framework/workflows/workflow_status.c
   framework/btc_util.c
 )
@@ -266,7 +267,7 @@ endforeach()
 # They are copied from https://github.com/google/u2f-ref-code/tree/master/u2f-tests/HID
 set(U2F_TESTS
    u2f_standard
-   "-Wl,--wrap=workflow_unlock_blocking"
+   "-Wl,--wrap=workflow_unlock"
    u2f_hid
    "-Wl,--wrap=workflow_status_create"
 )

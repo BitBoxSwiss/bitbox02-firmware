@@ -9,6 +9,7 @@
 #include <pthread.h>
 
 #include <hidapi/hidapi.h>
+#include <mock_workflow.h>
 
 #include "queue.h"
 #include "u2f.h"
@@ -165,7 +166,7 @@ void hid_free_enumeration(struct hid_device_info* devs) {}
 
 void __wrap_workflow_status_blocking(const char* msg, bool status_success) {}
 
-bool __wrap_workflow_unlock_blocking(void)
+workflow_t* __wrap_workflow_unlock(void(cb)(bool, void*), void* cb_param)
 {
-    return true;
+    return mock_workflow_unlock(5, true, cb, cb_param);
 }

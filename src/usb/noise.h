@@ -17,21 +17,17 @@
 
 #include <compiler_util.h>
 #include <usb/usb_packet.h>
+#include <util.h>
 
 #include <stdbool.h>
 
 #define NOISE_PUBKEY_SIZE 32
 
-typedef size_t (*bb_noise_process_msg_callback)(
-    const uint8_t* input,
-    const size_t in_len,
-    uint8_t* response,
-    const size_t max_out_len);
+typedef void (*bb_noise_process_msg_callback)(const in_buffer_t* input, buffer_t* output);
 
 USE_RESULT bool bb_noise_process_msg(
-    const Packet* in_packet,
-    Packet* out_packet,
-    size_t max_out_len,
+    const in_buffer_t* in_buf,
+    buffer_t* out_buf,
     bb_noise_process_msg_callback process_msg);
 
 /**

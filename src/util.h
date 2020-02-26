@@ -127,4 +127,26 @@ bool safe_uint64_add(uint64_t* a, uint64_t b);
             fprintf(stdout, "%s:%d: " format "\n", FILENAME, __LINE__, __VA_ARGS__); \
     } while (0)
 
+/**
+ * Struct definining a rw buffer (buffer + length).
+ */
+typedef struct {
+    /** Data buffer. */
+    uint8_t* data;
+    /** Actual length of the data. */
+    size_t len;
+    /** Maximum buffer capacity. */
+    const size_t max_len;
+} buffer_t;
+
+/**
+ * Struct definining a read-only buffer (buffer + length).
+ */
+typedef struct {
+    /** Data buffer. */
+    const uint8_t* data;
+    /** Length of data contained in data. */
+    const size_t len;
+} in_buffer_t;
+
 #endif

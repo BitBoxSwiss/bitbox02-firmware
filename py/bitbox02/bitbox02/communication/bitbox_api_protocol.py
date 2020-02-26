@@ -20,6 +20,7 @@ import sys
 import base64
 import binascii
 import hashlib
+import time
 from typing import Optional, List, Dict, Tuple, Union
 from typing_extensions import TypedDict
 
@@ -41,6 +42,27 @@ except ModuleNotFoundError:
 
 
 HWW_CMD = 0x80 + 0x40 + 0x01
+
+
+class HwwRequestCode:
+    # New request.
+    REQ_NEW = b"\x00"
+    # Poll an outstanding request for completion.
+    REQ_RETRY = b"\x01"
+    # Cancel any outstanding request.
+    REQ_CANCEL = b"\x02"
+
+
+class HwwResponseCode:
+    # Request finished, payload is valid.
+    RSP_ACK = b"\x00"
+    # Request is outstanding, retry later.
+    RSP_NOT_READY = b"\x01"
+    # Device is busy, request was dropped.
+    RSP_BUSY = b"\x02"
+    # Bad request.
+    RSP_NACK = b"\x03"
+
 
 ERR_GENERIC = 103
 ERR_DUPLICATE_ENTRY = 107
@@ -338,6 +360,13 @@ class BitBoxProtocol(ABC):
         """
         ...
 
+    @abstractmethod
+    def cancel_outstanding_request(self) -> None:
+        """
+        Aborts/force close the outstanding request on the device.
+        """
+        ...
+
 
 class BitBoxProtocolV1(BitBoxProtocol):
     """ BitBox Protocol from firmware V1.0.0 onwards. """
@@ -365,6 +394,9 @@ class BitBoxProtocolV1(BitBoxProtocol):
         """
         noise_result = self._raw_query(req)
         return RESPONSE_SUCCESS, noise_result
+
+    def cancel_outstanding_request(self) -> None:
+        raise RuntimeError("cancel_outstanding_request should never be called here.")
 
 
 class BitBoxProtocolV2(BitBoxProtocolV1):
@@ -398,11 +430,64 @@ class BitBoxProtocolV4(BitBoxProtocolV3):
 class BitBoxProtocolV7(BitBoxProtocolV4):
     """ Noise Protocol from firmware V7.0.0 onwards. """
 
+    def __init__(self, transport: TransportLayer):
+        super().__init__(transport)
+        self.cancel_requested = False
+
     def _handshake_query(self, req: bytes) -> Tuple[bytes, bytes]:
         return self.query(OP_HER_COMEZ_TEH_HANDSHAEK, req)
 
     def _decode_noise_response(self, encrypted_msg: bytes) -> Tuple[bytes, bytes]:
         return encrypted_msg[:1], encrypted_msg[1:]
+
+    def _raw_query(self, msg: bytes) -> bytes:
+        """
+        Starting with v7.0.0, HWW messages are encapsulated
+        into an arbitration layer. The device can respond with
+        RSP_NOT_READY to indicate that we should poll it later.
+        """
+        cid = self._transport.generate_cid()
+        status = None
+        payload: bytes
+        while True:
+            response = self._transport.query(HwwRequestCode.REQ_NEW + msg, HWW_CMD, cid)
+            assert len(response) != 0, "Unexpected response of length 0 from HWW stack."
+            status, payload = response[:1], response[1:]
+            if status == HwwResponseCode.RSP_BUSY:
+                assert (
+                    len(payload) == 0
+                ), "Unexpected payload of length {} with RSP_BUSY response.".format(len(payload))
+                time.sleep(1)
+            else:
+                # We've successfully initiated our request.
+                break
+
+        if status in [HwwResponseCode.RSP_NACK]:
+            # We should never receive a NACK unless some internal error occurs.
+            raise Exception("Unexpected NACK response from HWW stack.")
+
+        # The message has been sent. If we have a retry, poll the device until we're ready.
+        self.cancel_requested = False
+        while status == HwwResponseCode.RSP_NOT_READY:
+            assert (
+                len(payload) == 0
+            ), "Unexpected payload of length {} with RSP_NOT_READY response.".format(len(payload))
+            time.sleep(0.2)
+            to_send = (
+                HwwRequestCode.REQ_CANCEL if self.cancel_requested else HwwRequestCode.REQ_RETRY
+            )
+            response = self._transport.query(to_send, HWW_CMD, cid)
+            assert len(response) != 0, "Unexpected response of length 0 from HWW stack."
+            status, payload = response[:1], response[1:]
+            if status not in [HwwResponseCode.RSP_NOT_READY, HwwResponseCode.RSP_ACK]:
+                # We should never receive a NACK unless some internal error occurs.
+                raise Exception(
+                    "Unexpected response from HWW stack during retry ({}).".format(status)
+                )
+        return payload
+
+    def cancel_outstanding_request(self) -> None:
+        self.cancel_requested = True
 
 
 class BitBoxCommonAPI:
@@ -586,6 +671,9 @@ class BitBoxCommonAPI:
                 raise FirmwareVersionOutdatedException(
                     self.version, MIN_SUPPORTED_BITBOX02_BTCONLY_FIRMWARE_VERSION
                 )
+
+    def cancel_outstanding_request(self) -> None:
+        self._bitbox_protocol.cancel_outstanding_request()
 
     def _check_max_version(self) -> None:
         """

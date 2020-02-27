@@ -51,14 +51,6 @@ typedef enum {
     HWW_RSP_NACK = 3,
 } hww_rsp_t;
 
-/** A HWW Packet is composed of a HWW command and a payload. */
-typedef struct {
-    /** Command byte. */
-    hww_req_t cmd;
-    /** Payload of the message. */
-    in_buffer_t buffer;
-} hww_packet_req_t;
-
 /** A HWW response is composed of a status code and a payload. */
 typedef struct {
     /** Status byte. */
@@ -213,17 +205,16 @@ static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_o
         return;
     }
 
-    hww_packet_req_t decoded = {.cmd = cmd,
-                                .buffer = {
-                                    .data = in_packet->data_addr + 1,
-                                    .len = in_packet->len - 1,
-                                }};
+    const in_buffer_t decoded_buffer = {
+        .data = in_packet->data_addr + 1,
+        .len = in_packet->len - 1,
+    };
     hww_packet_rsp_t response = {
         .status = HWW_RSP_NACK,
         .buffer = {.data = out_packet->data_addr + 1, .len = 0, .max_len = max_out_len - 1}};
-    switch (decoded.cmd) {
+    switch (cmd) {
     case HWW_REQ_NEW:
-        _process_packet(&decoded.buffer, &response.buffer);
+        _process_packet(&decoded_buffer, &response.buffer);
         response.status = HWW_RSP_ACK;
         break;
     case HWW_REQ_CANCEL:

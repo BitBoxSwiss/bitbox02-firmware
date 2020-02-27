@@ -45,20 +45,25 @@ static void _render(component_t* component)
 {
     data_t* data = (data_t*)component->data;
     uint16_t y = 0;
-    uint16_t x = data->type == ICON_BUTTON_CROSS ? (SCREEN_WIDTH / 7) : (SCREEN_WIDTH / 7 * 6);
+    uint16_t x = data->type == ICON_BUTTON_CROSS ? (SCREEN_WIDTH / 8) : (SCREEN_WIDTH / 8 * 7);
+    if (data->type == ICON_BUTTON_CROSS) {
+        x = SCREEN_WIDTH / 7 - IMAGE_DEFAULT_CROSS_HEIGHT;
+    } else {
+        x = SCREEN_WIDTH / 7 * 6;
+    }
     const uint16_t arrow_height = 4;
     if (data->type == ICON_BUTTON_NEXT) {
         if (data->location == bottom_slider) {
-            y = SCREEN_HEIGHT - arrow_height * 2;
+            y = SCREEN_HEIGHT - arrow_height * 2 + 1;
         }
         // horizontal animation
         x += data->active_count / SCALE;
     } else {
         // vertical animation
         if (data->location == top_slider) {
-            y = data->active_count / SCALE;
+            y = data->active_count / SCALE + 1;
         } else {
-            y = SCREEN_HEIGHT - data->active_count / SCALE - IMAGE_DEFAULT_ARROW_HEIGHT - 1;
+            y = SCREEN_HEIGHT - data->active_count / SCALE - IMAGE_DEFAULT_ARROW_HEIGHT - 1 + 1;
         }
     }
 

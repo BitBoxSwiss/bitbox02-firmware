@@ -35,7 +35,7 @@ static void _render(component_t* component)
     data_t* data = (data_t*)component->data;
     ui_util_component_render_subcomponents(component);
     if (data->has_address) {
-        image_arrow(SCREEN_WIDTH / 2, 33, IMAGE_DEFAULT_ARROW_HEIGHT, ARROW_DOWN);
+        image_arrow(SCREEN_WIDTH / 2, 30, IMAGE_DEFAULT_ARROW_HEIGHT, ARROW_DOWN);
     }
 }
 
@@ -111,25 +111,17 @@ static component_t* _confirm_transaction_create(
     ui_util_add_sub_component(confirm, confirm_button_create(longtouch, ICON_BUTTON_NEXT));
 
     if (data->has_address) {
-        char addr[128];
-        snprintf(addr, sizeof(addr), " \n \n \n%s", address);
-        ui_util_add_sub_component(confirm, label_create_scrollable(addr, NULL, CENTER, confirm));
+        ui_util_add_sub_component(confirm, label_create_scrollable_offset(address, NULL, CENTER, 0, 15, confirm));
     }
     if (strlens(fee)) {
-        char formatted_fee[64];
-        snprintf(formatted_fee, sizeof(formatted_fee), "\n\n\n\n\n%s", fee);
-        ui_util_add_sub_component(confirm, label_create("\n\n\n\nFee:", NULL, CENTER_TOP, confirm));
-        ui_util_add_sub_component(confirm, label_create(formatted_fee, NULL, CENTER_TOP, confirm));
+        ui_util_add_sub_component(confirm, label_create_offset("Fee", NULL, CENTER_TOP, 0, 36, confirm));
+        ui_util_add_sub_component(confirm, label_create_offset(fee, NULL, CENTER_TOP, 0, 48, confirm));
     }
     if (verify_total) {
-        char formatted_amt[64];
-        snprintf(formatted_amt, sizeof(formatted_amt), "\n\n%s", amount);
-        ui_util_add_sub_component(confirm, label_create("\nTotal", NULL, CENTER_TOP, confirm));
-        ui_util_add_sub_component(confirm, label_create(formatted_amt, NULL, CENTER_TOP, confirm));
+        ui_util_add_sub_component(confirm, label_create_offset("Total", NULL, CENTER_TOP, 0, 8, confirm));
+        ui_util_add_sub_component(confirm, label_create_offset(amount, NULL, CENTER_TOP, 0, 20, confirm));
     } else {
-        char formatted_amt[64];
-        snprintf(formatted_amt, sizeof(formatted_amt), "\n\n%s", amount);
-        ui_util_add_sub_component(confirm, label_create(formatted_amt, NULL, CENTER_TOP, confirm));
+        ui_util_add_sub_component(confirm, label_create_offset(amount, NULL, CENTER_TOP, 0, 15, confirm));
     }
 
     return confirm;

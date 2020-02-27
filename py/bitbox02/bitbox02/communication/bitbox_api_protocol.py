@@ -51,6 +51,9 @@ class HwwRequestCode:
     REQ_RETRY = b"\x01"
     # Cancel any outstanding request.
     REQ_CANCEL = b"\x02"
+    # INFO api call (used to be OP_INFO api call), graduated to the toplevel framing so it works
+    # the same way for all firmware versions.
+    REQ_INFO = b"i"
 
 
 class HwwResponseCode:
@@ -133,7 +136,6 @@ ATTESTATION_PUBKEYS_MAP: Dict[bytes, AttestationPubkeyInfo] = {
 
 OP_ATTESTATION = b"a"
 OP_UNLOCK = b"u"
-OP_INFO = b"i"
 OP_I_CAN_HAS_HANDSHAEK = b"h"
 OP_HER_COMEZ_TEH_HANDSHAEK = b"H"
 OP_I_CAN_HAS_PAIRIN_VERIFICASHUN = b"v"
@@ -632,13 +634,20 @@ class BitBoxCommonAPI:
             return False
         return True
 
-    def get_info(self) -> Tuple[str, Platform, Union[BitBox02Edition, BitBoxBaseEdition], bool]:
+    @staticmethod
+    def get_info(
+        transport: TransportLayer
+    ) -> Tuple[str, Platform, Union[BitBox02Edition, BitBoxBaseEdition], bool]:
         """
         Returns (version, platform, edition, unlocked).
+        This is useful to get the version of the firmware when a usb descriptor is not available
+        (BitBoxBase, via BitBoxBridge, etc.).
+        This call does not use a versioned BitBoxProtocol for communication, as the version is not
+        available (this call is used to get the version), so it must work for all firmware versions.
         """
-        response_status, response = self._bitbox_protocol.query(OP_INFO, b"")
+        response = transport.query(HwwRequestCode.REQ_INFO, HWW_CMD, transport.generate_cid())
 
-        version_str_len = int(response_status[0])
+        version_str_len, response = int(response[0]), response[1:]
         version, response = response[:version_str_len], response[version_str_len:]
         version_str = version.rstrip(b"\0").decode("ascii")
 

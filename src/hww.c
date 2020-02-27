@@ -30,14 +30,18 @@
 
 #define OP_ATTESTATION ((uint8_t)'a')
 #define OP_UNLOCK ((uint8_t)'u')
-#define OP_INFO ((uint8_t)'i')
 
 #define OP_STATUS_SUCCESS ((uint8_t)0)
 #define OP_STATUS_FAILURE ((uint8_t)1)
 #define OP_STATUS_FAILURE_UNINITIALIZED ((uint8_t)2)
 
 /** Request command for HWW packets. */
-typedef enum { HWW_REQ_NEW = 0, HWW_REQ_RETRY = 1, HWW_REQ_CANCEL = 2 } hww_req_t;
+typedef enum {
+    HWW_REQ_NEW = 0,
+    HWW_REQ_RETRY = 1,
+    HWW_REQ_CANCEL = 2,
+    HWW_REQ_INFO = ((uint8_t)'i'),
+} hww_req_t;
 
 /** Response status code for HWW packets. */
 typedef enum {
@@ -174,9 +178,6 @@ static void _process_packet(const in_buffer_t* in_req, buffer_t* out_rsp)
             }
             out_rsp->len = 1;
             return;
-        case OP_INFO:
-            out_rsp->len = _api_info(out_rsp->data);
-            return;
         default:
             break;
         }
@@ -201,7 +202,18 @@ static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_o
         out_packet->len = 1;
         return;
     }
-    hww_packet_req_t decoded = {.cmd = in_packet->data_addr[0],
+
+    hww_req_t cmd = in_packet->data_addr[0];
+    if (cmd == HWW_REQ_INFO) {
+        // HWW_REQ_INFO is treated as a special case: it has a direct response without a status
+        // code, so it can be called independently of the firmware version and framing protocol.
+        // Before v7.0.0, there was no HWW framing layer, and the info call was an api-call using
+        // the same 'i' OP_INFO op code byte.
+        out_packet->len = _api_info(out_packet->data_addr);
+        return;
+    }
+
+    hww_packet_req_t decoded = {.cmd = cmd,
                                 .buffer = {
                                     .data = in_packet->data_addr + 1,
                                     .len = in_packet->len - 1,

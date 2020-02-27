@@ -302,7 +302,7 @@ class SendMessage:
             bitbox02.BTCOutputExternal(
                 output_type=bitbox02.btc.P2WSH,
                 output_hash=b"11111111111111111111111111111111",
-                value=int(1e8 * 0.2),
+                value=int(1e8 * 0.10684268),
             ),
         ]
         sigs = self._device.btc_sign(

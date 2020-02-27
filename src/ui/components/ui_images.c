@@ -20,32 +20,61 @@
 void image_arrow(int x, int y, int height, arrow_orientation_t orientation)
 {
     int width = height * 2 - 1;
-    for (int h = 0; h < height; h++) {
-        for (int w = (width + 1) / 2 - h; w < (width + 1) / 2 + h + 1; w++) {
-            switch (orientation) {
-            case ARROW_RIGHT:
-                UG_DrawPixel(x + height - h - 1, y + w, C_WHITE);
-                break;
-            case ARROW_LEFT:
-                UG_DrawPixel(x + h, y + w, C_WHITE);
-                break;
-            case ARROW_DOWN:
-                UG_DrawPixel(x + w, y + height - h - 1, C_WHITE);
-                break;
-            case ARROW_UP:
-                UG_DrawPixel(x + w, y + h, C_WHITE);
-                break;
-            default:
-                break;
-            }
+    switch(orientation) {
+    case ARROW_RIGHT:
+        for (int h = 0; h<height; ++h) {
+            UG_DrawLine(x+h, y+h, x+h, y+width-1-h, C_WHITE);
         }
+        break;
+    case ARROW_LEFT:
+        for (int h = 0; h<height; ++h) {
+            UG_DrawLine(x+h, y+height-1-h, x+h, y+height-1+h, C_WHITE);
+        }
+        break;
+    case ARROW_DOWN:
+        for (int h = 0; h<height; ++h) {
+            UG_DrawLine(x+h, y+h, x+width-1-h, y+h, C_WHITE);
+        }
+        break;
+    case ARROW_UP:
+        for (int h = 0; h<height; ++h) {
+            UG_DrawLine(x+height-1-h, y+h, x+height-1+h, y+h, C_WHITE);
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+void image_arrow_hollow(int x, int y, int height, arrow_orientation_t orientation)
+{
+    int width = height * 2 - 1;
+    switch (orientation) {
+    case ARROW_RIGHT:
+        UG_DrawLine(x, y, x+height-1, y+height-1, C_WHITE);
+        UG_DrawLine(x+height-1, y+height-1, x, y+width-1, C_WHITE);
+        break;
+    case ARROW_LEFT:
+        UG_DrawLine(x+height-1, y, x, y+height-1, C_WHITE);
+        UG_DrawLine(x, y+height-1, x+height-1, y+width-1, C_WHITE);
+        break;
+    case ARROW_DOWN:
+        UG_DrawLine(x, y, x+height-1, y+height-1, C_WHITE);
+        UG_DrawLine(x+height-1, y+height-1, x+width-1, y, C_WHITE);
+        break;
+    case ARROW_UP:
+        UG_DrawLine(x, y+height-1, x+height-1, y, C_WHITE);
+        UG_DrawLine(x+height-1, y, x+width-1, y+height-1, C_WHITE);
+        break;
+    default:
+        break;
     }
 }
 
 void image_checkmark(int x, int y, int h)
 {
-    UG_DrawLine(x + h, y, x, y + h, C_WHITE);
-    UG_DrawLine(x - (h - h / 2 - 1), y + h / 2 + 1, x, y + h, C_WHITE);
+    UG_DrawLine(x, y + h - (h / 2 - 1) - 1, x + h / 2 - 1, y + h - 1, C_WHITE);
+    UG_DrawLine(x + h / 2 - 1, y + h - 1, x + h - 1 + h / 2 - 1, y, C_WHITE);
 }
 
 void image_cross(int x, int y, int h)

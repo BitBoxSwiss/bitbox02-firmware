@@ -45,13 +45,24 @@ static void _render(component_t* component)
 {
     data_t* data = (data_t*)component->data;
     uint16_t y = 0;
-    uint16_t x = data->type == ICON_BUTTON_CROSS ? (SCREEN_WIDTH / 8) : (SCREEN_WIDTH / 8 * 7);
-    if (data->type == ICON_BUTTON_CROSS) {
-        x = SCREEN_WIDTH / 7 - IMAGE_DEFAULT_CROSS_HEIGHT;
-    } else {
-        x = SCREEN_WIDTH / 7 * 6;
+    uint16_t x = 0;
+    const uint16_t arrow_height = 5;
+    const uint16_t check_width = IMAGE_DEFAULT_CHECKMARK_HEIGHT + IMAGE_DEFAULT_CHECKMARK_HEIGHT/2-1;
+    switch(data->type) {
+    case ICON_BUTTON_CHECK:
+        x = SCREEN_WIDTH * 15 / 16;
+        x -= check_width;
+        break;
+    case ICON_BUTTON_CROSS:
+        x = SCREEN_WIDTH / 16;
+        break;
+    case ICON_BUTTON_NEXT:
+        x = SCREEN_WIDTH * 15 / 16;
+        x -= arrow_height;
+        break;
+    default:
+        break;
     }
-    const uint16_t arrow_height = 4;
     if (data->type == ICON_BUTTON_NEXT) {
         if (data->location == bottom_slider) {
             y = SCREEN_HEIGHT - arrow_height * 2 + 1;
@@ -80,7 +91,7 @@ static void _render(component_t* component)
         image_cross(x, y, IMAGE_DEFAULT_CROSS_HEIGHT);
         break;
     case ICON_BUTTON_NEXT:
-        image_arrow(x, y, arrow_height, ARROW_RIGHT);
+        image_arrow_hollow(x, y, arrow_height, ARROW_RIGHT);
         break;
     default:
         break;

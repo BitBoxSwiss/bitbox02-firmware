@@ -17,6 +17,7 @@
 #include "icon_button.h"
 #include "label.h"
 #include "ui_images.h"
+#include "ui/fonts/font_a_9X9.h"
 
 #include <hardfault.h>
 #include <screen.h>
@@ -35,7 +36,7 @@ static void _render(component_t* component)
     data_t* data = (data_t*)component->data;
     ui_util_component_render_subcomponents(component);
     if (data->has_address) {
-        image_arrow(SCREEN_WIDTH / 2, 30, IMAGE_DEFAULT_ARROW_HEIGHT, ARROW_DOWN);
+        image_arrow(SCREEN_WIDTH / 2 - IMAGE_DEFAULT_ARROW_HEIGHT, 34, IMAGE_DEFAULT_ARROW_HEIGHT, ARROW_DOWN);
     }
 }
 
@@ -111,17 +112,17 @@ static component_t* _confirm_transaction_create(
     ui_util_add_sub_component(confirm, confirm_button_create(longtouch, ICON_BUTTON_NEXT));
 
     if (data->has_address) {
-        ui_util_add_sub_component(confirm, label_create_scrollable_offset(address, NULL, CENTER, 0, 15, confirm));
+        ui_util_add_sub_component(confirm, label_create_scrollable_offset(address, NULL, CENTER, 0, 20, confirm));
     }
     if (strlens(fee)) {
-        ui_util_add_sub_component(confirm, label_create_offset("Fee", NULL, CENTER_TOP, 0, 36, confirm));
-        ui_util_add_sub_component(confirm, label_create_offset(fee, NULL, CENTER_TOP, 0, 48, confirm));
+        ui_util_add_sub_component(confirm, label_create_offset("Fee", &font_font_a_9X9, CENTER_TOP, 0, 38, confirm));
+        ui_util_add_sub_component(confirm, label_create_offset(fee, &font_font_a_9X9, CENTER_TOP, 0, 50, confirm));
     }
     if (verify_total) {
-        ui_util_add_sub_component(confirm, label_create_offset("Total", NULL, CENTER_TOP, 0, 8, confirm));
-        ui_util_add_sub_component(confirm, label_create_offset(amount, NULL, CENTER_TOP, 0, 20, confirm));
+        ui_util_add_sub_component(confirm, label_create_offset("Total", NULL, CENTER_TOP, 0, 10, confirm));
+        ui_util_add_sub_component(confirm, label_create_offset(amount, NULL, CENTER_TOP, 0, 22, confirm));
     } else {
-        ui_util_add_sub_component(confirm, label_create_offset(amount, NULL, CENTER_TOP, 0, 15, confirm));
+        ui_util_add_sub_component(confirm, label_create_offset(amount, NULL, CENTER_TOP, 0, 17, confirm));
     }
 
     return confirm;

@@ -23,12 +23,25 @@
 
 #if !defined(BOOTLOADER)
 #include <hww.h>
+#ifndef TESTING
+#include <hal_timer.h>
+extern struct timer_descriptor TIMER_0;
+#endif
+
 #endif
 #include <queue.h>
 #include <stdlib.h>
 #include <string.h>
 #include <u2f.h>
 #include <util.h>
+
+/**
+ * Amount of time to wait before an outstanding operation times out
+ * (if the client is closed).
+ */
+#define USB_OUTSTANDING_OP_TIMEOUT_MS (500)
+#define USB_TIMER_TICK_PERIOD_MS (100)
+#define USB_OUTSTANDING_OP_TIMEOUT_TICKS (USB_OUTSTANDING_OP_TIMEOUT_MS / USB_TIMER_TICK_PERIOD_MS)
 
 struct usb_processing {
     CMD_Callback* registered_cmds;
@@ -61,6 +74,11 @@ struct usb_processing {
      * is blocked.
      */
     bool (*can_request_unblock)(const Packet* in_packet);
+    /**
+     * Callback to forcefully abort any operation processing
+     * on this stack.
+     */
+    void (*abort_outstanding_op)(void);
 #endif
 };
 
@@ -97,6 +115,14 @@ typedef struct {
      * handling a blocking request.
      */
     struct usb_processing* blocking_ctx;
+    /**
+     * Timeout counter. This is increased every 100ms by a timer,
+     * and is reset to 0 every time a new packet is send to one of the
+     * underlying stacks. When the timeout counter becomes greater then
+     * USB_OUTSTANDING_OP_TIMEOUT_TICKS, any outstanding operation is aborted
+     * and the USB stack is forcefully unlocked.
+     */
+    uint16_t timeout_counter;
 #endif
 } usb_processing_state_t;
 
@@ -266,6 +292,8 @@ static void _usb_arbitrate_packet(struct usb_processing* ctx, const Packet* in_p
         _enqueue_frames(ctx, &out_packet);
     } else {
         _usb_execute_packet(ctx, in_packet);
+        /* New packet processed: reset the watchdog timeout. */
+        _usb_state.timeout_counter = 0;
     }
 }
 #endif
@@ -291,6 +319,29 @@ static void _usb_consume_incoming_packets(struct usb_processing* ctx)
     _usb_processing_drop_received(ctx);
 }
 
+#if !defined(BOOTLOADER)
+/**
+ * Check if the lock timer has expired for this context.
+ * If it has, call the abort_outstanding_op function and unlock
+ * the USB stack.
+ *
+ * @param ctx Context to check.
+ */
+static void _check_lock_timeout(struct usb_processing* ctx)
+{
+    if (_usb_state.blocking_ctx != ctx) {
+        return;
+    }
+    if (_usb_state.timeout_counter > USB_OUTSTANDING_OP_TIMEOUT_TICKS) {
+        if (!ctx->abort_outstanding_op) {
+            Abort("abort_outstanding_op is NULL.");
+        }
+        ctx->abort_outstanding_op();
+        usb_processing_unlock();
+    }
+}
+#endif
+
 void usb_processing_process(struct usb_processing* ctx)
 {
 #if APP_U2F == 1
@@ -310,6 +361,13 @@ void usb_processing_process(struct usb_processing* ctx)
     if (ctx->send != NULL) {
         ctx->send();
     }
+#if !defined(BOOTLOADER)
+    /*
+     * If we've been locked for too much time, it's time
+     * to forcefully close the offending operation.
+     */
+    _check_lock_timeout(ctx);
+#endif
 }
 
 #if APP_U2F == 1
@@ -326,6 +384,32 @@ struct usb_processing* usb_processing_hww(void)
     return &usb_processing;
 }
 
+#if !defined(BOOTLOADER) && !defined(TESTING)
+/**
+ * Callback invoked every 100ms from interrupt space.
+ *
+ * Increments the realtime counter (until it saturates).
+ */
+static void _timer_cb(const struct timer_task* const timer_task)
+{
+    (void)timer_task;
+    if (_usb_state.timeout_counter != (uint16_t)-1) {
+        _usb_state.timeout_counter++;
+    }
+}
+
+static void _register_timer(void)
+{
+    static struct timer_task Timer_task;
+    Timer_task.interval = USB_TIMER_TICK_PERIOD_MS;
+    Timer_task.cb = _timer_cb;
+    Timer_task.mode = TIMER_TASK_REPEAT;
+    timer_stop(&TIMER_0);
+    timer_add_task(&TIMER_0, &Timer_task);
+    timer_start(&TIMER_0);
+}
+#endif
+
 void usb_processing_init(void)
 {
 #if APP_U2F == 1
@@ -336,11 +420,13 @@ void usb_processing_init(void)
     usb_processing_u2f()->manage_invalid_endpoint = u2f_invalid_endpoint;
     usb_processing_u2f()->can_request_unblock = u2f_blocking_request_can_go_through;
     usb_processing_u2f()->create_blocked_req_error = u2f_blocked_req_error;
+    usb_processing_u2f()->abort_outstanding_op = u2f_abort_outstanding_op;
 #endif
     usb_processing_hww()->out_queue = queue_hww_queue;
 #if !defined(BOOTLOADER)
     usb_processing_hww()->can_request_unblock = hww_blocking_request_can_go_through;
     usb_processing_hww()->create_blocked_req_error = hww_blocked_req_error;
+    usb_processing_hww()->abort_outstanding_op = hww_abort_outstanding_op;
 #endif
 #if PLATFORM_BITBOXBASE == 1
     queue_init(queue_hww_queue(), 1);
@@ -352,6 +438,9 @@ void usb_processing_init(void)
     usb_processing_hww()->manage_invalid_endpoint = usb_invalid_endpoint;
 #endif
     usb_processing_hww()->has_packet = false;
+#if !defined(BOOTLOADER) && !defined(TESTING)
+    _register_timer();
+#endif
 }
 
 #if !defined(BOOTLOADER)
@@ -361,6 +450,11 @@ void usb_processing_lock(struct usb_processing* ctx)
         Abort("Tried to lock the USB stack while locked.");
     }
     _usb_state.blocking_ctx = ctx;
+}
+
+void usb_processing_timeout_reset(void)
+{
+    _usb_state.timeout_counter = 0;
 }
 
 void usb_processing_unlock(void)

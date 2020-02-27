@@ -23,7 +23,16 @@ workflow_t* workflow_stack_top(void);
 
 void workflow_stack_start_workflow(workflow_t* workflow);
 
+/**
+ * Stops the currently active workflow.
+ * This is only supposed to be called by the active workflow itself.
+ */
 void workflow_stack_stop_workflow(void);
+
+/**
+ * Forcefully closes the given workflow and any sub-workflow it has spawned.
+ */
+void workflow_stack_abort_workflow(workflow_t* wf);
 
 void workflow_stack_clear(void);
 

@@ -32,16 +32,18 @@ static const app_t _apps[] = {
     },
 };
 
-struct {
+static struct {
     /** Type of outstanding async operation. */
     enum u2f_app_confirm_t outstanding_confirm;
+    /** Confirmation workflow. */
+    workflow_t* confirm_wf;
     /** App ID of the outstanding async operation. */
     uint8_t app_id[32];
     /** Whether the outstanding async operation has been confirmed. */
     bool confirmed;
     /** Whether the confirmation step has finished. */
     bool confirmed_done;
-} _state;
+} _state = {0};
 
 // appid: 32 byte appid
 // out: string,
@@ -102,7 +104,8 @@ void u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
     _state.confirmed_done = false;
     _state.outstanding_confirm = type;
     memcpy(_state.app_id, app_id, 32);
-    workflow_stack_start_workflow(workflow_confirm(&params, _confirm_cb, NULL));
+    _state.confirm_wf = workflow_confirm(&params, _confirm_cb, NULL);
+    workflow_stack_start_workflow(_state.confirm_wf);
 }
 
 async_op_result_t u2f_app_confirm_retry(enum u2f_app_confirm_t type, const uint8_t* app_id)
@@ -114,5 +117,16 @@ async_op_result_t u2f_app_confirm_retry(enum u2f_app_confirm_t type, const uint8
         return ASYNC_OP_NOT_READY;
     }
     _state.outstanding_confirm = U2F_APP_NONE;
+    _state.confirm_wf = NULL;
     return _state.confirmed ? ASYNC_OP_TRUE : ASYNC_OP_FALSE;
+}
+
+void u2f_app_confirm_abort(void)
+{
+    if (_state.outstanding_confirm == U2F_APP_NONE || !_state.confirm_wf) {
+        Abort("Invalid abort call in U2F app.");
+    }
+    workflow_stack_abort_workflow(_state.confirm_wf);
+    _state.outstanding_confirm = U2F_APP_NONE;
+    _state.confirm_wf = NULL;
 }

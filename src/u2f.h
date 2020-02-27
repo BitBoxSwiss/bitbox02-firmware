@@ -43,4 +43,9 @@ void u2f_blocked_req_error(Packet* out_packet, const Packet* in_packet);
  */
 void u2f_process(void);
 
+/**
+ * Called to abort any operation that blocked the U2F stack.
+ */
+void u2f_abort_outstanding_op(void);
+
 #endif

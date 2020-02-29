@@ -21,6 +21,7 @@ import "bitbox02_system.proto";
 import "bitboxbase.proto";
 import "btc.proto";
 import "eth.proto";
+import "keystore.proto";
 import "mnemonic.proto";
 import "random_number.proto";
 import "system.proto";
@@ -62,6 +63,7 @@ message Request {
         BitBoxBaseRequest bitboxbase = 23;
         RootFingerprintRequest fingerprint = 24;
         BTCRequest btc = 25;
+        ElectrumEncryptionKeyRequest electrum_encryption_key = 26;
     }
 }
 
@@ -80,5 +82,6 @@ message Response {
         ETHResponse eth = 11;
         RootFingerprintResponse fingerprint = 12;
         BTCResponse btc = 13;
+        ElectrumEncryptionKeyResponse electrum_encryption_key = 14;
     }
 }

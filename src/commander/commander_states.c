@@ -54,6 +54,7 @@ static commander_states_endpoint_id _commands_seeded[] = {
 static commander_states_endpoint_id _commands_initialized[] = {
     Request_random_number_tag,
     Request_fingerprint_tag,
+    Request_electrum_encryption_key_tag,
     Request_btc_pub_tag,
     Request_btc_sign_init_tag,
     Request_btc_tag,

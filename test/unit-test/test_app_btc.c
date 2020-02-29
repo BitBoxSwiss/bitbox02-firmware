@@ -261,6 +261,46 @@ static void _test_app_btc_xpub(void** state)
     }
 }
 
+static void _test_app_btc_electrum_encryption_key(void** satte)
+{
+#define ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE (4541509 + BIP32_INITIAL_HARDENED_CHILD)
+#define ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO (1112098098 + BIP32_INITIAL_HARDENED_CHILD)
+
+    uint32_t keypath[2] = {ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE,
+                           ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO};
+
+    char out[XPUB_ENCODED_LEN] = {0};
+    expect_memory(__wrap_keystore_get_xpub, keypath, keypath, 2);
+    expect_value(__wrap_keystore_get_xpub, keypath_len, sizeof(keypath) / sizeof(uint32_t));
+    will_return(__wrap_keystore_get_xpub, true);
+
+    expect_value(__wrap_btc_common_encode_xpub, out_len, sizeof(out));
+    will_return(__wrap_btc_common_encode_xpub, true);
+
+    bool result = app_btc_electrum_encryption_key(
+        keypath, sizeof(keypath) / sizeof(uint32_t), out, sizeof(out));
+    assert_true(result);
+    assert_string_equal(
+        out,
+        "xpub661MyMwAqRbcGEcQZ28iRtgTzt7XrU6vhnLA8N6gCaosif31P7ZgTvsWsHfwH2HdKFayQhduuNE9A4uRWeqdPZ"
+        "ukYPmV7KHQY2VpRNV7PiJ");
+
+    uint32_t keypath_invalid[2] = {ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE, 0};
+    result = app_btc_electrum_encryption_key(
+        keypath_invalid, sizeof(keypath_invalid) / sizeof(uint32_t), out, sizeof(out));
+    assert_false(result);
+
+    uint32_t keypath_invalid2[2] = {0, ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO};
+    result = app_btc_electrum_encryption_key(
+        keypath_invalid, sizeof(keypath_invalid2) / sizeof(uint32_t), out, sizeof(out));
+    assert_false(result);
+
+    uint32_t keypath_invalid3[1];
+    result = app_btc_electrum_encryption_key(
+        keypath_invalid2, sizeof(keypath_invalid3) / sizeof(uint32_t), out, sizeof(out));
+    assert_false(result);
+}
+
 static void _test_app_btc_address_simple(void** state)
 {
     { // invalid coin
@@ -318,6 +358,7 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_app_btc_xpub),
+        cmocka_unit_test(_test_app_btc_electrum_encryption_key),
         cmocka_unit_test(_test_app_btc_address_simple),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);

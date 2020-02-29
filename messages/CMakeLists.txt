@@ -13,6 +13,7 @@ set(PROTO_FILES
   random_number.proto
   system.proto
   perform_attestation.proto
+  keystore.proto
 )
 string(REGEX REPLACE "\.proto" ".pb.c" OUTPUT_SOURCES "${PROTO_FILES}")
 string(REGEX REPLACE "\.proto" ".pb.h" OUTPUT_HEADERS "${PROTO_FILES}")

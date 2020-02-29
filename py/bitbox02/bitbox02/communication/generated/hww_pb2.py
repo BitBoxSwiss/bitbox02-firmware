@@ -19,6 +19,7 @@ from . import bitbox02_system_pb2 as bitbox02__system__pb2
 from . import bitboxbase_pb2 as bitboxbase__pb2
 from . import btc_pb2 as btc__pb2
 from . import eth_pb2 as eth__pb2
+from . import keystore_pb2 as keystore__pb2
 from . import mnemonic_pb2 as mnemonic__pb2
 from . import random_number_pb2 as random__number__pb2
 from . import system_pb2 as system__pb2
@@ -29,9 +30,9 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='hww.proto',
   package='',
   syntax='proto3',
-  serialized_pb=_b('\n\thww.proto\x1a\x0c\x63ommon.proto\x1a\x15\x62\x61\x63kup_commands.proto\x1a\x15\x62itbox02_system.proto\x1a\x10\x62itboxbase.proto\x1a\tbtc.proto\x1a\teth.proto\x1a\x0emnemonic.proto\x1a\x13random_number.proto\x1a\x0csystem.proto\x1a\x19perform_attestation.proto\"&\n\x05\x45rror\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"\t\n\x07Success\"\xa2\t\n\x07Request\x12-\n\rrandom_number\x18\x01 \x01(\x0b\x32\x14.RandomNumberRequestH\x00\x12,\n\x0b\x64\x65vice_name\x18\x02 \x01(\x0b\x32\x15.SetDeviceNameRequestH\x00\x12\x34\n\x0f\x64\x65vice_language\x18\x03 \x01(\x0b\x32\x19.SetDeviceLanguageRequestH\x00\x12)\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32\x12.DeviceInfoRequestH\x00\x12+\n\x0cset_password\x18\x05 \x01(\x0b\x32\x13.SetPasswordRequestH\x00\x12-\n\rcreate_backup\x18\x06 \x01(\x0b\x32\x14.CreateBackupRequestH\x00\x12-\n\rshow_mnemonic\x18\x07 \x01(\x0b\x32\x14.ShowMnemonicRequestH\x00\x12!\n\x07\x62tc_pub\x18\x08 \x01(\x0b\x32\x0e.BTCPubRequestH\x00\x12,\n\rbtc_sign_init\x18\t \x01(\x0b\x32\x13.BTCSignInitRequestH\x00\x12.\n\x0e\x62tc_sign_input\x18\n \x01(\x0b\x32\x14.BTCSignInputRequestH\x00\x12\x30\n\x0f\x62tc_sign_output\x18\x0b \x01(\x0b\x32\x15.BTCSignOutputRequestH\x00\x12:\n\x14insert_remove_sdcard\x18\x0c \x01(\x0b\x32\x1a.InsertRemoveSDCardRequestH\x00\x12+\n\x0c\x63heck_sdcard\x18\r \x01(\x0b\x32\x13.CheckSDCardRequestH\x00\x12O\n\x1fset_mnemonic_passphrase_enabled\x18\x0e \x01(\x0b\x32$.SetMnemonicPassphraseEnabledRequestH\x00\x12+\n\x0clist_backups\x18\x0f \x01(\x0b\x32\x13.ListBackupsRequestH\x00\x12/\n\x0erestore_backup\x18\x10 \x01(\x0b\x32\x15.RestoreBackupRequestH\x00\x12\x39\n\x13perform_attestation\x18\x11 \x01(\x0b\x32\x1a.PerformAttestationRequestH\x00\x12 \n\x06reboot\x18\x12 \x01(\x0b\x32\x0e.RebootRequestH\x00\x12+\n\x0c\x63heck_backup\x18\x13 \x01(\x0b\x32\x13.CheckBackupRequestH\x00\x12\x1a\n\x03\x65th\x18\x14 \x01(\x0b\x32\x0b.ETHRequestH\x00\x12\x1e\n\x05reset\x18\x15 \x01(\x0b\x32\r.ResetRequestH\x00\x12<\n\x15restore_from_mnemonic\x18\x16 \x01(\x0b\x32\x1b.RestoreFromMnemonicRequestH\x00\x12(\n\nbitboxbase\x18\x17 \x01(\x0b\x32\x12.BitBoxBaseRequestH\x00\x12.\n\x0b\x66ingerprint\x18\x18 \x01(\x0b\x32\x17.RootFingerprintRequestH\x00\x12\x1a\n\x03\x62tc\x18\x19 \x01(\x0b\x32\x0b.BTCRequestH\x00\x42\t\n\x07request\"\xa5\x04\n\x08Response\x12\x1b\n\x07success\x18\x01 \x01(\x0b\x32\x08.SuccessH\x00\x12\x17\n\x05\x65rror\x18\x02 \x01(\x0b\x32\x06.ErrorH\x00\x12.\n\rrandom_number\x18\x03 \x01(\x0b\x32\x15.RandomNumberResponseH\x00\x12*\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32\x13.DeviceInfoResponseH\x00\x12\x1b\n\x03pub\x18\x05 \x01(\x0b\x32\x0c.PubResponseH\x00\x12-\n\rbtc_sign_next\x18\x06 \x01(\x0b\x32\x14.BTCSignNextResponseH\x00\x12,\n\x0clist_backups\x18\x07 \x01(\x0b\x32\x14.ListBackupsResponseH\x00\x12,\n\x0c\x63heck_backup\x18\x08 \x01(\x0b\x32\x14.CheckBackupResponseH\x00\x12:\n\x13perform_attestation\x18\t \x01(\x0b\x32\x1b.PerformAttestationResponseH\x00\x12,\n\x0c\x63heck_sdcard\x18\n \x01(\x0b\x32\x14.CheckSDCardResponseH\x00\x12\x1b\n\x03\x65th\x18\x0b \x01(\x0b\x32\x0c.ETHResponseH\x00\x12/\n\x0b\x66ingerprint\x18\x0c \x01(\x0b\x32\x18.RootFingerprintResponseH\x00\x12\x1b\n\x03\x62tc\x18\r \x01(\x0b\x32\x0c.BTCResponseH\x00\x42\n\n\x08responseb\x06proto3')
+  serialized_pb=_b('\n\thww.proto\x1a\x0c\x63ommon.proto\x1a\x15\x62\x61\x63kup_commands.proto\x1a\x15\x62itbox02_system.proto\x1a\x10\x62itboxbase.proto\x1a\tbtc.proto\x1a\teth.proto\x1a\x0ekeystore.proto\x1a\x0emnemonic.proto\x1a\x13random_number.proto\x1a\x0csystem.proto\x1a\x19perform_attestation.proto\"&\n\x05\x45rror\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"\t\n\x07Success\"\xe4\t\n\x07Request\x12-\n\rrandom_number\x18\x01 \x01(\x0b\x32\x14.RandomNumberRequestH\x00\x12,\n\x0b\x64\x65vice_name\x18\x02 \x01(\x0b\x32\x15.SetDeviceNameRequestH\x00\x12\x34\n\x0f\x64\x65vice_language\x18\x03 \x01(\x0b\x32\x19.SetDeviceLanguageRequestH\x00\x12)\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32\x12.DeviceInfoRequestH\x00\x12+\n\x0cset_password\x18\x05 \x01(\x0b\x32\x13.SetPasswordRequestH\x00\x12-\n\rcreate_backup\x18\x06 \x01(\x0b\x32\x14.CreateBackupRequestH\x00\x12-\n\rshow_mnemonic\x18\x07 \x01(\x0b\x32\x14.ShowMnemonicRequestH\x00\x12!\n\x07\x62tc_pub\x18\x08 \x01(\x0b\x32\x0e.BTCPubRequestH\x00\x12,\n\rbtc_sign_init\x18\t \x01(\x0b\x32\x13.BTCSignInitRequestH\x00\x12.\n\x0e\x62tc_sign_input\x18\n \x01(\x0b\x32\x14.BTCSignInputRequestH\x00\x12\x30\n\x0f\x62tc_sign_output\x18\x0b \x01(\x0b\x32\x15.BTCSignOutputRequestH\x00\x12:\n\x14insert_remove_sdcard\x18\x0c \x01(\x0b\x32\x1a.InsertRemoveSDCardRequestH\x00\x12+\n\x0c\x63heck_sdcard\x18\r \x01(\x0b\x32\x13.CheckSDCardRequestH\x00\x12O\n\x1fset_mnemonic_passphrase_enabled\x18\x0e \x01(\x0b\x32$.SetMnemonicPassphraseEnabledRequestH\x00\x12+\n\x0clist_backups\x18\x0f \x01(\x0b\x32\x13.ListBackupsRequestH\x00\x12/\n\x0erestore_backup\x18\x10 \x01(\x0b\x32\x15.RestoreBackupRequestH\x00\x12\x39\n\x13perform_attestation\x18\x11 \x01(\x0b\x32\x1a.PerformAttestationRequestH\x00\x12 \n\x06reboot\x18\x12 \x01(\x0b\x32\x0e.RebootRequestH\x00\x12+\n\x0c\x63heck_backup\x18\x13 \x01(\x0b\x32\x13.CheckBackupRequestH\x00\x12\x1a\n\x03\x65th\x18\x14 \x01(\x0b\x32\x0b.ETHRequestH\x00\x12\x1e\n\x05reset\x18\x15 \x01(\x0b\x32\r.ResetRequestH\x00\x12<\n\x15restore_from_mnemonic\x18\x16 \x01(\x0b\x32\x1b.RestoreFromMnemonicRequestH\x00\x12(\n\nbitboxbase\x18\x17 \x01(\x0b\x32\x12.BitBoxBaseRequestH\x00\x12.\n\x0b\x66ingerprint\x18\x18 \x01(\x0b\x32\x17.RootFingerprintRequestH\x00\x12\x1a\n\x03\x62tc\x18\x19 \x01(\x0b\x32\x0b.BTCRequestH\x00\x12@\n\x17\x65lectrum_encryption_key\x18\x1a \x01(\x0b\x32\x1d.ElectrumEncryptionKeyRequestH\x00\x42\t\n\x07request\"\xe8\x04\n\x08Response\x12\x1b\n\x07success\x18\x01 \x01(\x0b\x32\x08.SuccessH\x00\x12\x17\n\x05\x65rror\x18\x02 \x01(\x0b\x32\x06.ErrorH\x00\x12.\n\rrandom_number\x18\x03 \x01(\x0b\x32\x15.RandomNumberResponseH\x00\x12*\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32\x13.DeviceInfoResponseH\x00\x12\x1b\n\x03pub\x18\x05 \x01(\x0b\x32\x0c.PubResponseH\x00\x12-\n\rbtc_sign_next\x18\x06 \x01(\x0b\x32\x14.BTCSignNextResponseH\x00\x12,\n\x0clist_backups\x18\x07 \x01(\x0b\x32\x14.ListBackupsResponseH\x00\x12,\n\x0c\x63heck_backup\x18\x08 \x01(\x0b\x32\x14.CheckBackupResponseH\x00\x12:\n\x13perform_attestation\x18\t \x01(\x0b\x32\x1b.PerformAttestationResponseH\x00\x12,\n\x0c\x63heck_sdcard\x18\n \x01(\x0b\x32\x14.CheckSDCardResponseH\x00\x12\x1b\n\x03\x65th\x18\x0b \x01(\x0b\x32\x0c.ETHResponseH\x00\x12/\n\x0b\x66ingerprint\x18\x0c \x01(\x0b\x32\x18.RootFingerprintResponseH\x00\x12\x1b\n\x03\x62tc\x18\r \x01(\x0b\x32\x0c.BTCResponseH\x00\x12\x41\n\x17\x65lectrum_encryption_key\x18\x0e \x01(\x0b\x32\x1e.ElectrumEncryptionKeyResponseH\x00\x42\n\n\x08responseb\x06proto3')
   ,
-  dependencies=[common__pb2.DESCRIPTOR,backup__commands__pb2.DESCRIPTOR,bitbox02__system__pb2.DESCRIPTOR,bitboxbase__pb2.DESCRIPTOR,btc__pb2.DESCRIPTOR,eth__pb2.DESCRIPTOR,mnemonic__pb2.DESCRIPTOR,random__number__pb2.DESCRIPTOR,system__pb2.DESCRIPTOR,perform__attestation__pb2.DESCRIPTOR,])
+  dependencies=[common__pb2.DESCRIPTOR,backup__commands__pb2.DESCRIPTOR,bitbox02__system__pb2.DESCRIPTOR,bitboxbase__pb2.DESCRIPTOR,btc__pb2.DESCRIPTOR,eth__pb2.DESCRIPTOR,keystore__pb2.DESCRIPTOR,mnemonic__pb2.DESCRIPTOR,random__number__pb2.DESCRIPTOR,system__pb2.DESCRIPTOR,perform__attestation__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 
@@ -70,8 +71,8 @@ _ERROR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=191,
-  serialized_end=229,
+  serialized_start=207,
+  serialized_end=245,
 )
 
 
@@ -94,8 +95,8 @@ _SUCCESS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=231,
-  serialized_end=240,
+  serialized_start=247,
+  serialized_end=256,
 )
 
 
@@ -281,6 +282,13 @@ _REQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='electrum_encryption_key', full_name='Request.electrum_encryption_key', index=25,
+      number=26, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -296,8 +304,8 @@ _REQUEST = _descriptor.Descriptor(
       name='request', full_name='Request.request',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=243,
-  serialized_end=1429,
+  serialized_start=259,
+  serialized_end=1511,
 )
 
 
@@ -399,6 +407,13 @@ _RESPONSE = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='electrum_encryption_key', full_name='Response.electrum_encryption_key', index=13,
+      number=14, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -414,8 +429,8 @@ _RESPONSE = _descriptor.Descriptor(
       name='response', full_name='Response.response',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1432,
-  serialized_end=1981,
+  serialized_start=1514,
+  serialized_end=2130,
 )
 
 _REQUEST.fields_by_name['random_number'].message_type = random__number__pb2._RANDOMNUMBERREQUEST
@@ -443,6 +458,7 @@ _REQUEST.fields_by_name['restore_from_mnemonic'].message_type = mnemonic__pb2._R
 _REQUEST.fields_by_name['bitboxbase'].message_type = bitboxbase__pb2._BITBOXBASEREQUEST
 _REQUEST.fields_by_name['fingerprint'].message_type = common__pb2._ROOTFINGERPRINTREQUEST
 _REQUEST.fields_by_name['btc'].message_type = btc__pb2._BTCREQUEST
+_REQUEST.fields_by_name['electrum_encryption_key'].message_type = keystore__pb2._ELECTRUMENCRYPTIONKEYREQUEST
 _REQUEST.oneofs_by_name['request'].fields.append(
   _REQUEST.fields_by_name['random_number'])
 _REQUEST.fields_by_name['random_number'].containing_oneof = _REQUEST.oneofs_by_name['request']
@@ -518,6 +534,9 @@ _REQUEST.fields_by_name['fingerprint'].containing_oneof = _REQUEST.oneofs_by_nam
 _REQUEST.oneofs_by_name['request'].fields.append(
   _REQUEST.fields_by_name['btc'])
 _REQUEST.fields_by_name['btc'].containing_oneof = _REQUEST.oneofs_by_name['request']
+_REQUEST.oneofs_by_name['request'].fields.append(
+  _REQUEST.fields_by_name['electrum_encryption_key'])
+_REQUEST.fields_by_name['electrum_encryption_key'].containing_oneof = _REQUEST.oneofs_by_name['request']
 _RESPONSE.fields_by_name['success'].message_type = _SUCCESS
 _RESPONSE.fields_by_name['error'].message_type = _ERROR
 _RESPONSE.fields_by_name['random_number'].message_type = random__number__pb2._RANDOMNUMBERRESPONSE
@@ -531,6 +550,7 @@ _RESPONSE.fields_by_name['check_sdcard'].message_type = bitbox02__system__pb2._C
 _RESPONSE.fields_by_name['eth'].message_type = eth__pb2._ETHRESPONSE
 _RESPONSE.fields_by_name['fingerprint'].message_type = common__pb2._ROOTFINGERPRINTRESPONSE
 _RESPONSE.fields_by_name['btc'].message_type = btc__pb2._BTCRESPONSE
+_RESPONSE.fields_by_name['electrum_encryption_key'].message_type = keystore__pb2._ELECTRUMENCRYPTIONKEYRESPONSE
 _RESPONSE.oneofs_by_name['response'].fields.append(
   _RESPONSE.fields_by_name['success'])
 _RESPONSE.fields_by_name['success'].containing_oneof = _RESPONSE.oneofs_by_name['response']
@@ -570,6 +590,9 @@ _RESPONSE.fields_by_name['fingerprint'].containing_oneof = _RESPONSE.oneofs_by_n
 _RESPONSE.oneofs_by_name['response'].fields.append(
   _RESPONSE.fields_by_name['btc'])
 _RESPONSE.fields_by_name['btc'].containing_oneof = _RESPONSE.oneofs_by_name['response']
+_RESPONSE.oneofs_by_name['response'].fields.append(
+  _RESPONSE.fields_by_name['electrum_encryption_key'])
+_RESPONSE.fields_by_name['electrum_encryption_key'].containing_oneof = _RESPONSE.oneofs_by_name['response']
 DESCRIPTOR.message_types_by_name['Error'] = _ERROR
 DESCRIPTOR.message_types_by_name['Success'] = _SUCCESS
 DESCRIPTOR.message_types_by_name['Request'] = _REQUEST

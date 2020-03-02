@@ -41,7 +41,9 @@ static void _hash_header(
         if (ctx != NULL) {
             uint8_t byte = large_tag + 2;
             rhash_sha3_update(ctx, &byte, 1);
-            rhash_sha3_update(ctx, (const uint8_t*)&len, 2);
+            // big endian serialization of 2-bytes `len`.
+            rhash_sha3_update(ctx, (const uint8_t*)&len + 1, 1);
+            rhash_sha3_update(ctx, (const uint8_t*)&len, 1);
         }
         if (encoded_len_out != NULL) {
             *encoded_len_out += 3;

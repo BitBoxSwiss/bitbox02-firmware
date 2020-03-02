@@ -19,6 +19,7 @@
 #include <hardfault.h>
 #include <touch/gestures.h>
 #include <ui/fonts/password_9X9.h>
+#include <ui/fonts/password_11X12.h>
 #include <ui/ui_util.h>
 #include <util.h>
 
@@ -143,6 +144,9 @@ static void _render(component_t* component)
 
     // Render
     UG_FontSelect(_font);
+    if(data->in_progress) {
+        UG_FontSelect(&font_password_11X12);
+    }
     for (size_t idx = 0; idx < MAX_CHARS; idx++) {
         _element_t* element = &data->elements[idx];
         if (element->character == '\0') {

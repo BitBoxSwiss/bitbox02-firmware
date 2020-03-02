@@ -37,6 +37,7 @@ try:
     from bitbox02.communication.generated import random_number_pb2 as random_number
     from bitbox02.communication.generated import backup_commands_pb2 as backup
     from bitbox02.communication.generated import common_pb2 as common
+    from bitbox02.communication.generated import keystore_pb2 as keystore
 except ModuleNotFoundError:
     print("Run `make py` to generate the protobuf messages")
     sys.exit()
@@ -464,6 +465,17 @@ class BitBox02(BitBoxCommonAPI):
         request.fingerprint.CopyFrom(common.RootFingerprintRequest())
         response = self._msg_query(request, expected_response="fingerprint")
         return response.fingerprint.fingerprint
+
+    def electrum_encryption_key(self, keypath: List[int]) -> str:
+        """
+        This call fetches the xpub used for the electrum wallet encryption
+        """
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.electrum_encryption_key.CopyFrom(
+            keystore.ElectrumEncryptionKeyRequest(keypath=keypath)
+        )
+        return self._msg_query(request).electrum_encryption_key.key
 
     def enable_mnemonic_passphrase(self) -> None:
         """

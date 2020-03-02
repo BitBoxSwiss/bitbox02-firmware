@@ -196,6 +196,14 @@ class SendMessage:
         except UserAbortException:
             eprint("Aborted by user")
 
+    def _get_electrum_encryption_key(self) -> None:
+        print(
+            "Electrum wallet encryption xpub at keypath m/4541509'/1112098098':",
+            self._device.electrum_encryption_key(
+                keypath=[4541509 + HARDENED, 1112098098 + HARDENED]
+            ),
+        )
+
     def _btc_address(self) -> None:
         def address(display: bool) -> str:
             # pylint: disable=no-member
@@ -459,6 +467,7 @@ class SendMessage:
             ("Retrieve Ethereum address", self._display_eth_address),
             ("Sign Ethereum tx", self._sign_eth_tx),
             ("Sign Ethereum Message", self._sign_eth_message),
+            ("Show Electrum wallet encryption key", self._get_electrum_encryption_key),
             ("Reset Device", self._reset_device),
         )
         choice = ask_user(choices)

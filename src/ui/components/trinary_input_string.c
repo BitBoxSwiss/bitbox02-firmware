@@ -141,7 +141,7 @@ static void _render(component_t* component)
     bool confirm_gesture_active =
         data->can_confirm && data->longtouch && confirm_gesture_is_active(data->confirm_component);
     bool show_title =
-        data->string_index == 0 && !trinary_input_char_in_progress(data->trinary_char_component);
+        data->string_index == 0 && !trinary_input_char_in_progress(data->trinary_char_component) && !confirm_gesture_active;
 
     UG_S16 string_x = data->start_x;
 
@@ -205,7 +205,9 @@ static void _render(component_t* component)
         data->confirm_component->f->render(data->confirm_component);
     }
     if (!confirm_gesture_active) {
-        data->left_arrow_component->f->render(data->left_arrow_component);
+        if(data->string_index != 0 || trinary_input_char_in_progress(data->trinary_char_component)) {
+            data->left_arrow_component->f->render(data->left_arrow_component);
+        }
         if (data->keyboard_switch_component != NULL) {
             data->keyboard_switch_component->f->render(data->keyboard_switch_component);
         }

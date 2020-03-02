@@ -15,11 +15,33 @@
 #ifndef _HWW_H_
 #define _HWW_H_
 
+#include <stdbool.h>
+
+#include <usb/usb_packet.h>
+
 #define HWW_MSG (HID_VENDOR_FIRST + 0x01) // Hardware wallet command
 
 /**
  * Set up the HWW command.
  */
 void hww_setup(void);
+
+/**
+ * When the HWW stack is blocking the device, checks if
+ * a HWW request is allowed to be processed.
+ * HWW requests that are allowed are OP_CANCEL and OP_RETRY.
+ */
+bool hww_blocking_request_can_go_through(const Packet* in_packet);
+
+/**
+ * Create an output packet used to signal to the client
+ * that a valid HWW request has been received, but it can't be processed
+ * because the device is busy doing something else.
+ *
+ * We respond to any HWW request that can't be processed by the device
+ * with OP_STATUS_FAILURE_DEVICE_BUSY, since we're not technically able
+ * to verify user presence at the moment.
+ */
+void hww_blocked_req_error(Packet* out_packet, const Packet* in_packet);
 
 #endif

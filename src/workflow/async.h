@@ -18,15 +18,6 @@
 #include <stdint.h>
 
 /**
- * @file
- *
- * Whenever an async workflow is started you should call `workflow_async_busy_set` and whenever it
- * completes you call `workflow_async_busy_clear`.
- *
- * The USB stack will drop packets going to the HWW when an async workflow is in progress
- */
-
-/**
  * Returntype for functions that are async
  */
 enum workflow_async_ready {
@@ -34,20 +25,4 @@ enum workflow_async_ready {
     WORKFLOW_ASYNC_NOT_READY,
 };
 
-/**
- * Check the busy flag
- */
-bool workflow_async_busy_check(void);
-
-/**
- * Set the busy flag.
- */
-void workflow_async_busy_set(void);
-
-/**
- * Clear the busy flag
- *
- * Only allowed if the flag is set
- */
-void workflow_async_busy_clear(void);
 #endif

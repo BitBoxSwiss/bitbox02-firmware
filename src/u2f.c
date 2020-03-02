@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <hardfault.h>
 #include <keystore.h>
 #include <memory/memory.h>
 #include <random.h>
@@ -52,7 +53,23 @@ typedef struct {
 #error "Incorrect macro values for u2f"
 #endif
 
-static uint32_t _cid = 0;
+typedef struct {
+    uint32_t cid;
+    /**
+     * Command that is currently executing
+     * (blocking) on the U2F stack.
+     */
+    uint8_t last_cmd;
+    /**
+     * Keeps track of whether there is an outstanding
+     * U2F operation going on in the background.
+     * This is not strictly necessary, but it's useful
+     * to have as a sanity checking mechanism.
+     */
+    bool locked;
+} u2f_state_t;
+
+static u2f_state_t _state = {0};
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpacked"
@@ -78,6 +95,29 @@ typedef struct __attribute__((__packed__)) {
 static component_t* _create_refresh_webpage(void)
 {
     return info_centered_create("Refresh webpage", NULL);
+}
+
+/**
+ * Unlocks the USB stack.
+ */
+static void _unlock(void)
+{
+    usb_processing_unlock();
+    _state.locked = false;
+}
+
+/**
+ * Locks the USB stack to process the given
+ * U2F request.
+ *
+ * @param apdu U2F packet that will own the lock on the USB stack. No other request
+ *             will be processed by the USB stack until this request completes.
+ */
+static void _lock(const USB_APDU* apdu)
+{
+    usb_processing_lock(usb_processing_u2f());
+    _state.locked = true;
+    _state.last_cmd = apdu->ins;
 }
 
 static component_t* _nudge_label = NULL;
@@ -111,7 +151,7 @@ static bool _unlock_or_show_refresh_screen(void)
         // we will call it here, make the user unlock the device and then ask the user to refresh
         // the webpage. (refreshing is only needed for some browsers)
         if (!workflow_unlock()) {
-            workflow_async_busy_clear();
+            _unlock();
             return false;
         }
         refresh_webpage = _create_refresh_webpage();
@@ -129,17 +169,17 @@ static bool _unlock_or_show_refresh_screen(void)
 static uint32_t _next_cid(void)
 {
     do {
-        _cid = (random_byte_mcu() << 0) + (random_byte_mcu() << 8) + (random_byte_mcu() << 16) +
-               (random_byte_mcu() << 24);
-    } while (_cid == 0 || _cid == U2FHID_CID_BROADCAST);
-    return _cid;
+        _state.cid = (random_byte_mcu() << 0) + (random_byte_mcu() << 8) +
+                     (random_byte_mcu() << 16) + (random_byte_mcu() << 24);
+    } while (_state.cid == 0 || _state.cid == U2FHID_CID_BROADCAST);
+    return _state.cid;
 }
 
 static void _fill_message(const uint8_t* data, const uint32_t len, Packet* out_packet)
 {
     util_zero(out_packet->data_addr, sizeof(out_packet->data_addr));
     memcpy(out_packet->data_addr, data, len);
-    out_packet->cid = _cid;
+    out_packet->cid = _state.cid;
     out_packet->cmd = U2FHID_MSG;
     out_packet->len = len;
 }
@@ -288,18 +328,19 @@ static void _register(const USB_APDU* apdu, Packet* out_packet)
     const U2F_REGISTER_REQ* reg_request = (const U2F_REGISTER_REQ*)apdu->data;
 
     if (APDU_LEN(*apdu) != sizeof(U2F_REGISTER_REQ)) {
+        _unlock();
         _error(U2F_SW_WRONG_LENGTH, out_packet);
         return;
     }
 
     if (!memory_is_initialized()) {
         _create_nudge_label();
-        workflow_async_busy_clear();
+        _unlock();
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
 
-    // If it fails to unlock it will call workflow_async_busy_clear
+    // If it fails to unlock it will call _unlock()
     if (!_unlock_or_show_refresh_screen()) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
@@ -315,8 +356,9 @@ static void _register(const USB_APDU* apdu, Packet* out_packet)
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
+    /* No more pending operations for U2F register */
+    _unlock();
     if (!result) {
-        workflow_async_busy_clear();
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
@@ -371,7 +413,6 @@ static void _register(const USB_APDU* apdu, Packet* out_packet)
     size_t len =
         1 /* registerId */ + U2F_EC_POINT_SIZE + 1 /* keyhandleLen */ + kh_cert_sig_len + 2;
     _fill_message(data, len, out_packet);
-    workflow_async_busy_clear();
 }
 
 static void _authenticate(const USB_APDU* apdu, Packet* out_packet)
@@ -391,12 +432,12 @@ static void _authenticate(const USB_APDU* apdu, Packet* out_packet)
 
     if (!memory_is_initialized()) {
         _create_nudge_label();
-        workflow_async_busy_clear();
+        _unlock();
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
 
-    // If it fails to unlock it will call workflow_async_busy_clear
+    // If it fails to unlock it will call _unlock()
     if (!_unlock_or_show_refresh_screen()) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
@@ -427,8 +468,9 @@ static void _authenticate(const USB_APDU* apdu, Packet* out_packet)
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
+    /* No more blocking operations pending for authentication. */
+    _unlock();
     if (!result) {
-        workflow_async_busy_clear();
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
@@ -470,7 +512,6 @@ static void _authenticate(const USB_APDU* apdu, Packet* out_packet)
     memcpy(buf + auth_packet_len, "\x90\x00", 2);
 
     _fill_message(buf, auth_packet_len + 2, out_packet);
-    workflow_async_busy_clear();
 }
 
 static void _cmd_ping(const Packet* in_packet, Packet* out_packet, const size_t max_out_len)
@@ -504,10 +545,6 @@ static void _cmd_wink(const Packet* in_packet, Packet* out_packet, const size_t 
     if (in_packet->len > 0) {
         _error_hid(in_packet->cid, U2FHID_ERR_INVALID_LEN, out_packet);
         return;
-    }
-    // Chromebook chrome sends winks between register/authentication commands
-    if (!workflow_async_busy_check()) {
-        workflow_status_create("U2F wink", true);
     }
 
     util_zero(out_packet->data_addr, sizeof(out_packet->data_addr));
@@ -562,7 +599,7 @@ static void _cmd_msg(const Packet* in_packet, Packet* out_packet, const size_t m
 {
     (void)max_out_len;
     // By default always use the recieved cid
-    _cid = in_packet->cid;
+    _state.cid = in_packet->cid;
 
     const USB_APDU* apdu = (const USB_APDU*)in_packet->data_addr;
 
@@ -577,11 +614,15 @@ static void _cmd_msg(const Packet* in_packet, Packet* out_packet, const size_t m
 
     switch (apdu->ins) {
     case U2F_REGISTER:
-        workflow_async_busy_set();
+        if (!_state.locked) {
+            _lock(apdu);
+        }
         _register(apdu, out_packet);
         break;
     case U2F_AUTHENTICATE:
-        workflow_async_busy_set();
+        if (!_state.locked) {
+            _lock(apdu);
+        }
         _authenticate(apdu, out_packet);
         break;
     case U2F_VERSION:
@@ -591,6 +632,28 @@ static void _cmd_msg(const Packet* in_packet, Packet* out_packet, const size_t m
         _error(U2F_SW_INS_NOT_SUPPORTED, out_packet);
         return;
     }
+}
+
+bool u2f_blocking_request_can_go_through(const Packet* in_packet)
+{
+    if (!_state.locked) {
+        Abort("USB stack thinks we're busy, but we're not.");
+    }
+    /*
+     * Check if this request is the same one we're currently operating on.
+     * For now, this checks the request type and channel ID only.
+     * FUTURE: Maybe check that the key handle is maintained between requests?
+     *         so that when we're asking for confirmation, we ask to confirm
+     *         "a particular key handle" instead of "a particular tab".
+     */
+    const USB_APDU* apdu = (const USB_APDU*)in_packet->data_addr;
+    return apdu->ins == _state.last_cmd && in_packet->cid == _state.cid;
+}
+
+void u2f_blocked_req_error(Packet* out_packet, const Packet* in_packet)
+{
+    (void)in_packet;
+    _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
 }
 
 /**

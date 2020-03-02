@@ -236,6 +236,22 @@ static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_o
     }
 }
 
+bool hww_blocking_request_can_go_through(const Packet* in_packet)
+{
+    if (in_packet->len != 1) {
+        return false;
+    }
+    uint8_t cmd = in_packet->data_addr[0];
+    return cmd == HWW_REQ_CANCEL || cmd == HWW_REQ_RETRY;
+}
+
+void hww_blocked_req_error(Packet* out_packet, const Packet* in_packet)
+{
+    (void)in_packet;
+    out_packet->len = 1;
+    out_packet->data_addr[0] = HWW_RSP_BUSY;
+}
+
 void hww_setup(void)
 {
     const CMD_Callback hww_cmd_callbacks[] = {{HWW_MSG, _msg}};

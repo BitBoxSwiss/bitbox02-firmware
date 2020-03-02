@@ -119,7 +119,7 @@ static component_t* _confirm_transaction_create(
         ui_util_add_sub_component(confirm, label_create_offset(fee, &font_font_a_9X9, CENTER_TOP, 0, 50, confirm));
     }
     if (verify_total) {
-        ui_util_add_sub_component(confirm, label_create_offset("Total", NULL, CENTER_TOP, 0, 10, confirm));
+        ui_util_add_sub_component(confirm, label_create_offset("Total", NULL, CENTER_TOP, 0, 8, confirm));
         ui_util_add_sub_component(confirm, label_create_offset(amount, NULL, CENTER_TOP, 0, 22, confirm));
     } else {
         ui_util_add_sub_component(confirm, label_create_offset(amount, NULL, CENTER_TOP, 0, 17, confirm));

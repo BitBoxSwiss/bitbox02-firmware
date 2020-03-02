@@ -49,7 +49,7 @@ static void _idle_workflow_init_communication(void)
 #endif
     ui_screen_stack_pop();
     ui_screen_stack_cleanup();
-    ui_screen_stack_push(info_centered_create("See the BitBoxApp", NULL));
+    ui_screen_stack_push(info_centered_create("See the\nBitBoxApp", NULL));
 }
 
 static void _idle_workflow_spin(workflow_t* self)

@@ -155,7 +155,7 @@ app_eth_sign_error_t app_eth_verify_standard_transaction(const ETHSignRequest* r
             .display_size = request->data.size,
             .accept_is_nextarrow = true,
         };
-        if (!workflow_confirm(&cparams)) {
+        if (!workflow_confirm_blocking(&cparams)) {
             return APP_ETH_SIGN_ERR_USER_ABORT;
         }
     }

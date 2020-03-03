@@ -14,16 +14,45 @@
 
 #include "firmware_main_loop.h"
 
+#include "hardfault.h"
+#include "hww.h"
+#include "touch/gestures.h"
+#include "u2f.h"
 #include "ui/screen_process.h"
+#include "ui/screen_stack.h"
+#include "ui/workflow_stack.h"
+#include "usb/usb.h"
 #include "usb/usb_processing.h"
+#include "workflow/workflow.h"
 
 void firmware_main_loop(void)
 {
     while (1) {
+        workflow_t* workflow = workflow_stack_top();
+        if (!workflow) {
+            Abort("NULL workflow in main");
+        }
+
         screen_process();
-        usb_processing_process(usb_processing_hww());
+        /* And finally, run the high-level event processing. */
+        if (!workflow->spin) {
+            Abort("NULL workflow spin in main");
+        }
+        workflow->spin(workflow);
+        if (usb_is_enabled()) {
+            /* First, process all the incoming USB traffic. */
+            usb_processing_process(usb_processing_hww());
 #if APP_U2F == 1
-        usb_processing_process(usb_processing_u2f());
+            usb_processing_process(usb_processing_u2f());
 #endif
+            /*
+             * If USB has generated events at the application level,
+             * process them now.
+             */
+            hww_process();
+#if APP_U2F == 1
+            u2f_process();
+#endif
+        }
     }
 }

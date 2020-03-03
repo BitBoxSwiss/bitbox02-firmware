@@ -51,11 +51,11 @@ static bool _get_mnemonic_passphrase(char* passphrase_out)
             .body = "You will be asked to\nvisually confirm your\npassphrase now.",
             .accept_only = true,
         };
-        if (!workflow_confirm(&params)) {
+        if (!workflow_confirm_blocking(&params)) {
             return false;
         }
         bool cancel_forced = false;
-        if (workflow_confirm_scrollable_longtouch(
+        if (workflow_confirm_scrollable_longtouch_blocking(
                 "Confirm", passphrase_out, &font_password_11X12, &cancel_forced)) {
             break;
         }

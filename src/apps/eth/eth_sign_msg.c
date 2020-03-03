@@ -57,7 +57,7 @@ app_eth_sign_error_t app_eth_sign_msg(
             .scrollable = true,
             .accept_is_nextarrow = true,
         };
-        if (!workflow_confirm(&params)) {
+        if (!workflow_confirm_blocking(&params)) {
             return APP_ETH_SIGN_ERR_USER_ABORT;
         }
     }
@@ -95,7 +95,7 @@ app_eth_sign_error_t app_eth_sign_msg(
         params.display_size = request->msg.size;
     }
 
-    if (!workflow_confirm(&params)) {
+    if (!workflow_confirm_blocking(&params)) {
         return APP_ETH_SIGN_ERR_USER_ABORT;
     }
 

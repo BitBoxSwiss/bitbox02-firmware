@@ -22,6 +22,6 @@
  * @param[in] done_callback The callback that is called when the show_logo has been selected.
  * @param[in] timeout Time to display the logo in units of screen refresh counts
  */
-component_t* show_logo_create(void (*done_callback)(void), uint16_t timeout);
+component_t* show_logo_create(void);
 
 #endif

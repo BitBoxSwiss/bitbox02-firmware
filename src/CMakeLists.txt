@@ -39,28 +39,30 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/restore.c
   ${CMAKE_SOURCE_DIR}/src/reset.c
   ${CMAKE_SOURCE_DIR}/src/cipher/cipher.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/backup.c
   ${CMAKE_SOURCE_DIR}/src/workflow/blocking.c
   ${CMAKE_SOURCE_DIR}/src/workflow/cancel.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/workflow.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/trinary_input.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm_time.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/status.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/create_seed.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/idle_workflow.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/pairing.c
   ${CMAKE_SOURCE_DIR}/src/workflow/password.c
   ${CMAKE_SOURCE_DIR}/src/workflow/password_enter.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/create_seed.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/unlock.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/show_mnemonic.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/reboot.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/reset.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/restore.c
   ${CMAKE_SOURCE_DIR}/src/workflow/restore_from_mnemonic.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/pairing.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/sdcard.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/show_mnemonic.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/orientation_screen.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/status.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/trinary_input.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/unlock.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_pub.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_total.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/reboot.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/sdcard.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/backup.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/reset.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/restore.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/workflow.c
   ${CMAKE_SOURCE_DIR}/src/apps/common/bip32.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_common.c
@@ -128,6 +130,7 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_mnemonic.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/ui_images.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_transaction.c
+    ${CMAKE_SOURCE_DIR}/src/ui/workflow_stack.c
 )
 set(DBB-FIRMWARE-UI-SOURCES ${DBB-FIRMWARE-UI-SOURCES} PARENT_SCOPE)
 
@@ -307,7 +310,7 @@ if(CMAKE_CROSSCOMPILING)
       --whitelist-function UG_FontSelect
       --whitelist-function UG_ClearBuffer
       --whitelist-function UG_SendBuffer
-      --whitelist-function workflow_confirm
+      --whitelist-function workflow_confirm_blocking
       --whitelist-function screen_print_debug
       --whitelist-function ui_screen_stack_push
       --whitelist-function ui_screen_stack_pop

@@ -38,4 +38,9 @@ bool u2f_blocking_request_can_go_through(const Packet* in_packet);
  */
 void u2f_blocked_req_error(Packet* out_packet, const Packet* in_packet);
 
+/**
+ * Called at every event loop to manage the U2F stack.
+ */
+void u2f_process(void);
+
 #endif

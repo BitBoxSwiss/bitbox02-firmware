@@ -49,7 +49,9 @@ typedef struct {
  */
 component_t* confirm_create(
     const confirm_params_t* params,
-    void (*confirm_callback)(component_t*),
-    void (*cancel_callback)(component_t*));
+    void (*confirm_callback)(void* param),
+    void* confirm_callback_param,
+    void (*cancel_callback)(void* param),
+    void* cancel_callback_param);
 
 #endif

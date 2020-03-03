@@ -21,8 +21,9 @@
 #include "qtouch.h"
 #include "screen.h"
 #include "ui/screen_stack.h"
+#include "ui/workflow_stack.h"
 #include "util.h"
-#include "workflow/workflow.h"
+#include "workflow/orientation_screen.h"
 
 uint32_t __stack_chk_guard = 0;
 
@@ -38,7 +39,7 @@ int main(void)
     common_main();
     bitbox02_smarteeprom_init();
     traceln("%s", "Device initialized");
-    workflow_start_orientation_screen();
+    workflow_stack_start_workflow(orientation_screen());
     firmware_main_loop();
     return 0;
 }

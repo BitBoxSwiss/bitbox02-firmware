@@ -656,6 +656,11 @@ void u2f_blocked_req_error(Packet* out_packet, const Packet* in_packet)
     _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
 }
 
+void u2f_process(void)
+{
+    /** Nothing to do here. */
+}
+
 /**
  * Set up the U2F commands.
  */

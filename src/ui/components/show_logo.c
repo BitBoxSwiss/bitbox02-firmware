@@ -28,18 +28,10 @@
  */
 typedef struct {
     uint16_t screen_count;
-    uint16_t timeout;
-    void (*done_callback)(void);
 } orientation_data_t;
 
 static void _render(component_t* component)
 {
-    orientation_data_t* data = (orientation_data_t*)component->data;
-    data->screen_count++;
-    if (data->screen_count > data->timeout && data->done_callback != NULL) {
-        data->done_callback();
-        data->done_callback = NULL;
-    }
     ui_util_component_render_subcomponents(component);
 }
 
@@ -56,7 +48,7 @@ static component_functions_t _component_functions = {
 
 /********************************** Create Instance **********************************/
 
-component_t* show_logo_create(void (*done_callback)(void), uint16_t timeout)
+component_t* show_logo_create(void)
 {
     component_t* show_logo = malloc(sizeof(component_t));
     if (!show_logo) {
@@ -67,11 +59,9 @@ component_t* show_logo_create(void (*done_callback)(void), uint16_t timeout)
         Abort("Error: malloc show_logo data");
     }
     memset(data, 0, sizeof(orientation_data_t));
-    memset(show_logo, 0, sizeof(component_t));
+    memset(show_logo, 0, sizeof(*show_logo));
 
-    data->done_callback = done_callback;
     data->screen_count = 0;
-    data->timeout = timeout;
 
     show_logo->data = data;
     show_logo->f = &_component_functions;

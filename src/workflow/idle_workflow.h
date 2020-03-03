@@ -12,25 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "verify_pub.h"
-#include "confirm.h"
+#ifndef __IDLE_WORKFLOW_H
+#define __IDLE_WORKFLOW_H
 
-#include <stddef.h>
-#include <string.h>
+#include "workflow.h"
 
-bool workflow_verify_pub(const char* title, const char* pub)
-{
-    const int buf_len = 128;
-    char buf[buf_len];
-    if (strlen(title) + 1 < buf_len) {
-        memset(buf, 0, buf_len);
-        UG_WrapTitleString(title, buf, 55);
-        title = buf;
-    }
-    const confirm_params_t params = {
-        .title = title,
-        .body = pub,
-        .scrollable = true,
-    };
-    return workflow_confirm_blocking(&params);
-}
+/**
+ * Base "idle" workflow that runs when nothing else is being done on the device.
+ * When started, it will show the logo for a while and then switch
+ * to a screen saying "See the BitBox App".
+ */
+workflow_t* idle_workflow(void);
+
+#endif // __IDLE_WORKFLOW_H

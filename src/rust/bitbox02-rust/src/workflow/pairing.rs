@@ -37,7 +37,7 @@ pub fn create(bytes: &[u8]) -> bool {
     )
     .expect("failed to format");
 
-    bitbox02::workflow_confirm(
+    bitbox02::workflow_confirm_blocking(
         "Base pairing code",
         &formatted,
         unsafe { &bitbox02::font_monogram_5X9 },

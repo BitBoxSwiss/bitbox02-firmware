@@ -38,5 +38,5 @@ bool workflow_confirm_time(uint32_t timestamp, int32_t timezone_offset, bool dat
         .title = title,
         .body = local_timestring,
     };
-    return workflow_confirm(&params);
+    return workflow_confirm_blocking(&params);
 }

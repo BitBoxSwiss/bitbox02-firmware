@@ -24,18 +24,41 @@
 #include <string.h>
 
 typedef struct {
-    void (*confirm_callback)(component_t*);
+    void (*confirm_callback)(void* param);
+    void* confirm_callback_param;
+    void (*cancel_callback)(void* param);
+    void* cancel_callback_param;
 } data_t;
+
+static void _dispatch_confirm(component_t* self)
+{
+    data_t* data = (data_t*)self->data;
+    if (data->confirm_callback) {
+        data->confirm_callback(data->confirm_callback_param);
+        data->confirm_callback = NULL;
+    }
+}
 
 static void _on_event(const event_t* event, component_t* component)
 {
-    (void)component;
     if (event->id == EVENT_CONFIRM) {
-        data_t* data = (data_t*)component->data;
-        if (data->confirm_callback) {
-            data->confirm_callback(NULL);
-            data->confirm_callback = NULL;
-        }
+        _dispatch_confirm(component);
+    }
+}
+
+static void _on_confirm(component_t* component)
+{
+    component_t* self = component->parent;
+    _dispatch_confirm(self);
+}
+
+static void _on_cancel(component_t* component)
+{
+    component_t* self = component->parent;
+    data_t* data = (data_t*)self->data;
+    if (data->cancel_callback) {
+        data->cancel_callback(data->cancel_callback_param);
+        data->cancel_callback = NULL;
     }
 }
 
@@ -54,8 +77,10 @@ static const component_functions_t _component_functions = {
 
 component_t* confirm_create(
     const confirm_params_t* params,
-    void (*confirm_callback)(component_t*),
-    void (*cancel_callback)(component_t*))
+    void (*confirm_callback)(void* param),
+    void* confirm_callback_param,
+    void (*cancel_callback)(void* param),
+    void* cancel_callback_param)
 {
     component_t* confirm = malloc(sizeof(component_t));
     if (!confirm) {
@@ -68,7 +93,10 @@ component_t* confirm_create(
         Abort("Error: malloc confirm data");
     }
     memset(data, 0, sizeof(data_t));
+    data->cancel_callback = cancel_callback;
+    data->cancel_callback_param = cancel_callback_param;
     data->confirm_callback = confirm_callback;
+    data->confirm_callback_param = confirm_callback_param;
 
     confirm->data = data;
     confirm->f = &_component_functions;
@@ -107,7 +135,7 @@ component_t* confirm_create(
     // Create buttons
     if (cancel_callback != NULL && !params->accept_only) {
         ui_util_add_sub_component(
-            confirm, icon_button_create(slider_position, ICON_BUTTON_CROSS, cancel_callback));
+            confirm, icon_button_create(slider_position, ICON_BUTTON_CROSS, _on_cancel));
     }
     if (confirm_callback != NULL) {
         if (params->longtouch) {
@@ -118,7 +146,7 @@ component_t* confirm_create(
                 icon_button_create(
                     slider_position,
                     params->accept_is_nextarrow ? ICON_BUTTON_NEXT : ICON_BUTTON_CHECK,
-                    confirm_callback));
+                    _on_confirm));
         }
     }
 

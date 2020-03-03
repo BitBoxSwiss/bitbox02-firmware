@@ -44,4 +44,11 @@ bool hww_blocking_request_can_go_through(const Packet* in_packet);
  */
 void hww_blocked_req_error(Packet* out_packet, const Packet* in_packet);
 
+/**
+ * Processes the async operations on the HWW USB stack.
+ * This is not doing anything at the moment, as all user operations
+ * are handled with blocking operations upon packet reception.
+ */
+void hww_process(void);
+
 #endif

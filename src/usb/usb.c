@@ -78,6 +78,8 @@ static void _timeout_cb(const struct timer_task* const timer_task)
 }
 #endif
 
+static bool _usb_enabled = false;
+
 int32_t usb_start(void (*on_hww_init)(void))
 {
 #if !defined(TESTING) && APP_U2F == 1
@@ -113,14 +115,21 @@ int32_t usb_start(void (*on_hww_init)(void))
     (void)on_hww_init;
 #endif
     usb_processing_init();
+    _usb_enabled = true;
     return 0;
 }
 
 void usb_stop(void)
 {
+    _usb_enabled = false;
 #if !defined(TESTING)
     usbdc_detach();
     usbdc_stop();
     usbdc_deinit();
 #endif
+}
+
+bool usb_is_enabled(void)
+{
+    return _usb_enabled;
 }

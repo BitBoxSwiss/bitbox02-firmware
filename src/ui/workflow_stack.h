@@ -12,25 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "verify_pub.h"
-#include "confirm.h"
+#ifndef _UI_WORKFLOW_STACK_H_
+#define _UI_WORKFLOW_STACK_H_
 
-#include <stddef.h>
-#include <string.h>
+#include "event.h"
 
-bool workflow_verify_pub(const char* title, const char* pub)
-{
-    const int buf_len = 128;
-    char buf[buf_len];
-    if (strlen(title) + 1 < buf_len) {
-        memset(buf, 0, buf_len);
-        UG_WrapTitleString(title, buf, 55);
-        title = buf;
-    }
-    const confirm_params_t params = {
-        .title = title,
-        .body = pub,
-        .scrollable = true,
-    };
-    return workflow_confirm_blocking(&params);
-}
+#include <workflow/workflow.h>
+
+workflow_t* workflow_stack_top(void);
+
+void workflow_stack_start_workflow(workflow_t* workflow);
+
+void workflow_stack_stop_workflow(void);
+
+void workflow_stack_clear(void);
+
+#endif

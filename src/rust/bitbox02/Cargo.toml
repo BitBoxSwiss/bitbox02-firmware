@@ -5,5 +5,9 @@ authors = ["Shift Cryptosecurity AG <support@shiftcrypto.ch>"]
 edition = "2018"
 description = "Idiomatic rust bindings for C code in bitbox02-firmware"
 
+[profile.dev]
+opt-level = 'z'
+panic = 'abort'
+
 [dependencies]
 bitbox02-sys = {path="../bitbox02-sys"}

@@ -19,10 +19,8 @@ use arrayvec::ArrayString;
 use bitbox02::{delay, ug_clear_buffer, ug_font_select, ug_put_string, ug_send_buffer};
 
 use super::config::Config;
-use crate::c_char;
-use crate::util::FixedCString;
 
-fn write_status<W: Write>(w: &mut W, config: &Config) {
+pub fn write_status<W: Write>(w: &mut W, config: &Config) {
     let _ = write!(w, "hostname: ");
     if let Some(hostname) = &config.hostname {
         let _ = write!(w, "{}", hostname);
@@ -53,11 +51,4 @@ pub fn display_status(config: &Config, duration: Option<Duration>) {
     } else {
         delay(config.default_display_duration)
     }
-}
-
-#[no_mangle]
-pub extern "C" fn bitboxbase_status_get(ptr: *mut c_char, ptr_len: usize) {
-    let buf = unsafe { core::slice::from_raw_parts_mut(ptr, ptr_len) };
-    let mut wrapper = FixedCString::new(buf);
-    write_status(&mut wrapper, unsafe { Config::get_singleton() });
 }

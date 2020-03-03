@@ -5,4 +5,9 @@ authors = ["Shift Cryptosecurity AG <support@shiftcrypto.ch>"]
 edition = "2018"
 description = "Rust bindings for C code in bitbox02-firmware"
 
+[profile.dev]
+opt-level = 'z'
+panic = 'abort'
+
 [dependencies]
+util = {path = "../util"}

@@ -61,6 +61,9 @@ add_library(bitbox
   framework/mock_sd.c
   framework/mock_smarteeprom.c
   framework/mock_securechip.c
+  framework/mock_leds.c
+  framework/mock_delay.c
+  framework/mock_bitboxbase.c
   framework/btc_util.c
 )
 
@@ -79,6 +82,10 @@ target_include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/src
 )
+
+add_dependencies(bitbox bitbox02-rust)
+target_link_libraries(bitbox PRIVATE ${LIBBITBOX02_RUST})
+# target_link_libraries(${LIBBITBOX02_RUST} PRIVATE bitbox)
 
 set_source_files_properties(
   ${DBB-FIRMWARE-PROTOBUF-SOURCES}
@@ -242,7 +249,10 @@ foreach(I RANGE 0 ${TEST_LIST_LEN} 2)
   target_link_libraries(${EXE} PRIVATE
     $<$<BOOL:SANITIZE_ADDRESS>:asan>
     $<$<BOOL:SANITIZE_UNDEFINED>:-fsanitize=undefined>
+    -Wl,--start-group
+    ${LIBBITBOX02_RUST}
     bitbox
+    -Wl,--end-group
     ${CMOCKA_LIBRARIES}
     ${TEST_LINK_ARGS}
   )
@@ -271,7 +281,10 @@ foreach(I RANGE 0 ${U2F_TESTS_LEN} 2)
   target_link_libraries(${EXE} PRIVATE
     $<$<BOOL:SANITIZE_ADDRESS>:asan>
     $<$<BOOL:SANITIZE_UNDEFINED>:-fsanitize=undefined>
+    -Wl,--start-group
+    ${LIBBITBOX02_RUST}
     bitbox
+    -Wl,--end-group
     u2f-util
     ${CMOCKA_LIBRARIES}
     ${TEST_LINK_ARGS}

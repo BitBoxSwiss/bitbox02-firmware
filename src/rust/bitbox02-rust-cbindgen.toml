@@ -1,0 +1,15 @@
+language = "C"
+
+include_guard = "BITBOX02_RUST_H"
+
+include_version = true
+
+[parse]
+# Parse dependencies for types ...
+parse_deps = true
+
+# ... but only parse this crate.
+include = ["bitbox02-rust"]
+
+[export]
+exclude = ["commander_bitboxbase"]

@@ -1,3 +1,4 @@
+#![allow(non_camel_case_types)]
 #[repr(u8)]
 pub enum c_void {
     #[doc(hidden)]

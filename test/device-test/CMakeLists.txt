@@ -56,6 +56,7 @@ target_include_directories(bitbox02-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS
 target_compile_definitions(bitbox02-platform PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 target_compile_definitions(bitbox02-platform PUBLIC "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 add_dependencies(bitbox02-platform generate-protobufs)
+add_dependencies(bitbox02-platform bitbox02-rust)
 # needed to find version.h
 target_include_directories(bitbox02-platform SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
 target_link_libraries(bitbox02-platform
@@ -63,6 +64,7 @@ target_link_libraries(bitbox02-platform
     wallycore
     secp256k1
   PRIVATE
+    ${LIBBITBOX02_RUST}
     fatfs
     noiseprotocol
     cryptoauthlib
@@ -116,6 +118,7 @@ foreach(name ${BB02_TEST_LIST})
   target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_${name}.map\" -T\"${CMAKE_CURRENT_SOURCE_DIR}/device-test.ld\"")
   target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
 
+
   # Since noiseprotocol and wallycore are external projects we need to specify the dependency
   add_dependencies(${elf} noise-c)
   add_dependencies(${elf} libwally-core)
@@ -160,6 +163,7 @@ target_include_directories(bitboxbase-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DI
 target_compile_definitions(bitboxbase-platform PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 target_compile_definitions(bitboxbase-platform PUBLIC "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 add_dependencies(bitboxbase-platform generate-protobufs)
+add_dependencies(bitboxbase-platform bitbox02-rust)
 # needed to find version.h
 target_include_directories(bitboxbase-platform SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
 target_link_libraries(bitboxbase-platform
@@ -167,6 +171,7 @@ target_link_libraries(bitboxbase-platform
     wallycore
     secp256k1
   PRIVATE
+    ${LIBBITBOX02_RUST}
     fatfs
     noiseprotocol
     cryptoauthlib

@@ -147,6 +147,30 @@ USE_RESULT bool keystore_get_xpub(
     struct ext_key* hdkey_neutered_out);
 
 /**
+ * Encode an xpub as a base58 string. For xpubs that need special version bytes, use
+ * btc_common_encode_xpub
+ * @param[in] derived_xpub the xpub to encode.
+ * @param[out] out resulting string, must be at least of size `XPUB_ENCODED_LEN` (including the null
+ * terminator).
+ * @param[in] out_len size of `out`.
+ * @return false on failure, true on success.
+ */
+bool keystore_encode_xpub(const struct ext_key* derived_xpub, char* out, size_t out_len);
+
+/**
+ * Returns the electrum wallet encryption xpub.
+ * @param[in] keypath its value currently needs to be m/4541509'/1112098098'
+ * @param[in] keypath_len number of keypath elements.
+ * @param[out] out will hold the xpub.
+ * @param[in] out_len size of out.
+ */
+bool keystore_electrum_encryption_key(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    char* out,
+    size_t out_len);
+
+/**
  * Safely destroy a xpub or xprv.
  */
 void keystore_zero_xkey(struct ext_key* xkey);

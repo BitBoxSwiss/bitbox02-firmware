@@ -57,8 +57,6 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 
-#include <apps/btc/btc.h>
-
 #define X(a, b, c) b,
 static const int32_t _error_code[] = {COMMANDER_ERROR_TABLE};
 #undef X
@@ -217,7 +215,7 @@ static commander_error_t _api_electrum_encryption_key(
     const ElectrumEncryptionKeyRequest* request,
     ElectrumEncryptionKeyResponse* response)
 {
-    if (!app_btc_electrum_encryption_key(
+    if (!keystore_electrum_encryption_key(
             request->keypath, request->keypath_count, response->key, sizeof(response->key))) {
         return COMMANDER_ERR_INVALID_INPUT;
     }

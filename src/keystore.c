@@ -33,6 +33,8 @@
 // This number of KDF iterations on the 2nd kdf slot when stretching the device
 // password.
 #define KDF_NUM_ITERATIONS (2)
+#define ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE (4541509 + BIP32_INITIAL_HARDENED_CHILD)
+#define ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO (1112098098 + BIP32_INITIAL_HARDENED_CHILD)
 
 // change this ONLY via keystore_unlock() or keystore_lock()
 static bool _is_unlocked_device = false;
@@ -501,6 +503,39 @@ bool keystore_get_xpub(
     bip32_key_strip_private_key(&xprv); // neuter
     *hdkey_neutered_out = xprv;
     return true;
+}
+
+bool keystore_encode_xpub(const struct ext_key* derived_xpub, char* out, size_t out_len)
+{
+    char* xpub_string = NULL;
+    if (bip32_key_to_base58(derived_xpub, BIP32_FLAG_KEY_PUBLIC, &xpub_string) != WALLY_OK) {
+        return false;
+    }
+    int sprintf_result = snprintf(out, out_len, "%s", xpub_string);
+    wally_free_string(xpub_string);
+    return sprintf_result >= 0 && sprintf_result < (int)out_len;
+}
+
+bool keystore_electrum_encryption_key(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    char* out,
+    size_t out_len)
+{
+    if (keypath_len != 2) {
+        return false;
+    }
+    if (keypath[0] != ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE ||
+        keypath[1] != ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO) {
+        return false;
+    }
+
+    struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
+    if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
+        return false;
+    }
+
+    return keystore_encode_xpub(&derived_xpub, out, out_len);
 }
 
 void keystore_zero_xkey(struct ext_key* xkey)

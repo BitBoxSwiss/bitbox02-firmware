@@ -14,7 +14,6 @@
 
 #include "eth.h"
 #include "eth_common.h"
-#include <apps/btc/btc_common.h>
 
 #include <keystore.h>
 
@@ -69,7 +68,7 @@ bool app_eth_address(
         if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
             return false;
         }
-        return btc_common_encode_xpub(&derived_xpub, BTCPubRequest_XPubType_XPUB, out, out_len);
+        return keystore_encode_xpub(&derived_xpub, out, out_len);
     }
     default:
         return false;

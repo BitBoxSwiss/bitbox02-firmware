@@ -209,6 +209,56 @@ static void _test_keystore_get_xpub(void** state)
     wally_free_string(xpub_string);
 }
 
+static void _test_keystore_encode_xpub(void** state)
+{
+#define XPUB_ENCODED_LEN 113
+    mock_state(_mock_seed, _mock_bip39_seed);
+    struct ext_key xpub = {0};
+    char out[XPUB_ENCODED_LEN] = {0};
+    assert_false(keystore_encode_xpub(&xpub, out, sizeof(out)));
+    assert_true(keystore_get_xpub(_keypath, sizeof(_keypath) / sizeof(uint32_t), &xpub));
+    assert_true(keystore_encode_xpub(&xpub, out, sizeof(out)));
+    char out_invalid_length[XPUB_ENCODED_LEN - 2] = {0};
+    assert_false(keystore_encode_xpub(&xpub, out_invalid_length, sizeof(out_invalid_length)));
+}
+
+static void _test_keystore_electrum_encryption_key(void** satte)
+{
+#define ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE (4541509 + BIP32_INITIAL_HARDENED_CHILD)
+#define ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO (1112098098 + BIP32_INITIAL_HARDENED_CHILD)
+#define XPUB_ENCODED_LEN 113
+
+    uint32_t keypath[2] = {ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE,
+                           ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO};
+
+    char out[XPUB_ENCODED_LEN] = {0};
+
+    mock_state(_mock_seed, _mock_bip39_seed);
+
+    bool result = keystore_electrum_encryption_key(
+        keypath, sizeof(keypath) / sizeof(uint32_t), out, sizeof(out));
+    assert_true(result);
+    assert_string_equal(
+        out,
+        "xpub6AmtVpMX5nSrG6PvFjg4G8VVkpGqj1QaSEChnj2vJbUtBFWA7WjUBjpCbMGm1i4vZjGqjPeeVCFoNCvhpCUA1T"
+        "v9LPUEX9LT9esHMxVutSm");
+
+    uint32_t keypath_invalid[2] = {ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE, 0};
+    result = keystore_electrum_encryption_key(
+        keypath_invalid, sizeof(keypath_invalid) / sizeof(uint32_t), out, sizeof(out));
+    assert_false(result);
+
+    uint32_t keypath_invalid2[2] = {0, ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO};
+    result = keystore_electrum_encryption_key(
+        keypath_invalid, sizeof(keypath_invalid2) / sizeof(uint32_t), out, sizeof(out));
+    assert_false(result);
+
+    uint32_t keypath_invalid3[1];
+    result = keystore_electrum_encryption_key(
+        keypath_invalid2, sizeof(keypath_invalid3) / sizeof(uint32_t), out, sizeof(out));
+    assert_false(result);
+}
+
 static void _test_keystore_get_root_fingerprint(void** state)
 {
     mock_state(_mock_seed, _mock_bip39_seed);
@@ -419,6 +469,8 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_keystore_get_xpub),
+        cmocka_unit_test(_test_keystore_encode_xpub),
+        cmocka_unit_test(_test_keystore_electrum_encryption_key),
         cmocka_unit_test(_test_keystore_get_root_fingerprint),
         cmocka_unit_test(_test_keystore_secp256k1_sign),
         cmocka_unit_test(_test_keystore_encrypt_and_store_seed),

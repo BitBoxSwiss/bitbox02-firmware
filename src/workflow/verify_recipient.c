@@ -37,11 +37,8 @@ bool workflow_verify_recipient(const char* recipient, const char* amount)
 {
     _result = false;
     ui_screen_stack_push(confirm_transaction_address_create(amount, recipient, _confirm, _reject));
-    bool result = workflow_blocking_block();
+    workflow_blocking_block();
     ui_screen_stack_pop();
-    if (!result) {
-        return false;
-    }
     if (!_result) {
         workflow_status_create("Transaction\ncanceled", false);
     }

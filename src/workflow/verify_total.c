@@ -37,11 +37,8 @@ bool workflow_verify_total(const char* total, const char* fee)
 {
     _result = false;
     ui_screen_stack_push(confirm_transaction_fee_create(total, fee, _confirm, _reject));
-    bool result = workflow_blocking_block();
+    workflow_blocking_block();
     ui_screen_stack_pop();
-    if (!result) {
-        return false;
-    }
     workflow_status_create(_result ? "Transaction\nconfirmed" : "Transaction\ncanceled", _result);
     return _result;
 }

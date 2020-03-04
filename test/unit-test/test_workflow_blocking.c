@@ -21,16 +21,9 @@
 #include <workflow/blocking.h>
 #include <workflow/workflow.h>
 
-static bool _force_unblock = false;
-static bool _unblock = false;
-
 void __wrap_screen_process(void)
 {
-    if (_force_unblock) {
-        workflow_blocking_unblock_force();
-    } else if (_unblock) {
-        workflow_blocking_unblock();
-    }
+    workflow_blocking_unblock();
 }
 
 /**
@@ -51,21 +44,10 @@ static void _do_nothing_spin(workflow_t* self)
 
 static void _test_workflow_blocking(void** state)
 {
-    _force_unblock = false;
-    _unblock = true;
-
     workflow_t* dummy_workflow = workflow_allocate(_do_nothing, NULL, _do_nothing_spin, 0);
     expect_value(_do_nothing, self, (uintptr_t)dummy_workflow);
     workflow_stack_start_workflow(dummy_workflow);
-    assert_true(workflow_blocking_block());
-    workflow_stack_stop_workflow();
-
-    _force_unblock = true;
-    _unblock = false;
-    dummy_workflow = workflow_allocate(_do_nothing, NULL, _do_nothing_spin, 0);
-    expect_value(_do_nothing, self, (uintptr_t)dummy_workflow);
-    workflow_stack_start_workflow(dummy_workflow);
-    assert_false(workflow_blocking_block());
+    workflow_blocking_block();
     workflow_stack_stop_workflow();
 }
 

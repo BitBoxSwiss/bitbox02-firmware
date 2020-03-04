@@ -6,17 +6,11 @@
 #include <ui/workflow_stack.h>
 #include <workflow/workflow.h>
 
-typedef enum {
-    BLOCKED,
-    UNBLOCKED_NORMAL,
-    UNBLOCKED_FORCED,
-} _done_t;
-
-static _done_t _done = UNBLOCKED_NORMAL;
+static bool _done = true;
 
 static bool _is_done(void)
 {
-    return _done != BLOCKED;
+    return _done;
 }
 
 /**
@@ -40,22 +34,16 @@ static void _run_blocking_ui(bool (*is_done)(void))
     }
 }
 
-bool workflow_blocking_block(void)
+void workflow_blocking_block(void)
 {
-    if (!_is_done()) {
+    if (!_done) {
         Abort("workflow_blocking_block");
     }
-    _done = BLOCKED;
+    _done = false;
     _run_blocking_ui(_is_done);
-    return _done == UNBLOCKED_NORMAL;
 }
 
 void workflow_blocking_unblock(void)
 {
-    _done = UNBLOCKED_NORMAL;
-}
-
-void workflow_blocking_unblock_force(void)
-{
-    _done = UNBLOCKED_FORCED;
+    _done = true;
 }

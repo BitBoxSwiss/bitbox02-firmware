@@ -21,11 +21,7 @@ bool workflow_cancel_run(const char* title, component_t* component)
     ui_screen_stack_push(component);
     while (true) {
         _cancel_pressed = false;
-        bool unblock_result = workflow_blocking_block();
-        if (!unblock_result) {
-            ui_screen_stack_pop();
-            return false;
-        }
+        workflow_blocking_block();
         if (_cancel_pressed) {
             const confirm_params_t params = {
                 .title = title,

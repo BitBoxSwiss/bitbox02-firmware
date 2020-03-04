@@ -77,6 +77,5 @@ bool workflow_confirm_blocking(const confirm_params_t* params);
 bool workflow_confirm_scrollable_longtouch_blocking(
     const char* title,
     const char* body,
-    const UG_FONT* font,
-    bool* cancel_forced_out);
+    const UG_FONT* font);
 #endif

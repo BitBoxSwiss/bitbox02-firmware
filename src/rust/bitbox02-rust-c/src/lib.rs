@@ -1,8 +1,10 @@
 #![no_std]
+#![feature(alloc_error_handler)] // used in alloc.rs
 
 #[macro_use]
 extern crate bitbox02_rust;
 
+mod alloc;
 pub mod commander;
 pub mod platform;
 pub mod util;

@@ -14,11 +14,10 @@ pub extern "C" fn rust_util_uint8_to_hex(
     out_buf: *mut c_char,
 ) {
     let buf = unsafe { core::slice::from_raw_parts(buf_ptr, buf_len) };
-    let out = unsafe {
-        core::str::from_utf8_unchecked_mut(core::slice::from_raw_parts_mut(out_buf, buf_len * 2))
-    };
-    hex::encode_to_slice(buf, unsafe { out.as_bytes_mut() }).unwrap();
-    unsafe { *out_buf.offset((buf_len * 2) as isize) = b'\0' };
+    let out = unsafe { core::slice::from_raw_parts_mut(out_buf, buf_len * 2 + 1) };
+    let out_len = out.len();
+    hex::encode_to_slice(buf, &mut out[0..out_len - 1]).unwrap();
+    out[buf_len * 2] = b'\0';
 }
 
 #[cfg(test)]

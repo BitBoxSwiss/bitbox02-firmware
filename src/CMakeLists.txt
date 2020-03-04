@@ -315,8 +315,9 @@ add_custom_target(bitbox02-rust
     RUSTFLAGS=${RUSTFLAGS}
     # enable nightly features in the stable release - needed to activate alloc_error_handler.
     # see src/rust/bitbox02-rust-c/src/lib.rs.
+    # https://github.com/rust-lang/rust/issues/66740
     RUSTC_BOOTSTRAP=1
-  ${CARGO} build --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
+    ${CARGO} build --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
   # Rust packages stdlib functions which we must remove/weaken on the arm target
   COMMAND
     if test "${RUST_TARGET_ARCH}" = "thumbv7em-none-eabi" \; then ${CMAKE_OBJCOPY} -N memset -N memcpy -N memmove -W memcmp ${LIBBITBOX02_RUST} \; fi
@@ -388,6 +389,14 @@ if(NOT CMAKE_CROSSCOMPILING)
       ${CMAKE_COMMAND} -E env CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR} ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/util/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
     COMMAND
       ${CMAKE_COMMAND} -E env CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR} ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
+    COMMAND
+      ${CMAKE_COMMAND} -E env
+        CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
+        # enable nightly features in the stable release - needed to activate alloc_error_handler.
+        # see src/rust/bitbox02-rust-c/src/lib.rs.
+        # https://github.com/rust-lang/rust/issues/66740
+        RUSTC_BOOTSTRAP=1
+        ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust-c/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
     )
   add_dependencies(rust-test rust-bindgen)
 endif()

@@ -28,15 +28,18 @@ pub fn print_debug_internal(duration: Duration, msg: &str) {
 ///
 /// Example usage:
 ///
-/// ```
+/// ```no_run
+/// # #[macro_use] extern crate bitbox02_rust; fn main() {
+/// let my_str = "abc";
 /// print_debug!(1000, "{}", &my_str);
+/// # }
 /// ```
 #[macro_export]
 macro_rules! print_debug {
     ($duration:expr, $($arg:tt)*) => ({
         use core::fmt::Write;
         let duration = core::time::Duration::from_millis($duration);
-        let mut buf = arrayvec::ArrayString::<[_; 256]>::new();
+        let mut buf = $crate::arrayvec::ArrayString::<[_; 256]>::new();
         let _ = write!(buf, $($arg)*);
         $crate::general::screen::print_debug_internal(duration, &buf);
     })

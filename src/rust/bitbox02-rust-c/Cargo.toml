@@ -1,0 +1,25 @@
+[package]
+name = "bitbox02-rust-c"
+version = "0.1.0"
+authors = ["Shift Cryptosecurity AG <support@shiftcrypto.ch>"]
+edition = "2018"
+
+[lib]
+crate-type = ["staticlib"]
+
+[profile.release]
+debug = true
+opt-level = 'z'
+codegen-units = 1
+panic = 'abort'
+lto = true
+
+[profile.dev]
+opt-level = 'z'
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bitbox02-rust = {path = "../bitbox02-rust"}
+bitbox02 = {path = "../bitbox02"}
+util = {path = "../util"}

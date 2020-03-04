@@ -5,17 +5,6 @@ authors = ["Shift Cryptosecurity AG <support@shiftcrypto.ch>"]
 edition = "2018"
 description = "BitBox02 functionality implemented in rust"
 
-[lib]
-crate-type = ["staticlib"]
-
-[profile.release]
-debug = true
-opt-level = 'z'
-codegen-units = 1
-panic = 'abort'
-
-[profile.dev]
-opt-level = 'z'
 
 [dependencies]
 bitbox02 = {path = "../bitbox02"}

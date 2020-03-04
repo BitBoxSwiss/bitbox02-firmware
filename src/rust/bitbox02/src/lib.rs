@@ -15,7 +15,6 @@
 // This crate contains safe wrappers around C functions provided by bitbox02_sys.
 #![no_std]
 
-use bitbox02_sys::{self, delay_ms, delay_us};
 use core::time::Duration;
 
 // Reexport the protobuf types
@@ -82,19 +81,23 @@ pub fn ug_font_select() {
     unsafe { bitbox02_sys::UG_FontSelect(&bitbox02_sys::font_font_a_9X9) }
 }
 
+#[cfg_attr(not(target_arch = "arm"), allow(unused_variables))]
 pub fn delay(duration: Duration) {
-    if duration < Duration::from_micros(1) {
-        unsafe {
-            // Sleep the smallest unit of sleep we support
-            delay_us(1)
-        }
-    } else if duration < Duration::from_millis(1) {
-        unsafe {
-            delay_us(duration.as_micros() as u16);
-        }
-    } else {
-        unsafe {
-            delay_ms(duration.as_millis() as u16);
+    #[cfg(target_arch = "arm")]
+    {
+        if duration < Duration::from_micros(1) {
+            unsafe {
+                // Sleep the smallest unit of sleep we support
+                bitbox02_sys::delay_us(1)
+            }
+        } else if duration < Duration::from_millis(1) {
+            unsafe {
+                bitbox02_sys::delay_us(duration.as_micros() as u16);
+            }
+        } else {
+            unsafe {
+                bitbox02_sys::delay_ms(duration.as_millis() as u16);
+            }
         }
     }
 }

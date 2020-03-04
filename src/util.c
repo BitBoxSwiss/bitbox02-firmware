@@ -17,25 +17,22 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "rust/bitbox02_rust.h"
 #include "util.h"
 
 volatile void* util_zero(volatile void* dst, size_t len)
 {
-    volatile char* buf;
-    for (buf = (volatile char*)dst; len; buf[--len] = 0)
-        ;
-    return dst;
+// Rust doesn't have a volatile qualifier becuase volatile refers to the act of writing/reading not
+// the data type.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
+    return rust_util_zero(dst, len);
+#pragma GCC diagnostic pop
 }
 
 void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
 {
-    static char digits[] = "0123456789abcdef";
-    size_t i;
-    for (i = 0; i < in_len; i++) {
-        out[i * 2] = digits[(in_bin[i] >> 4) & 0xF];
-        out[i * 2 + 1] = digits[in_bin[i] & 0xF];
-    }
-    out[in_len * 2] = '\0';
+    rust_util_uint8_to_hex(in_bin, in_len, out);
 }
 
 void util_cleanup_str(char** str)

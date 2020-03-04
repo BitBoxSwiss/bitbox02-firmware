@@ -75,9 +75,9 @@ unit-test: | build-build
 device-tests: | build
 	${MAKE} -C build device-tests
 # Must compile C tests before running them
-run-unit-tests: | build build-build
+run-unit-tests: | build-build
 	$(MAKE) -C build-build test
-	${MAKE} -C build rust-test
+	${MAKE} -C build-build rust-test
 # Must run tests before creating coverage report
 coverage: | build-build
 	${MAKE} -C build-build coverage
@@ -127,6 +127,6 @@ ci:
 	./.ci/ci
 prepare-tidy: | build build-build
 	make -C build generate-protobufs rust-cbindgen
-	make -C build-build generate-protobufs
+	make -C build-build generate-protobufs rust-cbindgen
 clean:
 	rm -rf build build-build

@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core::fmt::Write;
 use core::time::Duration;
 
 use arrayvec::ArrayString;
 
-use crate::c_char;
 use crate::error::Error;
-use crate::util::{FixedCString, Ipv4Addr};
+use crate::util::Ipv4Addr;
 
 /// This determines if the LED should be turned off in some states.
 #[derive(Debug, Clone)]
@@ -51,11 +49,11 @@ pub enum StatusScreenMode {
 }
 
 pub struct Config {
-    pub(crate) status_led_mode: StatusLedMode,
-    pub(crate) status_screen_mode: StatusScreenMode,
-    pub(crate) default_display_duration: Duration,
-    pub(crate) hostname: Option<ArrayString<[u8; 64]>>,
-    pub(crate) ip: Option<Ipv4Addr>,
+    pub status_led_mode: StatusLedMode,
+    pub status_screen_mode: StatusScreenMode,
+    pub default_display_duration: Duration,
+    pub hostname: Option<ArrayString<[u8; 64]>>,
+    pub ip: Option<Ipv4Addr>,
 }
 
 impl Config {
@@ -97,40 +95,5 @@ impl Config {
 
     pub fn set_ip(&mut self, ip: Ipv4Addr) {
         self.ip = Some(ip);
-    }
-
-    pub unsafe fn get_singleton() -> &'static Config {
-        &CONFIG
-    }
-
-    pub unsafe fn get_singleton_mut() -> &'static mut Config {
-        &mut CONFIG
-    }
-}
-
-//
-// C-API
-//
-
-// aaaah, global!
-static mut CONFIG: Config = Config::new();
-
-#[no_mangle]
-pub extern "C" fn bitboxbase_config_led_mode_get() -> StatusLedMode {
-    let config = unsafe { Config::get_singleton() };
-    config.status_led_mode.clone()
-}
-
-#[no_mangle]
-pub extern "C" fn bitboxbase_config_ip_get(res: *mut c_char, res_len: usize) {
-    // It is not safe to call any functions that also touch CONFIG at the same time
-    let config = unsafe { Config::get_singleton() };
-    let buf = unsafe { core::slice::from_raw_parts_mut(res, res_len) };
-    let mut fcstring = FixedCString::new(buf);
-
-    if let Some(ip) = &config.ip {
-        let _ = write!(fcstring, "{}", ip);
-    } else {
-        let _ = write!(fcstring, "unknown");
     }
 }

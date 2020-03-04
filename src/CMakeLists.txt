@@ -264,104 +264,129 @@ set_source_files_properties(
   PROPERTIES GENERATED TRUE
 )
 
+# rust-bindgen to generate rust declarations from c-headers.
+# The compiled binary to avoid recompiling bindgen on every clean build
+find_program(BINDGEN bindgen)
+# cbindgen is used to generate the c-headers from rust code.
+find_program(CBINDGEN cbindgen)
+# cargo is the rust build system and dependency manager
+find_program(CARGO cargo)
+
+if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+  set(RUST_PROFILE "debug")
+else()
+  set(RUST_PROFILE "release")
+  set(RUST_CARGO_FLAG "--release")
+  set(RUSTFLAGS --remap-path-prefix=${CMAKE_CURRENT_SOURCE_DIR}/rust=src)
+endif()
+
+if(CMAKE_CROSSCOMPILING)
+  set(RUST_TARGET_ARCH thumbv7em-none-eabi)
+  set(RUST_TARGET_ARCH_DIR ${RUST_TARGET_ARCH})
+  set(RUST_TARGET_ARCH_ARG --target ${RUST_TARGET_ARCH})
+else()
+  set(RUST_TARGET_ARCH_DIR .)
+endif()
+
+set(LIBBITBOX02_RUST_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust-c)
+set(LIBBITBOX02_RUST_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02-rust-c/target)
+set(LIBBITBOX02_RUST ${LIBBITBOX02_RUST_BINARY_DIR}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.a)
+set(LIBBITBOX02_RUST ${LIBBITBOX02_RUST} PARENT_SCOPE)
+
+# Generate c-headers for the rust library
+# We generate two headers so that one of them can avoid using types only available for the firmware.
+# * bitbox02_rust.h should be includeable everywhere, even in the bootloader
+# * commander_rust.h can only be included in targets that have access to protobuf types
+add_custom_target(rust-cbindgen
+  COMMAND
+    ${CBINDGEN} --quiet --config ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust-cbindgen.toml --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02_rust.h ${LIBBITBOX02_RUST_SOURCE_DIR}
+  COMMAND
+    ${CBINDGEN} --quiet --config ${CMAKE_CURRENT_SOURCE_DIR}/rust/commander-rust-cbindgen.toml --output ${CMAKE_CURRENT_BINARY_DIR}/rust/commander_rust.h ${LIBBITBOX02_RUST_SOURCE_DIR}
+  BYPRODUCTS
+    ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02_rust.h
+    ${CMAKE_CURRENT_BINARY_DIR}/rust/commander_rust.h
+)
+
+add_custom_target(bitbox02-rust
+  # Build rust library
+  COMMAND
+  ${CMAKE_COMMAND} -E env CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR} RUSTFLAGS=${RUSTFLAGS} ${CARGO} build --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
+  # Rust packages stdlib functions which we must remove/weaken on the arm target
+  COMMAND
+    if test "${RUST_TARGET_ARCH}" = "thumbv7em-none-eabi" \; then ${CMAKE_OBJCOPY} -N memset -N memcpy -N memmove -W memcmp ${LIBBITBOX02_RUST} \; fi
+  BYPRODUCTS
+    ${LIBBITBOX02_RUST}
+)
+add_dependencies(bitbox02-rust rust-bindgen rust-cbindgen)
+
 if(CMAKE_CROSSCOMPILING)
   get_property(SAMD51A_INCLUDES TARGET samd51a-ds PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
   get_property(ASF4_MIN_INCLUDES TARGET asf4-drivers-min PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
   get_property(ASF4_INCLUDES TARGET asf4-drivers PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
   get_property(CMSIS_INCLUDES TARGET CMSIS PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-  get_property(WALLY_INCLUDES TARGET wallycore PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+endif()
+get_property(WALLY_INCLUDES TARGET wallycore PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
 
-  foreach(include ${INCLUDES} ${SYSTEMINCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDES} ${ASF4_MIN_INCLUDES} ${CMSIS_INCLUDES} ${NANOPB_INCLUDE_DIRS} ${WALLY_INCLUDES})
-    list(APPEND RUST_INCLUDES -I${include})
-  endforeach()
+foreach(include ${INCLUDES} ${SYSTEMINCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDES} ${ASF4_MIN_INCLUDES} ${CMSIS_INCLUDES} ${NANOPB_INCLUDE_DIRS} ${WALLY_INCLUDES})
+  list(APPEND RUST_INCLUDES -I${include})
+endforeach()
 
-  if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-    set(RUST_PROFILE "debug")
-  else()
-    set(RUST_PROFILE "release")
-    set(RUST_CARGO_FLAG "--release")
-    set(RUSTFLAGS --remap-path-prefix=${CMAKE_CURRENT_SOURCE_DIR}/rust=src)
-  endif()
+if(CMAKE_CROSSCOMPILING)
+  set(RUST_BINDGEN_FLAGS -D__SAMD51J20A__ --target=thumbv7em-none-eabi -mcpu=cortex-m4 -mthumb -mfloat-abi=soft --sysroot=${CMAKE_SYSROOT})
+else()
+  set(RUST_BINDGEN_FLAGS -DTESTING=1)
+endif()
 
-  set(LIBBITBOX02_RUST_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust)
-  set(LIBBITBOX02_RUST_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02-rust/target)
-  set(LIBBITBOX02_RUST ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02-rust/target/thumbv7em-none-eabi/${RUST_PROFILE}/libbitbox02_rust.a)
-
-  # rust-bindgen to generate rust declarations from c-headers.
-  # The compiled binary to avoid recompiling bindgen on every clean build
-  find_program(BINDGEN bindgen)
-  # cbindgen is used to generate the c-headers from rust code.
-  find_program(CBINDGEN cbindgen)
-  # cargo is the rust build system and dependency manager
-  find_program(CARGO cargo)
-
-  add_custom_target(rust-bindgen
-    # Generate rust bindings
-    COMMAND
-      ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/rust
-    COMMAND
-      ${BINDGEN}
-      --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs
-      --use-core
-      --ctypes-prefix c_types
-      --whitelist-function delay_us
-      --whitelist-function delay_ms
-      --whitelist-function UG_PutString
-      --whitelist-function UG_FontSelect
-      --whitelist-function UG_ClearBuffer
-      --whitelist-function UG_SendBuffer
-      --whitelist-function workflow_confirm_blocking
-      --whitelist-function screen_print_debug
-      --whitelist-function ui_screen_stack_push
-      --whitelist-function ui_screen_stack_pop
-      --whitelist-function label_create
-      --whitelist-function bitboxbase_watchdog_reset
-      --whitelist-function bitboxbase_screensaver_reset
-      --whitelist-function leds_turn_small_led
-      --whitelist-function leds_turn_big_led
-      --whitelist-function wally_sha256
-      --whitelist-type component_t
-      --whitelist-type commander_error_t
-      --whitelist-type BitBoxBaseRequest
-      --whitelist-var ".*_tag"
-      --whitelist-var font_font_a_9X9
-      --whitelist-var font_monogram_5X9
-      --whitelist-var WALLY_OK
-      ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
-      -D__SAMD51J20A__ -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums --target=thumbv7em-none-eabi -mcpu=cortex-m4 -mthumb -mfloat-abi=soft --sysroot=${CMAKE_SYSROOT} ${RUST_INCLUDES}
-    )
-  add_dependencies(rust-bindgen generate-protobufs)
-
-  add_custom_target(rust
-    # Build rust library
-    COMMAND
-      ${CMAKE_COMMAND} -E env CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR} RUSTFLAGS=${RUSTFLAGS} ${CARGO} build --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG} --target thumbv7em-none-eabi
-    # Rust packages stdlib functions which we must remove/weaken
-    COMMAND
-      ${CMAKE_OBJCOPY} -N memset -N memcpy -N memmove -W memcmp ${LIBBITBOX02_RUST}
-    BYPRODUCTS
-      ${LIBBITBOX02_RUST}
+add_custom_target(rust-bindgen
+  # Generate rust bindings
+  COMMAND
+    ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/rust
+  COMMAND
+    ${BINDGEN}
+    --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs
+    --use-core
+    --ctypes-prefix util::c_types
+    --whitelist-function delay_us
+    --whitelist-function delay_ms
+    --whitelist-function UG_PutString
+    --whitelist-function UG_FontSelect
+    --whitelist-function UG_ClearBuffer
+    --whitelist-function UG_SendBuffer
+    --whitelist-function workflow_confirm_blocking
+    --whitelist-function screen_print_debug
+    --whitelist-function ui_screen_stack_push
+    --whitelist-function ui_screen_stack_pop
+    --whitelist-function label_create
+    --whitelist-function bitboxbase_watchdog_reset
+    --whitelist-function bitboxbase_screensaver_reset
+    --whitelist-function leds_turn_small_led
+    --whitelist-function leds_turn_big_led
+    --whitelist-function wally_sha256
+    --whitelist-type component_t
+    --whitelist-type commander_error_t
+    --whitelist-type BitBoxBaseRequest
+    --whitelist-var ".*_tag"
+    --whitelist-var font_font_a_9X9
+    --whitelist-var font_monogram_5X9
+    --whitelist-var WALLY_OK
+    ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
+    -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums ${RUST_BINDGEN_FLAGS} ${RUST_INCLUDES}
   )
-  add_dependencies(rust rust-bindgen)
+add_dependencies(rust-bindgen generate-protobufs)
 
-  # The autogenerated bindings cannot be tested right now. We anyway generate them for another platform so the tests are invalid.
+
+# Test rust crates that contain business logic. Avoid testing crates that depend on hardware.
+if(NOT CMAKE_CROSSCOMPILING)
   add_custom_target(rust-test
-    #COMMAND
-    #  ${CMAKE_COMMAND} -E env CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR} ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
     COMMAND
-      ${CMAKE_COMMAND} -E env CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR} ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
+      ${CMAKE_COMMAND} -E env CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR} ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/util/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
     COMMAND
-      ${CMAKE_COMMAND} -E env CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR} ${CARGO} test --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
+      ${CMAKE_COMMAND} -E env CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR} ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
     )
   add_dependencies(rust-test rust-bindgen)
+endif()
 
-  add_custom_target(rust-cbindgen
-    # Generate c-headers for the rust library
-    COMMAND
-      ${CBINDGEN} --quiet --config ${CMAKE_CURRENT_SOURCE_DIR}/rust/cbindgen.toml --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02_rust.h ${LIBBITBOX02_RUST_SOURCE_DIR}
-    BYPRODUCTS
-      ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02_rust.h
-  )
+if(CMAKE_CROSSCOMPILING)
 
   # TODO(nc): Add dependency on global "doc" target on this when api-docs branch is merged
   add_custom_target(rust-docs
@@ -415,6 +440,10 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${bootloader}.map\" -T\"${CMAKE_SOURCE_DIR}/bootloader.ld\"")
     target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
     target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
+
+    add_dependencies(${elf} bitbox02-rust)
+    target_link_libraries(${elf} PRIVATE ${LIBBITBOX02_RUST})
+
     # Select the smaller version of libc called nano.
     target_compile_options(${elf} PRIVATE --specs=nano.specs)
     target_link_libraries(${elf} PRIVATE --specs=nano.specs)
@@ -471,6 +500,7 @@ if(CMAKE_CROSSCOMPILING)
   foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)
     add_executable(${elf} ${FIRMWARE-SOURCES})
+    # Must manually link against C so that malloc can find _sbrk
     target_link_libraries(${elf}
       PRIVATE
         cryptoauthlib
@@ -503,7 +533,9 @@ if(CMAKE_CROSSCOMPILING)
     add_dependencies(${elf} libwally-core)
     target_link_libraries(${elf} PRIVATE wallycore secp256k1)
     target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
-    # Must manually link against C so that malloc can find _sbrk
+
+    add_dependencies(${elf} bitbox02-rust)
+    target_link_libraries(${elf} PRIVATE ${LIBBITBOX02_RUST})
 
     # Select the smaller version of libc called nano.
     target_compile_options(${elf} PRIVATE --specs=nano.specs)
@@ -540,9 +572,6 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(firmware-bitboxbase-semihosting.elf PRIVATE bitboxbase/bitboxbase.c)
   target_compile_definitions(firmware-bitboxbase-semihosting.elf PRIVATE PRODUCT_BITBOX_BASE SEMIHOSTING "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(firmware-bitboxbase-semihosting.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES} ${BITBOXBASE-FIRMWARE-SOURCES})
-
-  target_link_libraries(firmware-bitboxbase.elf PRIVATE bitbox02_rust)
-  add_dependencies(firmware-bitboxbase.elf rust rust-cbindgen)
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")

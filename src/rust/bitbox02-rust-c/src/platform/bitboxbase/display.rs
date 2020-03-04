@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![no_std]
-// allow non-idiomatic names for generated code
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
+use crate::c_char;
+use bitbox02_rust::platform::bitboxbase::display::write_status;
+use bitbox02_rust::util::FixedCString;
 
-// include our generated bindings
-include!(concat!(
-    env!("CMAKE_CURRENT_BINARY_DIR"),
-    "/rust",
-    "/bindings.rs"
-));
+#[no_mangle]
+pub extern "C" fn bitboxbase_status_get(ptr: *mut c_char, ptr_len: usize) {
+    let buf = unsafe { core::slice::from_raw_parts_mut(ptr, ptr_len) };
+    let mut wrapper = FixedCString::new(buf);
+    write_status(&mut wrapper, unsafe {
+        &crate::platform::bitboxbase::config::CONFIG
+    });
+}

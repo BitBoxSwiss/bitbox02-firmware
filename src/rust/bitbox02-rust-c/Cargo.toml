@@ -23,3 +23,4 @@ opt-level = 'z'
 bitbox02-rust = {path = "../bitbox02-rust"}
 bitbox02 = {path = "../bitbox02"}
 util = {path = "../util"}
+hex = { version = "0.4", default-features = false }

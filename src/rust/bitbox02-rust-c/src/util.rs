@@ -17,7 +17,7 @@ pub extern "C" fn rust_util_uint8_to_hex(
     let out = unsafe {
         core::str::from_utf8_unchecked_mut(core::slice::from_raw_parts_mut(out_buf, buf_len * 2))
     };
-    util::u8_to_hex(buf, out);
+    hex::encode_to_slice(buf, unsafe { out.as_bytes_mut() }).unwrap();
     unsafe { *out_buf.offset((buf_len * 2) as isize) = b'\0' };
 }
 

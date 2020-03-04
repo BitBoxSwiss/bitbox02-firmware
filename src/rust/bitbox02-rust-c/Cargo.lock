@@ -32,6 +32,7 @@ version = "0.1.0"
 dependencies = [
  "bitbox02 0.1.0",
  "bitbox02-rust 0.1.0",
+ "hex 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.1.0",
 ]
 
@@ -50,9 +51,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "util"
 version = "0.1.0"
-dependencies = [
- "hex 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [metadata]
 "checksum arrayvec 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "cff77d8686867eceff3105329d4698d96c2391c176d5d03adc90c7389162b5b8"

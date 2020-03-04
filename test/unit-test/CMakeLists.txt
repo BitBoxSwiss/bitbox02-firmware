@@ -45,6 +45,9 @@ message("FILTERED SOURCES: ${DBB-FILTERED-SOURCES}")
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/tools/nanopb/extra)
 find_package(Nanopb REQUIRED)
 
+add_library(bitbox02_rust_c STATIC IMPORTED)
+set_property(TARGET bitbox02_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox02_rust_c.a)
+
 add_library(bitbox
   STATIC
   ${DBB-FILTERED-SOURCES}
@@ -250,7 +253,7 @@ foreach(I RANGE 0 ${TEST_LIST_LEN} 2)
     $<$<BOOL:SANITIZE_ADDRESS>:asan>
     $<$<BOOL:SANITIZE_UNDEFINED>:-fsanitize=undefined>
     -Wl,--start-group
-    ${LIBBITBOX02_RUST}
+    bitbox02_rust_c
     bitbox
     -Wl,--end-group
     ${CMOCKA_LIBRARIES}
@@ -282,7 +285,7 @@ foreach(I RANGE 0 ${U2F_TESTS_LEN} 2)
     $<$<BOOL:SANITIZE_ADDRESS>:asan>
     $<$<BOOL:SANITIZE_UNDEFINED>:-fsanitize=undefined>
     -Wl,--start-group
-    ${LIBBITBOX02_RUST}
+    bitbox02_rust_c
     bitbox
     -Wl,--end-group
     u2f-util

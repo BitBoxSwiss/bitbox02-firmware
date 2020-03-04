@@ -17,10 +17,13 @@ lto = true
 [profile.dev]
 opt-level = 'z'
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 bitbox02-rust = {path = "../bitbox02-rust"}
 bitbox02 = {path = "../bitbox02"}
 util = {path = "../util"}
 hex = { version = "0.4", default-features = false }
+
+[features]
+platform-bitbox02 = []
+platform-bitboxbase = []
+platform-bootloader = []

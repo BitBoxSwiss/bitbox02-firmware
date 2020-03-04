@@ -1,0 +1,30 @@
+language = "C"
+
+include_guard = "BOOTLOADER_RUST_H"
+
+include_version = true
+
+[parse]
+# Parse dependencies for types ...
+parse_deps = true
+
+# ... but only parse this crate.
+include = ["bitbox02-rust", "util-c"]
+
+# also generate bindings from these crates.
+extra_bindings = ["util-c"]
+
+[export]
+# malloc, free declared in bitbox02-rust-c/src/alloc.rs, but does not need to be exported, as it
+# already exists in stdlib.h.
+exclude = [
+  "malloc",
+  "free",
+  "commander_bitboxbase",
+  "bitboxbase_config_led_mode_get",
+  "bitboxbase_state_get",
+  "bitboxbase_config_ip_get",
+  "bitboxbase_state_get_description",
+  "bitboxbase_state_set_not_alive",
+  "bitboxbase_status_get",
+  ]

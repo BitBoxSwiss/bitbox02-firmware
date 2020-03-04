@@ -1,5 +1,9 @@
 use util::c_types::{c_char, c_uchar, c_void};
 
+/// Zero a buffer using volatile writes
+///
+/// * `dst` - Must be a valid pointer to an array of bytes
+/// * `len` - Length of buffer, `dst[len-1]` must be a valid dereference
 #[no_mangle]
 pub extern "C" fn rust_util_zero(dst: *mut c_void, len: usize) -> *mut c_void {
     let slice = unsafe { core::slice::from_raw_parts_mut(dst as *mut u8, len) };
@@ -7,6 +11,11 @@ pub extern "C" fn rust_util_zero(dst: *mut c_void, len: usize) -> *mut c_void {
     dst
 }
 
+/// Convert bytes to hex representation
+///
+/// * `buf_ptr` - Must be a valid pointer to an array of bytes
+/// * `buf_len` - Length of buffer, `buf_ptr[buf_len-1]` must be a valid dereference
+/// * `out_ptr` - Must be a valid pointer to an array of bytes that is buf_len*2+1 long
 #[no_mangle]
 pub extern "C" fn rust_util_uint8_to_hex(
     buf_ptr: *const c_uchar,

@@ -18,7 +18,7 @@
 #include "screen.h"
 #include <hardfault.h>
 #include <leds.h>
-#include <rust/bitbox02_rust.h>
+#include <rust/rust.h>
 #include <string.h>
 #include <ui/component.h>
 #include <ui/components/image.h>

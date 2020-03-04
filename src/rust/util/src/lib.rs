@@ -1,5 +1,4 @@
-#![no_std]
-
+#![cfg_attr(not(test), no_std)]
 pub mod c_types;
 
 /// Guaranteed to wipe the provided buffer
@@ -11,21 +10,7 @@ pub fn zero(dst: &mut [u8]) {
 
 /// Converts binary data to hex representation. Requires that resulting string is `buf.len() * 2`.
 pub fn u8_to_hex(buf: &[u8], res: &mut str) {
-    const DIGITS: &'static [u8; 16] = b"0123456789abcdef";
-    if buf.len() * 2 != res.len() {
-        panic!("Invalid lengths {} {}", buf.len(), res.len());
-    }
-    // Unsafe notice
-    // The code below will only write ascii characters to the string. Unsafe is needed to get raw
-    // access to the string bytes.
-    unsafe {
-        let res_bytes = res.as_bytes_mut();
-        for i in 0..buf.len() {
-            let c = buf[i];
-            res_bytes[i * 2] = DIGITS[(c >> 4 & 0xF) as usize];
-            res_bytes[i * 2 + 1] = DIGITS[(c & 0xF) as usize];
-        }
-    }
+    hex::encode_to_slice(buf, unsafe { res.as_bytes_mut() }).unwrap()
 }
 
 #[cfg(test)]

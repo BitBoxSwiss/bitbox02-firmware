@@ -1,15 +1,10 @@
 #![no_std]
 #![feature(alloc_error_handler)] // used in alloc.rs
 
-#[macro_use]
-extern crate bitbox02_rust;
-
 mod alloc;
 pub mod commander;
 pub mod platform;
 pub mod util;
-
-use core::panic::PanicInfo;
 
 // Whenever execution reaches somewhere it isn't supposed to rust code will "panic". Our panic
 // handler will print the available information on the screen. If we compile with `panic=abort`
@@ -17,11 +12,11 @@ use core::panic::PanicInfo;
 #[cfg(not(test))]
 #[cfg_attr(not(debug_assertions), allow(unused_variables))]
 #[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
+fn panic(info: &core::panic::PanicInfo) -> ! {
     #[cfg(debug_assertions)]
-    print_debug!(0, "Error: {}", info);
+    bitbox02_rust::print_debug!(0, "Error: {}", info);
     #[cfg(not(debug_assertions))]
-    print_debug!(0, "Error");
+    bitbox02_rust::print_debug!(0, "Error");
     loop {}
 }
 

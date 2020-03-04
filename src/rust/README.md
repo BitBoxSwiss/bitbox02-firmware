@@ -1,6 +1,6 @@
 # Enums
 
-arm-none-eabi-gcc compiles with -fshort-enums by defualt. This means that if all variants of an
+arm-none-eabi-gcc compiles with -fshort-enums by default. This means that if all variants of an
 enum fits in a small type (such as `uint8_t`), then the enum will be backed by such a small type.
 
 

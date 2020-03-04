@@ -22,16 +22,12 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <mock_memory.h>
+
 static uint8_t _salt_root[32] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
     0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33,
 };
-
-bool __wrap_memory_get_salt_root(uint8_t* salt_root_out)
-{
-    memcpy(salt_root_out, _salt_root, sizeof(_salt_root));
-    return true;
-}
 
 static void _test_salt_hash_data(void** state)
 {
@@ -67,6 +63,7 @@ static void _test_salt_hash_data_empty(void** state)
 
 int main(void)
 {
+    mock_memory_set_salt_root(_salt_root);
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_salt_hash_data),
         cmocka_unit_test(_test_salt_hash_data_empty),

@@ -77,6 +77,7 @@ device-tests: | build
 # Must compile C tests before running them
 run-unit-tests: | build-build
 	$(MAKE) -C build-build test
+run-rust-unit-tests:
 	${MAKE} -C build-build rust-test
 # Must run tests before creating coverage report
 coverage: | build-build

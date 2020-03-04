@@ -12,3 +12,8 @@ parse_deps = true
 
 # ... but only parse this crate.
 include = ["bitbox02-rust"]
+
+[export]
+# malloc, free declared in bitbox02-rust-c/src/alloc.rs, but does not need to be exported, as it
+# already exists in stdlib.h.
+exclude = ["malloc", "free"]

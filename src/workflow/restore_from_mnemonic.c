@@ -109,7 +109,7 @@ static bool _get_mnemonic(char* mnemonic_out)
     _pick_number_of_words(&num_words);
     char num_words_success_msg[20];
     snprintf(num_words_success_msg, sizeof(num_words_success_msg), "Enter %d words", num_words);
-    workflow_status_create(num_words_success_msg, true);
+    workflow_status_blocking(num_words_success_msg, true);
 
     for (uint8_t word_idx = 0; word_idx < num_words; word_idx++) {
         char word[WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1] = {0};
@@ -143,11 +143,11 @@ bool workflow_restore_from_mnemonic(const RestoreFromMnemonicRequest* request)
     UTIL_CLEANUP_32(seed);
     size_t seed_len = 0;
     if (!keystore_bip39_mnemonic_to_seed(mnemonic, seed, &seed_len)) {
-        workflow_status_create("Invalid mnemonic", false);
+        workflow_status_blocking("Invalid mnemonic", false);
         return false;
     }
 
-    workflow_status_create("Mnemonic valid", true);
+    workflow_status_blocking("Mnemonic valid", true);
 
     char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     UTIL_CLEANUP_STR(password);
@@ -168,7 +168,7 @@ bool workflow_restore_from_mnemonic(const RestoreFromMnemonicRequest* request)
         break;
     }
     if (!keystore_encrypt_and_store_seed(seed, seed_len, password)) {
-        workflow_status_create("Could not\nrestore backup", false);
+        workflow_status_blocking("Could not\nrestore backup", false);
         return false;
     }
 #if APP_U2F == 1

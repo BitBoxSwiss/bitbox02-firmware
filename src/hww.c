@@ -183,7 +183,7 @@ static void _process_packet(const in_buffer_t* in_req, buffer_t* out_rsp)
 
     // Process protofbuf/noise api calls.
     if (!bb_noise_process_msg(in_req, out_rsp, commander)) {
-        workflow_status_create("Could not\npair with app", false);
+        workflow_status_blocking("Could not\npair with app", false);
     }
 }
 

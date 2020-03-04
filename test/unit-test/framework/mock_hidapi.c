@@ -163,7 +163,7 @@ void hid_free_enumeration(struct hid_device_info* devs) {}
 
 #pragma GCC diagnostic pop
 
-void __wrap_workflow_status_create(const char* msg, bool status_success) {}
+void __wrap_workflow_status_blocking(const char* msg, bool status_success) {}
 
 bool __wrap_workflow_unlock(void)
 {

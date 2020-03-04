@@ -33,6 +33,7 @@ component_t* status_create(
     const char* text,
     bool status_success,
     int delay,
-    void (*callback)(void));
+    void (*callback)(void*),
+    void* callback_param);
 
 #endif

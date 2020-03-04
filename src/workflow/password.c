@@ -41,7 +41,7 @@ bool password_set(char* password_out)
         return false;
     }
     if (!STREQ(password, password_repeat)) {
-        workflow_status_create("Passwords\ndo not match", false);
+        workflow_status_blocking("Passwords\ndo not match", false);
         return false;
     }
     if (strlen(password) < 4) {
@@ -55,7 +55,7 @@ bool password_set(char* password_out)
         }
     }
     snprintf(password_out, SET_PASSWORD_MAX_PASSWORD_LENGTH, "%s", password);
-    workflow_status_create("Success", true);
+    workflow_status_blocking("Success", true);
     return true;
 }
 

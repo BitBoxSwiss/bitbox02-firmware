@@ -17,12 +17,33 @@
 
 #include <stdbool.h>
 
+#include "workflow.h"
+
+#include <util.h>
+
 /**
  * Create a centered label with a checkmark for success or a cross for failure.
- * @param msg Message to print
+ * @param msg Message to print. A copy of this parameter is made,
+ *            there's no need for the caller to maintain the string for the lifetime
+ *            of the workflow.
  * @param status_success true/false if screen should indicate success / failure
+ * @param callback Callback to invoke when the workflow exits.
+ * @param cb_param Parameter for the callback.
  */
+USE_RESULT
+workflow_t* workflow_status(
+    const char* msg,
+    bool status_success,
+    void (*callback)(void* param),
+    void* cb_param);
 
-void workflow_status_create(const char* msg, bool status_success);
+/**
+ * Blocking wrapper for workflow_status. This will start a new workflow_status
+ * and wait until it completes.
+ *
+ * @param msg See workflow_status.
+ * @param status_success See workflow_status.
+ */
+void workflow_status_blocking(const char* msg, bool status_success);
 
 #endif

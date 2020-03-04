@@ -73,6 +73,13 @@ void util_cleanup_str(char** str);
 void util_cleanup_20(uint8_t** buf);
 void util_cleanup_32(uint8_t** buf);
 void util_cleanup_64(uint8_t** buf);
+
+/**
+ * Creates a duplicate of a string.
+ * Guaranteed to return non-NULL (aborts if allocation fails).
+ */
+char* util_strdup(const char* str);
+
 #define UTIL_CLEANUP_20(var)                                                                     \
     uint8_t* __attribute__((__cleanup__(util_cleanup_20))) var##_clean __attribute__((unused)) = \
         var;

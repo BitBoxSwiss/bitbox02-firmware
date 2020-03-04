@@ -58,7 +58,7 @@ static bool _get_mnemonic_passphrase(char* passphrase_out)
                 "Confirm", passphrase_out, &font_password_11X12)) {
             break;
         }
-        workflow_status_create("Please try again", false);
+        workflow_status_blocking("Please try again", false);
     }
     return true;
 }
@@ -109,7 +109,7 @@ keystore_error_t workflow_unlock_and_handle_error(const char* password)
         } else {
             snprintf(msg, sizeof(msg), "Wrong password\n%d tries remain", remaining_attempts);
         }
-        workflow_status_create(msg, false);
+        workflow_status_blocking(msg, false);
         break;
     }
     default:

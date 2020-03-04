@@ -45,7 +45,7 @@ void reset_reset(bool status)
     smarteeprom_disable();
 #endif
 
-    workflow_status_create("Device reset", status);
+    workflow_status_blocking("Device reset", status);
 
 #ifndef TESTING
     _reset_mcu();

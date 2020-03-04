@@ -17,16 +17,25 @@
 #include <stddef.h>
 #include <cmocka.h>
 
+#include <ui/workflow_stack.h>
 #include <workflow/blocking.h>
+#include <workflow/workflow.h>
 
-static void (*_unblock_func)(void) = NULL;
+static void (*_unblock_func)(void*) = NULL;
+static void* _unblock_param = NULL;
+
 static bool _blocked = false;
 void __wrap_workflow_blocking_block(void)
 {
     assert_false(_blocked);
     _blocked = true;
     if (_unblock_func != NULL) {
-        _unblock_func();
+        _unblock_func(_unblock_param);
+    }
+    while (_blocked) {
+        workflow_t* top = workflow_stack_top();
+        assert_non_null(top);
+        top->spin(top);
     }
 }
 
@@ -41,7 +50,8 @@ bool mock_blocking_is_unblocked(void)
     return !_blocked;
 }
 
-void mock_blocking_set_unblock_func(void (*unblock_func)(void))
+void mock_blocking_set_unblock_func(void (*unblock_func)(void*), void* param)
 {
     _unblock_func = unblock_func;
+    _unblock_param = param;
 }

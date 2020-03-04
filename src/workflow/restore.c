@@ -32,7 +32,7 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
     BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data;
 
     if (restore_from_directory(restore_request->id, &backup, &backup_data) != RESTORE_OK) {
-        workflow_status_create("Could not\nrestore backup", false);
+        workflow_status_blocking("Could not\nrestore backup", false);
         return false;
     }
 
@@ -43,7 +43,7 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
     }
 
     if (!restore_seed(&backup_data, password)) {
-        workflow_status_create("Could not\nrestore backup", false);
+        workflow_status_blocking("Could not\nrestore backup", false);
         return false;
     }
 #if APP_U2F == 1

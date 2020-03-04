@@ -1,0 +1,36 @@
+language = "C"
+
+include_guard = "BITBOX02_RUST_H"
+
+include_version = true
+
+header = '''
+#include "platform/platform_config.h"
+#if defined(RUST_BITBOX_BASE)
+#include "commander/commander.h"
+#include "bitboxbase.pb.h"
+#endif
+'''
+
+[parse]
+# Parse dependencies for types ...
+parse_deps = true
+
+# ... but only parse these crates.
+include = ["bitbox02-rust", "util-c"]
+
+# also generate bindings from these crates.
+extra_bindings = ["util-c"]
+
+[export]
+# malloc, free declared in bitbox02-rust-c/src/alloc.rs, but does not need to be exported, as it
+# already exists in stdlib.h.
+exclude = [
+  "malloc",
+  "free",
+]
+
+[defines]
+"feature=platform-bitboxbase" = "RUST_BITBOX_BASE"
+"feature=platform-bitbox02" = "RUST_BITBOX02"
+"feature=platform-bootloader" = "BOOTLOADER"

@@ -1,10 +1,20 @@
 #![no_std]
 #![feature(alloc_error_handler)] // used in alloc.rs
 
+// Since util_c defines an "alloc_error_handler" we get conflicts with std when testing
+#[cfg(not(test))]
 mod alloc;
-pub mod commander;
-pub mod platform;
-pub mod util;
+
+mod util;
+
+#[cfg(feature = "platform-bitboxbase")]
+pub mod bitboxbase;
+
+#[cfg(feature = "platform-bitbox02")]
+pub mod bitbox02;
+
+#[cfg(feature = "platform-bootloader")]
+pub mod bootloader;
 
 // Whenever execution reaches somewhere it isn't supposed to rust code will "panic". Our panic
 // handler will print the available information on the screen. If we compile with `panic=abort`
@@ -19,9 +29,3 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     bitbox02_rust::print_debug!(0, "Error");
     loop {}
 }
-
-// A trick to convince cbindgen that an u8 is char.
-// cbindgen will convert `u8` to `uint8_t` and `i8` to `int8_t` which are `unsigned char` and
-// `signed char` respectively. `c_char` is converted to `char` without `signed` or `unsigned`.
-#[allow(non_camel_case_types)]
-type c_char = u8;

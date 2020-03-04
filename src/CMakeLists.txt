@@ -288,9 +288,8 @@ else()
   set(RUST_TARGET_ARCH_DIR .)
 endif()
 
+set(RUST_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/rust/target)
 set(LIBBITBOX02_RUST_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust-c)
-set(LIBBITBOX02_RUST_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02-rust-c/target)
-set(LIBBITBOX02_RUST ${LIBBITBOX02_RUST_BINARY_DIR}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.a)
 set(LIBBITBOX02_RUST ${LIBBITBOX02_RUST} PARENT_SCOPE)
 
 # Generate c-headers for the rust library
@@ -299,32 +298,36 @@ set(LIBBITBOX02_RUST ${LIBBITBOX02_RUST} PARENT_SCOPE)
 # * commander_rust.h can only be included in targets that have access to protobuf types
 add_custom_target(rust-cbindgen
   COMMAND
-    ${CBINDGEN} --quiet --config ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust-cbindgen.toml --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02_rust.h ${LIBBITBOX02_RUST_SOURCE_DIR}
-  COMMAND
-    ${CBINDGEN} --quiet --config ${CMAKE_CURRENT_SOURCE_DIR}/rust/commander-rust-cbindgen.toml --output ${CMAKE_CURRENT_BINARY_DIR}/rust/commander_rust.h ${LIBBITBOX02_RUST_SOURCE_DIR}
+    ${CBINDGEN} --quiet --config ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-cbindgen.toml --output ${CMAKE_CURRENT_BINARY_DIR}/rust/rust.h ${LIBBITBOX02_RUST_SOURCE_DIR}
   BYPRODUCTS
-    ${CMAKE_CURRENT_BINARY_DIR}/rust/bitbox02_rust.h
-    ${CMAKE_CURRENT_BINARY_DIR}/rust/commander_rust.h
+    ${CMAKE_CURRENT_BINARY_DIR}/rust/rust.h
 )
 
-add_custom_target(bitbox02-rust
-  # Build rust library
-  COMMAND
-  ${CMAKE_COMMAND} -E env
-    CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
-    RUSTFLAGS=${RUSTFLAGS}
-    # enable nightly features in the stable release - needed to activate alloc_error_handler.
-    # see src/rust/bitbox02-rust-c/src/lib.rs.
-    # https://github.com/rust-lang/rust/issues/66740
-    RUSTC_BOOTSTRAP=1
-    ${CARGO} build --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
-  # Rust packages stdlib functions which we must remove/weaken on the arm target
-  COMMAND
-    if test "${RUST_TARGET_ARCH}" = "thumbv7em-none-eabi" \; then ${CMAKE_OBJCOPY} -N memset -N memcpy -N memmove -W memcmp ${LIBBITBOX02_RUST} \; fi
-  BYPRODUCTS
-    ${LIBBITBOX02_RUST}
-)
-add_dependencies(bitbox02-rust rust-bindgen rust-cbindgen)
+foreach(type bootloader bitbox02 bitboxbase)
+  set(lib ${RUST_BINARY_DIR}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.a)
+  add_custom_target(${type}-rust
+    # Build rust library
+    COMMAND
+    ${CMAKE_COMMAND} -E env
+      CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
+      RUSTFLAGS=${RUSTFLAGS}
+      # enable nightly features in the stable release - needed to activate alloc_error_handler.
+      # see src/rust/bitbox02-rust-c/src/lib.rs.
+      # https://github.com/rust-lang/rust/issues/66740
+      RUSTC_BOOTSTRAP=1
+      ${CARGO} build --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --features platform-${type} --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
+    # Rust packages stdlib functions which we must remove/weaken on the arm target
+    COMMAND
+      if test "${RUST_TARGET_ARCH}" = "thumbv7em-none-eabi" \; then ${CMAKE_OBJCOPY} -N memset -N memcpy -N memmove -W memcmp ${lib} \; fi
+    COMMAND
+      ${CMAKE_COMMAND} -E copy ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
+    BYPRODUCTS
+      ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
+  )
+  add_dependencies(${type}-rust rust-bindgen rust-cbindgen)
+  add_library(${type}_rust_c STATIC IMPORTED)
+  set_property(TARGET ${type}_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a)
+endforeach()
 
 if(CMAKE_CROSSCOMPILING)
   get_property(SAMD51A_INCLUDES TARGET samd51a-ds PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
@@ -386,9 +389,9 @@ add_dependencies(rust-bindgen generate-protobufs)
 if(NOT CMAKE_CROSSCOMPILING)
   add_custom_target(rust-test
     COMMAND
-      ${CMAKE_COMMAND} -E env CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR} ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/util/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
+      ${CMAKE_COMMAND} -E env CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR} ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/util/Cargo.toml --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
     COMMAND
-      ${CMAKE_COMMAND} -E env CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR} ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
+      ${CMAKE_COMMAND} -E env CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR} ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust/Cargo.toml --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
     COMMAND
       ${CMAKE_COMMAND} -E env
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
@@ -396,7 +399,7 @@ if(NOT CMAKE_CROSSCOMPILING)
         # see src/rust/bitbox02-rust-c/src/lib.rs.
         # https://github.com/rust-lang/rust/issues/66740
         RUSTC_BOOTSTRAP=1
-        ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust-c/Cargo.toml --target-dir ${LIBBITBOX02_RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
+        ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust-c/Cargo.toml --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
     )
   add_dependencies(rust-test rust-bindgen)
 endif()
@@ -410,9 +413,6 @@ if(CMAKE_CROSSCOMPILING)
     COMMAND
       ${CMAKE_COMMAND} -E echo "See docs at file://${CMAKE_BINARY_DIR}/docs-rust/thumbv7em-none-eabi/doc/bitbox02_rust/index.html"
   )
-
-  add_library(bitbox02_rust STATIC IMPORTED)
-  set_property(TARGET bitbox02_rust PROPERTY IMPORTED_LOCATION ${LIBBITBOX02_RUST})
 
   set(STACK_SIZE "0x10000" CACHE STRING "Specify stack size for bootloader/firmware")
   set(STACK_SIZE ${STACK_SIZE} PARENT_SCOPE)
@@ -456,8 +456,8 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
     target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
 
-    add_dependencies(${elf} bitbox02-rust)
-    target_link_libraries(${elf} PRIVATE ${LIBBITBOX02_RUST})
+    add_dependencies(${elf} bootloader-rust)
+    target_link_libraries(${elf} PRIVATE bootloader_rust_c)
 
     # Select the smaller version of libc called nano.
     target_compile_options(${elf} PRIVATE --specs=nano.specs)
@@ -549,9 +549,6 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE wallycore secp256k1)
     target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
 
-    add_dependencies(${elf} bitbox02-rust)
-    target_link_libraries(${elf} PRIVATE ${LIBBITBOX02_RUST})
-
     # Select the smaller version of libc called nano.
     target_compile_options(${elf} PRIVATE --specs=nano.specs)
     target_link_libraries(${elf} PRIVATE --specs=nano.specs)
@@ -563,6 +560,15 @@ if(CMAKE_CROSSCOMPILING)
       # Select an implementation of the system calls that can communicate with the debugger
       target_compile_options(${elf} PRIVATE --specs=rdimon.specs)
       target_link_libraries(${elf} PRIVATE --specs=rdimon.specs)
+    endif()
+
+    string(FIND ${firmware} bitboxbase BITBOXBASE_FOUND)
+    if(BITBOXBASE_FOUND EQUAL -1)
+      add_dependencies(${elf} bitbox02-rust)
+      target_link_libraries(${elf} PRIVATE bitbox02_rust_c)
+    else()
+      add_dependencies(${elf} bitboxbase-rust)
+      target_link_libraries(${elf} PRIVATE bitboxbase_rust_c)
     endif()
   endforeach(firmware)
 

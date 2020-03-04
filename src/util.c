@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "rust/bitbox02_rust.h"
+#include "rust/rust.h"
 #include "util.h"
 
 volatile void* util_zero(volatile void* dst, size_t len)

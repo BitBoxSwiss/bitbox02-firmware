@@ -22,7 +22,7 @@
 #include "hww.h"
 #include "platform_init.h"
 #include "qtouch.h"
-#include "rust/bitbox02_rust.h"
+#include "rust/rust.h"
 #include "screen.h"
 #include "ui/oled/oled.h"
 #include "ui/screen_process.h"

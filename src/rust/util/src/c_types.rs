@@ -15,3 +15,4 @@ pub type c_long = i32;
 pub type c_ulong = u32;
 pub type c_longlong = i64;
 pub type c_ulonglong = u64;
+pub type size_t = usize;

@@ -23,6 +23,7 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 #include <restore.h>
+#include <rust/bitbox02_rust.h>
 #include <util.h>
 
 #include <FatFs/source/ff.h>
@@ -80,7 +81,7 @@ static void _get_directory_name(char* dir_name)
         _mock_seed_length,
         hmac_seed,
         HMAC_SHA256_LEN);
-    util_uint8_to_hex(hmac_seed, sizeof(hmac_seed), dir_name);
+    rust_util_uint8_to_hex(hmac_seed, sizeof(hmac_seed), dir_name);
 }
 
 /**

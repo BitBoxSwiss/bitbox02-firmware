@@ -3,6 +3,7 @@
 #include "eth_params.h"
 
 #include <hardfault.h>
+#include <rust/bitbox02_rust.h>
 #include <util.h>
 #include <workflow/confirm.h>
 #include <workflow/verify_recipient.h>
@@ -146,7 +147,7 @@ app_eth_sign_error_t app_eth_verify_standard_transaction(const ETHSignRequest* r
     }
     if (request->data.size != 0) {
         char hex[sizeof(request->data.bytes) * 2 + 1] = {0};
-        util_uint8_to_hex(request->data.bytes, request->data.size, hex);
+        rust_util_uint8_to_hex(request->data.bytes, request->data.size, hex);
         confirm_params_t cparams = {
             .title = "Transaction\ndata",
             .body = hex,

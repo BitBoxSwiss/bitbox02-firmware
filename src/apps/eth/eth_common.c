@@ -16,6 +16,7 @@
 #include "eth_params.h"
 
 #include <hardfault.h>
+#include <rust/bitbox02_rust.h>
 #include <util.h>
 
 #include <sha3.h>
@@ -82,7 +83,7 @@ bool eth_common_hexaddress(const uint8_t* recipient, char* out, size_t out_len)
         return false;
     }
     char hex[APP_ETH_RECIPIENT_BYTES_LEN * 2 + 1];
-    util_uint8_to_hex(recipient, APP_ETH_RECIPIENT_BYTES_LEN, hex);
+    rust_util_uint8_to_hex(recipient, APP_ETH_RECIPIENT_BYTES_LEN, hex);
 
     // checksum encoded in lowercase vs uppercase letters
     uint8_t hash[32];

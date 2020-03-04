@@ -23,6 +23,7 @@
 #include <memory/bitbox02_smarteeprom.h>
 #include <memory/smarteeprom.h>
 #include <mock_memory.h>
+#include <rust/bitbox02_rust.h>
 #include <securechip/securechip.h>
 #include <util.h>
 
@@ -113,7 +114,7 @@ static void _check_mnemonic(const char* expected)
 static void _assert_equal_memory_hex(const uint8_t* buf, size_t buf_size, const char* expected_hex)
 {
     char buf_hex[2 * buf_size + 1];
-    util_uint8_to_hex(buf, buf_size, buf_hex);
+    rust_util_uint8_to_hex(buf, buf_size, buf_hex);
     assert_string_equal(buf_hex, expected_hex);
 }
 

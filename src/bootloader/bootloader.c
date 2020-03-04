@@ -26,6 +26,7 @@
 #include <flags.h>
 #include <memory/nvmctrl.h>
 #include <pukcc/curve_p256.h>
+#include <rust/bitbox02_rust.h>
 #include <screen.h>
 #include <ui/components/ui_images.h>
 #include <ui/oled/oled.h>
@@ -360,7 +361,7 @@ static void _render_hash(const char* title, const uint8_t* hash)
     uint8_t seconds = 10;
     char message[16];
     char hash_hex[2 * SHA256_DIGEST_LENGTH + 1];
-    util_uint8_to_hex(hash, SHA256_DIGEST_LENGTH, hash_hex);
+    rust_util_uint8_to_hex(hash, SHA256_DIGEST_LENGTH, hash_hex);
     char scratch = 0;
     for (uint8_t i = 1; i <= seconds; i++) {
         snprintf(message, sizeof(message), "HASH  (%2ds)", seconds - i);

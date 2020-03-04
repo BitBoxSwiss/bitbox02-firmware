@@ -19,6 +19,7 @@
 #include "CryptoLib_typedef_pb.h"
 #include "curve_p256.h"
 #include <driver_init.h>
+#include <rust/bitbox02_rust.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -273,7 +274,7 @@ void pukcc_example_test(PUKCC_CURVE_256_X curve)
 
     if (status || !MEMEQ(hash, curve.test_message_hash, sizeof(hash))) {
         char hash_hex[BB_HEX_SIZE(hash)];
-        util_uint8_to_hex(hash, sizeof(hash), hash_hex);
+        rust_util_uint8_to_hex(hash, sizeof(hash), hash_hex);
         snprintf(m,sizeof(m),"SHA ERROR\n%.16s..", hash_hex);
         screen_print_debug(m, 3000);
     } else {

@@ -23,6 +23,7 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 #include <restore.h>
+#include <rust/bitbox02_rust.h>
 #include <sd.h>
 #include <util.h>
 #include <version.h>
@@ -217,7 +218,7 @@ static void _get_directory_name(const uint8_t seed[32], char* dir_name)
     uint8_t hmac_seed[HMAC_SHA256_LEN];
     wally_hmac_sha256(
         (const unsigned char*)"backup", strlens("backup"), seed, 32, hmac_seed, HMAC_SHA256_LEN);
-    util_uint8_to_hex(hmac_seed, sizeof(hmac_seed), dir_name);
+    rust_util_uint8_to_hex(hmac_seed, sizeof(hmac_seed), dir_name);
 }
 
 /**

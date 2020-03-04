@@ -31,6 +31,7 @@
 #include <keystore.h>
 #include <memory/memory.h>
 #include <random.h>
+#include <rust/bitbox02_rust.h>
 #include <screen.h>
 #include <sd.h>
 #include <util.h>
@@ -89,7 +90,7 @@ static void _api_process_random(RandomNumberResponse* response)
     random_32_bytes(number);
 
     static char number_hex[BB_HEX_SIZE(number)]; // TODO cleanup
-    util_uint8_to_hex(number, sizeof(number), number_hex);
+    rust_util_uint8_to_hex(number, sizeof(number), number_hex);
 
     char number_hex_formatted[BB_HEX_SIZE(number) + 3];
     snprintf(

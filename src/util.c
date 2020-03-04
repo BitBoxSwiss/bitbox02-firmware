@@ -30,11 +30,6 @@ volatile void* util_zero(volatile void* dst, size_t len)
 #pragma GCC diagnostic pop
 }
 
-void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
-{
-    rust_util_uint8_to_hex(in_bin, in_len, out);
-}
-
 void util_cleanup_str(char** str)
 {
     util_zero(*str, strlens(*str));

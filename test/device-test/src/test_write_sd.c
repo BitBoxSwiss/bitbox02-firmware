@@ -16,6 +16,7 @@
 #include <driver_init.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
+#include <rust/bitbox02_rust.h>
 #include <screen.h>
 #include <sd.h>
 #include <string.h>
@@ -163,7 +164,7 @@ static void _get_directory_name(uint8_t seed[32], char* hmac_seed_hex)
     uint8_t hmac_seed[HMAC_SHA256_LEN];
     wally_hmac_sha256(
         (const unsigned char*)"backup", strlens("backup"), seed, 32, hmac_seed, HMAC_SHA256_LEN);
-    util_uint8_to_hex(hmac_seed, sizeof(hmac_seed), hmac_seed_hex);
+    rust_util_uint8_to_hex(hmac_seed, sizeof(hmac_seed), hmac_seed_hex);
 }
 
 static bool _check_hash(Backup* backup, BackupData* backup_data)

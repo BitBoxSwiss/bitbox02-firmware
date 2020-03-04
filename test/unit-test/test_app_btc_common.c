@@ -21,6 +21,7 @@
 
 #include <apps/btc/btc_common.h>
 #include <keystore.h>
+#include <rust/bitbox02_rust.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -699,7 +700,7 @@ static void _test_btc_common_pkscript_from_multisig(void** state)
         assert_true(script_size <= sizeof(script));
 
         char script_hex[2 * script_size + 1];
-        util_uint8_to_hex(script, script_size, script_hex);
+        rust_util_uint8_to_hex(script, script_size, script_hex);
         assert_string_equal(script_hex, test_case->expected_script_hex);
     }
 }

@@ -15,6 +15,7 @@
 #include "screen.h"
 
 #include <hal_delay.h>
+#include <rust/bitbox02_rust.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -66,7 +67,7 @@ void screen_print_debug_hex(const uint8_t* bytes, size_t len, int duration)
         len = 50;
     }
     char hex[2 * 50 + 1] = {0};
-    util_uint8_to_hex(bytes, len, hex);
+    rust_util_uint8_to_hex(bytes, len, hex);
     screen_print_debug(hex, duration);
 }
 

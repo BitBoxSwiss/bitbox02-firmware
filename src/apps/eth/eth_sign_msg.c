@@ -21,6 +21,7 @@
 #include "eth.h"
 #include <hardfault.h>
 #include <keystore.h>
+#include <rust/bitbox02_rust.h>
 #include <util.h>
 #include <util/util_string.h>
 #include <workflow/confirm.h>
@@ -90,7 +91,7 @@ app_eth_sign_error_t app_eth_sign_msg(
         params.title = "Sign message\nData";
     } else {
         // If it is binary, convert to hex
-        util_uint8_to_hex(request->msg.bytes, request->msg.size, body);
+        rust_util_uint8_to_hex(request->msg.bytes, request->msg.size, body);
         params.title = "Sign message\nData (hex)";
         params.display_size = request->msg.size;
     }

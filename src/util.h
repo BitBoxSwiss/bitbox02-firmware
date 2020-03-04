@@ -59,9 +59,6 @@ typedef uint8_t secbool_u8;
 volatile void* util_zero(volatile void* dst, size_t len);
 void util_clear_buffers(void);
 
-// `out` must be of size in_len*2+1. Use BB_HEX_SIZE() to compute the size.
-void util_uint8_to_hex(const uint8_t* in_bin, size_t in_len, char* out);
-
 #define BB_HEX_SIZE(in_bin) (sizeof((in_bin)) * 2 + 1)
 
 void util_reverse_bin(uint8_t* b, int len);

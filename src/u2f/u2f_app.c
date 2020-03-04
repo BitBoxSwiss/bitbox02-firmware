@@ -1,6 +1,7 @@
 #include "u2f_app.h"
 
 #include <hardfault.h>
+#include <rust/bitbox02_rust.h>
 #include <ui/screen_process.h>
 #include <util.h>
 #include <workflow/confirm.h>
@@ -40,7 +41,7 @@ static void _app_string(const uint8_t* app_id, char* out, size_t out_len)
         }
     }
     char appid_hex[32 * 2 + 1] = {0};
-    util_uint8_to_hex(app_id, 32, appid_hex);
+    rust_util_uint8_to_hex(app_id, 32, appid_hex);
     snprintf(out, out_len, "Unknown site:\n%.16s\n%.16s", appid_hex, appid_hex + 16);
 }
 

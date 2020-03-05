@@ -294,8 +294,10 @@ static void _on_event(const event_t* event, component_t* component)
 
     // Other gestures deactivated during confirming.
     if (data->longtouch && confirm_gesture_is_active(data->confirm_component)) {
+        data->trinary_char_component->disabled = true;
         return;
     }
+    data->trinary_char_component->disabled = false;
 
     switch (event->id) {
     case EVENT_TOGGLE_ALPHANUMERIC:

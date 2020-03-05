@@ -124,12 +124,24 @@ component_t* confirm_create(
     }
 
     slider_location_t slider_position = top_slider;
+    const char* p = params->title;
+    bool two_line_title = false;
+    int16_t yoffset = 0;
+    while (*p != '\0') {
+        if(*p == '\n') {
+            two_line_title = true;
+        }
+        ++p;
+    }
+    if (two_line_title) {
+        yoffset = 5;
+    }
     // Create labels
     if (params->scrollable) {
         ui_util_add_sub_component(
-            confirm, label_create_scrollable(body, params->font, CENTER, confirm));
+            confirm, label_create_scrollable_offset(body, params->font, CENTER, 0, yoffset, confirm));
     } else {
-        ui_util_add_sub_component(confirm, label_create(body, params->font, CENTER, confirm));
+        ui_util_add_sub_component(confirm, label_create_offset(body, params->font, CENTER, 0, yoffset, confirm));
     }
     ui_util_add_sub_component(confirm, label_create(params->title, NULL, CENTER_TOP, confirm));
     // Create buttons

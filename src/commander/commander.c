@@ -91,11 +91,11 @@ static void _api_process_random(RandomNumberResponse* response)
     static char number_hex[BB_HEX_SIZE(number)]; // TODO cleanup
     util_uint8_to_hex(number, sizeof(number), number_hex);
 
-    char number_hex_formatted[BB_HEX_SIZE(number) + 3];
+    char number_hex_formatted[BB_HEX_SIZE(number) + 4];
     snprintf(
         number_hex_formatted,
         sizeof(number_hex_formatted),
-        "%.16s\n%.16s\n%.16s\n%.16s",
+        "\n%.16s\n%.16s\n%.16s\n%.16s",
         number_hex,
         number_hex + 16,
         number_hex + 32,

@@ -19,7 +19,7 @@
 #include "password.h"
 #include "status.h"
 #include "trinary_input.h"
-#include "unlock.h"
+#include "unlock_bip39.h"
 
 #include <hardfault.h>
 #include <keystore.h>
@@ -189,5 +189,6 @@ bool workflow_restore_from_mnemonic(const RestoreFromMnemonicRequest* request)
         // This should/can never happen, but let's check anyway.
         Abort("workflow_restore_from_mnemonic: unlock failed");
     }
-    return workflow_unlock_bip39();
+    workflow_unlock_bip39_blocking();
+    return true;
 }

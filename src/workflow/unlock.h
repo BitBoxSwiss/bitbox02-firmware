@@ -31,12 +31,4 @@ USE_RESULT bool workflow_unlock(void);
  */
 USE_RESULT keystore_error_t workflow_unlock_and_handle_error(const char* password);
 
-/**
- * Unlocks BIP39 with the default empty passphrase, or with a user provided passphrase if
- * mnemonic passphrase support is enabled.
- * Displays a simple unlock animation.
- * @return false if the call was cancelled.
- */
-USE_RESULT bool workflow_unlock_bip39(void);
-
 #endif

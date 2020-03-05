@@ -23,7 +23,7 @@
 #include <workflow/confirm_time.h>
 #include <workflow/password.h>
 #include <workflow/status.h>
-#include <workflow/unlock.h>
+#include <workflow/unlock_bip39.h>
 #include <workflow/workflow.h>
 
 bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
@@ -66,7 +66,8 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
     if (!memory_set_device_name(backup.backup_v1.content.metadata.name)) {
         /* Ignore errors for now */
     }
-    return workflow_unlock_bip39();
+    workflow_unlock_bip39_blocking();
+    return true;
 }
 
 bool workflow_list_backups(ListBackupsResponse* backups)

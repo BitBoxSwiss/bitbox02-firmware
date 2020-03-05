@@ -15,51 +15,18 @@
 #include "unlock.h"
 #include "password_enter.h"
 #include "status.h"
+#include "unlock_bip39.h"
 #include "workflow.h"
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory/memory.h>
 #include <screen.h>
 #include <string.h>
-#include <ui/components/ui_images.h>
 #include <ui/screen_stack.h>
-#include <ui/ugui/ugui.h>
 #include <util.h>
 #include <workflow/get_mnemonic_passphrase.h>
-#ifndef TESTING
-#include <hal_delay.h>
-#endif
 
 #include <stdio.h>
-
-bool workflow_unlock_bip39(void)
-{
-    // Empty passphrase by default.
-    char mnemonic_passphrase[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
-    UTIL_CLEANUP_STR(mnemonic_passphrase);
-    if (memory_is_mnemonic_passphrase_enabled()) {
-        get_mnemonic_passphrase_blocking(mnemonic_passphrase);
-    }
-
-    { // animation
-        // Cannot render screens during unlocking (unlocking blocks)
-        // Therefore hardcode a status screen
-        UG_ClearBuffer();
-        image_lock(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 1, IMAGE_DEFAULT_LOCK_RADIUS);
-        UG_SendBuffer();
-#ifndef TESTING
-        delay_ms(1200);
-#endif
-        UG_ClearBuffer();
-        image_unlock(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 1, IMAGE_DEFAULT_LOCK_RADIUS);
-        UG_SendBuffer();
-    }
-
-    if (!keystore_unlock_bip39(mnemonic_passphrase)) {
-        Abort("bip39 unlock failed");
-    }
-    return true;
-}
 
 keystore_error_t workflow_unlock_and_handle_error(const char* password)
 {
@@ -105,9 +72,7 @@ bool workflow_unlock(void)
         keystore_error_t unlock_result = workflow_unlock_and_handle_error(password);
         if (unlock_result == KEYSTORE_OK) {
             // Keystore unlocked, now unlock bip39 seed.
-            if (!workflow_unlock_bip39()) {
-                return false;
-            }
+            workflow_unlock_bip39_blocking();
             break;
         }
         if (unlock_result == KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED) {

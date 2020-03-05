@@ -30,7 +30,6 @@ enum screen_position_t {
     RIGHT_TOP,
     RIGHT_BOTTOM,
     RIGHT_CENTER,
-    CUSTOM_OFFSET
 };
 
 /**

@@ -44,14 +44,16 @@ component_t* label_create(
  * @param[in] text The text of the label.
  * @param[in] font The font of the label.
  * @param[in] position The position of the label.
- * @param[in] offset The horizontal offset if position == CUSTOM_OFFSET.
+ * @param[in] xoffset The horizontal offset.
+ * @param[in] yoffset The vertical offset.
  * @param[in] parent The parent component.
  */
 component_t* label_create_offset(
     const char* text,
     const UG_FONT* font,
     enum screen_position_t position,
-    uint8_t offset,
+    uint8_t xoffset,
+    uint8_t yoffset,
     component_t* parent);
 
 /**
@@ -59,13 +61,29 @@ component_t* label_create_offset(
  * @param[in] text The text of the label.
  * @param[in] font The font of the label.
  * @param[in] position The position of the label.
- * @param[in] scrollable The horizontal offset if position == CUSTOM_OFFSET.
  * @param[in] parent The parent component.
  */
 component_t* label_create_scrollable(
     const char* text,
     const UG_FONT* font,
     enum screen_position_t position,
+    component_t* parent);
+
+/**
+ * Creates a label with the given font that can be scrolled.
+ * @param[in] text The text of the label.
+ * @param[in] font The font of the label.
+ * @param[in] position The position of the label.
+ * @param[in] xoffset The horizontal offset.
+ * @param[in] yoffset The vertical offset.
+ * @param[in] parent The parent component.
+ */
+component_t* label_create_scrollable_offset(
+    const char* text,
+    const UG_FONT* font,
+    enum screen_position_t position,
+    uint8_t xoffset,
+    uint8_t yoffset,
     component_t* parent);
 
 #endif

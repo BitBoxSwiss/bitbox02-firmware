@@ -41,7 +41,8 @@ typedef struct {
     float slider_position_diff;
     int16_t text_position;
     int16_t text_position_last;
-    uint8_t offset;
+    uint8_t xoffset;
+    uint8_t yoffset;
 } data_t;
 
 static void _measure_label_dimensions(component_t* label);
@@ -78,9 +79,6 @@ void label_update(component_t* component, const char* text)
     case LEFT_CENTER:
         ui_util_position_left_center(parent, component);
         break;
-    case CUSTOM_OFFSET:
-        ui_util_position_left_center_offset(parent, component, data->offset);
-        break;
     case RIGHT_CENTER:
         ui_util_position_right_center(parent, component);
         break;
@@ -93,6 +91,8 @@ void label_update(component_t* component, const char* text)
     default:
         Abort("position undefined or currently not implemented");
     }
+    component->position.top += data->yoffset;
+    component->position.left += data->xoffset;
 }
 
 static void _render(component_t* component)
@@ -223,7 +223,8 @@ static component_t* _label_create(
     const bool upside_down,
     const UG_FONT* font,
     enum screen_position_t position,
-    uint8_t offset,
+    uint8_t xoffset,
+    uint8_t yoffset,
     bool scrollable,
     component_t* parent)
 {
@@ -242,7 +243,8 @@ static component_t* _label_create(
     data->upside_down = upside_down;
     data->scrollable = scrollable;
     data->position = position;
-    data->offset = offset;
+    data->xoffset = xoffset;
+    data->yoffset = yoffset;
     label->data = data;
     label->parent = parent;
     label->f = &_component_functions;
@@ -261,17 +263,18 @@ component_t* label_create(
     enum screen_position_t position,
     component_t* parent)
 {
-    return _label_create(text, false, font, position, 0, 0, parent);
+    return _label_create(text, false, font, position, 0, 0, false, parent);
 }
 
 component_t* label_create_offset(
     const char* text,
     const UG_FONT* font,
     enum screen_position_t position,
-    uint8_t offset,
+    uint8_t xoffset,
+    uint8_t yoffset,
     component_t* parent)
 {
-    return _label_create(text, false, font, position, offset, 0, parent);
+    return _label_create(text, false, font, position, xoffset, yoffset, false, parent);
 }
 
 component_t* label_create_scrollable(
@@ -280,5 +283,16 @@ component_t* label_create_scrollable(
     enum screen_position_t position,
     component_t* parent)
 {
-    return _label_create(text, false, font, position, 0, true, parent);
+    return _label_create(text, false, font, position, 0, 0, true, parent);
+}
+
+component_t* label_create_scrollable_offset(
+    const char* text,
+    const UG_FONT* font,
+    enum screen_position_t position,
+    uint8_t xoffset,
+    uint8_t yoffset,
+    component_t* parent)
+{
+    return _label_create(text, false, font, position, xoffset, yoffset, true, parent);
 }

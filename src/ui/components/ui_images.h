@@ -102,8 +102,8 @@ static const uint8_t IMAGE_ROTATE_REVERSE[] = {
     0x02, 0x01, 0xc0, 0x08, 0x02, 0x00, 0x40, 0x00, 0x06, 0x00, 0x00, 0x60, 0x00};
 
 #define IMAGE_DEFAULT_ARROW_HEIGHT 6
-#define IMAGE_DEFAULT_CHECKMARK_HEIGHT 5
-#define IMAGE_DEFAULT_CROSS_HEIGHT 5
+#define IMAGE_DEFAULT_CHECKMARK_HEIGHT 7
+#define IMAGE_DEFAULT_CROSS_HEIGHT 6
 #define IMAGE_DEFAULT_LOCK_RADIUS 6
 
 typedef enum {
@@ -114,6 +114,7 @@ typedef enum {
 } arrow_orientation_t;
 
 void image_arrow(int x, int y, int height, arrow_orientation_t orientation);
+void image_arrow_hollow(int x, int y, int height, arrow_orientation_t orientation);
 void image_checkmark(int x, int y, int h);
 void image_cross(int x, int y, int h);
 void image_lock(int x, int y, int r);

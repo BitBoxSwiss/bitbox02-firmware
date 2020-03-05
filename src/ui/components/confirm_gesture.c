@@ -50,7 +50,7 @@ bool confirm_gesture_is_active(component_t* component)
  */
 static void _render(component_t* component)
 {
-    uint8_t arrow_height = 5;
+    uint8_t arrow_height = 6;
     int16_t x, y0, y1;
     confirm_data_t* data = (confirm_data_t*)component->data;
 
@@ -71,13 +71,13 @@ static void _render(component_t* component)
     }
 
     // Draw the top arrow
-    x = SCREEN_WIDTH / 9 * 8;
-    y0 = data->active_count / SCALE;
-    UG_FillFrame(x - arrow_height, 0, x + arrow_height, y0, screen_back_color);
+    const uint16_t padding = 1;
+    x = SCREEN_WIDTH * 15 / 16 - (arrow_height*2 + 1);
+    y0 = padding + data->active_count / SCALE;
     image_arrow(x, y0, arrow_height, ARROW_DOWN);
 
     // Draw the bottom arrow
-    y1 = SCREEN_HEIGHT - data->bottom_arrow_slidein / SCALE - data->active_count / SCALE;
+    y1 = SCREEN_HEIGHT - padding - data->bottom_arrow_slidein / SCALE - data->active_count / SCALE;
     if (data->bottom_arrow_slidein) {
         image_arrow(x, y1, arrow_height, ARROW_UP);
     }

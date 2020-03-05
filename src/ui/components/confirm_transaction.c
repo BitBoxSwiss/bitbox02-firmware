@@ -35,7 +35,7 @@ static void _render(component_t* component)
     data_t* data = (data_t*)component->data;
     ui_util_component_render_subcomponents(component);
     if (data->has_address) {
-        image_arrow(SCREEN_WIDTH / 2, 33, IMAGE_DEFAULT_ARROW_HEIGHT, ARROW_DOWN);
+        image_arrow(SCREEN_WIDTH / 2 - IMAGE_DEFAULT_ARROW_HEIGHT, 34, IMAGE_DEFAULT_ARROW_HEIGHT, ARROW_DOWN);
     }
 }
 

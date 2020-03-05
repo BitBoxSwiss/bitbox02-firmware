@@ -43,7 +43,7 @@ typedef struct {
 static void _render(component_t* component)
 {
     keyboard_switch_data_t* ks_data = (keyboard_switch_data_t*)component->data;
-    UG_FontSelect(&font_font_a_9X9);
+    UG_FontSelect(&font_font_a_11X10);
     UG_S16 w = 0, h = 0;
     switch (ks_data->mode) {
     case LOWER_CASE:

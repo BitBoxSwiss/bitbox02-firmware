@@ -17,6 +17,7 @@
 #include "icon_button.h"
 #include "label.h"
 #include "ui_images.h"
+#include "ui/fonts/font_a_9X9.h"
 
 #include <hardfault.h>
 #include <screen.h>
@@ -114,8 +115,8 @@ static component_t* _confirm_transaction_create(
         ui_util_add_sub_component(confirm, label_create_scrollable_offset(address, NULL, CENTER, 0, 20, confirm));
     }
     if (strlens(fee)) {
-        ui_util_add_sub_component(confirm, label_create_offset("Fee", NULL, CENTER_TOP, 0, 38, confirm));
-        ui_util_add_sub_component(confirm, label_create_offset(fee, NULL, CENTER_TOP, 0, 50, confirm));
+        ui_util_add_sub_component(confirm, label_create_offset("Fee", &font_font_a_9X9, CENTER_TOP, 0, 38, confirm));
+        ui_util_add_sub_component(confirm, label_create_offset(fee, &font_font_a_9X9, CENTER_TOP, 0, 50, confirm));
     }
     if (verify_total) {
         ui_util_add_sub_component(confirm, label_create_offset("Total", NULL, CENTER_TOP, 0, 8, confirm));

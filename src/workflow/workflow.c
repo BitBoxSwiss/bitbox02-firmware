@@ -19,6 +19,7 @@
 #include "platform_config.h"
 #include "unlock.h"
 #include "workflow.h"
+#include "ui/fonts/font_a_9X9.h"
 
 #include <hardfault.h>
 #include <platform_config.h>
@@ -39,6 +40,7 @@ void workflow_confirm_dismiss(const char* title, const char* body)
     const confirm_params_t params = {
         .title = title,
         .body = body,
+        .font = &font_font_a_9X9,
     };
     ui_screen_stack_switch(confirm_create(&params, _confirm_dismiss, NULL, NULL, NULL));
 }

@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 #![feature(alloc_error_handler)] // used in alloc.rs
 
 // Since util_c defines an "alloc_error_handler" we get conflicts with std when testing

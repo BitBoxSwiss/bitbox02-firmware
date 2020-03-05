@@ -46,21 +46,24 @@ static void _render(component_t* component)
     UG_FontSelect(&font_font_a_11X10);
     UG_S16 w = 0, h = 0;
     switch (ks_data->mode) {
-    case LOWER_CASE:
+    case DIGITS:
         UG_MeasureString(&w, &h, "abc");
         UG_PutString((SCREEN_WIDTH - w) / 2 + 2, 1, "abc", false);
         break;
-    case UPPER_CASE:
+    case LOWER_CASE:
         UG_MeasureString(&w, &h, "ABC");
         UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "ABC", false);
         break;
-    case DIGITS:
+    case UPPER_CASE:
+        if (ks_data->special_chars) {
+            UG_MeasureString(&w, &h, "&?+");
+            UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "&?+", false);
+            break;
+        }
+        /* FALLTHROUGH */
+    case SPECIAL_CHARS:
         UG_MeasureString(&w, &h, "123");
         UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "123", false);
-        break;
-    case SPECIAL_CHARS:
-        UG_MeasureString(&w, &h, "&?+");
-        UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "&?+", false);
         break;
     default:
         Abort("Keyboard mode unrecognized");
@@ -87,17 +90,17 @@ static void _on_event(const event_t* event, component_t* component)
     switch (event->id) {
     case EVENT_TOGGLE_ALPHANUMERIC:
         switch (ks_data->mode) {
+        case DIGITS:
+            ks_data->mode = LOWER_CASE;
+            break;
         case LOWER_CASE:
             ks_data->mode = UPPER_CASE;
             break;
         case UPPER_CASE:
-            ks_data->mode = DIGITS;
-            break;
-        case DIGITS:
-            ks_data->mode = ks_data->special_chars ? SPECIAL_CHARS : LOWER_CASE;
+            ks_data->mode = ks_data->special_chars ? SPECIAL_CHARS : DIGITS;
             break;
         case SPECIAL_CHARS:
-            ks_data->mode = LOWER_CASE;
+            ks_data->mode = DIGITS;
             break;
         default:
             Abort("Keyboard mode unrecognized");
@@ -162,7 +165,7 @@ component_t* keyboard_switch_create(
     memset(ks_data, 0, sizeof(keyboard_switch_data_t));
 
     ks_data->location = location;
-    ks_data->mode = LOWER_CASE;
+    ks_data->mode = DIGITS;
     ks_data->active = false;
     ks_data->special_chars = special_chars;
 

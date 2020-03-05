@@ -18,7 +18,7 @@
 #include <screen.h>
 #include <ui/component.h>
 
-typedef enum { LOWER_CASE, UPPER_CASE, DIGITS, SPECIAL_CHARS } keyboard_mode_t;
+typedef enum { DIGITS, LOWER_CASE, UPPER_CASE, SPECIAL_CHARS } keyboard_mode_t;
 
 /********************************** Create Instance **********************************/
 

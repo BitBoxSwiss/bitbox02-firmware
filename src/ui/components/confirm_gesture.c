@@ -72,7 +72,7 @@ static void _render(component_t* component)
 
     // Draw the top arrow
     const uint16_t padding = 1;
-    x = SCREEN_WIDTH * 15 / 16 - (arrow_height*2 + 1);
+    x = SCREEN_WIDTH * 15 / 16 - (arrow_height + arrow_height/2);
     y0 = padding + data->active_count / SCALE;
     image_arrow(x, y0, arrow_height, ARROW_DOWN);
 

@@ -57,8 +57,8 @@ static void _workflow_stack_push(workflow_t* workflow)
 
 void workflow_stack_start_workflow(workflow_t* workflow)
 {
-    workflow->init(workflow);
     _workflow_stack_push(workflow);
+    workflow->init(workflow);
 }
 
 void workflow_stack_stop_workflow(void)

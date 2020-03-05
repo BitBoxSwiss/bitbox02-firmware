@@ -38,9 +38,7 @@ bool workflow_unlock_bip39(void)
     char mnemonic_passphrase[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     UTIL_CLEANUP_STR(mnemonic_passphrase);
     if (memory_is_mnemonic_passphrase_enabled()) {
-        if (!get_mnemonic_passphrase(mnemonic_passphrase)) {
-            return false;
-        }
+        get_mnemonic_passphrase_blocking(mnemonic_passphrase);
     }
 
     { // animation

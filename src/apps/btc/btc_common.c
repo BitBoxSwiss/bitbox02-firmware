@@ -309,6 +309,10 @@ bool btc_common_format_amount(uint64_t satoshi, const char* unit, char* out, siz
         end--;
     }
     end[1] = '\0';
+    const int truncate_len = 10;
+    if (sprintf_result > truncate_len) {
+        snprintf(&amount_str[truncate_len], 3, "..");
+    }
     sprintf_result = snprintf(out, out_len, "%s %s", amount_str, unit);
     if (sprintf_result < 0 || sprintf_result >= (int)out_len) {
         return false;

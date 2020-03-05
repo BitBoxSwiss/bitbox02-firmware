@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "unlock.h"
-#include "confirm.h"
 #include "password_enter.h"
 #include "status.h"
 #include "workflow.h"
@@ -23,43 +22,15 @@
 #include <screen.h>
 #include <string.h>
 #include <ui/components/ui_images.h>
-#include <ui/fonts/password_11X12.h>
 #include <ui/screen_stack.h>
 #include <ui/ugui/ugui.h>
 #include <util.h>
+#include <workflow/get_mnemonic_passphrase.h>
 #ifndef TESTING
 #include <hal_delay.h>
 #endif
 
 #include <stdio.h>
-
-static bool _get_mnemonic_passphrase(char* passphrase_out)
-{
-    if (passphrase_out == NULL) {
-        Abort("_get_mnemonic_passphrase");
-    }
-    while (true) {
-        password_enter_blocking("Enter\noptional passphrase", true, passphrase_out);
-        if (strlen(passphrase_out) == 0) {
-            // No need to confirm the empty passphrase.
-            break;
-        }
-        const confirm_params_t params = {
-            .title = "",
-            .body = "You will be asked to\nvisually confirm your\npassphrase now.",
-            .accept_only = true,
-        };
-        if (!workflow_confirm_blocking(&params)) {
-            return false;
-        }
-        if (workflow_confirm_scrollable_longtouch_blocking(
-                "Confirm", passphrase_out, &font_password_11X12)) {
-            break;
-        }
-        workflow_status_blocking("Please try again", false);
-    }
-    return true;
-}
 
 bool workflow_unlock_bip39(void)
 {
@@ -67,7 +38,7 @@ bool workflow_unlock_bip39(void)
     char mnemonic_passphrase[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     UTIL_CLEANUP_STR(mnemonic_passphrase);
     if (memory_is_mnemonic_passphrase_enabled()) {
-        if (!_get_mnemonic_passphrase(mnemonic_passphrase)) {
+        if (!get_mnemonic_passphrase(mnemonic_passphrase)) {
             return false;
         }
     }

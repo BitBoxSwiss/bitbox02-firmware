@@ -44,6 +44,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm_time.c
   ${CMAKE_SOURCE_DIR}/src/workflow/create_seed.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/get_mnemonic_passphrase.c
   ${CMAKE_SOURCE_DIR}/src/workflow/idle_workflow.c
   ${CMAKE_SOURCE_DIR}/src/workflow/pairing.c
   ${CMAKE_SOURCE_DIR}/src/workflow/password.c

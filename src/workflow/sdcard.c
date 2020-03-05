@@ -46,9 +46,6 @@ void sdcard_handle(const InsertRemoveSDCardRequest* insert_remove_sdcard)
     }
 
     ui_screen_stack_push(screen);
-    bool blocking_result = workflow_blocking_block();
+    workflow_blocking_block();
     ui_screen_stack_pop();
-    if (!blocking_result) {
-        // No meaningful error handling here.
-    }
 }

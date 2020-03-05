@@ -37,11 +37,8 @@ bool password_enter(const char* title, bool special_chars, char* password_out)
 {
     ui_screen_stack_push(
         trinary_input_string_create_password(title, special_chars, _pw_entered, NULL));
-    bool result = workflow_blocking_block();
+    workflow_blocking_block();
     ui_screen_stack_pop();
-    if (!result) {
-        return false;
-    }
     snprintf(password_out, SET_PASSWORD_MAX_PASSWORD_LENGTH, "%s", _password);
     util_zero(_password, sizeof(_password));
     return true;

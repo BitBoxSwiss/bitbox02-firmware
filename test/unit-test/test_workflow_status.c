@@ -43,9 +43,7 @@ static void _test_workflow_status(void** state)
 {
     for (int flags = 0; flags < 4; flags++) {
         const bool status = flags & 1;
-        const bool blocking_result = flags & 2;
 
-        will_return(__wrap_workflow_blocking_block, blocking_result);
         expect_value(__wrap_status_create, status_success, status);
         expect_value(__wrap_ui_screen_stack_push, component, &_component);
         workflow_status_create(_msg, status);

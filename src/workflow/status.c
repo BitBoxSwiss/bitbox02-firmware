@@ -23,9 +23,6 @@ void workflow_status_create(const char* msg, bool status_success)
 {
     ui_screen_stack_push(
         status_create(msg, status_success, STATUS_DEFAULT_DELAY, workflow_blocking_unblock));
-    bool result = workflow_blocking_block();
+    workflow_blocking_block();
     ui_screen_stack_pop();
-    if (!result) {
-        // Ignore, not critical if status screen is removed in a cancel operation.
-    }
 }

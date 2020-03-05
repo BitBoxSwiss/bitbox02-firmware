@@ -55,7 +55,6 @@ static void _test_workflow_cancel(void** state)
     expect_value_count(__wrap_ui_screen_stack_push, component, &component, -1);
     { // go through without cancel with normal unblocking
         _unblock_func_first = workflow_blocking_unblock;
-        will_return(__wrap_workflow_blocking_block, true);
         // will_return(__wrap_workflow_confirm_blocking, true);
         assert_true(workflow_cancel_run("My Operation", &component));
         mock_screen_stack_assert_clean();
@@ -63,22 +62,14 @@ static void _test_workflow_cancel(void** state)
     { // pressing cancel, but declining the prompt to cancel
         _unblock_func_first = workflow_cancel;
         _unblock_func_second = workflow_blocking_unblock;
-        will_return(__wrap_workflow_blocking_block, true);
         will_return(__wrap_workflow_confirm_blocking, false);
-        will_return(__wrap_workflow_blocking_block, true);
 
         assert_true(workflow_cancel_run("My Operation", &component));
         mock_screen_stack_assert_clean();
     }
     { // pressing cancel, accepting cancel
         _unblock_func_first = workflow_cancel;
-        will_return(__wrap_workflow_blocking_block, true);
         will_return(__wrap_workflow_confirm_blocking, true);
-        assert_false(workflow_cancel_run("My Operation", &component));
-        mock_screen_stack_assert_clean();
-    }
-    { // block fails
-        will_return(__wrap_workflow_blocking_block, false);
         assert_false(workflow_cancel_run("My Operation", &component));
         mock_screen_stack_assert_clean();
     }

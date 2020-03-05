@@ -180,18 +180,14 @@ bool workflow_confirm_blocking(const confirm_params_t* params)
     bool _result;
     workflow_t* confirm_wf = workflow_confirm(params, _confirm_blocking_cb, &_result);
     workflow_stack_start_workflow(confirm_wf);
-    bool blocking_result = workflow_blocking_block();
-    if (!blocking_result) {
-        return false;
-    }
+    workflow_blocking_block();
     return _result;
 }
 
 bool workflow_confirm_scrollable_longtouch_blocking(
     const char* title,
     const char* body,
-    const UG_FONT* font,
-    bool* cancel_forced_out)
+    const UG_FONT* font)
 {
     bool _result = false;
     const confirm_params_t params = {
@@ -204,10 +200,6 @@ bool workflow_confirm_scrollable_longtouch_blocking(
 
     workflow_t* confirm_wf = workflow_confirm(&params, _confirm_blocking_cb, &_result);
     workflow_stack_start_workflow(confirm_wf);
-    bool blocking_result = workflow_blocking_block();
-    *cancel_forced_out = !blocking_result;
-    if (*cancel_forced_out) {
-        return false;
-    }
+    workflow_blocking_block();
     return _result;
 }

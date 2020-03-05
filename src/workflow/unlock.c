@@ -54,13 +54,9 @@ static bool _get_mnemonic_passphrase(char* passphrase_out)
         if (!workflow_confirm_blocking(&params)) {
             return false;
         }
-        bool cancel_forced = false;
         if (workflow_confirm_scrollable_longtouch_blocking(
-                "Confirm", passphrase_out, &font_password_11X12, &cancel_forced)) {
+                "Confirm", passphrase_out, &font_password_11X12)) {
             break;
-        }
-        if (cancel_forced) {
-            return false;
         }
         workflow_status_create("Please try again", false);
     }

@@ -21,23 +21,15 @@
 #include <stdint.h>
 
 /**
- * Start a blocking workflow. Call workflow_blocking_end() to unblock this call.
+ * Start a blocking workflow. Call workflow_blocking_unblock() to unblock this call.
  * This function aborts if there is already a blocking workflow running.
- * @return false if the workflow was forcibly unlocked
  */
-USE_RESULT bool workflow_blocking_block(void);
+void workflow_blocking_block(void);
 
 /**
  * Unblocks the workflow. Use this to terminate the worklow after the workflow finishes normally by
  * user interaction.
  */
 void workflow_blocking_unblock(void);
-
-/**
- * Unblocks the workflow forcibly. This is used to cancel the workflow without user interaction,
- * e.g. when a new host connects while a workflow is still lingering, or the the host app sends a
- * cancel message when shutting down.
- */
-void workflow_blocking_unblock_force(void);
 
 #endif

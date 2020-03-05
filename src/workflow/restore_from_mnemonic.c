@@ -50,11 +50,11 @@ static void _number_of_words_picked(component_t* trinary_choice, trinary_choice_
  * Workflow to pick how many words.
  * @param[out] number_of_words_out 12, 18 or 24.
  */
-static bool _pick_number_of_words(uint8_t* number_of_words_out)
+static void _pick_number_of_words(uint8_t* number_of_words_out)
 {
     ui_screen_stack_push(
         trinary_choice_create("How many words?", "12", "18", "24", _number_of_words_picked, NULL));
-    bool result = workflow_blocking_block();
+    workflow_blocking_block();
     ui_screen_stack_pop();
     switch (_number_of_words_choice) {
     case TRINARY_CHOICE_LEFT:
@@ -69,7 +69,6 @@ static bool _pick_number_of_words(uint8_t* number_of_words_out)
     default:
         Abort("restore_from_mnemonic: unreachable");
     }
-    return result;
 }
 
 static void _cleanup_wordlist(char*** wordlist)
@@ -107,9 +106,7 @@ static bool _get_mnemonic(char* mnemonic_out)
     }
 
     uint8_t num_words;
-    if (!_pick_number_of_words(&num_words)) {
-        return false;
-    }
+    _pick_number_of_words(&num_words);
     char num_words_success_msg[20];
     snprintf(num_words_success_msg, sizeof(num_words_success_msg), "Enter %d words", num_words);
     workflow_status_create(num_words_success_msg, true);

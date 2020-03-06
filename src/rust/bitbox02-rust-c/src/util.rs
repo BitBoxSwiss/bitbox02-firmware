@@ -29,9 +29,9 @@ pub extern "C" fn rust_util_all_ascii(cstr: CStr) -> bool {
 /// * `out_ptr` - Must be a valid pointer to an array of bytes that is buf_len*2+1 long
 #[no_mangle]
 pub extern "C" fn rust_util_uint8_to_hex(buf: Bytes, mut out: CStrMut) {
-    let out_len = out.as_ref().len();
     // UNSAFE: We promise that we never write non-utf8 valid bytes to the `str`.
-    let out = unsafe { out.as_mut().as_bytes_mut() };
+    let out = out.as_mut();
+    let out_len = out.len();
     hex::encode_to_slice(&buf, &mut out[0..out_len - 1]).unwrap();
     out[out_len - 1] = b'\0';
 }
@@ -125,18 +125,17 @@ impl AsRef<str> for CStrMut {
     }
 }
 
-impl AsMut<str> for CStrMut {
+impl AsMut<[u8]> for CStrMut {
     /// Create a slice to a buffer. Only allowed for non-null pointers with length or null pointers
     /// with 0 length due to limitation in `core::slice`.
-    fn as_mut(&mut self) -> &mut str {
+    /// The caller must ensure that the string is null terminated.
+    fn as_mut(&mut self) -> &mut [u8] {
         let mut buf = self.buf;
         if self.len == 0 && self.buf.is_null() {
             buf = core::ptr::NonNull::dangling().as_ptr();
         }
         assert!(!buf.is_null());
-        unsafe {
-            core::str::from_utf8_unchecked_mut(core::slice::from_raw_parts_mut(buf, self.len))
-        }
+        unsafe { core::slice::from_raw_parts_mut(buf, self.len) }
     }
 }
 

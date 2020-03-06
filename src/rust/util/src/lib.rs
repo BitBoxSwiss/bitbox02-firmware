@@ -1,4 +1,5 @@
 #![cfg_attr(not(test), no_std)]
+pub mod ascii;
 pub mod c_types;
 
 /// Guaranteed to wipe the provided buffer

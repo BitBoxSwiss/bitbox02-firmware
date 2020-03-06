@@ -11,6 +11,17 @@ pub extern "C" fn rust_util_zero(mut dst: BytesMut) {
     util::zero(dst.as_mut())
 }
 
+#[no_mangle]
+pub extern "C" fn rust_util_all_ascii_bytes(bytes: Bytes) -> bool {
+    util::ascii::all_ascii(bytes)
+}
+
+#[no_mangle]
+pub extern "C" fn rust_util_all_ascii(cstr: CStr) -> bool {
+    let s: &str = cstr.as_ref();
+    util::ascii::all_ascii(s)
+}
+
 /// Convert bytes to hex representation
 ///
 /// * `buf_ptr` - Must be a valid pointer to an array of bytes
@@ -220,6 +231,15 @@ mod tests {
     fn create_invalid_bytes_ref() {
         // Calling `as_ref()` will panic because it tries to create an invalid rust slice.
         rust_util_bytes(core::ptr::null(), 1).as_ref();
+    }
+
+    #[test]
+    fn test_all_ascii_bytes() {
+        let buf = b"foo";
+        assert!(rust_util_all_ascii_bytes(rust_util_bytes(
+            buf.as_ptr(),
+            buf.len()
+        )));
     }
 
     #[test]

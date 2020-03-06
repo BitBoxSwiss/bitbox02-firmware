@@ -15,28 +15,18 @@
 #include "util_string.h"
 
 #include <hardfault.h>
+#include <rust/rust.h>
 
 #include <string.h>
 
 bool util_string_all_ascii_bytes(const uint8_t* bytes, size_t bytes_len)
 {
-    if (bytes == NULL) {
-        Abort("util_string_all_ascii_bytes");
-    }
-    for (size_t i = 0; i < bytes_len; ++i) {
-        if (bytes[i] < 32 || bytes[i] > 126) {
-            return false;
-        }
-    }
-    return true;
+    return rust_util_all_ascii_bytes(rust_util_bytes(bytes, bytes_len));
 }
 
 bool util_string_all_ascii(const char* str)
 {
-    if (str == NULL) {
-        Abort("util_string_all_ascii");
-    }
-    return util_string_all_ascii_bytes((const uint8_t*)str, strlen(str));
+    return rust_util_all_ascii(rust_util_cstr(str));
 }
 
 bool util_string_validate_name(const char* name, size_t max_len)

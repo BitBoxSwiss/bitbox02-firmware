@@ -21,21 +21,5 @@
 
 bool util_string_validate_name(const char* name, size_t max_len)
 {
-    if (name == NULL) {
-        Abort("util_string_validate_name");
-    }
-    const size_t len = strlen(name);
-    if (len == 0 || len > max_len) {
-        return false;
-    }
-    if (!rust_util_all_ascii(rust_util_cstr(name))) {
-        return false;
-    }
-    if (name[0] == ' ') {
-        return false;
-    }
-    if (name[len - 1] == ' ') {
-        return false;
-    }
-    return true;
+    return rust_util_validate_name(rust_util_cstr(name), max_len);
 }

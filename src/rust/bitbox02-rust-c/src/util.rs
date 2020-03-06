@@ -1,4 +1,4 @@
-use util::c_types::{c_char, c_uchar};
+use util::c_types::{c_char, c_uchar, size_t};
 
 /// Zero a buffer using volatile writes. Accepts null-ptr and 0-length buffers and does nothing.
 ///
@@ -20,6 +20,12 @@ pub extern "C" fn rust_util_all_ascii_bytes(bytes: Bytes) -> bool {
 pub extern "C" fn rust_util_all_ascii(cstr: CStr) -> bool {
     let s: &str = cstr.as_ref();
     util::ascii::all_ascii(s)
+}
+
+#[no_mangle]
+pub extern "C" fn rust_util_validate_name(cstr: CStr, max_len: size_t) -> bool {
+    let s: &str = cstr.as_ref();
+    util::name::validate(s, max_len)
 }
 
 /// Convert bytes to hex representation

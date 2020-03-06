@@ -329,16 +329,15 @@ class BitBoxProtocol(ABC):
         pairing_verification_required_by_device = response == b"\x01"
         if pairing_verification_required_by_host or pairing_verification_required_by_device:
             cid = self._transport.generate_cid()
-            self._transport.write(OP_I_CAN_HAS_PAIRIN_VERIFICASHUN, HWW_CMD, cid)
             client_response_success = noise_config.show_pairing(
                 "{} {}\n{} {}".format(
                     pairing_code[:5], pairing_code[5:10], pairing_code[10:15], pairing_code[15:20]
                 )
             )
+            pairing_response = self._raw_query(OP_I_CAN_HAS_PAIRIN_VERIFICASHUN)
             if not client_response_success:
                 self.close()
                 raise Exception("pairing rejected by the user on client")
-            pairing_response = self._transport.read(HWW_CMD, cid)
 
             if pairing_response == RESPONSE_SUCCESS:
                 pass

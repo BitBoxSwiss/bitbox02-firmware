@@ -56,7 +56,7 @@ typedef uint8_t secbool_u8;
 #define sectrue_u8 0x55u
 #define secfalse_u8 0x00u
 
-volatile void* util_zero(volatile void* dst, size_t len);
+void util_zero(volatile void* dst, size_t len);
 void util_clear_buffers(void);
 
 // `out` must be of size in_len*2+1. Use BB_HEX_SIZE() to compute the size.

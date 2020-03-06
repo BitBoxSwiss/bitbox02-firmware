@@ -18,20 +18,6 @@
 #include <compiler_util.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
-
-/*
- * Returns true if all bytes are in this set (including the space ' '):
- *  !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
- * Note that newline, tab, etc. are not part of this set.
- */
-USE_RESULT bool util_string_all_ascii_bytes(const uint8_t* bytes, size_t bytes_len);
-
-/*
- * Returns true if all chars in the string are ascii, as specified in the documentation of
- * `util_string_all_ascii_bytes`.
- */
-USE_RESULT bool util_string_all_ascii(const char* str);
 
 /**
  * Validate a user given name. The name must be smaller or equal to `max_len` and larger than 0 in

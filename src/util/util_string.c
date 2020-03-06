@@ -19,16 +19,6 @@
 
 #include <string.h>
 
-bool util_string_all_ascii_bytes(const uint8_t* bytes, size_t bytes_len)
-{
-    return rust_util_all_ascii_bytes(rust_util_bytes(bytes, bytes_len));
-}
-
-bool util_string_all_ascii(const char* str)
-{
-    return rust_util_all_ascii(rust_util_cstr(str));
-}
-
 bool util_string_validate_name(const char* name, size_t max_len)
 {
     if (name == NULL) {
@@ -38,7 +28,7 @@ bool util_string_validate_name(const char* name, size_t max_len)
     if (len == 0 || len > max_len) {
         return false;
     }
-    if (!util_string_all_ascii(name)) {
+    if (!rust_util_all_ascii(rust_util_cstr(name))) {
         return false;
     }
     if (name[0] == ' ') {

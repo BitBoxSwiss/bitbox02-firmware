@@ -24,16 +24,18 @@ pub extern "C" fn rust_util_all_ascii(cstr: CStr) -> bool {
 
 /// Convert bytes to hex representation
 ///
-/// * `buf_ptr` - Must be a valid pointer to an array of bytes
-/// * `buf_len` - Length of buffer, `buf_ptr[buf_len-1]` must be a valid dereference
-/// * `out_ptr` - Must be a valid pointer to an array of bytes that is buf_len*2+1 long
+/// * `buf` - bytes to convert to hex.
+/// * `out` - hex will be written here. out len must be at least 2*buf.len+1.
 #[no_mangle]
 pub extern "C" fn rust_util_uint8_to_hex(buf: Bytes, mut out: CStrMut) {
-    let out_len = out.as_ref().len();
-    // UNSAFE: We promise that we never write non-utf8 valid bytes to the `str`.
-    let out = unsafe { out.as_mut().as_bytes_mut() };
-    hex::encode_to_slice(&buf, &mut out[0..out_len - 1]).unwrap();
-    out[out_len - 1] = b'\0';
+    // UNSAFE: We promise that we null terminate the string.
+    let out = unsafe { out.as_bytes_mut() };
+    let min_len = buf.len * 2 + 1;
+    if out.len() < min_len {
+        panic!("rust_util_uint8_to_hex: out buffer too small");
+    }
+    hex::encode_to_slice(&buf, &mut out[0..min_len - 1]).unwrap();
+    out[min_len - 1] = b'\0';
 }
 
 #[repr(C)]
@@ -121,22 +123,35 @@ impl AsRef<str> for CStrMut {
             buf = core::ptr::NonNull::dangling().as_ptr();
         }
         assert!(!buf.is_null());
-        unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(buf, self.len)) }
+
+        // Find null terminator
+        let mut len = 0;
+        unsafe {
+            let mut b = buf;
+            while b.read() != 0 {
+                b = b.offset(1);
+                len += 1;
+                if len == self.len {
+                    panic!("CStrMut not null terminated");
+                }
+            }
+        }
+
+        unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(buf, len)) }
     }
 }
 
-impl AsMut<str> for CStrMut {
+impl CStrMut {
     /// Create a slice to a buffer. Only allowed for non-null pointers with length or null pointers
     /// with 0 length due to limitation in `core::slice`.
-    fn as_mut(&mut self) -> &mut str {
+    /// The caller must ensure that the string is null terminated.
+    pub unsafe fn as_bytes_mut(&mut self) -> &mut [u8] {
         let mut buf = self.buf;
         if self.len == 0 && self.buf.is_null() {
             buf = core::ptr::NonNull::dangling().as_ptr();
         }
         assert!(!buf.is_null());
-        unsafe {
-            core::str::from_utf8_unchecked_mut(core::slice::from_raw_parts_mut(buf, self.len))
-        }
+        core::slice::from_raw_parts_mut(buf, self.len)
     }
 }
 
@@ -234,6 +249,26 @@ mod tests {
     }
 
     #[test]
+    fn test_cstr_mut() {
+        let mut start = String::from("foo\0bar");
+        let mut cstr_mut = rust_util_cstr_mut(start.as_mut_ptr(), start.len());
+        assert_eq!(cstr_mut.len, start.len());
+        assert_eq!(cstr_mut.as_ref(), "foo");
+        let bytes_mut = unsafe { cstr_mut.as_bytes_mut() };
+        bytes_mut[0] = b'g';
+        assert_eq!(cstr_mut.as_ref(), "goo");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_invalid_cstr_mut() {
+        let mut buf = [1, 2, 3];
+        let cstr_mut = rust_util_cstr_mut(buf.as_mut_ptr(), buf.len());
+        // panics as there is no null terminator.
+        cstr_mut.as_ref();
+    }
+
+    #[test]
     fn test_all_ascii_bytes() {
         let buf = b"foo";
         assert!(rust_util_all_ascii_bytes(rust_util_bytes(
@@ -251,5 +286,13 @@ mod tests {
             rust_util_cstr_mut(string.as_mut_ptr(), string.len() - 1),
         );
         assert_eq!(string, "0102030e0fff\0x");
+
+        // Bigger buffer also works.
+        let mut string = String::from("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        rust_util_uint8_to_hex(
+            rust_util_bytes(buf.as_ptr(), buf.len() - 1),
+            rust_util_cstr_mut(string.as_mut_ptr(), string.len()),
+        );
+        assert_eq!(string, "0102030e0fff\0xxxxxxxxxxxxxxxxxxxxxxx");
     }
 }

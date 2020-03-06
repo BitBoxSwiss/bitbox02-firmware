@@ -1,0 +1,19 @@
+[workspace]
+
+members = [
+    "bitbox02-rust-c",
+    "bitbox02-rust",
+    "util",
+    "bitbox02",
+    "bitbox02-sys",
+]
+
+[profile.release]
+debug = true
+opt-level = 'z'
+codegen-units = 1
+panic = 'abort'
+lto = true
+
+[profile.dev]
+opt-level = 'z'

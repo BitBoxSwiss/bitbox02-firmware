@@ -147,12 +147,20 @@ pub extern "C" fn rust_util_bytes_mut(buf: *mut c_uchar, len: usize) -> BytesMut
     BytesMut { buf, len }
 }
 
-/// Convert buffer to str
+/// Convert buffer to str.
 ///
-/// * `buf` - Must be a valid pointer to an array of bytes
-/// * `len` - Length of buffer, `buf_ptr[buf_len-1]` must be a valid dereference
+/// * `buf` - Must be a valid pointer to a null terminated array of bytes.
 #[no_mangle]
-pub extern "C" fn rust_util_cstr(buf: *const c_char, len: usize) -> CStr {
+pub extern "C" fn rust_util_cstr(buf: *const c_char) -> CStr {
+    assert!(!buf.is_null());
+    let mut len = 0;
+    let mut b = buf;
+    unsafe {
+        while b.read() != 0 {
+            len += 1;
+            b = b.offset(1);
+        }
+    }
     CStr { buf, len }
 }
 
@@ -187,6 +195,17 @@ mod tests {
     #[test]
     fn zeroing_null() {
         rust_util_zero(rust_util_bytes_mut(core::ptr::null_mut(), 0));
+    }
+
+    #[test]
+    fn test_rust_util_cstr() {
+        let cstr = rust_util_cstr(b"\0".as_ptr());
+        assert_eq!(cstr.as_ref(), "");
+        assert_eq!(cstr.len, 0);
+
+        let cstr = rust_util_cstr(b"foo\0bar".as_ptr());
+        assert_eq!(cstr.as_ref(), "foo");
+        assert_eq!(cstr.len, 3);
     }
 
     #[test]

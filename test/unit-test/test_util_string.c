@@ -25,17 +25,6 @@ static const char* _all_ascii =
     "! \"#$%&\'()*+,-./"
     "0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
-static void _test_util_string_all_ascii(void** state)
-{
-    // All ascii chars.
-    assert_true(util_string_all_ascii(_all_ascii));
-    // Edge cases: highest and lowest non ascii chars.
-    assert_false(util_string_all_ascii("\x7f"));
-    assert_false(util_string_all_ascii("\x19"));
-    assert_false(util_string_all_ascii("\n"));
-    assert_false(util_string_all_ascii("\t"));
-}
-
 static void _test_util_string_validate_name(void** state)
 {
     // Max len.
@@ -63,7 +52,6 @@ static void _test_util_string_validate_name(void** state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(_test_util_string_all_ascii),
         cmocka_unit_test(_test_util_string_validate_name),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);

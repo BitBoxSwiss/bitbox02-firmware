@@ -11,6 +11,17 @@ pub extern "C" fn rust_util_zero(mut dst: BytesMut) {
     util::zero(dst.as_mut())
 }
 
+#[no_mangle]
+pub extern "C" fn rust_util_all_ascii_bytes(bytes: Bytes) -> bool {
+    util::ascii::all_ascii(bytes)
+}
+
+#[no_mangle]
+pub extern "C" fn rust_util_all_ascii(cstr: CStr) -> bool {
+    let s: &str = cstr.as_ref();
+    util::ascii::all_ascii(s)
+}
+
 /// Convert bytes to hex representation
 ///
 /// * `buf_ptr` - Must be a valid pointer to an array of bytes
@@ -147,12 +158,20 @@ pub extern "C" fn rust_util_bytes_mut(buf: *mut c_uchar, len: usize) -> BytesMut
     BytesMut { buf, len }
 }
 
-/// Convert buffer to str
+/// Convert buffer to str.
 ///
-/// * `buf` - Must be a valid pointer to an array of bytes
-/// * `len` - Length of buffer, `buf_ptr[buf_len-1]` must be a valid dereference
+/// * `buf` - Must be a valid pointer to a null terminated array of bytes.
 #[no_mangle]
-pub extern "C" fn rust_util_cstr(buf: *const c_char, len: usize) -> CStr {
+pub extern "C" fn rust_util_cstr(buf: *const c_char) -> CStr {
+    assert!(!buf.is_null());
+    let mut len = 0;
+    let mut b = buf;
+    unsafe {
+        while b.read() != 0 {
+            len += 1;
+            b = b.offset(1);
+        }
+    }
     CStr { buf, len }
 }
 
@@ -190,6 +209,17 @@ mod tests {
     }
 
     #[test]
+    fn test_rust_util_cstr() {
+        let cstr = rust_util_cstr(b"\0".as_ptr());
+        assert_eq!(cstr.as_ref(), "");
+        assert_eq!(cstr.len, 0);
+
+        let cstr = rust_util_cstr(b"foo\0bar".as_ptr());
+        assert_eq!(cstr.as_ref(), "foo");
+        assert_eq!(cstr.len, 3);
+    }
+
+    #[test]
     #[should_panic]
     fn create_invalid_bytes_mut() {
         // Calling `as_mut()` will panic because it tries to create an invalid rust slice.
@@ -201,6 +231,15 @@ mod tests {
     fn create_invalid_bytes_ref() {
         // Calling `as_ref()` will panic because it tries to create an invalid rust slice.
         rust_util_bytes(core::ptr::null(), 1).as_ref();
+    }
+
+    #[test]
+    fn test_all_ascii_bytes() {
+        let buf = b"foo";
+        assert!(rust_util_all_ascii_bytes(rust_util_bytes(
+            buf.as_ptr(),
+            buf.len()
+        )));
     }
 
     #[test]

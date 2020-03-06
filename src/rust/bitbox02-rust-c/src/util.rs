@@ -25,14 +25,17 @@ pub extern "C" fn rust_util_all_ascii(cstr: CStr) -> bool {
 /// Convert bytes to hex representation
 ///
 /// * `buf` - bytes to convert to hex.
-/// * `out` - hex will be written here. out.len must be 2*buf.len+1.
+/// * `out` - hex will be written here. out len must be at least 2*buf.len+1.
 #[no_mangle]
 pub extern "C" fn rust_util_uint8_to_hex(buf: Bytes, mut out: CStrMut) {
     // UNSAFE: We promise that we null terminate the string.
     let out = unsafe { out.as_bytes_mut() };
-    let out_len = out.len();
-    hex::encode_to_slice(&buf, &mut out[0..out_len - 1]).unwrap();
-    out[out_len - 1] = b'\0';
+    let min_len = buf.len * 2 + 1;
+    if out.len() < min_len {
+        panic!("rust_util_uint8_to_hex: out buffer too small");
+    }
+    hex::encode_to_slice(&buf, &mut out[0..min_len - 1]).unwrap();
+    out[min_len - 1] = b'\0';
 }
 
 #[repr(C)]
@@ -283,5 +286,13 @@ mod tests {
             rust_util_cstr_mut(string.as_mut_ptr(), string.len() - 1),
         );
         assert_eq!(string, "0102030e0fff\0x");
+
+        // Bigger buffer also works.
+        let mut string = String::from("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        rust_util_uint8_to_hex(
+            rust_util_bytes(buf.as_ptr(), buf.len() - 1),
+            rust_util_cstr_mut(string.as_mut_ptr(), string.len()),
+        );
+        assert_eq!(string, "0102030e0fff\0xxxxxxxxxxxxxxxxxxxxxxx");
     }
 }

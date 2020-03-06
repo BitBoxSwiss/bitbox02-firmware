@@ -50,6 +50,9 @@ add_library(bitbox02-platform
   ${PLATFORM-BITBOX02-SOURCES}
 )
 
+add_library(bitbox02_rust_c STATIC IMPORTED)
+set_property(TARGET bitbox02_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox02_rust_c.a)
+
 target_include_directories(bitbox02-platform PUBLIC ${INCLUDES})
 target_include_directories(bitbox02-platform SYSTEM PUBLIC ${SYSTEMINCLUDES})
 target_include_directories(bitbox02-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
@@ -64,7 +67,7 @@ target_link_libraries(bitbox02-platform
     wallycore
     secp256k1
   PRIVATE
-    ${LIBBITBOX02_RUST}
+    bitbox02_rust_c
     fatfs
     noiseprotocol
     cryptoauthlib
@@ -163,7 +166,7 @@ target_include_directories(bitboxbase-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DI
 target_compile_definitions(bitboxbase-platform PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 target_compile_definitions(bitboxbase-platform PUBLIC "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 add_dependencies(bitboxbase-platform generate-protobufs)
-add_dependencies(bitboxbase-platform bitbox02-rust)
+add_dependencies(bitboxbase-platform bitboxbase-rust)
 # needed to find version.h
 target_include_directories(bitboxbase-platform SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
 target_link_libraries(bitboxbase-platform
@@ -171,7 +174,7 @@ target_link_libraries(bitboxbase-platform
     wallycore
     secp256k1
   PRIVATE
-    ${LIBBITBOX02_RUST}
+    bitboxbase_rust_c
     fatfs
     noiseprotocol
     cryptoauthlib
@@ -187,6 +190,10 @@ target_compile_definitions(bitboxbase-platform PUBLIC PRODUCT_BITBOX_BASE SEMIHO
 target_link_libraries(bitboxbase-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
 target_compile_options(bitboxbase-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
 
+add_library(bitboxbase_rust_c STATIC IMPORTED)
+set_property(TARGET bitboxbase_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitboxbase_rust_c.a)
+
+
 set(BBB_TEST_LIST
   bitboxbase_touch_demo
 )
@@ -201,10 +208,12 @@ foreach(name ${BBB_TEST_LIST})
   # Since noiseprotocol and wallycore are external projects we need to specify the dependency
   add_dependencies(${elf} noise-c)
   add_dependencies(${elf} libwally-core)
+  add_dependencies(${elf} bitboxbase-rust)
   # We must link against libc before libbitbox because malloc depends on _sbrk
   # We must mark "exception_table" as used, otherwise it won't be linked in since it is in a static library
   target_link_libraries(${elf}
     PRIVATE
+      bitboxbase_rust_c
       asf4-drivers-min
       asf4-drivers
       bitboxbase-platform

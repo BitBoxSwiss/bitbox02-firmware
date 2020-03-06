@@ -16,11 +16,25 @@
 //    confirm_pairing, display_status, heartbeat, set_config,
 //};
 
+// A trick to convince cbindgen that an u8 is char.
+// cbindgen will convert `u8` to `uint8_t` and `i8` to `int8_t` which are `unsigned char` and
+// `signed char` respectively. `c_char` is converted to `char` without `signed` or `unsigned`.
+#[allow(non_camel_case_types)]
+type c_char = u8;
+
 use bitbox02;
 use core::time::Duration;
 
+use bitbox02_rust::platform::bitboxbase::config::Config;
+use bitbox02_rust::platform::bitboxbase::config::StatusLedMode;
+use bitbox02_rust::platform::bitboxbase::display::write_status;
+use bitbox02_rust::platform::bitboxbase::state::{
+    BitBoxBaseBackgroundDescription, BitBoxBaseBackgroundState, State, DESCRIPTIONS,
+};
+use bitbox02_rust::util::FixedCString;
 use bitbox02_rust::util::Ipv4Addr;
 use bitbox02_rust::workflow::pairing;
+use core::fmt::Write;
 
 pub fn confirm_pairing(
     request: &bitbox02::BitBoxBaseConfirmPairingRequest,
@@ -43,7 +57,7 @@ pub fn confirm_pairing(
 
 pub fn heartbeat(request: &bitbox02::BitBoxBaseHeartbeatRequest) -> bitbox02::CommanderError {
     // Accessing a mutable static is unsafe
-    let state = unsafe { &mut crate::platform::bitboxbase::state::STATE };
+    let state = unsafe { &mut STATE };
     // Transmute uint32 to BitBoxBaseBackgroundState
     // This is safe for values 0 to 3.
     if request.state_code > 3 {
@@ -72,7 +86,7 @@ pub fn heartbeat(request: &bitbox02::BitBoxBaseHeartbeatRequest) -> bitbox02::Co
 
 pub fn set_config(request: &bitbox02::BitBoxBaseSetConfigRequest) -> bitbox02::CommanderError {
     // Accessing a mutable static is unsafe
-    let config = unsafe { &mut crate::platform::bitboxbase::config::CONFIG };
+    let config = unsafe { &mut CONFIG };
     let hostname =
         bitbox02::util::str_from_null_terminated(&request.hostname[..]).expect("Invalid utf-8");
     match &hostname {
@@ -118,10 +132,7 @@ pub fn display_status(
     };
     // Accessing a mutable static is unsafe
     bitbox02::bitboxbase_screensaver_reset();
-    bitbox02_rust::platform::bitboxbase::display::display_status(
-        unsafe { &crate::platform::bitboxbase::config::CONFIG },
-        duration,
-    );
+    bitbox02_rust::platform::bitboxbase::display::display_status(unsafe { &CONFIG }, duration);
     bitbox02::COMMANDER_OK
 }
 
@@ -150,4 +161,69 @@ pub extern "C" fn commander_bitboxbase(
         }
         _ => bitbox02::COMMANDER_ERR_GENERIC,
     }
+}
+
+// aaaah, global!
+pub static mut CONFIG: Config = Config::new();
+
+#[no_mangle]
+pub extern "C" fn bitboxbase_config_led_mode_get() -> StatusLedMode {
+    let config = unsafe { &CONFIG };
+    config.status_led_mode.clone()
+}
+
+#[no_mangle]
+pub extern "C" fn bitboxbase_config_ip_get(res: *mut c_char, res_len: usize) {
+    // It is not safe to call any functions that also touch CONFIG at the same time
+    let config = unsafe { &CONFIG };
+    let buf = unsafe { core::slice::from_raw_parts_mut(res, res_len) };
+    let mut fcstring = FixedCString::new(buf);
+
+    if let Some(ip) = &config.ip {
+        let _ = write!(fcstring, "{}", ip);
+    } else {
+        let _ = write!(fcstring, "unknown");
+    }
+}
+
+pub static mut STATE: State = State {
+    state: BitBoxBaseBackgroundState::BBBWaiting,
+    description_code: BitBoxBaseBackgroundDescription::Empty,
+};
+
+#[no_mangle]
+pub extern "C" fn bitboxbase_state_set_not_alive() {
+    let state = unsafe { &mut STATE };
+    if state.state != BitBoxBaseBackgroundState::BBBNotAlive {
+        (*state).state = BitBoxBaseBackgroundState::BBBNotAlive;
+        bitbox02::bitboxbase_screensaver_reset();
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn bitboxbase_state_get() -> BitBoxBaseBackgroundState {
+    let state = unsafe { &STATE };
+    state.state.clone()
+}
+
+#[no_mangle]
+pub extern "C" fn bitboxbase_state_get_description(buf: *mut c_char, buf_len: usize) {
+    assert!(!buf.is_null());
+    let state = unsafe { &STATE };
+    let buf = unsafe { core::slice::from_raw_parts_mut(buf, buf_len) };
+    let mut buf = FixedCString::new(buf);
+    let _ = write!(
+        buf,
+        "{}",
+        DESCRIPTIONS
+            .get(state.description_code as usize)
+            .unwrap_or(&"<Unknown>")
+    );
+}
+
+#[no_mangle]
+pub extern "C" fn bitboxbase_status_get(ptr: *mut c_char, ptr_len: usize) {
+    let buf = unsafe { core::slice::from_raw_parts_mut(ptr, ptr_len) };
+    let mut wrapper = FixedCString::new(buf);
+    write_status(&mut wrapper, unsafe { &CONFIG });
 }

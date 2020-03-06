@@ -121,7 +121,21 @@ impl AsRef<str> for CStrMut {
             buf = core::ptr::NonNull::dangling().as_ptr();
         }
         assert!(!buf.is_null());
-        unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(buf, self.len)) }
+
+        // Find null terminator
+        let mut len = 0;
+        unsafe {
+            let mut b = buf;
+            while b.read() != 0 {
+                b = b.offset(1);
+                len += 1;
+                if len == self.len {
+                    panic!("CStrMut not null terminated");
+                }
+            }
+        }
+
+        unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(buf, len)) }
     }
 }
 
@@ -230,6 +244,26 @@ mod tests {
     fn create_invalid_bytes_ref() {
         // Calling `as_ref()` will panic because it tries to create an invalid rust slice.
         rust_util_bytes(core::ptr::null(), 1).as_ref();
+    }
+
+    #[test]
+    fn test_cstr_mut() {
+        let mut start = String::from("foo\0bar");
+        let mut cstr_mut = rust_util_cstr_mut(start.as_mut_ptr(), start.len());
+        assert_eq!(cstr_mut.len, start.len());
+        assert_eq!(cstr_mut.as_ref(), "foo");
+        let bytes_mut = unsafe { cstr_mut.as_bytes_mut() };
+        bytes_mut[0] = b'g';
+        assert_eq!(cstr_mut.as_ref(), "goo");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_invalid_cstr_mut() {
+        let mut buf = [1, 2, 3];
+        let cstr_mut = rust_util_cstr_mut(buf.as_mut_ptr(), buf.len());
+        // panics as there is no null terminator.
+        cstr_mut.as_ref();
     }
 
     #[test]

@@ -24,12 +24,11 @@ pub extern "C" fn rust_util_all_ascii(cstr: CStr) -> bool {
 
 /// Convert bytes to hex representation
 ///
-/// * `buf_ptr` - Must be a valid pointer to an array of bytes
-/// * `buf_len` - Length of buffer, `buf_ptr[buf_len-1]` must be a valid dereference
-/// * `out_ptr` - Must be a valid pointer to an array of bytes that is buf_len*2+1 long
+/// * `buf` - bytes to convert to hex.
+/// * `out` - hex will be written here. out.len must be 2*buf.len+1.
 #[no_mangle]
 pub extern "C" fn rust_util_uint8_to_hex(buf: Bytes, mut out: CStrMut) {
-    // UNSAFE: We promise that we never write non-utf8 valid bytes to the `str`.
+    // UNSAFE: We promise that we null terminate the string.
     let out = unsafe { out.as_bytes_mut() };
     let out_len = out.len();
     hex::encode_to_slice(&buf, &mut out[0..out_len - 1]).unwrap();

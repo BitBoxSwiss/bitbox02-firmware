@@ -222,8 +222,6 @@ set(TEST_LIST
    "-Wl,--wrap=usb_processing_enqueue"
    util
    ""
-   util_string
-   ""
    commander_set_device_name
    "-Wl,--wrap=workflow_confirm_blocking,--wrap=memory_set_device_name"
    commander_set_mnemonic_passphrase_enabled

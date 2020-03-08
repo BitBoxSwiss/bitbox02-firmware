@@ -18,8 +18,8 @@
 #include <cmocka.h>
 
 #include <apps/eth/eth_common.h>
-
 #include <hardfault.h>
+#include <rust/rust.h>
 
 #include <stdint.h>
 

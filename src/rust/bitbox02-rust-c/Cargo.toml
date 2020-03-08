@@ -18,9 +18,10 @@ lto = true
 opt-level = 'z'
 
 [dependencies]
-bitbox02-rust = {path = "../bitbox02-rust"}
-bitbox02 = {path = "../bitbox02"}
-util = {path = "../util"}
+bitbox02-rust = { path = "../bitbox02-rust" }
+bitbox02 = { path = "../bitbox02" }
+util = { path = "../util" }
+ethereum = { path = "../apps/ethereum", optional = true }
 hex = { version = "0.4", default-features = false }
 
 [features]
@@ -35,14 +36,19 @@ target-bootloader-btc-production = ["bootloader", "platform-bitbox02"]
 target-bootloader-bitboxbase = ["bootloader", "platform-bitboxbase"]
 target-bootloader-bitboxbase-development = ["bootloader", "platform-bitboxbase"]
 target-bootloader-bitboxbase-production = ["bootloader", "platform-bitboxbase"]
-target-firmware = ["platform-bitbox02"]
+target-firmware = ["platform-bitbox02", "app-ethereum"]
 target-firmware-btc = ["platform-bitbox02"]
 target-firmware-bitboxbase = ["platform-bitboxbase"]
 target-factory-setup = ["platform-bitbox02"]
 target-factory-setup-bitboxbase = ["platform-bitboxbase"]
-target-c-unit-tests = [] # TODO: add Rust features which are called in the C unit tests.
+# add Rust features which are called in the C unit tests (currently there is only one target for C tests).
+target-c-unit-tests = ["app-ethereum"]
 
 platform-bitbox02 = []
 platform-bitboxbase = []
 
 bootloader = []
+
+app-ethereum = [
+  "ethereum", # this is a dependency
+]

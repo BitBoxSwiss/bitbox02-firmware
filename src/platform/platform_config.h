@@ -57,6 +57,7 @@
 
 #if PRODUCT_BITBOX_MULTI == 1 && !defined(BOOTLOADER)
 #define RUST_BITBOX_MULTI
+#define RUST_BITBOX02
 #endif
 
 #if PRODUCT_BITBOX_BTCONLY == 1

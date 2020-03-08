@@ -10,6 +10,11 @@ header = '''
 #include "commander/commander.h"
 #include "bitboxbase.pb.h"
 #endif
+
+#if APP_ETH == 1
+#define RUST_APP_ETHEREUM
+#endif
+
 '''
 
 [parse]
@@ -33,3 +38,4 @@ exclude = [
 [defines]
 "feature=platform-bitboxbase" = "RUST_BITBOX_BASE"
 "feature=platform-bitbox02" = "RUST_BITBOX02"
+"feature=app-ethereum" = "RUST_APP_ETHEREUM"

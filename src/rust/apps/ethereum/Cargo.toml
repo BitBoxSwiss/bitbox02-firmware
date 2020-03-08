@@ -1,0 +1,8 @@
+[package]
+name = "ethereum"
+version = "0.1.0"
+authors = ["Shift Cryptosecurity AG <support@shiftcrypto.ch>"]
+edition = "2018"
+
+[dependencies]
+util = {path = "../../util"}

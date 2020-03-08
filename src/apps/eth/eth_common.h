@@ -34,9 +34,9 @@
  * @return true if the keypath is valid, false if it is invalid.
  */
 USE_RESULT bool eth_common_is_valid_keypath_address(
-    ETHCoin coin,
     const uint32_t* keypath,
-    size_t keypath_len);
+    size_t keypath_len,
+    uint32_t expected_coin);
 
 /**
  * Does limit checks the keypath, whitelisting bip44 purpose, account and change.

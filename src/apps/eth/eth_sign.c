@@ -28,8 +28,9 @@ app_eth_sign_error_t app_eth_sign(const ETHSignRequest* request, ETHSignResponse
     if (params == NULL) {
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }
+
     if (!eth_common_is_valid_keypath_address(
-            request->coin, request->keypath, request->keypath_count)) {
+            request->keypath, request->keypath_count, params->bip44_coin)) {
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }
     // No zero prefix in the big endian numbers.

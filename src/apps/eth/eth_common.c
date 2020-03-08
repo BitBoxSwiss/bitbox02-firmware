@@ -49,19 +49,18 @@ bool eth_common_is_valid_keypath_xpub(ETHCoin coin, const uint32_t* keypath, siz
     return true;
 }
 
-bool eth_common_is_valid_keypath_address(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
+bool eth_common_is_valid_keypath_address(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint32_t expected_coin)
 {
-    const app_eth_coin_params_t* params = app_eth_params_get(coin);
-    if (params == NULL) {
-        return false;
-    }
     if (keypath_len != 5) {
         return false;
     }
     if (keypath[0] != 44 + BIP32_INITIAL_HARDENED_CHILD) {
         return false;
     }
-    if (keypath[1] != params->bip44_coin) {
+    if (keypath[1] != expected_coin) {
         return false;
     }
     if (keypath[2] != 0 + BIP32_INITIAL_HARDENED_CHILD) {

@@ -22,7 +22,7 @@
 #include <hww.pb.h>
 #include <keystore.h>
 #include <memory/memory.h>
-#include <util/util_string.h>
+#include <rust/rust.h>
 #include <workflow/status.h>
 #include <workflow/verify_pub.h>
 
@@ -220,8 +220,7 @@ app_btc_result_t app_btc_register_script_config(
         return APP_BTC_ERR_INVALID_INPUT;
     }
     const BTCScriptConfig_Multisig* multisig = &script_config->config.multisig;
-
-    if (!util_string_validate_name(name, MEMORY_MULTISIG_NAME_MAX_LEN - 1)) {
+    if (!rust_util_validate_name(rust_util_cstr(name), MEMORY_MULTISIG_NAME_MAX_LEN - 1)) {
         return APP_BTC_ERR_INVALID_INPUT;
     }
 

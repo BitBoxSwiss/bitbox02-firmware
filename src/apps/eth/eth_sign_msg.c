@@ -23,7 +23,6 @@
 #include <keystore.h>
 #include <rust/rust.h>
 #include <util.h>
-#include <util/util_string.h>
 #include <workflow/confirm.h>
 
 app_eth_sign_error_t app_eth_sign_msg(

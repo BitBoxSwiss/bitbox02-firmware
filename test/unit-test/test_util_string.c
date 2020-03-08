@@ -19,8 +19,6 @@
 #include <stddef.h>
 #include <cmocka.h>
 
-#include <util/util_string.h>
-
 static const char* _all_ascii =
     "! \"#$%&\'()*+,-./"
     "0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";

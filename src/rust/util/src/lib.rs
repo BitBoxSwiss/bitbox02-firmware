@@ -1,6 +1,7 @@
 #![cfg_attr(not(test), no_std)]
 pub mod ascii;
 pub mod c_types;
+pub mod name;
 
 /// Guaranteed to wipe the provided buffer
 pub fn zero(dst: &mut [u8]) {

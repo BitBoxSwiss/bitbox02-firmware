@@ -36,22 +36,8 @@ typedef struct {
 static void _render(component_t* component)
 {
     image_data_t* data = (image_data_t*)component->data;
-    int x = component->position.left;
-    int y = component->position.top;
-    for (uint16_t i = 0; i < data->num_bytes; i++) {
-        uint8_t b = data->image_bytes[i];
-        for (int j = 0; j < 8; j++) {
-            if (b & 0x80) {
-                UG_DrawPixel(x, y, screen_front_color);
-            }
-            b <<= 1;
-            x++;
-            if (((x - component->position.left) % component->dimension.width) == 0) {
-                x = component->position.left;
-                y++;
-            }
-        }
-    }
+    in_buffer_t image_data = {.data = data->image_bytes, .len = data->num_bytes};
+    graphics_draw_image(&component->position, &component->dimension, &image_data);
 }
 
 /********************************** Component Functions **********************************/

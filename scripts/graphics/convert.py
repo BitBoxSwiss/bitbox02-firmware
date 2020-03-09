@@ -33,6 +33,9 @@ def main():
     """Main function"""
     parser = argparse.ArgumentParser()
     parser.add_argument("pbmfile")
+    parser.add_argument(
+        "--name", help="Name to give to the resulting variable", nargs="?"
+    )
     args = parser.parse_args()
 
     with open(args.pbmfile) as file:
@@ -48,7 +51,8 @@ def main():
     content_str = "".join(x for x in content)
 
     print(f"// width = {width}, height = {height}")
-    print(f"static const uint8_t data_{width}_{height}[] = {{")
+    name = args.name if args.name is not None else "data"
+    print(f"static const uint8_t {name}_{width}_{height}[] = {{")
     print(",\n".join([", ".join(x) for x in convert(content_str, width, height)]))
     print("};")
 

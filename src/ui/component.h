@@ -19,20 +19,9 @@
 #include <stdint.h>
 
 #include "ui/event.h"
+#include "ui/graphics/graphics.h"
 
 typedef struct component_t component_t;
-
-typedef struct {
-    // max width is SCREEEN_WIDTH (128)
-    int16_t width;
-    // max height is SCREEEN_HEIGHT (64)
-    int16_t height;
-} dimension_t;
-
-typedef struct {
-    int16_t left;
-    int16_t top;
-} position_t;
 
 // possibly needs to be adjusted
 #define MAX_NUM_SUBCOMPONENTS 35

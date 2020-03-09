@@ -251,8 +251,7 @@ if(CMAKE_CROSSCOMPILING)
   # Allow gc-sections at linking stage. (TODO: move to targets that use that linking option)
   string(APPEND CMAKE_C_FLAGS " -ffunction-sections -fdata-sections")
   set(CMAKE_C_LINK_FLAGS "\
-    ${CMAKE_C_LINK_FLAGS} -mcpu=cortex-m4 -mthumb \
-    -Wl,--start-group -u _printf_float -lm  -Wl,--end-group -Wl,--gc-sections \
+    ${CMAKE_C_LINK_FLAGS} -mcpu=cortex-m4 -mthumb  -Wl,--gc-sections \
     "
   )
 endif()

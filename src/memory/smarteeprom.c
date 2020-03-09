@@ -160,7 +160,7 @@ void smarteeprom_write(size_t address, size_t bytes, const uint8_t* buffer)
      */
     uint8_t read_buf[bytes];
     smarteeprom_read(address, bytes, read_buf);
-    if (memcmp(read_buf, buffer, bytes)) {
+    if (memcmp(read_buf, buffer, bytes) != 0) {
         Abort("Write to SmartEEPROM failed to verify data.");
     }
 }

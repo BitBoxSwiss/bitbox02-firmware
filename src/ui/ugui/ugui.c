@@ -678,11 +678,10 @@ void UG_WrapTitleString(const char* str, char* str_out, UG_S16 width) {
                 str_out += 1;
                 str += 1;
                 break;
-            } else {
-                *str_out = *str;
-                str_out += 1;
-                str += 1;
             }
+            *str_out = *str;
+            str_out += 1;
+            str += 1;
             while (!_is_whitespace(*str)) {
                 *str_out = *str;
                 if (*str >= font->start_char){

@@ -421,7 +421,7 @@ class BitBoxProtocolV3(BitBoxProtocolV2):
         unlock_result, unlock_data = self.query(OP_UNLOCK, b"")
         if len(unlock_data) != 0:
             raise ValueError(f"OP_UNLOCK (V3) replied with wrong length.")
-        if unlock_result != RESPONSE_SUCCESS:
+        if unlock_result == RESPONSE_FAILURE:
             self.close()
             raise Exception("Unlock process aborted")
 

@@ -21,7 +21,7 @@ import base64
 import binascii
 import hashlib
 import time
-from typing import Optional, List, Dict, Tuple, Union
+from typing import Callable, Optional, List, Dict, Tuple, Union
 from typing_extensions import TypedDict
 
 import ecdsa
@@ -210,8 +210,13 @@ class BitBoxNoiseConfig:
     """ Stores Functions required setup a noise connection """
 
     # pylint: disable=no-self-use,unused-argument
-    def show_pairing(self, code: str) -> bool:
-        return True
+    def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
+        """
+        Returns True if the user confirms the pairing (both device and host).
+        Returns False if the user rejects the pairing (either device or host).
+        This function must call device_response() to invoke the pairing screen on the device.
+        """
+        return device_response()
 
     def attestation_check(self, result: bool) -> None:
         return
@@ -328,26 +333,25 @@ class BitBoxProtocol(ABC):
 
         pairing_verification_required_by_device = response == b"\x01"
         if pairing_verification_required_by_host or pairing_verification_required_by_device:
-            cid = self._transport.generate_cid()
-            self._transport.write(OP_I_CAN_HAS_PAIRIN_VERIFICASHUN, HWW_CMD, cid)
+
+            def get_device_response() -> bool:
+                device_response = self._raw_query(OP_I_CAN_HAS_PAIRIN_VERIFICASHUN)
+                if device_response == RESPONSE_SUCCESS:
+                    return True
+                if device_response == RESPONSE_FAILURE:
+                    return False
+                raise Exception(f"Unexpected pairing response: f{device_response}")
+
             client_response_success = noise_config.show_pairing(
                 "{} {}\n{} {}".format(
                     pairing_code[:5], pairing_code[5:10], pairing_code[10:15], pairing_code[15:20]
-                )
+                ),
+                get_device_response,
             )
             if not client_response_success:
                 self.close()
-                raise Exception("pairing rejected by the user on client")
-            pairing_response = self._transport.read(HWW_CMD, cid)
-
-            if pairing_response == RESPONSE_SUCCESS:
-                pass
-            elif pairing_response == RESPONSE_FAILURE:
-                self.close()
                 raise Exception("pairing rejected by the user")
-            else:
-                self.close()
-                raise Exception("unexpected response")
+
             noise_config.add_device_static_pubkey(remote_static_key)
         return noise
 

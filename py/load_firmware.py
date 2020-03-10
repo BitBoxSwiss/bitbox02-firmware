@@ -19,7 +19,7 @@ import enum
 import sys
 
 import pprint
-from typing import Any, Tuple
+from typing import Callable, Any, Tuple
 from time import sleep
 
 import hid
@@ -50,18 +50,18 @@ def _get_bitbox_and_reboot(use_cache: bool) -> devices.DeviceInfo:
         def __init__(self) -> None:
             super().__init__("shift/load_firmware")
 
-        def show_pairing(self, code: str) -> bool:
+        def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
             print("Please compare and confirm the pairing code on your BitBox02:")
             print(code)
-            return True
+            return device_response()
 
     class NoiseConfigNoCache(bitbox_api_protocol.BitBoxNoiseConfig):
         """NoiseConfig extends BitBoxNoiseConfig"""
 
-        def show_pairing(self, code: str) -> bool:
+        def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
             print("Please compare and confirm the pairing code on your BitBox02:")
             print(code)
-            return True
+            return device_response()
 
     if use_cache:
         config: bitbox_api_protocol.BitBoxNoiseConfig = NoiseConfig()
@@ -182,18 +182,18 @@ def _find_and_open_usart_bitbox(
         def __init__(self) -> None:
             super().__init__("shift/load_firmware")
 
-        def show_pairing(self, code: str) -> bool:
+        def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
             print("Please compare and confirm the pairing code on your BitBox02:")
             print(code)
-            return True
+            return device_response()
 
     class NoiseConfigNoCache(bitbox_api_protocol.BitBoxNoiseConfig):
         """NoiseConfig extends BitBoxNoiseConfig"""
 
-        def show_pairing(self, code: str) -> bool:
+        def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
             print("Please compare and confirm the pairing code on your BitBox02:")
             print(code)
-            return True
+            return device_response()
 
     if use_cache:
         config: bitbox_api_protocol.BitBoxNoiseConfig = NoiseConfig()

@@ -730,16 +730,21 @@ def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
             return boot_app.run()
     else:
 
+        def show_pairing(code: str, device_response: Callable[[], bool]) -> bool:
+            print("Please compare and confirm the pairing code on your BitBox02:")
+            print(code)
+            if not device_response():
+                return False
+            return input("Accept pairing? [y]/n: ").strip() != "n"
+
         class NoiseConfig(util.NoiseConfigUserCache):
             """NoiseConfig extends NoiseConfigUserCache"""
 
             def __init__(self) -> None:
                 super().__init__("shift/send_message")
 
-            def show_pairing(self, code: str) -> bool:
-                print("Please compare and confirm the pairing code on your BitBox02:")
-                print(code)
-                return True
+            def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
+                return show_pairing(code, device_response)
 
             def attestation_check(self, result: bool) -> None:
                 if result:
@@ -750,10 +755,8 @@ def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
         class NoiseConfigNoCache(bitbox_api_protocol.BitBoxNoiseConfig):
             """NoiseConfig extends BitBoxNoiseConfig"""
 
-            def show_pairing(self, code: str) -> bool:
-                print("Please compare and confirm the pairing code on your BitBox02:")
-                print(code)
-                return True
+            def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
+                return show_pairing(code, device_response)
 
             def attestation_check(self, result: bool) -> None:
                 if result:
@@ -790,16 +793,19 @@ def connect_to_usart_bitboxbase(debug: bool, serial_port: usart.SerialPort, use_
     print("Trying to connect to BitBoxBase firmware...")
     bootloader_device: devices.DeviceInfo = get_bitboxbase_default_device(serial_port.port)
 
+    def show_pairing(code: str, device_response: Callable[[], bool]) -> bool:
+        print("(Pairing should be automatic) Pairing code:")
+        print(code)
+        return device_response()
+
     class NoiseConfig(util.NoiseConfigUserCache):
         """NoiseConfig extends NoiseConfigUserCache"""
 
         def __init__(self) -> None:
             super().__init__("shift/send_message")
 
-        def show_pairing(self, code: str) -> bool:
-            print("(Pairing should be automatic) Pairing code:")
-            print(code)
-            return True
+        def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
+            return show_pairing(code, device_response)
 
         def attestation_check(self, result: bool) -> None:
             if result:
@@ -810,10 +816,8 @@ def connect_to_usart_bitboxbase(debug: bool, serial_port: usart.SerialPort, use_
     class NoiseConfigNoCache(bitbox_api_protocol.BitBoxNoiseConfig):
         """NoiseConfig extends BitBoxNoiseConfig"""
 
-        def show_pairing(self, code: str) -> bool:
-            print("Please compare and confirm the pairing code on your BitBox02:")
-            print(code)
-            return True
+        def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
+            return show_pairing(code, device_response)
 
         def attestation_check(self, result: bool) -> None:
             if result:

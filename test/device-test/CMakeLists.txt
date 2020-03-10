@@ -44,6 +44,42 @@ set(INCLUDES
     ${CMAKE_BINARY_DIR}/src
 )
 
+set(LIBRARIES
+      samd51a-ds
+      asf4-drivers
+      ${QTOUCHLIB_A}
+      ${QTOUCHLIB_B}
+      ${QTOUCHLIB_T}
+      wallycore
+      secp256k1
+      noiseprotocol
+      cryptoauthlib
+      base32
+      bignum # TODO: only eth
+      sha3   # TODO: Only eth
+      ctaes
+      c
+      asf4-drivers-min
+  )
+
+set(BITBOX02_LIBRARIES
+  -Wl,--start-group
+  fatfs
+  bitbox02-platform
+  -Wl,--end-group
+  bitbox02_rust_c
+  ${LIBRARIES}
+)
+
+set(BITBOXBASE_LIBRARIES
+  -Wl,--start-group
+  fatfs
+  bitboxbase-platform
+  -Wl,--end-group
+  bitboxbase_rust_c
+  ${LIBRARIES}
+)
+
 add_library(bitbox02-platform
   STATIC
   ${SOURCES}
@@ -75,13 +111,16 @@ target_link_libraries(bitbox02-platform
     bignum # TODO: only eth
     sha3   # TODO: Only eth
     ctaes
-    -Wl,-u,exception_table
+    asf4-drivers-min
+    asf4-drivers
+    samd51a-ds
+    bitbox02_rust_c
 )
+set_property(TARGET bitbox02-platform PROPERTY INTERFACE_LINK_LIBRARIES "")
 
 # Always enable semihosting for the test firmwares
 target_compile_definitions(bitbox02-platform PUBLIC PRODUCT_BITBOX_MULTI SEMIHOSTING)
-target_link_libraries(bitbox02-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
-target_compile_options(bitbox02-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
+target_compile_options(bitbox02-platform PRIVATE --specs=nano.specs --specs=rdimon.specs)
 
 set(BB02_TEST_LIST
   all_variants_menu
@@ -90,7 +129,6 @@ set(BB02_TEST_LIST
   button_tap
   confirm_bip39
   entry_screen
-  mpu
   scroll_menu
   scroll_menu_2
   simple_slide
@@ -117,6 +155,8 @@ add_custom_target(device-tests)
 foreach(name ${BB02_TEST_LIST})
   set(elf fw_test_${name}.elf)
   add_executable(${elf} ${CMAKE_CURRENT_SOURCE_DIR}/src/test_${name}.c)
+  target_link_libraries(${elf} PRIVATE --specs=nano.specs --specs=rdimon.specs)
+  target_compile_options(${elf} PRIVATE --specs=nano.specs --specs=rdimon.specs)
 
   target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_${name}.map\" -T\"${CMAKE_CURRENT_SOURCE_DIR}/device-test.ld\"")
   target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
@@ -125,16 +165,13 @@ foreach(name ${BB02_TEST_LIST})
   # Since noiseprotocol and wallycore are external projects we need to specify the dependency
   add_dependencies(${elf} noise-c)
   add_dependencies(${elf} libwally-core)
-  # We must link against libc before libbitbox because malloc depends on _sbrk
+  # We must link against libc before asf4-drivers-min because malloc depends on _sbrk
   # We must mark "exception_table" as used, otherwise it won't be linked in since it is in a static library
+  # There are circular dependencies between fatfs and bitbox02-platform (therefore group them with linking commands)
   target_link_libraries(${elf}
     PRIVATE
-      c
-      bitbox02-platform
-      asf4-drivers-min
-      ${QTOUCHLIB_A}
-      ${QTOUCHLIB_B}
-      ${QTOUCHLIB_T}
+      -Wl,-u,exception_table
+      ${BITBOX02_LIBRARIES}
   )
 
   add_custom_command(
@@ -174,6 +211,9 @@ target_link_libraries(bitboxbase-platform
     wallycore
     secp256k1
   PRIVATE
+    asf4-drivers-min
+    asf4-drivers
+    samd51a-ds
     bitboxbase_rust_c
     fatfs
     noiseprotocol
@@ -182,13 +222,12 @@ target_link_libraries(bitboxbase-platform
     bignum # TODO: only eth
     sha3   # TODO: Only eth
     ctaes
-    -Wl,-u,exception_table
 )
+set_property(TARGET bitboxbase-platform PROPERTY INTERFACE_LINK_LIBRARIES "")
 
 # Always enable semihosting for the test firmwares
 target_compile_definitions(bitboxbase-platform PUBLIC PRODUCT_BITBOX_BASE SEMIHOSTING)
-target_link_libraries(bitboxbase-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
-target_compile_options(bitboxbase-platform PUBLIC --specs=nano.specs --specs=rdimon.specs)
+target_compile_options(bitboxbase-platform PRIVATE --specs=nano.specs --specs=rdimon.specs)
 
 add_library(bitboxbase_rust_c STATIC IMPORTED)
 set_property(TARGET bitboxbase_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitboxbase_rust_c.a)
@@ -201,6 +240,8 @@ set(BBB_TEST_LIST
 foreach(name ${BBB_TEST_LIST})
   set(elf fw_test_${name}.elf)
   add_executable(${elf} ${CMAKE_CURRENT_SOURCE_DIR}/src/test_${name}.c)
+  target_link_libraries(${elf} PRIVATE --specs=nano.specs --specs=rdimon.specs)
+  target_compile_options(${elf} PRIVATE --specs=nano.specs --specs=rdimon.specs)
 
   target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_${name}.map\" -T\"${CMAKE_CURRENT_SOURCE_DIR}/device-test.ld\"")
   target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
@@ -209,18 +250,12 @@ foreach(name ${BBB_TEST_LIST})
   add_dependencies(${elf} noise-c)
   add_dependencies(${elf} libwally-core)
   add_dependencies(${elf} bitboxbase-rust)
-  # We must link against libc before libbitbox because malloc depends on _sbrk
+  # We must link against libc before asf4-drivers-min because malloc depends on _sbrk
   # We must mark "exception_table" as used, otherwise it won't be linked in since it is in a static library
   target_link_libraries(${elf}
     PRIVATE
-      bitboxbase_rust_c
-      asf4-drivers-min
-      asf4-drivers
-      bitboxbase-platform
-      c
-      ${QTOUCHLIB_A}
-      ${QTOUCHLIB_B}
-      ${QTOUCHLIB_T}
+      -Wl,-u,exception_table
+      ${BITBOXBASE_LIBRARIES}
   )
 
   add_custom_command(
@@ -239,5 +274,62 @@ foreach(name ${BBB_TEST_LIST})
   endif()
 endforeach()
 
+
+
+# The MPU tests are special, we don't want to link with the regular interrupt handlers
+set(name mpu)
+set(elf fw_test_${name}.elf)
+add_executable(${elf} ${CMAKE_CURRENT_SOURCE_DIR}/src/test_${name}.c)
 # We need the "asm" extension for the MPU test.
 set_target_properties(fw_test_mpu.elf PROPERTIES COMPILE_FLAGS "-std=gnu99")
+target_link_libraries(${elf} PRIVATE --specs=nano.specs --specs=rdimon.specs)
+target_compile_options(${elf} PRIVATE --specs=nano.specs --specs=rdimon.specs)
+
+target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_${name}.map\" -T\"${CMAKE_CURRENT_SOURCE_DIR}/device-test.ld\"")
+target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
+
+
+# CREATE A SPECIAL PLATFORM LIBRARY WITHOUT HANDLERS
+add_custom_target(bitbox02-platform-ohni-handlers-gen
+  ${CMAKE_OBJCOPY} -L HardFault_Handler -L MemManage_Handler
+  ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox02-platform.a
+  ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox02-platform-ohni-handlers.a)
+add_dependencies(bitbox02-platform-ohni-handlers-gen bitbox02-platform)
+add_dependencies(${elf} bitbox02-platform-ohni-handlers-gen)
+add_library(bitbox02-platform-ohni-handlers STATIC IMPORTED)
+set_property(
+  TARGET bitbox02-platform-ohni-handlers
+  PROPERTY IMPORTED_LOCATION
+    ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox02-platform-ohni-handlers.a)
+get_property(BITBOX02_PLATFORM_INCLUDES TARGET bitbox02-platform PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+target_include_directories(${elf} PRIVATE ${BITBOX02_PLATFORM_INCLUDES})
+
+
+# Since noiseprotocol and wallycore are external projects we need to specify the dependency
+add_dependencies(${elf} noise-c)
+add_dependencies(${elf} libwally-core)
+target_link_libraries(${elf}
+  PRIVATE
+    -Wl,-u,exception_table
+    -Wl,--start-group
+    fatfs
+    bitbox02-platform-ohni-handlers
+    -Wl,--end-group
+    bitbox02_rust_c
+    ${LIBRARIES}
+)
+
+add_custom_command(
+  TARGET ${elf} POST_BUILD
+  COMMAND ${CMAKE_SIZE} ${elf}
+  COMMAND ${CMAKE_OBJCOPY} -O binary ${elf} fw_test_${name}.bin
+  WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+  COMMENT "\nGenerating binary fw_test_${name}.bin"
+)
+if(PYTHONINTERP_FOUND)
+  execute_process(
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/expand_template ${CMAKE_SOURCE_DIR}/scripts/template-firmware.jlink file=build/bin/fw_test_${name}.bin -o fw_test_${name}.jlink
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+add_dependencies(device-tests ${elf})
+endif()

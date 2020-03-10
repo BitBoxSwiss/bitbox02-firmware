@@ -35,6 +35,8 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
+uint32_t __stack_chk_guard = 0;
+
 typedef struct {
     // bool top_slider_is_touched;
     void (*done_callback)(void);

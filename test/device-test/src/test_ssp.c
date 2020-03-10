@@ -21,15 +21,6 @@
 
 uintptr_t __stack_chk_guard = 0;
 
-extern void __attribute__((noreturn)) __stack_chk_fail(void);
-void __attribute__((noreturn)) __stack_chk_fail(void)
-{
-    screen_print_debug("Stack smash detected", 0);
-    usb_stop();
-    while (1) {
-    }
-}
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-overflow"
 static void smash_stack(const char* input)

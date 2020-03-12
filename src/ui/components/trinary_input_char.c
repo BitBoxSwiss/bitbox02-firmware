@@ -19,7 +19,7 @@
 #include <hardfault.h>
 #include <touch/gestures.h>
 #include <ui/fonts/password_9X9.h>
-#include <ui/fonts/password_11X12.h>
+#include <ui/fonts/password_11X10.h>
 #include <ui/ui_util.h>
 #include <util.h>
 
@@ -235,7 +235,7 @@ void trinary_input_char_set_alphabet(
     }
     // Switch to larger font for fewer characters
     if(len < 12) {
-        _font = &font_password_11X12;
+        _font = &font_password_11X10;
     } else {
         _font = &font_password_9X9;
     }

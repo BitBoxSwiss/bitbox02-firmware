@@ -25,7 +25,7 @@
 #include <touch/gestures.h>
 #include <ui/event.h>
 #include <ui/event_handler.h>
-#include <ui/fonts/password_11X12.h>
+#include <ui/fonts/password_11X10.h>
 #include <ui/ugui/ugui.h>
 #include <ui/ui_util.h>
 #include <util.h>
@@ -58,7 +58,7 @@ static char _digits[] = "0123456789";
 // after tuning the font.
 static char _special_chars[] = " !\"#$%&'()*+,-./:;<=>?^[\\]@_{|}";
 
-static const UG_FONT* _font = &font_password_11X12;
+static const UG_FONT* _font = &font_password_11X10;
 
 typedef struct {
     // Can be NULL.

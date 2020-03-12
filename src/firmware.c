@@ -25,6 +25,8 @@
 #include "util.h"
 #include "workflow/orientation_screen.h"
 
+#include "ui/fonts/password_11X10.h"
+
 uint32_t __stack_chk_guard = 0;
 
 int main(void)

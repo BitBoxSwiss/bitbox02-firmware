@@ -67,6 +67,7 @@ add_library(bitbox
   framework/mock_leds.c
   framework/mock_delay.c
   framework/mock_bitboxbase.c
+  framework/workflows/workflow_status.c
   framework/btc_util.c
 )
 
@@ -179,7 +180,7 @@ set(TEST_LIST
    app_btc_common
    ""
    app_btc_confirm_locktime_rbf
-   "-Wl,--wrap=workflow_confirm_blocking,--wrap=workflow_status_create"
+   "-Wl,--wrap=workflow_confirm_blocking,--wrap=workflow_status_blocking"
    sd
    ""
    ui_components
@@ -231,7 +232,7 @@ set(TEST_LIST
    workflow_status
    "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=status_create,--wrap=workflow_blocking_block,--wrap=workflow_blocking_unblock"
    workflow_cancel
-   "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=workflow_blocking_unblock,--wrap=workflow_blocking_block,--wrap=workflow_confirm_blocking,--wrap=workflow_status_create"
+   "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=workflow_blocking_unblock,--wrap=workflow_blocking_block,--wrap=workflow_confirm_blocking,--wrap=workflow_status_blocking"
    ugui
    ""
 )
@@ -265,7 +266,7 @@ endforeach()
 # They are copied from https://github.com/google/u2f-ref-code/tree/master/u2f-tests/HID
 set(U2F_TESTS
    u2f_standard
-   "-Wl,--wrap=workflow_unlock"
+   "-Wl,--wrap=workflow_unlock_blocking"
    u2f_hid
    "-Wl,--wrap=workflow_status_create"
 )

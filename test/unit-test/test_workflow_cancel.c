@@ -24,6 +24,8 @@
 #include <ui/component.h>
 #include <ui/components/confirm.h>
 #include <workflow/blocking.h>
+#include <workflow/mock_status.h>
+#include <workflow/workflow.h>
 
 bool __wrap_workflow_confirm_blocking(const confirm_params_t* params)
 {
@@ -32,15 +34,27 @@ bool __wrap_workflow_confirm_blocking(const confirm_params_t* params)
     return mock();
 }
 
-void __wrap_workflow_status_create(const char* msg, bool status_success)
+#if 0
+USE_RESULT
+workflow_t* __wrap_workflow_status(const char* msg, bool status_success, void (*callback)(void*), void* cb_param)
 {
+    printf("OILALA");
     assert_false(status_success);
+    return mock_workflow_status(callback, cb_param);
+}
+#endif
+
+void __wrap_workflow_status_blocking(const char* msg, bool status_success)
+{
+    (void)msg;
+    (void)status_success;
 }
 
 static void (*_unblock_func_first)(void) = NULL;
 static void (*_unblock_func_second)(void) = NULL;
-static void _unblock_func(void)
+static void _unblock_func(void* param)
 {
+    (void)param;
     if (_unblock_func_first != NULL) {
         _unblock_func_first();
         _unblock_func_first = _unblock_func_second;
@@ -51,11 +65,10 @@ static void _unblock_func(void)
 static void _test_workflow_cancel(void** state)
 {
     component_t component = {0};
-    mock_blocking_set_unblock_func(_unblock_func);
+    mock_blocking_set_unblock_func(_unblock_func, NULL);
     expect_value_count(__wrap_ui_screen_stack_push, component, &component, -1);
     { // go through without cancel with normal unblocking
         _unblock_func_first = workflow_blocking_unblock;
-        // will_return(__wrap_workflow_confirm_blocking, true);
         assert_true(workflow_cancel_run("My Operation", &component));
         mock_screen_stack_assert_clean();
     }

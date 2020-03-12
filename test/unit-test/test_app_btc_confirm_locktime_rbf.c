@@ -31,7 +31,7 @@ bool __wrap_workflow_confirm_blocking(const confirm_params_t* params)
     return mock();
 }
 
-void __wrap_workflow_status_create(const char* msg, bool status_success)
+void __wrap_workflow_status_blocking(const char* msg, bool status_success)
 {
     assert_false(status_success);
     check_expected(msg);
@@ -43,7 +43,7 @@ static void _test_reject_locktime(void** state)
     expect_string(__wrap_workflow_confirm_blocking, params->body, "Locktime on block:\n1\n");
     will_return(__wrap_workflow_confirm_blocking, false);
 
-    expect_string(__wrap_workflow_status_create, msg, "Transaction\ncanceled");
+    expect_string(__wrap_workflow_status_blocking, msg, "Transaction\ncanceled");
     assert_false(apps_btc_confirm_locktime_rbf(1, CONFIRM_LOCKTIME_RBF_DISABLED));
 }
 

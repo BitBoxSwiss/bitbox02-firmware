@@ -40,13 +40,17 @@ component_t* trinary_input_string_create_wordlist(
     const char* title,
     const char* const* wordlist,
     size_t wordlist_size,
-    void (*confirm_cb)(const char* input),
-    void (*cancel_cb)(void));
+    void (*confirm_cb)(const char* input, void* param),
+    void* confirm_callback_param,
+    void (*cancel_cb)(void* param),
+    void* cancel_callback_param);
 
 component_t* trinary_input_string_create_password(
     const char* title,
     bool special_chars,
-    void (*confirm_cb)(const char* input),
-    void (*cancel_cb)(void));
+    void (*confirm_cb)(const char* input, void* param),
+    void* confirm_callback_param,
+    void (*cancel_cb)(void* param),
+    void* cancel_callback_param);
 
 #endif

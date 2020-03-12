@@ -18,5 +18,5 @@
 #include <stdbool.h>
 
 bool mock_blocking_is_unblocked(void);
-void mock_blocking_set_unblock_func(void (*unblock_func)(void));
+void mock_blocking_set_unblock_func(void (*unblock_func)(void*), void* param);
 #endif

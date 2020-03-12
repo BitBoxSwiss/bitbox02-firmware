@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <hardfault.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,6 +55,15 @@ void util_cleanup_32(uint8_t** buf)
 void util_cleanup_64(uint8_t** buf)
 {
     util_zero(*buf, 64);
+}
+
+char* util_strdup(const char* str)
+{
+    char* result = strdup(str);
+    if (!result) {
+        Abort("malloc failed in util_strdup.");
+    }
+    return result;
 }
 
 bool safe_uint64_add(uint64_t* a, uint64_t b)

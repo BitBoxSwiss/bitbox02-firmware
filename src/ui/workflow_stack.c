@@ -57,14 +57,15 @@ static void _workflow_stack_push(workflow_t* workflow)
 
 void workflow_stack_start_workflow(workflow_t* workflow)
 {
-    workflow->init(workflow);
     _workflow_stack_push(workflow);
+    workflow->init(workflow);
 }
 
 void workflow_stack_stop_workflow(void)
 {
-    workflow_t* workflow = _workflow_stack_pop();
+    workflow_t* workflow = workflow_stack_top();
     workflow_destroy(workflow);
+    _workflow_stack_pop();
 }
 
 void workflow_stack_clear(void)

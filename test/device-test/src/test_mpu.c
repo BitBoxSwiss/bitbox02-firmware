@@ -65,14 +65,6 @@ __attribute__((aligned(4))) static volatile bool _memmanage_called;
  */
 __attribute__((aligned(4))) static volatile bool _hardfault_called;
 
-extern void __attribute__((noreturn)) __stack_chk_fail(void);
-void __attribute__((noreturn)) __stack_chk_fail(void)
-{
-    _screen_print_debug("Stack smashing detected", 0);
-    while (1)
-        ;
-}
-
 static UG_GUI guioled; // Global GUI structure for OLED screen
 
 /** Prints a list of blocks/pages to a string. */

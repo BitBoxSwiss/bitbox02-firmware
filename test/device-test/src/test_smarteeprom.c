@@ -49,14 +49,6 @@ static void _screen_sprintf_debug(int duration, const char* fmt, ...)
     _screen_print_debug(print, duration);
 }
 
-extern void __attribute__((noreturn)) __stack_chk_fail(void);
-void __attribute__((noreturn)) __stack_chk_fail(void)
-{
-    _screen_print_debug("Stack smashing detected", 0);
-    while (1) {
-    }
-}
-
 int main(void)
 {
     system_init();

@@ -34,6 +34,8 @@ const char* data[] = {
     "BLOCKMASON CREDIT PROTOCOL TOKEN",
 };
 
+uint32_t __stack_chk_guard = 0;
+
 int main(void)
 {
     init_mcu();

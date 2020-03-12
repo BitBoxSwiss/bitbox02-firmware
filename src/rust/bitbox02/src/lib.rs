@@ -138,9 +138,7 @@ pub fn workflow_confirm_blocking(
         display_size: 0,
     };
 
-    unsafe {
-        bitbox02_sys::workflow_confirm_blocking(&params)
-    }
+    unsafe { bitbox02_sys::workflow_confirm_blocking(&params) }
 }
 
 pub fn screen_print_debug(msg: &str, duration: i32) {

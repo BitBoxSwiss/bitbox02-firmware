@@ -29,23 +29,33 @@ build-build/Makefile:
 	cd build-build && cmake .. -DCOVERAGE=ON -DSANITIZE_ADDRESS=ON -DSANITIZE_UNDEFINED=ON
 	$(MAKE) -C py/bitbox02
 
+build-semihosting/Makefile:
+	mkdir -p build-semihosting
+	cd build-semihosting && cmake .. -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DSEMIHOSTING=ON
+	${MAKE} -C py/bitbox02
+
 # Directory for building for "host" machine according to gcc convention
 build: build/Makefile
 
 # Directory for building for "build" machine according to gcc convention
 build-build: build-build/Makefile
 
+# Directory for building for "host" machine but with semihosting enbled
+build-semihosting: build-semihosting/Makefile
+
 firmware: | build
 # Generate python bindings for protobuf for test scripts
 	$(MAKE) -C build firmware.elf
-firmware-semihosting: | build
-	$(MAKE) -C build firmware-semihosting.elf
+firmware-semihosting: | build-semihosting
+	$(MAKE) -C build-semihosting firmware.elf
 firmware-btc: | build
 	$(MAKE) -C build firmware-btc.elf
 firmware-bitboxbase: | build
 	$(MAKE) -C build firmware-bitboxbase.elf
 bootloader: | build
 	$(MAKE) -C build bootloader.elf
+bootloader-semihosting: | build-semihosting
+	$(MAKE) -C build-semihosting bootloader-development.elf
 bootloader-devdevice: | build
 	$(MAKE) -C build bootloader-development.elf
 bootloader-devdevice-locked: | build

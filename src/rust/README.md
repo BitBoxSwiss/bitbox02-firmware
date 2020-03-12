@@ -11,12 +11,13 @@ used. Instead all enums that are exported must have an explicit size using `repr
 
 # Crate/Libraries organisation
 
-We create three archives/crates/libraries from the `bitbox02-rust-c` crate. Different versions of
-the crate is created using cargo "features".
+We create one archive/crate/library per binary target from the `bitbox02-rust-c` crate, by
+activating appropriate target feature.
 
 * `libbootloader_rust_c.a`
-* `libbitbox02_rust_c.a`
-* `libbitboxbase_rust_c.a`
+* `libfirmware-btc_rust_c.a`
+* `libfirmware-bitboxbase_rust_c.a`
+* etc. for each firmware and bootloader target made by CMake.
 
 In the next layer of crates we have "business logic":
 

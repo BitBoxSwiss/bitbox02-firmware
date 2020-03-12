@@ -304,32 +304,6 @@ add_custom_target(rust-cbindgen
     ${CMAKE_CURRENT_BINARY_DIR}/rust/rust.h
 )
 
-foreach(type bootloader bitbox02 bitboxbase)
-  set(lib ${RUST_BINARY_DIR}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.a)
-  add_custom_target(${type}-rust
-    # Build rust library
-    COMMAND
-    ${CMAKE_COMMAND} -E env
-      CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
-      RUSTFLAGS=${RUSTFLAGS}
-      # enable nightly features in the stable release - needed to activate alloc_error_handler.
-      # see src/rust/bitbox02-rust-c/src/lib.rs.
-      # https://github.com/rust-lang/rust/issues/66740
-      RUSTC_BOOTSTRAP=1
-      ${CARGO} build --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --features platform-${type} --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
-    # Rust packages stdlib functions which we must remove/weaken on the arm target
-    COMMAND
-      if test "${RUST_TARGET_ARCH}" = "thumbv7em-none-eabi" \; then ${CMAKE_OBJCOPY} -N memset -N memcpy -N memmove -W memcmp ${lib} \; fi
-    COMMAND
-      ${CMAKE_COMMAND} -E copy ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
-    BYPRODUCTS
-      ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
-  )
-  add_dependencies(${type}-rust rust-bindgen rust-cbindgen)
-  add_library(${type}_rust_c STATIC IMPORTED)
-  set_property(TARGET ${type}_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a)
-endforeach()
-
 if(CMAKE_CROSSCOMPILING)
   get_property(SAMD51A_INCLUDES TARGET samd51a-ds PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
   get_property(ASF4_MIN_INCLUDES TARGET asf4-drivers-min PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
@@ -401,6 +375,69 @@ if(NOT CMAKE_CROSSCOMPILING)
   add_dependencies(rust-test rust-bindgen)
 endif()
 
+# If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
+set(BOOTLOADERS-BITBOX02
+  bootloader # Runs signed firmware
+  bootloader-development # Runs signed/unsigned firmware and has bootloader menu
+  bootloader-development-locked # Runs signed/unsigned firmware, has bootloader menu and bootloader is locked
+  bootloader-production # Runs signed firmware and bootloader is locked
+  bootloader-btc # Runs signed (btc-only keys) firmware
+  bootloader-btc-development # Runs signed/unsigned firmware and has bootloader menu
+  bootloader-btc-production # Runs signed (btc-only keys) firmware and bootloader is locked
+  )
+set(BOOTLOADERS-BITBOXBASE
+  bootloader-bitboxbase # Runs signed (base keys) firmware
+  bootloader-bitboxbase-development # Runs signed/unsigned firmware and has bootloader menu
+  bootloader-bitboxbase-production # Runs signed (base keys) firmware and bootloader is locked
+  )
+set(BOOTLOADERS
+  ${BOOTLOADERS-BITBOX02}
+  ${BOOTLOADERS-BITBOXBASE}
+  )
+set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
+
+set(FIRMWARES
+  firmware # Firmware MULTI
+  firmware-btc # Firmware BTC-ONLY
+  firmware-bitboxbase # Firmware BASE
+  factory-setup # Factory-setup
+  factory-setup-bitboxbase # Factory-setup
+  )
+set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
+
+if(CMAKE_CROSSCOMPILING)
+  set(RUST_LIBS ${FIRMWARES} ${BOOTLOADERS})
+else()
+  set(RUST_LIBS c-unit-tests)
+endif()
+
+foreach(type ${RUST_LIBS})
+  set(lib ${RUST_BINARY_DIR}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.a)
+  add_custom_target(${type}-rust
+    # Build rust library
+    COMMAND
+    ${CMAKE_COMMAND} -E env
+    CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
+    RUSTFLAGS=${RUSTFLAGS}
+    # enable nightly features in the stable release - needed to activate alloc_error_handler.
+    # see src/rust/bitbox02-rust-c/src/lib.rs.
+    # https://github.com/rust-lang/rust/issues/66740
+    RUSTC_BOOTSTRAP=1
+    ${CARGO} build --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --features target-${type} --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
+    # Rust packages stdlib functions which we must remove/weaken on the arm target
+    COMMAND
+    if test "${RUST_TARGET_ARCH}" = "thumbv7em-none-eabi" \; then ${CMAKE_OBJCOPY} -N memset -N memcpy -N memmove -W memcmp ${lib} \; fi
+    COMMAND
+    ${CMAKE_COMMAND} -E copy ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
+    BYPRODUCTS
+    ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
+    )
+  add_dependencies(${type}-rust rust-bindgen rust-cbindgen)
+  add_library(${type}_rust_c STATIC IMPORTED)
+  set_property(TARGET ${type}_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a)
+endforeach()
+
+
 if(CMAKE_CROSSCOMPILING)
 
   # TODO(nc): Add dependency on global "doc" target on this when api-docs branch is merged
@@ -416,26 +453,6 @@ if(CMAKE_CROSSCOMPILING)
   set(HEAP_SIZE "0x18000" CACHE STRING "Specify heap size for bootloader/firmware")
   set(HEAP_SIZE ${HEAP_SIZE} PARENT_SCOPE)
 
-  # If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
-  set(BOOTLOADERS-BITBOX02
-    bootloader # Runs signed firmware
-    bootloader-development # Runs signed/unsigned firmware and has bootloader menu
-    bootloader-development-locked # Runs signed/unsigned firmware, has bootloader menu and bootloader is locked
-    bootloader-production # Runs signed firmware and bootloader is locked
-    bootloader-btc # Runs signed (btc-only keys) firmware
-    bootloader-btc-development # Runs signed/unsigned firmware and has bootloader menu
-    bootloader-btc-production # Runs signed (btc-only keys) firmware and bootloader is locked
-  )
-  set(BOOTLOADERS-BITBOXBASE
-    bootloader-bitboxbase # Runs signed (base keys) firmware
-    bootloader-bitboxbase-development # Runs signed/unsigned firmware and has bootloader menu
-    bootloader-bitboxbase-production # Runs signed (base keys) firmware and bootloader is locked
-  )
-  set(BOOTLOADERS
-    ${BOOTLOADERS-BITBOX02}
-    ${BOOTLOADERS-BITBOXBASE}
-  )
-  set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
   foreach(bootloader ${BOOTLOADERS})
     set(elf ${bootloader}.elf)
     add_executable(${elf} ${BOOTLOADER-SOURCES})
@@ -451,8 +468,8 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
     target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
 
-    add_dependencies(${elf} bootloader-rust)
-    target_link_libraries(${elf} PRIVATE bootloader_rust_c)
+    add_dependencies(${elf} ${bootloader}-rust)
+    target_link_libraries(${elf} PRIVATE ${bootloader}_rust_c)
 
     # Select the smaller version of libc called nano.
     target_compile_options(${elf} PRIVATE --specs=nano.specs)
@@ -495,14 +512,6 @@ if(CMAKE_CROSSCOMPILING)
   target_compile_definitions(bootloader-bitboxbase-production.elf PRIVATE BOOTLOADER_PRODUCTION PRODUCT_BITBOX_BASE)
   set_property(TARGET bootloader-bitboxbase-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  set(FIRMWARES
-    firmware # Firmware MULTI
-    firmware-btc # Firmware BTC-ONLY
-    firmware-bitboxbase # Firmware BASE
-    factory-setup # Factory-setup
-    factory-setup-bitboxbase # Factory-setup
-  )
-  set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
   foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)
     add_executable(${elf} ${FIRMWARE-SOURCES})
@@ -553,14 +562,8 @@ if(CMAKE_CROSSCOMPILING)
       target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
     endif()
 
-    string(FIND ${firmware} bitboxbase BITBOXBASE_FOUND)
-    if(BITBOXBASE_FOUND EQUAL -1)
-      add_dependencies(${elf} bitbox02-rust)
-      target_link_libraries(${elf} PRIVATE bitbox02_rust_c)
-    else()
-      add_dependencies(${elf} bitboxbase-rust)
-      target_link_libraries(${elf} PRIVATE bitboxbase_rust_c)
-    endif()
+    add_dependencies(${elf} ${firmware}-rust)
+    target_link_libraries(${elf} PRIVATE ${firmware}_rust_c)
   endforeach(firmware)
 
   target_sources(firmware.elf PRIVATE firmware.c)

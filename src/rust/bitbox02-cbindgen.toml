@@ -17,10 +17,10 @@ header = '''
 parse_deps = true
 
 # ... but only parse these crates.
-include = ["bitbox02-rust", "util-c"]
+include = ["bitbox02-rust"]
 
 # also generate bindings from these crates.
-extra_bindings = ["util-c"]
+extra_bindings = []
 
 [export]
 # malloc, free declared in bitbox02-rust-c/src/alloc.rs, but does not need to be exported, as it
@@ -33,4 +33,3 @@ exclude = [
 [defines]
 "feature=platform-bitboxbase" = "RUST_BITBOX_BASE"
 "feature=platform-bitbox02" = "RUST_BITBOX02"
-"feature=platform-bootloader" = "BOOTLOADER"

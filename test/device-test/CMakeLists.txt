@@ -87,7 +87,7 @@ add_library(bitbox02-platform
 )
 
 add_library(bitbox02_rust_c STATIC IMPORTED)
-set_property(TARGET bitbox02_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox02_rust_c.a)
+set_property(TARGET bitbox02_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libfirmware_rust_c.a)
 
 target_include_directories(bitbox02-platform PUBLIC ${INCLUDES})
 target_include_directories(bitbox02-platform SYSTEM PUBLIC ${SYSTEMINCLUDES})
@@ -95,7 +95,7 @@ target_include_directories(bitbox02-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS
 target_compile_definitions(bitbox02-platform PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 target_compile_definitions(bitbox02-platform PUBLIC "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 add_dependencies(bitbox02-platform generate-protobufs)
-add_dependencies(bitbox02-platform bitbox02-rust)
+add_dependencies(bitbox02-platform firmware-rust)
 # needed to find version.h
 target_include_directories(bitbox02-platform SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
 target_link_libraries(bitbox02-platform
@@ -114,7 +114,6 @@ target_link_libraries(bitbox02-platform
     asf4-drivers-min
     asf4-drivers
     samd51a-ds
-    bitbox02_rust_c
 )
 set_property(TARGET bitbox02-platform PROPERTY INTERFACE_LINK_LIBRARIES "")
 
@@ -208,7 +207,7 @@ target_include_directories(bitboxbase-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DI
 target_compile_definitions(bitboxbase-platform PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 target_compile_definitions(bitboxbase-platform PUBLIC "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 add_dependencies(bitboxbase-platform generate-protobufs)
-add_dependencies(bitboxbase-platform bitboxbase-rust)
+add_dependencies(bitboxbase-platform firmware-bitboxbase-rust)
 # needed to find version.h
 target_include_directories(bitboxbase-platform SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
 target_link_libraries(bitboxbase-platform
@@ -241,7 +240,7 @@ else()
 endif()
 
 add_library(bitboxbase_rust_c STATIC IMPORTED)
-set_property(TARGET bitboxbase_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitboxbase_rust_c.a)
+set_property(TARGET bitboxbase_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libfirmware-bitboxbase_rust_c.a)
 
 
 set(BBB_TEST_LIST
@@ -260,7 +259,7 @@ foreach(name ${BBB_TEST_LIST})
   # Since noiseprotocol and wallycore are external projects we need to specify the dependency
   add_dependencies(${elf} noise-c)
   add_dependencies(${elf} libwally-core)
-  add_dependencies(${elf} bitboxbase-rust)
+  add_dependencies(${elf} firmware-bitboxbase-rust)
   # We must link against libc before asf4-drivers-min because malloc depends on _sbrk
   # We must mark "exception_table" as used, otherwise it won't be linked in since it is in a static library
   target_link_libraries(${elf}

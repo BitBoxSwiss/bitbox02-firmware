@@ -25,7 +25,9 @@
 #include "util.h"
 #include "workflow/orientation_screen.h"
 
+#include "ui/fonts/password_11X12.h"
 #include "ui/fonts/password_11X10.h"
+#include "ui/fonts/password_9X9.h"
 
 uint32_t __stack_chk_guard = 0;
 
@@ -41,6 +43,27 @@ int main(void)
     common_main();
     bitbox02_smarteeprom_init();
     traceln("%s", "Device initialized");
+    //char string[95] = {0};
+    //for(int i=0; i<95; ++i) {
+    //    string[i] = ' ' + i;
+    //}
+    //while(1) {
+    //    UG_ClearBuffer();
+    //    UG_FontSelect(&font_password_9X9);
+    //    UG_PutString(0, 0, string, 0);
+    //    UG_SendBuffer();
+    //    delay_ms(10000);
+    //    UG_ClearBuffer();
+    //    UG_FontSelect(&font_password_11X10);
+    //    UG_PutString(0, 0, string, 0);
+    //    UG_SendBuffer();
+    //    delay_ms(10000);
+    //    UG_ClearBuffer();
+    //    UG_FontSelect(&font_password_11X12);
+    //    UG_PutString(0, 0, string, 0);
+    //    UG_SendBuffer();
+    //    delay_ms(10000);
+    //}
     workflow_stack_start_workflow(orientation_screen());
     firmware_main_loop();
     return 0;

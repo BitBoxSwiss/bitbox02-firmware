@@ -118,9 +118,14 @@ target_link_libraries(bitbox02-platform
 )
 set_property(TARGET bitbox02-platform PROPERTY INTERFACE_LINK_LIBRARIES "")
 
-# Always enable semihosting for the test firmwares
-target_compile_definitions(bitbox02-platform PUBLIC PRODUCT_BITBOX_MULTI SEMIHOSTING)
-target_compile_options(bitbox02-platform PRIVATE --specs=nano.specs --specs=rdimon.specs)
+target_compile_definitions(bitbox02-platform PUBLIC PRODUCT_BITBOX_MULTI)
+target_compile_options(bitbox02-platform PRIVATE --specs=nano.specs)
+if(SEMIHOSTING)
+  target_compile_definitions(bitbox02-platform PUBLIC SEMIHOSTING)
+  target_compile_options(bitbox02-platform PRIVATE --specs=rdimon.specs)
+else()
+  target_compile_options(bitbox02-platform PRIVATE --specs=nosys.specs)
+endif()
 
 set(BB02_TEST_LIST
   all_variants_menu
@@ -225,9 +230,15 @@ target_link_libraries(bitboxbase-platform
 )
 set_property(TARGET bitboxbase-platform PROPERTY INTERFACE_LINK_LIBRARIES "")
 
-# Always enable semihosting for the test firmwares
-target_compile_definitions(bitboxbase-platform PUBLIC PRODUCT_BITBOX_BASE SEMIHOSTING)
-target_compile_options(bitboxbase-platform PRIVATE --specs=nano.specs --specs=rdimon.specs)
+target_compile_definitions(bitboxbase-platform PUBLIC PRODUCT_BITBOX_BASE)
+
+target_compile_options(bitboxbase-platform PRIVATE --specs=nano.specs)
+if(SEMIHOSTING)
+  target_compile_definitions(bitboxbase-platform PUBLIC SEMIHOSTING)
+  target_compile_options(bitboxbase-platform PRIVATE --specs=rdimon.specs)
+else()
+  target_compile_options(bitboxbase-platform PRIVATE --specs=nosys.specs)
+endif()
 
 add_library(bitboxbase_rust_c STATIC IMPORTED)
 set_property(TARGET bitboxbase_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitboxbase_rust_c.a)

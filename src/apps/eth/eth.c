@@ -18,6 +18,7 @@
 #include <apps/btc/btc_common.h>
 
 #include <keystore.h>
+#include <rust/rust.h>
 
 #include <hww.pb.h>
 #include <secp256k1.h>
@@ -53,7 +54,7 @@ bool app_eth_address(
 
     switch (output_type) {
     case ETHPubRequest_OutputType_ADDRESS: {
-        if (!eth_common_is_valid_keypath_address(keypath, keypath_len, params->bip44_coin)) {
+        if (!rust_ethereum_keypath_is_valid_address(keypath, keypath_len, params->bip44_coin)) {
             return false;
         }
         uint8_t pubkey_uncompressed[65];

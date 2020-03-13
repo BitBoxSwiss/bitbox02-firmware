@@ -48,14 +48,6 @@ bool eth_common_is_valid_keypath_xpub(ETHCoin coin, const uint32_t* keypath, siz
     return true;
 }
 
-bool eth_common_is_valid_keypath_address(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint32_t expected_coin)
-{
-    return rust_ethereum_keypath_is_valid_address(keypath, keypath_len, expected_coin);
-}
-
 bool eth_common_hexaddress(const uint8_t* recipient, char* out, size_t out_len)
 {
     if (out_len < APP_ETH_ADDRESS_HEX_LEN) {

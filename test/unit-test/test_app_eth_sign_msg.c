@@ -59,11 +59,11 @@ bool __wrap_keystore_secp256k1_sign(
     return mock();
 }
 
-bool __real_eth_common_is_valid_keypath_address(
+bool __real_rust_ethereum_keypath_is_valid_address(
     const uint32_t* keypath,
     size_t keypath_len,
     uint32_t expected_coin);
-bool __wrap_eth_common_is_valid_keypath_address(
+bool __wrap_rust_ethereum_keypath_is_valid_address(
     const uint32_t* keypath,
     size_t keypath_len,
     uint32_t expected_coin)
@@ -71,7 +71,7 @@ bool __wrap_eth_common_is_valid_keypath_address(
     check_expected(keypath);
     assert_int_equal(keypath_len, 5);
     check_expected(expected_coin);
-    return __real_eth_common_is_valid_keypath_address(keypath, keypath_len, expected_coin);
+    return __real_rust_ethereum_keypath_is_valid_address(keypath, keypath_len, expected_coin);
 }
 
 static void _default_request(ETHSignMessageRequest* request)
@@ -96,12 +96,12 @@ static void _default_request(ETHSignMessageRequest* request)
 static void _expect_keypath(const ETHSignMessageRequest* request)
 {
     expect_memory(
-        __wrap_eth_common_is_valid_keypath_address,
+        __wrap_rust_ethereum_keypath_is_valid_address,
         keypath,
         request->keypath,
         request->keypath_count * sizeof(uint32_t));
     expect_value(
-        __wrap_eth_common_is_valid_keypath_address,
+        __wrap_rust_ethereum_keypath_is_valid_address,
         expected_coin,
         60 + BIP32_INITIAL_HARDENED_CHILD);
 }

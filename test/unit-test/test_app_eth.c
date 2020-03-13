@@ -28,7 +28,7 @@
 
 static bool _is_valid_keypath = true;
 
-bool __wrap_eth_common_is_valid_keypath_address(
+bool __wrap_rust_ethereum_keypath_is_valid_address(
     ETHCoin coin,
     const uint32_t* keypath,
     size_t keypath_len)

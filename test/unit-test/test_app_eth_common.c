@@ -25,39 +25,6 @@
 
 #include <wally_bip32.h>
 
-static void _test_eth_common_is_valid_keypath_invalid(void** state)
-{
-    uint32_t expected_coin = 60 + BIP32_INITIAL_HARDENED_CHILD;
-    uint32_t keypath[6] = {
-        44 + BIP32_INITIAL_HARDENED_CHILD,
-        expected_coin,
-        0 + BIP32_INITIAL_HARDENED_CHILD,
-        0,
-        0,
-        0,
-    };
-
-    // too long
-    assert_false(eth_common_is_valid_keypath_xpub(ETHCoin_ETH, keypath, 5));
-
-    // too short
-    assert_false(eth_common_is_valid_keypath_xpub(ETHCoin_ETH, keypath, 3));
-}
-
-static void _test_eth_common_is_valid_keypath_accounts(void** state)
-{
-    uint32_t expected_coin = 60 + BIP32_INITIAL_HARDENED_CHILD;
-    uint32_t keypath[5] = {
-        44 + BIP32_INITIAL_HARDENED_CHILD,
-        expected_coin,
-        0 + BIP32_INITIAL_HARDENED_CHILD,
-        0,
-        0,
-    };
-
-    assert_true(eth_common_is_valid_keypath_xpub(ETHCoin_ETH, keypath, 4));
-}
-
 static void _bigendian_to_scalar(const uint8_t* bytes, size_t len, bignum256* out)
 {
     if (len > 32) {
@@ -160,8 +127,6 @@ static void _test_eth_common_format_amount(void** state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(_test_eth_common_is_valid_keypath_invalid),
-        cmocka_unit_test(_test_eth_common_is_valid_keypath_accounts),
         cmocka_unit_test(_test_eth_common_format_amount),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);

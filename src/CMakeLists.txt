@@ -251,7 +251,6 @@ set(FIRMWARE-SOURCES
   ${DRIVER-SOURCES}
   ${DBB-FIRMWARE-PROTOBUF-SOURCES}
   ${CRYPTOAUTHLIB-SOURCES}
-  ${ETHEREUM-SOURCES}
   ${CMAKE_SOURCE_DIR}/src/common_main.c
 )
 
@@ -568,7 +567,7 @@ if(CMAKE_CROSSCOMPILING)
 
   target_sources(firmware.elf PRIVATE firmware.c)
   target_compile_definitions(firmware.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_BTC=1" "APP_LTC=1" "APP_ETH=1" "APP_U2F=1")
-  target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
+  target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${ETHEREUM-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
 
   target_sources(firmware-btc.elf PRIVATE firmware.c)
   target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_BTC=1" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")

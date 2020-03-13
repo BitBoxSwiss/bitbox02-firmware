@@ -17,6 +17,7 @@
 #include "confirm_gesture.h"
 #include "icon_button.h"
 #include "label.h"
+#include "ui/fonts/font_a_9X9.h"
 
 #include <hardfault.h>
 #include <screen.h>
@@ -143,7 +144,7 @@ component_t* confirm_create(
     } else {
         ui_util_add_sub_component(confirm, label_create_offset(body, params->font, CENTER, 0, yoffset, confirm));
     }
-    ui_util_add_sub_component(confirm, label_create(params->title, NULL, CENTER_TOP, confirm));
+    ui_util_add_sub_component(confirm, label_create_offset(params->title, &font_font_a_9X9, CENTER_TOP, 0, 1, confirm));
     // Create buttons
     if (cancel_callback != NULL && !params->accept_only) {
         ui_util_add_sub_component(

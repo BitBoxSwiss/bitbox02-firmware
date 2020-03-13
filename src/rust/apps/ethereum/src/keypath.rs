@@ -17,7 +17,7 @@ pub fn is_valid_keypath_address(keypath: &[u32], expected_coin: u32) -> bool {
     if keypath.len() != 5 {
         return false;
     }
-    if &keypath[..4] != &[44 + HARDENED, expected_coin, 0 + HARDENED, 0] {
+    if !is_valid_keypath_xpub(&keypath[..4], expected_coin) {
         return false;
     }
     if keypath[4] > ACCOUNT_MAX {

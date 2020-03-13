@@ -20,6 +20,7 @@
 
 #include <hardfault.h>
 #include <keystore.h>
+#include <rust/rust.h>
 #include <util.h>
 
 app_eth_sign_error_t app_eth_sign(const ETHSignRequest* request, ETHSignResponse* response)
@@ -29,7 +30,7 @@ app_eth_sign_error_t app_eth_sign(const ETHSignRequest* request, ETHSignResponse
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }
 
-    if (!eth_common_is_valid_keypath_address(
+    if (!rust_ethereum_keypath_is_valid_address(
             request->keypath, request->keypath_count, params->bip44_coin)) {
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }

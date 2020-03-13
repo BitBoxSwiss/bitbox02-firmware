@@ -23,7 +23,7 @@
 #include <workflow/confirm_time.h>
 #include <workflow/password.h>
 #include <workflow/status.h>
-#include <workflow/unlock.h>
+#include <workflow/unlock_bip39.h>
 #include <workflow/workflow.h>
 
 bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
@@ -32,7 +32,7 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
     BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data;
 
     if (restore_from_directory(restore_request->id, &backup, &backup_data) != RESTORE_OK) {
-        workflow_status_create("Could not\nrestore backup", false);
+        workflow_status_blocking("Could not\nrestore backup", false);
         return false;
     }
 
@@ -43,7 +43,7 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
     }
 
     if (!restore_seed(&backup_data, password)) {
-        workflow_status_create("Could not\nrestore backup", false);
+        workflow_status_blocking("Could not\nrestore backup", false);
         return false;
     }
 #if APP_U2F == 1
@@ -66,7 +66,8 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
     if (!memory_set_device_name(backup.backup_v1.content.metadata.name)) {
         /* Ignore errors for now */
     }
-    return workflow_unlock_bip39();
+    workflow_unlock_bip39_blocking();
+    return true;
 }
 
 bool workflow_list_backups(ListBackupsResponse* backups)

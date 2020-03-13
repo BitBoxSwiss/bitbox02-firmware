@@ -201,6 +201,7 @@ if(CMAKE_CROSSCOMPILING)
     )
 
   target_link_libraries(asf4-drivers-min samd51a-ds)
+  set_property(TARGET asf4-drivers-min PROPERTY INTERFACE_LINK_LIBRARIES "")
 
   target_include_directories(asf4-drivers-min SYSTEM
     PUBLIC
@@ -237,6 +238,8 @@ if(CMAKE_CROSSCOMPILING)
     asf4-drivers/diskio/sdmmc_diskio.c
   )
   target_link_libraries(asf4-drivers
+    PRIVATE
+      samd51a-ds
     PUBLIC
       asf4-drivers-min
   )
@@ -245,6 +248,7 @@ if(CMAKE_CROSSCOMPILING)
     PUBLIC
       asf4-drivers/diskio
   )
+set_property(TARGET asf4-drivers PROPERTY INTERFACE_LINK_LIBRARIES "")
 
   find_library(QTOUCHLIB_A qtm_acq_samd51_0x000f PATHS asf4-drivers/qtouch/lib/gcc NO_CMAKE_FIND_ROOT_PATH)
   find_library(QTOUCHLIB_B qtm_binding_layer_cm4_0x0005 PATHS asf4-drivers/qtouch/lib/gcc NO_CMAKE_FIND_ROOT_PATH)
@@ -280,7 +284,8 @@ if(CMAKE_CROSSCOMPILING)
     cryptoauthlib/lib/crypto/hashes/sha2_routines.c
     cryptoauthlib/lib/crypto/atca_crypto_sw_sha2.c
   )
-  target_link_libraries(cryptoauthlib asf4-drivers-min)
+  target_link_libraries(cryptoauthlib samd51a-ds asf4-drivers-min)
+  set_property(TARGET cryptoauthlib PROPERTY INTERFACE_LINK_LIBRARIES "")
   target_compile_definitions(cryptoauthlib PUBLIC ATCA_HAL_CUSTOM ATCA_NO_POLL)
   target_include_directories(cryptoauthlib SYSTEM PUBLIC cryptoauthlib/lib)
   target_compile_options(cryptoauthlib PRIVATE -Wno-pedantic -Wno-incompatible-pointer-types -Wno-unused-parameter -Wno-unused-variable)
@@ -289,7 +294,8 @@ if(CMAKE_CROSSCOMPILING)
     FatFs/source/ff.c
     FatFs/source/ffunicode.c
   )
-  target_link_libraries(fatfs asf4-drivers)
+  target_link_libraries(fatfs samd51a-ds asf4-drivers asf4-drivers-min)
+  set_property(TARGET fatfs PROPERTY INTERFACE_LINK_LIBRARIES "")
   target_include_directories(fatfs SYSTEM PUBLIC FatFs/source)
   target_compile_options(fatfs PRIVATE -Wno-switch-default)
 endif() # CMAKE_CROSSCOMPILING

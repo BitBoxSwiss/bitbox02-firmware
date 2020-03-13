@@ -240,7 +240,7 @@ app_btc_result_t app_btc_register_script_config(
     memory_result_t result = memory_multisig_set_by_hash(hash, name);
     switch (result) {
     case MEMORY_OK:
-        workflow_status_create("Multisig account\nregistered", true);
+        workflow_status_blocking("Multisig account\nregistered", true);
         return APP_BTC_OK;
     case MEMORY_ERR_DUPLICATE_NAME:
         return APP_BTC_ERR_DUPLICATE;

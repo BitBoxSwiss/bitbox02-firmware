@@ -43,12 +43,12 @@ static bool _backup(uint32_t backup_create_timestamp, uint32_t seed_birthdate_ti
             // replacing the sd card, not safely disposing of the old one.
             // The issue fixes itself after replugging and going through the backup process again.
         }
-        workflow_status_create("Backup created", true);
+        workflow_status_blocking("Backup created", true);
         return true;
     case BACKUP_ERR_SD_WRITE:
     case BACKUP_ERR_SD_LIST:
         if (!sd_card_inserted()) {
-            workflow_status_create("Backup not created\nIs the SD card\ninserted?", false);
+            workflow_status_blocking("Backup not created\nIs the SD card\ninserted?", false);
         } else {
             char msg[100];
             snprintf(
@@ -56,7 +56,7 @@ static bool _backup(uint32_t backup_create_timestamp, uint32_t seed_birthdate_ti
                 sizeof(msg),
                 "Backup not created\nPlease contact\nsupport (%s)",
                 backup_error_str(res));
-            workflow_status_create(msg, false);
+            workflow_status_blocking(msg, false);
         }
         return false;
     default: {
@@ -66,7 +66,7 @@ static bool _backup(uint32_t backup_create_timestamp, uint32_t seed_birthdate_ti
             sizeof(msg),
             "Backup not created\nPlease contact\nsupport (%s)",
             backup_error_str(res));
-        workflow_status_create(msg, false);
+        workflow_status_blocking(msg, false);
         return false;
     }
     }
@@ -123,11 +123,11 @@ bool workflow_backup_check(char* id_out, bool silent)
     case BACKUP_ERR_SD_LIST:
     case BACKUP_ERR_SD_READ:
     case BACKUP_ERR_SD_WRITE:
-        workflow_status_create("Could not read\nor write to the\nmicro SD card", false);
+        workflow_status_blocking("Could not read\nor write to the\nmicro SD card", false);
         return false;
     case BACKUP_ERR_CHECK:
         if (!silent) {
-            workflow_status_create("Backup missing\nor invalid", false);
+            workflow_status_blocking("Backup missing\nor invalid", false);
         }
         return false;
     case BACKUP_OK:
@@ -150,13 +150,13 @@ bool workflow_backup_check(char* id_out, bool silent)
                 // TODO Change to error "User Abort"
                 return false;
             }
-            workflow_status_create("Backup valid", true);
+            workflow_status_blocking("Backup valid", true);
         }
         return true;
     default: {
         char err_msg[100];
         snprintf(err_msg, 100, "Could not check\nbackup (%s)", backup_error_str(res));
-        workflow_status_create(err_msg, false);
+        workflow_status_blocking(err_msg, false);
         return false;
     }
     }

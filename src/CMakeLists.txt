@@ -44,6 +44,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm_time.c
   ${CMAKE_SOURCE_DIR}/src/workflow/create_seed.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/get_mnemonic_passphrase.c
   ${CMAKE_SOURCE_DIR}/src/workflow/idle_workflow.c
   ${CMAKE_SOURCE_DIR}/src/workflow/pairing.c
   ${CMAKE_SOURCE_DIR}/src/workflow/password.c
@@ -58,6 +59,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c
   ${CMAKE_SOURCE_DIR}/src/workflow/trinary_input.c
   ${CMAKE_SOURCE_DIR}/src/workflow/unlock.c
+  ${CMAKE_SOURCE_DIR}/src/workflow/unlock_bip39.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_pub.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_total.c
@@ -302,32 +304,6 @@ add_custom_target(rust-cbindgen
     ${CMAKE_CURRENT_BINARY_DIR}/rust/rust.h
 )
 
-foreach(type bootloader bitbox02 bitboxbase)
-  set(lib ${RUST_BINARY_DIR}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.a)
-  add_custom_target(${type}-rust
-    # Build rust library
-    COMMAND
-    ${CMAKE_COMMAND} -E env
-      CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
-      RUSTFLAGS=${RUSTFLAGS}
-      # enable nightly features in the stable release - needed to activate alloc_error_handler.
-      # see src/rust/bitbox02-rust-c/src/lib.rs.
-      # https://github.com/rust-lang/rust/issues/66740
-      RUSTC_BOOTSTRAP=1
-      ${CARGO} build --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --features platform-${type} --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
-    # Rust packages stdlib functions which we must remove/weaken on the arm target
-    COMMAND
-      if test "${RUST_TARGET_ARCH}" = "thumbv7em-none-eabi" \; then ${CMAKE_OBJCOPY} -N memset -N memcpy -N memmove -W memcmp ${lib} \; fi
-    COMMAND
-      ${CMAKE_COMMAND} -E copy ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
-    BYPRODUCTS
-      ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
-  )
-  add_dependencies(${type}-rust rust-bindgen rust-cbindgen)
-  add_library(${type}_rust_c STATIC IMPORTED)
-  set_property(TARGET ${type}_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a)
-endforeach()
-
 if(CMAKE_CROSSCOMPILING)
   get_property(SAMD51A_INCLUDES TARGET samd51a-ds PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
   get_property(ASF4_MIN_INCLUDES TARGET asf4-drivers-min PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
@@ -399,6 +375,69 @@ if(NOT CMAKE_CROSSCOMPILING)
   add_dependencies(rust-test rust-bindgen)
 endif()
 
+# If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
+set(BOOTLOADERS-BITBOX02
+  bootloader # Runs signed firmware
+  bootloader-development # Runs signed/unsigned firmware and has bootloader menu
+  bootloader-development-locked # Runs signed/unsigned firmware, has bootloader menu and bootloader is locked
+  bootloader-production # Runs signed firmware and bootloader is locked
+  bootloader-btc # Runs signed (btc-only keys) firmware
+  bootloader-btc-development # Runs signed/unsigned firmware and has bootloader menu
+  bootloader-btc-production # Runs signed (btc-only keys) firmware and bootloader is locked
+  )
+set(BOOTLOADERS-BITBOXBASE
+  bootloader-bitboxbase # Runs signed (base keys) firmware
+  bootloader-bitboxbase-development # Runs signed/unsigned firmware and has bootloader menu
+  bootloader-bitboxbase-production # Runs signed (base keys) firmware and bootloader is locked
+  )
+set(BOOTLOADERS
+  ${BOOTLOADERS-BITBOX02}
+  ${BOOTLOADERS-BITBOXBASE}
+  )
+set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
+
+set(FIRMWARES
+  firmware # Firmware MULTI
+  firmware-btc # Firmware BTC-ONLY
+  firmware-bitboxbase # Firmware BASE
+  factory-setup # Factory-setup
+  factory-setup-bitboxbase # Factory-setup
+  )
+set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
+
+if(CMAKE_CROSSCOMPILING)
+  set(RUST_LIBS ${FIRMWARES} ${BOOTLOADERS})
+else()
+  set(RUST_LIBS c-unit-tests)
+endif()
+
+foreach(type ${RUST_LIBS})
+  set(lib ${RUST_BINARY_DIR}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.a)
+  add_custom_target(${type}-rust
+    # Build rust library
+    COMMAND
+    ${CMAKE_COMMAND} -E env
+    CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
+    RUSTFLAGS=${RUSTFLAGS}
+    # enable nightly features in the stable release - needed to activate alloc_error_handler.
+    # see src/rust/bitbox02-rust-c/src/lib.rs.
+    # https://github.com/rust-lang/rust/issues/66740
+    RUSTC_BOOTSTRAP=1
+    ${CARGO} build --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --features target-${type} --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
+    # Rust packages stdlib functions which we must remove/weaken on the arm target
+    COMMAND
+    if test "${RUST_TARGET_ARCH}" = "thumbv7em-none-eabi" \; then ${CMAKE_OBJCOPY} -N memset -N memcpy -N memmove -W memcmp ${lib} \; fi
+    COMMAND
+    ${CMAKE_COMMAND} -E copy ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
+    BYPRODUCTS
+    ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
+    )
+  add_dependencies(${type}-rust rust-bindgen rust-cbindgen)
+  add_library(${type}_rust_c STATIC IMPORTED)
+  set_property(TARGET ${type}_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a)
+endforeach()
+
+
 if(CMAKE_CROSSCOMPILING)
 
   # TODO(nc): Add dependency on global "doc" target on this when api-docs branch is merged
@@ -414,32 +453,10 @@ if(CMAKE_CROSSCOMPILING)
   set(HEAP_SIZE "0x18000" CACHE STRING "Specify heap size for bootloader/firmware")
   set(HEAP_SIZE ${HEAP_SIZE} PARENT_SCOPE)
 
-  # If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
-  set(BOOTLOADERS-BITBOX02
-    bootloader # Runs signed firmware
-    bootloader-development # Runs signed/unsigned firmware and has bootloader menu
-    bootloader-development-locked # Runs signed/unsigned firmware, has bootloader menu and bootloader is locked
-    bootloader-semihosting # Runs signed/unsigned firmware, has bootloader menu and enables semihosting
-    bootloader-production # Runs signed firmware and bootloader is locked
-    bootloader-btc # Runs signed (btc-only keys) firmware
-    bootloader-btc-development # Runs signed/unsigned firmware and has bootloader menu
-    bootloader-btc-production # Runs signed (btc-only keys) firmware and bootloader is locked
-  )
-  set(BOOTLOADERS-BITBOXBASE
-    bootloader-bitboxbase # Runs signed (base keys) firmware
-    bootloader-bitboxbase-development # Runs signed/unsigned firmware and has bootloader menu
-    bootloader-bitboxbase-semihosting # Runs signed/unsigned firmware, has bootloader menu and enables semihosting
-    bootloader-bitboxbase-production # Runs signed (base keys) firmware and bootloader is locked
-  )
-  set(BOOTLOADERS
-    ${BOOTLOADERS-BITBOX02}
-    ${BOOTLOADERS-BITBOXBASE}
-  )
-  set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
   foreach(bootloader ${BOOTLOADERS})
     set(elf ${bootloader}.elf)
     add_executable(${elf} ${BOOTLOADER-SOURCES})
-    target_link_libraries(${elf} PRIVATE c asf4-drivers-min -Wl,-u,exception_table)
+    target_link_libraries(${elf} PRIVATE c asf4-drivers-min samd51a-ds -Wl,-u,exception_table)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_include_directories(${elf} SYSTEM PRIVATE ${SYSTEMINCLUDES})
     target_compile_definitions(${elf} PRIVATE BOOTLOADER "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
@@ -451,20 +468,20 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
     target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
 
-    add_dependencies(${elf} bootloader-rust)
-    target_link_libraries(${elf} PRIVATE bootloader_rust_c)
+    add_dependencies(${elf} ${bootloader}-rust)
+    target_link_libraries(${elf} PRIVATE ${bootloader}_rust_c)
 
     # Select the smaller version of libc called nano.
     target_compile_options(${elf} PRIVATE --specs=nano.specs)
     target_link_libraries(${elf} PRIVATE --specs=nano.specs)
-    string(FIND ${bootloader} semihosting SEMIHOSTING_FOUND)
-    if(SEMIHOSTING_FOUND EQUAL -1)
-      target_compile_options(${elf} PRIVATE --specs=nosys.specs)
-      target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
-    else()
+    if(SEMIHOSTING)
       # Select an implementation of the system calls that can communicate with the debugger
       target_compile_options(${elf} PRIVATE --specs=rdimon.specs)
       target_link_libraries(${elf} PRIVATE --specs=rdimon.specs)
+      target_compile_definitions(${elf} PRIVATE SEMIHOSTING)
+    else()
+      target_compile_options(${elf} PRIVATE --specs=nosys.specs)
+      target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
     endif()
   endforeach(bootloader)
 
@@ -478,7 +495,6 @@ if(CMAKE_CROSSCOMPILING)
 
   target_compile_definitions(bootloader.elf PRIVATE PRODUCT_BITBOX_MULTI)
   target_compile_definitions(bootloader-development.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bootloader-semihosting.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE SEMIHOSTING)
   target_compile_definitions(bootloader-development-locked.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-development-locked.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
@@ -493,20 +509,9 @@ if(CMAKE_CROSSCOMPILING)
 
   target_compile_definitions(bootloader-bitboxbase.elf PRIVATE PRODUCT_BITBOX_BASE)
   target_compile_definitions(bootloader-bitboxbase-development.elf PRIVATE BOOTLOADER_DEVDEVICE PRODUCT_BITBOX_BASE)
-  target_compile_definitions(bootloader-bitboxbase-semihosting.elf PRIVATE BOOTLOADER_DEVDEVICE PRODUCT_BITBOX_BASE SEMIHOSTING)
   target_compile_definitions(bootloader-bitboxbase-production.elf PRIVATE BOOTLOADER_PRODUCTION PRODUCT_BITBOX_BASE)
   set_property(TARGET bootloader-bitboxbase-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  set(FIRMWARES
-    firmware # Firmware MULTI
-    firmware-semihosting # Firmware MULTI with semihosting enabled
-    firmware-btc # Firmware BTC-ONLY
-    firmware-bitboxbase # Firmware BASE
-    firmware-bitboxbase-semihosting # Firmware BASE with semihosting
-    factory-setup # Factory-setup
-    factory-setup-bitboxbase # Factory-setup
-  )
-  set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
   foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)
     add_executable(${elf} ${FIRMWARE-SOURCES})
@@ -547,35 +552,23 @@ if(CMAKE_CROSSCOMPILING)
     # Select the smaller version of libc called nano.
     target_compile_options(${elf} PRIVATE --specs=nano.specs)
     target_link_libraries(${elf} PRIVATE --specs=nano.specs)
-    string(FIND ${firmware} semihosting SEMIHOSTING_FOUND)
-    if(SEMIHOSTING_FOUND EQUAL -1)
-      target_compile_options(${elf} PRIVATE --specs=nosys.specs)
-      target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
-    else()
+    if(SEMIHOSTING)
       # Select an implementation of the system calls that can communicate with the debugger
       target_compile_options(${elf} PRIVATE --specs=rdimon.specs)
       target_link_libraries(${elf} PRIVATE --specs=rdimon.specs)
+      target_compile_definitions(${elf} PRIVATE SEMIHOSTING)
+    else()
+      target_compile_options(${elf} PRIVATE --specs=nosys.specs)
+      target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
     endif()
 
-    string(FIND ${firmware} bitboxbase BITBOXBASE_FOUND)
-    if(BITBOXBASE_FOUND EQUAL -1)
-      add_dependencies(${elf} bitbox02-rust)
-      target_link_libraries(${elf} PRIVATE bitbox02_rust_c)
-    else()
-      add_dependencies(${elf} bitboxbase-rust)
-      target_link_libraries(${elf} PRIVATE bitboxbase_rust_c)
-    endif()
+    add_dependencies(${elf} ${firmware}-rust)
+    target_link_libraries(${elf} PRIVATE ${firmware}_rust_c)
   endforeach(firmware)
 
   target_sources(firmware.elf PRIVATE firmware.c)
   target_compile_definitions(firmware.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_BTC=1" "APP_LTC=1" "APP_ETH=1" "APP_U2F=1")
   target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
-
-  target_sources(firmware-semihosting.elf PRIVATE firmware.c)
-  target_sources(firmware-semihosting.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
-  # Select an implementation of the system calls that can communicate with the debugger
-  target_compile_definitions(firmware-semihosting.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_BTC=1" "APP_LTC=1" "APP_ETH=1" "APP_U2F=1")
-  target_compile_definitions(firmware-semihosting.elf PRIVATE SEMIHOSTING)
 
   target_sources(firmware-btc.elf PRIVATE firmware.c)
   target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_BTC=1" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
@@ -584,10 +577,6 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(firmware-bitboxbase.elf PRIVATE bitboxbase/bitboxbase.c)
   target_compile_definitions(firmware-bitboxbase.elf PRIVATE PRODUCT_BITBOX_BASE "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(firmware-bitboxbase.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES} ${BITBOXBASE-FIRMWARE-SOURCES})
-
-  target_sources(firmware-bitboxbase-semihosting.elf PRIVATE bitboxbase/bitboxbase.c)
-  target_compile_definitions(firmware-bitboxbase-semihosting.elf PRIVATE PRODUCT_BITBOX_BASE SEMIHOSTING "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
-  target_sources(firmware-bitboxbase-semihosting.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES} ${BITBOXBASE-FIRMWARE-SOURCES})
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")

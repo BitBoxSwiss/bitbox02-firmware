@@ -31,7 +31,7 @@ bool workflow_cancel_run(const char* title, component_t* component)
                 continue;
             }
             ui_screen_stack_pop();
-            workflow_status_create("Cancelled", false);
+            workflow_status_blocking("Cancelled", false);
             return false;
         }
         ui_screen_stack_pop();

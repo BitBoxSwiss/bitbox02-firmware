@@ -45,8 +45,8 @@ message("FILTERED SOURCES: ${DBB-FILTERED-SOURCES}")
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/tools/nanopb/extra)
 find_package(Nanopb REQUIRED)
 
-add_library(bitbox02_rust_c STATIC IMPORTED)
-set_property(TARGET bitbox02_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox02_rust_c.a)
+add_library(rust_c STATIC IMPORTED)
+set_property(TARGET rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libc-unit-tests_rust_c.a)
 
 add_library(bitbox
   STATIC
@@ -67,6 +67,7 @@ add_library(bitbox
   framework/mock_leds.c
   framework/mock_delay.c
   framework/mock_bitboxbase.c
+  framework/workflows/workflow_status.c
   framework/btc_util.c
 )
 
@@ -86,7 +87,7 @@ target_include_directories(
   ${CMAKE_BINARY_DIR}/src
 )
 
-add_dependencies(bitbox bitbox02-rust)
+add_dependencies(bitbox c-unit-tests-rust)
 target_link_libraries(bitbox PRIVATE ${LIBBITBOX02_RUST})
 # target_link_libraries(${LIBBITBOX02_RUST} PRIVATE bitbox)
 
@@ -179,7 +180,7 @@ set(TEST_LIST
    app_btc_common
    ""
    app_btc_confirm_locktime_rbf
-   "-Wl,--wrap=workflow_confirm_blocking,--wrap=workflow_status_create"
+   "-Wl,--wrap=workflow_confirm_blocking,--wrap=workflow_status_blocking"
    sd
    ""
    ui_components
@@ -231,7 +232,7 @@ set(TEST_LIST
    workflow_status
    "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=status_create,--wrap=workflow_blocking_block,--wrap=workflow_blocking_unblock"
    workflow_cancel
-   "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=workflow_blocking_unblock,--wrap=workflow_blocking_block,--wrap=workflow_confirm_blocking,--wrap=workflow_status_create"
+   "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=workflow_blocking_unblock,--wrap=workflow_blocking_block,--wrap=workflow_confirm_blocking,--wrap=workflow_status_blocking"
    ugui
    ""
 )
@@ -251,7 +252,7 @@ foreach(I RANGE 0 ${TEST_LIST_LEN} 2)
     $<$<BOOL:SANITIZE_ADDRESS>:asan>
     $<$<BOOL:SANITIZE_UNDEFINED>:-fsanitize=undefined>
     -Wl,--start-group
-    bitbox02_rust_c
+    rust_c
     bitbox
     -Wl,--end-group
     ${CMOCKA_LIBRARIES}
@@ -265,7 +266,7 @@ endforeach()
 # They are copied from https://github.com/google/u2f-ref-code/tree/master/u2f-tests/HID
 set(U2F_TESTS
    u2f_standard
-   "-Wl,--wrap=workflow_unlock"
+   "-Wl,--wrap=workflow_unlock_blocking"
    u2f_hid
    "-Wl,--wrap=workflow_status_create"
 )
@@ -283,7 +284,7 @@ foreach(I RANGE 0 ${U2F_TESTS_LEN} 2)
     $<$<BOOL:SANITIZE_ADDRESS>:asan>
     $<$<BOOL:SANITIZE_UNDEFINED>:-fsanitize=undefined>
     -Wl,--start-group
-    bitbox02_rust_c
+    rust_c
     bitbox
     -Wl,--end-group
     u2f-util

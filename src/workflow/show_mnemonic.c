@@ -187,10 +187,10 @@ bool workflow_show_mnemonic_create(void)
                 }
                 continue;
             }
-            workflow_status_create("Incorrect word\nTry again", false);
+            workflow_status_blocking("Incorrect word\nTry again", false);
         }
     }
 
-    workflow_status_create("Success", true);
+    workflow_status_blocking("Success", true);
     return true;
 }

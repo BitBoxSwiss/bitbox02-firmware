@@ -40,7 +40,7 @@ bool workflow_verify_recipient(const char* recipient, const char* amount)
     workflow_blocking_block();
     ui_screen_stack_pop();
     if (!_result) {
-        workflow_status_create("Transaction\ncanceled", false);
+        workflow_status_blocking("Transaction\ncanceled", false);
     }
     return _result;
 }

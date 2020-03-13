@@ -61,7 +61,9 @@ static void _workflow_confirm_spin(workflow_t* self)
     data_t* data = (data_t*)self->data;
     if (data->done) {
         /* Publish our result. */
-        data->callback(data->result, data->callback_param);
+        if (data->callback) {
+            data->callback(data->result, data->callback_param);
+        }
         /* Time to go, goodbye. */
         workflow_stack_stop_workflow();
     }

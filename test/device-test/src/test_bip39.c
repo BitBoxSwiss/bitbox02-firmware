@@ -38,14 +38,6 @@
 
 uint32_t __stack_chk_guard = 0;
 
-extern void __attribute__((noreturn)) __stack_chk_fail(void);
-void __attribute__((noreturn)) __stack_chk_fail(void)
-{
-    screen_print_debug("Stack smashing detected", 0);
-    while (1) {
-    }
-}
-
 static bool _mock_get_bip_39_mnemonic(char** mnemonic)
 {
     const char* wordlist =

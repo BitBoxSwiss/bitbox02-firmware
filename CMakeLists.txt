@@ -54,9 +54,13 @@ option(COVERAGE "Compile with test coverage flags." OFF)
 option(SANITIZE_ADDRESS "Compile with asan." OFF)
 option(SANITIZE_UNDEFINED "Compile with ubsan." OFF)
 option(CMAKE_VERBOSE_MAKEFILE "Verbose build." OFF)
+option(SEMIHOSTING "Enable semihosting." OFF)
 # Generate compile_command.json (for tidy and other tools)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(SEMIHOSTING AND NOT CMAKE_CROSSCOMPILING)
+  message(FATAL_ERROR "It doesn't make sense to semihost for the build machine")
+endif()
 
 #-----------------------------------------------------------------------------
 # Force out-of-source build
@@ -251,8 +255,7 @@ if(CMAKE_CROSSCOMPILING)
   # Allow gc-sections at linking stage. (TODO: move to targets that use that linking option)
   string(APPEND CMAKE_C_FLAGS " -ffunction-sections -fdata-sections")
   set(CMAKE_C_LINK_FLAGS "\
-    ${CMAKE_C_LINK_FLAGS} -mcpu=cortex-m4 -mthumb \
-    -Wl,--start-group -u _printf_float -lm  -Wl,--end-group -Wl,--gc-sections \
+    ${CMAKE_C_LINK_FLAGS} -mcpu=cortex-m4 -mthumb  -Wl,--gc-sections \
     "
   )
 endif()

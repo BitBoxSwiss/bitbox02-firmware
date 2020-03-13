@@ -150,7 +150,7 @@ static bool _unlock_or_show_refresh_screen(void)
         // architecture of the firmware we cannot run it concurrently to other requests. Therefore
         // we will call it here, make the user unlock the device and then ask the user to refresh
         // the webpage. (refreshing is only needed for some browsers)
-        if (!workflow_unlock()) {
+        if (!workflow_unlock_blocking()) {
             _unlock();
             return false;
         }

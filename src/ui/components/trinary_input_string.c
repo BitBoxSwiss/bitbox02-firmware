@@ -70,8 +70,10 @@ typedef struct {
     bool hide;
     // use hold gesture vs. simple tap to confirm.
     bool longtouch;
-    void (*confirm_cb)(const char* string);
-    void (*cancel_cb)(void);
+    void (*confirm_cb)(const char* string, void* param);
+    void* confirm_callback_param;
+    void (*cancel_cb)(void* param);
+    void* cancel_callback_param;
 
     // Internals follow.
 
@@ -284,7 +286,7 @@ static void _on_event(const event_t* event, component_t* component)
     data_t* data = (data_t*)component->data;
 
     if (event->id == EVENT_CONFIRM && data->can_confirm) {
-        data->confirm_cb(data->string);
+        data->confirm_cb(data->string, data->confirm_callback_param);
         return;
     }
 
@@ -314,7 +316,7 @@ static void _on_event(const event_t* event, component_t* component)
                 // data->target_x += MIN(SCREEN_WIDTH - SCROLL_RIGHT_LIMIT, string_width);
             }
         } else if (data->cancel_cb != NULL) {
-            data->cancel_cb();
+            data->cancel_cb(data->cancel_callback_param);
         }
         _set_alphabet(component);
         _set_can_confirm(component);
@@ -367,8 +369,10 @@ static component_t* _create(
     bool hide,
     bool special_chars,
     bool longtouch,
-    void (*confirm_cb)(const char* input),
-    void (*cancel_cb)(void))
+    void (*confirm_cb)(const char* input, void* param),
+    void* confirm_callback_param,
+    void (*cancel_cb)(void* param),
+    void* cancel_callback_param)
 {
     component_t* component = malloc(sizeof(component_t));
     if (!component) {
@@ -382,7 +386,9 @@ static component_t* _create(
     memset(data, 0, sizeof(data_t));
 
     data->confirm_cb = confirm_cb;
+    data->confirm_callback_param = confirm_callback_param;
     data->cancel_cb = cancel_cb;
+    data->cancel_callback_param = cancel_callback_param;
     data->wordlist = wordlist;
     data->wordlist_size = wordlist_size;
     data->hide = hide;
@@ -426,20 +432,44 @@ component_t* trinary_input_string_create_wordlist(
     const char* title,
     const char* const* wordlist,
     size_t wordlist_size,
-    void (*confirm_cb)(const char* input),
-    void (*cancel_cb)(void))
+    void (*confirm_cb)(const char* input, void* param),
+    void* confirm_callback_param,
+    void (*cancel_cb)(void* param),
+    void* cancel_callback_param)
 {
     if (wordlist == NULL) {
         Abort("trinary_input_string_\ncreate_wordlist");
     }
-    return _create(title, wordlist, wordlist_size, false, false, false, confirm_cb, cancel_cb);
+    return _create(
+        title,
+        wordlist,
+        wordlist_size,
+        false,
+        false,
+        false,
+        confirm_cb,
+        confirm_callback_param,
+        cancel_cb,
+        cancel_callback_param);
 }
 
 component_t* trinary_input_string_create_password(
     const char* title,
     bool special_chars,
-    void (*confirm_cb)(const char* input),
-    void (*cancel_cb)(void))
+    void (*confirm_cb)(const char* input, void* param),
+    void* confirm_callback_param,
+    void (*cancel_cb)(void* param),
+    void* cancel_callback_param)
 {
-    return _create(title, NULL, 0, true, special_chars, true, confirm_cb, cancel_cb);
+    return _create(
+        title,
+        NULL,
+        0,
+        true,
+        special_chars,
+        true,
+        confirm_cb,
+        confirm_callback_param,
+        cancel_cb,
+        cancel_callback_param);
 }

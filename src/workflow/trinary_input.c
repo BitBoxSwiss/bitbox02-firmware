@@ -25,8 +25,9 @@
 
 static char _word[WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1];
 
-static void _confirm(const char* word)
+static void _confirm(const char* word, void* param)
 {
+    (void)param;
     int snprintf_result = snprintf(_word, sizeof(_word), "%s", word);
     if (snprintf_result < 0 || snprintf_result >= (int)sizeof(_word)) {
         Abort("length mismatch");
@@ -34,6 +35,11 @@ static void _confirm(const char* word)
     workflow_blocking_unblock();
 }
 
+static void _cancel(void* param)
+{
+    (void)param;
+    workflow_cancel();
+}
 bool workflow_trinary_input_wordlist(
     const char* title,
     const char* const* wordlist,
@@ -43,7 +49,7 @@ bool workflow_trinary_input_wordlist(
     if (!workflow_cancel_run(
             "Restore",
             trinary_input_string_create_wordlist(
-                title, wordlist, wordlist_size, _confirm, workflow_cancel))) {
+                title, wordlist, wordlist_size, _confirm, NULL, _cancel, NULL))) {
         return false;
     }
     snprintf(word_out, WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1, "%s", _word);

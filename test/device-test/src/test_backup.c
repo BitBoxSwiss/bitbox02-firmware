@@ -32,14 +32,6 @@
 
 uint32_t __stack_chk_guard = 0;
 
-extern void __attribute__((noreturn)) __stack_chk_fail(void);
-void __attribute__((noreturn)) __stack_chk_fail(void)
-{
-    screen_print_debug("Stack smashing detected", 0);
-    while (1) {
-    }
-}
-
 static securechip_interface_functions_t _securechip_interface_functions = {
     .get_auth_key = memory_get_authorization_key,
     .get_io_protection_key = memory_get_io_protection_key,

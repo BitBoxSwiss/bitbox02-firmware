@@ -14,7 +14,7 @@
 
 #include "create_seed.h"
 #include "password.h"
-#include "unlock.h"
+#include "unlock_bip39.h"
 
 #include <hardfault.h>
 #include <keystore.h>
@@ -36,5 +36,6 @@ bool workflow_create_seed(const uint8_t* host_entropy)
         // This should/can never happen, but let's check anyway.
         Abort("Unexpected error during restore: unlock failed.");
     }
-    return workflow_unlock_bip39();
+    workflow_unlock_bip39_blocking();
+    return true;
 }

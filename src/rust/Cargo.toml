@@ -4,6 +4,7 @@ members = [
     "bitbox02-rust-c",
     "bitbox02-rust",
     "util",
+    "apps/ethereum",
     "bitbox02",
     "bitbox02-sys",
 ]

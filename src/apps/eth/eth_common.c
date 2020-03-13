@@ -16,14 +16,13 @@
 #include "eth_params.h"
 
 #include <hardfault.h>
+#include <rust/rust.h>
 #include <util.h>
 
 #include <sha3.h>
 #include <wally_bip32.h> // for BIP32_INITIAL_HARDENED_CHILD
 
 #include <stdio.h>
-
-#define BIP44_ETH_ACCOUNT_MAX (99) // 100 accounts
 
 bool eth_common_is_valid_keypath_xpub(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
 {
@@ -49,31 +48,12 @@ bool eth_common_is_valid_keypath_xpub(ETHCoin coin, const uint32_t* keypath, siz
     return true;
 }
 
-bool eth_common_is_valid_keypath_address(ETHCoin coin, const uint32_t* keypath, size_t keypath_len)
+bool eth_common_is_valid_keypath_address(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint32_t expected_coin)
 {
-    const app_eth_coin_params_t* params = app_eth_params_get(coin);
-    if (params == NULL) {
-        return false;
-    }
-    if (keypath_len != 5) {
-        return false;
-    }
-    if (keypath[0] != 44 + BIP32_INITIAL_HARDENED_CHILD) {
-        return false;
-    }
-    if (keypath[1] != params->bip44_coin) {
-        return false;
-    }
-    if (keypath[2] != 0 + BIP32_INITIAL_HARDENED_CHILD) {
-        return false;
-    }
-    if (keypath[3] != 0) {
-        return false;
-    }
-    if (keypath[4] > BIP44_ETH_ACCOUNT_MAX) {
-        return false;
-    }
-    return true;
+    return rust_ethereum_keypath_is_valid_address(keypath, keypath_len, expected_coin);
 }
 
 bool eth_common_hexaddress(const uint8_t* recipient, char* out, size_t out_len)

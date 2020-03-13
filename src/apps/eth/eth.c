@@ -14,6 +14,7 @@
 
 #include "eth.h"
 #include "eth_common.h"
+#include "eth_params.h"
 #include <apps/btc/btc_common.h>
 
 #include <keystore.h>
@@ -45,9 +46,14 @@ bool app_eth_address(
         return false;
     }
 
+    const app_eth_coin_params_t* params = app_eth_params_get(coin);
+    if (params == NULL) {
+        return false;
+    }
+
     switch (output_type) {
     case ETHPubRequest_OutputType_ADDRESS: {
-        if (!eth_common_is_valid_keypath_address(coin, keypath, keypath_len)) {
+        if (!eth_common_is_valid_keypath_address(keypath, keypath_len, params->bip44_coin)) {
             return false;
         }
         uint8_t pubkey_uncompressed[65];

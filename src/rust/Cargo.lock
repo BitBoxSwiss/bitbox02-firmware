@@ -32,12 +32,20 @@ version = "0.1.0"
 dependencies = [
  "bitbox02 0.1.0",
  "bitbox02-rust 0.1.0",
+ "ethereum 0.1.0",
  "hex 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.1.0",
 ]
 
 [[package]]
 name = "bitbox02-sys"
+version = "0.1.0"
+dependencies = [
+ "util 0.1.0",
+]
+
+[[package]]
+name = "ethereum"
 version = "0.1.0"
 dependencies = [
  "util 0.1.0",

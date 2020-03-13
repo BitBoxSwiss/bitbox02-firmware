@@ -23,6 +23,37 @@ mod tests {
 
     #[test]
     fn test_is_valid_keypath_address() {
-        assert!(!is_valid_keypath_address(&[1, 2, 3], 4));
+        let expected_coin = 60 + HARDENED;
+        let keypath_for_account =
+            |account| [44 + HARDENED, expected_coin, 0 + HARDENED, 0, account];
+
+        // 100 good paths.
+        for account in 0..100 {
+            assert!(is_valid_keypath_address(
+                &keypath_for_account(account),
+                expected_coin
+            ));
+        }
+        assert!(!is_valid_keypath_address(
+            &keypath_for_account(100),
+            expected_coin
+        ));
+
+        // too short
+        assert!(!is_valid_keypath_address(
+            &[44 + HARDENED, expected_coin, 0 + HARDENED, 0],
+            expected_coin
+        ));
+        // too long
+        assert!(!is_valid_keypath_address(
+            &[44 + HARDENED, expected_coin, 0 + HARDENED, 0, 0, 0],
+            expected_coin
+        ));
+        // tweak keypath elements
+        for i in 0..4 {
+            let mut keypath = keypath_for_account(0);
+            keypath[i] += 1;
+            assert!(!is_valid_keypath_address(&keypath, expected_coin));
+        }
     }
 }

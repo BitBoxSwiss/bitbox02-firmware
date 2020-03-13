@@ -196,9 +196,9 @@ pub fn sha256(input: &[u8], output: &mut [u8]) -> Result<(), ()> {
     let res = unsafe {
         bitbox02_sys::wally_sha256(
             input.as_ptr(),
-            input.len(),
+            input.len() as u32,
             output.as_mut_ptr(),
-            output.len(),
+            output.len() as u32,
         )
     };
     if res == bitbox02_sys::WALLY_OK as i32 {

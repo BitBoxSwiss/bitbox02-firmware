@@ -227,8 +227,8 @@ pub extern "C" fn rust_util_bytes_mut(buf: *mut c_uchar, len: usize) -> BytesMut
 ///
 /// * `buf` - Must be a valid pointer to a null terminated array of bytes.
 #[no_mangle]
-pub extern "C" fn rust_util_cstr(buf: *const c_char) -> CStr {
-    unsafe { CStr::new(buf) }
+pub unsafe extern "C" fn rust_util_cstr(buf: *const c_char) -> CStr {
+    CStr::new(buf)
 }
 
 /// Convert buffer to mutable str. The whole buffer is considered empty from start.
@@ -236,11 +236,11 @@ pub extern "C" fn rust_util_cstr(buf: *const c_char) -> CStr {
 /// * `buf` - Must be a valid pointer to an array of bytes
 /// * `cap` - Length of buffer, `buf_ptr[cap-1]` must be a valid dereference
 #[no_mangle]
-pub extern "C" fn rust_util_cstr_mut(buf: *mut c_char, cap: usize) -> CStrMut {
+pub unsafe extern "C" fn rust_util_cstr_mut(buf: *mut c_char, cap: usize) -> CStrMut {
     if !buf.is_null() {
-        unsafe { buf.write(0) };
+        buf.write(0);
     }
-    unsafe { CStrMut::new(buf, cap) }
+    CStrMut::new(buf, cap)
 }
 
 #[cfg(test)]
@@ -269,11 +269,11 @@ mod tests {
 
     #[test]
     fn test_rust_util_cstr() {
-        let cstr = rust_util_cstr(b"\0".as_ptr());
+        let cstr = unsafe { rust_util_cstr(b"\0".as_ptr()) };
         assert_eq!(cstr.as_ref(), "");
         assert_eq!(cstr.len, 0);
 
-        let cstr = rust_util_cstr(b"foo\0bar".as_ptr());
+        let cstr = unsafe { rust_util_cstr(b"foo\0bar".as_ptr()) };
         assert_eq!(cstr.as_ref(), "foo");
         assert_eq!(cstr.len, 3);
     }
@@ -295,7 +295,7 @@ mod tests {
     #[test]
     fn test_cstr_mut() {
         let mut start = String::from("foo\0bar");
-        let mut cstr_mut = rust_util_cstr_mut(start.as_mut_ptr(), start.len());
+        let mut cstr_mut = unsafe { rust_util_cstr_mut(start.as_mut_ptr(), start.len()) };
         assert_eq!(cstr_mut.len, 0);
         assert_eq!(cstr_mut.as_ref(), "");
         cstr_mut.write(1, |buf| buf[0] = b'g');
@@ -350,18 +350,16 @@ mod tests {
     fn u8_to_hexing() {
         let buf = [1u8, 2, 3, 14, 15, 255, 1];
         let mut string = String::from("\0xxxxxxxxxxxxx");
-        rust_util_uint8_to_hex(
-            rust_util_bytes(buf.as_ptr(), buf.len() - 1),
-            rust_util_cstr_mut(string.as_mut_ptr(), string.len() - 1),
-        );
+        rust_util_uint8_to_hex(rust_util_bytes(buf.as_ptr(), buf.len() - 1), unsafe {
+            rust_util_cstr_mut(string.as_mut_ptr(), string.len() - 1)
+        });
         assert_eq!(string, "0102030e0fff\0x");
 
         // Bigger buffer also works.
         let mut string = String::from("\0xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-        rust_util_uint8_to_hex(
-            rust_util_bytes(buf.as_ptr(), buf.len() - 1),
-            rust_util_cstr_mut(string.as_mut_ptr(), string.len()),
-        );
+        rust_util_uint8_to_hex(rust_util_bytes(buf.as_ptr(), buf.len() - 1), unsafe {
+            rust_util_cstr_mut(string.as_mut_ptr(), string.len())
+        });
         assert_eq!(string, "0102030e0fff\0xxxxxxxxxxxxxxxxxxxxxxx");
     }
 }

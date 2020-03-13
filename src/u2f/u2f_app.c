@@ -25,6 +25,11 @@ static const app_t _apps[] = {
         .name = "GitHub",
     },
     {
+        // sha256('github.com')
+        .app_id = "\x3a\xeb\x00\x24\x60\x38\x1c\x6f\x25\x8e\x83\x95\xd3\x02\x6f\x57\x1f\x0d\x9a\x76\x48\x8d\xcd\x83\x76\x39\xb1\x3a\xed\x31\x65\x60",
+        .name = "GitHub",
+    },
+    {
         // sha256('https://www.gstatic.com/securitykey/origins.json')
         .app_id = "\xa5\x46\x72\xb2\x22\xc4\xcf\x95\xe1\x51\xed\x8d\x4d\x3c\x76\x7a\x6c\xc3\x49\x43"
                   "\x59\x43\x79\x4e\x88\x4f\x3d\x02\x3a\x82\x29\xfd",
@@ -56,7 +61,7 @@ static void _app_string(const uint8_t* app_id, char* out, size_t out_len)
     }
     char appid_hex[32 * 2 + 1] = {0};
     util_uint8_to_hex(app_id, 32, appid_hex);
-    snprintf(out, out_len, "Unknown site:\n%.16s\n%.16s", appid_hex, appid_hex + 16);
+    snprintf(out, out_len, "\nUnknown site:\n%.16s\n%.16s", appid_hex, appid_hex + 16);
 }
 
 static void _confirm_cb(bool result, void* param)

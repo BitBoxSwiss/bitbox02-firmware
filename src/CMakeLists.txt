@@ -369,7 +369,7 @@ if(NOT CMAKE_CROSSCOMPILING)
         # see src/rust/bitbox02-rust-c/src/lib.rs.
         # https://github.com/rust-lang/rust/issues/66740
         RUSTC_BOOTSTRAP=1
-        ${CARGO} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
+        ${CARGO} test --all-features --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
     )
   add_dependencies(rust-test rust-bindgen)
 endif()
@@ -425,7 +425,7 @@ foreach(type ${RUST_LIBS})
     ${CARGO} build --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --features target-${type} --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
     # Rust packages stdlib functions which we must remove/weaken on the arm target
     COMMAND
-    if test "${RUST_TARGET_ARCH}" = "thumbv7em-none-eabi" \; then ${CMAKE_OBJCOPY} -N memset -N memcpy -N memmove -W memcmp ${lib} \; fi
+    if test "x${RUST_TARGET_ARCH}" = "xthumbv7em-none-eabi" \; then ${CMAKE_OBJCOPY} -N memset -N memcpy -N memmove -W memcmp ${lib} \; fi
     COMMAND
     ${CMAKE_COMMAND} -E copy ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
     BYPRODUCTS

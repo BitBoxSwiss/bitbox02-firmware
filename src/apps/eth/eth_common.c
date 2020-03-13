@@ -19,7 +19,6 @@
 #include <util.h>
 
 #include <sha3.h>
-#include <wally_bip32.h> // for BIP32_INITIAL_HARDENED_CHILD
 
 #include <stdio.h>
 

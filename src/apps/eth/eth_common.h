@@ -15,27 +15,13 @@
 #ifndef _APPS_ETH_COMMON_H
 #define _APPS_ETH_COMMON_H
 
-#include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
-
-#include <compiler_util.h>
 
 #include <bignum.h>
-
-#include <hww.pb.h>
 
 #define APP_ETH_RECIPIENT_BYTES_LEN (20)
 // including 0x prefix and null terminator.
 #define APP_ETH_ADDRESS_HEX_LEN (APP_ETH_RECIPIENT_BYTES_LEN * 2 + 2 + 1)
-
-/**
- * Generates a checksummed ethereum hex address from a 20 byte recipient.
- * @param[in] recipient 20 byte tail (last 20 bytes of the pubkeyhash).
- * @param[out] out will hold the address string.
- * @param[in] out_len must be at least APP_ETH_ADDRESS_HEX_LEN (includes null terminator).
- */
-USE_RESULT bool eth_common_hexaddress(const uint8_t* recipient, char* out, size_t out_len);
 
 /**
  * Formats an ethereum or erc20 token amount given in the smallest unit. out_len must be at least

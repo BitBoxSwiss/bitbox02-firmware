@@ -1,6 +1,10 @@
 #![cfg_attr(not(test), no_std)]
 #![feature(alloc_error_handler)] // used in alloc.rs
 
+#[cfg(test)]
+#[macro_use]
+extern crate std;
+
 // Since util_c defines an "alloc_error_handler" we get conflicts with std when testing
 #[cfg(not(test))]
 mod alloc;

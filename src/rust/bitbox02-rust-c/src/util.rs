@@ -205,6 +205,15 @@ impl AsRef<str> for CStrMut {
     }
 }
 
+impl core::fmt::Write for CStrMut {
+    fn write_str(&mut self, s: &str) -> Result<(), core::fmt::Error> {
+        self.write(s.len(), |buf| {
+            buf.copy_from_slice(s.as_bytes());
+        });
+        Ok(())
+    }
+}
+
 /// Convert buffer to slice
 ///
 /// * `buf` - Must be a valid pointer to an array of bytes
@@ -245,7 +254,6 @@ pub unsafe extern "C" fn rust_util_cstr_mut(buf: *mut c_char, cap: usize) -> CSt
 
 #[cfg(test)]
 mod tests {
-    extern crate std;
     use super::*;
     use std::prelude::v1::*;
 
@@ -335,6 +343,26 @@ mod tests {
         let mut s = String::from("abc\0");
         let mut cstr_mut = unsafe { CStrMut::new(s.as_mut_ptr(), s.len()) };
         cstr_mut.write(1, |buf| buf[0] = b'd');
+    }
+
+    #[test]
+    fn test_cstr_mut_write() {
+        let mut buf = vec![0; 9];
+        let mut cstr_mut = unsafe { CStrMut::new(buf.as_mut_ptr(), buf.len()) };
+        use std::fmt::Write;
+        assert!(write!(&mut cstr_mut, "test").is_ok());
+        assert!(buf.starts_with(b"test\0"));
+        assert!(write!(&mut cstr_mut, " foo").is_ok());
+        assert!(buf.starts_with(b"test foo\0"));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_cstr_mut_write_too_much() {
+        let mut buf = vec![0; 9];
+        let mut cstr_mut = unsafe { CStrMut::new(buf.as_mut_ptr(), buf.len()) };
+        use std::fmt::Write;
+        let _ = write!(&mut cstr_mut, "test foo ");
     }
 
     #[test]

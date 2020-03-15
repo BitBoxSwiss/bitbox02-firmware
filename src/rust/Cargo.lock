@@ -35,6 +35,7 @@ dependencies = [
 name = "bitbox02-rust-c"
 version = "0.1.0"
 dependencies = [
+ "arrayref 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitbox02 0.1.0",
  "bitbox02-rust 0.1.0",
  "ethereum 0.1.0",

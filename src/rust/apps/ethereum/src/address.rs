@@ -37,9 +37,8 @@ where
     T: core::fmt::Write,
 {
     let hash = sha3::Keccak256::digest(&pubkey_uncompressed[1..]);
-    let mut last20: [u8; 20] = [0; 20];
-    last20.copy_from_slice(&hash[hash.len() - 20..]);
-    from_pubkey_hash(&last20, result)
+    let last20 = arrayref::array_ref!(hash, hash.len() - 20, 20);
+    from_pubkey_hash(last20, result)
 }
 
 #[cfg(test)]

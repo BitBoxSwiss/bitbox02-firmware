@@ -22,16 +22,13 @@ pub unsafe extern "C" fn rust_ethereum_keypath_is_valid_address(
 
 #[no_mangle]
 pub extern "C" fn rust_ethereum_address_from_pubkey_hash(recipient: Bytes, mut out: CStrMut) {
-    use core::convert::TryFrom;
-    let recipient = <[u8; 20]>::try_from(recipient.as_ref()).unwrap();
-    ethereum::address::from_pubkey_hash(&recipient, &mut out).unwrap();
+    let recipient = arrayref::array_ref!(recipient.as_ref(), 0, 20);
+    ethereum::address::from_pubkey_hash(recipient, &mut out).unwrap();
 }
 
 #[no_mangle]
 pub extern "C" fn rust_ethereum_address_from_pubkey(pubkey: Bytes, mut out: CStrMut) {
-    assert!(pubkey.as_ref().len() == 65);
-    let ptr = pubkey.as_ref().as_ptr() as *const [u8; 65];
-    let pubkey = unsafe { &*ptr };
+    let pubkey = arrayref::array_ref!(pubkey.as_ref(), 0, 65);
     ethereum::address::from_pubkey(pubkey, &mut out).unwrap();
 }
 

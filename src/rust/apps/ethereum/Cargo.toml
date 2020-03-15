@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 util = {path = "../../util"}
+sha3 = { version = "0.8.2", default-features = false }

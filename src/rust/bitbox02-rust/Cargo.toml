@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Shift Cryptosecurity AG <support@shiftcrypto.ch>"]
 edition = "2018"
 description = "BitBox02 functionality implemented in rust"
+license = "Apache-2.0"
 
 [lib]
 # TODO: re-enable doctests. It currently fails with:

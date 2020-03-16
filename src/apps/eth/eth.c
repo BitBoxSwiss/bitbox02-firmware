@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "eth.h"
-#include "eth_common.h"
 #include "eth_params.h"
 #include <apps/btc/btc_common.h>
 
@@ -22,18 +21,6 @@
 
 #include <hww.pb.h>
 #include <secp256k1.h>
-#include <sha3.h>
-
-static bool _address(const uint8_t* pubkey_uncompressed, char* out, size_t out_len)
-{
-    uint8_t hash[32];
-    sha3_ctx ctx;
-    rhash_sha3_256_init(&ctx);
-    rhash_sha3_update(&ctx, pubkey_uncompressed + 1, 64);
-    rhash_keccak_final(&ctx, hash);
-    uint8_t* last20 = hash + sizeof(hash) - APP_ETH_RECIPIENT_BYTES_LEN;
-    return eth_common_hexaddress(last20, out, out_len);
-}
 
 bool app_eth_address(
     ETHCoin coin,
@@ -66,7 +53,10 @@ bool app_eth_address(
                 sizeof(pubkey_uncompressed))) {
             return false;
         }
-        return _address(pubkey_uncompressed, out, out_len);
+        rust_ethereum_address_from_pubkey(
+            rust_util_bytes(pubkey_uncompressed, sizeof(pubkey_uncompressed)),
+            rust_util_cstr_mut(out, out_len));
+        return true;
     }
     case ETHPubRequest_OutputType_XPUB: {
         if (!rust_ethereum_keypath_is_valid_xpub(keypath, keypath_len, params->bip44_coin)) {

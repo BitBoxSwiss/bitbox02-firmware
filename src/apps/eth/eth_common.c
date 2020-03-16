@@ -13,45 +13,11 @@
 // limitations under the License.
 
 #include "eth_common.h"
-#include "eth_params.h"
 
 #include <hardfault.h>
-#include <util.h>
-
-#include <sha3.h>
-#include <wally_bip32.h> // for BIP32_INITIAL_HARDENED_CHILD
 
 #include <stdio.h>
-
-bool eth_common_hexaddress(const uint8_t* recipient, char* out, size_t out_len)
-{
-    if (out_len < APP_ETH_ADDRESS_HEX_LEN) {
-        return false;
-    }
-    char hex[APP_ETH_RECIPIENT_BYTES_LEN * 2 + 1];
-    util_uint8_to_hex(recipient, APP_ETH_RECIPIENT_BYTES_LEN, hex);
-
-    // checksum encoded in lowercase vs uppercase letters
-    uint8_t hash[32];
-    sha3_ctx ctx;
-    rhash_sha3_256_init(&ctx);
-    rhash_sha3_update(&ctx, (const uint8_t*)hex, sizeof(hex) - 1);
-    rhash_keccak_final(&ctx, hash);
-    for (size_t i = 0; i < sizeof(hex) - 1; i++) {
-        uint8_t hash_byte = hash[i / 2];
-        if (i % 2 == 0) {
-            hash_byte >>= 4;
-        } else {
-            hash_byte &= 0xf;
-        }
-        if (hex[i] > '9' && hash_byte > 7) {
-            hex[i] -= 32; // convert to uppercase
-        }
-    }
-
-    snprintf(out, out_len, "0x%s", hex);
-    return true;
-}
+#include <string.h>
 
 void eth_common_format_amount(
     const bignum256* scalar,

@@ -23,6 +23,7 @@ bitbox02 = { path = "../bitbox02" }
 util = { path = "../util" }
 ethereum = { path = "../apps/ethereum", optional = true }
 hex = { version = "0.4", default-features = false }
+arrayref = "0.3.6"
 
 [features]
 # Only one of the "target-" should be activated, which in turn defines/activates the dependent features.

@@ -22,6 +22,7 @@
 #include <hardfault.h>
 
 #include <stdint.h>
+#include <string.h>
 
 #include <wally_bip32.h>
 

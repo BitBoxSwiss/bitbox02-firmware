@@ -3,6 +3,7 @@
 #include "eth_params.h"
 
 #include <hardfault.h>
+#include <rust/rust.h>
 #include <util.h>
 #include <workflow/confirm.h>
 #include <workflow/verify_recipient.h>
@@ -34,9 +35,11 @@ typedef struct {
 static app_eth_sign_error_t _verify_recipient(const uint8_t* recipient, const _amount_t* amount)
 {
     char address[APP_ETH_ADDRESS_HEX_LEN];
-    if (!eth_common_hexaddress(recipient, address, sizeof(address))) {
-        return APP_ETH_SIGN_ERR_UNKNOWN;
-    }
+
+    rust_ethereum_address_from_pubkey_hash(
+        rust_util_bytes(recipient, APP_ETH_RECIPIENT_BYTES_LEN),
+        rust_util_cstr_mut(address, sizeof(address)));
+
     char formatted_value[100] = {0};
     eth_common_format_amount(
         amount->value, amount->unit, amount->decimals, formatted_value, sizeof(formatted_value));

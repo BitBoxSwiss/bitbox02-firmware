@@ -27,6 +27,7 @@
 #include <ui/components/info_centered.h>
 #include <ui/screen_process.h>
 #include <ui/screen_stack.h>
+#include <ui/workflow_stack.h>
 #include <usb/u2f/u2f.h>
 #include <usb/u2f/u2f_hid.h>
 #include <usb/u2f/u2f_keys.h>
@@ -35,9 +36,6 @@
 #include <wally_crypto.h>
 #include <workflow/status.h>
 #include <workflow/unlock.h>
-
-#define APPID_BOGUS_CHROMIUM "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-#define APPID_BOGUS_FIREFOX "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
 
 typedef struct {
     uint8_t cla, ins, p1, p2;
@@ -53,6 +51,20 @@ typedef struct {
 #error "Incorrect macro values for u2f"
 #endif
 
+typedef enum {
+    U2F_REGISTER_IDLE = 0,
+    U2F_REGISTER_UNLOCKING,
+    U2F_REGISTER_WAIT_REFRESH,
+    U2F_REGISTER_CONFIRMING
+} u2f_reg_state_t;
+
+typedef enum {
+    U2F_AUTHENTICATE_IDLE = 0,
+    U2F_AUTHENTICATE_UNLOCKING,
+    U2F_AUTHENTICATE_WAIT_REFRESH,
+    U2F_AUTHENTICATE_CONFIRMING
+} u2f_auth_state_t;
+
 typedef struct {
     uint32_t cid;
     /**
@@ -67,6 +79,28 @@ typedef struct {
      * to have as a sanity checking mechanism.
      */
     bool locked;
+    /**
+     * Keeps track of which part of a registration we're currently in.
+     */
+    u2f_reg_state_t reg;
+    /**
+     * Keeps track of which part of authentication we're currently in.
+     */
+    u2f_auth_state_t auth;
+    /**
+     * Triggered by the unlock workflow callback to flag the end
+     * of the unlock procedure.
+     */
+    bool unlock_finished;
+    /** Result of the unlock operation. Valid only when unlock_finished is true. */
+    bool unlock_result;
+    /** "Refresh webpage" component */
+    component_t* refresh_webpage;
+    /**
+     * Timer increased during u2f_process if we're waiting for a page refresh.
+     * Will drop the refresh_webpage() screen after a few ticks.
+     */
+    uint16_t refresh_webpage_timeout;
 } u2f_state_t;
 
 static u2f_state_t _state = {0};
@@ -97,12 +131,22 @@ static component_t* _create_refresh_webpage(void)
     return info_centered_create("Refresh webpage", NULL);
 }
 
+static void _unlock_cb(bool result, void* param)
+{
+    (void)param;
+    _state.unlock_finished = true;
+    _state.unlock_result = result;
+}
+
 /**
- * Unlocks the USB stack.
+ * Unlocks the USB stack. Resets the U2F state.
  */
 static void _unlock(void)
 {
     usb_processing_unlock();
+    _state.reg = U2F_REGISTER_IDLE;
+    _state.auth = U2F_AUTHENTICATE_IDLE;
+    _state.unlock_finished = false;
     _state.locked = false;
 }
 
@@ -141,28 +185,46 @@ static void _create_nudge_label(void)
     }
 }
 
-// Returns false if the parent function should return U2F_SW_CONDITIONS_NOT_SATISFIED
-static bool _unlock_or_show_refresh_screen(void)
+static void _start_refresh_webpage_screen(void)
 {
-    static component_t* refresh_webpage = NULL;
-    if (keystore_is_locked()) {
-        // Unfortunately unlocking takes more time than U2F is allowed to take. With the current
-        // architecture of the firmware we cannot run it concurrently to other requests. Therefore
-        // we will call it here, make the user unlock the device and then ask the user to refresh
-        // the webpage. (refreshing is only needed for some browsers)
-        if (!workflow_unlock_blocking()) {
-            _unlock();
-            return false;
-        }
-        refresh_webpage = _create_refresh_webpage();
-        ui_screen_stack_push(refresh_webpage);
-        return false;
-    }
-    // Pop the "refresh webpage" screen
-    if (ui_screen_stack_top() && ui_screen_stack_top() == refresh_webpage) {
-        refresh_webpage = NULL;
+    // Unfortunately unlocking takes more time than U2F is allowed to take. With the current
+    // architecture of the firmware we cannot run it concurrently to other requests. Therefore
+    // we will call it here, make the user unlock the device and then ask the user to refresh
+    // the webpage. (refreshing is only needed for some browsers)
+    _state.refresh_webpage = _create_refresh_webpage();
+    ui_screen_stack_push(_state.refresh_webpage);
+    _state.refresh_webpage_timeout = 0;
+}
+
+static void _stop_refresh_webpage_screen(void)
+{
+    if (ui_screen_stack_top() && ui_screen_stack_top() == _state.refresh_webpage) {
+        _state.refresh_webpage = NULL;
         ui_screen_stack_pop();
     }
+}
+
+/**
+ * Unlock the BB02 if needed.
+ * If the BB02 is alreay unlocked, don't do anything.
+ * If the BB02 is locked, try to unlock it and on success start the
+ * "Refresh webpage" screen.
+ *
+ * @return Unlock success status:
+ *           * ASYNC_OP_TRUE if the BB02 is unlocked;
+ *           * ASYNC_OP_NOT_READY if the BB02 wasn't unlocked, but is now
+ *                                ("Refresh webpage" screen was started).
+ *           * ASYNC_OP_FALSE if the BB02 couldn't be unlocked.
+ */
+static bool _unlock_if_locked(void)
+{
+    if (keystore_is_locked()) {
+        _state.unlock_finished = false;
+        workflow_stack_start_workflow(workflow_unlock(_unlock_cb, NULL));
+        return false;
+    }
+    /* Pop the "refresh webpage" screen if any */
+    _stop_refresh_webpage_screen();
     return true;
 }
 
@@ -313,52 +375,103 @@ static int _sig_to_der(const uint8_t* sig, uint8_t* der)
 }
 
 /**
- * Initiates the U2F registration workflow.
- * @param[in] apdu The APDU packet.
+ * Checks the device is unlocked. Abort if it isn't.
+ * This is used as a sanity check when we receive a U2F
+ * request retry and we're showing the "Refresh webpage"
+ * screen. If we arrived there, it means that the BB02 has
+ * already been unlocked.
  */
-static void _register(const USB_APDU* apdu, Packet* out_packet)
+static void _assert_unlocked(void)
 {
-    uint8_t privkey[U2F_EC_KEY_SIZE] = {0};
-    uint8_t nonce[U2F_NONCE_LENGTH] = {0};
-    uint8_t mac[HMAC_SHA256_LEN] = {0};
-    uint8_t data[sizeof(U2F_REGISTER_RESP) + 2] = {0};
-    uint8_t sig[64] = {0};
-    U2F_REGISTER_SIG_STR sig_base;
-    U2F_REGISTER_RESP* response = (U2F_REGISTER_RESP*)data;
-    const U2F_REGISTER_REQ* reg_request = (const U2F_REGISTER_REQ*)apdu->data;
+    bool was_unlocked = _unlock_if_locked();
+    if (!was_unlocked) {
+        Abort("Bad BB02 lock status after refresh");
+    }
+}
 
-    if (APDU_LEN(*apdu) != sizeof(U2F_REGISTER_REQ)) {
-        _unlock();
-        _error(U2F_SW_WRONG_LENGTH, out_packet);
-        return;
+/**
+ * Checks that request data contained into the given authentication request is valid.
+ * This will check that the common parameters of the given request (length etc) are sensible,
+ * and that the keyhandle
+ *
+ * @param req Request to check.
+ * @return error code.
+ */
+static uint16_t _register_sanity_check_req(const USB_APDU* apdu)
+{
+    if (APDU_LEN(*apdu) < U2F_KEYHANDLE_LEN) { // actual size could vary
+        return U2F_SW_WRONG_LENGTH;
     }
 
     if (!memory_is_initialized()) {
         _create_nudge_label();
+        return U2F_SW_CONDITIONS_NOT_SATISFIED;
+    }
+    return 0;
+}
+
+/**
+ * Starts the registration "confirm" screen.
+ */
+static void _register_start_confirm(const uint8_t* app_id)
+{
+    _state.reg = U2F_REGISTER_CONFIRMING;
+    u2f_app_confirm_start(U2F_APP_REGISTER, app_id);
+}
+
+/**
+ * Initiates the U2F registration workflow.
+ * @param[in] apdu The APDU packet.
+ */
+static void _register_start(const USB_APDU* apdu, Packet* out_packet)
+{
+    const U2F_REGISTER_REQ* reg_request = (const U2F_REGISTER_REQ*)apdu->data;
+    uint16_t req_error = _register_sanity_check_req(apdu);
+    if (req_error) {
         _unlock();
-        _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
+        _error(req_error, out_packet);
         return;
     }
 
     // If it fails to unlock it will call _unlock()
-    if (!_unlock_or_show_refresh_screen()) {
+    bool is_unlocked = _unlock_if_locked();
+    if (!is_unlocked) {
+        _state.reg = U2F_REGISTER_UNLOCKING;
+    } else {
+        _register_start_confirm(reg_request->appId);
+    }
+    _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
+}
+
+static void _register_wait_refresh(const USB_APDU* apdu, Packet* out_packet)
+{
+    _assert_unlocked();
+    const U2F_REGISTER_REQ* reg_request = (const U2F_REGISTER_REQ*)apdu->data;
+    _register_start_confirm(reg_request->appId);
+    _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
+}
+
+static void _register_continue(const USB_APDU* apdu, Packet* out_packet)
+{
+    uint8_t privkey[U2F_EC_KEY_SIZE] = {0};
+    uint8_t nonce[U2F_NONCE_LENGTH] = {0};
+    uint8_t mac[HMAC_SHA256_LEN] = {0};
+    uint8_t sig[64] = {0};
+    U2F_REGISTER_SIG_STR sig_base;
+    uint8_t data[sizeof(U2F_REGISTER_RESP) + 2] = {0};
+    const U2F_REGISTER_REQ* reg_request = (const U2F_REGISTER_REQ*)apdu->data;
+    U2F_REGISTER_RESP* response = (U2F_REGISTER_RESP*)data;
+
+    async_op_result_t async_result = u2f_app_confirm_retry(U2F_APP_REGISTER, reg_request->appId);
+    if (async_result == ASYNC_OP_NOT_READY) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
 
-    // If the authentication fails with the "Bad key handle" the browser will execute bogus
-    // registrations to make the device blink.
-    bool is_bogus = MEMEQ(reg_request->appId, APPID_BOGUS_CHROMIUM, U2F_APPID_SIZE) ||
-                    MEMEQ(reg_request->appId, APPID_BOGUS_FIREFOX, U2F_APPID_SIZE);
-    bool result = false;
-    if (u2f_app_confirm(is_bogus ? U2F_APP_BOGUS : U2F_APP_REGISTER, reg_request->appId, &result) ==
-        WORKFLOW_ASYNC_NOT_READY) {
-        _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
-        return;
-    }
     /* No more pending operations for U2F register */
     _unlock();
-    if (!result) {
+
+    if (async_result == ASYNC_OP_FALSE) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
@@ -415,30 +528,124 @@ static void _register(const USB_APDU* apdu, Packet* out_packet)
     _fill_message(data, len, out_packet);
 }
 
-static void _authenticate(const USB_APDU* apdu, Packet* out_packet)
+/**
+ * Checks that request data contained into the given authentication request is valid.
+ * This will check that the common parameters of the given request (length etc) are sensible,
+ * and that the keyhandle
+ *
+ * @param req Request to check.
+ * @return error code.
+ */
+static uint16_t _authenticate_sanity_check_req(const USB_APDU* apdu)
+{
+    if (APDU_LEN(*apdu) < U2F_KEYHANDLE_LEN) { // actual size could vary
+        return U2F_SW_WRONG_LENGTH;
+    }
+
+    if (!memory_is_initialized()) {
+        _create_nudge_label();
+        return U2F_SW_CONDITIONS_NOT_SATISFIED;
+    }
+    return 0;
+}
+
+static uint16_t _authenticate_verify_key_valid(const USB_APDU* apdu)
+{
+    uint8_t nonce[U2F_NONCE_LENGTH];
+    uint8_t mac[HMAC_SHA256_LEN];
+    uint8_t privkey[U2F_EC_KEY_SIZE];
+    const U2F_AUTHENTICATE_REQ* auth_request = (const U2F_AUTHENTICATE_REQ*)apdu->data;
+    memcpy(nonce, auth_request->keyHandle + sizeof(mac), sizeof(nonce));
+    if (!_keyhandle_gen(auth_request->appId, nonce, privkey, mac)) {
+        return U2F_SW_WRONG_DATA;
+    }
+    if (!MEMEQ(auth_request->keyHandle, mac, SHA256_LEN)) {
+        return U2F_SW_WRONG_DATA;
+    }
+    if (apdu->p1 == U2F_AUTH_CHECK_ONLY) {
+        // success: "error:test-of-user-presense"
+        return U2F_SW_CONDITIONS_NOT_SATISFIED;
+    }
+    if (apdu->p1 != U2F_AUTH_ENFORCE) {
+        return U2F_SW_INS_NOT_SUPPORTED;
+    }
+    return 0;
+}
+
+static uint16_t _authenticate_start_confirm(const USB_APDU* apdu)
+{
+    const U2F_AUTHENTICATE_REQ* auth_request = (const U2F_AUTHENTICATE_REQ*)apdu->data;
+    uint16_t key_error = _authenticate_verify_key_valid(apdu);
+    if (key_error) {
+        return key_error;
+    }
+    _state.auth = U2F_AUTHENTICATE_CONFIRMING;
+    u2f_app_confirm_start(U2F_APP_AUTHENTICATE, auth_request->appId);
+    return 0;
+}
+
+static void _authenticate_start(const USB_APDU* apdu, Packet* out_packet)
+{
+    uint16_t req_error = _authenticate_sanity_check_req(apdu);
+    if (req_error) {
+        _unlock();
+        _error(req_error, out_packet);
+        return;
+    }
+
+    // If it fails to unlock it will call _unlock()
+    bool is_unlocked = _unlock_if_locked();
+    if (!is_unlocked) {
+        _state.auth = U2F_AUTHENTICATE_UNLOCKING;
+        _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
+        return;
+    }
+    uint16_t key_error = _authenticate_start_confirm(apdu);
+    if (key_error) {
+        _unlock();
+        _error(key_error, out_packet);
+        return;
+    }
+    _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
+}
+
+static void _authenticate_wait_refresh(const USB_APDU* apdu, Packet* out_packet)
+{
+    _assert_unlocked();
+    uint16_t key_error = _authenticate_start_confirm(apdu);
+    if (key_error) {
+        _unlock();
+        _error(key_error, out_packet);
+        return;
+    }
+    _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
+}
+
+static void _authenticate_continue(const USB_APDU* apdu, Packet* out_packet)
 {
     uint8_t privkey[U2F_EC_KEY_SIZE];
     uint8_t nonce[U2F_NONCE_LENGTH];
     uint8_t mac[HMAC_SHA256_LEN];
     uint8_t sig[64] = {0};
     U2F_AUTHENTICATE_SIG_STR sig_base;
-
-    const U2F_AUTHENTICATE_REQ* auth_request = (const U2F_AUTHENTICATE_REQ*)apdu->data;
-
-    if (APDU_LEN(*apdu) < U2F_KEYHANDLE_LEN) { // actual size could vary
-        _error(U2F_SW_WRONG_LENGTH, out_packet);
+    uint16_t req_error = _authenticate_sanity_check_req(apdu);
+    if (req_error) {
+        _error(req_error, out_packet);
         return;
     }
 
-    if (!memory_is_initialized()) {
-        _create_nudge_label();
-        _unlock();
+    const U2F_AUTHENTICATE_REQ* auth_request = (const U2F_AUTHENTICATE_REQ*)apdu->data;
+    async_op_result_t async_result =
+        u2f_app_confirm_retry(U2F_APP_AUTHENTICATE, auth_request->appId);
+    if (async_result == ASYNC_OP_NOT_READY) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
 
-    // If it fails to unlock it will call _unlock()
-    if (!_unlock_or_show_refresh_screen()) {
+    /* No more blocking operations pending for authentication. */
+    _unlock();
+
+    if (async_result == ASYNC_OP_FALSE) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
@@ -459,19 +666,6 @@ static void _authenticate(const USB_APDU* apdu, Packet* out_packet)
     }
     if (apdu->p1 != U2F_AUTH_ENFORCE) {
         _error(U2F_SW_INS_NOT_SUPPORTED, out_packet);
-        return;
-    }
-
-    bool result = false;
-    if (u2f_app_confirm(U2F_APP_AUTHENTICATE, auth_request->appId, &result) ==
-        WORKFLOW_ASYNC_NOT_READY) {
-        _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
-        return;
-    }
-    /* No more blocking operations pending for authentication. */
-    _unlock();
-    if (!result) {
-        _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
 
@@ -593,6 +787,68 @@ static void _cmd_init(const Packet* in_packet, Packet* out_packet, const size_t 
 }
 
 /**
+ * Processes an incoming registration request.
+ */
+static void _cmd_register(const Packet* in_packet, Packet* out_packet)
+{
+    const USB_APDU* apdu = (const USB_APDU*)in_packet->data_addr;
+    /* Sanity-check our state. */
+    if (_state.reg != U2F_REGISTER_IDLE &&
+        (_state.last_cmd != U2F_REGISTER || _state.cid != in_packet->cid)) {
+        Abort("U2F reg arbitration failed.");
+    }
+
+    switch (_state.reg) {
+    case U2F_REGISTER_IDLE:
+        _lock(apdu);
+        _register_start(apdu, out_packet);
+        break;
+    case U2F_REGISTER_UNLOCKING:
+        _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
+        break;
+    case U2F_REGISTER_WAIT_REFRESH:
+        _register_wait_refresh(apdu, out_packet);
+        break;
+    case U2F_REGISTER_CONFIRMING:
+        _register_continue(apdu, out_packet);
+        break;
+    default:
+        Abort("Bad U2F register status");
+    }
+}
+
+/**
+ * Processes an incoming registration request.
+ */
+static void _cmd_authenticate(const Packet* in_packet, Packet* out_packet)
+{
+    const USB_APDU* apdu = (const USB_APDU*)in_packet->data_addr;
+    /* Sanity-check our state. */
+    if (_state.auth != U2F_AUTHENTICATE_IDLE &&
+        (_state.last_cmd != U2F_AUTHENTICATE || _state.cid != in_packet->cid)) {
+        Abort("U2F auth arbitration failed.");
+    }
+
+    switch (_state.auth) {
+    case U2F_AUTHENTICATE_IDLE:
+        _lock(apdu);
+        _authenticate_start(apdu, out_packet);
+        break;
+    case U2F_AUTHENTICATE_UNLOCKING:
+        _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
+        break;
+    case U2F_AUTHENTICATE_WAIT_REFRESH:
+        _authenticate_wait_refresh(apdu, out_packet);
+        break;
+    case U2F_AUTHENTICATE_CONFIRMING:
+        _authenticate_continue(apdu, out_packet);
+        break;
+    default:
+        Abort("Bad U2F authentication status");
+    }
+}
+
+/**
  * Process a U2F message
  */
 static void _cmd_msg(const Packet* in_packet, Packet* out_packet, const size_t max_out_len)
@@ -614,16 +870,10 @@ static void _cmd_msg(const Packet* in_packet, Packet* out_packet, const size_t m
 
     switch (apdu->ins) {
     case U2F_REGISTER:
-        if (!_state.locked) {
-            _lock(apdu);
-        }
-        _register(apdu, out_packet);
+        _cmd_register(in_packet, out_packet);
         break;
     case U2F_AUTHENTICATE:
-        if (!_state.locked) {
-            _lock(apdu);
-        }
-        _authenticate(apdu, out_packet);
+        _cmd_authenticate(in_packet, out_packet);
         break;
     case U2F_VERSION:
         _version(apdu, out_packet);
@@ -656,9 +906,87 @@ void u2f_blocked_req_error(Packet* out_packet, const Packet* in_packet)
     _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
 }
 
+static void _process_register_wait_unlock(void)
+{
+    if (_state.unlock_finished) {
+        _start_refresh_webpage_screen();
+        _state.reg = U2F_REGISTER_WAIT_REFRESH;
+    }
+}
+
+static void _process_authenticate_wait_unlock(void)
+{
+    if (_state.unlock_finished) {
+        _start_refresh_webpage_screen();
+        _state.auth = U2F_AUTHENTICATE_WAIT_REFRESH;
+    }
+}
+
+/**
+ * Show the refresh page for a limited amount
+ * of time. Either we receive another request
+ * (firefox), or the user will refresh the
+ * webpage and we need to timeout.
+ */
+static void _process_wait_refresh(void)
+{
+    if (_state.refresh_webpage_timeout == 25000) {
+        _stop_refresh_webpage_screen();
+        _unlock();
+    } else {
+        _state.refresh_webpage_timeout++;
+    }
+}
+
+static void _process_register(void)
+{
+    switch (_state.reg) {
+    case U2F_REGISTER_UNLOCKING:
+        _process_register_wait_unlock();
+        break;
+    case U2F_REGISTER_WAIT_REFRESH:
+        _process_wait_refresh();
+        break;
+    case U2F_REGISTER_IDLE:
+    case U2F_REGISTER_CONFIRMING:
+        break;
+    default:
+        Abort("Invalid U2F process register status.");
+    }
+}
+
+static void _process_authenticate(void)
+{
+    switch (_state.auth) {
+    case U2F_AUTHENTICATE_UNLOCKING:
+        _process_authenticate_wait_unlock();
+        break;
+    case U2F_AUTHENTICATE_WAIT_REFRESH:
+        _process_wait_refresh();
+        break;
+    case U2F_AUTHENTICATE_IDLE:
+    case U2F_AUTHENTICATE_CONFIRMING:
+        break;
+    default:
+        Abort("Invalid U2F process auth status.");
+    }
+}
+
 void u2f_process(void)
 {
-    /** Nothing to do here. */
+    if (!_state.locked) {
+        return;
+    }
+    switch (_state.last_cmd) {
+    case U2F_REGISTER:
+        _process_register();
+        break;
+    case U2F_AUTHENTICATE:
+        _process_authenticate();
+        break;
+    default:
+        Abort("Bad U2F process state.");
+    }
 }
 
 /**

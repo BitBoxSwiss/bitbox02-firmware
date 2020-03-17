@@ -18,7 +18,6 @@
 #include "usart/usart_frame.h"
 #include "usb_frame.h"
 #include "usb_packet.h"
-#include "workflow/async.h"
 
 #include <hardfault.h>
 

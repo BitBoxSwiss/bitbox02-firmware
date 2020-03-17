@@ -364,7 +364,6 @@ static void run_tests(void)
         // Ctr should have incremented by 1.
         CHECK_EQ(ctr2, ctr1 + 1);
 #endif
-
     } else {
         PRINT_MESSAGE("\n\nNot testing HID API. A device is not connected.\n\n");
         return;

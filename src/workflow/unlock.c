@@ -161,6 +161,8 @@ static void _unlock_spin(workflow_t* self)
         _unlock_cleanup_password(data);
         break;
     case UNLOCK_STATUS_FINISHED:
+        /* TODO merge this with UNLOCK_STATUS_PW_AVAILABLE to preserve atomicity if the operation is
+         * aborted. */
         if (data->callback) {
             data->callback(data->result, data->callback_param);
             workflow_stack_stop_workflow();

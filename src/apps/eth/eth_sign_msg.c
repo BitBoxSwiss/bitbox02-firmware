@@ -33,33 +33,21 @@ app_eth_sign_error_t app_eth_sign_msg(
     if (request->msg.size > 9999) {
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }
-    // Only support main net for now. Otherwise a user could be tricked into signing something for
-    // main net even if they believe they are signing for testnet.
-    if (request->coin != ETHCoin_ETH) {
-        return APP_ETH_SIGN_ERR_INVALID_INPUT;
-    }
 
     // Let user verify that it is signing for the expected address
     char address[APP_ETH_ADDRESS_HEX_LEN] = {0};
-    if (!app_eth_address(
-            request->coin,
-            ETHPubRequest_OutputType_ADDRESS,
-            request->keypath,
-            request->keypath_count,
-            address,
-            sizeof(address))) {
-        return APP_ETH_SIGN_ERR_INVALID_INPUT;
-    }
-    {
-        confirm_params_t params = {
-            .title = "Sign message\nYour address",
-            .body = address,
-            .scrollable = true,
-            .accept_is_nextarrow = true,
-        };
-        if (!workflow_confirm_blocking(&params)) {
-            return APP_ETH_SIGN_ERR_USER_ABORT;
-        }
+    uint8_t contract_address[20] = {0};
+    app_eth_sign_error_t result = app_eth_address(
+        request->coin,
+        ETHPubRequest_OutputType_ADDRESS,
+        request->keypath,
+        request->keypath_count,
+        address,
+        sizeof(address),
+        true,
+        contract_address);
+    if (result != APP_ETH_SIGN_OK) {
+        return result;
     }
 
     const char msg_header[] =

@@ -20,60 +20,25 @@
 #include <apps/eth/eth.h>
 #include <apps/eth/eth_sign.h>
 #include <apps/eth/eth_sign_msg.h>
-#include <util.h>
-#include <workflow/verify_pub.h>
 
 #include <wally_bip32.h> // for BIP32_INITIAL_HARDENED_CHILD
 
-static const char* _coin_eth = "Ethereum";
-static const char* _coin_ropsten_eth = "Ropsten";
-static const char* _coin_rinkeby_eth = "Rinkeby";
-
 static commander_error_t _api_pub(const ETHPubRequest* request, PubResponse* response)
 {
-    if (!app_eth_address(
-            request->coin,
-            request->output_type,
-            request->keypath,
-            request->keypath_count,
-            response->pub,
-            sizeof(response->pub))) {
-        return COMMANDER_ERR_GENERIC;
+    app_eth_sign_error_t result = app_eth_address(
+        request->coin,
+        request->output_type,
+        request->keypath,
+        request->keypath_count,
+        response->pub,
+        sizeof(response->pub),
+        request->display,
+        request->contract_address);
+    if (result == APP_ETH_SIGN_ERR_USER_ABORT) {
+        return COMMANDER_ERR_USER_ABORT;
     }
-    if (request->display) {
-        if (request->output_type != ETHPubRequest_OutputType_ADDRESS) {
-            // Only support displaying the address for now.
-            return COMMANDER_ERR_GENERIC;
-        }
-        const char* coin;
-
-        // Check for ERC20-Address
-        uint8_t zero[20] = {0};
-        if (!MEMEQ(request->contract_address, zero, sizeof(zero))) {
-            const app_eth_erc20_params_t* erc20_params =
-                app_eth_erc20_params_get(request->coin, request->contract_address);
-            if (erc20_params == NULL) {
-                return COMMANDER_ERR_GENERIC;
-            }
-            coin = erc20_params->name;
-        } else {
-            switch (request->coin) {
-            case ETHCoin_ETH:
-                coin = _coin_eth;
-                break;
-            case ETHCoin_RopstenETH:
-                coin = _coin_ropsten_eth;
-                break;
-            case ETHCoin_RinkebyETH:
-                coin = _coin_rinkeby_eth;
-                break;
-            default:
-                return COMMANDER_ERR_GENERIC;
-            }
-        }
-        if (!workflow_verify_pub(coin, response->pub)) {
-            return COMMANDER_ERR_USER_ABORT;
-        }
+    if (result != APP_ETH_SIGN_OK) {
+        return COMMANDER_ERR_GENERIC;
     }
     return COMMANDER_OK;
 }

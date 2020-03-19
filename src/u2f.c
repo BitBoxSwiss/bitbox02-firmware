@@ -37,6 +37,11 @@
 #include <workflow/status.h>
 #include <workflow/unlock.h>
 
+#ifndef TESTING
+#include <hal_timer.h>
+extern struct timer_descriptor TIMER_0;
+#endif
+
 typedef struct {
     uint8_t cla, ins, p1, p2;
     uint8_t lc1, lc2, lc3;
@@ -44,7 +49,6 @@ typedef struct {
 } USB_APDU;
 
 #define APDU_LEN(A) (uint32_t)(((A).lc1 << 16) + ((A).lc2 << 8) + ((A).lc3))
-#define U2F_TIMEOUT 500 // [msec]
 #define U2F_KEYHANDLE_LEN (U2F_NONCE_LENGTH + SHA256_LEN)
 
 #if (U2F_EC_KEY_SIZE != SHA256_LEN) || (U2F_EC_KEY_SIZE != U2F_NONCE_LENGTH)
@@ -96,6 +100,8 @@ typedef struct {
     bool unlock_result;
     /** "Refresh webpage" component */
     component_t* refresh_webpage;
+    /** Active unlock workflow. */
+    workflow_t* unlock_wf;
     /**
      * Timer increased during u2f_process if we're waiting for a page refresh.
      * Will drop the refresh_webpage() screen after a few ticks.
@@ -138,16 +144,22 @@ static void _unlock_cb(bool result, void* param)
     _state.unlock_result = result;
 }
 
+/* Resets the internal state to idle. */
+static void _clear_state(void)
+{
+    _state.reg = U2F_REGISTER_IDLE;
+    _state.auth = U2F_AUTHENTICATE_IDLE;
+    _state.unlock_finished = false;
+    _state.locked = false;
+}
+
 /**
  * Unlocks the USB stack. Resets the U2F state.
  */
 static void _unlock(void)
 {
     usb_processing_unlock();
-    _state.reg = U2F_REGISTER_IDLE;
-    _state.auth = U2F_AUTHENTICATE_IDLE;
-    _state.unlock_finished = false;
-    _state.locked = false;
+    _clear_state();
 }
 
 /**
@@ -196,6 +208,7 @@ static void _start_refresh_webpage_screen(void)
     _state.refresh_webpage_timeout = 0;
 }
 
+/** Pop the "refresh webpage" screen, if any. */
 static void _stop_refresh_webpage_screen(void)
 {
     if (ui_screen_stack_top() && ui_screen_stack_top() == _state.refresh_webpage) {
@@ -220,7 +233,8 @@ static bool _unlock_if_locked(void)
 {
     if (keystore_is_locked()) {
         _state.unlock_finished = false;
-        workflow_stack_start_workflow(workflow_unlock(_unlock_cb, NULL));
+        _state.unlock_wf = workflow_unlock(_unlock_cb, NULL);
+        workflow_stack_start_workflow(_state.unlock_wf);
         return false;
     }
     /* Pop the "refresh webpage" screen if any */
@@ -818,6 +832,29 @@ static void _cmd_register(const Packet* in_packet, Packet* out_packet)
 }
 
 /**
+ * Abort an existing registration request.
+ */
+static void _abort_register(void)
+{
+    switch (_state.reg) {
+    case U2F_REGISTER_UNLOCKING:
+        workflow_stack_abort_workflow(_state.unlock_wf);
+        _clear_state();
+        break;
+    case U2F_REGISTER_CONFIRMING:
+        u2f_app_confirm_abort();
+        _clear_state();
+        break;
+    case U2F_REGISTER_WAIT_REFRESH:
+        _stop_refresh_webpage_screen();
+        _clear_state();
+        break;
+    default:
+        Abort("Bad U2F register abort status");
+    }
+}
+
+/**
  * Processes an incoming registration request.
  */
 static void _cmd_authenticate(const Packet* in_packet, Packet* out_packet)
@@ -845,6 +882,29 @@ static void _cmd_authenticate(const Packet* in_packet, Packet* out_packet)
         break;
     default:
         Abort("Bad U2F authentication status");
+    }
+}
+
+/**
+ * Abort an existing authentication request.
+ */
+static void _abort_authenticate(void)
+{
+    switch (_state.auth) {
+    case U2F_AUTHENTICATE_UNLOCKING:
+        workflow_stack_abort_workflow(_state.unlock_wf);
+        _clear_state();
+        break;
+    case U2F_AUTHENTICATE_CONFIRMING:
+        u2f_app_confirm_abort();
+        _clear_state();
+        break;
+    case U2F_AUTHENTICATE_WAIT_REFRESH:
+        _stop_refresh_webpage_screen();
+        _clear_state();
+        break;
+    default:
+        Abort("Bad U2F register abort status");
     }
 }
 
@@ -911,6 +971,7 @@ static void _process_register_wait_unlock(void)
     if (_state.unlock_finished) {
         _start_refresh_webpage_screen();
         _state.reg = U2F_REGISTER_WAIT_REFRESH;
+        _state.unlock_wf = NULL;
     }
 }
 
@@ -919,6 +980,7 @@ static void _process_authenticate_wait_unlock(void)
     if (_state.unlock_finished) {
         _start_refresh_webpage_screen();
         _state.auth = U2F_AUTHENTICATE_WAIT_REFRESH;
+        _state.unlock_wf = NULL;
     }
 }
 
@@ -935,6 +997,8 @@ static void _process_wait_refresh(void)
         _unlock();
     } else {
         _state.refresh_webpage_timeout++;
+        /* Prevent the USB watchdog from killing this workflow. */
+        usb_processing_timeout_reset();
     }
 }
 
@@ -1002,4 +1066,21 @@ void u2f_device_setup(void)
     };
     usb_processing_register_cmds(
         usb_processing_u2f(), u2f_cmd_callbacks, sizeof(u2f_cmd_callbacks) / sizeof(CMD_Callback));
+}
+
+void u2f_abort_outstanding_op(void)
+{
+    if (!_state.locked) {
+        Abort("USB stack thinks U2F is busy, but it's not.");
+    }
+    switch (_state.last_cmd) {
+    case U2F_REGISTER:
+        _abort_register();
+        break;
+    case U2F_AUTHENTICATE:
+        _abort_authenticate();
+        break;
+    default:
+        Abort("Invalid U2F status on abort.");
+    }
 }

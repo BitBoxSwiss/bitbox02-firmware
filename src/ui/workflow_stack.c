@@ -68,6 +68,14 @@ void workflow_stack_stop_workflow(void)
     _workflow_stack_pop();
 }
 
+void workflow_stack_abort_workflow(workflow_t* wf)
+{
+    while (workflow_stack_top() != wf) {
+        workflow_stack_stop_workflow();
+    }
+    workflow_stack_stop_workflow();
+}
+
 void workflow_stack_clear(void)
 {
     while (_workflow_stack.size > 0) {

@@ -51,4 +51,9 @@ void hww_blocked_req_error(Packet* out_packet, const Packet* in_packet);
  */
 void hww_process(void);
 
+/**
+ * Called to abort any operation that blocked the HWW stack.
+ */
+void hww_abort_outstanding_op(void);
+
 #endif

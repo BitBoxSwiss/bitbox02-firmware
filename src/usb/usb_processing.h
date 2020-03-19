@@ -68,6 +68,15 @@ void usb_processing_init(void);
 #if !defined(BOOTLOADER)
 void usb_processing_lock(struct usb_processing* ctx);
 
+/**
+ * Manually resets the USB lock watchdog.
+ * No traffic on the USB bus will make any locked operation
+ * timeout. However, if not receiving traffic is the
+ * expected behaviour, one can call this function to prevent
+ * the USB watchdog from aborting the outstanding operation.
+ */
+void usb_processing_timeout_reset(void);
+
 void usb_processing_unlock(void);
 #endif
 

@@ -253,9 +253,14 @@ void hww_blocked_req_error(Packet* out_packet, const Packet* in_packet)
     out_packet->data_addr[0] = HWW_RSP_BUSY;
 }
 
+void hww_abort_outstanding_op(void)
+{
+    Abort("Arbitration error, HWW should never block.");
+}
+
 void hww_process(void)
 {
-    /* Nothing to do here. */
+    /** Nothing to do. */
 }
 
 void hww_setup(void)

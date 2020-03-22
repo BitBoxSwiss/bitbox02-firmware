@@ -140,23 +140,3 @@ bool workflow_confirm_blocking(const confirm_params_t* params)
     workflow_blocking_block();
     return _result;
 }
-
-bool workflow_confirm_scrollable_longtouch_blocking(
-    const char* title,
-    const char* body,
-    const UG_FONT* font)
-{
-    bool _result = false;
-    const confirm_params_t params = {
-        .title = title,
-        .body = body,
-        .font = font,
-        .scrollable = true,
-        .longtouch = true,
-    };
-
-    workflow_t* confirm_wf = workflow_confirm(&params, _confirm_blocking_cb, &_result);
-    workflow_stack_start_workflow(confirm_wf);
-    workflow_blocking_block();
-    return _result;
-}

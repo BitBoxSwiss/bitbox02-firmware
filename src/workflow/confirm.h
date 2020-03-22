@@ -41,18 +41,4 @@ workflow_t* workflow_confirm(
  */
 bool workflow_confirm_blocking(const confirm_params_t* params);
 
-/**
- * Confirm something with the user using longtouch. Blocks until the user either confirms or
- * cancels.
- * @param[in] title title
- * @param[in] body body
- * @param[in] font if not NULL will use the specified font for the body
- * @param[out] cancel_forced_out if the function returns false, this param is true if the workflow
- * was forcibly unblocked.
- * @return true if the user confirmed, false if they rejected.
- */
-bool workflow_confirm_scrollable_longtouch_blocking(
-    const char* title,
-    const char* body,
-    const UG_FONT* font);
 #endif

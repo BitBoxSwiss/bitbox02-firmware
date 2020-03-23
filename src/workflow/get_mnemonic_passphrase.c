@@ -105,6 +105,7 @@ static void _get_mnemonic_passphrase_spin(workflow_t* self)
         const confirm_params_t passphrase_params = {.title = "Confirm",
                                                     .body = data->passphrase,
                                                     .font = &font_password_11X12,
+                                                    .scrollable = true,
                                                     .longtouch = true};
         workflow_stack_start_workflow(
             workflow_confirm(&passphrase_params, _confirm_passphrase_cb, data));

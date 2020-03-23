@@ -93,6 +93,10 @@ static void _default_erc20_request(ETHSignRequest* request)
     "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
     "\x00" VALUE
     const uint8_t erc20_transfer[68] = ERC20_METHOD RECIPIENT_PADDED VALUE_PADDED;
+
+    memcpy(
+        request->recipient, _erc20_params.contract_address, sizeof(_erc20_params.contract_address));
+
     request->data.size = sizeof(erc20_transfer);
     memcpy(request->data.bytes, erc20_transfer, sizeof(erc20_transfer));
 }
@@ -100,7 +104,7 @@ static void _default_erc20_request(ETHSignRequest* request)
 static void _test_app_eth_verify_erc20_transaction(void** state)
 {
     ETHSignRequest request;
-    { // happy
+    { // happy; known erc20 token
         _default_erc20_request(&request);
         will_return(__wrap_app_eth_erc20_params_get, &_erc20_params);
         expect_string(__wrap_workflow_verify_recipient, recipient, _recipient);
@@ -111,15 +115,21 @@ static void _test_app_eth_verify_erc20_transaction(void** state)
         will_return(__wrap_workflow_verify_total, true);
         assert_int_equal(APP_ETH_SIGN_OK, app_eth_verify_erc20_transaction(&request));
     }
+    { // happy; unknown erc20 coin
+        _default_erc20_request(&request);
+        expect_string(__wrap_workflow_verify_recipient, recipient, _recipient);
+        expect_string(__wrap_workflow_verify_recipient, amount, "Unknown token");
+        will_return(__wrap_workflow_verify_recipient, true);
+        expect_string(__wrap_workflow_verify_total, total, "Unknown amount");
+        expect_string(__wrap_workflow_verify_total, fee, _formatted_fee);
+        will_return(__wrap_workflow_verify_total, true);
+        will_return(__wrap_app_eth_erc20_params_get, NULL);
+
+        assert_int_equal(APP_ETH_SIGN_OK, app_eth_verify_erc20_transaction(&request));
+    }
     { // invalid coin
         _default_erc20_request(&request);
         request.coin = _ETHCoin_MAX + 1;
-        assert_int_equal(
-            APP_ETH_SIGN_ERR_INVALID_INPUT, app_eth_verify_erc20_transaction(&request));
-    }
-    { // invalid erc20 coin
-        _default_erc20_request(&request);
-        will_return(__wrap_app_eth_erc20_params_get, NULL);
         assert_int_equal(
             APP_ETH_SIGN_ERR_INVALID_INPUT, app_eth_verify_erc20_transaction(&request));
     }

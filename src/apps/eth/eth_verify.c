@@ -41,8 +41,16 @@ static app_eth_sign_error_t _verify_recipient(const uint8_t* recipient, const _a
         rust_util_cstr_mut(address, sizeof(address)));
 
     char formatted_value[100] = {0};
-    eth_common_format_amount(
-        amount->value, amount->unit, amount->decimals, formatted_value, sizeof(formatted_value));
+    if (amount != NULL) {
+        eth_common_format_amount(
+            amount->value,
+            amount->unit,
+            amount->decimals,
+            formatted_value,
+            sizeof(formatted_value));
+    } else {
+        snprintf(formatted_value, sizeof(formatted_value), "Unknown token");
+    }
     // This call blocks.
     if (!workflow_verify_recipient(address, formatted_value)) {
         return APP_ETH_SIGN_ERR_USER_ABORT;
@@ -67,14 +75,18 @@ static app_eth_sign_error_t _verify_total_fee(
     eth_common_format_amount(
         fee_scalar, fee_unit, WEI_DECIMALS, formatted_fee, sizeof(formatted_fee));
     // total:
-    bignum256 sum = *total->value;
-    // If fee and total value are in the same unit, include the fee in the total.
-    if (STREQ(fee_unit, total->unit)) {
-        bn_add(&sum, fee_scalar);
-    }
     char formatted_total[100] = {0};
-    eth_common_format_amount(
-        &sum, total->unit, total->decimals, formatted_total, sizeof(formatted_total));
+    if (total != NULL) {
+        bignum256 sum = *total->value;
+        // If fee and total value are in the same unit, include the fee in the total.
+        if (STREQ(fee_unit, total->unit)) {
+            bn_add(&sum, fee_scalar);
+        }
+        eth_common_format_amount(
+            &sum, total->unit, total->decimals, formatted_total, sizeof(formatted_total));
+    } else {
+        snprintf(formatted_total, sizeof(formatted_total), "Unknown amount");
+    }
     // This call blocks.
     if (!workflow_verify_total(formatted_total, formatted_fee)) {
         return APP_ETH_SIGN_ERR_USER_ABORT;
@@ -94,11 +106,6 @@ app_eth_sign_error_t app_eth_verify_erc20_transaction(const ETHSignRequest* requ
     }
     const app_eth_erc20_params_t* erc20_params =
         app_eth_erc20_params_get(request->coin, request->recipient);
-    if (erc20_params == NULL) {
-        // unsupported token.
-        // TODO: This isn't technically invalid, it is just not supported
-        return APP_ETH_SIGN_ERR_INVALID_INPUT;
-    }
     // data is validated to have the following format:
     // <0xa9059cbb><32 bytes recipient><32 bytes value>
     // where recipient 20 bytes, zero padded to 32 bytes, and value is zero padded big endian.
@@ -115,23 +122,34 @@ app_eth_sign_error_t app_eth_verify_erc20_transaction(const ETHSignRequest* requ
     }
     bignum256 value_scalar;
     _bigendian_to_scalar(value, 32, &value_scalar);
-    const _amount_t amount = {
-        .unit = erc20_params->unit,
-        .decimals = erc20_params->decimals,
-        .value = &value_scalar,
-    };
-    app_eth_sign_error_t result = _verify_recipient(recipient, &amount);
-    if (result != APP_ETH_SIGN_OK) {
-        return result;
-    }
-    const _amount_t total = {
-        .unit = erc20_params->unit,
-        .decimals = erc20_params->decimals,
-        .value = &value_scalar,
-    };
-    result = _verify_total_fee(request, &total, params->unit);
-    if (result != APP_ETH_SIGN_OK) {
-        return result;
+    if (erc20_params != NULL) {
+        const _amount_t amount = {
+            .unit = erc20_params->unit,
+            .decimals = erc20_params->decimals,
+            .value = &value_scalar,
+        };
+        app_eth_sign_error_t result = _verify_recipient(recipient, &amount);
+        if (result != APP_ETH_SIGN_OK) {
+            return result;
+        }
+        const _amount_t total = {
+            .unit = erc20_params->unit,
+            .decimals = erc20_params->decimals,
+            .value = &value_scalar,
+        };
+        result = _verify_total_fee(request, &total, params->unit);
+        if (result != APP_ETH_SIGN_OK) {
+            return result;
+        }
+    } else {
+        app_eth_sign_error_t result = _verify_recipient(recipient, NULL);
+        if (result != APP_ETH_SIGN_OK) {
+            return result;
+        }
+        result = _verify_total_fee(request, NULL, params->unit);
+        if (result != APP_ETH_SIGN_OK) {
+            return result;
+        }
     }
     return APP_ETH_SIGN_OK;
 }

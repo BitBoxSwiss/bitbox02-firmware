@@ -389,8 +389,10 @@ class SendMessage:
             eprint("Aborted by user")
 
     def _sign_eth_tx(self) -> None:
-        # fmt: off
-        tx = bytes([0xf8, 0x6e, 0x82, 0x1f, 0xdc, 0x85, 0x01, 0x65, 0xa0, 0xbc, 0x00, 0x82, 0x52,
+        inp = input("Select one of: 1=normal; 2=erc20; 3=erc721; 4=unknown erc20: ").strip()
+        if inp == "1":
+            # fmt: off
+            tx = bytes([0xf8, 0x6e, 0x82, 0x1f, 0xdc, 0x85, 0x01, 0x65, 0xa0, 0xbc, 0x00, 0x82, 0x52,
             0x08, 0x94, 0x04, 0xf2, 0x64, 0xcf, 0x34, 0x44, 0x03, 0x13, 0xb4, 0xa0, 0x19, 0x2a,
             0x35, 0x28, 0x14, 0xfb, 0xe9, 0x27, 0xb8, 0x85, 0x88, 0x07, 0x5c, 0xf1, 0x25, 0x9e,
             0x9c, 0x40, 0x00, 0x80, 0x25, 0xa0, 0x15, 0xc9, 0x4c, 0x1a, 0x3d, 0xa0, 0xab, 0xc0,
@@ -399,8 +401,27 @@ class SendMessage:
             0x1d, 0x4c, 0xda, 0x2c, 0x33, 0xdd, 0x3b, 0x00, 0x07, 0x1e, 0xc1, 0x45, 0x33, 0x5e,
             0x5d, 0x2d, 0xd5, 0xed, 0x81, 0x2d, 0x5e, 0xeb, 0xee, 0xcb, 0xa5, 0x26, 0x4e, 0xd1,
             0xbf])
-        # fmt: on
-        self._device.eth_sign(tx, keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0])
+            # fmt: on
+        elif inp == "2":
+            tx = binascii.unhexlify(
+                "f8ac82236785027aca1a808301d04894dac17f958d2ee523a2206206994597c13d831ec780b844a9059cbb000000000000000000000000e6ce0a092a99700cd4ccccbb1fedc39cf53e6330000000000000000000000000000000000000000000000000000000000365c0401ca0265f70103c605eaa1b64c3200d2e7934d7744a3068b377e26c4b080795c744c0a020bbcd34a306621fa8965040390bc240d6d0e3b88915ccdb309d15f1caba81b1"
+            )
+        elif inp == "3":
+            tx = binascii.unhexlify(
+                "f87282750b8502cb42fea0830927c0942cab2d282e588f00beabe2bf5577c7644972e10f808b00009470ff1c8de91c861d1ca0f07bca4f43eb1c461ca3cf208e920b60cb393dd37489a14e9f92632acb17dd7ca0694523c8b72052cf6a8b9f93719a664fbbbe59e731cefb1331b2d21ee80b5268"
+            )
+        elif inp == "4":
+            tx = binascii.unhexlify(
+                "f8aa81b9843b9aca0083010985949c23d67aea7b95d80942e3836bcdf7e708a747c280b844a9059cbb000000000000000000000000857b3d969eacb775a9f79cabc62ec4bb1d1cd60e000000000000000000000000000000000000000000000098a63cbeb859d027b026a0d3b1a9ba4aff7ebf81dca7dafdbe6d803d174f7805276f45530f2c30e74f5ffca02d86d5290f6ba2c5100e08764d8ab34cf33b03dff3f63219fd839ac9a95f7068"
+            )
+        else:
+            print("None selected")
+            return
+
+        try:
+            self._device.eth_sign(tx, keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0])
+        except UserAbortException:
+            eprint("Aborted by user")
 
     def _sign_eth_message(self) -> None:
         msg = input("Message to sign: ")

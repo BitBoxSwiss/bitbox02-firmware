@@ -21,6 +21,7 @@
 
 #include <compiler_util.h>
 
+#include "eth_verify.h"
 #include <hww.pb.h>
 
 /**
@@ -31,13 +32,18 @@
  * @param[out] out will hold the result.
  * @param[in] out_len must be at least APP_ETH_ADDRESS_HEX_LEN for ADDRESS, and at least 80
  * (BIP32_SERIALIZED_LEN+1) for XPUB.
+ * @param[in] display Wether to ask user to confirm address
+ * @param[in] contract_address pointer to contract address. Must be 20 bytes. If none present, must
+ *            be 20 zero bytes or NULL.
  */
-USE_RESULT bool app_eth_address(
+USE_RESULT app_eth_sign_error_t app_eth_address(
     ETHCoin coin,
     ETHPubRequest_OutputType output_type,
     const uint32_t* keypath,
     size_t keypath_len,
     char* out,
-    size_t out_len);
+    size_t out_len,
+    bool display,
+    const uint8_t* contract_address);
 
 #endif

@@ -92,7 +92,7 @@ app_eth_sign_error_t app_eth_address(
 
         // Check for ERC20-Address
         uint8_t zero[20] = {0};
-        if (!MEMEQ(contract_address, zero, sizeof(zero))) {
+        if (contract_address != NULL && !MEMEQ(contract_address, zero, sizeof(zero))) {
             const app_eth_erc20_params_t* erc20_params =
                 app_eth_erc20_params_get(coin, contract_address);
             if (erc20_params == NULL) {

@@ -102,20 +102,28 @@ static _test_case_t _test_cases[] = {
 static void _test_app_eth_address_invalid(void** state)
 {
     { // invalid coin
-        assert_false(
-            app_eth_address(_ETHCoin_MAX + 1, ETHPubRequest_OutputType_ADDRESS, NULL, 0, NULL, 0));
+        assert_int_equal(
+            APP_ETH_SIGN_ERR_INVALID_INPUT,
+            app_eth_address(
+                _ETHCoin_MAX + 1, ETHPubRequest_OutputType_ADDRESS, NULL, 0, NULL, 0, false, NULL));
     }
     { // invalid keypath
         _is_valid_keypath = false;
-        assert_false(
-            app_eth_address(ETHCoin_ETH, ETHPubRequest_OutputType_ADDRESS, NULL, 0, NULL, 0));
+        assert_int_equal(
+            APP_ETH_SIGN_ERR_INVALID_INPUT,
+            app_eth_address(
+                ETHCoin_ETH, ETHPubRequest_OutputType_ADDRESS, NULL, 0, NULL, 0, false, NULL));
         _is_valid_keypath = true;
     }
     { // invalid output type
-        assert_false(
-            app_eth_address(ETHCoin_ETH, _ETHPubRequest_OutputType_MIN - 1, NULL, 0, NULL, 0));
-        assert_false(
-            app_eth_address(ETHCoin_ETH, _ETHPubRequest_OutputType_MAX + 1, NULL, 0, NULL, 0));
+        assert_int_equal(
+            APP_ETH_SIGN_ERR_INVALID_INPUT,
+            app_eth_address(
+                ETHCoin_ETH, _ETHPubRequest_OutputType_MIN - 1, NULL, 0, NULL, 0, false, NULL));
+        assert_int_equal(
+            APP_ETH_SIGN_ERR_INVALID_INPUT,
+            app_eth_address(
+                ETHCoin_ETH, _ETHPubRequest_OutputType_MAX + 1, NULL, 0, NULL, 0, false, NULL));
     }
 }
 
@@ -134,8 +142,17 @@ static void _test_app_eth_address(void** state)
         will_return(__wrap_keystore_secp256k1_pubkey, test_case->pubkey);
 
         char address[43];
-        assert_true(app_eth_address(
-            ETHCoin_ETH, ETHPubRequest_OutputType_ADDRESS, keypath, 5, address, sizeof(address)));
+        assert_int_equal(
+            APP_ETH_SIGN_OK,
+            app_eth_address(
+                ETHCoin_ETH,
+                ETHPubRequest_OutputType_ADDRESS,
+                keypath,
+                5,
+                address,
+                sizeof(address),
+                false,
+                NULL));
         assert_string_equal(address, test_case->expected_address);
     }
 }

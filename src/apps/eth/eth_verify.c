@@ -85,7 +85,7 @@ static app_eth_sign_error_t _verify_total_fee(
         eth_common_format_amount(
             &sum, total->unit, total->decimals, formatted_total, sizeof(formatted_total));
     } else {
-        snprintf(formatted_total, sizeof(formatted_total), "Unknown token amount");
+        snprintf(formatted_total, sizeof(formatted_total), "Unknown amount");
     }
     // This call blocks.
     if (!workflow_verify_total(formatted_total, formatted_fee)) {

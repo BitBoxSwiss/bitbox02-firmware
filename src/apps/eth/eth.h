@@ -33,7 +33,8 @@
  * @param[in] out_len must be at least APP_ETH_ADDRESS_HEX_LEN for ADDRESS, and at least 80
  * (BIP32_SERIALIZED_LEN+1) for XPUB.
  * @param[in] display Wether to ask user to confirm address
- * @param[in] contract_address pointer to contract address
+ * @param[in] contract_address pointer to contract address. Must be 20 bytes. If none present, must
+ *            be 20 zero bytes
  */
 USE_RESULT app_eth_sign_error_t app_eth_address(
     ETHCoin coin,

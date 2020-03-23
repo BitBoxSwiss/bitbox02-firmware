@@ -65,7 +65,7 @@ app_eth_sign_error_t app_eth_address(
         rust_ethereum_address_from_pubkey(
             rust_util_bytes(pubkey_uncompressed, sizeof(pubkey_uncompressed)),
             rust_util_cstr_mut(out, out_len));
-        return true;
+        break;
     }
     case ETHPubRequest_OutputType_XPUB: {
         if (!rust_ethereum_keypath_is_valid_xpub(keypath, keypath_len, params->bip44_coin)) {
@@ -76,7 +76,7 @@ app_eth_sign_error_t app_eth_address(
             return APP_ETH_SIGN_ERR_INVALID_INPUT;
         }
         if (!btc_common_encode_xpub(&derived_xpub, BTCPubRequest_XPubType_XPUB, out, out_len)) {
-            return APP_ETH_SIGN_ERR_INVALID_INPUT;
+            return APP_ETH_SIGN_ERR_UNKNOWN;
         }
         break;
     }

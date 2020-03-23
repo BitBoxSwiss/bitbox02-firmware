@@ -16,7 +16,6 @@
 #include "eth_params.h"
 #include "eth_sighash.h"
 #include "eth_verify.h"
-#include "screen.h"
 
 #include <hardfault.h>
 #include <keystore.h>
@@ -57,7 +56,6 @@ app_eth_sign_error_t app_eth_sign(const ETHSignRequest* request, ETHSignResponse
     const uint8_t erc20_transfer[4] = {0xa9, 0x05, 0x9c, 0xbb};
     bool is_erc20_transfer = request->value.size == 0 && request->data.size == 68 &&
                              MEMEQ(request->data.bytes, erc20_transfer, sizeof(erc20_transfer));
-    screen_sprintf_debug(1000, "yo: %d", is_erc20_transfer);
     if (is_erc20_transfer) {
         app_eth_sign_error_t result = app_eth_verify_erc20_transaction(request);
         if (result != APP_ETH_SIGN_OK) {

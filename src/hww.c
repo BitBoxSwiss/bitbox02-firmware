@@ -20,6 +20,7 @@
 #include <keystore.h>
 #include <memory/memory.h>
 #include <platform_config.h>
+#include <ui/workflow_stack.h>
 #include <usb/noise.h>
 #include <usb/usb_packet.h>
 #include <usb/usb_processing.h>
@@ -58,6 +59,24 @@ typedef struct {
     /** Payload of the message. */
     buffer_t buffer;
 } hww_packet_rsp_t;
+
+/**
+ * Type of operation that
+ * the HWW stack is blocked in (i.e. what we should retry()
+ * when asked).
+ */
+typedef enum {
+    /** Not currently blocked. */
+    HWW_BLOCKING_OP_NONE = 0,
+    /** Blocked on a OP_UNLOCK */
+    HWW_BLOCKING_OP_UNLOCK,
+} hww_blocking_op_t;
+
+static struct {
+    hww_blocking_op_t blocking_op;
+    workflow_t* unlock_wf;
+    bool unlock_result;
+} _state = {0};
 
 // in: 'a' + 32 bytes host challenge
 // out: bootloader_hash 32 | device_pubkey 64 | certificate 64 | root_pubkey_identifier 32 |
@@ -149,28 +168,62 @@ static size_t _api_info(uint8_t* buf)
     return current - buf;
 }
 
+static void _clear_state(void)
+{
+    _state.blocking_op = HWW_BLOCKING_OP_NONE;
+    _state.unlock_wf = NULL;
+}
+
+static void _lock(hww_blocking_op_t op)
+{
+    _state.blocking_op = op;
+    usb_processing_lock(usb_processing_hww());
+}
+
+/**
+ * Clears the current state and unlocks the USB stack (if locked).
+ */
+static void _unlock(void)
+{
+    _clear_state();
+    if (_state.blocking_op != HWW_BLOCKING_OP_NONE) {
+        usb_processing_unlock();
+    }
+}
+
+static void _unlock_finished_cb(bool result, void* param)
+{
+    (void)param;
+    _state.unlock_result = result;
+    _state.unlock_wf = NULL;
+}
+
 /**
  * Executes the HWW packet.
  * @param[in] in_packet The incoming HWW packet.
  * @param[in] out_packet The outgoing HWW packet.
  * @param[in] max_out_len The maximum number of bytes that the outgoing HWW packet can hold.
+ * @return true if the response has been completed, false otherwise.
  */
-static void _process_packet(const in_buffer_t* in_req, buffer_t* out_rsp)
+static void _process_packet(const in_buffer_t* in_req, hww_packet_rsp_t* out_rsp)
 {
+    out_rsp->status = HWW_RSP_ACK;
     if (in_req->len >= 1) {
         switch (in_req->data[0]) {
         case OP_ATTESTATION:
-            _api_attestation(in_req, out_rsp);
+            _api_attestation(in_req, &out_rsp->buffer);
             return;
         case OP_UNLOCK:
             if (!memory_is_initialized()) {
-                out_rsp->data[0] = OP_STATUS_FAILURE_UNINITIALIZED;
+                out_rsp->buffer.data[0] = OP_STATUS_FAILURE_UNINITIALIZED;
+                out_rsp->buffer.len = 1;
+                return;
             } else {
-                out_rsp->data[0] =
-                    workflow_unlock_blocking() ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
+                _state.unlock_wf = workflow_unlock(&_unlock_finished_cb, NULL);
+                workflow_stack_start_workflow(_state.unlock_wf);
+                _lock(HWW_BLOCKING_OP_UNLOCK);
+                out_rsp->status = HWW_RSP_NOT_READY;
             }
-            out_rsp->len = 1;
-            return;
         default:
             break;
         }
@@ -183,8 +236,60 @@ static void _process_packet(const in_buffer_t* in_req, buffer_t* out_rsp)
     }
 
     // Process protofbuf/noise api calls.
-    if (!bb_noise_process_msg(in_req, out_rsp, commander)) {
+    if (!bb_noise_process_msg(in_req, &out_rsp->buffer, commander)) {
         workflow_status_blocking("Could not\npair with app", false);
+    }
+    return;
+}
+
+/**
+ * Aborts the current operation (if any). Reply with an
+ * appropriate failure state, depending on what the cancelled
+ * operation was.
+ *
+ * @param[out] response Response data to fill.
+ */
+static void _cancel_packet(hww_packet_rsp_t* response)
+{
+    /* First, prepare a response. */
+    switch (_state.blocking_op) {
+    case HWW_BLOCKING_OP_UNLOCK:
+        response->status = HWW_RSP_ACK;
+        response->buffer.data[0] = OP_STATUS_FAILURE;
+        response->buffer.len = 1;
+        break;
+    default:
+        /* We're not blocking on anything. */
+        response->status = HWW_RSP_NACK;
+    }
+    /* Now, cancel whatever we are doing. */
+    hww_abort_outstanding_op();
+    _unlock();
+}
+
+/**
+ * Polls the current operation (if any). If the current operation
+ * is finished, respond appropriately.
+ *
+ * @param[out] response Response data to fill.
+ */
+static void _retry_packet(hww_packet_rsp_t* response)
+{
+    response->status = HWW_RSP_NACK;
+    switch (_state.blocking_op) {
+    case HWW_BLOCKING_OP_UNLOCK:
+        if (_state.unlock_wf) {
+            response->status = HWW_RSP_NOT_READY;
+        } else {
+            response->status = HWW_RSP_ACK;
+            response->buffer.data[0] = _state.unlock_result ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
+            response->buffer.len = 1;
+            _unlock();
+        }
+        break;
+    default:
+        /* We're not blocking on anything. */
+        break;
     }
 }
 
@@ -215,16 +320,14 @@ static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_o
         .buffer = {.data = out_packet->data_addr + 1, .len = 0, .max_len = max_out_len - 1}};
     switch (cmd) {
     case HWW_REQ_NEW:
-        _process_packet(&decoded_buffer, &response.buffer);
-        response.status = HWW_RSP_ACK;
+        _process_packet(&decoded_buffer, &response);
         break;
     case HWW_REQ_CANCEL:
         /* We don't have anything to cancel yet. */
-        response.status = HWW_RSP_NACK;
+        _cancel_packet(&response);
         break;
     case HWW_REQ_RETRY:
-        /* We don't support async retries yet. */
-        response.status = HWW_RSP_NACK;
+        _retry_packet(&response);
         break;
     default:
         break;
@@ -255,7 +358,14 @@ void hww_blocked_req_error(Packet* out_packet, const Packet* in_packet)
 
 void hww_abort_outstanding_op(void)
 {
-    Abort("Arbitration error, HWW should never block.");
+    switch (_state.blocking_op) {
+    case HWW_BLOCKING_OP_UNLOCK:
+        workflow_stack_abort_workflow(_state.unlock_wf);
+        break;
+    default:
+        /* Nothing to do. */
+        break;
+    }
 }
 
 void hww_process(void)

@@ -12,6 +12,7 @@ BreakBeforeBraces: Linux
 IndentCaseLabels: false
 PenaltyReturnTypeOnItsOwnLine: 1000
 SpacesBeforeTrailingComments: 1
+IncludeBlocks: Preserve
 # cmocka must come after some std includes
 IncludeCategories:
   - Regex:           '^(<|")cmocka'

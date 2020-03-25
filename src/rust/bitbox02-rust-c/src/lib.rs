@@ -24,6 +24,7 @@ extern crate std;
 mod alloc;
 
 mod util;
+mod workflow;
 
 #[cfg(feature = "platform-bitboxbase")]
 pub mod bitboxbase;

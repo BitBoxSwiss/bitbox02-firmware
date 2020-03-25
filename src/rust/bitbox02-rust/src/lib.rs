@@ -20,9 +20,11 @@
 mod error;
 #[macro_use]
 pub mod general;
+pub mod bb02_async;
 pub mod commander;
 pub mod platform;
 pub mod util;
+mod waker_fn;
 pub mod workflow;
 
 // reexport arrayvec because it is used in our macro "print_debug"

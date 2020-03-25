@@ -13,3 +13,4 @@
 // limitations under the License.
 
 pub mod pairing;
+pub mod password_enter;

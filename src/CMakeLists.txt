@@ -344,6 +344,7 @@ add_custom_target(rust-bindgen
     --whitelist-function ui_screen_stack_pop
     --whitelist-function screen_process
     --whitelist-function label_create
+    --whitelist-function confirm_create
     --whitelist-function bitboxbase_watchdog_reset
     --whitelist-function bitboxbase_screensaver_reset
     --whitelist-function leds_turn_small_led
@@ -355,6 +356,7 @@ add_custom_target(rust-bindgen
     --whitelist-var ".*_tag"
     --whitelist-var font_font_a_9X9
     --whitelist-var font_monogram_5X9
+    --whitelist-var font_password_11X12
     --whitelist-var WALLY_OK
     --whitelist-function trinary_input_string_create_password
     ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --

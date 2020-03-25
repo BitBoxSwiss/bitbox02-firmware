@@ -344,6 +344,7 @@ add_custom_target(rust-bindgen
     --whitelist-function ui_screen_stack_pop
     --whitelist-function screen_process
     --whitelist-function label_create
+    --whitelist-function confirm_create
     --whitelist-function bitboxbase_watchdog_reset
     --whitelist-function bitboxbase_screensaver_reset
     --whitelist-function leds_turn_small_led

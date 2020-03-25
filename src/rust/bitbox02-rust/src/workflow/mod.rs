@@ -12,5 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub mod confirm;
 pub mod pairing;
 pub mod password_enter;

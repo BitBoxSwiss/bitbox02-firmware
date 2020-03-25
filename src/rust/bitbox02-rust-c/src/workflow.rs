@@ -17,9 +17,20 @@ pub extern "C" fn rust_workflow_async_DEMO() {
     extern crate alloc;
     use bitbox02::password::Password;
     use bitbox02_rust::bb02_async::{spin, Task};
+    use bitbox02_rust::workflow::confirm::{confirm, Params};
     use bitbox02_rust::workflow::password_enter::password_enter;
 
     async fn demo() {
+        let params = Params {
+            title: "demo",
+            body: "Proceed to pw entry?",
+            ..Default::default()
+        };
+
+        if !confirm(&params).await {
+            return;
+        }
+
         let mut pw1 = Password::new();
         password_enter("Enter 1st PW", true, &mut pw1).await;
         bitbox02::screen_print_debug(

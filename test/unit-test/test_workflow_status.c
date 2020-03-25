@@ -26,22 +26,12 @@
 
 const char* _msg = "message foo";
 
-component_t* __real_status_create(
-    const char* text,
-    bool status_success,
-    int delay,
-    void (*callback)(void*),
-    void* callback_param);
-component_t* __wrap_status_create(
-    const char* text,
-    bool status_success,
-    int delay,
-    void (*callback)(void*),
-    void* callback_param)
+component_t* __real_status_create(const char* text, bool status_success);
+component_t* __wrap_status_create(const char* text, bool status_success)
 {
     assert_string_equal(text, _msg);
     check_expected(status_success);
-    return __real_status_create(text, status_success, delay, callback, callback_param);
+    return __real_status_create(text, status_success);
 }
 
 static void _test_workflow_status(void** state)

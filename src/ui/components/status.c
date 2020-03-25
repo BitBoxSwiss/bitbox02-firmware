@@ -23,10 +23,6 @@
 
 typedef struct {
     bool status;
-    int counter;
-    int delay;
-    void (*callback)(void*);
-    void* callback_param;
 } status_data_t;
 
 static void _render(component_t* component)
@@ -37,14 +33,6 @@ static void _render(component_t* component)
         image_checkmark(SCREEN_WIDTH / 6 * 5, SCREEN_HEIGHT / 2 - height / 2, height);
     } else {
         image_cross(SCREEN_WIDTH / 6 * 5, SCREEN_HEIGHT / 2 - height / 2, height);
-    }
-    if (data->callback != NULL) {
-        if (data->counter == data->delay) {
-            data->callback(data->callback_param);
-            data->callback = NULL;
-            data->counter = 0;
-        }
-        data->counter++;
     }
     ui_util_component_render_subcomponents(component);
 }
@@ -59,12 +47,7 @@ static const component_functions_t _component_functions = {
 
 /********************************** Create Instance **********************************/
 
-component_t* status_create(
-    const char* text,
-    bool status_success,
-    int delay,
-    void (*callback)(void*),
-    void* callback_param)
+component_t* status_create(const char* text, bool status_success)
 {
     component_t* status = malloc(sizeof(component_t));
     if (!status) {
@@ -78,9 +61,6 @@ component_t* status_create(
     memset(status, 0, sizeof(component_t));
 
     data->status = status_success;
-    data->delay = delay;
-    data->callback = callback;
-    data->callback_param = callback_param;
     status->data = data;
     status->f = &_component_functions;
     status->dimension.width = SCREEN_WIDTH;

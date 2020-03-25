@@ -25,7 +25,7 @@
  */
 void workflow_status_blocking(const char* msg, bool status_success)
 {
-    component_t* comp = status_create(msg, status_success, STATUS_DEFAULT_DELAY, NULL, NULL);
+    component_t* comp = status_create(msg, status_success);
     UG_ClearBuffer();
     comp->f->render(comp);
     UG_SendBuffer();

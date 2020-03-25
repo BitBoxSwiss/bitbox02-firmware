@@ -391,20 +391,26 @@ if(DOT_PATH STREQUAL "DOT_PATH-NOTFOUND")
   set(DOC_GRAPHS "NO")
 endif()
 
+add_custom_target(doc)
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
   configure_file("doc/Doxyfile.in" "Doxyfile" @ONLY)
-  add_custom_target(doc
+  add_custom_target(doxygen-docs
     ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generating API documentation with Doxygen.." VERBATIM)
-  add_dependencies(doc generate-protobufs)
-
-  if(NOT PROTOC_GEN_DOC STREQUAL "PROTOC_GEN_DOC-NOTFOUND")
-    add_dependencies(doc protobuf-docs)
-  endif()
+  add_dependencies(doxygen-docs generate-protobufs)
+  add_dependencies(doc doxygen-docs)
 else()
   message("Doxygen: doxygen not found - docs disabled")
+endif()
+
+if(NOT PROTOC_GEN_DOC STREQUAL "PROTOC_GEN_DOC-NOTFOUND")
+  add_dependencies(doc protobuf-docs)
+endif()
+
+if(CMAKE_CROSSCOMPILING)
+  add_dependencies(doc rust-docs)
 endif()
 
 if(CMAKE_CROSSCOMPILING)

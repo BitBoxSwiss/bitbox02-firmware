@@ -441,13 +441,13 @@ endforeach()
 
 if(CMAKE_CROSSCOMPILING)
 
-  # TODO(nc): Add dependency on global "doc" target on this when api-docs branch is merged
   add_custom_target(rust-docs
     COMMAND
-      ${CMAKE_COMMAND} -E env SYSROOT=${CMAKE_SYSROOT} INCLUDES="${RUST_INCLUDES}" ${CARGO} doc --document-private-items --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${CMAKE_BINARY_DIR}/docs-rust ${RUST_CARGO_FLAG} --target thumbv7em-none-eabi
+      ${CMAKE_COMMAND} -E env CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR} SYSROOT=${CMAKE_SYSROOT} INCLUDES="${RUST_INCLUDES}" ${CARGO} doc --document-private-items --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${CMAKE_BINARY_DIR}/docs-rust ${RUST_CARGO_FLAG} --target thumbv7em-none-eabi
     COMMAND
       ${CMAKE_COMMAND} -E echo "See docs at file://${CMAKE_BINARY_DIR}/docs-rust/thumbv7em-none-eabi/doc/bitbox02_rust/index.html"
   )
+  add_dependencies(rust-docs rust-bindgen)
 
   set(STACK_SIZE "0x10000" CACHE STRING "Specify stack size for bootloader/firmware")
   set(STACK_SIZE ${STACK_SIZE} PARENT_SCOPE)

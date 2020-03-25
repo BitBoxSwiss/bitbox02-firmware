@@ -14,75 +14,11 @@
 
 #include "status.h"
 
-#include "blocking.h"
-#include "workflow.h"
-
 #include <ui/components/status.h>
-#include <ui/screen_stack.h>
-#include <ui/workflow_stack.h>
 #include <ui/ugui/ugui.h>
-#include <util.h>
 #ifndef TESTING
 #include <hal_delay.h>
 #endif
-
-typedef struct {
-    char* msg;
-    bool status_success;
-    bool finished;
-    void (*callback)(void*);
-    void* callback_param;
-} data_t;
-
-/**
- * Invoked when the status expired.
- */
-static void _status_cb(void* param)
-{
-    data_t* data = (data_t*)param;
-    data->finished = true;
-}
-
-static void _workflow_status_init(workflow_t* self)
-{
-    data_t* data = (data_t*)self->data;
-    ui_screen_stack_push(
-        status_create(data->msg, data->status_success, STATUS_DEFAULT_DELAY, _status_cb, data));
-}
-
-static void _workflow_status_cleanup(workflow_t* self)
-{
-    data_t* data = (data_t*)self->data;
-    ui_screen_stack_pop();
-    free(data->msg);
-}
-
-static void _workflow_status_spin(workflow_t* self)
-{
-    data_t* data = (data_t*)self->data;
-    if (data->finished) {
-        if (data->callback) {
-            data->callback(data->callback_param);
-        }
-        workflow_stack_stop_workflow();
-    }
-}
-
-workflow_t* workflow_status(
-    const char* msg,
-    bool status_success,
-    void (*callback)(void*),
-    void* cb_param)
-{
-    workflow_t* result = workflow_allocate(
-        _workflow_status_init, _workflow_status_cleanup, _workflow_status_spin, sizeof(data_t));
-    data_t* data = (data_t*)result->data;
-    data->msg = util_strdup(msg);
-    data->status_success = status_success;
-    data->callback = callback;
-    data->callback_param = cb_param;
-    return result;
-}
 
 /**
  * Blocking wrapper for workflow_status().
@@ -92,7 +28,8 @@ void workflow_status_blocking(const char* msg, bool status_success)
     component_t* comp = status_create(msg, status_success, STATUS_DEFAULT_DELAY, NULL, NULL);
     UG_ClearBuffer();
     comp->f->render(comp);
-    UG_SendBuffer();comp->f->cleanup(comp);
+    UG_SendBuffer();
+    comp->f->cleanup(comp);
 #ifndef TESTING
     delay_ms(3000);
 #endif

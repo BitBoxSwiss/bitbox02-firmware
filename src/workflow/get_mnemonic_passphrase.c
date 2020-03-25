@@ -112,7 +112,7 @@ static void _get_mnemonic_passphrase_spin(workflow_t* self)
         break;
     }
     case MNEMONIC_PASSPHRASE_TRY_AGAIN:
-        workflow_stack_start_workflow(workflow_status("Please try again", false, NULL, NULL));
+        workflow_status_blocking("Please try again", false);
         data->state = MNEMONIC_PASSPHRASE_PW_ENTER;
         break;
     case MNEMONIC_PASSPHRASE_FINISHED:

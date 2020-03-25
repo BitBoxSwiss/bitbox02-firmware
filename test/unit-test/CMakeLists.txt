@@ -231,7 +231,7 @@ set(TEST_LIST
    workflow_blocking
    "-Wl,--wrap=screen_process"
    workflow_status
-   "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=status_create,--wrap=workflow_blocking_block,--wrap=workflow_blocking_unblock"
+   "-Wl,--wrap=status_create"
    workflow_cancel
    "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=workflow_blocking_unblock,--wrap=workflow_blocking_block,--wrap=workflow_confirm_blocking,--wrap=workflow_status_blocking"
    ugui

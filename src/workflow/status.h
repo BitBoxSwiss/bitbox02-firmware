@@ -38,11 +38,10 @@ workflow_t* workflow_status(
     void* cb_param);
 
 /**
- * Blocking wrapper for workflow_status. This will start a new workflow_status
- * and wait until it completes.
+ * Shows a status screen for ~3000ms, blocking.
  *
- * @param msg See workflow_status.
- * @param status_success See workflow_status.
+ * @param msg See status_create.
+ * @param status_success See status_create.
  */
 void workflow_status_blocking(const char* msg, bool status_success);
 

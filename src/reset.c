@@ -23,26 +23,6 @@
 #ifndef TESTING
 #include "securechip/securechip.h"
 #include <driver_init.h>
-#include <hal_delay.h>
-#include <ui/components/status.h>
-#include <ui/ugui/ugui.h>
-#endif
-
-#if !defined(TESTING)
-/*
- * Shows a centered "Device reset" label.
- * Waits for 3000ms, then exit.
- */
-static void _show_reset_label(bool status)
-{
-    const char* msg = "Device reset";
-    component_t* comp = status_create(msg, status, STATUS_DEFAULT_DELAY, NULL, NULL);
-    UG_ClearBuffer();
-    comp->f->render(comp);
-    UG_SendBuffer();
-    comp->f->cleanup(comp);
-    delay_ms(3000);
-}
 #endif
 
 void reset_reset(bool status)
@@ -64,9 +44,9 @@ void reset_reset(bool status)
 #if !defined(TESTING)
     /* Disable SmartEEPROM, so it will be erased on next reboot. */
     smarteeprom_disable();
-    _show_reset_label(status);
+#endif
+    workflow_status_blocking("Device reset", status);
+#if !defined(TESTING)
     _reset_mcu();
-#else
-    (void)status;
 #endif
 }

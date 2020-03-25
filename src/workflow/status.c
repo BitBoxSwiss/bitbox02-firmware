@@ -20,7 +20,11 @@
 #include <ui/components/status.h>
 #include <ui/screen_stack.h>
 #include <ui/workflow_stack.h>
+#include <ui/ugui/ugui.h>
 #include <util.h>
+#ifndef TESTING
+#include <hal_delay.h>
+#endif
 
 typedef struct {
     char* msg;
@@ -81,19 +85,15 @@ workflow_t* workflow_status(
 }
 
 /**
- * Callback used to wrap workflow_status into workflow_status_blocking().
- */
-static void _unlock_cb(void* param)
-{
-    (void)param;
-    workflow_blocking_unblock();
-}
-
-/**
  * Blocking wrapper for workflow_status().
  */
 void workflow_status_blocking(const char* msg, bool status_success)
 {
-    workflow_stack_start_workflow(workflow_status(msg, status_success, _unlock_cb, NULL));
-    workflow_blocking_block();
+    component_t* comp = status_create(msg, status_success, STATUS_DEFAULT_DELAY, NULL, NULL);
+    UG_ClearBuffer();
+    comp->f->render(comp);
+    UG_SendBuffer();comp->f->cleanup(comp);
+#ifndef TESTING
+    delay_ms(3000);
+#endif
 }

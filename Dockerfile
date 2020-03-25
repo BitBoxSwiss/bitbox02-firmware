@@ -132,9 +132,11 @@ ENV PATH /opt/lcov-1.14/bin:$PATH
 # Install rust compiler
 ENV PATH /opt/cargo/bin:$PATH
 ENV RUSTUP_HOME=/opt/rustup
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain 1.42.0 -y
+COPY rust-toolchain /tmp/rust-toolchain
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain $(cat /tmp/rust-toolchain | tr -d '\r\n\t') -y
 RUN rustup target add thumbv7em-none-eabi
-RUN rustup component add rustfmt
+# re-enable and put into CI once available: https://rust-lang.github.io/rustup-components-history/index.html
+# RUN rustup component add rustfmt
 RUN rustup component add clippy
 RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.13.1
 RUN CARGO_HOME=/opt/cargo cargo install bindgen --version 0.53.2

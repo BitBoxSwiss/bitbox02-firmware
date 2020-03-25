@@ -26,3 +26,4 @@ panic = 'abort'
 
 [dependencies]
 bitbox02-sys = {path="../bitbox02-sys"}
+util = {path = "../util"}

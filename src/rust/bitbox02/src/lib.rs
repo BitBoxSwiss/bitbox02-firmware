@@ -16,6 +16,8 @@
 #![no_std]
 
 pub mod password;
+pub mod ui;
+
 use core::time::Duration;
 
 // Reexport the protobuf types

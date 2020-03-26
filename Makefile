@@ -80,6 +80,8 @@ factory-setup-bitboxbase: | build
 	$(MAKE) -C build factory-setup-bitboxbase.elf
 docs: | build
 	$(MAKE) -C build doc
+rust-docs: | build
+	$(MAKE) -C build rust-docs
 unit-test: | build-build
 	$(MAKE) -C build-build
 device-tests: | build

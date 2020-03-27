@@ -17,41 +17,85 @@ use util::c_types::{c_char, c_void};
 extern crate alloc;
 use crate::password::Password;
 use alloc::boxed::Box;
-use core::pin::Pin;
 
 /// Wraps the C component_t to be used in Rust.
-pub struct Component(*mut bitbox02_sys::component_t);
+pub use core::marker::PhantomData;
+
+pub struct Component<'a> {
+    component: *mut bitbox02_sys::component_t,
+    is_pushed: bool,
+    // This is used to have the result callbacks outlive the component.
+    _p: PhantomData<&'a ()>,
+}
+
+impl<'a> Component<'a> {
+    pub fn screen_stack_push(&mut self) {
+        if self.is_pushed {
+            panic!("component pushed twice");
+        }
+        unsafe {
+            bitbox02_sys::ui_screen_stack_push(self.component);
+        }
+        self.is_pushed = true;
+    }
+}
+
+impl<'a> Drop for Component<'a> {
+    fn drop(&mut self) {
+        if !self.is_pushed {
+            panic!("component not pushed");
+        }
+        unsafe {
+            bitbox02_sys::ui_screen_stack_pop();
+        }
+    }
+}
 
 /// Creates a password input component.
 /// `title` - Shown before any input is entered as the screen title. **Panics** if more than 100 bytes.
 /// `special_chars` - whether to enable the special characters keyboard.
 /// `result` - will be asynchronously set to `Some(<password>)` once the user confirms.
-pub fn trinary_input_string_create_password(
+pub fn trinary_input_string_create_password<'a, F>(
     title: &str,
     special_chars: bool,
-    result: Pin<&mut Option<Password>>,
-) -> Component {
-    extern "C" fn on_done_cb(password: *const c_char, param: *mut c_void) {
-        let mut out: Box<Pin<&mut Option<Password>>> = unsafe { Box::from_raw(param as *mut _) };
+    confirm_callback: F,
+) -> Component<'a>
+where
+    // Callback must outlive component.
+    F: FnMut(Password) + 'a,
+{
+    unsafe extern "C" fn c_confirm_callback<F2>(password: *const c_char, param: *mut c_void)
+    where
+        F2: FnMut(Password),
+    {
+        //let mut out: Box<dyn FnMut(Password)> = unsafe { Box::from_raw(param as *mut _) };
         let mut password_out = Password::new();
         let len = password_out.as_ref().len();
         password_out
             .as_mut()
-            .copy_from_slice(unsafe { core::slice::from_raw_parts(password, len) });
-        out.set(Some(password_out));
+            .copy_from_slice(core::slice::from_raw_parts(password, len));
+        let callback_ptr = param as *mut F2;
+        let callback = &mut *callback_ptr;
+        callback(password_out);
     }
 
     let component = unsafe {
         bitbox02_sys::trinary_input_string_create_password(
             crate::str_to_cstr_force!(title, 100).as_ptr(),
             special_chars,
-            Some(on_done_cb),
-            Box::into_raw(Box::new(result)) as *mut _, // passed to on_done_cb as `param`.
+            Some(c_confirm_callback::<F>),
+            // TODO: from_raw
+            // passed to c_confirm_callback as `param`.
+            Box::into_raw(Box::new(confirm_callback)) as *mut _,
             None,
             core::ptr::null_mut(),
         )
     };
-    Component(component)
+    Component {
+        component,
+        is_pushed: false,
+        _p: PhantomData,
+    }
 }
 
 pub enum Font {
@@ -98,7 +142,11 @@ pub struct ConfirmParams<'a> {
 
 /// Creates a user confirmation dialog screen.
 /// `result` - will be asynchronously set to `Some(bool)` once the user accets or rejects.
-pub fn confirm_create(params: &ConfirmParams, result: Pin<&mut Option<bool>>) -> Component {
+pub fn confirm_create<'a, F>(params: &ConfirmParams, result_callback: F) -> Component<'a>
+where
+    // Callback must outlive component.
+    F: FnMut(bool) + 'a,
+{
     let params = bitbox02_sys::confirm_params_t {
         title: crate::str_to_cstr_force!(params.title, 200).as_ptr(),
         body: crate::str_to_cstr_force!(params.body, 200).as_ptr(),
@@ -111,41 +159,43 @@ pub fn confirm_create(params: &ConfirmParams, result: Pin<&mut Option<bool>>) ->
         display_size: params.display_size as _,
     };
 
-    extern "C" fn on_accept_cb(param: *mut c_void) {
-        let mut out: Box<Pin<&mut Option<bool>>> = unsafe { Box::from_raw(param as *mut _) };
-        out.set(Some(true));
+    unsafe extern "C" fn c_confirm_callback<F2>(param: *mut c_void)
+    where
+        F2: FnMut(bool),
+    {
+        let callback_ptr = param as *mut F2;
+        let callback = &mut *callback_ptr;
+        callback(true);
     }
-    extern "C" fn on_reject_cb(param: *mut c_void) {
-        let mut out: Box<Pin<&mut Option<bool>>> = unsafe { Box::from_raw(param as *mut _) };
-        out.set(Some(false));
+    unsafe extern "C" fn c_cancel_callback<F2>(param: *mut c_void)
+    where
+        F2: FnMut(bool),
+    {
+        let callback_ptr = param as *mut F2;
+        let callback = &mut *callback_ptr;
+        callback(false);
     }
 
-    let result_ptr = Box::into_raw(Box::new(result)) as *mut _; // passed to callbacks `param`.
+    // passed to the C callbacks as `param`
+    let callback_ptr = Box::into_raw(Box::new(result_callback));
     let component = unsafe {
         bitbox02_sys::confirm_create(
             &params,
-            Some(on_accept_cb),
-            result_ptr,
+            Some(c_confirm_callback::<F>),
+            callback_ptr as *mut _,
             if !params.accept_only {
-                Some(on_reject_cb)
+                Some(c_cancel_callback::<F>)
             } else {
                 None
             },
-            result_ptr,
+            // passed to c_cancel_callback as `param`
+            callback_ptr as *mut _,
         )
     };
-    Component(component)
-}
-
-pub fn screen_stack_push(component: &mut Component) {
-    unsafe {
-        bitbox02_sys::ui_screen_stack_push(component.0);
-    }
-}
-
-pub fn screen_stack_pop() {
-    unsafe {
-        bitbox02_sys::ui_screen_stack_pop();
+    Component {
+        component,
+        is_pushed: false,
+        _p: PhantomData,
     }
 }
 

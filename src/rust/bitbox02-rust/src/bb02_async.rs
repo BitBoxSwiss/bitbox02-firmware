@@ -15,6 +15,7 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
+use core::cell::RefCell;
 use core::pin::Pin;
 
 /// Task is the top-level future which can be polled by an executor.
@@ -30,7 +31,7 @@ pub fn spin<O>(task: &mut Task<O>) -> core::task::Poll<O> {
 }
 
 /// Implements the Option future, see `option()`.
-pub struct AsyncOption<'a, O>(&'a Option<O>);
+pub struct AsyncOption<'a, O>(&'a RefCell<Option<O>>);
 
 impl<O> core::future::Future for AsyncOption<'_, O> {
     type Output = ();
@@ -38,7 +39,7 @@ impl<O> core::future::Future for AsyncOption<'_, O> {
         self: core::pin::Pin<&mut Self>,
         _cx: &mut core::task::Context<'_>,
     ) -> core::task::Poll<Self::Output> {
-        match self.0 {
+        match *self.0.borrow() {
             None => core::task::Poll::Pending,
             Some(_) => core::task::Poll::Ready(()),
         }
@@ -47,6 +48,6 @@ impl<O> core::future::Future for AsyncOption<'_, O> {
 
 /// Waits for an option to contain a value and returns a copy of that value.
 /// E.g. `assert_eq!(option(&Some(42)).await, 42)`.
-pub fn option<'a, O>(option: &'a Option<O>) -> AsyncOption<'a, O> {
+pub fn option<'a, O>(option: &'a RefCell<Option<O>>) -> AsyncOption<'a, O> {
     AsyncOption(&option)
 }

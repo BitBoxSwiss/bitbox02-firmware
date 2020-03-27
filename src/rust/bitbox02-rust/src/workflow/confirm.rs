@@ -13,21 +13,19 @@
 // limitations under the License.
 
 use crate::bb02_async::option;
-use alloc::boxed::Box;
-use core::pin::Pin;
 
 pub use bitbox02::ui::ConfirmParams as Params;
 
 /// Returns true if the user accepts, false if the user rejects.
 pub async fn confirm(params: &Params<'_>) -> bool {
-    let mut result: Pin<Box<Option<bool>>> = Box::pin(None);
+    let result = core::cell::RefCell::new(None as Option<bool>);
 
     // The component will set the result when the user accepted/rejected.
-    let mut component = bitbox02::ui::confirm_create(&params, result.as_mut());
-
-    bitbox02::ui::screen_stack_push(&mut component);
+    let mut component = bitbox02::ui::confirm_create(&params, |accepted| {
+        *result.borrow_mut() = Some(accepted);
+    });
+    component.screen_stack_push();
     option(&result).await;
-    bitbox02::ui::screen_stack_pop();
-
+    let result = result.borrow();
     result.unwrap()
 }

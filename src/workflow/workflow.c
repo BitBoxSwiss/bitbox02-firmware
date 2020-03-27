@@ -68,12 +68,6 @@ workflow_t* workflow_allocate(
     return result;
 }
 
-void workflow_start(void)
-{
-    workflow_stack_clear();
-    workflow_stack_start_workflow(orientation_screen());
-}
-
 void workflow_destroy(workflow_t* workflow)
 {
     if (workflow->cleanup) {

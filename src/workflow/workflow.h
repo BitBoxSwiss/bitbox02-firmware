@@ -28,12 +28,6 @@
 void workflow_confirm_dismiss(const char* title, const char* body);
 
 /**
- * Switches to either the initialization or the unlock state depending on if the
- * device is initialized or not.
- */
-void workflow_start(void);
-
-/**
  * Loads the "Select orientation" screen.
  */
 void workflow_start_orientation_screen(void);

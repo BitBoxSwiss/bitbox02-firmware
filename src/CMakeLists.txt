@@ -312,8 +312,9 @@ if(CMAKE_CROSSCOMPILING)
   get_property(CMSIS_INCLUDES TARGET CMSIS PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
 endif()
 get_property(WALLY_INCLUDES TARGET wallycore PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+get_property(SECP256k1_INCLUDES TARGET secp256k1 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
 
-foreach(include ${INCLUDES} ${SYSTEMINCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDES} ${ASF4_MIN_INCLUDES} ${CMSIS_INCLUDES} ${NANOPB_INCLUDE_DIRS} ${WALLY_INCLUDES})
+foreach(include ${INCLUDES} ${SYSTEMINCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDES} ${ASF4_MIN_INCLUDES} ${CMSIS_INCLUDES} ${NANOPB_INCLUDE_DIRS} ${WALLY_INCLUDES} ${SECP256k1_INCLUDES})
   list(APPEND RUST_INCLUDES -I${include})
 endforeach()
 
@@ -332,7 +333,15 @@ add_custom_target(rust-bindgen
     --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs
     --use-core
     --ctypes-prefix util::c_types
+    --whitelist-function memory_is_initialized
+    --whitelist-function memory_is_mnemonic_passphrase_enabled
+    --whitelist-function keystore_is_locked
+    --whitelist-function keystore_unlock
+    --whitelist-function keystore_unlock_bip39
+    --whitelist-function lock_animation_start
+    --whitelist-function lock_animation_stop
     --whitelist-function delay_us
+    --rustified-enum keystore_error_t
     --whitelist-function delay_ms
     --whitelist-function UG_PutString
     --whitelist-function UG_FontSelect

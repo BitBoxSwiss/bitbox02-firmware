@@ -234,3 +234,9 @@ where
         _p: PhantomData,
     }
 }
+
+pub fn with_lock_animation<F: Fn()>(f: F) {
+    unsafe { bitbox02_sys::lock_animation_start() };
+    f();
+    unsafe { bitbox02_sys::lock_animation_stop() };
+}

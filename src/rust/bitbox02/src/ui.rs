@@ -204,3 +204,33 @@ pub fn screen_process() {
         bitbox02_sys::screen_process();
     }
 }
+
+pub fn status_create<'a, F>(text: &str, status_success: bool, callback: F) -> Component<'a>
+where
+    // Callback must outlive component.
+    F: FnMut() + 'a,
+{
+    unsafe extern "C" fn c_callback<F2>(param: *mut c_void)
+    where
+        F2: FnMut(),
+    {
+        let callback_ptr = param as *mut F2;
+        let callback = &mut *callback_ptr;
+        callback();
+    }
+
+    let component = unsafe {
+        bitbox02_sys::status_create(
+            crate::str_to_cstr_force!(text, 200).as_ptr(),
+            status_success,
+            Some(c_callback::<F>),
+            // TODO: from_raw
+            Box::into_raw(Box::new(callback)) as *mut _, // passed to c_callback as `param`.
+        )
+    };
+    Component {
+        component,
+        is_pushed: false,
+        _p: PhantomData,
+    }
+}

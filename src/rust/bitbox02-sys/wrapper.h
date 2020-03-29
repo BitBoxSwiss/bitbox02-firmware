@@ -20,6 +20,7 @@
 #include <screen.h>
 #include <ui/components/confirm.h>
 #include <ui/components/label.h>
+#include <ui/components/status.h>
 #include <ui/components/trinary_input_string.h>
 #include <ui/fonts/font_a_9X9.h>
 #include <ui/fonts/monogram_5X9.h>

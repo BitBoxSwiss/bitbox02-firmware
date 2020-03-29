@@ -18,10 +18,14 @@
 #include <commander/commander.h>
 #include <platform/bitboxbase/leds.h>
 #include <screen.h>
+#include <ui/components/confirm.h>
 #include <ui/components/label.h>
+#include <ui/components/trinary_input_string.h>
 #include <ui/fonts/font_a_9X9.h>
 #include <ui/fonts/monogram_5X9.h>
+#include <ui/fonts/password_11X12.h>
 #include <ui/oled/oled.h>
+#include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 #include <ui/ugui/ugui.h>
 #include <wally_crypto.h>

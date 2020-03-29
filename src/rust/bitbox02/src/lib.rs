@@ -15,6 +15,9 @@
 // This crate contains safe wrappers around C functions provided by bitbox02_sys.
 #![no_std]
 
+pub mod password;
+pub mod ui;
+
 use core::time::Duration;
 
 // Reexport the protobuf types

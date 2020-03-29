@@ -12,8 +12,10 @@
 #include <stdint.h>
 
 /**
- * Gets a frame of the lock animation.
+ * Start unlock animation via a timer that draws frames. To be calle before bip39 unlock.
+ * Must call lock_animation_stop after the unlock is finished.
  */
-const uint8_t* lock_animation_get_frame(int frame_idx);
+void lock_animation_start(void);
+void lock_animation_stop(void);
 
 #endif // _LOCK_ANIMATION_H

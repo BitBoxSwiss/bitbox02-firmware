@@ -1,8 +1,31 @@
+// Copyright 2020 Shift Cryptosecurity AG
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "lock_animation.h"
 
 #include <stdint.h>
 
 #include <hardfault.h>
+
+#include "graphics.h"
+#include <screen.h>
+#include <ui/ugui/ugui.h>
+
+#ifndef TESTING
+#include <hal_timer.h>
+#include <platform/driver_init.h>
+#endif
 
 #define LOCK_ANIMATION_ACTUAL_N_FRAMES (10)
 /**
@@ -19,6 +42,7 @@
  */
 #define LOCK_ANIMATION_PAUSE_FRAME (2)
 
+#ifndef TESTING
 static const uint8_t LOCK_ANIMATION[LOCK_ANIMATION_ACTUAL_N_FRAMES][LOCK_ANIMATION_FRAME_SIZE] = {
     // Frame 0 - Closed lock
     {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -91,7 +115,10 @@ static const uint8_t LOCK_ANIMATION[LOCK_ANIMATION_ACTUAL_N_FRAMES][LOCK_ANIMATI
      0x00, 0x7f, 0xff, 0x00, 0x07, 0xff, 0xf0, 0x00, 0x7f, 0xff, 0x00, 0x07, 0xff, 0xf0, 0x00,
      0x7f, 0xff, 0x00, 0x07, 0xff, 0xf0, 0x00, 0x7f, 0xff, 0x00, 0x03, 0xff, 0xe0}};
 
-const uint8_t* lock_animation_get_frame(int frame_idx)
+/**
+ * Gets a frame of the lock animation.
+ */
+static const uint8_t* _get_frame(int frame_idx)
 {
     if (frame_idx >= LOCK_ANIMATION_N_FRAMES) {
         Abort("Invalid lock animation frame requested.");
@@ -115,4 +142,62 @@ const uint8_t* lock_animation_get_frame(int frame_idx)
         return LOCK_ANIMATION[LOCK_ANIMATION_ACTUAL_N_FRAMES - 1];
     }
     return LOCK_ANIMATION[actual_frame_idx];
+}
+#endif
+
+#define TIMEOUT_TICK_PERIOD_MS 100
+
+#ifndef TESTING
+static struct timer_task _animation_timer_task = {0};
+static int _animation_current_frame = 0;
+
+/**
+ * Displays frames of the lock animation
+ * at a regular rate until it's finished.
+ * Leaves the last frame on the screen.
+ */
+static void _animation_timer_cb(const struct timer_task* const timer_task)
+{
+    (void)timer_task;
+    if (_animation_current_frame == LOCK_ANIMATION_N_FRAMES) {
+        /* End of the animation */
+        return;
+    }
+
+    /* Draw the frame. */
+    UG_ClearBuffer();
+    position_t pos = {.left = (SCREEN_WIDTH - LOCK_ANIMATION_FRAME_WIDTH) / 2,
+                      .top = (SCREEN_HEIGHT - LOCK_ANIMATION_FRAME_HEIGHT) / 2};
+    dimension_t dim = {.width = LOCK_ANIMATION_FRAME_WIDTH, .height = LOCK_ANIMATION_FRAME_HEIGHT};
+    in_buffer_t image = {.data = _get_frame(_animation_current_frame),
+                         .len = LOCK_ANIMATION_FRAME_SIZE};
+    graphics_draw_image(&pos, &dim, &image);
+    UG_SendBuffer();
+    _animation_current_frame++;
+}
+#endif
+
+/**
+ * Sets up a timer animating a lock icon every 100ms
+ */
+void lock_animation_start(void)
+{
+#ifndef TESTING
+    _animation_timer_task.interval = TIMEOUT_TICK_PERIOD_MS;
+    _animation_timer_task.cb = _animation_timer_cb;
+    _animation_timer_task.mode = TIMER_TASK_REPEAT;
+    timer_stop(&TIMER_0);
+    timer_add_task(&TIMER_0, &_animation_timer_task);
+    _animation_current_frame = 0;
+    timer_start(&TIMER_0);
+#endif
+}
+
+void lock_animation_stop(void)
+{
+#ifndef TESTING
+    timer_stop(&TIMER_0);
+    timer_remove_task(&TIMER_0, &_animation_timer_task);
+    timer_start(&TIMER_0);
+#endif
 }

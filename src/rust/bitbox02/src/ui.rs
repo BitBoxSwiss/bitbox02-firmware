@@ -70,10 +70,10 @@ where
     {
         //let mut out: Box<dyn FnMut(Password)> = unsafe { Box::from_raw(param as *mut _) };
         let mut password_out = Password::new();
-        let len = password_out.as_ref().len();
+        let cap = password_out.cap();
         password_out
             .as_mut()
-            .copy_from_slice(core::slice::from_raw_parts(password, len));
+            .copy_from_slice(core::slice::from_raw_parts(password, cap));
         let callback_ptr = param as *mut F2;
         let callback = &mut *callback_ptr;
         callback(password_out);

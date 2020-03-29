@@ -33,5 +33,5 @@ pub async fn password_enter(title: &str, special_chars: bool, password_out: &mut
     let result: &Option<Password> = &result.borrow();
     let result: Option<&Password> = result.as_ref();
     let result: &Password = result.unwrap();
-    password_out.clone_from(&result);
+    password_out.copy_from(&result);
 }

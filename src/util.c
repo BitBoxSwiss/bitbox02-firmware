@@ -57,6 +57,15 @@ void util_cleanup_64(uint8_t** buf)
     util_zero(*buf, 64);
 }
 
+void* util_malloc(size_t size)
+{
+    void* result = malloc(size);
+    if ((!result) && (size > 0)) {
+        Abort("util_malloc failed.");
+    }
+    return result;
+}
+
 char* util_strdup(const char* str)
 {
     char* result = strdup(str);

@@ -238,10 +238,11 @@ static void _process_msg(const Packet* in_packet, Packet* out_packet)
 }
 
 static void _msg(const Packet* in_packet) {
-    Packet out_packet;
-    prepare_usb_packet(in_packet->cmd, in_packet->cid, &out_packet);
-    _process_msg(in_packet, &out_packet);
-    usb_processing_send_packet(usb_processing_hww(), &out_packet);
+    Packet* out_packet = util_malloc(sizeof(*out_packet));
+    prepare_usb_packet(in_packet->cmd, in_packet->cid, out_packet);
+    _process_msg(in_packet, out_packet);
+    usb_processing_send_packet(usb_processing_hww(), out_packet);
+    free(out_packet);
 }
 
 bool hww_blocking_request_can_go_through(const Packet* in_packet)

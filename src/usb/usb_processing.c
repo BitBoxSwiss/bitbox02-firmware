@@ -282,10 +282,11 @@ static void _usb_arbitrate_packet(struct usb_processing* ctx, const Packet* in_p
 
     if (!can_go_through) {
         /* The receiving state should send back an error */
-        Packet out_packet;
-        prepare_usb_packet(in_packet->cmd, in_packet->cid, &out_packet);
-        ctx->create_blocked_req_error(&out_packet, in_packet);
-        usb_processing_send_packet(ctx, &out_packet);
+        Packet* out_packet = util_malloc(sizeof(*out_packet));
+        prepare_usb_packet(in_packet->cmd, in_packet->cid, out_packet);
+        ctx->create_blocked_req_error(out_packet, in_packet);
+        usb_processing_send_packet(ctx, out_packet);
+        free(out_packet);
     } else {
         _usb_execute_packet(ctx, in_packet);
         /* New packet processed: reset the watchdog timeout. */

@@ -162,4 +162,14 @@ typedef struct {
  */
 typedef enum { ASYNC_OP_TRUE, ASYNC_OP_FALSE, ASYNC_OP_NOT_READY } async_op_result_t;
 
+/**
+ * Allocate memory. Abort
+ * if malloc fails.
+ *
+ * @param[in] size Number of bytes to allocate. Gets passed to malloc(2).
+ * @return Allocated pointer. Guaranteed to be non-NULL.
+ */
+__attribute__((malloc))
+void* util_malloc(size_t size);
+
 #endif

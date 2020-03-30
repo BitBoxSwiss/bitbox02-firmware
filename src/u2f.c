@@ -686,48 +686,53 @@ static void _authenticate_continue(const USB_APDU* apdu, Packet* out_packet)
 
 static void _cmd_ping(const Packet* in_packet)
 {
-    Packet out_packet;
-    prepare_usb_packet(in_packet->cmd, in_packet->cid, &out_packet);
+    Packet* out_packet = util_malloc(sizeof(*out_packet));
+    prepare_usb_packet(in_packet->cmd, in_packet->cid, out_packet);
 
     // 0 and broadcast are reserved
     if (in_packet->cid == U2FHID_CID_BROADCAST || in_packet->cid == 0) {
-        _error_hid(in_packet->cid, U2FHID_ERR_INVALID_CID, &out_packet);
-        usb_processing_send_packet(usb_processing_u2f(), &out_packet);
+        _error_hid(in_packet->cid, U2FHID_ERR_INVALID_CID, out_packet);
+        usb_processing_send_packet(usb_processing_u2f(), out_packet);
+        free(out_packet);
         return;
     }
 
-    util_zero(out_packet.data_addr, sizeof(out_packet.data_addr));
+    util_zero(out_packet->data_addr, sizeof(out_packet->data_addr));
     size_t max = MIN(in_packet->len, USB_DATA_MAX_LEN);
-    memcpy(out_packet.data_addr, in_packet->data_addr, max);
-    out_packet.len = in_packet->len;
-    out_packet.cmd = U2FHID_PING;
-    out_packet.cid = in_packet->cid;
-    usb_processing_send_packet(usb_processing_u2f(), &out_packet);
+    memcpy(out_packet->data_addr, in_packet->data_addr, max);
+    out_packet->len = in_packet->len;
+    out_packet->cmd = U2FHID_PING;
+    out_packet->cid = in_packet->cid;
+    usb_processing_send_packet(usb_processing_u2f(), out_packet);
+    free(out_packet);
 }
 
 static void _cmd_wink(const Packet* in_packet)
 {
-    Packet out_packet;
-    prepare_usb_packet(in_packet->cmd, in_packet->cid, &out_packet);
+    Packet* out_packet = util_malloc(sizeof(*out_packet));
+    prepare_usb_packet(in_packet->cmd, in_packet->cid, out_packet);
 
     // 0 and broadcast are reserved
     if (in_packet->cid == U2FHID_CID_BROADCAST || in_packet->cid == 0) {
-        _error_hid(in_packet->cid, U2FHID_ERR_INVALID_CID, &out_packet);
-        usb_processing_send_packet(usb_processing_u2f(), &out_packet);
+        _error_hid(in_packet->cid, U2FHID_ERR_INVALID_CID, out_packet);
+        usb_processing_send_packet(usb_processing_u2f(), out_packet);
+        free(out_packet);
         return;
     }
 
     if (in_packet->len > 0) {
-        _error_hid(in_packet->cid, U2FHID_ERR_INVALID_LEN, &out_packet);
-        usb_processing_send_packet(usb_processing_u2f(), &out_packet);
+        _error_hid(in_packet->cid, U2FHID_ERR_INVALID_LEN, out_packet);
+        usb_processing_send_packet(usb_processing_u2f(), out_packet);
+        free(out_packet);
         return;
     }
 
-    util_zero(out_packet.data_addr, sizeof(out_packet.data_addr));
-    out_packet.len = 0;
-    out_packet.cmd = U2FHID_WINK;
-    out_packet.cid = in_packet->cid;
-    usb_processing_send_packet(usb_processing_u2f(), &out_packet);
+    util_zero(out_packet->data_addr, sizeof(out_packet->data_addr));
+    out_packet->len = 0;
+    out_packet->cmd = U2FHID_WINK;
+    out_packet->cid = in_packet->cid;
+    usb_processing_send_packet(usb_processing_u2f(), out_packet);
+    free(out_packet);
 }
 
 /**
@@ -739,28 +744,30 @@ static void _cmd_wink(const Packet* in_packet)
  */
 static void _cmd_init(const Packet* in_packet)
 {
-    Packet out_packet;
-    prepare_usb_packet(in_packet->cmd, in_packet->cid, &out_packet);
+    Packet* out_packet = util_malloc(sizeof(*out_packet));
+    prepare_usb_packet(in_packet->cmd, in_packet->cid, out_packet);
 
     if (U2FHID_INIT_RESP_SIZE >= USB_DATA_MAX_LEN) {
-        _error_hid(in_packet->cid, U2FHID_ERR_OTHER, &out_packet);
-        usb_processing_send_packet(usb_processing_u2f(), &out_packet);
+        _error_hid(in_packet->cid, U2FHID_ERR_OTHER, out_packet);
+        usb_processing_send_packet(usb_processing_u2f(), out_packet);
+        free(out_packet);
         return;
     }
 
     // Channel 0 is reserved
     if (in_packet->cid == 0) {
-        _error_hid(in_packet->cid, U2FHID_ERR_INVALID_CID, &out_packet);
-        usb_processing_send_packet(usb_processing_u2f(), &out_packet);
+        _error_hid(in_packet->cid, U2FHID_ERR_INVALID_CID, out_packet);
+        usb_processing_send_packet(usb_processing_u2f(), out_packet);
+        free(out_packet);
         return;
     }
 
     const U2FHID_INIT_REQ* init_req = (const U2FHID_INIT_REQ*)&in_packet->data_addr;
     U2FHID_INIT_RESP response;
 
-    out_packet.cid = in_packet->cid;
-    out_packet.cmd = U2FHID_INIT;
-    out_packet.len = U2FHID_INIT_RESP_SIZE;
+    out_packet->cid = in_packet->cid;
+    out_packet->cmd = U2FHID_INIT;
+    out_packet->len = U2FHID_INIT_RESP_SIZE;
 
     util_zero(&response, sizeof(response));
     memcpy(response.nonce, init_req->nonce, sizeof(init_req->nonce));
@@ -770,9 +777,10 @@ static void _cmd_init(const Packet* in_packet)
     response.versionMinor = DIGITAL_BITBOX_VERSION_MINOR;
     response.versionBuild = DIGITAL_BITBOX_VERSION_PATCH;
     response.capFlags = U2FHID_CAPFLAG_WINK;
-    util_zero(out_packet.data_addr, sizeof(out_packet.data_addr));
-    memcpy(out_packet.data_addr, &response, sizeof(response));
-    usb_processing_send_packet(usb_processing_u2f(), &out_packet);
+    util_zero(out_packet->data_addr, sizeof(out_packet->data_addr));
+    memcpy(out_packet->data_addr, &response, sizeof(response));
+    usb_processing_send_packet(usb_processing_u2f(), out_packet);
+    free(out_packet);
 }
 
 /**
@@ -888,9 +896,6 @@ static void _abort_authenticate(void)
  */
 static void _cmd_msg(const Packet* in_packet)
 {
-    Packet out_packet;
-    prepare_usb_packet(in_packet->cmd, in_packet->cid, &out_packet);
-
     // By default always use the recieved cid
     _state.cid = in_packet->cid;
 
@@ -900,29 +905,31 @@ static void _cmd_msg(const Packet* in_packet)
         return;
     }
 
+    Packet* out_packet = util_malloc(sizeof(*out_packet));
+    prepare_usb_packet(in_packet->cmd, in_packet->cid, out_packet);
+
     if (apdu->cla != 0) {
-        _error(U2F_SW_CLA_NOT_SUPPORTED, &out_packet);
-        usb_processing_send_packet(usb_processing_u2f(), &out_packet);
+        _error(U2F_SW_CLA_NOT_SUPPORTED, out_packet);
+        usb_processing_send_packet(usb_processing_u2f(), out_packet);
+        free(out_packet);
         return;
     }
 
     switch (apdu->ins) {
     case U2F_REGISTER:
-        _cmd_register(in_packet, &out_packet);
-        usb_processing_send_packet(usb_processing_u2f(), &out_packet);
+        _cmd_register(in_packet, out_packet);
         break;
     case U2F_AUTHENTICATE:
-        _cmd_authenticate(in_packet, &out_packet);
-        usb_processing_send_packet(usb_processing_u2f(), &out_packet);
+        _cmd_authenticate(in_packet, out_packet);
         break;
     case U2F_VERSION:
-        _version(apdu, &out_packet);
-        usb_processing_send_packet(usb_processing_u2f(), &out_packet);
+        _version(apdu, out_packet);
         break;
     default:
-        _error(U2F_SW_INS_NOT_SUPPORTED, &out_packet);
-        usb_processing_send_packet(usb_processing_u2f(), &out_packet);
+        _error(U2F_SW_INS_NOT_SUPPORTED, out_packet);
     }
+    usb_processing_send_packet(usb_processing_u2f(), out_packet);
+    free(out_packet);
 }
 
 bool u2f_blocking_request_can_go_through(const Packet* in_packet)

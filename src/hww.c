@@ -218,6 +218,10 @@ static void _process_packet(const in_buffer_t* in_req, hww_packet_rsp_t* out_rsp
                 out_rsp->buffer.data[0] = OP_STATUS_FAILURE_UNINITIALIZED;
                 out_rsp->buffer.len = 1;
                 return;
+            } else if (!keystore_is_locked()) {
+                out_rsp->buffer.data[0] = OP_STATUS_SUCCESS;
+                out_rsp->buffer.len = 1;
+                return;
             } else {
                 _state.unlock_wf = workflow_unlock(&_unlock_finished_cb, NULL);
                 workflow_stack_start_workflow(_state.unlock_wf);

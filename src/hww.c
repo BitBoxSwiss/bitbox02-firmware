@@ -243,7 +243,6 @@ static void _process_packet(const in_buffer_t* in_req, hww_packet_rsp_t* out_rsp
     if (!bb_noise_process_msg(in_req, &out_rsp->buffer, commander)) {
         workflow_status_blocking("Could not\npair with app", false);
     }
-    return;
 }
 
 /**

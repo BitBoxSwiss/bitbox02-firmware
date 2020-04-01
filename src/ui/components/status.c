@@ -21,10 +21,11 @@
 #include <stdbool.h>
 #include <string.h>
 
+#define STATUS_DEFAULT_DELAY 500 // counts
+
 typedef struct {
     bool status;
     int counter;
-    int delay;
     void (*callback)(void*);
     void* callback_param;
 } status_data_t;
@@ -39,7 +40,7 @@ static void _render(component_t* component)
         image_cross(SCREEN_WIDTH / 6 * 5, SCREEN_HEIGHT / 2 - height / 2, height);
     }
     if (data->callback != NULL) {
-        if (data->counter == data->delay) {
+        if (data->counter == STATUS_DEFAULT_DELAY) {
             data->callback(data->callback_param);
             data->callback = NULL;
             data->counter = 0;
@@ -62,7 +63,6 @@ static const component_functions_t _component_functions = {
 component_t* status_create(
     const char* text,
     bool status_success,
-    int delay,
     void (*callback)(void*),
     void* callback_param)
 {
@@ -78,7 +78,6 @@ component_t* status_create(
     memset(status, 0, sizeof(component_t));
 
     data->status = status_success;
-    data->delay = delay;
     data->callback = callback;
     data->callback_param = callback_param;
     status->data = data;

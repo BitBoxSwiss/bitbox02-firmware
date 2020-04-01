@@ -159,37 +159,21 @@ where
         display_size: params.display_size as _,
     };
 
-    unsafe extern "C" fn c_confirm_callback<F2>(param: *mut c_void)
+    unsafe extern "C" fn c_callback<F2>(result: bool, param: *mut c_void)
     where
         F2: FnMut(bool),
     {
         let callback_ptr = param as *mut F2;
         let callback = &mut *callback_ptr;
-        callback(true);
-    }
-    unsafe extern "C" fn c_cancel_callback<F2>(param: *mut c_void)
-    where
-        F2: FnMut(bool),
-    {
-        let callback_ptr = param as *mut F2;
-        let callback = &mut *callback_ptr;
-        callback(false);
+        callback(result);
     }
 
-    // passed to the C callbacks as `param`
-    let callback_ptr = Box::into_raw(Box::new(result_callback));
     let component = unsafe {
         bitbox02_sys::confirm_create(
             &params,
-            Some(c_confirm_callback::<F>),
-            callback_ptr as *mut _,
-            if !params.accept_only {
-                Some(c_cancel_callback::<F>)
-            } else {
-                None
-            },
-            // passed to c_cancel_callback as `param`
-            callback_ptr as *mut _,
+            Some(c_callback::<F>),
+            // passed to the C callback as `param`
+            Box::into_raw(Box::new(result_callback)) as *mut _,
         )
     };
     Component {

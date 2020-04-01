@@ -36,19 +36,11 @@ typedef struct {
     char* body;
 } data_t;
 
-static void _confirm(void* param)
+static void _confirm_callback(bool result, void* param)
 {
     workflow_t* self = (workflow_t*)param;
     data_t* data = (data_t*)self->data;
-    data->result = true;
-    data->done = true;
-}
-
-static void _reject(void* param)
-{
-    workflow_t* self = (workflow_t*)param;
-    data_t* data = (data_t*)self->data;
-    data->result = false;
+    data->result = result;
     data->done = true;
 }
 
@@ -75,8 +67,7 @@ static void _workflow_confirm_init(workflow_t* self)
 {
     data_t* data = (data_t*)self->data;
     component_t* comp;
-    comp = confirm_create(
-        &data->params, _confirm, self, data->params.accept_only ? NULL : _reject, self);
+    comp = confirm_create(&data->params, _confirm_callback, self);
     ui_screen_stack_push(comp);
 }
 

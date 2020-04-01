@@ -18,21 +18,17 @@
 #include <stdbool.h>
 #include <ui/component.h>
 
-#define STATUS_DEFAULT_DELAY 500 // counts
-
 /********************************** Create Instance **********************************/
 
 /**
  * Creates a status component with a given text. Calls the callback after delay.
  * @param[IN] text The text of the status screen.
  * @param[IN] status_success If true, indicates a success. Otherwise, false.
- * @param[IN] delay The time in counts that passes before the callback is called.
  * @param[IN] callback The callback that is called after <delay> time.
  */
 component_t* status_create(
     const char* text,
     bool status_success,
-    int delay,
     void (*callback)(void*),
     void* callback_param);
 

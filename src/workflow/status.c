@@ -42,8 +42,7 @@ static void _status_cb(void* param)
 static void _workflow_status_init(workflow_t* self)
 {
     data_t* data = (data_t*)self->data;
-    ui_screen_stack_push(
-        status_create(data->msg, data->status_success, STATUS_DEFAULT_DELAY, _status_cb, data));
+    ui_screen_stack_push(status_create(data->msg, data->status_success, _status_cb, data));
 }
 
 static void _workflow_status_cleanup(workflow_t* self)

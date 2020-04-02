@@ -81,7 +81,7 @@ where
 
     let component = unsafe {
         bitbox02_sys::trinary_input_string_create_password(
-            crate::str_to_cstr_force!(title, 100).as_ptr(),
+            crate::str_to_cstr_force!(title, 199).as_ptr(), // same as label.c max size
             special_chars,
             Some(c_confirm_callback::<F>),
             // TODO: from_raw
@@ -148,8 +148,8 @@ where
     F: FnMut(bool) + 'a,
 {
     let params = bitbox02_sys::confirm_params_t {
-        title: crate::str_to_cstr_force!(params.title, 200).as_ptr(),
-        body: crate::str_to_cstr_force!(params.body, 200).as_ptr(),
+        title: crate::str_to_cstr_force!(params.title, 199).as_ptr(), // same as label.c max size
+        body: crate::str_to_cstr_force!(params.body, 199).as_ptr(),   // same as label.c max size
         font: params.font.as_ptr(),
         scrollable: params.scrollable,
         longtouch: params.longtouch,
@@ -221,7 +221,7 @@ where
 
     let component = unsafe {
         bitbox02_sys::status_create(
-            crate::str_to_cstr_force!(text, 200).as_ptr(),
+            crate::str_to_cstr_force!(text, 199).as_ptr(), // same as label.c max size
             status_success,
             Some(c_callback::<F>),
             // TODO: from_raw

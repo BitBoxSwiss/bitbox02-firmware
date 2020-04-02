@@ -99,14 +99,10 @@ static void test_ui_components_image(void** state)
     mock_component->f->cleanup(mock_component);
 }
 
-static void confirm_callback(void* param)
+static void confirm_callback(bool result, void* param)
 {
     (void)param;
-}
-
-static void cancel_callback(void* param)
-{
-    (void)param;
+    (void)result;
 }
 
 static void test_ui_components_confirm(void** state)
@@ -116,7 +112,7 @@ static void test_ui_components_confirm(void** state)
         .body = "CODE",
         .font = &font_monogram_5X9,
     };
-    component_t* confirm = confirm_create(&params, confirm_callback, NULL, cancel_callback, NULL);
+    component_t* confirm = confirm_create(&params, confirm_callback, NULL);
     assert_non_null(confirm);
     assert_ui_component_functions(confirm);
     confirm->f->cleanup(confirm);

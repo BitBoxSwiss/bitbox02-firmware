@@ -44,14 +44,12 @@ typedef struct {
 /**
  * Creates a confirm screen.
  * @param[in] params see confirm_params_t for details.
- * @param[in] confirm_callback The callback triggered when the user pushes the confirm button.
- * @param[in] cancel_callback The callback triggered when the user pushes the cancel button.
+ * @param[in] callback The callback triggered when the user accepts or rejects.
+ * @param[in] callback_param passed through to the callback.
  */
 component_t* confirm_create(
     const confirm_params_t* params,
-    void (*confirm_callback)(void* param),
-    void* confirm_callback_param,
-    void (*cancel_callback)(void* param),
-    void* cancel_callback_param);
+    void (*callback)(bool, void* param),
+    void* callback_param);
 
 #endif

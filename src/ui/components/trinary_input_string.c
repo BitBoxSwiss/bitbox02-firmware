@@ -286,7 +286,10 @@ static void _on_event(const event_t* event, component_t* component)
     data_t* data = (data_t*)component->data;
 
     if (event->id == EVENT_CONFIRM && data->can_confirm) {
-        data->confirm_cb(data->string, data->confirm_callback_param);
+        if (data->confirm_cb) {
+            data->confirm_cb(data->string, data->confirm_callback_param);
+            data->confirm_cb = NULL;
+        }
         return;
     }
 
@@ -317,6 +320,7 @@ static void _on_event(const event_t* event, component_t* component)
             }
         } else if (data->cancel_cb != NULL) {
             data->cancel_cb(data->cancel_callback_param);
+            data->cancel_cb = NULL;
         }
         _set_alphabet(component);
         _set_can_confirm(component);

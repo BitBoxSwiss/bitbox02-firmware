@@ -44,7 +44,8 @@ typedef struct {
 /**
  * Creates a confirm screen.
  * @param[in] params see confirm_params_t for details.
- * @param[in] callback The callback triggered when the user accepts or rejects.
+ * @param[in] callback The callback triggered when the user accepts or rejects. Will be called at
+ * most once.
  * @param[in] callback_param passed through to the callback.
  */
 component_t* confirm_create(

@@ -68,14 +68,14 @@ where
     where
         F2: FnMut(Password),
     {
-        //let mut out: Box<dyn FnMut(Password)> = unsafe { Box::from_raw(param as *mut _) };
         let mut password_out = Password::new();
         let cap = password_out.cap();
         password_out
             .as_mut()
             .copy_from_slice(core::slice::from_raw_parts(password, cap));
-        let callback_ptr = param as *mut F2;
-        let callback = &mut *callback_ptr;
+        // The callback is dropped afterwards. This is safe because
+        // this C callback is guaranteed to be called only once.
+        let mut callback = Box::from_raw(param as *mut F2);
         callback(password_out);
     }
 
@@ -84,7 +84,6 @@ where
             crate::str_to_cstr_force!(title, 199).as_ptr(), // same as label.c max size
             special_chars,
             Some(c_confirm_callback::<F>),
-            // TODO: from_raw
             // passed to c_confirm_callback as `param`.
             Box::into_raw(Box::new(confirm_callback)) as *mut _,
             None,
@@ -163,8 +162,9 @@ where
     where
         F2: FnMut(bool),
     {
-        let callback_ptr = param as *mut F2;
-        let callback = &mut *callback_ptr;
+        // The callback is dropped afterwards. This is safe because
+        // this C callback is guaranteed to be called only once.
+        let mut callback = Box::from_raw(param as *mut F2);
         callback(result);
     }
 
@@ -198,8 +198,9 @@ where
     where
         F2: FnMut(),
     {
-        let callback_ptr = param as *mut F2;
-        let callback = &mut *callback_ptr;
+        // The callback is dropped afterwards. This is safe because
+        // this C callback is guaranteed to be called only once.
+        let mut callback = Box::from_raw(param as *mut F2);
         callback();
     }
 
@@ -208,7 +209,6 @@ where
             crate::str_to_cstr_force!(text, 199).as_ptr(), // same as label.c max size
             status_success,
             Some(c_callback::<F>),
-            // TODO: from_raw
             Box::into_raw(Box::new(callback)) as *mut _, // passed to c_callback as `param`.
         )
     };

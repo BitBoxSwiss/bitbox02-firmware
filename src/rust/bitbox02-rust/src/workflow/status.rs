@@ -1,4 +1,4 @@
-// Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Cryptosecurity AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod confirm;
-pub mod pairing;
-pub mod password_enter;
-pub mod status;
-pub mod unlock;
+use crate::bb02_async::option;
+use core::cell::RefCell;
+
+pub async fn status(title: &str, status_success: bool) {
+    let result = RefCell::new(None);
+    let mut component = bitbox02::ui::status_create(title, status_success, || {
+        *result.borrow_mut() = Some(());
+    });
+    component.screen_stack_push();
+    option(&result).await;
+}

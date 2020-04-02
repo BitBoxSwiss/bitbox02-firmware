@@ -15,6 +15,12 @@
 // This crate contains safe wrappers around C functions provided by bitbox02_sys.
 #![no_std]
 
+#[cfg(test)]
+#[macro_use]
+extern crate std;
+
+pub mod keystore;
+pub mod memory;
 pub mod password;
 pub mod ui;
 

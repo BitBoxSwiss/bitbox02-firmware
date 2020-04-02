@@ -70,10 +70,10 @@ where
     {
         //let mut out: Box<dyn FnMut(Password)> = unsafe { Box::from_raw(param as *mut _) };
         let mut password_out = Password::new();
-        let len = password_out.as_ref().len();
+        let cap = password_out.cap();
         password_out
             .as_mut()
-            .copy_from_slice(core::slice::from_raw_parts(password, len));
+            .copy_from_slice(core::slice::from_raw_parts(password, cap));
         let callback_ptr = param as *mut F2;
         let callback = &mut *callback_ptr;
         callback(password_out);
@@ -81,7 +81,7 @@ where
 
     let component = unsafe {
         bitbox02_sys::trinary_input_string_create_password(
-            crate::str_to_cstr_force!(title, 100).as_ptr(),
+            crate::str_to_cstr_force!(title, 199).as_ptr(), // same as label.c max size
             special_chars,
             Some(c_confirm_callback::<F>),
             // TODO: from_raw
@@ -148,8 +148,8 @@ where
     F: FnMut(bool) + 'a,
 {
     let params = bitbox02_sys::confirm_params_t {
-        title: crate::str_to_cstr_force!(params.title, 200).as_ptr(),
-        body: crate::str_to_cstr_force!(params.body, 200).as_ptr(),
+        title: crate::str_to_cstr_force!(params.title, 199).as_ptr(), // same as label.c max size
+        body: crate::str_to_cstr_force!(params.body, 199).as_ptr(),   // same as label.c max size
         font: params.font.as_ptr(),
         scrollable: params.scrollable,
         longtouch: params.longtouch,
@@ -187,4 +187,40 @@ pub fn screen_process() {
     unsafe {
         bitbox02_sys::screen_process();
     }
+}
+
+pub fn status_create<'a, F>(text: &str, status_success: bool, callback: F) -> Component<'a>
+where
+    // Callback must outlive component.
+    F: FnMut() + 'a,
+{
+    unsafe extern "C" fn c_callback<F2>(param: *mut c_void)
+    where
+        F2: FnMut(),
+    {
+        let callback_ptr = param as *mut F2;
+        let callback = &mut *callback_ptr;
+        callback();
+    }
+
+    let component = unsafe {
+        bitbox02_sys::status_create(
+            crate::str_to_cstr_force!(text, 199).as_ptr(), // same as label.c max size
+            status_success,
+            Some(c_callback::<F>),
+            // TODO: from_raw
+            Box::into_raw(Box::new(callback)) as *mut _, // passed to c_callback as `param`.
+        )
+    };
+    Component {
+        component,
+        is_pushed: false,
+        _p: PhantomData,
+    }
+}
+
+pub fn with_lock_animation<F: Fn()>(f: F) {
+    unsafe { bitbox02_sys::lock_animation_start() };
+    f();
+    unsafe { bitbox02_sys::lock_animation_stop() };
 }

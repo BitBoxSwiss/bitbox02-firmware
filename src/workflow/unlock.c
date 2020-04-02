@@ -22,6 +22,7 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory/memory.h>
+#include <rust/rust.h>
 #include <screen.h>
 #include <string.h>
 #include <ui/screen_stack.h>
@@ -183,20 +184,7 @@ workflow_t* workflow_unlock(void (*callback)(bool result, void* param), void* ca
     return self;
 }
 
-/**
- * Callback for the blocking wrapper to workflow_unlock.
- */
-static void _workflow_unlock_completed(bool result, void* param)
-{
-    bool* result_ptr = (bool*)param;
-    *result_ptr = result;
-    workflow_blocking_unblock();
-}
-
 bool workflow_unlock_blocking(void)
 {
-    bool result = false;
-    workflow_stack_start_workflow(workflow_unlock(_workflow_unlock_completed, &result));
-    workflow_blocking_block();
-    return result;
+    return rust_workflow_unlock_blocking();
 }

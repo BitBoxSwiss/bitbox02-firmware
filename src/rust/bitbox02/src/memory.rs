@@ -1,4 +1,4 @@
-// Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Cryptosecurity AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod confirm;
-pub mod pairing;
-pub mod password_enter;
-pub mod status;
-pub mod unlock;
+pub fn is_initialized() -> bool {
+    unsafe { bitbox02_sys::memory_is_initialized() }
+}
+
+pub fn is_mnemonic_passphrase_enabled() -> bool {
+    unsafe { bitbox02_sys::memory_is_mnemonic_passphrase_enabled() }
+}

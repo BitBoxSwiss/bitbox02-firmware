@@ -20,8 +20,10 @@
 mod error;
 #[macro_use]
 pub mod general;
+pub mod async_usb;
 pub mod bb02_async;
 pub mod commander;
+pub mod hww;
 pub mod platform;
 pub mod util;
 mod waker_fn;

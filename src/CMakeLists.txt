@@ -334,6 +334,7 @@ add_custom_target(rust-bindgen
     --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs
     --use-core
     --ctypes-prefix util::c_types
+    --whitelist-function hww_api_process_packet
     --whitelist-function memory_is_initialized
     --whitelist-function memory_is_mnemonic_passphrase_enabled
     --whitelist-function keystore_is_locked

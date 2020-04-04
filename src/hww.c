@@ -13,27 +13,19 @@
 // limitations under the License.
 
 #include "hww.h"
+#include "hww_api.h"
 
-#include <attestation.h>
-#include <commander/commander.h>
 #include <hardfault.h>
 #include <keystore.h>
-#include <memory/memory.h>
+
 #include <platform_config.h>
-#include <usb/noise.h>
+
 #include <usb/usb_packet.h>
 #include <usb/usb_processing.h>
-#include <workflow/status.h>
-#include <workflow/unlock.h>
 
+#include <stddef.h>
+#include <stdint.h>
 #include <string.h>
-
-#define OP_ATTESTATION ((uint8_t)'a')
-#define OP_UNLOCK ((uint8_t)'u')
-
-#define OP_STATUS_SUCCESS ((uint8_t)0)
-#define OP_STATUS_FAILURE ((uint8_t)1)
-#define OP_STATUS_FAILURE_UNINITIALIZED ((uint8_t)2)
 
 /** Request command for HWW packets. */
 typedef enum {
@@ -58,42 +50,6 @@ typedef struct {
     /** Payload of the message. */
     buffer_t buffer;
 } hww_packet_rsp_t;
-
-// in: 'a' + 32 bytes host challenge
-// out: bootloader_hash 32 | device_pubkey 64 | certificate 64 | root_pubkey_identifier 32 |
-// challenge_signature 64
-static void _api_attestation(const in_buffer_t* in_packet, buffer_t* out_packet)
-{
-    if (in_packet->len != 33) {
-        out_packet->len = 1;
-        out_packet->data[0] = OP_STATUS_FAILURE;
-        return;
-    }
-    PerformAttestationResponse result;
-    if (!attestation_perform(in_packet->data + 1, &result)) {
-        out_packet->len = 1;
-        out_packet->data[0] = OP_STATUS_FAILURE;
-        return;
-    }
-    out_packet->len = 1 + sizeof(result.bootloader_hash) + sizeof(result.device_pubkey) +
-                      sizeof(result.certificate) + sizeof(result.root_pubkey_identifier) +
-                      sizeof(result.challenge_signature);
-
-    uint8_t* data = out_packet->data;
-
-    data[0] = OP_STATUS_SUCCESS;
-    data += 1;
-
-    memcpy(data, result.bootloader_hash, sizeof(result.bootloader_hash));
-    data += sizeof(result.bootloader_hash);
-    memcpy(data, result.device_pubkey, sizeof(result.device_pubkey));
-    data += sizeof(result.device_pubkey);
-    memcpy(data, result.certificate, sizeof(result.certificate));
-    data += sizeof(result.certificate);
-    memcpy(data, result.root_pubkey_identifier, sizeof(result.root_pubkey_identifier));
-    data += sizeof(result.root_pubkey_identifier);
-    memcpy(data, result.challenge_signature, sizeof(result.challenge_signature));
-}
 
 /**
  * Serializes sytem information to the buffer.
@@ -149,45 +105,6 @@ static size_t _api_info(uint8_t* buf)
     return current - buf;
 }
 
-/**
- * Executes the HWW packet.
- * @param[in] in_packet The incoming HWW packet.
- * @param[in] out_packet The outgoing HWW packet.
- * @param[in] max_out_len The maximum number of bytes that the outgoing HWW packet can hold.
- */
-static void _process_packet(const in_buffer_t* in_req, buffer_t* out_rsp)
-{
-    if (in_req->len >= 1) {
-        switch (in_req->data[0]) {
-        case OP_ATTESTATION:
-            _api_attestation(in_req, out_rsp);
-            return;
-        case OP_UNLOCK:
-            if (!memory_is_initialized()) {
-                out_rsp->data[0] = OP_STATUS_FAILURE_UNINITIALIZED;
-            } else {
-                out_rsp->data[0] =
-                    workflow_unlock_blocking() ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
-            }
-            out_rsp->len = 1;
-            return;
-        default:
-            break;
-        }
-    }
-
-    // No other message than the attestation and unlock calls shall pass until the device is
-    // unlocked or ready to be initialized.
-    if (memory_is_initialized() && keystore_is_locked()) {
-        return;
-    }
-
-    // Process protofbuf/noise api calls.
-    if (!bb_noise_process_msg(in_req, out_rsp, commander)) {
-        workflow_status_blocking("Could not\npair with app", false);
-    }
-}
-
 static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_out_len)
 {
     if (in_packet->len == 0) {
@@ -215,7 +132,7 @@ static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_o
         .buffer = {.data = out_packet->data_addr + 1, .len = 0, .max_len = max_out_len - 1}};
     switch (cmd) {
     case HWW_REQ_NEW:
-        _process_packet(&decoded_buffer, &response.buffer);
+        hww_api_process_packet(&decoded_buffer, &response.buffer);
         response.status = HWW_RSP_ACK;
         break;
     case HWW_REQ_CANCEL:

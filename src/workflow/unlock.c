@@ -22,7 +22,6 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory/memory.h>
-#include <rust/rust.h>
 #include <screen.h>
 #include <string.h>
 #include <ui/screen_stack.h>
@@ -182,9 +181,4 @@ workflow_t* workflow_unlock(void (*callback)(bool result, void* param), void* ca
     data->callback = callback;
     data->callback_param = callback_param;
     return self;
-}
-
-bool workflow_unlock_blocking(void)
-{
-    return rust_workflow_unlock_blocking();
 }

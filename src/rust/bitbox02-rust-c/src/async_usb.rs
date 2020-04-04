@@ -54,3 +54,8 @@ pub extern "C" fn rust_async_usb_spawn_hww(usb_in: crate::util::Bytes) {
     use bitbox02_rust::hww::process_packet;
     spawn(process_packet, &usb_in.as_ref());
 }
+
+#[no_mangle]
+pub extern "C" fn rust_async_usb_cancel() -> bool {
+    bitbox02_rust::async_usb::cancel()
+}

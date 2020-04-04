@@ -120,6 +120,17 @@ pub fn copy_response(dst: &mut [u8]) -> Result<usize, CopyResponseErr> {
     }
 }
 
+/// Cancel and drop a running task. Returns true if a task was cancelled, false if no task was
+/// running.
+pub fn cancel() -> bool {
+    let mut state = unsafe { USB_TASK_STATE.borrow_mut() };
+    if let UsbTaskState::Running(_) = *state {
+        *state = UsbTaskState::Nothing;
+        return true;
+    }
+    false
+}
+
 #[cfg(test)]
 mod tests {
     extern crate std;

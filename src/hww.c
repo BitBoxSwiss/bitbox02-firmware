@@ -226,7 +226,7 @@ void hww_blocked_req_error(Packet* out_packet, const Packet* in_packet)
 
 void hww_abort_outstanding_op(void)
 {
-    // TODO: cancel task with no response (timeout)
+    rust_async_usb_cancel();
 }
 
 void hww_process(void)

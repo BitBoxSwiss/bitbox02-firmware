@@ -20,7 +20,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/commander/commander_states.c
   ${CMAKE_SOURCE_DIR}/src/keystore.c
   ${CMAKE_SOURCE_DIR}/src/random.c
-  ${CMAKE_SOURCE_DIR}/src/attestation.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
   ${CMAKE_SOURCE_DIR}/src/util.c
   ${CMAKE_SOURCE_DIR}/src/sd.c
@@ -337,6 +336,9 @@ add_custom_target(rust-bindgen
     --whitelist-function hww_api_process_packet
     --whitelist-function memory_is_initialized
     --whitelist-function memory_is_mnemonic_passphrase_enabled
+    --whitelist-function memory_get_attestation_pubkey_and_certificate
+    --whitelist-function memory_bootloader_hash
+    --whitelist-function securechip_attestation_sign
     --whitelist-function keystore_is_locked
     --whitelist-function keystore_unlock
     --whitelist-function keystore_unlock_bip39

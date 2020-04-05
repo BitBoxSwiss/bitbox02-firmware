@@ -1,4 +1,4 @@
-// Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Cryptosecurity AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _ATTESTATION_H_
-#define _ATTESTATION_H_
+pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
+    match unsafe {
+        bitbox02_sys::securechip_attestation_sign(challenge.as_ptr(), signature.as_mut_ptr())
+    } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
 
-#include <stdbool.h>
-#include <stdint.h>
-
-#include "hww.pb.h"
-
-bool attestation_perform(const uint8_t* host_challenge, PerformAttestationResponse* result_out);
-
-#endif
+pub fn bootloader_hash(out: &mut [u8; 32]) {
+    unsafe {
+        bitbox02_sys::memory_bootloader_hash(out.as_mut_ptr());
+    }
+}

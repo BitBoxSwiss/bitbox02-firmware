@@ -21,6 +21,7 @@
 #include <memory/memory.h>
 #include <platform/bitboxbase/leds.h>
 #include <screen.h>
+#include <securechip/securechip.h>
 #include <ui/components/confirm.h>
 #include <ui/components/label.h>
 #include <ui/components/status.h>

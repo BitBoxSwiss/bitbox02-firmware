@@ -35,13 +35,6 @@
 workflow_t* workflow_unlock(void (*callback)(bool result, void* param), void* callback_param);
 
 /**
- * Prompts the user for the password and unlocks the keystore. It is blocking until either the user
- * enters the correct password, or the device is reset after too many failed attempts.
- * @return false if the call was cancelled.
- */
-USE_RESULT bool workflow_unlock_blocking(void);
-
-/**
  * Tries to unlock the key store, showing appropriate error messages.
  * If the error is KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED (device reset), we return to workflow_start.
  */

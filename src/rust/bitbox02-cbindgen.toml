@@ -20,6 +20,7 @@ include_version = true
 
 header = '''
 #include "platform/platform_config.h"
+#include "util.h"
 #if defined(RUST_BITBOX_BASE)
 #include "commander/commander.h"
 #include "bitboxbase.pb.h"

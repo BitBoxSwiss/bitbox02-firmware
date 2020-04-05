@@ -20,13 +20,11 @@
 #include <memory/memory.h>
 #include <usb/noise.h>
 #include <workflow/status.h>
-#include <workflow/unlock.h>
 
 #include <stdint.h>
 #include <string.h>
 
 #define OP_ATTESTATION ((uint8_t)'a')
-#define OP_UNLOCK ((uint8_t)'u')
 
 #define OP_STATUS_SUCCESS ((uint8_t)0)
 #define OP_STATUS_FAILURE ((uint8_t)1)
@@ -74,15 +72,6 @@ void hww_api_process_packet(const in_buffer_t* in_req, buffer_t* out_rsp)
         switch (in_req->data[0]) {
         case OP_ATTESTATION:
             _api_attestation(in_req, out_rsp);
-            return;
-        case OP_UNLOCK:
-            if (!memory_is_initialized()) {
-                out_rsp->data[0] = OP_STATUS_FAILURE_UNINITIALIZED;
-            } else {
-                out_rsp->data[0] =
-                    workflow_unlock_blocking() ? OP_STATUS_SUCCESS : OP_STATUS_FAILURE;
-            }
-            out_rsp->len = 1;
             return;
         default:
             break;

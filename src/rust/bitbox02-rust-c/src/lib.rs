@@ -23,8 +23,8 @@ extern crate std;
 #[cfg(not(test))]
 mod alloc;
 
+mod async_usb;
 mod util;
-mod workflow;
 
 #[cfg(feature = "platform-bitboxbase")]
 pub mod bitboxbase;

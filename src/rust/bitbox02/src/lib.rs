@@ -19,6 +19,7 @@
 #[macro_use]
 extern crate std;
 
+pub mod hww;
 pub mod keystore;
 pub mod memory;
 pub mod password;
@@ -66,6 +67,8 @@ pub const COMMANDER_OK: bitbox02_sys::commander_error_t =
 pub use bitbox02_sys::font_monogram_5X9;
 
 pub use bitbox02_sys::confirm_params_t;
+
+pub use bitbox02_sys::buffer_t;
 
 #[macro_use]
 pub mod util;

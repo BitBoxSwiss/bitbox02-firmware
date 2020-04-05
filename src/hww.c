@@ -19,7 +19,7 @@
 #include <keystore.h>
 
 #include <platform_config.h>
-
+#include <rust/rust.h>
 #include <usb/usb_packet.h>
 #include <usb/usb_processing.h>
 
@@ -105,6 +105,62 @@ static size_t _api_info(uint8_t* buf)
     return current - buf;
 }
 
+/**
+ * Polls the current operation (if any). If the current operation
+ * is finished, respond appropriately.
+ *
+ * @param[out] response Response data to fill.
+ */
+static void _maybe_write_response(hww_packet_rsp_t* response)
+{
+    switch (rust_async_usb_copy_response(&response->buffer)) {
+    case UsbResponseAck:
+        response->status = HWW_RSP_ACK;
+        usb_processing_unlock();
+        break;
+    case UsbResponseNotReady:
+        response->status = HWW_RSP_NOT_READY;
+        break;
+    default:
+        response->status = HWW_RSP_NACK;
+        break;
+    }
+}
+
+/**
+ * Executes the HWW packet.
+ * @param[in] in_req The incoming HWW packet.
+ * @param[in] out_rsp The outgoing HWW packet.
+ */
+static void _process_packet(const in_buffer_t* in_req, hww_packet_rsp_t* out_rsp)
+{
+    out_rsp->status = HWW_RSP_NACK;
+    // Spawn async task, which is polled in the main loop.
+    rust_async_usb_spawn_hww(rust_util_bytes(in_req->data, in_req->len));
+    // Lock USB stack so U2F requests get a BUSY response.
+    usb_processing_lock(usb_processing_hww());
+    // Some tasks have an 'early return' path that is not blocking. We spin the task once so we can
+    // return immediately in if there is an early return, so the client does not have to wait ~200ms
+    // for a response that can be made available immediately.
+    rust_async_usb_spin();
+    // Respond with NOT_READY if the async task needs more time, or ACK with the payload if the task
+    // already completed (in this case, USB stack is unlocked again).
+    _maybe_write_response(out_rsp);
+}
+
+/**
+ * Aborts the current operation (if any). Reply with an
+ * appropriate failure state, depending on what the cancelled
+ * operation was.
+ *
+ * @param[out] response Response data to fill.
+ */
+static void _cancel_packet(hww_packet_rsp_t* response)
+{
+    response->status = HWW_RSP_NACK;
+    // TODO: cancel async usb task.
+}
+
 static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_out_len)
 {
     if (in_packet->len == 0) {
@@ -132,16 +188,14 @@ static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_o
         .buffer = {.data = out_packet->data_addr + 1, .len = 0, .max_len = max_out_len - 1}};
     switch (cmd) {
     case HWW_REQ_NEW:
-        hww_api_process_packet(&decoded_buffer, &response.buffer);
-        response.status = HWW_RSP_ACK;
+        _process_packet(&decoded_buffer, &response);
         break;
     case HWW_REQ_CANCEL:
         /* We don't have anything to cancel yet. */
-        response.status = HWW_RSP_NACK;
+        _cancel_packet(&response);
         break;
     case HWW_REQ_RETRY:
-        /* We don't support async retries yet. */
-        response.status = HWW_RSP_NACK;
+        _maybe_write_response(&response);
         break;
     default:
         break;
@@ -172,7 +226,7 @@ void hww_blocked_req_error(Packet* out_packet, const Packet* in_packet)
 
 void hww_abort_outstanding_op(void)
 {
-    Abort("Arbitration error, HWW should never block.");
+    rust_async_usb_cancel();
 }
 
 void hww_process(void)

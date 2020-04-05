@@ -16,6 +16,7 @@
 #include <bitboxbase/bitboxbase_screensaver.h>
 #include <bitboxbase/bitboxbase_watchdog.h>
 #include <commander/commander.h>
+#include <hww_api.h>
 #include <keystore.h>
 #include <memory/memory.h>
 #include <platform/bitboxbase/leds.h>
@@ -32,6 +33,7 @@
 #include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 #include <ui/ugui/ugui.h>
+#include <util.h>
 #include <wally_crypto.h>
 #include <workflow/confirm.h>
 

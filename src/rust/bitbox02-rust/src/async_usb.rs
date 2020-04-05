@@ -41,17 +41,16 @@ enum UsbTaskState {
     ResultAvailable(UsbOut),
 }
 
+/// A safer version of UsbTaskState. RefCell so we cannot accidentally borrow illegally.
+struct SafeUsbTaskState(RefCell<UsbTaskState>);
+
+/// Safety: this implements Sync even though it is not thread safe. This is okay, as we
+/// run only in a single thread in the BitBox02.
+unsafe impl Sync for SafeUsbTaskState {}
+
 /// Executor main state. Currently we only have at most one task at a time (usb api processing
 /// task).
-///
-/// It is `mut` because without it, Rust requires thread safety via
-/// Sync: https://doc.rust-lang.org/reference/items/static-items.html:
-/// > Mutable statics have the same restrictions as normal statics,
-/// except that the type does not > have to implement the Sync trait.
-/// It is de-facto immutable (the contents in the RefCell is
-/// internally mutable instead), so all access is safe, as we run only
-/// single-threaded.
-static mut USB_TASK_STATE: RefCell<UsbTaskState> = RefCell::new(UsbTaskState::Nothing);
+static USB_TASK_STATE: SafeUsbTaskState = SafeUsbTaskState(RefCell::new(UsbTaskState::Nothing));
 
 /// Spawn a task to be spinned by the executor. This moves the state
 /// from Nothing to Running.
@@ -61,7 +60,7 @@ pub fn spawn<F>(workflow: fn(UsbIn) -> F, usb_in: &[u8])
 where
     F: core::future::Future<Output = UsbOut> + 'static,
 {
-    let mut state = unsafe { USB_TASK_STATE.borrow_mut() };
+    let mut state = USB_TASK_STATE.0.borrow_mut();
     match *state {
         UsbTaskState::Nothing => {
             let task: Task<UsbOut> = Box::pin(workflow(usb_in.to_vec()));
@@ -78,7 +77,7 @@ where
 /// If this spin finishes the task, the state is moved to
 /// `ResultAvailable`, which contains the result.
 pub fn spin() {
-    let mut state = unsafe { USB_TASK_STATE.borrow_mut() };
+    let mut state = USB_TASK_STATE.0.borrow_mut();
     match *state {
         UsbTaskState::Running(ref mut task) => {
             let result = spin_task(task);
@@ -107,7 +106,7 @@ pub enum CopyResponseErr {
 /// pending and a response is expected in the future, or `Err(false)`
 /// if no task is running.
 pub fn copy_response(dst: &mut [u8]) -> Result<usize, CopyResponseErr> {
-    let mut state = unsafe { USB_TASK_STATE.borrow_mut() };
+    let mut state = USB_TASK_STATE.0.borrow_mut();
     match *state {
         UsbTaskState::Nothing => Err(CopyResponseErr::NotRunning),
         UsbTaskState::Running(_) => Err(CopyResponseErr::NotReady),
@@ -123,7 +122,7 @@ pub fn copy_response(dst: &mut [u8]) -> Result<usize, CopyResponseErr> {
 /// Cancel and drop a running task. Returns true if a task was cancelled, false if no task was
 /// running.
 pub fn cancel() -> bool {
-    let mut state = unsafe { USB_TASK_STATE.borrow_mut() };
+    let mut state = USB_TASK_STATE.0.borrow_mut();
     if let UsbTaskState::Running(_) = *state {
         *state = UsbTaskState::Nothing;
         return true;

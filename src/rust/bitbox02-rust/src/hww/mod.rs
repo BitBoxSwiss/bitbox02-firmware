@@ -16,6 +16,8 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 const OP_UNLOCK: u8 = b'u';
+const OP_ATTESTATION: u8 = b'a';
+
 const OP_STATUS_SUCCESS: u8 = 0;
 const OP_STATUS_FAILURE: u8 = 1;
 
@@ -27,12 +29,50 @@ async fn api_unlock() -> Vec<u8> {
     }
 }
 
+/// Process OP_ATTESTATION.
+///
+/// On failure, returns < 1 >.
+///
+/// On success, returns < 0 | bootloader_hash 32 | device_pubkey 64 |
+/// certificate 64 | root_pubkey_identifier 32 | challenge_signature 64>
+async fn api_attestation(usb_in: &[u8]) -> Vec<u8> {
+    use core::convert::TryInto;
+
+    let usb_in: [u8; 32] = match usb_in.try_into() {
+        Ok(usb_in) => usb_in,
+        Err(_) => return [OP_STATUS_FAILURE].to_vec(),
+    };
+
+    let result = match bitbox02::attestation::perform(usb_in) {
+        Ok(result) => result,
+        Err(()) => return [OP_STATUS_FAILURE].to_vec(),
+    };
+
+    [
+        &[OP_STATUS_SUCCESS],
+        &result.bootloader_hash[..],
+        &result.device_pubkey[..],
+        &result.certificate[..],
+        &result.root_pubkey_identifier[..],
+        &result.challenge_signature[..],
+    ]
+    .iter()
+    .copied()
+    .flatten()
+    .copied()
+    .collect()
+}
+
 /// Async HWW api processing main entry point.
 /// `usb_in` - api request bytes.
 /// Returns the usb response bytes.
 pub async fn process_packet(usb_in: Vec<u8>) -> Vec<u8> {
     if let &[OP_UNLOCK] = &usb_in[..] {
         return api_unlock().await;
+    }
+
+    if let Some((&OP_ATTESTATION, rest)) = usb_in.split_first() {
+        return api_attestation(rest).await;
     }
 
     // -- Process anything not ported to Rust yet. --

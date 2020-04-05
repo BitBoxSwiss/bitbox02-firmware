@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <attestation.h>
 #include <bitboxbase.pb.h>
 #include <bitboxbase/bitboxbase_screensaver.h>
 #include <bitboxbase/bitboxbase_watchdog.h>

@@ -20,7 +20,6 @@
 #include "platform_init.h"
 #include "screen.h"
 #include "securechip/securechip.h"
-#include "ui/screen_process.h"
 #include "usart/usart.h"
 #include "usb/usb.h"
 #include "usb/usb_packet.h"
@@ -257,7 +256,6 @@ int main(void)
 #endif
 
     while (1) {
-        screen_process();
 #if PLATFORM_BITBOXBASE == 1
         usart_receive();
 #endif

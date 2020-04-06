@@ -3,7 +3,7 @@
 set -e
 set -x
 
-CONTAINER=shiftcrypto/firmware_v2:14
+CONTAINER=shiftcrypto/firmware_v2:15
 
 if [ "$1" == "pull" ] ; then
 	docker pull "$CONTAINER"

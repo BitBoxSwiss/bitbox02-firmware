@@ -60,3 +60,8 @@ bool securechip_ecc_generate_public_key(uint8_t* priv_key, uint8_t* pub_key)
 {
     return false;
 }
+
+bool securechip_attestation_sign(const uint8_t* msg, uint8_t* signature_out)
+{
+    return false;
+}

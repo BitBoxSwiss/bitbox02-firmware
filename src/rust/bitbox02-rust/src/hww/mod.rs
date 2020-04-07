@@ -20,12 +20,13 @@ const OP_ATTESTATION: u8 = b'a';
 
 const OP_STATUS_SUCCESS: u8 = 0;
 const OP_STATUS_FAILURE: u8 = 1;
+const OP_STATUS_FAILURE_UNINITIALIZED: u8 = 2;
 
 /// Process OP_UNLOCK.
 async fn api_unlock() -> Vec<u8> {
     match crate::workflow::unlock::unlock().await {
         Ok(()) => [OP_STATUS_SUCCESS].to_vec(),
-        Err(()) => [OP_STATUS_FAILURE].to_vec(),
+        Err(()) => [OP_STATUS_FAILURE_UNINITIALIZED].to_vec(),
     }
 }
 

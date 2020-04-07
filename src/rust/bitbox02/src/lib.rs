@@ -23,6 +23,7 @@ pub mod hww;
 pub mod keystore;
 pub mod memory;
 pub mod password;
+pub mod random;
 pub mod securechip;
 pub mod ui;
 

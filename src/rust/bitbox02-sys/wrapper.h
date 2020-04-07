@@ -20,6 +20,7 @@
 #include <keystore.h>
 #include <memory/memory.h>
 #include <platform/bitboxbase/leds.h>
+#include <random.h>
 #include <screen.h>
 #include <securechip/securechip.h>
 #include <ui/components/confirm.h>

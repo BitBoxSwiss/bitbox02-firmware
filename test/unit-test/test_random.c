@@ -38,7 +38,20 @@ int __wrap_wally_sha256(
     return 0;
 }
 
-static void test_random(void** state)
+static void _test_random_32_bytes_mcu(void** state)
+{
+    uint8_t expected[RANDOM_NUM_SIZE] = {0};
+    uint8_t buf[RANDOM_NUM_SIZE] = "12345678901234567890123456789012";
+    // mock mcu rand()
+    for (int i = 0; i < RANDOM_NUM_SIZE; i++) {
+        will_return(__wrap_rand, i);
+        expected[i] = buf[i] ^ i;
+    }
+    random_32_bytes_mcu(buf);
+    assert_memory_equal(expected, buf, RANDOM_NUM_SIZE);
+}
+
+static void _test_random_32_bytes(void** state)
 {
     uint8_t expected[RANDOM_NUM_SIZE] = {0};
     uint8_t buf[RANDOM_NUM_SIZE];
@@ -62,7 +75,8 @@ static void test_random(void** state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_random),
+        cmocka_unit_test(_test_random_32_bytes_mcu),
+        cmocka_unit_test(_test_random_32_bytes),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -15,19 +15,11 @@
 #include "hww_api.h"
 
 #include <commander/commander.h>
-#include <keystore.h>
-#include <memory/memory.h>
 #include <usb/noise.h>
 #include <workflow/status.h>
 
 void hww_api_process_packet(const in_buffer_t* in_req, buffer_t* out_rsp)
 {
-    // No other message than the attestation and unlock calls shall pass until the device is
-    // unlocked or ready to be initialized.
-    if (memory_is_initialized() && keystore_is_locked()) {
-        return;
-    }
-
     // Process protofbuf/noise api calls.
     if (!bb_noise_process_msg(in_req, out_rsp, commander)) {
         workflow_status_blocking("Could not\npair with app", false);

@@ -364,6 +364,7 @@ add_custom_target(rust-bindgen
     --whitelist-function leds_turn_small_led
     --whitelist-function leds_turn_big_led
     --whitelist-function wally_sha256
+    --whitelist-function random_32_bytes_mcu
     --whitelist-type component_t
     --whitelist-type commander_error_t
     --whitelist-type BitBoxBaseRequest

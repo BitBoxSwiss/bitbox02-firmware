@@ -69,6 +69,12 @@ pub async fn process_packet(usb_in: Vec<u8>) -> Vec<u8> {
         _ => (),
     }
 
+    // No other message than the attestation and unlock calls shall pass until the device is
+    // unlocked or ready to be initialized.
+    if bitbox02::memory::is_initialized() && bitbox02::keystore::is_locked() {
+        return Vec::new();
+    }
+
     // -- Process anything not ported to Rust yet. --
     // This function is blocking.
     bitbox02::hww::process_packet(usb_in)

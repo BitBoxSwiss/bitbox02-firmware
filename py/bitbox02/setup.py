@@ -51,14 +51,14 @@ setup(
     ],
     keywords="digitalbitbox bitbox bitbox02 bitcoin litecoin ethereum erc20 u2f",
     install_requires=[
-        "hidapi>=0.7.99.post21,<0.8",
-        "noiseprotocol>=0.3,<0.4",
-        "protobuf>=3.7,<3.8",
-        "ecdsa>=0.13,<0.14",
-        "semver>=2.8.1,<3.0",
+        "hidapi>=0.7.99.post21",
+        "noiseprotocol>=0.3",
+        "protobuf>=3.7",
+        "ecdsa>=0.13",
+        "semver>=2.8.1",
         # Needed as long as we support python < 3.7
-        "typing>=3.7.4,<3.8",
-        "typing_extensions>=3.7.4,<3.8",
-        "base58>=2.0.0,<3.0.0",
+        "typing>=3.7.4",
+        "typing_extensions>=3.7.4",
+        "base58>=2.0.0",
     ],
 )

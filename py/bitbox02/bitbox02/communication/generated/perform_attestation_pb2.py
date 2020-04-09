@@ -17,9 +17,9 @@ _sym_db = _symbol_database.Default()
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='perform_attestation.proto',
-  package='',
+  package='shiftcrypto.bitbox02',
   syntax='proto3',
-  serialized_pb=_b('\n\x19perform_attestation.proto\".\n\x19PerformAttestationRequest\x12\x11\n\tchallenge\x18\x01 \x01(\x0c\"\x9e\x01\n\x1aPerformAttestationResponse\x12\x17\n\x0f\x62ootloader_hash\x18\x01 \x01(\x0c\x12\x15\n\rdevice_pubkey\x18\x02 \x01(\x0c\x12\x13\n\x0b\x63\x65rtificate\x18\x03 \x01(\x0c\x12\x1e\n\x16root_pubkey_identifier\x18\x04 \x01(\x0c\x12\x1b\n\x13\x63hallenge_signature\x18\x05 \x01(\x0c\x62\x06proto3')
+  serialized_pb=_b('\n\x19perform_attestation.proto\x12\x14shiftcrypto.bitbox02\".\n\x19PerformAttestationRequest\x12\x11\n\tchallenge\x18\x01 \x01(\x0c\"\x9e\x01\n\x1aPerformAttestationResponse\x12\x17\n\x0f\x62ootloader_hash\x18\x01 \x01(\x0c\x12\x15\n\rdevice_pubkey\x18\x02 \x01(\x0c\x12\x13\n\x0b\x63\x65rtificate\x18\x03 \x01(\x0c\x12\x1e\n\x16root_pubkey_identifier\x18\x04 \x01(\x0c\x12\x1b\n\x13\x63hallenge_signature\x18\x05 \x01(\x0c\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -28,13 +28,13 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 _PERFORMATTESTATIONREQUEST = _descriptor.Descriptor(
   name='PerformAttestationRequest',
-  full_name='PerformAttestationRequest',
+  full_name='shiftcrypto.bitbox02.PerformAttestationRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='challenge', full_name='PerformAttestationRequest.challenge', index=0,
+      name='challenge', full_name='shiftcrypto.bitbox02.PerformAttestationRequest.challenge', index=0,
       number=1, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -52,48 +52,48 @@ _PERFORMATTESTATIONREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=29,
-  serialized_end=75,
+  serialized_start=51,
+  serialized_end=97,
 )
 
 
 _PERFORMATTESTATIONRESPONSE = _descriptor.Descriptor(
   name='PerformAttestationResponse',
-  full_name='PerformAttestationResponse',
+  full_name='shiftcrypto.bitbox02.PerformAttestationResponse',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='bootloader_hash', full_name='PerformAttestationResponse.bootloader_hash', index=0,
+      name='bootloader_hash', full_name='shiftcrypto.bitbox02.PerformAttestationResponse.bootloader_hash', index=0,
       number=1, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='device_pubkey', full_name='PerformAttestationResponse.device_pubkey', index=1,
+      name='device_pubkey', full_name='shiftcrypto.bitbox02.PerformAttestationResponse.device_pubkey', index=1,
       number=2, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='certificate', full_name='PerformAttestationResponse.certificate', index=2,
+      name='certificate', full_name='shiftcrypto.bitbox02.PerformAttestationResponse.certificate', index=2,
       number=3, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='root_pubkey_identifier', full_name='PerformAttestationResponse.root_pubkey_identifier', index=3,
+      name='root_pubkey_identifier', full_name='shiftcrypto.bitbox02.PerformAttestationResponse.root_pubkey_identifier', index=3,
       number=4, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='challenge_signature', full_name='PerformAttestationResponse.challenge_signature', index=4,
+      name='challenge_signature', full_name='shiftcrypto.bitbox02.PerformAttestationResponse.challenge_signature', index=4,
       number=5, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -111,8 +111,8 @@ _PERFORMATTESTATIONRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=78,
-  serialized_end=236,
+  serialized_start=100,
+  serialized_end=258,
 )
 
 DESCRIPTOR.message_types_by_name['PerformAttestationRequest'] = _PERFORMATTESTATIONREQUEST
@@ -121,14 +121,14 @@ DESCRIPTOR.message_types_by_name['PerformAttestationResponse'] = _PERFORMATTESTA
 PerformAttestationRequest = _reflection.GeneratedProtocolMessageType('PerformAttestationRequest', (_message.Message,), dict(
   DESCRIPTOR = _PERFORMATTESTATIONREQUEST,
   __module__ = 'perform_attestation_pb2'
-  # @@protoc_insertion_point(class_scope:PerformAttestationRequest)
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.PerformAttestationRequest)
   ))
 _sym_db.RegisterMessage(PerformAttestationRequest)
 
 PerformAttestationResponse = _reflection.GeneratedProtocolMessageType('PerformAttestationResponse', (_message.Message,), dict(
   DESCRIPTOR = _PERFORMATTESTATIONRESPONSE,
   __module__ = 'perform_attestation_pb2'
-  # @@protoc_insertion_point(class_scope:PerformAttestationResponse)
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.PerformAttestationResponse)
   ))
 _sym_db.RegisterMessage(PerformAttestationResponse)
 

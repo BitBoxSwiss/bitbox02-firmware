@@ -17,9 +17,9 @@ _sym_db = _symbol_database.Default()
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='random_number.proto',
-  package='',
+  package='shiftcrypto.bitbox02',
   syntax='proto3',
-  serialized_pb=_b('\n\x13random_number.proto\"&\n\x14RandomNumberResponse\x12\x0e\n\x06number\x18\x01 \x01(\x0c\"\x15\n\x13RandomNumberRequestb\x06proto3')
+  serialized_pb=_b('\n\x13random_number.proto\x12\x14shiftcrypto.bitbox02\"&\n\x14RandomNumberResponse\x12\x0e\n\x06number\x18\x01 \x01(\x0c\"\x15\n\x13RandomNumberRequestb\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -28,13 +28,13 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 _RANDOMNUMBERRESPONSE = _descriptor.Descriptor(
   name='RandomNumberResponse',
-  full_name='RandomNumberResponse',
+  full_name='shiftcrypto.bitbox02.RandomNumberResponse',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='number', full_name='RandomNumberResponse.number', index=0,
+      name='number', full_name='shiftcrypto.bitbox02.RandomNumberResponse.number', index=0,
       number=1, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -52,14 +52,14 @@ _RANDOMNUMBERRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=23,
-  serialized_end=61,
+  serialized_start=45,
+  serialized_end=83,
 )
 
 
 _RANDOMNUMBERREQUEST = _descriptor.Descriptor(
   name='RandomNumberRequest',
-  full_name='RandomNumberRequest',
+  full_name='shiftcrypto.bitbox02.RandomNumberRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
@@ -76,8 +76,8 @@ _RANDOMNUMBERREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=63,
-  serialized_end=84,
+  serialized_start=85,
+  serialized_end=106,
 )
 
 DESCRIPTOR.message_types_by_name['RandomNumberResponse'] = _RANDOMNUMBERRESPONSE
@@ -86,14 +86,14 @@ DESCRIPTOR.message_types_by_name['RandomNumberRequest'] = _RANDOMNUMBERREQUEST
 RandomNumberResponse = _reflection.GeneratedProtocolMessageType('RandomNumberResponse', (_message.Message,), dict(
   DESCRIPTOR = _RANDOMNUMBERRESPONSE,
   __module__ = 'random_number_pb2'
-  # @@protoc_insertion_point(class_scope:RandomNumberResponse)
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.RandomNumberResponse)
   ))
 _sym_db.RegisterMessage(RandomNumberResponse)
 
 RandomNumberRequest = _reflection.GeneratedProtocolMessageType('RandomNumberRequest', (_message.Message,), dict(
   DESCRIPTOR = _RANDOMNUMBERREQUEST,
   __module__ = 'random_number_pb2'
-  # @@protoc_insertion_point(class_scope:RandomNumberRequest)
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.RandomNumberRequest)
   ))
 _sym_db.RegisterMessage(RandomNumberRequest)
 

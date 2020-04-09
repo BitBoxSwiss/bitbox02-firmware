@@ -16,12 +16,6 @@ use arrayvec::ArrayString;
 use binascii;
 use core::fmt::Write;
 
-pub fn extra_hash_create(bytes: &[u8]) -> bool {
-    let mut buf = [0u8; 32];
-    bitbox02::sha256(bytes, &mut buf).expect("sha256 failed");
-    crate::bb02_async::block_on(confirm(&buf))
-}
-
 pub async fn confirm(hash: &[u8; 32]) -> bool {
     let mut encoded = [0u8; 60];
     let encoded = binascii::b32encode(&hash[..], &mut encoded).unwrap();

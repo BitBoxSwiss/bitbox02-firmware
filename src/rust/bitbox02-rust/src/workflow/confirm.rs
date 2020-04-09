@@ -14,7 +14,7 @@
 
 use crate::bb02_async::option;
 
-pub use bitbox02::ui::ConfirmParams as Params;
+pub use bitbox02::ui::{ConfirmParams as Params, Font};
 
 /// Returns true if the user accepts, false if the user rejects.
 pub async fn confirm(params: &Params<'_>) -> bool {

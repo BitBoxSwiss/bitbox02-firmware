@@ -100,6 +100,7 @@ where
 pub enum Font {
     Default,
     Password11X12,
+    Monogram5X9,
 }
 
 impl Font {
@@ -107,6 +108,7 @@ impl Font {
         match self {
             Font::Default => core::ptr::null() as *const _,
             Font::Password11X12 => unsafe { &bitbox02_sys::font_password_11X12 },
+            Font::Monogram5X9 => unsafe { &bitbox02_sys::font_monogram_5X9 },
         }
     }
 }

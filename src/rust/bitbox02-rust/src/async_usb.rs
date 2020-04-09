@@ -29,12 +29,12 @@ type UsbIn = Vec<u8>;
 /// Describes the global state of an api query. The documentation of
 /// the variants apply to the HWW stack, but have analogous meaning in
 /// the U2F stack.
-enum UsbTaskState {
+enum UsbTaskState<'a> {
     /// Waiting for a new query, nothing to do.
     Nothing,
     /// A query came in which launched a task, which is now running (e.g. user is entering a
     /// password).
-    Running(Task<UsbOut>),
+    Running(Task<'a, UsbOut>),
     /// The task has finished and written the result, so the USB response is available. We are now
     /// waiting for the client to fetch it (HWW_REQ_RETRY). For short-circuited or non-async api
     /// calls, the result might be returned immediately in response to HWW_REQ_NEW.
@@ -42,7 +42,7 @@ enum UsbTaskState {
 }
 
 /// A safer version of UsbTaskState. RefCell so we cannot accidentally borrow illegally.
-struct SafeUsbTaskState(RefCell<UsbTaskState>);
+struct SafeUsbTaskState(RefCell<UsbTaskState<'static>>);
 
 /// Safety: this implements Sync even though it is not thread safe. This is okay, as we
 /// run only in a single thread in the BitBox02.

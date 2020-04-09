@@ -28,9 +28,9 @@ from . import perform_attestation_pb2 as perform__attestation__pb2
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='hww.proto',
-  package='',
+  package='shiftcrypto.bitbox02',
   syntax='proto3',
-  serialized_pb=_b('\n\thww.proto\x1a\x0c\x63ommon.proto\x1a\x15\x62\x61\x63kup_commands.proto\x1a\x15\x62itbox02_system.proto\x1a\x10\x62itboxbase.proto\x1a\tbtc.proto\x1a\teth.proto\x1a\x0ekeystore.proto\x1a\x0emnemonic.proto\x1a\x13random_number.proto\x1a\x0csystem.proto\x1a\x19perform_attestation.proto\"&\n\x05\x45rror\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"\t\n\x07Success\"\xe4\t\n\x07Request\x12-\n\rrandom_number\x18\x01 \x01(\x0b\x32\x14.RandomNumberRequestH\x00\x12,\n\x0b\x64\x65vice_name\x18\x02 \x01(\x0b\x32\x15.SetDeviceNameRequestH\x00\x12\x34\n\x0f\x64\x65vice_language\x18\x03 \x01(\x0b\x32\x19.SetDeviceLanguageRequestH\x00\x12)\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32\x12.DeviceInfoRequestH\x00\x12+\n\x0cset_password\x18\x05 \x01(\x0b\x32\x13.SetPasswordRequestH\x00\x12-\n\rcreate_backup\x18\x06 \x01(\x0b\x32\x14.CreateBackupRequestH\x00\x12-\n\rshow_mnemonic\x18\x07 \x01(\x0b\x32\x14.ShowMnemonicRequestH\x00\x12!\n\x07\x62tc_pub\x18\x08 \x01(\x0b\x32\x0e.BTCPubRequestH\x00\x12,\n\rbtc_sign_init\x18\t \x01(\x0b\x32\x13.BTCSignInitRequestH\x00\x12.\n\x0e\x62tc_sign_input\x18\n \x01(\x0b\x32\x14.BTCSignInputRequestH\x00\x12\x30\n\x0f\x62tc_sign_output\x18\x0b \x01(\x0b\x32\x15.BTCSignOutputRequestH\x00\x12:\n\x14insert_remove_sdcard\x18\x0c \x01(\x0b\x32\x1a.InsertRemoveSDCardRequestH\x00\x12+\n\x0c\x63heck_sdcard\x18\r \x01(\x0b\x32\x13.CheckSDCardRequestH\x00\x12O\n\x1fset_mnemonic_passphrase_enabled\x18\x0e \x01(\x0b\x32$.SetMnemonicPassphraseEnabledRequestH\x00\x12+\n\x0clist_backups\x18\x0f \x01(\x0b\x32\x13.ListBackupsRequestH\x00\x12/\n\x0erestore_backup\x18\x10 \x01(\x0b\x32\x15.RestoreBackupRequestH\x00\x12\x39\n\x13perform_attestation\x18\x11 \x01(\x0b\x32\x1a.PerformAttestationRequestH\x00\x12 \n\x06reboot\x18\x12 \x01(\x0b\x32\x0e.RebootRequestH\x00\x12+\n\x0c\x63heck_backup\x18\x13 \x01(\x0b\x32\x13.CheckBackupRequestH\x00\x12\x1a\n\x03\x65th\x18\x14 \x01(\x0b\x32\x0b.ETHRequestH\x00\x12\x1e\n\x05reset\x18\x15 \x01(\x0b\x32\r.ResetRequestH\x00\x12<\n\x15restore_from_mnemonic\x18\x16 \x01(\x0b\x32\x1b.RestoreFromMnemonicRequestH\x00\x12(\n\nbitboxbase\x18\x17 \x01(\x0b\x32\x12.BitBoxBaseRequestH\x00\x12.\n\x0b\x66ingerprint\x18\x18 \x01(\x0b\x32\x17.RootFingerprintRequestH\x00\x12\x1a\n\x03\x62tc\x18\x19 \x01(\x0b\x32\x0b.BTCRequestH\x00\x12@\n\x17\x65lectrum_encryption_key\x18\x1a \x01(\x0b\x32\x1d.ElectrumEncryptionKeyRequestH\x00\x42\t\n\x07request\"\xe8\x04\n\x08Response\x12\x1b\n\x07success\x18\x01 \x01(\x0b\x32\x08.SuccessH\x00\x12\x17\n\x05\x65rror\x18\x02 \x01(\x0b\x32\x06.ErrorH\x00\x12.\n\rrandom_number\x18\x03 \x01(\x0b\x32\x15.RandomNumberResponseH\x00\x12*\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32\x13.DeviceInfoResponseH\x00\x12\x1b\n\x03pub\x18\x05 \x01(\x0b\x32\x0c.PubResponseH\x00\x12-\n\rbtc_sign_next\x18\x06 \x01(\x0b\x32\x14.BTCSignNextResponseH\x00\x12,\n\x0clist_backups\x18\x07 \x01(\x0b\x32\x14.ListBackupsResponseH\x00\x12,\n\x0c\x63heck_backup\x18\x08 \x01(\x0b\x32\x14.CheckBackupResponseH\x00\x12:\n\x13perform_attestation\x18\t \x01(\x0b\x32\x1b.PerformAttestationResponseH\x00\x12,\n\x0c\x63heck_sdcard\x18\n \x01(\x0b\x32\x14.CheckSDCardResponseH\x00\x12\x1b\n\x03\x65th\x18\x0b \x01(\x0b\x32\x0c.ETHResponseH\x00\x12/\n\x0b\x66ingerprint\x18\x0c \x01(\x0b\x32\x18.RootFingerprintResponseH\x00\x12\x1b\n\x03\x62tc\x18\r \x01(\x0b\x32\x0c.BTCResponseH\x00\x12\x41\n\x17\x65lectrum_encryption_key\x18\x0e \x01(\x0b\x32\x1e.ElectrumEncryptionKeyResponseH\x00\x42\n\n\x08responseb\x06proto3')
+  serialized_pb=_b('\n\thww.proto\x12\x14shiftcrypto.bitbox02\x1a\x0c\x63ommon.proto\x1a\x15\x62\x61\x63kup_commands.proto\x1a\x15\x62itbox02_system.proto\x1a\x10\x62itboxbase.proto\x1a\tbtc.proto\x1a\teth.proto\x1a\x0ekeystore.proto\x1a\x0emnemonic.proto\x1a\x13random_number.proto\x1a\x0csystem.proto\x1a\x19perform_attestation.proto\"&\n\x05\x45rror\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"\t\n\x07Success\"\x86\x0e\n\x07Request\x12\x42\n\rrandom_number\x18\x01 \x01(\x0b\x32).shiftcrypto.bitbox02.RandomNumberRequestH\x00\x12\x41\n\x0b\x64\x65vice_name\x18\x02 \x01(\x0b\x32*.shiftcrypto.bitbox02.SetDeviceNameRequestH\x00\x12I\n\x0f\x64\x65vice_language\x18\x03 \x01(\x0b\x32..shiftcrypto.bitbox02.SetDeviceLanguageRequestH\x00\x12>\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32\'.shiftcrypto.bitbox02.DeviceInfoRequestH\x00\x12@\n\x0cset_password\x18\x05 \x01(\x0b\x32(.shiftcrypto.bitbox02.SetPasswordRequestH\x00\x12\x42\n\rcreate_backup\x18\x06 \x01(\x0b\x32).shiftcrypto.bitbox02.CreateBackupRequestH\x00\x12\x42\n\rshow_mnemonic\x18\x07 \x01(\x0b\x32).shiftcrypto.bitbox02.ShowMnemonicRequestH\x00\x12\x36\n\x07\x62tc_pub\x18\x08 \x01(\x0b\x32#.shiftcrypto.bitbox02.BTCPubRequestH\x00\x12\x41\n\rbtc_sign_init\x18\t \x01(\x0b\x32(.shiftcrypto.bitbox02.BTCSignInitRequestH\x00\x12\x43\n\x0e\x62tc_sign_input\x18\n \x01(\x0b\x32).shiftcrypto.bitbox02.BTCSignInputRequestH\x00\x12\x45\n\x0f\x62tc_sign_output\x18\x0b \x01(\x0b\x32*.shiftcrypto.bitbox02.BTCSignOutputRequestH\x00\x12O\n\x14insert_remove_sdcard\x18\x0c \x01(\x0b\x32/.shiftcrypto.bitbox02.InsertRemoveSDCardRequestH\x00\x12@\n\x0c\x63heck_sdcard\x18\r \x01(\x0b\x32(.shiftcrypto.bitbox02.CheckSDCardRequestH\x00\x12\x64\n\x1fset_mnemonic_passphrase_enabled\x18\x0e \x01(\x0b\x32\x39.shiftcrypto.bitbox02.SetMnemonicPassphraseEnabledRequestH\x00\x12@\n\x0clist_backups\x18\x0f \x01(\x0b\x32(.shiftcrypto.bitbox02.ListBackupsRequestH\x00\x12\x44\n\x0erestore_backup\x18\x10 \x01(\x0b\x32*.shiftcrypto.bitbox02.RestoreBackupRequestH\x00\x12N\n\x13perform_attestation\x18\x11 \x01(\x0b\x32/.shiftcrypto.bitbox02.PerformAttestationRequestH\x00\x12\x35\n\x06reboot\x18\x12 \x01(\x0b\x32#.shiftcrypto.bitbox02.RebootRequestH\x00\x12@\n\x0c\x63heck_backup\x18\x13 \x01(\x0b\x32(.shiftcrypto.bitbox02.CheckBackupRequestH\x00\x12/\n\x03\x65th\x18\x14 \x01(\x0b\x32 .shiftcrypto.bitbox02.ETHRequestH\x00\x12\x33\n\x05reset\x18\x15 \x01(\x0b\x32\".shiftcrypto.bitbox02.ResetRequestH\x00\x12Q\n\x15restore_from_mnemonic\x18\x16 \x01(\x0b\x32\x30.shiftcrypto.bitbox02.RestoreFromMnemonicRequestH\x00\x12=\n\nbitboxbase\x18\x17 \x01(\x0b\x32\'.shiftcrypto.bitbox02.BitBoxBaseRequestH\x00\x12\x43\n\x0b\x66ingerprint\x18\x18 \x01(\x0b\x32,.shiftcrypto.bitbox02.RootFingerprintRequestH\x00\x12/\n\x03\x62tc\x18\x19 \x01(\x0b\x32 .shiftcrypto.bitbox02.BTCRequestH\x00\x12U\n\x17\x65lectrum_encryption_key\x18\x1a \x01(\x0b\x32\x32.shiftcrypto.bitbox02.ElectrumEncryptionKeyRequestH\x00\x42\t\n\x07request\"\x8e\x07\n\x08Response\x12\x30\n\x07success\x18\x01 \x01(\x0b\x32\x1d.shiftcrypto.bitbox02.SuccessH\x00\x12,\n\x05\x65rror\x18\x02 \x01(\x0b\x32\x1b.shiftcrypto.bitbox02.ErrorH\x00\x12\x43\n\rrandom_number\x18\x03 \x01(\x0b\x32*.shiftcrypto.bitbox02.RandomNumberResponseH\x00\x12?\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32(.shiftcrypto.bitbox02.DeviceInfoResponseH\x00\x12\x30\n\x03pub\x18\x05 \x01(\x0b\x32!.shiftcrypto.bitbox02.PubResponseH\x00\x12\x42\n\rbtc_sign_next\x18\x06 \x01(\x0b\x32).shiftcrypto.bitbox02.BTCSignNextResponseH\x00\x12\x41\n\x0clist_backups\x18\x07 \x01(\x0b\x32).shiftcrypto.bitbox02.ListBackupsResponseH\x00\x12\x41\n\x0c\x63heck_backup\x18\x08 \x01(\x0b\x32).shiftcrypto.bitbox02.CheckBackupResponseH\x00\x12O\n\x13perform_attestation\x18\t \x01(\x0b\x32\x30.shiftcrypto.bitbox02.PerformAttestationResponseH\x00\x12\x41\n\x0c\x63heck_sdcard\x18\n \x01(\x0b\x32).shiftcrypto.bitbox02.CheckSDCardResponseH\x00\x12\x30\n\x03\x65th\x18\x0b \x01(\x0b\x32!.shiftcrypto.bitbox02.ETHResponseH\x00\x12\x44\n\x0b\x66ingerprint\x18\x0c \x01(\x0b\x32-.shiftcrypto.bitbox02.RootFingerprintResponseH\x00\x12\x30\n\x03\x62tc\x18\r \x01(\x0b\x32!.shiftcrypto.bitbox02.BTCResponseH\x00\x12V\n\x17\x65lectrum_encryption_key\x18\x0e \x01(\x0b\x32\x33.shiftcrypto.bitbox02.ElectrumEncryptionKeyResponseH\x00\x42\n\n\x08responseb\x06proto3')
   ,
   dependencies=[common__pb2.DESCRIPTOR,backup__commands__pb2.DESCRIPTOR,bitbox02__system__pb2.DESCRIPTOR,bitboxbase__pb2.DESCRIPTOR,btc__pb2.DESCRIPTOR,eth__pb2.DESCRIPTOR,keystore__pb2.DESCRIPTOR,mnemonic__pb2.DESCRIPTOR,random__number__pb2.DESCRIPTOR,system__pb2.DESCRIPTOR,perform__attestation__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -40,20 +40,20 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 _ERROR = _descriptor.Descriptor(
   name='Error',
-  full_name='Error',
+  full_name='shiftcrypto.bitbox02.Error',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='code', full_name='Error.code', index=0,
+      name='code', full_name='shiftcrypto.bitbox02.Error.code', index=0,
       number=1, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='message', full_name='Error.message', index=1,
+      name='message', full_name='shiftcrypto.bitbox02.Error.message', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -71,14 +71,14 @@ _ERROR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=207,
-  serialized_end=245,
+  serialized_start=229,
+  serialized_end=267,
 )
 
 
 _SUCCESS = _descriptor.Descriptor(
   name='Success',
-  full_name='Success',
+  full_name='shiftcrypto.bitbox02.Success',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
@@ -95,195 +95,195 @@ _SUCCESS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=247,
-  serialized_end=256,
+  serialized_start=269,
+  serialized_end=278,
 )
 
 
 _REQUEST = _descriptor.Descriptor(
   name='Request',
-  full_name='Request',
+  full_name='shiftcrypto.bitbox02.Request',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='random_number', full_name='Request.random_number', index=0,
+      name='random_number', full_name='shiftcrypto.bitbox02.Request.random_number', index=0,
       number=1, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='device_name', full_name='Request.device_name', index=1,
+      name='device_name', full_name='shiftcrypto.bitbox02.Request.device_name', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='device_language', full_name='Request.device_language', index=2,
+      name='device_language', full_name='shiftcrypto.bitbox02.Request.device_language', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='device_info', full_name='Request.device_info', index=3,
+      name='device_info', full_name='shiftcrypto.bitbox02.Request.device_info', index=3,
       number=4, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='set_password', full_name='Request.set_password', index=4,
+      name='set_password', full_name='shiftcrypto.bitbox02.Request.set_password', index=4,
       number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='create_backup', full_name='Request.create_backup', index=5,
+      name='create_backup', full_name='shiftcrypto.bitbox02.Request.create_backup', index=5,
       number=6, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='show_mnemonic', full_name='Request.show_mnemonic', index=6,
+      name='show_mnemonic', full_name='shiftcrypto.bitbox02.Request.show_mnemonic', index=6,
       number=7, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='btc_pub', full_name='Request.btc_pub', index=7,
+      name='btc_pub', full_name='shiftcrypto.bitbox02.Request.btc_pub', index=7,
       number=8, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='btc_sign_init', full_name='Request.btc_sign_init', index=8,
+      name='btc_sign_init', full_name='shiftcrypto.bitbox02.Request.btc_sign_init', index=8,
       number=9, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='btc_sign_input', full_name='Request.btc_sign_input', index=9,
+      name='btc_sign_input', full_name='shiftcrypto.bitbox02.Request.btc_sign_input', index=9,
       number=10, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='btc_sign_output', full_name='Request.btc_sign_output', index=10,
+      name='btc_sign_output', full_name='shiftcrypto.bitbox02.Request.btc_sign_output', index=10,
       number=11, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='insert_remove_sdcard', full_name='Request.insert_remove_sdcard', index=11,
+      name='insert_remove_sdcard', full_name='shiftcrypto.bitbox02.Request.insert_remove_sdcard', index=11,
       number=12, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='check_sdcard', full_name='Request.check_sdcard', index=12,
+      name='check_sdcard', full_name='shiftcrypto.bitbox02.Request.check_sdcard', index=12,
       number=13, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='set_mnemonic_passphrase_enabled', full_name='Request.set_mnemonic_passphrase_enabled', index=13,
+      name='set_mnemonic_passphrase_enabled', full_name='shiftcrypto.bitbox02.Request.set_mnemonic_passphrase_enabled', index=13,
       number=14, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='list_backups', full_name='Request.list_backups', index=14,
+      name='list_backups', full_name='shiftcrypto.bitbox02.Request.list_backups', index=14,
       number=15, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='restore_backup', full_name='Request.restore_backup', index=15,
+      name='restore_backup', full_name='shiftcrypto.bitbox02.Request.restore_backup', index=15,
       number=16, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='perform_attestation', full_name='Request.perform_attestation', index=16,
+      name='perform_attestation', full_name='shiftcrypto.bitbox02.Request.perform_attestation', index=16,
       number=17, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='reboot', full_name='Request.reboot', index=17,
+      name='reboot', full_name='shiftcrypto.bitbox02.Request.reboot', index=17,
       number=18, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='check_backup', full_name='Request.check_backup', index=18,
+      name='check_backup', full_name='shiftcrypto.bitbox02.Request.check_backup', index=18,
       number=19, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='eth', full_name='Request.eth', index=19,
+      name='eth', full_name='shiftcrypto.bitbox02.Request.eth', index=19,
       number=20, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='reset', full_name='Request.reset', index=20,
+      name='reset', full_name='shiftcrypto.bitbox02.Request.reset', index=20,
       number=21, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='restore_from_mnemonic', full_name='Request.restore_from_mnemonic', index=21,
+      name='restore_from_mnemonic', full_name='shiftcrypto.bitbox02.Request.restore_from_mnemonic', index=21,
       number=22, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='bitboxbase', full_name='Request.bitboxbase', index=22,
+      name='bitboxbase', full_name='shiftcrypto.bitbox02.Request.bitboxbase', index=22,
       number=23, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='fingerprint', full_name='Request.fingerprint', index=23,
+      name='fingerprint', full_name='shiftcrypto.bitbox02.Request.fingerprint', index=23,
       number=24, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='btc', full_name='Request.btc', index=24,
+      name='btc', full_name='shiftcrypto.bitbox02.Request.btc', index=24,
       number=25, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='electrum_encryption_key', full_name='Request.electrum_encryption_key', index=25,
+      name='electrum_encryption_key', full_name='shiftcrypto.bitbox02.Request.electrum_encryption_key', index=25,
       number=26, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -301,114 +301,114 @@ _REQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
     _descriptor.OneofDescriptor(
-      name='request', full_name='Request.request',
+      name='request', full_name='shiftcrypto.bitbox02.Request.request',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=259,
-  serialized_end=1511,
+  serialized_start=281,
+  serialized_end=2079,
 )
 
 
 _RESPONSE = _descriptor.Descriptor(
   name='Response',
-  full_name='Response',
+  full_name='shiftcrypto.bitbox02.Response',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='success', full_name='Response.success', index=0,
+      name='success', full_name='shiftcrypto.bitbox02.Response.success', index=0,
       number=1, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='error', full_name='Response.error', index=1,
+      name='error', full_name='shiftcrypto.bitbox02.Response.error', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='random_number', full_name='Response.random_number', index=2,
+      name='random_number', full_name='shiftcrypto.bitbox02.Response.random_number', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='device_info', full_name='Response.device_info', index=3,
+      name='device_info', full_name='shiftcrypto.bitbox02.Response.device_info', index=3,
       number=4, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='pub', full_name='Response.pub', index=4,
+      name='pub', full_name='shiftcrypto.bitbox02.Response.pub', index=4,
       number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='btc_sign_next', full_name='Response.btc_sign_next', index=5,
+      name='btc_sign_next', full_name='shiftcrypto.bitbox02.Response.btc_sign_next', index=5,
       number=6, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='list_backups', full_name='Response.list_backups', index=6,
+      name='list_backups', full_name='shiftcrypto.bitbox02.Response.list_backups', index=6,
       number=7, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='check_backup', full_name='Response.check_backup', index=7,
+      name='check_backup', full_name='shiftcrypto.bitbox02.Response.check_backup', index=7,
       number=8, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='perform_attestation', full_name='Response.perform_attestation', index=8,
+      name='perform_attestation', full_name='shiftcrypto.bitbox02.Response.perform_attestation', index=8,
       number=9, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='check_sdcard', full_name='Response.check_sdcard', index=9,
+      name='check_sdcard', full_name='shiftcrypto.bitbox02.Response.check_sdcard', index=9,
       number=10, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='eth', full_name='Response.eth', index=10,
+      name='eth', full_name='shiftcrypto.bitbox02.Response.eth', index=10,
       number=11, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='fingerprint', full_name='Response.fingerprint', index=11,
+      name='fingerprint', full_name='shiftcrypto.bitbox02.Response.fingerprint', index=11,
       number=12, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='btc', full_name='Response.btc', index=12,
+      name='btc', full_name='shiftcrypto.bitbox02.Response.btc', index=12,
       number=13, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='electrum_encryption_key', full_name='Response.electrum_encryption_key', index=13,
+      name='electrum_encryption_key', full_name='shiftcrypto.bitbox02.Response.electrum_encryption_key', index=13,
       number=14, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -426,11 +426,11 @@ _RESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
     _descriptor.OneofDescriptor(
-      name='response', full_name='Response.response',
+      name='response', full_name='shiftcrypto.bitbox02.Response.response',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1514,
-  serialized_end=2130,
+  serialized_start=2082,
+  serialized_end=2992,
 )
 
 _REQUEST.fields_by_name['random_number'].message_type = random__number__pb2._RANDOMNUMBERREQUEST
@@ -601,28 +601,28 @@ DESCRIPTOR.message_types_by_name['Response'] = _RESPONSE
 Error = _reflection.GeneratedProtocolMessageType('Error', (_message.Message,), dict(
   DESCRIPTOR = _ERROR,
   __module__ = 'hww_pb2'
-  # @@protoc_insertion_point(class_scope:Error)
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.Error)
   ))
 _sym_db.RegisterMessage(Error)
 
 Success = _reflection.GeneratedProtocolMessageType('Success', (_message.Message,), dict(
   DESCRIPTOR = _SUCCESS,
   __module__ = 'hww_pb2'
-  # @@protoc_insertion_point(class_scope:Success)
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.Success)
   ))
 _sym_db.RegisterMessage(Success)
 
 Request = _reflection.GeneratedProtocolMessageType('Request', (_message.Message,), dict(
   DESCRIPTOR = _REQUEST,
   __module__ = 'hww_pb2'
-  # @@protoc_insertion_point(class_scope:Request)
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.Request)
   ))
 _sym_db.RegisterMessage(Request)
 
 Response = _reflection.GeneratedProtocolMessageType('Response', (_message.Message,), dict(
   DESCRIPTOR = _RESPONSE,
   __module__ = 'hww_pb2'
-  # @@protoc_insertion_point(class_scope:Response)
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.Response)
   ))
 _sym_db.RegisterMessage(Response)
 

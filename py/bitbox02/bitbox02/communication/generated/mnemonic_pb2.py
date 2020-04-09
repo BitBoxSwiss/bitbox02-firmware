@@ -17,9 +17,9 @@ _sym_db = _symbol_database.Default()
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='mnemonic.proto',
-  package='',
+  package='shiftcrypto.bitbox02',
   syntax='proto3',
-  serialized_pb=_b('\n\x0emnemonic.proto\"\x15\n\x13ShowMnemonicRequest\"H\n\x1aRestoreFromMnemonicRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\r\x12\x17\n\x0ftimezone_offset\x18\x02 \x01(\x05\"6\n#SetMnemonicPassphraseEnabledRequest\x12\x0f\n\x07\x65nabled\x18\x01 \x01(\x08\x62\x06proto3')
+  serialized_pb=_b('\n\x0emnemonic.proto\x12\x14shiftcrypto.bitbox02\"\x15\n\x13ShowMnemonicRequest\"H\n\x1aRestoreFromMnemonicRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\r\x12\x17\n\x0ftimezone_offset\x18\x02 \x01(\x05\"6\n#SetMnemonicPassphraseEnabledRequest\x12\x0f\n\x07\x65nabled\x18\x01 \x01(\x08\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -28,7 +28,7 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 _SHOWMNEMONICREQUEST = _descriptor.Descriptor(
   name='ShowMnemonicRequest',
-  full_name='ShowMnemonicRequest',
+  full_name='shiftcrypto.bitbox02.ShowMnemonicRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
@@ -45,27 +45,27 @@ _SHOWMNEMONICREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=18,
-  serialized_end=39,
+  serialized_start=40,
+  serialized_end=61,
 )
 
 
 _RESTOREFROMMNEMONICREQUEST = _descriptor.Descriptor(
   name='RestoreFromMnemonicRequest',
-  full_name='RestoreFromMnemonicRequest',
+  full_name='shiftcrypto.bitbox02.RestoreFromMnemonicRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='timestamp', full_name='RestoreFromMnemonicRequest.timestamp', index=0,
+      name='timestamp', full_name='shiftcrypto.bitbox02.RestoreFromMnemonicRequest.timestamp', index=0,
       number=1, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='timezone_offset', full_name='RestoreFromMnemonicRequest.timezone_offset', index=1,
+      name='timezone_offset', full_name='shiftcrypto.bitbox02.RestoreFromMnemonicRequest.timezone_offset', index=1,
       number=2, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -83,20 +83,20 @@ _RESTOREFROMMNEMONICREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=41,
-  serialized_end=113,
+  serialized_start=63,
+  serialized_end=135,
 )
 
 
 _SETMNEMONICPASSPHRASEENABLEDREQUEST = _descriptor.Descriptor(
   name='SetMnemonicPassphraseEnabledRequest',
-  full_name='SetMnemonicPassphraseEnabledRequest',
+  full_name='shiftcrypto.bitbox02.SetMnemonicPassphraseEnabledRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='enabled', full_name='SetMnemonicPassphraseEnabledRequest.enabled', index=0,
+      name='enabled', full_name='shiftcrypto.bitbox02.SetMnemonicPassphraseEnabledRequest.enabled', index=0,
       number=1, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
@@ -114,8 +114,8 @@ _SETMNEMONICPASSPHRASEENABLEDREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=115,
-  serialized_end=169,
+  serialized_start=137,
+  serialized_end=191,
 )
 
 DESCRIPTOR.message_types_by_name['ShowMnemonicRequest'] = _SHOWMNEMONICREQUEST
@@ -125,21 +125,21 @@ DESCRIPTOR.message_types_by_name['SetMnemonicPassphraseEnabledRequest'] = _SETMN
 ShowMnemonicRequest = _reflection.GeneratedProtocolMessageType('ShowMnemonicRequest', (_message.Message,), dict(
   DESCRIPTOR = _SHOWMNEMONICREQUEST,
   __module__ = 'mnemonic_pb2'
-  # @@protoc_insertion_point(class_scope:ShowMnemonicRequest)
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.ShowMnemonicRequest)
   ))
 _sym_db.RegisterMessage(ShowMnemonicRequest)
 
 RestoreFromMnemonicRequest = _reflection.GeneratedProtocolMessageType('RestoreFromMnemonicRequest', (_message.Message,), dict(
   DESCRIPTOR = _RESTOREFROMMNEMONICREQUEST,
   __module__ = 'mnemonic_pb2'
-  # @@protoc_insertion_point(class_scope:RestoreFromMnemonicRequest)
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.RestoreFromMnemonicRequest)
   ))
 _sym_db.RegisterMessage(RestoreFromMnemonicRequest)
 
 SetMnemonicPassphraseEnabledRequest = _reflection.GeneratedProtocolMessageType('SetMnemonicPassphraseEnabledRequest', (_message.Message,), dict(
   DESCRIPTOR = _SETMNEMONICPASSPHRASEENABLEDREQUEST,
   __module__ = 'mnemonic_pb2'
-  # @@protoc_insertion_point(class_scope:SetMnemonicPassphraseEnabledRequest)
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.SetMnemonicPassphraseEnabledRequest)
   ))
 _sym_db.RegisterMessage(SetMnemonicPassphraseEnabledRequest)
 

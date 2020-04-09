@@ -17,9 +17,9 @@ _sym_db = _symbol_database.Default()
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='system.proto',
-  package='',
+  package='shiftcrypto.bitbox02',
   syntax='proto3',
-  serialized_pb=_b('\n\x0csystem.proto\"\x0f\n\rRebootRequestb\x06proto3')
+  serialized_pb=_b('\n\x0csystem.proto\x12\x14shiftcrypto.bitbox02\"\x0f\n\rRebootRequestb\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -28,7 +28,7 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 _REBOOTREQUEST = _descriptor.Descriptor(
   name='RebootRequest',
-  full_name='RebootRequest',
+  full_name='shiftcrypto.bitbox02.RebootRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
@@ -45,8 +45,8 @@ _REBOOTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=16,
-  serialized_end=31,
+  serialized_start=38,
+  serialized_end=53,
 )
 
 DESCRIPTOR.message_types_by_name['RebootRequest'] = _REBOOTREQUEST
@@ -54,7 +54,7 @@ DESCRIPTOR.message_types_by_name['RebootRequest'] = _REBOOTREQUEST
 RebootRequest = _reflection.GeneratedProtocolMessageType('RebootRequest', (_message.Message,), dict(
   DESCRIPTOR = _REBOOTREQUEST,
   __module__ = 'system_pb2'
-  # @@protoc_insertion_point(class_scope:RebootRequest)
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.RebootRequest)
   ))
 _sym_db.RegisterMessage(RebootRequest)
 

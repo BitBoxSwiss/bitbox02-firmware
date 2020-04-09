@@ -17,9 +17,9 @@ _sym_db = _symbol_database.Default()
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='keystore.proto',
-  package='',
+  package='shiftcrypto.bitbox02',
   syntax='proto3',
-  serialized_pb=_b('\n\x0ekeystore.proto\"/\n\x1c\x45lectrumEncryptionKeyRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\",\n\x1d\x45lectrumEncryptionKeyResponse\x12\x0b\n\x03key\x18\x01 \x01(\tb\x06proto3')
+  serialized_pb=_b('\n\x0ekeystore.proto\x12\x14shiftcrypto.bitbox02\"/\n\x1c\x45lectrumEncryptionKeyRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\",\n\x1d\x45lectrumEncryptionKeyResponse\x12\x0b\n\x03key\x18\x01 \x01(\tb\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -28,13 +28,13 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 _ELECTRUMENCRYPTIONKEYREQUEST = _descriptor.Descriptor(
   name='ElectrumEncryptionKeyRequest',
-  full_name='ElectrumEncryptionKeyRequest',
+  full_name='shiftcrypto.bitbox02.ElectrumEncryptionKeyRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='keypath', full_name='ElectrumEncryptionKeyRequest.keypath', index=0,
+      name='keypath', full_name='shiftcrypto.bitbox02.ElectrumEncryptionKeyRequest.keypath', index=0,
       number=1, type=13, cpp_type=3, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -52,20 +52,20 @@ _ELECTRUMENCRYPTIONKEYREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=18,
-  serialized_end=65,
+  serialized_start=40,
+  serialized_end=87,
 )
 
 
 _ELECTRUMENCRYPTIONKEYRESPONSE = _descriptor.Descriptor(
   name='ElectrumEncryptionKeyResponse',
-  full_name='ElectrumEncryptionKeyResponse',
+  full_name='shiftcrypto.bitbox02.ElectrumEncryptionKeyResponse',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='key', full_name='ElectrumEncryptionKeyResponse.key', index=0,
+      name='key', full_name='shiftcrypto.bitbox02.ElectrumEncryptionKeyResponse.key', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -83,8 +83,8 @@ _ELECTRUMENCRYPTIONKEYRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=67,
-  serialized_end=111,
+  serialized_start=89,
+  serialized_end=133,
 )
 
 DESCRIPTOR.message_types_by_name['ElectrumEncryptionKeyRequest'] = _ELECTRUMENCRYPTIONKEYREQUEST
@@ -93,14 +93,14 @@ DESCRIPTOR.message_types_by_name['ElectrumEncryptionKeyResponse'] = _ELECTRUMENC
 ElectrumEncryptionKeyRequest = _reflection.GeneratedProtocolMessageType('ElectrumEncryptionKeyRequest', (_message.Message,), dict(
   DESCRIPTOR = _ELECTRUMENCRYPTIONKEYREQUEST,
   __module__ = 'keystore_pb2'
-  # @@protoc_insertion_point(class_scope:ElectrumEncryptionKeyRequest)
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.ElectrumEncryptionKeyRequest)
   ))
 _sym_db.RegisterMessage(ElectrumEncryptionKeyRequest)
 
 ElectrumEncryptionKeyResponse = _reflection.GeneratedProtocolMessageType('ElectrumEncryptionKeyResponse', (_message.Message,), dict(
   DESCRIPTOR = _ELECTRUMENCRYPTIONKEYRESPONSE,
   __module__ = 'keystore_pb2'
-  # @@protoc_insertion_point(class_scope:ElectrumEncryptionKeyResponse)
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.ElectrumEncryptionKeyResponse)
   ))
 _sym_db.RegisterMessage(ElectrumEncryptionKeyResponse)
 

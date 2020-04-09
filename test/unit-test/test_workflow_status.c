@@ -30,7 +30,6 @@ static component_t _component;
 component_t* __wrap_status_create(
     const char* text,
     bool status_success,
-    int delay,
     void (*callback)(void*),
     void* callback_param)
 {

@@ -15,6 +15,18 @@
 // This crate contains safe wrappers around C functions provided by bitbox02_sys.
 #![no_std]
 
+#[cfg(test)]
+#[macro_use]
+extern crate std;
+
+pub mod hww;
+pub mod keystore;
+pub mod memory;
+pub mod password;
+pub mod random;
+pub mod securechip;
+pub mod ui;
+
 use core::time::Duration;
 
 // Reexport the protobuf types
@@ -57,6 +69,8 @@ pub const COMMANDER_OK: bitbox02_sys::commander_error_t =
 pub use bitbox02_sys::font_monogram_5X9;
 
 pub use bitbox02_sys::confirm_params_t;
+
+pub use bitbox02_sys::buffer_t;
 
 #[macro_use]
 pub mod util;

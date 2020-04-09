@@ -28,8 +28,9 @@
 #include <ui/workflow_stack.h>
 #include <util.h>
 
-static void _confirm_dismiss(void* param)
+static void _confirm_dismiss(bool result, void* param)
 {
+    (void)result;
     (void)param;
     ui_screen_stack_switch(waiting_create());
 }
@@ -39,8 +40,9 @@ void workflow_confirm_dismiss(const char* title, const char* body)
     const confirm_params_t params = {
         .title = title,
         .body = body,
+        .accept_only = true,
     };
-    ui_screen_stack_switch(confirm_create(&params, _confirm_dismiss, NULL, NULL, NULL));
+    ui_screen_stack_switch(confirm_create(&params, _confirm_dismiss, NULL));
 }
 
 workflow_t* workflow_allocate(

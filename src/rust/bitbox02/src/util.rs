@@ -73,3 +73,13 @@ macro_rules! str_to_cstr {
         }
     }};
 }
+
+#[macro_export]
+macro_rules! str_to_cstr_force {
+    ($input:expr, $len:literal) => {
+        match $crate::str_to_cstr!($input, $len) {
+            Ok(buf) => buf,
+            Err(_) => panic!("str did not fit"),
+        }
+    };
+}

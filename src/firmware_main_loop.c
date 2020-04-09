@@ -24,6 +24,7 @@
 #include "usb/usb.h"
 #include "usb/usb_processing.h"
 #include "workflow/workflow.h"
+#include <rust/rust.h>
 
 void firmware_main_loop(void)
 {
@@ -39,7 +40,10 @@ void firmware_main_loop(void)
             Abort("NULL workflow spin in main");
         }
         workflow->spin(workflow);
+
         if (usb_is_enabled()) {
+            rust_async_usb_spin();
+
             /* First, process all the incoming USB traffic. */
             usb_processing_process(usb_processing_hww());
 #if APP_U2F == 1

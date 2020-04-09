@@ -20,11 +20,11 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/commander/commander_states.c
   ${CMAKE_SOURCE_DIR}/src/keystore.c
   ${CMAKE_SOURCE_DIR}/src/random.c
-  ${CMAKE_SOURCE_DIR}/src/attestation.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
   ${CMAKE_SOURCE_DIR}/src/util.c
   ${CMAKE_SOURCE_DIR}/src/sd.c
   ${CMAKE_SOURCE_DIR}/src/hww.c
+  ${CMAKE_SOURCE_DIR}/src/hww_api.c
   ${CMAKE_SOURCE_DIR}/src/memory/bitbox02_smarteeprom.c
   ${CMAKE_SOURCE_DIR}/src/memory/memory.c
   ${CMAKE_SOURCE_DIR}/src/memory/mpu.c
@@ -312,8 +312,9 @@ if(CMAKE_CROSSCOMPILING)
   get_property(CMSIS_INCLUDES TARGET CMSIS PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
 endif()
 get_property(WALLY_INCLUDES TARGET wallycore PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+get_property(SECP256k1_INCLUDES TARGET secp256k1 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
 
-foreach(include ${INCLUDES} ${SYSTEMINCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDES} ${ASF4_MIN_INCLUDES} ${CMSIS_INCLUDES} ${NANOPB_INCLUDE_DIRS} ${WALLY_INCLUDES})
+foreach(include ${INCLUDES} ${SYSTEMINCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDES} ${ASF4_MIN_INCLUDES} ${CMSIS_INCLUDES} ${NANOPB_INCLUDE_DIRS} ${WALLY_INCLUDES} ${SECP256k1_INCLUDES})
   list(APPEND RUST_INCLUDES -I${include})
 endforeach()
 
@@ -332,7 +333,19 @@ add_custom_target(rust-bindgen
     --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs
     --use-core
     --ctypes-prefix util::c_types
+    --whitelist-function hww_api_process_packet
+    --whitelist-function memory_is_initialized
+    --whitelist-function memory_is_mnemonic_passphrase_enabled
+    --whitelist-function memory_get_attestation_pubkey_and_certificate
+    --whitelist-function memory_bootloader_hash
+    --whitelist-function securechip_attestation_sign
+    --whitelist-function keystore_is_locked
+    --whitelist-function keystore_unlock
+    --whitelist-function keystore_unlock_bip39
+    --whitelist-function lock_animation_start
+    --whitelist-function lock_animation_stop
     --whitelist-function delay_us
+    --rustified-enum keystore_error_t
     --whitelist-function delay_ms
     --whitelist-function UG_PutString
     --whitelist-function UG_FontSelect
@@ -342,19 +355,25 @@ add_custom_target(rust-bindgen
     --whitelist-function screen_print_debug
     --whitelist-function ui_screen_stack_push
     --whitelist-function ui_screen_stack_pop
+    --whitelist-function screen_process
     --whitelist-function label_create
+    --whitelist-function confirm_create
+    --whitelist-function status_create
     --whitelist-function bitboxbase_watchdog_reset
     --whitelist-function bitboxbase_screensaver_reset
     --whitelist-function leds_turn_small_led
     --whitelist-function leds_turn_big_led
     --whitelist-function wally_sha256
+    --whitelist-function random_32_bytes_mcu
     --whitelist-type component_t
     --whitelist-type commander_error_t
     --whitelist-type BitBoxBaseRequest
     --whitelist-var ".*_tag"
     --whitelist-var font_font_a_9X9
     --whitelist-var font_monogram_5X9
+    --whitelist-var font_password_11X12
     --whitelist-var WALLY_OK
+    --whitelist-function trinary_input_string_create_password
     ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
     -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums ${RUST_BINDGEN_FLAGS} ${RUST_INCLUDES}
   )

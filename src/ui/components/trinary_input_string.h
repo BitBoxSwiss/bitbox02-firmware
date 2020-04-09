@@ -33,7 +33,8 @@
  * adjust automatically so only words from the wordlist can be entered. Must be sorted, with all
  * words being lowercase 'a-z'.
  * @param[in] wordlist_size number of words in the wordlist.
- * @param[in] confirm_cb The callback that is called when the user entered the string.
+ * @param[in] confirm_cb The callback that is called when the user entered the string. Will be
+ * called at most once.
  * @param[in] cancel_cb Called when the user cancels by hitting the back button.
  */
 component_t* trinary_input_string_create_wordlist(

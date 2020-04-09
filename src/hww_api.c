@@ -1,4 +1,4 @@
-// Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Cryptosecurity AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _ATTESTATION_H_
-#define _ATTESTATION_H_
+#include "hww_api.h"
 
-#include <stdbool.h>
-#include <stdint.h>
+#include <commander/commander.h>
+#include <usb/noise.h>
+#include <workflow/status.h>
 
-#include "hww.pb.h"
-
-bool attestation_perform(const uint8_t* host_challenge, PerformAttestationResponse* result_out);
-
-#endif
+void hww_api_process_packet(const in_buffer_t* in_req, buffer_t* out_rsp)
+{
+    // Process protofbuf/noise api calls.
+    if (!bb_noise_process_msg(in_req, out_rsp, commander)) {
+        workflow_status_blocking("Could not\npair with app", false);
+    }
+}

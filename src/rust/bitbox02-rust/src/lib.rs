@@ -20,10 +20,19 @@
 mod error;
 #[macro_use]
 pub mod general;
+pub mod async_usb;
+pub mod attestation;
+pub mod bb02_async;
 pub mod commander;
+pub mod hww;
 pub mod platform;
 pub mod util;
+mod waker_fn;
 pub mod workflow;
+
+// for `format!`
+#[macro_use]
+extern crate alloc;
 
 // reexport arrayvec because it is used in our macro "print_debug"
 pub extern crate arrayvec;

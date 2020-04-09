@@ -36,7 +36,7 @@
 static void _show_reset_label(bool status)
 {
     const char* msg = "Device reset";
-    component_t* comp = status_create(msg, status, STATUS_DEFAULT_DELAY, NULL, NULL);
+    component_t* comp = status_create(msg, status, NULL, NULL);
     UG_ClearBuffer();
     comp->f->render(comp);
     UG_SendBuffer();

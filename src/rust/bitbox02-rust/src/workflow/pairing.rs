@@ -14,14 +14,11 @@
 
 use arrayvec::ArrayString;
 use binascii;
-use bitbox02;
 use core::fmt::Write;
 
-/// This function takes a slice of bytes that must be at most 60 characters when base32
-/// encoded.
-pub fn create(bytes: &[u8]) -> bool {
+pub async fn confirm(hash: &[u8; 32]) -> bool {
     let mut encoded = [0u8; 60];
-    binascii::b32encode(bytes, &mut encoded).unwrap_or_else(|_| panic!("Too short buffer"));
+    let encoded = binascii::b32encode(&hash[..], &mut encoded).unwrap();
 
     // Base32 contains only utf-8 valid chars. unwrap is safe
     let encoded = core::str::from_utf8(&encoded).expect("invalid utf-8");
@@ -37,17 +34,14 @@ pub fn create(bytes: &[u8]) -> bool {
     )
     .expect("failed to format");
 
-    bitbox02::workflow_confirm_blocking(
-        "Base pairing code",
-        &formatted,
-        unsafe { &bitbox02::font_monogram_5X9 },
-        false,
-        false,
-    )
-}
+    use crate::workflow::confirm;
 
-pub fn extra_hash_create(bytes: &[u8]) -> bool {
-    let mut buf = [0u8; 32];
-    bitbox02::sha256(bytes, &mut buf).expect("sha256 failed");
-    create(&buf[..])
+    let params = confirm::Params {
+        title: "Pairing code",
+        body: &formatted,
+        font: confirm::Font::Monogram5X9,
+        ..Default::default()
+    };
+
+    confirm::confirm(&params).await
 }

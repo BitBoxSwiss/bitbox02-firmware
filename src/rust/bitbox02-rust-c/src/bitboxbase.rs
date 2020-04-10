@@ -46,7 +46,12 @@ pub fn confirm_pairing(
     bitbox02::leds_turn_big_led(1, None);
 
     bitbox02::bitboxbase_screensaver_reset();
-    let res = pairing::extra_hash_create(bytes);
+    let res = {
+        // Extra hash in pairing hash for the BitBoxBase.
+        let mut buf = [0u8; 32];
+        bitbox02::sha256(bytes, &mut buf).expect("sha256 failed");
+        bitbox02_rust::bb02_async::block_on(pairing::confirm(&buf))
+    };
     bitbox02::leds_turn_small_led(0, false);
     bitbox02::leds_turn_small_led(4, false);
     match res {

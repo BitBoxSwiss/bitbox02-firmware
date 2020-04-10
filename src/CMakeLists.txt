@@ -351,7 +351,6 @@ add_custom_target(rust-bindgen
     --whitelist-function UG_FontSelect
     --whitelist-function UG_ClearBuffer
     --whitelist-function UG_SendBuffer
-    --whitelist-function workflow_confirm_blocking
     --whitelist-function screen_print_debug
     --whitelist-function ui_screen_stack_push
     --whitelist-function ui_screen_stack_pop

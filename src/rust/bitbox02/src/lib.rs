@@ -116,45 +116,6 @@ pub fn delay(duration: Duration) {
     }
 }
 
-// Safe wrapper for workflow_confirm_blocking
-pub fn workflow_confirm_blocking(
-    title: &str,
-    body: &str,
-    font: *const bitbox02_sys::UG_FONT,
-    longtouch: bool,
-    accept_only: bool,
-) -> bool {
-    // Create null-terminated strings for title and body
-    let title_cstr = match str_to_cstr!(title, 20) {
-        Ok(cstr) => cstr,
-        Err(_) => {
-            screen_print_debug("string didn't fit", 3000);
-            return false;
-        }
-    };
-    let body_cstr = match str_to_cstr!(body, 100) {
-        Ok(cstr) => cstr,
-        Err(_) => {
-            screen_print_debug("string didn't fit", 3000);
-            return false;
-        }
-    };
-
-    let params: confirm_params_t = confirm_params_t {
-        title: title_cstr.as_ptr() as *const _,
-        body: body_cstr.as_ptr() as *const _,
-        font: font,
-        scrollable: false,
-        longtouch: longtouch,
-        accept_only: accept_only,
-        accept_is_nextarrow: false,
-        shorten_body: false,
-        display_size: 0,
-    };
-
-    unsafe { bitbox02_sys::workflow_confirm_blocking(&params) }
-}
-
 pub fn screen_print_debug(msg: &str, duration: i32) {
     match str_to_cstr!(msg, 200) {
         Ok(cstr) => unsafe {

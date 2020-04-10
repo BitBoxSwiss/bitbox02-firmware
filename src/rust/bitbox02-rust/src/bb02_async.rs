@@ -17,16 +17,19 @@ extern crate alloc;
 use alloc::boxed::Box;
 use core::cell::RefCell;
 use core::pin::Pin;
+use core::task::{Context, Poll};
 
 /// Task is the top-level future which can be polled by an executor.
 /// Note that other futures awaited inside do not have to be pinned.
-pub type Task<O> = Pin<Box<dyn core::future::Future<Output = O>>>;
+/// The 'a lifetime allows to spin a boxed/pinned future that is not
+/// 'static, or a future with non-'static input param references.
+pub type Task<'a, O> = Pin<Box<dyn core::future::Future<Output = O> + 'a>>;
 
 /// A primitive poll invocation for a task, with no waking functionality.
-pub fn spin<O>(task: &mut Task<O>) -> core::task::Poll<O> {
+pub fn spin<O>(task: &mut Task<O>) -> Poll<O> {
     // TODO: statically allocate the context.
     let waker = crate::waker_fn::waker_fn(|| {});
-    let context = &mut core::task::Context::from_waker(&waker);
+    let context = &mut Context::from_waker(&waker);
     task.as_mut().poll(context)
 }
 
@@ -35,13 +38,10 @@ pub struct AsyncOption<'a, O>(&'a RefCell<Option<O>>);
 
 impl<O> core::future::Future for AsyncOption<'_, O> {
     type Output = ();
-    fn poll(
-        self: core::pin::Pin<&mut Self>,
-        _cx: &mut core::task::Context<'_>,
-    ) -> core::task::Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
         match *self.0.borrow() {
-            None => core::task::Poll::Pending,
-            Some(_) => core::task::Poll::Ready(()),
+            None => Poll::Pending,
+            Some(_) => Poll::Ready(()),
         }
     }
 }
@@ -50,4 +50,15 @@ impl<O> core::future::Future for AsyncOption<'_, O> {
 /// E.g. `assert_eq!(option(&Some(42)).await, 42)`.
 pub fn option<'a, O>(option: &'a RefCell<Option<O>>) -> AsyncOption<'a, O> {
     AsyncOption(&option)
+}
+
+/// Polls a future until the result is available.
+pub fn block_on<O>(task: impl core::future::Future<Output = O>) -> O {
+    let mut task: crate::bb02_async::Task<O> = alloc::boxed::Box::pin(task);
+    loop {
+        bitbox02::ui::screen_process();
+        if let Poll::Ready(result) = spin(&mut task) {
+            return result;
+        }
+    }
 }

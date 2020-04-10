@@ -38,7 +38,7 @@ pub struct AsyncOption<'a, O>(&'a RefCell<Option<O>>);
 
 impl<O> core::future::Future for AsyncOption<'_, O> {
     type Output = ();
-    fn poll(self: core::pin::Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
         match *self.0.borrow() {
             None => Poll::Pending,
             Some(_) => Poll::Ready(()),

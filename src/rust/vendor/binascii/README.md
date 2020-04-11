@@ -16,6 +16,17 @@ Rust implementation of useful binascii functions.
     [dependencies]
     binascii = "0.1"
     ```
+* Encoders and decoders are enabled by default. To enable only decoders, use the
+  `"decode"` feature. To enable only encoders, use the `"encode"` feature:
+    ```toml
+    # Enable encoders only.
+    [dependencies]
+    binascii = { version = "0.1", default-features = false, features = ["encode"] }
+    
+    # Enable decoders only.
+    [dependencies]
+    binascii = { version = "0.1", default-features = false, features = ["decode"] }
+    ```
 * The API is very simple, head over to https://docs.rs/binascii/.
 
 ## Why `binascii`?

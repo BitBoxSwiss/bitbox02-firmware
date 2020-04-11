@@ -27,7 +27,7 @@ doctest = false
 
 [dependencies]
 bitbox02 = {path = "../bitbox02"}
-binascii = "0.1"
+binascii = { version = "0.1.4", default-features = false, features = ["encode"] }
 
 # For stack allocated strings
 [dependencies.arrayvec]

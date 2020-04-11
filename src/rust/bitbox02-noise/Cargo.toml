@@ -12,24 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[workspace]
+[package]
+name = "bitbox02-noise"
+version = "0.1.0"
+authors = ["Shift Cryptosecurity AG <support@shiftcrypto.ch>"]
+edition = "2018"
+description = "BitBox02 noise protocol primitives"
+license = "Apache-2.0"
 
-members = [
-    "bitbox02-rust-c",
-    "bitbox02-rust",
-    "util",
-    "apps/ethereum",
-    "bitbox02-noise",
-    "bitbox02",
-    "bitbox02-sys",
-]
+[dependencies]
+zeroize = "1.1.0"
 
-[profile.release]
-debug = true
-opt-level = 'z'
-codegen-units = 1
-panic = 'abort'
-lto = true
+[dependencies.noise-protocol]
+version = "0.1.3"
+default-features = false
+features = ["use_alloc"]
 
-[profile.dev]
-opt-level = 'z'
+[dependencies.noise-rust-crypto]
+version = "0.3.0"
+default-features = false
+features = ["use-sha2", "use-chacha20poly1305"]
+
+[dependencies.x25519-dalek]
+version = "0.6.0"
+default-features = false
+features = ["u32_backend"]

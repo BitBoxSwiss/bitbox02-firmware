@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+mod noise;
 extern crate alloc;
 use alloc::vec::Vec;
 
@@ -75,7 +76,9 @@ pub async fn process_packet(usb_in: Vec<u8>) -> Vec<u8> {
         return Vec::new();
     }
 
-    // -- Process anything not ported to Rust yet. --
-    // This function is blocking.
-    bitbox02::hww::process_packet(usb_in)
+    let mut out = [OP_STATUS_SUCCESS].to_vec();
+    match noise::process(usb_in, &mut out).await {
+        Ok(()) => out,
+        Err(noise::Error) => [OP_STATUS_FAILURE].to_vec(),
+    }
 }

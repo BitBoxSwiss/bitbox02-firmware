@@ -338,6 +338,9 @@ add_custom_target(rust-bindgen
     --whitelist-function memory_is_mnemonic_passphrase_enabled
     --whitelist-function memory_get_attestation_pubkey_and_certificate
     --whitelist-function memory_bootloader_hash
+    --whitelist-function memory_get_noise_static_private_key
+    --whitelist-function memory_check_noise_remote_static_pubkey
+    --whitelist-function memory_add_noise_remote_static_pubkey
     --whitelist-function securechip_attestation_sign
     --whitelist-function keystore_is_locked
     --whitelist-function keystore_unlock

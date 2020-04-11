@@ -42,3 +42,22 @@ pub fn bootloader_hash(out: &mut [u8; 32]) {
         bitbox02_sys::memory_bootloader_hash(out.as_mut_ptr());
     }
 }
+
+pub fn get_noise_static_private_key() -> Result<zeroize::Zeroizing<[u8; 32]>, ()> {
+    let mut out = zeroize::Zeroizing::new([0u8; 32]);
+    match unsafe { bitbox02_sys::memory_get_noise_static_private_key(out.as_mut_ptr()) } {
+        true => Ok(out),
+        false => Err(()),
+    }
+}
+
+pub fn check_noise_remote_static_pubkey(pubkey: &[u8; 32]) -> bool {
+    unsafe { bitbox02_sys::memory_check_noise_remote_static_pubkey(pubkey.as_ptr()) }
+}
+
+pub fn add_noise_remote_static_pubkey(pubkey: &[u8; 32]) -> Result<(), ()> {
+    match unsafe { bitbox02_sys::memory_add_noise_remote_static_pubkey(pubkey.as_ptr()) } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}

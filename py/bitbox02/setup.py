@@ -57,7 +57,6 @@ setup(
         "ecdsa>=0.13",
         "semver>=2.8.1",
         # Needed as long as we support python < 3.7
-        "typing>=3.7.4",
         "typing_extensions>=3.7.4",
         "base58>=2.0.0",
     ],

@@ -19,6 +19,7 @@
 #[macro_use]
 extern crate std;
 
+pub mod commander;
 pub mod hww;
 pub mod keystore;
 pub mod memory;

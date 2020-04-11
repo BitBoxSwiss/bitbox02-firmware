@@ -366,6 +366,7 @@ add_custom_target(rust-bindgen
     --whitelist-function random_32_bytes_mcu
     --whitelist-type component_t
     --whitelist-type commander_error_t
+    --whitelist-function commander
     --whitelist-type BitBoxBaseRequest
     --whitelist-var ".*_tag"
     --whitelist-var font_font_a_9X9

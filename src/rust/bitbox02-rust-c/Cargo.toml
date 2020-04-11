@@ -35,6 +35,7 @@ opt-level = 'z'
 [dependencies]
 bitbox02-rust = { path = "../bitbox02-rust" }
 bitbox02 = { path = "../bitbox02" }
+bitbox02-noise = { path = "../bitbox02-noise" }
 util = { path = "../util" }
 ethereum = { path = "../apps/ethereum", optional = true }
 hex = { version = "0.4", default-features = false }

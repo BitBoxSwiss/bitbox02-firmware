@@ -24,6 +24,7 @@ extern crate std;
 mod alloc;
 
 mod async_usb;
+mod noise;
 mod util;
 
 #[cfg(feature = "platform-bitboxbase")]

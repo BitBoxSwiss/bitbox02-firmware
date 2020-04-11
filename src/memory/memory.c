@@ -22,6 +22,7 @@
 #include "random.h"
 #include "usb/noise.h"
 #include "util.h"
+#include <rust/rust.h>
 
 #ifndef TESTING
 #include "driver_init.h"
@@ -367,9 +368,8 @@ bool memory_reset_hww(void)
     _interface_functions->random_32_bytes(chunk.fields.salt_root);
 
     // Set a new noise static private key.
-    if (!bb_noise_generate_static_private_key(chunk.fields.noise_static_private_key)) {
-        Abort("memory_reset_hww:\ncould not generate\nnoise key");
-    }
+    rust_noise_generate_static_private_key(rust_util_bytes_mut(
+        chunk.fields.noise_static_private_key, sizeof(chunk.fields.noise_static_private_key)));
     return _write_chunk(CHUNK_1, chunk.bytes);
 }
 

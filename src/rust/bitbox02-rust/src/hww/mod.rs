@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod noise;
+pub mod noise;
+
 extern crate alloc;
 use alloc::vec::Vec;
 

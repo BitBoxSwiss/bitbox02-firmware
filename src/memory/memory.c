@@ -20,7 +20,6 @@
 #include "hardfault.h"
 #include "memory/memory.h"
 #include "random.h"
-#include "usb/noise.h"
 #include "util.h"
 #include <rust/rust.h>
 

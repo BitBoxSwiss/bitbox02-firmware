@@ -21,6 +21,8 @@
 #include "compiler_util.h"
 #include "util.h"
 
+#define NOISE_PUBKEY_SIZE 32
+
 // Including null terminator.
 #define MEMORY_MULTISIG_NAME_MAX_LEN (31)
 

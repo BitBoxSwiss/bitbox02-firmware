@@ -24,7 +24,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/util.c
   ${CMAKE_SOURCE_DIR}/src/sd.c
   ${CMAKE_SOURCE_DIR}/src/hww.c
-  ${CMAKE_SOURCE_DIR}/src/hww_api.c
   ${CMAKE_SOURCE_DIR}/src/memory/bitbox02_smarteeprom.c
   ${CMAKE_SOURCE_DIR}/src/memory/memory.c
   ${CMAKE_SOURCE_DIR}/src/memory/mpu.c
@@ -33,7 +32,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/salt.c
   ${CMAKE_SOURCE_DIR}/src/i2c_ecc.c
   ${CMAKE_SOURCE_DIR}/src/touch/gestures.c
-  ${CMAKE_SOURCE_DIR}/src/usb/noise.c
   ${CMAKE_SOURCE_DIR}/src/backup.c
   ${CMAKE_SOURCE_DIR}/src/restore.c
   ${CMAKE_SOURCE_DIR}/src/reset.c
@@ -333,7 +331,6 @@ add_custom_target(rust-bindgen
     --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs
     --use-core
     --ctypes-prefix util::c_types
-    --whitelist-function hww_api_process_packet
     --whitelist-function memory_is_initialized
     --whitelist-function memory_is_mnemonic_passphrase_enabled
     --whitelist-function memory_get_attestation_pubkey_and_certificate

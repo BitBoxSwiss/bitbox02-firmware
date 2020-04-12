@@ -62,6 +62,7 @@ dependencies = [
  "bitbox02-rust 0.1.0",
  "ethereum 0.1.0",
  "hex 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sha2 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.1.0",
 ]
 

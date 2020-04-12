@@ -30,8 +30,6 @@
 #include <mock_memory.h>
 #endif
 
-#include <crypto/sha2/sha256.h>
-
 /********* Definitions and read/write helper functions ****************/
 
 // Documentation of all appData chunks and their contents.  A chunk is defined as
@@ -629,10 +627,7 @@ void memory_bootloader_hash(uint8_t* hash_out)
 {
     uint8_t* bootloader = FLASH_BOOT_START;
     size_t len = FLASH_BOOT_LEN - 32; // 32 bytes are random
-    sha256_context_t ctx;
-    sha256_reset(&ctx);
-    noise_sha256_update(&ctx, bootloader, len);
-    sha256_finish(&ctx, hash_out);
+    rust_sha256(bootloader, len, hash_out);
 }
 
 bool memory_bootloader_set_flags(auto_enter_t auto_enter, upside_down_t upside_down)

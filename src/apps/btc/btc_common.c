@@ -17,9 +17,9 @@
 #include "btc_common.h"
 
 #include <apps/common/bip32.h>
-#include <crypto/sha2/sha256.h>
 #include <hardfault.h>
 #include <keystore.h>
+#include <rust/rust.h>
 #include <util.h>
 #include <wally_address.h>
 
@@ -607,8 +607,7 @@ bool btc_common_multisig_hash(
     size_t keypath_len,
     uint8_t* hash_out)
 {
-    sha256_context_t ctx = {0};
-    sha256_reset(&ctx);
+    void* ctx __attribute__((__cleanup__(rust_sha256_free))) = rust_sha256_new();
 
     { // 1. coin
         uint8_t byte;
@@ -628,21 +627,21 @@ bool btc_common_multisig_hash(
         default:
             return false;
         }
-        noise_sha256_update(&ctx, &byte, 1);
+        rust_sha256_update(ctx, &byte, 1);
     }
     { // 2. script config type
         // only one supported for now, op_checkmultisig-in-p2wsh.
         uint8_t byte = 0x00;
-        noise_sha256_update(&ctx, &byte, 1);
+        rust_sha256_update(ctx, &byte, 1);
     }
     { // 3. threshold
         // assumes little endian environment
-        noise_sha256_update(&ctx, &multisig->threshold, sizeof(multisig->threshold));
+        rust_sha256_update(ctx, &multisig->threshold, sizeof(multisig->threshold));
     }
     { // 4. num xpubs
         uint32_t num = multisig->xpubs_count; // cast to fixed size
         // assumes little endian environment
-        noise_sha256_update(&ctx, &num, sizeof(num));
+        rust_sha256_update(ctx, &num, sizeof(num));
     }
     { // 5. xpubs
         for (size_t i = 0; i < multisig->xpubs_count; i++) {
@@ -659,18 +658,18 @@ bool btc_common_multisig_hash(
             // Drop the first xpub version, which are the 4 first bytes. They are determined by the
             // above `BIP32_FLAG_KEY_PUBLIC` flag and do not add anything, as the xpub version is
             // chosen ad-hoc depending on the context it is used in.
-            noise_sha256_update(&ctx, xpub_serialized + 4, sizeof(xpub_serialized) - 4);
+            rust_sha256_update(ctx, xpub_serialized + 4, sizeof(xpub_serialized) - 4);
         }
     }
     { // 6. keypath len
         uint32_t len = keypath_len; // cast to fixed size
-        noise_sha256_update(&ctx, &len, sizeof(len));
+        rust_sha256_update(ctx, &len, sizeof(len));
     }
     { // 7. keypath
         for (size_t i = 0; i < keypath_len; i++) {
-            noise_sha256_update(&ctx, &keypath[i], sizeof(keypath[i]));
+            rust_sha256_update(ctx, &keypath[i], sizeof(keypath[i]));
         }
     }
-    sha256_finish(&ctx, hash_out);
+    rust_sha256_finish(&ctx, hash_out);
     return true;
 }

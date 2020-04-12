@@ -562,9 +562,6 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${firmware}.map\" -T\"${CMAKE_SOURCE_DIR}/firmware.ld\"")
     target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
 
-    add_dependencies(${elf} noise-c)
-    target_link_libraries(${elf} PRIVATE noiseprotocol)
-
     add_dependencies(${elf} libwally-core)
     target_link_libraries(${elf} PRIVATE wallycore secp256k1)
     target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})

@@ -52,7 +52,6 @@ set(LIBRARIES
       ${QTOUCHLIB_T}
       wallycore
       secp256k1
-      noiseprotocol
       cryptoauthlib
       base32
       bignum # TODO: only eth
@@ -105,7 +104,6 @@ target_link_libraries(bitbox02-platform
   PRIVATE
     bitbox02_rust_c
     fatfs
-    noiseprotocol
     cryptoauthlib
     base32
     bignum # TODO: only eth
@@ -166,8 +164,7 @@ foreach(name ${BB02_TEST_LIST})
   target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
 
 
-  # Since noiseprotocol and wallycore are external projects we need to specify the dependency
-  add_dependencies(${elf} noise-c)
+  # Since wallycore is an external projects we need to specify the dependency
   add_dependencies(${elf} libwally-core)
   # We must link against libc before asf4-drivers-min because malloc depends on _sbrk
   # We must mark "exception_table" as used, otherwise it won't be linked in since it is in a static library
@@ -220,7 +217,6 @@ target_link_libraries(bitboxbase-platform
     samd51a-ds
     bitboxbase_rust_c
     fatfs
-    noiseprotocol
     cryptoauthlib
     base32
     bignum # TODO: only eth
@@ -256,8 +252,7 @@ foreach(name ${BBB_TEST_LIST})
   target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_${name}.map\" -T\"${CMAKE_CURRENT_SOURCE_DIR}/device-test.ld\"")
   target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
 
-  # Since noiseprotocol and wallycore are external projects we need to specify the dependency
-  add_dependencies(${elf} noise-c)
+  # Since wallycore is an external projects we need to specify the dependency
   add_dependencies(${elf} libwally-core)
   add_dependencies(${elf} firmware-bitboxbase-rust)
   # We must link against libc before asf4-drivers-min because malloc depends on _sbrk
@@ -315,8 +310,7 @@ get_property(BITBOX02_PLATFORM_INCLUDES TARGET bitbox02-platform PROPERTY INTERF
 target_include_directories(${elf} PRIVATE ${BITBOX02_PLATFORM_INCLUDES})
 
 
-# Since noiseprotocol and wallycore are external projects we need to specify the dependency
-add_dependencies(${elf} noise-c)
+# Since wallycore is an external projects we need to specify the dependency
 add_dependencies(${elf} libwally-core)
 target_link_libraries(${elf}
   PRIVATE

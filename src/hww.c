@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "hww.h"
-#include "hww_api.h"
 
 #include <hardfault.h>
 #include <keystore.h>

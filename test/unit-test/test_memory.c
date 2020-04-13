@@ -18,7 +18,6 @@
 #include <cmocka.h>
 
 #include <memory/memory.h>
-#include <usb/noise.h>
 
 #include <stdint.h>
 #include <stdio.h>
@@ -97,7 +96,7 @@ static uint8_t _noise_static_private_key[32] = {
     0x2a, 0xad, 0x11, 0x32, 0xb0, 0xe4, 0xd7, 0xed, 0xed, 0x1b, 0xd0, 0x2d, 0x9f, 0xa0, 0x37, 0xed,
 };
 
-bool __wrap_bb_noise_generate_static_private_key(uint8_t* private_key_out)
+bool __wrap_rust_noise_generate_static_private_key(uint8_t* private_key_out)
 {
     memcpy(private_key_out, _noise_static_private_key, 32);
     return true;

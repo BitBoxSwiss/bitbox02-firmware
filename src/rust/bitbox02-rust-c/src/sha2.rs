@@ -130,4 +130,21 @@ mod tests {
             assert!(ctx.is_null());
         };
     }
+
+    /// Test that input and output can be the same buffer.
+    #[test]
+    fn test_overlapping() {
+        let mut input_and_output = *b"12345678901234567890123456789012";
+        unsafe {
+            rust_sha256(
+                input_and_output.as_ptr() as *const _,
+                input_and_output.len(),
+                input_and_output.as_mut_ptr(),
+            );
+        }
+        assert_eq!(
+            &input_and_output,
+            &Sha256::digest(b"12345678901234567890123456789012")[..],
+        );
+    }
 }

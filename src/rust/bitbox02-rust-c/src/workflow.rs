@@ -19,7 +19,9 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
+use alloc::string::String;
 use bitbox02_rust::bb02_async::{spin, Task};
+use bitbox02_rust::workflow::confirm;
 use core::task::Poll;
 
 enum TaskState<'a, O> {
@@ -30,9 +32,32 @@ enum TaskState<'a, O> {
 
 static mut UNLOCK_STATE: TaskState<'static, Result<(), ()>> = TaskState::Nothing;
 
+static mut CONFIRM_TITLE: Option<String> = None;
+static mut CONFIRM_BODY: Option<String> = None;
+static mut CONFIRM_PARAMS: Option<confirm::Params> = None;
+static mut CONFIRM_STATE: TaskState<'static, bool> = TaskState::Nothing;
+
 #[no_mangle]
 pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
     UNLOCK_STATE = TaskState::Running(Box::pin(bitbox02_rust::workflow::unlock::unlock()));
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_workflow_spawn_confirm(
+    title: crate::util::CStr,
+    body: crate::util::CStr,
+) {
+    CONFIRM_TITLE = Some(title.as_ref().into());
+    CONFIRM_BODY = Some(body.as_ref().into());
+
+    CONFIRM_PARAMS = Some(confirm::Params {
+        title: CONFIRM_TITLE.as_ref().unwrap(),
+        body: CONFIRM_BODY.as_ref().unwrap(),
+        ..Default::default()
+    });
+
+    CONFIRM_STATE =
+        TaskState::Running(Box::pin(confirm::confirm(CONFIRM_PARAMS.as_ref().unwrap())));
 }
 
 #[no_mangle]
@@ -42,6 +67,15 @@ pub unsafe extern "C" fn rust_workflow_spin() {
             let result = spin(task);
             if let Poll::Ready(result) = result {
                 UNLOCK_STATE = TaskState::ResultAvailable(result);
+            }
+        }
+        _ => (),
+    }
+    match CONFIRM_STATE {
+        TaskState::Running(ref mut task) => {
+            let result = spin(task);
+            if let Poll::Ready(result) = result {
+                CONFIRM_STATE = TaskState::ResultAvailable(result);
             }
         }
         _ => (),
@@ -64,7 +98,28 @@ pub unsafe extern "C" fn rust_workflow_unlock_poll(result_out: &mut bool) -> boo
     }
 }
 
+/// Returns true if there was a result.
+#[no_mangle]
+pub unsafe extern "C" fn rust_workflow_confirm_poll(result_out: &mut bool) -> bool {
+    match CONFIRM_STATE {
+        TaskState::ResultAvailable(result) => {
+            CONFIRM_TITLE = None;
+            CONFIRM_BODY = None;
+            CONFIRM_PARAMS = None;
+            CONFIRM_STATE = TaskState::Nothing;
+            *result_out = result;
+            true
+        }
+        _ => false,
+    }
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn rust_workflow_abort_current() {
     UNLOCK_STATE = TaskState::Nothing;
+
+    CONFIRM_TITLE = None;
+    CONFIRM_BODY = None;
+    CONFIRM_PARAMS = None;
+    CONFIRM_STATE = TaskState::Nothing;
 }

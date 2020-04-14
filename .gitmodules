@@ -10,9 +10,6 @@
 [submodule "external/FatFs"]
 	path = external/FatFs
 	url = https://github.com/digitalbitbox/FatFs.git
-[submodule "external/noise-c"]
-	path = external/noise-c
-	url = https://github.com/shiftdevices/noise-c.git
 [submodule "external/libwally-core"]
 	path = external/libwally-core
 	url = https://github.com/shiftdevices/libwally-core.git

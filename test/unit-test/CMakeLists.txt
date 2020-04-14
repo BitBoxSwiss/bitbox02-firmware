@@ -102,15 +102,13 @@ target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BI
 target_compile_definitions(bitbox PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 add_dependencies(bitbox generate-protobufs)
 
-# Since noiseprotocol and wallycore are external projects we need to specify the dependency
-add_dependencies(bitbox noise-c)
+# Since wallycore is an external projects we need to specify the dependency
 add_dependencies(bitbox libwally-core)
 
 target_compile_definitions(bitbox PUBLIC TESTING)
 
 target_link_libraries(bitbox
   PUBLIC
-    noiseprotocol
     wallycore
     secp256k1
     bignum

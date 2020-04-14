@@ -14,7 +14,7 @@
 
 #include "btc_bip143.h"
 
-#include <crypto/sha2/sha256.h>
+#include <rust/rust.h>
 
 void btc_bip143_sighash(
     uint32_t version,
@@ -32,39 +32,35 @@ void btc_bip143_sighash(
     uint8_t* out // 32 bytes result
 )
 {
-    sha256_context_t ctx = {0};
-    sha256_reset(&ctx);
+    void* ctx = rust_sha256_new();
     // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification
     // 1.
     // assumes little endian environment
-    noise_sha256_update(&ctx, &version, sizeof(version));
+    rust_sha256_update(ctx, &version, sizeof(version));
     // 2.
-    noise_sha256_update(&ctx, hash_prevouts, 32);
+    rust_sha256_update(ctx, hash_prevouts, 32);
     // 3.
-    noise_sha256_update(&ctx, hash_sequence, 32);
+    rust_sha256_update(ctx, hash_sequence, 32);
     // 4.
-    noise_sha256_update(&ctx, prevout_hash, 32);
+    rust_sha256_update(ctx, prevout_hash, 32);
     // assumes little endian environment
-    noise_sha256_update(&ctx, &prevout_index, sizeof(prevout_index));
+    rust_sha256_update(ctx, &prevout_index, sizeof(prevout_index));
     // 5.
-    noise_sha256_update(&ctx, sighash_script, sighash_script_len);
+    rust_sha256_update(ctx, sighash_script, sighash_script_len);
     // 6.
     // assumes little endian environment
-    noise_sha256_update(&ctx, &prevout_value, sizeof(prevout_value));
+    rust_sha256_update(ctx, &prevout_value, sizeof(prevout_value));
     // 7.
     // assumes little endian environment
-    noise_sha256_update(&ctx, &sequence, sizeof(sequence));
+    rust_sha256_update(ctx, &sequence, sizeof(sequence));
     // 8.
-    noise_sha256_update(&ctx, hash_outputs, 32);
+    rust_sha256_update(ctx, hash_outputs, 32);
     // 9.
     // assumes little endian environment
-    noise_sha256_update(&ctx, &locktime, sizeof(locktime));
+    rust_sha256_update(ctx, &locktime, sizeof(locktime));
     // 10.
     // assumes little endian environment
-    noise_sha256_update(&ctx, &sighash_flags, sizeof(sighash_flags));
-    sha256_finish(&ctx, out);
-    // double hash
-    sha256_reset(&ctx);
-    noise_sha256_update(&ctx, out, 32);
-    sha256_finish(&ctx, out);
+    rust_sha256_update(ctx, &sighash_flags, sizeof(sighash_flags));
+    rust_sha256_finish(&ctx, out);
+    rust_sha256(out, 32, out);
 }

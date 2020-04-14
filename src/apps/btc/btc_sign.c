@@ -18,8 +18,8 @@
 #include "btc_params.h"
 #include "confirm_locktime_rbf.h"
 #include "confirm_multisig.h"
+#include <rust/rust.h>
 
-#include <crypto/sha2/sha256.h>
 #include <keystore.h>
 #include <memory/memory.h>
 #include <util.h>
@@ -60,7 +60,8 @@ static uint64_t _outputs_sum_ours = 0;
 static uint64_t _outputs_sum_out = 0;
 
 // used during STATE_INPUTS_PASS1
-static sha256_context_t _hash_prevouts_ctx, _hash_sequence_ctx;
+static void* _hash_prevouts_ctx = NULL;
+static void* _hash_sequence_ctx = NULL;
 // By the end of STATE_INPUTS_PASS1, will contain the prevouts hash.
 // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki step 2.
 static uint8_t _hash_prevouts[32] = {0};
@@ -69,19 +70,10 @@ static uint8_t _hash_prevouts[32] = {0};
 static uint8_t _hash_sequence[32] = {0};
 
 // used during STATE_OUTPUTS
-static sha256_context_t _hash_outputs_ctx;
+static void* _hash_outputs_ctx = NULL;
 // By the end of STATE_OUTPUTS, will contain the hashOutputs hash.
 // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki step 8.
 static uint8_t _hash_outputs[32] = {0};
-
-// hashes bytes, puts result into out. bytes and out can overlap.
-static void _sha256(const uint8_t* bytes, size_t bytes_len, uint8_t* out)
-{
-    sha256_context_t ctx;
-    sha256_reset(&ctx);
-    noise_sha256_update(&ctx, bytes, bytes_len);
-    sha256_finish(&ctx, out);
-}
 
 static void _reset(void)
 {
@@ -95,9 +87,15 @@ static void _reset(void)
     _inputs_sum_pass2 = 0;
     _outputs_sum_out = 0;
     _outputs_sum_ours = 0;
-    sha256_reset(&_hash_prevouts_ctx);
-    sha256_reset(&_hash_sequence_ctx);
-    sha256_reset(&_hash_outputs_ctx);
+
+    rust_sha256_free(&_hash_prevouts_ctx);
+    _hash_prevouts_ctx = rust_sha256_new();
+
+    rust_sha256_free(&_hash_sequence_ctx);
+    _hash_sequence_ctx = rust_sha256_new();
+
+    rust_sha256_free(&_hash_outputs_ctx);
+    _hash_outputs_ctx = rust_sha256_new();
 }
 
 static app_btc_sign_error_t _error(app_btc_sign_error_t err)
@@ -182,9 +180,9 @@ static app_btc_sign_error_t _sign_input_pass1(
         // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
         // point 2: accumulate hashPrevouts
         // ANYONECANPAY not supported.
-        noise_sha256_update(&_hash_prevouts_ctx, request->prevOutHash, 32);
+        rust_sha256_update(_hash_prevouts_ctx, request->prevOutHash, 32);
         // assumes little endian environment.
-        noise_sha256_update(&_hash_prevouts_ctx, &request->prevOutIndex, 4);
+        rust_sha256_update(_hash_prevouts_ctx, &request->prevOutIndex, 4);
     }
     {
         // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
@@ -192,7 +190,7 @@ static app_btc_sign_error_t _sign_input_pass1(
         // only SIGHASH_ALL supported.
 
         // assumes little endian environment.
-        noise_sha256_update(&_hash_sequence_ctx, &request->sequence, 4);
+        rust_sha256_update(_hash_sequence_ctx, &request->sequence, 4);
     }
     if (!safe_uint64_add(&_inputs_sum_pass1, request->prevOutValue)) {
         return _error(APP_BTC_SIGN_ERR_INVALID_INPUT);
@@ -206,13 +204,13 @@ static app_btc_sign_error_t _sign_input_pass1(
     } else {
         // Done with inputs pass 1.
 
-        sha256_finish(&_hash_prevouts_ctx, _hash_prevouts);
+        rust_sha256_finish(&_hash_prevouts_ctx, _hash_prevouts);
         // hash hash_prevouts to produce the final double-hash
-        _sha256(_hash_prevouts, 32, _hash_prevouts);
+        rust_sha256(_hash_prevouts, 32, _hash_prevouts);
 
-        sha256_finish(&_hash_sequence_ctx, _hash_sequence);
+        rust_sha256_finish(&_hash_sequence_ctx, _hash_sequence);
         // hash hash_sequence to produce the final double-hash
-        _sha256(_hash_sequence, 32, _hash_sequence);
+        rust_sha256(_hash_sequence, 32, _hash_sequence);
 
         // Want first output
         _state = STATE_OUTPUTS;
@@ -526,11 +524,11 @@ app_btc_sign_error_t app_btc_sign_output(
         }
 
         // assumes little endian environment.
-        noise_sha256_update(&_hash_outputs_ctx, &request->value, 8);
+        rust_sha256_update(_hash_outputs_ctx, &request->value, 8);
         uint8_t pk_script_serialized[sizeof(pk_script) + 8] = {0};
         size_t pk_script_serialized_len =
             wally_varbuff_to_bytes(pk_script, pk_script_len, pk_script_serialized);
-        noise_sha256_update(&_hash_outputs_ctx, pk_script_serialized, pk_script_serialized_len);
+        rust_sha256_update(_hash_outputs_ctx, pk_script_serialized, pk_script_serialized_len);
     }
 
     if (_index < _init_request.num_outputs - 1) {
@@ -580,9 +578,9 @@ app_btc_sign_error_t app_btc_sign_output(
             return _error(APP_BTC_SIGN_ERR_USER_ABORT);
         }
 
-        sha256_finish(&_hash_outputs_ctx, _hash_outputs);
+        rust_sha256_finish(&_hash_outputs_ctx, _hash_outputs);
         // hash hash_outputs to produce the final double-hash
-        _sha256(_hash_outputs, 32, _hash_outputs);
+        rust_sha256(_hash_outputs, 32, _hash_outputs);
 
         // Want first input of pass2
         _state = STATE_INPUTS_PASS2;

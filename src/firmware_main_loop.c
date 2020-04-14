@@ -41,6 +41,8 @@ void firmware_main_loop(void)
         }
         workflow->spin(workflow);
 
+        rust_workflow_spin();
+
         if (usb_is_enabled()) {
             rust_async_usb_spin();
 

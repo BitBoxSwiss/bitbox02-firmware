@@ -1,10 +1,9 @@
 #include "u2f_app.h"
 
 #include <hardfault.h>
+#include <rust/rust.h>
 #include <ui/screen_process.h>
-#include <ui/workflow_stack.h>
 #include <util.h>
-#include <workflow/confirm.h>
 
 #include <stddef.h>
 #include <stdio.h>
@@ -35,14 +34,8 @@ static const app_t _apps[] = {
 static struct {
     /** Type of outstanding async operation. */
     enum u2f_app_confirm_t outstanding_confirm;
-    /** Confirmation workflow. */
-    workflow_t* confirm_wf;
     /** App ID of the outstanding async operation. */
     uint8_t app_id[32];
-    /** Whether the outstanding async operation has been confirmed. */
-    bool confirmed;
-    /** Whether the confirmation step has finished. */
-    bool confirmed_done;
 } _state = {0};
 
 // appid: 32 byte appid
@@ -59,13 +52,6 @@ static void _app_string(const uint8_t* app_id, char* out, size_t out_len)
     char appid_hex[32 * 2 + 1] = {0};
     util_uint8_to_hex(app_id, 32, appid_hex);
     snprintf(out, out_len, "Unknown site:\n%.16s\n%.16s", appid_hex, appid_hex + 16);
-}
-
-static void _confirm_cb(bool result, void* param)
-{
-    (void)param;
-    _state.confirmed = result;
-    _state.confirmed_done = true;
 }
 
 static bool _is_app_id_bogus(const uint8_t* app_id)
@@ -97,15 +83,9 @@ void u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
     default:
         Abort("u2f_app_confirm: Internal error");
     }
-    confirm_params_t params = {
-        .title = title,
-        .body = app_string,
-    };
-    _state.confirmed_done = false;
     _state.outstanding_confirm = type;
     memcpy(_state.app_id, app_id, 32);
-    _state.confirm_wf = workflow_confirm(&params, _confirm_cb, NULL);
-    workflow_stack_start_workflow(_state.confirm_wf);
+    rust_workflow_spawn_confirm(rust_util_cstr(title), rust_util_cstr(app_string));
 }
 
 async_op_result_t u2f_app_confirm_retry(enum u2f_app_confirm_t type, const uint8_t* app_id)
@@ -113,20 +93,19 @@ async_op_result_t u2f_app_confirm_retry(enum u2f_app_confirm_t type, const uint8
     if (_state.outstanding_confirm != type || !MEMEQ(app_id, _state.app_id, 32)) {
         Abort("Arbitration failed for U2F confirmation.");
     }
-    if (!_state.confirmed_done) {
+    bool result = false;
+    if (!rust_workflow_confirm_poll(&result)) {
         return ASYNC_OP_NOT_READY;
     }
     _state.outstanding_confirm = U2F_APP_NONE;
-    _state.confirm_wf = NULL;
-    return _state.confirmed ? ASYNC_OP_TRUE : ASYNC_OP_FALSE;
+    return result ? ASYNC_OP_TRUE : ASYNC_OP_FALSE;
 }
 
 void u2f_app_confirm_abort(void)
 {
-    if (_state.outstanding_confirm == U2F_APP_NONE || !_state.confirm_wf) {
+    if (_state.outstanding_confirm == U2F_APP_NONE) {
         Abort("Invalid abort call in U2F app.");
     }
-    workflow_stack_abort_workflow(_state.confirm_wf);
+    rust_workflow_abort_current();
     _state.outstanding_confirm = U2F_APP_NONE;
-    _state.confirm_wf = NULL;
 }

@@ -21,21 +21,19 @@
 #include <keystore.h>
 #include <memory/memory.h>
 #include <random.h>
+#include <rust/rust.h>
 #include <securechip/securechip.h>
 #include <ui/component.h>
 #include <ui/components/confirm.h>
 #include <ui/components/info_centered.h>
 #include <ui/screen_process.h>
 #include <ui/screen_stack.h>
-#include <ui/workflow_stack.h>
 #include <usb/u2f/u2f.h>
 #include <usb/u2f/u2f_hid.h>
 #include <usb/u2f/u2f_keys.h>
 #include <usb/usb_packet.h>
 #include <usb/usb_processing.h>
 #include <wally_crypto.h>
-#include <workflow/status.h>
-#include <workflow/unlock.h>
 
 #ifndef TESTING
 #include <hal_timer.h>
@@ -91,17 +89,8 @@ typedef struct {
      * Keeps track of which part of authentication we're currently in.
      */
     u2f_auth_state_t auth;
-    /**
-     * Triggered by the unlock workflow callback to flag the end
-     * of the unlock procedure.
-     */
-    bool unlock_finished;
-    /** Result of the unlock operation. Valid only when unlock_finished is true. */
-    bool unlock_result;
     /** "Refresh webpage" component */
     component_t* refresh_webpage;
-    /** Active unlock workflow. */
-    workflow_t* unlock_wf;
     /**
      * Timer increased during u2f_process if we're waiting for a page refresh.
      * Will drop the refresh_webpage() screen after a few ticks.
@@ -137,19 +126,11 @@ static component_t* _create_refresh_webpage(void)
     return info_centered_create("Refresh webpage", NULL);
 }
 
-static void _unlock_cb(bool result, void* param)
-{
-    (void)param;
-    _state.unlock_finished = true;
-    _state.unlock_result = result;
-}
-
 /* Resets the internal state to idle. */
 static void _clear_state(void)
 {
     _state.reg = U2F_REGISTER_IDLE;
     _state.auth = U2F_AUTHENTICATE_IDLE;
-    _state.unlock_finished = false;
     _state.locked = false;
 }
 
@@ -232,9 +213,7 @@ static void _stop_refresh_webpage_screen(void)
 static bool _unlock_if_locked(void)
 {
     if (keystore_is_locked()) {
-        _state.unlock_finished = false;
-        _state.unlock_wf = workflow_unlock(_unlock_cb, NULL);
-        workflow_stack_start_workflow(_state.unlock_wf);
+        rust_workflow_spawn_unlock();
         return false;
     }
     /* Pop the "refresh webpage" screen if any */
@@ -838,7 +817,7 @@ static void _abort_register(void)
 {
     switch (_state.reg) {
     case U2F_REGISTER_UNLOCKING:
-        workflow_stack_abort_workflow(_state.unlock_wf);
+        rust_workflow_abort_current();
         _clear_state();
         break;
     case U2F_REGISTER_CONFIRMING:
@@ -892,7 +871,7 @@ static void _abort_authenticate(void)
 {
     switch (_state.auth) {
     case U2F_AUTHENTICATE_UNLOCKING:
-        workflow_stack_abort_workflow(_state.unlock_wf);
+        rust_workflow_abort_current();
         _clear_state();
         break;
     case U2F_AUTHENTICATE_CONFIRMING:
@@ -968,19 +947,25 @@ void u2f_blocked_req_error(Packet* out_packet, const Packet* in_packet)
 
 static void _process_register_wait_unlock(void)
 {
-    if (_state.unlock_finished) {
+    bool unlock_result = false;
+    if (rust_workflow_unlock_poll(&unlock_result)) {
+        if (!unlock_result) {
+            Abort("Unlock failed");
+        }
         _start_refresh_webpage_screen();
         _state.reg = U2F_REGISTER_WAIT_REFRESH;
-        _state.unlock_wf = NULL;
     }
 }
 
 static void _process_authenticate_wait_unlock(void)
 {
-    if (_state.unlock_finished) {
+    bool unlock_result = false;
+    if (rust_workflow_unlock_poll(&unlock_result)) {
+        if (!unlock_result) {
+            Abort("Unlock failed");
+        }
         _start_refresh_webpage_screen();
         _state.auth = U2F_AUTHENTICATE_WAIT_REFRESH;
-        _state.unlock_wf = NULL;
     }
 }
 

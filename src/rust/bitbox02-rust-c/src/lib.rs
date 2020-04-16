@@ -27,6 +27,7 @@ mod async_usb;
 mod noise;
 mod sha2;
 mod util;
+mod workflow;
 
 #[cfg(feature = "platform-bitboxbase")]
 pub mod bitboxbase;

@@ -168,6 +168,27 @@ commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* r
     }
 }
 
+static void _handle_sign_next(const BTCSignNextResponse* next)
+{
+    switch (next->type) {
+    case BTCSignNextResponse_Type_INPUT:
+        commander_states_force_next(Request_btc_sign_input_tag);
+        break;
+    case BTCSignNextResponse_Type_OUTPUT:
+        commander_states_force_next(Request_btc_sign_output_tag);
+        break;
+    case BTCSignNextResponse_Type_PREVTX_INIT:
+    case BTCSignNextResponse_Type_PREVTX_INPUT:
+    case BTCSignNextResponse_Type_PREVTX_OUTPUT:
+        // Force BTCRequest*.
+        commander_states_force_next(Request_btc_tag);
+        // TODO: force nested message in BTCRequest/*.
+        break;
+    default:
+        break;
+    }
+}
+
 commander_error_t commander_btc_sign(const Request* request, Response* response)
 {
     response->which_response = Response_btc_sign_next_tag;
@@ -197,16 +218,7 @@ commander_error_t commander_btc_sign(const Request* request, Response* response)
     if (result != APP_BTC_SIGN_OK) {
         return COMMANDER_ERR_GENERIC;
     }
-    switch (response->response.btc_sign_next.type) {
-    case BTCSignNextResponse_Type_INPUT:
-        commander_states_force_next(Request_btc_sign_input_tag);
-        break;
-    case BTCSignNextResponse_Type_OUTPUT:
-        commander_states_force_next(Request_btc_sign_output_tag);
-        break;
-    default:
-        break;
-    }
+    _handle_sign_next(&response->response.btc_sign_next);
     return COMMANDER_OK;
 }
 
@@ -248,6 +260,36 @@ commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response
     case BTCRequest_register_script_config_tag:
         response->which_response = BTCResponse_success_tag;
         return _api_register_script_config(&(request->request.register_script_config));
+    case BTCRequest_prevtx_init_tag: {
+        response->which_response = BTCResponse_sign_next_tag;
+        app_btc_sign_error_t result = app_btc_sign_prevtx_init(
+            &(request->request.prevtx_init), &response->response.sign_next);
+        if (result != APP_BTC_SIGN_OK) {
+            return COMMANDER_ERR_GENERIC;
+        }
+        _handle_sign_next(&response->response.sign_next);
+        return COMMANDER_OK;
+    }
+    case BTCRequest_prevtx_input_tag: {
+        response->which_response = BTCResponse_sign_next_tag;
+        app_btc_sign_error_t result = app_btc_sign_prevtx_input(
+            &(request->request.prevtx_input), &response->response.sign_next);
+        if (result != APP_BTC_SIGN_OK) {
+            return COMMANDER_ERR_GENERIC;
+        }
+        _handle_sign_next(&response->response.sign_next);
+        return COMMANDER_OK;
+    }
+    case BTCRequest_prevtx_output_tag: {
+        response->which_response = BTCResponse_sign_next_tag;
+        app_btc_sign_error_t result = app_btc_sign_prevtx_output(
+            &(request->request.prevtx_output), &response->response.sign_next);
+        if (result != APP_BTC_SIGN_OK) {
+            return COMMANDER_ERR_GENERIC;
+        }
+        _handle_sign_next(&response->response.sign_next);
+        return COMMANDER_OK;
+    }
     default:
         return COMMANDER_ERR_GENERIC;
     }

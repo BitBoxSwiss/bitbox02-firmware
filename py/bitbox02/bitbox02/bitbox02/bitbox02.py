@@ -57,6 +57,21 @@ Backup = Tuple[str, str, datetime]
 class DuplicateEntryException(Exception):
     pass
 
+class BTCPrevTxInputType(TypedDict):
+    prev_out_hash: bytes
+    prev_out_index: int
+    signature_script: bytes
+    sequence: int
+
+class BTCPrevTxOutputType(TypedDict):
+    value: int
+    pubkey_script: bytes
+
+class BTCPrevTxType(TypedDict):
+    version: int
+    locktime: int
+    inputs: List[BTCPrevTxInputType]
+    outputs: List[BTCPrevTxOutputType]
 
 class BTCInputType(TypedDict):
     prev_out_hash: bytes
@@ -64,6 +79,7 @@ class BTCInputType(TypedDict):
     prev_out_value: int
     sequence: int
     keypath: List[int]
+    prev_tx: BTCPrevTxType
 
 
 class BTCOutputInternal:
@@ -400,6 +416,46 @@ class BitBox02(BitBoxCommonAPI):
                 ).btc_sign_next
                 if next_response.has_signature:
                     sigs.append((input_index, next_response.signature))
+            elif next_response.type == btc.BTCSignNextResponse.PREVTX_INIT:
+                prevtx = inputs[next_response.index]["prev_tx"]
+                request = btc.BTCRequest()
+                request.prevtx_init.CopyFrom(
+                    btc.BTCPrevTxInitRequest(
+                        version=prevtx["version"],
+                        num_inputs=len(prevtx["inputs"]),
+                        num_outputs=len(prevtx["outputs"]),
+                        locktime=prevtx["locktime"],
+                    )
+                )
+                next_response = self._btc_msg_query(
+                    request, expected_response="sign_next"
+                ).sign_next
+            elif next_response.type == btc.BTCSignNextResponse.PREVTX_INPUT:
+                prevtx_input = inputs[next_response.index]["prev_tx"]["inputs"][next_response.prev_index]
+                request = btc.BTCRequest()
+                request.prevtx_input.CopyFrom(
+                    btc.BTCPrevTxInputRequest(
+                        prev_out_hash=prevtx_input["prev_out_hash"],
+                        prev_out_index=prevtx_input["prev_out_index"],
+                        signature_script=prevtx_input["signature_script"],
+                        sequence=prevtx_input["sequence"],
+                    )
+                )
+                next_response = self._btc_msg_query(
+                    request, expected_response="sign_next"
+                ).sign_next
+            elif next_response.type == btc.BTCSignNextResponse.PREVTX_OUTPUT:
+                prevtx_output = inputs[next_response.index]["prev_tx"]["outputs"][next_response.prev_index]
+                request = btc.BTCRequest()
+                request.prevtx_output.CopyFrom(
+                    btc.BTCPrevTxOutputRequest(
+                        value=prevtx_output["value"],
+                        pubkey_script=prevtx_output["pubkey_script"],
+                    )
+                )
+                next_response = self._btc_msg_query(
+                    request, expected_response="sign_next"
+                ).sign_next
             elif next_response.type == btc.BTCSignNextResponse.OUTPUT:
                 output_index = next_response.index
                 tx_output = outputs[output_index]

@@ -34,6 +34,15 @@ USE_RESULT app_btc_sign_error_t
 app_btc_sign_init(const BTCSignInitRequest* request, BTCSignNextResponse* next_out);
 
 USE_RESULT app_btc_sign_error_t
+app_btc_sign_prevtx_init(const BTCPrevTxInitRequest* request, BTCSignNextResponse* next_out);
+
+USE_RESULT app_btc_sign_error_t
+app_btc_sign_prevtx_input(const BTCPrevTxInputRequest* request, BTCSignNextResponse* next_out);
+
+USE_RESULT app_btc_sign_error_t
+app_btc_sign_prevtx_output(const BTCPrevTxOutputRequest* request, BTCSignNextResponse* next_out);
+
+USE_RESULT app_btc_sign_error_t
 app_btc_sign_input(const BTCSignInputRequest* request, BTCSignNextResponse* next_out);
 
 USE_RESULT app_btc_sign_error_t

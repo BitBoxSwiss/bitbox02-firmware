@@ -22,3 +22,8 @@ BTCSignOutputRequest.keypath max_count:10
 BTCSignNextResponse.signature fixed_length:true max_size:64
 BTCScriptConfigRegistration.keypath max_count:10
 BTCRegisterScriptConfigRequest.name max_size:31
+BTCPrevTxInputRequest.prev_out_hash fixed_length:true max_size:32
+// https://github.com/bitcoin/bitcoin/blob/544709763e1f45148d1926831e07ff03487673ee/src/policy/policy.cpp#L102
+BTCPrevTxInputRequest.signature_script max_size:1650
+// like MAX_PK_SCRIPT_SIZE in btc_common.h
+BTCPrevTxOutputRequest.pubkey_script max_size:700

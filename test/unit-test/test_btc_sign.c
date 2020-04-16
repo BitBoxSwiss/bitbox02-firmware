@@ -113,6 +113,8 @@ static void _test_btc_sign_init(void** state)
         assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_init(&init_req_valid, &next));
         assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
         assert_int_equal(next.index, 0);
+        assert_int_equal(next.prev_index, 0); // arbitrary
+        assert_false(next.has_signature);
     }
     { // test invalid version
         tst_app_btc_reset();
@@ -202,6 +204,55 @@ typedef struct {
     bool overflow_output_ours;
 } _modification_t;
 
+typedef struct {
+    BTCSignInputRequest input;
+
+    // --- Previous transaction data.
+    BTCPrevTxInitRequest prevtx_init;
+    // actual count is in prevtx_init.num_inputs
+    BTCPrevTxInputRequest prevtx_inputs[10];
+    // actual count is in prevtx_init.num_outputs
+    BTCPrevTxOutputRequest prevtx_outputs[10];
+} _input_t;
+
+// Called from `_sign()` to stream and test an input's previous tx.
+static void _stream_prevtx(
+    const _modification_t* mod,
+    size_t input_index,
+    const _input_t* input,
+    BTCSignNextResponse* next)
+{
+    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_prevtx_init(&input->prevtx_init, next));
+    assert_int_equal(next->type, BTCSignNextResponse_Type_PREVTX_INPUT);
+    assert_int_equal(next->index, input_index);
+    assert_int_equal(next->prev_index, 0);
+
+    for (size_t i = 0; i < input->prevtx_init.num_inputs; i++) {
+        assert_int_equal(
+            APP_BTC_SIGN_OK, app_btc_sign_prevtx_input(&input->prevtx_inputs[i], next));
+        bool last = i == input->prevtx_init.num_inputs - 1;
+        if (last) {
+            assert_int_equal(next->type, BTCSignNextResponse_Type_PREVTX_OUTPUT);
+            assert_int_equal(next->index, input_index);
+            assert_int_equal(next->prev_index, 0);
+        } else {
+            assert_int_equal(next->type, BTCSignNextResponse_Type_PREVTX_INPUT);
+            assert_int_equal(next->index, input_index);
+            assert_int_equal(next->prev_index, i + 1);
+        }
+    }
+    for (size_t i = 0; i < input->prevtx_init.num_outputs; i++) {
+        assert_int_equal(
+            APP_BTC_SIGN_OK, app_btc_sign_prevtx_output(&input->prevtx_outputs[i], next));
+        bool last = i == input->prevtx_init.num_outputs - 1;
+        if (!last) {
+            assert_int_equal(next->type, BTCSignNextResponse_Type_PREVTX_OUTPUT);
+            assert_int_equal(next->index, input_index);
+            assert_int_equal(next->prev_index, i + 1);
+        }
+    }
+}
+
 // _sign goes through the whole sign process of an example tx, successfully.
 // The passed params malleate the behavior to induce expected failures.
 static void _sign(const _modification_t* mod)
@@ -244,70 +295,159 @@ static void _sign(const _modification_t* mod)
         .locktime = 0,
     };
 
-    BTCSignInputRequest inputs[2] = {
+    _input_t inputs[2] = {
         {
-            .prevOutHash =
+            .input =
                 {
-                    0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66,
-                    0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66,
-                    0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66,
+                    .prevOutHash =
+                        "\x45\x17\x74\x50\x1b\xaf\xdf\xf7\x46\x09\x0e\x06\x16\xd9\x5e\xd0\x80\xd7"
+                        "\x82\x9a\xfe\xa2\xbd\x97\x8a\xf8\x11\xf4\x5e\x43\x81\x39",
+                    .prevOutIndex = 1,
+                    .prevOutValue = 1010000000, // btc 10.1, matches prevout tx output at index 1.
+                    .sequence = 0xffffffff,
+                    .keypath_count = 5,
+                    .keypath =
+                        {
+                            init_req.keypath_account[0],
+                            init_req.keypath_account[1],
+                            init_req.keypath_account[2],
+                            0,
+                            5,
+                        },
                 },
-            .prevOutIndex = 2,
-            .prevOutValue = 1010000000, // btc 10.1
-            .sequence = 0xffffffff,
-            .keypath_count = 5,
-            .keypath =
+            .prevtx_init =
                 {
-                    init_req.keypath_account[0],
-                    init_req.keypath_account[1],
-                    init_req.keypath_account[2],
-                    0,
-                    5,
+                    .version = 1,
+                    .num_inputs = 2,
+                    .num_outputs = 2,
+                    .locktime = 0,
+                },
+            .prevtx_inputs =
+                {
+                    {
+                        .prev_out_hash =
+                            {
+                                0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
+                                0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
+                                0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
+                            },
+                        .prev_out_index = 3,
+                        .signature_script =
+                            {
+                                .bytes = "signature script",
+                                .size = 16,
+                            },
+                        .sequence = 0xffffffff - 2,
+                    },
+                    {
+                        .prev_out_hash =
+                            {
+                                0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75,
+                                0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75,
+                                0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75,
+                            },
+                        .prev_out_index = 23,
+                        .signature_script =
+                            {
+                                .bytes = "signature script 2",
+                                .size = 18,
+                            },
+                        .sequence = 123456,
+                    },
+                },
+            .prevtx_outputs =
+                {
+                    {.value = 101000000, // btc 1.01
+                     .pubkey_script =
+                         {
+                             .bytes = "pubkey script",
+                             .size = 13,
+                         }},
+                    {.value = 1010000000, // btc 10.1
+                     .pubkey_script =
+                         {
+                             .bytes = "pubkey script 2",
+                             .size = 15,
+                         }},
                 },
         },
         {
-            .prevOutHash =
+            .input =
                 {
-                    0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77,
-                    0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77,
-                    0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77,
+                    .prevOutHash =
+                        "\x40\x9b\x4f\x56\xca\x9f\x06\xcb\x88\x28\x03\xad\x55\x4b\xeb\x1d\x9e\xf8"
+                        "\x78\x07\xf0\x52\x29\xe7\x55\x15\xe4\xb2\xaa\x87\x69\x1d",
+                    .prevOutIndex = 0,
+                    .prevOutValue = 1020000000, // btc 10.2, matches prevout tx output at index 0.
+                    .sequence = 0xffffffff,
+                    .keypath_count = 5,
+                    .keypath =
+                        {
+                            init_req.keypath_account[0],
+                            init_req.keypath_account[1],
+                            init_req.keypath_account[2],
+                            0,
+                            7,
+                        },
                 },
-            .prevOutIndex = 5,
-            .prevOutValue = 1020000000, // btc 10.2
-            .sequence = 0xffffffff,
-            .keypath_count = 5,
-            .keypath =
+            .prevtx_init =
                 {
-                    init_req.keypath_account[0],
-                    init_req.keypath_account[1],
-                    init_req.keypath_account[2],
-                    0,
-                    7,
+                    .version = 2,
+                    .num_inputs = 1,
+                    .num_outputs = 1,
+                    .locktime = 87654,
+                },
+            .prevtx_inputs =
+                {
+                    {
+                        .prev_out_hash =
+                            {
+                                0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
+                                0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
+                                0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
+                            },
+                        .prev_out_index = 3,
+                        .signature_script =
+                            {
+                                .bytes = "signature script",
+                                .size = 16,
+                            },
+                        .sequence = 0xffffffff - 2,
+                    },
+                },
+            .prevtx_outputs =
+                {
+                    {.value = 1020000000, // btc 10.2
+                     .pubkey_script =
+                         {
+                             .bytes = "pubkey script",
+                             .size = 13,
+                         }},
                 },
         },
     };
 
     if (mod->wrong_account_input) {
-        inputs[0].keypath[2] = inputs[0].keypath[2] + 1;
+        inputs[0].input.keypath[2] = inputs[0].input.keypath[2] + 1;
     }
     if (mod->wrong_coin_input) {
-        inputs[0].keypath[1] = 1 + BIP32_INITIAL_HARDENED_CHILD;
+        inputs[0].input.keypath[1] = 1 + BIP32_INITIAL_HARDENED_CHILD;
     }
     if (mod->wrong_sequence_number) {
-        inputs[0].sequence = 0;
+        inputs[0].input.sequence = 0;
     }
     if (mod->locktime_applies) {
         init_req.locktime = 1;
-        inputs[0].sequence = 0xffffffff - 1;
+        inputs[0].input.sequence = 0xffffffff - 1;
     }
     if (mod->user_aborts_locktime_rbf) {
-        inputs[0].sequence = 0xffffffff - 2;
+        inputs[0].input.sequence = 0xffffffff - 2;
     }
     if (mod->wrong_input_value) {
-        inputs[0].prevOutValue = 0;
+        inputs[0].input.prevOutValue = 0;
     }
     if (mod->overflow_input_values_pass1) {
-        inputs[1].prevOutValue = ULLONG_MAX - inputs[0].prevOutValue + 1;
+        inputs[1].input.prevOutValue = ULLONG_MAX - inputs[0].input.prevOutValue + 1;
     }
 
     BTCSignOutputRequest outputs[6] = {
@@ -419,9 +559,9 @@ static void _sign(const _modification_t* mod)
         init_req.coin = BTCCoin_LTC;
         init_req.locktime = 1;
         init_req.keypath_account[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
-        inputs[0].sequence = 0xffffffff - 2;
-        inputs[0].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
-        inputs[1].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
+        inputs[0].input.sequence = 0xffffffff - 2;
+        inputs[0].input.keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
+        inputs[1].input.keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
         outputs[4].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
         outputs[5].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
     }
@@ -430,6 +570,7 @@ static void _sign(const _modification_t* mod)
     assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_init(&init_req, &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
     assert_int_equal(next.index, 0);
+    assert_int_equal(next.prev_index, 0); // arbitrary
     assert_false(next.has_signature);
 
     if (mod->state_init_after_init) {
@@ -452,18 +593,27 @@ static void _sign(const _modification_t* mod)
         expect_memory(
             __wrap_btc_common_is_valid_keypath_address_simple,
             keypath,
-            inputs[0].keypath,
-            inputs[0].keypath_count * sizeof(uint32_t));
+            inputs[0].input.keypath,
+            inputs[0].input.keypath_count * sizeof(uint32_t));
     }
     if (mod->wrong_coin_input || mod->wrong_account_input || mod->wrong_sequence_number ||
         mod->wrong_input_value) {
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[0], &next));
+        assert_int_equal(
+            APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[0].input, &next));
         return;
     }
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&inputs[0], &next));
-    assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
-    assert_int_equal(next.index, 1);
+    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&inputs[0].input, &next));
+    assert_int_equal(next.type, BTCSignNextResponse_Type_PREVTX_INIT);
+    assert_int_equal(next.index, 0);
     assert_false(next.has_signature);
+
+    // First input, prev tx.
+    {
+        size_t input_index = 0;
+        _stream_prevtx(mod, input_index, &inputs[input_index], &next);
+        assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
+        assert_int_equal(next.index, 1);
+    }
 
     // Second input, pass1.
     expect_value(
@@ -473,16 +623,25 @@ static void _sign(const _modification_t* mod)
     expect_memory(
         __wrap_btc_common_is_valid_keypath_address_simple,
         keypath,
-        inputs[1].keypath,
-        inputs[1].keypath_count * sizeof(uint32_t));
+        inputs[1].input.keypath,
+        inputs[1].input.keypath_count * sizeof(uint32_t));
     if (mod->overflow_input_values_pass1) {
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[1], &next));
+        assert_int_equal(
+            APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[1].input, &next));
         return;
     }
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&inputs[1], &next));
-    assert_int_equal(next.type, BTCSignNextResponse_Type_OUTPUT);
-    assert_int_equal(next.index, 0);
+    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&inputs[1].input, &next));
+    assert_int_equal(next.type, BTCSignNextResponse_Type_PREVTX_INIT);
+    assert_int_equal(next.index, 1);
     assert_false(next.has_signature);
+
+    // Second input, prev tx.
+    {
+        size_t input_index = 1;
+        _stream_prevtx(mod, input_index, &inputs[input_index], &next);
+        assert_int_equal(next.type, BTCSignNextResponse_Type_OUTPUT);
+        assert_int_equal(next.index, 0);
+    }
 
     // === Outputs
 
@@ -655,7 +814,7 @@ static void _sign(const _modification_t* mod)
 
         assert_int_equal(APP_BTC_SIGN_ERR_USER_ABORT, app_btc_sign_output(&outputs[5], &next));
         // Check the process is really aborted, can't proceed to next stage.
-        assert_int_equal(APP_BTC_SIGN_ERR_STATE, app_btc_sign_input(&inputs[0], &next));
+        assert_int_equal(APP_BTC_SIGN_ERR_STATE, app_btc_sign_input(&inputs[0].input, &next));
         return;
     }
 
@@ -679,7 +838,7 @@ static void _sign(const _modification_t* mod)
     if (mod->user_aborts_total) {
         assert_int_equal(APP_BTC_SIGN_ERR_USER_ABORT, app_btc_sign_output(&outputs[5], &next));
         // Check the process is really aborted, can't proceed to next stage.
-        assert_int_equal(APP_BTC_SIGN_ERR_STATE, app_btc_sign_input(&inputs[0], &next));
+        assert_int_equal(APP_BTC_SIGN_ERR_STATE, app_btc_sign_input(&inputs[0].input, &next));
         return;
     }
     assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_output(&outputs[5], &next));
@@ -690,13 +849,13 @@ static void _sign(const _modification_t* mod)
     // === Inputs Pass 2
 
     if (mod->input_sum_changes) {
-        inputs[0].prevOutValue += inputs[1].prevOutValue + 1;
+        inputs[0].input.prevOutValue += inputs[1].input.prevOutValue + 1;
     }
     if (mod->input_sum_last_mismatch) {
-        inputs[0].prevOutValue -= 1; // errors even if we decrease the amount
+        inputs[0].input.prevOutValue -= 1; // errors even if we decrease the amount
     }
     if (mod->overflow_input_values_pass2) {
-        inputs[1].prevOutValue = ULLONG_MAX - inputs[0].prevOutValue + 1;
+        inputs[1].input.prevOutValue = ULLONG_MAX - inputs[0].input.prevOutValue + 1;
     }
 
     // First input, pass2.
@@ -707,13 +866,14 @@ static void _sign(const _modification_t* mod)
     expect_memory(
         __wrap_btc_common_is_valid_keypath_address_simple,
         keypath,
-        inputs[0].keypath,
-        inputs[0].keypath_count * sizeof(uint32_t));
+        inputs[0].input.keypath,
+        inputs[0].input.keypath_count * sizeof(uint32_t));
     if (mod->input_sum_changes) {
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[0], &next));
+        assert_int_equal(
+            APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[0].input, &next));
         return;
     }
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&inputs[0], &next));
+    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&inputs[0].input, &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
     assert_int_equal(next.index, 1);
     assert_true(next.has_signature);
@@ -721,19 +881,19 @@ static void _sign(const _modification_t* mod)
         switch (mod->script_type) {
         case BTCScriptConfig_SimpleType_P2WPKH: {
             const uint8_t expected_signature[64] =
-                "\x91\x04\x8b\x6a\x46\x79\x89\x11\xfd\x2a\x11\x37\xc2\x8d\x1b\xa2\x66\x7e\x75\xf8"
-                "\x42\x4c\x25\xfd\x38\x35\x3f\x5c\x6e\x51\x0f\xa9\x28\x49\x5c\xcd\x93\x51\x61\x21"
-                "\xdd\xb3\xe7\xc4\xf6\xb8\x2b\x12\xe6\xb8\x3b\xb0\x9f\x09\x21\x49\x3c\xac\x0a\xa9"
-                "\x54\xb9\xc5\x33";
+                "\x41\x6c\x01\x6a\xa0\x6a\xb1\x6b\x1a\x57\x82\x29\x55\x1f\x92\x9d\x0a\x68\x85\x52"
+                "\xee\x4b\x58\x59\xc1\x69\x91\x7e\x1e\x5b\x65\x69\x6f\x26\xed\xbc\x16\x0a\x8d\x08"
+                "\x66\x64\x01\x8e\x9e\x9b\x14\xba\x12\x00\x55\xd3\xf2\xc3\xf1\xdb\x27\xb9\xf0\xdf"
+                "\xc7\x3b\x6b\x33";
             assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
             break;
         }
         case BTCScriptConfig_SimpleType_P2WPKH_P2SH: {
             const uint8_t expected_signature[64] =
-                "\x2b\x78\x5c\x23\x21\x6a\x00\xca\xf9\x83\x62\xeb\x4e\xa2\x46\xf5\xf4\x90\xad\xc8"
-                "\xe1\x1d\x3f\x42\x4b\xa2\x10\x5d\xea\x37\x0f\x55\x05\x85\xcc\x0b\x3a\x49\x1c\x0f"
-                "\xb4\xe0\x62\xb4\x38\x14\xa6\x43\x37\x88\x09\xaf\x80\x92\x62\x71\x4b\x15\x2b\xb6"
-                "\x1d\xfd\xaa\x85";
+                "\x53\x38\xda\x4a\xa9\x26\x61\x00\x8a\x0c\x84\x3b\x62\x74\x07\xa9\x0d\x83\x17\x21"
+                "\xfb\x08\xd7\xc9\x00\x43\x6f\x46\x86\x4b\xbc\xe7\x03\x54\xd0\xbf\xb6\x50\x23\xc9"
+                "\x21\x0a\x99\xb0\xd4\xca\x75\xfe\xc9\x5a\x1e\x59\xc6\xfc\xa8\x85\xbd\x81\x12\xca"
+                "\xb6\x85\xf7\x23";
             assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
             break;
         }
@@ -750,32 +910,33 @@ static void _sign(const _modification_t* mod)
     expect_memory(
         __wrap_btc_common_is_valid_keypath_address_simple,
         keypath,
-        inputs[1].keypath,
-        inputs[1].keypath_count * sizeof(uint32_t));
+        inputs[1].input.keypath,
+        inputs[1].input.keypath_count * sizeof(uint32_t));
     if (mod->input_sum_last_mismatch || mod->overflow_input_values_pass2) {
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[1], &next));
+        assert_int_equal(
+            APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[1].input, &next));
         return;
     }
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&inputs[1], &next));
+    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&inputs[1].input, &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_DONE);
     assert_true(next.has_signature);
     if (mod->check_sigs) {
         switch (mod->script_type) {
         case BTCScriptConfig_SimpleType_P2WPKH: {
             const uint8_t expected_signature[64] =
-                "\x95\x09\x43\x09\xa2\xd2\x77\xd3\xa6\x8d\xde\xd3\x3d\x50\xa7\x47\xf2\xee\xfb\x3f"
-                "\x54\x8a\x92\x45\x15\xdb\x62\xbe\x06\xa1\xae\xa4\x56\x92\x91\xe5\x2e\x6f\xea\x95"
-                "\xf8\xb6\x75\x23\xb1\x9b\x35\x9a\x84\x85\xd8\xaa\x3c\xa0\x2d\xb3\x74\x70\x01\x0b"
-                "\x19\x9b\x0c\xe3";
+                "\xad\x02\x54\x6b\xf3\xc2\x00\xc7\x15\xde\x7c\x07\x06\xd4\xb7\x92\xbb\x42\x3b\x3a"
+                "\xcf\x0c\x47\xda\x51\xac\x10\x39\x97\x42\x15\xd6\x29\xe3\xb7\xcb\xee\x81\x3b\x09"
+                "\x66\x67\x8c\xea\x8a\x35\xda\xfa\x70\x43\xb4\xcc\x2c\xbf\x37\xd0\xf0\xfa\x13\xa0"
+                "\xa2\x91\x6e\xad";
             assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
             break;
         }
         case BTCScriptConfig_SimpleType_P2WPKH_P2SH: {
             const uint8_t expected_signature[64] =
-                "\x73\x18\xa7\x22\x5a\x53\xa7\x37\x67\x4c\x07\xb5\x9c\x46\xbe\x07\x38\xc5\x1b\x56"
-                "\x3a\x90\x25\xf4\x71\x70\x8d\xac\x0a\x93\xa3\x12\x2d\xc5\x9f\xa5\x1c\xbc\xd6\xa4"
-                "\xc0\xba\x16\xb5\xe4\x82\xc3\x92\x40\x1b\x99\x82\x05\x01\xb2\x35\x34\x70\x87\x8c"
-                "\x59\x8c\x52\x8a";
+                "\xdb\x55\x32\x95\x8c\x00\x17\x69\xe9\xe6\xb8\xe0\x41\xa1\x58\x7b\xa2\x09\x7e\x8e"
+                "\xc0\x87\x6f\x92\x44\xd8\x53\x71\xe1\xa5\x71\x02\x4c\x16\xd4\xe3\x05\x55\xe6\x60"
+                "\x67\x19\xde\x9e\xe6\x07\x58\xc8\x4e\x1c\xd6\x58\x6a\xd3\x53\x61\x4c\x63\xbd\xee"
+                "\x4f\x14\x3e\x60";
             assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
             break;
         }

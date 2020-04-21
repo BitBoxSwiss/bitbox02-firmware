@@ -212,14 +212,10 @@ commander_error_t commander_btc_sign(const Request* request, Response* response)
     default:
         return COMMANDER_ERR_GENERIC;
     }
-    if (result == APP_BTC_SIGN_ERR_USER_ABORT) {
-        return COMMANDER_ERR_USER_ABORT;
+    if (result == APP_BTC_SIGN_OK) {
+        _handle_sign_next(&response->response.btc_sign_next);
     }
-    if (result != APP_BTC_SIGN_OK) {
-        return COMMANDER_ERR_GENERIC;
-    }
-    _handle_sign_next(&response->response.btc_sign_next);
-    return COMMANDER_OK;
+    return _result(result);
 }
 
 static commander_error_t _api_is_script_config_registered(
@@ -264,31 +260,28 @@ commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response
         response->which_response = BTCResponse_sign_next_tag;
         app_btc_sign_error_t result = app_btc_sign_prevtx_init(
             &(request->request.prevtx_init), &response->response.sign_next);
-        if (result != APP_BTC_SIGN_OK) {
-            return COMMANDER_ERR_GENERIC;
+        if (result == APP_BTC_SIGN_OK) {
+            _handle_sign_next(&response->response.sign_next);
         }
-        _handle_sign_next(&response->response.sign_next);
-        return COMMANDER_OK;
+        return _result(result);
     }
     case BTCRequest_prevtx_input_tag: {
         response->which_response = BTCResponse_sign_next_tag;
         app_btc_sign_error_t result = app_btc_sign_prevtx_input(
             &(request->request.prevtx_input), &response->response.sign_next);
-        if (result != APP_BTC_SIGN_OK) {
-            return COMMANDER_ERR_GENERIC;
+        if (result == APP_BTC_SIGN_OK) {
+            _handle_sign_next(&response->response.sign_next);
         }
-        _handle_sign_next(&response->response.sign_next);
-        return COMMANDER_OK;
+        return _result(result);
     }
     case BTCRequest_prevtx_output_tag: {
         response->which_response = BTCResponse_sign_next_tag;
         app_btc_sign_error_t result = app_btc_sign_prevtx_output(
             &(request->request.prevtx_output), &response->response.sign_next);
-        if (result != APP_BTC_SIGN_OK) {
-            return COMMANDER_ERR_GENERIC;
+        if (result == APP_BTC_SIGN_OK) {
+            _handle_sign_next(&response->response.sign_next);
         }
-        _handle_sign_next(&response->response.sign_next);
-        return COMMANDER_OK;
+        return _result(result);
     }
     default:
         return COMMANDER_ERR_GENERIC;

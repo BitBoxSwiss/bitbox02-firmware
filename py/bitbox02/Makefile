@@ -43,13 +43,12 @@ ${TMP_TARGETS}: ${PY_PROTO}
 	sed -i 's/^from \([^.]*_pb2\)/from .\1/g'  ${OUT_DIR}/*.pyi
 	sed -i 's/^import \([^.]*_pb2\) as \([^.]*__pb2\)/from . import \1 as \2/g' ${OUT_DIR}/*.py
 
-# Grab proto files and insert a package name in each one.
+# Insert a package name in each protobuf file.
 # There can be only one "syntax = ..." directive in a proto file.
 # So, that's our anchor and a good place to put the package name at.
-${PY_PROTO}: $(addprefix ../../messages/,${PROTO_FILES})
-	mkdir -p ${PY_PROTO_DIR}
-	cp $^ ${PY_PROTO_DIR}
-	sed -i 's/^syntax =.*/&\npackage shiftcrypto.bitbox02;/' ${PY_PROTO_DIR}/*.proto
+${PY_PROTO_DIR}/%: ../../messages/%
+	@mkdir -p $(@D)
+	sed 's/^syntax =.*/&\npackage shiftcrypto.bitbox02;/' $< > $@
 
 release-test: all
 	rm -rf dist/*

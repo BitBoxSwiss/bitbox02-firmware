@@ -142,4 +142,4 @@ prepare-tidy: | build build-build
 	make -C build generate-protobufs rust-cbindgen
 	make -C build-build generate-protobufs rust-cbindgen
 clean:
-	rm -rf build build-build
+	rm -rf build build-build build-semihosting

@@ -1,6 +1,6 @@
 [submodule "tools/nanopb"]
 	path = tools/nanopb
-	url = https://github.com/shiftdevices/nanopb.git
+	url = https://github.com/digitalbitbox/nanopb.git
 [submodule "external/cryptoauthlib"]
 	path = external/cryptoauthlib
 	url = https://github.com/digitalbitbox/cryptoauthlib.git
@@ -12,7 +12,7 @@
 	url = https://github.com/digitalbitbox/FatFs.git
 [submodule "external/libwally-core"]
 	path = external/libwally-core
-	url = https://github.com/shiftdevices/libwally-core.git
+	url = https://github.com/digitalbitbox/libwally-core.git
 [submodule "tools/ttf2ugui"]
 	path = tools/ttf2ugui
 	url = https://github.com/digitalbitbox/ttf2ugui

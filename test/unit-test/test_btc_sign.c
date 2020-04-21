@@ -202,6 +202,18 @@ typedef struct {
     bool overflow_output_out;
     // if change overflows
     bool overflow_output_ours;
+    // can't init prevtx twice in a row -> first prevtx input expected
+    bool state_previnit_after_previnit;
+    // wrong state transition
+    bool state_prevoutput_after_previnit;
+    // no inputs in prevtx
+    bool prevtx_no_inputs;
+    // no outputs in prevtx
+    bool prevtx_no_outputs;
+    // input value does not match prevtx output value
+    bool input_wrong_value;
+    // input's prevtx hash does not match input's prevOutHash
+    bool wrong_prevouthash;
 } _modification_t;
 
 typedef struct {
@@ -216,16 +228,41 @@ typedef struct {
 } _input_t;
 
 // Called from `_sign()` to stream and test an input's previous tx.
-static void _stream_prevtx(
+static bool _stream_prevtx(
     const _modification_t* mod,
     size_t input_index,
     const _input_t* input,
     BTCSignNextResponse* next)
 {
+    if (mod->prevtx_no_inputs) {
+        BTCPrevTxInitRequest invalid = input->prevtx_init;
+        invalid.num_inputs = 0;
+        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_prevtx_init(&invalid, next));
+        return false;
+    }
+    if (mod->prevtx_no_outputs) {
+        BTCPrevTxInitRequest invalid = input->prevtx_init;
+        invalid.num_outputs = 0;
+        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_prevtx_init(&invalid, next));
+        return false;
+    }
+
     assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_prevtx_init(&input->prevtx_init, next));
     assert_int_equal(next->type, BTCSignNextResponse_Type_PREVTX_INPUT);
     assert_int_equal(next->index, input_index);
     assert_int_equal(next->prev_index, 0);
+
+    if (mod->state_previnit_after_previnit) {
+        assert_int_equal(
+            APP_BTC_SIGN_ERR_STATE, app_btc_sign_prevtx_init(&input->prevtx_init, next));
+        return false;
+    }
+
+    if (mod->state_previnit_after_previnit) {
+        assert_int_equal(
+            APP_BTC_SIGN_ERR_STATE, app_btc_sign_prevtx_output(&input->prevtx_outputs[0], next));
+        return false;
+    }
 
     for (size_t i = 0; i < input->prevtx_init.num_inputs; i++) {
         assert_int_equal(
@@ -242,15 +279,22 @@ static void _stream_prevtx(
         }
     }
     for (size_t i = 0; i < input->prevtx_init.num_outputs; i++) {
+        bool last = i == input->prevtx_init.num_outputs - 1;
+        if (last && (mod->input_wrong_value || mod->wrong_prevouthash)) {
+            assert_int_equal(
+                APP_BTC_SIGN_ERR_INVALID_INPUT,
+                app_btc_sign_prevtx_output(&input->prevtx_outputs[i], next));
+            return false;
+        }
         assert_int_equal(
             APP_BTC_SIGN_OK, app_btc_sign_prevtx_output(&input->prevtx_outputs[i], next));
-        bool last = i == input->prevtx_init.num_outputs - 1;
         if (!last) {
             assert_int_equal(next->type, BTCSignNextResponse_Type_PREVTX_OUTPUT);
             assert_int_equal(next->index, input_index);
             assert_int_equal(next->prev_index, i + 1);
         }
     }
+    return true;
 }
 
 // _sign goes through the whole sign process of an example tx, successfully.
@@ -449,6 +493,12 @@ static void _sign(const _modification_t* mod)
     if (mod->overflow_input_values_pass1) {
         inputs[1].input.prevOutValue = ULLONG_MAX - inputs[0].input.prevOutValue + 1;
     }
+    if (mod->input_wrong_value) {
+        inputs[0].input.prevOutValue += 1;
+    }
+    if (mod->wrong_prevouthash) {
+        inputs[0].input.prevOutHash[0] += 1;
+    }
 
     BTCSignOutputRequest outputs[6] = {
         {
@@ -610,7 +660,9 @@ static void _sign(const _modification_t* mod)
     // First input, prev tx.
     {
         size_t input_index = 0;
-        _stream_prevtx(mod, input_index, &inputs[input_index], &next);
+        if (!_stream_prevtx(mod, input_index, &inputs[input_index], &next)) {
+            return;
+        }
         assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
         assert_int_equal(next.index, 1);
     }
@@ -638,7 +690,9 @@ static void _sign(const _modification_t* mod)
     // Second input, prev tx.
     {
         size_t input_index = 1;
-        _stream_prevtx(mod, input_index, &inputs[input_index], &next);
+        if (!_stream_prevtx(mod, input_index, &inputs[input_index], &next)) {
+            return;
+        }
         assert_int_equal(next.type, BTCSignNextResponse_Type_OUTPUT);
         assert_int_equal(next.index, 0);
     }
@@ -1099,6 +1153,42 @@ static void _test_overflow_output_ours(void** state)
     invalid.overflow_output_ours = true;
     _sign(&invalid);
 }
+static void _test_state_previnit_after_previnit(void** state)
+{
+    _modification_t invalid = _valid;
+    invalid.state_previnit_after_previnit = true;
+    _sign(&invalid);
+}
+static void _test_state_prevoutput_after_previnit(void** state)
+{
+    _modification_t invalid = _valid;
+    invalid.state_prevoutput_after_previnit = true;
+    _sign(&invalid);
+}
+static void _test_prevtx_no_inputs(void** state)
+{
+    _modification_t invalid = _valid;
+    invalid.prevtx_no_inputs = true;
+    _sign(&invalid);
+}
+static void _test_prevtx_no_outputs(void** state)
+{
+    _modification_t invalid = _valid;
+    invalid.prevtx_no_outputs = true;
+    _sign(&invalid);
+}
+static void _test_input_wrong_value(void** state)
+{
+    _modification_t invalid = _valid;
+    invalid.input_wrong_value = true;
+    _sign(&invalid);
+}
+static void _test_wrong_prevouthash(void** state)
+{
+    _modification_t invalid = _valid;
+    invalid.wrong_prevouthash = true;
+    _sign(&invalid);
+}
 
 int main(void)
 {
@@ -1129,6 +1219,12 @@ int main(void)
         cmocka_unit_test(_test_overflow_input_values_pass2),
         cmocka_unit_test(_test_overflow_output_out),
         cmocka_unit_test(_test_overflow_output_ours),
+        cmocka_unit_test(_test_state_previnit_after_previnit),
+        cmocka_unit_test(_test_state_prevoutput_after_previnit),
+        cmocka_unit_test(_test_prevtx_no_inputs),
+        cmocka_unit_test(_test_prevtx_no_outputs),
+        cmocka_unit_test(_test_input_wrong_value),
+        cmocka_unit_test(_test_wrong_prevouthash),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

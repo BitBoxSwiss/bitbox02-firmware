@@ -184,6 +184,9 @@ commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* r
     }
 }
 
+// like commander_states, but for requests nested in BTCRequest.
+static commander_states_endpoint_id _force_next = 0;
+
 static void _handle_sign_next(const BTCSignNextResponse* next)
 {
     switch (next->type) {
@@ -194,11 +197,16 @@ static void _handle_sign_next(const BTCSignNextResponse* next)
         commander_states_force_next(Request_btc_sign_output_tag);
         break;
     case BTCSignNextResponse_Type_PREVTX_INIT:
-    case BTCSignNextResponse_Type_PREVTX_INPUT:
-    case BTCSignNextResponse_Type_PREVTX_OUTPUT:
-        // Force BTCRequest*.
         commander_states_force_next(Request_btc_tag);
-        // TODO: force nested message in BTCRequest/*.
+        _force_next = BTCRequest_prevtx_init_tag;
+        break;
+    case BTCSignNextResponse_Type_PREVTX_INPUT:
+        commander_states_force_next(Request_btc_tag);
+        _force_next = BTCRequest_prevtx_input_tag;
+        break;
+    case BTCSignNextResponse_Type_PREVTX_OUTPUT:
+        commander_states_force_next(Request_btc_tag);
+        _force_next = BTCRequest_prevtx_output_tag;
         break;
     default:
         break;
@@ -263,6 +271,12 @@ static commander_error_t _api_register_script_config(const BTCRegisterScriptConf
 
 commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response)
 {
+    bool can_call = _force_next == 0 || _force_next == request->which_request;
+    if (!can_call) {
+        return COMMANDER_ERR_INVALID_STATE;
+    }
+    _force_next = 0;
+
     switch (request->which_request) {
     case BTCRequest_is_script_config_registered_tag:
         response->which_response = BTCResponse_is_script_config_registered_tag;

@@ -40,6 +40,22 @@ static commander_error_t _result(app_btc_result_t result)
     }
 }
 
+static commander_error_t _sign_result(app_btc_sign_error_t result)
+{
+    switch (result) {
+    case APP_BTC_SIGN_OK:
+        return COMMANDER_OK;
+    case APP_BTC_SIGN_ERR_INVALID_INPUT:
+        return COMMANDER_ERR_INVALID_INPUT;
+    case APP_BTC_SIGN_ERR_USER_ABORT:
+        return COMMANDER_ERR_USER_ABORT;
+    case APP_BTC_SIGN_ERR_STATE:
+        return COMMANDER_ERR_INVALID_STATE;
+    default:
+        return COMMANDER_ERR_GENERIC;
+    }
+}
+
 static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse* response)
 {
     if (!app_btc_xpub(
@@ -215,7 +231,7 @@ commander_error_t commander_btc_sign(const Request* request, Response* response)
     if (result == APP_BTC_SIGN_OK) {
         _handle_sign_next(&response->response.btc_sign_next);
     }
-    return _result(result);
+    return _sign_result(result);
 }
 
 static commander_error_t _api_is_script_config_registered(
@@ -263,7 +279,7 @@ commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response
         if (result == APP_BTC_SIGN_OK) {
             _handle_sign_next(&response->response.sign_next);
         }
-        return _result(result);
+        return _sign_result(result);
     }
     case BTCRequest_prevtx_input_tag: {
         response->which_response = BTCResponse_sign_next_tag;
@@ -272,7 +288,7 @@ commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response
         if (result == APP_BTC_SIGN_OK) {
             _handle_sign_next(&response->response.sign_next);
         }
-        return _result(result);
+        return _sign_result(result);
     }
     case BTCRequest_prevtx_output_tag: {
         response->which_response = BTCResponse_sign_next_tag;
@@ -281,7 +297,7 @@ commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response
         if (result == APP_BTC_SIGN_OK) {
             _handle_sign_next(&response->response.sign_next);
         }
-        return _result(result);
+        return _sign_result(result);
     }
     default:
         return COMMANDER_ERR_GENERIC;

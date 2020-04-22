@@ -225,17 +225,15 @@ static void _test_btc_sign_happy(void** state)
         multisig,
         &init_req.script_config.config.multisig,
         sizeof(BTCScriptConfig_Multisig));
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_init(&init_req, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_init(&init_req, &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
     assert_int_equal(next.index, 0);
 
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&_inputs[0].input, &next));
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_prevtx_init(&_inputs[0].prevtx_init, &next));
-    assert_int_equal(
-        APP_BTC_SIGN_OK, app_btc_sign_prevtx_input(&_inputs[0].prevtx_inputs[0], &next));
-    assert_int_equal(
-        APP_BTC_SIGN_OK, app_btc_sign_prevtx_output(&_inputs[0].prevtx_outputs[0], &next));
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_output(&_outputs[0], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&_inputs[0].input, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_init(&_inputs[0].prevtx_init, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_input(&_inputs[0].prevtx_inputs[0], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_output(&_inputs[0].prevtx_outputs[0], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&_outputs[0], &next));
 
     expect_string(
         __wrap_workflow_verify_recipient,
@@ -245,9 +243,9 @@ static void _test_btc_sign_happy(void** state)
     expect_value(__wrap_apps_btc_confirm_locktime_rbf, rbf, CONFIRM_LOCKTIME_RBF_OFF);
     expect_string(__wrap_workflow_verify_total, total, "0.00090175 TBTC");
     expect_string(__wrap_workflow_verify_total, fee, "0.00000175 TBTC");
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_output(&_outputs[1], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&_outputs[1], &next));
 
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&_inputs[0].input, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&_inputs[0].input, &next));
     assert_true(next.has_signature);
     // d9b92d11eae078d7ae3b589bbbc76f4b514fe7aeb844db397937cded4dc594e450cc7e4bf6ab67fef292800d89da9d108f0767c465534486b235426b192928af
     // TODO: investigate why electrum produces a different but valid sig:
@@ -320,17 +318,15 @@ static void _test_btc_sign_large_happy(void** state)
         multisig,
         &init_req.script_config.config.multisig,
         sizeof(BTCScriptConfig_Multisig));
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_init(&init_req, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_init(&init_req, &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
     assert_int_equal(next.index, 0);
 
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&_inputs[0].input, &next));
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_prevtx_init(&_inputs[0].prevtx_init, &next));
-    assert_int_equal(
-        APP_BTC_SIGN_OK, app_btc_sign_prevtx_input(&_inputs[0].prevtx_inputs[0], &next));
-    assert_int_equal(
-        APP_BTC_SIGN_OK, app_btc_sign_prevtx_output(&_inputs[0].prevtx_outputs[0], &next));
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_output(&_outputs[0], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&_inputs[0].input, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_init(&_inputs[0].prevtx_init, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_input(&_inputs[0].prevtx_inputs[0], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_output(&_inputs[0].prevtx_outputs[0], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&_outputs[0], &next));
 
     expect_string(
         __wrap_workflow_verify_recipient,
@@ -340,9 +336,9 @@ static void _test_btc_sign_large_happy(void** state)
     expect_value(__wrap_apps_btc_confirm_locktime_rbf, rbf, CONFIRM_LOCKTIME_RBF_OFF);
     expect_string(__wrap_workflow_verify_total, total, "0.00090175 TBTC");
     expect_string(__wrap_workflow_verify_total, fee, "0.00000175 TBTC");
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_output(&_outputs[1], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&_outputs[1], &next));
 
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&_inputs[0].input, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&_inputs[0].input, &next));
     assert_true(next.has_signature);
     const uint8_t* expected_signature = (const uint8_t*)
         "\xdc\x95\xd6\xe7\x7a\xef\x9b\xc2\x1d\xef\x9b\xa6\xce\x94\xcd\xf0\x4b\xcc\xfc\x50\xbb\x29\x2b\x5b\x44\x33\xf3\x2f\x79\xa0\x09\x06\x19\x3e\xac\x60\xfd\x88\xdb\x4f\xe7\xe6\xd9\xea\xb1\x7c\x21\xd6\xf4\x90\x03\xea\xdd\x8e\x12\x10\xbc\x4a\x85\x2b\xd1\xcd\x31\xe4";

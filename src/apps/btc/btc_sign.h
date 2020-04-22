@@ -15,6 +15,8 @@
 #ifndef _APPS_BTC_SIGN_H
 #define _APPS_BTC_SIGN_H
 
+#include "btc.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -22,30 +24,22 @@
 
 #include <hww.pb.h>
 
-typedef enum {
-    APP_BTC_SIGN_OK,
-    APP_BTC_SIGN_ERR_UNKNOWN,
-    APP_BTC_SIGN_ERR_INVALID_INPUT,
-    APP_BTC_SIGN_ERR_USER_ABORT,
-    APP_BTC_SIGN_ERR_STATE,
-} app_btc_sign_error_t;
-
-USE_RESULT app_btc_sign_error_t
+USE_RESULT app_btc_result_t
 app_btc_sign_init(const BTCSignInitRequest* request, BTCSignNextResponse* next_out);
 
-USE_RESULT app_btc_sign_error_t
+USE_RESULT app_btc_result_t
 app_btc_sign_prevtx_init(const BTCPrevTxInitRequest* request, BTCSignNextResponse* next_out);
 
-USE_RESULT app_btc_sign_error_t
+USE_RESULT app_btc_result_t
 app_btc_sign_prevtx_input(const BTCPrevTxInputRequest* request, BTCSignNextResponse* next_out);
 
-USE_RESULT app_btc_sign_error_t
+USE_RESULT app_btc_result_t
 app_btc_sign_prevtx_output(const BTCPrevTxOutputRequest* request, BTCSignNextResponse* next_out);
 
-USE_RESULT app_btc_sign_error_t
+USE_RESULT app_btc_result_t
 app_btc_sign_input(const BTCSignInputRequest* request, BTCSignNextResponse* next_out);
 
-USE_RESULT app_btc_sign_error_t
+USE_RESULT app_btc_result_t
 app_btc_sign_output(const BTCSignOutputRequest* request, BTCSignNextResponse* next_out);
 
 #ifdef TESTING

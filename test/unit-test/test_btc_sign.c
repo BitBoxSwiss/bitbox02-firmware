@@ -110,7 +110,7 @@ static void _test_btc_sign_init(void** state)
     };
     BTCSignNextResponse next = {0};
     { // test valid
-        assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_init(&init_req_valid, &next));
+        assert_int_equal(APP_BTC_OK, app_btc_sign_init(&init_req_valid, &next));
         assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
         assert_int_equal(next.index, 0);
         assert_int_equal(next.prev_index, 0); // arbitrary
@@ -123,34 +123,34 @@ static void _test_btc_sign_init(void** state)
             if (invalid.version == 1 || invalid.version == 2) {
                 continue;
             }
-            assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_init(&invalid, &next));
+            assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_init(&invalid, &next));
         }
     }
     { // test invalid locktime
         tst_app_btc_reset();
         BTCSignInitRequest invalid = init_req_valid;
         invalid.locktime = 500000000;
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_init(&invalid, &next));
+        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_init(&invalid, &next));
     }
     { // test invalid inputs
         tst_app_btc_reset();
         BTCSignInitRequest invalid = init_req_valid;
         invalid.num_inputs = 0;
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_init(&invalid, &next));
+        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_init(&invalid, &next));
     }
     { // test invalid outputs
         tst_app_btc_reset();
         BTCSignInitRequest invalid = init_req_valid;
         invalid.num_outputs = 0;
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_init(&invalid, &next));
+        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_init(&invalid, &next));
     }
     { // test invalid coin
         tst_app_btc_reset();
         BTCSignInitRequest invalid = init_req_valid;
         invalid.coin = _BTCCoin_MIN - 1;
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_init(&invalid, &next));
+        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_init(&invalid, &next));
         invalid.coin = _BTCCoin_MAX + 1;
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_init(&invalid, &next));
+        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_init(&invalid, &next));
     }
 }
 
@@ -237,36 +237,34 @@ static bool _stream_prevtx(
     if (mod->prevtx_no_inputs) {
         BTCPrevTxInitRequest invalid = input->prevtx_init;
         invalid.num_inputs = 0;
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_prevtx_init(&invalid, next));
+        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_prevtx_init(&invalid, next));
         return false;
     }
     if (mod->prevtx_no_outputs) {
         BTCPrevTxInitRequest invalid = input->prevtx_init;
         invalid.num_outputs = 0;
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_prevtx_init(&invalid, next));
+        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_prevtx_init(&invalid, next));
         return false;
     }
 
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_prevtx_init(&input->prevtx_init, next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_init(&input->prevtx_init, next));
     assert_int_equal(next->type, BTCSignNextResponse_Type_PREVTX_INPUT);
     assert_int_equal(next->index, input_index);
     assert_int_equal(next->prev_index, 0);
 
     if (mod->state_previnit_after_previnit) {
-        assert_int_equal(
-            APP_BTC_SIGN_ERR_STATE, app_btc_sign_prevtx_init(&input->prevtx_init, next));
+        assert_int_equal(APP_BTC_ERR_STATE, app_btc_sign_prevtx_init(&input->prevtx_init, next));
         return false;
     }
 
     if (mod->state_previnit_after_previnit) {
         assert_int_equal(
-            APP_BTC_SIGN_ERR_STATE, app_btc_sign_prevtx_output(&input->prevtx_outputs[0], next));
+            APP_BTC_ERR_STATE, app_btc_sign_prevtx_output(&input->prevtx_outputs[0], next));
         return false;
     }
 
     for (size_t i = 0; i < input->prevtx_init.num_inputs; i++) {
-        assert_int_equal(
-            APP_BTC_SIGN_OK, app_btc_sign_prevtx_input(&input->prevtx_inputs[i], next));
+        assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_input(&input->prevtx_inputs[i], next));
         bool last = i == input->prevtx_init.num_inputs - 1;
         if (last) {
             assert_int_equal(next->type, BTCSignNextResponse_Type_PREVTX_OUTPUT);
@@ -282,12 +280,11 @@ static bool _stream_prevtx(
         bool last = i == input->prevtx_init.num_outputs - 1;
         if (last && (mod->input_wrong_value || mod->wrong_prevouthash)) {
             assert_int_equal(
-                APP_BTC_SIGN_ERR_INVALID_INPUT,
+                APP_BTC_ERR_INVALID_INPUT,
                 app_btc_sign_prevtx_output(&input->prevtx_outputs[i], next));
             return false;
         }
-        assert_int_equal(
-            APP_BTC_SIGN_OK, app_btc_sign_prevtx_output(&input->prevtx_outputs[i], next));
+        assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_output(&input->prevtx_outputs[i], next));
         if (!last) {
             assert_int_equal(next->type, BTCSignNextResponse_Type_PREVTX_OUTPUT);
             assert_int_equal(next->index, input_index);
@@ -617,18 +614,18 @@ static void _sign(const _modification_t* mod)
     }
 
     BTCSignNextResponse next = {0};
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_init(&init_req, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_init(&init_req, &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
     assert_int_equal(next.index, 0);
     assert_int_equal(next.prev_index, 0); // arbitrary
     assert_false(next.has_signature);
 
     if (mod->state_init_after_init) {
-        assert_int_equal(APP_BTC_SIGN_ERR_STATE, app_btc_sign_init(&init_req, &next));
+        assert_int_equal(APP_BTC_ERR_STATE, app_btc_sign_init(&init_req, &next));
         return;
     }
     if (mod->state_output_after_init) {
-        assert_int_equal(APP_BTC_SIGN_ERR_STATE, app_btc_sign_output(&outputs[0], &next));
+        assert_int_equal(APP_BTC_ERR_STATE, app_btc_sign_output(&outputs[0], &next));
         return;
     }
 
@@ -648,11 +645,10 @@ static void _sign(const _modification_t* mod)
     }
     if (mod->wrong_coin_input || mod->wrong_account_input || mod->wrong_sequence_number ||
         mod->wrong_input_value) {
-        assert_int_equal(
-            APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[0].input, &next));
+        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[0].input, &next));
         return;
     }
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&inputs[0].input, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&inputs[0].input, &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_PREVTX_INIT);
     assert_int_equal(next.index, 0);
     assert_false(next.has_signature);
@@ -678,11 +674,10 @@ static void _sign(const _modification_t* mod)
         inputs[1].input.keypath,
         inputs[1].input.keypath_count * sizeof(uint32_t));
     if (mod->overflow_input_values_pass1) {
-        assert_int_equal(
-            APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[1].input, &next));
+        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[1].input, &next));
         return;
     }
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&inputs[1].input, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&inputs[1].input, &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_PREVTX_INIT);
     assert_int_equal(next.index, 1);
     assert_false(next.has_signature);
@@ -701,7 +696,7 @@ static void _sign(const _modification_t* mod)
 
     // First output
     if (mod->wrong_output_value) {
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_output(&outputs[0], &next));
+        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_output(&outputs[0], &next));
         return;
     }
     expect_value(__wrap_btc_common_format_amount, satoshi, outputs[0].value);
@@ -720,14 +715,14 @@ static void _sign(const _modification_t* mod)
     }
     expect_string(__wrap_workflow_verify_recipient, amount, "amount0");
     will_return(__wrap_workflow_verify_recipient, true);
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_output(&outputs[0], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&outputs[0], &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_OUTPUT);
     assert_int_equal(next.index, 1);
     assert_false(next.has_signature);
 
     // Second output
     if (mod->overflow_output_out) {
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_output(&outputs[1], &next));
+        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_output(&outputs[1], &next));
         return;
     }
     expect_value(__wrap_btc_common_format_amount, satoshi, outputs[1].value);
@@ -747,12 +742,12 @@ static void _sign(const _modification_t* mod)
     expect_string(__wrap_workflow_verify_recipient, amount, "amount1");
     will_return(__wrap_workflow_verify_recipient, !mod->user_aborts_output);
     if (mod->user_aborts_output) {
-        assert_int_equal(APP_BTC_SIGN_ERR_USER_ABORT, app_btc_sign_output(&outputs[1], &next));
+        assert_int_equal(APP_BTC_ERR_USER_ABORT, app_btc_sign_output(&outputs[1], &next));
         // Check the process is really aborted, can't proceed to next expected output.
-        assert_int_equal(APP_BTC_SIGN_ERR_STATE, app_btc_sign_output(&outputs[2], &next));
+        assert_int_equal(APP_BTC_ERR_STATE, app_btc_sign_output(&outputs[2], &next));
         return;
     }
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_output(&outputs[1], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&outputs[1], &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_OUTPUT);
     assert_int_equal(next.index, 2);
     assert_false(next.has_signature);
@@ -778,7 +773,7 @@ static void _sign(const _modification_t* mod)
     }
     expect_string(__wrap_workflow_verify_recipient, amount, "amount2");
     will_return(__wrap_workflow_verify_recipient, true);
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_output(&outputs[2], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&outputs[2], &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_OUTPUT);
     assert_int_equal(next.index, 3);
     assert_false(next.has_signature);
@@ -804,7 +799,7 @@ static void _sign(const _modification_t* mod)
     }
     expect_string(__wrap_workflow_verify_recipient, amount, "amount3");
     will_return(__wrap_workflow_verify_recipient, true);
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_output(&outputs[3], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&outputs[3], &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_OUTPUT);
     assert_int_equal(next.index, 4);
     assert_false(next.has_signature);
@@ -821,14 +816,14 @@ static void _sign(const _modification_t* mod)
         outputs[4].keypath,
         outputs[4].keypath_count * sizeof(uint32_t));
     if (!mod->seeded) {
-        assert_int_equal(APP_BTC_SIGN_ERR_UNKNOWN, app_btc_sign_output(&outputs[4], &next));
+        assert_int_equal(APP_BTC_ERR_UNKNOWN, app_btc_sign_output(&outputs[4], &next));
         return;
     }
     if (mod->wrong_coin_change || mod->wrong_account_change || mod->bip44_change != 1) {
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_output(&outputs[4], &next));
+        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_output(&outputs[4], &next));
         return;
     }
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_output(&outputs[4], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&outputs[4], &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_OUTPUT);
     assert_int_equal(next.index, 5);
     assert_false(next.has_signature);
@@ -845,7 +840,7 @@ static void _sign(const _modification_t* mod)
         outputs[5].keypath,
         outputs[5].keypath_count * sizeof(uint32_t));
     if (mod->overflow_output_ours) {
-        assert_int_equal(APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_output(&outputs[5], &next));
+        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_output(&outputs[5], &next));
         return;
     }
 
@@ -866,9 +861,9 @@ static void _sign(const _modification_t* mod)
         expect_value(__wrap_apps_btc_confirm_locktime_rbf, rbf, CONFIRM_LOCKTIME_RBF_ON);
         will_return(__wrap_apps_btc_confirm_locktime_rbf, false);
 
-        assert_int_equal(APP_BTC_SIGN_ERR_USER_ABORT, app_btc_sign_output(&outputs[5], &next));
+        assert_int_equal(APP_BTC_ERR_USER_ABORT, app_btc_sign_output(&outputs[5], &next));
         // Check the process is really aborted, can't proceed to next stage.
-        assert_int_equal(APP_BTC_SIGN_ERR_STATE, app_btc_sign_input(&inputs[0].input, &next));
+        assert_int_equal(APP_BTC_ERR_STATE, app_btc_sign_input(&inputs[0].input, &next));
         return;
     }
 
@@ -890,12 +885,12 @@ static void _sign(const _modification_t* mod)
     expect_string(__wrap_workflow_verify_total, fee, "amount fee");
     will_return(__wrap_workflow_verify_total, !mod->user_aborts_total);
     if (mod->user_aborts_total) {
-        assert_int_equal(APP_BTC_SIGN_ERR_USER_ABORT, app_btc_sign_output(&outputs[5], &next));
+        assert_int_equal(APP_BTC_ERR_USER_ABORT, app_btc_sign_output(&outputs[5], &next));
         // Check the process is really aborted, can't proceed to next stage.
-        assert_int_equal(APP_BTC_SIGN_ERR_STATE, app_btc_sign_input(&inputs[0].input, &next));
+        assert_int_equal(APP_BTC_ERR_STATE, app_btc_sign_input(&inputs[0].input, &next));
         return;
     }
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_output(&outputs[5], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&outputs[5], &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
     assert_int_equal(next.index, 0);
     assert_false(next.has_signature);
@@ -923,11 +918,10 @@ static void _sign(const _modification_t* mod)
         inputs[0].input.keypath,
         inputs[0].input.keypath_count * sizeof(uint32_t));
     if (mod->input_sum_changes) {
-        assert_int_equal(
-            APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[0].input, &next));
+        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[0].input, &next));
         return;
     }
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&inputs[0].input, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&inputs[0].input, &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
     assert_int_equal(next.index, 1);
     assert_true(next.has_signature);
@@ -967,11 +961,10 @@ static void _sign(const _modification_t* mod)
         inputs[1].input.keypath,
         inputs[1].input.keypath_count * sizeof(uint32_t));
     if (mod->input_sum_last_mismatch || mod->overflow_input_values_pass2) {
-        assert_int_equal(
-            APP_BTC_SIGN_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[1].input, &next));
+        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[1].input, &next));
         return;
     }
-    assert_int_equal(APP_BTC_SIGN_OK, app_btc_sign_input(&inputs[1].input, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&inputs[1].input, &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_DONE);
     assert_true(next.has_signature);
     if (mod->check_sigs) {

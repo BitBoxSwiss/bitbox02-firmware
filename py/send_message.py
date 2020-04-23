@@ -78,8 +78,6 @@ def ask_user(
 class SendMessage:
     """SendMessage"""
 
-    # pylint: disable=too-few-public-methods
-
     def __init__(self, device: bitbox02.BitBox02, debug: bool):
         self._device = device
         self._debug = debug
@@ -634,8 +632,6 @@ class SendMessage:
 class SendMessageBitBoxBase:
     """SendMessageBitBoxBase"""
 
-    # pylint: disable=too-few-public-methods
-
     def __init__(self, device: BitBoxBase, debug: bool):
         self._device = device
         self._debug = debug
@@ -714,7 +710,6 @@ class SendMessageBitBoxBase:
 class SendMessageBootloader:
     """Simple test application for bootloader"""
 
-    # pylint: disable=too-few-public-methods
     def __init__(self, device: bitbox02.Bootloader):
         self._device = device
         self._stop = False
@@ -765,7 +760,6 @@ class SendMessageBootloader:
 class U2FApp:
     """App"""
 
-    # pylint: disable=too-few-public-methods
     APPID = "http://example.com"
 
     def __init__(self, device: u2f.bitbox02.BitBox02U2F, debug: bool):

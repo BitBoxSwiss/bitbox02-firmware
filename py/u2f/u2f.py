@@ -114,7 +114,7 @@ def _der_to_sig(der: bytes) -> Tuple[int, bytes]:
 
 
 class U2FSender(Protocol):
-    # pylint: disable=too-few-public-methods,unused-argument,no-self-use
+    # pylint: disable=unused-argument,no-self-use
     def u2fhid_msg(self, msg: bytes) -> bytes:
         ...
 
@@ -122,7 +122,6 @@ class U2FSender(Protocol):
 class APDU:
     """Format that U2F is using"""
 
-    # pylint: disable=too-few-public-methods
     def __init__(self, ins: int, p1: int, p2: int, length: int, data: bytes):
         """
         Sets up the APDU packet.
@@ -150,7 +149,7 @@ class APDU:
 class RegistrationResponse:
     """Response to registration request"""
 
-    # pylint: disable=too-many-instance-attributes,too-few-public-methods
+    # pylint: disable=too-many-instance-attributes
     def __init__(self, response_bytes: bytes, challenge: bytes, appid: bytes):
         """
         Creates an registration response.
@@ -227,7 +226,6 @@ class RegistrationResponse:
 class RegistrationRequest:
     """Container for request"""
 
-    # pylint: disable=too-few-public-methods
     def __init__(self, app_id: str, bogus: str = ""):
         """
         Creates an APDU packet for request.
@@ -268,7 +266,6 @@ class RegistrationRequest:
 class AuthenticationResponse:
     """Reponse to an authentication request"""
 
-    # pylint: disable=too-few-public-methods
     def __init__(self, response_bytes: bytes, appid: bytes, challenge: bytes):
         """
         Creates an authentication response.
@@ -299,7 +296,6 @@ class AuthenticationResponse:
 class AuthenticationRequest:
     """Authentication request"""
 
-    # pylint: disable=too-few-public-methods
     def __init__(self, app_id: str, key_handle: bytes):
         """
         Creates an APDU packet for request.
@@ -336,8 +332,6 @@ class AuthenticationRequest:
 
 class InitResponse:
     """Reponse to Init"""
-
-    # pylint: disable=too-few-public-methods
 
     def __init__(
         self,

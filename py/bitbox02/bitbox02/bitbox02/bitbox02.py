@@ -87,7 +87,6 @@ class BTCInputType(TypedDict):
 
 
 class BTCOutputInternal:
-    # pylint: disable=too-few-public-methods
     # TODO: Use NamedTuple, but not playing well with protobuf types.
 
     def __init__(self, keypath: List[int], value: int):
@@ -99,8 +98,6 @@ class BTCOutputInternal:
 
 
 class BTCOutputExternal:
-    # pylint: disable=too-few-public-methods
-
     # TODO: Use NamedTuple, but not playing well with protobuf types.
 
     def __init__(self, output_type: btc.BTCOutputType, output_hash: bytes, value: int):

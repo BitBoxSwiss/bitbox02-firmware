@@ -51,7 +51,6 @@ def parse_xpub(xpub: str) -> common.XPub:
 class UserCache:
     """Data structure to hold keys"""
 
-    # pylint: disable=too-few-public-methods
     def __init__(self, raw_cache: Optional[str] = None):
         if raw_cache is None:
             self.app_static_privkey = None

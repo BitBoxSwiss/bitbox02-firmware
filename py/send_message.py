@@ -14,6 +14,7 @@
 # limitations under the License.
 """Script for interacting with bitbox v2"""
 
+# pylint: disable=too-many-lines
 
 import argparse
 import pprint
@@ -23,6 +24,7 @@ import hashlib
 import base64
 import binascii
 
+import requests
 import hid
 from tzlocal import get_localzone
 
@@ -295,13 +297,10 @@ class SendMessage:
                             "prev_out_index": 0,
                             "signature_script": b"some signature script",
                             "sequence": 0xFFFFFFFF,
-                        },
+                        }
                     ],
                     "outputs": [
-                        {
-                            "value": int(1e8 * 0.60005),
-                            "pubkey_script": b"some pubkey script",
-                        },
+                        {"value": int(1e8 * 0.60005), "pubkey_script": b"some pubkey script"}
                     ],
                 },
             },
@@ -320,13 +319,10 @@ class SendMessage:
                             "prev_out_index": 0,
                             "signature_script": b"some signature script",
                             "sequence": 0xFFFFFFFF,
-                        },
+                        }
                     ],
                     "outputs": [
-                        {
-                            "value": int(1e8 * 0.60005),
-                            "pubkey_script": b"some pubkey script",
-                        },
+                        {"value": int(1e8 * 0.60005), "pubkey_script": b"some pubkey script"}
                     ],
                 },
             },
@@ -357,59 +353,70 @@ class SendMessage:
         Uses blockchair.com to convert a testnet transaction to the input required by btc_sign(),
         including the previous transactions.
         """
-        def get(tx_id):
-            import requests
-            return requests.get("https://api.blockchair.com/bitcoin/testnet/dashboards/transaction/{}".format(tx_id)).json()["data"][tx_id]
+        # pylint: disable=no-member
+
+        def get(tx_id: str) -> Any:
+            return requests.get(
+                "https://api.blockchair.com/bitcoin/testnet/dashboards/transaction/{}".format(tx_id)
+            ).json()["data"][tx_id]
 
         tx_id = input("Paste a btc testnet tx ID: ").strip()
         tx = get(tx_id)
 
-        inputs = []
-        outputs = []
+        inputs: List[bitbox02.BTCInputType] = []
+        outputs: List[bitbox02.BTCOutputType] = []
 
         bip44_account: int = 0 + HARDENED
 
         for inp in tx["inputs"]:
             print("Downloading prev tx")
             prev_tx = get(inp["transaction_hash"])
-
-            prev_inputs = []
-            prev_outputs = []
+            print("Downloaded prev tx")
+            prev_inputs: List[bitbox02.BTCPrevTxInputType] = []
+            prev_outputs: List[bitbox02.BTCPrevTxOutputType] = []
 
             for prev_inp in prev_tx["inputs"]:
-                prev_inputs.append({
-                    "prev_out_hash": binascii.unhexlify(prev_inp["transaction_hash"])[::-1],
-                    "prev_out_index": prev_inp["index"],
-                    "signature_script": binascii.unhexlify(prev_inp["spending_signature_hex"]),
-                    "sequence": prev_inp["spending_sequence"],
-                })
+                prev_inputs.append(
+                    {
+                        "prev_out_hash": binascii.unhexlify(prev_inp["transaction_hash"])[::-1],
+                        "prev_out_index": prev_inp["index"],
+                        "signature_script": binascii.unhexlify(prev_inp["spending_signature_hex"]),
+                        "sequence": prev_inp["spending_sequence"],
+                    }
+                )
             for prev_outp in prev_tx["outputs"]:
-                prev_outputs.append({
-                    "value": prev_outp["value"],
-                    "pubkey_script": binascii.unhexlify(prev_outp["script_hex"]),
-                })
+                prev_outputs.append(
+                    {
+                        "value": prev_outp["value"],
+                        "pubkey_script": binascii.unhexlify(prev_outp["script_hex"]),
+                    }
+                )
 
-            inputs.append({
-                "prev_out_hash": binascii.unhexlify(inp["transaction_hash"])[::-1],
-                "prev_out_index": inp["index"],
-                "prev_out_value": inp["value"],
-                "sequence": inp["spending_sequence"],
-                "keypath": [84 + HARDENED, 1 + HARDENED, bip44_account, 0, 0],
-                "prev_tx": {
-                    "version": prev_tx["transaction"]["version"],
-                    "locktime": prev_tx["transaction"]["lock_time"],
-                    "inputs": prev_inputs,
-                    "outputs": prev_outputs,
-                },
-            })
+            inputs.append(
+                {
+                    "prev_out_hash": binascii.unhexlify(inp["transaction_hash"])[::-1],
+                    "prev_out_index": inp["index"],
+                    "prev_out_value": inp["value"],
+                    "sequence": inp["spending_sequence"],
+                    "keypath": [84 + HARDENED, 1 + HARDENED, bip44_account, 0, 0],
+                    "prev_tx": {
+                        "version": prev_tx["transaction"]["version"],
+                        "locktime": prev_tx["transaction"]["lock_time"],
+                        "inputs": prev_inputs,
+                        "outputs": prev_outputs,
+                    },
+                }
+            )
 
         for outp in tx["outputs"]:
-            outputs.append(bitbox02.BTCOutputExternal(
-                # TODO: parse pubkey script
-                output_type=bitbox02.btc.P2WSH,
-                output_hash=b"11111111111111111111111111111111",
-                value=outp["value"],
-            ))
+            outputs.append(
+                bitbox02.BTCOutputExternal(
+                    # TODO: parse pubkey script
+                    output_type=bitbox02.btc.P2WSH,
+                    output_hash=b"11111111111111111111111111111111",
+                    value=outp["value"],
+                )
+            )
 
         print("Start signing...")
         self._device.btc_sign(
@@ -494,6 +501,8 @@ class SendMessage:
             eprint("Aborted by user")
 
     def _sign_eth_tx(self) -> None:
+        # pylint: disable=line-too-long
+
         inp = input("Select one of: 1=normal; 2=erc20; 3=erc721; 4=unknown erc20: ").strip()
         if inp == "1":
             # fmt: off

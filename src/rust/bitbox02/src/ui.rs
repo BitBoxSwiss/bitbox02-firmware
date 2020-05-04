@@ -81,7 +81,7 @@ where
 
     let component = unsafe {
         bitbox02_sys::trinary_input_string_create_password(
-            crate::str_to_cstr_force!(title, 199).as_ptr(), // same as label.c max size
+            crate::str_to_cstr_force!(title, 640).as_ptr(), // same as label.c MAX_LABEL_SIZE
             special_chars,
             Some(c_confirm_callback::<F>),
             // passed to c_confirm_callback as `param`.
@@ -135,8 +135,6 @@ pub struct ConfirmParams<'a> {
     /// if true, the accept icon is a right arrow instead of a checkmark (indicating going to the
     /// "next" screen).
     pub accept_is_nextarrow: bool,
-    /// if true, will only show first and last 32 bytes.
-    pub shorten_body: bool,
     /// Print the value of this variable in the corner. Will not print when 0
     pub display_size: usize,
 }
@@ -149,14 +147,13 @@ where
     F: FnMut(bool) + 'a,
 {
     let params = bitbox02_sys::confirm_params_t {
-        title: crate::str_to_cstr_force!(params.title, 199).as_ptr(), // same as label.c max size
-        body: crate::str_to_cstr_force!(params.body, 199).as_ptr(),   // same as label.c max size
+        title: crate::str_to_cstr_force!(params.title, 640).as_ptr(), // same as label.c MAX_LABEL_SIZE
+        body: crate::str_to_cstr_force!(params.body, 640).as_ptr(), // same as label.c MAX_LABEL_SIZE
         font: params.font.as_ptr(),
         scrollable: params.scrollable,
         longtouch: params.longtouch,
         accept_only: params.accept_only,
         accept_is_nextarrow: params.accept_is_nextarrow,
-        shorten_body: params.shorten_body,
         display_size: params.display_size as _,
     };
 
@@ -208,7 +205,7 @@ where
 
     let component = unsafe {
         bitbox02_sys::status_create(
-            crate::str_to_cstr_force!(text, 199).as_ptr(), // same as label.c max size
+            crate::str_to_cstr_force!(text, 640).as_ptr(), // same as label.c MAX_LABEL_SIZE
             status_success,
             Some(c_callback::<F>),
             Box::into_raw(Box::new(callback)) as *mut _, // passed to c_callback as `param`.

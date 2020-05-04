@@ -30,6 +30,7 @@ async fn confirm_mnemonic_passphrase(passphrase: &str) -> bool {
         title: "",
         body: "You will be asked to\nvisually confirm your\npassphrase now.",
         accept_only: true,
+        accept_is_nextarrow: true,
         ..Default::default()
     };
 

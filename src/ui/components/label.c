@@ -37,6 +37,7 @@ typedef struct {
     float slider_position_diff;
     int16_t text_position;
     int16_t text_position_last;
+    uint8_t offset;
 } data_t;
 
 static void _measure_label_dimensions(component_t* label);
@@ -45,10 +46,10 @@ void label_update(component_t* component, const char* text)
 {
     data_t* data = (data_t*)component->data;
     snprintf(data->text, sizeof(data->text), "%s", text);
+    _measure_label_dimensions(component);
     if (component->parent == NULL) {
         return;
     }
-    _measure_label_dimensions(component);
     component_t* parent = component->parent;
     switch (data->position) {
     case CENTER:
@@ -70,7 +71,7 @@ void label_update(component_t* component, const char* text)
         ui_util_position_left_center(parent, component);
         break;
     case CUSTOM_OFFSET:
-        // ui_util_position_left_center_offset(parent, component, data->offset);
+        ui_util_position_left_center_offset(parent, component, data->offset);
         break;
     case RIGHT_CENTER:
         ui_util_position_right_center(parent, component);
@@ -229,55 +230,20 @@ static component_t* _label_create(
     memset(data, 0, sizeof(data_t));
     memset(label, 0, sizeof(component_t));
 
-    snprintf(data->text, sizeof(data->text), "%s", text);
     data->font = font != NULL ? font : &font_font_a_9X9;
     data->upside_down = upside_down;
     data->scrollable = scrollable;
     data->position = position;
+    data->offset = offset;
     label->data = data;
     label->parent = parent;
     label->f = &_component_functions;
-
-    _measure_label_dimensions(label);
 
     if (data->scrollable) {
         ui_util_add_sub_component(label, knight_rider_create(label, SCREEN_HEIGHT - 1));
     }
 
-    switch (position) {
-    case CENTER:
-        ui_util_position_center(parent, label);
-        break;
-    case CENTER_TOP:
-        ui_util_position_center_top(parent, label);
-        break;
-    case CENTER_BOTTOM:
-        ui_util_position_center_bottom(parent, label);
-        break;
-    case LEFT_TOP:
-        ui_util_position_left_top(parent, label);
-        break;
-    case LEFT_BOTTOM:
-        ui_util_position_left_bottom(parent, label);
-        break;
-    case LEFT_CENTER:
-        ui_util_position_left_center(parent, label);
-        break;
-    case CUSTOM_OFFSET:
-        ui_util_position_left_center_offset(parent, label, offset);
-        break;
-    case RIGHT_CENTER:
-        ui_util_position_right_center(parent, label);
-        break;
-    case RIGHT_TOP:
-        ui_util_position_right_top(parent, label);
-        break;
-    case RIGHT_BOTTOM:
-        ui_util_position_right_bottom(parent, label);
-        break;
-    default:
-        Abort("position undefined or currently not implemented");
-    }
+    label_update(label, text);
     return label;
 }
 

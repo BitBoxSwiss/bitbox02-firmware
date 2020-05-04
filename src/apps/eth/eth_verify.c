@@ -172,7 +172,6 @@ app_eth_sign_error_t app_eth_verify_standard_transaction(const ETHSignRequest* r
             .title = "Transaction\ndata",
             .body = hex,
             .scrollable = true,
-            .shorten_body = true,
             .display_size = request->data.size,
             .accept_is_nextarrow = true,
         };

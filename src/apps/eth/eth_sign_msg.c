@@ -70,7 +70,6 @@ app_eth_sign_error_t app_eth_sign_msg(
     confirm_params_t params = {
         .body = body,
         .scrollable = true,
-        .shorten_body = true,
         .longtouch = true,
     };
     if (all_ascii) {

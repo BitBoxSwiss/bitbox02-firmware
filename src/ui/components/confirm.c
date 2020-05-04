@@ -100,19 +100,6 @@ component_t* confirm_create(
     confirm->dimension.width = SCREEN_WIDTH;
     confirm->dimension.height = SCREEN_HEIGHT;
 
-    const char* body = params->body;
-    size_t body_len = strlen(params->body);
-    char short_body[64 + 3 + 1] = {0};
-    if (params->shorten_body && body_len > 64) {
-        snprintf(
-            short_body,
-            sizeof(short_body),
-            "%.32s...%.32s",
-            params->body,
-            &params->body[body_len - 32]);
-        body = short_body;
-    }
-
     if (params->display_size) {
         char size_label[20];
         snprintf(size_label, sizeof(size_label), "Size: %uB", params->display_size);
@@ -124,9 +111,10 @@ component_t* confirm_create(
     // Create labels
     if (params->scrollable) {
         ui_util_add_sub_component(
-            confirm, label_create_scrollable(body, params->font, CENTER, confirm));
+            confirm, label_create_scrollable(params->body, params->font, CENTER, confirm));
     } else {
-        ui_util_add_sub_component(confirm, label_create(body, params->font, CENTER, confirm));
+        ui_util_add_sub_component(
+            confirm, label_create(params->body, params->font, CENTER, confirm));
     }
     ui_util_add_sub_component(confirm, label_create(params->title, NULL, CENTER_TOP, confirm));
     // Create buttons

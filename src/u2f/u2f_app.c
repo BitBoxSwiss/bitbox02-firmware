@@ -167,7 +167,7 @@ void u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
         }
         break;
     case U2F_APP_AUTHENTICATE:
-        title = "U2F authenticate";
+        title = "U2F auth";
         _app_string(app_id, app_string, sizeof(app_string));
         break;
     default:

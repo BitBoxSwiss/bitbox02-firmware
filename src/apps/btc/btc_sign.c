@@ -20,8 +20,11 @@
 #include "confirm_multisig.h"
 #include <rust/rust.h>
 
+#include <hardfault.h>
 #include <keystore.h>
 #include <memory/memory.h>
+#include <ui/components/empty.h>
+#include <ui/screen_stack.h>
 #include <util.h>
 #include <workflow/verify_recipient.h>
 #include <workflow/verify_total.h>
@@ -35,6 +38,15 @@ typedef enum {
     STATE_OUTPUTS,
     STATE_INPUTS_PASS2,
 } _signing_state_t;
+
+// Base component on the screen stack during signing, which is shown while the device is waiting for
+// the next signing api call. Without this, the 'See the BitBoxApp' waiting screen would flicker in
+// between user confirmations.
+//
+// Pushed with the first output, and, popped in with the last output (and _reset(), which is called
+// if there is an error or if the signing finishes normally).
+// Rationale: the earliest user input happens in the first output, the latest in the last output.
+static component_t* _empty_component = NULL;
 
 static _signing_state_t _state = STATE_INIT;
 static const app_btc_coin_params_t* _coin_params = NULL;
@@ -75,6 +87,18 @@ static void* _hash_outputs_ctx = NULL;
 // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki step 8.
 static uint8_t _hash_outputs[32] = {0};
 
+static void _maybe_pop_empty_screen(void)
+{
+    if (_empty_component != NULL) {
+        if (ui_screen_stack_top() != _empty_component) {
+            Abort("btc_sign: mismatched screen push/pop");
+        }
+        ui_screen_stack_pop_and_clean();
+        _empty_component = NULL;
+    }
+}
+
+// Must be called in any code path that exits the signing process (error or regular finish).
 static void _reset(void)
 {
     _state = STATE_INIT;
@@ -96,6 +120,8 @@ static void _reset(void)
 
     rust_sha256_free(&_hash_outputs_ctx);
     _hash_outputs_ctx = rust_sha256_new();
+
+    _maybe_pop_empty_screen();
 }
 
 static app_btc_sign_error_t _error(app_btc_sign_error_t err)
@@ -529,6 +555,17 @@ app_btc_sign_error_t app_btc_sign_output(
         size_t pk_script_serialized_len =
             wally_varbuff_to_bytes(pk_script, pk_script_len, pk_script_serialized);
         rust_sha256_update(_hash_outputs_ctx, pk_script_serialized, pk_script_serialized_len);
+    }
+
+    if (_index == 0) {
+        // The device shows the default "See the BitBoxApp" screen up until the first output is
+        // processed. Afterwards, the base screen is the empty screen to avoid flicker, until the
+        // last output is processed.
+        _empty_component = empty_create();
+        ui_screen_stack_push(_empty_component);
+    }
+    if (_index == _init_request.num_outputs - 1) {
+        _maybe_pop_empty_screen();
     }
 
     if (_index < _init_request.num_outputs - 1) {

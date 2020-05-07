@@ -55,6 +55,16 @@ void ui_screen_stack_pop(void)
     }
 }
 
+void ui_screen_stack_pop_and_clean(void)
+{
+    if (_screen_stack.size > 0) {
+        component_t* top = _screen_stack.screens[_screen_stack.size - 1];
+        _screen_stack.size--;
+
+        top->f->cleanup(top);
+    }
+}
+
 void ui_screen_stack_pop_all(void)
 {
     while (_screen_stack.size) {

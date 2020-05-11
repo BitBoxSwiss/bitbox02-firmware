@@ -239,7 +239,7 @@ static component_t* _label_create(
     memset(data, 0, sizeof(data_t));
     memset(label, 0, sizeof(component_t));
 
-    data->font = font != NULL ? font : &font_font_a_9X9;
+    data->font = font != NULL ? font : &font_font_a_11X10;
     data->upside_down = upside_down;
     data->scrollable = scrollable;
     data->position = position;

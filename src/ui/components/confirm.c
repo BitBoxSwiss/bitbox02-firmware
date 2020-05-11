@@ -71,6 +71,12 @@ static const component_functions_t _component_functions = {
     .on_event = _on_event,
 };
 
+static const component_functions_t _body_container_functions = {
+    .cleanup = ui_util_component_cleanup,
+    .render = ui_util_component_render_subcomponents,
+    .on_event = ui_util_on_event_noop,
+};
+
 /********************************** Create Instance **********************************/
 
 component_t* confirm_create(
@@ -108,15 +114,34 @@ component_t* confirm_create(
     }
 
     slider_location_t slider_position = top_slider;
-    // Create labels
+    // Create labels. We nest them in a body component that covers the screen minus the title bar,
+    // so that the CENTER positioning starts below the title bar.
+    component_t* body_container = malloc(sizeof(component_t));
+    if (!body_container) {
+        Abort("Error: malloc confirm");
+    }
+    memset(body_container, 0, sizeof(component_t));
+
+    component_t* title_component = label_create(params->title, NULL, CENTER_TOP, confirm);
+    ui_util_add_sub_component(confirm, title_component);
+
+    body_container->position.left = 0;
+    // title bar height plus small padding
+    body_container->position.top = title_component->dimension.height + 1;
+    body_container->dimension.width = SCREEN_WIDTH;
+    body_container->dimension.height = SCREEN_HEIGHT - body_container->position.top;
+    body_container->f = &_body_container_functions;
+    ui_util_add_sub_component(confirm, body_container);
+
     if (params->scrollable) {
         ui_util_add_sub_component(
-            confirm, label_create_scrollable(params->body, params->font, CENTER, confirm));
+            body_container,
+            label_create_scrollable(params->body, params->font, CENTER, body_container));
     } else {
         ui_util_add_sub_component(
-            confirm, label_create(params->body, params->font, CENTER, confirm));
+            body_container, label_create(params->body, params->font, CENTER, body_container));
     }
-    ui_util_add_sub_component(confirm, label_create(params->title, NULL, CENTER_TOP, confirm));
+
     // Create buttons
     if (!params->accept_only) {
         ui_util_add_sub_component(

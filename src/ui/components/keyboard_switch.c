@@ -47,20 +47,25 @@ static void _render(component_t* component)
     UG_S16 w = 0, h = 0;
     switch (ks_data->mode) {
     case LOWER_CASE:
-        UG_MeasureString(&w, &h, "abc");
-        UG_PutString((SCREEN_WIDTH - w) / 2 + 2, 1, "abc", false);
-        break;
-    case UPPER_CASE:
         UG_MeasureString(&w, &h, "ABC");
         UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "ABC", false);
         break;
-    case DIGITS:
+    case UPPER_CASE:
         UG_MeasureString(&w, &h, "123");
         UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "123", false);
         break;
+    case DIGITS:
+        if (ks_data->special_chars) {
+            UG_MeasureString(&w, &h, "&?+");
+            UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "&?+", false);
+        } else {
+            UG_MeasureString(&w, &h, "abc");
+            UG_PutString((SCREEN_WIDTH - w) / 2 + 2, 1, "abc", false);
+        }
+        break;
     case SPECIAL_CHARS:
-        UG_MeasureString(&w, &h, "&?+");
-        UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "&?+", false);
+        UG_MeasureString(&w, &h, "abc");
+        UG_PutString((SCREEN_WIDTH - w) / 2 + 2, 1, "abc", false);
         break;
     default:
         Abort("Keyboard mode unrecognized");

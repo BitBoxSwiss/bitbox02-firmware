@@ -52,7 +52,7 @@ static void _render(component_t* component)
         active_count = MAX(scale - 1, active_count - scale);
     }
     j_start += active_count / scale;
-    image_arrow(j_start, component->position.top, HEIGHT, ARROW_RIGHT);
+    image_arrow_hollow(j_start, component->position.top, HEIGHT, ARROW_RIGHT);
 }
 
 static void _on_event(const event_t* event, component_t* component)

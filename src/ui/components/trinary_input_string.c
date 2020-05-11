@@ -92,6 +92,7 @@ typedef struct {
     component_t* title_component;
     component_t* trinary_char_component;
     component_t* confirm_component;
+    component_t* cancel_component;
     component_t* left_arrow_component;
     component_t* keyboard_switch_component;
 } data_t;
@@ -142,8 +143,9 @@ static void _render(component_t* component)
     data_t* data = (data_t*)component->data;
     bool confirm_gesture_active =
         data->can_confirm && data->longtouch && confirm_gesture_is_active(data->confirm_component);
-    bool show_title =
-        data->string_index == 0 && !trinary_input_char_in_progress(data->trinary_char_component);
+    bool show_title = data->string_index == 0 &&
+                      !trinary_input_char_in_progress(data->trinary_char_component) &&
+                      !confirm_gesture_active;
 
     UG_S16 string_x = data->start_x;
 
@@ -207,7 +209,12 @@ static void _render(component_t* component)
         data->confirm_component->f->render(data->confirm_component);
     }
     if (!confirm_gesture_active) {
-        data->left_arrow_component->f->render(data->left_arrow_component);
+        if (data->string_index != 0 ||
+            trinary_input_char_in_progress(data->trinary_char_component)) {
+            data->left_arrow_component->f->render(data->left_arrow_component);
+        } else if (data->cancel_component != NULL) {
+            data->cancel_component->f->render(data->cancel_component);
+        }
         if (data->keyboard_switch_component != NULL) {
             data->keyboard_switch_component->f->render(data->keyboard_switch_component);
         }
@@ -318,15 +325,21 @@ static void _on_event(const event_t* event, component_t* component)
                 data->target_x = SCROLL_RIGHT_LIMIT - string_width;
                 // data->target_x += MIN(SCREEN_WIDTH - SCROLL_RIGHT_LIMIT, string_width);
             }
-        } else if (data->cancel_cb != NULL) {
-            data->cancel_cb(data->cancel_callback_param);
-            data->cancel_cb = NULL;
         }
         _set_alphabet(component);
         _set_can_confirm(component);
         break;
     default:
         break;
+    }
+}
+
+static void _cancel(component_t* cancel_button)
+{
+    component_t* component = cancel_button->parent;
+    data_t* data = (data_t*)component->data;
+    if (data->cancel_cb != NULL) {
+        data->cancel_cb(data->cancel_callback_param);
     }
 }
 
@@ -409,6 +422,10 @@ static component_t* _create(
     component->position.top = 0;
     component->position.left = 0;
 
+    if (cancel_cb != NULL) {
+        data->cancel_component = icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel);
+        ui_util_add_sub_component(component, data->cancel_component);
+    }
     data->left_arrow_component = left_arrow_create(top_slider, component);
     ui_util_add_sub_component(component, data->left_arrow_component);
 

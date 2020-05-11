@@ -208,7 +208,11 @@ static void _render(component_t* component)
         data->confirm_component->f->render(data->confirm_component);
     }
     if (!confirm_gesture_active) {
-        data->left_arrow_component->f->render(data->left_arrow_component);
+        if (data->string_index != 0 ||
+            trinary_input_char_in_progress(data->trinary_char_component) ||
+            data->cancel_cb != NULL) {
+            data->left_arrow_component->f->render(data->left_arrow_component);
+        }
         if (data->keyboard_switch_component != NULL) {
             data->keyboard_switch_component->f->render(data->keyboard_switch_component);
         }

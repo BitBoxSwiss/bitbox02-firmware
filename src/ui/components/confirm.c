@@ -15,6 +15,7 @@
 #include "confirm.h"
 #include "../event.h"
 #include "confirm_gesture.h"
+#include "empty.h"
 #include "icon_button.h"
 #include "label.h"
 
@@ -108,15 +109,28 @@ component_t* confirm_create(
     }
 
     slider_location_t slider_position = top_slider;
-    // Create labels
+    // Create labels. We nest them in a body component that covers the screen minus the title bar,
+    // so that the CENTER positioning starts below the title bar.
+    component_t* title_component = label_create(params->title, NULL, CENTER_TOP, confirm);
+    ui_util_add_sub_component(confirm, title_component);
+
+    component_t* body_container = empty_create();
+    body_container->position.left = 0;
+    // title bar height plus small padding
+    body_container->position.top = title_component->dimension.height + 1;
+    body_container->dimension.width = SCREEN_WIDTH;
+    body_container->dimension.height = SCREEN_HEIGHT - body_container->position.top;
+    ui_util_add_sub_component(confirm, body_container);
+
     if (params->scrollable) {
         ui_util_add_sub_component(
-            confirm, label_create_scrollable(params->body, params->font, CENTER, confirm));
+            body_container,
+            label_create_scrollable(params->body, params->font, CENTER, body_container));
     } else {
         ui_util_add_sub_component(
-            confirm, label_create(params->body, params->font, CENTER, confirm));
+            body_container, label_create(params->body, params->font, CENTER, body_container));
     }
-    ui_util_add_sub_component(confirm, label_create(params->title, NULL, CENTER_TOP, confirm));
+
     // Create buttons
     if (!params->accept_only) {
         ui_util_add_sub_component(

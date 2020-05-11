@@ -142,8 +142,9 @@ static void _render(component_t* component)
     data_t* data = (data_t*)component->data;
     bool confirm_gesture_active =
         data->can_confirm && data->longtouch && confirm_gesture_is_active(data->confirm_component);
-    bool show_title =
-        data->string_index == 0 && !trinary_input_char_in_progress(data->trinary_char_component);
+    bool show_title = data->string_index == 0 &&
+                      !trinary_input_char_in_progress(data->trinary_char_component) &&
+                      !confirm_gesture_active;
 
     UG_S16 string_x = data->start_x;
 

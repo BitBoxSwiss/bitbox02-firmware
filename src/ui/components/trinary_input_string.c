@@ -208,16 +208,26 @@ static void _render(component_t* component)
     if (data->can_confirm) {
         data->confirm_component->f->render(data->confirm_component);
     }
+
+    // Do not process events for components which are not rendered.
+    data->trinary_char_component->disabled = true;
+    data->left_arrow_component->disabled = true;
+    if (data->cancel_component != NULL) {
+        data->cancel_component->disabled = true;
+    }
     if (!confirm_gesture_active) {
         if (data->string_index != 0 ||
             trinary_input_char_in_progress(data->trinary_char_component)) {
+            data->left_arrow_component->disabled = false;
             data->left_arrow_component->f->render(data->left_arrow_component);
         } else if (data->cancel_component != NULL) {
+            data->cancel_component->disabled = false;
             data->cancel_component->f->render(data->cancel_component);
         }
         if (data->keyboard_switch_component != NULL) {
             data->keyboard_switch_component->f->render(data->keyboard_switch_component);
         }
+        data->trinary_char_component->disabled = false;
         data->trinary_char_component->f->render(data->trinary_char_component);
     }
     if (show_title) {

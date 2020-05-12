@@ -91,8 +91,12 @@ pub fn ug_send_buffer() {
     unsafe { bitbox02_sys::UG_SendBuffer() }
 }
 
-pub fn ug_font_select() {
+pub fn ug_font_select_9x9() {
     unsafe { bitbox02_sys::UG_FontSelect(&bitbox02_sys::font_font_a_9X9) }
+}
+
+pub fn ug_font_select_11x10() {
+    unsafe { bitbox02_sys::UG_FontSelect(&bitbox02_sys::font_font_a_11X10) }
 }
 
 #[cfg_attr(not(target_arch = "arm"), allow(unused_variables))]

@@ -16,7 +16,7 @@ use core::fmt::Write;
 use core::time::Duration;
 
 use arrayvec::ArrayString;
-use bitbox02::{delay, ug_clear_buffer, ug_font_select, ug_put_string, ug_send_buffer};
+use bitbox02::{delay, ug_clear_buffer, ug_font_select_11x10, ug_put_string, ug_send_buffer};
 
 use super::config::Config;
 
@@ -41,7 +41,7 @@ pub fn write_status<W: Write>(w: &mut W, config: &Config) {
 
 pub fn display_status(config: &Config, duration: Option<Duration>) {
     ug_clear_buffer();
-    ug_font_select();
+    ug_font_select_11x10();
     let mut buf = ArrayString::<[_; 256]>::new();
     write_status(&mut buf, config);
     ug_put_string(10, 10, &buf, false);

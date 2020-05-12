@@ -18,6 +18,7 @@
 
 #include <hardfault.h>
 #include <touch/gestures.h>
+#include <ui/fonts/password_11X12.h>
 #include <ui/fonts/password_9X9.h>
 #include <ui/ui_util.h>
 #include <util.h>
@@ -39,8 +40,6 @@ typedef struct {
 // excluding null terminator
 #define MAX_CHARS 33
 
-static const UG_FONT* _font = &font_password_9X9;
-
 // Each of the three groups can occupy roughly a third of the width.
 static const UG_S16 _group_width = SCREEN_WIDTH / 3;
 
@@ -60,6 +59,8 @@ typedef struct {
     bool alphabet_is_empty;
     // Horizontal space between characters in a group.
     UG_S16 horiz_space;
+
+    const UG_FONT* font;
 } data_t;
 
 /**
@@ -142,7 +143,7 @@ static void _render(component_t* component)
     }
 
     // Render
-    UG_FontSelect(_font);
+    UG_FontSelect(data->font);
     for (size_t idx = 0; idx < MAX_CHARS; idx++) {
         _element_t* element = &data->elements[idx];
         if (element->character == '\0') {
@@ -169,6 +170,7 @@ static const component_functions_t _component_functions = {
 };
 
 static void _put_string(
+    const UG_FONT* font,
     UG_S16 x_offset,
     UG_S16 y_offset,
     UG_S16 horiz_space,
@@ -178,7 +180,7 @@ static void _put_string(
     UG_S16 total_width = 0;
     for (size_t idx = 0; idx < elements_size; idx++) {
         char c = elements[idx]->character;
-        total_width += _font->widths[c - _font->start_char];
+        total_width += font->widths[c - font->start_char];
         total_width += horiz_space;
     }
 
@@ -186,8 +188,8 @@ static void _put_string(
     if (elements_size > 6) {
         // split in two halfs; size/2 rounded up
         const size_t half = (elements_size + 1) / 2;
-        _put_string(x_offset, y_offset - _font->char_height - 1, horiz_space, elements, half);
-        _put_string(x_offset, y_offset, horiz_space, elements + half, elements_size - half);
+        _put_string(font, x_offset, y_offset - font->char_height - 1, horiz_space, elements, half);
+        _put_string(font, x_offset, y_offset, horiz_space, elements + half, elements_size - half);
         return;
     }
 
@@ -198,7 +200,7 @@ static void _put_string(
         bool update_position = !element->newly_born;
         element->target_x = x;
         x += c == ' ' ? UI_UTIL_VISIBLE_SPACE_WIDTH
-                      : _font->widths[element->character - _font->start_char];
+                      : font->widths[element->character - font->start_char];
         x += horiz_space;
         element->target_y = y_offset;
         if (!update_position) {
@@ -220,6 +222,14 @@ void trinary_input_char_set_alphabet(
     char alphabet[MAX_CHARS + 1];
     snprintf(alphabet, sizeof(alphabet), "%s", alphabet_input);
     size_t len = strlens(alphabet);
+
+    // Switch to larger font for fewer characters
+    if (len < 12) {
+        data->font = &font_password_11X12;
+    } else {
+        data->font = &font_password_9X9;
+    }
+
     size_t a = 0;
     size_t b = len / 3;
     size_t c = 2 * len / 3;
@@ -268,16 +278,22 @@ void trinary_input_char_set_alphabet(
         element->character = alphabet[char_idx];
     }
 
-    UG_S16 y_offset = SCREEN_HEIGHT - _font->char_height;
+    UG_S16 y_offset = SCREEN_HEIGHT - data->font->char_height;
     { // left
-        _put_string(0, y_offset, data->horiz_space, elements_lookup, left_size);
+        _put_string(data->font, 0, y_offset, data->horiz_space, elements_lookup, left_size);
     }
     { // middle
         _put_string(
-            _group_width, y_offset, data->horiz_space, elements_lookup + left_size, middle_size);
+            data->font,
+            _group_width,
+            y_offset,
+            data->horiz_space,
+            elements_lookup + left_size,
+            middle_size);
     }
     { // right
         _put_string(
+            data->font,
             2 * _group_width,
             y_offset,
             data->horiz_space,
@@ -320,6 +336,8 @@ component_t* trinary_input_char_create(
         Abort("Error: malloc trinary char");
     }
     memset(component, 0, sizeof(component_t));
+
+    data->font = &font_password_9X9;
     component->data = data;
     component->parent = parent;
     component->f = &_component_functions;

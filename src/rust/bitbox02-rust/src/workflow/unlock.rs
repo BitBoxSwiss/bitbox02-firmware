@@ -61,7 +61,7 @@ async fn unlock_bip39() {
     if bitbox02::memory::is_mnemonic_passphrase_enabled() {
         // Loop until the user confirms.
         loop {
-            password_enter("Enter\noptional passphrase", true, &mut mnemonic_passphrase).await;
+            password_enter("Optional passphrase", true, &mut mnemonic_passphrase).await;
 
             if confirm_mnemonic_passphrase(mnemonic_passphrase.as_str()).await {
                 break;

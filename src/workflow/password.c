@@ -62,6 +62,6 @@ bool password_check(void)
     }
     char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     UTIL_CLEANUP_STR(password);
-    password_enter_blocking("Unlocking device\nrequired", false, password);
+    password_enter_blocking("Unlock device", false, password);
     return workflow_unlock_and_handle_error(password) == KEYSTORE_OK;
 }

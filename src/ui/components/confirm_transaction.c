@@ -22,7 +22,12 @@
 #include <screen.h>
 #include <stdbool.h>
 #include <string.h>
+#include <ui/fonts/arial_fonts.h>
 #include <util.h>
+
+// Empirically measured when the amount goes out of screen with the 11x10 font and we should switch
+// to the smaller 9x9 font.
+#define BIG_FONT_MAX_CHARS 19
 
 typedef struct {
     bool has_address;
@@ -121,17 +126,26 @@ static component_t* _confirm_transaction_create(
     if (strlens(fee)) {
         ui_util_add_sub_component(
             confirm, label_create_offset("Fee", NULL, CENTER_TOP, 0, 38, confirm));
+
+        const UG_FONT* fee_font = NULL;
+        if (strlen(fee) > BIG_FONT_MAX_CHARS) {
+            fee_font = &font_font_a_9X9;
+        }
         ui_util_add_sub_component(
-            confirm, label_create_offset(fee, NULL, CENTER_TOP, 0, 50, confirm));
+            confirm, label_create_offset(fee, fee_font, CENTER_TOP, 0, 50, confirm));
+    }
+    const UG_FONT* amount_font = NULL;
+    if (strlen(amount) > BIG_FONT_MAX_CHARS) {
+        amount_font = &font_font_a_9X9;
     }
     if (verify_total) {
         ui_util_add_sub_component(
             confirm, label_create_offset("Total", NULL, CENTER_TOP, 0, 8, confirm));
         ui_util_add_sub_component(
-            confirm, label_create_offset(amount, NULL, CENTER_TOP, 0, 22, confirm));
+            confirm, label_create_offset(amount, amount_font, CENTER_TOP, 0, 22, confirm));
     } else {
         ui_util_add_sub_component(
-            confirm, label_create_offset(amount, NULL, CENTER_TOP, 0, 17, confirm));
+            confirm, label_create_offset(amount, amount_font, CENTER_TOP, 0, 17, confirm));
     }
 
     return confirm;

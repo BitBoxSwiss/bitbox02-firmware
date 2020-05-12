@@ -40,7 +40,7 @@ int main(void)
     UG_Init(
         &guioled,
         (void (*)(UG_S16, UG_S16, UG_COLOR))oled_set_pixel,
-        &font_font_a_9X9,
+        &font_font_a_11X10,
         SCREEN_WIDTH,
         SCREEN_HEIGHT);
     screen_print_debug("before test", 1000);

@@ -120,7 +120,7 @@ static const component_functions_t component_functions = {.cleanup = ui_util_com
 static void done_callback(void)
 {
     UG_ClearBuffer();
-    UG_FontSelect(&font_font_a_9X9);
+    UG_FontSelect(&font_font_a_11X10);
     UG_PutString(8, 26, "done_callback\nrestarting", false);
     UG_SendBuffer();
     delay_ms(500);

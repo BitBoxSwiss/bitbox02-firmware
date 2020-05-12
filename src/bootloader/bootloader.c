@@ -28,6 +28,7 @@
 #include <pukcc/curve_p256.h>
 #include <screen.h>
 #include <ui/components/ui_images.h>
+#include <ui/fonts/arial_fonts.h>
 #include <ui/oled/oled.h>
 #include <ui/ugui/ugui.h>
 #if PLATFORM_BITBOXBASE == 1
@@ -966,6 +967,8 @@ void bootloader_jump(void)
         screen_rotate();
     }
 #endif
+
+    UG_FontSelect(&font_font_a_9X9);
 
     if (shared_data.fields.auto_enter != sectrue_u8) {
 #ifdef BOOTLOADER_DEVDEVICE

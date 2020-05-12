@@ -373,6 +373,7 @@ add_custom_target(rust-bindgen
     --whitelist-type BitBoxBaseRequest
     --whitelist-var ".*_tag"
     --whitelist-var font_font_a_9X9
+    --whitelist-var font_font_a_11X10
     --whitelist-var font_monogram_5X9
     --whitelist-var font_password_11X12
     --whitelist-var WALLY_OK

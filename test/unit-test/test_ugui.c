@@ -44,7 +44,7 @@ static void _set_pixel(UG_S16 x, UG_S16 y, UG_COLOR color)
 static void _test_ugui_word_wrap(void** state)
 {
     (void)state; /* unused */
-    UG_Init(&gui, _set_pixel, &font_font_a_9X9, 128, 64);
+    UG_Init(&gui, _set_pixel, &font_font_a_11X10, 128, 64);
     for (size_t i = 0; i < sizeof(data) / sizeof(*data); ++i) {
         char buf[1024] = {0};
         printf("test:\n%s\n", data[i][0]);
@@ -57,7 +57,7 @@ static void _test_ugui_word_wrap(void** state)
 static void _test_ugui_word_wrap_all(void** state)
 {
     (void)state; /* unused */
-    UG_Init(&gui, _set_pixel, &font_font_a_9X9, 128, 64);
+    UG_Init(&gui, _set_pixel, &font_font_a_11X10, 128, 64);
     for (size_t i = 0; i < sizeof(_erc20_params) / sizeof(*_erc20_params); ++i) {
         char buf[1024] = {0};
         printf("test:\n%s\n", _erc20_params[i].name);

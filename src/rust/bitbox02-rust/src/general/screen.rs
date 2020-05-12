@@ -14,11 +14,11 @@
 
 use core::time::Duration;
 
-use bitbox02::{delay, ug_clear_buffer, ug_font_select, ug_put_string, ug_send_buffer};
+use bitbox02::{delay, ug_clear_buffer, ug_font_select_9x9, ug_put_string, ug_send_buffer};
 
 pub fn print_debug_internal(duration: Duration, msg: &str) {
     ug_clear_buffer();
-    ug_font_select();
+    ug_font_select_9x9();
     ug_put_string(0, 0, msg, false);
     ug_send_buffer();
     delay(duration);

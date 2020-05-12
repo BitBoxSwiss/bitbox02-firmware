@@ -89,7 +89,7 @@ static void _get_mnemonic_passphrase_spin(workflow_t* self)
     switch (data->state) {
     case MNEMONIC_PASSPHRASE_PW_ENTER:
         workflow_stack_start_workflow(
-            password_enter("Enter\noptional passphrase", true, _passphrase_ready_cb, data));
+            password_enter("Optional passphrase", true, _passphrase_ready_cb, data));
         break;
     case MNEMONIC_PASSPHRASE_CONFIRM_MSG: {
         const confirm_params_t params = {

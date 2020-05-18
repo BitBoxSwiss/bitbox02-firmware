@@ -281,7 +281,9 @@ class SendMessage:
         bip44_account: int = 0 + HARDENED
         inputs: List[bitbox02.BTCInputType] = [
             {
-                "prev_out_hash": b"11111111111111111111111111111111",
+                "prev_out_hash": binascii.unhexlify(
+                    "c58b7e3f1200e0c0ec9a5e81e925baface2cc1d4715514f2d8205be2508b48ee"
+                ),
                 "prev_out_index": 0,
                 "prev_out_value": int(1e8 * 0.60005),
                 "sequence": 0xFFFFFFFF,
@@ -303,7 +305,9 @@ class SendMessage:
                 },
             },
             {
-                "prev_out_hash": b"11111111111111111111111111111111",
+                "prev_out_hash": binascii.unhexlify(
+                    "c58b7e3f1200e0c0ec9a5e81e925baface2cc1d4715514f2d8205be2508b48ee"
+                ),
                 "prev_out_index": 1,
                 "prev_out_value": int(1e8 * 0.60005),
                 "sequence": 0xFFFFFFFF,

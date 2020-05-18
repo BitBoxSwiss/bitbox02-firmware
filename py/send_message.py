@@ -75,6 +75,71 @@ def ask_user(
     return choices[ans - 1][1]
 
 
+def _btc_demo_inputs_outputs(
+    bip44_account: int
+) -> Tuple[List[bitbox02.BTCInputType], List[bitbox02.BTCOutputType]]:
+    """
+    Returns a sample btc tx.
+    """
+    inputs: List[bitbox02.BTCInputType] = [
+        {
+            "prev_out_hash": binascii.unhexlify(
+                "c58b7e3f1200e0c0ec9a5e81e925baface2cc1d4715514f2d8205be2508b48ee"
+            ),
+            "prev_out_index": 0,
+            "prev_out_value": int(1e8 * 0.60005),
+            "sequence": 0xFFFFFFFF,
+            "keypath": [84 + HARDENED, 0 + HARDENED, bip44_account, 0, 0],
+            "prev_tx": {
+                "version": 1,
+                "locktime": 0,
+                "inputs": [
+                    {
+                        "prev_out_hash": b"11111111111111111111111111111111",
+                        "prev_out_index": 0,
+                        "signature_script": b"some signature script",
+                        "sequence": 0xFFFFFFFF,
+                    }
+                ],
+                "outputs": [{"value": int(1e8 * 0.60005), "pubkey_script": b"some pubkey script"}],
+            },
+        },
+        {
+            "prev_out_hash": binascii.unhexlify(
+                "c58b7e3f1200e0c0ec9a5e81e925baface2cc1d4715514f2d8205be2508b48ee"
+            ),
+            "prev_out_index": 1,
+            "prev_out_value": int(1e8 * 0.60005),
+            "sequence": 0xFFFFFFFF,
+            "keypath": [84 + HARDENED, 0 + HARDENED, bip44_account, 0, 1],
+            "prev_tx": {
+                "version": 1,
+                "locktime": 0,
+                "inputs": [
+                    {
+                        "prev_out_hash": b"11111111111111111111111111111111",
+                        "prev_out_index": 0,
+                        "signature_script": b"some signature script",
+                        "sequence": 0xFFFFFFFF,
+                    }
+                ],
+                "outputs": [{"value": int(1e8 * 0.60005), "pubkey_script": b"some pubkey script"}],
+            },
+        },
+    ]
+    outputs: List[bitbox02.BTCOutputType] = [
+        bitbox02.BTCOutputInternal(
+            keypath=[84 + HARDENED, 0 + HARDENED, bip44_account, 1, 0], value=int(1e8 * 1)
+        ),
+        bitbox02.BTCOutputExternal(
+            output_type=bitbox02.btc.P2WSH,
+            output_hash=b"11111111111111111111111111111111",
+            value=int(1e8 * 0.2),
+        ),
+    ]
+    return inputs, outputs
+
+
 class SendMessage:
     """SendMessage"""
 
@@ -275,70 +340,30 @@ class SendMessage:
         except UserAbortException:
             print("Aborted by user")
 
-    def _sign_btc_tx(self) -> None:
+    def _sign_btc_normal(self) -> None:
         # pylint: disable=no-member
-        # Dummy transaction to invoke a demo.
         bip44_account: int = 0 + HARDENED
-        inputs: List[bitbox02.BTCInputType] = [
-            {
-                "prev_out_hash": binascii.unhexlify(
-                    "c58b7e3f1200e0c0ec9a5e81e925baface2cc1d4715514f2d8205be2508b48ee"
-                ),
-                "prev_out_index": 0,
-                "prev_out_value": int(1e8 * 0.60005),
-                "sequence": 0xFFFFFFFF,
-                "keypath": [84 + HARDENED, 0 + HARDENED, bip44_account, 0, 0],
-                "prev_tx": {
-                    "version": 1,
-                    "locktime": 0,
-                    "inputs": [
-                        {
-                            "prev_out_hash": b"11111111111111111111111111111111",
-                            "prev_out_index": 0,
-                            "signature_script": b"some signature script",
-                            "sequence": 0xFFFFFFFF,
-                        }
-                    ],
-                    "outputs": [
-                        {"value": int(1e8 * 0.60005), "pubkey_script": b"some pubkey script"}
-                    ],
-                },
-            },
-            {
-                "prev_out_hash": binascii.unhexlify(
-                    "c58b7e3f1200e0c0ec9a5e81e925baface2cc1d4715514f2d8205be2508b48ee"
-                ),
-                "prev_out_index": 1,
-                "prev_out_value": int(1e8 * 0.60005),
-                "sequence": 0xFFFFFFFF,
-                "keypath": [84 + HARDENED, 0 + HARDENED, bip44_account, 0, 1],
-                "prev_tx": {
-                    "version": 1,
-                    "locktime": 0,
-                    "inputs": [
-                        {
-                            "prev_out_hash": b"11111111111111111111111111111111",
-                            "prev_out_index": 0,
-                            "signature_script": b"some signature script",
-                            "sequence": 0xFFFFFFFF,
-                        }
-                    ],
-                    "outputs": [
-                        {"value": int(1e8 * 0.60005), "pubkey_script": b"some pubkey script"}
-                    ],
-                },
-            },
-        ]
-        outputs: List[bitbox02.BTCOutputType] = [
+        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        sigs = self._device.btc_sign(
+            bitbox02.btc.BTC,
+            bitbox02.btc.BTCScriptConfig(simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH),
+            keypath_account=[84 + HARDENED, 0 + HARDENED, bip44_account],
+            inputs=inputs,
+            outputs=outputs,
+        )
+        for input_index, sig in sigs:
+            print("Signature for input {}: {}".format(input_index, sig.hex()))
+
+    def _sign_btc_multiple_changes(self) -> None:
+        # pylint: disable=no-member
+        bip44_account: int = 0 + HARDENED
+        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        # Add a change output.
+        outputs.append(
             bitbox02.BTCOutputInternal(
-                keypath=[84 + HARDENED, 0 + HARDENED, bip44_account, 1, 0], value=int(1e8 * 1)
-            ),
-            bitbox02.BTCOutputExternal(
-                output_type=bitbox02.btc.P2WSH,
-                output_hash=b"11111111111111111111111111111111",
-                value=int(1e8 * 0.2),
-            ),
-        ]
+                keypath=[84 + HARDENED, 0 + HARDENED, bip44_account, 1, 0], value=int(1)
+            )
+        )
         sigs = self._device.btc_sign(
             bitbox02.btc.BTC,
             bitbox02.btc.BTCScriptConfig(simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH),
@@ -428,6 +453,17 @@ class SendMessage:
             inputs=inputs,
             outputs=outputs,
         )
+
+    def _sign_btc_tx(self) -> None:
+        """ btc signing demos """
+        choices = (
+            ("Normal tx", self._sign_btc_normal),
+            ("Multiple change outputs", self._sign_btc_multiple_changes),
+            ("From testnet tx ID", self._sign_btc_tx_from_raw),
+        )
+        choice = ask_user(choices)
+        if callable(choice):
+            choice()
 
     def _check_backup(self) -> None:
         print("Your BitBox02 will now perform a backup check")
@@ -593,7 +629,6 @@ class SendMessage:
             ("Retrieve a BTC address", self._btc_address),
             ("Retrieve a BTC Multisig address", self._btc_multisig_address),
             ("Sign a BTC tx", self._sign_btc_tx),
-            ("Sign a raw BTC tx", self._sign_btc_tx_from_raw),
             ("List backups", self._print_backups),
             ("Check backup", self._check_backup),
             ("Show mnemonic", self._show_mnemnoic_seed),

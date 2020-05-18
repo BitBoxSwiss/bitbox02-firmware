@@ -23,6 +23,13 @@
 #include <apps/btc/confirm_locktime_rbf.h>
 #include <keystore.h>
 #include <wally_bip32.h>
+#include <workflow/confirm.h>
+
+bool __wrap_workflow_confirm_blocking(const confirm_params_t* params)
+{
+    check_expected(params->body);
+    return mock();
+}
 
 bool __wrap_workflow_verify_recipient(const char* recipient, const char* amount)
 {
@@ -195,6 +202,8 @@ typedef struct {
     bool user_aborts_locktime_rbf;
     // when a user aborts on total/fee verification.
     bool user_aborts_total;
+    // when a user aborts the warning about multiple change outputs being present.
+    bool user_aborts_multiple_changes;
     // if value addition in inputs would overflow
     bool overflow_input_values_pass1;
     bool overflow_input_values_pass2;
@@ -826,8 +835,7 @@ static void _sign(const _modification_t* mod)
     assert_int_equal(next.index, 5);
     assert_false(next.has_signature);
 
-    // Sixth output, change. Last output also invokes verification of total and
-    // fee.
+    // Sixth output, change. Last output also invokes verification of total and fee.
     expect_value(
         __wrap_btc_common_is_valid_keypath_address_simple,
         script_type,
@@ -839,6 +847,14 @@ static void _sign(const _modification_t* mod)
         outputs[5].keypath_count * sizeof(uint32_t));
     if (mod->overflow_output_ours) {
         assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_output(&outputs[5], &next));
+        return;
+    }
+
+    expect_string(
+        __wrap_workflow_confirm_blocking, params->body, "There are 2\nchange outputs.\nProceed?");
+    will_return(__wrap_workflow_confirm_blocking, !mod->user_aborts_multiple_changes);
+    if (mod->user_aborts_multiple_changes) {
+        assert_int_equal(APP_BTC_ERR_USER_ABORT, app_btc_sign_output(&outputs[5], &next));
         return;
     }
 
@@ -864,7 +880,6 @@ static void _sign(const _modification_t* mod)
         assert_int_equal(APP_BTC_ERR_STATE, app_btc_sign_input(&inputs[0].input, &next));
         return;
     }
-
     expect_value(__wrap_btc_common_format_amount, satoshi, total);
     if (!mod->litecoin_rbf_disabled) {
         expect_string(__wrap_btc_common_format_amount, unit, "BTC");
@@ -1120,6 +1135,12 @@ static void _test_user_aborts_total(void** state)
     invalid.user_aborts_total = true;
     _sign(&invalid);
 }
+static void _test_user_aborts_multiple_changes(void** state)
+{
+    _modification_t invalid = _valid;
+    invalid.user_aborts_multiple_changes = true;
+    _sign(&invalid);
+}
 static void _test_overflow_input_values_pass1(void** state)
 {
     _modification_t invalid = _valid;
@@ -1200,6 +1221,7 @@ int main(void)
         cmocka_unit_test(_test_locktime_applies),
         cmocka_unit_test(_test_user_aborts_locktime_rbf),
         cmocka_unit_test(_test_user_aborts_total),
+        cmocka_unit_test(_test_user_aborts_multiple_changes),
         cmocka_unit_test(_test_overflow_input_values_pass1),
         cmocka_unit_test(_test_overflow_input_values_pass2),
         cmocka_unit_test(_test_overflow_output_out),

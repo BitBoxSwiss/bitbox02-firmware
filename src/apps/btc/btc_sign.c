@@ -26,6 +26,7 @@
 #include <ui/components/empty.h>
 #include <ui/screen_stack.h>
 #include <util.h>
+#include <workflow/confirm.h>
 #include <workflow/verify_recipient.h>
 #include <workflow/verify_total.h>
 
@@ -128,6 +129,8 @@ static uint64_t _outputs_sum_ours = 0;
 // used during STATE_OUTPUTS. Will contain the sum of all outgoing output values
 // (non-change outputs).
 static uint64_t _outputs_sum_out = 0;
+// number of change outputs. if >1, a warning is shown.
+static uint16_t _num_changes = 0;
 
 // used during STATE_INPUTS_PASS1
 static void* _hash_prevouts_ctx = NULL;
@@ -171,6 +174,7 @@ static void _reset(void)
     _inputs_sum_pass2 = 0;
     _outputs_sum_out = 0;
     _outputs_sum_ours = 0;
+    _num_changes = 0;
 
     rust_sha256_free(&_hash_prevouts_ctx);
     _hash_prevouts_ctx = rust_sha256_new();
@@ -605,6 +609,18 @@ static app_btc_result_t _sign_input_pass2(
     return APP_BTC_OK;
 }
 
+// num_changes must be >1.
+static bool _warn_changes(uint16_t num_changes)
+{
+    char body[100] = {0};
+    snprintf(body, sizeof(body), "There are %d\nchange outputs.\nProceed?", num_changes);
+    const confirm_params_t params = {
+        .title = "Warning",
+        .body = body,
+    };
+    return workflow_confirm_blocking(&params);
+}
+
 app_btc_result_t app_btc_sign_input(
     const BTCSignInputRequest* request,
     BTCSignNextResponse* next_out)
@@ -728,6 +744,10 @@ app_btc_result_t app_btc_sign_output(
         }
     }
 
+    if (request->ours) {
+        _num_changes++;
+    }
+
     if (!request->ours) {
         char address[100] = {0};
         // assemble address to display, get user confirmation
@@ -787,8 +807,15 @@ app_btc_result_t app_btc_sign_output(
         next_out->type = BTCSignNextResponse_Type_OUTPUT;
         next_out->index = _index;
     } else {
-        // Done with outputs. Verify locktime, total and fee.
-        //
+        // Done with outputs. Verify locktime, total and fee. Warn if there are multiple change
+        // outputs.
+
+        if (_num_changes > 1) {
+            if (!_warn_changes(_num_changes)) {
+                return _error(APP_BTC_ERR_USER_ABORT);
+            }
+        }
+
         // This is not a security feature, a transaction that is not rbf
         // and has a locktime of 0 will not be verified.
         if (_locktime_applies || _rbf == CONFIRM_LOCKTIME_RBF_ON) {

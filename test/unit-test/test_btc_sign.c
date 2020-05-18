@@ -204,8 +204,6 @@ typedef struct {
     bool overflow_output_ours;
     // can't init prevtx twice in a row -> first prevtx input expected
     bool state_previnit_after_previnit;
-    // wrong state transition
-    bool state_prevoutput_after_previnit;
     // no inputs in prevtx
     bool prevtx_no_inputs;
     // no outputs in prevtx
@@ -1152,12 +1150,6 @@ static void _test_state_previnit_after_previnit(void** state)
     invalid.state_previnit_after_previnit = true;
     _sign(&invalid);
 }
-static void _test_state_prevoutput_after_previnit(void** state)
-{
-    _modification_t invalid = _valid;
-    invalid.state_prevoutput_after_previnit = true;
-    _sign(&invalid);
-}
 static void _test_prevtx_no_inputs(void** state)
 {
     _modification_t invalid = _valid;
@@ -1213,7 +1205,6 @@ int main(void)
         cmocka_unit_test(_test_overflow_output_out),
         cmocka_unit_test(_test_overflow_output_ours),
         cmocka_unit_test(_test_state_previnit_after_previnit),
-        cmocka_unit_test(_test_state_prevoutput_after_previnit),
         cmocka_unit_test(_test_prevtx_no_inputs),
         cmocka_unit_test(_test_prevtx_no_outputs),
         cmocka_unit_test(_test_input_wrong_value),

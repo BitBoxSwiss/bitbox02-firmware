@@ -13,7 +13,7 @@
 // limitations under the License.
 
 CheckBackupResponse.id fixed_length:true max_size:256
-ListBackupsResponse.info fixed_length:true max_count:100
+ListBackupsResponse.info max_count:100
 // One backup per seed -> 100 seeds may be backed up per SD card. Adapt this number if it is too small.
 BackupInfo.id fixed_length:true max_size:256
 BackupInfo.name fixed_length:true max_size:64

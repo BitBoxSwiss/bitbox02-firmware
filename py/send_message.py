@@ -14,6 +14,7 @@
 # limitations under the License.
 """Script for interacting with bitbox v2"""
 
+# pylint: disable=too-many-lines
 
 import argparse
 import pprint
@@ -23,6 +24,7 @@ import hashlib
 import base64
 import binascii
 
+import requests
 import hid
 from tzlocal import get_localzone
 
@@ -73,10 +75,73 @@ def ask_user(
     return choices[ans - 1][1]
 
 
+def _btc_demo_inputs_outputs(
+    bip44_account: int
+) -> Tuple[List[bitbox02.BTCInputType], List[bitbox02.BTCOutputType]]:
+    """
+    Returns a sample btc tx.
+    """
+    inputs: List[bitbox02.BTCInputType] = [
+        {
+            "prev_out_hash": binascii.unhexlify(
+                "c58b7e3f1200e0c0ec9a5e81e925baface2cc1d4715514f2d8205be2508b48ee"
+            ),
+            "prev_out_index": 0,
+            "prev_out_value": int(1e8 * 0.60005),
+            "sequence": 0xFFFFFFFF,
+            "keypath": [84 + HARDENED, 0 + HARDENED, bip44_account, 0, 0],
+            "prev_tx": {
+                "version": 1,
+                "locktime": 0,
+                "inputs": [
+                    {
+                        "prev_out_hash": b"11111111111111111111111111111111",
+                        "prev_out_index": 0,
+                        "signature_script": b"some signature script",
+                        "sequence": 0xFFFFFFFF,
+                    }
+                ],
+                "outputs": [{"value": int(1e8 * 0.60005), "pubkey_script": b"some pubkey script"}],
+            },
+        },
+        {
+            "prev_out_hash": binascii.unhexlify(
+                "c58b7e3f1200e0c0ec9a5e81e925baface2cc1d4715514f2d8205be2508b48ee"
+            ),
+            "prev_out_index": 1,
+            "prev_out_value": int(1e8 * 0.60005),
+            "sequence": 0xFFFFFFFF,
+            "keypath": [84 + HARDENED, 0 + HARDENED, bip44_account, 0, 1],
+            "prev_tx": {
+                "version": 1,
+                "locktime": 0,
+                "inputs": [
+                    {
+                        "prev_out_hash": b"11111111111111111111111111111111",
+                        "prev_out_index": 0,
+                        "signature_script": b"some signature script",
+                        "sequence": 0xFFFFFFFF,
+                    }
+                ],
+                "outputs": [{"value": int(1e8 * 0.60005), "pubkey_script": b"some pubkey script"}],
+            },
+        },
+    ]
+    outputs: List[bitbox02.BTCOutputType] = [
+        bitbox02.BTCOutputInternal(
+            keypath=[84 + HARDENED, 0 + HARDENED, bip44_account, 1, 0], value=int(1e8 * 1)
+        ),
+        bitbox02.BTCOutputExternal(
+            output_type=bitbox02.btc.P2WSH,
+            output_hash=b"11111111111111111111111111111111",
+            value=int(1e8 * 0.2),
+        ),
+    ]
+    return inputs, outputs
+
+
 class SendMessage:
     """SendMessage"""
-
-    # pylint: disable=too-few-public-methods
 
     def __init__(self, device: bitbox02.BitBox02, debug: bool):
         self._device = device
@@ -275,36 +340,10 @@ class SendMessage:
         except UserAbortException:
             print("Aborted by user")
 
-    def _sign_btc_tx(self) -> None:
+    def _sign_btc_normal(self) -> None:
         # pylint: disable=no-member
-        # Dummy transaction to invoke a demo.
         bip44_account: int = 0 + HARDENED
-        inputs: List[bitbox02.BTCInputType] = [
-            {
-                "prev_out_hash": b"11111111111111111111111111111111",
-                "prev_out_index": 1,
-                "prev_out_value": int(1e8 * 0.60005),
-                "sequence": 0xFFFFFFFF,
-                "keypath": [84 + HARDENED, 0 + HARDENED, bip44_account, 0, 0],
-            },
-            {
-                "prev_out_hash": b"11111111111111111111111111111111",
-                "prev_out_index": 1,
-                "prev_out_value": int(1e8 * 0.60005),
-                "sequence": 0xFFFFFFFF,
-                "keypath": [84 + HARDENED, 0 + HARDENED, bip44_account, 0, 1],
-            },
-        ]
-        outputs: List[bitbox02.BTCOutputType] = [
-            bitbox02.BTCOutputInternal(
-                keypath=[84 + HARDENED, 0 + HARDENED, bip44_account, 1, 0], value=int(1e8 * 1)
-            ),
-            bitbox02.BTCOutputExternal(
-                output_type=bitbox02.btc.P2WSH,
-                output_hash=b"11111111111111111111111111111111",
-                value=int(1e8 * 0.2),
-            ),
-        ]
+        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
         sigs = self._device.btc_sign(
             bitbox02.btc.BTC,
             bitbox02.btc.BTCScriptConfig(simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH),
@@ -314,6 +353,117 @@ class SendMessage:
         )
         for input_index, sig in sigs:
             print("Signature for input {}: {}".format(input_index, sig.hex()))
+
+    def _sign_btc_multiple_changes(self) -> None:
+        # pylint: disable=no-member
+        bip44_account: int = 0 + HARDENED
+        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        # Add a change output.
+        outputs.append(
+            bitbox02.BTCOutputInternal(
+                keypath=[84 + HARDENED, 0 + HARDENED, bip44_account, 1, 0], value=int(1)
+            )
+        )
+        sigs = self._device.btc_sign(
+            bitbox02.btc.BTC,
+            bitbox02.btc.BTCScriptConfig(simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH),
+            keypath_account=[84 + HARDENED, 0 + HARDENED, bip44_account],
+            inputs=inputs,
+            outputs=outputs,
+        )
+        for input_index, sig in sigs:
+            print("Signature for input {}: {}".format(input_index, sig.hex()))
+
+    def _sign_btc_tx_from_raw(self) -> None:
+        """
+        Experiment with testnet transactions.
+        Uses blockchair.com to convert a testnet transaction to the input required by btc_sign(),
+        including the previous transactions.
+        """
+        # pylint: disable=no-member
+
+        def get(tx_id: str) -> Any:
+            return requests.get(
+                "https://api.blockchair.com/bitcoin/testnet/dashboards/transaction/{}".format(tx_id)
+            ).json()["data"][tx_id]
+
+        tx_id = input("Paste a btc testnet tx ID: ").strip()
+        tx = get(tx_id)
+
+        inputs: List[bitbox02.BTCInputType] = []
+        outputs: List[bitbox02.BTCOutputType] = []
+
+        bip44_account: int = 0 + HARDENED
+
+        for inp in tx["inputs"]:
+            print("Downloading prev tx")
+            prev_tx = get(inp["transaction_hash"])
+            print("Downloaded prev tx")
+            prev_inputs: List[bitbox02.BTCPrevTxInputType] = []
+            prev_outputs: List[bitbox02.BTCPrevTxOutputType] = []
+
+            for prev_inp in prev_tx["inputs"]:
+                prev_inputs.append(
+                    {
+                        "prev_out_hash": binascii.unhexlify(prev_inp["transaction_hash"])[::-1],
+                        "prev_out_index": prev_inp["index"],
+                        "signature_script": binascii.unhexlify(prev_inp["spending_signature_hex"]),
+                        "sequence": prev_inp["spending_sequence"],
+                    }
+                )
+            for prev_outp in prev_tx["outputs"]:
+                prev_outputs.append(
+                    {
+                        "value": prev_outp["value"],
+                        "pubkey_script": binascii.unhexlify(prev_outp["script_hex"]),
+                    }
+                )
+
+            inputs.append(
+                {
+                    "prev_out_hash": binascii.unhexlify(inp["transaction_hash"])[::-1],
+                    "prev_out_index": inp["index"],
+                    "prev_out_value": inp["value"],
+                    "sequence": inp["spending_sequence"],
+                    "keypath": [84 + HARDENED, 1 + HARDENED, bip44_account, 0, 0],
+                    "prev_tx": {
+                        "version": prev_tx["transaction"]["version"],
+                        "locktime": prev_tx["transaction"]["lock_time"],
+                        "inputs": prev_inputs,
+                        "outputs": prev_outputs,
+                    },
+                }
+            )
+
+        for outp in tx["outputs"]:
+            outputs.append(
+                bitbox02.BTCOutputExternal(
+                    # TODO: parse pubkey script
+                    output_type=bitbox02.btc.P2WSH,
+                    output_hash=b"11111111111111111111111111111111",
+                    value=outp["value"],
+                )
+            )
+
+        print("Start signing...")
+        self._device.btc_sign(
+            bitbox02.btc.TBTC,
+            bitbox02.btc.BTCScriptConfig(simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH),
+            keypath_account=[84 + HARDENED, 1 + HARDENED, bip44_account],
+            inputs=inputs,
+            outputs=outputs,
+        )
+
+    def _sign_btc_tx(self) -> None:
+        """ btc signing demos """
+        choices = (
+            ("Normal tx", self._sign_btc_normal),
+            ("Multiple change outputs", self._sign_btc_multiple_changes),
+            ("From testnet tx ID", self._sign_btc_tx_from_raw),
+        )
+        choice = ask_user(choices)
+        if callable(choice):
+            choice()
 
     def _check_backup(self) -> None:
         print("Your BitBox02 will now perform a backup check")
@@ -389,6 +539,8 @@ class SendMessage:
             eprint("Aborted by user")
 
     def _sign_eth_tx(self) -> None:
+        # pylint: disable=line-too-long
+
         inp = input("Select one of: 1=normal; 2=erc20; 3=erc721; 4=unknown erc20: ").strip()
         if inp == "1":
             # fmt: off
@@ -519,8 +671,6 @@ class SendMessage:
 class SendMessageBitBoxBase:
     """SendMessageBitBoxBase"""
 
-    # pylint: disable=too-few-public-methods
-
     def __init__(self, device: BitBoxBase, debug: bool):
         self._device = device
         self._debug = debug
@@ -599,7 +749,6 @@ class SendMessageBitBoxBase:
 class SendMessageBootloader:
     """Simple test application for bootloader"""
 
-    # pylint: disable=too-few-public-methods
     def __init__(self, device: bitbox02.Bootloader):
         self._device = device
         self._stop = False
@@ -650,7 +799,6 @@ class SendMessageBootloader:
 class U2FApp:
     """App"""
 
-    # pylint: disable=too-few-public-methods
     APPID = "http://example.com"
 
     def __init__(self, device: u2f.bitbox02.BitBox02U2F, debug: bool):

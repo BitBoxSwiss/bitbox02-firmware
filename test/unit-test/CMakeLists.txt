@@ -189,7 +189,7 @@ set(TEST_LIST
    ui_component_gestures
    ""
    btc_sign
-   "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=apps_btc_confirm_locktime_rbf,--wrap=btc_common_format_amount,--wrap=btc_common_is_valid_keypath_address_simple"
+   "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_confirm_blocking,--wrap=workflow_verify_total,--wrap=apps_btc_confirm_locktime_rbf,--wrap=btc_common_format_amount,--wrap=btc_common_is_valid_keypath_address_simple"
    app_btc_sign_multisig
    "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=apps_btc_confirm_locktime_rbf,--wrap=memory_multisig_get_by_hash,--wrap=apps_btc_confirm_multisig"
    memory

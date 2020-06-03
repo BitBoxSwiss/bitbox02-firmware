@@ -4,3 +4,4 @@ tzlocal>=1.5,<2.0
 bitbox02
 # Serial module
 pyserial
+requests

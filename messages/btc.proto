@@ -86,12 +86,19 @@ message BTCSignNextResponse {
     INPUT = 0;
     OUTPUT = 1;
     DONE = 2;
+    // For the previous transaction at input `index`.
+    PREVTX_INIT = 3;
+    PREVTX_INPUT = 4;
+    PREVTX_OUTPUT = 5;
   }
   Type type = 1;
+  // index of the current input or output
   uint32 index = 2;
   bool has_signature = 3; // only as a response to BTCSignInputRequest
   // 64 bytes (32 bytes big endian R, 32 bytes big endian S). Only if has_signature is true.
   bytes signature = 4;
+  // Previous tx's input/output index in case of PREV_INPUT or PREV_OUTPUT, for the input at `index`.
+  uint32 prev_index = 5;
 }
 
 message BTCSignInputRequest {
@@ -141,10 +148,32 @@ message BTCRegisterScriptConfigRequest {
   string name = 2;
 }
 
+message BTCPrevTxInitRequest {
+  uint32 version = 1;
+  uint32 num_inputs = 2;
+  uint32 num_outputs = 3;
+  uint32 locktime = 4;
+}
+
+message BTCPrevTxInputRequest {
+  bytes prev_out_hash = 1;
+  uint32 prev_out_index = 2;
+  bytes signature_script = 3;
+  uint32 sequence = 4;
+}
+
+message BTCPrevTxOutputRequest {
+  uint64 value = 1;
+  bytes pubkey_script = 2;
+}
+
 message BTCRequest {
   oneof request {
     BTCIsScriptConfigRegisteredRequest is_script_config_registered = 1;
     BTCRegisterScriptConfigRequest register_script_config = 2;
+    BTCPrevTxInitRequest prevtx_init = 3;
+    BTCPrevTxInputRequest prevtx_input = 4;
+    BTCPrevTxOutputRequest prevtx_output = 5;
   }
 }
 
@@ -152,5 +181,6 @@ message BTCResponse {
   oneof response {
     BTCSuccess success = 1;
     BTCIsScriptConfigRegisteredResponse is_script_config_registered = 2;
+    BTCSignNextResponse sign_next = 3;
   }
 }

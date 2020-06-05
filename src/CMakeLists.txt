@@ -1,5 +1,6 @@
 # Copyright (c) 2015-2016 Lucas Betschart, Douglas J. Bakkum
 # Copyright 2019 Shift Cryptosecurity AG
+# Copyright 2020 Shift Crypto AG
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -448,9 +449,6 @@ foreach(type ${RUST_LIBS})
     # https://github.com/rust-lang/rust/issues/66740
     RUSTC_BOOTSTRAP=1
     ${CARGO} build --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --features target-${type} --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
-    # Rust packages stdlib functions which we must remove/weaken on the arm target
-    COMMAND
-    if test "x${RUST_TARGET_ARCH}" = "xthumbv7em-none-eabi" \; then ${CMAKE_OBJCOPY} -N memset -N memcpy -N memmove -W memcmp ${lib} \; fi
     COMMAND
     ${CMAKE_COMMAND} -E copy ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
     BYPRODUCTS

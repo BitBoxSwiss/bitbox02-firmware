@@ -1,0 +1,19 @@
+# See reference docs at
+# https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
+name: ci
+on: [push, pull_request]
+
+jobs:
+  linux-docker:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: vars
+        run: echo "---${{github.head_ref}}---"
+      - name: Pull CI container image
+        run: ./.ci/run-container-ci pull
+      - name: Run CI in container
+        run: ./.ci/run-container-ci ${{github.workspace}} ${{github.head_ref}}

@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2019 Shift Cryptosecurity AG
 # Copyright 2020 Shift Crypto AG
 #
@@ -13,7 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+# The script runs all CI builds and checks in a Docker container.
+# It accepts two positional arguments:
+# 1. A workspace dir, the root of the git repo clone, or "pull" literal.
+#    In the latter case, CI container image is pulled from a registry.
+# 2. An optional target branch for code style diffs. Defaults to "master" for
+#    push commits and overwritten with TRAVIS_BRANCH env var for pull requests
+#    when run on Travis CI.
 
 set -e
 set -x
@@ -25,8 +32,14 @@ if [ "$1" == "pull" ] ; then
 	exit 0
 fi
 
-TARGET_BRANCH=master
-if [ "${TRAVIS_PULL_REQUEST}" != "false" ] ; then
+WORKSPACE_DIR="$1"
+if [ -z "${WORKSPACE_DIR}" ]; then
+  echo "Workspace dir path is empty."
+  exit 1
+fi
+
+TARGET_BRANCH="${2:-master}"
+if [ "${TRAVIS}" == "true" ] && [ "${TRAVIS_PULL_REQUEST}" != "false" ] ; then
 	TARGET_BRANCH=${TRAVIS_BRANCH}
 fi
 
@@ -38,7 +51,7 @@ TARGET_BRANCH=origin/${TARGET_BRANCH}
 
 docker run -e TARGET_BRANCH="${TARGET_BRANCH}" \
 	--cap-add SYS_PTRACE \
-	--volume ${TRAVIS_BUILD_DIR}:/bitbox02-firmware/ \
+	--volume ${WORKSPACE_DIR}:/bitbox02-firmware/ \
 	--workdir /bitbox02-firmware \
 	${CONTAINER} \
 	bash -c "./.ci/ci"

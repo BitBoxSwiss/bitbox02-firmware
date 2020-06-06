@@ -10,8 +10,8 @@ os:
 
 script:
 # Pull the docker image as a separate step to measure the time it takes
-- ./.ci/travis-ci pull
-- ./.ci/travis-ci
+- ./.ci/run-container-ci pull
+- ./.ci/run-container-ci "${TRAVIS_BUILD_DIR}"
 
 # Caching breaks the build right now because there is no dependency between the compiled external
 # library and the placement in the `bin` directory.

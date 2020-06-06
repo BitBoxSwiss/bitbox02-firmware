@@ -1,4 +1,5 @@
 # Copyright 2019 Shift Cryptosecurity AG
+# Copyright 2020 Shift Crypto AG
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -121,7 +122,7 @@ ENV GOPATH /opt/go
 ENV GOROOT /opt/go_dist/go
 ENV PATH $GOROOT/bin:$GOPATH/bin:$PATH
 RUN mkdir -p /opt/go_dist && \
-    curl https://dl.google.com/go/go1.11.linux-amd64.tar.gz | tar -xz -C /opt/go_dist
+    curl https://dl.google.com/go/go1.14.4.linux-amd64.tar.gz | tar -xz -C /opt/go_dist
 
 RUN go get -v -u github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc
 

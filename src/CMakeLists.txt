@@ -471,7 +471,15 @@ if(CMAKE_CROSSCOMPILING)
 
   add_custom_target(rust-docs
     COMMAND
-      ${CMAKE_COMMAND} -E env CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR} SYSROOT=${CMAKE_SYSROOT} INCLUDES="${RUST_INCLUDES}" ${CARGO} doc --document-private-items --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${CMAKE_BINARY_DIR}/docs-rust ${RUST_CARGO_FLAG} --target thumbv7em-none-eabi
+      ${CMAKE_COMMAND} -E env
+      # enable nightly features in the stable release - needed to activate alloc_error_handler.
+      # see src/rust/bitbox02-rust-c/src/lib.rs.
+      # https://github.com/rust-lang/rust/issues/66740
+      RUSTC_BOOTSTRAP=1
+      CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
+      SYSROOT=${CMAKE_SYSROOT}
+      INCLUDES="${RUST_INCLUDES}"
+      ${CARGO} doc --document-private-items --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${CMAKE_BINARY_DIR}/docs-rust ${RUST_CARGO_FLAG} --target thumbv7em-none-eabi
     COMMAND
       ${CMAKE_COMMAND} -E echo "See docs at file://${CMAKE_BINARY_DIR}/docs-rust/thumbv7em-none-eabi/doc/bitbox02_rust/index.html"
   )

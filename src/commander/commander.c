@@ -1,4 +1,5 @@
 // Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +16,7 @@
 #include <platform_config.h>
 
 #include "commander.h"
+#include "protobuf.h"
 #if APP_BTC == 1 || APP_LTC == 1
 #include "commander/commander_btc.h"
 #endif
@@ -54,8 +56,6 @@
 #include <workflow/workflow.h>
 
 #include "hww.pb.h"
-#include <pb_decode.h>
-#include <pb_encode.h>
 
 #include <apps/btc/btc.h>
 
@@ -266,17 +266,6 @@ static commander_error_t _api_reboot(void)
     return COMMANDER_OK;
 }
 
-// ------------------------------------ Parse ------------------------------------- //
-
-/**
- * Parses a given protobuf input stream and prepares the request type.
- */
-static commander_error_t _parse(pb_istream_t* in_stream, Request* request)
-{
-    bool status = pb_decode(in_stream, Request_fields, request);
-    return status ? COMMANDER_OK : COMMANDER_ERR_INVALID_INPUT;
-}
-
 // ------------------------------------ Process ------------------------------------- //
 
 /**
@@ -388,9 +377,9 @@ void commander(const in_buffer_t* in_buf, buffer_t* out_buf)
 {
     Response response = Response_init_zero;
 
-    pb_istream_t in_stream = pb_istream_from_buffer(in_buf->data, in_buf->len);
     Request request;
-    commander_error_t err = _parse(&in_stream, &request);
+    commander_error_t err =
+        protobuf_decode(in_buf, &request) ? COMMANDER_OK : COMMANDER_ERR_INVALID_INPUT;
     if (err == COMMANDER_OK) {
         if (!commander_states_can_call(request.which_request)) {
             err = COMMANDER_ERR_INVALID_STATE;
@@ -408,11 +397,7 @@ void commander(const in_buffer_t* in_buf, buffer_t* out_buf)
         _report_error(&response, err);
     }
 
-    pb_ostream_t out_stream = pb_ostream_from_buffer(out_buf->data, out_buf->max_len);
-    if (!pb_encode(&out_stream, Response_fields, &response)) {
-        Abort("Abort: pb_encode");
-    }
-    out_buf->len = out_stream.bytes_written;
+    protobuf_encode(out_buf, &response);
 }
 
 #ifdef TESTING

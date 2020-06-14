@@ -21,26 +21,39 @@
 
 app_btc_result_t app_btc_sign_validate_init_script_configs(
     BTCCoin coin,
-    const BTCScriptConfig* script_config,
-    const uint32_t* keypath_account,
-    size_t keypath_account_count)
+    const BTCScriptConfigWithKeypath* script_configs,
+    size_t script_configs_count)
 {
     const app_btc_coin_params_t* coin_params = app_btc_params_get(coin);
     if (coin_params == NULL) {
         return APP_BTC_ERR_INVALID_INPUT;
     }
-    switch (script_config->which_config) {
+
+    // TODO: unified-accounts, handle multiple
+    if (script_configs_count != 1) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+    const BTCScriptConfigWithKeypath* script_config = &script_configs[0];
+
+    switch (script_config->script_config.which_config) {
     case BTCScriptConfig_simple_type_tag:
         break;
     case BTCScriptConfig_multisig_tag: {
-        const BTCScriptConfig_Multisig* multisig = &script_config->config.multisig;
+        const BTCScriptConfig_Multisig* multisig = &script_config->script_config.config.multisig;
         if (!btc_common_multisig_is_valid(
-                multisig, keypath_account, keypath_account_count, coin_params->bip44_coin)) {
+                multisig,
+                script_config->keypath,
+                script_config->keypath_count,
+                coin_params->bip44_coin)) {
             return APP_BTC_ERR_INVALID_INPUT;
         }
         uint8_t multisig_hash[SHA256_LEN] = {0};
         if (!btc_common_multisig_hash(
-                coin, multisig, keypath_account, keypath_account_count, multisig_hash)) {
+                coin,
+                multisig,
+                script_config->keypath,
+                script_config->keypath_count,
+                multisig_hash)) {
             return APP_BTC_ERR_INVALID_INPUT;
         };
         char multisig_registered_name[MEMORY_MULTISIG_NAME_MAX_LEN] = {0};

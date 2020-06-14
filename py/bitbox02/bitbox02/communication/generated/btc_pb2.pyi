@@ -195,22 +195,42 @@ class BTCPubRequest(google___protobuf___message___Message):
         def ClearField(self, field_name: typing_extensions___Literal[u"coin",b"coin",u"display",b"display",u"keypath",b"keypath",u"output",b"output",u"script_config",b"script_config",u"xpub_type",b"xpub_type"]) -> None: ...
     def WhichOneof(self, oneof_group: typing_extensions___Literal[u"output",b"output"]) -> typing_extensions___Literal["xpub_type","script_config"]: ...
 
-class BTCSignInitRequest(google___protobuf___message___Message):
-    coin = ... # type: BTCCoin
-    keypath_account = ... # type: google___protobuf___internal___containers___RepeatedScalarFieldContainer[int]
-    version = ... # type: int
-    num_inputs = ... # type: int
-    num_outputs = ... # type: int
-    locktime = ... # type: int
+class BTCScriptConfigWithKeypath(google___protobuf___message___Message):
+    keypath = ... # type: google___protobuf___internal___containers___RepeatedScalarFieldContainer[int]
 
     @property
     def script_config(self) -> BTCScriptConfig: ...
 
     def __init__(self,
         *,
-        coin : typing___Optional[BTCCoin] = None,
         script_config : typing___Optional[BTCScriptConfig] = None,
-        keypath_account : typing___Optional[typing___Iterable[int]] = None,
+        keypath : typing___Optional[typing___Iterable[int]] = None,
+        ) -> None: ...
+    @classmethod
+    def FromString(cls, s: bytes) -> BTCScriptConfigWithKeypath: ...
+    def MergeFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
+    def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
+    if sys.version_info >= (3,):
+        def HasField(self, field_name: typing_extensions___Literal[u"script_config"]) -> bool: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"keypath",u"script_config"]) -> None: ...
+    else:
+        def HasField(self, field_name: typing_extensions___Literal[u"script_config",b"script_config"]) -> bool: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"keypath",b"keypath",u"script_config",b"script_config"]) -> None: ...
+
+class BTCSignInitRequest(google___protobuf___message___Message):
+    coin = ... # type: BTCCoin
+    version = ... # type: int
+    num_inputs = ... # type: int
+    num_outputs = ... # type: int
+    locktime = ... # type: int
+
+    @property
+    def script_configs(self) -> google___protobuf___internal___containers___RepeatedCompositeFieldContainer[BTCScriptConfigWithKeypath]: ...
+
+    def __init__(self,
+        *,
+        coin : typing___Optional[BTCCoin] = None,
+        script_configs : typing___Optional[typing___Iterable[BTCScriptConfigWithKeypath]] = None,
         version : typing___Optional[int] = None,
         num_inputs : typing___Optional[int] = None,
         num_outputs : typing___Optional[int] = None,
@@ -221,11 +241,9 @@ class BTCSignInitRequest(google___protobuf___message___Message):
     def MergeFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     if sys.version_info >= (3,):
-        def HasField(self, field_name: typing_extensions___Literal[u"script_config"]) -> bool: ...
-        def ClearField(self, field_name: typing_extensions___Literal[u"coin",u"keypath_account",u"locktime",u"num_inputs",u"num_outputs",u"script_config",u"version"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"coin",u"locktime",u"num_inputs",u"num_outputs",u"script_configs",u"version"]) -> None: ...
     else:
-        def HasField(self, field_name: typing_extensions___Literal[u"script_config",b"script_config"]) -> bool: ...
-        def ClearField(self, field_name: typing_extensions___Literal[u"coin",b"coin",u"keypath_account",b"keypath_account",u"locktime",b"locktime",u"num_inputs",b"num_inputs",u"num_outputs",b"num_outputs",u"script_config",b"script_config",u"version",b"version"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"coin",b"coin",u"locktime",b"locktime",u"num_inputs",b"num_inputs",u"num_outputs",b"num_outputs",u"script_configs",b"script_configs",u"version",b"version"]) -> None: ...
 
 class BTCSignNextResponse(google___protobuf___message___Message):
     class Type(int):
@@ -282,6 +300,7 @@ class BTCSignInputRequest(google___protobuf___message___Message):
     prevOutValue = ... # type: int
     sequence = ... # type: int
     keypath = ... # type: google___protobuf___internal___containers___RepeatedScalarFieldContainer[int]
+    script_config_index = ... # type: int
 
     def __init__(self,
         *,
@@ -290,15 +309,16 @@ class BTCSignInputRequest(google___protobuf___message___Message):
         prevOutValue : typing___Optional[int] = None,
         sequence : typing___Optional[int] = None,
         keypath : typing___Optional[typing___Iterable[int]] = None,
+        script_config_index : typing___Optional[int] = None,
         ) -> None: ...
     @classmethod
     def FromString(cls, s: bytes) -> BTCSignInputRequest: ...
     def MergeFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     if sys.version_info >= (3,):
-        def ClearField(self, field_name: typing_extensions___Literal[u"keypath",u"prevOutHash",u"prevOutIndex",u"prevOutValue",u"sequence"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"keypath",u"prevOutHash",u"prevOutIndex",u"prevOutValue",u"script_config_index",u"sequence"]) -> None: ...
     else:
-        def ClearField(self, field_name: typing_extensions___Literal[u"keypath",b"keypath",u"prevOutHash",b"prevOutHash",u"prevOutIndex",b"prevOutIndex",u"prevOutValue",b"prevOutValue",u"sequence",b"sequence"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"keypath",b"keypath",u"prevOutHash",b"prevOutHash",u"prevOutIndex",b"prevOutIndex",u"prevOutValue",b"prevOutValue",u"script_config_index",b"script_config_index",u"sequence",b"sequence"]) -> None: ...
 
 class BTCSignOutputRequest(google___protobuf___message___Message):
     ours = ... # type: bool
@@ -306,6 +326,7 @@ class BTCSignOutputRequest(google___protobuf___message___Message):
     value = ... # type: int
     hash = ... # type: bytes
     keypath = ... # type: google___protobuf___internal___containers___RepeatedScalarFieldContainer[int]
+    script_config_index = ... # type: int
 
     def __init__(self,
         *,
@@ -314,15 +335,16 @@ class BTCSignOutputRequest(google___protobuf___message___Message):
         value : typing___Optional[int] = None,
         hash : typing___Optional[bytes] = None,
         keypath : typing___Optional[typing___Iterable[int]] = None,
+        script_config_index : typing___Optional[int] = None,
         ) -> None: ...
     @classmethod
     def FromString(cls, s: bytes) -> BTCSignOutputRequest: ...
     def MergeFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     if sys.version_info >= (3,):
-        def ClearField(self, field_name: typing_extensions___Literal[u"hash",u"keypath",u"ours",u"type",u"value"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"hash",u"keypath",u"ours",u"script_config_index",u"type",u"value"]) -> None: ...
     else:
-        def ClearField(self, field_name: typing_extensions___Literal[u"hash",b"hash",u"keypath",b"keypath",u"ours",b"ours",u"type",b"type",u"value",b"value"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"hash",b"hash",u"keypath",b"keypath",u"ours",b"ours",u"script_config_index",b"script_config_index",u"type",b"type",u"value",b"value"]) -> None: ...
 
 class BTCScriptConfigRegistration(google___protobuf___message___Message):
     coin = ... # type: BTCCoin

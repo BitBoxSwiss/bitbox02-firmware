@@ -1,4 +1,5 @@
 // Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -95,20 +96,26 @@ static void _test_btc_sign_init(void** state)
     // establish valid request to modify
     const BTCSignInitRequest init_req_valid = {
         .coin = BTCCoin_BTC,
-        .script_config =
+        .script_configs_count = 1,
+        .script_configs =
             {
-                .which_config = BTCScriptConfig_simple_type_tag,
-                .config =
-                    {
-                        .simple_type = BTCScriptConfig_SimpleType_P2WPKH,
-                    },
-            },
-        .keypath_account_count = 3,
-        .keypath_account =
-            {
-                84 + BIP32_INITIAL_HARDENED_CHILD,
-                0 + BIP32_INITIAL_HARDENED_CHILD,
-                0 + BIP32_INITIAL_HARDENED_CHILD,
+                {
+                    .script_config =
+                        {
+                            .which_config = BTCScriptConfig_simple_type_tag,
+                            .config =
+                                {
+                                    .simple_type = BTCScriptConfig_SimpleType_P2WPKH,
+                                },
+                        },
+                    .keypath_count = 3,
+                    .keypath =
+                        {
+                            84 + BIP32_INITIAL_HARDENED_CHILD,
+                            0 + BIP32_INITIAL_HARDENED_CHILD,
+                            0 + BIP32_INITIAL_HARDENED_CHILD,
+                        },
+                },
             },
         .version = 1,
         .num_inputs = 1,
@@ -322,20 +329,26 @@ static void _sign(const _modification_t* mod)
     }
     BTCSignInitRequest init_req = {
         .coin = BTCCoin_BTC,
-        .script_config =
+        .script_configs_count = 1,
+        .script_configs =
             {
-                .which_config = BTCScriptConfig_simple_type_tag,
-                .config =
-                    {
-                        .simple_type = mod->script_type,
-                    },
-            },
-        .keypath_account_count = 3,
-        .keypath_account =
-            {
-                purpose,
-                0 + BIP32_INITIAL_HARDENED_CHILD,
-                10 + BIP32_INITIAL_HARDENED_CHILD,
+                {
+                    .script_config =
+                        {
+                            .which_config = BTCScriptConfig_simple_type_tag,
+                            .config =
+                                {
+                                    .simple_type = mod->script_type,
+                                },
+                        },
+                    .keypath_count = 3,
+                    .keypath =
+                        {
+                            purpose,
+                            0 + BIP32_INITIAL_HARDENED_CHILD,
+                            10 + BIP32_INITIAL_HARDENED_CHILD,
+                        },
+                },
             },
         .version = 1,
         .num_inputs = 2,
@@ -356,9 +369,9 @@ static void _sign(const _modification_t* mod)
                     .keypath_count = 5,
                     .keypath =
                         {
-                            init_req.keypath_account[0],
-                            init_req.keypath_account[1],
-                            init_req.keypath_account[2],
+                            init_req.script_configs[0].keypath[0],
+                            init_req.script_configs[0].keypath[1],
+                            init_req.script_configs[0].keypath[2],
                             0,
                             5,
                         },
@@ -431,9 +444,9 @@ static void _sign(const _modification_t* mod)
                     .keypath_count = 5,
                     .keypath =
                         {
-                            init_req.keypath_account[0],
-                            init_req.keypath_account[1],
-                            init_req.keypath_account[2],
+                            init_req.script_configs[0].keypath[0],
+                            init_req.script_configs[0].keypath[1],
+                            init_req.script_configs[0].keypath[2],
                             0,
                             7,
                         },
@@ -569,9 +582,9 @@ static void _sign(const _modification_t* mod)
             .keypath_count = 5,
             .keypath =
                 {
-                    init_req.keypath_account[0],
-                    init_req.keypath_account[1],
-                    init_req.keypath_account[2],
+                    init_req.script_configs[0].keypath[0],
+                    init_req.script_configs[0].keypath[1],
+                    init_req.script_configs[0].keypath[2],
                     mod->bip44_change,
                     3,
                 },
@@ -583,9 +596,9 @@ static void _sign(const _modification_t* mod)
             .keypath_count = 5,
             .keypath =
                 {
-                    init_req.keypath_account[0],
-                    init_req.keypath_account[1],
-                    init_req.keypath_account[2],
+                    init_req.script_configs[0].keypath[0],
+                    init_req.script_configs[0].keypath[1],
+                    init_req.script_configs[0].keypath[2],
                     mod->bip44_change,
                     30,
                 },
@@ -612,7 +625,7 @@ static void _sign(const _modification_t* mod)
     if (mod->litecoin_rbf_disabled) {
         init_req.coin = BTCCoin_LTC;
         init_req.locktime = 1;
-        init_req.keypath_account[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
+        init_req.script_configs[0].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
         inputs[0].input.sequence = 0xffffffff - 2;
         inputs[0].input.keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
         inputs[1].input.keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
@@ -643,7 +656,7 @@ static void _sign(const _modification_t* mod)
         expect_value(
             __wrap_btc_common_is_valid_keypath_address_simple,
             script_type,
-            init_req.script_config.config.simple_type);
+            init_req.script_configs[0].script_config.config.simple_type);
         expect_memory(
             __wrap_btc_common_is_valid_keypath_address_simple,
             keypath,
@@ -674,7 +687,7 @@ static void _sign(const _modification_t* mod)
     expect_value(
         __wrap_btc_common_is_valid_keypath_address_simple,
         script_type,
-        init_req.script_config.config.simple_type);
+        init_req.script_configs[0].script_config.config.simple_type);
     expect_memory(
         __wrap_btc_common_is_valid_keypath_address_simple,
         keypath,
@@ -816,7 +829,7 @@ static void _sign(const _modification_t* mod)
     expect_value(
         __wrap_btc_common_is_valid_keypath_address_simple,
         script_type,
-        init_req.script_config.config.simple_type);
+        init_req.script_configs[0].script_config.config.simple_type);
     expect_memory(
         __wrap_btc_common_is_valid_keypath_address_simple,
         keypath,
@@ -839,7 +852,7 @@ static void _sign(const _modification_t* mod)
     expect_value(
         __wrap_btc_common_is_valid_keypath_address_simple,
         script_type,
-        init_req.script_config.config.simple_type);
+        init_req.script_configs[0].script_config.config.simple_type);
     expect_memory(
         __wrap_btc_common_is_valid_keypath_address_simple,
         keypath,
@@ -924,7 +937,7 @@ static void _sign(const _modification_t* mod)
     expect_value(
         __wrap_btc_common_is_valid_keypath_address_simple,
         script_type,
-        init_req.script_config.config.simple_type);
+        init_req.script_configs[0].script_config.config.simple_type);
     expect_memory(
         __wrap_btc_common_is_valid_keypath_address_simple,
         keypath,
@@ -967,7 +980,7 @@ static void _sign(const _modification_t* mod)
     expect_value(
         __wrap_btc_common_is_valid_keypath_address_simple,
         script_type,
-        init_req.script_config.config.simple_type);
+        init_req.script_configs[0].script_config.config.simple_type);
     expect_memory(
         __wrap_btc_common_is_valid_keypath_address_simple,
         keypath,

@@ -20,7 +20,6 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory/memory.h>
-#include <pb_decode.h>
 #include <pb_encode.h>
 #include <restore.h>
 #include <sd.h>

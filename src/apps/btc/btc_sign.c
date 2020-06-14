@@ -1,4 +1,5 @@
 // Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,13 +17,13 @@
 #include "btc_bip143.h"
 #include "btc_common.h"
 #include "btc_params.h"
+#include "btc_sign_validate.h"
 #include "confirm_locktime_rbf.h"
-#include "confirm_multisig.h"
+
 #include <rust/rust.h>
 
 #include <hardfault.h>
 #include <keystore.h>
-#include <memory/memory.h>
 #include <ui/components/empty.h>
 #include <ui/screen_stack.h>
 #include <util.h>
@@ -211,46 +212,19 @@ app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request, BTCSignNex
     if (request->num_inputs < 1 || request->num_outputs < 1) {
         return _error(APP_BTC_ERR_INVALID_INPUT);
     }
+    app_btc_result_t result = app_btc_sign_validate_init_script_configs(
+        request->coin,
+        &request->script_config,
+        request->keypath_account,
+        request->keypath_account_count);
+    if (result != APP_BTC_OK) {
+        return _error(result);
+    }
+    _reset();
     const app_btc_coin_params_t* coin_params = app_btc_params_get(request->coin);
     if (coin_params == NULL) {
         return _error(APP_BTC_ERR_INVALID_INPUT);
     }
-    switch (request->script_config.which_config) {
-    case BTCScriptConfig_simple_type_tag:
-        break;
-    case BTCScriptConfig_multisig_tag: {
-        const BTCScriptConfig_Multisig* multisig = &request->script_config.config.multisig;
-        if (!btc_common_multisig_is_valid(
-                multisig,
-                request->keypath_account,
-                request->keypath_account_count,
-                coin_params->bip44_coin)) {
-            return _error(APP_BTC_ERR_INVALID_INPUT);
-        }
-        uint8_t multisig_hash[SHA256_LEN] = {0};
-        if (!btc_common_multisig_hash(
-                request->coin,
-                multisig,
-                request->keypath_account,
-                request->keypath_account_count,
-                multisig_hash)) {
-            return _error(APP_BTC_ERR_INVALID_INPUT);
-        };
-        char multisig_registered_name[MEMORY_MULTISIG_NAME_MAX_LEN] = {0};
-        if (!memory_multisig_get_by_hash(multisig_hash, multisig_registered_name)) {
-            // Not previously registered -> fail.
-            return _error(APP_BTC_ERR_INVALID_INPUT);
-        }
-        if (!apps_btc_confirm_multisig(
-                "Spend from", request->coin, multisig_registered_name, multisig, false)) {
-            return _error(APP_BTC_ERR_USER_ABORT);
-        }
-        break;
-    }
-    default:
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-    _reset();
     _coin_params = coin_params;
     _init_request = *request;
     // Want First input

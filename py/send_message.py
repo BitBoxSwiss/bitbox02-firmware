@@ -113,8 +113,8 @@ def _btc_demo_inputs_outputs(
             "prev_out_index": 1,
             "prev_out_value": int(1e8 * 0.60005),
             "sequence": 0xFFFFFFFF,
-            "keypath": [84 + HARDENED, 0 + HARDENED, bip44_account, 0, 1],
-            "script_config_index": 0,
+            "keypath": [49 + HARDENED, 0 + HARDENED, bip44_account, 0, 1],
+            "script_config_index": 1,
             "prev_tx": {
                 "version": 1,
                 "locktime": 0,
@@ -357,7 +357,13 @@ class SendMessage:
                         simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH
                     ),
                     keypath=[84 + HARDENED, 0 + HARDENED, bip44_account],
-                )
+                ),
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH_P2SH
+                    ),
+                    keypath=[49 + HARDENED, 0 + HARDENED, bip44_account],
+                ),
             ],
             inputs=inputs,
             outputs=outputs,
@@ -385,7 +391,13 @@ class SendMessage:
                         simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH
                     ),
                     keypath=[84 + HARDENED, 0 + HARDENED, bip44_account],
-                )
+                ),
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH_P2SH
+                    ),
+                    keypath=[49 + HARDENED, 0 + HARDENED, bip44_account],
+                ),
             ],
             inputs=inputs,
             outputs=outputs,

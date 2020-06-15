@@ -78,6 +78,18 @@ app_btc_result_t app_btc_sign_validate_init_script_configs(
         if (script_config->script_config.which_config != BTCScriptConfig_simple_type_tag) {
             return APP_BTC_ERR_INVALID_INPUT;
         }
+        if (!btc_common_is_valid_keypath_account_simple(
+                script_config->script_config.config.simple_type,
+                script_config->keypath,
+                script_config->keypath_count,
+                coin_params->bip44_coin)) {
+            return APP_BTC_ERR_INVALID_INPUT;
+        }
+        // Check that the bip44 account is the same for all. While we allow mixing input types
+        // (bip44 purpose), we do not allow mixing accounts.
+        if (script_config->keypath[2] != script_configs[0].keypath[2]) {
+            return APP_BTC_ERR_INVALID_INPUT;
+        }
     }
     return APP_BTC_OK;
 }

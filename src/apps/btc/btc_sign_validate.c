@@ -29,16 +29,20 @@ app_btc_result_t app_btc_sign_validate_init_script_configs(
         return APP_BTC_ERR_INVALID_INPUT;
     }
 
-    // TODO: unified-accounts, handle multiple
-    if (script_configs_count != 1) {
+    if (script_configs_count == 0) {
         return APP_BTC_ERR_INVALID_INPUT;
     }
-    const BTCScriptConfigWithKeypath* script_config = &script_configs[0];
 
-    switch (script_config->script_config.which_config) {
-    case BTCScriptConfig_simple_type_tag:
-        break;
-    case BTCScriptConfig_multisig_tag: {
+    // If there are multiple script configs, only SimpleType (single sig, no additional inputs)
+    // configs are allowed, so e.g. mixing p2wpkh and pw2wpkh-p2sh is okay, but mixing p2wpkh with
+    // multisig-pw2sh is not.
+
+    // We get multisig out of the way first.
+
+    bool is_multisig = script_configs_count == 1 &&
+                       script_configs[0].script_config.which_config == BTCScriptConfig_multisig_tag;
+    if (is_multisig) {
+        const BTCScriptConfigWithKeypath* script_config = &script_configs[0];
         const BTCScriptConfig_Multisig* multisig = &script_config->script_config.config.multisig;
         if (!btc_common_multisig_is_valid(
                 multisig,
@@ -65,10 +69,15 @@ app_btc_result_t app_btc_sign_validate_init_script_configs(
                 "Spend from", coin, multisig_registered_name, multisig, false)) {
             return APP_BTC_ERR_USER_ABORT;
         }
-        break;
+        return APP_BTC_OK;
     }
-    default:
-        return APP_BTC_ERR_INVALID_INPUT;
+
+    for (size_t i = 0; i < script_configs_count; i++) {
+        const BTCScriptConfigWithKeypath* script_config = &script_configs[i];
+        // Only allow simple single sig configs here.
+        if (script_config->script_config.which_config != BTCScriptConfig_simple_type_tag) {
+            return APP_BTC_ERR_INVALID_INPUT;
+        }
     }
     return APP_BTC_OK;
 }

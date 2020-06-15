@@ -228,6 +228,8 @@ typedef struct {
     bool input_wrong_value;
     // input's prevtx hash does not match input's prevOutHash
     bool wrong_prevouthash;
+    // test tx with mixed input types
+    bool mixed_inputs;
 } _modification_t;
 
 typedef struct {
@@ -333,6 +335,7 @@ static void _sign(const _modification_t* mod)
         .script_configs =
             {
                 {
+                    // First script config varies per test (testing all possible types)
                     .script_config =
                         {
                             .which_config = BTCScriptConfig_simple_type_tag,
@@ -488,6 +491,35 @@ static void _sign(const _modification_t* mod)
         },
     };
 
+    if (mod->mixed_inputs) {
+        init_req.script_configs_count = 2;
+        BTCScriptConfigWithKeypath sc = {
+            // Second script config fixed, so in some tests it will be different than the
+            // first, testing that mixed inputs are allowed.
+            .script_config =
+                {
+                    .which_config = BTCScriptConfig_simple_type_tag,
+                    .config =
+                        {
+                            .simple_type = BTCScriptConfig_SimpleType_P2WPKH_P2SH,
+                        },
+                },
+            .keypath_count = 3,
+            .keypath =
+                {
+                    49 + BIP32_INITIAL_HARDENED_CHILD,
+                    0 + BIP32_INITIAL_HARDENED_CHILD,
+                    10 + BIP32_INITIAL_HARDENED_CHILD,
+                },
+        };
+        init_req.script_configs[1] = sc;
+        inputs[0].input.script_config_index = 1;
+        // Fix input keypath prefix to match the account script config.
+        for (size_t i = 0; i < 3; i++) {
+            inputs[0].input.keypath[i] = sc.keypath[i];
+        }
+    };
+
     if (mod->wrong_account_input) {
         inputs[0].input.keypath[2] = inputs[0].input.keypath[2] + 1;
     }
@@ -625,7 +657,9 @@ static void _sign(const _modification_t* mod)
     if (mod->litecoin_rbf_disabled) {
         init_req.coin = BTCCoin_LTC;
         init_req.locktime = 1;
-        init_req.script_configs[0].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
+        for (size_t i = 0; i < init_req.script_configs_count; i++) {
+            init_req.script_configs[i].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
+        }
         inputs[0].input.sequence = 0xffffffff - 2;
         inputs[0].input.keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
         inputs[1].input.keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
@@ -656,7 +690,8 @@ static void _sign(const _modification_t* mod)
         expect_value(
             __wrap_btc_common_is_valid_keypath_address_simple,
             script_type,
-            init_req.script_configs[0].script_config.config.simple_type);
+            init_req.script_configs[inputs[0].input.script_config_index]
+                .script_config.config.simple_type);
         expect_memory(
             __wrap_btc_common_is_valid_keypath_address_simple,
             keypath,
@@ -937,7 +972,8 @@ static void _sign(const _modification_t* mod)
     expect_value(
         __wrap_btc_common_is_valid_keypath_address_simple,
         script_type,
-        init_req.script_configs[0].script_config.config.simple_type);
+        init_req.script_configs[inputs[0].input.script_config_index]
+            .script_config.config.simple_type);
     expect_memory(
         __wrap_btc_common_is_valid_keypath_address_simple,
         keypath,
@@ -1208,7 +1244,12 @@ static void _test_wrong_prevouthash(void** state)
     invalid.wrong_prevouthash = true;
     _sign(&invalid);
 }
-
+static void _test_mixed_inputs(void** state)
+{
+    _modification_t invalid = _valid;
+    invalid.mixed_inputs = true;
+    _sign(&invalid);
+}
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -1244,6 +1285,7 @@ int main(void)
         cmocka_unit_test(_test_prevtx_no_outputs),
         cmocka_unit_test(_test_input_wrong_value),
         cmocka_unit_test(_test_wrong_prevouthash),
+        cmocka_unit_test(_test_mixed_inputs),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

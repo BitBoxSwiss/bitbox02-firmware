@@ -1,4 +1,5 @@
 // Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -179,25 +180,31 @@ static void _test_btc_sign_happy(void** state)
 {
     BTCSignInitRequest init_req = {
         .coin = BTCCoin_TBTC,
-        .script_config =
+        .script_configs_count = 1,
+        .script_configs =
             {
-                .which_config = BTCScriptConfig_multisig_tag,
-                .config =
-                    {
-                        .multisig =
-                            {
-                                .threshold = 1,
-                                .xpubs_count = 2,
-                            },
-                    },
-            },
-        .keypath_account_count = 4,
-        .keypath_account =
-            {
-                48 + BIP32_INITIAL_HARDENED_CHILD,
-                1 + BIP32_INITIAL_HARDENED_CHILD,
-                0 + BIP32_INITIAL_HARDENED_CHILD,
-                2 + BIP32_INITIAL_HARDENED_CHILD,
+                {
+                    .script_config =
+                        {
+                            .which_config = BTCScriptConfig_multisig_tag,
+                            .config =
+                                {
+                                    .multisig =
+                                        {
+                                            .threshold = 1,
+                                            .xpubs_count = 2,
+                                        },
+                                },
+                        },
+                    .keypath_count = 4,
+                    .keypath =
+                        {
+                            48 + BIP32_INITIAL_HARDENED_CHILD,
+                            1 + BIP32_INITIAL_HARDENED_CHILD,
+                            0 + BIP32_INITIAL_HARDENED_CHILD,
+                            2 + BIP32_INITIAL_HARDENED_CHILD,
+                        },
+                },
             },
         .version = 2,
         .num_inputs = 1,
@@ -207,11 +214,11 @@ static void _test_btc_sign_happy(void** state)
 
     // sudden tenant fault inject concert weather maid people chunk youth stumble grit /
     // 48'/1'/0'/2'
-    init_req.script_config.config.multisig.xpubs[0] = btc_util_parse_xpub(
+    init_req.script_configs[0].script_config.config.multisig.xpubs[0] = btc_util_parse_xpub(
         "xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYU"
         "CugjeksHSbyZT7rq38VQF");
     // dumb rough room report huge dry sudden hamster wait foot crew obvious / 48'/1'/0'/2'
-    init_req.script_config.config.multisig.xpubs[1] = btc_util_parse_xpub(
+    init_req.script_configs[0].script_config.config.multisig.xpubs[1] = btc_util_parse_xpub(
         "xpub6ERxBysTYfQyY4USv6c6J1HNVv9hpZFN9LHVPu47Ac4rK8fLy6NnAeeAHyEsMvG4G66ay5aFZii2VM7wT3KxLK"
         "X8Q8keZPd67kRGmrD1WJj");
 
@@ -223,7 +230,7 @@ static void _test_btc_sign_happy(void** state)
     expect_memory(
         __wrap_apps_btc_confirm_multisig,
         multisig,
-        &init_req.script_config.config.multisig,
+        &init_req.script_configs[0].script_config.config.multisig,
         sizeof(BTCScriptConfig_Multisig));
     assert_int_equal(APP_BTC_OK, app_btc_sign_init(&init_req, &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
@@ -259,26 +266,32 @@ static void _test_btc_sign_large_happy(void** state)
 {
     BTCSignInitRequest init_req = {
         .coin = BTCCoin_TBTC,
-        .script_config =
+        .script_configs_count = 1,
+        .script_configs =
             {
-                .which_config = BTCScriptConfig_multisig_tag,
-                .config =
-                    {
-                        .multisig =
-                            {
-                                .threshold = 7,
-                                .xpubs_count = 15,
-                                .our_xpub_index = 14,
-                            },
-                    },
-            },
-        .keypath_account_count = 4,
-        .keypath_account =
-            {
-                48 + BIP32_INITIAL_HARDENED_CHILD,
-                1 + BIP32_INITIAL_HARDENED_CHILD,
-                0 + BIP32_INITIAL_HARDENED_CHILD,
-                2 + BIP32_INITIAL_HARDENED_CHILD,
+                {
+                    .script_config =
+                        {
+                            .which_config = BTCScriptConfig_multisig_tag,
+                            .config =
+                                {
+                                    .multisig =
+                                        {
+                                            .threshold = 7,
+                                            .xpubs_count = 15,
+                                            .our_xpub_index = 14,
+                                        },
+                                },
+                        },
+                    .keypath_count = 4,
+                    .keypath =
+                        {
+                            48 + BIP32_INITIAL_HARDENED_CHILD,
+                            1 + BIP32_INITIAL_HARDENED_CHILD,
+                            0 + BIP32_INITIAL_HARDENED_CHILD,
+                            2 + BIP32_INITIAL_HARDENED_CHILD,
+                        },
+                },
             },
         .version = 2,
         .num_inputs = 1,
@@ -290,7 +303,7 @@ static void _test_btc_sign_large_happy(void** state)
 
     // sudden tenant fault inject concert weather maid people chunk youth stumble grit /
     // 48'/1'/0'/2'
-    XPub* xpubs = init_req.script_config.config.multisig.xpubs;
+    XPub* xpubs = init_req.script_configs[0].script_config.config.multisig.xpubs;
     xpubs[0] = btc_util_parse_xpub("xpub6Eu7xJRyXRCi4eLYhJPnfZVjgAQtM7qFaEZwUhvgxGf4enEZMxevGzWvZTawCj9USP2MFTEhKQAwnqHwoaPHetTLqGuvq5r5uaLKyGx5QDZ");
     xpubs[1] = btc_util_parse_xpub("xpub6EQcxF2jFkYGn89AwoQJEEJkYMbRjED9AZgt7bkxQA5BLhZEoaQpUHcADbB5GxcMrTdDSGmjP7M3u462Q9otyE2PPam66P5KFLWitPVfYz9");
     xpubs[2] = btc_util_parse_xpub("xpub6EP4EycVS5dq1PN7ZqsxBtptkYhfLvLGokZjnB3fvPshMiAohh6E5TaJjAafZWoPRjo6uiZxhtDXLgCuk81ooQgwrsnEdfSWSfa4VUtX8nu");
@@ -316,7 +329,7 @@ static void _test_btc_sign_large_happy(void** state)
     expect_memory(
         __wrap_apps_btc_confirm_multisig,
         multisig,
-        &init_req.script_config.config.multisig,
+        &init_req.script_configs[0].script_config.config.multisig,
         sizeof(BTCScriptConfig_Multisig));
     assert_int_equal(APP_BTC_OK, app_btc_sign_init(&init_req, &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);

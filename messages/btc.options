@@ -1,4 +1,5 @@
 // Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,12 +15,13 @@
 
 BTCScriptConfig.Multisig.xpubs max_count:15
 BTCPubRequest.keypath max_count:10
-BTCSignInitRequest.keypath_account max_count:10
+BTCSignInitRequest.script_configs max_count:3
 BTCSignInputRequest.prevOutHash fixed_length:true max_size:32
 BTCSignInputRequest.keypath max_count:10
 BTCSignOutputRequest.hash max_size:32
 BTCSignOutputRequest.keypath max_count:10
 BTCSignNextResponse.signature fixed_length:true max_size:64
+BTCScriptConfigWithKeypath.keypath max_count:10
 BTCScriptConfigRegistration.keypath max_count:10
 BTCRegisterScriptConfigRequest.name max_size:31
 BTCPrevTxInputRequest.prev_out_hash fixed_length:true max_size:32

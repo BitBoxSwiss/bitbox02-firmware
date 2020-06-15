@@ -1,4 +1,5 @@
 // Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -70,11 +71,15 @@ message BTCPubRequest {
   bool display = 5;
 }
 
+message BTCScriptConfigWithKeypath {
+  BTCScriptConfig script_config = 2;
+  repeated uint32 keypath = 3;
+}
 
 message BTCSignInitRequest {
   BTCCoin coin = 1;
-  BTCScriptConfig script_config = 2; // script config for inputs and changes
-  repeated uint32 keypath_account = 3; // prefix to all input and change keypaths.
+  // used script configs in inputs and changes
+  repeated BTCScriptConfigWithKeypath script_configs = 2;
   uint32 version = 4; // must be 1 or 2
   uint32 num_inputs = 5;
   uint32 num_outputs = 6;
@@ -107,6 +112,8 @@ message BTCSignInputRequest {
   uint64 prevOutValue = 3;
   uint32 sequence = 4; // must be 0xffffffff-2, 0xffffffff-1 or 0xffffffff
   repeated uint32 keypath = 6; // all inputs must be ours.
+  // References a script config from BTCSignInitRequest
+  uint32 script_config_index = 7;
 }
 
 enum BTCOutputType {
@@ -124,6 +131,8 @@ message BTCSignOutputRequest {
   uint64 value = 3;
   bytes hash = 4; // if ours is false
   repeated uint32 keypath = 5; // if ours is true
+  // If ours is true. References a script config from BTCSignInitRequest
+  uint32 script_config_index = 6;
 }
 
 message BTCScriptConfigRegistration {

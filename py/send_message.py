@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2019 Shift Cryptosecurity AG
+# Copyright 2020 Shift Crypto AG
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -90,6 +91,7 @@ def _btc_demo_inputs_outputs(
             "prev_out_value": int(1e8 * 0.60005),
             "sequence": 0xFFFFFFFF,
             "keypath": [84 + HARDENED, 0 + HARDENED, bip44_account, 0, 0],
+            "script_config_index": 0,
             "prev_tx": {
                 "version": 1,
                 "locktime": 0,
@@ -111,7 +113,8 @@ def _btc_demo_inputs_outputs(
             "prev_out_index": 1,
             "prev_out_value": int(1e8 * 0.60005),
             "sequence": 0xFFFFFFFF,
-            "keypath": [84 + HARDENED, 0 + HARDENED, bip44_account, 0, 1],
+            "keypath": [49 + HARDENED, 0 + HARDENED, bip44_account, 0, 1],
+            "script_config_index": 1,
             "prev_tx": {
                 "version": 1,
                 "locktime": 0,
@@ -129,7 +132,9 @@ def _btc_demo_inputs_outputs(
     ]
     outputs: List[bitbox02.BTCOutputType] = [
         bitbox02.BTCOutputInternal(
-            keypath=[84 + HARDENED, 0 + HARDENED, bip44_account, 1, 0], value=int(1e8 * 1)
+            keypath=[84 + HARDENED, 0 + HARDENED, bip44_account, 1, 0],
+            value=int(1e8 * 1),
+            script_config_index=0,
         ),
         bitbox02.BTCOutputExternal(
             output_type=bitbox02.btc.P2WSH,
@@ -346,8 +351,20 @@ class SendMessage:
         inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
         sigs = self._device.btc_sign(
             bitbox02.btc.BTC,
-            bitbox02.btc.BTCScriptConfig(simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH),
-            keypath_account=[84 + HARDENED, 0 + HARDENED, bip44_account],
+            [
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH
+                    ),
+                    keypath=[84 + HARDENED, 0 + HARDENED, bip44_account],
+                ),
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH_P2SH
+                    ),
+                    keypath=[49 + HARDENED, 0 + HARDENED, bip44_account],
+                ),
+            ],
             inputs=inputs,
             outputs=outputs,
         )
@@ -361,13 +378,27 @@ class SendMessage:
         # Add a change output.
         outputs.append(
             bitbox02.BTCOutputInternal(
-                keypath=[84 + HARDENED, 0 + HARDENED, bip44_account, 1, 0], value=int(1)
+                keypath=[84 + HARDENED, 0 + HARDENED, bip44_account, 1, 0],
+                value=int(1),
+                script_config_index=0,
             )
         )
         sigs = self._device.btc_sign(
             bitbox02.btc.BTC,
-            bitbox02.btc.BTCScriptConfig(simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH),
-            keypath_account=[84 + HARDENED, 0 + HARDENED, bip44_account],
+            [
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH
+                    ),
+                    keypath=[84 + HARDENED, 0 + HARDENED, bip44_account],
+                ),
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH_P2SH
+                    ),
+                    keypath=[49 + HARDENED, 0 + HARDENED, bip44_account],
+                ),
+            ],
             inputs=inputs,
             outputs=outputs,
         )
@@ -426,6 +457,7 @@ class SendMessage:
                     "prev_out_value": inp["value"],
                     "sequence": inp["spending_sequence"],
                     "keypath": [84 + HARDENED, 1 + HARDENED, bip44_account, 0, 0],
+                    "script_config_index": 0,
                     "prev_tx": {
                         "version": prev_tx["transaction"]["version"],
                         "locktime": prev_tx["transaction"]["lock_time"],
@@ -448,8 +480,14 @@ class SendMessage:
         print("Start signing...")
         self._device.btc_sign(
             bitbox02.btc.TBTC,
-            bitbox02.btc.BTCScriptConfig(simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH),
-            keypath_account=[84 + HARDENED, 1 + HARDENED, bip44_account],
+            [
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH
+                    ),
+                    keypath=[84 + HARDENED, 1 + HARDENED, bip44_account],
+                )
+            ],
             inputs=inputs,
             outputs=outputs,
         )

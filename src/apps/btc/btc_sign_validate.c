@@ -21,26 +21,43 @@
 
 app_btc_result_t app_btc_sign_validate_init_script_configs(
     BTCCoin coin,
-    const BTCScriptConfig* script_config,
-    const uint32_t* keypath_account,
-    size_t keypath_account_count)
+    const BTCScriptConfigWithKeypath* script_configs,
+    size_t script_configs_count)
 {
     const app_btc_coin_params_t* coin_params = app_btc_params_get(coin);
     if (coin_params == NULL) {
         return APP_BTC_ERR_INVALID_INPUT;
     }
-    switch (script_config->which_config) {
-    case BTCScriptConfig_simple_type_tag:
-        break;
-    case BTCScriptConfig_multisig_tag: {
-        const BTCScriptConfig_Multisig* multisig = &script_config->config.multisig;
+
+    if (script_configs_count == 0) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+
+    // If there are multiple script configs, only SimpleType (single sig, no additional inputs)
+    // configs are allowed, so e.g. mixing p2wpkh and pw2wpkh-p2sh is okay, but mixing p2wpkh with
+    // multisig-pw2sh is not.
+
+    // We get multisig out of the way first.
+
+    bool is_multisig = script_configs_count == 1 &&
+                       script_configs[0].script_config.which_config == BTCScriptConfig_multisig_tag;
+    if (is_multisig) {
+        const BTCScriptConfigWithKeypath* script_config = &script_configs[0];
+        const BTCScriptConfig_Multisig* multisig = &script_config->script_config.config.multisig;
         if (!btc_common_multisig_is_valid(
-                multisig, keypath_account, keypath_account_count, coin_params->bip44_coin)) {
+                multisig,
+                script_config->keypath,
+                script_config->keypath_count,
+                coin_params->bip44_coin)) {
             return APP_BTC_ERR_INVALID_INPUT;
         }
         uint8_t multisig_hash[SHA256_LEN] = {0};
         if (!btc_common_multisig_hash(
-                coin, multisig, keypath_account, keypath_account_count, multisig_hash)) {
+                coin,
+                multisig,
+                script_config->keypath,
+                script_config->keypath_count,
+                multisig_hash)) {
             return APP_BTC_ERR_INVALID_INPUT;
         };
         char multisig_registered_name[MEMORY_MULTISIG_NAME_MAX_LEN] = {0};
@@ -52,10 +69,27 @@ app_btc_result_t app_btc_sign_validate_init_script_configs(
                 "Spend from", coin, multisig_registered_name, multisig, false)) {
             return APP_BTC_ERR_USER_ABORT;
         }
-        break;
+        return APP_BTC_OK;
     }
-    default:
-        return APP_BTC_ERR_INVALID_INPUT;
+
+    for (size_t i = 0; i < script_configs_count; i++) {
+        const BTCScriptConfigWithKeypath* script_config = &script_configs[i];
+        // Only allow simple single sig configs here.
+        if (script_config->script_config.which_config != BTCScriptConfig_simple_type_tag) {
+            return APP_BTC_ERR_INVALID_INPUT;
+        }
+        if (!btc_common_is_valid_keypath_account_simple(
+                script_config->script_config.config.simple_type,
+                script_config->keypath,
+                script_config->keypath_count,
+                coin_params->bip44_coin)) {
+            return APP_BTC_ERR_INVALID_INPUT;
+        }
+        // Check that the bip44 account is the same for all. While we allow mixing input types
+        // (bip44 purpose), we do not allow mixing accounts.
+        if (script_config->keypath[2] != script_configs[0].keypath[2]) {
+            return APP_BTC_ERR_INVALID_INPUT;
+        }
     }
     return APP_BTC_OK;
 }

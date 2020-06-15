@@ -1,4 +1,5 @@
 # Copyright 2019 Shift Cryptosecurity AG
+# Copyright 2020 Shift Crypto AG
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -83,18 +84,20 @@ class BTCInputType(TypedDict):
     prev_out_value: int
     sequence: int
     keypath: List[int]
+    script_config_index: int
     prev_tx: BTCPrevTxType
 
 
 class BTCOutputInternal:
     # TODO: Use NamedTuple, but not playing well with protobuf types.
 
-    def __init__(self, keypath: List[int], value: int):
+    def __init__(self, keypath: List[int], value: int, script_config_index: int):
         """
         keypath: keypath to the change output.
         """
         self.keypath = keypath
         self.value = value
+        self.script_config_index = script_config_index
 
 
 class BTCOutputExternal:
@@ -350,8 +353,7 @@ class BitBox02(BitBoxCommonAPI):
     def btc_sign(
         self,
         coin: btc.BTCCoin,
-        script_config: btc.BTCScriptConfig,
-        keypath_account: List[int],
+        script_configs: List[btc.BTCScriptConfigWithKeypath],
         inputs: List[BTCInputType],
         outputs: List[BTCOutputType],
         version: int = 1,
@@ -388,8 +390,7 @@ class BitBox02(BitBoxCommonAPI):
         request.btc_sign_init.CopyFrom(
             btc.BTCSignInitRequest(
                 coin=coin,
-                script_config=script_config,
-                keypath_account=keypath_account,
+                script_configs=script_configs,
                 version=version,
                 num_inputs=len(inputs),
                 num_outputs=len(outputs),
@@ -410,6 +411,7 @@ class BitBox02(BitBoxCommonAPI):
                         prevOutValue=tx_input["prev_out_value"],
                         sequence=tx_input["sequence"],
                         keypath=tx_input["keypath"],
+                        script_config_index=tx_input["script_config_index"],
                     )
                 )
                 next_response = self._msg_query(
@@ -468,7 +470,10 @@ class BitBox02(BitBoxCommonAPI):
                 if isinstance(tx_output, BTCOutputInternal):
                     request.btc_sign_output.CopyFrom(
                         btc.BTCSignOutputRequest(
-                            ours=True, value=tx_output.value, keypath=tx_output.keypath
+                            ours=True,
+                            value=tx_output.value,
+                            keypath=tx_output.keypath,
+                            script_config_index=tx_output.script_config_index,
                         )
                     )
                 elif isinstance(tx_output, BTCOutputExternal):

@@ -26,13 +26,11 @@
  * account.
  *
  * @param[in] coin we are spending
- * @param[in] script_config the script config used for all inputs and changes.
- * @param[in] keypath_account Account-level keypath.
- * @param[in] keypath_account_count number of elements in keypath_account.
+ * @param[in] script_configs the script configs allowed for all inputs and changes.
+ * @param[in] script_configs_count number of elements in script_configs.
  * @return See `app_btc_result_t`.
  */
 USE_RESULT app_btc_result_t app_btc_sign_validate_init_script_configs(
     BTCCoin coin,
-    const BTCScriptConfig* script_config,
-    const uint32_t* keypath_account,
-    size_t keypath_account_count);
+    const BTCScriptConfigWithKeypath* script_configs,
+    size_t script_configs_count);

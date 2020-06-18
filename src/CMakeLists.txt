@@ -400,6 +400,33 @@ if(NOT CMAKE_CROSSCOMPILING)
         ${CARGO} test --all-features --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
     )
   add_dependencies(rust-test rust-bindgen)
+
+  add_custom_target(rust-clippy
+    COMMAND
+      # Force clippy to fully re-run. It is bad at figuring out when to run again and when to use caches.
+      ${CARGO} clean --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml --target-dir ${RUST_BINARY_DIR}
+    COMMAND
+      ${CMAKE_COMMAND} -E env
+        CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
+        # enable nightly features in the stable release - needed to activate alloc_error_handler.
+        # see src/rust/bitbox02-rust-c/src/lib.rs.
+        # https://github.com/rust-lang/rust/issues/66740
+        RUSTC_BOOTSTRAP=1
+        ${CARGO} clippy
+          --all-features
+          --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml
+          --target-dir ${RUST_BINARY_DIR}
+          --release
+          -- # disabled linters:
+            -A clippy::large_enum_variant
+            -A clippy::identity_op
+            -A clippy::match_bool
+            -A clippy::new_without_default
+            -A clippy::single_match
+            -A clippy::iter_nth_zero
+
+    )
+  add_dependencies(rust-clippy rust-bindgen)
 endif()
 
 # If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.

@@ -1,4 +1,5 @@
 // Copyright 2020 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -222,4 +223,10 @@ pub fn with_lock_animation<F: Fn()>(f: F) {
     unsafe { bitbox02_sys::lock_animation_start() };
     f();
     unsafe { bitbox02_sys::lock_animation_stop() };
+}
+
+pub fn screen_stack_pop_all() {
+    unsafe {
+        bitbox02_sys::ui_screen_stack_pop_all();
+    }
 }

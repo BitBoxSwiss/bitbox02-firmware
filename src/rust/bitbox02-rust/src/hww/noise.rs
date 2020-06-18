@@ -70,6 +70,12 @@ pub(crate) async fn process(usb_in: Vec<u8>, usb_out: &mut Vec<u8>) -> Result<()
     let mut state = NOISE_STATE.0.borrow_mut();
     match usb_in.split_first() {
         Some((&OP_I_CAN_HAS_HANDSHAEK, b"")) => {
+            // The previous screen was "See the BitBoxApp".
+            // Since a handshake was requested, a client was connected, so we pop that screen.
+            // Pairing is the start of a session, so we clean the screen stack in case
+            // we started a new session in the middle of something.
+            bitbox02::ui::screen_stack_pop_all();
+
             state.init(bitbox02_noise::Sensitive::from(
                 memory::get_noise_static_private_key()?,
             ));

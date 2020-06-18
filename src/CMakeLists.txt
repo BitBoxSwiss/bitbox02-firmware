@@ -360,6 +360,7 @@ add_custom_target(rust-bindgen
     --whitelist-function screen_print_debug
     --whitelist-function ui_screen_stack_push
     --whitelist-function ui_screen_stack_pop
+    --whitelist-function ui_screen_stack_pop_all
     --whitelist-function screen_process
     --whitelist-function label_create
     --whitelist-function confirm_create

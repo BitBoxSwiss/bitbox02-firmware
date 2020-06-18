@@ -115,7 +115,7 @@ impl Font {
 
 impl Default for Font {
     fn default() -> Self {
-        return Font::Default;
+        Font::Default
     }
 }
 

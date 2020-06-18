@@ -14,6 +14,8 @@
 
 use super::util::{Bytes, CStrMut};
 
+/// # Safety
+/// `keypath` must be not NULL and contain `keypath_len` u32 elements.
 #[no_mangle]
 pub unsafe extern "C" fn rust_ethereum_keypath_is_valid_xpub(
     keypath: *const u32,
@@ -24,6 +26,8 @@ pub unsafe extern "C" fn rust_ethereum_keypath_is_valid_xpub(
     ethereum::keypath::is_valid_keypath_xpub(keypath, expected_coin)
 }
 
+/// # Safety
+/// `keypath` must be not NULL and contain `keypath_len` u32 elements.
 #[no_mangle]
 pub unsafe extern "C" fn rust_ethereum_keypath_is_valid_address(
     keypath: *const u32,

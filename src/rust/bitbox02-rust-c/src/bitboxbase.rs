@@ -22,7 +22,6 @@
 #[allow(non_camel_case_types)]
 type c_char = u8;
 
-use bitbox02;
 use core::time::Duration;
 
 use bitbox02_rust::platform::bitboxbase::config::Config;
@@ -141,29 +140,27 @@ pub fn display_status(
     bitbox02::COMMANDER_OK
 }
 
+/// # Safety
+/// request must be not NULL.
 #[no_mangle]
-pub extern "C" fn commander_bitboxbase(
+pub unsafe extern "C" fn commander_bitboxbase(
     request: *const bitbox02::BitBoxBaseRequest,
 ) -> bitbox02::commander_error_t {
     // Accessing raw pointers are unsafe
-    let request = match unsafe { request.as_ref() } {
+    let request = match request.as_ref() {
         Some(request) => request,
         None => return bitbox02::COMMANDER_ERR_GENERIC,
     };
     // It is unsafe to access C style unions
     match request.which_request {
         bitbox02::BitBoxBaseRequest_confirm_pairing_tag => {
-            confirm_pairing(unsafe { &request.request.confirm_pairing })
+            confirm_pairing(&request.request.confirm_pairing)
         }
-        bitbox02::BitBoxBaseRequest_heartbeat_tag => {
-            heartbeat(unsafe { &request.request.heartbeat })
-        }
+        bitbox02::BitBoxBaseRequest_heartbeat_tag => heartbeat(&request.request.heartbeat),
         bitbox02::BitBoxBaseRequest_display_status_tag => {
-            display_status(unsafe { &request.request.display_status })
+            display_status(&request.request.display_status)
         }
-        bitbox02::BitBoxBaseRequest_set_config_tag => {
-            set_config(unsafe { &request.request.set_config })
-        }
+        bitbox02::BitBoxBaseRequest_set_config_tag => set_config(&request.request.set_config),
         _ => bitbox02::COMMANDER_ERR_GENERIC,
     }
 }
@@ -177,11 +174,13 @@ pub extern "C" fn bitboxbase_config_led_mode_get() -> StatusLedMode {
     config.status_led_mode.clone()
 }
 
+/// # Safety
+/// `res` must be NOT NULL and of size at least `res_len`.
 #[no_mangle]
-pub extern "C" fn bitboxbase_config_ip_get(res: *mut c_char, res_len: usize) {
+pub unsafe extern "C" fn bitboxbase_config_ip_get(res: *mut c_char, res_len: usize) {
     // It is not safe to call any functions that also touch CONFIG at the same time
-    let config = unsafe { &CONFIG };
-    let buf = unsafe { core::slice::from_raw_parts_mut(res, res_len) };
+    let config = &CONFIG;
+    let buf = core::slice::from_raw_parts_mut(res, res_len);
     let mut fcstring = FixedCString::new(buf);
 
     if let Some(ip) = &config.ip {
@@ -211,11 +210,13 @@ pub extern "C" fn bitboxbase_state_get() -> BitBoxBaseBackgroundState {
     state.state.clone()
 }
 
+/// # Safety
+/// `buf` must be not NULL and be of size at least `buf_len`.
 #[no_mangle]
-pub extern "C" fn bitboxbase_state_get_description(buf: *mut c_char, buf_len: usize) {
+pub unsafe extern "C" fn bitboxbase_state_get_description(buf: *mut c_char, buf_len: usize) {
     assert!(!buf.is_null());
-    let state = unsafe { &STATE };
-    let buf = unsafe { core::slice::from_raw_parts_mut(buf, buf_len) };
+    let state = &STATE;
+    let buf = core::slice::from_raw_parts_mut(buf, buf_len);
     let mut buf = FixedCString::new(buf);
     let _ = write!(
         buf,
@@ -226,9 +227,11 @@ pub extern "C" fn bitboxbase_state_get_description(buf: *mut c_char, buf_len: us
     );
 }
 
+/// # Safety
+/// `ptr` must be not NULL and of size at least `ptr_len`.
 #[no_mangle]
-pub extern "C" fn bitboxbase_status_get(ptr: *mut c_char, ptr_len: usize) {
-    let buf = unsafe { core::slice::from_raw_parts_mut(ptr, ptr_len) };
+pub unsafe extern "C" fn bitboxbase_status_get(ptr: *mut c_char, ptr_len: usize) {
+    let buf = core::slice::from_raw_parts_mut(ptr, ptr_len);
     let mut wrapper = FixedCString::new(buf);
-    write_status(&mut wrapper, unsafe { &CONFIG });
+    write_status(&mut wrapper, &CONFIG);
 }

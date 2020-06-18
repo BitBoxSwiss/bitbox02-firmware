@@ -31,12 +31,12 @@ impl Password {
 
     /// Returns the underlying C string buffer (null terminated), to be used in C function calls.
     pub fn as_cstr(&self) -> *const util::c_types::c_char {
-        return &self.0 as *const _;
+        &self.0 as *const _
     }
 
     /// Returns the buffer size (including null terminator).
     pub fn cap(&self) -> usize {
-        return self.0.len();
+        self.0.len()
     }
 
     /// Returns a &str instance for use in Rust. panics if the

@@ -70,10 +70,11 @@ impl AsRef<[u8]> for Bytes {
     /// Create a slice to a buffer. Only allowed for non-null pointers with length or null pointers
     /// with 0 length due to limitation in `core::slice`.
     fn as_ref(&self) -> &[u8] {
-        let mut buf = self.buf;
-        if self.len == 0 && self.buf.is_null() {
-            buf = core::ptr::NonNull::dangling().as_ptr();
-        }
+        let buf = if self.len == 0 && self.buf.is_null() {
+            core::ptr::NonNull::dangling().as_ptr()
+        } else {
+            self.buf
+        };
         assert!(!buf.is_null());
         unsafe { core::slice::from_raw_parts(buf, self.len) }
     }
@@ -83,10 +84,11 @@ impl AsRef<[u8]> for BytesMut {
     /// Create a slice to a buffer. Only allowed for non-null pointers with length or null pointers
     /// with 0 length due to limitation in `core::slice`.
     fn as_ref(&self) -> &[u8] {
-        let mut buf = self.buf;
-        if self.len == 0 && self.buf.is_null() {
-            buf = core::ptr::NonNull::dangling().as_ptr();
-        }
+        let buf = if self.len == 0 && self.buf.is_null() {
+            core::ptr::NonNull::dangling().as_ptr()
+        } else {
+            self.buf
+        };
         assert!(!buf.is_null());
         unsafe { core::slice::from_raw_parts(buf, self.len) }
     }
@@ -96,10 +98,11 @@ impl AsMut<[u8]> for BytesMut {
     /// Create a slice to a buffer. Only allowed for non-null pointers with length or null pointers
     /// with 0 length due to limitation in `core::slice`.
     fn as_mut(&mut self) -> &mut [u8] {
-        let mut buf = self.buf;
-        if self.len == 0 && self.buf.is_null() {
-            buf = core::ptr::NonNull::dangling().as_ptr();
-        }
+        let buf = if self.len == 0 && self.buf.is_null() {
+            core::ptr::NonNull::dangling().as_ptr()
+        } else {
+            self.buf
+        };
         assert!(!buf.is_null());
         unsafe { core::slice::from_raw_parts_mut(buf, self.len) }
     }
@@ -116,19 +119,20 @@ impl CStr {
     /// Create a CStr from a null-terminated string or null pointer. Unsafe because it will read
     /// until it finds a null character.
     pub unsafe fn new(buf: *const c_char) -> Self {
-        let mut buf = buf;
-        let mut len = 0;
         if buf.is_null() {
-            buf = core::ptr::NonNull::dangling().as_ptr();
-            len = 0;
+            CStr {
+                buf: core::ptr::NonNull::dangling().as_ptr(),
+                len: 0,
+            }
         } else {
+            let mut len = 0;
             let mut b = buf;
             while b.read() != 0 {
                 len += 1;
                 b = b.offset(1);
             }
+            CStr { buf, len }
         }
-        CStr { buf, len }
     }
 }
 

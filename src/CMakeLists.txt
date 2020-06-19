@@ -425,6 +425,7 @@ if(NOT CMAKE_CROSSCOMPILING)
             -A clippy::new_without_default
             -A clippy::single_match
             -A clippy::iter_nth_zero
+            -A clippy::redundant_clone
 
     )
   add_dependencies(rust-clippy rust-bindgen)

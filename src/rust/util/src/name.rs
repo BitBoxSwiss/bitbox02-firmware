@@ -16,7 +16,7 @@
 /// size, consist of printable ASCII characters only (and space), not
 /// start or end with whitespace, and contain no whitespace other than space.
 pub fn validate(name: &str, max_len: usize) -> bool {
-    if name.len() == 0 || name.len() > max_len {
+    if name.is_empty() || name.len() > max_len {
         return false;
     }
     if !super::ascii::all_ascii(name) {

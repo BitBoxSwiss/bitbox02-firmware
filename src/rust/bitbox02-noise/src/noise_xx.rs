@@ -93,7 +93,7 @@ impl<R: Random32> State<R> {
     /// `generate_static_private_key()`.
     pub fn init(&mut self, static_private_key: Sensitive<PrivateKey>) {
         let hs = HandshakeState::new(
-            noise_protocol::patterns::noise_xx().clone(),
+            noise_protocol::patterns::noise_xx(),
             false, /* is_initiator = false; the app is the initiator */
             &b"Noise_XX_25519_ChaChaPoly_SHA256"[..],
             Some(static_private_key),

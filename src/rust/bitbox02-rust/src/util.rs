@@ -46,10 +46,7 @@ pub struct FixedCString<'a> {
 
 impl<'a> FixedCString<'a> {
     pub fn new(buf: &'a mut [u8]) -> Self {
-        FixedCString {
-            buf: buf,
-            offset: 0,
-        }
+        FixedCString { buf, offset: 0 }
     }
 }
 

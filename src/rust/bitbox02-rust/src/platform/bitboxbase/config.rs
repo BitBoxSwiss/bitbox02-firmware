@@ -79,11 +79,10 @@ impl Config {
         if !hostname.is_ascii() {
             return Err(Error::InvalidHostname);
         }
-        if hostname.len() < 1 || hostname.len() > 63 {
+        if hostname.is_empty() || hostname.len() > 63 {
             return Err(Error::InvalidHostname);
         }
-        // Since we checked that the string contains at least one character we can safely unwrap
-        if hostname.chars().nth(0).unwrap() == '-' || hostname.chars().last().unwrap() == '-' {
+        if hostname.starts_with('-') || hostname.ends_with('-') {
             return Err(Error::InvalidHostname);
         }
         if hostname.chars().any(|c| !c.is_alphanumeric() && c != '-') {

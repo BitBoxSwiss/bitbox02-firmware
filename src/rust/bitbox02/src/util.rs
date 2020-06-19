@@ -13,6 +13,8 @@
 // limitations under the License.
 
 /// Must be given a null-terminated string
+/// # Safety
+/// ptr must be not NULL.
 pub unsafe fn strlen_ptr(ptr: *const u8) -> isize {
     let mut end = ptr;
     loop {

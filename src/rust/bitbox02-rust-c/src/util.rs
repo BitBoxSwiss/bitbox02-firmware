@@ -199,7 +199,7 @@ impl CStrMut {
         if write_slice.iter().any(|&c| c == 0) {
             panic!("null terminated strings can't contain null");
         }
-        if let Err(_) = core::str::from_utf8(write_slice) {
+        if core::str::from_utf8(write_slice).is_err() {
             panic!("strings must be valid utf-8");
         }
         slice[req] = 0;

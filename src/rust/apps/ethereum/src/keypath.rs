@@ -22,7 +22,7 @@ static ACCOUNT_MAX: u32 = 99; // 100 accounts
 /// xpub keypath.
 /// @return true if the keypath is valid, false if it is invalid.
 pub fn is_valid_keypath_xpub(keypath: &[u32], expected_coin: u32) -> bool {
-    keypath.len() == 4 && &keypath[..4] == &[44 + HARDENED, expected_coin, 0 + HARDENED, 0]
+    keypath.len() == 4 && keypath[..4] == [44 + HARDENED, expected_coin, 0 + HARDENED, 0]
 }
 
 /// Does limit checks the keypath, whitelisting bip44 purpose, account and change.

@@ -27,16 +27,16 @@ pub fn write_status<W: Write>(w: &mut W, config: &Config) {
     } else {
         let _ = write!(w, "<unnamed>");
     }
-    let _ = write!(w, "\n");
+    let _ = writeln!(w);
     let _ = write!(w, "ip: ");
     if let Some(ip) = &config.ip {
         let _ = write!(w, "{}", ip);
     } else {
         let _ = write!(w, "<unassigned>");
     }
-    let _ = write!(w, "\n");
-    let _ = write!(w, "status: OK\n");
-    let _ = write!(w, "mode: {:?}\n", config.status_led_mode);
+    let _ = writeln!(w);
+    let _ = writeln!(w, "status: OK");
+    let _ = writeln!(w, "mode: {:?}", config.status_led_mode);
 }
 
 pub fn display_status(config: &Config, duration: Option<Duration>) {

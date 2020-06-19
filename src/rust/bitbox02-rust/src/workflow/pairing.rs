@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use arrayvec::ArrayString;
-use binascii;
 use core::fmt::Write;
 
 pub async fn confirm(hash: &[u8; 32]) -> bool {

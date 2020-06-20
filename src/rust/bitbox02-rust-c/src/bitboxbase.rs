@@ -1,4 +1,5 @@
 // Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,7 +38,7 @@ use core::fmt::Write;
 
 pub fn confirm_pairing(
     request: &bitbox02::BitBoxBaseConfirmPairingRequest,
-) -> bitbox02::CommanderError {
+) -> bitbox02::commander::Error {
     let bytes = &request.msg[..];
     bitbox02::leds_turn_small_led(0, true);
     bitbox02::leds_turn_small_led(4, true);
@@ -54,23 +55,23 @@ pub fn confirm_pairing(
     bitbox02::leds_turn_small_led(0, false);
     bitbox02::leds_turn_small_led(4, false);
     match res {
-        true => bitbox02::COMMANDER_OK,
-        false => bitbox02::COMMANDER_ERR_USER_ABORT,
+        true => bitbox02::commander::Error::COMMANDER_OK,
+        false => bitbox02::commander::Error::COMMANDER_ERR_USER_ABORT,
     }
 }
 
-pub fn heartbeat(request: &bitbox02::BitBoxBaseHeartbeatRequest) -> bitbox02::CommanderError {
+pub fn heartbeat(request: &bitbox02::BitBoxBaseHeartbeatRequest) -> bitbox02::commander::Error {
     // Accessing a mutable static is unsafe
     let state = unsafe { &mut STATE };
     // Transmute uint32 to BitBoxBaseBackgroundState
     // This is safe for values 0 to 3.
     if request.state_code > 3 {
-        return bitbox02::COMMANDER_ERR_GENERIC;
+        return bitbox02::commander::Error::COMMANDER_ERR_GENERIC;
     }
     // Transmute uint32 to BitBoxBaseBackgroundDescription
     // This is safe for values 0 to 3.
     if request.description_code > 8 {
-        return bitbox02::COMMANDER_ERR_GENERIC;
+        return bitbox02::commander::Error::COMMANDER_ERR_GENERIC;
     }
 
     let new_state = unsafe { core::mem::transmute(request.state_code + 2) };
@@ -85,10 +86,10 @@ pub fn heartbeat(request: &bitbox02::BitBoxBaseHeartbeatRequest) -> bitbox02::Co
     state.description_code = new_description_code;
     bitbox02::bitboxbase_watchdog_reset();
 
-    bitbox02::COMMANDER_OK
+    bitbox02::commander::Error::COMMANDER_OK
 }
 
-pub fn set_config(request: &bitbox02::BitBoxBaseSetConfigRequest) -> bitbox02::CommanderError {
+pub fn set_config(request: &bitbox02::BitBoxBaseSetConfigRequest) -> bitbox02::commander::Error {
     // Accessing a mutable static is unsafe
     let config = unsafe { &mut CONFIG };
     let hostname =
@@ -96,7 +97,7 @@ pub fn set_config(request: &bitbox02::BitBoxBaseSetConfigRequest) -> bitbox02::C
     match &hostname {
         &"" => (),
         hostname => match config.set_hostname(hostname) {
-            Err(_) => return bitbox02::COMMANDER_ERR_GENERIC,
+            Err(_) => return bitbox02::commander::Error::COMMANDER_ERR_GENERIC,
             _ => (),
         },
     }
@@ -111,23 +112,23 @@ pub fn set_config(request: &bitbox02::BitBoxBaseSetConfigRequest) -> bitbox02::C
     }
 
     if request.status_led_mode > 3 {
-        return bitbox02::COMMANDER_ERR_GENERIC;
+        return bitbox02::commander::Error::COMMANDER_ERR_GENERIC;
     }
     let status_led_mode = unsafe { core::mem::transmute(request.status_led_mode) };
     config.set_status_led_mode(status_led_mode);
 
     if request.status_screen_mode > 3 {
-        return bitbox02::COMMANDER_ERR_GENERIC;
+        return bitbox02::commander::Error::COMMANDER_ERR_GENERIC;
     }
     let status_screen_mode = unsafe { core::mem::transmute(request.status_screen_mode) };
     config.set_status_screen_mode(status_screen_mode);
 
-    bitbox02::COMMANDER_OK
+    bitbox02::commander::Error::COMMANDER_OK
 }
 
 pub fn display_status(
     request: &bitbox02::BitBoxBaseDisplayStatusRequest,
-) -> bitbox02::CommanderError {
+) -> bitbox02::commander::Error {
     let duration = request.duration as u64;
     let duration = if duration > 0 {
         Some(Duration::from_millis(duration))
@@ -137,7 +138,7 @@ pub fn display_status(
     // Accessing a mutable static is unsafe
     bitbox02::bitboxbase_screensaver_reset();
     bitbox02_rust::platform::bitboxbase::display::display_status(unsafe { &CONFIG }, duration);
-    bitbox02::COMMANDER_OK
+    bitbox02::commander::Error::COMMANDER_OK
 }
 
 /// # Safety
@@ -149,7 +150,7 @@ pub unsafe extern "C" fn commander_bitboxbase(
     // Accessing raw pointers are unsafe
     let request = match request.as_ref() {
         Some(request) => request,
-        None => return bitbox02::COMMANDER_ERR_GENERIC,
+        None => return bitbox02::commander::Error::COMMANDER_ERR_GENERIC,
     };
     // It is unsafe to access C style unions
     match request.which_request {
@@ -161,7 +162,7 @@ pub unsafe extern "C" fn commander_bitboxbase(
             display_status(&request.request.display_status)
         }
         bitbox02::BitBoxBaseRequest_set_config_tag => set_config(&request.request.set_config),
-        _ => bitbox02::COMMANDER_ERR_GENERIC,
+        _ => bitbox02::commander::Error::COMMANDER_ERR_GENERIC,
     }
 }
 

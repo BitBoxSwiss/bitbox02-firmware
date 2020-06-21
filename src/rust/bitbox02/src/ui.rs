@@ -19,6 +19,9 @@ extern crate alloc;
 use crate::password::Password;
 use alloc::boxed::Box;
 
+// Taking the constant straight from C, as it's excluding the null terminator.
+const MAX_LABEL_SIZE: usize = bitbox02_sys::MAX_LABEL_SIZE as _;
+
 /// Wraps the C component_t to be used in Rust.
 pub use core::marker::PhantomData;
 
@@ -82,7 +85,7 @@ where
 
     let component = unsafe {
         bitbox02_sys::trinary_input_string_create_password(
-            crate::str_to_cstr_force!(title, 640).as_ptr(), // same as label.c MAX_LABEL_SIZE
+            crate::str_to_cstr_force!(title, MAX_LABEL_SIZE).as_ptr(),
             special_chars,
             Some(c_confirm_callback::<F>),
             // passed to c_confirm_callback as `param`.
@@ -148,8 +151,8 @@ where
     F: FnMut(bool) + 'a,
 {
     let params = bitbox02_sys::confirm_params_t {
-        title: crate::str_to_cstr_force!(params.title, 640).as_ptr(), // same as label.c MAX_LABEL_SIZE
-        body: crate::str_to_cstr_force!(params.body, 640).as_ptr(), // same as label.c MAX_LABEL_SIZE
+        title: crate::str_to_cstr_force!(params.title, MAX_LABEL_SIZE).as_ptr(),
+        body: crate::str_to_cstr_force!(params.body, MAX_LABEL_SIZE).as_ptr(),
         font: params.font.as_ptr(),
         scrollable: params.scrollable,
         longtouch: params.longtouch,
@@ -206,7 +209,7 @@ where
 
     let component = unsafe {
         bitbox02_sys::status_create(
-            crate::str_to_cstr_force!(text, 640).as_ptr(), // same as label.c MAX_LABEL_SIZE
+            crate::str_to_cstr_force!(text, MAX_LABEL_SIZE).as_ptr(),
             status_success,
             Some(c_callback::<F>),
             Box::into_raw(Box::new(callback)) as *mut _, // passed to c_callback as `param`.

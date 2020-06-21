@@ -19,6 +19,10 @@
 #include <ui/ugui/ugui.h>
 #include <ui/ui_util.h>
 
+// Max size of text shown (excl. null terminator). The current size of 640 is chosen to be able to
+// show up to 320 bytes of Ethereum tx data in hex format.
+#define MAX_LABEL_SIZE 640
+
 /**
  * Creates a label with the given font and positions it in the center.
  * @param[in] component The component to update.

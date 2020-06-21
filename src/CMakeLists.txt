@@ -376,6 +376,7 @@ add_custom_target(rust-bindgen
     --whitelist-function commander
     --whitelist-type BitBoxBaseRequest
     --whitelist-var ".*_tag"
+    --whitelist-var MAX_LABEL_SIZE
     --whitelist-var font_font_a_9X9
     --whitelist-var font_font_a_11X10
     --whitelist-var font_monogram_5X9

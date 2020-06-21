@@ -24,10 +24,6 @@
 #include <ui/ui_util.h>
 #include <util.h>
 
-// Max size of text shown (excl. null terminator). The current size of 640 is chosen to be able to
-// show up to 320 bytes of Ethereum tx data in hex format.
-#define MAX_LABEL_SIZE 640
-
 typedef struct {
     // +3 for '...' if truncated, +1 for null terminator.
     char text[MAX_LABEL_SIZE + 3 + 1];

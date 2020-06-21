@@ -207,7 +207,7 @@ pub extern "C" fn bitboxbase_state_set_not_alive() {
 #[no_mangle]
 pub extern "C" fn bitboxbase_state_get() -> BitBoxBaseBackgroundState {
     let state = unsafe { &STATE };
-    state.state.clone()
+    state.state
 }
 
 /// # Safety

@@ -32,6 +32,7 @@ pub extern "C" fn rust_sha256_new() -> *mut c_void {
 #[no_mangle]
 pub unsafe extern "C" fn rust_sha256_update(ctx: *mut c_void, data: *const c_void, len: usize) {
     let data = core::slice::from_raw_parts(data as *const u8, len);
+    #[allow(clippy::cast_ptr_alignment)] // ctx is properly aligned, see `Box::into_raw`.
     let ctx = ctx as *mut Sha256;
     (*ctx).input(data);
 }
@@ -42,6 +43,7 @@ pub unsafe extern "C" fn rust_sha256_update(ctx: *mut c_void, data: *const c_voi
 #[no_mangle]
 pub unsafe extern "C" fn rust_sha256_finish(ctx: *mut *mut c_void, out: *mut c_uchar) {
     let out = core::slice::from_raw_parts_mut(out, 32);
+    #[allow(clippy::cast_ptr_alignment)] // ctx is properly aligned, see `Box::into_raw`.
     let hasher = Box::from_raw(*ctx as *mut Sha256); // dropped at the end
     let hash = hasher.result();
     out.copy_from_slice(&hash[..]);
@@ -54,6 +56,7 @@ pub unsafe extern "C" fn rust_sha256_finish(ctx: *mut *mut c_void, out: *mut c_u
 #[no_mangle]
 pub unsafe extern "C" fn rust_sha256_free(ctx: *mut *mut c_void) {
     if !(*ctx).is_null() {
+        #[allow(clippy::cast_ptr_alignment)] // ctx is properly aligned, see `Box::into_raw`.
         Box::from_raw(*ctx as *mut Sha256);
         *ctx = core::ptr::null_mut();
     }

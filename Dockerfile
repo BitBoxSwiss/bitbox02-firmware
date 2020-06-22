@@ -34,19 +34,6 @@ RUN mkdir ~/Downloads &&\
     rm -f gcc.tar.bz2 &&\
     cd ~/Downloads && rsync -a gcc-arm-none-eabi-8-2018-q4-major/ /usr/local/
 
-# Install nanopb
-RUN cd ~/Downloads &&\
-    wget https://jpa.kapsi.fi/nanopb/download/nanopb-0.3.9.2-linux-x86.tar.gz &&\
-    echo "00624f2834066ab31613dd2bb53b258a3b81cd83554df4a7cf49725c5cf34c46 nanopb-0.3.9.2-linux-x86.tar.gz" | sha256sum -c &&\
-    tar -xvzf nanopb-0.3.9.2-linux-x86.tar.gz &&\
-    rm -f nanopb-0.3.9.2-linux-x86.tar.gz &&\
-    mv ~/Downloads/nanopb-0.3.9.2-linux-x86/generator-bin/protoc* /usr/local/bin/ &&\
-    mv ~/Downloads/nanopb-0.3.9.2-linux-x86/generator-bin/nanopb_generator /usr/local/bin/ &&\
-    mv ~/Downloads/nanopb-0.3.9.2-linux-x86/generator-bin/libpython*so* /usr/local/bin/ &&\
-    mv ~/Downloads/nanopb-0.3.9.2-linux-x86/generator-bin/*so* /usr/local/lib/ &&\
-    mv ~/Downloads/nanopb-0.3.9.2-linux-x86/generator-bin/include/* /usr/local/include/ &&\
-    mv ~/Downloads/nanopb-0.3.9.2-linux-x86/generator/proto/google/ /usr/local/include/
-
 # Tools for building
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -110,6 +97,11 @@ RUN python3 -m pip install --upgrade \
     setuptools==41.2.0 \
     wheel==0.33.6 \
     twine==1.15.0
+
+# For protoc
+RUN apt-get update && apt-get install -y protobuf-compiler
+# Make Python3 the default, so tools/nanopb/generator/*.py run with Python3.
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
 # Developer tools
 RUN apt-get update && apt-get install -y \

@@ -1,5 +1,3 @@
-find_program(PROTOC_GEN_NANOPB protoc-gen-nanopb)
-
 set(PROTO_FILES
   hww.proto
   backup.proto
@@ -17,13 +15,6 @@ set(PROTO_FILES
 )
 string(REGEX REPLACE "\.proto" ".pb.c" OUTPUT_SOURCES "${PROTO_FILES}")
 string(REGEX REPLACE "\.proto" ".pb.h" OUTPUT_HEADERS "${PROTO_FILES}")
-
-if (PROTOC_GEN_NANOPB STREQUAL "PROTOC_GEN_NANOPB-NOTFOUND")
-  message(FATAL_ERROR
-    "Could not find 'protoc-gen-nanopb'.\n"
-    "Please install it from here: https://jpa.kapsi.fi/nanopb/download/\n"
-    "And add generator-bin/ to your path.")
-endif()
 
 # Create absolute paths to protobuf sources
 foreach(i ${PROTO_FILES})
@@ -55,7 +46,11 @@ add_custom_command(
   OUTPUT ${OUTPUT_SOURCES} ${OUTPUT_HEADERS}
   DEPENDS ${PROTO_FILES} ${PROTO_OPTION_FILES}
   COMMAND
-  ${PROTOC} "--proto_path=${CMAKE_CURRENT_SOURCE_DIR}" "--nanopb_out=-I${CMAKE_CURRENT_SOURCE_DIR}:${CMAKE_CURRENT_BINARY_DIR}" ${PROTO_FILES_ABSOLUTE}
+  ${CMAKE_SOURCE_DIR}/tools/nanopb/generator/protoc
+    --plugin=protoc-gen-nanopb=${CMAKE_SOURCE_DIR}/tools/nanopb/generator/protoc-gen-nanopb
+    --proto_path=${CMAKE_CURRENT_SOURCE_DIR}
+    '--nanopb_out=-I${CMAKE_CURRENT_SOURCE_DIR}:${CMAKE_CURRENT_BINARY_DIR}'
+    ${PROTO_FILES_ABSOLUTE}
 )
 
 add_custom_target(

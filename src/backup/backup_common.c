@@ -82,9 +82,11 @@ void backup_calculate_checksum(BackupContent* content, BackupData* backup_data, 
  * @param[in] field The field that is encoded.
  * @param[in] arg The encode/decode data passed to the callback.
  */
-static bool _encode_backup_data(pb_ostream_t* ostream, const pb_field_t* field, void* const* arg)
+static bool _encode_backup_data(
+    pb_ostream_t* ostream,
+    const pb_field_iter_t* field,
+    void* const* arg)
 {
-    (void)field;
     encode_data_t* encode_data = (encode_data_t*)*arg;
     if (*(encode_data->mode) != BackupMode_PLAINTEXT) {
         return false;
@@ -146,7 +148,7 @@ backup_error_t backup_fill(
 
     // This function is a callback to nanopb when serializing the `data` field.
     // We call it here manually once more to extract the length.
-    _encode_backup_data(&submessage_out_stream, iter.pos, (void* const*)&encode_data);
+    _encode_backup_data(&submessage_out_stream, &iter, (void* const*)&encode_data);
 
     // This length is the serialization of BackupData as protobuf, including the `data` field
     // tag prefix serialization. See the comment in backup.proto for more details.

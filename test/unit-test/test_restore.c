@@ -1,4 +1,5 @@
 // Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,10 +20,10 @@
 #include <stdio.h>
 #include <cmocka.h>
 
-#include <backup.h>
+#include <backup/backup.h>
+#include <backup/restore.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
-#include <restore.h>
 #include <util.h>
 
 #include <FatFs/source/ff.h>
@@ -30,8 +31,8 @@
 #include <sd.h>
 
 // so that we can use static functions
-#include <backup.c>
-#include <restore.c>
+#include <backup/backup.c>
+#include <backup/restore.c>
 
 #define DEVICE_NAME "TestDeviceName"
 static const uint32_t _current_timestamp = 1553098951;

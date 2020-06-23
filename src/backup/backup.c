@@ -1,4 +1,5 @@
 // Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "backup.h"
+#include "restore.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
-#include <backup.h>
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory/memory.h>
 #include <pb_encode.h>
-#include <restore.h>
 #include <sd.h>
 #include <util.h>
 #include <version.h>

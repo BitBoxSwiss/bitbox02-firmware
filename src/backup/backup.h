@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _BACKUP_H_
-#define _BACKUP_H_
+#ifndef _BACKUP_BACKUP_H_
+#define _BACKUP_BACKUP_H_
 
 #include <time.h>
 

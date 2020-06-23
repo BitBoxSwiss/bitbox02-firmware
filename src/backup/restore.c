@@ -14,10 +14,10 @@
 // limitations under the License.
 
 #include "restore.h"
-#include "backup.h"
 #include "backup_common.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #include <keystore.h>
 #include <memory/memory.h>
@@ -25,7 +25,7 @@
 #include <util.h>
 
 #include <pb_decode.h>
-#include <string.h>
+#include <wally_crypto.h>
 
 /**
  * Data used during decode.

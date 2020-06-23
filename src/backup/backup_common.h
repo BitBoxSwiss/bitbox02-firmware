@@ -20,4 +20,12 @@
 void backup_cleanup_backup(Backup* backup);
 void backup_cleanup_backup_data(BackupData* backup_data);
 
+/**
+ * Calculates the checksum of the timestamp, mode and backup data.
+ * The checksum is used to verify the integrity of the backup during restore.
+ * @param[in] content The backup content.
+ * @param[out] hash The SHA256 hash.
+ */
+void backup_calculate_checksum(BackupContent* content, BackupData* backup_data, uint8_t* hash);
+
 #endif

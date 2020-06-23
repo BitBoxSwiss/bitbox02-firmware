@@ -48,9 +48,4 @@ backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_bir
  */
 backup_error_t backup_check(char* id_out, char* name_out, uint32_t* birthdate_out);
 
-void backup_calculate_checksum(
-    BackupContent* content,
-    BackupData* backup_data,
-    uint8_t hash[SHA256_LEN]);
-
 #endif

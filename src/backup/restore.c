@@ -15,6 +15,7 @@
 
 #include "restore.h"
 #include "backup.h"
+#include "backup_common.h"
 
 #include <stdio.h>
 

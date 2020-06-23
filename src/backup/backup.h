@@ -36,11 +36,7 @@ typedef enum {
 /**
  * enum to string conversion
  */
-
 const char* backup_error_str(backup_error_t err);
-
-void backup_cleanup_backup(Backup* backup);
-void backup_cleanup_backup_data(BackupData* backup_data);
 
 backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_birthdate_timestamp);
 

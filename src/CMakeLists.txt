@@ -36,6 +36,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/touch/gestures.c
   ${CMAKE_SOURCE_DIR}/src/backup/backup.c
   ${CMAKE_SOURCE_DIR}/src/backup/restore.c
+  ${CMAKE_SOURCE_DIR}/src/backup/backup_common.c
   ${CMAKE_SOURCE_DIR}/src/reset.c
   ${CMAKE_SOURCE_DIR}/src/cipher/cipher.c
   ${CMAKE_SOURCE_DIR}/src/workflow/backup.c

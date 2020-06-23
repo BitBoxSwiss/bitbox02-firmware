@@ -14,6 +14,7 @@
 // limitations under the License.
 
 #include "backup.h"
+#include "backup_common.h"
 #include "restore.h"
 
 #include <stdio.h>
@@ -59,16 +60,6 @@ typedef struct encode_data {
     BackupData* backup_data;
     BackupMode* mode;
 } encode_data_t;
-
-void backup_cleanup_backup(Backup* backup)
-{
-    util_zero(backup, sizeof(Backup));
-}
-
-void backup_cleanup_backup_data(BackupData* backup_data)
-{
-    util_zero(backup_data, sizeof(BackupData));
-}
 
 static void _cleanup_backup_bytes(uint8_t** backup_bytes)
 {

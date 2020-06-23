@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <time.h>
 #include <cmocka.h>
 
 #include <backup/backup.h>
@@ -30,6 +31,7 @@
 #include <FatFs/source/ff.h>
 #include <assert_sd.h>
 #include <sd.h>
+#include <wally_crypto.h>
 
 #define DEVICE_NAME "TestDeviceName"
 static const uint32_t _current_timestamp = 1553098951;

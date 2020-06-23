@@ -15,7 +15,6 @@
 
 #include <workflow/restore.h>
 
-#include <backup/backup.h>
 #include <backup/backup_common.h>
 #include <backup/restore.h>
 #include <hardfault.h>

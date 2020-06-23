@@ -15,10 +15,7 @@
 #ifndef _BACKUP_BACKUP_H_
 #define _BACKUP_BACKUP_H_
 
-#include <time.h>
-
 #include <backup.pb.h>
-#include <wally_crypto.h>
 
 typedef enum {
     BACKUP_OK,

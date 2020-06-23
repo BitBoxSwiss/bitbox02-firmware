@@ -24,10 +24,12 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory/memory.h>
-#include <pb_encode.h>
 #include <sd.h>
 #include <util.h>
 #include <version.h>
+
+#include <pb_encode.h>
+#include <wally_crypto.h>
 
 const char* backup_error_str(backup_error_t err)
 {

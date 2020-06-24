@@ -62,8 +62,8 @@ USE_RESULT bool btc_common_is_valid_keypath_xpub(
 USE_RESULT bool btc_common_is_valid_keypath_account_simple(
     BTCScriptConfig_SimpleType script_type,
     const uint32_t* keypath,
-    const size_t keypath_len,
-    const uint32_t expected_coin);
+    size_t keypath_len,
+    uint32_t expected_coin);
 
 /**
  * Does limit checks the keypath, whitelisting bip44 purposes, accounts and

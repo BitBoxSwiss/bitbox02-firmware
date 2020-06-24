@@ -277,6 +277,8 @@ typedef struct {
     bool locktime_applies;
     // when a user aborts on a locktime verification
     bool user_aborts_locktime_rbf;
+    // rbf enabled but 0 locktime: no user verification.
+    bool locktime_zero_with_rbf;
     // when a user aborts on total/fee verification.
     bool user_aborts_total;
     // when a user aborts the warning about multiple change outputs being present.
@@ -610,6 +612,11 @@ static void _sign(const _modification_t* mod)
         inputs[0].input.sequence = 0xffffffff - 1;
     }
     if (mod->user_aborts_locktime_rbf) {
+        init_req.locktime = 1;
+        inputs[0].input.sequence = 0xffffffff - 2;
+    }
+    if (mod->locktime_zero_with_rbf) {
+        init_req.locktime = 0;
         inputs[0].input.sequence = 0xffffffff - 2;
     }
     if (mod->wrong_input_value) {
@@ -1002,7 +1009,7 @@ static void _sign(const _modification_t* mod)
     }
 
     if (mod->user_aborts_locktime_rbf) {
-        expect_value(__wrap_apps_btc_confirm_locktime_rbf, locktime, 0);
+        expect_value(__wrap_apps_btc_confirm_locktime_rbf, locktime, 1);
         expect_value(__wrap_apps_btc_confirm_locktime_rbf, rbf, CONFIRM_LOCKTIME_RBF_ON);
         will_return(__wrap_apps_btc_confirm_locktime_rbf, false);
 
@@ -1261,6 +1268,12 @@ static void _test_user_aborts_locktime_rbf(void** state)
     invalid.user_aborts_locktime_rbf = true;
     _sign(&invalid);
 }
+static void _test_locktime_zero_with_rbf(void** state)
+{
+    _modification_t invalid = _valid;
+    invalid.locktime_zero_with_rbf = true;
+    _sign(&invalid);
+}
 static void _test_user_aborts_total(void** state)
 {
     _modification_t invalid = _valid;
@@ -1374,6 +1387,7 @@ int main(void)
         cmocka_unit_test(_test_litecoin_rbf_disabled),
         cmocka_unit_test(_test_locktime_applies),
         cmocka_unit_test(_test_user_aborts_locktime_rbf),
+        cmocka_unit_test(_test_locktime_zero_with_rbf),
         cmocka_unit_test(_test_user_aborts_total),
         cmocka_unit_test(_test_user_aborts_multiple_changes),
         cmocka_unit_test(_test_overflow_input_values_pass1),

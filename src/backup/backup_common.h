@@ -57,6 +57,9 @@ void backup_calculate_checksum(BackupContent* content, BackupData* backup_data, 
 /**
  * Fills the backup structure with backup data.
  * @param[in] backup_create_timestamp The time at which the backup was created.
+ * @param[in] seed_birtdate_timestamp The time at which the seed was created. It is not necessarily
+ * the same as backup_create_timestamp, as a backup of the same seed can be re-created (e.g. on a
+ * second microSD card).
  * @param[out] backup The backup structure filled with data.
  * @param[out] backup_data The backup data structure filled with data.
  * @param[out] encode_data Additional data required for encoding/decoding.

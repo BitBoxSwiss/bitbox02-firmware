@@ -23,7 +23,7 @@
 #include <stdint.h>
 
 /**
- * Encodes the backup and returns the number of bytes written, or 0 if encoding failed.
+ * Encodes the backup as protobuf.
  * @return the number of bytes written, or 0 if encoding failed.
  */
 size_t backup_encode(const Backup* backup, uint32_t max_size, uint8_t* output);

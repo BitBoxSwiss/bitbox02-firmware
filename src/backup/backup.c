@@ -33,11 +33,7 @@ static void _cleanup_backup_bytes(uint8_t** backup_bytes)
     util_zero(*backup_bytes, SD_MAX_FILE_SIZE);
 }
 
-/**
- * Encodes the backup and returns the number of bytes written, or 0 if encoding failed.
- * @return the number of bytes written, or 0 if encoding failed.
- */
-static size_t _encode_backup(Backup* backup, uint32_t max_size, uint8_t* output)
+size_t backup_encode(const Backup* backup, uint32_t max_size, uint8_t* output)
 {
     pb_ostream_t out_stream = pb_ostream_from_buffer(output, (unsigned int)max_size);
     bool status_encode = pb_encode(&out_stream, Backup_fields, backup);
@@ -116,7 +112,7 @@ backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_bir
     }
     uint8_t output[SD_MAX_FILE_SIZE];
     CLEANUP_BACKUP_BYTES(output);
-    size_t output_length = _encode_backup(&backup, SD_MAX_FILE_SIZE, output);
+    size_t output_length = backup_encode(&backup, SD_MAX_FILE_SIZE, output);
     if (output_length == 0) {
         return BACKUP_ERR_ENCODE;
     }

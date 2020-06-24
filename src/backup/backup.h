@@ -19,6 +19,15 @@
 
 #include <backup.pb.h>
 
+#include <stddef.h>
+#include <stdint.h>
+
+/**
+ * Encodes the backup and returns the number of bytes written, or 0 if encoding failed.
+ * @return the number of bytes written, or 0 if encoding failed.
+ */
+size_t backup_encode(const Backup* backup, uint32_t max_size, uint8_t* output);
+
 backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_birthdate_timestamp);
 
 /**

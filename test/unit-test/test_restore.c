@@ -139,7 +139,7 @@ static void _create_and_store_corrupt_backup(Backup* backup, int file_index)
 {
     uint8_t output[SD_MAX_FILE_SIZE];
     memset(output, 0, SD_MAX_FILE_SIZE);
-    size_t output_length = _encode_backup(backup, SD_MAX_FILE_SIZE, output);
+    size_t output_length = backup_encode(backup, SD_MAX_FILE_SIZE, output);
 
     // starting at the byte 0, 1 or 2...
     for (size_t i = file_index; i < _num_backup_bytes; i = i + 3) {

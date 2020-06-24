@@ -88,7 +88,7 @@ device-tests: | build
 	${MAKE} -C build device-tests
 # Must compile C tests before running them
 run-unit-tests: | build-build
-	$(MAKE) -C build-build test
+	CTEST_OUTPUT_ON_FAILURE=1 $(MAKE) -C build-build test
 run-rust-unit-tests:
 	${MAKE} -C build-build rust-test
 run-rust-clippy:

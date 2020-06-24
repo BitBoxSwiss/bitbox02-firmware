@@ -1,4 +1,5 @@
 // Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,7 +14,7 @@
 // limitations under the License.
 
 #include "workflow.h"
-#include <backup.h>
+#include <backup/backup.h>
 #include <hww.pb.h>
 #include <memory/memory.h>
 #include <sd.h>

@@ -1,4 +1,5 @@
 // Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,19 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "backup.h"
+#include "backup_common.h"
+#include "restore.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
-#include <backup.h>
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory/memory.h>
-#include <pb_encode.h>
-#include <restore.h>
 #include <sd.h>
 #include <util.h>
 #include <version.h>
+
+#include <pb_encode.h>
+#include <wally_crypto.h>
 
 const char* backup_error_str(backup_error_t err)
 {
@@ -58,60 +63,9 @@ typedef struct encode_data {
     BackupMode* mode;
 } encode_data_t;
 
-void backup_cleanup_backup(Backup* backup)
-{
-    util_zero(backup, sizeof(Backup));
-}
-
-void backup_cleanup_backup_data(BackupData* backup_data)
-{
-    util_zero(backup_data, sizeof(BackupData));
-}
-
 static void _cleanup_backup_bytes(uint8_t** backup_bytes)
 {
     util_zero(*backup_bytes, SD_MAX_FILE_SIZE);
-}
-
-/**
- * Calculates the checksum of the timestamp, mode and backup data.
- * The checksum is used to verify the integrity of the backup during restore.
- * @param[in] content The backup content.
- * @param[out] hash The SHA256 hash.
- */
-void backup_calculate_checksum(
-    BackupContent* content,
-    BackupData* backup_data,
-    uint8_t hash[SHA256_LEN])
-{
-    // size = all fields in backup data, all fields in backup meta data and the length
-    const uint16_t size = sizeof(uint32_t) + sizeof(BackupMode) + sizeof(content->metadata.name) +
-                          sizeof(uint32_t) + sizeof(backup_data->seed) + sizeof(uint32_t) +
-                          sizeof(backup_data->generator) + sizeof(uint32_t);
-    uint16_t start = 0;
-    uint8_t bytes[size];
-    memcpy(bytes + start, &content->metadata.timestamp, sizeof(uint32_t));
-    start += sizeof(uint32_t);
-    memcpy(bytes + start, &content->metadata.mode, sizeof(BackupMode));
-    start += sizeof(BackupMode);
-    memcpy(bytes + start, &content->metadata.name, sizeof(content->metadata.name));
-    start += sizeof(content->metadata.name);
-    memcpy(bytes + start, &backup_data->seed_length, sizeof(uint32_t));
-    start += sizeof(uint32_t);
-    memcpy(bytes + start, backup_data->seed, sizeof(backup_data->seed));
-    start += sizeof(backup_data->seed);
-    memcpy(bytes + start, &backup_data->birthdate, sizeof(uint32_t));
-    start += sizeof(uint32_t);
-    memcpy(bytes + start, backup_data->generator, sizeof(backup_data->generator));
-    start += sizeof(backup_data->generator);
-    memcpy(bytes + start, &content->length, sizeof(uint32_t));
-    start += sizeof(uint32_t);
-    if (size != start) {
-        // Just a hint for future developers:
-        Abort("Backup Format changed! Check backup_calculate_checksum.");
-    }
-    wally_sha256(bytes, start, hash, SHA256_LEN);
-    util_zero(bytes, start);
 }
 
 /**
@@ -303,6 +257,7 @@ backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_bir
         // BACKUP_ERR_CHECK.
         // The caller could try again.
         uint8_t read_content[SD_MAX_FILE_SIZE];
+        CLEANUP_BACKUP_BYTES(read_content);
         size_t read_length;
         if (!sd_load_bin(file_name, dir_name, read_content, &read_length)) {
             return BACKUP_ERR_SD_READ;

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _RESTORE_H_
-#define _RESTORE_H_
+#ifndef _BACKUP_RESTORE_H_
+#define _BACKUP_RESTORE_H_
 
 #include <backup.pb.h>
 #include <hww.pb.h>

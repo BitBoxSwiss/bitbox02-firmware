@@ -12,13 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _BACKUP_H_
-#define _BACKUP_H_
-
-#include <time.h>
+#ifndef _BACKUP_BACKUP_H_
+#define _BACKUP_BACKUP_H_
 
 #include <backup.pb.h>
-#include <wally_crypto.h>
 
 typedef enum {
     BACKUP_OK,
@@ -36,11 +33,7 @@ typedef enum {
 /**
  * enum to string conversion
  */
-
 const char* backup_error_str(backup_error_t err);
-
-void backup_cleanup_backup(Backup* backup);
-void backup_cleanup_backup_data(BackupData* backup_data);
 
 backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_birthdate_timestamp);
 
@@ -51,10 +44,5 @@ backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_bir
  * @param[out] birthdate_out can be NULL.
  */
 backup_error_t backup_check(char* id_out, char* name_out, uint32_t* birthdate_out);
-
-void backup_calculate_checksum(
-    BackupContent* content,
-    BackupData* backup_data,
-    uint8_t hash[SHA256_LEN]);
 
 #endif

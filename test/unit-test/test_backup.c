@@ -1,4 +1,5 @@
 // Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,17 +18,20 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <time.h>
 #include <cmocka.h>
 
-#include <backup.h>
+#include <backup/backup.h>
+#include <backup/backup_common.h>
+#include <backup/restore.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
-#include <restore.h>
 #include <util.h>
 
 #include <FatFs/source/ff.h>
 #include <assert_sd.h>
 #include <sd.h>
+#include <wally_crypto.h>
 
 #define DEVICE_NAME "TestDeviceName"
 static const uint32_t _current_timestamp = 1553098951;

@@ -1,4 +1,5 @@
 // Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,11 +15,11 @@
 
 #include <workflow/restore.h>
 
-#include <backup.h>
+#include <backup/backup_common.h>
+#include <backup/restore.h>
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory/memory.h>
-#include <restore.h>
 #include <securechip/securechip.h>
 #include <workflow/confirm_time.h>
 #include <workflow/password.h>

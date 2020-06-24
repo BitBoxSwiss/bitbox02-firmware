@@ -182,6 +182,30 @@ static void test_backup_check_fail(void** state)
     assert_int_not_equal(backup_check(id, name, NULL), BACKUP_OK);
 }
 
+// Check the encoding of the backup agains a fixture to ensure no accidental format changes.
+static void test_backup_fixture(void** state)
+{
+    Backup backup;
+    BackupData backup_data;
+    encode_data_t encode_data;
+    _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
+    assert_int_equal(
+        backup_fill(_current_timestamp, _mock_seed_birthdate, &backup, &backup_data, &encode_data),
+        BACKUP_OK);
+
+    uint8_t encoded[1000] = {0};
+    size_t len = backup_encode(&backup, sizeof(encoded), encoded);
+    const uint8_t expected_encoded[] =
+        "\x0a\x72\x0a\x70\x0a\x20\x99\x9d\x85\xea\xe9\xea\x06\x04\xcc\x26\x6c\x8d\x1c\x80\x0d\xad"
+        "\xcc\x47\x2c\x3f\xc3\x25\xdb\xf6\x37\x6b\x8e\x6e\x3c\x52\xe4\xcf\x12\x16\x08\xc7\xd1\xc9"
+        "\xe4\x05\x12\x0e\x54\x65\x73\x74\x44\x65\x76\x69\x63\x65\x4e\x61\x6d\x65\x18\x34\x22\x32"
+        "\x08\x20\x12\x20\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11"
+        "\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x18\x9a\xac\xa8\xe4\x05\x22\x06"
+        "\x76\x39\x2e\x30\x2e\x30";
+    assert_int_equal(len, sizeof(expected_encoded) - 1);
+    assert_memory_equal(encoded, expected_encoded, len);
+}
+
 // TODO: test that repeated backup should override existing one
 
 int main(void)
@@ -191,6 +215,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_backup_calculate_checksum, test_setup, test_teardown),
         cmocka_unit_test_setup_teardown(test_backup_check, test_setup, test_teardown),
         cmocka_unit_test_setup_teardown(test_backup_check_fail, test_setup, test_teardown),
+        cmocka_unit_test_setup_teardown(test_backup_fixture, test_setup, test_teardown),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

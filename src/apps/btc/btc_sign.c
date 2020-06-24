@@ -804,8 +804,8 @@ app_btc_result_t app_btc_sign_output(
         // A locktime of 0 will also not be verified, as it's certainly in the past and can't do any
         // harm.
         if (_init_request.locktime > 0) {
-            // This is not a security feature, a transaction that is not rbf or has a locktime of 0
-            // will not be verified.
+            // This is not a security feature, the extra locktime/RBF user confirmation is skipped
+            // if the tx is not rbf or has a locktime of 0.
             if (_locktime_applies || _rbf == CONFIRM_LOCKTIME_RBF_ON) {
                 // The RBF nsequence bytes are often set in conjunction with a locktime,
                 // so verify both simultaneously.

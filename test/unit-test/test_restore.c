@@ -32,7 +32,6 @@
 
 // so that we can use static functions
 #include <backup/backup.c>
-#include <backup/restore.c>
 
 #define DEVICE_NAME "TestDeviceName"
 static const uint32_t _current_timestamp = 1553098951;

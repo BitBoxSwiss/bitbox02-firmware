@@ -94,7 +94,7 @@ static int test_setup(void** state)
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
 
     assert_int_equal(
-        _fill_backup(
+        backup_fill(
             _current_timestamp, _mock_seed_birthdate, &_backup, &_backup_data, &_encode_data),
         BACKUP_OK);
 

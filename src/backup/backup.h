@@ -15,25 +15,9 @@
 #ifndef _BACKUP_BACKUP_H_
 #define _BACKUP_BACKUP_H_
 
+#include "backup_common.h"
+
 #include <backup.pb.h>
-
-typedef enum {
-    BACKUP_OK,
-    // the backup was successfully created, but the old
-    // backup couldn't be deleted for some reason.
-    BACKUP_STALE,
-    BACKUP_SEED_INACCESSIBLE,
-    BACKUP_ERR_ENCODE,
-    BACKUP_ERR_SD_LIST,
-    BACKUP_ERR_SD_READ,
-    BACKUP_ERR_SD_WRITE,
-    BACKUP_ERR_CHECK,
-} backup_error_t;
-
-/**
- * enum to string conversion
- */
-const char* backup_error_str(backup_error_t err);
 
 backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_birthdate_timestamp);
 

@@ -1,4 +1,5 @@
 // Copyright 2020 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,6 +12,22 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// deduct one for the null terminator.
+pub const DEVICE_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_DEVICE_NAME_MAX_LEN as usize - 1;
+
+/// `name.as_bytes()` must be smaller or equal to
+/// `DEVICE_NAME_MAX_LEN`, otherwise this function panics.
+pub fn set_device_name(name: &str) -> Result<(), ()> {
+    match unsafe {
+        bitbox02_sys::memory_set_device_name(
+            crate::str_to_cstr_force!(name, DEVICE_NAME_MAX_LEN).as_ptr(),
+        )
+    } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
 
 pub fn is_initialized() -> bool {
     unsafe { bitbox02_sys::memory_is_initialized() }

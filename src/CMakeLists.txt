@@ -344,6 +344,8 @@ add_custom_target(rust-bindgen
     --whitelist-function memory_get_noise_static_private_key
     --whitelist-function memory_check_noise_remote_static_pubkey
     --whitelist-function memory_add_noise_remote_static_pubkey
+    --whitelist-function memory_set_device_name
+    --whitelist-var MEMORY_DEVICE_NAME_MAX_LEN
     --whitelist-function securechip_attestation_sign
     --whitelist-function keystore_is_locked
     --whitelist-function keystore_unlock
@@ -377,6 +379,7 @@ add_custom_target(rust-bindgen
     --whitelist-function commander
     --whitelist-type BitBoxBaseRequest
     --whitelist-var ".*_tag"
+    --whitelist-var MAX_LABEL_SIZE
     --whitelist-var font_font_a_9X9
     --whitelist-var font_font_a_11X10
     --whitelist-var font_monogram_5X9

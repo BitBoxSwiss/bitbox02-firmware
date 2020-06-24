@@ -70,46 +70,11 @@ static void _will_mock_backup_queries(const uint32_t seed_birthdate, const uint8
     }
 }
 
-/**
- * Get a directory name for the mock seed. The directory name is the salted hash of the seed.
- * @param[out] dir_name The name of the directory.
- */
-static void _get_directory_name(char* dir_name)
-{
-    uint8_t hmac_seed[HMAC_SHA256_LEN];
-    wally_hmac_sha256(
-        (const unsigned char*)"backup",
-        strlens("backup"),
-        _mock_seed,
-        _mock_seed_length,
-        hmac_seed,
-        HMAC_SHA256_LEN);
-    util_uint8_to_hex(hmac_seed, sizeof(hmac_seed), dir_name);
-}
-
-/**
- * Returns the file name.
- * @param[out] file_name The name of the file which includes a timestamp.
- * @param[in] index The index of the backup.
- */
-static void _get_file_name(char* file_name, uint8_t index)
-{
-    time_t local_timestamp = (time_t)(_current_timestamp);
-    struct tm* local_time = localtime(&local_timestamp);
-    static char local_timestring[100] = {0};
-    strftime(local_timestring, sizeof(local_timestring), "%a_%Y-%m-%dT%H-%M-%SZ", local_time);
-
-    snprintf(file_name, 257, "backup_%s_%d.bin", local_timestring, index);
-}
-
 static void _load_first_backup(Backup* backup, BackupData* backup_data)
 {
-    char dir_name[257];
-    _get_directory_name(dir_name);
+    const char* dir_name = "064bc03053f0d86068fd35b6ae0e0371abab9a4fa111b7f17b58f70701e1a495";
 
-    char first_file_name[257];
-    _get_file_name(first_file_name, 0);
-
+    const char* first_file_name = "backup_Wed_2019-03-20T16-22-31Z_0.bin";
     uint8_t read_content[SD_MAX_FILE_SIZE];
     size_t read_length;
     assert_true(sd_load_bin(first_file_name, dir_name, read_content, &read_length));
@@ -159,9 +124,7 @@ static void test_backup_create(void** state)
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
     assert_int_equal(backup_create(_current_timestamp, _mock_seed_birthdate), BACKUP_OK);
 
-    // assert directory name is salted hash of seed
-    char dir_name[257];
-    _get_directory_name(dir_name);
+    const char* dir_name = "064bc03053f0d86068fd35b6ae0e0371abab9a4fa111b7f17b58f70701e1a495";
     assert_true(dir_exists(dir_name));
 
     // assert 3 files in directory, with correct name
@@ -171,7 +134,7 @@ static void test_backup_create(void** state)
     sd_free_list(&list);
     for (uint8_t i = 0; i < 3; i++) {
         char file_name[257];
-        _get_file_name(file_name, i);
+        snprintf(file_name, sizeof(file_name), "backup_Wed_2019-03-20T16-22-31Z_%d.bin", i);
         assert_true(file_exists(file_name, dir_name));
     }
 

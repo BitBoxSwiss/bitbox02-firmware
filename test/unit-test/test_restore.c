@@ -36,11 +36,19 @@
 #define DEVICE_NAME "TestDeviceName"
 static const uint32_t _current_timestamp = 1553098951;
 
+// Based on _current_timestamp
+static const char* _file_name_0 = "backup_Wed_2019-03-20T16-22-31Z_0.bin";
+static const char* _file_name_1 = "backup_Wed_2019-03-20T16-22-31Z_1.bin";
+static const char* _file_name_2 = "backup_Wed_2019-03-20T16-22-31Z_2.bin";
+
 static const uint32_t _mock_seed_birthdate = 1552553498;
 static const uint8_t _mock_seed[32] = {0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10,
                                        11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
                                        22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
 static const uint8_t _mock_seed_length = 32;
+
+// based on _mock_seed.
+static const char* _dir_name = "064bc03053f0d86068fd35b6ae0e0371abab9a4fa111b7f17b58f70701e1a495";
 
 void __wrap_memory_get_seed_birthdate(uint32_t* timestamp_out)
 {
@@ -75,11 +83,6 @@ static encode_data_t _encode_data;
 static uint8_t _backup_bytes[SD_MAX_FILE_SIZE];
 static size_t _num_backup_bytes;
 
-static char _dir_name[257];
-static char _file_name_0[257];
-static char _file_name_1[257];
-static char _file_name_2[257];
-
 static void _will_mock_backup_queries(const uint32_t seed_birthdate, const uint8_t* seed)
 {
     for (int i = 0; i < 3; i++) {
@@ -103,12 +106,7 @@ static int test_setup(void** state)
     assert_int_equal(backup_create(_current_timestamp, _mock_seed_birthdate), BACKUP_OK);
 
     // assert directory name is salted hash of seed
-    _get_directory_name(_mock_seed, _dir_name);
     assert_true(dir_exists(_dir_name));
-
-    _get_file_name(_current_timestamp, _file_name_0, 0);
-    _get_file_name(_current_timestamp, _file_name_1, 1);
-    _get_file_name(_current_timestamp, _file_name_2, 2);
 
     if (!sd_load_bin(_file_name_0, _dir_name, _backup_bytes, &_num_backup_bytes)) {
         fail_msg("Failed to load backup");
@@ -177,7 +175,7 @@ static void _copy_backup_file(const char* from, const char* to)
     assert_true(sd_write_bin(to, _dir_name, buffer, buffer_length, true));
 }
 
-static bool _restore_backup_file(char* file_name)
+static bool _restore_backup_file(const char* file_name)
 {
     uint8_t input[SD_MAX_FILE_SIZE];
     size_t input_length;
@@ -261,8 +259,8 @@ static void test_restore_list_backups_multiple_seeds(void** state)
     assert_int_equal(restore_list_backups(&list_backups_response), RESTORE_OK);
     assert_int_equal(list_backups_response.info_count, 2);
 
-    char new_dir_name[HMAC_SHA256_LEN * 2 + 1];
-    _get_directory_name(new_seed, new_dir_name);
+    // based on new_seed
+    const char* new_dir_name = "76fd7d926f970a55c1997dfe9c804e5c42f3dcd456f0096be6814b12d0da7c0a";
 
     int old_index, new_index;
     if (list_backups_response.info[0].timestamp == _current_timestamp) {

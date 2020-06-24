@@ -801,17 +801,21 @@ app_btc_result_t app_btc_sign_output(
             }
         }
 
-        // This is not a security feature, a transaction that is not rbf
-        // and has a locktime of 0 will not be verified.
-        if (_locktime_applies || _rbf == CONFIRM_LOCKTIME_RBF_ON) {
-            // The RBF nsequence bytes are often set in conjunction with a locktime,
-            // so verify both simultaneously.
-            // There is no RBF in Litecoin, so make sure it is disabled.
-            if (!_coin_params->rbf_support) {
-                _rbf = CONFIRM_LOCKTIME_RBF_DISABLED;
-            }
-            if (!apps_btc_confirm_locktime_rbf(_init_request.locktime, _rbf)) {
-                return _error(APP_BTC_ERR_USER_ABORT);
+        // A locktime of 0 will also not be verified, as it's certainly in the past and can't do any
+        // harm.
+        if (_init_request.locktime > 0) {
+            // This is not a security feature, a transaction that is not rbf or has a locktime of 0
+            // will not be verified.
+            if (_locktime_applies || _rbf == CONFIRM_LOCKTIME_RBF_ON) {
+                // The RBF nsequence bytes are often set in conjunction with a locktime,
+                // so verify both simultaneously.
+                // There is no RBF in Litecoin, so make sure it is disabled.
+                if (!_coin_params->rbf_support) {
+                    _rbf = CONFIRM_LOCKTIME_RBF_DISABLED;
+                }
+                if (!apps_btc_confirm_locktime_rbf(_init_request.locktime, _rbf)) {
+                    return _error(APP_BTC_ERR_USER_ABORT);
+                }
             }
         }
 

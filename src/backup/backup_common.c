@@ -110,53 +110,51 @@ backup_error_t backup_fill(
     encode_data_t* encode_data)
 {
     BackupV1* backup_v1 = &backup->backup_v1;
-    for (int i = 0; i < 3; i++) {
-        BackupContent* backup_content = &backup_v1->content;
-        BackupMetaData* backup_metadata = &backup_content->metadata;
-        backup_metadata->timestamp = backup_create_timestamp;
-        backup_metadata->mode = BackupMode_PLAINTEXT;
-        if (sizeof(backup_metadata->name) < MEMORY_DEVICE_NAME_MAX_LEN) {
-            Abort("Not enough room for device name");
-        }
-        util_zero(backup_metadata->name, sizeof(backup_metadata->name));
-        memory_get_device_name(backup_metadata->name);
-        memset(backup_data, 0, sizeof(BackupData));
-
-        snprintf(backup_data->generator, sizeof(backup_data->generator), "%s", generator);
-
-        backup_data->birthdate = seed_birthdate_timestamp;
-
-        if (!keystore_copy_seed(backup_data->seed, &backup_data->seed_length)) {
-            return BACKUP_SEED_INACCESSIBLE;
-        }
-        encode_data->backup_data = backup_data;
-        encode_data->mode = &backup_metadata->mode;
-
-        uint8_t submessage_output[SD_MAX_FILE_SIZE];
-        pb_ostream_t submessage_out_stream =
-            pb_ostream_from_buffer(submessage_output, (unsigned int)SD_MAX_FILE_SIZE);
-
-        // Get the `data` field in the BackupData fields.
-        pb_field_iter_t iter;
-        if (!pb_field_iter_begin(&iter, BackupData_fields, encode_data->backup_data)) {
-            return BACKUP_ERR_ENCODE;
-        }
-        if (!pb_field_iter_find(&iter, BackupContent_data_tag)) {
-            return BACKUP_ERR_ENCODE;
-        }
-
-        // This function is a callback to nanopb when serializing the `data` field.
-        // We call it here manually once more to extract the length.
-        _encode_backup_data(&submessage_out_stream, iter.pos, (void* const*)&encode_data);
-
-        // This length is the serialization of BackupData as protobuf, including the `data` field
-        // tag prefix serialization. See the comment in backup.proto for more details.
-        backup_content->length = submessage_out_stream.bytes_written;
-
-        backup_content->data.arg = encode_data;
-        backup_content->data.funcs.encode = &_encode_backup_data;
-        backup_calculate_checksum(backup_content, backup_data, backup_content->checksum);
-        util_zero(submessage_output, SD_MAX_FILE_SIZE);
+    BackupContent* backup_content = &backup_v1->content;
+    BackupMetaData* backup_metadata = &backup_content->metadata;
+    backup_metadata->timestamp = backup_create_timestamp;
+    backup_metadata->mode = BackupMode_PLAINTEXT;
+    if (sizeof(backup_metadata->name) < MEMORY_DEVICE_NAME_MAX_LEN) {
+        Abort("Not enough room for device name");
     }
+    util_zero(backup_metadata->name, sizeof(backup_metadata->name));
+    memory_get_device_name(backup_metadata->name);
+    memset(backup_data, 0, sizeof(BackupData));
+
+    snprintf(backup_data->generator, sizeof(backup_data->generator), "%s", generator);
+
+    backup_data->birthdate = seed_birthdate_timestamp;
+
+    if (!keystore_copy_seed(backup_data->seed, &backup_data->seed_length)) {
+        return BACKUP_SEED_INACCESSIBLE;
+    }
+    encode_data->backup_data = backup_data;
+    encode_data->mode = &backup_metadata->mode;
+
+    uint8_t submessage_output[SD_MAX_FILE_SIZE];
+    pb_ostream_t submessage_out_stream =
+        pb_ostream_from_buffer(submessage_output, (unsigned int)SD_MAX_FILE_SIZE);
+
+    // Get the `data` field in the BackupData fields.
+    pb_field_iter_t iter;
+    if (!pb_field_iter_begin(&iter, BackupData_fields, encode_data->backup_data)) {
+        return BACKUP_ERR_ENCODE;
+    }
+    if (!pb_field_iter_find(&iter, BackupContent_data_tag)) {
+        return BACKUP_ERR_ENCODE;
+    }
+
+    // This function is a callback to nanopb when serializing the `data` field.
+    // We call it here manually once more to extract the length.
+    _encode_backup_data(&submessage_out_stream, iter.pos, (void* const*)&encode_data);
+
+    // This length is the serialization of BackupData as protobuf, including the `data` field
+    // tag prefix serialization. See the comment in backup.proto for more details.
+    backup_content->length = submessage_out_stream.bytes_written;
+
+    backup_content->data.arg = encode_data;
+    backup_content->data.funcs.encode = &_encode_backup_data;
+    backup_calculate_checksum(backup_content, backup_data, backup_content->checksum);
+    util_zero(submessage_output, SD_MAX_FILE_SIZE);
     return BACKUP_OK;
 }

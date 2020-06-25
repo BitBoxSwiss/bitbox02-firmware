@@ -6,6 +6,7 @@
 #include <sd.h>
 #include <util.h>
 
+#include <pb_common.h>
 #include <pb_encode.h>
 #include <wally_crypto.h>
 
@@ -134,8 +135,22 @@ backup_error_t backup_fill(
         uint8_t submessage_output[SD_MAX_FILE_SIZE];
         pb_ostream_t submessage_out_stream =
             pb_ostream_from_buffer(submessage_output, (unsigned int)SD_MAX_FILE_SIZE);
-        _encode_backup_data(&submessage_out_stream, BackupData_fields, (void* const*)&encode_data);
 
+        // Get the `data` field in the BackupData fields.
+        pb_field_iter_t iter;
+        if (!pb_field_iter_begin(&iter, BackupData_fields, encode_data->backup_data)) {
+            return BACKUP_ERR_ENCODE;
+        }
+        if (!pb_field_iter_find(&iter, BackupContent_data_tag)) {
+            return BACKUP_ERR_ENCODE;
+        }
+
+        // This function is a callback to nanopb when serializing the `data` field.
+        // We call it here manually once more to extract the length.
+        _encode_backup_data(&submessage_out_stream, iter.pos, (void* const*)&encode_data);
+
+        // This length is the serialization of BackupData as protobuf, including the `data` field
+        // tag prefix serialization. See the comment in backup.proto for more details.
         backup_content->length = submessage_out_stream.bytes_written;
 
         backup_content->data.arg = encode_data;

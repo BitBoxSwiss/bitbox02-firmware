@@ -40,6 +40,17 @@ message BackupData {
 message BackupContent {
     bytes checksum = 1;
     BackupMetaData metadata = 2;
+    // length is the length of the `data` field, serialized as
+    // protobuf, prefixed with the serialized field tag of the `data`
+    // field. Counting the prefix in the length is a historical
+    // accident, but it is part of the checksum, so it cannot be
+    // changed anymore, otherwise existing backups could not be loaded
+    // anymore.
+    //
+    // This field is also technically redundant, as protobuf already
+    // encodes the length when serializing the data field. We keep it
+    // for now, as fixing it and dealing with the prefix mismatch
+    // might be more confusing.
     uint32 length = 3;
     bytes data = 4;
 }

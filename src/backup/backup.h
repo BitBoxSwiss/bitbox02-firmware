@@ -15,25 +15,18 @@
 #ifndef _BACKUP_BACKUP_H_
 #define _BACKUP_BACKUP_H_
 
+#include "backup_common.h"
+
 #include <backup.pb.h>
 
-typedef enum {
-    BACKUP_OK,
-    // the backup was successfully created, but the old
-    // backup couldn't be deleted for some reason.
-    BACKUP_STALE,
-    BACKUP_SEED_INACCESSIBLE,
-    BACKUP_ERR_ENCODE,
-    BACKUP_ERR_SD_LIST,
-    BACKUP_ERR_SD_READ,
-    BACKUP_ERR_SD_WRITE,
-    BACKUP_ERR_CHECK,
-} backup_error_t;
+#include <stddef.h>
+#include <stdint.h>
 
 /**
- * enum to string conversion
+ * Encodes the backup as protobuf.
+ * @return the number of bytes written, or 0 if encoding failed.
  */
-const char* backup_error_str(backup_error_t err);
+size_t backup_encode(const Backup* backup, uint32_t max_size, uint8_t* output);
 
 backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_birthdate_timestamp);
 

@@ -17,6 +17,32 @@
 
 #include <backup.pb.h>
 
+typedef enum {
+    BACKUP_OK,
+    // the backup was successfully created, but the old
+    // backup couldn't be deleted for some reason.
+    BACKUP_STALE,
+    BACKUP_SEED_INACCESSIBLE,
+    BACKUP_ERR_ENCODE,
+    BACKUP_ERR_SD_LIST,
+    BACKUP_ERR_SD_READ,
+    BACKUP_ERR_SD_WRITE,
+    BACKUP_ERR_CHECK,
+} backup_error_t;
+
+/**
+ * Data used during encode.
+ */
+typedef struct encode_data {
+    BackupData* backup_data;
+    BackupMode* mode;
+} encode_data_t;
+
+/**
+ * enum to string conversion
+ */
+const char* backup_error_str(backup_error_t err);
+
 void backup_cleanup_backup(Backup* backup);
 void backup_cleanup_backup_data(BackupData* backup_data);
 
@@ -27,5 +53,22 @@ void backup_cleanup_backup_data(BackupData* backup_data);
  * @param[out] hash The SHA256 hash.
  */
 void backup_calculate_checksum(BackupContent* content, BackupData* backup_data, uint8_t* hash);
+
+/**
+ * Fills the backup structure with backup data.
+ * @param[in] backup_create_timestamp The time at which the backup was created.
+ * @param[in] seed_birtdate_timestamp The time at which the seed was created. It is not necessarily
+ * the same as backup_create_timestamp, as a backup of the same seed can be re-created (e.g. on a
+ * second microSD card).
+ * @param[out] backup The backup structure filled with data.
+ * @param[out] backup_data The backup data structure filled with data.
+ * @param[out] encode_data Additional data required for encoding/decoding.
+ */
+backup_error_t backup_fill(
+    uint32_t backup_create_timestamp,
+    uint32_t seed_birthdate_timestamp,
+    Backup* backup,
+    BackupData* backup_data,
+    encode_data_t* encode_data);
 
 #endif

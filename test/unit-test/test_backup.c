@@ -190,7 +190,13 @@ static void test_backup_fixture(void** state)
     encode_data_t encode_data;
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
     assert_int_equal(
-        backup_fill(_current_timestamp, _mock_seed_birthdate, &backup, &backup_data, &encode_data),
+        backup_fill(
+            "v9.0.0",
+            _current_timestamp,
+            _mock_seed_birthdate,
+            &backup,
+            &backup_data,
+            &encode_data),
         BACKUP_OK);
 
     uint8_t encoded[1000] = {0};

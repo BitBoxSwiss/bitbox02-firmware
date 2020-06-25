@@ -56,6 +56,7 @@ void backup_calculate_checksum(BackupContent* content, BackupData* backup_data, 
 
 /**
  * Fills the backup structure with backup data.
+ * @param[in] generator a string identifying the creator of the backup, e.g. the firmware version.
  * @param[in] backup_create_timestamp The time at which the backup was created.
  * @param[in] seed_birtdate_timestamp The time at which the seed was created. It is not necessarily
  * the same as backup_create_timestamp, as a backup of the same seed can be re-created (e.g. on a
@@ -65,6 +66,7 @@ void backup_calculate_checksum(BackupContent* content, BackupData* backup_data, 
  * @param[out] encode_data Additional data required for encoding/decoding.
  */
 backup_error_t backup_fill(
+    const char* generator,
     uint32_t backup_create_timestamp,
     uint32_t seed_birthdate_timestamp,
     Backup* backup,

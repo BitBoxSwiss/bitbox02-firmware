@@ -24,6 +24,7 @@
 #include <memory/memory.h>
 #include <sd.h>
 #include <util.h>
+#include <version.h>
 
 #include <pb_encode.h>
 #include <wally_crypto.h>
@@ -106,7 +107,12 @@ backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_bir
     BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data;
     encode_data_t encode_data;
     backup_error_t res = backup_fill(
-        backup_create_timestamp, seed_birthdate_timestamp, &backup, &backup_data, &encode_data);
+        DIGITAL_BITBOX_VERSION_SHORT,
+        backup_create_timestamp,
+        seed_birthdate_timestamp,
+        &backup,
+        &backup_data,
+        &encode_data);
     if (res != BACKUP_OK) {
         return res;
     }
@@ -167,7 +173,7 @@ backup_error_t backup_check(char* id_out, char* name_out, uint32_t* birthdate_ou
     Backup __attribute__((__cleanup__(backup_cleanup_backup))) backup;
     BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data;
     encode_data_t encode_data;
-    backup_error_t backup_res = backup_fill(0, 0, &backup, &backup_data, &encode_data);
+    backup_error_t backup_res = backup_fill("", 0, 0, &backup, &backup_data, &encode_data);
     if (backup_res != BACKUP_OK) {
         return backup_res;
     }

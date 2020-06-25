@@ -5,7 +5,6 @@
 #include <memory/memory.h>
 #include <sd.h>
 #include <util.h>
-#include <version.h>
 
 #include <pb_encode.h>
 #include <wally_crypto.h>
@@ -102,6 +101,7 @@ static bool _encode_backup_data(pb_ostream_t* ostream, const pb_field_t* field, 
 }
 
 backup_error_t backup_fill(
+    const char* generator,
     uint32_t backup_create_timestamp,
     uint32_t seed_birthdate_timestamp,
     Backup* backup,
@@ -120,8 +120,8 @@ backup_error_t backup_fill(
         util_zero(backup_metadata->name, sizeof(backup_metadata->name));
         memory_get_device_name(backup_metadata->name);
         memset(backup_data, 0, sizeof(BackupData));
-        const char* firmware_v = DIGITAL_BITBOX_VERSION_SHORT;
-        snprintf(backup_data->generator, sizeof(backup_data->generator), "%s", firmware_v);
+
+        snprintf(backup_data->generator, sizeof(backup_data->generator), "%s", generator);
 
         backup_data->birthdate = seed_birthdate_timestamp;
 

@@ -63,11 +63,9 @@ bool __wrap_keystore_copy_seed(uint8_t* seed, uint32_t* length)
 
 static void _will_mock_backup_queries(const uint32_t seed_birthdate, const uint8_t* seed)
 {
-    for (int i = 0; i < 3; i++) {
-        will_return(__wrap_memory_get_device_name, DEVICE_NAME);
-        will_return(__wrap_keystore_copy_seed, _mock_seed_length);
-        will_return(__wrap_keystore_copy_seed, cast_ptr_to_largest_integral_type(seed));
-    }
+    will_return(__wrap_memory_get_device_name, DEVICE_NAME);
+    will_return(__wrap_keystore_copy_seed, _mock_seed_length);
+    will_return(__wrap_keystore_copy_seed, cast_ptr_to_largest_integral_type(seed));
 }
 
 static void _load_first_backup(Backup* backup, BackupData* backup_data)

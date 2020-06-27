@@ -1,3 +1,4 @@
+// Copyright 2019 Shift Cryptosecurity AG
 // Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");

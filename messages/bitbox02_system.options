@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+* mangle_names:M_STRIP_PACKAGE
+
 DeviceInfoResponse.name max_size:64
 DeviceInfoResponse.version max_size:10
 SetDeviceLanguageRequest.language fixed_length:true max_size:5

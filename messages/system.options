@@ -13,6 +13,3 @@
 // limitations under the License.
 
 * mangle_names:M_STRIP_PACKAGE
-
-ElectrumEncryptionKeyRequest.keypath max_count:2
-ElectrumEncryptionKeyResponse.key max_size:500

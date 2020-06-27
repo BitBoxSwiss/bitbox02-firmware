@@ -1,5 +1,6 @@
 
 syntax = "proto3";
+package shiftcrypto.bitbox02;
 
 // Deprecated, last used in v1.0.0
 message PerformAttestationRequest {

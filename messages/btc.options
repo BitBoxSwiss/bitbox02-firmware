@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+* mangle_names:M_STRIP_PACKAGE
+
 // skip `bool has_*` fields for submessages
 // https://github.com/nanopb/nanopb/blob/1fdc916e984b27cc0a3824427f70a15def567a2e/docs/migration.rst#submessages-now-have-has-field-in-proto3-mode
 * proto3_singular_msgs:true

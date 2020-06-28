@@ -21,11 +21,7 @@ TARGETS=$(addprefix ${OUT_DIR}/, $(PROTO_FILES:.proto=_pb2.py))
 
 all: ${TARGETS}
 
-# To avoid protobuf name collisions with other packages used elsewhere like the
-# electrum app, the pb files for Python are generated from a copy
-# of ../../messages where all protos specify a non-empty package directive.
-# The proto files need not be committed to the repo. They are created at build time.
-PY_PROTO_DIR=.proto
+PY_PROTO_DIR=../../messages
 PY_PROTO=$(addprefix ${PY_PROTO_DIR}/,${PROTO_FILES})
 
 # Explicit rules cannot have multiple outputs (it will be interpreted as multiple rules and
@@ -43,13 +39,6 @@ ${TMP_TARGETS}: ${PY_PROTO}
 	sed -i 's/^from \([^.]*_pb2\)/from .\1/g'  ${OUT_DIR}/*.pyi
 	sed -i 's/^import \([^.]*_pb2\) as \([^.]*__pb2\)/from . import \1 as \2/g' ${OUT_DIR}/*.py
 
-# Insert a package name in each protobuf file.
-# There can be only one "syntax = ..." directive in a proto file.
-# So, that's our anchor and a good place to put the package name at.
-${PY_PROTO_DIR}/%: ../../messages/%
-	@mkdir -p $(@D)
-	sed 's/^syntax =.*/&\npackage shiftcrypto.bitbox02;/' $< > $@
-
 release-test: all
 	rm -rf dist/*
 	python3 setup.py sdist bdist_wheel
@@ -62,4 +51,3 @@ release-live: all
 
 clean:
 	rm -f ${TARGETS}
-	rm -rf ${PY_PROTO_DIR}

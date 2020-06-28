@@ -13,6 +13,7 @@
 // limitations under the License.
 
 syntax = "proto3";
+package shiftcrypto.bitbox02;
 
 // Should be sent every X seconds (TBD) unless the firmware already is busy with a command.
 message BitBoxBaseHeartbeatRequest {

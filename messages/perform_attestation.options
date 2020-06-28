@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+* mangle_names:M_STRIP_PACKAGE
+
 PerformAttestationRequest.challenge fixed_length:true max_size:32
 PerformAttestationResponse.bootloader_hash fixed_length:true max_size:32
 PerformAttestationResponse.device_pubkey fixed_length:true max_size:64

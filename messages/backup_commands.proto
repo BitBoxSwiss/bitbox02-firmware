@@ -15,6 +15,7 @@
 // This file is named backup_commands to avoid conflicting header files with top-most backup.proto
 
 syntax = "proto3";
+package shiftcrypto.bitbox02;
 
 message CheckBackupRequest {
     bool silent = 1;

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+* mangle_names:M_STRIP_PACKAGE
+
 ETHPubRequest.keypath max_count:10
 ETHPubRequest.contract_address fixed_length:true max_size:20
 ETHSignRequest.keypath max_count:10

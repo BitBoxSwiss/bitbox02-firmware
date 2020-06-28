@@ -14,7 +14,6 @@ NOTES.md
 bitbox02.egg-info
 /py/bitbox02/build
 /py/bitbox02/dist
-/py/bitbox02/.proto
 
 # Git backup files created on merge conflicts
 *_BACKUP_*

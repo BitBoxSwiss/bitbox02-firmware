@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+* mangle_names:M_STRIP_PACKAGE
+
 CheckBackupResponse.id fixed_length:true max_size:65
 ListBackupsResponse.info max_count:50
 // One backup per seed -> 100 seeds may be backed up per SD card. Adapt this number if it is too small.

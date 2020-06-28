@@ -125,7 +125,7 @@ ENV PATH /opt/lcov-1.14/bin:$PATH
 # Install rust compiler
 ENV PATH /opt/cargo/bin:$PATH
 ENV RUSTUP_HOME=/opt/rustup
-COPY rust-toolchain /tmp/rust-toolchain
+COPY src/rust/rust-toolchain /tmp/rust-toolchain
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain $(cat /tmp/rust-toolchain | tr -d '\r\n\t') -y
 RUN rustup target add thumbv7em-none-eabi
 RUN rustup component add rustfmt

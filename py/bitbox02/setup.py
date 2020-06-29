@@ -36,7 +36,7 @@ def find_version() -> str:
 setup(
     name="bitbox02",
     version=find_version(),
-    author="Shift Cryptosecurity",
+    author="Shift Crypto",
     author_email="support@shiftcrypto.ch",
     packages=setuptools.find_packages(),
     description="Python library for bitbox02 communication",

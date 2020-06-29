@@ -403,14 +403,15 @@ if(NOT CMAKE_CROSSCOMPILING)
         # see src/rust/bitbox02-rust-c/src/lib.rs.
         # https://github.com/rust-lang/rust/issues/66740
         RUSTC_BOOTSTRAP=1
-        ${CARGO} test --all-features --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
+        ${CARGO} test --all-features --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
   add_dependencies(rust-test rust-bindgen)
 
   add_custom_target(rust-clippy
     COMMAND
       # Force clippy to fully re-run. It is bad at figuring out when to run again and when to use caches.
-      ${CARGO} clean --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml --target-dir ${RUST_BINARY_DIR}
+      ${CARGO} clean --target-dir ${RUST_BINARY_DIR}
     COMMAND
       ${CMAKE_COMMAND} -E env
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
@@ -420,7 +421,6 @@ if(NOT CMAKE_CROSSCOMPILING)
         RUSTC_BOOTSTRAP=1
         ${CARGO} clippy
           --all-features
-          --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml
           --target-dir ${RUST_BINARY_DIR}
           --release
           -- # disabled linters:
@@ -431,7 +431,7 @@ if(NOT CMAKE_CROSSCOMPILING)
             -A clippy::single_match
             -A clippy::iter_nth_zero
             -A clippy::redundant_clone
-
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
   add_dependencies(rust-clippy rust-bindgen)
 endif()
@@ -477,25 +477,26 @@ foreach(type ${RUST_LIBS})
   add_custom_target(${type}-rust
     # Build rust library
     COMMAND
-    ${CMAKE_COMMAND} -E env
-    CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
-    RUSTFLAGS=${RUSTFLAGS}
-    # enable nightly features in the stable release - needed to activate alloc_error_handler.
-    # see src/rust/bitbox02-rust-c/src/lib.rs.
-    # https://github.com/rust-lang/rust/issues/66740
-    RUSTC_BOOTSTRAP=1
-    ${CARGO} build --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --features target-${type} --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
-    # Rust packages stdlib functions which we must remove/weaken on the arm target
-    # Currently the removed symbols only clash in device-tests for some reason. Without this command, compiling device tests would result in errors like:
-    # Linking C executable ../../bin/fw_test_usb_cmd_process.elf
-    # /usr/local/bin/../lib/gcc/arm-none-eabi/8.2.1/../../../../arm-none-eabi/bin/ld: /usr/local/bin/../lib/gcc/arm-none-eabi/8.2.1/thumb/v7e-m+fp/softfp/libgcc.a(_arm_addsubdf3.o): in function `__aeabi_dsub':
-    # (.text+0x8): multiple definition of `__aeabi_dsub'; ../../lib/libfirmware_rust_c.a(compiler_builtins-5829be534503bd8e.compiler_builtins.cthmhl66-cgu.175.rcgu.o):/cargo/registry/src/github.com-1ecc6299db9ec823/compiler_builtins-0.1.27/src/macros.rs:226: first defined here
+      ${CMAKE_COMMAND} -E env
+      CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
+      RUSTFLAGS=${RUSTFLAGS}
+      # enable nightly features in the stable release - needed to activate alloc_error_handler.
+      # see src/rust/bitbox02-rust-c/src/lib.rs.
+      # https://github.com/rust-lang/rust/issues/66740
+      RUSTC_BOOTSTRAP=1
+      ${CARGO} build -v --features target-${type} --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
     COMMAND
-    if test "x${RUST_TARGET_ARCH}" = "xthumbv7em-none-eabi" \; then ${CMAKE_OBJCOPY} -W __aeabi_dsub -W __aeabi_dadd -W__aeabi_i2d -W __aeabi_f2d -W __aeabi_dmul ${lib} \; fi
+      # Rust packages stdlib functions which we must remove/weaken on the arm target
+      # Currently the removed symbols only clash in device-tests for some reason. Without this command, compiling device tests would result in errors like:
+      # Linking C executable ../../bin/fw_test_usb_cmd_process.elf
+      # /usr/local/bin/../lib/gcc/arm-none-eabi/8.2.1/../../../../arm-none-eabi/bin/ld: /usr/local/bin/../lib/gcc/arm-none-eabi/8.2.1/thumb/v7e-m+fp/softfp/libgcc.a(_arm_addsubdf3.o): in function `__aeabi_dsub':
+      # (.text+0x8): multiple definition of `__aeabi_dsub'; ../../lib/libfirmware_rust_c.a(compiler_builtins-5829be534503bd8e.compiler_builtins.cthmhl66-cgu.175.rcgu.o):/cargo/registry/src/github.com-1ecc6299db9ec823/compiler_builtins-0.1.27/src/macros.rs:226: first defined here
+      if test "x${RUST_TARGET_ARCH}" = "xthumbv7em-none-eabi" \; then ${CMAKE_OBJCOPY} -W __aeabi_dsub -W __aeabi_dadd -W__aeabi_i2d -W __aeabi_f2d -W __aeabi_dmul ${lib} \; fi
     COMMAND
-    ${CMAKE_COMMAND} -E copy ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
+      ${CMAKE_COMMAND} -E copy ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
     BYPRODUCTS
-    ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
+      ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
+    WORKING_DIRECTORY ${LIBBITBOX02_RUST_SOURCE_DIR}
     )
   add_dependencies(${type}-rust rust-bindgen rust-cbindgen)
   add_library(${type}_rust_c STATIC IMPORTED)
@@ -515,9 +516,10 @@ if(CMAKE_CROSSCOMPILING)
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
       SYSROOT=${CMAKE_SYSROOT}
       INCLUDES="${RUST_INCLUDES}"
-      ${CARGO} doc --document-private-items --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --target-dir ${CMAKE_BINARY_DIR}/docs-rust ${RUST_CARGO_FLAG} --target thumbv7em-none-eabi
+      ${CARGO} doc --document-private-items --target-dir ${CMAKE_BINARY_DIR}/docs-rust ${RUST_CARGO_FLAG} --target thumbv7em-none-eabi
     COMMAND
       ${CMAKE_COMMAND} -E echo "See docs at file://${CMAKE_BINARY_DIR}/docs-rust/thumbv7em-none-eabi/doc/bitbox02_rust/index.html"
+    WORKING_DIRECTORY ${LIBBITBOX02_RUST_SOURCE_DIR}
   )
   add_dependencies(rust-docs rust-bindgen)
 

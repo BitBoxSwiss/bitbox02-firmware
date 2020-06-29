@@ -20,10 +20,6 @@ edition = "2018"
 description = "Idiomatic rust bindings for C code in bitbox02-firmware"
 license = "Apache-2.0"
 
-[profile.dev]
-opt-level = 'z'
-panic = 'abort'
-
 [dependencies]
 bitbox02-sys = {path="../bitbox02-sys"}
 util = {path = "../util"}

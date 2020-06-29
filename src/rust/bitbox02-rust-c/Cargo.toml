@@ -22,16 +22,6 @@ license = "Apache-2.0"
 [lib]
 crate-type = ["staticlib"]
 
-[profile.release]
-debug = true
-opt-level = 'z'
-codegen-units = 1
-panic = 'abort'
-lto = true
-
-[profile.dev]
-opt-level = 'z'
-
 [dependencies]
 bitbox02-rust = { path = "../bitbox02-rust" }
 bitbox02 = { path = "../bitbox02" }

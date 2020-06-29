@@ -15,7 +15,7 @@
 """CLI tool to dump infos about a signed firmware binary"""
 
 try:
-    from bitbox02.bootloader import (
+    from bitbox02.bitbox02.bootloader import (
         parse_signed_firmware,
         SIGDATA_MAGIC_STANDARD,
         SIGDATA_MAGIC_BTCONLY,

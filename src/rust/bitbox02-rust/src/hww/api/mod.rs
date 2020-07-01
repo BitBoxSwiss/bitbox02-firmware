@@ -15,3 +15,6 @@
 mod pb {
     include!("./shiftcrypto.bitbox02.rs");
 }
+
+mod api;
+pub use api::process;

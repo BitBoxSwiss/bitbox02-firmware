@@ -123,22 +123,6 @@ static commander_error_t _api_get_info(DeviceInfoResponse* device_info)
     return COMMANDER_OK;
 }
 
-static commander_error_t _api_set_device_name(const SetDeviceNameRequest* request)
-{
-    const confirm_params_t params = {
-        .title = "Name",
-        .body = request->name,
-        .scrollable = true,
-    };
-    if (!workflow_confirm_blocking(&params)) {
-        return COMMANDER_ERR_USER_ABORT;
-    }
-    if (!memory_set_device_name(request->name)) {
-        return COMMANDER_ERR_MEMORY;
-    }
-    return COMMANDER_OK;
-}
-
 static commander_error_t _api_set_password(const SetPasswordRequest* request)
 {
     if (!workflow_create_seed(request->entropy)) {
@@ -282,9 +266,6 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_device_info_tag:
         response->which_response = Response_device_info_tag;
         return _api_get_info(&(response->response.device_info));
-    case Request_device_name_tag:
-        response->which_response = Response_success_tag;
-        return _api_set_device_name(&(request->request.device_name));
     case Request_set_password_tag:
         response->which_response = Response_success_tag;
         return _api_set_password(&(request->request.set_password));
@@ -401,10 +382,6 @@ void commander(const in_buffer_t* in_buf, buffer_t* out_buf)
 }
 
 #ifdef TESTING
-commander_error_t commander_api_set_device_name(const SetDeviceNameRequest* request)
-{
-    return _api_set_device_name(request);
-}
 commander_error_t commander_api_set_mnemonic_passphrase_enabled(
     const SetMnemonicPassphraseEnabledRequest* request)
 {

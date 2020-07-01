@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub type Error = bitbox02_sys::commander_error_t;
+pub use bitbox02_sys::commander_error_t as Error;
 
 extern crate alloc;
 use alloc::vec::Vec;

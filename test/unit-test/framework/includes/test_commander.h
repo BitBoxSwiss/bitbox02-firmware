@@ -18,7 +18,6 @@
 #include <commander/commander.h>
 #include <hww.pb.h>
 
-commander_error_t commander_api_set_device_name(const SetDeviceNameRequest* request);
 commander_error_t commander_api_set_mnemonic_passphrase_enabled(
     const SetMnemonicPassphraseEnabledRequest* request);
 

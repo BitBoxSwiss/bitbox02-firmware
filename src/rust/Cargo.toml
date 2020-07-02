@@ -33,3 +33,6 @@ lto = true
 
 [profile.dev]
 opt-level = 'z'
+
+[patch.crates-io]
+bytes = { git = "https://github.com/digitalbitbox/bytes.git", branch = "bitbox02-firmware-20200702" }

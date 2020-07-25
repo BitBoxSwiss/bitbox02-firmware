@@ -194,7 +194,7 @@ class SendMessage:
         print("Please Remove SD Card")
         self._device.remove_sdcard()
 
-    def _print_backups(self, backups: Optional[List[bitbox02.Backup]] = None) -> None:
+    def _print_backups(self, backups: Optional[Sequence[bitbox02.Backup]] = None) -> None:
         local_timezone = get_localzone()
         if backups is None:
             backups = list(self._device.list_backups())

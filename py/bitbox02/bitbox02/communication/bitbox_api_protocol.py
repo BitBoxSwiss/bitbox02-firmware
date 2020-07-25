@@ -21,7 +21,7 @@ import base64
 import binascii
 import hashlib
 import time
-from typing import Callable, Optional, List, Dict, Tuple, Union
+from typing import Callable, Optional, Dict, Tuple, Union, Sequence
 from typing_extensions import TypedDict
 
 import ecdsa
@@ -83,7 +83,7 @@ class AttestationPubkeyInfo(TypedDict):
     accepted_bootloader_hash: Optional[bytes]
 
 
-ATTESTATION_PUBKEYS: List[AttestationPubkeyInfo] = [
+ATTESTATION_PUBKEYS: Sequence[AttestationPubkeyInfo] = [
     {
         "pubkey": binascii.unhexlify(
             "04074ff1273b36c24e80fe3d59e0e897a81732d3f8e9cd07e17e9fc06319cd16b"

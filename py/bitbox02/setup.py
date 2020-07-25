@@ -50,6 +50,28 @@ setup(
         "Programming Language :: Python :: 3.6",
     ],
     keywords="digitalbitbox bitbox bitbox02 bitcoin litecoin ethereum erc20 u2f",
+    # https://mypy.readthedocs.io/en/stable/installed_packages.html#installed-packages
+    zip_safe=False,
+    package_data={
+        "bitbox02": ["py.typed"],
+        "bitbox02.bitbox02": ["py.typed"],
+        "bitbox02.bitboxbase": ["py.typed"],
+        "bitbox02.communication": ["py.typed"],
+        "bitbox02.communication.generated": [
+            "backup_commands_pb2.pyi",
+            "bitbox02_system_pb2.pyi",
+            "bitboxbase_pb2.pyi",
+            "btc_pb2.pyi",
+            "common_pb2.pyi",
+            "eth_pb2.pyi",
+            "hww_pb2.pyi",
+            "keystore_pb2.pyi",
+            "mnemonic_pb2.pyi",
+            "perform_attestation_pb2.pyi",
+            "random_number_pb2.pyi",
+            "system_pb2.pyi",
+        ],
+    },
     install_requires=[
         "hidapi>=0.7.99.post21",
         "noiseprotocol>=0.3",

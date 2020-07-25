@@ -19,7 +19,7 @@ import os
 import sys
 import time
 from datetime import datetime
-from typing import Optional, List, Dict, Tuple, Any, Generator, Union
+from typing import Optional, List, Dict, Tuple, Any, Generator, Union, Sequence
 from typing_extensions import TypedDict
 
 from bitbox02.communication import (
@@ -74,8 +74,8 @@ class BTCPrevTxOutputType(TypedDict):
 class BTCPrevTxType(TypedDict):
     version: int
     locktime: int
-    inputs: List[BTCPrevTxInputType]
-    outputs: List[BTCPrevTxOutputType]
+    inputs: Sequence[BTCPrevTxInputType]
+    outputs: Sequence[BTCPrevTxOutputType]
 
 
 class BTCInputType(TypedDict):
@@ -83,7 +83,7 @@ class BTCInputType(TypedDict):
     prev_out_index: int
     prev_out_value: int
     sequence: int
-    keypath: List[int]
+    keypath: Sequence[int]
     script_config_index: int
     prev_tx: BTCPrevTxType
 
@@ -91,7 +91,7 @@ class BTCInputType(TypedDict):
 class BTCOutputInternal:
     # TODO: Use NamedTuple, but not playing well with protobuf types.
 
-    def __init__(self, keypath: List[int], value: int, script_config_index: int):
+    def __init__(self, keypath: Sequence[int], value: int, script_config_index: int):
         """
         keypath: keypath to the change output.
         """
@@ -264,7 +264,7 @@ class BitBox02(BitBoxCommonAPI):
 
     def btc_xpub(
         self,
-        keypath: List[int],
+        keypath: Sequence[int],
         coin: btc.BTCCoin = btc.BTC,
         xpub_type: btc.BTCPubRequest.XPubType = btc.BTCPubRequest.XPUB,
         display: bool = True,
@@ -282,7 +282,7 @@ class BitBox02(BitBoxCommonAPI):
 
     def btc_address(
         self,
-        keypath: List[int],
+        keypath: Sequence[int],
         coin: btc.BTCCoin = btc.BTC,
         script_config: btc.BTCScriptConfig = btc.BTCScriptConfig(
             simple_type=btc.BTCScriptConfig.P2WPKH
@@ -303,7 +303,7 @@ class BitBox02(BitBoxCommonAPI):
         return self._msg_query(request).pub.pub
 
     def btc_is_script_config_registered(
-        self, coin: btc.BTCCoin, script_config: btc.BTCScriptConfig, keypath: List[int]
+        self, coin: btc.BTCCoin, script_config: btc.BTCScriptConfig, keypath: Sequence[int]
     ) -> bool:
         """
         Returns True if the script config / account is already registered.
@@ -322,7 +322,11 @@ class BitBox02(BitBoxCommonAPI):
         ).is_script_config_registered.is_registered
 
     def btc_register_script_config(
-        self, coin: btc.BTCCoin, script_config: btc.BTCScriptConfig, keypath: List[int], name: str
+        self,
+        coin: btc.BTCCoin,
+        script_config: btc.BTCScriptConfig,
+        keypath: Sequence[int],
+        name: str,
     ) -> None:
         """
         Raises Bitbox02Exception with ERR_USER_ABORT on user abort.
@@ -353,12 +357,12 @@ class BitBox02(BitBoxCommonAPI):
     def btc_sign(
         self,
         coin: btc.BTCCoin,
-        script_configs: List[btc.BTCScriptConfigWithKeypath],
-        inputs: List[BTCInputType],
-        outputs: List[BTCOutputType],
+        script_configs: Sequence[btc.BTCScriptConfigWithKeypath],
+        inputs: Sequence[BTCInputType],
+        outputs: Sequence[BTCOutputType],
         version: int = 1,
         locktime: int = 0,
-    ) -> List[Tuple[int, bytes]]:
+    ) -> Sequence[Tuple[int, bytes]]:
         """
         coin: the first element of all provided keypaths must match the coin:
         - BTC: 0 + HARDENED
@@ -531,7 +535,7 @@ class BitBox02(BitBoxCommonAPI):
         response = self._msg_query(request, expected_response="fingerprint")
         return response.fingerprint.fingerprint
 
-    def electrum_encryption_key(self, keypath: List[int]) -> str:
+    def electrum_encryption_key(self, keypath: Sequence[int]) -> str:
         """
         This call fetches the xpub used for the electrum wallet encryption
         """
@@ -583,7 +587,7 @@ class BitBox02(BitBoxCommonAPI):
 
     def eth_pub(
         self,
-        keypath: List[int],
+        keypath: Sequence[int],
         coin: eth.ETHCoin = eth.ETH,
         output_type: eth.ETHPubRequest.OutputType = eth.ETHPubRequest.ADDRESS,
         display: bool = True,
@@ -607,7 +611,7 @@ class BitBox02(BitBoxCommonAPI):
         return self._eth_msg_query(request, expected_response="pub").pub.pub
 
     def eth_sign(
-        self, transaction: bytes, keypath: List[int], coin: eth.ETHCoin = eth.ETH
+        self, transaction: bytes, keypath: Sequence[int], coin: eth.ETHCoin = eth.ETH
     ) -> bytes:
         """
         transaction should be given as a full rlp encoded eth transaction.
@@ -629,7 +633,9 @@ class BitBox02(BitBoxCommonAPI):
         )
         return self._eth_msg_query(request, expected_response="sign").sign.signature
 
-    def eth_sign_msg(self, msg: bytes, keypath: List[int], coin: eth.ETHCoin = eth.ETH) -> bytes:
+    def eth_sign_msg(
+        self, msg: bytes, keypath: Sequence[int], coin: eth.ETHCoin = eth.ETH
+    ) -> bytes:
         """
         Signs message, the msg will be prefixed with "\x19Ethereum message\n" + len(msg) in the
         hardware

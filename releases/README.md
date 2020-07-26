@@ -41,8 +41,8 @@ gpg --verify assertion-benma.sig assertion.txt
 A valid signature means that the signer confirms that they could reproduce the binary from the
 stated version tag.
 
-You can check that the released signed firmware (usually named `firmware.vX.Y.Z.signed.bin` contains
-the unsigned binary with:
+You can check that the released signed firmware (usually named `firmware.vX.Y.Z.signed.bin`)
+contains the unsigned binary with:
 
 ```sh
 ./describe_signed_firmware.py firmware.vX.Y.Z.signed.bin

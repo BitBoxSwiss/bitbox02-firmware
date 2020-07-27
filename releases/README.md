@@ -41,11 +41,30 @@ gpg --verify assertion-benma.sig assertion.txt
 A valid signature means that the signer confirms that they could reproduce the binary from the
 stated version tag.
 
-You can check that the released signed firmware (usually named `firmware.vX.Y.Z.signed.bin` contains
-the unsigned binary with:
+You can check that the released signed firmware (usually named `firmware.vX.Y.Z.signed.bin`)
+contains the unsigned binary with:
 
 ```sh
 ./describe_signed_firmware.py firmware.vX.Y.Z.signed.bin
+```
+
+## Verify the hash as shown by the BitBox02 at startup
+
+When installing new firmware on the BitBox02, an option can be turned on to display the firmware
+hash on the device screen when the BitBox02 is plugged in. The hash shown is a hash of the firmware
+and the firmware version: `sha256d(<version><padded firmware>)`.
+
+It can be verified with the same tool as above. For example:
+
+```sh
+$ ./describe_signed_firmware.py firmware.v9.0.0.signed.bin
+The following information assumes the provided binary was signed correctly; the signatures are not being verified.
+This is a Multi-edition firmware.
+The hash of the unsigned firmware binary is (compare with reproducible build):
+19f692a769b22abe889849d7c2987688c57489a3437e70f649baef825a6788c6
+The monotonic firmware version is: 11
+The hash of the firmware as verified/shown by the bootloader is:
+aae5fd961e552cb40ee9ef0f0060b96fb8a4f13f89168560c156010337f34b6a
 ```
 
 ## Contribute your signature

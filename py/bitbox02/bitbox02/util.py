@@ -13,13 +13,16 @@
 # limitations under the License.
 """Useful functions"""
 
-from typing import Optional, List, Tuple
+from typing import Any, Dict, Optional, List, Tuple
 from pathlib import Path
 import json
 import os
 import binascii
+import base64
+import platform
 
 import base58
+from noise.backends.default.keypairs import KeyPair25519
 
 from .bitbox02 import common
 from .communication import bitbox_api_protocol
@@ -85,7 +88,10 @@ class UserCache:
 
 
 class NoiseConfigUserCache(bitbox_api_protocol.BitBoxNoiseConfig):
-    """A noise config that stores the keys in a file in XDG_CACHE_HOME or ~/.cache"""
+    """
+    A noise config that stores the keys in a file in XDG_CACHE_HOME or ~/.cache.
+    Currently intended as a developer help only (currently no macOS/Windows support).
+    """
 
     def __init__(self, appid: str) -> None:
         """
@@ -141,3 +147,72 @@ class NoiseConfigUserCache(bitbox_api_protocol.BitBoxNoiseConfig):
         data = self._read_cache()
         data.app_static_privkey = privkey
         self._write_cache(data)
+
+
+class BitBoxAppNoiseConfig(bitbox_api_protocol.BitBoxNoiseConfig):
+    """
+    Noise config that reads and stores the noise keys in the same location as the BitBoxApp.
+    This allows a third party BitBox02 integration to re-use the pairing with the BitBoxApp.
+    """
+
+    _DEVICE_NOISE_STATIC_PUBKEYS = "deviceNoiseStaticPubkeys"
+    _APP_NOISE_STATIC_KEYPAIR = "appNoiseStaticKeypair"
+
+    def __init__(self) -> None:
+        system = platform.system()
+        if system == "Linux":
+            folder = Path(
+                os.environ.get(
+                    "XDG_CONFIG_HOME",
+                    # fallback
+                    os.path.join(os.environ["HOME"], ".config"),
+                )
+            )
+        elif system == "Darwin":
+            folder = Path(os.environ["HOME"]) / "Library" / "Application Support"
+        elif system == "Windows":
+            folder = Path(os.environ["APPDATA"])
+        else:
+            raise NotImplementedError("Unknown system: {}".format(system))
+        self._filename = folder / "bitbox" / "bitbox02" / "bitbox02.json"
+
+    def _read(self) -> Any:
+        try:
+            with self._filename.open("r") as fileh:
+                return json.load(fileh)
+        except FileNotFoundError:
+            return {}
+        except json.JSONDecodeError:
+            return {}
+
+    def _write(self, data: Dict[str, object]) -> None:
+        self._filename.parent.mkdir(parents=True, exist_ok=True)
+        with self._filename.open("w") as fileh:
+            json.dump(data, fileh)
+
+    def contains_device_static_pubkey(self, pubkey: bytes) -> bool:
+        data = self._read()
+        return base64.b64encode(pubkey).decode() in data.get(self._DEVICE_NOISE_STATIC_PUBKEYS, [])
+
+    def add_device_static_pubkey(self, pubkey: bytes) -> None:
+        if not self.contains_device_static_pubkey(pubkey):
+            data = self._read()
+            data.setdefault(self._DEVICE_NOISE_STATIC_PUBKEYS, [])
+            data[self._DEVICE_NOISE_STATIC_PUBKEYS].append(base64.b64encode(pubkey).decode())
+            self._write(data)
+
+    def get_app_static_privkey(self) -> Optional[bytes]:
+        data = self._read()
+        if self._APP_NOISE_STATIC_KEYPAIR not in data:
+            return None
+
+        return base64.b64decode(data[self._APP_NOISE_STATIC_KEYPAIR]["private"])
+
+    def set_app_static_privkey(self, privkey: bytes) -> None:
+        data = self._read()
+        pubkey = KeyPair25519.from_private_bytes(privkey).public_bytes
+        data[self._APP_NOISE_STATIC_KEYPAIR] = {
+            "private": base64.b64encode(privkey).decode(),
+            "public": base64.b64encode(pubkey).decode(),
+        }
+        self._write(data)

@@ -53,7 +53,7 @@ async fn confirm_mnemonic_passphrase(passphrase: &str) -> bool {
 
 /// Performs the BIP39 keystore unlock, including unlock animation. If the optional passphrase
 /// feature is enabled, the user will be asked for the passphrase.
-async fn unlock_bip39() {
+pub async fn unlock_bip39() {
     // Empty passphrase by default.
     let mut mnemonic_passphrase = Password::new();
 

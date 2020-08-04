@@ -9,7 +9,6 @@
 #include <pthread.h>
 
 #include <hidapi/hidapi.h>
-#include <mock_workflow.h>
 
 #include "queue.h"
 #include "u2f.h"
@@ -163,10 +162,3 @@ struct hid_device_info* hid_enumerate(unsigned short vendor_id, unsigned short p
 void hid_free_enumeration(struct hid_device_info* devs) {}
 
 #pragma GCC diagnostic pop
-
-void __wrap_workflow_status_blocking(const char* msg, bool status_success) {}
-
-workflow_t* __wrap_workflow_unlock(void(cb)(bool, void*), void* cb_param)
-{
-    return mock_workflow_unlock(5, true, cb, cb_param);
-}

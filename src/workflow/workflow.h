@@ -28,11 +28,6 @@
 void workflow_confirm_dismiss(const char* title, const char* body);
 
 /**
- * Loads the "Select orientation" screen.
- */
-void workflow_start_orientation_screen(void);
-
-/**
  * Typedef for a callback to be executed when a workflow is finishing.
  * This can be used by the parent workflow to obtain information about
  * the executed workflow's result.

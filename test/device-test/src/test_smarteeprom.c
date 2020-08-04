@@ -20,7 +20,6 @@
 #include "memory/smarteeprom.h"
 #include "qtouch.h"
 #include "screen.h"
-#include "ui/screen_process.h"
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -87,13 +86,6 @@ int main(void)
         smarteeprom_setup();
         _screen_print_debug("SmartEEPROM enabled.\nRebooting.", 2000);
         _reset_mcu();
-    }
-    for (;;) {
-        // without this, there is a undefined reference to screen_process linking error. I have no
-        // idea why this would happen here.
-        // - somehow it is LTO-optmized away
-        // - Rust code calls it, which is why there is a reference error.
-        screen_process();
     }
     return 0;
 }

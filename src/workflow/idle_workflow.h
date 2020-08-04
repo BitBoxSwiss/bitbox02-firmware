@@ -15,13 +15,11 @@
 #ifndef __IDLE_WORKFLOW_H
 #define __IDLE_WORKFLOW_H
 
-#include "workflow.h"
-
 /**
  * Base "idle" workflow that runs when nothing else is being done on the device.
  * When started, it will show the logo for a while and then switch
- * to a screen saying "See the BitBox App".
+ * to a screen saying "See the BitBoxApp".
  */
-workflow_t* idle_workflow(void);
+void idle_workflow_blocking(void);
 
 #endif // __IDLE_WORKFLOW_H

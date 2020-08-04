@@ -20,8 +20,8 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::string::String;
-use bitbox02_rust::bb02_async::{spin, Task};
-use bitbox02_rust::workflow::confirm;
+use bitbox02_rust::bb02_async::{block_on, spin, Task};
+use bitbox02_rust::workflow::{confirm, status};
 use core::task::Poll;
 
 enum TaskState<'a, O> {
@@ -122,4 +122,12 @@ pub unsafe extern "C" fn rust_workflow_abort_current() {
     CONFIRM_BODY = None;
     CONFIRM_PARAMS = None;
     CONFIRM_STATE = TaskState::Nothing;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_workflow_status_blocking(
+    msg: crate::util::CStr,
+    status_success: bool,
+) {
+    block_on(status::status(msg.as_ref(), status_success))
 }

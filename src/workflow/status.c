@@ -17,6 +17,7 @@
 #include "blocking.h"
 #include "workflow.h"
 
+#include <rust/rust.h>
 #include <ui/components/status.h>
 #include <ui/screen_stack.h>
 #include <ui/workflow_stack.h>
@@ -80,19 +81,9 @@ workflow_t* workflow_status(
 }
 
 /**
- * Callback used to wrap workflow_status into workflow_status_blocking().
- */
-static void _unlock_cb(void* param)
-{
-    (void)param;
-    workflow_blocking_unblock();
-}
-
-/**
- * Blocking wrapper for workflow_status().
+ * Blocking status.
  */
 void workflow_status_blocking(const char* msg, bool status_success)
 {
-    workflow_stack_start_workflow(workflow_status(msg, status_success, _unlock_cb, NULL));
-    workflow_blocking_block();
+    rust_workflow_status_blocking(rust_util_cstr(msg), status_success);
 }

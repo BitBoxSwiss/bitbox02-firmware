@@ -17,12 +17,12 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory/memory.h>
+#include <rust/rust.h>
 #include <ui/components/trinary_input_string.h>
 #include <ui/graphics/lock_animation.h>
 #include <ui/workflow_stack.h>
 #include <util.h>
 
-#include "blocking.h"
 #include "get_mnemonic_passphrase.h"
 #include "workflow.h"
 
@@ -92,14 +92,7 @@ workflow_t* workflow_unlock_bip39(void (*callback)(void* param), void* callback_
     return result;
 }
 
-static void _unlock_cb(void* param)
-{
-    (void)param;
-    workflow_blocking_unblock();
-}
-
 void workflow_unlock_bip39_blocking(void)
 {
-    workflow_stack_start_workflow(workflow_unlock_bip39(_unlock_cb, NULL));
-    workflow_blocking_block();
+    rust_workflow_status_unlock_bip39_blocking();
 }

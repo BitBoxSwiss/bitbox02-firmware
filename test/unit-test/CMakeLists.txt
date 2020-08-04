@@ -68,7 +68,6 @@ add_library(bitbox
   framework/mock_delay.c
   framework/mock_bitboxbase.c
   framework/mock_workflow.c
-  framework/workflows/workflow_status.c
   framework/btc_util.c
 )
 
@@ -228,8 +227,6 @@ set(TEST_LIST
    "-Wl,--wrap=workflow_confirm_blocking,--wrap=memory_set_mnemonic_passphrase_enabled"
    workflow_blocking
    "-Wl,--wrap=screen_process"
-   workflow_status
-   "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=status_create,--wrap=workflow_blocking_block,--wrap=workflow_blocking_unblock"
    workflow_cancel
    "-Wl,--wrap=ui_screen_stack_push,--wrap=ui_screen_stack_pop,--wrap=workflow_blocking_unblock,--wrap=workflow_blocking_block,--wrap=workflow_confirm_blocking,--wrap=workflow_status_blocking"
    ugui

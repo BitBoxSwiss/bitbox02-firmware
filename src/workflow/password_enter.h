@@ -22,22 +22,6 @@
 #include <stdbool.h>
 
 /**
- * Creates a new enter password workflow.
- *
- * @param[in] title title screen
- * @param[in] special_chars make the special characters keyboard available.
- * @param[in] callback Function to be invoked when the password is ready.
- *            It will receive a pointer to the password and the user-defined parameter.
- * @param[in] callback_param User-defined parameter that will be passed to the callback.
- * @return workflow_t object ready to be started.
- */
-workflow_t* password_enter(
-    const char* title,
-    bool special_chars,
-    void callback(const char* password, void* param),
-    void* callback_param);
-
-/**
  * Starts the enter password workflow.
  * This call blocks.
  * @param[in] title screen

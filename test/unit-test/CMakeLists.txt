@@ -67,7 +67,6 @@ add_library(bitbox
   framework/mock_leds.c
   framework/mock_delay.c
   framework/mock_bitboxbase.c
-  framework/mock_workflow.c
   framework/btc_util.c
 )
 
@@ -262,16 +261,10 @@ endforeach()
 # They are copied from https://github.com/google/u2f-ref-code/tree/master/u2f-tests/HID
 set(U2F_TESTS
    u2f_standard
-   "-Wl,--wrap=workflow_unlock"
    u2f_hid
-   "-Wl,--wrap=workflow_status_create"
 )
 list(LENGTH U2F_TESTS U2F_TESTS_LEN)
-math(EXPR U2F_TESTS_LEN ${U2F_TESTS_LEN}-1)
-foreach(I RANGE 0 ${U2F_TESTS_LEN} 2)
-  math(EXPR I2 ${I}+1)
-  list(GET U2F_TESTS ${I} TEST_NAME)
-  list(GET U2F_TESTS ${I2} TEST_LINK_ARGS)
+foreach(TEST_NAME ${U2F_TESTS})
   set(EXE test_${TEST_NAME})
 
   # This tests link to our code
@@ -285,7 +278,6 @@ foreach(I RANGE 0 ${U2F_TESTS_LEN} 2)
     -Wl,--end-group
     u2f-util
     ${CMOCKA_LIBRARIES}
-    ${TEST_LINK_ARGS}
   )
   target_compile_definitions(${EXE} PRIVATE "TESTING")
   add_test(NAME test_${TEST_NAME} COMMAND ${EXE})

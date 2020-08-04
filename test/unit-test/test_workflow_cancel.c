@@ -24,7 +24,6 @@
 #include <ui/component.h>
 #include <ui/components/confirm.h>
 #include <workflow/blocking.h>
-#include <workflow/mock_status.h>
 #include <workflow/workflow.h>
 
 bool __wrap_workflow_confirm_blocking(const confirm_params_t* params)
@@ -33,16 +32,6 @@ bool __wrap_workflow_confirm_blocking(const confirm_params_t* params)
     assert_false(params->accept_only);
     return mock();
 }
-
-#if 0
-USE_RESULT
-workflow_t* __wrap_workflow_status(const char* msg, bool status_success, void (*callback)(void*), void* cb_param)
-{
-    printf("OILALA");
-    assert_false(status_success);
-    return mock_workflow_status(callback, cb_param);
-}
-#endif
 
 void __wrap_workflow_status_blocking(const char* msg, bool status_success)
 {

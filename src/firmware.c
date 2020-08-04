@@ -17,12 +17,14 @@
 #include "firmware_main_loop.h"
 #include "hardfault.h"
 #include "memory/bitbox02_smarteeprom.h"
+#include "platform/platform_config.h"
 #include "platform_init.h"
 #include "qtouch.h"
 #include "screen.h"
 #include "ui/screen_stack.h"
 #include "ui/workflow_stack.h"
 #include "util.h"
+#include "workflow/idle_workflow.h"
 #include "workflow/orientation_screen.h"
 
 uint32_t __stack_chk_guard = 0;
@@ -39,7 +41,10 @@ int main(void)
     common_main();
     bitbox02_smarteeprom_init();
     traceln("%s", "Device initialized");
-    workflow_stack_start_workflow(orientation_screen());
+#if PLATFORM_BITBOX02 == 1
+    orientation_screen_blocking();
+#endif
+    workflow_stack_start_workflow(idle_workflow());
     firmware_main_loop();
     return 0;
 }

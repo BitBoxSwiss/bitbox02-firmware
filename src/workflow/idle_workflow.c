@@ -20,9 +20,7 @@
 #include <hardfault.h>
 #include <hww.h>
 #include <platform_config.h>
-#include <ui/components/confirm.h>
 #include <ui/components/info_centered.h>
-#include <ui/components/show_logo.h>
 #include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 #if PLATFORM_BITBOXBASE == 1
@@ -47,8 +45,6 @@ static void _idle_workflow_init_communication(void)
 #elif PLATFORM_BITBOX02 == 1
     usb_start(hww_setup);
 #endif
-    ui_screen_stack_pop();
-    ui_screen_stack_cleanup();
     ui_screen_stack_push(info_centered_create("See the BitBoxApp", NULL));
 }
 
@@ -69,7 +65,6 @@ static void _idle_workflow_init(workflow_t* self)
     idle_workflow_data_t* data = (idle_workflow_data_t*)self->data;
     data->delay_counter = 0;
     data->initialized = 0;
-    ui_screen_stack_push(show_logo_create());
 }
 
 static void _idle_workflow_cleanup(workflow_t* self)

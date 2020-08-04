@@ -18,7 +18,6 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <string.h>
-#include <ui/workflow_stack.h>
 
 #include <stdio.h>
 
@@ -41,7 +40,7 @@ keystore_error_t workflow_unlock_and_handle_error(const char* password)
         } else {
             snprintf(msg, sizeof(msg), "Wrong password\n%d tries remain", remaining_attempts);
         }
-        workflow_stack_start_workflow(workflow_status(msg, false, NULL, NULL));
+        workflow_status_blocking(msg, false);
         break;
     }
     default:

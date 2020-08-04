@@ -13,72 +13,7 @@
 // limitations under the License.
 
 #include "status.h"
-
-#include "blocking.h"
-#include "workflow.h"
-
 #include <rust/rust.h>
-#include <ui/components/status.h>
-#include <ui/screen_stack.h>
-#include <ui/workflow_stack.h>
-#include <util.h>
-
-typedef struct {
-    char* msg;
-    bool status_success;
-    bool finished;
-    void (*callback)(void*);
-    void* callback_param;
-} data_t;
-
-/**
- * Invoked when the status expired.
- */
-static void _status_cb(void* param)
-{
-    data_t* data = (data_t*)param;
-    data->finished = true;
-}
-
-static void _workflow_status_init(workflow_t* self)
-{
-    data_t* data = (data_t*)self->data;
-    ui_screen_stack_push(status_create(data->msg, data->status_success, _status_cb, data));
-}
-
-static void _workflow_status_cleanup(workflow_t* self)
-{
-    data_t* data = (data_t*)self->data;
-    ui_screen_stack_pop();
-    free(data->msg);
-}
-
-static void _workflow_status_spin(workflow_t* self)
-{
-    data_t* data = (data_t*)self->data;
-    if (data->finished) {
-        if (data->callback) {
-            data->callback(data->callback_param);
-        }
-        workflow_stack_stop_workflow();
-    }
-}
-
-workflow_t* workflow_status(
-    const char* msg,
-    bool status_success,
-    void (*callback)(void*),
-    void* cb_param)
-{
-    workflow_t* result = workflow_allocate(
-        _workflow_status_init, _workflow_status_cleanup, _workflow_status_spin, sizeof(data_t));
-    data_t* data = (data_t*)result->data;
-    data->msg = util_strdup(msg);
-    data->status_success = status_success;
-    data->callback = callback;
-    data->callback_param = cb_param;
-    return result;
-}
 
 /**
  * Blocking status.

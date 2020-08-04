@@ -25,12 +25,11 @@ static void _run_blocking_ui(bool (*is_done)(void))
         Abort("is_done function\nis NULL.");
     }
     while (!is_done()) {
-        workflow_t* workflow = workflow_stack_top();
-        if (!workflow) {
-            Abort("NULL workflow in _run_blocking_ui");
-        }
         screen_process();
-        workflow->spin(workflow);
+        workflow_t* workflow = workflow_stack_top();
+        if (workflow) {
+            workflow->spin(workflow);
+        }
     }
 }
 

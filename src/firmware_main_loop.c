@@ -30,16 +30,15 @@ void firmware_main_loop(void)
 {
     while (1) {
         workflow_t* workflow = workflow_stack_top();
-        if (!workflow) {
-            Abort("NULL workflow in main");
-        }
 
         screen_process();
         /* And finally, run the high-level event processing. */
-        if (!workflow->spin) {
-            Abort("NULL workflow spin in main");
+        if (workflow) {
+            if (!workflow->spin) {
+                Abort("NULL workflow spin in main");
+            }
+            workflow->spin(workflow);
         }
-        workflow->spin(workflow);
 
         rust_workflow_spin();
 

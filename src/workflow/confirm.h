@@ -16,21 +16,7 @@
 #define _WORKFLOW_CONFIRM_H_
 
 #include <stdbool.h>
-#include <stdint.h>
 #include <ui/components/confirm.h>
-#include <ui/ugui/ugui.h>
-
-#include "workflow.h"
-
-/**
- * Confirm something with the user.
- * @param[in] params see confirm_params_t for details.
- * @return true if the user accepted, false if the user rejected.
- */
-workflow_t* workflow_confirm(
-    const confirm_params_t* params,
-    void (*callback)(bool, void*),
-    void* callback_param);
 
 /**
  * Confirm something with the user.

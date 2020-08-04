@@ -62,11 +62,14 @@ set(LIBRARIES
   )
 
 set(BITBOX02_LIBRARIES
+  # circular referencing can be resolved in a group, the linker does multiple passes over the group
+  # to resolve all. platform and C are circular (C calls rust_...() functions, Rust calls C
+  # functions).
   -Wl,--start-group
   fatfs
   bitbox02-platform
-  -Wl,--end-group
   bitbox02_rust_c
+  -Wl,--end-group
   ${LIBRARIES}
 )
 
@@ -318,8 +321,8 @@ target_link_libraries(${elf}
     -Wl,--start-group
     fatfs
     bitbox02-platform-ohni-handlers
-    -Wl,--end-group
     bitbox02_rust_c
+    -Wl,--end-group
     ${LIBRARIES}
 )
 

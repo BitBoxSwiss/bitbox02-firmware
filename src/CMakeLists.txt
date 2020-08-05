@@ -134,7 +134,6 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_mnemonic.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/ui_images.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_transaction.c
-    ${CMAKE_SOURCE_DIR}/src/ui/workflow_stack.c
 )
 set(DBB-FIRMWARE-UI-SOURCES ${DBB-FIRMWARE-UI-SOURCES} PARENT_SCOPE)
 

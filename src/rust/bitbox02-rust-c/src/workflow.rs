@@ -140,18 +140,13 @@ pub unsafe extern "C" fn rust_workflow_status_unlock_bip39_blocking() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_workflow_password_enter_blocking(
-    title: crate::util::CStr,
-    special_chars: bool,
+pub unsafe extern "C" fn rust_workflow_password_enter_twice_blocking(
     mut password_out: crate::util::CStrMut,
-) {
+) -> bool {
     let mut password = Password::new();
-    block_on(password::enter(
-        title.as_ref(),
-        special_chars,
-        &mut password,
-    ));
+    let result = block_on(password::enter_twice(&mut password));
     password_out.write_str(password.as_str()).unwrap();
+    result
 }
 
 #[no_mangle]

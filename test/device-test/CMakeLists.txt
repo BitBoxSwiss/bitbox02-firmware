@@ -77,8 +77,8 @@ set(BITBOXBASE_LIBRARIES
   -Wl,--start-group
   fatfs
   bitboxbase-platform
-  -Wl,--end-group
   bitboxbase_rust_c
+  -Wl,--end-group
   ${LIBRARIES}
 )
 

@@ -18,12 +18,8 @@
 
 #include "password_enter.h"
 #include "status.h"
-#include "unlock.h"
-#include "workflow.h"
 #include "workflow/confirm.h"
 
-#include <hardfault.h>
-#include <memory/memory.h>
 #include <util.h>
 
 #include <stdio.h>
@@ -53,15 +49,4 @@ bool password_set(char* password_out)
     snprintf(password_out, SET_PASSWORD_MAX_PASSWORD_LENGTH, "%s", password);
     workflow_status_blocking("Success", true);
     return true;
-}
-
-bool password_check(void)
-{
-    if (!memory_is_seeded()) {
-        Abort("password_check: must be seeded");
-    }
-    char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
-    UTIL_CLEANUP_STR(password);
-    password_enter_blocking("Unlock device", false, password);
-    return workflow_unlock_and_handle_error(password) == KEYSTORE_OK;
 }

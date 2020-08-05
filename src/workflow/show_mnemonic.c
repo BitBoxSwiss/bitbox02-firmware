@@ -23,6 +23,7 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <random.h>
+#include <rust/rust.h>
 #include <ui/components/confirm_mnemonic.h>
 #include <ui/components/scroll_through_all_variants.h>
 #include <util.h>
@@ -137,7 +138,7 @@ static void _cleanup_mnemonic(mnemonic_t* mnemonic)
 
 bool workflow_show_mnemonic_create(void)
 {
-    if (!password_check()) {
+    if (!rust_workflow_unlock_check_blocking()) {
         return false;
     }
 

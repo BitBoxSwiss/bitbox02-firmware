@@ -17,6 +17,7 @@
 #include <backup/backup.h>
 #include <hww.pb.h>
 #include <memory/memory.h>
+#include <rust/rust.h>
 #include <sd.h>
 #include <stdio.h>
 #include <time.h>
@@ -87,7 +88,7 @@ bool workflow_backup_create(const CreateBackupRequest* request)
     sdcard_handle(&sd);
 
     if (memory_is_initialized()) {
-        if (!password_check()) {
+        if (!rust_workflow_unlock_check_blocking()) {
             return false;
         }
     }

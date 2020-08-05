@@ -14,6 +14,6 @@
 
 pub mod confirm;
 pub mod pairing;
-pub mod password_enter;
+pub mod password;
 pub mod status;
 pub mod unlock;

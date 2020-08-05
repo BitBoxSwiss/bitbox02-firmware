@@ -175,3 +175,8 @@ pub unsafe extern "C" fn rust_workflow_confirm_blocking(
     };
     block_on(confirm::confirm(&params))
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_workflow_unlock_check_blocking() -> bool {
+    block_on(unlock::unlock_keystore("Unlock device"))
+}

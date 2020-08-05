@@ -15,12 +15,6 @@
 #ifndef __ORIENTATION_SCREEN_H
 #define __ORIENTATION_SCREEN_H
 
-#include "workflow.h"
-
-/**
- * Workflow to select the screen orientation and start
- * the main bitbox activity afterwards.
- */
-workflow_t* orientation_screen(void);
+void orientation_screen_blocking(void);
 
 #endif // __ORIENTATION_SCREEN_H

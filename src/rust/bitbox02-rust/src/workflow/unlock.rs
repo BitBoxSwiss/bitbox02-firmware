@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use crate::workflow::confirm;
-use crate::workflow::password_enter::password_enter;
+use crate::workflow::password;
 use crate::workflow::status::status;
 use bitbox02::keystore;
 use bitbox02::password::Password;
@@ -61,7 +61,7 @@ pub async fn unlock_bip39() {
     if bitbox02::memory::is_mnemonic_passphrase_enabled() {
         // Loop until the user confirms.
         loop {
-            password_enter("Optional passphrase", true, &mut mnemonic_passphrase).await;
+            password::enter("Optional passphrase", true, &mut mnemonic_passphrase).await;
 
             if confirm_mnemonic_passphrase(mnemonic_passphrase.as_str()).await {
                 break;
@@ -93,7 +93,7 @@ pub async fn unlock() -> Result<(), ()> {
 
     loop {
         let mut password = Password::new();
-        password_enter("Enter password", false, &mut password).await;
+        password::enter("Enter password", false, &mut password).await;
 
         match keystore::unlock(&password) {
             Ok(()) => break,

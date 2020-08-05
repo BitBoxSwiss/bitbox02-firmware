@@ -12,20 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdlib.h>
-#include <string.h>
-
-#include "orientation_screen.h"
-#include "platform_config.h"
-#include "unlock.h"
 #include "workflow.h"
 
-#include <hardfault.h>
-#include <platform_config.h>
 #include <ui/components/confirm.h>
 #include <ui/components/waiting.h>
 #include <ui/screen_stack.h>
-#include <util.h>
 
 static void _confirm_dismiss(bool result, void* param)
 {

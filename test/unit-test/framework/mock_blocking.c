@@ -17,7 +17,6 @@
 #include <stddef.h>
 #include <cmocka.h>
 
-#include <ui/workflow_stack.h>
 #include <workflow/blocking.h>
 #include <workflow/workflow.h>
 
@@ -33,9 +32,6 @@ void __wrap_workflow_blocking_block(void)
         _unblock_func(_unblock_param);
     }
     while (_blocked) {
-        workflow_t* top = workflow_stack_top();
-        assert_non_null(top);
-        top->spin(top);
     }
 }
 

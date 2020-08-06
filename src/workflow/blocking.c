@@ -3,8 +3,6 @@
 #include <hardfault.h>
 #include <stddef.h>
 #include <ui/screen_process.h>
-#include <ui/workflow_stack.h>
-#include <workflow/workflow.h>
 
 static bool _done = true;
 
@@ -26,10 +24,6 @@ static void _run_blocking_ui(bool (*is_done)(void))
     }
     while (!is_done()) {
         screen_process();
-        workflow_t* workflow = workflow_stack_top();
-        if (workflow) {
-            workflow->spin(workflow);
-        }
     }
 }
 

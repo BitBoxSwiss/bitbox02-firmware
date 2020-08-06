@@ -17,7 +17,6 @@
 #include <stddef.h>
 #include <cmocka.h>
 
-#include <ui/workflow_stack.h>
 #include <workflow/blocking.h>
 #include <workflow/workflow.h>
 
@@ -26,29 +25,9 @@ void __wrap_screen_process(void)
     workflow_blocking_unblock();
 }
 
-/**
- * NOP callback for the workflows functions.
- */
-static void _do_nothing(workflow_t* self)
-{
-    check_expected(self);
-}
-
-/**
- * NOP callback for the workflows functions.
- */
-static void _do_nothing_spin(workflow_t* self)
-{
-    (void)self;
-}
-
 static void _test_workflow_blocking(void** state)
 {
-    workflow_t* dummy_workflow = workflow_allocate(_do_nothing, NULL, _do_nothing_spin, 0);
-    expect_value(_do_nothing, self, (uintptr_t)dummy_workflow);
-    workflow_stack_start_workflow(dummy_workflow);
     workflow_blocking_block();
-    workflow_stack_stop_workflow();
 }
 
 int main(void)

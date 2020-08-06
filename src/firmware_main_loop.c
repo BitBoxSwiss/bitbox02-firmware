@@ -20,7 +20,6 @@
 #include "u2f.h"
 #include "ui/screen_process.h"
 #include "ui/screen_stack.h"
-#include "ui/workflow_stack.h"
 #include "usb/usb.h"
 #include "usb/usb_processing.h"
 #include "workflow/workflow.h"
@@ -29,17 +28,8 @@
 void firmware_main_loop(void)
 {
     while (1) {
-        workflow_t* workflow = workflow_stack_top();
-        if (!workflow) {
-            Abort("NULL workflow in main");
-        }
-
         screen_process();
         /* And finally, run the high-level event processing. */
-        if (!workflow->spin) {
-            Abort("NULL workflow spin in main");
-        }
-        workflow->spin(workflow);
 
         rust_workflow_spin();
 

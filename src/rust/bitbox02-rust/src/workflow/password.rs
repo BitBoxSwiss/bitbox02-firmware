@@ -19,10 +19,10 @@ use core::cell::RefCell;
 /// Example:
 /// ```no_run
 /// let mut pw = Password::new();
-/// password_enter("Enter password", true, &mut pw).await;
+/// enter("Enter password", true, &mut pw).await;
 /// // use pw.
 /// ```
-pub async fn password_enter(title: &str, special_chars: bool, password_out: &mut Password) {
+pub async fn enter(title: &str, special_chars: bool, password_out: &mut Password) {
     let result = RefCell::new(None);
     let mut component =
         bitbox02::ui::trinary_input_string_create_password(title, special_chars, |pw| {

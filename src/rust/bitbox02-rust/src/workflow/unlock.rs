@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use crate::workflow::confirm;
-use crate::workflow::password_enter::password_enter;
+use crate::workflow::password;
 use crate::workflow::status::status;
 use bitbox02::keystore;
 use bitbox02::password::Password;
@@ -51,6 +51,31 @@ async fn confirm_mnemonic_passphrase(passphrase: &str) -> bool {
     confirm::confirm(&params).await
 }
 
+/// Prompts the user for the device password, and returns true if the
+/// keystore was successfully unlocked, or false if the password was
+/// incorrect. In that case, a status is displayed with how many
+/// attempts are remaining until the device resets.
+///
+/// If they keystore is already unlocked, this function does not
+/// change the state and just checks the password.
+pub async fn unlock_keystore(title: &str) -> bool {
+    let mut password = Password::new();
+    password::enter(title, false, &mut password).await;
+
+    match keystore::unlock(&password) {
+        Ok(()) => true,
+        Err(keystore::Error::IncorrectPassword { remaining_attempts }) => {
+            let msg = match remaining_attempts {
+                1 => format!("Wrong password\n1 try remains"),
+                n => format!("Wrong password\n{} tries remain", n),
+            };
+            status(&msg, false).await;
+            false
+        }
+        _ => panic!("keystore unlock failed"),
+    }
+}
+
 /// Performs the BIP39 keystore unlock, including unlock animation. If the optional passphrase
 /// feature is enabled, the user will be asked for the passphrase.
 pub async fn unlock_bip39() {
@@ -61,7 +86,7 @@ pub async fn unlock_bip39() {
     if bitbox02::memory::is_mnemonic_passphrase_enabled() {
         // Loop until the user confirms.
         loop {
-            password_enter("Optional passphrase", true, &mut mnemonic_passphrase).await;
+            password::enter("Optional passphrase", true, &mut mnemonic_passphrase).await;
 
             if confirm_mnemonic_passphrase(mnemonic_passphrase.as_str()).await {
                 break;
@@ -91,26 +116,9 @@ pub async fn unlock() -> Result<(), ()> {
         return Ok(());
     }
 
-    loop {
-        let mut password = Password::new();
-        password_enter("Enter password", false, &mut password).await;
+    // Loop unlock until the password is correct or the device resets.
+    while !unlock_keystore("Enter password").await {}
 
-        match keystore::unlock(&password) {
-            Ok(()) => break,
-            Err(keystore::Error::IncorrectPassword { remaining_attempts }) => {
-                if remaining_attempts == 1 {
-                    status("Wrong password\n1 try remains", false).await;
-                } else {
-                    status(
-                        &format!("Wrong password\n{} tries remain", remaining_attempts),
-                        false,
-                    )
-                    .await;
-                };
-            }
-            _ => panic!("keystore unlock failed"),
-        }
-    }
     unlock_bip39().await;
     Ok(())
 }

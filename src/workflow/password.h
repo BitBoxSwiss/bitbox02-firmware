@@ -28,9 +28,4 @@
  */
 USE_RESULT bool password_set(char* password_out);
 
-/**
- * Promps the user for the password and returns true if the password is the valid keystore password.
- */
-USE_RESULT bool password_check(void);
-
 #endif

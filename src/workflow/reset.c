@@ -18,10 +18,11 @@
 #include "workflow.h"
 
 #include <reset.h>
+#include <rust/rust.h>
 
 bool workflow_reset(void)
 {
-    if (!password_check()) {
+    if (!rust_workflow_unlock_check_blocking()) {
         return false;
     }
     const confirm_params_t params = {

@@ -45,11 +45,8 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm_time.c
   ${CMAKE_SOURCE_DIR}/src/workflow/create_seed.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/get_mnemonic_passphrase.c
   ${CMAKE_SOURCE_DIR}/src/workflow/idle_workflow.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/pairing.c
   ${CMAKE_SOURCE_DIR}/src/workflow/password.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/password_enter.c
   ${CMAKE_SOURCE_DIR}/src/workflow/reboot.c
   ${CMAKE_SOURCE_DIR}/src/workflow/reset.c
   ${CMAKE_SOURCE_DIR}/src/workflow/restore.c
@@ -59,7 +56,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/orientation_screen.c
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c
   ${CMAKE_SOURCE_DIR}/src/workflow/trinary_input.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/unlock.c
   ${CMAKE_SOURCE_DIR}/src/workflow/unlock_bip39.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_pub.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
@@ -113,7 +109,6 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/components/trinary_choice.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/trinary_input_char.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/trinary_input_string.c
-    ${CMAKE_SOURCE_DIR}/src/ui/components/show_logo.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/waiting.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/entry_screen.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/knight_rider.c
@@ -137,7 +132,6 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_mnemonic.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/ui_images.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_transaction.c
-    ${CMAKE_SOURCE_DIR}/src/ui/workflow_stack.c
 )
 set(DBB-FIRMWARE-UI-SOURCES ${DBB-FIRMWARE-UI-SOURCES} PARENT_SCOPE)
 
@@ -375,6 +369,7 @@ add_custom_target(rust-bindgen
     --whitelist-function wally_sha256
     --whitelist-function random_32_bytes_mcu
     --whitelist-type component_t
+    --whitelist-type confirm_params_t
     --whitelist-type commander_error_t
     --rustified-enum commander_error_t
     --whitelist-function commander

@@ -17,14 +17,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <hardfault.h>
 #include <hww.h>
 #include <platform_config.h>
-#include <ui/components/confirm.h>
 #include <ui/components/info_centered.h>
-#include <ui/components/show_logo.h>
-#include <ui/screen_process.h>
+#include <ui/components/waiting.h>
 #include <ui/screen_stack.h>
+#include <ui/ugui/ugui.h>
+
 #if PLATFORM_BITBOXBASE == 1
 #include <usart/usart.h>
 #elif PLATFORM_BITBOX02 == 1
@@ -32,14 +31,11 @@
 #endif
 #include <util.h>
 
-typedef struct {
-    int delay_counter;
-    bool initialized;
-} idle_workflow_data_t;
+#ifndef TESTING
+#include <hal_delay.h>
+#endif
 
-#define IDLE_WORKFLOW_LOGO_DELAY (200 * SCREEN_FRAME_RATE)
-
-static void _idle_workflow_init_communication(void)
+static void _init_communication(void)
 {
 #if PLATFORM_BITBOXBASE == 1
     usart_start();
@@ -47,42 +43,19 @@ static void _idle_workflow_init_communication(void)
 #elif PLATFORM_BITBOX02 == 1
     usb_start(hww_setup);
 #endif
-    ui_screen_stack_pop();
-    ui_screen_stack_cleanup();
     ui_screen_stack_push(info_centered_create("See the BitBoxApp", NULL));
 }
 
-static void _idle_workflow_spin(workflow_t* self)
+void idle_workflow_blocking(void)
 {
-    idle_workflow_data_t* data = self->data;
-    if (!data->initialized) {
-        data->delay_counter++;
-        if (data->delay_counter == IDLE_WORKFLOW_LOGO_DELAY) {
-            _idle_workflow_init_communication();
-            data->initialized = true;
-        }
-    }
-}
-
-static void _idle_workflow_init(workflow_t* self)
-{
-    idle_workflow_data_t* data = (idle_workflow_data_t*)self->data;
-    data->delay_counter = 0;
-    data->initialized = 0;
-    ui_screen_stack_push(show_logo_create());
-}
-
-static void _idle_workflow_cleanup(workflow_t* self)
-{
-    (void)self;
-    ui_screen_stack_pop();
-}
-
-workflow_t* idle_workflow(void)
-{
-    return workflow_allocate(
-        _idle_workflow_init,
-        _idle_workflow_cleanup,
-        _idle_workflow_spin,
-        sizeof(idle_workflow_data_t));
+    component_t* waiting_screen = waiting_create();
+    UG_ClearBuffer();
+    waiting_screen->f->render(waiting_screen);
+    UG_SendBuffer();
+    waiting_screen->f->cleanup(waiting_screen);
+#ifndef TESTING
+    // Added deliberately as a UX/visual improvement, to show the BB02 logo first.
+    delay_ms(1300);
+#endif
+    _init_communication();
 }

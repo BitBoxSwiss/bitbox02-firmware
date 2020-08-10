@@ -20,8 +20,10 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::string::String;
-use bitbox02_rust::bb02_async::{spin, Task};
-use bitbox02_rust::workflow::confirm;
+use bitbox02::password::Password;
+use bitbox02_rust::bb02_async::{block_on, spin, Task};
+use bitbox02_rust::workflow::{confirm, password, status, unlock};
+use core::fmt::Write;
 use core::task::Poll;
 
 enum TaskState<'a, O> {
@@ -122,4 +124,54 @@ pub unsafe extern "C" fn rust_workflow_abort_current() {
     CONFIRM_BODY = None;
     CONFIRM_PARAMS = None;
     CONFIRM_STATE = TaskState::Nothing;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_workflow_status_blocking(
+    msg: crate::util::CStr,
+    status_success: bool,
+) {
+    block_on(status::status(msg.as_ref(), status_success))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_workflow_status_unlock_bip39_blocking() {
+    block_on(unlock::unlock_bip39())
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_workflow_password_enter_twice_blocking(
+    mut password_out: crate::util::CStrMut,
+) -> bool {
+    let mut password = Password::new();
+    let result = block_on(password::enter_twice(&mut password));
+    password_out.write_str(password.as_str()).unwrap();
+    result
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_workflow_confirm_blocking(
+    params: &bitbox02::confirm_params_t,
+) -> bool {
+    let title = crate::util::rust_util_cstr(params.title);
+    let body = crate::util::rust_util_cstr(params.body);
+    if params.font != core::ptr::null() {
+        panic!("Only default font supported");
+    }
+    let params = confirm::Params {
+        title: title.as_ref(),
+        body: body.as_ref(),
+        font: confirm::Font::Default,
+        scrollable: params.scrollable,
+        longtouch: params.longtouch,
+        accept_only: params.accept_only,
+        accept_is_nextarrow: params.accept_is_nextarrow,
+        display_size: params.display_size as _,
+    };
+    block_on(confirm::confirm(&params))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_workflow_unlock_check_blocking() -> bool {
+    block_on(unlock::unlock_keystore("Unlock device"))
 }

@@ -14,76 +14,25 @@
 
 #include "orientation_screen.h"
 
-#include <string.h>
+#include "blocking.h"
 
-#include "idle_workflow.h"
-#include "workflow.h"
-
-#include <hardfault.h>
 #include <screen.h>
 #include <ui/components/orientation_arrows.h>
 #include <ui/screen_stack.h>
-#include <ui/workflow_stack.h>
-#include <util.h>
 
-typedef struct {
-    bool finished;
-    bool upside_down;
-} orientation_screen_data_t;
-
-#if PLATFORM_BITBOX02 == 1
-/**
- * Called when the "select orientation" screen is over.
- * Switch to the main view.
- */
 static void _select_orientation_done(bool upside_down, void* cb_param)
 {
-    orientation_screen_data_t* data = ((workflow_t*)cb_param)->data;
-    data->finished = true;
-    data->upside_down = upside_down;
+    *(bool*)cb_param = upside_down;
+    workflow_blocking_unblock();
 }
 
-static void _orientation_screen_init(workflow_t* self)
+void orientation_screen_blocking(void)
 {
-    orientation_screen_data_t* data = malloc(sizeof(orientation_screen_data_t));
-    if (!data) {
-        Abort("malloc failed in _orientation_screen_init()");
+    bool upside_down;
+    ui_screen_stack_push(orientation_arrows_create(_select_orientation_done, &upside_down));
+    workflow_blocking_block();
+    ui_screen_stack_pop_and_clean();
+    if (upside_down) {
+        screen_rotate();
     }
-    data->finished = false;
-    self->data = data;
-    component_t* select_orientation = orientation_arrows_create(_select_orientation_done, self);
-    ui_screen_stack_push(select_orientation);
-}
-
-static void _orientation_screen_cleanup(workflow_t* self)
-{
-    (void)self;
-    ui_screen_stack_pop();
-    ui_screen_stack_cleanup();
-}
-
-static void _orientation_screen_spin(workflow_t* self)
-{
-    orientation_screen_data_t* data = self->data;
-    if (data->finished) {
-        if (data->upside_down) {
-            screen_rotate();
-        }
-        workflow_stack_stop_workflow();
-        workflow_stack_start_workflow(idle_workflow());
-    }
-}
-#endif
-
-workflow_t* orientation_screen(void)
-{
-#if PLATFORM_BITBOXBASE == 1
-    return idle_workflow();
-#elif PLATFORM_BITBOX02 == 1
-    return workflow_allocate(
-        _orientation_screen_init,
-        _orientation_screen_cleanup,
-        _orientation_screen_spin,
-        sizeof(orientation_screen_data_t));
-#endif
 }

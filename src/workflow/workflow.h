@@ -28,11 +28,6 @@
 void workflow_confirm_dismiss(const char* title, const char* body);
 
 /**
- * Loads the "Select orientation" screen.
- */
-void workflow_start_orientation_screen(void);
-
-/**
  * Typedef for a callback to be executed when a workflow is finishing.
  * This can be used by the parent workflow to obtain information about
  * the executed workflow's result.
@@ -54,32 +49,5 @@ typedef struct _workflow_t {
     /* Function to get run at every cycle */
     void (*spin)(struct _workflow_t*);
 } workflow_t;
-
-typedef void (*workflow_method)(workflow_t*);
-
-/**
- * Creates a new workflow object with the given methods and initializes empty data for it.
- *
- * @param init Method used to initialize the workflow when it's started.
- * @param cleanup Method used to cleanup resources allocated by the workflow before it is destroyed.
- *                Can be NULL.
- * @param spin Method invoked at every iteration of the event loop, if this workflow is the
- *             currently active one.
- * @param data_size Size of the private data pointer to allocate for this workflow.
- *                  It can be 0, in which case no data is allocated and the data pointer will be
- *                  NULL. If nonzero, data will be allocated automatically and initialized with
- *                  zeros.
- */
-USE_RESULT
-workflow_t* workflow_allocate(
-    workflow_method init,
-    workflow_method cleanup,
-    workflow_method spin,
-    size_t data_size);
-
-/**
- * free()s the given workflow after calling its destructor.
- */
-void workflow_destroy(workflow_t* workflow);
 
 #endif

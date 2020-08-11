@@ -30,6 +30,7 @@
 #include <backup/restore.h>
 #include <sd.h>
 #include <util.h>
+#include <version.h>
 
 #define DEVICE_NAME "TestDeviceName"
 static const uint32_t _current_timestamp = 1553098951;
@@ -94,7 +95,7 @@ static int test_setup(void** state)
 
     assert_int_equal(
         backup_fill(
-            "v9.0.0",
+            DIGITAL_BITBOX_VERSION_SHORT,
             _current_timestamp,
             _mock_seed_birthdate,
             &_backup,

@@ -4077,6 +4077,8014 @@ static const app_eth_erc20_params_t _erc20_params[] = {
             "\xfe\x39\xe6\xa3\x2a\xcd\x2a\xf7\x95\x5c\xb3\xd4\x06\xba\x2b\x55\xc9\x01\xf2\x47",
         .decimals = 18,
     },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "0xBitcoin",
+        .unit = "0xBTC",
+        .contract_address =
+            "\xb6\xed\x76\x44\xc6\x94\x16\xd6\x7b\x52\x2e\x20\xbc\x29\x4a\x9a\x9b\x40\x5b\x31",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "1irstGold",
+        .unit = "1GOLD",
+        .contract_address =
+            "\xda\x41\x29\x91\x9f\x96\x4a\x3a\x52\x6d\x31\x82\xbb\x03\xe6\x44\x9e\x5a\x88\x72",
+        .decimals = 4,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "1Million Token",
+        .unit = "1MT",
+        .contract_address =
+            "\xf0\xbc\x1a\xe4\xef\x7f\xfb\x12\x6a\x83\x47\xd0\x6a\xc6\xf8\xad\xd7\x70\xe1\xce",
+        .decimals = 7,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Uptrennd",
+        .unit = "1UP",
+        .contract_address =
+            "\x07\x59\x72\x55\x91\x0a\x51\x50\x9c\xa4\x69\x56\x8b\x04\x8f\x25\x97\xe7\x25\x04",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "2key.network",
+        .unit = "2KEY",
+        .contract_address =
+            "\xe4\x89\x72\xfc\xd8\x2a\x27\x44\x11\xc0\x18\x34\xe2\xf0\x31\xd4\x37\x7f\xa2\xc0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Crypto Cricket Club",
+        .unit = "3Cs",
+        .contract_address =
+            "\x4f\x56\x22\x12\x52\xd1\x17\xf3\x5e\x2f\x6a\xb9\x37\xa3\xf7\x7c\xad\x38\x93\x4d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "4ART Coin",
+        .unit = "4ART",
+        .contract_address =
+            "\xff\x44\xb5\x71\x9f\x0b\x77\xa9\x95\x16\x36\xfc\x5e\x69\xd3\xa1\xfc\x9e\x7d\x73",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Alpha Token",
+        .unit = "A",
+        .contract_address =
+            "\xff\xc6\x3b\x91\x46\x96\x7a\x1b\xa3\x30\x66\xfb\x05\x7e\xe3\x72\x22\x21\xac\xf0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Abulaba",
+        .unit = "AAA",
+        .contract_address =
+            "\xd9\x38\x13\x7e\x6d\x96\xc7\x2e\x4a\x60\x85\x41\x2a\xda\x2d\xad\x78\xff\x89\xc4",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "AAX Token",
+        .unit = "AAB",
+        .contract_address =
+            "\x68\x6c\x65\x0d\xbc\xfe\xaa\x75\xd0\x9b\x88\x36\x21\xad\x81\x0f\x59\x52\xbd\x5d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Acute Angle Cloud",
+        .unit = "AAC",
+        .contract_address =
+            "\xe7\x5a\xd3\xaa\xb1\x4e\x4b\x0d\xf8\xc5\xda\x42\x86\x60\x8d\xab\xb2\x1b\xd8\x64",
+        .decimals = 5,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Abitshadow Token",
+        .unit = "ABST",
+        .contract_address =
+            "\xa0\xb2\x07\x10\x3f\x76\x4a\x92\x0b\x4a\xf9\xe6\x91\xf5\xbd\x95\x6d\xe1\x4d\xed",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Arbidex",
+        .unit = "ABX",
+        .contract_address =
+            "\x9a\x79\x4d\xc1\x93\x9f\x1d\x78\xfa\x48\x61\x3b\x89\xb8\xf9\xd0\xa2\x0d\xa0\x0e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Volt",
+        .unit = "ACDC",
+        .contract_address =
+            "\xfc\x44\xec\x51\xc8\x0e\x35\xa8\x7b\xc2\x14\x02\x99\xb1\x63\x6e\xc8\x3d\xfb\x04",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ACE (TokenStars)",
+        .unit = "ACE",
+        .contract_address =
+            "\x06\x14\x71\x10\x02\x2b\x76\x8b\xa8\xf9\x9a\x8f\x38\x5d\xf1\x1a\x15\x1a\x9c\xc8",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "AceD",
+        .unit = "ACED",
+        .contract_address =
+            "\x4b\x3a\x0c\x6d\x66\x8b\x43\xf3\xf0\x79\x04\xe1\x24\x32\x86\x59\xb9\x0b\xb4\xca",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Aitheon",
+        .unit = "ACU",
+        .contract_address =
+            "\xd5\x36\xbb\xd5\x41\x4a\x8c\x2b\xee\xd8\x2a\x63\x73\x7b\x93\x27\xd2\xfa\x35\xa6",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Asian Dragon",
+        .unit = "AD",
+        .contract_address =
+            "\xf6\xdb\xe8\x8b\xa5\x5f\x17\x93\xff\x07\x73\xc9\xb1\x27\x53\x00\xf8\x30\x91\x4f",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3X Short Cardano Token",
+        .unit = "ADABEAR",
+        .contract_address =
+            "\xb3\x29\x9d\x4b\xab\x93\xbf\x04\xd5\xb1\x1b\xc4\x9c\xd6\xdf\xad\x1f\x77\xd2\x3f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "adbank",
+        .unit = "ADB",
+        .contract_address =
+            "\x2b\xaa\xc9\x33\x0c\xf9\xac\x47\x9d\x81\x91\x95\x79\x4d\x79\xad\x0c\x76\x16\xe3",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "AdHive",
+        .unit = "ADH",
+        .contract_address =
+            "\xe6\x9a\x35\x3b\x31\x52\xdd\x7b\x70\x6f\xf7\xdd\x40\xfe\x1d\x18\xb7\x80\x2d\x31",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Adelphoi",
+        .unit = "ADL",
+        .contract_address =
+            "\x66\x0e\x71\x48\x37\x85\xf6\x61\x33\x54\x8b\x10\xf6\x92\x6d\xc3\x32\xb0\x6e\x61",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "AEN Smart Token",
+        .unit = "AENS",
+        .contract_address =
+            "\xd3\x8d\xe8\x86\x87\x17\x2b\xde\x44\x07\x55\xb5\x23\x79\x87\xe4\xa8\x7c\x23\xa7",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Agrolot",
+        .unit = "AGLT",
+        .contract_address =
+            "\x72\xc9\xfb\x7e\xd1\x9d\x3c\xe5\x1c\xea\x5c\x56\xb3\xe0\x23\xcd\x91\x8b\xaa\xdf",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "AICON",
+        .unit = "AICO",
+        .contract_address =
+            "\xe7\xfb\x35\x59\x35\x8a\x99\xdf\x54\x46\x6d\x03\x50\xe4\xad\x6d\xc7\x09\x3d\xa3",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "AidCoin",
+        .unit = "AID",
+        .contract_address =
+            "\x37\xe8\x78\x9b\xb9\x99\x6c\xac\x91\x56\xcd\x5f\x5f\xd3\x25\x99\xe6\xb9\x12\x89",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "AIDUS TOKEN",
+        .unit = "AIDUS",
+        .contract_address =
+            "\xa9\x57\x04\x5a\x12\xd2\x70\xe2\xee\x0d\xca\x9a\x33\x40\xc3\x40\xe0\x5d\x46\x70",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "AICHAIN",
+        .unit = "AIT",
+        .contract_address =
+            "\x79\x65\x07\x99\xe7\x89\x9a\x80\x2c\xb9\x6c\x0b\xc3\x3a\x6a\x8d\x4c\xe4\x93\x6c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Aigang",
+        .unit = "AIX",
+        .contract_address =
+            "\x10\x63\xce\x52\x42\x65\xd5\xa3\xa6\x24\xf4\x91\x4a\xcd\x57\x3d\xd8\x9c\xe9\x88",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Akropolis ",
+        .unit = "AKRO",
+        .contract_address =
+            "\x8a\xb7\x40\x40\x63\xec\x4d\xbc\xfd\x45\x98\x21\x59\x92\xdc\x3f\x8e\xc8\x53\xd7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Aludra Network",
+        .unit = "ALD",
+        .contract_address =
+            "\xb3\x39\xfc\xa5\x31\x36\x70\x67\xe9\x8d\x7c\x4f\x93\x03\xff\xea\xdf\xf7\xb8\x81",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3X Short Algorand Token",
+        .unit = "ALGOBEAR",
+        .contract_address =
+            "\x05\x7f\xb1\x0e\x3f\xec\x00\x1a\x40\xe6\xb7\x5d\x3a\x30\xb9\x9e\x23\xe5\x41\x07",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3X Long Algorand Token",
+        .unit = "ALGOBULL",
+        .contract_address =
+            "\x58\x49\x36\x35\x7d\x68\xf5\x14\x3f\x12\xe2\xe6\x4f\x00\x89\xdb\x93\x81\x4d\xad",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "AiLink Token",
+        .unit = "ALI",
+        .contract_address =
+            "\x42\x89\xc0\x43\xa1\x23\x92\xf1\x02\x73\x07\xfb\x58\x27\x2d\x8e\xbd\x85\x39\x12",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ALL BEST ICO",
+        .unit = "ALLBI",
+        .contract_address =
+            "\x65\xac\x08\xc5\x5f\x21\xd4\xa7\x3c\xa1\xd4\x29\xa1\x7a\x68\x72\xb2\x3b\xfd\x55",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Alt.Estate token",
+        .unit = "ALT",
+        .contract_address =
+            "\x41\x9b\x8e\xd1\x55\x18\x0a\x8c\x9c\x64\x14\x5e\x76\xda\xd4\x9c\x0a\x4e\xfb\x97",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ALLY",
+        .unit = "ALY",
+        .contract_address =
+            "\x9d\x56\x86\xea\xde\xa7\x32\x7f\x5a\x0c\x48\x20\xdc\xa9\x04\x57\xa0\xe8\x87\x63",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "AMATEN",
+        .unit = "AMA",
+        .contract_address =
+            "\x18\x30\xdd\x31\x22\x0a\x7f\x76\x88\x9e\xaf\xcc\x57\x58\xee\x52\x1a\xc3\x82\xb2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MicroMoney",
+        .unit = "AMM",
+        .contract_address =
+            "\x8b\x1f\x49\x49\x14\x77\xe0\xfb\x46\xa2\x9f\xef\x53\xf1\xea\x32\x0d\x13\xc3\x49",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Amon",
+        .unit = "AMN",
+        .contract_address =
+            "\x73\x7f\x98\xac\x8c\xa5\x9f\x2c\x68\xad\x65\x8e\x3c\x3d\x8c\x89\x63\xe4\x0a\x4c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "AmonD",
+        .unit = "AMON",
+        .contract_address =
+            "\x00\x05\x9a\xe6\x9c\x16\x22\xa7\x54\x2e\xdc\x15\xe8\xd1\x7b\x06\x0f\xe3\x07\xb6",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Aragon Court",
+        .unit = "ANJ",
+        .contract_address =
+            "\xcd\x62\xb1\xc4\x03\xfa\x76\x1b\xaa\xdf\xc7\x4c\x52\x5c\xe2\xb5\x17\x80\xb1\x84",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Anchor Neural World",
+        .unit = "ANW",
+        .contract_address =
+            "\x7d\xbd\xd9\xda\xfd\xc4\xc1\xc0\x3d\x67\x92\x5a\x4f\x85\xda\xa3\x98\xaf\x32\xb0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "smARTOFGIVING",
+        .unit = "AOG",
+        .contract_address =
+            "\x85\x78\x53\x02\x05\xce\xcb\xe5\xdb\x83\xf7\xf2\x9e\xcf\xee\xc8\x60\xc2\x97\xc2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Alpha Coin",
+        .unit = "APC",
+        .contract_address =
+            "\x15\xbd\xa0\x8c\x3a\xfb\xf5\x95\x5d\x6e\x9b\x23\x5f\xd5\x5a\x1f\xd0\xdb\xc8\x29",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "APIX",
+        .unit = "APIX",
+        .contract_address =
+            "\xf5\x1e\xbf\x9a\x26\xdb\xc0\x2b\x13\xf8\xb3\xa9\x11\x0d\xac\x47\xa4\xd6\x2d\x78",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "apM Coin",
+        .unit = "APM",
+        .contract_address =
+            "\xc8\xc4\x24\xb9\x1d\x8c\xe0\x13\x7b\xab\x4b\x83\x2b\x7f\x7d\x15\x41\x56\xba\x6c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ARAW",
+        .unit = "ARAW",
+        .contract_address =
+            "\x30\x68\x0a\xc0\xa8\xa9\x93\x08\x82\x23\x92\x52\x65\xfd\x7a\x76\xbe\xb8\x7e\x7f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ArbitrageCT",
+        .unit = "ARCT",
+        .contract_address =
+            "\x12\x45\xef\x80\xf4\xd9\xe0\x2e\xd9\x42\x53\x75\xe8\xf6\x49\xb9\x22\x1b\x31\xd8",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ArdCoin",
+        .unit = "ARDX",
+        .contract_address =
+            "\xb8\xe2\xe2\x10\x1e\xd1\x1e\x91\x38\x80\x3c\xd3\xe0\x6e\x16\xdd\x19\x91\x06\x47",
+        .decimals = 2,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Maecenas",
+        .unit = "ART",
+        .contract_address =
+            "\xfe\xc0\xcf\x7f\xe0\x78\xa5\x00\xab\xf1\x5f\x12\x84\x95\x8f\x22\x04\x9c\x2c\x7e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Artis Turba",
+        .unit = "ARTIS",
+        .contract_address =
+            "\x08\x2e\x13\x49\x4f\x12\xeb\xb7\x20\x6f\xbf\x67\xe2\x2a\x6e\x19\x75\xa1\xa6\x69",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ARCS",
+        .unit = "ARX",
+        .contract_address =
+            "\x20\xb1\xa8\xa9\xca\x1c\x73\x02\xb7\xf7\x74\x26\x6c\x49\x1c\x7b\x11\x62\x27\x79",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Askobar Network",
+        .unit = "ASKO",
+        .contract_address =
+            "\xee\xee\x2a\x62\x23\x30\xe6\xd2\x03\x66\x91\xe9\x83\xde\xe8\x73\x30\x58\x86\x03",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ABCC Token",
+        .unit = "AT",
+        .contract_address =
+            "\xbf\x8f\xb9\x19\xa8\xbb\xf2\x8e\x59\x08\x52\xae\xf2\xd2\x84\x49\x4e\xbc\x06\x57",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ATMChain",
+        .unit = "ATM",
+        .contract_address =
+            "\x9b\x11\xef\xca\xaa\x18\x90\xf6\xee\x52\xc6\xbb\x7c\xf8\x15\x3a\xc5\xd7\x41\x39",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Atonomi",
+        .unit = "ATMI",
+        .contract_address =
+            "\x97\xae\xb5\x06\x6e\x1a\x59\x0e\x86\x8b\x51\x14\x57\xbe\xb6\xfe\x99\xd3\x29\xf5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3X Long Cosmos Token",
+        .unit = "ATOMBULL",
+        .contract_address =
+            "\x75\xf0\x03\x8b\x8f\xbf\xcc\xaf\xe2\xab\x9a\x51\x43\x16\x58\x87\x1b\xa5\x18\x2c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Authorship",
+        .unit = "ATS",
+        .contract_address =
+            "\x2d\xae\xe1\xaa\x61\xd6\x0a\x25\x2d\xc8\x05\x64\x49\x9a\x69\x80\x28\x53\x58\x3a",
+        .decimals = 4,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Attila",
+        .unit = "ATT",
+        .contract_address =
+            "\x89\xfb\x92\x72\x40\x75\x0c\x1b\x15\xd4\x74\x3c\xd5\x84\x40\xfc\x5f\x14\xa1\x1c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Aston",
+        .unit = "ATX",
+        .contract_address =
+            "\x1a\x0f\x2a\xb4\x6e\xc6\x30\xf9\xfd\x63\x80\x29\x02\x7b\x55\x2a\xfa\x64\xb9\x4c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Auctus",
+        .unit = "AUC",
+        .contract_address =
+            "\xc1\x2d\x09\x9b\xe3\x15\x67\xad\xd4\xe4\xe4\xd0\xd4\x56\x91\xc3\xf5\x8f\x56\x63",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Afri Union Coin",
+        .unit = "AUC",
+        .contract_address =
+            "\xbe\xea\x28\x90\x77\x58\x89\xc7\x72\x3e\x5c\x0b\x80\x52\x79\x76\x80\x3b\x5a\x99",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Aquila Protocol",
+        .unit = "AUX",
+        .contract_address =
+            "\x42\x3f\x3d\xa1\x66\x47\x00\x30\xa8\x6f\xa7\x62\x80\xb2\xd6\x88\xfc\xe1\xf7\x22",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Aventus",
+        .unit = "AVT",
+        .contract_address =
+            "\x0d\x88\xed\x6e\x74\xbb\xfd\x96\xb8\x31\x23\x16\x38\xb6\x6c\x05\x57\x1e\x82\x4f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Atomic Wallet Coin",
+        .unit = "AWC",
+        .contract_address =
+            "\xad\x22\xf6\x34\x04\xf7\x30\x5e\x47\x13\xcc\xbd\x4f\x29\x6f\x34\x77\x05\x13\xf4",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Axial Entertainment Digital Asset",
+        .unit = "AXL",
+        .contract_address =
+            "\x4f\xac\x0c\xcd\x9e\x2e\xd9\xfd\x46\x2d\x42\xb6\x6f\xb8\x1b\xa9\xa1\xf6\xf2\x5e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "AXPR",
+        .unit = "AXPR",
+        .contract_address =
+            "\xc3\x9e\x62\x6a\x04\xc5\x97\x1d\x77\x0e\x31\x97\x60\xd7\x92\x65\x02\x97\x5e\x47",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Azbit",
+        .unit = "AZ",
+        .contract_address =
+            "\xaa\xaa\xaa\xab\xa2\xea\x3d\xaa\xb0\xa6\xc0\x5f\x1b\x96\x2c\x78\xc9\x83\x6d\x99",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Balancer",
+        .unit = "BAL",
+        .contract_address =
+            "\xba\x10\x00\x00\x62\x5a\x37\x54\x42\x39\x78\xa6\x0c\x93\x17\xc5\x8a\x42\x4e\x3d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bali Coin",
+        .unit = "BALI",
+        .contract_address =
+            "\x01\x3a\x06\x55\x8f\x07\xd9\xe6\xf9\xa0\x0c\x95\xa3\x3f\x3a\x0e\x02\x55\x17\x6b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Banca",
+        .unit = "BANCA",
+        .contract_address =
+            "\x99\x8b\x3b\x82\xbc\x9d\xba\x17\x39\x90\xbe\x7a\xfb\x77\x27\x88\xb5\xac\xb8\xbd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BASIC",
+        .unit = "BASIC",
+        .contract_address =
+            "\xf2\x5c\x91\xc8\x7e\x0b\x1f\xd9\xb4\x06\x4a\xf0\xf4\x27\x15\x7a\xab\x01\x93\xa7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Baz Token",
+        .unit = "BAZT",
+        .contract_address =
+            "\xb0\x20\xed\x54\x65\x18\x31\x87\x8e\x5c\x96\x7e\x09\x53\xa9\x00\x78\x61\x78\xf9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TraDove B2BCoin",
+        .unit = "BBC",
+        .contract_address =
+            "\xe7\xd3\xe4\x41\x3e\x29\xae\x35\xb0\x89\x31\x40\xf4\x50\x09\x65\xc7\x43\x65\xe5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Blue Baikal",
+        .unit = "BBC",
+        .contract_address =
+            "\x67\x5c\xe9\x95\x95\x31\x36\x81\x4c\xb0\x5a\xaa\xa5\xd0\x23\x27\xe7\xdc\x8c\x93",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bigbom",
+        .unit = "BBO",
+        .contract_address =
+            "\x84\xf7\xc4\x4b\x6f\xed\x10\x80\xf6\x47\xe3\x54\xd5\x52\x59\x5b\xe2\xcc\x60\x2f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Block-Chain.com",
+        .unit = "BC",
+        .contract_address =
+            "\x2e\xcb\x13\xa8\xc4\x58\xc3\x79\xc4\xd9\xa7\x25\x9e\x20\x2d\xe0\x3c\x8f\x3d\x19",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Business Credit Alliance Chain",
+        .unit = "BCAC",
+        .contract_address =
+            "\x1a\xbd\xb3\x09\xaa\x59\x2f\x00\xa1\x01\xc5\x45\x16\x8b\xfd\xf9\xa6\xec\x61\xce",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Blockchain Certified Data Token",
+        .unit = "BCDT",
+        .contract_address =
+            "\xac\xfa\x20\x9f\xb7\x3b\xf3\xdd\x5b\xbf\xb1\x10\x1b\x9b\xc9\x99\xc4\x90\x62\xa5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "bitCEO",
+        .unit = "BCEO",
+        .contract_address =
+            "\x19\xca\x83\xa1\x3b\x4c\x4b\xe4\x3f\xa8\x2c\x5e\x41\x5e\x16\xf1\xd8\x6f\x57\xf7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3x Short Bitcoin Cash Token",
+        .unit = "BCHBEAR",
+        .contract_address =
+            "\xa9\xfc\x65\xda\x36\x06\x4c\xe5\x45\xe8\x76\x90\xe0\x6f\x5d\xe1\x0c\x52\xc6\x90",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3x Long Bitcoin Cash Token",
+        .unit = "BCHBULL",
+        .contract_address =
+            "\x4c\x13\x3e\x08\x1d\xfb\x58\x58\xe3\x9c\xca\x74\xe6\x9b\xf6\x03\xd4\x09\xe5\x7a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BitCherry",
+        .unit = "BCHC",
+        .contract_address =
+            "\x2a\xb0\x5b\x91\x5c\x30\x09\x36\x79\x16\x5b\xcd\xba\x9c\x26\xd8\xcd\x8b\xee\x99",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bincentive",
+        .unit = "BCNT",
+        .contract_address =
+            "\x96\x69\x89\x0e\x48\xf3\x30\xac\xd8\x8b\x78\xd6\x3e\x1a\x6b\x34\x82\x65\x2c\xd9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Business Credit Substitute",
+        .unit = "BCS",
+        .contract_address =
+            "\x31\x27\x4d\xb8\xb6\x09\xdf\x99\xe5\x98\x8e\xe5\x27\x07\x16\x43\xb5\x16\x0f\xc3",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BDCC COIN",
+        .unit = "BDCC",
+        .contract_address =
+            "\xc8\x7f\x95\xaa\x26\x9d\xd3\x00\xd9\xf1\xce\x49\xd8\xe1\xfd\x81\x19\xa1\x04\x56",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BitDegree",
+        .unit = "BDG",
+        .contract_address =
+            "\x19\x61\xb3\x33\x19\x69\xed\x52\x77\x07\x51\xfc\x71\x8e\xf5\x30\x83\x8b\x6d\xee",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bidesk",
+        .unit = "BDK",
+        .contract_address =
+            "\xbf\xc1\x50\x2e\xbc\x37\x47\x5b\x94\x0c\xed\x8f\x03\x6b\x91\x01\x8a\x73\xc8\xf6",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BEAT",
+        .unit = "BEAT",
+        .contract_address =
+            "\x2f\xb1\x2b\xcc\xf6\xf5\xdd\x33\x8b\x76\xbe\x78\x4a\x93\xad\xe0\x72\x42\x56\x90",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bee Token",
+        .unit = "BEE",
+        .contract_address =
+            "\x4d\x8f\xc1\x45\x3a\x0f\x35\x9e\x99\xc9\x67\x59\x54\xe6\x56\xd8\x0d\x99\x6f\xbf",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BeeEx",
+        .unit = "BEE",
+        .contract_address =
+            "\x17\x63\xad\x73\x69\x4d\x4d\x64\xfb\x71\x73\x2b\x06\x8e\x32\xac\x72\xa3\x45\xb1",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bela",
+        .unit = "BELA",
+        .contract_address =
+            "\x2e\x98\xa6\x80\x4e\x4b\x6c\x83\x2e\xd0\xca\x87\x6a\x94\x3a\xbd\x34\x00\xb2\x24",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BetProtocol",
+        .unit = "BEPRO",
+        .contract_address =
+            "\x78\x60\x01\xc9\xc5\xca\x6e\x50\x2d\xeb\x8a\x8a\x72\x48\x0d\x21\x47\x89\x1f\x32",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Rentberry",
+        .unit = "BERRY",
+        .contract_address =
+            "\x6a\xeb\x95\xf0\x6c\xda\x84\xca\x34\x5c\x2d\xe0\xf3\xb7\xf9\x69\x23\xa4\x4f\x4c",
+        .decimals = 14,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bitpanda Ecosystem Token",
+        .unit = "BEST",
+        .contract_address =
+            "\x1b\x07\x33\x82\xe6\x34\x11\xe3\xbc\xff\xe9\x0a\xc1\xb9\xa4\x3f\xef\xa1\xec\x6f",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bethereum",
+        .unit = "BETHER",
+        .contract_address =
+            "\x14\xc9\x26\xf2\x29\x00\x44\xb6\x47\xe1\xbf\x20\x72\xe6\x7b\x49\x5e\xff\x19\x05",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BetterBetting",
+        .unit = "BETR",
+        .contract_address =
+            "\x76\x31\x86\xeb\x8d\x48\x56\xd5\x36\xed\x44\x78\x30\x29\x71\x21\x4f\xeb\xc6\xa9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bezop",
+        .unit = "BEZ",
+        .contract_address =
+            "\x8a\x1e\x39\x30\xfd\xe1\xf1\x51\x47\x1c\x36\x8f\xdb\xb3\x9f\x3f\x63\xa6\x5b\x55",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bitfex",
+        .unit = "BFX",
+        .contract_address =
+            "\xdb\x09\x6c\xc1\x9b\x82\x27\xe2\x11\x58\x55\xc5\xb3\x9d\xcc\x24\x74\x70\x01\x3c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BeeStore",
+        .unit = "BHT",
+        .contract_address =
+            "\xa4\xfb\x38\x58\x20\xa9\xee\xf8\x42\xa4\x19\xe0\x8f\x85\x40\xfd\x7d\x1b\xf6\xe8",
+        .decimals = 5,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bilaxy Token",
+        .unit = "BIA",
+        .contract_address =
+            "\x40\xd5\x25\x77\x83\x0e\x01\xaa\xef\xa8\x06\x59\xaa\x90\xee\x8b\x34\x68\x5f\x4e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BIKI",
+        .unit = "BIKI",
+        .contract_address =
+            "\x70\xde\xbc\xda\xb2\xef\x20\xbe\x3d\x1d\xbf\xf6\xa8\x45\xe9\xcc\xb6\xe4\x69\x30",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Birdchain",
+        .unit = "BIRD",
+        .contract_address =
+            "\x02\x6e\x62\xdd\xed\x1a\x6a\xd0\x7d\x93\xd3\x9f\x96\xb9\xea\xbd\x59\x66\x5e\x0d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BitRewards",
+        .unit = "BIT",
+        .contract_address =
+            "\x47\xda\x42\x69\x6a\x86\x6c\xdc\x61\xa4\xc8\x09\xa5\x15\x50\x0a\x24\x29\x09\xc1",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bitcoinus",
+        .unit = "BITS",
+        .contract_address =
+            "\xc3\x8f\x1f\xb4\x9a\xcd\xf2\xf1\x21\x3c\xaf\x33\x19\xf6\xeb\x3e\xa2\xcb\x75\x27",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BITTO",
+        .unit = "BITTO",
+        .contract_address =
+            "\xa1\x01\xe2\x7f\x06\xa9\x79\x85\xb9\x25\xe2\x44\x11\x1b\x61\x56\x0e\xcd\x97\xdb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BitScreener Token",
+        .unit = "BITX",
+        .contract_address =
+            "\xff\x2b\x33\x53\xc3\x01\x5e\x9f\x1f\xbf\x95\xb9\xbd\xa2\x3f\x58\xaa\x7c\xe0\x07",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BIZZCOIN",
+        .unit = "BIZZ",
+        .contract_address =
+            "\x7a\x8c\xa2\xf8\x15\xa2\x60\x66\x01\x58\xa3\x8c\x34\xca\x32\x1a\x36\x05\xec\xfe",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BeeKan",
+        .unit = "BKBT",
+        .contract_address =
+            "\x6a\x27\x34\x84\x83\xd5\x91\x50\xae\x76\xef\x4c\x0f\x36\x22\xa7\x8b\x0c\xa6\x98",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BKEX Token",
+        .unit = "BKK",
+        .contract_address =
+            "\xd0\xbd\x12\xa8\xd5\xeb\xca\x1e\x2f\xa4\x6d\xa5\x9f\x19\x93\xec\x51\xc3\xd7\x5c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Blockcloud",
+        .unit = "BLOC",
+        .contract_address =
+            "\x6f\x91\x9d\x67\x96\x7a\x97\xea\x36\x19\x5a\x23\x46\xd9\x24\x4e\x60\xfe\x0d\xdb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Blue Protocol",
+        .unit = "BLUE",
+        .contract_address =
+            "\x53\x9e\xfe\x69\xbc\xdd\x21\xa8\x3e\xfd\x91\x22\x57\x1a\x64\xcc\x25\xe0\x28\x2b",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BELIEVER",
+        .unit = "BLVR",
+        .contract_address =
+            "\xd1\xef\x9a\x73\x10\xd0\x80\x68\x55\xc6\x72\x28\x8e\xf5\xa1\xba\xb6\x2c\xef\x33",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Balloon-X",
+        .unit = "BLX",
+        .contract_address =
+            "\x48\xfa\x42\xd5\x79\xce\x56\xcc\x27\x97\xe4\xd6\x78\xad\x73\x45\xa2\x79\x99\xb9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Blocery",
+        .unit = "BLY",
+        .contract_address =
+            "\xf8\xad\x7d\xfe\x65\x61\x88\xa2\x3e\x89\xda\x09\x50\x6a\xdf\x7a\xd9\x29\x0d\x5d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BlockMesh",
+        .unit = "BMH",
+        .contract_address =
+            "\xf0\x30\x45\xa4\xc8\x07\x7e\x38\xf3\xb8\xe2\xed\x33\xb8\xae\xe6\x9e\xdf\x86\x9f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bananatok",
+        .unit = "BNA",
+        .contract_address =
+            "\x20\x91\x0e\x5b\x5f\x08\x7f\x64\x39\xdf\xcb\x0d\xda\x4e\x27\xd1\x01\x4a\xc2\xb8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3X Short BNB Token",
+        .unit = "BNBBEAR",
+        .contract_address =
+            "\x6f\xeb\xdf\xc0\xa9\xd9\x50\x2c\x45\x34\x3f\xce\x0d\xf0\x88\x28\xde\xf4\x47\x95",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3X Long BNB Token",
+        .unit = "BNBBULL",
+        .contract_address =
+            "\x9d\x1a\x62\xc2\xad\x99\x01\x97\x68\xb9\x12\x6f\xda\x00\x4a\x99\x52\x85\x3f\x6e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bionic",
+        .unit = "BNC",
+        .contract_address =
+            "\xef\x51\xc9\x37\x7f\xeb\x29\x85\x6e\x61\x62\x5c\xaf\x93\x90\xbd\x0b\x67\xea\x18",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BlockNoteX",
+        .unit = "BNOX",
+        .contract_address =
+            "\x87\x52\xbf\x7a\xd5\x3d\x25\xa4\x16\x5b\x93\x70\xf2\xbe\xcc\x22\xdd\x8a\xe8\x38",
+        .decimals = 2,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BenePit Protocol",
+        .unit = "BNP",
+        .contract_address =
+            "\xd2\x7d\x76\xa1\xba\x55\xce\x5c\x02\x91\xcc\xd0\x4f\xeb\xbe\x79\x3d\x22\xeb\xf4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BNS Token",
+        .unit = "BNS",
+        .contract_address =
+            "\xd9\x96\x03\x5d\xb8\x2c\xae\x33\xba\x1f\x16\xfd\xf2\x3b\x81\x6e\x5e\x9f\xaa\xbb",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bounty0x",
+        .unit = "BNTY",
+        .contract_address =
+            "\xd2\xd6\x15\x86\x83\xae\xe4\xcc\x83\x80\x67\x72\x72\x09\xa0\xaa\xf4\x35\x9d\xe3",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bancacy",
+        .unit = "BNY",
+        .contract_address =
+            "\x86\x14\x9c\x67\xe5\x7c\x74\x9d\x0a\x12\xe6\xd6\xc2\xbf\x1b\x61\x66\x19\xbb\x29",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bob's Repair",
+        .unit = "BOB",
+        .contract_address =
+            "\xdf\x34\x79\x11\x91\x0b\x6c\x9a\x42\x86\xba\x8e\x2e\xe5\xea\x4a\x39\xeb\x21\x34",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BOMB",
+        .unit = "BOMB",
+        .contract_address =
+            "\x1c\x95\xb0\x93\xd6\xc2\x36\xd3\xef\x7c\x79\x6f\xe3\x3f\x9c\xc6\xb8\x60\x67\x14",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bonpay",
+        .unit = "BON",
+        .contract_address =
+            "\xcc\x34\x36\x6e\x38\x42\xca\x1b\xd3\x6c\x1f\x32\x4d\x15\x25\x79\x60\xfc\xc8\x01",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bone",
+        .unit = "BONE",
+        .contract_address =
+            "\x5c\x84\xbc\x60\xa7\x96\x53\x4b\xfe\xc3\x43\x9a\xf0\xe6\xdb\x61\x6a\x96\x63\x35",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bonk",
+        .unit = "BONK",
+        .contract_address =
+            "\x6d\x65\x06\xe6\xf4\x38\xed\xe2\x69\x87\x7a\x0a\x72\x00\x26\x55\x91\x10\xb7\xd5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BOOM",
+        .unit = "BOOM",
+        .contract_address =
+            "\xdb\x7e\xab\x9b\xa6\xbe\x88\xb8\x69\xf7\x38\xf6\xde\xeb\xa9\x6d\x49\xfe\x13\xfd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bounce Token",
+        .unit = "BOT",
+        .contract_address =
+            "\x5b\xea\xba\xeb\xb3\x14\x66\x85\xdd\x74\x17\x6f\x68\xa0\x72\x1f\x91\x29\x7d\x37",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BoutsPro",
+        .unit = "BOUTS",
+        .contract_address =
+            "\x13\x9d\x93\x97\x27\x4b\xb9\xe2\xc2\x9a\x9a\xa8\xaa\x0b\x58\x74\xd3\x0d\x62\xe3",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Blockparty (BOXX Token)",
+        .unit = "BOXX",
+        .contract_address =
+            "\x78\x01\x16\xd9\x1e\x55\x92\xe5\x8a\x3b\x3c\x76\xa3\x51\x57\x1b\x39\xab\xce\xc6",
+        .decimals = 15,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BlackPearl Token",
+        .unit = "BPLC",
+        .contract_address =
+            "\x42\x6f\xc8\xbe\x95\x57\x32\x30\xf6\xe6\xbc\x4a\xf9\x18\x73\xf0\xc6\x7b\x21\xb4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BPOP",
+        .unit = "BPOP",
+        .contract_address =
+            "\x04\x52\xae\xd8\x78\x80\x55\x14\xe2\x8f\xb5\xbd\x0b\x56\xbe\xf9\x21\x76\xe3\x2a",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Blockchain Quotations Index Token",
+        .unit = "BQT",
+        .contract_address =
+            "\x5e\xb8\x7c\xaa\x01\x05\xa6\x3a\xa8\x7a\x36\xc7\xbd\x25\x73\xbd\x13\xe8\x4f\xae",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BROTHER",
+        .unit = "BRAT",
+        .contract_address =
+            "\x9e\x77\xd5\xa1\x25\x1b\x6f\x7d\x45\x67\x22\xa6\xea\xc6\xd2\xd5\x98\x0b\xd8\x91",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Brr",
+        .unit = "BRR",
+        .contract_address =
+            "\x49\xf9\x41\xfa\x7f\x57\x31\xfe\x30\x20\x68\xd7\x9c\x86\x04\xc2\x4c\x5e\x71\x96",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Brazilian Digital Token",
+        .unit = "BRZ",
+        .contract_address =
+            "\x42\x04\x12\xe7\x65\xbf\xa6\xd8\x5a\xaa\xc9\x4b\x4f\x7b\x70\x8c\x89\xbe\x2e\x2b",
+        .decimals = 4,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Braziliex Token",
+        .unit = "BRZX",
+        .contract_address =
+            "\xda\x51\x80\x08\x64\x61\xff\x6e\xeb\x09\x58\x01\x81\xac\x16\x05\x22\xdc\xdc\xd4",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bitsonic",
+        .unit = "BSC",
+        .contract_address =
+            "\xe5\x41\x50\x44\x17\x67\x0f\xb7\x6b\x61\x2b\x41\xb4\x39\x2d\x96\x7a\x19\x56\xc7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BitcoinSoV",
+        .unit = "BSOV",
+        .contract_address =
+            "\x26\x94\x6a\xda\x5e\xcb\x57\xf3\xa1\xf9\x16\x05\x05\x0c\xe4\x5c\x48\x2c\x9e\xb1",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bitsten Token",
+        .unit = "BST",
+        .contract_address =
+            "\xd4\xf6\xf9\xae\x14\x39\x9f\xd5\xeb\x8d\xfc\x77\x25\xf0\x09\x4a\x1a\x7f\x5d\x80",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BitStation",
+        .unit = "BSTN",
+        .contract_address =
+            "\x2f\x84\x72\xdd\x7e\xcf\x7c\xa7\x60\xc8\xf6\xb4\x5d\xb2\x0c\xa7\xcf\x52\xf8\xd7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3x Short Bitcoin SV Token",
+        .unit = "BSVBEAR",
+        .contract_address =
+            "\xce\x49\xc3\xc9\x2b\x33\xa1\x65\x3f\x34\x81\x1a\x9d\x7e\x34\x50\x2b\xf1\x2b\x89",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3x Long Bitcoin SV Token",
+        .unit = "BSVBULL",
+        .contract_address =
+            "\x6e\x13\xa9\xe4\xae\x3d\x06\x78\xe5\x11\xfb\x6d\x2a\xd5\x31\xfc\xf0\xe2\x47\xbf",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BSYS",
+        .unit = "BSYS",
+        .contract_address =
+            "\x30\x04\xcf\x8b\x4e\x28\xd6\x0f\x4e\x30\x5d\xf2\x5a\x57\xcd\x5f\xaf\x37\xb8\xd5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BitBall",
+        .unit = "BTB",
+        .contract_address =
+            "\x06\xe0\xfe\xb0\xd7\x41\x06\xc7\xad\xa8\x49\x77\x54\x07\x4d\x22\x2e\xc6\xbc\xdf",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PieDAO BTC++",
+        .unit = "BTC++",
+        .contract_address =
+            "\x03\x27\x11\x24\x23\xf3\xa6\x8e\xfd\xf1\xfc\xf4\x02\xf6\xc5\xcb\x9f\x7c\x33\xfd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Amun Bitcoin 3x Daily Long",
+        .unit = "BTC3L",
+        .contract_address =
+            "\x7e\x5f\x9f\x24\x8e\x84\xef\x0b\x1f\x63\x58\x63\x23\xe9\x2a\x0d\x91\xb1\x55\x68",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Amun Bitcoin 3x Daily Short",
+        .unit = "BTC3S",
+        .contract_address =
+            "\x11\x48\x66\x18\x69\xd3\x0e\x09\x5f\xf4\xaa\x48\xaa\x8b\x5e\xad\xed\xc7\x5f\x2a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bitcoin Fast",
+        .unit = "BTCF",
+        .contract_address =
+            "\x22\x59\x27\xf8\xfa\x71\xd1\x6e\xe0\x79\x68\xb8\x74\x63\x64\xd1\xd9\xf8\x39\xbd",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BITCOINHEDGE",
+        .unit = "BTCHG",
+        .contract_address =
+            "\x55\x47\x13\x6b\x91\x3b\x68\x88\x15\x96\x27\x5a\xce\x01\xe9\xa5\x89\xc5\xb1\x6b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BTC Lite",
+        .unit = "BTCL",
+        .contract_address =
+            "\x5a\xcd\x19\xb9\xc9\x1e\x59\x6b\x1f\x06\x2f\x18\xe3\xd0\x2d\xa7\xed\x8d\x1e\x50",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bitcoin Red",
+        .unit = "BTCRED",
+        .contract_address =
+            "\x6a\xac\x8c\xb9\x86\x1e\x42\xbf\x82\x59\xf5\xab\xdc\x6a\xe3\xae\x89\x90\x9e\x11",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bitcoin True",
+        .unit = "BTCT",
+        .contract_address =
+            "\x82\x0a\x84\x81\x45\x1e\x89\x3b\xc6\x6d\xce\x50\xc8\x4d\x45\x61\x7c\xac\x37\x05",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bitscoin",
+        .unit = "BTCX",
+        .contract_address =
+            "\x93\x88\xf5\x4f\xa9\x78\xaa\x9e\x24\x39\x5a\x8b\x69\x03\x33\x04\xec\xce\xa4\xdf",
+        .decimals = 4,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BitMax Token",
+        .unit = "BTMX",
+        .contract_address =
+            "\xcc\xa0\xc9\xc3\x83\x07\x66\x49\x60\x4e\xe3\x1b\x20\x24\x8b\xc0\x4f\xdf\x61\xca",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BitNautic Token",
+        .unit = "BTNT",
+        .contract_address =
+            "\xc4\x5d\xbd\xf2\x88\x44\xfd\xb1\x48\x2c\x50\x28\x97\xd4\x33\xac\x08\xd6\xcc\xd0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bitether",
+        .unit = "BTR",
+        .contract_address =
+            "\x49\x9a\x6b\x77\xbc\x25\xc2\x6b\xcf\x82\x65\xe2\x10\x2b\x1b\x3d\xd1\x61\x70\x24",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Biotron",
+        .unit = "BTRN",
+        .contract_address =
+            "\x03\xc7\x80\xcd\x55\x45\x98\x59\x2b\x97\xb7\x25\x6d\xda\xad\x75\x99\x45\xb1\x25",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bitball Treasure",
+        .unit = "BTRS",
+        .contract_address =
+            "\x73\xc9\x27\x5c\x3a\x2d\xd8\x4b\x57\x41\xfd\x59\xae\xbf\x10\x2c\x91\xeb\x03\x3f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BTS Coin",
+        .unit = "BTSC",
+        .contract_address =
+            "\xba\x9e\xca\xa4\xd6\xf2\x2d\x3a\x69\xc4\x1d\xaa\x05\x84\xac\x0e\x24\x18\x92\x5e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Budbo",
+        .unit = "BUBO",
+        .contract_address =
+            "\xcc\xbf\x21\xba\x6e\xf0\x08\x02\xab\x06\x63\x78\x96\xb7\x99\xf7\x10\x1f\x54\xa2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DFOhub",
+        .unit = "BUIDL",
+        .contract_address =
+            "\xd6\xf0\xbb\x2a\x45\x11\x0f\x81\x9e\x90\x8a\x91\x52\x37\xd6\x52\xac\x7c\x5a\xa8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bulleon",
+        .unit = "BUL",
+        .contract_address =
+            "\x07\x75\xc8\x1a\x27\x3b\x35\x5e\x6a\x5b\x76\xe2\x40\xbf\x70\x87\x01\xf0\x02\x79",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3X Long Shitcoin Index Token",
+        .unit = "BULLSHIT",
+        .contract_address =
+            "\xd0\x6b\x25\xf6\x7a\x17\xf1\x2b\x41\xf6\x15\xb3\x4d\x87\xec\xd7\x16\xff\x55\xa0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BunnyToken",
+        .unit = "BUNNY",
+        .contract_address =
+            "\x75\x5e\xb1\x4d\x2f\xef\xf2\x93\x9e\xb3\x02\x6f\x5c\xad\x9d\x03\x77\x5b\x9f\xf4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Blockburn",
+        .unit = "BURN",
+        .contract_address =
+            "\x85\x15\xcd\x0f\x00\xad\x81\x99\x6d\x24\xb9\xa9\xc3\x51\x21\xa3\xb7\x59\xd6\xcd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BitUP Token",
+        .unit = "BUT",
+        .contract_address =
+            "\xb2\xe2\x60\xf1\x24\x06\xc4\x01\x87\x4e\xcc\x96\x08\x93\xc0\xf7\x4c\xd6\xaf\xcd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "1x Long Bitcoin Implied Volatility Token",
+        .unit = "BVOL",
+        .contract_address =
+            "\x81\x82\x46\x63\x35\x3a\x9d\x29\xb0\x1b\x2d\xe9\xdd\x9a\x2b\xb2\x71\xd2\x98\xcd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bittwatt",
+        .unit = "BWT",
+        .contract_address =
+            "\xf5\x3c\x58\x0b\xc4\x06\x54\x05\xbc\x64\x9c\xc0\x77\xff\x4f\x2f\x28\x52\x8f\x4b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Blockchain Exchange Alliance",
+        .unit = "BXA",
+        .contract_address =
+            "\x98\xd8\xd1\x46\xe6\x44\x17\x1c\xd4\x7f\xf8\x58\x89\x87\xb7\xbd\xee\xf7\x2a\x87",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BonusCloud",
+        .unit = "BXC",
+        .contract_address =
+            "\xde\xcf\x7b\xe2\x9f\x88\x32\xe9\xc2\xdd\xf0\x38\x8c\x97\x78\xb8\xba\x76\xaf\x43",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Beaxy",
+        .unit = "BXY",
+        .contract_address =
+            "\x82\x7d\x53\xc8\x17\x0a\xf5\x26\x25\xf4\x14\xbd\xe0\x03\x26\xfc\x8a\x08\x5e\x86",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "bZx Protocol",
+        .unit = "BZRX",
+        .contract_address =
+            "\x56\xd8\x11\x08\x82\x35\xf1\x1c\x89\x20\x69\x8a\x20\x4a\x50\x10\xa7\x88\xf4\xb3",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bloomzed Token",
+        .unit = "BZT",
+        .contract_address =
+            "\x0d\x55\x16\x10\x37\x52\xb3\x95\x4d\x95\x62\x1f\x47\x0a\x82\x61\x15\x1d\xa2\xe4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Carboneum [C8] Token",
+        .unit = "C8",
+        .contract_address =
+            "\xd4\x2d\xeb\xe4\xed\xc9\x2b\xd5\xa3\xfb\xb4\x24\x3e\x1e\xcc\xf6\xd6\x3a\x4a\x5d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Global Crypto Alliance",
+        .unit = "CALL",
+        .contract_address =
+            "\xbb\xe7\x61\xea\x14\x47\xa2\x0b\x75\xaa\x48\x5b\x7b\xca\xd4\x83\x74\x15\xd7\xd7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Cappasity",
+        .unit = "CAPP",
+        .contract_address =
+            "\x04\xf2\xe7\x22\x1f\xdb\x1b\x52\xa6\x81\x69\xb2\x57\x93\xe5\x14\x78\xff\x03\x29",
+        .decimals = 2,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CARAT",
+        .unit = "CARAT",
+        .contract_address =
+            "\x19\xea\x63\x0b\xcb\xc1\xa5\x11\xa1\x6e\x65\xb6\xec\xd4\x47\xc9\x2e\x1c\x08\x7c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Cardstack",
+        .unit = "CARD",
+        .contract_address =
+            "\x95\x4b\x89\x07\x04\x69\x3a\xf2\x42\x61\x3e\xde\xf1\xb6\x03\x82\x5a\xfc\xd7\x08",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BitClave",
+        .unit = "CAT",
+        .contract_address =
+            "\x12\x34\x56\x74\x61\xd3\xf8\xdb\x74\x96\x58\x17\x74\xbd\x86\x9c\x83\xd5\x1c\x93",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BlockCAT",
+        .unit = "CAT",
+        .contract_address =
+            "\x56\xba\x2e\xe7\x89\x04\x61\xf4\x63\xf7\xbe\x02\xaa\xc3\x09\x9f\x6d\x58\x11\xa8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Catex Token",
+        .unit = "CATT",
+        .contract_address =
+            "\x6e\x60\x5c\x26\x9e\x0c\x92\xe7\x0b\xee\xb8\x54\x86\xf1\xfc\x55\x0f\x93\x80\xbd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CryptoBossCoin",
+        .unit = "CBC",
+        .contract_address =
+            "\x79\x0b\xfa\xca\xe7\x15\x76\x10\x7c\x06\x8f\x49\x4c\x8a\x63\x02\xae\xa6\x40\xcb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CashBackPro",
+        .unit = "CBP",
+        .contract_address =
+            "\x6f\x4e\xe0\x3c\xa6\xc9\x42\xc9\x39\x7d\x2b\xa5\xf8\xf8\x3e\xa5\x8f\x91\x8f\x47",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Cybercoin",
+        .unit = "CBR",
+        .contract_address =
+            "\x4b\xa0\x12\xf6\xe4\x11\xa1\xbe\x55\xb9\x8e\x9e\x62\xc3\xa4\xce\xb1\x6e\xc8\x8b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CRYPTOBUCKS",
+        .unit = "CBUCKS",
+        .contract_address =
+            "\x0d\x2b\xb9\xd6\x8d\xd4\x45\x1a\x09\xec\x94\xc0\x5e\x20\xbd\x39\x50\x22\xbd\x8e",
+        .decimals = 2,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Coin Controller Cash",
+        .unit = "CCC",
+        .contract_address =
+            "\x94\xcb\x81\x5f\x4b\x60\x1b\x00\xb3\x63\xb3\x17\x7b\x4d\x8e\xd8\xe0\xeb\x7c\xf2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Coinchase Token",
+        .unit = "CCH",
+        .contract_address =
+            "\x40\xad\xfc\x7c\x23\xc2\x2c\xc0\x6f\x94\xf1\x99\xa4\x75\x0d\x71\x96\xf4\x6f\xbe",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CYCLEAN",
+        .unit = "CCL",
+        .contract_address =
+            "\x74\x9f\x35\xff\x65\x93\x2e\x68\x26\x7d\xd8\x2f\x6c\xd8\x5e\xea\x73\x5d\x70\x0e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CustomContractNetwork",
+        .unit = "CCN",
+        .contract_address =
+            "\x17\xb2\x64\x00\x62\x16\x95\xc2\xd8\xc2\xd8\x86\x9f\x62\x59\xe8\x2d\x75\x44\xc4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ccore",
+        .unit = "CCO",
+        .contract_address =
+            "\x67\x9b\xad\xc5\x51\x62\x6e\x01\xb2\x3c\xee\xce\xfb\xc9\xb8\x77\xea\x18\xfc\x46",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Crystal Clear ",
+        .unit = "CCT",
+        .contract_address =
+            "\x33\x6f\x64\x6f\x87\xd9\xf6\xbc\x6e\xd4\x2d\xd4\x6e\x8b\x3f\xd9\xdb\xd1\x5c\x22",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Commerce Data Connection",
+        .unit = "CDC",
+        .contract_address =
+            "\x87\x02\x6f\x79\x2d\x09\x96\x02\x32\xca\x40\x6e\x80\xc8\x9b\xd3\x5b\xaf\xe5\x66",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CoinDeal Token",
+        .unit = "CDL",
+        .contract_address =
+            "\xcb\x17\xcd\x35\x7c\x7a\xcd\x59\x47\x17\xd8\x99\xec\xb9\xdf\x54\x0f\x63\x3f\x27",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CDX Network",
+        .unit = "CDX",
+        .contract_address =
+            "\x6f\xff\x38\x06\xbb\xac\x52\xa2\x0e\x0d\x79\xbc\x53\x8d\x52\x7f\x6a\x22\xc9\x6b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Celsius",
+        .unit = "CEL",
+        .contract_address =
+            "\xaa\xae\xbe\x6f\xe4\x8e\x54\xf4\x31\xb0\xc3\x90\xcf\xaf\x0b\x01\x7d\x09\xd4\x2d",
+        .decimals = 4,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Coinsuper Ecosystem Network",
+        .unit = "CEN",
+        .contract_address =
+            "\x0b\xc6\x1d\xde\xd5\xf6\x71\x0c\x63\x7c\xf8\x28\x8e\xb6\x05\x87\x66\xce\x19\x21",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CRYPTOFOREX",
+        .unit = "CFX",
+        .contract_address =
+            "\x22\x6f\x15\xcd\xba\xa3\x68\x14\xce\x3c\xb2\x87\x56\x30\x69\xc3\x2c\xc1\xa2\x93",
+        .decimals = 2,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CACHE Gold",
+        .unit = "CGT",
+        .contract_address =
+            "\xf5\x23\x84\x62\xe7\x23\x5c\x7b\x62\x81\x15\x67\xe6\x3d\xd1\x7d\x12\xc2\xea\xa0",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Chess Coin",
+        .unit = "CHESS",
+        .contract_address =
+            "\x5f\x75\x11\x2b\xbb\x4e\x1a\xf5\x16\xfb\xe3\xe2\x15\x28\xc6\x3d\xa2\xb6\xa1\xa5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Crypto Holding Frank Token",
+        .unit = "CHFT",
+        .contract_address =
+            "\x58\x00\x2a\x6b\x6e\x65\x9a\x16\xde\x9f\x02\xf5\x29\xb1\x05\x36\xe3\x07\xb0\xd9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CoinHe Token",
+        .unit = "CHT",
+        .contract_address =
+            "\x32\x77\xdd\x53\x64\x71\xa3\xcb\xeb\x0c\x94\x86\xac\xad\x49\x4c\x95\xa3\x1e\x73",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Cipher Core Token",
+        .unit = "CIPHC",
+        .contract_address =
+            "\x83\xeb\x94\xcb\x56\x31\x46\xa4\x2f\xe0\xa8\xb3\xd0\x51\xf2\x38\x7a\x7f\xb8\x1f",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ConnectJob",
+        .unit = "CJT",
+        .contract_address =
+            "\x3a\xbd\xff\x32\xf7\x6b\x42\xe7\x63\x5b\xdb\x7e\x42\x5f\x02\x31\xa5\xf3\xab\x17",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Coinlancer",
+        .unit = "CL",
+        .contract_address =
+            "\xe8\x1d\x72\xd1\x4b\x15\x16\xe6\x8a\xc3\x19\x0a\x46\xc9\x33\x02\xcc\x8e\xd6\x0f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Cloudbric",
+        .unit = "CLB",
+        .contract_address =
+            "\xb1\xc1\xcb\x8c\x7c\x19\x92\xdb\xa2\x4e\x62\x8b\xf7\xd3\x8e\x71\xda\xd4\x6a\xeb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Colu Local Network",
+        .unit = "CLN",
+        .contract_address =
+            "\x41\x62\x17\x8b\x78\xd6\x98\x54\x80\xa3\x08\xb2\x19\x0e\xe5\x51\x74\x60\x40\x6d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BLOCKCLOUT",
+        .unit = "CLOUT",
+        .contract_address =
+            "\xa1\x0a\xe5\x43\xdb\x5d\x96\x7a\x73\xe9\xab\xcc\x69\xc8\x1a\x18\xa7\xfc\x0a\x78",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CoinLoan",
+        .unit = "CLT",
+        .contract_address =
+            "\x20\x01\xf2\xa0\xcf\x80\x1e\xcf\xda\x62\x2f\x6c\x28\xfb\x6e\x10\xd8\x03\xd9\x69",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Celeum",
+        .unit = "CLX",
+        .contract_address =
+            "\x9f\x8f\x7e\xa5\x04\x58\x8a\x58\xb8\xb2\x4b\x83\x2b\x5d\x25\xa4\xae\xb4\x70\x6f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Crowd Machine",
+        .unit = "CMCT",
+        .contract_address =
+            "\x47\xbc\x01\x59\x77\x98\xdc\xd7\x50\x6d\xcc\xa3\x6a\xc4\x30\x2f\xc9\x3a\x8c\xfb",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Cyber Movie Chain",
+        .unit = "CMCT",
+        .contract_address =
+            "\x7a\xbc\x60\xb3\x29\x0f\x68\xc8\x5f\x49\x5f\xd2\xe0\xc3\xbd\x27\x88\x37\xa3\x13",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "COMSA [ETH]",
+        .unit = "CMS",
+        .contract_address =
+            "\xf8\x33\x01\xc5\xcd\x1c\xcb\xb8\x6f\x46\x6a\x6b\x3c\x53\x31\x6e\xd2\xf8\x46\x5a",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Coinsbit Token",
+        .unit = "CNB",
+        .contract_address =
+            "\xc5\x38\x14\x32\x02\xf3\xb1\x13\x82\xd8\x60\x6a\xae\x90\xa9\x6b\x04\x2a\x19\xdb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CNNS",
+        .unit = "CNNS",
+        .contract_address =
+            "\x6c\x3b\xe4\x06\x17\x43\x49\xcf\xa4\x50\x16\x54\x31\x3d\x97\xe6\xa3\x10\x72\xe1",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CryptoEnergy",
+        .unit = "CNRG",
+        .contract_address =
+            "\xc2\x1d\xbe\xe6\x5d\x62\x77\x09\x53\x03\x5f\x04\x34\xc5\x32\xd5\x78\xa6\x66\xc9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Connectome",
+        .unit = "CNTM",
+        .contract_address =
+            "\x9a\x1b\xf3\x61\x79\x8e\xf6\x53\x8c\xcb\x81\x37\xea\x90\x0c\x4d\x4b\x48\xca\x3d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CoinUs",
+        .unit = "CNUS",
+        .contract_address =
+            "\x72\x2f\x2f\x3e\xac\x7e\x95\x97\xc7\x3a\x59\x3f\x7c\xf3\xde\x33\xfb\xfc\x33\x08",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Cofinex Coin",
+        .unit = "CNX",
+        .contract_address =
+            "\xe0\xb7\xe8\x82\xc1\x94\x88\x1c\x69\x09\x24\xcb\x46\x15\x4b\x82\x41\xf9\x14\x5e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Coinzo Token",
+        .unit = "CNZ",
+        .contract_address =
+            "\xc1\x96\x5d\x7d\x18\xf3\x70\x62\xb1\x8a\xb3\xd5\xd1\xfe\x7f\x69\x87\x3b\x30\xdd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Cobinhood",
+        .unit = "COB",
+        .contract_address =
+            "\xb2\xf7\xeb\x1f\x2c\x37\x64\x5b\xe6\x1d\x73\x95\x30\x35\x36\x0e\x76\x8d\x81\xe6",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Codeo Token",
+        .unit = "CODEO",
+        .contract_address =
+            "\x46\xb4\xa7\xd9\x06\xf1\xa9\x43\xb7\x74\x4d\xf2\x36\x25\xe6\x37\x26\xd7\x90\x35",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CoinFi",
+        .unit = "COFI",
+        .contract_address =
+            "\x31\x36\xef\x85\x15\x92\xac\xf4\x9c\xa4\xc8\x25\x13\x1e\x36\x41\x70\xfa\x32\xb3",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Unit Protocol",
+        .unit = "COL",
+        .contract_address =
+            "\xc7\x6f\xb7\x59\x50\x53\x6d\x98\xfa\x62\xea\x96\x8e\x1d\x6b\x45\xff\xea\x2a\x55",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Compound",
+        .unit = "COMP",
+        .contract_address =
+            "\xc0\x0e\x94\xcb\x66\x2c\x35\x20\x28\x2e\x6f\x57\x17\x21\x40\x04\xa7\xf2\x68\x88",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Coni",
+        .unit = "CONI",
+        .contract_address =
+            "\x2c\x94\x91\x99\xcf\xf1\x4a\xea\xf1\xb3\x3d\x64\xdb\x01\xf4\x8f\xb5\x7f\x59\x2f",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CoTrader",
+        .unit = "COT",
+        .contract_address =
+            "\x5c\x87\x25\x00\xc0\x05\x65\x50\x5f\x36\x24\xab\x43\x5c\x22\x2e\x55\x8e\x9f\xf8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Couchain",
+        .unit = "COU",
+        .contract_address =
+            "\xf0\x91\xcf\x09\xc5\x18\x11\x81\x9d\xb7\x05\x71\x0e\x96\x34\xb8\xbf\x18\xf1\x64",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "COVA",
+        .unit = "COVA",
+        .contract_address =
+            "\xb3\x7a\x76\x9b\x37\x22\x44\x49\xd9\x2a\xac\x57\xde\x37\x9e\x12\x67\xcd\x3b\x00",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Cashpayz Token",
+        .unit = "CPC",
+        .contract_address =
+            "\x28\xea\x81\xfa\xc7\xb1\x71\x91\x38\xcb\xf6\x12\x67\x19\x81\x55\xb4\x33\xe0\x0e",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CryptoAds Marketplace",
+        .unit = "CRAD",
+        .contract_address =
+            "\x60\x8f\x00\x6b\x68\x13\xf9\x70\x97\x37\x2d\x0d\x31\xfb\x0f\x11\xd1\xca\x3e\x4e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CryCash",
+        .unit = "CRC",
+        .contract_address =
+            "\xf4\x1e\x5f\xbc\x2f\x6a\xac\x20\x0d\xd8\x61\x9e\x12\x1c\xe1\xf0\x5d\x15\x00\x77",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CryptalDash",
+        .unit = "CRD",
+        .contract_address =
+            "\xca\xaa\x93\x71\x2b\xda\xc3\x7f\x73\x6c\x32\x3c\x93\xd4\xd5\xfd\xef\xcc\x31\xcc",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CRDT",
+        .unit = "CRDT",
+        .contract_address =
+            "\xda\xab\x5e\x69\x5b\xb0\xe8\xce\x83\x84\xee\x56\xba\x38\xfa\x82\x90\x61\x8e\x52",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Cybereits",
+        .unit = "CRE",
+        .contract_address =
+            "\x61\xf3\x3d\xa4\x05\x94\xce\xc1\xe3\xdc\x90\x0f\xaf\x99\xf8\x61\xd0\x1e\x2e\x7d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Cream Finance",
+        .unit = "CREAM",
+        .contract_address =
+            "\x2b\xa5\x92\xf7\x8d\xb6\x43\x65\x27\x72\x99\x29\xaa\xf6\xc9\x08\x49\x7c\xb2\x00",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Verify",
+        .unit = "CRED",
+        .contract_address =
+            "\x67\x2a\x1a\xd4\xf6\x67\xfb\x18\xa3\x33\xaf\x13\x66\x7a\xa0\xaf\x1f\x5b\x5b\xdd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CONTRACOIN",
+        .unit = "CTCN",
+        .contract_address =
+            "\xfd\x6c\x31\xbb\x6f\x05\xfc\x8d\xb6\x4f\x4b\x74\x0a\xb7\x58\x60\x5c\x27\x1f\xd8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Cryptrust",
+        .unit = "CTRT",
+        .contract_address =
+            "\x86\x06\xa8\xf2\x8e\x1e\x2f\xd5\x0b\x90\x74\xd6\x5c\x01\x54\x8b\x1f\x04\x0b\x32",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Cartesi",
+        .unit = "CTSI",
+        .contract_address =
+            "\x49\x16\x04\xc0\xfd\xf0\x83\x47\xdd\x1f\xa4\xee\x06\x2a\x82\x2a\x5d\xd0\x6b\x5d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Castweet",
+        .unit = "CTT",
+        .contract_address =
+            "\x1a\x47\x43\xcf\x1a\xf4\xc2\x89\x35\x13\x90\xa2\xb3\xfe\x7c\x13\xd2\xf7\xc2\x35",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CITEX Token",
+        .unit = "CTT",
+        .contract_address =
+            "\x13\xc2\xb7\xf8\x51\xe7\x56\x41\x5c\xf7\xd5\x1d\x04\xdc\xf4\xf9\x4a\x5b\x38\x2e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Curio",
+        .unit = "CUR",
+        .contract_address =
+            "\x13\x33\x9f\xd0\x79\x34\xcd\x67\x42\x69\x72\x6e\xdf\x3b\x5c\xce\xe9\xdd\x93\xde",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Custody Token",
+        .unit = "CUST",
+        .contract_address =
+            "\xf6\xab\xff\x61\x60\x43\xc2\xda\x57\x25\x73\xdc\xc5\x83\xb6\x56\x29\x7b\x30\xe7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CryptoWorldNews",
+        .unit = "CWN",
+        .contract_address =
+            "\xab\x7b\x6f\x7b\xea\xe1\xf0\x3a\x6b\x2a\x7f\x94\xd1\xac\x33\x2f\xc9\xbe\x34\x10",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CargoX",
+        .unit = "CXO",
+        .contract_address =
+            "\xb6\xee\x96\x68\x77\x1a\x79\xbe\x79\x67\xee\x29\xa6\x3d\x41\x84\xf8\x09\x71\x43",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CYBR Token",
+        .unit = "CYBR",
+        .contract_address =
+            "\xae\xaa\xbb\x69\xdc\xb0\xfe\x92\x6b\x19\x79\xf0\xb0\x32\xfc\xd1\x7f\xd7\xb2\xe0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CyberFM",
+        .unit = "CYFM",
+        .contract_address =
+            "\x3f\x06\xb5\xd7\x84\x06\xcd\x97\xbd\xf1\x0f\x5c\x42\x0b\x24\x1d\x32\x75\x9c\x80",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Crystal Token",
+        .unit = "CYL",
+        .contract_address =
+            "\x26\xcb\x36\x41\xaa\xa4\x39\x11\xf1\xd4\xcb\x2c\xe5\x44\xeb\x65\x2a\xac\x7c\x47",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DABANKING",
+        .unit = "DAB",
+        .contract_address =
+            "\x5e\x7e\xbe\xa6\x8a\xb0\x51\x98\xf7\x71\xd7\x7a\x87\x54\x80\x31\x4f\x1d\x0a\xae",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DACC",
+        .unit = "DACC",
+        .contract_address =
+            "\xf8\xc5\x95\xd0\x70\xd1\x04\x37\x7f\x58\x71\x5c\xe2\xe6\xc9\x3e\x49\xa8\x7f\x3c",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DAD",
+        .unit = "DAD",
+        .contract_address =
+            "\x5b\x32\x25\x14\xff\x72\x72\x53\x29\x26\x37\xd9\x05\x43\x01\x60\x0c\x2c\x81\xe8",
+        .decimals = 9,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Dalecoin",
+        .unit = "DALC",
+        .contract_address =
+            "\x07\xd9\xe4\x9e\xa4\x02\x19\x4b\xf4\x8a\x82\x76\xda\xfb\x16\xe4\xed\x63\x33\x17",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Datamine",
+        .unit = "DAM",
+        .contract_address =
+            "\xf8\x0d\x58\x9b\x3d\xbe\x13\x0c\x27\x0a\x69\xf1\xa6\x9d\x05\x0f\x26\x87\x86\xdf",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Daneel",
+        .unit = "DAN",
+        .contract_address =
+            "\x9b\x70\x74\x0e\x70\x8a\x08\x3c\x6f\xf3\x8d\xf5\x22\x97\x02\x0f\x5d\xfa\xa5\xee",
+        .decimals = 10,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Dapp Token",
+        .unit = "DAPPT",
+        .contract_address =
+            "\x38\x6c\xab\xc0\xb1\x4a\x50\x7a\x4e\x02\x4d\xea\x15\x55\x43\x42\x86\x5b\x20\xde",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DAPS Coin",
+        .unit = "DAPS",
+        .contract_address =
+            "\x93\x19\x0d\xbc\xe9\xb9\xbd\x4a\xa5\x46\x27\x0a\x8d\x1d\x65\x90\x5b\x5f\xdd\x28",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Datum",
+        .unit = "DAT",
+        .contract_address =
+            "\x81\xc9\x15\x1d\xe0\xc8\xba\xfc\xd3\x25\xa5\x7e\x3d\xb5\xa5\xdf\x1c\xeb\xf7\x9c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Decentralized Asset Trading Platform",
+        .unit = "DATP",
+        .contract_address =
+            "\x81\x3b\x42\x8a\xf3\x92\x02\x26\xe0\x59\xb6\x8a\x62\xe4\xc0\x49\x33\xd4\xea\x7a",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DATx",
+        .unit = "DATX",
+        .contract_address =
+            "\xab\xbb\xb6\x44\x7b\x68\xff\xd6\x14\x1d\xa7\x7c\x18\xc7\xb5\x87\x6e\xd6\xc5\xab",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DAV Coin",
+        .unit = "DAV",
+        .contract_address =
+            "\xd8\x2d\xf0\xab\xd3\xf5\x14\x25\xeb\x15\xef\x75\x80\xfd\xa5\x57\x27\x87\x5f\x14",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Dawn Protocol",
+        .unit = "DAWN",
+        .contract_address =
+            "\x58\x0c\x85\x20\xde\xda\x0a\x44\x15\x22\xae\xae\x0f\x9f\x7a\x5f\x29\x62\x9a\xfa",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DAEX",
+        .unit = "DAX",
+        .contract_address =
+            "\x0b\x4b\xdc\x47\x87\x91\x89\x72\x74\x65\x2d\xc1\x5e\xf5\xc1\x35\xca\xe6\x1e\x60",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Chronologic",
+        .unit = "DAY",
+        .contract_address =
+            "\xe8\x14\xae\xe9\x60\xa8\x52\x08\xc3\xdb\x54\x2c\x53\xe7\xd4\xa6\xc8\xd5\xf6\x0f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Decentralized Crypto Token",
+        .unit = "DCTO",
+        .contract_address =
+            "\x9c\xcb\xd0\x5d\x4d\x25\xc7\x45\xd4\x9f\x5e\x6b\xf1\x7e\x09\x11\x3e\xb4\xc7\x69",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Decentralized Data Assets Management",
+        .unit = "DDAM",
+        .contract_address =
+            "\xd5\xdc\x89\x21\xa5\xc5\x8f\xb0\xeb\xa6\xdb\x6b\x40\xea\xb4\x02\x83\xdc\x3c\x01",
+        .decimals = 9,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DigiDinar Token",
+        .unit = "DDRT",
+        .contract_address =
+            "\x94\x50\x1b\x6a\x15\x3c\x89\x73\xfd\x1f\x32\x1f\xcc\x81\x88\xd4\x0d\xc5\xd7\x2d",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Debitum",
+        .unit = "DEB",
+        .contract_address =
+            "\x15\x12\x02\xc9\xc1\x8e\x49\x56\x56\xf3\x72\x28\x1f\x49\x3e\xb7\x69\x89\x61\xd5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DeepCloud AI",
+        .unit = "DEEP",
+        .contract_address =
+            "\x6c\xbe\xde\xc4\xf1\xac\x9d\x87\x49\x87\xd2\x76\x95\x96\x54\x4e\x0d\x91\x61\xab",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DeltaChain",
+        .unit = "DELTA",
+        .contract_address =
+            "\xde\x1e\x0a\xe6\x10\x1b\x46\x52\x0c\xf6\x6f\xdc\x0b\x10\x59\xc5\xcc\x3d\x10\x6c",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DEAPcoin",
+        .unit = "DEP",
+        .contract_address =
+            "\x1a\x34\x96\xc1\x8d\x55\x8b\xd9\xc6\xc8\xf6\x09\xe1\xb1\x29\xf6\x7a\xb0\x81\x63",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Dev Protocol",
+        .unit = "DEV",
+        .contract_address =
+            "\x5c\xaf\x45\x4b\xa9\x2e\x6f\x2c\x92\x9d\xf1\x46\x67\xee\x36\x0e\xd9\xfd\x5b\x26",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DEXA COIN",
+        .unit = "DEXA",
+        .contract_address =
+            "\x72\x54\x40\x51\x2c\xb7\xb7\x8b\xf5\x6b\x33\x4e\x50\xe3\x17\x07\x41\x82\x31\xcb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DEXTools",
+        .unit = "DEXT",
+        .contract_address =
+            "\x26\xce\x25\x14\x88\x32\xc0\x4f\x3d\x7f\x26\xf3\x24\x78\xa9\xfe\x55\x19\x71\x66",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "dForce",
+        .unit = "DF",
+        .contract_address =
+            "\x43\x1a\xd2\xff\x6a\x9c\x36\x58\x05\xeb\xad\x47\xee\x02\x11\x48\xd6\xf7\xdb\xe0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Fantasy Sports",
+        .unit = "DFS",
+        .contract_address =
+            "\xce\xc3\x83\x06\x55\x8a\x31\xcd\xbb\x2a\x9d\x62\x85\x94\x7c\x5b\x44\xa2\x4f\x3e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DigiFinexToken",
+        .unit = "DFT",
+        .contract_address =
+            "\xa2\xa5\x4f\x1e\xc1\xf0\x93\x16\xef\x12\xc1\x77\x0d\x32\xed\x8f\x21\xb1\xfb\x6a",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DIA",
+        .unit = "DIA",
+        .contract_address =
+            "\x84\xca\x8b\xc7\x99\x72\x72\xc7\xcf\xb4\xd0\xcd\x3d\x55\xcd\x94\x2b\x3c\x94\x19",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "D Community",
+        .unit = "DILI",
+        .contract_address =
+            "\x37\xf7\x4e\x99\x79\x48\x53\x77\x7a\x10\xea\x1d\xc0\x8a\x64\xc8\x69\x58\xf0\x6a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Digital Insurance Token",
+        .unit = "DIT",
+        .contract_address =
+            "\xf1\x49\x22\x00\x1a\x2f\xb8\x54\x1a\x43\x39\x05\x43\x7a\xe9\x54\x41\x9c\x24\x39",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "dKargo",
+        .unit = "DKA",
+        .contract_address =
+            "\x5d\xc6\x0c\x4d\x5e\x75\xd2\x25\x88\xfa\x17\xff\xeb\x90\xa6\x3e\x53\x5e\xfc\xe0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DMM: Governance",
+        .unit = "DMG",
+        .contract_address =
+            "\xed\x91\x87\x99\x19\xb7\x1b\xb6\x90\x5f\x23\xaf\x0a\x68\xd2\x31\xec\xf8\x7b\x14",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Decentralized Machine Learning",
+        .unit = "DML",
+        .contract_address =
+            "\xbc\xdf\xe3\x38\xd5\x5c\x06\x1c\x08\x4d\x81\xfd\x79\x3d\xed\x00\xa2\x7f\x22\x6d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DMme",
+        .unit = "DMME",
+        .contract_address =
+            "\x95\x56\xf8\xee\x79\x5d\x99\x1f\xf3\x71\xf5\x47\x16\x2d\x5e\xfb\x27\x69\x42\x5f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DMScript",
+        .unit = "DMST",
+        .contract_address =
+            "\xf2\x99\x92\xd7\xb5\x89\xa0\xa6\xbd\x2d\xe7\xbe\x29\xa9\x7a\x6e\xb7\x3e\xaf\x85",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EncrypGen",
+        .unit = "DNA",
+        .contract_address =
+            "\x82\xb0\xe5\x04\x78\xee\xaf\xde\x39\x2d\x45\xd1\x25\x9e\xd1\x07\x1b\x6f\xda\x81",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Donut",
+        .unit = "DONUT",
+        .contract_address =
+            "\xc0\xf9\xbd\x5f\xa5\x69\x8b\x65\x05\xf6\x43\x90\x0f\xfa\x51\x5e\xa5\xdf\x54\xa9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DOS Network",
+        .unit = "DOS",
+        .contract_address =
+            "\x70\x86\x1e\x86\x2e\x1a\xc0\xc9\x6f\x85\x3c\x82\x31\x82\x6e\x46\x9e\xad\x37\xb1",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Dovu",
+        .unit = "DOV",
+        .contract_address =
+            "\xac\x32\x11\xa5\x02\x54\x14\xaf\x28\x66\xff\x09\xc2\x3f\xc1\x8b\xc9\x7e\x79\xb1",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DOWCOIN",
+        .unit = "DOW",
+        .contract_address =
+            "\x76\x97\x4c\x7b\x79\xdc\x8a\x6a\x10\x9f\xd7\x1f\xd7\xce\xb9\xe4\x0e\xff\x53\x82",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Delphy",
+        .unit = "DPY",
+        .contract_address =
+            "\x6c\x2a\xdc\x20\x73\x99\x4f\xb2\xcc\xc5\x03\x2c\xc2\x90\x6f\xa2\x21\xe9\xb3\x91",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Dragonbit",
+        .unit = "DRGB",
+        .contract_address =
+            "\x9d\x3e\x08\x92\xd1\x1f\x19\xf5\x18\x1d\x4a\x4c\x5d\x04\x18\x7a\x9e\x0d\x70\x32",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3X Long Dragon Index Token",
+        .unit = "DRGNBULL",
+        .contract_address =
+            "\x33\x35\xf1\x6a\xf9\x00\x8b\xfd\x32\xf1\xee\x6c\x2b\xe5\xd4\xf8\x4f\xa0\xb9\xda",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DoDreamChain",
+        .unit = "DRM",
+        .contract_address =
+            "\x89\x55\x1b\x94\x0e\x2a\x8e\xd8\xec\xcf\x50\x99\x35\xba\xc9\x21\x3f\xe3\x05\x84",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DomRaider",
+        .unit = "DRT",
+        .contract_address =
+            "\x9a\xf4\xf2\x69\x41\x67\x7c\x70\x6c\xfe\xcf\x6d\x33\x79\xff\x01\xbb\x85\xd5\xab",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DeFi Nation Signals DAO",
+        .unit = "DSD",
+        .contract_address =
+            "\x1e\x3a\x24\x46\xc7\x29\xd3\x43\x73\xb8\x7f\xd2\xc9\xcb\xb3\x9a\x93\x19\x86\x58",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DSLA Protocol",
+        .unit = "DSLA",
+        .contract_address =
+            "\x3a\xff\xcc\xa6\x4c\x2a\x6f\x4e\x3b\x6b\xd9\xc6\x4c\xd2\xc9\x69\xef\xd1\xec\xbe",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DSYS",
+        .unit = "DSYS",
+        .contract_address =
+            "\x10\xa3\x4b\xbe\x9b\x3c\x5a\xd5\x36\xca\x23\xd5\xee\xfa\x81\xca\x44\x8e\x92\xff",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Dether",
+        .unit = "DTH",
+        .contract_address =
+            "\x5a\xdc\x96\x1d\x6a\xc3\xf7\x06\x2d\x2e\xa4\x5f\xef\xb8\xd8\x16\x7d\x44\xb1\x90",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DTOP Token",
+        .unit = "DTOP",
+        .contract_address =
+            "\x54\xad\x74\xed\xea\xb4\x8e\x09\xcc\xc4\x3e\xe3\x24\xf2\x60\x30\x71\xda\xd7\x2b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Datarius Credit",
+        .unit = "DTRC",
+        .contract_address =
+            "\xc2\x04\x64\xe0\xc3\x73\x48\x6d\x2b\x33\x35\x57\x6e\x83\xa2\x18\xb1\x61\x8a\x5e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Databroker",
+        .unit = "DTX",
+        .contract_address =
+            "\x76\x5f\x0c\x16\xd1\xdd\xc2\x79\x29\x5c\x1a\x7c\x24\xb0\x88\x3f\x62\xd3\x3f\x75",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DUO Network Token",
+        .unit = "DUO",
+        .contract_address =
+            "\x56\xe0\xb2\xc7\x69\x4e\x6e\x10\x39\x1e\x87\x07\x74\xda\xa4\x5c\xf6\x58\x34\x86",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DragonVein",
+        .unit = "DVC",
+        .contract_address =
+            "\x19\x45\x24\x35\x5f\x26\xaf\x66\x34\x68\xd4\x99\x6f\x20\x7a\x91\x8c\x73\xe0\x13",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Decentralized Vulnerability Platform",
+        .unit = "DVP",
+        .contract_address =
+            "\x8e\x30\xea\x23\x29\xd9\x58\x02\xfd\x80\x4f\x42\x91\x22\x0b\x0e\x2f\x57\x98\x12",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Derivex",
+        .unit = "DVX",
+        .contract_address =
+            "\x97\x57\x69\x55\x75\x10\x16\x7d\x25\xbe\xed\x6e\x32\x80\x65\x37\x17\x3e\x29\x2c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DWS",
+        .unit = "DWS",
+        .contract_address =
+            "\xf4\xb5\x48\x74\xcd\x8a\x6c\x86\x3e\x3a\x90\x4c\x18\xfd\xa9\x64\x66\x1e\xc3\x63",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DXdao",
+        .unit = "DXD",
+        .contract_address =
+            "\xa1\xd6\x5e\x8f\xb6\xe8\x7b\x60\xfe\xcc\xbc\x58\x2f\x7f\x97\x80\x4b\x72\x55\x21",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Dexter G",
+        .unit = "DXG",
+        .contract_address =
+            "\x45\x71\xf3\xa3\x86\xd1\xbd\x18\xe2\x5d\x70\xd1\x17\xe7\x06\x7f\xa0\xbd\x9d\x08",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Datawallet",
+        .unit = "DXT",
+        .contract_address =
+            "\x8d\xb5\x4c\xa5\x69\xd3\x01\x9a\x2b\xa1\x26\xd0\x3c\x37\xc4\x4b\x5e\xf8\x1e\xf6",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Dynamite",
+        .unit = "DYNMT",
+        .contract_address =
+            "\x3b\x7f\x24\x7f\x21\xbf\x3a\x07\x08\x8c\x2d\x34\x23\xf6\x42\x33\xd4\xb0\x69\xf7",
+        .decimals = 2,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DoYourTip",
+        .unit = "DYT",
+        .contract_address =
+            "\x74\x06\x23\xd2\xc7\x97\xb7\xd8\xd1\xec\xb9\x8e\x9b\x4a\xfc\xf9\x9e\xc3\x1e\x14",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Digital Rand",
+        .unit = "DZAR",
+        .contract_address =
+            "\x9c\xb2\xf2\x6a\x23\xb8\xd8\x99\x73\xf0\x8c\x95\x7c\x4d\x7c\xdf\x75\xcd\x34\x1c",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EBCoin",
+        .unit = "EBC",
+        .contract_address =
+            "\x31\xf3\xd9\xd1\xbe\xce\x0c\x03\x3f\xf7\x8f\xa6\xda\x60\xa6\x04\x8f\x3e\x13\xc5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "eBitcoin",
+        .unit = "EBTC",
+        .contract_address =
+            "\xeb\x7c\x20\x02\x71\x72\xe5\xd1\x43\xfb\x03\x0d\x50\xf9\x1c\xec\xe2\xd1\x48\x5d",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Echoin",
+        .unit = "EC",
+        .contract_address =
+            "\x12\xfd\x19\xda\xc0\xfa\xb6\x1b\xed\x5e\x0f\x09\x09\x1b\x47\x0c\x45\x2d\x4d\x61",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ethereum Cash",
+        .unit = "ECASH",
+        .contract_address =
+            "\x5d\x21\xef\x5f\x25\xa9\x85\x38\x0b\x65\xc8\xe9\x43\xa0\x08\x2f\xed\xa0\xdb\x84",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "e-Chat",
+        .unit = "ECHT",
+        .contract_address =
+            "\x1a\x22\x77\xc8\x39\x30\xb7\xa6\x4c\x3e\x3d\x55\x44\xea\xa8\xc4\xf9\x46\xb1\xb7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Omnitude",
+        .unit = "ECOM",
+        .contract_address =
+            "\x17\x1d\x75\x0d\x42\xd6\x61\xb6\x2c\x27\x7a\x6b\x48\x6a\xdb\x82\x34\x8c\x3e\xca",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EurocoinToken",
+        .unit = "ECTE",
+        .contract_address =
+            "\xe9\xfa\x21\xe6\x71\xbc\xfb\x04\xe6\x86\x87\x84\xb8\x9c\x19\xd5\xaa\x24\x24\xea",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ECOSC",
+        .unit = "ECU",
+        .contract_address =
+            "\x8f\xc9\xb6\x35\x4e\x83\x9a\xb1\xc8\xb3\x1f\x4a\xfa\x53\x60\x70\x92\xb8\xc2\xe5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Decurian",
+        .unit = "ECU",
+        .contract_address =
+            "\xd3\xcd\xc4\xe7\x57\x50\xdc\x1e\x59\xf8\x34\x22\x00\x74\x2b\x6b\x29\x49\x0e\x70",
+        .decimals = 3,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Edgeless",
+        .unit = "EDG",
+        .contract_address =
+            "\x08\x71\x1d\x3b\x02\xc8\x75\x8f\x2f\xb3\xab\x4e\x80\x22\x84\x18\xa7\xf8\xe3\x9c",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Freight Trust & Clearing Network",
+        .unit = "EDI",
+        .contract_address =
+            "\x79\xc5\xa1\xae\x58\x63\x22\xa0\x7b\xfb\x60\xbe\x36\xe1\xb3\x1c\xe8\xc8\x4a\x1e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EduCoin",
+        .unit = "EDU",
+        .contract_address =
+            "\xf2\x63\x29\x2e\x14\xd9\xd8\xec\xd5\x5b\x58\xda\xd1\xf1\xdf\x82\x5a\x87\x4b\x7c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ethereum eRush",
+        .unit = "EER",
+        .contract_address =
+            "\x3c\xc5\xeb\x07\xe0\xe1\x22\x76\x13\xf1\xdf\x58\xf3\x8b\x54\x98\x23\xd1\x1c\xb9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EcoG9coin",
+        .unit = "EGC",
+        .contract_address =
+            "\xc0\xec\x8c\xae\xc5\x5f\x37\xd4\x7f\xbf\xa5\x95\x72\x74\x18\x86\x8a\x21\xfd\x48",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Engine",
+        .unit = "EGCC",
+        .contract_address =
+            "\xaf\x8a\x21\x5e\x81\xfa\xea\x7c\x18\x0c\xe2\x2b\x72\x48\x35\x25\x12\x18\x13\xbd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Nestree",
+        .unit = "EGG",
+        .contract_address =
+            "\x65\xcc\xd7\x2c\x08\x13\xce\x6f\x27\x03\x59\x3b\x63\x32\x02\xa0\xf3\xca\x6a\x0c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Egoras",
+        .unit = "EGR",
+        .contract_address =
+            "\x73\xce\xe8\x34\x8b\x9b\xdd\x48\xc6\x4e\x13\x45\x2b\x8a\x6f\xbc\x81\x63\x05\x73",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EchoLink",
+        .unit = "EKO",
+        .contract_address =
+            "\xa6\xa8\x40\xe5\x0b\xca\xa5\x0d\xa0\x17\xb9\x1a\x0d\x86\xb8\xb2\xd4\x11\x56\xee",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ELYSIA",
+        .unit = "EL",
+        .contract_address =
+            "\x27\x81\x24\x6f\xe7\x07\xbb\x15\xce\xe3\xe5\xea\x35\x4e\x21\x54\xa2\x87\x7b\x16",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Elamachain",
+        .unit = "ELAMA",
+        .contract_address =
+            "\xfb\x44\x4c\x1f\x2b\x71\x8d\xdf\xc3\x85\xcb\x8f\xd9\xf2\xd1\xd7\x76\xb2\x46\x68",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Electrum Dark",
+        .unit = "ELD",
+        .contract_address =
+            "\x79\x6e\x47\xb8\x5a\x0d\x75\x9f\x30\x0f\x1d\xe9\x6a\x35\x83\x00\x42\x35\xd4\xd8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Electrify.Asia",
+        .unit = "ELEC",
+        .contract_address =
+            "\xd4\x9f\xf1\x36\x61\x45\x13\x13\xca\x15\x53\xfd\x69\x54\xbd\x1d\x9b\x6e\x02\xb9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Elementeum",
+        .unit = "ELET",
+        .contract_address =
+            "\x6c\x37\xbf\x4f\x04\x27\x12\xc9\x78\xa7\x3e\x3f\xd5\x6d\x1f\x57\x38\xdd\x7c\x43",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ELTCOIN",
+        .unit = "ELTCOIN",
+        .contract_address =
+            "\x44\x19\x7a\x4c\x44\xd6\xa0\x59\x29\x7c\xaf\x6b\xe4\xf7\xe1\x72\xbd\x56\xca\xaf",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Elysian",
+        .unit = "ELY",
+        .contract_address =
+            "\xa9\x55\x92\xdc\xff\xa3\xc0\x80\xb4\xb4\x0e\x45\x9c\x5f\x56\x92\xf6\x7d\xb7\xf8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ethereum Message Search",
+        .unit = "EMS",
+        .contract_address =
+            "\x17\xe6\x61\x6c\x45\xd2\x67\xbc\x20\xa9\x89\x2b\x58\xa0\x16\x21\xc5\x92\xb7\x2d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ENTONE",
+        .unit = "ENTONE",
+        .contract_address =
+            "\xec\x1a\x71\x8d\x1a\x6f\x8f\x8d\x94\xec\xec\x6f\xe9\x14\x65\x69\x7b\xb2\xb8\x8c",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EnterCoin",
+        .unit = "ENTRC",
+        .contract_address =
+            "\xd9\xd0\x1d\x4c\xb8\x24\x21\x9a\x8f\x48\x2a\x0f\xad\x47\x9c\xb9\x71\xfd\x06\x28",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EUNOMIA",
+        .unit = "ENTS",
+        .contract_address =
+            "\x0f\x61\x2a\x09\xea\xd5\x5b\xb8\x1b\x65\x34\xe8\x0e\xd5\xa2\x1b\xf0\xa2\x7b\x16",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EOS TRUST",
+        .unit = "EOST",
+        .contract_address =
+            "\x87\x21\x0f\x1d\x34\x22\xba\x75\xb6\xc4\x0c\x63\xc7\x8d\x79\x32\x4d\xab\xcd\x55",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Emphy",
+        .unit = "EPY",
+        .contract_address =
+            "\x50\xee\x67\x46\x89\xd7\x5c\x0f\x88\xe8\xf8\x3c\xfe\x8c\x4b\x69\xe8\xfd\x59\x0d",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "QuadrantProtocol",
+        .unit = "EQUAD",
+        .contract_address =
+            "\xc2\x8e\x93\x18\x14\x72\x5b\xbe\xb9\xe6\x70\x67\x6f\xab\xbc\xb6\x94\xfe\x7d\xf2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Eroscoin",
+        .unit = "ERO",
+        .contract_address =
+            "\x74\xce\xda\x77\x28\x1b\x33\x91\x42\xa3\x68\x17\xfa\x5f\x9e\x29\x41\x2b\xab\x85",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Eristica",
+        .unit = "ERT",
+        .contract_address =
+            "\x92\xa5\xb0\x4d\x0e\xd5\xd9\x4d\x7a\x19\x3d\x1d\x33\x4d\x3d\x16\x99\x6f\x4e\x13",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Era Swap",
+        .unit = "ES",
+        .contract_address =
+            "\xef\x13\x44\xbd\xf8\x0b\xef\x3f\xf4\x42\x8d\x8b\xec\xec\x3e\xea\x4a\x2c\xf5\x74",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Escroco Emerald",
+        .unit = "ESCE",
+        .contract_address =
+            "\x49\x61\x46\x61\x73\x7e\xfb\xfc\x6a\x10\x2e\xfa\xee\xfd\xc8\xe1\x97\xf7\xcc\x0e",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Switch",
+        .unit = "ESH",
+        .contract_address =
+            "\xd6\xa5\x5c\x63\x86\x5a\xff\xd6\x7e\x2f\xb9\xf2\x84\xf8\x7b\x7a\x9e\x5f\xf3\xbd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Essentia",
+        .unit = "ESS",
+        .contract_address =
+            "\xfc\x05\x98\x7b\xd2\xbe\x48\x9a\xcc\xf0\xf5\x09\xe4\x4b\x01\x45\xd6\x82\x40\xf7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Esports Token",
+        .unit = "EST",
+        .contract_address =
+            "\x18\xf5\xb4\x90\x8e\x88\x61\xe3\x11\x4b\xa9\xa0\xa9\xa4\xe8\x4c\x5f\x18\x0c\xc0",
+        .decimals = 9,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EasySwap",
+        .unit = "ESWA",
+        .contract_address =
+            "\xa0\x47\x1c\xdd\x5c\x0d\xc2\x61\x45\x35\xfd\x75\x05\xb1\x7a\x65\x1a\x8f\x0d\xab",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EtherSportz",
+        .unit = "ESZ",
+        .contract_address =
+            "\xe8\xa1\xdf\x95\x8b\xe3\x79\x04\x5e\x2b\x46\xa3\x1a\x98\xb9\x3a\x2e\xcd\xfd\xed",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3X Long Ethereum Classic Token",
+        .unit = "ETCBULL",
+        .contract_address =
+            "\x97\x4c\x98\xbc\x2e\x82\xfa\x18\xde\x92\xb7\xe6\x97\xa1\xd9\xbd\x25\x68\x2e\x80",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Entherfound",
+        .unit = "ETF",
+        .contract_address =
+            "\xc2\xb5\x88\x12\xc2\x40\x20\xea\x92\x4c\x3d\x7c\x24\x1c\x44\x16\x05\xf1\x2e\x75",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ethereum Gold",
+        .unit = "ETG",
+        .contract_address =
+            "\x28\xc8\xd0\x1f\xf6\x33\xea\x9c\xd8\xfc\x6a\x45\x1d\x74\x57\x88\x9e\x69\x8d\xe6",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ethereum Gold Project",
+        .unit = "ETGP",
+        .contract_address =
+            "\xa9\x6f\x31\xf1\xc1\x87\xc2\x89\x80\x17\x6c\x3a\x27\xba\x70\x69\xf4\x8a\xbd\xe4",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Amun Ether 3x Daily Long",
+        .unit = "ETH3L",
+        .contract_address =
+            "\x23\x9b\x0f\xa9\x17\xd8\x5c\x21\xcf\x64\x35\x46\x4c\x2c\x6a\xa3\xd4\x5f\x67\x20",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EtherBone",
+        .unit = "ETHBN",
+        .contract_address =
+            "\x96\xb5\x2b\x5b\xf8\xd9\x02\x25\x2d\x07\x14\xa1\xbd\x26\x51\xa7\x85\xfd\x26\x60",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "1X Short Ethereum Token",
+        .unit = "ETHHEDGE",
+        .contract_address =
+            "\x10\xe1\xe9\x53\xdd\xba\x59\x70\x11\xf8\xbf\xa8\x06\xab\x0c\xc3\x41\x5a\x62\x2b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ethereum Meta",
+        .unit = "ETHM",
+        .contract_address =
+            "\x34\x0e\xf8\x3e\xc8\x56\x08\x92\x16\x8d\x40\x62\x72\x0f\x03\x04\x60\x46\x86\x56",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ETHPlus",
+        .unit = "ETHP",
+        .contract_address =
+            "\xee\xd7\x36\xb2\xb8\x09\x55\x0d\x89\xa9\x41\xc2\x00\x5d\xe9\x35\x88\xc6\x28\xe2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ETHplode",
+        .unit = "ETHPLO",
+        .contract_address =
+            "\xe0\xc6\xce\x3e\x73\x02\x9f\x20\x1e\x5c\x0b\xed\xb9\x7f\x67\x57\x2a\x93\x71\x1c",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EnergiToken",
+        .unit = "ETK",
+        .contract_address =
+            "\x3c\x4a\x3f\xfd\x81\x3a\x10\x7f\xeb\xd5\x7b\x2f\x01\xbc\x34\x42\x64\xd9\x0f\xde",
+        .decimals = 2,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "En-Tan-Mo",
+        .unit = "ETM",
+        .contract_address =
+            "\x60\x20\xda\x0f\x7c\x18\x57\xdb\xe4\x43\x1e\xc9\x2a\x15\xcc\x31\x8d\x93\x3e\xaa",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Essek Tov",
+        .unit = "ETO",
+        .contract_address =
+            "\x45\x26\xdc\x4a\xc8\xf6\x92\x53\x5e\xd9\xbf\x23\x5a\x3a\x20\xa2\xb9\xff\x33\x28",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Egoras Dollar",
+        .unit = "EUSD",
+        .contract_address =
+            "\xa9\x0c\x43\xe0\xd6\xc9\x2b\x8e\x61\x71\xa8\x29\xbe\xb3\x8b\xe2\x8a\x0a\xd0\x73",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EventChain",
+        .unit = "EVC",
+        .contract_address =
+            "\xb6\x2d\x18\xde\xa7\x40\x45\xe8\x22\x35\x2c\xe4\xb3\xee\x77\x31\x9d\xc5\xff\x2f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Eva Cash",
+        .unit = "EVC",
+        .contract_address =
+            "\xba\x14\xb2\x45\xd4\x49\x96\x5b\xdb\xeb\x63\x0e\xbe\x13\x5b\x56\x94\x74\xf5\xb1",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Devery",
+        .unit = "EVE",
+        .contract_address =
+            "\x92\x31\x08\xa4\x39\xc4\xe8\xc2\x31\x5c\x4f\x65\x21\xe5\xce\x95\xb4\x4e\x9b\x4c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Evedo",
+        .unit = "EVED",
+        .contract_address =
+            "\x5a\xae\xfe\x84\xe0\xfb\x3d\xd1\xf0\xfc\xff\x6f\xa7\x46\x81\x24\x98\x6b\x91\xbd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EvenCoin",
+        .unit = "EVN",
+        .contract_address =
+            "\x68\x90\x9e\x58\x6e\xea\xc8\xf4\x73\x15\xe8\x4b\x4c\x97\x88\xdd\x54\xef\x65\xbb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "8X8 PROTOCOL",
+        .unit = "EXE",
+        .contract_address =
+            "\x41\x2d\x39\x7d\xdc\xa0\x7d\x75\x3e\x3e\x0c\x61\xe3\x67\xfb\x1b\x47\x4b\x3e\x7d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EXRNchain",
+        .unit = "EXRN",
+        .contract_address =
+            "\xe4\x69\xc4\x47\x3a\xf8\x22\x17\xb3\x0c\xf1\x7b\x10\xbc\xdb\x6c\x8c\x79\x6e\x75",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Experty",
+        .unit = "EXY",
+        .contract_address =
+            "\x5c\x74\x3a\x35\xe9\x03\xf6\xc5\x84\x51\x4e\xc6\x17\xac\xee\x06\x11\xcf\x44\xf3",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EYES Protocol",
+        .unit = "EYES",
+        .contract_address =
+            "\x2d\xca\x19\xe9\x44\x45\x3e\x46\xd9\x13\x09\x50\xca\x13\x54\x61\xb3\xbc\x0c\x30",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EZOOW",
+        .unit = "EZW",
+        .contract_address =
+            "\x78\xa2\xa1\x02\x9e\x31\x68\xb4\x9d\x3a\x27\x6c\x78\x70\x50\xff\x51\x06\xdc\xf2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "EzyStayz",
+        .unit = "EZY",
+        .contract_address =
+            "\xa6\xd5\xc7\x20\xa9\xaf\x5a\x40\x5d\xfb\x6b\x9f\x44\xfc\x44\xfa\xb5\xd4\xa5\x8d",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Future1coin",
+        .unit = "F1C",
+        .contract_address =
+            "\xb0\xa0\xa0\x70\x64\x0b\x45\x0e\xb1\x36\xdc\x37\x72\x08\x46\x9e\xe4\xf4\x9f\xbc",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Faceter",
+        .unit = "FACE",
+        .contract_address =
+            "\x1c\xca\xa0\xf2\xa7\x21\x0d\x76\xe1\xfd\xec\x74\x0d\x5f\x32\x3e\x2e\x1b\x16\x72",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FairGame",
+        .unit = "FAIR",
+        .contract_address =
+            "\x9b\x20\xda\xbc\xec\x77\xf6\x28\x91\x13\xe6\x18\x93\xf7\xbe\xef\xae\xb1\x99\x0a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FANBI TOKEN",
+        .unit = "FBT",
+        .contract_address =
+            "\x7a\x97\x16\x68\x5f\x85\x2e\xe2\x68\xfe\xb8\x6d\xff\xa5\x62\xd2\x14\xcc\x13\xdb",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FirmaChain",
+        .unit = "FCT",
+        .contract_address =
+            "\xe1\xba\xd9\x22\xf8\x4b\x19\x8a\x08\x29\x2f\xb6\x00\x31\x93\x00\xae\x32\x47\x1b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Friendz",
+        .unit = "FDZ",
+        .contract_address =
+            "\x23\x35\x20\x36\xe9\x11\xa2\x2c\xfc\x69\x2b\x5e\x2e\x19\x66\x92\x65\x8a\xde\xd9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Fesschain",
+        .unit = "FESS",
+        .contract_address =
+            "\xe0\x93\x94\xf8\xba\x64\x24\x30\xed\x44\x8c\xa2\x0f\x34\x2e\xc7\xaa\x1b\xa2\xe1",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FidexToken",
+        .unit = "FEX",
+        .contract_address =
+            "\x1c\x1c\x14\xa6\xb5\x07\x49\x05\xce\x5d\x36\x7b\x0a\x7e\x09\x8b\x58\xeb\xfd\x47",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FEX Token",
+        .unit = "FEX",
+        .contract_address =
+            "\x27\x12\x20\xfb\xef\xd5\x84\xa6\xb0\xa6\xad\x45\x77\x21\xc0\x76\x32\x16\x46\xa1",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Two Prime FF1 Token",
+        .unit = "FF1",
+        .contract_address =
+            "\x59\xaf\x03\x56\xcd\xeb\xd1\xfa\x23\xae\x5d\xad\xff\x91\x70\xbb\xfc\x31\x27\x8c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Force For Fast",
+        .unit = "FFF",
+        .contract_address =
+            "\x22\xf0\x98\xf0\x8c\x4e\xda\x4b\xe4\xad\x6b\x4b\xa5\x98\x66\xf3\xe9\x8c\xef\x92",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Fireball",
+        .unit = "FIRE",
+        .contract_address =
+            "\x3f\x8a\x2f\x7b\xcd\x70\xe7\xf7\xbd\xd3\xfb\xb0\x79\xc1\x1d\x07\x35\x88\xde\xa2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FortKnoxster",
+        .unit = "FKX",
+        .contract_address =
+            "\x00\x9e\x86\x49\x23\xb4\x92\x63\xc7\xf1\x0d\x19\xb7\xf8\xab\x7a\x9a\x5a\xad\x33",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Flowchain",
+        .unit = "FLC",
+        .contract_address =
+            "\x32\xc4\xad\xb9\xcf\x57\xf9\x72\xbc\x37\x51\x29\xde\x91\xc8\x97\xb4\xf3\x64\xf1",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Flixxo",
+        .unit = "FLIXX",
+        .contract_address =
+            "\xf0\x4a\x8a\xc5\x53\xfc\xed\xb5\xba\x99\xa6\x47\x99\x15\x58\x26\xc1\x36\xb0\xbe",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Feellike",
+        .unit = "FLL",
+        .contract_address =
+            "\x92\x35\xbd\xa0\x6b\x88\x07\x16\x1b\x8f\xbb\x1e\x10\x2c\xb6\x54\x55\x5b\x21\x2f",
+        .decimals = 3,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Fire Lotto",
+        .unit = "FLOT",
+        .contract_address =
+            "\x04\x93\x99\xa6\xb0\x48\xd5\x29\x71\xf7\xd1\x22\xae\x21\xa1\x53\x27\x22\x28\x5f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FLIP",
+        .unit = "FLP",
+        .contract_address =
+            "\x3a\x1b\xda\x28\xad\xb5\xb0\xa8\x12\xa7\xcf\x10\xa1\x95\x0c\x92\x0f\x79\xbc\xd3",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Flit Token",
+        .unit = "FLT",
+        .contract_address =
+            "\xb3\x51\xda\x6f\xfe\xbd\x5d\xdd\xd1\xda\x03\x79\x29\xfc\xf3\x34\xd6\xb4\xa8\xd5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FLUX",
+        .unit = "FLUX",
+        .contract_address =
+            "\x46\x9e\xda\x64\xae\xd3\xa3\xad\x6f\x86\x8c\x44\x56\x42\x91\xaa\x41\x5c\xb1\xd9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FLAMA",
+        .unit = "FMA",
+        .contract_address =
+            "\x0f\x87\x94\xf6\x6c\x71\x70\xc4\xf9\x16\x3a\x84\x98\x37\x1a\x74\x71\x14\xf6\xc4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FinexboxToken",
+        .unit = "FNB",
+        .contract_address =
+            "\xe6\xd2\xc3\xcb\x98\x6d\xb6\x68\x18\xc1\x4c\x70\x32\xdb\x05\xd1\xd2\xa6\xee\x74",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FundRequest",
+        .unit = "FND",
+        .contract_address =
+            "\x4d\xf4\x7b\x49\x69\xb2\x91\x1c\x96\x65\x06\xe3\x59\x2c\x41\x38\x94\x93\x95\x3b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FNKOS",
+        .unit = "FNKOS",
+        .contract_address =
+            "\x07\x07\x68\x1f\x34\x4d\xeb\x24\x18\x40\x37\xfc\x02\x28\x85\x6f\x21\x37\xb0\x2e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Falcon Project",
+        .unit = "FNT",
+        .contract_address =
+            "\xdc\x58\x64\xed\xe2\x8b\xd4\x40\x5a\xa0\x4d\x93\xe0\x5a\x05\x31\x79\x7d\x9d\x59",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Fintab",
+        .unit = "FNTB",
+        .contract_address =
+            "\xbd\x4b\x60\xa1\x38\xb3\xfc\xe3\x58\x4e\xa0\x1f\x50\xc0\x90\x8c\x18\xf9\x67\x7a",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Fortuna",
+        .unit = "FOTA",
+        .contract_address =
+            "\x42\x70\xbb\x23\x8f\x6d\xd8\xb1\xc3\xca\x01\xf9\x6c\xa6\x5b\x26\x47\xc0\x6d\x3c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "4THPILLAR TECHNOLOGIES",
+        .unit = "FOUR",
+        .contract_address =
+            "\x47\x30\xfb\x14\x63\xa6\xf1\xf4\x4a\xeb\x45\xf6\xc5\xc4\x22\x42\x7f\x37\xf4\xd0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Fox Trading",
+        .unit = "FOXT",
+        .contract_address =
+            "\xfb\xe8\x78\xce\xd0\x81\x32\xbd\x83\x96\x98\x86\x71\xb4\x50\x79\x3c\x44\xbc\x12",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Freyrchain",
+        .unit = "FREC",
+        .contract_address =
+            "\x17\xe6\x7d\x1c\xb4\xe3\x49\xb9\xca\x4b\xc3\xe1\x7c\x7d\xf2\xa3\x97\xa7\xbb\x64",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FREE Coin",
+        .unit = "FREE",
+        .contract_address =
+            "\x2f\x14\x1c\xe3\x66\xa2\x46\x2f\x02\xce\xa3\xd1\x2c\xf9\x3e\x4d\xca\x49\xe4\xfd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ferrum Network",
+        .unit = "FRM",
+        .contract_address =
+            "\xe5\xca\xef\x4a\xf8\x78\x0e\x59\xdf\x92\x54\x70\xb0\x50\xfb\x23\xc4\x3c\xa6\x8c",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FSBT API Token",
+        .unit = "FSBT",
+        .contract_address =
+            "\x1e\xd7\xae\x1f\x0e\x2f\xa4\x27\x6d\xd7\xdd\xc7\x86\x33\x4a\x3d\xf8\x1d\x50\xc0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FlashX Advance",
+        .unit = "FSXA",
+        .contract_address =
+            "\xf0\xb0\xa1\x3d\x90\x82\x53\xd9\x54\xba\x03\x1a\x42\x5d\xfd\x54\xf9\x4a\x2e\x3d",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FansTime",
+        .unit = "FTI",
+        .contract_address =
+            "\x94\x3e\xd8\x52\xda\xdb\x5c\x39\x38\xec\xdc\x68\x83\x71\x8d\xf8\x14\x2d\xe4\xc8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Fountain",
+        .unit = "FTN",
+        .contract_address =
+            "\x56\x32\x5d\x18\x0e\xc3\x87\x8a\x90\x28\xaf\xc7\xb0\xed\xce\xe7\x48\x6c\xc9\xdf",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FarmaTrust",
+        .unit = "FTT",
+        .contract_address =
+            "\x2a\xec\x18\xc5\x50\x0f\x21\x35\x9c\xe1\xbe\xa5\xdc\x17\x77\x34\x4d\xf4\xc0\xdc",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FintruX Network",
+        .unit = "FTX",
+        .contract_address =
+            "\xd5\x59\xf2\x02\x96\xff\x48\x95\xda\x39\xb5\xbd\x9a\xdd\x54\xb4\x42\x59\x6a\x61",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FUTURAX",
+        .unit = "FTXT",
+        .contract_address =
+            "\x41\x87\x5c\x23\x32\xb0\x87\x7c\xdf\xaa\x69\x9b\x64\x14\x02\xb7\xd4\x64\x2c\x32",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FUZE Token",
+        .unit = "FUZE",
+        .contract_address =
+            "\x18\x7d\x10\x18\xe8\xef\x87\x9b\xe4\x19\x4d\x6e\xd7\x59\x09\x87\x46\x3e\xad\x85",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FANZY",
+        .unit = "FX1",
+        .contract_address =
+            "\xed\x0e\x20\x41\xbf\xb5\xa4\x26\xe5\xed\x42\x6a\x73\x76\x56\x24\xe0\x8b\xbb\x75",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FuzeX",
+        .unit = "FXT",
+        .contract_address =
+            "\x18\x29\xaa\x04\x5e\x21\xe0\xd5\x95\x80\x02\x4a\x95\x1d\xb4\x80\x96\xe0\x17\x82",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "FlypMe",
+        .unit = "FYP",
+        .contract_address =
+            "\x8f\x09\x21\xf3\x05\x55\x62\x41\x43\xd4\x27\xb3\x40\xb1\x15\x69\x14\x88\x2c\x10",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "GameCredits",
+        .unit = "GAME",
+        .contract_address =
+            "\x63\xf8\x8a\x22\x98\xa5\xc4\xae\xe3\xc2\x16\xaa\x6d\x92\x6b\x18\x4a\x4b\x24\x37",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Game Ark",
+        .unit = "GARK",
+        .contract_address =
+            "\xff\xd6\xf6\x08\x90\x79\x14\x97\x5b\x37\x13\xc8\x92\x11\xfa\xf2\xc7\x0e\xce\x05",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Galaxy Wallet",
+        .unit = "GC",
+        .contract_address =
+            "\x48\x6a\x72\x81\x1a\xe6\x5c\x4c\x81\x4b\xa9\x29\xd6\xda\x35\x49\x7d\x21\x29\x6f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Gems ",
+        .unit = "GEM",
+        .contract_address =
+            "\xc7\xbb\xa5\xb7\x65\x58\x1e\xfb\x2c\xdd\x26\x79\xdb\x5b\xea\x9e\xe7\x9b\x20\x1f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Gene Source Code Chain",
+        .unit = "GENE",
+        .contract_address =
+            "\x88\x41\x81\x55\x4d\xfa\x9e\x57\x8d\x36\x37\x99\x19\xc0\x5c\x25\xdc\x4a\x15\xbb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Parkgene",
+        .unit = "GENE",
+        .contract_address =
+            "\x6d\xd4\xe4\xaa\xd2\x9a\x40\xed\xd6\xa4\x09\xb9\xc1\x62\x51\x86\xc9\x85\x5b\x4d",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "GeoDB",
+        .unit = "GEO",
+        .contract_address =
+            "\x14\x7f\xaf\x8d\xe9\xd8\xd8\xda\xae\x12\x9b\x18\x7f\x0d\x02\xd8\x19\x12\x67\x50",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Themis",
+        .unit = "GET",
+        .contract_address =
+            "\x60\xc6\x8a\x87\xbe\x1e\x8a\x84\x14\x4b\x54\x3a\xac\xfa\x77\x19\x9c\xd3\xd0\x24",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Guaranteed Ethurance Token Extra",
+        .unit = "GETX",
+        .contract_address =
+            "\x07\xa5\x86\x29\xaa\xf3\xe1\xa0\xd0\x7d\x8f\x43\x11\x4b\x76\xbd\x5e\xee\x3b\x91",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "GoldFund",
+        .unit = "GFUN",
+        .contract_address =
+            "\x91\x9d\x3a\x36\x37\x76\xb1\xce\xec\x93\x52\x61\x0c\x82\xdf\xaf\x80\xed\xc3\x2d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "GramGold Coin",
+        .unit = "GGC",
+        .contract_address =
+            "\x1b\xe7\xcf\xd6\x1a\xa8\xda\xaa\x9f\xf2\xf3\xb8\x82\x08\x88\xf0\x94\x62\xd0\x37",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "GHOST",
+        .unit = "GHOST",
+        .contract_address =
+            "\x4c\x32\x74\x71\xc4\x4b\x2d\xac\xd6\xe9\x05\x25\xf9\xd6\x29\xbd\x2e\x4f\x66\x2c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Krios",
+        .unit = "GIG",
+        .contract_address =
+            "\x83\x8d\x8e\x11\xb1\x60\xde\xc8\x8f\xe6\x2b\xf0\xf7\x43\xfb\x70\x00\x94\x1e\x13",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Buzzshow",
+        .unit = "GLDY",
+        .contract_address =
+            "\x59\x42\x07\xc7\x91\xaf\xd0\x6a\x8d\x08\x7d\x84\xd9\x9d\x1d\xa5\x3c\xcb\xd4\x5f",
+        .decimals = 3,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Global Reserve System",
+        .unit = "GLOB",
+        .contract_address =
+            "\x45\xf2\xab\x0c\xa2\x11\x6b\x2e\x1a\x70\xbf\x5e\x13\x29\x39\x47\xb2\x5d\x02\x72",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "GAMB",
+        .unit = "GMB",
+        .contract_address =
+            "\xa0\x00\x8f\x51\x0f\xe9\xee\x69\x6e\x7e\x32\x0c\x9e\x5c\xbf\x61\xe2\x77\x91\xee",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Digital Gold",
+        .unit = "GOLD",
+        .contract_address =
+            "\x0d\x16\x45\x0d\x34\x7c\x12\xc0\x86\xd6\xc9\x4c\x76\xc5\xaa\xac\x35\xea\x07\xe0",
+        .decimals = 3,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Golden Token",
+        .unit = "GOLD",
+        .contract_address =
+            "\x34\xd6\xa0\xf5\xc2\xf5\xd0\x08\x21\x41\xfe\x73\xd9\x3b\x9d\xd0\x0c\xa7\xce\x11",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Gomics",
+        .unit = "GOM",
+        .contract_address =
+            "\xb8\xc6\xad\x25\x86\xbb\x71\xd5\x18\xc2\xaa\xf5\x10\xef\xe9\x1f\x82\x02\x2f\x58",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "AnimalGo",
+        .unit = "GOM2",
+        .contract_address =
+            "\x48\x78\x34\x86\xdd\xd7\xfa\x85\xec\xa6\xb0\xc4\xae\x89\x20\xbc\x25\xdf\xbc\xd7",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "GoNetwork",
+        .unit = "GOT",
+        .contract_address =
+            "\x42\x3b\x5f\x62\xb3\x28\xd0\xd6\xd4\x48\x70\xf4\xee\xe3\x16\xbe\xfa\x0b\x2d\xf5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Galaxy Pool Coin",
+        .unit = "GPO",
+        .contract_address =
+            "\x5c\xf5\x01\xe6\x47\x86\x44\x4e\x02\x5c\x5b\x24\x02\x5f\x98\x39\x95\x38\xea\x5d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "GoPower",
+        .unit = "GPT",
+        .contract_address =
+            "\xa0\x04\x25\xd3\xe2\xd3\xe9\xff\x74\xf3\xe1\x12\xb4\xd3\xa7\x97\x8d\x7d\x88\xc2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "GoldenPyrex",
+        .unit = "GPYX",
+        .contract_address =
+            "\xbc\x7f\x40\x2f\x3b\xc1\xc6\xd5\x6c\x80\x41\xf5\x51\xb4\x7a\x0a\xd7\x71\x4d\x1b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "GSENetwork",
+        .unit = "GSE",
+        .contract_address =
+            "\xe5\x30\x44\x1f\x4f\x73\xbd\xb6\xdc\x2f\xa5\xaf\x7c\x3f\xc5\xfd\x55\x1e\xc8\x38",
+        .decimals = 4,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "GLOBALTRUSTFUND TOKEN",
+        .unit = "GTF",
+        .contract_address =
+            "\x40\xf8\xb7\xa8\x2b\x63\x55\xd2\x65\x46\xd3\x63\xce\x9c\x12\xce\x10\x4c\xf0\xce",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "GoalTime N",
+        .unit = "GTX",
+        .contract_address =
+            "\x91\x68\x85\x42\x62\x55\x23\x5d\xa7\xa0\xbd\x90\x44\x79\x86\xc0\x06\x75\xf9\xec",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Peerguess",
+        .unit = "GUESS",
+        .contract_address =
+            "\xbd\xcf\xbf\x5c\x4d\x91\xab\xc0\xbc\x97\x09\xc7\x28\x6d\x00\x06\x3c\x0e\x6f\x22",
+        .decimals = 2,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Matchpool",
+        .unit = "GUP",
+        .contract_address =
+            "\xf7\xb0\x98\x29\x8f\x7c\x69\xfc\x14\x61\x0b\xf7\x1d\x5e\x02\xc6\x07\x92\x89\x4c",
+        .decimals = 3,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Globalvillage Ecosystem",
+        .unit = "GVE",
+        .contract_address =
+            "\x81\x70\x50\x82\xef\x9f\x0d\x66\x0f\x07\xbe\x80\x09\x3d\x46\xd8\x26\xd4\x8b\x25",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ShowHand",
+        .unit = "HAND",
+        .contract_address =
+            "\x48\xc1\xb2\xf3\xef\xa8\x5f\xba\xfb\x2a\xb9\x51\xbf\x4b\xa8\x60\xa0\x8c\xdb\xb7",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Havy",
+        .unit = "HAVY",
+        .contract_address =
+            "\x7c\x2e\x5b\x7e\xc5\x72\x19\x9d\x38\x41\xf6\xa3\x8f\x7d\x48\x68\xbd\x07\x98\xf1",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HeartBout",
+        .unit = "HB",
+        .contract_address =
+            "\xe2\x49\x2f\x8d\x2a\x26\x18\xd8\x70\x9c\xa9\x9b\x1d\x8d\x75\x71\x3b\xd8\x40\x89",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HashBX ",
+        .unit = "HBX",
+        .contract_address =
+            "\x6f\xe3\x55\xc6\x2c\x6f\xaf\x69\x46\xce\x88\x8f\xfa\xba\x9f\xd1\x23\x55\xae\x27",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HyperDAO",
+        .unit = "HDAO",
+        .contract_address =
+            "\x74\xfa\xab\x69\x86\x56\x0f\xd1\x14\x05\x08\xe4\x26\x6d\x8a\x7b\x87\x27\x4f\xfd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HEIDI",
+        .unit = "HDI",
+        .contract_address =
+            "\x58\xa3\x52\x0d\x73\x8b\x26\x8c\x23\x53\xec\xee\x51\x8a\x1a\xd8\xe2\x8e\x4a\xe5",
+        .decimals = 2,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "1x Short Bitcoin Token",
+        .unit = "HEDGE",
+        .contract_address =
+            "\x1f\xa3\xbc\x86\x0b\xf8\x23\xd7\x92\xf0\x4f\x66\x2f\x3a\xa3\xa5\x00\xa6\x88\x14",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Hemelios",
+        .unit = "HEM",
+        .contract_address =
+            "\x19\x74\x78\x16\xa0\x30\xfe\xcd\xa3\x39\x4c\x60\x62\xcd\xf6\xb9\xb4\xdb\x0e\x0b",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HeroNode",
+        .unit = "HER",
+        .contract_address =
+            "\x49\x1c\x9a\x23\xdb\x85\x62\x3e\xed\x45\x5a\x8e\xfd\xd6\xab\xa9\xb9\x11\xc5\xdf",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Herbalist Token",
+        .unit = "HERB",
+        .contract_address =
+            "\x04\xa0\x20\x32\x50\x24\xf1\x30\x98\x87\x82\xbd\x52\x76\xe5\x35\x95\xe8\xd1\x6e",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HEX",
+        .unit = "HEX",
+        .contract_address =
+            "\x2b\x59\x1e\x99\xaf\xe9\xf3\x2e\xaa\x62\x14\xf7\xb7\x62\x97\x68\xc4\x0e\xeb\x39",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HelloGold",
+        .unit = "HGT",
+        .contract_address =
+            "\xba\x21\x84\x52\x0a\x1c\xc4\x9a\x61\x59\xc5\x7e\x61\xe1\x84\x4e\x08\x56\x15\xb6",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Hintchain",
+        .unit = "HINT",
+        .contract_address =
+            "\x6c\xe2\x1e\x5f\x53\x83\xc9\x56\x91\xd2\x43\x87\x9a\x86\xa6\x02\x5e\x08\x70\xc0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HitChain",
+        .unit = "HIT",
+        .contract_address =
+            "\x79\x95\xab\x36\xbb\x30\x7a\xfa\x6a\x68\x3c\x24\xa2\x5d\x90\xdc\x1e\xa8\x35\x66",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HalalChain",
+        .unit = "HLC",
+        .contract_address =
+            "\x58\xc6\x9e\xd6\xcd\x68\x87\xc0\x22\x5d\x1f\xcc\xec\xc0\x55\x12\x78\x43\xc6\x9b",
+        .decimals = 9,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Helex",
+        .unit = "HLX",
+        .contract_address =
+            "\x8f\x8e\x78\x79\x89\xbc\x65\x2e\xea\x01\xa6\xc8\x8a\x19\xf0\xf3\x79\xbd\xf4\xfd",
+        .decimals = 5,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Hamebi Token",
+        .unit = "HMB",
+        .contract_address =
+            "\xc3\xb2\x14\x0a\xc3\xe9\x5e\xdf\xea\x22\x06\x81\xee\xca\x12\x7f\xc8\x1e\x49\x29",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Homeros",
+        .unit = "HMR",
+        .contract_address =
+            "\xb1\xa3\x08\x51\xe3\xf7\xd8\x41\xb2\x31\xb0\x86\x47\x96\x08\xe1\x71\x98\x36\x3a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HashNet BitEco",
+        .unit = "HNB",
+        .contract_address =
+            "\x9c\x19\x7c\x4b\x58\x52\x7f\xaa\xab\x67\xcb\x35\xe3\x14\x51\x66\xb2\x3d\x24\x2e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HOLD",
+        .unit = "HOLD",
+        .contract_address =
+            "\xd6\xe1\x40\x1a\x07\x99\x22\x46\x9e\x9b\x96\x5c\xb0\x90\xea\x6f\xf6\x4c\x68\x39",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HOMIHELP",
+        .unit = "HOMI",
+        .contract_address =
+            "\xca\x20\x8b\xfd\x69\xae\x6d\x26\x67\xf1\xfc\xbe\x68\x1b\xae\x12\x76\x7c\x00\x78",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ethouse",
+        .unit = "HORSE",
+        .contract_address =
+            "\x5b\x07\x51\x71\x3b\x25\x27\xd7\xf0\x02\xc0\xc4\xe2\xa3\x7e\x12\x19\x61\x0a\x6b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Healing Plus",
+        .unit = "HP",
+        .contract_address =
+            "\xab\x55\xbd\xef\x70\x57\xb7\x64\x82\x91\x4e\x79\xf0\x37\x99\x9f\x4e\xbb\x6b\xf1",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HyperQuant",
+        .unit = "HQT",
+        .contract_address =
+            "\x3e\x1d\x5a\x85\x5a\xd9\xd9\x48\x37\x3a\xe6\x8e\x4f\xe1\xf0\x94\x61\x2b\x13\x22",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HOQU",
+        .unit = "HQX",
+        .contract_address =
+            "\x1b\x95\x7d\xc4\xae\xfe\xed\x3b\x4a\x23\x51\xa6\xa6\xd5\xcb\xfb\xba\x0c\xec\xfa",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HashCoin",
+        .unit = "HSC",
+        .contract_address =
+            "\x2b\xba\x3c\xf6\xde\x60\x58\xcc\x1b\x44\x57\xce\x00\xde\xb3\x59\xe2\x70\x3d\x7f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Hyper Speed Network",
+        .unit = "HSN",
+        .contract_address =
+            "\x36\x55\x42\xdf\x3c\x8c\x9d\x09\x6c\x5f\x0d\xe2\x4a\x0d\x8c\xf3\x3c\x19\xc8\xfd",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Helper Search Token",
+        .unit = "HSN",
+        .contract_address =
+            "\x56\x73\x00\xe1\x4f\x8d\x67\xe1\xf6\x72\x0a\x95\x29\x1d\xce\x25\x11\xa8\x67\x23",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Hubi Token",
+        .unit = "HUB",
+        .contract_address =
+            "\xba\x51\x60\xba\x66\xb2\x86\xf1\xb9\xb6\xf3\xa5\x7a\x6a\xbc\xfa\x44\x0e\x7a\xa2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HUNT",
+        .unit = "HUNT",
+        .contract_address =
+            "\x9a\xab\x07\x1b\x41\x29\xb0\x83\xb0\x1c\xb5\xa0\xcb\x51\x3c\xe7\xec\xa2\x6f\xa5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Hurify",
+        .unit = "HUR",
+        .contract_address =
+            "\xcd\xb7\xec\xfd\x34\x03\xee\xf3\x88\x2c\x65\xb7\x61\xef\x9b\x50\x54\x89\x0a\x47",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HUSD",
+        .unit = "HUSD",
+        .contract_address =
+            "\xdf\x57\x4c\x24\x54\x5e\x5f\xfe\xcb\x9a\x65\x9c\x22\x92\x53\xd4\x11\x1d\x87\xe1",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Hiveterminal Token",
+        .unit = "HVN",
+        .contract_address =
+            "\xc0\xeb\x85\x28\x5d\x83\x21\x7c\xd7\xc8\x91\x70\x2b\xcb\xc0\xfc\x40\x1e\x2d\x9d",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HYPNOXYS",
+        .unit = "HYPX",
+        .contract_address =
+            "\xd3\x58\x33\xf9\x25\x5f\xb2\x8c\xc6\xb9\x1a\xcb\x8a\x66\xba\x64\x29\xd6\xef\x5a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HoryouToken",
+        .unit = "HYT",
+        .contract_address =
+            "\xcf\xac\x29\x16\xec\x11\x8a\x02\x52\xa7\x76\x6c\x51\x3e\xe7\xc7\x1b\x38\x4b\x5e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Black Diamond Rating",
+        .unit = "HZT",
+        .contract_address =
+            "\x78\xa5\xb3\x82\xb9\xa8\x3f\xe0\x42\xa4\xf7\xeb\x23\x99\xd5\x63\xfd\xa9\x31\xc3",
+        .decimals = 2,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "IBStoken",
+        .unit = "IBS",
+        .contract_address =
+            "\xf0\xe6\x01\x9c\x0f\x16\xd3\x12\x94\x93\x7b\x33\x34\x22\x99\x09\x34\x9e\x00\xf4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "iBTC",
+        .unit = "IBTC",
+        .contract_address =
+            "\xb7\xc4\xa8\x29\x36\x19\x4f\xee\x52\xa4\xe3\xd4\xce\xc3\x41\x5f\x74\x50\x75\x32",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Inverse Bitcoin Volatility Token",
+        .unit = "IBVOL",
+        .contract_address =
+            "\x62\x7e\x2e\xe3\xdb\xda\x54\x6e\x16\x8e\xaa\xff\x25\xa2\xc5\x21\x2e\x4a\x95\xa0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Idea Chain Coin",
+        .unit = "ICH",
+        .contract_address =
+            "\xf8\x48\x3e\x2d\x65\x60\x58\x5c\x02\xd4\x6b\xf7\xb3\x18\x6b\xf1\x54\xa9\x61\x66",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Iconic Token",
+        .unit = "ICNQ",
+        .contract_address =
+            "\xb3\xe2\xcb\x7c\xcc\xfe\x13\x9f\x8f\xf8\x40\x13\x82\x3b\xf2\x2d\xa6\xb6\x39\x0a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ICOCalendar.Today",
+        .unit = "ICT",
+        .contract_address =
+            "\x2d\x71\x98\x3e\x81\x0b\x9e\x95\x25\x89\x66\xb9\xc1\x64\xc4\xd6\x1a\x82\x9b\xa9",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "IDK",
+        .unit = "IDK",
+        .contract_address =
+            "\x61\xfd\x1c\x62\x55\x18\x50\xd0\xc0\x4c\x76\xfc\xe6\x14\xcb\xce\xd0\x09\x44\x98",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "InvestDigital",
+        .unit = "IDT",
+        .contract_address =
+            "\x02\xc4\xc7\x8c\x46\x2e\x32\xcc\xa4\xa9\x0b\xc4\x99\xbf\x41\x1f\xb7\xbc\x6a\xfb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "IDEX Membership",
+        .unit = "IDXM",
+        .contract_address =
+            "\xcc\x13\xfc\x62\x7e\xff\xd6\xe3\x5d\x2d\x27\x06\xea\x3c\x4d\x73\x96\xc6\x10\xea",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "iEthereum",
+        .unit = "IETH",
+        .contract_address =
+            "\x85\x9a\x9c\x0b\x44\xcb\x70\x66\xd9\x56\xa9\x58\xb0\xb8\x2e\x54\xc9\xe4\x4b\x4b",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ifoods Chain",
+        .unit = "IFOOD",
+        .contract_address =
+            "\x81\xe7\x4a\x3e\xa4\xba\xb2\x27\x7a\xa3\xb9\x41\xe9\xd9\xf3\x7b\x08\xac\x53\x74",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "InvestFeed",
+        .unit = "IFT",
+        .contract_address =
+            "\x76\x54\x91\x5a\x1b\x82\xd6\xd2\xd0\xaf\xc3\x7c\x52\xaf\x55\x6e\xa8\x98\x3c\x7e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "IFX24",
+        .unit = "IFX24",
+        .contract_address =
+            "\xc9\x62\xad\x02\x1a\x69\xd4\x57\x56\x4e\x98\x57\x38\xc7\x19\xae\x3f\x79\xb7\x07",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "IGToken",
+        .unit = "IG",
+        .contract_address =
+            "\x8a\x88\xf0\x4e\x0c\x90\x50\x54\xd2\xf3\x3b\x26\xbb\x3a\x46\xd7\x09\x1a\x03\x9a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Intelligent Investment Chain",
+        .unit = "IIC",
+        .contract_address =
+            "\xb6\xf4\x30\x25\xb2\x91\x96\xaf\x2d\xdd\xd6\x9b\x0a\x58\xaf\xba\x07\x9c\xd6\x00",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ether Kingdoms Token",
+        .unit = "IMP",
+        .contract_address =
+            "\x48\xff\x53\x77\x7f\x74\x7c\xfb\x69\x41\x01\x22\x2a\x94\x4d\xe0\x70\xc1\x5d\x36",
+        .decimals = 7,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Moneytoken",
+        .unit = "IMT",
+        .contract_address =
+            "\x13\x11\x9e\x34\xe1\x40\x09\x7a\x50\x7b\x07\xa5\x56\x4b\xde\x1b\xc3\x75\xd9\xe6",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Imsmart",
+        .unit = "IMT",
+        .contract_address =
+            "\xbf\xe0\x37\x07\xad\xb7\x5b\x47\x8a\xdd\x9a\x01\x97\x80\x57\x80\x3f\x48\x0e\x44",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "InternationalCryptoX",
+        .unit = "INCX",
+        .contract_address =
+            "\xa9\x84\xa9\x27\x31\xc0\x88\xf1\xea\x4d\x53\xb7\x1a\x25\x65\xa3\x99\xf7\xd8\xd5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Indorse Token",
+        .unit = "IND",
+        .contract_address =
+            "\xf8\xe3\x86\xed\xa8\x57\x48\x4f\x5a\x12\xe4\xb5\xda\xa9\x98\x4e\x06\xe7\x37\x05",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Infinitus Token",
+        .unit = "INF",
+        .contract_address =
+            "\x00\xe1\x50\xd7\x41\xed\xa1\xd4\x9d\x34\x11\x89\xca\xe4\xc0\x8a\x73\xa4\x9c\x95",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Iungo",
+        .unit = "ING",
+        .contract_address =
+            "\x24\xdd\xff\x6d\x8b\x8a\x42\xd8\x35\xaf\x3b\x44\x0d\xe9\x1f\x33\x86\x55\x4a\xa4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Innovative Bioresearch Coin",
+        .unit = "INNBC",
+        .contract_address =
+            "\xb6\x77\x18\xb9\x8d\x52\x31\x82\x40\xc5\x2e\x71\xa8\x98\x33\x5d\xa4\xa2\x8c\x42",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Innovative Bioresearch Classic",
+        .unit = "INNBCL",
+        .contract_address =
+            "\x0c\xc9\xfc\xcf\xf8\x12\x52\xf4\xbd\x8c\x5c\x6b\x35\x9b\x14\xae\x2e\xd8\x51\xcf",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "intexcoin",
+        .unit = "INTX",
+        .contract_address =
+            "\x75\x33\xd6\x3a\x25\x58\x96\x54\x72\x39\x8e\xf4\x73\x90\x8e\x13\x20\x52\x0a\xe2",
+        .decimals = 9,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "InterValue",
+        .unit = "INVE",
+        .contract_address =
+            "\xda\xc4\xae\x18\x8a\xce\x3c\x89\x85\x76\x5e\xdc\x6c\x9b\x47\x39\xd4\x84\x5d\xdc",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "INMAX",
+        .unit = "INX",
+        .contract_address =
+            "\x01\x8d\x7d\x17\x93\x50\xf1\xbb\x98\x53\xd0\x49\x82\x82\x0e\x37\xcc\xe1\x3a\x92",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Insight Protocol",
+        .unit = "INX",
+        .contract_address =
+            "\x84\xfe\x25\xf3\x92\x1f\x34\x26\x39\x5c\x88\x37\x07\x95\x0d\x0c\x00\x36\x75\x76",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Internxt",
+        .unit = "INXT",
+        .contract_address =
+            "\xa8\x00\x6c\x4c\xa5\x6f\x24\xd6\x83\x67\x27\xd1\x06\x34\x93\x20\xdb\x7f\xef\x82",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Playgroundz",
+        .unit = "IOG",
+        .contract_address =
+            "\x1c\x4b\x7d\x0e\x18\x85\xbd\x76\x67\xaf\x33\x78\xe0\xc5\x38\xf7\x4e\x71\x20\x06",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "IONChain",
+        .unit = "IONC",
+        .contract_address =
+            "\xbc\x64\x7a\xad\x10\x11\x4b\x89\x56\x4c\x0a\x7a\xab\xe5\x42\xbd\x0c\xf2\xc5\xaf",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "IOOX System",
+        .unit = "IOOX",
+        .contract_address =
+            "\xf6\x92\x3f\x7d\x96\xfc\x22\xc4\xb8\x01\x0a\x86\x5e\x41\xcf\x7e\xdf\xb6\x37\x9c",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "VouchForMe",
+        .unit = "IPL",
+        .contract_address =
+            "\x64\xcd\xf8\x19\xd3\xe7\x5a\xc8\xec\x21\x7b\x34\x96\xd7\xce\x16\x7b\xe4\x2e\x80",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "IP Exchange",
+        .unit = "IPSX",
+        .contract_address =
+            "\x00\x1f\x0a\xa5\xda\x15\x58\x5e\x5b\x23\x05\xdb\xab\x2b\xac\x42\x5e\xa7\x10\x07",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Diligence",
+        .unit = "IRA",
+        .contract_address =
+            "\xad\xe7\xb5\xf4\xa4\x21\xd8\x1d\xda\xd8\xce\x86\xf7\x7a\x0e\xfe\x89\x21\xe9\xcc",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Isiklar Coin",
+        .unit = "ISIKC",
+        .contract_address =
+            "\x42\x72\x6d\x07\x4b\xba\x68\xcc\xc1\x52\x00\x44\x2b\x72\xaf\xa2\xd4\x95\xa7\x83",
+        .decimals = 4,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Insula",
+        .unit = "ISLA",
+        .contract_address =
+            "\x69\x7e\xf3\x2b\x4a\x3f\x5a\x4c\x39\xde\x1c\xb7\x56\x3f\x24\xca\x7b\xfc\x59\x47",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Insureum",
+        .unit = "ISR",
+        .contract_address =
+            "\xd4\xa2\x93\xae\x8b\xb9\xe0\xbe\x12\xe9\x9e\xb1\x9d\x48\x23\x9e\x8c\x83\xa1\x36",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "IDCM Token",
+        .unit = "IT",
+        .contract_address =
+            "\x73\xd7\xe1\xdc\xfa\xc9\x42\x82\xdf\xda\x16\xc8\xf3\x69\xb4\x88\x58\x0f\x74\x08",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Italian Lira",
+        .unit = "ITL",
+        .contract_address =
+            "\x12\x2a\x86\xb5\xdf\xf2\xd0\x85\xaf\xb4\x96\x00\xb4\xcd\x73\x75\xd0\xd9\x4a\x5f",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Intelligent Trading Foundation",
+        .unit = "ITT",
+        .contract_address =
+            "\x0a\xef\x06\xdc\xcc\xc5\x31\xe5\x81\xf0\x44\x00\x59\xe6\xff\xcc\x20\x60\x39\xee",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "X-Block",
+        .unit = "IX",
+        .contract_address =
+            "\x53\xf0\xc9\xf1\xb6\xe2\x83\xa5\x9b\xcd\x67\x2e\x80\xe2\x22\x2b\x97\xe5\x34\xcb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "IXT",
+        .unit = "IXT",
+        .contract_address =
+            "\xfc\xa4\x79\x62\xd4\x5a\xdf\xdf\xd1\xab\x2d\x97\x23\x15\xdb\x4c\xe7\xcc\xf0\x94",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "IZE",
+        .unit = "IZE",
+        .contract_address =
+            "\x69\x44\xd3\xe3\x89\x73\xc4\x83\x1d\xa2\x4e\x95\x4f\xbd\x79\x0c\x7e\x68\x8b\xdd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "JET8",
+        .unit = "J8T",
+        .contract_address =
+            "\x0d\x26\x2e\x5d\xc4\xa0\x6a\x0f\x1c\x90\xce\x79\xc7\xa6\x0c\x09\xdf\xc8\x84\xe4",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Jack Token",
+        .unit = "JACK",
+        .contract_address =
+            "\x4e\x12\xeb\x8e\x50\x6c\xcd\x14\x27\xf6\xb8\xf7\xfa\xa3\xe8\x8f\xb6\x98\xeb\x28",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Jade Currency",
+        .unit = "JADE",
+        .contract_address =
+            "\x5a\xba\xff\x0b\x83\xf8\x1d\xc0\x61\xc5\x90\xaa\xdc\xba\x01\x3c\x69\x23\x7f\xd7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Jarvis+",
+        .unit = "JAR",
+        .contract_address =
+            "\xa2\x49\xde\x69\x48\x02\x27\x83\x76\x5f\xee\x48\x50\xd7\xb8\x5e\x43\x11\x8f\xcc",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Japan Content Token",
+        .unit = "JCT",
+        .contract_address =
+            "\x7f\xe9\x2e\xc6\x00\xf1\x5c\xd2\x52\x53\xb4\x21\xbc\x15\x1c\x51\xb0\x27\x6b\x7d",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Jetcoin",
+        .unit = "JET",
+        .contract_address =
+            "\x87\x27\xc1\x12\xc7\x12\xc4\xa0\x33\x71\xac\x87\xa7\x4d\xd6\xab\x10\x4a\xf7\x68",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Jinbi Token",
+        .unit = "JNB",
+        .contract_address =
+            "\x21\xd5\xa1\x4e\x62\x5d\x76\x7c\xe6\xb7\xa1\x67\x49\x1c\x2d\x18\xe0\x78\x5f\xda",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Jobchain",
+        .unit = "JOB",
+        .contract_address =
+            "\xdf\xbc\x90\x50\xf5\xb0\x1d\xf5\x35\x12\xdc\xc3\x9b\x4f\x2b\x2b\xba\xcd\x51\x7a",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Joint Ventures",
+        .unit = "JOINT",
+        .contract_address =
+            "\x34\x7c\x09\x9f\x11\x0c\xa6\x76\x17\x79\x32\x9d\x28\x79\x95\x7b\x60\x6b\x6a\xce",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Jarvis Network",
+        .unit = "JRT",
+        .contract_address =
+            "\x8a\x9c\x67\xfe\xe6\x41\x57\x9d\xeb\xa0\x49\x28\xc4\xbc\x45\xf6\x6e\x26\x34\x3a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "JavaScript Token",
+        .unit = "JS",
+        .contract_address =
+            "\x50\x46\xe8\x60\xff\x27\x4f\xb8\xc6\x61\x06\xb0\xff\xb8\x15\x58\x49\xfb\x07\x87",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "JSECOIN",
+        .unit = "JSE",
+        .contract_address =
+            "\x2d\x18\x40\x14\xb5\x65\x8c\x45\x34\x43\xaa\x87\xc8\xe9\xc4\xd5\x72\x85\x62\x0b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Jubi Token",
+        .unit = "JT",
+        .contract_address =
+            "\xeb\x73\x55\xc2\xf2\x17\xb3\x48\x5a\x59\x13\x32\xfe\x13\xc8\xc5\xa7\x6a\x58\x1d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "JUST NETWORK",
+        .unit = "JUS",
+        .contract_address =
+            "\x14\xca\x41\xee\xcd\x7d\x81\xd5\xd1\x30\x98\x58\x6c\x0d\x23\x14\xeb\xa2\x85\xbe",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "KAASO",
+        .unit = "KAASO",
+        .contract_address =
+            "\xf6\xbf\x74\xa9\x7d\x78\xf2\x24\x23\x76\x76\x9e\xf1\xe7\x98\x85\xcf\x1f\x0c\x1c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "KardiaChain",
+        .unit = "KAI",
+        .contract_address =
+            "\xbd\x64\x67\xa3\x18\x99\x59\x04\x74\xce\x1e\x84\xf7\x05\x94\xc5\x3d\x62\x8e\x46",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BitKAM",
+        .unit = "KAM",
+        .contract_address =
+            "\xbd\xbb\x0e\xe6\x14\x45\x44\xec\x81\x4d\x41\x7b\x0a\xd4\x1f\x16\xfc\x8b\x85\x8e",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Kambria",
+        .unit = "KAT",
+        .contract_address =
+            "\xa8\x58\xbc\x1b\x71\xa8\x95\xee\x83\xb9\x2f\x14\x96\x16\xf9\xb3\xf6\xaf\xa0\xfb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "King DAG",
+        .unit = "KDAG",
+        .contract_address =
+            "\x95\xe4\x0e\x06\x5a\xfb\x30\x59\xdc\xab\xe4\xaa\xf4\x04\xc1\xf9\x27\x56\x60\x3a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Keep Network",
+        .unit = "KEEP",
+        .contract_address =
+            "\x85\xee\xe3\x0c\x52\xb0\xb3\x79\xb0\x46\xfb\x0f\x85\xf4\xf3\xdc\x30\x09\xaf\xec",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "KEY",
+        .unit = "KEY",
+        .contract_address =
+            "\x4c\xd9\x88\xaf\xba\xd3\x72\x89\xba\xaf\x53\xc1\x3e\x98\xe2\xbd\x46\xaa\xea\x8c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "REBIT",
+        .unit = "KEYT",
+        .contract_address =
+            "\xce\x13\xab\xce\x0d\xb5\xa8\x22\x46\x16\xef\x24\xd3\x97\x9d\x46\x6f\x19\xcf\x90",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Krypton Galaxy Coin",
+        .unit = "KGC",
+        .contract_address =
+            "\xa8\x26\x2e\xb9\x13\xfc\xce\xa4\xc3\xf7\x7f\xc9\x5b\x8b\x40\x43\xb3\x84\xcf\xbb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Sessia",
+        .unit = "KICKS",
+        .contract_address =
+            "\xd9\x1a\x61\x62\xf1\x46\xef\x85\x92\x2d\x9a\x15\xee\x6e\xb1\x4a\x00\x34\x45\x86",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Kind Ads Token",
+        .unit = "KIND",
+        .contract_address =
+            "\x46\x18\x51\x9d\xe4\xc3\x04\xf3\x44\x4f\xfa\x7f\x81\x2d\xdd\xc2\x97\x1c\xc6\x88",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Khipu Token",
+        .unit = "KIP",
+        .contract_address =
+            "\x64\xe6\x5d\x35\x2f\x6a\x29\x49\x46\x3b\x3a\x75\x95\x91\x1b\x61\xbb\xaf\xc6\x3e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "KanadeCoin",
+        .unit = "KNDC",
+        .contract_address =
+            "\x8e\x56\x10\xab\x5e\x39\xd2\x68\x28\x16\x76\x40\xea\x29\x82\x3f\xe1\xdd\x58\x43",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "KNOW",
+        .unit = "KNOW",
+        .contract_address =
+            "\xb4\x1f\x09\xa9\x73\xa8\x5c\x7f\x49\x7c\x10\xb0\x0a\x93\x9d\xe6\x67\xb5\x5a\x78",
+        .decimals = 10,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Knekted",
+        .unit = "KNT",
+        .contract_address =
+            "\x7c\xc6\x2d\x8e\x80\xbe\x9b\xea\x39\x47\xf3\x44\x3a\xd1\x36\xf5\x0f\x75\xb5\x05",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Kora Network Token",
+        .unit = "KNT",
+        .contract_address =
+            "\xff\x5c\x25\xd2\xf4\x0b\x47\xc4\xa3\x7f\x98\x9d\xe9\x33\xe2\x65\x62\xef\x0a\xc0",
+        .decimals = 16,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Keystone of Opportunity & Knowledge",
+        .unit = "KOK",
+        .contract_address =
+            "\x7b\xd6\xa4\xe7\xdb\x3a\x34\xc4\x85\xa8\xdd\x02\xb3\x0b\x65\x65\xe3\xbb\xc6\x33",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Darwinia Commitment Token",
+        .unit = "KTON",
+        .contract_address =
+            "\x9f\x28\x4e\x13\x37\xa8\x15\xfe\x77\xd2\xff\x4a\xe4\x65\x44\x64\x5b\x20\xc5\xff",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Kublaicoin",
+        .unit = "KUB",
+        .contract_address =
+            "\xc5\x9c\xb2\x32\x95\xe2\xde\xeb\x66\xbd\x09\x0a\xcb\x6b\x02\xbe\x8d\x30\xa1\x1f",
+        .decimals = 10,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Kuende",
+        .unit = "KUE",
+        .contract_address =
+            "\xdf\x13\x38\xfb\xaf\xe7\xaf\x17\x89\x15\x16\x27\xb8\x86\x78\x1b\xa5\x56\xef\x9a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Kuverit",
+        .unit = "KUV",
+        .contract_address =
+            "\xf7\x0d\x16\x01\x02\xcf\x7a\x22\xc1\xe4\x32\xd6\x92\x8a\x9d\x62\x5d\xb9\x11\x70",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "KVI",
+        .unit = "KVI",
+        .contract_address =
+            "\x88\x68\xff\x48\x93\x11\x31\x93\x31\x34\x65\xa0\xcc\xc5\xf1\xbd\x37\x0d\x77\x51",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "4NEW",
+        .unit = "KWATT",
+        .contract_address =
+            "\x24\x1b\xa6\x72\x57\x4a\x78\xa3\xa6\x04\xcd\xd0\xa9\x44\x29\xa7\x3a\x84\xa3\x24",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "KWHCoin",
+        .unit = "KWH",
+        .contract_address =
+            "\xb8\xdd\xc9\x30\xc2\xba\xb6\xc7\x16\x10\xa2\xbe\x63\x90\x36\xe8\x29\xf9\xc1\x0b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "KYSC Token",
+        .unit = "KYSC",
+        .contract_address =
+            "\x7e\x1a\x6f\xb2\x67\x02\xec\xb0\x43\x9a\x64\x1c\x5c\x28\x5f\x7e\xec\x43\x04\x19",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "LALA World",
+        .unit = "LALA",
+        .contract_address =
+            "\xfd\x10\x7b\x47\x3a\xb9\x0e\x8f\xbd\x89\x87\x21\x44\xa3\xdc\x92\xc4\x0f\xa8\xc9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "LinkArt",
+        .unit = "LAR",
+        .contract_address =
+            "\x62\x26\xca\xa1\x85\x7a\xfb\xc6\xdf\xb6\xca\x66\x07\x1e\xb2\x41\x22\x80\x31\xa1",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "LBK",
+        .unit = "LBK",
+        .contract_address =
+            "\x9c\xb1\xae\xaf\xcc\x8a\x94\x06\x63\x2c\x5b\x08\x42\x46\xea\x72\xf6\x2d\x37\xb6",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "LegalBlock",
+        .unit = "LBK",
+        .contract_address =
+            "\xd9\xaf\x2d\x11\xd7\x88\xda\x00\x97\x07\x6f\x4e\xb2\x1b\xd1\xc5\x53\x37\x43\xd9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Lux Bio Cell",
+        .unit = "LBXC",
+        .contract_address =
+            "\xff\xe5\x10\xa9\x24\x34\xa0\xdf\x34\x6c\x5e\x72\xa3\x49\x4b\x04\x3c\xf2\x49\xeb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "LEOcoin",
+        .unit = "LC4",
+        .contract_address =
+            "\xa8\x3a\xf8\x09\x97\x56\x19\x47\x7a\xf7\x3b\x17\x9e\x05\xe0\x4a\x1c\xce\xa9\x53",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "LocalCoinSwap",
+        .unit = "LCS",
+        .contract_address =
+            "\xaa\x19\x96\x1b\x6b\x85\x8d\x9f\x18\xa1\x15\xf2\x5a\xa1\xd9\x8a\xbc\x1f\xdb\xa8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "LCX",
+        .unit = "LCX",
+        .contract_address =
+            "\x03\x7a\x54\xaa\xb0\x62\x62\x8c\x9b\xba\xe1\xfd\xb1\x58\x3c\x19\x55\x85\xfe\x41",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Leadcoin",
+        .unit = "LDC",
+        .contract_address =
+            "\x51\x02\x79\x1c\xa0\x2f\xc3\x59\x53\x98\x40\x0b\xfe\x0e\x33\xd7\xb6\xc8\x22\x67",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Education Ecosystem",
+        .unit = "LEDU",
+        .contract_address =
+            "\xc7\x41\xf0\x60\x82\xaa\x47\xf9\x37\x29\x07\x0a\xd0\xdd\x95\xe2\x23\xbd\xa0\x91",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Linfinity",
+        .unit = "LFC",
+        .contract_address =
+            "\x95\xc9\xbd\x1f\x81\xce\xe7\x39\x1d\xa3\xea\xc8\x16\x93\xe6\x0f\x32\x92\xc1\xe0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Libertas Token",
+        .unit = "LIBERTAS",
+        .contract_address =
+            "\x49\x18\x4e\x6d\xae\x8c\x8e\xcd\x89\xd8\xbd\xc1\xb9\x50\xc5\x97\xb8\x16\x7c\x90",
+        .decimals = 2,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Liquidity Dividends Protocol",
+        .unit = "LID",
+        .contract_address =
+            "\x04\x17\x91\x2b\x3a\x7a\xf7\x68\x05\x17\x65\x04\x0a\x55\xbb\x09\x25\xd4\xdd\xcf",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Limestone Network",
+        .unit = "LIMEX",
+        .contract_address =
+            "\x40\x0b\x1d\x8a\x7d\xd8\xc4\x71\x02\x6b\x2c\x8c\xbe\x10\x62\xb2\x7d\x12\x05\x38",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3X Long Chainlink Token",
+        .unit = "LINKBULL",
+        .contract_address =
+            "\x83\xad\x87\xc9\x88\xac\x0c\x62\x77\xc0\xc6\x23\x4c\xc8\x10\x8b\x20\xbb\x5d\x9b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Coin Lion",
+        .unit = "LION",
+        .contract_address =
+            "\x21\x67\xfb\x82\x30\x9c\xf7\x65\x13\xe8\x3b\x25\x12\x3f\x8b\x05\x59\xd6\xb4\x8f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "LinkCoin Token",
+        .unit = "LKN",
+        .contract_address =
+            "\x9f\x54\x9e\xbf\xd4\x97\x4c\xd4\xed\x4a\x15\x50\xd4\x03\x94\xb4\x4a\x73\x82\xaa",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Latamcash",
+        .unit = "LMCH",
+        .contract_address =
+            "\x92\x05\xc0\x49\xc2\x31\xdd\xa5\x1b\xac\xe0\xba\x56\x9f\x04\x7e\x3e\x1e\x99\x79",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Lisk Machine Learning",
+        .unit = "LML",
+        .contract_address =
+            "\x25\xb6\x32\x5f\x5b\xb1\xc1\xe0\x3c\xfb\xc3\xe5\x3f\x47\x0e\x1f\x1c\xa0\x22\xe3",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "LunchMoney",
+        .unit = "LMY",
+        .contract_address =
+            "\x66\xfd\x97\xa7\x8d\x88\x54\xfe\xc4\x45\xcd\x1c\x80\xa0\x78\x96\xb0\xb4\x85\x1f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Blocklancer",
+        .unit = "LNC",
+        .contract_address =
+            "\x63\xe6\x34\x33\x0a\x20\x15\x0d\xbb\x61\xb1\x56\x48\xbc\x73\x85\x5d\x6c\xcf\x07",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "LNX Protocol",
+        .unit = "LNX",
+        .contract_address =
+            "\x5e\x38\x45\xa1\xd7\x8d\xb5\x44\x61\x3e\xdb\xe4\x3d\xc1\xea\x49\x72\x66\xd3\xb8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "LOA Protocol",
+        .unit = "LOA",
+        .contract_address =
+            "\x74\x58\xfd\x78\x6b\x2f\xe8\xcd\x80\x1c\x03\x81\xf8\x8b\x61\xc5\x07\x1a\x00\x6f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "LOCIcoin",
+        .unit = "LOCI",
+        .contract_address =
+            "\x9c\x23\xd6\x7a\xea\x7b\x95\xd8\x09\x42\xe3\x83\x6b\xcd\xf7\xe7\x08\xa7\x47\xc2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Lukki Operating Token",
+        .unit = "LOT",
+        .contract_address =
+            "\x65\x56\xd2\xec\x4d\x96\xda\x39\xcf\x75\xcb\xe5\x0d\x58\xfa\xe9\x00\x79\x80\x0a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Lapis Chain",
+        .unit = "LPS",
+        .contract_address =
+            "\x97\xbd\xd9\xfd\xfa\x0b\x16\x77\xa2\xa3\x53\x84\x85\x14\xd9\x3c\x10\x8b\xec\x85",
+        .decimals = 10,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Livepeer",
+        .unit = "LPT",
+        .contract_address =
+            "\x58\xb6\xa8\xa3\x30\x23\x69\xda\xec\x38\x33\x34\x67\x24\x04\xee\x73\x3a\xb2\x39",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Liquidity Network",
+        .unit = "LQD",
+        .contract_address =
+            "\xd2\x9f\x0b\x5b\x3f\x50\xb0\x7f\xe9\xa9\x51\x1f\x7d\x86\xf4\xf4\xba\xc3\xf8\xc4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3x Short Litecoin Token",
+        .unit = "LTCBEAR",
+        .contract_address =
+            "\xb4\x22\xe6\x05\xfb\xd7\x65\xb8\x0d\x2c\x4b\x5d\x81\x96\xc2\xf9\x41\x44\x43\x8b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3x Long Litecoin Token",
+        .unit = "LTCBULL",
+        .contract_address =
+            "\xdb\x61\x35\x4e\x9c\xf2\x21\x7a\x29\x77\x0e\x98\x11\x83\x2b\x36\x0a\x8d\xaa\xd3",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "LitecoinToken",
+        .unit = "LTK",
+        .contract_address =
+            "\x8a\x73\x2b\xc9\x1c\x33\xc1\x67\xf8\x68\xe0\xaf\x7e\x6f\x31\xe0\x77\x6d\x0f\x71",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Level Up Coin",
+        .unit = "LUC",
+        .contract_address =
+            "\x5d\xbe\x29\x6f\x97\xb2\x3c\x4a\x6a\xa6\x18\x3d\x73\xe5\x74\xd0\x2b\xa5\xc7\x19",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "LivenPay",
+        .unit = "LVN",
+        .contract_address =
+            "\xc8\xca\xc7\x67\x2f\x46\x69\x68\x58\x17\xcf\x33\x2a\x33\xeb\x24\x9f\x08\x54\x75",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Level01",
+        .unit = "LVX",
+        .contract_address =
+            "\x26\x16\x38\xec\x8e\xe8\x10\x04\x84\x13\x0e\xbd\x2f\xeb\xfd\xad\xc0\xd8\x74\x2a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "LUKSO",
+        .unit = "LYXe",
+        .contract_address =
+            "\xa8\xb9\x19\x68\x02\x58\xd3\x69\x11\x49\x10\x51\x1c\xc8\x75\x95\xae\xc0\xbe\x6d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Matrexcoin",
+        .unit = "MAC",
+        .contract_address =
+            "\xc3\xe2\xde\x0b\x66\x1c\xf5\x8f\x66\xbd\xe8\xe8\x96\x90\x53\x99\xde\xd5\x8a\xf5",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MACH Project",
+        .unit = "MACH",
+        .contract_address =
+            "\xb1\x19\xce\x94\xd0\x98\xc1\x8f\xe3\x80\x90\x4c\x24\xe3\x58\xbd\x88\x7f\x00\xbe",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Master Coin Point",
+        .unit = "MACPO",
+        .contract_address =
+            "\x63\xbf\x01\x26\xc6\xc4\xd1\x7b\xb3\x3c\x36\x21\x51\x75\x9e\xc2\x1b\x36\x53\x7b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MarcoPolo Protocol",
+        .unit = "MAP",
+        .contract_address =
+            "\x49\x22\x9c\x39\x02\xd4\x9b\xe6\x44\x3e\x01\xc0\x25\x1b\x02\x78\x03\x97\xab\x1a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MidasProtocol",
+        .unit = "MAS",
+        .contract_address =
+            "\x23\xcc\xc4\x33\x65\xd9\xdd\x38\x82\xea\xb8\x8f\x43\xd5\x15\x20\x8f\x83\x24\x30",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MASTERNET",
+        .unit = "MASH",
+        .contract_address =
+            "\xa0\xd4\x40\xc6\xda\x37\x89\x2d\xc0\x6e\xe7\x93\x0b\x2e\xed\xe0\x63\x4f\xd6\x81",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MATH",
+        .unit = "MATH",
+        .contract_address =
+            "\x08\xd9\x67\xbb\x01\x34\xf2\xd0\x7f\x7c\xfb\x6e\x24\x66\x80\xc5\x39\x27\xdd\x30",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3X Short Matic Token",
+        .unit = "MATICBEAR",
+        .contract_address =
+            "\xbe\x89\x3b\x4c\x21\x4d\xbf\xfc\x17\xef\x1e\x33\x8f\xbd\xb7\x06\x1f\xf0\x92\x37",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3X Long Matic Token",
+        .unit = "MATICBULL",
+        .contract_address =
+            "\x7e\x03\x52\x1b\x9d\xa8\x91\xca\x3f\x79\xa8\x72\x8e\x2e\xae\xb2\x48\x86\xc5\xf9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MAX Exchange Token",
+        .unit = "MAX",
+        .contract_address =
+            "\xe7\x97\x6c\x4e\xfc\x60\xd9\xf4\xc2\x00\xcc\x1b\xce\xf1\xa1\xe3\xb0\x2c\x73\xe7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Membrana",
+        .unit = "MBN",
+        .contract_address =
+            "\x4e\xee\xa7\xb4\x8b\x9c\x3a\xc8\xf7\x0a\x9c\x93\x2a\x8b\x1e\x8a\x5c\xb6\x24\xc7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MCDEX",
+        .unit = "MCB",
+        .contract_address =
+            "\x4e\x35\x2c\xf1\x64\xe6\x4a\xdc\xba\xd3\x18\xc3\xa1\xe2\x22\xe9\xeb\xa4\xce\x42",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Medium",
+        .unit = "MDM",
+        .contract_address =
+            "\xd2\x4d\xff\x61\x17\x93\x6b\x6f\xf9\x71\x08\xcf\x26\xc1\xdd\x88\x65\x74\x3d\x87",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "All.me",
+        .unit = "ME",
+        .contract_address =
+            "\x47\x14\x0a\x76\x7a\x86\x1f\x7a\x1f\x3b\x0d\xd2\x2a\x2f\x46\x34\x21\xc2\x88\x14",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CoinMeet",
+        .unit = "MEET",
+        .contract_address =
+            "\x7f\x12\x1d\x4e\xc6\xc2\xc0\x7e\xb6\xbc\x79\x89\xd9\x1d\x2d\x4f\xf6\x54\xc0\x68",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MesChain",
+        .unit = "MES",
+        .contract_address =
+            "\x32\x2f\x4f\x6a\x48\x32\x96\x90\x95\x7a\x3b\xcb\xd1\x30\x15\x16\xc2\xb8\x3c\x1f",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MESG",
+        .unit = "MESG",
+        .contract_address =
+            "\x42\x01\x67\xd8\x7d\x35\xc3\xa2\x49\xb3\x2e\xf6\x22\x58\x72\xfb\xd9\xab\x85\xd2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MetaMorph",
+        .unit = "METM",
+        .contract_address =
+            "\xfe\xf3\x88\x4b\x60\x3c\x33\xef\x8e\xd4\x18\x33\x46\xe0\x93\xa1\x73\xc9\x4d\xa6",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MEX",
+        .unit = "MEX",
+        .contract_address =
+            "\x2b\xa6\xb1\xe4\x42\x4e\x19\x81\x63\x82\xd1\x59\x37\x73\x99\x59\xf7\xda\x5f\xd8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SyncFab",
+        .unit = "MFG",
+        .contract_address =
+            "\x67\x10\xc6\x34\x32\xa2\xde\x02\x95\x4f\xc0\xf8\x51\xdb\x07\x14\x6a\x6c\x03\x12",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Mainstream For The Underground",
+        .unit = "MFTU",
+        .contract_address =
+            "\x05\xd4\x12\xce\x18\xf2\x40\x40\xbb\x3f\xa4\x5c\xf2\xc6\x9e\x50\x65\x86\xd8\xe8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MGC Token",
+        .unit = "MGC",
+        .contract_address =
+            "\x17\x4b\xfa\x66\x00\xbf\x90\xc8\x85\xc7\xc0\x1c\x70\x31\x38\x9e\xd1\x46\x1a\xb9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MobileGo",
+        .unit = "MGO",
+        .contract_address =
+            "\x40\x39\x50\x44\xac\x3c\x0c\x57\x05\x19\x06\xda\x93\x8b\x54\xbd\x65\x57\xf2\x12",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Micromines",
+        .unit = "MICRO",
+        .contract_address =
+            "\xbe\x6c\x8f\x28\x10\xef\x39\x42\x0d\x2d\xc2\x90\x1b\x84\x14\xc8\xc4\x5f\xee\x6d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MiniSwap",
+        .unit = "MINI",
+        .contract_address =
+            "\x4d\x95\x3c\xf0\x77\xc0\xc9\x5b\xa0\x90\x22\x6e\x59\xa1\x8f\xcf\x97\xdb\x44\xec",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MixMarvel",
+        .unit = "MIX",
+        .contract_address =
+            "\x5d\x28\x5f\x73\x59\x98\xf3\x66\x31\xf6\x78\xff\x41\xfb\x56\xa1\x0a\x4d\x04\x29",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Mallcoin",
+        .unit = "MLC",
+        .contract_address =
+            "\xc7\x2e\xd4\x44\x5b\x3f\xe9\xf0\x86\x31\x06\xe3\x44\xe2\x41\x53\x0d\x33\x89\x06",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Mega Lottery Services Global",
+        .unit = "MLR",
+        .contract_address =
+            "\xf2\x68\x93\xf8\x9b\x23\x08\x4c\x4c\x62\x16\x03\x8d\x6e\xbd\xbe\x9e\x96\xc5\xcb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Maincoin",
+        .unit = "MNC",
+        .contract_address =
+            "\x9f\x0f\x1b\xe0\x85\x91\xab\x7d\x99\x0f\xaf\x91\x0b\x38\xed\x5d\x60\xe4\xd5\xbf",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Moneynet",
+        .unit = "MNC",
+        .contract_address =
+            "\xba\xc7\xa1\x79\x83\x50\xcd\xf2\xdb\xfe\x0c\x21\x0c\x2c\x98\x61\x22\x3f\x4b\x31",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Minereum",
+        .unit = "MNE",
+        .contract_address =
+            "\x1a\x95\xb2\x71\xb0\x53\x5d\x15\xfa\x49\x93\x2d\xab\xa3\x1b\xa6\x12\xb5\x29\x46",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Money Token",
+        .unit = "MNT",
+        .contract_address =
+            "\x31\x0d\xa5\xe1\xe6\x1c\xd9\xd6\xec\xed\x09\x2f\x08\x59\x41\x08\x92\x67\xe7\x1e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MODEL-X-coin",
+        .unit = "MODX",
+        .contract_address =
+            "\x3c\x6d\xa7\x76\x3c\xaa\x0e\x4b\x68\x4b\xbc\x73\x3f\x04\xa8\xec\x08\xaf\x37\x62",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Mogu",
+        .unit = "MOGX",
+        .contract_address =
+            "\xbd\xec\x45\x95\x2b\x5e\x23\x4e\xdd\xc2\x98\x1b\x43\xee\xd3\x60\x82\x6d\x50\x87",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MorCrypto Coin",
+        .unit = "MOR",
+        .contract_address =
+            "\xae\x74\x65\x20\xff\xdb\x15\xd0\x50\x5e\x32\xf1\xd6\xe9\xa2\xb4\xab\x86\x65\x72",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "More Coin",
+        .unit = "MORE",
+        .contract_address =
+            "\x59\x06\x1b\x6f\x26\xbb\x4a\x9c\xe5\x82\x8a\x19\xd3\x5c\xfd\x5a\x4b\x80\xf0\x56",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MARK.SPACE",
+        .unit = "MRK",
+        .contract_address =
+            "\xf4\x53\xb5\xb9\xd4\xe0\xb5\xc6\x2f\xfb\x25\x6b\xb2\x37\x8c\xc2\xbc\x8e\x8a\x89",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Monarch",
+        .unit = "MT",
+        .contract_address =
+            "\x44\x42\x55\x6a\x08\xa8\x41\x22\x7b\xef\x04\xc6\x7a\x7b\xa7\xac\xf0\x1b\x6f\xc8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MyToken",
+        .unit = "MT",
+        .contract_address =
+            "\x9b\x4e\x2b\x4b\x13\xd1\x25\x23\x8a\xa0\x48\x0d\xd4\x2b\x4f\x6f\xc7\x1b\x37\xcc",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Meta",
+        .unit = "MTA",
+        .contract_address =
+            "\xa3\xbe\xd4\xe1\xc7\x5d\x00\xfa\x6f\x4e\x5e\x69\x22\xdb\x72\x61\xb5\xe9\xac\xd2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MTC Mesh Network",
+        .unit = "MTC",
+        .contract_address =
+            "\xdf\xdc\x0d\x82\xd9\x6f\x8f\xd4\x0c\xa0\xcf\xb4\xa2\x88\x95\x5b\xec\xec\x20\x88",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Medicalchain",
+        .unit = "MTN",
+        .contract_address =
+            "\x41\xdb\xec\xc1\xcd\xc5\x51\x7c\x6f\x76\xf6\xa6\xe8\x36\xad\xbe\xe2\x75\x4d\xe3",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Meter",
+        .unit = "MTRG",
+        .contract_address =
+            "\xaa\x8d\x0e\x9a\x26\x85\x3d\x51\x61\x3c\xa7\x57\x29\xcd\xe2\x56\x49\x13\xbc\xfb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Matryx",
+        .unit = "MTX",
+        .contract_address =
+            "\x0a\xf4\x4e\x27\x84\x63\x72\x18\xdd\x1d\x32\xa3\x22\xd4\x4e\x60\x3a\x8f\x0c\x6a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "mStable USD",
+        .unit = "MUSD",
+        .contract_address =
+            "\xe2\xf2\xa5\xc2\x87\x99\x33\x45\xa8\x40\xdb\x3b\x08\x45\xfb\xc7\x0f\x59\x35\xa5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Maverick Chain",
+        .unit = "MVC",
+        .contract_address =
+            "\xb1\x7d\xf9\xa3\xb0\x95\x83\xa9\xbd\xcf\x75\x7d\x63\x67\x17\x14\x76\xd4\xd8\xa3",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Merculet",
+        .unit = "MVP",
+        .contract_address =
+            "\x8a\x77\xe4\x09\x36\xbb\xc2\x7e\x80\xe9\xa3\xf5\x26\x36\x8c\x96\x78\x69\xc8\x6d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MyBit",
+        .unit = "MYB",
+        .contract_address =
+            "\x5d\x60\xd8\xd7\xef\x6d\x37\xe1\x6e\xba\xbc\x32\x4d\xe3\xbe\x57\xf1\x35\xe0\xbc",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Mysterium",
+        .unit = "MYST",
+        .contract_address =
+            "\xa6\x45\x26\x4c\x56\x03\xe9\x6c\x3b\x0b\x07\x8c\xda\xb6\x87\x33\x79\x4b\x0a\x71",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MoCo Token",
+        .unit = "MoCo",
+        .contract_address =
+            "\x06\xa8\xf2\xbc\xc6\x22\xac\x55\xd5\x96\xea\x02\xce\x5b\xb5\xf3\x18\xf4\x85\xe9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "NANJCOIN",
+        .unit = "NANJ",
+        .contract_address =
+            "\xff\xe0\x2e\xe4\xc6\x9e\xdf\x1b\x34\x0f\xca\xd6\x4f\xbd\x6b\x37\xa7\xb9\xe2\x65",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Natmin Pure Escrow",
+        .unit = "NAT",
+        .contract_address =
+            "\x90\xd4\x6a\x96\x36\xb9\x73\xf1\x81\x86\x54\x1d\x1b\x04\xed\x36\x21\xa4\x9c\xb0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Naviaddress",
+        .unit = "NAVI",
+        .contract_address =
+            "\x58\x80\x47\x36\x5d\xf5\xba\x58\x9f\x92\x36\x04\xaa\xc2\x3d\x67\x35\x55\xc6\x23",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BoatPilot Token",
+        .unit = "NAVY",
+        .contract_address =
+            "\xc1\x5a\x39\x9c\x4e\xa7\x81\x5f\xe3\x68\x57\xc9\xe2\x90\xee\x45\x2a\x5d\x6b\x21",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Naka Bodhi Token",
+        .unit = "NBOT",
+        .contract_address =
+            "\x09\xcc\xd2\xda\x5d\xcd\xd0\x51\x02\x68\xd4\x97\x9e\x79\x23\x81\x33\x71\x38\xb8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "NeuroChain",
+        .unit = "NCC",
+        .contract_address =
+            "\x5d\x48\xf2\x93\xba\xed\x24\x7a\x2d\x01\x89\x05\x8b\xa3\x7a\xa2\x38\xbd\x47\x25",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "NDN Link",
+        .unit = "NDN",
+        .contract_address =
+            "\x6e\xc4\x7a\x17\x8a\x9d\x50\xd4\xec\x46\x83\x00\x3d\x83\x24\xf1\x9c\xa3\x53\x82",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "nDEX",
+        .unit = "NDX",
+        .contract_address =
+            "\x19\x66\xd7\x18\xa5\x65\x56\x6e\x8e\x20\x27\x92\x65\x8d\x7b\x5f\xf4\xec\xe4\x69",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Coineal Token",
+        .unit = "NEAL",
+        .contract_address =
+            "\xac\xce\x88\xf5\xa6\x3a\x5e\x65\xdb\x9a\xa7\x30\x37\x20\xbe\x16\xb5\x56\xe7\x51",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "NEST Protocol",
+        .unit = "NEST",
+        .contract_address =
+            "\x04\xab\xed\xa2\x01\x85\x0a\xc0\x12\x41\x61\xf0\x37\xef\xd7\x0c\x74\xdd\xc7\x4c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "NewsToken",
+        .unit = "NEWOS",
+        .contract_address =
+            "\x29\x53\x6b\x7c\xa7\x02\x9b\x5c\xdd\xeb\x03\xc0\x45\x17\x15\x61\x5a\xca\x35\xba",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Nexxo",
+        .unit = "NEXXO",
+        .contract_address =
+            "\x27\x8a\x83\xb6\x4c\x3e\x3e\x11\x39\xf8\xe8\xa5\x2d\x96\x36\x0c\xa3\xc6\x9a\x3d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "NFX Coin",
+        .unit = "NFXC",
+        .contract_address =
+            "\x2d\x39\xec\x4d\xa5\x43\x29\xd2\x8d\x23\x0b\x49\x73\xf5\xaa\x27\x88\x6c\x3a\xee",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Autonio",
+        .unit = "NIO",
+        .contract_address =
+            "\x55\x54\xe0\x4e\x76\x53\x3e\x1d\x14\xc5\x2f\x05\xbe\xef\x6c\x9d\x32\x9e\x1e\x30",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Nework",
+        .unit = "NKC",
+        .contract_address =
+            "\x5a\x1a\x29\xdb\xb6\xad\x61\x53\xdb\x76\x45\x68\xc1\x28\x90\x76\xbc\x87\x6d\xf6",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Neuromorphic.io",
+        .unit = "NMP",
+        .contract_address =
+            "\x4d\x6b\x9f\x28\x1a\xf3\x19\x16\xa0\xf1\x6d\x1c\xea\x2e\xc7\x38\x48\x51\xea\xab",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "NNB Token",
+        .unit = "NNB",
+        .contract_address =
+            "\xb6\x6a\x21\x31\xa6\xb8\x40\xdd\x02\x01\x51\xf8\x07\x23\xca\xed\x60\x3e\xfb\x51",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "No BS Crypto",
+        .unit = "NOBS",
+        .contract_address =
+            "\xf4\xfa\xea\x45\x55\x75\x35\x4d\x26\x99\xbc\x20\x9b\x0a\x65\xca\x99\xf6\x99\x82",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Whole Network",
+        .unit = "NODE",
+        .contract_address =
+            "\x0c\x3e\xf3\x2f\x80\x29\x67\xdb\x75\xb9\xd4\x9f\xe1\xe7\x66\x20\x15\x1c\xcb\x81",
+        .decimals = 5,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "NOIA Network",
+        .unit = "NOIA",
+        .contract_address =
+            "\xfc\x85\x81\x54\xc0\xb2\xc4\xa3\x32\x30\x46\xfb\x50\x58\x11\xf1\x10\xeb\xda\x57",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Noku",
+        .unit = "NOKU",
+        .contract_address =
+            "\x1f\xc5\x2f\x1a\xba\xde\x45\x2d\xd4\x67\x44\x77\xd4\x71\x19\x51\x70\x0b\x3d\x27",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Plus-Coin",
+        .unit = "NPLC",
+        .contract_address =
+            "\x97\xfb\x6f\xc2\xad\x53\x20\x33\xaf\x97\x04\x3b\x56\x31\x31\xc5\x20\x4f\x8a\x35",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Neural Protocol",
+        .unit = "NRP",
+        .contract_address =
+            "\x39\x18\xc4\x2f\x14\xf2\xeb\x11\x68\x36\x5f\x91\x1f\x63\xe5\x40\xe5\xa3\x06\xb5",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Neurotoken",
+        .unit = "NTK",
+        .contract_address =
+            "\x69\xbe\xab\x40\x34\x38\x25\x3f\x13\xb6\xe9\x2d\xb9\x1f\x7f\xb8\x49\x25\x82\x63",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "NetKoin",
+        .unit = "NTK",
+        .contract_address =
+            "\x5d\x4d\x57\xcd\x06\xfa\x7f\xe9\x9e\x26\xfd\xc4\x81\xb4\x68\xf7\x7f\x05\x07\x3c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Nuggets",
+        .unit = "NUG",
+        .contract_address =
+            "\x24\x5e\xf4\x7d\x4d\x05\x05\xec\xf3\xac\x46\x3f\x4d\x81\xf4\x1a\xde\x8f\x1f\xd1",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Neutral Dollar ",
+        .unit = "NUSD",
+        .contract_address =
+            "\x0c\x61\x44\xc1\x6a\xf2\x88\x94\x8c\x8f\xdb\x37\xfd\x8f\xec\x94\xbf\xf3\xd1\xd9",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "NXM",
+        .unit = "NXM",
+        .contract_address =
+            "\xd7\xc4\x9c\xee\x7e\x91\x88\xcc\xa6\xad\x8f\xf2\x64\xc1\xda\x2e\x69\xd4\xcf\x3b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Origin Protocol",
+        .unit = "OGN",
+        .contract_address =
+            "\x82\x07\xc1\xff\xc5\xb6\x80\x4f\x60\x24\x32\x2c\xcf\x34\xf2\x9c\x35\x41\xae\x26",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Okschain",
+        .unit = "OKS",
+        .contract_address =
+            "\x7b\x68\xd2\x72\xed\xa2\x18\x5e\xa2\xf9\x28\x3f\x24\x1b\x1c\x44\xc5\x1e\x71\x2a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Olive",
+        .unit = "OLE",
+        .contract_address =
+            "\x9d\x92\x23\x43\x6d\xdd\x46\x6f\xc2\x47\xe9\xdb\xbd\x20\x20\x7e\x64\x0f\xef\x58",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "OLXA",
+        .unit = "OLXA",
+        .contract_address =
+            "\x59\x25\xf6\x7d\x27\x67\xd9\x37\xf4\x71\x41\xda\xc2\x41\x66\xb4\x69\x55\x82\x22",
+        .decimals = 2,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ormeus Cash",
+        .unit = "OMC",
+        .contract_address =
+            "\xd6\xbd\x97\xa2\x62\x32\xba\x02\x17\x2f\xf8\x6b\x05\x5d\x5d\x7b\xe7\x89\x33\x5b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Shivom",
+        .unit = "OMX",
+        .contract_address =
+            "\xb5\xdb\xc6\xd3\xcf\x38\x00\x79\xdf\x3b\x27\x13\x56\x64\xb6\xbc\xf4\x5d\x18\x69",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Menlo One",
+        .unit = "ONE",
+        .contract_address =
+            "\x4d\x80\x75\x09\xae\xce\x24\xc0\xfa\x5a\x10\x2b\x6a\x3b\x05\x9e\xc6\xe1\x43\x92",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SoMee.Social",
+        .unit = "ONG",
+        .contract_address =
+            "\xd3\x41\xd1\x68\x0e\xee\xe3\x25\x5b\x8c\x4c\x75\xbc\xce\x7e\xb5\x7f\x14\x4d\xae",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "On.Live",
+        .unit = "ONL",
+        .contract_address =
+            "\x68\x63\xbe\x0e\x7c\xf7\xce\x86\x0a\x57\x47\x60\xe9\x02\x0d\x51\x9a\x8b\xdc\x47",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ONOToken",
+        .unit = "ONOT",
+        .contract_address =
+            "\xb3\x1c\x21\x99\x59\xe0\x6f\x9a\xfb\xeb\x36\xb3\x88\xa4\xba\xd1\x3e\x80\x27\x25",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Open Platform",
+        .unit = "OPEN",
+        .contract_address =
+            "\x9d\x86\xb1\xb2\x55\x4e\xc4\x10\xec\xcf\xfb\xf1\x11\xa6\x99\x49\x10\x11\x13\x40",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Opennity",
+        .unit = "OPNN",
+        .contract_address =
+            "\xa8\x29\xf9\x73\x73\x06\x9e\xe5\xd2\x31\x75\xe4\x10\x5d\xf8\xfd\x49\x23\x8b\xe7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Opus",
+        .unit = "OPT",
+        .contract_address =
+            "\x43\x55\xfc\x16\x0f\x74\x32\x8f\x9b\x38\x3d\xf2\xec\x58\x9b\xb3\xdf\xd8\x2b\xa0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "OptiToken",
+        .unit = "OPTI",
+        .contract_address =
+            "\x83\x29\x04\x86\x39\x78\xb9\x48\x02\x12\x31\x06\xe6\xeb\x49\x1b\xdf\x0d\xf9\x28",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Originate Coin",
+        .unit = "ORC",
+        .contract_address =
+            "\x1c\x09\xef\x44\x93\x46\x55\x69\xf6\xd7\x04\xa5\xcc\x4f\x98\x64\xbc\xd2\xe5\x6a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Origami",
+        .unit = "ORI",
+        .contract_address =
+            "\xd2\xfa\x8f\x92\xea\x72\xab\xb3\x5d\xbd\x6d\xec\xa5\x71\x73\xd2\x2d\xb2\xba\x49",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ormeus Coin",
+        .unit = "ORMEUS",
+        .contract_address =
+            "\xc9\x6d\xf9\x21\x00\x9b\x79\x0d\xff\xca\x41\x23\x75\x25\x1e\xd1\xa2\xb7\x5c\x60",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Orion Protocol",
+        .unit = "ORN",
+        .contract_address =
+            "\x8f\xb0\x0f\xde\xbb\x4e\x83\xf2\xc5\x8b\x3b\xcd\x67\x32\xac\x1b\x6a\x7b\x72\x21",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Cointorox",
+        .unit = "OROX",
+        .contract_address =
+            "\x1c\x5b\x76\x0f\x13\x32\x20\x85\x53\x40\x00\x3b\x43\xcc\x91\x13\xec\x49\x48\x23",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "OSA Token",
+        .unit = "OSA",
+        .contract_address =
+            "\xc6\xab\xf3\xc0\x93\x41\x74\x1a\xc6\x04\x1b\x0b\x08\x19\x57\x01\xbd\xfd\x46\x0c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "OTCBTC Token",
+        .unit = "OTB",
+        .contract_address =
+            "\xa8\x6a\x0d\xa9\xd0\x5d\x07\x71\x95\x5d\xf0\x5b\x44\xca\x12\x06\x61\xaf\x16\xde",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Open Trading Network",
+        .unit = "OTN",
+        .contract_address =
+            "\x88\x1e\xf4\x82\x11\x98\x2d\x01\xe2\xcb\x70\x92\xc9\x15\xe6\x47\xcd\x40\xd8\x5c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "OWNDATA",
+        .unit = "OWN",
+        .contract_address =
+            "\x17\x0b\x27\x5c\xed\x08\x9f\xff\xae\xbf\xe9\x27\xf4\x45\xa3\x50\xed\x91\x60\xdc",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Orchid",
+        .unit = "OXT",
+        .contract_address =
+            "\x45\x75\xf4\x13\x08\xec\x14\x83\xf3\xd3\x99\xaa\x9a\x28\x26\xd7\x4d\xa1\x3d\xeb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Oxycoin",
+        .unit = "OXY",
+        .contract_address =
+            "\x86\x9b\x1f\x57\x38\x0a\xe5\x01\xd3\x87\xb1\x92\x62\xef\xd3\xc0\xeb\x75\x01\xb0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "P2P Global Network",
+        .unit = "P2PX",
+        .contract_address =
+            "\xce\xce\xde\x5a\x20\x64\x5e\xac\x6c\xa2\x03\x2e\xee\xb1\x06\x35\x72\xd6\x3c\x29",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Pamp Network",
+        .unit = "PAMP",
+        .contract_address =
+            "\xf0\xfa\xc7\x10\x4a\xac\x54\x4e\x4a\x7c\xe1\xa5\x5a\xdf\x2b\x5a\x25\xc6\x5b\xd1",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Pantos",
+        .unit = "PAN",
+        .contract_address =
+            "\x53\x63\x81\xa8\x62\x8d\xbc\xc8\xc7\x0a\xc9\xa3\x0a\x72\x58\x44\x2e\xab\x4c\x92",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Parachute",
+        .unit = "PAR",
+        .contract_address =
+            "\x1b\xee\xf3\x19\x46\xfb\xbb\x40\xb8\x77\xa7\x2e\x4a\xe0\x4a\x8d\x1a\x5c\xee\x06",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PARETO Rewards",
+        .unit = "PARETO",
+        .contract_address =
+            "\xea\x5f\x88\xe5\x4d\x98\x2c\xbb\x0c\x44\x1c\xde\x4e\x79\xbc\x30\x5e\x5b\x43\xbc",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Blockpass",
+        .unit = "PASS",
+        .contract_address =
+            "\xee\x44\x58\xe0\x52\xb5\x33\xb1\xaa\xbd\x49\x3b\x5f\x8c\x4d\x85\xd7\xb2\x63\xdc",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Patron",
+        .unit = "PAT",
+        .contract_address =
+            "\xf3\xb3\xca\xd0\x94\xb8\x93\x92\xfc\xe5\xfa\xfd\x40\xbc\x03\xb8\x0f\x2b\xc6\x24",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Promotion Coin",
+        .unit = "PC",
+        .contract_address =
+            "\xa6\x71\x4a\x2e\x5f\x0b\x1b\xdb\x97\xb8\x95\xb0\x91\x3b\x4f\xcd\x3a\x77\x5e\x4d",
+        .decimals = 5,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "POPCHAIN",
+        .unit = "PCH",
+        .contract_address =
+            "\xe3\xf4\xb4\xa5\xd9\x1e\x5c\xb9\x43\x5b\x94\x7f\x09\x0a\x31\x97\x37\x03\x63\x12",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Precium",
+        .unit = "PCM",
+        .contract_address =
+            "\x60\x96\xd2\x46\x0c\xf5\x17\x7e\x40\xb5\x15\x22\x34\x28\xdc\x00\x5a\xd3\x51\x23",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PDATA",
+        .unit = "PDATA",
+        .contract_address =
+            "\x0d\xb0\x3b\x6c\xde\x0b\x2d\x42\x7c\x64\xa0\x4f\xea\xfd\x82\x59\x38\x36\x8f\x1f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MarketPeak",
+        .unit = "PEAK",
+        .contract_address =
+            "\x63\x3e\xe3\xfb\xe5\xff\xc0\x5b\xd4\x4e\xcd\x82\x40\x73\x2f\xf9\xef\x9d\xee\x1d",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PeerEx",
+        .unit = "PERX",
+        .contract_address =
+            "\x3c\x6f\xf5\x0c\x9e\xc3\x62\xef\xa3\x59\x31\x70\x09\x42\x8d\x52\x11\x5f\xe6\x43",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Payfair",
+        .unit = "PFR",
+        .contract_address =
+            "\xb4\x14\x22\xd5\xa1\xd5\xd5\xc7\x3c\x22\x96\x86\x93\x5b\x40\xf8\x81\x50\x27\x85",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PHI Token",
+        .unit = "PHI",
+        .contract_address =
+            "\x13\xc2\xfa\xb6\x35\x4d\x37\x90\xd8\xec\xe4\xf0\xf1\xa3\x28\x0b\x4a\x25\xad\x96",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PATHHIVE ",
+        .unit = "PHV",
+        .contract_address =
+            "\x25\x20\x02\x35\xca\x71\x13\xc2\x54\x1e\x70\xde\x73\x7c\x41\xf5\xe9\xac\xd1\xf6",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PIBBLE",
+        .unit = "PIB",
+        .contract_address =
+            "\x18\x64\xce\x27\xe9\xf7\x51\x70\x47\x93\x3c\xaa\xe5\x30\x67\x4e\x8c\x70\xb8\xa7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DeFiPie",
+        .unit = "PIE",
+        .contract_address =
+            "\x60\x7c\x79\x4c\xda\x77\xef\xb2\x1f\x88\x48\xb7\x91\x0e\xcf\x27\x45\x1a\xe8\x42",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PiplCoin",
+        .unit = "PIPL",
+        .contract_address =
+            "\xe6\x45\x09\xf0\xbf\x07\xce\x2d\x29\xa7\xef\x19\xa8\xa9\xbc\x06\x54\x77\xc1\xb4",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Playkey",
+        .unit = "PKT",
+        .contract_address =
+            "\x26\x04\xfa\x40\x6b\xe9\x57\xe5\x42\xbe\xb8\x9e\x67\x54\xfc\xde\x68\x15\xe8\x3f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PLAAS FARMERS TOKEN",
+        .unit = "PLAAS",
+        .contract_address =
+            "\x60\x57\x1e\x95\xe1\x2c\x78\xcb\xa5\x22\x30\x42\x69\x29\x08\xf0\x64\x94\x35\xa5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HEROcoin",
+        .unit = "PLAY",
+        .contract_address =
+            "\xe4\x77\x29\x2f\x1b\x32\x68\x68\x7a\x29\x37\x61\x16\xb0\xed\x27\xa9\xc7\x61\x70",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PlayFuel",
+        .unit = "PLF",
+        .contract_address =
+            "\xad\xa6\x2f\x7c\xcd\x6a\xf6\xca\xcf\xf0\x4a\xcc\xbc\x4f\x56\xf3\xd4\xff\xd4\xef",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PlutusDeFi",
+        .unit = "PLT",
+        .contract_address =
+            "\x9f\xbf\xed\x65\x89\x19\xa8\x96\xb5\xdc\x7b\x00\x45\x6c\xe2\x2d\x78\x0f\x9b\x65",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PlatonCoin",
+        .unit = "PLTC",
+        .contract_address =
+            "\x42\x9d\x83\xbb\x0d\xcb\x8c\xdd\x53\x11\xe3\x46\x80\xad\xc8\xb1\x20\x70\xa0\x7f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Perth Mint Gold Token",
+        .unit = "PMGT",
+        .contract_address =
+            "\xaf\xfc\xdd\x96\x53\x1b\xcd\x66\xfa\xed\x95\xfc\x61\xe4\x43\xd0\x8f\x79\xef\xef",
+        .decimals = 5,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Paymon",
+        .unit = "PMNT",
+        .contract_address =
+            "\x81\xb4\xd0\x86\x45\xda\x11\x37\x4a\x03\x74\x9a\xb1\x70\x83\x6e\x4e\x53\x97\x67",
+        .decimals = 9,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "pNetwork",
+        .unit = "PNT",
+        .contract_address =
+            "\x89\xab\x32\x15\x6e\x46\xf4\x6d\x02\xad\xe3\xfe\xcb\xe5\xfc\x42\x43\xb9\xaa\xed",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ClearPoll",
+        .unit = "POLL",
+        .contract_address =
+            "\x70\x5e\xe9\x6c\x1c\x16\x08\x42\xc9\x2c\x1a\xec\xfc\xff\xcc\xc9\xc4\x12\xe3\xd9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Portal",
+        .unit = "PORTAL",
+        .contract_address =
+            "\x8d\xb9\x0e\x3e\x7d\x04\xc8\x75\xa5\x19\x97\x09\x2f\x91\x78\xfc\xac\x9d\xef\xdb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Posscoin",
+        .unit = "POSS",
+        .contract_address =
+            "\x6b\x19\x3e\x10\x7a\x77\x39\x67\xbd\x82\x1b\xcf\x82\x18\xf3\x54\x8c\xfa\x25\x03",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "UniPower",
+        .unit = "POWER",
+        .contract_address =
+            "\xf2\xf9\xa7\xe9\x3f\x84\x5b\x3c\xe1\x54\xef\xbe\xb6\x4f\xb9\x34\x6f\xcc\xe5\x09",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PHILLIPS PAY COIN",
+        .unit = "PPC",
+        .contract_address =
+            "\x84\xf7\x10\xba\xe3\x31\x6a\x74\xfb\x0f\xcb\x01\x90\x4d\x25\x78\xa4\xcc\x6a\x26",
+        .decimals = 1,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Paragon",
+        .unit = "PRG",
+        .contract_address =
+            "\x77\x28\xdf\xef\x5a\xbd\x46\x86\x69\xeb\x7f\x9b\x48\xa7\xf7\x0a\x50\x1e\xd2\x9d",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Privatix",
+        .unit = "PRIX",
+        .contract_address =
+            "\x3a\xdf\xc4\x99\x9f\x77\xd0\x4c\x83\x41\xba\xc5\xf3\xa7\x6f\x58\xdf\xf5\xb3\x7a",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ProBit Token",
+        .unit = "PROB",
+        .contract_address =
+            "\xfb\x55\x9c\xe6\x7f\xf5\x22\xec\x0b\x9b\xa7\xf5\xdc\x9d\xc7\xef\x6c\x13\x98\x03",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Props Token",
+        .unit = "PROPS",
+        .contract_address =
+            "\x6f\xe5\x6c\x0b\xcd\xd4\x71\x35\x90\x19\xfc\xbc\x48\x86\x3d\x6c\x3e\x9d\x4f\x41",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PRASM",
+        .unit = "PSM",
+        .contract_address =
+            "\x1a\x66\xe0\x9f\x7d\xcc\xc1\x0e\xae\x46\xe2\x7c\xfa\x6b\x8d\x44\xa5\x0d\xf1\xe7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Primas",
+        .unit = "PST",
+        .contract_address =
+            "\x5d\x4a\xbc\x77\xb8\x40\x5a\xd1\x77\xd8\xac\x66\x82\xd5\x84\xec\xbf\xd4\x6c\xec",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PalletOne",
+        .unit = "PTN",
+        .contract_address =
+            "\xfe\x76\xbe\x9c\xec\x46\x5e\xd3\x21\x9a\x99\x72\xc2\x16\x55\xd5\x7d\x21\xae\xc6",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PTON",
+        .unit = "PTON",
+        .contract_address =
+            "\x49\x46\x58\x3c\x5b\x86\xe0\x1c\xcd\x30\xc7\x1a\x05\x61\x7d\x06\xe3\xe7\x30\x60",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Patientory",
+        .unit = "PTOY",
+        .contract_address =
+            "\x8a\xe4\xbf\x2c\x33\xa8\xe6\x67\xde\x34\xb5\x49\x38\xb0\xcc\xd0\x3e\xb8\xcc\x06",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Proton Token",
+        .unit = "PTT",
+        .contract_address =
+            "\x46\x89\xa4\xe1\x69\xeb\x39\xcc\x90\x78\xc0\x94\x0e\x21\xff\x1a\xa8\xa3\x9b\x9c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PolypuX",
+        .unit = "PUX",
+        .contract_address =
+            "\xe2\x77\xac\x35\xf9\xd3\x27\xa6\x70\xc1\xa3\xf3\xee\xc8\x0a\x83\x02\x24\x31\xe4",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Pixie Coin",
+        .unit = "PXC",
+        .contract_address =
+            "\xc2\x7c\x95\x35\x0e\xcd\x63\x4c\x80\xdf\x89\xdb\x0f\x10\xcd\x5c\x24\xb7\xb1\x1f",
+        .decimals = 2,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PlayGame",
+        .unit = "PXG",
+        .contract_address =
+            "\x47\xe6\x7b\xa6\x6b\x06\x99\x50\x0f\x18\xa5\x3f\x94\xe2\xb9\xdb\x3d\x47\x43\x7e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PIXEL",
+        .unit = "PXL",
+        .contract_address =
+            "\xf8\x89\x51\xd7\xb6\x76\x79\x87\x05\xfd\x3a\x36\x2b\xa5\xb1\xdb\xca\x2b\x23\x3b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PointPay",
+        .unit = "PXP",
+        .contract_address =
+            "\x8f\x17\x91\x14\x23\x58\x42\x97\x8d\x89\x17\xe0\x87\x21\x54\x10\x72\xc4\x65\x84",
+        .decimals = 3,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Pylon Network",
+        .unit = "PYLNT",
+        .contract_address =
+            "\x77\x03\xc3\x5c\xff\xdc\x5c\xda\x8d\x27\xaa\x3d\xf2\xf9\xba\x69\x64\x54\x4b\x6e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "PYRO Network",
+        .unit = "PYRO",
+        .contract_address =
+            "\x14\x40\x9b\x0f\xc5\xc7\xf8\x7b\x5d\xad\x20\x75\x4f\xe2\x2d\x29\xa3\xde\x82\x17",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "qiibee",
+        .unit = "QBX",
+        .contract_address =
+            "\x24\x67\xaa\x6b\x5a\x23\x51\x41\x6f\xd4\xc3\xde\xf8\x46\x2d\x84\x1f\xee\xec\xec",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "QUEENBEE",
+        .unit = "QBZ",
+        .contract_address =
+            "\x9b\xbc\x92\x86\xcd\xf6\xee\xfe\xbf\x21\xdf\x19\xba\xc7\x1c\x6b\xdd\x77\x59\xd4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "QChi",
+        .unit = "QCH",
+        .contract_address =
+            "\x68\x7b\xfc\x3e\x73\xf6\xaf\x55\xf0\xcc\xca\x84\x50\x11\x4d\x10\x7e\x78\x1a\x0e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Q DAO Governance token v1.0",
+        .unit = "QDAO",
+        .contract_address =
+            "\x31\x66\xc5\x70\x93\x5a\x7d\x85\x54\xc8\xf4\xea\x79\x2f\xf9\x65\xd2\xef\xe1\xf2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Quiztok",
+        .unit = "QTCON",
+        .contract_address =
+            "\xa0\x0a\x4d\x57\x86\xa6\xe9\x55\xe9\x53\x9d\x01\xd7\x8b\xf6\x8f\x32\x71\xc0\x50",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "QUINADS",
+        .unit = "QUIN",
+        .contract_address =
+            "\x86\xe4\x45\x43\x16\x4d\x9b\x97\xb1\x4e\xf7\xf6\xf3\xab\x7b\xa6\x70\xca\xb3\x46",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Raise",
+        .unit = "RAISE",
+        .contract_address =
+            "\x10\xba\x8c\x42\x0e\x91\x2b\xf0\x7b\xed\xac\x03\xaa\x69\x08\x72\x0d\xb0\x4e\x0c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "RAKUN",
+        .unit = "RAKU",
+        .contract_address =
+            "\x51\xbc\x0d\xea\xf7\xbb\xe8\x2b\xc9\x00\x6b\x0c\x35\x31\x66\x8a\x42\x06\xd2\x7f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Rarible",
+        .unit = "RARI",
+        .contract_address =
+            "\xfc\xa5\x9c\xd8\x16\xab\x1e\xad\x66\x53\x4d\x82\xbc\x21\xe7\x51\x5c\xe4\x41\xcf",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "DPRating",
+        .unit = "RATING",
+        .contract_address =
+            "\xe8\x66\x3a\x64\xa9\x61\x69\xff\x4d\x95\xb4\x29\x9e\x7a\xe9\xa7\x6b\x90\x5b\x31",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Red Box Dapp Token",
+        .unit = "RBD",
+        .contract_address =
+            "\x71\x05\xec\x15\x99\x5a\x97\x49\x6e\xc2\x5d\xe3\x6c\xf7\xee\xc4\x7b\x70\x33\x75",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "RealChain",
+        .unit = "RCT",
+        .contract_address =
+            "\x13\xf2\x5c\xd5\x2b\x21\x65\x0c\xaa\x82\x25\xc9\x94\x23\x37\xd9\x14\xc9\xb0\x30",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "REAL",
+        .unit = "REAL",
+        .contract_address =
+            "\x92\x14\xec\x02\xcb\x71\xcb\xa0\xad\xa6\x89\x6b\x8d\xa2\x60\x73\x6a\x67\xab\x10",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "RED",
+        .unit = "RED",
+        .contract_address =
+            "\x76\x96\x0d\xcc\xd5\xa1\xfe\x79\x9f\x7c\x29\xbe\x9f\x19\xce\xb4\x62\x7a\xeb\x2f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "RefToken",
+        .unit = "REF",
+        .contract_address =
+            "\x89\x30\x35\x00\xa7\xab\xfb\x17\x8b\x27\x4f\xd8\x9f\x24\x69\xc2\x64\x95\x1e\x1f",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Release Project",
+        .unit = "REL",
+        .contract_address =
+            "\x61\xbf\xc9\x79\xea\x81\x60\xed\xe9\xb8\x62\x79\x8b\x78\x33\xa9\x7b\xaf\xa0\x2a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "renBTC",
+        .unit = "RENBTC",
+        .contract_address =
+            "\xeb\x4c\x27\x81\xe4\xeb\xa8\x04\xce\x9a\x98\x03\xc6\x7d\x08\x93\x43\x6b\xb2\x7d",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Revain",
+        .unit = "REV",
+        .contract_address =
+            "\x2e\xf5\x2e\xd7\xde\x8c\x5c\xe0\x3a\x4e\xf0\xef\xbe\x9b\x74\x50\xf2\xd7\xed\xc9",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Rewardiqa",
+        .unit = "REW",
+        .contract_address =
+            "\x3f\xff\xfa\x8f\x3c\xc9\x43\xe4\x3f\x9f\x17\xa8\x3c\xbb\x18\xf4\xbb\xb9\xf4\xac",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "imbrex",
+        .unit = "REX",
+        .contract_address =
+            "\xf0\x5a\x93\x82\xa4\xc3\xf2\x9e\x27\x84\x50\x27\x54\x29\x3d\x88\xb8\x35\x10\x9c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Darwinia Network",
+        .unit = "RING",
+        .contract_address =
+            "\x94\x69\xd0\x13\x80\x5b\xff\xb7\xd3\xde\xbe\x5e\x78\x39\x23\x7e\x53\x5e\xc4\x83",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Rakon",
+        .unit = "RKN",
+        .contract_address =
+            "\x6e\x5a\x43\xdb\x10\xb0\x47\x01\x38\x5a\x34\xaf\xb6\x70\xe4\x04\xbc\x7e\xa5\x97",
+        .decimals = 12,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Relex",
+        .unit = "RLX",
+        .contract_address =
+            "\x4a\x42\xd2\xc5\x80\xf8\x3d\xce\x40\x4a\xca\xd1\x8d\xab\x26\xdb\x11\xa1\x75\x0e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Rivermount",
+        .unit = "RM",
+        .contract_address =
+            "\x5a\xb5\x5e\xc2\x90\xbe\xac\xae\x98\xf5\x4c\x3e\xb7\x08\x60\x46\x0b\x16\x7c\x3c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "RightMesh",
+        .unit = "RMESH",
+        .contract_address =
+            "\x8d\x56\x82\x94\x1c\xe4\x56\x90\x0b\x12\xd4\x7a\xc0\x6a\x88\xb4\x7c\x76\x4c\xe1",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "RMPL",
+        .unit = "RMPL",
+        .contract_address =
+            "\xe1\x7f\x01\x74\x75\xa7\x09\xde\x58\xe9\x76\x08\x1e\xb9\x16\x08\x1f\xf4\xc9\xd5",
+        .decimals = 9,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Render Token",
+        .unit = "RNDR",
+        .contract_address =
+            "\x6d\xe0\x37\xef\x9a\xd2\x72\x5e\xb4\x01\x18\xbb\x17\x02\xeb\xb2\x7e\x4a\xeb\x24",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BitRent",
+        .unit = "RNTB",
+        .contract_address =
+            "\x1f\xe7\x0b\xe7\x34\xe4\x73\xe5\x72\x1e\xa5\x7c\x8b\x5b\x01\xe6\xca\xa5\x26\x86",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "RoBET",
+        .unit = "ROBET",
+        .contract_address =
+            "\x23\x44\x87\x1f\x52\x3c\xbb\x28\xa4\xf6\x00\x45\x53\x11\x84\xcf\x1f\x03\xad\x24",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ICE ROCK MINING",
+        .unit = "ROCK2",
+        .contract_address =
+            "\xc1\x6b\x54\x2f\xf4\x90\xe0\x1f\xcc\x0d\xc5\x8a\x60\xe1\xef\xdc\x3e\x35\x7c\xa6",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Rozeus",
+        .unit = "ROZ",
+        .contract_address =
+            "\xe5\x5c\xc4\x4c\x0c\xf9\xce\xde\x2d\x68\xf9\x43\x2c\xbe\xea\xfa\x63\x57\xed\x92",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Rapidz",
+        .unit = "RPZX",
+        .contract_address =
+            "\x68\x35\x0d\x30\xd9\xf5\x8c\x81\xaa\xaa\x41\x92\x9f\x1b\xfc\x52\xff\xf4\xea\x49",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Rate3",
+        .unit = "RTE",
+        .contract_address =
+            "\x43\x6f\x0f\x3a\x98\x20\x74\xc4\xa0\x50\x84\x48\x5d\x42\x14\x66\xa9\x94\xfe\x53",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Rivetz",
+        .unit = "RVT",
+        .contract_address =
+            "\x3d\x1b\xa9\xbe\x9f\x66\xb8\xee\x10\x19\x11\xbc\x36\xd3\xfb\x56\x2e\xac\x22\x44",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Robonomics Web Services",
+        .unit = "RWS",
+        .contract_address =
+            "\x08\xad\x83\xd7\x79\xbd\xf2\xbb\xe1\xad\x9c\xc0\xf7\x8a\xa0\xd2\x4a\xb9\x78\x02",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Sharpay",
+        .unit = "S",
+        .contract_address =
+            "\x96\xb0\xbf\x93\x9d\x94\x60\x09\x5c\x15\x25\x1f\x71\xfd\xa1\x1e\x41\xdc\xbd\xdb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Social Activity Token",
+        .unit = "SAT",
+        .contract_address =
+            "\xc5\x6b\x13\xeb\xbc\xff\xa6\x7c\xfb\x79\x79\xb9\x00\xb7\x36\xb3\xfb\x48\x0d\x78",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SatoExchange Token",
+        .unit = "SATX",
+        .contract_address =
+            "\xe9\x6f\x2c\x38\x1e\x26\x7a\x96\xc2\x9b\xbb\x8a\xb0\x5a\xb7\xd3\x52\x7b\x45\xab",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CBDAO",
+        .unit = "SBREE",
+        .contract_address =
+            "\x25\x37\x7d\xdb\x16\xc7\x9c\x93\xb0\xcb\xf4\x68\x09\xc8\xde\x87\x65\xf0\x3f\xcd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SiaCashCoin",
+        .unit = "SCC",
+        .contract_address =
+            "\x74\xfd\x51\xa9\x8a\x4a\x1e\xcb\xef\x8c\xc4\x3b\xe8\x01\xcc\xe6\x30\xe2\x60\xbd",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Sociall",
+        .unit = "SCL",
+        .contract_address =
+            "\xd7\x63\x17\x87\xb4\xdc\xc8\x7b\x12\x54\xcf\xd1\xe5\xce\x48\xe9\x68\x23\xde\xe8",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Seal Network",
+        .unit = "SEAL",
+        .contract_address =
+            "\xd7\xb3\x66\x9c\x7d\x3e\x38\xab\x5a\x44\x13\x83\xd4\x1f\x25\xe0\x03\xe0\x21\x48",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MESEFA",
+        .unit = "SEFA",
+        .contract_address =
+            "\x27\x20\x12\x32\x57\x94\x91\xce\x9b\x11\x6a\xc6\xf3\x7d\x35\x4c\xc7\x23\xa2\xf3",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Sentinel Chain",
+        .unit = "SENC",
+        .contract_address =
+            "\xa1\x3f\x07\x43\x95\x1b\x4f\x6e\x3e\x3a\xa0\x39\xf6\x82\xe1\x72\x79\xf5\x2b\xc3",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Sensorium",
+        .unit = "SENSO",
+        .contract_address =
+            "\xba\x6d\xb1\x3a\xea\xe3\x60\x7d\x40\x0d\xdf\xfd\x67\x5a\xa4\xe8\x8e\xcc\x9a\x69",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Save Environment Token",
+        .unit = "SET",
+        .contract_address =
+            "\x0a\x2d\x93\x70\xcf\x74\xda\x3f\xd3\xdf\x5d\x76\x4e\x39\x4c\xa8\x20\x5c\x50\xb6",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "sETH",
+        .unit = "SETH",
+        .contract_address =
+            "\x5e\x74\xc9\x03\x6f\xb8\x6b\xd7\xec\xdc\xb0\x84\xa0\x67\x3e\xfc\x32\xea\x31\xcb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ShareX",
+        .unit = "SEXC",
+        .contract_address =
+            "\x25\x67\xc6\x77\x47\x3d\x11\x0d\x75\xa8\x36\x0c\x35\x30\x9e\x63\xb1\xd5\x24\x29",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SF Capital",
+        .unit = "SFCP",
+        .contract_address =
+            "\x8b\x6c\xda\x5c\xc5\x18\xc9\x04\xe8\x84\x4f\x44\x5e\x1a\x7c\x7d\x2d\xb0\xff\x16",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SocialGood",
+        .unit = "SG",
+        .contract_address =
+            "\xdd\xf7\xfd\x34\x5d\x54\xff\x4b\x40\x07\x95\x79\xd4\xc4\x67\x04\x15\xdb\xfd\x0a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Saga",
+        .unit = "SGA",
+        .contract_address =
+            "\xed\x08\x49\xbf\x46\xcf\xb9\x84\x5a\x2d\x90\x0a\x0a\x4e\x59\x3f\x2d\xd3\x67\x3c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Sudan Gold Coin",
+        .unit = "SGC",
+        .contract_address =
+            "\x80\xbd\x0c\xc6\x89\xc2\x06\xe3\xf6\x42\x91\x92\x44\xc4\x25\x1c\x7e\xf1\x98\x52",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Signals Network",
+        .unit = "SGN",
+        .contract_address =
+            "\xb2\x13\x5a\xb9\x69\x5a\x76\x78\xdd\x59\x0b\x1a\x99\x6c\xb0\xf3\x7b\xcb\x07\x18",
+        .decimals = 9,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "snglsDAO",
+        .unit = "SGT",
+        .contract_address =
+            "\xc4\x19\x9f\xb6\xff\xdb\x30\xa8\x29\x61\x4b\xec\xa0\x30\xf9\x04\x2f\x1c\x39\x92",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ShineChain",
+        .unit = "SHE",
+        .contract_address =
+            "\x90\x64\xc9\x1e\x51\xd7\x02\x1a\x85\xad\x96\x81\x7e\x14\x32\xab\xf6\x62\x44\x70",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SHENG",
+        .unit = "SHENG",
+        .contract_address =
+            "\x22\xef\x37\x53\xe3\x65\x8e\x81\xd5\xa0\xd0\x88\x9c\xe0\x78\x17\x8f\xe6\x65\x95",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ShipChain",
+        .unit = "SHIP",
+        .contract_address =
+            "\xe2\x5b\x0b\xba\x01\xdc\x56\x30\x31\x2b\x6a\x21\x92\x7e\x57\x80\x61\xa1\x3f\x55",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SHPING",
+        .unit = "SHPING",
+        .contract_address =
+            "\x7c\x84\xe6\x28\x59\xd0\x71\x5e\xb7\x7d\x1b\x1c\x41\x54\xec\xd6\xab\xb2\x1b\xec",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Shivers",
+        .unit = "SHVR",
+        .contract_address =
+            "\xd5\xf7\x88\xca\x0d\xe8\xf1\x7c\xbd\xe1\xd1\xe3\x5a\xa8\xf0\x05\xa8\x7f\xa0\x0b",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Spectiv",
+        .unit = "SIG",
+        .contract_address =
+            "\x68\x88\xa1\x6e\xa9\x79\x2c\x15\xa4\xdc\xf2\xf6\xc6\x23\xd0\x55\xc8\xed\xe7\x92",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Simmitri",
+        .unit = "SIM",
+        .contract_address =
+            "\x75\x28\xe3\x04\x03\x76\xed\xd5\xdb\x82\x63\xdb\x2f\x5b\xd1\xbe\xd9\x14\x67\xfb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Sakura Bloom",
+        .unit = "SKB",
+        .contract_address =
+            "\x4a\xf3\x28\xc5\x29\x21\x70\x6d\xcb\x73\x9f\x25\x78\x62\x10\x49\x91\x69\xaf\xe6",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Skychain",
+        .unit = "SKCH",
+        .contract_address =
+            "\x70\xc6\x21\xf9\x49\xb6\x55\x6c\x45\x45\x70\x7a\x2d\x5d\x73\xa7\x76\xb9\x83\x59",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Skillchain",
+        .unit = "SKI",
+        .contract_address =
+            "\x99\x6d\xc5\xdf\xc8\x19\x40\x8d\xd9\x8c\xd9\x2c\x9a\x76\xf6\x4b\x07\x38\xdc\x3d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SkinCoin",
+        .unit = "SKIN",
+        .contract_address =
+            "\x2b\xdc\x0d\x42\x99\x60\x17\xfc\xe2\x14\xb2\x16\x07\xa5\x15\xda\x41\xa9\xe0\xc5",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Small Love Potion",
+        .unit = "SLP",
+        .contract_address =
+            "\x37\x23\x6c\xd0\x5b\x34\xcc\x79\xd3\x71\x5a\xf2\x38\x3e\x96\xdd\x74\x43\xdc\xf1",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SynchroBitcoin",
+        .unit = "SNB",
+        .contract_address =
+            "\x17\x9e\x31\xfb\x25\xe4\x33\x44\x1a\x28\x39\x38\x9a\x7b\x8e\xc9\xc4\x65\x4b\x7b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SeChain",
+        .unit = "SNN",
+        .contract_address =
+            "\xf5\x71\x7f\x5d\xf4\x1e\xa6\x7e\xf6\x7d\xfd\x3c\x1d\x02\xf9\x94\x0b\xcf\x5d\x08",
+        .decimals = 3,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Snovian.Space",
+        .unit = "SNOV",
+        .contract_address =
+            "\xbd\xc5\xba\xc3\x9d\xbe\x13\x2b\x1e\x03\x0e\x89\x8a\xe3\x83\x00\x17\xd7\xd9\x69",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SONDER",
+        .unit = "SNR",
+        .contract_address =
+            "\x47\xd1\xa5\x9c\xbd\xd1\x9a\xee\x06\x0c\x85\x9c\x00\x09\x27\x7e\x24\x53\x28\xae",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Silent Notary",
+        .unit = "SNTR",
+        .contract_address =
+            "\x28\x59\x02\x1e\xe7\xf2\xcb\x10\x16\x2e\x67\xf3\x3a\xf2\xd2\x27\x64\xb3\x1a\xff",
+        .decimals = 4,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Synthetix Network Token",
+        .unit = "SNX",
+        .contract_address =
+            "\xc0\x11\xa7\x3e\xe8\x57\x6f\xb4\x6f\x5e\x1c\x57\x51\xca\x3b\x9f\xe0\xaf\x2a\x6f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Soda Coin",
+        .unit = "SOC",
+        .contract_address =
+            "\xca\xd4\x9c\x39\xb7\x2c\x37\xb3\x2c\xee\x8b\x14\xf3\x3f\x31\x6d\x3a\x8b\xc3\x35",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CryptoSoul",
+        .unit = "SOUL",
+        .contract_address =
+            "\xbb\x1f\x24\xc0\xc1\x55\x4b\x99\x90\x22\x2f\x03\x6b\x0a\xad\x6e\xe4\xca\xec\x29",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ChainZ Arena",
+        .unit = "SOUL",
+        .contract_address =
+            "\x72\xdc\x3d\x52\xb7\xef\x10\x7a\x7c\xff\xb6\x95\x3e\xaa\x8a\x2a\xd6\xa2\x04\xcd",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Secrets of Zurich",
+        .unit = "SOZ",
+        .contract_address =
+            "\x3a\x10\xb7\xa2\x2a\xe9\x8e\x0f\x53\x27\x69\x23\xf1\x9f\x99\xb2\x59\xf6\x17\x78",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SpankChain",
+        .unit = "SPANK",
+        .contract_address =
+            "\x42\xd6\x62\x2d\xec\xe3\x94\xb5\x49\x99\xfb\xd7\x3d\x10\x81\x23\x80\x6f\x6a\x18",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Swapcoinz",
+        .unit = "SPAZ",
+        .contract_address =
+            "\x81\x09\x08\xb2\x85\xf8\x5a\xf6\x68\xf6\x34\x8c\xd8\xb2\x6d\x76\xb3\xec\x12\xe1",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SPINDLE",
+        .unit = "SPD",
+        .contract_address =
+            "\x1d\xea\x97\x9a\xe7\x6f\x26\x07\x18\x70\xf8\x24\x08\x8d\xa7\x89\x79\xeb\x91\xc8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Spiking",
+        .unit = "SPIKE",
+        .contract_address =
+            "\xa7\xfc\x5d\x24\x53\xe3\xf6\x8a\xf0\xcc\x1b\x78\xbc\xfe\xe9\x4a\x1b\x29\x36\x50",
+        .decimals = 10,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Sapien",
+        .unit = "SPN",
+        .contract_address =
+            "\x20\xf7\xa3\xdd\xf2\x44\xdc\x92\x99\x97\x5b\x4d\xa1\xc3\x9f\x8d\x5d\x75\xf0\x5a",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Sparkle",
+        .unit = "SPRKL",
+        .contract_address =
+            "\x4b\x7a\xd3\xa5\x68\x10\x03\x27\x82\xaf\xce\x12\xd7\xd2\x71\x22\xbd\xb9\x6e\xff",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Spectrum",
+        .unit = "SPT",
+        .contract_address =
+            "\x01\xcc\x41\x51\xfe\x5f\x00\xef\xb8\xdf\x2f\x90\xff\x83\x37\x25\xd3\xa4\x82\xa3",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Super Running Coin",
+        .unit = "SRC",
+        .contract_address =
+            "\x22\x1f\x7d\x0f\x2f\xa0\xbf\xbd\x5f\x8b\x0d\x03\x40\x42\x59\x06\xf2\xf9\x96\x8c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SRCOIN",
+        .unit = "SRCOIN",
+        .contract_address =
+            "\xef\x8c\xf7\x9c\x21\x63\x7f\xc6\xf9\x51\xbc\xac\x34\x89\x15\x50\x8a\x63\x9a\x41",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Sparkpoint",
+        .unit = "SRK",
+        .contract_address =
+            "\x04\x88\x40\x1c\x3f\x53\x51\x93\xfa\x8d\xf0\x29\xd9\xff\xe6\x15\xa0\x6e\x74\xe6",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Sharder",
+        .unit = "SS",
+        .contract_address =
+            "\xbb\xff\x86\x2d\x90\x6e\x34\x8e\x99\x46\xbf\xb2\x13\x2e\xcb\x15\x7d\xa3\xd4\xb4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Smartshare",
+        .unit = "SSP",
+        .contract_address =
+            "\x62\x4d\x52\x0b\xab\x2e\x4a\xd8\x39\x35\xfa\x50\x3f\xb1\x30\x61\x43\x74\xe8\x50",
+        .decimals = 4,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SIMBA Storage Token",
+        .unit = "SST",
+        .contract_address =
+            "\x28\x63\x91\x6c\x6e\xbd\xbb\xf0\xc6\xf0\x2f\x87\xb7\xeb\x47\x85\x09\x29\x98\x68",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "STATERA",
+        .unit = "STA",
+        .contract_address =
+            "\xa7\xde\x08\x73\x29\xbf\xcd\xa5\x63\x92\x47\xf9\x61\x40\xf9\xda\xbe\x3d\xee\xd1",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "StarterCoin",
+        .unit = "STAC",
+        .contract_address =
+            "\x9a\x00\x5c\x9a\x89\xbd\x72\xa4\xbd\x27\x72\x1e\x7a\x09\xa3\xc1\x1d\x2b\x03\xc4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "xDai",
+        .unit = "STAKE",
+        .contract_address =
+            "\x0a\xe0\x55\x09\x7c\x6d\x15\x98\x79\x52\x1c\x38\x4f\x1d\x21\x23\xd1\xf1\x95\xe6",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SafePost",
+        .unit = "STAMP",
+        .contract_address =
+            "\x43\xaf\xc9\x05\x8a\x3d\xeb\xf3\x7e\xad\xf9\x91\x38\xe4\x49\xce\x8a\x48\x0a\x8a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Starbase",
+        .unit = "STAR",
+        .contract_address =
+            "\xf7\x0a\x64\x2b\xd3\x87\xf9\x43\x80\xff\xb9\x04\x51\xc2\xc8\x1d\x4e\xb8\x2c\xbc",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BitStash",
+        .unit = "STASH",
+        .contract_address =
+            "\x96\x5f\x10\x9d\x31\xcc\xb7\x70\x05\x85\x8d\xef\xae\x0e\xba\xf7\xb4\x38\x16\x52",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "STK",
+        .unit = "STK",
+        .contract_address =
+            "\xae\x73\xb3\x8d\x1c\x9a\x8b\x27\x41\x27\xec\x30\x16\x0a\x49\x27\xc4\xd7\x18\x24",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "STK Coin",
+        .unit = "STK",
+        .contract_address =
+            "\x5c\x58\x87\xe5\x5b\xbe\x41\x47\x2a\xcd\xba\x5f\xae\x98\x97\x88\xc6\xf7\xab\x59",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Streamity",
+        .unit = "STM",
+        .contract_address =
+            "\x0e\x22\x73\x4e\x07\x8d\x6e\x39\x9b\xce\xe4\x0a\x54\x9d\xb5\x91\xc4\xea\x46\xcb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "StormX",
+        .unit = "STMX",
+        .contract_address =
+            "\xbe\x93\x75\xc6\xa4\x20\xd2\xee\xb2\x58\x96\x2e\xfb\x95\x55\x1a\x5b\x72\x28\x03",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Storeum",
+        .unit = "STO",
+        .contract_address =
+            "\xcb\x39\xc3\x50\x24\x15\x15\x2b\x2e\xc9\x0f\xf0\x7e\xe1\x8c\xc9\x4f\x68\x1a\x72",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "STONK",
+        .unit = "STONK",
+        .contract_address =
+            "\xb4\x05\x84\x11\x96\x7d\x50\x46\xf3\x51\x09\x43\x10\x38\x05\xbe\x61\xf0\x60\x0e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "STPAY",
+        .unit = "STP",
+        .contract_address =
+            "\x5c\x25\x0f\xf9\xb9\x93\xc6\x99\x1c\xc4\xa3\xcc\x54\x37\x16\xe5\x3b\x47\x80\x18",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Storiqa",
+        .unit = "STQ",
+        .contract_address =
+            "\x5c\x3a\x22\x85\x10\xd2\x46\xb7\x8a\x37\x65\xc2\x02\x21\xcb\xf3\x08\x2b\x44\xa4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Staker",
+        .unit = "STR",
+        .contract_address =
+            "\xba\xe2\x35\x82\x3d\x72\x55\xd9\xd4\x86\x35\xce\xd4\x73\x52\x27\x24\x4c\xd5\x83",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Strong",
+        .unit = "STRONG",
+        .contract_address =
+            "\x99\x0f\x34\x19\x46\xa3\xfd\xb5\x07\xae\x7e\x52\xd1\x78\x51\xb8\x71\x68\x01\x7c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SBank",
+        .unit = "STS",
+        .contract_address =
+            "\x4c\x14\x11\x4c\x10\x7d\x63\x74\xec\x31\x98\x1f\x5f\x6c\xc2\x7a\x13\xe2\x2f\x9a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "bitJob",
+        .unit = "STU",
+        .contract_address =
+            "\x03\x71\xa8\x2e\x4a\x9d\x0a\x43\x12\xf3\xee\x2a\xc9\xc6\x95\x85\x12\x89\x13\x72",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Stox",
+        .unit = "STX",
+        .contract_address =
+            "\x00\x6b\xea\x43\xba\xa3\xf7\xa6\xf7\x65\xf1\x4f\x10\xa1\xa1\xb0\x83\x34\xef\x45",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SUKU",
+        .unit = "SUKU",
+        .contract_address =
+            "\x07\x63\xfd\xcc\xf1\xae\x54\x1a\x59\x61\x81\x5c\x08\x72\xa8\xc5\xbc\x6d\xe4\xd7",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Suretly",
+        .unit = "SUR",
+        .contract_address =
+            "\xe1\x20\xc1\xec\xbf\xdf\xea\x7f\x0a\x8f\x0e\xe3\x00\x63\x49\x1e\x8c\x26\xfe\xdf",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "inSure",
+        .unit = "SURE",
+        .contract_address =
+            "\xb5\xa4\xac\x5b\x04\xe7\x77\x23\x0b\xa3\x38\x11\x95\xef\xf6\xa6\x0c\x39\x34\xf2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "suterusu",
+        .unit = "SUTER",
+        .contract_address =
+            "\xba\x8c\x02\x44\xfb\xde\xb1\x0f\x19\xf6\x73\x87\x50\xda\xee\xdf\x7a\x50\x81\xeb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Satoshivisioncoin",
+        .unit = "SVC",
+        .contract_address =
+            "\x64\xea\x2c\x61\x04\xf1\xcf\x30\x35\xe2\x8b\xe0\xf7\x81\xb6\x28\x6d\x50\x93\x4d",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "savedroid",
+        .unit = "SVD",
+        .contract_address =
+            "\xbd\xeb\x4b\x83\x25\x1f\xb1\x46\x68\x7f\xa1\x9d\x1c\x66\x0f\x99\x41\x1e\xef\xe3",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TrustSwap",
+        .unit = "SWAP",
+        .contract_address =
+            "\xcc\x43\x04\xa3\x1d\x09\x25\x8b\x00\x29\xea\x7f\xe6\x3d\x03\x2f\x52\xe4\x4e\xfe",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Scanetchain",
+        .unit = "SWC",
+        .contract_address =
+            "\xad\xf8\xb8\x05\x06\x39\xb6\x23\x69\x15\xf7\x51\x6d\x69\xde\x71\x46\x72\xf0\xbf",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Swarm City",
+        .unit = "SWT",
+        .contract_address =
+            "\xb9\xe7\xf8\x56\x8e\x08\xd5\x65\x9f\x5d\x29\xc4\x99\x71\x73\xd8\x4c\xdf\x26\x07",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SWYFT",
+        .unit = "SWYFTT",
+        .contract_address =
+            "\xa1\x24\x8c\x71\x8d\x52\x75\x2b\x2c\xc2\x57\xee\xb0\xeb\xa9\x00\x40\x8d\xae\xb8",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "SymVerse",
+        .unit = "SYM",
+        .contract_address =
+            "\x79\xb4\xd1\x2f\xa6\x3a\x8d\x12\x02\xb2\x6c\x5b\xa6\xd6\x21\x36\xa4\xa0\x9d\xda",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Travel1Click",
+        .unit = "T1C",
+        .contract_address =
+            "\xa7\xc7\x1d\x44\x4b\xf9\xaf\x4b\xfe\xd2\xad\xe7\x55\x95\xd7\x51\x2e\xb4\xdd\x39",
+        .decimals = 16,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Tokenbox",
+        .unit = "TBX",
+        .contract_address =
+            "\x3a\x92\xbd\x39\x6a\xef\x82\xaf\x98\xeb\xc0\xaa\x90\x30\xd2\x5a\x23\xb1\x1c\x6b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TCASH",
+        .unit = "TCASH",
+        .contract_address =
+            "\x70\x51\x62\x0d\x11\x04\x2c\x43\x35\x06\x9a\xaa\x4f\x10\xcd\x3b\x42\x90\xc6\x81",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "The Currency Analytics",
+        .unit = "TCAT",
+        .contract_address =
+            "\xaf\xf8\x4e\x86\xd7\x2e\xdb\x97\x13\x41\xa6\xa6\x6e\xb2\xda\x20\x94\x46\xfa\x14",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TigerCash",
+        .unit = "TCH",
+        .contract_address =
+            "\x9b\x39\xa0\xb9\x73\x19\xa9\xbd\x5f\xed\x21\x7c\x1d\xb7\xb0\x30\x45\x3b\xac\x91",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Thore Cash",
+        .unit = "TCH",
+        .contract_address =
+            "\x99\x72\xa0\xf2\x41\x94\x44\x7e\x73\xa7\xe8\xb6\xcd\x26\xa5\x2e\x02\xdd\xfa\xd5",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "THECASH",
+        .unit = "TCH",
+        .contract_address =
+            "\xcd\x47\x53\x71\xe3\x9c\x0d\x94\xe8\x2f\xcc\xc9\xdd\x0e\xa7\x10\xd0\xdc\x0c\x0b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TrueDeck",
+        .unit = "TDP",
+        .contract_address =
+            "\x5b\x11\xaa\xcb\x6b\xdd\xb9\xff\xab\x90\x8f\xdc\xe7\x39\xbf\x4a\xed\x55\x43\x27",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TokenDesk",
+        .unit = "TDS",
+        .contract_address =
+            "\x62\x95\xab\x2b\xe0\x4a\x61\x77\x47\x48\x1b\x29\x2c\x39\x0b\xfc\xa5\x92\xcf\x28",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TEAM (TokenStars)",
+        .unit = "TEAM",
+        .contract_address =
+            "\x1c\x79\xab\x32\xc6\x6a\xca\xa1\xe9\xe8\x19\x52\xb8\xaa\xa5\x81\xb4\x3e\x54\xe7",
+        .decimals = 4,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TENA",
+        .unit = "TENA",
+        .contract_address =
+            "\xe1\x4a\x60\x3f\x7c\x77\xd4\x10\x1a\x87\x85\x9b\x87\x36\xa0\x4c\xfd\x85\xc6\x88",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Tendies",
+        .unit = "TEND",
+        .contract_address =
+            "\x14\x53\xdb\xb8\xa2\x95\x51\xad\xe1\x1d\x89\x82\x5c\xa8\x12\xe0\x53\x17\xea\xeb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Tepleton",
+        .unit = "TEP",
+        .contract_address =
+            "\x2e\x65\xe1\x2b\x5f\x0f\xd1\xd5\x87\x38\xc6\xf3\x8d\xa7\xd5\x7f\x5f\x18\x3d\x1c",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TrueFeedBack",
+        .unit = "TFB",
+        .contract_address =
+            "\x79\xcd\xfa\x04\xe3\xc4\xeb\x58\xc4\xf4\x9d\xae\x78\xb3\x22\xe5\xb0\xd3\x87\x88",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Truegame",
+        .unit = "TGAME",
+        .contract_address =
+            "\xf8\xe0\x6e\x4e\x4a\x80\x28\x7f\xdc\xa5\xb0\x2d\xcc\xec\xaa\x9d\x09\x54\x84\x0f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Thar Token",
+        .unit = "THAR",
+        .contract_address =
+            "\x75\x77\x03\xbd\x5b\x2c\x4b\xbc\xfd\xe0\xbe\x2c\x0b\x0e\x7c\x2f\x31\xfc\xf4\xe9",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Thrive Token",
+        .unit = "THRT",
+        .contract_address =
+            "\x4f\x27\x05\x3f\x32\xed\xa8\xaf\x84\x95\x64\x37\xbc\x00\xe5\xff\xa7\x00\x32\x87",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Thingschain",
+        .unit = "TIC",
+        .contract_address =
+            "\x72\x43\x0a\x61\x2a\xdc\x00\x7c\x50\xe3\xb6\x94\x6d\xbb\x1b\xb0\xfd\x31\x01\xd1",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ties.DB",
+        .unit = "TIE",
+        .contract_address =
+            "\x99\x99\x67\xe2\xec\x8a\x74\xb7\xc8\xe9\xdb\x19\xe0\x39\xd9\x20\xb3\x1d\x39\xd0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Chrono.tech",
+        .unit = "TIME",
+        .contract_address =
+            "\x65\x31\xf1\x33\xe6\xde\xeb\xe7\xf2\xdc\xe5\xa0\x44\x1a\xa7\xef\x33\x0b\x4e\x53",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Blocktix",
+        .unit = "TIX",
+        .contract_address =
+            "\xea\x1f\x34\x6f\xaf\x02\x3f\x97\x4e\xb5\xad\xaf\x08\x8b\xbc\xdf\x02\xd7\x61\xf4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TOKPIE",
+        .unit = "TKP",
+        .contract_address =
+            "\xd3\x16\x95\xa1\xd3\x5e\x48\x92\x52\xce\x57\xb1\x29\xfd\x4b\x1b\x05\xe6\xac\xac",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "MDsquare",
+        .unit = "TMED",
+        .contract_address =
+            "\xd3\x26\x41\x19\x15\x78\xea\x9b\x20\x81\x25\xdd\xd4\xec\x5e\x7b\x84\xfc\xab\x4c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "The Midas Touch Gold",
+        .unit = "TMTG",
+        .contract_address =
+            "\x10\x08\x63\x99\xdd\x8c\x1e\x3d\xe7\x36\x72\x4a\xf5\x25\x87\xa2\x04\x4c\x9f\xa2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TNC Coin",
+        .unit = "TNC",
+        .contract_address =
+            "\x39\xe7\x43\xfe\xe4\x00\xa5\xd9\xb3\x6f\x11\x67\xb7\x0c\x10\xe8\xf0\x64\x40\xe5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Transcodium",
+        .unit = "TNS",
+        .contract_address =
+            "\xb0\x28\x07\x43\xb4\x4b\xf7\xdb\x4b\x6b\xe4\x82\xb2\xba\x7b\x75\xe5\xda\x09\x6c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TouchCon",
+        .unit = "TOC",
+        .contract_address =
+            "\xe0\x27\x84\x17\x5c\x3b\xe0\xde\xa7\xcc\x0f\x28\x40\x41\xb6\x45\x03\x63\x9e\x66",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Tokoin",
+        .unit = "TOKO",
+        .contract_address =
+            "\x0c\x96\x3a\x1b\x52\xeb\x97\xc5\xe4\x57\xc7\xd7\x66\x96\xf8\xb9\x5c\x30\x87\xed",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Tolar",
+        .unit = "TOL",
+        .contract_address =
+            "\xd0\x7d\x9f\xe2\xd2\xcc\x06\x70\x15\xe2\xb4\x91\x7d\x24\x93\x38\x04\xf4\x2c\xfa",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3X Long TomoChain Token",
+        .unit = "TOMOBULL",
+        .contract_address =
+            "\xa3\x89\x20\xc0\x0d\x1a\x53\x03\xdb\x53\x8a\x3e\xa0\x8d\xa7\xa7\x79\xe1\xf7\x51",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TopChain",
+        .unit = "TOPC",
+        .contract_address =
+            "\x1b\x6c\x58\x64\x37\x5b\x34\xaf\x3f\xf5\xbd\x2e\x5f\x40\xbc\x42\x5b\x4a\x8d\x79",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Thorium",
+        .unit = "TORM",
+        .contract_address =
+            "\x8c\xea\x63\xf6\x38\x3c\x1c\x13\x63\x3f\x17\x9f\x1a\xf7\x0e\xf7\x57\x01\xa9\x79",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ThingsOperatingSystem",
+        .unit = "TOS",
+        .contract_address =
+            "\xfb\x5a\x55\x13\x74\xb6\x56\xc6\xe3\x97\x87\xb1\xd3\xa0\x3f\xea\xb7\xf3\xa9\x8e",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Tourist Token",
+        .unit = "TOTO",
+        .contract_address =
+            "\xe3\x27\x8d\xf3\xeb\x20\x85\xba\x9b\x68\x99\x81\x2a\x99\xa1\x0f\x9c\xa5\xe0\xdf",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TokenPocket",
+        .unit = "TPT",
+        .contract_address =
+            "\x41\x61\x72\x5d\x01\x96\x90\xa3\xe0\xde\x50\xf6\xbe\x67\xb0\x7a\x86\xa9\xfa\xe1",
+        .decimals = 4,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Treecle",
+        .unit = "TRCL",
+        .contract_address =
+            "\x0a\x9d\x68\x88\x6a\x0d\x7d\xb8\x3a\x30\xec\x00\xd6\x25\x12\x48\x3e\x5a\xd4\x37",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "WeTrust",
+        .unit = "TRST",
+        .contract_address =
+            "\xcb\x94\xbe\x6f\x13\xa1\x18\x2e\x4a\x4b\x61\x40\xcb\x7b\xf2\x02\x5d\x28\xe4\x1b",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3X Short TRX Token",
+        .unit = "TRXBEAR",
+        .contract_address =
+            "\x86\x80\x7d\xa5\xb9\x2d\x31\xf6\x7e\x12\x87\x71\xca\xcb\x85\xf3\x57\x96\x46\xea",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "3X Long TRX Token",
+        .unit = "TRXBULL",
+        .contract_address =
+            "\xc1\x75\xe7\x7b\x04\xf2\x34\x15\x17\x33\x4e\xa3\xed\x0b\x19\x8a\x01\xa9\x73\x83",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TRONCLASSIC",
+        .unit = "TRXC",
+        .contract_address =
+            "\xad\x5f\xe5\xb0\xb8\xec\x8f\xf4\x56\x52\x04\x99\x0e\x44\x05\xb2\xda\x11\x7d\x8e",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Trias",
+        .unit = "TRY",
+        .contract_address =
+            "\xe4\x31\xa4\xc5\xdb\x8b\x73\xc7\x73\xe0\x6c\xf2\x58\x7d\xa1\xeb\x53\xc4\x13\x73",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "12Ships",
+        .unit = "TSHP",
+        .contract_address =
+            "\x52\x57\x94\x47\x3f\x7a\xb5\x71\x5c\x81\xd0\x6d\x10\xf5\x2d\x11\xcc\x05\x28\x04",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Tesra",
+        .unit = "TSR",
+        .contract_address =
+            "\x58\x95\x9e\x0c\x71\x08\x04\x34\xf2\x37\xbd\x42\xd0\x7c\xd8\x4b\x74\xce\xf4\x38",
+        .decimals = 5,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "The Transfer Token",
+        .unit = "TTT",
+        .contract_address =
+            "\x24\x94\xa6\x8c\x14\x84\x37\x6f\xef\x88\x0b\x4c\x24\xd9\x1f\x04\x9d\x29\xb0\x2a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TV-TWO",
+        .unit = "TTV",
+        .contract_address =
+            "\xa8\x38\xbe\x6e\x4b\x76\x0e\x60\x61\xd4\x73\x2d\x6b\x9f\x11\xbf\x57\x8f\x9a\x76",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TUNE TOKEN",
+        .unit = "TUNE",
+        .contract_address =
+            "\x6b\x4e\x06\x84\x80\x6f\xe5\x39\x02\x46\x9b\x62\x86\x02\x4d\xb9\xc6\x27\x1f\x53",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TravelNote",
+        .unit = "TVNT",
+        .contract_address =
+            "\x56\x35\xdd\xea\xbf\x9c\xdd\xa6\x86\x99\x5f\xe9\x0b\xeb\x54\x11\x83\x15\x63\xfc",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Tweebaa",
+        .unit = "TWEE",
+        .contract_address =
+            "\x2b\x6f\xf5\x3f\xc2\x49\x3c\xcd\x52\x02\xd8\x0a\x6c\x43\x97\x41\x41\x4c\x5f\xf2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Typerium",
+        .unit = "TYPE",
+        .contract_address =
+            "\xea\xf6\x1f\xc1\x50\xcd\x5c\x3b\xea\x75\x74\x4e\x83\x0d\x91\x6e\x60\xea\x5a\x9f",
+        .decimals = 4,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "UltrAlpha",
+        .unit = "UAT",
+        .contract_address =
+            "\x01\xc0\x98\x7e\x88\xf7\x78\xdf\x66\x40\x78\x72\x26\xbc\x96\x35\x4e\x1a\x97\x66",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ubricoin",
+        .unit = "UBN",
+        .contract_address =
+            "\xdb\x13\x02\x5b\x21\x9d\xb5\xe4\x52\x9f\x48\xb6\x5f\xf0\x09\xa2\x6b\x6a\xe7\x33",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Unibomb",
+        .unit = "UBOMB",
+        .contract_address =
+            "\x26\x5b\xa4\x2d\xaf\x2d\x20\xf3\xf3\x58\xa7\x36\x1d\x9f\x69\xcb\x4e\x28\xf0\xe6",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "UBU",
+        .unit = "UBU",
+        .contract_address =
+            "\x6b\x74\xdd\x5d\x01\xf8\x32\x00\x81\x24\x7f\x5c\xf1\xf7\xa4\x83\x24\x70\x0d\xb6",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "YouLive Coin",
+        .unit = "UC",
+        .contract_address =
+            "\xf8\x4d\xf2\xdb\x2c\x87\xdd\x65\x06\x41\xf8\x90\x4a\xf7\x1e\xbf\xc3\xdd\xe0\xea",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "UChain",
+        .unit = "UCN",
+        .contract_address =
+            "\xaa\xf3\x70\x55\x18\x8f\xee\xe4\x86\x9d\xe6\x34\x64\x93\x7e\x68\x3d\x61\xb2\xa1",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ubique Chain Of Things",
+        .unit = "UCT",
+        .contract_address =
+            "\x3c\x4b\xea\x62\x70\x39\xf0\xb7\xe7\xd2\x1e\x34\xbb\x9c\x9f\xe9\x62\x97\x75\x18",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Hyprr (Howdoo)",
+        .unit = "UDOO",
+        .contract_address =
+            "\x12\xf6\x49\xa9\xe8\x21\xf9\x0b\xb1\x43\x08\x9a\x6e\x56\x84\x69\x45\x89\x2f\xfb",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Union Fair Coin",
+        .unit = "UFC",
+        .contract_address =
+            "\x99\x5d\xe3\xd9\x61\xb4\x0e\xc6\xcd\xee\x00\x09\x05\x9d\x48\x76\x8c\xcb\xdd\x48",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Upfiring",
+        .unit = "UFR",
+        .contract_address =
+            "\xea\x09\x7a\x2b\x1d\xb0\x06\x27\xb2\xfa\x17\x46\x0a\xd2\x60\xc0\x16\x01\x69\x77",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Ulgen Hash Power",
+        .unit = "UHP",
+        .contract_address =
+            "\x91\x35\xd9\x2e\x3a\x34\xe2\xa9\x4e\x44\x74\xb7\x4b\x9d\xc2\xd5\x11\x18\xee\xd5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "UNICORN Token",
+        .unit = "UNI",
+        .contract_address =
+            "\x27\x30\xd6\xfd\xc8\x6c\x95\xa7\x42\x53\xbe\xff\xaa\x83\x06\xb4\x0f\xed\xec\xbb",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "UniDollar",
+        .unit = "UNIUSD",
+        .contract_address =
+            "\x25\x68\x45\xe7\x21\xc0\xc4\x6d\x54\xe6\xaf\xbd\x4f\xa3\xb5\x2c\xb7\x23\x53\xea",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "UOS Network",
+        .unit = "UOS",
+        .contract_address =
+            "\x43\x0b\xd0\x77\x26\x42\x3a\x54\xf6\xd8\x2a\xb0\xf5\x78\xce\x62\xa3\xb8\x05\x4d",
+        .decimals = 4,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "UpToken",
+        .unit = "UP",
+        .contract_address =
+            "\x6b\xa4\x60\xab\x75\xcd\x2c\x56\x34\x3b\x35\x17\xff\xeb\xa6\x07\x48\x65\x4d\x26",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Pawtocol",
+        .unit = "UPI",
+        .contract_address =
+            "\x70\xd2\xb7\xc1\x93\x52\xbb\x76\xe4\x40\x98\x58\xff\x57\x46\xe5\x00\xf2\xb6\x7c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Universal Protocol Token",
+        .unit = "UPT",
+        .contract_address =
+            "\x6c\xa8\x8c\xc8\xd9\x28\x8f\x5c\xad\x82\x50\x53\xb6\xa1\xb1\x79\xb0\x5c\x76\xfc",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "HonestCoin",
+        .unit = "USDH",
+        .contract_address =
+            "\x20\x1a\x59\x27\x0d\xd8\x5d\xa2\x66\x15\xa3\x7b\xba\x3e\xed\x86\x65\x15\x3a\xbb",
+        .decimals = 2,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "StableUSD",
+        .unit = "USDS",
+        .contract_address =
+            "\xa4\xbd\xb1\x1d\xc0\xa2\xbe\xc8\x8d\x24\xa3\xaa\x1e\x6b\xb1\x72\x01\x11\x2e\xbe",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "USDx stablecoin",
+        .unit = "USDX",
+        .contract_address =
+            "\xeb\x26\x97\x32\xab\x75\xa6\xfd\x61\xea\x60\xb0\x6f\xe9\x94\xcd\x32\xa8\x35\x49",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "VEHICLE DATA ARTIFICIAL INTELLIGENCE PLATFORM",
+        .unit = "VAIP",
+        .contract_address =
+            "\x44\x57\xdc\x5a\x9e\x71\xb9\x75\xa8\xe0\xf8\x55\xbb\xe7\x95\xf5\xcb\xdc\xc1\x0f",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Vanta Network",
+        .unit = "VANTA",
+        .contract_address =
+            "\xfd\xf5\x74\x76\x6b\xa1\xa9\x6a\x55\x3e\x17\x5a\xef\xfa\x85\xad\x78\x06\x3f\x0b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Vanywhere",
+        .unit = "VANY",
+        .contract_address =
+            "\x4e\xdd\x66\x23\x53\x49\xe3\x53\xeb\x8c\xb8\xe4\x05\x96\x59\x96\x44\xbf\xe9\x1c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "VARC",
+        .unit = "VARC",
+        .contract_address =
+            "\x3f\x69\x46\x35\xab\x69\xb1\xb5\xe7\xf0\x01\xde\x26\x89\x2c\xc6\x3b\xa9\x4b\xad",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Vether",
+        .unit = "VETH",
+        .contract_address =
+            "\x4b\xa6\xdd\xd7\xb8\x9e\xd8\x38\xfe\xd2\x5d\x20\x8d\x4f\x64\x41\x06\xe3\x42\x79",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "VegaWallet Token",
+        .unit = "VGW",
+        .contract_address =
+            "\x94\x23\x65\x91\x12\x5e\x93\x5f\x5a\xc1\x28\xbb\x3d\x50\x62\x94\x4c\x24\x95\x8c",
+        .decimals = 5,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Vid",
+        .unit = "VI",
+        .contract_address =
+            "\xd3\x21\xca\x7c\xd7\xa2\x33\x48\x3b\x8c\xd5\xa1\x1a\x89\xe9\x33\x7e\x70\xdf\x84",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "View",
+        .unit = "VIEW",
+        .contract_address =
+            "\xf0\x3f\x8d\x65\xba\xfa\x59\x86\x11\xc3\x49\x51\x24\x09\x3c\x56\xe8\xf6\x38\xf0",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "VikkyToken",
+        .unit = "VIKKY",
+        .contract_address =
+            "\xd2\x94\x6b\xe7\x86\xf3\x5c\x3c\xc4\x02\xc2\x9b\x32\x36\x47\xab\xda\x79\x90\x71",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Vinci",
+        .unit = "VINCI",
+        .contract_address =
+            "\x3d\xb9\x9a\xb0\x80\x06\xae\xfc\xc9\x60\x09\x72\xec\xa8\xc2\x02\x39\x6b\x43\x00",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "ValueChain",
+        .unit = "VLC",
+        .contract_address =
+            "\x8f\x7b\x0b\x40\xe2\x7e\x35\x75\x40\xf9\x0f\x18\x7d\x90\xce\x06\x36\x6a\xc5\xa5",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Vetri",
+        .unit = "VLD",
+        .contract_address =
+            "\x92\x2a\xc4\x73\xa3\xcc\x24\x1f\xd3\xa0\x04\x9e\xd1\x45\x36\x45\x2d\x58\xd7\x3c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Bankroll Vault",
+        .unit = "VLT",
+        .contract_address =
+            "\x6b\x78\x5a\x03\x22\x12\x68\x26\xd8\x22\x6d\x77\xe1\x73\xd7\x5d\xaf\xb8\x4d\x11",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "TrueVett",
+        .unit = "VME",
+        .contract_address =
+            "\xc3\x43\xf0\x99\xd3\xe4\x1a\xa5\xc1\xb5\x94\x70\x45\x0e\x21\xe9\x2e\x2d\x84\x0b",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "VNX Exchange",
+        .unit = "VNXLU",
+        .contract_address =
+            "\x00\xfc\x27\x0c\x9c\xc1\x3e\x87\x8a\xb5\x36\x3d\x00\x35\x4b\xeb\xf6\xf0\x5c\x15",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Provoco Token",
+        .unit = "VOCO",
+        .contract_address =
+            "\xb5\xca\x46\xcf\x1d\xa0\x92\x48\x12\x66\x82\xa7\xbd\x72\x40\x1f\xd7\xa6\xb1\x51",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Voise",
+        .unit = "VOISE",
+        .contract_address =
+            "\x83\xee\xa0\x0d\x83\x8f\x92\xde\xc4\xd1\x47\x56\x97\xb9\xf4\xd3\x53\x7b\x56\xe3",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "VeraOne",
+        .unit = "VRO",
+        .contract_address =
+            "\x10\xbc\x51\x8c\x32\xfb\xae\x5e\x38\xec\xb5\x0a\x61\x21\x60\x57\x1b\xd8\x1e\x44",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Veros",
+        .unit = "VRS",
+        .contract_address =
+            "\xab\xc4\x30\x13\x6a\x4d\xe7\x1c\x99\x98\x24\x2d\xe8\xc1\xb4\xb9\x7d\x2b\x90\x45",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "vSportCoin",
+        .unit = "VSC",
+        .contract_address =
+            "\x36\xb4\xb5\x8d\xe0\x30\xe9\x37\x75\xe1\x51\xa7\x8d\x79\x60\x39\xa1\x1a\x25\x48",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "VeriSafe",
+        .unit = "VSF",
+        .contract_address =
+            "\xba\x3a\x79\xd7\x58\xf1\x9e\xfe\x58\x82\x47\x38\x87\x54\xb8\xe4\xd6\xed\xda\x81",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "vSlice",
+        .unit = "VSL",
+        .contract_address =
+            "\x5c\x54\x3e\x7a\xe0\xa1\x10\x4f\x78\x40\x6c\x34\x0e\x9c\x64\xfd\x9f\xce\x51\x70",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Vision Network",
+        .unit = "VSN",
+        .contract_address =
+            "\x45\x6a\xe4\x5c\x0c\xe9\x01\xe2\xe7\xc9\x9c\x07\x18\x03\x1c\xec\x0a\x7a\x59\xff",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Vectorspace AI",
+        .unit = "VXV",
+        .contract_address =
+            "\x7d\x29\xa6\x45\x04\x62\x91\x72\xa4\x29\xe6\x41\x83\xd6\x67\x3b\x9d\xac\xbf\xce",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "WABnetwork",
+        .unit = "WAB",
+        .contract_address =
+            "\x4b\xbb\xc5\x7a\xf2\x70\x13\x8e\xf2\xff\x2c\x50\xdb\xfa\xd6\x84\xe9\xe0\xe6\x04",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "WandX",
+        .unit = "WAND",
+        .contract_address =
+            "\x27\xf6\x10\xbf\x36\xec\xa0\x93\x90\x93\x34\x3a\xc2\x8b\x15\x34\xa7\x21\xdb\xb4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "WiBX",
+        .unit = "WBX",
+        .contract_address =
+            "\xbb\x97\xe3\x81\xf1\xd1\xe9\x4f\xfa\x2a\x58\x44\xf6\x87\x5e\x61\x46\x98\x10\x09",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Webcoin",
+        .unit = "WEB",
+        .contract_address =
+            "\x84\x0f\xe7\x5a\xbf\xad\xc0\xf2\xd5\x40\x37\x82\x95\x71\xb2\x78\x2e\x91\x9c\xe4",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "WEBN token",
+        .unit = "WEBN",
+        .contract_address =
+            "\x15\xa6\x64\x41\x6e\x42\x76\x6a\x6c\xc0\xa1\x22\x1d\x9c\x08\x85\x48\xa6\xe7\x31",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "WeShow Token",
+        .unit = "WET",
+        .contract_address =
+            "\x36\xd1\x0c\x68\x00\xd5\x69\xbb\x8c\x4f\xe2\x84\xa0\x5f\xfe\x3b\x75\x2f\x97\x2c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "WETH",
+        .unit = "WETH",
+        .contract_address =
+            "\xc0\x2a\xaa\x39\xb2\x23\xfe\x8d\x0a\x0e\x5c\x4f\x27\xea\xd9\x08\x3c\x75\x6c\xc2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Webflix Token",
+        .unit = "WFX",
+        .contract_address =
+            "\xd1\x11\xbc\xb8\xc3\x0a\x60\x0c\x12\xf4\xaf\x83\x14\x23\x5f\x62\x8e\xa2\xcb\x3c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "W Green Pay",
+        .unit = "WGP",
+        .contract_address =
+            "\xdd\x94\x84\x2c\x15\xab\xfe\x4c\x9b\xaf\xe4\x22\x2a\xde\x02\x89\x6b\xeb\x06\x4c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "WHEN Token",
+        .unit = "WHEN",
+        .contract_address =
+            "\xf4\xfe\x95\x60\x38\x81\xd0\xe0\x79\x54\xfd\x76\x05\xe0\xe9\xa9\x16\xe4\x2c\x44",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Project WITH",
+        .unit = "WIKEN",
+        .contract_address =
+            "\xb7\xe7\x7a\xeb\xbe\x06\x87\xd2\xef\xf2\x4c\xc9\x0c\x41\xa3\xb6\xea\x74\xbd\xab",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "WITChain",
+        .unit = "WIT",
+        .contract_address =
+            "\xe1\x3e\xf2\x57\xcf\x4d\x5d\xf9\x28\xca\x11\xd2\x30\x42\x7c\x03\x76\x66\xd4\x66",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "CrowdWiz",
+        .unit = "WIZ",
+        .contract_address =
+            "\x2f\x9b\x67\x79\xc3\x7d\xf5\x70\x72\x49\xee\xb3\x73\x4b\xbf\xc9\x47\x63\xfb\xe2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "WinStars.live",
+        .unit = "WNL",
+        .contract_address =
+            "\xcf\xbf\x70\xe3\x3d\x51\x63\xe2\x5b\x0d\xad\x73\x95\x5c\x1b\xd9\xe8\xcd\x8b\xa2",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Wrapped NXM",
+        .unit = "WNXM",
+        .contract_address =
+            "\x0d\x43\x8f\x3b\x51\x75\xbe\xbc\x26\x2b\xf2\x37\x53\xc1\xe5\x3d\x03\x43\x2b\xde",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "WOM Protocol",
+        .unit = "WOM",
+        .contract_address =
+            "\xa9\x82\xb2\xe1\x9e\x90\xb2\xd9\xf7\x94\x8e\x9c\x1b\x65\xd1\x19\xf1\xce\x88\xd6",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "WPP TOKEN",
+        .unit = "WPP",
+        .contract_address =
+            "\x05\x6d\xd2\x0b\x01\x79\x9e\x9c\x19\x52\xc7\xc9\xa5\xff\x44\x09\xa6\x11\x00\x85",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "WeSing Coin",
+        .unit = "WSC",
+        .contract_address =
+            "\x2d\xcd\x9b\x1a\x7e\xd4\x08\xff\x48\xbd\x49\x18\xa1\xf9\xc0\x53\x5d\xc5\x4e\xad",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Waletoken",
+        .unit = "WTN",
+        .contract_address =
+            "\x0e\xa9\x84\xe7\x89\x30\x2b\x7b\x61\x21\x47\xe4\xe4\x14\x4e\x64\xf2\x14\x25\xeb",
+        .decimals = 8,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "WXCOINS",
+        .unit = "WXC",
+        .contract_address =
+            "\x0e\xe1\x15\x00\xe7\xcf\xe6\x12\x4e\x37\x16\xcd\x77\x55\xa0\xf0\xf2\x11\x62\x44",
+        .decimals = 0,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "wys Token",
+        .unit = "WYS",
+        .contract_address =
+            "\xd8\x95\x0f\xde\xaa\x10\x30\x4b\x7a\x7f\xd0\x3a\x2f\xc6\x6b\xc3\x9f\x3c\x71\x1a",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "X8X Token",
+        .unit = "X8X",
+        .contract_address =
+            "\x91\x0d\xfc\x18\xd6\xea\x3d\x6a\x71\x24\xa6\xf8\xb5\x45\x8f\x28\x10\x60\xfa\x4c",
+        .decimals = 18,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Xank",
+        .unit = "XANK",
+        .contract_address =
+            "\x0e\x7f\x79\xe8\x9b\xa8\xc4\xa1\x34\x31\x12\x9f\xb2\xdb\x0d\x4f\x44\x4b\x5b\x9a",
+        .decimals = 16,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "Tether Gold",
+        .unit = "XAUT",
+        .contract_address =
+            "\x49\x22\xa0\x15\xc4\x40\x7f\x87\x43\x2b\x17\x9b\xb2\x09\xe1\x25\x43\x2e\x4a\x2a",
+        .decimals = 6,
+    },
+    {
+        .coin = ETHCoin_ETH,
+        .name = "BlitzPredict",
+        .unit = "XBP",
+        .contract_address =
+            "\x28\xde\xe0\x1d\x53\xfe\xd0\xed\xf5\xf6\xe3\x10\xbf\x8e\xf9\x31\x15\x13\xae\x40",
+        .decimals = 18,
+    },
 };
 
 const app_eth_erc20_params_t* app_eth_erc20_params_get(

@@ -45,10 +45,12 @@ int main(void)
     qtouch_init();
     const char* addr = "cafebabecafebabecafebabecafebabe";
     for (size_t i = 0; i < sizeof(data) / sizeof(*data); ++i) {
-        workflow_verify_pub(data[i], addr);
+        if (!workflow_verify_pub(data[i], addr)) {
+        }
     }
 
-    for (size_t i = 0; i < sizeof(_erc20_params) / sizeof(*_erc20_params); ++i) {
-        workflow_verify_pub(_erc20_params[i].name, addr);
+    for (size_t i = 0; i < sizeof(_ethereum_erc20_params) / sizeof(*_ethereum_erc20_params); ++i) {
+        if (!workflow_verify_pub(_ethereum_erc20_params[i].name, addr)) {
+        }
     }
 }

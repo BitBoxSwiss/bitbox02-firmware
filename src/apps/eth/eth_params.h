@@ -25,11 +25,10 @@ typedef struct {
 } app_eth_coin_params_t;
 
 typedef struct {
-    ETHCoin coin;
     const char* unit;
     const char* name;
     const uint8_t contract_address[20];
-    unsigned int decimals;
+    uint8_t decimals;
 } app_eth_erc20_params_t;
 
 /**

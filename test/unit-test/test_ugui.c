@@ -58,10 +58,10 @@ static void _test_ugui_word_wrap_all(void** state)
 {
     (void)state; /* unused */
     UG_Init(&gui, _set_pixel, &font_font_a_11X10, 128, 64);
-    for (size_t i = 0; i < sizeof(_erc20_params) / sizeof(*_erc20_params); ++i) {
+    for (size_t i = 0; i < sizeof(_ethereum_erc20_params) / sizeof(*_ethereum_erc20_params); ++i) {
         char buf[1024] = {0};
-        printf("test:\n%s\n", _erc20_params[i].name);
-        UG_WrapTitleString(_erc20_params[i].name, buf, 55);
+        printf("test:\n%s\n", _ethereum_erc20_params[i].name);
+        UG_WrapTitleString(_ethereum_erc20_params[i].name, buf, 55);
         printf("result:\n%s\n", buf);
         // This run will just check with the santizers.
         assert_true(true);

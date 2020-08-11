@@ -50,19 +50,18 @@ const app_eth_coin_params_t* app_eth_params_get(ETHCoin coin)
     }
 }
 
-static const app_eth_erc20_params_t _erc20_params[] = {
-    /* Ropsten */
+static const app_eth_erc20_params_t _ropsten_erc20_params[] = {
     {
-        .coin = ETHCoin_RopstenETH,
         .name = "TEST",
         .unit = "TEST",
         .contract_address =
             "\x2f\x45\xb6\xfb\x2f\x28\xa7\x3f\x11\x04\x00\x38\x6d\xa3\x10\x44\xb2\xe9\x53\xd4",
         .decimals = 18,
     },
-    /* Ethereum */
+};
+
+static const app_eth_erc20_params_t _ethereum_erc20_params[] = {
     {
-        .coin = ETHCoin_ETH,
         .name = "1SG",
         .unit = "1SG",
         .contract_address =
@@ -70,7 +69,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FirstBlood",
         .unit = "1ST",
         .contract_address =
@@ -78,7 +76,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "1World",
         .unit = "1WO",
         .contract_address =
@@ -86,7 +83,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "999",
         .unit = "999",
         .contract_address =
@@ -94,7 +90,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 3,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Airbloc",
         .unit = "ABL",
         .contract_address =
@@ -102,7 +97,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Arcblock",
         .unit = "ABT",
         .contract_address =
@@ -110,7 +104,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Abyss Token",
         .unit = "ABYSS",
         .contract_address =
@@ -118,7 +111,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Aladdin",
         .unit = "ADN",
         .contract_address =
@@ -126,7 +118,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "adToken",
         .unit = "ADT",
         .contract_address =
@@ -134,7 +125,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AdEx",
         .unit = "ADX",
         .contract_address =
@@ -142,7 +132,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Aencoin",
         .unit = "AEN",
         .contract_address =
@@ -150,7 +139,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Aergo",
         .unit = "AERGO",
         .contract_address =
@@ -158,7 +146,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Asian Fintech",
         .unit = "AFIN",
         .contract_address =
@@ -166,7 +153,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SingularityNET",
         .unit = "AGI",
         .contract_address =
@@ -174,7 +160,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Agrocoin",
         .unit = "AGRO",
         .contract_address =
@@ -182,7 +167,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AgaveCoin",
         .unit = "AGVC",
         .contract_address =
@@ -190,7 +174,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AI Doctor",
         .unit = "AIDOC",
         .contract_address =
@@ -198,7 +181,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ambrosus",
         .unit = "AMB",
         .contract_address =
@@ -206,7 +188,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Amino Network",
         .unit = "AMIO",
         .contract_address =
@@ -214,7 +195,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AMLT",
         .unit = "AMLT",
         .contract_address =
@@ -222,7 +202,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AMO Coin",
         .unit = "AMO",
         .contract_address =
@@ -230,7 +209,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ampleforth",
         .unit = "AMPL",
         .contract_address =
@@ -238,7 +216,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Anchor",
         .unit = "ANCT",
         .contract_address =
@@ -246,7 +223,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ankr",
         .unit = "ANKR",
         .contract_address =
@@ -254,7 +230,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Aragon",
         .unit = "ANT",
         .contract_address =
@@ -262,7 +237,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Aurora",
         .unit = "AOA",
         .contract_address =
@@ -270,7 +244,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AppCoins",
         .unit = "APPC",
         .contract_address =
@@ -278,7 +251,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Aeron",
         .unit = "ARN",
         .contract_address =
@@ -286,7 +258,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ARPA Chain",
         .unit = "ARPA",
         .contract_address =
@@ -294,7 +265,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AirSwap",
         .unit = "AST",
         .contract_address =
@@ -302,7 +272,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Artfinity",
         .unit = "AT",
         .contract_address =
@@ -310,7 +279,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 5,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ATC Coin",
         .unit = "ATCC",
         .contract_address =
@@ -318,7 +286,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ATLANT",
         .unit = "ATL",
         .contract_address =
@@ -326,7 +293,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ATN",
         .unit = "ATN",
         .contract_address =
@@ -334,7 +300,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cube",
         .unit = "AUTO",
         .contract_address =
@@ -342,7 +307,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "B2BX",
         .unit = "B2B",
         .contract_address =
@@ -350,7 +314,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BaaSid",
         .unit = "BAAS",
         .contract_address =
@@ -358,7 +321,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Band Protocol",
         .unit = "BAND",
         .contract_address =
@@ -366,7 +328,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Basic Attention Token",
         .unit = "BAT",
         .contract_address =
@@ -374,7 +335,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BABB",
         .unit = "BAX",
         .contract_address =
@@ -382,7 +342,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Brickblock",
         .unit = "BBK",
         .contract_address =
@@ -390,7 +349,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blockmason Credit Protocol",
         .unit = "BCPT",
         .contract_address =
@@ -398,7 +356,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitCapitalVendor",
         .unit = "BCV",
         .contract_address =
@@ -406,7 +363,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Buggyra Coin Zero",
         .unit = "BCZERO",
         .contract_address =
@@ -414,7 +370,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BidiPass",
         .unit = "BDP",
         .contract_address =
@@ -422,7 +377,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DAO.Casino",
         .unit = "BET",
         .contract_address =
@@ -430,7 +384,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitForex Token",
         .unit = "BF",
         .contract_address =
@@ -438,7 +391,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BnkToTheFuture",
         .unit = "BFT",
         .contract_address =
@@ -446,7 +398,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BHEX Token",
         .unit = "BHT",
         .contract_address =
@@ -454,7 +405,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bibox Token",
         .unit = "BIX",
         .contract_address =
@@ -462,7 +412,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bloom",
         .unit = "BLT",
         .contract_address =
@@ -470,7 +419,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bluzelle",
         .unit = "BLZ",
         .contract_address =
@@ -478,7 +426,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blackmoon",
         .unit = "BMC",
         .contract_address =
@@ -486,7 +433,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitMart Token",
         .unit = "BMX",
         .contract_address =
@@ -494,7 +440,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Chimpion",
         .unit = "BNANA",
         .contract_address =
@@ -502,7 +447,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bankera",
         .unit = "BNK",
         .contract_address =
@@ -510,7 +454,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bancor",
         .unit = "BNT",
         .contract_address =
@@ -518,7 +461,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BOSAGORA",
         .unit = "BOA",
         .contract_address =
@@ -526,7 +468,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 7,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BOLT",
         .unit = "BOLT",
         .contract_address =
@@ -534,7 +475,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BORA",
         .unit = "BORA",
         .contract_address =
@@ -542,7 +482,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "botXcoin",
         .unit = "BOTX",
         .contract_address =
@@ -550,7 +489,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BOX Token",
         .unit = "BOX",
         .contract_address =
@@ -558,7 +496,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ContentBox",
         .unit = "BOX",
         .contract_address =
@@ -566,7 +503,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blockport",
         .unit = "BPT",
         .contract_address =
@@ -574,7 +510,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bitsdaq",
         .unit = "BQQQ",
         .contract_address =
@@ -582,7 +517,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BQT",
         .unit = "BQTX",
         .contract_address =
@@ -590,7 +524,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bread",
         .unit = "BRD",
         .contract_address =
@@ -598,7 +531,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Breezecoin",
         .unit = "BRZE",
         .contract_address =
@@ -606,7 +538,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitMax Token",
         .unit = "BTMX",
         .contract_address =
@@ -614,7 +545,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bitrue Coin",
         .unit = "BTR",
         .contract_address =
@@ -622,7 +552,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blocktrade Token",
         .unit = "BTT",
         .contract_address =
@@ -630,7 +559,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BTU Protocol",
         .unit = "BTU",
         .contract_address =
@@ -638,7 +566,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Binance USD",
         .unit = "BUSD",
         .contract_address =
@@ -646,7 +573,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blue Whale EXchange",
         .unit = "BWX",
         .contract_address =
@@ -654,7 +580,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bitbook Gambling",
         .unit = "BXK",
         .contract_address =
@@ -662,7 +587,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bit-Z Token",
         .unit = "BZ",
         .contract_address =
@@ -670,7 +594,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bezant",
         .unit = "BZNT",
         .contract_address =
@@ -678,7 +601,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CRYPTO20",
         .unit = "C20",
         .contract_address =
@@ -686,7 +608,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Change",
         .unit = "CAG",
         .contract_address =
@@ -694,7 +615,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cajutel",
         .unit = "CAJ",
         .contract_address =
@@ -702,7 +622,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CanYaCoin",
         .unit = "CAN",
         .contract_address =
@@ -710,7 +629,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cashaa",
         .unit = "CAS",
         .contract_address =
@@ -718,7 +636,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CashBet Coin",
         .unit = "CBC",
         .contract_address =
@@ -726,7 +643,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CommerceBlock",
         .unit = "CBT",
         .contract_address =
@@ -734,7 +650,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Clipper Coin",
         .unit = "CCC",
         .contract_address =
@@ -742,7 +657,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blox",
         .unit = "CDT",
         .contract_address =
@@ -750,7 +664,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CEEK VR",
         .unit = "CEEK",
         .contract_address =
@@ -758,7 +671,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Celer Network",
         .unit = "CELR",
         .contract_address =
@@ -766,7 +678,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Centrality",
         .unit = "CENNZ",
         .contract_address =
@@ -774,7 +685,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CoinEx Token",
         .unit = "CET",
         .contract_address =
@@ -782,7 +692,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CoinPoker",
         .unit = "CHP",
         .contract_address =
@@ -790,7 +699,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Chromia",
         .unit = "CHR",
         .contract_address =
@@ -798,7 +706,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SwissBorg",
         .unit = "CHSB",
         .contract_address =
@@ -806,7 +713,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Chiliz",
         .unit = "CHZ",
         .contract_address =
@@ -814,7 +720,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cryptoindex.com 100",
         .unit = "CIX100",
         .contract_address =
@@ -822,7 +727,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Color Platform",
         .unit = "CLR",
         .contract_address =
@@ -830,7 +734,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cindicator",
         .unit = "CND",
         .contract_address =
@@ -838,7 +741,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Content Neutrality Network",
         .unit = "CNN",
         .contract_address =
@@ -846,7 +748,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cocos-BCX",
         .unit = "COCOS",
         .contract_address =
@@ -854,7 +755,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CONUN",
         .unit = "CON",
         .contract_address =
@@ -862,7 +762,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Constant",
         .unit = "CONST",
         .contract_address =
@@ -870,7 +769,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cosmo Coin",
         .unit = "COSM",
         .contract_address =
@@ -878,7 +776,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Covesting",
         .unit = "COV",
         .contract_address =
@@ -886,7 +783,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cryptopay",
         .unit = "CPAY",
         .contract_address =
@@ -894,7 +790,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CPChain",
         .unit = "CPC",
         .contract_address =
@@ -902,7 +797,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Contents Protocol",
         .unit = "CPT",
         .contract_address =
@@ -910,7 +804,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cryptaur",
         .unit = "CPT",
         .contract_address =
@@ -918,7 +811,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Carry",
         .unit = "CRE",
         .contract_address =
@@ -926,7 +818,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Credo",
         .unit = "CREDO",
         .contract_address =
@@ -934,7 +825,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Crypto.com Coin",
         .unit = "CRO",
         .contract_address =
@@ -942,7 +832,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Crypterium",
         .unit = "CRPT",
         .contract_address =
@@ -950,7 +839,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Credits",
         .unit = "CS",
         .contract_address =
@@ -958,7 +846,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitDice",
         .unit = "CSNO",
         .contract_address =
@@ -966,7 +853,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Caspian",
         .unit = "CSP",
         .contract_address =
@@ -974,7 +860,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cortex",
         .unit = "CTXC",
         .contract_address =
@@ -982,7 +867,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "carVertical",
         .unit = "CV",
         .contract_address =
@@ -990,7 +874,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Civic",
         .unit = "CVC",
         .contract_address =
@@ -998,7 +881,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Content Value Network",
         .unit = "CVNT",
         .contract_address =
@@ -1006,7 +888,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CyberVein",
         .unit = "CVT",
         .contract_address =
@@ -1014,7 +895,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CWV Chain",
         .unit = "CWV",
         .contract_address =
@@ -1022,7 +902,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CyberMusic",
         .unit = "CYMT",
         .contract_address =
@@ -1030,7 +909,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CanonChain",
         .unit = "CZR",
         .contract_address =
@@ -1038,7 +916,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Davinci Coin",
         .unit = "DAC",
         .contract_address =
@@ -1046,7 +923,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DACSEE",
         .unit = "DACS",
         .contract_address =
@@ -1054,7 +930,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Edge",
         .unit = "DADI",
         .contract_address =
@@ -1062,7 +937,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Constellation",
         .unit = "DAG",
         .contract_address =
@@ -1070,7 +944,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Digital Asset Guarantee Token",
         .unit = "DAGT",
         .contract_address =
@@ -1078,7 +951,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dai Stablecoin",
         .unit = "DAI",
         .contract_address =
@@ -1086,7 +958,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Streamr DATAcoin",
         .unit = "DATA",
         .contract_address =
@@ -1094,7 +965,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dentacoin",
         .unit = "DCN",
         .contract_address =
@@ -1102,7 +972,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Scry.info",
         .unit = "DDD",
         .contract_address =
@@ -1110,7 +979,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Darico Ecosystem Coin",
         .unit = "DEC",
         .contract_address =
@@ -1118,7 +986,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dent",
         .unit = "DENT",
         .contract_address =
@@ -1126,7 +993,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DEX",
         .unit = "DEX",
         .contract_address =
@@ -1134,7 +1000,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DigixDAO",
         .unit = "DGD",
         .contract_address =
@@ -1142,7 +1007,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Digitex Futures",
         .unit = "DGTX",
         .contract_address =
@@ -1150,7 +1014,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Digix Gold Token",
         .unit = "DGX",
         .contract_address =
@@ -1158,7 +1021,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Etheroll",
         .unit = "DICE",
         .contract_address =
@@ -1166,7 +1028,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 16,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Agrello",
         .unit = "DLT",
         .contract_address =
@@ -1174,7 +1035,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DMarket",
         .unit = "DMT",
         .contract_address =
@@ -1182,7 +1042,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "district0x",
         .unit = "DNT",
         .contract_address =
@@ -1190,7 +1049,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dock",
         .unit = "DOCK",
         .contract_address =
@@ -1198,7 +1056,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Diamond Platform Token",
         .unit = "DPT",
         .contract_address =
@@ -1206,7 +1063,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DreamTeam Token",
         .unit = "DREAM",
         .contract_address =
@@ -1214,7 +1070,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dragon Coins",
         .unit = "DRG",
         .contract_address =
@@ -1222,7 +1077,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dragonchain",
         .unit = "DRGN",
         .contract_address =
@@ -1230,7 +1084,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dropil",
         .unit = "DROP",
         .contract_address =
@@ -1238,7 +1091,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DATA",
         .unit = "DTA",
         .contract_address =
@@ -1246,7 +1098,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dynamic Trading Rights",
         .unit = "DTR",
         .contract_address =
@@ -1254,7 +1105,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dusk Network",
         .unit = "DUSK",
         .contract_address =
@@ -1262,7 +1112,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DxChain Token",
         .unit = "DX",
         .contract_address =
@@ -1270,7 +1119,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EURBASE",
         .unit = "EBASE",
         .contract_address =
@@ -1278,7 +1126,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ecoreal Estate",
         .unit = "ECOREAL",
         .contract_address =
@@ -1286,7 +1133,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Eden",
         .unit = "EDN",
         .contract_address =
@@ -1294,7 +1140,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Eidoo",
         .unit = "EDO",
         .contract_address =
@@ -1302,7 +1147,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Endor Protocol",
         .unit = "EDR",
         .contract_address =
@@ -1310,7 +1154,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Egretia",
         .unit = "EGT",
         .contract_address =
@@ -1318,7 +1161,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EDUCare",
         .unit = "EKT",
         .contract_address =
@@ -1326,7 +1168,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ELA Coin",
         .unit = "ELAC",
         .contract_address =
@@ -1334,7 +1175,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "aelf",
         .unit = "ELF",
         .contract_address =
@@ -1342,7 +1182,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Eminer",
         .unit = "EM",
         .contract_address =
@@ -1350,7 +1189,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Emirex Token",
         .unit = "EMRX",
         .contract_address =
@@ -1358,7 +1196,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Enigma",
         .unit = "ENG",
         .contract_address =
@@ -1366,7 +1203,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Enjin Coin",
         .unit = "ENJ",
         .contract_address =
@@ -1374,7 +1210,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dimension Chain",
         .unit = "EON",
         .contract_address =
@@ -1382,7 +1217,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "eosDAC",
         .unit = "EOSDAC",
         .contract_address =
@@ -1390,7 +1224,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ERC20",
         .unit = "ERC20",
         .contract_address =
@@ -1398,7 +1231,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Elitium",
         .unit = "EUM",
         .contract_address =
@@ -1406,7 +1238,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "STASIS EURO",
         .unit = "EURS",
         .contract_address =
@@ -1414,7 +1245,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Envion",
         .unit = "EVN",
         .contract_address =
@@ -1422,7 +1252,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Everus",
         .unit = "EVR",
         .contract_address =
@@ -1430,7 +1259,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Everex",
         .unit = "EVX",
         .contract_address =
@@ -1438,7 +1266,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EveryCoin ",
         .unit = "EVY",
         .contract_address =
@@ -1446,7 +1273,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 12,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EXMR FDN",
         .unit = "EXMR",
         .contract_address =
@@ -1454,7 +1280,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FABRK",
         .unit = "FAB",
         .contract_address =
@@ -1462,7 +1287,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Fatcoin",
         .unit = "FAT",
         .contract_address =
@@ -1470,7 +1294,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Fetch.ai",
         .unit = "FET",
         .contract_address =
@@ -1478,7 +1301,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Flowchain",
         .unit = "FLC",
         .contract_address =
@@ -1486,7 +1308,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FLETA",
         .unit = "FLETA",
         .contract_address =
@@ -1494,7 +1315,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Folgory Coin",
         .unit = "FLG",
         .contract_address =
@@ -1502,7 +1322,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FNB Protocol",
         .unit = "FNB",
         .contract_address =
@@ -1510,7 +1329,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FOAM",
         .unit = "FOAM",
         .contract_address =
@@ -1518,7 +1336,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "The Force Protocol",
         .unit = "FOR",
         .contract_address =
@@ -1526,7 +1343,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Fusion",
         .unit = "FSN",
         .contract_address =
@@ -1534,7 +1350,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "1irstcoin",
         .unit = "FST",
         .contract_address =
@@ -1542,7 +1357,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Fantom",
         .unit = "FTM",
         .contract_address =
@@ -1550,7 +1364,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FTX Token",
         .unit = "FTT",
         .contract_address =
@@ -1558,7 +1371,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Etherparty",
         .unit = "FUEL",
         .contract_address =
@@ -1566,7 +1378,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FunFair",
         .unit = "FUN",
         .contract_address =
@@ -1574,7 +1385,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Function X",
         .unit = "FX",
         .contract_address =
@@ -1582,7 +1392,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Flexacoin",
         .unit = "FXC",
         .contract_address =
@@ -1590,7 +1399,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GAPS",
         .unit = "GAP",
         .contract_address =
@@ -1598,7 +1406,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Hashgard",
         .unit = "GARD",
         .contract_address =
@@ -1606,7 +1413,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Gold Bits Coin",
         .unit = "GBC",
         .contract_address =
@@ -1614,7 +1420,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 10,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Global Digital Content",
         .unit = "GDC",
         .contract_address =
@@ -1622,7 +1427,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DAOstack",
         .unit = "GEN",
         .contract_address =
@@ -1630,7 +1434,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GET Protocol",
         .unit = "GET",
         .contract_address =
@@ -1638,7 +1441,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GoWithMi",
         .unit = "GMAT",
         .contract_address =
@@ -1646,7 +1448,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GMB",
         .unit = "GMB",
         .contract_address =
@@ -1654,7 +1455,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Gnosis",
         .unit = "GNO",
         .contract_address =
@@ -1662,7 +1462,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Golem",
         .unit = "GNT",
         .contract_address =
@@ -1670,7 +1469,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Genaro Network",
         .unit = "GNX",
         .contract_address =
@@ -1678,7 +1476,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GNY",
         .unit = "GNY",
         .contract_address =
@@ -1686,7 +1483,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ParkinGo",
         .unit = "GOT",
         .contract_address =
@@ -1694,7 +1490,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Grid+",
         .unit = "GRID",
         .contract_address =
@@ -1702,7 +1497,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 12,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Global Social Chain",
         .unit = "GSC",
         .contract_address =
@@ -1710,7 +1504,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Gatechain Token",
         .unit = "GT",
         .contract_address =
@@ -1718,7 +1511,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Game.com",
         .unit = "GTC",
         .contract_address =
@@ -1726,7 +1518,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Gifto",
         .unit = "GTO",
         .contract_address =
@@ -1734,7 +1525,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 5,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Gemini Dollar",
         .unit = "GUSD",
         .contract_address =
@@ -1742,7 +1532,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Genesis Vision",
         .unit = "GVT",
         .contract_address =
@@ -1750,7 +1539,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Hubii Network",
         .unit = "HBT",
         .contract_address =
@@ -1758,7 +1546,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 15,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HedgeTrade",
         .unit = "HEDG",
         .contract_address =
@@ -1766,7 +1553,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Esportbits",
         .unit = "HLT",
         .contract_address =
@@ -1774,7 +1560,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Hi Mutual Society",
         .unit = "HMC",
         .contract_address =
@@ -1782,7 +1567,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Humaniq",
         .unit = "HMQ",
         .contract_address =
@@ -1790,7 +1574,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Holo",
         .unit = "HOT",
         .contract_address =
@@ -1798,7 +1581,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Hydro Protocol",
         .unit = "HOT",
         .contract_address =
@@ -1806,7 +1588,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Huobi Pool Token",
         .unit = "HPT",
         .contract_address =
@@ -1814,7 +1595,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Huobi Token",
         .unit = "HT",
         .contract_address =
@@ -1822,7 +1602,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Humanscape",
         .unit = "HUM",
         .contract_address =
@@ -1830,7 +1609,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Hxro",
         .unit = "HXRO",
         .contract_address =
@@ -1838,7 +1616,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Hydro",
         .unit = "HYDRO",
         .contract_address =
@@ -1846,7 +1623,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Hyperion",
         .unit = "HYN",
         .contract_address =
@@ -1854,7 +1630,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IDEX",
         .unit = "IDEX",
         .contract_address =
@@ -1862,7 +1637,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "indaHash",
         .unit = "IDH",
         .contract_address =
@@ -1870,7 +1644,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Invictus Hyperion Fund",
         .unit = "IHF",
         .contract_address =
@@ -1878,7 +1651,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IHT Real Estate Protocol",
         .unit = "IHT",
         .contract_address =
@@ -1886,7 +1658,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "INLOCK",
         .unit = "ILK",
         .contract_address =
@@ -1894,7 +1665,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Insight Chain",
         .unit = "INB",
         .contract_address =
@@ -1902,7 +1672,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IntelliShare",
         .unit = "INE",
         .contract_address =
@@ -1910,7 +1679,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "INO COIN",
         .unit = "INO",
         .contract_address =
@@ -1918,7 +1686,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Insolar",
         .unit = "INS",
         .contract_address =
@@ -1926,7 +1693,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 10,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Insights Network",
         .unit = "INSTAR",
         .contract_address =
@@ -1934,7 +1700,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IoTeX",
         .unit = "IOTX",
         .contract_address =
@@ -1942,7 +1707,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IQeon",
         .unit = "IQN",
         .contract_address =
@@ -1950,7 +1714,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IoT Chain",
         .unit = "ITC",
         .contract_address =
@@ -1958,7 +1721,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ivy",
         .unit = "IVY",
         .contract_address =
@@ -1966,7 +1728,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Jibrel Network",
         .unit = "JNT",
         .contract_address =
@@ -1974,7 +1735,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Jewel",
         .unit = "JWL",
         .contract_address =
@@ -1982,7 +1742,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitKan",
         .unit = "KAN",
         .contract_address =
@@ -1990,7 +1749,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Karatgold Coin",
         .unit = "KBC",
         .contract_address =
@@ -1998,7 +1756,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 7,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Kcash",
         .unit = "KCASH",
         .contract_address =
@@ -2006,7 +1763,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "KuCoin Shares",
         .unit = "KCS",
         .contract_address =
@@ -2014,7 +1770,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Selfkey",
         .unit = "KEY",
         .contract_address =
@@ -2022,7 +1777,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "KickToken",
         .unit = "KICK",
         .contract_address =
@@ -2030,7 +1784,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Kyber Network",
         .unit = "KNC",
         .contract_address =
@@ -2038,7 +1791,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Krios",
         .unit = "KRI",
         .contract_address =
@@ -2046,7 +1798,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Kryll",
         .unit = "KRL",
         .contract_address =
@@ -2054,7 +1805,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Kuai Token",
         .unit = "KT",
         .contract_address =
@@ -2062,7 +1812,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LATOKEN",
         .unit = "LA",
         .contract_address =
@@ -2070,7 +1819,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Lambda",
         .unit = "LAMB",
         .contract_address =
@@ -2078,7 +1826,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cred",
         .unit = "LBA",
         .contract_address =
@@ -2086,7 +1833,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Aave",
         .unit = "LEND",
         .contract_address =
@@ -2094,7 +1840,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "UNUS SED LEO",
         .unit = "LEO",
         .contract_address =
@@ -2102,7 +1847,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LinkEye",
         .unit = "LET",
         .contract_address =
@@ -2110,7 +1854,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Leverj",
         .unit = "LEV",
         .contract_address =
@@ -2118,7 +1861,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Levolution",
         .unit = "LEVL",
         .contract_address =
@@ -2126,7 +1868,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Winding Tree",
         .unit = "LIF",
         .contract_address =
@@ -2134,7 +1875,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LIFE",
         .unit = "LIFE",
         .contract_address =
@@ -2142,7 +1882,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LikeCoin",
         .unit = "LIKE",
         .contract_address =
@@ -2150,7 +1889,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LINA",
         .unit = "LINA",
         .contract_address =
@@ -2158,7 +1896,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Chainlink",
         .unit = "LINK",
         .contract_address =
@@ -2166,7 +1903,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LINKA",
         .unit = "LINKA",
         .contract_address =
@@ -2174,7 +1910,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Linkey",
         .unit = "LKY",
         .contract_address =
@@ -2182,7 +1917,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Lendingblock",
         .unit = "LND",
         .contract_address =
@@ -2190,7 +1924,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LockTrip",
         .unit = "LOC",
         .contract_address =
@@ -2198,7 +1931,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Locus Chain",
         .unit = "LOCUS",
         .contract_address =
@@ -2206,7 +1938,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Loom Network",
         .unit = "LOOM",
         .contract_address =
@@ -2214,7 +1945,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Loopring",
         .unit = "LRC",
         .contract_address =
@@ -2222,7 +1952,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LuckySevenToken",
         .unit = "LST",
         .contract_address =
@@ -2230,7 +1959,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LTO Network",
         .unit = "LTO",
         .contract_address =
@@ -2238,7 +1966,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Lunyr",
         .unit = "LUN",
         .contract_address =
@@ -2246,7 +1973,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Litex",
         .unit = "LXT",
         .contract_address =
@@ -2254,7 +1980,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Lympo",
         .unit = "LYM",
         .contract_address =
@@ -2262,7 +1987,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Decentraland",
         .unit = "MANA",
         .contract_address =
@@ -2270,7 +1994,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Matic Network",
         .unit = "MATIC",
         .contract_address =
@@ -2278,7 +2001,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MineBee",
         .unit = "MB",
         .contract_address =
@@ -2286,7 +2008,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MovieBloc",
         .unit = "MBL",
         .contract_address =
@@ -2294,7 +2015,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MCO",
         .unit = "MCO",
         .contract_address =
@@ -2302,7 +2022,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Moeda Loyalty Points",
         .unit = "MDA",
         .contract_address =
@@ -2310,7 +2029,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MediShares",
         .unit = "MDS",
         .contract_address =
@@ -2318,7 +2036,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Measurable Data Token",
         .unit = "MDT",
         .contract_address =
@@ -2326,7 +2043,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MediBloc [ERC20]",
         .unit = "MEDX",
         .contract_address =
@@ -2334,7 +2050,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Metronome",
         .unit = "MET",
         .contract_address =
@@ -2342,7 +2057,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MEXC Token",
         .unit = "MEXC",
         .contract_address =
@@ -2350,7 +2064,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Mainframe",
         .unit = "MFT",
         .contract_address =
@@ -2358,7 +2071,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MargiX",
         .unit = "MGX",
         .contract_address =
@@ -2366,7 +2078,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MINDOL",
         .unit = "MIN",
         .contract_address =
@@ -2374,7 +2085,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Mithril",
         .unit = "MITH",
         .contract_address =
@@ -2382,7 +2092,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Morpheus Labs",
         .unit = "MITX",
         .contract_address =
@@ -2390,7 +2099,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Maker",
         .unit = "MKR",
         .contract_address =
@@ -2398,7 +2106,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Melon",
         .unit = "MLN",
         .contract_address =
@@ -2406,7 +2113,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Moss Coin",
         .unit = "MOC",
         .contract_address =
@@ -2414,7 +2120,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Molecular Future",
         .unit = "MOF",
         .contract_address =
@@ -2422,7 +2127,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 16,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MenaPay",
         .unit = "MPAY",
         .contract_address =
@@ -2430,7 +2134,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Morpheus.Network",
         .unit = "MRPH",
         .contract_address =
@@ -2438,7 +2141,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "doc.com Token",
         .unit = "MTC",
         .contract_address =
@@ -2446,7 +2148,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Monetha",
         .unit = "MTH",
         .contract_address =
@@ -2454,7 +2155,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 5,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Metal",
         .unit = "MTL",
         .contract_address =
@@ -2462,7 +2162,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MVL",
         .unit = "MVL",
         .contract_address =
@@ -2470,7 +2169,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Restart Energy MWAT",
         .unit = "MWAT",
         .contract_address =
@@ -2478,7 +2176,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MX Token",
         .unit = "MX",
         .contract_address =
@@ -2486,7 +2183,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Machine Xchange Coin",
         .unit = "MXC",
         .contract_address =
@@ -2494,7 +2190,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Maximine Coin",
         .unit = "MXM",
         .contract_address =
@@ -2502,7 +2197,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "NeoWorld Cash",
         .unit = "NASH",
         .contract_address =
@@ -2510,7 +2204,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Niobium Coin",
         .unit = "NBC",
         .contract_address =
@@ -2518,7 +2211,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Nucleus Vision",
         .unit = "NCASH",
         .contract_address =
@@ -2526,7 +2218,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PolySwarm",
         .unit = "NCT",
         .contract_address =
@@ -2534,7 +2225,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Nectar",
         .unit = "NEC",
         .contract_address =
@@ -2542,7 +2232,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "NEXT",
         .unit = "NET",
         .contract_address =
@@ -2550,7 +2239,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Neumark",
         .unit = "NEU",
         .contract_address =
@@ -2558,7 +2246,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Nexo",
         .unit = "NEXO",
         .contract_address =
@@ -2566,7 +2253,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "NAGA",
         .unit = "NGC",
         .contract_address =
@@ -2574,7 +2260,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Numeraire",
         .unit = "NMR",
         .contract_address =
@@ -2582,7 +2267,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Noah Coin",
         .unit = "NOAH",
         .contract_address =
@@ -2590,7 +2274,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "NaPoleonX",
         .unit = "NPX",
         .contract_address =
@@ -2598,7 +2281,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Pundi X",
         .unit = "NPXS",
         .contract_address =
@@ -2606,7 +2288,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "OAX",
         .unit = "OAX",
         .contract_address =
@@ -2614,7 +2295,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ocean Protocol",
         .unit = "OCEAN",
         .contract_address =
@@ -2622,7 +2302,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Odyssey",
         .unit = "OCN",
         .contract_address =
@@ -2630,7 +2309,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ODEM",
         .unit = "ODE",
         .contract_address =
@@ -2638,7 +2316,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Origo",
         .unit = "OGO",
         .contract_address =
@@ -2646,7 +2323,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "OKB",
         .unit = "OKB",
         .contract_address =
@@ -2654,7 +2330,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "OneLedger",
         .unit = "OLT",
         .contract_address =
@@ -2662,7 +2337,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "OmiseGO",
         .unit = "OMG",
         .contract_address =
@@ -2670,7 +2344,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BigONE Token",
         .unit = "ONE",
         .contract_address =
@@ -2678,7 +2351,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Opacity",
         .unit = "OPQ",
         .contract_address =
@@ -2686,7 +2358,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Orbs",
         .unit = "ORBS",
         .contract_address =
@@ -2694,7 +2365,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Origin Sport",
         .unit = "ORS",
         .contract_address =
@@ -2702,7 +2372,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "OST",
         .unit = "OST",
         .contract_address =
@@ -2710,7 +2379,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "OVCODE",
         .unit = "OVC",
         .contract_address =
@@ -2718,7 +2386,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Paxos Standard",
         .unit = "PAX",
         .contract_address =
@@ -2726,7 +2393,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PAX Gold",
         .unit = "PAXG",
         .contract_address =
@@ -2734,7 +2400,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TenX",
         .unit = "PAY",
         .contract_address =
@@ -2742,7 +2407,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Paypex",
         .unit = "PAYX",
         .contract_address =
@@ -2750,7 +2414,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Peculium",
         .unit = "PCL",
         .contract_address =
@@ -2758,7 +2421,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Perlin",
         .unit = "PERL",
         .contract_address =
@@ -2766,7 +2428,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PCHAIN",
         .unit = "PI",
         .contract_address =
@@ -2774,7 +2435,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PlayChip",
         .unit = "PLA",
         .contract_address =
@@ -2782,7 +2442,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PLANET",
         .unit = "PLA",
         .contract_address =
@@ -2790,7 +2449,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Polybius",
         .unit = "PLBT",
         .contract_address =
@@ -2798,7 +2456,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Pillar",
         .unit = "PLR",
         .contract_address =
@@ -2806,7 +2463,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Pluton",
         .unit = "PLU",
         .contract_address =
@@ -2814,7 +2470,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PlayCoin [ERC20]",
         .unit = "PLY",
         .contract_address =
@@ -2822,7 +2477,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PumaPay",
         .unit = "PMA",
         .contract_address =
@@ -2830,7 +2484,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Kleros",
         .unit = "PNK",
         .contract_address =
@@ -2838,7 +2491,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Penta",
         .unit = "PNT",
         .contract_address =
@@ -2846,7 +2498,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Po.et",
         .unit = "POE",
         .contract_address =
@@ -2854,7 +2505,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Polymath",
         .unit = "POLY",
         .contract_address =
@@ -2862,7 +2512,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Power Ledger",
         .unit = "POWR",
         .contract_address =
@@ -2870,7 +2519,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PayPie",
         .unit = "PPP",
         .contract_address =
@@ -2878,7 +2526,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Populous",
         .unit = "PPT",
         .contract_address =
@@ -2886,7 +2533,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ProChain",
         .unit = "PRA",
         .contract_address =
@@ -2894,7 +2540,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Presearch",
         .unit = "PRE",
         .contract_address =
@@ -2902,7 +2547,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Propy",
         .unit = "PRO",
         .contract_address =
@@ -2910,7 +2554,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Prometeus",
         .unit = "PROM",
         .contract_address =
@@ -2918,7 +2561,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PressOne",
         .unit = "PRS",
         .contract_address =
@@ -2926,7 +2568,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Pivot Token",
         .unit = "PVT",
         .contract_address =
@@ -2934,7 +2575,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "QASH",
         .unit = "QASH",
         .contract_address =
@@ -2942,7 +2582,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Qubitica",
         .unit = "QBIT",
         .contract_address =
@@ -2950,7 +2589,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "QuickX Protocol",
         .unit = "QCX",
         .contract_address =
@@ -2958,7 +2596,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "QuarkChain",
         .unit = "QKC",
         .contract_address =
@@ -2966,7 +2603,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Quant",
         .unit = "QNT",
         .contract_address =
@@ -2974,7 +2610,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Quanta Utility Token",
         .unit = "QNTU",
         .contract_address =
@@ -2982,7 +2617,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Poseidon Network",
         .unit = "QQQ",
         .contract_address =
@@ -2990,7 +2624,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Quantstamp",
         .unit = "QSP",
         .contract_address =
@@ -2998,7 +2631,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "QunQun",
         .unit = "QUN",
         .contract_address =
@@ -3006,7 +2638,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Revain",
         .unit = "R",
         .contract_address =
@@ -3014,7 +2645,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Rublix",
         .unit = "RBLX",
         .contract_address =
@@ -3022,7 +2652,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ripio Credit Network",
         .unit = "RCN",
         .contract_address =
@@ -3030,7 +2659,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Raiden Network Token",
         .unit = "RDN",
         .contract_address =
@@ -3038,7 +2666,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Remme",
         .unit = "REM",
         .contract_address =
@@ -3046,7 +2673,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ren",
         .unit = "REN",
         .contract_address =
@@ -3054,7 +2680,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Augur",
         .unit = "REP",
         .contract_address =
@@ -3062,7 +2687,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Request",
         .unit = "REQ",
         .contract_address =
@@ -3070,7 +2694,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "RealTract",
         .unit = "RET",
         .contract_address =
@@ -3078,7 +2701,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Refereum",
         .unit = "RFR",
         .contract_address =
@@ -3086,7 +2708,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "RChain",
         .unit = "RHOC",
         .contract_address =
@@ -3094,7 +2715,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "iExec RLC",
         .unit = "RLC",
         .contract_address =
@@ -3102,7 +2722,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "OneRoot Network",
         .unit = "RNT",
         .contract_address =
@@ -3110,7 +2729,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ROOBEE",
         .unit = "ROOBEE",
         .contract_address =
@@ -3118,7 +2736,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Robotina",
         .unit = "ROX",
         .contract_address =
@@ -3126,7 +2743,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Rocket Pool",
         .unit = "RPL",
         .contract_address =
@@ -3134,7 +2750,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Reserve Rights",
         .unit = "RSR",
         .contract_address =
@@ -3142,7 +2757,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Rotharium",
         .unit = "RTH",
         .contract_address =
@@ -3150,7 +2764,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ruff",
         .unit = "RUFF",
         .contract_address =
@@ -3158,7 +2771,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "S4FE",
         .unit = "S4F",
         .contract_address =
@@ -3166,7 +2778,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Single Collateral DAI ",
         .unit = "SAI",
         .contract_address =
@@ -3174,7 +2785,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SALT",
         .unit = "SALT",
         .contract_address =
@@ -3182,7 +2792,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Santiment Network Token",
         .unit = "SAN",
         .contract_address =
@@ -3190,7 +2799,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sealchain",
         .unit = "SEAL",
         .contract_address =
@@ -3198,7 +2806,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Seele",
         .unit = "SEELE",
         .contract_address =
@@ -3206,7 +2813,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sentinel",
         .unit = "SENT",
         .contract_address =
@@ -3214,7 +2820,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Skrumble Network",
         .unit = "SKM",
         .contract_address =
@@ -3222,7 +2827,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Silverway",
         .unit = "SLV",
         .contract_address =
@@ -3230,7 +2834,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SmartMesh",
         .unit = "SMT",
         .contract_address =
@@ -3238,7 +2841,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SunContract",
         .unit = "SNC",
         .contract_address =
@@ -3246,7 +2848,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Snetwork",
         .unit = "SNET",
         .contract_address =
@@ -3254,7 +2855,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SingularDTV",
         .unit = "SNGLS",
         .contract_address =
@@ -3262,7 +2862,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sport and Leisure",
         .unit = "SNL",
         .contract_address =
@@ -3270,7 +2869,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SONM",
         .unit = "SNM",
         .contract_address =
@@ -3278,7 +2876,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Status",
         .unit = "SNT",
         .contract_address =
@@ -3286,7 +2883,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sentivate",
         .unit = "SNTVT",
         .contract_address =
@@ -3294,7 +2890,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Synthetix Network Token",
         .unit = "SNX",
         .contract_address =
@@ -3302,7 +2897,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "All Sports",
         .unit = "SOC",
         .contract_address =
@@ -3310,7 +2904,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SOLVE",
         .unit = "SOLVE",
         .contract_address =
@@ -3318,7 +2911,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SIRIN LABS Token",
         .unit = "SRN",
         .contract_address =
@@ -3326,7 +2918,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "STACS",
         .unit = "STACS",
         .contract_address =
@@ -3334,7 +2925,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Storj",
         .unit = "STORJ",
         .contract_address =
@@ -3342,7 +2932,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Storm",
         .unit = "STORM",
         .contract_address =
@@ -3350,7 +2939,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "STPT",
         .unit = "STPT",
         .contract_address =
@@ -3358,7 +2946,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Substratum",
         .unit = "SUB",
         .contract_address =
@@ -3366,7 +2953,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "sUSD",
         .unit = "SUSD",
         .contract_address =
@@ -3374,7 +2960,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Swace",
         .unit = "SWACE",
         .contract_address =
@@ -3382,7 +2967,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SwftCoin",
         .unit = "SWFTC",
         .contract_address =
@@ -3390,7 +2974,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Swarm",
         .unit = "SWM",
         .contract_address =
@@ -3398,7 +2981,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Spectre.ai Dividend Token",
         .unit = "SXDT",
         .contract_address =
@@ -3406,7 +2988,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Swipe",
         .unit = "SXP",
         .contract_address =
@@ -3414,7 +2995,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Spectre.ai Utility Token",
         .unit = "SXUT",
         .contract_address =
@@ -3422,7 +3002,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TaaS",
         .unit = "TAAS",
         .contract_address =
@@ -3430,7 +3009,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Traceability Chain",
         .unit = "TAC",
         .contract_address =
@@ -3438,7 +3016,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TAGZ5",
         .unit = "TAGZ5",
         .contract_address =
@@ -3446,7 +3023,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Lamden",
         .unit = "TAU",
         .contract_address =
@@ -3454,7 +3030,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TokenClub",
         .unit = "TCT",
         .contract_address =
@@ -3462,7 +3037,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Telcoin",
         .unit = "TEL",
         .contract_address =
@@ -3470,7 +3044,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TEMCO",
         .unit = "TEMCO",
         .contract_address =
@@ -3478,7 +3051,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tokenomy",
         .unit = "TEN",
         .contract_address =
@@ -3486,7 +3058,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TE-FOOD",
         .unit = "TFD",
         .contract_address =
@@ -3494,7 +3065,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TrueFlip",
         .unit = "TFL",
         .contract_address =
@@ -3502,7 +3072,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ThoreCoin",
         .unit = "THR",
         .contract_address =
@@ -3510,7 +3079,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ThoreNext",
         .unit = "THX",
         .contract_address =
@@ -3518,7 +3086,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Trade Token X",
         .unit = "TIOX",
         .contract_address =
@@ -3526,7 +3093,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Monolith",
         .unit = "TKN",
         .contract_address =
@@ -3534,7 +3100,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Time New Bank",
         .unit = "TNB",
         .contract_address =
@@ -3542,7 +3107,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tierion",
         .unit = "TNT",
         .contract_address =
@@ -3550,7 +3114,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TOP",
         .unit = "TOP",
         .contract_address =
@@ -3558,7 +3121,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "T.OS",
         .unit = "TOSC",
         .contract_address =
@@ -3566,7 +3128,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "OriginTrail",
         .unit = "TRAC",
         .contract_address =
@@ -3574,7 +3135,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tratin",
         .unit = "TRAT",
         .contract_address =
@@ -3582,7 +3142,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tellor",
         .unit = "TRB",
         .contract_address =
@@ -3590,7 +3149,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tripio",
         .unit = "TRIO",
         .contract_address =
@@ -3598,7 +3156,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TrustVerse",
         .unit = "TRV",
         .contract_address =
@@ -3606,7 +3163,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TrueUSD",
         .unit = "TUSD",
         .contract_address =
@@ -3614,7 +3170,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ubex",
         .unit = "UBEX",
         .contract_address =
@@ -3622,7 +3177,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Unibright",
         .unit = "UBT",
         .contract_address =
@@ -3630,7 +3184,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "UNIVERSAL CASH",
         .unit = "UCASH",
         .contract_address =
@@ -3638,7 +3191,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "UGAS",
         .unit = "UGAS",
         .contract_address =
@@ -3646,7 +3198,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "UnlimitedIP",
         .unit = "UIP",
         .contract_address =
@@ -3654,7 +3205,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Unikoin Gold",
         .unit = "UKG",
         .contract_address =
@@ -3662,7 +3212,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ultiledger",
         .unit = "ULT",
         .contract_address =
@@ -3670,7 +3219,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "UNI COIN",
         .unit = "UNI",
         .contract_address =
@@ -3678,7 +3226,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ultra",
         .unit = "UOS",
         .contract_address =
@@ -3686,7 +3233,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sentinel Protocol",
         .unit = "UPP",
         .contract_address =
@@ -3694,7 +3240,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Uquid Coin",
         .unit = "UQC",
         .contract_address =
@@ -3702,7 +3247,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "USD Coin",
         .unit = "USDC",
         .contract_address =
@@ -3710,7 +3254,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "USDK",
         .unit = "USDK",
         .contract_address =
@@ -3718,7 +3261,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "USDQ",
         .unit = "USDQ",
         .contract_address =
@@ -3726,7 +3268,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tether USD",
         .unit = "USDT",
         .contract_address =
@@ -3734,7 +3275,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Utrust",
         .unit = "UTK",
         .contract_address =
@@ -3742,7 +3282,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Universa",
         .unit = "UTNP",
         .contract_address =
@@ -3750,7 +3289,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "United Traders Token",
         .unit = "UTT",
         .contract_address =
@@ -3758,7 +3296,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "U Network",
         .unit = "UUU",
         .contract_address =
@@ -3766,7 +3303,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Valor Token",
         .unit = "VALOR",
         .contract_address =
@@ -3774,7 +3310,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "VeriDocGlobal",
         .unit = "VDG",
         .contract_address =
@@ -3782,7 +3317,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BLOCKv",
         .unit = "VEE",
         .contract_address =
@@ -3790,7 +3324,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Veritaseum",
         .unit = "VERI",
         .contract_address =
@@ -3798,7 +3331,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "VestChain",
         .unit = "VEST",
         .contract_address =
@@ -3806,7 +3338,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Voyager Token",
         .unit = "VGX",
         .contract_address =
@@ -3814,7 +3345,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Viberate",
         .unit = "VIB",
         .contract_address =
@@ -3822,7 +3352,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "VIBE",
         .unit = "VIBE",
         .contract_address =
@@ -3830,7 +3359,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "VideoCoin",
         .unit = "VID",
         .contract_address =
@@ -3838,7 +3366,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "V-ID",
         .unit = "VIDT",
         .contract_address =
@@ -3846,7 +3373,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "VIDY",
         .unit = "VIDY",
         .contract_address =
@@ -3854,7 +3380,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "VNDC",
         .unit = "VNDC",
         .contract_address =
@@ -3862,7 +3387,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "VNT Chain",
         .unit = "VNT",
         .contract_address =
@@ -3870,7 +3394,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tael",
         .unit = "WABI",
         .contract_address =
@@ -3878,7 +3401,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Wrapped Bitcoin",
         .unit = "WBTC",
         .contract_address =
@@ -3886,7 +3408,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Winco",
         .unit = "WCO",
         .contract_address =
@@ -3894,7 +3415,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Wings",
         .unit = "WINGS",
         .contract_address =
@@ -3902,7 +3422,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Wixlar",
         .unit = "WIX",
         .contract_address =
@@ -3910,7 +3429,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "WePower",
         .unit = "WPR",
         .contract_address =
@@ -3918,7 +3436,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Waltonchain",
         .unit = "WTC",
         .contract_address =
@@ -3926,7 +3443,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "General Attention Currency",
         .unit = "XAC",
         .contract_address =
@@ -3934,7 +3450,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Xaurum",
         .unit = "XAUR",
         .contract_address =
@@ -3942,7 +3457,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CryptoFranc",
         .unit = "XCHF",
         .contract_address =
@@ -3950,7 +3464,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DigitalBits",
         .unit = "XDB",
         .contract_address =
@@ -3958,7 +3471,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 7,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "XinFin Network",
         .unit = "XDCE",
         .contract_address =
@@ -3966,7 +3478,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ETERNAL TOKEN",
         .unit = "XET",
         .contract_address =
@@ -3974,7 +3485,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Mixin",
         .unit = "XIN",
         .contract_address =
@@ -3982,7 +3492,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "XcelToken Plus",
         .unit = "XLAB",
         .contract_address =
@@ -3990,7 +3499,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "XMax",
         .unit = "XMX",
         .contract_address =
@@ -3998,7 +3506,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Xensor",
         .unit = "XSR",
         .contract_address =
@@ -4006,7 +3513,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "XYO",
         .unit = "XYO",
         .contract_address =
@@ -4014,7 +3520,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "YEE",
         .unit = "YEE",
         .contract_address =
@@ -4022,7 +3527,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "YGGDRASH",
         .unit = "YEED",
         .contract_address =
@@ -4030,7 +3534,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "YOU COIN",
         .unit = "YOU",
         .contract_address =
@@ -4038,7 +3541,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ZB Token",
         .unit = "ZB",
         .contract_address =
@@ -4046,7 +3548,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ZEON",
         .unit = "ZEON",
         .contract_address =
@@ -4054,7 +3555,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Zipper",
         .unit = "ZIP",
         .contract_address =
@@ -4062,7 +3562,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "0x",
         .unit = "ZRX",
         .contract_address =
@@ -4070,7 +3569,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ZTCoin",
         .unit = "ZT",
         .contract_address =
@@ -4078,7 +3576,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "0xBitcoin",
         .unit = "0xBTC",
         .contract_address =
@@ -4086,7 +3583,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "1irstGold",
         .unit = "1GOLD",
         .contract_address =
@@ -4094,7 +3590,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "1Million Token",
         .unit = "1MT",
         .contract_address =
@@ -4102,7 +3597,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 7,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Uptrennd",
         .unit = "1UP",
         .contract_address =
@@ -4110,7 +3604,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "2key.network",
         .unit = "2KEY",
         .contract_address =
@@ -4118,7 +3611,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Crypto Cricket Club",
         .unit = "3Cs",
         .contract_address =
@@ -4126,7 +3618,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "4ART Coin",
         .unit = "4ART",
         .contract_address =
@@ -4134,7 +3625,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Alpha Token",
         .unit = "A",
         .contract_address =
@@ -4142,7 +3632,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Abulaba",
         .unit = "AAA",
         .contract_address =
@@ -4150,7 +3639,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AAX Token",
         .unit = "AAB",
         .contract_address =
@@ -4158,7 +3646,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Acute Angle Cloud",
         .unit = "AAC",
         .contract_address =
@@ -4166,7 +3653,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 5,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Abitshadow Token",
         .unit = "ABST",
         .contract_address =
@@ -4174,7 +3660,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Arbidex",
         .unit = "ABX",
         .contract_address =
@@ -4182,7 +3667,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Volt",
         .unit = "ACDC",
         .contract_address =
@@ -4190,7 +3674,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ACE (TokenStars)",
         .unit = "ACE",
         .contract_address =
@@ -4198,7 +3681,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AceD",
         .unit = "ACED",
         .contract_address =
@@ -4206,7 +3688,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Aitheon",
         .unit = "ACU",
         .contract_address =
@@ -4214,7 +3695,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Asian Dragon",
         .unit = "AD",
         .contract_address =
@@ -4222,7 +3702,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3X Short Cardano Token",
         .unit = "ADABEAR",
         .contract_address =
@@ -4230,7 +3709,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "adbank",
         .unit = "ADB",
         .contract_address =
@@ -4238,7 +3716,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AdHive",
         .unit = "ADH",
         .contract_address =
@@ -4246,7 +3723,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Adelphoi",
         .unit = "ADL",
         .contract_address =
@@ -4254,7 +3730,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AEN Smart Token",
         .unit = "AENS",
         .contract_address =
@@ -4262,7 +3737,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Agrolot",
         .unit = "AGLT",
         .contract_address =
@@ -4270,7 +3744,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AICON",
         .unit = "AICO",
         .contract_address =
@@ -4278,7 +3751,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AidCoin",
         .unit = "AID",
         .contract_address =
@@ -4286,7 +3758,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AIDUS TOKEN",
         .unit = "AIDUS",
         .contract_address =
@@ -4294,7 +3765,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AICHAIN",
         .unit = "AIT",
         .contract_address =
@@ -4302,7 +3772,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Aigang",
         .unit = "AIX",
         .contract_address =
@@ -4310,7 +3779,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Akropolis ",
         .unit = "AKRO",
         .contract_address =
@@ -4318,7 +3786,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Aludra Network",
         .unit = "ALD",
         .contract_address =
@@ -4326,7 +3793,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3X Short Algorand Token",
         .unit = "ALGOBEAR",
         .contract_address =
@@ -4334,7 +3800,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3X Long Algorand Token",
         .unit = "ALGOBULL",
         .contract_address =
@@ -4342,7 +3807,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AiLink Token",
         .unit = "ALI",
         .contract_address =
@@ -4350,7 +3814,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ALL BEST ICO",
         .unit = "ALLBI",
         .contract_address =
@@ -4358,7 +3821,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Alt.Estate token",
         .unit = "ALT",
         .contract_address =
@@ -4366,7 +3828,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ALLY",
         .unit = "ALY",
         .contract_address =
@@ -4374,7 +3835,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AMATEN",
         .unit = "AMA",
         .contract_address =
@@ -4382,7 +3842,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MicroMoney",
         .unit = "AMM",
         .contract_address =
@@ -4390,7 +3849,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Amon",
         .unit = "AMN",
         .contract_address =
@@ -4398,7 +3856,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AmonD",
         .unit = "AMON",
         .contract_address =
@@ -4406,7 +3863,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Aragon Court",
         .unit = "ANJ",
         .contract_address =
@@ -4414,7 +3870,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Anchor Neural World",
         .unit = "ANW",
         .contract_address =
@@ -4422,7 +3877,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "smARTOFGIVING",
         .unit = "AOG",
         .contract_address =
@@ -4430,7 +3884,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Alpha Coin",
         .unit = "APC",
         .contract_address =
@@ -4438,7 +3891,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "APIX",
         .unit = "APIX",
         .contract_address =
@@ -4446,7 +3898,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "apM Coin",
         .unit = "APM",
         .contract_address =
@@ -4454,7 +3905,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ARAW",
         .unit = "ARAW",
         .contract_address =
@@ -4462,7 +3912,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ArbitrageCT",
         .unit = "ARCT",
         .contract_address =
@@ -4470,7 +3919,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ArdCoin",
         .unit = "ARDX",
         .contract_address =
@@ -4478,7 +3926,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Maecenas",
         .unit = "ART",
         .contract_address =
@@ -4486,7 +3933,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Artis Turba",
         .unit = "ARTIS",
         .contract_address =
@@ -4494,7 +3940,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ARCS",
         .unit = "ARX",
         .contract_address =
@@ -4502,7 +3947,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Askobar Network",
         .unit = "ASKO",
         .contract_address =
@@ -4510,7 +3954,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ABCC Token",
         .unit = "AT",
         .contract_address =
@@ -4518,7 +3961,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ATMChain",
         .unit = "ATM",
         .contract_address =
@@ -4526,7 +3968,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Atonomi",
         .unit = "ATMI",
         .contract_address =
@@ -4534,7 +3975,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3X Long Cosmos Token",
         .unit = "ATOMBULL",
         .contract_address =
@@ -4542,7 +3982,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Authorship",
         .unit = "ATS",
         .contract_address =
@@ -4550,7 +3989,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Attila",
         .unit = "ATT",
         .contract_address =
@@ -4558,7 +3996,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Aston",
         .unit = "ATX",
         .contract_address =
@@ -4566,7 +4003,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Auctus",
         .unit = "AUC",
         .contract_address =
@@ -4574,7 +4010,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Afri Union Coin",
         .unit = "AUC",
         .contract_address =
@@ -4582,7 +4017,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Aquila Protocol",
         .unit = "AUX",
         .contract_address =
@@ -4590,7 +4024,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Aventus",
         .unit = "AVT",
         .contract_address =
@@ -4598,7 +4031,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Atomic Wallet Coin",
         .unit = "AWC",
         .contract_address =
@@ -4606,7 +4038,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Axial Entertainment Digital Asset",
         .unit = "AXL",
         .contract_address =
@@ -4614,7 +4045,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AXPR",
         .unit = "AXPR",
         .contract_address =
@@ -4622,7 +4052,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Azbit",
         .unit = "AZ",
         .contract_address =
@@ -4630,7 +4059,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Balancer",
         .unit = "BAL",
         .contract_address =
@@ -4638,7 +4066,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bali Coin",
         .unit = "BALI",
         .contract_address =
@@ -4646,7 +4073,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Banca",
         .unit = "BANCA",
         .contract_address =
@@ -4654,7 +4080,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BASIC",
         .unit = "BASIC",
         .contract_address =
@@ -4662,7 +4087,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Baz Token",
         .unit = "BAZT",
         .contract_address =
@@ -4670,7 +4094,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TraDove B2BCoin",
         .unit = "BBC",
         .contract_address =
@@ -4678,7 +4101,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blue Baikal",
         .unit = "BBC",
         .contract_address =
@@ -4686,7 +4108,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bigbom",
         .unit = "BBO",
         .contract_address =
@@ -4694,7 +4115,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Block-Chain.com",
         .unit = "BC",
         .contract_address =
@@ -4702,7 +4122,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Business Credit Alliance Chain",
         .unit = "BCAC",
         .contract_address =
@@ -4710,7 +4129,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blockchain Certified Data Token",
         .unit = "BCDT",
         .contract_address =
@@ -4718,7 +4136,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "bitCEO",
         .unit = "BCEO",
         .contract_address =
@@ -4726,7 +4143,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3x Short Bitcoin Cash Token",
         .unit = "BCHBEAR",
         .contract_address =
@@ -4734,7 +4150,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3x Long Bitcoin Cash Token",
         .unit = "BCHBULL",
         .contract_address =
@@ -4742,7 +4157,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitCherry",
         .unit = "BCHC",
         .contract_address =
@@ -4750,7 +4164,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bincentive",
         .unit = "BCNT",
         .contract_address =
@@ -4758,7 +4171,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Business Credit Substitute",
         .unit = "BCS",
         .contract_address =
@@ -4766,7 +4178,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BDCC COIN",
         .unit = "BDCC",
         .contract_address =
@@ -4774,7 +4185,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitDegree",
         .unit = "BDG",
         .contract_address =
@@ -4782,7 +4192,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bidesk",
         .unit = "BDK",
         .contract_address =
@@ -4790,7 +4199,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BEAT",
         .unit = "BEAT",
         .contract_address =
@@ -4798,7 +4206,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bee Token",
         .unit = "BEE",
         .contract_address =
@@ -4806,7 +4213,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BeeEx",
         .unit = "BEE",
         .contract_address =
@@ -4814,7 +4220,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bela",
         .unit = "BELA",
         .contract_address =
@@ -4822,7 +4227,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BetProtocol",
         .unit = "BEPRO",
         .contract_address =
@@ -4830,7 +4234,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Rentberry",
         .unit = "BERRY",
         .contract_address =
@@ -4838,7 +4241,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 14,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bitpanda Ecosystem Token",
         .unit = "BEST",
         .contract_address =
@@ -4846,7 +4248,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bethereum",
         .unit = "BETHER",
         .contract_address =
@@ -4854,7 +4255,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BetterBetting",
         .unit = "BETR",
         .contract_address =
@@ -4862,7 +4262,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bezop",
         .unit = "BEZ",
         .contract_address =
@@ -4870,7 +4269,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bitfex",
         .unit = "BFX",
         .contract_address =
@@ -4878,7 +4276,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BeeStore",
         .unit = "BHT",
         .contract_address =
@@ -4886,7 +4283,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 5,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bilaxy Token",
         .unit = "BIA",
         .contract_address =
@@ -4894,7 +4290,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BIKI",
         .unit = "BIKI",
         .contract_address =
@@ -4902,7 +4297,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Birdchain",
         .unit = "BIRD",
         .contract_address =
@@ -4910,7 +4304,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitRewards",
         .unit = "BIT",
         .contract_address =
@@ -4918,7 +4311,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bitcoinus",
         .unit = "BITS",
         .contract_address =
@@ -4926,7 +4318,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BITTO",
         .unit = "BITTO",
         .contract_address =
@@ -4934,7 +4325,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitScreener Token",
         .unit = "BITX",
         .contract_address =
@@ -4942,7 +4332,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BIZZCOIN",
         .unit = "BIZZ",
         .contract_address =
@@ -4950,7 +4339,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BeeKan",
         .unit = "BKBT",
         .contract_address =
@@ -4958,7 +4346,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BKEX Token",
         .unit = "BKK",
         .contract_address =
@@ -4966,7 +4353,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blockcloud",
         .unit = "BLOC",
         .contract_address =
@@ -4974,7 +4360,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blue Protocol",
         .unit = "BLUE",
         .contract_address =
@@ -4982,7 +4367,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BELIEVER",
         .unit = "BLVR",
         .contract_address =
@@ -4990,7 +4374,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Balloon-X",
         .unit = "BLX",
         .contract_address =
@@ -4998,7 +4381,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blocery",
         .unit = "BLY",
         .contract_address =
@@ -5006,7 +4388,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BlockMesh",
         .unit = "BMH",
         .contract_address =
@@ -5014,7 +4395,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bananatok",
         .unit = "BNA",
         .contract_address =
@@ -5022,7 +4402,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3X Short BNB Token",
         .unit = "BNBBEAR",
         .contract_address =
@@ -5030,7 +4409,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3X Long BNB Token",
         .unit = "BNBBULL",
         .contract_address =
@@ -5038,7 +4416,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bionic",
         .unit = "BNC",
         .contract_address =
@@ -5046,7 +4423,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BlockNoteX",
         .unit = "BNOX",
         .contract_address =
@@ -5054,7 +4430,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BenePit Protocol",
         .unit = "BNP",
         .contract_address =
@@ -5062,7 +4437,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BNS Token",
         .unit = "BNS",
         .contract_address =
@@ -5070,7 +4444,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bounty0x",
         .unit = "BNTY",
         .contract_address =
@@ -5078,7 +4451,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bancacy",
         .unit = "BNY",
         .contract_address =
@@ -5086,7 +4458,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bob's Repair",
         .unit = "BOB",
         .contract_address =
@@ -5094,7 +4465,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BOMB",
         .unit = "BOMB",
         .contract_address =
@@ -5102,7 +4472,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bonpay",
         .unit = "BON",
         .contract_address =
@@ -5110,7 +4479,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bone",
         .unit = "BONE",
         .contract_address =
@@ -5118,7 +4486,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bonk",
         .unit = "BONK",
         .contract_address =
@@ -5126,7 +4493,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BOOM",
         .unit = "BOOM",
         .contract_address =
@@ -5134,7 +4500,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bounce Token",
         .unit = "BOT",
         .contract_address =
@@ -5142,7 +4507,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BoutsPro",
         .unit = "BOUTS",
         .contract_address =
@@ -5150,7 +4514,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blockparty (BOXX Token)",
         .unit = "BOXX",
         .contract_address =
@@ -5158,7 +4521,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 15,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BlackPearl Token",
         .unit = "BPLC",
         .contract_address =
@@ -5166,7 +4528,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BPOP",
         .unit = "BPOP",
         .contract_address =
@@ -5174,7 +4535,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blockchain Quotations Index Token",
         .unit = "BQT",
         .contract_address =
@@ -5182,7 +4542,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BROTHER",
         .unit = "BRAT",
         .contract_address =
@@ -5190,7 +4549,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Brr",
         .unit = "BRR",
         .contract_address =
@@ -5198,7 +4556,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Brazilian Digital Token",
         .unit = "BRZ",
         .contract_address =
@@ -5206,7 +4563,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Braziliex Token",
         .unit = "BRZX",
         .contract_address =
@@ -5214,7 +4570,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bitsonic",
         .unit = "BSC",
         .contract_address =
@@ -5222,7 +4577,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitcoinSoV",
         .unit = "BSOV",
         .contract_address =
@@ -5230,7 +4584,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bitsten Token",
         .unit = "BST",
         .contract_address =
@@ -5238,7 +4591,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitStation",
         .unit = "BSTN",
         .contract_address =
@@ -5246,7 +4598,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3x Short Bitcoin SV Token",
         .unit = "BSVBEAR",
         .contract_address =
@@ -5254,7 +4605,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3x Long Bitcoin SV Token",
         .unit = "BSVBULL",
         .contract_address =
@@ -5262,7 +4612,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BSYS",
         .unit = "BSYS",
         .contract_address =
@@ -5270,7 +4619,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitBall",
         .unit = "BTB",
         .contract_address =
@@ -5278,7 +4626,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PieDAO BTC++",
         .unit = "BTC++",
         .contract_address =
@@ -5286,7 +4633,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Amun Bitcoin 3x Daily Long",
         .unit = "BTC3L",
         .contract_address =
@@ -5294,7 +4640,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Amun Bitcoin 3x Daily Short",
         .unit = "BTC3S",
         .contract_address =
@@ -5302,7 +4647,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bitcoin Fast",
         .unit = "BTCF",
         .contract_address =
@@ -5310,7 +4654,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BITCOINHEDGE",
         .unit = "BTCHG",
         .contract_address =
@@ -5318,7 +4661,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BTC Lite",
         .unit = "BTCL",
         .contract_address =
@@ -5326,7 +4668,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bitcoin Red",
         .unit = "BTCRED",
         .contract_address =
@@ -5334,7 +4675,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bitcoin True",
         .unit = "BTCT",
         .contract_address =
@@ -5342,7 +4682,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bitscoin",
         .unit = "BTCX",
         .contract_address =
@@ -5350,7 +4689,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitMax Token",
         .unit = "BTMX",
         .contract_address =
@@ -5358,7 +4696,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitNautic Token",
         .unit = "BTNT",
         .contract_address =
@@ -5366,7 +4703,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bitether",
         .unit = "BTR",
         .contract_address =
@@ -5374,7 +4710,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Biotron",
         .unit = "BTRN",
         .contract_address =
@@ -5382,7 +4717,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bitball Treasure",
         .unit = "BTRS",
         .contract_address =
@@ -5390,7 +4724,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BTS Coin",
         .unit = "BTSC",
         .contract_address =
@@ -5398,7 +4731,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Budbo",
         .unit = "BUBO",
         .contract_address =
@@ -5406,7 +4738,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DFOhub",
         .unit = "BUIDL",
         .contract_address =
@@ -5414,7 +4745,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bulleon",
         .unit = "BUL",
         .contract_address =
@@ -5422,7 +4752,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3X Long Shitcoin Index Token",
         .unit = "BULLSHIT",
         .contract_address =
@@ -5430,7 +4759,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BunnyToken",
         .unit = "BUNNY",
         .contract_address =
@@ -5438,7 +4766,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blockburn",
         .unit = "BURN",
         .contract_address =
@@ -5446,7 +4773,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitUP Token",
         .unit = "BUT",
         .contract_address =
@@ -5454,7 +4780,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "1x Long Bitcoin Implied Volatility Token",
         .unit = "BVOL",
         .contract_address =
@@ -5462,7 +4787,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bittwatt",
         .unit = "BWT",
         .contract_address =
@@ -5470,7 +4794,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blockchain Exchange Alliance",
         .unit = "BXA",
         .contract_address =
@@ -5478,7 +4801,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BonusCloud",
         .unit = "BXC",
         .contract_address =
@@ -5486,7 +4808,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Beaxy",
         .unit = "BXY",
         .contract_address =
@@ -5494,7 +4815,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "bZx Protocol",
         .unit = "BZRX",
         .contract_address =
@@ -5502,7 +4822,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bloomzed Token",
         .unit = "BZT",
         .contract_address =
@@ -5510,7 +4829,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Carboneum [C8] Token",
         .unit = "C8",
         .contract_address =
@@ -5518,7 +4836,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Global Crypto Alliance",
         .unit = "CALL",
         .contract_address =
@@ -5526,7 +4843,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cappasity",
         .unit = "CAPP",
         .contract_address =
@@ -5534,7 +4850,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CARAT",
         .unit = "CARAT",
         .contract_address =
@@ -5542,7 +4857,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cardstack",
         .unit = "CARD",
         .contract_address =
@@ -5550,7 +4864,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitClave",
         .unit = "CAT",
         .contract_address =
@@ -5558,7 +4871,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BlockCAT",
         .unit = "CAT",
         .contract_address =
@@ -5566,7 +4878,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Catex Token",
         .unit = "CATT",
         .contract_address =
@@ -5574,7 +4885,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CryptoBossCoin",
         .unit = "CBC",
         .contract_address =
@@ -5582,7 +4892,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CashBackPro",
         .unit = "CBP",
         .contract_address =
@@ -5590,7 +4899,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cybercoin",
         .unit = "CBR",
         .contract_address =
@@ -5598,7 +4906,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CRYPTOBUCKS",
         .unit = "CBUCKS",
         .contract_address =
@@ -5606,7 +4913,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Coin Controller Cash",
         .unit = "CCC",
         .contract_address =
@@ -5614,7 +4920,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Coinchase Token",
         .unit = "CCH",
         .contract_address =
@@ -5622,7 +4927,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CYCLEAN",
         .unit = "CCL",
         .contract_address =
@@ -5630,7 +4934,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CustomContractNetwork",
         .unit = "CCN",
         .contract_address =
@@ -5638,7 +4941,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ccore",
         .unit = "CCO",
         .contract_address =
@@ -5646,7 +4948,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Crystal Clear ",
         .unit = "CCT",
         .contract_address =
@@ -5654,7 +4955,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Commerce Data Connection",
         .unit = "CDC",
         .contract_address =
@@ -5662,7 +4962,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CoinDeal Token",
         .unit = "CDL",
         .contract_address =
@@ -5670,7 +4969,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CDX Network",
         .unit = "CDX",
         .contract_address =
@@ -5678,7 +4976,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Celsius",
         .unit = "CEL",
         .contract_address =
@@ -5686,7 +4983,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Coinsuper Ecosystem Network",
         .unit = "CEN",
         .contract_address =
@@ -5694,7 +4990,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CRYPTOFOREX",
         .unit = "CFX",
         .contract_address =
@@ -5702,7 +4997,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CACHE Gold",
         .unit = "CGT",
         .contract_address =
@@ -5710,7 +5004,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Chess Coin",
         .unit = "CHESS",
         .contract_address =
@@ -5718,7 +5011,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Crypto Holding Frank Token",
         .unit = "CHFT",
         .contract_address =
@@ -5726,7 +5018,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CoinHe Token",
         .unit = "CHT",
         .contract_address =
@@ -5734,7 +5025,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cipher Core Token",
         .unit = "CIPHC",
         .contract_address =
@@ -5742,7 +5032,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ConnectJob",
         .unit = "CJT",
         .contract_address =
@@ -5750,7 +5039,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Coinlancer",
         .unit = "CL",
         .contract_address =
@@ -5758,7 +5046,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cloudbric",
         .unit = "CLB",
         .contract_address =
@@ -5766,7 +5053,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Colu Local Network",
         .unit = "CLN",
         .contract_address =
@@ -5774,7 +5060,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BLOCKCLOUT",
         .unit = "CLOUT",
         .contract_address =
@@ -5782,7 +5067,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CoinLoan",
         .unit = "CLT",
         .contract_address =
@@ -5790,7 +5074,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Celeum",
         .unit = "CLX",
         .contract_address =
@@ -5798,7 +5081,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Crowd Machine",
         .unit = "CMCT",
         .contract_address =
@@ -5806,7 +5088,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cyber Movie Chain",
         .unit = "CMCT",
         .contract_address =
@@ -5814,7 +5095,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "COMSA [ETH]",
         .unit = "CMS",
         .contract_address =
@@ -5822,7 +5102,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Coinsbit Token",
         .unit = "CNB",
         .contract_address =
@@ -5830,7 +5109,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CNNS",
         .unit = "CNNS",
         .contract_address =
@@ -5838,7 +5116,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CryptoEnergy",
         .unit = "CNRG",
         .contract_address =
@@ -5846,7 +5123,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Connectome",
         .unit = "CNTM",
         .contract_address =
@@ -5854,7 +5130,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CoinUs",
         .unit = "CNUS",
         .contract_address =
@@ -5862,7 +5137,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cofinex Coin",
         .unit = "CNX",
         .contract_address =
@@ -5870,7 +5144,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Coinzo Token",
         .unit = "CNZ",
         .contract_address =
@@ -5878,7 +5151,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cobinhood",
         .unit = "COB",
         .contract_address =
@@ -5886,7 +5158,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Codeo Token",
         .unit = "CODEO",
         .contract_address =
@@ -5894,7 +5165,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CoinFi",
         .unit = "COFI",
         .contract_address =
@@ -5902,7 +5172,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Unit Protocol",
         .unit = "COL",
         .contract_address =
@@ -5910,7 +5179,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Compound",
         .unit = "COMP",
         .contract_address =
@@ -5918,7 +5186,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Coni",
         .unit = "CONI",
         .contract_address =
@@ -5926,7 +5193,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CoTrader",
         .unit = "COT",
         .contract_address =
@@ -5934,7 +5200,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Couchain",
         .unit = "COU",
         .contract_address =
@@ -5942,7 +5207,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "COVA",
         .unit = "COVA",
         .contract_address =
@@ -5950,7 +5214,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cashpayz Token",
         .unit = "CPC",
         .contract_address =
@@ -5958,7 +5221,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CryptoAds Marketplace",
         .unit = "CRAD",
         .contract_address =
@@ -5966,7 +5228,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CryCash",
         .unit = "CRC",
         .contract_address =
@@ -5974,7 +5235,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CryptalDash",
         .unit = "CRD",
         .contract_address =
@@ -5982,7 +5242,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CRDT",
         .unit = "CRDT",
         .contract_address =
@@ -5990,7 +5249,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cybereits",
         .unit = "CRE",
         .contract_address =
@@ -5998,7 +5256,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cream Finance",
         .unit = "CREAM",
         .contract_address =
@@ -6006,7 +5263,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Verify",
         .unit = "CRED",
         .contract_address =
@@ -6014,7 +5270,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CONTRACOIN",
         .unit = "CTCN",
         .contract_address =
@@ -6022,7 +5277,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cryptrust",
         .unit = "CTRT",
         .contract_address =
@@ -6030,7 +5284,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cartesi",
         .unit = "CTSI",
         .contract_address =
@@ -6038,7 +5291,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Castweet",
         .unit = "CTT",
         .contract_address =
@@ -6046,7 +5298,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CITEX Token",
         .unit = "CTT",
         .contract_address =
@@ -6054,7 +5305,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Curio",
         .unit = "CUR",
         .contract_address =
@@ -6062,7 +5312,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Custody Token",
         .unit = "CUST",
         .contract_address =
@@ -6070,7 +5319,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CryptoWorldNews",
         .unit = "CWN",
         .contract_address =
@@ -6078,7 +5326,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CargoX",
         .unit = "CXO",
         .contract_address =
@@ -6086,7 +5333,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CYBR Token",
         .unit = "CYBR",
         .contract_address =
@@ -6094,7 +5340,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CyberFM",
         .unit = "CYFM",
         .contract_address =
@@ -6102,7 +5347,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Crystal Token",
         .unit = "CYL",
         .contract_address =
@@ -6110,7 +5354,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DABANKING",
         .unit = "DAB",
         .contract_address =
@@ -6118,7 +5361,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DACC",
         .unit = "DACC",
         .contract_address =
@@ -6126,7 +5368,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DAD",
         .unit = "DAD",
         .contract_address =
@@ -6134,7 +5375,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dalecoin",
         .unit = "DALC",
         .contract_address =
@@ -6142,7 +5382,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Datamine",
         .unit = "DAM",
         .contract_address =
@@ -6150,7 +5389,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Daneel",
         .unit = "DAN",
         .contract_address =
@@ -6158,7 +5396,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 10,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dapp Token",
         .unit = "DAPPT",
         .contract_address =
@@ -6166,7 +5403,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DAPS Coin",
         .unit = "DAPS",
         .contract_address =
@@ -6174,7 +5410,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Datum",
         .unit = "DAT",
         .contract_address =
@@ -6182,7 +5417,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Decentralized Asset Trading Platform",
         .unit = "DATP",
         .contract_address =
@@ -6190,7 +5424,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DATx",
         .unit = "DATX",
         .contract_address =
@@ -6198,7 +5431,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DAV Coin",
         .unit = "DAV",
         .contract_address =
@@ -6206,7 +5438,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dawn Protocol",
         .unit = "DAWN",
         .contract_address =
@@ -6214,7 +5445,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DAEX",
         .unit = "DAX",
         .contract_address =
@@ -6222,7 +5452,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Chronologic",
         .unit = "DAY",
         .contract_address =
@@ -6230,7 +5459,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Decentralized Crypto Token",
         .unit = "DCTO",
         .contract_address =
@@ -6238,7 +5466,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Decentralized Data Assets Management",
         .unit = "DDAM",
         .contract_address =
@@ -6246,7 +5473,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DigiDinar Token",
         .unit = "DDRT",
         .contract_address =
@@ -6254,7 +5480,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Debitum",
         .unit = "DEB",
         .contract_address =
@@ -6262,7 +5487,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DeepCloud AI",
         .unit = "DEEP",
         .contract_address =
@@ -6270,7 +5494,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DeltaChain",
         .unit = "DELTA",
         .contract_address =
@@ -6278,7 +5501,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DEAPcoin",
         .unit = "DEP",
         .contract_address =
@@ -6286,7 +5508,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dev Protocol",
         .unit = "DEV",
         .contract_address =
@@ -6294,7 +5515,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DEXA COIN",
         .unit = "DEXA",
         .contract_address =
@@ -6302,7 +5522,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DEXTools",
         .unit = "DEXT",
         .contract_address =
@@ -6310,7 +5529,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "dForce",
         .unit = "DF",
         .contract_address =
@@ -6318,7 +5536,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Fantasy Sports",
         .unit = "DFS",
         .contract_address =
@@ -6326,7 +5543,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DigiFinexToken",
         .unit = "DFT",
         .contract_address =
@@ -6334,7 +5550,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DIA",
         .unit = "DIA",
         .contract_address =
@@ -6342,7 +5557,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "D Community",
         .unit = "DILI",
         .contract_address =
@@ -6350,7 +5564,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Digital Insurance Token",
         .unit = "DIT",
         .contract_address =
@@ -6358,7 +5571,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "dKargo",
         .unit = "DKA",
         .contract_address =
@@ -6366,7 +5578,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DMM: Governance",
         .unit = "DMG",
         .contract_address =
@@ -6374,7 +5585,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Decentralized Machine Learning",
         .unit = "DML",
         .contract_address =
@@ -6382,7 +5592,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DMme",
         .unit = "DMME",
         .contract_address =
@@ -6390,7 +5599,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DMScript",
         .unit = "DMST",
         .contract_address =
@@ -6398,7 +5606,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EncrypGen",
         .unit = "DNA",
         .contract_address =
@@ -6406,7 +5613,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Donut",
         .unit = "DONUT",
         .contract_address =
@@ -6414,7 +5620,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DOS Network",
         .unit = "DOS",
         .contract_address =
@@ -6422,7 +5627,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dovu",
         .unit = "DOV",
         .contract_address =
@@ -6430,7 +5634,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DOWCOIN",
         .unit = "DOW",
         .contract_address =
@@ -6438,7 +5641,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Delphy",
         .unit = "DPY",
         .contract_address =
@@ -6446,7 +5648,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dragonbit",
         .unit = "DRGB",
         .contract_address =
@@ -6454,7 +5655,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3X Long Dragon Index Token",
         .unit = "DRGNBULL",
         .contract_address =
@@ -6462,7 +5662,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DoDreamChain",
         .unit = "DRM",
         .contract_address =
@@ -6470,7 +5669,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DomRaider",
         .unit = "DRT",
         .contract_address =
@@ -6478,7 +5676,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DeFi Nation Signals DAO",
         .unit = "DSD",
         .contract_address =
@@ -6486,7 +5683,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DSLA Protocol",
         .unit = "DSLA",
         .contract_address =
@@ -6494,7 +5690,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DSYS",
         .unit = "DSYS",
         .contract_address =
@@ -6502,7 +5697,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dether",
         .unit = "DTH",
         .contract_address =
@@ -6510,7 +5704,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DTOP Token",
         .unit = "DTOP",
         .contract_address =
@@ -6518,7 +5711,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Datarius Credit",
         .unit = "DTRC",
         .contract_address =
@@ -6526,7 +5718,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Databroker",
         .unit = "DTX",
         .contract_address =
@@ -6534,7 +5725,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DUO Network Token",
         .unit = "DUO",
         .contract_address =
@@ -6542,7 +5732,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DragonVein",
         .unit = "DVC",
         .contract_address =
@@ -6550,7 +5739,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Decentralized Vulnerability Platform",
         .unit = "DVP",
         .contract_address =
@@ -6558,7 +5746,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Derivex",
         .unit = "DVX",
         .contract_address =
@@ -6566,7 +5753,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DWS",
         .unit = "DWS",
         .contract_address =
@@ -6574,7 +5760,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DXdao",
         .unit = "DXD",
         .contract_address =
@@ -6582,7 +5767,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dexter G",
         .unit = "DXG",
         .contract_address =
@@ -6590,7 +5774,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Datawallet",
         .unit = "DXT",
         .contract_address =
@@ -6598,7 +5781,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Dynamite",
         .unit = "DYNMT",
         .contract_address =
@@ -6606,7 +5788,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DoYourTip",
         .unit = "DYT",
         .contract_address =
@@ -6614,7 +5795,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Digital Rand",
         .unit = "DZAR",
         .contract_address =
@@ -6622,7 +5802,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EBCoin",
         .unit = "EBC",
         .contract_address =
@@ -6630,7 +5809,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "eBitcoin",
         .unit = "EBTC",
         .contract_address =
@@ -6638,7 +5816,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Echoin",
         .unit = "EC",
         .contract_address =
@@ -6646,7 +5823,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ethereum Cash",
         .unit = "ECASH",
         .contract_address =
@@ -6654,7 +5830,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "e-Chat",
         .unit = "ECHT",
         .contract_address =
@@ -6662,7 +5837,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Omnitude",
         .unit = "ECOM",
         .contract_address =
@@ -6670,7 +5844,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EurocoinToken",
         .unit = "ECTE",
         .contract_address =
@@ -6678,7 +5851,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ECOSC",
         .unit = "ECU",
         .contract_address =
@@ -6686,7 +5858,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Decurian",
         .unit = "ECU",
         .contract_address =
@@ -6694,7 +5865,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 3,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Edgeless",
         .unit = "EDG",
         .contract_address =
@@ -6702,7 +5872,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Freight Trust & Clearing Network",
         .unit = "EDI",
         .contract_address =
@@ -6710,7 +5879,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EduCoin",
         .unit = "EDU",
         .contract_address =
@@ -6718,7 +5886,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ethereum eRush",
         .unit = "EER",
         .contract_address =
@@ -6726,7 +5893,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EcoG9coin",
         .unit = "EGC",
         .contract_address =
@@ -6734,7 +5900,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Engine",
         .unit = "EGCC",
         .contract_address =
@@ -6742,7 +5907,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Nestree",
         .unit = "EGG",
         .contract_address =
@@ -6750,7 +5914,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Egoras",
         .unit = "EGR",
         .contract_address =
@@ -6758,7 +5921,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EchoLink",
         .unit = "EKO",
         .contract_address =
@@ -6766,7 +5928,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ELYSIA",
         .unit = "EL",
         .contract_address =
@@ -6774,7 +5935,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Elamachain",
         .unit = "ELAMA",
         .contract_address =
@@ -6782,7 +5942,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Electrum Dark",
         .unit = "ELD",
         .contract_address =
@@ -6790,7 +5949,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Electrify.Asia",
         .unit = "ELEC",
         .contract_address =
@@ -6798,7 +5956,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Elementeum",
         .unit = "ELET",
         .contract_address =
@@ -6806,7 +5963,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ELTCOIN",
         .unit = "ELTCOIN",
         .contract_address =
@@ -6814,7 +5970,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Elysian",
         .unit = "ELY",
         .contract_address =
@@ -6822,7 +5977,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ethereum Message Search",
         .unit = "EMS",
         .contract_address =
@@ -6830,7 +5984,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ENTONE",
         .unit = "ENTONE",
         .contract_address =
@@ -6838,7 +5991,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EnterCoin",
         .unit = "ENTRC",
         .contract_address =
@@ -6846,7 +5998,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EUNOMIA",
         .unit = "ENTS",
         .contract_address =
@@ -6854,7 +6005,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EOS TRUST",
         .unit = "EOST",
         .contract_address =
@@ -6862,7 +6012,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Emphy",
         .unit = "EPY",
         .contract_address =
@@ -6870,7 +6019,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "QuadrantProtocol",
         .unit = "EQUAD",
         .contract_address =
@@ -6878,7 +6026,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Eroscoin",
         .unit = "ERO",
         .contract_address =
@@ -6886,7 +6033,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Eristica",
         .unit = "ERT",
         .contract_address =
@@ -6894,7 +6040,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Era Swap",
         .unit = "ES",
         .contract_address =
@@ -6902,7 +6047,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Escroco Emerald",
         .unit = "ESCE",
         .contract_address =
@@ -6910,7 +6054,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Switch",
         .unit = "ESH",
         .contract_address =
@@ -6918,7 +6061,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Essentia",
         .unit = "ESS",
         .contract_address =
@@ -6926,7 +6068,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Esports Token",
         .unit = "EST",
         .contract_address =
@@ -6934,7 +6075,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EasySwap",
         .unit = "ESWA",
         .contract_address =
@@ -6942,7 +6082,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EtherSportz",
         .unit = "ESZ",
         .contract_address =
@@ -6950,7 +6089,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3X Long Ethereum Classic Token",
         .unit = "ETCBULL",
         .contract_address =
@@ -6958,7 +6096,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Entherfound",
         .unit = "ETF",
         .contract_address =
@@ -6966,7 +6103,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ethereum Gold",
         .unit = "ETG",
         .contract_address =
@@ -6974,7 +6110,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ethereum Gold Project",
         .unit = "ETGP",
         .contract_address =
@@ -6982,7 +6117,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Amun Ether 3x Daily Long",
         .unit = "ETH3L",
         .contract_address =
@@ -6990,7 +6124,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EtherBone",
         .unit = "ETHBN",
         .contract_address =
@@ -6998,7 +6131,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "1X Short Ethereum Token",
         .unit = "ETHHEDGE",
         .contract_address =
@@ -7006,7 +6138,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ethereum Meta",
         .unit = "ETHM",
         .contract_address =
@@ -7014,7 +6145,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ETHPlus",
         .unit = "ETHP",
         .contract_address =
@@ -7022,7 +6152,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ETHplode",
         .unit = "ETHPLO",
         .contract_address =
@@ -7030,7 +6159,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EnergiToken",
         .unit = "ETK",
         .contract_address =
@@ -7038,7 +6166,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "En-Tan-Mo",
         .unit = "ETM",
         .contract_address =
@@ -7046,7 +6173,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Essek Tov",
         .unit = "ETO",
         .contract_address =
@@ -7054,7 +6180,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Egoras Dollar",
         .unit = "EUSD",
         .contract_address =
@@ -7062,7 +6187,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EventChain",
         .unit = "EVC",
         .contract_address =
@@ -7070,7 +6194,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Eva Cash",
         .unit = "EVC",
         .contract_address =
@@ -7078,7 +6201,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Devery",
         .unit = "EVE",
         .contract_address =
@@ -7086,7 +6208,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Evedo",
         .unit = "EVED",
         .contract_address =
@@ -7094,7 +6215,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EvenCoin",
         .unit = "EVN",
         .contract_address =
@@ -7102,7 +6222,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "8X8 PROTOCOL",
         .unit = "EXE",
         .contract_address =
@@ -7110,7 +6229,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EXRNchain",
         .unit = "EXRN",
         .contract_address =
@@ -7118,7 +6236,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Experty",
         .unit = "EXY",
         .contract_address =
@@ -7126,7 +6243,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EYES Protocol",
         .unit = "EYES",
         .contract_address =
@@ -7134,7 +6250,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EZOOW",
         .unit = "EZW",
         .contract_address =
@@ -7142,7 +6257,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "EzyStayz",
         .unit = "EZY",
         .contract_address =
@@ -7150,7 +6264,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Future1coin",
         .unit = "F1C",
         .contract_address =
@@ -7158,7 +6271,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Faceter",
         .unit = "FACE",
         .contract_address =
@@ -7166,7 +6278,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FairGame",
         .unit = "FAIR",
         .contract_address =
@@ -7174,7 +6285,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FANBI TOKEN",
         .unit = "FBT",
         .contract_address =
@@ -7182,7 +6292,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FirmaChain",
         .unit = "FCT",
         .contract_address =
@@ -7190,7 +6299,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Friendz",
         .unit = "FDZ",
         .contract_address =
@@ -7198,7 +6306,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Fesschain",
         .unit = "FESS",
         .contract_address =
@@ -7206,7 +6313,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FidexToken",
         .unit = "FEX",
         .contract_address =
@@ -7214,7 +6320,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FEX Token",
         .unit = "FEX",
         .contract_address =
@@ -7222,7 +6327,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Two Prime FF1 Token",
         .unit = "FF1",
         .contract_address =
@@ -7230,7 +6334,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Force For Fast",
         .unit = "FFF",
         .contract_address =
@@ -7238,7 +6341,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Fireball",
         .unit = "FIRE",
         .contract_address =
@@ -7246,7 +6348,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FortKnoxster",
         .unit = "FKX",
         .contract_address =
@@ -7254,7 +6355,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Flowchain",
         .unit = "FLC",
         .contract_address =
@@ -7262,7 +6362,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Flixxo",
         .unit = "FLIXX",
         .contract_address =
@@ -7270,7 +6369,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Feellike",
         .unit = "FLL",
         .contract_address =
@@ -7278,7 +6376,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 3,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Fire Lotto",
         .unit = "FLOT",
         .contract_address =
@@ -7286,7 +6383,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FLIP",
         .unit = "FLP",
         .contract_address =
@@ -7294,7 +6390,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Flit Token",
         .unit = "FLT",
         .contract_address =
@@ -7302,7 +6397,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FLUX",
         .unit = "FLUX",
         .contract_address =
@@ -7310,7 +6404,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FLAMA",
         .unit = "FMA",
         .contract_address =
@@ -7318,7 +6411,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FinexboxToken",
         .unit = "FNB",
         .contract_address =
@@ -7326,7 +6418,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FundRequest",
         .unit = "FND",
         .contract_address =
@@ -7334,7 +6425,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FNKOS",
         .unit = "FNKOS",
         .contract_address =
@@ -7342,7 +6432,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Falcon Project",
         .unit = "FNT",
         .contract_address =
@@ -7350,7 +6439,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Fintab",
         .unit = "FNTB",
         .contract_address =
@@ -7358,7 +6446,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Fortuna",
         .unit = "FOTA",
         .contract_address =
@@ -7366,7 +6453,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "4THPILLAR TECHNOLOGIES",
         .unit = "FOUR",
         .contract_address =
@@ -7374,7 +6460,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Fox Trading",
         .unit = "FOXT",
         .contract_address =
@@ -7382,7 +6467,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Freyrchain",
         .unit = "FREC",
         .contract_address =
@@ -7390,7 +6474,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FREE Coin",
         .unit = "FREE",
         .contract_address =
@@ -7398,7 +6481,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ferrum Network",
         .unit = "FRM",
         .contract_address =
@@ -7406,7 +6488,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FSBT API Token",
         .unit = "FSBT",
         .contract_address =
@@ -7414,7 +6495,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FlashX Advance",
         .unit = "FSXA",
         .contract_address =
@@ -7422,7 +6502,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FansTime",
         .unit = "FTI",
         .contract_address =
@@ -7430,7 +6509,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Fountain",
         .unit = "FTN",
         .contract_address =
@@ -7438,7 +6516,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FarmaTrust",
         .unit = "FTT",
         .contract_address =
@@ -7446,7 +6523,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FintruX Network",
         .unit = "FTX",
         .contract_address =
@@ -7454,7 +6530,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FUTURAX",
         .unit = "FTXT",
         .contract_address =
@@ -7462,7 +6537,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FUZE Token",
         .unit = "FUZE",
         .contract_address =
@@ -7470,7 +6544,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FANZY",
         .unit = "FX1",
         .contract_address =
@@ -7478,7 +6551,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FuzeX",
         .unit = "FXT",
         .contract_address =
@@ -7486,7 +6558,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "FlypMe",
         .unit = "FYP",
         .contract_address =
@@ -7494,7 +6565,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GameCredits",
         .unit = "GAME",
         .contract_address =
@@ -7502,7 +6572,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Game Ark",
         .unit = "GARK",
         .contract_address =
@@ -7510,7 +6579,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Galaxy Wallet",
         .unit = "GC",
         .contract_address =
@@ -7518,7 +6586,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Gems ",
         .unit = "GEM",
         .contract_address =
@@ -7526,7 +6593,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Gene Source Code Chain",
         .unit = "GENE",
         .contract_address =
@@ -7534,7 +6600,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Parkgene",
         .unit = "GENE",
         .contract_address =
@@ -7542,7 +6607,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GeoDB",
         .unit = "GEO",
         .contract_address =
@@ -7550,7 +6614,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Themis",
         .unit = "GET",
         .contract_address =
@@ -7558,7 +6621,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Guaranteed Ethurance Token Extra",
         .unit = "GETX",
         .contract_address =
@@ -7566,7 +6628,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GoldFund",
         .unit = "GFUN",
         .contract_address =
@@ -7574,7 +6635,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GramGold Coin",
         .unit = "GGC",
         .contract_address =
@@ -7582,7 +6642,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GHOST",
         .unit = "GHOST",
         .contract_address =
@@ -7590,7 +6649,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Krios",
         .unit = "GIG",
         .contract_address =
@@ -7598,7 +6656,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Buzzshow",
         .unit = "GLDY",
         .contract_address =
@@ -7606,7 +6663,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 3,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Global Reserve System",
         .unit = "GLOB",
         .contract_address =
@@ -7614,7 +6670,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GAMB",
         .unit = "GMB",
         .contract_address =
@@ -7622,7 +6677,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Digital Gold",
         .unit = "GOLD",
         .contract_address =
@@ -7630,7 +6684,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 3,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Golden Token",
         .unit = "GOLD",
         .contract_address =
@@ -7638,7 +6691,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Gomics",
         .unit = "GOM",
         .contract_address =
@@ -7646,7 +6698,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "AnimalGo",
         .unit = "GOM2",
         .contract_address =
@@ -7654,7 +6705,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GoNetwork",
         .unit = "GOT",
         .contract_address =
@@ -7662,7 +6712,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Galaxy Pool Coin",
         .unit = "GPO",
         .contract_address =
@@ -7670,7 +6719,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GoPower",
         .unit = "GPT",
         .contract_address =
@@ -7678,7 +6726,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GoldenPyrex",
         .unit = "GPYX",
         .contract_address =
@@ -7686,7 +6733,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GSENetwork",
         .unit = "GSE",
         .contract_address =
@@ -7694,7 +6740,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GLOBALTRUSTFUND TOKEN",
         .unit = "GTF",
         .contract_address =
@@ -7702,7 +6747,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "GoalTime N",
         .unit = "GTX",
         .contract_address =
@@ -7710,7 +6754,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Peerguess",
         .unit = "GUESS",
         .contract_address =
@@ -7718,7 +6761,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Matchpool",
         .unit = "GUP",
         .contract_address =
@@ -7726,7 +6768,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 3,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Globalvillage Ecosystem",
         .unit = "GVE",
         .contract_address =
@@ -7734,7 +6775,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ShowHand",
         .unit = "HAND",
         .contract_address =
@@ -7742,7 +6782,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Havy",
         .unit = "HAVY",
         .contract_address =
@@ -7750,7 +6789,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HeartBout",
         .unit = "HB",
         .contract_address =
@@ -7758,7 +6796,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HashBX ",
         .unit = "HBX",
         .contract_address =
@@ -7766,7 +6803,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HyperDAO",
         .unit = "HDAO",
         .contract_address =
@@ -7774,7 +6810,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HEIDI",
         .unit = "HDI",
         .contract_address =
@@ -7782,7 +6817,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "1x Short Bitcoin Token",
         .unit = "HEDGE",
         .contract_address =
@@ -7790,7 +6824,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Hemelios",
         .unit = "HEM",
         .contract_address =
@@ -7798,7 +6831,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HeroNode",
         .unit = "HER",
         .contract_address =
@@ -7806,7 +6838,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Herbalist Token",
         .unit = "HERB",
         .contract_address =
@@ -7814,7 +6845,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HEX",
         .unit = "HEX",
         .contract_address =
@@ -7822,7 +6852,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HelloGold",
         .unit = "HGT",
         .contract_address =
@@ -7830,7 +6859,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Hintchain",
         .unit = "HINT",
         .contract_address =
@@ -7838,7 +6866,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HitChain",
         .unit = "HIT",
         .contract_address =
@@ -7846,7 +6873,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HalalChain",
         .unit = "HLC",
         .contract_address =
@@ -7854,7 +6880,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Helex",
         .unit = "HLX",
         .contract_address =
@@ -7862,7 +6887,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 5,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Hamebi Token",
         .unit = "HMB",
         .contract_address =
@@ -7870,7 +6894,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Homeros",
         .unit = "HMR",
         .contract_address =
@@ -7878,7 +6901,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HashNet BitEco",
         .unit = "HNB",
         .contract_address =
@@ -7886,7 +6908,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HOLD",
         .unit = "HOLD",
         .contract_address =
@@ -7894,7 +6915,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HOMIHELP",
         .unit = "HOMI",
         .contract_address =
@@ -7902,7 +6922,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ethouse",
         .unit = "HORSE",
         .contract_address =
@@ -7910,7 +6929,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Healing Plus",
         .unit = "HP",
         .contract_address =
@@ -7918,7 +6936,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HyperQuant",
         .unit = "HQT",
         .contract_address =
@@ -7926,7 +6943,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HOQU",
         .unit = "HQX",
         .contract_address =
@@ -7934,7 +6950,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HashCoin",
         .unit = "HSC",
         .contract_address =
@@ -7942,7 +6957,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Hyper Speed Network",
         .unit = "HSN",
         .contract_address =
@@ -7950,7 +6964,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Helper Search Token",
         .unit = "HSN",
         .contract_address =
@@ -7958,7 +6971,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Hubi Token",
         .unit = "HUB",
         .contract_address =
@@ -7966,7 +6978,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HUNT",
         .unit = "HUNT",
         .contract_address =
@@ -7974,7 +6985,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Hurify",
         .unit = "HUR",
         .contract_address =
@@ -7982,7 +6992,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HUSD",
         .unit = "HUSD",
         .contract_address =
@@ -7990,7 +6999,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Hiveterminal Token",
         .unit = "HVN",
         .contract_address =
@@ -7998,7 +7006,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HYPNOXYS",
         .unit = "HYPX",
         .contract_address =
@@ -8006,7 +7013,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HoryouToken",
         .unit = "HYT",
         .contract_address =
@@ -8014,7 +7020,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Black Diamond Rating",
         .unit = "HZT",
         .contract_address =
@@ -8022,7 +7027,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IBStoken",
         .unit = "IBS",
         .contract_address =
@@ -8030,7 +7034,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "iBTC",
         .unit = "IBTC",
         .contract_address =
@@ -8038,7 +7041,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Inverse Bitcoin Volatility Token",
         .unit = "IBVOL",
         .contract_address =
@@ -8046,7 +7048,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Idea Chain Coin",
         .unit = "ICH",
         .contract_address =
@@ -8054,7 +7055,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Iconic Token",
         .unit = "ICNQ",
         .contract_address =
@@ -8062,7 +7062,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ICOCalendar.Today",
         .unit = "ICT",
         .contract_address =
@@ -8070,7 +7069,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IDK",
         .unit = "IDK",
         .contract_address =
@@ -8078,7 +7076,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "InvestDigital",
         .unit = "IDT",
         .contract_address =
@@ -8086,7 +7083,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IDEX Membership",
         .unit = "IDXM",
         .contract_address =
@@ -8094,7 +7090,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "iEthereum",
         .unit = "IETH",
         .contract_address =
@@ -8102,7 +7097,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ifoods Chain",
         .unit = "IFOOD",
         .contract_address =
@@ -8110,7 +7104,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "InvestFeed",
         .unit = "IFT",
         .contract_address =
@@ -8118,7 +7111,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IFX24",
         .unit = "IFX24",
         .contract_address =
@@ -8126,7 +7118,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IGToken",
         .unit = "IG",
         .contract_address =
@@ -8134,7 +7125,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Intelligent Investment Chain",
         .unit = "IIC",
         .contract_address =
@@ -8142,7 +7132,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ether Kingdoms Token",
         .unit = "IMP",
         .contract_address =
@@ -8150,7 +7139,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 7,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Moneytoken",
         .unit = "IMT",
         .contract_address =
@@ -8158,7 +7146,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Imsmart",
         .unit = "IMT",
         .contract_address =
@@ -8166,7 +7153,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "InternationalCryptoX",
         .unit = "INCX",
         .contract_address =
@@ -8174,7 +7160,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Indorse Token",
         .unit = "IND",
         .contract_address =
@@ -8182,7 +7167,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Infinitus Token",
         .unit = "INF",
         .contract_address =
@@ -8190,7 +7174,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Iungo",
         .unit = "ING",
         .contract_address =
@@ -8198,7 +7181,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Innovative Bioresearch Coin",
         .unit = "INNBC",
         .contract_address =
@@ -8206,7 +7188,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Innovative Bioresearch Classic",
         .unit = "INNBCL",
         .contract_address =
@@ -8214,7 +7195,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "intexcoin",
         .unit = "INTX",
         .contract_address =
@@ -8222,7 +7202,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "InterValue",
         .unit = "INVE",
         .contract_address =
@@ -8230,7 +7209,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "INMAX",
         .unit = "INX",
         .contract_address =
@@ -8238,7 +7216,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Insight Protocol",
         .unit = "INX",
         .contract_address =
@@ -8246,7 +7223,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Internxt",
         .unit = "INXT",
         .contract_address =
@@ -8254,7 +7230,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Playgroundz",
         .unit = "IOG",
         .contract_address =
@@ -8262,7 +7237,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IONChain",
         .unit = "IONC",
         .contract_address =
@@ -8270,7 +7244,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IOOX System",
         .unit = "IOOX",
         .contract_address =
@@ -8278,7 +7251,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "VouchForMe",
         .unit = "IPL",
         .contract_address =
@@ -8286,7 +7258,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IP Exchange",
         .unit = "IPSX",
         .contract_address =
@@ -8294,7 +7265,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Diligence",
         .unit = "IRA",
         .contract_address =
@@ -8302,7 +7272,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Isiklar Coin",
         .unit = "ISIKC",
         .contract_address =
@@ -8310,7 +7279,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Insula",
         .unit = "ISLA",
         .contract_address =
@@ -8318,7 +7286,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Insureum",
         .unit = "ISR",
         .contract_address =
@@ -8326,7 +7293,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IDCM Token",
         .unit = "IT",
         .contract_address =
@@ -8334,7 +7300,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Italian Lira",
         .unit = "ITL",
         .contract_address =
@@ -8342,7 +7307,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Intelligent Trading Foundation",
         .unit = "ITT",
         .contract_address =
@@ -8350,7 +7314,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "X-Block",
         .unit = "IX",
         .contract_address =
@@ -8358,7 +7321,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IXT",
         .unit = "IXT",
         .contract_address =
@@ -8366,7 +7328,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "IZE",
         .unit = "IZE",
         .contract_address =
@@ -8374,7 +7335,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "JET8",
         .unit = "J8T",
         .contract_address =
@@ -8382,7 +7342,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Jack Token",
         .unit = "JACK",
         .contract_address =
@@ -8390,7 +7349,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Jade Currency",
         .unit = "JADE",
         .contract_address =
@@ -8398,7 +7356,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Jarvis+",
         .unit = "JAR",
         .contract_address =
@@ -8406,7 +7363,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Japan Content Token",
         .unit = "JCT",
         .contract_address =
@@ -8414,7 +7370,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Jetcoin",
         .unit = "JET",
         .contract_address =
@@ -8422,7 +7377,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Jinbi Token",
         .unit = "JNB",
         .contract_address =
@@ -8430,7 +7384,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Jobchain",
         .unit = "JOB",
         .contract_address =
@@ -8438,7 +7391,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Joint Ventures",
         .unit = "JOINT",
         .contract_address =
@@ -8446,7 +7398,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Jarvis Network",
         .unit = "JRT",
         .contract_address =
@@ -8454,7 +7405,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "JavaScript Token",
         .unit = "JS",
         .contract_address =
@@ -8462,7 +7412,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "JSECOIN",
         .unit = "JSE",
         .contract_address =
@@ -8470,7 +7419,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Jubi Token",
         .unit = "JT",
         .contract_address =
@@ -8478,7 +7426,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "JUST NETWORK",
         .unit = "JUS",
         .contract_address =
@@ -8486,7 +7433,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "KAASO",
         .unit = "KAASO",
         .contract_address =
@@ -8494,7 +7440,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "KardiaChain",
         .unit = "KAI",
         .contract_address =
@@ -8502,7 +7447,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitKAM",
         .unit = "KAM",
         .contract_address =
@@ -8510,7 +7454,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Kambria",
         .unit = "KAT",
         .contract_address =
@@ -8518,7 +7461,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "King DAG",
         .unit = "KDAG",
         .contract_address =
@@ -8526,7 +7468,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Keep Network",
         .unit = "KEEP",
         .contract_address =
@@ -8534,7 +7475,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "KEY",
         .unit = "KEY",
         .contract_address =
@@ -8542,7 +7482,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "REBIT",
         .unit = "KEYT",
         .contract_address =
@@ -8550,7 +7489,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Krypton Galaxy Coin",
         .unit = "KGC",
         .contract_address =
@@ -8558,7 +7496,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sessia",
         .unit = "KICKS",
         .contract_address =
@@ -8566,7 +7503,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Kind Ads Token",
         .unit = "KIND",
         .contract_address =
@@ -8574,7 +7510,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Khipu Token",
         .unit = "KIP",
         .contract_address =
@@ -8582,7 +7517,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "KanadeCoin",
         .unit = "KNDC",
         .contract_address =
@@ -8590,7 +7524,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "KNOW",
         .unit = "KNOW",
         .contract_address =
@@ -8598,7 +7531,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 10,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Knekted",
         .unit = "KNT",
         .contract_address =
@@ -8606,7 +7538,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Kora Network Token",
         .unit = "KNT",
         .contract_address =
@@ -8614,7 +7545,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 16,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Keystone of Opportunity & Knowledge",
         .unit = "KOK",
         .contract_address =
@@ -8622,7 +7552,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Darwinia Commitment Token",
         .unit = "KTON",
         .contract_address =
@@ -8630,7 +7559,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Kublaicoin",
         .unit = "KUB",
         .contract_address =
@@ -8638,7 +7566,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 10,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Kuende",
         .unit = "KUE",
         .contract_address =
@@ -8646,7 +7573,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Kuverit",
         .unit = "KUV",
         .contract_address =
@@ -8654,7 +7580,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "KVI",
         .unit = "KVI",
         .contract_address =
@@ -8662,7 +7587,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "4NEW",
         .unit = "KWATT",
         .contract_address =
@@ -8670,7 +7594,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "KWHCoin",
         .unit = "KWH",
         .contract_address =
@@ -8678,7 +7601,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "KYSC Token",
         .unit = "KYSC",
         .contract_address =
@@ -8686,7 +7608,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LALA World",
         .unit = "LALA",
         .contract_address =
@@ -8694,7 +7615,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LinkArt",
         .unit = "LAR",
         .contract_address =
@@ -8702,7 +7622,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LBK",
         .unit = "LBK",
         .contract_address =
@@ -8710,7 +7629,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LegalBlock",
         .unit = "LBK",
         .contract_address =
@@ -8718,7 +7636,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Lux Bio Cell",
         .unit = "LBXC",
         .contract_address =
@@ -8726,7 +7643,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LEOcoin",
         .unit = "LC4",
         .contract_address =
@@ -8734,7 +7650,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LocalCoinSwap",
         .unit = "LCS",
         .contract_address =
@@ -8742,7 +7657,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LCX",
         .unit = "LCX",
         .contract_address =
@@ -8750,7 +7664,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Leadcoin",
         .unit = "LDC",
         .contract_address =
@@ -8758,7 +7671,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Education Ecosystem",
         .unit = "LEDU",
         .contract_address =
@@ -8766,7 +7678,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Linfinity",
         .unit = "LFC",
         .contract_address =
@@ -8774,7 +7685,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Libertas Token",
         .unit = "LIBERTAS",
         .contract_address =
@@ -8782,7 +7692,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Liquidity Dividends Protocol",
         .unit = "LID",
         .contract_address =
@@ -8790,7 +7699,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Limestone Network",
         .unit = "LIMEX",
         .contract_address =
@@ -8798,7 +7706,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3X Long Chainlink Token",
         .unit = "LINKBULL",
         .contract_address =
@@ -8806,7 +7713,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Coin Lion",
         .unit = "LION",
         .contract_address =
@@ -8814,7 +7720,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LinkCoin Token",
         .unit = "LKN",
         .contract_address =
@@ -8822,7 +7727,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Latamcash",
         .unit = "LMCH",
         .contract_address =
@@ -8830,7 +7734,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Lisk Machine Learning",
         .unit = "LML",
         .contract_address =
@@ -8838,7 +7741,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LunchMoney",
         .unit = "LMY",
         .contract_address =
@@ -8846,7 +7748,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blocklancer",
         .unit = "LNC",
         .contract_address =
@@ -8854,7 +7755,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LNX Protocol",
         .unit = "LNX",
         .contract_address =
@@ -8862,7 +7762,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LOA Protocol",
         .unit = "LOA",
         .contract_address =
@@ -8870,7 +7769,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LOCIcoin",
         .unit = "LOCI",
         .contract_address =
@@ -8878,7 +7776,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Lukki Operating Token",
         .unit = "LOT",
         .contract_address =
@@ -8886,7 +7783,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Lapis Chain",
         .unit = "LPS",
         .contract_address =
@@ -8894,7 +7790,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 10,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Livepeer",
         .unit = "LPT",
         .contract_address =
@@ -8902,7 +7797,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Liquidity Network",
         .unit = "LQD",
         .contract_address =
@@ -8910,7 +7804,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3x Short Litecoin Token",
         .unit = "LTCBEAR",
         .contract_address =
@@ -8918,7 +7811,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3x Long Litecoin Token",
         .unit = "LTCBULL",
         .contract_address =
@@ -8926,7 +7818,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LitecoinToken",
         .unit = "LTK",
         .contract_address =
@@ -8934,7 +7825,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Level Up Coin",
         .unit = "LUC",
         .contract_address =
@@ -8942,7 +7832,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LivenPay",
         .unit = "LVN",
         .contract_address =
@@ -8950,7 +7839,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Level01",
         .unit = "LVX",
         .contract_address =
@@ -8958,7 +7846,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "LUKSO",
         .unit = "LYXe",
         .contract_address =
@@ -8966,7 +7853,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Matrexcoin",
         .unit = "MAC",
         .contract_address =
@@ -8974,7 +7860,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MACH Project",
         .unit = "MACH",
         .contract_address =
@@ -8982,7 +7867,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Master Coin Point",
         .unit = "MACPO",
         .contract_address =
@@ -8990,7 +7874,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MarcoPolo Protocol",
         .unit = "MAP",
         .contract_address =
@@ -8998,7 +7881,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MidasProtocol",
         .unit = "MAS",
         .contract_address =
@@ -9006,7 +7888,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MASTERNET",
         .unit = "MASH",
         .contract_address =
@@ -9014,7 +7895,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MATH",
         .unit = "MATH",
         .contract_address =
@@ -9022,7 +7902,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3X Short Matic Token",
         .unit = "MATICBEAR",
         .contract_address =
@@ -9030,7 +7909,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3X Long Matic Token",
         .unit = "MATICBULL",
         .contract_address =
@@ -9038,7 +7916,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MAX Exchange Token",
         .unit = "MAX",
         .contract_address =
@@ -9046,7 +7923,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Membrana",
         .unit = "MBN",
         .contract_address =
@@ -9054,7 +7930,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MCDEX",
         .unit = "MCB",
         .contract_address =
@@ -9062,7 +7937,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Medium",
         .unit = "MDM",
         .contract_address =
@@ -9070,7 +7944,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "All.me",
         .unit = "ME",
         .contract_address =
@@ -9078,7 +7951,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CoinMeet",
         .unit = "MEET",
         .contract_address =
@@ -9086,7 +7958,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MesChain",
         .unit = "MES",
         .contract_address =
@@ -9094,7 +7965,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MESG",
         .unit = "MESG",
         .contract_address =
@@ -9102,7 +7972,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MetaMorph",
         .unit = "METM",
         .contract_address =
@@ -9110,7 +7979,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MEX",
         .unit = "MEX",
         .contract_address =
@@ -9118,7 +7986,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SyncFab",
         .unit = "MFG",
         .contract_address =
@@ -9126,7 +7993,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Mainstream For The Underground",
         .unit = "MFTU",
         .contract_address =
@@ -9134,7 +8000,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MGC Token",
         .unit = "MGC",
         .contract_address =
@@ -9142,7 +8007,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MobileGo",
         .unit = "MGO",
         .contract_address =
@@ -9150,7 +8014,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Micromines",
         .unit = "MICRO",
         .contract_address =
@@ -9158,7 +8021,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MiniSwap",
         .unit = "MINI",
         .contract_address =
@@ -9166,7 +8028,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MixMarvel",
         .unit = "MIX",
         .contract_address =
@@ -9174,7 +8035,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Mallcoin",
         .unit = "MLC",
         .contract_address =
@@ -9182,7 +8042,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Mega Lottery Services Global",
         .unit = "MLR",
         .contract_address =
@@ -9190,7 +8049,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Maincoin",
         .unit = "MNC",
         .contract_address =
@@ -9198,7 +8056,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Moneynet",
         .unit = "MNC",
         .contract_address =
@@ -9206,7 +8063,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Minereum",
         .unit = "MNE",
         .contract_address =
@@ -9214,7 +8070,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Money Token",
         .unit = "MNT",
         .contract_address =
@@ -9222,7 +8077,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MODEL-X-coin",
         .unit = "MODX",
         .contract_address =
@@ -9230,7 +8084,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Mogu",
         .unit = "MOGX",
         .contract_address =
@@ -9238,7 +8091,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MorCrypto Coin",
         .unit = "MOR",
         .contract_address =
@@ -9246,7 +8098,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "More Coin",
         .unit = "MORE",
         .contract_address =
@@ -9254,7 +8105,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MARK.SPACE",
         .unit = "MRK",
         .contract_address =
@@ -9262,7 +8112,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Monarch",
         .unit = "MT",
         .contract_address =
@@ -9270,7 +8119,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MyToken",
         .unit = "MT",
         .contract_address =
@@ -9278,7 +8126,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Meta",
         .unit = "MTA",
         .contract_address =
@@ -9286,7 +8133,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MTC Mesh Network",
         .unit = "MTC",
         .contract_address =
@@ -9294,7 +8140,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Medicalchain",
         .unit = "MTN",
         .contract_address =
@@ -9302,7 +8147,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Meter",
         .unit = "MTRG",
         .contract_address =
@@ -9310,7 +8154,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Matryx",
         .unit = "MTX",
         .contract_address =
@@ -9318,7 +8161,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "mStable USD",
         .unit = "MUSD",
         .contract_address =
@@ -9326,7 +8168,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Maverick Chain",
         .unit = "MVC",
         .contract_address =
@@ -9334,7 +8175,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Merculet",
         .unit = "MVP",
         .contract_address =
@@ -9342,7 +8182,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MyBit",
         .unit = "MYB",
         .contract_address =
@@ -9350,7 +8189,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Mysterium",
         .unit = "MYST",
         .contract_address =
@@ -9358,7 +8196,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MoCo Token",
         .unit = "MoCo",
         .contract_address =
@@ -9366,7 +8203,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "NANJCOIN",
         .unit = "NANJ",
         .contract_address =
@@ -9374,7 +8210,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Natmin Pure Escrow",
         .unit = "NAT",
         .contract_address =
@@ -9382,7 +8217,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Naviaddress",
         .unit = "NAVI",
         .contract_address =
@@ -9390,7 +8224,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BoatPilot Token",
         .unit = "NAVY",
         .contract_address =
@@ -9398,7 +8231,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Naka Bodhi Token",
         .unit = "NBOT",
         .contract_address =
@@ -9406,7 +8238,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "NeuroChain",
         .unit = "NCC",
         .contract_address =
@@ -9414,7 +8245,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "NDN Link",
         .unit = "NDN",
         .contract_address =
@@ -9422,7 +8252,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "nDEX",
         .unit = "NDX",
         .contract_address =
@@ -9430,7 +8259,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Coineal Token",
         .unit = "NEAL",
         .contract_address =
@@ -9438,7 +8266,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "NEST Protocol",
         .unit = "NEST",
         .contract_address =
@@ -9446,7 +8273,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "NewsToken",
         .unit = "NEWOS",
         .contract_address =
@@ -9454,7 +8280,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Nexxo",
         .unit = "NEXXO",
         .contract_address =
@@ -9462,7 +8287,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "NFX Coin",
         .unit = "NFXC",
         .contract_address =
@@ -9470,7 +8294,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Autonio",
         .unit = "NIO",
         .contract_address =
@@ -9478,7 +8301,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Nework",
         .unit = "NKC",
         .contract_address =
@@ -9486,7 +8308,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Neuromorphic.io",
         .unit = "NMP",
         .contract_address =
@@ -9494,7 +8315,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "NNB Token",
         .unit = "NNB",
         .contract_address =
@@ -9502,7 +8322,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "No BS Crypto",
         .unit = "NOBS",
         .contract_address =
@@ -9510,7 +8329,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Whole Network",
         .unit = "NODE",
         .contract_address =
@@ -9518,7 +8336,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 5,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "NOIA Network",
         .unit = "NOIA",
         .contract_address =
@@ -9526,7 +8343,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Noku",
         .unit = "NOKU",
         .contract_address =
@@ -9534,7 +8350,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Plus-Coin",
         .unit = "NPLC",
         .contract_address =
@@ -9542,7 +8357,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Neural Protocol",
         .unit = "NRP",
         .contract_address =
@@ -9550,7 +8364,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Neurotoken",
         .unit = "NTK",
         .contract_address =
@@ -9558,7 +8371,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "NetKoin",
         .unit = "NTK",
         .contract_address =
@@ -9566,7 +8378,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Nuggets",
         .unit = "NUG",
         .contract_address =
@@ -9574,7 +8385,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Neutral Dollar ",
         .unit = "NUSD",
         .contract_address =
@@ -9582,7 +8392,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "NXM",
         .unit = "NXM",
         .contract_address =
@@ -9590,7 +8399,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Origin Protocol",
         .unit = "OGN",
         .contract_address =
@@ -9598,7 +8406,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Okschain",
         .unit = "OKS",
         .contract_address =
@@ -9606,7 +8413,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Olive",
         .unit = "OLE",
         .contract_address =
@@ -9614,7 +8420,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "OLXA",
         .unit = "OLXA",
         .contract_address =
@@ -9622,7 +8427,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ormeus Cash",
         .unit = "OMC",
         .contract_address =
@@ -9630,7 +8434,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Shivom",
         .unit = "OMX",
         .contract_address =
@@ -9638,7 +8441,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Menlo One",
         .unit = "ONE",
         .contract_address =
@@ -9646,7 +8448,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SoMee.Social",
         .unit = "ONG",
         .contract_address =
@@ -9654,7 +8455,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "On.Live",
         .unit = "ONL",
         .contract_address =
@@ -9662,7 +8462,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ONOToken",
         .unit = "ONOT",
         .contract_address =
@@ -9670,7 +8469,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Open Platform",
         .unit = "OPEN",
         .contract_address =
@@ -9678,7 +8476,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Opennity",
         .unit = "OPNN",
         .contract_address =
@@ -9686,7 +8483,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Opus",
         .unit = "OPT",
         .contract_address =
@@ -9694,7 +8490,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "OptiToken",
         .unit = "OPTI",
         .contract_address =
@@ -9702,7 +8497,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Originate Coin",
         .unit = "ORC",
         .contract_address =
@@ -9710,7 +8504,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Origami",
         .unit = "ORI",
         .contract_address =
@@ -9718,7 +8511,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ormeus Coin",
         .unit = "ORMEUS",
         .contract_address =
@@ -9726,7 +8518,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Orion Protocol",
         .unit = "ORN",
         .contract_address =
@@ -9734,7 +8525,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Cointorox",
         .unit = "OROX",
         .contract_address =
@@ -9742,7 +8532,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "OSA Token",
         .unit = "OSA",
         .contract_address =
@@ -9750,7 +8539,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "OTCBTC Token",
         .unit = "OTB",
         .contract_address =
@@ -9758,7 +8546,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Open Trading Network",
         .unit = "OTN",
         .contract_address =
@@ -9766,7 +8553,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "OWNDATA",
         .unit = "OWN",
         .contract_address =
@@ -9774,7 +8560,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Orchid",
         .unit = "OXT",
         .contract_address =
@@ -9782,7 +8567,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Oxycoin",
         .unit = "OXY",
         .contract_address =
@@ -9790,7 +8574,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "P2P Global Network",
         .unit = "P2PX",
         .contract_address =
@@ -9798,7 +8581,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Pamp Network",
         .unit = "PAMP",
         .contract_address =
@@ -9806,7 +8588,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Pantos",
         .unit = "PAN",
         .contract_address =
@@ -9814,7 +8595,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Parachute",
         .unit = "PAR",
         .contract_address =
@@ -9822,7 +8602,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PARETO Rewards",
         .unit = "PARETO",
         .contract_address =
@@ -9830,7 +8609,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blockpass",
         .unit = "PASS",
         .contract_address =
@@ -9838,7 +8616,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Patron",
         .unit = "PAT",
         .contract_address =
@@ -9846,7 +8623,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Promotion Coin",
         .unit = "PC",
         .contract_address =
@@ -9854,7 +8630,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 5,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "POPCHAIN",
         .unit = "PCH",
         .contract_address =
@@ -9862,7 +8637,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Precium",
         .unit = "PCM",
         .contract_address =
@@ -9870,7 +8644,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PDATA",
         .unit = "PDATA",
         .contract_address =
@@ -9878,7 +8651,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MarketPeak",
         .unit = "PEAK",
         .contract_address =
@@ -9886,7 +8658,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PeerEx",
         .unit = "PERX",
         .contract_address =
@@ -9894,7 +8665,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Payfair",
         .unit = "PFR",
         .contract_address =
@@ -9902,7 +8672,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PHI Token",
         .unit = "PHI",
         .contract_address =
@@ -9910,7 +8679,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PATHHIVE ",
         .unit = "PHV",
         .contract_address =
@@ -9918,7 +8686,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PIBBLE",
         .unit = "PIB",
         .contract_address =
@@ -9926,7 +8693,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DeFiPie",
         .unit = "PIE",
         .contract_address =
@@ -9934,7 +8700,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PiplCoin",
         .unit = "PIPL",
         .contract_address =
@@ -9942,7 +8707,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Playkey",
         .unit = "PKT",
         .contract_address =
@@ -9950,7 +8714,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PLAAS FARMERS TOKEN",
         .unit = "PLAAS",
         .contract_address =
@@ -9958,7 +8721,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HEROcoin",
         .unit = "PLAY",
         .contract_address =
@@ -9966,7 +8728,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PlayFuel",
         .unit = "PLF",
         .contract_address =
@@ -9974,7 +8735,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PlutusDeFi",
         .unit = "PLT",
         .contract_address =
@@ -9982,7 +8742,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PlatonCoin",
         .unit = "PLTC",
         .contract_address =
@@ -9990,7 +8749,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Perth Mint Gold Token",
         .unit = "PMGT",
         .contract_address =
@@ -9998,7 +8756,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 5,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Paymon",
         .unit = "PMNT",
         .contract_address =
@@ -10006,7 +8763,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "pNetwork",
         .unit = "PNT",
         .contract_address =
@@ -10014,7 +8770,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ClearPoll",
         .unit = "POLL",
         .contract_address =
@@ -10022,7 +8777,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Portal",
         .unit = "PORTAL",
         .contract_address =
@@ -10030,7 +8784,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Posscoin",
         .unit = "POSS",
         .contract_address =
@@ -10038,7 +8791,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "UniPower",
         .unit = "POWER",
         .contract_address =
@@ -10046,7 +8798,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PHILLIPS PAY COIN",
         .unit = "PPC",
         .contract_address =
@@ -10054,7 +8805,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 1,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Paragon",
         .unit = "PRG",
         .contract_address =
@@ -10062,7 +8812,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Privatix",
         .unit = "PRIX",
         .contract_address =
@@ -10070,7 +8819,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ProBit Token",
         .unit = "PROB",
         .contract_address =
@@ -10078,7 +8826,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Props Token",
         .unit = "PROPS",
         .contract_address =
@@ -10086,7 +8833,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PRASM",
         .unit = "PSM",
         .contract_address =
@@ -10094,7 +8840,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Primas",
         .unit = "PST",
         .contract_address =
@@ -10102,7 +8847,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PalletOne",
         .unit = "PTN",
         .contract_address =
@@ -10110,7 +8854,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PTON",
         .unit = "PTON",
         .contract_address =
@@ -10118,7 +8861,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Patientory",
         .unit = "PTOY",
         .contract_address =
@@ -10126,7 +8868,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Proton Token",
         .unit = "PTT",
         .contract_address =
@@ -10134,7 +8875,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PolypuX",
         .unit = "PUX",
         .contract_address =
@@ -10142,7 +8882,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Pixie Coin",
         .unit = "PXC",
         .contract_address =
@@ -10150,7 +8889,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PlayGame",
         .unit = "PXG",
         .contract_address =
@@ -10158,7 +8896,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PIXEL",
         .unit = "PXL",
         .contract_address =
@@ -10166,7 +8903,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PointPay",
         .unit = "PXP",
         .contract_address =
@@ -10174,7 +8910,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 3,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Pylon Network",
         .unit = "PYLNT",
         .contract_address =
@@ -10182,7 +8917,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "PYRO Network",
         .unit = "PYRO",
         .contract_address =
@@ -10190,7 +8924,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "qiibee",
         .unit = "QBX",
         .contract_address =
@@ -10198,7 +8931,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "QUEENBEE",
         .unit = "QBZ",
         .contract_address =
@@ -10206,7 +8938,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "QChi",
         .unit = "QCH",
         .contract_address =
@@ -10214,7 +8945,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Q DAO Governance token v1.0",
         .unit = "QDAO",
         .contract_address =
@@ -10222,7 +8952,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Quiztok",
         .unit = "QTCON",
         .contract_address =
@@ -10230,7 +8959,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "QUINADS",
         .unit = "QUIN",
         .contract_address =
@@ -10238,7 +8966,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Raise",
         .unit = "RAISE",
         .contract_address =
@@ -10246,7 +8973,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "RAKUN",
         .unit = "RAKU",
         .contract_address =
@@ -10254,7 +8980,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Rarible",
         .unit = "RARI",
         .contract_address =
@@ -10262,7 +8987,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "DPRating",
         .unit = "RATING",
         .contract_address =
@@ -10270,7 +8994,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Red Box Dapp Token",
         .unit = "RBD",
         .contract_address =
@@ -10278,7 +9001,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "RealChain",
         .unit = "RCT",
         .contract_address =
@@ -10286,7 +9008,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "REAL",
         .unit = "REAL",
         .contract_address =
@@ -10294,7 +9015,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "RED",
         .unit = "RED",
         .contract_address =
@@ -10302,7 +9022,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "RefToken",
         .unit = "REF",
         .contract_address =
@@ -10310,7 +9029,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Release Project",
         .unit = "REL",
         .contract_address =
@@ -10318,7 +9036,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "renBTC",
         .unit = "RENBTC",
         .contract_address =
@@ -10326,7 +9043,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Revain",
         .unit = "REV",
         .contract_address =
@@ -10334,7 +9050,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Rewardiqa",
         .unit = "REW",
         .contract_address =
@@ -10342,7 +9057,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "imbrex",
         .unit = "REX",
         .contract_address =
@@ -10350,7 +9064,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Darwinia Network",
         .unit = "RING",
         .contract_address =
@@ -10358,7 +9071,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Rakon",
         .unit = "RKN",
         .contract_address =
@@ -10366,7 +9078,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 12,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Relex",
         .unit = "RLX",
         .contract_address =
@@ -10374,7 +9085,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Rivermount",
         .unit = "RM",
         .contract_address =
@@ -10382,7 +9092,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "RightMesh",
         .unit = "RMESH",
         .contract_address =
@@ -10390,7 +9099,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "RMPL",
         .unit = "RMPL",
         .contract_address =
@@ -10398,7 +9106,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Render Token",
         .unit = "RNDR",
         .contract_address =
@@ -10406,7 +9113,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitRent",
         .unit = "RNTB",
         .contract_address =
@@ -10414,7 +9120,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "RoBET",
         .unit = "ROBET",
         .contract_address =
@@ -10422,7 +9127,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ICE ROCK MINING",
         .unit = "ROCK2",
         .contract_address =
@@ -10430,7 +9134,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Rozeus",
         .unit = "ROZ",
         .contract_address =
@@ -10438,7 +9141,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Rapidz",
         .unit = "RPZX",
         .contract_address =
@@ -10446,7 +9148,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Rate3",
         .unit = "RTE",
         .contract_address =
@@ -10454,7 +9155,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Rivetz",
         .unit = "RVT",
         .contract_address =
@@ -10462,7 +9162,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Robonomics Web Services",
         .unit = "RWS",
         .contract_address =
@@ -10470,7 +9169,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sharpay",
         .unit = "S",
         .contract_address =
@@ -10478,7 +9176,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Social Activity Token",
         .unit = "SAT",
         .contract_address =
@@ -10486,7 +9183,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SatoExchange Token",
         .unit = "SATX",
         .contract_address =
@@ -10494,7 +9190,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CBDAO",
         .unit = "SBREE",
         .contract_address =
@@ -10502,7 +9197,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SiaCashCoin",
         .unit = "SCC",
         .contract_address =
@@ -10510,7 +9204,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sociall",
         .unit = "SCL",
         .contract_address =
@@ -10518,7 +9211,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Seal Network",
         .unit = "SEAL",
         .contract_address =
@@ -10526,7 +9218,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MESEFA",
         .unit = "SEFA",
         .contract_address =
@@ -10534,7 +9225,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sentinel Chain",
         .unit = "SENC",
         .contract_address =
@@ -10542,7 +9232,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sensorium",
         .unit = "SENSO",
         .contract_address =
@@ -10550,7 +9239,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Save Environment Token",
         .unit = "SET",
         .contract_address =
@@ -10558,7 +9246,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "sETH",
         .unit = "SETH",
         .contract_address =
@@ -10566,7 +9253,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ShareX",
         .unit = "SEXC",
         .contract_address =
@@ -10574,7 +9260,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SF Capital",
         .unit = "SFCP",
         .contract_address =
@@ -10582,7 +9267,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SocialGood",
         .unit = "SG",
         .contract_address =
@@ -10590,7 +9274,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Saga",
         .unit = "SGA",
         .contract_address =
@@ -10598,7 +9281,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sudan Gold Coin",
         .unit = "SGC",
         .contract_address =
@@ -10606,7 +9288,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Signals Network",
         .unit = "SGN",
         .contract_address =
@@ -10614,7 +9295,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 9,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "snglsDAO",
         .unit = "SGT",
         .contract_address =
@@ -10622,7 +9302,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ShineChain",
         .unit = "SHE",
         .contract_address =
@@ -10630,7 +9309,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SHENG",
         .unit = "SHENG",
         .contract_address =
@@ -10638,7 +9316,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ShipChain",
         .unit = "SHIP",
         .contract_address =
@@ -10646,7 +9323,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SHPING",
         .unit = "SHPING",
         .contract_address =
@@ -10654,7 +9330,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Shivers",
         .unit = "SHVR",
         .contract_address =
@@ -10662,7 +9337,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Spectiv",
         .unit = "SIG",
         .contract_address =
@@ -10670,7 +9344,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Simmitri",
         .unit = "SIM",
         .contract_address =
@@ -10678,7 +9351,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sakura Bloom",
         .unit = "SKB",
         .contract_address =
@@ -10686,7 +9358,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Skychain",
         .unit = "SKCH",
         .contract_address =
@@ -10694,7 +9365,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Skillchain",
         .unit = "SKI",
         .contract_address =
@@ -10702,7 +9372,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SkinCoin",
         .unit = "SKIN",
         .contract_address =
@@ -10710,7 +9379,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Small Love Potion",
         .unit = "SLP",
         .contract_address =
@@ -10718,7 +9386,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SynchroBitcoin",
         .unit = "SNB",
         .contract_address =
@@ -10726,7 +9393,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SeChain",
         .unit = "SNN",
         .contract_address =
@@ -10734,7 +9400,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 3,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Snovian.Space",
         .unit = "SNOV",
         .contract_address =
@@ -10742,7 +9407,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SONDER",
         .unit = "SNR",
         .contract_address =
@@ -10750,7 +9414,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Silent Notary",
         .unit = "SNTR",
         .contract_address =
@@ -10758,7 +9421,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Synthetix Network Token",
         .unit = "SNX",
         .contract_address =
@@ -10766,7 +9428,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Soda Coin",
         .unit = "SOC",
         .contract_address =
@@ -10774,7 +9435,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CryptoSoul",
         .unit = "SOUL",
         .contract_address =
@@ -10782,7 +9442,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ChainZ Arena",
         .unit = "SOUL",
         .contract_address =
@@ -10790,7 +9449,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Secrets of Zurich",
         .unit = "SOZ",
         .contract_address =
@@ -10798,7 +9456,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SpankChain",
         .unit = "SPANK",
         .contract_address =
@@ -10806,7 +9463,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Swapcoinz",
         .unit = "SPAZ",
         .contract_address =
@@ -10814,7 +9470,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SPINDLE",
         .unit = "SPD",
         .contract_address =
@@ -10822,7 +9477,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Spiking",
         .unit = "SPIKE",
         .contract_address =
@@ -10830,7 +9484,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 10,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sapien",
         .unit = "SPN",
         .contract_address =
@@ -10838,7 +9491,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sparkle",
         .unit = "SPRKL",
         .contract_address =
@@ -10846,7 +9498,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Spectrum",
         .unit = "SPT",
         .contract_address =
@@ -10854,7 +9505,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Super Running Coin",
         .unit = "SRC",
         .contract_address =
@@ -10862,7 +9512,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SRCOIN",
         .unit = "SRCOIN",
         .contract_address =
@@ -10870,7 +9519,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sparkpoint",
         .unit = "SRK",
         .contract_address =
@@ -10878,7 +9526,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Sharder",
         .unit = "SS",
         .contract_address =
@@ -10886,7 +9533,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Smartshare",
         .unit = "SSP",
         .contract_address =
@@ -10894,7 +9540,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SIMBA Storage Token",
         .unit = "SST",
         .contract_address =
@@ -10902,7 +9547,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "STATERA",
         .unit = "STA",
         .contract_address =
@@ -10910,7 +9554,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "StarterCoin",
         .unit = "STAC",
         .contract_address =
@@ -10918,7 +9561,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "xDai",
         .unit = "STAKE",
         .contract_address =
@@ -10926,7 +9568,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SafePost",
         .unit = "STAMP",
         .contract_address =
@@ -10934,7 +9575,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Starbase",
         .unit = "STAR",
         .contract_address =
@@ -10942,7 +9582,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BitStash",
         .unit = "STASH",
         .contract_address =
@@ -10950,7 +9589,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "STK",
         .unit = "STK",
         .contract_address =
@@ -10958,7 +9596,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "STK Coin",
         .unit = "STK",
         .contract_address =
@@ -10966,7 +9603,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Streamity",
         .unit = "STM",
         .contract_address =
@@ -10974,7 +9610,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "StormX",
         .unit = "STMX",
         .contract_address =
@@ -10982,7 +9617,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Storeum",
         .unit = "STO",
         .contract_address =
@@ -10990,7 +9624,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "STONK",
         .unit = "STONK",
         .contract_address =
@@ -10998,7 +9631,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "STPAY",
         .unit = "STP",
         .contract_address =
@@ -11006,7 +9638,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Storiqa",
         .unit = "STQ",
         .contract_address =
@@ -11014,7 +9645,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Staker",
         .unit = "STR",
         .contract_address =
@@ -11022,7 +9652,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Strong",
         .unit = "STRONG",
         .contract_address =
@@ -11030,7 +9659,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SBank",
         .unit = "STS",
         .contract_address =
@@ -11038,7 +9666,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "bitJob",
         .unit = "STU",
         .contract_address =
@@ -11046,7 +9673,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Stox",
         .unit = "STX",
         .contract_address =
@@ -11054,7 +9680,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SUKU",
         .unit = "SUKU",
         .contract_address =
@@ -11062,7 +9687,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Suretly",
         .unit = "SUR",
         .contract_address =
@@ -11070,7 +9694,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "inSure",
         .unit = "SURE",
         .contract_address =
@@ -11078,7 +9701,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "suterusu",
         .unit = "SUTER",
         .contract_address =
@@ -11086,7 +9708,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Satoshivisioncoin",
         .unit = "SVC",
         .contract_address =
@@ -11094,7 +9715,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "savedroid",
         .unit = "SVD",
         .contract_address =
@@ -11102,7 +9722,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TrustSwap",
         .unit = "SWAP",
         .contract_address =
@@ -11110,7 +9729,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Scanetchain",
         .unit = "SWC",
         .contract_address =
@@ -11118,7 +9736,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Swarm City",
         .unit = "SWT",
         .contract_address =
@@ -11126,7 +9743,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SWYFT",
         .unit = "SWYFTT",
         .contract_address =
@@ -11134,7 +9750,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "SymVerse",
         .unit = "SYM",
         .contract_address =
@@ -11142,7 +9757,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Travel1Click",
         .unit = "T1C",
         .contract_address =
@@ -11150,7 +9764,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 16,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tokenbox",
         .unit = "TBX",
         .contract_address =
@@ -11158,7 +9771,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TCASH",
         .unit = "TCASH",
         .contract_address =
@@ -11166,7 +9778,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "The Currency Analytics",
         .unit = "TCAT",
         .contract_address =
@@ -11174,7 +9785,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TigerCash",
         .unit = "TCH",
         .contract_address =
@@ -11182,7 +9792,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Thore Cash",
         .unit = "TCH",
         .contract_address =
@@ -11190,7 +9799,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "THECASH",
         .unit = "TCH",
         .contract_address =
@@ -11198,7 +9806,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TrueDeck",
         .unit = "TDP",
         .contract_address =
@@ -11206,7 +9813,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TokenDesk",
         .unit = "TDS",
         .contract_address =
@@ -11214,7 +9820,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TEAM (TokenStars)",
         .unit = "TEAM",
         .contract_address =
@@ -11222,7 +9827,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TENA",
         .unit = "TENA",
         .contract_address =
@@ -11230,7 +9834,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tendies",
         .unit = "TEND",
         .contract_address =
@@ -11238,7 +9841,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tepleton",
         .unit = "TEP",
         .contract_address =
@@ -11246,7 +9848,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TrueFeedBack",
         .unit = "TFB",
         .contract_address =
@@ -11254,7 +9855,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Truegame",
         .unit = "TGAME",
         .contract_address =
@@ -11262,7 +9862,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Thar Token",
         .unit = "THAR",
         .contract_address =
@@ -11270,7 +9869,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Thrive Token",
         .unit = "THRT",
         .contract_address =
@@ -11278,7 +9876,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Thingschain",
         .unit = "TIC",
         .contract_address =
@@ -11286,7 +9883,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ties.DB",
         .unit = "TIE",
         .contract_address =
@@ -11294,7 +9890,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Chrono.tech",
         .unit = "TIME",
         .contract_address =
@@ -11302,7 +9897,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Blocktix",
         .unit = "TIX",
         .contract_address =
@@ -11310,7 +9904,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TOKPIE",
         .unit = "TKP",
         .contract_address =
@@ -11318,7 +9911,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "MDsquare",
         .unit = "TMED",
         .contract_address =
@@ -11326,7 +9918,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "The Midas Touch Gold",
         .unit = "TMTG",
         .contract_address =
@@ -11334,7 +9925,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TNC Coin",
         .unit = "TNC",
         .contract_address =
@@ -11342,7 +9932,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Transcodium",
         .unit = "TNS",
         .contract_address =
@@ -11350,7 +9939,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TouchCon",
         .unit = "TOC",
         .contract_address =
@@ -11358,7 +9946,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tokoin",
         .unit = "TOKO",
         .contract_address =
@@ -11366,7 +9953,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tolar",
         .unit = "TOL",
         .contract_address =
@@ -11374,7 +9960,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3X Long TomoChain Token",
         .unit = "TOMOBULL",
         .contract_address =
@@ -11382,7 +9967,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TopChain",
         .unit = "TOPC",
         .contract_address =
@@ -11390,7 +9974,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Thorium",
         .unit = "TORM",
         .contract_address =
@@ -11398,7 +9981,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ThingsOperatingSystem",
         .unit = "TOS",
         .contract_address =
@@ -11406,7 +9988,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tourist Token",
         .unit = "TOTO",
         .contract_address =
@@ -11414,7 +9995,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TokenPocket",
         .unit = "TPT",
         .contract_address =
@@ -11422,7 +10002,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Treecle",
         .unit = "TRCL",
         .contract_address =
@@ -11430,7 +10009,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "WeTrust",
         .unit = "TRST",
         .contract_address =
@@ -11438,7 +10016,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3X Short TRX Token",
         .unit = "TRXBEAR",
         .contract_address =
@@ -11446,7 +10023,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "3X Long TRX Token",
         .unit = "TRXBULL",
         .contract_address =
@@ -11454,7 +10030,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TRONCLASSIC",
         .unit = "TRXC",
         .contract_address =
@@ -11462,7 +10037,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Trias",
         .unit = "TRY",
         .contract_address =
@@ -11470,7 +10044,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "12Ships",
         .unit = "TSHP",
         .contract_address =
@@ -11478,7 +10051,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tesra",
         .unit = "TSR",
         .contract_address =
@@ -11486,7 +10058,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 5,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "The Transfer Token",
         .unit = "TTT",
         .contract_address =
@@ -11494,7 +10065,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TV-TWO",
         .unit = "TTV",
         .contract_address =
@@ -11502,7 +10072,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TUNE TOKEN",
         .unit = "TUNE",
         .contract_address =
@@ -11510,7 +10079,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TravelNote",
         .unit = "TVNT",
         .contract_address =
@@ -11518,7 +10086,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tweebaa",
         .unit = "TWEE",
         .contract_address =
@@ -11526,7 +10093,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Typerium",
         .unit = "TYPE",
         .contract_address =
@@ -11534,7 +10100,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "UltrAlpha",
         .unit = "UAT",
         .contract_address =
@@ -11542,7 +10107,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ubricoin",
         .unit = "UBN",
         .contract_address =
@@ -11550,7 +10114,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Unibomb",
         .unit = "UBOMB",
         .contract_address =
@@ -11558,7 +10121,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "UBU",
         .unit = "UBU",
         .contract_address =
@@ -11566,7 +10128,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "YouLive Coin",
         .unit = "UC",
         .contract_address =
@@ -11574,7 +10135,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "UChain",
         .unit = "UCN",
         .contract_address =
@@ -11582,7 +10142,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ubique Chain Of Things",
         .unit = "UCT",
         .contract_address =
@@ -11590,7 +10149,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Hyprr (Howdoo)",
         .unit = "UDOO",
         .contract_address =
@@ -11598,7 +10156,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Union Fair Coin",
         .unit = "UFC",
         .contract_address =
@@ -11606,7 +10163,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Upfiring",
         .unit = "UFR",
         .contract_address =
@@ -11614,7 +10170,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Ulgen Hash Power",
         .unit = "UHP",
         .contract_address =
@@ -11622,7 +10177,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "UNICORN Token",
         .unit = "UNI",
         .contract_address =
@@ -11630,7 +10184,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "UniDollar",
         .unit = "UNIUSD",
         .contract_address =
@@ -11638,7 +10191,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "UOS Network",
         .unit = "UOS",
         .contract_address =
@@ -11646,7 +10198,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 4,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "UpToken",
         .unit = "UP",
         .contract_address =
@@ -11654,7 +10205,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Pawtocol",
         .unit = "UPI",
         .contract_address =
@@ -11662,7 +10212,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Universal Protocol Token",
         .unit = "UPT",
         .contract_address =
@@ -11670,7 +10219,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "HonestCoin",
         .unit = "USDH",
         .contract_address =
@@ -11678,7 +10226,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 2,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "StableUSD",
         .unit = "USDS",
         .contract_address =
@@ -11686,7 +10233,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "USDx stablecoin",
         .unit = "USDX",
         .contract_address =
@@ -11694,7 +10240,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "VEHICLE DATA ARTIFICIAL INTELLIGENCE PLATFORM",
         .unit = "VAIP",
         .contract_address =
@@ -11702,7 +10247,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Vanta Network",
         .unit = "VANTA",
         .contract_address =
@@ -11710,7 +10254,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Vanywhere",
         .unit = "VANY",
         .contract_address =
@@ -11718,7 +10261,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "VARC",
         .unit = "VARC",
         .contract_address =
@@ -11726,7 +10268,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Vether",
         .unit = "VETH",
         .contract_address =
@@ -11734,7 +10275,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "VegaWallet Token",
         .unit = "VGW",
         .contract_address =
@@ -11742,7 +10282,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 5,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Vid",
         .unit = "VI",
         .contract_address =
@@ -11750,7 +10289,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "View",
         .unit = "VIEW",
         .contract_address =
@@ -11758,7 +10296,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "VikkyToken",
         .unit = "VIKKY",
         .contract_address =
@@ -11766,7 +10303,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Vinci",
         .unit = "VINCI",
         .contract_address =
@@ -11774,7 +10310,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "ValueChain",
         .unit = "VLC",
         .contract_address =
@@ -11782,7 +10317,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Vetri",
         .unit = "VLD",
         .contract_address =
@@ -11790,7 +10324,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Bankroll Vault",
         .unit = "VLT",
         .contract_address =
@@ -11798,7 +10331,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "TrueVett",
         .unit = "VME",
         .contract_address =
@@ -11806,7 +10338,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "VNX Exchange",
         .unit = "VNXLU",
         .contract_address =
@@ -11814,7 +10345,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Provoco Token",
         .unit = "VOCO",
         .contract_address =
@@ -11822,7 +10352,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Voise",
         .unit = "VOISE",
         .contract_address =
@@ -11830,7 +10359,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "VeraOne",
         .unit = "VRO",
         .contract_address =
@@ -11838,7 +10366,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Veros",
         .unit = "VRS",
         .contract_address =
@@ -11846,7 +10373,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "vSportCoin",
         .unit = "VSC",
         .contract_address =
@@ -11854,7 +10380,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "VeriSafe",
         .unit = "VSF",
         .contract_address =
@@ -11862,7 +10387,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "vSlice",
         .unit = "VSL",
         .contract_address =
@@ -11870,7 +10394,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Vision Network",
         .unit = "VSN",
         .contract_address =
@@ -11878,7 +10401,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Vectorspace AI",
         .unit = "VXV",
         .contract_address =
@@ -11886,7 +10408,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "WABnetwork",
         .unit = "WAB",
         .contract_address =
@@ -11894,7 +10415,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "WandX",
         .unit = "WAND",
         .contract_address =
@@ -11902,7 +10422,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "WiBX",
         .unit = "WBX",
         .contract_address =
@@ -11910,7 +10429,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Webcoin",
         .unit = "WEB",
         .contract_address =
@@ -11918,7 +10436,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "WEBN token",
         .unit = "WEBN",
         .contract_address =
@@ -11926,7 +10443,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "WeShow Token",
         .unit = "WET",
         .contract_address =
@@ -11934,7 +10450,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "WETH",
         .unit = "WETH",
         .contract_address =
@@ -11942,7 +10457,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Webflix Token",
         .unit = "WFX",
         .contract_address =
@@ -11950,7 +10464,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "W Green Pay",
         .unit = "WGP",
         .contract_address =
@@ -11958,7 +10471,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "WHEN Token",
         .unit = "WHEN",
         .contract_address =
@@ -11966,7 +10478,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Project WITH",
         .unit = "WIKEN",
         .contract_address =
@@ -11974,7 +10485,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "WITChain",
         .unit = "WIT",
         .contract_address =
@@ -11982,7 +10492,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "CrowdWiz",
         .unit = "WIZ",
         .contract_address =
@@ -11990,7 +10499,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "WinStars.live",
         .unit = "WNL",
         .contract_address =
@@ -11998,7 +10506,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Wrapped NXM",
         .unit = "WNXM",
         .contract_address =
@@ -12006,7 +10513,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "WOM Protocol",
         .unit = "WOM",
         .contract_address =
@@ -12014,7 +10520,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "WPP TOKEN",
         .unit = "WPP",
         .contract_address =
@@ -12022,7 +10527,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "WeSing Coin",
         .unit = "WSC",
         .contract_address =
@@ -12030,7 +10534,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Waletoken",
         .unit = "WTN",
         .contract_address =
@@ -12038,7 +10541,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 8,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "WXCOINS",
         .unit = "WXC",
         .contract_address =
@@ -12046,7 +10548,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 0,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "wys Token",
         .unit = "WYS",
         .contract_address =
@@ -12054,7 +10555,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "X8X Token",
         .unit = "X8X",
         .contract_address =
@@ -12062,7 +10562,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 18,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Xank",
         .unit = "XANK",
         .contract_address =
@@ -12070,7 +10569,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 16,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "Tether Gold",
         .unit = "XAUT",
         .contract_address =
@@ -12078,7 +10576,6 @@ static const app_eth_erc20_params_t _erc20_params[] = {
         .decimals = 6,
     },
     {
-        .coin = ETHCoin_ETH,
         .name = "BlitzPredict",
         .unit = "XBP",
         .contract_address =
@@ -12091,11 +10588,23 @@ const app_eth_erc20_params_t* app_eth_erc20_params_get(
     ETHCoin coin,
     const uint8_t* contract_address)
 {
-    for (size_t index = 0; index < sizeof(_erc20_params) / sizeof(app_eth_erc20_params_t);
-         index++) {
-        const app_eth_erc20_params_t* params = &_erc20_params[index];
-        if (params->coin == coin &&
-            MEMEQ(contract_address, params->contract_address, sizeof(params->contract_address))) {
+    const app_eth_erc20_params_t* erc20_params;
+    size_t len;
+    switch (coin) {
+    case ETHCoin_ETH:
+        erc20_params = _ethereum_erc20_params;
+        len = sizeof(_ethereum_erc20_params) / sizeof(app_eth_erc20_params_t);
+        break;
+    case ETHCoin_RopstenETH:
+        erc20_params = _ropsten_erc20_params;
+        len = sizeof(_ropsten_erc20_params) / sizeof(app_eth_erc20_params_t);
+        break;
+    default:
+        return NULL;
+    }
+    for (size_t index = 0; index < len; index++) {
+        const app_eth_erc20_params_t* params = &erc20_params[index];
+        if (MEMEQ(contract_address, params->contract_address, sizeof(params->contract_address))) {
             return params;
         }
     }

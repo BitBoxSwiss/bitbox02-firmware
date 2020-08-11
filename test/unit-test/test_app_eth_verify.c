@@ -47,7 +47,6 @@ bool __wrap_workflow_verify_total(const char* total, const char* fee)
 }
 
 static const app_eth_erc20_params_t _erc20_params = {
-    .coin = ETHCoin_RinkebyETH,
     .unit = "TEST",
     .contract_address =
         "\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55",

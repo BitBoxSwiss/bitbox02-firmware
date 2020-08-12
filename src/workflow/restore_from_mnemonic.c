@@ -143,11 +143,11 @@ bool workflow_restore_from_mnemonic(const RestoreFromMnemonicRequest* request)
     UTIL_CLEANUP_32(seed);
     size_t seed_len = 0;
     if (!keystore_bip39_mnemonic_to_seed(mnemonic, seed, &seed_len)) {
-        workflow_status_blocking("Invalid mnemonic", false);
+        workflow_status_blocking("Recovery words\ninvalid", false);
         return false;
     }
 
-    workflow_status_blocking("Mnemonic valid", true);
+    workflow_status_blocking("Recovery words\nvalid", true);
 
     char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
     UTIL_CLEANUP_STR(password);

@@ -85,3 +85,29 @@ macro_rules! str_to_cstr_force {
         }
     };
 }
+
+/// truncate_str truncates string `s` to `len` chars. If `s` is
+/// shorter than `len`, the string is returned unchanged (no panics).
+pub fn truncate_str(s: &str, len: usize) -> &str {
+    if s.len() > len {
+        &s[..len]
+    } else {
+        s
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_truncate_str() {
+        assert_eq!(truncate_str("test", 0), "");
+        assert_eq!(truncate_str("test", 1), "t");
+        assert_eq!(truncate_str("test", 2), "te");
+        assert_eq!(truncate_str("test", 3), "tes");
+        assert_eq!(truncate_str("test", 4), "test");
+        assert_eq!(truncate_str("test", 5), "test");
+        assert_eq!(truncate_str("test", 6), "test");
+    }
+}

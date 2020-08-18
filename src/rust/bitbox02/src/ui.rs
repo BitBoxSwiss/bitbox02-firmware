@@ -150,9 +150,21 @@ where
     // Callback must outlive component.
     F: FnMut(bool) + 'a,
 {
+    // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
+    // truncate and append '...'.
+    const TRUNCATE_SIZE: usize = MAX_LABEL_SIZE + 1;
+
     let params = bitbox02_sys::confirm_params_t {
-        title: crate::str_to_cstr_force!(params.title, MAX_LABEL_SIZE).as_ptr(),
-        body: crate::str_to_cstr_force!(params.body, MAX_LABEL_SIZE).as_ptr(),
+        title: crate::str_to_cstr_force!(
+            crate::util::truncate_str(params.title, TRUNCATE_SIZE),
+            TRUNCATE_SIZE
+        )
+        .as_ptr(),
+        body: crate::str_to_cstr_force!(
+            crate::util::truncate_str(params.body, TRUNCATE_SIZE),
+            TRUNCATE_SIZE
+        )
+        .as_ptr(),
         font: params.font.as_ptr(),
         scrollable: params.scrollable,
         longtouch: params.longtouch,

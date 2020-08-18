@@ -31,7 +31,8 @@
 void label_update(component_t* component, const char* text);
 
 /**
- * Creates a label with the given font.
+ * Creates a label with the given font. If the text is longer than MAX_LABEL_SIZE, it is truncated
+ * and suffixed with '...'.
  * @param[in] text The text of the label.
  * @param[in] font The font of the label.
  * @param[in] position The position of the label.

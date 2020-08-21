@@ -362,17 +362,8 @@ void commander(const in_buffer_t* in_buf, buffer_t* out_buf)
     commander_error_t err =
         protobuf_decode(in_buf, &request) ? COMMANDER_OK : COMMANDER_ERR_INVALID_INPUT;
     if (err == COMMANDER_OK) {
-        if (!commander_states_can_call(request.which_request)) {
-            err = COMMANDER_ERR_INVALID_STATE;
-        } else {
-            // Since we will process the call now, so can clear the 'force next' info.
-            // We do this before processing as the api call can potentially define the next api call
-            // to be forced.
-            commander_states_clear_force_next();
-
-            err = _api_process(&request, &response);
-            util_zero(&request, sizeof(request));
-        }
+        err = _api_process(&request, &response);
+        util_zero(&request, sizeof(request));
     }
     if (err != COMMANDER_OK) {
         _report_error(&response, err);

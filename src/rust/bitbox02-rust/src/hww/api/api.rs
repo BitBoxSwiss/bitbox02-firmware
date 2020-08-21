@@ -67,6 +67,41 @@ fn encode(response: Response) -> Vec<u8> {
     out
 }
 
+/// Returns the field tag number of the request as defined in the .proto file.  This is needed for
+/// compatibility with commander_states.c, and needed as long as API calls processed in C use
+/// `commmander_states_force_next()`.
+fn request_tag(request: &Request) -> u32 {
+    use Request::*;
+    match request {
+        RandomNumber(_) => bitbox02::Request_random_number_tag,
+        DeviceName(_) => bitbox02::Request_device_name_tag,
+        DeviceLanguage(_) => bitbox02::Request_device_language_tag,
+        DeviceInfo(_) => bitbox02::Request_device_info_tag,
+        SetPassword(_) => bitbox02::Request_set_password_tag,
+        CreateBackup(_) => bitbox02::Request_create_backup_tag,
+        ShowMnemonic(_) => bitbox02::Request_show_mnemonic_tag,
+        BtcPub(_) => bitbox02::Request_btc_pub_tag,
+        BtcSignInit(_) => bitbox02::Request_btc_sign_init_tag,
+        BtcSignInput(_) => bitbox02::Request_btc_sign_input_tag,
+        BtcSignOutput(_) => bitbox02::Request_btc_sign_output_tag,
+        InsertRemoveSdcard(_) => bitbox02::Request_insert_remove_sdcard_tag,
+        CheckSdcard(_) => bitbox02::Request_check_sdcard_tag,
+        SetMnemonicPassphraseEnabled(_) => bitbox02::Request_set_mnemonic_passphrase_enabled_tag,
+        ListBackups(_) => bitbox02::Request_list_backups_tag,
+        RestoreBackup(_) => bitbox02::Request_restore_backup_tag,
+        PerformAttestation(_) => bitbox02::Request_perform_attestation_tag,
+        Reboot(_) => bitbox02::Request_reboot_tag,
+        CheckBackup(_) => bitbox02::Request_check_backup_tag,
+        Eth(_) => bitbox02::Request_eth_tag,
+        Reset(_) => bitbox02::Request_reset_tag,
+        RestoreFromMnemonic(_) => bitbox02::Request_restore_from_mnemonic_tag,
+        Bitboxbase(_) => bitbox02::Request_bitboxbase_tag,
+        Fingerprint(_) => bitbox02::Request_fingerprint_tag,
+        Btc(_) => bitbox02::Request_btc_tag,
+        ElectrumEncryptionKey(_) => bitbox02::Request_electrum_encryption_key_tag,
+    }
+}
+
 async fn api_set_device_name(
     pb::SetDeviceNameRequest { name }: &pb::SetDeviceNameRequest,
 ) -> Response {
@@ -113,6 +148,15 @@ pub async fn process(input: Vec<u8>) -> Vec<u8> {
         }) => request,
         _ => return encode(make_error(Error::COMMANDER_ERR_INVALID_INPUT)),
     };
+    if !bitbox02::commander::states_can_call(request_tag(&request) as u16) {
+        return encode(make_error(Error::COMMANDER_ERR_INVALID_STATE));
+    }
+
+    // Since we will process the call now, so can clear the 'force next' info.
+    // We do this before processing as the api call can potentially define the next api call
+    // to be forced.
+    bitbox02::commander::states_clear_force_next();
+
     match process_api(&request).await {
         Some(response) => encode(response),
         // Api call not handled in Rust -> handle it in C.

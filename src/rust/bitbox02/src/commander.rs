@@ -44,3 +44,11 @@ pub fn commander(input: Vec<u8>) -> Vec<u8> {
     };
     output_vec
 }
+
+pub fn states_can_call(request_tag: u16) -> bool {
+    unsafe { bitbox02_sys::commander_states_can_call(request_tag) }
+}
+
+pub fn states_clear_force_next() {
+    unsafe { bitbox02_sys::commander_states_clear_force_next() }
+}

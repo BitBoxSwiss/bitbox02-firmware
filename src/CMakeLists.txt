@@ -373,6 +373,8 @@ add_custom_target(rust-bindgen
     --whitelist-type commander_error_t
     --rustified-enum commander_error_t
     --whitelist-function commander
+    --whitelist-function commander_states_can_call
+    --whitelist-function commander_states_clear_force_next
     --whitelist-type BitBoxBaseRequest
     --whitelist-var ".*_tag"
     --whitelist-var MAX_LABEL_SIZE

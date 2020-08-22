@@ -14,7 +14,6 @@
 
 #include "reset.h"
 #include "confirm.h"
-#include "password.h"
 #include "workflow.h"
 
 #include <reset.h>

@@ -16,7 +16,6 @@
 
 #include "blocking.h"
 #include "cancel.h"
-#include "password.h"
 #include "status.h"
 #include "workflow.h"
 

@@ -3,6 +3,13 @@
 /releases/temp/
 NOTES.md
 .vagrant/
+# LSP caches and local configs
+.clangd
+.cquery
+.ccls
+.ccls-cache
+compile_commands.json
+compile_flags.txt
 
 # gnu global
 /src/GPATH

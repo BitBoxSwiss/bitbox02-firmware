@@ -23,6 +23,10 @@ make prepare-tidy
 make -j8 unit-test
 make -j8 run-unit-tests
 make -j8 run-rust-unit-tests
+
+# Rust linter
+make -j8 run-rust-clippy
+
 # Check that coverage report building is working.
 make coverage
 

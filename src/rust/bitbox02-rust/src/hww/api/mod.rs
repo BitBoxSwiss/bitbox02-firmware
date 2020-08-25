@@ -16,6 +16,7 @@ mod pb {
     include!("./shiftcrypto.bitbox02.rs");
 }
 mod error;
+mod set_device_name;
 
 use alloc::vec::Vec;
 
@@ -69,35 +70,13 @@ fn request_tag(request: &Request) -> u32 {
     }
 }
 
-async fn api_set_device_name(
-    pb::SetDeviceNameRequest { name }: &pb::SetDeviceNameRequest,
-) -> Response {
-    use crate::workflow::confirm;
-    let params = confirm::Params {
-        title: "Name",
-        body: &name,
-        scrollable: true,
-        ..Default::default()
-    };
-
-    if !confirm::confirm(&params).await {
-        return make_error(Error::COMMANDER_ERR_USER_ABORT);
-    }
-
-    if bitbox02::memory::set_device_name(&name).is_err() {
-        return make_error(Error::COMMANDER_ERR_MEMORY);
-    }
-
-    Response::Success(pb::Success {})
-}
-
 /// Handle a protobuf api call.
 ///
 /// Returns `None` if the call was not handled by Rust, in which case
 /// it should be handled by the C commander.
 async fn process_api(request: &Request) -> Option<Response> {
     match request {
-        Request::DeviceName(ref request) => Some(api_set_device_name(request).await),
+        Request::DeviceName(ref request) => Some(set_device_name::process(request).await),
         _ => None,
     }
 }

@@ -15,50 +15,14 @@
 mod pb {
     include!("./shiftcrypto.bitbox02.rs");
 }
+mod error;
 
 use alloc::vec::Vec;
 
-use bitbox02::commander::Error;
+use error::{make_error, Error};
 use pb::request::Request;
 use pb::response::Response;
 use prost::Message;
-
-/// Creates an Error response. Corresponds to commander.c:_report_error().
-fn make_error(err: bitbox02::commander::Error) -> Response {
-    use Error::*;
-    let err = match err {
-        COMMANDER_OK => panic!("can't call this function with COMMANDER_OK"),
-        COMMANDER_ERR_INVALID_INPUT => pb::Error {
-            code: 101,
-            message: "invalid input".into(),
-        },
-        COMMANDER_ERR_MEMORY => pb::Error {
-            code: 102,
-            message: "memory".into(),
-        },
-        COMMANDER_ERR_GENERIC => pb::Error {
-            code: 103,
-            message: "generic error".into(),
-        },
-        COMMANDER_ERR_USER_ABORT => pb::Error {
-            code: 104,
-            message: "aborted by the user".into(),
-        },
-        COMMANDER_ERR_INVALID_STATE => pb::Error {
-            code: 105,
-            message: "can't call this endpoint: wrong state".into(),
-        },
-        COMMANDER_ERR_DISABLED => pb::Error {
-            code: 106,
-            message: "function disabled".into(),
-        },
-        COMMANDER_ERR_DUPLICATE => pb::Error {
-            code: 107,
-            message: "duplicate entry".into(),
-        },
-    };
-    Response::Error(err)
-}
 
 /// Encodes a protobuf Response message.
 fn encode(response: Response) -> Vec<u8> {

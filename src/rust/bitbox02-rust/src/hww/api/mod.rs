@@ -17,6 +17,7 @@ mod pb {
 }
 mod error;
 mod set_device_name;
+mod set_password;
 
 use alloc::vec::Vec;
 
@@ -77,6 +78,7 @@ fn request_tag(request: &Request) -> u32 {
 async fn process_api(request: &Request) -> Option<Response> {
     match request {
         Request::DeviceName(ref request) => Some(set_device_name::process(request).await),
+        Request::SetPassword(ref request) => Some(set_password::process(request).await),
         _ => None,
     }
 }

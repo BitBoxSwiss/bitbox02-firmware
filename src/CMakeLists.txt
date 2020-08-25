@@ -44,7 +44,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/cancel.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm_time.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/create_seed.c
   ${CMAKE_SOURCE_DIR}/src/workflow/idle_workflow.c
   ${CMAKE_SOURCE_DIR}/src/workflow/password.c
   ${CMAKE_SOURCE_DIR}/src/workflow/reboot.c
@@ -345,6 +344,7 @@ add_custom_target(rust-bindgen
     --whitelist-function keystore_is_locked
     --whitelist-function keystore_unlock
     --whitelist-function keystore_unlock_bip39
+    --whitelist-function keystore_create_and_store_seed
     --whitelist-function lock_animation_start
     --whitelist-function lock_animation_stop
     --whitelist-function delay_us

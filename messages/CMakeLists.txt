@@ -51,6 +51,13 @@ add_custom_command(
     --proto_path=${CMAKE_CURRENT_SOURCE_DIR}
     '--nanopb_out=-I${CMAKE_CURRENT_SOURCE_DIR}:${CMAKE_CURRENT_BINARY_DIR}'
     ${PROTO_FILES_ABSOLUTE}
+  # We build the Rust protobuf files here and put them straight into the crate.
+  # This way, the crate can be compiled and tested without relying on cmake environment vars.
+  # Using prost-build the normal way as part of build.rs does not work due to a cargo bug:
+  # https://github.com/danburkert/prost/issues/344#issuecomment-650721245
+  COMMAND
+  ${CMAKE_COMMAND} -E env
+    cargo run --manifest-path=${CMAKE_SOURCE_DIR}/tools/prost-build/Cargo.toml -- --messages-dir=${CMAKE_CURRENT_SOURCE_DIR} --out-dir=${CMAKE_SOURCE_DIR}/src/rust/bitbox02-rust/src/hww/api/
 )
 
 add_custom_target(

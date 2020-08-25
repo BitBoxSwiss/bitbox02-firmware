@@ -66,7 +66,7 @@ pub async fn unlock_keystore(title: &str) -> bool {
         Ok(()) => true,
         Err(keystore::Error::IncorrectPassword { remaining_attempts }) => {
             let msg = match remaining_attempts {
-                1 => format!("Wrong password\n1 try remains"),
+                1 => "Wrong password\n1 try remains".into(),
                 n => format!("Wrong password\n{} tries remain", n),
             };
             status(&msg, false).await;

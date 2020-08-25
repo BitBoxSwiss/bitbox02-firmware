@@ -123,22 +123,6 @@ static commander_error_t _api_get_info(DeviceInfoResponse* device_info)
     return COMMANDER_OK;
 }
 
-static commander_error_t _api_set_device_name(const SetDeviceNameRequest* request)
-{
-    const confirm_params_t params = {
-        .title = "Name",
-        .body = request->name,
-        .scrollable = true,
-    };
-    if (!workflow_confirm_blocking(&params)) {
-        return COMMANDER_ERR_USER_ABORT;
-    }
-    if (!memory_set_device_name(request->name)) {
-        return COMMANDER_ERR_MEMORY;
-    }
-    return COMMANDER_OK;
-}
-
 static commander_error_t _api_set_password(const SetPasswordRequest* request)
 {
     if (!workflow_create_seed(request->entropy)) {
@@ -282,9 +266,6 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_device_info_tag:
         response->which_response = Response_device_info_tag;
         return _api_get_info(&(response->response.device_info));
-    case Request_device_name_tag:
-        response->which_response = Response_success_tag;
-        return _api_set_device_name(&(request->request.device_name));
     case Request_set_password_tag:
         response->which_response = Response_success_tag;
         return _api_set_password(&(request->request.set_password));
@@ -381,17 +362,8 @@ void commander(const in_buffer_t* in_buf, buffer_t* out_buf)
     commander_error_t err =
         protobuf_decode(in_buf, &request) ? COMMANDER_OK : COMMANDER_ERR_INVALID_INPUT;
     if (err == COMMANDER_OK) {
-        if (!commander_states_can_call(request.which_request)) {
-            err = COMMANDER_ERR_INVALID_STATE;
-        } else {
-            // Since we will process the call now, so can clear the 'force next' info.
-            // We do this before processing as the api call can potentially define the next api call
-            // to be forced.
-            commander_states_clear_force_next();
-
-            err = _api_process(&request, &response);
-            util_zero(&request, sizeof(request));
-        }
+        err = _api_process(&request, &response);
+        util_zero(&request, sizeof(request));
     }
     if (err != COMMANDER_OK) {
         _report_error(&response, err);
@@ -401,10 +373,6 @@ void commander(const in_buffer_t* in_buf, buffer_t* out_buf)
 }
 
 #ifdef TESTING
-commander_error_t commander_api_set_device_name(const SetDeviceNameRequest* request)
-{
-    return _api_set_device_name(request);
-}
 commander_error_t commander_api_set_mnemonic_passphrase_enabled(
     const SetMnemonicPassphraseEnabledRequest* request)
 {

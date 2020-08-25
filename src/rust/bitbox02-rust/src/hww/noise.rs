@@ -117,7 +117,7 @@ pub(crate) async fn process(usb_in: Vec<u8>, usb_out: &mut Vec<u8>) -> Result<()
         }
         Some((&OP_NOISE_MSG, encrypted_msg)) => {
             let decrypted_msg = state.decrypt(encrypted_msg)?;
-            let response = bitbox02::commander::commander(decrypted_msg);
+            let response = super::api::process(decrypted_msg).await;
             state.encrypt(&response, usb_out)?;
             Ok(())
         }

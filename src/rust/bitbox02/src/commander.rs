@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub type Error = bitbox02_sys::commander_error_t;
+pub use bitbox02_sys::commander_error_t as Error;
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -43,4 +43,12 @@ pub fn commander(input: Vec<u8>) -> Vec<u8> {
         output_vec.set_len(output.len as _);
     };
     output_vec
+}
+
+pub fn states_can_call(request_tag: u16) -> bool {
+    unsafe { bitbox02_sys::commander_states_can_call(request_tag) }
+}
+
+pub fn states_clear_force_next() {
+    unsafe { bitbox02_sys::commander_states_clear_force_next() }
 }

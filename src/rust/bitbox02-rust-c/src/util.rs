@@ -189,7 +189,7 @@ impl CStrMut {
     /// then are available.
     pub fn write<F>(&mut self, req: usize, f: F)
     where
-        F: FnOnce(&mut [u8]) -> (),
+        F: FnOnce(&mut [u8]),
     {
         // Must be room for requested amount of bytes and null terminator.
         if self.cap - self.len < req + 1 {

@@ -155,7 +155,7 @@ pub unsafe extern "C" fn rust_workflow_confirm_blocking(
 ) -> bool {
     let title = crate::util::rust_util_cstr(params.title);
     let body = crate::util::rust_util_cstr(params.body);
-    if params.font != core::ptr::null() {
+    if !params.font.is_null() {
         panic!("Only default font supported");
     }
     let params = confirm::Params {

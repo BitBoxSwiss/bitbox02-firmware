@@ -16,6 +16,7 @@
 #include <bitboxbase/bitboxbase_screensaver.h>
 #include <bitboxbase/bitboxbase_watchdog.h>
 #include <commander/commander.h>
+#include <commander/commander_states.h>
 #include <keystore.h>
 #include <memory/memory.h>
 #include <platform/bitboxbase/leds.h>

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 mod pb {
-    include!("./shiftcrypto.bitbox02.rs");
+    include!("./api/shiftcrypto.bitbox02.rs");
 }
 mod error;
 mod set_device_name;

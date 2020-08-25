@@ -23,7 +23,6 @@ pub mod general;
 pub mod async_usb;
 pub mod attestation;
 pub mod bb02_async;
-pub mod commander;
 pub mod hww;
 pub mod platform;
 pub mod util;

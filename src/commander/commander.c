@@ -46,7 +46,6 @@
 
 #include <workflow/backup.h>
 #include <workflow/confirm.h>
-#include <workflow/create_seed.h>
 #include <workflow/reboot.h>
 #include <workflow/reset.h>
 #include <workflow/restore.h>
@@ -120,14 +119,6 @@ static commander_error_t _api_get_info(DeviceInfoResponse* device_info)
         return COMMANDER_ERR_GENERIC;
     }
 #endif
-    return COMMANDER_OK;
-}
-
-static commander_error_t _api_set_password(const SetPasswordRequest* request)
-{
-    if (!workflow_create_seed(request->entropy)) {
-        return COMMANDER_ERR_GENERIC;
-    }
     return COMMANDER_OK;
 }
 
@@ -266,9 +257,6 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_device_info_tag:
         response->which_response = Response_device_info_tag;
         return _api_get_info(&(response->response.device_info));
-    case Request_set_password_tag:
-        response->which_response = Response_success_tag;
-        return _api_set_password(&(request->request.set_password));
     case Request_create_backup_tag:
         response->which_response = Response_success_tag;
         return _api_create_backup(&(request->request.create_backup));

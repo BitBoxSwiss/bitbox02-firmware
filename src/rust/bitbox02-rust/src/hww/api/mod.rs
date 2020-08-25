@@ -15,50 +15,16 @@
 mod pb {
     include!("./shiftcrypto.bitbox02.rs");
 }
+mod error;
+mod set_device_name;
+mod set_password;
 
 use alloc::vec::Vec;
 
-use bitbox02::commander::Error;
+use error::{make_error, Error};
 use pb::request::Request;
 use pb::response::Response;
 use prost::Message;
-
-/// Creates an Error response. Corresponds to commander.c:_report_error().
-fn make_error(err: bitbox02::commander::Error) -> Response {
-    use Error::*;
-    let err = match err {
-        COMMANDER_OK => panic!("can't call this function with COMMANDER_OK"),
-        COMMANDER_ERR_INVALID_INPUT => pb::Error {
-            code: 101,
-            message: "invalid input".into(),
-        },
-        COMMANDER_ERR_MEMORY => pb::Error {
-            code: 102,
-            message: "memory".into(),
-        },
-        COMMANDER_ERR_GENERIC => pb::Error {
-            code: 103,
-            message: "generic error".into(),
-        },
-        COMMANDER_ERR_USER_ABORT => pb::Error {
-            code: 104,
-            message: "aborted by the user".into(),
-        },
-        COMMANDER_ERR_INVALID_STATE => pb::Error {
-            code: 105,
-            message: "can't call this endpoint: wrong state".into(),
-        },
-        COMMANDER_ERR_DISABLED => pb::Error {
-            code: 106,
-            message: "function disabled".into(),
-        },
-        COMMANDER_ERR_DUPLICATE => pb::Error {
-            code: 107,
-            message: "duplicate entry".into(),
-        },
-    };
-    Response::Error(err)
-}
 
 /// Encodes a protobuf Response message.
 fn encode(response: Response) -> Vec<u8> {
@@ -105,35 +71,14 @@ fn request_tag(request: &Request) -> u32 {
     }
 }
 
-async fn api_set_device_name(
-    pb::SetDeviceNameRequest { name }: &pb::SetDeviceNameRequest,
-) -> Response {
-    use crate::workflow::confirm;
-    let params = confirm::Params {
-        title: "Name",
-        body: &name,
-        scrollable: true,
-        ..Default::default()
-    };
-
-    if !confirm::confirm(&params).await {
-        return make_error(Error::COMMANDER_ERR_USER_ABORT);
-    }
-
-    if bitbox02::memory::set_device_name(&name).is_err() {
-        return make_error(Error::COMMANDER_ERR_MEMORY);
-    }
-
-    Response::Success(pb::Success {})
-}
-
 /// Handle a protobuf api call.
 ///
 /// Returns `None` if the call was not handled by Rust, in which case
 /// it should be handled by the C commander.
 async fn process_api(request: &Request) -> Option<Response> {
     match request {
-        Request::DeviceName(ref request) => Some(api_set_device_name(request).await),
+        Request::DeviceName(ref request) => Some(set_device_name::process(request).await),
+        Request::SetPassword(ref request) => Some(set_password::process(request).await),
         _ => None,
     }
 }

@@ -33,8 +33,13 @@ enum UsbTaskState<'a> {
     /// Waiting for a new query, nothing to do.
     Nothing,
     /// A query came in which launched a task, which is now running (e.g. user is entering a
-    /// password).
-    Running(Task<'a, UsbOut>),
+    /// password). The option inside is `Some`, but is `None` for the brief period during which the
+    /// task is polled. This is akin to popping off the task from the executor state and pushing it
+    /// back in after it is polled, which is best practice (and often done via a message passing
+    /// queue). This allows for the execeutor state to not be borrowed while the task is being
+    /// executed, which allows the task itself to modify the executor state (otherwise we would have
+    /// an illegal double-borrow of the state).
+    Running(Option<Task<'a, UsbOut>>),
     /// The task has finished and written the result, so the USB response is available. We are now
     /// waiting for the client to fetch it (HWW_REQ_RETRY). For short-circuited or non-async api
     /// calls, the result might be returned immediately in response to HWW_REQ_NEW.
@@ -65,7 +70,7 @@ where
         UsbTaskState::Nothing => {
             let task: Task<UsbOut> = Box::pin(workflow(usb_in.to_vec()));
 
-            *state = UsbTaskState::Running(task);
+            *state = UsbTaskState::Running(Some(task));
         }
         _ => panic!("previous task still in progress"),
     }
@@ -77,15 +82,30 @@ where
 /// If this spin finishes the task, the state is moved to
 /// `ResultAvailable`, which contains the result.
 pub fn spin() {
-    let mut state = USB_TASK_STATE.0.borrow_mut();
-    match *state {
-        UsbTaskState::Running(ref mut task) => {
-            let result = spin_task(task);
-            if let Poll::Ready(result) = result {
-                *state = UsbTaskState::ResultAvailable(result);
+    // Pop task before polling, so that USB_TASK_STATE does not stay borrowed during the poll.
+    let mut popped_task = match *USB_TASK_STATE.0.borrow_mut() {
+        // Illegal state, `None` is only valid during the poll.
+        UsbTaskState::Running(None) => panic!("task not found"),
+        // Get the task out, putting `None` in. This allows us to release the mutable borrow on the
+        // state.
+        UsbTaskState::Running(ref mut task @ Some(_)) => task.take(),
+        // Nothing to do.
+        _ => None,
+    };
+    if let Some(ref mut task) = popped_task {
+        match spin_task(task) {
+            Poll::Ready(result) => {
+                *USB_TASK_STATE.0.borrow_mut() = UsbTaskState::ResultAvailable(result);
+            }
+            Poll::Pending => {
+                // Not done yet, put the task back for execution.
+                if let UsbTaskState::Running(ref mut task @ None) = *USB_TASK_STATE.0.borrow_mut() {
+                    *task = popped_task;
+                } else {
+                    panic!("spin: illegal executor state");
+                }
             }
         }
-        _ => (),
     }
 }
 

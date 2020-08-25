@@ -17,7 +17,6 @@
 #include "blocking.h"
 #include "cancel.h"
 #include "status.h"
-#include "workflow.h"
 
 #include <hardfault.h>
 #include <keystore.h>

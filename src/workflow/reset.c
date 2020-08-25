@@ -14,7 +14,6 @@
 
 #include "reset.h"
 #include "confirm.h"
-#include "workflow.h"
 
 #include <reset.h>
 #include <rust/rust.h>

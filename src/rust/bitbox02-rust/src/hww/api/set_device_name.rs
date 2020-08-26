@@ -13,13 +13,15 @@
 // limitations under the License.
 
 use super::pb;
-use super::{make_error, Error};
+use super::Error;
 
 use pb::response::Response;
 
 use crate::workflow::confirm;
 
-pub async fn process(pb::SetDeviceNameRequest { name }: &pb::SetDeviceNameRequest) -> Response {
+pub async fn process(
+    pb::SetDeviceNameRequest { name }: &pb::SetDeviceNameRequest,
+) -> Result<Response, Error> {
     let params = confirm::Params {
         title: "Name",
         body: &name,
@@ -28,12 +30,12 @@ pub async fn process(pb::SetDeviceNameRequest { name }: &pb::SetDeviceNameReques
     };
 
     if !confirm::confirm(&params).await {
-        return make_error(Error::COMMANDER_ERR_USER_ABORT);
+        return Err(Error::COMMANDER_ERR_USER_ABORT);
     }
 
     if bitbox02::memory::set_device_name(&name).is_err() {
-        return make_error(Error::COMMANDER_ERR_MEMORY);
+        return Err(Error::COMMANDER_ERR_MEMORY);
     }
 
-    Response::Success(pb::Success {})
+    Ok(Response::Success(pb::Success {}))
 }

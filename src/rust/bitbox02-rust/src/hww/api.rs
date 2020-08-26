@@ -73,9 +73,9 @@ fn request_tag(request: &Request) -> u32 {
 
 /// Handle a protobuf api call.
 ///
-/// Returns `None` if the call was not handled by Rust, in which case
-/// it should be handled by the C commander.
-async fn process_api(request: &Request) -> Option<Response> {
+/// Returns `None` if the call was not handled by Rust, in which case it should be handled by
+/// the C commander.
+async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
     match request {
         Request::DeviceName(ref request) => Some(set_device_name::process(request).await),
         Request::SetPassword(ref request) => Some(set_password::process(request).await),
@@ -106,8 +106,9 @@ pub async fn process(input: Vec<u8>) -> Vec<u8> {
     bitbox02::commander::states_clear_force_next();
 
     match process_api(&request).await {
-        Some(response) => encode(response),
+        Some(Ok(response)) => encode(response),
+        Some(Err(error)) => encode(make_error(error)),
         // Api call not handled in Rust -> handle it in C.
-        _ => bitbox02::commander::commander(input),
+        None => bitbox02::commander::commander(input),
     }
 }

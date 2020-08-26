@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use super::pb;
-use super::{make_error, Error};
+use super::Error;
 
 use crate::workflow::password;
 use bitbox02::password::Password;
@@ -25,21 +25,23 @@ use pb::response::Response;
 ///
 /// `entropy` must be exactly 32 bytes and provides additional entropy used when
 /// creating the seed.
-pub async fn process(pb::SetPasswordRequest { entropy }: &pb::SetPasswordRequest) -> Response {
+pub async fn process(
+    pb::SetPasswordRequest { entropy }: &pb::SetPasswordRequest,
+) -> Result<Response, Error> {
     let entropy32: [u8; 32] = match entropy.as_slice().try_into() {
-        Err(_) => return make_error(Error::COMMANDER_ERR_INVALID_INPUT),
+        Err(_) => return Err(Error::COMMANDER_ERR_INVALID_INPUT),
         Ok(e) => e,
     };
     let mut password = Password::new();
     if !password::enter_twice(&mut password).await {
-        return make_error(Error::COMMANDER_ERR_GENERIC);
+        return Err(Error::COMMANDER_ERR_GENERIC);
     }
     if !bitbox02::keystore::create_and_store_seed(&password, &entropy32) {
-        return make_error(Error::COMMANDER_ERR_GENERIC);
+        return Err(Error::COMMANDER_ERR_GENERIC);
     }
     if bitbox02::keystore::unlock(&password).is_err() {
         panic!("Unexpected error during restore: unlock failed.");
     }
     crate::workflow::unlock::unlock_bip39().await;
-    Response::Success(pb::Success {})
+    Ok(Response::Success(pb::Success {}))
 }

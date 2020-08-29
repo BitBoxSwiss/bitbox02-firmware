@@ -782,16 +782,8 @@ app_btc_result_t app_btc_sign_output(
                     &hash_size)) {
                 return _error(APP_BTC_ERR_UNKNOWN);
             }
-            switch (script_config_account->script_config.config.multisig.script_type) {
-            case BTCScriptConfig_Multisig_ScriptType_P2WSH:
-                output_type = BTCOutputType_P2WSH;
-                break;
-            case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
-                output_type = BTCOutputType_P2SH;
-                break;
-            default:
-                return _error(APP_BTC_ERR_INVALID_INPUT);
-            }
+            output_type = btc_common_determine_output_type_multisig(
+                &script_config_account->script_config.config.multisig);
             break;
         default:
             return _error(APP_BTC_ERR_INVALID_INPUT);

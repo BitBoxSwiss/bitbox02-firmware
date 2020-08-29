@@ -152,6 +152,13 @@ USE_RESULT bool btc_common_sighash_script_from_pubkeyhash(
  * For an input type (e.g. a script wrapped in p2sh), determine the output type.
  */
 USE_RESULT BTCOutputType btc_common_determine_output_type(BTCScriptConfig_SimpleType script_type);
+
+/**
+ * For a multisig input type, determine the output type.
+ */
+USE_RESULT BTCOutputType
+btc_common_determine_output_type_multisig(const BTCScriptConfig_Multisig* multisig);
+
 /**
  * Converts an output script or publickey hash to an address.
  * hash, hash_size can be obtained from btc_common_outputhash_from_pubkeyhash().

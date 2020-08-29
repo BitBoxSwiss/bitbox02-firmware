@@ -427,6 +427,18 @@ BTCOutputType btc_common_determine_output_type(BTCScriptConfig_SimpleType script
     }
 }
 
+BTCOutputType btc_common_determine_output_type_multisig(const BTCScriptConfig_Multisig* multisig)
+{
+    switch (multisig->script_type) {
+    case BTCScriptConfig_Multisig_ScriptType_P2WSH:
+        return BTCOutputType_P2WSH;
+    case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
+        return BTCOutputType_P2SH;
+    default:
+        return BTCOutputType_UNKNOWN;
+    }
+}
+
 /**
  * @param[in] version base58 check version, e.g. 0x05 for the "3" prefix.
  * @param[in] hash hash160 hash of pubkey or script, to bebase58Check encoded.

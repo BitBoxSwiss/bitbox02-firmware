@@ -203,13 +203,16 @@ USE_RESULT bool btc_common_pkscript_from_multisig(
  * xpubs.
  * @param[in] keypath_change 0 for receive addresses, 1 for change addresses.
  * @param[in] keypath_address receive address index.
- * @param[out] output_hash result, must be `SHA256_LEN` bytes.
+ * @param[out] output_hash result, must be at least `SHA256_LEN` bytes.
+ * @param[out] size of the output hash. Will be `SHA256_LEN` for P2WSH and `HASH160_LEN` for
+ * P2WSH-P2SH.
  */
-USE_RESULT bool btc_common_outputhash_from_multisig_p2wsh(
+USE_RESULT bool btc_common_outputhash_from_multisig(
     const BTCScriptConfig_Multisig* multisig,
     uint32_t keypath_change,
     uint32_t keypath_address,
-    uint8_t* output_hash);
+    uint8_t* output_hash,
+    size_t* output_hash_size);
 
 /**
  * Validate a m-of-n multisig account. This includes checking that:

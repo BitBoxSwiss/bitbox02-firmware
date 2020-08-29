@@ -774,15 +774,24 @@ app_btc_result_t app_btc_sign_output(
             break;
         }
         case BTCScriptConfig_multisig_tag:
-            if (!btc_common_outputhash_from_multisig_p2wsh(
+            if (!btc_common_outputhash_from_multisig(
                     &script_config_account->script_config.config.multisig,
                     request->keypath[request->keypath_count - 2],
                     request->keypath[request->keypath_count - 1],
-                    hash_bytes)) {
+                    hash_bytes,
+                    &hash_size)) {
                 return _error(APP_BTC_ERR_UNKNOWN);
             }
-            hash_size = 32;
-            output_type = BTCOutputType_P2WSH;
+            switch (script_config_account->script_config.config.multisig.script_type) {
+            case BTCScriptConfig_Multisig_ScriptType_P2WSH:
+                output_type = BTCOutputType_P2WSH;
+                break;
+            case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
+                output_type = BTCOutputType_P2SH;
+                break;
+            default:
+                return _error(APP_BTC_ERR_INVALID_INPUT);
+            }
             break;
         default:
             return _error(APP_BTC_ERR_INVALID_INPUT);

@@ -571,11 +571,12 @@ bool btc_common_pkscript_from_multisig(
     return true;
 }
 
-bool btc_common_outputhash_from_multisig_p2wsh(
+bool btc_common_outputhash_from_multisig(
     const BTCScriptConfig_Multisig* multisig,
     uint32_t keypath_change,
     uint32_t keypath_address,
-    uint8_t* output_hash)
+    uint8_t* output_hash,
+    size_t* output_hash_size)
 {
     uint8_t script[700] = {0};
     size_t written = sizeof(script);
@@ -589,7 +590,34 @@ bool btc_common_outputhash_from_multisig_p2wsh(
     // See https://bitcoincore.org/en/segwit_wallet_dev/.
     // Note that the witness script has an additional varint prefix.
 
-    return wally_sha256(script, written, output_hash, SHA256_LEN) == WALLY_OK;
+    switch (multisig->script_type) {
+    case BTCScriptConfig_Multisig_ScriptType_P2WSH:
+        *output_hash_size = SHA256_LEN;
+        return wally_sha256(script, written, output_hash, SHA256_LEN) == WALLY_OK;
+    case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH: {
+        // script_sha256 contains the hash of the multisig redeem script as used in a P2WSH output.
+        uint8_t script_sha256[SHA256_LEN] = {0};
+        if (wally_sha256(script, written, script_sha256, sizeof(script_sha256)) != WALLY_OK) {
+            return false;
+        }
+        // create the p2wsh output.
+        uint8_t p2wsh_pkscript[WALLY_SCRIPTPUBKEY_P2WSH_LEN] = {0};
+        if (wally_witness_program_from_bytes(
+                script_sha256,
+                sizeof(script_sha256),
+                0,
+                p2wsh_pkscript,
+                sizeof(p2wsh_pkscript),
+                &written) != WALLY_OK) {
+            return false;
+        }
+        // hash the output script according to p2sh.
+        *output_hash_size = HASH160_LEN;
+        return wally_hash160(p2wsh_pkscript, written, output_hash, HASH160_LEN) == WALLY_OK;
+    }
+    default:
+        return false;
+    };
 }
 
 USE_RESULT bool btc_common_multisig_is_valid(

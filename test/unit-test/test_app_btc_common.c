@@ -239,7 +239,7 @@ static void _test_btc_common_is_valid_keypath_xpubs_multisig(void** state)
             };
             assert_false(btc_common_is_valid_keypath_xpub(
                 output_types[output_type_idx], invalid_keypath, 4, bip44_coin));
-            invalid_keypath[3] = 1 + BIP32_INITIAL_HARDENED_CHILD;
+            invalid_keypath[3] = 3 + BIP32_INITIAL_HARDENED_CHILD;
             assert_false(btc_common_is_valid_keypath_xpub(
                 output_types[output_type_idx], invalid_keypath, 4, bip44_coin));
         }
@@ -410,10 +410,10 @@ static void _test_btc_common_is_valid_keypath_address_simple(void** state)
     }
 }
 
-static void _test_btc_common_is_valid_keypath_address_multisig_p2wsh(void** state)
+static void _test_btc_common_is_valid_keypath_address_multisig(void** state)
 {
     const uint32_t bip44_coin = 1 + BIP32_INITIAL_HARDENED_CHILD;
-    { // valid
+    { // valid p2wsh
         uint32_t keypath[] = {
             48 + BIP32_INITIAL_HARDENED_CHILD,
             bip44_coin,
@@ -423,7 +423,47 @@ static void _test_btc_common_is_valid_keypath_address_multisig_p2wsh(void** stat
             0,
         };
 
-        assert_true(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 6, bip44_coin));
+        assert_true(btc_common_is_valid_keypath_address_multisig(
+            BTCScriptConfig_Multisig_ScriptType_P2WSH, keypath, 6, bip44_coin));
+    }
+    { // valid p2wsh-p2sh
+        uint32_t keypath[] = {
+            48 + BIP32_INITIAL_HARDENED_CHILD,
+            bip44_coin,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            1 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            0,
+        };
+
+        assert_true(btc_common_is_valid_keypath_address_multisig(
+            BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH, keypath, 6, bip44_coin));
+    }
+    { // wrong script type for p2wsh
+        uint32_t keypath[] = {
+            48 + BIP32_INITIAL_HARDENED_CHILD,
+            bip44_coin,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            1 + BIP32_INITIAL_HARDENED_CHILD, // <- wrong, should be 2'
+            0,
+            0,
+        };
+
+        assert_false(btc_common_is_valid_keypath_address_multisig(
+            BTCScriptConfig_Multisig_ScriptType_P2WSH, keypath, 6, bip44_coin));
+    }
+    { // wrong script type for p2wsh-p2sh
+        uint32_t keypath[] = {
+            48 + BIP32_INITIAL_HARDENED_CHILD,
+            bip44_coin,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            2 + BIP32_INITIAL_HARDENED_CHILD, // <- wrong, should be 1'
+            0,
+            0,
+        };
+
+        assert_false(btc_common_is_valid_keypath_address_multisig(
+            BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH, keypath, 6, bip44_coin));
     }
     { // too short
         uint32_t keypath[] = {
@@ -434,7 +474,8 @@ static void _test_btc_common_is_valid_keypath_address_multisig_p2wsh(void** stat
             0,
         };
 
-        assert_false(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 5, bip44_coin));
+        assert_false(btc_common_is_valid_keypath_address_multisig(
+            BTCScriptConfig_Multisig_ScriptType_P2WSH, keypath, 5, bip44_coin));
     }
     { // too long
         uint32_t keypath[] = {
@@ -447,7 +488,8 @@ static void _test_btc_common_is_valid_keypath_address_multisig_p2wsh(void** stat
             0,
         };
 
-        assert_false(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 7, bip44_coin));
+        assert_false(btc_common_is_valid_keypath_address_multisig(
+            BTCScriptConfig_Multisig_ScriptType_P2WSH, keypath, 7, bip44_coin));
     }
 
     { // wrong purpose
@@ -460,7 +502,8 @@ static void _test_btc_common_is_valid_keypath_address_multisig_p2wsh(void** stat
             0,
         };
 
-        assert_false(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 6, bip44_coin));
+        assert_false(btc_common_is_valid_keypath_address_multisig(
+            BTCScriptConfig_Multisig_ScriptType_P2WSH, keypath, 6, bip44_coin));
     }
     { // unhardened account
         uint32_t keypath[] = {
@@ -472,7 +515,8 @@ static void _test_btc_common_is_valid_keypath_address_multisig_p2wsh(void** stat
             0,
         };
 
-        assert_false(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 6, bip44_coin));
+        assert_false(btc_common_is_valid_keypath_address_multisig(
+            BTCScriptConfig_Multisig_ScriptType_P2WSH, keypath, 6, bip44_coin));
     }
     { // account too high
         uint32_t keypath[] = {
@@ -484,7 +528,8 @@ static void _test_btc_common_is_valid_keypath_address_multisig_p2wsh(void** stat
             0,
         };
 
-        assert_false(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 6, bip44_coin));
+        assert_false(btc_common_is_valid_keypath_address_multisig(
+            BTCScriptConfig_Multisig_ScriptType_P2WSH, keypath, 6, bip44_coin));
     }
     { // wrong change
         uint32_t keypath[] = {
@@ -496,7 +541,8 @@ static void _test_btc_common_is_valid_keypath_address_multisig_p2wsh(void** stat
             0,
         };
 
-        assert_false(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 6, bip44_coin));
+        assert_false(btc_common_is_valid_keypath_address_multisig(
+            BTCScriptConfig_Multisig_ScriptType_P2WSH, keypath, 6, bip44_coin));
     }
     { // address too high
         uint32_t keypath[] = {
@@ -508,7 +554,8 @@ static void _test_btc_common_is_valid_keypath_address_multisig_p2wsh(void** stat
             10000, // <- wrong
         };
 
-        assert_false(btc_common_is_valid_keypath_address_multisig_p2wsh(keypath, 6, bip44_coin));
+        assert_false(btc_common_is_valid_keypath_address_multisig(
+            BTCScriptConfig_Multisig_ScriptType_P2WSH, keypath, 6, bip44_coin));
     }
 }
 
@@ -978,7 +1025,7 @@ int main(void)
         cmocka_unit_test(_test_btc_common_is_valid_keypath_xpubs_len3),
         cmocka_unit_test(_test_btc_common_is_valid_keypath_xpubs_multisig),
         cmocka_unit_test(_test_btc_common_is_valid_keypath_address_simple),
-        cmocka_unit_test(_test_btc_common_is_valid_keypath_address_multisig_p2wsh),
+        cmocka_unit_test(_test_btc_common_is_valid_keypath_address_multisig),
         cmocka_unit_test(_test_btc_common_encode_xpub),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig_unhappy),

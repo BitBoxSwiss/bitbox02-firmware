@@ -522,8 +522,11 @@ static bool _is_valid_keypath(
         }
         break;
     case BTCScriptConfig_multisig_tag:
-        if (!btc_common_is_valid_keypath_address_multisig_p2wsh(
-                keypath, keypath_count, expected_bip44_coin)) {
+        if (!btc_common_is_valid_keypath_address_multisig(
+                script_config->config.multisig.script_type,
+                keypath,
+                keypath_count,
+                expected_bip44_coin)) {
             return false;
         }
         break;

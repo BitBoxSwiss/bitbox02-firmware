@@ -138,7 +138,7 @@ static commander_error_t _btc_pub_address_multisig(
     PubResponse* response)
 {
     const BTCScriptConfig_Multisig* multisig = &request->output.script_config.config.multisig;
-    app_btc_result_t result = app_btc_address_multisig_p2wsh(
+    app_btc_result_t result = app_btc_address_multisig(
         request->coin,
         multisig,
         request->keypath,

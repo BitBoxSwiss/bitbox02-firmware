@@ -160,7 +160,7 @@ static testcase_t _tests[] = {
     },
 };
 
-static void _test_app_btc_address_multisig_p2wsh(void** state)
+static void _test_app_btc_address_multisig(void** state)
 {
     mock_state(_mock_seed, _mock_bip39_seed);
 
@@ -180,7 +180,7 @@ static void _test_app_btc_address_multisig_p2wsh(void** state)
         char out[XPUB_ENCODED_LEN] = {0};
         expect_value(__wrap_apps_btc_confirm_multisig, coin, test_case->coin);
         expect_memory(__wrap_apps_btc_confirm_multisig, multisig, &multisig, sizeof(multisig));
-        bool result = app_btc_address_multisig_p2wsh(
+        bool result = app_btc_address_multisig(
             test_case->coin,
             &multisig,
             test_case->keypath,
@@ -196,7 +196,7 @@ static void _test_app_btc_address_multisig_p2wsh(void** state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(_test_app_btc_address_multisig_p2wsh),
+        cmocka_unit_test(_test_app_btc_address_multisig),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

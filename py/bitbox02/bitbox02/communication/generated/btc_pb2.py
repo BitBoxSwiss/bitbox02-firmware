@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='btc.proto',
   package='shiftcrypto.bitbox02',
   syntax='proto3',
-  serialized_pb=_b('\n\tbtc.proto\x12\x14shiftcrypto.bitbox02\x1a\x0c\x63ommon.proto\"\xb5\x02\n\x0f\x42TCScriptConfig\x12G\n\x0bsimple_type\x18\x01 \x01(\x0e\x32\x30.shiftcrypto.bitbox02.BTCScriptConfig.SimpleTypeH\x00\x12\x42\n\x08multisig\x18\x02 \x01(\x0b\x32..shiftcrypto.bitbox02.BTCScriptConfig.MultisigH\x00\x1a`\n\x08Multisig\x12\x11\n\tthreshold\x18\x01 \x01(\r\x12)\n\x05xpubs\x18\x02 \x03(\x0b\x32\x1a.shiftcrypto.bitbox02.XPub\x12\x16\n\x0eour_xpub_index\x18\x03 \x01(\r\")\n\nSimpleType\x12\x0f\n\x0bP2WPKH_P2SH\x10\x00\x12\n\n\x06P2WPKH\x10\x01\x42\x08\n\x06\x63onfig\"\xfc\x02\n\rBTCPubRequest\x12+\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x1d.shiftcrypto.bitbox02.BTCCoin\x12\x0f\n\x07keypath\x18\x02 \x03(\r\x12\x41\n\txpub_type\x18\x03 \x01(\x0e\x32,.shiftcrypto.bitbox02.BTCPubRequest.XPubTypeH\x00\x12>\n\rscript_config\x18\x04 \x01(\x0b\x32%.shiftcrypto.bitbox02.BTCScriptConfigH\x00\x12\x0f\n\x07\x64isplay\x18\x05 \x01(\x08\"\x8e\x01\n\x08XPubType\x12\x08\n\x04TPUB\x10\x00\x12\x08\n\x04XPUB\x10\x01\x12\x08\n\x04YPUB\x10\x02\x12\x08\n\x04ZPUB\x10\x03\x12\x08\n\x04VPUB\x10\x04\x12\x08\n\x04UPUB\x10\x05\x12\x10\n\x0c\x43\x41PITAL_VPUB\x10\x06\x12\x10\n\x0c\x43\x41PITAL_ZPUB\x10\x07\x12\x10\n\x0c\x43\x41PITAL_UPUB\x10\x08\x12\x10\n\x0c\x43\x41PITAL_YPUB\x10\tB\x08\n\x06output\"k\n\x1a\x42TCScriptConfigWithKeypath\x12<\n\rscript_config\x18\x02 \x01(\x0b\x32%.shiftcrypto.bitbox02.BTCScriptConfig\x12\x0f\n\x07keypath\x18\x03 \x03(\r\"\xd7\x01\n\x12\x42TCSignInitRequest\x12+\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x1d.shiftcrypto.bitbox02.BTCCoin\x12H\n\x0escript_configs\x18\x02 \x03(\x0b\x32\x30.shiftcrypto.bitbox02.BTCScriptConfigWithKeypath\x12\x0f\n\x07version\x18\x04 \x01(\r\x12\x12\n\nnum_inputs\x18\x05 \x01(\r\x12\x13\n\x0bnum_outputs\x18\x06 \x01(\r\x12\x10\n\x08locktime\x18\x07 \x01(\r\"\xff\x01\n\x13\x42TCSignNextResponse\x12<\n\x04type\x18\x01 \x01(\x0e\x32..shiftcrypto.bitbox02.BTCSignNextResponse.Type\x12\r\n\x05index\x18\x02 \x01(\r\x12\x15\n\rhas_signature\x18\x03 \x01(\x08\x12\x11\n\tsignature\x18\x04 \x01(\x0c\x12\x12\n\nprev_index\x18\x05 \x01(\r\"]\n\x04Type\x12\t\n\x05INPUT\x10\x00\x12\n\n\x06OUTPUT\x10\x01\x12\x08\n\x04\x44ONE\x10\x02\x12\x0f\n\x0bPREVTX_INIT\x10\x03\x12\x10\n\x0cPREVTX_INPUT\x10\x04\x12\x11\n\rPREVTX_OUTPUT\x10\x05\"\x96\x01\n\x13\x42TCSignInputRequest\x12\x13\n\x0bprevOutHash\x18\x01 \x01(\x0c\x12\x14\n\x0cprevOutIndex\x18\x02 \x01(\r\x12\x14\n\x0cprevOutValue\x18\x03 \x01(\x04\x12\x10\n\x08sequence\x18\x04 \x01(\r\x12\x0f\n\x07keypath\x18\x06 \x03(\r\x12\x1b\n\x13script_config_index\x18\x07 \x01(\r\"\xa2\x01\n\x14\x42TCSignOutputRequest\x12\x0c\n\x04ours\x18\x01 \x01(\x08\x12\x31\n\x04type\x18\x02 \x01(\x0e\x32#.shiftcrypto.bitbox02.BTCOutputType\x12\r\n\x05value\x18\x03 \x01(\x04\x12\x0c\n\x04hash\x18\x04 \x01(\x0c\x12\x0f\n\x07keypath\x18\x05 \x03(\r\x12\x1b\n\x13script_config_index\x18\x06 \x01(\r\"\x99\x01\n\x1b\x42TCScriptConfigRegistration\x12+\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x1d.shiftcrypto.bitbox02.BTCCoin\x12<\n\rscript_config\x18\x02 \x01(\x0b\x32%.shiftcrypto.bitbox02.BTCScriptConfig\x12\x0f\n\x07keypath\x18\x03 \x03(\r\"\x0c\n\nBTCSuccess\"m\n\"BTCIsScriptConfigRegisteredRequest\x12G\n\x0cregistration\x18\x01 \x01(\x0b\x32\x31.shiftcrypto.bitbox02.BTCScriptConfigRegistration\"<\n#BTCIsScriptConfigRegisteredResponse\x12\x15\n\ris_registered\x18\x01 \x01(\x08\"w\n\x1e\x42TCRegisterScriptConfigRequest\x12G\n\x0cregistration\x18\x01 \x01(\x0b\x32\x31.shiftcrypto.bitbox02.BTCScriptConfigRegistration\x12\x0c\n\x04name\x18\x02 \x01(\t\"b\n\x14\x42TCPrevTxInitRequest\x12\x0f\n\x07version\x18\x01 \x01(\r\x12\x12\n\nnum_inputs\x18\x02 \x01(\r\x12\x13\n\x0bnum_outputs\x18\x03 \x01(\r\x12\x10\n\x08locktime\x18\x04 \x01(\r\"r\n\x15\x42TCPrevTxInputRequest\x12\x15\n\rprev_out_hash\x18\x01 \x01(\x0c\x12\x16\n\x0eprev_out_index\x18\x02 \x01(\r\x12\x18\n\x10signature_script\x18\x03 \x01(\x0c\x12\x10\n\x08sequence\x18\x04 \x01(\r\">\n\x16\x42TCPrevTxOutputRequest\x12\r\n\x05value\x18\x01 \x01(\x04\x12\x15\n\rpubkey_script\x18\x02 \x01(\x0c\"\x9a\x01\n\x15\x42TCSignMessageRequest\x12+\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x1d.shiftcrypto.bitbox02.BTCCoin\x12G\n\rscript_config\x18\x02 \x01(\x0b\x32\x30.shiftcrypto.bitbox02.BTCScriptConfigWithKeypath\x12\x0b\n\x03msg\x18\x03 \x01(\x0c\"+\n\x16\x42TCSignMessageResponse\x12\x11\n\tsignature\x18\x01 \x01(\x0c\"\xe4\x03\n\nBTCRequest\x12_\n\x1bis_script_config_registered\x18\x01 \x01(\x0b\x32\x38.shiftcrypto.bitbox02.BTCIsScriptConfigRegisteredRequestH\x00\x12V\n\x16register_script_config\x18\x02 \x01(\x0b\x32\x34.shiftcrypto.bitbox02.BTCRegisterScriptConfigRequestH\x00\x12\x41\n\x0bprevtx_init\x18\x03 \x01(\x0b\x32*.shiftcrypto.bitbox02.BTCPrevTxInitRequestH\x00\x12\x43\n\x0cprevtx_input\x18\x04 \x01(\x0b\x32+.shiftcrypto.bitbox02.BTCPrevTxInputRequestH\x00\x12\x45\n\rprevtx_output\x18\x05 \x01(\x0b\x32,.shiftcrypto.bitbox02.BTCPrevTxOutputRequestH\x00\x12\x43\n\x0csign_message\x18\x06 \x01(\x0b\x32+.shiftcrypto.bitbox02.BTCSignMessageRequestH\x00\x42\t\n\x07request\"\xb6\x02\n\x0b\x42TCResponse\x12\x33\n\x07success\x18\x01 \x01(\x0b\x32 .shiftcrypto.bitbox02.BTCSuccessH\x00\x12`\n\x1bis_script_config_registered\x18\x02 \x01(\x0b\x32\x39.shiftcrypto.bitbox02.BTCIsScriptConfigRegisteredResponseH\x00\x12>\n\tsign_next\x18\x03 \x01(\x0b\x32).shiftcrypto.bitbox02.BTCSignNextResponseH\x00\x12\x44\n\x0csign_message\x18\x04 \x01(\x0b\x32,.shiftcrypto.bitbox02.BTCSignMessageResponseH\x00\x42\n\n\x08response*/\n\x07\x42TCCoin\x12\x07\n\x03\x42TC\x10\x00\x12\x08\n\x04TBTC\x10\x01\x12\x07\n\x03LTC\x10\x02\x12\x08\n\x04TLTC\x10\x03*H\n\rBTCOutputType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\t\n\x05P2PKH\x10\x01\x12\x08\n\x04P2SH\x10\x02\x12\n\n\x06P2WPKH\x10\x03\x12\t\n\x05P2WSH\x10\x04\x62\x06proto3')
+  serialized_pb=_b('\n\tbtc.proto\x12\x14shiftcrypto.bitbox02\x1a\x0c\x63ommon.proto\"\xaf\x03\n\x0f\x42TCScriptConfig\x12G\n\x0bsimple_type\x18\x01 \x01(\x0e\x32\x30.shiftcrypto.bitbox02.BTCScriptConfig.SimpleTypeH\x00\x12\x42\n\x08multisig\x18\x02 \x01(\x0b\x32..shiftcrypto.bitbox02.BTCScriptConfig.MultisigH\x00\x1a\xd9\x01\n\x08Multisig\x12\x11\n\tthreshold\x18\x01 \x01(\r\x12)\n\x05xpubs\x18\x02 \x03(\x0b\x32\x1a.shiftcrypto.bitbox02.XPub\x12\x16\n\x0eour_xpub_index\x18\x03 \x01(\r\x12N\n\x0bscript_type\x18\x04 \x01(\x0e\x32\x39.shiftcrypto.bitbox02.BTCScriptConfig.Multisig.ScriptType\"\'\n\nScriptType\x12\t\n\x05P2WSH\x10\x00\x12\x0e\n\nP2WSH_P2SH\x10\x01\")\n\nSimpleType\x12\x0f\n\x0bP2WPKH_P2SH\x10\x00\x12\n\n\x06P2WPKH\x10\x01\x42\x08\n\x06\x63onfig\"\xfc\x02\n\rBTCPubRequest\x12+\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x1d.shiftcrypto.bitbox02.BTCCoin\x12\x0f\n\x07keypath\x18\x02 \x03(\r\x12\x41\n\txpub_type\x18\x03 \x01(\x0e\x32,.shiftcrypto.bitbox02.BTCPubRequest.XPubTypeH\x00\x12>\n\rscript_config\x18\x04 \x01(\x0b\x32%.shiftcrypto.bitbox02.BTCScriptConfigH\x00\x12\x0f\n\x07\x64isplay\x18\x05 \x01(\x08\"\x8e\x01\n\x08XPubType\x12\x08\n\x04TPUB\x10\x00\x12\x08\n\x04XPUB\x10\x01\x12\x08\n\x04YPUB\x10\x02\x12\x08\n\x04ZPUB\x10\x03\x12\x08\n\x04VPUB\x10\x04\x12\x08\n\x04UPUB\x10\x05\x12\x10\n\x0c\x43\x41PITAL_VPUB\x10\x06\x12\x10\n\x0c\x43\x41PITAL_ZPUB\x10\x07\x12\x10\n\x0c\x43\x41PITAL_UPUB\x10\x08\x12\x10\n\x0c\x43\x41PITAL_YPUB\x10\tB\x08\n\x06output\"k\n\x1a\x42TCScriptConfigWithKeypath\x12<\n\rscript_config\x18\x02 \x01(\x0b\x32%.shiftcrypto.bitbox02.BTCScriptConfig\x12\x0f\n\x07keypath\x18\x03 \x03(\r\"\xd7\x01\n\x12\x42TCSignInitRequest\x12+\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x1d.shiftcrypto.bitbox02.BTCCoin\x12H\n\x0escript_configs\x18\x02 \x03(\x0b\x32\x30.shiftcrypto.bitbox02.BTCScriptConfigWithKeypath\x12\x0f\n\x07version\x18\x04 \x01(\r\x12\x12\n\nnum_inputs\x18\x05 \x01(\r\x12\x13\n\x0bnum_outputs\x18\x06 \x01(\r\x12\x10\n\x08locktime\x18\x07 \x01(\r\"\xff\x01\n\x13\x42TCSignNextResponse\x12<\n\x04type\x18\x01 \x01(\x0e\x32..shiftcrypto.bitbox02.BTCSignNextResponse.Type\x12\r\n\x05index\x18\x02 \x01(\r\x12\x15\n\rhas_signature\x18\x03 \x01(\x08\x12\x11\n\tsignature\x18\x04 \x01(\x0c\x12\x12\n\nprev_index\x18\x05 \x01(\r\"]\n\x04Type\x12\t\n\x05INPUT\x10\x00\x12\n\n\x06OUTPUT\x10\x01\x12\x08\n\x04\x44ONE\x10\x02\x12\x0f\n\x0bPREVTX_INIT\x10\x03\x12\x10\n\x0cPREVTX_INPUT\x10\x04\x12\x11\n\rPREVTX_OUTPUT\x10\x05\"\x96\x01\n\x13\x42TCSignInputRequest\x12\x13\n\x0bprevOutHash\x18\x01 \x01(\x0c\x12\x14\n\x0cprevOutIndex\x18\x02 \x01(\r\x12\x14\n\x0cprevOutValue\x18\x03 \x01(\x04\x12\x10\n\x08sequence\x18\x04 \x01(\r\x12\x0f\n\x07keypath\x18\x06 \x03(\r\x12\x1b\n\x13script_config_index\x18\x07 \x01(\r\"\xa2\x01\n\x14\x42TCSignOutputRequest\x12\x0c\n\x04ours\x18\x01 \x01(\x08\x12\x31\n\x04type\x18\x02 \x01(\x0e\x32#.shiftcrypto.bitbox02.BTCOutputType\x12\r\n\x05value\x18\x03 \x01(\x04\x12\x0c\n\x04hash\x18\x04 \x01(\x0c\x12\x0f\n\x07keypath\x18\x05 \x03(\r\x12\x1b\n\x13script_config_index\x18\x06 \x01(\r\"\x99\x01\n\x1b\x42TCScriptConfigRegistration\x12+\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x1d.shiftcrypto.bitbox02.BTCCoin\x12<\n\rscript_config\x18\x02 \x01(\x0b\x32%.shiftcrypto.bitbox02.BTCScriptConfig\x12\x0f\n\x07keypath\x18\x03 \x03(\r\"\x0c\n\nBTCSuccess\"m\n\"BTCIsScriptConfigRegisteredRequest\x12G\n\x0cregistration\x18\x01 \x01(\x0b\x32\x31.shiftcrypto.bitbox02.BTCScriptConfigRegistration\"<\n#BTCIsScriptConfigRegisteredResponse\x12\x15\n\ris_registered\x18\x01 \x01(\x08\"w\n\x1e\x42TCRegisterScriptConfigRequest\x12G\n\x0cregistration\x18\x01 \x01(\x0b\x32\x31.shiftcrypto.bitbox02.BTCScriptConfigRegistration\x12\x0c\n\x04name\x18\x02 \x01(\t\"b\n\x14\x42TCPrevTxInitRequest\x12\x0f\n\x07version\x18\x01 \x01(\r\x12\x12\n\nnum_inputs\x18\x02 \x01(\r\x12\x13\n\x0bnum_outputs\x18\x03 \x01(\r\x12\x10\n\x08locktime\x18\x04 \x01(\r\"r\n\x15\x42TCPrevTxInputRequest\x12\x15\n\rprev_out_hash\x18\x01 \x01(\x0c\x12\x16\n\x0eprev_out_index\x18\x02 \x01(\r\x12\x18\n\x10signature_script\x18\x03 \x01(\x0c\x12\x10\n\x08sequence\x18\x04 \x01(\r\">\n\x16\x42TCPrevTxOutputRequest\x12\r\n\x05value\x18\x01 \x01(\x04\x12\x15\n\rpubkey_script\x18\x02 \x01(\x0c\"\x9a\x01\n\x15\x42TCSignMessageRequest\x12+\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x1d.shiftcrypto.bitbox02.BTCCoin\x12G\n\rscript_config\x18\x02 \x01(\x0b\x32\x30.shiftcrypto.bitbox02.BTCScriptConfigWithKeypath\x12\x0b\n\x03msg\x18\x03 \x01(\x0c\"+\n\x16\x42TCSignMessageResponse\x12\x11\n\tsignature\x18\x01 \x01(\x0c\"\xe4\x03\n\nBTCRequest\x12_\n\x1bis_script_config_registered\x18\x01 \x01(\x0b\x32\x38.shiftcrypto.bitbox02.BTCIsScriptConfigRegisteredRequestH\x00\x12V\n\x16register_script_config\x18\x02 \x01(\x0b\x32\x34.shiftcrypto.bitbox02.BTCRegisterScriptConfigRequestH\x00\x12\x41\n\x0bprevtx_init\x18\x03 \x01(\x0b\x32*.shiftcrypto.bitbox02.BTCPrevTxInitRequestH\x00\x12\x43\n\x0cprevtx_input\x18\x04 \x01(\x0b\x32+.shiftcrypto.bitbox02.BTCPrevTxInputRequestH\x00\x12\x45\n\rprevtx_output\x18\x05 \x01(\x0b\x32,.shiftcrypto.bitbox02.BTCPrevTxOutputRequestH\x00\x12\x43\n\x0csign_message\x18\x06 \x01(\x0b\x32+.shiftcrypto.bitbox02.BTCSignMessageRequestH\x00\x42\t\n\x07request\"\xb6\x02\n\x0b\x42TCResponse\x12\x33\n\x07success\x18\x01 \x01(\x0b\x32 .shiftcrypto.bitbox02.BTCSuccessH\x00\x12`\n\x1bis_script_config_registered\x18\x02 \x01(\x0b\x32\x39.shiftcrypto.bitbox02.BTCIsScriptConfigRegisteredResponseH\x00\x12>\n\tsign_next\x18\x03 \x01(\x0b\x32).shiftcrypto.bitbox02.BTCSignNextResponseH\x00\x12\x44\n\x0csign_message\x18\x04 \x01(\x0b\x32,.shiftcrypto.bitbox02.BTCSignMessageResponseH\x00\x42\n\n\x08response*/\n\x07\x42TCCoin\x12\x07\n\x03\x42TC\x10\x00\x12\x08\n\x04TBTC\x10\x01\x12\x07\n\x03LTC\x10\x02\x12\x08\n\x04TLTC\x10\x03*H\n\rBTCOutputType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\t\n\x05P2PKH\x10\x01\x12\x08\n\x04P2SH\x10\x02\x12\n\n\x06P2WPKH\x10\x03\x12\t\n\x05P2WSH\x10\x04\x62\x06proto3')
   ,
   dependencies=[common__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -51,8 +51,8 @@ _BTCCOIN = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=3393,
-  serialized_end=3440,
+  serialized_start=3515,
+  serialized_end=3562,
 )
 _sym_db.RegisterEnumDescriptor(_BTCCOIN)
 
@@ -86,8 +86,8 @@ _BTCOUTPUTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=3442,
-  serialized_end=3514,
+  serialized_start=3564,
+  serialized_end=3636,
 )
 _sym_db.RegisterEnumDescriptor(_BTCOUTPUTTYPE)
 
@@ -102,6 +102,28 @@ P2SH = 2
 P2WPKH = 3
 P2WSH = 4
 
+
+_BTCSCRIPTCONFIG_MULTISIG_SCRIPTTYPE = _descriptor.EnumDescriptor(
+  name='ScriptType',
+  full_name='shiftcrypto.bitbox02.BTCScriptConfig.Multisig.ScriptType',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='P2WSH', index=0, number=0,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='P2WSH_P2SH', index=1, number=1,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=389,
+  serialized_end=428,
+)
+_sym_db.RegisterEnumDescriptor(_BTCSCRIPTCONFIG_MULTISIG_SCRIPTTYPE)
 
 _BTCSCRIPTCONFIG_SIMPLETYPE = _descriptor.EnumDescriptor(
   name='SimpleType',
@@ -120,8 +142,8 @@ _BTCSCRIPTCONFIG_SIMPLETYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=308,
-  serialized_end=349,
+  serialized_start=430,
+  serialized_end=471,
 )
 _sym_db.RegisterEnumDescriptor(_BTCSCRIPTCONFIG_SIMPLETYPE)
 
@@ -174,8 +196,8 @@ _BTCPUBREQUEST_XPUBTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=590,
-  serialized_end=732,
+  serialized_start=712,
+  serialized_end=854,
 )
 _sym_db.RegisterEnumDescriptor(_BTCPUBREQUEST_XPUBTYPE)
 
@@ -212,8 +234,8 @@ _BTCSIGNNEXTRESPONSE_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1234,
-  serialized_end=1327,
+  serialized_start=1356,
+  serialized_end=1449,
 )
 _sym_db.RegisterEnumDescriptor(_BTCSIGNNEXTRESPONSE_TYPE)
 
@@ -246,11 +268,19 @@ _BTCSCRIPTCONFIG_MULTISIG = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='script_type', full_name='shiftcrypto.bitbox02.BTCScriptConfig.Multisig.script_type', index=3,
+      number=4, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
   nested_types=[],
   enum_types=[
+    _BTCSCRIPTCONFIG_MULTISIG_SCRIPTTYPE,
   ],
   options=None,
   is_extendable=False,
@@ -258,8 +288,8 @@ _BTCSCRIPTCONFIG_MULTISIG = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=210,
-  serialized_end=306,
+  serialized_start=211,
+  serialized_end=428,
 )
 
 _BTCSCRIPTCONFIG = _descriptor.Descriptor(
@@ -300,7 +330,7 @@ _BTCSCRIPTCONFIG = _descriptor.Descriptor(
       index=0, containing_type=None, fields=[]),
   ],
   serialized_start=50,
-  serialized_end=359,
+  serialized_end=481,
 )
 
 
@@ -362,8 +392,8 @@ _BTCPUBREQUEST = _descriptor.Descriptor(
       name='output', full_name='shiftcrypto.bitbox02.BTCPubRequest.output',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=362,
-  serialized_end=742,
+  serialized_start=484,
+  serialized_end=864,
 )
 
 
@@ -400,8 +430,8 @@ _BTCSCRIPTCONFIGWITHKEYPATH = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=744,
-  serialized_end=851,
+  serialized_start=866,
+  serialized_end=973,
 )
 
 
@@ -466,8 +496,8 @@ _BTCSIGNINITREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=854,
-  serialized_end=1069,
+  serialized_start=976,
+  serialized_end=1191,
 )
 
 
@@ -526,8 +556,8 @@ _BTCSIGNNEXTRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1072,
-  serialized_end=1327,
+  serialized_start=1194,
+  serialized_end=1449,
 )
 
 
@@ -592,8 +622,8 @@ _BTCSIGNINPUTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1330,
-  serialized_end=1480,
+  serialized_start=1452,
+  serialized_end=1602,
 )
 
 
@@ -658,8 +688,8 @@ _BTCSIGNOUTPUTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1483,
-  serialized_end=1645,
+  serialized_start=1605,
+  serialized_end=1767,
 )
 
 
@@ -703,8 +733,8 @@ _BTCSCRIPTCONFIGREGISTRATION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1648,
-  serialized_end=1801,
+  serialized_start=1770,
+  serialized_end=1923,
 )
 
 
@@ -727,8 +757,8 @@ _BTCSUCCESS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1803,
-  serialized_end=1815,
+  serialized_start=1925,
+  serialized_end=1937,
 )
 
 
@@ -758,8 +788,8 @@ _BTCISSCRIPTCONFIGREGISTEREDREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1817,
-  serialized_end=1926,
+  serialized_start=1939,
+  serialized_end=2048,
 )
 
 
@@ -789,8 +819,8 @@ _BTCISSCRIPTCONFIGREGISTEREDRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1928,
-  serialized_end=1988,
+  serialized_start=2050,
+  serialized_end=2110,
 )
 
 
@@ -827,8 +857,8 @@ _BTCREGISTERSCRIPTCONFIGREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1990,
-  serialized_end=2109,
+  serialized_start=2112,
+  serialized_end=2231,
 )
 
 
@@ -879,8 +909,8 @@ _BTCPREVTXINITREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2111,
-  serialized_end=2209,
+  serialized_start=2233,
+  serialized_end=2331,
 )
 
 
@@ -931,8 +961,8 @@ _BTCPREVTXINPUTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2211,
-  serialized_end=2325,
+  serialized_start=2333,
+  serialized_end=2447,
 )
 
 
@@ -969,8 +999,8 @@ _BTCPREVTXOUTPUTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2327,
-  serialized_end=2389,
+  serialized_start=2449,
+  serialized_end=2511,
 )
 
 
@@ -1014,8 +1044,8 @@ _BTCSIGNMESSAGEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2392,
-  serialized_end=2546,
+  serialized_start=2514,
+  serialized_end=2668,
 )
 
 
@@ -1045,8 +1075,8 @@ _BTCSIGNMESSAGERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2548,
-  serialized_end=2591,
+  serialized_start=2670,
+  serialized_end=2713,
 )
 
 
@@ -1114,8 +1144,8 @@ _BTCREQUEST = _descriptor.Descriptor(
       name='request', full_name='shiftcrypto.bitbox02.BTCRequest.request',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=2594,
-  serialized_end=3078,
+  serialized_start=2716,
+  serialized_end=3200,
 )
 
 
@@ -1169,12 +1199,14 @@ _BTCRESPONSE = _descriptor.Descriptor(
       name='response', full_name='shiftcrypto.bitbox02.BTCResponse.response',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=3081,
-  serialized_end=3391,
+  serialized_start=3203,
+  serialized_end=3513,
 )
 
 _BTCSCRIPTCONFIG_MULTISIG.fields_by_name['xpubs'].message_type = common__pb2._XPUB
+_BTCSCRIPTCONFIG_MULTISIG.fields_by_name['script_type'].enum_type = _BTCSCRIPTCONFIG_MULTISIG_SCRIPTTYPE
 _BTCSCRIPTCONFIG_MULTISIG.containing_type = _BTCSCRIPTCONFIG
+_BTCSCRIPTCONFIG_MULTISIG_SCRIPTTYPE.containing_type = _BTCSCRIPTCONFIG_MULTISIG
 _BTCSCRIPTCONFIG.fields_by_name['simple_type'].enum_type = _BTCSCRIPTCONFIG_SIMPLETYPE
 _BTCSCRIPTCONFIG.fields_by_name['multisig'].message_type = _BTCSCRIPTCONFIG_MULTISIG
 _BTCSCRIPTCONFIG_SIMPLETYPE.containing_type = _BTCSCRIPTCONFIG

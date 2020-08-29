@@ -31,6 +31,10 @@
 #define BIP44_ACCOUNT_MAX (BIP32_INITIAL_HARDENED_CHILD + 99) // 100 accounts
 #define BIP44_ADDRESS_MAX (9999) // 10k addresses
 
+// script type in the multisig keypath m/48'/coin'/account'/script_type
+#define BTC_MULTISIG_SCRIPT_TYPE_P2WSH (2 + BIP32_INITIAL_HARDENED_CHILD)
+#define BTC_MULTISIG_SCRIPT_TYPE_P2WSH_P2SH (1 + BIP32_INITIAL_HARDENED_CHILD)
+
 #define MULTISIG_P2WSH_MAX_SIGNERS 15
 
 static const uint8_t _xpub_version[4] = {0x04, 0x88, 0xb2, 0x1e};
@@ -105,11 +109,12 @@ static bool _validate_keypath_address(
     return _validate_keypath_change_address(keypath[3], keypath[4]);
 }
 
-// checks account level keypath derivation: m/48'/coin'/account'/2'
-static bool _is_valid_keypath_account_multisig_p2wsh(
+// checks account level keypath derivation: m/48'/coin'/account'/script_type'
+static bool _is_valid_keypath_account_multisig(
     const uint32_t* keypath,
     const size_t keypath_len,
-    const uint32_t expected_coin)
+    const uint32_t expected_coin,
+    BTCScriptConfig_Multisig_ScriptType script_type)
 {
     if (keypath_len != 4) {
         return false;
@@ -117,9 +122,21 @@ static bool _is_valid_keypath_account_multisig_p2wsh(
     if (!_validate_keypath_account(keypath, expected_coin, BTC_PURPOSE_MULTISIG)) {
         return false;
     }
-    uint32_t script_type = keypath[3];
-    // 2' for P2WSH.
-    if (script_type != 2 + BIP32_INITIAL_HARDENED_CHILD) {
+
+    uint32_t expected_bip44_script_type;
+    switch (script_type) {
+    case BTCScriptConfig_Multisig_ScriptType_P2WSH:
+        expected_bip44_script_type = BTC_MULTISIG_SCRIPT_TYPE_P2WSH;
+        break;
+    case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
+        expected_bip44_script_type = BTC_MULTISIG_SCRIPT_TYPE_P2WSH_P2SH;
+        break;
+    default:
+        return false;
+    }
+
+    uint32_t bip44_script_type = keypath[3];
+    if (bip44_script_type != expected_bip44_script_type) {
         return false;
     }
     return true;
@@ -142,7 +159,13 @@ bool btc_common_is_valid_keypath_xpub(
     case BTCPubRequest_XPubType_CAPITAL_ZPUB:
     case BTCPubRequest_XPubType_CAPITAL_UPUB:
     case BTCPubRequest_XPubType_CAPITAL_YPUB:
-        if (_is_valid_keypath_account_multisig_p2wsh(keypath, keypath_len, expected_coin)) {
+        if (_is_valid_keypath_account_multisig(
+                keypath, keypath_len, expected_coin, BTCScriptConfig_Multisig_ScriptType_P2WSH) ||
+            _is_valid_keypath_account_multisig(
+                keypath,
+                keypath_len,
+                expected_coin,
+                BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH)) {
             return true;
         }
 
@@ -192,7 +215,8 @@ bool btc_common_is_valid_keypath_address_simple(
     }
 }
 
-bool btc_common_is_valid_keypath_address_multisig_p2wsh(
+bool btc_common_is_valid_keypath_address_multisig(
+    BTCScriptConfig_Multisig_ScriptType script_type,
     const uint32_t* keypath,
     const size_t keypath_len,
     const uint32_t expected_coin)
@@ -200,7 +224,7 @@ bool btc_common_is_valid_keypath_address_multisig_p2wsh(
     if (keypath_len != 6) {
         return false;
     }
-    if (!_is_valid_keypath_account_multisig_p2wsh(keypath, 4, expected_coin)) {
+    if (!_is_valid_keypath_account_multisig(keypath, 4, expected_coin, script_type)) {
         return false;
     }
     if (!_validate_keypath_change_address(keypath[4], keypath[5])) {
@@ -583,7 +607,8 @@ USE_RESULT bool btc_common_multisig_is_valid(
     if (multisig->our_xpub_index >= multisig->xpubs_count) {
         return false;
     }
-    if (!_is_valid_keypath_account_multisig_p2wsh(keypath, keypath_len, expected_coin)) {
+    if (!_is_valid_keypath_account_multisig(
+            keypath, keypath_len, expected_coin, multisig->script_type)) {
         return false;
     }
 

@@ -77,11 +77,13 @@ USE_RESULT bool btc_common_is_valid_keypath_address_simple(
     uint32_t expected_coin);
 
 /**
- * Checks that the keypath is m/48'/coin'/account'/2'/change/address, limiting the number of valid
- * accounts/addresses.
+ * Checks that the keypath is m/48'/coin'/account'/script_type'/change/address, limiting the number
+ * of valid accounts/addresses.
+ * script_type' is 2' for P2WSH and 1' for P2WSH-P2SH.
  * @return true if the keypath is valid, false if it is invalid.
  */
-USE_RESULT bool btc_common_is_valid_keypath_address_multisig_p2wsh(
+USE_RESULT bool btc_common_is_valid_keypath_address_multisig(
+    BTCScriptConfig_Multisig_ScriptType script_type,
     const uint32_t* keypath,
     size_t keypath_len,
     uint32_t expected_coin);
@@ -212,7 +214,7 @@ USE_RESULT bool btc_common_outputhash_from_multisig_p2wsh(
 /**
  * Validate a m-of-n multisig account. This includes checking that:
  * - 0 < m <= n <= 15
- * - the keypath conforms to bip48 for p2wsh: m/48'/coin'/account'/2'
+ * - the keypath conforms to bip48 for p2wsh: m/48'/coin'/account'/script_type'
  * - our designated xpub is actually ours (corresponds to the xpub of the currenty unlocked
  *   keystore).
  * - no two xpubs are the same.

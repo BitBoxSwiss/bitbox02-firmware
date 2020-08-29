@@ -41,6 +41,8 @@ static const uint8_t _vpub_version[4] = {0x04, 0x5f, 0x1c, 0xf6};
 static const uint8_t _upub_version[4] = {0x04, 0x4a, 0x52, 0x62};
 static const uint8_t _capital_vpub_version[4] = {0x02, 0x57, 0x54, 0x83};
 static const uint8_t _capital_zpub_version[4] = {0x02, 0xaa, 0x7e, 0xd3};
+static const uint8_t _capital_upub_version[4] = {0x02, 0x42, 0x89, 0xef};
+static const uint8_t _capital_ypub_version[4] = {0x02, 0x95, 0xb4, 0x3f};
 
 const char* btc_common_coin_name(BTCCoin coin)
 {
@@ -138,6 +140,8 @@ bool btc_common_is_valid_keypath_xpub(
     case BTCPubRequest_XPubType_UPUB:
     case BTCPubRequest_XPubType_CAPITAL_VPUB:
     case BTCPubRequest_XPubType_CAPITAL_ZPUB:
+    case BTCPubRequest_XPubType_CAPITAL_UPUB:
+    case BTCPubRequest_XPubType_CAPITAL_YPUB:
         if (_is_valid_keypath_account_multisig_p2wsh(keypath, keypath_len, expected_coin)) {
             return true;
         }
@@ -242,6 +246,12 @@ bool btc_common_encode_xpub(
         break;
     case BTCPubRequest_XPubType_CAPITAL_ZPUB:
         version = _capital_zpub_version;
+        break;
+    case BTCPubRequest_XPubType_CAPITAL_UPUB:
+        version = _capital_upub_version;
+        break;
+    case BTCPubRequest_XPubType_CAPITAL_YPUB:
+        version = _capital_ypub_version;
         break;
     default:
         return false;

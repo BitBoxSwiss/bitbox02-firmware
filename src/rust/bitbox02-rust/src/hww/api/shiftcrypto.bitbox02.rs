@@ -306,6 +306,10 @@ pub mod btc_pub_request {
         CapitalVpub = 6,
         /// Zpub
         CapitalZpub = 7,
+        /// Upub
+        CapitalUpub = 8,
+        /// Ypub
+        CapitalYpub = 9,
     }
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Output {

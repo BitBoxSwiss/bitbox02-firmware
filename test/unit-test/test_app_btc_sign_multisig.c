@@ -276,7 +276,7 @@ static void _test_tx(const _tx* tx, const uint8_t* expected_signature)
     assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
 }
 
-static void _test_btc_sign_happy(void** state)
+static void _test_btc_sign_happy_p2wsh(void** state)
 {
     _tx tx = _make_test_tx();
 
@@ -284,6 +284,39 @@ static void _test_btc_sign_happy(void** state)
         "\x5d\x9e\xb3\x32\x2d\x82\x1d\x82\x1d\x1f\xa3\xf7\x26\x95\x96\x43\x2f\x06\x50\x33\xbf\xea"
         "\x06\xc4\x5b\x51\xe3\x30\x94\x9f\x32\x6d\x51\x6a\xf5\x9b\xb7\x52\x11\x64\x40\xfc\xd6\x90"
         "\x56\x47\xdf\x20\x41\xc2\x76\x74\x3b\xab\x89\x37\x6f\x18\xb2\x46\x87\xa7\x75\x21";
+    _test_tx(&tx, expected_signature);
+}
+
+static void _test_btc_sign_happy_p2wsh_p2sh(void** state)
+{
+    _tx tx = _make_test_tx();
+    tx.init_req.script_configs[0].script_config.config.multisig.script_type =
+        BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH;
+    // change the script_type to 1' in all m/48'/coin'/account'/script_type paths
+    tx.init_req.script_configs[0].keypath[3] = 1 + BIP32_INITIAL_HARDENED_CHILD;
+    for (uint32_t i = 0; i < tx.init_req.num_inputs; i++) {
+        tx.inputs[i].input.keypath[3] = 1 + BIP32_INITIAL_HARDENED_CHILD;
+    }
+    for (uint32_t i = 0; i < tx.init_req.num_outputs; i++) {
+        if (tx.outputs[i].ours) {
+            tx.outputs[i].keypath[3] = 1 + BIP32_INITIAL_HARDENED_CHILD;
+        }
+    }
+
+    // sudden tenant fault inject concert weather maid people chunk youth stumble grit /
+    // 48'/1'/0'/1'
+    tx.init_req.script_configs[0].script_config.config.multisig.xpubs[0] = btc_util_parse_xpub(
+        "xpub6EMfjyGVUvwhn1H2BwoVysVJi9cX78eyNTkoM3d26NHW4Zd75zrAcikT3dmoii4eZPwobzK4pMBYrLmE2y918U"
+        "ayfqBQFr6HpVze5mQHGyu");
+    // dumb rough room report huge dry sudden hamster wait foot crew obvious / 48'/1'/0'/1'
+    tx.init_req.script_configs[0].script_config.config.multisig.xpubs[1] = btc_util_parse_xpub(
+        "xpub6ERxBysTYfQyV5NYAV6WZVj1dfTzESVGkWUiqERomNKCA6nCA8qX4qSLX2RRGNqckn3ps9B9sdfDkpg11nsJwC"
+        "jXYXSZvkTED2Jx8jFpB9M");
+
+    uint8_t expected_signature[] =
+        "\x6f\xd9\x51\x89\xac\x9a\x33\x98\xf4\x48\x19\xe4\xd8\x1d\x7a\x7a\x80\xaf\x46\x55\x09\xd5"
+        "\x40\x39\x86\x6b\x08\x1e\x2f\x9f\xa1\x5a\x27\xe4\xb7\x05\xa8\x06\x95\xe7\x1c\x6d\xd4\x4d"
+        "\xb3\x6e\x13\xdb\x06\x8c\x22\xe3\xac\xff\x63\xda\x09\xd0\x37\x47\xf7\x80\x0b\x33";
     _test_tx(&tx, expected_signature);
 }
 
@@ -326,7 +359,8 @@ static void _test_btc_sign_large_happy(void** state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(_test_btc_sign_happy),
+        cmocka_unit_test(_test_btc_sign_happy_p2wsh),
+        cmocka_unit_test(_test_btc_sign_happy_p2wsh_p2sh),
         cmocka_unit_test(_test_btc_sign_large_happy),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);

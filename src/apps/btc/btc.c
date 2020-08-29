@@ -149,7 +149,12 @@ app_btc_result_t app_btc_address_multisig(
     }
 
     if (!btc_common_address_from_outputhash(
-            params, BTCOutputType_P2WSH, hash, sizeof(hash), out, out_len)) {
+            params,
+            btc_common_determine_output_type_multisig(multisig),
+            hash,
+            written,
+            out,
+            out_len)) {
         return APP_BTC_ERR_UNKNOWN;
     }
 

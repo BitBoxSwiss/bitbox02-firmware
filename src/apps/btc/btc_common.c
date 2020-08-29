@@ -650,8 +650,17 @@ bool btc_common_multisig_hash(
         rust_sha256_update(ctx, &byte, 1);
     }
     { // 2. script config type
-        // only one supported for now, op_checkmultisig-in-p2wsh.
-        uint8_t byte = 0x00;
+        uint8_t byte;
+        switch (multisig->script_type) {
+        case BTCScriptConfig_Multisig_ScriptType_P2WSH:
+            byte = 0x00;
+            break;
+        case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
+            byte = 0x01;
+            break;
+        default:
+            return false;
+        }
         rust_sha256_update(ctx, &byte, 1);
     }
     { // 3. threshold

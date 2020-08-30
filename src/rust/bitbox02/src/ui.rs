@@ -37,6 +37,7 @@ impl<'a> Component<'a> {
         if self.is_pushed {
             panic!("component pushed twice");
         }
+        #[cfg(not(feature = "testing"))]
         unsafe {
             bitbox02_sys::ui_screen_stack_push(self.component);
         }
@@ -49,6 +50,7 @@ impl<'a> Drop for Component<'a> {
         if !self.is_pushed {
             panic!("component not pushed");
         }
+        #[cfg(not(feature = "testing"))]
         unsafe {
             bitbox02_sys::ui_screen_stack_pop();
         }
@@ -145,6 +147,7 @@ pub struct ConfirmParams<'a> {
 
 /// Creates a user confirmation dialog screen.
 /// `result` - will be asynchronously set to `Some(bool)` once the user accets or rejects.
+#[cfg(not(feature = "testing"))]
 pub fn confirm_create<'a, F>(params: &ConfirmParams, result_callback: F) -> Component<'a>
 where
     // Callback must outlive component.
@@ -198,7 +201,22 @@ where
     }
 }
 
+#[cfg(feature = "testing")]
+pub fn confirm_create<'a, F>(params: &ConfirmParams, mut result_callback: F) -> Component<'a>
+where
+    // Callback must outlive component.
+    F: FnMut(bool) + 'a,
+{
+    result_callback(true);
+    Component {
+        component: core::ptr::null_mut(),
+        is_pushed: false,
+        _p: PhantomData,
+    }
+}
+
 pub fn screen_process() {
+    #[cfg(not(feature = "testing"))]
     unsafe {
         bitbox02_sys::screen_process();
     }

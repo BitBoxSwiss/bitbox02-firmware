@@ -39,3 +39,31 @@ pub async fn process(
 
     Ok(Response::Success(pb::Success {}))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::bb02_async::block_on;
+
+    #[test]
+    pub fn test_set_device_name() {
+        unsafe {
+            // TODO: remove unsafe by using Arc<Mutex<>>
+            bitbox02::memory::testing::SET_DEVICE_NAME_EXPECTED_NAME = Some("foo".into());
+            bitbox02::memory::testing::SET_DEVICE_NAME_RESULT = Ok(());
+        }
+        assert_eq!(
+            block_on(process(&pb::SetDeviceNameRequest { name: "foo".into() })),
+            Ok(Response::Success(pb::Success {}))
+        );
+
+        unsafe {
+            bitbox02::memory::testing::SET_DEVICE_NAME_RESULT = Err(());
+        }
+        assert_eq!(
+            block_on(process(&pb::SetDeviceNameRequest { name: "foo".into() })),
+            Err(Error::COMMANDER_ERR_MEMORY),
+        );
+    }
+}

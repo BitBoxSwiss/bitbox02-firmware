@@ -24,3 +24,6 @@ license = "Apache-2.0"
 bitbox02-sys = {path="../bitbox02-sys"}
 util = {path = "../util"}
 zeroize = "1.1.0"
+
+[features]
+testing = []

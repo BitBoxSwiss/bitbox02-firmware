@@ -18,6 +18,7 @@ pub const DEVICE_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_DEVICE_NAME_MAX_LEN 
 
 /// `name.as_bytes()` must be smaller or equal to
 /// `DEVICE_NAME_MAX_LEN`, otherwise this function panics.
+#[cfg(not(feature = "testing"))]
 pub fn set_device_name(name: &str) -> Result<(), ()> {
     match unsafe {
         bitbox02_sys::memory_set_device_name(
@@ -27,6 +28,21 @@ pub fn set_device_name(name: &str) -> Result<(), ()> {
         true => Ok(()),
         false => Err(()),
     }
+}
+
+#[cfg(feature = "testing")]
+pub mod testing {
+    extern crate alloc;
+    pub static mut SET_DEVICE_NAME_EXPECTED_NAME: Option<alloc::string::String> = None;
+    pub static mut SET_DEVICE_NAME_RESULT: Result<(), ()> = Ok(());
+}
+
+#[cfg(feature = "testing")]
+pub fn set_device_name(name: &str) -> Result<(), ()> {
+    assert_eq!(name, unsafe {
+        testing::SET_DEVICE_NAME_EXPECTED_NAME.as_ref().unwrap()
+    });
+    unsafe { testing::SET_DEVICE_NAME_RESULT }
 }
 
 pub fn is_initialized() -> bool {

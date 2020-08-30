@@ -55,6 +55,8 @@ target-c-unit-tests = ["app-ethereum"]
 platform-bitbox02 = []
 platform-bitboxbase = []
 
+testing = ["bitbox02/testing"]
+
 bootloader = []
 
 app-ethereum = [

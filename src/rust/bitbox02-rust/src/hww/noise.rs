@@ -16,6 +16,8 @@ use alloc::vec::Vec;
 use bitbox02::memory;
 use core::cell::RefCell;
 
+use bitbox02::keystore::Keystore;
+
 const OP_I_CAN_HAS_HANDSHAEK: u8 = b'h';
 const OP_I_CAN_HAS_PAIRIN_VERIFICASHUN: u8 = b'v';
 const OP_HER_COMEZ_TEH_HANDSHAEK: u8 = b'H';
@@ -66,7 +68,10 @@ impl core::convert::From<()> for Error {
 /// Returns Err if anything goes wrong:
 /// - Invalid OP-code
 /// - Noise message in the wrong state (e.g. handshake before init, etc.).
-pub(crate) async fn process(usb_in: Vec<u8>, usb_out: &mut Vec<u8>) -> Result<(), Error> {
+pub(crate) async fn process<K: Keystore>(
+    usb_in: Vec<u8>,
+    usb_out: &mut Vec<u8>,
+) -> Result<(), Error> {
     let mut state = NOISE_STATE.0.borrow_mut();
     match usb_in.split_first() {
         Some((&OP_I_CAN_HAS_HANDSHAEK, b"")) => {
@@ -117,7 +122,7 @@ pub(crate) async fn process(usb_in: Vec<u8>, usb_out: &mut Vec<u8>) -> Result<()
         }
         Some((&OP_NOISE_MSG, encrypted_msg)) => {
             let decrypted_msg = state.decrypt(encrypted_msg)?;
-            let response = super::api::process(decrypted_msg).await;
+            let response = super::api::process::<K>(decrypted_msg).await;
             state.encrypt(&response, usb_out)?;
             Ok(())
         }

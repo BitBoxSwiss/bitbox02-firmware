@@ -16,6 +16,7 @@ use crate::workflow::confirm;
 use crate::workflow::password;
 use crate::workflow::status::status;
 use bitbox02::keystore;
+use bitbox02::keystore::Keystore;
 use bitbox02::password::Password;
 
 /// Confirm the entered mnemonic passphrase with the user. Returns true if the user confirmed it,
@@ -58,11 +59,11 @@ async fn confirm_mnemonic_passphrase(passphrase: &str) -> bool {
 ///
 /// If they keystore is already unlocked, this function does not
 /// change the state and just checks the password.
-pub async fn unlock_keystore(title: &str) -> bool {
+pub async fn unlock_keystore<K: Keystore>(title: &str) -> bool {
     let mut password = Password::new();
     password::enter(title, false, &mut password).await;
 
-    match keystore::unlock(&password) {
+    match K::unlock(&password) {
         Ok(()) => true,
         Err(keystore::Error::IncorrectPassword { remaining_attempts }) => {
             let msg = match remaining_attempts {
@@ -78,7 +79,7 @@ pub async fn unlock_keystore(title: &str) -> bool {
 
 /// Performs the BIP39 keystore unlock, including unlock animation. If the optional passphrase
 /// feature is enabled, the user will be asked for the passphrase.
-pub async fn unlock_bip39() {
+pub async fn unlock_bip39<K: Keystore>() {
     // Empty passphrase by default.
     let mut mnemonic_passphrase = Password::new();
 
@@ -97,7 +98,7 @@ pub async fn unlock_bip39() {
     }
 
     bitbox02::ui::with_lock_animation(|| {
-        keystore::unlock_bip39(&mnemonic_passphrase).expect("bip39 unlock failed");
+        K::unlock_bip39(&mnemonic_passphrase).expect("bip39 unlock failed");
     });
 }
 
@@ -108,17 +109,17 @@ pub async fn unlock_bip39() {
 /// user. Otherwise, the empty "" passphrase is used by default.
 ///
 /// Returns Ok on success, Err if the device cannot be unlocked because it was not initialized.
-pub async fn unlock() -> Result<(), ()> {
+pub async fn unlock<K: Keystore>() -> Result<(), ()> {
     if !bitbox02::memory::is_initialized() {
         return Err(());
     }
-    if !bitbox02::keystore::is_locked() {
+    if !K::is_locked() {
         return Ok(());
     }
 
     // Loop unlock until the password is correct or the device resets.
-    while !unlock_keystore("Enter password").await {}
+    while !unlock_keystore::<K>("Enter password").await {}
 
-    unlock_bip39().await;
+    unlock_bip39::<K>().await;
     Ok(())
 }

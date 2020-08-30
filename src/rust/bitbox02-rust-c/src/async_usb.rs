@@ -52,7 +52,10 @@ pub unsafe extern "C" fn rust_async_usb_copy_response(out: *mut bitbox02::buffer
 pub extern "C" fn rust_async_usb_spawn_hww(usb_in: crate::util::Bytes) {
     use bitbox02_rust::async_usb::spawn;
     use bitbox02_rust::hww::process_packet;
-    spawn(process_packet, &usb_in.as_ref());
+    spawn(
+        process_packet::<bitbox02::keystore::CKeyStore>,
+        &usb_in.as_ref(),
+    );
 }
 
 #[no_mangle]

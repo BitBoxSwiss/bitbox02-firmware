@@ -18,6 +18,8 @@ pub mod noise;
 extern crate alloc;
 use alloc::vec::Vec;
 
+use bitbox02::keystore::Keystore;
+
 const OP_UNLOCK: u8 = b'u';
 const OP_ATTESTATION: u8 = b'a';
 
@@ -26,8 +28,8 @@ const OP_STATUS_FAILURE: u8 = 1;
 const OP_STATUS_FAILURE_UNINITIALIZED: u8 = 2;
 
 /// Process OP_UNLOCK.
-async fn api_unlock() -> Vec<u8> {
-    match crate::workflow::unlock::unlock().await {
+async fn api_unlock<K: Keystore>() -> Vec<u8> {
+    match crate::workflow::unlock::unlock::<K>().await {
         Ok(()) => [OP_STATUS_SUCCESS].to_vec(),
         Err(()) => [OP_STATUS_FAILURE_UNINITIALIZED].to_vec(),
     }
@@ -65,21 +67,21 @@ fn api_attestation(usb_in: &[u8]) -> Vec<u8> {
 /// Async HWW api processing main entry point.
 /// `usb_in` - api request bytes.
 /// Returns the usb response bytes.
-pub async fn process_packet(usb_in: Vec<u8>) -> Vec<u8> {
+pub async fn process_packet<K: Keystore>(usb_in: Vec<u8>) -> Vec<u8> {
     match usb_in.split_first() {
-        Some((&OP_UNLOCK, b"")) => return api_unlock().await,
+        Some((&OP_UNLOCK, b"")) => return api_unlock::<K>().await,
         Some((&OP_ATTESTATION, rest)) => return api_attestation(rest),
         _ => (),
     }
 
     // No other message than the attestation and unlock calls shall pass until the device is
     // unlocked or ready to be initialized.
-    if bitbox02::memory::is_initialized() && bitbox02::keystore::is_locked() {
+    if bitbox02::memory::is_initialized() && K::is_locked() {
         return Vec::new();
     }
 
     let mut out = [OP_STATUS_SUCCESS].to_vec();
-    match noise::process(usb_in, &mut out).await {
+    match noise::process::<K>(usb_in, &mut out).await {
         Ok(()) => out,
         Err(noise::Error) => [OP_STATUS_FAILURE].to_vec(),
     }

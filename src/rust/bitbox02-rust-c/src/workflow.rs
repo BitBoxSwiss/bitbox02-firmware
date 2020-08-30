@@ -21,6 +21,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::string::String;
 use bitbox02::keystore::CKeyStore;
+use bitbox02::memory::CMemory;
 use bitbox02::password::Password;
 use bitbox02_rust::bb02_async::{block_on, spin, Task};
 use bitbox02_rust::workflow::{confirm, password, status, unlock};
@@ -42,9 +43,10 @@ static mut CONFIRM_STATE: TaskState<'static, bool> = TaskState::Nothing;
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
-    UNLOCK_STATE = TaskState::Running(Box::pin(
-        bitbox02_rust::workflow::unlock::unlock::<CKeyStore>(),
-    ));
+    UNLOCK_STATE = TaskState::Running(Box::pin(bitbox02_rust::workflow::unlock::unlock::<
+        CKeyStore,
+        CMemory,
+    >()));
 }
 
 #[no_mangle]
@@ -139,7 +141,7 @@ pub unsafe extern "C" fn rust_workflow_status_blocking(
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_workflow_status_unlock_bip39_blocking() {
-    block_on(unlock::unlock_bip39::<CKeyStore>())
+    block_on(unlock::unlock_bip39::<CKeyStore, CMemory>())
 }
 
 #[no_mangle]

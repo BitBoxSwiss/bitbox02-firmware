@@ -16,65 +16,103 @@
 // deduct one for the null terminator.
 pub const DEVICE_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_DEVICE_NAME_MAX_LEN as usize - 1;
 
-/// `name.as_bytes()` must be smaller or equal to
-/// `DEVICE_NAME_MAX_LEN`, otherwise this function panics.
-pub fn set_device_name(name: &str) -> Result<(), ()> {
-    match unsafe {
-        bitbox02_sys::memory_set_device_name(
-            crate::str_to_cstr_force!(name, DEVICE_NAME_MAX_LEN).as_ptr(),
-        )
-    } {
-        true => Ok(()),
-        false => Err(()),
+/// All C memory functions needed in Rust. All methods have a default implementation to make mocking
+/// it easier.
+pub trait Memory {
+    fn set_device_name(_name: &str) -> Result<(), ()> {
+        panic!("not implemented")
+    }
+    fn is_initialized() -> bool {
+        panic!("not implemented")
+    }
+    fn is_mnemonic_passphrase_enabled() -> bool {
+        panic!("not implemented")
+    }
+    fn get_attestation_pubkey_and_certificate(
+        _device_pubkey: &mut [u8; 64],
+        _certificate: &mut [u8; 64],
+        _root_pubkey_identifier: &mut [u8; 32],
+    ) -> Result<(), ()> {
+        panic!("not implemented")
+    }
+    fn bootloader_hash(_out: &mut [u8; 32]) {
+        panic!("not implemented")
+    }
+    fn get_noise_static_private_key() -> Result<zeroize::Zeroizing<[u8; 32]>, ()> {
+        panic!("not implemented")
+    }
+    fn check_noise_remote_static_pubkey(_pubkey: &[u8; 32]) -> bool {
+        panic!("not implemented")
+    }
+    fn add_noise_remote_static_pubkey(_pubkey: &[u8; 32]) -> Result<(), ()> {
+        panic!("not implemented")
     }
 }
 
-pub fn is_initialized() -> bool {
-    unsafe { bitbox02_sys::memory_is_initialized() }
-}
+/// Exposes the C functions safely to Rust.
+pub enum CMemory {}
 
-pub fn is_mnemonic_passphrase_enabled() -> bool {
-    unsafe { bitbox02_sys::memory_is_mnemonic_passphrase_enabled() }
-}
-
-pub fn get_attestation_pubkey_and_certificate(
-    device_pubkey: &mut [u8; 64],
-    certificate: &mut [u8; 64],
-    root_pubkey_identifier: &mut [u8; 32],
-) -> Result<(), ()> {
-    match unsafe {
-        bitbox02_sys::memory_get_attestation_pubkey_and_certificate(
-            device_pubkey.as_mut_ptr(),
-            certificate.as_mut_ptr(),
-            root_pubkey_identifier.as_mut_ptr(),
-        )
-    } {
-        true => Ok(()),
-        false => Err(()),
+impl Memory for CMemory {
+    /// `name.as_bytes()` must be smaller or equal to
+    /// `DEVICE_NAME_MAX_LEN`, otherwise this function panics.
+    fn set_device_name(name: &str) -> Result<(), ()> {
+        match unsafe {
+            bitbox02_sys::memory_set_device_name(
+                crate::str_to_cstr_force!(name, DEVICE_NAME_MAX_LEN).as_ptr(),
+            )
+        } {
+            true => Ok(()),
+            false => Err(()),
+        }
     }
-}
 
-pub fn bootloader_hash(out: &mut [u8; 32]) {
-    unsafe {
-        bitbox02_sys::memory_bootloader_hash(out.as_mut_ptr());
+    fn is_initialized() -> bool {
+        unsafe { bitbox02_sys::memory_is_initialized() }
     }
-}
 
-pub fn get_noise_static_private_key() -> Result<zeroize::Zeroizing<[u8; 32]>, ()> {
-    let mut out = zeroize::Zeroizing::new([0u8; 32]);
-    match unsafe { bitbox02_sys::memory_get_noise_static_private_key(out.as_mut_ptr()) } {
-        true => Ok(out),
-        false => Err(()),
+    fn is_mnemonic_passphrase_enabled() -> bool {
+        unsafe { bitbox02_sys::memory_is_mnemonic_passphrase_enabled() }
     }
-}
 
-pub fn check_noise_remote_static_pubkey(pubkey: &[u8; 32]) -> bool {
-    unsafe { bitbox02_sys::memory_check_noise_remote_static_pubkey(pubkey.as_ptr()) }
-}
+    fn get_attestation_pubkey_and_certificate(
+        device_pubkey: &mut [u8; 64],
+        certificate: &mut [u8; 64],
+        root_pubkey_identifier: &mut [u8; 32],
+    ) -> Result<(), ()> {
+        match unsafe {
+            bitbox02_sys::memory_get_attestation_pubkey_and_certificate(
+                device_pubkey.as_mut_ptr(),
+                certificate.as_mut_ptr(),
+                root_pubkey_identifier.as_mut_ptr(),
+            )
+        } {
+            true => Ok(()),
+            false => Err(()),
+        }
+    }
 
-pub fn add_noise_remote_static_pubkey(pubkey: &[u8; 32]) -> Result<(), ()> {
-    match unsafe { bitbox02_sys::memory_add_noise_remote_static_pubkey(pubkey.as_ptr()) } {
-        true => Ok(()),
-        false => Err(()),
+    fn bootloader_hash(out: &mut [u8; 32]) {
+        unsafe {
+            bitbox02_sys::memory_bootloader_hash(out.as_mut_ptr());
+        }
+    }
+
+    fn get_noise_static_private_key() -> Result<zeroize::Zeroizing<[u8; 32]>, ()> {
+        let mut out = zeroize::Zeroizing::new([0u8; 32]);
+        match unsafe { bitbox02_sys::memory_get_noise_static_private_key(out.as_mut_ptr()) } {
+            true => Ok(out),
+            false => Err(()),
+        }
+    }
+
+    fn check_noise_remote_static_pubkey(pubkey: &[u8; 32]) -> bool {
+        unsafe { bitbox02_sys::memory_check_noise_remote_static_pubkey(pubkey.as_ptr()) }
+    }
+
+    fn add_noise_remote_static_pubkey(pubkey: &[u8; 32]) -> Result<(), ()> {
+        match unsafe { bitbox02_sys::memory_add_noise_remote_static_pubkey(pubkey.as_ptr()) } {
+            true => Ok(()),
+            false => Err(()),
+        }
     }
 }

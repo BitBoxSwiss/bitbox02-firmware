@@ -19,7 +19,7 @@ use pb::response::Response;
 
 use crate::workflow::confirm;
 
-pub async fn process(
+pub async fn process<M: bitbox02::memory::Memory>(
     pb::SetDeviceNameRequest { name }: &pb::SetDeviceNameRequest,
 ) -> Result<Response, Error> {
     let params = confirm::Params {
@@ -33,7 +33,7 @@ pub async fn process(
         return Err(Error::COMMANDER_ERR_USER_ABORT);
     }
 
-    if bitbox02::memory::set_device_name(&name).is_err() {
+    if M::set_device_name(&name).is_err() {
         return Err(Error::COMMANDER_ERR_MEMORY);
     }
 

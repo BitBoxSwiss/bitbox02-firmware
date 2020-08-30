@@ -17,6 +17,7 @@ use crate::workflow::password;
 use crate::workflow::status::status;
 use bitbox02::keystore;
 use bitbox02::keystore::Keystore;
+use bitbox02::memory::Memory;
 use bitbox02::password::Password;
 
 /// Confirm the entered mnemonic passphrase with the user. Returns true if the user confirmed it,
@@ -79,12 +80,12 @@ pub async fn unlock_keystore<K: Keystore>(title: &str) -> bool {
 
 /// Performs the BIP39 keystore unlock, including unlock animation. If the optional passphrase
 /// feature is enabled, the user will be asked for the passphrase.
-pub async fn unlock_bip39<K: Keystore>() {
+pub async fn unlock_bip39<K: Keystore, M: Memory>() {
     // Empty passphrase by default.
     let mut mnemonic_passphrase = Password::new();
 
     // If setting activated, get the passphrase from the user.
-    if bitbox02::memory::is_mnemonic_passphrase_enabled() {
+    if M::is_mnemonic_passphrase_enabled() {
         // Loop until the user confirms.
         loop {
             password::enter("Optional passphrase", true, &mut mnemonic_passphrase).await;
@@ -109,8 +110,8 @@ pub async fn unlock_bip39<K: Keystore>() {
 /// user. Otherwise, the empty "" passphrase is used by default.
 ///
 /// Returns Ok on success, Err if the device cannot be unlocked because it was not initialized.
-pub async fn unlock<K: Keystore>() -> Result<(), ()> {
-    if !bitbox02::memory::is_initialized() {
+pub async fn unlock<K: Keystore, M: Memory>() -> Result<(), ()> {
+    if !M::is_initialized() {
         return Err(());
     }
     if !K::is_locked() {
@@ -120,6 +121,6 @@ pub async fn unlock<K: Keystore>() -> Result<(), ()> {
     // Loop unlock until the password is correct or the device resets.
     while !unlock_keystore::<K>("Enter password").await {}
 
-    unlock_bip39::<K>().await;
+    unlock_bip39::<K, M>().await;
     Ok(())
 }

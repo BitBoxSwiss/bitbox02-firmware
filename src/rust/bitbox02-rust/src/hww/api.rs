@@ -27,6 +27,7 @@ use pb::response::Response;
 use prost::Message;
 
 use bitbox02::keystore::Keystore;
+use bitbox02::memory::Memory;
 
 /// Encodes a protobuf Response message.
 fn encode(response: Response) -> Vec<u8> {
@@ -77,10 +78,10 @@ fn request_tag(request: &Request) -> u32 {
 ///
 /// Returns `None` if the call was not handled by Rust, in which case it should be handled by
 /// the C commander.
-async fn process_api<K: Keystore>(request: &Request) -> Option<Result<Response, Error>> {
+async fn process_api<K: Keystore, M: Memory>(request: &Request) -> Option<Result<Response, Error>> {
     match request {
-        Request::DeviceName(ref request) => Some(set_device_name::process(request).await),
-        Request::SetPassword(ref request) => Some(set_password::process::<K>(request).await),
+        Request::DeviceName(ref request) => Some(set_device_name::process::<M>(request).await),
+        Request::SetPassword(ref request) => Some(set_password::process::<K, M>(request).await),
         _ => None,
     }
 }
@@ -91,7 +92,7 @@ async fn process_api<K: Keystore>(request: &Request) -> Option<Result<Response, 
 ///
 /// `input` is a hww.proto Request message, protobuf encoded.
 /// Returns a protobuf encoded hww.proto Response message.
-pub async fn process<K: Keystore>(input: Vec<u8>) -> Vec<u8> {
+pub async fn process<K: Keystore, M: Memory>(input: Vec<u8>) -> Vec<u8> {
     let request = match pb::Request::decode(&input[..]) {
         Ok(pb::Request {
             request: Some(request),
@@ -107,7 +108,7 @@ pub async fn process<K: Keystore>(input: Vec<u8>) -> Vec<u8> {
     // to be forced.
     bitbox02::commander::states_clear_force_next();
 
-    match process_api::<K>(&request).await {
+    match process_api::<K, M>(&request).await {
         Some(Ok(response)) => encode(response),
         Some(Err(error)) => encode(make_error(error)),
         // Api call not handled in Rust -> handle it in C.

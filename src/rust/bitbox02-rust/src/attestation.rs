@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bitbox02::memory::Memory;
+
 pub struct Data {
     pub bootloader_hash: [u8; 32],
     pub device_pubkey: [u8; 64],
@@ -20,7 +22,7 @@ pub struct Data {
     pub challenge_signature: [u8; 64],
 }
 
-pub fn perform(host_challenge: [u8; 32]) -> Result<Data, ()> {
+pub fn perform<M: Memory>(host_challenge: [u8; 32]) -> Result<Data, ()> {
     let mut result = Data {
         bootloader_hash: [0; 32],
         device_pubkey: [0; 64],
@@ -28,14 +30,14 @@ pub fn perform(host_challenge: [u8; 32]) -> Result<Data, ()> {
         root_pubkey_identifier: [0; 32],
         challenge_signature: [0; 64],
     };
-    bitbox02::memory::get_attestation_pubkey_and_certificate(
+    M::get_attestation_pubkey_and_certificate(
         &mut result.device_pubkey,
         &mut result.certificate,
         &mut result.root_pubkey_identifier,
     )?;
     let mut hash: [u8; 32] = [0; 32];
     bitbox02::sha256(&host_challenge[..], &mut hash[..])?;
-    bitbox02::memory::bootloader_hash(&mut result.bootloader_hash);
+    M::bootloader_hash(&mut result.bootloader_hash);
     bitbox02::securechip::attestation_sign(&hash, &mut result.challenge_signature)?;
     Ok(result)
 }

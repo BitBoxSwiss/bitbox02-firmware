@@ -13,10 +13,10 @@
 // limitations under the License.
 
 use alloc::vec::Vec;
-use bitbox02::memory;
 use core::cell::RefCell;
 
 use bitbox02::keystore::Keystore;
+use bitbox02::memory::Memory;
 
 const OP_I_CAN_HAS_HANDSHAEK: u8 = b'h';
 const OP_I_CAN_HAS_PAIRIN_VERIFICASHUN: u8 = b'v';
@@ -68,7 +68,7 @@ impl core::convert::From<()> for Error {
 /// Returns Err if anything goes wrong:
 /// - Invalid OP-code
 /// - Noise message in the wrong state (e.g. handshake before init, etc.).
-pub(crate) async fn process<K: Keystore>(
+pub(crate) async fn process<K: Keystore, M: Memory>(
     usb_in: Vec<u8>,
     usb_out: &mut Vec<u8>,
 ) -> Result<(), Error> {
@@ -82,7 +82,7 @@ pub(crate) async fn process<K: Keystore>(
             bitbox02::ui::screen_stack_pop_all();
 
             state.init(bitbox02_noise::Sensitive::from(
-                memory::get_noise_static_private_key()?,
+                M::get_noise_static_private_key()?,
             ));
             Ok(())
         }
@@ -93,7 +93,7 @@ pub(crate) async fn process<K: Keystore>(
             }
             bitbox02_noise::HandshakeResult::Done => {
                 let already_verified =
-                    memory::check_noise_remote_static_pubkey(&state.remote_static_pubkey()?);
+                    M::check_noise_remote_static_pubkey(&state.remote_static_pubkey()?);
                 if already_verified {
                     state.set_pairing_verified()?;
                     usb_out.push(0); // let app know we don't require verification
@@ -112,7 +112,7 @@ pub(crate) async fn process<K: Keystore>(
                     // If this fails, we continue anyway, as the communication still works (just the
                     // pubkey is not stored and we need to perform the pairing verification again
                     // next time).
-                    memory::add_noise_remote_static_pubkey(&state.remote_static_pubkey()?)
+                    M::add_noise_remote_static_pubkey(&state.remote_static_pubkey()?)
                 };
                 Ok(())
             } else {
@@ -122,7 +122,7 @@ pub(crate) async fn process<K: Keystore>(
         }
         Some((&OP_NOISE_MSG, encrypted_msg)) => {
             let decrypted_msg = state.decrypt(encrypted_msg)?;
-            let response = super::api::process::<K>(decrypted_msg).await;
+            let response = super::api::process::<K, M>(decrypted_msg).await;
             state.encrypt(&response, usb_out)?;
             Ok(())
         }

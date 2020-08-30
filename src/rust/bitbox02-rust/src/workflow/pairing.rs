@@ -15,7 +15,9 @@
 use arrayvec::ArrayString;
 use core::fmt::Write;
 
-pub async fn confirm(hash: &[u8; 32]) -> bool {
+use bitbox02::ui::UI;
+
+pub async fn confirm<U: UI>(hash: &[u8; 32]) -> bool {
     let mut encoded = [0u8; 60];
     let encoded = binascii::b32encode(&hash[..], &mut encoded).unwrap();
 
@@ -42,5 +44,5 @@ pub async fn confirm(hash: &[u8; 32]) -> bool {
         ..Default::default()
     };
 
-    confirm::confirm(&params).await
+    confirm::confirm::<U>(&params).await
 }

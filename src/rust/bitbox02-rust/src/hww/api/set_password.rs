@@ -22,13 +22,14 @@ use pb::response::Response;
 
 use bitbox02::keystore::Keystore;
 use bitbox02::memory::Memory;
+use bitbox02::ui::UI;
 
 /// Handles the SetPassword api call. This has the user enter a password twice and creates the
 /// seed/keystore. After this call is finished, the keystore is fully unlocked.
 ///
 /// `entropy` must be exactly 32 bytes and provides additional entropy used when
 /// creating the seed.
-pub async fn process<K: Keystore, M: Memory>(
+pub async fn process<K: Keystore, M: Memory, U: UI>(
     pb::SetPasswordRequest { entropy }: &pb::SetPasswordRequest,
 ) -> Result<Response, Error> {
     let entropy32: [u8; 32] = match entropy.as_slice().try_into() {
@@ -36,7 +37,7 @@ pub async fn process<K: Keystore, M: Memory>(
         Ok(e) => e,
     };
     let mut password = Password::new();
-    if !password::enter_twice(&mut password).await {
+    if !password::enter_twice::<U>(&mut password).await {
         return Err(Error::COMMANDER_ERR_GENERIC);
     }
     if !K::create_and_store_seed(&password, &entropy32) {
@@ -45,6 +46,6 @@ pub async fn process<K: Keystore, M: Memory>(
     if K::unlock(&password).is_err() {
         panic!("Unexpected error during restore: unlock failed.");
     }
-    crate::workflow::unlock::unlock_bip39::<K, M>().await;
+    crate::workflow::unlock::unlock_bip39::<K, M, U>().await;
     Ok(Response::Success(pb::Success {}))
 }

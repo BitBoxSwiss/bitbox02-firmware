@@ -18,8 +18,9 @@ use super::Error;
 use pb::response::Response;
 
 use crate::workflow::confirm;
+use bitbox02::ui::UI;
 
-pub async fn process<M: bitbox02::memory::Memory>(
+pub async fn process<M: bitbox02::memory::Memory, U: UI>(
     pb::SetDeviceNameRequest { name }: &pb::SetDeviceNameRequest,
 ) -> Result<Response, Error> {
     let params = confirm::Params {
@@ -29,7 +30,7 @@ pub async fn process<M: bitbox02::memory::Memory>(
         ..Default::default()
     };
 
-    if !confirm::confirm(&params).await {
+    if !confirm::confirm::<U>(&params).await {
         return Err(Error::COMMANDER_ERR_USER_ABORT);
     }
 

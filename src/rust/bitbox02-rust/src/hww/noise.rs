@@ -17,6 +17,7 @@ use core::cell::RefCell;
 
 use bitbox02::keystore::Keystore;
 use bitbox02::memory::Memory;
+use bitbox02::ui::UI;
 
 const OP_I_CAN_HAS_HANDSHAEK: u8 = b'h';
 const OP_I_CAN_HAS_PAIRIN_VERIFICASHUN: u8 = b'v';
@@ -68,7 +69,7 @@ impl core::convert::From<()> for Error {
 /// Returns Err if anything goes wrong:
 /// - Invalid OP-code
 /// - Noise message in the wrong state (e.g. handshake before init, etc.).
-pub(crate) async fn process<K: Keystore, M: Memory>(
+pub(crate) async fn process<K: Keystore, M: Memory, U: UI>(
     usb_in: Vec<u8>,
     usb_out: &mut Vec<u8>,
 ) -> Result<(), Error> {
@@ -79,7 +80,7 @@ pub(crate) async fn process<K: Keystore, M: Memory>(
             // Since a handshake was requested, a client was connected, so we pop that screen.
             // Pairing is the start of a session, so we clean the screen stack in case
             // we started a new session in the middle of something.
-            bitbox02::ui::screen_stack_pop_all();
+            U::screen_stack_pop_all();
 
             state.init(bitbox02_noise::Sensitive::from(
                 M::get_noise_static_private_key()?,
@@ -106,7 +107,7 @@ pub(crate) async fn process<K: Keystore, M: Memory>(
         Some((&OP_I_CAN_HAS_PAIRIN_VERIFICASHUN, b"")) => {
             let hash = state.get_handshake_hash()?;
             // TODO: auto-confirm for BitBoxBase.
-            if crate::workflow::pairing::confirm(&hash).await {
+            if crate::workflow::pairing::confirm::<U>(&hash).await {
                 state.set_pairing_verified()?;
                 let _: Result<(), ()> = {
                     // If this fails, we continue anyway, as the communication still works (just the
@@ -122,7 +123,7 @@ pub(crate) async fn process<K: Keystore, M: Memory>(
         }
         Some((&OP_NOISE_MSG, encrypted_msg)) => {
             let decrypted_msg = state.decrypt(encrypted_msg)?;
-            let response = super::api::process::<K, M>(decrypted_msg).await;
+            let response = super::api::process::<K, M, U>(decrypted_msg).await;
             state.encrypt(&response, usb_out)?;
             Ok(())
         }

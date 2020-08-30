@@ -15,6 +15,7 @@
 use super::{confirm, status};
 use crate::bb02_async::option;
 use bitbox02::password::Password;
+use bitbox02::ui::UI;
 use core::cell::RefCell;
 
 /// Example:
@@ -23,12 +24,11 @@ use core::cell::RefCell;
 /// enter("Enter password", true, &mut pw).await;
 /// // use pw.
 /// ```
-pub async fn enter(title: &str, special_chars: bool, password_out: &mut Password) {
+pub async fn enter<U: UI>(title: &str, special_chars: bool, password_out: &mut Password) {
     let result = RefCell::new(None);
-    let mut component =
-        bitbox02::ui::trinary_input_string_create_password(title, special_chars, |pw| {
-            *result.borrow_mut() = Some(pw);
-        });
+    let mut component = U::trinary_input_string_create_password(title, special_chars, |pw| {
+        *result.borrow_mut() = Some(pw);
+    });
     component.screen_stack_push();
     option(&result).await;
     let result: &Option<Password> = &result.borrow();
@@ -46,13 +46,13 @@ pub async fn enter(title: &str, special_chars: bool, password_out: &mut Password
 /// let mut pw = Password::new();
 /// enter_twice(&mut pw).await;
 /// // use pw.
-pub async fn enter_twice(password_out: &mut Password) -> bool {
+pub async fn enter_twice<U: UI>(password_out: &mut Password) -> bool {
     let mut password = Password::new();
     let mut password_repeat = Password::new();
-    enter("Set password", false, &mut password).await;
-    enter("Repeat password", false, &mut password_repeat).await;
+    enter::<U>("Set password", false, &mut password).await;
+    enter::<U>("Repeat password", false, &mut password_repeat).await;
     if password.as_str() != password_repeat.as_str() {
-        status::status("Passwords\ndo not match", false).await;
+        status::status::<U>("Passwords\ndo not match", false).await;
         return false;
     }
     if password.as_str().len() < 4 {
@@ -63,11 +63,11 @@ pub async fn enter_twice(password_out: &mut Password) -> bool {
             ..Default::default()
         };
 
-        if !confirm::confirm(&params).await {
+        if !confirm::confirm::<U>(&params).await {
             return false;
         }
     }
-    status::status("Success", true).await;
+    status::status::<U>("Success", true).await;
     password_out.copy_from(&password);
     true
 }

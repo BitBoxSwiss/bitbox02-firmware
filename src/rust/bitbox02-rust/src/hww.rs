@@ -20,6 +20,7 @@ use alloc::vec::Vec;
 
 use bitbox02::keystore::Keystore;
 use bitbox02::memory::Memory;
+use bitbox02::ui::UI;
 
 const OP_UNLOCK: u8 = b'u';
 const OP_ATTESTATION: u8 = b'a';
@@ -29,8 +30,8 @@ const OP_STATUS_FAILURE: u8 = 1;
 const OP_STATUS_FAILURE_UNINITIALIZED: u8 = 2;
 
 /// Process OP_UNLOCK.
-async fn api_unlock<K: Keystore, M: Memory>() -> Vec<u8> {
-    match crate::workflow::unlock::unlock::<K, M>().await {
+async fn api_unlock<K: Keystore, M: Memory, U: UI>() -> Vec<u8> {
+    match crate::workflow::unlock::unlock::<K, M, U>().await {
         Ok(()) => [OP_STATUS_SUCCESS].to_vec(),
         Err(()) => [OP_STATUS_FAILURE_UNINITIALIZED].to_vec(),
     }
@@ -68,9 +69,9 @@ fn api_attestation<M: Memory>(usb_in: &[u8]) -> Vec<u8> {
 /// Async HWW api processing main entry point.
 /// `usb_in` - api request bytes.
 /// Returns the usb response bytes.
-pub async fn process_packet<K: Keystore, M: Memory>(usb_in: Vec<u8>) -> Vec<u8> {
+pub async fn process_packet<K: Keystore, M: Memory, U: UI>(usb_in: Vec<u8>) -> Vec<u8> {
     match usb_in.split_first() {
-        Some((&OP_UNLOCK, b"")) => return api_unlock::<K, M>().await,
+        Some((&OP_UNLOCK, b"")) => return api_unlock::<K, M, U>().await,
         Some((&OP_ATTESTATION, rest)) => return api_attestation::<M>(rest),
         _ => (),
     }
@@ -82,7 +83,7 @@ pub async fn process_packet<K: Keystore, M: Memory>(usb_in: Vec<u8>) -> Vec<u8> 
     }
 
     let mut out = [OP_STATUS_SUCCESS].to_vec();
-    match noise::process::<K, M>(usb_in, &mut out).await {
+    match noise::process::<K, M, U>(usb_in, &mut out).await {
         Ok(()) => out,
         Err(noise::Error) => [OP_STATUS_FAILURE].to_vec(),
     }

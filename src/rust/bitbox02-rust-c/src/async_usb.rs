@@ -53,7 +53,7 @@ pub extern "C" fn rust_async_usb_spawn_hww(usb_in: crate::util::Bytes) {
     use bitbox02_rust::async_usb::spawn;
     use bitbox02_rust::hww::process_packet;
     spawn(
-        process_packet::<bitbox02::keystore::CKeyStore, bitbox02::memory::CMemory>,
+        process_packet::<bitbox02::keystore::CKeyStore, bitbox02::memory::CMemory, bitbox02::ui::CUI>,
         &usb_in.as_ref(),
     );
 }

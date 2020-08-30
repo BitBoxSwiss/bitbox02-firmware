@@ -19,10 +19,11 @@ use bitbox02::keystore;
 use bitbox02::keystore::Keystore;
 use bitbox02::memory::Memory;
 use bitbox02::password::Password;
+use bitbox02::ui::UI;
 
 /// Confirm the entered mnemonic passphrase with the user. Returns true if the user confirmed it,
 /// false if the user rejected it.
-async fn confirm_mnemonic_passphrase(passphrase: &str) -> bool {
+async fn confirm_mnemonic_passphrase<U: UI>(passphrase: &str) -> bool {
     // Accept empty passphrase without confirmation.
     if passphrase.is_empty() {
         return true;
@@ -36,7 +37,7 @@ async fn confirm_mnemonic_passphrase(passphrase: &str) -> bool {
         ..Default::default()
     };
 
-    if !confirm::confirm(&params).await {
+    if !confirm::confirm::<U>(&params).await {
         // Can't happen because accept_only = true.
         return false;
     }
@@ -50,7 +51,7 @@ async fn confirm_mnemonic_passphrase(passphrase: &str) -> bool {
         ..Default::default()
     };
 
-    confirm::confirm(&params).await
+    confirm::confirm::<U>(&params).await
 }
 
 /// Prompts the user for the device password, and returns true if the
@@ -60,9 +61,9 @@ async fn confirm_mnemonic_passphrase(passphrase: &str) -> bool {
 ///
 /// If they keystore is already unlocked, this function does not
 /// change the state and just checks the password.
-pub async fn unlock_keystore<K: Keystore>(title: &str) -> bool {
+pub async fn unlock_keystore<K: Keystore, U: UI>(title: &str) -> bool {
     let mut password = Password::new();
-    password::enter(title, false, &mut password).await;
+    password::enter::<U>(title, false, &mut password).await;
 
     match K::unlock(&password) {
         Ok(()) => true,
@@ -71,7 +72,7 @@ pub async fn unlock_keystore<K: Keystore>(title: &str) -> bool {
                 1 => "Wrong password\n1 try remains".into(),
                 n => format!("Wrong password\n{} tries remain", n),
             };
-            status(&msg, false).await;
+            status::<U>(&msg, false).await;
             false
         }
         _ => panic!("keystore unlock failed"),
@@ -80,7 +81,7 @@ pub async fn unlock_keystore<K: Keystore>(title: &str) -> bool {
 
 /// Performs the BIP39 keystore unlock, including unlock animation. If the optional passphrase
 /// feature is enabled, the user will be asked for the passphrase.
-pub async fn unlock_bip39<K: Keystore, M: Memory>() {
+pub async fn unlock_bip39<K: Keystore, M: Memory, U: UI>() {
     // Empty passphrase by default.
     let mut mnemonic_passphrase = Password::new();
 
@@ -88,17 +89,17 @@ pub async fn unlock_bip39<K: Keystore, M: Memory>() {
     if M::is_mnemonic_passphrase_enabled() {
         // Loop until the user confirms.
         loop {
-            password::enter("Optional passphrase", true, &mut mnemonic_passphrase).await;
+            password::enter::<U>("Optional passphrase", true, &mut mnemonic_passphrase).await;
 
-            if confirm_mnemonic_passphrase(mnemonic_passphrase.as_str()).await {
+            if confirm_mnemonic_passphrase::<U>(mnemonic_passphrase.as_str()).await {
                 break;
             }
 
-            status("Please try again", false).await;
+            status::<U>("Please try again", false).await;
         }
     }
 
-    bitbox02::ui::with_lock_animation(|| {
+    U::with_lock_animation(|| {
         K::unlock_bip39(&mnemonic_passphrase).expect("bip39 unlock failed");
     });
 }
@@ -110,7 +111,7 @@ pub async fn unlock_bip39<K: Keystore, M: Memory>() {
 /// user. Otherwise, the empty "" passphrase is used by default.
 ///
 /// Returns Ok on success, Err if the device cannot be unlocked because it was not initialized.
-pub async fn unlock<K: Keystore, M: Memory>() -> Result<(), ()> {
+pub async fn unlock<K: Keystore, M: Memory, U: UI>() -> Result<(), ()> {
     if !M::is_initialized() {
         return Err(());
     }
@@ -119,8 +120,8 @@ pub async fn unlock<K: Keystore, M: Memory>() -> Result<(), ()> {
     }
 
     // Loop unlock until the password is correct or the device resets.
-    while !unlock_keystore::<K>("Enter password").await {}
+    while !unlock_keystore::<K, U>("Enter password").await {}
 
-    unlock_bip39::<K, M>().await;
+    unlock_bip39::<K, M, U>().await;
     Ok(())
 }

@@ -14,14 +14,14 @@
 
 use crate::bb02_async::option;
 
-pub use bitbox02::ui::{ConfirmParams as Params, Font};
+pub use bitbox02::ui::{ConfirmParams as Params, Font, UI};
 
 /// Returns true if the user accepts, false if the user rejects.
-pub async fn confirm(params: &Params<'_>) -> bool {
+pub async fn confirm<U: UI>(params: &Params<'_>) -> bool {
     let result = core::cell::RefCell::new(None as Option<bool>);
 
     // The component will set the result when the user accepted/rejected.
-    let mut component = bitbox02::ui::confirm_create(&params, |accepted| {
+    let mut component = U::confirm_create(&params, |accepted| {
         *result.borrow_mut() = Some(accepted);
     });
     component.screen_stack_push();

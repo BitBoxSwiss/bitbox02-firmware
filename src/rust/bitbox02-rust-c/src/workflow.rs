@@ -23,6 +23,7 @@ use alloc::string::String;
 use bitbox02::keystore::CKeyStore;
 use bitbox02::memory::CMemory;
 use bitbox02::password::Password;
+use bitbox02::ui::CUI;
 use bitbox02_rust::bb02_async::{block_on, spin, Task};
 use bitbox02_rust::workflow::{confirm, password, status, unlock};
 use core::fmt::Write;
@@ -46,6 +47,7 @@ pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
     UNLOCK_STATE = TaskState::Running(Box::pin(bitbox02_rust::workflow::unlock::unlock::<
         CKeyStore,
         CMemory,
+        CUI,
     >()));
 }
 
@@ -63,8 +65,9 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
         ..Default::default()
     });
 
-    CONFIRM_STATE =
-        TaskState::Running(Box::pin(confirm::confirm(CONFIRM_PARAMS.as_ref().unwrap())));
+    CONFIRM_STATE = TaskState::Running(Box::pin(confirm::confirm::<CUI>(
+        CONFIRM_PARAMS.as_ref().unwrap(),
+    )));
 }
 
 #[no_mangle]
@@ -136,12 +139,12 @@ pub unsafe extern "C" fn rust_workflow_status_blocking(
     msg: crate::util::CStr,
     status_success: bool,
 ) {
-    block_on(status::status(msg.as_ref(), status_success))
+    block_on::<CUI, _, _>(status::status::<CUI>(msg.as_ref(), status_success))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_workflow_status_unlock_bip39_blocking() {
-    block_on(unlock::unlock_bip39::<CKeyStore, CMemory>())
+    block_on::<CUI, _, _>(unlock::unlock_bip39::<CKeyStore, CMemory, CUI>())
 }
 
 #[no_mangle]
@@ -149,7 +152,7 @@ pub unsafe extern "C" fn rust_workflow_password_enter_twice_blocking(
     mut password_out: crate::util::CStrMut,
 ) -> bool {
     let mut password = Password::new();
-    let result = block_on(password::enter_twice(&mut password));
+    let result = block_on::<CUI, _, _>(password::enter_twice::<CUI>(&mut password));
     password_out.write_str(password.as_str()).unwrap();
     result
 }
@@ -173,10 +176,10 @@ pub unsafe extern "C" fn rust_workflow_confirm_blocking(
         accept_is_nextarrow: params.accept_is_nextarrow,
         display_size: params.display_size as _,
     };
-    block_on(confirm::confirm(&params))
+    block_on::<CUI, _, _>(confirm::confirm::<CUI>(&params))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_workflow_unlock_check_blocking() -> bool {
-    block_on(unlock::unlock_keystore::<CKeyStore>("Unlock device"))
+    block_on::<CUI, _, _>(unlock::unlock_keystore::<CKeyStore, CUI>("Unlock device"))
 }

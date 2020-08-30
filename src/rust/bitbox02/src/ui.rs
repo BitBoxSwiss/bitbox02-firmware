@@ -37,9 +37,7 @@ impl<'a> Component<'a> {
         if self.is_pushed {
             panic!("component pushed twice");
         }
-        unsafe {
-            bitbox02_sys::ui_screen_stack_push(self.component);
-        }
+        screen_stack_push(&self);
         self.is_pushed = true;
     }
 }
@@ -49,9 +47,7 @@ impl<'a> Drop for Component<'a> {
         if !self.is_pushed {
             panic!("component not pushed");
         }
-        unsafe {
-            bitbox02_sys::ui_screen_stack_pop();
-        }
+        screen_stack_pop()
     }
 }
 
@@ -201,6 +197,18 @@ where
 pub fn screen_process() {
     unsafe {
         bitbox02_sys::screen_process();
+    }
+}
+
+pub fn screen_stack_push(component: &Component) {
+    unsafe {
+        bitbox02_sys::ui_screen_stack_push(component.component);
+    }
+}
+
+pub fn screen_stack_pop() {
+    unsafe {
+        bitbox02_sys::ui_screen_stack_pop();
     }
 }
 

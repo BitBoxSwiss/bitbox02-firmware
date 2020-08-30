@@ -76,6 +76,15 @@ pub struct Component<'a, U: UI> {
 }
 
 impl<'a, U: UI> Component<'a, U> {
+    /// Only use from a test.
+    pub fn new_for_test() -> Component<'a, U> {
+        Component {
+            component: core::ptr::null_mut(),
+            is_pushed: false,
+            _p: PhantomData,
+        }
+    }
+
     pub fn screen_stack_push(&mut self) {
         if self.is_pushed {
             panic!("component pushed twice");

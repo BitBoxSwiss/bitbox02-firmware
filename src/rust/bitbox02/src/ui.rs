@@ -13,14 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+mod types;
+
+use types::MAX_LABEL_SIZE;
+pub use types::{ConfirmParams, Font};
+
 use util::c_types::{c_char, c_void};
 
 extern crate alloc;
 use crate::password::Password;
 use alloc::boxed::Box;
-
-// Taking the constant straight from C, as it's excluding the null terminator.
-const MAX_LABEL_SIZE: usize = bitbox02_sys::MAX_LABEL_SIZE as _;
 
 /// Wraps the C component_t to be used in Rust.
 pub use core::marker::PhantomData;
@@ -101,48 +103,6 @@ where
     }
 }
 
-pub enum Font {
-    Default,
-    Password11X12,
-    Monogram5X9,
-}
-
-impl Font {
-    fn as_ptr(&self) -> *const bitbox02_sys::UG_FONT {
-        match self {
-            Font::Default => core::ptr::null() as *const _,
-            Font::Password11X12 => unsafe { &bitbox02_sys::font_password_11X12 },
-            Font::Monogram5X9 => unsafe { &bitbox02_sys::font_monogram_5X9 },
-        }
-    }
-}
-
-impl Default for Font {
-    fn default() -> Self {
-        Font::Default
-    }
-}
-
-#[derive(Default)]
-pub struct ConfirmParams<'a> {
-    /// The confirmation title of the screen. Max 200 chars, otherwise **panic**.
-    pub title: &'a str,
-    /// The confirmation body of the screen. Max 200 chars, otherwise **panic**.
-    pub body: &'a str,
-    pub font: Font,
-    /// If true, the body is horizontally scrollable.
-    pub scrollable: bool,
-    /// If true, require the hold gesture to confirm instead of tap.
-    pub longtouch: bool,
-    /// If true, the user can only confirm, not reject.
-    pub accept_only: bool,
-    /// if true, the accept icon is a right arrow instead of a checkmark (indicating going to the
-    /// "next" screen).
-    pub accept_is_nextarrow: bool,
-    /// Print the value of this variable in the corner. Will not print when 0
-    pub display_size: usize,
-}
-
 /// Creates a user confirmation dialog screen.
 /// `result` - will be asynchronously set to `Some(bool)` once the user accets or rejects.
 pub fn confirm_create<'a, F>(params: &ConfirmParams, result_callback: F) -> Component<'a>
@@ -150,29 +110,6 @@ where
     // Callback must outlive component.
     F: FnMut(bool) + 'a,
 {
-    // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
-    // truncate and append '...'.
-    const TRUNCATE_SIZE: usize = MAX_LABEL_SIZE + 1;
-
-    let params = bitbox02_sys::confirm_params_t {
-        title: crate::str_to_cstr_force!(
-            crate::util::truncate_str(params.title, TRUNCATE_SIZE),
-            TRUNCATE_SIZE
-        )
-        .as_ptr(),
-        body: crate::str_to_cstr_force!(
-            crate::util::truncate_str(params.body, TRUNCATE_SIZE),
-            TRUNCATE_SIZE
-        )
-        .as_ptr(),
-        font: params.font.as_ptr(),
-        scrollable: params.scrollable,
-        longtouch: params.longtouch,
-        accept_only: params.accept_only,
-        accept_is_nextarrow: params.accept_is_nextarrow,
-        display_size: params.display_size as _,
-    };
-
     unsafe extern "C" fn c_callback<F2>(result: bool, param: *mut c_void)
     where
         F2: FnMut(bool),
@@ -185,7 +122,7 @@ where
 
     let component = unsafe {
         bitbox02_sys::confirm_create(
-            &params,
+            &params.to_c_params(),
             Some(c_callback::<F>),
             // passed to the C callback as `param`
             Box::into_raw(Box::new(result_callback)) as *mut _,

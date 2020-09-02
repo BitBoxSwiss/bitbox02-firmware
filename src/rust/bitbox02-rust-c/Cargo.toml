@@ -57,6 +57,9 @@ platform-bitboxbase = []
 
 bootloader = []
 
+# Only to be enabled in unit tests.
+testing = ["bitbox02/testing"]
+
 app-ethereum = [
   "ethereum", # this is a dependency
 ]

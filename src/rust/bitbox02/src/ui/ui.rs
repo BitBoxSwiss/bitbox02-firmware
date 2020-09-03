@@ -22,9 +22,9 @@ extern crate alloc;
 use crate::password::Password;
 use alloc::boxed::Box;
 
-/// Wraps the C component_t to be used in Rust.
-pub use core::marker::PhantomData;
+use core::marker::PhantomData;
 
+/// Wraps the C component_t to be used in Rust.
 pub struct Component<'a> {
     component: *mut bitbox02_sys::component_t,
     is_pushed: bool,

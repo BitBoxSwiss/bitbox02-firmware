@@ -14,6 +14,10 @@
 // limitations under the License.
 
 mod types;
+
+#[cfg_attr(feature = "testing", path = "ui/ui_stub.rs")]
+// We don't actually use ui::ui anywhere, we re-export below.
+#[allow(clippy::module_inception)]
 mod ui;
 
 pub use ui::*;

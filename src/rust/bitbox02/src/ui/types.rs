@@ -13,6 +13,7 @@
 // limitations under the License.
 
 // Taking the constant straight from C, as it's excluding the null terminator.
+#[cfg_attr(feature = "testing", allow(dead_code))]
 pub(crate) const MAX_LABEL_SIZE: usize = bitbox02_sys::MAX_LABEL_SIZE as _;
 
 pub enum Font {
@@ -22,6 +23,7 @@ pub enum Font {
 }
 
 impl Font {
+    #[cfg_attr(feature = "testing", allow(dead_code))]
     pub(crate) fn as_ptr(&self) -> *const bitbox02_sys::UG_FONT {
         match self {
             Font::Default => core::ptr::null() as *const _,
@@ -58,6 +60,7 @@ pub struct ConfirmParams<'a> {
 }
 
 impl<'a> ConfirmParams<'a> {
+    #[cfg_attr(feature = "testing", allow(dead_code))]
     pub(crate) fn to_c_params(&self) -> bitbox02_sys::confirm_params_t {
         // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
         // truncate and append '...'.

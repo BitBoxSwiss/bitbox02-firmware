@@ -14,8 +14,9 @@
 
 //! Stubs for testing.
 
-pub fn set_device_name(_name: &str) -> Result<(), ()> {
-    panic!("not implemented")
+pub fn set_device_name(name: &str) -> Result<(), ()> {
+    let data = crate::testing::DATA.0.borrow();
+    data.memory_set_device_name.as_ref().unwrap()(name)
 }
 
 pub fn is_initialized() -> bool {

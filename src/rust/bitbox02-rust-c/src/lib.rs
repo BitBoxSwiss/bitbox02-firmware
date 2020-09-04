@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![cfg_attr(not(test), no_std)]
+#![no_std]
 #![feature(alloc_error_handler)] // used in alloc.rs
 
 #[cfg(test)]
@@ -42,6 +42,7 @@ pub mod app_ethereum;
 // handler will print the available information on the screen. If we compile with `panic=abort`
 // this code will never get executed.
 #[cfg(not(test))]
+#[cfg(not(feature = "testing"))]
 #[cfg_attr(feature = "bootloader", allow(unused_variables))]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {

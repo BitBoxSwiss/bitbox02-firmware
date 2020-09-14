@@ -39,3 +39,63 @@ pub async fn process(
 
     Ok(Response::Success(pb::Success {}))
 }
+
+#[cfg(test)]
+mod tests {
+    extern crate std;
+    use super::*;
+
+    use crate::bb02_async::block_on;
+    use bitbox02::testing::{mock, Data, MUTEX};
+    use std::boxed::Box;
+
+    #[test]
+    pub fn test_set_device_name() {
+        let _guard = MUTEX.lock().unwrap();
+
+        static SOME_NAME: &str = "foo";
+
+        // All good.
+        mock(Data {
+            ui_confirm_create_body: Some(SOME_NAME.into()),
+            ui_confirm_create_result: Some(true),
+            memory_set_device_name: Some(Box::new(|name| {
+                assert_eq!(name, SOME_NAME);
+                Ok(())
+            })),
+        });
+        assert_eq!(
+            block_on(process(&pb::SetDeviceNameRequest {
+                name: SOME_NAME.into()
+            })),
+            Ok(Response::Success(pb::Success {}))
+        );
+
+        // // User aborted confirmation.
+        mock(Data {
+            ui_confirm_create_body: Some(SOME_NAME.into()),
+            ui_confirm_create_result: Some(false),
+            ..Default::default()
+        });
+        assert_eq!(
+            block_on(process(&pb::SetDeviceNameRequest {
+                name: SOME_NAME.into()
+            })),
+            Err(Error::COMMANDER_ERR_USER_ABORT)
+        );
+
+        // // Memory write error.
+        mock(Data {
+            ui_confirm_create_body: Some(SOME_NAME.into()),
+            ui_confirm_create_result: Some(true),
+            memory_set_device_name: Some(Box::new(|_| Err(()))),
+            ..Default::default()
+        });
+        assert_eq!(
+            block_on(process(&pb::SetDeviceNameRequest {
+                name: SOME_NAME.into()
+            })),
+            Err(Error::COMMANDER_ERR_MEMORY)
+        );
+    }
+}

@@ -53,11 +53,17 @@ where
     panic!("not implemented")
 }
 
-pub fn confirm_create<'a, F>(_params: &ConfirmParams, _result_callback: F) -> Component<'a>
+pub fn confirm_create<'a, F>(params: &ConfirmParams, mut result_callback: F) -> Component<'a>
 where
     F: FnMut(bool) + 'a,
 {
-    panic!("not implemented")
+    let data = crate::testing::DATA.0.borrow();
+    assert_eq!(data.ui_confirm_create_body.as_ref().unwrap(), params.body);
+    result_callback(data.ui_confirm_create_result.unwrap());
+    Component {
+        is_pushed: false,
+        _p: PhantomData,
+    }
 }
 
 pub fn screen_process() {}

@@ -20,6 +20,13 @@
 #[macro_use]
 extern crate std;
 
+#[cfg(feature = "testing")]
+#[macro_use]
+extern crate lazy_static;
+
+#[cfg(feature = "testing")]
+pub mod testing;
+
 pub mod commander;
 pub mod keystore;
 

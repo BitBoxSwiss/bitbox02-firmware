@@ -18,32 +18,26 @@
 
 bool apps_common_bip32_xpub_from_protobuf(const XPub* xpub_in, struct ext_key* xpub_out)
 {
-    struct ext_key* tmp = NULL;
-    // libwally quirk: bip32_key_init_alloc takes 20 bytes for the parent fingerprint but only uses
+    // libwally quirk: bip32_key_init takes 20 bytes for the parent fingerprint but only uses
     // the first 4 bytes (the real size of the fingerprint).
     uint8_t parent_fingerprint[20] = {0};
     memcpy(parent_fingerprint, xpub_in->parent_fingerprint, sizeof(xpub_in->parent_fingerprint));
-    // Another libwally quirk: no function to create an ext_key from params without malloc.
-    if (bip32_key_init_alloc(
-            BIP32_VER_MAIN_PUBLIC,
-            xpub_in->depth[0],
-            xpub_in->child_num,
-            xpub_in->chain_code,
-            sizeof(xpub_in->chain_code),
-            xpub_in->public_key,
-            sizeof(xpub_in->public_key),
-            NULL,
-            0,
-            NULL,
-            0,
-            parent_fingerprint,
-            sizeof(parent_fingerprint),
-            &tmp) != WALLY_OK) {
-        return false;
-    }
-    *xpub_out = *tmp;
-    bip32_key_free(tmp);
-    return true;
+
+    return bip32_key_init(
+               BIP32_VER_MAIN_PUBLIC,
+               xpub_in->depth[0],
+               xpub_in->child_num,
+               xpub_in->chain_code,
+               sizeof(xpub_in->chain_code),
+               xpub_in->public_key,
+               sizeof(xpub_in->public_key),
+               NULL,
+               0,
+               NULL,
+               0,
+               parent_fingerprint,
+               sizeof(parent_fingerprint),
+               xpub_out) == WALLY_OK;
 }
 
 bool apps_common_bip32_xpubs_equal(const struct ext_key* xpub1, const struct ext_key* xpub2)

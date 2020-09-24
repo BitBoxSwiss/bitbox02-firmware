@@ -45,7 +45,7 @@ typedef struct {
     void (*cancel_cb)(void);
 } scroll_through_all_variants_data_t;
 
-static const uint8_t part_width = 15;
+static const uint8_t part_width = 20;
 
 static void _continue(component_t* component)
 {
@@ -121,7 +121,7 @@ static void _init_positions(component_t* scroll_through_all_variants)
         ui_util_position_left_center_offset(
             scroll_through_all_variants, data->labels[i], current_pos);
         if (i + 1 < data->length) {
-            middle_pos = middle_pos + SCREEN_WIDTH / 2 - part_width +
+            middle_pos = middle_pos + data->labels[i]->dimension.width / 2 + part_width +
                          data->labels[i + 1]->dimension.width / 2;
         }
     }

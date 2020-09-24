@@ -16,7 +16,7 @@
 #include <firmware_main_loop.h>
 #include <screen.h>
 #include <string.h>
-#include <ui/components/scroll_through_all_variants.h>
+#include <ui/components/menu.h>
 #include <ui/screen_stack.h>
 #include <usb/usb.h>
 
@@ -38,10 +38,9 @@ int main(void)
     qtouch_init();
 
     const char* words[] = {"one", "two", "three", "four", "five", "six", "seven"};
-    component_t* test_scroll_through_all_variants =
-        scroll_through_all_variants_create(words, NULL, 7, NULL, NULL, _cancel, NULL);
+    component_t* test_menu = menu_create(words, NULL, 7, NULL, NULL, _cancel, NULL);
 
-    ui_screen_stack_push(test_scroll_through_all_variants);
+    ui_screen_stack_push(test_menu);
     firmware_main_loop();
 }
 

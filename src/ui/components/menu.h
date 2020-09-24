@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _SCROLL_THROUGH_ALL_VARIANTS_H_
-#define _SCROLL_THROUGH_ALL_VARIANTS_H_
+#ifndef _MENU_H_
+#define _MENU_H_
 
 #include <ui/component.h>
 
@@ -33,7 +33,7 @@
  * @param[in] cancel_cb Called when the cancel button is pressed.
  * @param[in] parent The parent component.
  */
-component_t* scroll_through_all_variants_create(
+component_t* menu_create(
     const char* const* words,
     void (*select_word_cb)(uint8_t),
     uint8_t length,

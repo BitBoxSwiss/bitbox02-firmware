@@ -121,7 +121,7 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/components/keyboard_switch.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/orientation_arrows.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/info_centered.c
-    ${CMAKE_SOURCE_DIR}/src/ui/components/scroll_through_all_variants.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/menu.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/status.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/image.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/button.c

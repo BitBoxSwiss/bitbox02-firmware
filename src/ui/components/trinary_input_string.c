@@ -89,6 +89,11 @@ typedef struct {
     // Show last character instead of asterisk. Applies only if `hide` is true.
     bool show_last_character;
 
+    // If the title should be drawn at the top of the screen. If true, the title is always
+    // visible. If false, the title is rendered in the center, and hidden as soon as the user starts
+    // typing.
+    bool title_on_top;
+
     component_t* title_component;
     component_t* trinary_char_component;
     component_t* confirm_component;
@@ -143,9 +148,10 @@ static void _render(component_t* component)
     data_t* data = (data_t*)component->data;
     bool confirm_gesture_active =
         data->can_confirm && data->longtouch && confirm_gesture_is_active(data->confirm_component);
-    bool show_title = data->string_index == 0 &&
-                      !trinary_input_char_in_progress(data->trinary_char_component) &&
-                      !confirm_gesture_active;
+    // show title (if in center)?
+    bool show_title =
+        (data->string_index == 0 && !trinary_input_char_in_progress(data->trinary_char_component) &&
+         !confirm_gesture_active);
 
     UG_S16 string_x = data->start_x;
 
@@ -161,7 +167,7 @@ static void _render(component_t* component)
         uint8_t string_y = STRING_POS_Y;
 
         if (i == data->string_index &&
-            (confirm_gesture_active || show_title || blink ||
+            (confirm_gesture_active || (!data->title_on_top && show_title) || blink ||
              trinary_input_char_alphabet_is_empty(data->trinary_char_component))) {
             // Don't show trailing char during confirm, to make it clear
             // that it is not part of the pw.
@@ -230,7 +236,7 @@ static void _render(component_t* component)
         data->trinary_char_component->disabled = false;
         data->trinary_char_component->f->render(data->trinary_char_component);
     }
-    if (show_title) {
+    if (data->title_on_top || show_title) {
         data->title_component->f->render(data->title_component);
     }
 }
@@ -474,7 +480,9 @@ static component_t* _create(
         ui_util_add_sub_component(component, data->keyboard_switch_component);
     }
 
-    data->title_component = label_create(title, NULL, CENTER, component);
+    data->title_on_top = wordlist != NULL;
+    data->title_component =
+        label_create(title, NULL, data->title_on_top ? CENTER_TOP : CENTER, component);
     ui_util_add_sub_component(component, data->title_component);
 
     data->trinary_char_component = trinary_input_char_create(_letter_chosen, component);

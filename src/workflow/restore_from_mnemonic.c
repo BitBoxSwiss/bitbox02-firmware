@@ -116,16 +116,34 @@ static bool _get_mnemonic(char* mnemonic_out)
     char words[WORKFLOW_RESTORE_FROM_MNEMONIC_MAX_WORDS]
               [WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1] = {0};
 
-    for (uint8_t word_idx = 0; word_idx < num_words; word_idx++) {
+    uint8_t word_idx = 0;
+    while (word_idx < num_words) {
+        // This is at the same time the preset (word already filled out) if it is not empty, and
+        // also the result of the user input.
+        // This allows the user the edit the previous word
+        // (delete one, the previous word is already preset).
+        char* word = words[word_idx];
+
         char title[50] = {0};
         _set_title(word_idx, title, sizeof(title));
         workflow_trinary_input_result_t result = workflow_trinary_input_wordlist(
-            title, (const char* const*)wordlist, BIP39_WORDLIST_LEN, words[word_idx]);
-        if (result != WORKFLOW_TRINARY_INPUT_RESULT_OK) {
+            title,
+            (const char* const*)wordlist,
+            BIP39_WORDLIST_LEN,
+            strlen(word) ? word : NULL,
+            word);
+        if (result == WORKFLOW_TRINARY_INPUT_RESULT_CANCEL) {
             return false;
         }
+        if (result == WORKFLOW_TRINARY_INPUT_RESULT_DELETE) {
+            if (word_idx > 0) {
+                word_idx--;
+            }
+            continue;
+        }
+        word_idx++;
     }
-    for (uint8_t word_idx = 0; word_idx < num_words; word_idx++) {
+    for (word_idx = 0; word_idx < num_words; word_idx++) {
         if (word_idx != 0) {
             strcat(mnemonic_out, " "); // NOLINT (gcc and clang cannot agree on best practice here)
         }

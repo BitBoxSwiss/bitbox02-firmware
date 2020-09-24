@@ -538,3 +538,20 @@ component_t* trinary_input_string_create_password(
         cancel_cb,
         cancel_callback_param);
 }
+
+void trinary_input_string_set_input(component_t* trinary_input_string, const char* word)
+{
+    data_t* data = (data_t*)trinary_input_string->data;
+    if (data->wordlist == NULL) {
+        return;
+    }
+    for (size_t i = 0; i < data->wordlist_size; i++) {
+        if (STREQ(data->wordlist[i], word)) {
+            data->string_index = snprintf(data->string, sizeof(data->string), "%s", word);
+            _set_alphabet(trinary_input_string);
+            _set_can_confirm(trinary_input_string);
+            return;
+        }
+    }
+    Abort("trinary_input_string_set_input");
+}

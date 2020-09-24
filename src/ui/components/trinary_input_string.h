@@ -54,4 +54,12 @@ component_t* trinary_input_string_create_password(
     void (*cancel_cb)(void* param),
     void* cancel_callback_param);
 
+/**
+ * Only applicable in wordlist-mode.
+ * Sets the current word. The user can then accept it or delete characters.
+ * The word must be in the wordlist as passed to `trinary_input_string_create_wordlist()`, otherwise
+ * this function aborts.
+ */
+void trinary_input_string_set_input(component_t* trinary_input_string, const char* word);
+
 #endif

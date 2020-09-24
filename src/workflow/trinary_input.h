@@ -34,11 +34,13 @@ typedef enum {
 
 /**
  * The length of word_out must be WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1
+ * @param[in] preset if not NULL, this word will already be filled in
  */
 USE_RESULT workflow_trinary_input_result_t workflow_trinary_input_wordlist(
     const char* title,
     const char* const* wordlist,
     size_t wordlist_size,
+    const char* preset,
     char* word_out);
 
 #endif

@@ -33,6 +33,8 @@
 #include <util.h>
 #include <workflow/confirm_time.h>
 
+#include <wally_bip39.h> // for BIP39_WORDLIST_LEN
+
 #include <stdio.h>
 #include <string.h>
 

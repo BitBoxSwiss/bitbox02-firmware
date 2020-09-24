@@ -235,6 +235,31 @@ static void _render(component_t* component)
     }
 }
 
+// if the current input uniquely identifies a word from the wordlist by prefix, we autocomplete the
+// word.
+static void _maybe_autocomplete(component_t* trinary_input_string)
+{
+    data_t* data = (data_t*)trinary_input_string->data;
+    if (data->wordlist == NULL) {
+        return;
+    }
+    // initial value means no word was found yet.
+    size_t found_word_idx = data->wordlist_size;
+    for (size_t word_idx = 0; word_idx < data->wordlist_size; word_idx++) {
+        const char* word = data->wordlist[word_idx];
+        bool is_prefix = strncmp(data->string, word, data->string_index) == 0;
+        if (is_prefix) {
+            if (found_word_idx != data->wordlist_size) {
+                // Not unique.
+                return;
+            }
+            found_word_idx = word_idx;
+        }
+    }
+    data->string_index =
+        snprintf(data->string, sizeof(data->string), "%s", data->wordlist[found_word_idx]);
+}
+
 static void _set_alphabet(component_t* trinary_input_string)
 {
     data_t* data = (data_t*)trinary_input_string->data;
@@ -367,6 +392,7 @@ static void _letter_chosen(component_t* trinary_char, char chosen)
     data->string_index++;
     data->string[data->string_index] = '\0';
     data->show_last_character = true;
+    _maybe_autocomplete(trinary_input_string);
     _set_alphabet(trinary_input_string);
     _set_can_confirm(trinary_input_string);
     UG_S16 string_width = _constant_string_width(trinary_input_string);

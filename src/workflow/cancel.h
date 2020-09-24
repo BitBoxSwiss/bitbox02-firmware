@@ -20,11 +20,20 @@
 
 #include <stdbool.h>
 
+/**
+ * Ask the user if they really want to cancel, then cancel or do nothing.
+ */
 void workflow_cancel(void);
+
+/**
+ * Cancel without asking the user.
+ */
+void workflow_cancel_force(void);
 
 /**
  * Blocks on showing/running a component until `workflow_cancel` or `workflow_blocking_unblock` is
  * called. In the former, a prompt with the given title to confirm cancellation is shown.
+ * `workflow_cancel_force` can be used to cancel without user confirmation.
  * @param[in] title title to show in the cancel confirm prompt.
  * @param[in] component to process.
  */

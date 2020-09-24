@@ -119,8 +119,9 @@ static bool _get_mnemonic(char* mnemonic_out)
     for (uint8_t word_idx = 0; word_idx < num_words; word_idx++) {
         char title[50] = {0};
         _set_title(word_idx, title, sizeof(title));
-        if (!workflow_trinary_input_wordlist(
-                title, (const char* const*)wordlist, BIP39_WORDLIST_LEN, words[word_idx])) {
+        workflow_trinary_input_result_t result = workflow_trinary_input_wordlist(
+            title, (const char* const*)wordlist, BIP39_WORDLIST_LEN, words[word_idx]);
+        if (result != WORKFLOW_TRINARY_INPUT_RESULT_OK) {
             return false;
         }
     }

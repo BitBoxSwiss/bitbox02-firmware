@@ -23,11 +23,19 @@
 // Excluding null terminator. 8 is the longest bip39 word.
 #define WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH (8U)
 
+typedef enum {
+    // The user entered the word.
+    WORKFLOW_TRINARY_INPUT_RESULT_OK,
+    // The user cancelled the operation.
+    WORKFLOW_TRINARY_INPUT_RESULT_CANCEL,
+    // The user wants to go back to edit the previous word.
+    WORKFLOW_TRINARY_INPUT_RESULT_DELETE,
+} workflow_trinary_input_result_t;
+
 /**
  * The length of word_out must be WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1
  */
-
-USE_RESULT bool workflow_trinary_input_wordlist(
+USE_RESULT workflow_trinary_input_result_t workflow_trinary_input_wordlist(
     const char* title,
     const char* const* wordlist,
     size_t wordlist_size,

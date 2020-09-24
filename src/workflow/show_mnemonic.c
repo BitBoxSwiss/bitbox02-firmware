@@ -27,8 +27,6 @@
 #include <util.h>
 
 #define BIP39_NUM_WORDS 24
-#define MAX_WORDLENGTH 20
-
 #define NUM_RANDOM_WORDS 5
 
 static const char* _back_label = "Back to\nrecovery words";

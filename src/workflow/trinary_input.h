@@ -37,6 +37,7 @@ typedef enum {
  * @param[in] preset if not NULL, this word will already be filled in
  */
 USE_RESULT workflow_trinary_input_result_t workflow_trinary_input_wordlist(
+    size_t word_idx,
     const char* title,
     const char* const* wordlist,
     size_t wordlist_size,

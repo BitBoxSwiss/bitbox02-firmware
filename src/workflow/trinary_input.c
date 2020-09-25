@@ -51,7 +51,12 @@ static void _select(uint8_t idx)
 }
 static void _cancel(void* param)
 {
-    (void)param;
+    size_t word_idx = *(size_t*)param;
+    if (word_idx == 0) {
+        _cancel_reason = WORKFLOW_TRINARY_INPUT_RESULT_CANCEL;
+        workflow_cancel();
+        return;
+    }
     const char* words[] = {
         "Edit previous word",
         "Cancel restore",
@@ -60,6 +65,7 @@ static void _cancel(void* param)
 }
 
 workflow_trinary_input_result_t workflow_trinary_input_wordlist(
+    size_t word_idx,
     const char* title,
     const char* const* wordlist,
     size_t wordlist_size,
@@ -67,7 +73,7 @@ workflow_trinary_input_result_t workflow_trinary_input_wordlist(
     char* word_out)
 {
     component_t* component = trinary_input_string_create_wordlist(
-        title, wordlist, wordlist_size, _confirm, NULL, _cancel, NULL);
+        title, wordlist, wordlist_size, _confirm, NULL, _cancel, &word_idx, word_idx > 0);
     if (preset != NULL) {
         trinary_input_string_set_input(component, preset);
     }

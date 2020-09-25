@@ -86,13 +86,13 @@ static void _cleanup_wordlist(char*** wordlist)
 static void _set_title(uint8_t word_idx, char* title_out, size_t title_out_len)
 {
     if (word_idx == 0) {
-        snprintf(title_out, title_out_len, "Enter 1st word");
+        snprintf(title_out, title_out_len, "1st word");
     } else if (word_idx == 1) {
-        snprintf(title_out, title_out_len, "Enter 2nd word");
+        snprintf(title_out, title_out_len, "2nd word");
     } else if (word_idx == 2) {
-        snprintf(title_out, title_out_len, "Enter 3rd word");
+        snprintf(title_out, title_out_len, "3rd word");
     } else {
-        snprintf(title_out, title_out_len, "Enter %dth word", (int)(word_idx + 1));
+        snprintf(title_out, title_out_len, "%dth word", (int)(word_idx + 1));
     }
 }
 

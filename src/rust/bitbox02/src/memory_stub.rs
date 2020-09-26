@@ -50,3 +50,10 @@ pub fn check_noise_remote_static_pubkey(_pubkey: &[u8; 32]) -> bool {
 pub fn add_noise_remote_static_pubkey(_pubkey: &[u8; 32]) -> Result<(), ()> {
     panic!("not implemented")
 }
+
+pub fn set_mnemonic_passphrase_enabled(enabled: bool) -> Result<(), ()> {
+    let data = crate::testing::DATA.0.borrow();
+    data.memory_set_mnemonic_passphrase_enabled
+        .as_ref()
+        .unwrap()(enabled)
+}

@@ -45,7 +45,6 @@
 #endif
 
 #include <workflow/backup.h>
-#include <workflow/confirm.h>
 #include <workflow/reboot.h>
 #include <workflow/restore.h>
 #include <workflow/restore_from_mnemonic.h>
@@ -198,23 +197,6 @@ static commander_error_t _api_electrum_encryption_key(
     return COMMANDER_OK;
 }
 
-static commander_error_t _api_set_mnemonic_passphrase_enabled(
-    const SetMnemonicPassphraseEnabledRequest* request)
-{
-    const confirm_params_t params = {
-        .title = request->enabled ? "Enable" : "Disable",
-        .body = "Optional\npassphrase",
-        .longtouch = true,
-    };
-    if (!workflow_confirm_blocking(&params)) {
-        return COMMANDER_ERR_USER_ABORT;
-    }
-    if (!memory_set_mnemonic_passphrase_enabled(request->enabled)) {
-        return COMMANDER_ERR_MEMORY;
-    }
-    return COMMANDER_OK;
-}
-
 static commander_error_t _api_restore_from_mnemonic(const RestoreFromMnemonicRequest* request)
 {
     if (!workflow_restore_from_mnemonic(request)) {
@@ -287,10 +269,6 @@ static commander_error_t _api_process(const Request* request, Response* response
         response->which_response = Response_success_tag;
         _api_insert_remove_sdcard(&(request->request.insert_remove_sdcard));
         return COMMANDER_OK;
-    case Request_set_mnemonic_passphrase_enabled_tag:
-        response->which_response = Response_success_tag;
-        return _api_set_mnemonic_passphrase_enabled(
-            &(request->request.set_mnemonic_passphrase_enabled));
     case Request_list_backups_tag:
         response->which_response = Response_list_backups_tag;
         return _api_list_backups(&(response->response.list_backups));
@@ -347,11 +325,3 @@ void commander(const in_buffer_t* in_buf, buffer_t* out_buf)
 
     protobuf_encode(out_buf, &response);
 }
-
-#ifdef TESTING
-commander_error_t commander_api_set_mnemonic_passphrase_enabled(
-    const SetMnemonicPassphraseEnabledRequest* request)
-{
-    return _api_set_mnemonic_passphrase_enabled(request);
-}
-#endif

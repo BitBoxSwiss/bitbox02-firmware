@@ -78,3 +78,10 @@ pub fn add_noise_remote_static_pubkey(pubkey: &[u8; 32]) -> Result<(), ()> {
         false => Err(()),
     }
 }
+
+pub fn set_mnemonic_passphrase_enabled(enabled: bool) -> Result<(), ()> {
+    match unsafe { bitbox02_sys::memory_set_mnemonic_passphrase_enabled(enabled) } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}

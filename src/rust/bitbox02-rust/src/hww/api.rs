@@ -17,6 +17,7 @@ mod pb {
 }
 mod error;
 mod reset;
+mod sdcard;
 mod set_device_name;
 mod set_mnemonic_passphrase_enabled;
 mod set_password;
@@ -85,6 +86,7 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
         Request::SetMnemonicPassphraseEnabled(ref request) => {
             Some(set_mnemonic_passphrase_enabled::process(request).await)
         }
+        Request::InsertRemoveSdcard(ref request) => Some(sdcard::process(request).await),
         _ => None,
     }
 }

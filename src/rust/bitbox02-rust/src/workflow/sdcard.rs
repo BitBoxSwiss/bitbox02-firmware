@@ -1,4 +1,4 @@
-// Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,9 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod confirm;
-pub mod pairing;
-pub mod password;
-pub mod sdcard;
-pub mod status;
-pub mod unlock;
+use crate::bb02_async::option;
+use core::cell::RefCell;
+
+pub async fn sdcard(insert: bool) {
+    let result = RefCell::new(None);
+    let mut component = bitbox02::ui::sdcard_create(insert, || {
+        *result.borrow_mut() = Some(());
+    });
+    component.screen_stack_push();
+    option(&result).await;
+}

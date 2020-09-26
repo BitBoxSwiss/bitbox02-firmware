@@ -215,3 +215,7 @@ pub fn reset(status: bool) {
     let data = crate::testing::DATA.0.borrow();
     data.reset.as_ref().unwrap()(status)
 }
+
+pub fn sdcard_inserted() -> bool {
+    unsafe { bitbox02_sys::sd_card_inserted() }
+}

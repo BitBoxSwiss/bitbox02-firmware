@@ -23,6 +23,7 @@
 #include <random.h>
 #include <reset.h>
 #include <screen.h>
+#include <sd.h>
 #include <securechip/securechip.h>
 #include <ui/components/confirm.h>
 #include <ui/components/label.h>

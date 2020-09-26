@@ -385,6 +385,7 @@ add_custom_target(rust-bindgen
     --whitelist-var WALLY_OK
     --whitelist-function trinary_input_string_create_password
     --whitelist-function reset_reset
+    --whitelist-function sd_card_inserted
     ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
     -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums ${RUST_BINDGEN_FLAGS} ${RUST_INCLUDES}
   )

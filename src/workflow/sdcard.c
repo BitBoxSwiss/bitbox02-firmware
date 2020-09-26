@@ -23,6 +23,12 @@
 #include <ui/components/sdcard.h>
 #include <ui/screen_stack.h>
 
+static void _unblock(void* param)
+{
+    (void)param;
+    workflow_blocking_unblock();
+}
+
 void sdcard_handle(const InsertRemoveSDCardRequest* insert_remove_sdcard)
 {
     bool inserted = sd_card_inserted();
@@ -37,9 +43,9 @@ void sdcard_handle(const InsertRemoveSDCardRequest* insert_remove_sdcard)
 
     component_t* screen;
     if (insert_remove_sdcard->action == InsertRemoveSDCardRequest_SDCardAction_INSERT_CARD) {
-        screen = sdcard_create(true, workflow_blocking_unblock);
+        screen = sdcard_create(true, _unblock, NULL);
     } else if (insert_remove_sdcard->action == InsertRemoveSDCardRequest_SDCardAction_REMOVE_CARD) {
-        screen = sdcard_create(false, workflow_blocking_unblock);
+        screen = sdcard_create(false, _unblock, NULL);
     } else {
         return;
     }

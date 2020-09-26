@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "insert_sd_card.h"
+#include "sdcard.h"
 #include "icon_button.h"
 #include "label.h"
 #include "ui_images.h"
@@ -57,34 +57,34 @@ static void _continue_callback(component_t* component)
 /**
  * Creates an insert SD card screen.
  */
-component_t* insert_sd_card_create(void (*continue_callback)(void))
+component_t* sdcard_create(void (*continue_callback)(void))
 {
-    component_t* insert_sd_card = malloc(sizeof(component_t));
-    if (!insert_sd_card) {
-        Abort("Error: malloc insert_sd_card");
+    component_t* component = malloc(sizeof(component_t));
+    if (!component) {
+        Abort("Error: malloc sdcard");
     }
     data_t* data = malloc(sizeof(data_t));
     if (!data) {
-        Abort("Error: malloc insert_sd_card data");
+        Abort("Error: malloc sdcard data");
     }
     memset(data, 0, sizeof(data_t));
-    memset(insert_sd_card, 0, sizeof(component_t));
+    memset(component, 0, sizeof(component_t));
 
     data->continue_callback = continue_callback;
-    insert_sd_card->data = data;
-    insert_sd_card->f = &_component_functions;
-    insert_sd_card->dimension.width = SCREEN_WIDTH;
-    insert_sd_card->dimension.height = SCREEN_HEIGHT;
+    component->data = data;
+    component->f = &_component_functions;
+    component->dimension.width = SCREEN_WIDTH;
+    component->dimension.height = SCREEN_HEIGHT;
 
     ui_util_add_sub_component(
-        insert_sd_card,
+        component,
         label_create(
             "Insert SD card\nto continue",
             NULL,
             screen_is_upside_down() ? RIGHT_CENTER : LEFT_CENTER,
-            insert_sd_card));
+            component));
     ui_util_add_sub_component(
-        insert_sd_card, icon_button_create(bottom_slider, ICON_BUTTON_CHECK, _continue_callback));
+        component, icon_button_create(bottom_slider, ICON_BUTTON_CHECK, _continue_callback));
 
-    return insert_sd_card;
+    return component;
 }

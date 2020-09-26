@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _INSERT_SD_CARD_H_
-#define _INSERT_SD_CARD_H_
+#ifndef _SD_CARD_H_
+#define _SD_CARD_H_
 
 #include <ui/component.h>
 
 /**
  * Creates an insert SD card screen.
  */
-component_t* insert_sd_card_create(void (*continue_callback)(void));
+component_t* sdcard_create(void (*continue_callback)(void));
 
 #endif

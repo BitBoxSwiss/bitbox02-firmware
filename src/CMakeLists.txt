@@ -49,7 +49,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/reboot.c
   ${CMAKE_SOURCE_DIR}/src/workflow/restore.c
   ${CMAKE_SOURCE_DIR}/src/workflow/restore_from_mnemonic.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/sdcard.c
   ${CMAKE_SOURCE_DIR}/src/workflow/show_mnemonic.c
   ${CMAKE_SOURCE_DIR}/src/workflow/orientation_screen.c
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c

@@ -18,8 +18,10 @@
 #include <ui/component.h>
 
 /**
- * Creates an insert SD card screen.
+ * Creates an insert/remove SD card screen.
+ * @param[in] insert if true, the user is asked to insert the sdcard. Otherwise the user is asked to
+ *            remove it.
  */
-component_t* sdcard_create(void (*continue_callback)(void));
+component_t* sdcard_create(bool insert, void (*continue_callback)(void));
 
 #endif

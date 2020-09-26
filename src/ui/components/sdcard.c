@@ -24,6 +24,9 @@
 #include <ui/screen_stack.h>
 
 typedef struct {
+    // if true, the callback won't be called until the sd card is inserted.
+    // the insert/remove label changes depending on this flag.
+    bool insert;
     void (*continue_callback)(void);
 } data_t;
 
@@ -45,8 +48,8 @@ static const component_functions_t _component_functions = {
 
 static void _continue_callback(component_t* component)
 {
-    if (sd_card_inserted()) {
-        data_t* data = (data_t*)component->parent->data;
+    data_t* data = (data_t*)component->parent->data;
+    if (!data->insert || sd_card_inserted()) {
         if (data->continue_callback) {
             data->continue_callback();
             data->continue_callback = NULL;
@@ -54,10 +57,7 @@ static void _continue_callback(component_t* component)
     }
 }
 
-/**
- * Creates an insert SD card screen.
- */
-component_t* sdcard_create(void (*continue_callback)(void))
+component_t* sdcard_create(bool insert, void (*continue_callback)(void))
 {
     component_t* component = malloc(sizeof(component_t));
     if (!component) {
@@ -70,6 +70,7 @@ component_t* sdcard_create(void (*continue_callback)(void))
     memset(data, 0, sizeof(data_t));
     memset(component, 0, sizeof(component_t));
 
+    data->insert = insert;
     data->continue_callback = continue_callback;
     component->data = data;
     component->f = &_component_functions;
@@ -79,7 +80,7 @@ component_t* sdcard_create(void (*continue_callback)(void))
     ui_util_add_sub_component(
         component,
         label_create(
-            "Insert SD card\nto continue",
+            insert ? "Insert SD card\nto continue" : "Remove SD card\nto continue",
             NULL,
             screen_is_upside_down() ? RIGHT_CENTER : LEFT_CENTER,
             component));

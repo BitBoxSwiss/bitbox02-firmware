@@ -75,6 +75,13 @@ where
     panic!("not implemented")
 }
 
+pub fn sdcard_create<'a, F>(_insert: bool, _continue_callback: F) -> Component<'a>
+where
+    F: FnMut() + 'a,
+{
+    panic!("not implemented")
+}
+
 pub fn with_lock_animation<F: Fn()>(_f: F) {
     panic!("not implemented")
 }

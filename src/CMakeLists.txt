@@ -361,6 +361,7 @@ add_custom_target(rust-bindgen
     --whitelist-function label_create
     --whitelist-function confirm_create
     --whitelist-function status_create
+    --whitelist-function sdcard_create
     --whitelist-function bitboxbase_watchdog_reset
     --whitelist-function bitboxbase_screensaver_reset
     --whitelist-function leds_turn_small_led

@@ -169,6 +169,36 @@ where
     }
 }
 
+pub fn sdcard_create<'a, F>(insert: bool, continue_callback: F) -> Component<'a>
+where
+    // Callback must outlive component.
+    F: FnMut() + 'a,
+{
+    unsafe extern "C" fn c_continue_callback<F2>(param: *mut c_void)
+    where
+        F2: FnMut(),
+    {
+        // The callback is dropped afterwards. This is safe because
+        // this C callback is guaranteed to be called only once.
+        let mut callback = Box::from_raw(param as *mut F2);
+        callback();
+    }
+
+    let component = unsafe {
+        bitbox02_sys::sdcard_create(
+            insert,
+            Some(c_continue_callback::<F>),
+            // passed to the C callback as `param`
+            Box::into_raw(Box::new(continue_callback)) as *mut _,
+        )
+    };
+    Component {
+        component,
+        is_pushed: false,
+        _p: PhantomData,
+    }
+}
+
 pub fn with_lock_animation<F: Fn()>(f: F) {
     unsafe { bitbox02_sys::lock_animation_start() };
     f();

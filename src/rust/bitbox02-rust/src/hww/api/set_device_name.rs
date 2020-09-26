@@ -63,6 +63,7 @@ mod tests {
                 assert_eq!(name, SOME_NAME);
                 Ok(())
             })),
+            ..Default::default()
         });
         assert_eq!(
             block_on(process(&pb::SetDeviceNameRequest {
@@ -71,7 +72,7 @@ mod tests {
             Ok(Response::Success(pb::Success {}))
         );
 
-        // // User aborted confirmation.
+        // User aborted confirmation.
         mock(Data {
             ui_confirm_create_body: Some(SOME_NAME.into()),
             ui_confirm_create_result: Some(false),
@@ -84,7 +85,7 @@ mod tests {
             Err(Error::COMMANDER_ERR_USER_ABORT)
         );
 
-        // // Memory write error.
+        // Memory write error.
         mock(Data {
             ui_confirm_create_body: Some(SOME_NAME.into()),
             ui_confirm_create_result: Some(true),

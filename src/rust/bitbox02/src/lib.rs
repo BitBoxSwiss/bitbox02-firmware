@@ -204,3 +204,14 @@ pub fn sha256(input: &[u8], output: &mut [u8]) -> Result<(), ()> {
 pub fn bitboxbase_screensaver_reset() {
     unsafe { bitbox02_sys::bitboxbase_screensaver_reset() }
 }
+
+#[cfg(not(feature = "testing"))]
+pub fn reset(status: bool) {
+    unsafe { bitbox02_sys::reset_reset(status) }
+}
+
+#[cfg(feature = "testing")]
+pub fn reset(status: bool) {
+    let data = crate::testing::DATA.0.borrow();
+    data.reset.as_ref().unwrap()(status)
+}

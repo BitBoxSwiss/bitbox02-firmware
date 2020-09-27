@@ -118,11 +118,6 @@ bool workflow_backup_check(char* id_out, bool silent)
     char backup_name[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
     backup_error_t res = backup_check(id_out, backup_name, NULL);
     switch (res) {
-    case BACKUP_ERR_SD_LIST:
-    case BACKUP_ERR_SD_READ:
-    case BACKUP_ERR_SD_WRITE:
-        workflow_status_blocking("Could not read\nor write to the\nmicro SD card", false);
-        return false;
     case BACKUP_ERR_CHECK:
         if (!silent) {
             workflow_status_blocking("Backup missing\nor invalid", false);

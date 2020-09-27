@@ -37,3 +37,68 @@ pub async fn process(
     sdcard::sdcard(action == SdCardAction::InsertCard).await;
     Ok(Response::Success(pb::Success {}))
 }
+
+#[cfg(test)]
+mod tests {
+    extern crate std;
+    use super::*;
+
+    use crate::bb02_async::block_on;
+    use bitbox02::testing::{mock, Data, MUTEX};
+    use std::boxed::Box;
+
+    #[test]
+    pub fn test_reset() {
+        let _guard = MUTEX.lock().unwrap();
+
+        // already inserted.
+        mock(Data {
+            sdcard_inserted: Some(Box::new(|| -> bool { true })),
+            ..Default::default()
+        });
+        assert_eq!(
+            block_on(process(&pb::InsertRemoveSdCardRequest {
+                action: SdCardAction::InsertCard as _,
+            })),
+            Ok(Response::Success(pb::Success {}))
+        );
+
+        // already removed.
+        mock(Data {
+            sdcard_inserted: Some(Box::new(|| -> bool { false })),
+            ..Default::default()
+        });
+        assert_eq!(
+            block_on(process(&pb::InsertRemoveSdCardRequest {
+                action: SdCardAction::RemoveCard as _,
+            })),
+            Ok(Response::Success(pb::Success {}))
+        );
+
+        // insert
+        mock(Data {
+            sdcard_inserted: Some(Box::new(|| -> bool { false })),
+            ui_sdcard_create_arg: Some(true),
+            ..Default::default()
+        });
+        assert_eq!(
+            block_on(process(&pb::InsertRemoveSdCardRequest {
+                action: SdCardAction::InsertCard as _,
+            })),
+            Ok(Response::Success(pb::Success {}))
+        );
+
+        // remove
+        mock(Data {
+            sdcard_inserted: Some(Box::new(|| -> bool { true })),
+            ui_sdcard_create_arg: Some(false),
+            ..Default::default()
+        });
+        assert_eq!(
+            block_on(process(&pb::InsertRemoveSdCardRequest {
+                action: SdCardAction::RemoveCard as _,
+            })),
+            Ok(Response::Success(pb::Success {}))
+        );
+    }
+}

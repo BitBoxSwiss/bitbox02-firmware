@@ -23,6 +23,7 @@ pub struct Data {
     pub memory_set_device_name: Option<Box<dyn Fn(&str) -> Result<(), ()>>>,
     pub ui_confirm_create_body: Option<std::string::String>,
     pub ui_confirm_create_result: Option<bool>,
+    pub reset: Option<Box<dyn Fn(bool)>>,
 }
 
 pub struct SafeData(pub RefCell<Data>);

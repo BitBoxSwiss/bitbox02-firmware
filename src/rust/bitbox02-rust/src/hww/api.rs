@@ -16,6 +16,7 @@ mod pb {
     include!("./api/shiftcrypto.bitbox02.rs");
 }
 mod error;
+mod reset;
 mod set_device_name;
 mod set_password;
 
@@ -79,6 +80,7 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
     match request {
         Request::DeviceName(ref request) => Some(set_device_name::process(request).await),
         Request::SetPassword(ref request) => Some(set_password::process(request).await),
+        Request::Reset(_) => Some(reset::process().await),
         _ => None,
     }
 }

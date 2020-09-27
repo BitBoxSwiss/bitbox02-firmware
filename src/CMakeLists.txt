@@ -47,7 +47,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/idle_workflow.c
   ${CMAKE_SOURCE_DIR}/src/workflow/password.c
   ${CMAKE_SOURCE_DIR}/src/workflow/reboot.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/reset.c
   ${CMAKE_SOURCE_DIR}/src/workflow/restore.c
   ${CMAKE_SOURCE_DIR}/src/workflow/restore_from_mnemonic.c
   ${CMAKE_SOURCE_DIR}/src/workflow/sdcard.c
@@ -383,6 +382,7 @@ add_custom_target(rust-bindgen
     --whitelist-var font_password_11X12
     --whitelist-var WALLY_OK
     --whitelist-function trinary_input_string_create_password
+    --whitelist-function reset_reset
     ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
     -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums ${RUST_BINDGEN_FLAGS} ${RUST_INCLUDES}
   )

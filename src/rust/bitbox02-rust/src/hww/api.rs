@@ -18,6 +18,7 @@ mod pb {
 mod error;
 mod reset;
 mod set_device_name;
+mod set_mnemonic_passphrase_enabled;
 mod set_password;
 
 use alloc::vec::Vec;
@@ -81,6 +82,9 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
         Request::DeviceName(ref request) => Some(set_device_name::process(request).await),
         Request::SetPassword(ref request) => Some(set_password::process(request).await),
         Request::Reset(_) => Some(reset::process().await),
+        Request::SetMnemonicPassphraseEnabled(ref request) => {
+            Some(set_mnemonic_passphrase_enabled::process(request).await)
+        }
         _ => None,
     }
 }

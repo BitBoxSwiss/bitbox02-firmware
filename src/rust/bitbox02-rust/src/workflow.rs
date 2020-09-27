@@ -15,5 +15,6 @@
 pub mod confirm;
 pub mod pairing;
 pub mod password;
+pub mod sdcard;
 pub mod status;
 pub mod unlock;

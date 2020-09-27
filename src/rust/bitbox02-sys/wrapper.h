@@ -23,9 +23,11 @@
 #include <random.h>
 #include <reset.h>
 #include <screen.h>
+#include <sd.h>
 #include <securechip/securechip.h>
 #include <ui/components/confirm.h>
 #include <ui/components/label.h>
+#include <ui/components/sdcard.h>
 #include <ui/components/status.h>
 #include <ui/components/trinary_input_string.h>
 #include <ui/fonts/font_a_11X10.h>

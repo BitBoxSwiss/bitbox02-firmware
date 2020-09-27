@@ -1,4 +1,4 @@
-// Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2020 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "hww.pb.h"
+use crate::bb02_async::option;
+use core::cell::RefCell;
 
-#ifndef _SDCARD_H_
-#define _SDCARD_H_
-
-/**
- * Handles the API call to insert or remove the SD card.
- * Checks whether SD card is inserted and blocks until it is inserted or
- * removed, depending on the API call.
- */
-void sdcard_handle(const InsertRemoveSDCardRequest* insert_remove_sdcard);
-
-#endif
+pub async fn sdcard(insert: bool) {
+    let result = RefCell::new(None);
+    let mut component = bitbox02::ui::sdcard_create(insert, || {
+        *result.borrow_mut() = Some(());
+    });
+    component.screen_stack_push();
+    option(&result).await;
+}

@@ -48,7 +48,6 @@
 #include <workflow/reboot.h>
 #include <workflow/restore.h>
 #include <workflow/restore_from_mnemonic.h>
-#include <workflow/sdcard.h>
 #include <workflow/show_mnemonic.h>
 #include <workflow/workflow.h>
 
@@ -171,12 +170,6 @@ static commander_error_t _api_check_sdcard(CheckSDCardResponse* response)
     return COMMANDER_OK;
 }
 
-static commander_error_t _api_insert_remove_sdcard(const InsertRemoveSDCardRequest* request)
-{
-    sdcard_handle(request);
-    return COMMANDER_OK;
-}
-
 static commander_error_t _api_get_root_fingerprint(RootFingerprintResponse* response)
 {
     bool success = keystore_get_root_fingerprint(response->fingerprint);
@@ -265,10 +258,6 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_check_sdcard_tag:
         response->which_response = Response_check_sdcard_tag;
         return _api_check_sdcard(&(response->response.check_sdcard));
-    case Request_insert_remove_sdcard_tag:
-        response->which_response = Response_success_tag;
-        _api_insert_remove_sdcard(&(request->request.insert_remove_sdcard));
-        return COMMANDER_OK;
     case Request_list_backups_tag:
         response->which_response = Response_list_backups_tag;
         return _api_list_backups(&(response->response.list_backups));

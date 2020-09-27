@@ -75,6 +75,19 @@ where
     panic!("not implemented")
 }
 
+pub fn sdcard_create<'a, F>(insert: bool, mut continue_callback: F) -> Component<'a>
+where
+    F: FnMut() + 'a,
+{
+    let data = crate::testing::DATA.0.borrow();
+    assert_eq!(data.ui_sdcard_create_arg.unwrap(), insert);
+    continue_callback();
+    Component {
+        is_pushed: false,
+        _p: PhantomData,
+    }
+}
+
 pub fn with_lock_animation<F: Fn()>(_f: F) {
     panic!("not implemented")
 }

@@ -49,7 +49,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/reboot.c
   ${CMAKE_SOURCE_DIR}/src/workflow/restore.c
   ${CMAKE_SOURCE_DIR}/src/workflow/restore_from_mnemonic.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/sdcard.c
   ${CMAKE_SOURCE_DIR}/src/workflow/show_mnemonic.c
   ${CMAKE_SOURCE_DIR}/src/workflow/orientation_screen.c
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c
@@ -361,6 +360,7 @@ add_custom_target(rust-bindgen
     --whitelist-function label_create
     --whitelist-function confirm_create
     --whitelist-function status_create
+    --whitelist-function sdcard_create
     --whitelist-function bitboxbase_watchdog_reset
     --whitelist-function bitboxbase_screensaver_reset
     --whitelist-function leds_turn_small_led
@@ -384,6 +384,7 @@ add_custom_target(rust-bindgen
     --whitelist-var WALLY_OK
     --whitelist-function trinary_input_string_create_password
     --whitelist-function reset_reset
+    --whitelist-function sd_card_inserted
     ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
     -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums ${RUST_BINDGEN_FLAGS} ${RUST_INCLUDES}
   )

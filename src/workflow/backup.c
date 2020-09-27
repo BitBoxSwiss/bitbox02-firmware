@@ -26,7 +26,6 @@
 #include <workflow/confirm.h>
 #include <workflow/confirm_time.h>
 #include <workflow/password.h>
-#include <workflow/sdcard.h>
 #include <workflow/status.h>
 
 #define MAX_EAST_UTC_OFFSET (50400) // 14 hours in seconds
@@ -81,11 +80,8 @@ bool workflow_backup_create(const CreateBackupRequest* request)
         return false;
     }
 
-    // Wait for sd card.
-    const InsertRemoveSDCardRequest sd = {
-        .action = InsertRemoveSDCardRequest_SDCardAction_INSERT_CARD,
-    };
-    sdcard_handle(&sd);
+    // Wait for sd card
+    rust_workflow_sdcard_blocking(true);
 
     if (memory_is_initialized()) {
         if (!rust_workflow_unlock_check_blocking()) {

@@ -27,7 +27,8 @@ typedef struct {
     // if true, the callback won't be called until the sd card is inserted.
     // the insert/remove label changes depending on this flag.
     bool insert;
-    void (*continue_callback)(void);
+    void (*continue_callback)(void*);
+    void* continue_callback_param;
 } data_t;
 
 static void _render(component_t* component)
@@ -51,13 +52,16 @@ static void _continue_callback(component_t* component)
     data_t* data = (data_t*)component->parent->data;
     if (!data->insert || sd_card_inserted()) {
         if (data->continue_callback) {
-            data->continue_callback();
+            data->continue_callback(data->continue_callback_param);
             data->continue_callback = NULL;
         }
     }
 }
 
-component_t* sdcard_create(bool insert, void (*continue_callback)(void))
+component_t* sdcard_create(
+    bool insert,
+    void (*continue_callback)(void*),
+    void* continue_callback_param)
 {
     component_t* component = malloc(sizeof(component_t));
     if (!component) {
@@ -72,6 +76,7 @@ component_t* sdcard_create(bool insert, void (*continue_callback)(void))
 
     data->insert = insert;
     data->continue_callback = continue_callback;
+    data->continue_callback_param = continue_callback_param;
     component->data = data;
     component->f = &_component_functions;
     component->dimension.width = SCREEN_WIDTH;

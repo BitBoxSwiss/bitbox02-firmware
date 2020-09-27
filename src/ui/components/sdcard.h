@@ -12,14 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _REMOVE_SD_CARD_H_
-#define _REMOVE_SD_CARD_H_
+#ifndef _SD_CARD_H_
+#define _SD_CARD_H_
 
 #include <ui/component.h>
 
 /**
- * Creates a remove SD card screen.
+ * Creates an insert/remove SD card screen.
+ * @param[in] insert if true, the user is asked to insert the sdcard. Otherwise the user is asked to
+ *            remove it.
  */
-component_t* remove_sd_card_create(void (*continue_callback)(void));
+component_t* sdcard_create(bool insert, void (*continue_callback)(void));
 
 #endif

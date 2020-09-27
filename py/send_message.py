@@ -248,6 +248,12 @@ class SendMessage:
     def _check_sd_presence(self) -> None:
         print(f"SD Card inserted: {self._device.check_sdcard()}")
 
+    def _insert_sdcard(self) -> None:
+        self._device.insert_sdcard()
+
+    def _remove_sdcard(self) -> None:
+        self._device.remove_sdcard()
+
     def _display_random(self) -> None:
         print(f"Random number: {self._device.random_number().hex()}")
 
@@ -679,6 +685,8 @@ class SendMessage:
             ("Create backup", self._create_backup),
             ("Reboot into bootloader", self._reboot_bootloader),
             ("Check if SD card inserted", self._check_sd_presence),
+            ("Insert SD card", self._insert_sdcard),
+            ("Remove SD card", self._remove_sdcard),
             ("Toggle BIP39 Mnemonic Passphrase", self._toggle_mnemonic_passphrase),
             ("Retrieve Ethereum xpub", self._get_eth_xpub),
             ("Retrieve Ethereum address", self._display_eth_address),

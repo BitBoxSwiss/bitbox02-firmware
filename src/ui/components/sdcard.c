@@ -12,28 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "remove_sd_card.h"
+#include "sdcard.h"
 #include "icon_button.h"
 #include "label.h"
 #include "ui_images.h"
 #include <hardfault.h>
 #include <screen.h>
+#include <sd.h>
 #include <string.h>
 #include <touch/gestures.h>
 #include <ui/screen_stack.h>
 
 typedef struct {
+    // if true, the callback won't be called until the sd card is inserted.
+    // the insert/remove label changes depending on this flag.
+    bool insert;
     void (*continue_callback)(void);
 } data_t;
-
-static void _dismiss(component_t* component)
-{
-    data_t* data = (data_t*)component->parent->data;
-    if (data->continue_callback) {
-        data->continue_callback();
-        data->continue_callback = NULL;
-    }
-}
 
 static void _render(component_t* component)
 {
@@ -51,37 +46,46 @@ static const component_functions_t _component_functions = {
 
 /********************************** Create Instance **********************************/
 
-/**
- * Creates a remove SD card screen.
- */
-component_t* remove_sd_card_create(void (*continue_callback)(void))
+static void _continue_callback(component_t* component)
 {
-    component_t* remove_sd_card = malloc(sizeof(component_t));
-    if (!remove_sd_card) {
-        Abort("Error: malloc remove_sd_card");
+    data_t* data = (data_t*)component->parent->data;
+    if (!data->insert || sd_card_inserted()) {
+        if (data->continue_callback) {
+            data->continue_callback();
+            data->continue_callback = NULL;
+        }
+    }
+}
+
+component_t* sdcard_create(bool insert, void (*continue_callback)(void))
+{
+    component_t* component = malloc(sizeof(component_t));
+    if (!component) {
+        Abort("Error: malloc sdcard");
     }
     data_t* data = malloc(sizeof(data_t));
     if (!data) {
-        Abort("Error: malloc remove_sd_card data");
+        Abort("Error: malloc sdcard data");
     }
     memset(data, 0, sizeof(data_t));
-    memset(remove_sd_card, 0, sizeof(component_t));
+    memset(component, 0, sizeof(component_t));
 
+    data->insert = insert;
     data->continue_callback = continue_callback;
-    remove_sd_card->data = data;
-    remove_sd_card->f = &_component_functions;
-    remove_sd_card->dimension.width = SCREEN_WIDTH;
-    remove_sd_card->dimension.height = SCREEN_HEIGHT;
+    component->data = data;
+    component->f = &_component_functions;
+    component->dimension.width = SCREEN_WIDTH;
+    component->dimension.height = SCREEN_HEIGHT;
 
     ui_util_add_sub_component(
-        remove_sd_card,
+        component,
         label_create(
-            "Remove SD card\nto continue",
+            insert ? "Insert SD card\nto continue" : "Remove SD card\nto continue",
             NULL,
             screen_is_upside_down() ? RIGHT_CENTER : LEFT_CENTER,
-            remove_sd_card));
+            component));
     ui_util_add_sub_component(
-        remove_sd_card, icon_button_create(bottom_slider, ICON_BUTTON_CHECK, _dismiss));
+        component, icon_button_create(bottom_slider, ICON_BUTTON_CHECK, _continue_callback));
 
-    return remove_sd_card;
+    return component;
 }

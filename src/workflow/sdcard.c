@@ -20,8 +20,7 @@
 #include "hww.pb.h"
 
 #include <sd.h>
-#include <ui/components/insert_sd_card.h>
-#include <ui/components/remove_sd_card.h>
+#include <ui/components/sdcard.h>
 #include <ui/screen_stack.h>
 
 void sdcard_handle(const InsertRemoveSDCardRequest* insert_remove_sdcard)
@@ -38,9 +37,9 @@ void sdcard_handle(const InsertRemoveSDCardRequest* insert_remove_sdcard)
 
     component_t* screen;
     if (insert_remove_sdcard->action == InsertRemoveSDCardRequest_SDCardAction_INSERT_CARD) {
-        screen = insert_sd_card_create(workflow_blocking_unblock);
+        screen = sdcard_create(true, workflow_blocking_unblock);
     } else if (insert_remove_sdcard->action == InsertRemoveSDCardRequest_SDCardAction_REMOVE_CARD) {
-        screen = remove_sd_card_create(workflow_blocking_unblock);
+        screen = sdcard_create(false, workflow_blocking_unblock);
     } else {
         return;
     }

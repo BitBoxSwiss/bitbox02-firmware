@@ -164,12 +164,6 @@ static commander_error_t _api_show_mnemonic(void)
     return COMMANDER_OK;
 }
 
-static commander_error_t _api_check_sdcard(CheckSDCardResponse* response)
-{
-    response->inserted = sd_card_inserted();
-    return COMMANDER_OK;
-}
-
 static commander_error_t _api_get_root_fingerprint(RootFingerprintResponse* response)
 {
     bool success = keystore_get_root_fingerprint(response->fingerprint);
@@ -255,9 +249,6 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_fingerprint_tag:
         response->which_response = Response_fingerprint_tag;
         return _api_get_root_fingerprint(&(response->response.fingerprint));
-    case Request_check_sdcard_tag:
-        response->which_response = Response_check_sdcard_tag;
-        return _api_check_sdcard(&(response->response.check_sdcard));
     case Request_list_backups_tag:
         response->which_response = Response_list_backups_tag;
         return _api_list_backups(&(response->response.list_backups));

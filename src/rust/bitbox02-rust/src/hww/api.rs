@@ -87,6 +87,9 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
             Some(set_mnemonic_passphrase_enabled::process(request).await)
         }
         Request::InsertRemoveSdcard(ref request) => Some(sdcard::process(request).await),
+        Request::CheckSdcard(_) => Some(Ok(Response::CheckSdcard(pb::CheckSdCardResponse {
+            inserted: bitbox02::sdcard_inserted(),
+        }))),
         _ => None,
     }
 }

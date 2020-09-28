@@ -182,9 +182,13 @@ static void _maybe_pop_progress_screen(void)
  */
 static void _update_progress(void)
 {
+    if (_progress_component == NULL) {
+        return;
+    }
     float progress = 0;
     switch (_state) {
     case STATE_INPUTS_PASS1:
+    case STATE_INPUTS_PASS2:
         progress = _index / (float)_init_request.num_inputs;
         break;
     case STATE_PREVTX_INPUTS: {
@@ -633,6 +637,8 @@ static app_btc_result_t _sign_input_pass2(
         // Want next input
         next_out->type = BTCSignNextResponse_Type_INPUT;
         next_out->index = _index;
+
+        _update_progress();
     } else {
         // Done with inputs pass2 -> done completely.
         _reset();
@@ -846,6 +852,13 @@ app_btc_result_t app_btc_sign_output(
     }
     if (_index == _init_request.num_outputs - 1) {
         _maybe_pop_empty_screen();
+        if (_init_request.num_inputs > 2) {
+            // Show progress of signing inputs if there are more than 2 inputs. This is an arbitrary
+            // cutoff; less or equal to 2 inputs is fast enough so it does not need a progress bar.
+            _progress_component = progress_create("Signing transaction...");
+            // Popped with the last input of pass2.
+            ui_screen_stack_push(_progress_component);
+        }
     }
 
     if (_index < _init_request.num_outputs - 1) {

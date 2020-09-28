@@ -36,6 +36,8 @@
  * @param[in] confirm_cb The callback that is called when the user entered the string. Will be
  * called at most once.
  * @param[in] cancel_cb Called when the user cancels by hitting the back button.
+ * @param[in] cancel_is_backbutton whether the cancel button should be rendered as a back button
+ *            instead of as a cross.
  */
 component_t* trinary_input_string_create_wordlist(
     const char* title,
@@ -44,7 +46,8 @@ component_t* trinary_input_string_create_wordlist(
     void (*confirm_cb)(const char* input, void* param),
     void* confirm_callback_param,
     void (*cancel_cb)(void* param),
-    void* cancel_callback_param);
+    void* cancel_callback_param,
+    bool cancel_is_backbutton);
 
 component_t* trinary_input_string_create_password(
     const char* title,
@@ -53,5 +56,13 @@ component_t* trinary_input_string_create_password(
     void* confirm_callback_param,
     void (*cancel_cb)(void* param),
     void* cancel_callback_param);
+
+/**
+ * Only applicable in wordlist-mode.
+ * Sets the current word. The user can then accept it or delete characters.
+ * The word must be in the wordlist as passed to `trinary_input_string_create_wordlist()`, otherwise
+ * this function aborts.
+ */
+void trinary_input_string_set_input(component_t* trinary_input_string, const char* word);
 
 #endif

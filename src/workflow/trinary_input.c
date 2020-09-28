@@ -18,12 +18,22 @@
 #include "cancel.h"
 
 #include <hardfault.h>
+#include <ui/components/menu.h>
 #include <ui/components/trinary_input_string.h>
+#include <ui/screen_stack.h>
 #include <util.h>
 
 #include <stdio.h>
 
 static char _word[WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1];
+static workflow_trinary_input_result_t _cancel_reason;
+
+static const char* _cancel_choices[] = {
+    "Edit previous word",
+    "Cancel restore",
+};
+#define CHOICE_DELETE 0
+#define CHOICE_CANCEL 1
 
 static void _confirm(const char* word, void* param)
 {
@@ -35,24 +45,63 @@ static void _confirm(const char* word, void* param)
     workflow_blocking_unblock();
 }
 
+static void _select(uint8_t choice_idx)
+{
+    ui_screen_stack_pop();
+    if (choice_idx == CHOICE_DELETE) {
+        _cancel_reason = WORKFLOW_TRINARY_INPUT_RESULT_DELETE;
+        workflow_cancel_force();
+    } else if (choice_idx == CHOICE_CANCEL) {
+        _cancel_reason = WORKFLOW_TRINARY_INPUT_RESULT_CANCEL;
+        workflow_cancel();
+    }
+}
+
 static void _cancel(void* param)
 {
-    (void)param;
-    workflow_cancel();
+    size_t word_idx = *(size_t*)param;
+    if (word_idx == 0) {
+        _cancel_reason = WORKFLOW_TRINARY_INPUT_RESULT_CANCEL;
+        workflow_cancel();
+        return;
+    }
+    ui_screen_stack_push(menu_create(
+        _cancel_choices,
+        _select,
+        sizeof(_cancel_choices) / sizeof(_cancel_choices[0]),
+        "Choose",
+        NULL,
+        ui_screen_stack_pop,
+        NULL));
 }
-bool workflow_trinary_input_wordlist(
-    const char* title,
+
+workflow_trinary_input_result_t workflow_trinary_input_wordlist(
+    size_t word_idx,
     const char* const* wordlist,
     size_t wordlist_size,
+    const char* preset,
     char* word_out)
 {
-    if (!workflow_cancel_run(
-            "Restore",
-            trinary_input_string_create_wordlist(
-                title, wordlist, wordlist_size, _confirm, NULL, _cancel, NULL))) {
-        return false;
+    char title[50] = {0};
+    if (word_idx == 0) {
+        snprintf(title, sizeof(title), "1st word");
+    } else if (word_idx == 1) {
+        snprintf(title, sizeof(title), "2nd word");
+    } else if (word_idx == 2) {
+        snprintf(title, sizeof(title), "3rd word");
+    } else {
+        snprintf(title, sizeof(title), "%dth word", (int)(word_idx + 1));
+    }
+
+    component_t* component = trinary_input_string_create_wordlist(
+        title, wordlist, wordlist_size, _confirm, NULL, _cancel, &word_idx, word_idx > 0);
+    if (preset != NULL) {
+        trinary_input_string_set_input(component, preset);
+    }
+    if (!workflow_cancel_run("Restore", component)) {
+        return _cancel_reason;
     }
     snprintf(word_out, WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1, "%s", _word);
     util_zero(_word, sizeof(_word));
-    return true;
+    return WORKFLOW_TRINARY_INPUT_RESULT_OK;
 }

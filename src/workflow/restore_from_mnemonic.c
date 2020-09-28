@@ -83,19 +83,6 @@ static void _cleanup_wordlist(char*** wordlist)
     }
 }
 
-static void _set_title(uint8_t word_idx, char* title_out, size_t title_out_len)
-{
-    if (word_idx == 0) {
-        snprintf(title_out, title_out_len, "1st word");
-    } else if (word_idx == 1) {
-        snprintf(title_out, title_out_len, "2nd word");
-    } else if (word_idx == 2) {
-        snprintf(title_out, title_out_len, "3rd word");
-    } else {
-        snprintf(title_out, title_out_len, "%dth word", (int)(word_idx + 1));
-    }
-}
-
 static bool _get_mnemonic(char* mnemonic_out)
 {
     char* wordlist[BIP39_WORDLIST_LEN] = {0};
@@ -113,18 +100,39 @@ static bool _get_mnemonic(char* mnemonic_out)
     snprintf(num_words_success_msg, sizeof(num_words_success_msg), "Enter %d words", num_words);
     workflow_status_blocking(num_words_success_msg, true);
 
-    for (uint8_t word_idx = 0; word_idx < num_words; word_idx++) {
-        char word[WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1] = {0};
-        char title[50] = {0};
-        _set_title(word_idx, title, sizeof(title));
-        if (!workflow_trinary_input_wordlist(
-                title, (const char* const*)wordlist, BIP39_WORDLIST_LEN, word)) {
+    char words[WORKFLOW_RESTORE_FROM_MNEMONIC_MAX_WORDS]
+              [WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1] = {0};
+
+    uint8_t word_idx = 0;
+    while (word_idx < num_words) {
+        // This is at the same time the preset (word already filled out) if it is not empty, and
+        // also the result of the user input.
+        // This allows the user the edit the previous word
+        // (delete one, the previous word is already preset).
+        char* word = words[word_idx];
+
+        workflow_trinary_input_result_t result = workflow_trinary_input_wordlist(
+            word_idx,
+            (const char* const*)wordlist,
+            BIP39_WORDLIST_LEN,
+            strlen(word) ? word : NULL,
+            word);
+        if (result == WORKFLOW_TRINARY_INPUT_RESULT_CANCEL) {
             return false;
         }
+        if (result == WORKFLOW_TRINARY_INPUT_RESULT_DELETE) {
+            if (word_idx > 0) {
+                word_idx--;
+            }
+            continue;
+        }
+        word_idx++;
+    }
+    for (word_idx = 0; word_idx < num_words; word_idx++) {
         if (word_idx != 0) {
             strcat(mnemonic_out, " "); // NOLINT (gcc and clang cannot agree on best practice here)
         }
-        strncat(mnemonic_out, word, WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH);
+        strncat(mnemonic_out, words[word_idx], WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH);
     }
     return true;
 }

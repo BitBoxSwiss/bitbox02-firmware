@@ -94,6 +94,10 @@ typedef struct {
     // typing.
     bool title_on_top;
 
+    // If false, the cancel button is a cross. If true, the cancel button is rendered as a back
+    // button.
+    bool cancel_is_backbutton;
+
     component_t* title_component;
     component_t* trinary_char_component;
     component_t* confirm_component;
@@ -222,7 +226,7 @@ static void _render(component_t* component)
         data->cancel_component->disabled = true;
     }
     if (!confirm_gesture_active) {
-        if (data->string_index != 0 ||
+        if (data->cancel_is_backbutton || data->string_index != 0 ||
             trinary_input_char_in_progress(data->trinary_char_component)) {
             data->left_arrow_component->disabled = false;
             data->left_arrow_component->f->render(data->left_arrow_component);
@@ -354,6 +358,13 @@ static void _on_event(const event_t* event, component_t* component)
         if (trinary_input_char_in_progress(data->trinary_char_component)) {
             _set_alphabet(component);
             break;
+        }
+        if (data->string_index == 0) {
+            // Back button is cancel.
+            if (data->cancel_cb != NULL) {
+                data->cancel_cb(data->cancel_callback_param);
+            }
+            return;
         }
         // Move cursor backward and display preceeding character
         if (data->string_index > 0) {
@@ -500,12 +511,13 @@ component_t* trinary_input_string_create_wordlist(
     void (*confirm_cb)(const char* input, void* param),
     void* confirm_callback_param,
     void (*cancel_cb)(void* param),
-    void* cancel_callback_param)
+    void* cancel_callback_param,
+    bool cancel_is_backbutton)
 {
     if (wordlist == NULL) {
         Abort("trinary_input_string_\ncreate_wordlist");
     }
-    return _create(
+    component_t* component = _create(
         title,
         wordlist,
         wordlist_size,
@@ -516,6 +528,9 @@ component_t* trinary_input_string_create_wordlist(
         confirm_callback_param,
         cancel_cb,
         cancel_callback_param);
+    data_t* data = (data_t*)component->data;
+    data->cancel_is_backbutton = cancel_is_backbutton;
+    return component;
 }
 
 component_t* trinary_input_string_create_password(
@@ -537,4 +552,21 @@ component_t* trinary_input_string_create_password(
         confirm_callback_param,
         cancel_cb,
         cancel_callback_param);
+}
+
+void trinary_input_string_set_input(component_t* trinary_input_string, const char* word)
+{
+    data_t* data = (data_t*)trinary_input_string->data;
+    if (data->wordlist == NULL) {
+        return;
+    }
+    for (size_t i = 0; i < data->wordlist_size; i++) {
+        if (STREQ(data->wordlist[i], word)) {
+            data->string_index = snprintf(data->string, sizeof(data->string), "%s", word);
+            _set_alphabet(trinary_input_string);
+            _set_can_confirm(trinary_input_string);
+            return;
+        }
+    }
+    Abort("trinary_input_string_set_input");
 }

@@ -87,8 +87,11 @@ typedef enum {
 // if there is an error or if the signing finishes normally).
 // Rationale: the earliest user input happens in the first output, the latest in the last output.
 static component_t* _empty_component = NULL;
-// The progress component is shown when streaming inputs and previous transactions.
-// Pushed in sign init, popped the first output.
+// The progress component is shown when streaming inputs and previous transactions.  Pushed in sign
+// init, popped the last prevtx output, which is the last part of the inputs streaming of pass1.
+//
+// It is also shown when streaming the inputs in the 2nd pass, when signing the inputs, pushed with
+// the last output.
 static component_t* _progress_component = NULL;
 
 static _signing_state_t _state = STATE_INIT;
@@ -182,10 +185,18 @@ static void _maybe_pop_progress_screen(void)
  */
 static void _update_progress(void)
 {
+    if (_progress_component == NULL) {
+        return;
+    }
     float progress = 0;
     switch (_state) {
     case STATE_INPUTS_PASS1:
+    case STATE_INPUTS_PASS2:
         progress = _index / (float)_init_request.num_inputs;
+        break;
+    case STATE_OUTPUTS:
+        // Once we reached the outputs stage, the progress for loading the inputs is 100%.
+        progress = 1.F;
         break;
     case STATE_PREVTX_INPUTS: {
         float step = 1.F / (float)_init_request.num_inputs;
@@ -329,8 +340,6 @@ app_btc_result_t app_btc_sign_prevtx_input(
         return _error(APP_BTC_ERR_STATE);
     }
 
-    _update_progress();
-
     if (_prevtx.index == 0) {
         // Hash number of inputs
         _hash_varint(_prevtx.tx_hash_ctx, _prevtx.init_request.num_inputs);
@@ -367,6 +376,7 @@ app_btc_result_t app_btc_sign_prevtx_input(
         next_out->index = _index;
         next_out->prev_index = 0;
     }
+    _update_progress();
     return APP_BTC_OK;
 }
 
@@ -377,8 +387,6 @@ app_btc_result_t app_btc_sign_prevtx_output(
     if (_state != STATE_PREVTX_OUTPUTS) {
         return _error(APP_BTC_ERR_STATE);
     }
-
-    _update_progress();
 
     if (_prevtx.index == 0) {
         // Hash number of inputs
@@ -440,6 +448,7 @@ app_btc_result_t app_btc_sign_prevtx_output(
             next_out->type = BTCSignNextResponse_Type_OUTPUT;
             next_out->index = _index;
         }
+        _update_progress();
     }
     return APP_BTC_OK;
 }
@@ -448,7 +457,6 @@ static app_btc_result_t _sign_input_pass1(
     const BTCSignInputRequest* request,
     BTCSignNextResponse* next_out)
 {
-    _update_progress();
     {
         // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
         // point 2: accumulate hashPrevouts
@@ -487,6 +495,8 @@ static app_btc_result_t _sign_input_pass1(
     util_zero(&_prevtx, sizeof(_prevtx));
     _prevtx.referencing_input = *request;
     _prevtx.tx_hash_ctx = rust_sha256_new();
+
+    _update_progress();
 
     _state = STATE_PREVTX_INIT;
     next_out->type = BTCSignNextResponse_Type_PREVTX_INIT;
@@ -633,6 +643,8 @@ static app_btc_result_t _sign_input_pass2(
         // Want next input
         next_out->type = BTCSignNextResponse_Type_INPUT;
         next_out->index = _index;
+
+        _update_progress();
     } else {
         // Done with inputs pass2 -> done completely.
         _reset();
@@ -702,14 +714,14 @@ app_btc_result_t app_btc_sign_output(
     const BTCSignOutputRequest* request,
     BTCSignNextResponse* next_out)
 {
+    _maybe_pop_progress_screen();
+
     if (_state != STATE_OUTPUTS) {
         return _error(APP_BTC_ERR_STATE);
     }
     if (request->script_config_index >= _init_request.script_configs_count) {
         return _error(APP_BTC_ERR_INVALID_INPUT);
     }
-
-    _maybe_pop_progress_screen();
 
     const BTCScriptConfigWithKeypath* script_config_account =
         &_init_request.script_configs[request->script_config_index];
@@ -846,6 +858,13 @@ app_btc_result_t app_btc_sign_output(
     }
     if (_index == _init_request.num_outputs - 1) {
         _maybe_pop_empty_screen();
+        if (_init_request.num_inputs > 2) {
+            // Show progress of signing inputs if there are more than 2 inputs. This is an arbitrary
+            // cutoff; less or equal to 2 inputs is fast enough so it does not need a progress bar.
+            _progress_component = progress_create("Signing transaction...");
+            // Popped with the last input of pass2.
+            ui_screen_stack_push(_progress_component);
+        }
     }
 
     if (_index < _init_request.num_outputs - 1) {

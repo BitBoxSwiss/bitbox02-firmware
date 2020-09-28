@@ -145,3 +145,48 @@ pub async fn create(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    extern crate std;
+    use super::*;
+
+    use crate::bb02_async::block_on;
+    use bitbox02::testing::{mock, Data, MUTEX};
+    use std::boxed::Box;
+
+    /// Test backup creation on a uninitialized keystore.
+    #[test]
+    pub fn test_create_uninitialized() {
+        let _guard = MUTEX.lock().unwrap();
+        const EXPECTED_TIMESTMAP: u32 = 1601281809;
+
+        // All good.
+        mock(Data {
+            sdcard_inserted: Some(true),
+            memory_is_initialized: Some(false),
+            memory_set_initialized_result: Some(Ok(())),
+            ui_confirm_create_body: Some("<date>".into()),
+            ui_confirm_create_result: Some(true),
+            memory_set_seed_birthdate: Some(Box::new(|timestamp| {
+                assert_eq!(timestamp, EXPECTED_TIMESTMAP);
+                Ok(())
+            })),
+            backup_create: Some(Box::new(
+                |backup_create_timestamp, seed_birthdate_timestamp| {
+                    assert_eq!(backup_create_timestamp, EXPECTED_TIMESTMAP);
+                    assert_eq!(seed_birthdate_timestamp, EXPECTED_TIMESTMAP);
+                    Ok(())
+                },
+            )),
+            ..Default::default()
+        });
+        assert_eq!(
+            block_on(create(&pb::CreateBackupRequest {
+                timestamp: EXPECTED_TIMESTMAP,
+                timezone_offset: 18000,
+            })),
+            Ok(Response::Success(pb::Success {}))
+        );
+    }
+}

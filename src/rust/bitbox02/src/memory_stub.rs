@@ -20,7 +20,13 @@ pub fn set_device_name(name: &str) -> Result<(), ()> {
 }
 
 pub fn is_initialized() -> bool {
-    panic!("not implemented")
+    let data = crate::testing::DATA.0.borrow();
+    data.memory_is_initialized.unwrap()
+}
+
+pub fn set_initialized() -> Result<(), ()> {
+    let data = crate::testing::DATA.0.borrow();
+    data.memory_set_initialized_result.unwrap()
 }
 
 pub fn is_mnemonic_passphrase_enabled() -> bool {
@@ -56,4 +62,9 @@ pub fn set_mnemonic_passphrase_enabled(enabled: bool) -> Result<(), ()> {
     data.memory_set_mnemonic_passphrase_enabled
         .as_ref()
         .unwrap()(enabled)
+}
+
+pub fn set_seed_birthdate(timestamp: u32) -> Result<(), ()> {
+    let data = crate::testing::DATA.0.borrow();
+    data.memory_set_seed_birthdate.as_ref().unwrap()(timestamp)
 }

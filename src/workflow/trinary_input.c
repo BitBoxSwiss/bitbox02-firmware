@@ -77,12 +77,22 @@ static void _cancel(void* param)
 
 workflow_trinary_input_result_t workflow_trinary_input_wordlist(
     size_t word_idx,
-    const char* title,
     const char* const* wordlist,
     size_t wordlist_size,
     const char* preset,
     char* word_out)
 {
+    char title[50] = {0};
+    if (word_idx == 0) {
+        snprintf(title, sizeof(title), "1st word");
+    } else if (word_idx == 1) {
+        snprintf(title, sizeof(title), "2nd word");
+    } else if (word_idx == 2) {
+        snprintf(title, sizeof(title), "3rd word");
+    } else {
+        snprintf(title, sizeof(title), "%dth word", (int)(word_idx + 1));
+    }
+
     component_t* component = trinary_input_string_create_wordlist(
         title, wordlist, wordlist_size, _confirm, NULL, _cancel, &word_idx, word_idx > 0);
     if (preset != NULL) {

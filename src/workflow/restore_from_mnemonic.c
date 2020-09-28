@@ -83,19 +83,6 @@ static void _cleanup_wordlist(char*** wordlist)
     }
 }
 
-static void _set_title(uint8_t word_idx, char* title_out, size_t title_out_len)
-{
-    if (word_idx == 0) {
-        snprintf(title_out, title_out_len, "1st word");
-    } else if (word_idx == 1) {
-        snprintf(title_out, title_out_len, "2nd word");
-    } else if (word_idx == 2) {
-        snprintf(title_out, title_out_len, "3rd word");
-    } else {
-        snprintf(title_out, title_out_len, "%dth word", (int)(word_idx + 1));
-    }
-}
-
 static bool _get_mnemonic(char* mnemonic_out)
 {
     char* wordlist[BIP39_WORDLIST_LEN] = {0};
@@ -124,11 +111,8 @@ static bool _get_mnemonic(char* mnemonic_out)
         // (delete one, the previous word is already preset).
         char* word = words[word_idx];
 
-        char title[50] = {0};
-        _set_title(word_idx, title, sizeof(title));
         workflow_trinary_input_result_t result = workflow_trinary_input_wordlist(
             word_idx,
-            title,
             (const char* const*)wordlist,
             BIP39_WORDLIST_LEN,
             strlen(word) ? word : NULL,

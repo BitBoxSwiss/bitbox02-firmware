@@ -15,6 +15,8 @@
 mod pb {
     include!("./api/shiftcrypto.bitbox02.rs");
 }
+
+mod backup;
 mod error;
 mod reset;
 mod sdcard;
@@ -90,6 +92,7 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
         Request::CheckSdcard(_) => Some(Ok(Response::CheckSdcard(pb::CheckSdCardResponse {
             inserted: bitbox02::sdcard_inserted(),
         }))),
+        Request::CheckBackup(ref request) => Some(backup::check(request).await),
         _ => None,
     }
 }

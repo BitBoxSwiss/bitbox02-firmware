@@ -143,19 +143,6 @@ static commander_error_t _api_restore_backup(const RestoreBackupRequest* request
     return COMMANDER_OK;
 }
 
-static commander_error_t _api_check_backup(
-    const CheckBackupRequest* request,
-    CheckBackupResponse* response)
-{
-    if (!sd_card_inserted()) {
-        return COMMANDER_ERR_INVALID_INPUT;
-    }
-    if (!workflow_backup_check(response->id, request->silent)) {
-        return COMMANDER_ERR_GENERIC;
-    }
-    return COMMANDER_OK;
-}
-
 static commander_error_t _api_show_mnemonic(void)
 {
     if (!workflow_show_mnemonic_create()) {
@@ -255,10 +242,6 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_restore_backup_tag:
         response->which_response = Response_success_tag;
         return _api_restore_backup(&(request->request.restore_backup));
-    case Request_check_backup_tag:
-        response->which_response = Response_check_backup_tag;
-        return _api_check_backup(
-            &(request->request.check_backup), &(response->response.check_backup));
 #if APP_ETH == 1
     case Request_eth_tag:
         response->which_response = Response_eth_tag;

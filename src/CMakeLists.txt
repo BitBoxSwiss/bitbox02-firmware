@@ -124,6 +124,7 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/components/image.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/button.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/empty.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/progress.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/sdcard.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_mnemonic.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/ui_images.c

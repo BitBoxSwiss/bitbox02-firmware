@@ -507,7 +507,10 @@ class SendMessage:
         )
         choice = ask_user(choices)
         if callable(choice):
-            choice()
+            try:
+                choice()
+            except UserAbortException:
+                eprint("Aborted by user")
 
     def _check_backup(self) -> None:
         print("Your BitBox02 will now perform a backup check")

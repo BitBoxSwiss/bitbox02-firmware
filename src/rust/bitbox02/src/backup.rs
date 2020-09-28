@@ -23,6 +23,14 @@ pub struct CheckData {
     pub birthdate: u32,
 }
 
+pub fn create(backup_create_timestamp: u32, seed_birthdate_timestamp: u32) -> Result<(), Error> {
+    match unsafe { bitbox02_sys::backup_create(backup_create_timestamp, seed_birthdate_timestamp) }
+    {
+        Error::BACKUP_OK => Ok(()),
+        err => Err(err),
+    }
+}
+
 /// Returns the backup id, name and birthdate of the backup that matches the current keystore seed.
 /// If none matches, `Err()` is returned.
 pub fn check() -> Result<CheckData, Error> {

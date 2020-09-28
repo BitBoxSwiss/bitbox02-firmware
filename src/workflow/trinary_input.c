@@ -28,6 +28,13 @@
 static char _word[WORKFLOW_TRINARY_INPUT_MAX_WORD_LENGTH + 1];
 static workflow_trinary_input_result_t _cancel_reason;
 
+static const char* _cancel_choices[] = {
+    "Edit previous word",
+    "Cancel restore",
+};
+#define CHOICE_DELETE 0
+#define CHOICE_CANCEL 1
+
 static void _confirm(const char* word, void* param)
 {
     (void)param;
@@ -38,17 +45,18 @@ static void _confirm(const char* word, void* param)
     workflow_blocking_unblock();
 }
 
-static void _select(uint8_t idx)
+static void _select(uint8_t choice_idx)
 {
     ui_screen_stack_pop();
-    if (idx == 0) {
+    if (choice_idx == CHOICE_DELETE) {
         _cancel_reason = WORKFLOW_TRINARY_INPUT_RESULT_DELETE;
         workflow_cancel_force();
-    } else if (idx == 1) {
+    } else if (choice_idx == CHOICE_CANCEL) {
         _cancel_reason = WORKFLOW_TRINARY_INPUT_RESULT_CANCEL;
         workflow_cancel();
     }
 }
+
 static void _cancel(void* param)
 {
     size_t word_idx = *(size_t*)param;
@@ -57,11 +65,14 @@ static void _cancel(void* param)
         workflow_cancel();
         return;
     }
-    const char* words[] = {
-        "Edit previous word",
-        "Cancel restore",
-    };
-    ui_screen_stack_push(menu_create(words, _select, 2, "Choose", NULL, ui_screen_stack_pop, NULL));
+    ui_screen_stack_push(menu_create(
+        _cancel_choices,
+        _select,
+        sizeof(_cancel_choices) / sizeof(_cancel_choices[0]),
+        "Choose",
+        NULL,
+        ui_screen_stack_pop,
+        NULL));
 }
 
 workflow_trinary_input_result_t workflow_trinary_input_wordlist(

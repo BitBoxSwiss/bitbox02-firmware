@@ -30,6 +30,7 @@ pub mod testing;
 pub mod commander;
 pub mod keystore;
 
+pub mod backup;
 #[cfg_attr(feature = "testing", path = "memory_stub.rs")]
 pub mod memory;
 pub mod password;

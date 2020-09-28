@@ -532,10 +532,13 @@ class SendMessage:
         if self._device.check_backup(silent=True) is not None:
             if input("A backup already exists, continue? Y/n: ") not in ("", "Y", "y"):
                 return
-        if not self._device.create_backup():
-            eprint("Creating the backup failed")
-        else:
-            print("Backup created sucessfully")
+        try:
+            if not self._device.create_backup():
+                eprint("Creating the backup failed")
+            else:
+                print("Backup created sucessfully")
+        except UserAbortException:
+            print("Aborted by user")
 
     def _reboot_bootloader(self) -> None:
         if self._device.reboot():

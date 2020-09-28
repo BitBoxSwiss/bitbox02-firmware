@@ -87,7 +87,7 @@ pub async fn create(
     const MAX_WEST_UTC_OFFSET: i32 = -43200; // 12 hours in seconds
 
     if timezone_offset < MAX_WEST_UTC_OFFSET || timezone_offset > MAX_EAST_UTC_OFFSET {
-        return Err(Error::COMMANDER_ERR_GENERIC);
+        return Err(Error::COMMANDER_ERR_INVALID_INPUT);
     }
 
     // Wait for sd card
@@ -112,10 +112,10 @@ pub async fn create(
             ..Default::default()
         };
         if !confirm::confirm(&params).await {
-            return Err(Error::COMMANDER_ERR_GENERIC);
+            return Err(Error::COMMANDER_ERR_USER_ABORT);
         }
         if bitbox02::memory::set_seed_birthdate(timestamp).is_err() {
-            return Err(Error::COMMANDER_ERR_GENERIC);
+            return Err(Error::COMMANDER_ERR_MEMORY);
         }
         timestamp
     } else if let Ok(backup::CheckData { birthdate, .. }) = backup::check() {

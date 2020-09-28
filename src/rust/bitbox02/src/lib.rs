@@ -228,7 +228,7 @@ pub fn sdcard_inserted() -> bool {
 #[cfg(feature = "testing")]
 pub fn sdcard_inserted() -> bool {
     let data = crate::testing::DATA.0.borrow();
-    data.sdcard_inserted.as_ref().unwrap()()
+    data.sdcard_inserted.unwrap()
 }
 
 pub fn format_datetime(timestamp: u32, timezone_offset: i32, date_only: bool) -> String {

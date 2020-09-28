@@ -25,7 +25,7 @@ pub struct Data {
     pub ui_confirm_create_result: Option<bool>,
     pub reset: Option<Box<dyn Fn(bool)>>,
     pub memory_set_mnemonic_passphrase_enabled: Option<Box<dyn Fn(bool) -> Result<(), ()>>>,
-    pub sdcard_inserted: Option<Box<dyn Fn() -> bool>>,
+    pub sdcard_inserted: Option<bool>,
     pub ui_sdcard_create_arg: Option<bool>,
 }
 

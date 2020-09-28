@@ -50,10 +50,27 @@ static void test_minmax(void** state)
     assert_int_not_equal(res, 5);
 }
 
+static void test_util_format_datetime(void** state)
+{
+    char out[100];
+    util_format_datetime(1601281809, 0, true, out, sizeof(out));
+    assert_string_equal(out, "Mon 2020-09-28");
+
+    util_format_datetime(1601281809, 0, false, out, sizeof(out));
+    assert_string_equal(out, "Mon 2020-09-28\n08:30:09");
+
+    util_format_datetime(1601281809, 18000, false, out, sizeof(out));
+    assert_string_equal(out, "Mon 2020-09-28\n13:30:09");
+
+    util_format_datetime(1601281809, -32400, false, out, sizeof(out));
+    assert_string_equal(out, "Sun 2020-09-27\n23:30:09");
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_minmax),
+        cmocka_unit_test(test_util_format_datetime),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

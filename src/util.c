@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "rust/rust.h"
 #include "util.h"
@@ -76,4 +77,16 @@ bool safe_uint64_add(uint64_t* a, uint64_t b)
     }
     *a += b;
     return true;
+}
+
+void util_format_datetime(
+    uint32_t timestamp,
+    int32_t timezone_offset,
+    bool date_only,
+    char* out,
+    size_t out_size)
+{
+    time_t local_timestamp = timestamp + timezone_offset;
+    struct tm* local_time = localtime(&local_timestamp);
+    strftime(out, out_size, date_only ? "%a %Y-%m-%d" : "%a %Y-%m-%d\n%H:%M:%S", local_time);
 }

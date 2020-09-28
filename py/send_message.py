@@ -511,11 +511,15 @@ class SendMessage:
 
     def _check_backup(self) -> None:
         print("Your BitBox02 will now perform a backup check")
-        backup_id = self._device.check_backup()
-        if backup_id:
-            print(f"Check successful. Backup with ID {backup_id} matches")
+        try:
+            backup_id = self._device.check_backup()
+        except UserAbortException:
+            print("Aborted by user")
         else:
-            print("No matching backup found")
+            if backup_id:
+                print(f"Check successful. Backup with ID {backup_id} matches")
+            else:
+                print("No matching backup found")
 
     def _show_mnemnoic_seed(self) -> None:
         print("Your BitBox02 will now show the mnemonic seed phrase")

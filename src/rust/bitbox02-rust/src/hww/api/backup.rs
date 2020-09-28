@@ -37,7 +37,7 @@ pub async fn check(
                 };
 
                 if !confirm::confirm(&params).await {
-                    return Err(Error::COMMANDER_ERR_GENERIC);
+                    return Err(Error::COMMANDER_ERR_USER_ABORT);
                 }
 
                 let params = confirm::Params {
@@ -48,7 +48,7 @@ pub async fn check(
                 };
 
                 if !confirm::confirm(&params).await {
-                    return Err(Error::COMMANDER_ERR_GENERIC);
+                    return Err(Error::COMMANDER_ERR_USER_ABORT);
                 }
 
                 status::status("Backup valid", true).await;

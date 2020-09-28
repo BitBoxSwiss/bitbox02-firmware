@@ -24,12 +24,4 @@
  */
 bool workflow_backup_create(const CreateBackupRequest* create_backup);
 
-/**
- * Starts the check backup workflow.
- * @param[out] id_out id of the matching backup if one is found.
- * @param[in] silent if true, don't show success/error on the screen.
- * @return true if the current seed is backuped correctly and if restoring succeeds.
- */
-bool workflow_backup_check(char* id_out, bool silent);
-
 #endif

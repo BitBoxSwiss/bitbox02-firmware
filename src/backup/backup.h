@@ -31,9 +31,8 @@ size_t backup_encode(const Backup* backup, uint32_t max_size, uint8_t* output);
 backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_birthdate_timestamp);
 
 /**
- * id_out must have max 256 bytes in size; hww.options BackupInfo.id
- * @param[out] name_out must have max MEMORY_DEVICE_NAME_MAX_LEN (64) bytes in size;
- // hww.options BackupInfo.name; can be NULL.
+ * id_out must have max 65 bytes in size (incl. null terminator)
+ * @param[out] name_out must have MEMORY_DEVICE_NAME_MAX_LEN (64) bytes in size; can be NULL.
  * @param[out] birthdate_out can be NULL.
  */
 backup_error_t backup_check(char* id_out, char* name_out, uint32_t* birthdate_out);

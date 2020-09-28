@@ -329,6 +329,8 @@ add_custom_target(rust-bindgen
     --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs
     --use-core
     --ctypes-prefix util::c_types
+    --rustified-enum backup_error_t
+    --whitelist-function backup_check
     --whitelist-function memory_is_initialized
     --whitelist-function memory_is_mnemonic_passphrase_enabled
     --whitelist-function memory_get_attestation_pubkey_and_certificate

@@ -22,20 +22,12 @@ bool workflow_confirm_time(uint32_t timestamp, int32_t timezone_offset, bool dat
         return false;
     }
     // Local time for confirming on screen
-    time_t local_timestamp = timestamp + timezone_offset;
-    struct tm* local_time = localtime(&local_timestamp);
     static char local_timestring[100] = {0};
-    const char* title;
-    if (date_only) {
-        title = "Is today?";
-        strftime(local_timestring, sizeof(local_timestring), "%a %Y-%m-%d", local_time);
-    } else {
-        title = "Is now?";
-        strftime(local_timestring, sizeof(local_timestring), "%a %Y-%m-%d\n%H:%M:%S", local_time);
-    }
+    util_format_datetime(
+        timestamp, timezone_offset, date_only, local_timestring, sizeof(local_timestring));
 
     const confirm_params_t params = {
-        .title = title,
+        .title = date_only ? "Is today?" : "Is now?",
         .body = local_timestring,
     };
     return workflow_confirm_blocking(&params);

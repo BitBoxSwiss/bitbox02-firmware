@@ -98,15 +98,10 @@ static void _test_seeds(void** state)
     }
 }
 
-static void _free_string(char** s)
-{
-    wally_free_string(*s);
-}
-
 static void _check_mnemonic(const char* expected)
 {
-    char* __attribute__((__cleanup__(_free_string))) mnemonic;
-    assert_true(keystore_get_bip39_mnemonic(&mnemonic));
+    char mnemonic[300];
+    assert_true(keystore_get_bip39_mnemonic(mnemonic, sizeof(mnemonic)));
     assert_string_equal(mnemonic, expected);
 }
 

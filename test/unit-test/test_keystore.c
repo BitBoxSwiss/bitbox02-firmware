@@ -415,6 +415,28 @@ static void _test_keystore_lock(void** state)
     assert_true(keystore_is_locked());
 }
 
+static void _test_keystore_get_bip39_mnemonic(void** state)
+{
+    char mnemonic[300];
+    mock_state(NULL, NULL);
+    assert_false(keystore_get_bip39_mnemonic(mnemonic, sizeof(mnemonic)));
+
+    mock_state(_mock_seed, NULL);
+    assert_false(keystore_get_bip39_mnemonic(mnemonic, sizeof(mnemonic)));
+
+    mock_state(_mock_seed, _mock_bip39_seed);
+    assert_true(keystore_get_bip39_mnemonic(mnemonic, sizeof(mnemonic)));
+    const char* expected_mnemonic =
+        "baby mass dust captain baby mass mass dust captain baby mass dutch creek office smoke "
+        "grid creek olive baby mass dust captain baby length";
+    assert_string_equal(mnemonic, expected_mnemonic);
+
+    // Output buffer too short.
+    assert_false(keystore_get_bip39_mnemonic(mnemonic, strlen(expected_mnemonic)));
+    // Just enough space to fit.
+    assert_true(keystore_get_bip39_mnemonic(mnemonic, strlen(expected_mnemonic) + 1));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -425,6 +447,7 @@ int main(void)
         cmocka_unit_test(_test_keystore_create_and_unlock_twice),
         cmocka_unit_test(_test_keystore_unlock),
         cmocka_unit_test(_test_keystore_lock),
+        cmocka_unit_test(_test_keystore_get_bip39_mnemonic),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

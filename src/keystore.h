@@ -108,10 +108,13 @@ void keystore_lock(void);
 USE_RESULT bool keystore_is_locked(void);
 
 /**
- * @return returns false if the keystore is not unlocked. String returned
- * should be freed using `wally_free_string`.
+ * @param[out] mnemonic_out resulting mnemonic
+ * @param[in] mnemonic_out_size size of mnemonic_out. Should be at least 216 bytes (longest possible
+ *            24 word phrase plus null terminator).
+ * @return returns false if the keystore is not unlocked or the mnemonic does not fit.
+ * The resulting string should be safely zeroed after use.
  */
-USE_RESULT bool keystore_get_bip39_mnemonic(char** mnemonic_out);
+USE_RESULT bool keystore_get_bip39_mnemonic(char* mnemonic_out, size_t mnemonic_out_size);
 
 /**
  * Turn a bip39 mnemonic into a seed. Make sure to use UTIL_CLEANUP_32 to destroy it.

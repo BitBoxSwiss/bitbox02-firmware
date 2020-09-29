@@ -394,6 +394,7 @@ add_custom_target(rust-bindgen
     --whitelist-function trinary_input_string_create_password
     --whitelist-function reset_reset
     --whitelist-function sd_card_inserted
+    --whitelist-var BIP39_WORDLIST_LEN
     ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
     -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums ${RUST_BINDGEN_FLAGS} ${RUST_INCLUDES}
   )
@@ -410,7 +411,7 @@ if(NOT CMAKE_CROSSCOMPILING)
         # see src/rust/bitbox02-rust-c/src/lib.rs.
         # https://github.com/rust-lang/rust/issues/66740
         RUSTC_BOOTSTRAP=1
-        ${CARGO} test --all-features --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG}
+        ${CARGO} test --all-features --target-dir ${RUST_BINARY_DIR} ${RUST_CARGO_FLAG} -- --nocapture
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
   add_dependencies(rust-test rust-bindgen)

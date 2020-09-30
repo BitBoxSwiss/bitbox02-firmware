@@ -105,18 +105,30 @@ static uint8_t _create_random_unique_words(const char** wordlist, uint8_t length
 }
 
 static uint8_t _selection_idx;
-static void _select_word(uint8_t selection_idx)
+static void _select_word(uint8_t selection_idx, void* param)
 {
+    (void)param;
     _selection_idx = selection_idx;
     workflow_blocking_unblock();
+}
+
+static void _unblock(void* param)
+{
+    (void)param;
+    workflow_blocking_unblock();
+}
+
+static void _cancel(void* param)
+{
+    (void)param;
+    workflow_cancel();
 }
 
 static bool _show_words(const char** words, uint8_t words_count)
 {
     return workflow_cancel_run(
         _cancel_confirm_title,
-        menu_create(
-            words, NULL, words_count, NULL, workflow_blocking_unblock, workflow_cancel, NULL));
+        menu_create(words, NULL, NULL, words_count, NULL, _unblock, NULL, _cancel, NULL, NULL));
 }
 
 typedef struct {
@@ -172,7 +184,9 @@ bool workflow_show_mnemonic_create(void)
                         NUM_RANDOM_WORDS + 1,
                         word_idx,
                         _select_word,
-                        workflow_cancel))) {
+                        NULL,
+                        _cancel,
+                        NULL))) {
                 return false;
             }
             if (_selection_idx == correct_idx) {

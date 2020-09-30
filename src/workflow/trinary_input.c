@@ -45,8 +45,9 @@ static void _confirm(const char* word, void* param)
     workflow_blocking_unblock();
 }
 
-static void _select(uint8_t choice_idx)
+static void _select(uint8_t choice_idx, void* param)
 {
+    (void)param;
     ui_screen_stack_pop();
     if (choice_idx == CHOICE_DELETE) {
         _cancel_reason = WORKFLOW_TRINARY_INPUT_RESULT_DELETE;
@@ -55,6 +56,12 @@ static void _select(uint8_t choice_idx)
         _cancel_reason = WORKFLOW_TRINARY_INPUT_RESULT_CANCEL;
         workflow_cancel();
     }
+}
+
+static void _pop(void* param)
+{
+    (void)param;
+    ui_screen_stack_pop();
 }
 
 static void _cancel(void* param)
@@ -68,10 +75,13 @@ static void _cancel(void* param)
     ui_screen_stack_push(menu_create(
         _cancel_choices,
         _select,
+        NULL,
         sizeof(_cancel_choices) / sizeof(_cancel_choices[0]),
         "Choose",
         NULL,
-        ui_screen_stack_pop,
+        NULL,
+        _pop,
+        NULL,
         NULL));
 }
 

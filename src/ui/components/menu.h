@@ -35,11 +35,14 @@
  */
 component_t* menu_create(
     const char* const* words,
-    void (*select_word_cb)(uint8_t),
+    void (*select_word_cb)(uint8_t, void*),
+    void* select_word_cb_param,
     uint8_t length,
     const char* title,
-    void (*continue_on_last_cb)(void),
-    void (*cancel_cb)(void),
+    void (*continue_on_last_cb)(void*),
+    void* continue_on_last_cb_param,
+    void (*cancel_cb)(void*),
+    void* cancel_cb_param,
     component_t* parent);
 
 #endif

@@ -14,6 +14,9 @@
 
 //! Stubs for testing.
 
+extern crate alloc;
+use alloc::string::String;
+
 use crate::password::Password;
 
 pub fn is_locked() -> bool {
@@ -36,5 +39,9 @@ pub fn unlock_bip39(_mnemonic_passphrase: &Password) -> Result<(), Error> {
 }
 
 pub fn create_and_store_seed(_password: &Password, _host_entropy: &[u8; 32]) -> bool {
+    panic!("not implemented")
+}
+
+pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
     panic!("not implemented")
 }

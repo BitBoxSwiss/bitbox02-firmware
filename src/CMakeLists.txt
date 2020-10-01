@@ -348,6 +348,7 @@ add_custom_target(rust-bindgen
     --whitelist-function keystore_unlock
     --whitelist-function keystore_unlock_bip39
     --whitelist-function keystore_create_and_store_seed
+    --whitelist-function keystore_get_bip39_mnemonic
     --whitelist-function lock_animation_start
     --whitelist-function lock_animation_stop
     --whitelist-function delay_us

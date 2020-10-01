@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+extern crate alloc;
+use alloc::boxed::Box;
+
 // Taking the constant straight from C, as it's excluding the null terminator.
 #[cfg_attr(feature = "testing", allow(dead_code))]
 pub(crate) const MAX_LABEL_SIZE: usize = bitbox02_sys::MAX_LABEL_SIZE as _;
@@ -85,4 +88,12 @@ impl<'a> ConfirmParams<'a> {
             display_size: self.display_size as _,
         }
     }
+}
+
+pub struct MenuParams<'a> {
+    pub words: &'a [&'a str],
+    pub title: Option<&'a str>,
+    pub select_word_cb: Option<Box<dyn FnMut(u8) + 'a>>,
+    pub continue_on_last_cb: Option<Box<dyn FnMut() + 'a>>,
+    pub cancel_cb: Option<Box<dyn FnMut() + 'a>>,
 }

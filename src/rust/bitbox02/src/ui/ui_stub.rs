@@ -14,11 +14,13 @@
 
 //! Stubs for testing.
 
-pub use super::types::{ConfirmParams, Font};
+pub use super::types::{ConfirmParams, Font, MenuParams};
 
 use crate::password::Password;
 
 use core::marker::PhantomData;
+
+extern crate alloc;
 
 pub struct Component<'a> {
     is_pushed: bool,
@@ -90,6 +92,10 @@ where
         is_pushed: false,
         _p: PhantomData,
     }
+}
+
+pub fn menu_create(_params: MenuParams<'_>) -> Component<'_> {
+    panic!("not implemented");
 }
 
 pub fn with_lock_animation<F: Fn()>(_f: F) {

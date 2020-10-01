@@ -22,6 +22,10 @@ use crate::workflow::confirm;
 pub async fn process(
     pb::SetDeviceNameRequest { name }: &pb::SetDeviceNameRequest,
 ) -> Result<Response, Error> {
+    if !util::name::validate(name, bitbox02::memory::DEVICE_NAME_MAX_LEN) {
+        return Err(Error::COMMANDER_ERR_INVALID_INPUT);
+    }
+
     let params = confirm::Params {
         title: "Name",
         body: &name,
@@ -97,6 +101,30 @@ mod tests {
                 name: SOME_NAME.into()
             })),
             Err(Error::COMMANDER_ERR_MEMORY)
+        );
+
+        // Non-ascii character.
+        assert_eq!(
+            block_on(process(&pb::SetDeviceNameRequest {
+                name: "emoji are 😃, 😭, and 😈".into()
+            })),
+            Err(Error::COMMANDER_ERR_INVALID_INPUT)
+        );
+
+        // Non-printable character.
+        assert_eq!(
+            block_on(process(&pb::SetDeviceNameRequest {
+                name: "foo\nbar".into()
+            })),
+            Err(Error::COMMANDER_ERR_INVALID_INPUT)
+        );
+
+        // Too long.
+        assert_eq!(
+            block_on(process(&pb::SetDeviceNameRequest {
+                name: core::str::from_utf8(&[b'a'; 500]).unwrap().into()
+            })),
+            Err(Error::COMMANDER_ERR_INVALID_INPUT)
         );
     }
 }

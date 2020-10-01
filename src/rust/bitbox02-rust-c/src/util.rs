@@ -26,14 +26,14 @@ pub extern "C" fn rust_util_zero(mut dst: BytesMut) {
 }
 
 #[no_mangle]
-pub extern "C" fn rust_util_all_ascii_bytes(bytes: Bytes) -> bool {
-    util::ascii::all_ascii(bytes)
+pub extern "C" fn rust_util_is_printable_ascii_bytes(bytes: Bytes) -> bool {
+    util::ascii::is_printable_ascii(bytes)
 }
 
 #[no_mangle]
-pub extern "C" fn rust_util_all_ascii(cstr: CStr) -> bool {
+pub extern "C" fn rust_util_is_printable_ascii(cstr: CStr) -> bool {
     let s: &str = cstr.as_ref();
-    util::ascii::all_ascii(s)
+    util::ascii::is_printable_ascii(s)
 }
 
 #[no_mangle]
@@ -384,9 +384,9 @@ mod tests {
     }
 
     #[test]
-    fn test_all_ascii_bytes() {
+    fn test_is_printable_ascii_bytes() {
         let buf = b"foo";
-        assert!(rust_util_all_ascii_bytes(rust_util_bytes(
+        assert!(rust_util_is_printable_ascii_bytes(rust_util_bytes(
             buf.as_ptr(),
             buf.len()
         )));

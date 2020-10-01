@@ -19,7 +19,7 @@ pub fn validate(name: &str, max_len: usize) -> bool {
     if name.is_empty() || name.len() > max_len {
         return false;
     }
-    if !super::ascii::all_ascii(name) {
+    if !super::ascii::is_printable_ascii(name) {
         return false;
     }
     // Safe because all_ascii passed.

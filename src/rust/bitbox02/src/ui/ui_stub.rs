@@ -68,11 +68,15 @@ where
 
 pub fn screen_process() {}
 
-pub fn status_create<'a, F>(_text: &str, _status_success: bool, _callback: F) -> Component<'a>
+pub fn status_create<'a, F>(_text: &str, _status_success: bool, mut callback: F) -> Component<'a>
 where
     F: FnMut() + 'a,
 {
-    panic!("not implemented")
+    callback();
+    Component {
+        is_pushed: false,
+        _p: PhantomData,
+    }
 }
 
 pub fn sdcard_create<'a, F>(insert: bool, mut continue_callback: F) -> Component<'a>

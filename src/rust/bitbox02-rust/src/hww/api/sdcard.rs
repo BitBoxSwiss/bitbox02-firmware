@@ -53,7 +53,7 @@ mod tests {
 
         // already inserted.
         mock(Data {
-            sdcard_inserted: Some(Box::new(|| -> bool { true })),
+            sdcard_inserted: Some(true),
             ..Default::default()
         });
         assert_eq!(
@@ -65,7 +65,7 @@ mod tests {
 
         // already removed.
         mock(Data {
-            sdcard_inserted: Some(Box::new(|| -> bool { false })),
+            sdcard_inserted: Some(false),
             ..Default::default()
         });
         assert_eq!(
@@ -77,7 +77,7 @@ mod tests {
 
         // insert
         mock(Data {
-            sdcard_inserted: Some(Box::new(|| -> bool { false })),
+            sdcard_inserted: Some(false),
             ui_sdcard_create_arg: Some(true),
             ..Default::default()
         });
@@ -90,7 +90,7 @@ mod tests {
 
         // remove
         mock(Data {
-            sdcard_inserted: Some(Box::new(|| -> bool { true })),
+            sdcard_inserted: Some(true),
             ui_sdcard_create_arg: Some(false),
             ..Default::default()
         });

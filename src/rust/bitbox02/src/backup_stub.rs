@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Stubs for testing.
+
 extern crate alloc;
 use alloc::string::String;
 pub use bitbox02_sys::backup_error_t as Error;
@@ -24,30 +26,10 @@ pub struct CheckData {
 }
 
 pub fn create(backup_create_timestamp: u32, seed_birthdate_timestamp: u32) -> Result<(), Error> {
-    match unsafe { bitbox02_sys::backup_create(backup_create_timestamp, seed_birthdate_timestamp) }
-    {
-        Error::BACKUP_OK => Ok(()),
-        err => Err(err),
-    }
+    let data = crate::testing::DATA.0.borrow();
+    data.backup_create.as_ref().unwrap()(backup_create_timestamp, seed_birthdate_timestamp)
 }
 
-/// Returns the backup id, name and birthdate of the backup that matches the current keystore seed.
-/// If none matches, `Err()` is returned.
 pub fn check() -> Result<CheckData, Error> {
-    let mut id = [0u8; 65];
-    let mut name = [0u8; bitbox02_sys::MEMORY_DEVICE_NAME_MAX_LEN as _];
-    let mut birthdate = 0u32;
-    match unsafe { bitbox02_sys::backup_check(id.as_mut_ptr(), name.as_mut_ptr(), &mut birthdate) }
-    {
-        Error::BACKUP_OK => Ok(CheckData {
-            id: crate::util::str_from_null_terminated(&id[..])
-                .unwrap()
-                .into(),
-            name: crate::util::str_from_null_terminated(&name[..])
-                .unwrap()
-                .into(),
-            birthdate,
-        }),
-        err => Err(err),
-    }
+    panic!("not implemented")
 }

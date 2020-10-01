@@ -33,6 +33,13 @@ pub fn is_initialized() -> bool {
     unsafe { bitbox02_sys::memory_is_initialized() }
 }
 
+pub fn set_initialized() -> Result<(), ()> {
+    match unsafe { bitbox02_sys::memory_set_initialized() } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
+
 pub fn is_mnemonic_passphrase_enabled() -> bool {
     unsafe { bitbox02_sys::memory_is_mnemonic_passphrase_enabled() }
 }
@@ -81,6 +88,13 @@ pub fn add_noise_remote_static_pubkey(pubkey: &[u8; 32]) -> Result<(), ()> {
 
 pub fn set_mnemonic_passphrase_enabled(enabled: bool) -> Result<(), ()> {
     match unsafe { bitbox02_sys::memory_set_mnemonic_passphrase_enabled(enabled) } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
+
+pub fn set_seed_birthdate(timestamp: u32) -> Result<(), ()> {
+    match unsafe { bitbox02_sys::memory_set_seed_birthdate(timestamp) } {
         true => Ok(()),
         false => Err(()),
     }

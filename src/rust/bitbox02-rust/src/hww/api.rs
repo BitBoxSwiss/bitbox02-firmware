@@ -93,6 +93,7 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
             inserted: bitbox02::sdcard_inserted(),
         }))),
         Request::CheckBackup(ref request) => Some(backup::check(request).await),
+        Request::CreateBackup(ref request) => Some(backup::create(request).await),
         _ => None,
     }
 }

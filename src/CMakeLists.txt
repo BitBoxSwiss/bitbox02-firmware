@@ -39,7 +39,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/backup/backup_common.c
   ${CMAKE_SOURCE_DIR}/src/reset.c
   ${CMAKE_SOURCE_DIR}/src/cipher/cipher.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/backup.c
   ${CMAKE_SOURCE_DIR}/src/workflow/blocking.c
   ${CMAKE_SOURCE_DIR}/src/workflow/cancel.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
@@ -331,7 +330,9 @@ add_custom_target(rust-bindgen
     --ctypes-prefix util::c_types
     --rustified-enum backup_error_t
     --whitelist-function backup_check
+    --whitelist-function backup_create
     --whitelist-function memory_is_initialized
+    --whitelist-function memory_set_initialized
     --whitelist-function memory_is_mnemonic_passphrase_enabled
     --whitelist-function memory_get_attestation_pubkey_and_certificate
     --whitelist-function memory_bootloader_hash
@@ -340,6 +341,7 @@ add_custom_target(rust-bindgen
     --whitelist-function memory_add_noise_remote_static_pubkey
     --whitelist-function memory_set_device_name
     --whitelist-function memory_set_mnemonic_passphrase_enabled
+    --whitelist-function memory_set_seed_birthdate
     --whitelist-var MEMORY_DEVICE_NAME_MAX_LEN
     --whitelist-function securechip_attestation_sign
     --whitelist-function keystore_is_locked
@@ -350,6 +352,7 @@ add_custom_target(rust-bindgen
     --whitelist-function lock_animation_stop
     --whitelist-function delay_us
     --rustified-enum keystore_error_t
+    --whitelist-function util_format_datetime
     --whitelist-function delay_ms
     --whitelist-function UG_PutString
     --whitelist-function UG_FontSelect
@@ -433,6 +436,7 @@ if(NOT CMAKE_CROSSCOMPILING)
             -A clippy::iter_nth_zero
             -A clippy::redundant_clone
             -A clippy::type_complexity
+            -A clippy::collapsible-if
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
   add_dependencies(rust-clippy rust-bindgen)

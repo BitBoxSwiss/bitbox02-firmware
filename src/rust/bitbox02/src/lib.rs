@@ -20,6 +20,9 @@
 #[macro_use]
 extern crate std;
 
+extern crate alloc;
+use alloc::string::String;
+
 #[cfg(feature = "testing")]
 #[macro_use]
 extern crate lazy_static;
@@ -27,10 +30,11 @@ extern crate lazy_static;
 #[cfg(feature = "testing")]
 pub mod testing;
 
-pub mod commander;
-pub mod keystore;
-
+#[cfg_attr(feature = "testing", path = "backup_stub.rs")]
 pub mod backup;
+pub mod commander;
+#[cfg_attr(feature = "testing", path = "keystore_stub.rs")]
+pub mod keystore;
 #[cfg_attr(feature = "testing", path = "memory_stub.rs")]
 pub mod memory;
 pub mod password;
@@ -225,5 +229,31 @@ pub fn sdcard_inserted() -> bool {
 #[cfg(feature = "testing")]
 pub fn sdcard_inserted() -> bool {
     let data = crate::testing::DATA.0.borrow();
-    data.sdcard_inserted.as_ref().unwrap()()
+    data.sdcard_inserted.unwrap()
+}
+
+#[cfg(not(feature = "testing"))]
+pub fn format_datetime(timestamp: u32, timezone_offset: i32, date_only: bool) -> String {
+    let mut out = [0u8; 100];
+    unsafe {
+        bitbox02_sys::util_format_datetime(
+            timestamp,
+            timezone_offset,
+            date_only,
+            out.as_mut_ptr(),
+            out.len() as _,
+        )
+    }
+    crate::util::str_from_null_terminated(&out[..])
+        .unwrap()
+        .into()
+}
+
+#[cfg(feature = "testing")]
+pub fn format_datetime(_timestamp: u32, _timezone_offset: i32, date_only: bool) -> String {
+    if date_only {
+        "<date>".into()
+    } else {
+        "<datetime>".into()
+    }
 }

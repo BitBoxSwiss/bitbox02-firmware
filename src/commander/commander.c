@@ -44,7 +44,6 @@
 #include <test_commander.h>
 #endif
 
-#include <workflow/backup.h>
 #include <workflow/reboot.h>
 #include <workflow/restore.h>
 #include <workflow/restore_from_mnemonic.h>
@@ -116,14 +115,6 @@ static commander_error_t _api_get_info(DeviceInfoResponse* device_info)
         return COMMANDER_ERR_GENERIC;
     }
 #endif
-    return COMMANDER_OK;
-}
-
-static commander_error_t _api_create_backup(const CreateBackupRequest* create_backup)
-{
-    if (!workflow_backup_create(create_backup)) {
-        return COMMANDER_ERR_GENERIC;
-    }
     return COMMANDER_OK;
 }
 
@@ -204,9 +195,6 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_device_info_tag:
         response->which_response = Response_device_info_tag;
         return _api_get_info(&(response->response.device_info));
-    case Request_create_backup_tag:
-        response->which_response = Response_success_tag;
-        return _api_create_backup(&(request->request.create_backup));
     case Request_show_mnemonic_tag:
         response->which_response = Response_success_tag;
         return _api_show_mnemonic();

@@ -25,8 +25,12 @@ pub struct Data {
     pub ui_confirm_create_result: Option<bool>,
     pub reset: Option<Box<dyn Fn(bool)>>,
     pub memory_set_mnemonic_passphrase_enabled: Option<Box<dyn Fn(bool) -> Result<(), ()>>>,
-    pub sdcard_inserted: Option<Box<dyn Fn() -> bool>>,
+    pub sdcard_inserted: Option<bool>,
     pub ui_sdcard_create_arg: Option<bool>,
+    pub memory_set_seed_birthdate: Option<Box<dyn Fn(u32) -> Result<(), ()>>>,
+    pub memory_is_initialized: Option<bool>,
+    pub memory_set_initialized_result: Option<Result<(), ()>>,
+    pub backup_create: Option<Box<dyn Fn(u32, u32) -> Result<(), super::backup::Error>>>,
 }
 
 pub struct SafeData(pub RefCell<Data>);

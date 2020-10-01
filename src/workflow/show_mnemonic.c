@@ -132,16 +132,12 @@ static bool _show_words(const char** words, uint8_t words_count)
 }
 
 typedef struct {
-    char* mnemonic;
-    // Keep len as mnemonic is tokenized using strtok, so util_cleanup_str() does not work anymore
-    // to clean the string.
-    size_t len;
+    char mnemonic[300];
 } mnemonic_t;
 
 static void _cleanup_mnemonic(mnemonic_t* mnemonic)
 {
-    util_zero(mnemonic->mnemonic, mnemonic->len);
-    free(mnemonic->mnemonic);
+    util_zero(mnemonic->mnemonic, sizeof(mnemonic->mnemonic));
 }
 
 bool workflow_show_mnemonic_create(void)
@@ -151,12 +147,9 @@ bool workflow_show_mnemonic_create(void)
     }
 
     mnemonic_t __attribute__((__cleanup__(_cleanup_mnemonic))) mnemonic;
-    if (!keystore_get_bip39_mnemonic(&mnemonic.mnemonic)) {
+    if (!keystore_get_bip39_mnemonic(mnemonic.mnemonic, sizeof(mnemonic.mnemonic))) {
         Abort("mnemonic create not possible");
     }
-    // This field must be set before we tokenize the mnemonic, because we use the length when we
-    // zero the memory after confirmation.
-    mnemonic.len = strlens(mnemonic.mnemonic);
 
     // No malloc elements point into parts of the tokenized `mnemonic`.
     const char* words[BIP39_NUM_WORDS];

@@ -49,7 +49,7 @@ pub fn str_from_null_terminated(input: &[u8]) -> Result<&str, core::str::Utf8Err
 /// let name = "sample_string";
 /// let buf = match str_to_cstr!(name, 50) {
 ///     Ok(buf) => buf,
-///     Err(_) => panic!("to short"),
+///     Err(msg) => panic!(msg),
 /// };
 /// ```
 #[macro_export]
@@ -57,7 +57,7 @@ macro_rules! str_to_cstr {
     ($input:expr, $len:expr) => {{
         let mut buf = [0u8; $len + 1];
         if !$input.is_ascii() {
-            Err(buf)
+            Err("non-ascii input")
         } else {
             let len = core::cmp::min($len, $input.len());
             {
@@ -68,7 +68,7 @@ macro_rules! str_to_cstr {
                 buf.copy_from_slice(input);
             }
             if $input.len() > len {
-                Err(buf)
+                Err("str is too long")
             } else {
                 Ok(buf)
             }
@@ -81,7 +81,7 @@ macro_rules! str_to_cstr_force {
     ($input:expr, $len:expr) => {
         match $crate::str_to_cstr!($input, $len) {
             Ok(buf) => buf,
-            Err(_) => panic!("str did not fit"),
+            Err(msg) => panic!(msg),
         }
     };
 }

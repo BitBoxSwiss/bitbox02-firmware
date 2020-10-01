@@ -39,10 +39,13 @@ typedef struct {
     component_t* forward_arrow;
     bool show_index;
     int32_t diff_to_middle;
-    void (*select_word_cb)(uint8_t);
+    void (*select_word_cb)(uint8_t, void*);
+    void* select_word_cb_param;
     component_t* continue_on_last_button;
-    void (*continue_on_last_cb)(void);
-    void (*cancel_cb)(void);
+    void (*continue_on_last_cb)(void*);
+    void* continue_on_last_cb_param;
+    void (*cancel_cb)(void*);
+    void* cancel_cb_param;
 } menu_data_t;
 
 static const uint8_t part_width = 20;
@@ -50,19 +53,25 @@ static const uint8_t part_width = 20;
 static void _continue(component_t* component)
 {
     menu_data_t* data = (menu_data_t*)component->parent->data;
-    data->continue_on_last_cb();
+    if (data->continue_on_last_cb != NULL) {
+        data->continue_on_last_cb(data->continue_on_last_cb_param);
+    }
 }
 
 static void _select(component_t* button)
 {
     menu_data_t* data = (menu_data_t*)button->parent->data;
-    data->select_word_cb(data->index);
+    if (data->select_word_cb != NULL) {
+        data->select_word_cb(data->index, data->select_word_cb_param);
+    }
 }
 
 static void _cancel(component_t* component)
 {
     menu_data_t* data = (menu_data_t*)component->parent->data;
-    data->cancel_cb();
+    if (data->cancel_cb != NULL) {
+        data->cancel_cb(data->cancel_cb_param);
+    }
 }
 
 static void _display_index(component_t* menu)
@@ -223,11 +232,14 @@ static const component_functions_t _component_functions = {
  */
 component_t* menu_create(
     const char* const* words,
-    void (*select_word_cb)(uint8_t),
+    void (*select_word_cb)(uint8_t, void*),
+    void* select_word_cb_param,
     const uint8_t length,
     const char* title,
-    void (*continue_on_last_cb)(void),
-    void (*cancel_cb)(void),
+    void (*continue_on_last_cb)(void*),
+    void* continue_on_last_cb_param,
+    void (*cancel_cb)(void*),
+    void* cancel_cb_param,
     component_t* parent)
 {
     component_t** labels = malloc(sizeof(component_t*) * length);
@@ -255,12 +267,15 @@ component_t* menu_create(
     data->labels = labels;
     data->words = words;
     data->select_word_cb = select_word_cb;
+    data->select_word_cb_param = select_word_cb_param;
     data->length = length;
     data->index = 0;
     data->show_index = !title;
     data->continue_on_last_cb = continue_on_last_cb;
+    data->continue_on_last_cb_param = continue_on_last_cb_param;
     data->continue_on_last_button = NULL;
     data->cancel_cb = cancel_cb;
+    data->cancel_cb_param = cancel_cb_param;
     menu->data = data;
 
     for (int i = 0; i < length; i++) {

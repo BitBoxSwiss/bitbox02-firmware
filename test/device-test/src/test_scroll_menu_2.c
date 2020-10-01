@@ -41,7 +41,8 @@ int main(void)
     qtouch_init();
 
     const char* words[] = {"first", "second", "third", "forth"};
-    component_t* test_scroll_through_2 = menu_create(words, NULL, 4, NULL, NULL, NULL, NULL);
+    component_t* test_scroll_through_2 =
+        menu_create(words, NULL, NULL, 4, NULL, NULL, NULL, NULL, NULL, NULL);
 
     ui_screen_stack_push(test_scroll_through_2);
     firmware_main_loop();

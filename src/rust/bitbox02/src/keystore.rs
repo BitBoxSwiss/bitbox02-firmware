@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+extern crate alloc;
+use alloc::string::String;
+
 use crate::password::Password;
 use bitbox02_sys::keystore_error_t;
 
@@ -49,5 +52,28 @@ pub fn unlock_bip39(mnemonic_passphrase: &Password) -> Result<(), Error> {
 pub fn create_and_store_seed(password: &Password, host_entropy: &[u8; 32]) -> bool {
     unsafe {
         bitbox02_sys::keystore_create_and_store_seed(password.as_cstr(), host_entropy.as_ptr())
+    }
+}
+
+#[derive(Copy, Clone)]
+struct ZeroizedMnemonic([u8; 256]);
+impl core::default::Default for ZeroizedMnemonic {
+    fn default() -> Self {
+        ZeroizedMnemonic([0; 256])
+    }
+}
+impl zeroize::DefaultIsZeroes for ZeroizedMnemonic {}
+
+pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
+    let mut mnemonic = zeroize::Zeroizing::new(ZeroizedMnemonic([0u8; 256]));
+    match unsafe {
+        bitbox02_sys::keystore_get_bip39_mnemonic(mnemonic.0.as_mut_ptr(), mnemonic.0.len() as _)
+    } {
+        false => Err(()),
+        true => Ok(zeroize::Zeroizing::new(
+            crate::util::str_from_null_terminated(&mnemonic.0[..])
+                .unwrap()
+                .into(),
+        )),
     }
 }

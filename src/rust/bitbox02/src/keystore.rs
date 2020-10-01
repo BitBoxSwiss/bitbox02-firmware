@@ -77,3 +77,17 @@ pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
         )),
     }
 }
+
+pub fn get_bip39_word(idx: u16) -> Result<&'static str, ()> {
+    let mut word: *mut u8 = core::ptr::null_mut();
+    match unsafe { bitbox02_sys::keystore_get_bip39_word(idx, &mut word) } {
+        false => Err(()),
+        true => {
+            let s = unsafe {
+                let len = crate::util::strlen_ptr(word);
+                core::slice::from_raw_parts(word, len as _)
+            };
+            Ok(core::str::from_utf8(&s[..]).unwrap())
+        }
+    }
+}

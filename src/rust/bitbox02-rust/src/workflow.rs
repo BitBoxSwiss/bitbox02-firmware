@@ -13,6 +13,7 @@
 // limitations under the License.
 
 pub mod confirm;
+pub mod menu;
 pub mod pairing;
 pub mod password;
 pub mod sdcard;

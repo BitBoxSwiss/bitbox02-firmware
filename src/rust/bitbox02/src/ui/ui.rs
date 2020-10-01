@@ -263,10 +263,7 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
             select_word_cb,
             select_word_cb_param,
             words.len() as _,
-            title.map_or_else(
-                || core::ptr::null(),
-                |title| crate::str_to_cstr_force!(title, MAX_LABEL_SIZE).as_ptr(),
-            ),
+            title.map_or_else(|| core::ptr::null(), |title| title.as_ptr()),
             continue_on_last_cb,
             continue_on_last_cb_param,
             cancel_cb,

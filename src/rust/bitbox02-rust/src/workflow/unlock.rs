@@ -51,26 +51,26 @@ async fn confirm_mnemonic_passphrase(passphrase: &str) -> bool {
     confirm::confirm(&params).await
 }
 
-/// Prompts the user for the device password, and returns true if the
-/// keystore was successfully unlocked, or false if the password was
+/// Prompts the user for the device password, and returns `Ok` if the
+/// keystore was successfully unlocked, or `Err` if the password was
 /// incorrect. In that case, a status is displayed with how many
 /// attempts are remaining until the device resets.
 ///
 /// If they keystore is already unlocked, this function does not
 /// change the state and just checks the password.
-pub async fn unlock_keystore(title: &str) -> bool {
+pub async fn unlock_keystore(title: &str) -> Result<(), ()> {
     let mut password = Password::new();
     password::enter(title, false, &mut password).await;
 
     match keystore::unlock(&password) {
-        Ok(()) => true,
+        Ok(()) => Ok(()),
         Err(keystore::Error::IncorrectPassword { remaining_attempts }) => {
             let msg = match remaining_attempts {
                 1 => "Wrong password\n1 try remains".into(),
                 n => format!("Wrong password\n{} tries remain", n),
             };
             status(&msg, false).await;
-            false
+            Err(())
         }
         _ => panic!("keystore unlock failed"),
     }
@@ -117,7 +117,7 @@ pub async fn unlock() -> Result<(), ()> {
     }
 
     // Loop unlock until the password is correct or the device resets.
-    while !unlock_keystore("Enter password").await {}
+    while unlock_keystore("Enter password").await.is_err() {}
 
     unlock_bip39().await;
     Ok(())

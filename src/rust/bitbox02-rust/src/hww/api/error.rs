@@ -26,6 +26,12 @@ pub enum Error {
     Duplicate,
 }
 
+impl core::convert::From<()> for Error {
+    fn from(_error: ()) -> Self {
+        Error::Generic
+    }
+}
+
 use pb::response::Response;
 
 /// Creates an Error response. Corresponds to commander.c:_report_error().

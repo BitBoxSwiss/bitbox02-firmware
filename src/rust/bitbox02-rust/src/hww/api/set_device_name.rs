@@ -37,9 +37,7 @@ pub async fn process(
         return Err(Error::UserAbort);
     }
 
-    if bitbox02::memory::set_device_name(&name).is_err() {
-        return Err(Error::Memory);
-    }
+    bitbox02::memory::set_device_name(&name)?;
 
     Ok(Response::Success(pb::Success {}))
 }
@@ -93,7 +91,7 @@ mod tests {
         mock(Data {
             ui_confirm_create_body: Some(SOME_NAME.into()),
             ui_confirm_create_result: Some(true),
-            memory_set_device_name: Some(Box::new(|_| Err(()))),
+            memory_set_device_name: Some(Box::new(|_| Err(bitbox02::memory::Error {}))),
             ..Default::default()
         });
         assert_eq!(

@@ -20,7 +20,7 @@ use std::boxed::Box;
 
 #[derive(Default)]
 pub struct Data {
-    pub memory_set_device_name: Option<Box<dyn Fn(&str) -> Result<(), ()>>>,
+    pub memory_set_device_name: Option<Box<dyn Fn(&str) -> Result<(), super::memory::Error>>>,
     pub ui_confirm_create_body: Option<std::string::String>,
     pub ui_confirm_create_result: Option<bool>,
     pub reset: Option<Box<dyn Fn(bool)>>,

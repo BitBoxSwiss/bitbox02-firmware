@@ -45,3 +45,7 @@ pub fn create_and_store_seed(_password: &Password, _host_entropy: &[u8; 32]) -> 
 pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
     panic!("not implemented")
 }
+
+pub fn get_bip39_word(_idx: u16) -> Result<&'static str, ()> {
+    panic!("not implemented")
+}

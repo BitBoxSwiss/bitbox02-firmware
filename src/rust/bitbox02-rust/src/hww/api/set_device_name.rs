@@ -23,7 +23,7 @@ pub async fn process(
     pb::SetDeviceNameRequest { name }: &pb::SetDeviceNameRequest,
 ) -> Result<Response, Error> {
     if !util::name::validate(name, bitbox02::memory::DEVICE_NAME_MAX_LEN) {
-        return Err(Error::COMMANDER_ERR_INVALID_INPUT);
+        return Err(Error::InvalidInput);
     }
 
     let params = confirm::Params {
@@ -34,11 +34,11 @@ pub async fn process(
     };
 
     if !confirm::confirm(&params).await {
-        return Err(Error::COMMANDER_ERR_USER_ABORT);
+        return Err(Error::UserAbort);
     }
 
     if bitbox02::memory::set_device_name(&name).is_err() {
-        return Err(Error::COMMANDER_ERR_MEMORY);
+        return Err(Error::Memory);
     }
 
     Ok(Response::Success(pb::Success {}))
@@ -86,7 +86,7 @@ mod tests {
             block_on(process(&pb::SetDeviceNameRequest {
                 name: SOME_NAME.into()
             })),
-            Err(Error::COMMANDER_ERR_USER_ABORT)
+            Err(Error::UserAbort)
         );
 
         // Memory write error.
@@ -100,7 +100,7 @@ mod tests {
             block_on(process(&pb::SetDeviceNameRequest {
                 name: SOME_NAME.into()
             })),
-            Err(Error::COMMANDER_ERR_MEMORY)
+            Err(Error::Memory)
         );
 
         // Non-ascii character.
@@ -108,7 +108,7 @@ mod tests {
             block_on(process(&pb::SetDeviceNameRequest {
                 name: "emoji are 😃, 😭, and 😈".into()
             })),
-            Err(Error::COMMANDER_ERR_INVALID_INPUT)
+            Err(Error::InvalidInput)
         );
 
         // Non-printable character.
@@ -116,7 +116,7 @@ mod tests {
             block_on(process(&pb::SetDeviceNameRequest {
                 name: "foo\nbar".into()
             })),
-            Err(Error::COMMANDER_ERR_INVALID_INPUT)
+            Err(Error::InvalidInput)
         );
 
         // Too long.
@@ -124,7 +124,7 @@ mod tests {
             block_on(process(&pb::SetDeviceNameRequest {
                 name: core::str::from_utf8(&[b'a'; 500]).unwrap().into()
             })),
-            Err(Error::COMMANDER_ERR_INVALID_INPUT)
+            Err(Error::InvalidInput)
         );
     }
 }

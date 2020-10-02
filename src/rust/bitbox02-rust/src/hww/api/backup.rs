@@ -24,7 +24,7 @@ pub async fn check(
     &pb::CheckBackupRequest { silent }: &pb::CheckBackupRequest,
 ) -> Result<Response, Error> {
     if !bitbox02::sdcard_inserted() {
-        return Err(Error::COMMANDER_ERR_INVALID_INPUT);
+        return Err(Error::InvalidInput);
     }
     match backup::check() {
         Ok(backup::CheckData { id, name, .. }) => {
@@ -37,7 +37,7 @@ pub async fn check(
                 };
 
                 if !confirm::confirm(&params).await {
-                    return Err(Error::COMMANDER_ERR_USER_ABORT);
+                    return Err(Error::UserAbort);
                 }
 
                 let params = confirm::Params {
@@ -48,7 +48,7 @@ pub async fn check(
                 };
 
                 if !confirm::confirm(&params).await {
-                    return Err(Error::COMMANDER_ERR_USER_ABORT);
+                    return Err(Error::UserAbort);
                 }
 
                 status::status("Backup valid", true).await;
@@ -59,12 +59,12 @@ pub async fn check(
             if !silent {
                 status::status("Backup missing\nor invalid", false).await;
             }
-            Err(Error::COMMANDER_ERR_GENERIC)
+            Err(Error::Generic)
         }
         Err(err) => {
             let msg = format!("Could not check\nbackup\n{:?}", err).replace("BACKUP_ERR_", "");
             status::status(&msg, false).await;
-            Err(Error::COMMANDER_ERR_GENERIC)
+            Err(Error::Generic)
         }
     }
 }
@@ -87,7 +87,7 @@ pub async fn create(
     const MAX_WEST_UTC_OFFSET: i32 = -43200; // 12 hours in seconds
 
     if timezone_offset < MAX_WEST_UTC_OFFSET || timezone_offset > MAX_EAST_UTC_OFFSET {
-        return Err(Error::COMMANDER_ERR_INVALID_INPUT);
+        return Err(Error::InvalidInput);
     }
 
     // Wait for sd card
@@ -112,10 +112,10 @@ pub async fn create(
             ..Default::default()
         };
         if !confirm::confirm(&params).await {
-            return Err(Error::COMMANDER_ERR_USER_ABORT);
+            return Err(Error::UserAbort);
         }
         if bitbox02::memory::set_seed_birthdate(timestamp).is_err() {
-            return Err(Error::COMMANDER_ERR_MEMORY);
+            return Err(Error::Memory);
         }
         timestamp
     } else if let Ok(backup::CheckData { birthdate, .. }) = backup::check() {
@@ -141,7 +141,7 @@ pub async fn create(
             let msg = format!("Backup not created\nPlease contact\nsupport ({:?})", err)
                 .replace("BACKUP_ERR_", "");
             status::status(&msg, false).await;
-            Err(Error::COMMANDER_ERR_GENERIC)
+            Err(Error::Generic)
         }
     }
 }

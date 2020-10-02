@@ -47,7 +47,6 @@
 #include <workflow/reboot.h>
 #include <workflow/restore.h>
 #include <workflow/restore_from_mnemonic.h>
-#include <workflow/show_mnemonic.h>
 #include <workflow/workflow.h>
 
 #include "hww.pb.h"
@@ -134,14 +133,6 @@ static commander_error_t _api_restore_backup(const RestoreBackupRequest* request
     return COMMANDER_OK;
 }
 
-static commander_error_t _api_show_mnemonic(void)
-{
-    if (!workflow_show_mnemonic_create()) {
-        return COMMANDER_ERR_GENERIC;
-    }
-    return COMMANDER_OK;
-}
-
 static commander_error_t _api_get_root_fingerprint(RootFingerprintResponse* response)
 {
     bool success = keystore_get_root_fingerprint(response->fingerprint);
@@ -195,9 +186,6 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_device_info_tag:
         response->which_response = Response_device_info_tag;
         return _api_get_info(&(response->response.device_info));
-    case Request_show_mnemonic_tag:
-        response->which_response = Response_success_tag;
-        return _api_show_mnemonic();
 #if APP_BTC == 1 || APP_LTC == 1
     case Request_btc_pub_tag:
         response->which_response = Response_pub_tag;

@@ -48,7 +48,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/reboot.c
   ${CMAKE_SOURCE_DIR}/src/workflow/restore.c
   ${CMAKE_SOURCE_DIR}/src/workflow/restore_from_mnemonic.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/show_mnemonic.c
   ${CMAKE_SOURCE_DIR}/src/workflow/orientation_screen.c
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c
   ${CMAKE_SOURCE_DIR}/src/workflow/trinary_input.c
@@ -125,7 +124,6 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/components/empty.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/progress.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/sdcard.c
-    ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_mnemonic.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/ui_images.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_transaction.c
 )

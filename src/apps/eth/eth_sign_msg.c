@@ -64,7 +64,7 @@ app_eth_sign_error_t app_eth_sign_msg(
 
     // determine if the message is in ASCII
     bool all_ascii =
-        rust_util_all_ascii_bytes(rust_util_bytes(request->msg.bytes, request->msg.size));
+        rust_util_is_printable_ascii_bytes(rust_util_bytes(request->msg.bytes, request->msg.size));
 
     char body[sizeof(request->msg.bytes) * 2 + 1] = {0};
     confirm_params_t params = {

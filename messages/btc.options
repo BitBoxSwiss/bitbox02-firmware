@@ -35,3 +35,5 @@ BTCPrevTxInputRequest.prev_out_hash fixed_length:true max_size:32
 BTCPrevTxInputRequest.signature_script max_size:1650
 // like MAX_PK_SCRIPT_SIZE in btc_common.h
 BTCPrevTxOutputRequest.pubkey_script max_size:700
+BTCSignMessageRequest.msg max_size:1024
+BTCSignMessageResponse.signature fixed_length:true max_size:65

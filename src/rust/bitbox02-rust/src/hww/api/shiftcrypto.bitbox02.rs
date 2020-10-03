@@ -468,8 +468,23 @@ pub struct BtcPrevTxOutputRequest {
     pub pubkey_script: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BtcSignMessageRequest {
+    #[prost(enumeration="BtcCoin", tag="1")]
+    pub coin: i32,
+    #[prost(message, optional, tag="2")]
+    pub script_config: ::core::option::Option<BtcScriptConfigWithKeypath>,
+    #[prost(bytes, tag="3")]
+    pub msg: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BtcSignMessageResponse {
+    /// 65 bytes (32 bytes big endian R, 32 bytes big endian S, 1 recid).
+    #[prost(bytes, tag="1")]
+    pub signature: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcRequest {
-    #[prost(oneof="btc_request::Request", tags="1, 2, 3, 4, 5")]
+    #[prost(oneof="btc_request::Request", tags="1, 2, 3, 4, 5, 6")]
     pub request: ::core::option::Option<btc_request::Request>,
 }
 /// Nested message and enum types in `BTCRequest`.
@@ -486,11 +501,13 @@ pub mod btc_request {
         PrevtxInput(super::BtcPrevTxInputRequest),
         #[prost(message, tag="5")]
         PrevtxOutput(super::BtcPrevTxOutputRequest),
+        #[prost(message, tag="6")]
+        SignMessage(super::BtcSignMessageRequest),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcResponse {
-    #[prost(oneof="btc_response::Response", tags="1, 2, 3")]
+    #[prost(oneof="btc_response::Response", tags="1, 2, 3, 4")]
     pub response: ::core::option::Option<btc_response::Response>,
 }
 /// Nested message and enum types in `BTCResponse`.
@@ -503,6 +520,8 @@ pub mod btc_response {
         IsScriptConfigRegistered(super::BtcIsScriptConfigRegisteredResponse),
         #[prost(message, tag="3")]
         SignNext(super::BtcSignNextResponse),
+        #[prost(message, tag="4")]
+        SignMessage(super::BtcSignMessageResponse),
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]

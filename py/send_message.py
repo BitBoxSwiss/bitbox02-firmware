@@ -512,6 +512,37 @@ class SendMessage:
             except UserAbortException:
                 eprint("Aborted by user")
 
+    def _sign_btc_message(self) -> None:
+        # pylint: disable=no-member
+
+        keypath = [49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
+        script_config = bitbox02.btc.BTCScriptConfig(
+            simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH_P2SH
+        )
+        address = self._device.btc_address(
+            keypath=keypath, script_config=script_config, display=False
+        )
+
+        print("Address:", address)
+
+        msg = input(r"Message to sign (\n = newline): ")
+        if msg.startswith("0x"):
+            msg_bytes = binascii.unhexlify(msg[2:])
+        else:
+            msg_bytes = msg.replace(r"\n", "\n").encode("utf-8")
+
+        try:
+            _, _, sig65 = self._device.btc_sign_msg(
+                bitbox02.btc.BTC,
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=script_config, keypath=keypath
+                ),
+                msg_bytes,
+            )
+            print("Signature:", base64.b64encode(sig65).decode("ascii"))
+        except UserAbortException:
+            print("Aborted by user")
+
     def _check_backup(self) -> None:
         print("Your BitBox02 will now perform a backup check")
         try:
@@ -689,6 +720,7 @@ class SendMessage:
             ("Retrieve a BTC address", self._btc_address),
             ("Retrieve a BTC Multisig address", self._btc_multisig_address),
             ("Sign a BTC tx", self._sign_btc_tx),
+            ("Sign a BTC Message", self._sign_btc_message),
             ("List backups", self._print_backups),
             ("Check backup", self._check_backup),
             ("Show mnemonic", self._show_mnemnoic_seed),

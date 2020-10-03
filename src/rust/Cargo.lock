@@ -56,7 +56,9 @@ dependencies = [
  "binascii 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitbox02 0.1.0",
  "bitbox02-noise 0.1.0",
+ "hex 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "prost 0.6.1 (git+https://github.com/danburkert/prost.git?rev=6113789f70b69709820becba4242824b4fb3ffec)",
+ "util 0.1.0",
 ]
 
 [[package]]

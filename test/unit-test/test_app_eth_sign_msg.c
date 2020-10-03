@@ -20,6 +20,7 @@
 #include <apps/eth/eth_common.h>
 #include <apps/eth/eth_sign_msg.h>
 #include <keystore.h>
+#include <rust/rust.h>
 #include <ui/components/confirm.h>
 
 #include <wally_bip32.h>
@@ -33,6 +34,11 @@ static uint8_t _sig[65] =
     "\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x03";
 
 bool __wrap_workflow_confirm_blocking(const confirm_params_t* params)
+{
+    return true;
+}
+
+bool __wrap_rust_workflow_verify_message(Bytes msg)
 {
     return true;
 }

@@ -13,17 +13,15 @@
 // limitations under the License.
 
 #include "eth_sign_msg.h"
+#include "eth.h"
 #include "eth_common.h"
 #include "eth_sighash.h"
 #include "eth_verify.h"
 #include <sha3.h>
 
-#include "eth.h"
 #include <hardfault.h>
 #include <keystore.h>
 #include <rust/rust.h>
-#include <util.h>
-#include <workflow/confirm.h>
 
 app_eth_sign_error_t app_eth_sign_msg(
     const ETHSignMessageRequest* request,
@@ -62,28 +60,7 @@ app_eth_sign_error_t app_eth_sign_msg(
     size_t payload_offset = snprintf(msg, sizeof(msg), "%s%d", msg_header, request->msg.size);
     memcpy(&msg[payload_offset], request->msg.bytes, request->msg.size);
 
-    // determine if the message is in ASCII
-    bool all_ascii =
-        rust_util_is_printable_ascii_bytes(rust_util_bytes(request->msg.bytes, request->msg.size));
-
-    char body[sizeof(request->msg.bytes) * 2 + 1] = {0};
-    confirm_params_t params = {
-        .body = body,
-        .scrollable = true,
-        .longtouch = true,
-    };
-    if (all_ascii) {
-        // If it is all ASCII, copy the bytes over and ensure there is a null terminator
-        snprintf(body, sizeof(body), "%.*s", request->msg.size, request->msg.bytes);
-        params.title = "Sign message\nData";
-    } else {
-        // If it is binary, convert to hex
-        util_uint8_to_hex(request->msg.bytes, request->msg.size, body);
-        params.title = "Sign message\nData (hex)";
-        params.display_size = request->msg.size;
-    }
-
-    if (!workflow_confirm_blocking(&params)) {
+    if (!rust_workflow_verify_message(rust_util_bytes(request->msg.bytes, request->msg.size))) {
         return APP_ETH_SIGN_ERR_USER_ABORT;
     }
 

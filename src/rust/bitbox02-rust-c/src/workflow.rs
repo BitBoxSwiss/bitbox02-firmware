@@ -22,7 +22,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use bitbox02::password::Password;
 use bitbox02_rust::bb02_async::{block_on, spin, Task};
-use bitbox02_rust::workflow::{confirm, password, status, unlock};
+use bitbox02_rust::workflow::{confirm, password, status, unlock, verify_message};
 use core::fmt::Write;
 use core::task::Poll;
 
@@ -174,4 +174,9 @@ pub unsafe extern "C" fn rust_workflow_confirm_blocking(
 #[no_mangle]
 pub unsafe extern "C" fn rust_workflow_unlock_check_blocking() -> bool {
     block_on(unlock::unlock_keystore("Unlock device"))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_workflow_verify_message(msg: crate::util::Bytes) -> bool {
+    block_on(verify_message::verify(msg.as_ref())).is_ok()
 }

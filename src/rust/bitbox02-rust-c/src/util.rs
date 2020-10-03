@@ -27,13 +27,13 @@ pub extern "C" fn rust_util_zero(mut dst: BytesMut) {
 
 #[no_mangle]
 pub extern "C" fn rust_util_is_printable_ascii_bytes(bytes: Bytes) -> bool {
-    util::ascii::is_printable_ascii(bytes)
+    util::ascii::is_printable_ascii(bytes, false)
 }
 
 #[no_mangle]
 pub extern "C" fn rust_util_is_printable_ascii(cstr: CStr) -> bool {
     let s: &str = cstr.as_ref();
-    util::ascii::is_printable_ascii(s)
+    util::ascii::is_printable_ascii(s, false)
 }
 
 #[no_mangle]

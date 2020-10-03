@@ -18,10 +18,13 @@
 /// !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
 /// ```
 ///
-/// Unlike std's is_ascii, control characters such as newline, tab, etc. are not part
-/// of the set.
-pub fn is_printable_ascii<T: AsRef<[u8]>>(bytes: T) -> bool {
-    bytes.as_ref().iter().all(|&b| b >= 32 && b <= 126)
+/// Note that newline, tab, etc. are not part of this set.
+/// If `allow_newline` is true, '\n' is also accepted.
+pub fn is_printable_ascii<T: AsRef<[u8]>>(bytes: T, allow_newline: bool) -> bool {
+    bytes
+        .as_ref()
+        .iter()
+        .all(|&b| (b >= 32 && b <= 126) || (allow_newline && b == b'\n'))
 }
 
 #[cfg(test)]
@@ -34,14 +37,17 @@ mod tests {
     #[test]
     fn test_is_printable_ascii() {
         // All ascii chars.
-        assert!(is_printable_ascii(ALL_ASCII));
+        assert!(is_printable_ascii(ALL_ASCII, false));
         // Edge cases: highest and lowest non ascii chars.
-        assert!(!is_printable_ascii(b"\x7f"));
-        assert!(!is_printable_ascii(b"\x19"));
-        assert!(!is_printable_ascii(b"\n"));
-        assert!(!is_printable_ascii(b"\t"));
+        assert!(!is_printable_ascii(b"\x7f", false));
+        assert!(!is_printable_ascii(b"\x19", false));
+        assert!(!is_printable_ascii(b"\n", false));
+        assert!(!is_printable_ascii(b"\t", false));
         // Works for any AsRef<[u8]>
         let trait_obj: &dyn AsRef<[u8]> = &"abc";
-        assert!(is_printable_ascii(trait_obj));
+        assert!(is_printable_ascii(trait_obj, false));
+
+        // Newline allowed
+        assert!(is_printable_ascii("test\nnewline", true));
     }
 }

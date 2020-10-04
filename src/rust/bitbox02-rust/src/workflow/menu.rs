@@ -13,10 +13,11 @@
 // limitations under the License.
 
 use crate::bb02_async::option;
+use bitbox02::ui;
 use core::cell::RefCell;
+
 extern crate alloc;
 use alloc::boxed::Box;
-use bitbox02::ui;
 
 pub async fn menu() {
     let result = RefCell::new(None);

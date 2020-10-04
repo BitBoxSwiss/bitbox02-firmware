@@ -90,10 +90,13 @@ impl<'a> ConfirmParams<'a> {
     }
 }
 
+pub type SelectWordCb<'a> = Box<dyn FnMut(u8) + 'a>;
+pub type ContinueCancelCb<'a> = Box<dyn FnMut() + 'a>;
+
 pub struct MenuParams<'a> {
     pub words: &'a [&'a str],
     pub title: Option<&'a str>,
-    pub select_word_cb: Option<Box<dyn FnMut(u8) + 'a>>,
-    pub continue_on_last_cb: Option<Box<dyn FnMut() + 'a>>,
-    pub cancel_cb: Option<Box<dyn FnMut() + 'a>>,
+    pub select_word_cb: Option<SelectWordCb<'a>>,
+    pub continue_on_last_cb: Option<ContinueCancelCb<'a>>,
+    pub cancel_cb: Option<ContinueCancelCb<'a>>,
 }

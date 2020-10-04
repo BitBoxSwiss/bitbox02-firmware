@@ -14,7 +14,7 @@
 
 //! Stubs for testing.
 
-pub use super::types::{ConfirmParams, Font, MenuParams};
+pub use super::types::{ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb};
 
 use crate::password::Password;
 

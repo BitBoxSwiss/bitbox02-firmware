@@ -14,7 +14,7 @@
 // limitations under the License.
 
 use super::types::MAX_LABEL_SIZE;
-pub use super::types::{ConfirmParams, Font, MenuParams};
+pub use super::types::{ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb};
 
 use util::c_types::{c_char, c_void};
 
@@ -208,12 +208,12 @@ where
 
 pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
     unsafe extern "C" fn c_select_word_cb(word_idx: u8, param: *mut c_void) {
-        let callback = param as *mut Box<dyn FnMut(u8)>;
+        let callback = param as *mut SelectWordCb;
         (*callback)(word_idx);
     }
 
     unsafe extern "C" fn c_continue_cancel_cb(param: *mut c_void) {
-        let callback = param as *mut Box<dyn FnMut()>;
+        let callback = param as *mut ContinueCancelCb;
         (*callback)();
     }
 
@@ -277,17 +277,15 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
         on_drop: Box::new(move || unsafe {
             // Drop all callbacks.
             if !select_word_cb_param.is_null() {
-                drop(Box::from_raw(
-                    select_word_cb_param as *mut Box<dyn FnMut(u8)>,
-                ));
+                drop(Box::from_raw(select_word_cb_param as *mut SelectWordCb));
             }
             if !continue_on_last_cb_param.is_null() {
                 drop(Box::from_raw(
-                    continue_on_last_cb_param as *mut Box<dyn FnMut()>,
+                    continue_on_last_cb_param as *mut ContinueCancelCb,
                 ));
             }
             if !cancel_cb_param.is_null() {
-                drop(Box::from_raw(cancel_cb_param as *mut Box<dyn FnMut()>));
+                drop(Box::from_raw(cancel_cb_param as *mut ContinueCancelCb));
             }
         }),
         _p: PhantomData,

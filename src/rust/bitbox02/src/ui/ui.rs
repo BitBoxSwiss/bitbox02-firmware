@@ -29,7 +29,7 @@ use core::marker::PhantomData;
 pub struct Component<'a> {
     component: *mut bitbox02_sys::component_t,
     is_pushed: bool,
-    on_drop: Box<dyn FnMut()>,
+    on_drop: Option<Box<dyn FnMut()>>,
     // This is used to have the result callbacks outlive the component.
     _p: PhantomData<&'a ()>,
 }
@@ -54,7 +54,9 @@ impl<'a> Drop for Component<'a> {
         unsafe {
             bitbox02_sys::ui_screen_stack_pop();
         }
-        (*self.on_drop)();
+        if let Some(ref mut on_drop) = self.on_drop {
+            (*on_drop)();
+        }
     }
 }
 
@@ -100,7 +102,7 @@ where
     Component {
         component,
         is_pushed: false,
-        on_drop: Box::new(|| {}),
+        on_drop: None,
         _p: PhantomData,
     }
 }
@@ -133,7 +135,7 @@ where
     Component {
         component,
         is_pushed: false,
-        on_drop: Box::new(|| {}),
+        on_drop: None,
         _p: PhantomData,
     }
 }
@@ -170,7 +172,7 @@ where
     Component {
         component,
         is_pushed: false,
-        on_drop: Box::new(|| {}),
+        on_drop: None,
         _p: PhantomData,
     }
 }
@@ -201,7 +203,7 @@ where
     Component {
         component,
         is_pushed: false,
-        on_drop: Box::new(|| {}),
+        on_drop: None,
         _p: PhantomData,
     }
 }
@@ -274,7 +276,7 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
     Component {
         component,
         is_pushed: false,
-        on_drop: Box::new(move || unsafe {
+        on_drop: Some(Box::new(move || unsafe {
             // Drop all callbacks.
             if !select_word_cb_param.is_null() {
                 drop(Box::from_raw(select_word_cb_param as *mut SelectWordCb));
@@ -287,7 +289,7 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
             if !cancel_cb_param.is_null() {
                 drop(Box::from_raw(cancel_cb_param as *mut ContinueCancelCb));
             }
-        }),
+        })),
         _p: PhantomData,
     }
 }

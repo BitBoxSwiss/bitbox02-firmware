@@ -30,11 +30,11 @@ pub async fn process(
     };
 
     if !confirm::confirm(&params).await {
-        return Err(Error::COMMANDER_ERR_USER_ABORT);
+        return Err(Error::UserAbort);
     }
 
     if bitbox02::memory::set_mnemonic_passphrase_enabled(enabled).is_err() {
-        return Err(Error::COMMANDER_ERR_MEMORY);
+        return Err(Error::Memory);
     }
 
     Ok(Response::Success(pb::Success {}))
@@ -80,7 +80,7 @@ mod tests {
             block_on(process(&pb::SetMnemonicPassphraseEnabledRequest {
                 enabled: true
             })),
-            Err(Error::COMMANDER_ERR_USER_ABORT)
+            Err(Error::UserAbort)
         );
     }
 }

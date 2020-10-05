@@ -109,10 +109,10 @@ pub async fn process(input: Vec<u8>) -> Vec<u8> {
         Ok(pb::Request {
             request: Some(request),
         }) => request,
-        _ => return encode(make_error(Error::COMMANDER_ERR_INVALID_INPUT)),
+        _ => return encode(make_error(Error::InvalidInput)),
     };
     if !bitbox02::commander::states_can_call(request_tag(&request) as u16) {
-        return encode(make_error(Error::COMMANDER_ERR_INVALID_STATE));
+        return encode(make_error(Error::InvalidState));
     }
 
     // Since we will process the call now, so can clear the 'force next' info.

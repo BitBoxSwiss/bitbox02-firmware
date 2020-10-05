@@ -17,7 +17,9 @@
 // Make the same consts accessible from stubs as well.
 pub const DEVICE_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_DEVICE_NAME_MAX_LEN as usize - 1;
 
-pub fn set_device_name(name: &str) -> Result<(), ()> {
+pub struct Error;
+
+pub fn set_device_name(name: &str) -> Result<(), Error> {
     let data = crate::testing::DATA.0.borrow();
     data.memory_set_device_name.as_ref().unwrap()(name)
 }

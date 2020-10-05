@@ -28,7 +28,7 @@ pub async fn process() -> Result<Response, Error> {
     };
 
     if !confirm::confirm(&params).await {
-        return Err(Error::COMMANDER_ERR_GENERIC);
+        return Err(Error::Generic);
     }
 
     bitbox02::reset(true);
@@ -66,6 +66,6 @@ mod tests {
             ui_confirm_create_result: Some(false),
             ..Default::default()
         });
-        assert_eq!(block_on(process()), Err(Error::COMMANDER_ERR_GENERIC));
+        assert_eq!(block_on(process()), Err(Error::Generic));
     }
 }

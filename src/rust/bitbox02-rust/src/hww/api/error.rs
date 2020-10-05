@@ -14,40 +14,61 @@
 
 use super::pb;
 
-pub use bitbox02::commander::Error;
+#[allow(dead_code)]
+#[derive(Debug, PartialEq)]
+pub enum Error {
+    InvalidInput,
+    Memory,
+    Generic,
+    UserAbort,
+    InvalidState,
+    Disabled,
+    Duplicate,
+}
+
+impl core::convert::From<()> for Error {
+    fn from(_error: ()) -> Self {
+        Error::Generic
+    }
+}
+
+impl core::convert::From<bitbox02::memory::Error> for Error {
+    fn from(_error: bitbox02::memory::Error) -> Self {
+        Error::Memory
+    }
+}
 
 use pb::response::Response;
 
 /// Creates an Error response. Corresponds to commander.c:_report_error().
-pub fn make_error(err: bitbox02::commander::Error) -> Response {
+pub fn make_error(err: Error) -> Response {
     use Error::*;
     let err = match err {
-        COMMANDER_OK => panic!("can't call this function with COMMANDER_OK"),
-        COMMANDER_ERR_INVALID_INPUT => pb::Error {
+        InvalidInput => pb::Error {
             code: 101,
             message: "invalid input".into(),
         },
-        COMMANDER_ERR_MEMORY => pb::Error {
+        Memory => pb::Error {
             code: 102,
             message: "memory".into(),
         },
-        COMMANDER_ERR_GENERIC => pb::Error {
+        Generic => pb::Error {
             code: 103,
             message: "generic error".into(),
         },
-        COMMANDER_ERR_USER_ABORT => pb::Error {
+        UserAbort => pb::Error {
             code: 104,
             message: "aborted by the user".into(),
         },
-        COMMANDER_ERR_INVALID_STATE => pb::Error {
+        InvalidState => pb::Error {
             code: 105,
             message: "can't call this endpoint: wrong state".into(),
         },
-        COMMANDER_ERR_DISABLED => pb::Error {
+        Disabled => pb::Error {
             code: 106,
             message: "function disabled".into(),
         },
-        COMMANDER_ERR_DUPLICATE => pb::Error {
+        Duplicate => pb::Error {
             code: 107,
             message: "duplicate entry".into(),
         },

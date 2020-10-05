@@ -38,9 +38,9 @@ bool __wrap_workflow_confirm_blocking(const confirm_params_t* params)
     return true;
 }
 
-bool __wrap_rust_workflow_verify_message(Bytes msg)
+VerifyMessageResult __wrap_rust_workflow_verify_message(Bytes msg)
 {
-    return true;
+    return VerifyMessageResultOk;
 }
 
 bool __wrap_keystore_secp256k1_pubkey(

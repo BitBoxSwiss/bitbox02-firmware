@@ -60,8 +60,15 @@ app_eth_sign_error_t app_eth_sign_msg(
     size_t payload_offset = snprintf(msg, sizeof(msg), "%s%d", msg_header, request->msg.size);
     memcpy(&msg[payload_offset], request->msg.bytes, request->msg.size);
 
-    if (!rust_workflow_verify_message(rust_util_bytes(request->msg.bytes, request->msg.size))) {
+    switch (rust_workflow_verify_message(rust_util_bytes(request->msg.bytes, request->msg.size))) {
+    case VerifyMessageResultOk:
+        break;
+    case VerifyMessageResultInvalidInput:
+        return APP_ETH_SIGN_ERR_INVALID_INPUT;
+    case VerifyMessageResultUserAbort:
         return APP_ETH_SIGN_ERR_USER_ABORT;
+    default:
+        Abort("unexpected verify message result");
     }
 
     // Calculate the hash

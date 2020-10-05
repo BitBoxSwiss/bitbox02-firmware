@@ -19,20 +19,25 @@ use super::confirm;
 
 use util::ascii;
 
+pub enum Error {
+    InvalidInput,
+    UserAbort,
+}
+
 /// Verify a message to be signed.
 ///
 /// If the bytes are all printable ascii chars, the message is
 /// confirmed one line at a time (the str is split into lines).
 ///
 /// Otherwise, it is displayed as hex.
-pub async fn verify(msg: &[u8]) -> Result<(), ()> {
+pub async fn verify(msg: &[u8]) -> Result<(), Error> {
     if ascii::is_printable_ascii(&msg, ascii::Charset::AllNewline) {
         // The message is all ascii and printable.
         let msg = core::str::from_utf8(msg).unwrap();
 
         let pages: Vec<&str> = msg.split('\n').filter(|line| !line.is_empty()).collect();
         if pages.is_empty() {
-            return Err(());
+            return Err(Error::InvalidInput);
         }
         for (i, &page) in pages.iter().enumerate() {
             let is_last = i == pages.len() - 1;
@@ -50,7 +55,7 @@ pub async fn verify(msg: &[u8]) -> Result<(), ()> {
                 ..Default::default()
             };
             if !confirm::confirm(&params).await {
-                return Err(());
+                return Err(Error::UserAbort);
             }
         }
         Ok(())
@@ -66,7 +71,7 @@ pub async fn verify(msg: &[u8]) -> Result<(), ()> {
         if confirm::confirm(&params).await {
             Ok(())
         } else {
-            Err(())
+            Err(Error::UserAbort)
         }
     }
 }

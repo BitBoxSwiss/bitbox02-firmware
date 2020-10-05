@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::ascii;
+
 /// Validate a user given name. The name must be smaller or equal to `max_len` and larger than 0 in
 /// size, consist of printable ASCII characters only (and space), not
 /// start or end with whitespace, and contain no whitespace other than space.
@@ -19,7 +21,7 @@ pub fn validate(name: &str, max_len: usize) -> bool {
     if name.is_empty() || name.len() > max_len {
         return false;
     }
-    if !super::ascii::is_printable_ascii(name, false) {
+    if !ascii::is_printable_ascii(name, ascii::Charset::All) {
         return false;
     }
     // Safe because all_ascii passed.

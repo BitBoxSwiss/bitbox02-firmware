@@ -17,6 +17,8 @@ use alloc::vec::Vec;
 
 use super::confirm;
 
+use util::ascii;
+
 /// Verify a message to be signed.
 ///
 /// If the bytes are all printable ascii chars, the message is
@@ -24,7 +26,7 @@ use super::confirm;
 ///
 /// Otherwise, it is displayed as hex.
 pub async fn verify(msg: &[u8]) -> Result<(), ()> {
-    if util::ascii::is_printable_ascii(&msg, true) {
+    if ascii::is_printable_ascii(&msg, ascii::Charset::AllNewline) {
         // The message is all ascii and printable.
         let msg = core::str::from_utf8(msg).unwrap();
 

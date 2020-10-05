@@ -26,17 +26,6 @@ pub extern "C" fn rust_util_zero(mut dst: BytesMut) {
 }
 
 #[no_mangle]
-pub extern "C" fn rust_util_is_printable_ascii_bytes(bytes: Bytes) -> bool {
-    util::ascii::is_printable_ascii(bytes)
-}
-
-#[no_mangle]
-pub extern "C" fn rust_util_is_printable_ascii(cstr: CStr) -> bool {
-    let s: &str = cstr.as_ref();
-    util::ascii::is_printable_ascii(s)
-}
-
-#[no_mangle]
 pub extern "C" fn rust_util_validate_name(cstr: CStr, max_len: size_t) -> bool {
     let s: &str = cstr.as_ref();
     util::name::validate(s, max_len)
@@ -381,15 +370,6 @@ mod tests {
         let mut cstr_mut = unsafe { CStrMut::new(buf.as_mut_ptr(), buf.len()) };
         use std::fmt::Write;
         let _ = write!(&mut cstr_mut, "test foo ");
-    }
-
-    #[test]
-    fn test_is_printable_ascii_bytes() {
-        let buf = b"foo";
-        assert!(rust_util_is_printable_ascii_bytes(rust_util_bytes(
-            buf.as_ptr(),
-            buf.len()
-        )));
     }
 
     #[test]

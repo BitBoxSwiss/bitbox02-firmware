@@ -636,11 +636,11 @@ class SendMessage:
             eprint("Aborted by user")
 
     def _sign_eth_message(self) -> None:
-        msg = input("Message to sign: ")
+        msg = input(r"Message to sign (\n = newline): ")
         if msg.startswith("0x"):
             msg_bytes = binascii.unhexlify(msg[2:])
         else:
-            msg_bytes = msg.encode("utf-8")
+            msg_bytes = msg.replace(r"\n", "\n").encode("utf-8")
         msg_hex = binascii.hexlify(msg_bytes).decode("utf-8")
         print(f"signing\nbytes: {msg_bytes}\nhex: 0x{msg_hex}")
         sig = self._device.eth_sign_msg(

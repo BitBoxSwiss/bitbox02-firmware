@@ -18,3 +18,4 @@ pub mod password;
 pub mod sdcard;
 pub mod status;
 pub mod unlock;
+pub mod verify_message;

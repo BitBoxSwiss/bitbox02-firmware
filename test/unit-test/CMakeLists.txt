@@ -178,6 +178,8 @@ set(TEST_LIST
    ""
    app_btc_confirm_locktime_rbf
    "-Wl,--wrap=workflow_confirm_blocking,--wrap=workflow_status_blocking"
+   app_btc_sign_msg
+   "-Wl,--wrap=workflow_confirm_blocking,--wrap=rust_workflow_verify_message"
    sd
    ""
    ui_components

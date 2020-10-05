@@ -14,13 +14,14 @@
 // limitations under the License.
 
 use super::types::MAX_LABEL_SIZE;
-pub use super::types::{ConfirmParams, Font};
+pub use super::types::{ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb};
 
 use util::c_types::{c_char, c_void};
 
 extern crate alloc;
 use crate::password::Password;
 use alloc::boxed::Box;
+use alloc::vec::Vec;
 
 use core::marker::PhantomData;
 
@@ -28,6 +29,7 @@ use core::marker::PhantomData;
 pub struct Component<'a> {
     component: *mut bitbox02_sys::component_t,
     is_pushed: bool,
+    on_drop: Option<Box<dyn FnMut()>>,
     // This is used to have the result callbacks outlive the component.
     _p: PhantomData<&'a ()>,
 }
@@ -51,6 +53,9 @@ impl<'a> Drop for Component<'a> {
         }
         unsafe {
             bitbox02_sys::ui_screen_stack_pop();
+        }
+        if let Some(ref mut on_drop) = self.on_drop {
+            (*on_drop)();
         }
     }
 }
@@ -97,6 +102,7 @@ where
     Component {
         component,
         is_pushed: false,
+        on_drop: None,
         _p: PhantomData,
     }
 }
@@ -129,6 +135,7 @@ where
     Component {
         component,
         is_pushed: false,
+        on_drop: None,
         _p: PhantomData,
     }
 }
@@ -165,6 +172,7 @@ where
     Component {
         component,
         is_pushed: false,
+        on_drop: None,
         _p: PhantomData,
     }
 }
@@ -195,6 +203,93 @@ where
     Component {
         component,
         is_pushed: false,
+        on_drop: None,
+        _p: PhantomData,
+    }
+}
+
+pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
+    unsafe extern "C" fn c_select_word_cb(word_idx: u8, param: *mut c_void) {
+        let callback = param as *mut SelectWordCb;
+        (*callback)(word_idx);
+    }
+
+    unsafe extern "C" fn c_continue_cancel_cb(param: *mut c_void) {
+        let callback = param as *mut ContinueCancelCb;
+        (*callback)();
+    }
+
+    // We want to turn &[&str] into a C char**.
+    //
+    // Step 1: create the C strings. This var has to be alive until after menu_create() finishes,
+    // otherwise the pointers we send to menu_create() will be invalid.
+    let words: Vec<[u8; 101]> = params
+        .words
+        .iter()
+        .map(|word| crate::str_to_cstr_force!(word, 100))
+        .collect();
+    // Step two: collect pointers. This var also has to be valid until menu_create() finishes, or
+    // the pointer will be invalid.
+    let c_words: Vec<*const util::c_types::c_char> =
+        words.iter().map(|word| word.as_ptr() as _).collect();
+
+    let (select_word_cb, select_word_cb_param) = match params.select_word_cb {
+        None => (None, core::ptr::null_mut()),
+        Some(cb) => (
+            Some(c_select_word_cb as _),
+            Box::into_raw(Box::new(cb)) as *mut c_void,
+        ),
+    };
+
+    let (continue_on_last_cb, continue_on_last_cb_param) = match params.continue_on_last_cb {
+        None => (None, core::ptr::null_mut()),
+        Some(cb) => (
+            Some(c_continue_cancel_cb as _),
+            Box::into_raw(Box::new(cb)) as *mut c_void,
+        ),
+    };
+
+    let (cancel_cb, cancel_cb_param) = match params.cancel_cb {
+        None => (None, core::ptr::null_mut()),
+        Some(cb) => (
+            Some(c_continue_cancel_cb as _),
+            Box::into_raw(Box::new(cb)) as *mut c_void,
+        ),
+    };
+    let title = params
+        .title
+        .map(|title| crate::str_to_cstr_force!(title, MAX_LABEL_SIZE));
+    let component = unsafe {
+        bitbox02_sys::menu_create(
+            c_words.as_ptr(),
+            select_word_cb,
+            select_word_cb_param,
+            words.len() as _,
+            title.map_or_else(|| core::ptr::null(), |title| title.as_ptr()),
+            continue_on_last_cb,
+            continue_on_last_cb_param,
+            cancel_cb,
+            cancel_cb_param,
+            core::ptr::null_mut(),
+        )
+    };
+    Component {
+        component,
+        is_pushed: false,
+        on_drop: Some(Box::new(move || unsafe {
+            // Drop all callbacks.
+            if !select_word_cb_param.is_null() {
+                drop(Box::from_raw(select_word_cb_param as *mut SelectWordCb));
+            }
+            if !continue_on_last_cb_param.is_null() {
+                drop(Box::from_raw(
+                    continue_on_last_cb_param as *mut ContinueCancelCb,
+                ));
+            }
+            if !cancel_cb_param.is_null() {
+                drop(Box::from_raw(cancel_cb_param as *mut ContinueCancelCb));
+            }
+        })),
         _p: PhantomData,
     }
 }

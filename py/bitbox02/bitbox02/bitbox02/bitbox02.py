@@ -498,6 +498,29 @@ class BitBox02(BitBoxCommonAPI):
                 raise Exception("unexpected response")
         return sigs
 
+    def btc_sign_msg(
+        self, coin: btc.BTCCoin, script_config: btc.BTCScriptConfigWithKeypath, msg: bytes
+    ) -> Tuple[bytes, int, bytes]:
+        """
+        Returns a 64 byte sig, the recoverable id, and a 65 byte signature containing
+        the recid, compatible with Electrum.
+        """
+        # pylint: disable=no-member,line-too-long
+
+        request = btc.BTCRequest()
+        request.sign_message.CopyFrom(
+            btc.BTCSignMessageRequest(coin=coin, script_config=script_config, msg=msg)
+        )
+        sig = self._btc_msg_query(request, expected_response="sign_message").sign_message.signature
+
+        sig, recid = sig[:64], sig[64]
+
+        # See https://github.com/spesmilo/electrum/blob/84dc181b6e7bb20e88ef6b98fb8925c5f645a765/electrum/ecc.py#L521-L523
+        compressed = 4  # BitBox02 uses only compressed pubkeys
+        electrum_sig65 = bytes([27 + compressed + recid]) + sig
+
+        return (sig, recid, electrum_sig65)
+
     def check_sdcard(self) -> bool:
         # pylint: disable=no-member
         request = hww.Request()

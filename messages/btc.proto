@@ -177,6 +177,17 @@ message BTCPrevTxOutputRequest {
   bytes pubkey_script = 2;
 }
 
+message BTCSignMessageRequest {
+  BTCCoin coin = 1;
+  BTCScriptConfigWithKeypath script_config = 2;
+  bytes msg = 3;
+}
+
+message BTCSignMessageResponse {
+  // 65 bytes (32 bytes big endian R, 32 bytes big endian S, 1 recid).
+  bytes signature = 1;
+}
+
 message BTCRequest {
   oneof request {
     BTCIsScriptConfigRegisteredRequest is_script_config_registered = 1;
@@ -184,6 +195,7 @@ message BTCRequest {
     BTCPrevTxInitRequest prevtx_init = 3;
     BTCPrevTxInputRequest prevtx_input = 4;
     BTCPrevTxOutputRequest prevtx_output = 5;
+    BTCSignMessageRequest sign_message = 6;
   }
 }
 
@@ -192,5 +204,6 @@ message BTCResponse {
     BTCSuccess success = 1;
     BTCIsScriptConfigRegisteredResponse is_script_config_registered = 2;
     BTCSignNextResponse sign_next = 3;
+    BTCSignMessageResponse sign_message = 4;
   }
 }

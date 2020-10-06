@@ -176,7 +176,22 @@ pub unsafe extern "C" fn rust_workflow_unlock_check_blocking() -> bool {
     block_on(unlock::unlock_keystore("Unlock device")).is_ok()
 }
 
+#[repr(C)]
+pub enum VerifyMessageResult {
+    VerifyMessageResultOk,
+    VerifyMessageResultInvalidInput,
+    VerifyMessageResultUserAbort,
+}
+
 #[no_mangle]
-pub unsafe extern "C" fn rust_workflow_verify_message(msg: crate::util::Bytes) -> bool {
-    block_on(verify_message::verify(msg.as_ref())).is_ok()
+pub unsafe extern "C" fn rust_workflow_verify_message(
+    msg: crate::util::Bytes,
+) -> VerifyMessageResult {
+    match block_on(verify_message::verify(msg.as_ref())) {
+        Ok(()) => VerifyMessageResult::VerifyMessageResultOk,
+        Err(verify_message::Error::InvalidInput) => {
+            VerifyMessageResult::VerifyMessageResultInvalidInput
+        }
+        Err(verify_message::Error::UserAbort) => VerifyMessageResult::VerifyMessageResultUserAbort,
+    }
 }

@@ -68,6 +68,7 @@ pub fn trinary_input_string_create_password<'a, F>(
     title: &str,
     special_chars: bool,
     confirm_callback: F,
+    cancel_callback: Option<ContinueCancelCb<'a>>,
 ) -> Component<'a>
 where
     // Callback must outlive component.
@@ -88,6 +89,19 @@ where
         callback(password_out);
     }
 
+    unsafe extern "C" fn c_cancel_callback(param: *mut c_void) {
+        let callback = param as *mut ContinueCancelCb;
+        (*callback)();
+    }
+
+    let (cancel_cb, cancel_cb_param) = match cancel_callback {
+        None => (None, core::ptr::null_mut()),
+        Some(cb) => (
+            Some(c_cancel_callback as _),
+            Box::into_raw(Box::new(cb)) as *mut c_void,
+        ),
+    };
+
     let component = unsafe {
         bitbox02_sys::trinary_input_string_create_password(
             crate::str_to_cstr_force!(title, MAX_LABEL_SIZE).as_ptr(),
@@ -95,14 +109,19 @@ where
             Some(c_confirm_callback::<F>),
             // passed to c_confirm_callback as `param`.
             Box::into_raw(Box::new(confirm_callback)) as *mut _,
-            None,
-            core::ptr::null_mut(),
+            cancel_cb,
+            cancel_cb_param,
         )
     };
     Component {
         component,
         is_pushed: false,
-        on_drop: None,
+        on_drop: Some(Box::new(move || unsafe {
+            // Drop all callbacks.
+            if !cancel_cb_param.is_null() {
+                drop(Box::from_raw(cancel_cb_param as *mut ContinueCancelCb));
+            }
+        })),
         _p: PhantomData,
     }
 }

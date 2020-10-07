@@ -18,6 +18,8 @@ use crate::workflow::status::status;
 use bitbox02::keystore;
 use bitbox02::password::Password;
 
+pub use password::CanCancel;
+
 /// Confirm the entered mnemonic passphrase with the user. Returns true if the user confirmed it,
 /// false if the user rejected it.
 async fn confirm_mnemonic_passphrase(passphrase: &str) -> bool {
@@ -51,6 +53,17 @@ async fn confirm_mnemonic_passphrase(passphrase: &str) -> bool {
     confirm::confirm(&params).await
 }
 
+pub enum UnlockError {
+    UserAbort,
+    IncorrectPassword,
+}
+
+impl core::convert::From<super::cancel::Error> for UnlockError {
+    fn from(_error: super::cancel::Error) -> Self {
+        UnlockError::UserAbort
+    }
+}
+
 /// Prompts the user for the device password, and returns `Ok` if the
 /// keystore was successfully unlocked, or `Err` if the password was
 /// incorrect. In that case, a status is displayed with how many
@@ -58,8 +71,11 @@ async fn confirm_mnemonic_passphrase(passphrase: &str) -> bool {
 ///
 /// If they keystore is already unlocked, this function does not
 /// change the state and just checks the password.
-pub async fn unlock_keystore(title: &str) -> Result<(), ()> {
-    let password = password::enter(title, false).await;
+pub async fn unlock_keystore(
+    title: &str,
+    can_cancel: password::CanCancel,
+) -> Result<(), UnlockError> {
+    let password = password::enter(title, false, can_cancel).await?;
 
     match keystore::unlock(&password) {
         Ok(()) => Ok(()),
@@ -69,7 +85,7 @@ pub async fn unlock_keystore(title: &str) -> Result<(), ()> {
                 n => format!("Wrong password\n{} tries remain", n),
             };
             status(&msg, false).await;
-            Err(())
+            Err(UnlockError::IncorrectPassword)
         }
         _ => panic!("keystore unlock failed"),
     }
@@ -85,7 +101,10 @@ pub async fn unlock_bip39() {
     if bitbox02::memory::is_mnemonic_passphrase_enabled() {
         // Loop until the user confirms.
         loop {
-            mnemonic_passphrase = password::enter("Optional passphrase", true).await;
+            mnemonic_passphrase =
+                password::enter("Optional passphrase", true, password::CanCancel::No)
+                    .await
+                    .expect("not cancelable");
 
             if confirm_mnemonic_passphrase(mnemonic_passphrase.as_str()).await {
                 break;
@@ -116,7 +135,10 @@ pub async fn unlock() -> Result<(), ()> {
     }
 
     // Loop unlock until the password is correct or the device resets.
-    while unlock_keystore("Enter password").await.is_err() {}
+    while unlock_keystore("Enter password", password::CanCancel::No)
+        .await
+        .is_err()
+    {}
 
     unlock_bip39().await;
     Ok(())

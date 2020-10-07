@@ -99,7 +99,7 @@ pub async fn create(
     let is_initialized = bitbox02::memory::is_initialized();
 
     if is_initialized {
-        unlock::unlock_keystore("Unlock device").await?;
+        unlock::unlock_keystore("Unlock device", unlock::CanCancel::Yes).await?;
     }
 
     let seed_birthdate = if !is_initialized {

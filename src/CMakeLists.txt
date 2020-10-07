@@ -338,11 +338,13 @@ add_custom_target(rust-bindgen
     --whitelist-function memory_get_noise_static_private_key
     --whitelist-function memory_check_noise_remote_static_pubkey
     --whitelist-function memory_add_noise_remote_static_pubkey
+    --whitelist-function memory_get_device_name
     --whitelist-function memory_set_device_name
     --whitelist-function memory_set_mnemonic_passphrase_enabled
     --whitelist-function memory_set_seed_birthdate
     --whitelist-var MEMORY_DEVICE_NAME_MAX_LEN
     --whitelist-function securechip_attestation_sign
+    --whitelist-function securechip_monotonic_increments_remaining
     --whitelist-function keystore_is_locked
     --whitelist-function keystore_unlock
     --whitelist-function keystore_unlock_bip39
@@ -354,6 +356,7 @@ add_custom_target(rust-bindgen
     --whitelist-function delay_us
     --rustified-enum keystore_error_t
     --whitelist-function util_format_datetime
+    --whitelist-function util_version_short
     --whitelist-function delay_ms
     --whitelist-function UG_PutString
     --whitelist-function UG_FontSelect

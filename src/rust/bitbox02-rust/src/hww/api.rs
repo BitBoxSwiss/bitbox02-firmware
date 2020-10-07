@@ -17,6 +17,7 @@ mod pb {
 }
 
 mod backup;
+mod device_info;
 mod error;
 mod reset;
 mod sdcard;
@@ -83,6 +84,7 @@ fn request_tag(request: &Request) -> u32 {
 /// the C commander.
 async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
     match request {
+        Request::DeviceInfo(_) => Some(device_info::process()),
         Request::DeviceName(ref request) => Some(set_device_name::process(request).await),
         Request::SetPassword(ref request) => Some(set_password::process(request).await),
         Request::Reset(_) => Some(reset::process().await),

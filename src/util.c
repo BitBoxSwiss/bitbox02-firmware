@@ -21,6 +21,7 @@
 
 #include "rust/rust.h"
 #include "util.h"
+#include <version.h>
 
 void util_zero(volatile void* dst, size_t len)
 {
@@ -89,4 +90,10 @@ void util_format_datetime(
     time_t local_timestamp = timestamp + timezone_offset;
     struct tm* local_time = localtime(&local_timestamp);
     strftime(out, out_size, date_only ? "%a %Y-%m-%d" : "%a %Y-%m-%d\n%H:%M:%S", local_time);
+}
+
+const char* util_version_short(void)
+{
+    static const char* version = DIGITAL_BITBOX_VERSION_SHORT;
+    return version;
 }

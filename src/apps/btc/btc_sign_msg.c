@@ -41,18 +41,18 @@ USE_RESULT app_btc_result_t app_btc_sign_msg(
     if (script_config->which_config != BTCScriptConfig_simple_type_tag) {
         return APP_BTC_ERR_INVALID_INPUT;
     }
+    BTCScriptConfig_SimpleType simple_type = script_config->config.simple_type;
+    if (simple_type != BTCScriptConfig_SimpleType_P2WPKH_P2SH &&
+        simple_type != BTCScriptConfig_SimpleType_P2WPKH) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
     if (msg_size > MAX_MESSAGE_SIZE) {
         return APP_BTC_ERR_INVALID_INPUT;
     }
     // Keypath and script_config are validated in app_btc_address_simple().
     char address[500] = {0};
     if (!app_btc_address_simple(
-            coin,
-            script_config->config.simple_type,
-            keypath,
-            keypath_len,
-            address,
-            sizeof(address))) {
+            coin, simple_type, keypath, keypath_len, address, sizeof(address))) {
         return APP_BTC_ERR_INVALID_INPUT;
     }
 

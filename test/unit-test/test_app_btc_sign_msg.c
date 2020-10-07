@@ -85,25 +85,110 @@ static void _test_btc_sign_msg(void** state)
         "\xa5\x88\xd1\x57\xce\x9b\x6a\x6b\x60\x6b\x3d\xc9\x0a\x12\x74\x7a\x9d\xef\x4d\x7c\xaa\x72"
         "\x8b\xcf\x0c\xb3\x0d\xd2\xdc\x93\xba\xdd\xed\x9e\x55\xbd\x1c\x5e\x80\xe9\x78\x8a\x01";
     assert_memory_equal(signature, expected_signature, sizeof(expected_signature));
+}
 
-    // Keypath does not match script config.
-    keypath[0] = 84 + BIP32_INITIAL_HARDENED_CHILD;
-    assert_int_equal(
-        APP_BTC_ERR_INVALID_INPUT,
-        app_btc_sign_msg(
-            BTCCoin_BTC,
-            &script_config,
-            keypath,
-            sizeof(keypath) / sizeof(uint32_t),
-            msg,
-            sizeof(msg) - 1,
-            signature));
+static void _test_btc_sign_msg_invalid(void** state)
+{
+    const BTCScriptConfig script_config_p2wpkh_p2sh = {
+        .which_config = BTCScriptConfig_simple_type_tag,
+        .config =
+            {
+                .simple_type = BTCScriptConfig_SimpleType_P2WPKH_P2SH,
+            },
+    };
+    const uint32_t valid_keypath[] = {
+        49 + BIP32_INITIAL_HARDENED_CHILD,
+        0 + BIP32_INITIAL_HARDENED_CHILD,
+        0 + BIP32_INITIAL_HARDENED_CHILD,
+        0,
+        0,
+    };
+    const uint8_t msg[1025] = {0};
+    uint8_t signature[65] = {0};
+
+    { // Keypath does not match script config.
+        const uint32_t keypath[] = {
+            84 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            0,
+        };
+
+        assert_int_equal(
+            APP_BTC_ERR_INVALID_INPUT,
+            app_btc_sign_msg(
+                BTCCoin_BTC,
+                &script_config_p2wpkh_p2sh,
+                keypath,
+                sizeof(keypath) / sizeof(uint32_t),
+                msg,
+                5,
+                signature));
+    }
+
+    { // Invalid coin
+        assert_int_equal(
+            APP_BTC_ERR_INVALID_INPUT,
+            app_btc_sign_msg(
+                BTCCoin_TBTC,
+                &script_config_p2wpkh_p2sh,
+                valid_keypath,
+                sizeof(valid_keypath) / sizeof(uint32_t),
+                msg,
+                5,
+                signature));
+    }
+    { // Invalid script type
+        const BTCScriptConfig invalid = {
+            .which_config = BTCScriptConfig_simple_type_tag,
+            .config = {.simple_type = 2},
+        };
+        assert_int_equal(
+            APP_BTC_ERR_INVALID_INPUT,
+            app_btc_sign_msg(
+                BTCCoin_BTC,
+                &invalid,
+                valid_keypath,
+                sizeof(valid_keypath) / sizeof(uint32_t),
+                msg,
+                5,
+                signature));
+    }
+    { // Multisig not supported
+        const BTCScriptConfig invalid = {
+            .which_config = BTCScriptConfig_multisig_tag,
+        };
+        assert_int_equal(
+            APP_BTC_ERR_INVALID_INPUT,
+            app_btc_sign_msg(
+                BTCCoin_BTC,
+                &invalid,
+                valid_keypath,
+                sizeof(valid_keypath) / sizeof(uint32_t),
+                msg,
+                5,
+                signature));
+    }
+    { // Message too big
+        assert_int_equal(
+            APP_BTC_ERR_INVALID_INPUT,
+            app_btc_sign_msg(
+                BTCCoin_BTC,
+                &script_config_p2wpkh_p2sh,
+                valid_keypath,
+                sizeof(valid_keypath) / sizeof(uint32_t),
+                msg,
+                sizeof(msg),
+                signature));
+    }
 }
 
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_btc_sign_msg),
+        cmocka_unit_test(_test_btc_sign_msg_invalid),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

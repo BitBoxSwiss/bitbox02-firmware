@@ -66,6 +66,8 @@ static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse
         case BTCPubRequest_XPubType_UPUB:
         case BTCPubRequest_XPubType_CAPITAL_VPUB:
         case BTCPubRequest_XPubType_CAPITAL_ZPUB:
+        case BTCPubRequest_XPubType_CAPITAL_YPUB:
+        case BTCPubRequest_XPubType_CAPITAL_UPUB:
             n_written = snprintf(
                 title,
                 sizeof(title),

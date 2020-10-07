@@ -206,6 +206,15 @@ class LibraryVersionOutdatedException(Exception):
         )
 
 
+class UnsupportedException(Exception):
+    def __init__(self, need_atleast: semver.VersionInfo):
+        super().__init__(
+            "This feature is supported from firmware version {}. Please upgrade your firmware.".format(
+                need_atleast
+            )
+        )
+
+
 class BitBoxNoiseConfig:
     """ Stores Functions required setup a noise connection """
 
@@ -700,6 +709,13 @@ class BitBoxCommonAPI:
         elif self.edition == BitBox02Edition.BTCONLY:
             if self.version >= MIN_UNSUPPORTED_BITBOX02_BTCONLY_FIRMWARE_VERSION:
                 raise LibraryVersionOutdatedException(self.version)
+
+    def _require_atleast(self, version: semver.VersionInfo) -> None:
+        """
+        Raises UnsupportedException if the current firmware version is not at least the required version.
+        """
+        if self.version < version:
+            raise UnsupportedException(version)
 
     def close(self) -> None:
         self._bitbox_protocol.close()

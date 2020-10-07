@@ -97,10 +97,10 @@ pub mod util;
 // ug_put_string displays a debug message on the screen for 3 sec.
 pub fn ug_put_string(x: i16, y: i16, input: &str, inverted: bool) {
     match str_to_cstr!(input, 128) {
-       Ok(buf) => unsafe {
-           bitbox02_sys::UG_PutString(x, y, buf.as_ptr() as *const _, inverted);
-       },
-       Err(msg) => screen_print_debug(msg, 3000),
+        Ok(buf) => unsafe {
+            bitbox02_sys::UG_PutString(x, y, buf.as_ptr() as *const _, inverted);
+        },
+        Err(msg) => screen_print_debug(msg, 3000),
     }
 }
 

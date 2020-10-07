@@ -59,8 +59,7 @@ async fn confirm_mnemonic_passphrase(passphrase: &str) -> bool {
 /// If they keystore is already unlocked, this function does not
 /// change the state and just checks the password.
 pub async fn unlock_keystore(title: &str) -> Result<(), ()> {
-    let mut password = Password::new();
-    password::enter(title, false, &mut password).await;
+    let password = password::enter(title, false).await;
 
     match keystore::unlock(&password) {
         Ok(()) => Ok(()),
@@ -86,7 +85,7 @@ pub async fn unlock_bip39() {
     if bitbox02::memory::is_mnemonic_passphrase_enabled() {
         // Loop until the user confirms.
         loop {
-            password::enter("Optional passphrase", true, &mut mnemonic_passphrase).await;
+            mnemonic_passphrase = password::enter("Optional passphrase", true).await;
 
             if confirm_mnemonic_passphrase(mnemonic_passphrase.as_str()).await {
                 break;

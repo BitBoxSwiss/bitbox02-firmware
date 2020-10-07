@@ -23,7 +23,7 @@ use core::cell::RefCell;
 /// enter("Enter password", true, &mut pw).await;
 /// // use pw.
 /// ```
-pub async fn enter(title: &str, special_chars: bool, password_out: &mut Password) {
+pub async fn enter(title: &str, special_chars: bool) -> Password {
     let result = RefCell::new(None);
     let mut component =
         bitbox02::ui::trinary_input_string_create_password(title, special_chars, |pw| {
@@ -31,29 +31,25 @@ pub async fn enter(title: &str, special_chars: bool, password_out: &mut Password
         });
     component.screen_stack_push();
     option(&result).await;
-    let result: &Option<Password> = &result.borrow();
-    let result: Option<&Password> = result.as_ref();
-    let result: &Password = result.unwrap();
-    password_out.copy_from(&result);
+    drop(component);
+    let result: Option<Password> = result.into_inner();
+    result.unwrap()
 }
 
 /// Prompt the user to enter a password twice. A warning is displayed
-/// if the password has fewer than 4 chars. Returns false if the two
+/// if the password has fewer than 4 chars. Returns `Err` if the two
 /// passwords do not match, or if the user aborts at the warning.
 ///
 /// Example:
 /// ```no_run
-/// let mut pw = Password::new();
-/// enter_twice(&mut pw).await;
+/// let pw = enter_twice().await.unwrap();
 /// // use pw.
-pub async fn enter_twice(password_out: &mut Password) -> bool {
-    let mut password = Password::new();
-    let mut password_repeat = Password::new();
-    enter("Set password", false, &mut password).await;
-    enter("Repeat password", false, &mut password_repeat).await;
+pub async fn enter_twice() -> Result<Password, ()> {
+    let password = enter("Set password", false).await;
+    let password_repeat = enter("Repeat password", false).await;
     if password.as_str() != password_repeat.as_str() {
         status::status("Passwords\ndo not match", false).await;
-        return false;
+        return Err(());
     }
     if password.as_str().len() < 4 {
         let params = confirm::Params {
@@ -64,10 +60,9 @@ pub async fn enter_twice(password_out: &mut Password) -> bool {
         };
 
         if !confirm::confirm(&params).await {
-            return false;
+            return Err(());
         }
     }
     status::status("Success", true).await;
-    password_out.copy_from(&password);
-    true
+    Ok(password)
 }

@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+extern crate alloc;
+use alloc::boxed::Box;
+
 /// C-style including null terminator, as it is used in C only so far.
 /// 150 corresponds to SET_PASSWORD_MAX_PASSWORD_LENGTH.
 /// Does *not* implement Copy, so that we can have a Drop to zero the contents.
 // TODO: use a reusable zero-on-drop buffer type
-pub struct Password([u8; 150]);
+pub struct Password(Box<[u8; 150]>);
 
 impl Password {
     /// Makes a password buffer filled with 0.
     pub fn new() -> Password {
-        Password([0; 150])
+        Password(Box::new([0; 150]))
     }
 
     /// Copies the password bytes from `source` without additional allocations.
@@ -31,7 +34,7 @@ impl Password {
 
     /// Returns the underlying C string buffer (null terminated), to be used in C function calls.
     pub fn as_cstr(&self) -> *const util::c_types::c_char {
-        &self.0 as *const _
+        &*self.0 as *const _
     }
 
     /// Returns the buffer size (including null terminator).

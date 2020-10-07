@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub mod cancel;
 pub mod confirm;
-pub mod menu;
+pub mod mnemonic;
 pub mod pairing;
 pub mod password;
 pub mod sdcard;

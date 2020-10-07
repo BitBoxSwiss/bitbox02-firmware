@@ -23,6 +23,7 @@ mod sdcard;
 mod set_device_name;
 mod set_mnemonic_passphrase_enabled;
 mod set_password;
+mod show_mnemonic;
 
 use alloc::vec::Vec;
 
@@ -94,6 +95,7 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
         }))),
         Request::CheckBackup(ref request) => Some(backup::check(request).await),
         Request::CreateBackup(ref request) => Some(backup::create(request).await),
+        Request::ShowMnemonic(_) => Some(show_mnemonic::process().await),
         _ => None,
     }
 }

@@ -130,9 +130,7 @@ endif()
 set(BB02_TEST_LIST
   all_variants_menu
   backup
-  bip39
   button_tap
-  confirm_bip39
   entry_screen
   scroll_menu
   scroll_menu_2

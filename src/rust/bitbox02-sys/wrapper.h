@@ -42,6 +42,7 @@
 #include <ui/screen_stack.h>
 #include <ui/ugui/ugui.h>
 #include <util.h>
+#include <wally_bip39.h>
 #include <wally_crypto.h>
 #include <workflow/confirm.h>
 

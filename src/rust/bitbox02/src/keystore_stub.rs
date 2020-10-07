@@ -19,6 +19,8 @@ use alloc::string::String;
 
 use crate::password::Password;
 
+pub const BIP39_WORDLIST_LEN: u16 = bitbox02_sys::BIP39_WORDLIST_LEN as u16;
+
 pub fn is_locked() -> bool {
     panic!("not implemented")
 }

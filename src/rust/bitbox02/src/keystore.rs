@@ -18,6 +18,8 @@ use alloc::string::String;
 use crate::password::Password;
 use bitbox02_sys::keystore_error_t;
 
+pub const BIP39_WORDLIST_LEN: u16 = bitbox02_sys::BIP39_WORDLIST_LEN as u16;
+
 pub fn is_locked() -> bool {
     unsafe { bitbox02_sys::keystore_is_locked() }
 }
@@ -78,6 +80,7 @@ pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
     }
 }
 
+/// `idx` must be smaller than BIP39_WORDLIST_LEN.
 pub fn get_bip39_word(idx: u16) -> Result<&'static str, ()> {
     let mut word: *mut u8 = core::ptr::null_mut();
     match unsafe { bitbox02_sys::keystore_get_bip39_word(idx, &mut word) } {

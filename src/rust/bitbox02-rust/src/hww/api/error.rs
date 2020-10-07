@@ -38,6 +38,12 @@ impl core::convert::From<bitbox02::memory::Error> for Error {
     }
 }
 
+impl core::convert::From<crate::workflow::cancel::Error> for Error {
+    fn from(_error: crate::workflow::cancel::Error) -> Self {
+        Error::UserAbort
+    }
+}
+
 use pb::response::Response;
 
 /// Creates an Error response. Corresponds to commander.c:_report_error().

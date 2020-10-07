@@ -22,6 +22,8 @@ from datetime import datetime
 from typing import Optional, List, Dict, Tuple, Any, Generator, Union, Sequence
 from typing_extensions import TypedDict
 
+import semver
+
 from bitbox02.communication import (
     BitBoxCommonAPI,
     Bitbox02Exception,
@@ -506,6 +508,8 @@ class BitBox02(BitBoxCommonAPI):
         the recid, compatible with Electrum.
         """
         # pylint: disable=no-member,line-too-long
+
+        self._require_atleast(semver.VersionInfo(9, 2, 0))
 
         request = btc.BTCRequest()
         request.sign_message.CopyFrom(

@@ -36,10 +36,6 @@
 #include <util.h>
 #include <version.h>
 
-#ifdef TESTING
-#include <test_commander.h>
-#endif
-
 #include <workflow/reboot.h>
 #include <workflow/restore.h>
 #include <workflow/restore_from_mnemonic.h>

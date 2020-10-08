@@ -23,7 +23,6 @@
 #if APP_ETH == 1
 #include "commander/commander_eth.h"
 #endif
-#include "commander/commander_states.h"
 #if PRODUCT_BITBOX_BASE == 1
 #include "rust/rust.h"
 #endif
@@ -31,18 +30,11 @@
 #include <flags.h>
 #include <hardfault.h>
 #include <keystore.h>
-#include <memory/memory.h>
 #include <random.h>
 #include <screen.h>
 #include <sd.h>
 #include <util.h>
 #include <version.h>
-
-#ifndef TESTING
-#include <securechip/securechip.h>
-#else
-#include <test_commander.h>
-#endif
 
 #include <workflow/reboot.h>
 #include <workflow/restore.h>
@@ -98,23 +90,6 @@ static void _api_process_random(RandomNumberResponse* response)
     workflow_confirm_dismiss("Random", number_hex_formatted);
 
     memcpy(&response->number, number, sizeof(number));
-}
-
-static commander_error_t _api_get_info(DeviceInfoResponse* device_info)
-{
-    char get_name[MEMORY_DEVICE_NAME_MAX_LEN];
-    memory_get_device_name(get_name);
-    snprintf(device_info->name, sizeof(device_info->name), "%s", get_name);
-    snprintf(
-        device_info->version, sizeof(device_info->version), "%s", DIGITAL_BITBOX_VERSION_SHORT);
-    device_info->initialized = commander_states_state() == COMMANDER_STATES_INITIALIZED;
-    device_info->mnemonic_passphrase_enabled = memory_is_mnemonic_passphrase_enabled();
-#ifndef TESTING
-    if (!securechip_monotonic_increments_remaining(&device_info->monotonic_increments_remaining)) {
-        return COMMANDER_ERR_GENERIC;
-    }
-#endif
-    return COMMANDER_OK;
 }
 
 static commander_error_t _api_list_backups(ListBackupsResponse* response)
@@ -183,9 +158,6 @@ static commander_error_t _api_process(const Request* request, Response* response
         response->which_response = Response_random_number_tag;
         _api_process_random(&(response->response.random_number));
         return COMMANDER_OK;
-    case Request_device_info_tag:
-        response->which_response = Response_device_info_tag;
-        return _api_get_info(&(response->response.device_info));
 #if APP_BTC == 1 || APP_LTC == 1
     case Request_btc_pub_tag:
         response->which_response = Response_pub_tag;

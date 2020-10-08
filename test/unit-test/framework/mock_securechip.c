@@ -65,3 +65,8 @@ bool securechip_attestation_sign(const uint8_t* msg, uint8_t* signature_out)
 {
     return false;
 }
+
+bool securechip_monotonic_increments_remaining(uint32_t* remaining_out)
+{
+    return false;
+}

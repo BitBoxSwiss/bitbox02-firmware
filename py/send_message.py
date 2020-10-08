@@ -557,7 +557,11 @@ class SendMessage:
 
     def _show_mnemnoic_seed(self) -> None:
         print("Your BitBox02 will now show the mnemonic seed phrase")
-        print(self._device.show_mnemonic())
+        try:
+            self._device.show_mnemonic()
+            print("Success")
+        except UserAbortException:
+            print("Aborted by user")
 
     def _create_backup(self) -> None:
         if self._device.check_backup(silent=True) is not None:

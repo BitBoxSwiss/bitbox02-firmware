@@ -227,21 +227,15 @@ class BitBox02(BitBoxCommonAPI):
             raise
         return response.check_backup.id
 
-    def show_mnemonic(self) -> bool:
+    def show_mnemonic(self) -> None:
         """
         Returns True if mnemonic was successfully shown and confirmed.
-        Returns False otherwise.
+        Raises a Bitbox02Exception on failure.
         """
         # pylint: disable=no-member
         request = hww.Request()
         request.show_mnemonic.CopyFrom(mnemonic.ShowMnemonicRequest())
-        try:
-            self._msg_query(request, expected_response="success")
-        except Bitbox02Exception as err:
-            if err.code == ERR_GENERIC:
-                return False
-            raise
-        return True
+        self._msg_query(request, expected_response="success")
 
     def _btc_msg_query(
         self, btc_request: btc.BTCRequest, expected_response: Optional[str] = None

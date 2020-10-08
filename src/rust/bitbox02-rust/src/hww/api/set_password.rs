@@ -16,7 +16,6 @@ use super::pb;
 use super::Error;
 
 use crate::workflow::password;
-use bitbox02::password::Password;
 use core::convert::TryInto;
 use pb::response::Response;
 
@@ -32,10 +31,7 @@ pub async fn process(
         Err(_) => return Err(Error::InvalidInput),
         Ok(e) => e,
     };
-    let mut password = Password::new();
-    if !password::enter_twice(&mut password).await {
-        return Err(Error::Generic);
-    }
+    let password = password::enter_twice().await?;
     if !bitbox02::keystore::create_and_store_seed(&password, &entropy32) {
         return Err(Error::Generic);
     }

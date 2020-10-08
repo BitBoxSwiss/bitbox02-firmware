@@ -20,7 +20,6 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::string::String;
-use bitbox02::password::Password;
 use bitbox02_rust::bb02_async::{block_on, spin, Task};
 use bitbox02_rust::workflow::{confirm, password, status, unlock, verify_message};
 use core::fmt::Write;
@@ -143,10 +142,13 @@ pub unsafe extern "C" fn rust_workflow_status_unlock_bip39_blocking() {
 pub unsafe extern "C" fn rust_workflow_password_enter_twice_blocking(
     mut password_out: crate::util::CStrMut,
 ) -> bool {
-    let mut password = Password::new();
-    let result = block_on(password::enter_twice(&mut password));
-    password_out.write_str(password.as_str()).unwrap();
-    result
+    match block_on(password::enter_twice()) {
+        Ok(password) => {
+            password_out.write_str(password.as_str()).unwrap();
+            true
+        }
+        Err(()) => false,
+    }
 }
 
 #[no_mangle]

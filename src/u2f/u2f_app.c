@@ -7,6 +7,7 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <wally_bip39.h>
 
 #define APPID_BOGUS_CHROMIUM "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 #define APPID_BOGUS_FIREFOX "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
@@ -15,6 +16,22 @@ typedef struct {
     uint8_t app_id[32];
     const char* name;
 } app_t;
+
+// shorten (and split as array) menonic for displaying hashes in a more recognizable way, at the
+// cost of less entropy, output configurable for other use return success
+static bool _short_mnemonic(char* mnemonic, const char** wordlist_out, uint8_t num_words)
+{
+    char* next_word = strtok(mnemonic, " ");
+    int i = 0;
+    // stop when there are no words or the needed length has been reached
+    while (next_word != NULL && i < num_words) {
+        wordlist_out[i] = next_word;
+        next_word = strtok(NULL, " ");
+        i++;
+    }
+    // if menmonic wasnt long enough, return false
+    return (i == num_words);
+}
 
 static const app_t _apps[] = {
     {
@@ -138,6 +155,27 @@ static void _app_string(const uint8_t* app_id, char* out, size_t out_len)
             snprintf(out, out_len, "%s", app->name);
             return;
         }
+    }
+    char* mnemonic = NULL;
+    // fallback to hex if something goes wrong
+    if (bip39_mnemonic_from_bytes(NULL, app_id, 32, &mnemonic) == WALLY_OK) {
+        const char* words[4];
+        // second fallback, if we get less than 4 words (hardcoded in case the constant gets changed
+        // someday), go back to hex
+        if (_short_mnemonic(mnemonic, words, 4)) {
+            snprintf(
+                out,
+                out_len,
+                "Unknown site:\n%s %s\n%s %s",
+                words[0],
+                words[1],
+                words[2],
+                words[3]);
+            free(mnemonic);
+            return;
+        }
+        // free regardless of whether or not enough words have been created
+        free(mnemonic);
     }
     char appid_hex[32 * 2 + 1] = {0};
     util_uint8_to_hex(app_id, 32, appid_hex);

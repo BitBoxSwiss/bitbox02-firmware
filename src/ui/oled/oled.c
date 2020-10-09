@@ -305,3 +305,8 @@ void oled_off(void)
     gpio_set_pin_level(PIN_OLED_ON, 0);
     _enabled = false;
 }
+
+void oled_set_brightness(uint8_t value)
+{
+    _write_cmd_with_param(OLED_CMD_SET_CONTRAST_CONTROL_FOR_BANK0, value);
+}

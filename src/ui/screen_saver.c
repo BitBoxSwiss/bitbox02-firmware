@@ -16,6 +16,9 @@
 
 #include <hardfault.h>
 #include <ui/components/screensaver.h>
+#ifndef TESTING
+#include <ui/oled/oled.h>
+#endif
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -48,16 +51,24 @@ void screen_saver_process(void)
         _counter++;
         if (_counter > ACTIVE_AFTER) {
             _is_active = true;
+#ifndef TESTING
+            oled_set_brightness(0x00);
+#endif
         }
     }
 }
 
 void screen_saver_reset(void)
 {
-    component_t* component = screen_saver_get();
-    if (component != NULL) {
-        screensaver_reset(component);
+    if (_is_active) {
+        component_t* component = screen_saver_get();
+        if (component != NULL) {
+            screensaver_reset(component);
+        }
+#ifndef TESTING
+        oled_set_brightness(0xFF);
+#endif
+        _is_active = false;
     }
-    _is_active = false;
     _counter = 0;
 }

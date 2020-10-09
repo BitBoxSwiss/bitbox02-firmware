@@ -16,6 +16,9 @@ mod pb {
     include!("./api/shiftcrypto.bitbox02.rs");
 }
 
+#[cfg(feature = "app-ethereum")]
+mod ethereum;
+
 mod backup;
 mod device_info;
 mod error;
@@ -98,6 +101,14 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
         Request::CheckBackup(ref request) => Some(backup::check(request).await),
         Request::CreateBackup(ref request) => Some(backup::create(request).await),
         Request::ShowMnemonic(_) => Some(show_mnemonic::process().await),
+
+        #[cfg(feature = "app-ethereum")]
+        Request::Eth(pb::EthRequest {
+            request: Some(ref request),
+        }) => ethereum::process(request).await,
+        #[cfg(not(feature = "app-ethereum"))]
+        Request::Eth(_) => Some(Err(Error::Disabled)),
+
         _ => None,
     }
 }

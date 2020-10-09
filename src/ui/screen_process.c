@@ -18,6 +18,7 @@
 #include <touch/gestures.h>
 #include <ui/components/waiting.h>
 #include <ui/screen_process.h>
+#include <ui/screen_saver.h>
 #include <ui/ugui/ugui.h>
 
 static uint8_t screen_frame_cnt = 0;
@@ -43,12 +44,13 @@ static component_t* _get_waiting_screen(void)
     return waiting_screen;
 }
 
-/*
- * Select which activity we should draw next
- * (or fallback to the idle screen).
- */
-static component_t* _get_ui_top_component(void)
+component_t* screen_process_get_top_component(void)
 {
+    component_t* saver = screen_saver_get();
+    if (saver != NULL) {
+        return saver;
+    }
+
     component_t* result = ui_screen_stack_top();
     if (!result) {
         return _get_waiting_screen();
@@ -84,7 +86,9 @@ static bool _screen_has_changed(const component_t* current_component)
 
 void screen_process(void)
 {
-    component_t* component = _get_ui_top_component();
+    screen_saver_process();
+
+    component_t* component = screen_process_get_top_component();
     _screen_draw(component);
 
     /*

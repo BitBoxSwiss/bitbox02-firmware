@@ -98,6 +98,7 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/monogram_5X9.c
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/password_9X9.c
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/password_11X12.c
+    ${CMAKE_SOURCE_DIR}/src/ui/screen_saver.c
     ${CMAKE_SOURCE_DIR}/src/ui/screen_stack.c
     ${CMAKE_SOURCE_DIR}/src/ui/screen_process.c
     ${CMAKE_SOURCE_DIR}/src/ui/event_handler.c
@@ -106,6 +107,7 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/components/trinary_input_char.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/trinary_input_string.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/waiting.c
+    ${CMAKE_SOURCE_DIR}/src/ui/components/screensaver.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/entry_screen.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/knight_rider.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/right_arrow.c

@@ -614,11 +614,12 @@ class SendMessage:
 
         print("Ethereum xpub: {}".format(xpub))
 
-    def _display_eth_address(self) -> None:
+    def _display_eth_address(self, contract_address: bytes = b"") -> None:
         def address(display: bool = False) -> str:
             return self._device.eth_pub(
                 keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
                 output_type=bitbox02.eth.ETHPubRequest.ADDRESS,  # pylint: disable=no-member
+                contract_address=contract_address,
                 display=display,
             )
 
@@ -737,6 +738,12 @@ class SendMessage:
             ("Toggle BIP39 Mnemonic Passphrase", self._toggle_mnemonic_passphrase),
             ("Retrieve Ethereum xpub", self._get_eth_xpub),
             ("Retrieve Ethereum address", self._display_eth_address),
+            (
+                "Retrieve ERC20 address with long token name",
+                lambda: self._display_eth_address(
+                    contract_address=b"\xba\x11\xd0\x0c\x5f\x74\x25\x5f\x56\xa5\xe3\x66\xf4\xf7\x7f\x5a\x18\x6d\x7f\x55"
+                ),
+            ),
             ("Sign Ethereum tx", self._sign_eth_tx),
             ("Sign Ethereum Message", self._sign_eth_message),
             ("Show Electrum wallet encryption key", self._get_electrum_encryption_key),

@@ -23,6 +23,9 @@
 typedef struct {
     // The confirmation title of the screen.
     const char* title;
+    // If true, will automatically break the title into two lines at a whitespace position if the
+    // title is too long to fit on one line.
+    bool title_autowrap;
     // The confirmation body of the screen.
     const char* body;
     const UG_FONT* font;

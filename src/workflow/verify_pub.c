@@ -20,15 +20,9 @@
 
 bool workflow_verify_pub(const char* title, const char* pub)
 {
-    const int buf_len = 128;
-    char buf[buf_len];
-    if (strlen(title) + 1 < buf_len) {
-        memset(buf, 0, buf_len);
-        UG_WrapTitleString(title, buf, 55);
-        title = buf;
-    }
     const confirm_params_t params = {
         .title = title,
+        .title_autowrap = true,
         .body = pub,
         .scrollable = true,
     };

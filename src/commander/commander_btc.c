@@ -106,27 +106,7 @@ static commander_error_t _btc_pub_address_simple(
     }
     if (request->display) {
         const char* coin = btc_common_coin_name(request->coin);
-        char title[100] = {0};
-        int n_written;
-        switch (request->output.script_config.config.simple_type) {
-        case BTCScriptConfig_SimpleType_P2WPKH_P2SH:
-            n_written = snprintf(title, sizeof(title), "%s", coin);
-            break;
-        case BTCScriptConfig_SimpleType_P2WPKH:
-            n_written = snprintf(title, sizeof(title), "%s bech32", coin);
-            break;
-        default:
-            return COMMANDER_ERR_GENERIC;
-        }
-        if (n_written < 0 || n_written >= (int)sizeof(title)) {
-            /*
-             * The message was truncated, or an error occurred.
-             * We don't want to display it: there could
-             * be some possibility for deceiving the user.
-             */
-            return COMMANDER_ERR_GENERIC;
-        }
-        if (!workflow_verify_pub(title, response->pub)) {
+        if (!workflow_verify_pub(coin, response->pub)) {
             return COMMANDER_ERR_USER_ABORT;
         }
     }

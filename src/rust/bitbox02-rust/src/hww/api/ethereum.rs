@@ -17,6 +17,8 @@ compile_error!(
     "Ethereum code is being compiled even though the app-ethereum feature is not enabled"
 );
 
+mod pubrequest;
+
 use super::pb;
 use super::Error;
 
@@ -27,6 +29,9 @@ use pb::eth_response::Response;
 ///
 /// Returns `None` if the call was not handled by Rust, in which case it should be handled by
 /// the C commander.
-pub async fn process_api(_request: &Request) -> Option<Result<Response, Error>> {
-    None
+pub async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
+    match request {
+        Request::Pub(ref request) => Some(pubrequest::process(request).await),
+        _ => None,
+    }
 }

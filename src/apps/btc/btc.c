@@ -25,7 +25,6 @@
 #include <rust/rust.h>
 #include <workflow/confirm.h>
 #include <workflow/status.h>
-#include <workflow/verify_pub.h>
 
 #define ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE (4541509 + BIP32_INITIAL_HARDENED_CHILD)
 #define ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO (1112098098 + BIP32_INITIAL_HARDENED_CHILD)
@@ -159,7 +158,12 @@ app_btc_result_t app_btc_address_multisig(
     }
 
     if (display) {
-        if (!workflow_verify_pub(title, out)) {
+        const confirm_params_t confirm_params = {
+            .title = title,
+            .body = out,
+            .scrollable = true,
+        };
+        if (!workflow_confirm_blocking(&confirm_params)) {
             return APP_BTC_ERR_USER_ABORT;
         }
     }

@@ -20,7 +20,7 @@
 #include "util.h"
 #include <firmware_main_loop.h>
 #include <string.h>
-#include <workflow/verify_pub.h>
+#include <workflow/confirm.h>
 
 #include "../../src/apps/eth/eth_params.c"
 
@@ -45,12 +45,24 @@ int main(void)
     qtouch_init();
     const char* addr = "cafebabecafebabecafebabecafebabe";
     for (size_t i = 0; i < sizeof(data) / sizeof(*data); ++i) {
-        if (!workflow_verify_pub(data[i], addr)) {
+        const confirm_params_t params = {
+            .title = data[i],
+            .title_autowrap = true,
+            .body = addr,
+            .scrollable = true,
+        };
+        if (!workflow_confirm_blocking(&params)) {
         }
     }
 
     for (size_t i = 0; i < sizeof(_ethereum_erc20_params) / sizeof(*_ethereum_erc20_params); ++i) {
-        if (!workflow_verify_pub(_ethereum_erc20_params[i].name, addr)) {
+        const confirm_params_t params = {
+            .title = _ethereum_erc20_params[i].name,
+            .title_autowrap = true,
+            .body = addr,
+            .scrollable = true,
+        };
+        if (!workflow_confirm_blocking(&params)) {
         }
     }
 }

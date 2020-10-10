@@ -21,7 +21,7 @@
 #include <apps/btc/btc_common.h>
 #include <apps/btc/btc_sign.h>
 #include <apps/btc/btc_sign_msg.h>
-#include <workflow/verify_pub.h>
+#include <workflow/confirm.h>
 
 #include <wally_bip32.h> // for BIP32_INITIAL_HARDENED_CHILD
 
@@ -86,7 +86,13 @@ static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse
         default:
             return COMMANDER_ERR_GENERIC;
         }
-        if (!workflow_verify_pub(title, response->pub)) {
+
+        const confirm_params_t params = {
+            .title = title,
+            .body = response->pub,
+            .scrollable = true,
+        };
+        if (!workflow_confirm_blocking(&params)) {
             return COMMANDER_ERR_USER_ABORT;
         }
     }
@@ -107,8 +113,12 @@ static commander_error_t _btc_pub_address_simple(
         return COMMANDER_ERR_GENERIC;
     }
     if (request->display) {
-        const char* coin = btc_common_coin_name(request->coin);
-        if (!workflow_verify_pub(coin, response->pub)) {
+        const confirm_params_t params = {
+            .title = btc_common_coin_name(request->coin),
+            .body = response->pub,
+            .scrollable = true,
+        };
+        if (!workflow_confirm_blocking(&params)) {
             return COMMANDER_ERR_USER_ABORT;
         }
     }

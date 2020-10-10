@@ -52,7 +52,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c
   ${CMAKE_SOURCE_DIR}/src/workflow/trinary_input.c
   ${CMAKE_SOURCE_DIR}/src/workflow/unlock_bip39.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/verify_pub.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_total.c
   ${CMAKE_SOURCE_DIR}/src/workflow/workflow.c

@@ -20,9 +20,9 @@
 #include "label.h"
 
 #include <hardfault.h>
-#include <ui/ugui/ugui.h>
-#include <ui/fonts/arial_fonts.h>
 #include <screen.h>
+#include <ui/fonts/arial_fonts.h>
+#include <ui/ugui/ugui.h>
 
 #include <string.h>
 

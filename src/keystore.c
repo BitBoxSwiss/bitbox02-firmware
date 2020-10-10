@@ -26,9 +26,6 @@
 #include "util.h"
 
 #include <secp256k1_recovery.h>
-#include <wally_bip32.h>
-#include <wally_bip39.h>
-#include <wally_crypto.h>
 
 // This number of KDF iterations on the 2nd kdf slot when stretching the device
 // password.
@@ -539,12 +536,10 @@ static bool _compressed_to_uncompressed(const uint8_t* pubkey_bytes, uint8_t* un
     return true;
 }
 
-bool keystore_secp256k1_pubkey(
-    keystore_secp256k1_pubkey_format format,
+bool keystore_secp256k1_pubkey_hash160(
     const uint32_t* keypath,
     size_t keypath_len,
-    uint8_t* pubkey_out,
-    size_t pubkey_out_len)
+    uint8_t* hash160_out)
 {
     if (keystore_is_locked()) {
         return false;
@@ -553,25 +548,23 @@ bool keystore_secp256k1_pubkey(
     if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
         return false;
     }
-    switch (format) {
-    case KEYSTORE_SECP256K1_PUBKEY_HASH160:
-        if (pubkey_out_len != sizeof(xprv.hash160)) {
-            return false;
-        }
-        memcpy(pubkey_out, xprv.hash160, sizeof(xprv.hash160));
-        break;
-    case KEYSTORE_SECP256K1_PUBKEY_UNCOMPRESSED:
-        if (pubkey_out_len != EC_PUBLIC_KEY_UNCOMPRESSED_LEN) {
-            return false;
-        }
-        if (!_compressed_to_uncompressed(xprv.pub_key, pubkey_out)) {
-            return false;
-        }
-        break;
-    default:
+    memcpy(hash160_out, xprv.hash160, sizeof(xprv.hash160));
+    return true;
+}
+
+bool keystore_secp256k1_pubkey_uncompressed(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint8_t* pubkey_out)
+{
+    if (keystore_is_locked()) {
         return false;
     }
-    return true;
+    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
+    if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
+        return false;
+    }
+    return _compressed_to_uncompressed(xprv.pub_key, pubkey_out);
 }
 
 bool keystore_secp256k1_sign(

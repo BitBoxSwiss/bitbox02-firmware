@@ -43,12 +43,10 @@ VerifyMessageResult __wrap_rust_workflow_verify_message(Bytes msg)
     return VerifyMessageResultOk;
 }
 
-bool __wrap_keystore_secp256k1_pubkey(
-    keystore_secp256k1_pubkey_format format,
+bool __wrap_keystore_secp256k1_pubkey_uncompressed(
     const uint32_t* keypath,
     size_t keypath_len,
-    uint8_t* pubkey_out,
-    size_t pubkey_out_len)
+    uint8_t* pubkey_out)
 {
     return true;
 }

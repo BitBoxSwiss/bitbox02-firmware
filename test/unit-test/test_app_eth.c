@@ -36,14 +36,12 @@ bool __wrap_rust_ethereum_keypath_is_valid_address(
     return _is_valid_keypath;
 }
 
-bool __wrap_keystore_secp256k1_pubkey(
-    keystore_secp256k1_pubkey_format format,
+bool __wrap_keystore_secp256k1_pubkey_uncompressed(
     const uint32_t* keypath,
     size_t keypath_len,
-    uint8_t* pubkey_out,
-    size_t pubkey_out_len)
+    uint8_t* pubkey_out)
 {
-    memcpy(pubkey_out, (const void*)mock(), pubkey_out_len);
+    memcpy(pubkey_out, (const void*)mock(), EC_PUBLIC_KEY_UNCOMPRESSED_LEN);
     return true;
 }
 
@@ -139,7 +137,7 @@ static void _test_app_eth_address(void** state)
 
     for (size_t index = 0; index < sizeof(_test_cases) / sizeof(_test_case_t); index++) {
         const _test_case_t* test_case = &_test_cases[index];
-        will_return(__wrap_keystore_secp256k1_pubkey, test_case->pubkey);
+        will_return(__wrap_keystore_secp256k1_pubkey_uncompressed, test_case->pubkey);
 
         char address[43];
         assert_int_equal(

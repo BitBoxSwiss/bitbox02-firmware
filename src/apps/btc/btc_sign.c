@@ -566,14 +566,10 @@ static app_btc_result_t _sign_input_pass2(
     }
 
     { // Sign input.
-        uint8_t pubkey_hash160[20];
+        uint8_t pubkey_hash160[HASH160_LEN];
         UTIL_CLEANUP_20(pubkey_hash160);
-        if (!keystore_secp256k1_pubkey(
-                KEYSTORE_SECP256K1_PUBKEY_HASH160,
-                request->keypath,
-                request->keypath_count,
-                pubkey_hash160,
-                sizeof(pubkey_hash160))) {
+        if (!keystore_secp256k1_pubkey_hash160(
+                request->keypath, request->keypath_count, pubkey_hash160)) {
             return _error(APP_BTC_ERR_UNKNOWN);
         }
 
@@ -747,14 +743,10 @@ app_btc_result_t app_btc_sign_output(
 
         switch (script_config_account->script_config.which_config) {
         case BTCScriptConfig_simple_type_tag: {
-            uint8_t pubkey_hash160[20];
+            uint8_t pubkey_hash160[HASH160_LEN];
             UTIL_CLEANUP_20(pubkey_hash160);
-            if (!keystore_secp256k1_pubkey(
-                    KEYSTORE_SECP256K1_PUBKEY_HASH160,
-                    request->keypath,
-                    request->keypath_count,
-                    pubkey_hash160,
-                    sizeof(pubkey_hash160))) {
+            if (!keystore_secp256k1_pubkey_hash160(
+                    request->keypath, request->keypath_count, pubkey_hash160)) {
                 return _error(APP_BTC_ERR_UNKNOWN);
             }
 

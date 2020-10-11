@@ -165,6 +165,13 @@ message BTCIsScriptConfigRegisteredResponse {
 message BTCRegisterScriptConfigRequest {
   BTCScriptConfigRegistration registration = 1;
   string name = 2;
+  enum XPubType {
+    // Automatically choose to match Electrum's xpub format (e.g. Zpub/Vpub for p2wsh multisig mainnet/testnet).
+    AUTO_ELECTRUM = 0;
+    // Always xpub for mainnets, tpub for testnets.
+    AUTO_XPUB_TPUB = 1;
+  }
+  XPubType xpub_type = 3;
 }
 
 message BTCPrevTxInitRequest {

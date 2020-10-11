@@ -329,10 +329,12 @@ class BitBox02(BitBoxCommonAPI):
         script_config: btc.BTCScriptConfig,
         keypath: Sequence[int],
         name: str,
+        xpub_type: btc.BTCRegisterScriptConfigRequest.XPubType = btc.BTCRegisterScriptConfigRequest.XPubType.AUTO_ELECTRUM,
     ) -> None:
         """
         Raises Bitbox02Exception with ERR_USER_ABORT on user abort.
         """
+        # pylint: disable=no-member,too-many-arguments
         assert len(name) <= 30
 
         # pylint: disable=no-member
@@ -343,6 +345,7 @@ class BitBox02(BitBoxCommonAPI):
                     coin=coin, script_config=script_config, keypath=keypath
                 ),
                 name=name,
+                xpub_type=xpub_type,
             )
         )
         try:

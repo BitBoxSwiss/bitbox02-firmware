@@ -44,7 +44,8 @@ bool __wrap_apps_btc_confirm_multisig(
     BTCCoin coin,
     const char* name,
     const BTCScriptConfig_Multisig* multisig,
-    bool verify_xpubs)
+    bool verify_xpubs,
+    BTCRegisterScriptConfigRequest_XPubType xpub_type)
 {
     assert_string_equal(title, "Receive to");
     check_expected(coin);

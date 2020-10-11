@@ -138,7 +138,11 @@ app_btc_result_t app_btc_address_multisig(
     }
 
     const char* title = "Receive to";
-    if (!apps_btc_confirm_multisig(title, coin, multisig_registered_name, multisig, false)) {
+
+    BTCRegisterScriptConfigRequest_XPubType ignored =
+        BTCRegisterScriptConfigRequest_XPubType_AUTO_ELECTRUM;
+    if (!apps_btc_confirm_multisig(
+            title, coin, multisig_registered_name, multisig, false, ignored)) {
         return APP_BTC_ERR_USER_ABORT;
     }
 
@@ -214,7 +218,8 @@ app_btc_result_t app_btc_register_script_config(
     const BTCScriptConfig* script_config,
     const uint32_t* keypath,
     size_t keypath_len,
-    const char* name)
+    const char* name,
+    BTCRegisterScriptConfigRequest_XPubType xpub_type)
 {
     const app_btc_coin_params_t* params = app_btc_params_get(coin);
     if (params == NULL) {
@@ -234,7 +239,7 @@ app_btc_result_t app_btc_register_script_config(
         return APP_BTC_ERR_INVALID_INPUT;
     }
 
-    if (!apps_btc_confirm_multisig("Register", coin, name, multisig, true)) {
+    if (!apps_btc_confirm_multisig("Register", coin, name, multisig, true, xpub_type)) {
         return APP_BTC_ERR_USER_ABORT;
     }
 

@@ -462,7 +462,7 @@ pub mod btc_register_script_config_request {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum XPubType {
-        /// Automatically choose to match Electrum's xpub format (e.g. Zpub/Vpub for p2wsh multisig).
+        /// Automatically choose to match Electrum's xpub format (e.g. Zpub/Vpub for p2wsh multisig mainnet/testnet).
         AutoElectrum = 0,
         /// Always xpub for mainnets, tpub for testnets.
         AutoXpubTpub = 1,

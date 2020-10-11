@@ -234,7 +234,8 @@ static commander_error_t _api_register_script_config(const BTCRegisterScriptConf
         &request->registration.script_config,
         request->registration.keypath,
         request->registration.keypath_count,
-        request->name);
+        request->name,
+        request->xpub_type);
     return _result(result);
 }
 

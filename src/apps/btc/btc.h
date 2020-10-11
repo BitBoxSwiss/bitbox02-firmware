@@ -130,6 +130,7 @@ USE_RESULT app_btc_result_t app_btc_register_script_config(
     const BTCScriptConfig* script_config,
     const uint32_t* keypath,
     size_t keypath_len,
-    const char* name);
+    const char* name,
+    BTCRegisterScriptConfigRequest_XPubType xpub_type);
 
 #endif

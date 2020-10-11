@@ -37,12 +37,10 @@ static void _render(component_t* component)
     static int8_t x_direction = 1;
     static int8_t y_direction = 1;
     // setting relative speed for both axes
-    const int8_t x_slowdown = 1;
-    const int8_t y_slowdown = 1;
+    const int8_t x_slowdown = 6;
+    const int8_t y_slowdown = 6;
 
-    const uint16_t master_slowdown = 6; // for slowing down both x and y in the same amount
-
-    if (counter % (master_slowdown * x_slowdown) == 0) {
+    if (counter % x_slowdown == 0) {
         image->position.left += x_direction;
         // if the screensaver is at the edge (or outside e.g. due to screensaver_reset), and moving
         // away from the screen, flip the direction so it will always be moving inside or towards
@@ -53,7 +51,7 @@ static void _render(component_t* component)
             x_direction *= -1;
         }
     }
-    if (counter % (master_slowdown * y_slowdown) == 0) {
+    if (counter % y_slowdown == 0) {
         image->position.top += y_direction;
         // if the screensaver is at the edge (or outside e.g. due to screensaver_reset), and moving
         // away from the screen, flip the direction so it will always be moving inside or towards

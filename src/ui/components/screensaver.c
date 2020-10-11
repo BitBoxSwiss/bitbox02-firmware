@@ -45,9 +45,9 @@ static void _render(component_t* component)
         // if the screensaver is at the edge (or outside e.g. due to screensaver_reset), and moving
         // away from the screen, flip the direction so it will always be moving inside or towards
         // the screen
-        if (((image->position.left + image->dimension.width) >= component->dimension.width &&
-             x_direction > 0) ||
-            (image->position.left < 0 && x_direction < 0)) {
+        if ((x_direction > 0 &&
+             (image->position.left + image->dimension.width) >= component->dimension.width) ||
+            (x_direction < 0 && image->position.left < 0)) {
             x_direction *= -1;
         }
     }
@@ -56,9 +56,9 @@ static void _render(component_t* component)
         // if the screensaver is at the edge (or outside e.g. due to screensaver_reset), and moving
         // away from the screen, flip the direction so it will always be moving inside or towards
         // the screen
-        if (((image->position.top + image->dimension.height) >= component->dimension.height &&
-             y_direction > 0) ||
-            (image->position.top < 0 && y_direction < 0)) {
+        if ((y_direction > 0 &&
+             (image->position.top + image->dimension.height) >= component->dimension.height) ||
+            (y_direction < 0 && image->position.top < 0)) {
             y_direction *= -1;
         }
     }

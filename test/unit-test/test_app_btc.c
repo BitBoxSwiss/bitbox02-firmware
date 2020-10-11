@@ -269,43 +269,6 @@ static void _test_app_btc_xpub(void** state)
     }
 }
 
-static void _test_app_btc_electrum_encryption_key(void** satte)
-{
-#define ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE (4541509 + BIP32_INITIAL_HARDENED_CHILD)
-#define ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO (1112098098 + BIP32_INITIAL_HARDENED_CHILD)
-
-    mock_state(_mock_seed, _mock_bip39_seed);
-
-    uint32_t keypath[2] = {ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE,
-                           ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO};
-
-    char out[XPUB_ENCODED_LEN] = {0};
-    expect_value(__wrap_keystore_encode_xpub_at_keypath, out_len, sizeof(out));
-
-    bool result = app_btc_electrum_encryption_key(
-        keypath, sizeof(keypath) / sizeof(uint32_t), out, sizeof(out));
-    assert_true(result);
-    assert_string_equal(
-        out,
-        "xpub6ALhrsD27cSNqAYEkG6LTFdhyE9ipvpAY7RoGrpw9rCuvk6sjP1FQ3x4x6a5Y9BuE8JXttdXMuiffab5EqAKuM"
-        "XRyF92AKLPhCs55hBmcAM");
-
-    uint32_t keypath_invalid[2] = {ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE, 0};
-    result = app_btc_electrum_encryption_key(
-        keypath_invalid, sizeof(keypath_invalid) / sizeof(uint32_t), out, sizeof(out));
-    assert_false(result);
-
-    uint32_t keypath_invalid2[2] = {0, ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO};
-    result = app_btc_electrum_encryption_key(
-        keypath_invalid, sizeof(keypath_invalid2) / sizeof(uint32_t), out, sizeof(out));
-    assert_false(result);
-
-    uint32_t keypath_invalid3[1];
-    result = app_btc_electrum_encryption_key(
-        keypath_invalid2, sizeof(keypath_invalid3) / sizeof(uint32_t), out, sizeof(out));
-    assert_false(result);
-}
-
 static void _test_app_btc_address_simple(void** state)
 {
     { // invalid coin
@@ -363,7 +326,6 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_app_btc_xpub),
-        cmocka_unit_test(_test_app_btc_electrum_encryption_key),
         cmocka_unit_test(_test_app_btc_address_simple),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);

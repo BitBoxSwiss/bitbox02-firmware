@@ -26,9 +26,6 @@
 #include <workflow/confirm.h>
 #include <workflow/status.h>
 
-#define ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE (4541509 + BIP32_INITIAL_HARDENED_CHILD)
-#define ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO (1112098098 + BIP32_INITIAL_HARDENED_CHILD)
-
 bool app_btc_xpub(
     BTCCoin coin,
     BTCPubRequest_XPubType xpub_type,
@@ -82,23 +79,6 @@ bool app_btc_xpub(
     }
 
     return keystore_encode_xpub_at_keypath(keypath, keypath_len, version, out, out_len);
-}
-
-bool app_btc_electrum_encryption_key(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    char* out,
-    size_t out_len)
-{
-    if (keypath_len != 2) {
-        return false;
-    }
-    if (keypath[0] != ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE ||
-        keypath[1] != ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO) {
-        return false;
-    }
-
-    return keystore_encode_xpub_at_keypath(keypath, keypath_len, XPUB, out, out_len);
 }
 
 bool app_btc_address_simple(

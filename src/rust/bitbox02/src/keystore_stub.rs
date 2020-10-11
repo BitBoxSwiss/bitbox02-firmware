@@ -14,6 +14,8 @@
 
 //! Stubs for testing.
 
+pub use bitbox02_sys::xpub_type_t;
+
 extern crate alloc;
 use alloc::string::String;
 
@@ -57,4 +59,9 @@ pub fn secp256k1_pubkey_uncompressed(
     _keypath: &[u32],
 ) -> Result<[u8; EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()> {
     panic!("not implemented")
+}
+
+pub fn encode_xpub_at_keypath(keypath: &[u32], xpub_type: xpub_type_t) -> Result<String, ()> {
+    let data = crate::testing::DATA.0.borrow();
+    data.keystore_encode_xpub_at_keypath.as_ref().unwrap()(keypath, xpub_type)
 }

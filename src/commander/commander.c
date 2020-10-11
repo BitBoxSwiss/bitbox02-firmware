@@ -117,17 +117,6 @@ static commander_error_t _api_get_root_fingerprint(RootFingerprintResponse* resp
     return COMMANDER_OK;
 }
 
-static commander_error_t _api_electrum_encryption_key(
-    const ElectrumEncryptionKeyRequest* request,
-    ElectrumEncryptionKeyResponse* response)
-{
-    if (!app_btc_electrum_encryption_key(
-            request->keypath, request->keypath_count, response->key, sizeof(response->key))) {
-        return COMMANDER_ERR_INVALID_INPUT;
-    }
-    return COMMANDER_OK;
-}
-
 static commander_error_t _api_restore_from_mnemonic(const RestoreFromMnemonicRequest* request)
 {
     if (!workflow_restore_from_mnemonic(request)) {
@@ -176,11 +165,6 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_btc_sign_output_tag:
         return COMMANDER_ERR_DISABLED;
 #endif
-    case Request_electrum_encryption_key_tag:
-        response->which_response = Response_electrum_encryption_key_tag;
-        return _api_electrum_encryption_key(
-            &(request->request.electrum_encryption_key),
-            &(response->response.electrum_encryption_key));
     case Request_fingerprint_tag:
         response->which_response = Response_fingerprint_tag;
         return _api_get_root_fingerprint(&(response->response.fingerprint));

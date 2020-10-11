@@ -32,20 +32,36 @@ static void _render(component_t* component)
     static uint16_t counter = 0;
     counter++;
 
-    const uint16_t slowdown_factor = 6; // slow it down a bunch
+    // these flip between positive and negative when boncing, can also be used to move multiple
+    // pixels per frame
+    static int8_t x_direction = 1;
+    static int8_t y_direction = 1;
+    // setting relative speed for both axes
+    const int8_t x_slowdown = 1;
+    const int8_t y_slowdown = 1;
 
-    if (counter % slowdown_factor == 0) {
-        // Start with full logo visible instead of starting from left of the screen.
-        image->position.left++;
-        // Wrap around to the left.
-        if (image->position.left >= component->dimension.width) {
-            image->position.left = -image->dimension.width;
+    const uint16_t master_slowdown = 6; // for slowing down both x and y in the same amount
 
-            image->position.top++;
-            // Wrap around to the top.
-            if (image->position.top + image->dimension.height > component->dimension.height) {
-                image->position.top = 0;
-            }
+    if (counter % (master_slowdown * x_slowdown) == 0) {
+        image->position.left += x_direction;
+        // if the screensaver is at the edge (or outside e.g. due to screensaver_reset), and moving
+        // away from the screen, flip the direction so it will always be moving inside or towards
+        // the screen
+        if (((image->position.left + image->dimension.width) >= component->dimension.width &&
+             x_direction > 0) ||
+            (image->position.left < 0 && x_direction < 0)) {
+            x_direction *= -1;
+        }
+    }
+    if (counter % (master_slowdown * y_slowdown) == 0) {
+        image->position.top += y_direction;
+        // if the screensaver is at the edge (or outside e.g. due to screensaver_reset), and moving
+        // away from the screen, flip the direction so it will always be moving inside or towards
+        // the screen
+        if (((image->position.top + image->dimension.height) >= component->dimension.height &&
+             y_direction > 0) ||
+            (image->position.top < 0 && y_direction < 0)) {
+            y_direction *= -1;
         }
     }
     ui_util_component_render_subcomponents(component);
@@ -70,14 +86,14 @@ component_t* screensaver_create(void)
     component->f = &_component_functions;
     component->dimension.width = SCREEN_WIDTH;
     component->dimension.height = SCREEN_HEIGHT;
-    component_t* bb2_logo = image_create(
-        IMAGE_BB2_LOGO,
-        sizeof(IMAGE_BB2_LOGO),
-        IMAGE_BB2_LOGO_W,
-        IMAGE_BB2_LOGO_H,
+    component_t* screensaver_image = image_create(
+        IMAGE_SCREENSAVER,
+        sizeof(IMAGE_SCREENSAVER),
+        IMAGE_SCREENSAVER_W,
+        IMAGE_SCREENSAVER_H,
         CENTER,
         component);
-    ui_util_add_sub_component(component, bb2_logo);
+    ui_util_add_sub_component(component, screensaver_image);
     screensaver_reset(component);
     return component;
 }

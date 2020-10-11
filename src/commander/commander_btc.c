@@ -66,6 +66,8 @@ static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse
         case BTCPubRequest_XPubType_UPUB:
         case BTCPubRequest_XPubType_CAPITAL_VPUB:
         case BTCPubRequest_XPubType_CAPITAL_ZPUB:
+        case BTCPubRequest_XPubType_CAPITAL_YPUB:
+        case BTCPubRequest_XPubType_CAPITAL_UPUB:
             n_written = snprintf(
                 title,
                 sizeof(title),
@@ -118,7 +120,7 @@ static commander_error_t _btc_pub_address_multisig(
     PubResponse* response)
 {
     const BTCScriptConfig_Multisig* multisig = &request->output.script_config.config.multisig;
-    app_btc_result_t result = app_btc_address_multisig_p2wsh(
+    app_btc_result_t result = app_btc_address_multisig(
         request->coin,
         multisig,
         request->keypath,

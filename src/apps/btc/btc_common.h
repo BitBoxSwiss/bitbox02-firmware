@@ -77,11 +77,13 @@ USE_RESULT bool btc_common_is_valid_keypath_address_simple(
     uint32_t expected_coin);
 
 /**
- * Checks that the keypath is m/48'/coin'/account'/2'/change/address, limiting the number of valid
- * accounts/addresses.
+ * Checks that the keypath is m/48'/coin'/account'/script_type'/change/address, limiting the number
+ * of valid accounts/addresses.
+ * script_type' is 2' for P2WSH and 1' for P2WSH-P2SH.
  * @return true if the keypath is valid, false if it is invalid.
  */
-USE_RESULT bool btc_common_is_valid_keypath_address_multisig_p2wsh(
+USE_RESULT bool btc_common_is_valid_keypath_address_multisig(
+    BTCScriptConfig_Multisig_ScriptType script_type,
     const uint32_t* keypath,
     size_t keypath_len,
     uint32_t expected_coin);
@@ -150,6 +152,13 @@ USE_RESULT bool btc_common_sighash_script_from_pubkeyhash(
  * For an input type (e.g. a script wrapped in p2sh), determine the output type.
  */
 USE_RESULT BTCOutputType btc_common_determine_output_type(BTCScriptConfig_SimpleType script_type);
+
+/**
+ * For a multisig input type, determine the output type.
+ */
+USE_RESULT BTCOutputType
+btc_common_determine_output_type_multisig(const BTCScriptConfig_Multisig* multisig);
+
 /**
  * Converts an output script or publickey hash to an address.
  * hash, hash_size can be obtained from btc_common_outputhash_from_pubkeyhash().
@@ -201,18 +210,21 @@ USE_RESULT bool btc_common_pkscript_from_multisig(
  * xpubs.
  * @param[in] keypath_change 0 for receive addresses, 1 for change addresses.
  * @param[in] keypath_address receive address index.
- * @param[out] output_hash result, must be `SHA256_LEN` bytes.
+ * @param[out] output_hash result, must be at least `SHA256_LEN` bytes.
+ * @param[out] size of the output hash. Will be `SHA256_LEN` for P2WSH and `HASH160_LEN` for
+ * P2WSH-P2SH.
  */
-USE_RESULT bool btc_common_outputhash_from_multisig_p2wsh(
+USE_RESULT bool btc_common_outputhash_from_multisig(
     const BTCScriptConfig_Multisig* multisig,
     uint32_t keypath_change,
     uint32_t keypath_address,
-    uint8_t* output_hash);
+    uint8_t* output_hash,
+    size_t* output_hash_size);
 
 /**
  * Validate a m-of-n multisig account. This includes checking that:
  * - 0 < m <= n <= 15
- * - the keypath conforms to bip48 for p2wsh: m/48'/coin'/account'/2'
+ * - the keypath conforms to bip48 for p2wsh: m/48'/coin'/account'/script_type'
  * - our designated xpub is actually ours (corresponds to the xpub of the currenty unlocked
  *   keystore).
  * - no two xpubs are the same.

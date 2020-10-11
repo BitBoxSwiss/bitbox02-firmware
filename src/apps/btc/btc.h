@@ -92,7 +92,7 @@ USE_RESULT bool app_btc_address_simple(
  * @param[in] display if true, show the address on the screen.
  * @return see app_btc_result_t.
  */
-USE_RESULT app_btc_result_t app_btc_address_multisig_p2wsh(
+USE_RESULT app_btc_result_t app_btc_address_multisig(
     BTCCoin coin,
     const BTCScriptConfig_Multisig* multisig,
     const uint32_t* keypath,

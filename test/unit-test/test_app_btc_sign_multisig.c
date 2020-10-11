@@ -93,217 +93,245 @@ typedef struct {
     BTCPrevTxOutputRequest prevtx_outputs[10];
 } _input_t;
 
-static _input_t _inputs[1] = {
-    {
-        .input =
-            {
-                .prevOutHash =
-                    "\x41\x3b\x8e\x74\x05\x15\x96\x6b\x20\x2b\x24\xc3\x19\xfc\xf3\x5f\xc5"
-                    "\x37\x6e\xb2\x71\x95\xb8\x76\x62\x9a\x44\x1d\x19\xaa\x6c\x0f",
-                .prevOutIndex = 0,
-                .prevOutValue = 100000, // btc 0.001
-                .sequence = 4294967294,
-                .keypath_count = 6,
-                .keypath =
-                    {
-                        48 + BIP32_INITIAL_HARDENED_CHILD,
-                        1 + BIP32_INITIAL_HARDENED_CHILD,
-                        0 + BIP32_INITIAL_HARDENED_CHILD,
-                        2 + BIP32_INITIAL_HARDENED_CHILD,
-                        0,
-                        0,
-                    },
-            },
-        .prevtx_init =
-            {
-                .version = 1,
-                .num_inputs = 1,
-                .num_outputs = 1,
-                .locktime = 0,
-            },
-        .prevtx_inputs =
-            {
-                {
-                    .prev_out_hash =
-                        {
-                            0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
-                            0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
-                            0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
-                        },
-                    .prev_out_index = 3,
-                    .signature_script =
-                        {
-                            .bytes = "signature script",
-                            .size = 16,
-                        },
-                    .sequence = 0xffffffff - 2,
-                },
-            },
-        .prevtx_outputs =
-            {
-                {.value = 100000, // btc 0.001
-                 .pubkey_script =
-                     {
-                         .bytes = "pubkey script",
-                         .size = 13,
-                     }},
-            },
-    },
-};
+typedef struct {
+    BTCSignInitRequest init_req;
+    _input_t inputs[1];
+    BTCSignOutputRequest outputs[2];
+} _tx;
 
-static BTCSignOutputRequest _outputs[2] = {
-    {
-        .ours = true,
-        .value = 9825, // btc 0.00009825
-        .keypath_count = 6,
-        .keypath =
-            {
-                48 + BIP32_INITIAL_HARDENED_CHILD,
-                1 + BIP32_INITIAL_HARDENED_CHILD,
-                0 + BIP32_INITIAL_HARDENED_CHILD,
-                2 + BIP32_INITIAL_HARDENED_CHILD,
-                1,
-                0,
-            },
-    },
-    {
-        .ours = false,
-        .type = BTCOutputType_P2WSH,
-        .value = 90000, // btc 0.0009
-        .hash = {.size = 32,
-                 .bytes = "\x59\x88\x02\x4d\x26\x74\x2c\x74\xd1\x1c\x3b\x28\x83\xe7\x57\x84\x67"
-                          "\x25\xa3\xf6\x23\xae\xc2\x09\x76\xd3\x0e\x29\xb0\xd4\xb3\x5b"},
-    },
-};
-
-static void _test_btc_sign_happy(void** state)
+static _tx _make_test_tx(void)
 {
-    BTCSignInitRequest init_req = {
-        .coin = BTCCoin_TBTC,
-        .script_configs_count = 1,
-        .script_configs =
+    _tx tx = {
+        .init_req =
             {
-                {
-                    .script_config =
+                .coin = BTCCoin_TBTC,
+                .script_configs_count = 1,
+                .script_configs =
+                    {
                         {
-                            .which_config = BTCScriptConfig_multisig_tag,
-                            .config =
+                            .script_config =
                                 {
-                                    .multisig =
+                                    .which_config = BTCScriptConfig_multisig_tag,
+                                    .config =
                                         {
-                                            .threshold = 1,
-                                            .xpubs_count = 2,
+                                            .multisig =
+                                                {
+                                                    .threshold = 1,
+                                                    .xpubs_count = 2,
+                                                },
                                         },
                                 },
+                            .keypath_count = 4,
+                            .keypath =
+                                {
+                                    48 + BIP32_INITIAL_HARDENED_CHILD,
+                                    1 + BIP32_INITIAL_HARDENED_CHILD,
+                                    0 + BIP32_INITIAL_HARDENED_CHILD,
+                                    2 + BIP32_INITIAL_HARDENED_CHILD,
+                                },
                         },
-                    .keypath_count = 4,
+                    },
+                .version = 2,
+                .num_inputs = 1,
+                .num_outputs = 2,
+                .locktime = 1663289,
+            },
+        .inputs =
+            {
+                {
+                    .input =
+                        {
+                            .prevOutHash =
+                                "\x41\x3b\x8e\x74\x05\x15\x96\x6b\x20\x2b\x24\xc3\x19\xfc\xf3\x5f"
+                                "\xc5"
+                                "\x37\x6e\xb2\x71\x95\xb8\x76\x62\x9a\x44\x1d\x19\xaa\x6c\x0f",
+                            .prevOutIndex = 0,
+                            .prevOutValue = 100000, // btc 0.001
+                            .sequence = 4294967294,
+                            .keypath_count = 6,
+                            .keypath =
+                                {
+                                    48 + BIP32_INITIAL_HARDENED_CHILD,
+                                    1 + BIP32_INITIAL_HARDENED_CHILD,
+                                    0 + BIP32_INITIAL_HARDENED_CHILD,
+                                    2 + BIP32_INITIAL_HARDENED_CHILD,
+                                    0,
+                                    0,
+                                },
+                        },
+                    .prevtx_init =
+                        {
+                            .version = 1,
+                            .num_inputs = 1,
+                            .num_outputs = 1,
+                            .locktime = 0,
+                        },
+                    .prevtx_inputs =
+                        {
+                            {
+                                .prev_out_hash =
+                                    {
+                                        0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
+                                        0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
+                                        0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
+                                        0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
+                                    },
+                                .prev_out_index = 3,
+                                .signature_script =
+                                    {
+                                        .bytes = "signature script",
+                                        .size = 16,
+                                    },
+                                .sequence = 0xffffffff - 2,
+                            },
+                        },
+                    .prevtx_outputs =
+                        {
+                            {.value = 100000, // btc 0.001
+                             .pubkey_script =
+                                 {
+                                     .bytes = "pubkey script",
+                                     .size = 13,
+                                 }},
+                        },
+                },
+            },
+        .outputs =
+            {
+                {
+                    .ours = true,
+                    .value = 9825, // btc 0.00009825
+                    .keypath_count = 6,
                     .keypath =
                         {
                             48 + BIP32_INITIAL_HARDENED_CHILD,
                             1 + BIP32_INITIAL_HARDENED_CHILD,
                             0 + BIP32_INITIAL_HARDENED_CHILD,
                             2 + BIP32_INITIAL_HARDENED_CHILD,
+                            1,
+                            0,
                         },
                 },
+                {
+                    .ours = false,
+                    .type = BTCOutputType_P2WSH,
+                    .value = 90000, // btc 0.0009
+                    .hash =
+                        {.size = 32,
+                         .bytes =
+                             "\x59\x88\x02\x4d\x26\x74\x2c\x74\xd1\x1c\x3b\x28\x83\xe7\x57\x84\x67"
+                             "\x25\xa3\xf6\x23\xae\xc2\x09\x76\xd3\x0e\x29\xb0\xd4\xb3\x5b"},
+                },
             },
-        .version = 2,
-        .num_inputs = 1,
-        .num_outputs = 2,
-        .locktime = 1663289,
     };
 
     // sudden tenant fault inject concert weather maid people chunk youth stumble grit /
     // 48'/1'/0'/2'
-    init_req.script_configs[0].script_config.config.multisig.xpubs[0] = btc_util_parse_xpub(
+    tx.init_req.script_configs[0].script_config.config.multisig.xpubs[0] = btc_util_parse_xpub(
         "xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYU"
         "CugjeksHSbyZT7rq38VQF");
     // dumb rough room report huge dry sudden hamster wait foot crew obvious / 48'/1'/0'/2'
-    init_req.script_configs[0].script_config.config.multisig.xpubs[1] = btc_util_parse_xpub(
+    tx.init_req.script_configs[0].script_config.config.multisig.xpubs[1] = btc_util_parse_xpub(
         "xpub6ERxBysTYfQyY4USv6c6J1HNVv9hpZFN9LHVPu47Ac4rK8fLy6NnAeeAHyEsMvG4G66ay5aFZii2VM7wT3KxLK"
         "X8Q8keZPd67kRGmrD1WJj");
 
+    return tx;
+}
+
+static void _test_tx(const _tx* tx, const uint8_t* expected_signature)
+{
     mock_state(_mock_seed, _mock_bip39_seed);
 
     BTCSignNextResponse next = {0};
 
-    expect_value(__wrap_apps_btc_confirm_multisig, coin, init_req.coin);
+    expect_value(__wrap_apps_btc_confirm_multisig, coin, tx->init_req.coin);
     expect_memory(
         __wrap_apps_btc_confirm_multisig,
         multisig,
-        &init_req.script_configs[0].script_config.config.multisig,
+        &tx->init_req.script_configs[0].script_config.config.multisig,
         sizeof(BTCScriptConfig_Multisig));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_init(&init_req, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_init(&tx->init_req, &next));
     assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
     assert_int_equal(next.index, 0);
 
-    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&_inputs[0].input, &next));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_init(&_inputs[0].prevtx_init, &next));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_input(&_inputs[0].prevtx_inputs[0], &next));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_output(&_inputs[0].prevtx_outputs[0], &next));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&_outputs[0], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&tx->inputs[0].input, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_init(&tx->inputs[0].prevtx_init, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_input(&tx->inputs[0].prevtx_inputs[0], &next));
+    assert_int_equal(
+        APP_BTC_OK, app_btc_sign_prevtx_output(&tx->inputs[0].prevtx_outputs[0], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&tx->outputs[0], &next));
 
     expect_string(
         __wrap_workflow_verify_recipient,
         recipient,
         "tb1qtxyqynfxwsk8f5gu8v5g8e6hs3njtglkywhvyztk6v8znvx5kddsmhuve2");
-    expect_value(__wrap_apps_btc_confirm_locktime_rbf, locktime, init_req.locktime);
+    expect_value(__wrap_apps_btc_confirm_locktime_rbf, locktime, tx->init_req.locktime);
     expect_value(__wrap_apps_btc_confirm_locktime_rbf, rbf, CONFIRM_LOCKTIME_RBF_OFF);
     expect_string(__wrap_workflow_verify_total, total, "0.00090175 TBTC");
     expect_string(__wrap_workflow_verify_total, fee, "0.00000175 TBTC");
-    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&_outputs[1], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&tx->outputs[1], &next));
 
-    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&_inputs[0].input, &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&tx->inputs[0].input, &next));
     assert_true(next.has_signature);
-    // d9b92d11eae078d7ae3b589bbbc76f4b514fe7aeb844db397937cded4dc594e450cc7e4bf6ab67fef292800d89da9d108f0767c465534486b235426b192928af
-    // TODO: investigate why electrum produces a different but valid sig:
-    // 48662590d14217fc78db9075a74b110e92fecec11d4ff527444bfe3539e1009a09dca025b7f1a45d8725b26f96b0ec5661bad94bfd5dbce6f6f133f624820aa4
-    const uint8_t* expected_signature = (const uint8_t*)
-        "\x5d\x9e\xb3\x32\x2d\x82\x1d\x82\x1d\x1f\xa3\xf7\x26\x95\x96\x43\x2f\x06\x50\x33\xbf\xea\x06\xc4\x5b\x51\xe3\x30\x94\x9f\x32\x6d\x51\x6a\xf5\x9b\xb7\x52\x11\x64\x40\xfc\xd6\x90\x56\x47\xdf\x20\x41\xc2\x76\x74\x3b\xab\x89\x37\x6f\x18\xb2\x46\x87\xa7\x75\x21";
     assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+}
+
+static void _test_btc_sign_happy_p2wsh(void** state)
+{
+    _tx tx = _make_test_tx();
+
+    uint8_t expected_signature[] =
+        "\x5d\x9e\xb3\x32\x2d\x82\x1d\x82\x1d\x1f\xa3\xf7\x26\x95\x96\x43\x2f\x06\x50\x33\xbf\xea"
+        "\x06\xc4\x5b\x51\xe3\x30\x94\x9f\x32\x6d\x51\x6a\xf5\x9b\xb7\x52\x11\x64\x40\xfc\xd6\x90"
+        "\x56\x47\xdf\x20\x41\xc2\x76\x74\x3b\xab\x89\x37\x6f\x18\xb2\x46\x87\xa7\x75\x21";
+    _test_tx(&tx, expected_signature);
+}
+
+static void _test_btc_sign_happy_p2wsh_p2sh(void** state)
+{
+    _tx tx = _make_test_tx();
+    tx.init_req.script_configs[0].script_config.config.multisig.script_type =
+        BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH;
+    // change the script_type to 1' in all m/48'/coin'/account'/script_type paths
+    tx.init_req.script_configs[0].keypath[3] = 1 + BIP32_INITIAL_HARDENED_CHILD;
+    for (uint32_t i = 0; i < tx.init_req.num_inputs; i++) {
+        tx.inputs[i].input.keypath[3] = 1 + BIP32_INITIAL_HARDENED_CHILD;
+    }
+    for (uint32_t i = 0; i < tx.init_req.num_outputs; i++) {
+        if (tx.outputs[i].ours) {
+            tx.outputs[i].keypath[3] = 1 + BIP32_INITIAL_HARDENED_CHILD;
+        }
+    }
+
+    // sudden tenant fault inject concert weather maid people chunk youth stumble grit /
+    // 48'/1'/0'/1'
+    tx.init_req.script_configs[0].script_config.config.multisig.xpubs[0] = btc_util_parse_xpub(
+        "xpub6EMfjyGVUvwhn1H2BwoVysVJi9cX78eyNTkoM3d26NHW4Zd75zrAcikT3dmoii4eZPwobzK4pMBYrLmE2y918U"
+        "ayfqBQFr6HpVze5mQHGyu");
+    // dumb rough room report huge dry sudden hamster wait foot crew obvious / 48'/1'/0'/1'
+    tx.init_req.script_configs[0].script_config.config.multisig.xpubs[1] = btc_util_parse_xpub(
+        "xpub6ERxBysTYfQyV5NYAV6WZVj1dfTzESVGkWUiqERomNKCA6nCA8qX4qSLX2RRGNqckn3ps9B9sdfDkpg11nsJwC"
+        "jXYXSZvkTED2Jx8jFpB9M");
+
+    uint8_t expected_signature[] =
+        "\x6f\xd9\x51\x89\xac\x9a\x33\x98\xf4\x48\x19\xe4\xd8\x1d\x7a\x7a\x80\xaf\x46\x55\x09\xd5"
+        "\x40\x39\x86\x6b\x08\x1e\x2f\x9f\xa1\x5a\x27\xe4\xb7\x05\xa8\x06\x95\xe7\x1c\x6d\xd4\x4d"
+        "\xb3\x6e\x13\xdb\x06\x8c\x22\xe3\xac\xff\x63\xda\x09\xd0\x37\x47\xf7\x80\x0b\x33";
+    _test_tx(&tx, expected_signature);
 }
 
 static void _test_btc_sign_large_happy(void** state)
 {
-    BTCSignInitRequest init_req = {
-        .coin = BTCCoin_TBTC,
-        .script_configs_count = 1,
-        .script_configs =
-            {
-                {
-                    .script_config =
-                        {
-                            .which_config = BTCScriptConfig_multisig_tag,
-                            .config =
-                                {
-                                    .multisig =
-                                        {
-                                            .threshold = 7,
-                                            .xpubs_count = 15,
-                                            .our_xpub_index = 14,
-                                        },
-                                },
-                        },
-                    .keypath_count = 4,
-                    .keypath =
-                        {
-                            48 + BIP32_INITIAL_HARDENED_CHILD,
-                            1 + BIP32_INITIAL_HARDENED_CHILD,
-                            0 + BIP32_INITIAL_HARDENED_CHILD,
-                            2 + BIP32_INITIAL_HARDENED_CHILD,
-                        },
-                },
-            },
-        .version = 2,
-        .num_inputs = 1,
-        .num_outputs = 2,
-        .locktime = 1663289,
-    };
+    _tx tx = _make_test_tx();
+    tx.init_req.script_configs[0].script_config.config.multisig.threshold = 7;
+    tx.init_req.script_configs[0].script_config.config.multisig.xpubs_count = 15;
+    tx.init_req.script_configs[0].script_config.config.multisig.our_xpub_index = 14;
 
     // clang-format off
 
     // sudden tenant fault inject concert weather maid people chunk youth stumble grit /
     // 48'/1'/0'/2'
-    XPub* xpubs = init_req.script_configs[0].script_config.config.multisig.xpubs;
+    XPub* xpubs = tx.init_req.script_configs[0].script_config.config.multisig.xpubs;
     xpubs[0] = btc_util_parse_xpub("xpub6Eu7xJRyXRCi4eLYhJPnfZVjgAQtM7qFaEZwUhvgxGf4enEZMxevGzWvZTawCj9USP2MFTEhKQAwnqHwoaPHetTLqGuvq5r5uaLKyGx5QDZ");
     xpubs[1] = btc_util_parse_xpub("xpub6EQcxF2jFkYGn89AwoQJEEJkYMbRjED9AZgt7bkxQA5BLhZEoaQpUHcADbB5GxcMrTdDSGmjP7M3u462Q9otyE2PPam66P5KFLWitPVfYz9");
     xpubs[2] = btc_util_parse_xpub("xpub6EP4EycVS5dq1PN7ZqsxBtptkYhfLvLGokZjnB3fvPshMiAohh6E5TaJjAafZWoPRjo6uiZxhtDXLgCuk81ooQgwrsnEdfSWSfa4VUtX8nu");
@@ -321,47 +349,18 @@ static void _test_btc_sign_large_happy(void** state)
     xpubs[14] = btc_util_parse_xpub("xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYUCugjeksHSbyZT7rq38VQF");
     // clang-format on
 
-    mock_state(_mock_seed, _mock_bip39_seed);
-
-    BTCSignNextResponse next = {0};
-
-    expect_value(__wrap_apps_btc_confirm_multisig, coin, init_req.coin);
-    expect_memory(
-        __wrap_apps_btc_confirm_multisig,
-        multisig,
-        &init_req.script_configs[0].script_config.config.multisig,
-        sizeof(BTCScriptConfig_Multisig));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_init(&init_req, &next));
-    assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
-    assert_int_equal(next.index, 0);
-
-    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&_inputs[0].input, &next));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_init(&_inputs[0].prevtx_init, &next));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_input(&_inputs[0].prevtx_inputs[0], &next));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_output(&_inputs[0].prevtx_outputs[0], &next));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&_outputs[0], &next));
-
-    expect_string(
-        __wrap_workflow_verify_recipient,
-        recipient,
-        "tb1qtxyqynfxwsk8f5gu8v5g8e6hs3njtglkywhvyztk6v8znvx5kddsmhuve2");
-    expect_value(__wrap_apps_btc_confirm_locktime_rbf, locktime, init_req.locktime);
-    expect_value(__wrap_apps_btc_confirm_locktime_rbf, rbf, CONFIRM_LOCKTIME_RBF_OFF);
-    expect_string(__wrap_workflow_verify_total, total, "0.00090175 TBTC");
-    expect_string(__wrap_workflow_verify_total, fee, "0.00000175 TBTC");
-    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&_outputs[1], &next));
-
-    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&_inputs[0].input, &next));
-    assert_true(next.has_signature);
-    const uint8_t* expected_signature = (const uint8_t*)
-        "\xdc\x95\xd6\xe7\x7a\xef\x9b\xc2\x1d\xef\x9b\xa6\xce\x94\xcd\xf0\x4b\xcc\xfc\x50\xbb\x29\x2b\x5b\x44\x33\xf3\x2f\x79\xa0\x09\x06\x19\x3e\xac\x60\xfd\x88\xdb\x4f\xe7\xe6\xd9\xea\xb1\x7c\x21\xd6\xf4\x90\x03\xea\xdd\x8e\x12\x10\xbc\x4a\x85\x2b\xd1\xcd\x31\xe4";
-    assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+    const uint8_t expected_signature[] =
+        "\xdc\x95\xd6\xe7\x7a\xef\x9b\xc2\x1d\xef\x9b\xa6\xce\x94\xcd\xf0\x4b\xcc\xfc\x50\xbb\x29"
+        "\x2b\x5b\x44\x33\xf3\x2f\x79\xa0\x09\x06\x19\x3e\xac\x60\xfd\x88\xdb\x4f\xe7\xe6\xd9\xea"
+        "\xb1\x7c\x21\xd6\xf4\x90\x03\xea\xdd\x8e\x12\x10\xbc\x4a\x85\x2b\xd1\xcd\x31\xe4";
+    _test_tx(&tx, expected_signature);
 }
 
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(_test_btc_sign_happy),
+        cmocka_unit_test(_test_btc_sign_happy_p2wsh),
+        cmocka_unit_test(_test_btc_sign_happy_p2wsh_p2sh),
         cmocka_unit_test(_test_btc_sign_large_happy),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);

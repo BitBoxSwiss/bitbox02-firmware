@@ -31,6 +31,10 @@
 #define BIP44_ACCOUNT_MAX (BIP32_INITIAL_HARDENED_CHILD + 99) // 100 accounts
 #define BIP44_ADDRESS_MAX (9999) // 10k addresses
 
+// script type in the multisig keypath m/48'/coin'/account'/script_type
+#define BTC_MULTISIG_SCRIPT_TYPE_P2WSH (2 + BIP32_INITIAL_HARDENED_CHILD)
+#define BTC_MULTISIG_SCRIPT_TYPE_P2WSH_P2SH (1 + BIP32_INITIAL_HARDENED_CHILD)
+
 #define MULTISIG_P2WSH_MAX_SIGNERS 15
 
 static const uint8_t _xpub_version[4] = {0x04, 0x88, 0xb2, 0x1e};
@@ -41,6 +45,8 @@ static const uint8_t _vpub_version[4] = {0x04, 0x5f, 0x1c, 0xf6};
 static const uint8_t _upub_version[4] = {0x04, 0x4a, 0x52, 0x62};
 static const uint8_t _capital_vpub_version[4] = {0x02, 0x57, 0x54, 0x83};
 static const uint8_t _capital_zpub_version[4] = {0x02, 0xaa, 0x7e, 0xd3};
+static const uint8_t _capital_upub_version[4] = {0x02, 0x42, 0x89, 0xef};
+static const uint8_t _capital_ypub_version[4] = {0x02, 0x95, 0xb4, 0x3f};
 
 const char* btc_common_coin_name(BTCCoin coin)
 {
@@ -103,11 +109,12 @@ static bool _validate_keypath_address(
     return _validate_keypath_change_address(keypath[3], keypath[4]);
 }
 
-// checks account level keypath derivation: m/48'/coin'/account'/2'
-static bool _is_valid_keypath_account_multisig_p2wsh(
+// checks account level keypath derivation: m/48'/coin'/account'/script_type'
+static bool _is_valid_keypath_account_multisig(
     const uint32_t* keypath,
     const size_t keypath_len,
-    const uint32_t expected_coin)
+    const uint32_t expected_coin,
+    BTCScriptConfig_Multisig_ScriptType script_type)
 {
     if (keypath_len != 4) {
         return false;
@@ -115,9 +122,21 @@ static bool _is_valid_keypath_account_multisig_p2wsh(
     if (!_validate_keypath_account(keypath, expected_coin, BTC_PURPOSE_MULTISIG)) {
         return false;
     }
-    uint32_t script_type = keypath[3];
-    // 2' for P2WSH.
-    if (script_type != 2 + BIP32_INITIAL_HARDENED_CHILD) {
+
+    uint32_t expected_bip44_script_type;
+    switch (script_type) {
+    case BTCScriptConfig_Multisig_ScriptType_P2WSH:
+        expected_bip44_script_type = BTC_MULTISIG_SCRIPT_TYPE_P2WSH;
+        break;
+    case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
+        expected_bip44_script_type = BTC_MULTISIG_SCRIPT_TYPE_P2WSH_P2SH;
+        break;
+    default:
+        return false;
+    }
+
+    uint32_t bip44_script_type = keypath[3];
+    if (bip44_script_type != expected_bip44_script_type) {
         return false;
     }
     return true;
@@ -138,7 +157,15 @@ bool btc_common_is_valid_keypath_xpub(
     case BTCPubRequest_XPubType_UPUB:
     case BTCPubRequest_XPubType_CAPITAL_VPUB:
     case BTCPubRequest_XPubType_CAPITAL_ZPUB:
-        if (_is_valid_keypath_account_multisig_p2wsh(keypath, keypath_len, expected_coin)) {
+    case BTCPubRequest_XPubType_CAPITAL_UPUB:
+    case BTCPubRequest_XPubType_CAPITAL_YPUB:
+        if (_is_valid_keypath_account_multisig(
+                keypath, keypath_len, expected_coin, BTCScriptConfig_Multisig_ScriptType_P2WSH) ||
+            _is_valid_keypath_account_multisig(
+                keypath,
+                keypath_len,
+                expected_coin,
+                BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH)) {
             return true;
         }
 
@@ -188,7 +215,8 @@ bool btc_common_is_valid_keypath_address_simple(
     }
 }
 
-bool btc_common_is_valid_keypath_address_multisig_p2wsh(
+bool btc_common_is_valid_keypath_address_multisig(
+    BTCScriptConfig_Multisig_ScriptType script_type,
     const uint32_t* keypath,
     const size_t keypath_len,
     const uint32_t expected_coin)
@@ -196,7 +224,7 @@ bool btc_common_is_valid_keypath_address_multisig_p2wsh(
     if (keypath_len != 6) {
         return false;
     }
-    if (!_is_valid_keypath_account_multisig_p2wsh(keypath, 4, expected_coin)) {
+    if (!_is_valid_keypath_account_multisig(keypath, 4, expected_coin, script_type)) {
         return false;
     }
     if (!_validate_keypath_change_address(keypath[4], keypath[5])) {
@@ -242,6 +270,12 @@ bool btc_common_encode_xpub(
         break;
     case BTCPubRequest_XPubType_CAPITAL_ZPUB:
         version = _capital_zpub_version;
+        break;
+    case BTCPubRequest_XPubType_CAPITAL_UPUB:
+        version = _capital_upub_version;
+        break;
+    case BTCPubRequest_XPubType_CAPITAL_YPUB:
+        version = _capital_ypub_version;
         break;
     default:
         return false;
@@ -393,6 +427,18 @@ BTCOutputType btc_common_determine_output_type(BTCScriptConfig_SimpleType script
     }
 }
 
+BTCOutputType btc_common_determine_output_type_multisig(const BTCScriptConfig_Multisig* multisig)
+{
+    switch (multisig->script_type) {
+    case BTCScriptConfig_Multisig_ScriptType_P2WSH:
+        return BTCOutputType_P2WSH;
+    case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
+        return BTCOutputType_P2SH;
+    default:
+        return BTCOutputType_UNKNOWN;
+    }
+}
+
 /**
  * @param[in] version base58 check version, e.g. 0x05 for the "3" prefix.
  * @param[in] hash hash160 hash of pubkey or script, to bebase58Check encoded.
@@ -537,11 +583,12 @@ bool btc_common_pkscript_from_multisig(
     return true;
 }
 
-bool btc_common_outputhash_from_multisig_p2wsh(
+bool btc_common_outputhash_from_multisig(
     const BTCScriptConfig_Multisig* multisig,
     uint32_t keypath_change,
     uint32_t keypath_address,
-    uint8_t* output_hash)
+    uint8_t* output_hash,
+    size_t* output_hash_size)
 {
     uint8_t script[700] = {0};
     size_t written = sizeof(script);
@@ -555,7 +602,34 @@ bool btc_common_outputhash_from_multisig_p2wsh(
     // See https://bitcoincore.org/en/segwit_wallet_dev/.
     // Note that the witness script has an additional varint prefix.
 
-    return wally_sha256(script, written, output_hash, SHA256_LEN) == WALLY_OK;
+    switch (multisig->script_type) {
+    case BTCScriptConfig_Multisig_ScriptType_P2WSH:
+        *output_hash_size = SHA256_LEN;
+        return wally_sha256(script, written, output_hash, SHA256_LEN) == WALLY_OK;
+    case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH: {
+        // script_sha256 contains the hash of the multisig redeem script as used in a P2WSH output.
+        uint8_t script_sha256[SHA256_LEN] = {0};
+        if (wally_sha256(script, written, script_sha256, sizeof(script_sha256)) != WALLY_OK) {
+            return false;
+        }
+        // create the p2wsh output.
+        uint8_t p2wsh_pkscript[WALLY_SCRIPTPUBKEY_P2WSH_LEN] = {0};
+        if (wally_witness_program_from_bytes(
+                script_sha256,
+                sizeof(script_sha256),
+                0,
+                p2wsh_pkscript,
+                sizeof(p2wsh_pkscript),
+                &written) != WALLY_OK) {
+            return false;
+        }
+        // hash the output script according to p2sh.
+        *output_hash_size = HASH160_LEN;
+        return wally_hash160(p2wsh_pkscript, written, output_hash, HASH160_LEN) == WALLY_OK;
+    }
+    default:
+        return false;
+    };
 }
 
 USE_RESULT bool btc_common_multisig_is_valid(
@@ -573,7 +647,8 @@ USE_RESULT bool btc_common_multisig_is_valid(
     if (multisig->our_xpub_index >= multisig->xpubs_count) {
         return false;
     }
-    if (!_is_valid_keypath_account_multisig_p2wsh(keypath, keypath_len, expected_coin)) {
+    if (!_is_valid_keypath_account_multisig(
+            keypath, keypath_len, expected_coin, multisig->script_type)) {
         return false;
     }
 
@@ -640,8 +715,17 @@ bool btc_common_multisig_hash(
         rust_sha256_update(ctx, &byte, 1);
     }
     { // 2. script config type
-        // only one supported for now, op_checkmultisig-in-p2wsh.
-        uint8_t byte = 0x00;
+        uint8_t byte;
+        switch (multisig->script_type) {
+        case BTCScriptConfig_Multisig_ScriptType_P2WSH:
+            byte = 0x00;
+            break;
+        case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
+            byte = 0x01;
+            break;
+        default:
+            return false;
+        }
         rust_sha256_update(ctx, &byte, 1);
     }
     { // 3. threshold

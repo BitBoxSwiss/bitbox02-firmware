@@ -94,8 +94,26 @@ class BTCScriptConfig(google___protobuf___message___Message):
     P2WPKH = typing___cast(BTCScriptConfig.SimpleType, 1)
 
     class Multisig(google___protobuf___message___Message):
+        class ScriptType(int):
+            DESCRIPTOR: google___protobuf___descriptor___EnumDescriptor = ...
+            @classmethod
+            def Name(cls, number: int) -> str: ...
+            @classmethod
+            def Value(cls, name: str) -> BTCScriptConfig.Multisig.ScriptType: ...
+            @classmethod
+            def keys(cls) -> typing___List[str]: ...
+            @classmethod
+            def values(cls) -> typing___List[BTCScriptConfig.Multisig.ScriptType]: ...
+            @classmethod
+            def items(cls) -> typing___List[typing___Tuple[str, BTCScriptConfig.Multisig.ScriptType]]: ...
+            P2WSH = typing___cast(BTCScriptConfig.Multisig.ScriptType, 0)
+            P2WSH_P2SH = typing___cast(BTCScriptConfig.Multisig.ScriptType, 1)
+        P2WSH = typing___cast(BTCScriptConfig.Multisig.ScriptType, 0)
+        P2WSH_P2SH = typing___cast(BTCScriptConfig.Multisig.ScriptType, 1)
+
         threshold = ... # type: int
         our_xpub_index = ... # type: int
+        script_type = ... # type: BTCScriptConfig.Multisig.ScriptType
 
         @property
         def xpubs(self) -> google___protobuf___internal___containers___RepeatedCompositeFieldContainer[common_pb2___XPub]: ...
@@ -105,15 +123,16 @@ class BTCScriptConfig(google___protobuf___message___Message):
             threshold : typing___Optional[int] = None,
             xpubs : typing___Optional[typing___Iterable[common_pb2___XPub]] = None,
             our_xpub_index : typing___Optional[int] = None,
+            script_type : typing___Optional[BTCScriptConfig.Multisig.ScriptType] = None,
             ) -> None: ...
         @classmethod
         def FromString(cls, s: bytes) -> BTCScriptConfig.Multisig: ...
         def MergeFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
         def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
         if sys.version_info >= (3,):
-            def ClearField(self, field_name: typing_extensions___Literal[u"our_xpub_index",u"threshold",u"xpubs"]) -> None: ...
+            def ClearField(self, field_name: typing_extensions___Literal[u"our_xpub_index",u"script_type",u"threshold",u"xpubs"]) -> None: ...
         else:
-            def ClearField(self, field_name: typing_extensions___Literal[u"our_xpub_index",b"our_xpub_index",u"threshold",b"threshold",u"xpubs",b"xpubs"]) -> None: ...
+            def ClearField(self, field_name: typing_extensions___Literal[u"our_xpub_index",b"our_xpub_index",u"script_type",b"script_type",u"threshold",b"threshold",u"xpubs",b"xpubs"]) -> None: ...
 
     simple_type = ... # type: BTCScriptConfig.SimpleType
 
@@ -158,6 +177,8 @@ class BTCPubRequest(google___protobuf___message___Message):
         UPUB = typing___cast(BTCPubRequest.XPubType, 5)
         CAPITAL_VPUB = typing___cast(BTCPubRequest.XPubType, 6)
         CAPITAL_ZPUB = typing___cast(BTCPubRequest.XPubType, 7)
+        CAPITAL_UPUB = typing___cast(BTCPubRequest.XPubType, 8)
+        CAPITAL_YPUB = typing___cast(BTCPubRequest.XPubType, 9)
     TPUB = typing___cast(BTCPubRequest.XPubType, 0)
     XPUB = typing___cast(BTCPubRequest.XPubType, 1)
     YPUB = typing___cast(BTCPubRequest.XPubType, 2)
@@ -166,6 +187,8 @@ class BTCPubRequest(google___protobuf___message___Message):
     UPUB = typing___cast(BTCPubRequest.XPubType, 5)
     CAPITAL_VPUB = typing___cast(BTCPubRequest.XPubType, 6)
     CAPITAL_ZPUB = typing___cast(BTCPubRequest.XPubType, 7)
+    CAPITAL_UPUB = typing___cast(BTCPubRequest.XPubType, 8)
+    CAPITAL_YPUB = typing___cast(BTCPubRequest.XPubType, 9)
 
     coin = ... # type: BTCCoin
     keypath = ... # type: google___protobuf___internal___containers___RepeatedScalarFieldContainer[int]

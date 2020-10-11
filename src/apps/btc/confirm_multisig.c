@@ -66,11 +66,29 @@ bool apps_btc_confirm_multisig(
     switch (coin) {
     case BTCCoin_BTC:
     case BTCCoin_LTC:
-        xpub_type = BTCPubRequest_XPubType_CAPITAL_ZPUB;
+        switch (multisig->script_type) {
+        case BTCScriptConfig_Multisig_ScriptType_P2WSH:
+            xpub_type = BTCPubRequest_XPubType_CAPITAL_ZPUB;
+            break;
+        case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
+            xpub_type = BTCPubRequest_XPubType_CAPITAL_YPUB;
+            break;
+        default:
+            return false;
+        }
         break;
     case BTCCoin_TBTC:
     case BTCCoin_TLTC:
-        xpub_type = BTCPubRequest_XPubType_CAPITAL_VPUB;
+        switch (multisig->script_type) {
+        case BTCScriptConfig_Multisig_ScriptType_P2WSH:
+            xpub_type = BTCPubRequest_XPubType_CAPITAL_VPUB;
+            break;
+        case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
+            xpub_type = BTCPubRequest_XPubType_CAPITAL_UPUB;
+            break;
+        default:
+            return false;
+        }
         break;
     default:
         Abort("confirm multisig: unknown coin");

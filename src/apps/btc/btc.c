@@ -104,7 +104,7 @@ bool app_btc_address_simple(
         params, btc_common_determine_output_type(script_type), hash, hash_size_out, out, out_len);
 }
 
-app_btc_result_t app_btc_address_multisig_p2wsh(
+app_btc_result_t app_btc_address_multisig(
     BTCCoin coin,
     const BTCScriptConfig_Multisig* multisig,
     const uint32_t* keypath,
@@ -117,8 +117,8 @@ app_btc_result_t app_btc_address_multisig_p2wsh(
     if (params == NULL) {
         return APP_BTC_ERR_INVALID_INPUT;
     }
-    if (!btc_common_is_valid_keypath_address_multisig_p2wsh(
-            keypath, keypath_len, params->bip44_coin)) {
+    if (!btc_common_is_valid_keypath_address_multisig(
+            multisig->script_type, keypath, keypath_len, params->bip44_coin)) {
         return APP_BTC_ERR_INVALID_INPUT;
     }
 
@@ -143,12 +143,18 @@ app_btc_result_t app_btc_address_multisig_p2wsh(
     }
 
     uint8_t hash[SHA256_LEN] = {0};
-    if (!btc_common_outputhash_from_multisig_p2wsh(multisig, keypath[4], keypath[5], hash)) {
+    size_t written = 0;
+    if (!btc_common_outputhash_from_multisig(multisig, keypath[4], keypath[5], hash, &written)) {
         return APP_BTC_ERR_UNKNOWN;
     }
 
     if (!btc_common_address_from_outputhash(
-            params, BTCOutputType_P2WSH, hash, sizeof(hash), out, out_len)) {
+            params,
+            btc_common_determine_output_type_multisig(multisig),
+            hash,
+            written,
+            out,
+            out_len)) {
         return APP_BTC_ERR_UNKNOWN;
     }
 

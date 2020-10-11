@@ -262,6 +262,19 @@ pub mod btc_script_config {
         /// BTCPubRequest/BTCSignInit.
         #[prost(uint32, tag="3")]
         pub our_xpub_index: u32,
+        #[prost(enumeration="multisig::ScriptType", tag="4")]
+        pub script_type: i32,
+    }
+    /// Nested message and enum types in `Multisig`.
+    pub mod multisig {
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+        #[repr(i32)]
+        pub enum ScriptType {
+            /// native segwit v0 multisig (bech32 addresses)
+            P2wsh = 0,
+            /// wrapped segwit for legacy address compatibility
+            P2wshP2sh = 1,
+        }
     }
     /// SimpleType is a "simple" script: one public key, no additional inputs.
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -306,6 +319,10 @@ pub mod btc_pub_request {
         CapitalVpub = 6,
         /// Zpub
         CapitalZpub = 7,
+        /// Upub
+        CapitalUpub = 8,
+        /// Ypub
+        CapitalYpub = 9,
     }
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Output {

@@ -67,6 +67,7 @@ static uint8_t _mock_bip39_seed[64] =
 
 typedef struct {
     BTCCoin coin;
+    BTCScriptConfig_Multisig_ScriptType script_type;
     uint32_t threshold;
     size_t xpubs_count;
     const char* xpubs[20];
@@ -76,6 +77,7 @@ typedef struct {
 } testcase_t;
 
 static testcase_t _tests[] = {
+    /** P2WSH **/
     {
         .coin = BTCCoin_BTC,
         .threshold = 1,
@@ -158,9 +160,35 @@ static testcase_t _tests[] = {
                 2,
             },
     },
+
+    /** P2SH **/
+    {
+        .coin = BTCCoin_BTC,
+        .script_type = BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH,
+        .threshold = 2,
+        .xpubs_count = 2,
+        .xpubs =
+            {
+                "xpub6FEZ9Bv73h1vnE4TJG4QFj2RPXJhhsPbnXgFyH3ErLvpcZrDcynY65bhWga8PazWHLSLi23PoBhGcL"
+                "cYW6JRiJ12zXZ9Aop4LbAqsS3gtcy",
+                "xpub6EGAio99SxrurYgGH5BEzSiM4ZNedDX68RTGTSzGt5gk4STbs8B35ASC3RMdysGhJ7dJfffQcQEzFA"
+                "kLxvMTyDsdrvMmsd45gr8pDmtTzEX",
+            },
+        .our_xpub_index = 1,
+        .out = "3BKdK5c2kcFrNmmJbMAeWuveaoYDB4BYvu",
+        .keypath =
+            {
+                48 + BIP32_INITIAL_HARDENED_CHILD,
+                0 + BIP32_INITIAL_HARDENED_CHILD,
+                0 + BIP32_INITIAL_HARDENED_CHILD,
+                1 + BIP32_INITIAL_HARDENED_CHILD,
+                1,
+                0,
+            },
+    },
 };
 
-static void _test_app_btc_address_multisig_p2wsh(void** state)
+static void _test_app_btc_address_multisig(void** state)
 {
     mock_state(_mock_seed, _mock_bip39_seed);
 
@@ -172,6 +200,7 @@ static void _test_app_btc_address_multisig_p2wsh(void** state)
             .threshold = test_case->threshold,
             .xpubs_count = test_case->xpubs_count,
             .our_xpub_index = test_case->our_xpub_index,
+            .script_type = test_case->script_type,
         };
         for (size_t xpub_idx = 0; xpub_idx < test_case->xpubs_count; xpub_idx++) {
             multisig.xpubs[xpub_idx] = btc_util_parse_xpub(test_case->xpubs[xpub_idx]);
@@ -180,7 +209,7 @@ static void _test_app_btc_address_multisig_p2wsh(void** state)
         char out[XPUB_ENCODED_LEN] = {0};
         expect_value(__wrap_apps_btc_confirm_multisig, coin, test_case->coin);
         expect_memory(__wrap_apps_btc_confirm_multisig, multisig, &multisig, sizeof(multisig));
-        bool result = app_btc_address_multisig_p2wsh(
+        bool result = app_btc_address_multisig(
             test_case->coin,
             &multisig,
             test_case->keypath,
@@ -196,7 +225,7 @@ static void _test_app_btc_address_multisig_p2wsh(void** state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(_test_app_btc_address_multisig_p2wsh),
+        cmocka_unit_test(_test_app_btc_address_multisig),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

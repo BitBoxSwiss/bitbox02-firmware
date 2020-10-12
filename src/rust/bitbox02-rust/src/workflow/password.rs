@@ -17,23 +17,42 @@ use crate::bb02_async::option;
 use bitbox02::password::Password;
 use core::cell::RefCell;
 
+extern crate alloc;
+use alloc::boxed::Box;
+
+pub enum CanCancel {
+    No,
+    Yes,
+}
+
+/// If `can_cancel` is `Yes`, the workflow can be cancelled, and `password_out` is not modified.
+/// If it is no, the result is always `Ok(())`.
+///
 /// Example:
 /// ```no_run
-/// let mut pw = Password::new();
-/// enter("Enter password", true, &mut pw).await;
+/// let pw = enter("Enter password", true).await.unwrap();
 /// // use pw.
 /// ```
-pub async fn enter(title: &str, special_chars: bool) -> Password {
-    let result = RefCell::new(None);
-    let mut component =
-        bitbox02::ui::trinary_input_string_create_password(title, special_chars, |pw| {
-            *result.borrow_mut() = Some(pw);
-        });
+pub async fn enter(
+    title: &str,
+    special_chars: bool,
+    can_cancel: CanCancel,
+) -> Result<Password, super::cancel::Error> {
+    let result = RefCell::new(None as Option<Result<Password, ()>>); // Err means cancelled.
+    let mut component = bitbox02::ui::trinary_input_string_create_password(
+        title,
+        special_chars,
+        |pw| *result.borrow_mut() = Some(Ok(pw)),
+        match can_cancel {
+            CanCancel::Yes => Some(Box::new(|| *result.borrow_mut() = Some(Err(())))),
+            CanCancel::No => None,
+        },
+    );
     component.screen_stack_push();
     option(&result).await;
     drop(component);
-    let result: Option<Password> = result.into_inner();
-    result.unwrap()
+    let result: Result<Password, ()> = result.into_inner().unwrap();
+    result.or(Err(super::cancel::Error::Cancelled))
 }
 
 /// Prompt the user to enter a password twice. A warning is displayed
@@ -45,8 +64,12 @@ pub async fn enter(title: &str, special_chars: bool) -> Password {
 /// let pw = enter_twice().await.unwrap();
 /// // use pw.
 pub async fn enter_twice() -> Result<Password, ()> {
-    let password = enter("Set password", false).await;
-    let password_repeat = enter("Repeat password", false).await;
+    let password = enter("Set password", false, CanCancel::No)
+        .await
+        .expect("not cancelable");
+    let password_repeat = enter("Repeat password", false, CanCancel::No)
+        .await
+        .expect("not cancelable");
     if password.as_str() != password_repeat.as_str() {
         status::status("Passwords\ndo not match", false).await;
         return Err(());

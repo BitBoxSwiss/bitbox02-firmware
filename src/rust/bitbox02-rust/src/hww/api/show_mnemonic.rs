@@ -62,7 +62,7 @@ fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<&str>) {
 }
 
 pub async fn process() -> Result<Response, Error> {
-    unlock::unlock_keystore("Unlock device").await?;
+    unlock::unlock_keystore("Unlock device", unlock::CanCancel::Yes).await?;
 
     let mnemonic_sentence = keystore::get_bip39_mnemonic()?;
 

@@ -44,6 +44,15 @@ impl core::convert::From<crate::workflow::cancel::Error> for Error {
     }
 }
 
+impl core::convert::From<crate::workflow::unlock::UnlockError> for Error {
+    fn from(error: crate::workflow::unlock::UnlockError) -> Self {
+        match error {
+            crate::workflow::unlock::UnlockError::UserAbort => Error::UserAbort,
+            crate::workflow::unlock::UnlockError::IncorrectPassword => Error::Generic,
+        }
+    }
+}
+
 use pb::response::Response;
 
 /// Creates an Error response. Corresponds to commander.c:_report_error().

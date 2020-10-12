@@ -128,6 +128,20 @@ ATTESTATION_PUBKEYS: Sequence[AttestationPubkeyInfo] = [
             "e8fa0bd5fc80b86b9f1ea983664df33b27f6f95855d79fb43248ee4c3d3e6be6"
         ),
     },
+    {
+        "pubkey": binascii.unhexlify(
+            "0422491e19766bd96a56e3f2f3926a6c57b89209ff47bd10e523b223ff65ab9af"
+            "11c0a5f62c187514f2117ce772de90f9901ee122af78e69bbc4d29eec811be8ec"
+        ),
+        "accepted_bootloader_hash": None,
+    },
+    {
+        "pubkey": binascii.unhexlify(
+            "049f1b7180014b6de60d41f16a3c0a37b20146585e4884960249d30f3cd68c74d"
+            "04420d0cedef5719d6b1529b085ecd534fa6c1690be5eb1b3331bc57b5db224dc"
+        ),
+        "accepted_bootloader_hash": None,
+    },
 ]
 
 ATTESTATION_PUBKEYS_MAP: Dict[bytes, AttestationPubkeyInfo] = {

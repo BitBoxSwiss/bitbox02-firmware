@@ -96,4 +96,10 @@ void oled_off(void);
  */
 void oled_set_pixel(uint16_t x, uint16_t y, uint8_t c);
 
+/**
+ * Set brightness (0x00..0xff).
+ * 0x00 does not mean black, just loweset brightness.
+ */
+void oled_set_brightness(uint8_t value);
+
 #endif

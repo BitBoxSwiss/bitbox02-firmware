@@ -15,6 +15,7 @@
 #include <stddef.h>
 
 #include "hardfault.h"
+#include "screen_saver.h"
 #include "screen_stack.h"
 
 #define UI_SCREEN_STACK_MAX_ELEMENTS 5
@@ -52,6 +53,8 @@ void ui_screen_stack_pop(void)
         } else {
             Abort("Abort: ui_screen_stack_pop");
         }
+
+        screen_saver_reset();
     }
 }
 
@@ -77,6 +80,7 @@ void ui_screen_stack_push(component_t* component)
     if (_screen_stack.size < UI_SCREEN_STACK_MAX_ELEMENTS) {
         _screen_stack.screens[_screen_stack.size] = component;
         _screen_stack.size++;
+        screen_saver_reset();
     } else {
         Abort("Abort: ui_screen_stack_push");
     }

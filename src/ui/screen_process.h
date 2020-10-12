@@ -20,6 +20,13 @@
 
 void ui_screen_render_component(component_t* component);
 
+/*
+ * Select which activity we should process next
+ * This returns the default screen if there nothing else to process.
+ * If the screensaver is active, this returns the screensaver.
+ */
+component_t* screen_process_get_top_component(void);
+
 /**
  * Runs the UI once.
  *

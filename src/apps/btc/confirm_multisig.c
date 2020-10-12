@@ -26,7 +26,8 @@ bool apps_btc_confirm_multisig(
     BTCCoin coin,
     const char* name,
     const BTCScriptConfig_Multisig* multisig,
-    bool verify_xpubs)
+    bool verify_xpubs,
+    BTCRegisterScriptConfigRequest_XPubType xpub_type)
 {
     char basic_info[100] = {0};
     int snprintf_result = snprintf(
@@ -62,36 +63,56 @@ bool apps_btc_confirm_multisig(
         return true;
     }
 
-    BTCPubRequest_XPubType xpub_type;
-    switch (coin) {
-    case BTCCoin_BTC:
-    case BTCCoin_LTC:
-        switch (multisig->script_type) {
-        case BTCScriptConfig_Multisig_ScriptType_P2WSH:
-            xpub_type = BTCPubRequest_XPubType_CAPITAL_ZPUB;
+    BTCPubRequest_XPubType output_xpub_type;
+    switch (xpub_type) {
+    case BTCRegisterScriptConfigRequest_XPubType_AUTO_ELECTRUM:
+        switch (coin) {
+        case BTCCoin_BTC:
+        case BTCCoin_LTC:
+            switch (multisig->script_type) {
+            case BTCScriptConfig_Multisig_ScriptType_P2WSH:
+                output_xpub_type = BTCPubRequest_XPubType_CAPITAL_ZPUB;
+                break;
+            case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
+                output_xpub_type = BTCPubRequest_XPubType_CAPITAL_YPUB;
+                break;
+            default:
+                return false;
+            }
             break;
-        case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
-            xpub_type = BTCPubRequest_XPubType_CAPITAL_YPUB;
+        case BTCCoin_TBTC:
+        case BTCCoin_TLTC:
+            switch (multisig->script_type) {
+            case BTCScriptConfig_Multisig_ScriptType_P2WSH:
+                output_xpub_type = BTCPubRequest_XPubType_CAPITAL_VPUB;
+                break;
+            case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
+                output_xpub_type = BTCPubRequest_XPubType_CAPITAL_UPUB;
+                break;
+            default:
+                return false;
+            }
             break;
         default:
-            return false;
+            Abort("confirm multisig: unknown coin");
         }
         break;
-    case BTCCoin_TBTC:
-    case BTCCoin_TLTC:
-        switch (multisig->script_type) {
-        case BTCScriptConfig_Multisig_ScriptType_P2WSH:
-            xpub_type = BTCPubRequest_XPubType_CAPITAL_VPUB;
+    case BTCRegisterScriptConfigRequest_XPubType_AUTO_XPUB_TPUB:
+        switch (coin) {
+        case BTCCoin_BTC:
+        case BTCCoin_LTC:
+            output_xpub_type = BTCPubRequest_XPubType_XPUB;
             break;
-        case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
-            xpub_type = BTCPubRequest_XPubType_CAPITAL_UPUB;
+        case BTCCoin_TBTC:
+        case BTCCoin_TLTC:
+            output_xpub_type = BTCPubRequest_XPubType_TPUB;
             break;
         default:
-            return false;
+            Abort("confirm multisig: unknown coin");
         }
         break;
     default:
-        Abort("confirm multisig: unknown coin");
+        Abort("confirm multisig: unknown xpub_type");
     }
 
     size_t num_cosigners = multisig->xpubs_count;
@@ -102,7 +123,7 @@ bool apps_btc_confirm_multisig(
             return false;
         }
         char xpub_str[XPUB_ENCODED_LEN] = {0};
-        if (!btc_common_encode_xpub(&xpub, xpub_type, xpub_str, sizeof(xpub_str))) {
+        if (!btc_common_encode_xpub(&xpub, output_xpub_type, xpub_str, sizeof(xpub_str))) {
             return false;
         }
         char confirm[XPUB_ENCODED_LEN + 100] = {0};

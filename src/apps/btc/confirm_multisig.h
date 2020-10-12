@@ -31,6 +31,9 @@
  * @param[in] name User given name of the multisig account.
  * @param[in] multisig multisig details
  * @param[in] verify_xpubs if true, all cosigner xpubs are verified.
+ * @param[in] xpub_type: if AUTO_ELECTRUM, will automatically format xpubs as `Zpub/Vpub`,
+ * `Ypub/UPub` depending on the script type, to match Electrum's formatting. If AUTO_XPUB_TPUB,
+ * format as xpub (mainnets) or tpub (testnets). Only applies if `verify_xpubs` is true.
  * @return true if the user accepts all confirmation screens, false otherwise.
  */
 USE_RESULT bool apps_btc_confirm_multisig(
@@ -38,6 +41,7 @@ USE_RESULT bool apps_btc_confirm_multisig(
     BTCCoin coin,
     const char* name,
     const BTCScriptConfig_Multisig* multisig,
-    bool verify_xpubs);
+    bool verify_xpubs,
+    BTCRegisterScriptConfigRequest_XPubType xpub_type);
 
 #endif

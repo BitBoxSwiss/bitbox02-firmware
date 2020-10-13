@@ -20,8 +20,6 @@
 #include <driver_init.h>
 #include <stdint.h>
 #include <string.h>
-#include <ui/fonts/font_a_9X9.h>
-#include <ui/fonts/monogram_5X9.h>
 #ifdef BOOTLOADER_DEVDEVICE
 #include <qtouch/qtouch.h>
 #endif
@@ -372,10 +370,19 @@ static void _render_hash(const char* title, const uint8_t* hash)
     char hash_hex[2 * SHA256_DIGEST_LENGTH + 1];
     util_uint8_to_hex(hash, SHA256_DIGEST_LENGTH, hash_hex);
 
-    char scratch = 0; // Buffer for character that is temporarily replaced with '\0'
     char timer_buf[3]; // Buffer for timer
     UG_S16 timer_len = 0; // Store the length of the timer string
-    UG_S16 yoffset = 0; // Y offset for next hash string row
+    // 4 lines à 16 chars, 3 newline chars, one null terminator.
+    char hash_multiline[4 * 16 + 3 + 1] = {0};
+    snprintf(
+        hash_multiline,
+        sizeof(hash_multiline),
+        "%.16s\n%.16s\n%.16s\n%.16s",
+        &hash_hex[0],
+        &hash_hex[16],
+        &hash_hex[32],
+        &hash_hex[48]);
+
     for (uint8_t i = 1; i <= seconds; i++) {
         UG_ClearBuffer();
         UG_PutString(0, 0, title_buf, false);
@@ -385,29 +392,9 @@ static void _render_hash(const char* title, const uint8_t* hash)
         UG_PutString(
             SCREEN_WIDTH - timer_len, SCREEN_HEIGHT - f_regular->char_height, timer_buf, false);
 
-        // The hash string is temporarily shortened by replacing a character with '\0' so that
-        // UG_PutString only prints 16 characters.
         UG_FontSelect(f_mono);
-        scratch = hash_hex[16];
-        hash_hex[16] = 0;
-        yoffset = title_margin + f_regular->char_height;
-        UG_PutString(0, yoffset, hash_hex, false);
-        hash_hex[16] = scratch;
+        UG_PutString(0, title_margin + f_regular->char_height, hash_multiline, false);
 
-        scratch = hash_hex[32];
-        hash_hex[32] = 0;
-        yoffset += f_mono->char_height;
-        UG_PutString(0, yoffset, &hash_hex[16], false);
-        hash_hex[32] = scratch;
-
-        scratch = hash_hex[48];
-        hash_hex[48] = 0;
-        yoffset += f_mono->char_height;
-        UG_PutString(0, yoffset, &hash_hex[32], false);
-        hash_hex[48] = scratch;
-
-        yoffset += f_mono->char_height;
-        UG_PutString(0, yoffset, &hash_hex[48], false);
         UG_FontSelect(f_regular);
 
         UG_SendBuffer();

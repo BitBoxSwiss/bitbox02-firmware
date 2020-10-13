@@ -891,6 +891,7 @@ class SendMessageBootloader:
             ("Show firmware hash at startup", self._show_fw_hash),
             ("Don't show firmware hash at startup", self._dont_show_fw_hash),
             ("Get firmware & sigkey hashes", self._get_hashes),
+            ("Rotate screen", self._device.screen_rotate),
         )
         choice = ask_user(choices)
         if isinstance(choice, bool):

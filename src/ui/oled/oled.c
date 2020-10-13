@@ -252,8 +252,7 @@ void oled_mirror(bool mirror)
         _write_cmd(OLED_CMD_SET_SEGMENT_RE_MAP_COL0_SEG0);
         _write_cmd(OLED_CMD_SET_COM_OUTPUT_SCAN_DOWN);
         // Shift the columns by 32 when display is in mirrored orientation
-        _write_cmd(OLED_CMD_SET_DISPLAY_OFFSET);
-        _write_cmd(0x20);
+        _write_cmd_with_param(OLED_CMD_SET_DISPLAY_OFFSET, 0x20);
     } else {
         _write_cmd(OLED_CMD_SET_SEGMENT_RE_MAP_COL127_SEG0);
         _write_cmd(OLED_CMD_SET_COM_OUTPUT_SCAN_UP);

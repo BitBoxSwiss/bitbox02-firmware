@@ -160,6 +160,7 @@ static inline void _write_cmd_with_param(uint8_t command, uint8_t value)
 #define ADDRESSING_MODE 0x21
 #define SEGMENT_REMAP OLED_CMD_SET_SEGMENT_RE_MAP_COL127_SEG0
 #define DISPLAY_OFFSET 0x60
+#define DISPLAY_OFFSET_MIRRORED 0x20
 #define PRE_CHARGE_PERIOD 0x22
 #elif PLATFORM_BITBOXBASE == 1
 // Page addressing mode
@@ -252,7 +253,7 @@ void oled_mirror(bool mirror)
         _write_cmd(OLED_CMD_SET_SEGMENT_RE_MAP_COL0_SEG0);
         _write_cmd(OLED_CMD_SET_COM_OUTPUT_SCAN_DOWN);
         // Shift the columns by 32 when display is in mirrored orientation
-        _write_cmd_with_param(OLED_CMD_SET_DISPLAY_OFFSET, 0x20);
+        _write_cmd_with_param(OLED_CMD_SET_DISPLAY_OFFSET, DISPLAY_OFFSET_MIRRORED);
     } else {
         _write_cmd(OLED_CMD_SET_SEGMENT_RE_MAP_COL127_SEG0);
         _write_cmd(OLED_CMD_SET_COM_OUTPUT_SCAN_UP);

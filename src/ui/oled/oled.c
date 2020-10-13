@@ -257,6 +257,7 @@ void oled_mirror(bool mirror)
     } else {
         _write_cmd(OLED_CMD_SET_SEGMENT_RE_MAP_COL127_SEG0);
         _write_cmd(OLED_CMD_SET_COM_OUTPUT_SCAN_UP);
+        _write_cmd_with_param(OLED_CMD_SET_DISPLAY_OFFSET, DISPLAY_OFFSET);
     }
 #elif PLATFORM_BITBOXBASE == 1
     (void)mirror;

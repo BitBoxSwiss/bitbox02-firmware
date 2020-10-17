@@ -110,4 +110,21 @@ mod tests {
         assert_eq!(truncate_str("test", 5), "test");
         assert_eq!(truncate_str("test", 6), "test");
     }
+
+    #[test]
+    fn test_str_from_null_terminated() {
+        assert_eq!(str_from_null_terminated(b""), Ok(""));
+        assert_eq!(str_from_null_terminated(b"\0"), Ok(""));
+        assert_eq!(str_from_null_terminated(b"hello\0"), Ok("hello"));
+        assert_eq!(str_from_null_terminated(b"hello\0world"), Ok("hello"));
+        // valid utf8.
+        assert_eq!(
+            str_from_null_terminated(b"\xc3\xb6\xc3\xa4\xc3\xbc \xf0\x9f\x91\x8c\0world"),
+            Ok("öäü 👌")
+        );
+        // invalid utf8 after the null terminator
+        assert_eq!(str_from_null_terminated(b"hello\0\xFF"), Ok("hello"));
+        // invalid utf8 before the null terminator
+        assert!(str_from_null_terminated(b"\xFF\0world").is_err());
+    }
 }

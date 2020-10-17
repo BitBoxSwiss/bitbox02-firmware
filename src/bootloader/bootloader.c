@@ -358,6 +358,7 @@ static void _render_progress(float progress)
 
 static void _render_hash(const char* title, const uint8_t* hash)
 {
+    // If you change this, check the timer_buf size below.
     const uint8_t seconds = 10; // how many seconds to show screen
     const UG_S16 title_margin = 7; // Margin between title and hash
     const UG_FONT* f_mono = &font_monogram_5X9; // monospaced font
@@ -370,7 +371,9 @@ static void _render_hash(const char* title, const uint8_t* hash)
     char hash_hex[2 * SHA256_DIGEST_LENGTH + 1];
     util_uint8_to_hex(hash, SHA256_DIGEST_LENGTH, hash_hex);
 
-    char timer_buf[3]; // Buffer for timer
+    // Buffer for timer. 3 bytes would be enough to hold the string up to "9s", but we do a bit more
+    // just in case the number of seconds changes.
+    char timer_buf[4];
     UG_S16 timer_len = 0; // Store the length of the timer string
     // 4 lines à 16 chars, 3 newline chars, one null terminator.
     char hash_multiline[4 * 16 + 3 + 1] = {0};

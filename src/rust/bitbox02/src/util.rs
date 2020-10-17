@@ -14,13 +14,12 @@
 
 /// Must be given a null-terminated string
 /// # Safety
-/// ptr must be not NULL.
+/// ptr must be not NULL and the memory must be valid until a null byte.
 pub unsafe fn strlen_ptr(ptr: *const u8) -> isize {
     let mut end = ptr;
     loop {
         if *end == 0 {
-            // Can be changed to (*const u8).offset_from() when stabilized
-            return isize::wrapping_sub(end as _, ptr as _);
+            return end.offset_from(ptr);
         }
         end = end.offset(1);
     }

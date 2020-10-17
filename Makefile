@@ -56,21 +56,21 @@ bootloader: | build
 	$(MAKE) -C build bootloader.elf
 bootloader-semihosting: | build-semihosting
 	$(MAKE) -C build-semihosting bootloader-development.elf
-bootloader-devdevice: | build
+bootloader-development: | build
 	$(MAKE) -C build bootloader-development.elf
-bootloader-devdevice-locked: | build
+bootloader-development-locked: | build
 	$(MAKE) -C build bootloader-development-locked.elf
 bootloader-production: | build
 	$(MAKE) -C build bootloader-production.elf
 bootloader-btc: | build
 	$(MAKE) -C build bootloader-btc.elf
-bootloader-btc-devdevice: | build
+bootloader-btc-development: | build
 	$(MAKE) -C build bootloader-btc-development.elf
 bootloader-btc-production: | build
 	$(MAKE) -C build bootloader-btc-production.elf
 bootloader-bitboxbase: | build
 	$(MAKE) -C build bootloader-bitboxbase.elf
-bootloader-bitboxbase-devdevice: | build
+bootloader-bitboxbase-development: | build
 	$(MAKE) -C build bootloader-bitboxbase-development.elf
 bootloader-bitboxbase-production: | build
 	$(MAKE) -C build bootloader-bitboxbase-production.elf
@@ -116,10 +116,14 @@ flash-dev-firmware:
 	./py/load_firmware.py build/bin/firmware.bin --debug
 flash-dev-firmware-bitboxbase:
 	./py/load_firmware.py build/bin/firmware-bitboxbase.bin --debug
-jlink-flash-bootloader: | build
+jlink-flash-bootloader-development: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-development.jlink
-jlink-flash-bootloader-btc: | build
+jlink-flash-bootloader: | build
+	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader.jlink
+jlink-flash-bootloader-btc-development: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-btc-development.jlink
+jlink-flash-bootloader-btc: | build
+	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-btc.jlink
 jlink-flash-firmware: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware.jlink
 jlink-flash-firmware-btc: | build

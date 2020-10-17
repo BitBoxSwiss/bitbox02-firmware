@@ -32,16 +32,16 @@ make coverage
 
 # Bootloader variants
 make -j8 bootloader
-make -j8 bootloader-devdevice
-make -j8 bootloader-devdevice-locked
+make -j8 bootloader-development
+make -j8 bootloader-development-locked
 make -j8 bootloader-production
 
 make -j8 bootloader-btc
-make -j8 bootloader-btc-devdevice
+make -j8 bootloader-btc-development
 make -j8 bootloader-btc-production
 
 make -j8 bootloader-bitboxbase
-make -j8 bootloader-bitboxbase-devdevice
+make -j8 bootloader-bitboxbase-development
 make -j8 bootloader-bitboxbase-production
 
 # Firmware

@@ -22,8 +22,12 @@ use crate::{Buf, BufMut, Bytes};
 ///
 /// `BytesMut` represents a unique view into a potentially shared memory region.
 /// Given the uniqueness guarantee, owners of `BytesMut` handles are able to
-/// mutate the memory. It is similar to a `Vec<u8>` but with less copies and
-/// allocations.
+/// mutate the memory.
+///
+/// `BytesMut` can be thought of as containing a `buf: Arc<Vec<u8>>`, an offset
+/// into `buf`, a slice length, and a guarantee that no other `BytesMut` for the
+/// same `buf` overlaps with its slice. That guarantee means that a write lock
+/// is not required.
 ///
 /// # Growth
 ///
@@ -475,6 +479,7 @@ impl BytesMut {
     ///
     /// assert_eq!(&b[..], b"hello world");
     /// ```
+    #[inline]
     pub unsafe fn set_len(&mut self, len: usize) {
         debug_assert!(len <= self.cap, "set_len out of bounds");
         self.len = len;
@@ -558,9 +563,8 @@ impl BytesMut {
             unsafe {
                 let (off, prev) = self.get_vec_pos();
 
-                // Only reuse space if we stand to gain at least capacity/2
-                // bytes of space back
-                if off >= additional && off >= (self.cap / 2) {
+                // Only reuse space if we can satisfy the requested additional space.
+                if self.capacity() - self.len() + off >= additional {
                     // There's space - reuse it
                     //
                     // Just move the pointer back to the start after copying
@@ -1025,6 +1029,7 @@ impl Deref for BytesMut {
 }
 
 impl AsMut<[u8]> for BytesMut {
+    #[inline]
     fn as_mut(&mut self) -> &mut [u8] {
         self.as_slice_mut()
     }
@@ -1495,7 +1500,7 @@ static SHARED_VTABLE: Vtable = Vtable {
 };
 
 unsafe fn shared_v_clone(data: &AtomicPtr<()>, ptr: *const u8, len: usize) -> Bytes {
-    let shared = data.load(Ordering::Acquire) as *mut Shared;
+    let shared = data.load(Ordering::Relaxed) as *mut Shared;
     increment_shared(shared);
 
     let data = AtomicPtr::new(shared as _);

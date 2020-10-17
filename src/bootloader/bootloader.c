@@ -364,9 +364,6 @@ static void _render_hash(const char* title, const uint8_t* hash)
     const UG_FONT* f_mono = &font_monogram_5X9; // monospaced font
     const UG_FONT* f_regular = &font_font_a_9X9; // regular font
 
-    char title_buf[50] = {0};
-    snprintf(title_buf, sizeof(title_buf), "%s hash", title);
-
     // Convert hash to ascii hex
     char hash_hex[2 * SHA256_DIGEST_LENGTH + 1];
     util_uint8_to_hex(hash, SHA256_DIGEST_LENGTH, hash_hex);
@@ -388,7 +385,7 @@ static void _render_hash(const char* title, const uint8_t* hash)
 
     for (uint8_t i = 1; i <= seconds; i++) {
         UG_ClearBuffer();
-        UG_PutString(0, 0, title_buf, false);
+        UG_PutString(0, 0, title, false);
 
         snprintf(timer_buf, sizeof(timer_buf), "%ds", seconds - i);
         UG_MeasureString(&timer_len, NULL, timer_buf);
@@ -574,7 +571,7 @@ static void _maybe_show_hash(void)
     }
     uint8_t hash[SHA256_DIGEST_LENGTH];
     _firmware_hash(data, hash);
-    _render_hash("Firmware", hash);
+    _render_hash("Firmware hash", hash);
 }
 
 /*
@@ -729,14 +726,14 @@ static size_t _api_get_hashes(const uint8_t* input, uint8_t* output)
     memcpy(output + BOOT_OP_LEN, hash, SHA256_DIGEST_LENGTH);
 
     if (input[0]) {
-        _render_hash("Firmware", hash);
+        _render_hash("Firmware hash", hash);
     }
 
     _hash_signing_keys(data, hash);
     memcpy(output + BOOT_OP_LEN + SHA256_DIGEST_LENGTH, hash, SHA256_DIGEST_LENGTH);
 
     if (input[1]) {
-        _render_hash("Sigkeys", hash);
+        _render_hash("Sigkeys hash", hash);
     }
 
     size_t len = _report_status(OP_STATUS_OK, output);

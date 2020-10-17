@@ -105,6 +105,14 @@ mod tests {
     }
 
     #[test]
+    fn test_strlen_ptr() {
+        assert_eq!(unsafe { strlen_ptr(b"\0".as_ptr()) }, 0);
+        assert_eq!(unsafe { strlen_ptr(b"a\0".as_ptr()) }, 1);
+        assert_eq!(unsafe { strlen_ptr(b"abcdef\0".as_ptr()) }, 6);
+        assert_eq!(unsafe { strlen_ptr(b"abcdef\0defghji".as_ptr()) }, 6);
+    }
+
+    #[test]
     fn test_str_from_null_terminated() {
         assert_eq!(str_from_null_terminated(b"\0"), Ok(""));
         assert_eq!(str_from_null_terminated(b"hello\0"), Ok("hello"));

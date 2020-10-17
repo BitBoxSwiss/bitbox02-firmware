@@ -26,18 +26,11 @@ pub unsafe fn strlen_ptr(ptr: *const u8) -> isize {
     }
 }
 
-pub fn strlen_slice(input: &[u8]) -> usize {
-    if let Some(nullidx) = input.iter().position(|&c| c == 0) {
-        nullidx
-    } else {
-        input.len()
-    }
-}
-
-/// Parses a utf-8 string out of a null terminated fixed length array
-pub fn str_from_null_terminated(input: &[u8]) -> Result<&str, core::str::Utf8Error> {
-    let len = strlen_slice(input);
-    core::str::from_utf8(&input[0..len])
+/// Parses a utf-8 string out of a null terminated fixed length array. Returns `Err(())` if there
+/// is no null terminator or if the bytes before the null terminator is invalid UTF8.
+pub fn str_from_null_terminated(input: &[u8]) -> Result<&str, ()> {
+    let len = input.iter().position(|&c| c == 0).ok_or(())?;
+    core::str::from_utf8(&input[0..len]).or(Err(()))
 }
 
 /// Macro for creating a stack allocated buffer with the content of a string and a null-terminator
@@ -113,7 +106,6 @@ mod tests {
 
     #[test]
     fn test_str_from_null_terminated() {
-        assert_eq!(str_from_null_terminated(b""), Ok(""));
         assert_eq!(str_from_null_terminated(b"\0"), Ok(""));
         assert_eq!(str_from_null_terminated(b"hello\0"), Ok("hello"));
         assert_eq!(str_from_null_terminated(b"hello\0world"), Ok("hello"));
@@ -126,5 +118,8 @@ mod tests {
         assert_eq!(str_from_null_terminated(b"hello\0\xFF"), Ok("hello"));
         // invalid utf8 before the null terminator
         assert!(str_from_null_terminated(b"\xFF\0world").is_err());
+        // Not null terminated.
+        assert!(str_from_null_terminated(b"").is_err());
+        assert!(str_from_null_terminated(b"foo").is_err());
     }
 }

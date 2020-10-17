@@ -25,7 +25,10 @@ members = [
 ]
 
 [profile.release]
+# This only affects the .elf output. Debug info is stripped from the final .bin.
+# Paths to source code can still appear in the final bin, as they are part of the panic!() output.
 debug = true
+
 opt-level = 'z'
 codegen-units = 1
 panic = 'abort'

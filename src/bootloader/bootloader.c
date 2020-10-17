@@ -371,7 +371,8 @@ static void _render_hash(const char* title, const uint8_t* hash)
     // Buffer for timer. 3 bytes would be enough to hold the string up to "9s", but we do a bit more
     // just in case the number of seconds changes.
     char timer_buf[4];
-    UG_S16 timer_len = 0; // Store the length of the timer string
+    // Store the width of the timer string in pixels.
+    UG_S16 timer_str_width = 0;
     // 4 lines à 16 chars, 3 newline chars, one null terminator.
     char hash_multiline[4 * 16 + 3 + 1] = {0};
     snprintf(
@@ -388,9 +389,12 @@ static void _render_hash(const char* title, const uint8_t* hash)
         UG_PutString(0, 0, title, false);
 
         snprintf(timer_buf, sizeof(timer_buf), "%ds", seconds - i);
-        UG_MeasureString(&timer_len, NULL, timer_buf);
+        UG_MeasureString(&timer_str_width, NULL, timer_buf);
         UG_PutString(
-            SCREEN_WIDTH - timer_len, SCREEN_HEIGHT - f_regular->char_height, timer_buf, false);
+            SCREEN_WIDTH - timer_str_width,
+            SCREEN_HEIGHT - f_regular->char_height,
+            timer_buf,
+            false);
 
         UG_FontSelect(f_mono);
         UG_PutString(0, title_margin + f_regular->char_height, hash_multiline, false);

@@ -25,7 +25,5 @@ pub async fn confirm(params: &Params<'_>) -> bool {
         *result.borrow_mut() = Some(accepted);
     });
     component.screen_stack_push();
-    option(&result).await;
-    let result = result.borrow();
-    result.unwrap()
+    option(&result).await
 }

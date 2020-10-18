@@ -49,10 +49,9 @@ pub async fn enter(
         },
     );
     component.screen_stack_push();
-    option(&result).await;
-    drop(component);
-    let result: Result<Password, ()> = result.into_inner().unwrap();
-    result.or(Err(super::cancel::Error::Cancelled))
+    option(&result)
+        .await
+        .or(Err(super::cancel::Error::Cancelled))
 }
 
 /// Prompt the user to enter a password twice. A warning is displayed

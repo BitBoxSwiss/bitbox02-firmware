@@ -3,3 +3,9 @@ replace-with = "vendored-sources"
 
 [source.vendored-sources]
 directory = "vendor"
+
+# Also build git sources from the vendored sources.
+[source."https://github.com/danburkert/prost.git"]
+git = "https://github.com/danburkert/prost.git"
+rev = "6113789f70b69709820becba4242824b4fb3ffec"
+replace-with = "vendored-sources"

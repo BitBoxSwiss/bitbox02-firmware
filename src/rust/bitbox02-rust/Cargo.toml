@@ -40,7 +40,7 @@ default-features = false
 
 [dependencies.prost]
 git = "https://github.com/danburkert/prost.git"
-# keep rev in sync with tools/prost-build/Cargo.toml
+# keep rev in sync with tools/prost-build/Cargo.toml and src/rust/.cargo/config
 rev = "6113789f70b69709820becba4242824b4fb3ffec"
 default-features = false
 features = ["prost-derive"]

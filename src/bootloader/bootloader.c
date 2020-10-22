@@ -358,33 +358,48 @@ static void _render_progress(float progress)
 
 static void _render_hash(const char* title, const uint8_t* hash)
 {
-    uint8_t seconds = 10;
-    char message[16];
+    // If you change this, check the timer_buf size below.
+    const uint8_t seconds = 10; // how many seconds to show screen
+    const UG_S16 title_margin = 7; // Margin between title and hash
+    const UG_FONT* f_mono = &font_monogram_5X9; // monospaced font
+    const UG_FONT* f_regular = &font_font_a_9X9; // regular font
+
+    // Convert hash to ascii hex
     char hash_hex[2 * SHA256_DIGEST_LENGTH + 1];
     util_uint8_to_hex(hash, SHA256_DIGEST_LENGTH, hash_hex);
-    char scratch = 0;
+
+    // Buffer for timer. 3 bytes would be enough to hold the string up to "9s", but we do a bit more
+    // just in case the number of seconds changes.
+    char timer_buf[4];
+    // Store the width of the timer string in pixels.
+    UG_S16 timer_str_width = 0;
+    // 4 lines à 16 chars, 3 newline chars, one null terminator.
+    char hash_multiline[4 * 16 + 3 + 1] = {0};
+    snprintf(
+        hash_multiline,
+        sizeof(hash_multiline),
+        "%.16s\n%.16s\n%.16s\n%.16s",
+        &hash_hex[0],
+        &hash_hex[16],
+        &hash_hex[32],
+        &hash_hex[48]);
+
     for (uint8_t i = 1; i <= seconds; i++) {
-        snprintf(message, sizeof(message), "HASH  (%2ds)", seconds - i);
         UG_ClearBuffer();
-        UG_PutString(0, SCREEN_HEIGHT - 9, message, false);
-        UG_PutString(0, SCREEN_HEIGHT - 9 * 2, title, false);
+        UG_PutString(0, 0, title, false);
 
-        scratch = hash_hex[16];
-        hash_hex[16] = 0;
-        UG_PutString(0, 0, hash_hex, false);
-        hash_hex[16] = scratch;
+        snprintf(timer_buf, sizeof(timer_buf), "%ds", seconds - i);
+        UG_MeasureString(&timer_str_width, NULL, timer_buf);
+        UG_PutString(
+            SCREEN_WIDTH - timer_str_width,
+            SCREEN_HEIGHT - f_regular->char_height,
+            timer_buf,
+            false);
 
-        scratch = hash_hex[32];
-        hash_hex[32] = 0;
-        UG_PutString(0, 9, &hash_hex[16], false);
-        hash_hex[32] = scratch;
+        UG_FontSelect(f_mono);
+        UG_PutString(0, title_margin + f_regular->char_height, hash_multiline, false);
 
-        scratch = hash_hex[48];
-        hash_hex[48] = 0;
-        UG_PutString(0, 18, &hash_hex[32], false);
-        hash_hex[48] = scratch;
-
-        UG_PutString(0, 27, &hash_hex[48], false);
+        UG_FontSelect(f_regular);
 
         UG_SendBuffer();
         delay_ms(1000);
@@ -560,7 +575,7 @@ static void _maybe_show_hash(void)
     }
     uint8_t hash[SHA256_DIGEST_LENGTH];
     _firmware_hash(data, hash);
-    _render_hash("FIRMWARE", hash);
+    _render_hash("Firmware hash", hash);
 }
 
 /*
@@ -715,14 +730,14 @@ static size_t _api_get_hashes(const uint8_t* input, uint8_t* output)
     memcpy(output + BOOT_OP_LEN, hash, SHA256_DIGEST_LENGTH);
 
     if (input[0]) {
-        _render_hash("FIRMWARE", hash);
+        _render_hash("Firmware hash", hash);
     }
 
     _hash_signing_keys(data, hash);
     memcpy(output + BOOT_OP_LEN + SHA256_DIGEST_LENGTH, hash, SHA256_DIGEST_LENGTH);
 
     if (input[1]) {
-        _render_hash("SIGKEYS", hash);
+        _render_hash("Sigkeys hash", hash);
     }
 
     size_t len = _report_status(OP_STATUS_OK, output);

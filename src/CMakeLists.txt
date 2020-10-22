@@ -146,6 +146,7 @@ set(DBB-BOOTLOADER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
   ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_9X9.c
   ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_11X10.c
+  ${CMAKE_SOURCE_DIR}/src/ui/fonts/monogram_5X9.c
   ${CMAKE_SOURCE_DIR}/src/screen.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
   ${CMAKE_SOURCE_DIR}/src/ui/components/ui_images.c

@@ -24,6 +24,7 @@ from typing import List, Any, Optional, Callable, Union, Tuple, Sequence
 import hashlib
 import base64
 import binascii
+import textwrap
 
 import requests
 import hid
@@ -871,13 +872,26 @@ class SendMessageBootloader:
     def _dont_show_fw_hash(self) -> None:
         self._device.set_show_firmware_hash(False)
 
+    def _get_hashes(self) -> None:
+        firmware_hash, sigkeys_hash = self._device.get_hashes()
+        print("Firmware hash:")
+        print("\n".join(textwrap.wrap(firmware_hash.hex(), 16)))
+        if input("Display on device? y/[n]: ") == "y":
+            self._device.get_hashes(display_firmware_hash=True)
+        print("Signature keys hash:")
+        print("\n".join(textwrap.wrap(sigkeys_hash.hex(), 16)))
+        if input("Display on device? y/[n]: ") == "y":
+            self._device.get_hashes(display_signing_keydata_hash=True)
+
     def _menu(self) -> None:
         choices = (
             ("Boot", self._boot),
             ("Print versions", self._get_versions),
             ("Erase firmware", self._erase),
-            ("Show firmware hash", self._show_fw_hash),
-            ("Don't show firmware hash", self._dont_show_fw_hash),
+            ("Show firmware hash at startup", self._show_fw_hash),
+            ("Don't show firmware hash at startup", self._dont_show_fw_hash),
+            ("Get firmware & sigkey hashes", self._get_hashes),
+            ("Rotate screen", self._device.screen_rotate),
         )
         choice = ask_user(choices)
         if isinstance(choice, bool):

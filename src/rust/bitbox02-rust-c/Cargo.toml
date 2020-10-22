@@ -23,14 +23,14 @@ license = "Apache-2.0"
 crate-type = ["staticlib"]
 
 [dependencies]
-bitbox02-rust = { path = "../bitbox02-rust" }
-bitbox02 = { path = "../bitbox02" }
-bitbox02-noise = { path = "../bitbox02-noise" }
+bitbox02-rust = { path = "../bitbox02-rust", optional = true }
+bitbox02 = { path = "../bitbox02", optional = true }
+bitbox02-noise = { path = "../bitbox02-noise", optional = true }
 util = { path = "../util" }
 ethereum = { path = "../apps/ethereum", optional = true }
 hex = { version = "0.4", default-features = false }
 arrayref = "0.3.6"
-sha2 = { version = "0.8.1", default-features = false }
+sha2 = { version = "0.8.1", default-features = false, optional = true }
 
 [features]
 # Only one of the "target-" should be activated, which in turn defines/activates the dependent features.
@@ -44,18 +44,19 @@ target-bootloader-btc-production = ["bootloader", "platform-bitbox02"]
 target-bootloader-bitboxbase = ["bootloader", "platform-bitboxbase"]
 target-bootloader-bitboxbase-development = ["bootloader", "platform-bitboxbase"]
 target-bootloader-bitboxbase-production = ["bootloader", "platform-bitboxbase"]
-target-firmware = ["platform-bitbox02", "app-ethereum"]
-target-firmware-btc = ["platform-bitbox02"]
-target-firmware-bitboxbase = ["platform-bitboxbase"]
-target-factory-setup = ["platform-bitbox02"]
-target-factory-setup-bitboxbase = ["platform-bitboxbase"]
+target-firmware = ["firmware", "platform-bitbox02", "app-ethereum"]
+target-firmware-btc = ["firmware", "platform-bitbox02"]
+target-firmware-bitboxbase = ["firmware", "platform-bitboxbase"]
+target-factory-setup = ["firmware", "platform-bitbox02"]
+target-factory-setup-bitboxbase = ["firmware", "platform-bitboxbase"]
 # add Rust features which are called in the C unit tests (currently there is only one target for C tests).
-target-c-unit-tests = ["app-ethereum"]
+target-c-unit-tests = ["app-ethereum", "firmware"]
 
 platform-bitbox02 = []
 platform-bitboxbase = []
 
 bootloader = []
+firmware = ["bitbox02-rust", "bitbox02", "bitbox02-noise", "sha2"]
 
 # Only to be enabled in unit tests.
 testing = ["bitbox02/testing"]

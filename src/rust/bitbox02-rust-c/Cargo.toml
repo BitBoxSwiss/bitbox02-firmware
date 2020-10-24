@@ -36,7 +36,7 @@ sha2 = { version = "0.8.1", default-features = false, optional = true }
 # Only one of the "target-" should be activated, which in turn defines/activates the dependent features.
 target-bootloader = ["bootloader", "platform-bitbox02"]
 target-bootloader-development = ["bootloader", "platform-bitbox02"]
-target-bootloader-development-locked = ["bootloader", "target-bootloader-development"]
+target-bootloader-development-locked = ["bootloader", "platform-bitbox02"]
 target-bootloader-production = ["bootloader", "platform-bitbox02"]
 target-bootloader-btc = ["bootloader", "platform-bitbox02"]
 target-bootloader-btc-development = ["bootloader", "platform-bitbox02"]

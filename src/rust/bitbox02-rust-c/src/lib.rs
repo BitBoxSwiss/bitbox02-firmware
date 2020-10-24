@@ -25,16 +25,21 @@ extern crate std;
 #[macro_use]
 mod alloc;
 
-mod async_usb;
-mod noise;
-mod sha2;
 mod util;
+
+#[cfg(feature = "firmware")]
+mod async_usb;
+#[cfg(feature = "firmware")]
+mod noise;
+#[cfg(feature = "firmware")]
+mod sha2;
+#[cfg(feature = "firmware")]
 mod workflow;
 
-#[cfg(feature = "platform-bitboxbase")]
+#[cfg(all(feature = "firmware", feature = "platform-bitboxbase"))]
 pub mod bitboxbase;
 
-#[cfg(feature = "platform-bitbox02")]
+#[cfg(all(feature = "firmware", feature = "platform-bitbox02"))]
 pub mod bitbox02;
 
 #[cfg(feature = "app-ethereum")]
@@ -48,7 +53,7 @@ pub mod app_ethereum;
 #[cfg_attr(feature = "bootloader", allow(unused_variables))]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    #[cfg(not(feature = "bootloader"))]
+    #[cfg(feature = "firmware")]
     bitbox02_rust::print_debug!(0, "Error: {}", info);
     loop {}
 }

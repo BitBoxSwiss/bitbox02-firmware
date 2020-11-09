@@ -104,7 +104,7 @@ where
 
     let component = unsafe {
         bitbox02_sys::trinary_input_string_create_password(
-            crate::str_to_cstr_force!(title, MAX_LABEL_SIZE).as_ptr(),
+            crate::str_to_cstr_force!(title, MAX_LABEL_SIZE).as_ptr(), // copied in C
             special_chars,
             Some(c_confirm_callback::<F>),
             // passed to c_confirm_callback as `param`.
@@ -142,10 +142,13 @@ where
         let mut callback = Box::from_raw(param as *mut F2);
         callback(result);
     }
-
+    let mut title_scratch = [0; MAX_LABEL_SIZE + 2];
+    let mut body_scratch = [0; MAX_LABEL_SIZE + 2];
     let component = unsafe {
         bitbox02_sys::confirm_create(
-            &params.to_c_params(),
+            &params
+                .to_c_params(&mut title_scratch, &mut body_scratch)
+                .data,
             Some(c_callback::<F>),
             // passed to the C callback as `param`
             Box::into_raw(Box::new(result_callback)) as *mut _,
@@ -182,7 +185,7 @@ where
 
     let component = unsafe {
         bitbox02_sys::status_create(
-            crate::str_to_cstr_force!(text, MAX_LABEL_SIZE).as_ptr(),
+            crate::str_to_cstr_force!(text, MAX_LABEL_SIZE).as_ptr(), // copied in C
             status_success,
             Some(c_callback::<F>),
             Box::into_raw(Box::new(callback)) as *mut _, // passed to c_callback as `param`.
@@ -284,6 +287,7 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
             select_word_cb,
             select_word_cb_param,
             words.len() as _,
+            // copied in C
             title.map_or_else(|| core::ptr::null(), |title| title.as_ptr()),
             continue_on_last_cb,
             continue_on_last_cb_param,

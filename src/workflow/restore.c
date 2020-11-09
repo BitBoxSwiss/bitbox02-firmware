@@ -37,7 +37,7 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
         return false;
     }
 
-    char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    char password[INPUT_STRING_MAX_SIZE] = {0};
     UTIL_CLEANUP_STR(password);
     if (!password_set(password)) {
         return false;

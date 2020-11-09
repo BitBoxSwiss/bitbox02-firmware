@@ -16,7 +16,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 
 /// C-style including null terminator, as it is used in C only so far.
-/// 150 corresponds to SET_PASSWORD_MAX_PASSWORD_LENGTH.
+/// 150 corresponds to INPUT_STRING_MAX_SIZE.
 /// Does *not* implement Copy, so that we can have a Drop to zero the contents.
 // TODO: use a reusable zero-on-drop buffer type
 pub struct Password(Box<[u8; 150]>);

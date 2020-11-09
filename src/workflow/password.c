@@ -18,5 +18,5 @@
 bool password_set(char* password_out)
 {
     return rust_workflow_password_enter_twice_blocking(
-        rust_util_cstr_mut(password_out, SET_PASSWORD_MAX_PASSWORD_LENGTH));
+        rust_util_cstr_mut(password_out, INPUT_STRING_MAX_SIZE));
 }

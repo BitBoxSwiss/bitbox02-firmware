@@ -159,7 +159,7 @@ bool workflow_restore_from_mnemonic(const RestoreFromMnemonicRequest* request)
 
     workflow_status_blocking("Recovery words\nvalid", true);
 
-    char password[SET_PASSWORD_MAX_PASSWORD_LENGTH] = {0};
+    char password[INPUT_STRING_MAX_SIZE] = {0};
     UTIL_CLEANUP_STR(password);
     // If entering password fails (repeat password does not match the first), we don't want to abort
     // the process immediately. We break out only if the user confirms.

@@ -138,8 +138,6 @@ dockerdev:
 	./scripts/dockerenv.sh
 dockerrel:
 	./scripts/dockerenv.sh release
-dockerrun:
-	docker-compose run -w /firmware_v2 firmware_v2
 generate-atecc608-config:
 	${MAKE} -C tools/go/src/atecc608a run
 ci:

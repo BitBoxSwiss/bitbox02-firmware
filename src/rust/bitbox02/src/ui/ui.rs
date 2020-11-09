@@ -14,7 +14,9 @@
 // limitations under the License.
 
 use super::types::MAX_LABEL_SIZE;
-pub use super::types::{ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb};
+pub use super::types::{
+    ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryInputStringParams,
+};
 
 use util::c_types::{c_char, c_void};
 
@@ -101,11 +103,17 @@ where
             Box::into_raw(Box::new(cb)) as *mut c_void,
         ),
     };
-
+    let params = TrinaryInputStringParams {
+        title: title,
+        hide: true,
+        special_chars: special_chars,
+        longtouch: true,
+        ..Default::default()
+    };
+    let mut title_scratch = [0; MAX_LABEL_SIZE + 2];
     let component = unsafe {
-        bitbox02_sys::trinary_input_string_create_password(
-            crate::str_to_cstr_force!(title, MAX_LABEL_SIZE).as_ptr(), // copied in C
-            special_chars,
+        bitbox02_sys::trinary_input_string_create(
+            &params.to_c_params(&mut title_scratch).data, // title copied in C
             Some(c_confirm_callback::<F>),
             // passed to c_confirm_callback as `param`.
             Box::into_raw(Box::new(confirm_callback)) as *mut _,

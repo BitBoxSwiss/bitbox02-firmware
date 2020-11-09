@@ -44,30 +44,13 @@ typedef struct {
 
 /**
  * Creates a string input screen based on trinary input.
- * @param[in] title to show in the center before the user starts inputting.
- * @param[in] The user can only confirm words from the wordlist. The available keyboard letters
- * adjust automatically so only words from the wordlist can be entered. Must be sorted, with all
- * words being lowercase 'a-z'.
- * @param[in] wordlist_size number of words in the wordlist.
+ * @param[in] params See `trinary_input_string_params_t`.
  * @param[in] confirm_cb The callback that is called when the user entered the string. Will be
  * called at most once.
  * @param[in] cancel_cb Called when the user cancels by hitting the back button.
- * @param[in] cancel_is_backbutton whether the cancel button should be rendered as a back button
- *            instead of as a cross.
  */
-component_t* trinary_input_string_create_wordlist(
-    const char* title,
-    const char* const* wordlist,
-    size_t wordlist_size,
-    void (*confirm_cb)(const char* input, void* param),
-    void* confirm_callback_param,
-    void (*cancel_cb)(void* param),
-    void* cancel_callback_param,
-    bool cancel_is_backbutton);
-
-component_t* trinary_input_string_create_password(
-    const char* title,
-    bool special_chars,
+component_t* trinary_input_string_create(
+    const trinary_input_string_params_t* params,
     void (*confirm_cb)(const char* input, void* param),
     void* confirm_callback_param,
     void (*cancel_cb)(void* param),

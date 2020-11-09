@@ -103,8 +103,14 @@ workflow_trinary_input_result_t workflow_trinary_input_wordlist(
         snprintf(title, sizeof(title), "%dth word", (int)(word_idx + 1));
     }
 
-    component_t* component = trinary_input_string_create_wordlist(
-        title, wordlist, wordlist_size, _confirm, NULL, _cancel, &word_idx, word_idx > 0);
+    const trinary_input_string_params_t params = {
+        .title = title,
+        .wordlist = wordlist,
+        .wordlist_size = wordlist_size,
+        .cancel_is_backbutton = word_idx > 0,
+    };
+    component_t* component =
+        trinary_input_string_create(&params, _confirm, NULL, _cancel, &word_idx);
     if (preset != NULL) {
         trinary_input_string_set_input(component, preset);
     }

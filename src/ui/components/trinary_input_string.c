@@ -432,7 +432,7 @@ static const component_functions_t component_functions = {
 
 /********************************** Create Instance **********************************/
 
-static component_t* _create(
+component_t* trinary_input_string_create(
     const trinary_input_string_params_t* params,
     void (*confirm_cb)(const char* input, void* param),
     void* confirm_callback_param,
@@ -498,47 +498,6 @@ static component_t* _create(
     _set_can_confirm(component);
 
     return component;
-}
-
-component_t* trinary_input_string_create_wordlist(
-    const char* title,
-    const char* const* wordlist,
-    size_t wordlist_size,
-    void (*confirm_cb)(const char* input, void* param),
-    void* confirm_callback_param,
-    void (*cancel_cb)(void* param),
-    void* cancel_callback_param,
-    bool cancel_is_backbutton)
-{
-    if (wordlist == NULL) {
-        Abort("trinary_input_string_\ncreate_wordlist");
-    }
-    const trinary_input_string_params_t params = {
-        .title = title,
-        .wordlist = wordlist,
-        .wordlist_size = wordlist_size,
-        .cancel_is_backbutton = cancel_is_backbutton,
-    };
-    component_t* component =
-        _create(&params, confirm_cb, confirm_callback_param, cancel_cb, cancel_callback_param);
-    return component;
-}
-
-component_t* trinary_input_string_create_password(
-    const char* title,
-    bool special_chars,
-    void (*confirm_cb)(const char* input, void* param),
-    void* confirm_callback_param,
-    void (*cancel_cb)(void* param),
-    void* cancel_callback_param)
-{
-    const trinary_input_string_params_t params = {
-        .title = title,
-        .hide = true,
-        .special_chars = special_chars,
-        .longtouch = true,
-    };
-    return _create(&params, confirm_cb, confirm_callback_param, cancel_cb, cancel_callback_param);
 }
 
 void trinary_input_string_set_input(component_t* trinary_input_string, const char* word)

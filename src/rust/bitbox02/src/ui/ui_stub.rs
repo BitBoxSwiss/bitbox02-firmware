@@ -46,9 +46,8 @@ impl<'a> Drop for Component<'a> {
     }
 }
 
-pub fn trinary_input_string_create_password<'a, F>(
-    _title: &str,
-    _special_chars: bool,
+pub fn trinary_input_string_create<'a, F>(
+    _params: &TrinaryInputStringParams,
     _confirm_callback: F,
     _cancel_callback: Option<ContinueCancelCb<'a>>,
 ) -> Component<'a>

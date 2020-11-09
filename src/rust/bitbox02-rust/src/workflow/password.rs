@@ -39,9 +39,16 @@ pub async fn enter(
     can_cancel: CanCancel,
 ) -> Result<SafeInputString, super::cancel::Error> {
     let result = RefCell::new(None as Option<Result<SafeInputString, ()>>); // Err means cancelled.
-    let mut component = bitbox02::ui::trinary_input_string_create_password(
+    let params = bitbox02::ui::TrinaryInputStringParams {
         title,
+        hide: true,
         special_chars,
+        longtouch: true,
+        ..Default::default()
+    };
+
+    let mut component = bitbox02::ui::trinary_input_string_create(
+        &params,
         |pw| *result.borrow_mut() = Some(Ok(pw)),
         match can_cancel {
             CanCancel::Yes => Some(Box::new(|| *result.borrow_mut() = Some(Err(())))),

@@ -62,13 +62,10 @@ impl<'a> Drop for Component<'a> {
     }
 }
 
-/// Creates a password input component.
-/// `title` - Shown before any input is entered as the screen title. **Panics** if more than 100 bytes.
-/// `special_chars` - whether to enable the special characters keyboard.
+/// Creates a trinary input component.
 /// `result` - will be asynchronously set to `Some(<password>)` once the user confirms.
-pub fn trinary_input_string_create_password<'a, F>(
-    title: &str,
-    special_chars: bool,
+pub fn trinary_input_string_create<'a, F>(
+    params: &TrinaryInputStringParams,
     confirm_callback: F,
     cancel_callback: Option<ContinueCancelCb<'a>>,
 ) -> Component<'a>
@@ -102,13 +99,6 @@ where
             Some(c_cancel_callback as _),
             Box::into_raw(Box::new(cb)) as *mut c_void,
         ),
-    };
-    let params = TrinaryInputStringParams {
-        title: title,
-        hide: true,
-        special_chars: special_chars,
-        longtouch: true,
-        ..Default::default()
     };
     let mut title_scratch = [0; MAX_LABEL_SIZE + 2];
     let component = unsafe {

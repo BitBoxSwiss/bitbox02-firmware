@@ -17,7 +17,7 @@
 extern crate alloc;
 use alloc::string::String;
 
-use crate::password::Password;
+use crate::safeinputstring::SafeInputString;
 
 pub const BIP39_WORDLIST_LEN: u16 = bitbox02_sys::BIP39_WORDLIST_LEN as u16;
 
@@ -32,15 +32,15 @@ pub enum Error {
     Unknown,
 }
 
-pub fn unlock(_password: &Password) -> Result<(), Error> {
+pub fn unlock(_password: &SafeInputString) -> Result<(), Error> {
     panic!("not implemented")
 }
 
-pub fn unlock_bip39(_mnemonic_passphrase: &Password) -> Result<(), Error> {
+pub fn unlock_bip39(_mnemonic_passphrase: &SafeInputString) -> Result<(), Error> {
     panic!("not implemented")
 }
 
-pub fn create_and_store_seed(_password: &Password, _host_entropy: &[u8; 32]) -> bool {
+pub fn create_and_store_seed(_password: &SafeInputString, _host_entropy: &[u8; 32]) -> bool {
     panic!("not implemented")
 }
 

@@ -19,15 +19,15 @@ use alloc::boxed::Box;
 /// 150 corresponds to INPUT_STRING_MAX_SIZE.
 /// Does *not* implement Copy, so that we can have a Drop to zero the contents.
 // TODO: use a reusable zero-on-drop buffer type
-pub struct Password(Box<[u8; 150]>);
+pub struct SafeInputString(Box<[u8; 150]>);
 
-impl Password {
-    /// Makes a password buffer filled with 0.
-    pub fn new() -> Password {
-        Password(Box::new([0; 150]))
+impl SafeInputString {
+    /// Makes a SafeInputString buffer filled with 0.
+    pub fn new() -> SafeInputString {
+        SafeInputString(Box::new([0; 150]))
     }
 
-    /// Copies the password bytes from `source` without additional allocations.
+    /// Copies the string bytes from `source` without additional allocations.
     pub fn copy_from(&mut self, source: &Self) {
         self.0.copy_from_slice(&source.0[..]);
     }
@@ -43,25 +43,25 @@ impl Password {
     }
 
     /// Returns a &str instance for use in Rust. panics if the
-    /// password is not valid UTF-8 or not null terminated.
+    /// string is not valid UTF-8 or not null terminated.
     pub fn as_str(&self) -> &str {
         let len = self.0.iter().position(|&x| x == 0).unwrap();
         core::str::from_utf8(&self.0[..len]).unwrap()
     }
 
-    /// Zeroes the whole password buffer.
+    /// Zeroes the whole string buffer.
     pub fn clear(&mut self) {
         util::zero(&mut self.0[..]);
     }
 }
 
-impl AsMut<[u8; 150]> for Password {
+impl AsMut<[u8; 150]> for SafeInputString {
     fn as_mut(&mut self) -> &mut [u8; 150] {
         &mut self.0
     }
 }
 
-impl Drop for Password {
+impl Drop for SafeInputString {
     fn drop(&mut self) {
         self.clear();
     }
@@ -72,16 +72,16 @@ mod tests {
     use super::*;
     use std::prelude::v1::*;
 
-    fn from(buf: &[u8]) -> Password {
-        let mut pw = Password::new();
+    fn from(buf: &[u8]) -> SafeInputString {
+        let mut pw = SafeInputString::new();
         pw.as_mut()[..buf.len()].copy_from_slice(&buf);
         pw
     }
 
     #[test]
     fn test_copy_from() {
-        let mut pw = Password::new();
-        pw.copy_from(&Password::new());
+        let mut pw = SafeInputString::new();
+        pw.copy_from(&SafeInputString::new());
         assert_eq!(pw.as_str(), "");
 
         pw.copy_from(&from(b"foo bar\0"));
@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn test_as_str() {
-        assert_eq!(Password::new().as_str(), "");
+        assert_eq!(SafeInputString::new().as_str(), "");
 
         assert_eq!(from(b"ab\0").as_str(), "ab");
         assert_eq!(from(b"foo test").as_str(), "foo test");

@@ -15,7 +15,7 @@
 extern crate alloc;
 use alloc::string::String;
 
-use crate::password::Password;
+use crate::safeinputstring::SafeInputString;
 use bitbox02_sys::keystore_error_t;
 
 pub const BIP39_WORDLIST_LEN: u16 = bitbox02_sys::BIP39_WORDLIST_LEN as u16;
@@ -31,7 +31,7 @@ pub enum Error {
     Unknown,
 }
 
-pub fn unlock(password: &Password) -> Result<(), Error> {
+pub fn unlock(password: &SafeInputString) -> Result<(), Error> {
     let mut remaining_attempts: u8 = 0;
     match unsafe { bitbox02_sys::keystore_unlock(password.as_cstr(), &mut remaining_attempts) } {
         keystore_error_t::KEYSTORE_OK => Ok(()),
@@ -43,7 +43,7 @@ pub fn unlock(password: &Password) -> Result<(), Error> {
     }
 }
 
-pub fn unlock_bip39(mnemonic_passphrase: &Password) -> Result<(), Error> {
+pub fn unlock_bip39(mnemonic_passphrase: &SafeInputString) -> Result<(), Error> {
     if unsafe { bitbox02_sys::keystore_unlock_bip39(mnemonic_passphrase.as_cstr()) } {
         Ok(())
     } else {
@@ -51,7 +51,7 @@ pub fn unlock_bip39(mnemonic_passphrase: &Password) -> Result<(), Error> {
     }
 }
 
-pub fn create_and_store_seed(password: &Password, host_entropy: &[u8; 32]) -> bool {
+pub fn create_and_store_seed(password: &SafeInputString, host_entropy: &[u8; 32]) -> bool {
     unsafe {
         bitbox02_sys::keystore_create_and_store_seed(password.as_cstr(), host_entropy.as_ptr())
     }

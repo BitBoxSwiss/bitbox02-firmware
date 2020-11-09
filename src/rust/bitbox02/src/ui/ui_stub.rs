@@ -18,7 +18,7 @@ pub use super::types::{
     ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryInputStringParams,
 };
 
-use crate::password::Password;
+use crate::safeinputstring::SafeInputString;
 
 use core::marker::PhantomData;
 
@@ -53,7 +53,7 @@ pub fn trinary_input_string_create_password<'a, F>(
     _cancel_callback: Option<ContinueCancelCb<'a>>,
 ) -> Component<'a>
 where
-    F: FnMut(Password) + 'a,
+    F: FnMut(SafeInputString) + 'a,
 {
     panic!("not implemented")
 }

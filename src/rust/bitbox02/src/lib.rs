@@ -37,8 +37,8 @@ pub mod commander;
 pub mod keystore;
 #[cfg_attr(feature = "testing", path = "memory_stub.rs")]
 pub mod memory;
-pub mod password;
 pub mod random;
+pub mod safeinputstring;
 pub mod securechip;
 pub mod ui;
 

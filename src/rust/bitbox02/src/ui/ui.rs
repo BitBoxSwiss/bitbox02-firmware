@@ -21,7 +21,7 @@ pub use super::types::{
 use util::c_types::{c_char, c_void};
 
 extern crate alloc;
-use crate::password::Password;
+use crate::safeinputstring::SafeInputString;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
@@ -74,13 +74,13 @@ pub fn trinary_input_string_create_password<'a, F>(
 ) -> Component<'a>
 where
     // Callback must outlive component.
-    F: FnMut(Password) + 'a,
+    F: FnMut(SafeInputString) + 'a,
 {
     unsafe extern "C" fn c_confirm_callback<F2>(password: *const c_char, param: *mut c_void)
     where
-        F2: FnMut(Password),
+        F2: FnMut(SafeInputString),
     {
-        let mut password_out = Password::new();
+        let mut password_out = SafeInputString::new();
         let cap = password_out.cap();
         password_out
             .as_mut()

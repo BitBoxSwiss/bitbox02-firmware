@@ -396,7 +396,8 @@ add_custom_target(rust-bindgen
     --whitelist-var font_monogram_5X9
     --whitelist-var font_password_11X12
     --whitelist-var WALLY_OK
-    --whitelist-type trinary_input_string_params_t
+    --whitelist-type trinary_string_input_params_t
+    --whitelist-var INPUT_STRING_MAX_SIZE
     --whitelist-function trinary_input_string_create
     --whitelist-function reset_reset
     --whitelist-function sd_card_inserted

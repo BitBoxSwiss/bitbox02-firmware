@@ -15,16 +15,17 @@
 extern crate alloc;
 use alloc::boxed::Box;
 
+const INPUT_STRING_MAX_SIZE: usize = bitbox02_sys::INPUT_STRING_MAX_SIZE as _;
+
 /// C-style including null terminator, as it is used in C only so far.
-/// 150 corresponds to INPUT_STRING_MAX_SIZE.
 /// Does *not* implement Copy, so that we can have a Drop to zero the contents.
 // TODO: use a reusable zero-on-drop buffer type
-pub struct SafeInputString(Box<[u8; 150]>);
+pub struct SafeInputString(Box<[u8; INPUT_STRING_MAX_SIZE]>);
 
 impl SafeInputString {
     /// Makes a SafeInputString buffer filled with 0.
     pub fn new() -> SafeInputString {
-        SafeInputString(Box::new([0; 150]))
+        SafeInputString(Box::new([0; INPUT_STRING_MAX_SIZE]))
     }
 
     /// Copies the string bytes from `source` without additional allocations.
@@ -55,8 +56,8 @@ impl SafeInputString {
     }
 }
 
-impl AsMut<[u8; 150]> for SafeInputString {
-    fn as_mut(&mut self) -> &mut [u8; 150] {
+impl AsMut<[u8; INPUT_STRING_MAX_SIZE]> for SafeInputString {
+    fn as_mut(&mut self) -> &mut [u8; INPUT_STRING_MAX_SIZE] {
         &mut self.0
     }
 }

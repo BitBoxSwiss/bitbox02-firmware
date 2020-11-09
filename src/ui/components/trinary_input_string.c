@@ -433,12 +433,7 @@ static const component_functions_t component_functions = {
 /********************************** Create Instance **********************************/
 
 static component_t* _create(
-    const char* title,
-    const char* const* wordlist,
-    size_t wordlist_size,
-    bool hide,
-    bool special_chars,
-    bool longtouch,
+    const trinary_input_string_params_t* params,
     void (*confirm_cb)(const char* input, void* param),
     void* confirm_callback_param,
     void (*cancel_cb)(void* param),
@@ -459,10 +454,11 @@ static component_t* _create(
     data->confirm_callback_param = confirm_callback_param;
     data->cancel_cb = cancel_cb;
     data->cancel_callback_param = cancel_callback_param;
-    data->wordlist = wordlist;
-    data->wordlist_size = wordlist_size;
-    data->hide = hide;
-    data->longtouch = longtouch;
+    data->wordlist = params->wordlist;
+    data->wordlist_size = params->wordlist_size;
+    data->hide = params->hide;
+    data->longtouch = params->longtouch;
+    data->cancel_is_backbutton = params->cancel_is_backbutton;
 
     data->target_x = STRING_POS_X_START;
     data->start_x = data->target_x;
@@ -482,18 +478,18 @@ static component_t* _create(
     data->left_arrow_component = left_arrow_create(top_slider, component);
     ui_util_add_sub_component(component, data->left_arrow_component);
 
-    data->confirm_component = confirm_button_create(longtouch, ICON_BUTTON_CHECK);
+    data->confirm_component = confirm_button_create(params->longtouch, ICON_BUTTON_CHECK);
     ui_util_add_sub_component(component, data->confirm_component);
 
-    if (wordlist == NULL) {
+    if (params->wordlist == NULL) {
         data->keyboard_switch_component =
-            keyboard_switch_create(top_slider, special_chars, component);
+            keyboard_switch_create(top_slider, params->special_chars, component);
         ui_util_add_sub_component(component, data->keyboard_switch_component);
     }
 
-    data->title_on_top = wordlist != NULL;
+    data->title_on_top = params->wordlist != NULL;
     data->title_component =
-        label_create(title, NULL, data->title_on_top ? CENTER_TOP : CENTER, component);
+        label_create(params->title, NULL, data->title_on_top ? CENTER_TOP : CENTER, component);
     ui_util_add_sub_component(component, data->title_component);
 
     data->trinary_char_component = trinary_input_char_create(_letter_chosen, component);
@@ -517,19 +513,14 @@ component_t* trinary_input_string_create_wordlist(
     if (wordlist == NULL) {
         Abort("trinary_input_string_\ncreate_wordlist");
     }
-    component_t* component = _create(
-        title,
-        wordlist,
-        wordlist_size,
-        false,
-        false,
-        false,
-        confirm_cb,
-        confirm_callback_param,
-        cancel_cb,
-        cancel_callback_param);
-    data_t* data = (data_t*)component->data;
-    data->cancel_is_backbutton = cancel_is_backbutton;
+    const trinary_input_string_params_t params = {
+        .title = title,
+        .wordlist = wordlist,
+        .wordlist_size = wordlist_size,
+        .cancel_is_backbutton = cancel_is_backbutton,
+    };
+    component_t* component =
+        _create(&params, confirm_cb, confirm_callback_param, cancel_cb, cancel_callback_param);
     return component;
 }
 
@@ -541,17 +532,13 @@ component_t* trinary_input_string_create_password(
     void (*cancel_cb)(void* param),
     void* cancel_callback_param)
 {
-    return _create(
-        title,
-        NULL,
-        0,
-        true,
-        special_chars,
-        true,
-        confirm_cb,
-        confirm_callback_param,
-        cancel_cb,
-        cancel_callback_param);
+    const trinary_input_string_params_t params = {
+        .title = title,
+        .hide = true,
+        .special_chars = special_chars,
+        .longtouch = true,
+    };
+    return _create(&params, confirm_cb, confirm_callback_param, cancel_cb, cancel_callback_param);
 }
 
 void trinary_input_string_set_input(component_t* trinary_input_string, const char* word)

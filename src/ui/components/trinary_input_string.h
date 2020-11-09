@@ -24,6 +24,22 @@
 // to allow drop in replacement to set_password.h
 #define SET_PASSWORD_MAX_PASSWORD_LENGTH INPUT_STRING_MAX_SIZE
 
+typedef struct {
+    const char* title;
+    // Restrict and autocomplete to this list of words. Set to NULL to allow arbitrary input.
+    const char* const* wordlist;
+    // Set to 0 if wordlist is NULL.
+    size_t wordlist_size;
+    // Mask the chars entered as `*`. For password input.
+    bool hide;
+    // Add special chars keyboard. Otherwise abc/ABC/012 only.
+    bool special_chars;
+    // Confirm via longtouch. If false, confirmation happens with a short tap.
+    bool longtouch;
+    // whether the cancel button should be rendered as a back button instead of as a cross.
+    bool cancel_is_backbutton;
+} trinary_input_string_params_t;
+
 /********************************** Create Instance **********************************/
 
 /**

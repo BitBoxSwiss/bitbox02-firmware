@@ -142,10 +142,13 @@ where
         let mut callback = Box::from_raw(param as *mut F2);
         callback(result);
     }
-
+    let mut title_scratch = [0; MAX_LABEL_SIZE + 2];
+    let mut body_scratch = [0; MAX_LABEL_SIZE + 2];
     let component = unsafe {
         bitbox02_sys::confirm_create(
-            &params.to_c_params(),
+            &params
+                .to_c_params(&mut title_scratch, &mut body_scratch)
+                .data,
             Some(c_callback::<F>),
             // passed to the C callback as `param`
             Box::into_raw(Box::new(result_callback)) as *mut _,

@@ -25,6 +25,21 @@ pub fn zero(dst: &mut [u8]) {
     }
 }
 
+/// Survive forces T to live at least as long as lifetme 'a.
+pub struct Survive<'a, T: 'a> {
+    pub data: T,
+    phantom: core::marker::PhantomData<&'a T>,
+}
+
+impl<'a, T> Survive<'a, T> {
+    pub fn new(data: T) -> Self {
+        Survive {
+            data,
+            phantom: core::marker::PhantomData,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     extern crate std;

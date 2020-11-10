@@ -15,8 +15,8 @@
 use crate::workflow::confirm;
 use crate::workflow::password;
 use crate::workflow::status::status;
+use bitbox02::input::SafeInputString;
 use bitbox02::keystore;
-use bitbox02::safeinputstring::SafeInputString;
 
 pub use password::CanCancel;
 

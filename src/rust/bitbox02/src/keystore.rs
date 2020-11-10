@@ -15,7 +15,7 @@
 extern crate alloc;
 use alloc::string::String;
 
-use crate::safeinputstring::SafeInputString;
+use crate::input::SafeInputString;
 use bitbox02_sys::keystore_error_t;
 
 pub const BIP39_WORDLIST_LEN: u16 = bitbox02_sys::BIP39_WORDLIST_LEN as u16;

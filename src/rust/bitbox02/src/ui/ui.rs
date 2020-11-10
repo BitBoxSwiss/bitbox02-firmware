@@ -21,7 +21,7 @@ pub use super::types::{
 use util::c_types::{c_char, c_void};
 
 extern crate alloc;
-use crate::safeinputstring::SafeInputString;
+use crate::input::SafeInputString;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 

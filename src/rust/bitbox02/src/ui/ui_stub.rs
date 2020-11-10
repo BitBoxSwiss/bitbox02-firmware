@@ -18,7 +18,7 @@ pub use super::types::{
     ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryInputStringParams,
 };
 
-use crate::safeinputstring::SafeInputString;
+use crate::input::SafeInputString;
 
 use core::marker::PhantomData;
 

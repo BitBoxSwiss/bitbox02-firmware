@@ -14,7 +14,7 @@
 
 use super::{confirm, status};
 use crate::bb02_async::option;
-use bitbox02::safeinputstring::SafeInputString;
+use bitbox02::input::SafeInputString;
 use core::cell::RefCell;
 
 extern crate alloc;

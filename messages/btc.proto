@@ -164,6 +164,7 @@ message BTCIsScriptConfigRegisteredResponse {
 
 message BTCRegisterScriptConfigRequest {
   BTCScriptConfigRegistration registration = 1;
+  // If empty, the name is entered on the device instead.
   string name = 2;
   enum XPubType {
     // Automatically choose to match Electrum's xpub format (e.g. Zpub/Vpub for p2wsh multisig mainnet/testnet).

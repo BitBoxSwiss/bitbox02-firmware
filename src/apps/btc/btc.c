@@ -23,6 +23,7 @@
 #include <keystore.h>
 #include <memory/memory.h>
 #include <rust/rust.h>
+#include <workflow/confirm.h>
 #include <workflow/status.h>
 #include <workflow/verify_pub.h>
 
@@ -231,6 +232,26 @@ app_btc_result_t app_btc_register_script_config(
         return APP_BTC_ERR_INVALID_INPUT;
     }
     const BTCScriptConfig_Multisig* multisig = &script_config->config.multisig;
+
+    // Name as entered by the user.
+    char entered_name[MEMORY_MULTISIG_NAME_MAX_LEN] = {0};
+    if (*name == '\0') {
+        const confirm_params_t confirm_params = {
+            .title = "Register",
+            .body = "Please name this\nmultisig account",
+            .accept_is_nextarrow = true,
+        };
+        if (!workflow_confirm_blocking(&confirm_params)) {
+            return APP_BTC_ERR_USER_ABORT;
+        }
+
+        // Empty name means we prompt the user to enter the name on the device.
+        if (!rust_workflow_trinary_input_name(
+                rust_util_cstr_mut(entered_name, sizeof(entered_name)))) {
+            return APP_BTC_ERR_USER_ABORT;
+        }
+        name = entered_name;
+    }
     if (!rust_util_validate_name(rust_util_cstr(name), MEMORY_MULTISIG_NAME_MAX_LEN - 1)) {
         return APP_BTC_ERR_INVALID_INPUT;
     }

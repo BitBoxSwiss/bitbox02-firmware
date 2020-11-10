@@ -452,6 +452,7 @@ pub struct BtcIsScriptConfigRegisteredResponse {
 pub struct BtcRegisterScriptConfigRequest {
     #[prost(message, optional, tag="1")]
     pub registration: ::core::option::Option<BtcScriptConfigRegistration>,
+    /// If empty, the name is entered on the device instead.
     #[prost(string, tag="2")]
     pub name: ::prost::alloc::string::String,
     #[prost(enumeration="btc_register_script_config_request::XPubType", tag="3")]

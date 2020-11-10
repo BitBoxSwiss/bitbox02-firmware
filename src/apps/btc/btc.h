@@ -121,7 +121,7 @@ USE_RESULT bool app_btc_is_script_config_registered(
  * Stores a script configuration alongside a user chosen name on the device. If the user aborts,
  * nothing is stored.
  * @param[in] name Name to give to the script config. Must be at most MEMORY_MULTISIG_NAME_MAX_LEN
- * bytes (including null terminator).
+ * bytes (including null terminator). If it is the empty string, the name is entered on the device.
  * @return OK if the registration was successful, ERR_USER_ABORT if the user aborted, ERR_UNKNOWN
  * for unknown errors.
  */

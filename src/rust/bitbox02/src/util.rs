@@ -25,7 +25,7 @@ pub unsafe fn strlen_ptr(ptr: *const u8) -> isize {
     }
 }
 
-/// Parses a utf-8 string out of a null terminated fixed length array. Returns `Err(())` if there
+/// Parses a utf-8 string out of a null terminated buffer. Returns `Err(())` if there
 /// is no null terminator or if the bytes before the null terminator is invalid UTF8.
 pub fn str_from_null_terminated(input: &[u8]) -> Result<&str, ()> {
     let len = input.iter().position(|&c| c == 0).ok_or(())?;

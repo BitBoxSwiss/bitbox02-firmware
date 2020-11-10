@@ -17,8 +17,8 @@ use alloc::boxed::Box;
 
 const INPUT_STRING_MAX_SIZE: usize = bitbox02_sys::INPUT_STRING_MAX_SIZE as _;
 
-/// C-style including null terminator, as it is used in C only so far.
-/// Does *not* implement Copy, so that we can have a Drop to zero the contents.
+/// C-style including null terminator. Does *not* implement Copy, so
+/// that we can have a Drop to zero the contents.
 // TODO: use a reusable zero-on-drop buffer type
 pub struct SafeInputString(Box<[u8; INPUT_STRING_MAX_SIZE]>);
 

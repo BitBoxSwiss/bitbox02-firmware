@@ -14,30 +14,22 @@
 
 /// Must be given a null-terminated string
 /// # Safety
-/// ptr must be not NULL.
+/// ptr must be not NULL and the memory must be valid until a null byte.
 pub unsafe fn strlen_ptr(ptr: *const u8) -> isize {
     let mut end = ptr;
     loop {
         if *end == 0 {
-            // Can be changed to (*const u8).offset_from() when stabilized
-            return isize::wrapping_sub(end as _, ptr as _);
+            return end.offset_from(ptr);
         }
         end = end.offset(1);
     }
 }
 
-pub fn strlen_slice(input: &[u8]) -> usize {
-    if let Some(nullidx) = input.iter().position(|&c| c == 0) {
-        nullidx
-    } else {
-        input.len()
-    }
-}
-
-/// Parses a utf-8 string out of a null terminated fixed length array
-pub fn str_from_null_terminated(input: &[u8]) -> Result<&str, core::str::Utf8Error> {
-    let len = strlen_slice(input);
-    core::str::from_utf8(&input[0..len])
+/// Parses a utf-8 string out of a null terminated buffer. Returns `Err(())` if there
+/// is no null terminator or if the bytes before the null terminator is invalid UTF8.
+pub fn str_from_null_terminated(input: &[u8]) -> Result<&str, ()> {
+    let len = input.iter().position(|&c| c == 0).ok_or(())?;
+    core::str::from_utf8(&input[0..len]).or(Err(()))
 }
 
 /// Macro for creating a stack allocated buffer with the content of a string and a null-terminator
@@ -109,5 +101,32 @@ mod tests {
         assert_eq!(truncate_str("test", 4), "test");
         assert_eq!(truncate_str("test", 5), "test");
         assert_eq!(truncate_str("test", 6), "test");
+    }
+
+    #[test]
+    fn test_strlen_ptr() {
+        assert_eq!(unsafe { strlen_ptr(b"\0".as_ptr()) }, 0);
+        assert_eq!(unsafe { strlen_ptr(b"a\0".as_ptr()) }, 1);
+        assert_eq!(unsafe { strlen_ptr(b"abcdef\0".as_ptr()) }, 6);
+        assert_eq!(unsafe { strlen_ptr(b"abcdef\0defghji".as_ptr()) }, 6);
+    }
+
+    #[test]
+    fn test_str_from_null_terminated() {
+        assert_eq!(str_from_null_terminated(b"\0"), Ok(""));
+        assert_eq!(str_from_null_terminated(b"hello\0"), Ok("hello"));
+        assert_eq!(str_from_null_terminated(b"hello\0world"), Ok("hello"));
+        // valid utf8.
+        assert_eq!(
+            str_from_null_terminated(b"\xc3\xb6\xc3\xa4\xc3\xbc \xf0\x9f\x91\x8c\0world"),
+            Ok("öäü 👌")
+        );
+        // invalid utf8 after the null terminator
+        assert_eq!(str_from_null_terminated(b"hello\0\xFF"), Ok("hello"));
+        // invalid utf8 before the null terminator
+        assert!(str_from_null_terminated(b"\xFF\0world").is_err());
+        // Not null terminated.
+        assert!(str_from_null_terminated(b"").is_err());
+        assert!(str_from_null_terminated(b"foo").is_err());
     }
 }

@@ -21,5 +21,5 @@ pub async fn sdcard(insert: bool) {
         *result.borrow_mut() = Some(());
     });
     component.screen_stack_push();
-    option(&result).await;
+    option(&result).await
 }

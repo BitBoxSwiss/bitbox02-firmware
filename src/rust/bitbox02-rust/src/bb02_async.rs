@@ -37,16 +37,16 @@ pub fn spin<O>(task: &mut Task<O>) -> Poll<O> {
 pub struct AsyncOption<'a, O>(&'a RefCell<Option<O>>);
 
 impl<O> core::future::Future for AsyncOption<'_, O> {
-    type Output = ();
+    type Output = O;
     fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
-        match *self.0.borrow() {
+        match self.0.borrow_mut().take() {
             None => Poll::Pending,
-            Some(_) => Poll::Ready(()),
+            Some(output) => Poll::Ready(output),
         }
     }
 }
 
-/// Waits for an option to contain a value and returns a copy of that value.
+/// Waits for an option to contain a value and returns that value, leaving `None` in its place.
 /// E.g. `assert_eq!(option(&Some(42)).await, 42)`.
 pub fn option<'a, O>(option: &'a RefCell<Option<O>>) -> AsyncOption<'a, O> {
     AsyncOption(&option)

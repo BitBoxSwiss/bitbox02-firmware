@@ -50,10 +50,7 @@ pub async fn with_cancel<R>(
     *result_cell.borrow_mut() = None;
     component.screen_stack_push();
     loop {
-        option(&result_cell).await;
-
-        // Take result out of cell, leaving None in its place.
-        let result = result_cell.borrow_mut().take().unwrap();
+        let result = option(&result_cell).await;
         if let Err(Error::Cancelled) = result {
             let params = confirm::Params {
                 title,

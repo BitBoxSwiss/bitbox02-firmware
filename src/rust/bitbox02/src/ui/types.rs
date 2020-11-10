@@ -97,6 +97,53 @@ impl<'a> ConfirmParams<'a> {
     }
 }
 
+pub struct TrinaryInputStringParams<'a> {
+    /// The confirmation title of the screen. Max 200 chars, otherwise **panic**.
+    pub title: &'a str,
+    pub hide: bool,
+    pub special_chars: bool,
+    pub longtouch: bool,
+    pub cancel_is_backbutton: bool,
+}
+
+impl<'a> core::default::Default for TrinaryInputStringParams<'a> {
+    fn default() -> Self {
+        TrinaryInputStringParams {
+            title: "",
+            hide: false,
+            special_chars: false,
+            longtouch: false,
+            cancel_is_backbutton: false,
+        }
+    }
+}
+
+impl<'a> TrinaryInputStringParams<'a> {
+    #[cfg_attr(feature = "testing", allow(dead_code))]
+    pub(crate) fn to_c_params(
+        &self,
+        title_scratch: &'a mut [u8; MAX_LABEL_SIZE + 2],
+    ) -> Survive<'a, bitbox02_sys::trinary_input_string_params_t> {
+        // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
+        // truncate and append '...'.
+        const TRUNCATE_SIZE: usize = MAX_LABEL_SIZE + 1;
+
+        *title_scratch = crate::str_to_cstr_force!(
+            crate::util::truncate_str(self.title, TRUNCATE_SIZE),
+            TRUNCATE_SIZE
+        );
+        Survive::new(bitbox02_sys::trinary_input_string_params_t {
+            title: title_scratch.as_ptr(),
+            wordlist: core::ptr::null(),
+            wordlist_size: 0,
+            hide: self.hide,
+            special_chars: self.special_chars,
+            longtouch: self.longtouch,
+            cancel_is_backbutton: self.cancel_is_backbutton,
+        })
+    }
+}
+
 pub type SelectWordCb<'a> = Box<dyn FnMut(u8) + 'a>;
 pub type ContinueCancelCb<'a> = Box<dyn FnMut() + 'a>;
 

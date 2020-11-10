@@ -14,12 +14,14 @@
 // limitations under the License.
 
 use super::types::MAX_LABEL_SIZE;
-pub use super::types::{ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb};
+pub use super::types::{
+    ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryInputStringParams,
+};
 
 use util::c_types::{c_char, c_void};
 
 extern crate alloc;
-use crate::password::Password;
+use crate::input::SafeInputString;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
@@ -60,25 +62,22 @@ impl<'a> Drop for Component<'a> {
     }
 }
 
-/// Creates a password input component.
-/// `title` - Shown before any input is entered as the screen title. **Panics** if more than 100 bytes.
-/// `special_chars` - whether to enable the special characters keyboard.
+/// Creates a trinary input component.
 /// `result` - will be asynchronously set to `Some(<password>)` once the user confirms.
-pub fn trinary_input_string_create_password<'a, F>(
-    title: &str,
-    special_chars: bool,
+pub fn trinary_input_string_create<'a, F>(
+    params: &TrinaryInputStringParams,
     confirm_callback: F,
     cancel_callback: Option<ContinueCancelCb<'a>>,
 ) -> Component<'a>
 where
     // Callback must outlive component.
-    F: FnMut(Password) + 'a,
+    F: FnMut(SafeInputString) + 'a,
 {
     unsafe extern "C" fn c_confirm_callback<F2>(password: *const c_char, param: *mut c_void)
     where
-        F2: FnMut(Password),
+        F2: FnMut(SafeInputString),
     {
-        let mut password_out = Password::new();
+        let mut password_out = SafeInputString::new();
         let cap = password_out.cap();
         password_out
             .as_mut()
@@ -101,11 +100,10 @@ where
             Box::into_raw(Box::new(cb)) as *mut c_void,
         ),
     };
-
+    let mut title_scratch = [0; MAX_LABEL_SIZE + 2];
     let component = unsafe {
-        bitbox02_sys::trinary_input_string_create_password(
-            crate::str_to_cstr_force!(title, MAX_LABEL_SIZE).as_ptr(), // copied in C
-            special_chars,
+        bitbox02_sys::trinary_input_string_create(
+            &params.to_c_params(&mut title_scratch).data, // title copied in C
             Some(c_confirm_callback::<F>),
             // passed to c_confirm_callback as `param`.
             Box::into_raw(Box::new(confirm_callback)) as *mut _,

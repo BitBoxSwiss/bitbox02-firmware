@@ -16,13 +16,13 @@
 #define _PASSWORD_H_
 
 #include <compiler_util.h>
-#include <ui/components/trinary_input_string.h> // for SET_PASSWORD_MAX_PASSWORD_LENGTH
+#include <ui/components/trinary_input_string.h> // for INPUT_STRING_MAX_SIZE
 
 #include <stdbool.h>
 
 /**
  * Asks the user to set a password by entering it once and then confirming it.
- * @param[out] password_out must be of size SET_PASSWORD_MAX_PASSWORD_LENGTH.
+ * @param[out] password_out must be of size INPUT_STRING_MAX_SIZE.
  * Use `UTIL_CLEANUP_STR` to destroy the password after use.
  * @return true if the the two entered passwords match. Returns false otherwise.
  */

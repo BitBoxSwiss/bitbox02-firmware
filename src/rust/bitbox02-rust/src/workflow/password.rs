@@ -14,7 +14,7 @@
 
 use super::{confirm, status};
 use crate::bb02_async::option;
-use bitbox02::password::Password;
+use bitbox02::input::SafeInputString;
 use core::cell::RefCell;
 
 extern crate alloc;
@@ -37,11 +37,18 @@ pub async fn enter(
     title: &str,
     special_chars: bool,
     can_cancel: CanCancel,
-) -> Result<Password, super::cancel::Error> {
-    let result = RefCell::new(None as Option<Result<Password, ()>>); // Err means cancelled.
-    let mut component = bitbox02::ui::trinary_input_string_create_password(
+) -> Result<SafeInputString, super::cancel::Error> {
+    let result = RefCell::new(None as Option<Result<SafeInputString, ()>>); // Err means cancelled.
+    let params = bitbox02::ui::TrinaryInputStringParams {
         title,
+        hide: true,
         special_chars,
+        longtouch: true,
+        ..Default::default()
+    };
+
+    let mut component = bitbox02::ui::trinary_input_string_create(
+        &params,
         |pw| *result.borrow_mut() = Some(Ok(pw)),
         match can_cancel {
             CanCancel::Yes => Some(Box::new(|| *result.borrow_mut() = Some(Err(())))),
@@ -62,7 +69,7 @@ pub async fn enter(
 /// ```no_run
 /// let pw = enter_twice().await.unwrap();
 /// // use pw.
-pub async fn enter_twice() -> Result<Password, ()> {
+pub async fn enter_twice() -> Result<SafeInputString, ()> {
     let password = enter("Set password", false, CanCancel::No)
         .await
         .expect("not cancelable");

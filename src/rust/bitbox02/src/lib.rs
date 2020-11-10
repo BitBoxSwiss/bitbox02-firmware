@@ -33,11 +33,11 @@ pub mod testing;
 #[cfg_attr(feature = "testing", path = "backup_stub.rs")]
 pub mod backup;
 pub mod commander;
+pub mod input;
 #[cfg_attr(feature = "testing", path = "keystore_stub.rs")]
 pub mod keystore;
 #[cfg_attr(feature = "testing", path = "memory_stub.rs")]
 pub mod memory;
-pub mod password;
 pub mod random;
 pub mod securechip;
 pub mod ui;

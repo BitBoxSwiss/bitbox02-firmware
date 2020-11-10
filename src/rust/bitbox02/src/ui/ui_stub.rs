@@ -14,9 +14,11 @@
 
 //! Stubs for testing.
 
-pub use super::types::{ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb};
+pub use super::types::{
+    ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryInputStringParams,
+};
 
-use crate::password::Password;
+use crate::input::SafeInputString;
 
 use core::marker::PhantomData;
 
@@ -44,14 +46,13 @@ impl<'a> Drop for Component<'a> {
     }
 }
 
-pub fn trinary_input_string_create_password<'a, F>(
-    _title: &str,
-    _special_chars: bool,
+pub fn trinary_input_string_create<'a, F>(
+    _params: &TrinaryInputStringParams,
     _confirm_callback: F,
     _cancel_callback: Option<ContinueCancelCb<'a>>,
 ) -> Component<'a>
 where
-    F: FnMut(Password) + 'a,
+    F: FnMut(SafeInputString) + 'a,
 {
     panic!("not implemented")
 }

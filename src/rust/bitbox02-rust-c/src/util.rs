@@ -142,6 +142,10 @@ pub struct CStrMut {
 }
 
 impl CStrMut {
+    pub fn cap(&self) -> usize {
+        self.cap
+    }
+
     /// Create a new growable string with capacity `cap`. Only allowed for non-null pointers with
     /// length or null pointers with 0 length due to limitation in `core::slice`. Unsafe because it
     /// will read until it finds a null character.

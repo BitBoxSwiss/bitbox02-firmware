@@ -12,25 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::{confirm, status};
-use crate::bb02_async::option;
+use super::{confirm, status, trinary_input_string};
 use bitbox02::input::SafeInputString;
-use core::cell::RefCell;
 
-extern crate alloc;
-use alloc::boxed::Box;
+pub use trinary_input_string::CanCancel;
 
-pub enum CanCancel {
-    No,
-    Yes,
-}
-
-/// If `can_cancel` is `Yes`, the workflow can be cancelled, and `password_out` is not modified.
+/// If `can_cancel` is `Yes`, the workflow can be cancelled.
 /// If it is no, the result is always `Ok(())`.
 ///
 /// Example:
 /// ```no_run
-/// let pw = enter("Enter password", true).await.unwrap();
+/// let pw = enter("Enter password", true, CanCancel::No).await.unwrap();
 /// // use pw.
 /// ```
 pub async fn enter(
@@ -38,27 +30,14 @@ pub async fn enter(
     special_chars: bool,
     can_cancel: CanCancel,
 ) -> Result<SafeInputString, super::cancel::Error> {
-    let result = RefCell::new(None as Option<Result<SafeInputString, ()>>); // Err means cancelled.
-    let params = bitbox02::ui::TrinaryInputStringParams {
+    let params = trinary_input_string::Params {
         title,
         hide: true,
         special_chars,
         longtouch: true,
         ..Default::default()
     };
-
-    let mut component = bitbox02::ui::trinary_input_string_create(
-        &params,
-        |pw| *result.borrow_mut() = Some(Ok(pw)),
-        match can_cancel {
-            CanCancel::Yes => Some(Box::new(|| *result.borrow_mut() = Some(Err(())))),
-            CanCancel::No => None,
-        },
-    );
-    component.screen_stack_push();
-    option(&result)
-        .await
-        .or(Err(super::cancel::Error::Cancelled))
+    trinary_input_string::enter(&params, can_cancel).await
 }
 
 /// Prompt the user to enter a password twice. A warning is displayed

@@ -52,7 +52,7 @@ app_btc_result_t app_btc_sign_validate_init_script_configs(
             return APP_BTC_ERR_INVALID_INPUT;
         }
         uint8_t multisig_hash[SHA256_LEN] = {0};
-        if (!btc_common_multisig_hash(
+        if (!btc_common_multisig_hash_unsorted(
                 coin,
                 multisig,
                 script_config->keypath,

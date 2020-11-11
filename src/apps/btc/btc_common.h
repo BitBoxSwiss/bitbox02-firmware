@@ -243,6 +243,10 @@ USE_RESULT bool btc_common_multisig_is_valid(
 /**
  * Creates a hash of this multisig config, useful for multisig account registration and
  * identification. The individual params are not validated, they must be pre-validated!
+ *
+ * The xpubs in the multisig config are not sorted before hashing. This was the default for firmware
+ * <= v9.2.1
+ *
  * @param[in] coin The coin this multisig is used with.
  * @param[in] multisig The multisig config details.
  * @param[in] keypath Account-level keypath.
@@ -250,7 +254,17 @@ USE_RESULT bool btc_common_multisig_is_valid(
  * @param[out] hash_out resulting hash; must be `SHA256_LEN` bytes.
  * @return true on success, false on failure.
  */
-USE_RESULT bool btc_common_multisig_hash(
+USE_RESULT bool btc_common_multisig_hash_unsorted(
+    BTCCoin coin,
+    const BTCScriptConfig_Multisig* multisig,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint8_t* hash_out);
+
+/**
+ * Same as `btc_common_multisig_hash_unsorted()`, but the xpubs are sorted before hashing.
+ */
+USE_RESULT bool btc_common_multisig_hash_sorted(
     BTCCoin coin,
     const BTCScriptConfig_Multisig* multisig,
     const uint32_t* keypath,

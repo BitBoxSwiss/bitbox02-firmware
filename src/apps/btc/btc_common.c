@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "btc_common.h"
 
@@ -685,9 +686,31 @@ USE_RESULT bool btc_common_multisig_is_valid(
     return true;
 }
 
-bool btc_common_multisig_hash(
+// serialized_out must be of size BIP32_SERIALIZED_LEN.
+static bool _serialize_xpub(const XPub* xpub, uint8_t* serialized_out)
+{
+    struct ext_key wally_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
+    if (!apps_common_bip32_xpub_from_protobuf(xpub, &wally_xpub)) {
+        return false;
+    }
+    return bip32_key_serialize(
+               &wally_xpub, BIP32_FLAG_KEY_PUBLIC, serialized_out, BIP32_SERIALIZED_LEN) ==
+           WALLY_OK;
+}
+
+static int _xpubs_sort_comp(const void* elem1, const void* elem2)
+{
+    const uint8_t* xpub1 = (const uint8_t*)elem1;
+    const uint8_t* xpub2 = (const uint8_t*)elem2;
+
+    // Sort by xpub serialization, ignoring the version bytes.
+    return memcmp(xpub1 + 4, xpub2 + 4, BIP32_SERIALIZED_LEN - 4);
+}
+
+static bool _multisig_hash(
     BTCCoin coin,
     const BTCScriptConfig_Multisig* multisig,
+    bool sort_xpubs,
     const uint32_t* keypath,
     size_t keypath_len,
     uint8_t* hash_out)
@@ -738,21 +761,25 @@ bool btc_common_multisig_hash(
         rust_sha256_update(ctx, &num, sizeof(num));
     }
     { // 5. xpubs
+        uint8_t xpubs_serialized[sizeof(multisig->xpubs) / sizeof(*multisig->xpubs)]
+                                [BIP32_SERIALIZED_LEN] = {0};
         for (size_t i = 0; i < multisig->xpubs_count; i++) {
-            uint8_t xpub_serialized[BIP32_SERIALIZED_LEN] = {0};
-            struct ext_key xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-            if (!apps_common_bip32_xpub_from_protobuf(&multisig->xpubs[i], &xpub)) {
+            if (!_serialize_xpub(&multisig->xpubs[i], xpubs_serialized[i])) {
                 return false;
             }
-            if (bip32_key_serialize(
-                    &xpub, BIP32_FLAG_KEY_PUBLIC, xpub_serialized, sizeof(xpub_serialized)) !=
-                WALLY_OK) {
-                return false;
-            }
+        }
+        if (sort_xpubs) {
+            qsort(
+                xpubs_serialized,
+                multisig->xpubs_count,
+                sizeof(*xpubs_serialized),
+                _xpubs_sort_comp);
+        }
+        for (size_t i = 0; i < multisig->xpubs_count; i++) {
             // Drop the first xpub version, which are the 4 first bytes. They are determined by the
             // above `BIP32_FLAG_KEY_PUBLIC` flag and do not add anything, as the xpub version is
             // chosen ad-hoc depending on the context it is used in.
-            rust_sha256_update(ctx, xpub_serialized + 4, sizeof(xpub_serialized) - 4);
+            rust_sha256_update(ctx, xpubs_serialized[i] + 4, BIP32_SERIALIZED_LEN - 4);
         }
     }
     { // 6. keypath len
@@ -766,4 +793,24 @@ bool btc_common_multisig_hash(
     }
     rust_sha256_finish(&ctx, hash_out);
     return true;
+}
+
+bool btc_common_multisig_hash_unsorted(
+    BTCCoin coin,
+    const BTCScriptConfig_Multisig* multisig,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint8_t* hash_out)
+{
+    return _multisig_hash(coin, multisig, false, keypath, keypath_len, hash_out);
+}
+
+bool btc_common_multisig_hash_sorted(
+    BTCCoin coin,
+    const BTCScriptConfig_Multisig* multisig,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint8_t* hash_out)
+{
+    return _multisig_hash(coin, multisig, true, keypath, keypath_len, hash_out);
 }

@@ -129,7 +129,8 @@ app_btc_result_t app_btc_address_multisig(
 
     // Confirm previously registered multisig.
     uint8_t multisig_hash[SHA256_LEN] = {0};
-    if (!btc_common_multisig_hash(coin, multisig, keypath, keypath_len - 2, multisig_hash)) {
+    if (!btc_common_multisig_hash_unsorted(
+            coin, multisig, keypath, keypath_len - 2, multisig_hash)) {
         return APP_BTC_ERR_UNKNOWN;
     }
     char multisig_registered_name[MEMORY_MULTISIG_NAME_MAX_LEN] = {0};
@@ -204,7 +205,7 @@ bool app_btc_is_script_config_registered(
     }
 
     uint8_t hash[SHA256_LEN] = {0};
-    if (!btc_common_multisig_hash(
+    if (!btc_common_multisig_hash_unsorted(
             coin, &script_config->config.multisig, keypath, keypath_len, hash)) {
         return false;
     }
@@ -265,7 +266,7 @@ app_btc_result_t app_btc_register_script_config(
     }
 
     uint8_t hash[SHA256_LEN] = {0};
-    if (!btc_common_multisig_hash(coin, multisig, keypath, keypath_len, hash)) {
+    if (!btc_common_multisig_hash_unsorted(coin, multisig, keypath, keypath_len, hash)) {
         return APP_BTC_ERR_UNKNOWN;
     }
     // This will rename the multisig config if it already exists.

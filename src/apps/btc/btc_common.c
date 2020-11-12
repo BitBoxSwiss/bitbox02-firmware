@@ -20,6 +20,7 @@
 #include <apps/common/bip32.h>
 #include <hardfault.h>
 #include <keystore.h>
+#include <memory/memory.h>
 #include <rust/rust.h>
 #include <util.h>
 #include <wally_address.h>
@@ -813,4 +814,28 @@ bool btc_common_multisig_hash_sorted(
     uint8_t* hash_out)
 {
     return _multisig_hash(coin, multisig, true, keypath, keypath_len, hash_out);
+}
+
+bool btc_common_multisig_name(
+    BTCCoin coin,
+    const BTCScriptConfig_Multisig* multisig,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    char* name_out)
+{
+    uint8_t hash[SHA256_LEN] = {0};
+
+    // First try using sorted xpubs (the default registration since v9.3.0).
+    if (!btc_common_multisig_hash_sorted(coin, multisig, keypath, keypath_len, hash)) {
+        return false;
+    }
+    if (memory_multisig_get_by_hash(hash, name_out)) {
+        return true;
+    }
+
+    // If that did not exist, try with unsorted xpubs for backwards compatibility.
+    if (!btc_common_multisig_hash_unsorted(coin, multisig, keypath, keypath_len, hash)) {
+        return false;
+    }
+    return memory_multisig_get_by_hash(hash, name_out);
 }

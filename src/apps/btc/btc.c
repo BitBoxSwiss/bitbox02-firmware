@@ -128,13 +128,9 @@ app_btc_result_t app_btc_address_multisig(
     }
 
     // Confirm previously registered multisig.
-    uint8_t multisig_hash[SHA256_LEN] = {0};
-    if (!btc_common_multisig_hash_unsorted(
-            coin, multisig, keypath, keypath_len - 2, multisig_hash)) {
-        return APP_BTC_ERR_UNKNOWN;
-    }
     char multisig_registered_name[MEMORY_MULTISIG_NAME_MAX_LEN] = {0};
-    if (!memory_multisig_get_by_hash(multisig_hash, multisig_registered_name)) {
+    if (!btc_common_multisig_name(
+            coin, multisig, keypath, keypath_len - 2, multisig_registered_name)) {
         // Not previously registered -> fail.
         return APP_BTC_ERR_INVALID_INPUT;
     }
@@ -204,13 +200,8 @@ bool app_btc_is_script_config_registered(
         return false;
     }
 
-    uint8_t hash[SHA256_LEN] = {0};
-    if (!btc_common_multisig_hash_unsorted(
-            coin, &script_config->config.multisig, keypath, keypath_len, hash)) {
-        return false;
-    }
-
-    *is_registered = memory_multisig_get_by_hash(hash, NULL);
+    *is_registered =
+        btc_common_multisig_name(coin, &script_config->config.multisig, keypath, keypath_len, NULL);
 
     return true;
 }
@@ -266,7 +257,7 @@ app_btc_result_t app_btc_register_script_config(
     }
 
     uint8_t hash[SHA256_LEN] = {0};
-    if (!btc_common_multisig_hash_unsorted(coin, multisig, keypath, keypath_len, hash)) {
+    if (!btc_common_multisig_hash_sorted(coin, multisig, keypath, keypath_len, hash)) {
         return APP_BTC_ERR_UNKNOWN;
     }
     // This will rename the multisig config if it already exists.

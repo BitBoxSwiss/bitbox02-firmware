@@ -271,4 +271,25 @@ USE_RESULT bool btc_common_multisig_hash_sorted(
     size_t keypath_len,
     uint8_t* hash_out);
 
+/**
+ * Get the name of a registered multisig account. If `name` is NULL, this serves as a check whether
+ * the account was registered.
+ *
+ * The individual params are not validated, they must be pre-validated!
+ *
+ * @param[in] coin The coin this multisig is used with.
+ * @param[in] multisig The multisig config details.
+ * @param[in] keypath Account-level keypath.
+ * @param[in] keypath_len number of elements in keypath.
+ * @param[out] name_out will contain the name. Must have at least `MEMORY_MULTISIG_NAME_MAX_LEN`
+ * bytes. Can be NULL.
+ * @return true on success, false on failure.
+ */
+USE_RESULT bool btc_common_multisig_name(
+    BTCCoin coin,
+    const BTCScriptConfig_Multisig* multisig,
+    const uint32_t* keypath,
+    size_t keypath_len,
+    char* name_out);
+
 #endif

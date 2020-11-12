@@ -244,8 +244,8 @@ USE_RESULT memory_result_t memory_multisig_set_by_hash(const uint8_t* hash, cons
 /**
  * Retrieves the name of a previously stored multisig config identified by `hash`.
  * @param[in] hash hash identifying the multisig config.
- * @param[out] name_out will contain the name. Must have at least
- * `MEMORY_MULTISIG_NAME_MAX_LEN` bytes. Can be NULL.
+ * @param[out] name_out will contain the name. Must have at least `MEMORY_MULTISIG_NAME_MAX_LEN`
+ * bytes. Can be NULL.
  * @return true if the multisig config was found, false otherwise.
  */
 USE_RESULT bool memory_multisig_get_by_hash(const uint8_t* hash, char* name_out);

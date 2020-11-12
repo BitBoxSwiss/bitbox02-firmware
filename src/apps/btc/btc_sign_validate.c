@@ -51,17 +51,13 @@ app_btc_result_t app_btc_sign_validate_init_script_configs(
                 coin_params->bip44_coin)) {
             return APP_BTC_ERR_INVALID_INPUT;
         }
-        uint8_t multisig_hash[SHA256_LEN] = {0};
-        if (!btc_common_multisig_hash_unsorted(
+        char multisig_registered_name[MEMORY_MULTISIG_NAME_MAX_LEN] = {0};
+        if (!btc_common_multisig_name(
                 coin,
                 multisig,
                 script_config->keypath,
                 script_config->keypath_count,
-                multisig_hash)) {
-            return APP_BTC_ERR_INVALID_INPUT;
-        };
-        char multisig_registered_name[MEMORY_MULTISIG_NAME_MAX_LEN] = {0};
-        if (!memory_multisig_get_by_hash(multisig_hash, multisig_registered_name)) {
+                multisig_registered_name)) {
             // Not previously registered -> fail.
             return APP_BTC_ERR_INVALID_INPUT;
         }

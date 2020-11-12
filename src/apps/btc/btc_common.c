@@ -824,9 +824,18 @@ bool btc_common_multisig_name(
     char* name_out)
 {
     uint8_t hash[SHA256_LEN] = {0};
+
+    // First try using sorted xpubs (the default registration since v9.3.0).
+    if (!btc_common_multisig_hash_sorted(coin, multisig, keypath, keypath_len, hash)) {
+        return false;
+    }
+    if (memory_multisig_get_by_hash(hash, name_out)) {
+        return true;
+    }
+
+    // If that did not exist, try with unsorted xpubs for backwards compatibility.
     if (!btc_common_multisig_hash_unsorted(coin, multisig, keypath, keypath_len, hash)) {
         return false;
     }
-
     return memory_multisig_get_by_hash(hash, name_out);
 }

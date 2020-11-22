@@ -17,6 +17,7 @@
 
 #include <apps/common/bip32.h>
 #include <hardfault.h>
+#include <rust/rust.h>
 #include <workflow/confirm.h>
 
 #include <stdio.h>
@@ -31,10 +32,10 @@ bool apps_btc_confirm_multisig_basic(
     int snprintf_result = snprintf(
         basic_info,
         sizeof(basic_info),
-        "Coin: %s\nMultisig type: %lu-of-%lu",
-        btc_common_coin_name(coin),
+        "%lu-of-%lu\n%s multisig",
         (unsigned long)multisig->threshold,
-        (unsigned long)multisig->xpubs_count);
+        (unsigned long)multisig->xpubs_count,
+        btc_common_coin_name(coin));
     if (snprintf_result < 0 || snprintf_result >= (int)sizeof(basic_info)) {
         Abort("apps_btc_confirm_multisig/0");
     }
@@ -61,9 +62,41 @@ bool apps_btc_confirm_multisig_extended(
     BTCCoin coin,
     const char* name,
     const BTCScriptConfig_Multisig* multisig,
-    BTCRegisterScriptConfigRequest_XPubType xpub_type)
+    BTCRegisterScriptConfigRequest_XPubType xpub_type,
+    const uint32_t* keypath,
+    size_t keypath_len)
 {
+    const char* script_type_string;
+    switch (multisig->script_type) {
+    case BTCScriptConfig_Multisig_ScriptType_P2WSH:
+        script_type_string = "p2wsh";
+        break;
+    case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
+        script_type_string = "p2wsh-p2sh";
+        break;
+    default:
+        return false;
+    }
+    char keypath_string[100] = {0};
+    rust_bip32_to_string(
+        keypath, keypath_len, rust_util_cstr_mut(keypath_string, sizeof(keypath_string)));
+
     if (!apps_btc_confirm_multisig_basic(title, coin, name, multisig)) {
+        return false;
+    }
+
+    char info[200] = {0};
+    int snprintf_result =
+        snprintf(info, sizeof(info), "%s\nat\n%s", script_type_string, keypath_string);
+    if (snprintf_result < 0 || snprintf_result >= (int)sizeof(info)) {
+        Abort("apps_btc_confirm_multisig/0");
+    }
+    const confirm_params_t params = {
+        .title = title,
+        .body = info,
+        .accept_is_nextarrow = true,
+    };
+    if (!workflow_confirm_blocking(&params)) {
         return false;
     }
 

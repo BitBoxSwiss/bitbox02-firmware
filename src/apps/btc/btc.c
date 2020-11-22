@@ -249,7 +249,8 @@ app_btc_result_t app_btc_register_script_config(
         return APP_BTC_ERR_INVALID_INPUT;
     }
 
-    if (!apps_btc_confirm_multisig_extended("Register", coin, name, multisig, xpub_type)) {
+    if (!apps_btc_confirm_multisig_extended(
+            "Register", coin, name, multisig, xpub_type, keypath, keypath_len)) {
         return APP_BTC_ERR_USER_ABORT;
     }
 

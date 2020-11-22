@@ -42,6 +42,8 @@ USE_RESULT bool apps_btc_confirm_multisig_basic(
  * - coin
  * - multisig type (m-of-n)
  * - name given by the user
+ * - script type (e.g. p2wsh, p2wsh-p2sh)
+ * - account keypath
  * - all xpubs (formatted according to `xpub_type`).
  * @param[in] title the title shown in each confirmation screen
  * @param[in] coin coin to be confirmed
@@ -57,6 +59,8 @@ USE_RESULT bool apps_btc_confirm_multisig_extended(
     BTCCoin coin,
     const char* name,
     const BTCScriptConfig_Multisig* multisig,
-    BTCRegisterScriptConfigRequest_XPubType xpub_type);
+    BTCRegisterScriptConfigRequest_XPubType xpub_type,
+    const uint32_t* keypath,
+    size_t keypath_len);
 
 #endif

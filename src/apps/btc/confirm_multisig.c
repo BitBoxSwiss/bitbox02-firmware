@@ -21,13 +21,11 @@
 
 #include <stdio.h>
 
-bool apps_btc_confirm_multisig(
+bool apps_btc_confirm_multisig_basic(
     const char* title,
     BTCCoin coin,
     const char* name,
-    const BTCScriptConfig_Multisig* multisig,
-    bool verify_xpubs,
-    BTCRegisterScriptConfigRequest_XPubType xpub_type)
+    const BTCScriptConfig_Multisig* multisig)
 {
     char basic_info[100] = {0};
     int snprintf_result = snprintf(
@@ -55,12 +53,18 @@ bool apps_btc_confirm_multisig(
         .scrollable = true,
         .accept_is_nextarrow = true,
     };
-    if (!workflow_confirm_blocking(&params_name)) {
-        return false;
-    }
+    return workflow_confirm_blocking(&params_name);
+}
 
-    if (!verify_xpubs) {
-        return true;
+bool apps_btc_confirm_multisig_extended(
+    const char* title,
+    BTCCoin coin,
+    const char* name,
+    const BTCScriptConfig_Multisig* multisig,
+    BTCRegisterScriptConfigRequest_XPubType xpub_type)
+{
+    if (!apps_btc_confirm_multisig_basic(title, coin, name, multisig)) {
+        return false;
     }
 
     BTCPubRequest_XPubType output_xpub_type;
@@ -128,25 +132,25 @@ bool apps_btc_confirm_multisig(
         }
         char confirm[XPUB_ENCODED_LEN + 100] = {0};
         if (i == multisig->our_xpub_index) {
-            snprintf_result = snprintf(
+            int result = snprintf(
                 confirm,
                 sizeof(confirm),
                 "Cosigner %lu/%lu (this device): %s",
                 (unsigned long)(i + 1),
                 (unsigned long)num_cosigners,
                 xpub_str);
-            if (snprintf_result < 0 || snprintf_result >= (int)sizeof(confirm)) {
+            if (result < 0 || result >= (int)sizeof(confirm)) {
                 Abort("apps_btc_confirm_multisig/1");
             }
         } else {
-            snprintf_result = snprintf(
+            int result = snprintf(
                 confirm,
                 sizeof(confirm),
                 "Cosigner %lu/%lu: %s",
                 (unsigned long)(i + 1),
                 (unsigned long)num_cosigners,
                 xpub_str);
-            if (snprintf_result < 0 || snprintf_result >= (int)sizeof(confirm)) {
+            if (result < 0 || result >= (int)sizeof(confirm)) {
                 Abort("apps_btc_confirm_multisig/2");
             }
         }

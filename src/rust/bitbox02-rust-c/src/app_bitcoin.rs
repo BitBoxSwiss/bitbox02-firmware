@@ -14,6 +14,8 @@
 
 use util::c_types::size_t;
 
+use bitbox02_rust::apps::bitcoin::keypath;
+
 /// # Safety
 /// `keypath` must be not NULL and contain `keypath_len` u32 elements.
 #[no_mangle]
@@ -30,4 +32,21 @@ pub unsafe extern "C" fn rust_bitcoin_keypath_validate_account(
         expected_coin,
     )
     .is_ok()
+}
+
+/// # Safety
+/// `keypath` must be not NULL and contain `keypath_len` u32 elements.
+#[no_mangle]
+pub unsafe extern "C" fn rust_bitcoin_keypath_validate_account_multisig(
+    keypath: *const u32,
+    keypath_len: size_t,
+    expected_coin: u32,
+    script_type: i32,
+) -> bool {
+    let script_type = match keypath::MultisigScriptType::from_i32(script_type) {
+        Some(script_type) => script_type,
+        None => return false,
+    };
+    let keypath = core::slice::from_raw_parts(keypath, keypath_len);
+    keypath::validate_account_multisig(keypath, expected_coin, script_type).is_ok()
 }

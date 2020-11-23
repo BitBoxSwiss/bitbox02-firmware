@@ -13,11 +13,16 @@
 // limitations under the License.
 
 use crate::pb;
+pub use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
 
 use util::bip32::HARDENED;
 
 const BIP44_ACCOUNT_MIN: u32 = HARDENED;
 const BIP44_ACCOUNT_MAX: u32 = HARDENED + 99; // 100 accounts
+
+const PURPOSE_MULTISIG: u32 = 48 + HARDENED;
+const MULTISIG_SCRIPT_TYPE_P2WSH: u32 = 2 + HARDENED;
+const MULTISIG_SCRIPT_TYPE_P2WSH_P2SH: u32 = 1 + HARDENED;
 
 /// Validates a keypath to be
 /// m/expected_purpose/expected_coin/account, where account between 0' and 99'.
@@ -34,6 +39,29 @@ pub fn validate_account(
         {
             return Ok(());
         }
+    }
+    Err(())
+}
+
+/// Validates a multisig keypath.
+/// Supported:
+/// - Electrum-style: m/48'/coin'/account'/script_type', where script_type is 1 for p2wsh-p2sh and 2
+///   for p2wsh.
+pub fn validate_account_multisig(
+    keypath: &[u32],
+    expected_coin: u32,
+    script_type: MultisigScriptType,
+) -> Result<(), ()> {
+    if keypath.len() == 4 {
+        validate_account(&keypath[..3], PURPOSE_MULTISIG, expected_coin)?;
+        let expected_bip44_script_type = match script_type {
+            MultisigScriptType::P2wsh => MULTISIG_SCRIPT_TYPE_P2WSH,
+            MultisigScriptType::P2wshP2sh => MULTISIG_SCRIPT_TYPE_P2WSH_P2SH,
+        };
+        if keypath[3] != expected_bip44_script_type {
+            return Err(());
+        }
+        return Ok(());
     }
     Err(())
 }
@@ -67,6 +95,43 @@ mod tests {
             &[84 + HARDENED, 1 + HARDENED, 1 + HARDENED, 1 + HARDENED],
             84 + HARDENED,
             1 + HARDENED,
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn test_validate_account_multisig() {
+        let coin = 1 + HARDENED;
+
+        // Valid p2wsh-p2sh.
+        assert!(validate_account_multisig(
+            &[48 + HARDENED, coin, 0 + HARDENED, 1 + HARDENED],
+            coin,
+            MultisigScriptType::P2wshP2sh
+        )
+        .is_ok());
+
+        // Valid p2wsh.
+        assert!(validate_account_multisig(
+            &[48 + HARDENED, coin, 0 + HARDENED, 2 + HARDENED],
+            coin,
+            MultisigScriptType::P2wsh
+        )
+        .is_ok());
+
+        // Valid script (last element).
+        assert!(validate_account_multisig(
+            &[48 + HARDENED, coin, 0 + HARDENED, 1 + HARDENED],
+            coin,
+            MultisigScriptType::P2wsh
+        )
+        .is_err());
+
+        // Wrong purpose.
+        assert!(validate_account_multisig(
+            &[49 + HARDENED, coin, 0 + HARDENED, 2 + HARDENED],
+            coin,
+            MultisigScriptType::P2wsh
         )
         .is_err());
     }

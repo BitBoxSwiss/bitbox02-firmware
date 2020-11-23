@@ -27,13 +27,8 @@
 
 #define BTC_PURPOSE_P2WPKH_P2SH (49 + BIP32_INITIAL_HARDENED_CHILD)
 #define BTC_PURPOSE_P2WPKH (84 + BIP32_INITIAL_HARDENED_CHILD)
-#define BTC_PURPOSE_MULTISIG (48 + BIP32_INITIAL_HARDENED_CHILD)
 
 #define BIP44_ADDRESS_MAX (9999) // 10k addresses
-
-// script type in the multisig keypath m/48'/coin'/account'/script_type
-#define BTC_MULTISIG_SCRIPT_TYPE_P2WSH (2 + BIP32_INITIAL_HARDENED_CHILD)
-#define BTC_MULTISIG_SCRIPT_TYPE_P2WSH_P2SH (1 + BIP32_INITIAL_HARDENED_CHILD)
 
 #define MULTISIG_P2WSH_MAX_SIGNERS 15
 
@@ -95,39 +90,6 @@ static bool _validate_keypath_address(
     return _validate_keypath_change_address(keypath[3], keypath[4]);
 }
 
-// checks account level keypath derivation: m/48'/coin'/account'/script_type'
-static bool _is_valid_keypath_account_multisig(
-    const uint32_t* keypath,
-    const size_t keypath_len,
-    const uint32_t expected_coin,
-    BTCScriptConfig_Multisig_ScriptType script_type)
-{
-    if (keypath_len != 4) {
-        return false;
-    }
-    if (!rust_bitcoin_keypath_validate_account(keypath, 3, BTC_PURPOSE_MULTISIG, expected_coin)) {
-        return false;
-    }
-
-    uint32_t expected_bip44_script_type;
-    switch (script_type) {
-    case BTCScriptConfig_Multisig_ScriptType_P2WSH:
-        expected_bip44_script_type = BTC_MULTISIG_SCRIPT_TYPE_P2WSH;
-        break;
-    case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
-        expected_bip44_script_type = BTC_MULTISIG_SCRIPT_TYPE_P2WSH_P2SH;
-        break;
-    default:
-        return false;
-    }
-
-    uint32_t bip44_script_type = keypath[3];
-    if (bip44_script_type != expected_bip44_script_type) {
-        return false;
-    }
-    return true;
-}
-
 bool btc_common_is_valid_keypath_xpub(
     BTCPubRequest_XPubType xpub_type,
     const uint32_t* keypath,
@@ -145,9 +107,9 @@ bool btc_common_is_valid_keypath_xpub(
     case BTCPubRequest_XPubType_CAPITAL_ZPUB:
     case BTCPubRequest_XPubType_CAPITAL_UPUB:
     case BTCPubRequest_XPubType_CAPITAL_YPUB:
-        if (_is_valid_keypath_account_multisig(
+        if (rust_bitcoin_keypath_validate_account_multisig(
                 keypath, keypath_len, expected_coin, BTCScriptConfig_Multisig_ScriptType_P2WSH) ||
-            _is_valid_keypath_account_multisig(
+            rust_bitcoin_keypath_validate_account_multisig(
                 keypath,
                 keypath_len,
                 expected_coin,
@@ -208,7 +170,7 @@ bool btc_common_is_valid_keypath_address_multisig(
     if (keypath_len != 6) {
         return false;
     }
-    if (!_is_valid_keypath_account_multisig(keypath, 4, expected_coin, script_type)) {
+    if (!rust_bitcoin_keypath_validate_account_multisig(keypath, 4, expected_coin, script_type)) {
         return false;
     }
     if (!_validate_keypath_change_address(keypath[4], keypath[5])) {
@@ -631,7 +593,7 @@ USE_RESULT bool btc_common_multisig_is_valid(
     if (multisig->our_xpub_index >= multisig->xpubs_count) {
         return false;
     }
-    if (!_is_valid_keypath_account_multisig(
+    if (!rust_bitcoin_keypath_validate_account_multisig(
             keypath, keypath_len, expected_coin, multisig->script_type)) {
         return false;
     }

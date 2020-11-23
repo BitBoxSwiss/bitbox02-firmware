@@ -20,6 +20,7 @@
 mod error;
 #[macro_use]
 pub mod general;
+pub mod apps;
 pub mod async_usb;
 pub mod attestation;
 pub mod bb02_async;

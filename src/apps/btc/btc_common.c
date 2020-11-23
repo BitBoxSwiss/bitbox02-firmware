@@ -29,8 +29,6 @@
 #define BTC_PURPOSE_P2WPKH (84 + BIP32_INITIAL_HARDENED_CHILD)
 #define BTC_PURPOSE_MULTISIG (48 + BIP32_INITIAL_HARDENED_CHILD)
 
-#define BIP44_ACCOUNT_MIN (BIP32_INITIAL_HARDENED_CHILD)
-#define BIP44_ACCOUNT_MAX (BIP32_INITIAL_HARDENED_CHILD + 99) // 100 accounts
 #define BIP44_ADDRESS_MAX (9999) // 10k addresses
 
 // script type in the multisig keypath m/48'/coin'/account'/script_type
@@ -71,20 +69,6 @@ const char* btc_common_coin_name(BTCCoin coin)
     }
 }
 
-// keypath_len is assumed to be greater or equal than 3.
-// Validates the bip44 keypath up to account level: m/purpose'/coin'/account'.
-static bool _validate_keypath_account(
-    const uint32_t* keypath,
-    uint32_t expected_coin,
-    uint32_t expected_purpose)
-{
-    uint32_t purpose = keypath[0];
-    uint32_t coin = keypath[1];
-    uint32_t account = keypath[2];
-    return purpose == expected_purpose && coin == expected_coin && account >= BIP44_ACCOUNT_MIN &&
-           account <= BIP44_ACCOUNT_MAX;
-}
-
 static bool _validate_keypath_change_address(uint32_t change, uint32_t address)
 {
     if (change > 1) {
@@ -105,7 +89,7 @@ static bool _validate_keypath_address(
     if (keypath_len != 5) {
         return false;
     }
-    if (!_validate_keypath_account(keypath, expected_coin, expected_purpose)) {
+    if (!rust_bitcoin_keypath_validate_account(keypath, 3, expected_purpose, expected_coin)) {
         return false;
     }
     return _validate_keypath_change_address(keypath[3], keypath[4]);
@@ -121,7 +105,7 @@ static bool _is_valid_keypath_account_multisig(
     if (keypath_len != 4) {
         return false;
     }
-    if (!_validate_keypath_account(keypath, expected_coin, BTC_PURPOSE_MULTISIG)) {
+    if (!rust_bitcoin_keypath_validate_account(keypath, 3, BTC_PURPOSE_MULTISIG, expected_coin)) {
         return false;
     }
 
@@ -171,11 +155,10 @@ bool btc_common_is_valid_keypath_xpub(
             return true;
         }
 
-        if (keypath_len != 3) {
-            return false;
-        }
-        return _validate_keypath_account(keypath, expected_coin, BTC_PURPOSE_P2WPKH_P2SH) ||
-               _validate_keypath_account(keypath, expected_coin, BTC_PURPOSE_P2WPKH);
+        return rust_bitcoin_keypath_validate_account(
+                   keypath, keypath_len, BTC_PURPOSE_P2WPKH_P2SH, expected_coin) ||
+               rust_bitcoin_keypath_validate_account(
+                   keypath, keypath_len, BTC_PURPOSE_P2WPKH, expected_coin);
     default:
         return false;
     }
@@ -187,14 +170,13 @@ bool btc_common_is_valid_keypath_account_simple(
     const size_t keypath_len,
     const uint32_t expected_coin)
 {
-    if (keypath_len != 3) {
-        return false;
-    }
     switch (script_type) {
     case BTCScriptConfig_SimpleType_P2WPKH_P2SH:
-        return _validate_keypath_account(keypath, expected_coin, BTC_PURPOSE_P2WPKH_P2SH);
+        return rust_bitcoin_keypath_validate_account(
+            keypath, keypath_len, BTC_PURPOSE_P2WPKH_P2SH, expected_coin);
     case BTCScriptConfig_SimpleType_P2WPKH:
-        return _validate_keypath_account(keypath, expected_coin, BTC_PURPOSE_P2WPKH);
+        return rust_bitcoin_keypath_validate_account(
+            keypath, keypath_len, BTC_PURPOSE_P2WPKH, expected_coin);
     default:
         return false;
     }

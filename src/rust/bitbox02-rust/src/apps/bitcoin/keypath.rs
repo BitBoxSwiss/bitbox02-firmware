@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::pb;
+
 use util::bip32::HARDENED;
 
 const BIP44_ACCOUNT_MIN: u32 = HARDENED;

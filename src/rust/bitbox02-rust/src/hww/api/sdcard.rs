@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::pb;
-use super::pb::insert_remove_sd_card_request::SdCardAction;
 use super::Error;
+use crate::pb;
+use crate::pb::insert_remove_sd_card_request::SdCardAction;
 
 use pb::response::Response;
 

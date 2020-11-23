@@ -15,8 +15,8 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use super::pb;
 use super::Error;
+use crate::pb;
 
 use pb::response::Response;
 

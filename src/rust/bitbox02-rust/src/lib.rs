@@ -17,6 +17,10 @@
 // When compiling for testing we allow certain warnings.
 #![cfg_attr(test, allow(unused_imports, dead_code))]
 
+mod pb {
+    include!("./shiftcrypto.bitbox02.rs");
+}
+
 mod error;
 #[macro_use]
 pub mod general;

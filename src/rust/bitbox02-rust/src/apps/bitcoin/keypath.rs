@@ -48,23 +48,27 @@ pub fn validate_account(
 /// Supported:
 /// - Electrum-style: m/48'/coin'/account'/script_type', where script_type is 1 for p2wsh-p2sh and 2
 ///   for p2wsh.
+/// - Nunchuk-style: m/48'/coin'/account', independent of the script type.
 pub fn validate_account_multisig(
     keypath: &[u32],
     expected_coin: u32,
     script_type: MultisigScriptType,
 ) -> Result<(), ()> {
-    if keypath.len() == 4 {
-        validate_account(&keypath[..3], PURPOSE_MULTISIG, expected_coin)?;
-        let expected_bip44_script_type = match script_type {
-            MultisigScriptType::P2wsh => MULTISIG_SCRIPT_TYPE_P2WSH,
-            MultisigScriptType::P2wshP2sh => MULTISIG_SCRIPT_TYPE_P2WSH_P2SH,
-        };
-        if keypath[3] != expected_bip44_script_type {
-            return Err(());
+    match keypath.len() {
+        4 => {
+            validate_account(&keypath[..3], PURPOSE_MULTISIG, expected_coin)?;
+            let expected_bip44_script_type = match script_type {
+                MultisigScriptType::P2wsh => MULTISIG_SCRIPT_TYPE_P2WSH,
+                MultisigScriptType::P2wshP2sh => MULTISIG_SCRIPT_TYPE_P2WSH_P2SH,
+            };
+            if keypath[3] != expected_bip44_script_type {
+                return Err(());
+            }
+            Ok(())
         }
-        return Ok(());
+        3 => validate_account(keypath, PURPOSE_MULTISIG, expected_coin),
+        _ => Err(()),
     }
-    Err(())
 }
 
 /// Validates that change is 0 or 1 and address is less than 10000.
@@ -145,6 +149,20 @@ mod tests {
         )
         .is_ok());
 
+        // Valid Nunchuk-style.
+        assert!(validate_account_multisig(
+            &[48 + HARDENED, coin, 0 + HARDENED],
+            coin,
+            MultisigScriptType::P2wsh
+        )
+        .is_ok());
+        assert!(validate_account_multisig(
+            &[48 + HARDENED, coin, 0 + HARDENED],
+            coin,
+            MultisigScriptType::P2wshP2sh
+        )
+        .is_ok());
+
         // Valid script (last element).
         assert!(validate_account_multisig(
             &[48 + HARDENED, coin, 0 + HARDENED, 1 + HARDENED],
@@ -176,6 +194,20 @@ mod tests {
         // valid p2wsh-p2sh
         assert!(validate_address_multisig(
             &[48 + HARDENED, coin, 0 + HARDENED, 1 + HARDENED, 0, 0],
+            coin,
+            MultisigScriptType::P2wshP2sh
+        )
+        .is_ok());
+
+        // valid Nunchuk-style
+        assert!(validate_address_multisig(
+            &[48 + HARDENED, coin, 0 + HARDENED, 0, 0],
+            coin,
+            MultisigScriptType::P2wsh
+        )
+        .is_ok());
+        assert!(validate_address_multisig(
+            &[48 + HARDENED, coin, 0 + HARDENED, 0, 0],
             coin,
             MultisigScriptType::P2wshP2sh
         )

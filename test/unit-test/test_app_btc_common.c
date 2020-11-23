@@ -100,7 +100,7 @@ static void _test_btc_common_is_valid_keypath_xpubs_len3(void** state)
     const uint32_t bip44_account = 0 + BIP32_INITIAL_HARDENED_CHILD;
     const uint32_t bip44_coin = 1 + BIP32_INITIAL_HARDENED_CHILD;
 
-    // only p2wpkh-p2sh and p2wpkh are tested here.
+    // only p2wpkh-p2sh and p2wpkh and multisig are tested here.
     const uint32_t valid_purposes[] = {
         49 + BIP32_INITIAL_HARDENED_CHILD,
         84 + BIP32_INITIAL_HARDENED_CHILD,
@@ -173,9 +173,6 @@ static void _test_btc_common_is_valid_keypath_xpubs_len3(void** state)
         };
         assert_false(
             btc_common_is_valid_keypath_xpub(BTCPubRequest_XPubType_XPUB, keypath, 3, bip44_coin));
-        keypath[0] = 48 + BIP32_INITIAL_HARDENED_CHILD;
-        assert_false(
-            btc_common_is_valid_keypath_xpub(BTCPubRequest_XPubType_XPUB, keypath, 3, bip44_coin));
         keypath[0] = 100 + BIP32_INITIAL_HARDENED_CHILD;
         assert_false(
             btc_common_is_valid_keypath_xpub(BTCPubRequest_XPubType_XPUB, keypath, 3, bip44_coin));
@@ -208,8 +205,12 @@ static void _test_btc_common_is_valid_keypath_xpubs_multisig(void** state)
             2 + BIP32_INITIAL_HARDENED_CHILD,
             0,
         };
+        // Electrum-style (first four elements)
         assert_true(btc_common_is_valid_keypath_xpub(
             output_types[output_type_idx], keypath, 4, bip44_coin));
+        // Nunchuk-style (first three elements)
+        assert_true(btc_common_is_valid_keypath_xpub(
+            output_types[output_type_idx], keypath, 3, bip44_coin));
 
         { // invalid account
             uint32_t invalid_keypath[4] = {
@@ -245,8 +246,6 @@ static void _test_btc_common_is_valid_keypath_xpubs_multisig(void** state)
         }
 
         { // invalid keypath sizes
-            assert_false(btc_common_is_valid_keypath_xpub(
-                output_types[output_type_idx], keypath, 3, bip44_coin));
             assert_false(btc_common_is_valid_keypath_xpub(
                 output_types[output_type_idx], keypath, 2, bip44_coin));
             assert_false(btc_common_is_valid_keypath_xpub(

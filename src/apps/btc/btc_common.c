@@ -167,16 +167,8 @@ bool btc_common_is_valid_keypath_address_multisig(
     const size_t keypath_len,
     const uint32_t expected_coin)
 {
-    if (keypath_len != 6) {
-        return false;
-    }
-    if (!rust_bitcoin_keypath_validate_account_multisig(keypath, 4, expected_coin, script_type)) {
-        return false;
-    }
-    if (!_validate_keypath_change_address(keypath[4], keypath[5])) {
-        return false;
-    }
-    return true;
+    return rust_bitcoin_keypath_validate_address_multisig(
+        keypath, keypath_len, expected_coin, script_type);
 }
 
 bool btc_common_encode_xpub(

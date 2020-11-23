@@ -12,9 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod pb {
-    include!("./api/shiftcrypto.bitbox02.rs");
-}
+use crate::pb;
 
 mod backup;
 mod device_info;

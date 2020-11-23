@@ -57,7 +57,7 @@ add_custom_command(
   # https://github.com/danburkert/prost/issues/344#issuecomment-650721245
   COMMAND
   ${CMAKE_COMMAND} -E env
-    cargo run --manifest-path=${CMAKE_SOURCE_DIR}/tools/prost-build/Cargo.toml -- --messages-dir=${CMAKE_CURRENT_SOURCE_DIR} --out-dir=${CMAKE_SOURCE_DIR}/src/rust/bitbox02-rust/src/hww/api/
+    cargo run --manifest-path=${CMAKE_SOURCE_DIR}/tools/prost-build/Cargo.toml -- --messages-dir=${CMAKE_CURRENT_SOURCE_DIR} --out-dir=${CMAKE_SOURCE_DIR}/src/rust/bitbox02-rust/src/
 )
 
 add_custom_target(

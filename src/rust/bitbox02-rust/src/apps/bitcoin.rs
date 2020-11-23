@@ -12,19 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::Error;
-use crate::pb;
-
-use pb::response::Response;
-
-use bitbox02::{memory, securechip};
-
-pub fn process() -> Result<Response, Error> {
-    Ok(Response::DeviceInfo(pb::DeviceInfoResponse {
-        name: memory::get_device_name(),
-        initialized: memory::is_initialized(),
-        version: bitbox02::version_short().into(),
-        mnemonic_passphrase_enabled: memory::is_mnemonic_passphrase_enabled(),
-        monotonic_increments_remaining: securechip::monotonic_increments_remaining()?,
-    }))
-}
+pub mod keypath;

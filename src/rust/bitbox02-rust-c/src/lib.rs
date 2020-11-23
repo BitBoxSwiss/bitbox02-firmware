@@ -28,6 +28,8 @@ mod alloc;
 mod util;
 
 #[cfg(feature = "firmware")]
+mod app_bitcoin;
+#[cfg(feature = "firmware")]
 mod async_usb;
 #[cfg(feature = "firmware")]
 mod bip32;

@@ -14,7 +14,7 @@
 
 use util::bip32::HARDENED;
 
-static ACCOUNT_MAX: u32 = 99; // 100 accounts
+const ACCOUNT_MAX: u32 = 99; // 100 accounts
 
 /// Does limit checks the keypath, whitelisting bip44 purpose, account and change.
 /// Only allows the well-known xpub of m'/44'/60'/0'/0 for now.

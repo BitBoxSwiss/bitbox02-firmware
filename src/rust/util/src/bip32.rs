@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub static HARDENED: u32 = 0x80000000;
+pub const HARDENED: u32 = 0x80000000;
 
 extern crate alloc;
 use alloc::string::String;

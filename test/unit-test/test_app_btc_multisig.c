@@ -73,6 +73,7 @@ typedef struct {
     size_t our_xpub_index;
     const char* out;
     const uint32_t keypath[6];
+    const size_t keypath_len;
 } testcase_t;
 
 static testcase_t _tests[] = {
@@ -99,6 +100,7 @@ static testcase_t _tests[] = {
                 1,
                 2,
             },
+        .keypath_len = 6,
     },
     {
         .coin = BTCCoin_TBTC,
@@ -122,6 +124,7 @@ static testcase_t _tests[] = {
                 1,
                 2,
             },
+        .keypath_len = 6,
     },
     {
         .coin = BTCCoin_TBTC,
@@ -158,6 +161,7 @@ static testcase_t _tests[] = {
                 1,
                 2,
             },
+        .keypath_len = 6,
     },
 
     /** P2SH **/
@@ -184,6 +188,33 @@ static testcase_t _tests[] = {
                 1,
                 0,
             },
+        .keypath_len = 6,
+    },
+
+    /** P2SH Nunchuk keypath **/
+    {
+        .coin = BTCCoin_BTC,
+        .script_type = BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH,
+        .threshold = 2,
+        .xpubs_count = 2,
+        .xpubs =
+            {
+                "xpub6FEZ9Bv73h1vnE4TJG4QFj2RPXJhhsPbnXgFyH3ErLvpcZrDcynY65bhWga8PazWHLSLi23PoBhGcL"
+                "cYW6JRiJ12zXZ9Aop4LbAqsS3gtcy",
+                "xpub6C2Btqv4ZLgC3f2kjqEvsWUsJosEYVzrMTS8JHjZHrQpuVRyjtXcGfwR5dtueTQaTPAEyiiAknU6V5"
+                "GUyR4ryT2y2tv3VRnCNf57GWqocgd",
+            },
+        .our_xpub_index = 1,
+        .out = "341hw7cuzpf2AtSuXupX5Pu3tkkXv24bvo",
+        .keypath =
+            {
+                48 + BIP32_INITIAL_HARDENED_CHILD,
+                0 + BIP32_INITIAL_HARDENED_CHILD,
+                0 + BIP32_INITIAL_HARDENED_CHILD,
+                1,
+                0,
+            },
+        .keypath_len = 5,
     },
 };
 
@@ -213,7 +244,7 @@ static void _test_app_btc_address_multisig(void** state)
             test_case->coin,
             &multisig,
             test_case->keypath,
-            sizeof(test_case->keypath) / sizeof(uint32_t),
+            test_case->keypath_len,
             out,
             sizeof(out),
             false);

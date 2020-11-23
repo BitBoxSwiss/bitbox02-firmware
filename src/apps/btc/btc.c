@@ -143,7 +143,8 @@ app_btc_result_t app_btc_address_multisig(
 
     uint8_t hash[SHA256_LEN] = {0};
     size_t written = 0;
-    if (!btc_common_outputhash_from_multisig(multisig, keypath[4], keypath[5], hash, &written)) {
+    if (!btc_common_outputhash_from_multisig(
+            multisig, keypath[keypath_len - 2], keypath[keypath_len - 1], hash, &written)) {
         return APP_BTC_ERR_UNKNOWN;
     }
 

@@ -13,3 +13,51 @@
 // limitations under the License.
 
 pub static HARDENED: u32 = 0x80000000;
+
+extern crate alloc;
+use alloc::string::String;
+use alloc::vec::Vec;
+
+/// Turn a keypath represented as a list of u32 to a string, e.g. "m/84'/0'/0'". Hardened elements
+/// are bigger or equal to `HARDENED`
+pub fn to_string(keypath: &[u32]) -> String {
+    let s = keypath
+        .iter()
+        .map(|&el| {
+            if el >= HARDENED {
+                format!("{}'", el - HARDENED)
+            } else {
+                format!("{}", el)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("/");
+    // Prepend "m/".
+    format!("m/{}", s)
+}
+
+#[cfg(test)]
+mod tests {
+    extern crate std;
+    use super::*;
+
+    #[test]
+    fn test_to_string() {
+        assert_eq!(to_string(&[]), "m/");
+        assert_eq!(to_string(&[0]), "m/0");
+        assert_eq!(to_string(&[0, 0, 0, 0]), "m/0/0/0/0");
+        assert_eq!(to_string(&[HARDENED]), "m/0'");
+        assert_eq!(
+            to_string(&[0xFFFFFFFF, HARDENED - 1]),
+            "m/2147483647'/2147483647"
+        );
+        assert_eq!(
+            to_string(&[84 + HARDENED, 1 + HARDENED, 0 + HARDENED, 1, 100]),
+            "m/84'/1'/0'/1/100"
+        );
+        assert_eq!(
+            to_string(&[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 2 + HARDENED]),
+            "m/48'/1'/0'/2'"
+        );
+    }
+}

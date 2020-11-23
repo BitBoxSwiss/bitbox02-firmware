@@ -30,6 +30,8 @@ mod util;
 #[cfg(feature = "firmware")]
 mod async_usb;
 #[cfg(feature = "firmware")]
+mod bip32;
+#[cfg(feature = "firmware")]
 mod noise;
 #[cfg(feature = "firmware")]
 mod sha2;

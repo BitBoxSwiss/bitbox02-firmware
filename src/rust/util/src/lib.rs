@@ -18,6 +18,10 @@ pub mod bip32;
 pub mod c_types;
 pub mod name;
 
+// for `format!`
+#[macro_use]
+extern crate alloc;
+
 /// Guaranteed to wipe the provided buffer
 pub fn zero(dst: &mut [u8]) {
     for p in dst {

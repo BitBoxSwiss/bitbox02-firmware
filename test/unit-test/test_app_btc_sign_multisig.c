@@ -36,18 +36,16 @@ bool __wrap_memory_multisig_get_by_hash(const uint8_t* hash, char* name_out)
     return true;
 }
 
-bool __wrap_apps_btc_confirm_multisig(
+bool __wrap_apps_btc_confirm_multisig_basic(
     const char* title,
     BTCCoin coin,
     const char* name,
-    const BTCScriptConfig_Multisig* multisig,
-    bool verify_xpubs)
+    const BTCScriptConfig_Multisig* multisig)
 {
     assert_string_equal(title, "Spend from");
     check_expected(coin);
     assert_string_equal(name, _multisig_name);
     check_expected(multisig);
-    assert_false(verify_xpubs);
     return true;
 }
 
@@ -244,9 +242,9 @@ static void _test_tx(const _tx* tx, const uint8_t* expected_signature)
 
     BTCSignNextResponse next = {0};
 
-    expect_value(__wrap_apps_btc_confirm_multisig, coin, tx->init_req.coin);
+    expect_value(__wrap_apps_btc_confirm_multisig_basic, coin, tx->init_req.coin);
     expect_memory(
-        __wrap_apps_btc_confirm_multisig,
+        __wrap_apps_btc_confirm_multisig_basic,
         multisig,
         &tx->init_req.script_configs[0].script_config.config.multisig,
         sizeof(BTCScriptConfig_Multisig));

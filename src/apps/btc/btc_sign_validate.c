@@ -61,10 +61,8 @@ app_btc_result_t app_btc_sign_validate_init_script_configs(
             // Not previously registered -> fail.
             return APP_BTC_ERR_INVALID_INPUT;
         }
-        BTCRegisterScriptConfigRequest_XPubType ignored =
-            BTCRegisterScriptConfigRequest_XPubType_AUTO_ELECTRUM;
-        if (!apps_btc_confirm_multisig(
-                "Spend from", coin, multisig_registered_name, multisig, false, ignored)) {
+        if (!apps_btc_confirm_multisig_basic(
+                "Spend from", coin, multisig_registered_name, multisig)) {
             return APP_BTC_ERR_USER_ABORT;
         }
         return APP_BTC_OK;

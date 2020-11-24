@@ -1,0 +1,8 @@
+By signing this file, the signer confirms that the firmware binary built from:
+
+git tag firmware-btc-only/v9.3.0
+git commit hash 833b86f723fe438a0320410da316b90bd82980b3
+
+resulted, at the time of signing, in a firmware binary file with the following sha256sum:
+
+387eaee6f28be9d21fe827f5f25f64e29bf0de2039dc74632f322d203adf3c72

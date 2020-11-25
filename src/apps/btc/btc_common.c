@@ -25,11 +25,6 @@
 #include <util.h>
 #include <wally_address.h>
 
-#define BTC_PURPOSE_P2WPKH_P2SH (49 + BIP32_INITIAL_HARDENED_CHILD)
-#define BTC_PURPOSE_P2WPKH (84 + BIP32_INITIAL_HARDENED_CHILD)
-
-#define BIP44_ADDRESS_MAX (9999) // 10k addresses
-
 #define MULTISIG_P2WSH_MAX_SIGNERS 15
 
 static const uint8_t _xpub_version[4] = {0x04, 0x88, 0xb2, 0x1e};
@@ -64,32 +59,6 @@ const char* btc_common_coin_name(BTCCoin coin)
     }
 }
 
-static bool _validate_keypath_change_address(uint32_t change, uint32_t address)
-{
-    if (change > 1) {
-        return false;
-    }
-#if (BIP44_ADDRESS_MAX >= BIP32_INITIAL_HARDENED_CHILD)
-#error "possibly hardened address"
-#endif
-    return address <= BIP44_ADDRESS_MAX;
-}
-
-static bool _validate_keypath_address(
-    const uint32_t* keypath,
-    const size_t keypath_len,
-    uint32_t expected_coin,
-    uint32_t expected_purpose)
-{
-    if (keypath_len != 5) {
-        return false;
-    }
-    if (!rust_bitcoin_keypath_validate_account(keypath, 3, expected_purpose, expected_coin)) {
-        return false;
-    }
-    return _validate_keypath_change_address(keypath[3], keypath[4]);
-}
-
 bool btc_common_is_valid_keypath_xpub(
     BTCPubRequest_XPubType xpub_type,
     const uint32_t* keypath,
@@ -107,20 +76,7 @@ bool btc_common_is_valid_keypath_xpub(
     case BTCPubRequest_XPubType_CAPITAL_ZPUB:
     case BTCPubRequest_XPubType_CAPITAL_UPUB:
     case BTCPubRequest_XPubType_CAPITAL_YPUB:
-        if (rust_bitcoin_keypath_validate_account_multisig(
-                keypath, keypath_len, expected_coin, BTCScriptConfig_Multisig_ScriptType_P2WSH) ||
-            rust_bitcoin_keypath_validate_account_multisig(
-                keypath,
-                keypath_len,
-                expected_coin,
-                BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH)) {
-            return true;
-        }
-
-        return rust_bitcoin_keypath_validate_account(
-                   keypath, keypath_len, BTC_PURPOSE_P2WPKH_P2SH, expected_coin) ||
-               rust_bitcoin_keypath_validate_account(
-                   keypath, keypath_len, BTC_PURPOSE_P2WPKH, expected_coin);
+        return rust_bitcoin_keypath_validate_xpub(keypath, keypath_len, expected_coin);
     default:
         return false;
     }
@@ -132,16 +88,8 @@ bool btc_common_is_valid_keypath_account_simple(
     const size_t keypath_len,
     const uint32_t expected_coin)
 {
-    switch (script_type) {
-    case BTCScriptConfig_SimpleType_P2WPKH_P2SH:
-        return rust_bitcoin_keypath_validate_account(
-            keypath, keypath_len, BTC_PURPOSE_P2WPKH_P2SH, expected_coin);
-    case BTCScriptConfig_SimpleType_P2WPKH:
-        return rust_bitcoin_keypath_validate_account(
-            keypath, keypath_len, BTC_PURPOSE_P2WPKH, expected_coin);
-    default:
-        return false;
-    }
+    return rust_bitcoin_keypath_validate_account_simple(
+        keypath, keypath_len, expected_coin, script_type);
 }
 
 bool btc_common_is_valid_keypath_address_simple(
@@ -150,15 +98,8 @@ bool btc_common_is_valid_keypath_address_simple(
     const size_t keypath_len,
     const uint32_t expected_coin)
 {
-    switch (script_type) {
-    case BTCScriptConfig_SimpleType_P2WPKH_P2SH:
-        return _validate_keypath_address(
-            keypath, keypath_len, expected_coin, BTC_PURPOSE_P2WPKH_P2SH);
-    case BTCScriptConfig_SimpleType_P2WPKH:
-        return _validate_keypath_address(keypath, keypath_len, expected_coin, BTC_PURPOSE_P2WPKH);
-    default:
-        return false;
-    }
+    return rust_bitcoin_keypath_validate_address_simple(
+        keypath, keypath_len, expected_coin, script_type);
 }
 
 bool btc_common_is_valid_keypath_address_multisig(

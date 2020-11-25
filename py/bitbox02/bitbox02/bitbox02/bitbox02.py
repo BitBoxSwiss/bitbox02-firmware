@@ -327,8 +327,14 @@ class BitBox02(BitBoxCommonAPI):
     ) -> None:
         """
         Raises Bitbox02Exception with ERR_USER_ABORT on user abort.
+        If name is the empty string, it will be prompted on the device.
         """
         # pylint: disable=no-member,too-many-arguments
+
+        if name == "":
+            # prompt on device only available since v9.3.0
+            self._require_atleast(semver.VersionInfo(9, 3, 0))
+
         assert len(name) <= 30
 
         # pylint: disable=no-member

@@ -8,10 +8,10 @@ pub extern crate core as __core;
 ///
 /// It will use the following format: "StructName { ... }". While it's
 /// convinient to have it (e.g. for including into other structs), it could be
-/// undesirable to leak internall state, which can happen for example through
+/// undesirable to leak internal state, which can happen for example through
 /// uncareful logging.
 #[macro_export]
-macro_rules! impl_opaque_debug {
+macro_rules! implement {
     ($struct:ty) => {
         impl $crate::__core::fmt::Debug for $struct {
             fn fmt(&self, f: &mut $crate::__core::fmt::Formatter)

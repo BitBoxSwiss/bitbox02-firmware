@@ -2,6 +2,9 @@
 //!
 //! <https://tools.ietf.org/html/rfc8439#section-2.3>
 
+// TODO(tarcieri): figure out what circumstances these occur in
+#![allow(unused_imports)]
+
 pub(crate) mod soft;
 
 use crate::rounds::Rounds;

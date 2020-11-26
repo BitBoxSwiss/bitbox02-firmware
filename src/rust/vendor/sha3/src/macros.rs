@@ -11,8 +11,8 @@ macro_rules! impl_state {
 
         impl $state {
             fn absorb(&mut self, input: &[u8]) {
-                let self_state = &mut self.state;
-                self.buffer.input(input, |b| self_state.absorb_block(b));
+                let s = &mut self.state;
+                self.buffer.input_block(input, |b| s.absorb_block(b));
             }
 
             fn apply_padding(&mut self) {
@@ -26,31 +26,28 @@ macro_rules! impl_state {
 
 macro_rules! sha3_impl {
     ($state:ident, $output_size:ident, $rate:ident, $padding:ty, $doc:expr) => {
-
         impl_state!($state, $rate, $padding, $doc);
 
         impl BlockInput for $state {
             type BlockSize = $rate;
         }
 
-        impl Input for $state {
-            fn input<B: AsRef<[u8]>>(&mut self, input: B) {
+        impl Update for $state {
+            fn update(&mut self, input: impl AsRef<[u8]>) {
                 self.absorb(input.as_ref())
             }
         }
 
-        impl FixedOutput for $state {
+        impl FixedOutputDirty for $state {
             type OutputSize = $output_size;
 
-            fn fixed_result(mut self) -> GenericArray<u8, Self::OutputSize> {
+            fn finalize_into_dirty(&mut self, out: &mut digest::Output<Self>) {
                 self.apply_padding();
 
-                let mut out = GenericArray::default();
                 let n = out.len();
                 self.state.as_bytes(|state| {
                     out.copy_from_slice(&state[..n]);
                 });
-                out
             }
         }
 
@@ -61,29 +58,28 @@ macro_rules! sha3_impl {
             }
         }
 
-        impl_opaque_debug!($state);
-        impl_write!($state);
-    }
+        opaque_debug::implement!($state);
+        digest::impl_write!($state);
+    };
 }
 
 macro_rules! shake_impl {
     ($state:ident, $rate:ident, $padding:ty, $doc:expr) => {
         impl_state!($state, $rate, $padding, $doc);
 
-        impl Input for $state {
-            fn input<B: AsRef<[u8]>>(&mut self, input: B) {
+        impl Update for $state {
+            fn update(&mut self, input: impl AsRef<[u8]>) {
                 self.absorb(input.as_ref())
             }
         }
 
-        impl ExtendableOutput for $state {
+        impl ExtendableOutputDirty for $state {
             type Reader = Sha3XofReader;
 
-            fn xof_result(mut self) -> Sha3XofReader {
+            fn finalize_xof_dirty(&mut self) -> Sha3XofReader {
                 self.apply_padding();
                 let r = $rate::to_usize();
-                let res = Sha3XofReader::new(self.state.clone(), r);
-                res
+                Sha3XofReader::new(self.state.clone(), r)
             }
         }
 
@@ -94,7 +90,7 @@ macro_rules! shake_impl {
             }
         }
 
-        impl_opaque_debug!($state);
-        impl_write!($state);
-    }
+        opaque_debug::implement!($state);
+        digest::impl_write!($state);
+    };
 }

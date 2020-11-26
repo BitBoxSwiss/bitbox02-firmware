@@ -2,18 +2,21 @@
 //!
 //! See [`XChaCha20Poly1305`] documentation for usage.
 
-use crate::{cipher::Cipher, Tag};
-use aead::generic_array::{
-    typenum::{U0, U16, U24, U32},
-    GenericArray,
+pub use chacha20::XNonce;
+
+use crate::{cipher::Cipher, Key, Tag};
+use aead::{
+    consts::{U0, U16, U24, U32},
+    AeadInPlace, Error, NewAead,
 };
-use aead::{Aead, Error, NewAead};
-use chacha20::{stream_cipher::NewStreamCipher, XChaCha20};
+use chacha20::XChaCha20;
+use stream_cipher::NewStreamCipher;
 use zeroize::Zeroize;
 
-/// **XChaCha20Poly1305** is a ChaCha20Poly1305 variant with an extended
-/// 192-bit (24-byte) nonce. The `xchacha20poly1305` Cargo feature
-/// must be enabled in order to use this (which it is by default).
+/// ChaCha20Poly1305 variant with an extended 192-bit (24-byte) nonce.
+///
+/// The `xchacha20poly1305` Cargo feature must be enabled in order to use this
+/// (which it is by default).
 ///
 /// The construction is an adaptation of the same techniques used by
 /// XSalsa20 as described in the paper "Extending the Salsa20 Nonce"
@@ -41,39 +44,40 @@ use zeroize::Zeroize;
 /// # Usage
 ///
 /// ```
-/// use chacha20poly1305::XChaCha20Poly1305;
-/// use aead::{Aead, NewAead, generic_array::GenericArray};
+/// use chacha20poly1305::{XChaCha20Poly1305, Key, XNonce};
+/// use chacha20poly1305::aead::{Aead, NewAead};
 ///
-/// let key = GenericArray::clone_from_slice(b"an example very very secret key."); // 32-bytes
+/// let key = Key::from_slice(b"an example very very secret key."); // 32-bytes
 /// let aead = XChaCha20Poly1305::new(key);
 ///
-/// let nonce = GenericArray::from_slice(b"extra long unique nonce!"); // 24-bytes; unique
+/// let nonce = XNonce::from_slice(b"extra long unique nonce!"); // 24-bytes; unique
 /// let ciphertext = aead.encrypt(nonce, b"plaintext message".as_ref()).expect("encryption failure!");
 /// let plaintext = aead.decrypt(nonce, ciphertext.as_ref()).expect("decryption failure!");
 /// assert_eq!(&plaintext, b"plaintext message");
 /// ```
 #[derive(Clone)]
+#[cfg_attr(docsrs, doc(cfg(feature = "xchacha20poly1305")))]
 pub struct XChaCha20Poly1305 {
     /// Secret key
-    key: GenericArray<u8, U32>,
+    key: Key,
 }
 
 impl NewAead for XChaCha20Poly1305 {
     type KeySize = U32;
 
-    fn new(key: GenericArray<u8, U32>) -> Self {
-        XChaCha20Poly1305 { key }
+    fn new(key: &Key) -> Self {
+        XChaCha20Poly1305 { key: *key }
     }
 }
 
-impl Aead for XChaCha20Poly1305 {
+impl AeadInPlace for XChaCha20Poly1305 {
     type NonceSize = U24;
     type TagSize = U16;
     type CiphertextOverhead = U0;
 
     fn encrypt_in_place_detached(
         &self,
-        nonce: &GenericArray<u8, Self::NonceSize>,
+        nonce: &XNonce,
         associated_data: &[u8],
         buffer: &mut [u8],
     ) -> Result<Tag, Error> {
@@ -83,7 +87,7 @@ impl Aead for XChaCha20Poly1305 {
 
     fn decrypt_in_place_detached(
         &self,
-        nonce: &GenericArray<u8, Self::NonceSize>,
+        nonce: &XNonce,
         associated_data: &[u8],
         buffer: &mut [u8],
         tag: &Tag,

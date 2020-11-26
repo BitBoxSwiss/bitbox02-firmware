@@ -22,17 +22,29 @@
 //!
 //! USE AT YOUR OWN RISK!
 //!
+//! # Diagram
+//!
+//! This diagram illustrates the ChaCha quarter round function.
+//! Each round consists of four quarter-rounds:
+//!
+//! <img src="https://raw.githubusercontent.com/RustCrypto/meta/master/img/stream-ciphers/chacha20.png" width="300px">
+//!
+//! Legend:
+//!
+//! - ⊞ add
+//! - ‹‹‹ rotate
+//! - ⊕ xor
+//!
 //! # Usage
 //!
 //! ```
-//! use chacha20::ChaCha20;
-//! use chacha20::stream_cipher::generic_array::GenericArray;
+//! use chacha20::{ChaCha20, Key, Nonce};
 //! use chacha20::stream_cipher::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 //!
 //! let mut data = [1, 2, 3, 4, 5, 6, 7];
 //!
-//! let key = GenericArray::from_slice(b"an example very very secret key.");
-//! let nonce = GenericArray::from_slice(b"secret nonce");
+//! let key = Key::from_slice(b"an example very very secret key.");
+//! let nonce = Nonce::from_slice(b"secret nonce");
 //!
 //! // create cipher instance
 //! let mut cipher = ChaCha20::new(&key, &nonce);
@@ -51,29 +63,32 @@
 //! [Salsa20]: https://docs.rs/salsa20
 
 #![no_std]
-#![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg"
+)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
-
-#[cfg(feature = "stream-cipher")]
-pub use stream_cipher;
 
 mod block;
 #[cfg(feature = "stream-cipher")]
 pub(crate) mod cipher;
 #[cfg(feature = "legacy")]
 mod legacy;
+#[cfg(feature = "rng")]
+mod rng;
 mod rounds;
 #[cfg(feature = "xchacha20")]
 mod xchacha20;
 
-#[cfg(feature = "rng")]
-mod rng;
+#[cfg(feature = "stream-cipher")]
+pub use stream_cipher;
 
 #[cfg(feature = "stream-cipher")]
-pub use self::cipher::{ChaCha12, ChaCha20, ChaCha8, Cipher};
+pub use self::cipher::{ChaCha12, ChaCha20, ChaCha8, Cipher, Key, Nonce};
 
 #[cfg(feature = "legacy")]
-pub use self::legacy::ChaCha20Legacy;
+pub use self::legacy::{ChaCha20Legacy, LegacyNonce};
 
 #[cfg(feature = "rng")]
 pub use rng::{
@@ -81,7 +96,7 @@ pub use rng::{
 };
 
 #[cfg(feature = "xchacha20")]
-pub use self::xchacha20::XChaCha20;
+pub use self::xchacha20::{XChaCha20, XNonce};
 
 /// Size of a ChaCha20 block in bytes
 pub const BLOCK_SIZE: usize = 64;

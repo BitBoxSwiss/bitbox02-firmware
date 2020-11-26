@@ -13,6 +13,7 @@ macro_rules! impl_chacha_rng {
     ($name:ident, $core:ident, $rounds:ident, $doc:expr) => {
         #[doc = $doc]
         #[derive(Clone, Debug)]
+        #[cfg_attr(docsrs, doc(cfg(feature = "rng")))]
         pub struct $name(BlockRng<$core>);
 
         impl SeedableRng for $name {
@@ -51,6 +52,7 @@ macro_rules! impl_chacha_rng {
 
         #[doc = "Core random number generator, for use with [`rand_core::block::BlockRng`]"]
         #[derive(Clone, Debug)]
+        #[cfg_attr(docsrs, doc(cfg(feature = "rng")))]
         pub struct $core {
             block: Block<$rounds>,
             counter: u64,

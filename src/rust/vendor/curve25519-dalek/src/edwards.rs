@@ -150,7 +150,7 @@ use backend::vector::scalar_mul;
 ///
 /// The first 255 bits of a `CompressedEdwardsY` represent the
 /// \\(y\\)-coordinate.  The high bit of the 32nd byte gives the sign of \\(x\\).
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct CompressedEdwardsY(pub [u8; 32]);
 
 impl ConstantTimeEq for CompressedEdwardsY {
@@ -753,7 +753,7 @@ impl EdwardsPoint {
 pub struct EdwardsBasepointTable(pub(crate) [LookupTable<AffineNielsPoint>; 32]);
 
 impl EdwardsBasepointTable {
-    /// The computation uses Pippeneger's algorithm, as described on
+    /// The computation uses Pippenger's algorithm, as described on
     /// page 13 of the Ed25519 paper.  Write the scalar \\(a\\) in radix \\(16\\) with
     /// coefficients in \\([-8,8)\\), i.e.,
     /// $$

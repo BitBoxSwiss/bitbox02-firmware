@@ -2,7 +2,10 @@
 
 extern crate test;
 
-use poly1305::{universal_hash::UniversalHash, Poly1305};
+use poly1305::{
+    universal_hash::{NewUniversalHash, UniversalHash},
+    Poly1305,
+};
 use test::Bencher;
 
 // TODO(tarcieri): move this into the `universal-hash` crate

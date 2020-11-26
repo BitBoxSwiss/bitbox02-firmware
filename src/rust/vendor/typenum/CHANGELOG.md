@@ -7,6 +7,16 @@ version. Much of typenum should work on as low a version as 1.20.0, but that is 
 
 ### Unreleased
 
+### 1.12.0 (2020-04-03)
+- [added] Feature `force_unix_path_separator` to support building without Cargo.
+- [added] Greatest common divisor operator `Gcd` with alias `Gcf`.
+- [added] `gcd` to the `op!` macro.
+- [changed] Added `Copy` bound to `Rhs` of `Mul<Rhs>` impl for `<TArr<V, A>`.
+- [changed] Added `Copy` bound to `Rhs` of `Div<Rhs>` impl for `<TArr<V, A>`.
+- [changed] Added `Copy` bound to `Rhs` of `PartialDiv<Rhs>` impl for `<TArr<V, A>`.
+- [changed] Added `Copy` bound to `Rhs` of `Rem<Rhs>` impl for `<TArr<V, A>`.
+- [fixed] Make all functions #[inline].
+
 ### 1.11.2 (2019-08-26)
 - [fixed] Cross compilation from Linux to Windows.
 

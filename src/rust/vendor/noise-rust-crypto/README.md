@@ -8,6 +8,3 @@ The underlying implementations are:
 * [`aes-gcm`](https://crates.io/crates/aes-gcm)
 * [`sha2`](https://crates.io/crates/sha2)
 * [`blake2`](https://crates.io/crates/blake2)
-
-Warning relayed from `chacha20poly1305` and `aes-gcm`: they have not yet
-received any formal cryptographic and security reviews. *USE AT YOUR OWN RISK*.

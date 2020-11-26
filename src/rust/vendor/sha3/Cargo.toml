@@ -11,38 +11,36 @@
 # will likely look very different (and much more reasonable)
 
 [package]
+edition = "2018"
 name = "sha3"
-version = "0.8.2"
+version = "0.9.1"
 authors = ["RustCrypto Developers"]
 description = "SHA-3 (Keccak) hash function"
 documentation = "https://docs.rs/sha3"
+readme = "README.md"
 keywords = ["crypto", "sha3", "keccak", "hash", "digest"]
 categories = ["cryptography", "no-std"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/RustCrypto/hashes"
 [dependencies.block-buffer]
-version = "0.7"
-
-[dependencies.byte-tools]
-version = "0.3"
+version = "0.9"
+features = ["block-padding"]
 
 [dependencies.digest]
-version = "0.8"
+version = "0.9"
 
 [dependencies.keccak]
 version = "0.1"
 
 [dependencies.opaque-debug]
-version = "0.2"
+version = "0.3"
 [dev-dependencies.digest]
-version = "0.8"
+version = "0.9"
 features = ["dev"]
 
 [dev-dependencies.hex-literal]
-version = "0.1"
+version = "0.2"
 
 [features]
 default = ["std"]
 std = ["digest/std"]
-[badges.travis-ci]
-repository = "RustCrypto/hashes"

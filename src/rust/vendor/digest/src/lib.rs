@@ -1,51 +1,77 @@
 //! This crate provides traits which describe functionality of cryptographic hash
 //! functions.
 //!
-//! Traits in this repository can be separated into two levels:
-//! - Low level traits: `Input`, `BlockInput`, `Reset`, `FixedOutput`,
-//! `VariableOutput`, `ExtendableOutput`. These traits atomically describe
-//! available functionality of hash function implementations.
-//! - Convenience trait: `Digest`, `DynDigest`. They are wrappers around
-//! low level traits for most common hash-function use-cases.
+//! Traits in this repository are organized into high-level convenience traits,
+//! mid-level traits which expose more fine-grained functionality, and
+//! low-level traits intended to only be used by algorithm implementations:
 //!
-//! Additionally hash functions implement traits from `std`: `Default`, `Clone`,
-//! `Write`. (the latter depends on enabled-by-default `std` crate feature)
+//! - **High-level convenience traits**: [`Digest`], [`DynDigest`]. They are wrappers
+//!   around lower-level traits for most common hash-function use-cases.
+//! - **Mid-level traits**: [`Update`], [`BlockInput`], [`Reset`], [`FixedOutput`],
+//!   [`VariableOutput`], [`ExtendableOutput`]. These traits atomically describe
+//!   available functionality of hash function implementations.
+//! - **Low-level traits**: [`FixedOutputDirty`], [`VariableOutputDirty`],
+//!   [`ExtendableOutputDirty`]. These traits are intended to be implemented by
+//!   low-level algorithm providers only and simplify the amount of work
+//!   implementers need to do and therefore shouldn't be used in
+//!   application-level code.
 //!
-//! The `Digest` trait is the most commonly used trait.
+//! Additionally hash functions implement traits from the standard library:
+//! `Default`, `Clone`, `Write`. The latter is feature-gated behind `std` feature,
+//! which is usually enabled by default by hash implementation crates.
+//!
+//! The [`Digest`] trait is the most commonly used trait.
+
 #![no_std]
-#![doc(html_logo_url =
-    "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
-pub extern crate generic_array;
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![forbid(unsafe_code)]
+#![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
+#![warn(missing_docs, rust_2018_idioms)]
+
+#[cfg(feature = "alloc")]
+#[macro_use]
+extern crate alloc;
+
 #[cfg(feature = "std")]
-#[macro_use] extern crate std;
+extern crate std;
+
 #[cfg(feature = "dev")]
-pub extern crate blobby;
-use generic_array::{GenericArray, ArrayLength};
-#[cfg(feature = "std")]
-use std::vec::Vec;
+#[cfg_attr(docsrs, doc(cfg(feature = "dev")))]
+pub mod dev;
 
 mod digest;
 mod dyn_digest;
 mod errors;
-#[cfg(feature = "dev")]
-pub mod dev;
+mod fixed;
+mod variable;
+mod xof;
 
-pub use errors::InvalidOutputSize;
-pub use digest::Digest;
-#[cfg(feature = "std")]
+pub use crate::digest::{Digest, Output};
+pub use crate::errors::InvalidOutputSize;
+pub use crate::fixed::{FixedOutput, FixedOutputDirty};
+pub use crate::variable::{VariableOutput, VariableOutputDirty};
+pub use crate::xof::{ExtendableOutput, ExtendableOutputDirty, XofReader};
+pub use generic_array::{self, typenum::consts};
+
+#[cfg(feature = "alloc")]
 pub use dyn_digest::DynDigest;
 
-/// Trait for processing input data
-pub trait Input {
+use generic_array::ArrayLength;
+
+/// Trait for updating digest state with input data.
+pub trait Update {
     /// Digest input data.
     ///
     /// This method can be called repeatedly, e.g. for processing streaming
     /// messages.
-    fn input<B: AsRef<[u8]>>(&mut self, data: B);
+    fn update(&mut self, data: impl AsRef<[u8]>);
 
     /// Digest input data in a chained manner.
-    fn chain<B: AsRef<[u8]>>(mut self, data: B) -> Self where Self: Sized {
-        self.input(data);
+    fn chain(mut self, data: impl AsRef<[u8]>) -> Self
+    where
+        Self: Sized,
+    {
+        self.update(data);
         self
     }
 }
@@ -55,65 +81,8 @@ pub trait Input {
 ///
 /// The main usage of this trait is for implementing HMAC generically.
 pub trait BlockInput {
+    /// Block size
     type BlockSize: ArrayLength<u8>;
-}
-
-/// Trait for returning digest result with the fixed size
-pub trait FixedOutput {
-    type OutputSize: ArrayLength<u8>;
-
-    /// Retrieve result and consume hasher instance.
-    fn fixed_result(self) -> GenericArray<u8, Self::OutputSize>;
-}
-
-/// Trait for returning digest result with the variable size
-pub trait VariableOutput: core::marker::Sized {
-    /// Create new hasher instance with the given output size.
-    ///
-    /// It will return `Err(InvalidOutputSize)` in case if hasher can not return
-    /// specified output size. It will always return an error if output size
-    /// equals to zero.
-    fn new(output_size: usize) -> Result<Self, InvalidOutputSize>;
-
-    /// Get output size of the hasher instance provided to the `new` method
-    fn output_size(&self) -> usize;
-
-    /// Retrieve result via closure and consume hasher.
-    ///
-    /// Closure is guaranteed to be called, length of the buffer passed to it
-    /// will be equal to `output_size`.
-    fn variable_result<F: FnOnce(&[u8])>(self, f: F);
-
-    /// Retrieve result into vector and consume hasher.
-    #[cfg(feature = "std")]
-    fn vec_result(self) -> Vec<u8> {
-        let mut buf = Vec::with_capacity(self.output_size());
-        self.variable_result(|res| buf.extend_from_slice(res));
-        buf
-    }
-}
-
-/// Trait for describing readers which are used to extract extendable output
-/// from XOF (extendable-output function) result.
-pub trait XofReader {
-    /// Read output into the `buffer`. Can be called unlimited number of times.
-    fn read(&mut self, buffer: &mut [u8]);
-}
-
-/// Trait which describes extendable-output functions (XOF).
-pub trait ExtendableOutput: core::marker::Sized {
-    type Reader: XofReader;
-
-    /// Retrieve XOF reader and consume hasher instance.
-    fn xof_result(self) -> Self::Reader;
-
-    /// Retrieve result into vector of specified length.
-    #[cfg(feature = "std")]
-    fn vec_result(self, n: usize) -> Vec<u8> {
-        let mut buf = vec![0u8; n];
-        self.xof_result().read(&mut buf);
-        buf
-    }
 }
 
 /// Trait for resetting hash instances
@@ -123,19 +92,19 @@ pub trait Reset {
 }
 
 #[macro_export]
-/// Implements `std::io::Write` trait for implementer of `Input`
+/// Implements `std::io::Write` trait for implementer of [`Update`]
 macro_rules! impl_write {
     ($hasher:ident) => {
         #[cfg(feature = "std")]
-        impl ::std::io::Write for $hasher {
-            fn write(&mut self, buf: &[u8]) -> ::std::io::Result<usize> {
-                Input::input(self, buf);
+        impl std::io::Write for $hasher {
+            fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+                Update::update(self, buf);
                 Ok(buf.len())
             }
 
-            fn flush(&mut self) -> ::std::io::Result<()> {
+            fn flush(&mut self) -> std::io::Result<()> {
                 Ok(())
             }
         }
-    }
+    };
 }

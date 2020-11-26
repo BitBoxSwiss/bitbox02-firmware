@@ -1,15 +1,19 @@
 //! Legacy version of ChaCha20 with a 64-bit nonce
 
-use crate::cipher::ChaCha20;
-use stream_cipher::generic_array::{
-    typenum::{U32, U8},
-    GenericArray,
+use crate::cipher::{ChaCha20, Key};
+use stream_cipher::{
+    consts::{U32, U8},
+    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
 };
-use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
+
+/// Size of the nonce for the legacy ChaCha20 stream cipher
+#[cfg_attr(docsrs, doc(cfg(feature = "legacy")))]
+pub type LegacyNonce = stream_cipher::Nonce<ChaCha20Legacy>;
 
 /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
 ///
 /// The `legacy` Cargo feature must be enabled to use this.
+#[cfg_attr(docsrs, doc(cfg(feature = "legacy")))]
 pub struct ChaCha20Legacy(ChaCha20);
 
 impl NewStreamCipher for ChaCha20Legacy {
@@ -19,10 +23,10 @@ impl NewStreamCipher for ChaCha20Legacy {
     /// Nonce size in bytes
     type NonceSize = U8;
 
-    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        let mut exp_iv = GenericArray::default();
-        exp_iv[4..].copy_from_slice(iv);
-        ChaCha20Legacy(ChaCha20::new(key, &exp_iv))
+    fn new(key: &Key, nonce: &LegacyNonce) -> Self {
+        let mut exp_iv = [0u8; 12];
+        exp_iv[4..].copy_from_slice(nonce);
+        ChaCha20Legacy(ChaCha20::new(key, &exp_iv.into()))
     }
 }
 
@@ -33,11 +37,11 @@ impl SyncStreamCipher for ChaCha20Legacy {
 }
 
 impl SyncStreamCipherSeek for ChaCha20Legacy {
-    fn current_pos(&self) -> u64 {
-        self.0.current_pos()
+    fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
+        self.0.try_current_pos()
     }
 
-    fn seek(&mut self, pos: u64) {
-        self.0.seek(pos);
+    fn try_seek<T: SeekNum>(&mut self, pos: T) -> Result<(), LoopError> {
+        self.0.try_seek(pos)
     }
 }

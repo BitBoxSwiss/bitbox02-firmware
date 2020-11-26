@@ -63,6 +63,7 @@ dependencies = [
  "bitbox02-noise",
  "hex",
  "prost",
+ "sha2",
  "util",
 ]
 

@@ -703,8 +703,10 @@ Notes    :  none
 ============================================================================*/
 void ADC0_1_Handler(void)
 {
+    CRITICAL_SECTION_ENTER()
     ADC0->INTFLAG.reg |= 1U;
     qtm_samd51_ptc_handler();
+    CRITICAL_SECTION_LEAVE()
 }
 
 #endif /* TOUCH_C */

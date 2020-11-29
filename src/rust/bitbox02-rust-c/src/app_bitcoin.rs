@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use core::fmt::Write;
+
 use util::c_types::size_t;
 
 use bitbox02_rust::apps::bitcoin::keypath;
+use bitbox02_rust::apps::bitcoin::util::format_amount;
 
 /// # Safety
 /// `keypath` must be not NULL and contain `keypath_len` u32 elements.
@@ -112,4 +115,15 @@ pub unsafe extern "C" fn rust_bitcoin_keypath_validate_address_simple(
     };
     let keypath = core::slice::from_raw_parts(keypath, keypath_len);
     keypath::validate_address_simple(keypath, expected_coin, script_type).is_ok()
+}
+
+/// `out` should be at least 31+len(unit) bytes.
+#[no_mangle]
+pub extern "C" fn rust_bitcoin_util_format_amount(
+    satoshi: u64,
+    unit: crate::util::CStr,
+    mut out: crate::util::CStrMut,
+) {
+    let result = format_amount(satoshi, unit.as_ref());
+    out.write_str(&result).unwrap();
 }

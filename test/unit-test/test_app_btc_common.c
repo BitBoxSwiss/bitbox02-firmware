@@ -37,63 +37,6 @@ static uint8_t _mock_bip39_seed[64] =
     "\x76\x77\x0a\xc7\xa0\xab\x2e\x2f\xea\x84\x0b\xa2\x76\x35\x06\xfa\x9c\x39\xde\x4d\xef\x27\xf6"
     "\xf8\xeb\xce\x36\x37\x02\xe9\x83\xe5\x49\xbd\x7d\xef\x14\xa0\x31\xbf\xdd";
 
-static void _test_btc_common_format_amount_invalid_params(void** state)
-{
-    char out[100] = {0};
-
-    assert_false(btc_common_format_amount(0, "", NULL, sizeof(out)));
-    for (size_t wrong_out_len = 0; wrong_out_len < 30; wrong_out_len++) {
-        assert_false(btc_common_format_amount(0, "", out, wrong_out_len));
-    }
-    assert_true(btc_common_format_amount(0, "", out, 31));
-}
-
-typedef struct {
-    uint64_t satoshi;
-    const char* out;
-} btc_format_test_t;
-
-static void _test_btc_common_format_amount(void** state)
-{
-    const btc_format_test_t tests[] = {
-        {0, "0 LOL"},
-        {1, "0.00000001 LOL"},
-        {2, "0.00000002 LOL"},
-        {10, "0.0000001 LOL"},
-        {15, "0.00000015 LOL"},
-        {20, "0.0000002 LOL"},
-        {300, "0.000003 LOL"},
-        {370, "0.0000037 LOL"},
-        {371, "0.00000371 LOL"},
-        {40000000000, "400 LOL"},
-        {4000000000, "40 LOL"},
-        {400000000, "4 LOL"},
-        {40000000, "0.4 LOL"},
-        {4000000, "0.04 LOL"},
-        {400000, "0.004 LOL"},
-        {40000, "0.0004 LOL"},
-        {4000, "0.00004 LOL"},
-        {400, "0.000004 LOL"},
-        {40, "0.0000004 LOL"},
-        {4, "0.00000004 LOL"},
-        {5432345, "0.05432345 LOL"},
-        {54323452, "0.54323452 LOL"},
-        {543234527, "5.43234527 LOL"},
-        {5432345270, "54.3234527 LOL"},
-        {54323452708, "543.23452708 LOL"},
-        {100000000, "1 LOL"},
-        {1234567800000001, "12345678.00000001 LOL"},
-        {0xffffffffffffffff, "184467440737.09551615 LOL"},
-        {0xffffffffffffffff - 5, "184467440737.0955161 LOL"},
-    };
-    for (size_t i = 0; i < sizeof(tests) / sizeof(btc_format_test_t); i++) {
-        const btc_format_test_t* test = &tests[i];
-        char out[100] = {0};
-        assert_true(btc_common_format_amount(test->satoshi, "LOL", out, sizeof(out)));
-        assert_string_equal(test->out, out);
-    }
-}
-
 typedef struct {
     uint32_t threshold;
     size_t xpubs_count;
@@ -628,8 +571,6 @@ print(hashlib.sha256(b''.join(msg)).hexdigest())
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(_test_btc_common_format_amount_invalid_params),
-        cmocka_unit_test(_test_btc_common_format_amount),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig_unhappy),
         cmocka_unit_test(_test_btc_common_multisig_is_valid),

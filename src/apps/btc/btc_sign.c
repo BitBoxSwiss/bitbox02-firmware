@@ -821,10 +821,10 @@ app_btc_result_t app_btc_sign_output(
 
         // Verify output if it is not a change output.
         char formatted_value[100] = {0};
-        if (!btc_common_format_amount(
-                request->value, _coin_params->unit, formatted_value, sizeof(formatted_value))) {
-            return _error(APP_BTC_ERR_UNKNOWN);
-        }
+        rust_bitcoin_util_format_amount(
+            request->value,
+            rust_util_cstr(_coin_params->unit),
+            rust_util_cstr_mut(formatted_value, sizeof(formatted_value)));
 
         // This call blocks.
         if (!workflow_verify_recipient(address, formatted_value)) {
@@ -915,15 +915,15 @@ app_btc_result_t app_btc_sign_output(
         uint64_t fee = total_out - _outputs_sum_out;
 
         char formatted_total_out[100] = {0};
-        if (!btc_common_format_amount(
-                total_out, _coin_params->unit, formatted_total_out, sizeof(formatted_total_out))) {
-            return _error(APP_BTC_ERR_UNKNOWN);
-        }
+        rust_bitcoin_util_format_amount(
+            total_out,
+            rust_util_cstr(_coin_params->unit),
+            rust_util_cstr_mut(formatted_total_out, sizeof(formatted_total_out)));
         char formatted_fee[100] = {0};
-        if (!btc_common_format_amount(
-                fee, _coin_params->unit, formatted_fee, sizeof(formatted_fee))) {
-            return _error(APP_BTC_ERR_UNKNOWN);
-        }
+        rust_bitcoin_util_format_amount(
+            fee,
+            rust_util_cstr(_coin_params->unit),
+            rust_util_cstr_mut(formatted_fee, sizeof(formatted_fee)));
         // This call blocks.
         if (!workflow_verify_total(formatted_total_out, formatted_fee)) {
             return _error(APP_BTC_ERR_USER_ABORT);

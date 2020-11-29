@@ -87,20 +87,6 @@ USE_RESULT bool btc_common_is_valid_keypath_address_multisig(
     uint32_t expected_coin);
 
 /**
- * Converts a satoshi value to a string with the BTC unit, e.g. 1234567890 -> "12.34567890 BTC".
- * @param[in] satoshi Amount in Satoshi.
- * @param[in] unit suffix.
- * @param[out] out will contain the resulting string.
- * @param[in] out_len size allocation of `out`. Should be at least 31+len(unit) bytes.
- * return true on succes, false on failure.
- */
-USE_RESULT bool btc_common_format_amount(
-    uint64_t satoshi,
-    const char* unit,
-    char* out,
-    size_t out_len);
-
-/**
  * Converts a pubkeyhash to a hash used in an output script, e.g. pubkeyhash or script hash.
  * The pkScript to be hashed is created based on the script type (output type).
  * @param[in] script_type script type defining the pkScript.

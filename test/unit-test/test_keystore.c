@@ -437,6 +437,73 @@ static void _test_keystore_get_bip39_mnemonic(void** state)
     assert_true(keystore_get_bip39_mnemonic(mnemonic, strlen(expected_mnemonic) + 1));
 }
 
+static void _test_keystore_encode_xpub(void** state)
+{
+    struct ext_key xpub = {0};
+    assert_int_equal(
+        bip32_key_from_seed(
+            (const unsigned char*)"seedseedseedseed",
+            BIP32_ENTROPY_LEN_128,
+            BIP32_VER_MAIN_PRIVATE,
+            BIP32_FLAG_SKIP_HASH,
+            &xpub),
+        WALLY_OK);
+    assert_int_equal(bip32_key_strip_private_key(&xpub), WALLY_OK);
+    char out[XPUB_ENCODED_LEN] = {0};
+    assert_false(keystore_encode_xpub(&xpub, XPUB, out, 110));
+
+    assert_true(keystore_encode_xpub(&xpub, TPUB, out, sizeof(out)));
+    assert_string_equal(
+        out,
+        "tpubD6NzVbkrYhZ4X8SrpdvxUfkKsPg5iSLHQqmQ2e7MGczVsJskvL4uD62ckffe8zi4BVtbZXRCsVDythz1eNN3fN"
+        "S2A14YakBkWLBbyJiVFQ9");
+    assert_true(keystore_encode_xpub(&xpub, XPUB, out, sizeof(out)));
+    assert_string_equal(
+        out,
+        "xpub661MyMwAqRbcFLG1NSwsGkQxYGaRj3qDsDB6g64CviEc82D3r7Dp4eMnWdarcVkpPbMgwwuLLPPwCXVQFWWomv"
+        "yj6QKEuDXWvNbCDF98tgM");
+    assert_true(keystore_encode_xpub(&xpub, YPUB, out, sizeof(out)));
+    assert_string_equal(
+        out,
+        "ypub6QqdH2c5z7966dT8CojVUqWTiEisffpinKhKTUx6JicVB82H6mPNgi1vXqYScQQjoEUVhRVto3kV5p6xyCvpaA"
+        "fKxk1fV8M1C6eqbq4wvip");
+    assert_true(keystore_encode_xpub(&xpub, ZPUB, out, sizeof(out)));
+    assert_string_equal(
+        out,
+        "zpub6jftahH18ngZwveF3AX7gvbxtCsKcHpDhSDYEsqygizNEDqWMRYwJmg4Z3W2cK4fCsbJSu6TFi72y6iXguLqNQ"
+        "Lvq5i653AVTpiUzQXvTSr");
+    assert_true(keystore_encode_xpub(&xpub, VPUB, out, sizeof(out)));
+    assert_string_equal(
+        out,
+        "vpub5SLqN2bLY4WeYjsmhjNcraDxCLHXqorE2z8f7JGSAhUr1pabLntgpX3WUDfgcgSyaK85SziDR4gqRxGGp7gnBT"
+        "cXMivPjPtYNvTuS6sWM3J");
+    assert_true(keystore_encode_xpub(&xpub, UPUB, out, sizeof(out)));
+    assert_string_equal(
+        out,
+        "upub57Wa4MvRPNyAhSgesNazeV8T2N95uBrj7scSKuNYnh6xximN68j8CTPNT1i6cmo4Ag1GhX7exQLHYfei6RGmPD"
+        "vvVPDy9V547CQG3b2p2sZ");
+    assert_true(keystore_encode_xpub(&xpub, CAPITAL_VPUB, out, sizeof(out)));
+    assert_string_equal(
+        out,
+        "Vpub5dEvVGKn7251yK39ePqbgeZkv8Ko4AXpMFnL2ZXyYUKFe19W7CGxuduSGvdAB7fsonC4KaiLJH5LZ7t37LqjKw"
+        "jCCC2o8oMYGejn221hXB7");
+    assert_true(keystore_encode_xpub(&xpub, CAPITAL_ZPUB, out, sizeof(out)));
+    assert_string_equal(
+        out,
+        "Zpub6vZyhw1ShkEwNVocypz6WzwmbzuapeVp1hsDA97X4VpmrQQR7pwDPtXzMkTWAkHZSLfHKV6a8vVY6GLHz8VnWt"
+        "TbfYpVUSdVMYzMaJxms8u");
+    assert_true(keystore_encode_xpub(&xpub, CAPITAL_UPUB, out, sizeof(out)));
+    assert_string_equal(
+        out,
+        "Upub5JQfBberxLXY81r2p33yUZUFkABM7YYKS9G7FAe6ATwNauLGrY7QHaFJFifaBD1xQ95Fa77mqcinfqGUPeRiXi"
+        "3bKrLNYtY3zvg8dWPdbfj");
+    assert_true(keystore_encode_xpub(&xpub, CAPITAL_YPUB, out, sizeof(out)));
+    assert_string_equal(
+        out,
+        "Ypub6bjiQGLXZ4hTXCcW9UCUJurGS2m8t2WK6bLzNkDdgVStoJbBsAmempsrLYVvAqde2hYUa1W1gG8zCyijGS5mie"
+        "mzoD84tXp15pviBjgS4df");
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -448,6 +515,7 @@ int main(void)
         cmocka_unit_test(_test_keystore_unlock),
         cmocka_unit_test(_test_keystore_lock),
         cmocka_unit_test(_test_keystore_get_bip39_mnemonic),
+        cmocka_unit_test(_test_keystore_encode_xpub),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

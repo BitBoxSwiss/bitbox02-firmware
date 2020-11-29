@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include <compiler_util.h>
+#include <keystore.h>
 
 #include <hww.pb.h>
 
@@ -34,9 +35,6 @@
 // current expected max pk script size is a m-of-15 multisig. 700 is also enough for m-of-20, which
 // is technically possible to extend to if needed.
 #define MAX_PK_SCRIPT_SIZE (700)
-
-// Max. length of an xpub string, including the null terminator.
-#define XPUB_ENCODED_LEN 113
 
 /**
  * Returns the coin name to be used in confirm dialogs ("Bitcoin", "Litecoin", etc.). Aborts for an
@@ -90,7 +88,7 @@ USE_RESULT bool btc_common_is_valid_keypath_address_multisig(
 
 /**
  * Encode an xpub as a base58 string.
- * @param[in] dervived_xpub the xpub to encode.
+ * @param[in] derived_xpub the xpub to encode.
  * @param[in] xpub_type determines the xpub format, e.g. xpub, ypub, zpub, ...
  * @param[out] out resulting string, must be at least of size `XPUB_ENCODED_LEN` (including the null
  * terminator).

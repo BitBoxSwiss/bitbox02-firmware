@@ -17,6 +17,7 @@
 
 #include <apps/common/bip32.h>
 #include <hardfault.h>
+#include <keystore.h>
 #include <rust/rust.h>
 #include <workflow/confirm.h>
 
@@ -100,7 +101,7 @@ bool apps_btc_confirm_multisig_extended(
         return false;
     }
 
-    BTCPubRequest_XPubType output_xpub_type;
+    xpub_type_t output_xpub_type;
     switch (xpub_type) {
     case BTCRegisterScriptConfigRequest_XPubType_AUTO_ELECTRUM:
         switch (coin) {
@@ -108,10 +109,10 @@ bool apps_btc_confirm_multisig_extended(
         case BTCCoin_LTC:
             switch (multisig->script_type) {
             case BTCScriptConfig_Multisig_ScriptType_P2WSH:
-                output_xpub_type = BTCPubRequest_XPubType_CAPITAL_ZPUB;
+                output_xpub_type = CAPITAL_ZPUB;
                 break;
             case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
-                output_xpub_type = BTCPubRequest_XPubType_CAPITAL_YPUB;
+                output_xpub_type = CAPITAL_YPUB;
                 break;
             default:
                 return false;
@@ -121,10 +122,10 @@ bool apps_btc_confirm_multisig_extended(
         case BTCCoin_TLTC:
             switch (multisig->script_type) {
             case BTCScriptConfig_Multisig_ScriptType_P2WSH:
-                output_xpub_type = BTCPubRequest_XPubType_CAPITAL_VPUB;
+                output_xpub_type = CAPITAL_VPUB;
                 break;
             case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
-                output_xpub_type = BTCPubRequest_XPubType_CAPITAL_UPUB;
+                output_xpub_type = CAPITAL_UPUB;
                 break;
             default:
                 return false;
@@ -138,11 +139,11 @@ bool apps_btc_confirm_multisig_extended(
         switch (coin) {
         case BTCCoin_BTC:
         case BTCCoin_LTC:
-            output_xpub_type = BTCPubRequest_XPubType_XPUB;
+            output_xpub_type = XPUB;
             break;
         case BTCCoin_TBTC:
         case BTCCoin_TLTC:
-            output_xpub_type = BTCPubRequest_XPubType_TPUB;
+            output_xpub_type = TPUB;
             break;
         default:
             Abort("confirm multisig: unknown coin");
@@ -160,7 +161,7 @@ bool apps_btc_confirm_multisig_extended(
             return false;
         }
         char xpub_str[XPUB_ENCODED_LEN] = {0};
-        if (!btc_common_encode_xpub(&xpub, output_xpub_type, xpub_str, sizeof(xpub_str))) {
+        if (!keystore_encode_xpub(&xpub, output_xpub_type, xpub_str, sizeof(xpub_str))) {
             return false;
         }
         char confirm[XPUB_ENCODED_LEN + 100] = {0};

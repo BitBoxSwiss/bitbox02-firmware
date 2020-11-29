@@ -32,15 +32,15 @@
 // the real function is called as it's easier to check all function input/output
 // this way.
 
-bool __real_btc_common_encode_xpub(const struct ext_key*, const uint8_t*, char*, size_t);
-bool __wrap_btc_common_encode_xpub(
+bool __real_keystore_encode_xpub(const struct ext_key*, const uint8_t*, char*, size_t);
+bool __wrap_keystore_encode_xpub(
     const struct ext_key* derived_xpub,
     const uint8_t* version,
     char* out,
     size_t out_len)
 {
     check_expected(out_len);
-    assert_true(__real_btc_common_encode_xpub(derived_xpub, version, out, out_len));
+    assert_true(__real_keystore_encode_xpub(derived_xpub, version, out, out_len));
     return mock();
 }
 bool __wrap_btc_common_is_valid_keypath_xpub(
@@ -248,8 +248,8 @@ static void _test_app_btc_xpub(void** state)
                 will_return(__wrap_keystore_get_xpub, get_xpub_success);
             }
             if (keypath_valid && get_xpub_success) {
-                expect_value(__wrap_btc_common_encode_xpub, out_len, sizeof(out));
-                will_return(__wrap_btc_common_encode_xpub, encode_success);
+                expect_value(__wrap_keystore_encode_xpub, out_len, sizeof(out));
+                will_return(__wrap_keystore_encode_xpub, encode_success);
             }
             bool result = app_btc_xpub(
                 test_case->coin, test_case->xpub_type, expected_keypath, 3, out, sizeof(out));
@@ -274,8 +274,8 @@ static void _test_app_btc_electrum_encryption_key(void** satte)
     expect_value(__wrap_keystore_get_xpub, keypath_len, sizeof(keypath) / sizeof(uint32_t));
     will_return(__wrap_keystore_get_xpub, true);
 
-    expect_value(__wrap_btc_common_encode_xpub, out_len, sizeof(out));
-    will_return(__wrap_btc_common_encode_xpub, true);
+    expect_value(__wrap_keystore_encode_xpub, out_len, sizeof(out));
+    will_return(__wrap_keystore_encode_xpub, true);
 
     bool result = app_btc_electrum_encryption_key(
         keypath, sizeof(keypath) / sizeof(uint32_t), out, sizeof(out));

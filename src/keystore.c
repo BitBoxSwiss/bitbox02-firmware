@@ -626,3 +626,76 @@ bool keystore_get_u2f_seed(uint8_t* seed_out)
     }
     return true;
 }
+
+static const uint8_t _xpub_version[4] = {0x04, 0x88, 0xb2, 0x1e};
+static const uint8_t _ypub_version[4] = {0x04, 0x9d, 0x7c, 0xb2};
+static const uint8_t _zpub_version[4] = {0x04, 0xb2, 0x47, 0x46};
+static const uint8_t _tpub_version[4] = {0x04, 0x35, 0x87, 0xcf};
+static const uint8_t _vpub_version[4] = {0x04, 0x5f, 0x1c, 0xf6};
+static const uint8_t _upub_version[4] = {0x04, 0x4a, 0x52, 0x62};
+static const uint8_t _capital_vpub_version[4] = {0x02, 0x57, 0x54, 0x83};
+static const uint8_t _capital_zpub_version[4] = {0x02, 0xaa, 0x7e, 0xd3};
+static const uint8_t _capital_upub_version[4] = {0x02, 0x42, 0x89, 0xef};
+static const uint8_t _capital_ypub_version[4] = {0x02, 0x95, 0xb4, 0x3f};
+
+bool keystore_encode_xpub(
+    const struct ext_key* xpub,
+    xpub_type_t xpub_type,
+    char* out,
+    size_t out_len)
+{
+    char* xpub_string = NULL;
+    uint8_t bytes[BIP32_SERIALIZED_LEN] = {0};
+    if (bip32_key_serialize(xpub, BIP32_FLAG_KEY_PUBLIC, bytes, sizeof(bytes)) != WALLY_OK) {
+        return false;
+    }
+
+    const uint8_t* version;
+    switch (xpub_type) {
+    case XPUB:
+        version = _xpub_version;
+        break;
+    case YPUB:
+        version = _ypub_version;
+        break;
+    case ZPUB:
+        version = _zpub_version;
+        break;
+    case TPUB:
+        version = _tpub_version;
+        break;
+    case VPUB:
+        version = _vpub_version;
+        break;
+    case UPUB:
+        version = _upub_version;
+        break;
+    case CAPITAL_VPUB:
+        version = _capital_vpub_version;
+        break;
+    case CAPITAL_ZPUB:
+        version = _capital_zpub_version;
+        break;
+    case CAPITAL_UPUB:
+        version = _capital_upub_version;
+        break;
+    case CAPITAL_YPUB:
+        version = _capital_ypub_version;
+        break;
+    default:
+        return false;
+    }
+
+    // Overwrite bip32 version (libwally doesn't give the option to provide a
+    // different one)
+    memcpy(bytes, version, 4);
+    int ret =
+        wally_base58_from_bytes(bytes, BIP32_SERIALIZED_LEN, BASE58_FLAG_CHECKSUM, &xpub_string);
+    util_zero(bytes, sizeof(bytes));
+    if (ret != WALLY_OK) {
+        return false;
+    }
+    int sprintf_result = snprintf(out, out_len, "%s", xpub_string);
+    wally_free_string(xpub_string);
+    return sprintf_result >= 0 && sprintf_result < (int)out_len;
+}

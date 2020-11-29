@@ -16,6 +16,7 @@
 #define _APPS_COMMON_BIP32_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #include <common.pb.h>
 #include <compiler_util.h>

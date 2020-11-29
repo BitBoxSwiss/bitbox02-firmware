@@ -70,7 +70,7 @@ bool app_btc_electrum_encryption_key(
     if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
         return false;
     }
-    return btc_common_encode_xpub(&derived_xpub, BTCPubRequest_XPubType_XPUB, out, out_len);
+    return keystore_encode_xpub(&derived_xpub, XPUB, out, out_len);
 }
 
 bool app_btc_address_simple(

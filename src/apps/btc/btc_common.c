@@ -27,17 +27,6 @@
 
 #define MULTISIG_P2WSH_MAX_SIGNERS 15
 
-static const uint8_t _xpub_version[4] = {0x04, 0x88, 0xb2, 0x1e};
-static const uint8_t _ypub_version[4] = {0x04, 0x9d, 0x7c, 0xb2};
-static const uint8_t _zpub_version[4] = {0x04, 0xb2, 0x47, 0x46};
-static const uint8_t _tpub_version[4] = {0x04, 0x35, 0x87, 0xcf};
-static const uint8_t _vpub_version[4] = {0x04, 0x5f, 0x1c, 0xf6};
-static const uint8_t _upub_version[4] = {0x04, 0x4a, 0x52, 0x62};
-static const uint8_t _capital_vpub_version[4] = {0x02, 0x57, 0x54, 0x83};
-static const uint8_t _capital_zpub_version[4] = {0x02, 0xaa, 0x7e, 0xd3};
-static const uint8_t _capital_upub_version[4] = {0x02, 0x42, 0x89, 0xef};
-static const uint8_t _capital_ypub_version[4] = {0x02, 0x95, 0xb4, 0x3f};
-
 const char* btc_common_coin_name(BTCCoin coin)
 {
     static const char* _coin_btc = "Bitcoin";
@@ -118,60 +107,43 @@ bool btc_common_encode_xpub(
     char* out,
     size_t out_len)
 {
-    char* xpub_string = NULL;
-    uint8_t bytes[BIP32_SERIALIZED_LEN] = {0};
-    if (bip32_key_serialize(derived_xpub, BIP32_FLAG_KEY_PUBLIC, bytes, sizeof(bytes)) !=
-        WALLY_OK) {
-        return false;
-    }
-    const uint8_t* version;
+    xpub_type_t version;
     switch (xpub_type) {
     case BTCPubRequest_XPubType_TPUB:
-        version = _tpub_version;
+        version = TPUB;
         break;
     case BTCPubRequest_XPubType_VPUB:
-        version = _vpub_version;
+        version = VPUB;
         break;
     case BTCPubRequest_XPubType_UPUB:
-        version = _upub_version;
+        version = UPUB;
         break;
     case BTCPubRequest_XPubType_XPUB:
-        version = _xpub_version;
+        version = XPUB;
         break;
     case BTCPubRequest_XPubType_YPUB:
-        version = _ypub_version;
+        version = YPUB;
         break;
     case BTCPubRequest_XPubType_ZPUB:
-        version = _zpub_version;
+        version = ZPUB;
         break;
     case BTCPubRequest_XPubType_CAPITAL_VPUB:
-        version = _capital_vpub_version;
+        version = CAPITAL_VPUB;
         break;
     case BTCPubRequest_XPubType_CAPITAL_ZPUB:
-        version = _capital_zpub_version;
+        version = CAPITAL_ZPUB;
         break;
     case BTCPubRequest_XPubType_CAPITAL_UPUB:
-        version = _capital_upub_version;
+        version = CAPITAL_UPUB;
         break;
     case BTCPubRequest_XPubType_CAPITAL_YPUB:
-        version = _capital_ypub_version;
+        version = CAPITAL_YPUB;
         break;
     default:
         return false;
     }
 
-    // Overwrite bip32 version (libwally doesn't give the option to provide a
-    // different one)
-    memcpy(bytes, version, 4);
-    int ret =
-        wally_base58_from_bytes(bytes, BIP32_SERIALIZED_LEN, BASE58_FLAG_CHECKSUM, &xpub_string);
-    util_zero(bytes, sizeof(bytes));
-    if (ret != WALLY_OK) {
-        return false;
-    }
-    int sprintf_result = snprintf(out, out_len, "%s", xpub_string);
-    wally_free_string(xpub_string);
-    return sprintf_result >= 0 && sprintf_result < (int)out_len;
+    return keystore_encode_xpub(derived_xpub, version, out, out_len);
 }
 
 /**

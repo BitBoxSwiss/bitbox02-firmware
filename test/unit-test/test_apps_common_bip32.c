@@ -20,6 +20,7 @@
 #include <apps/btc/btc_common.h>
 #include <apps/common/bip32.h>
 #include <btc_util.h>
+#include <keystore.h>
 
 static void _test_apps_common_bip32_xpub_from_protobuf(void** state)
 {
@@ -31,8 +32,7 @@ static void _test_apps_common_bip32_xpub_from_protobuf(void** state)
     assert_true(apps_common_bip32_xpub_from_protobuf(&xpub_in, &xpub));
 
     char xpub_str[XPUB_ENCODED_LEN] = {0};
-    assert_true(
-        btc_common_encode_xpub(&xpub, BTCPubRequest_XPubType_XPUB, xpub_str, sizeof(xpub_str)));
+    assert_true(keystore_encode_xpub(&xpub, XPUB, xpub_str, sizeof(xpub_str)));
     assert_string_equal(xpub_str, test_xpub);
 }
 

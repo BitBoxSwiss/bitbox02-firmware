@@ -699,3 +699,17 @@ bool keystore_encode_xpub(
     wally_free_string(xpub_string);
     return sprintf_result >= 0 && sprintf_result < (int)out_len;
 }
+
+USE_RESULT bool keystore_encode_xpub_at_keypath(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    xpub_type_t xpub_type,
+    char* out,
+    size_t out_len)
+{
+    struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
+    if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
+        return false;
+    }
+    return keystore_encode_xpub(&derived_xpub, xpub_type, out, out_len);
+}

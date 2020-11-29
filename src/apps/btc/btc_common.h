@@ -87,21 +87,6 @@ USE_RESULT bool btc_common_is_valid_keypath_address_multisig(
     uint32_t expected_coin);
 
 /**
- * Encode an xpub as a base58 string.
- * @param[in] derived_xpub the xpub to encode.
- * @param[in] xpub_type determines the xpub format, e.g. xpub, ypub, zpub, ...
- * @param[out] out resulting string, must be at least of size `XPUB_ENCODED_LEN` (including the null
- * terminator).
- * @param[in] out_len size of `out`.
- * @return false on failure, true on success.
- */
-USE_RESULT bool btc_common_encode_xpub(
-    const struct ext_key* derived_xpub,
-    BTCPubRequest_XPubType xpub_type,
-    char* out,
-    size_t out_len);
-
-/**
  * Converts a satoshi value to a string with the BTC unit, e.g. 1234567890 -> "12.34567890 BTC".
  * @param[in] satoshi Amount in Satoshi.
  * @param[in] unit suffix.

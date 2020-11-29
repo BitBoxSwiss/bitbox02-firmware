@@ -237,4 +237,15 @@ USE_RESULT bool keystore_encode_xpub(
     char* out,
     size_t out_len);
 
+/**
+ * Encode an xpub as a base58 string at the given `keypath`.
+ * Args the same as `keystore_encode_xpub`.
+ */
+USE_RESULT bool keystore_encode_xpub_at_keypath(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    xpub_type_t xpub_type,
+    char* out,
+    size_t out_len);
+
 #endif

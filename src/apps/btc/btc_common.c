@@ -101,51 +101,6 @@ bool btc_common_is_valid_keypath_address_multisig(
         keypath, keypath_len, expected_coin, script_type);
 }
 
-bool btc_common_encode_xpub(
-    const struct ext_key* derived_xpub,
-    BTCPubRequest_XPubType xpub_type,
-    char* out,
-    size_t out_len)
-{
-    xpub_type_t version;
-    switch (xpub_type) {
-    case BTCPubRequest_XPubType_TPUB:
-        version = TPUB;
-        break;
-    case BTCPubRequest_XPubType_VPUB:
-        version = VPUB;
-        break;
-    case BTCPubRequest_XPubType_UPUB:
-        version = UPUB;
-        break;
-    case BTCPubRequest_XPubType_XPUB:
-        version = XPUB;
-        break;
-    case BTCPubRequest_XPubType_YPUB:
-        version = YPUB;
-        break;
-    case BTCPubRequest_XPubType_ZPUB:
-        version = ZPUB;
-        break;
-    case BTCPubRequest_XPubType_CAPITAL_VPUB:
-        version = CAPITAL_VPUB;
-        break;
-    case BTCPubRequest_XPubType_CAPITAL_ZPUB:
-        version = CAPITAL_ZPUB;
-        break;
-    case BTCPubRequest_XPubType_CAPITAL_UPUB:
-        version = CAPITAL_UPUB;
-        break;
-    case BTCPubRequest_XPubType_CAPITAL_YPUB:
-        version = CAPITAL_YPUB;
-        break;
-    default:
-        return false;
-    }
-
-    return keystore_encode_xpub(derived_xpub, version, out, out_len);
-}
-
 /**
  * convert uint64_t to string. %llu / %lld not supported by our arm libc.
  * param[in] value value to format.

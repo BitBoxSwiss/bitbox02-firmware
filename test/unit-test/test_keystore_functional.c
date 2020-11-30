@@ -128,8 +128,7 @@ static void _check_pubs(
 
     assert_true(keystore_get_xpub(keypath, 3, &xpub));
     char xpub_serialized[120];
-    assert_true(btc_common_encode_xpub(
-        &xpub, BTCPubRequest_XPubType_XPUB, xpub_serialized, sizeof(xpub_serialized)));
+    assert_true(keystore_encode_xpub(&xpub, XPUB, xpub_serialized, sizeof(xpub_serialized)));
     assert_string_equal(xpub_serialized, expected_xpub);
 
     uint8_t hash160[20];

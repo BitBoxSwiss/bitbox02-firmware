@@ -15,7 +15,6 @@
 #include "eth.h"
 #include "eth_params.h"
 #include "eth_verify.h"
-#include <apps/btc/btc_common.h>
 #include <workflow/confirm.h>
 
 #include <keystore.h>
@@ -71,11 +70,7 @@ app_eth_sign_error_t app_eth_address(
         if (!rust_ethereum_keypath_is_valid_xpub(keypath, keypath_len, params->bip44_coin)) {
             return APP_ETH_SIGN_ERR_INVALID_INPUT;
         }
-        struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-        if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
-            return APP_ETH_SIGN_ERR_INVALID_INPUT;
-        }
-        if (!btc_common_encode_xpub(&derived_xpub, BTCPubRequest_XPubType_XPUB, out, out_len)) {
+        if (!keystore_encode_xpub_at_keypath(keypath, keypath_len, XPUB, out, out_len)) {
             return APP_ETH_SIGN_ERR_UNKNOWN;
         }
         break;

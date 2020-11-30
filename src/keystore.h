@@ -27,6 +27,9 @@
 #define KEYSTORE_MAX_SEED_LENGTH (32)
 #define KEYSTORE_U2F_SEED_LENGTH SHA256_LEN
 
+// Max. length of an xpub string, including the null terminator.
+#define XPUB_ENCODED_LEN 113
+
 typedef enum {
     KEYSTORE_OK,
     KEYSTORE_ERR_INCORRECT_PASSWORD,
@@ -205,5 +208,44 @@ USE_RESULT bool keystore_secp256k1_sign(
  * @return true if succes
  */
 USE_RESULT bool keystore_get_u2f_seed(uint8_t* seed_out);
+
+typedef enum {
+    XPUB,
+    YPUB,
+    ZPUB,
+    TPUB,
+    VPUB,
+    UPUB,
+    CAPITAL_VPUB,
+    CAPITAL_ZPUB,
+    CAPITAL_UPUB,
+    CAPITAL_YPUB,
+} xpub_type_t;
+/**
+ * Encode an xpub as a base58 string.
+ * @param[in] xpub the xpub to encode.
+ * @param[in] xpub_type determines the xpub format.
+ * etc.
+ * @param[out] out resulting string, must be at least of size `XPUB_ENCODED_LEN` (including the null
+ * terminator).
+ * @param[in] out_len size of `out`.
+ * @return false on failure, true on success.
+ */
+USE_RESULT bool keystore_encode_xpub(
+    const struct ext_key* xpub,
+    xpub_type_t xpub_type,
+    char* out,
+    size_t out_len);
+
+/**
+ * Encode an xpub as a base58 string at the given `keypath`.
+ * Args the same as `keystore_encode_xpub`.
+ */
+USE_RESULT bool keystore_encode_xpub_at_keypath(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    xpub_type_t xpub_type,
+    char* out,
+    size_t out_len);
 
 #endif

@@ -16,7 +16,7 @@
 #include "eth_params.h"
 #include "eth_verify.h"
 #include <apps/btc/btc_common.h>
-#include <workflow/verify_pub.h>
+#include <workflow/confirm.h>
 
 #include <keystore.h>
 #include <rust/rust.h>
@@ -114,7 +114,14 @@ app_eth_sign_error_t app_eth_address(
                 return APP_ETH_SIGN_ERR_INVALID_INPUT;
             }
         }
-        if (!workflow_verify_pub(coin_name, out)) {
+        const confirm_params_t confirm_params = {
+            .title = coin_name,
+            // Some long ERC-20 token names need to be broken into two lines.
+            .title_autowrap = true,
+            .body = out,
+            .scrollable = true,
+        };
+        if (!workflow_confirm_blocking(&confirm_params)) {
             return APP_ETH_SIGN_ERR_USER_ABORT;
         }
     }

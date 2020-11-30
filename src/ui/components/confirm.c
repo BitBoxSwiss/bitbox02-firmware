@@ -21,6 +21,8 @@
 
 #include <hardfault.h>
 #include <screen.h>
+#include <ui/fonts/arial_fonts.h>
+#include <ui/ugui/ugui.h>
 
 #include <string.h>
 
@@ -109,9 +111,22 @@ component_t* confirm_create(
     }
 
     slider_location_t slider_position = top_slider;
+
     // Create labels. We nest them in a body component that covers the screen minus the title bar,
     // so that the CENTER positioning starts below the title bar.
-    component_t* title_component = label_create(params->title, NULL, CENTER_TOP, confirm);
+
+    const UG_FONT* font = &font_font_a_11X10;
+    const char* title = params->title;
+    // Arbitrary size big enough to fit all wrapped titles. Increase if needed.
+    char wrapped_title[128] = {0};
+    if (params->title_autowrap) {
+        UG_FontSelect(font);
+        if (strlen(title) + 1 < sizeof(wrapped_title)) {
+            UG_WrapTitleString(title, wrapped_title, 55);
+            title = wrapped_title;
+        }
+    }
+    component_t* title_component = label_create(title, font, CENTER_TOP, confirm);
     ui_util_add_sub_component(confirm, title_component);
 
     component_t* body_container = empty_create();

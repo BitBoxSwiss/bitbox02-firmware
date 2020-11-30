@@ -164,6 +164,7 @@ pub unsafe extern "C" fn rust_workflow_confirm_blocking(
     }
     let params = confirm::Params {
         title: title.as_ref(),
+        title_autowrap: params.title_autowrap,
         body: body.as_ref(),
         font: confirm::Font::Default,
         scrollable: params.scrollable,

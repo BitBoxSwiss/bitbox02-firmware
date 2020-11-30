@@ -48,6 +48,7 @@ impl Default for Font {
 pub struct ConfirmParams<'a> {
     /// The confirmation title of the screen. Max 200 chars, otherwise **panic**.
     pub title: &'a str,
+    pub title_autowrap: bool,
     /// The confirmation body of the screen. Max 200 chars, otherwise **panic**.
     pub body: &'a str,
     pub font: Font,
@@ -86,6 +87,7 @@ impl<'a> ConfirmParams<'a> {
         );
         Survive::new(bitbox02_sys::confirm_params_t {
             title: title_scatch.as_ptr(),
+            title_autowrap: self.title_autowrap,
             body: body_scratch.as_ptr(),
             font: self.font.as_ptr(),
             scrollable: self.scrollable,

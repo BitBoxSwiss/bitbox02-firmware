@@ -14,6 +14,12 @@
 
 use crate::pb;
 pub use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
+pub use pb::btc_script_config::SimpleType;
+
+const ALL_MULTISCRIPT_SCRIPT_TYPES: [MultisigScriptType; 2] =
+    [MultisigScriptType::P2wsh, MultisigScriptType::P2wshP2sh];
+
+const ALL_SIMPLE_SCRIPT_TYPES: [SimpleType; 2] = [SimpleType::P2wpkhP2sh, SimpleType::P2wpkh];
 
 use util::bip32::HARDENED;
 
@@ -21,6 +27,8 @@ const BIP44_ACCOUNT_MIN: u32 = HARDENED;
 const BIP44_ACCOUNT_MAX: u32 = HARDENED + 99; // 100 accounts
 const BIP44_ADDRESS_MAX: u32 = 9999; // 10k addresses
 
+const PURPOSE_P2WPKH_P2SH: u32 = 49 + HARDENED;
+const PURPOSE_P2WPKH: u32 = 84 + HARDENED;
 const PURPOSE_MULTISIG: u32 = 48 + HARDENED;
 const MULTISIG_SCRIPT_TYPE_P2WSH: u32 = 2 + HARDENED;
 const MULTISIG_SCRIPT_TYPE_P2WSH_P2SH: u32 = 1 + HARDENED;
@@ -94,6 +102,53 @@ pub fn validate_address_multisig(
     } else {
         Err(())
     }
+}
+
+/// Validates a singlesig keypath.
+/// Supported:
+/// - P2WPKH-P2SH: m/49'/coin'/account'
+/// - P2WPKH: m/84'/coin'/account'
+pub fn validate_account_simple(
+    keypath: &[u32],
+    expected_coin: u32,
+    script_type: SimpleType,
+) -> Result<(), ()> {
+    let bip44_purpose = match script_type {
+        SimpleType::P2wpkhP2sh => PURPOSE_P2WPKH_P2SH,
+        SimpleType::P2wpkh => PURPOSE_P2WPKH,
+    };
+    validate_account(keypath, bip44_purpose, expected_coin)
+}
+
+/// Validates that the prefix (all but last two elements) of the keypath is a valid singlesig
+/// account keypath and the last two elements are a valid change and receive element.
+pub fn validate_address_simple(
+    keypath: &[u32],
+    expected_coin: u32,
+    script_type: SimpleType,
+) -> Result<(), ()> {
+    if keypath.len() >= 2 {
+        let (keypath_account, keypath_rest) = keypath.split_at(keypath.len() - 2);
+        validate_account_simple(keypath_account, expected_coin, script_type)?;
+        validate_change_address(keypath_rest[0], keypath_rest[1])
+    } else {
+        Err(())
+    }
+}
+
+/// Checks if the keypath is a valid account-level keypath for any supported script type.
+pub fn validate_xpub(keypath: &[u32], expected_coin: u32) -> Result<(), ()> {
+    for &script_type in ALL_MULTISCRIPT_SCRIPT_TYPES.iter() {
+        if validate_account_multisig(keypath, expected_coin, script_type).is_ok() {
+            return Ok(());
+        }
+    }
+    for &script_type in ALL_SIMPLE_SCRIPT_TYPES.iter() {
+        if validate_account_simple(keypath, expected_coin, script_type).is_ok() {
+            return Ok(());
+        }
+    }
+    Err(())
 }
 
 #[cfg(test)]
@@ -331,6 +386,171 @@ mod tests {
             ],
             coin,
             MultisigScriptType::P2wsh
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn test_validate_address_simple() {
+        let bip44_account = 99 + HARDENED;
+        let bip44_coin = 1 + HARDENED;
+
+        // valid p2wpkh-p2sh; receive
+        assert!(validate_address_simple(
+            &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
+            bip44_coin,
+            SimpleType::P2wpkhP2sh
+        )
+        .is_ok());
+
+        // valid p2wpkh-p2sh; receive on high address
+        assert!(validate_address_simple(
+            &[49 + HARDENED, bip44_coin, bip44_account, 0, 9999],
+            bip44_coin,
+            SimpleType::P2wpkhP2sh
+        )
+        .is_ok());
+
+        // invalid p2wpkh-p2sh; receive on too high address
+        assert!(validate_address_simple(
+            &[49 + HARDENED, bip44_coin, bip44_account, 0, 10000],
+            bip44_coin,
+            SimpleType::P2wpkhP2sh
+        )
+        .is_err());
+
+        // valid p2wpkh-p2sh; change
+        assert!(validate_address_simple(
+            &[49 + HARDENED, bip44_coin, bip44_account, 1, 0],
+            bip44_coin,
+            SimpleType::P2wpkhP2sh
+        )
+        .is_ok());
+
+        // valid p2wpkh-p2sh; invalid bip44 change values
+        assert!(validate_address_simple(
+            &[49 + HARDENED, bip44_coin, bip44_account, 2, 0],
+            bip44_coin,
+            SimpleType::P2wpkhP2sh
+        )
+        .is_err());
+        assert!(validate_address_simple(
+            &[49 + HARDENED, bip44_coin, bip44_account, 0 + HARDENED, 0],
+            bip44_coin,
+            SimpleType::P2wpkhP2sh
+        )
+        .is_err());
+        assert!(validate_address_simple(
+            &[49 + HARDENED, bip44_coin, bip44_account, 1 + HARDENED, 0],
+            bip44_coin,
+            SimpleType::P2wpkhP2sh
+        )
+        .is_err());
+
+        // invalid p2wpkh-p2sh; wrong purpose
+        assert!(validate_address_simple(
+            &[84 + HARDENED, bip44_coin, bip44_account, 0, 0],
+            bip44_coin,
+            SimpleType::P2wpkhP2sh
+        )
+        .is_err());
+
+        // invalid p2wpkh-p2sh; account too high
+        assert!(validate_address_simple(
+            &[49 + HARDENED, bip44_coin, 100 + HARDENED, 0, 0],
+            bip44_coin,
+            SimpleType::P2wpkhP2sh
+        )
+        .is_err());
+
+        // invalid p2wpkh-p2sh; account too low
+        assert!(validate_address_simple(
+            &[49 + HARDENED, bip44_coin, HARDENED - 1, 0, 0],
+            bip44_coin,
+            SimpleType::P2wpkhP2sh
+        )
+        .is_err());
+
+        // invalid p2wpkh-p2sh; expected coin mismatch
+        assert!(validate_address_simple(
+            &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
+            bip44_coin + 1,
+            SimpleType::P2wpkhP2sh
+        )
+        .is_err());
+
+        // valid p2wpkh
+        assert!(validate_address_simple(
+            &[84 + HARDENED, bip44_coin, bip44_account, 0, 0],
+            bip44_coin,
+            SimpleType::P2wpkh
+        )
+        .is_ok());
+
+        // invalid p2wpkh; wrong purpose
+        assert!(validate_address_simple(
+            &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
+            bip44_coin,
+            SimpleType::P2wpkh
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn test_validate_xpub() {
+        let bip44_coin = 1 + HARDENED;
+
+        // Valid singlesig xpubs.
+        assert!(validate_xpub(&[49 + HARDENED, bip44_coin, 0 + HARDENED], bip44_coin).is_ok());
+        assert!(validate_xpub(&[84 + HARDENED, bip44_coin, 0 + HARDENED], bip44_coin).is_ok());
+
+        // Valid multisig xpubs.
+        assert!(validate_xpub(&[48 + HARDENED, bip44_coin, 0 + HARDENED], bip44_coin).is_ok());
+        assert!(validate_xpub(
+            &[48 + HARDENED, bip44_coin, 0 + HARDENED, 1 + HARDENED],
+            bip44_coin
+        )
+        .is_ok());
+        assert!(validate_xpub(
+            &[48 + HARDENED, bip44_coin, 0 + HARDENED, 2 + HARDENED],
+            bip44_coin
+        )
+        .is_ok());
+        // Invalid multisig script type.
+        assert!(validate_xpub(
+            &[48 + HARDENED, bip44_coin, 0 + HARDENED, 3 + HARDENED],
+            bip44_coin
+        )
+        .is_err());
+
+        // Coin mismatch.
+        assert!(validate_xpub(
+            &[48 + HARDENED, bip44_coin, 0 + HARDENED, 2 + HARDENED],
+            bip44_coin + 1
+        )
+        .is_err());
+
+        // Invalid account.
+        assert!(validate_xpub(
+            &[48 + HARDENED, bip44_coin, HARDENED - 1, 2 + HARDENED],
+            bip44_coin
+        )
+        .is_err());
+        assert!(validate_xpub(
+            &[48 + HARDENED, bip44_coin, HARDENED + 100, 2 + HARDENED],
+            bip44_coin
+        )
+        .is_err());
+
+        // Invalid purpose.
+        assert!(validate_xpub(
+            &[44 + HARDENED, bip44_coin, 0 + HARDENED, 2 + HARDENED],
+            bip44_coin
+        )
+        .is_err());
+        assert!(validate_xpub(
+            &[100 + HARDENED, bip44_coin, 0 + HARDENED, 2 + HARDENED],
+            bip44_coin
         )
         .is_err());
     }

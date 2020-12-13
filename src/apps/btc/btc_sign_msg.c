@@ -103,7 +103,13 @@ USE_RESULT app_btc_result_t app_btc_sign_msg(
 
     size_t offset = sizeof(msg_header) - 1;
     memcpy(formatted_msg, msg_header, offset);
-    offset += wally_varbuff_to_bytes(msg, msg_size, &formatted_msg[offset]);
+    size_t written;
+    if (wally_varbuff_to_bytes(
+            msg, msg_size, &formatted_msg[offset], sizeof(formatted_msg) - offset, &written) !=
+        WALLY_OK) {
+        return APP_BTC_ERR_UNKNOWN;
+    }
+    offset += written;
     uint8_t hash[32] = {0};
     rust_sha256(formatted_msg, offset, hash);
     rust_sha256(hash, sizeof(hash), hash);

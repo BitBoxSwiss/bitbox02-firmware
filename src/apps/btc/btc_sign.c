@@ -298,11 +298,15 @@ app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request, BTCSignNex
     return APP_BTC_OK;
 }
 
-static void _hash_varint(void* ctx, uint64_t v)
+static bool _hash_varint(void* ctx, uint64_t v)
 {
     uint8_t varint[MAX_VARINT_SIZE] = {0};
-    size_t size = wally_varint_to_bytes(v, varint);
+    size_t size;
+    if (wally_varint_to_bytes(v, varint, sizeof(varint), &size) != WALLY_OK) {
+        return false;
+    }
     rust_sha256_update(ctx, varint, size);
+    return true;
 }
 
 app_btc_result_t app_btc_sign_prevtx_init(
@@ -342,7 +346,9 @@ app_btc_result_t app_btc_sign_prevtx_input(
 
     if (_prevtx.index == 0) {
         // Hash number of inputs
-        _hash_varint(_prevtx.tx_hash_ctx, _prevtx.init_request.num_inputs);
+        if (!_hash_varint(_prevtx.tx_hash_ctx, _prevtx.init_request.num_inputs)) {
+            return _error(APP_BTC_ERR_UNKNOWN);
+        }
     }
 
     // Hash prevOutHash
@@ -353,7 +359,9 @@ app_btc_result_t app_btc_sign_prevtx_input(
         _prevtx.tx_hash_ctx, &request->prev_out_index, sizeof(request->prev_out_index));
 
     // Hash sig script
-    _hash_varint(_prevtx.tx_hash_ctx, request->signature_script.size);
+    if (!_hash_varint(_prevtx.tx_hash_ctx, request->signature_script.size)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
     rust_sha256_update(
         _prevtx.tx_hash_ctx, request->signature_script.bytes, request->signature_script.size);
 
@@ -390,7 +398,9 @@ app_btc_result_t app_btc_sign_prevtx_output(
 
     if (_prevtx.index == 0) {
         // Hash number of inputs
-        _hash_varint(_prevtx.tx_hash_ctx, _prevtx.init_request.num_outputs);
+        if (!_hash_varint(_prevtx.tx_hash_ctx, _prevtx.init_request.num_outputs)) {
+            return _error(APP_BTC_ERR_UNKNOWN);
+        }
     }
     if (_prevtx.index == _prevtx.referencing_input.prevOutIndex) {
         if (_prevtx.referencing_input.prevOutValue != request->value) {
@@ -403,7 +413,9 @@ app_btc_result_t app_btc_sign_prevtx_output(
     rust_sha256_update(_prevtx.tx_hash_ctx, &request->value, sizeof(request->value));
 
     // Hash pubkeyScript
-    _hash_varint(_prevtx.tx_hash_ctx, request->pubkey_script.size);
+    if (!_hash_varint(_prevtx.tx_hash_ctx, request->pubkey_script.size)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
     rust_sha256_update(
         _prevtx.tx_hash_ctx, request->pubkey_script.bytes, request->pubkey_script.size);
 
@@ -604,9 +616,14 @@ static app_btc_result_t _sign_input_pass2(
                     &sighash_script_size)) {
                 return _error(APP_BTC_ERR_INVALID_INPUT);
             }
-            sighash_script_size =
-                wally_varbuff_to_bytes(sighash_script_tmp, sighash_script_size, sighash_script);
-
+            if (wally_varbuff_to_bytes(
+                    sighash_script_tmp,
+                    sighash_script_size,
+                    sighash_script,
+                    sizeof(sighash_script),
+                    &sighash_script_size) != WALLY_OK) {
+                return _error(APP_BTC_ERR_UNKNOWN);
+            }
             break;
         }
         default:
@@ -848,8 +865,15 @@ app_btc_result_t app_btc_sign_output(
         // assumes little endian environment.
         rust_sha256_update(_hash_outputs_ctx, &request->value, 8);
         uint8_t pk_script_serialized[sizeof(pk_script) + 8] = {0};
-        size_t pk_script_serialized_len =
-            wally_varbuff_to_bytes(pk_script, pk_script_len, pk_script_serialized);
+        size_t pk_script_serialized_len;
+        if (wally_varbuff_to_bytes(
+                pk_script,
+                pk_script_len,
+                pk_script_serialized,
+                sizeof(pk_script_serialized),
+                &pk_script_serialized_len) != WALLY_OK) {
+            return _error(APP_BTC_ERR_UNKNOWN);
+        }
         rust_sha256_update(_hash_outputs_ctx, pk_script_serialized, pk_script_serialized_len);
     }
 

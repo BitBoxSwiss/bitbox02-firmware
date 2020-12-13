@@ -10,7 +10,7 @@ jobs:
       - name: Clone the repo
         uses: actions/checkout@v2
         with:
-          submodules: true
+          submodules: recursive
       - name: Pull CI container image
         run: ./.ci/run-container-ci pull
       - name: Run CI in container

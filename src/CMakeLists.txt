@@ -21,6 +21,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/commander/commander_states.c
   ${CMAKE_SOURCE_DIR}/src/commander/protobuf.c
   ${CMAKE_SOURCE_DIR}/src/keystore.c
+  ${CMAKE_SOURCE_DIR}/src/keystore/keystore_antiklepto.c
   ${CMAKE_SOURCE_DIR}/src/random.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
   ${CMAKE_SOURCE_DIR}/src/util.c

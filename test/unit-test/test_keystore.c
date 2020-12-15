@@ -219,6 +219,30 @@ static void _test_keystore_get_root_fingerprint(void** state)
     assert_memory_equal(fingerprint, expected_fingerprint, 4);
 }
 
+static void _test_keystore_secp256k1_nonce_commit(void** state)
+{
+    uint8_t msg[32] = {0};
+    memset(msg, 0x88, sizeof(msg));
+    uint8_t commitment[EC_PUBLIC_KEY_LEN] = {0};
+    uint8_t host_nonce_commitment[32] = {0};
+    memset(host_nonce_commitment, 0xAB, sizeof(host_nonce_commitment));
+
+    {
+        mock_state(NULL, NULL);
+        // fails because keystore is locked
+        assert_false(keystore_secp256k1_nonce_commit(
+            _keypath, sizeof(_keypath) / sizeof(uint32_t), msg, host_nonce_commitment, commitment));
+    }
+    {
+        mock_state(_mock_seed, _mock_bip39_seed);
+        assert_true(keystore_secp256k1_nonce_commit(
+            _keypath, sizeof(_keypath) / sizeof(uint32_t), msg, host_nonce_commitment, commitment));
+        const uint8_t expected_commitment[EC_PUBLIC_KEY_LEN] =
+            "\x02\xfd\xcf\x79\xf9\xc0\x3f\x6a\xcc\xc6\x56\x95\xa1\x90\x82\xe3\x0b\xfb\x9e\xdc\x93"
+            "\x04\x5a\x03\x05\x8a\x99\x09\xe4\x9b\x1a\x37\x7b";
+    }
+}
+
 static void _test_keystore_secp256k1_sign(void** state)
 {
     secp256k1_context* ctx = wally_get_secp_context();
@@ -512,6 +536,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_keystore_get_xpub),
         cmocka_unit_test(_test_keystore_get_root_fingerprint),
+        cmocka_unit_test(_test_keystore_secp256k1_nonce_commit),
         cmocka_unit_test(_test_keystore_secp256k1_sign),
         cmocka_unit_test(_test_keystore_encrypt_and_store_seed),
         cmocka_unit_test(_test_keystore_create_and_unlock_twice),

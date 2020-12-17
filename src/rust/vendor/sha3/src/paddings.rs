@@ -1,5 +1,4 @@
-use block_buffer::block_padding::{Padding, PadError, UnpadError};
-use byte_tools::zero;
+use block_buffer::block_padding::{PadError, Padding, UnpadError};
 
 macro_rules! impl_padding {
     ($name:ident, $pad:expr) => {
@@ -11,11 +10,13 @@ macro_rules! impl_padding {
         impl Padding for $name {
             #[inline(always)]
             fn pad_block(block: &mut [u8], pos: usize) -> Result<(), PadError> {
-                if pos >= block.len() { Err(PadError)? }
+                if pos >= block.len() {
+                    Err(PadError)?
+                }
                 block[pos] = $pad;
-                zero(&mut block[pos+1..]);
+                block[pos + 1..].iter_mut().for_each(|b| *b = 0);
                 let n = block.len();
-                block[n-1] |= 0x80;
+                block[n - 1] |= 0x80;
                 Ok(())
             }
 
@@ -24,7 +25,7 @@ macro_rules! impl_padding {
                 unimplemented!();
             }
         }
-    }
+    };
 }
 
 impl_padding!(Keccak, 0x01);

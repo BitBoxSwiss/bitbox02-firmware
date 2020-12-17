@@ -20,19 +20,17 @@
 //! # Usage
 //!
 //! ```rust
-//! # #[macro_use] extern crate hex_literal;
-//! # extern crate sha2;
-//! # fn main() {
+//! use hex_literal::hex;
 //! use sha2::{Sha256, Sha512, Digest};
 //!
 //! // create a Sha256 object
 //! let mut hasher = Sha256::new();
 //!
 //! // write input message
-//! hasher.input(b"hello world");
+//! hasher.update(b"hello world");
 //!
 //! // read hash digest and consume hasher
-//! let result = hasher.result();
+//! let result = hasher.finalize();
 //!
 //! assert_eq!(result[..], hex!("
 //!     b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9
@@ -40,53 +38,38 @@
 //!
 //! // same for Sha512
 //! let mut hasher = Sha512::new();
-//! hasher.input(b"hello world");
-//! let result = hasher.result();
+//! hasher.update(b"hello world");
+//! let result = hasher.finalize();
 //!
 //! assert_eq!(result[..], hex!("
 //!     309ecc489c12d6eb4cc40f50c902f2b4d0ed77ee511a7c7a9bcd3ca86d4cd86f
 //!     989dd35bc5ff499670da34255b45b0cfd830e81f605dcf7dc5542e93ae9cd76f
 //! ")[..]);
-//! # }
 //! ```
 //!
 //! Also see [RustCrypto/hashes][2] readme.
 //!
 //! [1]: https://en.wikipedia.org/wiki/SHA-2
 //! [2]: https://github.com/RustCrypto/hashes
+
 #![no_std]
-#![doc(html_logo_url =
-    "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg"
+)]
+#![warn(missing_docs, rust_2018_idioms)]
 
-// Give relevant error messages if the user tries to enable AArch64 asm on unsupported platforms.
-#[cfg(all(feature = "asm-aarch64", target_arch = "aarch64", not(target_os = "linux")))]
-compile_error!("Your OS isn’t yet supported for runtime-checking of AArch64 features.");
-#[cfg(all(feature = "asm-aarch64", target_os = "linux", not(target_arch = "aarch64")))]
-compile_error!("Enable the \"asm\" feature instead of \"asm-aarch64\" on non-AArch64 Linux systems.");
-#[cfg(all(not(feature = "asm-aarch64"), feature = "asm", target_arch = "aarch64", target_os = "linux"))]
-compile_error!("Enable the \"asm-aarch64\" feature on AArch64 if you want to use asm.");
-
-extern crate block_buffer;
-extern crate fake_simd as simd;
-#[macro_use] extern crate opaque_debug;
-#[macro_use] pub extern crate digest;
-#[cfg(feature = "asm")]
-extern crate sha2_asm;
 #[cfg(feature = "std")]
 extern crate std;
-#[cfg(feature = "asm-aarch64")]
-extern crate libc;
 
 mod consts;
-#[cfg(any(not(feature = "asm"), feature = "asm-aarch64"))]
-mod sha256_utils;
-#[cfg(any(not(feature = "asm"), feature = "asm-aarch64"))]
-mod sha512_utils;
-#[cfg(feature = "asm-aarch64")]
-mod aarch64;
 mod sha256;
 mod sha512;
 
-pub use digest::Digest;
-pub use sha256::{Sha256, Sha224};
-pub use sha512::{Sha512, Sha384, Sha512Trunc224, Sha512Trunc256};
+pub use digest::{self, Digest};
+#[cfg(feature = "compress")]
+pub use sha256::compress256;
+pub use sha256::{Sha224, Sha256};
+#[cfg(feature = "compress")]
+pub use sha512::compress512;
+pub use sha512::{Sha384, Sha512, Sha512Trunc224, Sha512Trunc256};

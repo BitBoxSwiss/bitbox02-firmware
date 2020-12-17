@@ -18,7 +18,7 @@ struct Op {
 pub fn write_op_macro() -> ::std::io::Result<()> {
     let out_dir = ::std::env::var("OUT_DIR").unwrap();
     let dest = ::std::path::Path::new(&out_dir).join("op.rs");
-    println!("cargo:rustc-env=TYPENUM_BUILD_CONSTS={}", dest.display());
+    println!("cargo:rustc-env=TYPENUM_BUILD_OP={}", dest.display());
     let mut f = ::std::fs::File::create(&dest).unwrap();
 
     // Operator precedence is taken from
@@ -226,6 +226,14 @@ pub fn write_op_macro() -> ::std::io::Result<()> {
             example: ("log2(U9)", "U3"),
             precedence: !0,
             n_args: 1,
+            op_type: Function,
+        },
+        Op {
+            token: "gcd",
+            operator: "Gcf",
+            example: ("gcd(U9, U21)", "U3"),
+            precedence: !0,
+            n_args: 2,
             op_type: Function,
         },
     ];

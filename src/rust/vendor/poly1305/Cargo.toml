@@ -13,25 +13,25 @@
 [package]
 edition = "2018"
 name = "poly1305"
-version = "0.5.2"
+version = "0.6.1"
 authors = ["RustCrypto Developers"]
 description = "The Poly1305 universal hash function and message authentication code"
 documentation = "https://docs.rs/poly1305"
 readme = "README.md"
 keywords = ["crypto", "mac", "umac", "universal-hashing"]
 categories = ["cryptography", "no-std"]
-license = "MIT OR Apache-2.0"
+license = "Apache-2.0 OR MIT"
 repository = "https://github.com/RustCrypto/universal-hashes"
 [dependencies.universal-hash]
-version = "0.3"
+version = "0.4"
 default-features = false
 
 [dependencies.zeroize]
 version = "1"
 optional = true
 default-features = false
+[dev-dependencies.hex-literal]
+version = "0.2"
 
 [features]
 std = ["universal-hash/std"]
-[badges.maintenance]
-status = "experimental"

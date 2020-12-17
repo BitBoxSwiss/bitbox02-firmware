@@ -13,18 +13,24 @@
 [package]
 edition = "2018"
 name = "aead"
-version = "0.2.0"
+version = "0.3.2"
 authors = ["RustCrypto Developers"]
 description = "Traits for Authenticated Encryption with Associated Data (AEAD) algorithms"
 documentation = "https://docs.rs/aead"
+readme = "README.md"
 keywords = ["crypto", "encryption"]
 categories = ["cryptography", "no-std"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/RustCrypto/traits"
 [package.metadata.docs.rs]
 all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+[dependencies.blobby]
+version = "0.3"
+optional = true
+
 [dependencies.generic-array]
-version = "0.12"
+version = "0.14"
 default-features = false
 
 [dependencies.heapless]
@@ -34,3 +40,5 @@ optional = true
 [features]
 alloc = []
 default = ["alloc"]
+dev = ["blobby"]
+std = ["alloc"]

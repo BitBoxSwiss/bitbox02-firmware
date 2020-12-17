@@ -13,7 +13,7 @@
 [package]
 edition = "2018"
 name = "x25519-dalek"
-version = "0.6.0"
+version = "1.1.0"
 authors = ["Isis Lovecruft <isis@patternsinthevoid.net>", "DebugSteven <debugsteven@gmail.com>", "Henry de Valence <hdevalence@hdevalence.ca>"]
 exclude = [".gitignore", ".travis.yml", "CONTRIBUTING.md"]
 description = "X25519 elliptic curve Diffie-Hellman key exchange in pure-Rust, using curve25519-dalek."
@@ -31,7 +31,7 @@ features = ["nightly"]
 name = "x25519"
 harness = false
 [dependencies.curve25519-dalek]
-version = "2"
+version = "3"
 default-features = false
 
 [dependencies.our_serde]
@@ -53,7 +53,7 @@ default-features = false
 version = "1"
 
 [dev-dependencies.criterion]
-version = "0.2"
+version = "0.3.0"
 
 [features]
 default = ["std", "u64_backend"]

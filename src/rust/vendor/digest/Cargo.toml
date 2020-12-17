@@ -11,26 +11,28 @@
 # will likely look very different (and much more reasonable)
 
 [package]
+edition = "2018"
 name = "digest"
-version = "0.8.1"
+version = "0.9.0"
 authors = ["RustCrypto Developers"]
 description = "Traits for cryptographic hash functions"
 documentation = "https://docs.rs/digest"
+readme = "README.md"
 keywords = ["digest", "crypto", "hash"]
 categories = ["cryptography", "no-std"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/RustCrypto/traits"
 [package.metadata.docs.rs]
-features = ["std"]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 [dependencies.blobby]
 version = "0.1"
 optional = true
 
 [dependencies.generic-array]
-version = "0.12"
+version = "0.14"
 
 [features]
+alloc = []
 dev = ["blobby"]
-std = []
-[badges.travis-ci]
-repository = "RustCrypto/traits"
+std = ["alloc"]

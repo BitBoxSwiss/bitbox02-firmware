@@ -44,6 +44,7 @@
 //!
 
 #![no_std]
+#![forbid(unsafe_code)]
 #![warn(missing_docs)]
 #![cfg_attr(feature = "strict", deny(missing_docs))]
 #![cfg_attr(feature = "strict", deny(warnings))]
@@ -52,9 +53,11 @@
     allow(
         clippy::type_complexity,
         clippy::len_without_is_empty,
-        clippy::new_without_default
+        clippy::new_without_default,
+        clippy::many_single_char_names
     )
 )]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy::missing_inline_in_public_items))]
 
 // For debugging macros:
 // #![feature(trace_macros)]
@@ -62,8 +65,17 @@
 
 use core::cmp::Ordering;
 
-include!(env!("TYPENUM_BUILD_OP"));
-include!(env!("TYPENUM_BUILD_CONSTS"));
+#[cfg(feature = "force_unix_path_separator")]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/op.rs"));
+    include!(concat!(env!("OUT_DIR"), "/consts.rs"));
+}
+
+#[cfg(not(feature = "force_unix_path_separator"))]
+mod generated {
+    include!(env!("TYPENUM_BUILD_OP"));
+    include!(env!("TYPENUM_BUILD_CONSTS"));
+}
 
 pub mod bit;
 pub mod int;
@@ -76,6 +88,7 @@ pub mod uint;
 pub mod array;
 
 pub use consts::*;
+pub use generated::consts;
 pub use marker_traits::*;
 pub use operator_aliases::*;
 pub use type_operators::*;

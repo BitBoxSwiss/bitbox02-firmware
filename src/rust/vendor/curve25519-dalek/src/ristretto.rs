@@ -208,7 +208,7 @@ use backend::vector::scalar_mul;
 ///
 /// The Ristretto encoding is canonical, so two points are equal if and
 /// only if their encodings are equal.
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct CompressedRistretto(pub [u8; 32]);
 
 impl ConstantTimeEq for CompressedRistretto {
@@ -689,7 +689,7 @@ impl RistrettoPoint {
         where D: Digest<OutputSize = U64> + Default
     {
         let mut hash = D::default();
-        hash.input(input);
+        hash.update(input);
         RistrettoPoint::from_hash(hash)
     }
 
@@ -702,7 +702,7 @@ impl RistrettoPoint {
         where D: Digest<OutputSize = U64> + Default
     {
         // dealing with generic arrays is clumsy, until const generics land
-        let output = hash.result();
+        let output = hash.finalize();
         let mut output_bytes = [0u8; 64];
         output_bytes.copy_from_slice(&output.as_slice());
 

@@ -11,12 +11,11 @@
 # will likely look very different (and much more reasonable)
 
 [package]
+edition = "2018"
 name = "opaque-debug"
-version = "0.2.3"
+version = "0.3.0"
 authors = ["RustCrypto Developers"]
 description = "Macro for opaque Debug trait implementation"
 documentation = "https://docs.rs/opaque-debug"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/RustCrypto/utils"
-
-[dependencies]

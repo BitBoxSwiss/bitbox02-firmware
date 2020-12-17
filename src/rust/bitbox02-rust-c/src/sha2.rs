@@ -34,7 +34,7 @@ pub unsafe extern "C" fn rust_sha256_update(ctx: *mut c_void, data: *const c_voi
     let data = core::slice::from_raw_parts(data as *const u8, len);
     #[allow(clippy::cast_ptr_alignment)] // ctx is properly aligned, see `Box::into_raw`.
     let ctx = ctx as *mut Sha256;
-    (*ctx).input(data);
+    (*ctx).update(data);
 }
 
 /// Safety: ctx must be a pointer to a valid sha256 context produced by `rust_sha256_new()`.
@@ -45,7 +45,7 @@ pub unsafe extern "C" fn rust_sha256_finish(ctx: *mut *mut c_void, out: *mut c_u
     let out = core::slice::from_raw_parts_mut(out, 32);
     #[allow(clippy::cast_ptr_alignment)] // ctx is properly aligned, see `Box::into_raw`.
     let hasher = Box::from_raw(*ctx as *mut Sha256); // dropped at the end
-    let hash = hasher.result();
+    let hash = hasher.finalize();
     out.copy_from_slice(&hash[..]);
     *ctx = core::ptr::null_mut();
 }

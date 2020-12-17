@@ -5,7 +5,6 @@ use std::io::Write;
 use std::path::Path;
 
 mod op;
-#[cfg(tests)]
 mod tests;
 
 pub enum UIntCode {
@@ -58,12 +57,12 @@ pub fn gen_uint(u: u64) -> UIntCode {
 }
 
 pub fn gen_int(i: i64) -> IntCode {
-    if i > 0 {
-        IntCode::Pos(Box::new(gen_uint(i as u64)))
-    } else if i < 0 {
-        IntCode::Neg(Box::new(gen_uint(i.abs() as u64)))
-    } else {
-        IntCode::Zero
+    use std::cmp::Ordering::{Equal, Greater, Less};
+
+    match i.cmp(&0) {
+        Greater => IntCode::Pos(Box::new(gen_uint(i as u64))),
+        Less => IntCode::Neg(Box::new(gen_uint(i.abs() as u64))),
+        Equal => IntCode::Zero,
     }
 }
 
@@ -89,7 +88,7 @@ fn main() {
 
     let out_dir = env::var("OUT_DIR").unwrap();
     let dest = Path::new(&out_dir).join("consts.rs");
-    println!("cargo:rustc-env=TYPENUM_BUILD_OP={}", dest.display());
+    println!("cargo:rustc-env=TYPENUM_BUILD_CONSTS={}", dest.display());
 
     let mut f = File::create(&dest).unwrap();
 
@@ -166,12 +165,12 @@ pub mod consts {{
     .unwrap();
 
     for u in uints {
-        write!(f, "    pub type U{} = {};\n", u, gen_uint(u)).unwrap();
+        writeln!(f, "    pub type U{} = {};", u, gen_uint(u)).unwrap();
         if u <= ::std::i64::MAX as u64 && u != 0 {
             let i = u as i64;
-            write!(
+            writeln!(
                 f,
-                "    pub type P{i} = PInt<U{i}>; pub type N{i} = NInt<U{i}>;\n",
+                "    pub type P{i} = PInt<U{i}>; pub type N{i} = NInt<U{i}>;",
                 i = i
             )
             .unwrap();
@@ -179,7 +178,6 @@ pub mod consts {{
     }
     write!(f, "}}").unwrap();
 
-    #[cfg(tests)]
     tests::build_tests().unwrap();
 
     op::write_op_macro().unwrap();

@@ -1,22 +1,23 @@
-#![cfg(feature = "std")]
-use std::boxed::Box;
+#![cfg(feature = "alloc")]
+use alloc::boxed::Box;
 
-use super::{Input, FixedOutput, Reset};
+use super::{FixedOutput, Reset, Update};
 use generic_array::typenum::Unsigned;
 
 /// The `DynDigest` trait is a modification of `Digest` trait suitable
 /// for trait objects.
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub trait DynDigest {
     /// Digest input data.
     ///
     /// This method can be called repeatedly for use with streaming messages.
-    fn input(&mut self, data: &[u8]);
+    fn update(&mut self, data: &[u8]);
 
     /// Retrieve result and reset hasher instance
-    fn result_reset(&mut self) -> Box<[u8]>;
+    fn finalize_reset(&mut self) -> Box<[u8]>;
 
     /// Retrieve result and consume boxed hasher instance
-    fn result(self: Box<Self>) -> Box<[u8]>;
+    fn finalize(self: Box<Self>) -> Box<[u8]>;
 
     /// Reset hasher instance to its initial state.
     fn reset(&mut self);
@@ -25,22 +26,22 @@ pub trait DynDigest {
     fn output_size(&self) -> usize;
 
     /// Clone hasher state into a boxed trait object
-    fn box_clone(&self) -> Box<DynDigest>;
+    fn box_clone(&self) -> Box<dyn DynDigest>;
 }
 
-impl<D: Input + FixedOutput + Reset + Clone + 'static> DynDigest for D {
-    fn input(&mut self, data: &[u8]) {
-        Input::input(self, data);
+impl<D: Update + FixedOutput + Reset + Clone + 'static> DynDigest for D {
+    fn update(&mut self, data: &[u8]) {
+        Update::update(self, data);
     }
 
-    fn result_reset(&mut self) -> Box<[u8]> {
-        let res = self.clone().fixed_result().to_vec().into_boxed_slice();
+    fn finalize_reset(&mut self) -> Box<[u8]> {
+        let res = self.finalize_fixed_reset().to_vec().into_boxed_slice();
         Reset::reset(self);
         res
     }
 
-    fn result(self: Box<Self>) -> Box<[u8]> {
-        self.fixed_result().to_vec().into_boxed_slice()
+    fn finalize(self: Box<Self>) -> Box<[u8]> {
+        self.finalize_fixed().to_vec().into_boxed_slice()
     }
 
     fn reset(&mut self) {
@@ -51,12 +52,12 @@ impl<D: Input + FixedOutput + Reset + Clone + 'static> DynDigest for D {
         <Self as FixedOutput>::OutputSize::to_usize()
     }
 
-    fn box_clone(&self) -> Box<DynDigest> {
+    fn box_clone(&self) -> Box<dyn DynDigest> {
         Box::new(self.clone())
     }
 }
 
-impl Clone for Box<DynDigest> {
+impl Clone for Box<dyn DynDigest> {
     fn clone(&self) -> Self {
         self.box_clone()
     }

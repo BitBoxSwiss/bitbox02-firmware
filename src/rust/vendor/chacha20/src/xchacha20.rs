@@ -1,12 +1,20 @@
 //! XChaCha20 is an extended nonce variant of ChaCha20
 
-use crate::{block::soft::quarter_round, cipher::ChaCha20, CONSTANTS};
-use core::convert::TryInto;
-use stream_cipher::generic_array::{
-    typenum::{U16, U24, U32},
-    GenericArray,
+use crate::{
+    block::soft::quarter_round,
+    cipher::{ChaCha20, Key},
+    CONSTANTS,
 };
-use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
+use core::convert::TryInto;
+use stream_cipher::{
+    consts::{U16, U24, U32},
+    generic_array::GenericArray,
+    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+};
+
+/// EXtended ChaCha20 nonce (192-bits/24-bytes)
+#[cfg_attr(docsrs, doc(cfg(feature = "xchacha20")))]
+pub type XNonce = stream_cipher::Nonce<XChaCha20>;
 
 /// XChaCha20 is a ChaCha20 variant with an extended 192-bit (24-byte) nonce.
 ///
@@ -26,6 +34,7 @@ use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCiph
 ///
 /// The `xchacha20` Cargo feature must be enabled in order to use this
 /// (which it is by default).
+#[cfg_attr(docsrs, doc(cfg(feature = "xchacha20")))]
 pub struct XChaCha20(ChaCha20);
 
 impl NewStreamCipher for XChaCha20 {
@@ -36,11 +45,11 @@ impl NewStreamCipher for XChaCha20 {
     type NonceSize = U24;
 
     #[allow(unused_mut, clippy::let_and_return)]
-    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
+    fn new(key: &Key, nonce: &XNonce) -> Self {
         // TODO(tarcieri): zeroize subkey
-        let subkey = hchacha20(key, iv[..16].as_ref().into());
+        let subkey = hchacha20(key, nonce[..16].as_ref().into());
         let mut padded_iv = GenericArray::default();
-        padded_iv[4..].copy_from_slice(&iv[16..]);
+        padded_iv[4..].copy_from_slice(&nonce[16..]);
         XChaCha20(ChaCha20::new(&subkey, &padded_iv))
     }
 }
@@ -52,12 +61,12 @@ impl SyncStreamCipher for XChaCha20 {
 }
 
 impl SyncStreamCipherSeek for XChaCha20 {
-    fn current_pos(&self) -> u64 {
-        self.0.current_pos()
+    fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
+        self.0.try_current_pos()
     }
 
-    fn seek(&mut self, pos: u64) {
-        self.0.seek(pos);
+    fn try_seek<T: SeekNum>(&mut self, pos: T) -> Result<(), LoopError> {
+        self.0.try_seek(pos)
     }
 }
 
@@ -75,7 +84,7 @@ impl SyncStreamCipherSeek for XChaCha20 {
 /// For more information on HSalsa20 on which HChaCha20 is based, see:
 ///
 /// <http://cr.yp.to/snuffle/xsalsa-20110204.pdf>
-fn hchacha20(key: &GenericArray<u8, U32>, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
+fn hchacha20(key: &Key, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
     let mut state = [0u32; 16];
     state[..4].copy_from_slice(&CONSTANTS);
 

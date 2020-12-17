@@ -11,26 +11,32 @@
 # will likely look very different (and much more reasonable)
 
 [package]
+edition = "2018"
 name = "stream-cipher"
-version = "0.3.2"
+version = "0.7.1"
 authors = ["RustCrypto Developers"]
 description = "Stream cipher traits"
 documentation = "https://docs.rs/stream-cipher"
+readme = "README.md"
 keywords = ["crypto", "stream-cipher", "trait"]
 categories = ["cryptography", "no-std"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/RustCrypto/traits"
 [package.metadata.docs.rs]
-features = ["std"]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 [dependencies.blobby]
-version = "0.1"
+version = "0.3"
+optional = true
+
+[dependencies.block-cipher]
+version = "0.8"
 optional = true
 
 [dependencies.generic-array]
-version = "0.12"
+version = "0.14"
 
 [features]
+default = ["block-cipher"]
 dev = ["blobby"]
 std = []
-[badges.travis-ci]
-repository = "RustCrypto/traits"

@@ -11,8 +11,9 @@
 # will likely look very different (and much more reasonable)
 
 [package]
+edition = "2018"
 name = "block-padding"
-version = "0.1.5"
+version = "0.2.1"
 authors = ["RustCrypto Developers"]
 description = "Padding and unpadding of messages divided into blocks."
 documentation = "https://docs.rs/block-padding"
@@ -20,7 +21,3 @@ keywords = ["padding", "pkcs7", "ansix923", "iso7816"]
 categories = ["cryptography", "no-std"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/RustCrypto/utils"
-[dependencies.byte-tools]
-version = "0.3"
-[badges.travis-ci]
-repository = "RustCrypto/utils"

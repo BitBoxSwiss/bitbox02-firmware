@@ -20,6 +20,7 @@ use alloc::string::String;
 use crate::input::SafeInputString;
 
 pub const BIP39_WORDLIST_LEN: u16 = bitbox02_sys::BIP39_WORDLIST_LEN as u16;
+pub const EC_PUBLIC_KEY_UNCOMPRESSED_LEN: usize = bitbox02_sys::EC_PUBLIC_KEY_UNCOMPRESSED_LEN as _;
 
 pub fn is_locked() -> bool {
     panic!("not implemented")
@@ -49,5 +50,11 @@ pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
 }
 
 pub fn get_bip39_word(_idx: u16) -> Result<&'static str, ()> {
+    panic!("not implemented")
+}
+
+pub fn secp256k1_pubkey_uncompressed(
+    _keypath: &[u32],
+) -> Result<[u8; EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()> {
     panic!("not implemented")
 }

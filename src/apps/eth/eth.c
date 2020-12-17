@@ -52,13 +52,8 @@ app_eth_sign_error_t app_eth_address(
         if (!rust_ethereum_keypath_is_valid_address(keypath, keypath_len, params->bip44_coin)) {
             return APP_ETH_SIGN_ERR_INVALID_INPUT;
         }
-        uint8_t pubkey_uncompressed[65];
-        if (!keystore_secp256k1_pubkey(
-                KEYSTORE_SECP256K1_PUBKEY_UNCOMPRESSED,
-                keypath,
-                keypath_len,
-                pubkey_uncompressed,
-                sizeof(pubkey_uncompressed))) {
+        uint8_t pubkey_uncompressed[EC_PUBLIC_KEY_UNCOMPRESSED_LEN];
+        if (!keystore_secp256k1_pubkey_uncompressed(keypath, keypath_len, pubkey_uncompressed)) {
             return APP_ETH_SIGN_ERR_INVALID_INPUT;
         }
         rust_ethereum_address_from_pubkey(

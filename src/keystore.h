@@ -23,6 +23,7 @@
 #include <secp256k1.h>
 #include <wally_bip32.h>
 #include <wally_bip39.h> // for BIP39_WORDLIST_LEN
+#include <wally_crypto.h> // for EC_PUBLIC_KEY_UNCOMPRESSED_LEN
 
 #define KEYSTORE_MAX_SEED_LENGTH (32)
 #define KEYSTORE_U2F_SEED_LENGTH SHA256_LEN
@@ -164,26 +165,29 @@ void keystore_zero_xkey(struct ext_key* xkey);
  */
 USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);
 
-typedef enum {
-    KEYSTORE_SECP256K1_PUBKEY_HASH160,
-    KEYSTORE_SECP256K1_PUBKEY_UNCOMPRESSED,
-} keystore_secp256k1_pubkey_format;
-
 /**
- * Return the serialized secp256k1 public key at the keypath.
- * @param[in] format Output format. For HASH160, the output is the hash of the public key.
+ * Return the hash160 of the secp256k1 public key at the keypath.
  * @param[in] keypath derivation keypath
  * @param[in] keypath_len size of keypath buffer
- * @param[out] pubkey_out serialized output
- * @param[in] pubkey_out_len: must be 20 for HASH160, 65 for UNCOMPRESSED.
+ * @param[out] hash160_out serialized output. Must be HASH160_LEN bytes.
  * @return true on success, false if the keystore is locked or the input is invalid.
  */
-USE_RESULT bool keystore_secp256k1_pubkey(
-    keystore_secp256k1_pubkey_format format,
+USE_RESULT bool keystore_secp256k1_pubkey_hash160(
     const uint32_t* keypath,
     size_t keypath_len,
-    uint8_t* pubkey_out,
-    size_t pubkey_out_len);
+    uint8_t* hash160_out);
+
+/**
+ * Return the serialized secp256k1 public key at the keypath, in uncompressed format.
+ * @param[in] keypath derivation keypath
+ * @param[in] keypath_len size of keypath buffer
+ * @param[out] pubkey_out serialized output. Must be EC_PUBLIC_KEY_UNCOMPRESSED_LEN bytes.
+ * @return true on success, false if the keystore is locked or the input is invalid.
+ */
+USE_RESULT bool keystore_secp256k1_pubkey_uncompressed(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint8_t* pubkey_out);
 
 /**
  * Sign message with private key at the given keypath. Keystore must be unlocked.

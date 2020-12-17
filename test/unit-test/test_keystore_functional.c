@@ -132,17 +132,11 @@ static void _check_pubs(
     assert_string_equal(xpub_serialized, expected_xpub);
 
     uint8_t hash160[20];
-    assert_true(keystore_secp256k1_pubkey(
-        KEYSTORE_SECP256K1_PUBKEY_HASH160, keypath, 5, hash160, sizeof(hash160)));
+    assert_true(keystore_secp256k1_pubkey_hash160(keypath, 5, hash160));
     _assert_equal_memory_hex(hash160, sizeof(hash160), expected_hash160_hex);
 
     uint8_t pubkey_uncompressed[EC_PUBLIC_KEY_UNCOMPRESSED_LEN];
-    assert_true(keystore_secp256k1_pubkey(
-        KEYSTORE_SECP256K1_PUBKEY_UNCOMPRESSED,
-        keypath,
-        5,
-        pubkey_uncompressed,
-        sizeof(pubkey_uncompressed)));
+    assert_true(keystore_secp256k1_pubkey_uncompressed(keypath, 5, pubkey_uncompressed));
     _assert_equal_memory_hex(
         pubkey_uncompressed, sizeof(pubkey_uncompressed), expected_pubkey_uncompressed_hex);
 }

@@ -50,4 +50,6 @@ features = ["prost-derive"]
 [features]
 app-ethereum = [
   "ethereum", # this is a dependency
+  # enable this feature in the deps
+  "bitbox02/app-ethereum",
 ]

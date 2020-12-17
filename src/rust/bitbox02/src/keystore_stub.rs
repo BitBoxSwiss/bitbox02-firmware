@@ -56,9 +56,12 @@ pub fn get_bip39_word(_idx: u16) -> Result<&'static str, ()> {
 }
 
 pub fn secp256k1_pubkey_uncompressed(
-    _keypath: &[u32],
+    keypath: &[u32],
 ) -> Result<[u8; EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()> {
-    panic!("not implemented")
+    let data = crate::testing::DATA.0.borrow();
+    data.keystore_secp256k1_pubkey_uncompressed
+        .as_ref()
+        .unwrap()(keypath)
 }
 
 pub fn encode_xpub_at_keypath(keypath: &[u32], xpub_type: xpub_type_t) -> Result<String, ()> {

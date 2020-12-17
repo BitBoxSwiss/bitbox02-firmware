@@ -35,6 +35,13 @@ pub struct Data {
     pub backup_create: Option<Box<dyn Fn(u32, u32) -> Result<(), super::backup::Error>>>,
     pub keystore_encode_xpub_at_keypath:
         Option<Box<dyn Fn(&[u32], super::keystore::xpub_type_t) -> Result<String, ()>>>,
+    pub keystore_secp256k1_pubkey_uncompressed: Option<
+        Box<dyn Fn(&[u32]) -> Result<[u8; super::keystore::EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()>>,
+    >,
+    pub eth_params_get:
+        Option<Box<dyn Fn(bitbox02_sys::ETHCoin) -> Option<super::app_eth::Params>>>,
+    pub eth_erc20_params_get:
+        Option<Box<dyn Fn(bitbox02_sys::ETHCoin, [u8; 20]) -> Option<super::app_eth::ERC20Params>>>,
 }
 
 pub struct SafeData(pub RefCell<Data>);

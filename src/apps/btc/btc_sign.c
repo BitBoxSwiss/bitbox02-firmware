@@ -14,7 +14,6 @@
 // limitations under the License.
 
 #include "btc_sign.h"
-#include "btc_bip143.h"
 #include "btc_common.h"
 #include "btc_params.h"
 #include "btc_sign_validate.h"
@@ -627,20 +626,20 @@ static app_btc_result_t _sign_input_pass2(
         }
         uint8_t sighash[32] = {0};
         // construct hash to sign
-        btc_bip143_sighash(
-            _init_request.version,
-            _hash_prevouts,
-            _hash_sequence,
-            request->prevOutHash,
-            request->prevOutIndex,
-            sighash_script,
-            sighash_script_size,
-            request->prevOutValue,
-            request->sequence,
-            _hash_outputs,
-            _init_request.locktime,
-            WALLY_SIGHASH_ALL,
-            sighash);
+        const Bip143Args bip143_args = {
+            .version = _init_request.version,
+            .hash_prevouts = _hash_prevouts,
+            .hash_sequence = _hash_sequence,
+            .outpoint_hash = request->prevOutHash,
+            .outpoint_index = request->prevOutIndex,
+            .sighash_script = rust_util_bytes(sighash_script, sighash_script_size),
+            .prevout_value = request->prevOutValue,
+            .sequence = request->sequence,
+            .hash_outputs = _hash_outputs,
+            .locktime = _init_request.locktime,
+            .sighash_flags = WALLY_SIGHASH_ALL,
+        };
+        rust_bitcoin_bip143_sighash(&bip143_args, rust_util_bytes_mut(sighash, sizeof(sighash)));
         uint8_t sig_out[64] = {0};
         if (!keystore_secp256k1_sign(
                 request->keypath, request->keypath_count, sighash, sig_out, NULL)) {

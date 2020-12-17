@@ -23,8 +23,10 @@ const HARDENED: u32 = 0x80000000;
 const ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE: u32 = 4541509 + HARDENED;
 const ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO: u32 = 1112098098 + HARDENED;
 
-/// Returns the electrum wallet encryption xpub..
+/// Returns the electrum wallet encryption xpub.
 /// `keypath` currently needs to be m/4541509'/1112098098'
+/// Note: the result of this is only meant to be used for encryption by Electrum.
+/// The resulting xpub must not be used to derive addresses or to receive coins.
 pub async fn process(
     pb::ElectrumEncryptionKeyRequest { keypath }: &pb::ElectrumEncryptionKeyRequest,
 ) -> Result<Response, Error> {

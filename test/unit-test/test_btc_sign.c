@@ -23,6 +23,7 @@
 #include <apps/btc/btc_sign.h>
 #include <apps/btc/confirm_locktime_rbf.h>
 #include <keystore.h>
+#include <rust/rust.h>
 #include <wally_bip32.h>
 #include <workflow/confirm.h>
 
@@ -53,12 +54,11 @@ bool __wrap_apps_btc_confirm_locktime_rbf(uint32_t locktime, enum apps_btc_rbf_f
     return mock();
 }
 
-bool __wrap_btc_common_format_amount(uint64_t satoshi, const char* unit, char* out, size_t out_len)
+void __wrap_rust_bitcoin_util_format_amount(uint64_t satoshi, CStr unit, CStrMut out)
 {
     check_expected(satoshi);
-    check_expected(unit);
-    snprintf(out, out_len, "%s", (const char*)(mock()));
-    return true;
+    check_expected(unit.buf);
+    snprintf(out.buf, out.cap, "%s", (const char*)(mock()));
 }
 
 bool __real_btc_common_is_valid_keypath_address_simple(
@@ -841,13 +841,13 @@ static void _sign(const _modification_t* mod)
         assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_output(&outputs[0], &next));
         return;
     }
-    expect_value(__wrap_btc_common_format_amount, satoshi, outputs[0].value);
+    expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, outputs[0].value);
     if (!mod->litecoin_rbf_disabled) {
-        expect_string(__wrap_btc_common_format_amount, unit, "BTC");
+        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     } else {
-        expect_string(__wrap_btc_common_format_amount, unit, "LTC");
+        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
     }
-    will_return(__wrap_btc_common_format_amount, "amount0");
+    will_return(__wrap_rust_bitcoin_util_format_amount, "amount0");
     if (!mod->litecoin_rbf_disabled) {
         expect_string(
             __wrap_workflow_verify_recipient, recipient, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
@@ -867,13 +867,13 @@ static void _sign(const _modification_t* mod)
         assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_output(&outputs[1], &next));
         return;
     }
-    expect_value(__wrap_btc_common_format_amount, satoshi, outputs[1].value);
+    expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, outputs[1].value);
     if (!mod->litecoin_rbf_disabled) {
-        expect_string(__wrap_btc_common_format_amount, unit, "BTC");
+        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     } else {
-        expect_string(__wrap_btc_common_format_amount, unit, "LTC");
+        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
     }
-    will_return(__wrap_btc_common_format_amount, "amount1");
+    will_return(__wrap_rust_bitcoin_util_format_amount, "amount1");
     if (!mod->litecoin_rbf_disabled) {
         expect_string(
             __wrap_workflow_verify_recipient, recipient, "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ");
@@ -895,13 +895,13 @@ static void _sign(const _modification_t* mod)
     assert_false(next.has_signature);
 
     // Third output
-    expect_value(__wrap_btc_common_format_amount, satoshi, outputs[2].value);
+    expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, outputs[2].value);
     if (!mod->litecoin_rbf_disabled) {
-        expect_string(__wrap_btc_common_format_amount, unit, "BTC");
+        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     } else {
-        expect_string(__wrap_btc_common_format_amount, unit, "LTC");
+        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
     }
-    will_return(__wrap_btc_common_format_amount, "amount2");
+    will_return(__wrap_rust_bitcoin_util_format_amount, "amount2");
     if (!mod->litecoin_rbf_disabled) {
         expect_string(
             __wrap_workflow_verify_recipient,
@@ -921,13 +921,13 @@ static void _sign(const _modification_t* mod)
     assert_false(next.has_signature);
 
     // Fourth output
-    expect_value(__wrap_btc_common_format_amount, satoshi, outputs[3].value);
+    expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, outputs[3].value);
     if (!mod->litecoin_rbf_disabled) {
-        expect_string(__wrap_btc_common_format_amount, unit, "BTC");
+        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     } else {
-        expect_string(__wrap_btc_common_format_amount, unit, "LTC");
+        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
     }
-    will_return(__wrap_btc_common_format_amount, "amount3");
+    will_return(__wrap_rust_bitcoin_util_format_amount, "amount3");
     if (!mod->litecoin_rbf_disabled) {
         expect_string(
             __wrap_workflow_verify_recipient,
@@ -1018,20 +1018,20 @@ static void _sign(const _modification_t* mod)
         assert_int_equal(APP_BTC_ERR_STATE, app_btc_sign_input(&inputs[0].input, &next));
         return;
     }
-    expect_value(__wrap_btc_common_format_amount, satoshi, total);
+    expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, total);
     if (!mod->litecoin_rbf_disabled) {
-        expect_string(__wrap_btc_common_format_amount, unit, "BTC");
+        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     } else {
-        expect_string(__wrap_btc_common_format_amount, unit, "LTC");
+        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
     }
-    will_return(__wrap_btc_common_format_amount, "amount total");
-    expect_value(__wrap_btc_common_format_amount, satoshi, fee);
+    will_return(__wrap_rust_bitcoin_util_format_amount, "amount total");
+    expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, fee);
     if (!mod->litecoin_rbf_disabled) {
-        expect_string(__wrap_btc_common_format_amount, unit, "BTC");
+        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     } else {
-        expect_string(__wrap_btc_common_format_amount, unit, "LTC");
+        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
     }
-    will_return(__wrap_btc_common_format_amount, "amount fee");
+    will_return(__wrap_rust_bitcoin_util_format_amount, "amount fee");
     expect_string(__wrap_workflow_verify_total, total, "amount total");
     expect_string(__wrap_workflow_verify_total, fee, "amount fee");
     will_return(__wrap_workflow_verify_total, !mod->user_aborts_total);

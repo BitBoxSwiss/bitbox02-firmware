@@ -51,19 +51,6 @@ USE_RESULT bool app_btc_xpub(
     size_t out_len);
 
 /**
- * Returns the electrum wallet encryption xpub.
- * @param[in] keypath its value currently needs to be m/4541509'/1112098098'
- * @param[in] keypath_len number of keypath elements.
- * @param[out] out will hold the xpub.
- * @param[in] out_len size of out.
- */
-bool app_btc_electrum_encryption_key(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    char* out,
-    size_t out_len);
-
-/**
  * Creates an address from a public key at a given keypath.
  * @param[in] coin Coin to generate address for.
  * @param[in] script_config script configuration, which determines the address.

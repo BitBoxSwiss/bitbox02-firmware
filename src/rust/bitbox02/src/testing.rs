@@ -14,7 +14,9 @@
 
 //! Small mocking infrastructure for testing.
 
+extern crate alloc;
 extern crate std;
+use alloc::string::String;
 use core::cell::RefCell;
 use std::boxed::Box;
 
@@ -31,6 +33,8 @@ pub struct Data {
     pub memory_is_initialized: Option<bool>,
     pub memory_set_initialized_result: Option<Result<(), ()>>,
     pub backup_create: Option<Box<dyn Fn(u32, u32) -> Result<(), super::backup::Error>>>,
+    pub keystore_encode_xpub_at_keypath:
+        Option<Box<dyn Fn(&[u32], super::keystore::xpub_type_t) -> Result<String, ()>>>,
 }
 
 pub struct SafeData(pub RefCell<Data>);

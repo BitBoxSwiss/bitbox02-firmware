@@ -23,6 +23,7 @@
 #include <keystore.h>
 #include <memory/memory.h>
 #include <rust/rust.h>
+#include <util.h>
 #include <workflow/confirm.h>
 #include <workflow/status.h>
 
@@ -97,15 +98,15 @@ bool app_btc_address_simple(
             script_type, keypath, keypath_len, params->bip44_coin)) {
         return false;
     }
-    struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
+    uint8_t pubkey_hash160[HASH160_LEN];
+    UTIL_CLEANUP_20(pubkey_hash160);
+    if (!keystore_secp256k1_pubkey_hash160(keypath, keypath_len, pubkey_hash160)) {
         return false;
     }
 
     uint8_t hash[32] = {0};
     size_t hash_size_out = 0;
-    if (!btc_common_outputhash_from_pubkeyhash(
-            script_type, derived_xpub.hash160, hash, &hash_size_out)) {
+    if (!btc_common_outputhash_from_pubkeyhash(script_type, pubkey_hash160, hash, &hash_size_out)) {
         return false;
     }
     return btc_common_address_from_outputhash(

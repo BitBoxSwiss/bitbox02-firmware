@@ -206,16 +206,12 @@ set(TEST_LIST
    "-Wl,--wrap=random_32_bytes"
    sha3
    ""
-   app_eth
-   "-Wl,--wrap=keystore_secp256k1_pubkey_uncompressed,--wrap=rust_ethereum_keypath_is_valid_address"
    app_eth_common
    ""
    app_eth_sighash
    ""
    app_eth_sign
    "-Wl,--wrap=app_eth_verify_standard_transaction,--wrap=app_eth_verify_erc20_transaction,--wrap=keystore_secp256k1_sign,--wrap=rust_ethereum_keypath_is_valid_address"
-   app_eth_sign_msg
-   "-Wl,--wrap=keystore_secp256k1_sign,--wrap=keystore_secp256k1_pubkey_uncompressed,--wrap=rust_ethereum_keypath_is_valid_address,--wrap=workflow_confirm_blocking,--wrap=rust_workflow_verify_message"
    app_eth_verify
    "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=app_eth_erc20_params_get"
    usart

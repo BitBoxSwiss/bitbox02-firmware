@@ -62,8 +62,8 @@ where
     F: FnMut(bool) + 'a,
 {
     let data = crate::testing::DATA.0.borrow();
-    assert_eq!(data.ui_confirm_create_body.as_ref().unwrap(), params.body);
-    result_callback(data.ui_confirm_create_result.unwrap());
+    let result = data.ui_confirm_create.as_ref().unwrap()(params);
+    result_callback(result);
     Component {
         is_pushed: false,
         _p: PhantomData,

@@ -236,8 +236,10 @@ mod tests {
                 })
             })),
             keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
-            ui_confirm_create_body: Some("0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B".into()),
-            ui_confirm_create_result: Some(true),
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.body, "0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B");
+                true
+            })),
             ..Default::default()
         });
         assert_eq!(
@@ -366,8 +368,10 @@ mod tests {
                 })
             })),
             keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
-            ui_confirm_create_body: Some("0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B".into()),
-            ui_confirm_create_result: Some(true),
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.body, "0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B");
+                true
+            })),
             ..Default::default()
         });
         assert_eq!(

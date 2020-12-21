@@ -59,8 +59,10 @@ mod tests {
 
         // All good.
         mock(Data {
-            ui_confirm_create_body: Some(SOME_NAME.into()),
-            ui_confirm_create_result: Some(true),
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.body, SOME_NAME);
+                true
+            })),
             memory_set_device_name: Some(Box::new(|name| {
                 assert_eq!(name, SOME_NAME);
                 Ok(())
@@ -76,8 +78,10 @@ mod tests {
 
         // User aborted confirmation.
         mock(Data {
-            ui_confirm_create_body: Some(SOME_NAME.into()),
-            ui_confirm_create_result: Some(false),
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.body, SOME_NAME);
+                false
+            })),
             ..Default::default()
         });
         assert_eq!(
@@ -89,8 +93,10 @@ mod tests {
 
         // Memory write error.
         mock(Data {
-            ui_confirm_create_body: Some(SOME_NAME.into()),
-            ui_confirm_create_result: Some(true),
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.body, SOME_NAME);
+                true
+            })),
             memory_set_device_name: Some(Box::new(|_| Err(bitbox02::memory::Error {}))),
             ..Default::default()
         });

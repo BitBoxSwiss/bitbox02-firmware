@@ -164,8 +164,10 @@ mod tests {
             sdcard_inserted: Some(true),
             memory_is_initialized: Some(false),
             memory_set_initialized_result: Some(Ok(())),
-            ui_confirm_create_body: Some("<date>".into()),
-            ui_confirm_create_result: Some(true),
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.body, "<date>");
+                true
+            })),
             memory_set_seed_birthdate: Some(Box::new(|timestamp| {
                 assert_eq!(timestamp, EXPECTED_TIMESTMAP);
                 Ok(())

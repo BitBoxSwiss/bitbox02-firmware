@@ -51,8 +51,10 @@ mod tests {
 
         // All good.
         mock(Data {
-            ui_confirm_create_body: Some("Proceed to\nfactory reset?".into()),
-            ui_confirm_create_result: Some(true),
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.body, "Proceed to\nfactory reset?");
+                true
+            })),
             reset: Some(Box::new(|status| {
                 assert_eq!(status, true);
             })),
@@ -62,8 +64,10 @@ mod tests {
 
         // User aborted confirmation.
         mock(Data {
-            ui_confirm_create_body: Some("Proceed to\nfactory reset?".into()),
-            ui_confirm_create_result: Some(false),
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.body, "Proceed to\nfactory reset?");
+                false
+            })),
             ..Default::default()
         });
         assert_eq!(block_on(process()), Err(Error::Generic));

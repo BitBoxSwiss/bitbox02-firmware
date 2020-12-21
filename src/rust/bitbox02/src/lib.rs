@@ -30,6 +30,8 @@ extern crate lazy_static;
 #[cfg(feature = "testing")]
 pub mod testing;
 
+#[cfg(feature = "app-ethereum")]
+pub mod app_eth;
 #[cfg_attr(feature = "testing", path = "backup_stub.rs")]
 pub mod backup;
 pub mod commander;

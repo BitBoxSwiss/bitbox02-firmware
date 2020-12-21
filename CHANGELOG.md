@@ -1,6 +1,10 @@
 # Changelog
 
-## 9.3.1
+## 9.4.0 [version may change, pending release]
+- ETHPubRequest api call now fails if a an invalid contract address is provided also if `display` is
+  false.
+
+## 9.3.1 [tagged 2020-12-01]
 - Fix a bug where the device could freeze and become unresponsive.
 
 ## 9.3.0 [tagged 2020-11-23]

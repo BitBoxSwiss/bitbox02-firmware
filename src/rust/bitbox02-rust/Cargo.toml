@@ -28,6 +28,7 @@ doctest = false
 [dependencies]
 bitbox02 = {path = "../bitbox02"}
 util = {path = "../util"}
+ethereum = { path = "../apps/ethereum", optional = true }
 binascii = { version = "0.1.4", default-features = false, features = ["encode"] }
 bitbox02-noise = {path = "../bitbox02-noise"}
 hex = { version = "0.4", default-features = false }
@@ -45,3 +46,10 @@ git = "https://github.com/danburkert/prost.git"
 rev = "6113789f70b69709820becba4242824b4fb3ffec"
 default-features = false
 features = ["prost-derive"]
+
+[features]
+app-ethereum = [
+  "ethereum", # this is a dependency
+  # enable this feature in the deps
+  "bitbox02/app-ethereum",
+]

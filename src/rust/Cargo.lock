@@ -61,6 +61,7 @@ dependencies = [
  "binascii",
  "bitbox02",
  "bitbox02-noise",
+ "ethereum",
  "hex",
  "prost",
  "sha2",

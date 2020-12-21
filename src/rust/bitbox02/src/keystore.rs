@@ -14,6 +14,7 @@
 
 extern crate alloc;
 use alloc::string::String;
+use core::convert::TryInto;
 
 use crate::input::SafeInputString;
 use bitbox02_sys::keystore_error_t;
@@ -128,6 +129,31 @@ pub fn encode_xpub_at_keypath(keypath: &[u32], xpub_type: xpub_type_t) -> Result
         true => Ok(crate::util::str_from_null_terminated(&xpub[..])
             .unwrap()
             .into()),
+        false => Err(()),
+    }
+}
+
+pub struct SignResult {
+    pub signature: [u8; 64],
+    pub recid: u8,
+}
+
+pub fn secp256k1_sign(keypath: &[u32], msg: &[u8; 32]) -> Result<SignResult, ()> {
+    let mut signature = [0u8; 64];
+    let mut recid: util::c_types::c_int = 0;
+    match unsafe {
+        bitbox02_sys::keystore_secp256k1_sign(
+            keypath.as_ptr(),
+            keypath.len() as _,
+            msg.as_ptr(),
+            signature.as_mut_ptr(),
+            &mut recid,
+        )
+    } {
+        true => Ok(SignResult {
+            signature,
+            recid: recid.try_into().unwrap(),
+        }),
         false => Err(()),
     }
 }

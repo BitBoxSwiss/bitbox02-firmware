@@ -18,6 +18,7 @@ compile_error!(
 );
 
 mod pubrequest;
+mod signmsg;
 
 use super::pb;
 use super::Error;
@@ -32,6 +33,7 @@ use pb::eth_response::Response;
 pub async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
     match request {
         Request::Pub(ref request) => Some(pubrequest::process(request).await),
+        Request::SignMsg(ref request) => Some(signmsg::process(request).await),
         _ => None,
     }
 }

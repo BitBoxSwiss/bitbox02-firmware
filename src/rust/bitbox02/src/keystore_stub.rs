@@ -68,3 +68,13 @@ pub fn encode_xpub_at_keypath(keypath: &[u32], xpub_type: xpub_type_t) -> Result
     let data = crate::testing::DATA.0.borrow();
     data.keystore_encode_xpub_at_keypath.as_ref().unwrap()(keypath, xpub_type)
 }
+
+pub struct SignResult {
+    pub signature: [u8; 64],
+    pub recid: u8,
+}
+
+pub fn secp256k1_sign(keypath: &[u32], msg: &[u8; 32]) -> Result<SignResult, ()> {
+    let data = crate::testing::DATA.0.borrow();
+    data.keystore_secp256k1_sign.as_ref().unwrap()(keypath, msg)
+}

@@ -26,8 +26,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include <wally_bip32.h>
-
 static uint8_t _mock_seed[32] = {
     0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
     0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
@@ -93,24 +91,17 @@ bool __wrap_btc_common_outputhash_from_pubkeyhash(
     return mock();
 }
 
-bool __wrap_keystore_get_xpub(const uint32_t* keypath, size_t keypath_len, struct ext_key* xpub_out)
+bool __wrap_keystore_secp256k1_pubkey_hash160(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint8_t* hash160_out)
 {
     check_expected(keypath);
     check_expected(keypath_len);
-    assert_non_null(xpub_out);
-
-    // Constant mock xpub. keypath not used, as we are not unit testing
-    // derivation here, but address generation.
-    uint8_t seed[32] = {0};
-    memset(seed, 0x45, sizeof(seed));
-    if (bip32_key_from_seed(seed, BIP32_ENTROPY_LEN_256, BIP32_VER_MAIN_PRIVATE, 0, xpub_out) !=
-        WALLY_OK) {
-        return false;
-    }
-    // neuter
-    xpub_out->priv_key[0] = BIP32_FLAG_KEY_PUBLIC;
-    util_zero(xpub_out->priv_key + 1, sizeof(xpub_out->priv_key) - 1);
-
+    assert_non_null(hash160_out);
+    uint8_t hash160[20] =
+        "\x7c\x16\x87\x6b\x37\xb1\xb5\xa1\xf9\x0a\x53\xe9\xae\x3c\x25\xa2\x4a\x2a\x80\x8d";
+    memcpy(hash160_out, hash160, sizeof(hash160));
     return mock();
 }
 
@@ -282,7 +273,7 @@ static void _test_app_btc_address_simple(void** state)
 
     for (int bools = 0; bools < 8; bools++) {
         bool keypath_valid = bools & 1;
-        bool get_xpub_success = bools & 2;
+        bool get_hash160_success = bools & 2;
         bool encode_success = bools & 4;
         for (size_t test_case_index = 0;
              test_case_index < sizeof(_address_tests) / sizeof(address_testcase_t);
@@ -302,19 +293,20 @@ static void _test_app_btc_address_simple(void** state)
                 sizeof(expected_keypath) / sizeof(uint32_t));
             will_return(__wrap_btc_common_is_valid_keypath_address_simple, keypath_valid);
             if (keypath_valid) {
-                expect_memory(__wrap_keystore_get_xpub, keypath, expected_keypath, 3);
+                expect_memory(
+                    __wrap_keystore_secp256k1_pubkey_hash160, keypath, expected_keypath, 3);
                 expect_value(
-                    __wrap_keystore_get_xpub,
+                    __wrap_keystore_secp256k1_pubkey_hash160,
                     keypath_len,
                     sizeof(expected_keypath) / sizeof(uint32_t));
-                will_return(__wrap_keystore_get_xpub, get_xpub_success);
+                will_return(__wrap_keystore_secp256k1_pubkey_hash160, get_hash160_success);
             }
-            if (keypath_valid && get_xpub_success) {
+            if (keypath_valid && get_hash160_success) {
                 will_return(__wrap_btc_common_outputhash_from_pubkeyhash, encode_success);
             }
             bool result = app_btc_address_simple(
                 test_case->coin, test_case->script_type, expected_keypath, 3, out, sizeof(out));
-            assert_int_equal(result, keypath_valid && get_xpub_success && encode_success);
+            assert_int_equal(result, keypath_valid && get_hash160_success && encode_success);
             if (result) {
                 assert_string_equal(out, test_case->out);
             }

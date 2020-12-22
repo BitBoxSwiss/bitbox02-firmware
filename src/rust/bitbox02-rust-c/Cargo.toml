@@ -44,8 +44,8 @@ target-bootloader-btc-production = ["bootloader", "platform-bitbox02"]
 target-bootloader-bitboxbase = ["bootloader", "platform-bitboxbase"]
 target-bootloader-bitboxbase-development = ["bootloader", "platform-bitboxbase"]
 target-bootloader-bitboxbase-production = ["bootloader", "platform-bitboxbase"]
-target-firmware = ["firmware", "platform-bitbox02", "app-ethereum"]
-target-firmware-btc = ["firmware", "platform-bitbox02"]
+target-firmware = ["firmware", "platform-bitbox02", "app-bitcoin", "app-litecoin", "app-ethereum"]
+target-firmware-btc = ["firmware", "platform-bitbox02", "app-bitcoin"]
 target-firmware-bitboxbase = ["firmware", "platform-bitboxbase"]
 target-factory-setup = ["firmware", "platform-bitbox02"]
 target-factory-setup-bitboxbase = ["firmware", "platform-bitboxbase"]
@@ -66,4 +66,14 @@ app-ethereum = [
   # enable this feature in the deps
   "bitbox02-rust/app-ethereum",
   "bitbox02/app-ethereum",
+]
+
+app-bitcoin = [
+  # enable this feature in the deps
+  "bitbox02-rust/app-bitcoin",
+]
+
+app-litecoin = [
+  # enable this feature in the deps
+  "bitbox02-rust/app-litecoin",
 ]

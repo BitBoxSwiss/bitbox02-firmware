@@ -53,3 +53,6 @@ app-ethereum = [
   # enable this feature in the deps
   "bitbox02/app-ethereum",
 ]
+
+app-bitcoin = []
+app-litecoin = []

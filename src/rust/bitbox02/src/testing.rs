@@ -23,8 +23,7 @@ use std::boxed::Box;
 #[derive(Default)]
 pub struct Data {
     pub memory_set_device_name: Option<Box<dyn Fn(&str) -> Result<(), super::memory::Error>>>,
-    pub ui_confirm_create_body: Option<std::string::String>,
-    pub ui_confirm_create_result: Option<bool>,
+    pub ui_confirm_create: Option<Box<dyn Fn(&super::ui::ConfirmParams) -> bool>>,
     pub reset: Option<Box<dyn Fn(bool)>>,
     pub memory_set_mnemonic_passphrase_enabled: Option<Box<dyn Fn(bool) -> Result<(), ()>>>,
     pub sdcard_inserted: Option<bool>,

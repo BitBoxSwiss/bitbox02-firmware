@@ -55,8 +55,10 @@ mod tests {
 
         // All good.
         mock(Data {
-            ui_confirm_create_body: Some("Optional\npassphrase".into()),
-            ui_confirm_create_result: Some(true),
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.body, "Optional\npassphrase");
+                true
+            })),
             memory_set_mnemonic_passphrase_enabled: Some(Box::new(|enabled| {
                 assert_eq!(enabled, true);
                 Ok(())
@@ -72,8 +74,10 @@ mod tests {
 
         // User aborted confirmation.
         mock(Data {
-            ui_confirm_create_body: Some("Optional\npassphrase".into()),
-            ui_confirm_create_result: Some(false),
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.body, "Optional\npassphrase");
+                false
+            })),
             ..Default::default()
         });
         assert_eq!(

@@ -18,7 +18,13 @@ compile_error!("Bitcoin code is being compiled even though the app-bitcoin featu
 use super::pb;
 use super::Error;
 
+use crate::workflow::confirm;
+
+use pb::btc_pub_request::Output;
+use pb::btc_script_config::{Config, SimpleType};
 use pb::response::Response;
+use pb::BtcCoin;
+use pb::BtcScriptConfig;
 
 /// Returns `Ok(())` if the coin is enabled in this edition of the firmware.
 fn coin_enabled(coin: pb::BtcCoin) -> Result<(), Error> {
@@ -34,17 +40,61 @@ fn coin_enabled(coin: pb::BtcCoin) -> Result<(), Error> {
     Err(Error::Disabled)
 }
 
+fn coin_name(coin: pb::BtcCoin) -> &'static str {
+    use pb::BtcCoin::*;
+    match coin {
+        Btc => "Bitcoin",
+        Tbtc => "BTC Testnet",
+        Ltc => "Litecoin",
+        Tltc => "LTC Testnet",
+    }
+}
+
+/// Processes a SimpleType (single-sig) adress api call.
+async fn address_simple(
+    coin: BtcCoin,
+    simple_type: SimpleType,
+    keypath: &[u32],
+    display: bool,
+) -> Result<Response, Error> {
+    let address = bitbox02::app_btc::address_simple(coin as _, simple_type as _, keypath)?;
+    if display {
+        let params = confirm::Params {
+            title: coin_name(coin),
+            body: &address,
+            scrollable: true,
+            ..Default::default()
+        };
+        if !confirm::confirm(&params).await {
+            return Err(Error::UserAbort);
+        }
+    }
+    Ok(Response::Pub(pb::PubResponse { r#pub: address }))
+}
+
 /// Handle a Bitcoin xpub/address protobuf api call.
 ///
 /// Returns `None` if the call was not handled by Rust, in which case it should be handled by
 /// the C commander.
 pub async fn process_pub(request: &pb::BtcPubRequest) -> Option<Result<Response, Error>> {
-    let coin = match pb::BtcCoin::from_i32(request.coin).ok_or(Error::InvalidInput) {
-        Ok(coin) => coin,
-        Err(err) => return Some(Err(err)),
+    let coin = match BtcCoin::from_i32(request.coin) {
+        Some(coin) => coin,
+        None => return Some(Err(Error::InvalidInput)),
     };
     if let Err(err) = coin_enabled(coin) {
         return Some(Err(err));
     }
-    None
+    match request.output {
+        None => Some(Err(Error::InvalidInput)),
+        Some(Output::ScriptConfig(BtcScriptConfig {
+            config: Some(Config::SimpleType(simple_type)),
+        })) => {
+            let simple_type = match SimpleType::from_i32(simple_type) {
+                Some(simple_type) => simple_type,
+                None => return Some(Err(Error::InvalidInput)),
+            };
+            Some(address_simple(coin, simple_type, &request.keypath, request.display).await)
+        }
+        _ => None,
+    }
 }

@@ -31,3 +31,5 @@ lazy_static = { version = "1.4.0", optional = true }
 testing = ["lazy_static"]
 
 app-ethereum = []
+app-bitcoin = []
+app-litecoin = []

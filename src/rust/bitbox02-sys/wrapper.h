@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <apps/btc/btc.h>
 #include <apps/eth/eth_params.h>
 #include <backup/backup.h>
 #include <bitboxbase.pb.h>

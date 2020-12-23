@@ -15,6 +15,8 @@
 #include "btc_params.h"
 #include <wally_bip32.h>
 
+// Keep these in sync with hww/api/bitcoin/params.rs
+
 static const app_btc_coin_params_t _params_btc = {
     .bip44_coin = 0 + BIP32_INITIAL_HARDENED_CHILD,
     .base58_version_p2pkh = 0x00, // starts with 1

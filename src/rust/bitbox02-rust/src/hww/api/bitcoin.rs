@@ -20,10 +20,31 @@ use super::Error;
 
 use pb::response::Response;
 
+/// Returns `Ok(())` if the coin is enabled in this edition of the firmware.
+fn coin_enabled(coin: pb::BtcCoin) -> Result<(), Error> {
+    use pb::BtcCoin::*;
+    #[cfg(feature = "app-bitcoin")]
+    if let Btc | Tbtc = coin {
+        return Ok(());
+    }
+    #[cfg(feature = "app-litecoin")]
+    if let Ltc | Tltc = coin {
+        return Ok(());
+    }
+    Err(Error::Disabled)
+}
+
 /// Handle a Bitcoin xpub/address protobuf api call.
 ///
 /// Returns `None` if the call was not handled by Rust, in which case it should be handled by
 /// the C commander.
-pub async fn process_pub(_request: &pb::BtcPubRequest) -> Option<Result<Response, Error>> {
+pub async fn process_pub(request: &pb::BtcPubRequest) -> Option<Result<Response, Error>> {
+    let coin = match pb::BtcCoin::from_i32(request.coin).ok_or(Error::InvalidInput) {
+        Ok(coin) => coin,
+        Err(err) => return Some(Err(err)),
+    };
+    if let Err(err) = coin_enabled(coin) {
+        return Some(Err(err));
+    }
     None
 }

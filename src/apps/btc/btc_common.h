@@ -43,17 +43,6 @@
 USE_RESULT const char* btc_common_coin_name(BTCCoin coin);
 
 /**
- * Does limit checks the keypath, whitelisting bip44 purposes, accounts and
- * (change) addressses.
- * @return true if the keypath is valid, false if it is invalid.
- */
-USE_RESULT bool btc_common_is_valid_keypath_xpub(
-    BTCPubRequest_XPubType xpub_type,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint32_t expected_coin);
-
-/**
  * Does limit checks the keypath, whitelisting bip44 purposes and accounts.
  * @return true if the keypath is valid, false if it is invalid.
  */

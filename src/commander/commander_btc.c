@@ -18,12 +18,8 @@
 #include <stdio.h>
 
 #include <apps/btc/btc.h>
-#include <apps/btc/btc_common.h>
 #include <apps/btc/btc_sign.h>
 #include <apps/btc/btc_sign_msg.h>
-#include <workflow/confirm.h>
-
-#include <wally_bip32.h> // for BIP32_INITIAL_HARDENED_CHILD
 
 static commander_error_t _result(app_btc_result_t result)
 {
@@ -41,62 +37,6 @@ static commander_error_t _result(app_btc_result_t result)
     default:
         return COMMANDER_ERR_GENERIC;
     }
-}
-
-static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse* response)
-{
-    if (!app_btc_xpub(
-            request->coin,
-            request->output.xpub_type,
-            request->keypath,
-            request->keypath_count,
-            response->pub,
-            sizeof(response->pub))) {
-        return COMMANDER_ERR_GENERIC;
-    }
-    if (request->display) {
-        char title[100] = {0};
-        int n_written;
-        switch (request->output.xpub_type) {
-        case BTCPubRequest_XPubType_TPUB:
-        case BTCPubRequest_XPubType_XPUB:
-        case BTCPubRequest_XPubType_YPUB:
-        case BTCPubRequest_XPubType_ZPUB:
-        case BTCPubRequest_XPubType_VPUB:
-        case BTCPubRequest_XPubType_UPUB:
-        case BTCPubRequest_XPubType_CAPITAL_VPUB:
-        case BTCPubRequest_XPubType_CAPITAL_ZPUB:
-        case BTCPubRequest_XPubType_CAPITAL_YPUB:
-        case BTCPubRequest_XPubType_CAPITAL_UPUB:
-            n_written = snprintf(
-                title,
-                sizeof(title),
-                "%s\naccount #%lu",
-                btc_common_coin_name(request->coin),
-                (unsigned long)request->keypath[2] - BIP32_INITIAL_HARDENED_CHILD + 1);
-            if (n_written < 0 || n_written >= (int)sizeof(title)) {
-                /*
-                 * The message was truncated, or an error occurred.
-                 * We don't want to display it: there could
-                 * be some possibility for deceiving the user.
-                 */
-                return COMMANDER_ERR_GENERIC;
-            }
-            break;
-        default:
-            return COMMANDER_ERR_GENERIC;
-        }
-
-        const confirm_params_t params = {
-            .title = title,
-            .body = response->pub,
-            .scrollable = true,
-        };
-        if (!workflow_confirm_blocking(&params)) {
-            return COMMANDER_ERR_USER_ABORT;
-        }
-    }
-    return COMMANDER_OK;
 }
 
 static commander_error_t _btc_pub_address_multisig(
@@ -122,7 +62,8 @@ commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* r
     }
     switch (request->which_output) {
     case BTCPubRequest_xpub_type_tag:
-        return _btc_pub_xpub(request, response);
+        // Handled in Rust.
+        return COMMANDER_ERR_INVALID_INPUT;
     case BTCPubRequest_script_config_tag:
         switch (request->output.script_config.which_config) {
         case BTCScriptConfig_simple_type_tag:

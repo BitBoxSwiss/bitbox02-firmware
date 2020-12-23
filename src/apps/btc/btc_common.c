@@ -48,29 +48,6 @@ const char* btc_common_coin_name(BTCCoin coin)
     }
 }
 
-bool btc_common_is_valid_keypath_xpub(
-    BTCPubRequest_XPubType xpub_type,
-    const uint32_t* keypath,
-    const size_t keypath_len,
-    const uint32_t expected_coin)
-{
-    switch (xpub_type) {
-    case BTCPubRequest_XPubType_TPUB:
-    case BTCPubRequest_XPubType_XPUB:
-    case BTCPubRequest_XPubType_YPUB:
-    case BTCPubRequest_XPubType_ZPUB:
-    case BTCPubRequest_XPubType_VPUB:
-    case BTCPubRequest_XPubType_UPUB:
-    case BTCPubRequest_XPubType_CAPITAL_VPUB:
-    case BTCPubRequest_XPubType_CAPITAL_ZPUB:
-    case BTCPubRequest_XPubType_CAPITAL_UPUB:
-    case BTCPubRequest_XPubType_CAPITAL_YPUB:
-        return rust_bitcoin_keypath_validate_xpub(keypath, keypath_len, expected_coin);
-    default:
-        return false;
-    }
-}
-
 bool btc_common_is_valid_keypath_account_simple(
     BTCScriptConfig_SimpleType script_type,
     const uint32_t* keypath,

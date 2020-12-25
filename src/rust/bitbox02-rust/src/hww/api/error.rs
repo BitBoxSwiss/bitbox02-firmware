@@ -44,6 +44,15 @@ impl core::convert::From<crate::workflow::cancel::Error> for Error {
     }
 }
 
+impl core::convert::From<crate::workflow::verify_message::Error> for Error {
+    fn from(error: crate::workflow::verify_message::Error) -> Self {
+        match error {
+            crate::workflow::verify_message::Error::InvalidInput => Error::InvalidInput,
+            crate::workflow::verify_message::Error::UserAbort => Error::UserAbort,
+        }
+    }
+}
+
 impl core::convert::From<crate::workflow::unlock::UnlockError> for Error {
     fn from(error: crate::workflow::unlock::UnlockError) -> Self {
         match error {

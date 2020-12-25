@@ -189,12 +189,10 @@ set(CRYPTOAUTHLIB-SOURCES
 set(CRYPTOAUTHLIB-SOURCES ${CRYPTOAUTHLIB-SOURCES} PARENT_SCOPE)
 
 set(ETHEREUM-SOURCES
-  ${CMAKE_SOURCE_DIR}/src/apps/eth/eth.c
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_common.c
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_params.c
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_sighash.c
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_sign.c
-  ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_sign_msg.c
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_verify.c
   ${CMAKE_SOURCE_DIR}/src/commander/commander_eth.c
 )
@@ -353,6 +351,7 @@ add_custom_target(rust-bindgen
     --whitelist-function keystore_get_bip39_mnemonic
     --whitelist-function keystore_get_bip39_word
     --whitelist-function keystore_secp256k1_pubkey_uncompressed
+    --whitelist-function keystore_secp256k1_sign
     --whitelist-var EC_PUBLIC_KEY_UNCOMPRESSED_LEN
     --whitelist-function keystore_encode_xpub_at_keypath
     --rustified-enum xpub_type_t

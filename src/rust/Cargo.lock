@@ -65,6 +65,7 @@ dependencies = [
  "hex",
  "prost",
  "sha2",
+ "sha3",
  "util",
 ]
 

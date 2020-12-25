@@ -46,6 +46,9 @@ pub async fn process(request: &pb::EthSignMessageRequest) -> Result<Response, Er
 
     verify_message::verify(&request.msg).await?;
 
+    // Construct message to be signed. There is no standard for this. We match what MyEtherWallet,
+    // Trezor, etc. do, e.g.:
+    // https://github.com/ethereumjs/ethereumjs-util/blob/dd2882d790c1d3b50b75bee6f88031433cbd5bef/src/signature.ts#L140
     let mut msg: Vec<u8> = Vec::new();
     msg.extend(b"\x19Ethereum Signed Message:\n");
     msg.extend(format!("{}", request.msg.len()).as_bytes());

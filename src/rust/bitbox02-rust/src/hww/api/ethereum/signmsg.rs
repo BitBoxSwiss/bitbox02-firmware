@@ -73,20 +73,21 @@ mod tests {
     use std::boxed::Box;
     use util::bip32::HARDENED;
 
+    const PUBKEY: [u8; 65] = [
+        0x04, 0xd8, 0xae, 0xa8, 0x0d, 0x2d, 0xbc, 0xeb, 0xbe, 0x10, 0xfd, 0xfa, 0xc2, 0xd2, 0xdb,
+        0x19, 0x64, 0x15, 0x5b, 0xa9, 0x9e, 0x0d, 0xd7, 0xbf, 0xd5, 0xcf, 0xfe, 0xd9, 0x7a, 0x1c,
+        0xae, 0xf7, 0xd0, 0xb9, 0x07, 0x2d, 0x9c, 0x0f, 0x50, 0x49, 0x30, 0xef, 0x59, 0xb7, 0x52,
+        0xd4, 0xfe, 0xa0, 0xcb, 0xde, 0x3e, 0x27, 0x3e, 0xe9, 0x54, 0xd8, 0xda, 0xc8, 0xee, 0x03,
+        0x1a, 0x4e, 0xd1, 0x71, 0xfd,
+    ];
+    const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+    const MESSAGE: &[u8] = b"message";
+    const EXPECTED_ADDRESS: &str = "0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B";
+
     #[test]
     pub fn test_process() {
         let _guard = MUTEX.lock().unwrap();
 
-        const PUBKEY: [u8; 65] = [
-            0x04, 0xd8, 0xae, 0xa8, 0x0d, 0x2d, 0xbc, 0xeb, 0xbe, 0x10, 0xfd, 0xfa, 0xc2, 0xd2,
-            0xdb, 0x19, 0x64, 0x15, 0x5b, 0xa9, 0x9e, 0x0d, 0xd7, 0xbf, 0xd5, 0xcf, 0xfe, 0xd9,
-            0x7a, 0x1c, 0xae, 0xf7, 0xd0, 0xb9, 0x07, 0x2d, 0x9c, 0x0f, 0x50, 0x49, 0x30, 0xef,
-            0x59, 0xb7, 0x52, 0xd4, 0xfe, 0xa0, 0xcb, 0xde, 0x3e, 0x27, 0x3e, 0xe9, 0x54, 0xd8,
-            0xda, 0xc8, 0xee, 0x03, 0x1a, 0x4e, 0xd1, 0x71, 0xfd,
-        ];
-        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        const MESSAGE: &[u8] = b"message";
-        const EXPECTED_ADDRESS: &str = "0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B";
         const EXPECTED_SIGHASH: &[u8; 32] = b"\x7f\x6c\x0e\x5c\x49\x7d\xed\x52\x46\x2e\xc1\x8d\xae\xb1\xc9\x4c\xef\xa1\x1c\xd6\x94\x9e\xbd\xb7\x07\x4b\x2a\x32\xca\xc1\x3f\xba";
         const SIGNATURE: [u8; 64] = [b'1'; 64];
 
@@ -147,17 +148,6 @@ mod tests {
     pub fn test_process_user_aborted() {
         let _guard = MUTEX.lock().unwrap();
 
-        const PUBKEY: [u8; 65] = [
-            0x04, 0xd8, 0xae, 0xa8, 0x0d, 0x2d, 0xbc, 0xeb, 0xbe, 0x10, 0xfd, 0xfa, 0xc2, 0xd2,
-            0xdb, 0x19, 0x64, 0x15, 0x5b, 0xa9, 0x9e, 0x0d, 0xd7, 0xbf, 0xd5, 0xcf, 0xfe, 0xd9,
-            0x7a, 0x1c, 0xae, 0xf7, 0xd0, 0xb9, 0x07, 0x2d, 0x9c, 0x0f, 0x50, 0x49, 0x30, 0xef,
-            0x59, 0xb7, 0x52, 0xd4, 0xfe, 0xa0, 0xcb, 0xde, 0x3e, 0x27, 0x3e, 0xe9, 0x54, 0xd8,
-            0xda, 0xc8, 0xee, 0x03, 0x1a, 0x4e, 0xd1, 0x71, 0xfd,
-        ];
-        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        const MESSAGE: &[u8] = b"message";
-        const EXPECTED_ADDRESS: &str = "0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B";
-
         const ETH_PARAMS: Option<bitbox02::app_eth::Params> = Some(bitbox02::app_eth::Params {
             bip44_coin: 60 + HARDENED,
             chain_id: 1,
@@ -216,5 +206,44 @@ mod tests {
             ..Default::default()
         });
         assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
+    }
+
+    #[test]
+    pub fn test_process_failures() {
+        let _guard = MUTEX.lock().unwrap();
+
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        const ETH_PARAMS: Option<bitbox02::app_eth::Params> = Some(bitbox02::app_eth::Params {
+            bip44_coin: 60 + HARDENED,
+            chain_id: 1,
+            unit: "ETH",
+        });
+
+        // Message too long
+        assert_eq!(
+            block_on(process(&pb::EthSignMessageRequest {
+                coin: pb::EthCoin::Eth as _,
+                keypath: KEYPATH.to_vec(),
+                msg: [0; 10000].to_vec(),
+            })),
+            Err(Error::InvalidInput)
+        );
+
+        // Signing failed.
+        mock(Data {
+            eth_params_get: Some(Box::new(|_| ETH_PARAMS)),
+            keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
+            ui_confirm_create: Some(Box::new(|_| true)),
+            keystore_secp256k1_sign: Some(Box::new(|_, _| Err(()))),
+            ..Default::default()
+        });
+        assert_eq!(
+            block_on(process(&&pb::EthSignMessageRequest {
+                coin: pb::EthCoin::Eth as _,
+                keypath: KEYPATH.to_vec(),
+                msg: b"message".to_vec(),
+            })),
+            Err(Error::Generic)
+        );
     }
 }

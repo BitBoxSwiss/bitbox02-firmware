@@ -17,6 +17,9 @@ use crate::pb;
 #[cfg(feature = "app-ethereum")]
 mod ethereum;
 
+#[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
+mod bitcoin;
+
 mod backup;
 mod device_info;
 mod electrum;
@@ -80,6 +83,19 @@ fn request_tag(request: &Request) -> u32 {
     }
 }
 
+#[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
+async fn process_api_btc(request: &Request) -> Option<Result<Response, Error>> {
+    match request {
+        Request::BtcPub(ref request) => bitcoin::process_pub(request).await,
+        _ => None,
+    }
+}
+
+#[cfg(not(any(feature = "app-bitcoin", feature = "app-litecoin")))]
+async fn process_api_btc(_request: &Request) -> Option<Result<Response, Error>> {
+    Some(Err(Error::Disabled))
+}
+
 /// Handle a protobuf api call.
 ///
 /// Returns `None` if the call was not handled by Rust, in which case it should be handled by
@@ -111,6 +127,7 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
         #[cfg(not(feature = "app-ethereum"))]
         Request::Eth(_) => Some(Err(Error::Disabled)),
 
+        request @ Request::BtcPub(_) => process_api_btc(request).await,
         _ => None,
     }
 }

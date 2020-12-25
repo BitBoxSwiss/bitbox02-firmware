@@ -99,32 +99,6 @@ static commander_error_t _btc_pub_xpub(const BTCPubRequest* request, PubResponse
     return COMMANDER_OK;
 }
 
-static commander_error_t _btc_pub_address_simple(
-    const BTCPubRequest* request,
-    PubResponse* response)
-{
-    if (!app_btc_address_simple(
-            request->coin,
-            request->output.script_config.config.simple_type,
-            request->keypath,
-            request->keypath_count,
-            response->pub,
-            sizeof(response->pub))) {
-        return COMMANDER_ERR_GENERIC;
-    }
-    if (request->display) {
-        const confirm_params_t params = {
-            .title = btc_common_coin_name(request->coin),
-            .body = response->pub,
-            .scrollable = true,
-        };
-        if (!workflow_confirm_blocking(&params)) {
-            return COMMANDER_ERR_USER_ABORT;
-        }
-    }
-    return COMMANDER_OK;
-}
-
 static commander_error_t _btc_pub_address_multisig(
     const BTCPubRequest* request,
     PubResponse* response)
@@ -152,7 +126,8 @@ commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* r
     case BTCPubRequest_script_config_tag:
         switch (request->output.script_config.which_config) {
         case BTCScriptConfig_simple_type_tag:
-            return _btc_pub_address_simple(request, response);
+            // Handled in Rust.
+            return COMMANDER_ERR_INVALID_INPUT;
         case BTCScriptConfig_multisig_tag:
             return _btc_pub_address_multisig(request, response);
         default:

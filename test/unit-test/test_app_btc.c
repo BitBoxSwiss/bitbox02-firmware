@@ -41,28 +41,6 @@ static uint8_t _mock_bip39_seed[64] =
 // the real function is called as it's easier to check all function input/output
 // this way.
 
-bool __real_keystore_encode_xpub_at_keypath(const uint32_t*, size_t, const uint8_t*, char*, size_t);
-bool __wrap_keystore_encode_xpub_at_keypath(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    const uint8_t* version,
-    char* out,
-    size_t out_len)
-{
-    check_expected(out_len);
-    return __real_keystore_encode_xpub_at_keypath(keypath, keypath_len, version, out, out_len);
-}
-bool __wrap_btc_common_is_valid_keypath_xpub(
-    BTCPubRequest_XPubType xpub_type,
-    const uint32_t* keypath,
-    const size_t keypath_len,
-    const uint32_t expected_coin)
-{
-    check_expected(xpub_type);
-    check_expected(keypath);
-    check_expected(keypath_len);
-    return mock();
-}
 bool __wrap_btc_common_is_valid_keypath_address_simple(
     BTCScriptConfig_SimpleType script_type,
     const uint32_t* keypath,
@@ -215,51 +193,6 @@ static address_testcase_t _address_tests[] = {
     },
 };
 
-static void _test_app_btc_xpub(void** state)
-{
-    { // invalid coin
-        bool result = app_btc_xpub(_BTCCoin_MIN - 1, BTCPubRequest_XPubType_XPUB, NULL, 0, NULL, 0);
-        assert_false(result);
-        result = app_btc_xpub(_BTCCoin_MAX + 1, BTCPubRequest_XPubType_XPUB, NULL, 0, NULL, 0);
-        assert_false(result);
-    }
-
-    for (int bools = 0; bools < 4; bools++) {
-        bool keypath_valid = bools & 1;
-        bool encode_success = bools & 2;
-        for (size_t test_case_index = 0;
-             test_case_index < sizeof(_xpub_tests) / sizeof(xpub_testcase_t);
-             test_case_index++) {
-            const xpub_testcase_t* test_case = &_xpub_tests[test_case_index];
-
-            if (encode_success) {
-                mock_state(_mock_seed, _mock_bip39_seed);
-            } else {
-                mock_state(NULL, NULL);
-            }
-
-            char out[XPUB_ENCODED_LEN] = {0};
-            uint32_t expected_keypath[3] = {1, 2, 3};
-            expect_value(__wrap_btc_common_is_valid_keypath_xpub, xpub_type, test_case->xpub_type);
-            expect_memory(__wrap_btc_common_is_valid_keypath_xpub, keypath, expected_keypath, 3);
-            expect_value(
-                __wrap_btc_common_is_valid_keypath_xpub,
-                keypath_len,
-                sizeof(expected_keypath) / sizeof(uint32_t));
-            will_return(__wrap_btc_common_is_valid_keypath_xpub, keypath_valid);
-            if (keypath_valid) {
-                expect_value(__wrap_keystore_encode_xpub_at_keypath, out_len, sizeof(out));
-            }
-            bool result = app_btc_xpub(
-                test_case->coin, test_case->xpub_type, expected_keypath, 3, out, sizeof(out));
-            assert_int_equal(result, keypath_valid && encode_success);
-            if (result) {
-                assert_string_equal(out, test_case->out);
-            }
-        }
-    }
-}
-
 static void _test_app_btc_address_simple(void** state)
 {
     { // invalid coin
@@ -317,7 +250,6 @@ static void _test_app_btc_address_simple(void** state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(_test_app_btc_xpub),
         cmocka_unit_test(_test_app_btc_address_simple),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);

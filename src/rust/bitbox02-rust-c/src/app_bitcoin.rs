@@ -92,18 +92,6 @@ pub unsafe extern "C" fn rust_bitcoin_keypath_validate_account_simple(
 /// # Safety
 /// `keypath` must be not NULL and contain `keypath_len` u32 elements.
 #[no_mangle]
-pub unsafe extern "C" fn rust_bitcoin_keypath_validate_xpub(
-    keypath: *const u32,
-    keypath_len: size_t,
-    expected_coin: u32,
-) -> bool {
-    let keypath = core::slice::from_raw_parts(keypath, keypath_len);
-    keypath::validate_xpub(keypath, expected_coin).is_ok()
-}
-
-/// # Safety
-/// `keypath` must be not NULL and contain `keypath_len` u32 elements.
-#[no_mangle]
 pub unsafe extern "C" fn rust_bitcoin_keypath_validate_address_simple(
     keypath: *const u32,
     keypath_len: size_t,

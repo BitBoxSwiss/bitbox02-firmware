@@ -27,61 +27,6 @@
 #include <workflow/confirm.h>
 #include <workflow/status.h>
 
-bool app_btc_xpub(
-    BTCCoin coin,
-    BTCPubRequest_XPubType xpub_type,
-    const uint32_t* keypath,
-    const size_t keypath_len,
-    char* out,
-    size_t out_len)
-{
-    const app_btc_coin_params_t* params = app_btc_params_get(coin);
-    if (params == NULL) {
-        return false;
-    }
-    if (!btc_common_is_valid_keypath_xpub(xpub_type, keypath, keypath_len, params->bip44_coin)) {
-        return false;
-    }
-
-    xpub_type_t version;
-    switch (xpub_type) {
-    case BTCPubRequest_XPubType_TPUB:
-        version = TPUB;
-        break;
-    case BTCPubRequest_XPubType_XPUB:
-        version = XPUB;
-        break;
-    case BTCPubRequest_XPubType_YPUB:
-        version = YPUB;
-        break;
-    case BTCPubRequest_XPubType_ZPUB:
-        version = ZPUB;
-        break;
-    case BTCPubRequest_XPubType_VPUB:
-        version = VPUB;
-        break;
-    case BTCPubRequest_XPubType_UPUB:
-        version = UPUB;
-        break;
-    case BTCPubRequest_XPubType_CAPITAL_VPUB:
-        version = CAPITAL_VPUB;
-        break;
-    case BTCPubRequest_XPubType_CAPITAL_ZPUB:
-        version = CAPITAL_ZPUB;
-        break;
-    case BTCPubRequest_XPubType_CAPITAL_UPUB:
-        version = CAPITAL_UPUB;
-        break;
-    case BTCPubRequest_XPubType_CAPITAL_YPUB:
-        version = CAPITAL_YPUB;
-        break;
-    default:
-        return false;
-    }
-
-    return keystore_encode_xpub_at_keypath(keypath, keypath_len, version, out, out_len);
-}
-
 bool app_btc_address_simple(
     BTCCoin coin,
     BTCScriptConfig_SimpleType script_type,

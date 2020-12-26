@@ -15,12 +15,19 @@
 #[cfg(not(feature = "app-bitcoin"))]
 compile_error!("Bitcoin code is being compiled even though the app-bitcoin feature is not enabled");
 
+mod params;
+
 use super::pb;
 use super::Error;
 
+use crate::apps::bitcoin;
 use crate::workflow::confirm;
 
-use pb::btc_pub_request::Output;
+use util::bip32::HARDENED;
+
+use bitbox02::keystore::{encode_xpub_at_keypath, xpub_type_t};
+
+use pb::btc_pub_request::{Output, XPubType};
 use pb::btc_script_config::{Config, SimpleType};
 use pb::response::Response;
 use pb::BtcCoin;
@@ -50,6 +57,47 @@ fn coin_name(coin: pb::BtcCoin) -> &'static str {
     }
 }
 
+/// Processes an xpub api call.
+async fn xpub(
+    coin: BtcCoin,
+    xpub_type: XPubType,
+    keypath: &[u32],
+    display: bool,
+) -> Result<Response, Error> {
+    let params = params::get(coin);
+    bitcoin::keypath::validate_xpub(keypath, params.bip44_coin)?;
+    let xpub_type = match xpub_type {
+        XPubType::Tpub => xpub_type_t::TPUB,
+        XPubType::Xpub => xpub_type_t::XPUB,
+        XPubType::Ypub => xpub_type_t::YPUB,
+        XPubType::Zpub => xpub_type_t::ZPUB,
+        XPubType::Vpub => xpub_type_t::VPUB,
+        XPubType::Upub => xpub_type_t::UPUB,
+        XPubType::CapitalVpub => xpub_type_t::CAPITAL_VPUB,
+        XPubType::CapitalZpub => xpub_type_t::CAPITAL_ZPUB,
+        XPubType::CapitalUpub => xpub_type_t::CAPITAL_UPUB,
+        XPubType::CapitalYpub => xpub_type_t::CAPITAL_YPUB,
+    };
+    let xpub = encode_xpub_at_keypath(keypath, xpub_type).or(Err(Error::InvalidInput))?;
+    if display {
+        let title = format!(
+            "{}\naccount #{}",
+            coin_name(coin),
+            keypath[2] - HARDENED + 1,
+        );
+        let confirm_params = confirm::Params {
+            title: &title,
+            body: &xpub,
+            scrollable: true,
+            ..Default::default()
+        };
+        if !confirm::confirm(&confirm_params).await {
+            return Err(Error::UserAbort);
+        }
+    }
+    Ok(Response::Pub(pb::PubResponse { r#pub: xpub }))
+}
+
 /// Processes a SimpleType (single-sig) adress api call.
 async fn address_simple(
     coin: BtcCoin,
@@ -59,13 +107,13 @@ async fn address_simple(
 ) -> Result<Response, Error> {
     let address = bitbox02::app_btc::address_simple(coin as _, simple_type as _, keypath)?;
     if display {
-        let params = confirm::Params {
+        let confirm_params = confirm::Params {
             title: coin_name(coin),
             body: &address,
             scrollable: true,
             ..Default::default()
         };
-        if !confirm::confirm(&params).await {
+        if !confirm::confirm(&confirm_params).await {
             return Err(Error::UserAbort);
         }
     }
@@ -86,6 +134,13 @@ pub async fn process_pub(request: &pb::BtcPubRequest) -> Option<Result<Response,
     }
     match request.output {
         None => Some(Err(Error::InvalidInput)),
+        Some(Output::XpubType(xpub_type)) => {
+            let xpub_type = match XPubType::from_i32(xpub_type) {
+                Some(xpub_type) => xpub_type,
+                None => return Some(Err(Error::InvalidInput)),
+            };
+            Some(xpub(coin, xpub_type, &request.keypath, request.display).await)
+        }
         Some(Output::ScriptConfig(BtcScriptConfig {
             config: Some(Config::SimpleType(simple_type)),
         })) => {

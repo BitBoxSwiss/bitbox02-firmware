@@ -14,6 +14,7 @@
 
 pub mod cancel;
 pub mod confirm;
+pub mod menu;
 pub mod mnemonic;
 pub mod pairing;
 pub mod password;

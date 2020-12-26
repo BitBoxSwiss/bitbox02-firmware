@@ -40,7 +40,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/reset.c
   ${CMAKE_SOURCE_DIR}/src/cipher/cipher.c
   ${CMAKE_SOURCE_DIR}/src/workflow/blocking.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/cancel.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm_time.c
   ${CMAKE_SOURCE_DIR}/src/workflow/idle_workflow.c
@@ -50,7 +49,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/restore_from_mnemonic.c
   ${CMAKE_SOURCE_DIR}/src/workflow/orientation_screen.c
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/trinary_input.c
   ${CMAKE_SOURCE_DIR}/src/workflow/unlock_bip39.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_total.c

@@ -327,6 +327,7 @@ add_custom_target(rust-bindgen
     --use-core
     --ctypes-prefix util::c_types
     --rustified-enum backup_error_t
+    --whitelist-function wally_free_string
     --whitelist-function backup_check
     --whitelist-function backup_create
     --whitelist-function memory_is_initialized

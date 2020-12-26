@@ -13,6 +13,7 @@
 // limitations under the License.
 
 extern crate alloc;
+use alloc::string::String;
 use alloc::vec::Vec;
 
 use super::Error;
@@ -25,7 +26,7 @@ use bitbox02::keystore;
 
 const NUM_RANDOM_WORDS: u8 = 5;
 
-fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<&str>) {
+fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroizing<String>>) {
     fn rand16() -> u16 {
         let mut rand = [0u8; 32];
         bitbox02::random::mcu_32_bytes(&mut rand);
@@ -38,7 +39,7 @@ fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<&str>) {
         .map(|i| {
             // The correct word at the right index.
             if i == index_word {
-                return word;
+                return zeroize::Zeroizing::new(word.into());
             }
 
             // A random word everywhere else.
@@ -49,7 +50,7 @@ fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<&str>) {
                     continue;
                 };
                 let random_word = keystore::get_bip39_word(idx).unwrap();
-                if random_word == word {
+                if random_word.as_str() == word {
                     continue;
                 }
                 picked_indices.push(idx);
@@ -74,7 +75,8 @@ pub async fn process() -> Result<Response, Error> {
     // Part 2) Confirm words
     for (word_idx, word) in words.iter().enumerate() {
         let title = format!("{:02}", word_idx + 1);
-        let (correct_idx, mut choices) = create_random_unique_words(word, NUM_RANDOM_WORDS);
+        let (correct_idx, choices) = create_random_unique_words(word, NUM_RANDOM_WORDS);
+        let mut choices: Vec<&str> = choices.iter().map(|c| c.as_ref()).collect();
         choices.push("Back to\nrecovery words");
         let back_idx = (choices.len() - 1) as u8;
         loop {

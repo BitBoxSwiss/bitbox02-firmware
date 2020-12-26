@@ -23,7 +23,8 @@
 #include <string.h>
 
 typedef struct {
-    void (*chosen_cb)(component_t*, trinary_choice_t);
+    void (*chosen_cb)(trinary_choice_t, void* param);
+    void* chosen_cb_param;
     component_t* button_left;
     component_t* button_middle;
     component_t* button_right;
@@ -42,21 +43,21 @@ static void _left_selected(component_t* button)
 {
     component_t* component = button->parent;
     data_t* data = (data_t*)component->data;
-    data->chosen_cb(component, TRINARY_CHOICE_LEFT);
+    data->chosen_cb(TRINARY_CHOICE_LEFT, data->chosen_cb_param);
 }
 
 static void _middle_selected(component_t* button)
 {
     component_t* component = button->parent;
     data_t* data = (data_t*)component->data;
-    data->chosen_cb(component, TRINARY_CHOICE_MIDDLE);
+    data->chosen_cb(TRINARY_CHOICE_MIDDLE, data->chosen_cb_param);
 }
 
 static void _right_selected(component_t* button)
 {
     component_t* component = button->parent;
     data_t* data = (data_t*)component->data;
-    data->chosen_cb(component, TRINARY_CHOICE_RIGHT);
+    data->chosen_cb(TRINARY_CHOICE_RIGHT, data->chosen_cb_param);
 }
 
 /********************************** Create Instance **********************************/
@@ -66,7 +67,8 @@ component_t* trinary_choice_create(
     const char* label_left,
     const char* label_middle,
     const char* label_right,
-    void (*chosen_cb)(component_t*, trinary_choice_t),
+    void (*chosen_cb)(trinary_choice_t, void*),
+    void* chosen_cb_param,
     component_t* parent)
 {
     data_t* data = malloc(sizeof(data_t));
@@ -87,6 +89,7 @@ component_t* trinary_choice_create(
     component->dimension.height = SCREEN_HEIGHT;
 
     data->chosen_cb = chosen_cb;
+    data->chosen_cb_param = chosen_cb_param;
 
     if (message != NULL) {
         ui_util_add_sub_component(component, label_create(message, NULL, CENTER, component));

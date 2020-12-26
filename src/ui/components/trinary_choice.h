@@ -37,7 +37,8 @@ component_t* trinary_choice_create(
     const char* label_left,
     const char* label_middle,
     const char* label_right,
-    void (*chosen_cb)(component_t*, trinary_choice_t),
+    void (*chosen_cb)(trinary_choice_t, void*),
+    void* chosen_cb_param,
     component_t* parent);
 
 #endif

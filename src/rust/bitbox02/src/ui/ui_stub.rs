@@ -15,7 +15,8 @@
 //! Stubs for testing.
 
 pub use super::types::{
-    ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryInputStringParams,
+    ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
+    TrinaryChoiceCb, TrinaryInputStringParams,
 };
 
 use crate::input::SafeInputString;
@@ -98,6 +99,16 @@ where
 
 pub fn menu_create(_params: MenuParams<'_>) -> Component<'_> {
     panic!("not implemented");
+}
+
+pub fn trinary_choice_create<'a>(
+    _message: &'a str,
+    _label_left: &'a str,
+    _label_middle: &'a str,
+    _label_right: &'a str,
+    _chosen_callback: TrinaryChoiceCb,
+) -> Component<'a> {
+    panic!("not implemented")
 }
 
 pub fn with_lock_animation<F: Fn()>(_f: F) {

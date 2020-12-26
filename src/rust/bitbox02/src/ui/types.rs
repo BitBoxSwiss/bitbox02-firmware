@@ -17,6 +17,8 @@ use alloc::boxed::Box;
 
 use util::Survive;
 
+pub use bitbox02_sys::trinary_choice_t as TrinaryChoice;
+
 // Taking the constant straight from C, as it's excluding the null terminator.
 #[cfg_attr(feature = "testing", allow(dead_code))]
 pub(crate) const MAX_LABEL_SIZE: usize = bitbox02_sys::MAX_LABEL_SIZE as _;
@@ -156,3 +158,5 @@ pub struct MenuParams<'a> {
     pub continue_on_last_cb: Option<ContinueCancelCb<'a>>,
     pub cancel_cb: Option<ContinueCancelCb<'a>>,
 }
+
+pub type TrinaryChoiceCb<'a> = Box<dyn FnMut(TrinaryChoice) + 'a>;

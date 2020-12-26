@@ -15,7 +15,8 @@
 
 use super::types::MAX_LABEL_SIZE;
 pub use super::types::{
-    ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryInputStringParams,
+    ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
+    TrinaryChoiceCb, TrinaryInputStringParams,
 };
 
 use util::c_types::{c_char, c_void};
@@ -310,6 +311,41 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
             if !cancel_cb_param.is_null() {
                 drop(Box::from_raw(cancel_cb_param as *mut ContinueCancelCb));
             }
+        })),
+        _p: PhantomData,
+    }
+}
+
+pub fn trinary_choice_create<'a>(
+    message: &'a str,
+    label_left: &'a str,
+    label_middle: &'a str,
+    label_right: &'a str,
+    chosen_callback: TrinaryChoiceCb,
+) -> Component<'a> {
+    unsafe extern "C" fn c_chosen_cb(choice: TrinaryChoice, param: *mut c_void) {
+        let callback = param as *mut TrinaryChoiceCb;
+        (*callback)(choice);
+    }
+
+    let chosen_cb_param = Box::into_raw(Box::new(chosen_callback)) as *mut c_void;
+    let component = unsafe {
+        bitbox02_sys::trinary_choice_create(
+            crate::str_to_cstr_force!(message, MAX_LABEL_SIZE).as_ptr(), // copied in C,
+            crate::str_to_cstr_force!(label_left, MAX_LABEL_SIZE).as_ptr(), // copied in C,
+            crate::str_to_cstr_force!(label_middle, MAX_LABEL_SIZE).as_ptr(), // copied in C,
+            crate::str_to_cstr_force!(label_right, MAX_LABEL_SIZE).as_ptr(), // copied in C,
+            Some(c_chosen_cb as _),
+            chosen_cb_param,
+            core::ptr::null_mut(), // parent component, there is no parent.
+        )
+    };
+    Component {
+        component,
+        is_pushed: false,
+        on_drop: Some(Box::new(move || unsafe {
+            // Drop all callbacks.
+            drop(Box::from_raw(chosen_cb_param as *mut TrinaryChoiceCb));
         })),
         _p: PhantomData,
     }

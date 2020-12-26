@@ -41,9 +41,9 @@
 #define WORKFLOW_RESTORE_FROM_MNEMONIC_MAX_WORDS 24
 
 static trinary_choice_t _number_of_words_choice;
-static void _number_of_words_picked(component_t* trinary_choice, trinary_choice_t choice)
+static void _number_of_words_picked(trinary_choice_t choice, void* param)
 {
-    (void)trinary_choice;
+    (void)param;
     _number_of_words_choice = choice;
     workflow_blocking_unblock();
 }
@@ -54,8 +54,8 @@ static void _number_of_words_picked(component_t* trinary_choice, trinary_choice_
  */
 static void _pick_number_of_words(uint8_t* number_of_words_out)
 {
-    ui_screen_stack_push(
-        trinary_choice_create("How many words?", "12", "18", "24", _number_of_words_picked, NULL));
+    ui_screen_stack_push(trinary_choice_create(
+        "How many words?", "12", "18", "24", _number_of_words_picked, NULL, NULL));
     workflow_blocking_block();
     ui_screen_stack_pop();
     switch (_number_of_words_choice) {

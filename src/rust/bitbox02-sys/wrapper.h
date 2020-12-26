@@ -33,6 +33,7 @@
 #include <ui/components/menu.h>
 #include <ui/components/sdcard.h>
 #include <ui/components/status.h>
+#include <ui/components/trinary_choice.h>
 #include <ui/components/trinary_input_string.h>
 #include <ui/fonts/font_a_11X10.h>
 #include <ui/fonts/font_a_9X9.h>

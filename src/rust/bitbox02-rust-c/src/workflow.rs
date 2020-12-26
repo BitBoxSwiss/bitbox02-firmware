@@ -22,7 +22,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use bitbox02_rust::bb02_async::{block_on, spin, Task};
 use bitbox02_rust::workflow::{
-    confirm, password, status, trinary_input_string, unlock, verify_message,
+    confirm, mnemonic, password, status, trinary_input_string, unlock, verify_message,
 };
 use core::fmt::Write;
 use core::task::Poll;
@@ -208,6 +208,7 @@ pub unsafe extern "C" fn rust_workflow_trinary_input_name(
     match block_on(trinary_input_string::enter(
         &params,
         trinary_input_string::CanCancel::Yes,
+        "",
     )) {
         Ok(name) => {
             // We truncate the user input string to fit into the desired output buffer. This is not
@@ -218,5 +219,18 @@ pub unsafe extern "C" fn rust_workflow_trinary_input_name(
             true
         }
         Err(_) => false,
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_workflow_mnemonic_get(
+    mut mnemonic_out: crate::util::CStrMut,
+) -> bool {
+    match block_on(mnemonic::get()) {
+        Ok(mnemonic) => {
+            mnemonic_out.write_str(mnemonic.as_str()).unwrap();
+            true
+        }
+        Err(()) => false,
     }
 }

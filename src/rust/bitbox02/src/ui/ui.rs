@@ -15,7 +15,7 @@
 
 use super::types::MAX_LABEL_SIZE;
 pub use super::types::{
-    CWords, ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
+    ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
     TrinaryChoiceCb, TrinaryInputStringParams,
 };
 

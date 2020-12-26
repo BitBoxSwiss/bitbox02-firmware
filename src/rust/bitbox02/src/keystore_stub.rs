@@ -55,6 +55,22 @@ pub fn get_bip39_word(_idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
     panic!("not implemented")
 }
 
+pub struct Bip39Wordlist([*const u8; BIP39_WORDLIST_LEN as usize]);
+
+impl Bip39Wordlist {
+    pub fn as_ptr(&self) -> *const *const u8 {
+        self.0.as_ptr()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
+pub fn get_bip39_wordlist() -> Result<Bip39Wordlist, ()> {
+    panic!("not implemented")
+}
+
 pub fn secp256k1_pubkey_uncompressed(
     keypath: &[u32],
 ) -> Result<[u8; EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()> {

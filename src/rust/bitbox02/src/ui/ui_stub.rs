@@ -15,7 +15,7 @@
 //! Stubs for testing.
 
 pub use super::types::{
-    CWords, ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
+    ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
     TrinaryChoiceCb, TrinaryInputStringParams,
 };
 

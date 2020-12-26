@@ -13,7 +13,6 @@
 // limitations under the License.
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Must be given a null-terminated string
 /// # Safety

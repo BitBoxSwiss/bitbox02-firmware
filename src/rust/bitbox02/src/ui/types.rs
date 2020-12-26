@@ -14,8 +14,6 @@
 
 extern crate alloc;
 use alloc::boxed::Box;
-use alloc::string::String;
-use alloc::vec::Vec;
 
 use util::Survive;
 
@@ -103,30 +101,11 @@ impl<'a> ConfirmParams<'a> {
     }
 }
 
-/// Helper struct to convert from a list of Rust strings to a list of C strings.
-pub struct CWords {
-    /// Buffers to hold the C strings, including null terminators.
-    buffers: Vec<Vec<u8>>,
-    /// List of pointers to the C strings, pointing into `buffers`.
-    words: Vec<*const util::c_types::c_char>,
-}
-
-impl CWords {
-    pub fn new(words: Vec<String>) -> CWords {
-        let buffers: Vec<Vec<u8>> = words
-            .into_iter()
-            .map(|word: String| crate::util::str_to_cstr_vec(&word))
-            .collect();
-        let words: Vec<*const util::c_types::c_char> =
-            buffers.iter().map(|word| word.as_ptr() as _).collect();
-        CWords { buffers, words }
-    }
-}
-
 pub struct TrinaryInputStringParams<'a> {
     /// The confirmation title of the screen. Max 200 chars, otherwise **panic**.
     pub title: &'a str,
-    pub wordlist: Option<&'a CWords>,
+    /// Currently specialized to the BIP39 wordlist. Can be extended if needed.
+    pub wordlist: Option<&'a crate::keystore::Bip39Wordlist>,
     pub hide: bool,
     pub special_chars: bool,
     pub longtouch: bool,
@@ -165,11 +144,11 @@ impl<'a> TrinaryInputStringParams<'a> {
             title: title_scratch.as_ptr(),
             wordlist: match self.wordlist {
                 None => core::ptr::null(),
-                Some(ref wordlist) => wordlist.words.as_ptr(),
+                Some(ref wordlist) => wordlist.as_ptr(),
             },
             wordlist_size: match self.wordlist {
                 None => 0,
-                Some(ref wordlist) => wordlist.buffers.len() as _,
+                Some(ref wordlist) => wordlist.len() as _,
             },
             hide: self.hide,
             special_chars: self.special_chars,

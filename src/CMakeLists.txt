@@ -405,6 +405,7 @@ add_custom_target(rust-bindgen
     --whitelist-type trinary_input_string_params_t
     --whitelist-var INPUT_STRING_MAX_SIZE
     --whitelist-function trinary_input_string_create
+    --whitelist-function trinary_input_string_set_input
     --whitelist-function reset_reset
     --whitelist-function sd_card_inserted
     --whitelist-var BIP39_WORDLIST_LEN

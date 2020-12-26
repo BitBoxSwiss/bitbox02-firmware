@@ -351,6 +351,15 @@ pub fn trinary_choice_create<'a>(
     }
 }
 
+pub fn trinary_input_string_set_input(component: &mut Component, word: &str) {
+    unsafe {
+        bitbox02_sys::trinary_input_string_set_input(
+            component.component,
+            crate::str_to_cstr_force!(word, bitbox02_sys::INPUT_STRING_MAX_SIZE as usize).as_ptr(),
+        )
+    }
+}
+
 pub fn with_lock_animation<F: Fn()>(f: F) {
     unsafe { bitbox02_sys::lock_animation_start() };
     f();

@@ -111,6 +111,10 @@ pub fn trinary_choice_create<'a>(
     panic!("not implemented")
 }
 
+pub fn trinary_input_string_set_input(_component: &mut Component, _word: &str) {
+    panic!("not implemented")
+}
+
 pub fn with_lock_animation<F: Fn()>(_f: F) {
     panic!("not implemented")
 }

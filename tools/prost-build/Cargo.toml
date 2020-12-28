@@ -23,6 +23,5 @@ license = "Apache-2.0"
 clap = "3.0.0-beta.1"
 
 [dependencies.prost-build]
-git = "https://github.com/danburkert/prost.git"
-# keep rev in sync with src/rust/bitbox02-rust/Cargo.toml
-rev = "6113789f70b69709820becba4242824b4fb3ffec"
+# keep version in sync with src/rust/bitbox02-rust/Cargo.toml
+version = "0.7.0"

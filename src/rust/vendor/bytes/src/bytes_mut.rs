@@ -11,7 +11,7 @@ use alloc::{
     vec::Vec,
 };
 
-use crate::buf::IntoIter;
+use crate::buf::{IntoIter, UninitSlice};
 use crate::bytes::Vtable;
 #[allow(unused)]
 use crate::loom::sync::atomic::AtomicMut;
@@ -445,7 +445,7 @@ impl BytesMut {
             let additional = new_len - len;
             self.reserve(additional);
             unsafe {
-                let dst = self.bytes_mut().as_mut_ptr();
+                let dst = self.chunk_mut().as_mut_ptr();
                 ptr::write_bytes(dst, value, additional);
                 self.set_len(new_len);
             }
@@ -684,7 +684,7 @@ impl BytesMut {
         self.reserve(cnt);
 
         unsafe {
-            let dst = self.maybe_uninit_bytes();
+            let dst = self.uninit_slice();
             // Reserved above
             debug_assert!(dst.len() >= cnt);
 
@@ -910,12 +910,12 @@ impl BytesMut {
     }
 
     #[inline]
-    fn maybe_uninit_bytes(&mut self) -> &mut [mem::MaybeUninit<u8>] {
+    fn uninit_slice(&mut self) -> &mut UninitSlice {
         unsafe {
             let ptr = self.ptr.as_ptr().offset(self.len as isize);
             let len = self.cap - self.len;
 
-            slice::from_raw_parts_mut(ptr as *mut mem::MaybeUninit<u8>, len)
+            UninitSlice::from_raw_parts_mut(ptr, len)
         }
     }
 }
@@ -944,7 +944,7 @@ impl Buf for BytesMut {
     }
 
     #[inline]
-    fn bytes(&self) -> &[u8] {
+    fn chunk(&self) -> &[u8] {
         self.as_slice()
     }
 
@@ -961,12 +961,12 @@ impl Buf for BytesMut {
         }
     }
 
-    fn to_bytes(&mut self) -> crate::Bytes {
-        self.split().freeze()
+    fn copy_to_bytes(&mut self, len: usize) -> crate::Bytes {
+        self.split_to(len).freeze()
     }
 }
 
-impl BufMut for BytesMut {
+unsafe impl BufMut for BytesMut {
     #[inline]
     fn remaining_mut(&self) -> usize {
         usize::MAX - self.len()
@@ -985,11 +985,11 @@ impl BufMut for BytesMut {
     }
 
     #[inline]
-    fn bytes_mut(&mut self) -> &mut [mem::MaybeUninit<u8>] {
+    fn chunk_mut(&mut self) -> &mut UninitSlice {
         if self.capacity() == self.len() {
             self.reserve(64);
         }
-        self.maybe_uninit_bytes()
+        self.uninit_slice()
     }
 
     // Specialize these methods so they can skip checking `remaining_mut`
@@ -1000,7 +1000,7 @@ impl BufMut for BytesMut {
         Self: Sized,
     {
         while src.has_remaining() {
-            let s = src.bytes();
+            let s = src.chunk();
             let l = s.len();
             self.extend_from_slice(s);
             src.advance(l);

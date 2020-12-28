@@ -1,10 +1,6 @@
-use crate::buf::IntoIter;
+use crate::buf::{IntoIter, UninitSlice};
 use crate::{Buf, BufMut};
 
-use core::mem::MaybeUninit;
-
-#[cfg(feature = "std")]
-use crate::buf::IoSliceMut;
 #[cfg(feature = "std")]
 use std::io::IoSlice;
 
@@ -20,12 +16,12 @@ use std::io::IoSlice;
 /// # Examples
 ///
 /// ```
-/// use bytes::{Bytes, Buf, buf::BufExt};
+/// use bytes::{Bytes, Buf};
 ///
 /// let mut buf = (&b"hello "[..])
 ///     .chain(&b"world"[..]);
 ///
-/// let full: Bytes = buf.to_bytes();
+/// let full: Bytes = buf.copy_to_bytes(11);
 /// assert_eq!(full[..], b"hello world"[..]);
 /// ```
 ///
@@ -40,7 +36,7 @@ pub struct Chain<T, U> {
 
 impl<T, U> Chain<T, U> {
     /// Creates a new `Chain` sequencing the provided values.
-    pub fn new(a: T, b: U) -> Chain<T, U> {
+    pub(crate) fn new(a: T, b: U) -> Chain<T, U> {
         Chain { a, b }
     }
 
@@ -49,7 +45,7 @@ impl<T, U> Chain<T, U> {
     /// # Examples
     ///
     /// ```
-    /// use bytes::buf::BufExt;
+    /// use bytes::Buf;
     ///
     /// let buf = (&b"hello"[..])
     ///     .chain(&b"world"[..]);
@@ -65,14 +61,14 @@ impl<T, U> Chain<T, U> {
     /// # Examples
     ///
     /// ```
-    /// use bytes::{Buf, buf::BufExt};
+    /// use bytes::Buf;
     ///
     /// let mut buf = (&b"hello"[..])
     ///     .chain(&b"world"[..]);
     ///
     /// buf.first_mut().advance(1);
     ///
-    /// let full = buf.to_bytes();
+    /// let full = buf.copy_to_bytes(9);
     /// assert_eq!(full, b"elloworld"[..]);
     /// ```
     pub fn first_mut(&mut self) -> &mut T {
@@ -84,7 +80,7 @@ impl<T, U> Chain<T, U> {
     /// # Examples
     ///
     /// ```
-    /// use bytes::buf::BufExt;
+    /// use bytes::Buf;
     ///
     /// let buf = (&b"hello"[..])
     ///     .chain(&b"world"[..]);
@@ -100,14 +96,14 @@ impl<T, U> Chain<T, U> {
     /// # Examples
     ///
     /// ```
-    /// use bytes::{Buf, buf::BufExt};
+    /// use bytes::Buf;
     ///
     /// let mut buf = (&b"hello "[..])
     ///     .chain(&b"world"[..]);
     ///
     /// buf.last_mut().advance(1);
     ///
-    /// let full = buf.to_bytes();
+    /// let full = buf.copy_to_bytes(10);
     /// assert_eq!(full, b"hello orld"[..]);
     /// ```
     pub fn last_mut(&mut self) -> &mut U {
@@ -119,7 +115,7 @@ impl<T, U> Chain<T, U> {
     /// # Examples
     ///
     /// ```
-    /// use bytes::buf::BufExt;
+    /// use bytes::Buf;
     ///
     /// let chain = (&b"hello"[..])
     ///     .chain(&b"world"[..]);
@@ -142,11 +138,11 @@ where
         self.a.remaining() + self.b.remaining()
     }
 
-    fn bytes(&self) -> &[u8] {
+    fn chunk(&self) -> &[u8] {
         if self.a.has_remaining() {
-            self.a.bytes()
+            self.a.chunk()
         } else {
-            self.b.bytes()
+            self.b.chunk()
         }
     }
 
@@ -169,14 +165,14 @@ where
     }
 
     #[cfg(feature = "std")]
-    fn bytes_vectored<'a>(&'a self, dst: &mut [IoSlice<'a>]) -> usize {
-        let mut n = self.a.bytes_vectored(dst);
-        n += self.b.bytes_vectored(&mut dst[n..]);
+    fn chunks_vectored<'a>(&'a self, dst: &mut [IoSlice<'a>]) -> usize {
+        let mut n = self.a.chunks_vectored(dst);
+        n += self.b.chunks_vectored(&mut dst[n..]);
         n
     }
 }
 
-impl<T, U> BufMut for Chain<T, U>
+unsafe impl<T, U> BufMut for Chain<T, U>
 where
     T: BufMut,
     U: BufMut,
@@ -185,11 +181,11 @@ where
         self.a.remaining_mut() + self.b.remaining_mut()
     }
 
-    fn bytes_mut(&mut self) -> &mut [MaybeUninit<u8>] {
+    fn chunk_mut(&mut self) -> &mut UninitSlice {
         if self.a.has_remaining_mut() {
-            self.a.bytes_mut()
+            self.a.chunk_mut()
         } else {
-            self.b.bytes_mut()
+            self.b.chunk_mut()
         }
     }
 
@@ -209,13 +205,6 @@ where
         }
 
         self.b.advance_mut(cnt);
-    }
-
-    #[cfg(feature = "std")]
-    fn bytes_vectored_mut<'a>(&'a mut self, dst: &mut [IoSliceMut<'a>]) -> usize {
-        let mut n = self.a.bytes_vectored_mut(dst);
-        n += self.b.bytes_vectored_mut(&mut dst[n..]);
-        n
     }
 }
 

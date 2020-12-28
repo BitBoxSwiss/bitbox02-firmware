@@ -8,22 +8,22 @@ pub struct RootFingerprintRequest {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RootFingerprintResponse {
-    #[prost(bytes, tag="1")]
+    #[prost(bytes="vec", tag="1")]
     pub fingerprint: ::prost::alloc::vec::Vec<u8>,
 }
 /// See https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki.
 /// version field dropped as it will set dynamically based on the context (xpub, ypub, etc.).
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct XPub {
-    #[prost(bytes, tag="1")]
+    #[prost(bytes="vec", tag="1")]
     pub depth: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes, tag="2")]
+    #[prost(bytes="vec", tag="2")]
     pub parent_fingerprint: ::prost::alloc::vec::Vec<u8>,
     #[prost(uint32, tag="3")]
     pub child_num: u32,
-    #[prost(bytes, tag="4")]
+    #[prost(bytes="vec", tag="4")]
     pub chain_code: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes, tag="5")]
+    #[prost(bytes="vec", tag="5")]
     pub public_key: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -124,7 +124,7 @@ pub struct SetDeviceNameRequest {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SetPasswordRequest {
-    #[prost(bytes, tag="1")]
+    #[prost(bytes="vec", tag="1")]
     pub entropy: ::prost::alloc::vec::Vec<u8>,
 }
 /// Should be sent every X seconds (TBD) unless the firmware already is busy with a command.
@@ -163,7 +163,7 @@ pub mod bit_box_base_heartbeat_request {
 /// the provided msg
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BitBoxBaseConfirmPairingRequest {
-    #[prost(bytes, tag="1")]
+    #[prost(bytes="vec", tag="1")]
     pub msg: ::prost::alloc::vec::Vec<u8>,
 }
 /// Optional fields can be represented by a "oneof" with only one field in it.
@@ -368,7 +368,7 @@ pub struct BtcSignNextResponse {
     #[prost(bool, tag="3")]
     pub has_signature: bool,
     /// 64 bytes (32 bytes big endian R, 32 bytes big endian S). Only if has_signature is true.
-    #[prost(bytes, tag="4")]
+    #[prost(bytes="vec", tag="4")]
     pub signature: ::prost::alloc::vec::Vec<u8>,
     /// Previous tx's input/output index in case of PREV_INPUT or PREV_OUTPUT, for the input at `index`.
     #[prost(uint32, tag="5")]
@@ -390,7 +390,7 @@ pub mod btc_sign_next_response {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcSignInputRequest {
-    #[prost(bytes, tag="1")]
+    #[prost(bytes="vec", tag="1")]
     pub prev_out_hash: ::prost::alloc::vec::Vec<u8>,
     #[prost(uint32, tag="2")]
     pub prev_out_index: u32,
@@ -417,7 +417,7 @@ pub struct BtcSignOutputRequest {
     #[prost(uint64, tag="3")]
     pub value: u64,
     /// if ours is false
-    #[prost(bytes, tag="4")]
+    #[prost(bytes="vec", tag="4")]
     pub hash: ::prost::alloc::vec::Vec<u8>,
     /// if ours is true
     #[prost(uint32, repeated, tag="5")]
@@ -482,11 +482,11 @@ pub struct BtcPrevTxInitRequest {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcPrevTxInputRequest {
-    #[prost(bytes, tag="1")]
+    #[prost(bytes="vec", tag="1")]
     pub prev_out_hash: ::prost::alloc::vec::Vec<u8>,
     #[prost(uint32, tag="2")]
     pub prev_out_index: u32,
-    #[prost(bytes, tag="3")]
+    #[prost(bytes="vec", tag="3")]
     pub signature_script: ::prost::alloc::vec::Vec<u8>,
     #[prost(uint32, tag="4")]
     pub sequence: u32,
@@ -495,7 +495,7 @@ pub struct BtcPrevTxInputRequest {
 pub struct BtcPrevTxOutputRequest {
     #[prost(uint64, tag="1")]
     pub value: u64,
-    #[prost(bytes, tag="2")]
+    #[prost(bytes="vec", tag="2")]
     pub pubkey_script: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -504,13 +504,13 @@ pub struct BtcSignMessageRequest {
     pub coin: i32,
     #[prost(message, optional, tag="2")]
     pub script_config: ::core::option::Option<BtcScriptConfigWithKeypath>,
-    #[prost(bytes, tag="3")]
+    #[prost(bytes="vec", tag="3")]
     pub msg: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcSignMessageResponse {
     /// 65 bytes (32 bytes big endian R, 32 bytes big endian S, 1 recid).
-    #[prost(bytes, tag="1")]
+    #[prost(bytes="vec", tag="1")]
     pub signature: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -582,7 +582,7 @@ pub struct EthPubRequest {
     pub output_type: i32,
     #[prost(bool, tag="4")]
     pub display: bool,
-    #[prost(bytes, tag="5")]
+    #[prost(bytes="vec", tag="5")]
     pub contract_address: ::prost::alloc::vec::Vec<u8>,
 }
 /// Nested message and enum types in `ETHPubRequest`.
@@ -601,21 +601,21 @@ pub struct EthSignRequest {
     #[prost(uint32, repeated, tag="2")]
     pub keypath: ::prost::alloc::vec::Vec<u32>,
     /// smallest big endian serialization, max. 16 bytes
-    #[prost(bytes, tag="3")]
+    #[prost(bytes="vec", tag="3")]
     pub nonce: ::prost::alloc::vec::Vec<u8>,
     /// smallest big endian serialization, max. 16 bytes
-    #[prost(bytes, tag="4")]
+    #[prost(bytes="vec", tag="4")]
     pub gas_price: ::prost::alloc::vec::Vec<u8>,
     /// smallest big endian serialization, max. 16 bytes
-    #[prost(bytes, tag="5")]
+    #[prost(bytes="vec", tag="5")]
     pub gas_limit: ::prost::alloc::vec::Vec<u8>,
     /// 20 byte recipient
-    #[prost(bytes, tag="6")]
+    #[prost(bytes="vec", tag="6")]
     pub recipient: ::prost::alloc::vec::Vec<u8>,
     /// smallest big endian serialization, max. 32 bytes
-    #[prost(bytes, tag="7")]
+    #[prost(bytes="vec", tag="7")]
     pub value: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes, tag="8")]
+    #[prost(bytes="vec", tag="8")]
     pub data: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -624,13 +624,13 @@ pub struct EthSignMessageRequest {
     pub coin: i32,
     #[prost(uint32, repeated, tag="2")]
     pub keypath: ::prost::alloc::vec::Vec<u32>,
-    #[prost(bytes, tag="3")]
+    #[prost(bytes="vec", tag="3")]
     pub msg: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EthSignResponse {
     /// 65 bytes, last byte is the recid
-    #[prost(bytes, tag="1")]
+    #[prost(bytes="vec", tag="1")]
     pub signature: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -699,7 +699,7 @@ pub struct SetMnemonicPassphraseEnabledRequest {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RandomNumberResponse {
-    #[prost(bytes, tag="1")]
+    #[prost(bytes="vec", tag="1")]
     pub number: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -712,21 +712,21 @@ pub struct RebootRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PerformAttestationRequest {
     /// 32 bytes challenge.
-    #[prost(bytes, tag="1")]
+    #[prost(bytes="vec", tag="1")]
     pub challenge: ::prost::alloc::vec::Vec<u8>,
 }
 /// Deprecated, last used in v1.0.0
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PerformAttestationResponse {
-    #[prost(bytes, tag="1")]
+    #[prost(bytes="vec", tag="1")]
     pub bootloader_hash: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes, tag="2")]
+    #[prost(bytes="vec", tag="2")]
     pub device_pubkey: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes, tag="3")]
+    #[prost(bytes="vec", tag="3")]
     pub certificate: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes, tag="4")]
+    #[prost(bytes="vec", tag="4")]
     pub root_pubkey_identifier: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes, tag="5")]
+    #[prost(bytes="vec", tag="5")]
     pub challenge_signature: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]

@@ -1,6 +1,5 @@
 #![warn(rust_2018_idioms)]
 
-use bytes::buf::{BufExt, BufMutExt};
 use bytes::{Buf, BufMut, Bytes};
 #[cfg(feature = "std")]
 use std::io::IoSlice;
@@ -10,7 +9,7 @@ fn collect_two_bufs() {
     let a = Bytes::from(&b"hello"[..]);
     let b = Bytes::from(&b"world"[..]);
 
-    let res = a.chain(b).to_bytes();
+    let res = a.chain(b).copy_to_bytes(10);
     assert_eq!(res, &b"helloworld"[..]);
 }
 
@@ -63,7 +62,7 @@ fn vectored_read() {
             IoSlice::new(b4),
         ];
 
-        assert_eq!(2, buf.bytes_vectored(&mut iovecs));
+        assert_eq!(2, buf.chunks_vectored(&mut iovecs));
         assert_eq!(iovecs[0][..], b"hello"[..]);
         assert_eq!(iovecs[1][..], b"world"[..]);
         assert_eq!(iovecs[2][..], b""[..]);
@@ -84,7 +83,7 @@ fn vectored_read() {
             IoSlice::new(b4),
         ];
 
-        assert_eq!(2, buf.bytes_vectored(&mut iovecs));
+        assert_eq!(2, buf.chunks_vectored(&mut iovecs));
         assert_eq!(iovecs[0][..], b"llo"[..]);
         assert_eq!(iovecs[1][..], b"world"[..]);
         assert_eq!(iovecs[2][..], b""[..]);
@@ -105,7 +104,7 @@ fn vectored_read() {
             IoSlice::new(b4),
         ];
 
-        assert_eq!(1, buf.bytes_vectored(&mut iovecs));
+        assert_eq!(1, buf.chunks_vectored(&mut iovecs));
         assert_eq!(iovecs[0][..], b"world"[..]);
         assert_eq!(iovecs[1][..], b""[..]);
         assert_eq!(iovecs[2][..], b""[..]);
@@ -126,7 +125,7 @@ fn vectored_read() {
             IoSlice::new(b4),
         ];
 
-        assert_eq!(1, buf.bytes_vectored(&mut iovecs));
+        assert_eq!(1, buf.chunks_vectored(&mut iovecs));
         assert_eq!(iovecs[0][..], b"ld"[..]);
         assert_eq!(iovecs[1][..], b""[..]);
         assert_eq!(iovecs[2][..], b""[..]);

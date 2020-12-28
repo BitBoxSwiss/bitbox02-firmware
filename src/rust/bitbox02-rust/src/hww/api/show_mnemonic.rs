@@ -26,6 +26,10 @@ use bitbox02::keystore;
 
 const NUM_RANDOM_WORDS: u8 = 5;
 
+/// Return 5 words from the BIP39 wordlist, 4 of which are random, and
+/// one of them is provided `word`. Returns the position of `word` in
+/// the list of words, and the lis of words.  This is used to test if
+/// the user wrote down the seed words properly.
 fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroizing<String>>) {
     fn rand16() -> u16 {
         let mut rand = [0u8; 32];
@@ -62,6 +66,10 @@ fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroi
     (index_word, result)
 }
 
+/// Handle the ShowMnemonic API call. This shows the seed encoded as
+/// 12/18/24 BIP39 English words. Afterwards, for each word, the user
+/// is asked to pick the right word among 5 words, to check if they
+/// wrote it down correctly.
 pub async fn process() -> Result<Response, Error> {
     unlock::unlock_keystore("Unlock device", unlock::CanCancel::Yes).await?;
 

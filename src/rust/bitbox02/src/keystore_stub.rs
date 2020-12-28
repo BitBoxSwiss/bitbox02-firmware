@@ -52,8 +52,9 @@ pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
     panic!("not implemented")
 }
 
-pub fn get_bip39_word(_idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
-    panic!("not implemented")
+pub fn get_bip39_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
+    let data = crate::testing::DATA.0.borrow();
+    data.keystore_get_bip39_word.as_ref().unwrap()(idx)
 }
 
 pub struct Bip39Wordlist([*const u8; BIP39_WORDLIST_LEN as usize]);
@@ -100,6 +101,7 @@ pub fn secp256k1_sign(
     data.keystore_secp256k1_sign.as_ref().unwrap()(keypath, msg, host_nonce)
 }
 
-pub fn bip39_mnemonic_to_seed(_mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    panic!("not implemented");
+pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let data = crate::testing::DATA.0.borrow();
+    data.keystore_bip39_mnemonic_to_seed.as_ref().unwrap()(mnemonic)
 }

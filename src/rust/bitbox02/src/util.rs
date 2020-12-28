@@ -13,6 +13,7 @@
 // limitations under the License.
 
 extern crate alloc;
+use alloc::vec::Vec;
 
 /// Must be given a null-terminated string
 /// # Safety
@@ -90,6 +91,20 @@ pub fn truncate_str(s: &str, len: usize) -> &str {
     }
 }
 
+/// Converts a Rust string to a null terminated C string by appending a null
+/// terminator.  Returns `Err(())` if the input already contians a null byte.
+pub fn str_to_cstr_vec(input: &str) -> Result<Vec<u8>, ()> {
+    let bytes = input.as_bytes();
+    if bytes.contains(&0) {
+        Err(())
+    } else {
+        let mut out = Vec::with_capacity(input.len() + 1);
+        out.extend_from_slice(bytes);
+        out.push(0); // null terminator
+        Ok(out)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -130,5 +145,12 @@ mod tests {
         // Not null terminated.
         assert!(str_from_null_terminated(b"").is_err());
         assert!(str_from_null_terminated(b"foo").is_err());
+    }
+
+    #[test]
+    fn test_str_to_cstr_vec() {
+        assert_eq!(str_to_cstr_vec(""), Ok(b"\0".to_vec()));
+        assert_eq!(str_to_cstr_vec("test"), Ok(b"test\0".to_vec()));
+        assert_eq!(str_to_cstr_vec("te\0st"), Err(()));
     }
 }

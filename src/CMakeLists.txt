@@ -361,6 +361,7 @@ add_custom_target(rust-bindgen
     --whitelist-function keystore_get_root_fingerprint
     --whitelist-var EC_PUBLIC_KEY_UNCOMPRESSED_LEN
     --whitelist-function keystore_encode_xpub_at_keypath
+    --whitelist-function keystore_encrypt_and_store_seed
     --rustified-enum xpub_type_t
     --whitelist-var XPUB_ENCODED_LEN
     --whitelist-function lock_animation_start

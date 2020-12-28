@@ -18,6 +18,7 @@ pub use bitbox02_sys::xpub_type_t;
 
 extern crate alloc;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 use crate::input::SafeInputString;
 
@@ -97,4 +98,8 @@ pub fn secp256k1_sign(
 ) -> Result<SignResult, ()> {
     let data = crate::testing::DATA.0.borrow();
     data.keystore_secp256k1_sign.as_ref().unwrap()(keypath, msg, host_nonce)
+}
+
+pub fn bip39_mnemonic_to_seed(_mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    panic!("not implemented");
 }

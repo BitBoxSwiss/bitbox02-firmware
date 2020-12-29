@@ -85,16 +85,20 @@ pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
 }
 
 /// `idx` must be smaller than BIP39_WORDLIST_LEN.
-pub fn get_bip39_word(idx: u16) -> Result<&'static str, ()> {
-    let mut word: *mut u8 = core::ptr::null_mut();
-    match unsafe { bitbox02_sys::keystore_get_bip39_word(idx, &mut word) } {
+pub fn get_bip39_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
+    let mut word_ptr: *mut u8 = core::ptr::null_mut();
+    match unsafe { bitbox02_sys::keystore_get_bip39_word(idx, &mut word_ptr) } {
         false => Err(()),
         true => {
-            let s = unsafe {
-                let len = crate::util::strlen_ptr(word);
-                core::slice::from_raw_parts(word, len as _)
+            let word = unsafe {
+                let len = crate::util::strlen_ptr(word_ptr);
+                let slice = core::slice::from_raw_parts(word_ptr, len as _);
+                zeroize::Zeroizing::new(core::str::from_utf8(&slice[..]).unwrap().into())
             };
-            Ok(core::str::from_utf8(&s[..]).unwrap())
+            unsafe {
+                bitbox02_sys::wally_free_string(word_ptr as _);
+            }
+            Ok(word)
         }
     }
 }

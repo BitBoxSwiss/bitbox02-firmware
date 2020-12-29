@@ -3,6 +3,7 @@
 ## 9.4.0 [version may change, pending release]
 - ETHPubRequest api call now fails if a an invalid contract address is provided also if `display` is
   false.
+- Fix a memory leak (freeing a malloc'd string - no a functional or security issue)
 
 ## 9.3.1 [tagged 2020-12-01]
 - Fix a bug where the device could freeze and become unresponsive.

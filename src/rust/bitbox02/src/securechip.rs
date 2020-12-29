@@ -34,3 +34,18 @@ pub fn monotonic_increments_remaining() -> Result<u32, ()> {
         false => Err(()),
     }
 }
+
+#[cfg(feature = "app-u2f")]
+#[cfg(not(feature = "testing"))]
+pub fn u2f_counter_set(counter: u32) -> Result<(), ()> {
+    match unsafe { bitbox02_sys::securechip_u2f_counter_set(counter) } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
+
+#[cfg(feature = "app-u2f")]
+#[cfg(feature = "testing")]
+pub fn u2f_counter_set(_counter: u32) -> Result<(), ()> {
+    unimplemented!();
+}

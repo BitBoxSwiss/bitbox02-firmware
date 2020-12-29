@@ -65,3 +65,8 @@ app-litecoin = [
   # enable this feature in the deps
   "bitbox02/app-litecoin",
 ]
+
+app-u2f = [
+  # enable this feature in the deps
+  "bitbox02/app-u2f",
+]

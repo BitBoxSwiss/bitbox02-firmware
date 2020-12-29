@@ -310,7 +310,12 @@ foreach(include ${INCLUDES} ${SYSTEMINCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDE
 endforeach()
 
 if(CMAKE_CROSSCOMPILING)
-  set(RUST_BINDGEN_FLAGS -D__SAMD51J20A__ --target=thumbv7em-none-eabi -mcpu=cortex-m4 -mthumb -mfloat-abi=soft --sysroot=${CMAKE_SYSROOT})
+  set(RUST_BINDGEN_FLAGS -D__SAMD51J20A__ --target=thumbv7em-none-eabi -mcpu=cortex-m4 -mthumb -mfloat-abi=soft --sysroot=${CMAKE_SYSROOT}
+    # APP_ vars active when compiling C code to be used in Rust.  It
+    # is okay to activate all of them here - Rust's 'app-' features
+    # control usage/compilation in Rust.
+    -DAPP_U2F=1 # needed to wrap securechip_u2f_counter_set() in Rust.
+    )
 else()
   set(RUST_BINDGEN_FLAGS -DTESTING=1)
 endif()
@@ -343,6 +348,7 @@ add_custom_target(rust-bindgen
     --whitelist-var MEMORY_DEVICE_NAME_MAX_LEN
     --whitelist-function securechip_attestation_sign
     --whitelist-function securechip_monotonic_increments_remaining
+    --whitelist-function securechip_u2f_counter_set
     --whitelist-function keystore_is_locked
     --whitelist-function keystore_unlock
     --whitelist-function keystore_unlock_bip39

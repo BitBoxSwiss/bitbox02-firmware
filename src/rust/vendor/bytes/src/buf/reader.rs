@@ -24,7 +24,7 @@ impl<B: Buf> Reader<B> {
     /// # Examples
     ///
     /// ```rust
-    /// use bytes::buf::BufExt;
+    /// use bytes::Buf;
     ///
     /// let buf = b"hello world".reader();
     ///
@@ -46,7 +46,7 @@ impl<B: Buf> Reader<B> {
     /// # Examples
     ///
     /// ```rust
-    /// use bytes::{Buf, buf::BufExt};
+    /// use bytes::Buf;
     /// use std::io;
     ///
     /// let mut buf = b"hello world".reader();
@@ -73,7 +73,7 @@ impl<B: Buf + Sized> io::Read for Reader<B> {
 
 impl<B: Buf + Sized> io::BufRead for Reader<B> {
     fn fill_buf(&mut self) -> io::Result<&[u8]> {
-        Ok(self.buf.bytes())
+        Ok(self.buf.chunk())
     }
     fn consume(&mut self, amt: usize) {
         self.buf.advance(amt)

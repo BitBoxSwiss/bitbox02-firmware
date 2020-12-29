@@ -1,3 +1,27 @@
+# 1.0.0 (December 22, 2020)
+
+### Changed
+- Rename Buf/BufMut, methods to chunk/chunk_mut (#450)
+
+### Removed
+- remove unused Buf implementation. (#449)
+
+# 0.6.0 (October 21, 2020)
+
+API polish in preparation for a 1.0 release.
+
+### Changed
+- `BufMut` is now an `unsafe` trait (#432).
+- `BufMut::bytes_mut()` returns `&mut UninitSlice`, a type owned by `bytes` to
+  avoid undefined behavior (#433).
+- `Buf::copy_to_bytes(len)` replaces `Buf::into_bytes()` (#439).
+- `Buf`/`BufMut` utility methods are moved onto the trait and `*Ext` traits are
+  removed (#431).
+
+### Removed
+- `BufMut::bytes_vectored_mut()` (#430).
+- `new` methods on combinator types (#434).
+
 # 0.5.6 (July 13, 2020)
 
 - Improve `BytesMut` to reuse buffer when fully `advance`d.

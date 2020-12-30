@@ -103,6 +103,41 @@ pub fn get_bip39_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
     }
 }
 
+/// An opaque C type which gives access to all BIP39 words.
+pub struct Bip39Wordlist([*const u8; BIP39_WORDLIST_LEN as usize]);
+
+impl Bip39Wordlist {
+    pub fn as_ptr(&self) -> *const *const u8 {
+        self.0.as_ptr()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
+impl Drop for Bip39Wordlist {
+    fn drop(&mut self) {
+        for ptr in self.0.iter() {
+            unsafe {
+                bitbox02_sys::wally_free_string(*ptr as _);
+            }
+        }
+    }
+}
+
+pub fn get_bip39_wordlist() -> Result<Bip39Wordlist, ()> {
+    let mut result = Bip39Wordlist([core::ptr::null(); BIP39_WORDLIST_LEN as usize]);
+    for i in 0..BIP39_WORDLIST_LEN {
+        let mut word_ptr: *mut u8 = core::ptr::null_mut();
+        match unsafe { bitbox02_sys::keystore_get_bip39_word(i, &mut word_ptr) } {
+            false => return Err(()),
+            true => result.0[i as usize] = word_ptr,
+        }
+    }
+    Ok(result)
+}
+
 pub fn secp256k1_pubkey_uncompressed(
     keypath: &[u32],
 ) -> Result<[u8; EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()> {

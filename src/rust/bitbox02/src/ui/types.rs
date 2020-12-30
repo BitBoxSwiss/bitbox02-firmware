@@ -17,6 +17,8 @@ use alloc::boxed::Box;
 
 use util::Survive;
 
+pub use bitbox02_sys::trinary_choice_t as TrinaryChoice;
+
 // Taking the constant straight from C, as it's excluding the null terminator.
 #[cfg_attr(feature = "testing", allow(dead_code))]
 pub(crate) const MAX_LABEL_SIZE: usize = bitbox02_sys::MAX_LABEL_SIZE as _;
@@ -102,6 +104,8 @@ impl<'a> ConfirmParams<'a> {
 pub struct TrinaryInputStringParams<'a> {
     /// The confirmation title of the screen. Max 200 chars, otherwise **panic**.
     pub title: &'a str,
+    /// Currently specialized to the BIP39 wordlist. Can be extended if needed.
+    pub wordlist: Option<&'a crate::keystore::Bip39Wordlist>,
     pub hide: bool,
     pub special_chars: bool,
     pub longtouch: bool,
@@ -112,6 +116,7 @@ impl<'a> core::default::Default for TrinaryInputStringParams<'a> {
     fn default() -> Self {
         TrinaryInputStringParams {
             title: "",
+            wordlist: None,
             hide: false,
             special_chars: false,
             longtouch: false,
@@ -134,10 +139,17 @@ impl<'a> TrinaryInputStringParams<'a> {
             crate::util::truncate_str(self.title, TRUNCATE_SIZE),
             TRUNCATE_SIZE
         );
+
         Survive::new(bitbox02_sys::trinary_input_string_params_t {
             title: title_scratch.as_ptr(),
-            wordlist: core::ptr::null(),
-            wordlist_size: 0,
+            wordlist: match self.wordlist {
+                None => core::ptr::null(),
+                Some(ref wordlist) => wordlist.as_ptr(),
+            },
+            wordlist_size: match self.wordlist {
+                None => 0,
+                Some(ref wordlist) => wordlist.len() as _,
+            },
             hide: self.hide,
             special_chars: self.special_chars,
             longtouch: self.longtouch,
@@ -156,3 +168,5 @@ pub struct MenuParams<'a> {
     pub continue_on_last_cb: Option<ContinueCancelCb<'a>>,
     pub cancel_cb: Option<ContinueCancelCb<'a>>,
 }
+
+pub type TrinaryChoiceCb<'a> = Box<dyn FnMut(TrinaryChoice) + 'a>;

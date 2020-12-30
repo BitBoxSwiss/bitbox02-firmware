@@ -40,7 +40,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/reset.c
   ${CMAKE_SOURCE_DIR}/src/cipher/cipher.c
   ${CMAKE_SOURCE_DIR}/src/workflow/blocking.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/cancel.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm_time.c
   ${CMAKE_SOURCE_DIR}/src/workflow/idle_workflow.c
@@ -50,7 +49,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/restore_from_mnemonic.c
   ${CMAKE_SOURCE_DIR}/src/workflow/orientation_screen.c
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/trinary_input.c
   ${CMAKE_SOURCE_DIR}/src/workflow/unlock_bip39.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_total.c
@@ -379,6 +377,8 @@ add_custom_target(rust-bindgen
     --whitelist-function status_create
     --whitelist-function sdcard_create
     --whitelist-function menu_create
+    --whitelist-function trinary_choice_create
+    --rustified-enum trinary_choice_t
     --whitelist-function bitboxbase_watchdog_reset
     --whitelist-function bitboxbase_screensaver_reset
     --whitelist-function leds_turn_small_led
@@ -403,6 +403,7 @@ add_custom_target(rust-bindgen
     --whitelist-type trinary_input_string_params_t
     --whitelist-var INPUT_STRING_MAX_SIZE
     --whitelist-function trinary_input_string_create
+    --whitelist-function trinary_input_string_set_input
     --whitelist-function reset_reset
     --whitelist-function sd_card_inserted
     --whitelist-var BIP39_WORDLIST_LEN
@@ -455,6 +456,7 @@ if(NOT CMAKE_CROSSCOMPILING)
             -A clippy::redundant_clone
             -A clippy::type_complexity
             -A clippy::collapsible-if
+            -A clippy::len_without_is_empty
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
   add_dependencies(rust-clippy rust-bindgen)

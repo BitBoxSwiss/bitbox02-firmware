@@ -14,6 +14,7 @@
 
 extern crate alloc;
 use alloc::boxed::Box;
+use alloc::string::String;
 
 const INPUT_STRING_MAX_SIZE: usize = bitbox02_sys::INPUT_STRING_MAX_SIZE as _;
 
@@ -48,6 +49,11 @@ impl SafeInputString {
     pub fn as_str(&self) -> &str {
         let len = self.0.iter().position(|&x| x == 0).unwrap();
         core::str::from_utf8(&self.0[..len]).unwrap()
+    }
+
+    /// Returns a copy of the input string for use in Rust.
+    pub fn as_string(&self) -> zeroize::Zeroizing<String> {
+        zeroize::Zeroizing::new(self.as_str().into())
     }
 
     /// Zeroes the whole string buffer.
@@ -95,6 +101,14 @@ mod tests {
 
         assert_eq!(from(b"ab\0").as_str(), "ab");
         assert_eq!(from(b"foo test").as_str(), "foo test");
+    }
+
+    #[test]
+    fn test_as_string() {
+        assert_eq!(
+            from(b"foo test\0").as_string(),
+            zeroize::Zeroizing::new(String::from("foo test"))
+        );
     }
 
     #[test]

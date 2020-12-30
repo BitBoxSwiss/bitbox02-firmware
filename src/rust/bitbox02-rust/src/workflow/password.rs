@@ -37,7 +37,7 @@ pub async fn enter(
         longtouch: true,
         ..Default::default()
     };
-    trinary_input_string::enter(&params, can_cancel).await
+    trinary_input_string::enter(&params, can_cancel, "").await
 }
 
 /// Prompt the user to enter a password twice. A warning is displayed

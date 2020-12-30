@@ -4,6 +4,7 @@
 - ETHPubRequest api call now fails if a an invalid contract address is provided also if `display` is
   false.
 - Fix a memory leak (freeing a malloc'd string - no a functional or security issue)
+- Title fixed when entering the 21st, 22nd and 23rd recovery word (was 21th, 22th, 23th) before.
 
 ## 9.3.1 [tagged 2020-12-01]
 - Fix a bug where the device could freeze and become unresponsive.

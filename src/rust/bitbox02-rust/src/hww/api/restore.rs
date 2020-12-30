@@ -26,6 +26,17 @@ pub async fn from_mnemonic(
         timezone_offset,
     }: &pb::RestoreFromMnemonicRequest,
 ) -> Result<Response, Error> {
+    #[cfg(feature = "app-u2f")]
+    {
+        let datetime_string = bitbox02::format_datetime(timestamp, timezone_offset, false);
+        let params = confirm::Params {
+            title: "Is now?",
+            body: &datetime_string,
+            ..Default::default()
+        };
+        confirm::confirm(&params).await.or(Err(Error::Generic))?;
+    }
+
     let mnemonic = mnemonic::get().await?;
     let seed = match bitbox02::keystore::bip39_mnemonic_to_seed(&mnemonic) {
         Ok(seed) => seed,
@@ -59,13 +70,6 @@ pub async fn from_mnemonic(
 
     #[cfg(feature = "app-u2f")]
     {
-        let datetime_string = bitbox02::format_datetime(timestamp, timezone_offset, false);
-        let params = confirm::Params {
-            title: "Is now?",
-            body: &datetime_string,
-            ..Default::default()
-        };
-        confirm::confirm(&params).or(Err(Error::Generic))?;
         // Ignore error - the U2f counter not being set can lead to problems with U2F, but it should
         // not fail the recovery, so the user can access their coins.
         let _ = bitbox02::securechip::u2f_counter_set(timestamp);

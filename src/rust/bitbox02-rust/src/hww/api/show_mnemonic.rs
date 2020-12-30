@@ -18,6 +18,7 @@ use alloc::vec::Vec;
 
 use super::Error;
 use crate::pb;
+use crate::workflow::confirm;
 
 use pb::response::Response;
 
@@ -79,6 +80,18 @@ pub async fn process() -> Result<Response, Error> {
 
     // Part 1) Scroll through words
     mnemonic::show_mnemonic(&words).await?;
+
+    let params = confirm::Params {
+        title: "",
+        body: "Please confirm\neach word",
+        accept_only: true,
+        accept_is_nextarrow: true,
+        ..Default::default()
+    };
+
+    if !confirm::confirm(&params).await {
+        return Err(Error::UserAbort);
+    }
 
     // Part 2) Confirm words
     for (word_idx, word) in words.iter().enumerate() {

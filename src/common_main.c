@@ -67,21 +67,43 @@ static bool _setup_wally(void)
     return wally_set_operations(&_ops) == WALLY_OK;
 }
 
+// Go into bootloader if there was an error during startup, so a firmware update can be
+// applied. Otherwise, if there is an Abort() during startup, there would no way to reboot into the
+// bootloader and the device would be bricked.
+static void _bootloader_autoenter(void)
+{
+    auto_enter_t auto_enter = {
+        .value = sectrue_u8,
+    };
+    upside_down_t upside_down = {
+        .value = screen_is_upside_down(),
+    };
+    if (!memory_bootloader_set_flags(auto_enter, upside_down)) {
+        // If this failed, we might not be able to reboot into the bootloader.
+    }
+}
+
 void common_main(void)
 {
     mpu_bitbox02_init();
-    if (!_setup_wally()) {
-        Abort("_setup_wally failed");
-    }
     if (!memory_setup(&_memory_interface_functions)) {
+        // If memory setup failed, this also might fail, but can't hurt to try.
+        _bootloader_autoenter();
         Abort("memory_setup failed");
     }
+
+    if (!_setup_wally()) {
+        _bootloader_autoenter();
+        Abort("_setup_wally failed");
+    }
+
     /* Enable/configure SmartEEPROM. */
     smarteeprom_bb02_config();
 
     // securechip_setup must come after memory_setup, so the io/auth keys to be
     // used are already initialized.
     if (!securechip_setup(&_securechip_interface_functions)) {
+        _bootloader_autoenter();
         Abort("securechip_setup failed");
     }
 }

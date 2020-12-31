@@ -197,33 +197,6 @@ static ATCAIfaceCfg cfg = {
     .rx_retries = I2C_ECC_RETRIES,
     .cfg_data = NULL};
 
-/**
- * Check if a slot is individually locked.
- */
-static bool _slot_is_locked(securechip_slot_t slot)
-{
-    bool is_locked = false;
-    ATCA_STATUS result = atcab_is_slot_locked(slot, &is_locked);
-    if (result != ATCA_SUCCESS) {
-        return false;
-    }
-    return is_locked;
-}
-
-/**
- * Check if a zone is locked.
- * @param[in] zone LOCK_ZONE_CONFIG or LOCK_ZONE_DATA.
- */
-static bool _zone_is_locked(uint8_t zone)
-{
-    bool is_locked = false;
-    ATCA_STATUS result = atcab_is_locked(zone, &is_locked);
-    if (result != ATCA_SUCCESS) {
-        return false;
-    }
-    return is_locked;
-}
-
 #if FACTORYSETUP == 1
 /**
  * Individually locks a slot. Used to lock the io protection and auth key so
@@ -336,49 +309,75 @@ static bool _factory_setup(void)
 }
 #endif
 
-static bool _verify_config(void)
+static int _verify_config(void)
 {
-    if (!_zone_is_locked(LOCK_ZONE_CONFIG)) {
-        return false;
+    bool is_locked;
+    ATCA_STATUS result;
+
+    // Check that the config and data zones are locked.
+    result = atcab_is_locked(LOCK_ZONE_CONFIG, &is_locked);
+    if (result != ATCA_SUCCESS) {
+        return result;
     }
-    if (!_zone_is_locked(LOCK_ZONE_DATA)) {
-        return false;
+    if (!is_locked) {
+        return SC_ERR_ZONE_UNLOCKED_CONFIG;
+    }
+    result = atcab_is_locked(LOCK_ZONE_DATA, &is_locked);
+    if (result != ATCA_SUCCESS) {
+        return result;
+    }
+    if (!is_locked) {
+        return SC_ERR_ZONE_UNLOCKED_DATA;
     }
 
     bool same_config = false;
-    if (atcab_cmp_config_zone(_configuration, &same_config) != ATCA_SUCCESS) {
-        return false;
+    result = atcab_cmp_config_zone(_configuration, &same_config);
+    if (result != ATCA_SUCCESS) {
+        return result;
     }
     if (!same_config) {
-        return false;
+        return SC_ERR_CONFIG_MISMATCH;
     }
 
-    if (!_slot_is_locked(SECURECHIP_SLOT_IO_PROTECTION_KEY)) {
-        return false;
+    // Check that the slots are individually locked.
+    result = atcab_is_slot_locked(SECURECHIP_SLOT_IO_PROTECTION_KEY, &is_locked);
+    if (result != ATCA_SUCCESS) {
+        return result;
     }
-    if (!_slot_is_locked(SECURECHIP_SLOT_AUTHKEY)) {
-        return false;
+    if (!is_locked) {
+        return SC_ERR_SLOT_UNLOCKED_IO;
     }
-    if (!_slot_is_locked(SECURECHIP_SLOT_ENCRYPTION_KEY)) {
-        return false;
+    result = atcab_is_slot_locked(SECURECHIP_SLOT_AUTHKEY, &is_locked);
+    if (result != ATCA_SUCCESS) {
+        return result;
     }
-    return true;
+    if (!is_locked) {
+        return SC_ERR_SLOT_UNLOCKED_AUTH;
+    }
+    result = atcab_is_slot_locked(SECURECHIP_SLOT_ENCRYPTION_KEY, &is_locked);
+    if (result != ATCA_SUCCESS) {
+        return result;
+    }
+    if (!is_locked) {
+        return SC_ERR_SLOT_UNLOCKED_ENC;
+    }
+    return ATCA_SUCCESS;
 }
 
-bool securechip_setup(securechip_interface_functions_t* ifs)
+int securechip_setup(securechip_interface_functions_t* ifs)
 {
     if (ifs == NULL) {
-        return false;
+        return SC_ERR_IFS;
     }
     _interface_functions = ifs;
     ATCA_STATUS result = atcab_init(&cfg);
     if (result != ATCA_SUCCESS) {
-        return false;
+        return result;
     }
 
 #if FACTORYSETUP == 1
     if (!_factory_setup()) {
-        return false;
+        return SC_ERR_FACTORYSETUP;
     }
 #endif
 

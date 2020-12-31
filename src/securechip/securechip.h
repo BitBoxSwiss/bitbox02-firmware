@@ -21,6 +21,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
+typedef enum {
+    SC_ERR_ZONE_UNLOCKED_CONFIG = -1,
+    SC_ERR_ZONE_UNLOCKED_DATA = -2,
+    SC_ERR_CONFIG_MISMATCH = -3,
+    SC_ERR_SLOT_UNLOCKED_IO = -4,
+    SC_ERR_SLOT_UNLOCKED_AUTH = -5,
+    SC_ERR_SLOT_UNLOCKED_ENC = -6,
+    SC_ERR_IFS = -7,
+    SC_ERR_FACTORYSETUP = -8,
+} securechip_error_t;
+
 typedef struct {
     /**
      * @param[out] key_out must be of size 32
@@ -54,8 +65,10 @@ typedef enum {
  * communication interface/bridge to cryptoauthlib. On first call, the chip
  * is configured and locked.
  * @param[in] ifs Interface functions.
+ * @return values of `securechip_error_t` if negative, values of `ATCA_STATUS` if positive, 0 on
+ * success.
  */
-USE_RESULT bool securechip_setup(securechip_interface_functions_t* ifs);
+USE_RESULT int securechip_setup(securechip_interface_functions_t* ifs);
 
 /**
  * Updates the two KDF keys (rollkey and kdf key). The previous keys are lost

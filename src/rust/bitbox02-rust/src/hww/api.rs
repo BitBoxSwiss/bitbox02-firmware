@@ -25,6 +25,7 @@ mod device_info;
 mod electrum;
 mod error;
 mod reset;
+mod rootfingerprint;
 mod sdcard;
 mod set_device_name;
 mod set_mnemonic_passphrase_enabled;
@@ -132,6 +133,7 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
         #[cfg(not(feature = "app-ethereum"))]
         Request::Eth(_) => Some(Err(Error::Disabled)),
 
+        Request::Fingerprint(pb::RootFingerprintRequest {}) => Some(rootfingerprint::process()),
         request @ Request::BtcPub(_) | request @ Request::Btc(_) => process_api_btc(request).await,
         _ => None,
     }

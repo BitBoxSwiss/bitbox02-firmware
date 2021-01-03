@@ -20,7 +20,7 @@ use core::cell::RefCell;
 const OP_I_CAN_HAS_HANDSHAEK: u8 = b'h';
 const OP_I_CAN_HAS_PAIRIN_VERIFICASHUN: u8 = b'v';
 const OP_HER_COMEZ_TEH_HANDSHAEK: u8 = b'H';
-const OP_NOISE_MSG: u8 = b'n';
+pub const OP_NOISE_MSG: u8 = b'n';
 
 /// Supplies the randomness source to the noise crate.
 pub enum BB02Random32 {}
@@ -55,6 +55,14 @@ impl core::convert::From<()> for Error {
     }
 }
 
+pub fn encrypt(msg: &[u8], out: &mut Vec<u8>) -> Result<(), Error> {
+    NOISE_STATE.0.borrow_mut().encrypt(msg, out).or(Err(Error))
+}
+
+pub fn decrypt(msg: &[u8]) -> Result<Vec<u8>, Error> {
+    NOISE_STATE.0.borrow_mut().decrypt(msg).or(Err(Error))
+}
+
 /// Process noise-encrypted messages:
 /// - Enforce handshake
 /// - Handle pairing verification
@@ -68,7 +76,6 @@ impl core::convert::From<()> for Error {
 /// - Invalid OP-code
 /// - Noise message in the wrong state (e.g. handshake before init, etc.).
 pub(crate) async fn process(usb_in: Vec<u8>, usb_out: &mut Vec<u8>) -> Result<(), Error> {
-    let mut state = NOISE_STATE.0.borrow_mut();
     match usb_in.split_first() {
         Some((&OP_I_CAN_HAS_HANDSHAEK, b"")) => {
             // The previous screen was "See the BitBoxApp".
@@ -77,29 +84,36 @@ pub(crate) async fn process(usb_in: Vec<u8>, usb_out: &mut Vec<u8>) -> Result<()
             // we started a new session in the middle of something.
             bitbox02::ui::screen_stack_pop_all();
 
-            state.init(bitbox02_noise::Sensitive::from(
-                memory::get_noise_static_private_key()?,
-            ));
+            NOISE_STATE
+                .0
+                .borrow_mut()
+                .init(bitbox02_noise::Sensitive::from(
+                    memory::get_noise_static_private_key()?,
+                ));
             Ok(())
         }
-        Some((&OP_HER_COMEZ_TEH_HANDSHAEK, rest)) => match state.handshake(rest)? {
-            bitbox02_noise::HandshakeResult::Response(msg) => {
-                usb_out.extend(msg);
-                Ok(())
-            }
-            bitbox02_noise::HandshakeResult::Done => {
-                let already_verified =
-                    memory::check_noise_remote_static_pubkey(&state.remote_static_pubkey()?);
-                if already_verified {
-                    state.set_pairing_verified()?;
-                    usb_out.push(0); // let app know we don't require verification
-                } else {
-                    usb_out.push(1); // let app know we do require verification
+        Some((&OP_HER_COMEZ_TEH_HANDSHAEK, rest)) => {
+            let mut state = NOISE_STATE.0.borrow_mut();
+            match state.handshake(rest)? {
+                bitbox02_noise::HandshakeResult::Response(msg) => {
+                    usb_out.extend(msg);
+                    Ok(())
                 }
-                Ok(())
+                bitbox02_noise::HandshakeResult::Done => {
+                    let already_verified =
+                        memory::check_noise_remote_static_pubkey(&state.remote_static_pubkey()?);
+                    if already_verified {
+                        state.set_pairing_verified()?;
+                        usb_out.push(0); // let app know we don't require verification
+                    } else {
+                        usb_out.push(1); // let app know we do require verification
+                    }
+                    Ok(())
+                }
             }
-        },
+        }
         Some((&OP_I_CAN_HAS_PAIRIN_VERIFICASHUN, b"")) => {
+            let mut state = NOISE_STATE.0.borrow_mut();
             let hash = state.get_handshake_hash()?;
             // TODO: auto-confirm for BitBoxBase.
             match pairing::confirm(&hash).await {
@@ -120,9 +134,9 @@ pub(crate) async fn process(usb_in: Vec<u8>, usb_out: &mut Vec<u8>) -> Result<()
             }
         }
         Some((&OP_NOISE_MSG, encrypted_msg)) => {
-            let decrypted_msg = state.decrypt(encrypted_msg)?;
+            let decrypted_msg = decrypt(encrypted_msg)?;
             let response = super::api::process(decrypted_msg).await;
-            state.encrypt(&response, usb_out)?;
+            encrypt(&response, usb_out)?;
             Ok(())
         }
         _ => Err(Error),

@@ -41,13 +41,23 @@ use pb::response::Response;
 use prost::Message;
 
 /// Encodes a protobuf Response message.
-fn encode(response: Response) -> Vec<u8> {
+pub fn encode(response: Response) -> Vec<u8> {
     let response = pb::Response {
         response: Some(response),
     };
     let mut out = Vec::<u8>::new();
     response.encode(&mut out).unwrap();
     out
+}
+
+/// Decodes a protofbuf Request message.
+pub fn decode(input: &[u8]) -> Result<Request, Error> {
+    match pb::Request::decode(input) {
+        Ok(pb::Request {
+            request: Some(request),
+        }) => Ok(request),
+        _ => Err(Error::InvalidInput),
+    }
 }
 
 /// Returns the field tag number of the request as defined in the .proto file.  This is needed for
@@ -148,11 +158,9 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
 /// `input` is a hww.proto Request message, protobuf encoded.
 /// Returns a protobuf encoded hww.proto Response message.
 pub async fn process(input: Vec<u8>) -> Vec<u8> {
-    let request = match pb::Request::decode(&input[..]) {
-        Ok(pb::Request {
-            request: Some(request),
-        }) => request,
-        _ => return encode(make_error(Error::InvalidInput)),
+    let request = match decode(&input[..]) {
+        Ok(request) => request,
+        Err(err) => return encode(make_error(err)),
     };
     if !bitbox02::commander::states_can_call(request_tag(&request) as u16) {
         return encode(make_error(Error::InvalidState));

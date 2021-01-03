@@ -14,6 +14,8 @@
 
 use crate::pb;
 
+pub(super) mod error;
+
 #[cfg(feature = "app-ethereum")]
 mod ethereum;
 
@@ -23,7 +25,6 @@ mod bitcoin;
 mod backup;
 mod device_info;
 mod electrum;
-mod error;
 mod reset;
 mod restore;
 mod rootfingerprint;

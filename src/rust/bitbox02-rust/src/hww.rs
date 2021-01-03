@@ -25,6 +25,25 @@ const OP_STATUS_SUCCESS: u8 = 0;
 const OP_STATUS_FAILURE: u8 = 1;
 const OP_STATUS_FAILURE_UNINITIALIZED: u8 = 2;
 
+/// Must be called during the execution of a usb task. This sends out the response to the host and
+/// awaits the next request. If the request is not a valid noise encrypted protofbuf api request
+/// message, `Err(Error::InvalidInput)` is returned.
+pub async fn next_request(
+    response: crate::pb::response::Response,
+) -> Result<crate::pb::request::Request, api::error::Error> {
+    let mut out = [OP_STATUS_SUCCESS].to_vec();
+    noise::encrypt(&api::encode(response), &mut out).or(Err(api::error::Error::NoiseEncrypt))?;
+    let request = crate::async_usb::next_request(out).await;
+    match request.split_first() {
+        Some((&noise::OP_NOISE_MSG, encrypted_request)) => {
+            let decrypted_request =
+                noise::decrypt(&encrypted_request).or(Err(api::error::Error::NoiseDecrypt))?;
+            api::decode(&decrypted_request[..])
+        }
+        _ => Err(api::error::Error::InvalidInput),
+    }
+}
+
 /// Process OP_UNLOCK.
 async fn api_unlock() -> Vec<u8> {
     match crate::workflow::unlock::unlock().await {

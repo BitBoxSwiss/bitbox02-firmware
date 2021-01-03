@@ -24,6 +24,8 @@ pub enum Error {
     InvalidState,
     Disabled,
     Duplicate,
+    NoiseEncrypt,
+    NoiseDecrypt,
 }
 
 impl core::convert::From<()> for Error {
@@ -107,6 +109,14 @@ pub fn make_error(err: Error) -> Response {
         Duplicate => pb::Error {
             code: 107,
             message: "duplicate entry".into(),
+        },
+        NoiseEncrypt => pb::Error {
+            code: 108,
+            message: "noise encryption failed".into(),
+        },
+        NoiseDecrypt => pb::Error {
+            code: 109,
+            message: "noise decryption failed".into(),
         },
     };
     Response::Error(err)

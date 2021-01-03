@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bitbox02_rust::async_usb::{on_next_request, spawn, waiting_for_next_request};
+use bitbox02_rust::hww::process_packet;
+
 #[no_mangle]
 pub extern "C" fn rust_async_usb_spin() {
     bitbox02_rust::async_usb::spin();
@@ -49,10 +52,12 @@ pub unsafe extern "C" fn rust_async_usb_copy_response(out: *mut bitbox02::buffer
 ///
 /// `usb_in` are the api request bytes.
 #[no_mangle]
-pub extern "C" fn rust_async_usb_spawn_hww(usb_in: crate::util::Bytes) {
-    use bitbox02_rust::async_usb::spawn;
-    use bitbox02_rust::hww::process_packet;
-    spawn(process_packet, &usb_in.as_ref());
+pub extern "C" fn rust_async_usb_on_request_hww(usb_in: crate::util::Bytes) {
+    if waiting_for_next_request() {
+        on_next_request(usb_in.as_ref());
+    } else {
+        spawn(process_packet, usb_in.as_ref());
+    }
 }
 
 #[no_mangle]

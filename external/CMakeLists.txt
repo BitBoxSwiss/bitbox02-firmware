@@ -14,7 +14,7 @@ string(REPLACE "-mfpu=fpv4-sp-d16" "" MODIFIED_C_FLAGS ${MODIFIED_C_FLAGS_TMP})
 # wally-core
 
 # configure flags for secp256k1 bundled in libwally core, to reduce memory consumption
-set(LIBWALLY_SECP256k1_FLAGS --with-ecmult-window=2 --with-ecmult-gen-precision=2 --enable-ecmult-static-precomputation)
+set(LIBWALLY_SECP256k1_FLAGS --with-ecmult-window=2 --with-ecmult-gen-precision=2 --enable-ecmult-static-precomputation --enable-module-ecdsa-s2c)
 set(LIBWALLY_CONFIGURE_FLAGS --enable-static --disable-shared --disable-tests ${LIBWALLY_SECP256k1_FLAGS})
 if(SANITIZE_ADDRESS)
   set(LIBWALLY_CFLAGS "-fsanitize=address")

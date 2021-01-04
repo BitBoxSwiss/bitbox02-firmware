@@ -96,7 +96,9 @@ pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Er
         .as_slice()
         .try_into()
         .unwrap();
-    let sign_result = bitbox02::keystore::secp256k1_sign(keypath, &sighash)?;
+
+    let host_nonce = [0; 32]; // TODO: get nonce contribution from host.
+    let sign_result = bitbox02::keystore::secp256k1_sign(keypath, &sighash, &host_nonce)?;
 
     let mut signature: Vec<u8> = sign_result.signature.to_vec();
     signature.push(sign_result.recid);
@@ -166,7 +168,7 @@ mod tests {
                     _ => panic!("too many user confirmations"),
                 }
             })),
-            keystore_secp256k1_sign: Some(Box::new(|keypath, sighash| {
+            keystore_secp256k1_sign: Some(Box::new(|keypath, sighash, _host_nonce| {
                 assert_eq!(keypath, KEYPATH);
                 assert_eq!(sighash, EXPECTED_SIGHASH);
                 Ok(bitbox02::keystore::SignResult {

@@ -177,7 +177,11 @@ pub struct SignResult {
     pub recid: u8,
 }
 
-pub fn secp256k1_sign(keypath: &[u32], msg: &[u8; 32]) -> Result<SignResult, ()> {
+pub fn secp256k1_sign(
+    keypath: &[u32],
+    msg: &[u8; 32],
+    host_nonce: &[u8; 32],
+) -> Result<SignResult, ()> {
     let mut signature = [0u8; 64];
     let mut recid: util::c_types::c_int = 0;
     match unsafe {
@@ -185,6 +189,7 @@ pub fn secp256k1_sign(keypath: &[u32], msg: &[u8; 32]) -> Result<SignResult, ()>
             keypath.as_ptr(),
             keypath.len() as _,
             msg.as_ptr(),
+            host_nonce.as_ptr(),
             signature.as_mut_ptr(),
             &mut recid,
         )

@@ -21,9 +21,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::string::String;
 use bitbox02_rust::bb02_async::{block_on, spin, Task};
-use bitbox02_rust::workflow::{
-    confirm, mnemonic, password, status, trinary_input_string, unlock, verify_message,
-};
+use bitbox02_rust::workflow::{confirm, mnemonic, password, status, trinary_input_string, unlock};
 use core::fmt::Write;
 use core::task::Poll;
 
@@ -174,26 +172,6 @@ pub unsafe extern "C" fn rust_workflow_confirm_blocking(
         display_size: params.display_size as _,
     };
     block_on(confirm::confirm(&params))
-}
-
-#[repr(C)]
-pub enum VerifyMessageResult {
-    VerifyMessageResultOk,
-    VerifyMessageResultInvalidInput,
-    VerifyMessageResultUserAbort,
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rust_workflow_verify_message(
-    msg: crate::util::Bytes,
-) -> VerifyMessageResult {
-    match block_on(verify_message::verify(msg.as_ref())) {
-        Ok(()) => VerifyMessageResult::VerifyMessageResultOk,
-        Err(verify_message::Error::InvalidInput) => {
-            VerifyMessageResult::VerifyMessageResultInvalidInput
-        }
-        Err(verify_message::Error::UserAbort) => VerifyMessageResult::VerifyMessageResultUserAbort,
-    }
 }
 
 #[no_mangle]

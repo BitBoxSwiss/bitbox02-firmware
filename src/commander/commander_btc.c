@@ -19,7 +19,6 @@
 
 #include <apps/btc/btc.h>
 #include <apps/btc/btc_sign.h>
-#include <apps/btc/btc_sign_msg.h>
 
 static commander_error_t _result(app_btc_result_t result)
 {
@@ -207,19 +206,6 @@ commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response
         if (result == APP_BTC_OK) {
             _handle_sign_next(&response->response.sign_next);
         }
-        return _result(result);
-    }
-    case BTCRequest_sign_message_tag: {
-        response->which_response = BTCResponse_sign_message_tag;
-        const BTCSignMessageRequest* sign_request = &request->request.sign_message;
-        app_btc_result_t result = app_btc_sign_msg(
-            sign_request->coin,
-            &sign_request->script_config.script_config,
-            sign_request->script_config.keypath,
-            sign_request->script_config.keypath_count,
-            sign_request->msg.bytes,
-            sign_request->msg.size,
-            response->response.sign_message.signature);
         return _result(result);
     }
     default:

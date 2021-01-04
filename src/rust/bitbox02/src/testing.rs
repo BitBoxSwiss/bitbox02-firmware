@@ -43,6 +43,15 @@ pub struct Data {
         Option<Box<dyn Fn(bitbox02_sys::ETHCoin) -> Option<super::app_eth::Params>>>,
     pub eth_erc20_params_get:
         Option<Box<dyn Fn(bitbox02_sys::ETHCoin, [u8; 20]) -> Option<super::app_eth::ERC20Params>>>,
+    pub btc_address_simple: Option<
+        Box<
+            dyn Fn(
+                bitbox02_sys::BTCCoin,
+                bitbox02_sys::BTCScriptConfig_SimpleType,
+                &[u32],
+            ) -> Result<String, ()>,
+        >,
+    >,
 }
 
 pub struct SafeData(pub RefCell<Data>);

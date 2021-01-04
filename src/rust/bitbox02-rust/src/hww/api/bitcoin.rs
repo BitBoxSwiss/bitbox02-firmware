@@ -16,6 +16,8 @@
 compile_error!("Bitcoin code is being compiled even though the app-bitcoin feature is not enabled");
 
 mod params;
+mod script;
+pub mod signmsg;
 
 use super::pb;
 use super::Error;
@@ -28,6 +30,7 @@ use util::bip32::HARDENED;
 use bitbox02::keystore::{encode_xpub_at_keypath, xpub_type_t};
 
 use pb::btc_pub_request::{Output, XPubType};
+use pb::btc_request::Request;
 use pb::btc_script_config::{Config, SimpleType};
 use pb::response::Response;
 use pb::BtcCoin;
@@ -47,7 +50,7 @@ fn coin_enabled(coin: pb::BtcCoin) -> Result<(), Error> {
     Err(Error::Disabled)
 }
 
-fn coin_name(coin: pb::BtcCoin) -> &'static str {
+pub fn coin_name(coin: pb::BtcCoin) -> &'static str {
     use pb::BtcCoin::*;
     match coin {
         Btc => "Bitcoin",
@@ -150,6 +153,17 @@ pub async fn process_pub(request: &pb::BtcPubRequest) -> Option<Result<Response,
             };
             Some(address_simple(coin, simple_type, &request.keypath, request.display).await)
         }
+        _ => None,
+    }
+}
+
+/// Handle a nexted Bitcoin protobuf api call.
+///
+/// Returns `None` if the call was not handled by Rust, in which case it should be handled by
+/// the C commander.
+pub async fn process_api(request: &Request) -> Option<Result<pb::btc_response::Response, Error>> {
+    match request {
+        Request::SignMessage(ref request) => Some(signmsg::process(request).await),
         _ => None,
     }
 }

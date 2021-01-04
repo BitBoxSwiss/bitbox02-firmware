@@ -17,6 +17,7 @@ use alloc::string::String;
 
 pub use bitbox02_sys::{BTCCoin, BTCScriptConfig_SimpleType};
 
+#[cfg(not(feature = "testing"))]
 pub fn address_simple(
     coin: BTCCoin,
     script_type: BTCScriptConfig_SimpleType,
@@ -38,4 +39,14 @@ pub fn address_simple(
             .into()),
         false => Err(()),
     }
+}
+
+#[cfg(feature = "testing")]
+pub fn address_simple(
+    coin: BTCCoin,
+    script_type: BTCScriptConfig_SimpleType,
+    keypath: &[u32],
+) -> Result<String, ()> {
+    let data = crate::testing::DATA.0.borrow();
+    data.btc_address_simple.as_ref().unwrap()(coin, script_type, keypath)
 }

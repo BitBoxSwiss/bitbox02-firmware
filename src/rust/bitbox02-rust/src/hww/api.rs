@@ -87,6 +87,11 @@ fn request_tag(request: &Request) -> u32 {
 async fn process_api_btc(request: &Request) -> Option<Result<Response, Error>> {
     match request {
         Request::BtcPub(ref request) => bitcoin::process_pub(request).await,
+        Request::Btc(pb::BtcRequest {
+            request: Some(request),
+        }) => bitcoin::process_api(request)
+            .await
+            .map(|r| r.map(|r| Response::Btc(pb::BtcResponse { response: Some(r) }))),
         _ => None,
     }
 }
@@ -127,7 +132,7 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
         #[cfg(not(feature = "app-ethereum"))]
         Request::Eth(_) => Some(Err(Error::Disabled)),
 
-        request @ Request::BtcPub(_) => process_api_btc(request).await,
+        request @ Request::BtcPub(_) | request @ Request::Btc(_) => process_api_btc(request).await,
         _ => None,
     }
 }

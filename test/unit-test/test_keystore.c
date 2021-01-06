@@ -231,6 +231,7 @@ static void _test_keystore_secp256k1_sign(void** state)
     uint8_t sig[64] = {0};
 
     uint8_t host_nonce[32] = {0};
+    memset(host_nonce, 0x56, sizeof(host_nonce));
 
     {
         mock_state(NULL, NULL);

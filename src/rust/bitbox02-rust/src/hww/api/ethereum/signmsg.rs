@@ -55,7 +55,8 @@ pub async fn process(request: &pb::EthSignMessageRequest) -> Result<Response, Er
     msg.extend(&request.msg);
 
     let sighash: [u8; 32] = sha3::Keccak256::digest(&msg).as_slice().try_into().unwrap();
-    let sign_result = bitbox02::keystore::secp256k1_sign(&request.keypath, &sighash)?;
+    let host_nonce = [0; 32]; // TODO: get nonce contribution from host.
+    let sign_result = bitbox02::keystore::secp256k1_sign(&request.keypath, &sighash, &host_nonce)?;
 
     let mut signature: Vec<u8> = sign_result.signature.to_vec();
     signature.push(sign_result.recid);
@@ -121,7 +122,7 @@ mod tests {
                     _ => panic!("too many user confirmations"),
                 }
             })),
-            keystore_secp256k1_sign: Some(Box::new(|keypath, sighash| {
+            keystore_secp256k1_sign: Some(Box::new(|keypath, sighash, _host_nonce| {
                 assert_eq!(keypath, KEYPATH);
                 assert_eq!(sighash, EXPECTED_SIGHASH);
                 Ok(bitbox02::keystore::SignResult {
@@ -234,7 +235,7 @@ mod tests {
             eth_params_get: Some(Box::new(|_| ETH_PARAMS)),
             keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ui_confirm_create: Some(Box::new(|_| true)),
-            keystore_secp256k1_sign: Some(Box::new(|_, _| Err(()))),
+            keystore_secp256k1_sign: Some(Box::new(|_, _, _| Err(()))),
             ..Default::default()
         });
         assert_eq!(

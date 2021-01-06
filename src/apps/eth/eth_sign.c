@@ -81,8 +81,14 @@ app_eth_sign_error_t app_eth_sign(const ETHSignRequest* request, ETHSignResponse
         Abort("unexpected signature size");
     }
     int recid;
+    uint8_t host_nonce[32] = {0}; // TODO: get nonce contribution from host.
     if (!keystore_secp256k1_sign(
-            request->keypath, request->keypath_count, sighash, response->signature, &recid)) {
+            request->keypath,
+            request->keypath_count,
+            sighash,
+            host_nonce,
+            response->signature,
+            &recid)) {
         return APP_ETH_SIGN_ERR_UNKNOWN;
     }
     if (recid > 0xFF) {

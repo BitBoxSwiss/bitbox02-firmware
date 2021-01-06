@@ -53,6 +53,7 @@ bool __wrap_keystore_secp256k1_sign(
     const uint32_t* keypath,
     size_t keypath_len,
     const uint8_t* msg32,
+    const uint8_t* host_nonce32,
     uint8_t* sig_compact_out,
     int* recid_out)
 {

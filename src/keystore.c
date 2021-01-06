@@ -25,7 +25,7 @@
 #include "securechip/securechip.h"
 #include "util.h"
 
-#include <secp256k1_recovery.h>
+#include <secp256k1_ecdsa_s2c.h>
 
 // This number of KDF iterations on the 2nd kdf slot when stretching the device
 // password.
@@ -571,6 +571,7 @@ bool keystore_secp256k1_sign(
     const uint32_t* keypath,
     size_t keypath_len,
     const uint8_t* msg32,
+    const uint8_t* host_nonce32,
     uint8_t* sig_compact_out,
     int* recid_out)
 {
@@ -582,23 +583,18 @@ bool keystore_secp256k1_sign(
         return false;
     }
     secp256k1_context* ctx = wally_get_secp_context();
-    secp256k1_ecdsa_recoverable_signature secp256k1_sig = {0};
-    if (!secp256k1_ecdsa_sign_recoverable(
+    secp256k1_ecdsa_signature secp256k1_sig = {0};
+    if (!secp256k1_anti_klepto_sign(
             ctx,
             &secp256k1_sig,
             msg32,
             xprv.priv_key + 1, // first byte is 0
-            NULL, // default secp256k1_nonce_function_rfc6979
-            NULL)) {
+            host_nonce32,
+            recid_out)) {
         return false;
     }
-    int recid = 0;
-    if (!secp256k1_ecdsa_recoverable_signature_serialize_compact(
-            ctx, sig_compact_out, &recid, &secp256k1_sig)) {
+    if (!secp256k1_ecdsa_signature_serialize_compact(ctx, sig_compact_out, &secp256k1_sig)) {
         return false;
-    }
-    if (recid_out != NULL) {
-        *recid_out = recid;
     }
     return true;
 }

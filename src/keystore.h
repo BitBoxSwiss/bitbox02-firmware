@@ -18,6 +18,7 @@
 #include "compiler_util.h"
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include <secp256k1.h>
@@ -189,20 +190,37 @@ USE_RESULT bool keystore_secp256k1_pubkey_uncompressed(
     size_t keypath_len,
     uint8_t* pubkey_out);
 
+// clang-format off
 /**
  * Sign message with private key at the given keypath. Keystore must be unlocked.
+ *
+ * Details about `host_nonce32`, the host nonce contribution.
+ * Instead of using plain rfc6979 to generate the nonce in this signature, the following formula is used:
+ *     r = rfc6979(..., additional_data=Hash_d(host_nonce32))
+ *     R=r*G (pubkey to secret r)
+ *     nonce = r + Hash_p(R, host_nonce32)
+ * `Hash_d(msg)` and `Hash_p(msg)` are tagged hashes: `sha256(sha256(tag)||shas256(tag)||msg)`.
+ * Tag for `Hash_d`: "s2c/ecdsa/data".
+ * Tag for `Hash_p`: "s2c/ecdsa/point".
+ * This is part of the ECSDA Anti-Klepto protocol, preventing this function to leak any secrets via
+ * the signatures (see the ecdsa-s2c module in secp256k1-zpk for more details).
+ *
  * @param[in] keypath derivation keypath
  * @param[in] keypath_len size of keypath buffer
  * @param[in] msg32 32 byte message to sign
+ * @param[in] host_nonce32 32 byte nonce contribution. Cannot be NULL.
+ * Intended to be a contribution by the host. If there is none available, use 32 zero bytes.
  * @param[out] sig resulting signature in compact format. Must be 64 bytes.
  * @param[out] recid recoverable id. Can be NULL if not needed.
  * Parse with secp256k1_ecdsa_signature_serialize_compact().
  * @return true on success, false if the keystore is locked.
  */
+// clang-format on
 USE_RESULT bool keystore_secp256k1_sign(
     const uint32_t* keypath,
     size_t keypath_len,
     const uint8_t* msg32,
+    const uint8_t* host_nonce32,
     uint8_t* sig_compact_out,
     int* recid_out);
 

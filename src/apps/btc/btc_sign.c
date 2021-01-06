@@ -640,9 +640,10 @@ static app_btc_result_t _sign_input_pass2(
             .sighash_flags = WALLY_SIGHASH_ALL,
         };
         rust_bitcoin_bip143_sighash(&bip143_args, rust_util_bytes_mut(sighash, sizeof(sighash)));
+        uint8_t host_nonce[32] = {0}; // TODO: get nonce contribution from host.
         uint8_t sig_out[64] = {0};
         if (!keystore_secp256k1_sign(
-                request->keypath, request->keypath_count, sighash, sig_out, NULL)) {
+                request->keypath, request->keypath_count, sighash, host_nonce, sig_out, NULL)) {
             return _error(APP_BTC_ERR_UNKNOWN);
         }
         // check assumption

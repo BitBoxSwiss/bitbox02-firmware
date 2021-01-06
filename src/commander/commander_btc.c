@@ -102,6 +102,10 @@ static void _handle_sign_next(const BTCSignNextResponse* next)
         commander_states_force_next(Request_btc_tag);
         _force_next = BTCRequest_prevtx_output_tag;
         break;
+    case BTCSignNextResponse_Type_HOST_NONCE:
+        commander_states_force_next(Request_btc_tag);
+        _force_next = BTCRequest_antiklepto_signature_tag;
+        break;
     default:
         break;
     }
@@ -203,6 +207,15 @@ commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response
         response->which_response = BTCResponse_sign_next_tag;
         app_btc_result_t result = app_btc_sign_prevtx_output(
             &(request->request.prevtx_output), &response->response.sign_next);
+        if (result == APP_BTC_OK) {
+            _handle_sign_next(&response->response.sign_next);
+        }
+        return _result(result);
+    }
+    case BTCRequest_antiklepto_signature_tag: {
+        response->which_response = BTCResponse_sign_next_tag;
+        app_btc_result_t result = app_btc_sign_antiklepto(
+            &request->request.antiklepto_signature, &response->response.sign_next);
         if (result == APP_BTC_OK) {
             _handle_sign_next(&response->response.sign_next);
         }

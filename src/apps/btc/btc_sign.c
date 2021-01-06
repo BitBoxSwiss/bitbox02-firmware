@@ -23,6 +23,7 @@
 
 #include <hardfault.h>
 #include <keystore.h>
+#include <keystore/keystore_antiklepto.h>
 #include <ui/components/empty.h>
 #include <ui/components/progress.h>
 #include <ui/screen_stack.h>
@@ -48,6 +49,8 @@
 //    outputs
 // for each input:
 //    inputs_pass2
+//    if input contains a host nonce commitment, the anti-klepto protocol is active:
+//       inputs_pass2_antiklepto_host_nonce
 //
 // The hash_prevout and hash_sequence and total_in are accumulated in inputs_pass1.
 //
@@ -76,6 +79,7 @@ typedef enum {
     STATE_INPUTS_PASS1,
     STATE_OUTPUTS,
     STATE_INPUTS_PASS2,
+    STATE_INPUTS_PASS2_ANTIKLEPTO_HOST_NONCE
 } _signing_state_t;
 
 // Base component on the screen stack during signing, which is shown while the device is waiting for
@@ -248,6 +252,8 @@ static void _reset(void)
 
     _maybe_pop_empty_screen();
     _maybe_pop_progress_screen();
+
+    keystore_antiklepto_clear();
 }
 
 static app_btc_result_t _error(app_btc_result_t err)
@@ -640,10 +646,35 @@ static app_btc_result_t _sign_input_pass2(
             .sighash_flags = WALLY_SIGHASH_ALL,
         };
         rust_bitcoin_bip143_sighash(&bip143_args, rust_util_bytes_mut(sighash, sizeof(sighash)));
-        uint8_t host_nonce[32] = {0}; // TODO: get nonce contribution from host.
+
+        // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
+        if (request->has_host_nonce_commitment) {
+            next_out->has_anti_klepto_signer_commitment = true;
+            if (!keystore_antiklepto_secp256k1_commit(
+                    request->keypath,
+                    request->keypath_count,
+                    sighash,
+                    request->host_nonce_commitment.commitment,
+                    next_out->anti_klepto_signer_commitment.commitment)) {
+                return _error(APP_BTC_ERR_UNKNOWN);
+            }
+
+            _state = STATE_INPUTS_PASS2_ANTIKLEPTO_HOST_NONCE;
+            next_out->type = BTCSignNextResponse_Type_HOST_NONCE;
+            next_out->index = _index;
+            return APP_BTC_OK;
+        }
+
+        // Return signature directly without the anti-klepto protocol, for backwards compatibility.
+        uint8_t empty_nonce_contribution[32] = {0}; // no nonce contribution given by host.
         uint8_t sig_out[64] = {0};
         if (!keystore_secp256k1_sign(
-                request->keypath, request->keypath_count, sighash, host_nonce, sig_out, NULL)) {
+                request->keypath,
+                request->keypath_count,
+                sighash,
+                empty_nonce_contribution,
+                sig_out,
+                NULL)) {
             return _error(APP_BTC_ERR_UNKNOWN);
         }
         // check assumption
@@ -954,6 +985,34 @@ app_btc_result_t app_btc_sign_output(
         _index = 0;
         next_out->type = BTCSignNextResponse_Type_INPUT;
         next_out->index = _index;
+    }
+    return APP_BTC_OK;
+}
+
+app_btc_result_t app_btc_sign_antiklepto(
+    const AntiKleptoSignatureRequest* request,
+    BTCSignNextResponse* next_out)
+{
+    if (_state != STATE_INPUTS_PASS2_ANTIKLEPTO_HOST_NONCE) {
+        return _error(APP_BTC_ERR_STATE);
+    }
+    if (!keystore_antiklepto_secp256k1_sign(request->host_nonce, next_out->signature, NULL)) {
+        return APP_BTC_ERR_UNKNOWN;
+    }
+    next_out->has_signature = true;
+
+    if (_index < _init_request.num_inputs - 1) {
+        _index++;
+        // Want next input
+        _state = STATE_INPUTS_PASS2;
+        next_out->type = BTCSignNextResponse_Type_INPUT;
+        next_out->index = _index;
+
+        _update_progress();
+    } else {
+        // Done with inputs pass2 -> done completely.
+        _reset();
+        next_out->type = BTCSignNextResponse_Type_DONE;
     }
     return APP_BTC_OK;
 }

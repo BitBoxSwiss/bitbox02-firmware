@@ -12,6 +12,7 @@ set(PROTO_FILES
   system.proto
   perform_attestation.proto
   keystore.proto
+  antiklepto.proto
 )
 string(REGEX REPLACE "\.proto" ".pb.c" OUTPUT_SOURCES "${PROTO_FILES}")
 string(REGEX REPLACE "\.proto" ".pb.h" OUTPUT_HEADERS "${PROTO_FILES}")

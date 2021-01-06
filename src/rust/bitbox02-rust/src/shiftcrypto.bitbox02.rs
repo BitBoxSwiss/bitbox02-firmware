@@ -244,6 +244,21 @@ pub mod bit_box_base_request {
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AntiKleptoHostNonceCommitment {
+    #[prost(bytes="vec", tag="1")]
+    pub commitment: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AntiKleptoSignerCommitment {
+    #[prost(bytes="vec", tag="1")]
+    pub commitment: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AntiKleptoSignatureRequest {
+    #[prost(bytes="vec", tag="1")]
+    pub host_nonce: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcScriptConfig {
     #[prost(oneof="btc_script_config::Config", tags="1, 2")]
     pub config: ::core::option::Option<btc_script_config::Config>,
@@ -373,6 +388,8 @@ pub struct BtcSignNextResponse {
     /// Previous tx's input/output index in case of PREV_INPUT or PREV_OUTPUT, for the input at `index`.
     #[prost(uint32, tag="5")]
     pub prev_index: u32,
+    #[prost(message, optional, tag="6")]
+    pub anti_klepto_signer_commitment: ::core::option::Option<AntiKleptoSignerCommitment>,
 }
 /// Nested message and enum types in `BTCSignNextResponse`.
 pub mod btc_sign_next_response {
@@ -386,6 +403,7 @@ pub mod btc_sign_next_response {
         PrevtxInit = 3,
         PrevtxInput = 4,
         PrevtxOutput = 5,
+        HostNonce = 6,
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -405,6 +423,8 @@ pub struct BtcSignInputRequest {
     /// References a script config from BTCSignInitRequest
     #[prost(uint32, tag="7")]
     pub script_config_index: u32,
+    #[prost(message, optional, tag="8")]
+    pub host_nonce_commitment: ::core::option::Option<AntiKleptoHostNonceCommitment>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcSignOutputRequest {
@@ -515,7 +535,7 @@ pub struct BtcSignMessageResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcRequest {
-    #[prost(oneof="btc_request::Request", tags="1, 2, 3, 4, 5, 6")]
+    #[prost(oneof="btc_request::Request", tags="1, 2, 3, 4, 5, 6, 7")]
     pub request: ::core::option::Option<btc_request::Request>,
 }
 /// Nested message and enum types in `BTCRequest`.
@@ -534,6 +554,8 @@ pub mod btc_request {
         PrevtxOutput(super::BtcPrevTxOutputRequest),
         #[prost(message, tag="6")]
         SignMessage(super::BtcSignMessageRequest),
+        #[prost(message, tag="7")]
+        AntikleptoSignature(super::AntiKleptoSignatureRequest),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]

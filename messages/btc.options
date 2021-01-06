@@ -24,9 +24,13 @@ BTCPubRequest.keypath max_count:10
 BTCSignInitRequest.script_configs max_count:3
 BTCSignInputRequest.prevOutHash fixed_length:true max_size:32
 BTCSignInputRequest.keypath max_count:10
+// provide the `has_host_nonce_commitment` field.
+BTCSignInputRequest.host_nonce_commitment proto3_singular_msgs:false
 BTCSignOutputRequest.hash max_size:32
 BTCSignOutputRequest.keypath max_count:10
 BTCSignNextResponse.signature fixed_length:true max_size:64
+// provide the `has_anti_klepto_signer_commitment` field.
+BTCSignNextResponse.anti_klepto_signer_commitment proto3_singular_msgs:false
 BTCScriptConfigWithKeypath.keypath max_count:10
 BTCScriptConfigRegistration.keypath max_count:10
 BTCRegisterScriptConfigRequest.name max_size:31

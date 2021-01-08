@@ -17,17 +17,10 @@ use alloc::string::String;
 
 /// Converts a satoshi value to a string, suffixed with `unit`, e.g. 1234567890 -> "12.3456789 BTC".
 pub fn format_amount(satoshi: u64, unit: &str) -> String {
-    const SATOSHI_IN_BTC: u64 = 100000000;
-    let amount = format!(
-        "{}.{:08}",
-        satoshi / SATOSHI_IN_BTC,
-        satoshi % SATOSHI_IN_BTC
-    );
-    format!(
-        "{} {}",
-        amount.trim_end_matches('0').trim_end_matches('.'),
-        unit
-    )
+    let mut s = util::decimal::format(satoshi, 8);
+    s.push(' ');
+    s.push_str(unit);
+    s
 }
 
 #[cfg(test)]

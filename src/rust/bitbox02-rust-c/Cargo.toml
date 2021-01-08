@@ -61,7 +61,8 @@ firmware = ["bitbox02-rust", "bitbox02", "bitbox02-noise", "sha2"]
 testing = ["bitbox02/testing"]
 
 app-ethereum = [
-  "ethereum", # this is a dependency
+  # these are dependencies
+  "ethereum",
   # enable this feature in the deps
   "bitbox02-rust/app-ethereum",
   "bitbox02/app-ethereum",

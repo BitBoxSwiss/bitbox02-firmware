@@ -9,27 +9,12 @@
 #include <workflow/verify_recipient.h>
 #include <workflow/verify_total.h>
 
-#include <bignum.h>
-#include <largeprime.h>
-
 #define WEI_DECIMALS (18)
-
-static void _bigendian_to_scalar(const uint8_t* bytes, size_t len, bignum256* out)
-{
-    if (len > 32) {
-        Abort("_bigendian_to_scalar: unexpected size");
-    }
-    // bn_read_be requires a 32 byte big endian input, so we pad our big endian number to the
-    // required size.
-    uint8_t buf[32] = {0};
-    memcpy(buf + sizeof(buf) - len, bytes, len);
-    bn_read_be(buf, out);
-}
 
 typedef struct {
     const char* unit;
     unsigned int decimals;
-    const bignum256* value;
+    const Bytes value; // big endian encoded bignum, max 32 bytes.
 } _amount_t;
 
 static app_eth_sign_error_t _verify_recipient(const uint8_t* recipient, const _amount_t* amount)
@@ -64,26 +49,33 @@ static app_eth_sign_error_t _verify_total_fee(
     const char* fee_unit)
 {
     // fee: gas limit * gas price:
-    bignum256 gas_price_scalar;
-    _bigendian_to_scalar(request->gas_price.bytes, request->gas_price.size, &gas_price_scalar);
-    bignum256 gas_limit_scalar;
-    _bigendian_to_scalar(request->gas_limit.bytes, request->gas_limit.size, &gas_limit_scalar);
-    // result will be in gas_price_scalar
-    bn_multiply(&gas_limit_scalar, &gas_price_scalar, bignum_largeprime());
-    const bignum256* fee_scalar = &gas_price_scalar;
+    uint8_t fee[32] = {0};
+    rust_ethereum_bigint_mul(
+        rust_util_bytes(request->gas_price.bytes, request->gas_price.size),
+        rust_util_bytes(request->gas_limit.bytes, request->gas_limit.size),
+        rust_util_bytes_mut(fee, sizeof(fee)));
     char formatted_fee[100] = {0};
     eth_common_format_amount(
-        fee_scalar, fee_unit, WEI_DECIMALS, formatted_fee, sizeof(formatted_fee));
+        rust_util_bytes(fee, sizeof(fee)),
+        fee_unit,
+        WEI_DECIMALS,
+        formatted_fee,
+        sizeof(formatted_fee));
     // total:
     char formatted_total[100] = {0};
     if (total != NULL) {
-        bignum256 sum = *total->value;
+        Bytes total_amount = rust_util_bytes(total->value.buf, total->value.len);
+        uint8_t sum[32] = {0};
         // If fee and total value are in the same unit, include the fee in the total.
         if (STREQ(fee_unit, total->unit)) {
-            bn_add(&sum, fee_scalar);
+            rust_ethereum_bigint_add(
+                total_amount,
+                rust_util_bytes(fee, sizeof(fee)),
+                rust_util_bytes_mut(sum, sizeof(sum)));
+            total_amount = rust_util_bytes(sum, sizeof(sum));
         }
         eth_common_format_amount(
-            &sum, total->unit, total->decimals, formatted_total, sizeof(formatted_total));
+            total_amount, total->unit, total->decimals, formatted_total, sizeof(formatted_total));
     } else {
         snprintf(formatted_total, sizeof(formatted_total), "Unknown amount");
     }
@@ -120,13 +112,11 @@ app_eth_sign_error_t app_eth_verify_erc20_transaction(const ETHSignRequest* requ
     if (MEMEQ(value, empty, sizeof(empty))) {
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }
-    bignum256 value_scalar;
-    _bigendian_to_scalar(value, 32, &value_scalar);
     if (erc20_params != NULL) {
         const _amount_t amount = {
             .unit = erc20_params->unit,
             .decimals = erc20_params->decimals,
-            .value = &value_scalar,
+            .value = rust_util_bytes(value, 32),
         };
         app_eth_sign_error_t result = _verify_recipient(recipient, &amount);
         if (result != APP_ETH_SIGN_OK) {
@@ -135,7 +125,7 @@ app_eth_sign_error_t app_eth_verify_erc20_transaction(const ETHSignRequest* requ
         const _amount_t total = {
             .unit = erc20_params->unit,
             .decimals = erc20_params->decimals,
-            .value = &value_scalar,
+            .value = rust_util_bytes(value, 32),
         };
         result = _verify_total_fee(request, &total, params->unit);
         if (result != APP_ETH_SIGN_OK) {
@@ -180,12 +170,10 @@ app_eth_sign_error_t app_eth_verify_standard_transaction(const ETHSignRequest* r
         }
     }
     // a) recipient and value
-    bignum256 value_scalar;
-    _bigendian_to_scalar(request->value.bytes, request->value.size, &value_scalar);
     const _amount_t amount = {
         .unit = params->unit,
         .decimals = WEI_DECIMALS,
-        .value = &value_scalar,
+        .value = rust_util_bytes(request->value.bytes, request->value.size),
     };
     app_eth_sign_error_t result = _verify_recipient(request->recipient, &amount);
     if (result != APP_ETH_SIGN_OK) {
@@ -195,7 +183,7 @@ app_eth_sign_error_t app_eth_verify_standard_transaction(const ETHSignRequest* r
     const _amount_t total = {
         .unit = params->unit,
         .decimals = WEI_DECIMALS,
-        .value = &value_scalar,
+        .value = rust_util_bytes(request->value.bytes, request->value.size),
     };
     result = _verify_total_fee(request, &total, params->unit);
     if (result != APP_ETH_SIGN_OK) {

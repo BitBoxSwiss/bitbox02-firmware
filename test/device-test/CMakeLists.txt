@@ -54,7 +54,6 @@ set(LIBRARIES
       secp256k1
       cryptoauthlib
       base32
-      bignum # TODO: only eth
       sha3   # TODO: Only eth
       ctaes
       c
@@ -109,7 +108,6 @@ target_link_libraries(bitbox02-platform
     fatfs
     cryptoauthlib
     base32
-    bignum # TODO: only eth
     sha3   # TODO: Only eth
     ctaes
     asf4-drivers-min
@@ -220,7 +218,6 @@ target_link_libraries(bitboxbase-platform
     fatfs
     cryptoauthlib
     base32
-    bignum # TODO: only eth
     sha3   # TODO: Only eth
     ctaes
 )

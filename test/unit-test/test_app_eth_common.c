@@ -26,18 +26,6 @@
 
 #include <wally_bip32.h>
 
-static void _bigendian_to_scalar(const uint8_t* bytes, size_t len, bignum256* out)
-{
-    if (len > 32) {
-        Abort("_bigendian_to_scalar: unexpected size");
-    }
-    // bn_read_be requires a 32 byte big endian input, so we pad our big endian number to the
-    // required size.
-    uint8_t buf[32] = {0};
-    memcpy(buf + sizeof(buf) - len, bytes, len);
-    bn_read_be(buf, out);
-}
-
 typedef struct {
     const uint8_t bigendian[32];
     const size_t bigendian_len;
@@ -55,7 +43,7 @@ static void _test_eth_common_format_amount(void** state)
             .bigendian_len = 0,
             .decimals = 6,
             .unit = "LOL",
-            .expected_result = "0.0 LOL",
+            .expected_result = "0 LOL",
         },
         {
             // 1000000
@@ -63,7 +51,7 @@ static void _test_eth_common_format_amount(void** state)
             .bigendian_len = 3,
             .decimals = 6,
             .unit = "LOL",
-            .expected_result = "1.0 LOL",
+            .expected_result = "1 LOL",
         },
         {
             // 1100000
@@ -117,10 +105,13 @@ static void _test_eth_common_format_amount(void** state)
     for (size_t i = 0; i < sizeof(tests) / sizeof(_format_test_t); i++) {
         const _format_test_t* test = &tests[i];
 
-        bignum256 bignum;
-        _bigendian_to_scalar(test->bigendian, test->bigendian_len, &bignum);
         char out[100];
-        eth_common_format_amount(&bignum, test->unit, test->decimals, out, sizeof(out));
+        eth_common_format_amount(
+            rust_util_bytes(test->bigendian, test->bigendian_len),
+            test->unit,
+            test->decimals,
+            out,
+            sizeof(out));
         assert_string_equal(out, test->expected_result);
     }
 }

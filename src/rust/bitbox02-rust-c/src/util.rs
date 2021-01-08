@@ -97,6 +97,13 @@ impl AsMut<[u8]> for BytesMut {
     }
 }
 
+impl BytesMut {
+    #[cfg(feature = "app-ethereum")]
+    pub fn reset(&mut self) {
+        self.as_mut().iter_mut().for_each(|e: &mut u8| *e = 0);
+    }
+}
+
 /// CStr is a null-terminated string. Null pointers are interpreted as empty strings.
 #[repr(C)]
 pub struct CStr {

@@ -17,7 +17,7 @@
 
 #include <stddef.h>
 
-#include <bignum.h>
+#include <rust/rust.h>
 
 #define APP_ETH_RECIPIENT_BYTES_LEN (20)
 // including 0x prefix and null terminator.
@@ -28,12 +28,12 @@
  * 100.
  * If the number part (without unit) is bigger than 13 chars, it is truncated with '...'.
  * Result example: "1.3 ETH", "12.4567890123... ETH".
- * @param[in] scalar value to format
+ * @param[in] scalar value to format. Up to 32 bytes, big endian encoded.
  * @param[in] unit suffix
  * @param[in] decimals Divide scalar by 10^decimals. Should be 18 to format WEI as ETH.
  */
 void eth_common_format_amount(
-    const bignum256* scalar,
+    Bytes scalar,
     const char* unit,
     unsigned int decimals,
     char* out,

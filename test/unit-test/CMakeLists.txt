@@ -87,7 +87,7 @@ target_include_directories(
 )
 
 add_dependencies(bitbox c-unit-tests-rust)
-target_link_libraries(bitbox PRIVATE ${LIBBITBOX02_RUST})
+target_link_libraries(bitbox PRIVATE ${LIBBITBOX02_RUST} "-lm")
 # target_link_libraries(${LIBBITBOX02_RUST} PRIVATE bitbox)
 
 set_source_files_properties(
@@ -109,7 +109,6 @@ target_link_libraries(bitbox
   PUBLIC
     wallycore
     secp256k1
-    bignum
     sha3
   PRIVATE
     base32

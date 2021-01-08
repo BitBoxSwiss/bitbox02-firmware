@@ -19,10 +19,12 @@
 #[macro_use]
 extern crate std;
 
-// Since util_c defines an "alloc_error_handler" we get conflicts with std when testing
-#[cfg(not(test))]
 // for `format!`
 #[macro_use]
+extern crate alloc as rust_alloc;
+
+// Since util_c defines an "alloc_error_handler" we get conflicts with std when testing
+#[cfg(not(test))]
 mod alloc;
 
 mod util;

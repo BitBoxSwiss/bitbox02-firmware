@@ -430,7 +430,7 @@ if(NOT CMAKE_CROSSCOMPILING)
         # see src/rust/bitbox02-rust-c/src/lib.rs.
         # https://github.com/rust-lang/rust/issues/66740
         RUSTC_BOOTSTRAP=1
-        ${CARGO} test --all-features --target-dir ${RUST_BINARY_DIR}/all-features ${RUST_CARGO_FLAG} -- --nocapture
+        ${CARGO} test $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --all-features --target-dir ${RUST_BINARY_DIR}/all-features ${RUST_CARGO_FLAG} -- --nocapture
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
   add_dependencies(rust-test bitbox_merged)
@@ -447,6 +447,7 @@ if(NOT CMAKE_CROSSCOMPILING)
         # https://github.com/rust-lang/rust/issues/66740
         RUSTC_BOOTSTRAP=1
         ${CARGO} clippy
+          $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v>
           --all-features
           --target-dir ${RUST_BINARY_DIR}/all-features
           --release
@@ -522,7 +523,7 @@ foreach(type ${RUST_LIBS})
       # see src/rust/bitbox02-rust-c/src/lib.rs.
       # https://github.com/rust-lang/rust/issues/66740
       RUSTC_BOOTSTRAP=1
-      ${CARGO} build -v --features target-${type} --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
+      ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --features target-${type} --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
     COMMAND
       # Rust packages stdlib functions which we must remove/weaken on the arm target
       # Currently the removed symbols only clash in device-tests for some reason. Without this command, compiling device tests would result in errors like:

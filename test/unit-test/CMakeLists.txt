@@ -237,7 +237,7 @@ foreach(I RANGE 0 ${TEST_LIST_LEN} 2)
     $<$<BOOL:SANITIZE_ADDRESS>:asan>
     $<$<BOOL:SANITIZE_UNDEFINED>:-fsanitize=undefined>
     -Wl,--start-group
-    rust_c
+    c-unit-tests_rust_c
     bitbox
     -Wl,--end-group
     ${CMOCKA_LIBRARIES}
@@ -263,7 +263,7 @@ foreach(TEST_NAME ${U2F_TESTS})
     $<$<BOOL:SANITIZE_ADDRESS>:asan>
     $<$<BOOL:SANITIZE_UNDEFINED>:-fsanitize=undefined>
     -Wl,--start-group
-    rust_c
+    c-unit-tests_rust_c
     bitbox
     -Wl,--end-group
     u2f-util

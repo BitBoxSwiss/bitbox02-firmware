@@ -320,7 +320,7 @@ add_custom_target(rust-bindgen
     ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/rust
   COMMAND
     ${BINDGEN}
-    --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs
+    --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs.out
     --use-core
     --ctypes-prefix util::c_types
     --rustified-enum backup_error_t
@@ -411,6 +411,8 @@ add_custom_target(rust-bindgen
     --whitelist-function app_btc_address_simple
     ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
     -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums ${RUST_BINDGEN_FLAGS} ${RUST_INCLUDES}
+  COMMAND
+    ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs.out ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs
   )
 add_dependencies(rust-bindgen generate-protobufs)
 

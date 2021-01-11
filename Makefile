@@ -29,6 +29,13 @@ build-build/Makefile:
 	cd build-build && cmake .. -DCOVERAGE=ON -DSANITIZE_ADDRESS=ON -DSANITIZE_UNDEFINED=ON
 	$(MAKE) -C py/bitbox02
 
+# Should only be used for rust unit tests since we didn't add support to
+# address santizers when they link code compiled with gcc.
+build-build-rust-unit-tests/Makefile:
+	mkdir -p build-build-rust-unit-tests
+	cd build-build-rust-unit-tests && cmake .. -DCOVERAGE=OFF -DSANITIZE_ADDRESS=OFF -DSANITIZE_UNDEFINED=OFF
+	$(MAKE) -C py/bitbox02
+
 build-semihosting/Makefile:
 	mkdir -p build-semihosting
 	cd build-semihosting && cmake .. -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DSEMIHOSTING=ON
@@ -39,6 +46,11 @@ build: build/Makefile
 
 # Directory for building for "build" machine according to gcc convention
 build-build: build-build/Makefile
+
+# Directory for building for "build" machine according to gcc convention
+# Should only be used for rust unit tests since we didn't add support to
+# address santizers when they link code compiled with gcc.
+build-build-rust-unit-tests: build-build-rust-unit-tests/Makefile
 
 # Directory for building for "host" machine but with semihosting enbled
 build-semihosting: build-semihosting/Makefile
@@ -89,10 +101,10 @@ device-tests: | build
 # Must compile C tests before running them
 run-unit-tests: | build-build
 	CTEST_OUTPUT_ON_FAILURE=1 $(MAKE) -C build-build test
-run-rust-unit-tests:
-	${MAKE} -C build-build rust-test
-run-rust-clippy:
-	${MAKE} -C build-build rust-clippy
+run-rust-unit-tests: | build-build-rust-unit-tests
+	${MAKE} -C build-build-rust-unit-tests rust-test
+run-rust-clippy: | build-build-rust-unit-tests
+	${MAKE} -C build-build-rust-unit-tests rust-clippy
 # Must run tests before creating coverage report
 coverage: | build-build
 	${MAKE} -C build-build coverage

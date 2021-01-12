@@ -433,7 +433,7 @@ if(NOT CMAKE_CROSSCOMPILING)
         ${CARGO} test --all-features --target-dir ${RUST_BINARY_DIR}/all-features ${RUST_CARGO_FLAG} -- --nocapture
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
-  add_dependencies(rust-test rust-bindgen)
+  add_dependencies(rust-test bitbox_merged)
 
   add_custom_target(rust-clippy
     COMMAND

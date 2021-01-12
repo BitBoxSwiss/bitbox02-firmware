@@ -45,11 +45,12 @@ message("FILTERED SOURCES: ${DBB-FILTERED-SOURCES}")
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/tools/nanopb/extra)
 find_package(Nanopb REQUIRED)
 
-add_library(rust_c STATIC IMPORTED)
-set_property(TARGET rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libc-unit-tests_rust_c.a)
-
-add_library(bitbox
-  STATIC
+# We create a CMake "object library" to track all the compiled sources so that
+# they can be reused between a normal library and the manually crafted "merged"
+# library.
+# See https://cmake.org/cmake/help/v3.10/command/add_library.html#object-libraries
+add_library(bitbox_objects
+  OBJECT
   ${DBB-FILTERED-SOURCES}
   ${CTAES-SOURCES}
   ${ETHEREUM-SOURCES}
@@ -70,6 +71,50 @@ add_library(bitbox
   framework/btc_util.c
 )
 
+add_library(bitbox
+  STATIC
+  $<TARGET_OBJECTS:bitbox_objects>
+)
+
+# Here we create the "merged" library, which starts with the c-lib created by
+# cargo in the "bitbox02-rust-c" project. That project produces a c-lib without
+# mangled symbols so that it is easier to use from C. We then extend that
+# library with all the object files declared in "bitbox_objects", all the code
+# we want to be able to call from tests.
+# By linking to "bitbox_merged" in the rust unit tests we get access to all our
+# code. (That linkage is done by cargo using a "build.rs" script in the
+# bitbox02 rust project.)
+add_custom_command(
+  OUTPUT ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox_merged.a
+  DEPENDS c-unit-tests_rust_c bitbox_objects
+  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PROPERTY:c-unit-tests_rust_c,IMPORTED_LOCATION> ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox_merged.a
+  COMMAND ar q ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox_merged.a $<TARGET_OBJECTS:bitbox_objects>
+  VERBATIM
+  COMMAND_EXPAND_LISTS
+)
+
+add_custom_target(bitbox_merged DEPENDS ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox_merged.a)
+
+target_include_directories(
+  bitbox_objects
+  SYSTEM PUBLIC
+  ${SYSTEMINCLUDES}
+  ${CMAKE_SOURCE_DIR}/external
+  ${CMAKE_SOURCE_DIR}/external/ctaes
+)
+target_include_directories(
+  bitbox_objects
+  PUBLIC
+  ${INCLUDES}
+  ${CMAKE_CURRENT_SOURCE_DIR}/framework/includes
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_BINARY_DIR}/src
+  $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:bignum,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
 target_include_directories(
   bitbox
   SYSTEM PUBLIC
@@ -84,26 +129,42 @@ target_include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/framework/includes
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/src
+  $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:bignum,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
-add_dependencies(bitbox c-unit-tests-rust)
+add_dependencies(bitbox_objects
+  rust-cbindgen
+  wallycore
+  secp256k1
+  bignum
+  sha3
+  base32
+  ctaes
+)
 target_link_libraries(bitbox PRIVATE ${LIBBITBOX02_RUST})
-# target_link_libraries(${LIBBITBOX02_RUST} PRIVATE bitbox)
 
 set_source_files_properties(
   ${DBB-FIRMWARE-PROTOBUF-SOURCES}
   PROPERTIES GENERATED TRUE
 )
-target_include_directories(bitbox SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
-target_include_directories(bitbox PRIVATE ${CMAKE_SOURCE_DIR}/external/FatFs/source)
-target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
-target_compile_definitions(bitbox PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
-add_dependencies(bitbox generate-protobufs)
+target_include_directories(bitbox_objects SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
+target_include_directories(bitbox_objects PRIVATE ${CMAKE_SOURCE_DIR}/external/FatFs/source)
+target_compile_definitions(bitbox_objects PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
+target_compile_definitions(bitbox_objects PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
+target_compile_definitions(bitbox_objects PUBLIC TESTING)
+add_dependencies(bitbox_objects generate-protobufs)
 
 # Since wallycore is an external projects we need to specify the dependency
-add_dependencies(bitbox libwally-core)
+add_dependencies(bitbox_objects libwally-core)
 
+target_include_directories(bitbox SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
+target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
+target_compile_definitions(bitbox PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 target_compile_definitions(bitbox PUBLIC TESTING)
+
 
 target_link_libraries(bitbox
   PUBLIC
@@ -117,13 +178,16 @@ target_link_libraries(bitbox
 )
 
 if(SANITIZE_ADDRESS)
+  target_compile_options(bitbox_objects PUBLIC "-fsanitize=address")
   target_compile_options(bitbox PUBLIC "-fsanitize=address")
 endif()
 if(SANTIZE_UNDEFINED)
+  target_compile_options(bitbox_objects PUBLIC "-fsanitize=undefined")
   target_compile_options(bitbox PUBLIC "-fsanitize=undefined")
 endif()
 if(COVERAGE)
   target_link_libraries(bitbox PUBLIC "--coverage")
+  target_compile_options(bitbox_objects PUBLIC "--coverage")
   target_compile_options(bitbox PUBLIC "--coverage")
 endif()
 

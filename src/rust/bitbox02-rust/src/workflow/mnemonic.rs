@@ -14,6 +14,7 @@
 
 pub use super::cancel::Error as CancelError;
 use super::cancel::{cancel, set_result, with_cancel};
+use super::confirm;
 use super::menu;
 use super::status::status;
 use super::trinary_choice::{choose, TrinaryChoice};
@@ -24,6 +25,12 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::cell::RefCell;
+
+use sha2::{Digest, Sha256};
+
+fn as_str_vec(v: &[zeroize::Zeroizing<String>]) -> Vec<&str> {
+    v.iter().map(|s| s.as_str()).collect()
+}
 
 /// Displays all mnemonic words in a scroll-through screen.
 pub async fn show_mnemonic(words: &[&str]) -> Result<(), CancelError> {
@@ -59,6 +66,55 @@ pub async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelErr
     with_cancel("Recovery\nwords", &mut component, &result).await
 }
 
+/// Given 23 initial words, this function returns list of candidate words for the last word, such
+/// that the resulting bip39 phrase has a valid checksum. There are always exactly 8 such words.
+/// `entered_words` must contain 23 words from the BIP39 wordlist.
+fn lastword_choices(entered_words: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
+    if entered_words.len() != 23 {
+        panic!("must have entered 23 words");
+    }
+
+    // A 24 word seedphrase encodes 24*11 bits (33 bytes). The last byte is the checksum (hash over
+    // the first 32 bytes). The last word, 11 bits, is the last 3 bits of the seed plus 8 bits of
+    // the checksum. We first need the first 23 words converted to bytes so we can enumerate the 8
+    // choices for the last word. libwally only lets us convert 24 words if the checksum
+    // matches. Instead of rolling our own decoding function, we quickly find one valid word by
+    // brute-force. We need to check at most 256 words for that, as there is exactly one valid word
+    // for each 256 words block.
+    let mut seed: zeroize::Zeroizing<Vec<u8>> = {
+        let mut i = 0;
+        loop {
+            let mnemonic = zeroize::Zeroizing::new(format!(
+                "{} {}",
+                entered_words.join(" "),
+                bitbox02::keystore::get_bip39_word(i).unwrap().as_str(),
+            ));
+            if let Ok(seed) = bitbox02::keystore::bip39_mnemonic_to_seed(&mnemonic) {
+                break seed;
+            }
+            i += 1;
+            if i >= 256 {
+                // There must be a valid word in the first 256 bip39 words. Something went wrong.
+                panic!("Could not find a valid word");
+            }
+        }
+    };
+
+    // Generate all 8 words matching the bip39 checksum.
+    (0..8)
+        .map(|i| {
+            // Set last three bits of the seed to `i`.
+            seed[31] &= 0b11111000;
+            seed[31] |= i;
+            // Compute checksum.
+            let hash = Sha256::digest(&seed);
+            // Last word is 11 bits: <last 3 bits of the seed || 8 bits checksum>.
+            let word_idx: u16 = ((i as u16) << 8) | (hash[0] as u16);
+            bitbox02::keystore::get_bip39_word(word_idx).unwrap()
+        })
+        .collect()
+}
+
 /// Retrieve a BIP39 mnemonic sentence of 12, 18 or 24 words from the user.
 pub async fn get() -> Result<zeroize::Zeroizing<String>, ()> {
     let num_words: usize = match choose("How many words?", "12", "18", "24").await {
@@ -87,20 +143,52 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, ()> {
         // goes forward again.
         let preset = entered_words[word_idx].as_str();
 
-        let user_entry = trinary_input_string::enter(
-            &trinary_input_string::Params {
-                title: &title,
-                wordlist: Some(&bip39_wordlist),
-                ..Default::default()
-            },
-            trinary_input_string::CanCancel::Yes,
-            preset,
-        )
-        .await
-        .map(|s| s.as_string());
+        let user_entry = if word_idx == 23 {
+            // For the last word, we can restrict to a subset of bip39 words that fulfil the
+            // checksum requirement. We do this only when entering 24 words, which results in a
+            // small list of 8 valid candidates.  This special case exists so that users can
+            // generate a seed using only the device and no external software, allowing seed
+            // generation via dice throws, for example.
+
+            let mut choices = lastword_choices(&as_str_vec(&entered_words[..word_idx]));
+            // Add one more menu entry.
+            let none_of_them_idx = {
+                choices.push(zeroize::Zeroizing::new("None of them".into()));
+                choices.len() - 1
+            };
+            match super::menu::pick(&as_str_vec(&choices), Some(&title)).await {
+                Err(super::menu::CancelError::Cancelled) => {
+                    Err(trinary_input_string::Error::Cancelled)
+                }
+                Ok(choice_idx) if choice_idx as usize == none_of_them_idx => {
+                    let params = confirm::Params {
+                        title: "",
+                        body: "Recovery words\ninvalid.\nRestart?",
+                        ..Default::default()
+                    };
+                    if super::confirm::confirm(&params).await {
+                        return Err(());
+                    }
+                    continue;
+                }
+                Ok(choice_idx) => Ok(choices[choice_idx as usize].clone()),
+            }
+        } else {
+            trinary_input_string::enter(
+                &trinary_input_string::Params {
+                    title: &title,
+                    wordlist: Some(&bip39_wordlist),
+                    ..Default::default()
+                },
+                trinary_input_string::CanCancel::Yes,
+                preset,
+            )
+            .await
+            .map(|s| s.as_string())
+        };
 
         match user_entry {
-            Err(trinary_input_string::Error::Cancelled) => {
+            Err(CancelError::Cancelled) => {
                 // User clicked the cancel button. There are two choices:
                 enum GetWordError {
                     Cancel,
@@ -130,7 +218,7 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, ()> {
                 match cancel_choice {
                     GetWordError::EditPrevious => word_idx -= 1,
                     GetWordError::Cancel => {
-                        let params = super::confirm::Params {
+                        let params = confirm::Params {
                             title: "Restore",
                             body: "Do you really\nwant to cancel?",
                             ..Default::default()
@@ -151,10 +239,91 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, ()> {
         }
     }
     Ok(zeroize::Zeroizing::new(
-        entered_words[..num_words]
-            .iter()
-            .map(|s| s.as_str())
-            .collect::<Vec<&str>>()
-            .join(" "),
+        as_str_vec(&entered_words[..num_words]).join(" "),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    extern crate std;
+    use super::*;
+
+    use bitbox02::testing::{mock, Data, MUTEX};
+    use std::boxed::Box;
+
+    const BIP39_WORDS: &str = include_str!("testing/english.txt");
+
+    /// Poor man's bip39 seed converter. `mnemonic` must be 24 words.
+    fn mnemonic_to_seed(mnemonic: &[&str]) -> Result<Vec<u8>, ()> {
+        let mut seed = [0u8; 33];
+        let bip39_words: Vec<&str> = BIP39_WORDS.split('\n').filter(|s| !s.is_empty()).collect();
+        for (i, word) in mnemonic.iter().enumerate() {
+            let word_idx = bip39_words.binary_search(&word).expect(word);
+            for j in 0..11 {
+                if word_idx & (1 << (10 - j)) != 0 {
+                    seed[(i * 11 + j) / 8] |= 1 << (7 - (i * 11 + j) % 8);
+                }
+            }
+        }
+        let hash = Sha256::digest(&seed[..32]);
+        if hash[0] == seed[32] {
+            Ok(seed[..32].to_vec())
+        } else {
+            Err(())
+        }
+    }
+
+    fn bruteforce_lastword(mnemonic: &[&str]) -> Vec<String> {
+        let mut result = Vec::new();
+        for word in BIP39_WORDS.split('\n') {
+            if word.is_empty() {
+                continue;
+            }
+            let mut m = mnemonic.to_vec();
+            m.push(word);
+            if mnemonic_to_seed(&m).is_ok() {
+                result.push(word.into());
+            }
+        }
+        result
+    }
+
+    #[test]
+    fn test_lastword_choices() {
+        let _guard = MUTEX.lock().unwrap();
+
+        // Sanity checks that our helper functions work.
+        assert_eq!(
+            mnemonic_to_seed(&["metal", "smile", "junk", "lemon", "bitter", "column", "army", "sleep", "dinosaur", "panda", "truck", "place", "drum", "dwarf", "sick", "shell", "resist", "fork", "upset", "process", "pen", "inform", "glance", "motor"]),
+            Ok(b"\x8c\x19\x95\xe5\x3f\xe1\x6c\x5b\x83\x06\x59\x3e\x73\xef\xa4\xd2\xe4\x38\x89\x71\xf6\x2b\xb7\x6b\x6f\xbc\xd5\xca\x26\xe7\x18\xac".to_vec()),
+        );
+        assert_eq!(
+            &bruteforce_lastword(&["violin"; 23]),
+            &["boss", "coyote", "dry", "habit", "panel", "regular", "speed", "winter"]
+        );
+
+        mock(Data {
+            keystore_get_bip39_word: Some(Box::new(|idx| {
+                Ok(zeroize::Zeroizing::new(
+                    BIP39_WORDS.split('\n').nth(idx as _).unwrap().into(),
+                ))
+            })),
+            keystore_bip39_mnemonic_to_seed: Some(Box::new(|mnemonic| {
+                mnemonic_to_seed(&mnemonic.split(' ').collect::<Vec<&str>>())
+                    .map(zeroize::Zeroizing::new)
+            })),
+            ..Default::default()
+        });
+
+        assert_eq!(
+            &as_str_vec(&lastword_choices(&["violin"; 23])),
+            &bruteforce_lastword(&["violin"; 23]),
+        );
+
+        let mnemonic = "side stuff card razor rescue enhance risk exchange ozone render large describe gas juice offer permit vendor custom forget lecture divide junior narrow".split(' ').collect::<Vec<&str>>();
+        assert_eq!(
+            &as_str_vec(&lastword_choices(&mnemonic)),
+            &bruteforce_lastword(&mnemonic)
+        );
+    }
 }

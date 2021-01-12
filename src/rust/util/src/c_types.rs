@@ -24,6 +24,10 @@ pub type c_uchar = u8;
 pub type c_short = i16;
 pub type c_ushort = u16;
 pub type c_int = i32;
+
+#[cfg(target_arch = "x86_64")]
+pub type c_uint = u64;
+#[cfg(target_arch = "arm")]
 pub type c_uint = u32;
 
 #[cfg(target_arch = "x86_64")]

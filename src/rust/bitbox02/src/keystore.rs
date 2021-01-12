@@ -14,6 +14,7 @@
 
 extern crate alloc;
 use alloc::string::String;
+use alloc::vec::Vec;
 use core::convert::TryInto;
 
 use crate::input::SafeInputString;
@@ -198,6 +199,22 @@ pub fn secp256k1_sign(
             signature,
             recid: recid.try_into().unwrap(),
         }),
+        false => Err(()),
+    }
+}
+
+pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let mnemonic = zeroize::Zeroizing::new(crate::util::str_to_cstr_vec(mnemonic)?);
+    let mut seed = zeroize::Zeroizing::new([0u8; 32]);
+    let mut seed_len: util::c_types::c_uint = 0;
+    match unsafe {
+        bitbox02_sys::keystore_bip39_mnemonic_to_seed(
+            mnemonic.as_ptr(),
+            seed.as_mut_ptr(),
+            &mut seed_len,
+        )
+    } {
+        true => Ok(zeroize::Zeroizing::new(seed[..seed_len as usize].to_vec())),
         false => Err(()),
     }
 }

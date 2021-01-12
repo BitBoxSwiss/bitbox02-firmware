@@ -17,6 +17,7 @@
 extern crate alloc;
 extern crate std;
 use alloc::string::String;
+use alloc::vec::Vec;
 use core::cell::RefCell;
 use std::boxed::Box;
 
@@ -40,6 +41,9 @@ pub struct Data {
     pub keystore_secp256k1_sign: Option<
         Box<dyn Fn(&[u32], &[u8; 32], &[u8; 32]) -> Result<super::keystore::SignResult, ()>>,
     >,
+    pub keystore_get_bip39_word: Option<Box<dyn Fn(u16) -> Result<zeroize::Zeroizing<String>, ()>>>,
+    pub keystore_bip39_mnemonic_to_seed:
+        Option<Box<dyn Fn(&str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()>>>,
     pub eth_params_get:
         Option<Box<dyn Fn(bitbox02_sys::ETHCoin) -> Option<super::app_eth::Params>>>,
     pub eth_erc20_params_get:

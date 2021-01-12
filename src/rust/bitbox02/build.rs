@@ -5,6 +5,10 @@ fn main() {
         println!("cargo:rustc-link-search={}/../lib", cmake_dir);
         // c and rust code merged :O
         println!("cargo:rustc-link-lib=bitbox_merged");
+        println!(
+            "cargo:rerun-if-changed={}/../lib/libbitbox_merged.a",
+            cmake_dir
+        );
 
         // external libs
         println!("cargo:rustc-link-lib=wallycore");

@@ -86,7 +86,7 @@ add_library(bitbox
 # bitbox02 rust project.)
 add_custom_command(
   OUTPUT ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox_merged.a
-  DEPENDS c-unit-tests_rust_c bitbox_objects
+  DEPENDS c-unit-tests_rust_c bitbox_objects $<TARGET_OBJECTS:bitbox_objects>
   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PROPERTY:c-unit-tests_rust_c,IMPORTED_LOCATION> ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox_merged.a
   COMMAND ar q ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox_merged.a $<TARGET_OBJECTS:bitbox_objects>
   VERBATIM

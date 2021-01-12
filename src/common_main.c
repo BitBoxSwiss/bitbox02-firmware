@@ -102,8 +102,15 @@ void common_main(void)
 
     // securechip_setup must come after memory_setup, so the io/auth keys to be
     // used are already initialized.
-    if (!securechip_setup(&_securechip_interface_functions)) {
+    int securechip_result = securechip_setup(&_securechip_interface_functions);
+    if (securechip_result) {
         _bootloader_autoenter();
-        Abort("securechip_setup failed");
+        char errmsg[100] = {0};
+        snprintf(
+            errmsg,
+            sizeof(errmsg),
+            "Securechip setup failed.\nError code: %i\nPlease contact support.",
+            securechip_result);
+        Abort(errmsg);
     }
 }

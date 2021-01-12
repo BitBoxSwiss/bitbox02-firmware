@@ -29,7 +29,6 @@ typedef enum {
     SC_ERR_SLOT_UNLOCKED_AUTH = -5,
     SC_ERR_SLOT_UNLOCKED_ENC = -6,
     SC_ERR_IFS = -7,
-    SC_ERR_FACTORYSETUP = -8,
 } securechip_error_t;
 
 typedef struct {

@@ -215,15 +215,15 @@ static ATCA_STATUS _lock_slot(securechip_slot_t slot)
     return ATCA_SUCCESS;
 }
 
-static bool _factory_setup(void)
+static ATCA_STATUS _factory_setup(void)
 {
     if (_interface_functions == NULL) {
-        return false;
+        return SC_ERR_IFS;
     }
     bool is_config_locked = false;
     ATCA_STATUS result = atcab_is_locked(LOCK_ZONE_CONFIG, &is_config_locked);
     if (result != ATCA_SUCCESS) {
-        return false;
+        return result;
     }
     if (!is_config_locked) {
         // The chip is unlocked: configure the chip and lock it. This happens
@@ -231,7 +231,7 @@ static bool _factory_setup(void)
 
         result = atcab_write_config_zone(_configuration);
         if (result != ATCA_SUCCESS) {
-            return false;
+            return result;
         }
 
         // Set Counter0 so that it can be incremented
@@ -239,24 +239,24 @@ static bool _factory_setup(void)
         // with limited use.
         result = atcab_write_config_counter(0, COUNTER_MAX_VALUE - MONOTONIC_COUNTER_MAX_USE);
         if (result != ATCA_SUCCESS) {
-            return false;
+            return result;
         }
         // Set Counter1 to 0.
         result = atcab_write_config_counter(1, 0);
         if (result != ATCA_SUCCESS) {
-            return false;
+            return result;
         }
 
         result = atcab_lock_config_zone();
         if (result != ATCA_SUCCESS) {
-            return false;
+            return result;
         }
         is_config_locked = true;
     }
     bool is_data_locked;
     result = atcab_is_locked(LOCK_ZONE_DATA, &is_data_locked);
     if (result != ATCA_SUCCESS) {
-        return false;
+        return result;
     }
     if (is_config_locked && !is_data_locked) {
         // Write IO protection key.
@@ -266,7 +266,7 @@ static bool _factory_setup(void)
         result = atcab_write_zone(
             ATCA_ZONE_DATA, SECURECHIP_SLOT_IO_PROTECTION_KEY, 0, 0, io_protection_key, 32);
         if (result != ATCA_SUCCESS) {
-            return false;
+            return result;
         }
         // Write auth key.
         uint8_t auth_key[32] = {0};
@@ -274,7 +274,7 @@ static bool _factory_setup(void)
         _interface_functions->get_auth_key(auth_key);
         result = atcab_write_zone(ATCA_ZONE_DATA, SECURECHIP_SLOT_AUTHKEY, 0, 0, auth_key, 32);
         if (result != ATCA_SUCCESS) {
-            return false;
+            return result;
         }
         // Write encryption key.
         uint8_t encryption_key[32] = {0};
@@ -283,29 +283,29 @@ static bool _factory_setup(void)
         result = atcab_write_zone(
             ATCA_ZONE_DATA, SECURECHIP_SLOT_ENCRYPTION_KEY, 0, 0, encryption_key, 32);
         if (result != ATCA_SUCCESS) {
-            return false;
+            return result;
         }
         result = atcab_lock_data_zone();
         if (result != ATCA_SUCCESS) {
-            return false;
+            return result;
         }
         is_data_locked = true;
     }
     if (is_config_locked && is_data_locked) {
         result = _lock_slot(SECURECHIP_SLOT_IO_PROTECTION_KEY);
         if (result != ATCA_SUCCESS) {
-            return false;
+            return result;
         }
         result = _lock_slot(SECURECHIP_SLOT_AUTHKEY);
         if (result != ATCA_SUCCESS) {
-            return false;
+            return result;
         }
         result = _lock_slot(SECURECHIP_SLOT_ENCRYPTION_KEY);
         if (result != ATCA_SUCCESS) {
-            return false;
+            return result;
         }
     }
-    return true;
+    return ATCA_SUCCESS;
 }
 #endif
 
@@ -376,8 +376,9 @@ int securechip_setup(securechip_interface_functions_t* ifs)
     }
 
 #if FACTORYSETUP == 1
-    if (!_factory_setup()) {
-        return SC_ERR_FACTORYSETUP;
+    result = _factory_setup();
+    if (result != ATCA_SUCCESS) {
+        return result;
     }
 #endif
 

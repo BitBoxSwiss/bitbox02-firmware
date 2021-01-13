@@ -24,7 +24,7 @@
 #include <secp256k1.h>
 #include <wally_bip32.h>
 #include <wally_bip39.h> // for BIP39_WORDLIST_LEN
-#include <wally_crypto.h> // for EC_PUBLIC_KEY_UNCOMPRESSED_LEN
+#include <wally_crypto.h> // for EC_PUBLIC_KEY_UNCOMPRESSED_LEN and EC_PUBLIC_KEY_LEN
 
 #define KEYSTORE_MAX_SEED_LENGTH (32)
 #define KEYSTORE_U2F_SEED_LENGTH SHA256_LEN
@@ -189,6 +189,25 @@ USE_RESULT bool keystore_secp256k1_pubkey_uncompressed(
     const uint32_t* keypath,
     size_t keypath_len,
     uint8_t* pubkey_out);
+
+/**
+ * Get a commitment to the original nonce before tweaking it with the host nonce. This is part of
+ * the ECDSA Anti-Klepto Protocol. For more details, check the docs of
+ * `secp256k1_ecdsa_anti_klepto_signer_commit`.
+ * @param[in] keypath derivation keypath
+ * @param[in] keypath_len size of keypath buffer
+ * @param[in] msg32 32 byte message which will be signed by `keystore_secp256k1_sign`.
+ * @param[in] host_commitment must be `sha256(sha256(tag)||shas256(tag)||host_nonce)` where
+ * host_nonce is passed to `keystore_secp256k1_sign()`. See
+ * `secp256k1_ecdsa_anti_klepto_host_commit()`.
+ * @param[out] client_commitment_out EC_PUBLIC_KEY_LEN bytes compressed signer nonce pubkey.
+ */
+USE_RESULT bool keystore_secp256k1_nonce_commit(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    const uint8_t* msg32,
+    const uint8_t* host_commitment,
+    uint8_t* client_commitment_out);
 
 // clang-format off
 /**

@@ -97,7 +97,6 @@ target_include_directories(bitbox02-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS
 target_compile_definitions(bitbox02-platform PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 target_compile_definitions(bitbox02-platform PUBLIC "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 add_dependencies(bitbox02-platform generate-protobufs)
-add_dependencies(bitbox02-platform firmware-rust)
 # needed to find version.h
 target_include_directories(bitbox02-platform SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
 target_link_libraries(bitbox02-platform
@@ -205,7 +204,6 @@ target_include_directories(bitboxbase-platform SYSTEM PUBLIC ${NANOPB_INCLUDE_DI
 target_compile_definitions(bitboxbase-platform PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 target_compile_definitions(bitboxbase-platform PUBLIC "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 add_dependencies(bitboxbase-platform generate-protobufs)
-add_dependencies(bitboxbase-platform firmware-bitboxbase-rust)
 # needed to find version.h
 target_include_directories(bitboxbase-platform SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/src)
 target_link_libraries(bitboxbase-platform
@@ -255,7 +253,6 @@ foreach(name ${BBB_TEST_LIST})
 
   # Since wallycore is an external projects we need to specify the dependency
   add_dependencies(${elf} libwally-core)
-  add_dependencies(${elf} firmware-bitboxbase-rust)
   # We must link against libc before asf4-drivers-min because malloc depends on _sbrk
   # We must mark "exception_table" as used, otherwise it won't be linked in since it is in a static library
   target_link_libraries(${elf}

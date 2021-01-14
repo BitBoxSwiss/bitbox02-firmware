@@ -101,6 +101,10 @@ target_include_directories(
   ${SYSTEMINCLUDES}
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/ctaes
+  $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:bignum,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
 )
 target_include_directories(
   bitbox_objects
@@ -109,10 +113,6 @@ target_include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/framework/includes
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/src
-  $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:bignum,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_include_directories(
@@ -121,6 +121,10 @@ target_include_directories(
   ${SYSTEMINCLUDES}
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/ctaes
+  $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:bignum,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
 )
 target_include_directories(
   bitbox
@@ -129,10 +133,6 @@ target_include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/framework/includes
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/src
-  $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:bignum,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 add_dependencies(bitbox_objects
@@ -168,11 +168,11 @@ target_compile_definitions(bitbox PUBLIC TESTING)
 
 target_link_libraries(bitbox
   PUBLIC
-    wallycore
     secp256k1
     bignum
     sha3
   PRIVATE
+    wallycore
     base32
     ctaes
 )

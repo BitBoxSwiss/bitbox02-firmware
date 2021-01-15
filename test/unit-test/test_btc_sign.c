@@ -24,7 +24,9 @@
 #include <apps/btc/confirm_locktime_rbf.h>
 #include <keystore.h>
 #include <rust/rust.h>
+#include <secp256k1_ecdsa_s2c.h>
 #include <wally_bip32.h>
+#include <wally_crypto.h>
 #include <workflow/confirm.h>
 
 bool __wrap_workflow_confirm_blocking(const confirm_params_t* params)
@@ -77,6 +79,24 @@ bool __wrap_btc_common_is_valid_keypath_address_simple(
     assert_int_equal(keypath_len, 5);
     return __real_btc_common_is_valid_keypath_address_simple(
         script_type, keypath, keypath_len, expected_coin);
+}
+
+bool __real_keystore_antiklepto_secp256k1_commit(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    const uint8_t* msg32,
+    const uint8_t* host_commitment,
+    uint8_t* signer_commitment_out);
+bool __wrap_keystore_antiklepto_secp256k1_commit(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    const uint8_t* msg32,
+    const uint8_t* host_commitment,
+    uint8_t* signer_commitment_out)
+{
+    check_expected(msg32);
+    return __real_keystore_antiklepto_secp256k1_commit(
+        keypath, keypath_len, msg32, host_commitment, signer_commitment_out);
 }
 
 static uint8_t _mock_seed[32] = {
@@ -306,6 +326,8 @@ typedef struct {
     bool invalid_input_script_config_index;
     // referenced script config does not exist.
     bool invalid_change_script_config_index;
+    // exercise the antiklepto protocol
+    bool antikepto;
 } _modification_t;
 
 typedef struct {
@@ -1116,31 +1138,91 @@ static void _sign(const _modification_t* mod)
         assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_input(&inputs[1].input, &next));
         return;
     }
-    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&inputs[1].input, &next));
-    assert_int_equal(next.type, BTCSignNextResponse_Type_DONE);
-    assert_true(next.has_signature);
-    if (mod->check_sigs) {
-        switch (mod->script_type) {
-        case BTCScriptConfig_SimpleType_P2WPKH: {
-            const uint8_t expected_signature[64] =
-                "\x3f\x1b\xa2\xd9\x74\x14\x98\xcc\xa5\xe4\xb0\x52\xb4\xdf\xaf\xc2\x8d\x49\x46\x9e"
-                "\xae\x6e\x64\x3c\x02\xa4\x44\xfb\x20\xf2\xb2\x0e\x2e\xef\xd3\x12\x48\xb3\xa9\xde"
-                "\x3c\x28\x26\x49\x06\xfa\x90\x1c\xfa\xc1\xa8\xcb\x54\x71\xaa\x86\xfc\xcc\x6e\x24"
-                "\xdb\x53\xc1\x00";
-            assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
-            break;
+
+    if (mod->antikepto) {
+        uint8_t host_nonce[32] = {0};
+        memset(host_nonce, 0xAB, sizeof(host_nonce));
+
+        inputs[1].input.has_host_nonce_commitment = true;
+        // Make host commitment from host_nonce.
+        assert_true(secp256k1_ecdsa_anti_klepto_host_commit(
+            wally_get_secp_context(),
+            inputs[1].input.host_nonce_commitment.commitment,
+            host_nonce));
+
+        uint8_t expected_sighash[32] =
+            "\xf0\xf8\xa2\x35\xc5\xbb\x47\x12\xa6\xa7\x22\x0b\x50\xd3\x71\x59\xe6\x98\x39\x22\x1a"
+            "\xfc\x22\x98\x42\x9f\x7a\x63\x37\x87\x91\x66";
+        expect_memory(
+            __wrap_keystore_antiklepto_secp256k1_commit,
+            msg32,
+            expected_sighash,
+            sizeof(expected_sighash));
+
+        assert_int_equal(APP_BTC_OK, app_btc_sign_input(&inputs[1].input, &next));
+        assert_int_equal(next.type, BTCSignNextResponse_Type_HOST_NONCE);
+
+        AntiKleptoSignatureRequest antiklepto_sig_req = {0};
+        memcpy(antiklepto_sig_req.host_nonce, host_nonce, sizeof(host_nonce));
+        assert_int_equal(APP_BTC_OK, app_btc_sign_antiklepto(&antiklepto_sig_req, &next));
+        assert_int_equal(next.type, BTCSignNextResponse_Type_DONE);
+        assert_true(next.has_signature);
+        assert_true(next.has_anti_klepto_signer_commitment);
+
+        { // Verify antiklepto nonce
+            secp256k1_ecdsa_signature parsed_signature;
+            assert_true(secp256k1_ecdsa_signature_parse_compact(
+                wally_get_secp_context(), &parsed_signature, next.signature));
+            uint8_t pubkey[EC_PUBLIC_KEY_UNCOMPRESSED_LEN];
+            assert_true(keystore_secp256k1_pubkey_uncompressed(
+                inputs[1].input.keypath, inputs[1].input.keypath_count, pubkey));
+            secp256k1_pubkey parsed_pubkey;
+            assert_true(secp256k1_ec_pubkey_parse(
+                wally_get_secp_context(), &parsed_pubkey, pubkey, sizeof(pubkey)));
+            secp256k1_ecdsa_s2c_opening opening;
+            assert_true(secp256k1_ecdsa_s2c_opening_parse(
+                wally_get_secp_context(), &opening, next.anti_klepto_signer_commitment.commitment));
+            assert_true(secp256k1_anti_klepto_host_verify(
+                wally_get_secp_context(),
+                &parsed_signature,
+                expected_sighash,
+                &parsed_pubkey,
+                host_nonce,
+                &opening));
         }
-        case BTCScriptConfig_SimpleType_P2WPKH_P2SH: {
-            const uint8_t expected_signature[64] =
-                "\x13\x51\xc4\x46\x15\xae\x0a\x2d\x04\x94\xbf\x9c\xa7\xe8\xe5\x70\xff\x11\x7a\x92"
-                "\x22\x8f\x3c\x4b\xa3\x85\x80\x02\xb9\x4e\x0a\x97\x75\x83\x61\xd5\x26\x3b\x26\x09"
-                "\x0c\x5b\x00\x42\x1a\xd5\x78\xc8\xb0\xa0\xd8\x9e\x59\x57\xf4\x31\x79\xe0\x79\x07"
-                "\xef\xce\x1f\xc9";
-            assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
-            break;
-        }
-        default:
-            assert_false(true);
+    } else {
+        assert_int_equal(APP_BTC_OK, app_btc_sign_input(&inputs[1].input, &next));
+        assert_int_equal(next.type, BTCSignNextResponse_Type_DONE);
+        assert_true(next.has_signature);
+        if (mod->check_sigs) {
+            switch (mod->script_type) {
+            case BTCScriptConfig_SimpleType_P2WPKH: {
+                const uint8_t expected_signature[64] =
+                    "\x3f\x1b\xa2\xd9\x74\x14\x98\xcc\xa5\xe4\xb0\x52\xb4\xdf\xaf\xc2\x8d\x49\x46"
+                    "\x9e"
+                    "\xae\x6e\x64\x3c\x02\xa4\x44\xfb\x20\xf2\xb2\x0e\x2e\xef\xd3\x12\x48\xb3\xa9"
+                    "\xde"
+                    "\x3c\x28\x26\x49\x06\xfa\x90\x1c\xfa\xc1\xa8\xcb\x54\x71\xaa\x86\xfc\xcc\x6e"
+                    "\x24"
+                    "\xdb\x53\xc1\x00";
+                assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+                break;
+            }
+            case BTCScriptConfig_SimpleType_P2WPKH_P2SH: {
+                const uint8_t expected_signature[64] =
+                    "\x13\x51\xc4\x46\x15\xae\x0a\x2d\x04\x94\xbf\x9c\xa7\xe8\xe5\x70\xff\x11\x7a"
+                    "\x92"
+                    "\x22\x8f\x3c\x4b\xa3\x85\x80\x02\xb9\x4e\x0a\x97\x75\x83\x61\xd5\x26\x3b\x26"
+                    "\x09"
+                    "\x0c\x5b\x00\x42\x1a\xd5\x78\xc8\xb0\xa0\xd8\x9e\x59\x57\xf4\x31\x79\xe0\x79"
+                    "\x07"
+                    "\xef\xce\x1f\xc9";
+                assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+                break;
+            }
+            default:
+                assert_false(true);
+            }
         }
     }
 }
@@ -1362,6 +1444,12 @@ static void _test_invalid_change_script_config_index(void** state)
     invalid.mixed_inputs = true;
     _sign(&invalid);
 }
+static void _test_antiklepto(void** state)
+{
+    _modification_t valid = _valid;
+    valid.antikepto = true;
+    _sign(&valid);
+}
 
 int main(void)
 {
@@ -1402,6 +1490,7 @@ int main(void)
         cmocka_unit_test(_test_mixed_inputs),
         cmocka_unit_test(_test_invalid_input_script_config_index),
         cmocka_unit_test(_test_invalid_change_script_config_index),
+        cmocka_unit_test(_test_antiklepto),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

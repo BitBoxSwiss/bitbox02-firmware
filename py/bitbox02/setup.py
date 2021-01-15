@@ -76,7 +76,7 @@ setup(
         "hidapi>=0.7.99.post21",
         "noiseprotocol>=0.3",
         "protobuf>=3.7",
-        "ecdsa>=0.13",
+        "ecdsa>=0.14",
         "semver>=2.8.1",
         # Needed as long as we support python < 3.7
         "typing_extensions>=3.7.4",

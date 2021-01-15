@@ -101,6 +101,10 @@ target_include_directories(
   ${SYSTEMINCLUDES}
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/ctaes
+  $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:bignum,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
 )
 target_include_directories(
   bitbox_objects
@@ -109,10 +113,6 @@ target_include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/framework/includes
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/src
-  $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:bignum,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_include_directories(
@@ -121,6 +121,10 @@ target_include_directories(
   ${SYSTEMINCLUDES}
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/ctaes
+  $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:bignum,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
 )
 target_include_directories(
   bitbox
@@ -129,10 +133,6 @@ target_include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/framework/includes
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/src
-  $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:bignum,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 add_dependencies(bitbox_objects
@@ -168,11 +168,11 @@ target_compile_definitions(bitbox PUBLIC TESTING)
 
 target_link_libraries(bitbox
   PUBLIC
-    wallycore
     secp256k1
     bignum
     sha3
   PRIVATE
+    wallycore
     base32
     ctaes
 )
@@ -253,7 +253,7 @@ set(TEST_LIST
    ui_component_gestures
    ""
    btc_sign
-   "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_confirm_blocking,--wrap=workflow_verify_total,--wrap=apps_btc_confirm_locktime_rbf,--wrap=rust_bitcoin_util_format_amount,--wrap=btc_common_is_valid_keypath_address_simple"
+   "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_confirm_blocking,--wrap=workflow_verify_total,--wrap=apps_btc_confirm_locktime_rbf,--wrap=rust_bitcoin_util_format_amount,--wrap=btc_common_is_valid_keypath_address_simple,--wrap=keystore_antiklepto_secp256k1_commit"
    app_btc_sign_multisig
    "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=apps_btc_confirm_locktime_rbf,--wrap=memory_multisig_get_by_hash,--wrap=apps_btc_confirm_multisig_basic"
    memory

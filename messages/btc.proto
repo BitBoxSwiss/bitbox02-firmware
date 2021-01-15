@@ -17,6 +17,7 @@ syntax = "proto3";
 package shiftcrypto.bitbox02;
 
 import "common.proto";
+import "antiklepto.proto";
 
 enum BTCCoin {
   BTC = 0;
@@ -105,6 +106,7 @@ message BTCSignNextResponse {
     PREVTX_INIT = 3;
     PREVTX_INPUT = 4;
     PREVTX_OUTPUT = 5;
+    HOST_NONCE = 6;
   }
   Type type = 1;
   // index of the current input or output
@@ -114,6 +116,7 @@ message BTCSignNextResponse {
   bytes signature = 4;
   // Previous tx's input/output index in case of PREV_INPUT or PREV_OUTPUT, for the input at `index`.
   uint32 prev_index = 5;
+  AntiKleptoSignerCommitment anti_klepto_signer_commitment = 6;
 }
 
 message BTCSignInputRequest {
@@ -124,6 +127,7 @@ message BTCSignInputRequest {
   repeated uint32 keypath = 6; // all inputs must be ours.
   // References a script config from BTCSignInitRequest
   uint32 script_config_index = 7;
+  AntiKleptoHostNonceCommitment host_nonce_commitment = 8;
 }
 
 enum BTCOutputType {
@@ -213,6 +217,7 @@ message BTCRequest {
     BTCPrevTxInputRequest prevtx_input = 4;
     BTCPrevTxOutputRequest prevtx_output = 5;
     BTCSignMessageRequest sign_message = 6;
+    AntiKleptoSignatureRequest antiklepto_signature = 7;
   }
 }
 

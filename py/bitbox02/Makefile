@@ -15,7 +15,7 @@
 
 OUT_DIR=bitbox02/communication/generated
 
-PROTO_FILES=hww.proto common.proto backup_commands.proto bitbox02_system.proto bitboxbase.proto btc.proto eth.proto mnemonic.proto random_number.proto system.proto perform_attestation.proto keystore.proto
+PROTO_FILES=hww.proto common.proto backup_commands.proto bitbox02_system.proto bitboxbase.proto btc.proto eth.proto mnemonic.proto random_number.proto system.proto perform_attestation.proto keystore.proto antiklepto.proto
 
 TARGETS=$(addprefix ${OUT_DIR}/, $(PROTO_FILES:.proto=_pb2.py))
 

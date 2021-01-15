@@ -31,6 +31,8 @@ from bitbox02.communication import (
     ERR_DUPLICATE_ENTRY,
 )
 
+from .secp256k1 import antiklepto_host_commit, antiklepto_verify
+
 try:
     from bitbox02.communication.generated import hww_pb2 as hww
     from bitbox02.communication.generated import eth_pb2 as eth
@@ -41,6 +43,7 @@ try:
     from bitbox02.communication.generated import backup_commands_pb2 as backup
     from bitbox02.communication.generated import common_pb2 as common
     from bitbox02.communication.generated import keystore_pb2 as keystore
+    from bitbox02.communication.generated import antiklepto_pb2 as antiklepto
 except ModuleNotFoundError:
     print("Run `make py` to generate the protobuf messages")
     sys.exit()
@@ -392,6 +395,8 @@ class BitBox02(BitBoxCommonAPI):
         # Reserved for future use.
         assert version in (1, 2)
 
+        supports_antiklepto = self.version >= semver.VersionInfo(9, 4, 0)
+
         sigs: List[Tuple[int, bytes]] = []
 
         # Init request
@@ -407,6 +412,8 @@ class BitBox02(BitBoxCommonAPI):
             )
         )
         next_response = self._msg_query(request, expected_response="btc_sign_next").btc_sign_next
+
+        is_inputs_pass2 = False
         while True:
             if next_response.type == btc.BTCSignNextResponse.INPUT:
                 input_index = next_response.index
@@ -423,11 +430,47 @@ class BitBox02(BitBoxCommonAPI):
                         script_config_index=tx_input["script_config_index"],
                     )
                 )
+                if supports_antiklepto and is_inputs_pass2:
+                    host_nonce = os.urandom(32)
+                    request.btc_sign_input.host_nonce_commitment.commitment = antiklepto_host_commit(
+                        host_nonce
+                    )
+
                 next_response = self._msg_query(
                     request, expected_response="btc_sign_next"
                 ).btc_sign_next
-                if next_response.has_signature:
+
+                if supports_antiklepto and is_inputs_pass2:
+                    assert next_response.type == btc.BTCSignNextResponse.HOST_NONCE
+                    assert next_response.HasField("anti_klepto_signer_commitment")
+                    signer_commitment = next_response.anti_klepto_signer_commitment.commitment
+
+                    btc_request = btc.BTCRequest()
+                    btc_request.antiklepto_signature.CopyFrom(
+                        antiklepto.AntiKleptoSignatureRequest(host_nonce=host_nonce)
+                    )
+                    next_response = self._btc_msg_query(
+                        btc_request, expected_response="sign_next"
+                    ).sign_next
+
+                    if self.debug:
+                        print(
+                            f"For input {input_index}, the host contributed the nonce {host_nonce.hex()}"
+                        )
+
+                    assert next_response.has_signature
+                    antiklepto_verify(host_nonce, signer_commitment, next_response.signature)
+
+                    if self.debug:
+                        print(f"Antiklepto nonce verification PASSED for input {input_index}")
+
+                if is_inputs_pass2:
+                    assert next_response.has_signature
                     sigs.append((input_index, next_response.signature))
+
+                if input_index == len(inputs) - 1:
+                    is_inputs_pass2 = True
+
             elif next_response.type == btc.BTCSignNextResponse.PREVTX_INIT:
                 prevtx = inputs[next_response.index]["prev_tx"]
                 btc_request = btc.BTCRequest()

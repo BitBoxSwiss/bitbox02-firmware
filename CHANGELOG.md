@@ -7,6 +7,7 @@
 - Title fixed when entering the 21st, 22nd and 23rd recovery word (was 21th, 22th, 23th) before.
 - Verifiable seed generation: when restoring from 24 recovery words, for the 24th word, show all 8 candidate words which result in a valid checksum.
 - Better error reporting on secure chip setup failures.
+- Fix a rare touch issue resulting from failed calibration.
 
 ## 9.3.1 [tagged 2020-12-01]
 - Fix a bug where the device could freeze and become unresponsive.

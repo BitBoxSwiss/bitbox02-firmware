@@ -372,10 +372,44 @@ Notes  :
 ============================================================================*/
 static void qtm_post_process_complete(void)
 {
+    {
+        // This block is a workaround for a rare touch issue.
+        //
+        // After boot, reburst is required until the sensors are calibrated (see reburst_request
+        // below). Afterwards, they are calibrated and the sensor signal and reference values can be
+        // used to figure out touch gestures.
+        //
+        // Normally, calibration finishes quickly (tests showed in about 12 loop iterations).
+        // Afterwards, reference and signal values are non-zero. In very rare cases, a sensor can
+        // have a reference value of 0 until it is physically touched, meaning that touch is
+        // required to finish calibration. This could be due to a hardware or production quirk. In
+        // this case, reburst would be requested until that sensor is touched, and gesture detection
+        // would not start until then. In this csae, a user could not interact with the device at
+        // all until they first touched the faulty sensor.
+        //
+        // As a workaround for this, if we have sensors with a zero reference value of 0 after 30
+        // iterations, we assume that all other sensors are calibrated and allow gesture detection
+        // and user interaction. When the user then touches the weird sensor with a zero reference
+        // value in normal use of the device, it too would be calibrated and start working normally.
+        static int counter = 0;
+        if (counter == 30 && !measurement_done_touch) {
+            for (uint16_t i = 0; i < DEF_NUM_SENSORS; i++) {
+                if (qtouch_get_sensor_node_reference(i) == 0) {
+                    measurement_done_touch = 1;
+                    break;
+                }
+            }
+        }
+        counter++;
+    }
+
     if ((0U != (qtlib_key_set1.qtm_touch_key_group_data->qtm_keys_status & 0x80U))) {
         p_qtm_control->binding_layer_flags |= (1U << reburst_request);
     } else {
         measurement_done_touch = 1;
+    }
+
+    if (measurement_done_touch) {
         qtouch_process_scroller_positions(); // Run the custom filter
 #if PLATFORM_BITBOXBASE == 1
         qtouch_process_buttons();
@@ -563,6 +597,13 @@ uint16_t qtouch_get_sensor_node_signal_filtered(uint16_t sensor_node)
     uint16_t X;
     uint16_t sensor_raw = qtouch_get_sensor_node_signal(sensor_node);
     uint16_t sensor_reference = qtouch_get_sensor_node_reference(sensor_node);
+
+    if (sensor_reference == 0) {
+        // If a sensor reference is 0, it means that the sensor is not yet calibrated (or dead).
+        // The signal can be high anyway, which makes it look like the sensor is being touched when
+        // it isn't.
+        return 0;
+    }
     X = sensor_raw < sensor_reference ? 0 : sensor_raw - sensor_reference;
     // Add more weight to edge buttons because they are physically smaller (smaller readings).
     if ((sensor_node == DEF_SCROLLER_OFFSET_0) || (sensor_node == DEF_SCROLLER_OFFSET_1) ||

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::workflow::pairing;
 use alloc::vec::Vec;
 use bitbox02::memory;
 use core::cell::RefCell;
@@ -101,18 +102,21 @@ pub(crate) async fn process(usb_in: Vec<u8>, usb_out: &mut Vec<u8>) -> Result<()
         Some((&OP_I_CAN_HAS_PAIRIN_VERIFICASHUN, b"")) => {
             let hash = state.get_handshake_hash()?;
             // TODO: auto-confirm for BitBoxBase.
-            if crate::workflow::pairing::confirm(&hash).await {
-                state.set_pairing_verified()?;
-                let _: Result<(), ()> = {
-                    // If this fails, we continue anyway, as the communication still works (just the
-                    // pubkey is not stored and we need to perform the pairing verification again
-                    // next time).
-                    memory::add_noise_remote_static_pubkey(&state.remote_static_pubkey()?)
-                };
-                Ok(())
-            } else {
-                state.reset();
-                Err(Error)
+            match pairing::confirm(&hash).await {
+                Ok(()) => {
+                    state.set_pairing_verified()?;
+                    let _: Result<(), ()> = {
+                        // If this fails, we continue anyway, as the communication still works (just the
+                        // pubkey is not stored and we need to perform the pairing verification again
+                        // next time).
+                        memory::add_noise_remote_static_pubkey(&state.remote_static_pubkey()?)
+                    };
+                    Ok(())
+                }
+                Err(pairing::UserAbort) => {
+                    state.reset();
+                    Err(Error)
+                }
             }
         }
         Some((&OP_NOISE_MSG, encrypted_msg)) => {

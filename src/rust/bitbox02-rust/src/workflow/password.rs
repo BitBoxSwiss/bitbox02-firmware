@@ -67,9 +67,7 @@ pub async fn enter_twice() -> Result<SafeInputString, ()> {
             ..Default::default()
         };
 
-        if !confirm::confirm(&params).await {
-            return Err(());
-        }
+        confirm::confirm(&params).await.or(Err(()))?;
     }
     status::status("Success", true).await;
     Ok(password)

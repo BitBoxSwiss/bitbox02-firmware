@@ -22,10 +22,10 @@ pub use password::CanCancel;
 
 /// Confirm the entered mnemonic passphrase with the user. Returns true if the user confirmed it,
 /// false if the user rejected it.
-async fn confirm_mnemonic_passphrase(passphrase: &str) -> bool {
+async fn confirm_mnemonic_passphrase(passphrase: &str) -> Result<(), confirm::UserAbort> {
     // Accept empty passphrase without confirmation.
     if passphrase.is_empty() {
-        return true;
+        return Ok(());
     }
 
     let params = confirm::Params {
@@ -36,10 +36,7 @@ async fn confirm_mnemonic_passphrase(passphrase: &str) -> bool {
         ..Default::default()
     };
 
-    if !confirm::confirm(&params).await {
-        // Can't happen because accept_only = true.
-        return false;
-    }
+    confirm::confirm(&params).await?;
 
     let params = confirm::Params {
         title: "Confirm",
@@ -106,7 +103,7 @@ pub async fn unlock_bip39() {
                     .await
                     .expect("not cancelable");
 
-            if confirm_mnemonic_passphrase(mnemonic_passphrase.as_str()).await {
+            if let Ok(()) = confirm_mnemonic_passphrase(mnemonic_passphrase.as_str()).await {
                 break;
             }
 

@@ -36,7 +36,7 @@ static mut UNLOCK_STATE: TaskState<'static, Result<(), ()>> = TaskState::Nothing
 static mut CONFIRM_TITLE: Option<String> = None;
 static mut CONFIRM_BODY: Option<String> = None;
 static mut CONFIRM_PARAMS: Option<confirm::Params> = None;
-static mut CONFIRM_STATE: TaskState<'static, bool> = TaskState::Nothing;
+static mut CONFIRM_STATE: TaskState<'static, Result<(), confirm::UserAbort>> = TaskState::Nothing;
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
@@ -102,13 +102,13 @@ pub unsafe extern "C" fn rust_workflow_unlock_poll(result_out: &mut bool) -> boo
 /// Returns true if there was a result.
 #[no_mangle]
 pub unsafe extern "C" fn rust_workflow_confirm_poll(result_out: &mut bool) -> bool {
-    match CONFIRM_STATE {
+    match &CONFIRM_STATE {
         TaskState::ResultAvailable(result) => {
             CONFIRM_TITLE = None;
             CONFIRM_BODY = None;
             CONFIRM_PARAMS = None;
             CONFIRM_STATE = TaskState::Nothing;
-            *result_out = result;
+            *result_out = result.is_ok();
             true
         }
         _ => false,
@@ -171,7 +171,7 @@ pub unsafe extern "C" fn rust_workflow_confirm_blocking(
         accept_is_nextarrow: params.accept_is_nextarrow,
         display_size: params.display_size as _,
     };
-    block_on(confirm::confirm(&params))
+    block_on(confirm::confirm(&params)).is_ok()
 }
 
 #[no_mangle]

@@ -166,7 +166,7 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, ()> {
                         body: "Recovery words\ninvalid.\nRestart?",
                         ..Default::default()
                     };
-                    if super::confirm::confirm(&params).await {
+                    if let Ok(()) = confirm::confirm(&params).await {
                         return Err(());
                     }
                     continue;
@@ -175,16 +175,16 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, ()> {
                     // Confirm word picked from menu again, as a typo here would be extremely annoying.
                     // Double checking is also safer, as the user might not even realize they made a typo.
                     let word = choices[choice_idx as usize].clone();
-                    if !super::confirm::confirm(&confirm::Params {
+                    match confirm::confirm(&confirm::Params {
                         title: &title,
                         body: &word,
                         ..Default::default()
                     })
                     .await
                     {
-                        continue;
+                        Err(confirm::UserAbort) => continue,
+                        Ok(()) => Ok(word),
                     }
-                    Ok(word)
                 }
             }
         } else {
@@ -238,7 +238,7 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, ()> {
                             ..Default::default()
                         };
 
-                        if !super::confirm::confirm(&params).await {
+                        if let Err(confirm::UserAbort) = confirm::confirm(&params).await {
                             // Cancel cancelled.
                             continue;
                         }

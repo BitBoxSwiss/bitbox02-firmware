@@ -88,10 +88,7 @@ pub async fn process() -> Result<Response, Error> {
         accept_is_nextarrow: true,
         ..Default::default()
     };
-
-    if !confirm::confirm(&params).await {
-        return Err(Error::UserAbort);
-    }
+    confirm::confirm(&params).await?;
 
     // Part 2) Confirm words
     for (word_idx, word) in words.iter().enumerate() {

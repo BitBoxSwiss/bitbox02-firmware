@@ -58,7 +58,7 @@ pub async fn with_cancel<R>(
                 ..Default::default()
             };
 
-            if !confirm::confirm(&params).await {
+            if let Err(confirm::UserAbort) = confirm::confirm(&params).await {
                 continue;
             }
         }

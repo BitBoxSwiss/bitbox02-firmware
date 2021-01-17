@@ -12,10 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::workflow::confirm;
+pub use confirm::UserAbort;
+
 use arrayvec::ArrayString;
 use core::fmt::Write;
 
-pub async fn confirm(hash: &[u8; 32]) -> bool {
+pub async fn confirm(hash: &[u8; 32]) -> Result<(), UserAbort> {
     let mut encoded = [0u8; 60];
     let encoded = binascii::b32encode(&hash[..], &mut encoded).unwrap();
 
@@ -32,8 +35,6 @@ pub async fn confirm(hash: &[u8; 32]) -> bool {
         &encoded[15..20]
     )
     .expect("failed to format");
-
-    use crate::workflow::confirm;
 
     let params = confirm::Params {
         title: "Pairing code",

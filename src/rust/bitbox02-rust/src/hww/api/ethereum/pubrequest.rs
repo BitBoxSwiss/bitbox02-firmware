@@ -72,9 +72,7 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
             scrollable: true,
             ..Default::default()
         };
-        if !confirm::confirm(&params).await {
-            return Err(Error::UserAbort);
-        }
+        confirm::confirm(&params).await?;
     }
 
     Ok(Response::Pub(pb::PubResponse { r#pub: address }))

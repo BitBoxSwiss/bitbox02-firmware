@@ -515,8 +515,10 @@ endif()
 #  *  factory-setup-bitboxbase_rust_c
 foreach(type ${RUST_LIBS})
   set(lib ${RUST_BINARY_DIR}/feature-${type}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.a)
+  # The dummy output is to always trigger rebuild (cargo is clever enough to
+  # only rebuild if something changed)
   add_custom_command(
-    OUTPUT ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
+    OUTPUT ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a dummy
     COMMAND
       ${CMAKE_COMMAND} -E env
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}

@@ -171,7 +171,21 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, ()> {
                     }
                     continue;
                 }
-                Ok(choice_idx) => Ok(choices[choice_idx as usize].clone()),
+                Ok(choice_idx) => {
+                    // Confirm word picked from menu again, as a typo here would be extremely annoying.
+                    // Double checking is also safer, as the user might not even realize they made a typo.
+                    let word = choices[choice_idx as usize].clone();
+                    if !super::confirm::confirm(&confirm::Params {
+                        title: &title,
+                        body: &word,
+                        ..Default::default()
+                    })
+                    .await
+                    {
+                        continue;
+                    }
+                    Ok(word)
+                }
             }
         } else {
             trinary_input_string::enter(

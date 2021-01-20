@@ -20,3 +20,7 @@ pub mod keypath;
 #[cfg(test)]
 #[macro_use]
 extern crate std;
+
+// for `format!`
+#[macro_use]
+extern crate alloc;

@@ -1,12 +1,11 @@
 use sha3::digest::Digest;
 
+use alloc::string::String;
+use core::convert::TryInto;
+
 /// Generates a checksummed ethereum hex address from a 20 byte recipient.
 /// `recipient` - 20 byte tail (last 20 bytes of the pubkeyhash).
-/// `result` out will hold the address string, must have space for 42 chars.
-pub fn from_pubkey_hash<T>(recipient: &[u8; 20], result: &mut T) -> core::fmt::Result
-where
-    T: core::fmt::Write,
-{
+pub fn from_pubkey_hash(recipient: &[u8; 20]) -> String {
     let mut hex = [0u8; 40];
     hex::encode_to_slice(recipient, &mut hex).unwrap();
     let hash = sha3::Keccak256::digest(&hex[..]);
@@ -23,7 +22,7 @@ where
             *e -= 32; // convert to uppercase
         }
     }
-    write!(result, "0x{}", unsafe {
+    format!("0x{}", unsafe {
         // valid utf8 because hex and the uppercasing above is correct.
         core::str::from_utf8_unchecked(&hex[..])
     })
@@ -31,14 +30,9 @@ where
 
 /// Generates a checksummed ethereum hex address from a 65 byte pubkey.
 /// `recipient` - 20 byte tail (last 20 bytes of the pubkeyhash).
-/// `result` out will hold the address string, must have space for 42 chars.
-pub fn from_pubkey<T>(pubkey_uncompressed: &[u8; 65], result: &mut T) -> core::fmt::Result
-where
-    T: core::fmt::Write,
-{
+pub fn from_pubkey(pubkey_uncompressed: &[u8; 65]) -> String {
     let hash = sha3::Keccak256::digest(&pubkey_uncompressed[1..]);
-    let last20 = arrayref::array_ref!(hash, hash.len() - 20, 20);
-    from_pubkey_hash(last20, result)
+    from_pubkey_hash(hash[hash.len() - 20..].try_into().unwrap())
 }
 
 #[cfg(test)]
@@ -48,13 +42,12 @@ mod tests {
 
     #[test]
     fn test_from_pubkey_hash() {
-        let mut result = String::new();
-        from_pubkey_hash(
-            b"\xf4\xc2\x17\x10\xef\x8b\x5a\x5e\xc4\xbd\x37\x80\xa6\x87\xfe\x08\x34\x46\xe6\x7b",
-            &mut result,
-        )
-        .unwrap();
-        assert_eq!("0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B", result);
+        assert_eq!(
+            from_pubkey_hash(
+                b"\xf4\xc2\x17\x10\xef\x8b\x5a\x5e\xc4\xbd\x37\x80\xa6\x87\xfe\x08\x34\x46\xe6\x7b",
+            ),
+            "0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B"
+        );
     }
 
     #[test]
@@ -110,9 +103,7 @@ mod tests {
             expected_address,
         } in tests
         {
-            let mut result = String::new();
-            from_pubkey(&pubkey, &mut result).unwrap();
-            assert_eq!(expected_address, result);
+            assert_eq!(from_pubkey(&pubkey), expected_address);
         }
     }
 }

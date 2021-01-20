@@ -16,12 +16,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85bb70cc08ec97ca5450e6eba421deeea5f172c0fc61f78b5357b2a8e8be195f"
 
 [[package]]
-name = "arrayref"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4c527152e37cf757a3f78aae5a06fbeefdb07ccc535c980a3208ee3060dd544"
-
-[[package]]
 name = "arrayvec"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -74,7 +68,6 @@ dependencies = [
 name = "bitbox02-rust-c"
 version = "0.1.0"
 dependencies = [
- "arrayref",
  "bitbox02",
  "bitbox02-noise",
  "bitbox02-rust",
@@ -195,7 +188,6 @@ checksum = "bb1f6b1ce1c140482ea30ddd3335fc0024ac7ee112895426e0a629a6c20adfe3"
 name = "ethereum"
 version = "0.1.0"
 dependencies = [
- "arrayref",
  "hex",
  "sha3",
  "util",

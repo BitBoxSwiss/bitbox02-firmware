@@ -1,6 +1,9 @@
 # Changelog
 
-## 9.4.0 [version may change, pending release]
+## [Unreleased]
+-
+
+## 9.4.0 [released 2021-01-20]
 - ETHPubRequest api call now fails if a an invalid contract address is provided also if `display` is
   false.
 - Fix a memory leak (freeing a malloc'd string - no a functional or security issue)
@@ -8,6 +11,7 @@
 - Verifiable seed generation: when restoring from 24 recovery words, for the 24th word, show all 8 candidate words which result in a valid checksum.
 - Better error reporting on secure chip setup failures.
 - Fix a rare touch issue resulting from failed calibration.
+- Protection against the nonce covert channel attack when singing Bitcoin/Litecoin transactions (antiklepto protocol).
 
 ## 9.3.1 [tagged 2020-12-01]
 - Fix a bug where the device could freeze and become unresponsive.

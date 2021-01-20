@@ -31,8 +31,10 @@
 
 typedef struct {
     bool has_address;
-    void (*cancel_callback)(void);
-    void (*confirm_callback)(void);
+    // accepted: true means the user accepted the info shown, false means the user rejected the
+    // info.
+    void (*callback)(bool accepted, void* param);
+    void* callback_param;
 } data_t;
 
 static void _render(component_t* component)
@@ -52,9 +54,9 @@ static void _on_event(const event_t* event, component_t* component)
 {
     if (event->id == EVENT_CONFIRM) {
         data_t* data = (data_t*)component->data;
-        if (data->confirm_callback) {
-            data->confirm_callback();
-            data->confirm_callback = NULL;
+        if (data->callback) {
+            data->callback(true, data->callback_param);
+            data->callback = NULL;
         }
     }
 }
@@ -63,8 +65,9 @@ static void _cancel(component_t* cancel_button)
 {
     component_t* component = cancel_button->parent;
     data_t* data = (data_t*)component->data;
-    if (data->cancel_callback != NULL) {
-        data->cancel_callback();
+    if (data->callback != NULL) {
+        data->callback(false, data->callback_param);
+        data->callback = NULL;
     }
 }
 
@@ -86,8 +89,8 @@ static component_t* _confirm_transaction_create(
     const char* address,
     const char* fee,
     bool verify_total, /* if true, verify total and fee, otherwise verify amount and address */
-    void (*confirm_callback)(void),
-    void (*cancel_callback)(void))
+    void (*callback)(bool, void*),
+    void* callback_param)
 {
     if (address && fee) {
         Abort("Error: confirm btc does not support displaying both address and fee");
@@ -107,8 +110,8 @@ static component_t* _confirm_transaction_create(
     memset(confirm, 0, sizeof(component_t));
 
     data->has_address = strlens(address);
-    data->confirm_callback = confirm_callback;
-    data->cancel_callback = cancel_callback;
+    data->callback = callback;
+    data->callback_param = callback_param;
     confirm->data = data;
     confirm->f = &_component_functions;
     confirm->dimension.width = SCREEN_WIDTH;
@@ -150,18 +153,17 @@ static component_t* _confirm_transaction_create(
 component_t* confirm_transaction_address_create(
     const char* amount,
     const char* address,
-    void (*confirm_callback)(void),
-    void (*cancel_callback)(void))
+    void (*callback)(bool accepted, void* param),
+    void* callback_param)
 {
-    return _confirm_transaction_create(
-        amount, address, NULL, false, confirm_callback, cancel_callback);
+    return _confirm_transaction_create(amount, address, NULL, false, callback, callback_param);
 }
 
 component_t* confirm_transaction_fee_create(
     const char* amount,
     const char* fee,
-    void (*confirm_callback)(void),
-    void (*cancel_callback)(void))
+    void (*callback)(bool accepted, void* param),
+    void* callback_param)
 {
-    return _confirm_transaction_create(amount, NULL, fee, true, confirm_callback, cancel_callback);
+    return _confirm_transaction_create(amount, NULL, fee, true, callback, callback_param);
 }

@@ -20,27 +20,20 @@
 #include <ui/components/confirm_transaction.h>
 #include <ui/screen_stack.h>
 
-static bool _result = false;
-static void _confirm(void)
+static void _callback(bool result, void* param)
 {
-    _result = true;
-    workflow_blocking_unblock();
-}
-
-static void _reject(void)
-{
-    _result = false;
+    *(bool*)param = result;
     workflow_blocking_unblock();
 }
 
 bool workflow_verify_recipient(const char* recipient, const char* amount)
 {
-    _result = false;
-    ui_screen_stack_push(confirm_transaction_address_create(amount, recipient, _confirm, _reject));
+    bool result = false;
+    ui_screen_stack_push(confirm_transaction_address_create(amount, recipient, _callback, &result));
     workflow_blocking_block();
     ui_screen_stack_pop();
-    if (!_result) {
+    if (!result) {
         workflow_status_blocking("Transaction\ncanceled", false);
     }
-    return _result;
+    return result;
 }

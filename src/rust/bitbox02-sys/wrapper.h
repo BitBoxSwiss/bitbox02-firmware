@@ -30,6 +30,7 @@
 #include <sd.h>
 #include <securechip/securechip.h>
 #include <ui/components/confirm.h>
+#include <ui/components/confirm_transaction.h>
 #include <ui/components/label.h>
 #include <ui/components/menu.h>
 #include <ui/components/sdcard.h>

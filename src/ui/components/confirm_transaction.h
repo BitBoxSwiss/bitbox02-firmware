@@ -21,26 +21,28 @@
  * Creates a confirm screen.
  * @param[in] amount of coins to send, including the unit suffix.
  * @param[in] address to send coins
- * @param[in] confirm_callback The callback triggered when the user pushes the confirm button.
- * @param[in] cancel_callback The callback triggered when the user pushes the cancel button.
+ * @param[in] callback The callback triggered when the user accepts or rejects. Is called at most
+ * once.
+ * @param[in] callback_param Passed to `callback`.
  */
 component_t* confirm_transaction_address_create(
     const char* amount,
     const char* address,
-    void (*confirm_callback)(void),
-    void (*cancel_callback)(void));
+    void (*callback)(bool accepted, void* param),
+    void* callback_param);
 
 /**
  * Creates a confirm screen.
  * @param[in] amount of coins to send, including the unit suffix.
  * @param[in] fee to send coins
- * @param[in] confirm_callback The callback triggered when the user pushes the confirm button.
- * @param[in] cancel_callback The callback triggered when the user pushes the cancel button.
+ * @param[in] callback The callback triggered when the user accepts or rejects. Is called at most
+ * once.
+ * @param[in] callback_param Passed to `callback`.
  */
 component_t* confirm_transaction_fee_create(
     const char* amount,
     const char* fee,
-    void (*confirm_callback)(void),
-    void (*cancel_callback)(void));
+    void (*callback)(bool accepted, void* param),
+    void* callback_param);
 
 #endif

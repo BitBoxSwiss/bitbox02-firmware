@@ -16,6 +16,7 @@
 pub mod ascii;
 pub mod bip32;
 pub mod c_types;
+pub mod decimal;
 pub mod name;
 
 // for `format!`

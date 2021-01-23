@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use core::convert::TryInto;
+use core::fmt::Write;
+
 use super::util::{Bytes, CStrMut};
 
 /// # Safety
@@ -28,8 +31,8 @@ pub unsafe extern "C" fn rust_ethereum_keypath_is_valid_address(
 
 #[no_mangle]
 pub extern "C" fn rust_ethereum_address_from_pubkey_hash(recipient: Bytes, mut out: CStrMut) {
-    let recipient = arrayref::array_ref!(recipient.as_ref(), 0, 20);
-    ethereum::address::from_pubkey_hash(recipient, &mut out).unwrap();
+    let address = ethereum::address::from_pubkey_hash(recipient.as_ref().try_into().unwrap());
+    out.write_str(address.as_str()).unwrap();
 }
 
 #[cfg(test)]

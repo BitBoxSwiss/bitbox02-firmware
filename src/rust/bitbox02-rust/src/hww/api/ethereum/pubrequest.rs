@@ -22,7 +22,6 @@ use crate::workflow::confirm;
 use bitbox02::keystore;
 
 extern crate alloc;
-use alloc::string::String;
 use core::convert::TryInto;
 
 fn coin_title(coin: pb::EthCoin) -> &'static str {
@@ -57,8 +56,7 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
     }
     let pubkey = bitbox02::keystore::secp256k1_pubkey_uncompressed(&request.keypath)
         .or(Err(Error::InvalidInput))?;
-    let mut address = String::new();
-    ethereum::address::from_pubkey(&pubkey, &mut address).unwrap();
+    let address = ethereum::address::from_pubkey(&pubkey);
 
     if request.display {
         let title = match erc20_params {

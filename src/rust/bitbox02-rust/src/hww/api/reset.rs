@@ -27,9 +27,7 @@ pub async fn process() -> Result<Response, Error> {
         ..Default::default()
     };
 
-    if !confirm::confirm(&params).await {
-        return Err(Error::Generic);
-    }
+    confirm::confirm(&params).await.or(Err(Error::Generic))?;
 
     bitbox02::reset(true);
 

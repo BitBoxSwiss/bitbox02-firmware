@@ -94,9 +94,7 @@ async fn xpub(
             scrollable: true,
             ..Default::default()
         };
-        if !confirm::confirm(&confirm_params).await {
-            return Err(Error::UserAbort);
-        }
+        confirm::confirm(&confirm_params).await?;
     }
     Ok(Response::Pub(pb::PubResponse { r#pub: xpub }))
 }
@@ -116,9 +114,7 @@ async fn address_simple(
             scrollable: true,
             ..Default::default()
         };
-        if !confirm::confirm(&confirm_params).await {
-            return Err(Error::UserAbort);
-        }
+        confirm::confirm(&confirm_params).await?;
     }
     Ok(Response::Pub(pb::PubResponse { r#pub: address }))
 }

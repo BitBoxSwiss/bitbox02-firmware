@@ -33,9 +33,7 @@ pub async fn process(
         ..Default::default()
     };
 
-    if !confirm::confirm(&params).await {
-        return Err(Error::UserAbort);
-    }
+    confirm::confirm(&params).await?;
 
     bitbox02::memory::set_device_name(&name)?;
 

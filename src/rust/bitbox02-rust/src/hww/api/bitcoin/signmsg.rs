@@ -66,9 +66,7 @@ pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Er
         accept_is_nextarrow: true,
         ..Default::default()
     };
-    if !confirm::confirm(&confirm_params).await {
-        return Err(Error::UserAbort);
-    }
+    confirm::confirm(&confirm_params).await?;
 
     let confirm_params = confirm::Params {
         title: "Address",
@@ -77,9 +75,7 @@ pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Er
         accept_is_nextarrow: true,
         ..Default::default()
     };
-    if !confirm::confirm(&confirm_params).await {
-        return Err(Error::UserAbort);
-    }
+    confirm::confirm(&confirm_params).await?;
 
     verify_message::verify(&request.msg).await?;
 

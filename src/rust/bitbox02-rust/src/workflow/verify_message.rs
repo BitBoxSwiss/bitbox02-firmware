@@ -24,6 +24,12 @@ pub enum Error {
     UserAbort,
 }
 
+impl core::convert::From<confirm::UserAbort> for Error {
+    fn from(_error: confirm::UserAbort) -> Self {
+        Error::UserAbort
+    }
+}
+
 /// Verify a message to be signed.
 ///
 /// If the bytes are all printable ascii chars, the message is
@@ -54,9 +60,7 @@ pub async fn verify(msg: &[u8]) -> Result<(), Error> {
                 longtouch: is_last,
                 ..Default::default()
             };
-            if !confirm::confirm(&params).await {
-                return Err(Error::UserAbort);
-            }
+            confirm::confirm(&params).await?;
         }
         Ok(())
     } else {
@@ -68,10 +72,7 @@ pub async fn verify(msg: &[u8]) -> Result<(), Error> {
             longtouch: true,
             ..Default::default()
         };
-        if confirm::confirm(&params).await {
-            Ok(())
-        } else {
-            Err(Error::UserAbort)
-        }
+        confirm::confirm(&params).await?;
+        Ok(())
     }
 }

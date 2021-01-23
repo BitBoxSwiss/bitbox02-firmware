@@ -36,9 +36,7 @@ pub async fn check(
                     ..Default::default()
                 };
 
-                if !confirm::confirm(&params).await {
-                    return Err(Error::UserAbort);
-                }
+                confirm::confirm(&params).await?;
 
                 let params = confirm::Params {
                     title: "ID?",
@@ -47,9 +45,7 @@ pub async fn check(
                     ..Default::default()
                 };
 
-                if !confirm::confirm(&params).await {
-                    return Err(Error::UserAbort);
-                }
+                confirm::confirm(&params).await?;
 
                 status::status("Backup valid", true).await;
             }
@@ -109,9 +105,7 @@ pub async fn create(
             body: &date_string,
             ..Default::default()
         };
-        if !confirm::confirm(&params).await {
-            return Err(Error::UserAbort);
-        }
+        confirm::confirm(&params).await?;
         if bitbox02::memory::set_seed_birthdate(timestamp).is_err() {
             return Err(Error::Memory);
         }

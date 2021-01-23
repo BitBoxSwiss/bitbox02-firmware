@@ -29,9 +29,7 @@ pub async fn process(
         ..Default::default()
     };
 
-    if !confirm::confirm(&params).await {
-        return Err(Error::UserAbort);
-    }
+    confirm::confirm(&params).await?;
 
     if bitbox02::memory::set_mnemonic_passphrase_enabled(enabled).is_err() {
         return Err(Error::Memory);

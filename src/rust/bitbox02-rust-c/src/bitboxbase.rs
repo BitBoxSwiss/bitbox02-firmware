@@ -55,8 +55,8 @@ pub fn confirm_pairing(
     bitbox02::leds_turn_small_led(0, false);
     bitbox02::leds_turn_small_led(4, false);
     match res {
-        true => bitbox02::commander::Error::COMMANDER_OK,
-        false => bitbox02::commander::Error::COMMANDER_ERR_USER_ABORT,
+        Ok(()) => bitbox02::commander::Error::COMMANDER_OK,
+        Err(pairing::UserAbort) => bitbox02::commander::Error::COMMANDER_ERR_USER_ABORT,
     }
 }
 

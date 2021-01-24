@@ -20,7 +20,6 @@ pub struct Params {
     pub unit: &'static str,
 }
 
-#[cfg(not(feature = "testing"))]
 pub fn params_get(coin: bitbox02_sys::ETHCoin) -> Option<Params> {
     let params = unsafe { bitbox02_sys::app_eth_params_get(coin).as_ref()? };
     Some(Params {
@@ -34,12 +33,6 @@ pub fn params_get(coin: bitbox02_sys::ETHCoin) -> Option<Params> {
             core::str::from_utf8(&s[..]).unwrap()
         },
     })
-}
-
-#[cfg(feature = "testing")]
-pub fn params_get(coin: bitbox02_sys::ETHCoin) -> Option<Params> {
-    let data = crate::testing::DATA.0.borrow();
-    data.eth_params_get.as_ref().unwrap()(coin)
 }
 
 pub struct ERC20Params {

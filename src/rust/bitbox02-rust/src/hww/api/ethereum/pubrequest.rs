@@ -125,14 +125,6 @@ mod tests {
 
         // All good.
         mock(Data {
-            eth_params_get: Some(Box::new(|coin| {
-                assert_eq!(coin, pb::EthCoin::Eth as _);
-                Some(bitbox02::app_eth::Params {
-                    bip44_coin: 60 + HARDENED,
-                    chain_id: 1,
-                    unit: "ETH",
-                })
-            })),
             keystore_encode_xpub_at_keypath: Some(Box::new(|_, xpub_type| {
                 assert_eq!(xpub_type, keystore::xpub_type_t::XPUB);
                 Ok(EXPECTED_XPUB.into())
@@ -147,34 +139,29 @@ mod tests {
         );
 
         // Params not found.
+        let mut invalid_request = request.clone();
+        invalid_request.coin = 100;
         mock(Data {
-            eth_params_get: Some(Box::new(|_| None)),
             ..Default::default()
         });
-        assert_eq!(block_on(process(&request)), Err(Error::InvalidInput));
+        assert_eq!(
+            block_on(process(&invalid_request)),
+            Err(Error::InvalidInput)
+        );
 
         // Wrong keypath (wrong expected coin)
+        let mut invalid_request = request.clone();
+        invalid_request.keypath[1] = 61 + HARDENED;
         mock(Data {
-            eth_params_get: Some(Box::new(|_| {
-                Some(bitbox02::app_eth::Params {
-                    bip44_coin: 61 + HARDENED,
-                    chain_id: 1,
-                    unit: "ETH",
-                })
-            })),
             ..Default::default()
         });
-        assert_eq!(block_on(process(&request)), Err(Error::InvalidInput));
+        assert_eq!(
+            block_on(process(&invalid_request)),
+            Err(Error::InvalidInput)
+        );
 
         // xpub fetching/encoding failed.
         mock(Data {
-            eth_params_get: Some(Box::new(|_| {
-                Some(bitbox02::app_eth::Params {
-                    bip44_coin: 60 + HARDENED,
-                    chain_id: 1,
-                    unit: "ETH",
-                })
-            })),
             keystore_encode_xpub_at_keypath: Some(Box::new(|_, _| Err(()))),
             ..Default::default()
         });
@@ -204,14 +191,6 @@ mod tests {
 
         // All good.
         mock(Data {
-            eth_params_get: Some(Box::new(|coin| {
-                assert_eq!(coin, pb::EthCoin::Eth as _);
-                Some(bitbox02::app_eth::Params {
-                    bip44_coin: 60 + HARDENED,
-                    chain_id: 1,
-                    unit: "ETH",
-                })
-            })),
             keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ..Default::default()
         });
@@ -224,13 +203,6 @@ mod tests {
 
         // All good, with display.
         mock(Data {
-            eth_params_get: Some(Box::new(|_| {
-                Some(bitbox02::app_eth::Params {
-                    bip44_coin: 60 + HARDENED,
-                    chain_id: 1,
-                    unit: "ETH",
-                })
-            })),
             keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ui_confirm_create: Some(Box::new(|params| {
                 assert_eq!(params.title, "Ethereum");
@@ -253,34 +225,29 @@ mod tests {
         );
 
         // Params not found.
+        let mut invalid_request = request.clone();
+        invalid_request.coin = 100;
         mock(Data {
-            eth_params_get: Some(Box::new(|_| None)),
             ..Default::default()
         });
-        assert_eq!(block_on(process(&request)), Err(Error::InvalidInput));
+        assert_eq!(
+            block_on(process(&invalid_request)),
+            Err(Error::InvalidInput)
+        );
 
         // Wrong keypath (wrong expected coin)
+        let mut invalid_request = request.clone();
+        invalid_request.keypath[1] = 61 + HARDENED;
         mock(Data {
-            eth_params_get: Some(Box::new(|_| {
-                Some(bitbox02::app_eth::Params {
-                    bip44_coin: 61 + HARDENED,
-                    chain_id: 1,
-                    unit: "ETH",
-                })
-            })),
             ..Default::default()
         });
-        assert_eq!(block_on(process(&request)), Err(Error::InvalidInput));
+        assert_eq!(
+            block_on(process(&invalid_request)),
+            Err(Error::InvalidInput)
+        );
 
         // Wrong keypath (account too high)
         mock(Data {
-            eth_params_get: Some(Box::new(|_| {
-                Some(bitbox02::app_eth::Params {
-                    bip44_coin: 60 + HARDENED,
-                    chain_id: 1,
-                    unit: "ETH",
-                })
-            })),
             ..Default::default()
         });
         assert_eq!(
@@ -319,14 +286,6 @@ mod tests {
 
         // All good.
         mock(Data {
-            eth_params_get: Some(Box::new(|coin| {
-                assert_eq!(coin, pb::EthCoin::Eth as _);
-                Some(bitbox02::app_eth::Params {
-                    bip44_coin: 60 + HARDENED,
-                    chain_id: 1,
-                    unit: "ETH",
-                })
-            })),
             eth_erc20_params_get: Some(Box::new(|coin, contract_address| {
                 assert_eq!(coin, pb::EthCoin::Eth as _);
                 assert_eq!(contract_address, CONTRACT_ADDRESS);
@@ -350,13 +309,6 @@ mod tests {
         const TOKEN_NAME: &str = "ERC20 token";
         // All good, with display.
         mock(Data {
-            eth_params_get: Some(Box::new(|_| {
-                Some(bitbox02::app_eth::Params {
-                    bip44_coin: 60 + HARDENED,
-                    chain_id: 1,
-                    unit: "ETH",
-                })
-            })),
             eth_erc20_params_get: Some(Box::new(|_, _| {
                 Some(bitbox02::app_eth::ERC20Params {
                     unit: "ETH",
@@ -388,13 +340,6 @@ mod tests {
 
         // ERC20 params not found / invalid contract address.
         mock(Data {
-            eth_params_get: Some(Box::new(|_| {
-                Some(bitbox02::app_eth::Params {
-                    bip44_coin: 60 + HARDENED,
-                    chain_id: 1,
-                    unit: "ETH",
-                })
-            })),
             eth_erc20_params_get: Some(Box::new(|_, _| None)),
             ..Default::default()
         });

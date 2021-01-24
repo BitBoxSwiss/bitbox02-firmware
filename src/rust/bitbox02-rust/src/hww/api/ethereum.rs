@@ -17,6 +17,7 @@ compile_error!(
     "Ethereum code is being compiled even though the app-ethereum feature is not enabled"
 );
 
+mod amount;
 mod pubrequest;
 mod signmsg;
 

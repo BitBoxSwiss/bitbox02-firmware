@@ -274,7 +274,8 @@ mod tests {
             0xda, 0xc8, 0xee, 0x03, 0x1a, 0x4e, 0xd1, 0x71, 0xfd,
         ];
         const ADDRESS: &str = "0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B";
-        const CONTRACT_ADDRESS: [u8; 20] = *b"aaaaaaaaaaaaaaaaaaaa";
+        const CONTRACT_ADDRESS: [u8; 20] =
+            *b"\xda\xc1\x7f\x95\x8d\x2e\xe5\x23\xa2\x20\x62\x06\x99\x45\x97\xc1\x3d\x83\x1e\xc7";
 
         let request = &pb::EthPubRequest {
             output_type: OutputType::Address as _,
@@ -286,16 +287,6 @@ mod tests {
 
         // All good.
         mock(Data {
-            eth_erc20_params_get: Some(Box::new(|coin, contract_address| {
-                assert_eq!(coin, pb::EthCoin::Eth as _);
-                assert_eq!(contract_address, CONTRACT_ADDRESS);
-                Some(bitbox02::app_eth::ERC20Params {
-                    unit: "ETH",
-                    name: "ERC20 token",
-                    contract_address: CONTRACT_ADDRESS,
-                    decimals: 6,
-                })
-            })),
             keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ..Default::default()
         });
@@ -306,20 +297,11 @@ mod tests {
             }))
         );
 
-        const TOKEN_NAME: &str = "ERC20 token";
         // All good, with display.
         mock(Data {
-            eth_erc20_params_get: Some(Box::new(|_, _| {
-                Some(bitbox02::app_eth::ERC20Params {
-                    unit: "ETH",
-                    name: TOKEN_NAME,
-                    contract_address: CONTRACT_ADDRESS,
-                    decimals: 6,
-                })
-            })),
             keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.title, TOKEN_NAME);
+                assert_eq!(params.title, "Tether USD");
                 assert_eq!(params.body, "0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B");
                 true
             })),
@@ -340,7 +322,6 @@ mod tests {
 
         // ERC20 params not found / invalid contract address.
         mock(Data {
-            eth_erc20_params_get: Some(Box::new(|_, _| None)),
             ..Default::default()
         });
         assert_eq!(
@@ -349,7 +330,7 @@ mod tests {
                 keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
                 coin: pb::EthCoin::Eth as _,
                 display: false,
-                contract_address: CONTRACT_ADDRESS.to_vec(),
+                contract_address: b"aaaaaaaaaaaaaaaaaaaa".to_vec(),
             })),
             Err(Error::InvalidInput)
         );

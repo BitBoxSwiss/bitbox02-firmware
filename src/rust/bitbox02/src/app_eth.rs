@@ -42,7 +42,6 @@ pub struct ERC20Params {
     pub decimals: u8,
 }
 
-#[cfg(not(feature = "testing"))]
 pub fn erc20_params_get(
     coin: bitbox02_sys::ETHCoin,
     contract_address: [u8; 20],
@@ -68,15 +67,6 @@ pub fn erc20_params_get(
         contract_address: params.contract_address,
         decimals: params.decimals,
     })
-}
-
-#[cfg(feature = "testing")]
-pub fn erc20_params_get(
-    coin: bitbox02_sys::ETHCoin,
-    contract_address: [u8; 20],
-) -> Option<ERC20Params> {
-    let data = crate::testing::DATA.0.borrow();
-    data.eth_erc20_params_get.as_ref().unwrap()(coin, contract_address)
 }
 
 pub struct SighashParams<'a> {

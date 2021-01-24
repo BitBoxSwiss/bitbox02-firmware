@@ -141,7 +141,7 @@ add_dependencies(bitbox_objects
   base32
   ctaes
 )
-target_link_libraries(bitbox PRIVATE ${LIBBITBOX02_RUST})
+target_link_libraries(bitbox PRIVATE ${LIBBITBOX02_RUST} "-lm")
 
 set_source_files_properties(
   ${DBB-FIRMWARE-PROTOBUF-SOURCES}

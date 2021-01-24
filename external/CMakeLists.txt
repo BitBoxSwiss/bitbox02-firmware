@@ -251,10 +251,3 @@ add_library(sha3
 target_include_directories(sha3 SYSTEM PUBLIC sha3)
 target_compile_definitions(sha3 PUBLIC USE_KECCAK)
 target_compile_options(sha3 PRIVATE -Wno-cast-qual)
-
-add_library(bignum
-  bignum/bignum.c
-  bignum/largeprime.c
-)
-target_include_directories(bignum SYSTEM PUBLIC bignum)
-target_compile_options(bignum PRIVATE -Wno-missing-prototypes -Wno-missing-declarations -Wno-switch-default)

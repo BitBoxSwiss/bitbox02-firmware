@@ -20,9 +20,6 @@
 #if APP_BTC == 1 || APP_LTC == 1
 #include "commander/commander_btc.h"
 #endif
-#if APP_ETH == 1
-#include "commander/commander_eth.h"
-#endif
 #if PRODUCT_BITBOX_BASE == 1
 #include "rust/rust.h"
 #endif
@@ -153,14 +150,6 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_restore_backup_tag:
         response->which_response = Response_success_tag;
         return _api_restore_backup(&(request->request.restore_backup));
-#if APP_ETH == 1
-    case Request_eth_tag:
-        response->which_response = Response_eth_tag;
-        return commander_eth(&(request->request.eth), &(response->response.eth));
-#else
-    case Request_eth_tag:
-        return COMMANDER_ERR_DISABLED;
-#endif
 #endif
 #if PRODUCT_BITBOX_BASE == 1
     case Request_bitboxbase_tag:

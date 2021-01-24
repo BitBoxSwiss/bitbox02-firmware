@@ -186,12 +186,8 @@ set(CRYPTOAUTHLIB-SOURCES
 set(CRYPTOAUTHLIB-SOURCES ${CRYPTOAUTHLIB-SOURCES} PARENT_SCOPE)
 
 set(ETHEREUM-SOURCES
-  ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_common.c
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_params.c
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_sighash.c
-  ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_sign.c
-  ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_verify.c
-  ${CMAKE_SOURCE_DIR}/src/commander/commander_eth.c
 )
 set(ETHEREUM-SOURCES ${ETHEREUM-SOURCES} PARENT_SCOPE)
 
@@ -652,7 +648,6 @@ if(CMAKE_CROSSCOMPILING)
         cryptoauthlib
         fatfs
         base32
-        bignum # TODO: only eth
         sha3   # TODO: Only eth
         ctaes
         c

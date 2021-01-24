@@ -1,6 +1,7 @@
 #include "eth_sighash.h"
 
 #include <hardfault.h>
+#include <util.h>
 
 #include <sha3.h>
 
@@ -78,18 +79,18 @@ static void _hash_element(
     }
 }
 
-bool app_eth_sighash(const ETHSignRequest* request, uint8_t chain_id, uint8_t* sighash_out)
+bool app_eth_sighash(eth_sighash_params_t params, uint8_t* sighash_out)
 {
     // We hash [nonce, gas price, gas limit, recipient, value, data], RLP encoded.
     // The list length prefix is (0xc0 + length of the encoding of all elements).
     // 1) calculate length
     uint32_t encoded_length = 0;
-    _hash_element(NULL, request->nonce.bytes, request->nonce.size, &encoded_length);
-    _hash_element(NULL, request->gas_price.bytes, request->gas_price.size, &encoded_length);
-    _hash_element(NULL, request->gas_limit.bytes, request->gas_limit.size, &encoded_length);
-    _hash_element(NULL, request->recipient, sizeof(request->recipient), &encoded_length);
-    _hash_element(NULL, request->value.bytes, request->value.size, &encoded_length);
-    _hash_element(NULL, request->data.bytes, request->data.size, &encoded_length);
+    _hash_element(NULL, params.nonce.data, params.nonce.len, &encoded_length);
+    _hash_element(NULL, params.gas_price.data, params.gas_price.len, &encoded_length);
+    _hash_element(NULL, params.gas_limit.data, params.gas_limit.len, &encoded_length);
+    _hash_element(NULL, params.recipient.data, params.recipient.len, &encoded_length);
+    _hash_element(NULL, params.value.data, params.value.len, &encoded_length);
+    _hash_element(NULL, params.data.data, params.data.len, &encoded_length);
     encoded_length += 3; // EIP155 part, see below.
     if (encoded_length > 0xffff) {
         // Don't support bigger than this for now.
@@ -99,18 +100,18 @@ bool app_eth_sighash(const ETHSignRequest* request, uint8_t chain_id, uint8_t* s
     sha3_ctx ctx;
     rhash_sha3_256_init(&ctx);
     _hash_header(&ctx, 0xc0, 0xf7, (pb_size_t)encoded_length, NULL);
-    _hash_element(&ctx, request->nonce.bytes, request->nonce.size, NULL);
-    _hash_element(&ctx, request->gas_price.bytes, request->gas_price.size, NULL);
-    _hash_element(&ctx, request->gas_limit.bytes, request->gas_limit.size, NULL);
-    _hash_element(&ctx, request->recipient, sizeof(request->recipient), NULL);
-    _hash_element(&ctx, request->value.bytes, request->value.size, NULL);
-    _hash_element(&ctx, request->data.bytes, request->data.size, NULL);
+    _hash_element(&ctx, params.nonce.data, params.nonce.len, NULL);
+    _hash_element(&ctx, params.gas_price.data, params.gas_price.len, NULL);
+    _hash_element(&ctx, params.gas_limit.data, params.gas_limit.len, NULL);
+    _hash_element(&ctx, params.recipient.data, params.recipient.len, NULL);
+    _hash_element(&ctx, params.value.data, params.value.len, NULL);
+    _hash_element(&ctx, params.data.data, params.data.len, NULL);
     { // EIP155
-        if (chain_id == 0 || chain_id > 0x7f) {
+        if (params.chain_id == 0 || params.chain_id > 0x7f) {
             Abort("chain id encoding error");
         }
         // encodes <chainID><0><0>
-        uint8_t eip155_part[3] = {chain_id, 0x80, 0x80};
+        uint8_t eip155_part[3] = {params.chain_id, 0x80, 0x80};
         rhash_sha3_update(&ctx, eip155_part, sizeof(eip155_part));
     }
     rhash_keccak_final(&ctx, sighash_out);

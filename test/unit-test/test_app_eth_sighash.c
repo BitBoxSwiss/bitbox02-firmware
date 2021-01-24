@@ -7043,7 +7043,40 @@ static void _test_app_eth_sighash(void** state)
     uint8_t sighash[32];
     for (size_t i = 0; i < sizeof(_tests) / sizeof(_tests[0]); i++) {
         const _test_t* test = &_tests[i];
-        assert_true(app_eth_sighash(&test->request, test->chain_id, sighash));
+        eth_sighash_params_t params = {
+            .nonce =
+                {
+                    .data = test->request.nonce.bytes,
+                    .len = test->request.nonce.size,
+                },
+            .gas_price =
+                {
+                    .data = test->request.gas_price.bytes,
+                    .len = test->request.gas_price.size,
+                },
+            .gas_limit =
+                {
+                    .data = test->request.gas_limit.bytes,
+                    .len = test->request.gas_limit.size,
+                },
+            .recipient =
+                {
+                    .data = test->request.recipient,
+                    .len = sizeof(test->request.recipient),
+                },
+            .value =
+                {
+                    .data = test->request.value.bytes,
+                    .len = test->request.value.size,
+                },
+            .data =
+                {
+                    .data = test->request.data.bytes,
+                    .len = test->request.data.size,
+                },
+            .chain_id = test->chain_id,
+        };
+        assert_true(app_eth_sighash(params, sighash));
         assert_memory_equal(test->expected_sighash, sighash, sizeof(sighash));
     }
 }

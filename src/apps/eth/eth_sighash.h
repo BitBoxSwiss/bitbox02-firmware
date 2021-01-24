@@ -21,16 +21,25 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <util.h>
+
+typedef struct {
+    in_buffer_t nonce;
+    in_buffer_t gas_price;
+    in_buffer_t gas_limit;
+    in_buffer_t recipient;
+    in_buffer_t value;
+    in_buffer_t data;
+    // EIP155 chain id.
+    uint8_t chain_id;
+} eth_sighash_params_t;
+
 /**
  * Computes the sighash of an Ethereum transaction, using the chain_id as described in EIP155.
- * @param[in] request transaction data. coin and keypath are ignored. nonce, gas_price, gas_limit,
- * an value are big endian and are not allowed to have leading zeros (unchecked).
- * @param[in] chain_id EIP155 chain id.
+ * @param[in] params transaction data. nonce, gas_price, gas_limit, and value are big endian and are
+ * not allowed to have leading zeros (unchecked).
  * @param[out] sighash_out 32 bytes hash to be signed.
  */
-USE_RESULT bool app_eth_sighash(
-    const ETHSignRequest* request,
-    uint8_t chain_id,
-    uint8_t* sighash_out);
+USE_RESULT bool app_eth_sighash(eth_sighash_params_t params, uint8_t* sighash_out);
 
 #endif

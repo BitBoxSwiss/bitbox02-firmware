@@ -390,7 +390,7 @@ class BitBox02(BitBoxCommonAPI):
         Returns: list of (input index, signature) tuples.
         Raises Bitbox02Exception with ERR_USER_ABORT on user abort.
         """
-        # pylint: disable=too-many-locals,no-member
+        # pylint: disable=no-member,too-many-locals,too-many-branches,too-many-statements
 
         # Reserved for future use.
         assert version in (1, 2)

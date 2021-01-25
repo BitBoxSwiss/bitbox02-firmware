@@ -108,15 +108,6 @@ static commander_error_t _api_restore_backup(const RestoreBackupRequest* request
     return COMMANDER_OK;
 }
 
-static commander_error_t _api_get_root_fingerprint(RootFingerprintResponse* response)
-{
-    bool success = keystore_get_root_fingerprint(response->fingerprint);
-    if (!success) {
-        return COMMANDER_ERR_GENERIC;
-    }
-    return COMMANDER_OK;
-}
-
 static commander_error_t _api_restore_from_mnemonic(const RestoreFromMnemonicRequest* request)
 {
     if (!workflow_restore_from_mnemonic(request)) {
@@ -165,9 +156,6 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_btc_sign_output_tag:
         return COMMANDER_ERR_DISABLED;
 #endif
-    case Request_fingerprint_tag:
-        response->which_response = Response_fingerprint_tag;
-        return _api_get_root_fingerprint(&(response->response.fingerprint));
     case Request_list_backups_tag:
         response->which_response = Response_list_backups_tag;
         return _api_list_backups(&(response->response.list_backups));

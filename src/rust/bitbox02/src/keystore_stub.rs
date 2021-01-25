@@ -105,3 +105,7 @@ pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u
     let data = crate::testing::DATA.0.borrow();
     data.keystore_bip39_mnemonic_to_seed.as_ref().unwrap()(mnemonic)
 }
+
+pub fn root_fingerprint() -> Result<[u8; 4], ()> {
+    unimplemented!();
+}

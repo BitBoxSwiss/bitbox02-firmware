@@ -71,7 +71,40 @@ app_eth_sign_error_t app_eth_sign(const ETHSignRequest* request, ETHSignResponse
     // Sign the transaction
 
     uint8_t sighash[32];
-    if (!app_eth_sighash(request, params->chain_id, sighash)) {
+    eth_sighash_params_t sighash_params = {
+        .nonce =
+            {
+                .data = request->nonce.bytes,
+                .len = request->nonce.size,
+            },
+        .gas_price =
+            {
+                .data = request->gas_price.bytes,
+                .len = request->gas_price.size,
+            },
+        .gas_limit =
+            {
+                .data = request->gas_limit.bytes,
+                .len = request->gas_limit.size,
+            },
+        .recipient =
+            {
+                .data = request->recipient,
+                .len = sizeof(request->recipient),
+            },
+        .value =
+            {
+                .data = request->value.bytes,
+                .len = request->value.size,
+            },
+        .data =
+            {
+                .data = request->data.bytes,
+                .len = request->data.size,
+            },
+        .chain_id = params->chain_id,
+    };
+    if (!app_eth_sighash(sighash_params, sighash)) {
         return APP_ETH_SIGN_ERR_INVALID_INPUT;
     }
 

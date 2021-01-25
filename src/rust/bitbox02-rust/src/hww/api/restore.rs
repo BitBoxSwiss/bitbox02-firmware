@@ -34,7 +34,7 @@ pub async fn from_mnemonic(
             body: &datetime_string,
             ..Default::default()
         };
-        confirm::confirm(&params).await.or(Err(Error::Generic))?;
+        confirm::confirm(&params).await?;
     }
 
     let mnemonic = mnemonic::get().await?;
@@ -57,7 +57,7 @@ pub async fn from_mnemonic(
                     body: "Passwords\ndo not match.\nTry again?",
                     ..Default::default()
                 };
-                confirm::confirm(&params).await.or(Err(Error::Generic))?;
+                confirm::confirm(&params).await?;
             }
             Ok(password) => break password,
         }
@@ -75,7 +75,7 @@ pub async fn from_mnemonic(
         let _ = bitbox02::securechip::u2f_counter_set(timestamp);
     }
 
-    bitbox02::memory::set_initialized()?;
+    bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
 
     // This should never fail.
     bitbox02::keystore::unlock(&password).expect("restore_from_mnemonic: unlock failed");

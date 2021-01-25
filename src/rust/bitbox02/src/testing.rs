@@ -44,10 +44,6 @@ pub struct Data {
     pub keystore_get_bip39_word: Option<Box<dyn Fn(u16) -> Result<zeroize::Zeroizing<String>, ()>>>,
     pub keystore_bip39_mnemonic_to_seed:
         Option<Box<dyn Fn(&str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()>>>,
-    pub eth_params_get:
-        Option<Box<dyn Fn(bitbox02_sys::ETHCoin) -> Option<super::app_eth::Params>>>,
-    pub eth_erc20_params_get:
-        Option<Box<dyn Fn(bitbox02_sys::ETHCoin, [u8; 20]) -> Option<super::app_eth::ERC20Params>>>,
     pub btc_address_simple: Option<
         Box<
             dyn Fn(

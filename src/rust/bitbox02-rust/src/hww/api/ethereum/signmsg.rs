@@ -95,14 +95,6 @@ mod tests {
         static mut CONFIRM_COUNTER: u32 = 0;
 
         mock(Data {
-            eth_params_get: Some(Box::new(|coin| {
-                assert_eq!(coin, pb::EthCoin::Eth as _);
-                Some(bitbox02::app_eth::Params {
-                    bip44_coin: 60 + HARDENED,
-                    chain_id: 1,
-                    unit: "ETH",
-                })
-            })),
             keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ui_confirm_create: Some(Box::new(|params| {
                 match unsafe {
@@ -149,11 +141,6 @@ mod tests {
     pub fn test_process_user_aborted() {
         let _guard = MUTEX.lock().unwrap();
 
-        const ETH_PARAMS: Option<bitbox02::app_eth::Params> = Some(bitbox02::app_eth::Params {
-            bip44_coin: 60 + HARDENED,
-            chain_id: 1,
-            unit: "ETH",
-        });
         let request = pb::EthSignMessageRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
@@ -164,7 +151,6 @@ mod tests {
 
         // User abort address verification.
         mock(Data {
-            eth_params_get: Some(Box::new(|_| ETH_PARAMS)),
             keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ui_confirm_create: Some(Box::new(|params| {
                 match unsafe {
@@ -188,7 +174,6 @@ mod tests {
             CONFIRM_COUNTER = 0;
         }
         mock(Data {
-            eth_params_get: Some(Box::new(|_| ETH_PARAMS)),
             keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ui_confirm_create: Some(Box::new(|params| {
                 match unsafe {
@@ -214,11 +199,6 @@ mod tests {
         let _guard = MUTEX.lock().unwrap();
 
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        const ETH_PARAMS: Option<bitbox02::app_eth::Params> = Some(bitbox02::app_eth::Params {
-            bip44_coin: 60 + HARDENED,
-            chain_id: 1,
-            unit: "ETH",
-        });
 
         // Message too long
         assert_eq!(
@@ -232,7 +212,6 @@ mod tests {
 
         // Signing failed.
         mock(Data {
-            eth_params_get: Some(Box::new(|_| ETH_PARAMS)),
             keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ui_confirm_create: Some(Box::new(|_| true)),
             keystore_secp256k1_sign: Some(Box::new(|_, _, _| Err(()))),

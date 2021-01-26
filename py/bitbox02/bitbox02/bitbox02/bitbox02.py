@@ -390,7 +390,7 @@ class BitBox02(BitBoxCommonAPI):
         Returns: list of (input index, signature) tuples.
         Raises Bitbox02Exception with ERR_USER_ABORT on user abort.
         """
-        # pylint: disable=too-many-locals,no-member
+        # pylint: disable=no-member,too-many-locals,too-many-branches,too-many-statements
 
         # Reserved for future use.
         assert version in (1, 2)
@@ -736,9 +736,9 @@ class BitBox02(BitBoxCommonAPI):
             raise
         return True
 
-    def restore_from_mnemonic(self) -> bool:
+    def restore_from_mnemonic(self) -> None:
         """
-        Restore from mnemonic. Returns True on success, False on failure or user abort.
+        Restore from mnemonic. Raises a Bitbox02Exception on failure.
         """
         request = hww.Request()
         # pylint: disable=no-member
@@ -747,10 +747,4 @@ class BitBox02(BitBoxCommonAPI):
                 timestamp=int(time.time()), timezone_offset=time.localtime().tm_gmtoff
             )
         )
-        try:
-            self._msg_query(request)
-        except Bitbox02Exception as err:
-            if err.code == ERR_GENERIC:
-                return False
-            raise
-        return True
+        self._msg_query(request)

@@ -231,10 +231,11 @@ class SendMessage:
         self._device.remove_sdcard()
 
     def _restore_from_mnemonic(self) -> None:
-        if self._device.restore_from_mnemonic():
+        try:
+            self._device.restore_from_mnemonic()
             print("Restore successful")
-        else:
-            print("Restore was NOT successful")
+        except UserAbortException:
+            print("Aborted by user")
 
     def _list_device_info(self) -> None:
         print(f"All info: {self._device.device_info()}")

@@ -38,7 +38,6 @@
 
 #include <workflow/reboot.h>
 #include <workflow/restore.h>
-#include <workflow/restore_from_mnemonic.h>
 #include <workflow/workflow.h>
 
 #include "hww.pb.h"
@@ -107,14 +106,6 @@ static commander_error_t _api_restore_backup(const RestoreBackupRequest* request
     }
     return COMMANDER_OK;
 }
-
-static commander_error_t _api_restore_from_mnemonic(const RestoreFromMnemonicRequest* request)
-{
-    if (!workflow_restore_from_mnemonic(request)) {
-        return COMMANDER_ERR_GENERIC;
-    }
-    return COMMANDER_OK;
-}
 #endif
 
 static commander_error_t _api_reboot(void)
@@ -170,9 +161,6 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_eth_tag:
         return COMMANDER_ERR_DISABLED;
 #endif
-    case Request_restore_from_mnemonic_tag:
-        response->which_response = Response_success_tag;
-        return _api_restore_from_mnemonic(&(request->request.restore_from_mnemonic));
 #endif
 #if PRODUCT_BITBOX_BASE == 1
     case Request_bitboxbase_tag:

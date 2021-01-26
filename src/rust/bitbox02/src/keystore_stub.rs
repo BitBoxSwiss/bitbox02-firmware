@@ -109,3 +109,7 @@ pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u
 pub fn root_fingerprint() -> Result<[u8; 4], ()> {
     unimplemented!();
 }
+
+pub fn encrypt_and_store_seed(_seed: &[u8], _password: &str) -> Result<(), ()> {
+    unimplemented!();
+}

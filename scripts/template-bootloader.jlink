@@ -1,3 +1,3 @@
-loadfile $file
 r
+loadfile $file
 q

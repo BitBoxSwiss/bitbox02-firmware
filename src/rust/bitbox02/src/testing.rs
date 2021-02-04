@@ -53,6 +53,8 @@ pub struct Data {
             ) -> Result<String, ()>,
         >,
     >,
+    pub ui_transaction_address_create: Option<Box<dyn Fn(&str, &str) -> bool>>,
+    pub ui_transaction_fee_create: Option<Box<dyn Fn(&str, &str) -> bool>>,
 }
 
 pub struct SafeData(pub RefCell<Data>);

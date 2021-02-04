@@ -170,3 +170,5 @@ pub struct MenuParams<'a> {
 }
 
 pub type TrinaryChoiceCb<'a> = Box<dyn FnMut(TrinaryChoice) + 'a>;
+
+pub type AcceptRejectCb<'a> = Box<dyn FnMut(bool) + 'a>;

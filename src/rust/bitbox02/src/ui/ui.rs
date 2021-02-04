@@ -15,7 +15,7 @@
 
 use super::types::MAX_LABEL_SIZE;
 pub use super::types::{
-    ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
+    AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
     TrinaryChoiceCb, TrinaryInputStringParams,
 };
 
@@ -346,6 +346,66 @@ pub fn trinary_choice_create<'a>(
         on_drop: Some(Box::new(move || unsafe {
             // Drop all callbacks.
             drop(Box::from_raw(chosen_cb_param as *mut TrinaryChoiceCb));
+        })),
+        _p: PhantomData,
+    }
+}
+
+pub fn confirm_transaction_address_create<'a, 'b>(
+    amount: &'a str,
+    address: &'a str,
+    callback: AcceptRejectCb<'b>,
+) -> Component<'b> {
+    unsafe extern "C" fn c_callback(result: bool, param: *mut c_void) {
+        let callback = param as *mut AcceptRejectCb;
+        (*callback)(result);
+    }
+
+    let callback_param = Box::into_raw(Box::new(callback)) as *mut c_void;
+    let component = unsafe {
+        bitbox02_sys::confirm_transaction_address_create(
+            crate::util::str_to_cstr_vec(amount).unwrap().as_ptr(), // copied in C
+            crate::util::str_to_cstr_vec(address).unwrap().as_ptr(), // copied in C
+            Some(c_callback as _),
+            callback_param,
+        )
+    };
+    Component {
+        component,
+        is_pushed: false,
+        on_drop: Some(Box::new(move || unsafe {
+            // Drop all callbacks.
+            drop(Box::from_raw(callback_param as *mut AcceptRejectCb));
+        })),
+        _p: PhantomData,
+    }
+}
+
+pub fn confirm_transaction_fee_create<'a, 'b>(
+    amount: &'a str,
+    fee: &'a str,
+    callback: AcceptRejectCb<'b>,
+) -> Component<'b> {
+    unsafe extern "C" fn c_callback(result: bool, param: *mut c_void) {
+        let callback = param as *mut AcceptRejectCb;
+        (*callback)(result);
+    }
+
+    let callback_param = Box::into_raw(Box::new(callback)) as *mut c_void;
+    let component = unsafe {
+        bitbox02_sys::confirm_transaction_fee_create(
+            crate::util::str_to_cstr_vec(amount).unwrap().as_ptr(), // copied in C
+            crate::util::str_to_cstr_vec(fee).unwrap().as_ptr(),    // copied in C
+            Some(c_callback as _),
+            callback_param,
+        )
+    };
+    Component {
+        component,
+        is_pushed: false,
+        on_drop: Some(Box::new(move || unsafe {
+            // Drop all callbacks.
+            drop(Box::from_raw(callback_param as *mut AcceptRejectCb));
         })),
         _p: PhantomData,
     }

@@ -15,7 +15,7 @@
 //! Stubs for testing.
 
 pub use super::types::{
-    ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
+    AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
     TrinaryChoiceCb, TrinaryInputStringParams,
 };
 
@@ -109,6 +109,34 @@ pub fn trinary_choice_create<'a>(
     _chosen_callback: TrinaryChoiceCb,
 ) -> Component<'a> {
     panic!("not implemented")
+}
+
+pub fn confirm_transaction_address_create<'a, 'b>(
+    amount: &'a str,
+    address: &'a str,
+    mut callback: AcceptRejectCb<'b>,
+) -> Component<'b> {
+    let data = crate::testing::DATA.0.borrow();
+    let result = data.ui_transaction_address_create.as_ref().unwrap()(amount, address);
+    callback(result);
+    Component {
+        is_pushed: false,
+        _p: PhantomData,
+    }
+}
+
+pub fn confirm_transaction_fee_create<'a, 'b>(
+    amount: &'a str,
+    fee: &'a str,
+    mut callback: AcceptRejectCb<'b>,
+) -> Component<'b> {
+    let data = crate::testing::DATA.0.borrow();
+    let result = data.ui_transaction_fee_create.as_ref().unwrap()(amount, fee);
+    callback(result);
+    Component {
+        is_pushed: false,
+        _p: PhantomData,
+    }
 }
 
 pub fn trinary_input_string_set_input(_component: &mut Component, _word: &str) {

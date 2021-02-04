@@ -1,6 +1,7 @@
 # Python scripts
 
-To use the scripts (`send_message.py`, `load_firmware.py` for example) go into the `bitbox02`
-directory and run `pip3 install .`.
+The python scripts in this directory, such as `send_message.py` and
+`load_firmware.py`, require the [bitbox02] package. See bitbox02/README.md
+for the package installation instructions.
 
-If you plan to work on the scripts run `pip3 install -e .` instead.
+[bitbox02]: https://pypi.org/project/bitbox02/

@@ -15,9 +15,13 @@
 extern crate alloc;
 use alloc::string::{String, ToString};
 
+use num_bigint::BigUint;
+
 pub trait Format: ToString {}
 
 impl Format for u64 {}
+
+impl Format for &BigUint {}
 
 /// Formats integer `value` as `value / 10^decimals`, with up to `decimals` decimal places.
 /// E.g. "123450" with decimals=3: "123.45".

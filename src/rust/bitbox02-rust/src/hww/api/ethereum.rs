@@ -17,7 +17,9 @@ compile_error!(
     "Ethereum code is being compiled even though the app-ethereum feature is not enabled"
 );
 
+mod amount;
 mod pubrequest;
+mod sign;
 mod signmsg;
 
 use super::pb;
@@ -34,6 +36,6 @@ pub async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
     match request {
         Request::Pub(ref request) => Some(pubrequest::process(request).await),
         Request::SignMsg(ref request) => Some(signmsg::process(request).await),
-        _ => None,
+        Request::Sign(ref request) => Some(sign::process(request).await),
     }
 }

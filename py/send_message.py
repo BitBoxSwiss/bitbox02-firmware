@@ -669,7 +669,10 @@ class SendMessage:
             return
 
         try:
-            self._device.eth_sign(tx, keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0])
+            sig = self._device.eth_sign(
+                tx, keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0]
+            )
+            print("Signature: {}".format(sig.hex()))
         except UserAbortException:
             eprint("Aborted by user")
 

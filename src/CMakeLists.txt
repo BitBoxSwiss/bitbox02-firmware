@@ -186,12 +186,8 @@ set(CRYPTOAUTHLIB-SOURCES
 set(CRYPTOAUTHLIB-SOURCES ${CRYPTOAUTHLIB-SOURCES} PARENT_SCOPE)
 
 set(ETHEREUM-SOURCES
-  ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_common.c
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_params.c
   ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_sighash.c
-  ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_sign.c
-  ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_verify.c
-  ${CMAKE_SOURCE_DIR}/src/commander/commander_eth.c
 )
 set(ETHEREUM-SOURCES ${ETHEREUM-SOURCES} PARENT_SCOPE)
 
@@ -544,7 +540,7 @@ foreach(type ${RUST_LIBS})
       # Linking C executable ../../bin/fw_test_usb_cmd_process.elf
       # /usr/local/bin/../lib/gcc/arm-none-eabi/8.2.1/../../../../arm-none-eabi/bin/ld: /usr/local/bin/../lib/gcc/arm-none-eabi/8.2.1/thumb/v7e-m+fp/softfp/libgcc.a(_arm_addsubdf3.o): in function `__aeabi_dsub':
       # (.text+0x8): multiple definition of `__aeabi_dsub'; ../../lib/libfirmware_rust_c.a(compiler_builtins-5829be534503bd8e.compiler_builtins.cthmhl66-cgu.175.rcgu.o):/cargo/registry/src/github.com-1ecc6299db9ec823/compiler_builtins-0.1.27/src/macros.rs:226: first defined here
-      if test "x${RUST_TARGET_ARCH}" = "xthumbv7em-none-eabi" \; then ${CMAKE_OBJCOPY} -W __aeabi_dsub -W __aeabi_dadd -W__aeabi_i2d -W __aeabi_f2d -W __aeabi_dmul ${lib} \; fi
+      if test "x${RUST_TARGET_ARCH}" = "xthumbv7em-none-eabi" \; then ${CMAKE_OBJCOPY} -W __aeabi_dsub -W __aeabi_dadd -W__aeabi_i2d -W __aeabi_f2d -W __aeabi_dmul -W __aeabi_ul2d ${lib} \; fi
     COMMAND
       ${CMAKE_COMMAND} -E copy_if_different ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
     # DEPFILES are only supported with the Ninja build tool
@@ -652,7 +648,6 @@ if(CMAKE_CROSSCOMPILING)
         cryptoauthlib
         fatfs
         base32
-        bignum # TODO: only eth
         sha3   # TODO: Only eth
         ctaes
         c

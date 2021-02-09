@@ -135,7 +135,7 @@ static void _process_packet(const in_buffer_t* in_req, hww_packet_rsp_t* out_rsp
 {
     out_rsp->status = HWW_RSP_NACK;
     // Spawn async task, which is polled in the main loop.
-    rust_async_usb_spawn_hww(rust_util_bytes(in_req->data, in_req->len));
+    rust_async_usb_on_request_hww(rust_util_bytes(in_req->data, in_req->len));
     // Lock USB stack so U2F requests get a BUSY response.
     usb_processing_lock(usb_processing_hww());
     // Some tasks have an 'early return' path that is not blocking. We spin the task once so we can

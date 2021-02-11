@@ -233,7 +233,6 @@ pub fn secp256k1_sign(
     data.keystore_secp256k1_sign.as_ref().unwrap()(keypath, msg, host_nonce)
 }
 
-#[cfg(not(feature = "testing"))]
 pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let mnemonic = zeroize::Zeroizing::new(crate::util::str_to_cstr_vec(mnemonic)?);
     let mut seed = zeroize::Zeroizing::new([0u8; 32]);
@@ -248,12 +247,6 @@ pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u
         true => Ok(zeroize::Zeroizing::new(seed[..seed_len as usize].to_vec())),
         false => Err(()),
     }
-}
-
-#[cfg(feature = "testing")]
-pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let data = crate::testing::DATA.0.borrow();
-    data.keystore_bip39_mnemonic_to_seed.as_ref().unwrap()(mnemonic)
 }
 
 pub fn root_fingerprint() -> Result<[u8; 4], ()> {

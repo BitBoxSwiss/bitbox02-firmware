@@ -38,7 +38,6 @@ pub mod app_eth;
 pub mod backup;
 pub mod commander;
 pub mod input;
-#[cfg_attr(feature = "testing", path = "keystore_stub.rs")]
 pub mod keystore;
 #[cfg_attr(feature = "testing", path = "memory_stub.rs")]
 pub mod memory;

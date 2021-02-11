@@ -85,7 +85,14 @@ pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
     }
 }
 
+#[cfg(feature = "testing")]
+pub fn get_bip39_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
+    let data = crate::testing::DATA.0.borrow();
+    data.keystore_get_bip39_word.as_ref().unwrap()(idx)
+}
+
 /// `idx` must be smaller than BIP39_WORDLIST_LEN.
+#[cfg(not(feature = "testing"))]
 pub fn get_bip39_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
     let mut word_ptr: *mut u8 = core::ptr::null_mut();
     match unsafe { bitbox02_sys::keystore_get_bip39_word(idx, &mut word_ptr) } {
@@ -139,6 +146,7 @@ pub fn get_bip39_wordlist() -> Result<Bip39Wordlist, ()> {
     Ok(result)
 }
 
+#[cfg(not(feature = "testing"))]
 pub fn secp256k1_pubkey_uncompressed(
     keypath: &[u32],
 ) -> Result<[u8; EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()> {
@@ -155,6 +163,17 @@ pub fn secp256k1_pubkey_uncompressed(
     }
 }
 
+#[cfg(feature = "testing")]
+pub fn secp256k1_pubkey_uncompressed(
+    keypath: &[u32],
+) -> Result<[u8; EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()> {
+    let data = crate::testing::DATA.0.borrow();
+    data.keystore_secp256k1_pubkey_uncompressed
+        .as_ref()
+        .unwrap()(keypath)
+}
+
+#[cfg(not(feature = "testing"))]
 pub fn encode_xpub_at_keypath(keypath: &[u32], xpub_type: xpub_type_t) -> Result<String, ()> {
     let mut xpub = [0u8; bitbox02_sys::XPUB_ENCODED_LEN as _];
     match unsafe {
@@ -173,11 +192,18 @@ pub fn encode_xpub_at_keypath(keypath: &[u32], xpub_type: xpub_type_t) -> Result
     }
 }
 
+#[cfg(feature = "testing")]
+pub fn encode_xpub_at_keypath(keypath: &[u32], xpub_type: xpub_type_t) -> Result<String, ()> {
+    let data = crate::testing::DATA.0.borrow();
+    data.keystore_encode_xpub_at_keypath.as_ref().unwrap()(keypath, xpub_type)
+}
+
 pub struct SignResult {
     pub signature: [u8; 64],
     pub recid: u8,
 }
 
+#[cfg(not(feature = "testing"))]
 pub fn secp256k1_sign(
     keypath: &[u32],
     msg: &[u8; 32],
@@ -203,6 +229,17 @@ pub fn secp256k1_sign(
     }
 }
 
+#[cfg(feature = "testing")]
+pub fn secp256k1_sign(
+    keypath: &[u32],
+    msg: &[u8; 32],
+    host_nonce: &[u8; 32],
+) -> Result<SignResult, ()> {
+    let data = crate::testing::DATA.0.borrow();
+    data.keystore_secp256k1_sign.as_ref().unwrap()(keypath, msg, host_nonce)
+}
+
+#[cfg(not(feature = "testing"))]
 pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let mnemonic = zeroize::Zeroizing::new(crate::util::str_to_cstr_vec(mnemonic)?);
     let mut seed = zeroize::Zeroizing::new([0u8; 32]);
@@ -217,6 +254,12 @@ pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u
         true => Ok(zeroize::Zeroizing::new(seed[..seed_len as usize].to_vec())),
         false => Err(()),
     }
+}
+
+#[cfg(feature = "testing")]
+pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let data = crate::testing::DATA.0.borrow();
+    data.keystore_bip39_mnemonic_to_seed.as_ref().unwrap()(mnemonic)
 }
 
 pub fn root_fingerprint() -> Result<[u8; 4], ()> {

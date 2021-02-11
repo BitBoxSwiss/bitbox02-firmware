@@ -16,6 +16,7 @@ syntax = "proto3";
 package shiftcrypto.bitbox02;
 
 import "common.proto";
+import "antiklepto.proto";
 
 enum ETHCoin {
   ETH = 0;
@@ -44,12 +45,14 @@ message ETHSignRequest {
   bytes recipient = 6; // 20 byte recipient
   bytes value = 7; // smallest big endian serialization, max. 32 bytes
   bytes data = 8;
+  AntiKleptoHostNonceCommitment host_nonce_commitment = 9;
 }
 
 message ETHSignMessageRequest {
   ETHCoin coin = 1;
   repeated uint32 keypath = 2;
   bytes msg = 3;
+  AntiKleptoHostNonceCommitment host_nonce_commitment = 4;
 }
 
 message ETHSignResponse {
@@ -61,6 +64,7 @@ message ETHRequest {
     ETHPubRequest pub = 1;
     ETHSignRequest sign = 2;
     ETHSignMessageRequest sign_msg = 3;
+    AntiKleptoSignatureRequest antiklepto_signature = 4;
   }
 }
 
@@ -68,5 +72,6 @@ message ETHResponse {
   oneof response {
     PubResponse pub = 1;
     ETHSignResponse sign = 2;
+    AntiKleptoSignerCommitment antiklepto_signer_commitment = 3;
   }
 }

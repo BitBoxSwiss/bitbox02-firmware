@@ -526,6 +526,8 @@ pub struct BtcSignMessageRequest {
     pub script_config: ::core::option::Option<BtcScriptConfigWithKeypath>,
     #[prost(bytes="vec", tag="3")]
     pub msg: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag="4")]
+    pub host_nonce_commitment: ::core::option::Option<AntiKleptoHostNonceCommitment>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcSignMessageResponse {
@@ -560,7 +562,7 @@ pub mod btc_request {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcResponse {
-    #[prost(oneof="btc_response::Response", tags="1, 2, 3, 4")]
+    #[prost(oneof="btc_response::Response", tags="1, 2, 3, 4, 5")]
     pub response: ::core::option::Option<btc_response::Response>,
 }
 /// Nested message and enum types in `BTCResponse`.
@@ -575,6 +577,8 @@ pub mod btc_response {
         SignNext(super::BtcSignNextResponse),
         #[prost(message, tag="4")]
         SignMessage(super::BtcSignMessageResponse),
+        #[prost(message, tag="5")]
+        AntikleptoSignerCommitment(super::AntiKleptoSignerCommitment),
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -639,6 +643,8 @@ pub struct EthSignRequest {
     pub value: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes="vec", tag="8")]
     pub data: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag="9")]
+    pub host_nonce_commitment: ::core::option::Option<AntiKleptoHostNonceCommitment>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EthSignMessageRequest {
@@ -648,6 +654,8 @@ pub struct EthSignMessageRequest {
     pub keypath: ::prost::alloc::vec::Vec<u32>,
     #[prost(bytes="vec", tag="3")]
     pub msg: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag="4")]
+    pub host_nonce_commitment: ::core::option::Option<AntiKleptoHostNonceCommitment>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EthSignResponse {
@@ -657,7 +665,7 @@ pub struct EthSignResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EthRequest {
-    #[prost(oneof="eth_request::Request", tags="1, 2, 3")]
+    #[prost(oneof="eth_request::Request", tags="1, 2, 3, 4")]
     pub request: ::core::option::Option<eth_request::Request>,
 }
 /// Nested message and enum types in `ETHRequest`.
@@ -670,11 +678,13 @@ pub mod eth_request {
         Sign(super::EthSignRequest),
         #[prost(message, tag="3")]
         SignMsg(super::EthSignMessageRequest),
+        #[prost(message, tag="4")]
+        AntikleptoSignature(super::AntiKleptoSignatureRequest),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EthResponse {
-    #[prost(oneof="eth_response::Response", tags="1, 2")]
+    #[prost(oneof="eth_response::Response", tags="1, 2, 3")]
     pub response: ::core::option::Option<eth_response::Response>,
 }
 /// Nested message and enum types in `ETHResponse`.
@@ -685,6 +695,8 @@ pub mod eth_response {
         Pub(super::PubResponse),
         #[prost(message, tag="2")]
         Sign(super::EthSignResponse),
+        #[prost(message, tag="3")]
+        AntikleptoSignerCommitment(super::AntiKleptoSignerCommitment),
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]

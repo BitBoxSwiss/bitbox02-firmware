@@ -202,6 +202,7 @@ message BTCSignMessageRequest {
   BTCCoin coin = 1;
   BTCScriptConfigWithKeypath script_config = 2;
   bytes msg = 3;
+  AntiKleptoHostNonceCommitment host_nonce_commitment = 4;
 }
 
 message BTCSignMessageResponse {
@@ -227,5 +228,6 @@ message BTCResponse {
     BTCIsScriptConfigRegisteredResponse is_script_config_registered = 2;
     BTCSignNextResponse sign_next = 3;
     BTCSignMessageResponse sign_message = 4;
+    AntiKleptoSignerCommitment antiklepto_signer_commitment = 5;
   }
 }

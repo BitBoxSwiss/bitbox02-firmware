@@ -15,6 +15,7 @@
 extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
+#[cfg(not(feature = "testing"))]
 use core::convert::TryInto;
 
 use crate::input::SafeInputString;
@@ -85,14 +86,7 @@ pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
     }
 }
 
-#[cfg(feature = "testing")]
-pub fn get_bip39_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
-    let data = crate::testing::DATA.0.borrow();
-    data.keystore_get_bip39_word.as_ref().unwrap()(idx)
-}
-
 /// `idx` must be smaller than BIP39_WORDLIST_LEN.
-#[cfg(not(feature = "testing"))]
 pub fn get_bip39_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
     let mut word_ptr: *mut u8 = core::ptr::null_mut();
     match unsafe { bitbox02_sys::keystore_get_bip39_word(idx, &mut word_ptr) } {

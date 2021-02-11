@@ -317,11 +317,6 @@ mod tests {
         );
 
         mock(Data {
-            keystore_get_bip39_word: Some(Box::new(|idx| {
-                Ok(zeroize::Zeroizing::new(
-                    BIP39_WORDS.split('\n').nth(idx as _).unwrap().into(),
-                ))
-            })),
             keystore_bip39_mnemonic_to_seed: Some(Box::new(|mnemonic| {
                 mnemonic_to_seed(&mnemonic.split(' ').collect::<Vec<&str>>())
                     .map(zeroize::Zeroizing::new)

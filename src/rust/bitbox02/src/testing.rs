@@ -41,7 +41,6 @@ pub struct Data {
     pub keystore_secp256k1_sign: Option<
         Box<dyn Fn(&[u32], &[u8; 32], &[u8; 32]) -> Result<super::keystore::SignResult, ()>>,
     >,
-    pub keystore_get_bip39_word: Option<Box<dyn Fn(u16) -> Result<zeroize::Zeroizing<String>, ()>>>,
     pub keystore_bip39_mnemonic_to_seed:
         Option<Box<dyn Fn(&str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()>>>,
     pub btc_address_simple: Option<

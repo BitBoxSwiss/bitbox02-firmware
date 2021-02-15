@@ -70,20 +70,13 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_unlocked, Data, MUTEX};
     use std::boxed::Box;
     use util::bip32::HARDENED;
 
-    const PUBKEY: [u8; 65] = [
-        0x04, 0xd8, 0xae, 0xa8, 0x0d, 0x2d, 0xbc, 0xeb, 0xbe, 0x10, 0xfd, 0xfa, 0xc2, 0xd2, 0xdb,
-        0x19, 0x64, 0x15, 0x5b, 0xa9, 0x9e, 0x0d, 0xd7, 0xbf, 0xd5, 0xcf, 0xfe, 0xd9, 0x7a, 0x1c,
-        0xae, 0xf7, 0xd0, 0xb9, 0x07, 0x2d, 0x9c, 0x0f, 0x50, 0x49, 0x30, 0xef, 0x59, 0xb7, 0x52,
-        0xd4, 0xfe, 0xa0, 0xcb, 0xde, 0x3e, 0x27, 0x3e, 0xe9, 0x54, 0xd8, 0xda, 0xc8, 0xee, 0x03,
-        0x1a, 0x4e, 0xd1, 0x71, 0xfd,
-    ];
     const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
     const MESSAGE: &[u8] = b"message";
-    const EXPECTED_ADDRESS: &str = "0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B";
+    const EXPECTED_ADDRESS: &str = "0x773A77b9D32589be03f9132AF759e294f7851be9";
 
     #[test]
     pub fn test_process() {
@@ -95,7 +88,6 @@ mod tests {
         static mut CONFIRM_COUNTER: u32 = 0;
 
         mock(Data {
-            keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ui_confirm_create: Some(Box::new(|params| {
                 match unsafe {
                     CONFIRM_COUNTER += 1;
@@ -124,6 +116,7 @@ mod tests {
             })),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(
             block_on(process(&pb::EthSignMessageRequest {
                 coin: pb::EthCoin::Eth as _,
@@ -151,7 +144,6 @@ mod tests {
 
         // User abort address verification.
         mock(Data {
-            keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ui_confirm_create: Some(Box::new(|params| {
                 match unsafe {
                     CONFIRM_COUNTER += 1;
@@ -167,6 +159,7 @@ mod tests {
             })),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
 
         // User abort message verification.
@@ -174,7 +167,6 @@ mod tests {
             CONFIRM_COUNTER = 0;
         }
         mock(Data {
-            keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ui_confirm_create: Some(Box::new(|params| {
                 match unsafe {
                     CONFIRM_COUNTER += 1;
@@ -191,6 +183,7 @@ mod tests {
             })),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
     }
 
@@ -212,11 +205,11 @@ mod tests {
 
         // Signing failed.
         mock(Data {
-            keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ui_confirm_create: Some(Box::new(|_| true)),
             keystore_secp256k1_sign: Some(Box::new(|_, _, _| Err(()))),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(
             block_on(process(&&pb::EthSignMessageRequest {
                 coin: pb::EthCoin::Eth as _,

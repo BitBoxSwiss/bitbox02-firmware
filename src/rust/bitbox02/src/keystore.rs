@@ -15,6 +15,7 @@
 extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
+
 #[cfg(not(feature = "testing"))]
 use core::convert::TryInto;
 
@@ -47,6 +48,10 @@ pub fn unlock(password: &SafeInputString) -> Result<(), Error> {
         keystore_error_t::KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED => Err(Error::Unknown),
         keystore_error_t::KEYSTORE_ERR_GENERIC => Err(Error::Unknown),
     }
+}
+
+pub fn lock() {
+    unsafe { bitbox02_sys::keystore_lock() }
 }
 
 pub fn unlock_bip39(mnemonic_passphrase: &SafeInputString) -> Result<(), Error> {
@@ -140,7 +145,6 @@ pub fn get_bip39_wordlist() -> Result<Bip39Wordlist, ()> {
     Ok(result)
 }
 
-#[cfg(not(feature = "testing"))]
 pub fn secp256k1_pubkey_uncompressed(
     keypath: &[u32],
 ) -> Result<[u8; EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()> {
@@ -155,16 +159,6 @@ pub fn secp256k1_pubkey_uncompressed(
         true => Ok(pubkey),
         false => Err(()),
     }
-}
-
-#[cfg(feature = "testing")]
-pub fn secp256k1_pubkey_uncompressed(
-    keypath: &[u32],
-) -> Result<[u8; EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()> {
-    let data = crate::testing::DATA.0.borrow();
-    data.keystore_secp256k1_pubkey_uncompressed
-        .as_ref()
-        .unwrap()(keypath)
 }
 
 #[cfg(not(feature = "testing"))]

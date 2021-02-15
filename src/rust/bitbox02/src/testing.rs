@@ -38,9 +38,6 @@ pub struct Data {
     pub backup_create: Option<Box<dyn Fn(u32, u32) -> Result<(), super::backup::Error>>>,
     pub keystore_encode_xpub_at_keypath:
         Option<Box<dyn Fn(&[u32], super::keystore::xpub_type_t) -> Result<String, ()>>>,
-    pub keystore_secp256k1_sign: Option<
-        Box<dyn Fn(&[u32], &[u8; 32], &[u8; 32]) -> Result<super::keystore::SignResult, ()>>,
-    >,
     pub btc_address_simple: Option<
         Box<
             dyn Fn(

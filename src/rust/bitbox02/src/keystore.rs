@@ -16,7 +16,6 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-#[cfg(not(feature = "testing"))]
 use core::convert::TryInto;
 
 use crate::input::SafeInputString;
@@ -191,7 +190,6 @@ pub struct SignResult {
     pub recid: u8,
 }
 
-#[cfg(not(feature = "testing"))]
 pub fn secp256k1_sign(
     keypath: &[u32],
     msg: &[u8; 32],
@@ -215,16 +213,6 @@ pub fn secp256k1_sign(
         }),
         false => Err(()),
     }
-}
-
-#[cfg(feature = "testing")]
-pub fn secp256k1_sign(
-    keypath: &[u32],
-    msg: &[u8; 32],
-    host_nonce: &[u8; 32],
-) -> Result<SignResult, ()> {
-    let data = crate::testing::DATA.0.borrow();
-    data.keystore_secp256k1_sign.as_ref().unwrap()(keypath, msg, host_nonce)
 }
 
 pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {

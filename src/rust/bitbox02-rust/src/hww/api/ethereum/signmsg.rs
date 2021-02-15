@@ -82,7 +82,6 @@ mod tests {
     pub fn test_process() {
         let _guard = MUTEX.lock().unwrap();
 
-        const EXPECTED_SIGHASH: &[u8; 32] = b"\x7f\x6c\x0e\x5c\x49\x7d\xed\x52\x46\x2e\xc1\x8d\xae\xb1\xc9\x4c\xef\xa1\x1c\xd6\x94\x9e\xbd\xb7\x07\x4b\x2a\x32\xca\xc1\x3f\xba";
         const SIGNATURE: [u8; 64] = [b'1'; 64];
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -106,14 +105,6 @@ mod tests {
                     _ => panic!("too many user confirmations"),
                 }
             })),
-            keystore_secp256k1_sign: Some(Box::new(|keypath, sighash, _host_nonce| {
-                assert_eq!(keypath, KEYPATH);
-                assert_eq!(sighash, EXPECTED_SIGHASH);
-                Ok(bitbox02::keystore::SignResult {
-                    signature: [b'1'; 64],
-                    recid: 3,
-                })
-            })),
             ..Default::default()
         });
         mock_unlocked();
@@ -124,7 +115,7 @@ mod tests {
                 msg: MESSAGE.to_vec(),
             })),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"1111111111111111111111111111111111111111111111111111111111111111\x03"
+                signature: b"\x34\x88\x5e\x93\x74\x37\x5a\x12\xe8\xc5\x18\x6e\xf9\x87\x0b\x03\x6b\x2b\xd2\x51\xb3\xf2\x0b\x97\x95\x11\x91\x2d\xd4\x18\x94\x72\x5c\x0a\x50\x4a\x34\x19\xae\x21\xd6\x9e\x22\x43\xca\x18\xe9\xc6\xee\xe7\x5b\x2e\x16\xea\x57\xb4\xf6\x47\xfd\x10\x6b\xe8\x3f\xd2\x01"
                     .to_vec()
             }))
         );
@@ -203,20 +194,17 @@ mod tests {
             Err(Error::InvalidInput)
         );
 
-        // Signing failed.
+        // Keystore locked.
         mock(Data {
-            ui_confirm_create: Some(Box::new(|_| true)),
-            keystore_secp256k1_sign: Some(Box::new(|_, _, _| Err(()))),
             ..Default::default()
         });
-        mock_unlocked();
         assert_eq!(
             block_on(process(&&pb::EthSignMessageRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 msg: b"message".to_vec(),
             })),
-            Err(Error::Generic)
+            Err(Error::InvalidInput)
         );
     }
 }

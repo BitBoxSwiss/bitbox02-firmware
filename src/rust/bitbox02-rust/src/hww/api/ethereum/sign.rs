@@ -235,7 +235,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_unlocked, Data, MUTEX};
     use std::boxed::Box;
     use util::bip32::HARDENED;
 
@@ -307,7 +307,6 @@ mod tests {
         let _guard = MUTEX.lock().unwrap();
 
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        const EXPECTED_SIGHASH: &[u8;32] = b"\xdc\xcc\x3b\xcd\x44\x50\xed\x69\xf9\x56\xdf\x9b\xf7\xa2\xac\xd0\x95\x5b\x28\x6d\xe0\xfe\x9a\xac\xca\xe7\x06\x52\x1e\xe6\xcf\x02";
 
         mock(Data {
             ui_transaction_address_create: Some(Box::new(|amount, address| {
@@ -320,16 +319,9 @@ mod tests {
                 assert_eq!(fee, "0.000126 ETH");
                 true
             })),
-            keystore_secp256k1_sign: Some(Box::new(|keypath, sighash, _host_nonce| {
-                assert_eq!(keypath, KEYPATH);
-                assert_eq!(sighash, EXPECTED_SIGHASH);
-                Ok(bitbox02::keystore::SignResult {
-                    signature: [b'1'; 64],
-                    recid: 3,
-                })
-            })),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(
             block_on(process(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
@@ -342,7 +334,7 @@ mod tests {
                 data: b"".to_vec(),
             })),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"1111111111111111111111111111111111111111111111111111111111111111\x03"
+                signature: b"\xc3\xae\x24\xc1\x67\xe2\x16\xcf\xb7\x5c\x72\xb5\xe0\x3e\xf9\x7a\xcc\x2b\x60\x7f\x3a\xcf\x63\x86\x5f\x80\x96\x0f\x76\xf6\x56\x47\x0f\x8e\x23\xf1\xd2\x78\x8f\xb0\x07\x0e\x28\xc2\xa5\xc8\xaa\xf1\x5b\x5d\xbf\x30\xb4\x09\x07\xff\x6c\x50\x68\xfd\xcb\xc1\x1a\x2d\x00"
                     .to_vec()
             }))
         );
@@ -354,7 +346,6 @@ mod tests {
         let _guard = MUTEX.lock().unwrap();
 
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        const EXPECTED_SIGHASH: &[u8;32] = b"\x7a\xdb\x7e\xd4\x93\xbd\x42\x54\x75\xa7\x52\xf1\xe5\x89\x01\x26\x89\x2c\x72\x7c\x0c\x9d\x65\x15\x20\xfc\x7a\x24\x4c\x16\x5a\x56";
 
         mock(Data {
             ui_confirm_create: Some(Box::new(|params| {
@@ -375,16 +366,9 @@ mod tests {
                 assert_eq!(fee, "0.000126 ETH");
                 true
             })),
-            keystore_secp256k1_sign: Some(Box::new(|keypath, sighash, _host_nonce| {
-                assert_eq!(keypath, KEYPATH);
-                assert_eq!(sighash, EXPECTED_SIGHASH);
-                Ok(bitbox02::keystore::SignResult {
-                    signature: [b'1'; 64],
-                    recid: 3,
-                })
-            })),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(
             block_on(process(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
@@ -397,7 +381,7 @@ mod tests {
                 data: b"foo bar".to_vec(),
             })),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"1111111111111111111111111111111111111111111111111111111111111111\x03"
+                signature: b"\x7d\x3f\x37\x13\xe3\xcf\x10\x82\x79\x1d\x5c\x0f\xc6\x8e\xc2\x9e\xaf\xf5\xe1\xee\x84\x67\xa8\xec\x54\x7d\xc7\x96\xe8\x5a\x79\x04\x2b\x7c\x01\x69\x2f\xb7\x2f\x55\x76\xab\x50\xdc\xaa\x62\x1a\xd1\xee\xab\xd9\x97\x59\x73\xb8\x62\x56\xf4\x0c\x6f\x85\x50\xef\x44\x00"
                     .to_vec()
             }))
         );
@@ -410,7 +394,6 @@ mod tests {
         let _guard = MUTEX.lock().unwrap();
 
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        const EXPECTED_SIGHASH: &[u8;32] = b"\x58\x95\x6a\x71\x6e\x73\x7b\x79\xe5\xc7\x42\x21\xa5\x0d\xc5\x75\xb8\xa6\xfd\x96\x5e\x8e\x86\x6a\xdd\x83\x3a\x62\xfa\x32\xf3\x17";
 
         mock(Data {
             ui_transaction_address_create: Some(Box::new(|amount, address| {
@@ -423,16 +406,9 @@ mod tests {
                 assert_eq!(fee, "0.0012658164 ETH");
                 true
             })),
-            keystore_secp256k1_sign: Some(Box::new(|keypath, sighash, _host_nonce| {
-                assert_eq!(keypath, KEYPATH);
-                assert_eq!(sighash, EXPECTED_SIGHASH);
-                Ok(bitbox02::keystore::SignResult {
-                    signature: [b'1'; 64],
-                    recid: 3,
-                })
-            })),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(
             block_on(process(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
@@ -445,7 +421,7 @@ mod tests {
                 data: b"\xa9\x05\x9c\xbb\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xe6\xce\x0a\x09\x2a\x99\x70\x0c\xd4\xcc\xcc\xbb\x1f\xed\xc3\x9c\xf5\x3e\x63\x30\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\x65\xc0\x40".to_vec(),
             })),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"1111111111111111111111111111111111111111111111111111111111111111\x03"
+                signature: b"\x67\x4e\x9a\x01\x70\xee\xe0\xca\x8c\x40\x6e\xc9\xa7\xdf\x2e\x3a\x6b\xdd\x17\x9c\xf6\x93\x85\x80\x0e\x1f\xd3\x78\xe7\xcf\xb1\x9c\x4d\x55\x16\x2c\x54\x7b\x04\xd1\x81\x8e\x43\x90\x16\x91\xae\xc9\x88\xef\x75\xcd\x67\xd9\xbb\x30\x1d\x14\x90\x2f\xd6\xe6\x92\x92\x01"
                     .to_vec()
             }))
         );
@@ -457,7 +433,6 @@ mod tests {
         let _guard = MUTEX.lock().unwrap();
 
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        const EXPECTED_SIGHASH: &[u8;32] = b"\xef\xb9\x47\x85\x1c\xae\xae\xf8\x68\xce\x6e\x8a\xe8\xf7\x97\xbb\x9d\xd9\xb4\xe9\x91\xa3\x21\x0b\x8e\x57\x49\xb0\xef\x01\x4d\xc9";
 
         mock(Data {
             ui_transaction_address_create: Some(Box::new(|amount, address| {
@@ -470,16 +445,9 @@ mod tests {
                 assert_eq!(fee, "0.000067973 ETH");
                 true
             })),
-            keystore_secp256k1_sign: Some(Box::new(|keypath, sighash, _host_nonce| {
-                assert_eq!(keypath, KEYPATH);
-                assert_eq!(sighash, EXPECTED_SIGHASH);
-                Ok(bitbox02::keystore::SignResult {
-                    signature: [b'1'; 64],
-                    recid: 3,
-                })
-            })),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(
             block_on(process(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
@@ -492,7 +460,7 @@ mod tests {
                 data: b"\xa9\x05\x9c\xbb\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x85\x7b\x3d\x96\x9e\xac\xb7\x75\xa9\xf7\x9c\xab\xc6\x2e\xc4\xbb\x1d\x1c\xd6\x0e\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x98\xa6\x3c\xbe\xb8\x59\xd0\x27\xb0".to_vec(),
             })),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"1111111111111111111111111111111111111111111111111111111111111111\x03"
+                signature: b"\xec\x6e\x53\x0c\x8e\xe2\x54\x34\xfc\x44\x0e\x9a\xc0\xf8\x88\xe9\xc6\x3c\xf0\x7e\xbc\xf1\xc2\xf8\xa8\x3e\x2e\x8c\x39\x83\x2c\x55\x15\x12\x71\x6f\x6e\x1a\x8b\x66\xce\x38\x11\xa7\x26\xbc\xb2\x44\x66\x4e\xf2\x6f\x98\xee\x35\xc0\xc9\xdb\x4c\xaa\xb0\x73\x98\x56\x00"
                     .to_vec()
             }))
         );
@@ -603,6 +571,15 @@ mod tests {
                 ..Default::default()
             });
             assert_eq!(block_on(process(&valid_request)), Err(Error::UserAbort));
+        }
+        {
+            // Keystore locked.
+            mock(Data {
+                ui_transaction_address_create: Some(Box::new(|_, _| true)),
+                ui_transaction_fee_create: Some(Box::new(|_, _| true)),
+                ..Default::default()
+            });
+            assert_eq!(block_on(process(&valid_request)), Err(Error::Generic));
         }
     }
 }

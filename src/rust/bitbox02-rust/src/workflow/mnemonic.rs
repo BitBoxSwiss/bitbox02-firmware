@@ -265,38 +265,14 @@ mod tests {
     use bitbox02::testing::{mock, Data, MUTEX};
     use std::boxed::Box;
 
-    const BIP39_WORDS: &str = include_str!("testing/english.txt");
-
-    /// Poor man's bip39 seed converter. `mnemonic` must be 24 words.
-    fn mnemonic_to_seed(mnemonic: &[&str]) -> Result<Vec<u8>, ()> {
-        let mut seed = [0u8; 33];
-        let bip39_words: Vec<&str> = BIP39_WORDS.split('\n').filter(|s| !s.is_empty()).collect();
-        for (i, word) in mnemonic.iter().enumerate() {
-            let word_idx = bip39_words.binary_search(&word).expect(word);
-            for j in 0..11 {
-                if word_idx & (1 << (10 - j)) != 0 {
-                    seed[(i * 11 + j) / 8] |= 1 << (7 - (i * 11 + j) % 8);
-                }
-            }
-        }
-        let hash = Sha256::digest(&seed[..32]);
-        if hash[0] == seed[32] {
-            Ok(seed[..32].to_vec())
-        } else {
-            Err(())
-        }
-    }
-
-    fn bruteforce_lastword(mnemonic: &[&str]) -> Vec<String> {
+    fn bruteforce_lastword(mnemonic: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
         let mut result = Vec::new();
-        for word in BIP39_WORDS.split('\n') {
-            if word.is_empty() {
-                continue;
-            }
+        for i in 0..bitbox02::keystore::BIP39_WORDLIST_LEN {
+            let word = bitbox02::keystore::get_bip39_word(i).unwrap();
             let mut m = mnemonic.to_vec();
-            m.push(word);
-            if mnemonic_to_seed(&m).is_ok() {
-                result.push(word.into());
+            m.push(&word);
+            if bitbox02::keystore::bip39_mnemonic_to_seed(&m.join(" ")).is_ok() {
+                result.push(word);
             }
         }
         result
@@ -306,37 +282,19 @@ mod tests {
     fn test_lastword_choices() {
         let _guard = MUTEX.lock().unwrap();
 
-        // Sanity checks that our helper functions work.
         assert_eq!(
-            mnemonic_to_seed(&["metal", "smile", "junk", "lemon", "bitter", "column", "army", "sleep", "dinosaur", "panda", "truck", "place", "drum", "dwarf", "sick", "shell", "resist", "fork", "upset", "process", "pen", "inform", "glance", "motor"]),
-            Ok(b"\x8c\x19\x95\xe5\x3f\xe1\x6c\x5b\x83\x06\x59\x3e\x73\xef\xa4\xd2\xe4\x38\x89\x71\xf6\x2b\xb7\x6b\x6f\xbc\xd5\xca\x26\xe7\x18\xac".to_vec()),
-        );
-        assert_eq!(
-            &bruteforce_lastword(&["violin"; 23]),
+            &as_str_vec(&bruteforce_lastword(&["violin"; 23])),
             &["boss", "coyote", "dry", "habit", "panel", "regular", "speed", "winter"]
         );
 
-        mock(Data {
-            keystore_get_bip39_word: Some(Box::new(|idx| {
-                Ok(zeroize::Zeroizing::new(
-                    BIP39_WORDS.split('\n').nth(idx as _).unwrap().into(),
-                ))
-            })),
-            keystore_bip39_mnemonic_to_seed: Some(Box::new(|mnemonic| {
-                mnemonic_to_seed(&mnemonic.split(' ').collect::<Vec<&str>>())
-                    .map(zeroize::Zeroizing::new)
-            })),
-            ..Default::default()
-        });
-
         assert_eq!(
-            &as_str_vec(&lastword_choices(&["violin"; 23])),
+            &lastword_choices(&["violin"; 23]),
             &bruteforce_lastword(&["violin"; 23]),
         );
 
         let mnemonic = "side stuff card razor rescue enhance risk exchange ozone render large describe gas juice offer permit vendor custom forget lecture divide junior narrow".split(' ').collect::<Vec<&str>>();
         assert_eq!(
-            &as_str_vec(&lastword_choices(&mnemonic)),
+            &lastword_choices(&mnemonic),
             &bruteforce_lastword(&mnemonic)
         );
     }

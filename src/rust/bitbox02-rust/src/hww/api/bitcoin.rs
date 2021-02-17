@@ -36,6 +36,44 @@ use pb::response::Response;
 use pb::BtcCoin;
 use pb::BtcScriptConfig;
 
+use core::convert::TryInto;
+
+/// Like `hww::next_request`, but for Bitcoin requests/responses.
+pub async fn next_request(response: pb::btc_response::Response) -> Result<Request, Error> {
+    let request = crate::hww::next_request(pb::response::Response::Btc(pb::BtcResponse {
+        response: Some(response),
+    }))
+    .await?;
+    match request {
+        pb::request::Request::Btc(pb::BtcRequest {
+            request: Some(request),
+        }) => Ok(request),
+        _ => Err(Error::InvalidState),
+    }
+}
+
+/// Sends the `signer_nonce_commitment` to the host and waits for the next request, which has to be a
+/// `AntiKleptoSignatureRequest` message containing the host nonce.
+pub async fn antiklepto_get_host_nonce(
+    signer_nonce_commitment: [u8; 33],
+) -> Result<[u8; 32], Error> {
+    let request = next_request(pb::btc_response::Response::AntikleptoSignerCommitment(
+        pb::AntiKleptoSignerCommitment {
+            commitment: signer_nonce_commitment.to_vec(),
+        },
+    ))
+    .await?;
+    match request {
+        Request::AntikleptoSignature(pb::AntiKleptoSignatureRequest { host_nonce }) => {
+            Ok(host_nonce
+                .as_slice()
+                .try_into()
+                .or(Err(Error::InvalidInput))?)
+        }
+        _ => Err(Error::InvalidState),
+    }
+}
+
 /// Returns `Ok(())` if the coin is enabled in this edition of the firmware.
 fn coin_enabled(coin: pb::BtcCoin) -> Result<(), Error> {
     use pb::BtcCoin::*;

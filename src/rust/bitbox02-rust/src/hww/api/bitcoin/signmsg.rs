@@ -25,6 +25,8 @@ use pb::BtcCoin;
 
 use pb::btc_response::Response;
 
+use bitbox02::keystore;
+
 use crate::workflow::{confirm, verify_message};
 
 const MAX_MESSAGE_SIZE: usize = 1024;
@@ -93,7 +95,26 @@ pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Er
         .try_into()
         .unwrap();
 
-    let host_nonce = [0; 32]; // TODO: get nonce contribution from host.
+    let host_nonce = match request.host_nonce_commitment {
+        // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
+        Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
+            let signer_commitment = keystore::secp256k1_nonce_commit(
+                keypath,
+                &sighash,
+                commitment
+                    .as_slice()
+                    .try_into()
+                    .or(Err(Error::InvalidInput))?,
+            )?;
+
+            // Send signer commitment to host and wait for the host nonce from the host.
+            super::antiklepto_get_host_nonce(signer_commitment).await?
+        }
+
+        // Return signature directly without the anti-klepto protocol, for backwards compatibility.
+        None => [0; 32],
+    };
+
     let sign_result = bitbox02::keystore::secp256k1_sign(keypath, &sighash, &host_nonce)?;
 
     let mut signature: Vec<u8> = sign_result.signature.to_vec();
@@ -132,6 +153,7 @@ mod tests {
                 keypath: KEYPATH.to_vec(),
             }),
             msg: MESSAGE.to_vec(),
+            host_nonce_commitment: None,
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -188,6 +210,7 @@ mod tests {
                 keypath: KEYPATH.to_vec(),
             }),
             msg: MESSAGE.to_vec(),
+            host_nonce_commitment: None,
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -276,6 +299,7 @@ mod tests {
                     keypath: KEYPATH.to_vec(),
                 }),
                 msg: MESSAGE.to_vec(),
+                host_nonce_commitment: None,
             })),
             Err(Error::InvalidInput)
         );
@@ -291,6 +315,7 @@ mod tests {
                     keypath: KEYPATH.to_vec(),
                 }),
                 msg: MESSAGE.to_vec(),
+                host_nonce_commitment: None,
             })),
             Err(Error::InvalidInput)
         );
@@ -308,6 +333,7 @@ mod tests {
                     keypath: KEYPATH.to_vec(),
                 }),
                 msg: MESSAGE.to_vec(),
+                host_nonce_commitment: None,
             })),
             Err(Error::InvalidInput)
         );
@@ -323,6 +349,7 @@ mod tests {
                     keypath: KEYPATH.to_vec(),
                 }),
                 msg: [0; 1025].to_vec(),
+                host_nonce_commitment: None,
             })),
             Err(Error::InvalidInput)
         );
@@ -341,7 +368,8 @@ mod tests {
                     }),
                     keypath: KEYPATH.to_vec(),
                 }),
-                msg: MESSAGE.to_vec()
+                msg: MESSAGE.to_vec(),
+                host_nonce_commitment: None,
             })),
             Err(Error::InvalidInput)
         );

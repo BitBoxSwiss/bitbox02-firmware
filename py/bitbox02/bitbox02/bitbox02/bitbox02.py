@@ -739,6 +739,29 @@ class BitBox02(BitBoxCommonAPI):
         request = eth.ETHRequest()
         # pylint: disable=no-member
         request.sign_msg.CopyFrom(eth.ETHSignMessageRequest(coin=coin, keypath=keypath, msg=msg))
+
+        supports_antiklepto = self.version >= semver.VersionInfo(9, 5, 0)
+        if supports_antiklepto:
+            host_nonce = os.urandom(32)
+
+            request.sign_msg.host_nonce_commitment.commitment = antiklepto_host_commit(host_nonce)
+            signer_commitment = self._eth_msg_query(
+                request, expected_response="antiklepto_signer_commitment"
+            ).antiklepto_signer_commitment.commitment
+
+            request = eth.ETHRequest()
+            request.antiklepto_signature.CopyFrom(
+                antiklepto.AntiKleptoSignatureRequest(host_nonce=host_nonce)
+            )
+
+            signature = self._eth_msg_query(request, expected_response="sign").sign.signature
+            antiklepto_verify(host_nonce, signer_commitment, signature[:64])
+
+            if self.debug:
+                print(f"Antiklepto nonce verification PASSED")
+
+            return signature
+
         return self._eth_msg_query(request, expected_response="sign").sign.signature
 
     def reset(self) -> bool:

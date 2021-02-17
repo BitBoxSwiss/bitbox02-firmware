@@ -106,7 +106,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_unlocked, Data, MUTEX};
     use std::boxed::Box;
     use util::bip32::HARDENED;
 
@@ -172,14 +172,7 @@ mod tests {
     pub fn test_process_address() {
         let _guard = MUTEX.lock().unwrap();
 
-        const PUBKEY: [u8; 65] = [
-            0x04, 0xd8, 0xae, 0xa8, 0x0d, 0x2d, 0xbc, 0xeb, 0xbe, 0x10, 0xfd, 0xfa, 0xc2, 0xd2,
-            0xdb, 0x19, 0x64, 0x15, 0x5b, 0xa9, 0x9e, 0x0d, 0xd7, 0xbf, 0xd5, 0xcf, 0xfe, 0xd9,
-            0x7a, 0x1c, 0xae, 0xf7, 0xd0, 0xb9, 0x07, 0x2d, 0x9c, 0x0f, 0x50, 0x49, 0x30, 0xef,
-            0x59, 0xb7, 0x52, 0xd4, 0xfe, 0xa0, 0xcb, 0xde, 0x3e, 0x27, 0x3e, 0xe9, 0x54, 0xd8,
-            0xda, 0xc8, 0xee, 0x03, 0x1a, 0x4e, 0xd1, 0x71, 0xfd,
-        ];
-        const ADDRESS: &str = "0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B";
+        const ADDRESS: &str = "0x773A77b9D32589be03f9132AF759e294f7851be9";
 
         let request = &pb::EthPubRequest {
             output_type: OutputType::Address as _,
@@ -191,9 +184,9 @@ mod tests {
 
         // All good.
         mock(Data {
-            keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(
             block_on(process(&request)),
             Ok(Response::Pub(pb::PubResponse {
@@ -203,14 +196,14 @@ mod tests {
 
         // All good, with display.
         mock(Data {
-            keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ui_confirm_create: Some(Box::new(|params| {
                 assert_eq!(params.title, "Ethereum");
-                assert_eq!(params.body, "0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B");
+                assert_eq!(params.body, ADDRESS);
                 true
             })),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(
             block_on(process(&pb::EthPubRequest {
                 output_type: OutputType::Address as _,
@@ -222,6 +215,22 @@ mod tests {
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
             }))
+        );
+
+        // Keystore locked.
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|_| true)),
+            ..Default::default()
+        });
+        assert_eq!(
+            block_on(process(&pb::EthPubRequest {
+                output_type: OutputType::Address as _,
+                keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
+                coin: pb::EthCoin::Eth as _,
+                display: true,
+                contract_address: b"".to_vec(),
+            })),
+            Err(Error::InvalidInput)
         );
 
         // Params not found.
@@ -266,14 +275,7 @@ mod tests {
     pub fn test_process_erc20_address() {
         let _guard = MUTEX.lock().unwrap();
 
-        const PUBKEY: [u8; 65] = [
-            0x04, 0xd8, 0xae, 0xa8, 0x0d, 0x2d, 0xbc, 0xeb, 0xbe, 0x10, 0xfd, 0xfa, 0xc2, 0xd2,
-            0xdb, 0x19, 0x64, 0x15, 0x5b, 0xa9, 0x9e, 0x0d, 0xd7, 0xbf, 0xd5, 0xcf, 0xfe, 0xd9,
-            0x7a, 0x1c, 0xae, 0xf7, 0xd0, 0xb9, 0x07, 0x2d, 0x9c, 0x0f, 0x50, 0x49, 0x30, 0xef,
-            0x59, 0xb7, 0x52, 0xd4, 0xfe, 0xa0, 0xcb, 0xde, 0x3e, 0x27, 0x3e, 0xe9, 0x54, 0xd8,
-            0xda, 0xc8, 0xee, 0x03, 0x1a, 0x4e, 0xd1, 0x71, 0xfd,
-        ];
-        const ADDRESS: &str = "0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B";
+        const ADDRESS: &str = "0x773A77b9D32589be03f9132AF759e294f7851be9";
         const CONTRACT_ADDRESS: [u8; 20] =
             *b"\xda\xc1\x7f\x95\x8d\x2e\xe5\x23\xa2\x20\x62\x06\x99\x45\x97\xc1\x3d\x83\x1e\xc7";
 
@@ -287,9 +289,9 @@ mod tests {
 
         // All good.
         mock(Data {
-            keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(
             block_on(process(&request)),
             Ok(Response::Pub(pb::PubResponse {
@@ -299,14 +301,14 @@ mod tests {
 
         // All good, with display.
         mock(Data {
-            keystore_secp256k1_pubkey_uncompressed: Some(Box::new(|_| Ok(PUBKEY))),
             ui_confirm_create: Some(Box::new(|params| {
                 assert_eq!(params.title, "Tether USD");
-                assert_eq!(params.body, "0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B");
+                assert_eq!(params.body, ADDRESS);
                 true
             })),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(
             block_on(process(&pb::EthPubRequest {
                 output_type: OutputType::Address as _,

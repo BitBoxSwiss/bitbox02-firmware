@@ -110,14 +110,14 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_unlocked, Data, MUTEX};
     use std::boxed::Box;
     use util::bip32::HARDENED;
 
     const ADDRESS: &str = "<address>";
     const KEYPATH: &[u32] = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
     const MESSAGE: &[u8] = b"message";
-    const EXPECTED_SIGHASH: &[u8; 32] = b"\x13\x89\x5e\x0c\x3a\xe0\xe7\x98\xe4\x0a\x6c\x3e\x4b\x2b\x2e\x48\x7d\x1c\xe4\xdc\x13\x31\xa4\xe1\x5b\x2f\x6c\xe0\x96\x97\x65\x51";
+    const EXPECTED_SIGNATURE: &[u8] = b"\x0f\x1d\x54\x2a\x9e\x2f\x37\x4e\xfe\xd4\x57\x8c\xaa\x84\x72\xd1\xc3\x12\x68\xfb\x89\x2d\x39\xa6\x15\x44\x59\x18\x5b\x2d\x35\x4d\x3b\x2b\xff\xf0\xe1\x61\x5c\x77\x25\x73\x4f\x43\x13\x4a\xb4\x51\x6b\x7e\x7c\xb3\x9d\x2d\xba\xaa\x5f\x4e\x8b\x8a\xff\x9f\x97\xd0\x00";
 
     #[test]
     pub fn test_process() {
@@ -164,21 +164,13 @@ mod tests {
                     _ => panic!("too many user confirmations"),
                 }
             })),
-            keystore_secp256k1_sign: Some(Box::new(|keypath, sighash, _host_nonce| {
-                assert_eq!(keypath, KEYPATH);
-                assert_eq!(sighash, EXPECTED_SIGHASH);
-                Ok(bitbox02::keystore::SignResult {
-                    signature: [b'1'; 64],
-                    recid: 3,
-                })
-            })),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(
             block_on(process(&request)),
             Ok(Response::SignMessage(pb::BtcSignMessageResponse {
-                signature: b"1111111111111111111111111111111111111111111111111111111111111111\x03"
-                    .to_vec()
+                signature: EXPECTED_SIGNATURE.to_vec(),
             }))
         );
     }

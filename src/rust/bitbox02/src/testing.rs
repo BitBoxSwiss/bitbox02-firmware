@@ -20,6 +20,10 @@ use alloc::string::String;
 use core::cell::RefCell;
 use std::boxed::Box;
 
+use crate::keystore;
+
+use core::convert::TryInto;
+
 #[derive(Default)]
 pub struct Data {
     pub memory_set_device_name: Option<Box<dyn Fn(&str) -> Result<(), super::memory::Error>>>,
@@ -34,12 +38,6 @@ pub struct Data {
     pub backup_create: Option<Box<dyn Fn(u32, u32) -> Result<(), super::backup::Error>>>,
     pub keystore_encode_xpub_at_keypath:
         Option<Box<dyn Fn(&[u32], super::keystore::xpub_type_t) -> Result<String, ()>>>,
-    pub keystore_secp256k1_pubkey_uncompressed: Option<
-        Box<dyn Fn(&[u32]) -> Result<[u8; super::keystore::EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()>>,
-    >,
-    pub keystore_secp256k1_sign: Option<
-        Box<dyn Fn(&[u32], &[u8; 32], &[u8; 32]) -> Result<super::keystore::SignResult, ()>>,
-    >,
     pub btc_address_simple: Option<
         Box<
             dyn Fn(
@@ -63,6 +61,16 @@ lazy_static! {
     pub static ref MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 }
 
+/// Provide mock implementations and data. This also locks the keystore - use `mock_unlocked()` to mock a seeded and unlocked keystore.
 pub fn mock(data: Data) {
     *DATA.0.borrow_mut() = data;
+    keystore::lock();
+}
+
+/// This mocks an unlocked keystore with a fixed bip39 seed based on these bip39 recovery words:
+/// `purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay`
+pub fn mock_unlocked() {
+    let seed: [u8; 32] = keystore::bip39_mnemonic_to_seed("purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay").unwrap().as_slice().try_into().unwrap();
+    unsafe { bitbox02_sys::mock_state(seed.as_ptr(), core::ptr::null()) }
+    keystore::unlock_bip39(&crate::input::SafeInputString::new()).unwrap();
 }

@@ -15,7 +15,7 @@
 extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
-#[cfg(not(feature = "testing"))]
+
 use core::convert::TryInto;
 
 use crate::input::SafeInputString;
@@ -47,6 +47,10 @@ pub fn unlock(password: &SafeInputString) -> Result<(), Error> {
         keystore_error_t::KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED => Err(Error::Unknown),
         keystore_error_t::KEYSTORE_ERR_GENERIC => Err(Error::Unknown),
     }
+}
+
+pub fn lock() {
+    unsafe { bitbox02_sys::keystore_lock() }
 }
 
 pub fn unlock_bip39(mnemonic_passphrase: &SafeInputString) -> Result<(), Error> {
@@ -140,7 +144,6 @@ pub fn get_bip39_wordlist() -> Result<Bip39Wordlist, ()> {
     Ok(result)
 }
 
-#[cfg(not(feature = "testing"))]
 pub fn secp256k1_pubkey_uncompressed(
     keypath: &[u32],
 ) -> Result<[u8; EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()> {
@@ -155,16 +158,6 @@ pub fn secp256k1_pubkey_uncompressed(
         true => Ok(pubkey),
         false => Err(()),
     }
-}
-
-#[cfg(feature = "testing")]
-pub fn secp256k1_pubkey_uncompressed(
-    keypath: &[u32],
-) -> Result<[u8; EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()> {
-    let data = crate::testing::DATA.0.borrow();
-    data.keystore_secp256k1_pubkey_uncompressed
-        .as_ref()
-        .unwrap()(keypath)
 }
 
 #[cfg(not(feature = "testing"))]
@@ -197,7 +190,6 @@ pub struct SignResult {
     pub recid: u8,
 }
 
-#[cfg(not(feature = "testing"))]
 pub fn secp256k1_sign(
     keypath: &[u32],
     msg: &[u8; 32],
@@ -221,16 +213,6 @@ pub fn secp256k1_sign(
         }),
         false => Err(()),
     }
-}
-
-#[cfg(feature = "testing")]
-pub fn secp256k1_sign(
-    keypath: &[u32],
-    msg: &[u8; 32],
-    host_nonce: &[u8; 32],
-) -> Result<SignResult, ()> {
-    let data = crate::testing::DATA.0.borrow();
-    data.keystore_secp256k1_sign.as_ref().unwrap()(keypath, msg, host_nonce)
 }
 
 pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {

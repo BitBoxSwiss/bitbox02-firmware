@@ -25,6 +25,7 @@ pub use bitbox02_sys::xpub_type_t;
 
 pub const BIP39_WORDLIST_LEN: u16 = bitbox02_sys::BIP39_WORDLIST_LEN as u16;
 pub const EC_PUBLIC_KEY_UNCOMPRESSED_LEN: usize = bitbox02_sys::EC_PUBLIC_KEY_UNCOMPRESSED_LEN as _;
+pub const EC_PUBLIC_KEY_LEN: usize = bitbox02_sys::EC_PUBLIC_KEY_LEN as _;
 
 pub fn is_locked() -> bool {
     unsafe { bitbox02_sys::keystore_is_locked() }
@@ -211,6 +212,26 @@ pub fn secp256k1_sign(
             signature,
             recid: recid.try_into().unwrap(),
         }),
+        false => Err(()),
+    }
+}
+
+pub fn secp256k1_nonce_commit(
+    keypath: &[u32],
+    msg: &[u8; 32],
+    host_commitment: &[u8; 32],
+) -> Result<[u8; EC_PUBLIC_KEY_LEN], ()> {
+    let mut signer_commitment = [0u8; EC_PUBLIC_KEY_LEN];
+    match unsafe {
+        bitbox02_sys::keystore_secp256k1_nonce_commit(
+            keypath.as_ptr(),
+            keypath.len() as _,
+            msg.as_ptr(),
+            host_commitment.as_ptr(),
+            signer_commitment.as_mut_ptr(),
+        )
+    } {
+        true => Ok(signer_commitment),
         false => Err(()),
     }
 }

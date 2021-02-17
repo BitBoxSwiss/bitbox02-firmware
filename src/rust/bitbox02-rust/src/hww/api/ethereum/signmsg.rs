@@ -15,6 +15,8 @@
 use super::pb;
 use super::Error;
 
+use bitbox02::keystore;
+
 use crate::workflow::verify_message;
 
 use pb::eth_response::Response;
@@ -55,7 +57,27 @@ pub async fn process(request: &pb::EthSignMessageRequest) -> Result<Response, Er
     msg.extend(&request.msg);
 
     let sighash: [u8; 32] = sha3::Keccak256::digest(&msg).as_slice().try_into().unwrap();
-    let host_nonce = [0; 32]; // TODO: get nonce contribution from host.
+
+    let host_nonce = match request.host_nonce_commitment {
+        // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
+        Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
+            let signer_commitment = keystore::secp256k1_nonce_commit(
+                &request.keypath,
+                &sighash,
+                commitment
+                    .as_slice()
+                    .try_into()
+                    .or(Err(Error::InvalidInput))?,
+            )?;
+
+            // Send signer commitment to host and wait for the host nonce from the host.
+            super::antiklepto_get_host_nonce(signer_commitment).await?
+        }
+
+        // Return signature directly without the anti-klepto protocol, for backwards compatibility.
+        None => [0; 32],
+    };
+
     let sign_result = bitbox02::keystore::secp256k1_sign(&request.keypath, &sighash, &host_nonce)?;
 
     let mut signature: Vec<u8> = sign_result.signature.to_vec();
@@ -113,6 +135,7 @@ mod tests {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 msg: MESSAGE.to_vec(),
+                host_nonce_commitment: None,
             })),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\x34\x88\x5e\x93\x74\x37\x5a\x12\xe8\xc5\x18\x6e\xf9\x87\x0b\x03\x6b\x2b\xd2\x51\xb3\xf2\x0b\x97\x95\x11\x91\x2d\xd4\x18\x94\x72\x5c\x0a\x50\x4a\x34\x19\xae\x21\xd6\x9e\x22\x43\xca\x18\xe9\xc6\xee\xe7\x5b\x2e\x16\xea\x57\xb4\xf6\x47\xfd\x10\x6b\xe8\x3f\xd2\x01"
@@ -129,6 +152,7 @@ mod tests {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
             msg: MESSAGE.to_vec(),
+            host_nonce_commitment: None,
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -190,6 +214,7 @@ mod tests {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 msg: [0; 10000].to_vec(),
+                host_nonce_commitment: None,
             })),
             Err(Error::InvalidInput)
         );
@@ -203,6 +228,7 @@ mod tests {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 msg: b"message".to_vec(),
+                host_nonce_commitment: None,
             })),
             Err(Error::InvalidInput)
         );

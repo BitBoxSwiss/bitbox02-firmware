@@ -10184,6 +10184,13 @@ static const app_eth_erc20_params_t _ethereum_erc20_params[] = {
         .decimals = 8,
     },
     {
+        .name = "Uniswap",
+        .unit = "UNI",
+        .contract_address =
+            "\x1f\x98\x40\xa8\x5d\x5a\xf5\xbf\x1d\x17\x62\xf9\x25\xbd\xad\xdc\x42\x01\xf9\x84",
+        .decimals = 18,
+    },
+    {
         .name = "UniDollar",
         .unit = "UNIUSD",
         .contract_address =

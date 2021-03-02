@@ -3,6 +3,7 @@
 ## [Unreleased]
 - RestoreFrommnemonic: ported to Rust. Will now return UserAbortError on user abort instead of GenericError.
 - Anti-klepto support for ETH transaction signing and for BTC and ETH message signing.
+- Add Uniswap ERC-20 token.
 
 ## 9.4.0 [released 2021-01-20]
 - ETHPubRequest api call now fails if a an invalid contract address is provided also if `display` is

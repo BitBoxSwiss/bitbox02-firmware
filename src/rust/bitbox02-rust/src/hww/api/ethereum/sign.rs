@@ -139,6 +139,21 @@ async fn verify_standard_transaction(
 
     if !request.data.is_empty() {
         confirm::confirm(&confirm::Params {
+            title: "Unknown\ncontract",
+            body: "You will be shown\nthe raw\ntransaction data.",
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+        confirm::confirm(&confirm::Params {
+            title: "Unknown\ncontract",
+            body: "Only proceed if you\nunderstand exactly\nwhat the data means.",
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+
+        confirm::confirm(&confirm::Params {
             title: "Transaction\ndata",
             body: &hex::encode(&request.data),
             scrollable: true,
@@ -367,14 +382,21 @@ mod tests {
         let _guard = MUTEX.lock().unwrap();
 
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-
+        static mut CONFIRM_COUNTER: u32 = 0;
         mock(Data {
             ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.title, "Transaction\ndata");
-                assert_eq!(params.body, "666f6f20626172"); // "foo bar" in hex.
-                assert!(params.scrollable);
-                assert_eq!(params.display_size, 7); // length of "foo bar"
-                assert!(params.accept_is_nextarrow);
+                match unsafe { CONFIRM_COUNTER } {
+                    0 | 1 => assert_eq!(params.title, "Unknown\ncontract"),
+                    2 => {
+                        assert_eq!(params.title, "Transaction\ndata");
+                        assert_eq!(params.body, "666f6f20626172"); // "foo bar" in hex.
+                        assert!(params.scrollable);
+                        assert_eq!(params.display_size, 7); // length of "foo bar"
+                        assert!(params.accept_is_nextarrow);
+                    }
+                    _ => panic!("too many user confirmations"),
+                }
+                unsafe { CONFIRM_COUNTER += 1 }
                 true
             })),
             ui_transaction_address_create: Some(Box::new(|amount, address| {

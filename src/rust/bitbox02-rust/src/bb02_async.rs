@@ -48,8 +48,8 @@ impl<O> core::future::Future for AsyncOption<'_, O> {
 
 /// Waits for an option to contain a value and returns that value, leaving `None` in its place.
 /// E.g. `assert_eq!(option(&Some(42)).await, 42)`.
-pub fn option<'a, O>(option: &'a RefCell<Option<O>>) -> AsyncOption<'a, O> {
-    AsyncOption(&option)
+pub fn option<O>(option: &RefCell<Option<O>>) -> AsyncOption<'_, O> {
+    AsyncOption(option)
 }
 
 /// Polls a future until the result is available.

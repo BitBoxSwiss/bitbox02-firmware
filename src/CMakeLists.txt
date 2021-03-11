@@ -474,6 +474,7 @@ if(NOT CMAKE_CROSSCOMPILING)
             -A clippy::type_complexity
             -A clippy::collapsible-if
             -A clippy::len_without_is_empty
+            -A clippy::result_unit_err
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
   add_dependencies(rust-clippy rust-bindgen)

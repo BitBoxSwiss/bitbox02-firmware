@@ -163,7 +163,7 @@ pub fn bitboxbase_watchdog_reset() {
 }
 
 pub fn leds_turn_small_led(led: i32, enabled: bool) {
-    if led < 0 || led > 4 {
+    if !(0..=4).contains(&led) {
         panic!("Invalid led");
     }
     unsafe { bitbox02_sys::leds_turn_small_led(led, enabled) }
@@ -180,7 +180,7 @@ pub enum Color {
 }
 
 pub fn leds_turn_big_led(led: i32, color: Option<Color>) {
-    if led < 0 || led > 2 {
+    if !(0..=2).contains(&led) {
         panic!("Invalid led");
     }
     let c = match color {

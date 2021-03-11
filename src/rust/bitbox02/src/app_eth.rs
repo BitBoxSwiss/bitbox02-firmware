@@ -30,7 +30,7 @@ pub fn params_get(coin: bitbox02_sys::ETHCoin) -> Option<Params> {
                 let len = crate::util::strlen_ptr(params.unit);
                 core::slice::from_raw_parts(params.unit, len as _)
             };
-            core::str::from_utf8(&s[..]).unwrap()
+            core::str::from_utf8(s).unwrap()
         },
     })
 }
@@ -55,14 +55,14 @@ pub fn erc20_params_get(
                 let len = crate::util::strlen_ptr(params.unit);
                 core::slice::from_raw_parts(params.unit, len as _)
             };
-            core::str::from_utf8(&s[..]).unwrap()
+            core::str::from_utf8(s).unwrap()
         },
         name: {
             let s = unsafe {
                 let len = crate::util::strlen_ptr(params.name);
                 core::slice::from_raw_parts(params.name, len as _)
             };
-            core::str::from_utf8(&s[..]).unwrap()
+            core::str::from_utf8(s).unwrap()
         },
         contract_address: params.contract_address,
         decimals: params.decimals,

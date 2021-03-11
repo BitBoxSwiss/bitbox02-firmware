@@ -76,7 +76,7 @@ macro_rules! str_to_cstr_force {
     ($input:expr, $len:expr) => {
         match $crate::str_to_cstr!($input, $len) {
             Ok(buf) => buf,
-            Err(msg) => panic!(msg),
+            Err(msg) => panic!("{}", msg),
         }
     };
 }

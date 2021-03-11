@@ -207,7 +207,7 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, ()> {
                 enum GetWordError {
                     Cancel,
                     EditPrevious,
-                };
+                }
 
                 let cancel_choice = if word_idx == 0 {
                     // In the first word, there is no previous word, so we go straight to the cancel

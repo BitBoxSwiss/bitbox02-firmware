@@ -100,7 +100,7 @@ pub fn get_bip39_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
             let word = unsafe {
                 let len = crate::util::strlen_ptr(word_ptr);
                 let slice = core::slice::from_raw_parts(word_ptr, len as _);
-                zeroize::Zeroizing::new(core::str::from_utf8(&slice[..]).unwrap().into())
+                zeroize::Zeroizing::new(core::str::from_utf8(slice).unwrap().into())
             };
             unsafe {
                 bitbox02_sys::wally_free_string(word_ptr as _);

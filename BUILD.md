@@ -35,7 +35,7 @@ The container will contain all tools needed to build the project but it is still
 the J-Link software to flash the bootloader.  Run the commands below to build the container and
 execute a persistent one.
 
-```
+```sh
 make dockerinit
 make dockerdev
 ```
@@ -48,7 +48,7 @@ it is necessary to flash the device in a terminal not running in docker.
 Make sure you have [Homebrew](https://brew.sh) installed.
 Install the dependencies with:
 
-```bash
+```sh
 brew install hidapi cmake protobuf
 brew install automake libtool # for building some code in the external/ folder
 brew tap osx-cross/arm
@@ -57,7 +57,7 @@ brew install arm-gcc-bin
 
 Add the following directory in this repository to your `PATH` in `~/.bash_login`:
 
-```bash
+```sh
 export PATH="$PATH:[…]/bitbox02-firmware/tools/nanopb/generator"
 ```
 
@@ -68,7 +68,8 @@ Connect the J-Link to the debug pins on the BitBox02 prototype board.
 Plug in both the J-Link hardware and the BitBox02 device into USB ports on your computer or a hub connected to your computer.
 
 Build the firmware:
-```
+
+```sh
 git clone --recurse-submodules https://github.com/digitalbitbox/bitbox02-firmware && cd bitbox02-firmware
 # or via ssh
 git clone --recurse-submodules git@github.com:digitalbitbox/bitbox02-firmware.git && cd bitbox02-firmware
@@ -76,12 +77,14 @@ make firmware # requires a GNU ARM toolchain for cross-compiling
 ```
 
 If you have already cloned the repository without the `--recurse-submodules` argument, run:
-```
+
+```sh
 git submodule update --init --recursive
 ```
 
 Build the bootloader:
-```
+
+```sh
 make bootloader
 ```
 
@@ -89,31 +92,36 @@ make bootloader
 `make bootloader-production` respectively).
 
 Load the bootloader by JLink (requires JLinkExe in PATH).
-```
+
+```sh
 make jlink-flash-bootloader
 ```
 
-You need to install the [BitBox02 Python Library](py/README.md) before you can flash the built firmware.
+You need to install the [BitBox02 Python Library](#BitBox02-Python-library) before you can flash the built firmware.
 
 Load the firmware by the bootloader (requires loading bootloader.bin by JLink, if not already loaded on the device):
-```
+
+```sh
 make flash-dev-firmware
 ```
 
 Load the firmware by JLink:
-```
+
+```sh
 make jlink-flash-firmware
 ```
 
 ### Build reference documentation (Doxygen)
 
 Dependencies:
-```
+
+```sh
 brew install graphviz doxygen
 ```
 
 Build:
-```
+
+```sh
 make docs
 ```
 
@@ -123,30 +131,30 @@ To view the results, open `build/docs/html/index.html` in a web browser.
 
 There is a Python api library in `py/bitbox02`.
 
-Run `pip install -r py/requirements.txt -r py/bitbox02/requirements.txt` to install the deps (virtualenv recommended).
+Run `pip install -r py/requirements.txt` to install the deps (virtualenv recommended).
 
 `make -C py/bitbox02` to generate the protobuf files.
 
 To kick off some api calls:
 
-```
+```sh
 ./py/send_message.py
 ```
 
 ### Unit tests
 
-We are using CMocka (https://cmocka.org/) for unit tests. To run the tests, the CMocka library
+We are using CMocka [https://cmocka.org/](https://cmocka.org/) for unit tests. To run the tests, the CMocka library
 needs to be installed on your system.
 
 If you're on a Mac, you can use the brew command to install it:
 
-```
+```sh
 brew install cmocka
 ```
 
 Alternatively, you can get CMocka by cloning the git repository and following these instructions:
 
-```
+```sh
 git clone git://git.cryptomilk.org/projects/cmocka.git
 cd cmocka
 mkdir build && cd build
@@ -157,13 +165,13 @@ make && sudo make install
 By default, the library will be installed into /usr/local/lib64 directory under Linux x86\_64.
 If the library is not on the library path by default, you might need to export the following environment variable:
 
-```
+```sh
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib64/
 ```
 
 Then you can run the tests by executing
 
-```
+```sh
 make run-unit-tests # or make -C build-build test
 ```
 
@@ -171,11 +179,11 @@ make run-unit-tests # or make -C build-build test
 
 gcovr or lcov/genhtml can be used to generate HTML coverage reports using the following commands:
 
-```
+```sh
 make coverage # or make -C build-build coverage
 ```
 
-```
+```sh
 make -C build-build coverage-lcovr
 ```
 
@@ -200,7 +208,7 @@ with the resulting `device-test.bin` that gets built into `test/device-test/buil
 
 You can run `setup_test.py` as follows:
 
-```
+```sh
 ./test/device-test/setup_test.py -t test/device-test/src/startup_test.c
 ```
 
@@ -211,7 +219,7 @@ If you run it successfully, the device should print `Integration test` on the sc
 The test becomes more interesting as we add the ability to function in a python script.
 Here is an example for a python test:
 
-```
+```python
 #!/usr/bin/env python
 
 from setup_test import *

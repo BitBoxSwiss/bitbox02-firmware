@@ -42,7 +42,7 @@ A valid signature means that the signer confirms that they could reproduce the b
 stated version tag.
 
 You can check that the released signed firmware (usually named `firmware.vX.Y.Z.signed.bin`)
-contains the unsigned binary with:
+contains the unsigned binary with the following script (please install the [BitBox02 Python Library](../BUILD.md#BitBox02-Python-library) first):
 
 ```sh
 ./describe_signed_firmware.py firmware.vX.Y.Z.signed.bin
@@ -74,7 +74,7 @@ the same result. Please open a PR to add your signed message confirming this. Si
 like this *only* confirms that you got the same result. It *does not* endorse the contents or
 quality of the binary itself.
 
-### How to reproduce:
+### How to reproduce
 
 Run `./build.sh <version tag> <make command>`, e.g.:
 
@@ -90,12 +90,14 @@ When it successfully finishes, print the sha256 hash of the binary:
 
 ```sh
 # linux
-sha256sum temp/build/bin/firmware.bin
+sha256sum temp/build/bin/firmware.bin         # multi edition firmware
+sha256sum temp/build/bin/firmware-btc.bin     # bitcoin-only firmware
 # macOS
-shasum -a 256 temp/build/bin/firmware.bin
+shasum -a 256 temp/build/bin/firmware.bin     # multi edition firmware
+shasum -a 256 temp/build/bin/firmware-btc.bin # bitcoin-only firmware
 ```
 
-**Contributing your signature**
+### Contributing your signature
 
 Please inspect the `assertion.txt` in the relevant subfolder,
 e.g. [firmware-v4.1.0/assertion.txt](firmware-v4.1.0/assertion.txt). If you agree to its contents

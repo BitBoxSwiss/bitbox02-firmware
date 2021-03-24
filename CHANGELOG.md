@@ -1,7 +1,7 @@
 # Changelog
 
 ## [Unreleased]
--
+- Attempt to fix flaky SD behavior
 
 ## 9.5.0 [released 2021-03-10]
 - RestoreFrommnemonic: ported to Rust. Will now return UserAbortError on user abort instead of GenericError.

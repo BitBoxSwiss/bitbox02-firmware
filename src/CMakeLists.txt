@@ -423,6 +423,7 @@ add_custom_target(rust-bindgen
     --whitelist-function app_eth_erc20_params_get
     --whitelist-function app_eth_sighash
     --whitelist-function app_btc_address_simple
+    --whitelist-function reboot
     ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
     -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums ${RUST_BINDGEN_FLAGS} ${RUST_INCLUDES}
   COMMAND

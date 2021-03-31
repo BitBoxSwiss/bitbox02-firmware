@@ -13,14 +13,13 @@
 // limitations under the License.
 
 #include "reboot.h"
-#include "confirm.h"
 #include <memory/memory.h>
 #include <screen.h>
 #ifndef TESTING
 #include <driver_init.h>
 #endif
 
-static void _reboot(void)
+void reboot(void)
 {
     auto_enter_t auto_enter = {
         .value = sectrue_u8,
@@ -41,20 +40,4 @@ static void _reboot(void)
 #ifndef TESTING
     _reset_mcu();
 #endif
-}
-
-bool workflow_reboot(void)
-{
-#if PLATFORM_BITBOX02 == 1
-    // Only ask on the bitbox02 platform, bitboxbase will always reboot
-    const confirm_params_t params = {
-        .title = "",
-        .body = "Proceed to upgrade?",
-    };
-    if (!workflow_confirm_blocking(&params)) {
-        return false;
-    }
-#endif
-    _reboot();
-    return true;
 }

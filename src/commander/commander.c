@@ -33,7 +33,6 @@
 #include <util.h>
 #include <version.h>
 
-#include <workflow/reboot.h>
 #include <workflow/restore.h>
 #include <workflow/workflow.h>
 
@@ -105,14 +104,6 @@ static commander_error_t _api_restore_backup(const RestoreBackupRequest* request
 }
 #endif
 
-static commander_error_t _api_reboot(void)
-{
-    if (!workflow_reboot()) {
-        return COMMANDER_ERR_GENERIC;
-    }
-    return COMMANDER_OK;
-}
-
 // ------------------------------------ Process ------------------------------------- //
 
 /**
@@ -156,9 +147,6 @@ static commander_error_t _api_process(const Request* request, Response* response
         response->which_response = Response_success_tag;
         return commander_bitboxbase(&(request->request.bitboxbase));
 #endif
-    case Request_reboot_tag:
-        response->which_response = Response_success_tag;
-        return _api_reboot();
     default:
         screen_print_debug("command unknown", 1000);
         return COMMANDER_ERR_INVALID_INPUT;

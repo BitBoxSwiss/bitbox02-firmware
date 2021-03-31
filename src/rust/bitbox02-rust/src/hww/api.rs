@@ -33,6 +33,7 @@ mod set_device_name;
 mod set_mnemonic_passphrase_enabled;
 mod set_password;
 mod show_mnemonic;
+mod system;
 
 use alloc::vec::Vec;
 
@@ -120,6 +121,7 @@ async fn process_api_btc(_request: &Request) -> Option<Result<Response, Error>> 
 /// the C commander.
 async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
     match request {
+        Request::Reboot(ref request) => Some(system::reboot(request).await),
         Request::DeviceInfo(_) => Some(device_info::process()),
         Request::DeviceName(ref request) => Some(set_device_name::process(request).await),
         Request::SetPassword(ref request) => Some(set_password::process(request).await),

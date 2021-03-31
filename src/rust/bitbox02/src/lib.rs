@@ -280,3 +280,14 @@ pub fn version_short() -> &'static str {
 pub fn version_short() -> &'static str {
     "9.2.0-testing"
 }
+
+#[cfg(not(feature = "testing"))]
+pub fn reboot() -> ! {
+    unsafe { bitbox02_sys::reboot() }
+    loop {}
+}
+
+#[cfg(feature = "testing")]
+pub fn reboot() -> ! {
+    panic!("reboot called")
+}

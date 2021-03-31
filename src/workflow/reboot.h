@@ -15,13 +15,9 @@
 #ifndef _WORKFLOW_REBOOT_H_
 #define _WORKFLOW_REBOOT_H_
 
-#include <stdbool.h>
-
 /**
- * Shows a confirmation dialog to the user to confirm/reject rebooting the
- * device into bootoader mode to upgrade the firmware.
- * @return true if the user confirms, false if the user rejects.
+ * Reboots the device.
  */
-bool workflow_reboot(void);
+void reboot(void);
 
 #endif

@@ -51,6 +51,7 @@
 #include <wally_core.h>
 #include <wally_crypto.h>
 #include <workflow/confirm.h>
+#include <workflow/reboot.h>
 
 #if !defined(TESTING)
 #include <hal_delay.h>

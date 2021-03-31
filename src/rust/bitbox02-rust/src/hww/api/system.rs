@@ -15,14 +15,21 @@
 use super::Error;
 use crate::pb;
 
+use pb::reboot_request::Purpose;
 use pb::response::Response;
 
 use crate::workflow::confirm;
 
-pub async fn reboot(&pb::RebootRequest {}: &pb::RebootRequest) -> Result<Response, Error> {
+pub async fn reboot(&pb::RebootRequest { purpose }: &pb::RebootRequest) -> Result<Response, Error> {
     confirm::confirm(&confirm::Params {
         title: "",
-        body: "Proceed to upgrade?",
+        body: match Purpose::from_i32(purpose) {
+            Some(Purpose::Upgrade) => "Proceed to upgrade?",
+            Some(Purpose::Settings) => "Go to\nstartup settings?",
+            // No error, if new client library sends a purpose that we don't understand,
+            // we reboot anyway.
+            None => "Reboot?",
+        },
         ..Default::default()
     })
     .await?;

@@ -647,11 +647,17 @@ class BitBoxCommonAPI:
             print(response)
         return response
 
-    def reboot(self) -> bool:
-        """TODO: Document"""
+    def reboot(
+        self, purpose: system.RebootRequest.Purpose = system.RebootRequest.Purpose.UPGRADE
+    ) -> bool:
+        """
+        Sends the reboot request. If the user confirms the request on the device, the device reboots
+        into the bootloader.
+        The purpose defines what confirmation message the user gets to see on the device.
+        """
         # pylint: disable=no-member
         request = hww.Request()
-        request.reboot.CopyFrom(system.RebootRequest())
+        request.reboot.CopyFrom(system.RebootRequest(purpose=purpose))
         try:
             self._msg_query(request)
         except OSError:

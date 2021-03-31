@@ -54,5 +54,6 @@ from .bitbox02 import (
     btc,
     common,
     eth,
+    system,
 )
 from .bootloader import Bootloader

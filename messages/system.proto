@@ -16,5 +16,9 @@ syntax = "proto3";
 package shiftcrypto.bitbox02;
 
 message RebootRequest {
-
+  enum Purpose {
+    UPGRADE = 0;
+    SETTINGS = 1;
+  }
+  Purpose purpose = 1;
 }

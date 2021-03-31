@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _WORKFLOW_REBOOT_H_
-#define _WORKFLOW_REBOOT_H_
+#ifndef _SYSTEM_H_
+#define _SYSTEM_H_
 
 /**
  * Reboots the device.

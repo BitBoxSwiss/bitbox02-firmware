@@ -29,6 +29,7 @@
 #include <screen.h>
 #include <sd.h>
 #include <securechip/securechip.h>
+#include <system.h>
 #include <ui/components/confirm.h>
 #include <ui/components/confirm_transaction.h>
 #include <ui/components/label.h>
@@ -51,7 +52,6 @@
 #include <wally_core.h>
 #include <wally_crypto.h>
 #include <workflow/confirm.h>
-#include <workflow/reboot.h>
 
 #if !defined(TESTING)
 #include <hal_delay.h>

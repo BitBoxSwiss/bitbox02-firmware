@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "reboot.h"
+#include "system.h"
 #include <memory/memory.h>
 #include <screen.h>
 #ifndef TESTING

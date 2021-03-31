@@ -26,6 +26,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
   ${CMAKE_SOURCE_DIR}/src/util.c
   ${CMAKE_SOURCE_DIR}/src/sd.c
+  ${CMAKE_SOURCE_DIR}/src/system.c
   ${CMAKE_SOURCE_DIR}/src/hww.c
   ${CMAKE_SOURCE_DIR}/src/memory/bitbox02_smarteeprom.c
   ${CMAKE_SOURCE_DIR}/src/memory/memory.c
@@ -45,7 +46,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm_time.c
   ${CMAKE_SOURCE_DIR}/src/workflow/idle_workflow.c
   ${CMAKE_SOURCE_DIR}/src/workflow/password.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/reboot.c
   ${CMAKE_SOURCE_DIR}/src/workflow/restore.c
   ${CMAKE_SOURCE_DIR}/src/workflow/orientation_screen.c
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c

@@ -647,11 +647,13 @@ class BitBoxCommonAPI:
             print(response)
         return response
 
-    def reboot(self) -> bool:
+    def reboot(
+        self, purpose: system.RebootRequest.Purpose = system.RebootRequest.Purpose.UPGRADE
+    ) -> bool:
         """TODO: Document"""
         # pylint: disable=no-member
         request = hww.Request()
-        request.reboot.CopyFrom(system.RebootRequest())
+        request.reboot.CopyFrom(system.RebootRequest(purpose=purpose))
         try:
             self._msg_query(request)
         except OSError:

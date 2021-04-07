@@ -380,7 +380,17 @@ bool sd_card_inserted(void)
 #else
     sd_mmc_err_t err = sd_mmc_check(0);
     sd_mmc_pause_clock();
-    return (err == SD_MMC_OK || err == SD_MMC_INIT_ONGOING);
+    /* If initialization is ongoing, wait up to 1 second for it to initialize */
+    if (err == SD_MMC_INIT_ONGOING) {
+        for (int i = 0; i < 10; ++i) {
+            delay_ms(100);
+            err = sd_mmc_check(0);
+            if (err != SD_MMC_INIT_ONGOING) {
+                break;
+            }
+        }
+    }
+    return err == SD_MMC_OK;
 #endif
 }
 

@@ -180,7 +180,7 @@ pub enum Color {
 }
 
 pub fn leds_turn_big_led(led: i32, color: Option<Color>) {
-    if led < 0 || led > 2 {
+    if !(0..=2).contains(&led) {
         panic!("Invalid led");
     }
     let c = match color {

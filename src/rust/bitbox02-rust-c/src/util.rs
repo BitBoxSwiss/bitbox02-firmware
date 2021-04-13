@@ -39,7 +39,12 @@ pub extern "C" fn rust_util_validate_name(cstr: CStr, max_len: size_t) -> bool {
 pub extern "C" fn rust_util_uint8_to_hex(buf: Bytes, mut out: CStrMut) {
     let min_len = buf.len * 2;
     out.write(min_len, |out| {
-        hex::encode_to_slice(&buf, out).unwrap();
+        // Avoid .unwrap() here until the following compiler regression is fixed:
+        // https://github.com/rust-lang/rust/issues/83925
+        match hex::encode_to_slice(&buf, out) {
+            Ok(()) => {}
+            Err(err) => panic!("{:?}", err),
+        }
     });
 }
 

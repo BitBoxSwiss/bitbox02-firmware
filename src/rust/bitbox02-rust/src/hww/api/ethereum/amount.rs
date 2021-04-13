@@ -56,7 +56,7 @@ mod tests {
             decimals: usize,
             unit: &'a str,
             expected_result: &'a str,
-        };
+        }
 
         let tests = vec![
             Test {

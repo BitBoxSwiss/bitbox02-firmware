@@ -26,11 +26,13 @@ message DeviceInfoRequest {
 }
 
 message DeviceInfoResponse {
-    string name = 1;
-    bool initialized = 2;
-    string version = 3;
-    bool mnemonic_passphrase_enabled = 4;
-    uint32 monotonic_increments_remaining = 5;
+  string name = 1;
+  bool initialized = 2;
+  string version = 3;
+  bool mnemonic_passphrase_enabled = 4;
+  uint32 monotonic_increments_remaining = 5;
+  // From v9.6.0: "ATECC608A" or "ATECC608B".
+  string securechip_model = 6;
 }
 
 message InsertRemoveSDCardRequest {

@@ -764,3 +764,13 @@ bool securechip_u2f_counter_inc(uint32_t* counter)
     return _write_data_slot_block(&data.bytes[0], SECURECHIP_SLOT_DATA0, 0);
 }
 #endif
+
+bool securechip_model(securechip_model_t* model_out)
+{
+    uint8_t revision[4] = {0};
+    if (atcab_info(revision) != ATCA_SUCCESS) {
+        return false;
+    }
+    *model_out = revision[3] >= 0x03 ? SECURECHIP_ATECC608B : SECURECHIP_ATECC608A;
+    return true;
+}

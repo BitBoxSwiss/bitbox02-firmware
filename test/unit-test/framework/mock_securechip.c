@@ -70,3 +70,8 @@ bool securechip_monotonic_increments_remaining(uint32_t* remaining_out)
 {
     return false;
 }
+
+bool securechip_model(securechip_model_t* model_out)
+{
+    return false;
+}

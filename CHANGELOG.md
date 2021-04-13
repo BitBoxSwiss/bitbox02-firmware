@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 - Attempt to fix flaky SD behavior
+- Add securechip_model to DeviceInfo: ATECCC608A or ATECC608B.
 
 ## 9.5.0 [released 2021-03-10]
 - RestoreFrommnemonic: ported to Rust. Will now return UserAbortError on user abort instead of GenericError.

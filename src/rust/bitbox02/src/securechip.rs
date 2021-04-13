@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub use bitbox02_sys::securechip_model_t as Model;
+
 pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
     match unsafe {
         bitbox02_sys::securechip_attestation_sign(challenge.as_ptr(), signature.as_mut_ptr())
@@ -48,4 +50,12 @@ pub fn u2f_counter_set(counter: u32) -> Result<(), ()> {
 #[cfg(feature = "testing")]
 pub fn u2f_counter_set(_counter: u32) -> Result<(), ()> {
     unimplemented!();
+}
+
+pub fn model() -> Result<Model, ()> {
+    let mut ver = core::mem::MaybeUninit::uninit();
+    match unsafe { bitbox02_sys::securechip_model(ver.as_mut_ptr()) } {
+        true => Ok(unsafe { ver.assume_init() }),
+        false => Err(()),
+    }
 }

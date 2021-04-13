@@ -159,4 +159,16 @@ USE_RESULT bool securechip_u2f_counter_set(uint32_t counter);
 USE_RESULT bool securechip_u2f_counter_inc(uint32_t* counter);
 #endif
 
+typedef enum {
+    SECURECHIP_ATECC608A,
+    SECURECHIP_ATECC608B,
+} securechip_model_t;
+
+/**
+ * Output the securechip model.
+ * @param[out] model_out securechip model
+ * @return True if success
+ */
+USE_RESULT bool securechip_model(securechip_model_t* model_out);
+
 #endif

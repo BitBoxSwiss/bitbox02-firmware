@@ -344,6 +344,8 @@ add_custom_target(rust-bindgen
     --whitelist-function securechip_attestation_sign
     --whitelist-function securechip_monotonic_increments_remaining
     --whitelist-function securechip_u2f_counter_set
+    --whitelist-function securechip_model
+    --rustified-enum securechip_model_t
     --whitelist-function keystore_is_locked
     --whitelist-function keystore_unlock
     --whitelist-function keystore_unlock_bip39

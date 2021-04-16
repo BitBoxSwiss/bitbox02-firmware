@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='bitbox02_system.proto',
   package='shiftcrypto.bitbox02',
   syntax='proto3',
-  serialized_pb=_b('\n\x15\x62itbox02_system.proto\x12\x14shiftcrypto.bitbox02\"\x14\n\x12\x43heckSDCardRequest\"\'\n\x13\x43heckSDCardResponse\x12\x10\n\x08inserted\x18\x01 \x01(\x08\"\x13\n\x11\x44\x65viceInfoRequest\"\x95\x01\n\x12\x44\x65viceInfoResponse\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x13\n\x0binitialized\x18\x02 \x01(\x08\x12\x0f\n\x07version\x18\x03 \x01(\t\x12#\n\x1bmnemonic_passphrase_enabled\x18\x04 \x01(\x08\x12&\n\x1emonotonic_increments_remaining\x18\x05 \x01(\r\"\x9b\x01\n\x19InsertRemoveSDCardRequest\x12L\n\x06\x61\x63tion\x18\x01 \x01(\x0e\x32<.shiftcrypto.bitbox02.InsertRemoveSDCardRequest.SDCardAction\"0\n\x0cSDCardAction\x12\x0f\n\x0bREMOVE_CARD\x10\x00\x12\x0f\n\x0bINSERT_CARD\x10\x01\"\x0e\n\x0cResetRequest\",\n\x18SetDeviceLanguageRequest\x12\x10\n\x08language\x18\x01 \x01(\t\"$\n\x14SetDeviceNameRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"%\n\x12SetPasswordRequest\x12\x0f\n\x07\x65ntropy\x18\x01 \x01(\x0c\x62\x06proto3')
+  serialized_pb=_b('\n\x15\x62itbox02_system.proto\x12\x14shiftcrypto.bitbox02\"\x14\n\x12\x43heckSDCardRequest\"\'\n\x13\x43heckSDCardResponse\x12\x10\n\x08inserted\x18\x01 \x01(\x08\"\x13\n\x11\x44\x65viceInfoRequest\"\xaf\x01\n\x12\x44\x65viceInfoResponse\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x13\n\x0binitialized\x18\x02 \x01(\x08\x12\x0f\n\x07version\x18\x03 \x01(\t\x12#\n\x1bmnemonic_passphrase_enabled\x18\x04 \x01(\x08\x12&\n\x1emonotonic_increments_remaining\x18\x05 \x01(\r\x12\x18\n\x10securechip_model\x18\x06 \x01(\t\"\x9b\x01\n\x19InsertRemoveSDCardRequest\x12L\n\x06\x61\x63tion\x18\x01 \x01(\x0e\x32<.shiftcrypto.bitbox02.InsertRemoveSDCardRequest.SDCardAction\"0\n\x0cSDCardAction\x12\x0f\n\x0bREMOVE_CARD\x10\x00\x12\x0f\n\x0bINSERT_CARD\x10\x01\"\x0e\n\x0cResetRequest\",\n\x18SetDeviceLanguageRequest\x12\x10\n\x08language\x18\x01 \x01(\t\"$\n\x14SetDeviceNameRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"%\n\x12SetPasswordRequest\x12\x0f\n\x07\x65ntropy\x18\x01 \x01(\x0c\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -42,8 +42,8 @@ _INSERTREMOVESDCARDREQUEST_SDCARDACTION = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=391,
-  serialized_end=439,
+  serialized_start=417,
+  serialized_end=465,
 )
 _sym_db.RegisterEnumDescriptor(_INSERTREMOVESDCARDREQUEST_SDCARDACTION)
 
@@ -169,6 +169,13 @@ _DEVICEINFORESPONSE = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='securechip_model', full_name='shiftcrypto.bitbox02.DeviceInfoResponse.securechip_model', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -182,7 +189,7 @@ _DEVICEINFORESPONSE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=132,
-  serialized_end=281,
+  serialized_end=307,
 )
 
 
@@ -213,8 +220,8 @@ _INSERTREMOVESDCARDREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=284,
-  serialized_end=439,
+  serialized_start=310,
+  serialized_end=465,
 )
 
 
@@ -237,8 +244,8 @@ _RESETREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=441,
-  serialized_end=455,
+  serialized_start=467,
+  serialized_end=481,
 )
 
 
@@ -268,8 +275,8 @@ _SETDEVICELANGUAGEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=457,
-  serialized_end=501,
+  serialized_start=483,
+  serialized_end=527,
 )
 
 
@@ -299,8 +306,8 @@ _SETDEVICENAMEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=503,
-  serialized_end=539,
+  serialized_start=529,
+  serialized_end=565,
 )
 
 
@@ -330,8 +337,8 @@ _SETPASSWORDREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=541,
-  serialized_end=578,
+  serialized_start=567,
+  serialized_end=604,
 )
 
 _INSERTREMOVESDCARDREQUEST.fields_by_name['action'].enum_type = _INSERTREMOVESDCARDREQUEST_SDCARDACTION

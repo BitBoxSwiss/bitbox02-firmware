@@ -135,13 +135,17 @@ class BitBox02(BitBoxCommonAPI):
         device_info_request = bitbox02_system.DeviceInfoRequest()
         request.device_info.CopyFrom(device_info_request)
         response = self._msg_query(request, expected_response="device_info")
-        return {
+        result = {
             "name": response.device_info.name,
             "version": response.device_info.version,
             "initialized": response.device_info.initialized,
             "mnemonic_passphrase_enabled": response.device_info.mnemonic_passphrase_enabled,
             "monotonic_increments_remaining": response.device_info.monotonic_increments_remaining,
         }
+        if self.version >= semver.VersionInfo(9, 6, 0):
+            result["securechip_model"] = response.device_info.securechip_model
+
+        return result
 
     def set_device_name(self, device_name: str) -> None:
         # pylint: disable=no-member

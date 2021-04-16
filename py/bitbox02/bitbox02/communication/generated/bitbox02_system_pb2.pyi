@@ -61,6 +61,7 @@ class DeviceInfoResponse(google___protobuf___message___Message):
     version = ... # type: typing___Text
     mnemonic_passphrase_enabled = ... # type: bool
     monotonic_increments_remaining = ... # type: int
+    securechip_model = ... # type: typing___Text
 
     def __init__(self,
         *,
@@ -69,15 +70,16 @@ class DeviceInfoResponse(google___protobuf___message___Message):
         version : typing___Optional[typing___Text] = None,
         mnemonic_passphrase_enabled : typing___Optional[bool] = None,
         monotonic_increments_remaining : typing___Optional[int] = None,
+        securechip_model : typing___Optional[typing___Text] = None,
         ) -> None: ...
     @classmethod
     def FromString(cls, s: bytes) -> DeviceInfoResponse: ...
     def MergeFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     def CopyFrom(self, other_msg: google___protobuf___message___Message) -> None: ...
     if sys.version_info >= (3,):
-        def ClearField(self, field_name: typing_extensions___Literal[u"initialized",u"mnemonic_passphrase_enabled",u"monotonic_increments_remaining",u"name",u"version"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"initialized",u"mnemonic_passphrase_enabled",u"monotonic_increments_remaining",u"name",u"securechip_model",u"version"]) -> None: ...
     else:
-        def ClearField(self, field_name: typing_extensions___Literal[u"initialized",b"initialized",u"mnemonic_passphrase_enabled",b"mnemonic_passphrase_enabled",u"monotonic_increments_remaining",b"monotonic_increments_remaining",u"name",b"name",u"version",b"version"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions___Literal[u"initialized",b"initialized",u"mnemonic_passphrase_enabled",b"mnemonic_passphrase_enabled",u"monotonic_increments_remaining",b"monotonic_increments_remaining",u"name",b"name",u"securechip_model",b"securechip_model",u"version",b"version"]) -> None: ...
 
 class InsertRemoveSDCardRequest(google___protobuf___message___Message):
     class SDCardAction(int):

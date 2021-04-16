@@ -94,6 +94,9 @@ pub struct DeviceInfoResponse {
     pub mnemonic_passphrase_enabled: bool,
     #[prost(uint32, tag="5")]
     pub monotonic_increments_remaining: u32,
+    /// From v9.6.0: "ATECC608A" or "ATECC608B".
+    #[prost(string, tag="6")]
+    pub securechip_model: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct InsertRemoveSdCardRequest {

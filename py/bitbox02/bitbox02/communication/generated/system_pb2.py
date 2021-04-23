@@ -19,11 +19,33 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='system.proto',
   package='shiftcrypto.bitbox02',
   syntax='proto3',
-  serialized_pb=_b('\n\x0csystem.proto\x12\x14shiftcrypto.bitbox02\"\x0f\n\rRebootRequestb\x06proto3')
+  serialized_pb=_b('\n\x0csystem.proto\x12\x14shiftcrypto.bitbox02\"s\n\rRebootRequest\x12<\n\x07purpose\x18\x01 \x01(\x0e\x32+.shiftcrypto.bitbox02.RebootRequest.Purpose\"$\n\x07Purpose\x12\x0b\n\x07UPGRADE\x10\x00\x12\x0c\n\x08SETTINGS\x10\x01\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 
+
+_REBOOTREQUEST_PURPOSE = _descriptor.EnumDescriptor(
+  name='Purpose',
+  full_name='shiftcrypto.bitbox02.RebootRequest.Purpose',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='UPGRADE', index=0, number=0,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='SETTINGS', index=1, number=1,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=117,
+  serialized_end=153,
+)
+_sym_db.RegisterEnumDescriptor(_REBOOTREQUEST_PURPOSE)
 
 
 _REBOOTREQUEST = _descriptor.Descriptor(
@@ -33,11 +55,19 @@ _REBOOTREQUEST = _descriptor.Descriptor(
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
+    _descriptor.FieldDescriptor(
+      name='purpose', full_name='shiftcrypto.bitbox02.RebootRequest.purpose', index=0,
+      number=1, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
   nested_types=[],
   enum_types=[
+    _REBOOTREQUEST_PURPOSE,
   ],
   options=None,
   is_extendable=False,
@@ -46,9 +76,11 @@ _REBOOTREQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=38,
-  serialized_end=53,
+  serialized_end=153,
 )
 
+_REBOOTREQUEST.fields_by_name['purpose'].enum_type = _REBOOTREQUEST_PURPOSE
+_REBOOTREQUEST_PURPOSE.containing_type = _REBOOTREQUEST
 DESCRIPTOR.message_types_by_name['RebootRequest'] = _REBOOTREQUEST
 
 RebootRequest = _reflection.GeneratedProtocolMessageType('RebootRequest', (_message.Message,), dict(

@@ -44,6 +44,10 @@ try:
     from bitbox02.communication.generated import common_pb2 as common
     from bitbox02.communication.generated import keystore_pb2 as keystore
     from bitbox02.communication.generated import antiklepto_pb2 as antiklepto
+
+    # pylint: disable=unused-import
+    # We export it in __init__.py
+    from bitbox02.communication.generated import system_pb2 as system
 except ModuleNotFoundError:
     print("Run `make py` to generate the protobuf messages")
     sys.exit()

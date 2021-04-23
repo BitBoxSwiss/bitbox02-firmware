@@ -744,6 +744,17 @@ pub struct RandomNumberRequest {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RebootRequest {
+    #[prost(enumeration="reboot_request::Purpose", tag="1")]
+    pub purpose: i32,
+}
+/// Nested message and enum types in `RebootRequest`.
+pub mod reboot_request {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[repr(i32)]
+    pub enum Purpose {
+        Upgrade = 0,
+        Settings = 1,
+    }
 }
 /// Deprecated, last used in v1.0.0
 #[derive(Clone, PartialEq, ::prost::Message)]

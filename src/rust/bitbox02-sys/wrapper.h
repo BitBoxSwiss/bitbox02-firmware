@@ -29,6 +29,7 @@
 #include <screen.h>
 #include <sd.h>
 #include <securechip/securechip.h>
+#include <system.h>
 #include <ui/components/confirm.h>
 #include <ui/components/confirm_transaction.h>
 #include <ui/components/label.h>

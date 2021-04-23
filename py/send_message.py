@@ -241,7 +241,12 @@ class SendMessage:
         print(f"All info: {self._device.device_info()}")
 
     def _reboot(self) -> None:
-        if self._device.reboot():
+        inp = input("Select one of: 1=upgrade; 2=go to startup settings: ").strip()
+        purpose = {
+            "1": bitbox02.system.RebootRequest.Purpose.UPGRADE,  # pylint: disable=no-member
+            "2": bitbox02.system.RebootRequest.Purpose.SETTINGS,  # pylint: disable=no-member
+        }[inp]
+        if self._device.reboot(purpose=purpose):
             print("Device rebooted")
             self._stop = True
         else:
@@ -577,13 +582,6 @@ class SendMessage:
         except UserAbortException:
             print("Aborted by user")
 
-    def _reboot_bootloader(self) -> None:
-        if self._device.reboot():
-            print("Device rebooted")
-            self._stop = True
-            return
-        print("User aborted")
-
     def _toggle_mnemonic_passphrase(self) -> None:
         enabled = self._device.device_info()["mnemonic_passphrase_enabled"]
         try:
@@ -735,7 +733,7 @@ class SendMessage:
             ("Check backup", self._check_backup),
             ("Show mnemonic", self._show_mnemnoic_seed),
             ("Create backup", self._create_backup),
-            ("Reboot into bootloader", self._reboot_bootloader),
+            ("Reboot into bootloader", self._reboot),
             ("Check if SD card inserted", self._check_sd_presence),
             ("Insert SD card", self._insert_sdcard),
             ("Remove SD card", self._remove_sdcard),

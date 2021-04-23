@@ -12,16 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _WORKFLOW_REBOOT_H_
-#define _WORKFLOW_REBOOT_H_
-
-#include <stdbool.h>
+#ifndef _SYSTEM_H_
+#define _SYSTEM_H_
 
 /**
- * Shows a confirmation dialog to the user to confirm/reject rebooting the
- * device into bootoader mode to upgrade the firmware.
- * @return true if the user confirms, false if the user rejects.
+ * Reboots the device.
  */
-bool workflow_reboot(void);
+void reboot(void);
 
 #endif

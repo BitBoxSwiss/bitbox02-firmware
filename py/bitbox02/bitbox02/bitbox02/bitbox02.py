@@ -157,14 +157,18 @@ class BitBox02(BitBoxCommonAPI):
         request.device_name.name = device_name
         self._msg_query(request, expected_response="success")
 
-    def set_password(self) -> bool:
+    def set_password(self, entropy_size: int = 32) -> bool:
         """
         Returns True if the user entered the password correctly (passwords match).
-        Returns False otherwise.
+        Returns False otherwise. Entropy size determines the seed size in bytes; must be 16 or 32.
         """
+        assert entropy_size in (16, 32)
+        if entropy_size == 16:
+            self._require_atleast(semver.VersionInfo(9, 6, 0))
+
         # pylint: disable=no-member
         request = hww.Request()
-        request.set_password.entropy = os.urandom(32)
+        request.set_password.entropy = os.urandom(entropy_size)
         try:
             self._msg_query(request, expected_response="success")
         except Bitbox02Exception as err:

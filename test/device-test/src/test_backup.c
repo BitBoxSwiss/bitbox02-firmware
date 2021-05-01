@@ -126,7 +126,8 @@ int main(void)
 
     screen_print_debug("Creating initial backup...", 1000);
 
-    if (!keystore_create_and_store_seed("device-test", "host-entropy")) {
+    uint8_t host_entropy[32] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    if (!keystore_create_and_store_seed("device-test", host_entropy, sizeof(host_entropy))) {
         Abort("Failed to create keystore");
     }
     uint8_t remaining_attempts;

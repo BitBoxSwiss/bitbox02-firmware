@@ -62,9 +62,13 @@ pub fn unlock_bip39(mnemonic_passphrase: &SafeInputString) -> Result<(), Error> 
     }
 }
 
-pub fn create_and_store_seed(password: &SafeInputString, host_entropy: &[u8; 32]) -> bool {
+pub fn create_and_store_seed(password: &SafeInputString, host_entropy: &[u8]) -> bool {
     unsafe {
-        bitbox02_sys::keystore_create_and_store_seed(password.as_cstr(), host_entropy.as_ptr())
+        bitbox02_sys::keystore_create_and_store_seed(
+            password.as_cstr(),
+            host_entropy.as_ptr(),
+            host_entropy.len() as _,
+        )
     }
 }
 

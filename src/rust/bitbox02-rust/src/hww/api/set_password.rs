@@ -16,23 +16,23 @@ use super::Error;
 use crate::pb;
 
 use crate::workflow::password;
-use core::convert::TryInto;
 use pb::response::Response;
 
 /// Handles the SetPassword api call. This has the user enter a password twice and creates the
 /// seed/keystore. After this call is finished, the keystore is fully unlocked.
 ///
-/// `entropy` must be exactly 32 bytes and provides additional entropy used when
-/// creating the seed.
+/// `entropy` must be exactly 16 or 32 bytes and provides additional entropy used when creating the
+/// seed. If 16 bytes are provided, the seed will also be 16 bytes long, corresponding to 12 BIP39
+/// recovery words. If 32 bytes are provided, the seed will also be 32 bytes long, corresponding to
+/// 24 BIP39 recovery words.
 pub async fn process(
     pb::SetPasswordRequest { entropy }: &pb::SetPasswordRequest,
 ) -> Result<Response, Error> {
-    let entropy32: [u8; 32] = match entropy.as_slice().try_into() {
-        Err(_) => return Err(Error::InvalidInput),
-        Ok(e) => e,
-    };
+    if entropy.len() != 16 && entropy.len() != 32 {
+        return Err(Error::InvalidInput);
+    }
     let password = password::enter_twice().await?;
-    if !bitbox02::keystore::create_and_store_seed(&password, &entropy32) {
+    if !bitbox02::keystore::create_and_store_seed(&password, &entropy) {
         return Err(Error::Generic);
     }
     if bitbox02::keystore::unlock(&password).is_err() {

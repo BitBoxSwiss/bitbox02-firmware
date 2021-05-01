@@ -257,8 +257,14 @@ bool keystore_encrypt_and_store_seed(
     return true;
 }
 
-bool keystore_create_and_store_seed(const char* password, const uint8_t* host_entropy)
+bool keystore_create_and_store_seed(
+    const char* password,
+    const uint8_t* host_entropy,
+    size_t host_entropy_size)
 {
+    if (host_entropy_size != 16 && host_entropy_size != 32) {
+        return false;
+    }
     if (KEYSTORE_MAX_SEED_LENGTH != RANDOM_NUM_SIZE) {
         Abort("keystore create: size mismatch");
     }
@@ -267,7 +273,7 @@ bool keystore_create_and_store_seed(const char* password, const uint8_t* host_en
     random_32_bytes(seed);
 
     // Mix in Host entropy.
-    for (size_t i = 0; i < KEYSTORE_MAX_SEED_LENGTH; i++) {
+    for (size_t i = 0; i < host_entropy_size; i++) {
         seed[i] ^= host_entropy[i];
     }
 
@@ -282,10 +288,10 @@ bool keystore_create_and_store_seed(const char* password, const uint8_t* host_en
         return false;
     }
 
-    for (size_t i = 0; i < KEYSTORE_MAX_SEED_LENGTH; i++) {
+    for (size_t i = 0; i < host_entropy_size; i++) {
         seed[i] ^= password_salted_hashed[i];
     }
-    return keystore_encrypt_and_store_seed(seed, KEYSTORE_MAX_SEED_LENGTH, password);
+    return keystore_encrypt_and_store_seed(seed, host_entropy_size, password);
 }
 
 static void _free_string(char** str)

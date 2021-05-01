@@ -26,17 +26,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-static uint8_t _mock_seed[32] = {
-    0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
-    0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
-};
-
-// sudden tenant fault inject concert weather maid people chunk youth stumble grit
-static uint8_t _mock_bip39_seed[64] =
-    "\x5a\x11\x5b\xcd\xbe\x0f\xe1\x70\x0e\x60\x95\x74\xf3\x57\xb0\x8d\xca\x37\x15\xb0\x35\xe6\xc7"
-    "\x76\x77\x0a\xc7\xa0\xab\x2e\x2f\xea\x84\x0b\xa2\x76\x35\x06\xfa\x9c\x39\xde\x4d\xef\x27\xf6"
-    "\xf8\xeb\xce\x36\x37\x02\xe9\x83\xe5\x49\xbd\x7d\xef\x14\xa0\x31\xbf\xdd";
-
 // We mock all called functions to make sure they are actually called. For some,
 // the real function is called as it's easier to check all function input/output
 // this way.
@@ -94,58 +83,6 @@ typedef struct {
     BTCScriptConfig_SimpleType script_type;
     const char* out;
 } address_testcase_t;
-
-static xpub_testcase_t _xpub_tests[] = {
-    {
-        .coin = BTCCoin_BTC,
-        .xpub_type = BTCPubRequest_XPubType_TPUB,
-        .out = "tpubDCYSHq3Y2yqZYw2yxYFczWpbbr9yqLXK5V9hADr7czfhvSbVBZ2Up9ouUeJU4ibNvVuHBZywbVtt4Xw"
-               "37wAgwWhy5LQsVk5w441qoaEytzZ",
-    },
-    {
-        .coin = BTCCoin_BTC,
-        .xpub_type = BTCPubRequest_XPubType_VPUB,
-        .out = "vpub5YWHAFt22Lo9aYTtqdhHNRJDvnmRxi3FhdWxEt1CX5A44xJKc1rGRapoCCJWYQLJKK8m53Gx95MjbnD"
-               "JHgVRTbtUH4GiePniveJ9GMSBipu",
-    },
-    {
-        .coin = BTCCoin_BTC,
-        .xpub_type = BTCPubRequest_XPubType_UPUB,
-        .out = "upub5Dg1rbD6sfFfjFGn1GufALCikpcz263knWzjTV7K94nB1rV6MMghoXAfAzLvYVgNug1xKZgPgR1BiVb"
-               "jZz5QfNCsQiaJ4UyEevEVsqHSu6Q",
-    },
-
-    {
-        .coin = BTCCoin_BTC,
-        .xpub_type = BTCPubRequest_XPubType_XPUB,
-        .out = "xpub6CAombDrKht7H8r8WMGXnbVEGj4Kqx2FXrZPofnyH5upB9vn7LBPfi95EcDgYDe98bNNZzU54Q4qNMS"
-               "Rj5KT45Fg1jfZpDRhU6RS3WjHkqg",
-    },
-    {
-        .coin = BTCCoin_BTC,
-        .xpub_type = BTCPubRequest_XPubType_YPUB,
-        .out = "ypub6X155FtmUPRb8S3FLi49zgajShCmna1kSy5cb4grf6HhEFk1MzLxHmoDFpBGY8J4YEVBKU4dX4RPFe3"
-               "zSmjTrJwGt5MzQ8FBjpV5S9fvhh3",
-    },
-    {
-        .coin = BTCCoin_BTC,
-        .xpub_type = BTCPubRequest_XPubType_ZPUB,
-        .out = "zpub6qqLNvZgd4y4yjENB4qnCmgEcfMDjC1FN5bqNTak36faHMZEceWWuqTMH28rY2wywsbz4wfByimw8vf"
-               "ZAU9UeYcskR4Qz34g1YYipg8DatS",
-    },
-    {
-        .coin = BTCCoin_BTC,
-        .xpub_type = BTCPubRequest_XPubType_CAPITAL_VPUB,
-        .out = "Vpub5jQNHVcTbJMX17dGnJAGCVe2eaohB4ir1uAdA9GjtqzTh8sENREYWhgizuFz6qZCYnCjwdH52HkEiwq"
-               "4aueNc6197XP83oFipNa1rGqkiFZ",
-    },
-    {
-        .coin = BTCCoin_BTC,
-        .xpub_type = BTCPubRequest_XPubType_CAPITAL_ZPUB,
-        .out = "Zpub72jRWAJ8C2XSQJPk7jJm2r23LTPUwYgqgMFWHirHQsVyuY89P3tnzxKH5j6L6UAtBLfxwXfJrwASG6H"
-               "KThJRo2jYatApPSXfuGpbQf7Q5V3",
-    },
-};
 
 static address_testcase_t _address_tests[] = {
     {

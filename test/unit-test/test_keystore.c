@@ -240,6 +240,7 @@ static void _test_keystore_secp256k1_nonce_commit(void** state)
         const uint8_t expected_commitment[EC_PUBLIC_KEY_LEN] =
             "\x02\xfd\xcf\x79\xf9\xc0\x3f\x6a\xcc\xc6\x56\x95\xa1\x90\x82\xe3\x0b\xfb\x9e\xdc\x93"
             "\x04\x5a\x03\x05\x8a\x99\x09\xe4\x9b\x1a\x37\x7b";
+        assert_memory_equal(expected_commitment, commitment, sizeof(commitment));
     }
 }
 

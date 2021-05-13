@@ -68,11 +68,16 @@ USE_RESULT bool keystore_encrypt_and_store_seed(
     const char* password);
 
 /**
-   Generates 32 bytes of entropy, mixes it with host_entropy, and stores it encrypted with the
-   password.
-   @param[in] host_entropy 32 bytes of entropy to be mixed in.
+   Generates the seed, mixes it with host_entropy, and stores it encrypted with the
+   password. The size of the host entropy determines the size of the seed. Can be either 16 or 32
+   bytes, resulting in 12 or 24 BIP39 recovery words.
+   @param[in] host_entropy bytes of entropy to be mixed in.
+   @param[in] host_entropy_size must be 16 or 32.
 */
-USE_RESULT bool keystore_create_and_store_seed(const char* password, const uint8_t* host_entropy);
+USE_RESULT bool keystore_create_and_store_seed(
+    const char* password,
+    const uint8_t* host_entropy,
+    size_t host_entropy_size);
 
 /** Unlocks the keystore seed or checks the password:
  * If the keystore is locked, it decrypts and loads the seed, unlocking the keystore:

@@ -104,38 +104,19 @@ static void _test_memory_multisig_invalid(void** state)
 static void _test_memory_multisig_full(void** state)
 {
     _reset_memory();
-    const uint8_t hashes[][32] = {
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "cccccccccccccccccccccccccccccccc",
-        "dddddddddddddddddddddddddddddddd",
-        "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-        "ffffffffffffffffffffffffffffffff",
-        "gggggggggggggggggggggggggggggggg",
-        "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
-        "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
-        "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj",
-        "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
-    };
-    const char* names[] = {
-        "name1",
-        "name2",
-        "name3",
-        "name4",
-        "name5",
-        "name6",
-        "name7",
-        "name8",
-        "name9",
-        "name10",
-        "name11",
-    };
+    // Only 25 slots available.
+    const size_t limit = 25;
+    uint8_t hashes[limit + 1][32];
+    char names[limit + 1][10];
+    for (size_t i = 0; i < limit + 1; i++) {
+        memset(hashes[i], i + i, 32);
+        snprintf(names[i], sizeof(names[i]), "name%ld", i);
+    }
 
-    // Only 5 slots available.
-    for (int i = 0; i < 10; i++) {
+    for (size_t i = 0; i < limit; i++) {
         assert_int_equal(MEMORY_OK, memory_multisig_set_by_hash(hashes[i], names[i]));
     }
-    assert_int_equal(MEMORY_ERR_FULL, memory_multisig_set_by_hash(hashes[10], names[10]));
+    assert_int_equal(MEMORY_ERR_FULL, memory_multisig_set_by_hash(hashes[limit], names[limit]));
 }
 
 int main(void)

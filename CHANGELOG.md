@@ -5,6 +5,7 @@
 - Add securechip_model to DeviceInfo: ATECCC608A or ATECC608B.
 - Added reboot purpose for clearer UX: "Proceed to upgrade?" vs. "Go to startup settings?"
 - Allow creation of 128 bit seeds (12 BIP39 recovery words)
+- Increase maximum number of registered multisig accounts from 10 to 25.
 
 ## 9.5.0 [released 2021-03-10]
 - RestoreFrommnemonic: ported to Rust. Will now return UserAbortError on user abort instead of GenericError.

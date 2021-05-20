@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## 9.6.0 [released 2021-05-20]
 - Attempt to fix flaky SD behavior
 - Add securechip_model to DeviceInfo: ATECCC608A or ATECC608B.
 - Added reboot purpose for clearer UX: "Proceed to upgrade?" vs. "Go to startup settings?"

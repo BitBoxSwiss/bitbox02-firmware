@@ -187,7 +187,19 @@ pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
     let params = params_get(request.coin as _).ok_or(Error::InvalidInput)?;
 
     if !ethereum::keypath::is_valid_keypath_address(&request.keypath, params.bip44_coin) {
-        return Err(Error::InvalidInput);
+        confirm::confirm(&confirm::Params {
+            title: "Unusual\nbip32 path",
+            body: "Only proceed if you\nunderstand exactly\nwhat the path means.",
+            accept_is_nextarrow: true,
+            ..Default::default()
+        }).await?;
+
+        confirm::confirm(&confirm::Params {
+            title: "Unusual\nbip32 path",
+            body: &util::bip32::to_string(&request.keypath),
+            accept_is_nextarrow: true,
+            ..Default::default()
+        }).await?;
     }
 
     // Size limits.

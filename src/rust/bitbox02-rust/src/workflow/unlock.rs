@@ -53,6 +53,7 @@ async fn confirm_mnemonic_passphrase(passphrase: &str) -> Result<(), confirm::Us
 pub enum UnlockError {
     UserAbort,
     IncorrectPassword,
+    Generic,
 }
 
 impl core::convert::From<super::cancel::Error> for UnlockError {
@@ -84,7 +85,11 @@ pub async fn unlock_keystore(
             status(&msg, false).await;
             Err(UnlockError::IncorrectPassword)
         }
-        _ => panic!("keystore unlock failed"),
+        Err(err) => {
+            let msg = format!("keystore unlock failed\n{:?}", err);
+            status(&msg, false).await;
+            Err(UnlockError::Generic)
+        }
     }
 }
 

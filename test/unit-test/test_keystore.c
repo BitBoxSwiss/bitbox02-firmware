@@ -417,7 +417,7 @@ static void _test_keystore_unlock(void** state)
     uint8_t remaining_attempts;
 
     will_return(__wrap_memory_is_seeded, false);
-    assert_int_equal(KEYSTORE_ERR_GENERIC, keystore_unlock(PASSWORD, &remaining_attempts));
+    assert_int_equal(KEYSTORE_ERR_UNSEEDED, keystore_unlock(PASSWORD, &remaining_attempts));
     _expect_encrypt_and_store_seed();
     assert_true(keystore_encrypt_and_store_seed(_mock_seed, 32, PASSWORD));
     _expect_seeded(false);

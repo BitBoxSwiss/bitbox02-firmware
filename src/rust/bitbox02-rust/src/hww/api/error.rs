@@ -14,6 +14,8 @@
 
 use crate::pb;
 
+use crate::workflow::unlock::UnlockError;
+
 #[allow(dead_code)]
 #[derive(Debug, PartialEq)]
 pub enum Error {
@@ -67,11 +69,11 @@ impl core::convert::From<crate::workflow::verify_message::Error> for Error {
     }
 }
 
-impl core::convert::From<crate::workflow::unlock::UnlockError> for Error {
-    fn from(error: crate::workflow::unlock::UnlockError) -> Self {
+impl core::convert::From<UnlockError> for Error {
+    fn from(error: UnlockError) -> Self {
         match error {
-            crate::workflow::unlock::UnlockError::UserAbort => Error::UserAbort,
-            crate::workflow::unlock::UnlockError::IncorrectPassword => Error::Generic,
+            UnlockError::UserAbort => Error::UserAbort,
+            UnlockError::IncorrectPassword | UnlockError::Generic => Error::Generic,
         }
     }
 }

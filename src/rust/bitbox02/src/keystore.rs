@@ -38,7 +38,8 @@ pub enum Error {
     MaxAttemptsExceeded,
     Unseeded,
     Memory,
-    ScKdf,
+    // Securechip error with the error code from securechip.c
+    ScKdf(i32),
     Salt,
     Hash,
     SeedSize,
@@ -47,7 +48,14 @@ pub enum Error {
 
 pub fn unlock(password: &SafeInputString) -> Result<(), Error> {
     let mut remaining_attempts: u8 = 0;
-    match unsafe { bitbox02_sys::keystore_unlock(password.as_cstr(), &mut remaining_attempts) } {
+    let mut securechip_result: i32 = 0;
+    match unsafe {
+        bitbox02_sys::keystore_unlock(
+            password.as_cstr(),
+            &mut remaining_attempts,
+            &mut securechip_result,
+        )
+    } {
         keystore_error_t::KEYSTORE_OK => Ok(()),
         keystore_error_t::KEYSTORE_ERR_INCORRECT_PASSWORD => {
             Err(Error::IncorrectPassword { remaining_attempts })
@@ -56,7 +64,7 @@ pub fn unlock(password: &SafeInputString) -> Result<(), Error> {
         keystore_error_t::KEYSTORE_ERR_UNSEEDED => Err(Error::Unseeded),
         keystore_error_t::KEYSTORE_ERR_MEMORY => Err(Error::Memory),
         keystore_error_t::KEYSTORE_ERR_SEED_SIZE => Err(Error::SeedSize),
-        keystore_error_t::KEYSTORE_ERR_SC_KDF => Err(Error::ScKdf),
+        keystore_error_t::KEYSTORE_ERR_SC_KDF => Err(Error::ScKdf(securechip_result)),
         keystore_error_t::KEYSTORE_ERR_SALT => Err(Error::Salt),
         keystore_error_t::KEYSTORE_ERR_HASH => Err(Error::Hash),
     }

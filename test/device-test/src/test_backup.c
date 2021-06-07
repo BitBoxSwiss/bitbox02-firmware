@@ -131,7 +131,7 @@ int main(void)
         Abort("Failed to create keystore");
     }
     uint8_t remaining_attempts;
-    if (keystore_unlock("device-test", &remaining_attempts) != KEYSTORE_OK) {
+    if (keystore_unlock("device-test", &remaining_attempts, NULL) != KEYSTORE_OK) {
         Abort("Failed to unlock keystore");
     }
     _test_backup(_timestamp, _timestamp);

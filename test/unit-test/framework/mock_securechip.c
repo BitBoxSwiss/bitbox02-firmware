@@ -30,13 +30,13 @@ bool securechip_update_keys(void)
     return true;
 }
 
-bool securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out)
+int securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out)
 {
     check_expected(slot);
     check_expected(msg);
     // wally_sha256(msg, len, kdf_out, 32);
     memcpy(kdf_out, (const uint8_t*)mock(), 32);
-    return true;
+    return 0;
 }
 
 bool securechip_u2f_counter_set(uint32_t counter)

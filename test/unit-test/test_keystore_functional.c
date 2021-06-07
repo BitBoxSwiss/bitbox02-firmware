@@ -48,12 +48,12 @@ static uint8_t _salt_root[KEYSTORE_MAX_SEED_LENGTH] = {
     0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
 };
 
-bool __wrap_securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out)
+int __wrap_securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out)
 {
     assert_true(slot == SECURECHIP_SLOT_KDF || slot == SECURECHIP_SLOT_ROLLKEY);
     uint8_t key[3] = "key";
     assert_int_equal(WALLY_OK, wally_hmac_sha256(key, sizeof(key), msg, len, kdf_out, SHA256_LEN));
-    return true;
+    return 0;
 }
 
 /** Reset the SmartEEPROM configuration. */
@@ -86,11 +86,12 @@ static void _test_seeds(void** state)
         will_return(__wrap_memory_is_seeded, true);
         assert_int_equal(
             KEYSTORE_ERR_INCORRECT_PASSWORD,
-            keystore_unlock(_some_other_password, &remaining_attempts));
+            keystore_unlock(_some_other_password, &remaining_attempts, NULL));
         // First time: unlock. After unlock, it becomes a password check.
         for (int i = 0; i < 3; i++) {
             will_return(__wrap_memory_is_seeded, true);
-            assert_int_equal(KEYSTORE_OK, keystore_unlock(_some_password, &remaining_attempts));
+            assert_int_equal(
+                KEYSTORE_OK, keystore_unlock(_some_password, &remaining_attempts, NULL));
         }
         assert_true(keystore_copy_seed(read_seed, &read_seed_len));
         assert_int_equal(seed_size, read_seed_len);
@@ -158,7 +159,7 @@ static void _test_combination(
     uint8_t remaining_attempts;
     assert_true(keystore_is_locked());
     will_return(__wrap_memory_is_seeded, true);
-    assert_int_equal(KEYSTORE_OK, keystore_unlock(_some_password, &remaining_attempts));
+    assert_int_equal(KEYSTORE_OK, keystore_unlock(_some_password, &remaining_attempts, NULL));
     assert_true(keystore_is_locked());
     assert_true(keystore_unlock_bip39(mnemonic_passphrase));
     assert_false(keystore_is_locked());

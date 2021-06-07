@@ -182,7 +182,6 @@ static keystore_error_t _get_and_decrypt_seed(
     const char* password,
     uint8_t* decrypted_seed_out,
     size_t* decrypted_seed_len_out,
-    bool* password_correct_out,
     int* securechip_result_out)
 {
     uint8_t encrypted_seed_and_hmac[96];
@@ -202,17 +201,18 @@ static keystore_error_t _get_and_decrypt_seed(
     }
     size_t decrypted_len = encrypted_len - 48;
     uint8_t decrypted[decrypted_len];
-    *password_correct_out = cipher_aes_hmac_decrypt(
+    bool password_correct = cipher_aes_hmac_decrypt(
         encrypted_seed_and_hmac, encrypted_len, decrypted, &decrypted_len, secret);
-    if (*password_correct_out) {
-        if (!_validate_seed_length(decrypted_len)) {
-            util_zero(decrypted, sizeof(decrypted));
-            return KEYSTORE_ERR_SEED_SIZE;
-        }
-        *decrypted_seed_len_out = decrypted_len;
-        memcpy(decrypted_seed_out, decrypted, decrypted_len);
+    if (!password_correct) {
+        return KEYSTORE_ERR_INCORRECT_PASSWORD;
     }
-    util_zero(decrypted, sizeof(decrypted));
+    if (!_validate_seed_length(decrypted_len)) {
+        util_zero(decrypted, sizeof(decrypted));
+        return KEYSTORE_ERR_SEED_SIZE;
+    }
+    *decrypted_seed_len_out = decrypted_len;
+    memcpy(decrypted_seed_out, decrypted, decrypted_len);
+
     return KEYSTORE_OK;
 }
 
@@ -224,12 +224,7 @@ static bool _verify_seed(
     uint8_t decrypted_seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
     size_t seed_len;
     UTIL_CLEANUP_32(decrypted_seed);
-    bool password_correct = false;
-    if (_get_and_decrypt_seed(password, decrypted_seed, &seed_len, &password_correct, NULL) !=
-        KEYSTORE_OK) {
-        return false;
-    }
-    if (!password_correct) {
+    if (_get_and_decrypt_seed(password, decrypted_seed, &seed_len, NULL) != KEYSTORE_OK) {
         return false;
     }
     if (expected_seed_len != seed_len) {
@@ -351,13 +346,12 @@ keystore_error_t keystore_unlock(
     uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
     UTIL_CLEANUP_32(seed);
     size_t seed_len;
-    bool password_correct = false;
     keystore_error_t result =
-        _get_and_decrypt_seed(password, seed, &seed_len, &password_correct, securechip_result_out);
-    if (result != KEYSTORE_OK) {
+        _get_and_decrypt_seed(password, seed, &seed_len, securechip_result_out);
+    if (result != KEYSTORE_OK && result != KEYSTORE_ERR_INCORRECT_PASSWORD) {
         return result;
     }
-    if (password_correct) {
+    if (result == KEYSTORE_OK) {
         if (_is_unlocked_device) {
             // Already unlocked. Fail if the seed changed under our feet (should never happen).
             if (seed_len != _seed_length || !MEMEQ(_retained_seed, seed, _seed_length)) {
@@ -380,7 +374,7 @@ keystore_error_t keystore_unlock(
     }
 
     *remaining_attempts_out = MAX_UNLOCK_ATTEMPTS - failed_attempts;
-    return password_correct ? KEYSTORE_OK : KEYSTORE_ERR_INCORRECT_PASSWORD;
+    return result;
 }
 
 bool keystore_unlock_bip39(const char* mnemonic_passphrase)

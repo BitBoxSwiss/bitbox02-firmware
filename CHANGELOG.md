@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- Display granular error codes when unlock fails unexpectedly
 
 ## 9.6.0 [released 2021-05-20]
 - Attempt to fix flaky SD behavior

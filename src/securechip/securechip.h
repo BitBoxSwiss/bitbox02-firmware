@@ -29,6 +29,7 @@ typedef enum {
     SC_ERR_SLOT_UNLOCKED_AUTH = -5,
     SC_ERR_SLOT_UNLOCKED_ENC = -6,
     SC_ERR_IFS = -7,
+    SC_ERR_INVALID_ARGS = -8,
 } securechip_error_t;
 
 typedef struct {
@@ -87,9 +88,9 @@ USE_RESULT bool securechip_update_keys(void);
  * @param[in] len Must be <= 127.
  * @param[out] kdf_out Must have size 32. Result of the kdf will be stored here.
  * Cannot be the same as `msg`.
- * @return true on success.
+ * @return values of `securechip_error_t` if negative, values of `ATCA_STATUS` if positive, 0 on
  */
-USE_RESULT bool securechip_kdf(
+USE_RESULT int securechip_kdf(
     securechip_slot_t slot,
     const uint8_t* msg,
     size_t len,

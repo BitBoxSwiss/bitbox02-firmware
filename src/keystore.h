@@ -36,7 +36,12 @@ typedef enum {
     KEYSTORE_OK,
     KEYSTORE_ERR_INCORRECT_PASSWORD,
     KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED,
-    KEYSTORE_ERR_GENERIC,
+    KEYSTORE_ERR_UNSEEDED,
+    KEYSTORE_ERR_MEMORY,
+    KEYSTORE_ERR_SC_KDF,
+    KEYSTORE_ERR_SEED_SIZE,
+    KEYSTORE_ERR_SALT,
+    KEYSTORE_ERR_HASH,
 } keystore_error_t;
 
 #ifdef TESTING
@@ -89,15 +94,15 @@ USE_RESULT bool keystore_create_and_store_seed(
  * If it is false, the keystore is not unlocked.
  * @param[out] remaining_attempts_out will have the number of remaining attempts.
  * If zero, the keystore is locked until the device is reset.
+ * @param[out] securechip_result_out, if not NULL, will contain the error code from
+ * `securechip_kdf()` if there was a secure chip error, and 0 otherwise.
  * @return
  * - KEYSTORE_OK if they keystore was successfully unlocked
- * - KEYSTORE_ERR_INCORRECT_PASSWORD if the password was wrong
- * - KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED if there were too many unsuccessful attempts. The device is
- *   reset in this case.
- * - KEYSTORE_ERR_GENERIC if there was a fatal memory error.
+ * - KEYSTORE_ERR_* if unsuccessful.
  * Only call this if memory_is_seeded() returns true.
  */
-USE_RESULT keystore_error_t keystore_unlock(const char* password, uint8_t* remaining_attempts_out);
+USE_RESULT keystore_error_t
+keystore_unlock(const char* password, uint8_t* remaining_attempts_out, int* securechip_result_out);
 
 /** Unlocks the bip39 seed.
  * @param[in] mnemonic_passphrase bip39 passphrase used in the derivation. Use the

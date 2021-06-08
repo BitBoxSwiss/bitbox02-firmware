@@ -108,8 +108,19 @@ static uint8_t* _get_bip39_seed(void)
     return _retained_bip39_seed;
 }
 
-static bool _stretch_password(const char* password, uint8_t* kdf_out)
+/**
+ * Stretch the user password using the securechip, putting the result in `kdf_out`, which must be 32
+ * bytes. `securechip_result_out`, if not NULL, will contain the error code from `securechip_kdf()`
+ * if there was a secure chip error, and 0 otherwise.
+ */
+static keystore_error_t _stretch_password(
+    const char* password,
+    uint8_t* kdf_out,
+    int* securechip_result_out)
 {
+    if (securechip_result_out != NULL) {
+        *securechip_result_out = 0;
+    }
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
     if (!salt_hash_data(
@@ -117,7 +128,7 @@ static bool _stretch_password(const char* password, uint8_t* kdf_out)
             strlen(password),
             "keystore_seed_access_in",
             password_salted_hashed)) {
-        return false;
+        return KEYSTORE_ERR_SALT;
     }
 
     uint8_t kdf_in[32] = {0};
@@ -126,14 +137,22 @@ static bool _stretch_password(const char* password, uint8_t* kdf_out)
 
     // First KDF on SECURECHIP_SLOT_ROLLKEY increments the monotonic
     // counter. Call only once!
-    if (!securechip_kdf(SECURECHIP_SLOT_ROLLKEY, kdf_in, 32, kdf_out)) {
-        return false;
+    int securechip_result = securechip_kdf(SECURECHIP_SLOT_ROLLKEY, kdf_in, 32, kdf_out);
+    if (securechip_result) {
+        if (securechip_result_out != NULL) {
+            *securechip_result_out = securechip_result;
+        }
+        return KEYSTORE_ERR_SC_KDF;
     }
     // Second KDF does not use the counter and we call it multiple times.
     for (int i = 0; i < KDF_NUM_ITERATIONS; i++) {
         memcpy(kdf_in, kdf_out, 32);
-        if (!securechip_kdf(SECURECHIP_SLOT_KDF, kdf_in, 32, kdf_out)) {
-            return false;
+        securechip_result = securechip_kdf(SECURECHIP_SLOT_KDF, kdf_in, 32, kdf_out);
+        if (securechip_result) {
+            if (securechip_result_out != NULL) {
+                *securechip_result_out = securechip_result;
+            }
+            return KEYSTORE_ERR_SC_KDF;
         }
     }
 
@@ -142,50 +161,59 @@ static bool _stretch_password(const char* password, uint8_t* kdf_out)
             strlen(password),
             "keystore_seed_access_out",
             password_salted_hashed)) {
-        return false;
+        return KEYSTORE_ERR_SALT;
     }
     if (wally_hmac_sha256(
             password_salted_hashed, sizeof(password_salted_hashed), kdf_out, 32, kdf_out, 32) !=
         WALLY_OK) {
-        return false;
+        return KEYSTORE_ERR_HASH;
     }
 
-    return true;
+    return KEYSTORE_OK;
 }
-static bool _get_and_decrypt_seed(
+
+/**
+ * Retrieves the encrypted seed and attempts to decrypt it using the password.
+ *
+ * `securechip_result_out`, if not NULL, will contain the error code from `securechip_kdf()` if
+ * there was a secure chip error, and 0 otherwise.
+ */
+static keystore_error_t _get_and_decrypt_seed(
     const char* password,
     uint8_t* decrypted_seed_out,
     size_t* decrypted_seed_len_out,
-    bool* password_correct_out)
+    int* securechip_result_out)
 {
     uint8_t encrypted_seed_and_hmac[96];
     UTIL_CLEANUP_32(encrypted_seed_and_hmac);
     uint8_t encrypted_len;
     if (!memory_get_encrypted_seed_and_hmac(encrypted_seed_and_hmac, &encrypted_len)) {
-        return false;
+        return KEYSTORE_ERR_MEMORY;
     }
     uint8_t secret[32];
     UTIL_CLEANUP_32(secret);
-    if (!_stretch_password(password, secret)) {
-        return false;
+    keystore_error_t result = _stretch_password(password, secret, securechip_result_out);
+    if (result != KEYSTORE_OK) {
+        return result;
     }
     if (encrypted_len < 49) {
         Abort("_get_and_decrypt_seed: underflow / zero size");
     }
     size_t decrypted_len = encrypted_len - 48;
     uint8_t decrypted[decrypted_len];
-    *password_correct_out = cipher_aes_hmac_decrypt(
+    bool password_correct = cipher_aes_hmac_decrypt(
         encrypted_seed_and_hmac, encrypted_len, decrypted, &decrypted_len, secret);
-    if (*password_correct_out) {
-        if (!_validate_seed_length(decrypted_len)) {
-            util_zero(decrypted, sizeof(decrypted));
-            return false;
-        }
-        *decrypted_seed_len_out = decrypted_len;
-        memcpy(decrypted_seed_out, decrypted, decrypted_len);
+    if (!password_correct) {
+        return KEYSTORE_ERR_INCORRECT_PASSWORD;
     }
-    util_zero(decrypted, sizeof(decrypted));
-    return true;
+    if (!_validate_seed_length(decrypted_len)) {
+        util_zero(decrypted, sizeof(decrypted));
+        return KEYSTORE_ERR_SEED_SIZE;
+    }
+    *decrypted_seed_len_out = decrypted_len;
+    memcpy(decrypted_seed_out, decrypted, decrypted_len);
+
+    return KEYSTORE_OK;
 }
 
 static bool _verify_seed(
@@ -196,11 +224,7 @@ static bool _verify_seed(
     uint8_t decrypted_seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
     size_t seed_len;
     UTIL_CLEANUP_32(decrypted_seed);
-    bool password_correct = false;
-    if (!_get_and_decrypt_seed(password, decrypted_seed, &seed_len, &password_correct)) {
-        return false;
-    }
-    if (!password_correct) {
+    if (_get_and_decrypt_seed(password, decrypted_seed, &seed_len, NULL) != KEYSTORE_OK) {
         return false;
     }
     if (expected_seed_len != seed_len) {
@@ -232,7 +256,7 @@ bool keystore_encrypt_and_store_seed(
     }
     uint8_t secret[32] = {0};
     UTIL_CLEANUP_32(secret);
-    if (!_stretch_password(password, secret)) {
+    if (_stretch_password(password, secret, NULL) != KEYSTORE_OK) {
         return false;
     }
 
@@ -299,10 +323,13 @@ static void _free_string(char** str)
     wally_free_string(*str);
 }
 
-keystore_error_t keystore_unlock(const char* password, uint8_t* remaining_attempts_out)
+keystore_error_t keystore_unlock(
+    const char* password,
+    uint8_t* remaining_attempts_out,
+    int* securechip_result_out)
 {
     if (!memory_is_seeded()) {
-        return KEYSTORE_ERR_GENERIC;
+        return KEYSTORE_ERR_UNSEEDED;
     }
     uint8_t failed_attempts = bitbox02_smarteeprom_get_unlock_attempts();
     if (failed_attempts >= MAX_UNLOCK_ATTEMPTS) {
@@ -319,11 +346,12 @@ keystore_error_t keystore_unlock(const char* password, uint8_t* remaining_attemp
     uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
     UTIL_CLEANUP_32(seed);
     size_t seed_len;
-    bool password_correct = false;
-    if (!_get_and_decrypt_seed(password, seed, &seed_len, &password_correct)) {
-        return KEYSTORE_ERR_GENERIC;
+    keystore_error_t result =
+        _get_and_decrypt_seed(password, seed, &seed_len, securechip_result_out);
+    if (result != KEYSTORE_OK && result != KEYSTORE_ERR_INCORRECT_PASSWORD) {
+        return result;
     }
-    if (password_correct) {
+    if (result == KEYSTORE_OK) {
         if (_is_unlocked_device) {
             // Already unlocked. Fail if the seed changed under our feet (should never happen).
             if (seed_len != _seed_length || !MEMEQ(_retained_seed, seed, _seed_length)) {
@@ -346,7 +374,7 @@ keystore_error_t keystore_unlock(const char* password, uint8_t* remaining_attemp
     }
 
     *remaining_attempts_out = MAX_UNLOCK_ATTEMPTS - failed_attempts;
-    return password_correct ? KEYSTORE_OK : KEYSTORE_ERR_INCORRECT_PASSWORD;
+    return result;
 }
 
 bool keystore_unlock_bip39(const char* mnemonic_passphrase)

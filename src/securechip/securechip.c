@@ -513,18 +513,18 @@ bool securechip_update_keys(void)
     return _update_kdf_key() == ATCA_SUCCESS;
 }
 
-bool securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out)
+int securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out)
 {
     if (len > 127 || (slot != SECURECHIP_SLOT_ROLLKEY && slot != SECURECHIP_SLOT_KDF)) {
-        return false;
+        return SC_ERR_INVALID_ARGS;
     }
     if (msg == kdf_out) {
-        return false;
+        return SC_ERR_INVALID_ARGS;
     }
 
     ATCA_STATUS result = _authorize_key();
     if (result != ATCA_SUCCESS) {
-        return false;
+        return result;
     }
 
     uint8_t nonce_out[32] = {0};
@@ -555,7 +555,7 @@ bool securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint
     /*     kdf_out, */
     /*     nonce_out); */
     if (result != ATCA_SUCCESS) {
-        return false;
+        return result;
     }
     // Output is encrypted with the io protection key.
     uint8_t io_protection_key[32] = {0};
@@ -567,11 +567,7 @@ bool securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint
         .data = kdf_out,
         .data_size = 32,
     };
-    result = atcah_io_decrypt(&io_dec_params);
-    if (result != ATCA_SUCCESS) {
-        return false;
-    }
-    return true;
+    return atcah_io_decrypt(&io_dec_params);
 }
 
 bool securechip_gen_attestation_key(uint8_t* pubkey_out)

@@ -60,7 +60,7 @@ bool workflow_restore_backup(const RestoreBackupRequest* restore_request)
         return false;
     }
     uint8_t remaining_attempts;
-    if (keystore_unlock(password, &remaining_attempts) != KEYSTORE_OK) {
+    if (keystore_unlock(password, &remaining_attempts, NULL) != KEYSTORE_OK) {
         // This should/can never happen, but let's check anyway.
         Abort("workflow_restore_backup: unlock failed");
     }

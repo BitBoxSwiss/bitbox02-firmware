@@ -160,6 +160,26 @@ typedef union {
 
 static uint8_t _loading_ready = 0;
 static uint8_t _firmware_num_chunks = 0;
+// Indicates whether the whole app flash contains only 0xFF.
+// This controls bootloader text messages on the screen.
+// The value is computed at bootloader enter.
+static uint8_t _is_app_flash_empty = 0;
+
+// A "bare" firmware hash where all app flash sections are empty.
+// Bare meaning the hash is computed in the same way as _firmware_hash except
+// the firmware version is omitted.
+// If FLASH_APP_LEN is changed, recompute with either a shell command:
+//     printf '%884736s' | tr ' ' '\377' | openssl sha256 -binary | openssl sha256 -hex
+// or python:
+//     hashlib.sha256(hashlib.sha256(b'\xff' * 884736).digest()).hexdigest()
+static const uint8_t _empty_bare_flash_hash[SHA256_DIGEST_LENGTH] = {
+    0xbf, 0x71, 0x80, 0xc1, 0x23, 0xdf, 0xb5, 0x96, 0x1d, 0x93, 0xcd, 0x5f, 0xd9, 0x8a, 0xa4, 0x35,
+    0x00, 0xb8, 0xaf, 0x3a, 0x79, 0xf8, 0xc6, 0x56, 0x4a, 0x9b, 0x02, 0xe1, 0x8a, 0xb8, 0x21, 0xae,
+};
+#if FLASH_APP_LEN != 884736
+#error "FLASH_APP_LEN changed; recompute _empty_bare_flash_hash"
+#endif
+
 // clang-format off
 #if PRODUCT_BITBOX_BTCONLY == 1
 static const uint8_t _root_pubkeys[BOOT_NUM_ROOT_SIGNING_KEYS][BOOT_PUBKEY_LEN] = { // order is important
@@ -336,7 +356,10 @@ static void _render_default_screen(void)
 {
     UG_ClearBuffer();
     _load_logo();
-    UG_PutString(1, SCREEN_HEIGHT - 9, "BOOTLOADER", false);
+    if (_is_app_flash_empty) {
+        UG_PutString(0, SCREEN_HEIGHT - 9 * 2, "Let's get started!", false);
+    }
+    UG_PutString(0, SCREEN_HEIGHT - 9, "See the BitBoxApp", false);
     UG_SendBuffer();
 }
 
@@ -352,7 +375,11 @@ static void _render_progress(float progress)
     } else {
         _load_arrow(0, SCREEN_HEIGHT - 16, 10);
     }
-    UG_PutString(SCREEN_WIDTH / 2 - 3, SCREEN_HEIGHT - 9 * 2, "UPGRADING", false);
+    const char* msg = "UPGRADING";
+    if (_is_app_flash_empty) {
+        msg = "INSTALLING";
+    }
+    UG_PutString(SCREEN_WIDTH / 2 - 3, SCREEN_HEIGHT - 9 * 2, msg, false);
     UG_SendBuffer();
 }
 
@@ -405,6 +432,18 @@ static void _render_hash(const char* title, const uint8_t* hash)
         delay_ms(1000);
     }
     _render_default_screen();
+}
+
+// Sets _is_app_flash_empty by computing a "bare" hash, identical to _firmware_hash
+// except omitting the firmware version.
+static void _compute_is_app_flash_empty(void)
+{
+    uint8_t hash[SHA256_DIGEST_LENGTH];
+    sha_sync_sha256_start(&HASH_ALGORITHM_0, &_pukcc_sha256_context, false);
+    sha_sync_sha256_update(&HASH_ALGORITHM_0, (const uint8_t*)FLASH_APP_START, FLASH_APP_LEN);
+    sha_sync_sha256_finish(&HASH_ALGORITHM_0, hash);
+    pukcc_sha256_compute(hash, SHA256_DIGEST_LENGTH, hash);
+    _is_app_flash_empty = MEMEQ(hash, _empty_bare_flash_hash, sizeof(_empty_bare_flash_hash));
 }
 
 static size_t _report_status(uint8_t status, uint8_t* output)
@@ -1003,6 +1042,7 @@ void bootloader_jump(void)
     }
 
     // App not entered. Start USB API to receive boot commands
+    _compute_is_app_flash_empty();
     _render_default_screen();
 #if PLATFORM_BITBOX02 == 1
     if (usb_start(_api_setup) != ERR_NONE) {

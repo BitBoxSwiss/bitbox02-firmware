@@ -43,7 +43,7 @@ static const uint8_t SLIDE_DETECTION_DIFF = MAX_SLIDER_POS * 0.04; // Percent of
  */
 static const uint8_t TAP_SLIDE_TOLERANCE = MAX_SLIDER_POS * 0.1; // Percent of slider range
 
-extern volatile uint8_t measurement_done_touch;
+extern volatile bool measurement_done_touch;
 
 /********************************** STATE **********************************/
 
@@ -259,7 +259,7 @@ static void _emit_continuous_tap_event(void)
 static void _measure_and_emit(void)
 {
     qtouch_process(); // Non blocking
-    if (measurement_done_touch != 1) {
+    if (!measurement_done_touch) {
         return;
     }
 

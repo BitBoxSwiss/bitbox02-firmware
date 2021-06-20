@@ -96,8 +96,6 @@ rust-docs: | build
 	$(MAKE) -C build rust-docs
 unit-test: | build-build
 	$(MAKE) -C build-build
-device-tests: | build
-	${MAKE} -C build device-tests
 # Must compile C tests before running them
 run-unit-tests: | build-build
 	CTEST_OUTPUT_ON_FAILURE=1 $(MAKE) -C build-build test

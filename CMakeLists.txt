@@ -411,10 +411,6 @@ endif()
 
 if(CMAKE_CROSSCOMPILING)
   add_dependencies(doc rust-docs)
-endif()
-
-if(CMAKE_CROSSCOMPILING)
-  add_subdirectory(test/device-test)
 else()
   include(CTest)
   add_subdirectory(test/unit-test)

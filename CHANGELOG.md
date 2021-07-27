@@ -6,7 +6,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ## Firmware
 
-### [Unreleased]
+### 9.11.0
+- Add SSD1312 driver for new OLED screens
 
 ### 9.10.0 [2022-03-10]
 - Bitcoin: add support for BIP-86: receive to taproot addresses and sign transactions with taproot inputs

@@ -144,6 +144,7 @@ set(DRIVER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/platform/driver_init.c
   ${CMAKE_SOURCE_DIR}/src/qtouch/qtouch.c
   ${CMAKE_SOURCE_DIR}/src/ui/oled/oled.c
+  ${CMAKE_SOURCE_DIR}/src/ui/oled/oled_writer.c
 )
 set(DRIVER-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
 
@@ -151,6 +152,8 @@ set(PLATFORM-BITBOX02-SOURCES
   ${CMAKE_SOURCE_DIR}/src/sd_mmc/sd_mmc_start.c
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hid.c
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hww/hid_hww.c
+  ${CMAKE_SOURCE_DIR}/src/ui/oled/sh1107.c
+  ${CMAKE_SOURCE_DIR}/src/ui/oled/ssd1312.c
   ${DBB-FIRMWARE-USB-SOURCES}
 )
 set(PLATFORM-BITBOX02-SOURCES ${PLATFORM-BITBOX02-SOURCES} PARENT_SCOPE)

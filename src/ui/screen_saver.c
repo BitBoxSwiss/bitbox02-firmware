@@ -52,7 +52,9 @@ void screen_saver_process(void)
         if (_counter > ACTIVE_AFTER) {
             _is_active = true;
 #ifndef TESTING
-            oled_set_brightness(0x00);
+            // 0x00 would set the screen to black for ssd1312, so we use 0x01 for the minimum
+            // brightness.
+            oled_set_brightness(0x01);
 #endif
         }
     }

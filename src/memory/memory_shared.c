@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include <flags.h>
+#include <util.h>
 
 #include "memory_shared.h"
 
@@ -32,4 +33,21 @@ void memory_read_shared_bootdata(chunk_shared_t* chunk_out)
 #else
     memcpy(chunk_out->bytes, (uint8_t*)(FLASH_SHARED_DATA_START), FLASH_SHARED_DATA_LEN);
 #endif
+}
+
+uint8_t memory_get_screen_type(void)
+{
+    chunk_shared_t chunk = {0};
+    memory_read_shared_bootdata(&chunk);
+    uint8_t screen_type = chunk.fields.screen_type;
+    util_zero(&chunk, sizeof(chunk));
+    switch (screen_type) {
+    case MEMORY_SCREEN_TYPE_SSD1312:
+        return screen_type;
+    default:
+        // Just in case the memory was not 0xFF for devices before we started using the
+        // `screen_type` field, we default to the old screen type if it is not explicitly set to any
+        // other screen type.
+        return MEMORY_SCREEN_TYPE_SH1107;
+    }
 }

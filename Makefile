@@ -80,12 +80,6 @@ bootloader-btc-development: | build
 	$(MAKE) -C build bootloader-btc-development.elf
 bootloader-btc-production: | build
 	$(MAKE) -C build bootloader-btc-production.elf
-bootloader-bitboxbase: | build
-	$(MAKE) -C build bootloader-bitboxbase.elf
-bootloader-bitboxbase-development: | build
-	$(MAKE) -C build bootloader-bitboxbase-development.elf
-bootloader-bitboxbase-production: | build
-	$(MAKE) -C build bootloader-bitboxbase-production.elf
 factory-setup: | build
 	$(MAKE) -C build factory-setup.elf
 factory-setup-bitboxbase: | build

@@ -495,14 +495,8 @@ set(BOOTLOADERS-BITBOX02
   bootloader-btc-development # Runs signed/unsigned firmware and has bootloader menu
   bootloader-btc-production # Runs signed (btc-only keys) firmware and bootloader is locked
   )
-set(BOOTLOADERS-BITBOXBASE
-  bootloader-bitboxbase # Runs signed (base keys) firmware
-  bootloader-bitboxbase-development # Runs signed/unsigned firmware and has bootloader menu
-  bootloader-bitboxbase-production # Runs signed (base keys) firmware and bootloader is locked
-  )
 set(BOOTLOADERS
   ${BOOTLOADERS-BITBOX02}
-  ${BOOTLOADERS-BITBOXBASE}
   )
 set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
 
@@ -619,10 +613,6 @@ if(CMAKE_CROSSCOMPILING)
     target_sources(${bootloader}.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
   endforeach(bootloader)
 
-  foreach(bootloader ${BOOTLOADERS-BITBOXBASE})
-    target_sources(${bootloader}.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES})
-  endforeach(bootloader)
-
   target_compile_definitions(bootloader.elf PRIVATE PRODUCT_BITBOX_MULTI)
   target_compile_definitions(bootloader-development.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE)
   target_compile_definitions(bootloader-development-locked.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
@@ -636,11 +626,6 @@ if(CMAKE_CROSSCOMPILING)
   target_compile_definitions(bootloader-btc-development.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_DEVDEVICE)
   target_compile_definitions(bootloader-btc-production.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_PRODUCTION)
   set_property(TARGET bootloader-btc-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
-
-  target_compile_definitions(bootloader-bitboxbase.elf PRIVATE PRODUCT_BITBOX_BASE)
-  target_compile_definitions(bootloader-bitboxbase-development.elf PRIVATE BOOTLOADER_DEVDEVICE PRODUCT_BITBOX_BASE)
-  target_compile_definitions(bootloader-bitboxbase-production.elf PRIVATE BOOTLOADER_PRODUCTION PRODUCT_BITBOX_BASE)
-  set_property(TARGET bootloader-bitboxbase-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
   foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)

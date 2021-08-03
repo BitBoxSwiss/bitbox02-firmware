@@ -511,7 +511,6 @@ set(FIRMWARES
   firmware-btc # Firmware BTC-ONLY
   firmware-bitboxbase # Firmware BASE
   factory-setup # Factory-setup
-  factory-setup-bitboxbase # Factory-setup
   )
 set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
 
@@ -528,7 +527,6 @@ endif()
 #  *  firmware-btc_rust_c
 #  *  firmware-bitboxbase_rust_c
 #  *  factory-setup_rust_c
-#  *  factory-setup-bitboxbase_rust_c
 foreach(type ${RUST_LIBS})
   set(lib ${RUST_BINARY_DIR}/feature-${type}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.a)
   # The dummy output is to always trigger rebuild (cargo is clever enough to
@@ -706,10 +704,6 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(factory-setup.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
-
-  target_sources(factory-setup-bitboxbase.elf PRIVATE factorysetup.c)
-  target_compile_definitions(factory-setup-bitboxbase.elf PRIVATE PRODUCT_BITBOXBASE_FACTORYSETUP "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
-  target_sources(factory-setup-bitboxbase.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES})
 
   foreach(name ${BOOTLOADERS} ${FIRMWARES})
     add_custom_command(

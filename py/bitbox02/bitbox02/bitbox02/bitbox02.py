@@ -774,8 +774,16 @@ class BitBox02(BitBoxCommonAPI):
     ) -> bytes:
         """
         Signs message, the msg will be prefixed with "\x19Ethereum message\n" + len(msg) in the
-        hardware
+        hardware. 27 is added to the recID to denote an uncompressed pubkey.
         """
+
+        def format_as_uncompressed(sig: bytes) -> bytes:
+            # 27 is the magic constant to add to the recoverable ID to denote an uncompressed
+            # pubkey.
+            s = list(sig)
+            s[64] += 27
+            return bytes(s)
+
         request = eth.ETHRequest()
         # pylint: disable=no-member
         request.sign_msg.CopyFrom(eth.ETHSignMessageRequest(coin=coin, keypath=keypath, msg=msg))
@@ -800,9 +808,10 @@ class BitBox02(BitBoxCommonAPI):
             if self.debug:
                 print(f"Antiklepto nonce verification PASSED")
 
-            return signature
+            return format_as_uncompressed(signature)
 
-        return self._eth_msg_query(request, expected_response="sign").sign.signature
+        signature = self._eth_msg_query(request, expected_response="sign").sign.signature
+        return format_as_uncompressed(signature)
 
     def reset(self) -> bool:
         """

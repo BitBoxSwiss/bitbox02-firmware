@@ -52,7 +52,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/unlock_bip39.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_total.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/workflow.c
   ${CMAKE_SOURCE_DIR}/src/apps/common/bip32.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_common.c

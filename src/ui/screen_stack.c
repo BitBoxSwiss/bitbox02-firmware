@@ -86,12 +86,6 @@ void ui_screen_stack_push(component_t* component)
     }
 }
 
-void ui_screen_stack_switch(component_t* component)
-{
-    ui_screen_stack_pop();
-    ui_screen_stack_push(component);
-}
-
 void ui_screen_stack_cleanup(void)
 {
     while (_pop_stack.size) {

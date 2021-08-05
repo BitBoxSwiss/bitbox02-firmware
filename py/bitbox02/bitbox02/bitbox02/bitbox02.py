@@ -39,7 +39,6 @@ try:
     from bitbox02.communication.generated import btc_pb2 as btc
     from bitbox02.communication.generated import mnemonic_pb2 as mnemonic
     from bitbox02.communication.generated import bitbox02_system_pb2 as bitbox02_system
-    from bitbox02.communication.generated import random_number_pb2 as random_number
     from bitbox02.communication.generated import backup_commands_pb2 as backup
     from bitbox02.communication.generated import common_pb2 as common
     from bitbox02.communication.generated import keystore_pb2 as keystore
@@ -125,13 +124,6 @@ class BitBox02(BitBoxCommonAPI):
     """Class to communicate with a BitBox02"""
 
     # pylint: disable=too-many-public-methods
-
-    def random_number(self) -> bytes:
-        # pylint: disable=no-member
-        request = hww.Request()
-        request.random_number.CopyFrom(random_number.RandomNumberRequest())
-        response = self._msg_query(request, expected_response="random_number")
-        return response.random_number.number
 
     def device_info(self) -> Dict[str, Any]:
         # pylint: disable=no-member

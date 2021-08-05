@@ -27,14 +27,12 @@
 #include <flags.h>
 #include <hardfault.h>
 #include <keystore.h>
-#include <random.h>
 #include <screen.h>
 #include <sd.h>
 #include <util.h>
 #include <version.h>
 
 #include <workflow/restore.h>
-#include <workflow/workflow.h>
 
 #include "hww.pb.h"
 
@@ -59,34 +57,6 @@ static void _report_error(Response* response, commander_error_t error_code)
 // ------------------------------------ API ------------------------------------- //
 
 #if PLATFORM_BITBOX02 == 1
-/**
- * Retrieves a random number, displays it and encodes it into the passed stream.
- * Returns 0 if the encoding failed and the message length if the encoding was
- * successful.
- */
-static void _api_process_random(RandomNumberResponse* response)
-{
-    uint8_t number[RANDOM_NUM_SIZE];
-    random_32_bytes(number);
-
-    static char number_hex[BB_HEX_SIZE(number)]; // TODO cleanup
-    util_uint8_to_hex(number, sizeof(number), number_hex);
-
-    char number_hex_formatted[BB_HEX_SIZE(number) + 3];
-    snprintf(
-        number_hex_formatted,
-        sizeof(number_hex_formatted),
-        "%.16s\n%.16s\n%.16s\n%.16s",
-        number_hex,
-        number_hex + 16,
-        number_hex + 32,
-        number_hex + 48);
-
-    workflow_confirm_dismiss("Random", number_hex_formatted);
-
-    memcpy(&response->number, number, sizeof(number));
-}
-
 static commander_error_t _api_list_backups(ListBackupsResponse* response)
 {
     if (!workflow_list_backups(response)) {
@@ -113,10 +83,6 @@ static commander_error_t _api_process(const Request* request, Response* response
 {
     switch (request->which_request) {
 #if PLATFORM_BITBOX02 == 1
-    case Request_random_number_tag:
-        response->which_response = Response_random_number_tag;
-        _api_process_random(&(response->response.random_number));
-        return COMMANDER_OK;
 #if APP_BTC == 1 || APP_LTC == 1
     case Request_btc_pub_tag:
         response->which_response = Response_pub_tag;

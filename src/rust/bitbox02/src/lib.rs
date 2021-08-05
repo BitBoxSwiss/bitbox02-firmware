@@ -79,7 +79,7 @@ pub use bitbox02_sys::{
     Request_device_info_tag, Request_device_language_tag, Request_device_name_tag,
     Request_electrum_encryption_key_tag, Request_eth_tag, Request_fingerprint_tag,
     Request_insert_remove_sdcard_tag, Request_list_backups_tag, Request_perform_attestation_tag,
-    Request_random_number_tag, Request_reboot_tag, Request_reset_tag, Request_restore_backup_tag,
+    Request_reboot_tag, Request_reset_tag, Request_restore_backup_tag,
     Request_restore_from_mnemonic_tag, Request_set_mnemonic_passphrase_enabled_tag,
     Request_set_password_tag, Request_show_mnemonic_tag,
 };

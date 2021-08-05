@@ -22,12 +22,6 @@
 #include <compiler_util.h>
 
 /**
- * Pushes a confirm string on the screen a with a "Dismiss" button, to show data
- * on the screen for the user to verify.
- */
-void workflow_confirm_dismiss(const char* title, const char* body);
-
-/**
  * Typedef for a callback to be executed when a workflow is finishing.
  * This can be used by the parent workflow to obtain information about
  * the executed workflow's result.

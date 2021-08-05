@@ -8,6 +8,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 - Display granular error codes when unlock fails unexpectedly
+- Remove RandomNumber API endpoint
 
 ### 9.6.0 [released 2021-05-20]
 - Attempt to fix flaky SD behavior

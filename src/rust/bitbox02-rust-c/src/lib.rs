@@ -43,9 +43,6 @@ mod workflow;
 #[cfg(all(feature = "firmware", feature = "platform-bitboxbase"))]
 pub mod bitboxbase;
 
-#[cfg(all(feature = "firmware", feature = "platform-bitbox02"))]
-pub mod bitbox02;
-
 #[cfg(feature = "app-ethereum")]
 pub mod app_ethereum;
 

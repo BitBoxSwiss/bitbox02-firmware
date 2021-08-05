@@ -53,5 +53,4 @@ exclude = [
 
 [defines]
 "feature=platform-bitboxbase" = "RUST_BITBOX_BASE"
-"feature=platform-bitbox02" = "RUST_BITBOX02"
 "feature=app-ethereum" = "RUST_APP_ETHEREUM"

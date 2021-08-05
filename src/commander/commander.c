@@ -20,9 +20,6 @@
 #if APP_BTC == 1 || APP_LTC == 1
 #include "commander/commander_btc.h"
 #endif
-#if PRODUCT_BITBOX_BASE == 1
-#include "rust/rust.h"
-#endif
 
 #include <flags.h>
 #include <hardfault.h>
@@ -56,7 +53,6 @@ static void _report_error(Response* response, commander_error_t error_code)
 
 // ------------------------------------ API ------------------------------------- //
 
-#if PLATFORM_BITBOX02 == 1
 static commander_error_t _api_list_backups(ListBackupsResponse* response)
 {
     if (!workflow_list_backups(response)) {
@@ -72,7 +68,6 @@ static commander_error_t _api_restore_backup(const RestoreBackupRequest* request
     }
     return COMMANDER_OK;
 }
-#endif
 
 // ------------------------------------ Process ------------------------------------- //
 
@@ -82,7 +77,6 @@ static commander_error_t _api_restore_backup(const RestoreBackupRequest* request
 static commander_error_t _api_process(const Request* request, Response* response)
 {
     switch (request->which_request) {
-#if PLATFORM_BITBOX02 == 1
 #if APP_BTC == 1 || APP_LTC == 1
     case Request_btc_pub_tag:
         response->which_response = Response_pub_tag;
@@ -107,12 +101,6 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_restore_backup_tag:
         response->which_response = Response_success_tag;
         return _api_restore_backup(&(request->request.restore_backup));
-#endif
-#if PRODUCT_BITBOX_BASE == 1
-    case Request_bitboxbase_tag:
-        response->which_response = Response_success_tag;
-        return commander_bitboxbase(&(request->request.bitboxbase));
-#endif
     default:
         screen_print_debug("command unknown", 1000);
         return COMMANDER_ERR_INVALID_INPUT;

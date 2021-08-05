@@ -40,9 +40,7 @@ int main(void)
     common_main();
     bitbox02_smarteeprom_init();
     traceln("%s", "Device initialized");
-#if PLATFORM_BITBOX02 == 1
     orientation_screen_blocking();
-#endif
     idle_workflow_blocking();
     firmware_main_loop();
     return 0;

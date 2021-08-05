@@ -29,12 +29,6 @@
 #error "invalid product value"
 #endif
 
-#if !defined(PRODUCT_BITBOX_BASE)
-#define PRODUCT_BITBOX_BASE 0
-#elif PRODUCT_BITBOX_BASE != 1
-#error "invalid product value"
-#endif
-
 #if !defined(PRODUCT_BITBOX02_FACTORYSETUP)
 #define PRODUCT_BITBOX02_FACTORYSETUP 0
 #elif PRODUCT_BITBOX02_FACTORYSETUP != 1
@@ -45,29 +39,16 @@
 
 #if PRODUCT_BITBOX_MULTI == 1
 #define PLATFORM_BITBOX02 1
-#define PLATFORM_BITBOXBASE 0
 #define FACTORYSETUP 0
 #endif
 
 #if PRODUCT_BITBOX_BTCONLY == 1
 #define PLATFORM_BITBOX02 1
-#define PLATFORM_BITBOXBASE 0
 #define FACTORYSETUP 0
-#endif
-
-#if PRODUCT_BITBOX_BASE == 1
-#define PLATFORM_BITBOX02 0
-#define PLATFORM_BITBOXBASE 1
-#define FACTORYSETUP 0
-#endif
-
-#if PRODUCT_BITBOX_BASE == 1 && !defined(BOOTLOADER)
-#define RUST_BITBOX_BASE
 #endif
 
 #if PRODUCT_BITBOX02_FACTORYSETUP == 1
 #define PLATFORM_BITBOX02 1
-#define PLATFORM_BITBOXBASE 0
 #define FACTORYSETUP 1
 #endif
 

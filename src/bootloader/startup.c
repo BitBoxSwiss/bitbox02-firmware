@@ -22,9 +22,6 @@
 #include <qtouch.h>
 #include <screen.h>
 #include <string.h>
-#if PLATFORM_BITBOXBASE == 1
-#include <usart/usart.h>
-#endif
 #include <usb/usb_processing.h>
 
 extern void __attribute__((noreturn)) __stack_chk_fail(void);
@@ -56,16 +53,8 @@ int main(void)
     bootloader_jump();
 
     // If did not jump to firmware code, begin USB processing
-#if PLATFORM_BITBOX02 == 1
     while (1) {
         usb_processing_process(usb_processing_hww());
     }
-#elif PLATFORM_BITBOXBASE == 1
-    while (1) {
-        usart_receive();
-        usb_processing_process(usb_processing_hww());
-    }
-#endif
-
     return 0;
 }

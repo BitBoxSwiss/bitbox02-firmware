@@ -142,7 +142,6 @@ static void _i2c_init(void)
     i2c_m_sync_enable(&I2C_0);
 }
 
-#if PLATFORM_BITBOX02 == 1
 /**
  * Set pins for SD/MMC peripheral
  */
@@ -200,7 +199,6 @@ static void _mci_init(void)
         GCLK, SDHC0_GCLK_ID_SLOW, CONF_GCLK_SDHC0_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     _mci_set_pins();
 }
-#endif
 
 /**
  * Initialize delay driver
@@ -220,7 +218,6 @@ static void _rand_init(void)
     rand_sync_enable(&RAND_0);
 }
 
-#if PLATFORM_BITBOX02 == 1
 /**
  * Set pins for USB peripheral
  */
@@ -258,7 +255,6 @@ static void _usb_init(void)
     usb_d_init();
     _usb_set_pins();
 }
-#endif
 
 static void _oled_set_pins(void)
 {
@@ -291,10 +287,8 @@ void system_init(void)
     _spi_init();
     // ATECC608A
     _i2c_init();
-#if PLATFORM_BITBOX02 == 1
     // uSD
     _mci_init();
-#endif
 
     // Hardware crypto
     _ecdsa_init();
@@ -303,9 +297,7 @@ void system_init(void)
     // Flash
     _flash_memory_init();
     // USB
-#if PLATFORM_BITBOX02 == 1
     _usb_init();
-#endif
     _is_initialized = true;
 }
 
@@ -326,10 +318,8 @@ void bootloader_init(void)
     _rand_init();
     // Flash
     _flash_memory_init();
-#if PLATFORM_BITBOX02 == 1
     // USB
     _usb_init();
-#endif
     _is_initialized = true;
 }
 
@@ -338,10 +328,8 @@ void system_close_interfaces(void)
     if (!_is_initialized) {
         return;
     }
-#if PLATFORM_BITBOX02 == 1
     // uSD
     mci_sync_deinit(&MCI_0);
-#endif
     // ATECC608A
     i2c_m_sync_deinit(&I2C_0);
     // OLED interface bus
@@ -349,10 +337,8 @@ void system_close_interfaces(void)
     SPI_0_disable();
     // Flash
     flash_deinit(&FLASH_0);
-#if PLATFORM_BITBOX02 == 1
     // USB
     usb_d_deinit();
-#endif
     // Hardware crypto
     sha_sync_deinit(&HASH_ALGORITHM_0);
     rand_sync_deinit(&RAND_0);

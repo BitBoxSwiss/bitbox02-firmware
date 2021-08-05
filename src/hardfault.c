@@ -35,9 +35,7 @@ void Abort(const char* msg)
 {
     screen_print_debug(msg, 0);
     traceln("Aborted: %s", msg);
-#if PLATFORM_BITBOX02 == 1
     usb_stop();
-#endif
 #if !defined(TESTING)
 #if defined(BOOTLOADER)
     bootloader_close_interfaces();

@@ -30,7 +30,6 @@
 #include <hal_sha_sync.h>
 #include <hal_sleep.h>
 #include <hal_timer.h>
-#include <hal_usart_async.h>
 #include <hal_usb_device.h>
 #include <hpl_rtc_base.h>
 #include <sd_mmc.h>
@@ -39,11 +38,7 @@
 
 #include "platform_config.h"
 
-#if PLATFORM_BITBOX02 == 1
 #include <bitbox02_pins.h>
-#elif PLATFORM_BITBOXBASE == 1
-#include <bitboxbase_pins.h>
-#endif
 
 #define SHA256_DIGEST_LENGTH 32
 

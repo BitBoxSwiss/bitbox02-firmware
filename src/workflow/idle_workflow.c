@@ -24,11 +24,7 @@
 #include <ui/screen_stack.h>
 #include <ui/ugui/ugui.h>
 
-#if PLATFORM_BITBOXBASE == 1
-#include <usart/usart.h>
-#elif PLATFORM_BITBOX02 == 1
 #include <usb/usb.h>
-#endif
 #include <util.h>
 
 #ifndef TESTING
@@ -37,12 +33,7 @@
 
 static void _init_communication(void)
 {
-#if PLATFORM_BITBOXBASE == 1
-    usart_start();
-    hww_setup();
-#elif PLATFORM_BITBOX02 == 1
     usb_start(hww_setup);
-#endif
     ui_screen_stack_push(info_centered_create("See the BitBoxApp", NULL));
 }
 

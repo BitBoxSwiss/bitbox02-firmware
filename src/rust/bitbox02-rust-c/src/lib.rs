@@ -40,9 +40,6 @@ mod sha2;
 #[cfg(feature = "firmware")]
 mod workflow;
 
-#[cfg(all(feature = "firmware", feature = "platform-bitboxbase"))]
-pub mod bitboxbase;
-
 #[cfg(feature = "app-ethereum")]
 pub mod app_ethereum;
 

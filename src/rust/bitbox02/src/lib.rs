@@ -47,31 +47,6 @@ pub mod ui;
 
 use core::time::Duration;
 
-// Reexport the protobuf types
-pub use bitbox02_sys::BitBoxBaseConfirmPairingRequest;
-pub use bitbox02_sys::BitBoxBaseDisplayStatusRequest;
-pub use bitbox02_sys::BitBoxBaseHeartbeatRequest;
-pub use bitbox02_sys::BitBoxBaseRequest;
-pub use bitbox02_sys::BitBoxBaseSetConfigRequest;
-
-// Reexport as u16 since this is the correct type (bindgen will generate them as u32)
-#[allow(non_upper_case_globals)]
-pub const BitBoxBaseSetConfigRequest_ip_tag: u16 =
-    bitbox02_sys::BitBoxBaseSetConfigRequest_ip_tag as u16;
-
-#[allow(non_upper_case_globals)]
-pub const BitBoxBaseRequest_heartbeat_tag: u16 =
-    bitbox02_sys::BitBoxBaseRequest_heartbeat_tag as u16;
-#[allow(non_upper_case_globals)]
-pub const BitBoxBaseRequest_confirm_pairing_tag: u16 =
-    bitbox02_sys::BitBoxBaseRequest_confirm_pairing_tag as u16;
-#[allow(non_upper_case_globals)]
-pub const BitBoxBaseRequest_display_status_tag: u16 =
-    bitbox02_sys::BitBoxBaseRequest_display_status_tag as u16;
-#[allow(non_upper_case_globals)]
-pub const BitBoxBaseRequest_set_config_tag: u16 =
-    bitbox02_sys::BitBoxBaseRequest_set_config_tag as u16;
-
 pub use bitbox02_sys::{
     Request_bitboxbase_tag, Request_btc_pub_tag, Request_btc_sign_init_tag,
     Request_btc_sign_input_tag, Request_btc_sign_output_tag, Request_btc_tag,
@@ -158,46 +133,6 @@ pub fn screen_print_debug(msg: &str, duration: i32) {
     }
 }
 
-pub fn bitboxbase_watchdog_reset() {
-    unsafe { bitbox02_sys::bitboxbase_watchdog_reset() }
-}
-
-pub fn leds_turn_small_led(led: i32, enabled: bool) {
-    if led < 0 || led > 4 {
-        panic!("Invalid led");
-    }
-    unsafe { bitbox02_sys::leds_turn_small_led(led, enabled) }
-}
-
-pub enum Color {
-    White,
-    Red,
-    Green,
-    Blue,
-    Yellow,
-    Purple,
-    Cyan,
-}
-
-pub fn leds_turn_big_led(led: i32, color: Option<Color>) {
-    if !(0..=2).contains(&led) {
-        panic!("Invalid led");
-    }
-    let c = match color {
-        None => bitbox02_sys::led_color_t_LED_COLOR_NONE,
-        Some(c) => match c {
-            Color::White => bitbox02_sys::led_color_t_LED_COLOR_WHITE,
-            Color::Red => bitbox02_sys::led_color_t_LED_COLOR_RED,
-            Color::Green => bitbox02_sys::led_color_t_LED_COLOR_GREEN,
-            Color::Blue => bitbox02_sys::led_color_t_LED_COLOR_BLUE,
-            Color::Yellow => bitbox02_sys::led_color_t_LED_COLOR_YELLOW,
-            Color::Purple => bitbox02_sys::led_color_t_LED_COLOR_PURPLE,
-            Color::Cyan => bitbox02_sys::led_color_t_LED_COLOR_CYAN,
-        },
-    };
-    unsafe { bitbox02_sys::leds_turn_big_led(led, c) }
-}
-
 pub fn sha256(input: &[u8], output: &mut [u8]) -> Result<(), ()> {
     let res = unsafe {
         bitbox02_sys::wally_sha256(
@@ -212,10 +147,6 @@ pub fn sha256(input: &[u8], output: &mut [u8]) -> Result<(), ()> {
     } else {
         Err(())
     }
-}
-
-pub fn bitboxbase_screensaver_reset() {
-    unsafe { bitbox02_sys::bitboxbase_screensaver_reset() }
 }
 
 #[cfg(not(feature = "testing"))]

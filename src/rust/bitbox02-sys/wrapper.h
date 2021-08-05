@@ -16,14 +16,10 @@
 #include <apps/eth/eth_params.h>
 #include <apps/eth/eth_sighash.h>
 #include <backup/backup.h>
-#include <bitboxbase.pb.h>
-#include <bitboxbase/bitboxbase_screensaver.h>
-#include <bitboxbase/bitboxbase_watchdog.h>
 #include <commander/commander.h>
 #include <commander/commander_states.h>
 #include <keystore.h>
 #include <memory/memory.h>
-#include <platform/bitboxbase/leds.h>
 #include <random.h>
 #include <reset.h>
 #include <screen.h>

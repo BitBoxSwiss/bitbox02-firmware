@@ -15,7 +15,6 @@
 #include "usb_processing.h"
 #include "platform_config.h"
 #include "u2f/u2f_packet.h"
-#include "usart/usart_frame.h"
 #include "usb_frame.h"
 #include "usb_packet.h"
 
@@ -428,15 +427,9 @@ void usb_processing_init(void)
     usb_processing_hww()->create_blocked_req_error = hww_blocked_req_error;
     usb_processing_hww()->abort_outstanding_op = hww_abort_outstanding_op;
 #endif
-#if PLATFORM_BITBOXBASE == 1
-    queue_init(queue_hww_queue(), 1);
-    usb_processing_hww()->format_frame = usart_format_frame;
-    usb_processing_hww()->manage_invalid_endpoint = usart_invalid_endpoint;
-#else
     queue_init(queue_hww_queue(), USB_REPORT_SIZE);
     usb_processing_hww()->format_frame = usb_frame_reply;
     usb_processing_hww()->manage_invalid_endpoint = usb_invalid_endpoint;
-#endif
     usb_processing_hww()->has_packet = false;
 #if !defined(BOOTLOADER) && !defined(TESTING)
     _register_timer();

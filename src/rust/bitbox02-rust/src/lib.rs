@@ -21,7 +21,6 @@ mod pb {
     include!("./shiftcrypto.bitbox02.rs");
 }
 
-mod error;
 #[macro_use]
 pub mod general;
 pub mod apps;
@@ -29,7 +28,6 @@ pub mod async_usb;
 pub mod attestation;
 pub mod bb02_async;
 pub mod hww;
-pub mod platform;
 pub mod util;
 mod waker_fn;
 pub mod workflow;

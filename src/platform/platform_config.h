@@ -41,12 +41,6 @@
 #error "invald product value"
 #endif
 
-#if !defined(PRODUCT_BITBOXBASE_FACTORYSETUP)
-#define PRODUCT_BITBOXBASE_FACTORYSETUP 0
-#elif PRODUCT_BITBOXBASE_FACTORYSETUP != 1
-#error "invald product value"
-#endif
-
 // Derive other useful definitions from the product.
 
 #if PRODUCT_BITBOX_MULTI == 1
@@ -74,12 +68,6 @@
 #if PRODUCT_BITBOX02_FACTORYSETUP == 1
 #define PLATFORM_BITBOX02 1
 #define PLATFORM_BITBOXBASE 0
-#define FACTORYSETUP 1
-#endif
-
-#if PRODUCT_BITBOXBASE_FACTORYSETUP == 1
-#define PLATFORM_BITBOX02 0
-#define PLATFORM_BITBOXBASE 1
 #define FACTORYSETUP 1
 #endif
 

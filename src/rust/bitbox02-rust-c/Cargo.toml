@@ -44,7 +44,6 @@ target-firmware = ["firmware", "platform-bitbox02", "app-bitcoin", "app-litecoin
 target-firmware-btc = ["firmware", "platform-bitbox02", "app-bitcoin"]
 target-firmware-bitboxbase = ["firmware", "platform-bitboxbase"]
 target-factory-setup = ["firmware", "platform-bitbox02"]
-target-factory-setup-bitboxbase = ["firmware", "platform-bitboxbase"]
 # add Rust features which are called in the C unit tests (currently there is only one target for C tests).
 target-c-unit-tests = ["app-ethereum", "firmware"]
 

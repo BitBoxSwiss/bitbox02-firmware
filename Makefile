@@ -82,8 +82,6 @@ bootloader-btc-production: | build
 	$(MAKE) -C build bootloader-btc-production.elf
 factory-setup: | build
 	$(MAKE) -C build factory-setup.elf
-factory-setup-bitboxbase: | build
-	$(MAKE) -C build factory-setup-bitboxbase.elf
 docs: | build
 	$(MAKE) -C build doc
 rust-docs: | build

@@ -20,7 +20,6 @@
 #include "platform_init.h"
 #include "screen.h"
 #include "securechip/securechip.h"
-#include "usart/usart.h"
 #include "usb/usb.h"
 #include "usb/usb_packet.h"
 #include "usb/usb_processing.h"
@@ -261,17 +260,9 @@ int main(void)
             // Not much we can do here.
         }
     }
-#if PLATFORM_BITBOX02 == 1
     usb_start(_api_setup);
-#elif PLATFORM_BITBOXBASE == 1
-    usart_start();
-    _api_setup();
-#endif
 
     while (1) {
-#if PLATFORM_BITBOXBASE == 1
-        usart_receive();
-#endif
         usb_processing_process(usb_processing_hww());
     }
 }

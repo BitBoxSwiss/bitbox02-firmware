@@ -4,7 +4,7 @@
 #include <platform/platform_config.h>
 
 // TOOD(nc): Create versions for factorysetup
-#if (PRODUCT_BITBOX_MULTI == 1) || (PRODUCT_BITBOX02_FACTORYSETUP == 1) || (PRODUCT_BITBOXBASE_FACTORYSETUP == 1)
+#if (PRODUCT_BITBOX_MULTI == 1) || (PRODUCT_BITBOX02_FACTORYSETUP == 1)
 /* Standard firmware */
 #define DIGITAL_BITBOX_VERSION "@FIRMWARE_VERSION_FULL@"
 #define DIGITAL_BITBOX_VERSION_SHORT "@FIRMWARE_VERSION@"

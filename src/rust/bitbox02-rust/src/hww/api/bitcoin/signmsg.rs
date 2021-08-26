@@ -135,9 +135,9 @@ mod tests {
     use std::boxed::Box;
     use util::bip32::HARDENED;
 
-    const ADDRESS: &str = "<address>";
     const KEYPATH: &[u32] = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
     const MESSAGE: &[u8] = b"message";
+    const EXPECTED_ADDRESS: &str = "bc1qk5f9em9qc8yfpks8ngfg3h8h02n2e3yeqdyhpt";
     const EXPECTED_SIGNATURE: &[u8] = b"\x0f\x1d\x54\x2a\x9e\x2f\x37\x4e\xfe\xd4\x57\x8c\xaa\x84\x72\xd1\xc3\x12\x68\xfb\x89\x2d\x39\xa6\x15\x44\x59\x18\x5b\x2d\x35\x4d\x3b\x2b\xff\xf0\xe1\x61\x5c\x77\x25\x73\x4f\x43\x13\x4a\xb4\x51\x6b\x7e\x7c\xb3\x9d\x2d\xba\xaa\x5f\x4e\x8b\x8a\xff\x9f\x97\xd0\x00";
 
     #[test]
@@ -159,10 +159,6 @@ mod tests {
         static mut CONFIRM_COUNTER: u32 = 0;
 
         mock(Data {
-            btc_address_simple: Some(Box::new(|coin, _, _| {
-                assert_eq!(coin, BtcCoin::Btc as _);
-                Ok(ADDRESS.into())
-            })),
             ui_confirm_create: Some(Box::new(|params| {
                 match unsafe {
                     CONFIRM_COUNTER += 1;
@@ -175,7 +171,7 @@ mod tests {
                     }
                     2 => {
                         assert_eq!(params.title, "Address");
-                        assert_eq!(params.body, ADDRESS);
+                        assert_eq!(params.body, EXPECTED_ADDRESS);
                         true
                     }
                     3 => {
@@ -217,7 +213,6 @@ mod tests {
 
         // Basic info dialog aborted.
         mock(Data {
-            btc_address_simple: Some(Box::new(|_, _, _| Ok(ADDRESS.into()))),
             ui_confirm_create: Some(Box::new(|params| {
                 match unsafe {
                     CONFIRM_COUNTER += 1;
@@ -233,6 +228,7 @@ mod tests {
             })),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
 
         // Address verification aborted.
@@ -240,7 +236,6 @@ mod tests {
             CONFIRM_COUNTER = 0;
         }
         mock(Data {
-            btc_address_simple: Some(Box::new(|_, _, _| Ok(ADDRESS.into()))),
             ui_confirm_create: Some(Box::new(|params| {
                 match unsafe {
                     CONFIRM_COUNTER += 1;
@@ -249,7 +244,7 @@ mod tests {
                     1 => true,
                     2 => {
                         assert_eq!(params.title, "Address");
-                        assert_eq!(params.body, ADDRESS);
+                        assert_eq!(params.body, EXPECTED_ADDRESS);
                         false
                     }
                     _ => panic!("too many user confirmations"),
@@ -257,6 +252,7 @@ mod tests {
             })),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
 
         // Message verification aborted.
@@ -264,7 +260,6 @@ mod tests {
             CONFIRM_COUNTER = 0;
         }
         mock(Data {
-            btc_address_simple: Some(Box::new(|_, _, _| Ok(ADDRESS.into()))),
             ui_confirm_create: Some(Box::new(|params| {
                 match unsafe {
                     CONFIRM_COUNTER += 1;
@@ -281,6 +276,7 @@ mod tests {
             })),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
     }
 
@@ -354,11 +350,11 @@ mod tests {
             Err(Error::InvalidInput)
         );
 
-        // Address could not be generated
+        // Invalid keypath
         mock(Data {
-            btc_address_simple: Some(Box::new(|_, _, _| Err(()))),
             ..Default::default()
         });
+        mock_unlocked();
         assert_eq!(
             block_on(process(&pb::BtcSignMessageRequest {
                 coin: BtcCoin::Btc as _,
@@ -366,7 +362,7 @@ mod tests {
                     script_config: Some(pb::BtcScriptConfig {
                         config: Some(Config::SimpleType(SimpleType::P2wpkh as _))
                     }),
-                    keypath: KEYPATH.to_vec(),
+                    keypath: [0].to_vec(),
                 }),
                 msg: MESSAGE.to_vec(),
                 host_nonce_commitment: None,

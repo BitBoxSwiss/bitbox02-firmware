@@ -38,15 +38,6 @@ pub struct Data {
     pub backup_create: Option<Box<dyn Fn(u32, u32) -> Result<(), super::backup::Error>>>,
     pub keystore_encode_xpub_at_keypath:
         Option<Box<dyn Fn(&[u32], super::keystore::xpub_type_t) -> Result<String, ()>>>,
-    pub btc_address_simple: Option<
-        Box<
-            dyn Fn(
-                bitbox02_sys::BTCCoin,
-                bitbox02_sys::BTCScriptConfig_SimpleType,
-                &[u32],
-            ) -> Result<String, ()>,
-        >,
-    >,
     pub ui_transaction_address_create: Option<Box<dyn Fn(&str, &str) -> bool>>,
     pub ui_transaction_fee_create: Option<Box<dyn Fn(&str, &str) -> bool>>,
 }

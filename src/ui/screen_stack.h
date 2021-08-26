@@ -25,7 +25,6 @@ void ui_screen_stack_pop(void);
 /* pop component and immediately perform cleanup on it */
 void ui_screen_stack_pop_and_clean(void);
 void ui_screen_stack_pop_all(void);
-void ui_screen_stack_switch(component_t* component);
 /* clean up all popped components. */
 void ui_screen_stack_cleanup(void);
 

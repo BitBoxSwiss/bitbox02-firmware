@@ -24,7 +24,6 @@ import "btc.proto";
 import "eth.proto";
 import "keystore.proto";
 import "mnemonic.proto";
-import "random_number.proto";
 import "system.proto";
 
 import "perform_attestation.proto";
@@ -38,8 +37,9 @@ message Success {
 }
 
 message Request {
+    reserved 1;
     oneof request {
-        RandomNumberRequest random_number = 1;
+        // removed: RandomNumberRequest random_number = 1;
         SetDeviceNameRequest device_name = 2;
         SetDeviceLanguageRequest device_language = 3;
         DeviceInfoRequest device_info = 4;
@@ -69,10 +69,11 @@ message Request {
 }
 
 message Response {
+    reserved 3;
     oneof response {
         Success success = 1;
         Error error = 2;
-        RandomNumberResponse random_number = 3;
+        // removed: RandomNumberResponse random_number = 3;
         DeviceInfoResponse device_info = 4;
         PubResponse pub = 5;
         BTCSignNextResponse btc_sign_next = 6;

@@ -261,9 +261,6 @@ class SendMessage:
     def _remove_sdcard(self) -> None:
         self._device.remove_sdcard()
 
-    def _display_random(self) -> None:
-        print(f"Random number: {self._device.random_number().hex()}")
-
     def _get_root_fingerprint(self) -> None:
         print(f"Root fingerprint: {self._device.root_fingerprint().hex()}")
 
@@ -722,7 +719,6 @@ class SendMessage:
         choices = (
             ("List device info", self._list_device_info),
             ("Change device name", self._change_name_workflow),
-            ("Display random number", self._display_random),
             ("Get root fingerprint", self._get_root_fingerprint),
             ("Retrieve zpub of first account", self._display_zpub),
             ("Retrieve a BTC address", self._btc_address),

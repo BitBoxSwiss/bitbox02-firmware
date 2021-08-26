@@ -735,14 +735,6 @@ pub struct SetMnemonicPassphraseEnabledRequest {
     pub enabled: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RandomNumberResponse {
-    #[prost(bytes="vec", tag="1")]
-    pub number: ::prost::alloc::vec::Vec<u8>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RandomNumberRequest {
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RebootRequest {
     #[prost(enumeration="reboot_request::Purpose", tag="1")]
     pub purpose: i32,
@@ -789,15 +781,14 @@ pub struct Success {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Request {
-    #[prost(oneof="request::Request", tags="1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26")]
+    #[prost(oneof="request::Request", tags="2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26")]
     pub request: ::core::option::Option<request::Request>,
 }
 /// Nested message and enum types in `Request`.
 pub mod request {
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Request {
-        #[prost(message, tag="1")]
-        RandomNumber(super::RandomNumberRequest),
+        /// removed: RandomNumberRequest random_number = 1;
         #[prost(message, tag="2")]
         DeviceName(super::SetDeviceNameRequest),
         #[prost(message, tag="3")]
@@ -852,7 +843,7 @@ pub mod request {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Response {
-    #[prost(oneof="response::Response", tags="1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14")]
+    #[prost(oneof="response::Response", tags="1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14")]
     pub response: ::core::option::Option<response::Response>,
 }
 /// Nested message and enum types in `Response`.
@@ -863,8 +854,7 @@ pub mod response {
         Success(super::Success),
         #[prost(message, tag="2")]
         Error(super::Error),
-        #[prost(message, tag="3")]
-        RandomNumber(super::RandomNumberResponse),
+        /// removed: RandomNumberResponse random_number = 3;
         #[prost(message, tag="4")]
         DeviceInfo(super::DeviceInfoResponse),
         #[prost(message, tag="5")]

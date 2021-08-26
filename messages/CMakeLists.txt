@@ -8,7 +8,6 @@ set(PROTO_FILES
   btc.proto
   eth.proto
   mnemonic.proto
-  random_number.proto
   system.proto
   perform_attestation.proto
   keystore.proto

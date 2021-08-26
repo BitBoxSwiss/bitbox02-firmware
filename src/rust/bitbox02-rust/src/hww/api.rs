@@ -68,7 +68,6 @@ pub fn decode(input: &[u8]) -> Result<Request, Error> {
 fn request_tag(request: &Request) -> u32 {
     use Request::*;
     match request {
-        RandomNumber(_) => bitbox02::Request_random_number_tag,
         DeviceName(_) => bitbox02::Request_device_name_tag,
         DeviceLanguage(_) => bitbox02::Request_device_language_tag,
         DeviceInfo(_) => bitbox02::Request_device_info_tag,

@@ -201,3 +201,189 @@ pub async fn process_api(request: &Request) -> Option<Result<pb::btc_response::R
         _ => None,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::bb02_async::block_on;
+    use alloc::boxed::Box;
+    use alloc::vec::Vec;
+    use bitbox02::testing::{mock, mock_unlocked, Data, MUTEX};
+    use util::bip32::HARDENED;
+
+    #[test]
+    pub fn test_address_simple() {
+        let _guard = MUTEX.lock().unwrap();
+
+        struct Test<'a> {
+            coin: BtcCoin,
+            keypath: &'a [u32],
+            simple_type: SimpleType,
+            expected_address: &'a str,
+            expected_display_title: &'a str,
+        }
+
+        for test in vec![
+            // BTC P2WPKH-P2SH
+            Test {
+                coin: BtcCoin::Btc,
+                keypath: &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
+                simple_type: SimpleType::P2wpkhP2sh,
+                expected_address: "3BaL6XecvLAidPToUDhXo1zxD99ZUrErpd",
+                expected_display_title: "Bitcoin",
+            },
+            Test {
+                coin: BtcCoin::Btc,
+                keypath: &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 1],
+                simple_type: SimpleType::P2wpkhP2sh,
+                expected_address: "3QRfCGEJVzvR1HN13kxB7xkuUtdEvG2orZ",
+                expected_display_title: "Bitcoin",
+            },
+            Test {
+                coin: BtcCoin::Btc,
+                keypath: &[49 + HARDENED, 0 + HARDENED, 1 + HARDENED, 1, 100],
+                simple_type: SimpleType::P2wpkhP2sh,
+                expected_address: "39r7CFVo1wpb3mxQfkG6yYyxMAfqAmZMhA",
+                expected_display_title: "Bitcoin",
+            },
+            // BTC P2WPKH
+            Test {
+                coin: BtcCoin::Btc,
+                keypath: &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
+                simple_type: SimpleType::P2wpkh,
+                expected_address: "bc1qk5f9em9qc8yfpks8ngfg3h8h02n2e3yeqdyhpt",
+                expected_display_title: "Bitcoin",
+            },
+            Test {
+                coin: BtcCoin::Btc,
+                keypath: &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 1],
+                simple_type: SimpleType::P2wpkh,
+                expected_address: "bc1qtn7feuj7juxkzf48zfxtngrcyqyns9f4ska7hg",
+                expected_display_title: "Bitcoin",
+            },
+            Test {
+                coin: BtcCoin::Btc,
+                keypath: &[84 + HARDENED, 0 + HARDENED, 1 + HARDENED, 1, 100],
+                simple_type: SimpleType::P2wpkh,
+                expected_address: "bc1qarhxx6daqetewkjwz9p6y78a28ygxm2vndhdas",
+                expected_display_title: "Bitcoin",
+            },
+            // TBTC P2WPKH-P2SH
+            Test {
+                coin: BtcCoin::Tbtc,
+                keypath: &[49 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
+                simple_type: SimpleType::P2wpkhP2sh,
+                expected_address: "2N5Tjwx5Htk7gLbv7nWqXUgpg5K2Uf4TacQ",
+                expected_display_title: "BTC Testnet",
+            },
+            // TBTC P2WPKH
+            Test {
+                coin: BtcCoin::Tbtc,
+                keypath: &[84 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
+                simple_type: SimpleType::P2wpkh,
+                expected_address: "tb1qnlyrq9pshg0v0lsuudjgga4nvmjxhcvketqwdg",
+                expected_display_title: "BTC Testnet",
+            },
+            // LTC P2WPKH-P2SH
+            Test {
+                coin: BtcCoin::Ltc,
+                keypath: &[49 + HARDENED, 2 + HARDENED, 0 + HARDENED, 0, 0],
+                simple_type: SimpleType::P2wpkhP2sh,
+                expected_address: "MMmYgSH7fbTPnfdi1vTejMJyY7rKY4j9qv",
+                expected_display_title: "Litecoin",
+            },
+            Test {
+                coin: BtcCoin::Ltc,
+                keypath: &[49 + HARDENED, 2 + HARDENED, 0 + HARDENED, 0, 1],
+                simple_type: SimpleType::P2wpkhP2sh,
+                expected_address: "M7wA8gBLL4SBiwQ1muQeKcG6naYqWcaUHg",
+                expected_display_title: "Litecoin",
+            },
+            Test {
+                coin: BtcCoin::Ltc,
+                keypath: &[49 + HARDENED, 2 + HARDENED, 1 + HARDENED, 1, 100],
+                simple_type: SimpleType::P2wpkhP2sh,
+                expected_address: "MPBnihMP2JYjPtBnLxGydqvaALBsc5ALTG",
+                expected_display_title: "Litecoin",
+            },
+            // LTC P2WPKH
+            Test {
+                coin: BtcCoin::Ltc,
+                keypath: &[84 + HARDENED, 2 + HARDENED, 0 + HARDENED, 0, 0],
+                simple_type: SimpleType::P2wpkh,
+                expected_address: "ltc1q7598y6mzud5fka043vs4vkx7zktvppxffsf7e3",
+                expected_display_title: "Litecoin",
+            },
+            Test {
+                coin: BtcCoin::Ltc,
+                keypath: &[84 + HARDENED, 2 + HARDENED, 0 + HARDENED, 0, 1],
+                simple_type: SimpleType::P2wpkh,
+                expected_address: "ltc1qtgjfu2ltg4slmksv27awmh6h2pccvsth4mw2w9",
+                expected_display_title: "Litecoin",
+            },
+            Test {
+                coin: BtcCoin::Ltc,
+                keypath: &[84 + HARDENED, 2 + HARDENED, 1 + HARDENED, 1, 100],
+                simple_type: SimpleType::P2wpkh,
+                expected_address: "ltc1qwsz89auhpezjfllq9y9qegpfgdwpw5vesppsz0",
+                expected_display_title: "Litecoin",
+            },
+            // TLTC P2WPKH-P2SH
+            Test {
+                coin: BtcCoin::Tltc,
+                keypath: &[49 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
+                simple_type: SimpleType::P2wpkhP2sh,
+                expected_address: "2N5Tjwx5Htk7gLbv7nWqXUgpg5K2Uf4TacQ",
+                expected_display_title: "LTC Testnet",
+            },
+            // TLTC P2WPKH
+            Test {
+                coin: BtcCoin::Tltc,
+                keypath: &[84 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
+                simple_type: SimpleType::P2wpkh,
+                expected_address: "tltc1qnlyrq9pshg0v0lsuudjgga4nvmjxhcvkqrzsap",
+                expected_display_title: "LTC Testnet",
+            },
+        ] {
+            let mut req = pb::BtcPubRequest {
+                coin: test.coin as _,
+                keypath: test.keypath.to_vec(),
+                display: false,
+                output: Some(Output::ScriptConfig(BtcScriptConfig {
+                    config: Some(Config::SimpleType(test.simple_type as _)),
+                })),
+            };
+
+            // Without display.
+            mock_unlocked();
+            assert_eq!(
+                block_on(process_pub(&req)),
+                Some(Ok(Response::Pub(pb::PubResponse {
+                    r#pub: test.expected_address.into(),
+                }))),
+            );
+
+            // With display.
+            req.display = true;
+            let expected_display_title = test.expected_display_title.clone();
+            let expected_address = test.expected_address.clone();
+            mock(Data {
+                ui_confirm_create: Some(Box::new(move |params| {
+                    assert_eq!(params.title, expected_display_title);
+                    assert_eq!(params.body, expected_address);
+                    assert!(params.scrollable);
+                    true
+                })),
+                ..Default::default()
+            });
+            mock_unlocked();
+            assert_eq!(
+                block_on(process_pub(&req)),
+                Some(Ok(Response::Pub(pb::PubResponse {
+                    r#pub: test.expected_address.into()
+                }))),
+            );
+        }
+    }
+}

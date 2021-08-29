@@ -213,6 +213,197 @@ mod tests {
     use util::bip32::HARDENED;
 
     #[test]
+    pub fn test_xpub() {
+        let _guard = MUTEX.lock().unwrap();
+        struct Test<'a> {
+            coin: BtcCoin,
+            keypath: &'a [u32],
+            xpub_type: XPubType,
+            expected_xpub: &'a str,
+            expected_display_title: &'a str,
+        }
+
+        for test in vec![
+            // BTC P2WPKH-P2SH
+            Test {
+                coin: BtcCoin::Btc,
+                keypath: &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED],
+                xpub_type: XPubType::Xpub,
+                expected_xpub: "xpub6Bj8T8R98MTKGDcMpJnoKeHR54EF1JJohA2HLs2WeNiaZ9UdNVvAbYpPnVd3Mcymabx7fYDKx4ubku1DTPRoDzpziD4qK3vxN9FEiF25Hgx",
+                expected_display_title: "Bitcoin\naccount #1",
+            },
+            Test {
+                coin: BtcCoin::Btc,
+                keypath: &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED],
+                xpub_type: XPubType::Ypub,
+                expected_xpub: "ypub6WZPko64H2zo7WoUefaRXjNvF2NgwvJJcGYW8FvQ2P6TcFHrdA5jDcUXohadMXdgzF4vR1otQjG9eBcnB5qp2EWbaYmFtxkSdsJt6svswWd",
+                expected_display_title: "Bitcoin\naccount #1",
+            },
+            Test {
+                coin: BtcCoin::Btc,
+                keypath: &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED],
+                xpub_type: XPubType::Zpub,
+                expected_xpub: "zpub6qPf4TkyRiYGxozbV2N3jpURQzX8tYHoXP4iuepHQPULfM75spFHqg8fpuYDMSHcPtBjAVQSsPchXUELtnFppUCCStTgUsZvubNXVPGWjcc",
+                expected_display_title: "Bitcoin\naccount #1",
+            },
+            Test {
+                coin: BtcCoin::Btc,
+                keypath: &[84 + HARDENED, 0 + HARDENED, 1 + HARDENED],
+                xpub_type: XPubType::Xpub,
+                expected_xpub: "xpub6Bh4PT7iTyf6EHrFhc2ZaRYQxiLexYJQ7DtnNSNipD19JRV5jUW4gVHV9ouWvRY6DbbfyQhjP9E7LQ9QuR1SkPMnMi8NP3o2WtnWZim6Dqd",
+                expected_display_title: "Bitcoin\naccount #2",
+            },
+            // BTC P2WPKH
+            Test {
+                coin: BtcCoin::Btc,
+                keypath: &[84 + HARDENED, 0 + HARDENED, 1 + HARDENED],
+                xpub_type: XPubType::Zpub,
+                expected_xpub: "zpub6qMaznTYmLk3vtEVNKbozbjRJedYqnHPwSwDwEAVaDkuQd7YEnqBvcbmCDpgvEqw2sqHUMtrJTwD6yNYLoqULriz6PXDYsS14LuoLr3KxUC",
+                expected_display_title: "Bitcoin\naccount #2",
+            },
+            // TBTC P2WPKH-P2SH
+            Test {
+                coin: BtcCoin::Tbtc,
+                keypath: &[49 + HARDENED, 1 + HARDENED, 0 + HARDENED],
+                xpub_type: XPubType::Xpub,
+                expected_xpub: "xpub6BmN7k2vQY7D5jQpmKErAMNRqgtDMz9ePjR83SRAR6GAiWr63z7QLBPvsEQ2ghgT8hm1BoeApuS3paSmGmax2u3ggETCfWJvCEu6jCZDneX",
+                expected_display_title: "BTC Testnet\naccount #1",
+            },
+            Test {
+                coin: BtcCoin::Tbtc,
+                keypath: &[49 + HARDENED, 1 + HARDENED, 0 + HARDENED],
+                xpub_type: XPubType::Tpub,
+                expected_xpub: "tpubDC8zdyrc7p4fMXbgDWDwNGhoAoysMNehwN1RPzUJm124ToWo8CxVUd4m7GUpDCdgvcHuoPA3N1G6WkwNfdSBvLVyjqCWM2y9nCVWVGLFiLh",
+                expected_display_title: "BTC Testnet\naccount #1",
+            },
+            // TBTC P2WPKH
+            Test {
+                coin: BtcCoin::Tbtc,
+                keypath: &[84 + HARDENED, 1 + HARDENED, 0 + HARDENED],
+                xpub_type: XPubType::Xpub,
+                expected_xpub: "xpub6Bs9jH3KF6w5ibrAdLAvY4759RnU74dnmUZ42m5FMqoFQoW9xL6co535xiGzaZMXrYn3nqk94ruLVfArx7sxvUvoXeF3FvXLX9T2dgTLGgc",
+                expected_display_title: "BTC Testnet\naccount #1",
+            },
+            Test {
+                coin: BtcCoin::Tbtc,
+                keypath: &[84 + HARDENED, 1 + HARDENED, 0 + HARDENED],
+                xpub_type: XPubType::Tpub,
+                expected_xpub: "tpubDCEnFWrzxNtXzQ325XA1jySSUYt86T8rK79MPK8PhkZ9A6As2YwhwWhvCkMn74JmeTJxQRG1bxjPBqfULyjCovP6bEzLwTBa773SPehtXCt",
+                expected_display_title: "BTC Testnet\naccount #1",
+            },
+            // LTC P2WPKH-P2SH
+            Test {
+                coin: BtcCoin::Ltc,
+                keypath: &[49 + HARDENED, 2 + HARDENED, 0 + HARDENED],
+                xpub_type: XPubType::Xpub,
+                expected_xpub: "xpub6CC3f5yryzDqxUWHSFz69BcjP1yB7dX3d4MNoyCrc77Z3iAmDdfSmsTR2wCH4WnAhPcmRyAn4tnQsxBD9E1A3DiZ4PA81FUGCYXkJ5hUmEu",
+                expected_display_title: "Litecoin\naccount #1",
+            },
+            // LTC P2WPKH
+            Test {
+                coin: BtcCoin::Ltc,
+                keypath: &[84 + HARDENED, 2 + HARDENED, 0 + HARDENED],
+                xpub_type: XPubType::Xpub,
+                expected_xpub: "xpub6CJNSECzxso6VQF15vTqSMUCLDfYytpKgbCEtuMTs6Sbjd3CGUoXynTvQYWDBThN337scHJnjqnQrL31ttZFa9CicdB3pRodqWxyEQwnrqm",
+                expected_display_title: "Litecoin\naccount #1",
+            },
+        ] {
+            mock_unlocked();
+
+            // Without display.
+            let mut req = pb::BtcPubRequest {
+                coin: test.coin as _,
+                keypath: test.keypath.to_vec(),
+                display: false,
+                output: Some(Output::XpubType(test.xpub_type as _)),
+            };
+
+            assert_eq!(
+                block_on(process_pub(&req)),
+                Some(Ok(Response::Pub(pb::PubResponse {
+                    r#pub: test.expected_xpub.into(),
+                }))),
+            );
+
+            // With display.
+            req.display = true;
+            let expected_display_title = test.expected_display_title.clone();
+            let expected_xpub = test.expected_xpub.clone();
+            mock(Data {
+                ui_confirm_create: Some(Box::new(move |params| {
+                    assert_eq!(params.title, expected_display_title);
+                    assert_eq!(params.body, expected_xpub);
+                    assert!(params.scrollable);
+                    true
+                })),
+                ..Default::default()
+            });
+            mock_unlocked();
+            assert_eq!(
+                block_on(process_pub(&req)),
+                Some(Ok(Response::Pub(pb::PubResponse {
+                    r#pub: test.expected_xpub.into(),
+                }))),
+            );
+        }
+
+        // --- Negative tests
+        mock_unlocked();
+        // -- Invalid keypath for BTC
+        assert!(block_on(process_pub(&pb::BtcPubRequest {
+            coin: BtcCoin::Btc as _,
+            keypath: [49 + HARDENED, 0 + HARDENED, 100 + HARDENED].to_vec(),
+            display: false,
+            output: Some(Output::XpubType(XPubType::Xpub as _)),
+        }))
+        .unwrap()
+        .is_err());
+        // -- Invalid keypath for BTC
+        assert!(block_on(process_pub(&pb::BtcPubRequest {
+            coin: BtcCoin::Btc as _,
+            keypath: [49 + HARDENED, 2 + HARDENED, 0 + HARDENED].to_vec(),
+            display: false,
+            output: Some(Output::XpubType(XPubType::Xpub as _)),
+        }))
+        .unwrap()
+        .is_err());
+        // -- Invalid keypath for TBTC
+        assert!(block_on(process_pub(&pb::BtcPubRequest {
+            coin: BtcCoin::Tbtc as _,
+            keypath: [49 + HARDENED, 0 + HARDENED, 0 + HARDENED].to_vec(),
+            display: false,
+            output: Some(Output::XpubType(XPubType::Xpub as _)),
+        }))
+        .unwrap()
+        .is_err());
+        // -- Invalid keypath for LTC
+        assert!(block_on(process_pub(&pb::BtcPubRequest {
+            coin: BtcCoin::Ltc as _,
+            keypath: [49 + HARDENED, 0 + HARDENED, 0 + HARDENED].to_vec(),
+            display: false,
+            output: Some(Output::XpubType(XPubType::Xpub as _)),
+        }))
+        .unwrap()
+        .is_err());
+
+        let req = pb::BtcPubRequest {
+            coin: BtcCoin::Btc as _,
+            keypath: [49 + HARDENED, 0 + HARDENED, 0 + HARDENED].to_vec(),
+            display: false,
+            output: Some(Output::XpubType(XPubType::Xpub as _)),
+        };
+
+        // -- Wrong coin: MIN-1
+        let mut req_invalid = req.clone();
+        req_invalid.coin = BtcCoin::Btc as i32 - 1;
+        assert!(block_on(process_pub(&req_invalid)).unwrap().is_err());
+        // -- Wrong coin: MAX + 1
+        let mut req_invalid = req.clone();
+        req_invalid.coin = BtcCoin::Tltc as i32 + 1;
+        assert!(block_on(process_pub(&req_invalid)).unwrap().is_err());
+    }
+
+    #[test]
     pub fn test_address_simple() {
         let _guard = MUTEX.lock().unwrap();
 

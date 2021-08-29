@@ -114,7 +114,7 @@ mod tests {
     pub fn test_process_xpub() {
         let _guard = MUTEX.lock().unwrap();
 
-        const EXPECTED_XPUB: &str = "xpub";
+        const EXPECTED_XPUB: &str = "xpub6FNKHYBc1HTwuwZcj4dz7xiG1kN7Hs3v7efYmgtzu1Gv6wJXxaCnFdQDRodbQpJKwdeVBf1RRNHARa6FsUMTCuRe2gKR7xCkSDdnppUp9oW";
         let request = pb::EthPubRequest {
             output_type: OutputType::Xpub as _,
             keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0].to_vec(),
@@ -124,13 +124,7 @@ mod tests {
         };
 
         // All good.
-        mock(Data {
-            keystore_encode_xpub_at_keypath: Some(Box::new(|_, xpub_type| {
-                assert_eq!(xpub_type, keystore::xpub_type_t::XPUB);
-                Ok(EXPECTED_XPUB.into())
-            })),
-            ..Default::default()
-        });
+        mock_unlocked();
         assert_eq!(
             block_on(process(&request)),
             Ok(Response::Pub(pb::PubResponse {
@@ -162,7 +156,6 @@ mod tests {
 
         // xpub fetching/encoding failed.
         mock(Data {
-            keystore_encode_xpub_at_keypath: Some(Box::new(|_, _| Err(()))),
             ..Default::default()
         });
         assert_eq!(block_on(process(&request)), Err(Error::InvalidInput));

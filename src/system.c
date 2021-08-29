@@ -25,13 +25,7 @@ void reboot(void)
         .value = sectrue_u8,
     };
     upside_down_t upside_down = {
-#if PLATFORM_BITBOX02 == 1 || defined(TESTING)
         .value = screen_is_upside_down(),
-#elif PLATFORM_BITBOXBASE == 1
-        .value = false,
-#else
-#error "No platform"
-#endif
     };
     if (!memory_bootloader_set_flags(auto_enter, upside_down)) {
         // If this failed, we might not be able to reboot into the bootloader.

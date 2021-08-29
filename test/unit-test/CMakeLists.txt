@@ -24,7 +24,6 @@ set(DBB-FILTERED-SOURCES
   ${DBB-FIRMWARE-PROTOBUF-SOURCES}
   ${FIRMWARE-U2F-SOURCES}
   ${DBB-FIRMWARE-USB-SOURCES}
-  ${DBB-FIRMWARE-USART-SOURCES}
   )
 
 set(IGNORE_SOURCES
@@ -65,9 +64,7 @@ add_library(bitbox_objects
   framework/mock_sd.c
   framework/mock_smarteeprom.c
   framework/mock_securechip.c
-  framework/mock_leds.c
   framework/mock_delay.c
-  framework/mock_bitboxbase.c
   framework/btc_util.c
 )
 
@@ -266,8 +263,6 @@ set(TEST_LIST
    ""
    app_eth_sighash
    ""
-   usart
-   "-Wl,--wrap=usb_processing_enqueue"
    util
    ""
    workflow_blocking

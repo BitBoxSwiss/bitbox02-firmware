@@ -57,12 +57,12 @@ typedef struct {
  * N bytes: short firmware version string, ascii encoded. E.g. "v4.12.2". Not null terminated.
  * 1 byte: platform code:
  * - 0x00 - BitBox02
- * - 0x01 - BitBoxBase
+ * - 0x01 - BitBoxBase (deprecated)
  * 1 byte: edition code:
  * - For the BitBox02 edition:
  * - - 0x00 - Multi
  * - - 0x01 - Bitcoin-only
- * - For the BitBoxBase platform:
+ * - For the BitBoxBase platform (deprecated):
  " - 0x00 - Standard
  * 1 byte: 0x00 if the device is locked, 0x01 if the device is unlocked.
  * @param[out] buf serialize info to this buffer.
@@ -90,10 +90,6 @@ static size_t _api_info(uint8_t* buf)
     *current = 0x00;
     current++;
     *current = 0x01;
-#elif PRODUCT_BITBOX_BASE == 1
-    *current = 0x01;
-    current++;
-    *current = 0x00;
 #endif
     current++;
 

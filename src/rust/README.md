@@ -16,7 +16,6 @@ activating appropriate target feature.
 
 * `libbootloader_rust_c.a`
 * `libfirmware-btc_rust_c.a`
-* `libfirmware-bitboxbase_rust_c.a`
 * etc. for each firmware and bootloader target made by CMake.
 
 In the next layer of crates we have "business logic":

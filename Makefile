@@ -62,8 +62,6 @@ firmware-semihosting: | build-semihosting
 	$(MAKE) -C build-semihosting firmware.elf
 firmware-btc: | build
 	$(MAKE) -C build firmware-btc.elf
-firmware-bitboxbase: | build
-	$(MAKE) -C build firmware-bitboxbase.elf
 bootloader: | build
 	$(MAKE) -C build bootloader.elf
 bootloader-semihosting: | build-semihosting
@@ -116,8 +114,6 @@ run-valgrind-on-unit-tests:
 #		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_ui_component_gestures;'
 flash-dev-firmware:
 	./py/load_firmware.py build/bin/firmware.bin --debug
-flash-dev-firmware-bitboxbase:
-	./py/load_firmware.py build/bin/firmware-bitboxbase.bin --debug
 jlink-flash-bootloader-development: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-development.jlink
 jlink-flash-bootloader: | build
@@ -132,8 +128,6 @@ jlink-flash-firmware-btc: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-btc.jlink
 jlink-flash-firmware-semihosting: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-semihosting.jlink
-jlink-flash-firmware-bitboxbase: | build
-	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-bitboxbase.jlink
 dockerinit:
 	docker build --pull --force-rm --no-cache -t shiftcrypto/firmware_v2 .
 dockerdev:

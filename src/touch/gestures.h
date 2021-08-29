@@ -39,13 +39,6 @@ typedef struct {
     int32_t velocity;
 } gestures_slider_data_t;
 
-#if PLATFORM_BITBOXBASE == 1
-enum bitboxbase_button_id_t {
-    BITBOXBASE_BUTTON_LEFT,
-    BITBOXBASE_BUTTON_RIGHT,
-};
-#endif
-
 /**
  * Detects a gestures and calls the respective callback.
  * @param[in] reset The flag indicates whether the gesture history should be
@@ -55,9 +48,5 @@ enum bitboxbase_button_id_t {
  * when `reset` is `true`.
  */
 void gestures_detect(bool reset, bool emit_without_release);
-
-#if PLATFORM_BITBOXBASE == 1
-enum bitboxbase_button_id_t gestures_button_which(const event_t* event);
-#endif
 
 #endif

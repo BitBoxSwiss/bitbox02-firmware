@@ -73,11 +73,6 @@ set(DBB-FIRMWARE-USB-SOURCES
 )
 set(DBB-FIRMWARE-USB-SOURCES ${DBB-FIRMWARE-USB-SOURCES} PARENT_SCOPE)
 
-set(DBB-FIRMWARE-USART-SOURCES
-  ${CMAKE_SOURCE_DIR}/src/usart/usart_frame.c
-)
-set(DBB-FIRMWARE-USART-SOURCES ${DBB-FIRMWARE-USART-SOURCES} PARENT_SCOPE)
-
 set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/screen.c
     ${CMAKE_SOURCE_DIR}/src/ui/graphics/graphics.c
@@ -163,22 +158,6 @@ set(PLATFORM-BITBOX02-SOURCES
 )
 set(PLATFORM-BITBOX02-SOURCES ${PLATFORM-BITBOX02-SOURCES} PARENT_SCOPE)
 
-set(PLATFORM-BITBOXBASE-SOURCES
-  ${CMAKE_SOURCE_DIR}/src/platform/bitboxbase/leds.c
-  ${CMAKE_SOURCE_DIR}/src/usart/usart.c
-  ${CMAKE_SOURCE_DIR}/src/usart/usart_hww.c
-  ${DBB-FIRMWARE-USART-SOURCES}
-)
-set(PLATFORM-BITBOXBASE-SOURCES ${PLATFORM-BITBOXBASE-SOURCES} PARENT_SCOPE)
-
-set(BITBOXBASE-FIRMWARE-SOURCES
-  ${CMAKE_SOURCE_DIR}/src/bitboxbase/bitboxbase_background.c
-  ${CMAKE_SOURCE_DIR}/src/bitboxbase/bitboxbase_watchdog.c
-  ${CMAKE_SOURCE_DIR}/src/bitboxbase/bitboxbase_screensaver.c
-  ${CMAKE_SOURCE_DIR}/src/bitboxbase/bitboxbase_status.c
-)
-set(BITBOXBASE-FIRMWARE-SOURCES ${BITBOXBASE-FIRMWARE-SOURCES} PARENT_SCOPE)
-
 set(CRYPTOAUTHLIB-SOURCES
   ${CMAKE_SOURCE_DIR}/src/securechip/securechip.c
 )
@@ -207,7 +186,6 @@ set(FIRMWARE-U2F-SOURCES ${FIRMWARE-U2F-SOURCES} PARENT_SCOPE)
 set(INCLUDES
   ${CMAKE_SOURCE_DIR}/src
   ${CMAKE_SOURCE_DIR}/src/platform
-  ${CMAKE_SOURCE_DIR}/src/platform/bitboxbase
   ${CMAKE_SOURCE_DIR}/src/qtouch
   ${CMAKE_SOURCE_DIR}/src/usb/class
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid
@@ -388,10 +366,6 @@ add_custom_target(rust-bindgen
     --whitelist-function menu_create
     --whitelist-function trinary_choice_create
     --rustified-enum trinary_choice_t
-    --whitelist-function bitboxbase_watchdog_reset
-    --whitelist-function bitboxbase_screensaver_reset
-    --whitelist-function leds_turn_small_led
-    --whitelist-function leds_turn_big_led
     --whitelist-function wally_sha256
     --whitelist-function random_32_bytes_mcu
     --whitelist-type component_t
@@ -401,7 +375,6 @@ add_custom_target(rust-bindgen
     --whitelist-function commander
     --whitelist-function commander_states_can_call
     --whitelist-function commander_states_clear_force_next
-    --whitelist-type BitBoxBaseRequest
     --whitelist-var ".*_tag"
     --whitelist-var MAX_LABEL_SIZE
     --whitelist-var font_font_a_9X9
@@ -502,7 +475,6 @@ set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
 set(FIRMWARES
   firmware # Firmware MULTI
   firmware-btc # Firmware BTC-ONLY
-  firmware-bitboxbase # Firmware BASE
   factory-setup # Factory-setup
   )
 set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
@@ -518,7 +490,6 @@ endif()
 #  or
 #  *  firmware_rust_c
 #  *  firmware-btc_rust_c
-#  *  firmware-bitboxbase_rust_c
 #  *  factory-setup_rust_c
 foreach(type ${RUST_LIBS})
   set(lib ${RUST_BINARY_DIR}/feature-${type}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.a)
@@ -680,10 +651,6 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(firmware-btc.elf PRIVATE firmware.c)
   target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_BTC=1" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(firmware-btc.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
-
-  target_sources(firmware-bitboxbase.elf PRIVATE bitboxbase/bitboxbase.c)
-  target_compile_definitions(firmware-bitboxbase.elf PRIVATE PRODUCT_BITBOX_BASE "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
-  target_sources(firmware-bitboxbase.elf PRIVATE ${PLATFORM-BITBOXBASE-SOURCES} ${BITBOXBASE-FIRMWARE-SOURCES})
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")

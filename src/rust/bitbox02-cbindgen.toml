@@ -22,10 +22,6 @@ header = '''
 #include "platform/platform_config.h"
 #include "util.h"
 #include <ui/components/confirm.h>
-#if defined(RUST_BITBOX_BASE)
-#include "commander/commander.h"
-#include "bitboxbase.pb.h"
-#endif
 
 #if APP_ETH == 1
 #define RUST_APP_ETHEREUM
@@ -52,5 +48,4 @@ exclude = [
 ]
 
 [defines]
-"feature=platform-bitboxbase" = "RUST_BITBOX_BASE"
 "feature=app-ethereum" = "RUST_APP_ETHEREUM"

@@ -42,13 +42,11 @@ target-bootloader-btc-development = ["bootloader", "platform-bitbox02"]
 target-bootloader-btc-production = ["bootloader", "platform-bitbox02"]
 target-firmware = ["firmware", "platform-bitbox02", "app-bitcoin", "app-litecoin", "app-ethereum", "app-u2f"]
 target-firmware-btc = ["firmware", "platform-bitbox02", "app-bitcoin"]
-target-firmware-bitboxbase = ["firmware", "platform-bitboxbase"]
 target-factory-setup = ["firmware", "platform-bitbox02"]
 # add Rust features which are called in the C unit tests (currently there is only one target for C tests).
 target-c-unit-tests = ["app-ethereum", "firmware"]
 
 platform-bitbox02 = []
-platform-bitboxbase = []
 
 bootloader = []
 firmware = ["bitbox02-rust", "bitbox02", "bitbox02-noise", "sha2"]

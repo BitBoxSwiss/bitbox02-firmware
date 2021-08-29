@@ -227,8 +227,6 @@ set(TEST_LIST
    "-Wl,--wrap=rand,--wrap=wally_sha256"
    apps_common_bip32
    ""
-   app_btc
-   "-Wl,--wrap=keystore_secp256k1_pubkey_hash160,--wrap=btc_common_is_valid_keypath_address_simple,--wrap=btc_common_outputhash_from_pubkeyhash"
    app_btc_multisig
    "-Wl,--wrap=memory_multisig_get_by_hash,--wrap=apps_btc_confirm_multisig_basic"
    app_btc_common

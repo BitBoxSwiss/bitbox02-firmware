@@ -385,5 +385,30 @@ mod tests {
                 }))),
             );
         }
+
+        // --- Negative tests
+        mock_unlocked();
+        // First check a valid request:
+        let req = pb::BtcPubRequest {
+            coin: BtcCoin::Btc as _,
+            keypath: [49 + HARDENED, 0 + HARDENED, 1 + HARDENED, 1, 100].to_vec(),
+            display: false,
+            output: Some(Output::ScriptConfig(BtcScriptConfig {
+                config: Some(Config::SimpleType(SimpleType::P2wpkhP2sh as _)),
+            })),
+        };
+        assert!(block_on(process_pub(&req)).unwrap().is_ok());
+        // -- Wrong coin: MIN-1
+        let mut req_invalid = req.clone();
+        req_invalid.coin = BtcCoin::Btc as i32 - 1;
+        assert!(block_on(process_pub(&req_invalid)).unwrap().is_err());
+        // -- Wrong coin: MAX + 1
+        let mut req_invalid = req.clone();
+        req_invalid.coin = BtcCoin::Tltc as i32 + 1;
+        assert!(block_on(process_pub(&req_invalid)).unwrap().is_err());
+        // -- Wrong keypath
+        let mut req_invalid = req.clone();
+        req_invalid.keypath = [49 + HARDENED, 0 + HARDENED, 1 + HARDENED, 1, 10000].to_vec();
+        assert!(block_on(process_pub(&req_invalid)).unwrap().is_err());
     }
 }

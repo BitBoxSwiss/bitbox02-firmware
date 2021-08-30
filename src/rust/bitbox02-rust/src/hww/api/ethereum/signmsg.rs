@@ -145,6 +145,51 @@ mod tests {
     }
 
     #[test]
+    pub fn test_process_warn_unusual_keypath() {
+        let _guard = MUTEX.lock().unwrap();
+
+        const SIGNATURE: [u8; 64] = [b'1'; 64];
+
+        static mut CONFIRM_COUNTER: u32 = 0;
+
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(params.title, "Ropsten");
+                        assert_eq!(params.body, "Unusual keypath warning: m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
+                        true
+                    }
+                    2 => {
+                        assert_eq!(params.title, "Ropsten");
+                        assert_eq!(params.body, EXPECTED_ADDRESS);
+                        true
+                    }
+                    3 => {
+                        assert_eq!(params.title, "Sign message");
+                        assert_eq!(params.body.as_bytes(), MESSAGE);
+                        true
+                    }
+                    _ => panic!("too many user confirmations"),
+                }
+            })),
+            ..Default::default()
+        });
+        mock_unlocked();
+        block_on(process(&pb::EthSignMessageRequest {
+            coin: pb::EthCoin::RopstenEth as _,
+            keypath: KEYPATH.to_vec(),
+            msg: MESSAGE.to_vec(),
+            host_nonce_commitment: None,
+        }))
+        .unwrap();
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 3);
+    }
+
+    #[test]
     pub fn test_process_user_aborted() {
         let _guard = MUTEX.lock().unwrap();
 

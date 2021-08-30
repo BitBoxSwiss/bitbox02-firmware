@@ -186,9 +186,10 @@ async fn verify_standard_transaction(
 pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
     let params = params_get(request.coin as _).ok_or(Error::InvalidInput)?;
 
-    if !ethereum::keypath::is_valid_keypath_address(&request.keypath, params.bip44_coin) {
+    if !ethereum::keypath::is_valid_keypath_address(&request.keypath) {
         return Err(Error::InvalidInput);
     }
+    super::keypath::warn_unusual_keypath(&params, params.name, &request.keypath).await?;
 
     // Size limits.
     if request.nonce.len() > 16
@@ -374,6 +375,59 @@ mod tests {
                     .to_vec()
             }))
         );
+    }
+
+    /// Standard ETH transaction on an unusual keypath (Ropsten on mainnet keypath)
+    #[test]
+    pub fn test_process_warn_unusual_keypath() {
+        let _guard = MUTEX.lock().unwrap();
+
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+
+        static mut CONFIRM_COUNTER: u32 = 0;
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(params.title, "Ropsten");
+                        assert_eq!(params.body, "Unusual keypath warning: m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
+                        true
+                    }
+                    _ => panic!("too many user confirmations"),
+                }
+            })),
+            ui_transaction_address_create: Some(Box::new(|amount, address| {
+                assert_eq!(amount, "0.530564 TETH");
+                assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
+                true
+            })),
+            ui_transaction_fee_create: Some(Box::new(|total, fee| {
+                assert_eq!(total, "0.53069 TETH");
+                assert_eq!(fee, "0.000126 TETH");
+                true
+            })),
+            ..Default::default()
+        });
+        mock_unlocked();
+
+        block_on(process(&pb::EthSignRequest {
+            coin: pb::EthCoin::RopstenEth as _,
+            keypath: KEYPATH.to_vec(),
+            nonce: b"\x1f\xdc".to_vec(),
+            gas_price: b"\x01\x65\xa0\xbc\x00".to_vec(),
+            gas_limit: b"\x52\x08".to_vec(),
+            recipient:
+                b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85"
+                    .to_vec(),
+            value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+            data: b"".to_vec(),
+            host_nonce_commitment: None,
+        }))
+        .unwrap();
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
     }
 
     /// Standard ETH transaction with an unknown data field.

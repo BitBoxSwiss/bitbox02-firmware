@@ -17,21 +17,23 @@ use util::bip32::HARDENED;
 const ACCOUNT_MAX: u32 = 99; // 100 accounts
 
 /// Does limit checks the keypath, whitelisting bip44 purpose, account and change.
-/// Only allows the well-known xpub of m'/44'/60'/0'/0 for now.
+/// Only allows the well-known xpubs of m'/44'/60'/0'/0 and m'/44'/1'/0'/0 for now.
 /// Since ethereum doesn't use the "change" path part it is always 0 and have become part of the
 /// xpub keypath.
 /// @return true if the keypath is valid, false if it is invalid.
-pub fn is_valid_keypath_xpub(keypath: &[u32], expected_coin: u32) -> bool {
-    keypath.len() == 4 && keypath[..4] == [44 + HARDENED, expected_coin, 0 + HARDENED, 0]
+pub fn is_valid_keypath_xpub(keypath: &[u32]) -> bool {
+    keypath.len() == 4
+        && (keypath[..4] == [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0]
+            || keypath[..4] == [44 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0])
 }
 
 /// Does limit checks the keypath, whitelisting bip44 purpose, account and change.
 /// Returns true if the keypath is valid, false if it is invalid.
-pub fn is_valid_keypath_address(keypath: &[u32], expected_coin: u32) -> bool {
+pub fn is_valid_keypath_address(keypath: &[u32]) -> bool {
     if keypath.len() != 5 {
         return false;
     }
-    if !is_valid_keypath_xpub(&keypath[..4], expected_coin) {
+    if !is_valid_keypath_xpub(&keypath[..4]) {
         return false;
     }
     if keypath[4] > ACCOUNT_MAX {
@@ -46,66 +48,98 @@ mod tests {
 
     #[test]
     fn test_is_valid_keypath_xpub() {
-        let expected_coin = 60 + HARDENED;
-        assert!(is_valid_keypath_xpub(
-            &[44 + HARDENED, expected_coin, 0 + HARDENED, 0],
-            expected_coin
-        ));
+        assert!(is_valid_keypath_xpub(&[
+            44 + HARDENED,
+            60 + HARDENED,
+            0 + HARDENED,
+            0
+        ]));
+        assert!(is_valid_keypath_xpub(&[
+            44 + HARDENED,
+            1 + HARDENED,
+            0 + HARDENED,
+            0
+        ]));
         // wrong coin.
-        assert!(!is_valid_keypath_xpub(
-            &[44 + HARDENED, expected_coin, 0 + HARDENED, 0],
-            expected_coin + 1,
-        ));
+        assert!(!is_valid_keypath_xpub(&[
+            44 + HARDENED,
+            0 + HARDENED,
+            0 + HARDENED,
+            0
+        ]));
         // too short
-        assert!(!is_valid_keypath_xpub(
-            &[44 + HARDENED, expected_coin, 0 + HARDENED],
-            expected_coin + 1,
-        ));
+        assert!(!is_valid_keypath_xpub(&[
+            44 + HARDENED,
+            60 + HARDENED,
+            0 + HARDENED
+        ]));
         // too long
-        assert!(!is_valid_keypath_xpub(
-            &[44 + HARDENED, expected_coin, 0 + HARDENED, 0, 0],
-            expected_coin + 1,
-        ));
+        assert!(!is_valid_keypath_xpub(&[
+            44 + HARDENED,
+            60 + HARDENED,
+            0 + HARDENED,
+            0,
+            0
+        ]));
     }
 
     #[test]
     fn test_is_valid_keypath_address() {
-        let expected_coin = 60 + HARDENED;
-        let keypath_for_account =
-            |account| [44 + HARDENED, expected_coin, 0 + HARDENED, 0, account];
-
         // 100 good paths.
         for account in 0..100 {
-            assert!(is_valid_keypath_address(
-                &keypath_for_account(account),
-                expected_coin
-            ));
+            assert!(is_valid_keypath_address(&[
+                44 + HARDENED,
+                60 + HARDENED,
+                0 + HARDENED,
+                0,
+                account
+            ]));
+            assert!(is_valid_keypath_address(&[
+                44 + HARDENED,
+                1 + HARDENED,
+                0 + HARDENED,
+                0,
+                account
+            ]));
             // wrong coin
-            assert!(!is_valid_keypath_address(
-                &keypath_for_account(account),
-                expected_coin + 1
-            ));
+            assert!(!is_valid_keypath_address(&[
+                44 + HARDENED,
+                0 + HARDENED,
+                0 + HARDENED,
+                0,
+                account
+            ]));
         }
-        assert!(!is_valid_keypath_address(
-            &keypath_for_account(100),
-            expected_coin
-        ));
+        // account too high
+        assert!(!is_valid_keypath_address(&[
+            44 + HARDENED,
+            60 + HARDENED,
+            0 + HARDENED,
+            0,
+            100
+        ]));
 
         // too short
-        assert!(!is_valid_keypath_address(
-            &[44 + HARDENED, expected_coin, 0 + HARDENED, 0],
-            expected_coin
-        ));
+        assert!(!is_valid_keypath_address(&[
+            44 + HARDENED,
+            60 + HARDENED,
+            0 + HARDENED,
+            0
+        ]));
         // too long
-        assert!(!is_valid_keypath_address(
-            &[44 + HARDENED, expected_coin, 0 + HARDENED, 0, 0, 0],
-            expected_coin
-        ));
+        assert!(!is_valid_keypath_address(&[
+            44 + HARDENED,
+            60 + HARDENED,
+            0 + HARDENED,
+            0,
+            0,
+            0
+        ]));
         // tweak keypath elements
         for i in 0..4 {
-            let mut keypath = keypath_for_account(0);
+            let mut keypath = [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
             keypath[i] += 1;
-            assert!(!is_valid_keypath_address(&keypath, expected_coin));
+            assert!(!is_valid_keypath_address(&keypath));
         }
     }
 }

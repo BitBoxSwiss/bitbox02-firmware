@@ -18,6 +18,7 @@ compile_error!(
 );
 
 mod amount;
+mod keypath;
 mod pubrequest;
 mod sign;
 mod signmsg;

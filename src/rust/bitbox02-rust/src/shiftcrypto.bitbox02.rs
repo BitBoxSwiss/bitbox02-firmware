@@ -130,122 +130,6 @@ pub struct SetPasswordRequest {
     #[prost(bytes="vec", tag="1")]
     pub entropy: ::prost::alloc::vec::Vec<u8>,
 }
-/// Should be sent every X seconds (TBD) unless the firmware already is busy with a command.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct BitBoxBaseHeartbeatRequest {
-    #[prost(enumeration="bit_box_base_heartbeat_request::StateCode", tag="1")]
-    pub state_code: i32,
-    #[prost(enumeration="bit_box_base_heartbeat_request::DescriptionCode", tag="2")]
-    pub description_code: i32,
-}
-/// Nested message and enum types in `BitBoxBaseHeartbeatRequest`.
-pub mod bit_box_base_heartbeat_request {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-    #[repr(i32)]
-    pub enum StateCode {
-        Idle = 0,
-        Working = 1,
-        Warning = 2,
-        Error = 3,
-    }
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-    #[repr(i32)]
-    pub enum DescriptionCode {
-        Empty = 0,
-        InitialBlockSync = 1,
-        DownloadUpdate = 2,
-        OutOfDiskSpace = 3,
-        RedisError = 4,
-        Reboot = 5,
-        Shutdown = 6,
-        UpdateFailed = 7,
-        NoNetworkConnection = 8,
-    }
-}
-/// This will display the first 20 characters of the base32 encoded version of
-/// the provided msg
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct BitBoxBaseConfirmPairingRequest {
-    #[prost(bytes="vec", tag="1")]
-    pub msg: ::prost::alloc::vec::Vec<u8>,
-}
-/// Optional fields can be represented by a "oneof" with only one field in it.
-/// All fields are technically optional. But in reality the default value for the type will be set.
-/// It is therefore impossible to distinguish between the default value and if the value wasn't set.
-/// So any fields that have a default value which also is a valid value can use this method to send
-/// an empty value.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct BitBoxBaseSetConfigRequest {
-    #[prost(enumeration="bit_box_base_set_config_request::StatusLedMode", tag="1")]
-    pub status_led_mode: i32,
-    #[prost(enumeration="bit_box_base_set_config_request::StatusScreenMode", tag="2")]
-    pub status_screen_mode: i32,
-    /// Empty string means unsetting the hostname
-    #[prost(string, tag="4")]
-    pub hostname: ::prost::alloc::string::String,
-    /// 0.0.0.0 which is the default value of ip is also a valid IP, use the oneof-trick to determine
-    /// if IP wasn't set in the message.
-    #[prost(oneof="bit_box_base_set_config_request::IpOption", tags="3")]
-    pub ip_option: ::core::option::Option<bit_box_base_set_config_request::IpOption>,
-}
-/// Nested message and enum types in `BitBoxBaseSetConfigRequest`.
-pub mod bit_box_base_set_config_request {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-    #[repr(i32)]
-    pub enum StatusLedMode {
-        /// display on led when status is IDLE, WORKING, WARNING and ERROR
-        LedAlways = 0,
-        /// display on led when status is WORKING, WARNING and ERROR
-        LedOnWorking = 1,
-        /// display on led when status is WARNING and ERROR
-        LedOnWarning = 2,
-        /// display on led when status is ERROR
-        LedOnError = 3,
-    }
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-    #[repr(i32)]
-    pub enum StatusScreenMode {
-        /// display on screen when status is IDLE, WORKING, WARNING and ERROR
-        ScreenAlways = 0,
-        /// display on screen when status is WORKING, WARNING and ERROR
-        ScreenOnWorking = 1,
-        /// display on screen when status is WARNING and ERROR
-        ScreenOnWarning = 2,
-        /// display on screen when status is ERROR
-        ScreenOnError = 3,
-    }
-    /// 0.0.0.0 which is the default value of ip is also a valid IP, use the oneof-trick to determine
-    /// if IP wasn't set in the message.
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum IpOption {
-        #[prost(bytes, tag="3")]
-        Ip(::prost::alloc::vec::Vec<u8>),
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct BitBoxBaseDisplayStatusRequest {
-    #[prost(uint32, tag="1")]
-    pub duration: u32,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct BitBoxBaseRequest {
-    #[prost(oneof="bit_box_base_request::Request", tags="1, 2, 3, 4")]
-    pub request: ::core::option::Option<bit_box_base_request::Request>,
-}
-/// Nested message and enum types in `BitBoxBaseRequest`.
-pub mod bit_box_base_request {
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum Request {
-        #[prost(message, tag="1")]
-        Heartbeat(super::BitBoxBaseHeartbeatRequest),
-        #[prost(message, tag="2")]
-        SetConfig(super::BitBoxBaseSetConfigRequest),
-        #[prost(message, tag="3")]
-        ConfirmPairing(super::BitBoxBaseConfirmPairingRequest),
-        #[prost(message, tag="4")]
-        DisplayStatus(super::BitBoxBaseDisplayStatusRequest),
-    }
-}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AntiKleptoHostNonceCommitment {
     #[prost(bytes="vec", tag="1")]
@@ -781,7 +665,7 @@ pub struct Success {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Request {
-    #[prost(oneof="request::Request", tags="2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26")]
+    #[prost(oneof="request::Request", tags="2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26")]
     pub request: ::core::option::Option<request::Request>,
 }
 /// Nested message and enum types in `Request`.
@@ -831,8 +715,7 @@ pub mod request {
         Reset(super::ResetRequest),
         #[prost(message, tag="22")]
         RestoreFromMnemonic(super::RestoreFromMnemonicRequest),
-        #[prost(message, tag="23")]
-        Bitboxbase(super::BitBoxBaseRequest),
+        /// removed: BitBoxBaseRequest bitboxbase = 23;
         #[prost(message, tag="24")]
         Fingerprint(super::RootFingerprintRequest),
         #[prost(message, tag="25")]

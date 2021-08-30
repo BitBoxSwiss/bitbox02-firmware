@@ -15,7 +15,6 @@
 """TODO: document"""
 
 import argparse
-import enum
 import sys
 
 import pprint
@@ -24,8 +23,7 @@ from time import sleep
 
 import hid
 
-from bitbox02.bitboxbase import BitBoxBase, get_bitboxbase_default_device
-from bitbox02.communication import devices, TransportLayer, u2fhid, usart, bitbox_api_protocol
+from bitbox02.communication import devices, TransportLayer, u2fhid, bitbox_api_protocol
 from bitbox02.communication.devices import TooManyFoundException, NoneFoundException
 
 from bitbox02.bitbox02 import Bootloader, BitBox02
@@ -119,110 +117,6 @@ def _find_and_open_usb_bitbox02(use_cache: bool) -> Tuple[devices.DeviceInfo, Tr
     return bootloader_device, u2fhid.U2FHid(hid_device)
 
 
-class UsartBootloaderProbeResult(enum.Enum):
-    """ Result of probing the connection to a BitBoxBase bootloader. """
-
-    # We received a response from the device informing us that the bootloader is not running.
-    NOT_AVAILABLE = "NotAvailable"
-    # We successfully connected to the bootloader.
-    SUCCESS = "Success"
-    # We didn't receive anything from the device: something's wrong with the system.
-    TIMEOUT = "Timeout"
-
-
-def _try_usart_bootloader_connection(
-    serial_port: usart.SerialPort, bootloader_device: devices.DeviceInfo
-) -> UsartBootloaderProbeResult:
-    """
-    Probes the connection to a BitBoxBase bootloader
-    over the specified UART port.
-    """
-    transport = usart.U2FUsart(serial_port)
-    try:
-        bootloader_attempt = Bootloader(transport, bootloader_device)
-        bootloader_attempt.versions()
-        success = UsartBootloaderProbeResult.SUCCESS
-    except usart.U2FUsartErrorResponse as err:
-        if err.error_code != usart.U2FUsartErrorResponse.ENDPOINT_UNAVAILABLE:
-            raise
-        success = UsartBootloaderProbeResult.NOT_AVAILABLE
-    except usart.U2FUsartTimeoutError:
-        success = UsartBootloaderProbeResult.TIMEOUT
-    finally:
-        bootloader_attempt.close()
-    return success
-
-
-def _find_and_open_usart_bitbox(
-    serial_port: usart.SerialPort, use_cache: bool
-) -> devices.DeviceInfo:
-    """
-    Connects to a BitBoxBase bootloader over UART.
-    If the BitBoxBase is currently running a firmware, it will
-    be rebooted and this function will connect to the bootloader
-    when it shows up.
-    """
-    print("Connecting to BitBox bootloader over UART.")
-    bootloader_device: devices.DeviceInfo = get_bitboxbase_default_device(serial_port.port)
-    # First, try to connect to the bootloader directly.
-    bootloader_status = _try_usart_bootloader_connection(serial_port, bootloader_device)
-    if bootloader_status == UsartBootloaderProbeResult.SUCCESS:
-        return bootloader_device
-    if bootloader_status == UsartBootloaderProbeResult.TIMEOUT:
-        print("No reponse from BitBox. Maybe it's not connected properly?")
-        sys.exit(1)
-
-    # The bootloader wasn't valid, try to connect to the firmware instead.
-    print("BitBox bootloader not available.")
-    print("Trying to connect to BitBox firmware instead...")
-
-    class NoiseConfig(util.NoiseConfigUserCache):
-        """NoiseConfig extends NoiseConfigUserCache"""
-
-        def __init__(self) -> None:
-            super().__init__("shift/load_firmware")
-
-        def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
-            print("Please compare and confirm the pairing code on your BitBox02:")
-            print(code)
-            return device_response()
-
-    class NoiseConfigNoCache(bitbox_api_protocol.BitBoxNoiseConfig):
-        """NoiseConfig extends BitBoxNoiseConfig"""
-
-        def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
-            print("Please compare and confirm the pairing code on your BitBox02:")
-            print(code)
-            return device_response()
-
-    if use_cache:
-        config: bitbox_api_protocol.BitBoxNoiseConfig = NoiseConfig()
-    else:
-        config = NoiseConfigNoCache()
-
-    try:
-        transport = usart.U2FUsart(serial_port)
-        bitbox_attempt = BitBoxBase(transport, bootloader_device, noise_config=config)
-        print("Connected. Rebooting.")
-        bitbox_attempt.reboot()
-    except usart.U2FUsartTimeoutError:
-        pass
-    finally:
-        bitbox_attempt.close()
-    print("Reboot completed.")
-
-    # wait for it to reboot
-    while True:
-        bootloader_status = _try_usart_bootloader_connection(serial_port, bootloader_device)
-        if bootloader_status == UsartBootloaderProbeResult.SUCCESS:
-            return bootloader_device
-        if bootloader_status == UsartBootloaderProbeResult.TIMEOUT:
-            print("Waiting for the BitBox bootloader to show up...")
-            sleep(1)
-        else:
-            print("Stuck in bitbox mode -  didn't reboot properly!")
-
-
 def main() -> int:
     """Main function"""
     parser = argparse.ArgumentParser(
@@ -232,11 +126,6 @@ def main() -> int:
         "--no-cache", action="store_true", help="Don't use cached or store noise keys"
     )
     parser.add_argument("--debug", action="store_true", help="Flash a debug (unsigned) firmware.")
-    parser.add_argument(
-        "--usart",
-        action="store",
-        help="Flash firmware using U2F-over-UART (BitBoxBase), with the specified serial port.",
-    )
     parser.add_argument("firmware", nargs=1, help="Firmware to flash.")
     args = parser.parse_args()
 
@@ -244,13 +133,7 @@ def main() -> int:
         eprint("Expecting firmware to end with '.signed.bin'")
         return 1
 
-    if args.usart is not None:
-        serial_port = usart.SerialPort(args.usart)
-        bootloader_device = _find_and_open_usart_bitbox(serial_port, not args.no_cache)
-        transport: TransportLayer = usart.U2FUsart(serial_port)
-        bootloader = Bootloader(transport, bootloader_device)
-    else:
-        bootloader_device, transport = _find_and_open_usb_bitbox02(not args.no_cache)
+    bootloader_device, transport = _find_and_open_usb_bitbox02(not args.no_cache)
     bootloader = Bootloader(transport, bootloader_device)
 
     with open(args.firmware[0], "rb") as file:

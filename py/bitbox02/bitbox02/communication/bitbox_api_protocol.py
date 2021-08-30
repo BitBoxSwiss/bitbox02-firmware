@@ -168,7 +168,6 @@ class Platform(enum.Enum):
     """ Available hardware platforms """
 
     BITBOX02 = "bitbox02"
-    BITBOXBASE = "bitboxbase"
 
 
 class BitBox02Edition(enum.Enum):
@@ -176,12 +175,6 @@ class BitBox02Edition(enum.Enum):
 
     MULTI = "multi"
     BTCONLY = "btconly"
-
-
-class BitBoxBaseEdition(enum.Enum):
-    """ Editions for the BitBoxBase platform """
-
-    STANDARD = "standard"
 
 
 class Bitbox02Exception(Exception):
@@ -549,7 +542,7 @@ class BitBoxCommonAPI:
             self.version.major, self.version.minor, self.version.patch, build=self.version.build
         )
 
-        # raises exceptions if the library is out of date, does not check BitBoxBase
+        # raises exceptions if the library is out of date
         self._check_max_version()
 
         self._bitbox_protocol: BitBoxProtocol
@@ -668,13 +661,11 @@ class BitBoxCommonAPI:
         return True
 
     @staticmethod
-    def get_info(
-        transport: TransportLayer
-    ) -> Tuple[str, Platform, Union[BitBox02Edition, BitBoxBaseEdition], bool]:
+    def get_info(transport: TransportLayer) -> Tuple[str, Platform, Union[BitBox02Edition], bool]:
         """
         Returns (version, platform, edition, unlocked).
         This is useful to get the version of the firmware when a usb descriptor is not available
-        (BitBoxBase, via BitBoxBridge, etc.).
+        (via BitBoxBridge, etc.).
         This call does not use a versioned BitBoxProtocol for communication, as the version is not
         available (this call is used to get the version), so it must work for all firmware versions.
         """
@@ -688,11 +679,11 @@ class BitBoxCommonAPI:
         platform = {0x00: Platform.BITBOX02}[platform_byte]
 
         edition_byte, response = response[0], response[1:]
-        edition: Union[BitBox02Edition, BitBoxBaseEdition]
+        edition: Union[BitBox02Edition]
         if platform == Platform.BITBOX02:
             edition = {0x00: BitBox02Edition.MULTI, 0x01: BitBox02Edition.BTCONLY}[edition_byte]
         else:
-            edition = {0x00: BitBoxBaseEdition.STANDARD}[edition_byte]
+            raise Exception("Unknown platform: {}".format(platform))
 
         unlocked_byte = response[0]
         unlocked = {0x00: False, 0x01: True}[unlocked_byte]
@@ -701,7 +692,7 @@ class BitBoxCommonAPI:
     def check_min_version(self) -> None:
         """
         Raises FirmwareVersionOutdatedException if the device has an older firmware version than
-        required and the minimum required version. A check for the BitBoxBase is not implemented.
+        required and the minimum required version.
         """
         if self.edition == BitBox02Edition.MULTI:
             if self.version < MIN_SUPPORTED_BITBOX02_MULTI_FIRMWARE_VERSION:
@@ -721,7 +712,6 @@ class BitBoxCommonAPI:
         """
         Raises LibraryVersionOutdatedException if the device has an firmware which is too new
         (major version increased).
-        A check for the BitBoxBase is not implemented.
         """
         if self.edition == BitBox02Edition.MULTI:
             if self.version >= MIN_UNSUPPORTED_BITBOX02_MULTI_FIRMWARE_VERSION:

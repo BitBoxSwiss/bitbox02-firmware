@@ -21,7 +21,6 @@ import argparse
 import pprint
 import sys
 from typing import List, Any, Optional, Callable, Union, Tuple, Sequence
-import hashlib
 import base64
 import binascii
 import textwrap
@@ -32,15 +31,12 @@ from tzlocal import get_localzone
 
 from bitbox02 import util
 from bitbox02 import bitbox02
-from bitbox02 import bitboxbase
-from bitbox02.bitboxbase import BitBoxBase, get_bitboxbase_default_device
 from bitbox02.communication import (
     devices,
     HARDENED,
     UserAbortException,
     FirmwareVersionOutdatedException,
     u2fhid,
-    usart,
     bitbox_api_protocol,
 )
 
@@ -772,84 +768,6 @@ class SendMessage:
         return 0
 
 
-class SendMessageBitBoxBase:
-    """SendMessageBitBoxBase"""
-
-    def __init__(self, device: BitBoxBase, debug: bool):
-        self._device = device
-        self._debug = debug
-        self._stop = False
-
-    def _reboot(self) -> None:
-        if self._device.reboot():
-            print("Device rebooted")
-        else:
-            print("User aborted")
-
-    def _reboot_bootloader(self) -> None:
-        if self._device.reboot():
-            print("Device rebooted")
-            self._stop = True
-            return
-        print("User aborted")
-
-    def _set_config(self) -> None:
-        # pylint: disable=no-member
-        ip_str = input("Enter an IP: ")
-        ip_bytes = bytes([int(x) for x in ip_str.split(".")])
-        hostname = input("Enter hostname: ")
-        self._device.set_config(
-            bitboxbase.BitBoxBaseSetConfigRequest.LED_ALWAYS, ip_bytes, hostname
-        )
-
-    def _heartbeat(self) -> None:
-        # pylint: disable=no-member
-        print("States:")
-        for name, state_enum in bitboxbase.BitBoxBaseHeartbeatRequest.StateCode.items():
-            print(f"{state_enum}: {name}")
-        state = bitboxbase.BitBoxBaseHeartbeatRequest.StateCode.items()[int(input("state: "))][1]
-        for name, desc_enum in bitboxbase.BitBoxBaseHeartbeatRequest.DescriptionCode.items():
-            print(f"{desc_enum}: {name}")
-        description = bitboxbase.BitBoxBaseHeartbeatRequest.DescriptionCode.items()[
-            int(input("description: "))
-        ][1]
-        self._device.heartbeat(state, description)
-
-    def _confirm_pairing(self) -> None:
-        noise = input("noise: ").encode("utf-8")
-        # Always give API call 32 bytes of data
-        stretch = hashlib.sha256(noise)
-        hsh = hashlib.sha256(stretch.digest())
-        print(base64.b32encode(hsh.digest())[:20])
-        self._device.confirm_pairing(stretch.digest())
-
-    def _menu(self) -> None:
-        """Print the menu"""
-        choices = (
-            ("Reboot into bootloader", self._reboot_bootloader),
-            ("Heartbeat", self._heartbeat),
-            ("Set config", self._set_config),
-            ("Confirm pairing", self._confirm_pairing),
-        )
-        choice = ask_user(choices)
-        if isinstance(choice, bool):
-            self._stop = True
-            return
-        if choice is None:
-            return
-        choice()
-
-    def run(self) -> int:
-        """Entry point for program"""
-        if self._debug:
-            self._device.debug = True
-
-        while not self._stop:
-            self._menu()
-        self._device.close()
-        return 0
-
-
 class SendMessageBootloader:
     """Simple test application for bootloader"""
 
@@ -1071,71 +989,6 @@ def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
         return SendMessage(bitbox_connection, debug).run()
 
 
-def connect_to_usart_bitboxbase(debug: bool, serial_port: usart.SerialPort, use_cache: bool) -> int:
-    """
-    Connects and runs the main menu over a BitBoxBase connected
-    over UART.
-    """
-    print("Trying to connect to BitBoxBase firmware...")
-    bootloader_device: devices.DeviceInfo = get_bitboxbase_default_device(serial_port.port)
-
-    def show_pairing(code: str, device_response: Callable[[], bool]) -> bool:
-        print("(Pairing should be automatic) Pairing code:")
-        print(code)
-        return device_response()
-
-    class NoiseConfig(util.NoiseConfigUserCache):
-        """NoiseConfig extends NoiseConfigUserCache"""
-
-        def __init__(self) -> None:
-            super().__init__("shift/send_message")
-
-        def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
-            return show_pairing(code, device_response)
-
-        def attestation_check(self, result: bool) -> None:
-            if result:
-                print("Device attestation PASSED")
-            else:
-                print("Device attestation FAILED")
-
-    class NoiseConfigNoCache(bitbox_api_protocol.BitBoxNoiseConfig):
-        """NoiseConfig extends BitBoxNoiseConfig"""
-
-        def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
-            return show_pairing(code, device_response)
-
-        def attestation_check(self, result: bool) -> None:
-            if result:
-                print("Device attestation PASSED")
-            else:
-                print("Device attestation FAILED")
-
-    if use_cache:
-        config: bitbox_api_protocol.BitBoxNoiseConfig = NoiseConfig()
-    else:
-        config = NoiseConfigNoCache()
-
-    try:
-        transport = usart.U2FUsart(serial_port)
-        base_dev = BitBoxBase(transport, bootloader_device, config)
-        if debug:
-            print("Device Info:")
-            pprint.pprint(base_dev)
-        return SendMessageBitBoxBase(base_dev, debug).run()
-    except usart.U2FUsartErrorResponse as err:
-        if err.error_code != usart.U2FUsartErrorResponse.ENDPOINT_UNAVAILABLE:
-            raise
-    except usart.U2FUsartTimeoutError:
-        print("Timed out. Maybe the device is not connected?", file=sys.stderr)
-        return 1
-
-    print("BitBox unavailable. Starting bootloader connection.")
-    transport = usart.U2FUsart(serial_port)
-    bootloader = bitbox02.Bootloader(transport, bootloader_device)
-    return SendMessageBootloader(bootloader).run()
-
-
 def main() -> int:
     """Main function"""
     parser = argparse.ArgumentParser(description="Tool for communicating with bitbox device")
@@ -1143,9 +996,6 @@ def main() -> int:
     parser.add_argument("--u2f", action="store_true", help="Use u2f menu instead")
     parser.add_argument(
         "--no-cache", action="store_true", help="Don't use cached or store noise keys"
-    )
-    parser.add_argument(
-        "--usart", action="store", help="Use USART (BitBoxBase) on the specified serial port."
     )
     args = parser.parse_args()
 
@@ -1164,13 +1014,7 @@ def main() -> int:
             return u2fapp.run()
         return 1
 
-    if args.usart is not None:
-        with usart.SerialPort(args.usart) as serial_port:
-            return connect_to_usart_bitboxbase(args.debug, serial_port, not args.no_cache)
-    else:
-        return connect_to_usb_bitbox(args.debug, not args.no_cache)
-
-    return 1
+    return connect_to_usb_bitbox(args.debug, not args.no_cache)
 
 
 if __name__ == "__main__":

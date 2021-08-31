@@ -34,14 +34,8 @@ USE_RESULT bool sd_list(sd_list_t* list_out);
 USE_RESULT bool sd_list_subdir(sd_list_t* list_out, const char* subdir);
 void sd_free_list(sd_list_t* list);
 USE_RESULT bool sd_card_inserted(void);
-// returns false on error. If no error, exists_out will have the result.
-USE_RESULT bool sd_file_exists(const char* fn, bool* exists_out);
-USE_RESULT bool sd_file_exists_subdir(const char* fn, const char* subdir, bool* exists_out);
 // returns true if the erase was successful.
-USE_RESULT bool sd_erase_file(const char* fn);
-USE_RESULT bool sd_erase_dir(const char* directory_name);
 USE_RESULT bool sd_erase_file_in_subdir(const char* fn, const char* subdir);
-USE_RESULT bool sd_file_rename(const char* from, const char* to, const char* dir);
 
 /**
  * Reads binary data from SD card.

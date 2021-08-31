@@ -331,37 +331,6 @@ bool sd_card_inserted(void)
 #endif
 }
 
-bool sd_file_exists_subdir(const char* fn, const char* subdir, bool* exists_out)
-{
-    if (!strlens(fn) || exists_out == NULL) {
-        return false;
-    }
-
-    if (!_mount()) {
-        return false;
-    }
-
-    char file[772] = {0};
-    if (!_get_absolute_path(subdir, fn, file, sizeof(file), false)) {
-        _unmount();
-        return false;
-    }
-
-    FIL file_object;
-    FRESULT result = f_open(&file_object, (char const*)file, FA_OPEN_EXISTING | FA_READ);
-    *exists_out = result == FR_OK;
-    if (*exists_out) {
-        f_close(&file_object);
-    }
-    _unmount();
-    return true;
-}
-
-bool sd_file_exists(const char* fn, bool* exists_out)
-{
-    return sd_file_exists_subdir(fn, NULL, exists_out);
-}
-
 /**
  * Deletes the directory in the given sub-directory if no files are in the directory.
  * Expects that the filesystem is already mounted.
@@ -427,41 +396,4 @@ static bool _erase_in_subdir(const char* fn, const char* subdir, bool is_dir)
 bool sd_erase_file_in_subdir(const char* fn, const char* subdir)
 {
     return _erase_in_subdir(fn, subdir, false);
-}
-
-bool sd_erase_file(const char* fn)
-{
-    return _erase_in_subdir(fn, NULL, false);
-}
-
-bool sd_erase_dir(const char* directory_name)
-{
-    return _erase_in_subdir(NULL, directory_name, true);
-}
-
-bool sd_file_rename(const char* from, const char* to, const char* dir)
-{
-    if (!strlens(from) || !strlens(to)) {
-        return false;
-    }
-
-    if (!_mount()) {
-        return false;
-    }
-
-    char oldfile[772] = {0};
-    if (!_get_absolute_path(dir, from, oldfile, sizeof(oldfile), false)) {
-        _unmount();
-        return false;
-    }
-
-    char newfile[772] = {0};
-    if (!_get_absolute_path(dir, to, newfile, sizeof(newfile), false)) {
-        _unmount();
-        return false;
-    }
-
-    FRESULT result = f_rename(oldfile, newfile);
-    _unmount();
-    return result == FR_OK;
 }

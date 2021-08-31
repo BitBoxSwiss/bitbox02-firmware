@@ -41,11 +41,6 @@ USE_RESULT bool sd_file_exists_subdir(const char* fn, const char* subdir, bool* 
 USE_RESULT bool sd_erase_file(const char* fn);
 USE_RESULT bool sd_erase_dir(const char* directory_name);
 USE_RESULT bool sd_erase_file_in_subdir(const char* fn, const char* subdir);
-// text_out must of of size SD_MAX_FILE_SIZE+1, and will be null terminated.
-USE_RESULT bool sd_load(const char* fn, const char* dir, char* text_out);
-// files are text-based, not binary.  text, excluding null terminator, cant
-// exceed SD_MAX_FILE_SIZE.
-USE_RESULT bool sd_write(const char* fn, const char* dir, const char* text, bool replace);
 USE_RESULT bool sd_file_rename(const char* from, const char* to, const char* dir);
 
 /**

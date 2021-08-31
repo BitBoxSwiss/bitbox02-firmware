@@ -162,7 +162,7 @@ bool sd_write_bin(
     const uint16_t length,
     bool replace)
 {
-    if (!length || length > SD_MAX_FILE_SIZE) {
+    if (!strlens(fn) || data == NULL || !length || length > SD_MAX_FILE_SIZE) {
         return false;
     }
 
@@ -181,72 +181,6 @@ bool sd_write_bin(
     f_close(&file_object);
     _unmount();
     return result == FR_OK;
-}
-
-bool sd_write(const char* fn, const char* dir, const char* text, bool replace)
-{
-    size_t text_len = strlens(text);
-    if (!text_len || text_len > SD_MAX_FILE_SIZE || !strlens(fn)) {
-        return false;
-    }
-
-    if (!_mount()) {
-        return false;
-    }
-
-    FIL file_object;
-    if (!_open(fn, dir, replace, &file_object)) {
-        _unmount();
-        return false;
-    }
-
-    if (f_puts(text, &file_object) == EOF) {
-        f_close(&file_object);
-        _unmount();
-        return false;
-    }
-
-    f_close(&file_object);
-    _unmount();
-    return true;
-}
-
-bool sd_load(const char* fn, const char* dir, char* text_out)
-{
-    if (text_out == NULL || !strlens(fn)) {
-        return false;
-    }
-
-    if (!_mount()) {
-        return false;
-    }
-
-    char line[SD_MAX_FILE_SIZE + 1] = {0};
-    FIL file_object;
-    if (!_open(fn, dir, FA_OPEN_EXISTING | FA_READ, &file_object)) {
-        _unmount();
-        return false;
-    }
-    if (f_size(&file_object) > SD_MAX_FILE_SIZE) {
-        f_close(&file_object);
-        _unmount();
-        return false;
-    }
-    unsigned text_p_index = 0;
-    while (f_gets(line, sizeof(line), &file_object)) {
-        int snprintf_result =
-            snprintf(text_out + text_p_index, SD_MAX_FILE_SIZE + 1 - text_p_index, "%s", line);
-        if (snprintf_result < 0 || snprintf_result >= (int)(SD_MAX_FILE_SIZE + 1 - text_p_index)) {
-            _unmount();
-            return false;
-        }
-        text_p_index += strlens(line);
-        text_out[text_p_index] = '\0';
-    }
-
-    f_close(&file_object);
-    _unmount();
-    return true;
 }
 
 bool sd_load_bin(const char* fn, const char* dir, uint8_t* buffer, size_t* length_out)

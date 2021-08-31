@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 
+#include <apps/btc/btc_params.h>
 #include <apps/btc/btc_sign.h>
 #include <apps/btc/confirm_locktime_rbf.h>
 #include <btc_util.h>
@@ -38,12 +39,12 @@ bool __wrap_memory_multisig_get_by_hash(const uint8_t* hash, char* name_out)
 
 bool __wrap_apps_btc_confirm_multisig_basic(
     const char* title,
-    BTCCoin coin,
+    const app_btc_coin_params_t* params,
     const char* name,
     const BTCScriptConfig_Multisig* multisig)
 {
     assert_string_equal(title, "Spend from");
-    check_expected(coin);
+    check_expected(params->coin);
     assert_string_equal(name, _multisig_name);
     check_expected(multisig);
     return true;
@@ -242,7 +243,7 @@ static void _test_tx(const _tx* tx, const uint8_t* expected_signature)
 
     BTCSignNextResponse next = {0};
 
-    expect_value(__wrap_apps_btc_confirm_multisig_basic, coin, tx->init_req.coin);
+    expect_value(__wrap_apps_btc_confirm_multisig_basic, params->coin, tx->init_req.coin);
     expect_memory(
         __wrap_apps_btc_confirm_multisig_basic,
         multisig,

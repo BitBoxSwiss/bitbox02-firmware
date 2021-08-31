@@ -25,6 +25,7 @@ pub struct Params {
     pub base58_version_p2pkh: u8,
     pub base58_version_p2sh: u8,
     pub bech32_hrp: &'static str,
+    pub name: &'static str,
     pub unit: &'static str,
     pub rbf_support: bool,
 }
@@ -36,6 +37,7 @@ const PARAMS_BTC: Params = Params {
     base58_version_p2pkh: 0x00, // starts with 1
     base58_version_p2sh: 0x05,  // starts with 3
     bech32_hrp: "bc",
+    name: "Bitcoin",
     unit: "BTC",
     rbf_support: true,
 };
@@ -45,6 +47,7 @@ const PARAMS_TBTC: Params = Params {
     base58_version_p2pkh: 0x6f, // starts with m or n
     base58_version_p2sh: 0xc4,  // starts with 2
     bech32_hrp: "tb",
+    name: "BTC Testnet",
     unit: "TBTC",
     rbf_support: true,
 };
@@ -54,6 +57,7 @@ const PARAMS_LTC: Params = Params {
     base58_version_p2pkh: 0x30, // starts with L
     base58_version_p2sh: 0x32,  // starts with M
     bech32_hrp: "ltc",
+    name: "Litecoin",
     unit: "LTC",
     rbf_support: false,
 };
@@ -63,6 +67,7 @@ const PARAMS_TLTC: Params = Params {
     base58_version_p2pkh: 0x6f, // starts with m or n
     base58_version_p2sh: 0xc4,  // starts with 2
     bech32_hrp: "tltc",
+    name: "LTC Testnet",
     unit: "TLTC",
     rbf_support: false,
 };

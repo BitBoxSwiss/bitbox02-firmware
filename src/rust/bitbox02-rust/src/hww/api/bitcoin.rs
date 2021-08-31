@@ -88,16 +88,6 @@ fn coin_enabled(coin: pb::BtcCoin) -> Result<(), Error> {
     Err(Error::Disabled)
 }
 
-pub fn coin_name(coin: pb::BtcCoin) -> &'static str {
-    use pb::BtcCoin::*;
-    match coin {
-        Btc => "Bitcoin",
-        Tbtc => "BTC Testnet",
-        Ltc => "Litecoin",
-        Tltc => "LTC Testnet",
-    }
-}
-
 /// Processes an xpub api call.
 async fn xpub(
     coin: BtcCoin,
@@ -121,11 +111,7 @@ async fn xpub(
     };
     let xpub = encode_xpub_at_keypath(keypath, xpub_type).or(Err(Error::InvalidInput))?;
     if display {
-        let title = format!(
-            "{}\naccount #{}",
-            coin_name(coin),
-            keypath[2] - HARDENED + 1,
-        );
+        let title = format!("{}\naccount #{}", params.name, keypath[2] - HARDENED + 1,);
         let confirm_params = confirm::Params {
             title: &title,
             body: &xpub,
@@ -147,7 +133,7 @@ async fn address_simple(
     let address = bitbox02::app_btc::address_simple(coin as _, simple_type as _, keypath)?;
     if display {
         let confirm_params = confirm::Params {
-            title: coin_name(coin),
+            title: params::get(coin).name,
             body: &address,
             scrollable: true,
             ..Default::default()

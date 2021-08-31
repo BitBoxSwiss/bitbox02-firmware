@@ -25,7 +25,7 @@
 
 bool apps_btc_confirm_multisig_basic(
     const char* title,
-    BTCCoin coin,
+    const app_btc_coin_params_t* params,
     const char* name,
     const BTCScriptConfig_Multisig* multisig)
 {
@@ -36,7 +36,7 @@ bool apps_btc_confirm_multisig_basic(
         "%lu-of-%lu\n%s multisig",
         (unsigned long)multisig->threshold,
         (unsigned long)multisig->xpubs_count,
-        btc_common_coin_name(coin));
+        params->name);
     if (snprintf_result < 0 || snprintf_result >= (int)sizeof(basic_info)) {
         Abort("apps_btc_confirm_multisig/0");
     }
@@ -60,7 +60,7 @@ bool apps_btc_confirm_multisig_basic(
 
 bool apps_btc_confirm_multisig_extended(
     const char* title,
-    BTCCoin coin,
+    const app_btc_coin_params_t* params,
     const char* name,
     const BTCScriptConfig_Multisig* multisig,
     BTCRegisterScriptConfigRequest_XPubType xpub_type,
@@ -82,7 +82,7 @@ bool apps_btc_confirm_multisig_extended(
     rust_bip32_to_string(
         keypath, keypath_len, rust_util_cstr_mut(keypath_string, sizeof(keypath_string)));
 
-    if (!apps_btc_confirm_multisig_basic(title, coin, name, multisig)) {
+    if (!apps_btc_confirm_multisig_basic(title, params, name, multisig)) {
         return false;
     }
 
@@ -92,19 +92,19 @@ bool apps_btc_confirm_multisig_extended(
     if (snprintf_result < 0 || snprintf_result >= (int)sizeof(info)) {
         Abort("apps_btc_confirm_multisig/0");
     }
-    const confirm_params_t params = {
+    const confirm_params_t confirm_params = {
         .title = title,
         .body = info,
         .accept_is_nextarrow = true,
     };
-    if (!workflow_confirm_blocking(&params)) {
+    if (!workflow_confirm_blocking(&confirm_params)) {
         return false;
     }
 
     xpub_type_t output_xpub_type;
     switch (xpub_type) {
     case BTCRegisterScriptConfigRequest_XPubType_AUTO_ELECTRUM:
-        switch (coin) {
+        switch (params->coin) {
         case BTCCoin_BTC:
         case BTCCoin_LTC:
             switch (multisig->script_type) {
@@ -136,7 +136,7 @@ bool apps_btc_confirm_multisig_extended(
         }
         break;
     case BTCRegisterScriptConfigRequest_XPubType_AUTO_XPUB_TPUB:
-        switch (coin) {
+        switch (params->coin) {
         case BTCCoin_BTC:
         case BTCCoin_LTC:
             output_xpub_type = XPUB;

@@ -24,16 +24,7 @@ use bitbox02::keystore;
 extern crate alloc;
 use core::convert::TryInto;
 
-fn coin_title(coin: pb::EthCoin) -> &'static str {
-    match coin {
-        pb::EthCoin::Eth => "Ethereum",
-        pb::EthCoin::RopstenEth => "Ropsten",
-        pb::EthCoin::RinkebyEth => "Rinkeby",
-    }
-}
-
 async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error> {
-    let coin = pb::EthCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
     let params = bitbox02::app_eth::params_get(request.coin as _).ok_or(Error::InvalidInput)?;
     // If a contract_address is provided, it has to be a supported ERC20-token.
     let erc20_params: Option<bitbox02::app_eth::ERC20Params> =
@@ -61,7 +52,7 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
     if request.display {
         let title = match erc20_params {
             Some(erc20_params) => erc20_params.name,
-            None => coin_title(coin),
+            None => params.name,
         };
         let params = confirm::Params {
             title,

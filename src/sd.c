@@ -269,7 +269,10 @@ bool sd_load_bin(const char* fn, const char* dir, uint8_t* buffer, size_t* lengt
         _unmount();
         return false;
     }
-    FRESULT result = f_read(&file_object, buffer, f_size(&file_object), (unsigned int*)length_out);
+    UINT len = 0;
+    FRESULT result = f_read(&file_object, buffer, f_size(&file_object), &len);
+    // UINT and size_t can have different sizes but both are at least 4 bytes.
+    *length_out = (size_t)len;
     f_close(&file_object);
     _unmount();
     return result == FR_OK;

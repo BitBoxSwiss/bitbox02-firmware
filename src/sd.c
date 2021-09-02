@@ -288,12 +288,6 @@ bool sd_list_subdir(sd_list_t* list_out, const char* subdir)
     }
     FILINFO fno;
     DIR dir;
-#ifdef _USE_LFN
-    char c_lfn[_MAX_LFN + 1];
-    fno.lfname = c_lfn;
-    fno.lfsize = sizeof(c_lfn);
-#endif
-
     if (!_mount()) {
         return false;
     }
@@ -315,16 +309,11 @@ bool sd_list_subdir(sd_list_t* list_out, const char* subdir)
         return false;
     }
     for (;;) {
-        char* pc_fn;
         result = f_readdir(&dir, &fno);
         if (result != FR_OK || fno.fname[0] == 0) {
             break;
         }
-#ifdef _USE_LFN
-        pc_fn = *fno.lfname ? fno.lfname : fno.fname;
-#else
-        pc_fn = fno.fname;
-#endif
+        const char* pc_fn = fno.fname;
         if (STREQ(pc_fn, ".") || STREQ(pc_fn, "..")) {
             continue;
         }

@@ -115,7 +115,6 @@ pub(crate) async fn process(usb_in: Vec<u8>, usb_out: &mut Vec<u8>) -> Result<()
         Some((&OP_I_CAN_HAS_PAIRIN_VERIFICASHUN, b"")) => {
             let mut state = NOISE_STATE.0.borrow_mut();
             let hash = state.get_handshake_hash()?;
-            // TODO: auto-confirm for BitBoxBase.
             match pairing::confirm(&hash).await {
                 Ok(()) => {
                     state.set_pairing_verified()?;

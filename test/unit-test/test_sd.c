@@ -21,17 +21,7 @@
 
 static void _test_sd_write_read(void** state)
 {
-    const MKFS_PARM params = {
-        .fmt = FM_FAT32,
-        // Default values for the rest.
-        .n_fat = 0,
-        .align = 0,
-        .n_root = 0,
-        .au_size = 0,
-    };
-    uint8_t work[FF_MAX_SS] = {0};
-    assert_int_equal(f_mkfs("SD", &params, work, sizeof(work)) ,FR_OK);
-
+    assert_true(sd_format());
     uint8_t data[4] = "data";
 
     assert_false(sd_write_bin("test.pdf", NULL, NULL, 0, false));

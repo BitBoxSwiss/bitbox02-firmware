@@ -71,7 +71,6 @@ add_library(bitbox_objects
   framework/mock_qtouch.c
   framework/mock_gestures.c
   framework/mock_component.c
-  framework/mock_sd.c
   framework/mock_smarteeprom.c
   framework/mock_securechip.c
   framework/mock_delay.c
@@ -269,9 +268,9 @@ set(TEST_LIST
    salt
    "-Wl,--wrap=memory_get_salt_root"
    backup
-   "-Wl,--wrap=keystore_copy_seed,--wrap=memory_get_seed_birthdate,--wrap=sd_write_bin,--wrap=sd_load_bin,--wrap=sd_list_subdir,--wrap=sd_erase_file_in_subdir,--wrap=sd_file_rename,--wrap=memory_get_device_name"
+   "-Wl,--wrap=keystore_copy_seed,--wrap=memory_get_seed_birthdate,--wrap=memory_get_device_name"
    restore
-   "-Wl,--wrap=keystore_copy_seed,--wrap=keystore_encrypt_and_store_seed,--wrap=memory_get_seed_birthdate,--wrap=sd_write_bin,--wrap=sd_load_bin,--wrap=sd_list_subdir,--wrap=sd_list,--wrap=sd_erase_file_in_subdir,--wrap=sd_file_rename,--wrap=memory_get_device_name,--wrap=memory_set_device_name"
+   "-Wl,--wrap=keystore_copy_seed,--wrap=keystore_encrypt_and_store_seed,--wrap=memory_get_seed_birthdate,--wrap=memory_get_device_name,--wrap=memory_set_device_name"
    cipher
    "-Wl,--wrap=random_32_bytes"
    sha3

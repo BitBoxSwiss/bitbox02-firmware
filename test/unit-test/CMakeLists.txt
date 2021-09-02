@@ -98,6 +98,7 @@ target_include_directories(
   ${SYSTEMINCLUDES}
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/ctaes
+  ${CMAKE_SOURCE_DIR}/external/FatFs/source
   $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
@@ -117,10 +118,12 @@ target_include_directories(
   ${SYSTEMINCLUDES}
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/ctaes
+  ${CMAKE_SOURCE_DIR}/external/FatFs/source
   $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
 )
+
 target_include_directories(
   bitbox
   PUBLIC
@@ -145,7 +148,6 @@ set_source_files_properties(
   PROPERTIES GENERATED TRUE
 )
 target_include_directories(bitbox_objects SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
-target_include_directories(bitbox_objects PRIVATE ${CMAKE_SOURCE_DIR}/external/FatFs/source)
 target_compile_definitions(bitbox_objects PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 target_compile_definitions(bitbox_objects PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 target_compile_definitions(bitbox_objects PUBLIC TESTING)

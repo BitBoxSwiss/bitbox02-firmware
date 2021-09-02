@@ -28,8 +28,8 @@
 #include <pb_encode.h>
 #include <util.h>
 
-#include <FatFs/source/ff.h>
 #include <assert_sd.h>
+#include <ff.h>
 #include <sd.h>
 #include <wally_crypto.h>
 

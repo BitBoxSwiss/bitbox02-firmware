@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <cmocka.h>
 
-#include <FatFs/source/ff.h>
+#include <ff.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
 #include <wally_crypto.h>

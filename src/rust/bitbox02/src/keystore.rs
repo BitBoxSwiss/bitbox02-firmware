@@ -185,7 +185,6 @@ pub fn secp256k1_pubkey_uncompressed(
     }
 }
 
-#[cfg(not(feature = "testing"))]
 pub fn encode_xpub_at_keypath(keypath: &[u32], xpub_type: xpub_type_t) -> Result<String, ()> {
     let mut xpub = [0u8; bitbox02_sys::XPUB_ENCODED_LEN as _];
     match unsafe {
@@ -202,12 +201,6 @@ pub fn encode_xpub_at_keypath(keypath: &[u32], xpub_type: xpub_type_t) -> Result
             .into()),
         false => Err(()),
     }
-}
-
-#[cfg(feature = "testing")]
-pub fn encode_xpub_at_keypath(keypath: &[u32], xpub_type: xpub_type_t) -> Result<String, ()> {
-    let data = crate::testing::DATA.0.borrow();
-    data.keystore_encode_xpub_at_keypath.as_ref().unwrap()(keypath, xpub_type)
 }
 
 pub struct SignResult {

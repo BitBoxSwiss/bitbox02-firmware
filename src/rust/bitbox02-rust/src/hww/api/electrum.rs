@@ -52,28 +52,16 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, Data, MUTEX};
+    use bitbox02::testing::{mock_unlocked, MUTEX};
     use std::boxed::Box;
 
     #[test]
     pub fn test_process() {
         let _guard = MUTEX.lock().unwrap();
 
+        mock_unlocked();
+
         // All good.
-        mock(Data {
-            keystore_encode_xpub_at_keypath: Some(Box::new(|keypath, xpub_type| {
-                assert_eq!(
-                    keypath,
-                    [
-                        ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE,
-                        ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO,
-                    ]
-                );
-                assert_eq!(xpub_type, keystore::xpub_type_t::XPUB);
-                Ok("<xpub>".into())
-            })),
-            ..Default::default()
-        });
         assert_eq!(
             block_on(process(&pb::ElectrumEncryptionKeyRequest {
                 keypath: vec![
@@ -83,13 +71,12 @@ mod tests {
             })),
             Ok(Response::ElectrumEncryptionKey(
                 pb::ElectrumEncryptionKeyResponse {
-                    key: "<xpub>".into()
+                    key: "xpub6AWqZzUWTTxAzVFXAavh7oX2apTkQAnjX9FU5pUMMjHiFzHLGLVWx9tAVvocV8c2WeoL7sUj2gZmdp3rDWaqmugZdSCYQVHCxCsVajQP7Cx".into()
                 },
             ))
         );
 
         // Invalid keypath.
-        mock(Default::default());
         assert_eq!(
             block_on(process(&pb::ElectrumEncryptionKeyRequest {
                 keypath: vec![ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE, 0]
@@ -98,7 +85,6 @@ mod tests {
         );
 
         // Invalid keypath (wrong length).
-        mock(Default::default());
         assert_eq!(
             block_on(process(&pb::ElectrumEncryptionKeyRequest {
                 keypath: vec![

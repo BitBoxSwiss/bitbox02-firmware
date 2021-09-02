@@ -34,7 +34,6 @@ pub mod testing;
 pub mod app_btc;
 #[cfg(feature = "app-ethereum")]
 pub mod app_eth;
-#[cfg_attr(feature = "testing", path = "backup_stub.rs")]
 pub mod backup;
 pub mod commander;
 pub mod input;

@@ -390,6 +390,7 @@ add_custom_target(rust-bindgen
     --whitelist-function confirm_transaction_fee_create
     --whitelist-function reset_reset
     --whitelist-function sd_card_inserted
+    --whitelist-function sd_format
     --whitelist-var BIP39_WORDLIST_LEN
     --whitelist-function app_eth_params_get
     --whitelist-function app_eth_erc20_params_get

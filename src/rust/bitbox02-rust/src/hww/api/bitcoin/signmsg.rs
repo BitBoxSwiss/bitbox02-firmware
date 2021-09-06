@@ -61,7 +61,7 @@ pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Er
     let address = bitbox02::app_btc::address_simple(coin as _, simple_type as _, keypath)
         .or(Err(Error::InvalidInput))?;
 
-    let basic_info = format!("Coin: {}", super::coin_name(coin));
+    let basic_info = format!("Coin: {}", super::params::get(coin).name);
     let confirm_params = confirm::Params {
         title: "Sign message",
         body: &basic_info,

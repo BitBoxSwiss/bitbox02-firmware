@@ -27,27 +27,6 @@
 
 #define MULTISIG_P2WSH_MAX_SIGNERS 15
 
-const char* btc_common_coin_name(BTCCoin coin)
-{
-    static const char* _coin_btc = "Bitcoin";
-    static const char* _coin_tbtc = "BTC Testnet";
-    static const char* _coin_ltc = "Litecoin";
-    static const char* _coin_tltc = "LTC Testnet";
-
-    switch (coin) {
-    case BTCCoin_BTC:
-        return _coin_btc;
-    case BTCCoin_TBTC:
-        return _coin_tbtc;
-    case BTCCoin_LTC:
-        return _coin_ltc;
-    case BTCCoin_TLTC:
-        return _coin_tltc;
-    default:
-        Abort("btc_common_coin_name");
-    }
-}
-
 bool btc_common_is_valid_keypath_account_simple(
     BTCScriptConfig_SimpleType script_type,
     const uint32_t* keypath,

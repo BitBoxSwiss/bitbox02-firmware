@@ -17,6 +17,7 @@ use bitbox02_sys::in_buffer_t;
 pub struct Params {
     pub bip44_coin: u32,
     pub chain_id: u8,
+    pub name: &'static str,
     pub unit: &'static str,
 }
 
@@ -25,6 +26,13 @@ pub fn params_get(coin: bitbox02_sys::ETHCoin) -> Option<Params> {
     Some(Params {
         bip44_coin: params.bip44_coin,
         chain_id: params.chain_id,
+        name: {
+            let s = unsafe {
+                let len = crate::util::strlen_ptr(params.name);
+                core::slice::from_raw_parts(params.name, len as _)
+            };
+            core::str::from_utf8(s).unwrap()
+        },
         unit: {
             let s = unsafe {
                 let len = crate::util::strlen_ptr(params.unit);

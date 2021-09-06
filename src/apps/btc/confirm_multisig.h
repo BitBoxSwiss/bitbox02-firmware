@@ -15,6 +15,8 @@
 #ifndef _APPS_BTC_CONFIRM_MULTISIG_H_
 #define _APPS_BTC_CONFIRM_MULTISIG_H_
 
+#include "btc_params.h"
+
 #include <btc.pb.h>
 #include <compiler_util.h>
 #include <stdbool.h>
@@ -26,13 +28,13 @@
  * - multisig type (m-of-n)
  * - name given by the user
  * @param[in] title the title shown in each confirmation screen
- * @param[in] coin coin to be confirmed
+ * @param[in] params Coin params of the coin to be confirmed.
  * @param[in] name User given name of the multisig account.
  * @param[in] multisig multisig details
  */
 USE_RESULT bool apps_btc_confirm_multisig_basic(
     const char* title,
-    BTCCoin coin,
+    const app_btc_coin_params_t* params,
     const char* name,
     const BTCScriptConfig_Multisig* multisig);
 
@@ -46,7 +48,7 @@ USE_RESULT bool apps_btc_confirm_multisig_basic(
  * - account keypath
  * - all xpubs (formatted according to `xpub_type`).
  * @param[in] title the title shown in each confirmation screen
- * @param[in] coin coin to be confirmed
+ * @param[in] params Coin params of the coin to be confirmed.
  * @param[in] name User given name of the multisig account.
  * @param[in] multisig multisig details
  * @param[in] xpub_type: if AUTO_ELECTRUM, will automatically format xpubs as `Zpub/Vpub`,
@@ -56,7 +58,7 @@ USE_RESULT bool apps_btc_confirm_multisig_basic(
  */
 USE_RESULT bool apps_btc_confirm_multisig_extended(
     const char* title,
-    BTCCoin coin,
+    const app_btc_coin_params_t* params,
     const char* name,
     const BTCScriptConfig_Multisig* multisig,
     BTCRegisterScriptConfigRequest_XPubType xpub_type,

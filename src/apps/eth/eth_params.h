@@ -21,6 +21,7 @@ typedef struct {
     uint32_t bip44_coin;
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md#list-of-chain-ids
     uint8_t chain_id;
+    const char* name;
     const char* unit;
 } app_eth_coin_params_t;
 

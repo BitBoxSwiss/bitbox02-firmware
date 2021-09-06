@@ -18,10 +18,12 @@
 #include <hww.pb.h>
 
 typedef struct {
+    BTCCoin coin;
     uint32_t bip44_coin;
     uint8_t base58_version_p2pkh;
     uint8_t base58_version_p2sh;
     const char* bech32_hrp;
+    const char* name;
     // unit to use in formatted amounts, e.g. "BTC".
     const char* unit;
     bool rbf_support;

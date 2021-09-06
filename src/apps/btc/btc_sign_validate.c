@@ -62,7 +62,7 @@ app_btc_result_t app_btc_sign_validate_init_script_configs(
             return APP_BTC_ERR_INVALID_INPUT;
         }
         if (!apps_btc_confirm_multisig_basic(
-                "Spend from", coin, multisig_registered_name, multisig)) {
+                "Spend from", coin_params, multisig_registered_name, multisig)) {
             return APP_BTC_ERR_USER_ABORT;
         }
         return APP_BTC_OK;

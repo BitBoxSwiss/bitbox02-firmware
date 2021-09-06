@@ -42,7 +42,7 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
             )
         };
 
-    if !ethereum::keypath::is_valid_keypath_address(&request.keypath, params.bip44_coin) {
+    if !ethereum::keypath::is_valid_keypath_address(&request.keypath) {
         return Err(Error::InvalidInput);
     }
     let pubkey = bitbox02::keystore::secp256k1_pubkey_uncompressed(&request.keypath)
@@ -54,6 +54,7 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
             Some(erc20_params) => erc20_params.name,
             None => params.name,
         };
+        super::keypath::warn_unusual_keypath(&params, title, &request.keypath).await?;
         let params = confirm::Params {
             title,
             title_autowrap: true,
@@ -73,8 +74,8 @@ fn process_xpub(request: &pb::EthPubRequest) -> Result<Response, Error> {
         return Err(Error::InvalidInput);
     }
 
-    let params = bitbox02::app_eth::params_get(request.coin as _).ok_or(Error::InvalidInput)?;
-    if !ethereum::keypath::is_valid_keypath_xpub(&request.keypath, params.bip44_coin) {
+    bitbox02::app_eth::params_get(request.coin as _).ok_or(Error::InvalidInput)?;
+    if !ethereum::keypath::is_valid_keypath_xpub(&request.keypath) {
         return Err(Error::InvalidInput);
     }
     let xpub = keystore::encode_xpub_at_keypath(&request.keypath, keystore::xpub_type_t::XPUB)
@@ -200,6 +201,44 @@ mod tests {
                 r#pub: ADDRESS.into()
             }))
         );
+
+        static mut CONFIRM_COUNTER: u32 = 0;
+
+        // All good, with display, unusual keypath.
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(params.title, "Ropsten");
+                        assert_eq!(params.body, "Unusual keypath warning: m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
+                    }
+                    2 => {
+                        assert_eq!(params.title, "Ropsten");
+                        assert_eq!(params.body, ADDRESS);
+                    }
+                    _ => panic!("too many user confirmations"),
+                }
+                true
+            })),
+            ..Default::default()
+        });
+        mock_unlocked();
+        assert_eq!(
+            block_on(process(&pb::EthPubRequest {
+                output_type: OutputType::Address as _,
+                keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
+                coin: pb::EthCoin::RopstenEth as _,
+                display: true,
+                contract_address: b"".to_vec(),
+            })),
+            Ok(Response::Pub(pb::PubResponse {
+                r#pub: ADDRESS.into()
+            }))
+        );
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 2);
 
         // Keystore locked.
         mock(Data {

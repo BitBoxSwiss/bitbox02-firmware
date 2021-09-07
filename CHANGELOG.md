@@ -7,6 +7,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+
+### 9.7.0 [released 2021-09-06]
 - Allow mainnet keypaths (`m/44'/60'/0'/0/*`) Rinkeby and Ropsten, and testnet keypaths (`m/44'/1'/0'/0/*`) for Ethereum mainnet
 - Display granular error codes when unlock fails unexpectedly
 - Remove RandomNumber API endpoint

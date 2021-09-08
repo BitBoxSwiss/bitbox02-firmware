@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::Error;
+use super::error::{Context, Error, ErrorKind};
 use crate::pb;
 
 use pb::response::Response;
@@ -24,7 +24,10 @@ pub async fn check(
     &pb::CheckBackupRequest { silent }: &pb::CheckBackupRequest,
 ) -> Result<Response, Error> {
     if !bitbox02::sdcard_inserted() {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("sdcard not inserted".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
     match backup::check() {
         Ok(backup::CheckData { id, name, .. }) => {
@@ -55,12 +58,18 @@ pub async fn check(
             if !silent {
                 status::status("Backup missing\nor invalid", false).await;
             }
-            Err(Error::Generic)
+            Err(Error {
+                msg: Some("backup missing or invalid".into()),
+                kind: ErrorKind::Generic,
+            })
         }
         Err(err) => {
             let msg = format!("Could not check\nbackup\n{:?}", err).replace("BACKUP_ERR_", "");
             status::status(&msg, false).await;
-            Err(Error::Generic)
+            Err(Error {
+                msg: None,
+                kind: ErrorKind::Generic,
+            })
         }
     }
 }
@@ -83,7 +92,10 @@ pub async fn create(
     const MAX_WEST_UTC_OFFSET: i32 = -43200; // 12 hours in seconds
 
     if timezone_offset < MAX_WEST_UTC_OFFSET || timezone_offset > MAX_EAST_UTC_OFFSET {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("invalid timezone_offset".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
 
     // Wait for sd card
@@ -95,7 +107,10 @@ pub async fn create(
     let is_initialized = bitbox02::memory::is_initialized();
 
     if is_initialized {
-        unlock::unlock_keystore("Unlock device", unlock::CanCancel::Yes).await?;
+        unlock::unlock_keystore("Unlock device", unlock::CanCancel::Yes)
+            .await
+            .map_err(Error::err)
+            .context("unlock_keystore failed")?;
     }
 
     let seed_birthdate = if !is_initialized {
@@ -106,9 +121,7 @@ pub async fn create(
             ..Default::default()
         };
         confirm::confirm(&params).await?;
-        if bitbox02::memory::set_seed_birthdate(timestamp).is_err() {
-            return Err(Error::Memory);
-        }
+        bitbox02::memory::set_seed_birthdate(timestamp).map_err(Error::err_memory)?;
         timestamp
     } else if let Ok(backup::CheckData { birthdate, .. }) = backup::check() {
         // If adding new backup after initialized, we do not know the seed birthdate.
@@ -133,7 +146,10 @@ pub async fn create(
             let msg = format!("Backup not created\nPlease contact\nsupport ({:?})", err)
                 .replace("BACKUP_ERR_", "");
             status::status(&msg, false).await;
-            Err(Error::Generic)
+            Err(Error {
+                msg: None,
+                kind: ErrorKind::Generic,
+            })
         }
     }
 }

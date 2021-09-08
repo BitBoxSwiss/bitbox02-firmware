@@ -24,8 +24,8 @@ mod pubrequest;
 mod sign;
 mod signmsg;
 
+use super::error::{Context, Error, ErrorKind};
 use super::pb;
-use super::Error;
 
 use pb::eth_request::Request;
 use pb::eth_response::Response;
@@ -42,7 +42,10 @@ pub async fn next_request(response: Response) -> Result<Request, Error> {
         pb::request::Request::Eth(pb::EthRequest {
             request: Some(request),
         }) => Ok(request),
-        _ => Err(Error::InvalidState),
+        _ => Err(Error {
+            msg: Some("expected Eth request".into()),
+            kind: ErrorKind::InvalidState,
+        }),
     }
 }
 
@@ -62,9 +65,13 @@ pub async fn antiklepto_get_host_nonce(
             Ok(host_nonce
                 .as_slice()
                 .try_into()
-                .or(Err(Error::InvalidInput))?)
+                .map_err(Error::err_invalid_input)
+                .context("could not parse host nonce")?)
         }
-        _ => Err(Error::InvalidState),
+        _ => Err(Error {
+            msg: Some("expected AntikleptoSignature".into()),
+            kind: ErrorKind::InvalidState,
+        }),
     }
 }
 
@@ -77,6 +84,9 @@ pub async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
         Request::Pub(ref request) => Some(pubrequest::process(request).await),
         Request::SignMsg(ref request) => Some(signmsg::process(request).await),
         Request::Sign(ref request) => Some(sign::process(request).await),
-        Request::AntikleptoSignature(_) => Some(Err(Error::InvalidInput)),
+        Request::AntikleptoSignature(_) => Some(Err(Error {
+            msg: Some("unexpected AntikleptoSignature request".into()),
+            kind: ErrorKind::InvalidInput,
+        })),
     }
 }

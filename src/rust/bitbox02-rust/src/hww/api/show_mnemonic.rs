@@ -16,7 +16,7 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use super::Error;
+use super::error::{Context, Error};
 use crate::pb;
 use crate::workflow::confirm;
 
@@ -72,9 +72,14 @@ fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroi
 /// is asked to pick the right word among 5 words, to check if they
 /// wrote it down correctly.
 pub async fn process() -> Result<Response, Error> {
-    unlock::unlock_keystore("Unlock device", unlock::CanCancel::Yes).await?;
+    unlock::unlock_keystore("Unlock device", unlock::CanCancel::Yes)
+        .await
+        .map_err(Error::err)
+        .context("unlock_keystore failed")?;
 
-    let mnemonic_sentence = keystore::get_bip39_mnemonic()?;
+    let mnemonic_sentence = keystore::get_bip39_mnemonic()
+        .map_err(Error::err)
+        .context("get_bip39_mnemonic failed")?;
 
     let words: Vec<&str> = mnemonic_sentence.split(' ').collect();
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::Error;
+use super::error::{Context, Error, ErrorKind};
 use crate::pb;
 
 use pb::response::Response;
@@ -37,12 +37,18 @@ pub async fn from_mnemonic(
         confirm::confirm(&params).await?;
     }
 
-    let mnemonic = mnemonic::get().await?;
+    let mnemonic = mnemonic::get()
+        .await
+        .map_err(Error::err)
+        .context("mnemonic::get failed")?;
     let seed = match bitbox02::keystore::bip39_mnemonic_to_seed(&mnemonic) {
         Ok(seed) => seed,
         Err(()) => {
             status::status("Recovery words\ninvalid", false).await;
-            return Err(Error::Generic);
+            return Err(Error {
+                msg: Some("recovery words invalid".into()),
+                kind: ErrorKind::Generic,
+            });
         }
     };
     status::status("Recovery words\nvalid", true).await;
@@ -65,7 +71,10 @@ pub async fn from_mnemonic(
 
     if bitbox02::keystore::encrypt_and_store_seed(&seed, password.as_str()).is_err() {
         status::status("Could not\nrestore backup", false).await;
-        return Err(Error::Generic);
+        return Err(Error {
+            msg: Some("encrypt_and_store_seed failed".into()),
+            kind: ErrorKind::Generic,
+        });
     };
 
     #[cfg(feature = "app-u2f")]
@@ -75,7 +84,7 @@ pub async fn from_mnemonic(
         let _ = bitbox02::securechip::u2f_counter_set(timestamp);
     }
 
-    bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
+    bitbox02::memory::set_initialized().map_err(Error::err_memory)?;
 
     // This should never fail.
     bitbox02::keystore::unlock(&password).expect("restore_from_mnemonic: unlock failed");

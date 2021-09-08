@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::Error;
+use super::error::Error;
 use crate::pb;
 
 use pb::response::Response;
@@ -27,7 +27,9 @@ pub async fn process() -> Result<Response, Error> {
         ..Default::default()
     };
 
-    confirm::confirm(&params).await.or(Err(Error::Generic))?;
+    confirm::confirm(&params)
+        .await
+        .map_err(Error::err_generic)?;
 
     bitbox02::reset(true);
 
@@ -40,6 +42,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::hww::api::error::ErrorKind;
     use bitbox02::testing::{mock, Data, MUTEX};
     use std::boxed::Box;
 
@@ -68,6 +71,6 @@ mod tests {
             })),
             ..Default::default()
         });
-        assert_eq!(block_on(process()), Err(Error::Generic));
+        assert_eq!(block_on(process()).unwrap_err().kind, ErrorKind::Generic);
     }
 }

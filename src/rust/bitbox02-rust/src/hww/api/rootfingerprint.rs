@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::error::{Context, Error};
 use super::pb;
-use super::Error;
 
 use pb::response::Response;
 
@@ -23,7 +23,9 @@ use bitbox02::keystore;
 /// bits of the hash160 of the pubkey at the keypath m/.
 /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#key-identifiers
 pub fn process() -> Result<Response, Error> {
-    let fingerprint = keystore::root_fingerprint()?;
+    let fingerprint = keystore::root_fingerprint()
+        .map_err(Error::err)
+        .context("root_fingerprint failed")?;
     Ok(Response::Fingerprint(pb::RootFingerprintResponse {
         fingerprint: fingerprint.to_vec(),
     }))

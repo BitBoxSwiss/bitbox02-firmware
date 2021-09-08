@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::error::{Error, ErrorKind};
 use super::pb;
-use super::Error;
 
 use pb::response::Response;
 
@@ -30,16 +30,18 @@ const ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO: u32 = 1112098098 + HARDENED;
 pub async fn process(
     pb::ElectrumEncryptionKeyRequest { keypath }: &pb::ElectrumEncryptionKeyRequest,
 ) -> Result<Response, Error> {
-    if *keypath
-        != [
-            ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE,
-            ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO,
-        ]
-    {
-        return Err(Error::InvalidInput);
+    let expected_keypath = [
+        ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE,
+        ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO,
+    ];
+    if *keypath != expected_keypath {
+        return Err(Error {
+            msg: Some("invalid keypath".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
     let xpub = keystore::encode_xpub_at_keypath(keypath, keystore::xpub_type_t::XPUB)
-        .or(Err(Error::InvalidInput))?;
+        .map_err(Error::err_invalid_input)?;
 
     Ok(Response::ElectrumEncryptionKey(
         pb::ElectrumEncryptionKeyResponse { key: xpub },
@@ -80,8 +82,10 @@ mod tests {
         assert_eq!(
             block_on(process(&pb::ElectrumEncryptionKeyRequest {
                 keypath: vec![ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE, 0]
-            })),
-            Err(Error::InvalidInput),
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::InvalidInput,
         );
 
         // Invalid keypath (wrong length).
@@ -92,8 +96,10 @@ mod tests {
                     ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO,
                     0
                 ]
-            })),
-            Err(Error::InvalidInput),
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::InvalidInput,
         );
     }
 }

@@ -99,7 +99,7 @@ async fn verify_erc20_transaction(
         parse_recipient(&request.recipient)?,
     );
     let formatted_fee = parse_fee(request, params).format();
-    let recipient_address = ethereum::address::from_pubkey_hash(&erc20_recipient);
+    let recipient_address = super::address::from_pubkey_hash(&erc20_recipient);
     let (formatted_value, formatted_total) = match erc20_params {
         Some(erc20_params) => {
             let value = Amount {
@@ -164,7 +164,7 @@ async fn verify_standard_transaction(
         .await?;
     }
 
-    let address = ethereum::address::from_pubkey_hash(&recipient);
+    let address = super::address::from_pubkey_hash(&recipient);
     let amount = Amount {
         unit: params.unit,
         decimals: WEI_DECIMALS,
@@ -186,7 +186,7 @@ async fn verify_standard_transaction(
 pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
     let params = params_get(request.coin as _).ok_or(Error::InvalidInput)?;
 
-    if !ethereum::keypath::is_valid_keypath_address(&request.keypath) {
+    if !super::keypath::is_valid_keypath_address(&request.keypath) {
         return Err(Error::InvalidInput);
     }
     super::keypath::warn_unusual_keypath(&params, params.name, &request.keypath).await?;

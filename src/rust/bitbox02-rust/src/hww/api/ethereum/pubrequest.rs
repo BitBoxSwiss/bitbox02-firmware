@@ -42,12 +42,12 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
             )
         };
 
-    if !ethereum::keypath::is_valid_keypath_address(&request.keypath) {
+    if !super::keypath::is_valid_keypath_address(&request.keypath) {
         return Err(Error::InvalidInput);
     }
     let pubkey = bitbox02::keystore::secp256k1_pubkey_uncompressed(&request.keypath)
         .or(Err(Error::InvalidInput))?;
-    let address = ethereum::address::from_pubkey(&pubkey);
+    let address = super::address::from_pubkey(&pubkey);
 
     if request.display {
         let title = match erc20_params {
@@ -75,7 +75,7 @@ fn process_xpub(request: &pb::EthPubRequest) -> Result<Response, Error> {
     }
 
     bitbox02::app_eth::params_get(request.coin as _).ok_or(Error::InvalidInput)?;
-    if !ethereum::keypath::is_valid_keypath_xpub(&request.keypath) {
+    if !super::keypath::is_valid_keypath_xpub(&request.keypath) {
         return Err(Error::InvalidInput);
     }
     let xpub = keystore::encode_xpub_at_keypath(&request.keypath, keystore::xpub_type_t::XPUB)

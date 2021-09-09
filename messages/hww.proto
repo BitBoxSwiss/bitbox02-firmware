@@ -19,7 +19,6 @@ import "common.proto";
 
 import "backup_commands.proto";
 import "bitbox02_system.proto";
-import "bitboxbase.proto";
 import "btc.proto";
 import "eth.proto";
 import "keystore.proto";
@@ -37,7 +36,7 @@ message Success {
 }
 
 message Request {
-    reserved 1;
+    reserved 1, 23;
     oneof request {
         // removed: RandomNumberRequest random_number = 1;
         SetDeviceNameRequest device_name = 2;
@@ -61,7 +60,7 @@ message Request {
         ETHRequest eth = 20;
         ResetRequest reset = 21;
         RestoreFromMnemonicRequest restore_from_mnemonic = 22;
-        BitBoxBaseRequest bitboxbase = 23;
+        // removed: BitBoxBaseRequest bitboxbase = 23;
         RootFingerprintRequest fingerprint = 24;
         BTCRequest btc = 25;
         ElectrumEncryptionKeyRequest electrum_encryption_key = 26;

@@ -4,7 +4,6 @@ set(PROTO_FILES
   common.proto
   backup_commands.proto
   bitbox02_system.proto
-  bitboxbase.proto
   btc.proto
   eth.proto
   mnemonic.proto

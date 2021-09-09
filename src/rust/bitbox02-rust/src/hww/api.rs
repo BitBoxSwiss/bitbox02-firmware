@@ -89,7 +89,6 @@ fn request_tag(request: &Request) -> u32 {
         Eth(_) => bitbox02::Request_eth_tag,
         Reset(_) => bitbox02::Request_reset_tag,
         RestoreFromMnemonic(_) => bitbox02::Request_restore_from_mnemonic_tag,
-        Bitboxbase(_) => bitbox02::Request_bitboxbase_tag,
         Fingerprint(_) => bitbox02::Request_fingerprint_tag,
         Btc(_) => bitbox02::Request_btc_tag,
         ElectrumEncryptionKey(_) => bitbox02::Request_electrum_encryption_key_tag,

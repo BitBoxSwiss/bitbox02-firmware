@@ -28,7 +28,6 @@ doctest = false
 [dependencies]
 bitbox02 = {path = "../bitbox02"}
 util = {path = "../util"}
-ethereum = { path = "../apps/ethereum", optional = true }
 binascii = { version = "0.1.4", default-features = false, features = ["encode"] }
 bitbox02-noise = {path = "../bitbox02-noise"}
 hex = { version = "0.4", default-features = false }
@@ -52,7 +51,6 @@ features = ["prost-derive"]
 [features]
 app-ethereum = [
   # enable these dependencies
-  "ethereum",
   "sha3",
   "num-bigint",
   # enable this feature in the deps

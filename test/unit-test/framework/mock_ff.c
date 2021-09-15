@@ -19,8 +19,8 @@
 #include <string.h>
 #include <cmocka.h>
 
-#include <FatFs/source/ff.h>
 #include <assert_ff.h>
+#include <ff.h>
 
 int f_putc(TCHAR c, FIL* fp)
 {

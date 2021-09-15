@@ -225,12 +225,12 @@ set_property(TARGET asf4-drivers PROPERTY INTERFACE_LINK_LIBRARIES "")
   target_compile_options(cryptoauthlib PRIVATE -Wno-pedantic -Wno-incompatible-pointer-types -Wno-unused-parameter -Wno-unused-variable)
 
   add_library(fatfs
-    FatFs/source/ff.c
-    FatFs/source/ffunicode.c
+    fatfs/source/ff.c
+    fatfs/source/ffunicode.c
   )
   target_link_libraries(fatfs samd51a-ds asf4-drivers asf4-drivers-min)
   set_property(TARGET fatfs PROPERTY INTERFACE_LINK_LIBRARIES "")
-  target_include_directories(fatfs SYSTEM PUBLIC FatFs/source)
+  target_include_directories(fatfs SYSTEM PUBLIC fatfs/source)
   target_compile_options(fatfs PRIVATE -Wno-switch-default)
 endif() # CMAKE_CROSSCOMPILING
 

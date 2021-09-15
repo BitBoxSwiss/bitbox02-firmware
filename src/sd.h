@@ -54,7 +54,8 @@ USE_RESULT bool sd_load_bin(const char* fn, const char* dir, uint8_t* buffer, si
  * @param[in] data The data that should be written into the file.
  * @param[in] length The length of the data byte array.
  * @param[in] replace Whether the file can be replaced.
- * @return true if mounting and opening the file is OK, false otherwise.
+ * @return true if mounting, dnd opening the file and writing the data to it suceeds, false
+ * otherwise.
  */
 USE_RESULT bool sd_write_bin(
     const char* fn,

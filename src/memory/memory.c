@@ -152,11 +152,17 @@ static void _clean_chunk(uint8_t** chunk_bytes)
 
 // chunk must have size CHUNK_SIZE. if chunk is NULL, the chunk is erased,
 // i.e. filled with 0xFF.
-static bool _write_to_address(uint32_t addr, uint8_t* chunk)
+//
+// `offset` is a relative address (offset from where the memory starts at `base`) and starts at `0`.
+static bool _write_to_address(uint32_t base, uint32_t offset, uint8_t* chunk)
 {
 #ifdef TESTING
-    return memory_write_to_address_mock(addr, chunk);
+    return memory_write_to_address_mock(base, offset, chunk);
 #else
+    uint32_t addr = base + offset;
+    if (addr < base) {
+        Abort("uint32_t overflow");
+    }
     // Sanity check that the address is correctly aligned,
     // so the erase actually erases only one block.
     if (addr != (addr & ~(CHUNK_SIZE - 1))) {
@@ -205,8 +211,8 @@ static bool _write_chunk(uint32_t chunk_num, uint8_t* chunk)
 #ifdef TESTING
     return memory_write_chunk_mock(chunk_num, chunk);
 #else
-    uint32_t addr = FLASH_APPDATA_START + chunk_num * CHUNK_SIZE;
-    return _write_to_address(addr, chunk);
+    uint32_t offset = chunk_num * CHUNK_SIZE;
+    return _write_to_address(FLASH_APPDATA_START, offset, chunk);
 #endif
 }
 
@@ -324,7 +330,7 @@ bool memory_setup(memory_interface_functions_t* ifs)
     _interface_functions->random_32_bytes(chunk.fields.encryption_key);
     _interface_functions->random_32_bytes(shared_chunk.fields.encryption_key_split);
 
-    if (!_write_to_address(FLASH_SHARED_DATA_START, shared_chunk.bytes)) {
+    if (!_write_to_address(FLASH_SHARED_DATA_START, 0, shared_chunk.bytes)) {
         return false;
     }
 
@@ -338,8 +344,8 @@ bool memory_cleanup_smarteeprom(void)
 {
     // Erase all SmartEEPROM data chunks.
     for (size_t i = 0; i < SMARTEEPROM_ALLOCATED_BLOCKS; ++i) {
-        uint32_t w_addr = FLASH_SMARTEEPROM_START + i * CHUNK_SIZE;
-        if (!_write_to_address(w_addr, NULL)) {
+        uint32_t w_offset = i * CHUNK_SIZE;
+        if (!_write_to_address(FLASH_SMARTEEPROM_START, w_offset, NULL)) {
             return false;
         }
     }
@@ -639,7 +645,7 @@ bool memory_bootloader_set_flags(auto_enter_t auto_enter, upside_down_t upside_d
     chunk.fields.upside_down = upside_down.value ? 1 : 0;
     // As this operation is quite important to succeed, we try it multiple times.
     for (int i = 0; i < 10; i++) {
-        if (_write_to_address(FLASH_SHARED_DATA_START, chunk.bytes)) {
+        if (_write_to_address(FLASH_SHARED_DATA_START, 0, chunk.bytes)) {
             return true;
         }
 #ifndef TESTING

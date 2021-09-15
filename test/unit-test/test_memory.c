@@ -84,8 +84,9 @@ bool __wrap_memory_write_chunk_mock(uint32_t chunk_num, uint8_t* chunk)
     return mock();
 }
 
-bool __wrap_memory_write_to_address_mock(uint32_t addr, uint8_t* chunk)
+bool __wrap_memory_write_to_address_mock(uint32_t base, uint32_t addr, uint8_t* chunk)
 {
+    check_expected(base);
     check_expected(addr);
     check_expected(chunk);
     return true;
@@ -148,7 +149,8 @@ static void _expect_setup(uint8_t* expected_chunk, uint8_t* expected_shared_chun
     memcpy(expected_chunk + _addr_enckey, _enc_key, 32);
     memcpy(expected_shared_chunk + _addr_enckey_split, _enc_key_split, 32);
 
-    expect_value(__wrap_memory_write_to_address_mock, addr, FLASH_SHARED_DATA_START);
+    expect_value(__wrap_memory_write_to_address_mock, base, FLASH_SHARED_DATA_START);
+    expect_value(__wrap_memory_write_to_address_mock, addr, 0);
     expect_memory(__wrap_memory_write_to_address_mock, chunk, expected_shared_chunk, CHUNK_SIZE);
 
     expect_value(__wrap_memory_write_chunk_mock, chunk_num, 0);

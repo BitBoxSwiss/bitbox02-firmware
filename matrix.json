@@ -1,0 +1,77 @@
+{
+    "uuid": "4BA68789-FF92-4649-B7D8-65BCE3966589",
+    "version": "2.0",
+    "organisation": {
+        "name": "Shift CryptoAG",
+        "web": "https://shiftcrypto.ch/",
+        "email": "support@shiftcrypto.ch",
+        "location": "Switzerland",
+        "established": "2018-01-23"
+    },
+    "wallet": {
+        "name": "Bitbox02",
+        "web": "https://shiftcrypto.ch/bitbox02/",
+        "socials": [
+            {
+                "type": "twitter",
+                "slug": "shiftcryptoHQ"
+            },
+            {
+                "type": "medium",
+                "slug": "shiftcrypto"
+            },
+            {
+                "type": "linkedin",
+                "slug": "shift-crypto"
+            }
+        ],
+        "version": ""
+    },
+    "features": {
+        "currencies": [
+            {
+                "type": "crypto",
+                "ticker": "BTC,LTC,ETH,BAT"
+            },
+            {
+              "type": "stablecoin",
+              "ticker": "USDT"
+            }
+        ],
+        "wallet_types": ["on-chain"],
+        "security": ["touch-id","fake-wallet"],
+        "privacy": ["tor"],
+        "languages": [
+            {
+                "iso6392": "EN,FR,DE,ZH,BG,ML,JA,PT,HI,HE,FA,SL,TR,ES,RU"
+            }
+        ],
+        "custodial": "N",
+        "license": ["Apache 2.0"],
+        "multisig": "Y",
+        "testnet": "N",
+        "batchtx": "?",
+        "fio": "?",
+        "form_factor": "hardware",
+        "custom_node": "Y",
+        "rbf": "?",
+        "psbt": "?",
+        "reproducible_builds": "Y",
+        "hd": "Y",
+        "sna": "Y",
+        "fee_estimation": "?",
+        "fee_control": "?",
+        "hardware": ["secure-element","backup","u2f"],
+        "lightning": [],
+        "refill": [],
+        "validation": "full",
+        "platforms": [
+            {
+                "name": "hardware",
+                "github": "https://github.com/digitalbitbox/",
+                "download": "https://shiftcrypto.ch/bitbox02/",
+                "language": "C"
+            }
+        ]
+    }
+}

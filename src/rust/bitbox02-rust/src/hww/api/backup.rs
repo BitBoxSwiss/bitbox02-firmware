@@ -172,6 +172,6 @@ mod tests {
             })),
             Ok(Response::Success(pb::Success {}))
         );
-        // TODO check seed birthdate
+        assert_eq!(EXPECTED_TIMESTMAP, bitbox02::memory::get_seed_birthdate());
     }
 }

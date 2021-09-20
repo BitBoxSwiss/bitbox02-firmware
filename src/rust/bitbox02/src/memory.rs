@@ -112,3 +112,11 @@ pub fn set_seed_birthdate(timestamp: u32) -> Result<(), ()> {
         false => Err(()),
     }
 }
+
+pub fn get_seed_birthdate() -> u32 {
+    let mut timestamp = core::mem::MaybeUninit::uninit();
+    unsafe {
+        bitbox02_sys::memory_get_seed_birthdate(timestamp.as_mut_ptr());
+        timestamp.assume_init()
+    }
+}

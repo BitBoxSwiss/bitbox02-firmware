@@ -78,7 +78,7 @@ typedef union {
 
 #pragma GCC diagnostic pop
 
-static securechip_interface_functions_t* _interface_functions = NULL;
+static const securechip_interface_functions_t* _interface_functions = NULL;
 
 /** \brief initialize an I2C interface using given config.
  * \param[in] hal - opaque ptr to HAL data
@@ -364,7 +364,7 @@ static int _verify_config(void)
     return ATCA_SUCCESS;
 }
 
-int securechip_setup(securechip_interface_functions_t* ifs)
+int securechip_setup(const securechip_interface_functions_t* ifs)
 {
     if (ifs == NULL) {
         return SC_ERR_IFS;

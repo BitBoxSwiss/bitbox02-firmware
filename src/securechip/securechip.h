@@ -68,7 +68,7 @@ typedef enum {
  * @return values of `securechip_error_t` if negative, values of `ATCA_STATUS` if positive, 0 on
  * success.
  */
-USE_RESULT int securechip_setup(securechip_interface_functions_t* ifs);
+USE_RESULT int securechip_setup(const securechip_interface_functions_t* ifs);
 
 /**
  * Updates the two KDF keys (rollkey and kdf key). The previous keys are lost

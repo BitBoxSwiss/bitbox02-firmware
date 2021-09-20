@@ -107,7 +107,7 @@ static void _mock_random_32_bytes(uint8_t* buf)
     memcpy(buf, (uint8_t*)mock(), 32);
 }
 
-static memory_interface_functions_t _ifs = {
+static const memory_interface_functions_t _ifs = {
     .random_32_bytes = _mock_random_32_bytes,
 };
 

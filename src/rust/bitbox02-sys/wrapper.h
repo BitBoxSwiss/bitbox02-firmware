@@ -49,6 +49,10 @@
 #include <wally_crypto.h>
 #include <workflow/confirm.h>
 
+#if defined(TESTING)
+#include <mock_memory.h>
+#endif
+
 #if !defined(TESTING)
 #include <hal_delay.h>
 #else

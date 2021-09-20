@@ -44,7 +44,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_memory, Data, MUTEX};
     use std::boxed::Box;
 
     #[test]
@@ -57,18 +57,25 @@ mod tests {
                 assert_eq!(params.body, "Optional\npassphrase");
                 true
             })),
-            memory_set_mnemonic_passphrase_enabled: Some(Box::new(|enabled| {
-                assert_eq!(enabled, true);
-                Ok(())
-            })),
             ..Default::default()
         });
+        mock_memory();
+        // Enable:
         assert_eq!(
             block_on(process(&pb::SetMnemonicPassphraseEnabledRequest {
                 enabled: true
             })),
             Ok(Response::Success(pb::Success {}))
         );
+        assert!(bitbox02::memory::is_mnemonic_passphrase_enabled());
+        // Disable:
+        assert_eq!(
+            block_on(process(&pb::SetMnemonicPassphraseEnabledRequest {
+                enabled: false
+            })),
+            Ok(Response::Success(pb::Success {}))
+        );
+        assert!(!bitbox02::memory::is_mnemonic_passphrase_enabled());
 
         // User aborted confirmation.
         mock(Data {

@@ -280,6 +280,9 @@ get_property(SECP256k1_INCLUDES TARGET secp256k1 PROPERTY INTERFACE_INCLUDE_DIRE
 foreach(include ${INCLUDES} ${SYSTEMINCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDES} ${ASF4_MIN_INCLUDES} ${CMSIS_INCLUDES} ${NANOPB_INCLUDE_DIRS} ${WALLY_INCLUDES} ${SECP256k1_INCLUDES})
   list(APPEND RUST_INCLUDES -I${include})
 endforeach()
+if(NOT CMAKE_CROSSCOMPILING)
+  list(APPEND RUST_INCLUDES -I${CMAKE_SOURCE_DIR}/test/unit-test/framework/includes)
+endif()
 
 if(CMAKE_CROSSCOMPILING)
   set(RUST_BINDGEN_FLAGS -D__SAMD51J20A__ --target=thumbv7em-none-eabi -mcpu=cortex-m4 -mthumb -mfloat-abi=soft --sysroot=${CMAKE_SYSROOT}
@@ -305,6 +308,8 @@ add_custom_target(rust-bindgen
     --whitelist-function wally_free_string
     --whitelist-function backup_check
     --whitelist-function backup_create
+    --whitelist-function mock_memory_factoryreset
+    --whitelist-function memory_setup
     --whitelist-function memory_is_initialized
     --whitelist-function memory_set_initialized
     --whitelist-function memory_is_mnemonic_passphrase_enabled

@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 
-bool memory_write_to_address_mock(uint32_t addr, uint8_t* chunk)
+bool memory_write_to_address_mock(uint32_t base, uint32_t offset, uint8_t* chunk)
 {
     return true;
 }

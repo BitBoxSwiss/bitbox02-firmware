@@ -79,6 +79,7 @@ dependencies = [
  "bitbox02-rust",
  "hex",
  "sha2",
+ "sha3",
  "util",
 ]
 

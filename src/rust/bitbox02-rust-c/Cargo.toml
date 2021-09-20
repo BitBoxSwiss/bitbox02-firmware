@@ -29,6 +29,7 @@ bitbox02-noise = { path = "../bitbox02-noise", optional = true }
 util = { path = "../util" }
 hex = { version = "0.4", default-features = false }
 sha2 = { version = "0.9.2", default-features = false, optional = true }
+sha3 = { version = "0.9.1", default-features = false, optional = true }
 
 [features]
 # Only one of the "target-" should be activated, which in turn defines/activates the dependent features.
@@ -54,6 +55,8 @@ firmware = ["bitbox02-rust", "bitbox02", "bitbox02-noise", "sha2"]
 testing = ["bitbox02/testing"]
 
 app-ethereum = [
+  # enable this dep
+  "sha3",
   # enable this feature in the deps
   "bitbox02-rust/app-ethereum",
   "bitbox02/app-ethereum",

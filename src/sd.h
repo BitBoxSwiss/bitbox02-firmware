@@ -64,4 +64,8 @@ USE_RESULT bool sd_write_bin(
     uint16_t length,
     bool replace);
 
+#ifdef TESTING
+USE_RESULT bool sd_format(void);
+#endif
+
 #endif

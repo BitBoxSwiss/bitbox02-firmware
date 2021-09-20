@@ -44,6 +44,17 @@ message("FILTERED SOURCES: ${DBB-FILTERED-SOURCES}")
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/tools/nanopb/extra)
 find_package(Nanopb REQUIRED)
 
+add_library(sd-mock
+  STATIC
+  framework/mock_diskio.c
+)
+target_include_directories(
+  sd-mock
+  PUBLIC
+  $<TARGET_PROPERTY:fatfs,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+
 # We create a CMake "object library" to track all the compiled sources so that
 # they can be reused between a normal library and the manually crafted "merged"
 # library.
@@ -60,8 +71,6 @@ add_library(bitbox_objects
   framework/mock_qtouch.c
   framework/mock_gestures.c
   framework/mock_component.c
-  framework/mock_ff.c
-  framework/mock_sd.c
   framework/mock_smarteeprom.c
   framework/mock_securechip.c
   framework/mock_delay.c
@@ -102,6 +111,7 @@ target_include_directories(
   $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:fatfs,INTERFACE_INCLUDE_DIRECTORIES>
 )
 target_include_directories(
   bitbox_objects
@@ -122,6 +132,7 @@ target_include_directories(
   $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:fatfs,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_include_directories(
@@ -140,6 +151,8 @@ add_dependencies(bitbox_objects
   sha3
   base32
   ctaes
+  fatfs
+  sd-mock
 )
 target_link_libraries(bitbox PRIVATE ${LIBBITBOX02_RUST} "-lm")
 
@@ -161,7 +174,6 @@ target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BI
 target_compile_definitions(bitbox PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 target_compile_definitions(bitbox PUBLIC TESTING)
 
-
 target_link_libraries(bitbox
   PUBLIC
     secp256k1
@@ -170,6 +182,8 @@ target_link_libraries(bitbox
     wallycore
     base32
     ctaes
+    fatfs
+    sd-mock
 )
 
 if(SANITIZE_ADDRESS)
@@ -254,9 +268,9 @@ set(TEST_LIST
    salt
    "-Wl,--wrap=memory_get_salt_root"
    backup
-   "-Wl,--wrap=keystore_copy_seed,--wrap=memory_get_seed_birthdate,--wrap=sd_write_bin,--wrap=sd_load_bin,--wrap=sd_list_subdir,--wrap=sd_erase_file_in_subdir,--wrap=sd_file_rename,--wrap=memory_get_device_name"
+   "-Wl,--wrap=keystore_copy_seed,--wrap=memory_get_seed_birthdate,--wrap=memory_get_device_name"
    restore
-   "-Wl,--wrap=keystore_copy_seed,--wrap=keystore_encrypt_and_store_seed,--wrap=memory_get_seed_birthdate,--wrap=sd_write_bin,--wrap=sd_load_bin,--wrap=sd_list_subdir,--wrap=sd_list,--wrap=sd_erase_file_in_subdir,--wrap=sd_file_rename,--wrap=memory_get_device_name,--wrap=memory_set_device_name"
+   "-Wl,--wrap=keystore_copy_seed,--wrap=keystore_encrypt_and_store_seed,--wrap=memory_get_seed_birthdate,--wrap=memory_get_device_name,--wrap=memory_set_device_name"
    cipher
    "-Wl,--wrap=random_32_bytes"
    sha3

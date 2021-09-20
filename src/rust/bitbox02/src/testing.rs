@@ -34,7 +34,6 @@ pub struct Data {
     pub memory_set_seed_birthdate: Option<Box<dyn Fn(u32) -> Result<(), ()>>>,
     pub memory_is_initialized: Option<bool>,
     pub memory_set_initialized_result: Option<Result<(), ()>>,
-    pub backup_create: Option<Box<dyn Fn(u32, u32) -> Result<(), super::backup::Error>>>,
     pub ui_transaction_address_create: Option<Box<dyn Fn(&str, &str) -> bool>>,
     pub ui_transaction_fee_create: Option<Box<dyn Fn(&str, &str) -> bool>>,
 }
@@ -61,4 +60,11 @@ pub fn mock_unlocked() {
     let seed: [u8; 32] = keystore::bip39_mnemonic_to_seed("purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay").unwrap().as_slice().try_into().unwrap();
     unsafe { bitbox02_sys::mock_state(seed.as_ptr(), core::ptr::null()) }
     keystore::unlock_bip39(&crate::input::SafeInputString::new()).unwrap();
+}
+
+/// This mounts a new FAT32 volume in RAM for use in unit tests. As there is only one volume, access only when holding `MUTEX`.
+pub fn mock_sd() {
+    unsafe {
+        bitbox02_sys::sd_format();
+    }
 }

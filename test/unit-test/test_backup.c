@@ -28,7 +28,6 @@
 #include <pb_encode.h>
 #include <util.h>
 
-#include <assert_sd.h>
 #include <ff.h>
 #include <sd.h>
 #include <wally_crypto.h>
@@ -85,12 +84,12 @@ static void _load_first_backup(Backup* backup, BackupData* backup_data)
 
 static int test_setup(void** state)
 {
+    assert_true(sd_format());
     return 0;
 }
 
 static int test_teardown(void** state)
 {
-    reset_sd();
     return 0;
 }
 
@@ -114,6 +113,12 @@ static void test_backup_calculate_checksum(void** state)
     assert_memory_not_equal(backup.backup_v1.content.checksum, zeros, SHA256_LEN);
 }
 
+static bool dir_exists(const char* dir)
+{
+    sd_list_t files __attribute__((__cleanup__(sd_free_list)));
+    return sd_list(&files) && files.num_files > 0;
+}
+
 /**
  * Test Backup Create.
  */
@@ -133,7 +138,9 @@ static void test_backup_create(void** state)
     for (uint8_t i = 0; i < 3; i++) {
         char file_name[257];
         snprintf(file_name, sizeof(file_name), "backup_Wed_2019-03-20T16-22-31Z_%d.bin", i);
-        assert_true(file_exists(file_name, dir_name));
+        uint8_t buff[1000] = {0};
+        size_t written;
+        assert_true(sd_load_bin(file_name, dir_name, buff, &written));
     }
 
     // test if decode works

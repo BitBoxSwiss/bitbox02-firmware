@@ -25,7 +25,6 @@
 #include <pb_encode.h>
 #include <wally_crypto.h>
 
-#include <assert_sd.h>
 #include <backup/backup.h>
 #include <backup/restore.h>
 #include <sd.h>
@@ -89,8 +88,16 @@ static void _will_mock_backup_queries(const uint32_t seed_birthdate, const uint8
     will_return(__wrap_keystore_copy_seed, cast_ptr_to_largest_integral_type(seed));
 }
 
+static bool dir_exists(const char* dir)
+{
+    sd_list_t files __attribute__((__cleanup__(sd_free_list)));
+    return sd_list(&files) && files.num_files > 0;
+}
+
 static int test_setup(void** state)
 {
+    assert_true(sd_format());
+
     _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
 
     assert_int_equal(
@@ -120,7 +127,6 @@ static int test_setup(void** state)
 
 static int test_teardown(void** state)
 {
-    reset_sd();
     return 0;
 }
 

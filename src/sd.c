@@ -386,3 +386,19 @@ bool sd_erase_file_in_subdir(const char* fn, const char* subdir)
 {
     return _erase_in_subdir(fn, subdir, false);
 }
+
+#ifdef TESTING
+bool sd_format(void)
+{
+    const MKFS_PARM params = {
+        .fmt = FM_FAT32,
+        // Default values for the rest.
+        .n_fat = 0,
+        .align = 0,
+        .n_root = 0,
+        .au_size = 0,
+    };
+    uint8_t work[FF_MAX_SS] = {0};
+    return f_mkfs("SD", &params, work, sizeof(work)) == FR_OK;
+}
+#endif

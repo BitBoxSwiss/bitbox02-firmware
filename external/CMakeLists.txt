@@ -223,16 +223,18 @@ set_property(TARGET asf4-drivers PROPERTY INTERFACE_LINK_LIBRARIES "")
   target_compile_definitions(cryptoauthlib PUBLIC ATCA_HAL_CUSTOM ATCA_NO_POLL)
   target_include_directories(cryptoauthlib SYSTEM PUBLIC cryptoauthlib/lib)
   target_compile_options(cryptoauthlib PRIVATE -Wno-pedantic -Wno-incompatible-pointer-types -Wno-unused-parameter -Wno-unused-variable)
-
-  add_library(fatfs
-    fatfs/source/ff.c
-    fatfs/source/ffunicode.c
-  )
-  target_link_libraries(fatfs samd51a-ds asf4-drivers asf4-drivers-min)
-  set_property(TARGET fatfs PROPERTY INTERFACE_LINK_LIBRARIES "")
-  target_include_directories(fatfs SYSTEM PUBLIC fatfs/source)
-  target_compile_options(fatfs PRIVATE -Wno-switch-default)
 endif() # CMAKE_CROSSCOMPILING
+
+# fatfs must to be linked together with a diskio middleware:
+# - in the firmware, it is linked with asf4-drivers, which contains sdmmc_diskio.c (writing to actual microSD cards)
+# - in unit tests, it is linked with a lib containing mock_diskio.c (volume mounted in RAM).
+add_library(fatfs
+  fatfs/source/ff.c
+  fatfs/source/ffunicode.c
+  )
+set_property(TARGET fatfs PROPERTY INTERFACE_LINK_LIBRARIES "")
+target_include_directories(fatfs SYSTEM PUBLIC fatfs/source)
+target_compile_options(fatfs PRIVATE -Wno-switch-default)
 
 add_library(base32
   base32/base32.c

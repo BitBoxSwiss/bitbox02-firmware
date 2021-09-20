@@ -144,7 +144,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_sd, mock_unlocked, Data, MUTEX};
     use std::boxed::Box;
 
     /// Test backup creation on a uninitialized keystore.
@@ -166,15 +166,10 @@ mod tests {
                 assert_eq!(timestamp, EXPECTED_TIMESTMAP);
                 Ok(())
             })),
-            backup_create: Some(Box::new(
-                |backup_create_timestamp, seed_birthdate_timestamp| {
-                    assert_eq!(backup_create_timestamp, EXPECTED_TIMESTMAP);
-                    assert_eq!(seed_birthdate_timestamp, EXPECTED_TIMESTMAP);
-                    Ok(())
-                },
-            )),
             ..Default::default()
         });
+        mock_sd();
+        mock_unlocked();
         assert_eq!(
             block_on(create(&pb::CreateBackupRequest {
                 timestamp: EXPECTED_TIMESTMAP,

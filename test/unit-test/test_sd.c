@@ -12,53 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <alloca.h>
-#include <string.h>
-
-#include <assert_ff.h>
-#include <ff.h>
-#include <sd.h>
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <cmocka.h>
 
-/* tests */
+#include <sd.h>
 
-static void _test_sd_write_bin(void** state)
+static void _test_sd_write_read(void** state)
 {
+    assert_true(sd_format());
     uint8_t data[4] = "data";
+
     assert_false(sd_write_bin("test.pdf", NULL, NULL, 0, false));
     assert_false(sd_write_bin("test.pdf", NULL, data, 0, false));
     assert_false(sd_write_bin("", NULL, data, sizeof(data), false));
     assert_false(sd_write_bin(NULL, NULL, data, sizeof(data), false));
 
-    assert_will_mount_unmount();
-    expect_string(f_open, path, "0:/bitbox02/test.pdf");
-    expect_memory(f_write, buff, data, sizeof(data));
-    expect_value(f_write, btw, sizeof(data));
     assert_true(sd_write_bin("test.pdf", NULL, data, sizeof(data), false));
-
-    { // write max length
-        uint8_t maxdata[SD_MAX_FILE_SIZE] = {0};
-        memset(maxdata, 'x', sizeof(maxdata));
-        assert_will_mount_unmount();
-        expect_string(f_open, path, "0:/bitbox02/test.pdf");
-        expect_memory(f_write, buff, maxdata, sizeof(maxdata));
-        expect_value(f_write, btw, sizeof(maxdata));
-        assert_true(sd_write_bin("test.pdf", NULL, maxdata, sizeof(maxdata), false));
-    }
-
-    { // write more than max length
-        uint8_t maxdata[SD_MAX_FILE_SIZE + 1] = {0};
-        assert_false(sd_write_bin("test.pdf", NULL, maxdata, sizeof(maxdata), false));
-    }
+    uint8_t read[100] = {0};
+    size_t readlen;
+    assert_true(sd_load_bin("test.pdf", NULL, read, &readlen));
+    assert_int_equal(readlen, 4);
+    assert_memory_equal(read, data, readlen);
 }
 
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(_test_sd_write_bin),
+        cmocka_unit_test(_test_sd_write_read),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -39,13 +39,13 @@ uint32_t common_stack_chk_guard(void)
     return rand_sync_read32(&RAND_0);
 }
 
-static memory_interface_functions_t _memory_interface_functions = {
+static const memory_interface_functions_t _memory_interface_functions = {
     // Use random_32_bytes_mcu over random_32_bytes as the latter mixes in
     // randomness from the securechip, which is initialized only later.
     .random_32_bytes = random_32_bytes_mcu,
 };
 
-static securechip_interface_functions_t _securechip_interface_functions = {
+static const securechip_interface_functions_t _securechip_interface_functions = {
     .get_auth_key = memory_get_authorization_key,
     .get_io_protection_key = memory_get_io_protection_key,
     .get_encryption_key = memory_get_encryption_key,

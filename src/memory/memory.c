@@ -230,7 +230,7 @@ static void _read_shared_bootdata(uint8_t* chunk_out)
 #endif
 }
 
-memory_interface_functions_t* _interface_functions = NULL;
+static const memory_interface_functions_t* _interface_functions = NULL;
 
 /********* Exposed functions ****************/
 
@@ -282,7 +282,7 @@ void memory_get_seed_birthdate(uint32_t* timestamp_out)
     }
 }
 
-bool memory_setup(memory_interface_functions_t* ifs)
+bool memory_setup(const memory_interface_functions_t* ifs)
 {
     if (ifs == NULL) {
         return false;

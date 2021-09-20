@@ -52,7 +52,7 @@ typedef enum {
  * @param[in] ifs Interface functions.
  * @return true on success, false on failure.
  */
-USE_RESULT bool memory_setup(memory_interface_functions_t* ifs);
+USE_RESULT bool memory_setup(const memory_interface_functions_t* ifs);
 USE_RESULT bool memory_reset_hww(void);
 
 /**

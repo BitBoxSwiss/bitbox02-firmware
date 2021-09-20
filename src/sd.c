@@ -162,7 +162,7 @@ bool sd_write_bin(
     const uint16_t length,
     bool replace)
 {
-    if (!length || length > SD_MAX_FILE_SIZE) {
+    if (!strlens(fn) || data == NULL || !length || length > SD_MAX_FILE_SIZE) {
         return false;
     }
 
@@ -181,72 +181,6 @@ bool sd_write_bin(
     f_close(&file_object);
     _unmount();
     return result == FR_OK;
-}
-
-bool sd_write(const char* fn, const char* dir, const char* text, bool replace)
-{
-    size_t text_len = strlens(text);
-    if (!text_len || text_len > SD_MAX_FILE_SIZE || !strlens(fn)) {
-        return false;
-    }
-
-    if (!_mount()) {
-        return false;
-    }
-
-    FIL file_object;
-    if (!_open(fn, dir, replace, &file_object)) {
-        _unmount();
-        return false;
-    }
-
-    if (f_puts(text, &file_object) == EOF) {
-        f_close(&file_object);
-        _unmount();
-        return false;
-    }
-
-    f_close(&file_object);
-    _unmount();
-    return true;
-}
-
-bool sd_load(const char* fn, const char* dir, char* text_out)
-{
-    if (text_out == NULL || !strlens(fn)) {
-        return false;
-    }
-
-    if (!_mount()) {
-        return false;
-    }
-
-    char line[SD_MAX_FILE_SIZE + 1] = {0};
-    FIL file_object;
-    if (!_open(fn, dir, FA_OPEN_EXISTING | FA_READ, &file_object)) {
-        _unmount();
-        return false;
-    }
-    if (f_size(&file_object) > SD_MAX_FILE_SIZE) {
-        f_close(&file_object);
-        _unmount();
-        return false;
-    }
-    unsigned text_p_index = 0;
-    while (f_gets(line, sizeof(line), &file_object)) {
-        int snprintf_result =
-            snprintf(text_out + text_p_index, SD_MAX_FILE_SIZE + 1 - text_p_index, "%s", line);
-        if (snprintf_result < 0 || snprintf_result >= (int)(SD_MAX_FILE_SIZE + 1 - text_p_index)) {
-            _unmount();
-            return false;
-        }
-        text_p_index += strlens(line);
-        text_out[text_p_index] = '\0';
-    }
-
-    f_close(&file_object);
-    _unmount();
-    return true;
 }
 
 bool sd_load_bin(const char* fn, const char* dir, uint8_t* buffer, size_t* length_out)
@@ -386,37 +320,6 @@ bool sd_card_inserted(void)
 #endif
 }
 
-bool sd_file_exists_subdir(const char* fn, const char* subdir, bool* exists_out)
-{
-    if (!strlens(fn) || exists_out == NULL) {
-        return false;
-    }
-
-    if (!_mount()) {
-        return false;
-    }
-
-    char file[772] = {0};
-    if (!_get_absolute_path(subdir, fn, file, sizeof(file), false)) {
-        _unmount();
-        return false;
-    }
-
-    FIL file_object;
-    FRESULT result = f_open(&file_object, (char const*)file, FA_OPEN_EXISTING | FA_READ);
-    *exists_out = result == FR_OK;
-    if (*exists_out) {
-        f_close(&file_object);
-    }
-    _unmount();
-    return true;
-}
-
-bool sd_file_exists(const char* fn, bool* exists_out)
-{
-    return sd_file_exists_subdir(fn, NULL, exists_out);
-}
-
 /**
  * Deletes the directory in the given sub-directory if no files are in the directory.
  * Expects that the filesystem is already mounted.
@@ -482,41 +385,4 @@ static bool _erase_in_subdir(const char* fn, const char* subdir, bool is_dir)
 bool sd_erase_file_in_subdir(const char* fn, const char* subdir)
 {
     return _erase_in_subdir(fn, subdir, false);
-}
-
-bool sd_erase_file(const char* fn)
-{
-    return _erase_in_subdir(fn, NULL, false);
-}
-
-bool sd_erase_dir(const char* directory_name)
-{
-    return _erase_in_subdir(NULL, directory_name, true);
-}
-
-bool sd_file_rename(const char* from, const char* to, const char* dir)
-{
-    if (!strlens(from) || !strlens(to)) {
-        return false;
-    }
-
-    if (!_mount()) {
-        return false;
-    }
-
-    char oldfile[772] = {0};
-    if (!_get_absolute_path(dir, from, oldfile, sizeof(oldfile), false)) {
-        _unmount();
-        return false;
-    }
-
-    char newfile[772] = {0};
-    if (!_get_absolute_path(dir, to, newfile, sizeof(newfile), false)) {
-        _unmount();
-        return false;
-    }
-
-    FRESULT result = f_rename(oldfile, newfile);
-    _unmount();
-    return result == FR_OK;
 }

@@ -34,19 +34,8 @@ USE_RESULT bool sd_list(sd_list_t* list_out);
 USE_RESULT bool sd_list_subdir(sd_list_t* list_out, const char* subdir);
 void sd_free_list(sd_list_t* list);
 USE_RESULT bool sd_card_inserted(void);
-// returns false on error. If no error, exists_out will have the result.
-USE_RESULT bool sd_file_exists(const char* fn, bool* exists_out);
-USE_RESULT bool sd_file_exists_subdir(const char* fn, const char* subdir, bool* exists_out);
 // returns true if the erase was successful.
-USE_RESULT bool sd_erase_file(const char* fn);
-USE_RESULT bool sd_erase_dir(const char* directory_name);
 USE_RESULT bool sd_erase_file_in_subdir(const char* fn, const char* subdir);
-// text_out must of of size SD_MAX_FILE_SIZE+1, and will be null terminated.
-USE_RESULT bool sd_load(const char* fn, const char* dir, char* text_out);
-// files are text-based, not binary.  text, excluding null terminator, cant
-// exceed SD_MAX_FILE_SIZE.
-USE_RESULT bool sd_write(const char* fn, const char* dir, const char* text, bool replace);
-USE_RESULT bool sd_file_rename(const char* from, const char* to, const char* dir);
 
 /**
  * Reads binary data from SD card.
@@ -65,7 +54,8 @@ USE_RESULT bool sd_load_bin(const char* fn, const char* dir, uint8_t* buffer, si
  * @param[in] data The data that should be written into the file.
  * @param[in] length The length of the data byte array.
  * @param[in] replace Whether the file can be replaced.
- * @return true if mounting and opening the file is OK, false otherwise.
+ * @return true if mounting, dnd opening the file and writing the data to it suceeds, false
+ * otherwise.
  */
 USE_RESULT bool sd_write_bin(
     const char* fn,

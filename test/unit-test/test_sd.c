@@ -25,40 +25,40 @@
 
 /* tests */
 
-static void _test_sd_write(void** state)
+static void _test_sd_write_bin(void** state)
 {
-    assert_false(sd_write("test.pdf", NULL, NULL, false));
-    assert_false(sd_write("test.pdf", NULL, "", false));
-    assert_false(sd_write("", NULL, "text", false));
-    assert_false(sd_write(NULL, NULL, "text", false));
+    uint8_t data[4] = "data";
+    assert_false(sd_write_bin("test.pdf", NULL, NULL, 0, false));
+    assert_false(sd_write_bin("test.pdf", NULL, data, 0, false));
+    assert_false(sd_write_bin("", NULL, data, sizeof(data), false));
+    assert_false(sd_write_bin(NULL, NULL, data, sizeof(data), false));
 
     assert_will_mount_unmount();
     expect_string(f_open, path, "0:/bitbox02/test.pdf");
-    expect_string(f_puts, str, "text");
-    assert_true(sd_write("test.pdf", NULL, "text", false));
+    expect_memory(f_write, buff, data, sizeof(data));
+    expect_value(f_write, btw, sizeof(data));
+    assert_true(sd_write_bin("test.pdf", NULL, data, sizeof(data), false));
 
     { // write max length
-        char* maxtext = alloca(SD_MAX_FILE_SIZE + 1);
-        memset(maxtext, 'x', SD_MAX_FILE_SIZE);
-        maxtext[SD_MAX_FILE_SIZE] = 0;
+        uint8_t maxdata[SD_MAX_FILE_SIZE] = {0};
+        memset(maxdata, 'x', sizeof(maxdata));
         assert_will_mount_unmount();
         expect_string(f_open, path, "0:/bitbox02/test.pdf");
-        expect_string(f_puts, str, maxtext);
-        assert_true(sd_write("test.pdf", NULL, maxtext, false));
+        expect_memory(f_write, buff, maxdata, sizeof(maxdata));
+        expect_value(f_write, btw, sizeof(maxdata));
+        assert_true(sd_write_bin("test.pdf", NULL, maxdata, sizeof(maxdata), false));
     }
 
     { // write more than max length
-        char* maxtext = alloca(SD_MAX_FILE_SIZE + 2);
-        memset(maxtext, 'x', SD_MAX_FILE_SIZE + 1);
-        maxtext[SD_MAX_FILE_SIZE + 1] = 0;
-        assert_false(sd_write("test.pdf", NULL, maxtext, false));
+        uint8_t maxdata[SD_MAX_FILE_SIZE + 1] = {0};
+        assert_false(sd_write_bin("test.pdf", NULL, maxdata, sizeof(maxdata), false));
     }
 }
 
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(_test_sd_write),
+        cmocka_unit_test(_test_sd_write_bin),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

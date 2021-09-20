@@ -93,7 +93,6 @@ int f_puts(const TCHAR* str, FIL* cp)
 FRESULT f_write(FIL* fp, const void* buff, UINT btw, UINT* bw)
 {
     check_expected(buff);
-    check_expected(bw);
     check_expected(btw);
     *bw = btw;
     return FR_OK;

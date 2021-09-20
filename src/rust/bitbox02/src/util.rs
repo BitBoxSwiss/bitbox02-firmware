@@ -44,7 +44,7 @@ pub fn str_from_null_terminated(input: &[u8]) -> Result<&str, ()> {
 /// let name = "sample_string";
 /// let buf = match str_to_cstr!(name, 50) {
 ///     Ok(buf) => buf,
-///     Err(msg) => panic!(msg),
+///     Err(msg) => panic!("{}", msg),
 /// };
 /// ```
 #[macro_export]

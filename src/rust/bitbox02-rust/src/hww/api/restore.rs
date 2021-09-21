@@ -63,7 +63,7 @@ pub async fn from_mnemonic(
         }
     };
 
-    if bitbox02::keystore::encrypt_and_store_seed(&seed, password.as_str()).is_err() {
+    if bitbox02::keystore::encrypt_and_store_seed(&seed, &password).is_err() {
         status::status("Could not\nrestore backup", false).await;
         return Err(Error::Generic);
     };

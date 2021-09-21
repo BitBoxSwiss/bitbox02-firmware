@@ -110,7 +110,6 @@ target_include_directories(
   ${CMAKE_SOURCE_DIR}/external/fatfs/source
   $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:fatfs,INTERFACE_INCLUDE_DIRECTORIES>
 )
 target_include_directories(
@@ -131,7 +130,6 @@ target_include_directories(
   ${CMAKE_SOURCE_DIR}/external/fatfs/source
   $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:sha3,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:fatfs,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
@@ -148,7 +146,6 @@ add_dependencies(bitbox_objects
   rust-cbindgen
   wallycore
   secp256k1
-  sha3
   base32
   ctaes
   fatfs
@@ -177,7 +174,6 @@ target_compile_definitions(bitbox PUBLIC TESTING)
 target_link_libraries(bitbox
   PUBLIC
     secp256k1
-    sha3
   PRIVATE
     wallycore
     base32
@@ -273,8 +269,6 @@ set(TEST_LIST
    "-Wl,--wrap=keystore_copy_seed,--wrap=keystore_encrypt_and_store_seed,--wrap=memory_get_seed_birthdate,--wrap=memory_get_device_name,--wrap=memory_set_device_name"
    cipher
    "-Wl,--wrap=random_32_bytes"
-   sha3
-   ""
    app_eth_sighash
    ""
    util

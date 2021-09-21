@@ -605,7 +605,6 @@ if(CMAKE_CROSSCOMPILING)
         cryptoauthlib
         fatfs
         base32
-        sha3   # TODO: Only eth
         ctaes
         c
         samd51a-ds

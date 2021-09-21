@@ -246,10 +246,3 @@ add_library(ctaes
   ctaes/ctaes-cbc.c
 )
 target_include_directories(ctaes SYSTEM PUBLIC ctaes)
-
-add_library(sha3
-  sha3/sha3.c
-)
-target_include_directories(sha3 SYSTEM PUBLIC sha3)
-target_compile_definitions(sha3 PUBLIC USE_KECCAK)
-target_compile_options(sha3 PRIVATE -Wno-cast-qual)

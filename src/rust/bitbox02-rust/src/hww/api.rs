@@ -133,6 +133,7 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
         }))),
         Request::CheckBackup(ref request) => Some(backup::check(request).await),
         Request::CreateBackup(ref request) => Some(backup::create(request).await),
+        Request::RestoreBackup(ref request) => Some(restore::from_file(request).await),
         Request::ShowMnemonic(_) => Some(show_mnemonic::process().await),
         Request::RestoreFromMnemonic(ref request) => Some(restore::from_mnemonic(request).await),
         Request::ElectrumEncryptionKey(ref request) => Some(electrum::process(request).await),

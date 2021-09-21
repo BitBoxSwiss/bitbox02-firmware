@@ -19,6 +19,52 @@ use pb::response::Response;
 
 use crate::workflow::{confirm, mnemonic, password, status, unlock};
 
+pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, Error> {
+    #[cfg(feature = "app-u2f")]
+    {
+        let datetime_string =
+            bitbox02::format_datetime(request.timestamp, request.timezone_offset, false);
+        let params = confirm::Params {
+            title: "Is now?",
+            body: &datetime_string,
+            ..Default::default()
+        };
+        confirm::confirm(&params).await?;
+    }
+
+    let data = match bitbox02::backup::restore_from_directory(&request.id) {
+        Ok(data) => data,
+        Err(_) => {
+            status::status("Could not\nrestore backup", false).await;
+            return Err(Error::Generic);
+        }
+    };
+    let password = password::enter_twice().await?;
+    if bitbox02::keystore::encrypt_and_store_seed(&data.seed, &password).is_err() {
+        status::status("Could not\nrestore backup", false).await;
+        return Err(Error::Generic);
+    }
+
+    // Ignore error here. Missing birthdate should not abort an otherwise successful restore.
+    let _ = bitbox02::memory::set_seed_birthdate(data.birthdate);
+
+    #[cfg(feature = "app-u2f")]
+    {
+        // Ignore error - the U2f counter not being set can lead to problems with U2F, but it should
+        // not fail the recovery, so the user can access their coins.
+        let _ = bitbox02::securechip::u2f_counter_set(request.timestamp);
+    }
+
+    bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
+    bitbox02::keystore::unlock(&password).expect("restore_from_file: unlock failed");
+
+    // Ignore non-critical error.
+    let _ = bitbox02::memory::set_device_name(&data.name);
+
+    unlock::unlock_bip39().await;
+    Ok(Response::Success(pb::Success {}))
+}
+
 pub async fn from_mnemonic(
     #[cfg_attr(not(feature = "app-u2f"), allow(unused_variables))]
     &pb::RestoreFromMnemonicRequest {

@@ -1,77 +1,165 @@
 {
-    "uuid": "4BA68789-FF92-4649-B7D8-65BCE3966589",
-    "version": "2.0",
+    "version": "3.0",
     "organisation": {
-        "name": "Shift CryptoAG",
+        "name": "Shift Crypto AG",
         "web": "https://shiftcrypto.ch/",
         "email": "support@shiftcrypto.ch",
         "location": "Switzerland",
-        "established": "2018-01-23"
-    },
-    "wallet": {
-        "name": "Bitbox02",
-        "web": "https://shiftcrypto.ch/bitbox02/",
+        "established": "2020-04-01",
         "socials": [
             {
                 "type": "twitter",
                 "slug": "shiftcryptoHQ"
             },
             {
-                "type": "medium",
-                "slug": "shiftcrypto"
-            },
-            {
                 "type": "linkedin",
                 "slug": "shift-crypto"
-            }
-        ],
-        "version": ""
-    },
-    "features": {
-        "currencies": [
-            {
-                "type": "crypto",
-                "ticker": "BTC,LTC,ETH,BAT"
             },
             {
-              "type": "stablecoin",
-              "ticker": "USDT"
+                "type": "facebook",
+                "slug": "Shiftcrypto"
+            },
+            {
+                "type": "instagram",
+                "slug": "shiftcryptohq"
+            },
+            {
+                "type": "telegram",
+                "slug": "bitboxwallet"
+            },
+            {
+                "type": "reddit",
+                "slug": "BitBoxWallet"
             }
         ],
-        "wallet_types": ["on-chain"],
-        "security": ["touch-id","fake-wallet"],
-        "privacy": ["tor"],
-        "languages": [
-            {
-                "iso6392": "EN,FR,DE,ZH,BG,ML,JA,PT,HI,HE,FA,SL,TR,ES,RU"
+        "soft": []
+    },
+    "wallets": [
+        {
+            "name": "BitBox02",
+            "web": "https://shiftcrypto.ch/bitbox02/",
+            "uuid": "4BA68789-FF92-4649-B7D8-65BCE3966589",
+            "features": {
+                "currencies": [
+                    {
+                        "type": "crypto",
+                        "ticker": "BTC"
+                    },
+                    {
+                        "type": "crypto",
+                        "ticker": "LTC"
+                    },
+                    {
+                        "type": "crypto",
+                        "ticker": "ETH"
+                    },
+                    {
+                        "type": "crypto",
+                        "ticker": "BAT"
+                    },
+                    {
+                        "type": "stablecoin",
+                        "ticker": "USDT"
+                    }
+                ],
+                "wallet_types": [
+                    "on-chain"
+                ],
+                "security": [
+                    "fake-wallet",
+                    "pin-on-wallet",
+                    "2fa"
+                ],
+                "privacy": [
+                    "tor",
+                    "no-signup",
+                    "custom-node"
+                ],
+                "languages": [
+                    {
+                        "iso6392": "BG"
+                    },
+                    {
+                        "iso6392": "DE"
+                    },
+                    {
+                        "iso6392": "EN"
+                    },
+                    {
+                        "iso6392": "ES"
+                    },
+                    {
+                        "iso6392": "FA"
+                    },
+                    {
+                        "iso6392": "FR"
+                    },
+                    {
+                        "iso6392": "HE"
+                    },
+                    {
+                        "iso6392": "HI"
+                    },
+                    {
+                        "iso6392": "JA"
+                    },
+                    {
+                        "iso6392": "MS"
+                    },
+                    {
+                        "iso6392": "PT"
+                    },
+                    {
+                        "iso6392": "RU"
+                    },
+                    {
+                        "iso6392": "SL"
+                    },
+                    {
+                        "iso6392": "TR"
+                    },
+                    {
+                        "iso6392": "ZH"
+                    }
+                ],
+                "custodial": "N",
+                "license": [
+                    "Apache 2.0"
+                ],
+                "multisig": "Y",
+                "testnet": "Y",
+                "batchtx": "Y",
+                "fio": "N",
+                "form_factor": "hardware",
+                "custom_node": "?",
+                "rbf": "Y",
+                "psbt": "N",
+                "reproducible_builds": "Y",
+                "hd": "Y",
+                "sna": "Y",
+                "fee_estimation": "Y",
+                "fee_control": "Y",
+                "hardware": [
+                    "secure-element",
+                    "backup",
+                    "u2f",
+                    "desktop-app",
+                    "mobile-app"
+                ],
+                "lightning": [],
+                "refill": [],
+                "validation": "full",
+                "platforms": [
+                    {
+                        "name": "hardware",
+                        "github": "https://github.com/digitalbitbox/",
+                        "download": "https://shiftcrypto.ch/bitbox02/",
+                        "language": "C"
+                    }
+                ],
+                "coin_control": "Y",
+                "tx_labelling": "?"
             }
-        ],
-        "custodial": "N",
-        "license": ["Apache 2.0"],
-        "multisig": "Y",
-        "testnet": "N",
-        "batchtx": "?",
-        "fio": "?",
-        "form_factor": "hardware",
-        "custom_node": "Y",
-        "rbf": "?",
-        "psbt": "?",
-        "reproducible_builds": "Y",
-        "hd": "Y",
-        "sna": "Y",
-        "fee_estimation": "?",
-        "fee_control": "?",
-        "hardware": ["secure-element","backup","u2f"],
-        "lightning": [],
-        "refill": [],
-        "validation": "full",
-        "platforms": [
-            {
-                "name": "hardware",
-                "github": "https://github.com/digitalbitbox/",
-                "download": "https://shiftcrypto.ch/bitbox02/",
-                "language": "C"
-            }
-        ]
-    }
+        }
+    ]
 }

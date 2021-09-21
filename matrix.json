@@ -154,7 +154,7 @@
                         "name": "hardware",
                         "github": "https://github.com/digitalbitbox/",
                         "download": "https://shiftcrypto.ch/bitbox02/",
-                        "language": "C"
+                        "language": "C/Rust"
                     }
                 ],
                 "coin_control": "Y",

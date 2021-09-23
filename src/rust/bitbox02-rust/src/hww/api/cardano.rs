@@ -17,6 +17,7 @@ compile_error!("Cardano code is being compiled even though the app-cardano featu
 
 mod address;
 pub mod keypath;
+mod params;
 
 use super::pb;
 use super::Error;

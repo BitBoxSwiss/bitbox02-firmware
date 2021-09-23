@@ -35,6 +35,7 @@ sha2 = { version = "0.9.2", default-features = false }
 sha3 = { version = "0.9.1", default-features = false, optional = true }
 zeroize = "1.1.0"
 num-bigint = { version = "0.3.1", default-features = false, optional = true }
+bip32-ed25519 = { git = "https://github.com/digitalbitbox/rust-bip32-ed25519", branch = "master", optional = true }
 
 # For stack allocated strings
 [dependencies.arrayvec]
@@ -49,6 +50,11 @@ default-features = false
 features = ["prost-derive"]
 
 [features]
+ed25519 = [
+  # enable these dependencies
+  "bip32-ed25519"
+]
+
 app-ethereum = [
   # enable these dependencies
   "sha3",
@@ -71,4 +77,7 @@ app-u2f = [
   "bitbox02/app-u2f",
 ]
 
-app-cardano = []
+app-cardano = [
+  # enable these features
+  "ed25519"
+]

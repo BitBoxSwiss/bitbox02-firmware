@@ -34,6 +34,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "383d29d513d8764dcdc42ea295d979eb99c3c9f00607b3692cf68a431f7dca72"
 
 [[package]]
+name = "bip32-ed25519"
+version = "0.1.0"
+source = "git+https://github.com/digitalbitbox/rust-bip32-ed25519?branch=master#3561af2f1bed3b07affa8d64e1b3b37111e28f1e"
+dependencies = [
+ "curve25519-dalek",
+ "hmac",
+ "sha2",
+ "zeroize",
+]
+
+[[package]]
 name = "bitbox02"
 version = "0.1.0"
 dependencies = [
@@ -59,6 +70,7 @@ version = "0.1.0"
 dependencies = [
  "arrayvec",
  "binascii",
+ "bip32-ed25519",
  "bitbox02",
  "bitbox02-noise",
  "hex",
@@ -163,6 +175,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8aebca1129a03dc6dc2b127edd729435bbc4a37e1d5f4d7513165089ceb02634"
 
 [[package]]
+name = "crypto-mac"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25fab6889090c8133f3deb8f73ba3c65a7f456f66436fc012a1b1e272b1e103e"
+dependencies = [
+ "generic-array",
+ "subtle",
+]
+
+[[package]]
 name = "curve25519-dalek"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -205,6 +227,16 @@ name = "hex"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "644f9158b2f133fd50f5fb3242878846d9eb792e445c893805ff0e3824006e35"
+
+[[package]]
+name = "hmac"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a2a2320eb7ec0ebe8da8f744d7812d9fc4cb4d09344ac01898dbcb6a20ae69b"
+dependencies = [
+ "crypto-mac",
+ "digest",
+]
 
 [[package]]
 name = "itertools"

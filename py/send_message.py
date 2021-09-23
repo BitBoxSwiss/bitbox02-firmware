@@ -687,6 +687,33 @@ class SendMessage:
 
         print("Signature: 0x{}".format(binascii.hexlify(sig).decode("utf-8")))
 
+    def _cardano(self) -> None:
+        def address() -> None:
+            def get(display: bool) -> str:
+                return self._device.cardano_address(
+                    bitbox02.cardano.CardanoAddressRequest(
+                        network=bitbox02.cardano.CardanoMainnet,
+                        display=display,
+                        script_config=bitbox02.cardano.CardanoScriptConfig(
+                            pkh_skh=bitbox02.cardano.CardanoScriptConfig.PkhSkh(
+                                keypath_payment=[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                                keypath_stake=[1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
+                            )
+                        ),
+                    )
+                )
+
+            print("m/1852'/1815'/0'/0/0 address: ", get(False))
+            get(True)
+
+        choices = (("Retrieve a Shelley address", address),)
+        choice = ask_user(choices)
+        if callable(choice):
+            try:
+                choice()
+            except UserAbortException:
+                eprint("Aborted by user")
+
     def _reset_device(self) -> None:
         if self._device.reset():
             print("Device RESET")
@@ -746,6 +773,7 @@ class SendMessage:
             ),
             ("Sign Ethereum tx", self._sign_eth_tx),
             ("Sign Ethereum Message", self._sign_eth_message),
+            ("Cardano", self._cardano),
             ("Show Electrum wallet encryption key", self._get_electrum_encryption_key),
             ("Reset Device", self._reset_device),
         )

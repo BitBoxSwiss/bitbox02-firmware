@@ -37,6 +37,7 @@ try:
     from bitbox02.communication.generated import hww_pb2 as hww
     from bitbox02.communication.generated import eth_pb2 as eth
     from bitbox02.communication.generated import btc_pb2 as btc
+    from bitbox02.communication.generated import cardano_pb2 as cardano
     from bitbox02.communication.generated import mnemonic_pb2 as mnemonic
     from bitbox02.communication.generated import bitbox02_system_pb2 as bitbox02_system
     from bitbox02.communication.generated import backup_commands_pb2 as backup
@@ -829,3 +830,30 @@ class BitBox02(BitBoxCommonAPI):
             )
         )
         self._msg_query(request)
+
+    def _cardano_msg_query(
+        self, cardano_request: cardano.CardanoRequest, expected_response: Optional[str] = None
+    ) -> cardano.CardanoResponse:
+        """
+        Same as _msg_query, but one nesting deeper for cardano messages.
+        """
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.cardano.CopyFrom(cardano_request)
+        cardano_response = self._msg_query(request, expected_response="cardano").cardano
+        if (
+            expected_response is not None
+            and cardano_response.WhichOneof("response") != expected_response
+        ):
+            raise Exception(
+                "Unexpected response: {}, expected: {}".format(
+                    cardano_response.WhichOneof("response"), expected_response
+                )
+            )
+        return cardano_response
+
+    def cardano_address(self, address: cardano.CardanoAddressRequest) -> str:
+        # pylint: disable=no-member
+
+        request = cardano.CardanoRequest(address=address)
+        return self._cardano_msg_query(request, expected_response="pub").pub.pub

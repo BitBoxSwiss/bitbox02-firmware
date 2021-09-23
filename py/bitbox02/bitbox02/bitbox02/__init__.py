@@ -52,6 +52,7 @@ from .bitbox02 import (
     DuplicateEntryException,
     hww,
     btc,
+    cardano,
     common,
     eth,
     system,

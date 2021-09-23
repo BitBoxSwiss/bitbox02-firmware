@@ -127,7 +127,7 @@
                     "Apache 2.0"
                 ],
                 "multisig": "Y",
-                "testnet": "Y",
+                "testnet": "N",
                 "batchtx": "Y",
                 "fio": "N",
                 "form_factor": "hardware",
@@ -157,7 +157,7 @@
                         "language": "C/Rust"
                     }
                 ],
-                "coin_control": "Y",
+                "coin_control": "N",
                 "tx_labelling": "?"
             }
         }

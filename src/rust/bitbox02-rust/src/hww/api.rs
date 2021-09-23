@@ -22,6 +22,9 @@ mod ethereum;
 #[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
 mod bitcoin;
 
+#[cfg(feature = "app-cardano")]
+mod cardano;
+
 mod backup;
 mod device_info;
 mod electrum;
@@ -92,6 +95,7 @@ fn request_tag(request: &Request) -> u32 {
         Fingerprint(_) => bitbox02::Request_fingerprint_tag,
         Btc(_) => bitbox02::Request_btc_tag,
         ElectrumEncryptionKey(_) => bitbox02::Request_electrum_encryption_key_tag,
+        Cardano(_) => bitbox02::Request_cardano_tag,
     }
 }
 
@@ -149,6 +153,15 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
 
         Request::Fingerprint(pb::RootFingerprintRequest {}) => Some(rootfingerprint::process()),
         request @ Request::BtcPub(_) | request @ Request::Btc(_) => process_api_btc(request).await,
+
+        #[cfg(feature = "app-cardano")]
+        Request::Cardano(pb::CardanoRequest {
+            request: Some(ref request),
+        }) => Some(
+            cardano::process_api(request)
+                .await
+                .map(|r| Response::Cardano(pb::CardanoResponse { response: Some(r) })),
+        ),
         _ => None,
     }
 }

@@ -47,7 +47,7 @@ use core::time::Duration;
 
 pub use bitbox02_sys::{
     Request_btc_pub_tag, Request_btc_sign_init_tag, Request_btc_sign_input_tag,
-    Request_btc_sign_output_tag, Request_btc_tag, Request_check_backup_tag,
+    Request_btc_sign_output_tag, Request_btc_tag, Request_cardano_tag, Request_check_backup_tag,
     Request_check_sdcard_tag, Request_create_backup_tag, Request_device_info_tag,
     Request_device_language_tag, Request_device_name_tag, Request_electrum_encryption_key_tag,
     Request_eth_tag, Request_fingerprint_tag, Request_insert_remove_sdcard_tag,

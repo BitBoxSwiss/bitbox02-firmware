@@ -1,0 +1,57 @@
+// Copyright 2021 Shift Crypto AG
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+package shiftcrypto.bitbox02;
+
+import "common.proto";
+
+enum CardanoNetwork {
+  CardanoMainnet = 0;
+  CardanoTestnet = 1;
+}
+
+message CardanoScriptConfig {
+  message PkhSkh {
+    repeated uint32 keypath_payment = 1;
+    repeated uint32 keypath_stake = 2;
+  }
+
+  // Entries correspond to address types as described in:
+  // https://github.com/cardano-foundation/CIPs/blob/6c249ef48f8f5b32efc0ec768fadf4321f3173f2/CIP-0019/CIP-0019.md
+  // See also:
+  // https://github.com/input-output-hk/cardano-ledger-specs/blob/c6c4be1562e23a3dd48282387c4e48ff918fbab0/eras/shelley/test-suite/cddl-files/shelley.cddl#L89
+  oneof config {
+    // Shelley PaymentKeyHash & StakeKeyHash
+    PkhSkh pkh_skh = 1;
+  }
+}
+
+message CardanoAddressRequest {
+  CardanoNetwork network = 1;
+  bool display = 2;
+  CardanoScriptConfig script_config = 3;
+}
+
+message CardanoRequest {
+  oneof request {
+    CardanoAddressRequest address = 1;
+  }
+}
+
+message CardanoResponse {
+  oneof response {
+    PubResponse pub = 1;
+  }
+}

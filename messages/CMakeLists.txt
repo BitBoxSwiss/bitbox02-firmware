@@ -5,6 +5,7 @@ set(PROTO_FILES
   backup_commands.proto
   bitbox02_system.proto
   btc.proto
+  cardano.proto
   eth.proto
   mnemonic.proto
   system.proto

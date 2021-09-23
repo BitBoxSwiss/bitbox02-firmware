@@ -70,3 +70,5 @@ app-u2f = [
   # enable this feature in the deps
   "bitbox02/app-u2f",
 ]
+
+app-cardano = []

@@ -40,7 +40,7 @@ target-bootloader-production = ["bootloader", "platform-bitbox02"]
 target-bootloader-btc = ["bootloader", "platform-bitbox02"]
 target-bootloader-btc-development = ["bootloader", "platform-bitbox02"]
 target-bootloader-btc-production = ["bootloader", "platform-bitbox02"]
-target-firmware = ["firmware", "platform-bitbox02", "app-bitcoin", "app-litecoin", "app-ethereum", "app-u2f"]
+target-firmware = ["firmware", "platform-bitbox02", "app-bitcoin", "app-litecoin", "app-ethereum", "app-u2f", "app-cardano"]
 target-firmware-btc = ["firmware", "platform-bitbox02", "app-bitcoin"]
 target-factory-setup = ["firmware", "platform-bitbox02"]
 # add Rust features which are called in the C unit tests (currently there is only one target for C tests).
@@ -75,4 +75,9 @@ app-litecoin = [
 app-u2f = [
   # enable this feature in the deps
   "bitbox02-rust/app-u2f",
+]
+
+app-cardano = [
+ # enable this feature in the deps
+  "bitbox02-rust/app-cardano",
 ]

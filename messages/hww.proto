@@ -20,6 +20,7 @@ import "common.proto";
 import "backup_commands.proto";
 import "bitbox02_system.proto";
 import "btc.proto";
+import "cardano.proto";
 import "eth.proto";
 import "keystore.proto";
 import "mnemonic.proto";
@@ -64,6 +65,7 @@ message Request {
         RootFingerprintRequest fingerprint = 24;
         BTCRequest btc = 25;
         ElectrumEncryptionKeyRequest electrum_encryption_key = 26;
+        CardanoRequest cardano = 27;
     }
 }
 
@@ -84,5 +86,6 @@ message Response {
         RootFingerprintResponse fingerprint = 12;
         BTCResponse btc = 13;
         ElectrumEncryptionKeyResponse electrum_encryption_key = 14;
+        CardanoResponse cardano = 15;
     }
 }

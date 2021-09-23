@@ -26,6 +26,7 @@ pub use bitbox02_sys::xpub_type_t;
 pub const BIP39_WORDLIST_LEN: u16 = bitbox02_sys::BIP39_WORDLIST_LEN as u16;
 pub const EC_PUBLIC_KEY_UNCOMPRESSED_LEN: usize = bitbox02_sys::EC_PUBLIC_KEY_UNCOMPRESSED_LEN as _;
 pub const EC_PUBLIC_KEY_LEN: usize = bitbox02_sys::EC_PUBLIC_KEY_LEN as _;
+pub const MAX_SEED_LENGTH: usize = bitbox02_sys::KEYSTORE_MAX_SEED_LENGTH as usize;
 
 pub fn is_locked() -> bool {
     unsafe { bitbox02_sys::keystore_is_locked() }
@@ -255,7 +256,7 @@ pub fn secp256k1_nonce_commit(
 
 pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let mnemonic = zeroize::Zeroizing::new(crate::util::str_to_cstr_vec(mnemonic)?);
-    let mut seed = zeroize::Zeroizing::new([0u8; 32]);
+    let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH]);
     let mut seed_len: util::c_types::c_uint = 0;
     match unsafe {
         bitbox02_sys::keystore_bip39_mnemonic_to_seed(

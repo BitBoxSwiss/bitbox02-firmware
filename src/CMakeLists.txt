@@ -323,6 +323,7 @@ add_custom_target(rust-bindgen
     --whitelist-function securechip_u2f_counter_set
     --whitelist-function securechip_model
     --rustified-enum securechip_model_t
+    --whitelist-var KEYSTORE_MAX_SEED_LENGTH
     --whitelist-function keystore_is_locked
     --whitelist-function keystore_unlock
     --whitelist-function keystore_unlock_bip39

@@ -291,6 +291,14 @@ pub fn encrypt_and_store_seed(seed: &[u8], password: &SafeInputString) -> Result
     }
 }
 
+pub fn get_ed25519_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let mut seed = zeroize::Zeroizing::new([0u8; 96].to_vec());
+    match unsafe { bitbox02_sys::keystore_get_ed25519_seed(seed.as_mut_ptr()) } {
+        true => Ok(seed),
+        false => Err(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -351,5 +359,20 @@ mod tests {
         assert_eq!(get_bip39_word(0).unwrap().as_ref() as &str, "abandon");
         assert_eq!(get_bip39_word(2047).unwrap().as_ref() as &str, "zoo");
         assert_eq!(get_bip39_word(563).unwrap().as_ref() as &str, "edit");
+    }
+
+    #[test]
+    fn test_get_ed25519_seed() {
+        let _guard = MUTEX.lock().unwrap();
+
+        // No seed on a locked keystore.
+        lock();
+        assert!(get_ed25519_seed().is_err());
+
+        mock_unlocked();
+        assert_eq!(
+            get_ed25519_seed().unwrap().as_ref() as &[u8],
+            b"\xf8\xcb\x28\x85\x37\x60\x2b\x90\xd1\x29\x75\x4b\xdd\x0e\x4b\xed\xf9\xe2\x92\x3a\x04\xb6\x86\x7e\xdb\xeb\xc7\x93\xa7\x17\x6f\x5d\xca\xc5\xc9\x5d\x5f\xd2\x3a\x8e\x01\x6c\x95\x57\x69\x0e\xad\x1f\x00\x2b\x0f\x35\xd7\x06\xff\x8e\x59\x84\x1c\x09\xe0\xb6\xbb\x23\xf0\xa5\x91\x06\x42\xd0\x77\x98\x17\x40\x2e\x5e\x7a\x75\x54\x95\xe7\x44\xf5\x5c\xf1\x1e\x49\xee\xfd\x22\xa4\x60\xe9\xb2\xf7\x53",
+        );
     }
 }

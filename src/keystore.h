@@ -260,6 +260,16 @@ USE_RESULT bool keystore_secp256k1_sign(
  */
 USE_RESULT bool keystore_get_u2f_seed(uint8_t* seed_out);
 
+/**
+ * Get the seed to be used for ed25519 applications such as Cardano. The output is the root key to
+ * BIP32-ED25519.
+ * This implements a derivation compatible with Ledger according to
+ * https://github.com/LedgerHQ/orakolo/blob/0b2d5e669ec61df9a824df9fa1a363060116b490/src/python/orakolo/HDEd25519.py.
+ * @param seed_out Buffer for the seed. Must be 96 bytes. It will contain a 64 byte expanded
+ * ed25519 private key followed by a 32 byte chain code.
+ */
+USE_RESULT bool keystore_get_ed25519_seed(uint8_t* seed_out);
+
 typedef enum {
     XPUB,
     YPUB,

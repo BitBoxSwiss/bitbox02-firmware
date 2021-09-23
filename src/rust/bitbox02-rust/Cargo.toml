@@ -36,6 +36,7 @@ sha3 = { version = "0.9.1", default-features = false, optional = true }
 zeroize = "1.1.0"
 num-bigint = { version = "0.3.1", default-features = false, optional = true }
 bip32-ed25519 = { git = "https://github.com/digitalbitbox/rust-bip32-ed25519", branch = "master", optional = true }
+bech32 = { version = "0.8.1", default-features = false, optional = true }
 
 # For stack allocated strings
 [dependencies.arrayvec]
@@ -78,6 +79,9 @@ app-u2f = [
 ]
 
 app-cardano = [
+  # enable these deps
+  "bech32",
+
   # enable these features
   "ed25519"
 ]

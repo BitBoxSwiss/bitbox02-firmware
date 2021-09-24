@@ -18,6 +18,7 @@ compile_error!("Cardano code is being compiled even though the app-cardano featu
 mod address;
 pub mod keypath;
 mod params;
+mod xpubs;
 
 use super::pb;
 use super::Error;
@@ -28,6 +29,7 @@ use pb::cardano_response::Response;
 /// Handle a Cardano protobuf api call.
 pub async fn process_api(request: &Request) -> Result<Response, Error> {
     match request {
+        Request::Xpubs(ref request) => xpubs::process(request),
         Request::Address(ref request) => address::process(request).await,
     }
 }

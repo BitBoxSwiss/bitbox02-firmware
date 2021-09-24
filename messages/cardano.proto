@@ -17,6 +17,14 @@ package shiftcrypto.bitbox02;
 
 import "common.proto";
 
+message CardanoXpubsRequest {
+  repeated Keypath keypaths = 1;
+}
+
+message CardanoXpubsResponse {
+  repeated bytes xpubs = 1;
+}
+
 enum CardanoNetwork {
   CardanoMainnet = 0;
   CardanoTestnet = 1;
@@ -46,12 +54,14 @@ message CardanoAddressRequest {
 
 message CardanoRequest {
   oneof request {
-    CardanoAddressRequest address = 1;
+    CardanoXpubsRequest xpubs = 1;
+    CardanoAddressRequest address = 2;
   }
 }
 
 message CardanoResponse {
   oneof response {
-    PubResponse pub = 1;
+    CardanoXpubsResponse xpubs = 1;
+    PubResponse pub = 2;
   }
 }

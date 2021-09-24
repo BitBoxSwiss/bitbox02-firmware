@@ -688,6 +688,16 @@ class SendMessage:
         print("Signature: 0x{}".format(binascii.hexlify(sig).decode("utf-8")))
 
     def _cardano(self) -> None:
+        def xpubs() -> None:
+            xpubs = self._device.cardano_xpubs(
+                keypaths=[
+                    [1852 + HARDENED, 1815 + HARDENED, HARDENED],
+                    [1852 + HARDENED, 1815 + HARDENED, HARDENED + 1],
+                ]
+            )
+            print("m/1852'/1815'/0' xpub: ", xpubs[0].hex())
+            print("m/1852'/1815'/1' xpub: ", xpubs[1].hex())
+
         def address() -> None:
             def get(display: bool) -> str:
                 return self._device.cardano_address(
@@ -706,7 +716,7 @@ class SendMessage:
             print("m/1852'/1815'/0'/0/0 address: ", get(False))
             get(True)
 
-        choices = (("Retrieve a Shelley address", address),)
+        choices = (("Retrieve account xpubs", xpubs), ("Retrieve a Shelley address", address))
         choice = ask_user(choices)
         if callable(choice):
             try:

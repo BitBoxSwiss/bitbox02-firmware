@@ -852,6 +852,14 @@ class BitBox02(BitBoxCommonAPI):
             )
         return cardano_response
 
+    def cardano_xpubs(self, keypaths: Sequence[Sequence[int]]) -> Sequence[bytes]:
+        request = cardano.CardanoRequest(
+            xpubs=cardano.CardanoXpubsRequest(
+                keypaths=[common.Keypath(keypath=keypath) for keypath in keypaths]
+            )
+        )
+        return self._cardano_msg_query(request, expected_response="xpubs").xpubs.xpubs
+
     def cardano_address(self, address: cardano.CardanoAddressRequest) -> str:
         # pylint: disable=no-member
 

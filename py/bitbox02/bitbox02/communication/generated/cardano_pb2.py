@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='cardano.proto',
   package='shiftcrypto.bitbox02',
   syntax='proto3',
-  serialized_pb=_b('\n\rcardano.proto\x12\x14shiftcrypto.bitbox02\x1a\x0c\x63ommon.proto\"\x9e\x01\n\x13\x43\x61rdanoScriptConfig\x12\x43\n\x07pkh_skh\x18\x01 \x01(\x0b\x32\x30.shiftcrypto.bitbox02.CardanoScriptConfig.PkhSkhH\x00\x1a\x38\n\x06PkhSkh\x12\x17\n\x0fkeypath_payment\x18\x01 \x03(\r\x12\x15\n\rkeypath_stake\x18\x02 \x03(\rB\x08\n\x06\x63onfig\"\xa1\x01\n\x15\x43\x61rdanoAddressRequest\x12\x35\n\x07network\x18\x01 \x01(\x0e\x32$.shiftcrypto.bitbox02.CardanoNetwork\x12\x0f\n\x07\x64isplay\x18\x02 \x01(\x08\x12@\n\rscript_config\x18\x03 \x01(\x0b\x32).shiftcrypto.bitbox02.CardanoScriptConfig\"[\n\x0e\x43\x61rdanoRequest\x12>\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0b\x32+.shiftcrypto.bitbox02.CardanoAddressRequestH\x00\x42\t\n\x07request\"O\n\x0f\x43\x61rdanoResponse\x12\x30\n\x03pub\x18\x01 \x01(\x0b\x32!.shiftcrypto.bitbox02.PubResponseH\x00\x42\n\n\x08response*8\n\x0e\x43\x61rdanoNetwork\x12\x12\n\x0e\x43\x61rdanoMainnet\x10\x00\x12\x12\n\x0e\x43\x61rdanoTestnet\x10\x01\x62\x06proto3')
+  serialized_pb=_b('\n\rcardano.proto\x12\x14shiftcrypto.bitbox02\x1a\x0c\x63ommon.proto\"F\n\x13\x43\x61rdanoXpubsRequest\x12/\n\x08keypaths\x18\x01 \x03(\x0b\x32\x1d.shiftcrypto.bitbox02.Keypath\"%\n\x14\x43\x61rdanoXpubsResponse\x12\r\n\x05xpubs\x18\x01 \x03(\x0c\"\x9e\x01\n\x13\x43\x61rdanoScriptConfig\x12\x43\n\x07pkh_skh\x18\x01 \x01(\x0b\x32\x30.shiftcrypto.bitbox02.CardanoScriptConfig.PkhSkhH\x00\x1a\x38\n\x06PkhSkh\x12\x17\n\x0fkeypath_payment\x18\x01 \x03(\r\x12\x15\n\rkeypath_stake\x18\x02 \x03(\rB\x08\n\x06\x63onfig\"\xa1\x01\n\x15\x43\x61rdanoAddressRequest\x12\x35\n\x07network\x18\x01 \x01(\x0e\x32$.shiftcrypto.bitbox02.CardanoNetwork\x12\x0f\n\x07\x64isplay\x18\x02 \x01(\x08\x12@\n\rscript_config\x18\x03 \x01(\x0b\x32).shiftcrypto.bitbox02.CardanoScriptConfig\"\x97\x01\n\x0e\x43\x61rdanoRequest\x12:\n\x05xpubs\x18\x01 \x01(\x0b\x32).shiftcrypto.bitbox02.CardanoXpubsRequestH\x00\x12>\n\x07\x61\x64\x64ress\x18\x02 \x01(\x0b\x32+.shiftcrypto.bitbox02.CardanoAddressRequestH\x00\x42\t\n\x07request\"\x8c\x01\n\x0f\x43\x61rdanoResponse\x12;\n\x05xpubs\x18\x01 \x01(\x0b\x32*.shiftcrypto.bitbox02.CardanoXpubsResponseH\x00\x12\x30\n\x03pub\x18\x02 \x01(\x0b\x32!.shiftcrypto.bitbox02.PubResponseH\x00\x42\n\n\x08response*8\n\x0e\x43\x61rdanoNetwork\x12\x12\n\x0e\x43\x61rdanoMainnet\x10\x00\x12\x12\n\x0e\x43\x61rdanoTestnet\x10\x01\x62\x06proto3')
   ,
   dependencies=[common__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -43,8 +43,8 @@ _CARDANONETWORK = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=552,
-  serialized_end=608,
+  serialized_start=786,
+  serialized_end=842,
 )
 _sym_db.RegisterEnumDescriptor(_CARDANONETWORK)
 
@@ -52,6 +52,68 @@ CardanoNetwork = enum_type_wrapper.EnumTypeWrapper(_CARDANONETWORK)
 CardanoMainnet = 0
 CardanoTestnet = 1
 
+
+
+_CARDANOXPUBSREQUEST = _descriptor.Descriptor(
+  name='CardanoXpubsRequest',
+  full_name='shiftcrypto.bitbox02.CardanoXpubsRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='keypaths', full_name='shiftcrypto.bitbox02.CardanoXpubsRequest.keypaths', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=53,
+  serialized_end=123,
+)
+
+
+_CARDANOXPUBSRESPONSE = _descriptor.Descriptor(
+  name='CardanoXpubsResponse',
+  full_name='shiftcrypto.bitbox02.CardanoXpubsResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='xpubs', full_name='shiftcrypto.bitbox02.CardanoXpubsResponse.xpubs', index=0,
+      number=1, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=125,
+  serialized_end=162,
+)
 
 
 _CARDANOSCRIPTCONFIG_PKHSKH = _descriptor.Descriptor(
@@ -87,8 +149,8 @@ _CARDANOSCRIPTCONFIG_PKHSKH = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=146,
-  serialized_end=202,
+  serialized_start=257,
+  serialized_end=313,
 )
 
 _CARDANOSCRIPTCONFIG = _descriptor.Descriptor(
@@ -120,8 +182,8 @@ _CARDANOSCRIPTCONFIG = _descriptor.Descriptor(
       name='config', full_name='shiftcrypto.bitbox02.CardanoScriptConfig.config',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=54,
-  serialized_end=212,
+  serialized_start=165,
+  serialized_end=323,
 )
 
 
@@ -165,8 +227,8 @@ _CARDANOADDRESSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=215,
-  serialized_end=376,
+  serialized_start=326,
+  serialized_end=487,
 )
 
 
@@ -178,8 +240,15 @@ _CARDANOREQUEST = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='address', full_name='shiftcrypto.bitbox02.CardanoRequest.address', index=0,
+      name='xpubs', full_name='shiftcrypto.bitbox02.CardanoRequest.xpubs', index=0,
       number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='address', full_name='shiftcrypto.bitbox02.CardanoRequest.address', index=1,
+      number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -199,8 +268,8 @@ _CARDANOREQUEST = _descriptor.Descriptor(
       name='request', full_name='shiftcrypto.bitbox02.CardanoRequest.request',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=378,
-  serialized_end=469,
+  serialized_start=490,
+  serialized_end=641,
 )
 
 
@@ -212,8 +281,15 @@ _CARDANORESPONSE = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='pub', full_name='shiftcrypto.bitbox02.CardanoResponse.pub', index=0,
+      name='xpubs', full_name='shiftcrypto.bitbox02.CardanoResponse.xpubs', index=0,
       number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='pub', full_name='shiftcrypto.bitbox02.CardanoResponse.pub', index=1,
+      number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -233,10 +309,11 @@ _CARDANORESPONSE = _descriptor.Descriptor(
       name='response', full_name='shiftcrypto.bitbox02.CardanoResponse.response',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=471,
-  serialized_end=550,
+  serialized_start=644,
+  serialized_end=784,
 )
 
+_CARDANOXPUBSREQUEST.fields_by_name['keypaths'].message_type = common__pb2._KEYPATH
 _CARDANOSCRIPTCONFIG_PKHSKH.containing_type = _CARDANOSCRIPTCONFIG
 _CARDANOSCRIPTCONFIG.fields_by_name['pkh_skh'].message_type = _CARDANOSCRIPTCONFIG_PKHSKH
 _CARDANOSCRIPTCONFIG.oneofs_by_name['config'].fields.append(
@@ -244,19 +321,43 @@ _CARDANOSCRIPTCONFIG.oneofs_by_name['config'].fields.append(
 _CARDANOSCRIPTCONFIG.fields_by_name['pkh_skh'].containing_oneof = _CARDANOSCRIPTCONFIG.oneofs_by_name['config']
 _CARDANOADDRESSREQUEST.fields_by_name['network'].enum_type = _CARDANONETWORK
 _CARDANOADDRESSREQUEST.fields_by_name['script_config'].message_type = _CARDANOSCRIPTCONFIG
+_CARDANOREQUEST.fields_by_name['xpubs'].message_type = _CARDANOXPUBSREQUEST
 _CARDANOREQUEST.fields_by_name['address'].message_type = _CARDANOADDRESSREQUEST
+_CARDANOREQUEST.oneofs_by_name['request'].fields.append(
+  _CARDANOREQUEST.fields_by_name['xpubs'])
+_CARDANOREQUEST.fields_by_name['xpubs'].containing_oneof = _CARDANOREQUEST.oneofs_by_name['request']
 _CARDANOREQUEST.oneofs_by_name['request'].fields.append(
   _CARDANOREQUEST.fields_by_name['address'])
 _CARDANOREQUEST.fields_by_name['address'].containing_oneof = _CARDANOREQUEST.oneofs_by_name['request']
+_CARDANORESPONSE.fields_by_name['xpubs'].message_type = _CARDANOXPUBSRESPONSE
 _CARDANORESPONSE.fields_by_name['pub'].message_type = common__pb2._PUBRESPONSE
+_CARDANORESPONSE.oneofs_by_name['response'].fields.append(
+  _CARDANORESPONSE.fields_by_name['xpubs'])
+_CARDANORESPONSE.fields_by_name['xpubs'].containing_oneof = _CARDANORESPONSE.oneofs_by_name['response']
 _CARDANORESPONSE.oneofs_by_name['response'].fields.append(
   _CARDANORESPONSE.fields_by_name['pub'])
 _CARDANORESPONSE.fields_by_name['pub'].containing_oneof = _CARDANORESPONSE.oneofs_by_name['response']
+DESCRIPTOR.message_types_by_name['CardanoXpubsRequest'] = _CARDANOXPUBSREQUEST
+DESCRIPTOR.message_types_by_name['CardanoXpubsResponse'] = _CARDANOXPUBSRESPONSE
 DESCRIPTOR.message_types_by_name['CardanoScriptConfig'] = _CARDANOSCRIPTCONFIG
 DESCRIPTOR.message_types_by_name['CardanoAddressRequest'] = _CARDANOADDRESSREQUEST
 DESCRIPTOR.message_types_by_name['CardanoRequest'] = _CARDANOREQUEST
 DESCRIPTOR.message_types_by_name['CardanoResponse'] = _CARDANORESPONSE
 DESCRIPTOR.enum_types_by_name['CardanoNetwork'] = _CARDANONETWORK
+
+CardanoXpubsRequest = _reflection.GeneratedProtocolMessageType('CardanoXpubsRequest', (_message.Message,), dict(
+  DESCRIPTOR = _CARDANOXPUBSREQUEST,
+  __module__ = 'cardano_pb2'
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.CardanoXpubsRequest)
+  ))
+_sym_db.RegisterMessage(CardanoXpubsRequest)
+
+CardanoXpubsResponse = _reflection.GeneratedProtocolMessageType('CardanoXpubsResponse', (_message.Message,), dict(
+  DESCRIPTOR = _CARDANOXPUBSRESPONSE,
+  __module__ = 'cardano_pb2'
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.CardanoXpubsResponse)
+  ))
+_sym_db.RegisterMessage(CardanoXpubsResponse)
 
 CardanoScriptConfig = _reflection.GeneratedProtocolMessageType('CardanoScriptConfig', (_message.Message,), dict(
 

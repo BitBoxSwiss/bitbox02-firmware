@@ -27,6 +27,11 @@ pub struct XPub {
     pub public_key: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Keypath {
+    #[prost(uint32, repeated, tag="1")]
+    pub keypath: ::prost::alloc::vec::Vec<u32>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckBackupRequest {
     #[prost(bool, tag="1")]
     pub silent: bool,
@@ -486,6 +491,16 @@ pub enum BtcOutputType {
     P2wsh = 4,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CardanoXpubsRequest {
+    #[prost(message, repeated, tag="1")]
+    pub keypaths: ::prost::alloc::vec::Vec<Keypath>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CardanoXpubsResponse {
+    #[prost(bytes="vec", repeated, tag="1")]
+    pub xpubs: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CardanoScriptConfig {
     /// Entries correspond to address types as described in:
     /// https://github.com/cardano-foundation/CIPs/blob/6c249ef48f8f5b32efc0ec768fadf4321f3173f2/CIP-0019/CIP-0019.md
@@ -525,7 +540,7 @@ pub struct CardanoAddressRequest {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CardanoRequest {
-    #[prost(oneof="cardano_request::Request", tags="1")]
+    #[prost(oneof="cardano_request::Request", tags="1, 2")]
     pub request: ::core::option::Option<cardano_request::Request>,
 }
 /// Nested message and enum types in `CardanoRequest`.
@@ -533,12 +548,14 @@ pub mod cardano_request {
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Request {
         #[prost(message, tag="1")]
+        Xpubs(super::CardanoXpubsRequest),
+        #[prost(message, tag="2")]
         Address(super::CardanoAddressRequest),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CardanoResponse {
-    #[prost(oneof="cardano_response::Response", tags="1")]
+    #[prost(oneof="cardano_response::Response", tags="1, 2")]
     pub response: ::core::option::Option<cardano_response::Response>,
 }
 /// Nested message and enum types in `CardanoResponse`.
@@ -546,6 +563,8 @@ pub mod cardano_response {
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Response {
         #[prost(message, tag="1")]
+        Xpubs(super::CardanoXpubsResponse),
+        #[prost(message, tag="2")]
         Pub(super::PubResponse),
     }
 }

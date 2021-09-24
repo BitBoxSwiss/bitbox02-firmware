@@ -41,6 +41,18 @@ fn check_address(address: u32) -> Result<(), Error> {
     }
 }
 
+/// Validates a keypath to be
+/// m/1852'/1815'/account, where account between 0' and 99'.
+///
+/// See: https://cips.cardano.org/cips/cip1852/
+pub fn validate_account_shelley(keypath: &[u32]) -> Result<(), Error> {
+    if let &[BIP44_PURPOSE_SHELLEY, BIP44_COIN, account] = keypath {
+        check_account(account)?;
+        return Ok(());
+    }
+    Err(Error)
+}
+
 /// Validates that the prefix (all but last two elements) of the keypath is a valid shelley account
 /// payment keypath (m/1852'/1815'/account/role/address, where role is 0 or 1 (receive vs change) and address is less than 10000.
 ///
@@ -90,6 +102,24 @@ pub fn validate_address_shelley(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_validate_account_shelley() {
+        let purpose = 1852 + HARDENED;
+        let coin = 1815 + HARDENED;
+        assert!(validate_account_shelley(&[]).is_err());
+        assert!(validate_account_shelley(&[purpose]).is_err());
+        assert!(validate_account_shelley(&[purpose, coin]).is_err());
+        assert!(validate_account_shelley(&[purpose, coin, HARDENED, HARDENED]).is_err());
+
+        for account in 0..100 {
+            assert!(validate_account_shelley(&[purpose, coin, account + HARDENED]).is_ok());
+        }
+        // account too high
+        assert!(validate_account_shelley(&[purpose, coin, 100 + HARDENED]).is_err());
+        // invalid coin
+        assert!(validate_account_shelley(&[purpose, 1852 + HARDENED, 0 + HARDENED]).is_err());
+    }
 
     #[test]
     fn test_validate_address_shelley_payment() {

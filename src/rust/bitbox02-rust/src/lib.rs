@@ -28,6 +28,7 @@ pub mod async_usb;
 pub mod attestation;
 pub mod bb02_async;
 pub mod hww;
+pub mod keystore;
 pub mod util;
 mod waker_fn;
 pub mod workflow;

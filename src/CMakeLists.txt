@@ -461,6 +461,7 @@ if(NOT CMAKE_CROSSCOMPILING)
             -A clippy::result_unit_err
             -A clippy::upper_case_acronyms
             -A clippy::manual_range_contains
+            -A clippy::match_ref_pats
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
   add_dependencies(rust-clippy rust-bindgen)

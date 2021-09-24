@@ -16,6 +16,7 @@
 compile_error!("Cardano code is being compiled even though the app-cardano feature is not enabled");
 
 mod address;
+pub mod keypath;
 
 use super::pb;
 use super::Error;

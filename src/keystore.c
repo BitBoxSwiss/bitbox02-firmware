@@ -71,12 +71,6 @@ static uint8_t* _get_seed(void)
     if (!_is_unlocked_device) {
         return NULL;
     }
-    // sanity check
-    uint8_t zero[KEYSTORE_MAX_SEED_LENGTH] = {0};
-    util_zero(zero, sizeof(zero));
-    if (MEMEQ(_retained_seed, zero, KEYSTORE_MAX_SEED_LENGTH)) {
-        return NULL;
-    }
     return _retained_seed;
 }
 

@@ -14,10 +14,10 @@
 
 use super::amount::Amount;
 use super::pb;
-use super::Error;
 
 use bitbox02::keystore;
 
+use crate::hww::api::error::{Context, Error, ErrorKind};
 use crate::workflow::{confirm, transaction};
 use bitbox02::app_eth::{params_get, sighash, Params, SighashParams};
 
@@ -34,7 +34,10 @@ const WEI_DECIMALS: usize = 18;
 /// Converts `recipient` to an array of 20 chars. If `recipient` is
 /// not exactly 20 elements, `InvalidInput` is returned.
 fn parse_recipient(recipient: &[u8]) -> Result<[u8; 20], Error> {
-    recipient.try_into().or(Err(Error::InvalidInput))
+    recipient.try_into().or(Err(Error {
+        msg: Some("failed parsing recipient".into()),
+        kind: ErrorKind::InvalidInput,
+    }))
 }
 
 /// Checks if the transaction is an ERC20 transaction.
@@ -132,7 +135,10 @@ async fn verify_standard_transaction(
 ) -> Result<(), Error> {
     if request.data.is_empty() && request.value.is_empty() {
         // Must transfer non-zero value, unless there is data (contract invocation).
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("value and data can't both be empty".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
 
     let recipient = parse_recipient(&request.recipient)?;
@@ -184,10 +190,16 @@ async fn verify_standard_transaction(
 
 /// Verify and sign an Ethereum transaction.
 pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
-    let params = params_get(request.coin as _).ok_or(Error::InvalidInput)?;
+    let params = params_get(request.coin as _).ok_or(Error {
+        msg: Some("invalid coin".into()),
+        kind: ErrorKind::InvalidInput,
+    })?;
 
     if !super::keypath::is_valid_keypath_address(&request.keypath) {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("invalid keypath".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
     super::keypath::warn_unusual_keypath(&params, params.name, &request.keypath).await?;
 
@@ -198,27 +210,45 @@ pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
         || request.value.len() > 32
         || request.data.len() > 1024
     {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("field sizes too big".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
 
     // No zero prefix in the big endian numbers.
     if let [0, ..] = &request.nonce[..] {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("nonce can't be zero prefixed".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
     if let [0, ..] = &request.gas_price[..] {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("gas_price can't be zero prefixed".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
     if let [0, ..] = &request.gas_limit[..] {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("gas_limit can't be zero prefixed".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
     if let [0, ..] = &request.value[..] {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("value can't be zero prefixed".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
 
     let recipient = parse_recipient(&request.recipient)?;
     if recipient == [0; 20] {
         // Reserved for contract creation.
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("recipient can't be zero (contract creation not supported)".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
 
     if let Some((erc20_recipient, erc20_value)) = parse_erc20(request) {
@@ -236,7 +266,8 @@ pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
         data: &request.data,
         chain_id: params.chain_id,
     })
-    .or(Err(Error::InvalidInput))?;
+    .map_err(Error::err_invalid_input)
+    .context("sighash failed")?;
 
     let host_nonce = match request.host_nonce_commitment {
         // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
@@ -247,8 +278,11 @@ pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
                 commitment
                     .as_slice()
                     .try_into()
-                    .or(Err(Error::InvalidInput))?,
-            )?;
+                    .map_err(Error::err_invalid_input)
+                    .context("could not parse host nonce commitment")?,
+            )
+            .map_err(Error::err)
+            .context("secp256k1_nonce_commit failed")?;
 
             // Send signer commitment to host and wait for the host nonce from the host.
             super::antiklepto_get_host_nonce(signer_commitment).await?
@@ -257,7 +291,9 @@ pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
         // Return signature directly without the anti-klepto protocol, for backwards compatibility.
         None => [0; 32],
     };
-    let sign_result = keystore::secp256k1_sign(&request.keypath, &hash, &host_nonce)?;
+    let sign_result = keystore::secp256k1_sign(&request.keypath, &hash, &host_nonce)
+        .map_err(Error::err)
+        .context("secp256k1_sign failed")?;
 
     let mut signature: Vec<u8> = sign_result.signature.to_vec();
     signature.push(sign_result.recid);
@@ -283,12 +319,12 @@ mod tests {
         );
 
         assert_eq!(
-            parse_recipient(b"0123456789012345678"),
-            Err(Error::InvalidInput),
+            parse_recipient(b"0123456789012345678").unwrap_err().kind,
+            ErrorKind::InvalidInput,
         );
         assert_eq!(
-            parse_recipient(b"012345678901234567890"),
-            Err(Error::InvalidInput),
+            parse_recipient(b"012345678901234567890").unwrap_err().kind,
+            ErrorKind::InvalidInput,
         );
     }
 
@@ -589,8 +625,8 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.coin = 100;
             assert_eq!(
-                block_on(process(&invalid_request)),
-                Err(Error::InvalidInput)
+                block_on(process(&invalid_request)).unwrap_err().kind,
+                ErrorKind::InvalidInput,
             );
         }
 
@@ -599,8 +635,8 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.keypath = vec![44 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
             assert_eq!(
-                block_on(process(&invalid_request)),
-                Err(Error::InvalidInput)
+                block_on(process(&invalid_request)).unwrap_err().kind,
+                ErrorKind::InvalidInput,
             );
         }
 
@@ -609,8 +645,8 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.keypath = vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 100];
             assert_eq!(
-                block_on(process(&invalid_request)),
-                Err(Error::InvalidInput)
+                block_on(process(&invalid_request)).unwrap_err().kind,
+                ErrorKind::InvalidInput,
             );
         }
 
@@ -619,8 +655,8 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.data = vec![0; 1025];
             assert_eq!(
-                block_on(process(&invalid_request)),
-                Err(Error::InvalidInput)
+                block_on(process(&invalid_request)).unwrap_err().kind,
+                ErrorKind::InvalidInput,
             );
         }
 
@@ -629,8 +665,8 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.recipient = vec![b'a'; 21];
             assert_eq!(
-                block_on(process(&invalid_request)),
-                Err(Error::InvalidInput)
+                block_on(process(&invalid_request)).unwrap_err().kind,
+                ErrorKind::InvalidInput,
             );
         }
 
@@ -639,8 +675,8 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.recipient = vec![0; 20];
             assert_eq!(
-                block_on(process(&invalid_request)),
-                Err(Error::InvalidInput)
+                block_on(process(&invalid_request)).unwrap_err().kind,
+                ErrorKind::InvalidInput,
             );
         }
 
@@ -654,7 +690,10 @@ mod tests {
                 })),
                 ..Default::default()
             });
-            assert_eq!(block_on(process(&valid_request)), Err(Error::UserAbort));
+            assert_eq!(
+                block_on(process(&valid_request)).unwrap_err().kind,
+                ErrorKind::UserAbort
+            );
         }
         {
             // User rejects total/fee.
@@ -671,7 +710,10 @@ mod tests {
                 })),
                 ..Default::default()
             });
-            assert_eq!(block_on(process(&valid_request)), Err(Error::UserAbort));
+            assert_eq!(
+                block_on(process(&valid_request)).unwrap_err().kind,
+                ErrorKind::UserAbort
+            );
         }
         {
             // Keystore locked.
@@ -680,7 +722,10 @@ mod tests {
                 ui_transaction_fee_create: Some(Box::new(|_, _| true)),
                 ..Default::default()
             });
-            assert_eq!(block_on(process(&valid_request)), Err(Error::Generic));
+            assert_eq!(
+                block_on(process(&valid_request)).unwrap_err().kind,
+                ErrorKind::Generic
+            );
         }
     }
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::Error;
+use super::error::{Context, Error};
 use crate::pb;
 
 use pb::response::Response;
@@ -25,8 +25,13 @@ pub fn process() -> Result<Response, Error> {
         initialized: memory::is_initialized(),
         version: bitbox02::version_short().into(),
         mnemonic_passphrase_enabled: memory::is_mnemonic_passphrase_enabled(),
-        monotonic_increments_remaining: securechip::monotonic_increments_remaining()?,
-        securechip_model: match securechip::model()? {
+        monotonic_increments_remaining: securechip::monotonic_increments_remaining()
+            .map_err(Error::err)
+            .context("securechip::monotonic_increments_remaining failed")?,
+        securechip_model: match securechip::model()
+            .map_err(Error::err)
+            .context("securechip::model failed")?
+        {
             securechip::Model::SECURECHIP_ATECC608A => "ATECC608A".into(),
             securechip::Model::SECURECHIP_ATECC608B => "ATECC608B".into(),
         },

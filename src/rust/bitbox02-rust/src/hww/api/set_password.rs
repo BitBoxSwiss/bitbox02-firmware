@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::Error;
+use super::error::{Context, Error, ErrorKind};
 use crate::pb;
 
 use crate::workflow::password;
@@ -29,11 +29,20 @@ pub async fn process(
     pb::SetPasswordRequest { entropy }: &pb::SetPasswordRequest,
 ) -> Result<Response, Error> {
     if entropy.len() != 16 && entropy.len() != 32 {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("host entropy len should be 16 or 32".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
-    let password = password::enter_twice().await?;
+    let password = password::enter_twice()
+        .await
+        .map_err(Error::err)
+        .context("password::enter_twice")?;
     if !bitbox02::keystore::create_and_store_seed(&password, &entropy) {
-        return Err(Error::Generic);
+        return Err(Error {
+            msg: Some("create_and_store_seed failed".into()),
+            kind: ErrorKind::Generic,
+        });
     }
     if bitbox02::keystore::unlock(&password).is_err() {
         panic!("Unexpected error during restore: unlock failed.");

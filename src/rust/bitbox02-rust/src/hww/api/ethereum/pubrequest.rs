@@ -13,19 +13,23 @@
 // limitations under the License.
 
 use super::pb;
-use super::Error;
 
 use pb::eth_pub_request::OutputType;
 use pb::eth_response::Response;
 
+use crate::hww::api::error::{Context, Error, ErrorKind};
 use crate::workflow::confirm;
+
 use bitbox02::keystore;
 
 extern crate alloc;
 use core::convert::TryInto;
 
 async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error> {
-    let params = bitbox02::app_eth::params_get(request.coin as _).ok_or(Error::InvalidInput)?;
+    let params = bitbox02::app_eth::params_get(request.coin as _).ok_or(Error {
+        msg: Some("invalid coin".into()),
+        kind: ErrorKind::InvalidInput,
+    })?;
     // If a contract_address is provided, it has to be a supported ERC20-token.
     let erc20_params: Option<bitbox02::app_eth::ERC20Params> =
         if request.contract_address.is_empty() {
@@ -35,18 +39,25 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
                 .contract_address
                 .as_slice()
                 .try_into()
-                .or(Err(Error::InvalidInput))?;
+                .map_err(Error::err_invalid_input)
+                .context("could not parse address")?;
             Some(
-                bitbox02::app_eth::erc20_params_get(request.coin as _, address)
-                    .ok_or(Error::InvalidInput)?,
+                bitbox02::app_eth::erc20_params_get(request.coin as _, address).ok_or(Error {
+                    msg: Some("invalid coin".into()),
+                    kind: ErrorKind::InvalidInput,
+                })?,
             )
         };
 
     if !super::keypath::is_valid_keypath_address(&request.keypath) {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("invalid keypath".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
     let pubkey = bitbox02::keystore::secp256k1_pubkey_uncompressed(&request.keypath)
-        .or(Err(Error::InvalidInput))?;
+        .map_err(Error::err_invalid_input)
+        .context("secp256k1_pubkey_uncompressed failed")?;
     let address = super::address::from_pubkey(&pubkey);
 
     if request.display {
@@ -71,21 +82,34 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
 fn process_xpub(request: &pb::EthPubRequest) -> Result<Response, Error> {
     if request.display {
         // No xpub user verification for now.
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("display must be false".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
 
-    bitbox02::app_eth::params_get(request.coin as _).ok_or(Error::InvalidInput)?;
+    bitbox02::app_eth::params_get(request.coin as _).ok_or(Error {
+        msg: Some("invalid coin".into()),
+        kind: ErrorKind::InvalidInput,
+    })?;
     if !super::keypath::is_valid_keypath_xpub(&request.keypath) {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("invalid keypath".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
     let xpub = keystore::encode_xpub_at_keypath(&request.keypath, keystore::xpub_type_t::XPUB)
-        .or(Err(Error::InvalidInput))?;
+        .map_err(Error::err_invalid_input)
+        .context("encode_xpub_at_keypath failed")?;
 
     Ok(Response::Pub(pb::PubResponse { r#pub: xpub }))
 }
 
 pub async fn process(request: &pb::EthPubRequest) -> Result<Response, Error> {
-    let output_type = OutputType::from_i32(request.output_type).ok_or(Error::InvalidInput)?;
+    let output_type = OutputType::from_i32(request.output_type).ok_or(Error {
+        msg: Some("invalid output_type".into()),
+        kind: ErrorKind::InvalidInput,
+    })?;
     match output_type {
         OutputType::Address => process_address(request).await,
         OutputType::Xpub => process_xpub(request),
@@ -131,8 +155,8 @@ mod tests {
             ..Default::default()
         });
         assert_eq!(
-            block_on(process(&invalid_request)),
-            Err(Error::InvalidInput)
+            block_on(process(&invalid_request)).unwrap_err().kind,
+            ErrorKind::InvalidInput,
         );
 
         // Wrong keypath (wrong expected coin)
@@ -142,15 +166,18 @@ mod tests {
             ..Default::default()
         });
         assert_eq!(
-            block_on(process(&invalid_request)),
-            Err(Error::InvalidInput)
+            block_on(process(&invalid_request)).unwrap_err().kind,
+            ErrorKind::InvalidInput,
         );
 
         // xpub fetching/encoding failed.
         mock(Data {
             ..Default::default()
         });
-        assert_eq!(block_on(process(&request)), Err(Error::InvalidInput));
+        assert_eq!(
+            block_on(process(&request)).unwrap_err().kind,
+            ErrorKind::InvalidInput
+        );
     }
 
     #[test]
@@ -252,8 +279,10 @@ mod tests {
                 coin: pb::EthCoin::Eth as _,
                 display: true,
                 contract_address: b"".to_vec(),
-            })),
-            Err(Error::InvalidInput)
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::InvalidInput,
         );
 
         // Params not found.
@@ -263,8 +292,8 @@ mod tests {
             ..Default::default()
         });
         assert_eq!(
-            block_on(process(&invalid_request)),
-            Err(Error::InvalidInput)
+            block_on(process(&invalid_request)).unwrap_err().kind,
+            ErrorKind::InvalidInput,
         );
 
         // Wrong keypath (wrong expected coin)
@@ -274,8 +303,8 @@ mod tests {
             ..Default::default()
         });
         assert_eq!(
-            block_on(process(&invalid_request)),
-            Err(Error::InvalidInput)
+            block_on(process(&invalid_request)).unwrap_err().kind,
+            ErrorKind::InvalidInput,
         );
 
         // Wrong keypath (account too high)
@@ -289,8 +318,10 @@ mod tests {
                 coin: pb::EthCoin::Eth as _,
                 display: false,
                 contract_address: b"".to_vec(),
-            })),
-            Err(Error::InvalidInput)
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::InvalidInput,
         );
     }
 
@@ -356,8 +387,10 @@ mod tests {
                 coin: pb::EthCoin::Eth as _,
                 display: false,
                 contract_address: b"aaaaaaaaaaaaaaaaaaaa".to_vec(),
-            })),
-            Err(Error::InvalidInput)
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::InvalidInput,
         );
     }
 }

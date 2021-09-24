@@ -42,6 +42,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::hww::api::error::ErrorKind;
     use bitbox02::testing::{mock, Data, MUTEX};
     use std::boxed::Box;
 
@@ -76,8 +77,10 @@ mod tests {
         assert_eq!(
             block_on(reboot(&pb::RebootRequest {
                 purpose: Purpose::Upgrade as _
-            })),
-            Err(Error::UserAbort),
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::UserAbort,
         );
     }
 }

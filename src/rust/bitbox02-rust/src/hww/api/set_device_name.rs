@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::Error;
+use super::error::{Context, Error, ErrorKind};
 use crate::pb;
 
 use pb::response::Response;
@@ -23,7 +23,10 @@ pub async fn process(
     pb::SetDeviceNameRequest { name }: &pb::SetDeviceNameRequest,
 ) -> Result<Response, Error> {
     if !util::name::validate(name, bitbox02::memory::DEVICE_NAME_MAX_LEN) {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("invalid name".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
 
     let params = confirm::Params {
@@ -35,7 +38,9 @@ pub async fn process(
 
     confirm::confirm(&params).await?;
 
-    bitbox02::memory::set_device_name(&name)?;
+    bitbox02::memory::set_device_name(&name)
+        .map_err(Error::err)
+        .context("set_device_name failed")?;
 
     Ok(Response::Success(pb::Success {}))
 }
@@ -85,8 +90,10 @@ mod tests {
         assert_eq!(
             block_on(process(&pb::SetDeviceNameRequest {
                 name: SOME_NAME.into()
-            })),
-            Err(Error::UserAbort)
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::UserAbort
         );
 
         // Memory write error.
@@ -101,32 +108,40 @@ mod tests {
         assert_eq!(
             block_on(process(&pb::SetDeviceNameRequest {
                 name: SOME_NAME.into()
-            })),
-            Err(Error::Memory)
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::Memory
         );
 
         // Non-ascii character.
         assert_eq!(
             block_on(process(&pb::SetDeviceNameRequest {
                 name: "emoji are 😃, 😭, and 😈".into()
-            })),
-            Err(Error::InvalidInput)
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::InvalidInput
         );
 
         // Non-printable character.
         assert_eq!(
             block_on(process(&pb::SetDeviceNameRequest {
                 name: "foo\nbar".into()
-            })),
-            Err(Error::InvalidInput)
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::InvalidInput
         );
 
         // Too long.
         assert_eq!(
             block_on(process(&pb::SetDeviceNameRequest {
                 name: core::str::from_utf8(&[b'a'; 500]).unwrap().into()
-            })),
-            Err(Error::InvalidInput)
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::InvalidInput
         );
     }
 }

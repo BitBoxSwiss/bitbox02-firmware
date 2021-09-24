@@ -18,7 +18,6 @@ use core::convert::TryInto;
 use sha2::{Digest, Sha256};
 
 use super::pb;
-use super::Error;
 
 use pb::btc_script_config::{Config, SimpleType};
 use pb::BtcCoin;
@@ -27,6 +26,7 @@ use pb::btc_response::Response;
 
 use bitbox02::keystore;
 
+use crate::hww::api::error::{Context, Error, ErrorKind};
 use crate::workflow::{confirm, verify_message};
 
 const MAX_MESSAGE_SIZE: usize = 1024;
@@ -36,9 +36,15 @@ const MAX_MESSAGE_SIZE: usize = 1024;
 /// The result contains a 65 byte signature. The first 64 bytes are the secp256k1 signature in
 /// compact format (R and S values), and the last byte is the recoverable id (recid).
 pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Error> {
-    let coin = BtcCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
+    let coin = BtcCoin::from_i32(request.coin).ok_or(Error {
+        msg: Some("invalid coin".into()),
+        kind: ErrorKind::InvalidInput,
+    })?;
     if coin != BtcCoin::Btc {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("only BTC mainnet supported".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
     let (keypath, simple_type) = match &request.script_config {
         Some(pb::BtcScriptConfigWithKeypath {
@@ -49,17 +55,29 @@ pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Er
             keypath,
         }) => (
             keypath,
-            SimpleType::from_i32(*simple_type).ok_or(Error::InvalidInput)?,
+            SimpleType::from_i32(*simple_type).ok_or(Error {
+                msg: Some("invalid simple_type".into()),
+                kind: ErrorKind::InvalidInput,
+            })?,
         ),
-        _ => return Err(Error::InvalidInput),
+        _ => {
+            return Err(Error {
+                msg: Some("script config not supported".into()),
+                kind: ErrorKind::InvalidInput,
+            })
+        }
     };
     if request.msg.len() > MAX_MESSAGE_SIZE {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("message too large".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
 
     // Keypath and script_config are validated in address_simple().
     let address = bitbox02::app_btc::address_simple(coin as _, simple_type as _, keypath)
-        .or(Err(Error::InvalidInput))?;
+        .map_err(Error::err_invalid_input)
+        .context("address_simple failed")?;
 
     let basic_info = format!("Coin: {}", super::params::get(coin).name);
     let confirm_params = confirm::Params {
@@ -104,8 +122,11 @@ pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Er
                 commitment
                     .as_slice()
                     .try_into()
-                    .or(Err(Error::InvalidInput))?,
-            )?;
+                    .map_err(Error::err_invalid_input)
+                    .context("could not parse host nonce commitment")?,
+            )
+            .map_err(Error::err)
+            .context("secp256k1_nonce_commit failed")?;
 
             // Send signer commitment to host and wait for the host nonce from the host.
             super::antiklepto_get_host_nonce(signer_commitment).await?
@@ -115,7 +136,9 @@ pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Er
         None => [0; 32],
     };
 
-    let sign_result = bitbox02::keystore::secp256k1_sign(keypath, &sighash, &host_nonce)?;
+    let sign_result = bitbox02::keystore::secp256k1_sign(keypath, &sighash, &host_nonce)
+        .map_err(Error::err)
+        .context("secp256k1_sign failed")?;
 
     let mut signature: Vec<u8> = sign_result.signature.to_vec();
     signature.push(sign_result.recid);
@@ -229,7 +252,10 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
+        assert_eq!(
+            block_on(process(&request)).unwrap_err().kind,
+            ErrorKind::UserAbort
+        );
 
         // Address verification aborted.
         unsafe {
@@ -253,7 +279,10 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
+        assert_eq!(
+            block_on(process(&request)).unwrap_err().kind,
+            ErrorKind::UserAbort
+        );
 
         // Message verification aborted.
         unsafe {
@@ -277,7 +306,10 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
+        assert_eq!(
+            block_on(process(&request)).unwrap_err().kind,
+            ErrorKind::UserAbort
+        );
     }
 
     #[test]
@@ -296,8 +328,10 @@ mod tests {
                 }),
                 msg: MESSAGE.to_vec(),
                 host_nonce_commitment: None,
-            })),
-            Err(Error::InvalidInput)
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::InvalidInput
         );
 
         // Invalid script type (invalid simple type)
@@ -312,8 +346,10 @@ mod tests {
                 }),
                 msg: MESSAGE.to_vec(),
                 host_nonce_commitment: None,
-            })),
-            Err(Error::InvalidInput)
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::InvalidInput
         );
 
         // Invalid script type (multisig not supported)
@@ -330,8 +366,10 @@ mod tests {
                 }),
                 msg: MESSAGE.to_vec(),
                 host_nonce_commitment: None,
-            })),
-            Err(Error::InvalidInput)
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::InvalidInput
         );
 
         // Message too long
@@ -346,8 +384,10 @@ mod tests {
                 }),
                 msg: [0; 1025].to_vec(),
                 host_nonce_commitment: None,
-            })),
-            Err(Error::InvalidInput)
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::InvalidInput
         );
 
         // Invalid keypath
@@ -366,8 +406,10 @@ mod tests {
                 }),
                 msg: MESSAGE.to_vec(),
                 host_nonce_commitment: None,
-            })),
-            Err(Error::InvalidInput)
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::InvalidInput
         );
     }
 }

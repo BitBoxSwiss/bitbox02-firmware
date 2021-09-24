@@ -37,7 +37,7 @@ mod system;
 
 use alloc::vec::Vec;
 
-use error::{make_error, Error};
+use error::{make_error, Error, ErrorKind};
 use pb::request::Request;
 use pb::response::Response;
 use prost::Message;
@@ -58,7 +58,14 @@ pub fn decode(input: &[u8]) -> Result<Request, Error> {
         Ok(pb::Request {
             request: Some(request),
         }) => Ok(request),
-        _ => Err(Error::InvalidInput),
+        Ok(pb::Request { request: None }) => Err(Error {
+            msg: Some("request missing".into()),
+            kind: ErrorKind::InvalidInput,
+        }),
+        Err(_) => Err(Error {
+            msg: Some("protobuf decode error".into()),
+            kind: ErrorKind::InvalidInput,
+        }),
     }
 }
 
@@ -110,7 +117,10 @@ async fn process_api_btc(request: &Request) -> Option<Result<Response, Error>> {
 
 #[cfg(not(any(feature = "app-bitcoin", feature = "app-litecoin")))]
 async fn process_api_btc(_request: &Request) -> Option<Result<Response, Error>> {
-    Some(Err(Error::Disabled))
+    Some(Err(Error {
+        msg: None,
+        kind: ErrorKind::Disabled,
+    }))
 }
 
 /// Handle a protobuf api call.
@@ -164,7 +174,10 @@ pub async fn process(input: Vec<u8>) -> Vec<u8> {
         Err(err) => return encode(make_error(err)),
     };
     if !bitbox02::commander::states_can_call(request_tag(&request) as u16) {
-        return encode(make_error(Error::InvalidState));
+        return encode(make_error(Error {
+            msg: None,
+            kind: ErrorKind::InvalidState,
+        }));
     }
 
     // Since we will process the call now, so can clear the 'force next' info.

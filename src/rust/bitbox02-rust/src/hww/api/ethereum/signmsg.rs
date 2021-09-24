@@ -13,10 +13,10 @@
 // limitations under the License.
 
 use super::pb;
-use super::Error;
 
 use bitbox02::keystore;
 
+use crate::hww::api::error::{Context, Error, ErrorKind};
 use crate::workflow::verify_message;
 
 use pb::eth_response::Response;
@@ -32,7 +32,10 @@ use sha3::digest::Digest;
 /// compact format (R and S values), and the last byte is the recoverable id (recid).
 pub async fn process(request: &pb::EthSignMessageRequest) -> Result<Response, Error> {
     if request.msg.len() > 9999 {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: Some("message length  larger than 9999 bytes".into()),
+            kind: ErrorKind::InvalidInput,
+        });
     }
     let pub_request = pb::EthPubRequest {
         output_type: pb::eth_pub_request::OutputType::Address as _,
@@ -67,8 +70,11 @@ pub async fn process(request: &pb::EthSignMessageRequest) -> Result<Response, Er
                 commitment
                     .as_slice()
                     .try_into()
-                    .or(Err(Error::InvalidInput))?,
-            )?;
+                    .map_err(Error::err_invalid_input)
+                    .context("could not parse host nonce commitment")?,
+            )
+            .map_err(Error::err)
+            .context("secp256k1_nonce_commit failed")?;
 
             // Send signer commitment to host and wait for the host nonce from the host.
             super::antiklepto_get_host_nonce(signer_commitment).await?
@@ -78,7 +84,9 @@ pub async fn process(request: &pb::EthSignMessageRequest) -> Result<Response, Er
         None => [0; 32],
     };
 
-    let sign_result = bitbox02::keystore::secp256k1_sign(&request.keypath, &sighash, &host_nonce)?;
+    let sign_result = bitbox02::keystore::secp256k1_sign(&request.keypath, &sighash, &host_nonce)
+        .map_err(Error::err)
+        .context("secp256k1_sign failed")?;
 
     let mut signature: Vec<u8> = sign_result.signature.to_vec();
     signature.push(sign_result.recid);
@@ -220,7 +228,10 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
+        assert_eq!(
+            block_on(process(&request)).unwrap_err().kind,
+            ErrorKind::UserAbort
+        );
 
         // User abort message verification.
         unsafe {
@@ -244,7 +255,10 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
+        assert_eq!(
+            block_on(process(&request)).unwrap_err().kind,
+            ErrorKind::UserAbort
+        );
     }
 
     #[test]
@@ -260,8 +274,10 @@ mod tests {
                 keypath: KEYPATH.to_vec(),
                 msg: [0; 10000].to_vec(),
                 host_nonce_commitment: None,
-            })),
-            Err(Error::InvalidInput)
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::InvalidInput
         );
 
         // Keystore locked.
@@ -274,8 +290,10 @@ mod tests {
                 keypath: KEYPATH.to_vec(),
                 msg: b"message".to_vec(),
                 host_nonce_commitment: None,
-            })),
-            Err(Error::InvalidInput)
+            }))
+            .unwrap_err()
+            .kind,
+            ErrorKind::InvalidInput
         );
     }
 }

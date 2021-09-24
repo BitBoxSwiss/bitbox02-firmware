@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::Error;
+use crate::hww::api::error::{Error, ErrorKind};
 use crate::workflow::confirm;
 use bitbox02::app_eth::Params;
 
@@ -35,7 +35,10 @@ pub async fn warn_unusual_keypath(
     keypath: &[u32],
 ) -> Result<(), Error> {
     if keypath.len() < 2 {
-        return Err(Error::InvalidInput);
+        return Err(Error {
+            msg: None,
+            kind: ErrorKind::InvalidInput,
+        });
     }
     if keypath[1] != params.bip44_coin {
         let body = format!(

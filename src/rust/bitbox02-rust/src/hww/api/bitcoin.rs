@@ -19,8 +19,8 @@ mod params;
 mod script;
 pub mod signmsg;
 
+use super::error::{Context, Error, ErrorKind};
 use super::pb;
-use super::Error;
 
 use crate::apps::bitcoin;
 use crate::workflow::confirm;
@@ -48,7 +48,10 @@ pub async fn next_request(response: pb::btc_response::Response) -> Result<Reques
         pb::request::Request::Btc(pb::BtcRequest {
             request: Some(request),
         }) => Ok(request),
-        _ => Err(Error::InvalidState),
+        _ => Err(Error {
+            msg: Some("expected Btc request, got".into()),
+            kind: ErrorKind::InvalidState,
+        }),
     }
 }
 
@@ -68,9 +71,13 @@ pub async fn antiklepto_get_host_nonce(
             Ok(host_nonce
                 .as_slice()
                 .try_into()
-                .or(Err(Error::InvalidInput))?)
+                .map_err(Error::err_invalid_input)
+                .context("could not parse host nonce")?)
         }
-        _ => Err(Error::InvalidState),
+        _ => Err(Error {
+            msg: Some("expected AntikleptoSignature".into()),
+            kind: ErrorKind::InvalidState,
+        }),
     }
 }
 
@@ -85,7 +92,10 @@ fn coin_enabled(coin: pb::BtcCoin) -> Result<(), Error> {
     if let Ltc | Tltc = coin {
         return Ok(());
     }
-    Err(Error::Disabled)
+    Err(Error {
+        msg: None,
+        kind: ErrorKind::Disabled,
+    })
 }
 
 /// Processes an xpub api call.
@@ -96,7 +106,9 @@ async fn xpub(
     display: bool,
 ) -> Result<Response, Error> {
     let params = params::get(coin);
-    bitcoin::keypath::validate_xpub(keypath, params.bip44_coin)?;
+    bitcoin::keypath::validate_xpub(keypath, params.bip44_coin)
+        .map_err(Error::err_generic)
+        .context("invalid keypath")?;
     let xpub_type = match xpub_type {
         XPubType::Tpub => xpub_type_t::TPUB,
         XPubType::Xpub => xpub_type_t::XPUB,
@@ -109,7 +121,9 @@ async fn xpub(
         XPubType::CapitalUpub => xpub_type_t::CAPITAL_UPUB,
         XPubType::CapitalYpub => xpub_type_t::CAPITAL_YPUB,
     };
-    let xpub = encode_xpub_at_keypath(keypath, xpub_type).or(Err(Error::InvalidInput))?;
+    let xpub = encode_xpub_at_keypath(keypath, xpub_type)
+        .map_err(Error::err_invalid_input)
+        .context("encode_xpub_at_keypath failed")?;
     if display {
         let title = format!("{}\naccount #{}", params.name, keypath[2] - HARDENED + 1,);
         let confirm_params = confirm::Params {
@@ -130,7 +144,9 @@ async fn address_simple(
     keypath: &[u32],
     display: bool,
 ) -> Result<Response, Error> {
-    let address = bitbox02::app_btc::address_simple(coin as _, simple_type as _, keypath)?;
+    let address = bitbox02::app_btc::address_simple(coin as _, simple_type as _, keypath)
+        .map_err(Error::err)
+        .context("address_simple failed")?;
     if display {
         let confirm_params = confirm::Params {
             title: params::get(coin).name,
@@ -150,17 +166,30 @@ async fn address_simple(
 pub async fn process_pub(request: &pb::BtcPubRequest) -> Option<Result<Response, Error>> {
     let coin = match BtcCoin::from_i32(request.coin) {
         Some(coin) => coin,
-        None => return Some(Err(Error::InvalidInput)),
+        None => {
+            return Some(Err(Error {
+                msg: Some("invalid coin".into()),
+                kind: ErrorKind::InvalidInput,
+            }))
+        }
     };
     if let Err(err) = coin_enabled(coin) {
         return Some(Err(err));
     }
     match request.output {
-        None => Some(Err(Error::InvalidInput)),
+        None => Some(Err(Error {
+            msg: Some("request.output missing".into()),
+            kind: ErrorKind::InvalidInput,
+        })),
         Some(Output::XpubType(xpub_type)) => {
             let xpub_type = match XPubType::from_i32(xpub_type) {
                 Some(xpub_type) => xpub_type,
-                None => return Some(Err(Error::InvalidInput)),
+                None => {
+                    return Some(Err(Error {
+                        msg: Some("invalid xpub_type".into()),
+                        kind: ErrorKind::InvalidInput,
+                    }))
+                }
             };
             Some(xpub(coin, xpub_type, &request.keypath, request.display).await)
         }
@@ -169,7 +198,12 @@ pub async fn process_pub(request: &pb::BtcPubRequest) -> Option<Result<Response,
         })) => {
             let simple_type = match SimpleType::from_i32(simple_type) {
                 Some(simple_type) => simple_type,
-                None => return Some(Err(Error::InvalidInput)),
+                None => {
+                    return Some(Err(Error {
+                        msg: Some("invalid simple_type".into()),
+                        kind: ErrorKind::InvalidInput,
+                    }))
+                }
             };
             Some(address_simple(coin, simple_type, &request.keypath, request.display).await)
         }

@@ -24,7 +24,7 @@ use pb::cardano_response::Response;
 use pb::cardano_script_config::Config;
 use pb::CardanoNetwork;
 
-use bech32::{ToBase32, Variant};
+use bech32::{FromBase32, ToBase32, Variant};
 
 use blake2::{
     digest::{Update, VariableOutput},
@@ -34,10 +34,36 @@ use blake2::{
 use super::params;
 
 /// Size of the Blake2b hash of payment keys and scripts.
-const ADDRESS_HASH_SIZE: usize = 28;
+pub const ADDRESS_HASH_SIZE: usize = 28;
+
+/// Decodes a bech32 Shelley payment address and validates that it was encoded for the right
+/// network.
+///
+/// These address tags are accepted:
+/// https://github.com/cardano-foundation/CIPs/blob/0081c890995ff94618145ae5beb7f288c029a86a/CIP-0019/CIP-0019.md#shelley-addresses
+/// See also: https://github.com/input-output-hk/cardano-ledger-specs/blob/c0a7b02a0fb16849206d9bc0e357583d08d54fae/eras/shelley/test-suite/cddl-files/shelley.cddl#L71-L79
+pub fn decode_payment_address(params: &params::Params, address: &str) -> Result<Vec<u8>, Error> {
+    let (hrp, data, variant) = bech32::decode(address).or(Err(Error::InvalidInput))?;
+    if variant != Variant::Bech32 || hrp != params.bech32_hrp_payment {
+        return Err(Error::InvalidInput);
+    }
+    let data = Vec::from_base32(&data).or(Err(Error::InvalidInput))?;
+    if data.is_empty() {
+        return Err(Error::InvalidInput);
+    }
+    let header = data[0];
+    if header & 0b0000_1111 != params.network_id {
+        return Err(Error::InvalidInput);
+    }
+    let address_tag = header >> 4;
+    if address_tag > 7 {
+        return Err(Error::InvalidInput);
+    }
+    Ok(data)
+}
 
 /// Returns the hash of the pubkey at the keypath. Returns an error if the keystore is locked.
-fn pubkey_hash_at_keypath(keypath: &[u32]) -> Result<[u8; ADDRESS_HASH_SIZE], ()> {
+pub fn pubkey_hash_at_keypath(keypath: &[u32]) -> Result<[u8; ADDRESS_HASH_SIZE], ()> {
     let xpub = crate::keystore::ed25519::get_xpub(keypath)?;
     let pubkey_bytes = xpub.pubkey_bytes();
     let mut hasher = VarBlake2b::new(ADDRESS_HASH_SIZE).unwrap();
@@ -47,6 +73,7 @@ fn pubkey_hash_at_keypath(keypath: &[u32]) -> Result<[u8; ADDRESS_HASH_SIZE], ()
     Ok(out)
 }
 
+/// See https://github.com/input-output-hk/cardano-ledger-specs/blob/c0a7b02a0fb16849206d9bc0e357583d08d54fae/eras/shelley/test-suite/cddl-files/shelley.cddl#L71-L79
 fn address_header(params: &params::Params, script_config: &Config) -> u8 {
     let address_tag: u8 = match script_config {
         Config::PkhSkh(_) => 0,
@@ -55,10 +82,13 @@ fn address_header(params: &params::Params, script_config: &Config) -> u8 {
     address_tag << 4 | params.network_id
 }
 
-/// Encode the given address using bech32, validating that the keypaths are valid.
-pub fn validate_and_encode_address(
+/// Encode the given address using bech32, validating that the keypaths are valid. If
+/// `keypath_prefix` is provided, it is also validated that the address keypaths start with this
+/// prefix.
+pub fn validate_and_encode_payment_address(
     params: &params::Params,
     script_config: &Config,
+    bip44_account: Option<u32>,
 ) -> Result<String, Error> {
     let header = address_header(params, script_config);
 
@@ -67,6 +97,7 @@ pub fn validate_and_encode_address(
             super::keypath::validate_address_shelley(
                 &config.keypath_payment,
                 &config.keypath_stake,
+                bip44_account,
             )?;
 
             let payment_key_hash = pubkey_hash_at_keypath(&config.keypath_payment)?;
@@ -98,7 +129,7 @@ pub async fn process(request: &pb::CardanoAddressRequest) -> Result<Response, Er
         .as_ref()
         .ok_or(Error::InvalidInput)?;
 
-    let encoded_address = validate_and_encode_address(params, script_config)?;
+    let encoded_address = validate_and_encode_payment_address(params, script_config, None)?;
 
     if request.display {
         confirm::confirm(&confirm::Params {
@@ -122,6 +153,56 @@ mod tests {
     use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_unlocked, Data, MUTEX};
     use util::bip32::HARDENED;
+
+    #[test]
+    fn test_decode_payment_address() {
+        // See https://github.com/cardano-foundation/CIPs/blob/0081c890995ff94618145ae5beb7f288c029a86a/CIP-0019/CIP-0019.md#test-vectors
+        // One for each Shelley address type, except for stake addresses.
+
+        let valid_addresses_mainnet = vec![
+            "addr1qx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3n0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgse35a3x",
+            "addr1z8phkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gten0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgs9yc0hh",
+            "addr1yx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzerkr0vd4msrxnuwnccdxlhdjar77j6lg0wypcc9uar5d2shs2z78ve",
+            "addr1x8phkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gt7r0vd4msrxnuwnccdxlhdjar77j6lg0wypcc9uar5d2shskhj42g",
+            "addr1gx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer5pnz75xxcrzqf96k",
+            "addr128phkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gtupnz75xxcrtw79hu",
+            "addr1vx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzers66hrl8",
+            "addr1w8phkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gtcyjy7wx",
+        ];
+
+        for address in &valid_addresses_mainnet {
+            assert!(
+                decode_payment_address(params::get(CardanoNetwork::CardanoMainnet), address)
+                    .is_ok()
+            );
+            assert!(
+                decode_payment_address(params::get(CardanoNetwork::CardanoTestnet), address)
+                    .is_err()
+            );
+        }
+
+        let valid_addresses_testnet = vec![
+            "addr_test1qz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3n0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgs68faae",
+            "addr_test1zrphkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gten0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgsxj90mg",
+            "addr_test1yz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzerkr0vd4msrxnuwnccdxlhdjar77j6lg0wypcc9uar5d2shsf5r8qx",
+            "addr_test1xrphkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gt7r0vd4msrxnuwnccdxlhdjar77j6lg0wypcc9uar5d2shs4p04xh",
+            "addr_test1gz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer5pnz75xxcrdw5vky",
+            "addr_test12rphkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gtupnz75xxcryqrvmw",
+            "addr_test1vz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzerspjrlsz",
+            "addr_test1wrphkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gtcl6szpr",
+        ];
+
+        for address in &valid_addresses_testnet {
+            assert!(
+                decode_payment_address(params::get(CardanoNetwork::CardanoTestnet), address)
+                    .is_ok()
+            );
+            assert!(
+                decode_payment_address(params::get(CardanoNetwork::CardanoMainnet), address)
+                    .is_err()
+            );
+        }
+    }
 
     fn make_pkh_skh(keypath_payment: &[u32], keypath_stake: &[u32]) -> pb::CardanoScriptConfig {
         pb::CardanoScriptConfig {

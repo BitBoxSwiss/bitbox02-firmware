@@ -18,6 +18,7 @@ compile_error!("Cardano code is being compiled even though the app-cardano featu
 mod address;
 pub mod keypath;
 mod params;
+mod sign_transaction;
 mod xpubs;
 
 use super::pb;
@@ -31,5 +32,6 @@ pub async fn process_api(request: &Request) -> Result<Response, Error> {
     match request {
         Request::Xpubs(ref request) => xpubs::process(request),
         Request::Address(ref request) => address::process(request).await,
+        Request::SignTransaction(ref request) => sign_transaction::process(request).await,
     }
 }

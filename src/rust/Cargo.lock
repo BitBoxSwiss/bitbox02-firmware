@@ -81,6 +81,7 @@ dependencies = [
  "bitbox02",
  "bitbox02-noise",
  "blake2",
+ "digest",
  "ed25519-dalek",
  "hex",
  "minicbor",

@@ -27,6 +27,22 @@ pub fn get_xpub(keypath: &[u32]) -> Result<Xpub, ()> {
     Ok(get_xprv(keypath)?.public())
 }
 
+pub struct SignResult {
+    pub signature: [u8; 64],
+    pub public_key: ed25519_dalek::PublicKey,
+}
+
+pub fn sign(keypath: &[u32], msg: &[u8; 32]) -> Result<SignResult, ()> {
+    let xprv = get_xprv(keypath)?;
+    let secret_key = ed25519_dalek::ExpandedSecretKey::from_bytes(&xprv.expanded_secret_key()[..])
+        .or(Err(()))?;
+    let public_key = ed25519_dalek::PublicKey::from(&secret_key);
+    Ok(SignResult {
+        signature: secret_key.sign(msg, &public_key).to_bytes(),
+        public_key,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

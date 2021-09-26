@@ -865,3 +865,11 @@ class BitBox02(BitBoxCommonAPI):
 
         request = cardano.CardanoRequest(address=address)
         return self._cardano_msg_query(request, expected_response="pub").pub.pub
+
+    def cardano_sign_transaction(
+        self, transaction: cardano.CardanoSignTransactionRequest
+    ) -> cardano.CardanoSignTransactionResponse:
+        request = cardano.CardanoRequest(sign_transaction=transaction)
+        return self._cardano_msg_query(
+            request, expected_response="sign_transaction"
+        ).sign_transaction

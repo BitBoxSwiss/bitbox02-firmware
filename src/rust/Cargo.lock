@@ -82,6 +82,7 @@ dependencies = [
  "bitbox02-noise",
  "blake2",
  "hex",
+ "minicbor",
  "num-bigint",
  "prost",
  "sha2",
@@ -287,6 +288,12 @@ name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
+
+[[package]]
+name = "minicbor"
+version = "0.11.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9761df552087b47d7651dd4d14717c35ef43d47c01e04e399530faaa427ca541"
 
 [[package]]
 name = "noise-protocol"

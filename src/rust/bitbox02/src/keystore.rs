@@ -334,6 +334,7 @@ mod tests {
     fn test_get_bip39_mnemonic() {
         let _guard = MUTEX.lock().unwrap();
 
+        lock();
         assert!(get_bip39_mnemonic().is_err());
 
         mock_unlocked();

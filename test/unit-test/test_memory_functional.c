@@ -109,8 +109,8 @@ static void _test_memory_multisig_full(void** state)
     uint8_t hashes[limit + 1][32];
     char names[limit + 1][10];
     for (size_t i = 0; i < limit + 1; i++) {
-        memset(hashes[i], i + i, 32);
-        snprintf(names[i], sizeof(names[i]), "name%ld", i);
+        memset(hashes[i], (int)(i + i), 32);
+        snprintf(names[i], sizeof(names[i]), "name%lu", i);
     }
 
     for (size_t i = 0; i < limit; i++) {

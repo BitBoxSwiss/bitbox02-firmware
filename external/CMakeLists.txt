@@ -36,7 +36,7 @@ set(LIBWALLY_CFLAGS  "\
 set(LIBWALLY_CFLAGS "${LIBWALLY_CFLAGS} -Wno-cast-qual -Wno-cast-align \
   -Wno-missing-prototypes -Wno-redundant-decls \
   -Wno-switch-default -Wno-missing-declarations \
-  -Wno-array-bounds \
+  -Wno-array-bounds -Wno-unused-label -Wno-sign-compare -Wno-type-limits \
 ")
 if(CMAKE_CROSSCOMPILING)
   set(LIBWALLY_LDFLAGS --specs=nosys.specs)
@@ -222,7 +222,7 @@ set_property(TARGET asf4-drivers PROPERTY INTERFACE_LINK_LIBRARIES "")
   set_property(TARGET cryptoauthlib PROPERTY INTERFACE_LINK_LIBRARIES "")
   target_compile_definitions(cryptoauthlib PUBLIC ATCA_HAL_CUSTOM ATCA_NO_POLL)
   target_include_directories(cryptoauthlib SYSTEM PUBLIC cryptoauthlib/lib)
-  target_compile_options(cryptoauthlib PRIVATE -Wno-pedantic -Wno-incompatible-pointer-types -Wno-unused-parameter -Wno-unused-variable)
+  target_compile_options(cryptoauthlib PRIVATE -Wno-pedantic -Wno-incompatible-pointer-types -Wno-unused-parameter -Wno-unused-variable -Wno-cast-qual)
 endif() # CMAKE_CROSSCOMPILING
 
 # fatfs must to be linked together with a diskio middleware:

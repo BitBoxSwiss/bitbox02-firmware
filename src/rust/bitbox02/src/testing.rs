@@ -49,18 +49,23 @@ pub fn mock(data: Data) {
     keystore::lock();
 }
 
-pub const TEST_MNEMONIC: &str = "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay";
-
-/// This mocks an unlocked keystore with a fixed bip39 seed based on these bip39 recovery words:
-/// `purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay`
-pub fn mock_unlocked() {
-    let seed: [u8; 32] = keystore::bip39_mnemonic_to_seed(TEST_MNEMONIC)
+/// This mocks an unlocked keystore with the given bip39 recovery words.
+pub fn mock_unlocked_using_mnemonic(mnemonic: &str) {
+    let seed: [u8; 32] = keystore::bip39_mnemonic_to_seed(mnemonic)
         .unwrap()
         .as_slice()
         .try_into()
         .unwrap();
     unsafe { bitbox02_sys::mock_state(seed.as_ptr(), core::ptr::null()) }
     keystore::unlock_bip39(&crate::input::SafeInputString::new()).unwrap();
+}
+
+pub const TEST_MNEMONIC: &str = "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay";
+
+/// This mocks an unlocked keystore with a fixed bip39 seed based on these bip39 recovery words:
+/// `purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay`
+pub fn mock_unlocked() {
+    mock_unlocked_using_mnemonic(TEST_MNEMONIC)
 }
 
 /// This mounts a new FAT32 volume in RAM for use in unit tests. As there is only one volume, access only when holding `MUTEX`.

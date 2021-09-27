@@ -44,7 +44,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/blocking.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
   ${CMAKE_SOURCE_DIR}/src/workflow/idle_workflow.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/restore.c
   ${CMAKE_SOURCE_DIR}/src/workflow/orientation_screen.c
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
@@ -400,6 +399,8 @@ add_custom_target(rust-bindgen
     --whitelist-function reset_reset
     --whitelist-function sd_card_inserted
     --whitelist-function sd_format
+    --whitelist-function sd_list_subdir
+    --whitelist-function sd_free_list
     --whitelist-var BIP39_WORDLIST_LEN
     --whitelist-function app_eth_params_get
     --whitelist-function app_eth_erc20_params_get

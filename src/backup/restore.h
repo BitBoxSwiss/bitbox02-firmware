@@ -36,11 +36,6 @@ restore_error_t restore_from_buffer(
     BackupData* backup_data);
 
 /**
- * Returns a list of backup information to the caller.
- */
-restore_error_t restore_list_backups(ListBackupsResponse* backups);
-
-/**
  * Restore a backup from directory.
  * @param[in] dir The directory from which we want to restore the backup.
  * @param[out] backup_data The restored backup_data.

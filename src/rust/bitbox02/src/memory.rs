@@ -19,6 +19,7 @@ use alloc::string::String;
 // deduct one for the null terminator.
 pub const DEVICE_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_DEVICE_NAME_MAX_LEN as usize - 1;
 
+#[derive(Debug)]
 pub struct Error;
 
 pub fn get_device_name() -> String {

@@ -35,6 +35,17 @@ pub fn str_from_null_terminated(input: &[u8]) -> Result<&str, ()> {
     core::str::from_utf8(&input[0..len]).or(Err(()))
 }
 
+/// Parses a utf-8 string out of a null terminated buffer starting at `ptr`. Returns `Err(())` if
+/// the bytes before the null terminator is invalid UTF8.
+///
+/// # Safety `ptr` must be not null and be a null terminated string. The resulting string is only
+/// valid as long the memory pointed to by `ptr` is valid.
+pub unsafe fn str_from_null_terminated_ptr<'a>(ptr: *const u8) -> Result<&'a str, ()> {
+    let len = strlen_ptr(ptr);
+    let s = core::slice::from_raw_parts(ptr, len as _);
+    core::str::from_utf8(s).or(Err(()))
+}
+
 /// Macro for creating a stack allocated buffer with the content of a string and a null-terminator
 ///
 /// Example usage:
@@ -145,6 +156,38 @@ mod tests {
         // Not null terminated.
         assert!(str_from_null_terminated(b"").is_err());
         assert!(str_from_null_terminated(b"foo").is_err());
+    }
+
+    #[test]
+    fn test_str_from_null_terminated_ptr() {
+        assert_eq!(
+            unsafe { str_from_null_terminated_ptr(b"\0".as_ptr()) },
+            Ok("")
+        );
+        assert_eq!(
+            unsafe { str_from_null_terminated_ptr(b"hello\0".as_ptr()) },
+            Ok("hello")
+        );
+        assert_eq!(
+            unsafe { str_from_null_terminated_ptr(b"hello\0world".as_ptr()) },
+            Ok("hello")
+        );
+        // valid utf8.
+        assert_eq!(
+            unsafe {
+                str_from_null_terminated_ptr(
+                    b"\xc3\xb6\xc3\xa4\xc3\xbc \xf0\x9f\x91\x8c\0world".as_ptr(),
+                )
+            },
+            Ok("öäü 👌")
+        );
+        // invalid utf8 after the null terminator
+        assert_eq!(
+            unsafe { str_from_null_terminated_ptr(b"hello\0\xFF".as_ptr()) },
+            Ok("hello")
+        );
+        // invalid utf8 before the null terminator
+        assert!(unsafe { str_from_null_terminated_ptr(b"\xFF\0world".as_ptr()) }.is_err());
     }
 
     #[test]

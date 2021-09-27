@@ -26,6 +26,7 @@ pub use bitbox02_sys::xpub_type_t;
 pub const BIP39_WORDLIST_LEN: u16 = bitbox02_sys::BIP39_WORDLIST_LEN as u16;
 pub const EC_PUBLIC_KEY_UNCOMPRESSED_LEN: usize = bitbox02_sys::EC_PUBLIC_KEY_UNCOMPRESSED_LEN as _;
 pub const EC_PUBLIC_KEY_LEN: usize = bitbox02_sys::EC_PUBLIC_KEY_LEN as _;
+pub const MAX_SEED_LENGTH: usize = bitbox02_sys::KEYSTORE_MAX_SEED_LENGTH as usize;
 
 pub fn is_locked() -> bool {
     unsafe { bitbox02_sys::keystore_is_locked() }
@@ -255,7 +256,7 @@ pub fn secp256k1_nonce_commit(
 
 pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let mnemonic = zeroize::Zeroizing::new(crate::util::str_to_cstr_vec(mnemonic)?);
-    let mut seed = zeroize::Zeroizing::new([0u8; 32]);
+    let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH]);
     let mut seed_len: util::c_types::c_uint = 0;
     match unsafe {
         bitbox02_sys::keystore_bip39_mnemonic_to_seed(
@@ -288,5 +289,67 @@ pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), ()> {
     } {
         true => Ok(()),
         false => Err(()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::testing::{mock_unlocked, MUTEX, TEST_MNEMONIC};
+
+    #[test]
+    fn test_bip39_mnemonic_to_seed() {
+        assert!(bip39_mnemonic_to_seed("invalid").is_err());
+
+        // Zero seed
+        assert_eq!(
+            bip39_mnemonic_to_seed("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about").unwrap().as_ref() as &[u8],
+            &[0u8; 16],
+        );
+
+        // 12 words
+        assert_eq!(
+            bip39_mnemonic_to_seed(
+                "trust cradle viable innocent stand equal little small junior frost laundry room"
+            )
+            .unwrap()
+            .as_ref() as &[u8],
+            b"\xe9\xa6\x3f\xcd\x3a\x4d\x48\x98\x20\xa6\x63\x79\x2b\xad\xf6\xdd",
+        );
+
+        // 18 words
+        assert_eq!(
+            bip39_mnemonic_to_seed("pupil parent toe bright slam plastic spy suspect verb battle nominee loan call crystal upset razor luggage join").unwrap().as_ref() as &[u8],
+            b"\xad\xf4\x07\x8e\x0e\x0c\xb1\x4c\x34\xd6\xd6\xf2\x82\x6a\x57\xc1\x82\x06\x6a\xbb\xcd\x95\x84\xcf",
+        );
+
+        // 24 words
+        assert_eq!(
+            bip39_mnemonic_to_seed("purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay").unwrap().as_ref() as &[u8],
+            b"\xae\x45\xd4\x02\x3a\xfa\x4a\x48\x68\x77\x51\x69\xfe\xa5\xf5\xe4\x97\xf7\xa1\xa4\xd6\x22\x9a\xd0\x23\x9e\x68\x9b\x48\x2e\xd3\x5e",
+        );
+    }
+
+    #[test]
+    fn test_get_bip39_mnemonic() {
+        let _guard = MUTEX.lock().unwrap();
+
+        assert!(get_bip39_mnemonic().is_err());
+
+        mock_unlocked();
+
+        assert_eq!(
+            get_bip39_mnemonic().unwrap().as_ref() as &str,
+            TEST_MNEMONIC
+        );
+    }
+
+    #[test]
+    fn test_get_bip39_word() {
+        assert!(get_bip39_word(2048).is_err());
+
+        assert_eq!(get_bip39_word(0).unwrap().as_ref() as &str, "abandon");
+        assert_eq!(get_bip39_word(2047).unwrap().as_ref() as &str, "zoo");
+        assert_eq!(get_bip39_word(563).unwrap().as_ref() as &str, "edit");
     }
 }

@@ -25,15 +25,10 @@ use core::convert::TryInto;
 
 #[derive(Default)]
 pub struct Data {
-    pub memory_set_device_name: Option<Box<dyn Fn(&str) -> Result<(), super::memory::Error>>>,
     pub ui_confirm_create: Option<Box<dyn Fn(&super::ui::ConfirmParams) -> bool>>,
     pub reset: Option<Box<dyn Fn(bool)>>,
-    pub memory_set_mnemonic_passphrase_enabled: Option<Box<dyn Fn(bool) -> Result<(), ()>>>,
     pub sdcard_inserted: Option<bool>,
     pub ui_sdcard_create_arg: Option<bool>,
-    pub memory_set_seed_birthdate: Option<Box<dyn Fn(u32) -> Result<(), ()>>>,
-    pub memory_is_initialized: Option<bool>,
-    pub memory_set_initialized_result: Option<Result<(), ()>>,
     pub ui_transaction_address_create: Option<Box<dyn Fn(&str, &str) -> bool>>,
     pub ui_transaction_fee_create: Option<Box<dyn Fn(&str, &str) -> bool>>,
 }
@@ -66,5 +61,23 @@ pub fn mock_unlocked() {
 pub fn mock_sd() {
     unsafe {
         bitbox02_sys::sd_format();
+    }
+}
+
+/// This sets up memory in RAM for use in unit tests. As there is only one RAM volume, access only when holding `MUTEX`.
+/// The memory is initialized to be like after factory setup, i.e. 0xFF everywhere followed by `memory_setup()`.
+pub fn mock_memory() {
+    unsafe {
+        bitbox02_sys::mock_memory_factoryreset();
+
+        unsafe extern "C" fn c_mock_random_32_bytes(buf_out: *mut u8) {
+            let s = core::slice::from_raw_parts_mut(buf_out, 32);
+            s.copy_from_slice(b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        }
+
+        let ifs = bitbox02_sys::memory_interface_functions_t {
+            random_32_bytes: Some(c_mock_random_32_bytes),
+        };
+        assert!(bitbox02_sys::memory_setup(&ifs));
     }
 }

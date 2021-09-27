@@ -46,7 +46,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_memory, Data, MUTEX};
     use std::boxed::Box;
 
     #[test]
@@ -61,18 +61,16 @@ mod tests {
                 assert_eq!(params.body, SOME_NAME);
                 true
             })),
-            memory_set_device_name: Some(Box::new(|name| {
-                assert_eq!(name, SOME_NAME);
-                Ok(())
-            })),
             ..Default::default()
         });
+        mock_memory();
         assert_eq!(
             block_on(process(&pb::SetDeviceNameRequest {
                 name: SOME_NAME.into()
             })),
             Ok(Response::Success(pb::Success {}))
         );
+        assert_eq!(SOME_NAME, &bitbox02::memory::get_device_name());
 
         // User aborted confirmation.
         mock(Data {
@@ -87,22 +85,6 @@ mod tests {
                 name: SOME_NAME.into()
             })),
             Err(Error::UserAbort)
-        );
-
-        // Memory write error.
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.body, SOME_NAME);
-                true
-            })),
-            memory_set_device_name: Some(Box::new(|_| Err(bitbox02::memory::Error {}))),
-            ..Default::default()
-        });
-        assert_eq!(
-            block_on(process(&pb::SetDeviceNameRequest {
-                name: SOME_NAME.into()
-            })),
-            Err(Error::Memory)
         );
 
         // Non-ascii character.

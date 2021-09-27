@@ -38,7 +38,6 @@ pub mod backup;
 pub mod commander;
 pub mod input;
 pub mod keystore;
-#[cfg_attr(feature = "testing", path = "memory_stub.rs")]
 pub mod memory;
 pub mod random;
 pub mod securechip;

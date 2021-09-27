@@ -105,7 +105,12 @@ component_t* confirm_create(
 
     if (params->display_size) {
         char size_label[20];
+        // Ignore warning, %u works for 32bit but not 64 bit (unit tests). %zu does not work with
+        // our compiler.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat"
         snprintf(size_label, sizeof(size_label), "Size: %uB", params->display_size);
+#pragma GCC diagnostic pop
         ui_util_add_sub_component(
             confirm, label_create(size_label, params->font, LEFT_BOTTOM, confirm));
     }

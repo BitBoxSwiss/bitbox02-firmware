@@ -619,7 +619,7 @@ void UG_MeasureStringCentered(UG_S16 *xout, UG_S16 *yout, const char *str)
     const char* start = str;
     for (c = str; *c != '\0'; c++) {
         if (*c == '\n') {
-            snprintf(line, sizeof(line), "%.*s", c - start, start);
+            snprintf(line, sizeof(line), "%.*s", (int)(c - start), start);
             _UG_PutString(0, 0, &calc_width_line, &calc_height_line, line, 0, 1, false);
             *yout += calc_height_line;
             *yout += gui->char_v_space;
@@ -627,7 +627,7 @@ void UG_MeasureStringCentered(UG_S16 *xout, UG_S16 *yout, const char *str)
             start = c + 1;
         }
     }
-    snprintf(line, sizeof(line), "%.*s", c - start, start);
+    snprintf(line, sizeof(line), "%.*s", (int)(c - start), start);
     _UG_PutString(0, 0, &calc_width_line, &calc_height_line, line, 0, 1, false);
     *yout += calc_height_line;
     *yout += gui->char_v_space;
@@ -760,12 +760,12 @@ void UG_PutStringCentered( UG_S16 x, UG_S16 y, UG_S16 width, UG_S16 height, cons
     const char* start = str;
     for (c = str; *c != '\0'; c++) {
         if (*c == '\n' && current_line < UG_MAX_LINE_ROWS) {
-            snprintf(lines[current_line], sizeof(lines[current_line]), "%.*s", c - start, start);
+            snprintf(lines[current_line], sizeof(lines[current_line]), "%.*s", (int)(c - start), start);
             current_line++;
             start = c + 1;
         }
     }
-    snprintf(lines[current_line], sizeof(lines[current_line]), "%.*s", c - start, start);
+    snprintf(lines[current_line], sizeof(lines[current_line]), "%.*s", (int)(c - start), start);
 
     // calculate the height of each line
     _UG_PutString(0, 0, NULL, &calc_height, "W", 0, 1, inverted);

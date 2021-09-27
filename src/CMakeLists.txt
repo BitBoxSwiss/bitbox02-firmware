@@ -43,13 +43,10 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/cipher/cipher.c
   ${CMAKE_SOURCE_DIR}/src/workflow/blocking.c
   ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/confirm_time.c
   ${CMAKE_SOURCE_DIR}/src/workflow/idle_workflow.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/password.c
   ${CMAKE_SOURCE_DIR}/src/workflow/restore.c
   ${CMAKE_SOURCE_DIR}/src/workflow/orientation_screen.c
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/unlock_bip39.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_total.c
   ${CMAKE_SOURCE_DIR}/src/apps/common/bip32.c
@@ -303,13 +300,16 @@ add_custom_target(rust-bindgen
     ${BINDGEN}
     --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs.out
     --use-core
+    --with-derive-default
     --ctypes-prefix util::c_types
     --rustified-enum backup_error_t
+    --rustified-enum restore_error_t
     --whitelist-function wally_free_string
     --whitelist-function backup_check
     --whitelist-function backup_create
     --whitelist-function mock_memory_factoryreset
     --whitelist-function memory_setup
+    --whitelist-function restore_from_directory
     --whitelist-function memory_is_initialized
     --whitelist-function memory_set_initialized
     --whitelist-function memory_is_mnemonic_passphrase_enabled

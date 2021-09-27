@@ -285,17 +285,3 @@ restore_error_t restore_list_backups(ListBackupsResponse* backups)
 
     return RESTORE_OK;
 }
-
-bool restore_seed(const BackupData* backup_data, const char* password)
-{
-    bool res =
-        keystore_encrypt_and_store_seed(backup_data->seed, backup_data->seed_length, password);
-
-    if (res) {
-        if (!memory_set_seed_birthdate(backup_data->birthdate)) {
-            // Ignore error here. Missing birthdate should not abort an otherwise successful
-            // restore.
-        }
-    }
-    return res;
-}

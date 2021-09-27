@@ -278,13 +278,12 @@ pub fn root_fingerprint() -> Result<[u8; 4], ()> {
     }
 }
 
-pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), ()> {
-    let password = zeroize::Zeroizing::new(crate::util::str_to_cstr_vec(password)?);
+pub fn encrypt_and_store_seed(seed: &[u8], password: &SafeInputString) -> Result<(), ()> {
     match unsafe {
         bitbox02_sys::keystore_encrypt_and_store_seed(
             seed.as_ptr(),
             seed.len() as _,
-            password.as_ptr(),
+            password.as_cstr(),
         )
     } {
         true => Ok(()),

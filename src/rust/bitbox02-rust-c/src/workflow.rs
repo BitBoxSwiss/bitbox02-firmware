@@ -21,7 +21,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::string::String;
 use bitbox02_rust::bb02_async::{block_on, spin, Task};
-use bitbox02_rust::workflow::{confirm, password, status, trinary_input_string, unlock};
+use bitbox02_rust::workflow::{confirm, status, trinary_input_string};
 use core::fmt::Write;
 use core::task::Poll;
 
@@ -131,24 +131,6 @@ pub unsafe extern "C" fn rust_workflow_status_blocking(
     status_success: bool,
 ) {
     block_on(status::status(msg.as_ref(), status_success))
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rust_workflow_status_unlock_bip39_blocking() {
-    block_on(unlock::unlock_bip39())
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rust_workflow_password_enter_twice_blocking(
-    mut password_out: crate::util::CStrMut,
-) -> bool {
-    match block_on(password::enter_twice()) {
-        Ok(password) => {
-            password_out.write_str(password.as_str()).unwrap();
-            true
-        }
-        Err(()) => false,
-    }
 }
 
 #[no_mangle]

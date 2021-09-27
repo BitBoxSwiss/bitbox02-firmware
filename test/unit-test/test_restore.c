@@ -381,14 +381,6 @@ static void test_fail_restore_if_majority_vote_fails(void** state)
         restore_from_directory(_dir_name, &copy_backup, &copy_backup_data), RESTORE_ERR_DECODE);
 }
 
-/**
- * Test restore seed.
- */
-static void test_restore_seed(void** state)
-{
-    assert_true(restore_seed(&_backup_data, "secret"));
-}
-
 // TODO: test that repeated backup should override existing one
 
 int main(void)
@@ -409,7 +401,6 @@ int main(void)
             test_restore_3_corrupt_backups_from_directory, test_setup, test_teardown),
         cmocka_unit_test_setup_teardown(
             test_fail_restore_if_majority_vote_fails, test_setup, test_teardown),
-        cmocka_unit_test_setup_teardown(test_restore_seed, test_setup, test_teardown),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

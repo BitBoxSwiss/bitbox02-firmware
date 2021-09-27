@@ -61,14 +61,6 @@ static commander_error_t _api_list_backups(ListBackupsResponse* response)
     return COMMANDER_OK;
 }
 
-static commander_error_t _api_restore_backup(const RestoreBackupRequest* request)
-{
-    if (!workflow_restore_backup(request)) {
-        return COMMANDER_ERR_GENERIC;
-    }
-    return COMMANDER_OK;
-}
-
 // ------------------------------------ Process ------------------------------------- //
 
 /**
@@ -98,9 +90,6 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_list_backups_tag:
         response->which_response = Response_list_backups_tag;
         return _api_list_backups(&(response->response.list_backups));
-    case Request_restore_backup_tag:
-        response->which_response = Response_success_tag;
-        return _api_restore_backup(&(request->request.restore_backup));
     default:
         screen_print_debug("command unknown", 1000);
         return COMMANDER_ERR_INVALID_INPUT;

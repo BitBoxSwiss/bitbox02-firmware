@@ -19,12 +19,6 @@
 #include <stdbool.h>
 
 /**
- * Starts the restore from backup workflow.
- * @return true if the backup was restored successfully.
- */
-bool workflow_restore_backup(const RestoreBackupRequest* restore_request);
-
-/**
  * Starts the list backups workflow.
  * @return true if listing teh backups was successful.
  */

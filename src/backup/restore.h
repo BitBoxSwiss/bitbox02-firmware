@@ -41,13 +41,6 @@ restore_error_t restore_from_buffer(
 restore_error_t restore_list_backups(ListBackupsResponse* backups);
 
 /**
- * Attempts to restore the seed from the given backup data.
- * @param[in] backup_data The backup data which contains the seed and seed length.
- * @param[in] password The password with which the seed will be encrypted.
- */
-bool restore_seed(const BackupData* backup_data, const char* password);
-
-/**
  * Restore a backup from directory.
  * @param[in] dir The directory from which we want to restore the backup.
  * @param[out] backup_data The restored backup_data.

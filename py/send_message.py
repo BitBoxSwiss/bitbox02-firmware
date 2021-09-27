@@ -34,6 +34,7 @@ from bitbox02 import bitbox02
 from bitbox02.communication import (
     devices,
     HARDENED,
+    Bitbox02Exception,
     UserAbortException,
     FirmwareVersionOutdatedException,
     u2fhid,
@@ -220,8 +221,13 @@ class SendMessage:
             return
         backup_id, _, _ = backups[item - 1]
         print(f"ID: {backup_id}")
-        if not self._device.restore_backup(backup_id):
-            print("Restoring backup failed")
+        try:
+            self._device.restore_backup(backup_id)
+        except UserAbortException:
+            eprint("Aborted by user")
+            return
+        except Bitbox02Exception:
+            eprint("Restoring backup failed")
             return
         print("Please Remove SD Card")
         self._device.remove_sdcard()

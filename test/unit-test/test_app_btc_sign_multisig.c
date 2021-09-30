@@ -31,6 +31,8 @@
 
 const char* _multisig_name = "foo";
 
+void __wrap_workflow_status_blocking(const char* msg, bool status_success) {}
+
 bool __wrap_memory_multisig_get_by_hash(const uint8_t* hash, char* name_out)
 {
     snprintf(name_out, MEMORY_MULTISIG_NAME_MAX_LEN, "%s", _multisig_name);

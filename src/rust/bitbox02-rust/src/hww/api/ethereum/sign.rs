@@ -18,7 +18,7 @@ use super::Error;
 
 use bitbox02::keystore;
 
-use crate::workflow::{confirm, transaction};
+use crate::workflow::{confirm, status, transaction};
 use bitbox02::app_eth::{params_get, sighash, Params, SighashParams};
 
 use alloc::vec::Vec;
@@ -221,10 +221,19 @@ pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
         return Err(Error::InvalidInput);
     }
 
-    if let Some((erc20_recipient, erc20_value)) = parse_erc20(request) {
-        verify_erc20_transaction(request, &params, erc20_recipient, erc20_value).await?;
+    let verification_result = if let Some((erc20_recipient, erc20_value)) = parse_erc20(request) {
+        verify_erc20_transaction(request, &params, erc20_recipient, erc20_value).await
     } else {
-        verify_standard_transaction(request, &params).await?;
+        verify_standard_transaction(request, &params).await
+    };
+    match verification_result {
+        Ok(()) => status::status("Transaction\nconfirmed", true).await,
+        Err(err) => {
+            if err == Error::UserAbort {
+                status::status("Transaction\ncanceled", false).await;
+            }
+            return Err(err);
+        }
     }
 
     let hash = sighash(SighashParams {

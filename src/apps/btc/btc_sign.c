@@ -29,6 +29,7 @@
 #include <ui/screen_stack.h>
 #include <util.h>
 #include <workflow/confirm.h>
+#include <workflow/status.h>
 #include <workflow/verify_recipient.h>
 #include <workflow/verify_total.h>
 
@@ -258,6 +259,9 @@ static void _reset(void)
 
 static app_btc_result_t _error(app_btc_result_t err)
 {
+    if (err == APP_BTC_ERR_USER_ABORT) {
+        workflow_status_blocking("Transaction\ncanceled", false);
+    }
     _reset();
     return err;
 }
@@ -975,6 +979,7 @@ app_btc_result_t app_btc_sign_output(
         if (!workflow_verify_total(formatted_total_out, formatted_fee)) {
             return _error(APP_BTC_ERR_USER_ABORT);
         }
+        workflow_status_blocking("Transaction\nconfirmed", true);
 
         rust_sha256_finish(&_hash_outputs_ctx, _hash_outputs);
         // hash hash_outputs to produce the final double-hash

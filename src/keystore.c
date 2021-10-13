@@ -66,7 +66,7 @@ static bool _validate_seed_length(size_t seed_len)
     return seed_len == 16 || seed_len == 24 || seed_len == 32;
 }
 
-static uint8_t* _get_seed(void)
+static const uint8_t* _get_seed(void)
 {
     if (!_is_unlocked_device) {
         return NULL;
@@ -88,7 +88,7 @@ bool keystore_copy_seed(uint8_t* seed_out, uint32_t* length_out)
  * @return the pointer ot the static bip39 seed on success. returns NULL if the
  * keystore is locked.
  */
-static uint8_t* _get_bip39_seed(void)
+static const uint8_t* _get_bip39_seed(void)
 {
     if (!_is_unlocked_bip39) {
         return NULL;
@@ -376,7 +376,7 @@ bool keystore_unlock_bip39(const char* mnemonic_passphrase)
     if (!_is_unlocked_device) {
         return false;
     }
-    uint8_t* seed = _get_seed();
+    const uint8_t* seed = _get_seed();
     if (seed == NULL) {
         return false;
     }
@@ -415,7 +415,7 @@ bool keystore_get_bip39_mnemonic(char* mnemonic_out, size_t mnemonic_out_size)
     if (keystore_is_locked()) {
         return false;
     }
-    uint8_t* seed = _get_seed();
+    const uint8_t* seed = _get_seed();
     if (seed == NULL) {
         return false;
     }
@@ -439,7 +439,7 @@ static bool _get_xprv(const uint32_t* keypath, const size_t keypath_len, struct 
     if (keystore_is_locked()) {
         return false;
     }
-    uint8_t* bip39_seed = _get_bip39_seed();
+    const uint8_t* bip39_seed = _get_bip39_seed();
     if (bip39_seed == NULL) {
         return false;
     }
@@ -660,7 +660,7 @@ bool keystore_get_u2f_seed(uint8_t* seed_out)
     if (keystore_is_locked()) {
         return false;
     }
-    uint8_t* bip39_seed = _get_bip39_seed();
+    const uint8_t* bip39_seed = _get_bip39_seed();
     if (bip39_seed == NULL) {
         return false;
     }
@@ -669,6 +669,41 @@ bool keystore_get_u2f_seed(uint8_t* seed_out)
         WALLY_OK) {
         return false;
     }
+    return true;
+}
+
+bool keystore_get_ed25519_seed(uint8_t* seed_out)
+{
+    const uint8_t* bip39_seed = _get_bip39_seed();
+    if (bip39_seed == NULL) {
+        return false;
+    }
+
+    const uint8_t key[] = "ed25519 seed";
+
+    // Derive a 64 byte expanded ed25519 private key and put it into seed_out.
+    memcpy(seed_out, bip39_seed, 64);
+    do {
+        if (wally_hmac_sha512(key, sizeof(key), seed_out, 64, seed_out, 64) != WALLY_OK) {
+            util_zero(seed_out, 64);
+            return false;
+        }
+    } while (seed_out[31] & 0x20);
+
+    seed_out[0] &= 248;
+    seed_out[31] &= 127;
+    seed_out[31] |= 64;
+
+    // Compute chain code and put it into seed_out at offset 64.
+    uint8_t message[65] = {0};
+    message[0] = 0x01;
+    memcpy(&message[1], bip39_seed, 64);
+    if (wally_hmac_sha256(key, sizeof(key), message, sizeof(message), &seed_out[64], 32) !=
+        WALLY_OK) {
+        util_zero(message, sizeof(message));
+        return false;
+    }
+    util_zero(message, sizeof(message));
     return true;
 }
 

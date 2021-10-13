@@ -337,6 +337,7 @@ add_custom_target(rust-bindgen
     --whitelist-function keystore_create_and_store_seed
     --whitelist-function keystore_get_bip39_mnemonic
     --whitelist-function keystore_get_bip39_word
+    --whitelist-function keystore_get_ed25519_seed
     --whitelist-function keystore_secp256k1_pubkey_uncompressed
     --whitelist-function keystore_secp256k1_nonce_commit
     --whitelist-function keystore_secp256k1_sign

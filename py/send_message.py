@@ -698,23 +698,25 @@ class SendMessage:
             print("m/1852'/1815'/0' xpub: ", xpubs[0].hex())
             print("m/1852'/1815'/1' xpub: ", xpubs[1].hex())
 
-        def address() -> None:
-            def get(display: bool) -> str:
-                return self._device.cardano_address(
-                    bitbox02.cardano.CardanoAddressRequest(
-                        network=bitbox02.cardano.CardanoMainnet,
-                        display=display,
-                        script_config=bitbox02.cardano.CardanoScriptConfig(
-                            pkh_skh=bitbox02.cardano.CardanoScriptConfig.PkhSkh(
-                                keypath_payment=[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
-                                keypath_stake=[1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
-                            )
-                        ),
-                    )
-                )
+        script_config = bitbox02.cardano.CardanoScriptConfig(
+            pkh_skh=bitbox02.cardano.CardanoScriptConfig.PkhSkh(
+                keypath_payment=[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                keypath_stake=[1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
+            )
+        )
 
-            print("m/1852'/1815'/0'/0/0 address: ", get(False))
-            get(True)
+        def get_address(display: bool) -> str:
+            return self._device.cardano_address(
+                bitbox02.cardano.CardanoAddressRequest(
+                    network=bitbox02.cardano.CardanoMainnet,
+                    display=display,
+                    script_config=script_config,
+                )
+            )
+
+        def address() -> None:
+            print("m/1852'/1815'/0'/0/0 address: ", get_address(False))
+            get_address(True)
 
         def sign() -> None:
             response = self._device.cardano_sign_transaction(
@@ -731,18 +733,12 @@ class SendMessage:
                     ],
                     outputs=[
                         bitbox02.cardano.CardanoSignTransactionRequest.Output(
-                            encoded_address="addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt",
-                            value=1000000,
+                            encoded_address=get_address(False), value=1000000
                         ),
                         bitbox02.cardano.CardanoSignTransactionRequest.Output(
                             encoded_address="addr1q9fvkppzzh8dlw6j4x0hfxqlm2h3sumg3azrlywlaqg2r4h9xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakq8q73uf",
                             value=4829501,
-                            script_config=bitbox02.cardano.CardanoScriptConfig(
-                                pkh_skh=bitbox02.cardano.CardanoScriptConfig.PkhSkh(
-                                    keypath_payment=[2147485500, 2147485463, 2147483648, 0, 0],
-                                    keypath_stake=[2147485500, 2147485463, 2147483648, 2, 0],
-                                )
-                            ),
+                            script_config=script_config,
                         ),
                     ],
                     fee=170499,
@@ -774,14 +770,9 @@ class SendMessage:
                     ],
                     outputs=[
                         bitbox02.cardano.CardanoSignTransactionRequest.Output(
-                            encoded_address="addr1q9fvkppzzh8dlw6j4x0hfxqlm2h3sumg3azrlywlaqg2r4h9xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakq8q73uf",
+                            encoded_address=get_address(False),
                             value=2741512,
-                            script_config=bitbox02.cardano.CardanoScriptConfig(
-                                pkh_skh=bitbox02.cardano.CardanoScriptConfig.PkhSkh(
-                                    keypath_payment=[2147485500, 2147485463, 2147483648, 0, 0],
-                                    keypath_stake=[2147485500, 2147485463, 2147483648, 2, 0],
-                                )
-                            ),
+                            script_config=script_config,
                         )
                     ],
                     fee=191681,
@@ -820,14 +811,9 @@ class SendMessage:
                     ],
                     outputs=[
                         bitbox02.cardano.CardanoSignTransactionRequest.Output(
-                            encoded_address="addr1q9fvkppzzh8dlw6j4x0hfxqlm2h3sumg3azrlywlaqg2r4h9xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakq8q73uf",
+                            encoded_address=get_address(False),
                             value=4817591,
-                            script_config=bitbox02.cardano.CardanoScriptConfig(
-                                pkh_skh=bitbox02.cardano.CardanoScriptConfig.PkhSkh(
-                                    keypath_payment=[2147485500, 2147485463, 2147483648, 0, 0],
-                                    keypath_stake=[2147485500, 2147485463, 2147483648, 2, 0],
-                                )
-                            ),
+                            script_config=script_config,
                         )
                     ],
                     fee=175157,

@@ -733,10 +733,11 @@ class SendMessage:
                     ],
                     outputs=[
                         bitbox02.cardano.CardanoSignTransactionRequest.Output(
-                            encoded_address=get_address(False), value=1000000
+                            encoded_address="addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt",
+                            value=1000000,
                         ),
                         bitbox02.cardano.CardanoSignTransactionRequest.Output(
-                            encoded_address="addr1q9fvkppzzh8dlw6j4x0hfxqlm2h3sumg3azrlywlaqg2r4h9xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakq8q73uf",
+                            encoded_address=get_address(False),
                             value=4829501,
                             script_config=script_config,
                         ),

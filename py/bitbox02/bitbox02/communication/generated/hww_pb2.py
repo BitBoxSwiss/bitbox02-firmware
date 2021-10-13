@@ -17,6 +17,7 @@ from . import common_pb2 as common__pb2
 from . import backup_commands_pb2 as backup__commands__pb2
 from . import bitbox02_system_pb2 as bitbox02__system__pb2
 from . import btc_pb2 as btc__pb2
+from . import cardano_pb2 as cardano__pb2
 from . import eth_pb2 as eth__pb2
 from . import keystore_pb2 as keystore__pb2
 from . import mnemonic_pb2 as mnemonic__pb2
@@ -28,9 +29,9 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='hww.proto',
   package='shiftcrypto.bitbox02',
   syntax='proto3',
-  serialized_pb=_b('\n\thww.proto\x12\x14shiftcrypto.bitbox02\x1a\x0c\x63ommon.proto\x1a\x15\x62\x61\x63kup_commands.proto\x1a\x15\x62itbox02_system.proto\x1a\tbtc.proto\x1a\teth.proto\x1a\x0ekeystore.proto\x1a\x0emnemonic.proto\x1a\x0csystem.proto\x1a\x19perform_attestation.proto\"&\n\x05\x45rror\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"\t\n\x07Success\"\x8f\r\n\x07Request\x12\x41\n\x0b\x64\x65vice_name\x18\x02 \x01(\x0b\x32*.shiftcrypto.bitbox02.SetDeviceNameRequestH\x00\x12I\n\x0f\x64\x65vice_language\x18\x03 \x01(\x0b\x32..shiftcrypto.bitbox02.SetDeviceLanguageRequestH\x00\x12>\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32\'.shiftcrypto.bitbox02.DeviceInfoRequestH\x00\x12@\n\x0cset_password\x18\x05 \x01(\x0b\x32(.shiftcrypto.bitbox02.SetPasswordRequestH\x00\x12\x42\n\rcreate_backup\x18\x06 \x01(\x0b\x32).shiftcrypto.bitbox02.CreateBackupRequestH\x00\x12\x42\n\rshow_mnemonic\x18\x07 \x01(\x0b\x32).shiftcrypto.bitbox02.ShowMnemonicRequestH\x00\x12\x36\n\x07\x62tc_pub\x18\x08 \x01(\x0b\x32#.shiftcrypto.bitbox02.BTCPubRequestH\x00\x12\x41\n\rbtc_sign_init\x18\t \x01(\x0b\x32(.shiftcrypto.bitbox02.BTCSignInitRequestH\x00\x12\x43\n\x0e\x62tc_sign_input\x18\n \x01(\x0b\x32).shiftcrypto.bitbox02.BTCSignInputRequestH\x00\x12\x45\n\x0f\x62tc_sign_output\x18\x0b \x01(\x0b\x32*.shiftcrypto.bitbox02.BTCSignOutputRequestH\x00\x12O\n\x14insert_remove_sdcard\x18\x0c \x01(\x0b\x32/.shiftcrypto.bitbox02.InsertRemoveSDCardRequestH\x00\x12@\n\x0c\x63heck_sdcard\x18\r \x01(\x0b\x32(.shiftcrypto.bitbox02.CheckSDCardRequestH\x00\x12\x64\n\x1fset_mnemonic_passphrase_enabled\x18\x0e \x01(\x0b\x32\x39.shiftcrypto.bitbox02.SetMnemonicPassphraseEnabledRequestH\x00\x12@\n\x0clist_backups\x18\x0f \x01(\x0b\x32(.shiftcrypto.bitbox02.ListBackupsRequestH\x00\x12\x44\n\x0erestore_backup\x18\x10 \x01(\x0b\x32*.shiftcrypto.bitbox02.RestoreBackupRequestH\x00\x12N\n\x13perform_attestation\x18\x11 \x01(\x0b\x32/.shiftcrypto.bitbox02.PerformAttestationRequestH\x00\x12\x35\n\x06reboot\x18\x12 \x01(\x0b\x32#.shiftcrypto.bitbox02.RebootRequestH\x00\x12@\n\x0c\x63heck_backup\x18\x13 \x01(\x0b\x32(.shiftcrypto.bitbox02.CheckBackupRequestH\x00\x12/\n\x03\x65th\x18\x14 \x01(\x0b\x32 .shiftcrypto.bitbox02.ETHRequestH\x00\x12\x33\n\x05reset\x18\x15 \x01(\x0b\x32\".shiftcrypto.bitbox02.ResetRequestH\x00\x12Q\n\x15restore_from_mnemonic\x18\x16 \x01(\x0b\x32\x30.shiftcrypto.bitbox02.RestoreFromMnemonicRequestH\x00\x12\x43\n\x0b\x66ingerprint\x18\x18 \x01(\x0b\x32,.shiftcrypto.bitbox02.RootFingerprintRequestH\x00\x12/\n\x03\x62tc\x18\x19 \x01(\x0b\x32 .shiftcrypto.bitbox02.BTCRequestH\x00\x12U\n\x17\x65lectrum_encryption_key\x18\x1a \x01(\x0b\x32\x32.shiftcrypto.bitbox02.ElectrumEncryptionKeyRequestH\x00\x42\t\n\x07requestJ\x04\x08\x01\x10\x02J\x04\x08\x17\x10\x18\"\xcf\x06\n\x08Response\x12\x30\n\x07success\x18\x01 \x01(\x0b\x32\x1d.shiftcrypto.bitbox02.SuccessH\x00\x12,\n\x05\x65rror\x18\x02 \x01(\x0b\x32\x1b.shiftcrypto.bitbox02.ErrorH\x00\x12?\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32(.shiftcrypto.bitbox02.DeviceInfoResponseH\x00\x12\x30\n\x03pub\x18\x05 \x01(\x0b\x32!.shiftcrypto.bitbox02.PubResponseH\x00\x12\x42\n\rbtc_sign_next\x18\x06 \x01(\x0b\x32).shiftcrypto.bitbox02.BTCSignNextResponseH\x00\x12\x41\n\x0clist_backups\x18\x07 \x01(\x0b\x32).shiftcrypto.bitbox02.ListBackupsResponseH\x00\x12\x41\n\x0c\x63heck_backup\x18\x08 \x01(\x0b\x32).shiftcrypto.bitbox02.CheckBackupResponseH\x00\x12O\n\x13perform_attestation\x18\t \x01(\x0b\x32\x30.shiftcrypto.bitbox02.PerformAttestationResponseH\x00\x12\x41\n\x0c\x63heck_sdcard\x18\n \x01(\x0b\x32).shiftcrypto.bitbox02.CheckSDCardResponseH\x00\x12\x30\n\x03\x65th\x18\x0b \x01(\x0b\x32!.shiftcrypto.bitbox02.ETHResponseH\x00\x12\x44\n\x0b\x66ingerprint\x18\x0c \x01(\x0b\x32-.shiftcrypto.bitbox02.RootFingerprintResponseH\x00\x12\x30\n\x03\x62tc\x18\r \x01(\x0b\x32!.shiftcrypto.bitbox02.BTCResponseH\x00\x12V\n\x17\x65lectrum_encryption_key\x18\x0e \x01(\x0b\x32\x33.shiftcrypto.bitbox02.ElectrumEncryptionKeyResponseH\x00\x42\n\n\x08responseJ\x04\x08\x03\x10\x04\x62\x06proto3')
+  serialized_pb=_b('\n\thww.proto\x12\x14shiftcrypto.bitbox02\x1a\x0c\x63ommon.proto\x1a\x15\x62\x61\x63kup_commands.proto\x1a\x15\x62itbox02_system.proto\x1a\tbtc.proto\x1a\rcardano.proto\x1a\teth.proto\x1a\x0ekeystore.proto\x1a\x0emnemonic.proto\x1a\x0csystem.proto\x1a\x19perform_attestation.proto\"&\n\x05\x45rror\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"\t\n\x07Success\"\xc8\r\n\x07Request\x12\x41\n\x0b\x64\x65vice_name\x18\x02 \x01(\x0b\x32*.shiftcrypto.bitbox02.SetDeviceNameRequestH\x00\x12I\n\x0f\x64\x65vice_language\x18\x03 \x01(\x0b\x32..shiftcrypto.bitbox02.SetDeviceLanguageRequestH\x00\x12>\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32\'.shiftcrypto.bitbox02.DeviceInfoRequestH\x00\x12@\n\x0cset_password\x18\x05 \x01(\x0b\x32(.shiftcrypto.bitbox02.SetPasswordRequestH\x00\x12\x42\n\rcreate_backup\x18\x06 \x01(\x0b\x32).shiftcrypto.bitbox02.CreateBackupRequestH\x00\x12\x42\n\rshow_mnemonic\x18\x07 \x01(\x0b\x32).shiftcrypto.bitbox02.ShowMnemonicRequestH\x00\x12\x36\n\x07\x62tc_pub\x18\x08 \x01(\x0b\x32#.shiftcrypto.bitbox02.BTCPubRequestH\x00\x12\x41\n\rbtc_sign_init\x18\t \x01(\x0b\x32(.shiftcrypto.bitbox02.BTCSignInitRequestH\x00\x12\x43\n\x0e\x62tc_sign_input\x18\n \x01(\x0b\x32).shiftcrypto.bitbox02.BTCSignInputRequestH\x00\x12\x45\n\x0f\x62tc_sign_output\x18\x0b \x01(\x0b\x32*.shiftcrypto.bitbox02.BTCSignOutputRequestH\x00\x12O\n\x14insert_remove_sdcard\x18\x0c \x01(\x0b\x32/.shiftcrypto.bitbox02.InsertRemoveSDCardRequestH\x00\x12@\n\x0c\x63heck_sdcard\x18\r \x01(\x0b\x32(.shiftcrypto.bitbox02.CheckSDCardRequestH\x00\x12\x64\n\x1fset_mnemonic_passphrase_enabled\x18\x0e \x01(\x0b\x32\x39.shiftcrypto.bitbox02.SetMnemonicPassphraseEnabledRequestH\x00\x12@\n\x0clist_backups\x18\x0f \x01(\x0b\x32(.shiftcrypto.bitbox02.ListBackupsRequestH\x00\x12\x44\n\x0erestore_backup\x18\x10 \x01(\x0b\x32*.shiftcrypto.bitbox02.RestoreBackupRequestH\x00\x12N\n\x13perform_attestation\x18\x11 \x01(\x0b\x32/.shiftcrypto.bitbox02.PerformAttestationRequestH\x00\x12\x35\n\x06reboot\x18\x12 \x01(\x0b\x32#.shiftcrypto.bitbox02.RebootRequestH\x00\x12@\n\x0c\x63heck_backup\x18\x13 \x01(\x0b\x32(.shiftcrypto.bitbox02.CheckBackupRequestH\x00\x12/\n\x03\x65th\x18\x14 \x01(\x0b\x32 .shiftcrypto.bitbox02.ETHRequestH\x00\x12\x33\n\x05reset\x18\x15 \x01(\x0b\x32\".shiftcrypto.bitbox02.ResetRequestH\x00\x12Q\n\x15restore_from_mnemonic\x18\x16 \x01(\x0b\x32\x30.shiftcrypto.bitbox02.RestoreFromMnemonicRequestH\x00\x12\x43\n\x0b\x66ingerprint\x18\x18 \x01(\x0b\x32,.shiftcrypto.bitbox02.RootFingerprintRequestH\x00\x12/\n\x03\x62tc\x18\x19 \x01(\x0b\x32 .shiftcrypto.bitbox02.BTCRequestH\x00\x12U\n\x17\x65lectrum_encryption_key\x18\x1a \x01(\x0b\x32\x32.shiftcrypto.bitbox02.ElectrumEncryptionKeyRequestH\x00\x12\x37\n\x07\x63\x61rdano\x18\x1b \x01(\x0b\x32$.shiftcrypto.bitbox02.CardanoRequestH\x00\x42\t\n\x07requestJ\x04\x08\x01\x10\x02J\x04\x08\x17\x10\x18\"\x89\x07\n\x08Response\x12\x30\n\x07success\x18\x01 \x01(\x0b\x32\x1d.shiftcrypto.bitbox02.SuccessH\x00\x12,\n\x05\x65rror\x18\x02 \x01(\x0b\x32\x1b.shiftcrypto.bitbox02.ErrorH\x00\x12?\n\x0b\x64\x65vice_info\x18\x04 \x01(\x0b\x32(.shiftcrypto.bitbox02.DeviceInfoResponseH\x00\x12\x30\n\x03pub\x18\x05 \x01(\x0b\x32!.shiftcrypto.bitbox02.PubResponseH\x00\x12\x42\n\rbtc_sign_next\x18\x06 \x01(\x0b\x32).shiftcrypto.bitbox02.BTCSignNextResponseH\x00\x12\x41\n\x0clist_backups\x18\x07 \x01(\x0b\x32).shiftcrypto.bitbox02.ListBackupsResponseH\x00\x12\x41\n\x0c\x63heck_backup\x18\x08 \x01(\x0b\x32).shiftcrypto.bitbox02.CheckBackupResponseH\x00\x12O\n\x13perform_attestation\x18\t \x01(\x0b\x32\x30.shiftcrypto.bitbox02.PerformAttestationResponseH\x00\x12\x41\n\x0c\x63heck_sdcard\x18\n \x01(\x0b\x32).shiftcrypto.bitbox02.CheckSDCardResponseH\x00\x12\x30\n\x03\x65th\x18\x0b \x01(\x0b\x32!.shiftcrypto.bitbox02.ETHResponseH\x00\x12\x44\n\x0b\x66ingerprint\x18\x0c \x01(\x0b\x32-.shiftcrypto.bitbox02.RootFingerprintResponseH\x00\x12\x30\n\x03\x62tc\x18\r \x01(\x0b\x32!.shiftcrypto.bitbox02.BTCResponseH\x00\x12V\n\x17\x65lectrum_encryption_key\x18\x0e \x01(\x0b\x32\x33.shiftcrypto.bitbox02.ElectrumEncryptionKeyResponseH\x00\x12\x38\n\x07\x63\x61rdano\x18\x0f \x01(\x0b\x32%.shiftcrypto.bitbox02.CardanoResponseH\x00\x42\n\n\x08responseJ\x04\x08\x03\x10\x04\x62\x06proto3')
   ,
-  dependencies=[common__pb2.DESCRIPTOR,backup__commands__pb2.DESCRIPTOR,bitbox02__system__pb2.DESCRIPTOR,btc__pb2.DESCRIPTOR,eth__pb2.DESCRIPTOR,keystore__pb2.DESCRIPTOR,mnemonic__pb2.DESCRIPTOR,system__pb2.DESCRIPTOR,perform__attestation__pb2.DESCRIPTOR,])
+  dependencies=[common__pb2.DESCRIPTOR,backup__commands__pb2.DESCRIPTOR,bitbox02__system__pb2.DESCRIPTOR,btc__pb2.DESCRIPTOR,cardano__pb2.DESCRIPTOR,eth__pb2.DESCRIPTOR,keystore__pb2.DESCRIPTOR,mnemonic__pb2.DESCRIPTOR,system__pb2.DESCRIPTOR,perform__attestation__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 
@@ -69,8 +70,8 @@ _ERROR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=190,
-  serialized_end=228,
+  serialized_start=205,
+  serialized_end=243,
 )
 
 
@@ -93,8 +94,8 @@ _SUCCESS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=230,
-  serialized_end=239,
+  serialized_start=245,
+  serialized_end=254,
 )
 
 
@@ -273,6 +274,13 @@ _REQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='cardano', full_name='shiftcrypto.bitbox02.Request.cardano', index=24,
+      number=27, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -288,8 +296,8 @@ _REQUEST = _descriptor.Descriptor(
       name='request', full_name='shiftcrypto.bitbox02.Request.request',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=242,
-  serialized_end=1921,
+  serialized_start=257,
+  serialized_end=1993,
 )
 
 
@@ -391,6 +399,13 @@ _RESPONSE = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='cardano', full_name='shiftcrypto.bitbox02.Response.cardano', index=13,
+      number=15, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -406,8 +421,8 @@ _RESPONSE = _descriptor.Descriptor(
       name='response', full_name='shiftcrypto.bitbox02.Response.response',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1924,
-  serialized_end=2771,
+  serialized_start=1996,
+  serialized_end=2901,
 )
 
 _REQUEST.fields_by_name['device_name'].message_type = bitbox02__system__pb2._SETDEVICENAMEREQUEST
@@ -434,6 +449,7 @@ _REQUEST.fields_by_name['restore_from_mnemonic'].message_type = mnemonic__pb2._R
 _REQUEST.fields_by_name['fingerprint'].message_type = common__pb2._ROOTFINGERPRINTREQUEST
 _REQUEST.fields_by_name['btc'].message_type = btc__pb2._BTCREQUEST
 _REQUEST.fields_by_name['electrum_encryption_key'].message_type = keystore__pb2._ELECTRUMENCRYPTIONKEYREQUEST
+_REQUEST.fields_by_name['cardano'].message_type = cardano__pb2._CARDANOREQUEST
 _REQUEST.oneofs_by_name['request'].fields.append(
   _REQUEST.fields_by_name['device_name'])
 _REQUEST.fields_by_name['device_name'].containing_oneof = _REQUEST.oneofs_by_name['request']
@@ -506,6 +522,9 @@ _REQUEST.fields_by_name['btc'].containing_oneof = _REQUEST.oneofs_by_name['reque
 _REQUEST.oneofs_by_name['request'].fields.append(
   _REQUEST.fields_by_name['electrum_encryption_key'])
 _REQUEST.fields_by_name['electrum_encryption_key'].containing_oneof = _REQUEST.oneofs_by_name['request']
+_REQUEST.oneofs_by_name['request'].fields.append(
+  _REQUEST.fields_by_name['cardano'])
+_REQUEST.fields_by_name['cardano'].containing_oneof = _REQUEST.oneofs_by_name['request']
 _RESPONSE.fields_by_name['success'].message_type = _SUCCESS
 _RESPONSE.fields_by_name['error'].message_type = _ERROR
 _RESPONSE.fields_by_name['device_info'].message_type = bitbox02__system__pb2._DEVICEINFORESPONSE
@@ -519,6 +538,7 @@ _RESPONSE.fields_by_name['eth'].message_type = eth__pb2._ETHRESPONSE
 _RESPONSE.fields_by_name['fingerprint'].message_type = common__pb2._ROOTFINGERPRINTRESPONSE
 _RESPONSE.fields_by_name['btc'].message_type = btc__pb2._BTCRESPONSE
 _RESPONSE.fields_by_name['electrum_encryption_key'].message_type = keystore__pb2._ELECTRUMENCRYPTIONKEYRESPONSE
+_RESPONSE.fields_by_name['cardano'].message_type = cardano__pb2._CARDANORESPONSE
 _RESPONSE.oneofs_by_name['response'].fields.append(
   _RESPONSE.fields_by_name['success'])
 _RESPONSE.fields_by_name['success'].containing_oneof = _RESPONSE.oneofs_by_name['response']
@@ -558,6 +578,9 @@ _RESPONSE.fields_by_name['btc'].containing_oneof = _RESPONSE.oneofs_by_name['res
 _RESPONSE.oneofs_by_name['response'].fields.append(
   _RESPONSE.fields_by_name['electrum_encryption_key'])
 _RESPONSE.fields_by_name['electrum_encryption_key'].containing_oneof = _RESPONSE.oneofs_by_name['response']
+_RESPONSE.oneofs_by_name['response'].fields.append(
+  _RESPONSE.fields_by_name['cardano'])
+_RESPONSE.fields_by_name['cardano'].containing_oneof = _RESPONSE.oneofs_by_name['response']
 DESCRIPTOR.message_types_by_name['Error'] = _ERROR
 DESCRIPTOR.message_types_by_name['Success'] = _SUCCESS
 DESCRIPTOR.message_types_by_name['Request'] = _REQUEST

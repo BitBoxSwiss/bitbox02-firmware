@@ -26,6 +26,12 @@ pub struct XPub {
     #[prost(bytes="vec", tag="5")]
     pub public_key: ::prost::alloc::vec::Vec<u8>,
 }
+/// This message exists for use in oneof or repeated fields, where one can't inline `repeated uint32` due to protobuf rules.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Keypath {
+    #[prost(uint32, repeated, tag="1")]
+    pub keypath: ::prost::alloc::vec::Vec<u32>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckBackupRequest {
     #[prost(bool, tag="1")]
@@ -486,6 +492,183 @@ pub enum BtcOutputType {
     P2wsh = 4,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CardanoXpubsRequest {
+    #[prost(message, repeated, tag="1")]
+    pub keypaths: ::prost::alloc::vec::Vec<Keypath>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CardanoXpubsResponse {
+    #[prost(bytes="vec", repeated, tag="1")]
+    pub xpubs: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CardanoScriptConfig {
+    /// Entries correspond to address types as described in:
+    /// https://github.com/cardano-foundation/CIPs/blob/6c249ef48f8f5b32efc0ec768fadf4321f3173f2/CIP-0019/CIP-0019.md
+    /// See also:
+    /// https://github.com/input-output-hk/cardano-ledger-specs/blob/c6c4be1562e23a3dd48282387c4e48ff918fbab0/eras/shelley/test-suite/cddl-files/shelley.cddl#L89
+    #[prost(oneof="cardano_script_config::Config", tags="1")]
+    pub config: ::core::option::Option<cardano_script_config::Config>,
+}
+/// Nested message and enum types in `CardanoScriptConfig`.
+pub mod cardano_script_config {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct PkhSkh {
+        #[prost(uint32, repeated, tag="1")]
+        pub keypath_payment: ::prost::alloc::vec::Vec<u32>,
+        #[prost(uint32, repeated, tag="2")]
+        pub keypath_stake: ::prost::alloc::vec::Vec<u32>,
+    }
+    /// Entries correspond to address types as described in:
+    /// https://github.com/cardano-foundation/CIPs/blob/6c249ef48f8f5b32efc0ec768fadf4321f3173f2/CIP-0019/CIP-0019.md
+    /// See also:
+    /// https://github.com/input-output-hk/cardano-ledger-specs/blob/c6c4be1562e23a3dd48282387c4e48ff918fbab0/eras/shelley/test-suite/cddl-files/shelley.cddl#L89
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Config {
+        /// Shelley PaymentKeyHash & StakeKeyHash
+        #[prost(message, tag="1")]
+        PkhSkh(PkhSkh),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CardanoAddressRequest {
+    #[prost(enumeration="CardanoNetwork", tag="1")]
+    pub network: i32,
+    #[prost(bool, tag="2")]
+    pub display: bool,
+    #[prost(message, optional, tag="3")]
+    pub script_config: ::core::option::Option<CardanoScriptConfig>,
+}
+/// Max allowed transaction size is 16384 bytes according to
+/// https://github.com/cardano-foundation/CIPs/blob/master/CIP-0009/CIP-0009.md. Unlike with BTC, we
+/// can fit the whole request in RAM and don't need to stream.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CardanoSignTransactionRequest {
+    #[prost(enumeration="CardanoNetwork", tag="1")]
+    pub network: i32,
+    #[prost(message, repeated, tag="2")]
+    pub inputs: ::prost::alloc::vec::Vec<cardano_sign_transaction_request::Input>,
+    #[prost(message, repeated, tag="3")]
+    pub outputs: ::prost::alloc::vec::Vec<cardano_sign_transaction_request::Output>,
+    #[prost(uint64, tag="4")]
+    pub fee: u64,
+    #[prost(uint64, tag="5")]
+    pub ttl: u64,
+    #[prost(message, repeated, tag="6")]
+    pub certificates: ::prost::alloc::vec::Vec<cardano_sign_transaction_request::Certificate>,
+    #[prost(message, repeated, tag="7")]
+    pub withdrawals: ::prost::alloc::vec::Vec<cardano_sign_transaction_request::Withdrawal>,
+}
+/// Nested message and enum types in `CardanoSignTransactionRequest`.
+pub mod cardano_sign_transaction_request {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Input {
+        #[prost(uint32, repeated, tag="1")]
+        pub keypath: ::prost::alloc::vec::Vec<u32>,
+        #[prost(bytes="vec", tag="2")]
+        pub prev_out_hash: ::prost::alloc::vec::Vec<u8>,
+        #[prost(uint32, tag="3")]
+        pub prev_out_index: u32,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Output {
+        #[prost(string, tag="1")]
+        pub encoded_address: ::prost::alloc::string::String,
+        #[prost(uint64, tag="2")]
+        pub value: u64,
+        /// Optional. If provided, this is validated as a change output.
+        #[prost(message, optional, tag="3")]
+        pub script_config: ::core::option::Option<super::CardanoScriptConfig>,
+    }
+    /// See https://github.com/input-output-hk/cardano-ledger-specs/blob/c6c4be1562e23a3dd48282387c4e48ff918fbab0/eras/shelley/test-suite/cddl-files/shelley.cddl#L102
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Certificate {
+        #[prost(oneof="certificate::Cert", tags="1, 2, 3")]
+        pub cert: ::core::option::Option<certificate::Cert>,
+    }
+    /// Nested message and enum types in `Certificate`.
+    pub mod certificate {
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct StakeDelegation {
+            #[prost(uint32, repeated, tag="1")]
+            pub keypath: ::prost::alloc::vec::Vec<u32>,
+            #[prost(bytes="vec", tag="2")]
+            pub pool_keyhash: ::prost::alloc::vec::Vec<u8>,
+        }
+        #[derive(Clone, PartialEq, ::prost::Oneof)]
+        pub enum Cert {
+            #[prost(message, tag="1")]
+            StakeRegistration(super::super::Keypath),
+            #[prost(message, tag="2")]
+            StakeDeregistration(super::super::Keypath),
+            #[prost(message, tag="3")]
+            StakeDelegation(StakeDelegation),
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Withdrawal {
+        #[prost(uint32, repeated, tag="1")]
+        pub keypath: ::prost::alloc::vec::Vec<u32>,
+        #[prost(uint64, tag="2")]
+        pub value: u64,
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CardanoSignTransactionResponse {
+    #[prost(message, repeated, tag="1")]
+    pub shelley_witnesses: ::prost::alloc::vec::Vec<cardano_sign_transaction_response::ShelleyWitness>,
+}
+/// Nested message and enum types in `CardanoSignTransactionResponse`.
+pub mod cardano_sign_transaction_response {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct ShelleyWitness {
+        #[prost(bytes="vec", tag="1")]
+        pub public_key: ::prost::alloc::vec::Vec<u8>,
+        #[prost(bytes="vec", tag="2")]
+        pub signature: ::prost::alloc::vec::Vec<u8>,
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CardanoRequest {
+    #[prost(oneof="cardano_request::Request", tags="1, 2, 3")]
+    pub request: ::core::option::Option<cardano_request::Request>,
+}
+/// Nested message and enum types in `CardanoRequest`.
+pub mod cardano_request {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Request {
+        #[prost(message, tag="1")]
+        Xpubs(super::CardanoXpubsRequest),
+        #[prost(message, tag="2")]
+        Address(super::CardanoAddressRequest),
+        #[prost(message, tag="3")]
+        SignTransaction(super::CardanoSignTransactionRequest),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CardanoResponse {
+    #[prost(oneof="cardano_response::Response", tags="1, 2, 3")]
+    pub response: ::core::option::Option<cardano_response::Response>,
+}
+/// Nested message and enum types in `CardanoResponse`.
+pub mod cardano_response {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Response {
+        #[prost(message, tag="1")]
+        Xpubs(super::CardanoXpubsResponse),
+        #[prost(message, tag="2")]
+        Pub(super::PubResponse),
+        #[prost(message, tag="3")]
+        SignTransaction(super::CardanoSignTransactionResponse),
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CardanoNetwork {
+    CardanoMainnet = 0,
+    CardanoTestnet = 1,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EthPubRequest {
     #[prost(uint32, repeated, tag="1")]
     pub keypath: ::prost::alloc::vec::Vec<u32>,
@@ -665,7 +848,7 @@ pub struct Success {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Request {
-    #[prost(oneof="request::Request", tags="2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26")]
+    #[prost(oneof="request::Request", tags="2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27")]
     pub request: ::core::option::Option<request::Request>,
 }
 /// Nested message and enum types in `Request`.
@@ -722,11 +905,13 @@ pub mod request {
         Btc(super::BtcRequest),
         #[prost(message, tag="26")]
         ElectrumEncryptionKey(super::ElectrumEncryptionKeyRequest),
+        #[prost(message, tag="27")]
+        Cardano(super::CardanoRequest),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Response {
-    #[prost(oneof="response::Response", tags="1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14")]
+    #[prost(oneof="response::Response", tags="1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15")]
     pub response: ::core::option::Option<response::Response>,
 }
 /// Nested message and enum types in `Response`.
@@ -760,5 +945,7 @@ pub mod response {
         Btc(super::BtcResponse),
         #[prost(message, tag="14")]
         ElectrumEncryptionKey(super::ElectrumEncryptionKeyResponse),
+        #[prost(message, tag="15")]
+        Cardano(super::CardanoResponse),
     }
 }

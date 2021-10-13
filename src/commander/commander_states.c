@@ -62,6 +62,7 @@ static commander_states_endpoint_id _commands_initialized[] = {
     Request_set_mnemonic_passphrase_enabled_tag,
     Request_eth_tag,
     Request_reset_tag,
+    Request_cardano_tag,
 };
 
 commander_states_state_t commander_states_state(void)

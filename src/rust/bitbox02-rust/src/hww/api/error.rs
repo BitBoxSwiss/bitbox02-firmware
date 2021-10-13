@@ -69,6 +69,20 @@ impl core::convert::From<crate::workflow::verify_message::Error> for Error {
     }
 }
 
+#[cfg(feature = "app-cardano")]
+impl core::convert::From<crate::hww::api::cardano::keypath::Error> for Error {
+    fn from(_error: crate::hww::api::cardano::keypath::Error) -> Self {
+        Error::InvalidInput
+    }
+}
+
+#[cfg(feature = "app-cardano")]
+impl<E> core::convert::From<minicbor::encode::Error<E>> for Error {
+    fn from(_error: minicbor::encode::Error<E>) -> Self {
+        Error::Generic
+    }
+}
+
 impl core::convert::From<UnlockError> for Error {
     fn from(error: UnlockError) -> Self {
         match error {

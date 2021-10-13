@@ -35,3 +35,8 @@ message XPub {
   bytes chain_code = 4;
   bytes public_key = 5;
 }
+
+// This message exists for use in oneof or repeated fields, where one can't inline `repeated uint32` due to protobuf rules.
+message Keypath {
+  repeated uint32 keypath = 1;
+}

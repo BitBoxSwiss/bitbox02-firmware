@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='common.proto',
   package='shiftcrypto.bitbox02',
   syntax='proto3',
-  serialized_pb=_b('\n\x0c\x63ommon.proto\x12\x14shiftcrypto.bitbox02\"\x1a\n\x0bPubResponse\x12\x0b\n\x03pub\x18\x01 \x01(\t\"\x18\n\x16RootFingerprintRequest\".\n\x17RootFingerprintResponse\x12\x13\n\x0b\x66ingerprint\x18\x01 \x01(\x0c\"l\n\x04XPub\x12\r\n\x05\x64\x65pth\x18\x01 \x01(\x0c\x12\x1a\n\x12parent_fingerprint\x18\x02 \x01(\x0c\x12\x11\n\tchild_num\x18\x03 \x01(\r\x12\x12\n\nchain_code\x18\x04 \x01(\x0c\x12\x12\n\npublic_key\x18\x05 \x01(\x0c\x62\x06proto3')
+  serialized_pb=_b('\n\x0c\x63ommon.proto\x12\x14shiftcrypto.bitbox02\"\x1a\n\x0bPubResponse\x12\x0b\n\x03pub\x18\x01 \x01(\t\"\x18\n\x16RootFingerprintRequest\".\n\x17RootFingerprintResponse\x12\x13\n\x0b\x66ingerprint\x18\x01 \x01(\x0c\"l\n\x04XPub\x12\r\n\x05\x64\x65pth\x18\x01 \x01(\x0c\x12\x1a\n\x12parent_fingerprint\x18\x02 \x01(\x0c\x12\x11\n\tchild_num\x18\x03 \x01(\r\x12\x12\n\nchain_code\x18\x04 \x01(\x0c\x12\x12\n\npublic_key\x18\x05 \x01(\x0c\"\x1a\n\x07Keypath\x12\x0f\n\x07keypath\x18\x01 \x03(\rb\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -170,10 +170,42 @@ _XPUB = _descriptor.Descriptor(
   serialized_end=248,
 )
 
+
+_KEYPATH = _descriptor.Descriptor(
+  name='Keypath',
+  full_name='shiftcrypto.bitbox02.Keypath',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='keypath', full_name='shiftcrypto.bitbox02.Keypath.keypath', index=0,
+      number=1, type=13, cpp_type=3, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=250,
+  serialized_end=276,
+)
+
 DESCRIPTOR.message_types_by_name['PubResponse'] = _PUBRESPONSE
 DESCRIPTOR.message_types_by_name['RootFingerprintRequest'] = _ROOTFINGERPRINTREQUEST
 DESCRIPTOR.message_types_by_name['RootFingerprintResponse'] = _ROOTFINGERPRINTRESPONSE
 DESCRIPTOR.message_types_by_name['XPub'] = _XPUB
+DESCRIPTOR.message_types_by_name['Keypath'] = _KEYPATH
 
 PubResponse = _reflection.GeneratedProtocolMessageType('PubResponse', (_message.Message,), dict(
   DESCRIPTOR = _PUBRESPONSE,
@@ -202,6 +234,13 @@ XPub = _reflection.GeneratedProtocolMessageType('XPub', (_message.Message,), dic
   # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.XPub)
   ))
 _sym_db.RegisterMessage(XPub)
+
+Keypath = _reflection.GeneratedProtocolMessageType('Keypath', (_message.Message,), dict(
+  DESCRIPTOR = _KEYPATH,
+  __module__ = 'common_pb2'
+  # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.Keypath)
+  ))
+_sym_db.RegisterMessage(Keypath)
 
 
 # @@protoc_insertion_point(module_scope)

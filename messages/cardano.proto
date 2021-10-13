@@ -1,0 +1,122 @@
+// Copyright 2021 Shift Crypto AG
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+package shiftcrypto.bitbox02;
+
+import "common.proto";
+
+message CardanoXpubsRequest {
+  repeated Keypath keypaths = 1;
+}
+
+message CardanoXpubsResponse {
+  repeated bytes xpubs = 1;
+}
+
+enum CardanoNetwork {
+  CardanoMainnet = 0;
+  CardanoTestnet = 1;
+}
+
+message CardanoScriptConfig {
+  message PkhSkh {
+    repeated uint32 keypath_payment = 1;
+    repeated uint32 keypath_stake = 2;
+  }
+
+  // Entries correspond to address types as described in:
+  // https://github.com/cardano-foundation/CIPs/blob/6c249ef48f8f5b32efc0ec768fadf4321f3173f2/CIP-0019/CIP-0019.md
+  // See also:
+  // https://github.com/input-output-hk/cardano-ledger-specs/blob/c6c4be1562e23a3dd48282387c4e48ff918fbab0/eras/shelley/test-suite/cddl-files/shelley.cddl#L89
+  oneof config {
+    // Shelley PaymentKeyHash & StakeKeyHash
+    PkhSkh pkh_skh = 1;
+  }
+}
+
+message CardanoAddressRequest {
+  CardanoNetwork network = 1;
+  bool display = 2;
+  CardanoScriptConfig script_config = 3;
+}
+
+// Max allowed transaction size is 16384 bytes according to
+// https://github.com/cardano-foundation/CIPs/blob/master/CIP-0009/CIP-0009.md. Unlike with BTC, we
+// can fit the whole request in RAM and don't need to stream.
+message CardanoSignTransactionRequest {
+  message Input {
+    repeated uint32 keypath = 1;
+    bytes prev_out_hash = 2;
+    uint32 prev_out_index = 3;
+  }
+
+  message Output {
+    string encoded_address = 1;
+    uint64 value = 2;
+    // Optional. If provided, this is validated as a change output.
+    CardanoScriptConfig script_config = 3;
+  }
+
+  // See https://github.com/input-output-hk/cardano-ledger-specs/blob/c6c4be1562e23a3dd48282387c4e48ff918fbab0/eras/shelley/test-suite/cddl-files/shelley.cddl#L102
+  message Certificate {
+    message StakeDelegation {
+      repeated uint32 keypath = 1;
+      bytes pool_keyhash = 2;
+    }
+    oneof cert {
+      Keypath stake_registration = 1;
+      Keypath stake_deregistration = 2;
+      StakeDelegation stake_delegation = 3;
+    }
+  }
+
+  message Withdrawal {
+    repeated uint32 keypath = 1;
+    uint64 value = 2;
+  }
+
+  CardanoNetwork network = 1;
+  repeated Input inputs = 2;
+  repeated Output outputs = 3;
+  uint64 fee = 4;
+  uint64 ttl = 5;
+  repeated Certificate certificates = 6;
+  repeated Withdrawal withdrawals = 7;
+}
+
+message CardanoSignTransactionResponse {
+  message ShelleyWitness {
+    bytes public_key = 1;
+    bytes signature = 2;
+  }
+
+  repeated ShelleyWitness shelley_witnesses = 1;
+}
+
+message CardanoRequest {
+  oneof request {
+    CardanoXpubsRequest xpubs = 1;
+    CardanoAddressRequest address = 2;
+    CardanoSignTransactionRequest sign_transaction = 3;
+  }
+}
+
+message CardanoResponse {
+  oneof response {
+    CardanoXpubsResponse xpubs = 1;
+    PubResponse pub = 2;
+    CardanoSignTransactionResponse sign_transaction = 3;
+  }
+}

@@ -67,10 +67,7 @@ static bool _setup_wally(void)
     return wally_set_operations(&_ops) == WALLY_OK;
 }
 
-// Go into bootloader if there was an error during startup, so a firmware update can be
-// applied. Otherwise, if there is an Abort() during startup, there would no way to reboot into the
-// bootloader and the device would be bricked.
-static void _bootloader_autoenter(void)
+void common_main_bootloader_autoenter(void)
 {
     auto_enter_t auto_enter = {
         .value = sectrue_u8,
@@ -88,12 +85,12 @@ void common_main(void)
     mpu_bitbox02_init();
     if (!memory_setup(&_memory_interface_functions)) {
         // If memory setup failed, this also might fail, but can't hurt to try.
-        _bootloader_autoenter();
+        common_main_bootloader_autoenter();
         Abort("memory_setup failed");
     }
 
     if (!_setup_wally()) {
-        _bootloader_autoenter();
+        common_main_bootloader_autoenter();
         Abort("_setup_wally failed");
     }
 
@@ -104,7 +101,7 @@ void common_main(void)
     // used are already initialized.
     int securechip_result = securechip_setup(&_securechip_interface_functions);
     if (securechip_result) {
-        _bootloader_autoenter();
+        common_main_bootloader_autoenter();
         char errmsg[100] = {0};
         snprintf(
             errmsg,

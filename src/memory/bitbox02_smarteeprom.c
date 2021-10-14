@@ -89,11 +89,11 @@ static void _init_v1(void)
     _set_data_version(0x01);
 }
 
-void bitbox02_smarteeprom_init(void)
+bool bitbox02_smarteeprom_init(void)
 {
     uint8_t current_version = _get_data_version();
     if (current_version == BITBOX02_SMARTEEPROM_DATA_VERSION) {
-        return;
+        return true;
     }
     /*
      * Migrate from old versions.
@@ -102,14 +102,9 @@ void bitbox02_smarteeprom_init(void)
      */
     if (current_version == BITBOX02_SMARTEEPROM_UNINITIALIZED_VERSION) {
         _init_v1();
-    } else {
-        /*
-         * Incorrect version!
-         * Something has gone terribly wrong.
-         * Maybe reset the whole device?
-         */
-        Abort("Unrecognized SmartEEPROM version.");
+        return true;
     }
+    return false;
 }
 
 uint8_t bitbox02_smarteeprom_get_unlock_attempts(void)

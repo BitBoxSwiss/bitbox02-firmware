@@ -38,7 +38,15 @@ int main(void)
     screen_splash();
     qtouch_init();
     common_main();
-    bitbox02_smarteeprom_init();
+    if (!bitbox02_smarteeprom_init()) {
+        /*
+         * Incorrect version!
+         * Something has gone terribly wrong.
+         * Maybe reset the whole device?
+         */
+        common_main_bootloader_autoenter();
+        Abort("Unrecognized SmartEEPROM version.");
+    }
     traceln("%s", "Device initialized");
     orientation_screen_blocking();
     idle_workflow_blocking();

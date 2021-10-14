@@ -15,7 +15,10 @@
 #ifndef _BITBOX02_SMARTEEPROM_H
 #define _BITBOX02_SMARTEEPROM_H
 
+#include <stdbool.h>
 #include <stdint.h>
+
+#include <compiler_util.h>
 
 /**
  * After this many failed unlock attempts, the keystore becomes locked until a
@@ -48,6 +51,6 @@ void bitbox02_smarteeprom_reset_unlock_attempts(void);
  * Makes sure that the contents of the SmartEEPROM in the BitBox02
  * are up-to-date with the latest struct definition.
  */
-void bitbox02_smarteeprom_init(void);
+USE_RESULT bool bitbox02_smarteeprom_init(void);
 
 #endif // _BITBOX02_SMARTEEPROM_H

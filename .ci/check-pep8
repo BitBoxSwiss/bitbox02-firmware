@@ -17,4 +17,6 @@ if [ -z "${FILES}" ] ; then
 fi
 
 ./scripts/format-python --check --fast ${FILES}
-./scripts/lint-python ${FILES}
+# We lint all default Python files, as linting only a subset can lead to errors (e.g. if
+# send_message.py only is linted without the bitbox02 dep).
+./scripts/lint-python

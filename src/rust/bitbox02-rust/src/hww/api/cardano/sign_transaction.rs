@@ -229,6 +229,7 @@ mod tests {
             ttl: 41115811,
             certificates: vec![],
             withdrawals: vec![],
+            validity_interval_start: 0,
         };
 
         static mut OUTPUT_CONFIRMED: bool = false;
@@ -319,6 +320,7 @@ mod tests {
                 },
             ],
             withdrawals: vec![],
+            validity_interval_start: 0,
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -422,6 +424,7 @@ mod tests {
                 },
             ],
             withdrawals: vec![],
+            validity_interval_start: 0,
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -509,6 +512,7 @@ mod tests {
                     value: 1234567,
                 },
             ],
+            validity_interval_start: 0,
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;

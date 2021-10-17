@@ -55,6 +55,8 @@ message CardanoAddressRequest {
 // Max allowed transaction size is 16384 bytes according to
 // https://github.com/cardano-foundation/CIPs/blob/master/CIP-0009/CIP-0009.md. Unlike with BTC, we
 // can fit the whole request in RAM and don't need to stream.
+//
+// See also: https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L50
 message CardanoSignTransactionRequest {
   message Input {
     repeated uint32 keypath = 1;
@@ -94,6 +96,7 @@ message CardanoSignTransactionRequest {
   uint64 ttl = 5;
   repeated Certificate certificates = 6;
   repeated Withdrawal withdrawals = 7;
+  uint64 validity_interval_start = 8;
 }
 
 message CardanoSignTransactionResponse {

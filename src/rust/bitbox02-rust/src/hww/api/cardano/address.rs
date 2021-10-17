@@ -41,7 +41,7 @@ pub const ADDRESS_HASH_SIZE: usize = 28;
 ///
 /// These address tags are accepted:
 /// https://github.com/cardano-foundation/CIPs/blob/0081c890995ff94618145ae5beb7f288c029a86a/CIP-0019/CIP-0019.md#shelley-addresses
-/// See also: https://github.com/input-output-hk/cardano-ledger-specs/blob/c0a7b02a0fb16849206d9bc0e357583d08d54fae/eras/shelley/test-suite/cddl-files/shelley.cddl#L71-L79
+/// See also: https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L119-L127
 pub fn decode_payment_address(params: &params::Params, address: &str) -> Result<Vec<u8>, Error> {
     let (hrp, data, variant) = bech32::decode(address).or(Err(Error::InvalidInput))?;
     if variant != Variant::Bech32 || hrp != params.bech32_hrp_payment {
@@ -73,7 +73,7 @@ pub fn pubkey_hash_at_keypath(keypath: &[u32]) -> Result<[u8; ADDRESS_HASH_SIZE]
     Ok(out)
 }
 
-/// See https://github.com/input-output-hk/cardano-ledger-specs/blob/c0a7b02a0fb16849206d9bc0e357583d08d54fae/eras/shelley/test-suite/cddl-files/shelley.cddl#L71-L79
+/// See https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L119-L127
 fn address_header(params: &params::Params, script_config: &Config) -> u8 {
     let address_tag: u8 = match script_config {
         Config::PkhSkh(_) => 0,

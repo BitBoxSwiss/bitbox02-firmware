@@ -39,7 +39,7 @@ message CardanoScriptConfig {
   // Entries correspond to address types as described in:
   // https://github.com/cardano-foundation/CIPs/blob/6c249ef48f8f5b32efc0ec768fadf4321f3173f2/CIP-0019/CIP-0019.md
   // See also:
-  // https://github.com/input-output-hk/cardano-ledger-specs/blob/c6c4be1562e23a3dd48282387c4e48ff918fbab0/eras/shelley/test-suite/cddl-files/shelley.cddl#L89
+  // https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L137
   oneof config {
     // Shelley PaymentKeyHash & StakeKeyHash
     PkhSkh pkh_skh = 1;
@@ -69,7 +69,7 @@ message CardanoSignTransactionRequest {
     CardanoScriptConfig script_config = 3;
   }
 
-  // See https://github.com/input-output-hk/cardano-ledger-specs/blob/c6c4be1562e23a3dd48282387c4e48ff918fbab0/eras/shelley/test-suite/cddl-files/shelley.cddl#L102
+  // See https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L150
   message Certificate {
     message StakeDelegation {
       repeated uint32 keypath = 1;

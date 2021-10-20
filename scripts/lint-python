@@ -14,13 +14,8 @@ command -v ${PYLINT} >/dev/null 2>&1 || { echo >&2 "${PYLINT} is missing"; exit 
 MYPY=${MYPY:-mypy}
 command -v ${MYPY} >/dev/null 2>&1 || { echo >&2 "${MYPY} is missing"; exit 1; }
 
-# Store arguments as array in ARGS
-ARGS=("$@")
-
-if [ $# -eq 0 ] ; then
-	# Store default files as array in ARGS
-	ARGS=($(find py releases -name '*.py' | grep -v -e generated -e old))
-fi
+# Store files as array in ARGS
+ARGS=($(find py releases -name '*.py' | grep -v -e generated -e old))
 
 # implicit-reexport: `from foo import bar` re-exports (normal Python3 behavior), otherwise mypy
 # expects `from foo import bar as bar`.

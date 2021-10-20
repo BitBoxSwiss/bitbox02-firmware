@@ -506,7 +506,7 @@ pub struct CardanoScriptConfig {
     /// Entries correspond to address types as described in:
     /// https://github.com/cardano-foundation/CIPs/blob/6c249ef48f8f5b32efc0ec768fadf4321f3173f2/CIP-0019/CIP-0019.md
     /// See also:
-    /// https://github.com/input-output-hk/cardano-ledger-specs/blob/c6c4be1562e23a3dd48282387c4e48ff918fbab0/eras/shelley/test-suite/cddl-files/shelley.cddl#L89
+    /// https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L137
     #[prost(oneof="cardano_script_config::Config", tags="1")]
     pub config: ::core::option::Option<cardano_script_config::Config>,
 }
@@ -522,7 +522,7 @@ pub mod cardano_script_config {
     /// Entries correspond to address types as described in:
     /// https://github.com/cardano-foundation/CIPs/blob/6c249ef48f8f5b32efc0ec768fadf4321f3173f2/CIP-0019/CIP-0019.md
     /// See also:
-    /// https://github.com/input-output-hk/cardano-ledger-specs/blob/c6c4be1562e23a3dd48282387c4e48ff918fbab0/eras/shelley/test-suite/cddl-files/shelley.cddl#L89
+    /// https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L137
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Config {
         /// Shelley PaymentKeyHash & StakeKeyHash
@@ -580,7 +580,7 @@ pub mod cardano_sign_transaction_request {
         #[prost(message, optional, tag="3")]
         pub script_config: ::core::option::Option<super::CardanoScriptConfig>,
     }
-    /// See https://github.com/input-output-hk/cardano-ledger-specs/blob/c6c4be1562e23a3dd48282387c4e48ff918fbab0/eras/shelley/test-suite/cddl-files/shelley.cddl#L102
+    /// See https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L150
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Certificate {
         #[prost(oneof="certificate::Cert", tags="1, 2, 3")]

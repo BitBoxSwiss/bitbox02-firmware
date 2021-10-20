@@ -43,7 +43,7 @@ impl<'a, U: Update> Write for HashedWriter<'a, U> {
     }
 }
 
-/// See https://github.com/input-output-hk/cardano-ledger-specs/blob/c0a7b02a0fb16849206d9bc0e357583d08d54fae/eras/shelley/test-suite/cddl-files/shelley.cddl#L124
+/// See https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L176
 fn encode_stake_credential<W: Write>(
     encoder: &mut Encoder<W>,
     keypath: &[u32],
@@ -55,7 +55,7 @@ fn encode_stake_credential<W: Write>(
 
 /// Encode a withdrawal/reward address.
 ///
-/// See https://github.com/input-output-hk/cardano-ledger-specs/blob/c0a7b02a0fb16849206d9bc0e357583d08d54fae/eras/shelley/test-suite/cddl-files/shelley.cddl#L82
+/// See https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L130
 pub fn encode_withdrawal_address(
     params: &params::Params,
     keypath: &[u32],
@@ -74,7 +74,7 @@ pub fn encode_withdrawal_address(
 /// The transaction must be verified/validated before calling this function.
 ///
 /// References:
-/// - Transaction body encoding spec: https://github.com/input-output-hk/cardano-ledger-specs/blob/c6c4be1562e23a3dd48282387c4e48ff918fbab0/eras/shelley/test-suite/cddl-files/shelley.cddl#L51
+/// - Transaction body encoding spec: https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L50
 /// - Serialization implementation: https://github.com/input-output-hk/cardano-ledger-specs/blob/c6c4be1562e23a3dd48282387c4e48ff918fbab0/eras/shelley-ma/impl/src/Cardano/Ledger/ShelleyMA/TxBody.hs#L208
 pub fn encode_transaction_body<W: Write>(
     tx: &pb::CardanoSignTransactionRequest,

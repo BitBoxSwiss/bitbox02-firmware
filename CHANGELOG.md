@@ -9,6 +9,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ### [Unreleased]
 - Allow recovery words that convert to a zero seed, such as the 12 words `abandon abandon .... about`.
 - RestoreBackup: ported to Rust. Will now return UserAbortError on user abort instead of GenericError.
+- Show "Transaction confirmed"/"Transaction canceled" messages when signing Ethereum transactions
 
 ### 9.7.0 [released 2021-09-06]
 - Allow mainnet keypaths (`m/44'/60'/0'/0/*`) Rinkeby and Ropsten, and testnet keypaths (`m/44'/1'/0'/0/*`) for Ethereum mainnet

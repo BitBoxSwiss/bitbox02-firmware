@@ -254,9 +254,9 @@ set(TEST_LIST
    ui_component_gestures
    ""
    btc_sign
-   "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_confirm_blocking,--wrap=workflow_verify_total,--wrap=apps_btc_confirm_locktime_rbf,--wrap=rust_bitcoin_util_format_amount,--wrap=btc_common_is_valid_keypath_address_simple,--wrap=keystore_antiklepto_secp256k1_commit"
+   "-Wl,--wrap=workflow_status_blocking,--wrap=workflow_verify_recipient,--wrap=workflow_confirm_blocking,--wrap=workflow_verify_total,--wrap=apps_btc_confirm_locktime_rbf,--wrap=rust_bitcoin_util_format_amount,--wrap=btc_common_is_valid_keypath_address_simple,--wrap=keystore_antiklepto_secp256k1_commit"
    app_btc_sign_multisig
-   "-Wl,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=apps_btc_confirm_locktime_rbf,--wrap=memory_multisig_get_by_hash,--wrap=apps_btc_confirm_multisig_basic"
+   "-Wl,--wrap=workflow_status_blocking,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=apps_btc_confirm_locktime_rbf,--wrap=memory_multisig_get_by_hash,--wrap=apps_btc_confirm_multisig_basic"
    memory
    "-Wl,--wrap=memory_read_chunk_mock,--wrap=memory_write_chunk_mock,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_mock,--wrap=memory_write_to_address_mock"
    memory_functional

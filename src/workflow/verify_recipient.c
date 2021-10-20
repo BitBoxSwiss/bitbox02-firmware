@@ -15,7 +15,6 @@
 #include "verify_recipient.h"
 
 #include "blocking.h"
-#include "status.h"
 
 #include <ui/components/confirm_transaction.h>
 #include <ui/screen_stack.h>
@@ -32,8 +31,5 @@ bool workflow_verify_recipient(const char* recipient, const char* amount)
     ui_screen_stack_push(confirm_transaction_address_create(amount, recipient, _callback, &result));
     workflow_blocking_block();
     ui_screen_stack_pop();
-    if (!result) {
-        workflow_status_blocking("Transaction\ncanceled", false);
-    }
     return result;
 }

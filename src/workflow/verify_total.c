@@ -14,7 +14,6 @@
 
 #include "verify_total.h"
 #include "blocking.h"
-#include "status.h"
 
 #include <ui/components/confirm_transaction.h>
 #include <ui/screen_stack.h>
@@ -31,6 +30,5 @@ bool workflow_verify_total(const char* total, const char* fee)
     ui_screen_stack_push(confirm_transaction_fee_create(total, fee, _callback, &result));
     workflow_blocking_block();
     ui_screen_stack_pop();
-    workflow_status_blocking(result ? "Transaction\nconfirmed" : "Transaction\ncanceled", result);
     return result;
 }

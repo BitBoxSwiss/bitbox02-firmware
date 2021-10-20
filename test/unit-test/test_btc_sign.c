@@ -29,6 +29,8 @@
 #include <wally_crypto.h>
 #include <workflow/confirm.h>
 
+void __wrap_workflow_status_blocking(const char* msg, bool status_success) {}
+
 bool __wrap_workflow_confirm_blocking(const confirm_params_t* params)
 {
     check_expected(params->body);

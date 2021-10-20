@@ -137,11 +137,21 @@ async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Respons
         }
     }
 
-    transaction::verify_total_fee(
-        &format_value(params, total + request.fee),
-        &format_value(params, request.fee),
-    )
-    .await?;
+    if total == 0 {
+        confirm::confirm(&confirm::Params {
+            title: params.name,
+            body: &format!("Fee\n{}", format_value(params, request.fee)),
+            longtouch: true,
+            ..Default::default()
+        })
+        .await?;
+    } else {
+        transaction::verify_total_fee(
+            &format_value(params, total + request.fee),
+            &format_value(params, request.fee),
+        )
+        .await?;
+    }
 
     status::status("Transaction\nconfirmed", true).await;
 
@@ -311,7 +321,6 @@ mod tests {
             withdrawals: vec![],
         };
 
-        static mut FEE_CONFIRMED: bool = false;
         static mut CONFIRM_COUNTER: u32 = 0;
 
         mock(Data {
@@ -335,16 +344,13 @@ mod tests {
                         ));
                         true
                     }
+                    3 => {
+                        assert_eq!(params.title, "Cardano");
+                        assert_eq!(params.body, "Fee\n0.191681 ADA");
+                        true
+                    }
                     _ => panic!("too many user confirmations"),
                 }
-            })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee| {
-                assert_eq!(total, "0.191681 ADA");
-                assert_eq!(fee, "0.191681 ADA");
-                unsafe {
-                    FEE_CONFIRMED = true;
-                }
-                true
             })),
             ..Default::default()
         });
@@ -370,8 +376,7 @@ mod tests {
                 ]
             })
         );
-        assert!(unsafe { FEE_CONFIRMED });
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 2);
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 3);
     }
 
     #[test]
@@ -419,7 +424,6 @@ mod tests {
             withdrawals: vec![],
         };
 
-        static mut FEE_CONFIRMED: bool = false;
         static mut CONFIRM_COUNTER: u32 = 0;
 
         mock(Data {
@@ -435,16 +439,13 @@ mod tests {
                             .starts_with("Stop stake delegation for account #1?"));
                         true
                     }
+                    2 => {
+                        assert_eq!(params.title, "Cardano");
+                        assert_eq!(params.body, "Fee\n0.191681 ADA");
+                        true
+                    }
                     _ => panic!("too many user confirmations"),
                 }
-            })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee| {
-                assert_eq!(total, "0.191681 ADA");
-                assert_eq!(fee, "0.191681 ADA");
-                unsafe {
-                    FEE_CONFIRMED = true;
-                }
-                true
             })),
             ..Default::default()
         });
@@ -470,8 +471,7 @@ mod tests {
                 ]
             })
         );
-        assert!(unsafe { FEE_CONFIRMED });
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 2);
     }
 
     #[test]
@@ -511,7 +511,6 @@ mod tests {
             ],
         };
 
-        static mut FEE_CONFIRMED: bool = false;
         static mut CONFIRM_COUNTER: u32 = 0;
 
         mock(Data {
@@ -528,16 +527,14 @@ mod tests {
                         );
                         true
                     }
+                    2 => {
+                        assert_eq!(params.title, "Cardano");
+                        assert_eq!(params.body, "Fee\n0.175157 ADA");
+                        true
+                    }
+
                     _ => panic!("too many user confirmations"),
                 }
-            })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee| {
-                assert_eq!(total, "0.175157 ADA");
-                assert_eq!(fee, "0.175157 ADA");
-                unsafe {
-                    FEE_CONFIRMED = true;
-                }
-                true
             })),
             ..Default::default()
         });
@@ -559,7 +556,6 @@ mod tests {
                 ]
             })
         );
-        assert!(unsafe { FEE_CONFIRMED });
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 2);
     }
 }

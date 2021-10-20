@@ -263,7 +263,7 @@ impl Xprv {
 
         let iout = imac.finalize_reset().into_bytes();
         let chain_code = &iout[32..];
-        Xprv::from(left.deref(), &right, chain_code.try_into().unwrap())
+        Xprv::from(left.deref(), &right, chain_code)
     }
 
     // Derives a child extended private key.

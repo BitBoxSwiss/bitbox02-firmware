@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Multi edition: add Cardano support.
 - Allow recovery words that convert to a zero seed, such as the 12 words `abandon abandon .... about`.
 - RestoreBackup: ported to Rust. Will now return UserAbortError on user abort instead of GenericError.
 - Show "Transaction confirmed"/"Transaction canceled" messages when signing Ethereum transactions

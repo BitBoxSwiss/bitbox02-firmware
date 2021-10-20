@@ -93,6 +93,9 @@ pub fn encode_transaction_body<W: Write>(
     if !tx.withdrawals.is_empty() {
         num_map_entries += 1;
     }
+    if tx.validity_interval_start != 0 {
+        num_map_entries += 1;
+    }
 
     encoder.map(num_map_entries)?;
     // Map entry 0 is an array of inputs.
@@ -157,7 +160,10 @@ pub fn encode_transaction_body<W: Write>(
             encoder.bytes(&withdrawal_address)?.u64(*value)?;
         }
     }
-
+    // Optional map entry 8 is validity_interval_start.
+    if tx.validity_interval_start != 0 {
+        encoder.u8(8)?.u64(tx.validity_interval_start)?;
+    }
     Ok(())
 }
 

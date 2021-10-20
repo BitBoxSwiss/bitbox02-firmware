@@ -542,6 +542,8 @@ pub struct CardanoAddressRequest {
 /// Max allowed transaction size is 16384 bytes according to
 /// https://github.com/cardano-foundation/CIPs/blob/master/CIP-0009/CIP-0009.md. Unlike with BTC, we
 /// can fit the whole request in RAM and don't need to stream.
+///
+/// See also: https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L50
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CardanoSignTransactionRequest {
     #[prost(enumeration="CardanoNetwork", tag="1")]
@@ -558,6 +560,8 @@ pub struct CardanoSignTransactionRequest {
     pub certificates: ::prost::alloc::vec::Vec<cardano_sign_transaction_request::Certificate>,
     #[prost(message, repeated, tag="7")]
     pub withdrawals: ::prost::alloc::vec::Vec<cardano_sign_transaction_request::Withdrawal>,
+    #[prost(uint64, tag="8")]
+    pub validity_interval_start: u64,
 }
 /// Nested message and enum types in `CardanoSignTransactionRequest`.
 pub mod cardano_sign_transaction_request {

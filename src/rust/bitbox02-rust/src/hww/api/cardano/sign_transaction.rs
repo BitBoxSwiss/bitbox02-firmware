@@ -53,6 +53,32 @@ fn make_shelley_witness(keypath: &[u32], tx_body_hash: &[u8; 32]) -> Result<Shel
     })
 }
 
+// For Cardano mainnet, this formats a slot number in terms of epoch
+// and relative slot number to the epoch and lets the user verify it.
+// This should only be called for mainnet.
+async fn verify_slot(params: &params::Params, title: &str, slot: u64) -> Result<(), Error> {
+    // Mainnet params.
+    // Start of Shelley era
+    const START_EPOCH: u64 = 208;
+    // 208*21600, where 21600 are the slots per epoch before Shelley.
+    const START_SLOT: u64 = 4492800;
+    const SLOTS_IN_EPOCH: u64 = 432000;
+
+    if slot < START_SLOT {
+        return Err(Error::InvalidInput);
+    }
+    let epoch = START_EPOCH + (slot - START_SLOT) / SLOTS_IN_EPOCH;
+    let slot_in_epoch = (slot - START_SLOT) % SLOTS_IN_EPOCH;
+    confirm::confirm(&confirm::Params {
+        title: params.name,
+        body: &format!("{}\nslot {} in\nepoch {}", title, slot_in_epoch, epoch),
+        accept_is_nextarrow: true,
+        ..Default::default()
+    })
+    .await?;
+    Ok(())
+}
+
 async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Response, Error> {
     let network = CardanoNetwork::from_i32(request.network).ok_or(Error::InvalidInput)?;
     let params = params::get(network);
@@ -78,6 +104,12 @@ async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Respons
         signing_keypaths.push(&input.keypath);
     }
 
+    if network == CardanoNetwork::CardanoMainnet && request.validity_interval_start != 0 {
+        verify_slot(params, "Can be mined from", request.validity_interval_start).await?;
+    }
+    if network == CardanoNetwork::CardanoMainnet && request.ttl != 0 {
+        verify_slot(params, "Can be mined until", request.ttl).await?;
+    }
     certificates::verify(
         params,
         &request.certificates,
@@ -229,11 +261,27 @@ mod tests {
             ttl: 41115811,
             certificates: vec![],
             withdrawals: vec![],
+            validity_interval_start: 0,
         };
 
         static mut OUTPUT_CONFIRMED: bool = false;
         static mut TOTAL_CONFIRMED: bool = false;
+        static mut CONFIRM_COUNTER: u32 = 0;
         mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(params.title, "Cardano");
+                        assert_eq!(params.body, "Can be mined until\nslot 335011 in\nepoch 292");
+                        true
+                    }
+                    _ => panic!("too many user confirmations"),
+                }
+            })),
+
             ui_transaction_address_create: Some(Box::new(|amount, address| {
                 assert_eq!(amount, "1 ADA");
                 assert_eq!(address, "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt");
@@ -264,6 +312,7 @@ mod tests {
                 }]
             })
         );
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
         assert!(unsafe { OUTPUT_CONFIRMED });
         assert!(unsafe { TOTAL_CONFIRMED });
     }
@@ -319,6 +368,7 @@ mod tests {
                 },
             ],
             withdrawals: vec![],
+            validity_interval_start: 0,
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -331,12 +381,17 @@ mod tests {
                 } {
                     1 => {
                         assert_eq!(params.title, "Cardano");
+                        assert_eq!(params.body, "Can be mined until\nslot 326325 in\nepoch 293");
+                        true
+                    }
+                    2 => {
+                        assert_eq!(params.title, "Cardano");
                         assert!(params
                             .body
                             .starts_with("Register staking key for account #1?"));
                         true
                     }
-                    2 => {
+                    3 => {
                         assert_eq!(params.title, "Cardano");
                         assert!(params.body.starts_with(
                             "Delegate staking for account #1 to pool \
@@ -344,7 +399,7 @@ mod tests {
                         ));
                         true
                     }
-                    3 => {
+                    4 => {
                         assert_eq!(params.title, "Cardano");
                         assert_eq!(params.body, "Fee\n0.191681 ADA");
                         true
@@ -376,7 +431,7 @@ mod tests {
                 ]
             })
         );
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 3);
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 4);
     }
 
     #[test]
@@ -422,6 +477,7 @@ mod tests {
                 },
             ],
             withdrawals: vec![],
+            validity_interval_start: 0,
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -434,12 +490,17 @@ mod tests {
                 } {
                     1 => {
                         assert_eq!(params.title, "Cardano");
+                        assert_eq!(params.body, "Can be mined until\nslot 326325 in\nepoch 293");
+                        true
+                    }
+                    2 => {
+                        assert_eq!(params.title, "Cardano");
                         assert!(params
                             .body
                             .starts_with("Stop stake delegation for account #1?"));
                         true
                     }
-                    2 => {
+                    3 => {
                         assert_eq!(params.title, "Cardano");
                         assert_eq!(params.body, "Fee\n0.191681 ADA");
                         true
@@ -471,7 +532,7 @@ mod tests {
                 ]
             })
         );
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 2);
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 3);
     }
 
     #[test]
@@ -509,6 +570,7 @@ mod tests {
                     value: 1234567,
                 },
             ],
+            validity_interval_start: 0,
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -521,18 +583,22 @@ mod tests {
                 } {
                     1 => {
                         assert_eq!(params.title, "Cardano");
+                        assert_eq!(params.body, "Can be mined until\nslot 143908 in\nepoch 294");
+                        true
+                    }
+                    2 => {
+                        assert_eq!(params.title, "Cardano");
                         assert_eq!(
                             params.body,
                             "Withdraw 1.234567 ADA in staking rewards for account #1?"
                         );
                         true
                     }
-                    2 => {
+                    3 => {
                         assert_eq!(params.title, "Cardano");
                         assert_eq!(params.body, "Fee\n0.175157 ADA");
                         true
                     }
-
                     _ => panic!("too many user confirmations"),
                 }
             })),
@@ -556,6 +622,6 @@ mod tests {
                 ]
             })
         );
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 2);
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 3);
     }
 }

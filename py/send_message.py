@@ -745,6 +745,7 @@ class SendMessage:
                     fee=170499,
                     ttl=41115811,
                     certificates=[],
+                    validity_interval_start=41110811,
                 )
             )
             print(response)

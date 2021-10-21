@@ -239,7 +239,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
 else()
   set(RUST_PROFILE "release")
   set(RUST_CARGO_FLAG "--release")
-  set(RUSTFLAGS --remap-path-prefix=${CMAKE_CURRENT_SOURCE_DIR}/rust=src)
+  # For binary reproducibility, strip path prefixes that can be different depending on environment (e.g. /home/<user>, etc.).
+  set(RUSTFLAGS "--remap-path-prefix=${CMAKE_CURRENT_SOURCE_DIR}/rust=src --remap-path-prefix=$ENV{HOME}=")
 endif()
 
 if(CMAKE_CROSSCOMPILING)

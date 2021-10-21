@@ -64,19 +64,3 @@ add_custom_target(
   generate-protobufs
   DEPENDS ${OUTPUT_SOURCES} ${OUTPUT_HEADERS}
 )
-
-set(PB_DOCS_DIR ${CMAKE_BINARY_DIR}/docs-pb)
-
-if(NOT PROTOC_GEN_DOC STREQUAL "PROTOC_GEN_DOC-NOTFOUND")
-  add_custom_command(
-    OUTPUT ${PB_DOCS_DIR}/index.html
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${PB_DOCS_DIR}
-    COMMAND ${PROTOC} "--proto_path=${CMAKE_CURRENT_SOURCE_DIR}" "--doc_out=${PB_DOCS_DIR}" ${PROTO_FILES_ABSOLUTE}
-    COMMAND ${CMAKE_COMMAND} -E echo Find the protobuf docs here ${PB_DOCS_DIR}/index.html
-    DEPENDS ${PROTO_FILES}
-  )
-  add_custom_target(
-    protobuf-docs
-    DEPENDS ${PB_DOCS_DIR}/index.html
-  )
-endif()

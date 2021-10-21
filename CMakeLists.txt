@@ -333,8 +333,6 @@ find_program(PROTOC protoc)
 if (PROTOC STREQUAL "PROTOC-NOTFOUND")
   message(FATAL_ERROR "Could not find 'protoc'.")
 endif()
-# used when generating docs from proto files
-find_program(PROTOC_GEN_DOC protoc-gen-doc)
 
 #-----------------------------------------------------------------------------
 # Build
@@ -370,10 +368,6 @@ if(DOXYGEN_FOUND)
   add_dependencies(doc doxygen-docs)
 else()
   message("Doxygen: doxygen not found - docs disabled")
-endif()
-
-if(NOT PROTOC_GEN_DOC STREQUAL "PROTOC_GEN_DOC-NOTFOUND")
-  add_dependencies(doc protobuf-docs)
 endif()
 
 if(CMAKE_CROSSCOMPILING)

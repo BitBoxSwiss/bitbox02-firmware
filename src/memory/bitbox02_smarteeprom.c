@@ -19,6 +19,7 @@
 #include "memory/smarteeprom.h"
 
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 
 /**
@@ -108,7 +109,9 @@ void bitbox02_smarteeprom_init(void)
          * Something has gone terribly wrong.
          * Maybe reset the whole device?
          */
-        Abort("Unrecognized SmartEEPROM version.");
+        char msg[200] = {0};
+        snprintf(msg, sizeof(msg), "Unrecognized SmartEEPROM version.\nGot %d", current_version);
+        AbortAutoenter(msg);
     }
 }
 

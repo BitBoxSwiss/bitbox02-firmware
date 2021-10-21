@@ -191,7 +191,7 @@ pub fn copy_response(dst: &mut [u8]) -> Result<usize, CopyResponseErr> {
         UsbTaskState::Running(Some(_), ref mut next_request_state) => {
             if let WaitingForNextRequestState::SendingResponse(ref response) = next_request_state {
                 let len = response.len();
-                dst[..len].copy_from_slice(&response);
+                dst[..len].copy_from_slice(response);
                 *next_request_state = WaitingForNextRequestState::AwaitingRequest;
                 Ok(len)
             } else {
@@ -201,7 +201,7 @@ pub fn copy_response(dst: &mut [u8]) -> Result<usize, CopyResponseErr> {
         UsbTaskState::Running(_, _) => Err(CopyResponseErr::NotReady),
         UsbTaskState::ResultAvailable(ref response) => {
             let len = response.len();
-            dst[..len].copy_from_slice(&response);
+            dst[..len].copy_from_slice(response);
             *state = UsbTaskState::Nothing;
             Ok(len)
         }

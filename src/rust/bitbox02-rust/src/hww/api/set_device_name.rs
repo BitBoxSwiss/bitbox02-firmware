@@ -28,14 +28,14 @@ pub async fn process(
 
     let params = confirm::Params {
         title: "Name",
-        body: &name,
+        body: name,
         scrollable: true,
         ..Default::default()
     };
 
     confirm::confirm(&params).await?;
 
-    bitbox02::memory::set_device_name(&name)?;
+    bitbox02::memory::set_device_name(name)?;
 
     Ok(Response::Success(pb::Success {}))
 }

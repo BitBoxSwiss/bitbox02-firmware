@@ -128,8 +128,8 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/
 RUN rustup target add thumbv7em-none-eabi
 RUN rustup component add rustfmt
 RUN rustup component add clippy
-RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.13.1
-RUN CARGO_HOME=/opt/cargo cargo install bindgen --version 0.53.2
+RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.20.0
+RUN CARGO_HOME=/opt/cargo cargo install bindgen --version 0.59.1
 
 # Clean temporary files to reduce image size
 RUN rm -rf /var/lib/apt/lists/*

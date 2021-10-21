@@ -144,11 +144,11 @@ impl<'a> TrinaryInputStringParams<'a> {
             title: title_scratch.as_ptr(),
             wordlist: match self.wordlist {
                 None => core::ptr::null(),
-                Some(ref wordlist) => wordlist.as_ptr(),
+                Some(wordlist) => wordlist.as_ptr(),
             },
             wordlist_size: match self.wordlist {
                 None => 0,
-                Some(ref wordlist) => wordlist.len() as _,
+                Some(wordlist) => wordlist.len() as _,
             },
             hide: self.hide,
             special_chars: self.special_chars,

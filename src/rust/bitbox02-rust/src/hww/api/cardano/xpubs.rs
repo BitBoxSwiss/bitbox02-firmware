@@ -28,9 +28,9 @@ use super::keypath::validate_account_shelley;
 pub fn process(request: &pb::CardanoXpubsRequest) -> Result<Response, Error> {
     let mut xpubs: Vec<Vec<u8>> = Vec::with_capacity(request.keypaths.len());
     for pb::Keypath { keypath } in &request.keypaths {
-        validate_account_shelley(&keypath)?;
+        validate_account_shelley(keypath)?;
 
-        let xpub = crate::keystore::ed25519::get_xpub(&keypath)?;
+        let xpub = crate::keystore::ed25519::get_xpub(keypath)?;
         let mut xpub_bytes = Vec::with_capacity(64);
         xpub_bytes.extend_from_slice(xpub.pubkey_bytes());
         xpub_bytes.extend_from_slice(xpub.chain_code());

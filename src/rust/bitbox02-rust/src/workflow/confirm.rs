@@ -23,7 +23,7 @@ pub async fn confirm(params: &Params<'_>) -> Result<(), UserAbort> {
     let result = core::cell::RefCell::new(None as Option<Result<(), UserAbort>>);
 
     // The component will set the result when the user accepted/rejected.
-    let mut component = bitbox02::ui::confirm_create(&params, |accepted| {
+    let mut component = bitbox02::ui::confirm_create(params, |accepted| {
         *result.borrow_mut() = if accepted {
             Some(Ok(()))
         } else {

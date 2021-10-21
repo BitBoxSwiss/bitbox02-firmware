@@ -194,7 +194,7 @@ impl<R: Random32> State<R> {
                 pairing_verification_required: false,
                 receive,
                 ..
-            } => match receive.decrypt_vec(&msg) {
+            } => match receive.decrypt_vec(msg) {
                 Ok(r) => Ok(r),
                 Err(()) => Err(Error::Noise),
             },
@@ -221,7 +221,7 @@ impl<R: Random32> State<R> {
                 // Make space for result.
                 out.resize(start + encrypted_len, 0);
                 // This also adds the MAC.
-                send.encrypt(&msg, &mut out[start..]);
+                send.encrypt(msg, &mut out[start..]);
                 Ok(())
             }
             _ => Err(Error::WrongState),

@@ -32,7 +32,7 @@ pub async fn process(
         return Err(Error::InvalidInput);
     }
     let password = password::enter_twice().await?;
-    if !bitbox02::keystore::create_and_store_seed(&password, &entropy) {
+    if !bitbox02::keystore::create_and_store_seed(&password, entropy) {
         return Err(Error::Generic);
     }
     if bitbox02::keystore::unlock(&password).is_err() {

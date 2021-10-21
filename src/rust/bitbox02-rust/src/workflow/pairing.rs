@@ -23,7 +23,7 @@ pub async fn confirm(hash: &[u8; 32]) -> Result<(), UserAbort> {
     let encoded = binascii::b32encode(&hash[..], &mut encoded).unwrap();
 
     // Base32 contains only utf-8 valid chars. unwrap is safe
-    let encoded = core::str::from_utf8(&encoded).expect("invalid utf-8");
+    let encoded = core::str::from_utf8(encoded).expect("invalid utf-8");
     let mut formatted = ArrayString::<[_; 23]>::new();
 
     write!(

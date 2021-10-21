@@ -116,8 +116,6 @@ ENV PATH $GOROOT/bin:$GOPATH/bin:$PATH
 RUN mkdir -p /opt/go_dist && \
     curl https://dl.google.com/go/go1.14.4.linux-amd64.tar.gz | tar -xz -C /opt/go_dist
 
-RUN go get -v -u github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc
-
 # Install lcov from release (the one from the repos is too old).
 RUN cd /opt && wget https://github.com/linux-test-project/lcov/releases/download/v1.14/lcov-1.14.tar.gz && tar -xf lcov-1.14.tar.gz
 ENV PATH /opt/lcov-1.14/bin:$PATH

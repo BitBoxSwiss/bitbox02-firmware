@@ -306,6 +306,14 @@ add_custom_target(rust-bindgen
   )
 add_dependencies(rust-bindgen generate-protobufs)
 
+# A custom target to export the list of includes for rust tooling (RA, clippy)
+add_custom_command(OUTPUT rust-bindgen.flags
+  COMMAND
+    ${CMAKE_COMMAND} -E echo ${RUST_INCLUDES} > rust-bindgen.flags
+)
+add_custom_target(rust-bindgen-includes DEPENDS rust-bindgen.flags)
+add_dependencies(rust-bindgen-includes generate-protobufs)
+
 
 # Test rust crates that contain business logic. Avoid testing crates that depend on hardware.
 if(NOT CMAKE_CROSSCOMPILING)

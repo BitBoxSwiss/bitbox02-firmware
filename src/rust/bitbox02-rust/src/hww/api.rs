@@ -162,6 +162,8 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
                 .await
                 .map(|r| Response::Cardano(pb::CardanoResponse { response: Some(r) })),
         ),
+        #[cfg(not(feature = "app-cardano"))]
+        Request::Cardano(_) => Some(Err(Error::Disabled)),
         _ => None,
     }
 }

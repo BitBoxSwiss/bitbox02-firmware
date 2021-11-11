@@ -12,18 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use clap::Clap;
-
-#[derive(Clap)]
 struct Opts {
-    #[clap(long)]
     messages_dir: String,
-    #[clap(long)]
     out_dir: String,
 }
 
+fn parse_args() -> Result<Opts, lexopt::Error> {
+    use lexopt::prelude::*;
+
+    let mut messages_dir = String::new();
+    let mut out_dir = String::new();
+
+    let mut parser = lexopt::Parser::from_env();
+    while let Some(arg) = parser.next()? {
+        match arg {
+            Long("messages-dir") => messages_dir = parser.value()?.into_string()?,
+            Long("out-dir") => out_dir = parser.value()?.into_string()?,
+            Short('h') | Long("help") => {
+                println!("Usage: prost-build --messages-dir <messages-dir> --out-dir <out-dir>");
+                std::process::exit(0);
+            },
+            _ => return Err(arg.unexpected())
+        }
+    }
+    Ok(Opts {messages_dir, out_dir})
+}
+
 fn main() {
-    let opts: Opts = Opts::parse();
+    let opts = parse_args().unwrap();
     let mut config = prost_build::Config::new();
     config.out_dir(opts.out_dir);
     config

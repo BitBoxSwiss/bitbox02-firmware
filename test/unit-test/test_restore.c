@@ -216,79 +216,6 @@ static void test_restore_from_buffer(void** state)
 }
 
 /**
- * Test list backups for a single seed.
- * We do another backup at a later point, but always expect exactly one item in the list
- * (corresponding to one seed).
- */
-static void test_restore_list_backups_single_seed(void** state)
-{
-    ListBackupsResponse list_backups_response;
-    assert_int_equal(restore_list_backups(&list_backups_response), RESTORE_OK);
-    assert_int_equal(list_backups_response.info_count, 1);
-    assert_string_equal(list_backups_response.info[0].id, _dir_name);
-    assert_int_equal(list_backups_response.info[0].timestamp, _current_timestamp);
-    assert_memory_equal(list_backups_response.info[0].name, DEVICE_NAME, sizeof(DEVICE_NAME));
-
-    _will_mock_backup_queries(_mock_seed_birthdate, _mock_seed);
-
-    // now let's make another backup
-    const uint32_t newer_timestamp = _current_timestamp + 2 + 24 * 60 * 60 * 1000;
-    assert_int_equal(backup_create(newer_timestamp, _mock_seed_birthdate), BACKUP_OK);
-
-    assert_int_equal(restore_list_backups(&list_backups_response), RESTORE_OK);
-    assert_int_equal(list_backups_response.info_count, 1);
-    assert_string_equal(list_backups_response.info[0].id, _dir_name);
-    assert_int_equal(list_backups_response.info[0].timestamp, newer_timestamp);
-    assert_memory_equal(list_backups_response.info[0].name, DEVICE_NAME, sizeof(DEVICE_NAME));
-}
-
-/**
- * Test list backups for multiple seeds.
- */
-static void test_restore_list_backups_multiple_seeds(void** state)
-{
-    ListBackupsResponse list_backups_response = {0};
-    assert_int_equal(restore_list_backups(&list_backups_response), RESTORE_OK);
-    assert_int_equal(list_backups_response.info_count, 1);
-    assert_string_equal(list_backups_response.info[0].id, _dir_name);
-    assert_int_equal(list_backups_response.info[0].timestamp, _current_timestamp);
-    assert_memory_equal(list_backups_response.info[0].name, DEVICE_NAME, sizeof(DEVICE_NAME));
-
-    const uint32_t new_seed_birthdate = _mock_seed_birthdate + 24 * 60 * 60 * 1000;
-    const uint8_t new_seed[32] = {16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
-                                  0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15};
-
-    _will_mock_backup_queries(new_seed_birthdate, new_seed);
-
-    // now let's make another backup
-    const uint32_t newer_timestamp = _current_timestamp + 2 + 24 * 60 * 60 * 1000;
-    assert_int_equal(backup_create(newer_timestamp, _mock_seed_birthdate), BACKUP_OK);
-
-    assert_int_equal(restore_list_backups(&list_backups_response), RESTORE_OK);
-    assert_int_equal(list_backups_response.info_count, 2);
-
-    // based on new_seed
-    const char* new_dir_name = "76fd7d926f970a55c1997dfe9c804e5c42f3dcd456f0096be6814b12d0da7c0a";
-
-    int old_index, new_index;
-    if (list_backups_response.info[0].timestamp == _current_timestamp) {
-        old_index = 0;
-        new_index = 1;
-    } else {
-        old_index = 1;
-        new_index = 0;
-    }
-    assert_string_equal(list_backups_response.info[old_index].id, _dir_name);
-    assert_int_equal(list_backups_response.info[old_index].timestamp, _current_timestamp);
-    assert_memory_equal(
-        list_backups_response.info[old_index].name, DEVICE_NAME, sizeof(DEVICE_NAME));
-    assert_string_equal(list_backups_response.info[new_index].id, new_dir_name);
-    assert_int_equal(list_backups_response.info[new_index].timestamp, newer_timestamp);
-    assert_memory_equal(
-        list_backups_response.info[new_index].name, DEVICE_NAME, sizeof(DEVICE_NAME));
-}
-
-/**
  * Test restore from directory.
  */
 static void test_restore_good_backup_from_directory(void** state)
@@ -387,10 +314,6 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_restore_from_buffer, test_setup, test_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_restore_list_backups_single_seed, test_setup, test_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_restore_list_backups_multiple_seeds, test_setup, test_teardown),
         cmocka_unit_test_setup_teardown(
             test_restore_good_backup_from_directory, test_setup, test_teardown),
         cmocka_unit_test_setup_teardown(

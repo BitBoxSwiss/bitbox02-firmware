@@ -7,6 +7,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- ListBackups: ported to Rust
+
+### 9.8.0 [released 2021-10-21]
 - Multi edition: add Cardano support.
 - Allow recovery words that convert to a zero seed, such as the 12 words `abandon abandon .... about`.
 - RestoreBackup: ported to Rust. Will now return UserAbortError on user abort instead of GenericError.

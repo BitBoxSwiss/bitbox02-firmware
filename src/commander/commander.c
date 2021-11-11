@@ -29,8 +29,6 @@
 #include <util.h>
 #include <version.h>
 
-#include <workflow/restore.h>
-
 #include "hww.pb.h"
 
 #include <apps/btc/btc.h>
@@ -49,16 +47,6 @@ static void _report_error(Response* response, commander_error_t error_code)
     error->code = _error_code[error_code];
     snprintf(error->message, sizeof(error->message), "%s", _error_message[error_code]);
     response->which_response = Response_error_tag;
-}
-
-// ------------------------------------ API ------------------------------------- //
-
-static commander_error_t _api_list_backups(ListBackupsResponse* response)
-{
-    if (!workflow_list_backups(response)) {
-        return COMMANDER_ERR_GENERIC;
-    }
-    return COMMANDER_OK;
 }
 
 // ------------------------------------ Process ------------------------------------- //
@@ -85,11 +73,9 @@ static commander_error_t _api_process(const Request* request, Response* response
     case Request_btc_sign_init_tag:
     case Request_btc_sign_input_tag:
     case Request_btc_sign_output_tag:
+        (void)response;
         return COMMANDER_ERR_DISABLED;
 #endif
-    case Request_list_backups_tag:
-        response->which_response = Response_list_backups_tag;
-        return _api_list_backups(&(response->response.list_backups));
     default:
         screen_print_debug("command unknown", 1000);
         return COMMANDER_ERR_INVALID_INPUT;

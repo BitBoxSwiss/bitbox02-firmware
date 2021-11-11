@@ -15,6 +15,8 @@
 use super::Error;
 use crate::pb;
 
+use alloc::vec::Vec;
+
 use pb::response::Response;
 
 use crate::workflow::{confirm, status, unlock};
@@ -138,13 +140,31 @@ pub async fn create(
     }
 }
 
+pub fn list() -> Result<Response, Error> {
+    let mut info: Vec<pb::BackupInfo> = Vec::new();
+    for dir in bitbox02::sd::list_subdir(None)? {
+        let data = match bitbox02::backup::restore_from_directory(&dir) {
+            Ok(data) => data,
+            Err(_) => continue,
+        };
+        info.push(pb::BackupInfo {
+            id: dir,
+            timestamp: data.timestamp,
+            name: data.name,
+        })
+    }
+    Ok(Response::ListBackups(pb::ListBackupsResponse { info }))
+}
+
 #[cfg(test)]
 mod tests {
     extern crate std;
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, mock_memory, mock_sd, mock_unlocked, Data, MUTEX};
+    use bitbox02::testing::{
+        mock, mock_memory, mock_sd, mock_unlocked, mock_unlocked_using_mnemonic, Data, MUTEX,
+    };
     use std::boxed::Box;
 
     /// Test backup creation on a uninitialized keystore.
@@ -173,5 +193,85 @@ mod tests {
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(EXPECTED_TIMESTMAP, bitbox02::memory::get_seed_birthdate());
+    }
+
+    #[test]
+    pub fn test_list() {
+        let _guard = MUTEX.lock().unwrap();
+        const EXPECTED_TIMESTMAP: u32 = 1601281809;
+
+        const DEVICE_NAME_1: &str = "test device name";
+        const DEVICE_NAME_2: &str = "another test device name";
+
+        mock_sd();
+
+        // No backups yet.
+        assert_eq!(
+            list(),
+            Ok(Response::ListBackups(pb::ListBackupsResponse {
+                info: vec![]
+            }))
+        );
+
+        // Create one backup.
+        mock(Data {
+            sdcard_inserted: Some(true),
+            ui_confirm_create: Some(Box::new(|_params| true)),
+            ..Default::default()
+        });
+        mock_unlocked_using_mnemonic("purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay");
+        mock_memory();
+        bitbox02::memory::set_device_name(DEVICE_NAME_1).unwrap();
+        assert!(block_on(create(&pb::CreateBackupRequest {
+            timestamp: EXPECTED_TIMESTMAP,
+            timezone_offset: 18000,
+        }))
+        .is_ok());
+
+        assert_eq!(
+            list(),
+            Ok(Response::ListBackups(pb::ListBackupsResponse {
+                info: vec![pb::BackupInfo {
+                    id: "41233dfbad010723dbbb93514b7b81016b73f8aa35c5148e1b478f60d5750dce".into(),
+                    timestamp: EXPECTED_TIMESTMAP,
+                    name: DEVICE_NAME_1.into(),
+                }]
+            }))
+        );
+
+        // Create another backup.
+        mock(Data {
+            sdcard_inserted: Some(true),
+            ui_confirm_create: Some(Box::new(|_params| true)),
+            ..Default::default()
+        });
+        mock_unlocked_using_mnemonic("goddess item rack improve shaft occur actress rib emerge salad rich blame model glare lounge stable electric height scrub scrub oyster now dinner oven");
+        mock_memory();
+        bitbox02::memory::set_device_name(DEVICE_NAME_2).unwrap();
+        assert!(block_on(create(&pb::CreateBackupRequest {
+            timestamp: EXPECTED_TIMESTMAP,
+            timezone_offset: 18000,
+        }))
+        .is_ok());
+
+        assert_eq!(
+            list(),
+            Ok(Response::ListBackups(pb::ListBackupsResponse {
+                info: vec![
+                    pb::BackupInfo {
+                        id: "41233dfbad010723dbbb93514b7b81016b73f8aa35c5148e1b478f60d5750dce"
+                            .into(),
+                        timestamp: EXPECTED_TIMESTMAP,
+                        name: DEVICE_NAME_1.into(),
+                    },
+                    pb::BackupInfo {
+                        id: "4c7005846ffc09f31850201a6fdfff084191164eb318db2c6fe5a39df4a97ba0"
+                            .into(),
+                        timestamp: EXPECTED_TIMESTMAP,
+                        name: DEVICE_NAME_2.into(),
+                    }
+                ]
+            }))
+        )
     }
 }

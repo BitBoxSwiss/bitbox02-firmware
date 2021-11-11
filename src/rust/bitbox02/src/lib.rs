@@ -40,6 +40,7 @@ pub mod input;
 pub mod keystore;
 pub mod memory;
 pub mod random;
+pub mod sd;
 pub mod securechip;
 pub mod ui;
 

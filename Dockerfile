@@ -129,5 +129,8 @@ RUN rustup component add clippy
 RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.20.0
 RUN CARGO_HOME=/opt/cargo cargo install bindgen --version 0.59.1
 
+COPY tools/prost-build prost-build
+RUN CARGO_HOME=/opt/cargo cargo install --path prost-build --locked
+
 # Clean temporary files to reduce image size
 RUN rm -rf /var/lib/apt/lists/*

@@ -42,6 +42,8 @@ foreach(i ${PROTO_FILES})
   endif()
 endforeach()
 
+find_program(PROST_BUILD prost-build)
+
 add_custom_command(
   OUTPUT ${OUTPUT_SOURCES} ${OUTPUT_HEADERS}
   DEPENDS ${PROTO_FILES} ${PROTO_OPTION_FILES}
@@ -56,8 +58,7 @@ add_custom_command(
   # Using prost-build the normal way as part of build.rs does not work due to a cargo bug:
   # https://github.com/danburkert/prost/issues/344#issuecomment-650721245
   COMMAND
-  ${CMAKE_COMMAND} -E env
-    cargo run --manifest-path=${CMAKE_SOURCE_DIR}/tools/prost-build/Cargo.toml -- --messages-dir=${CMAKE_CURRENT_SOURCE_DIR} --out-dir=${CMAKE_SOURCE_DIR}/src/rust/bitbox02-rust/src/
+    ${PROST_BUILD} --messages-dir=${CMAKE_CURRENT_SOURCE_DIR} --out-dir=${CMAKE_SOURCE_DIR}/src/rust/bitbox02-rust/src/
 )
 
 add_custom_target(

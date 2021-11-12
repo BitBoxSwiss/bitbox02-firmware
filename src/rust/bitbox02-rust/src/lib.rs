@@ -18,7 +18,7 @@
 #![cfg_attr(test, allow(unused_imports, dead_code))]
 
 mod pb {
-    include!("./shiftcrypto.bitbox02.rs");
+    include!(concat!(env!("OUT_DIR"), "/shiftcrypto.bitbox02.rs"));
 }
 
 #[macro_use]

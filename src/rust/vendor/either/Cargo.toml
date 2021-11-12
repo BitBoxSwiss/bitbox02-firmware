@@ -12,7 +12,7 @@
 
 [package]
 name = "either"
-version = "1.5.3"
+version = "1.6.1"
 authors = ["bluss"]
 description = "The enum `Either` with variants `Left` and `Right` is a general purpose sum type with two cases.\n"
 documentation = "https://docs.rs/either/1/"
@@ -31,6 +31,8 @@ tag-name = "{{version}}"
 version = "1.0"
 features = ["derive"]
 optional = true
+[dev-dependencies.serde_json]
+version = "1.0.0"
 
 [features]
 default = ["use_std"]

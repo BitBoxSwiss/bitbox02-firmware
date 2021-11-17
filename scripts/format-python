@@ -19,4 +19,4 @@ if [ $# -eq 0 ] ; then
 	ARGS=($(find py -name '*.py' | grep -v -e generated -e old))
 fi
 
-${BLACK} "${ARGS[@]}"
+LC_ALL=C.UTF-8 ${BLACK} "${ARGS[@]}"

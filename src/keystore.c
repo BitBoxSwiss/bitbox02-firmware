@@ -608,7 +608,7 @@ bool keystore_secp256k1_nonce_commit(
     }
     secp256k1_context* ctx = wally_get_secp_context();
     secp256k1_ecdsa_s2c_opening signer_commitment;
-    if (!secp256k1_ecdsa_anti_klepto_signer_commit(
+    if (!secp256k1_ecdsa_anti_exfil_signer_commit(
             ctx,
             &signer_commitment,
             msg32,
@@ -640,7 +640,7 @@ bool keystore_secp256k1_sign(
     }
     secp256k1_context* ctx = wally_get_secp_context();
     secp256k1_ecdsa_signature secp256k1_sig = {0};
-    if (!secp256k1_anti_klepto_sign(
+    if (!secp256k1_anti_exfil_sign(
             ctx,
             &secp256k1_sig,
             msg32,

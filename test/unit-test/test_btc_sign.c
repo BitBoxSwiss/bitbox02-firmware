@@ -1147,7 +1147,7 @@ static void _sign(const _modification_t* mod)
 
         inputs[1].input.has_host_nonce_commitment = true;
         // Make host commitment from host_nonce.
-        assert_true(secp256k1_ecdsa_anti_klepto_host_commit(
+        assert_true(secp256k1_ecdsa_anti_exfil_host_commit(
             wally_get_secp_context(),
             inputs[1].input.host_nonce_commitment.commitment,
             host_nonce));
@@ -1184,7 +1184,7 @@ static void _sign(const _modification_t* mod)
             secp256k1_ecdsa_s2c_opening opening;
             assert_true(secp256k1_ecdsa_s2c_opening_parse(
                 wally_get_secp_context(), &opening, next.anti_klepto_signer_commitment.commitment));
-            assert_true(secp256k1_anti_klepto_host_verify(
+            assert_true(secp256k1_anti_exfil_host_verify(
                 wally_get_secp_context(),
                 &parsed_signature,
                 expected_sighash,

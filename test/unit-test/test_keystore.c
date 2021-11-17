@@ -102,7 +102,7 @@ static uint8_t _expected_secret[32] = {
     0x12, 0x12, 0x40, 0x37, 0x7a, 0x79, 0x97, 0x55, 0xd7, 0xcc, 0xe9, 0x26, 0x1e, 0x16, 0x91, 0x71,
 };
 
-int __real_secp256k1_anti_klepto_sign(
+int __real_secp256k1_anti_exfil_sign(
     const secp256k1_context* ctx,
     secp256k1_ecdsa_signature* sig,
     const unsigned char* msg32,
@@ -112,7 +112,7 @@ int __real_secp256k1_anti_klepto_sign(
 
 static const unsigned char* _sign_expected_msg = NULL;
 static const unsigned char* _sign_expected_seckey = NULL;
-int __wrap_secp256k1_anti_klepto_sign(
+int __wrap_secp256k1_anti_exfil_sign(
     const secp256k1_context* ctx,
     secp256k1_ecdsa_signature* sig,
     const unsigned char* msg32,
@@ -128,7 +128,7 @@ int __wrap_secp256k1_anti_klepto_sign(
         assert_memory_equal(_sign_expected_seckey, seckey, 32);
         _sign_expected_seckey = NULL;
     }
-    return __real_secp256k1_anti_klepto_sign(ctx, sig, msg32, seckey, host_data32, recid);
+    return __real_secp256k1_anti_exfil_sign(ctx, sig, msg32, seckey, host_data32, recid);
 }
 
 bool __wrap_salt_hash_data(

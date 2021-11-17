@@ -364,7 +364,7 @@ class BTCSignOutputRequest(google.protobuf.message.Message):
     OURS_FIELD_NUMBER: builtins.int
     TYPE_FIELD_NUMBER: builtins.int
     VALUE_FIELD_NUMBER: builtins.int
-    HASH_FIELD_NUMBER: builtins.int
+    PAYLOAD_FIELD_NUMBER: builtins.int
     KEYPATH_FIELD_NUMBER: builtins.int
     SCRIPT_CONFIG_INDEX_FIELD_NUMBER: builtins.int
     ours: builtins.bool = ...
@@ -374,8 +374,8 @@ class BTCSignOutputRequest(google.protobuf.message.Message):
     value: builtins.int = ...
     """20 bytes for p2pkh, p2sh, pw2wpkh. 32 bytes for p2wsh."""
 
-    hash: builtins.bytes = ...
-    """if ours is false"""
+    payload: builtins.bytes = ...
+    """if ours is false. Renamed from `hash`."""
 
     @property
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]:
@@ -389,11 +389,11 @@ class BTCSignOutputRequest(google.protobuf.message.Message):
         ours : builtins.bool = ...,
         type : global___BTCOutputType.V = ...,
         value : builtins.int = ...,
-        hash : builtins.bytes = ...,
+        payload : builtins.bytes = ...,
         keypath : typing.Optional[typing.Iterable[builtins.int]] = ...,
         script_config_index : builtins.int = ...,
         ) -> None: ...
-    def ClearField(self, field_name: typing_extensions.Literal["hash",b"hash","keypath",b"keypath","ours",b"ours","script_config_index",b"script_config_index","type",b"type","value",b"value"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["keypath",b"keypath","ours",b"ours","payload",b"payload","script_config_index",b"script_config_index","type",b"type","value",b"value"]) -> None: ...
 global___BTCSignOutputRequest = BTCSignOutputRequest
 
 class BTCScriptConfigRegistration(google.protobuf.message.Message):

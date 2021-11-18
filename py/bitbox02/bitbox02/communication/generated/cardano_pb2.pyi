@@ -3,7 +3,7 @@
 isort:skip_file
 """
 import builtins
-import common_pb2
+from . import common_pb2
 import google.protobuf.descriptor
 import google.protobuf.internal.containers
 import google.protobuf.internal.enum_type_wrapper

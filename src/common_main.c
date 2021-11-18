@@ -60,6 +60,7 @@ static void _wally_patched_bzero(void* ptr, size_t len)
 static bool _setup_wally(void)
 {
     static struct wally_operations _ops = {0};
+    _ops.struct_size = sizeof(struct wally_operations);
     if (wally_get_operations(&_ops) != WALLY_OK) {
         return false;
     }

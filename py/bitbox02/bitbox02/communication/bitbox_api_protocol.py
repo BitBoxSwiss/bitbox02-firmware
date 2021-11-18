@@ -641,7 +641,7 @@ class BitBoxCommonAPI:
         return response
 
     def reboot(
-        self, purpose: system.RebootRequest.Purpose = system.RebootRequest.Purpose.UPGRADE
+        self, purpose: "system.RebootRequest.Purpose.V" = system.RebootRequest.Purpose.UPGRADE
     ) -> bool:
         """
         Sends the reboot request. If the user confirms the request on the device, the device reboots

@@ -300,7 +300,7 @@ class SendMessage:
         print("m/84'/0'/0'/0/0 address: ", address(False))
         address(True)
 
-    def _btc_multisig_config(self, coin: bitbox02.btc.BTCCoin) -> bitbox02.btc.BTCScriptConfig:
+    def _btc_multisig_config(self, coin: "bitbox02.btc.BTCCoin.V") -> bitbox02.btc.BTCScriptConfig:
         """
         Get a mock multisig 1-of-2 multisig with the current device and some other arbitrary xpub.
         Registers it on the device if not already registered.

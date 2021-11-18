@@ -34,7 +34,7 @@ class TooManyFoundException(Exception):
 
 class NoneFoundException(Exception):
     def __init__(self) -> None:
-        super().__init__(f"Found 0 devices")
+        super().__init__("Found 0 devices")
 
 
 class DeviceInfo(TypedDict):

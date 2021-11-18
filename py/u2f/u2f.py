@@ -143,7 +143,7 @@ class APDU:
         self._apdubytes.extend(data)
 
     def __bytes__(self) -> bytes:
-        return self._apdubytes
+        return bytes(self._apdubytes)
 
 
 class RegistrationResponse:

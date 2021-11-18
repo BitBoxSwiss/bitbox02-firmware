@@ -1,12 +1,11 @@
 """Helpers for doing U2F with bitbox02"""
 
 from typing import Tuple
-import binascii
 import struct
 
 from bitbox02 import communication
 from bitbox02.communication import Bitbox02Exception
-
+from bitbox02.communication import u2fhid
 from bitbox02.communication.devices import get_device, BITBOX02MULTI, DeviceInfo
 from . import u2f
 
@@ -32,11 +31,11 @@ class BitBox02U2F:
         Sends msg bytes and retrieves response bytes.
         """
         if self.debug:
-            print(f"msg: {msg}, cid: {cid}, cmd: {cmd}")
+            print(f"msg: {repr(msg)}, cid: {repr(cid)}, cmd: {repr(cmd)}")
         self._transport.write(msg, cmd, cid)
         response_bytes = self._transport.read(cmd, cid)
         if self.debug:
-            print(f"response {len(response_bytes)}: {binascii.hexlify(bytes(response_bytes))}")
+            print(f"response {len(response_bytes)}: {repr(bytes(response_bytes).hex())}")
         return bytes(response_bytes)
 
     @staticmethod
@@ -61,20 +60,20 @@ class BitBox02U2F:
         nonce = bytes([1, 2, 3, 4, 5, 6, 7, 8])
         cid = self._cid
         if allocate:
-            cid = communication.u2fhid.CID_BROADCAST
-        response_bytes = self._query(cid, communication.u2fhid.INIT, nonce)
+            cid = u2fhid.CID_BROADCAST
+        response_bytes = self._query(cid, u2fhid.INIT, nonce)
         init_response = self._parse_u2f_init_response(response_bytes)
         self._cid = init_response.cid
 
     def u2fhid_ping(self, msg: bytes) -> bytes:
-        return self._query(self._cid, communication.u2fhid.PING, msg)
+        return self._query(self._cid, u2fhid.PING, msg)
 
     def u2fhid_wink(self) -> bool:
-        _response_bytes = self._query(self._cid, communication.u2fhid.WINK, bytes("", "utf-8"))
+        _response_bytes = self._query(self._cid, u2fhid.WINK, bytes("", "utf-8"))
         return True
 
     def u2fhid_msg(self, msg: bytes) -> bytes:
-        return self._query(self._cid, communication.u2fhid.MSG, msg)
+        return self._query(self._cid, u2fhid.MSG, msg)
 
     def u2f_register(self, appid: str) -> Tuple[bytes, bytes]:
         self.u2fhid_init(True)

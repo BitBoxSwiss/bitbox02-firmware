@@ -127,6 +127,9 @@ class BitBox02(BitBoxCommonAPI):
     # pylint: disable=too-many-public-methods
 
     def device_info(self) -> Dict[str, Any]:
+        """
+        Returns an object with device information, e.g. name, passphrase status, etc.
+        """
         # pylint: disable=no-member
         request = hww.Request()
         device_info_request = bitbox02_system.DeviceInfoRequest()
@@ -389,7 +392,7 @@ class BitBox02(BitBoxCommonAPI):
         Returns: list of (input index, signature) tuples.
         Raises Bitbox02Exception with ERR_USER_ABORT on user abort.
         """
-        # pylint: disable=no-member,too-many-locals,too-many-branches,too-many-statements
+        # pylint: disable=no-member,too-many-branches,too-many-statements
 
         # Reserved for future use.
         assert version in (1, 2)
@@ -552,7 +555,7 @@ class BitBox02(BitBoxCommonAPI):
         Returns a 64 byte sig, the recoverable id, and a 65 byte signature containing
         the recid, compatible with Electrum.
         """
-        # pylint: disable=no-member,line-too-long
+        # pylint: disable=no-member
 
         self._require_atleast(semver.VersionInfo(9, 2, 0))
 
@@ -583,7 +586,7 @@ class BitBox02(BitBoxCommonAPI):
             antiklepto_verify(host_nonce, signer_commitment, signature[:64])
 
             if self.debug:
-                print(f"Antiklepto nonce verification PASSED")
+                print("Antiklepto nonce verification PASSED")
 
         else:
             signature = self._btc_msg_query(
@@ -750,7 +753,7 @@ class BitBox02(BitBoxCommonAPI):
             antiklepto_verify(host_nonce, signer_commitment, signature[:64])
 
             if self.debug:
-                print(f"Antiklepto nonce verification PASSED")
+                print("Antiklepto nonce verification PASSED")
 
             return signature
 
@@ -767,9 +770,9 @@ class BitBox02(BitBoxCommonAPI):
         def format_as_uncompressed(sig: bytes) -> bytes:
             # 27 is the magic constant to add to the recoverable ID to denote an uncompressed
             # pubkey.
-            s = list(sig)
-            s[64] += 27
-            return bytes(s)
+            modified_signature = list(sig)
+            modified_signature[64] += 27
+            return bytes(modified_signature)
 
         request = eth.ETHRequest()
         # pylint: disable=no-member
@@ -793,7 +796,7 @@ class BitBox02(BitBoxCommonAPI):
             antiklepto_verify(host_nonce, signer_commitment, signature[:64])
 
             if self.debug:
-                print(f"Antiklepto nonce verification PASSED")
+                print("Antiklepto nonce verification PASSED")
 
             return format_as_uncompressed(signature)
 

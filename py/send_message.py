@@ -25,9 +25,9 @@ import base64
 import binascii
 import textwrap
 
-import requests
+import requests # type: ignore
 import hid
-from tzlocal import get_localzone
+from tzlocal import get_localzone # type: ignore
 
 from bitbox02 import util
 from bitbox02 import bitbox02
@@ -680,7 +680,7 @@ class SendMessage:
         else:
             msg_bytes = msg.replace(r"\n", "\n").encode("utf-8")
         msg_hex = binascii.hexlify(msg_bytes).decode("utf-8")
-        print(f"signing\nbytes: {msg_bytes}\nhex: 0x{msg_hex}")
+        print(f"signing\nbytes: {repr(msg_bytes)}\nhex: 0x{msg_hex}")
         sig = self._device.eth_sign_msg(
             msg=msg_bytes, keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0]
         )

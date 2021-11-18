@@ -356,7 +356,7 @@ class BitBoxProtocol(ABC):
                     return True
                 if device_response == RESPONSE_FAILURE:
                     return False
-                raise Exception(f"Unexpected pairing response: f{device_response}")
+                raise Exception(f"Unexpected pairing response: f{repr(device_response)}")
 
             client_response_success = noise_config.show_pairing(
                 "{} {}\n{} {}".format(
@@ -427,7 +427,7 @@ class BitBoxProtocolV2(BitBoxProtocolV1):
     def unlock_query(self) -> None:
         unlock_data = self._raw_query(OP_UNLOCK)
         if len(unlock_data) != 0:
-            raise ValueError(f"OP_UNLOCK (V2) replied with wrong length.")
+            raise ValueError("OP_UNLOCK (V2) replied with wrong length.")
 
 
 class BitBoxProtocolV3(BitBoxProtocolV2):
@@ -436,7 +436,7 @@ class BitBoxProtocolV3(BitBoxProtocolV2):
     def unlock_query(self) -> None:
         unlock_result, unlock_data = self.query(OP_UNLOCK, b"")
         if len(unlock_data) != 0:
-            raise ValueError(f"OP_UNLOCK (V3) replied with wrong length.")
+            raise ValueError("OP_UNLOCK (V3) replied with wrong length.")
         if unlock_result == RESPONSE_FAILURE:
             self.close()
             raise Exception("Unlock process aborted")
@@ -504,7 +504,7 @@ class BitBoxProtocolV7(BitBoxProtocolV4):
             if status not in [HwwResponseCode.RSP_NOT_READY, HwwResponseCode.RSP_ACK]:
                 # We should never receive a NACK unless some internal error occurs.
                 raise Exception(
-                    "Unexpected response from HWW stack during retry ({}).".format(status)
+                    "Unexpected response from HWW stack during retry ({}).".format(repr(status))
                 )
         return payload
 

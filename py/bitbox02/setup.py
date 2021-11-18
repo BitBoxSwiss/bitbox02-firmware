@@ -21,7 +21,7 @@ import setuptools
 def read(*path: str) -> str:
     cwd = os.path.dirname(os.path.realpath(__file__))
     filename = os.path.join(cwd, *path)
-    with open(filename, "r") as filereader:
+    with open(filename, "r", encoding="utf8") as filereader:
         return filereader.read()
 
 

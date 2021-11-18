@@ -124,13 +124,14 @@ USE_RESULT bool btc_common_address_from_payload(
     size_t out_len);
 
 /**
- * Computes the pkScript from a pubkey or script hash depending on the output
+ * Computes the pkScript from a pubkey hash or script hash or pubkey, depending on the output
  * type.
  * @param[in] output_type type of pkScript.
- * @param[in] payload pubkey hash or script hash.
+ * @param[in] payload pubkey hash or script hash or pubkey.
  * @param[inout] pk_script_len: size of pk_script IN, size of the resulting pk_script OUT.
  */
 USE_RESULT bool btc_common_pkscript_from_payload(
+    const app_btc_coin_params_t* params,
     BTCOutputType output_type,
     const uint8_t* payload,
     size_t payload_size,

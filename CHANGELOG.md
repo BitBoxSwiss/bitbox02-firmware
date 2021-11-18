@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Support sending to taproot addresses
 - ListBackups: ported to Rust
 - Cardano: allow transactions with a zero TTL value
 - Protobuf: rename BTCSignOutputRequest.hash to BTCSignOutputRequest.payload

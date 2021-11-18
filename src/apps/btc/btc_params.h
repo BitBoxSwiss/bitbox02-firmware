@@ -27,6 +27,7 @@ typedef struct {
     // unit to use in formatted amounts, e.g. "BTC".
     const char* unit;
     bool rbf_support;
+    bool taproot_support;
 } app_btc_coin_params_t;
 
 /**

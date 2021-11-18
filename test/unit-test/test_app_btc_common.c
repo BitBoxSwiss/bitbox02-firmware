@@ -20,6 +20,7 @@
 #include <btc_util.h>
 
 #include <apps/btc/btc_common.h>
+#include <apps/btc/btc_params.h>
 #include <keystore.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -45,6 +46,46 @@ typedef struct {
     uint32_t keypath_address;
     const char* expected_script_hex;
 } test_case_redeemscript_multisig_p2wsh;
+
+static void _test_btc_common_address_from_payload(void** state)
+{
+    const app_btc_coin_params_t* params_btc = app_btc_params_get(BTCCoin_BTC);
+    const app_btc_coin_params_t* params_ltc = app_btc_params_get(BTCCoin_LTC);
+    char addr[100] = {0};
+
+    // Taproot addresses, test vectors from
+    // https://github.com/bitcoin/bips/blob/fb5bd37d0cdec14b47c45fda7aba4f7e8f801690/bip-0086.mediawiki#Test_vectors
+    { // First receiving address
+        const uint8_t payload[32] =
+            "\xa6\x08\x69\xf0\xdb\xcf\x1d\xc6\x59\xc9\xce\xcb\xaf\x80\x50\x13\x5e\xa9\xe8\xcd\xc4"
+            "\x87\x05\x3f\x1d\xc6\x88\x09\x49\xdc\x68\x4c";
+        assert_false(btc_common_address_from_payload(
+            params_ltc, BTCOutputType_P2TR, payload, sizeof(payload), addr, sizeof(addr)));
+        assert_true(btc_common_address_from_payload(
+            params_btc, BTCOutputType_P2TR, payload, sizeof(payload), addr, sizeof(addr)));
+        assert_string_equal(addr, "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr");
+    }
+    { // Second receiving address
+        const uint8_t payload[32] =
+            "\xa8\x2f\x29\x94\x4d\x65\xb8\x6a\xe6\xb5\xe5\xcc\x75\xe2\x94\xea\xd6\xc5\x93\x91\xa1"
+            "\xed\xc5\xe0\x16\xe3\x49\x8c\x67\xfc\x7b\xbb";
+        assert_false(btc_common_address_from_payload(
+            params_ltc, BTCOutputType_P2TR, payload, sizeof(payload), addr, sizeof(addr)));
+        assert_true(btc_common_address_from_payload(
+            params_btc, BTCOutputType_P2TR, payload, sizeof(payload), addr, sizeof(addr)));
+        assert_string_equal(addr, "bc1p4qhjn9zdvkux4e44uhx8tc55attvtyu358kutcqkudyccelu0was9fqzwh");
+    }
+    { // First change address
+        const uint8_t payload[32] =
+            "\x88\x2d\x74\xe5\xd0\x57\x2d\x5a\x81\x6c\xef\x00\x41\xa9\x6b\x6c\x1d\xe8\x32\xf6\xf9"
+            "\x67\x6d\x96\x05\xc4\x4d\x5e\x9a\x97\xd3\xdc";
+        assert_false(btc_common_address_from_payload(
+            params_ltc, BTCOutputType_P2TR, payload, sizeof(payload), addr, sizeof(addr)));
+        assert_true(btc_common_address_from_payload(
+            params_btc, BTCOutputType_P2TR, payload, sizeof(payload), addr, sizeof(addr)));
+        assert_string_equal(addr, "bc1p3qkhfews2uk44qtvauqyr2ttdsw7svhkl9nkm9s9c3x4ax5h60wqwruhk7");
+    }
+}
 
 static void _test_btc_common_pkscript_from_multisig(void** state)
 {
@@ -571,6 +612,7 @@ print(hashlib.sha256(b''.join(msg)).hexdigest())
 int main(void)
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test(_test_btc_common_address_from_payload),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig_unhappy),
         cmocka_unit_test(_test_btc_common_multisig_is_valid),

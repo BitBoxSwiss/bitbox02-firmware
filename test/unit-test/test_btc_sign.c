@@ -330,6 +330,8 @@ typedef struct {
     bool invalid_change_script_config_index;
     // exercise the antiklepto protocol
     bool antikepto;
+    // make one output a P2TR output to exercise P2TR address generation and sighash.
+    bool p2tr_output;
 } _modification_t;
 
 typedef struct {
@@ -776,6 +778,15 @@ static void _sign(const _modification_t* mod)
         outputs[4].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
         outputs[5].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
     }
+    if (mod->p2tr_output) {
+        outputs[0].type = BTCOutputType_P2TR;
+        outputs[0].payload.size = 32;
+        memcpy(
+            outputs[0].payload.bytes,
+            "\xa6\x08\x69\xf0\xdb\xcf\x1d\xc6\x59\xc9\xce\xcb\xaf\x80\x50\x13\x5e\xa9\xe8\xcd\xc4"
+            "\x87\x05\x3f\x1d\xc6\x88\x09\x49\xdc\x68\x4c",
+            32);
+    }
 
     BTCSignNextResponse next = {0};
     assert_int_equal(APP_BTC_OK, app_btc_sign_init(&init_req, &next));
@@ -873,8 +884,15 @@ static void _sign(const _modification_t* mod)
     }
     will_return(__wrap_rust_bitcoin_util_format_amount, "amount0");
     if (!mod->litecoin_rbf_disabled) {
-        expect_string(
-            __wrap_workflow_verify_recipient, recipient, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
+        if (mod->p2tr_output) {
+            expect_string(
+                __wrap_workflow_verify_recipient,
+                recipient,
+                "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr");
+        } else {
+            expect_string(
+                __wrap_workflow_verify_recipient, recipient, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
+        }
     } else {
         expect_string(
             __wrap_workflow_verify_recipient, recipient, "LLnCCHbSzfwWquEdaS5TF2Yt7uz5Qb1SZ1");
@@ -1104,12 +1122,21 @@ static void _sign(const _modification_t* mod)
     if (mod->check_sigs) {
         switch (mod->script_type) {
         case BTCScriptConfig_SimpleType_P2WPKH: {
-            const uint8_t expected_signature[64] =
-                "\x64\xbd\xe8\xf2\xa1\xbf\xaf\x54\x0a\x76\x01\x76\x89\xe9\x51\xa2\xf7\xa5\x7d\x8a"
-                "\xa7\xd7\x52\xb7\xd8\x82\xc9\x78\x48\x79\xa4\x3c\x7f\x48\xe5\x67\xf2\xbd\x3b\xea"
-                "\x6b\xf3\x1c\xa9\x9b\xa9\x97\x7c\x0e\x72\xbe\xc0\xe3\x43\x24\x18\x22\xe6\xc9\xd8"
-                "\xaf\x52\x17\xc8";
-            assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+            if (mod->p2tr_output) {
+                const uint8_t expected_signature[64] =
+                    "\x48\x21\x2e\x9e\xd9\xc3\xb5\x3a\xaa\xe9\xba\x0d\xf8\x74\xd8\xcd\x7c\x2c\x0c"
+                    "\x1f\xc0\xcd\x59\xdb\x40\xef\x41\xd8\xe8\x86\xe5\xcb\x10\x25\xb7\xf5\x92\x95"
+                    "\x84\x34\x2b\xc1\x2f\xb6\x31\xc2\xee\xe7\xf5\x58\x09\x22\x15\x2e\x3d\x18\x43"
+                    "\x9e\x64\x01\x93\xdb\x3e\x2e";
+                assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+            } else {
+                const uint8_t expected_signature[64] =
+                    "\x64\xbd\xe8\xf2\xa1\xbf\xaf\x54\x0a\x76\x01\x76\x89\xe9\x51\xa2\xf7\xa5\x7d"
+                    "\x8a\xa7\xd7\x52\xb7\xd8\x82\xc9\x78\x48\x79\xa4\x3c\x7f\x48\xe5\x67\xf2\xbd"
+                    "\x3b\xea\x6b\xf3\x1c\xa9\x9b\xa9\x97\x7c\x0e\x72\xbe\xc0\xe3\x43\x24\x18\x22"
+                    "\xe6\xc9\xd8\xaf\x52\x17\xc8";
+                assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+            }
             break;
         }
         case BTCScriptConfig_SimpleType_P2WPKH_P2SH: {
@@ -1199,26 +1226,29 @@ static void _sign(const _modification_t* mod)
         if (mod->check_sigs) {
             switch (mod->script_type) {
             case BTCScriptConfig_SimpleType_P2WPKH: {
-                const uint8_t expected_signature[64] =
-                    "\x3f\x1b\xa2\xd9\x74\x14\x98\xcc\xa5\xe4\xb0\x52\xb4\xdf\xaf\xc2\x8d\x49\x46"
-                    "\x9e"
-                    "\xae\x6e\x64\x3c\x02\xa4\x44\xfb\x20\xf2\xb2\x0e\x2e\xef\xd3\x12\x48\xb3\xa9"
-                    "\xde"
-                    "\x3c\x28\x26\x49\x06\xfa\x90\x1c\xfa\xc1\xa8\xcb\x54\x71\xaa\x86\xfc\xcc\x6e"
-                    "\x24"
-                    "\xdb\x53\xc1\x00";
-                assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+                if (mod->p2tr_output) {
+                    const uint8_t expected_signature[64] =
+                        "\x2d\x1c\x2b\x99\x13\x4d\x0b\xe5\x39\x2a\x57\x3b\x78\x46\xbc\x87\x53\x62"
+                        "\x96\x9e\x0b\xf8\x30\x8c\x6c\x2e\x9a\xc6\xce\x76\xa5\xcb\x31\xaf\xc0\x40"
+                        "\xef\xe7\x3e\x6b\x75\x7f\x34\x12\x70\x96\xa0\x5d\x0e\x1c\x0c\x9c\xdd\x4a"
+                        "\xa7\xce\x4b\xba\xd5\x10\x64\x1b\x39\xcb";
+                    assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+                } else {
+                    const uint8_t expected_signature[64] =
+                        "\x3f\x1b\xa2\xd9\x74\x14\x98\xcc\xa5\xe4\xb0\x52\xb4\xdf\xaf\xc2\x8d\x49"
+                        "\x46\x9e\xae\x6e\x64\x3c\x02\xa4\x44\xfb\x20\xf2\xb2\x0e\x2e\xef\xd3\x12"
+                        "\x48\xb3\xa9\xde\x3c\x28\x26\x49\x06\xfa\x90\x1c\xfa\xc1\xa8\xcb\x54\x71"
+                        "\xaa\x86\xfc\xcc\x6e\x24\xdb\x53\xc1\x00";
+                    assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+                }
                 break;
             }
             case BTCScriptConfig_SimpleType_P2WPKH_P2SH: {
                 const uint8_t expected_signature[64] =
                     "\x13\x51\xc4\x46\x15\xae\x0a\x2d\x04\x94\xbf\x9c\xa7\xe8\xe5\x70\xff\x11\x7a"
-                    "\x92"
-                    "\x22\x8f\x3c\x4b\xa3\x85\x80\x02\xb9\x4e\x0a\x97\x75\x83\x61\xd5\x26\x3b\x26"
-                    "\x09"
-                    "\x0c\x5b\x00\x42\x1a\xd5\x78\xc8\xb0\xa0\xd8\x9e\x59\x57\xf4\x31\x79\xe0\x79"
-                    "\x07"
-                    "\xef\xce\x1f\xc9";
+                    "\x92\x22\x8f\x3c\x4b\xa3\x85\x80\x02\xb9\x4e\x0a\x97\x75\x83\x61\xd5\x26\x3b"
+                    "\x26\x09\x0c\x5b\x00\x42\x1a\xd5\x78\xc8\xb0\xa0\xd8\x9e\x59\x57\xf4\x31\x79"
+                    "\xe0\x79\x07\xef\xce\x1f\xc9";
                 assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
                 break;
             }
@@ -1452,7 +1482,13 @@ static void _test_antiklepto(void** state)
     valid.antikepto = true;
     _sign(&valid);
 }
-
+static void _test_p2tr_output(void** state)
+{
+    _modification_t invalid = _valid;
+    invalid.p2tr_output = true;
+    invalid.check_sigs = true;
+    _sign(&invalid);
+}
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -1493,6 +1529,7 @@ int main(void)
         cmocka_unit_test(_test_invalid_input_script_config_index),
         cmocka_unit_test(_test_invalid_change_script_config_index),
         cmocka_unit_test(_test_antiklepto),
+        cmocka_unit_test(_test_p2tr_output),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

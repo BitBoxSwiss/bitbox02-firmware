@@ -885,7 +885,12 @@ app_btc_result_t app_btc_sign_output(
         uint8_t pk_script[MAX_PK_SCRIPT_SIZE] = {0};
         size_t pk_script_len = sizeof(pk_script);
         if (!btc_common_pkscript_from_payload(
-                output_type, payload_bytes, payload_size, pk_script, &pk_script_len)) {
+                _coin_params,
+                output_type,
+                payload_bytes,
+                payload_size,
+                pk_script,
+                &pk_script_len)) {
             return _error(APP_BTC_ERR_INVALID_INPUT);
         }
 

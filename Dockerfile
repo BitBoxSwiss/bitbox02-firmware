@@ -83,14 +83,12 @@ RUN python3 -m pip install --upgrade --requirement /tmp/requirements.txt
 RUN rm /tmp/requirements.txt
 
 # Python modules for CI
-# TODO: This emits a warning about astroid that is safe to ignore?
-#       https://github.com/PyCQA/astroid/issues/699
 RUN python3 -m pip install --upgrade \
-    pylint==2.4.1 \
-    pylint-protobuf==0.11 \
-    black==19.3b0 \
-    mypy==0.720 \
-    mypy-protobuf==1.13
+    pylint==2.11.1 \
+    pylint-protobuf==0.20.2 \
+    black==21.11b1 \
+    mypy==0.910 \
+    mypy-protobuf==3.0.0
 
 # Python modules for packaging
 RUN python3 -m pip install --upgrade \

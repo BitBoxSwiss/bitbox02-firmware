@@ -116,7 +116,7 @@ static void _test_keystore_antiklepto(void** state)
         // Anti-Klepto Protocol".
 
         // Protocol step 1.
-        assert_true(secp256k1_ecdsa_anti_klepto_host_commit(
+        assert_true(secp256k1_ecdsa_anti_exfil_host_commit(
             wally_get_secp_context(), host_nonce_commitment, host_nonce));
 
         { // Commit - protocol step 2.
@@ -178,7 +178,7 @@ static void _test_keystore_antiklepto(void** state)
         secp256k1_ecdsa_s2c_opening opening;
         assert_true(secp256k1_ecdsa_s2c_opening_parse(
             wally_get_secp_context(), &opening, signer_commitment));
-        assert_true(secp256k1_anti_klepto_host_verify(
+        assert_true(secp256k1_anti_exfil_host_verify(
             wally_get_secp_context(),
             &parsed_signature,
             msg,

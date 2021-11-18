@@ -228,7 +228,7 @@ set(TEST_LIST
    cleanup
    "-Wl,--wrap=util_cleanup_32"
    keystore
-   "-Wl,--wrap=secp256k1_anti_klepto_sign,--wrap=memory_is_initialized,--wrap=memory_is_seeded,--wrap=memory_get_failed_unlock_attempts,--wrap=memory_reset_failed_unlock_attempts,--wrap=memory_increment_failed_unlock_attempts,--wrap=memory_set_encrypted_seed_and_hmac,--wrap=memory_get_encrypted_seed_and_hmac,--wrap=reset_reset,--wrap=salt_hash_data,--wrap=cipher_aes_hmac_encrypt,--wrap=random_32_bytes"
+   "-Wl,--wrap=secp256k1_anti_exfil_sign,--wrap=memory_is_initialized,--wrap=memory_is_seeded,--wrap=memory_get_failed_unlock_attempts,--wrap=memory_reset_failed_unlock_attempts,--wrap=memory_increment_failed_unlock_attempts,--wrap=memory_set_encrypted_seed_and_hmac,--wrap=memory_get_encrypted_seed_and_hmac,--wrap=reset_reset,--wrap=salt_hash_data,--wrap=cipher_aes_hmac_encrypt,--wrap=random_32_bytes"
    keystore_antiklepto
    "-Wl,--wrap=keystore_secp256k1_nonce_commit,--wrap=keystore_secp256k1_sign"
    keystore_functional

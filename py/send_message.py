@@ -25,9 +25,9 @@ import base64
 import binascii
 import textwrap
 
-import requests # type: ignore
+import requests  # type: ignore
 import hid
-from tzlocal import get_localzone # type: ignore
+from tzlocal import get_localzone  # type: ignore
 
 from bitbox02 import util
 from bitbox02 import bitbox02
@@ -75,7 +75,7 @@ def ask_user(
 
 
 def _btc_demo_inputs_outputs(
-    bip44_account: int
+    bip44_account: int,
 ) -> Tuple[List[bitbox02.BTCInputType], List[bitbox02.BTCOutputType]]:
     """
     Returns a sample btc tx.
@@ -101,7 +101,12 @@ def _btc_demo_inputs_outputs(
                         "sequence": 0xFFFFFFFF,
                     }
                 ],
-                "outputs": [{"value": int(1e8 * 0.60005), "pubkey_script": b"some pubkey script"}],
+                "outputs": [
+                    {
+                        "value": int(1e8 * 0.60005),
+                        "pubkey_script": b"some pubkey script",
+                    }
+                ],
             },
         },
         {
@@ -124,7 +129,12 @@ def _btc_demo_inputs_outputs(
                         "sequence": 0xFFFFFFFF,
                     }
                 ],
-                "outputs": [{"value": int(1e8 * 0.60005), "pubkey_script": b"some pubkey script"}],
+                "outputs": [
+                    {
+                        "value": int(1e8 * 0.60005),
+                        "pubkey_script": b"some pubkey script",
+                    }
+                ],
             },
         },
     ]
@@ -349,7 +359,14 @@ class SendMessage:
             print(
                 self._device.btc_address(
                     coin=coin,
-                    keypath=[48 + HARDENED, 0 + HARDENED, 0 + HARDENED, 2 + HARDENED, 1, 2],
+                    keypath=[
+                        48 + HARDENED,
+                        0 + HARDENED,
+                        0 + HARDENED,
+                        2 + HARDENED,
+                        1,
+                        2,
+                    ],
                     script_config=self._btc_multisig_config(coin),
                     display=True,
                 )
@@ -505,7 +522,7 @@ class SendMessage:
         )
 
     def _sign_btc_tx(self) -> None:
-        """ btc signing demos """
+        """btc signing demos"""
         choices = (
             ("Normal tx", self._sign_btc_normal),
             ("Multiple change outputs", self._sign_btc_multiple_changes),
@@ -585,11 +602,19 @@ class SendMessage:
         enabled = self._device.device_info()["mnemonic_passphrase_enabled"]
         try:
             if enabled:
-                if input("Mnemonic passprase enabled, disable? Y/n: ") not in ("", "Y", "y"):
+                if input("Mnemonic passprase enabled, disable? Y/n: ") not in (
+                    "",
+                    "Y",
+                    "y",
+                ):
                     return
                 self._device.disable_mnemonic_passphrase()
             else:
-                if input("Mnemonic passprase disabled, enable? Y/n: ") not in ("", "Y", "y"):
+                if input("Mnemonic passprase disabled, enable? Y/n: ") not in (
+                    "",
+                    "Y",
+                    "y",
+                ):
                     return
                 self._device.enable_mnemonic_passphrase()
             enabled = not enabled
@@ -822,7 +847,8 @@ class SendMessage:
                     ttl=41788708,
                     withdrawals=[
                         bitbox02.cardano.CardanoSignTransactionRequest.Withdrawal(
-                            keypath=[2147485500, 2147485463, 2147483648, 2, 0], value=1234567
+                            keypath=[2147485500, 2147485463, 2147483648, 2, 0],
+                            value=1234567,
                         )
                     ],
                 )

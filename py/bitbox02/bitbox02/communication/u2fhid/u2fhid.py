@@ -43,7 +43,7 @@ CID_BROADCAST = 0xFFFFFFFF
 
 
 class U2FHid(TransportLayer):
-    """ U2F-over-HID transport layer.  """
+    """U2F-over-HID transport layer."""
 
     def __init__(self, device: PhysicalLayer):
         self._device = device

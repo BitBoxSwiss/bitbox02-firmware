@@ -165,13 +165,13 @@ MIN_UNSUPPORTED_BITBOX02_BTCONLY_FIRMWARE_VERSION = semver.VersionInfo(10, 0, 0)
 
 
 class Platform(enum.Enum):
-    """ Available hardware platforms """
+    """Available hardware platforms"""
 
     BITBOX02 = "bitbox02"
 
 
 class BitBox02Edition(enum.Enum):
-    """ Editions for the BitBox02 platform """
+    """Editions for the BitBox02 platform"""
 
     MULTI = "multi"
     BTCONLY = "btconly"
@@ -223,7 +223,7 @@ class UnsupportedException(Exception):
 
 
 class BitBoxNoiseConfig:
-    """ Stores Functions required setup a noise connection """
+    """Stores Functions required setup a noise connection"""
 
     # pylint: disable=no-self-use,unused-argument
     def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
@@ -278,12 +278,12 @@ class BitBoxProtocol(ABC):
 
     @abstractmethod
     def _encode_noise_request(self, encrypted_msg: bytes) -> bytes:
-        """ Encapsulates an OP_NOISE_MSG message. """
+        """Encapsulates an OP_NOISE_MSG message."""
         ...
 
     @abstractmethod
     def _decode_noise_response(self, encrypted_msg: bytes) -> Tuple[bytes, bytes]:
-        """ De-encapsulate an OP_NOISE_MSG response. """
+        """De-encapsulate an OP_NOISE_MSG response."""
         ...
 
     @abstractmethod
@@ -391,7 +391,7 @@ class BitBoxProtocol(ABC):
 
 
 class BitBoxProtocolV1(BitBoxProtocol):
-    """ BitBox Protocol from firmware V1.0.0 onwards. """
+    """BitBox Protocol from firmware V1.0.0 onwards."""
 
     def unlock_query(self) -> None:
         raise NotImplementedError("unlock_query is not supported in BitBox protocol V1")
@@ -422,7 +422,7 @@ class BitBoxProtocolV1(BitBoxProtocol):
 
 
 class BitBoxProtocolV2(BitBoxProtocolV1):
-    """ BitBox Protocol from firmware V2.0.0 onwards. """
+    """BitBox Protocol from firmware V2.0.0 onwards."""
 
     def unlock_query(self) -> None:
         unlock_data = self._raw_query(OP_UNLOCK)
@@ -431,7 +431,7 @@ class BitBoxProtocolV2(BitBoxProtocolV1):
 
 
 class BitBoxProtocolV3(BitBoxProtocolV2):
-    """ BitBox Protocol from firmware V3.0.0 onwards. """
+    """BitBox Protocol from firmware V3.0.0 onwards."""
 
     def unlock_query(self) -> None:
         unlock_result, unlock_data = self.query(OP_UNLOCK, b"")
@@ -443,14 +443,14 @@ class BitBoxProtocolV3(BitBoxProtocolV2):
 
 
 class BitBoxProtocolV4(BitBoxProtocolV3):
-    """ BitBox Protocol from firmware V4.0.0 onwards. """
+    """BitBox Protocol from firmware V4.0.0 onwards."""
 
     def _encode_noise_request(self, encrypted_msg: bytes) -> bytes:
         return OP_NOISE_MSG + encrypted_msg
 
 
 class BitBoxProtocolV7(BitBoxProtocolV4):
-    """ Noise Protocol from firmware V7.0.0 onwards. """
+    """Noise Protocol from firmware V7.0.0 onwards."""
 
     def __init__(self, transport: TransportLayer):
         super().__init__(transport)

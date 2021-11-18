@@ -434,8 +434,8 @@ class BitBox02(BitBoxCommonAPI):
                 )
                 if supports_antiklepto and is_inputs_pass2:
                     host_nonce = os.urandom(32)
-                    request.btc_sign_input.host_nonce_commitment.commitment = antiklepto_host_commit(
-                        host_nonce
+                    request.btc_sign_input.host_nonce_commitment.commitment = (
+                        antiklepto_host_commit(host_nonce)
                     )
 
                 next_response = self._msg_query(

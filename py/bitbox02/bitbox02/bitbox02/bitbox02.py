@@ -112,7 +112,7 @@ class BTCOutputInternal:
 class BTCOutputExternal:
     # TODO: Use NamedTuple, but not playing well with protobuf types.
 
-    def __init__(self, output_type: btc.BTCOutputType, output_hash: bytes, value: int):
+    def __init__(self, output_type: "btc.BTCOutputType.V", output_hash: bytes, value: int):
         self.type = output_type
         self.hash = output_hash
         self.value = value
@@ -127,6 +127,9 @@ class BitBox02(BitBoxCommonAPI):
     # pylint: disable=too-many-public-methods
 
     def device_info(self) -> Dict[str, Any]:
+        """
+        Returns an object with device information, e.g. name, passphrase status, etc.
+        """
         # pylint: disable=no-member
         request = hww.Request()
         device_info_request = bitbox02_system.DeviceInfoRequest()
@@ -263,8 +266,8 @@ class BitBox02(BitBoxCommonAPI):
     def btc_xpub(
         self,
         keypath: Sequence[int],
-        coin: btc.BTCCoin = btc.BTC,
-        xpub_type: btc.BTCPubRequest.XPubType = btc.BTCPubRequest.XPUB,
+        coin: "btc.BTCCoin.V" = btc.BTC,
+        xpub_type: "btc.BTCPubRequest.XPubType.V" = btc.BTCPubRequest.XPUB,
         display: bool = True,
     ) -> str:
         """
@@ -281,7 +284,7 @@ class BitBox02(BitBoxCommonAPI):
     def btc_address(
         self,
         keypath: Sequence[int],
-        coin: btc.BTCCoin = btc.BTC,
+        coin: "btc.BTCCoin.V" = btc.BTC,
         script_config: btc.BTCScriptConfig = btc.BTCScriptConfig(
             simple_type=btc.BTCScriptConfig.P2WPKH
         ),
@@ -301,7 +304,7 @@ class BitBox02(BitBoxCommonAPI):
         return self._msg_query(request).pub.pub
 
     def btc_is_script_config_registered(
-        self, coin: btc.BTCCoin, script_config: btc.BTCScriptConfig, keypath: Sequence[int]
+        self, coin: "btc.BTCCoin.V", script_config: btc.BTCScriptConfig, keypath: Sequence[int]
     ) -> bool:
         """
         Returns True if the script config / account is already registered.
@@ -321,11 +324,11 @@ class BitBox02(BitBoxCommonAPI):
 
     def btc_register_script_config(
         self,
-        coin: btc.BTCCoin,
+        coin: "btc.BTCCoin.V",
         script_config: btc.BTCScriptConfig,
         keypath: Sequence[int],
         name: str,
-        xpub_type: btc.BTCRegisterScriptConfigRequest.XPubType = btc.BTCRegisterScriptConfigRequest.XPubType.AUTO_ELECTRUM,
+        xpub_type: "btc.BTCRegisterScriptConfigRequest.XPubType.V" = btc.BTCRegisterScriptConfigRequest.XPubType.AUTO_ELECTRUM,
     ) -> None:
         """
         Raises Bitbox02Exception with ERR_USER_ABORT on user abort.
@@ -363,7 +366,7 @@ class BitBox02(BitBoxCommonAPI):
     # pylint: disable=too-many-arguments
     def btc_sign(
         self,
-        coin: btc.BTCCoin,
+        coin: "btc.BTCCoin.V",
         script_configs: Sequence[btc.BTCScriptConfigWithKeypath],
         inputs: Sequence[BTCInputType],
         outputs: Sequence[BTCOutputType],
@@ -389,7 +392,7 @@ class BitBox02(BitBoxCommonAPI):
         Returns: list of (input index, signature) tuples.
         Raises Bitbox02Exception with ERR_USER_ABORT on user abort.
         """
-        # pylint: disable=no-member,too-many-locals,too-many-branches,too-many-statements
+        # pylint: disable=no-member,too-many-branches,too-many-statements
 
         # Reserved for future use.
         assert version in (1, 2)
@@ -431,8 +434,8 @@ class BitBox02(BitBoxCommonAPI):
                 )
                 if supports_antiklepto and is_inputs_pass2:
                     host_nonce = os.urandom(32)
-                    request.btc_sign_input.host_nonce_commitment.commitment = antiklepto_host_commit(
-                        host_nonce
+                    request.btc_sign_input.host_nonce_commitment.commitment = (
+                        antiklepto_host_commit(host_nonce)
                     )
 
                 next_response = self._msg_query(
@@ -546,13 +549,13 @@ class BitBox02(BitBoxCommonAPI):
         return sigs
 
     def btc_sign_msg(
-        self, coin: btc.BTCCoin, script_config: btc.BTCScriptConfigWithKeypath, msg: bytes
+        self, coin: "btc.BTCCoin.V", script_config: btc.BTCScriptConfigWithKeypath, msg: bytes
     ) -> Tuple[bytes, int, bytes]:
         """
         Returns a 64 byte sig, the recoverable id, and a 65 byte signature containing
         the recid, compatible with Electrum.
         """
-        # pylint: disable=no-member,line-too-long
+        # pylint: disable=no-member
 
         self._require_atleast(semver.VersionInfo(9, 2, 0))
 
@@ -583,7 +586,7 @@ class BitBox02(BitBoxCommonAPI):
             antiklepto_verify(host_nonce, signer_commitment, signature[:64])
 
             if self.debug:
-                print(f"Antiklepto nonce verification PASSED")
+                print("Antiklepto nonce verification PASSED")
 
         else:
             signature = self._btc_msg_query(
@@ -688,8 +691,8 @@ class BitBox02(BitBoxCommonAPI):
     def eth_pub(
         self,
         keypath: Sequence[int],
-        coin: eth.ETHCoin = eth.ETH,
-        output_type: eth.ETHPubRequest.OutputType = eth.ETHPubRequest.ADDRESS,
+        coin: "eth.ETHCoin.V" = eth.ETH,
+        output_type: "eth.ETHPubRequest.OutputType.V" = eth.ETHPubRequest.ADDRESS,
         display: bool = True,
         contract_address: bytes = b"",
     ) -> str:
@@ -711,7 +714,7 @@ class BitBox02(BitBoxCommonAPI):
         return self._eth_msg_query(request, expected_response="pub").pub.pub
 
     def eth_sign(
-        self, transaction: bytes, keypath: Sequence[int], coin: eth.ETHCoin = eth.ETH
+        self, transaction: bytes, keypath: Sequence[int], coin: "eth.ETHCoin.V" = eth.ETH
     ) -> bytes:
         """
         transaction should be given as a full rlp encoded eth transaction.
@@ -750,14 +753,14 @@ class BitBox02(BitBoxCommonAPI):
             antiklepto_verify(host_nonce, signer_commitment, signature[:64])
 
             if self.debug:
-                print(f"Antiklepto nonce verification PASSED")
+                print("Antiklepto nonce verification PASSED")
 
             return signature
 
         return self._eth_msg_query(request, expected_response="sign").sign.signature
 
     def eth_sign_msg(
-        self, msg: bytes, keypath: Sequence[int], coin: eth.ETHCoin = eth.ETH
+        self, msg: bytes, keypath: Sequence[int], coin: "eth.ETHCoin.V" = eth.ETH
     ) -> bytes:
         """
         Signs message, the msg will be prefixed with "\x19Ethereum message\n" + len(msg) in the
@@ -767,9 +770,9 @@ class BitBox02(BitBoxCommonAPI):
         def format_as_uncompressed(sig: bytes) -> bytes:
             # 27 is the magic constant to add to the recoverable ID to denote an uncompressed
             # pubkey.
-            s = list(sig)
-            s[64] += 27
-            return bytes(s)
+            modified_signature = list(sig)
+            modified_signature[64] += 27
+            return bytes(modified_signature)
 
         request = eth.ETHRequest()
         # pylint: disable=no-member
@@ -793,7 +796,7 @@ class BitBox02(BitBoxCommonAPI):
             antiklepto_verify(host_nonce, signer_commitment, signature[:64])
 
             if self.debug:
-                print(f"Antiklepto nonce verification PASSED")
+                print("Antiklepto nonce verification PASSED")
 
             return format_as_uncompressed(signature)
 

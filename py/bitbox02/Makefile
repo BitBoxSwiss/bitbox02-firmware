@@ -36,7 +36,7 @@ ${TMP_TARGETS}: ${PY_PROTO}
 	touch ${@D}/__init__.py
 # The hack below is due to protobuf-python generating absolute paths (which are frowned upon) instead of relative paths.
 # https://github.com/protocolbuffers/protobuf/issues/1491
-	sed -i 's/^from \([^.]*_pb2\)/from .\1/g'  ${OUT_DIR}/*.pyi
+	sed -i 's/^import \([^.]*_pb2\)/from . import \1/g'  ${OUT_DIR}/*.pyi
 	sed -i 's/^import \([^.]*_pb2\) as \([^.]*__pb2\)/from . import \1 as \2/g' ${OUT_DIR}/*.py
 
 release-test: all

@@ -28,7 +28,7 @@ class TransportLayer(Protocol):
 
     # pylint: disable=unused-argument,no-self-use
     def write(self, data: bytes, endpoint: int, cid: int) -> None:
-        """ Sends a frame of data to the specified endpoint """
+        """Sends a frame of data to the specified endpoint"""
         ...
 
     def read(self, endpoint: int, cid: int) -> bytes:

@@ -165,13 +165,13 @@ MIN_UNSUPPORTED_BITBOX02_BTCONLY_FIRMWARE_VERSION = semver.VersionInfo(10, 0, 0)
 
 
 class Platform(enum.Enum):
-    """ Available hardware platforms """
+    """Available hardware platforms"""
 
     BITBOX02 = "bitbox02"
 
 
 class BitBox02Edition(enum.Enum):
-    """ Editions for the BitBox02 platform """
+    """Editions for the BitBox02 platform"""
 
     MULTI = "multi"
     BTCONLY = "btconly"
@@ -223,7 +223,7 @@ class UnsupportedException(Exception):
 
 
 class BitBoxNoiseConfig:
-    """ Stores Functions required setup a noise connection """
+    """Stores Functions required setup a noise connection"""
 
     # pylint: disable=no-self-use,unused-argument
     def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
@@ -278,12 +278,12 @@ class BitBoxProtocol(ABC):
 
     @abstractmethod
     def _encode_noise_request(self, encrypted_msg: bytes) -> bytes:
-        """ Encapsulates an OP_NOISE_MSG message. """
+        """Encapsulates an OP_NOISE_MSG message."""
         ...
 
     @abstractmethod
     def _decode_noise_response(self, encrypted_msg: bytes) -> Tuple[bytes, bytes]:
-        """ De-encapsulate an OP_NOISE_MSG response. """
+        """De-encapsulate an OP_NOISE_MSG response."""
         ...
 
     @abstractmethod
@@ -356,7 +356,7 @@ class BitBoxProtocol(ABC):
                     return True
                 if device_response == RESPONSE_FAILURE:
                     return False
-                raise Exception(f"Unexpected pairing response: f{device_response}")
+                raise Exception(f"Unexpected pairing response: f{repr(device_response)}")
 
             client_response_success = noise_config.show_pairing(
                 "{} {}\n{} {}".format(
@@ -391,7 +391,7 @@ class BitBoxProtocol(ABC):
 
 
 class BitBoxProtocolV1(BitBoxProtocol):
-    """ BitBox Protocol from firmware V1.0.0 onwards. """
+    """BitBox Protocol from firmware V1.0.0 onwards."""
 
     def unlock_query(self) -> None:
         raise NotImplementedError("unlock_query is not supported in BitBox protocol V1")
@@ -422,35 +422,35 @@ class BitBoxProtocolV1(BitBoxProtocol):
 
 
 class BitBoxProtocolV2(BitBoxProtocolV1):
-    """ BitBox Protocol from firmware V2.0.0 onwards. """
+    """BitBox Protocol from firmware V2.0.0 onwards."""
 
     def unlock_query(self) -> None:
         unlock_data = self._raw_query(OP_UNLOCK)
         if len(unlock_data) != 0:
-            raise ValueError(f"OP_UNLOCK (V2) replied with wrong length.")
+            raise ValueError("OP_UNLOCK (V2) replied with wrong length.")
 
 
 class BitBoxProtocolV3(BitBoxProtocolV2):
-    """ BitBox Protocol from firmware V3.0.0 onwards. """
+    """BitBox Protocol from firmware V3.0.0 onwards."""
 
     def unlock_query(self) -> None:
         unlock_result, unlock_data = self.query(OP_UNLOCK, b"")
         if len(unlock_data) != 0:
-            raise ValueError(f"OP_UNLOCK (V3) replied with wrong length.")
+            raise ValueError("OP_UNLOCK (V3) replied with wrong length.")
         if unlock_result == RESPONSE_FAILURE:
             self.close()
             raise Exception("Unlock process aborted")
 
 
 class BitBoxProtocolV4(BitBoxProtocolV3):
-    """ BitBox Protocol from firmware V4.0.0 onwards. """
+    """BitBox Protocol from firmware V4.0.0 onwards."""
 
     def _encode_noise_request(self, encrypted_msg: bytes) -> bytes:
         return OP_NOISE_MSG + encrypted_msg
 
 
 class BitBoxProtocolV7(BitBoxProtocolV4):
-    """ Noise Protocol from firmware V7.0.0 onwards. """
+    """Noise Protocol from firmware V7.0.0 onwards."""
 
     def __init__(self, transport: TransportLayer):
         super().__init__(transport)
@@ -504,7 +504,7 @@ class BitBoxProtocolV7(BitBoxProtocolV4):
             if status not in [HwwResponseCode.RSP_NOT_READY, HwwResponseCode.RSP_ACK]:
                 # We should never receive a NACK unless some internal error occurs.
                 raise Exception(
-                    "Unexpected response from HWW stack during retry ({}).".format(status)
+                    "Unexpected response from HWW stack during retry ({}).".format(repr(status))
                 )
         return payload
 
@@ -641,7 +641,7 @@ class BitBoxCommonAPI:
         return response
 
     def reboot(
-        self, purpose: system.RebootRequest.Purpose = system.RebootRequest.Purpose.UPGRADE
+        self, purpose: "system.RebootRequest.Purpose.V" = system.RebootRequest.Purpose.UPGRADE
     ) -> bool:
         """
         Sends the reboot request. If the user confirms the request on the device, the device reboots

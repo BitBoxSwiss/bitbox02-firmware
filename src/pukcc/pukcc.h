@@ -39,16 +39,6 @@ typedef struct {
     uint8_t test_signature[PUKCC_ECC_PARAM_LEN * 2];
 } PUKCC_CURVE_256_X;
 
-#if 0
-uint8_t pukcc_ecdsa_sign(
-        const uint8_t *private_key,
-        const uint8_t *message,
-        uint32_t message_len,
-        uint8_t *signature,
-        PUKCC_CURVE_256_X curve
-        );
-#endif
-
 uint8_t pukcc_ecdsa_verify(
     const uint8_t* public_key,
     const uint8_t* signature,
@@ -57,11 +47,5 @@ uint8_t pukcc_ecdsa_verify(
     PUKCC_CURVE_256_X curve);
 
 int32_t pukcc_sha256_compute(const uint8_t* message, uint32_t message_len, uint8_t* hash);
-
-#if 0
-void pukcc_example_test(
-        PUKCC_CURVE_256_X curve
-        );
-#endif
 
 #endif

@@ -64,8 +64,6 @@ void util_uint8_to_hex(const uint8_t* in_bin, size_t in_len, char* out);
 
 #define BB_HEX_SIZE(in_bin) (sizeof((in_bin)) * 2 + 1)
 
-void util_reverse_bin(uint8_t* b, int len);
-
 void util_cleanup_str(char** str);
 #define UTIL_CLEANUP_STR(var) \
     char* __attribute__((__cleanup__(util_cleanup_str))) var##_clean __attribute__((unused)) = var;

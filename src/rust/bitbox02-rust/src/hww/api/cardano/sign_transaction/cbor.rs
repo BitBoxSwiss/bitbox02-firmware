@@ -84,7 +84,7 @@ pub fn encode_transaction_body<W: Write>(
     let mut encoder = Encoder::new(writer);
 
     let mut num_map_entries = 3; // inputs, outputs, fee
-    if tx.ttl != 0 {
+    if tx.ttl != 0 || tx.allow_zero_ttl {
         num_map_entries += 1;
     }
     if !tx.certificates.is_empty() {
@@ -121,7 +121,7 @@ pub fn encode_transaction_body<W: Write>(
     // Map entry 2 is the fee.
     encoder.u8(2)?.u64(tx.fee)?;
     // Optional map entry 3 is ttl.
-    if tx.ttl != 0 {
+    if tx.ttl != 0 || tx.allow_zero_ttl {
         encoder.u8(3)?.u64(tx.ttl)?;
     }
     // Optional map entry 4 are the certificates:

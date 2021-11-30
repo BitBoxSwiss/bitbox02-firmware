@@ -775,6 +775,39 @@ class SendMessage:
             )
             print(response)
 
+        def sign_zero_ttl() -> None:
+            response = self._device.cardano_sign_transaction(
+                transaction=bitbox02.cardano.CardanoSignTransactionRequest(
+                    network=bitbox02.cardano.CardanoMainnet,
+                    inputs=[
+                        bitbox02.cardano.CardanoSignTransactionRequest.Input(
+                            keypath=[2147485500, 2147485463, 2147483648, 0, 0],
+                            prev_out_hash=bytes.fromhex(
+                                "59864ee73ca5d91098a32b3ce9811bac1996dcbaefa6b6247dcaafb5779c2538"
+                            ),
+                            prev_out_index=0,
+                        )
+                    ],
+                    outputs=[
+                        bitbox02.cardano.CardanoSignTransactionRequest.Output(
+                            encoded_address="addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt",
+                            value=1000000,
+                        ),
+                        bitbox02.cardano.CardanoSignTransactionRequest.Output(
+                            encoded_address=get_address(False),
+                            value=4829501,
+                            script_config=script_config,
+                        ),
+                    ],
+                    fee=170499,
+                    ttl=0,
+                    allow_zero_ttl=True,
+                    certificates=[],
+                    validity_interval_start=41110811,
+                )
+            )
+            print(response)
+
         def delegate() -> None:
             response = self._device.cardano_sign_transaction(
                 transaction=bitbox02.cardano.CardanoSignTransactionRequest(
@@ -859,6 +892,7 @@ class SendMessage:
             ("Retrieve account xpubs", xpubs),
             ("Retrieve a Shelley address", address),
             ("Sign a transaction", sign),
+            ("Sign a transaction with TTL=0", sign_zero_ttl),
             ("Delegate staking to a pool", delegate),
             ("Withdraw staking rewards", withdraw),
         )

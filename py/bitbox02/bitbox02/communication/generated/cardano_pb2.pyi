@@ -204,6 +204,7 @@ class CardanoSignTransactionRequest(google.protobuf.message.Message):
     CERTIFICATES_FIELD_NUMBER: builtins.int
     WITHDRAWALS_FIELD_NUMBER: builtins.int
     VALIDITY_INTERVAL_START_FIELD_NUMBER: builtins.int
+    ALLOW_ZERO_TTL_FIELD_NUMBER: builtins.int
     network: global___CardanoNetwork.V = ...
     @property
     def inputs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CardanoSignTransactionRequest.Input]: ...
@@ -216,6 +217,9 @@ class CardanoSignTransactionRequest(google.protobuf.message.Message):
     @property
     def withdrawals(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CardanoSignTransactionRequest.Withdrawal]: ...
     validity_interval_start: builtins.int = ...
+    allow_zero_ttl: builtins.bool = ...
+    """include ttl even if it is zero"""
+
     def __init__(self,
         *,
         network : global___CardanoNetwork.V = ...,
@@ -226,8 +230,9 @@ class CardanoSignTransactionRequest(google.protobuf.message.Message):
         certificates : typing.Optional[typing.Iterable[global___CardanoSignTransactionRequest.Certificate]] = ...,
         withdrawals : typing.Optional[typing.Iterable[global___CardanoSignTransactionRequest.Withdrawal]] = ...,
         validity_interval_start : builtins.int = ...,
+        allow_zero_ttl : builtins.bool = ...,
         ) -> None: ...
-    def ClearField(self, field_name: typing_extensions.Literal["certificates",b"certificates","fee",b"fee","inputs",b"inputs","network",b"network","outputs",b"outputs","ttl",b"ttl","validity_interval_start",b"validity_interval_start","withdrawals",b"withdrawals"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["allow_zero_ttl",b"allow_zero_ttl","certificates",b"certificates","fee",b"fee","inputs",b"inputs","network",b"network","outputs",b"outputs","ttl",b"ttl","validity_interval_start",b"validity_interval_start","withdrawals",b"withdrawals"]) -> None: ...
 global___CardanoSignTransactionRequest = CardanoSignTransactionRequest
 
 class CardanoSignTransactionResponse(google.protobuf.message.Message):

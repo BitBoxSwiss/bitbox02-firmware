@@ -97,6 +97,7 @@ message CardanoSignTransactionRequest {
   repeated Certificate certificates = 6;
   repeated Withdrawal withdrawals = 7;
   uint64 validity_interval_start = 8;
+  bool allow_zero_ttl = 9; // include ttl even if it is zero
 }
 
 message CardanoSignTransactionResponse {

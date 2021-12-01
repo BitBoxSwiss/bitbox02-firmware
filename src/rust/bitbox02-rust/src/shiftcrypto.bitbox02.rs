@@ -562,6 +562,9 @@ pub struct CardanoSignTransactionRequest {
     pub withdrawals: ::prost::alloc::vec::Vec<cardano_sign_transaction_request::Withdrawal>,
     #[prost(uint64, tag="8")]
     pub validity_interval_start: u64,
+    /// include ttl even if it is zero
+    #[prost(bool, tag="9")]
+    pub allow_zero_ttl: bool,
 }
 /// Nested message and enum types in `CardanoSignTransactionRequest`.
 pub mod cardano_sign_transaction_request {

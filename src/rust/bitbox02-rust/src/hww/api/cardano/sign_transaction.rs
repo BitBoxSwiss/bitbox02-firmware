@@ -37,6 +37,13 @@ use util::bip32::HARDENED;
 // 1 ADA = 1e6 lovelaces
 const LOVELACE_DECIMALS: usize = 6;
 
+// Mainnet params.
+// Start of Shelley era
+const SHELLEY_START_EPOCH: u64 = 208;
+// 21600 are the slots per epoch before Shelley.
+const SHELLEY_START_SLOT: u64 = SHELLEY_START_EPOCH*21600;
+const SHELLEY_SLOTS_IN_EPOCH: u64 = 432000;
+
 fn format_value(params: &params::Params, value: u64) -> String {
     format!(
         "{} {}",
@@ -57,18 +64,11 @@ fn make_shelley_witness(keypath: &[u32], tx_body_hash: &[u8; 32]) -> Result<Shel
 // and relative slot number to the epoch and lets the user verify it.
 // This should only be called for mainnet.
 async fn verify_slot(params: &params::Params, title: &str, slot: u64) -> Result<(), Error> {
-    // Mainnet params.
-    // Start of Shelley era
-    const START_EPOCH: u64 = 208;
-    // 208*21600, where 21600 are the slots per epoch before Shelley.
-    const START_SLOT: u64 = 4492800;
-    const SLOTS_IN_EPOCH: u64 = 432000;
-
-    if slot < START_SLOT {
+    if slot < SHELLEY_START_SLOT {
         return Err(Error::InvalidInput);
     }
-    let epoch = START_EPOCH + (slot - START_SLOT) / SLOTS_IN_EPOCH;
-    let slot_in_epoch = (slot - START_SLOT) % SLOTS_IN_EPOCH;
+    let epoch = SHELLEY_START_EPOCH + (slot - SHELLEY_START_SLOT) / SHELLEY_SLOTS_IN_EPOCH;
+    let slot_in_epoch = (slot - SHELLEY_START_SLOT) % SHELLEY_SLOTS_IN_EPOCH;
     confirm::confirm(&confirm::Params {
         title: params.name,
         body: &format!("{}\nslot {} in\nepoch {}", title, slot_in_epoch, epoch),
@@ -104,11 +104,29 @@ async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Respons
         signing_keypaths.push(&input.keypath);
     }
 
-    if network == CardanoNetwork::CardanoMainnet && request.validity_interval_start != 0 {
-        verify_slot(params, "Can be mined from", request.validity_interval_start).await?;
-    }
-    if network == CardanoNetwork::CardanoMainnet && request.ttl != 0 {
-        verify_slot(params, "Can be mined until", request.ttl).await?;
+    if network == CardanoNetwork::CardanoMainnet {
+        let validity_interval_start_present = request.validity_interval_start != 0;
+        let ttl_present = request.ttl != 0 || request.allow_zero_ttl;
+        let cannot_be_mined = (validity_interval_start_present
+            && ttl_present
+            && (request.validity_interval_start > request.ttl))
+            || (ttl_present && request.ttl < SHELLEY_START_SLOT);
+        if cannot_be_mined {
+            confirm::confirm(&confirm::Params {
+                title: params.name,
+                body: "Transaction\ncannot be\nmined",
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
+        } else {
+            if validity_interval_start_present {
+                verify_slot(params, "Can be mined from", request.validity_interval_start).await?;
+            }
+            if ttl_present {
+                verify_slot(params, "Can be mined until", request.ttl).await?;
+            }
+        }
     }
     certificates::verify(
         params,
@@ -259,6 +277,7 @@ mod tests {
             ],
             fee: 170499,
             ttl: 41115811,
+            allow_zero_ttl: false,
             certificates: vec![],
             withdrawals: vec![],
             validity_interval_start: 0,
@@ -350,6 +369,7 @@ mod tests {
             ],
             fee: 191681,
             ttl: 41539125,
+            allow_zero_ttl: false,
             certificates: vec![
                 Certificate{
                     cert: Some(Cert::StakeRegistration(
@@ -467,6 +487,7 @@ mod tests {
             ],
             fee: 191681,
             ttl: 41539125,
+            allow_zero_ttl: false,
             certificates: vec![
                 Certificate{
                     cert: Some(Cert::StakeDeregistration(
@@ -563,6 +584,7 @@ mod tests {
             ],
             fee: 175157,
             ttl: 41788708,
+            allow_zero_ttl: false,
             certificates: vec![],
             withdrawals: vec![
                 pb::cardano_sign_transaction_request::Withdrawal {
@@ -623,5 +645,259 @@ mod tests {
             })
         );
         assert_eq!(unsafe { CONFIRM_COUNTER }, 3);
+    }
+
+    /// Test that ttl=0 is not included in the transaction if allow_ttl_zero is false. Up to v9.8.0, ttl was not included if it was zero.
+    #[test]
+    fn test_sign_tx_no_ttl() {
+        let _guard = MUTEX.lock().unwrap();
+
+        let tx = pb::CardanoSignTransactionRequest {
+            network: CardanoNetwork::CardanoMainnet as _,
+            inputs: vec![pb::cardano_sign_transaction_request::Input {
+                keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                prev_out_hash: b"\x59\x86\x4e\xe7\x3c\xa5\xd9\x10\x98\xa3\x2b\x3c\xe9\x81\x1b\xac\x19\x96\xdc\xba\xef\xa6\xb6\x24\x7d\xca\xaf\xb5\x77\x9c\x25\x38".to_vec(),
+                prev_out_index: 0,
+            }],
+            outputs: vec![
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
+                    value: 1000000,
+                    script_config: None,
+                },
+                // change
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs".into(),
+                    value: 4829501,
+                    script_config: Some(CardanoScriptConfig{
+                        config: Some(pb::cardano_script_config::Config::PkhSkh(pb::cardano_script_config::PkhSkh {
+                            keypath_payment: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                            keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
+                        }))
+                    }),
+                },
+            ],
+            fee: 170499,
+            ttl: 0,
+            allow_zero_ttl: false,
+            certificates: vec![],
+            withdrawals: vec![],
+            validity_interval_start: 0,
+        };
+
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|_params| true)),
+            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ..Default::default()
+        });
+        mock_unlocked();
+        let result = block_on(process(&tx)).unwrap();
+        assert_eq!(
+            result,
+            Response::SignTransaction(pb::CardanoSignTransactionResponse {
+                shelley_witnesses: vec![ShelleyWitness {
+                    public_key: b"\x1f\x17\xaf\xff\xe8\x05\x29\x7f\x8e\xc6\x54\x45\x82\xb7\xea\x91\xc3\x0d\xc1\xf9\x11\x9c\x5c\x2b\x26\x3e\x58\xfa\x36\x59\x31\x7d".to_vec(),
+                    signature: b"\x05\xc0\x20\x83\xd8\x91\x48\xdf\xb5\x55\x87\x46\x6f\x76\xbf\xfa\x4a\x26\x90\x4b\xe2\x0d\x04\x61\x04\x8a\x81\xbc\x01\x64\xf4\x15\xd7\xa4\xae\x4c\x50\xde\x10\x06\x16\xac\x39\xb6\x79\x00\x2b\x7f\xa8\xd6\xa5\x7f\x68\x80\xfa\xd6\x5e\xb4\x37\xc3\xed\x94\xe3\x0f".to_vec(),
+                }]
+            })
+        );
+    }
+
+    /// Test that ttl=0 is included in the transaction if allow_ttl_zero is true. Up to v9.8.0, ttl was not included if it was zero.
+    /// ttl=0 also means the transaction cannot be mined.
+    /// Also test other configurations where the transaction cannot be mined.
+    #[test]
+    fn test_sign_non_mineable_tx() {
+        let _guard = MUTEX.lock().unwrap();
+
+        let tx = pb::CardanoSignTransactionRequest {
+            network: CardanoNetwork::CardanoMainnet as _,
+            inputs: vec![pb::cardano_sign_transaction_request::Input {
+                keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                prev_out_hash: b"\x59\x86\x4e\xe7\x3c\xa5\xd9\x10\x98\xa3\x2b\x3c\xe9\x81\x1b\xac\x19\x96\xdc\xba\xef\xa6\xb6\x24\x7d\xca\xaf\xb5\x77\x9c\x25\x38".to_vec(),
+                prev_out_index: 0,
+            }],
+            outputs: vec![
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
+                    value: 1000000,
+                    script_config: None,
+                },
+                // change
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs".into(),
+                    value: 4829501,
+                    script_config: Some(CardanoScriptConfig{
+                        config: Some(pb::cardano_script_config::Config::PkhSkh(pb::cardano_script_config::PkhSkh {
+                            keypath_payment: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                            keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
+                        }))
+                    }),
+                },
+            ],
+            fee: 170499,
+            ttl: 0,
+            allow_zero_ttl: true,
+            certificates: vec![],
+            withdrawals: vec![],
+            validity_interval_start: 0,
+        };
+
+        static mut CONFIRM_COUNTER: u32 = 0;
+
+        // Second, test with allow_zero_ttl=true, meaning that a zero ttl will be included as 0.
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(params.title, "Cardano");
+                        assert_eq!(params.body, "Transaction\ncannot be\nmined");
+                        true
+                    }
+                    _ => panic!("too many user confirmations"),
+                }
+            })),
+
+            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ..Default::default()
+        });
+        mock_unlocked();
+        let result = block_on(process(&tx)).unwrap();
+        assert_eq!(
+            result,
+            Response::SignTransaction(pb::CardanoSignTransactionResponse {
+                shelley_witnesses: vec![ShelleyWitness {
+                    public_key: b"\x1f\x17\xaf\xff\xe8\x05\x29\x7f\x8e\xc6\x54\x45\x82\xb7\xea\x91\xc3\x0d\xc1\xf9\x11\x9c\x5c\x2b\x26\x3e\x58\xfa\x36\x59\x31\x7d".to_vec(),
+                    signature: b"\x5b\xa3\xc8\x1f\x57\xac\x0c\xb2\x49\x36\xc3\xc6\x7c\xb5\x1e\x86\x7f\xda\x7d\x95\xb4\x57\x22\x59\xbe\x9a\x06\xd0\xb1\x0c\xd4\x3b\x2e\x90\xd5\x32\xd0\x6b\x46\xd0\x5b\x23\x85\xe9\x03\x50\xaf\x2d\x9d\xb1\xc3\x9f\x39\xbf\xe3\x6b\x79\x25\x4e\xcb\xd3\x59\x1b\x0e".to_vec(),
+                }]
+            })
+        );
+    }
+
+    #[test]
+    fn test_sign_tx_valid_interval_start() {
+        let _guard = MUTEX.lock().unwrap();
+
+        let tx = pb::CardanoSignTransactionRequest {
+            network: CardanoNetwork::CardanoMainnet as _,
+            inputs: vec![pb::cardano_sign_transaction_request::Input {
+                keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                prev_out_hash: b"\x59\x86\x4e\xe7\x3c\xa5\xd9\x10\x98\xa3\x2b\x3c\xe9\x81\x1b\xac\x19\x96\xdc\xba\xef\xa6\xb6\x24\x7d\xca\xaf\xb5\x77\x9c\x25\x38".to_vec(),
+                prev_out_index: 0,
+            }],
+            outputs: vec![
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
+                    value: 1000000,
+                    script_config: None,
+                },
+                // change
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs".into(),
+                    value: 4829501,
+                    script_config: Some(CardanoScriptConfig{
+                        config: Some(pb::cardano_script_config::Config::PkhSkh(pb::cardano_script_config::PkhSkh {
+                            keypath_payment: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                            keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
+                        }))
+                    }),
+                },
+            ],
+            fee: 170499,
+            ttl: 0,
+            allow_zero_ttl: false,
+            certificates: vec![],
+            withdrawals: vec![],
+            validity_interval_start: 41115811,
+        };
+
+        static mut CONFIRM_COUNTER: u32 = 0;
+
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(params.title, "Cardano");
+                        assert_eq!(params.body, "Can be mined from\nslot 335011 in\nepoch 292");
+                        true
+                    }
+                    _ => panic!("too many user confirmations"),
+                }
+            })),
+            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ..Default::default()
+        });
+        mock_unlocked();
+        assert!(block_on(process(&tx)).is_ok());
+    }
+
+    #[test]
+    fn test_sign_tx_invalid_interval_start() {
+        let _guard = MUTEX.lock().unwrap();
+
+        let tx = pb::CardanoSignTransactionRequest {
+            network: CardanoNetwork::CardanoMainnet as _,
+            inputs: vec![pb::cardano_sign_transaction_request::Input {
+                keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                prev_out_hash: b"\x59\x86\x4e\xe7\x3c\xa5\xd9\x10\x98\xa3\x2b\x3c\xe9\x81\x1b\xac\x19\x96\xdc\xba\xef\xa6\xb6\x24\x7d\xca\xaf\xb5\x77\x9c\x25\x38".to_vec(),
+                prev_out_index: 0,
+            }],
+            outputs: vec![
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
+                    value: 1000000,
+                    script_config: None,
+                },
+                // change
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs".into(),
+                    value: 4829501,
+                    script_config: Some(CardanoScriptConfig{
+                        config: Some(pb::cardano_script_config::Config::PkhSkh(pb::cardano_script_config::PkhSkh {
+                            keypath_payment: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                            keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
+                        }))
+                    }),
+                },
+            ],
+            fee: 170499,
+            ttl: 41115810,
+            allow_zero_ttl: false,
+            certificates: vec![],
+            withdrawals: vec![],
+            validity_interval_start: 41115811, // start > ttl, invalid
+        };
+
+        static mut CONFIRM_COUNTER: u32 = 0;
+
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(params.title, "Cardano");
+                        assert_eq!(params.body, "Transaction\ncannot be\nmined");
+                        true
+                    }
+                    _ => panic!("too many user confirmations"),
+                }
+            })),
+            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ..Default::default()
+        });
+        mock_unlocked();
+        assert!(block_on(process(&tx)).is_ok());
     }
 }

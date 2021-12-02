@@ -194,33 +194,6 @@ static void pukcc_self_test(void)
     }
 }
 
-#if 0
-// Returns 0 on success
-uint8_t pukcc_ecdsa_sign(const uint8_t *private_key,
-                         const uint8_t *message,
-                         uint32_t message_len,
-                         uint8_t *signature,
-                         PUKCC_CURVE_256_X curve
-                        )
-{
-    uint8_t hash[SHA256_DIGEST_LENGTH];
-    pukcc_self_test();
-    pukcc_sha256_compute(message, message_len, hash);
-    pukcc_init_params_ecdsa_generation(private_key, hash, curve);
-    vPUKCL_Process(ZpEcDsaGenerateFast, pvPUKCLParam);
-    if (PUKCL(u2Status) == PUKCL_OK) {
-        memcpy(signature, (uint8_t *)(BASE_ECDSA_POINT_A_X), PUKCC_ECC_PARAM_LEN);
-        memcpy(signature + PUKCC_ECC_PARAM_LEN, (uint8_t *)(BASE_ECDSA_POINT_A_Y), PUKCC_ECC_PARAM_LEN);
-        util_reverse_bin(signature, PUKCC_ECC_PARAM_LEN);
-        util_reverse_bin(signature + PUKCC_ECC_PARAM_LEN, PUKCC_ECC_PARAM_LEN);
-        //pukcc_normalize_signature(signature);// TODO
-    } else {
-        memset(signature, 0, PUKCC_ECC_PARAM_LEN * 2);
-    }
-    return PUKCL(u2Status);
-}
-#endif
-
 // Returns 0 on success
 uint8_t pukcc_ecdsa_verify(
     const uint8_t* public_key,
@@ -253,59 +226,3 @@ int32_t pukcc_sha256_compute(const uint8_t* message, uint32_t message_len, uint8
         message_len,
         hash);
 }
-
-#if 0
-#include <screen.h>
-// Simple unit test from the ref code
-// Results displayed on screen
-void pukcc_example_test(PUKCC_CURVE_256_X curve)
-{
-    char m[256];
-    uint16_t status;
-    uint8_t signature[PUKCC_ECC_PARAM_LEN * 2];
-    uint8_t hash[SHA256_DIGEST_LENGTH];
-
-    // Test SHA256 hash
-    status = pukcc_sha256_compute(
-            (uint8_t *)curve.test_message,
-            curve.test_message_len,
-            hash);
-
-    if (status || !MEMEQ(hash, curve.test_message_hash, sizeof(hash))) {
-        char hash_hex[BB_HEX_SIZE(hash)];
-        util_uint8_to_hex(hash, sizeof(hash), hash_hex);
-        snprintf(m,sizeof(m),"SHA ERROR\n%.16s..", hash_hex);
-        screen_print_debug(m, 3000);
-    } else {
-        screen_print_debug("SHA OK", 1000);
-    }
-
-    // Test signing
-    status = pukcc_ecdsa_sign(
-            curve.test_private_key,
-            (uint8_t *)curve.test_message,
-            curve.test_message_len,
-            signature,
-            curve);
-
-    if (status || !MEMEQ(signature, curve.test_signature, sizeof(signature))) {
-        screen_print_debug("Signture ERROR", 3000);
-    } else {
-        screen_print_debug("Signature OK", 1000);
-    }
-
-    // Test verification
-    status = pukcc_ecdsa_verify(
-            curve.test_public_key,
-            signature,
-            (uint8_t *)curve.test_message,
-            curve.test_message_len,
-            curve);
-
-    if (status) {
-        screen_print_debug("Signature verify\nERROR", 3000);
-    } else {
-        screen_print_debug("Signature verify\nOK", 1000);
-    }
-}
-#endif

@@ -14,24 +14,30 @@
 # limitations under the License.
 """CLI tool to dump infos about a signed firmware binary"""
 
-try:
-    from bitbox02.bitbox02.bootloader import (
-        parse_signed_firmware,
-        SIGDATA_MAGIC_STANDARD,
-        SIGDATA_MAGIC_BTCONLY,
-        SIGNING_PUBKEYS_DATA_LEN,
-        MAX_FIRMWARE_SIZE,
-    )
-except ModuleNotFoundError:
-    print("bitbox02 module not found; please see bitbox02-firmware/py/README.md")
-
-import sys
 import hashlib
 import struct
+import sys
+
+# A signed firmware file consists of MAGIC_LEN (4) bytes of a firmware edition marker, followed by a
+# SIGDATA_LEN bytes of a signature, and ending with the actual firmware binary bytes as resulting
+# from a reproducible build.
+
+MAGIC_LEN = 4
+MAGIC_MULTI = struct.pack(">I", 0x653F362B)
+MAGIC_BTCONLY = struct.pack(">I", 0x11233B0B)
+
+MAX_FIRMWARE_SIZE = 884736
+NUM_ROOT_KEYS = 3
+NUM_SIGNING_KEYS = 3
+VERSION_LEN = 4
+SIGNING_PUBKEYS_DATA_LEN = VERSION_LEN + NUM_SIGNING_KEYS * 64 + NUM_ROOT_KEYS * 64
+FIRMWARE_DATA_LEN = VERSION_LEN + NUM_SIGNING_KEYS * 64
+SIGDATA_LEN = SIGNING_PUBKEYS_DATA_LEN + FIRMWARE_DATA_LEN
 
 
 def main() -> int:
     """Main function"""
+
     try:
         filename = sys.argv[1]
     except IndexError:
@@ -39,21 +45,22 @@ def main() -> int:
         return 1
 
     with open(filename, "rb") as fileobj:
-        binary = fileobj.read()
+        signed_firmware = fileobj.read()
 
-    try:
-        magic, sigdata, firmware = parse_signed_firmware(binary)
-    except ValueError as exception:
-        print(exception)
+    # Split signed firmware into sigdata and firmware
+    if len(signed_firmware) < SIGDATA_LEN:
+        print("firmware too small")
         return 1
+    magic, rest = signed_firmware[:MAGIC_LEN], signed_firmware[MAGIC_LEN:]
+    sigdata, firmware = rest[:SIGDATA_LEN], rest[SIGDATA_LEN:]
 
     print(
         "The following information assumes the provided binary was signed correctly; "
         "the signatures are not being verified."
     )
-    if magic == SIGDATA_MAGIC_STANDARD:
+    if magic == MAGIC_MULTI:
         print("This is a Multi-edition firmware.")
-    elif magic == SIGDATA_MAGIC_BTCONLY:
+    elif magic == MAGIC_BTCONLY:
         print("This is a Bitcoin-only edition firmware.")
     else:
         print("Unrecognized firmware edition; magic =", magic.hex())
@@ -64,7 +71,7 @@ def main() -> int:
         "The hash of the unsigned firmware binary is (compare with reproducible build):"
     )
     print(hashlib.sha256(firmware).hexdigest())
-    version = sigdata[SIGNING_PUBKEYS_DATA_LEN:][:4]
+    version = sigdata[SIGNING_PUBKEYS_DATA_LEN:][:VERSION_LEN]
     print("The monotonic firmware version is:", struct.unpack("<I", version)[0])
     print("The hash of the firmware as verified/shown by the bootloader is:")
     print(

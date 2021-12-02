@@ -329,9 +329,9 @@ pub struct BtcSignOutputRequest {
     /// 20 bytes for p2pkh, p2sh, pw2wpkh. 32 bytes for p2wsh.
     #[prost(uint64, tag="3")]
     pub value: u64,
-    /// if ours is false
+    /// if ours is false. Renamed from `hash`.
     #[prost(bytes="vec", tag="4")]
-    pub hash: ::prost::alloc::vec::Vec<u8>,
+    pub payload: ::prost::alloc::vec::Vec<u8>,
     /// if ours is true
     #[prost(uint32, repeated, tag="5")]
     pub keypath: ::prost::alloc::vec::Vec<u32>,

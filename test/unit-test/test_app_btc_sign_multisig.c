@@ -217,7 +217,7 @@ static _tx _make_test_tx(void)
                     .ours = false,
                     .type = BTCOutputType_P2WSH,
                     .value = 90000, // btc 0.0009
-                    .hash =
+                    .payload =
                         {.size = 32,
                          .bytes =
                              "\x59\x88\x02\x4d\x26\x74\x2c\x74\xd1\x1c\x3b\x28\x83\xe7\x57\x84\x67"

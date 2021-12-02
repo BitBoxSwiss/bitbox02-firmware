@@ -49,13 +49,19 @@ bool app_btc_address_simple(
         return false;
     }
 
-    uint8_t hash[32] = {0};
-    size_t hash_size_out = 0;
-    if (!btc_common_outputhash_from_pubkeyhash(script_type, pubkey_hash160, hash, &hash_size_out)) {
+    uint8_t payload[32] = {0};
+    size_t payload_size_out = 0;
+    if (!btc_common_payload_from_pubkeyhash(
+            script_type, pubkey_hash160, payload, &payload_size_out)) {
         return false;
     }
-    return btc_common_address_from_outputhash(
-        params, btc_common_determine_output_type(script_type), hash, hash_size_out, out, out_len);
+    return btc_common_address_from_payload(
+        params,
+        btc_common_determine_output_type(script_type),
+        payload,
+        payload_size_out,
+        out,
+        out_len);
 }
 
 app_btc_result_t app_btc_address_multisig(
@@ -94,17 +100,17 @@ app_btc_result_t app_btc_address_multisig(
         return APP_BTC_ERR_USER_ABORT;
     }
 
-    uint8_t hash[SHA256_LEN] = {0};
+    uint8_t payload[SHA256_LEN] = {0};
     size_t written = 0;
-    if (!btc_common_outputhash_from_multisig(
-            multisig, keypath[keypath_len - 2], keypath[keypath_len - 1], hash, &written)) {
+    if (!btc_common_payload_from_multisig(
+            multisig, keypath[keypath_len - 2], keypath[keypath_len - 1], payload, &written)) {
         return APP_BTC_ERR_UNKNOWN;
     }
 
-    if (!btc_common_address_from_outputhash(
+    if (!btc_common_address_from_payload(
             params,
             btc_common_determine_output_type_multisig(multisig),
-            hash,
+            payload,
             written,
             out,
             out_len)) {

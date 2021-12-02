@@ -57,16 +57,16 @@ bool btc_common_is_valid_keypath_address_multisig(
         keypath, keypath_len, expected_coin, script_type);
 }
 
-bool btc_common_outputhash_from_pubkeyhash(
+bool btc_common_payload_from_pubkeyhash(
     BTCScriptConfig_SimpleType script_type,
     const uint8_t* pubkey_hash,
-    uint8_t* output_hash,
-    size_t* output_hash_size)
+    uint8_t* output_payload,
+    size_t* output_payload_size)
 {
     switch (script_type) {
     case BTCScriptConfig_SimpleType_P2WPKH:
-        memcpy(output_hash, pubkey_hash, HASH160_LEN);
-        *output_hash_size = HASH160_LEN;
+        memcpy(output_payload, pubkey_hash, HASH160_LEN);
+        *output_payload_size = HASH160_LEN;
         break;
     case BTCScriptConfig_SimpleType_P2WPKH_P2SH: {
         uint8_t script[WALLY_SCRIPTPUBKEY_P2WPKH_LEN] = {0};
@@ -78,10 +78,10 @@ bool btc_common_outputhash_from_pubkeyhash(
         if (written != WALLY_SCRIPTPUBKEY_P2WPKH_LEN) {
             return false;
         }
-        if (wally_hash160(script, sizeof(script), output_hash, HASH160_LEN) != WALLY_OK) {
+        if (wally_hash160(script, sizeof(script), output_payload, HASH160_LEN) != WALLY_OK) {
             return false;
         }
-        *output_hash_size = HASH160_LEN;
+        *output_payload_size = HASH160_LEN;
         break;
     }
     default:
@@ -158,31 +158,31 @@ static bool _encode_base58_address(uint8_t version, const uint8_t* hash, char* o
     return sprintf_result >= 0 && sprintf_result < (int)out_len;
 }
 
-bool btc_common_address_from_outputhash(
+bool btc_common_address_from_payload(
     const app_btc_coin_params_t* params,
     BTCOutputType output_type,
-    const uint8_t* hash,
-    size_t hash_size,
+    const uint8_t* payload,
+    size_t payload_size,
     char* out,
     size_t out_len)
 {
     switch (output_type) {
     case BTCOutputType_P2PKH:
-        if (hash_size != HASH160_LEN) {
+        if (payload_size != HASH160_LEN) {
             return false;
         }
-        return _encode_base58_address(params->base58_version_p2pkh, hash, out, out_len);
+        return _encode_base58_address(params->base58_version_p2pkh, payload, out, out_len);
     case BTCOutputType_P2SH:
-        if (hash_size != HASH160_LEN) {
+        if (payload_size != HASH160_LEN) {
             return false;
         }
-        return _encode_base58_address(params->base58_version_p2sh, hash, out, out_len);
+        return _encode_base58_address(params->base58_version_p2sh, payload, out, out_len);
     case BTCOutputType_P2WPKH:
     case BTCOutputType_P2WSH: {
         uint8_t script[WALLY_SCRIPTPUBKEY_P2WSH_LEN] = {0};
         size_t written = 0;
         if (wally_witness_program_from_bytes(
-                hash, hash_size, 0, script, sizeof(script), &written) != WALLY_OK) {
+                payload, payload_size, 0, script, sizeof(script), &written) != WALLY_OK) {
             return false;
         }
         char* address_string = NULL;
@@ -200,34 +200,34 @@ bool btc_common_address_from_outputhash(
     return true;
 }
 
-bool btc_common_pkscript_from_outputhash(
+bool btc_common_pkscript_from_payload(
     BTCOutputType output_type,
-    const uint8_t* hash,
-    size_t hash_size,
+    const uint8_t* payload,
+    size_t payload_size,
     uint8_t* pk_script,
     size_t* pk_script_len)
 {
-    if (!hash || !pk_script || !pk_script_len) {
+    if (!payload || !pk_script || !pk_script_len) {
         return false;
     }
     size_t len = *pk_script_len;
     switch (output_type) {
     case BTCOutputType_P2PKH:
-        if (hash_size != HASH160_LEN) {
+        if (payload_size != HASH160_LEN) {
             return false;
         }
         return wally_scriptpubkey_p2pkh_from_bytes(
-                   hash, hash_size, 0, pk_script, len, pk_script_len) == WALLY_OK;
+                   payload, payload_size, 0, pk_script, len, pk_script_len) == WALLY_OK;
     case BTCOutputType_P2SH:
-        if (hash_size != HASH160_LEN) {
+        if (payload_size != HASH160_LEN) {
             return false;
         }
         return wally_scriptpubkey_p2sh_from_bytes(
-                   hash, hash_size, 0, pk_script, len, pk_script_len) == WALLY_OK;
+                   payload, payload_size, 0, pk_script, len, pk_script_len) == WALLY_OK;
     case BTCOutputType_P2WPKH:
     case BTCOutputType_P2WSH:
         return wally_witness_program_from_bytes(
-                   hash, hash_size, 0, pk_script, len, pk_script_len) == WALLY_OK;
+                   payload, payload_size, 0, pk_script, len, pk_script_len) == WALLY_OK;
     default:
         return false;
     }
@@ -280,12 +280,12 @@ bool btc_common_pkscript_from_multisig(
     return true;
 }
 
-bool btc_common_outputhash_from_multisig(
+bool btc_common_payload_from_multisig(
     const BTCScriptConfig_Multisig* multisig,
     uint32_t keypath_change,
     uint32_t keypath_address,
-    uint8_t* output_hash,
-    size_t* output_hash_size)
+    uint8_t* output_payload,
+    size_t* output_payload_size)
 {
     uint8_t script[700] = {0};
     size_t written = sizeof(script);
@@ -301,8 +301,8 @@ bool btc_common_outputhash_from_multisig(
 
     switch (multisig->script_type) {
     case BTCScriptConfig_Multisig_ScriptType_P2WSH:
-        *output_hash_size = SHA256_LEN;
-        return wally_sha256(script, written, output_hash, SHA256_LEN) == WALLY_OK;
+        *output_payload_size = SHA256_LEN;
+        return wally_sha256(script, written, output_payload, SHA256_LEN) == WALLY_OK;
     case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH: {
         // script_sha256 contains the hash of the multisig redeem script as used in a P2WSH output.
         uint8_t script_sha256[SHA256_LEN] = {0};
@@ -321,8 +321,8 @@ bool btc_common_outputhash_from_multisig(
             return false;
         }
         // hash the output script according to p2sh.
-        *output_hash_size = HASH160_LEN;
-        return wally_hash160(p2wsh_pkscript, written, output_hash, HASH160_LEN) == WALLY_OK;
+        *output_payload_size = HASH160_LEN;
+        return wally_hash160(p2wsh_pkscript, written, output_payload, HASH160_LEN) == WALLY_OK;
     }
     default:
         return false;

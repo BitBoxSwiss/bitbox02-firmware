@@ -112,9 +112,9 @@ class BTCOutputInternal:
 class BTCOutputExternal:
     # TODO: Use NamedTuple, but not playing well with protobuf types.
 
-    def __init__(self, output_type: "btc.BTCOutputType.V", output_hash: bytes, value: int):
+    def __init__(self, output_type: "btc.BTCOutputType.V", output_payload: bytes, value: int):
         self.type = output_type
-        self.hash = output_hash
+        self.payload = output_payload
         self.value = value
 
 
@@ -535,7 +535,7 @@ class BitBox02(BitBoxCommonAPI):
                         btc.BTCSignOutputRequest(
                             ours=False,
                             type=tx_output.type,
-                            hash=tx_output.hash,
+                            payload=tx_output.payload,
                             value=tx_output.value,
                         )
                     )

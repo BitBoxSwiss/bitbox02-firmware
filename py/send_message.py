@@ -146,7 +146,7 @@ def _btc_demo_inputs_outputs(
         ),
         bitbox02.BTCOutputExternal(
             output_type=bitbox02.btc.P2WSH,
-            output_hash=b"11111111111111111111111111111111",
+            output_payload=b"11111111111111111111111111111111",
             value=int(1e8 * 0.2),
         ),
     ]
@@ -501,7 +501,7 @@ class SendMessage:
                 bitbox02.BTCOutputExternal(
                     # TODO: parse pubkey script
                     output_type=bitbox02.btc.P2WSH,
-                    output_hash=b"11111111111111111111111111111111",
+                    output_payload=b"11111111111111111111111111111111",
                     value=outp["value"],
                 )
             )

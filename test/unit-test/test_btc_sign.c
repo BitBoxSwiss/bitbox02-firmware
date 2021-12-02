@@ -661,7 +661,7 @@ static void _sign(const _modification_t* mod)
             .ours = false,
             .type = BTCOutputType_P2PKH,
             .value = 100000000, // btc 1
-            .hash =
+            .payload =
                 {
                     .size = 20,
                     .bytes =
@@ -675,7 +675,7 @@ static void _sign(const _modification_t* mod)
             .ours = false,
             .type = BTCOutputType_P2SH,
             .value = 1234567890, // btc 12.3456789
-            .hash =
+            .payload =
                 {
                     .size = 20,
                     .bytes =
@@ -689,7 +689,7 @@ static void _sign(const _modification_t* mod)
             .ours = false,
             .type = BTCOutputType_P2WPKH,
             .value = 6000, // btc .00006
-            .hash =
+            .payload =
                 {
                     .size = 20,
                     .bytes =
@@ -703,7 +703,7 @@ static void _sign(const _modification_t* mod)
             .ours = false,
             .type = BTCOutputType_P2WSH,
             .value = 7000, // btc .00007
-            .hash =
+            .payload =
                 {
                     .size = 32,
                     .bytes =

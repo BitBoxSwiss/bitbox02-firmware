@@ -143,7 +143,7 @@ message BTCSignOutputRequest {
   BTCOutputType type = 2; // if ours is false
   // 20 bytes for p2pkh, p2sh, pw2wpkh. 32 bytes for p2wsh.
   uint64 value = 3;
-  bytes hash = 4; // if ours is false
+  bytes payload = 4; // if ours is false. Renamed from `hash`.
   repeated uint32 keypath = 5; // if ours is true
   // If ours is true. References a script config from BTCSignInitRequest
   uint32 script_config_index = 6;

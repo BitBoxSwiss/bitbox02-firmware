@@ -70,20 +70,20 @@ USE_RESULT bool btc_common_is_valid_keypath_address_multisig(
     uint32_t expected_coin);
 
 /**
- * Converts a pubkeyhash to a hash used in an output script, e.g. pubkeyhash or script hash.
+ * Converts a pubkeyhash to a payload used in an output script, e.g. pubkeyhash or script hash.
  * The pkScript to be hashed is created based on the script type (output type).
  * @param[in] script_type script type defining the pkScript.
  * @param[in] pubkey_hash hash160 of a public key. Must be of size HASH160_LEN.
- * @param[out] output_hash will have the resulting hash. Must be of size 32.
- * @param[out] output_hash_size will be 32 for p2wsh scripts, HASH160_LEN for
+ * @param[out] output_payload will have the resulting payload. Must be of size 32.
+ * @param[out] output_payload_size will be 32 for p2wsh scripts, HASH160_LEN for
  * all others.
  * return true on succes, false on failure.
  */
-USE_RESULT bool btc_common_outputhash_from_pubkeyhash(
+USE_RESULT bool btc_common_payload_from_pubkeyhash(
     BTCScriptConfig_SimpleType script_type,
     const uint8_t* pubkey_hash,
-    uint8_t* output_hash,
-    size_t* output_hash_size);
+    uint8_t* output_payload,
+    size_t* output_payload_size);
 
 /**
  * Converts a pubkeyhash to the subscript/scriptCode used in the sighash algo.
@@ -112,14 +112,14 @@ USE_RESULT BTCOutputType
 btc_common_determine_output_type_multisig(const BTCScriptConfig_Multisig* multisig);
 
 /**
- * Converts an output script or publickey hash to an address.
- * hash, hash_size can be obtained from btc_common_outputhash_from_pubkeyhash().
+ * Converts a payload to an address.
+ * payload, payload_size can be obtained from btc_common_payload_from_pubkeyhash().
  */
-USE_RESULT bool btc_common_address_from_outputhash(
+USE_RESULT bool btc_common_address_from_payload(
     const app_btc_coin_params_t* params,
     BTCOutputType output_type,
-    const uint8_t* hash,
-    size_t hash_size,
+    const uint8_t* payload,
+    size_t payload_size,
     char* out,
     size_t out_len);
 
@@ -127,13 +127,13 @@ USE_RESULT bool btc_common_address_from_outputhash(
  * Computes the pkScript from a pubkey or script hash depending on the output
  * type.
  * @param[in] output_type type of pkScript.
- * @param[in] hash pubkey hash or script hash
+ * @param[in] payload pubkey hash or script hash.
  * @param[inout] pk_script_len: size of pk_script IN, size of the resulting pk_script OUT.
  */
-USE_RESULT bool btc_common_pkscript_from_outputhash(
+USE_RESULT bool btc_common_pkscript_from_payload(
     BTCOutputType output_type,
-    const uint8_t* hash,
-    size_t hash_size,
+    const uint8_t* payload,
+    size_t payload_size,
     uint8_t* pk_script,
     size_t* pk_script_len);
 
@@ -162,16 +162,16 @@ USE_RESULT bool btc_common_pkscript_from_multisig(
  * xpubs.
  * @param[in] keypath_change 0 for receive addresses, 1 for change addresses.
  * @param[in] keypath_address receive address index.
- * @param[out] output_hash result, must be at least `SHA256_LEN` bytes.
- * @param[out] size of the output hash. Will be `SHA256_LEN` for P2WSH and `HASH160_LEN` for
- * P2WSH-P2SH.
+ * @param[out] output_payload result, must be at least `SHA256_LEN` bytes.
+ * @param[out] output_payload_size of the output hash. Will be `SHA256_LEN` for P2WSH and
+ * `HASH160_LEN` for P2WSH-P2SH.
  */
-USE_RESULT bool btc_common_outputhash_from_multisig(
+USE_RESULT bool btc_common_payload_from_multisig(
     const BTCScriptConfig_Multisig* multisig,
     uint32_t keypath_change,
     uint32_t keypath_address,
-    uint8_t* output_hash,
-    size_t* output_hash_size);
+    uint8_t* output_payload,
+    size_t* output_payload_size);
 
 /**
  * Validate a m-of-n multisig account. This includes checking that:

@@ -1267,227 +1267,227 @@ static const _modification_t _valid = {
 
 static void _test_btc_sign(void** state)
 {
-    _modification_t valid = _valid;
-    valid.check_sigs = true;
-    _sign(&valid);
+    _modification_t modified = _valid;
+    modified.check_sigs = true;
+    _sign(&modified);
 }
 static void _test_seeded(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.seeded = false;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.seeded = false;
+    _sign(&modified);
 }
 static void _test_script_type_p2wpkh_p2sh(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.script_type = BTCScriptConfig_SimpleType_P2WPKH_P2SH;
-    invalid.check_sigs = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.script_type = BTCScriptConfig_SimpleType_P2WPKH_P2SH;
+    modified.check_sigs = true;
+    _sign(&modified);
 }
 static void _test_wrong_coin_input(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.wrong_coin_input = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.wrong_coin_input = true;
+    _sign(&modified);
 }
 static void _test_wrong_coin_change(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.wrong_coin_change = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.wrong_coin_change = true;
+    _sign(&modified);
 }
 static void _test_wrong_account_input(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.wrong_account_input = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.wrong_account_input = true;
+    _sign(&modified);
 }
 static void _test_wrong_account_change(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.wrong_account_change = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.wrong_account_change = true;
+    _sign(&modified);
 }
 static void _test_btc_bip44_change(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.bip44_change = 0;
-    _sign(&invalid);
-    invalid.bip44_change = 2;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.bip44_change = 0;
+    _sign(&modified);
+    modified.bip44_change = 2;
+    _sign(&modified);
 }
 static void _test_input_sum_changes(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.input_sum_changes = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.input_sum_changes = true;
+    _sign(&modified);
 }
 static void _test_input_sum_last_mismatch(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.input_sum_last_mismatch = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.input_sum_last_mismatch = true;
+    _sign(&modified);
 }
 static void _test_state_init_after_init(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.state_init_after_init = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.state_init_after_init = true;
+    _sign(&modified);
 }
 static void _test_state_output_after_init(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.state_output_after_init = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.state_output_after_init = true;
+    _sign(&modified);
 }
 static void _test_wrong_sequence_number(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.wrong_sequence_number = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.wrong_sequence_number = true;
+    _sign(&modified);
 }
 static void _test_wrong_input_value(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.wrong_input_value = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.wrong_input_value = true;
+    _sign(&modified);
 }
 static void _test_wrong_output_value(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.wrong_output_value = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.wrong_output_value = true;
+    _sign(&modified);
 }
 static void _test_user_aborts_output(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.user_aborts_output = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.user_aborts_output = true;
+    _sign(&modified);
 }
 static void _test_litecoin_rbf_disabled(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.litecoin_rbf_disabled = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.litecoin_rbf_disabled = true;
+    _sign(&modified);
 }
 static void _test_locktime_applies(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.locktime_applies = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.locktime_applies = true;
+    _sign(&modified);
 }
 static void _test_user_aborts_locktime_rbf(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.user_aborts_locktime_rbf = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.user_aborts_locktime_rbf = true;
+    _sign(&modified);
 }
 static void _test_locktime_zero_with_rbf(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.locktime_zero_with_rbf = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.locktime_zero_with_rbf = true;
+    _sign(&modified);
 }
 static void _test_user_aborts_total(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.user_aborts_total = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.user_aborts_total = true;
+    _sign(&modified);
 }
 static void _test_user_aborts_multiple_changes(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.user_aborts_multiple_changes = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.user_aborts_multiple_changes = true;
+    _sign(&modified);
 }
 static void _test_overflow_input_values_pass1(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.overflow_input_values_pass1 = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.overflow_input_values_pass1 = true;
+    _sign(&modified);
 }
 static void _test_overflow_input_values_pass2(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.overflow_input_values_pass2 = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.overflow_input_values_pass2 = true;
+    _sign(&modified);
 }
 static void _test_overflow_output_out(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.overflow_output_out = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.overflow_output_out = true;
+    _sign(&modified);
 }
 static void _test_overflow_output_ours(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.overflow_output_ours = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.overflow_output_ours = true;
+    _sign(&modified);
 }
 static void _test_state_previnit_after_previnit(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.state_previnit_after_previnit = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.state_previnit_after_previnit = true;
+    _sign(&modified);
 }
 static void _test_prevtx_no_inputs(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.prevtx_no_inputs = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.prevtx_no_inputs = true;
+    _sign(&modified);
 }
 static void _test_prevtx_no_outputs(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.prevtx_no_outputs = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.prevtx_no_outputs = true;
+    _sign(&modified);
 }
 static void _test_input_wrong_value(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.input_wrong_value = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.input_wrong_value = true;
+    _sign(&modified);
 }
 static void _test_wrong_prevouthash(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.wrong_prevouthash = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.wrong_prevouthash = true;
+    _sign(&modified);
 }
 static void _test_mixed_inputs(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.mixed_inputs = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.mixed_inputs = true;
+    _sign(&modified);
 }
 static void _test_invalid_input_script_config_index(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.invalid_input_script_config_index = true;
-    _sign(&invalid);
-    invalid.mixed_inputs = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.invalid_input_script_config_index = true;
+    _sign(&modified);
+    modified.mixed_inputs = true;
+    _sign(&modified);
 }
 static void _test_invalid_change_script_config_index(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.invalid_change_script_config_index = true;
-    _sign(&invalid);
-    invalid.mixed_inputs = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.invalid_change_script_config_index = true;
+    _sign(&modified);
+    modified.mixed_inputs = true;
+    _sign(&modified);
 }
 static void _test_antiklepto(void** state)
 {
-    _modification_t valid = _valid;
-    valid.antikepto = true;
-    _sign(&valid);
+    _modification_t modified = _valid;
+    modified.antikepto = true;
+    _sign(&modified);
 }
 static void _test_p2tr_output(void** state)
 {
-    _modification_t invalid = _valid;
-    invalid.p2tr_output = true;
-    invalid.check_sigs = true;
-    _sign(&invalid);
+    _modification_t modified = _valid;
+    modified.p2tr_output = true;
+    modified.check_sigs = true;
+    _sign(&modified);
 }
 int main(void)
 {

@@ -24,6 +24,7 @@
 #include <memory/smarteeprom.h>
 #include <secp256k1_ecdsa_s2c.h>
 #include <secp256k1_recovery.h>
+#include <secp256k1_schnorrsig.h>
 #include <securechip/securechip.h>
 #include <util.h>
 
@@ -660,6 +661,149 @@ static void _test_keystore_get_ed25519_seed(void** state)
         sizeof(seed));
 }
 
+// This tests that `secp256k1_schnorrsig_sign()` is the correct function to be used for schnorr sigs
+// in taproot. It is a separate test because there are test vectors available for this which cannot
+// be made to work with `keystore_secp256k1_schnorr_bip86_sign()`.
+static void _test_secp256k1_schnorr_sign(void** state)
+{
+    typedef struct {
+        const uint8_t secret_key[32];
+        const uint8_t aux_rand[32];
+        const uint8_t msg[32];
+        const uint8_t expected_sig[64];
+    } test_t;
+
+    // Test vectors are the first four rows of
+    // https://github.com/bitcoin/bips/blob/edffe529056f6dfd33d8f716fb871467c3c09263/bip-0340/test-vectors.csv.
+    // clang-format off
+    const test_t tests[] = {
+        {
+            .secret_key = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03",
+            .aux_rand = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+            .msg = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+            .expected_sig = "\xE9\x07\x83\x1F\x80\x84\x8D\x10\x69\xA5\x37\x1B\x40\x24\x10\x36\x4B\xDF\x1C\x5F\x83\x07\xB0\x08\x4C\x55\xF1\xCE\x2D\xCA\x82\x15\x25\xF6\x6A\x4A\x85\xEA\x8B\x71\xE4\x82\xA7\x4F\x38\x2D\x2C\xE5\xEB\xEE\xE8\xFD\xB2\x17\x2F\x47\x7D\xF4\x90\x0D\x31\x05\x36\xC0",
+        },
+        {
+            .secret_key = "\xB7\xE1\x51\x62\x8A\xED\x2A\x6A\xBF\x71\x58\x80\x9C\xF4\xF3\xC7\x62\xE7\x16\x0F\x38\xB4\xDA\x56\xA7\x84\xD9\x04\x51\x90\xCF\xEF",
+            .aux_rand = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01",
+            .msg = "\x24\x3F\x6A\x88\x85\xA3\x08\xD3\x13\x19\x8A\x2E\x03\x70\x73\x44\xA4\x09\x38\x22\x29\x9F\x31\xD0\x08\x2E\xFA\x98\xEC\x4E\x6C\x89",
+            .expected_sig = "\x68\x96\xBD\x60\xEE\xAE\x29\x6D\xB4\x8A\x22\x9F\xF7\x1D\xFE\x07\x1B\xDE\x41\x3E\x6D\x43\xF9\x17\xDC\x8D\xCF\x8C\x78\xDE\x33\x41\x89\x06\xD1\x1A\xC9\x76\xAB\xCC\xB2\x0B\x09\x12\x92\xBF\xF4\xEA\x89\x7E\xFC\xB6\x39\xEA\x87\x1C\xFA\x95\xF6\xDE\x33\x9E\x4B\x0A",
+        },
+        {
+            .secret_key = "\xC9\x0F\xDA\xA2\x21\x68\xC2\x34\xC4\xC6\x62\x8B\x80\xDC\x1C\xD1\x29\x02\x4E\x08\x8A\x67\xCC\x74\x02\x0B\xBE\xA6\x3B\x14\xE5\xC9",
+            .aux_rand = "\xC8\x7A\xA5\x38\x24\xB4\xD7\xAE\x2E\xB0\x35\xA2\xB5\xBB\xBC\xCC\x08\x0E\x76\xCD\xC6\xD1\x69\x2C\x4B\x0B\x62\xD7\x98\xE6\xD9\x06",
+            .msg = "\x7E\x2D\x58\xD8\xB3\xBC\xDF\x1A\xBA\xDE\xC7\x82\x90\x54\xF9\x0D\xDA\x98\x05\xAA\xB5\x6C\x77\x33\x30\x24\xB9\xD0\xA5\x08\xB7\x5C",
+            .expected_sig = "\x58\x31\xAA\xEE\xD7\xB4\x4B\xB7\x4E\x5E\xAB\x94\xBA\x9D\x42\x94\xC4\x9B\xCF\x2A\x60\x72\x8D\x8B\x4C\x20\x0F\x50\xDD\x31\x3C\x1B\xAB\x74\x58\x79\xA5\xAD\x95\x4A\x72\xC4\x5A\x91\xC3\xA5\x1D\x3C\x7A\xDE\xA9\x8D\x82\xF8\x48\x1E\x0E\x1E\x03\x67\x4A\x6F\x3F\xB7",
+        },
+        {
+            .secret_key = "\x0B\x43\x2B\x26\x77\x93\x73\x81\xAE\xF0\x5B\xB0\x2A\x66\xEC\xD0\x12\x77\x30\x62\xCF\x3F\xA2\x54\x9E\x44\xF5\x8E\xD2\x40\x17\x10",
+            .aux_rand = "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
+            .msg = "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
+            .expected_sig = "\x7E\xB0\x50\x97\x57\xE2\x46\xF1\x94\x49\x88\x56\x51\x61\x1C\xB9\x65\xEC\xC1\xA1\x87\xDD\x51\xB6\x4F\xDA\x1E\xDC\x96\x37\xD5\xEC\x97\x58\x2B\x9C\xB1\x3D\xB3\x93\x37\x05\xB3\x2B\xA9\x82\xAF\x5A\xF2\x5F\xD7\x88\x81\xEB\xB3\x27\x71\xFC\x59\x22\xEF\xC6\x6E\xA3",
+        },
+    };
+    // clang-format on
+
+    for (size_t i = 0; i < sizeof(tests) / sizeof(test_t); i++) {
+        const test_t* test = &tests[i];
+        uint8_t sig[64] = {0};
+        const secp256k1_context* ctx = wally_get_secp_context();
+        secp256k1_keypair keypair = {0};
+        assert_true(secp256k1_keypair_create(ctx, &keypair, test->secret_key));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+        uint8_t* aux_rand_cast = (uint8_t*)test->aux_rand;
+#pragma GCC diagnostic pop
+        assert_true(secp256k1_schnorrsig_sign(ctx, sig, test->msg, &keypair, aux_rand_cast));
+        assert_memory_equal(sig, test->expected_sig, sizeof(sig));
+    }
+}
+
+static void _test_keystore_secp256k1_schnorr_bip86_pubkey(void** state)
+{
+    // Test vectors from:
+    // https://github.com/bitcoin/bips/blob/edffe529056f6dfd33d8f716fb871467c3c09263/bip-0086.mediawiki#test-vectors
+    // Here we only test the creation of the tweaked pubkkey. See
+    // `test_btc_common_address_from_payload()` for the actual address generation, which takes this
+    // pubkey as input.
+    _mock_with_mnemonic(
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon "
+        "about",
+        "");
+    {
+        const uint32_t keypath[] = {
+            86 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            0,
+        };
+        uint8_t pubkey[32] = {0};
+        assert_true(keystore_secp256k1_schnorr_bip86_pubkey(keypath, 5, pubkey));
+        const uint8_t expected_pubkey[32] =
+            "\xa6\x08\x69\xf0\xdb\xcf\x1d\xc6\x59\xc9\xce\xcb\xaf\x80\x50\x13\x5e\xa9\xe8\xcd\xc4"
+            "\x87\x05\x3f\x1d\xc6\x88\x09\x49\xdc\x68\x4c";
+        assert_memory_equal(pubkey, expected_pubkey, sizeof(pubkey));
+    }
+    {
+        const uint32_t keypath[] = {
+            86 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            1,
+        };
+        uint8_t pubkey[32] = {0};
+        assert_true(keystore_secp256k1_schnorr_bip86_pubkey(keypath, 5, pubkey));
+        const uint8_t expected_pubkey[32] =
+            "\xa8\x2f\x29\x94\x4d\x65\xb8\x6a\xe6\xb5\xe5\xcc\x75\xe2\x94\xea\xd6\xc5\x93\x91\xa1"
+            "\xed\xc5\xe0\x16\xe3\x49\x8c\x67\xfc\x7b\xbb";
+        assert_memory_equal(pubkey, expected_pubkey, sizeof(pubkey));
+    }
+    {
+        const uint32_t keypath[] = {
+            86 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            1,
+            0,
+        };
+        uint8_t pubkey[32] = {0};
+        assert_true(keystore_secp256k1_schnorr_bip86_pubkey(keypath, 5, pubkey));
+        const uint8_t expected_pubkey[32] =
+            "\x88\x2d\x74\xe5\xd0\x57\x2d\x5a\x81\x6c\xef\x00\x41\xa9\x6b\x6c\x1d\xe8\x32\xf6\xf9"
+            "\x67\x6d\x96\x05\xc4\x4d\x5e\x9a\x97\xd3\xdc";
+        assert_memory_equal(pubkey, expected_pubkey, sizeof(pubkey));
+    }
+}
+
+static void _test_keystore_secp256k1_schnorr_bip86_sign(void** state)
+{
+    _mock_with_mnemonic(
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon "
+        "about",
+        "");
+    uint8_t pubkey[32] = {0};
+    const uint32_t keypath[] = {
+        86 + BIP32_INITIAL_HARDENED_CHILD,
+        0 + BIP32_INITIAL_HARDENED_CHILD,
+        0 + BIP32_INITIAL_HARDENED_CHILD,
+        0,
+        0,
+    };
+    assert_true(keystore_secp256k1_schnorr_bip86_pubkey(keypath, 5, pubkey));
+    uint8_t msg[32] = {0};
+    memset(msg, 0x88, sizeof(msg));
+    uint8_t sig[64] = {0};
+    uint8_t mock_aux_rand[32] = {0};
+    will_return(__wrap_random_32_bytes, mock_aux_rand);
+    assert_true(keystore_secp256k1_schnorr_bip86_sign(keypath, 5, msg, sig));
+    const secp256k1_context* ctx = wally_get_secp_context();
+    secp256k1_xonly_pubkey pubkey_deserialized = {0};
+    assert_true(secp256k1_xonly_pubkey_parse(ctx, &pubkey_deserialized, pubkey));
+    assert_true(secp256k1_schnorrsig_verify(ctx, sig, msg, sizeof(msg), &pubkey_deserialized));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -675,6 +819,9 @@ int main(void)
         cmocka_unit_test(_test_keystore_encode_xpub),
         cmocka_unit_test(_test_keystore_create_and_store_seed),
         cmocka_unit_test(_test_keystore_get_ed25519_seed),
+        cmocka_unit_test(_test_secp256k1_schnorr_sign),
+        cmocka_unit_test(_test_keystore_secp256k1_schnorr_bip86_pubkey),
+        cmocka_unit_test(_test_keystore_secp256k1_schnorr_bip86_sign),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

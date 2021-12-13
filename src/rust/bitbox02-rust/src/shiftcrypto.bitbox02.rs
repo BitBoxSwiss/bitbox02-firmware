@@ -577,6 +577,24 @@ pub mod cardano_sign_transaction_request {
         #[prost(uint32, tag="3")]
         pub prev_out_index: u32,
     }
+    /// https://github.com/input-output-hk/cardano-ledger/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L358
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct AssetGroup {
+        #[prost(bytes="vec", tag="1")]
+        pub policy_id: ::prost::alloc::vec::Vec<u8>,
+        #[prost(message, repeated, tag="2")]
+        pub tokens: ::prost::alloc::vec::Vec<asset_group::Token>,
+    }
+    /// Nested message and enum types in `AssetGroup`.
+    pub mod asset_group {
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct Token {
+            #[prost(bytes="vec", tag="1")]
+            pub asset_name: ::prost::alloc::vec::Vec<u8>,
+            #[prost(uint64, tag="2")]
+            pub value: u64,
+        }
+    }
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Output {
         #[prost(string, tag="1")]
@@ -586,6 +604,8 @@ pub mod cardano_sign_transaction_request {
         /// Optional. If provided, this is validated as a change output.
         #[prost(message, optional, tag="3")]
         pub script_config: ::core::option::Option<super::CardanoScriptConfig>,
+        #[prost(message, repeated, tag="4")]
+        pub asset_groups: ::prost::alloc::vec::Vec<AssetGroup>,
     }
     /// See https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L150
     #[derive(Clone, PartialEq, ::prost::Message)]

@@ -9,6 +9,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ### [Unreleased]
 - ListBackups: ported to Rust
 - Cardano: allow transactions with a zero TTL value
+- Cardano: add support for sending tokens
 - Protobuf: rename BTCSignOutputRequest.hash to BTCSignOutputRequest.payload
 
 ### 9.8.0 [released 2021-10-21]

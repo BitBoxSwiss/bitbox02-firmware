@@ -551,7 +551,7 @@ bool keystore_get_bip39_word(uint16_t idx, char** word_out)
 // uncompressed_out must be 65 bytes.
 static bool _compressed_to_uncompressed(const uint8_t* pubkey_bytes, uint8_t* uncompressed_out)
 {
-    secp256k1_context* ctx = wally_get_secp_context();
+    const secp256k1_context* ctx = wally_get_secp_context();
     secp256k1_pubkey pubkey;
     if (!secp256k1_ec_pubkey_parse(ctx, &pubkey, pubkey_bytes, 33)) {
         return false;
@@ -606,7 +606,7 @@ bool keystore_secp256k1_nonce_commit(
     if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
         return false;
     }
-    secp256k1_context* ctx = wally_get_secp_context();
+    const secp256k1_context* ctx = wally_get_secp_context();
     secp256k1_ecdsa_s2c_opening signer_commitment;
     if (!secp256k1_ecdsa_anti_exfil_signer_commit(
             ctx,
@@ -638,7 +638,7 @@ bool keystore_secp256k1_sign(
     if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
         return false;
     }
-    secp256k1_context* ctx = wally_get_secp_context();
+    const secp256k1_context* ctx = wally_get_secp_context();
     secp256k1_ecdsa_signature secp256k1_sig = {0};
     if (!secp256k1_anti_exfil_sign(
             ctx,

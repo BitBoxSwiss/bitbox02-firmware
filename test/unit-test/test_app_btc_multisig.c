@@ -220,7 +220,7 @@ static testcase_t _tests[] = {
 
 static void _test_app_btc_address_multisig(void** state)
 {
-    mock_state(_mock_seed, _mock_bip39_seed);
+    mock_state(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
 
     for (size_t test_case_index = 0; test_case_index < sizeof(_tests) / sizeof(testcase_t);
          test_case_index++) {

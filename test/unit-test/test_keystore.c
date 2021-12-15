@@ -204,11 +204,11 @@ static void _test_keystore_get_xpub(void** state)
 
     struct ext_key xpub = {0};
 
-    mock_state(NULL, NULL);
+    mock_state(NULL, 0, NULL);
     // fails because keystore is locked
     assert_false(keystore_get_xpub(_keypath, sizeof(_keypath) / sizeof(uint32_t), &xpub));
 
-    mock_state(_mock_seed, _mock_bip39_seed);
+    mock_state(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
     assert_true(keystore_get_xpub(_keypath, sizeof(_keypath) / sizeof(uint32_t), &xpub));
 
     secp256k1_pubkey expected_pubkey;
@@ -232,7 +232,7 @@ static void _test_keystore_get_xpub(void** state)
 
 static void _test_keystore_get_root_fingerprint(void** state)
 {
-    mock_state(_mock_seed, _mock_bip39_seed);
+    mock_state(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
     uint8_t fingerprint[4];
     assert_true(keystore_get_root_fingerprint(fingerprint));
     uint8_t expected_fingerprint[4] = {0x9e, 0x1b, 0x2d, 0x1e};
@@ -248,13 +248,13 @@ static void _test_keystore_secp256k1_nonce_commit(void** state)
     memset(host_nonce_commitment, 0xAB, sizeof(host_nonce_commitment));
 
     {
-        mock_state(NULL, NULL);
+        mock_state(NULL, 0, NULL);
         // fails because keystore is locked
         assert_false(keystore_secp256k1_nonce_commit(
             _keypath, sizeof(_keypath) / sizeof(uint32_t), msg, host_nonce_commitment, commitment));
     }
     {
-        mock_state(_mock_seed, _mock_bip39_seed);
+        mock_state(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
         assert_true(keystore_secp256k1_nonce_commit(
             _keypath, sizeof(_keypath) / sizeof(uint32_t), msg, host_nonce_commitment, commitment));
         const uint8_t expected_commitment[EC_PUBLIC_KEY_LEN] =
@@ -279,13 +279,13 @@ static void _test_keystore_secp256k1_sign(void** state)
     memset(host_nonce, 0x56, sizeof(host_nonce));
 
     {
-        mock_state(NULL, NULL);
+        mock_state(NULL, 0, NULL);
         // fails because keystore is locked
         assert_false(keystore_secp256k1_sign(
             _keypath, sizeof(_keypath) / sizeof(uint32_t), msg, host_nonce, sig, NULL));
     }
     {
-        mock_state(_mock_seed, _mock_bip39_seed);
+        mock_state(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
 
         _sign_expected_seckey = _expected_seckey;
         _sign_expected_msg = msg;
@@ -412,7 +412,7 @@ static void _perform_some_unlocks(void)
 static void _test_keystore_unlock(void** state)
 {
     _smarteeprom_reset();
-    mock_state(NULL, NULL); // reset to locked
+    mock_state(NULL, 0, NULL); // reset to locked
 
     uint8_t remaining_attempts;
 
@@ -451,11 +451,11 @@ static void _test_keystore_unlock(void** state)
 
 static void _test_keystore_lock(void** state)
 {
-    mock_state(NULL, NULL);
+    mock_state(NULL, 0, NULL);
     assert_true(keystore_is_locked());
-    mock_state(_mock_seed, NULL);
+    mock_state(_mock_seed, sizeof(_mock_seed), NULL);
     assert_true(keystore_is_locked());
-    mock_state(_mock_seed, _mock_bip39_seed);
+    mock_state(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
     assert_false(keystore_is_locked());
     keystore_lock();
     assert_true(keystore_is_locked());
@@ -464,13 +464,13 @@ static void _test_keystore_lock(void** state)
 static void _test_keystore_get_bip39_mnemonic(void** state)
 {
     char mnemonic[300];
-    mock_state(NULL, NULL);
+    mock_state(NULL, 0, NULL);
     assert_false(keystore_get_bip39_mnemonic(mnemonic, sizeof(mnemonic)));
 
-    mock_state(_mock_seed, NULL);
+    mock_state(_mock_seed, sizeof(_mock_seed), NULL);
     assert_false(keystore_get_bip39_mnemonic(mnemonic, sizeof(mnemonic)));
 
-    mock_state(_mock_seed, _mock_bip39_seed);
+    mock_state(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
     assert_true(keystore_get_bip39_mnemonic(mnemonic, sizeof(mnemonic)));
     const char* expected_mnemonic =
         "baby mass dust captain baby mass mass dust captain baby mass dutch creek office smoke "
@@ -603,7 +603,7 @@ static void _mock_with_mnemonic(const char* mnemonic, const char* passphrase)
     size_t seed_len;
     assert_true(keystore_bip39_mnemonic_to_seed(mnemonic, seed, &seed_len));
 
-    mock_state(seed, NULL);
+    mock_state(seed, seed_len, NULL);
     assert_true(keystore_unlock_bip39(passphrase));
 }
 

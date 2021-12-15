@@ -21,8 +21,6 @@ use std::boxed::Box;
 
 use crate::keystore;
 
-use core::convert::TryInto;
-
 #[derive(Default)]
 pub struct Data {
     pub ui_confirm_create: Option<Box<dyn Fn(&super::ui::ConfirmParams) -> bool>>,
@@ -51,12 +49,8 @@ pub fn mock(data: Data) {
 
 /// This mocks an unlocked keystore with the given bip39 recovery words.
 pub fn mock_unlocked_using_mnemonic(mnemonic: &str) {
-    let seed: [u8; 32] = keystore::bip39_mnemonic_to_seed(mnemonic)
-        .unwrap()
-        .as_slice()
-        .try_into()
-        .unwrap();
-    unsafe { bitbox02_sys::mock_state(seed.as_ptr(), core::ptr::null()) }
+    let seed = keystore::bip39_mnemonic_to_seed(mnemonic).unwrap();
+    unsafe { bitbox02_sys::mock_state(seed.as_ptr(), seed.len() as _, core::ptr::null()) }
     keystore::unlock_bip39(&crate::input::SafeInputString::new()).unwrap();
 }
 

@@ -48,7 +48,7 @@ typedef enum {
 /**
  * convenience to mock the keystore state (locked, seed) in tests.
  */
-void mock_state(const uint8_t* retained_seed, const uint8_t* retained_bip39_seed);
+void mock_state(const uint8_t* seed, size_t seed_len, const uint8_t* bip39_seed);
 #endif
 
 /**

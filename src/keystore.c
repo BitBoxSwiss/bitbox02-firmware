@@ -44,16 +44,16 @@ static bool _is_unlocked_bip39 = false;
 static uint8_t _retained_bip39_seed[64] = {0};
 
 #ifdef TESTING
-void mock_state(const uint8_t* retained_seed, const uint8_t* retained_bip39_seed)
+void mock_state(const uint8_t* seed, size_t seed_len, const uint8_t* bip39_seed)
 {
-    _is_unlocked_device = retained_seed != NULL;
-    if (retained_seed != NULL) {
-        _seed_length = KEYSTORE_MAX_SEED_LENGTH;
-        memcpy(_retained_seed, retained_seed, sizeof(_retained_seed));
+    _is_unlocked_device = seed != NULL;
+    if (seed != NULL) {
+        _seed_length = seed_len;
+        memcpy(_retained_seed, seed, seed_len);
     }
-    _is_unlocked_bip39 = retained_bip39_seed != NULL;
-    if (retained_bip39_seed != NULL) {
-        memcpy(_retained_bip39_seed, retained_bip39_seed, sizeof(_retained_bip39_seed));
+    _is_unlocked_bip39 = bip39_seed != NULL;
+    if (bip39_seed != NULL) {
+        memcpy(_retained_bip39_seed, bip39_seed, sizeof(_retained_bip39_seed));
     }
 }
 #endif

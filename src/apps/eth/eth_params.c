@@ -10592,6 +10592,5655 @@ static const app_eth_erc20_params_t _ethereum_erc20_params[] = {
             "\x28\xde\xe0\x1d\x53\xfe\xd0\xed\xf5\xf6\xe3\x10\xbf\x8e\xf9\x31\x15\x13\xae\x40",
         .decimals = 18,
     },
+    {
+        .name = "AnRKey X",
+        .unit = "$ANRX",
+        .contract_address =
+            "\xca\xe7\x2a\x7a\x0f\xd9\x04\x6c\xf6\xb1\x65\xca\x54\xc9\xe3\xa3\x87\x21\x09\xe0",
+        .decimals = 18,
+    },
+    {
+        .name = "Rope",
+        .unit = "$ROPE",
+        .contract_address =
+            "\x9d\x47\x89\x4f\x8b\xec\xb6\x8b\x9c\xf3\x42\x8d\x25\x63\x11\xaf\xfe\x8b\x06\x8b",
+        .decimals = 18,
+    },
+    {
+        .name = "1-UP Platform",
+        .unit = "1-UP",
+        .contract_address =
+            "\xc8\x68\x17\x24\x96\x34\xac\x20\x9b\xc7\x3f\xca\x17\x12\xbb\xd7\x5e\x37\x40\x7d",
+        .decimals = 18,
+    },
+    {
+        .name = "ArtWallet",
+        .unit = "1ART",
+        .contract_address =
+            "\xd3\xc3\x25\x84\x8d\x7c\x6e\x29\xb5\x74\xcb\x07\x89\x99\x8b\x2f\xf9\x01\xf1\x7e",
+        .decimals = 18,
+    },
+    {
+        .name = "1inch Network",
+        .unit = "1INCH",
+        .contract_address =
+            "\x11\x11\x11\x11\x11\x17\xdc\x0a\xa7\x8b\x77\x0f\xa6\xa7\x38\x03\x41\x20\xc3\x02",
+        .decimals = 18,
+    },
+    {
+        .name = "1MillionNFTs",
+        .unit = "1MIL",
+        .contract_address =
+            "\xa4\xef\x4b\x0b\x23\xc1\xfc\x81\xd3\xf9\xec\xf9\x35\x10\xe6\x4f\x58\xa4\xa0\x16",
+        .decimals = 18,
+    },
+    {
+        .name = "2crazyNFT",
+        .unit = "2CRZ",
+        .contract_address =
+            "\x2c\x9c\x19\xce\x3b\x15\xae\x77\xc6\xd8\x0a\xec\x3c\x11\x94\xcf\xd6\xf7\xf3\xfa",
+        .decimals = 18,
+    },
+    {
+        .name = "8PAY",
+        .unit = "8PAY",
+        .contract_address =
+            "\xfe\xea\x0b\xdd\x3d\x07\xeb\x6f\xe3\x05\x93\x88\x78\xc0\xca\xdb\xfa\x16\x90\x42",
+        .decimals = 18,
+    },
+    {
+        .name = "Aave",
+        .unit = "AAVE",
+        .contract_address =
+            "\x7f\xc6\x65\x00\xc8\x4a\x76\xad\x7e\x9c\x93\x43\x7b\xfc\x5a\xc3\x3e\x2d\xda\xe9",
+        .decimals = 18,
+    },
+    {
+        .name = "ACoconut",
+        .unit = "AC",
+        .contract_address =
+            "\x9a\x0a\xba\x39\x3a\xac\x4d\xfb\xff\x43\x33\xb0\x6c\x40\x74\x58\x00\x2c\x61\x83",
+        .decimals = 18,
+    },
+    {
+        .name = "ACENT",
+        .unit = "ACE",
+        .contract_address =
+            "\xec\x54\x83\x80\x4e\x63\x7d\x45\xcd\xe2\x2f\xa0\x86\x96\x56\xb6\x4b\x5a\xb1\xab",
+        .decimals = 18,
+    },
+    {
+        .name = "Alchemy Pay",
+        .unit = "ACH",
+        .contract_address =
+            "\xed\x04\x91\x5c\x23\xf0\x0a\x31\x3a\x54\x49\x55\x52\x4e\xb7\xdb\xd8\x23\x14\x3d",
+        .decimals = 8,
+    },
+    {
+        .name = "ADAPad",
+        .unit = "ADAPAD",
+        .contract_address =
+            "\xdb\x01\x70\xe2\xd0\xc1\xcc\x1b\x2e\x7a\x90\x31\x3d\x9b\x9a\xfa\x4f\x25\x02\x89",
+        .decimals = 18,
+    },
+    {
+        .name = "Add.xyz",
+        .unit = "ADD",
+        .contract_address =
+            "\x63\x5d\x08\x1f\xd8\xf6\x67\x01\x35\xd8\xa3\x64\x0e\x2c\xf7\x82\x20\x78\x7d\x56",
+        .decimals = 18,
+    },
+    {
+        .name = "Ambire AdEx",
+        .unit = "ADX",
+        .contract_address =
+            "\xad\xe0\x0c\x28\x24\x4d\x5c\xe1\x7d\x72\xe4\x03\x30\xb1\xc3\x18\xcd\x12\xb7\xc3",
+        .decimals = 18,
+    },
+    {
+        .name = "Aeryus",
+        .unit = "AER",
+        .contract_address =
+            "\xac\x4d\x22\xe4\x0b\xf0\xb8\xef\x47\x50\xa9\x9e\xd4\xe9\x35\xb9\x9a\x42\x68\x5e",
+        .decimals = 18,
+    },
+    {
+        .name = "AGA Token",
+        .unit = "AGA",
+        .contract_address =
+            "\x2d\x80\xf5\xf5\x32\x8f\xdc\xb6\xec\xeb\x7c\xac\xf5\xdd\x8a\xed\xae\xc9\x4e\x20",
+        .decimals = 4,
+    },
+    {
+        .name = "SingularityNET",
+        .unit = "AGIX",
+        .contract_address =
+            "\x5b\x75\x33\x81\x27\x59\xb4\x5c\x2b\x44\xc1\x9e\x32\x0b\xa2\xcd\x26\x81\xb5\x42",
+        .decimals = 8,
+    },
+    {
+        .name = "Adventure Gold",
+        .unit = "AGLD",
+        .contract_address =
+            "\x32\x35\x3a\x6c\x91\x14\x3b\xfd\x6c\x7d\x36\x3b\x54\x6e\x62\xa9\xa2\x48\x9a\x20",
+        .decimals = 18,
+    },
+    {
+        .name = "Agoras: Currency of Tau",
+        .unit = "AGRS",
+        .contract_address =
+            "\x73\x88\x65\x30\x1a\x9b\x7d\xd8\x0d\xc3\x66\x6d\xd4\x8c\xf0\x34\xec\x42\xbd\xda",
+        .decimals = 8,
+    },
+    {
+        .name = "AIOZ Network",
+        .unit = "AIOZ",
+        .contract_address =
+            "\x62\x6e\x80\x36\xde\xb3\x33\xb4\x08\xbe\x46\x8f\x95\x1b\xdb\x42\x43\x3c\xbf\x18",
+        .decimals = 18,
+    },
+    {
+        .name = "AllianceBlock",
+        .unit = "ALBT",
+        .contract_address =
+            "\x00\xa8\xb7\x38\xe4\x53\xff\xd8\x58\xa7\xed\xf0\x3b\xcc\xfe\x20\x41\x2f\x0e\xb0",
+        .decimals = 18,
+    },
+    {
+        .name = "Alchemix",
+        .unit = "ALCX",
+        .contract_address =
+            "\xdb\xdb\x4d\x16\xed\xa4\x51\xd0\x50\x3b\x85\x4c\xf7\x9d\x55\x69\x7f\x90\xc8\xdf",
+        .decimals = 18,
+    },
+    {
+        .name = "Aleph.im",
+        .unit = "ALEPH",
+        .contract_address =
+            "\x27\x70\x2a\x26\x12\x6e\x0b\x37\x02\xaf\x63\xee\x09\xac\x4d\x1a\x08\x4e\xf6\x28",
+        .decimals = 18,
+    },
+    {
+        .name = "MyNeighborAlice",
+        .unit = "ALICE",
+        .contract_address =
+            "\xac\x51\x06\x6d\x7b\xec\x65\xdc\x45\x89\x36\x8d\xa3\x68\xb2\x12\x74\x5d\x63\xe8",
+        .decimals = 6,
+    },
+    {
+        .name = "Aluna.Social",
+        .unit = "ALN",
+        .contract_address =
+            "\x81\x85\xbc\x47\x57\x57\x2d\xa2\xa6\x10\xf8\x87\x56\x1c\x32\x29\x8f\x1a\x57\x48",
+        .decimals = 18,
+    },
+    {
+        .name = "Alphr finance",
+        .unit = "ALPHR",
+        .contract_address =
+            "\xaa\x99\x19\x9d\x1e\x96\x44\xb5\x88\x79\x6f\x32\x15\x08\x98\x78\x44\x0d\x58\xe0",
+        .decimals = 18,
+    },
+    {
+        .name = "AMATEN",
+        .unit = "AMA",
+        .contract_address =
+            "\x25\x09\xee\x05\xb8\xdf\x07\xec\x75\x04\x6e\x24\xbb\xf1\xcf\xcd\xb8\xb2\xa1\x83",
+        .decimals = 18,
+    },
+    {
+        .name = "AMEPAY",
+        .unit = "AME",
+        .contract_address =
+            "\x12\x51\x33\x35\xff\xd5\xda\xfc\x23\x34\xe9\x86\x25\xd2\x7c\x1c\xa8\x4b\xff\x86",
+        .decimals = 18,
+    },
+    {
+        .name = "Amp",
+        .unit = "AMP",
+        .contract_address =
+            "\xff\x20\x81\x77\x65\xcb\x7f\x73\xd4\xbd\xe2\xe6\x6e\x06\x7e\x58\xd1\x10\x95\xc2",
+        .decimals = 18,
+    },
+    {
+        .name = "Aragon",
+        .unit = "ANT",
+        .contract_address =
+            "\xa1\x17\x00\x00\x00\xf2\x79\xd8\x1a\x1d\x3c\xc7\x54\x30\xfa\xa0\x17\xfa\x5a\x2e",
+        .decimals = 18,
+    },
+    {
+        .name = "API3",
+        .unit = "API3",
+        .contract_address =
+            "\x0b\x38\x21\x0e\xa1\x14\x11\x55\x7c\x13\x45\x7d\x4d\xa7\xdc\x6e\xa7\x31\xb8\x8a",
+        .decimals = 18,
+    },
+    {
+        .name = "APY.Finance",
+        .unit = "APY",
+        .contract_address =
+            "\x95\xa4\x49\x2f\x02\x8a\xa1\xfd\x43\x2e\xa7\x11\x46\xb4\x33\xe7\xb4\x44\x66\x11",
+        .decimals = 18,
+    },
+    {
+        .name = "APYSwap",
+        .unit = "APYS",
+        .contract_address =
+            "\xf7\x41\x34\x89\xc4\x74\xca\x43\x99\xee\xe6\x04\x71\x6c\x72\x87\x9e\xea\x36\x15",
+        .decimals = 18,
+    },
+    {
+        .name = "Alpha Quark Token",
+        .unit = "AQT",
+        .contract_address =
+            "\x2a\x9b\xdc\xff\x37\xab\x68\xb9\x5a\x53\x43\x5a\xdf\xd8\x89\x2e\x86\x08\x4f\x93",
+        .decimals = 18,
+    },
+    {
+        .name = "Adora Token",
+        .unit = "ARA",
+        .contract_address =
+            "\x9a\xc5\xc6\x3d\xdc\xb9\x36\x12\xe3\x16\xab\x31\xdf\xc8\x19\x2b\xc8\x96\x19\x88",
+        .decimals = 18,
+    },
+    {
+        .name = "Ares Protocol",
+        .unit = "ARES",
+        .contract_address =
+            "\x35\x8a\xa7\x37\xe0\x33\xf3\x4d\xf7\xc5\x43\x06\x96\x0a\x38\xd0\x9a\xab\xd5\x23",
+        .decimals = 18,
+    },
+    {
+        .name = "ArGo",
+        .unit = "ARGO",
+        .contract_address =
+            "\x28\xcc\xa7\x6f\x6e\x8e\xc8\x1e\x45\x50\xec\xd7\x61\xf8\x99\x11\x0b\x06\x0e\x97",
+        .decimals = 18,
+    },
+    {
+        .name = "Arianee",
+        .unit = "ARIA20",
+        .contract_address =
+            "\xed\xf6\x56\x86\x18\xa0\x0c\x6f\x09\x08\xbf\x77\x58\xa1\x6f\x76\xb6\xe0\x4a\xf9",
+        .decimals = 18,
+    },
+    {
+        .name = "ARMOR",
+        .unit = "ARMOR",
+        .contract_address =
+            "\x13\x37\xde\xf1\x6f\x9b\x48\x6f\xae\xd0\x29\x3e\xb6\x23\xdc\x83\x95\xdf\xe4\x6a",
+        .decimals = 18,
+    },
+    {
+        .name = "Ariva",
+        .unit = "ARV",
+        .contract_address =
+            "\x79\xc7\xef\x95\xad\x32\xdc\xd5\xec\xad\xb2\x31\x56\x8b\xb0\x3d\xf7\x82\x48\x15",
+        .decimals = 8,
+    },
+    {
+        .name = "Chainswap",
+        .unit = "ASAP",
+        .contract_address =
+            "\xcc\x66\x53\x90\xb0\x3c\x5d\x32\x4d\x8f\xaf\x81\xc1\x5e\xce\xe2\x9a\x73\xbc\xb4",
+        .decimals = 18,
+    },
+    {
+        .name = "ASD",
+        .unit = "ASD",
+        .contract_address =
+            "\xff\x74\x2d\x05\x42\x0b\x6a\xca\x44\x81\xf6\x35\xad\x83\x41\xf8\x1a\x63\x00\xc2",
+        .decimals = 18,
+    },
+    {
+        .name = "Assemble Protocol",
+        .unit = "ASM",
+        .contract_address =
+            "\x25\x65\xae\x03\x85\x65\x9b\xad\xca\xda\x10\x31\xdb\x70\x44\x42\xe1\xb6\x99\x82",
+        .decimals = 18,
+    },
+    {
+        .name = "ASTA",
+        .unit = "ASTA",
+        .contract_address =
+            "\xf2\xdd\xae\x89\x44\x9b\x7d\x26\x30\x9a\x5d\x54\x61\x4b\x1f\xc9\x9c\x60\x8a\xf5",
+        .decimals = 18,
+    },
+    {
+        .name = "AstroTools",
+        .unit = "ASTRO",
+        .contract_address =
+            "\xcb\xd5\x5d\x4f\xfc\x43\x46\x71\x42\x76\x1a\x76\x47\x63\x65\x2b\x48\xb9\x69\xff",
+        .decimals = 18,
+    },
+    {
+        .name = "Automata Network",
+        .unit = "ATA",
+        .contract_address =
+            "\xa2\x12\x0b\x9e\x67\x4d\x3f\xc3\x87\x5f\x41\x5a\x7d\xf5\x2e\x38\x2f\x14\x12\x25",
+        .decimals = 18,
+    },
+    {
+        .name = "Atari Token",
+        .unit = "ATRI",
+        .contract_address =
+            "\xda\xcd\x69\x34\x7d\xe4\x2b\xab\xfa\xec\xd0\x9d\xc8\x89\x58\x37\x87\x80\xfb\x62",
+        .decimals = 0,
+    },
+    {
+        .name = "Bounce Token",
+        .unit = "AUCTION",
+        .contract_address =
+            "\xa9\xb1\xeb\x59\x08\xcf\xc3\xcd\xf9\x1f\x9b\x8b\x3a\x74\x10\x85\x98\x00\x90\x96",
+        .decimals = 18,
+    },
+    {
+        .name = "Audius",
+        .unit = "AUDIO",
+        .contract_address =
+            "\x18\xaa\xa7\x11\x57\x05\xe8\xbe\x94\xbf\xfe\xbd\xe5\x7a\xf9\xbf\xc2\x65\xb9\x98",
+        .decimals = 18,
+    },
+    {
+        .name = "Travala.com",
+        .unit = "AVA",
+        .contract_address =
+            "\x44\x2b\x15\x3f\x6f\x61\xc0\xc9\x9a\x33\xaa\x41\x70\xdc\xb3\x1e\x1a\xbd\xa1\xd0",
+        .decimals = 18,
+    },
+    {
+        .name = "AXIS Token",
+        .unit = "AXIS",
+        .contract_address =
+            "\xf0\xc5\x83\x1e\xc3\xda\x15\xf3\x69\x6b\x4d\xad\x8b\x21\xc7\xce\x2f\x00\x7f\x28",
+        .decimals = 8,
+    },
+    {
+        .name = "Axis DeFi",
+        .unit = "AXIS",
+        .contract_address =
+            "\xec\xc0\xf1\xf8\x60\xa8\x2a\xb3\xb4\x42\x38\x2d\x93\x85\x3c\x02\xd6\x38\x43\x89",
+        .decimals = 18,
+    },
+    {
+        .name = "AXPR",
+        .unit = "AXPR",
+        .contract_address =
+            "\xdd\x00\x20\xb1\xd5\xba\x47\xa5\x4e\x2e\xb1\x68\x00\xd7\x3b\xeb\x65\x46\xf9\x1a",
+        .decimals = 18,
+    },
+    {
+        .name = "Axie Infinity",
+        .unit = "AXS",
+        .contract_address =
+            "\xbb\x0e\x17\xef\x65\xf8\x2a\xb0\x18\xd8\xed\xd7\x76\xe8\xdd\x94\x03\x27\xb2\x8b",
+        .decimals = 18,
+    },
+    {
+        .name = "Azuki",
+        .unit = "AZUKI",
+        .contract_address =
+            "\x91\x05\x24\x67\x8c\x0b\x1b\x23\xff\xb9\x28\x5a\x81\xf9\x9c\x29\xc1\x1c\xba\xed",
+        .decimals = 18,
+    },
+    {
+        .name = "BaaSid",
+        .unit = "BAAS",
+        .contract_address =
+            "\x5d\x92\x9a\xa9\x19\xe4\x89\x50\x5c\xca\xad\x8a\x19\x96\x19\xc6\xdc\xa0\xc2\xde",
+        .decimals = 18,
+    },
+    {
+        .name = "Basis Cash",
+        .unit = "BAC",
+        .contract_address =
+            "\x34\x49\xfc\x1c\xd0\x36\x25\x5b\xa1\xeb\x19\xd6\x5f\xf4\xba\x2b\x89\x03\xa6\x9a",
+        .decimals = 18,
+    },
+    {
+        .name = "Badger DAO",
+        .unit = "BADGER",
+        .contract_address =
+            "\x34\x72\xa5\xa7\x19\x65\x49\x9a\xcd\x81\x99\x7a\x54\xbb\xa8\xd8\x52\xc6\xe5\x3d",
+        .decimals = 18,
+    },
+    {
+        .name = "BondAppétit Governance Token",
+        .unit = "BAG",
+        .contract_address =
+            "\x28\xa0\x6c\x02\x28\x7e\x65\x7e\xc3\xf8\xe1\x51\xa1\x3c\x36\xa1\xd4\x38\x14\xb0",
+        .decimals = 18,
+    },
+    {
+        .name = "bAlpha",
+        .unit = "BALPHA",
+        .contract_address =
+            "\x7a\x5c\xe6\xab\xd1\x31\xea\x6b\x14\x8a\x02\x2c\xb7\x6f\xc1\x80\xae\x33\x15\xa6",
+        .decimals = 18,
+    },
+    {
+        .name = "Float Protocol (Bank)",
+        .unit = "BANK",
+        .contract_address =
+            "\x24\xa6\xa3\x75\x76\x37\x7f\x63\xf1\x94\xca\xa5\xf5\x18\xa6\x0f\x45\xb4\x29\x21",
+        .decimals = 18,
+    },
+    {
+        .name = "Bao Finance",
+        .unit = "BAO",
+        .contract_address =
+            "\x37\x4c\xb8\xc2\x71\x30\xe2\xc9\xe0\x4f\x44\x30\x3f\x3c\x83\x51\xb9\xde\x61\xc1",
+        .decimals = 18,
+    },
+    {
+        .name = "BarterTrade",
+        .unit = "BART",
+        .contract_address =
+            "\x54\xc9\xea\x2e\x9c\x9e\x8e\xd8\x65\xdb\x4a\x4c\xe6\x71\x1c\x2a\x0d\x50\x63\xba",
+        .decimals = 18,
+    },
+    {
+        .name = "Base Protocol",
+        .unit = "BASE",
+        .contract_address =
+            "\x07\x15\x0e\x91\x9b\x4d\xe5\xfd\x6a\x63\xde\x1f\x93\x84\x82\x83\x96\xf2\x5f\xdc",
+        .decimals = 9,
+    },
+    {
+        .name = "Basid Coin",
+        .unit = "BASID",
+        .contract_address =
+            "\xe3\x3f\x36\x33\x51\x18\x6e\x18\x54\x70\xf3\x5f\x6d\xeb\x94\xab\xa4\x43\x47\xd8",
+        .decimals = 18,
+    },
+    {
+        .name = "BlockBank",
+        .unit = "BBANK",
+        .contract_address =
+            "\xf4\xb5\x47\x05\x23\xcc\xd3\x14\xc6\xb9\xda\x04\x10\x76\xe7\xd7\x9e\x0d\xf2\x67",
+        .decimals = 18,
+    },
+    {
+        .name = "Blockchain Monster Hunt",
+        .unit = "BCMC",
+        .contract_address =
+            "\x2b\xa8\x34\x91\x23\xde\x45\xe9\x31\xa8\xc8\x26\x4c\x33\x2e\x6e\x9c\xf5\x93\xf9",
+        .decimals = 18,
+    },
+    {
+        .name = "Bitcashpay (old)",
+        .unit = "BCP",
+        .contract_address =
+            "\xe0\x47\x70\x51\x17\xeb\x07\xe7\x12\xc3\xd6\x84\xf5\xb1\x8e\x74\x57\x7e\x83\xac",
+        .decimals = 8,
+    },
+    {
+        .name = "B-cube.ai",
+        .unit = "BCUBE",
+        .contract_address =
+            "\x93\xc9\x17\x5e\x26\xf5\x7d\x28\x88\xc7\xdf\x8b\x47\x0c\x9e\xea\x5c\x0b\x0a\x93",
+        .decimals = 18,
+    },
+    {
+        .name = "Blockchain Cuties Universe Governance",
+        .unit = "BCUG",
+        .contract_address =
+            "\x14\xda\x7b\x27\xb2\xe0\xfe\xde\xfe\x0a\x66\x41\x18\xb0\xc9\xbc\x68\xe2\xe9\xaf",
+        .decimals = 18,
+    },
+    {
+        .name = "Big Data Protocol",
+        .unit = "BDP",
+        .contract_address =
+            "\xf3\xdc\xbc\x6d\x72\xa4\xe1\x89\x2f\x79\x17\xb7\xc4\x3b\x74\x13\x1d\xf8\x48\x0e",
+        .decimals = 18,
+    },
+    {
+        .name = "Bella Protocol",
+        .unit = "BEL",
+        .contract_address =
+            "\xa9\x1a\xc6\x3d\x04\x0d\xeb\x1b\x7a\x5e\x4d\x41\x34\xad\x23\xeb\x0b\xa0\x7e\x14",
+        .decimals = 18,
+    },
+    {
+        .name = "BEPRO Network",
+        .unit = "BEPRO",
+        .contract_address =
+            "\xcf\x3c\x8b\xe2\xe2\xc4\x23\x31\xda\x80\xef\x21\x0e\x9b\x1b\x30\x7c\x03\xd3\x6a",
+        .decimals = 18,
+    },
+    {
+        .name = "Beta Finance",
+        .unit = "BETA",
+        .contract_address =
+            "\xbe\x1a\x00\x1f\xe9\x42\xf9\x6e\xea\x22\xba\x08\x78\x31\x40\xb9\xdc\xc0\x9d\x28",
+        .decimals = 18,
+    },
+    {
+        .name = "Bifrost (BFC)",
+        .unit = "BFC",
+        .contract_address =
+            "\x0c\x7d\x5a\xe0\x16\xf8\x06\x60\x3c\xb1\x78\x2b\xea\x29\xac\x69\x47\x1c\xab\x9c",
+        .decimals = 18,
+    },
+    {
+        .name = "Baguette Token",
+        .unit = "BGTT",
+        .contract_address =
+            "\x7a\x54\x5e\xd3\x86\x32\x21\xa9\x74\xf3\x27\x19\x9a\xc2\x2f\x7f\x12\x53\x5f\x11",
+        .decimals = 18,
+    },
+    {
+        .name = "Bithao",
+        .unit = "BHAO",
+        .contract_address =
+            "\x6d\x7c\x7d\x76\x4d\x6f\x1d\xfa\x25\x6c\x74\xab\xb4\xc4\xd7\x86\x1d\x8e\xe6\x4c",
+        .decimals = 18,
+    },
+    {
+        .name = "BICONOMY (BICO)",
+        .unit = "BICO",
+        .contract_address =
+            "\xf1\x7e\x65\x82\x2b\x56\x8b\x39\x03\x68\x5a\x7c\x9f\x49\x6c\xf7\x65\x6c\xc6\xc2",
+        .decimals = 18,
+    },
+    {
+        .name = "TopBidder",
+        .unit = "BID",
+        .contract_address =
+            "\x00\x00\x00\x00\x00\x00\x45\x16\x6c\x45\xaf\x0f\xc6\xe4\xcf\x31\xd9\xe1\x4b\x9a",
+        .decimals = 18,
+    },
+    {
+        .name = "DeFi Bids",
+        .unit = "BID",
+        .contract_address =
+            "\x1d\xa0\x1e\x84\xf3\xd4\xe6\x71\x6f\x27\x4c\x98\x7a\xe4\xbe\xe5\xdc\x3c\x82\x88",
+        .decimals = 18,
+    },
+    {
+        .name = "BiFi",
+        .unit = "BIFI",
+        .contract_address =
+            "\x27\x91\xbf\xd6\x0d\x23\x21\x50\xbf\xf8\x6b\x39\xb7\x14\x6c\x0e\xaa\xa2\xba\x81",
+        .decimals = 18,
+    },
+    {
+        .name = "BioPassport Token",
+        .unit = "BIOT",
+        .contract_address =
+            "\xc0\x7a\x15\x0e\xca\xdf\x2c\xc3\x52\xf5\x58\x63\x96\xe3\x44\xa6\xb1\x76\x25\xeb",
+        .decimals = 9,
+    },
+    {
+        .name = "Bird.Money",
+        .unit = "BIRD",
+        .contract_address =
+            "\x70\x40\x1d\xfd\x14\x2a\x16\xdc\x70\x31\xc5\x6e\x86\x2f\xc8\x8c\xb9\x53\x7c\xe0",
+        .decimals = 18,
+    },
+    {
+        .name = "Bistroo",
+        .unit = "BIST",
+        .contract_address =
+            "\x6e\x89\x08\xcf\xa8\x81\xc9\xf6\xf2\xc6\x4d\x34\x36\xe7\xb8\x0b\x1b\xf0\x09\x3f",
+        .decimals = 18,
+    },
+    {
+        .name = "BitDAO",
+        .unit = "BIT",
+        .contract_address =
+            "\x1a\x4b\x46\x69\x6b\x2b\xb4\x79\x4e\xb3\xd4\xc2\x6f\x1c\x55\xf9\x17\x0f\xa4\xc5",
+        .decimals = 18,
+    },
+    {
+        .name = "BITTO",
+        .unit = "BITTO",
+        .contract_address =
+            "\x55\xa2\x90\xf0\x8b\xb4\xca\xe8\xdc\xf1\xea\x56\x35\xa3\xfc\xfd\x4d\xa6\x04\x56",
+        .decimals = 18,
+    },
+    {
+        .name = "Blank Wallet",
+        .unit = "BLANK",
+        .contract_address =
+            "\x41\xa3\xdb\xa3\xd6\x77\xe5\x73\x63\x6b\xa6\x91\xa7\x0f\xf2\xd6\x06\xc2\x96\x66",
+        .decimals = 18,
+    },
+    {
+        .name = "Bloomzed Loyalty Club Ticket",
+        .unit = "BLCT",
+        .contract_address =
+            "\x6d\x2c\x50\x8f\xc4\xa5\x88\xa4\x17\x13\xff\x59\x21\x2f\x85\x48\x92\x91\xd2\x44",
+        .decimals = 18,
+    },
+    {
+        .name = "Bridge Mutual",
+        .unit = "BMI",
+        .contract_address =
+            "\x72\x5c\x26\x3e\x32\xc7\x2d\xdc\x3a\x19\xbe\xa1\x2c\x5a\x04\x79\xa8\x1e\xe6\x88",
+        .decimals = 18,
+    },
+    {
+        .name = "BonFi",
+        .unit = "BNF",
+        .contract_address =
+            "\x1d\xe5\xe0\x00\xc4\x1c\x8d\x35\xb9\xf1\xf4\x98\x5c\x23\x98\x8f\x05\x83\x10\x57",
+        .decimals = 18,
+    },
+    {
+        .name = "Bintex Futures",
+        .unit = "BNTX",
+        .contract_address =
+            "\x86\xd1\xd1\x25\x23\xb6\x52\x03\x85\x1c\x57\x1f\xcc\x02\x9b\xf9\x09\x03\xfb\x6d",
+        .decimals = 18,
+    },
+    {
+        .name = "Bobo Cash",
+        .unit = "BOBO",
+        .contract_address =
+            "\xf5\x3c\x24\xf7\x72\x9c\x88\xc1\x10\x26\x59\x29\xc7\x12\x4e\x62\x59\xef\xcc\xab",
+        .decimals = 9,
+    },
+    {
+        .name = "BOLT",
+        .unit = "BOLT",
+        .contract_address =
+            "\xd5\x93\x0c\x30\x7d\x73\x95\xff\x80\x7f\x29\x21\xf1\x2c\x5e\xb8\x21\x31\xa7\x89",
+        .decimals = 18,
+    },
+    {
+        .name = "BarnBridge",
+        .unit = "BOND",
+        .contract_address =
+            "\x03\x91\xd2\x02\x1f\x89\xdc\x33\x9f\x60\xff\xf8\x45\x46\xea\x23\xe3\x37\x75\x0f",
+        .decimals = 18,
+    },
+    {
+        .name = "Bonded Finance",
+        .unit = "BOND",
+        .contract_address =
+            "\x5d\xc0\x2e\xa9\x92\x85\xe1\x76\x56\xb8\x35\x07\x22\x69\x4c\x35\x15\x4d\xb1\xe8",
+        .decimals = 8,
+    },
+    {
+        .name = "Bondly",
+        .unit = "BONDLY",
+        .contract_address =
+            "\x91\xdf\xbe\xe3\x96\x5b\xaa\xee\x32\x78\x4c\x2d\x54\x6b\x7a\x0c\x62\xf2\x68\xc9",
+        .decimals = 18,
+    },
+    {
+        .name = "Bone ShibaSwap",
+        .unit = "BONE",
+        .contract_address =
+            "\x98\x13\x03\x7e\xe2\x21\x87\x99\x59\x7d\x83\xd4\xa5\xb6\xf3\xb6\x77\x82\x18\xd9",
+        .decimals = 18,
+    },
+    {
+        .name = "Boosted Finance",
+        .unit = "BOOST",
+        .contract_address =
+            "\x3e\x78\x09\x20\x60\x1d\x61\xce\xdb\x86\x0f\xe9\xc4\xa9\x0c\x9e\xa6\xa3\x5e\x78",
+        .decimals = 18,
+    },
+    {
+        .name = "BoringDAO",
+        .unit = "BOR",
+        .contract_address =
+            "\x3c\x9d\x6c\x1c\x73\xb3\x1c\x83\x78\x32\xc7\x2e\x04\xd3\x15\x2f\x05\x1f\xc1\xa9",
+        .decimals = 18,
+    },
+    {
+        .name = "Boson Protocol",
+        .unit = "BOSON",
+        .contract_address =
+            "\xc4\x77\xd0\x38\xd5\x42\x0c\x6a\x9e\x0b\x03\x17\x12\xf6\x1c\x51\x20\x09\x0d\xe9",
+        .decimals = 18,
+    },
+    {
+        .name = "Beyond Protocol",
+        .unit = "BP",
+        .contract_address =
+            "\xdf\x29\x0b\x16\x2a\x7d\x3e\x0a\x32\x8c\xf1\x98\x30\x8d\x42\x19\x54\xf0\x8b\x94",
+        .decimals = 18,
+    },
+    {
+        .name = "CBDAO",
+        .unit = "BREE",
+        .contract_address =
+            "\x46\x39\xcd\x8c\xd5\x2e\xc1\xcf\x2e\x49\x6a\x60\x6c\xe2\x8d\x8a\xfb\x1c\x79\x2f",
+        .decimals = 18,
+    },
+    {
+        .name = "Braintrust",
+        .unit = "BTRST",
+        .contract_address =
+            "\x79\x9e\xbf\xab\xe7\x7a\x6e\x34\x31\x1e\xee\xe9\x82\x51\x90\xb9\xec\xe3\x28\x24",
+        .decimals = 18,
+    },
+    {
+        .name = "BTSE",
+        .unit = "BTSE",
+        .contract_address =
+            "\x66\x6d\x87\x5c\x60\x0a\xa0\x6a\xc1\xcf\x15\x64\x13\x61\xde\xc3\xb0\x04\x32\xef",
+        .decimals = 8,
+    },
+    {
+        .name = "Burency",
+        .unit = "BUY",
+        .contract_address =
+            "\x31\xfd\xd1\xc6\x60\x7f\x47\xc1\x4a\x28\x21\xf5\x99\x21\x1c\x67\xac\x20\xfa\x96",
+        .decimals = 18,
+    },
+    {
+        .name = "Buying.com",
+        .unit = "BUY",
+        .contract_address =
+            "\x39\x6e\xc4\x02\xb4\x20\x66\x86\x4c\x40\x6d\x1a\xc3\xbc\x86\xb5\x75\x00\x3e\xd8",
+        .decimals = 2,
+    },
+    {
+        .name = "Baanx",
+        .unit = "BXX",
+        .contract_address =
+            "\x54\xf9\xb4\xb4\x48\x55\x43\xa8\x15\xc5\x1c\x41\x2a\x9e\x20\x43\x6a\x06\x49\x1d",
+        .decimals = 18,
+    },
+    {
+        .name = "Beyondfi",
+        .unit = "BYN",
+        .contract_address =
+            "\x4b\xb3\x20\x5b\xf6\x48\xb7\xf5\x9e\xf9\x0d\xee\x0f\x1b\x62\xf6\x11\x6b\xc7\xca",
+        .decimals = 18,
+    },
+    {
+        .name = "Swarm",
+        .unit = "BZZ",
+        .contract_address =
+            "\x19\x06\x21\x90\xb1\x92\x5b\x5b\x66\x89\xd7\x07\x3f\xdf\xc8\xc2\x97\x6e\xf8\xcb",
+        .decimals = 16,
+    },
+    {
+        .name = "Coin98",
+        .unit = "C98",
+        .contract_address =
+            "\xae\x12\xc5\x93\x08\x81\xc5\x37\x15\xb3\x69\xce\xc7\x60\x6b\x70\xd8\xeb\x22\x9f",
+        .decimals = 18,
+    },
+    {
+        .name = "Cappasity",
+        .unit = "CAPP",
+        .contract_address =
+            "\x11\x61\x3b\x1f\x84\x0b\xb5\xa4\x0f\x88\x66\xd8\x57\xe2\x4d\xa1\x26\xb7\x9d\x73",
+        .decimals = 2,
+    },
+    {
+        .name = "Ternoa",
+        .unit = "CAPS",
+        .contract_address =
+            "\x03\xbe\x5c\x90\x3c\x72\x7e\xe2\xc8\xc4\xe9\xbc\x0a\xcc\x86\x0c\xca\x47\x15\xe2",
+        .decimals = 18,
+    },
+    {
+        .name = "Cat Token",
+        .unit = "CAT",
+        .contract_address =
+            "\x56\x01\x5b\xbe\x3c\x01\xfe\x05\xbc\x30\xa8\xa9\xa9\xfd\x9a\x88\x91\x7e\x7d\xb3",
+        .decimals = 18,
+    },
+    {
+        .name = "Cash Tech",
+        .unit = "CATE",
+        .contract_address =
+            "\xa4\x2f\x26\x66\x84\xac\x2a\xd6\xec\xb0\x0d\xf9\x5b\x1c\x76\xef\xbb\x6f\x13\x6c",
+        .decimals = 18,
+    },
+    {
+        .name = "Chainbing",
+        .unit = "CBG",
+        .contract_address =
+            "\x19\x00\xe8\xb5\x61\x9a\x35\x96\x74\x5f\x71\x5d\x04\x27\xfe\x61\x7c\x72\x9b\xa9",
+        .decimals = 18,
+    },
+    {
+        .name = "Cobak Token",
+        .unit = "CBK",
+        .contract_address =
+            "\xd8\x5a\x6a\xe5\x5a\x7f\x33\xb0\xee\x11\x3c\x23\x4d\x2e\xe3\x08\xed\xea\xf7\xfd",
+        .decimals = 18,
+    },
+    {
+        .name = "Cellframe",
+        .unit = "CELL",
+        .contract_address =
+            "\x26\xc8\xaf\xbb\xfe\x1e\xba\xca\x03\xc2\xbb\x08\x2e\x69\xd0\x47\x6b\xff\xe0\x99",
+        .decimals = 18,
+    },
+    {
+        .name = "Ceres",
+        .unit = "CERES",
+        .contract_address =
+            "\x2e\x7b\x0d\x4f\x9b\x2e\xaf\x78\x2e\xd3\xd1\x60\xe3\xa0\xa4\xb1\xa7\x93\x0a\xda",
+        .decimals = 18,
+    },
+    {
+        .name = "CyberFi Token",
+        .unit = "CFi",
+        .contract_address =
+            "\x63\xb4\xf3\xe3\xfa\x4e\x43\x86\x98\xce\x33\x0e\x36\x5e\x83\x1f\x7c\xcd\x1e\xf4",
+        .decimals = 18,
+    },
+    {
+        .name = "ChainGuardians",
+        .unit = "CGG",
+        .contract_address =
+            "\x1f\xe2\x4f\x25\xb1\xcf\x60\x9b\x9c\x4e\x7e\x12\xd8\x02\xe3\x64\x0d\xfa\x5e\x43",
+        .decimals = 18,
+    },
+    {
+        .name = "Curio Governance",
+        .unit = "CGT",
+        .contract_address =
+            "\xf5\x6b\x16\x4e\xfd\x3c\xfc\x02\xba\x73\x9b\x71\x9b\x65\x26\xa6\xfa\x1c\xa3\x2a",
+        .decimals = 18,
+    },
+    {
+        .name = "CHADS VC",
+        .unit = "CHADS",
+        .contract_address =
+            "\x69\x69\x2d\x33\x45\x01\x0a\x20\x7b\x75\x9a\x7d\x1a\xf6\xfc\x7f\x38\xb3\x5c\x5e",
+        .decimals = 18,
+    },
+    {
+        .name = "ChartEx",
+        .unit = "CHART",
+        .contract_address =
+            "\x1d\x37\x98\x6f\x25\x2d\x0e\x34\x95\x22\xea\x6c\x3b\x98\xcb\x93\x54\x95\xe6\x3e",
+        .decimals = 18,
+    },
+    {
+        .name = "Chi Gastoken",
+        .unit = "CHI",
+        .contract_address =
+            "\x00\x00\x00\x00\x00\x00\x49\x46\xc0\xe9\xf4\x3f\x4d\xee\x60\x7b\x0e\xf1\xfa\x1c",
+        .decimals = 0,
+    },
+    {
+        .name = "Chonk",
+        .unit = "CHONK",
+        .contract_address =
+            "\x84\x67\x9b\xc4\x67\xdc\x6c\x2c\x40\xab\x04\x53\x88\x13\xaf\xf3\x79\x63\x51\xf1",
+        .decimals = 18,
+    },
+    {
+        .name = "Chromia",
+        .unit = "CHR",
+        .contract_address =
+            "\x8a\x22\x79\xd4\xa9\x0b\x6f\xe1\xc4\xb3\x0f\xa6\x60\xcc\x9f\x92\x67\x97\xba\xa2",
+        .decimals = 6,
+    },
+    {
+        .name = "Cirus Foundation",
+        .unit = "CIRUS",
+        .contract_address =
+            "\xa0\x11\x99\xc6\x18\x41\xfc\xe3\xb3\xda\xfb\x83\xfe\xfc\x18\x99\x71\x5c\x87\x56",
+        .decimals = 18,
+    },
+    {
+        .name = "Civilization",
+        .unit = "CIV",
+        .contract_address =
+            "\x37\xfe\x0f\x06\x7f\xa8\x08\xff\xbd\xd1\x28\x91\xc0\x85\x85\x32\xcf\xe7\x36\x1d",
+        .decimals = 18,
+    },
+    {
+        .name = "Coldstack",
+        .unit = "CLS",
+        .contract_address =
+            "\x67\x5b\xbc\x75\x14\x01\x3e\x20\x73\xdb\x7a\x91\x9f\x6e\x4c\xbe\xf5\x76\xde\x37",
+        .decimals = 18,
+    },
+    {
+        .name = "Clover Finance",
+        .unit = "CLV",
+        .contract_address =
+            "\x80\xc6\x2f\xe4\x48\x7e\x13\x51\xb4\x7b\xa4\x98\x09\xeb\xd6\x0e\xd0\x85\xbf\x52",
+        .decimals = 18,
+    },
+    {
+        .name = "Collective",
+        .unit = "CO2",
+        .contract_address =
+            "\x75\x73\x9d\x59\x44\x53\x41\x15\xd7\xc5\x4e\xe8\xc7\x3f\x18\x6d\x79\x3b\xae\x02",
+        .decimals = 18,
+    },
+    {
+        .name = "Cocos-BCX",
+        .unit = "COCOS",
+        .contract_address =
+            "\xc4\xc7\xea\x4f\xab\x34\xbd\x9f\xb9\xa5\xe1\xb1\xa9\x8d\xf7\x6e\x26\xe6\x40\x7c",
+        .decimals = 18,
+    },
+    {
+        .name = "Coin Artist",
+        .unit = "COIN",
+        .contract_address =
+            "\x87\xb0\x08\xe5\x7f\x64\x0d\x94\xee\x44\xfd\x89\x3f\x03\x23\xaf\x93\x3f\x91\x95",
+        .decimals = 18,
+    },
+    {
+        .name = "Collateral Pay",
+        .unit = "COLL",
+        .contract_address =
+            "\x95\x78\x91\xc1\x16\x16\xd3\xe0\xb0\xa7\x6a\x76\xfb\x42\x72\x4c\x38\x2e\x0e\xf3",
+        .decimals = 18,
+    },
+    {
+        .name = "Furucombo",
+        .unit = "COMBO",
+        .contract_address =
+            "\xff\xff\xff\xff\x2b\xa8\xf6\x6d\x4e\x51\x81\x1c\x51\x90\x99\x21\x76\x93\x02\x78",
+        .decimals = 18,
+    },
+    {
+        .name = "Convergence",
+        .unit = "CONV",
+        .contract_address =
+            "\xc8\x34\xfa\x99\x6f\xa3\xbe\xc7\xaa\xd3\x69\x3a\xf4\x86\xae\x53\xd8\xaa\x8b\x50",
+        .decimals = 18,
+    },
+    {
+        .name = "Cook Protocol",
+        .unit = "COOK",
+        .contract_address =
+            "\xff\x75\xce\xd5\x74\x19\xbc\xae\xbe\x5f\x05\x25\x49\x83\xb0\x13\xb0\x64\x6e\xf5",
+        .decimals = 18,
+    },
+    {
+        .name = "Coreto",
+        .unit = "COR",
+        .contract_address =
+            "\x9c\x2d\xc0\xc3\xcc\x2b\xad\xde\x84\xb0\x02\x5c\xf4\xdf\x1c\x5a\xf2\x88\xd8\x35",
+        .decimals = 18,
+    },
+    {
+        .name = "Corra.Finance",
+        .unit = "CORA",
+        .contract_address =
+            "\x6a\x72\x60\xe4\x47\x89\xae\xf2\x4f\xda\xf7\x2d\x80\xec\xdc\x25\x3a\xaa\x07\x9e",
+        .decimals = 18,
+    },
+    {
+        .name = "cVault.finance",
+        .unit = "CORE",
+        .contract_address =
+            "\x62\x35\x9e\xd7\x50\x5e\xfc\x61\xff\x1d\x56\xfe\xf8\x21\x58\xcc\xaf\xfa\x23\xd7",
+        .decimals = 18,
+    },
+    {
+        .name = "Cornichon",
+        .unit = "CORN",
+        .contract_address =
+            "\xa4\x56\xb5\x15\x30\x3b\x2c\xe3\x44\xe9\xd2\x60\x1f\x91\x27\x0f\x8c\x2f\xea\x5e",
+        .decimals = 18,
+    },
+    {
+        .name = "CorionX",
+        .unit = "CORX",
+        .contract_address =
+            "\x26\xa6\x04\xdf\xfe\x3d\xda\xb3\xbe\xe8\x16\x09\x7f\x81\xd3\xc4\xa2\xa4\xcf\x97",
+        .decimals = 8,
+    },
+    {
+        .name = "Covesting",
+        .unit = "COV",
+        .contract_address =
+            "\xad\xa8\x6b\x1b\x31\x3d\x1d\x52\x67\xe3\xfc\x0b\xb3\x03\xf0\xa2\xb6\x6d\x0e\xa7",
+        .decimals = 18,
+    },
+    {
+        .name = "Circuits of Value",
+        .unit = "COVAL",
+        .contract_address =
+            "\x3d\x65\x83\x90\x46\x02\x95\xfb\x96\x3f\x54\xdc\x08\x99\xcf\xb1\xc3\x07\x76\xdf",
+        .decimals = 8,
+    },
+    {
+        .name = "Clearpool",
+        .unit = "CPOOL",
+        .contract_address =
+            "\x66\x76\x1f\xa4\x13\x77\x00\x36\x22\xae\xe3\xc7\x67\x5f\xc7\xb5\xc1\xc2\xfa\xc5",
+        .decimals = 18,
+    },
+    {
+        .name = "Cipher",
+        .unit = "CPR",
+        .contract_address =
+            "\x20\xae\x0c\xa9\xd4\x2e\x6f\xfe\xb1\x18\x8f\x34\x1a\x7d\x63\x45\x04\x52\xde\xf6",
+        .decimals = 18,
+    },
+    {
+        .name = "Covalent",
+        .unit = "CQT",
+        .contract_address =
+            "\xd4\x17\x14\x43\x12\xdb\xf5\x04\x65\xb1\xc6\x41\xd0\x16\x96\x20\x17\xef\x62\x40",
+        .decimals = 18,
+    },
+    {
+        .name = "Carbon",
+        .unit = "CRBN",
+        .contract_address =
+            "\xcd\xee\xe7\x67\xbe\xd5\x8c\x53\x25\xf6\x85\x00\x11\x5d\x4b\x72\x2b\x37\x24\xee",
+        .decimals = 18,
+    },
+    {
+        .name = "Creaticles",
+        .unit = "CRE8",
+        .contract_address =
+            "\xc3\x6b\x43\x11\xb2\x1f\xc0\xc2\xea\xd4\x6f\x1e\xa6\xce\x97\xc9\xc4\xd9\x8d\x3d",
+        .decimals = 18,
+    },
+    {
+        .name = "Crypterium",
+        .unit = "CRPT",
+        .contract_address =
+            "\x08\x38\x94\x95\xd7\x45\x6e\x19\x51\xdd\xf7\xc3\xa1\x31\x4a\x4b\xfb\x64\x6d\x8b",
+        .decimals = 18,
+    },
+    {
+        .name = "Cratos",
+        .unit = "CRTS",
+        .contract_address =
+            "\x67\x8e\x84\x0c\x64\x0f\x61\x9e\x17\x84\x80\x45\xd2\x30\x72\x84\x42\x24\xdd\x37",
+        .decimals = 18,
+    },
+    {
+        .name = "Crust Network",
+        .unit = "CRU",
+        .contract_address =
+            "\x32\xa7\xc0\x2e\x79\xc4\xea\x10\x08\xdd\x65\x64\xb3\x5f\x13\x14\x28\x67\x3c\x41",
+        .decimals = 18,
+    },
+    {
+        .name = "Curve DAO Token",
+        .unit = "CRV",
+        .contract_address =
+            "\xd5\x33\xa9\x49\x74\x0b\xb3\x30\x6d\x11\x9c\xc7\x77\xfa\x90\x0b\xa0\x34\xcd\x52",
+        .decimals = 18,
+    },
+    {
+        .name = "Crowny",
+        .unit = "CRWNY",
+        .contract_address =
+            "\xdb\xdd\xf0\x72\xd7\xaa\xe7\xb9\x28\x8e\x31\xa4\xee\xbe\x6c\x54\xe3\xa1\x43\xb1",
+        .decimals = 18,
+    },
+    {
+        .name = "Crust Shadow",
+        .unit = "CSM",
+        .contract_address =
+            "\x26\x20\x63\x8e\xda\x99\xf9\xe7\xe9\x02\xea\x24\xa2\x85\x45\x6e\xe9\x43\x88\x61",
+        .decimals = 18,
+    },
+    {
+        .name = "CryptoTask",
+        .unit = "CTASK",
+        .contract_address =
+            "\x19\x6c\x81\x38\x5b\xc5\x36\x46\x74\x33\x01\x40\x42\x78\x8e\xb7\x07\x70\x39\x34",
+        .decimals = 18,
+    },
+    {
+        .name = "ClinTex CTi",
+        .unit = "CTI",
+        .contract_address =
+            "\x8c\x18\xd6\xa9\x85\xef\x69\x74\x4b\x9d\x57\x24\x8a\x45\xc0\x86\x18\x74\xf2\x44",
+        .decimals = 18,
+    },
+    {
+        .name = "CUDOS",
+        .unit = "CUDOS",
+        .contract_address =
+            "\x81\x7b\xbd\xbc\x3e\x8a\x12\x04\xf3\x69\x1d\x14\xbb\x44\x99\x28\x41\xe3\xdb\x35",
+        .decimals = 18,
+    },
+    {
+        .name = "CumStar",
+        .unit = "CUMSTAR",
+        .contract_address =
+            "\xd7\xbc\xa6\x43\x46\x8c\x1b\x21\x41\xf3\xcb\x64\xd5\x3d\xd5\xdc\x11\x38\xc9\xa0",
+        .decimals = 18,
+    },
+    {
+        .name = "carVertical",
+        .unit = "CV",
+        .contract_address =
+            "\x50\xbc\x2e\xcc\x0b\xfd\xf5\x66\x66\x40\x04\x80\x38\xc1\xab\xa7\xb7\x52\x56\x83",
+        .decimals = 18,
+    },
+    {
+        .name = "PowerPool",
+        .unit = "CVP",
+        .contract_address =
+            "\x38\xe4\xad\xb4\x4e\xf0\x8f\x22\xf5\xb5\xb7\x6a\x8f\x0c\x2d\x0d\xcb\xe7\xdc\xa1",
+        .decimals = 18,
+    },
+    {
+        .name = "CoverCompared",
+        .unit = "CVR",
+        .contract_address =
+            "\x3c\x03\xb4\xec\x94\x77\x80\x90\x72\xff\x9c\xc9\x29\x2c\x9b\x25\xd4\xa8\xe6\xc6",
+        .decimals = 18,
+    },
+    {
+        .name = "Convex Finance",
+        .unit = "CVX",
+        .contract_address =
+            "\x4e\x3f\xbd\x56\xcd\x56\xc3\xe7\x2c\x14\x03\xe1\x03\xb4\x5d\xb9\xda\x5b\x9d\x2b",
+        .decimals = 18,
+    },
+    {
+        .name = "Seascape Crowns",
+        .unit = "CWS",
+        .contract_address =
+            "\xac\x01\x04\xcc\xa9\x1d\x16\x78\x73\xb8\x60\x1d\x2e\x71\xeb\x3d\x4d\x8c\x33\xe0",
+        .decimals = 18,
+    },
+    {
+        .name = "CYCLUB",
+        .unit = "CYCLUB",
+        .contract_address =
+            "\x3b\x58\xc5\x2c\x03\xca\x5e\xb6\x19\xeb\xa1\x71\x09\x1c\x86\xc3\x4d\x60\x3e\x5f",
+        .decimals = 9,
+    },
+    {
+        .name = "Dacxi",
+        .unit = "DACXI",
+        .contract_address =
+            "\xef\xab\x72\x48\xd3\x65\x85\xe2\x34\x0e\x5d\x25\xf8\xa8\xd2\x43\xe6\xe3\x19\x3f",
+        .decimals = 18,
+    },
+    {
+        .name = "DAFI Protocol",
+        .unit = "DAFI",
+        .contract_address =
+            "\xfc\x97\x90\x87\x30\x5a\x82\x6c\x2b\x2a\x00\x56\xcf\xab\xa5\x0a\xad\x3e\x64\x39",
+        .decimals = 18,
+    },
+    {
+        .name = "MU DANK",
+        .unit = "DANK",
+        .contract_address =
+            "\x9e\xa1\xae\x46\xc1\x5a\x41\x64\xb7\x44\x63\xbc\x26\xf8\xaa\x3b\x0e\xea\x2e\x6e",
+        .decimals = 18,
+    },
+    {
+        .name = "DAO Maker",
+        .unit = "DAO",
+        .contract_address =
+            "\x0f\x51\xbb\x10\x11\x97\x27\xa7\xe5\xea\x35\x38\x07\x4f\xb3\x41\xf5\x6b\x09\xad",
+        .decimals = 18,
+    },
+    {
+        .name = "LiquidApps",
+        .unit = "DAPP",
+        .contract_address =
+            "\x93\x9b\x46\x2e\xe3\x31\x1f\x89\x26\xc0\x47\xd2\xb5\x76\xc3\x89\x09\x2b\x16\x49",
+        .decimals = 4,
+    },
+    {
+        .name = "Mines of Dalarnia",
+        .unit = "DAR",
+        .contract_address =
+            "\x08\x11\x31\x43\x4f\x93\x06\x37\x51\x81\x3c\x61\x9e\xcc\xa9\xc4\xdc\x78\x62\xa3",
+        .decimals = 6,
+    },
+    {
+        .name = "Streamr",
+        .unit = "DATA",
+        .contract_address =
+            "\x8f\x69\x3c\xa8\xd2\x1b\x15\x71\x07\x18\x4d\x29\xd3\x98\xa8\xd0\x82\xb3\x8b\x76",
+        .decimals = 18,
+    },
+    {
+        .name = "DecentBet",
+        .unit = "DBET",
+        .contract_address =
+            "\x9b\x68\xbf\xae\x21\xdf\x5a\x51\x09\x31\xa2\x62\xce\xcf\x63\xf4\x13\x38\xf2\x64",
+        .decimals = 18,
+    },
+    {
+        .name = "DuckDaoDime",
+        .unit = "DDIM",
+        .contract_address =
+            "\xfb\xee\xa1\xc7\x5e\x4c\x44\x65\xcb\x2f\xcc\xc9\xc6\xd6\xaf\xe9\x84\x55\x8e\x20",
+        .decimals = 18,
+    },
+    {
+        .name = "disBalancer",
+        .unit = "DDOS",
+        .contract_address =
+            "\x7f\xbe\xc0\xbb\x6a\x71\x52\xe7\x7c\x30\xd0\x05\xb5\xd4\x9c\xbc\x08\xa6\x02\xc3",
+        .decimals = 18,
+    },
+    {
+        .name = "DerivaDAO",
+        .unit = "DDX",
+        .contract_address =
+            "\x3a\x88\x06\x52\xf4\x7b\xfa\xa7\x71\x90\x8c\x07\xdd\x86\x73\xa7\x87\xda\xed\x3a",
+        .decimals = 18,
+    },
+    {
+        .name = "Decentr",
+        .unit = "DEC",
+        .contract_address =
+            "\x30\xf2\x71\xc9\xe8\x6d\x2b\x7d\x00\xa6\x37\x6c\xd9\x6a\x1c\xfb\xd5\xf0\xb9\xb3",
+        .decimals = 18,
+    },
+    {
+        .name = "PieDAO DEFI++",
+        .unit = "DEFI++",
+        .contract_address =
+            "\x8d\x1c\xe3\x61\xeb\x68\xe9\xe0\x55\x73\x44\x3c\x40\x7d\x4a\x3b\xed\x23\xb0\x33",
+        .decimals = 18,
+    },
+    {
+        .name = "Dego Finance",
+        .unit = "DEGO",
+        .contract_address =
+            "\x88\xef\x27\xe6\x91\x08\xb2\x63\x3f\x8e\x1c\x18\x4c\xc3\x79\x40\xa0\x75\xcc\x02",
+        .decimals = 18,
+    },
+    {
+        .name = "DePay",
+        .unit = "DEPAY",
+        .contract_address =
+            "\xa0\xbe\xd1\x24\xa0\x9a\xc2\xbd\x94\x1b\x10\x34\x9d\x8d\x22\x4f\xe3\xc9\x55\xeb",
+        .decimals = 18,
+    },
+    {
+        .name = "DeRace",
+        .unit = "DERC",
+        .contract_address =
+            "\x9f\xa6\x95\x36\xd1\xcd\xa4\xa0\x4c\xfb\x50\x68\x82\x94\xde\x75\xb5\x05\xa9\xae",
+        .decimals = 18,
+    },
+    {
+        .name = "Deri Protocol",
+        .unit = "DERI",
+        .contract_address =
+            "\xa4\x87\xbf\x43\xcf\x3b\x10\xdf\xfc\x97\xa9\xa7\x44\xcb\xb7\x03\x69\x65\xd3\xb9",
+        .decimals = 18,
+    },
+    {
+        .name = "DeXe",
+        .unit = "DEXE",
+        .contract_address =
+            "\xde\x4e\xe8\x05\x77\x85\xa7\xe8\xe8\x00\xdb\x58\xf9\x78\x48\x45\xa5\xc2\xcb\xd6",
+        .decimals = 18,
+    },
+    {
+        .name = "DEXTools",
+        .unit = "DEXT",
+        .contract_address =
+            "\xfb\x7b\x45\x64\x40\x2e\x55\x00\xdb\x5b\xb6\xd6\x3a\xe6\x71\x30\x27\x77\xc7\x5a",
+        .decimals = 18,
+    },
+    {
+        .name = "DeFine",
+        .unit = "DFA",
+        .contract_address =
+            "\x62\x95\x9c\x69\x9a\x52\xec\x64\x76\x22\xc9\x1e\x79\xce\x73\x34\x4e\x40\x99\xf5",
+        .decimals = 18,
+    },
+    {
+        .name = "DFSocial Gaming [old]",
+        .unit = "DFSOCIAL",
+        .contract_address =
+            "\x54\xee\x01\xbe\xb6\x0e\x74\x53\x29\xe6\xa8\x71\x1a\xd2\xd6\xcb\x21\x3e\x38\xd7",
+        .decimals = 18,
+    },
+    {
+        .name = "Dfyn Network",
+        .unit = "DFYN",
+        .contract_address =
+            "\x96\x95\xe0\x11\x4e\x12\xc0\xd3\xa3\x63\x6f\xab\x5a\x18\xe6\xb7\x37\x52\x90\x23",
+        .decimals = 18,
+    },
+    {
+        .name = "Decentral Games [Old]",
+        .unit = "DG",
+        .contract_address =
+            "\xee\x06\xa8\x1a\x69\x57\x50\xe7\x1a\x66\x2b\x51\x06\x6f\x2c\x74\xcf\x44\x78\xa0",
+        .decimals = 18,
+    },
+    {
+        .name = "Decentral Games",
+        .unit = "DG",
+        .contract_address =
+            "\x4b\x52\x0c\x81\x2e\x84\x30\x65\x9f\xc9\xf1\x2f\x6d\x0c\x39\x02\x6c\x83\x58\x8d",
+        .decimals = 18,
+    },
+    {
+        .name = "DeGate",
+        .unit = "DG",
+        .contract_address =
+            "\x53\xc8\x39\x54\x65\xa8\x49\x55\xc9\x51\x59\x81\x44\x61\x46\x60\x53\xde\xde\xde",
+        .decimals = 18,
+    },
+    {
+        .name = "Digitex",
+        .unit = "DGTX",
+        .contract_address =
+            "\xc6\x66\x08\x10\x73\xe8\xdf\xf8\xd3\xd1\xc2\x29\x2a\x29\xae\x1a\x21\x53\xec\x09",
+        .decimals = 18,
+    },
+    {
+        .name = "dHedge DAO",
+        .unit = "DHT",
+        .contract_address =
+            "\xca\x12\x07\x64\x7f\xf8\x14\x03\x95\x30\xd7\xd3\x5d\xf0\xe1\xdd\x2e\x91\xfa\x84",
+        .decimals = 18,
+    },
+    {
+        .name = "DeHive",
+        .unit = "DHV",
+        .contract_address =
+            "\x62\xdc\x48\x17\x58\x8d\x53\xa0\x56\xcb\xbd\x18\x23\x1d\x91\xff\xcc\xd3\x4b\x2a",
+        .decimals = 18,
+    },
+    {
+        .name = "DIGG",
+        .unit = "DIGG",
+        .contract_address =
+            "\x79\x8d\x1b\xe8\x41\xa8\x2a\x27\x37\x20\xce\x31\xc8\x22\xc6\x1a\x67\xa6\x01\xc3",
+        .decimals = 9,
+    },
+    {
+        .name = "Dogey-Inu",
+        .unit = "DINU",
+        .contract_address =
+            "\xbb\x1e\xe0\x7d\x6c\x7b\xae\xb7\x02\x94\x99\x04\x08\x0e\xb6\x1f\x5d\x5e\x77\x32",
+        .decimals = 18,
+    },
+    {
+        .name = "Etherisc DIP Token",
+        .unit = "DIP",
+        .contract_address =
+            "\xc7\x19\xd0\x10\xb6\x3e\x5b\xbf\x2c\x05\x51\x87\x2c\xd5\x31\x6e\xd2\x6a\xcd\x83",
+        .decimals = 18,
+    },
+    {
+        .name = "DistX",
+        .unit = "DISTX",
+        .contract_address =
+            "\x4b\x47\x01\xf3\xf8\x27\xe1\x33\x1f\xb2\x2f\xf8\xe2\xbe\xac\x24\xb1\x7e\xb0\x55",
+        .decimals = 18,
+    },
+    {
+        .name = "DODO",
+        .unit = "DODO",
+        .contract_address =
+            "\x43\xdf\xc4\x15\x9d\x86\xf3\xa3\x7a\x5a\x4b\x3d\x45\x80\xb8\x88\xad\x7d\x4d\xdd",
+        .decimals = 18,
+    },
+    {
+        .name = "Dogs Of Elon",
+        .unit = "DOE",
+        .contract_address =
+            "\xf8\xe9\xf1\x0c\x22\x84\x0b\x61\x3c\xda\x05\xa0\xc5\xfd\xb5\x9a\x4d\x6c\xd7\xef",
+        .decimals = 18,
+    },
+    {
+        .name = "DOGEFI",
+        .unit = "DOGEFI",
+        .contract_address =
+            "\x9b\x90\x87\x75\x6e\xca\x99\x7c\x5d\x59\x5c\x84\x02\x63\x00\x1c\x9a\x26\x64\x6d",
+        .decimals = 18,
+    },
+    {
+        .name = "Dogeswap",
+        .unit = "DOGES",
+        .contract_address =
+            "\xb4\xfb\xed\x16\x1b\xeb\xcb\x37\xaf\xb1\xcb\x4a\x6f\x7c\xa1\x8b\x97\x7c\xcb\x25",
+        .decimals = 18,
+    },
+    {
+        .name = "Doki Doki Finance",
+        .unit = "DOKI",
+        .contract_address =
+            "\x9c\xeb\x84\xf9\x2a\x05\x61\xfa\x3c\xc4\x13\x2a\xb9\xc0\xb7\x6a\x59\x78\x75\x44",
+        .decimals = 18,
+    },
+    {
+        .name = "Don-key",
+        .unit = "DON",
+        .contract_address =
+            "\x21\x7d\xde\xad\x61\xa4\x23\x69\xa2\x66\xf1\xfb\x75\x4e\xb5\xd3\xeb\xad\xc8\x8a",
+        .decimals = 18,
+    },
+    {
+        .name = "Drops Ownership Power",
+        .unit = "DOP",
+        .contract_address =
+            "\x6b\xb6\x12\x15\x29\x8f\x29\x6c\x55\xb1\x9a\xd8\x42\xd3\xdf\x69\x02\x1d\xa2\xef",
+        .decimals = 18,
+    },
+    {
+        .name = "Dora Factory",
+        .unit = "DORA",
+        .contract_address =
+            "\xbc\x41\x71\xf4\x5e\xf0\xef\x66\xe7\x6f\x97\x9d\xf0\x21\xa3\x4b\x46\xdc\xc8\x1d",
+        .decimals = 18,
+    },
+    {
+        .name = "DOS Network",
+        .unit = "DOS",
+        .contract_address =
+            "\x0a\x91\x3b\xea\xd8\x0f\x32\x1e\x7a\xc3\x52\x85\xee\x10\xd9\xd9\x22\x65\x9c\xb7",
+        .decimals = 18,
+    },
+    {
+        .name = "DOSE",
+        .unit = "DOSE",
+        .contract_address =
+            "\xb3\x1e\xf9\xe5\x2d\x94\xd4\x12\x0e\xb4\x4f\xe1\xdd\xfd\xe5\xb4\x65\x4a\x65\x15",
+        .decimals = 18,
+    },
+    {
+        .name = "PieDAO DOUGH v2",
+        .unit = "DOUGH",
+        .contract_address =
+            "\xad\x32\xa8\xe6\x22\x07\x41\x18\x29\x40\xc5\xab\xf6\x10\xbd\xe9\x9e\x73\x7b\x2d",
+        .decimals = 18,
+    },
+    {
+        .name = "Shadows",
+        .unit = "DOWS",
+        .contract_address =
+            "\x66\x1a\xb0\xed\x68\x00\x04\x91\xd9\x8c\x79\x61\x46\xbc\xf2\x8c\x20\xd7\xc5\x59",
+        .decimals = 18,
+    },
+    {
+        .name = "DeFi Pulse Index",
+        .unit = "DPI",
+        .contract_address =
+            "\x14\x94\xca\x1f\x11\xd4\x87\xc2\xbb\xe4\x54\x3e\x90\x08\x0a\xeb\xa4\xba\x3c\x2b",
+        .decimals = 18,
+    },
+    {
+        .name = "Deeper Network",
+        .unit = "DPR",
+        .contract_address =
+            "\xf3\xae\x5d\x76\x9e\x15\x3e\xf7\x2b\x4e\x35\x91\xac\x00\x4e\x89\xf4\x81\x07\xa1",
+        .decimals = 18,
+    },
+    {
+        .name = "Digital Reserve Currency",
+        .unit = "DRC",
+        .contract_address =
+            "\xa1\x50\xdb\x9b\x1f\xa6\x5b\x44\x79\x9d\x4d\xd9\x49\xd9\x22\xc0\xa3\x3e\xe6\x06",
+        .decimals = 0,
+    },
+    {
+        .name = "Dracula Token",
+        .unit = "DRC",
+        .contract_address =
+            "\xb7\x8b\x33\x20\x49\x3a\x4e\xfa\xa1\x02\x81\x30\xc5\xba\x26\xf0\xb6\x08\x5e\xf8",
+        .decimals = 18,
+    },
+    {
+        .name = "Drep [new]",
+        .unit = "DREP",
+        .contract_address =
+            "\x3a\xb6\xed\x69\xef\x66\x3b\xd9\x86\xee\x59\x20\x5c\xca\xd8\xa2\x0f\x98\xb4\xc2",
+        .decimals = 18,
+    },
+    {
+        .name = "Ducato Protocol Token",
+        .unit = "DUCATO",
+        .contract_address =
+            "\xa1\x17\xea\x1c\x0c\x85\xce\xf6\x48\xdf\x2b\x6f\x40\xe5\x0b\xb5\x47\x5c\x22\x8d",
+        .decimals = 18,
+    },
+    {
+        .name = "Duck DAO (DLP Duck Token)",
+        .unit = "DUCK",
+        .contract_address =
+            "\xc0\xba\x36\x9c\x8d\xb6\xeb\x39\x24\x96\x5e\x5c\x4f\xd0\xb4\xc1\xb9\x1e\x30\x5f",
+        .decimals = 18,
+    },
+    {
+        .name = "DragonVein",
+        .unit = "DVC",
+        .contract_address =
+            "\x00\xd4\x67\x27\xc2\xe4\xa6\xe3\x58\xa8\xc0\xd6\x38\x13\x7a\x3d\x91\xb1\x9b\xe6",
+        .decimals = 18,
+    },
+    {
+        .name = "DAOventures",
+        .unit = "DVD",
+        .contract_address =
+            "\x77\xdc\xe2\x6c\x03\xa9\xb8\x33\xfc\x2d\x7c\x31\xc2\x2d\xa4\xf4\x2e\x9d\x95\x82",
+        .decimals = 18,
+    },
+    {
+        .name = "DeversiFi",
+        .unit = "DVF",
+        .contract_address =
+            "\xdd\xdd\xdd\x43\x01\xa0\x82\xe6\x2e\x84\xe4\x3f\x47\x4f\x04\x44\x23\x92\x19\x18",
+        .decimals = 18,
+    },
+    {
+        .name = "Dvision Network",
+        .unit = "DVI",
+        .contract_address =
+            "\x10\x63\x32\x16\xe7\xe8\x28\x1e\x33\xc8\x6f\x02\xbf\x8e\x56\x5a\x63\x5d\x97\x70",
+        .decimals = 18,
+    },
+    {
+        .name = "DecentraWeb",
+        .unit = "DWEB",
+        .contract_address =
+            "\xe7\xf5\x8a\x92\x47\x60\x56\x62\x7f\x9f\xdb\x92\x28\x67\x78\xab\xd8\x3b\x28\x5f",
+        .decimals = 18,
+    },
+    {
+        .name = "dYdX",
+        .unit = "DYDX",
+        .contract_address =
+            "\x92\xd6\xc1\xe3\x1e\x14\x52\x0e\x67\x6a\x68\x7f\x0a\x93\x78\x8b\x71\x6b\xef\xf5",
+        .decimals = 18,
+    },
+    {
+        .name = "DeFi Yield Protocol",
+        .unit = "DYP",
+        .contract_address =
+            "\x96\x1c\x8c\x0b\x1a\xad\x0c\x0b\x10\xa5\x1f\xef\x6a\x86\x7e\x30\x91\xbc\xef\x17",
+        .decimals = 18,
+    },
+    {
+        .name = "Eden",
+        .unit = "EDEN",
+        .contract_address =
+            "\x15\x59\xfa\x1b\x8f\x28\x23\x8f\xd5\xd7\x6d\x9f\x43\x4a\xd8\x6f\xd2\x0d\x15\x59",
+        .decimals = 18,
+    },
+    {
+        .name = "Eden",
+        .unit = "EDN",
+        .contract_address =
+            "\x89\x02\x0f\x0d\x5c\x5a\xf4\xf3\x40\x7e\xb5\xfe\x18\x54\x16\xc4\x57\xb0\xe9\x3e",
+        .decimals = 18,
+    },
+    {
+        .name = "Efinity Token",
+        .unit = "EFI",
+        .contract_address =
+            "\x65\x6c\x00\xe1\xbc\xd9\x6f\x25\x6f\x22\x4a\xd9\x11\x2f\xf4\x26\xef\x05\x37\x33",
+        .decimals = 18,
+    },
+    {
+        .name = "Effect Network",
+        .unit = "EFX",
+        .contract_address =
+            "\x9b\x91\x7d\x94\xfb\x01\x38\xed\xf5\x20\x33\x2f\x3d\x45\x49\x4f\x1a\x74\xbe\xc8",
+        .decimals = 18,
+    },
+    {
+        .name = "ETHERLAND",
+        .unit = "ELAND",
+        .contract_address =
+            "\x33\xe0\x7f\x50\x55\x17\x3c\xf8\xfe\xbe\xde\x8b\x21\xb1\x2d\x1e\x2b\x52\x32\x05",
+        .decimals = 18,
+    },
+    {
+        .name = "Dogelon Mars",
+        .unit = "ELON",
+        .contract_address =
+            "\x76\x1d\x38\xe5\xdd\xf6\xcc\xf6\xcf\x7c\x55\x75\x9d\x52\x10\x75\x0b\x5d\x60\xf3",
+        .decimals = 18,
+    },
+    {
+        .name = "Earnbase",
+        .unit = "ENB",
+        .contract_address =
+            "\xa6\xfb\x1d\xf4\x83\xb2\x4e\xea\xb5\x69\xe1\x94\x47\xe0\xe1\x07\x00\x3b\x9e\x15",
+        .decimals = 18,
+    },
+    {
+        .name = "Ethereum Name Service",
+        .unit = "ENS",
+        .contract_address =
+            "\xc1\x83\x60\x21\x7d\x8f\x7a\xb5\xe7\xc5\x16\x56\x67\x61\xea\x12\xce\x7f\x9d\x72",
+        .decimals = 18,
+    },
+    {
+        .name = "EPIK Prime",
+        .unit = "EPIK",
+        .contract_address =
+            "\x4d\xa0\xc4\x83\x76\xc2\x77\xcd\xbd\x7f\xc6\xfd\xc6\x93\x6d\xee\x3e\x4a\xdf\x75",
+        .decimals = 18,
+    },
+    {
+        .name = "EpiK Protocol",
+        .unit = "EPK",
+        .contract_address =
+            "\xda\xf8\x89\x06\xac\x1d\xe1\x2b\xa2\xb1\xd2\xf7\xbf\xc9\x4e\x96\x38\xac\x40\xc4",
+        .decimals = 18,
+    },
+    {
+        .name = "Equalizer",
+        .unit = "EQZ",
+        .contract_address =
+            "\x1d\xa8\x7b\x11\x4f\x35\xe1\xdc\x91\xf7\x2b\xf5\x7f\xc0\x7a\x76\x8a\xd4\x0b\xb0",
+        .decimals = 18,
+    },
+    {
+        .name = "Ethernity Chain",
+        .unit = "ERN",
+        .contract_address =
+            "\xbb\xc2\xae\x13\xb2\x3d\x71\x5c\x30\x72\x0f\x07\x9f\xcd\x9b\x4a\x74\x09\x35\x05",
+        .decimals = 18,
+    },
+    {
+        .name = "Empty Set Dollar",
+        .unit = "ESD",
+        .contract_address =
+            "\x36\xf3\xfd\x68\xe7\x32\x5a\x35\xeb\x76\x8f\x1a\xed\xaa\xe9\xea\x06\x89\xd7\x23",
+        .decimals = 18,
+    },
+    {
+        .name = "ETHA Lend",
+        .unit = "ETHA",
+        .contract_address =
+            "\x59\xe9\x26\x12\x55\x64\x4c\x41\x1a\xfd\xd0\x0b\xd8\x91\x62\xd0\x9d\x86\x2e\x38",
+        .decimals = 18,
+    },
+    {
+        .name = "ETHPad",
+        .unit = "ETHPAD",
+        .contract_address =
+            "\x8d\xb1\xd2\x8e\xe0\xd8\x22\x36\x7a\xf8\xd2\x20\xc0\xdc\x7c\xb6\xfe\x9d\xc4\x42",
+        .decimals = 18,
+    },
+    {
+        .name = "Ethverse",
+        .unit = "ETHV",
+        .contract_address =
+            "\xee\xee\xee\xee\xe2\xaf\x8d\x0e\x19\x40\x67\x98\x60\x39\x83\x08\xe0\xef\x24\xd6",
+        .decimals = 18,
+    },
+    {
+        .name = "Ethereum Yield",
+        .unit = "ETHY",
+        .contract_address =
+            "\xd1\xaf\xbc\xcc\x9a\x2c\x21\x87\xea\x54\x43\x63\xb9\x86\xea\x0a\xb6\xef\x08\xb5",
+        .decimals = 18,
+    },
+    {
+        .name = "Ethereum Stake",
+        .unit = "ETHYS",
+        .contract_address =
+            "\xd0\xd3\xeb\xca\xd6\xa2\x0c\xe6\x9b\xc3\xbc\x0e\x1e\xc9\x64\x07\x54\x25\xe5\x33",
+        .decimals = 18,
+    },
+    {
+        .name = "Electric Vehicle Zone",
+        .unit = "EVZ",
+        .contract_address =
+            "\x7a\x93\x9b\xb7\x14\xfd\x2a\x48\xeb\xeb\x1e\x49\x5a\xa9\xaa\xa7\x4b\xa9\xfa\x68",
+        .decimals = 18,
+    },
+    {
+        .name = "EXMO Coin",
+        .unit = "EXM",
+        .contract_address =
+            "\x83\x86\x9d\xe7\x6b\x9a\xd8\x12\x5e\x22\xb8\x57\xf5\x19\xf0\x01\x58\x8c\x0f\x62",
+        .decimals = 8,
+    },
+    {
+        .name = "ExNetwork Token",
+        .unit = "EXNT",
+        .contract_address =
+            "\xd6\xc6\x7b\x93\xa7\xb2\x48\xdf\x60\x8a\x65\x3d\x82\xa1\x00\x55\x61\x44\xc5\xda",
+        .decimals = 16,
+    },
+    {
+        .name = "e-Radix",
+        .unit = "EXRD",
+        .contract_address =
+            "\x64\x68\xe7\x9a\x80\xc0\xea\xb0\xf9\xa2\xb5\x74\xc8\xd5\xbc\x37\x4a\xf5\x94\x14",
+        .decimals = 18,
+    },
+    {
+        .name = "MeDIA eYe",
+        .unit = "EYE",
+        .contract_address =
+            "\x9a\x25\x7c\x90\xfa\x23\x9f\xba\x07\x77\x1e\xf7\xda\x2d\x55\x4d\x14\x8c\x2e\x89",
+        .decimals = 18,
+    },
+    {
+        .name = "EasyFi",
+        .unit = "EZ",
+        .contract_address =
+            "\x00\xab\xa6\xfe\x55\x57\xde\x1a\x1d\x56\x56\x58\xcb\xdd\xdd\xf7\xc7\x10\xa1\xeb",
+        .decimals = 18,
+    },
+    {
+        .name = "Harvest Finance",
+        .unit = "FARM",
+        .contract_address =
+            "\xa0\x24\x6c\x90\x32\xbc\x3a\x60\x08\x20\x41\x5a\xe6\x00\xc6\x38\x86\x19\xa1\x4d",
+        .decimals = 18,
+    },
+    {
+        .name = "Fenerbahçe Token",
+        .unit = "FB",
+        .contract_address =
+            "\xfb\x19\x07\x5d\x77\xa0\xf1\x11\x79\x6f\xb2\x59\x81\x98\x30\xf4\x78\x0f\x14\x29",
+        .decimals = 6,
+    },
+    {
+        .name = "Fractal",
+        .unit = "FCL",
+        .contract_address =
+            "\xf4\xd8\x61\x57\x5e\xcc\x94\x93\x42\x0a\x3f\x5a\x14\xf8\x5b\x13\xf0\xb5\x0e\xb3",
+        .decimals = 18,
+    },
+    {
+        .name = "Fear",
+        .unit = "FEAR",
+        .contract_address =
+            "\x88\xa9\xa5\x2f\x94\x43\x15\xd5\xb4\xe9\x17\xb9\x68\x9e\x65\x44\x5c\x40\x1e\x83",
+        .decimals = 18,
+    },
+    {
+        .name = "Fei USD",
+        .unit = "FEI",
+        .contract_address =
+            "\x95\x6f\x47\xf5\x0a\x91\x01\x63\xd8\xbf\x95\x7c\xf5\x84\x6d\x57\x3e\x7f\x87\xca",
+        .decimals = 18,
+    },
+    {
+        .name = "Fera",
+        .unit = "FERA",
+        .contract_address =
+            "\x53\x9f\x36\x15\xc1\xdb\xaf\xa0\xd0\x08\xd8\x75\x04\x66\x74\x58\xac\xbd\x16\xfa",
+        .decimals = 18,
+    },
+    {
+        .name = "Fetch.ai",
+        .unit = "FET",
+        .contract_address =
+            "\xae\xa4\x6a\x60\x36\x8a\x7b\xd0\x60\xee\xc7\xdf\x8c\xba\x43\xb7\xef\x41\xad\x85",
+        .decimals = 18,
+    },
+    {
+        .name = "Forefront",
+        .unit = "FF",
+        .contract_address =
+            "\x7e\x9d\x8f\x07\xa6\x4e\x36\x3e\x97\xa6\x48\x90\x4a\x89\xfb\x4c\xd5\xfb\x94\xcd",
+        .decimals = 18,
+    },
+    {
+        .name = "DeFiner",
+        .unit = "FIN",
+        .contract_address =
+            "\x05\x4f\x76\xbe\xed\x60\xab\x6d\xbe\xb2\x35\x02\x17\x8c\x52\xd6\xc5\xde\xbe\x40",
+        .decimals = 18,
+    },
+    {
+        .name = "FortKnoxster",
+        .unit = "FKX",
+        .contract_address =
+            "\x16\x48\x4d\x73\xac\x08\xd2\x35\x5f\x46\x6d\x44\x8d\x2b\x79\xd2\x03\x9f\x6e\xbb",
+        .decimals = 18,
+    },
+    {
+        .name = "FLETA",
+        .unit = "FLETA",
+        .contract_address =
+            "\x40\x89\x7c\x87\x22\x14\x30\x3b\x6f\x47\x9a\x37\xe5\x49\xee\x15\x16\xb2\x64\xa2",
+        .decimals = 18,
+    },
+    {
+        .name = "FLEX",
+        .unit = "FLEX",
+        .contract_address =
+            "\xfc\xf8\xed\xa0\x95\xe3\x7a\x41\xe0\x02\xe2\x66\xda\xad\x7e\xfc\x15\x79\xbc\x0a",
+        .decimals = 18,
+    },
+    {
+        .name = "Reflexer Ungovernance Token",
+        .unit = "FLX",
+        .contract_address =
+            "\x62\x43\xd8\xce\xa2\x30\x66\xd0\x98\xa1\x55\x82\xd8\x1a\x59\x8b\x4e\x83\x91\xf4",
+        .decimals = 18,
+    },
+    {
+        .name = "Finminity",
+        .unit = "FMT",
+        .contract_address =
+            "\x99\xc6\xe4\x35\xec\x25\x9a\x7e\x8d\x65\xe1\x95\x5c\x94\x23\xdb\x62\x4b\xa5\x4c",
+        .decimals = 18,
+    },
+    {
+        .name = "Fundamenta",
+        .unit = "FMTA",
+        .contract_address =
+            "\xaa\x9d\x86\x66\x66\xc2\xa3\x74\x8d\x6b\x23\xff\x69\xe6\x3e\x52\xf0\x8d\x9a\xb4",
+        .decimals = 18,
+    },
+    {
+        .name = "FinNexus",
+        .unit = "FNX",
+        .contract_address =
+            "\xef\x9c\xd7\x88\x2c\x06\x76\x86\x69\x1b\x6f\xf4\x9e\x65\x0b\x43\xaf\xbb\xcc\x6b",
+        .decimals = 18,
+    },
+    {
+        .name = "Font",
+        .unit = "FONT",
+        .contract_address =
+            "\x4c\x25\xbd\xf0\x26\xea\x05\xf3\x27\x13\xf0\x0f\x73\xca\x55\x85\x7f\xbf\x63\x42",
+        .decimals = 18,
+    },
+    {
+        .name = "Formation Fi",
+        .unit = "FORM",
+        .contract_address =
+            "\x21\x38\x1e\x02\x6a\xd6\xd8\x26\x62\x44\xf2\xa5\x83\xb3\x5f\x9e\x44\x13\xfa\x2a",
+        .decimals = 18,
+    },
+    {
+        .name = "Ampleforth Governance Token",
+        .unit = "FORTH",
+        .contract_address =
+            "\x77\xfb\xa1\x79\xc7\x9d\xe5\xb7\x65\x3f\x68\xb5\x03\x9a\xf9\x40\xad\xa6\x0c\xe0",
+        .decimals = 18,
+    },
+    {
+        .name = "Shapeshift FOX Token",
+        .unit = "FOX",
+        .contract_address =
+            "\xc7\x70\xee\xfa\xd2\x04\xb5\x18\x0d\xf6\xa1\x4e\xe1\x97\xd9\x9d\x80\x8e\xe5\x2d",
+        .decimals = 18,
+    },
+    {
+        .name = "Frax",
+        .unit = "FRAX",
+        .contract_address =
+            "\x85\x3d\x95\x5a\xce\xf8\x22\xdb\x05\x8e\xb8\x50\x59\x11\xed\x77\xf1\x75\xb9\x9e",
+        .decimals = 18,
+    },
+    {
+        .name = "Frontier",
+        .unit = "FRONT",
+        .contract_address =
+            "\xf8\xc3\x52\x7c\xc0\x43\x40\xb2\x08\xc8\x54\xe9\x85\x24\x0c\x02\xf7\xb7\x79\x3f",
+        .decimals = 18,
+    },
+    {
+        .name = "Falconswap",
+        .unit = "FSW",
+        .contract_address =
+            "\xff\xff\xff\xff\xf1\x5a\xbf\x39\x7d\xa7\x6f\x1d\xcc\x1a\x16\x04\xf4\x51\x26\xdb",
+        .decimals = 18,
+    },
+    {
+        .name = "Fuse Network",
+        .unit = "FUSE",
+        .contract_address =
+            "\x97\x0b\x9b\xb2\xc0\x44\x4f\x5e\x81\xe9\xd0\xef\xb8\x4c\x8c\xcd\xcd\xca\xf8\x4d",
+        .decimals = 18,
+    },
+    {
+        .name = "Freeway Token",
+        .unit = "FWT",
+        .contract_address =
+            "\xf1\x51\x98\x0e\x7a\x78\x14\x81\x70\x9e\x81\x95\x74\x4b\xf2\x39\x9f\xb3\xcb\xa4",
+        .decimals = 18,
+    },
+    {
+        .name = "Finxflo",
+        .unit = "FXF",
+        .contract_address =
+            "\x8a\x40\xc2\x22\x99\x6f\x9f\x34\x31\xf6\x3b\xf8\x02\x44\xc3\x68\x22\x06\x0f\x12",
+        .decimals = 18,
+    },
+    {
+        .name = "Frax Share",
+        .unit = "FXS",
+        .contract_address =
+            "\x34\x32\xb6\xa6\x0d\x23\xca\x0d\xfc\xa7\x76\x1b\x7a\xb5\x64\x59\xd9\xc9\x64\xd0",
+        .decimals = 18,
+    },
+    {
+        .name = "Fyooz",
+        .unit = "FYZ",
+        .contract_address =
+            "\x6b\xff\x2f\xe2\x49\x60\x1e\xd0\xdb\x3a\x87\x42\x4a\x2e\x92\x31\x18\xbb\x03\x12",
+        .decimals = 18,
+    },
+    {
+        .name = "Gala",
+        .unit = "GALA",
+        .contract_address =
+            "\x15\xd4\xc0\x48\xf8\x3b\xd7\xe3\x7d\x49\xea\x4c\x83\xa0\x72\x67\xec\x42\x03\xda",
+        .decimals = 8,
+    },
+    {
+        .name = "Gate",
+        .unit = "GATE",
+        .contract_address =
+            "\x9d\x76\x30\xad\xf7\xab\x0b\x0c\xb0\x0a\xf7\x47\xdb\x76\x86\x4d\xf0\xec\x82\xe4",
+        .decimals = 18,
+    },
+    {
+        .name = "Global Coin Research",
+        .unit = "GCR",
+        .contract_address =
+            "\x63\x07\xb2\x5a\x66\x5e\xfc\x99\x2e\xc1\xc1\xbc\x40\x3c\x38\xf3\xdd\xd7\xc6\x61",
+        .decimals = 4,
+    },
+    {
+        .name = "Governor DAO",
+        .unit = "GDAO",
+        .contract_address =
+            "\x51\x5d\x7e\x9d\x75\xe2\xb7\x6d\xb6\x0f\x8a\x05\x1c\xd8\x90\xeb\xa2\x32\x86\xbc",
+        .decimals = 18,
+    },
+    {
+        .name = "Guider",
+        .unit = "GDR",
+        .contract_address =
+            "\x87\x4d\x4c\x9b\x98\x0f\x1a\x13\xdd\x44\xcb\xcd\xb9\x12\xe2\x4e\xf0\x67\x1e\xd0",
+        .decimals = 18,
+    },
+    {
+        .name = "Bitgear",
+        .unit = "GEAR",
+        .contract_address =
+            "\x1b\x98\x0e\x05\x94\x3d\xe3\xdb\x3a\x45\x9c\x72\x32\x53\x38\xd3\x27\xb6\xf5\xa9",
+        .decimals = 18,
+    },
+    {
+        .name = "Geeq",
+        .unit = "GEEQ",
+        .contract_address =
+            "\x6b\x9f\x03\x1d\x71\x8d\xde\xd0\xd6\x81\xc2\x0c\xb7\x54\xf9\x7b\x3b\xb8\x1b\x78",
+        .decimals = 18,
+    },
+    {
+        .name = "GamyFi Platform",
+        .unit = "GFX",
+        .contract_address =
+            "\x65\xad\x6a\x22\x88\xb2\xdd\x23\xe4\x66\x22\x63\x97\xc8\xf5\xd1\x79\x4e\x58\xfc",
+        .decimals = 18,
+    },
+    {
+        .name = "Aavegotchi",
+        .unit = "GHST",
+        .contract_address =
+            "\x3f\x38\x2d\xbd\x96\x0e\x3a\x9b\xbc\xea\xe2\x26\x51\xe8\x81\x58\xd2\x79\x15\x50",
+        .decimals = 18,
+    },
+    {
+        .name = "GamerCoin",
+        .unit = "GHX",
+        .contract_address =
+            "\x72\x8f\x30\xfa\x2f\x10\x07\x42\xc7\x94\x9d\x19\x61\x80\x4f\xa8\xe0\xb1\x38\x7d",
+        .decimals = 18,
+    },
+    {
+        .name = "Glitch",
+        .unit = "GLCH",
+        .contract_address =
+            "\x03\x8a\x68\xff\x68\xc3\x93\x37\x3e\xc8\x94\x01\x58\x16\xe3\x3a\xd4\x1b\xd5\x64",
+        .decimals = 18,
+    },
+    {
+        .name = "Golem",
+        .unit = "GLM",
+        .contract_address =
+            "\x7d\xd9\xc5\xcb\xa0\x5e\x15\x1c\x89\x5f\xde\x1c\xf3\x55\xc9\xa1\xd5\xda\x64\x29",
+        .decimals = 18,
+    },
+    {
+        .name = "Graphlinq Protocol",
+        .unit = "GLQ",
+        .contract_address =
+            "\x9f\x9c\x8e\xc3\x53\x4c\x3c\xe1\x6f\x92\x83\x81\x37\x2b\xfb\xfb\xfb\x9f\x4d\x24",
+        .decimals = 18,
+    },
+    {
+        .name = "GMB",
+        .unit = "GMB",
+        .contract_address =
+            "\x1b\x14\x8b\x90\x44\x28\x26\x37\x5e\x86\x4b\x71\x16\x5a\x18\xb4\xd9\x25\x60\x97",
+        .decimals = 18,
+    },
+    {
+        .name = "GAMEE",
+        .unit = "GMEE",
+        .contract_address =
+            "\xd9\x01\x6a\x90\x7d\xc0\xec\xfa\x3c\xa4\x25\xab\x20\xb6\xb7\x85\xb4\x2f\x23\x73",
+        .decimals = 18,
+    },
+    {
+        .name = "GMT Token",
+        .unit = "GMT",
+        .contract_address =
+            "\x7d\xdc\x52\xc4\xde\x30\xe9\x4b\xe3\xa6\xa0\xa2\xb2\x59\xb2\x85\x0f\x42\x19\x89",
+        .decimals = 18,
+    },
+    {
+        .name = "GNY",
+        .unit = "GNY",
+        .contract_address =
+            "\xb1\xf8\x71\xae\x94\x62\xf1\xb2\xc6\x82\x6e\x88\xa7\x82\x7e\x76\xf8\x67\x51\xd4",
+        .decimals = 18,
+    },
+    {
+        .name = "Gods Unchained",
+        .unit = "GODS",
+        .contract_address =
+            "\xcc\xc8\xcb\x52\x29\xb0\xac\x80\x69\xc5\x1f\xd5\x83\x67\xfd\x1e\x62\x2a\xfd\x97",
+        .decimals = 18,
+    },
+    {
+        .name = "Golff",
+        .unit = "GOF",
+        .contract_address =
+            "\x48\x8e\x03\x69\xf9\xbc\x5c\x40\xc0\x02\xea\x7c\x1f\xe4\xfd\x01\xa1\x98\x80\x1c",
+        .decimals = 18,
+    },
+    {
+        .name = "Golden Goose",
+        .unit = "GOLD",
+        .contract_address =
+            "\x40\xd1\xf6\x3b\x5d\x20\x48\xe6\x7e\x9b\xed\xb1\xb4\xc2\xf1\xa9\xfb\x4b\x68\x17",
+        .decimals = 18,
+    },
+    {
+        .name = "Govi",
+        .unit = "GOVI",
+        .contract_address =
+            "\xee\xaa\x40\xb2\x8a\x2d\x1b\x0b\x08\xf6\xf9\x7b\xb1\xdd\x4b\x75\x31\x6c\x61\x07",
+        .decimals = 18,
+    },
+    {
+        .name = "GoldenPyrex",
+        .unit = "GPYX",
+        .contract_address =
+            "\x3e\x3c\xda\x32\x18\x21\x25\x03\x88\x3c\x79\xf6\xd2\xfe\xef\x29\xe6\xbb\xb8\x7d",
+        .decimals = 18,
+    },
+    {
+        .name = "RigoBlock",
+        .unit = "GRG",
+        .contract_address =
+            "\x4f\xbb\x35\x00\x52\xbc\xa5\x41\x75\x66\xf1\x88\xeb\x2e\xbc\xe5\xb1\x9b\xc9\x64",
+        .decimals = 18,
+    },
+    {
+        .name = "The Graph",
+        .unit = "GRT",
+        .contract_address =
+            "\xc9\x44\xe9\x0c\x64\xb2\xc0\x76\x62\xa2\x92\xbe\x62\x44\xbd\xf0\x5c\xda\x44\xa7",
+        .decimals = 18,
+    },
+    {
+        .name = "Genesis Shards",
+        .unit = "GS",
+        .contract_address =
+            "\xe0\xb9\xa2\xc3\xe9\xf4\x0c\xf7\x4b\x2c\x7f\x59\x1b\x2b\x0c\xca\x05\x5c\x31\x12",
+        .decimals = 18,
+    },
+    {
+        .name = "Gameswap",
+        .unit = "GSWAP",
+        .contract_address =
+            "\xaa\xc4\x1e\xc5\x12\x80\x8d\x64\x62\x55\x76\xed\xdd\x58\x0e\x7e\xa4\x0e\xf8\xb2",
+        .decimals = 18,
+    },
+    {
+        .name = "Gitcoin",
+        .unit = "GTC",
+        .contract_address =
+            "\xde\x30\xda\x39\xc4\x61\x04\x79\x8b\xb5\xaa\x3f\xe8\xb9\xe0\xe1\xf3\x48\x16\x3f",
+        .decimals = 18,
+    },
+    {
+        .name = "Gather",
+        .unit = "GTH",
+        .contract_address =
+            "\xc3\x77\x1d\x47\xe2\xab\x5a\x51\x9e\x29\x17\xe6\x1e\x23\x07\x8d\x0c\x05\xed\x7f",
+        .decimals = 18,
+    },
+    {
+        .name = "Graviton",
+        .unit = "GTON",
+        .contract_address =
+            "\x01\xe0\xe2\xe6\x1f\x55\x4e\xca\xae\xc0\xcc\x93\x3e\x73\x9a\xd9\x0f\x24\xa8\x6d",
+        .decimals = 18,
+    },
+    {
+        .name = "Gourmet Galaxy",
+        .unit = "GUM",
+        .contract_address =
+            "\x4f\x5f\xa8\xf2\xd1\x2e\x5e\xb7\x80\xf6\x08\x2d\xd6\x56\xc5\x65\xc4\x8e\x0f\x24",
+        .decimals = 18,
+    },
+    {
+        .name = "Gem Exchange And Trading",
+        .unit = "GXT",
+        .contract_address =
+            "\x46\x74\x67\x2b\xcd\xdd\xa2\xea\x53\x00\xf5\x20\x7e\x11\x58\x18\x5c\x94\x4b\xc0",
+        .decimals = 18,
+    },
+    {
+        .name = "GYEN",
+        .unit = "GYEN",
+        .contract_address =
+            "\xc0\x85\x12\x92\x7d\x12\x34\x8f\x66\x20\xa6\x98\x10\x5e\x1b\xaa\xc6\xec\xd9\x11",
+        .decimals = 6,
+    },
+    {
+        .name = "GameZone",
+        .unit = "GZONE",
+        .contract_address =
+            "\xb6\xad\xb7\x4e\xfb\x58\x01\x16\x0f\xf7\x49\xb1\x98\x5f\xd3\xbd\x50\x00\xe9\x38",
+        .decimals = 18,
+    },
+    {
+        .name = "Hakka.Finance",
+        .unit = "HAKKA",
+        .contract_address =
+            "\x0e\x29\xe5\xab\xbb\x5f\xd8\x8e\x28\xb2\xd3\x55\x77\x4e\x73\xbd\x47\xde\x3b\xcd",
+        .decimals = 18,
+    },
+    {
+        .name = "Halving Token",
+        .unit = "HALV",
+        .contract_address =
+            "\x9e\x7c\xb2\x36\xe4\x3c\x4b\xd0\x42\xfe\x46\x3d\xf6\xa1\x75\xd4\x47\x9e\xe1\x86",
+        .decimals = 18,
+    },
+    {
+        .name = "HAPI",
+        .unit = "HAPI",
+        .contract_address =
+            "\xd9\xc2\xd3\x19\xcd\x7e\x61\x77\x33\x6b\x0a\x9c\x93\xc2\x1c\xb4\x8d\x84\xfb\x54",
+        .decimals = 18,
+    },
+    {
+        .name = "Huobi BTC",
+        .unit = "HBTC",
+        .contract_address =
+            "\x03\x16\xeb\x71\x48\x5b\x0a\xb1\x41\x03\x30\x7b\xf6\x5a\x02\x10\x42\xc6\xd3\x80",
+        .decimals = 18,
+    },
+    {
+        .name = "Hegic",
+        .unit = "HEGIC",
+        .contract_address =
+            "\x58\x4b\xc1\x3c\x7d\x41\x1c\x00\xc0\x1a\x62\xe8\x01\x94\x72\xde\x68\x76\x84\x30",
+        .decimals = 18,
+    },
+    {
+        .name = "Hermez Network",
+        .unit = "HEZ",
+        .contract_address =
+            "\xee\xf9\xf3\x39\x51\x42\x98\xc6\xa8\x57\xef\xcf\xc1\xa7\x62\xaf\x84\x43\x8d\xee",
+        .decimals = 18,
+    },
+    {
+        .name = "Hedget",
+        .unit = "HGET",
+        .contract_address =
+            "\x79\x68\xbc\x6a\x03\x01\x7e\xa2\xde\x50\x9a\xaa\x81\x6f\x16\x3d\xb0\xf3\x51\x48",
+        .decimals = 6,
+    },
+    {
+        .name = "HollyGold",
+        .unit = "HGOLD",
+        .contract_address =
+            "\x0c\x93\xb6\x16\x93\x3b\x0c\xd0\x3b\x20\x1b\x29\xcd\x8a\x22\x68\x1d\xd9\xe0\xd9",
+        .decimals = 8,
+    },
+    {
+        .name = "HoDooi.com",
+        .unit = "HOD",
+        .contract_address =
+            "\xce\x16\xa8\x02\x72\x54\x38\xaf\x9b\x4d\xca\xc0\x0e\x77\x91\xe3\xd8\x90\xe3\xb4",
+        .decimals = 18,
+    },
+    {
+        .name = "Hoge Finance",
+        .unit = "HOGE",
+        .contract_address =
+            "\xfa\xd4\x5e\x47\x08\x3e\x46\x07\x30\x2a\xa4\x3c\x65\xfb\x31\x06\xf1\xcd\x76\x07",
+        .decimals = 9,
+    },
+    {
+        .name = "Hord",
+        .unit = "HORD",
+        .contract_address =
+            "\x43\xa9\x69\x62\x25\x48\x55\xf1\x6b\x92\x55\x56\xf9\xe9\x7b\xe4\x36\xa4\x34\x48",
+        .decimals = 18,
+    },
+    {
+        .name = "Hot Cross",
+        .unit = "HOTCROSS",
+        .contract_address =
+            "\x42\x97\x39\x4c\x20\x80\x0e\x8a\x38\xa6\x19\xa2\x43\xe9\xbb\xe7\x68\x1f\xf2\x4e",
+        .decimals = 18,
+    },
+    {
+        .name = "Heart Number",
+        .unit = "HTN",
+        .contract_address =
+            "\x4b\x4b\x1d\x38\x9d\x4f\x4e\x08\x2b\x30\xf7\x5c\x63\x19\xc0\xce\x5a\xcb\xd6\x19",
+        .decimals = 18,
+    },
+    {
+        .name = "Hydro",
+        .unit = "HYDRO",
+        .contract_address =
+            "\x94\x61\x12\xef\xab\x61\xc3\x63\x6c\xbd\x52\xde\x2e\x13\x92\xd7\xa7\x5a\x6f\x01",
+        .decimals = 18,
+    },
+    {
+        .name = "Hyve",
+        .unit = "HYVE",
+        .contract_address =
+            "\xd7\x94\xdd\x1c\xad\xa4\xcf\x79\xc9\xee\xba\xab\x83\x27\xa1\xb0\x50\x7e\xf7\xd4",
+        .decimals = 18,
+    },
+    {
+        .name = "Innovation Blockchain Payment",
+        .unit = "IBP",
+        .contract_address =
+            "\x7d\x14\xb8\x42\x63\x0c\xbc\x25\x30\xcb\x28\x81\x09\xe5\x71\x9e\x0c\x4d\x67\xd7",
+        .decimals = 18,
+    },
+    {
+        .name = "ICHI",
+        .unit = "ICHI",
+        .contract_address =
+            "\x90\x3b\xef\x17\x36\xcd\xdf\x2a\x53\x71\x76\xcf\x3c\x64\x57\x9c\x38\x67\xa8\x81",
+        .decimals = 9,
+    },
+    {
+        .name = "Everest",
+        .unit = "ID",
+        .contract_address =
+            "\xeb\xd9\xd9\x9a\x39\x82\xd5\x47\xc5\xbb\x4d\xb7\xe3\xb1\xf9\xf1\x4b\x67\xeb\x83",
+        .decimals = 18,
+    },
+    {
+        .name = "Ideaology",
+        .unit = "IDEA",
+        .contract_address =
+            "\x5d\x3a\x4f\x62\x12\x44\x98\x09\x2c\xe6\x65\xf8\x65\xe0\xb3\x8f\xf6\xf5\xfb\xea",
+        .decimals = 18,
+    },
+    {
+        .name = "Impossible Decentralized Incubator Access",
+        .unit = "IDIA",
+        .contract_address =
+            "\x0b\x15\xdd\xf1\x9d\x47\xe6\xa8\x6a\x56\x14\x8f\xb4\xaf\xff\xc6\x92\x9b\xcb\x89",
+        .decimals = 18,
+    },
+    {
+        .name = "Idle",
+        .unit = "IDLE",
+        .contract_address =
+            "\x87\x57\x73\x78\x4a\xf8\x13\x5e\xa0\xef\x43\xb5\xa3\x74\xaa\xd1\x05\xc5\xd3\x9e",
+        .decimals = 18,
+    },
+    {
+        .name = "Idavoll Network",
+        .unit = "IDV",
+        .contract_address =
+            "\x92\xec\x47\xdf\x1a\xa1\x67\x80\x6d\xfa\x49\x16\xd9\xcf\xb9\x9d\xa6\x95\x3b\x8f",
+        .decimals = 18,
+    },
+    {
+        .name = "Impossible Finance",
+        .unit = "IF",
+        .contract_address =
+            "\xb0\xe1\xfc\x65\xc1\xa7\x41\xb4\x66\x2b\x81\x3e\xb7\x87\xd3\x69\xb8\x61\x4a\xf1",
+        .decimals = 18,
+    },
+    {
+        .name = "IG Gold",
+        .unit = "IGG",
+        .contract_address =
+            "\x8f\xfe\x40\xa3\xd0\xf8\x0c\x0c\xe6\xb2\x03\xd5\xcd\xc1\xa6\xa8\x6d\x9a\xca\xea",
+        .decimals = 6,
+    },
+    {
+        .name = "Illuvium",
+        .unit = "ILV",
+        .contract_address =
+            "\x76\x7f\xe9\xed\xc9\xe0\xdf\x98\xe0\x74\x54\x84\x79\x09\xb5\xe9\x59\xd7\xca\x0e",
+        .decimals = 18,
+    },
+    {
+        .name = "Immutable X",
+        .unit = "IMX",
+        .contract_address =
+            "\xf5\x7e\x7e\x7c\x23\x97\x8c\x3c\xae\xc3\xc3\x54\x8e\x3d\x61\x5c\x34\x6e\x79\xff",
+        .decimals = 18,
+    },
+    {
+        .name = "Inex Project",
+        .unit = "INEX",
+        .contract_address =
+            "\xa2\xd7\x7f\x83\x53\xcb\x2a\xfd\x70\x9a\xba\x4a\x96\x72\x57\x51\x1e\xcf\xf7\x16",
+        .decimals = 8,
+    },
+    {
+        .name = "Insured Finance",
+        .unit = "INFI",
+        .contract_address =
+            "\x15\x97\x51\x32\x3a\x9e\x04\x15\xdd\x3d\x6d\x42\xa1\x21\x2f\xe9\xf4\xa0\x84\x8c",
+        .decimals = 18,
+    },
+    {
+        .name = "Infinity Esaham",
+        .unit = "INFS",
+        .contract_address =
+            "\x19\x34\x08\xca\x05\x76\xb7\x31\x56\xed\x42\xa2\xea\x7d\x6f\xd3\xf6\x50\x71\x62",
+        .decimals = 1,
+    },
+    {
+        .name = "Injective Protocol",
+        .unit = "INJ",
+        .contract_address =
+            "\xe2\x8b\x3b\x32\xb6\xc3\x45\xa3\x4f\xf6\x46\x74\x60\x61\x24\xdd\x5a\xce\xca\x30",
+        .decimals = 18,
+    },
+    {
+        .name = "InsurAce",
+        .unit = "INSUR",
+        .contract_address =
+            "\x54\x4c\x42\xfb\xb9\x6b\x39\xb2\x1d\xf6\x1c\xf3\x22\xb5\xed\xc2\x85\xee\x74\x29",
+        .decimals = 18,
+    },
+    {
+        .name = "Internet of Energy Network",
+        .unit = "IOEN",
+        .contract_address =
+            "\x1e\x4e\x46\xb7\xbf\x03\xec\xe9\x08\xc8\x8f\xf7\xcc\x49\x75\x56\x00\x10\x89\x3a",
+        .decimals = 18,
+    },
+    {
+        .name = "Island Coin",
+        .unit = "ISLE",
+        .contract_address =
+            "\x16\x81\xbc\xb5\x89\xb3\xcf\xcf\x0c\x06\x16\xb0\xce\x9b\x19\xb2\x40\x64\x3d\xc1",
+        .decimals = 9,
+    },
+    {
+        .name = "Ispolink",
+        .unit = "ISP",
+        .contract_address =
+            "\xc8\x80\x7f\x0f\x5b\xa3\xfa\x45\xff\xbd\xc6\x69\x28\xd7\x1c\x52\x89\x24\x90\x14",
+        .decimals = 18,
+    },
+    {
+        .name = "Integral",
+        .unit = "ITGR",
+        .contract_address =
+            "\xd5\x02\xf4\x87\xe1\x84\x1f\xdc\x80\x51\x30\xe1\x3e\xae\x80\xc6\x11\x86\xbc\x98",
+        .decimals = 18,
+    },
+    {
+        .name = "ITO Utility Token",
+        .unit = "IUT",
+        .contract_address =
+            "\xd3\x6a\x0e\x7b\x74\x15\x42\x20\x8a\xe0\xfb\xb3\x54\x53\xc8\x93\xd0\x13\x66\x25",
+        .decimals = 0,
+    },
+    {
+        .name = "JasmyCoin",
+        .unit = "JASMY",
+        .contract_address =
+            "\x74\x20\xb4\xb9\xa0\x11\x0c\xdc\x71\xfb\x72\x09\x08\x34\x0c\x03\xf9\xbc\x03\xec",
+        .decimals = 18,
+    },
+    {
+        .name = "Juggernaut",
+        .unit = "JGN",
+        .contract_address =
+            "\x73\x37\x4e\xa5\x18\xde\x7a\xdd\xd4\xc2\xb6\x24\xc0\xe8\xb1\x13\x95\x5e\xe0\x41",
+        .decimals = 18,
+    },
+    {
+        .name = "K21",
+        .unit = "K21",
+        .contract_address =
+            "\xb9\xd9\x9c\x33\xea\x2d\x86\xec\x5e\xc6\xb8\xa4\xdd\x81\x6e\xbb\xa6\x44\x04\xaf",
+        .decimals = 18,
+    },
+    {
+        .name = "KamPay",
+        .unit = "KAMPAY",
+        .contract_address =
+            "\x39\x07\xe6\xff\x43\x6e\x2b\x2b\x05\xd6\xb9\x29\xfb\x05\xf1\x4c\x0e\xe1\x8d\x90",
+        .decimals = 18,
+    },
+    {
+        .name = "Kangal",
+        .unit = "KANGAL",
+        .contract_address =
+            "\x6e\x76\x5d\x26\x38\x8a\x17\xa6\xe8\x6c\x49\xa8\xe4\x1d\xf3\xf5\x8a\xbc\xd3\x37",
+        .decimals = 18,
+    },
+    {
+        .name = "Kambria",
+        .unit = "KAT",
+        .contract_address =
+            "\x14\xda\x23\x0d\x67\x26\xc5\x0f\x75\x9b\xc1\x83\x87\x17\xf8\xce\x63\x73\x50\x9c",
+        .decimals = 18,
+    },
+    {
+        .name = "Phantasma Energy",
+        .unit = "KCAL",
+        .contract_address =
+            "\x14\xeb\x60\xf5\xf2\x70\xb0\x59\xb0\xc7\x88\xde\x0d\xdc\x51\xda\x86\xf8\xa0\x6d",
+        .decimals = 10,
+    },
+    {
+        .name = "KuCoin Token",
+        .unit = "KCS",
+        .contract_address =
+            "\xf3\x49\x60\xd9\xd6\x0b\xe1\x8c\xc1\xd5\xaf\xc1\xa6\xf0\x12\xa7\x23\xa2\x88\x11",
+        .decimals = 6,
+    },
+    {
+        .name = "KeyFi",
+        .unit = "KEYFI",
+        .contract_address =
+            "\xb8\x64\x7e\x90\xc0\x64\x51\x52\xfc\xcf\x4d\x9a\xbb\x6b\x59\xeb\x4a\xa9\x90\x52",
+        .decimals = 18,
+    },
+    {
+        .name = "Knit Finance",
+        .unit = "KFT",
+        .contract_address =
+            "\xef\x53\x46\x28\x38\x00\x01\x84\xf3\x5f\x7d\x99\x14\x52\xe5\xf2\x51\x10\xb2\x07",
+        .decimals = 18,
+    },
+    {
+        .name = "KickToken",
+        .unit = "KICK",
+        .contract_address =
+            "\x82\x4a\x50\xdf\x33\xac\x1b\x41\xaf\xc5\x2f\x41\x94\xe2\xe8\x35\x6c\x17\xc3\xac",
+        .decimals = 10,
+    },
+    {
+        .name = "KIMCHI.finance",
+        .unit = "KIMCHI",
+        .contract_address =
+            "\x1e\x18\x82\x1e\x69\xb9\xfa\xa8\xe6\xe7\x5d\xff\xe5\x4e\x7e\x25\x75\x4b\xed\xa0",
+        .decimals = 18,
+    },
+    {
+        .name = "DexKit",
+        .unit = "KIT",
+        .contract_address =
+            "\x78\x66\xe4\x8c\x74\xcb\xfb\x81\x83\xcd\x1a\x92\x9c\xd9\xb9\x5a\x7a\x5c\xb4\xf4",
+        .decimals = 18,
+    },
+    {
+        .name = "Kineko",
+        .unit = "KKO",
+        .contract_address =
+            "\x36\x8c\x52\x90\xb1\x3c\xaa\x10\x28\x4d\xb5\x8b\x4a\xd4\xf3\xe9\xee\x8b\xf4\xc9",
+        .decimals = 18,
+    },
+    {
+        .name = "Kyber Network Crystal v2",
+        .unit = "KNC",
+        .contract_address =
+            "\xde\xfa\x4e\x8a\x7b\xcb\xa3\x45\xf6\x87\xa2\xf1\x45\x6f\x5e\xdd\x9c\xe9\x72\x02",
+        .decimals = 18,
+    },
+    {
+        .name = "KOK",
+        .unit = "KOK",
+        .contract_address =
+            "\x9b\x96\x47\x43\x16\x32\xaf\x44\xbe\x02\xdd\xd2\x24\x77\xed\x94\xd1\x4a\xac\xaa",
+        .decimals = 18,
+    },
+    {
+        .name = "Crypto Kombat",
+        .unit = "KOMBAT",
+        .contract_address =
+            "\x87\x8c\xf1\x48\xcc\xbb\x50\x42\x60\x43\xa9\xaf\xfe\x54\xba\x40\x82\x21\xc7\xfa",
+        .decimals = 8,
+    },
+    {
+        .name = "Konomi Network",
+        .unit = "KONO",
+        .contract_address =
+            "\x85\x0a\xab\x69\xf0\xe0\x17\x1a\x9a\x49\xdb\x8b\xe3\xe7\x13\x51\xc8\x24\x7d\xf4",
+        .decimals = 18,
+    },
+    {
+        .name = "Keep3rV1",
+        .unit = "KP3R",
+        .contract_address =
+            "\x1c\xeb\x5c\xb5\x7c\x4d\x4e\x2b\x24\x33\x64\x1b\x95\xdd\x33\x0a\x33\x18\x5a\x44",
+        .decimals = 18,
+    },
+    {
+        .name = "Keep4r",
+        .unit = "KP4R",
+        .contract_address =
+            "\xa8\x9a\xc6\xe5\x29\xac\xf3\x91\xcf\xbb\xd3\x77\xf3\xac\x9d\x93\xea\xe9\x66\x4e",
+        .decimals = 18,
+    },
+    {
+        .name = "Kush Finance",
+        .unit = "KSEED",
+        .contract_address =
+            "\x3f\x09\x40\x03\x13\xe8\x3d\x53\x36\x61\x47\xe3\xea\x0e\x4e\x22\x79\xd8\x08\x50",
+        .decimals = 18,
+    },
+    {
+        .name = "Katalyo",
+        .unit = "KTLYO",
+        .contract_address =
+            "\x24\xe3\x79\x46\x05\xc8\x4e\x58\x0e\xea\x49\x72\x73\x8d\x63\x3e\x8a\x71\x27\xc8",
+        .decimals = 18,
+    },
+    {
+        .name = "Kattana",
+        .unit = "KTN",
+        .contract_address =
+            "\x49\x1e\x13\x6f\xf7\xff\x03\xe6\xab\x09\x7e\x54\x73\x46\x97\xbb\x58\x02\xfc\x1c",
+        .decimals = 18,
+    },
+    {
+        .name = "Kwikswap Protocol",
+        .unit = "KWIK",
+        .contract_address =
+            "\x28\x6c\x09\x36\xc7\xea\xf6\x65\x10\x99\xab\x5d\xab\x9e\xe5\xa6\xcb\x5d\x22\x9d",
+        .decimals = 18,
+    },
+    {
+        .name = "Kylin",
+        .unit = "KYL",
+        .contract_address =
+            "\x67\xb6\xd4\x79\xc7\xbb\x41\x2c\x54\xe0\x3d\xca\x8e\x1b\xc6\x74\x0c\xe6\xb9\x9c",
+        .decimals = 18,
+    },
+    {
+        .name = "Leverj Gluon",
+        .unit = "L2",
+        .contract_address =
+            "\xbb\xff\x34\xe4\x7e\x55\x9e\xf6\x80\x06\x7a\x6b\x1c\x98\x06\x39\xee\xb6\x4d\x24",
+        .decimals = 18,
+    },
+    {
+        .name = "Lepricon",
+        .unit = "L3P",
+        .contract_address =
+            "\xde\xf1\xda\x03\x06\x1d\xdd\x2a\x5e\xf6\xc5\x92\x20\xc1\x35\xde\xc6\x23\x11\x6d",
+        .decimals = 18,
+    },
+    {
+        .name = "LABS Group",
+        .unit = "LABS",
+        .contract_address =
+            "\x8b\x0e\x42\xf3\x66\xba\x50\x2d\x78\x7b\xb1\x34\x47\x8a\xdf\xae\x96\x6c\x87\x98",
+        .decimals = 18,
+    },
+    {
+        .name = "Landbox",
+        .unit = "LAND",
+        .contract_address =
+            "\x0e\x2e\xf8\xae\xcb\x3c\x01\xad\x5d\x59\x6f\x1b\x67\x13\x4e\x17\x81\x99\x98\x4d",
+        .decimals = 18,
+    },
+    {
+        .name = "UniLayer",
+        .unit = "LAYER",
+        .contract_address =
+            "\x0f\xf6\xff\xcf\xda\x92\xc5\x3f\x61\x5a\x4a\x75\xd9\x82\xf3\x99\xc9\x89\x36\x6b",
+        .decimals = 18,
+    },
+    {
+        .name = "LCMS",
+        .unit = "LCMS",
+        .contract_address =
+            "\x86\x91\x1b\x82\xbf\xa5\x96\xe9\x37\x78\x36\x83\x8a\xc1\xf0\xd9\xad\x4e\xcc\x19",
+        .decimals = 18,
+    },
+    {
+        .name = "Lido DAO Token",
+        .unit = "LDO",
+        .contract_address =
+            "\x5a\x98\xfc\xbe\xa5\x16\xcf\x06\x85\x72\x15\x77\x9f\xd8\x12\xca\x3b\xef\x1b\x32",
+        .decimals = 18,
+    },
+    {
+        .name = "Lead Wallet",
+        .unit = "LEAD",
+        .contract_address =
+            "\x1d\xd8\x00\x16\xe3\xd4\xae\x14\x6e\xe2\xeb\xb4\x84\xe8\xed\xd9\x2d\xac\xc4\xce",
+        .decimals = 18,
+    },
+    {
+        .name = "LGCY Network",
+        .unit = "LGCY",
+        .contract_address =
+            "\xae\x69\x7f\x99\x4f\xc5\xeb\xc0\x00\xf8\xe2\x2e\xbf\xfe\xe0\x46\x12\xf9\x8a\x0d",
+        .decimals = 18,
+    },
+    {
+        .name = "Life Crypto",
+        .unit = "LIFE",
+        .contract_address =
+            "\x6c\x93\x6d\x4a\xe9\x8e\x6d\x21\x72\xdb\x18\xc1\x6c\x4b\x60\x1c\x99\x91\x8e\xe6",
+        .decimals = 18,
+    },
+    {
+        .name = "Linear",
+        .unit = "LINA",
+        .contract_address =
+            "\x3e\x9b\xc2\x1c\x9b\x18\x9c\x09\xdf\x3e\xf1\xb8\x24\x79\x86\x58\xd5\x01\x19\x37",
+        .decimals = 18,
+    },
+    {
+        .name = "Litentry",
+        .unit = "LIT",
+        .contract_address =
+            "\xb5\x94\x90\xab\x09\xa0\xf5\x26\xcc\x73\x05\x82\x2a\xc6\x5f\x2a\xb1\x2f\x97\x23",
+        .decimals = 18,
+    },
+    {
+        .name = "Lithium",
+        .unit = "LITH",
+        .contract_address =
+            "\x18\x8e\x81\x7b\x02\xe6\x35\xd4\x82\xae\x4d\x81\xe2\x5d\xda\x98\xa9\x7c\x4a\x42",
+        .decimals = 18,
+    },
+    {
+        .name = "Lith Token",
+        .unit = "LITH",
+        .contract_address =
+            "\xf8\xa4\xa4\x19\xc2\xd7\x14\x0e\x49\xef\x95\x2a\x7e\x7a\xe1\xbd\x4a\x8b\x6b\x9c",
+        .decimals = 18,
+    },
+    {
+        .name = "Polkalokr",
+        .unit = "LKR",
+        .contract_address =
+            "\x80\xce\x30\x27\xa7\x0e\x0a\x92\x8d\x92\x68\x99\x4e\x9b\x85\xd0\x3b\xd4\xcd\xcf",
+        .decimals = 18,
+    },
+    {
+        .name = "Linker Coin",
+        .unit = "LNC",
+        .contract_address =
+            "\x6b\xeb\x41\x8f\xc6\xe1\x95\x82\x04\xac\x8b\xad\xdc\xf1\x09\xb8\xe9\x69\x49\x66",
+        .decimals = 18,
+    },
+    {
+        .name = "LOCGame",
+        .unit = "LOCG",
+        .contract_address =
+            "\x60\xeb\x57\xd0\x85\xc5\x99\x32\xd5\xfa\xa6\xc6\x02\x62\x68\xa4\x38\x69\x27\xd0",
+        .decimals = 18,
+    },
+    {
+        .name = "Meridian Network",
+        .unit = "LOCK",
+        .contract_address =
+            "\x95\x17\x2c\xcb\xe8\x34\x4f\xec\xd7\x3d\x0a\x30\xf5\x41\x23\x65\x29\x81\xbd\x6f",
+        .decimals = 18,
+    },
+    {
+        .name = "Tokenlon Network Token",
+        .unit = "LON",
+        .contract_address =
+            "\x00\x00\x00\x00\x00\x09\x54\x13\xaf\xc2\x95\xd1\x9e\xde\xb1\xad\x7b\x71\xc9\x52",
+        .decimals = 18,
+    },
+    {
+        .name = "$LONDON",
+        .unit = "LONDON",
+        .contract_address =
+            "\x49\x1d\x6b\x7d\x68\x22\xd5\xd4\xbc\x88\xa1\x26\x4e\x1b\x47\x79\x1f\xd8\xe9\x04",
+        .decimals = 18,
+    },
+    {
+        .name = "Loom Network",
+        .unit = "LOOM",
+        .contract_address =
+            "\x42\x47\x6f\x74\x42\x92\x10\x7e\x34\x51\x9f\x9c\x35\x79\x27\x07\x4e\xa3\xf7\x5d",
+        .decimals = 18,
+    },
+    {
+        .name = "NFTLootBox",
+        .unit = "LOOT",
+        .contract_address =
+            "\x7b\x3d\x36\xeb\x60\x6f\x87\x3a\x75\xa6\xab\x68\xf8\xc9\x99\x84\x8b\x04\xf9\x35",
+        .decimals = 18,
+    },
+    {
+        .name = "Lotto",
+        .unit = "LOTTO",
+        .contract_address =
+            "\xb0\xdf\xd2\x8d\x3c\xf7\xa5\x89\x7c\x69\x49\x04\xac\xe2\x92\x53\x92\x42\xf8\x58",
+        .decimals = 18,
+    },
+    {
+        .name = "Liquity",
+        .unit = "LQTY",
+        .contract_address =
+            "\x6d\xea\x81\xc8\x17\x1d\x0b\xa5\x74\x75\x4e\xf6\xf8\xb4\x12\xf2\xed\x88\xc5\x4d",
+        .decimals = 18,
+    },
+    {
+        .name = "Lossless",
+        .unit = "LSS",
+        .contract_address =
+            "\x3b\x9b\xe0\x7d\x62\x2a\xcc\xae\xd7\x8f\x47\x9b\xc0\xed\xab\xfd\x63\x97\xe3\x20",
+        .decimals = 18,
+    },
+    {
+        .name = "Lattice Token",
+        .unit = "LTX",
+        .contract_address =
+            "\xa3\x93\x47\x3d\x64\xd2\xf9\xf0\x26\xb6\x0b\x6d\xf7\x85\x9a\x68\x97\x15\xd0\x92",
+        .decimals = 8,
+    },
+    {
+        .name = "LuaSwap",
+        .unit = "LUA",
+        .contract_address =
+            "\xb1\xf6\x69\x97\xa5\x76\x04\x28\xd3\xa8\x7d\x68\xb9\x0b\xfe\x0a\xe6\x41\x21\xcc",
+        .decimals = 18,
+    },
+    {
+        .name = "Liquity USD",
+        .unit = "LUSD",
+        .contract_address =
+            "\x5f\x98\x80\x5a\x4e\x8b\xe2\x55\xa3\x28\x80\xfd\xec\x7f\x67\x28\xc6\x56\x8b\xa0",
+        .decimals = 18,
+    },
+    {
+        .name = "LYNC Network",
+        .unit = "LYNC",
+        .contract_address =
+            "\x8f\x87\xec\x6a\xad\x3b\x2a\x8c\x44\xf1\x29\x8a\x1a\xf5\x61\x69\xb8\xe5\x74\xcf",
+        .decimals = 18,
+    },
+    {
+        .name = "MahaDAO",
+        .unit = "MAHA",
+        .contract_address =
+            "\xb4\xd9\x30\x27\x95\x52\x39\x7b\xba\x2e\xe4\x73\x22\x9f\x89\xec\x24\x5b\xc3\x65",
+        .decimals = 18,
+    },
+    {
+        .name = "MAP Protocol",
+        .unit = "MAP",
+        .contract_address =
+            "\x9e\x97\x6f\x21\x1d\xae\xa0\xd6\x52\x91\x2a\xb9\x9b\x0d\xc2\x1a\x7f\xd7\x28\xe4",
+        .decimals = 18,
+    },
+    {
+        .name = "MAPS",
+        .unit = "MAPS",
+        .contract_address =
+            "\x2b\x91\x5b\x50\x5c\x01\x7a\xbb\x15\x47\xaa\x5a\xb3\x55\xfb\xe6\x98\x65\xcc\x6d",
+        .decimals = 6,
+    },
+    {
+        .name = "Benchmark Protocol",
+        .unit = "MARK",
+        .contract_address =
+            "\x67\xc5\x97\x62\x4b\x17\xb1\x6f\xb7\x79\x59\x21\x73\x60\xb7\xcd\x18\x28\x42\x53",
+        .decimals = 9,
+    },
+    {
+        .name = "UnMarshal",
+        .unit = "MARSH",
+        .contract_address =
+            "\x5a\x66\x6c\x7d\x92\xe5\xfa\x7e\xdc\xb6\x39\x0e\x4e\xfd\x6d\x0c\xdd\x69\xcf\x37",
+        .decimals = 18,
+    },
+    {
+        .name = "Mask Network",
+        .unit = "MASK",
+        .contract_address =
+            "\x69\xaf\x81\xe7\x3a\x73\xb4\x0a\xdf\x4f\x3d\x42\x23\xcd\x9b\x1e\xce\x62\x30\x74",
+        .decimals = 18,
+    },
+    {
+        .name = "MASQ",
+        .unit = "MASQ",
+        .contract_address =
+            "\x06\xf3\xc3\x23\xf0\x23\x8c\x72\xbf\x35\x01\x10\x71\xf2\xb5\xb7\xf4\x3a\x05\x4c",
+        .decimals = 18,
+    },
+    {
+        .name = "AntiMatter",
+        .unit = "MATTER",
+        .contract_address =
+            "\x9b\x99\xcc\xa8\x71\xbe\x05\x11\x9b\x20\x12\xfd\x44\x74\x73\x1d\xd6\x53\xfe\xbe",
+        .decimals = 18,
+    },
+    {
+        .name = "Mobilian Coin",
+        .unit = "MBN",
+        .contract_address =
+            "\xaf\x80\x95\x12\x01\xa0\xef\xf8\x5a\x0f\xd3\xad\xf4\xc7\x04\x3d\xb8\x56\xd3\xe6",
+        .decimals = 18,
+    },
+    {
+        .name = "megaBONK",
+        .unit = "MBONK",
+        .contract_address =
+            "\xac\xfe\x45\xc3\x52\xc9\x02\xae\x3a\x3f\x9b\x6b\xfe\x6e\xc9\x94\xc5\xd7\x91\xbf",
+        .decimals = 18,
+    },
+    {
+        .name = "Merit Circle",
+        .unit = "MC",
+        .contract_address =
+            "\x94\x9d\x48\xec\xa6\x7b\x17\x26\x96\x29\xc7\x19\x4f\x4b\x72\x7d\x4e\xf9\xe5\xd6",
+        .decimals = 18,
+    },
+    {
+        .name = "Degenerator Meme",
+        .unit = "MEME",
+        .contract_address =
+            "\xd5\x52\x5d\x39\x78\x98\xe5\x50\x20\x75\xea\x5e\x83\x0d\x89\x14\xf6\xf0\xaf\xfe",
+        .decimals = 8,
+    },
+    {
+        .name = "MesChain",
+        .unit = "MES",
+        .contract_address =
+            "\x8f\x11\x35\xea\x4f\x89\x46\x94\x94\x41\x71\x6d\x66\xe5\x39\x0c\x5a\x99\x0d\xf0",
+        .decimals = 8,
+    },
+    {
+        .name = "MetisDAO",
+        .unit = "METIS",
+        .contract_address =
+            "\x9e\x32\xb1\x3c\xe7\xf2\xe8\x0a\x01\x93\x2b\x42\x55\x36\x52\xe0\x53\xd6\xed\x8e",
+        .decimals = 18,
+    },
+    {
+        .name = "Mainstream For The Underground",
+        .unit = "MFTU",
+        .contract_address =
+            "\xba\x74\x55\x13\xac\xeb\xcb\xb9\x77\x49\x7c\x56\x9d\x4f\x7d\x34\x0f\x2a\x93\x6b",
+        .decimals = 18,
+    },
+    {
+        .name = "Spaceswap MILK2",
+        .unit = "MILK2",
+        .contract_address =
+            "\x80\xc8\xc3\xdc\xfb\x85\x4f\x95\x42\x56\x7c\x8d\xac\x3f\x44\xd7\x09\xeb\xc1\xde",
+        .decimals = 18,
+    },
+    {
+        .name = "Public Mint",
+        .unit = "MINT",
+        .contract_address =
+            "\x0c\xdf\x9a\xcd\x87\xe9\x40\x83\x7f\xf2\x1b\xb4\x0c\x9f\xd5\x5f\x68\xbb\xa0\x59",
+        .decimals = 18,
+    },
+    {
+        .name = "Mirror Protocol",
+        .unit = "MIR",
+        .contract_address =
+            "\x09\xa3\xec\xaf\xa8\x17\x26\x8f\x77\xbe\x12\x83\x17\x6b\x94\x6c\x4f\xf2\xe6\x08",
+        .decimals = 18,
+    },
+    {
+        .name = "MILC Platform",
+        .unit = "MLT",
+        .contract_address =
+            "\x95\x06\xd3\x7f\x70\xeb\x4c\x3d\x79\xc3\x98\xd3\x26\xc8\x71\xab\xbf\x10\x52\x1d",
+        .decimals = 18,
+    },
+    {
+        .name = "Minereum",
+        .unit = "MNE",
+        .contract_address =
+            "\x42\x6c\xa1\xea\x24\x06\xc0\x7d\x75\xdb\x95\x85\xf2\x27\x81\xc0\x96\xe3\xd0\xe0",
+        .decimals = 8,
+    },
+    {
+        .name = "Morpheus.Network",
+        .unit = "MNW",
+        .contract_address =
+            "\xd3\xe4\xba\x56\x90\x45\x54\x6d\x09\xcf\x02\x1e\xcc\x5d\xfe\x42\xb1\xd7\xf6\xe4",
+        .decimals = 18,
+    },
+    {
+        .name = "Modefi",
+        .unit = "MOD",
+        .contract_address =
+            "\xea\x1e\xa0\x97\x2f\xa0\x92\xdd\x46\x3f\x29\x68\xf9\xbb\x51\xcc\x4c\x98\x1d\x71",
+        .decimals = 18,
+    },
+    {
+        .name = "Mochi Market",
+        .unit = "MOMA",
+        .contract_address =
+            "\xbd\x18\x48\xe1\x49\x1d\x43\x08\xad\x18\x28\x7a\x74\x5d\xd4\xdb\x2a\x4b\xd5\x5b",
+        .decimals = 18,
+    },
+    {
+        .name = "Monavale",
+        .unit = "MONA",
+        .contract_address =
+            "\x27\x5f\x5a\xd0\x3b\xe0\xfa\x22\x1b\x4c\x66\x49\xb8\xae\xe0\x9a\x42\xd9\x41\x2a",
+        .decimals = 18,
+    },
+    {
+        .name = "MoonSwap",
+        .unit = "MOON",
+        .contract_address =
+            "\x68\xa3\x63\x7b\xa6\xe7\x5c\x0f\x66\xb6\x1a\x42\x63\x9c\x4e\x9f\xcd\x3d\x48\x24",
+        .decimals = 18,
+    },
+    {
+        .name = "MoonTools",
+        .unit = "MOONS",
+        .contract_address =
+            "\x26\x0e\x63\xd9\x1f\xcc\xc4\x99\x60\x6b\xae\x3f\xe9\x45\xc4\xed\x1c\xf5\x6a\x56",
+        .decimals = 18,
+    },
+    {
+        .name = "Dotmoovs",
+        .unit = "MOOV",
+        .contract_address =
+            "\x24\xec\x2c\xa1\x32\xab\xf8\xf6\xf8\xa6\xe2\x4a\x1b\x97\x94\x3e\x31\xf2\x56\xa7",
+        .decimals = 18,
+    },
+    {
+        .name = "More Coin",
+        .unit = "MORE",
+        .contract_address =
+            "\x30\x5d\xe0\x70\x48\x8c\x84\x69\xdf\xac\x95\x72\x26\xc9\xc9\x00\xc4\xbf\xba\x22",
+        .decimals = 8,
+    },
+    {
+        .name = "88mph",
+        .unit = "MPH",
+        .contract_address =
+            "\x88\x88\x80\x1a\xf4\xd9\x80\x68\x2e\x47\xf1\xa9\x03\x6e\x58\x94\x79\xe8\x35\xc5",
+        .decimals = 18,
+    },
+    {
+        .name = "Maple",
+        .unit = "MPL",
+        .contract_address =
+            "\x33\x34\x9b\x28\x20\x65\xb0\x28\x4d\x75\x6f\x05\x77\xfb\x39\xc1\x58\xf9\x35\xe6",
+        .decimals = 18,
+    },
+    {
+        .name = "Misbloc",
+        .unit = "MSB",
+        .contract_address =
+            "\x84\xc7\x22\xe6\xf1\x36\x3e\x8d\x5c\x6d\xb3\xea\x60\x0b\xef\x9a\x00\x6d\xa8\x24",
+        .decimals = 18,
+    },
+    {
+        .name = "Method Finance",
+        .unit = "MTHD",
+        .contract_address =
+            "\x84\xba\x4a\xec\xfd\xe3\x9d\x69\x68\x6a\x84\x1b\xab\x43\x4c\x32\xd1\x79\xa1\x69",
+        .decimals = 18,
+    },
+    {
+        .name = "Mettalex",
+        .unit = "MTLX",
+        .contract_address =
+            "\x2e\x1e\x15\xc4\x4f\xfe\x4d\xf6\xa0\xcb\x73\x71\xcd\x00\xd5\x02\x8e\x57\x1d\x14",
+        .decimals = 18,
+    },
+    {
+        .name = "Muse",
+        .unit = "MUSE",
+        .contract_address =
+            "\xb6\xca\x73\x99\xb4\xf9\xca\x56\xfc\x27\xcb\xff\x44\xf4\xd2\xe4\xee\xf1\xfc\x81",
+        .decimals = 18,
+    },
+    {
+        .name = "MileVerse",
+        .unit = "MVC",
+        .contract_address =
+            "\x58\x19\x11\xb3\x60\xb6\xeb\x3a\x14\xef\x29\x5a\x83\xa9\x1d\xc2\xbc\xe2\xd6\xf7",
+        .decimals = 18,
+    },
+    {
+        .name = "MarsX",
+        .unit = "MX",
+        .contract_address =
+            "\xe0\xdf\x31\xd0\x6d\x72\xb2\xf5\x23\x14\x89\xaf\x0e\xdc\x42\x2b\x37\x2f\x49\xf1",
+        .decimals = 18,
+    },
+    {
+        .name = "Multiplier",
+        .unit = "MXX",
+        .contract_address =
+            "\x8a\x6f\x3b\xf5\x2a\x26\xa2\x15\x31\x51\x4e\x23\x01\x6e\xea\xe8\xba\x7e\x70\x18",
+        .decimals = 8,
+    },
+    {
+        .name = "Mysterium",
+        .unit = "MYST",
+        .contract_address =
+            "\x4c\xf8\x9c\xa0\x6a\xd9\x97\xbc\x73\x2d\xc8\x76\xed\x2a\x7f\x26\xa9\xe7\xf3\x61",
+        .decimals = 18,
+    },
+    {
+        .name = "NFTify",
+        .unit = "N1",
+        .contract_address =
+            "\xac\xbd\x82\x63\x94\x18\x9c\xf2\x62\x3c\x6d\xf9\x8a\x18\xb4\x1f\xc8\xff\xc1\x6d",
+        .decimals = 18,
+    },
+    {
+        .name = "Ethernaal",
+        .unit = "NAAL",
+        .contract_address =
+            "\xc1\x33\x52\x9e\x57\x68\x1b\x29\x99\x70\x8f\x94\x58\xbe\x56\x34\xe2\x93\x99\x5e",
+        .decimals = 18,
+    },
+    {
+        .name = "PolkaDomain",
+        .unit = "NAME",
+        .contract_address =
+            "\xe1\xa4\xc5\xbb\xb7\x04\xa9\x25\x99\xfe\xdb\x19\x1f\x45\x1e\x0d\x3a\x1e\xd8\x42",
+        .decimals = 18,
+    },
+    {
+        .name = "Nuco.cloud",
+        .unit = "NCDT",
+        .contract_address =
+            "\xe0\xc8\xb2\x98\xdb\x4c\xff\xe0\x5d\x1b\xea\x0b\xb1\xba\x41\x45\x22\xb3\x3c\x1b",
+        .decimals = 18,
+    },
+    {
+        .name = "Name Change Token",
+        .unit = "NCT",
+        .contract_address =
+            "\x8a\x9c\x4d\xfe\x8b\x9d\x89\x62\xb3\x1e\x4e\x16\xf8\x32\x1c\x44\xd4\x8e\x24\x6e",
+        .decimals = 18,
+    },
+    {
+        .name = "Node Runners",
+        .unit = "NDR",
+        .contract_address =
+            "\x73\x97\x63\xa2\x58\x64\x09\x19\x98\x1f\x9b\xa6\x10\xae\x65\x49\x24\x55\xbe\x53",
+        .decimals = 18,
+    },
+    {
+        .name = "Indexed Finance",
+        .unit = "NDX",
+        .contract_address =
+            "\x86\x77\x2b\x14\x09\xb6\x1c\x63\x9e\xaa\xc9\xba\x0a\xcf\xbb\x6e\x23\x8e\x5f\x83",
+        .decimals = 18,
+    },
+    {
+        .name = "NFT",
+        .unit = "NFT",
+        .contract_address =
+            "\xcb\x8d\x12\x60\xf9\xc9\x2a\x3a\x54\x5d\x40\x94\x66\x28\x0f\xfd\xd7\xaf\x70\x42",
+        .decimals = 18,
+    },
+    {
+        .name = "NFT Index",
+        .unit = "NFTI",
+        .contract_address =
+            "\xe5\xfe\xea\xc0\x9d\x36\xb1\x8b\x3f\xa7\x57\xe5\xcf\x3f\x8d\xa6\xb8\xe2\x7f\x4c",
+        .decimals = 18,
+    },
+    {
+        .name = "NFTX",
+        .unit = "NFTX",
+        .contract_address =
+            "\x87\xd7\x3e\x91\x6d\x70\x57\x94\x5c\x9b\xcd\x8c\xdd\x94\xe4\x2a\x6f\x47\xf7\x76",
+        .decimals = 18,
+    },
+    {
+        .name = "Non-Fungible Yearn",
+        .unit = "NFY",
+        .contract_address =
+            "\x1c\xbb\x83\xeb\xcd\x55\x2d\x5e\xbf\x81\x31\xef\x8c\x9c\xd9\xd9\xba\xb3\x42\xbc",
+        .decimals = 18,
+    },
+    {
+        .name = "e-Money",
+        .unit = "NGM",
+        .contract_address =
+            "\xed\x0d\x57\x47\xa9\xab\x03\xa7\x5f\xbf\xec\x32\x28\xcd\x55\x84\x82\x45\xb7\x5d",
+        .decimals = 6,
+    },
+    {
+        .name = "Unifty",
+        .unit = "NIF",
+        .contract_address =
+            "\x7e\x29\x18\x90\xb0\x1e\x51\x81\xf7\xec\xc9\x8d\x79\xff\xbe\x12\xad\x23\xdf\x9e",
+        .decimals = 18,
+    },
+    {
+        .name = "Autonio",
+        .unit = "NIOX",
+        .contract_address =
+            "\xc8\x13\xea\x5e\x3b\x48\xbe\xbe\xed\xb7\x96\xab\x42\xa3\x0c\x55\x99\xb0\x17\x40",
+        .decimals = 4,
+    },
+    {
+        .name = "Syntropy",
+        .unit = "NOIA",
+        .contract_address =
+            "\xa8\xc8\xcf\xb1\x41\xa3\xbb\x59\xfe\xa1\xe2\xea\x6b\x79\xb5\xec\xbc\xd7\xb6\xca",
+        .decimals = 18,
+    },
+    {
+        .name = "Nord Finance",
+        .unit = "NORD",
+        .contract_address =
+            "\x6e\x97\x30\xec\xff\xbe\xd4\x3f\xd8\x76\xa2\x64\xc9\x82\xe2\x54\xef\x05\xa0\xde",
+        .decimals = 18,
+    },
+    {
+        .name = "Neutrino Token",
+        .unit = "NSBT",
+        .contract_address =
+            "\x9d\x79\xd5\xb6\x1d\xe5\x9d\x88\x2c\xe9\x01\x25\xb1\x8f\x74\xaf\x65\x0a\xcb\x93",
+        .decimals = 6,
+    },
+    {
+        .name = "Nsure.Network",
+        .unit = "NSURE",
+        .contract_address =
+            "\x20\x94\x5c\xa1\xdf\x56\xd2\x37\xfd\x40\x03\x6d\x47\xe8\x66\xc7\xdc\xcd\x21\x14",
+        .decimals = 18,
+    },
+    {
+        .name = "NuCypher",
+        .unit = "NU",
+        .contract_address =
+            "\x4f\xe8\x32\x13\xd5\x63\x08\x33\x0e\xc3\x02\xa8\xbd\x64\x1f\x1d\x01\x13\xa4\xcc",
+        .decimals = 18,
+    },
+    {
+        .name = "Peanut",
+        .unit = "NUX",
+        .contract_address =
+            "\x89\xbd\x2e\x7e\x38\x8f\xab\x44\xae\x88\xbe\xf4\xe1\xad\x12\xb4\xf1\xe0\x91\x1c",
+        .decimals = 18,
+    },
+    {
+        .name = "Newscrypto",
+        .unit = "NWC",
+        .contract_address =
+            "\x96\x8f\x6f\x89\x8a\x6d\xf9\x37\xfc\x18\x59\xb3\x23\xac\x2f\x14\x64\x3e\x3f\xed",
+        .decimals = 18,
+    },
+    {
+        .name = "O3 Swap",
+        .unit = "O3",
+        .contract_address =
+            "\xee\x98\x01\x66\x9c\x61\x38\xe8\x4b\xd5\x0d\xeb\x50\x08\x27\xb7\x76\x77\x7d\x28",
+        .decimals = 18,
+    },
+    {
+        .name = "Ocean Protocol",
+        .unit = "OCEAN",
+        .contract_address =
+            "\x96\x7d\xa4\x04\x8c\xd0\x7a\xb3\x78\x55\xc0\x90\xaa\xf3\x66\xe4\xce\x1b\x9f\x48",
+        .decimals = 18,
+    },
+    {
+        .name = "OctoFi",
+        .unit = "OCTO",
+        .contract_address =
+            "\x72\x40\xac\x91\xf0\x12\x33\xba\xaf\x8b\x06\x42\x48\xe8\x0f\xea\xa5\x91\x2b\xa3",
+        .decimals = 18,
+    },
+    {
+        .name = "Oddz",
+        .unit = "ODDZ",
+        .contract_address =
+            "\xcd\x28\x28\xfc\x4d\x8e\x8a\x0e\xde\x91\xbb\x38\xcf\x64\xb1\xa8\x1d\xe6\x5b\xf6",
+        .decimals = 18,
+    },
+    {
+        .name = "OIN Finance",
+        .unit = "OIN",
+        .contract_address =
+            "\x9a\xeb\x50\xf5\x42\x05\x01\x72\x35\x9a\x0e\x1a\x25\xa9\x93\x3b\xc8\xc0\x12\x59",
+        .decimals = 8,
+    },
+    {
+        .name = "Olyseum",
+        .unit = "OLY",
+        .contract_address =
+            "\x65\x95\xb8\xfd\x9c\x92\x0c\x81\x50\x0d\xca\x94\xe5\x3c\xdc\x71\x25\x13\xfb\x1f",
+        .decimals = 18,
+    },
+    {
+        .name = "MANTRA DAO",
+        .unit = "OM",
+        .contract_address =
+            "\x35\x93\xd1\x25\xa4\xf7\x84\x9a\x1b\x05\x9e\x64\xf4\x51\x7a\x86\xdd\x60\xc9\x5d",
+        .decimals = 18,
+    },
+    {
+        .name = "Omlira",
+        .unit = "OML",
+        .contract_address =
+            "\x22\x4d\xb5\xe6\x18\x07\x61\xdf\x4c\x3d\x89\x36\x58\x5f\x6b\x8b\x83\x87\x97\x70",
+        .decimals = 18,
+    },
+    {
+        .name = "BigONE Token",
+        .unit = "ONE",
+        .contract_address =
+            "\x94\x65\x51\xdd\x05\xc5\xab\xd7\xcc\x80\x89\x27\x48\x02\x25\xce\x36\xd8\xc4\x75",
+        .decimals = 18,
+    },
+    {
+        .name = "ownix",
+        .unit = "ONX",
+        .contract_address =
+            "\xcf\x78\xc7\xdd\x70\xd6\xf3\x0f\x6e\x36\x09\xe9\x05\xe7\x83\x05\xda\x98\xc8\x63",
+        .decimals = 18,
+    },
+    {
+        .name = "OpenOcean",
+        .unit = "OOE",
+        .contract_address =
+            "\x77\x78\x36\x0f\x03\x5c\x58\x9f\xce\x2f\x4e\xa5\x78\x6c\xbd\x8b\x36\xe5\x39\x6b",
+        .decimals = 18,
+    },
+    {
+        .name = "Onooks",
+        .unit = "OOKS",
+        .contract_address =
+            "\x69\xd9\x90\x5b\x2e\x5f\x6f\x54\x33\x21\x2b\x7f\x3c\x95\x44\x33\xf2\x3c\x15\x72",
+        .decimals = 18,
+    },
+    {
+        .name = "Opacity",
+        .unit = "OPCT",
+        .contract_address =
+            "\xdb\x05\xea\x08\x77\xa2\x62\x28\x83\x94\x1b\x93\x9f\x0b\xb1\x1d\x1a\xc7\xc4\x00",
+        .decimals = 18,
+    },
+    {
+        .name = "Open Governance Token",
+        .unit = "OPEN",
+        .contract_address =
+            "\x69\xe8\xb9\x52\x8c\xab\xda\x89\xfe\x84\x6c\x67\x67\x5b\x5d\x73\xd4\x63\xa9\x16",
+        .decimals = 18,
+    },
+    {
+        .name = "Opium",
+        .unit = "OPIUM",
+        .contract_address =
+            "\x88\x88\x88\x88\x88\x89\xc0\x0c\x67\x68\x90\x29\xd7\x85\x6a\xac\x10\x65\xec\x11",
+        .decimals = 18,
+    },
+    {
+        .name = "Oraichain Token",
+        .unit = "ORAI",
+        .contract_address =
+            "\x4c\x11\x24\x98\x14\xf1\x1b\x93\x46\x80\x81\x79\xcf\x06\xe7\x1a\xc3\x28\xc1\xb5",
+        .decimals = 18,
+    },
+    {
+        .name = "ORAO Network",
+        .unit = "ORAO",
+        .contract_address =
+            "\xee\x1c\xea\x76\x65\xba\x7a\xa9\x7e\x98\x2e\xde\xae\xcb\x26\xb5\x9a\x04\xd0\x35",
+        .decimals = 18,
+    },
+    {
+        .name = "Orbit Chain",
+        .unit = "ORC",
+        .contract_address =
+            "\x66\x2b\x67\xd0\x0a\x13\xfa\xf9\x32\x54\x71\x4d\xd6\x01\xf5\xed\x49\xef\x2f\x51",
+        .decimals = 18,
+    },
+    {
+        .name = "Orion Protocol",
+        .unit = "ORN",
+        .contract_address =
+            "\x02\x58\xf4\x74\x78\x6d\xdf\xd3\x7a\xbc\xe6\xdf\x6b\xbb\x1d\xd5\xdf\xc4\x43\x4a",
+        .decimals = 8,
+    },
+    {
+        .name = "Origin Dollar",
+        .unit = "OUSD",
+        .contract_address =
+            "\x2a\x8e\x1e\x67\x6e\xc2\x38\xd8\xa9\x92\x30\x7b\x49\x5b\x45\xb3\xfe\xaa\x5e\x86",
+        .decimals = 18,
+    },
+    {
+        .name = "Oxygen",
+        .unit = "OXY",
+        .contract_address =
+            "\x96\x56\x97\xb4\xef\x02\xf0\xde\x01\x38\x4d\x0d\x4f\x9f\x78\x2b\x16\x70\xc1\x63",
+        .decimals = 6,
+    },
+    {
+        .name = "NearPad",
+        .unit = "PAD",
+        .contract_address =
+            "\xea\x7c\xc7\x65\xeb\xc9\x4c\x48\x05\xe3\xbf\xf2\x8d\x7e\x4a\xe4\x8d\x06\x46\x8a",
+        .decimals = 18,
+    },
+    {
+        .name = "PAID Network",
+        .unit = "PAID",
+        .contract_address =
+            "\x16\x14\xf1\x8f\xc9\x4f\x47\x96\x7a\x3f\xbe\x5f\xfc\xd4\x6d\x4e\x7d\xa3\xd7\x87",
+        .decimals = 18,
+    },
+    {
+        .name = "MurAll",
+        .unit = "PAINT",
+        .contract_address =
+            "\x4c\x6e\xc0\x8c\xf3\xfc\x98\x7c\x6c\x4b\xeb\x03\x18\x4d\x33\x5a\x2d\xfc\x40\x42",
+        .decimals = 18,
+    },
+    {
+        .name = "Pawthereum",
+        .unit = "PAWTH",
+        .contract_address =
+            "\xae\xcc\x21\x7a\x74\x9c\x24\x05\xb5\xeb\xc9\x85\x7a\x16\xd5\x8b\xdc\x1c\x36\x7f",
+        .decimals = 9,
+    },
+    {
+        .name = "PolkaBridge",
+        .unit = "PBR",
+        .contract_address =
+            "\x29\x8d\x49\x2e\x8c\x1d\x90\x9d\x3f\x63\xbc\x4a\x36\xc6\x6c\x64\xac\xb3\xd6\x95",
+        .decimals = 18,
+    },
+    {
+        .name = "Paribus",
+        .unit = "PBX",
+        .contract_address =
+            "\xd5\x28\xcf\x2e\x08\x1f\x72\x90\x8e\x08\x6f\x88\x00\x97\x7d\xf8\x26\xb5\xa4\x83",
+        .decimals = 18,
+    },
+    {
+        .name = "Playcent",
+        .unit = "PCNT",
+        .contract_address =
+            "\x65\x7b\x83\xa0\x33\x65\x61\xc8\xf6\x43\x89\xa6\xf5\xad\xe6\x75\xc0\x4b\x0c\x3b",
+        .decimals = 18,
+    },
+    {
+        .name = "Polkadex",
+        .unit = "PDEX",
+        .contract_address =
+            "\xf5\x9a\xe9\x34\xf6\xfe\x44\x4a\xfc\x30\x95\x86\xcc\x60\xa8\x4a\x0f\x89\xaa\xea",
+        .decimals = 18,
+    },
+    {
+        .name = "PEAKDEFI",
+        .unit = "PEAK",
+        .contract_address =
+            "\x63\x0d\x98\x42\x4e\xfe\x0e\xa2\x7f\xb1\xb3\xab\x77\x41\x90\x7d\xff\xea\xad\x78",
+        .decimals = 8,
+    },
+    {
+        .name = "Pendle",
+        .unit = "PENDLE",
+        .contract_address =
+            "\x80\x85\x07\x12\x1b\x80\xc0\x23\x88\xfa\xd1\x47\x26\x48\x2e\x06\x1b\x8d\xa8\x27",
+        .decimals = 18,
+    },
+    {
+        .name = "PERI Finance",
+        .unit = "PERI",
+        .contract_address =
+            "\x5d\x30\xad\x9c\x63\x74\xbf\x92\x5d\x0a\x75\x45\x4f\xa3\x27\xaa\xcf\x77\x84\x92",
+        .decimals = 18,
+    },
+    {
+        .name = "PERL.eco",
+        .unit = "PERL",
+        .contract_address =
+            "\xec\xa8\x21\x85\xad\xce\x47\xf3\x9c\x68\x43\x52\xb0\x43\x9f\x03\x0f\x86\x03\x18",
+        .decimals = 18,
+    },
+    {
+        .name = "Perpetual Protocol",
+        .unit = "PERP",
+        .contract_address =
+            "\xbc\x39\x66\x89\x89\x3d\x06\x5f\x41\xbc\x2c\x6e\xcb\xee\x5e\x00\x85\x23\x34\x47",
+        .decimals = 18,
+    },
+    {
+        .name = "Polyient Games Governance Token",
+        .unit = "PGT",
+        .contract_address =
+            "\xea\xcc\xb6\xe0\xf2\x4d\x66\xcf\x4a\xa6\xcb\xda\x33\x97\x1b\x92\x31\xd3\x32\xa1",
+        .decimals = 18,
+    },
+    {
+        .name = "PhoenixDAO",
+        .unit = "PHNX",
+        .contract_address =
+            "\x38\xa2\xfd\xc1\x1f\x52\x6d\xdd\x5a\x60\x7c\x1f\x25\x1c\x06\x5f\x40\xfb\xf2\xf7",
+        .decimals = 18,
+    },
+    {
+        .name = "Phoenix Token",
+        .unit = "PHX",
+        .contract_address =
+            "\xae\xc6\x54\x04\xdd\xc3\xaf\x3c\x89\x7a\xd8\x95\x71\xd5\x77\x2c\x1a\x69\x5f\x22",
+        .decimals = 18,
+    },
+    {
+        .name = "Pickle Finance",
+        .unit = "PICKLE",
+        .contract_address =
+            "\x42\x98\x81\x67\x2b\x9a\xe4\x2b\x8e\xba\x0e\x26\xcd\x9c\x73\x71\x1b\x89\x1c\xa5",
+        .decimals = 18,
+    },
+    {
+        .name = "Power Index Pool Token",
+        .unit = "PIPT",
+        .contract_address =
+            "\x26\x60\x7a\xc5\x99\x26\x6b\x21\xd1\x3c\x7a\xcf\x79\x42\xc7\x70\x1a\x8b\x69\x9c",
+        .decimals = 18,
+    },
+    {
+        .name = "PolkaFoundry",
+        .unit = "PKF",
+        .contract_address =
+            "\x8b\x39\xb7\x0e\x39\xaa\x81\x1b\x69\x36\x53\x98\xe0\xaa\xce\x9b\xee\x23\x8a\xeb",
+        .decimals = 18,
+    },
+    {
+        .name = "PKG Token",
+        .unit = "PKG",
+        .contract_address =
+            "\x02\xf2\xd4\xa0\x4e\x6e\x01\xac\xe8\x8b\xd2\xcd\x63\x28\x75\x54\x3b\x2e\xf5\x77",
+        .decimals = 18,
+    },
+    {
+        .name = "Polker",
+        .unit = "PKR",
+        .contract_address =
+            "\x00\x1a\x8f\xfc\xb0\xf0\x3e\x99\x14\x16\x52\xeb\xcd\xec\xdb\x03\x84\xe3\xbd\x6c",
+        .decimals = 18,
+    },
+    {
+        .name = "PlayDapp",
+        .unit = "PLA",
+        .contract_address =
+            "\x3a\x4f\x40\x63\x1a\x4f\x90\x6c\x2b\xad\x35\x3e\xd0\x6d\xe7\xa5\xd3\xfc\xb4\x30",
+        .decimals = 18,
+    },
+    {
+        .name = "PlotX",
+        .unit = "PLOT",
+        .contract_address =
+            "\x72\xf0\x20\xf8\xf3\xe8\xfd\x93\x82\x70\x57\x23\xcd\x26\x38\x0f\x8d\x0c\x66\xbb",
+        .decimals = 18,
+    },
+    {
+        .name = "PulsePad",
+        .unit = "PLSPAD",
+        .contract_address =
+            "\x8a\x74\xbc\x8c\x37\x2b\xc7\xf0\xe9\xca\x3f\x6a\xc0\xdf\x51\xbe\x15\xae\xc4\x7a",
+        .decimals = 18,
+    },
+    {
+        .name = "Polychain Monsters",
+        .unit = "PMON",
+        .contract_address =
+            "\x17\x96\xae\x0b\x0f\xa4\x86\x24\x85\x10\x6a\x0d\xe9\xb6\x54\xef\xe3\x01\xd0\xb2",
+        .decimals = 18,
+    },
+    {
+        .name = "Polinate",
+        .unit = "POLI",
+        .contract_address =
+            "\xa1\xa3\x6d\x35\x37\xbb\xe3\x75\xcc\x96\x94\x79\x5f\x66\x3d\xdc\x8d\x51\x6d\xb9",
+        .decimals = 18,
+    },
+    {
+        .name = "Polkamarkets",
+        .unit = "POLK",
+        .contract_address =
+            "\xd4\x78\x16\x1c\x95\x23\x57\xf0\x5f\x02\x92\xb5\x60\x12\xcd\x84\x57\xf1\xcf\xbf",
+        .decimals = 18,
+    },
+    {
+        .name = "Polkastarter",
+        .unit = "POLS",
+        .contract_address =
+            "\x83\xe6\xf1\xe4\x1c\xdd\x28\xea\xce\xb2\x0c\xb6\x49\x15\x50\x49\xfa\xc3\xd5\xaa",
+        .decimals = 18,
+    },
+    {
+        .name = "Marlin",
+        .unit = "POND",
+        .contract_address =
+            "\x57\xb9\x46\x00\x89\x13\xb8\x2e\x4d\xf8\x5f\x50\x1c\xba\xed\x91\x0e\x58\xd2\x6c",
+        .decimals = 18,
+    },
+    {
+        .name = "Poolz Finance",
+        .unit = "POOLZ",
+        .contract_address =
+            "\x69\xa9\x51\x85\xee\x2a\x04\x5c\xdc\x4b\xcd\x1b\x1d\xf1\x07\x10\x39\x5e\x4e\x23",
+        .decimals = 18,
+    },
+    {
+        .name = "Plasma Finance",
+        .unit = "PPAY",
+        .contract_address =
+            "\x05\x4d\x64\xb7\x3d\x3d\x8a\x21\xaf\x3d\x76\x4e\xfd\x76\xbc\xaa\x77\x4f\x3b\xb2",
+        .decimals = 18,
+    },
+    {
+        .name = "Pepemon Pepeballs",
+        .unit = "PPBLZ",
+        .contract_address =
+            "\x4d\x2e\xe5\xda\xe4\x6c\x86\xda\x2f\xf5\x21\xf7\x65\x7d\xad\x98\x83\x4f\x97\xb8",
+        .decimals = 18,
+    },
+    {
+        .name = "POLKARARE",
+        .unit = "PRARE",
+        .contract_address =
+            "\x2c\x2f\x7e\x7c\x56\x04\xd1\x62\xd7\x56\x41\x25\x6b\x80\xf1\xbf\x6f\x4d\xc7\x96",
+        .decimals = 18,
+    },
+    {
+        .name = "Presearch",
+        .unit = "PRE",
+        .contract_address =
+            "\xec\x21\x3f\x83\xde\xfb\x58\x3a\xf3\xa0\x00\xb1\xc0\xad\xa6\x60\xb1\x90\x2a\x0f",
+        .decimals = 18,
+    },
+    {
+        .name = "PRIA",
+        .unit = "PRIA",
+        .contract_address =
+            "\xb9\x87\x1c\xb1\x07\x38\xea\xda\x63\x64\x32\xe8\x6f\xc0\xcb\x92\x0d\xc3\xde\x24",
+        .decimals = 18,
+    },
+    {
+        .name = "Prosper",
+        .unit = "PROS",
+        .contract_address =
+            "\x86\x42\xa8\x49\xd0\xdc\xb7\xa1\x5a\x97\x47\x94\x66\x8a\xdc\xfb\xe4\x79\x4b\x56",
+        .decimals = 18,
+    },
+    {
+        .name = "PARSIQ",
+        .unit = "PRQ",
+        .contract_address =
+            "\x36\x2b\xc8\x47\xa3\xa9\x63\x7d\x3a\xf6\x62\x4e\xec\x85\x36\x18\xa4\x3e\xd7\xd2",
+        .decimals = 18,
+    },
+    {
+        .name = "Portion",
+        .unit = "PRT",
+        .contract_address =
+            "\x6d\x0f\x51\x49\xc5\x02\xfa\xf2\x15\xc8\x9a\xb3\x06\xec\x3e\x50\xb1\x5e\x28\x92",
+        .decimals = 18,
+    },
+    {
+        .name = "ParaSwap",
+        .unit = "PSP",
+        .contract_address =
+            "\xca\xfe\x00\x10\x67\xcd\xef\x26\x6a\xfb\x7e\xb5\xa2\x86\xdc\xfd\x27\x7f\x3d\xe5",
+        .decimals = 18,
+    },
+    {
+        .name = "PowerTrade Fuel",
+        .unit = "PTF",
+        .contract_address =
+            "\xc5\x7d\x53\x3c\x50\xbc\x22\x24\x7d\x49\xa3\x68\x88\x0f\xb4\x9a\x1c\xaa\x39\xf7",
+        .decimals = 18,
+    },
+    {
+        .name = "Pundi X[new]",
+        .unit = "PUNDIX",
+        .contract_address =
+            "\x0f\xd1\x0b\x98\x99\x88\x2a\x6f\x2f\xcb\x5c\x37\x1e\x17\xe7\x0f\xde\xe0\x0c\x38",
+        .decimals = 18,
+    },
+    {
+        .name = "Ethereum Push Notification Service",
+        .unit = "PUSH",
+        .contract_address =
+            "\xf4\x18\x58\x85\x22\xd5\xdd\x01\x8b\x42\x5e\x47\x29\x91\xe5\x2e\xbb\xee\xee\xee",
+        .decimals = 18,
+    },
+    {
+        .name = "Pylon Finance",
+        .unit = "PYLON",
+        .contract_address =
+            "\xd7\xb7\xd3\xc0\xbd\xa5\x77\x23\xfb\x54\xab\x95\xfd\x8f\x9e\xa0\x33\xaf\x37\xf2",
+        .decimals = 18,
+    },
+    {
+        .name = "Vulcan Forged PYR",
+        .unit = "PYR",
+        .contract_address =
+            "\x95\x34\xad\x65\xfb\x39\x8e\x27\xac\x8f\x42\x51\xda\xe1\x78\x0b\x98\x9d\x13\x6e",
+        .decimals = 18,
+    },
+    {
+        .name = "Qredo",
+        .unit = "QRDO",
+        .contract_address =
+            "\x41\x23\xa1\x33\xae\x3c\x52\x1f\xd1\x34\xd7\xb1\x3a\x2d\xec\x35\xb5\x6c\x24\x63",
+        .decimals = 8,
+    },
+    {
+        .name = "QuickSwap",
+        .unit = "QUICK",
+        .contract_address =
+            "\x6c\x28\xae\xf8\x97\x7c\x9b\x77\x39\x96\xd0\xe8\x37\x6d\x2e\xe3\x79\x44\x6f\x2f",
+        .decimals = 18,
+    },
+    {
+        .name = "Radio Caca",
+        .unit = "RACA",
+        .contract_address =
+            "\x12\xbb\x89\x05\x08\xc1\x25\x66\x1e\x03\xb0\x9e\xc0\x6e\x40\x4b\xc9\x28\x90\x40",
+        .decimals = 18,
+    },
+    {
+        .name = "Receive Access Ecosystem",
+        .unit = "RAE",
+        .contract_address =
+            "\xe5\xa3\x22\x9c\xcb\x22\xb6\x48\x45\x94\x97\x3a\x03\xa3\x85\x1d\xcd\x94\x87\x56",
+        .decimals = 18,
+    },
+    {
+        .name = "Rage Fan",
+        .unit = "RAGE",
+        .contract_address =
+            "\x94\x80\x4d\xc4\x94\x81\x84\xff\xd7\x35\x5f\x62\xcc\xbb\x22\x1c\x97\x65\x88\x6f",
+        .decimals = 18,
+    },
+    {
+        .name = "Rai Reflex Index",
+        .unit = "RAI",
+        .contract_address =
+            "\x03\xab\x45\x86\x34\x91\x0a\xad\x20\xef\x5f\x1c\x8e\xe9\x6f\x1d\x6a\xc5\x49\x19",
+        .decimals = 18,
+    },
+    {
+        .name = "Rainicorn",
+        .unit = "RAINI",
+        .contract_address =
+            "\xeb\x95\x3e\xda\x0d\xc6\x5e\x32\x46\xf4\x3d\xc8\xfa\x13\xf3\x56\x23\xbd\xd5\xed",
+        .decimals = 18,
+    },
+    {
+        .name = "RAMP",
+        .unit = "RAMP",
+        .contract_address =
+            "\x33\xd0\x56\x89\x41\xc0\xc6\x4f\xf7\xe0\xfb\x4f\xba\x0b\x11\xbd\x37\xde\xed\x9f",
+        .decimals = 18,
+    },
+    {
+        .name = "SuperRare",
+        .unit = "RARE",
+        .contract_address =
+            "\xba\x5b\xde\x66\x2c\x17\xe2\xad\xff\x10\x75\x61\x03\x82\xb9\xb6\x91\x29\x63\x50",
+        .decimals = 18,
+    },
+    {
+        .name = "Raydium",
+        .unit = "RAY",
+        .contract_address =
+            "\x52\x45\xc0\x24\x9e\x5e\xeb\x2a\x08\x38\x26\x68\x00\x47\x1f\xd3\x2a\xdb\x10\x89",
+        .decimals = 6,
+    },
+    {
+        .name = "Raze Network",
+        .unit = "RAZE",
+        .contract_address =
+            "\x5e\xaa\x69\xb2\x9f\x99\xc8\x4f\xe5\xde\x82\x00\x34\x0b\x4e\x9b\x4a\xb3\x8e\xac",
+        .decimals = 18,
+    },
+    {
+        .name = "Razor Network",
+        .unit = "RAZOR",
+        .contract_address =
+            "\x50\xde\x68\x56\x35\x8c\xc3\x5f\x3a\x9a\x57\xea\xaa\x34\xbd\x4c\xb7\x07\xd2\xcd",
+        .decimals = 18,
+    },
+    {
+        .name = "Rubic",
+        .unit = "RBC",
+        .contract_address =
+            "\xa4\xee\xd6\x3d\xb8\x53\x11\xe2\x2d\xf4\x47\x3f\x87\xcc\xfc\x3d\xad\xcf\xa3\xe3",
+        .decimals = 18,
+    },
+    {
+        .name = "Ribbon Finance",
+        .unit = "RBN",
+        .contract_address =
+            "\x61\x23\xb0\x04\x9f\x90\x4d\x73\x0d\xb3\xc3\x6a\x31\x16\x7d\x9d\x41\x21\xfa\x6b",
+        .decimals = 18,
+    },
+    {
+        .name = "ReapChain",
+        .unit = "REAP",
+        .contract_address =
+            "\x1f\xc5\xef\x03\x37\xae\xa8\x5c\x5f\x91\x98\x85\x3a\x6e\x3a\x57\x9a\x7a\x69\x87",
+        .decimals = 18,
+    },
+    {
+        .name = "Redpanda Earth",
+        .unit = "REDPANDA",
+        .contract_address =
+            "\x51\x4c\xdb\x9c\xd8\xa2\xfb\x2b\xdc\xf7\xa3\xb8\xdd\xd0\x98\xca\xf4\x66\xe5\x48",
+        .decimals = 9,
+    },
+    {
+        .name = "Relite Finance",
+        .unit = "RELI",
+        .contract_address =
+            "\x0e\x58\xed\x58\xe1\x50\xdb\xa5\xfd\x8e\x5d\x4a\x49\xf5\x4c\x7e\x1e\x88\x01\x24",
+        .decimals = 18,
+    },
+    {
+        .name = "renDOGE",
+        .unit = "RENDOGE",
+        .contract_address =
+            "\x38\x32\xd2\xf0\x59\xe5\x59\x34\x22\x08\x81\xf8\x31\xbe\x50\x1d\x18\x06\x71\xa7",
+        .decimals = 8,
+    },
+    {
+        .name = "REVV",
+        .unit = "REVV",
+        .contract_address =
+            "\x55\x7b\x93\x3a\x7c\x2c\x45\x67\x2b\x61\x0f\x89\x54\xa3\xde\xb3\x9a\x51\xa8\xca",
+        .decimals = 18,
+    },
+    {
+        .name = "reflect.finance",
+        .unit = "RFI",
+        .contract_address =
+            "\xa1\xaf\xff\xe3\xf4\xd6\x11\xd2\x52\x01\x0e\x3e\xaf\x6f\x4d\x77\x08\x8b\x0c\xd7",
+        .decimals = 9,
+    },
+    {
+        .name = "RFOX",
+        .unit = "RFOX",
+        .contract_address =
+            "\xa1\xd6\xdf\x71\x4f\x91\xde\xbf\x4e\x08\x02\xa5\x42\xe1\x30\x67\xf3\x1b\x82\x62",
+        .decimals = 18,
+    },
+    {
+        .name = "Rari Governance Token",
+        .unit = "RGT",
+        .contract_address =
+            "\xd2\x91\xe7\xa0\x32\x83\x64\x0f\xdc\x51\xb1\x21\xac\x40\x13\x83\xa4\x6c\xc6\x23",
+        .decimals = 18,
+    },
+    {
+        .name = "Rigel Finance",
+        .unit = "RIGEL",
+        .contract_address =
+            "\x4c\xa0\x65\x4f\x4f\xc1\x02\x5c\xf1\xa1\x7b\x74\x59\xc2\x0a\xc0\x47\x95\x22\xad",
+        .decimals = 18,
+    },
+    {
+        .name = "Realio Network",
+        .unit = "RIO",
+        .contract_address =
+            "\xf2\x16\x61\xd0\xd1\xd7\x6d\x3e\xcb\x8e\x1b\x9f\x1c\x92\x3d\xbf\xff\xae\x40\x97",
+        .decimals = 18,
+    },
+    {
+        .name = "EverRise",
+        .unit = "RISE",
+        .contract_address =
+            "\x0c\xd0\x22\xdd\xe2\x71\x69\xb2\x08\x95\xe0\xe2\xb2\xb8\xa3\x3b\x25\xe6\x35\x79",
+        .decimals = 18,
+    },
+    {
+        .name = "Rally",
+        .unit = "RLY",
+        .contract_address =
+            "\xf1\xf9\x55\x01\x6e\xcb\xcd\x73\x21\xc7\x26\x6b\xcc\xfb\x96\xc6\x8e\xa5\xe4\x9b",
+        .decimals = 18,
+    },
+    {
+        .name = "HaloDAO",
+        .unit = "RNBW",
+        .contract_address =
+            "\xe9\x4b\x97\xb6\xb4\x36\x39\xe2\x38\xc8\x51\xa7\xe6\x93\xf5\x00\x33\xef\xd7\x5c",
+        .decimals = 18,
+    },
+    {
+        .name = "ROCKI",
+        .unit = "ROCKI",
+        .contract_address =
+            "\xff\x44\xb9\x37\x78\x82\x15\xec\xa1\x97\xba\xaf\x9a\xf6\x9d\xbd\xc2\x14\xaa\x04",
+        .decimals = 18,
+    },
+    {
+        .name = "Rogue West",
+        .unit = "ROGUE",
+        .contract_address =
+            "\x6a\xc6\x65\xc0\xde\x9a\x6c\xa7\x2b\x85\x75\x7b\x14\x1a\xa9\xc4\x28\x82\x8a\xca",
+        .decimals = 8,
+    },
+    {
+        .name = "KeeperDAO",
+        .unit = "ROOK",
+        .contract_address =
+            "\xfa\x50\x47\xc9\xc7\x8b\x88\x77\xaf\x97\xbd\xcb\x85\xdb\x74\x3f\xd7\x31\x3d\x4a",
+        .decimals = 18,
+    },
+    {
+        .name = "Router Protocol",
+        .unit = "ROUTE",
+        .contract_address =
+            "\x16\xec\xcf\xdb\xb4\xee\x1a\x85\xa3\x3f\x3a\x9b\x21\x17\x5c\xd7\xae\x75\x3d\xb4",
+        .decimals = 18,
+    },
+    {
+        .name = "Royale Finance",
+        .unit = "ROYA",
+        .contract_address =
+            "\x7e\xaf\x9c\x89\x03\x7e\x48\x14\xdc\x0d\x99\x52\xac\x7f\x88\x8c\x78\x45\x48\xdb",
+        .decimals = 18,
+    },
+    {
+        .name = "Rangers Protocol",
+        .unit = "RPG",
+        .contract_address =
+            "\x0e\x5c\x8c\x38\x7c\x5e\xba\x2e\xcb\xc1\x37\xad\x01\x2a\xed\x5f\xe7\x29\xe2\x51",
+        .decimals = 18,
+    },
+    {
+        .name = "Reserve",
+        .unit = "RSV",
+        .contract_address =
+            "\x19\x6f\x47\x27\x52\x6e\xa7\xfb\x1e\x17\xb2\x07\x1b\x3d\x8e\xaa\x38\x48\x69\x88",
+        .decimals = 18,
+    },
+    {
+        .name = "RocketX",
+        .unit = "RVF",
+        .contract_address =
+            "\xdc\x8a\xf0\x7a\x78\x61\xbe\xdd\x10\x4b\x80\x93\xae\x3e\x93\x76\xfc\x85\x96\xd2",
+        .decimals = 18,
+    },
+    {
+        .name = "Revolution Populi",
+        .unit = "RVP",
+        .contract_address =
+            "\x17\xef\x75\xaa\x22\xdd\x5f\x6c\x27\x63\xb8\x30\x4a\xb2\x4f\x40\xee\x54\xd4\x8a",
+        .decimals = 18,
+    },
+    {
+        .name = "Saito",
+        .unit = "SAITO",
+        .contract_address =
+            "\xfa\x14\xfa\x69\x58\x40\x13\x14\x85\x1a\x17\xd6\xc5\x36\x0c\xa2\x9f\x74\xb5\x7b",
+        .decimals = 18,
+    },
+    {
+        .name = "SakeToken",
+        .unit = "SAKE",
+        .contract_address =
+            "\x06\x67\x98\xd9\xef\x08\x33\xcc\xc7\x19\x07\x6d\xab\x77\x19\x9e\xcb\xd1\x78\xb0",
+        .decimals = 18,
+    },
+    {
+        .name = "The Sandbox",
+        .unit = "SAND",
+        .contract_address =
+            "\x38\x45\xba\xda\xde\x8e\x6d\xff\x04\x98\x20\x68\x0d\x1f\x14\xbd\x39\x03\xa5\xd0",
+        .decimals = 18,
+    },
+    {
+        .name = "Sarcophagus",
+        .unit = "SARCO",
+        .contract_address =
+            "\x76\x97\xb4\x62\xa7\xc4\xff\x5f\x8b\x55\xbd\xbc\x2f\x40\x76\xc2\xaf\x9c\xf5\x1a",
+        .decimals = 18,
+    },
+    {
+        .name = "Signata",
+        .unit = "SATA",
+        .contract_address =
+            "\x3e\xbb\x4a\x4e\x91\xad\x83\xbe\x51\xf8\xd5\x96\x53\x38\x18\xb2\x46\xf4\xbe\xe1",
+        .decimals = 18,
+    },
+    {
+        .name = "SaTT",
+        .unit = "SATT",
+        .contract_address =
+            "\xdf\x49\xc9\xf5\x99\xa0\xa9\x04\x9d\x97\xcf\xf3\x4d\x0c\x30\xe4\x68\x98\x73\x89",
+        .decimals = 18,
+    },
+    {
+        .name = "SingularityDAO",
+        .unit = "SDAO",
+        .contract_address =
+            "\x99\x38\x64\xe4\x3c\xaa\x7f\x7f\x12\x95\x3a\xd6\xfe\xb1\xd1\xca\x63\x5b\x87\x5f",
+        .decimals = 18,
+    },
+    {
+        .name = "Stake DAO",
+        .unit = "SDT",
+        .contract_address =
+            "\x73\x96\x8b\x9a\x57\xc6\xe5\x3d\x41\x34\x5f\xd5\x7a\x6e\x6a\xe2\x7d\x6c\xdb\x2f",
+        .decimals = 18,
+    },
+    {
+        .name = "Seele-N",
+        .unit = "SEELE",
+        .contract_address =
+            "\xb1\xe9\x32\x36\xab\x60\x73\xfd\xac\x58\xad\xa5\x56\x48\x97\x17\x7d\x4b\xcc\x43",
+        .decimals = 18,
+    },
+    {
+        .name = "SEEN",
+        .unit = "SEEN",
+        .contract_address =
+            "\xca\x3f\xe0\x4c\x7e\xe1\x11\xf0\xbb\xb0\x2c\x32\x8c\x69\x92\x26\xac\xf9\xfd\x33",
+        .decimals = 18,
+    },
+    {
+        .name = "SENSO",
+        .unit = "SENSO",
+        .contract_address =
+            "\xc1\x9b\x6a\x4a\xc7\xc7\xcc\x24\x45\x9f\x08\x98\x4b\xbd\x09\x66\x4a\xf1\x7b\xd1",
+        .decimals = 0,
+    },
+    {
+        .name = "Secure Pad",
+        .unit = "SEPA",
+        .contract_address =
+            "\x10\x99\x4a\xa2\xfb\x8e\x6b\xa5\xd9\xfb\x2b\xc1\x27\xff\x22\x8c\x4f\xe6\x16\x7f",
+        .decimals = 18,
+    },
+    {
+        .name = "Sether",
+        .unit = "SETH",
+        .contract_address =
+            "\x78\xb0\x39\x92\x1e\x84\xe7\x26\xeb\x72\xe7\xb1\x21\x2b\xb3\x55\x04\xc6\x45\xca",
+        .decimals = 18,
+    },
+    {
+        .name = "S.Finance",
+        .unit = "SFG",
+        .contract_address =
+            "\x8a\x6a\xca\x71\xa2\x18\x30\x1c\x70\x81\xd4\xe9\x6d\x64\x29\x2d\x3b\x27\x5c\xe0",
+        .decimals = 18,
+    },
+    {
+        .name = "saffron.finance",
+        .unit = "SFI",
+        .contract_address =
+            "\xb7\x53\x42\x8a\xf2\x6e\x81\x09\x7e\x7f\xd1\x7f\x40\xc8\x8a\xaa\x3e\x04\x90\x2c",
+        .decimals = 18,
+    },
+    {
+        .name = "SharedStake",
+        .unit = "SGT",
+        .contract_address =
+            "\x24\xc1\x9f\x71\x01\xc1\x73\x1b\x85\xf1\x12\x7e\xaa\x04\x07\x73\x2e\x36\xec\xdd",
+        .decimals = 18,
+    },
+    {
+        .name = "Spaceswap SHAKE",
+        .unit = "SHAKE",
+        .contract_address =
+            "\x60\x06\xfc\x2a\x84\x9f\xed\xab\xa8\x33\x0c\xe3\x6f\x51\x33\xde\x01\xf9\x61\x89",
+        .decimals = 18,
+    },
+    {
+        .name = "Seigniorage Shares",
+        .unit = "SHARE",
+        .contract_address =
+            "\x39\x79\x53\x44\xcb\xcc\x76\xcc\x3f\xb9\x4b\x9d\x1b\x15\xc2\x3c\x20\x70\xc6\x6d",
+        .decimals = 9,
+    },
+    {
+        .name = "SHIBA INU",
+        .unit = "SHIB",
+        .contract_address =
+            "\x95\xad\x61\xb0\xa1\x50\xd7\x92\x19\xdc\xf6\x4e\x1e\x6c\xc0\x1f\x0b\x64\xc4\xce",
+        .decimals = 18,
+    },
+    {
+        .name = "ShoeFy",
+        .unit = "SHOE",
+        .contract_address =
+            "\x0f\xd6\x7b\x4c\xeb\x9b\x60\x7e\xf2\x06\x90\x4e\xc7\x34\x59\xc4\x88\x01\x32\xc9",
+        .decimals = 18,
+    },
+    {
+        .name = "Splyt",
+        .unit = "SHOPX",
+        .contract_address =
+            "\x7b\xef\x71\x0a\x57\x59\xd1\x97\xec\x0b\xf6\x21\xc3\xdf\x80\x2c\x2d\x60\xd8\x48",
+        .decimals = 18,
+    },
+    {
+        .name = "Niftyx Protocol",
+        .unit = "SHROOM",
+        .contract_address =
+            "\xed\x04\x39\xea\xcf\x4c\x49\x65\xae\x46\x13\xd7\x7a\x5c\x2e\xfe\x10\xe5\xf1\x83",
+        .decimals = 18,
+    },
+    {
+        .name = "xSigma",
+        .unit = "SIG",
+        .contract_address =
+            "\x77\x77\x77\x77\x77\x69\x7c\xfe\xec\xf8\x46\xa7\x63\x26\xda\x79\xcc\x60\x65\x17",
+        .decimals = 18,
+    },
+    {
+        .name = "Skey Network",
+        .unit = "SKEY",
+        .contract_address =
+            "\x06\xa0\x1a\x4d\x57\x94\x79\xdd\x5d\x88\x4e\xbf\x61\xa3\x17\x27\xa3\xd8\xd4\x42",
+        .decimals = 8,
+    },
+    {
+        .name = "SKALE Network",
+        .unit = "SKL",
+        .contract_address =
+            "\x00\xc8\x3a\xec\xc7\x90\xe8\xa4\x45\x3e\x5d\xd3\xb0\xb4\xb3\x68\x05\x01\xa7\xa7",
+        .decimals = 18,
+    },
+    {
+        .name = "Skrumble Network",
+        .unit = "SKM",
+        .contract_address =
+            "\x04\x8f\xe4\x9b\xe3\x2a\xdf\xc9\xed\x68\xc3\x7d\x32\xb5\xec\x9d\xf1\x7b\x36\x03",
+        .decimals = 18,
+    },
+    {
+        .name = "Skyrim Finance",
+        .unit = "SKYRIM",
+        .contract_address =
+            "\x26\x10\xf0\xbf\xc2\x1e\xf3\x89\xfe\x4d\x03\xcf\xb7\xde\x9a\xc1\xe6\xc9\x9d\x6e",
+        .decimals = 18,
+    },
+    {
+        .name = "Tranche Finance",
+        .unit = "SLICE",
+        .contract_address =
+            "\x0a\xee\x87\x03\xd3\x4d\xd9\xae\x10\x73\x86\xd3\xef\xf2\x2a\xe7\x5d\xd6\x16\xd1",
+        .decimals = 18,
+    },
+    {
+        .name = "Smooth Love Potion",
+        .unit = "SLP",
+        .contract_address =
+            "\xcc\x8f\xa2\x25\xd8\x0b\x9c\x7d\x42\xf9\x6e\x95\x70\x15\x6c\x65\xd6\xca\xaa\x25",
+        .decimals = 0,
+    },
+    {
+        .name = "SmartCredit Token",
+        .unit = "SMARTCREDIT",
+        .contract_address =
+            "\x72\xe9\xd9\x03\x8c\xe4\x84\xee\x98\x6f\xea\x18\x3f\x8d\x8d\xf9\x3f\x9a\xda\x13",
+        .decimals = 18,
+    },
+    {
+        .name = "SafeMoon Inu",
+        .unit = "SMI",
+        .contract_address =
+            "\xcd\x74\x92\xdb\x29\xe2\xab\x43\x6e\x81\x9b\x24\x94\x52\xee\x1b\xbd\xf5\x22\x14",
+        .decimals = 8,
+    },
+    {
+        .name = "Swarm Markets",
+        .unit = "SMT",
+        .contract_address =
+            "\xb1\x75\x48\xc7\xb5\x10\x42\x7b\xaa\xc4\xe2\x67\xbe\xa6\x2e\x80\x0b\x24\x71\x73",
+        .decimals = 18,
+    },
+    {
+        .name = "SnowSwap",
+        .unit = "SNOW",
+        .contract_address =
+            "\xfe\x9a\x29\xab\x92\x52\x2d\x14\xfc\x65\x88\x0d\x81\x72\x14\x26\x1d\x84\x79\xae",
+        .decimals = 18,
+    },
+    {
+        .name = "SOAR.FI",
+        .unit = "SOAR",
+        .contract_address =
+            "\xba\xe5\xf2\xd8\xa1\x29\x9e\x5c\x49\x63\xea\xff\x33\x12\x39\x92\x53\xf2\x7c\xcb",
+        .decimals = 9,
+    },
+    {
+        .name = "Unisocks",
+        .unit = "SOCKS",
+        .contract_address =
+            "\x23\xb6\x08\x67\x5a\x2b\x2f\xb1\x89\x0d\x3a\xbb\xd8\x5c\x57\x75\xc5\x16\x91\xd5",
+        .decimals = 18,
+    },
+    {
+        .name = "SOTA Finance",
+        .unit = "SOTA",
+        .contract_address =
+            "\x0d\xde\x6f\x6e\x34\x5b\xfd\x23\xf3\xf4\x19\xf0\xdf\xe0\x4e\x93\x14\x3b\x44\xfb",
+        .decimals = 18,
+    },
+    {
+        .name = "Phantasma",
+        .unit = "SOUL",
+        .contract_address =
+            "\x79\xc7\x5e\x2e\x87\x20\xb3\x9e\x25\x8f\x41\xc3\x7c\xc4\xf3\x09\xe0\xb0\xff\x80",
+        .decimals = 8,
+    },
+    {
+        .name = "Sovryn",
+        .unit = "SOV",
+        .contract_address =
+            "\xbd\xab\x72\x60\x2e\x9a\xd4\x0f\xc6\xa6\x85\x2c\xaf\x43\x25\x81\x13\xb8\xf7\xa5",
+        .decimals = 18,
+    },
+    {
+        .name = "SpaceChain",
+        .unit = "SPC",
+        .contract_address =
+            "\x86\xed\x93\x9b\x50\x0e\x12\x1c\x0c\x5f\x49\x3f\x39\x90\x84\xdb\x59\x6d\xad\x20",
+        .decimals = 18,
+    },
+    {
+        .name = "Spheroid Universe",
+        .unit = "SPH",
+        .contract_address =
+            "\xa0\xcf\x46\xeb\x15\x26\x56\xc7\x09\x0e\x76\x99\x16\xeb\x44\xa1\x38\xaa\xa4\x06",
+        .decimals = 18,
+    },
+    {
+        .name = "Shopping",
+        .unit = "SPI",
+        .contract_address =
+            "\x9b\x02\xdd\x39\x0a\x60\x3a\xdd\x5c\x07\xf9\xfd\x91\x75\xb7\xda\xbe\x8d\x63\xb7",
+        .decimals = 18,
+    },
+    {
+        .name = "Bitspawn",
+        .unit = "SPWN",
+        .contract_address =
+            "\xe5\x16\xd7\x8d\x78\x4c\x77\xd4\x79\x97\x7b\xe5\x89\x05\xb3\xf2\xb1\x11\x11\x26",
+        .decimals = 18,
+    },
+    {
+        .name = "ssv.network",
+        .unit = "SSV",
+        .contract_address =
+            "\x9d\x65\xff\x81\xa3\xc4\x88\xd5\x85\xbb\xfb\x0b\xfe\x3c\x77\x07\xc7\x91\x7f\x54",
+        .decimals = 18,
+    },
+    {
+        .name = "StackOs",
+        .unit = "STACK",
+        .contract_address =
+            "\x56\xa8\x6d\x64\x8c\x43\x5d\xc7\x07\xc8\x40\x5b\x78\xe2\xae\x8e\xb4\xe6\x0b\xa4",
+        .decimals = 18,
+    },
+    {
+        .name = "Jigstack",
+        .unit = "STAK",
+        .contract_address =
+            "\x1f\x8a\x62\x68\x83\xd7\x72\x4d\xbd\x59\xef\x51\xcb\xd4\xbf\x1c\xf2\x01\x6d\x13",
+        .decimals = 18,
+    },
+    {
+        .name = "Starlink",
+        .unit = "STARL",
+        .contract_address =
+            "\x8e\x6c\xd9\x50\xad\x6b\xa6\x51\xf6\xdd\x60\x8d\xc7\x0e\x58\x86\xb1\xaa\x6b\x24",
+        .decimals = 18,
+    },
+    {
+        .name = "Mogul Productions",
+        .unit = "STARS",
+        .contract_address =
+            "\xc5\x5c\x21\x75\xe9\x0a\x46\x60\x2f\xd4\x2e\x93\x1f\x62\xb3\xac\xc1\xa0\x13\xca",
+        .decimals = 18,
+    },
+    {
+        .name = "Stobox Token",
+        .unit = "STBU",
+        .contract_address =
+            "\x21\x2d\xd6\x0d\x4b\xf0\xda\x83\x72\xfe\x81\x16\x47\x46\x02\xd4\x29\xe5\x73\x5f",
+        .decimals = 18,
+    },
+    {
+        .name = "Student Coin",
+        .unit = "STC",
+        .contract_address =
+            "\x15\xb5\x43\xe9\x86\xb8\xc3\x40\x74\xdf\xc9\x90\x11\x36\xd9\x35\x5a\x53\x7e\x7e",
+        .decimals = 18,
+    },
+    {
+        .name = "Lido stETH",
+        .unit = "STETH",
+        .contract_address =
+            "\xae\x7a\xb9\x65\x20\xde\x3a\x18\xe5\xe1\x11\xb5\xea\xab\x09\x53\x12\xd7\xfe\x84",
+        .decimals = 18,
+    },
+    {
+        .name = "StakerDAO",
+        .unit = "STKR",
+        .contract_address =
+            "\x89\xdc\xff\x5f\xd8\x92\xf2\xbf\xc8\xb7\x5d\xba\x12\x80\x4b\x65\x1f\x76\x95\x79",
+        .decimals = 18,
+    },
+    {
+        .name = "Standard Protocol",
+        .unit = "STND",
+        .contract_address =
+            "\x90\x40\xe2\x37\xc3\xbf\x18\x34\x7b\xb0\x09\x57\xdc\x22\x16\x7d\x0f\x2b\x99\x9d",
+        .decimals = 18,
+    },
+    {
+        .name = "Stratos",
+        .unit = "STOS",
+        .contract_address =
+            "\x08\xc3\x2b\x07\x26\xc5\x68\x40\x24\xea\x6e\x14\x1c\x50\xad\xe9\x69\x0b\xbd\xcc",
+        .decimals = 18,
+    },
+    {
+        .name = "Stream Protocol",
+        .unit = "STPL",
+        .contract_address =
+            "\x9b\x5c\x2b\xe8\x69\xa1\x9e\x84\xbd\xbc\xb1\x38\x6d\xad\x83\xa2\xec\x8d\xae\x82",
+        .decimals = 18,
+    },
+    {
+        .name = "Strike",
+        .unit = "STRK",
+        .contract_address =
+            "\x74\x23\x27\x04\x65\x9e\xf3\x7c\x08\x99\x5e\x38\x6a\x2e\x26\xcc\x27\xa8\xd7\xb1",
+        .decimals = 18,
+    },
+    {
+        .name = "Strips Finance",
+        .unit = "STRP",
+        .contract_address =
+            "\x97\x87\x2e\xaf\xd7\x99\x40\xc7\xb2\x4f\x7b\xcc\x1e\xad\xb1\x45\x73\x47\xad\xc9",
+        .decimals = 18,
+    },
+    {
+        .name = "StakedZEN",
+        .unit = "STZEN",
+        .contract_address =
+            "\x31\xb5\x95\xe7\xcf\xdb\x62\x4d\x10\xa3\xe7\xa5\x62\xed\x98\xc3\x56\x7e\x38\x65",
+        .decimals = 8,
+    },
+    {
+        .name = "SuperFarm",
+        .unit = "SUPER",
+        .contract_address =
+            "\xe5\x3e\xc7\x27\xdb\xde\xb9\xe2\xd5\x45\x6c\x3b\xe4\x0c\xff\x03\x1a\xb4\x0a\x55",
+        .decimals = 18,
+    },
+    {
+        .name = "inSure DeFi",
+        .unit = "SURE",
+        .contract_address =
+            "\xcb\x86\xc6\xa2\x2c\xb5\x6b\x6c\xf4\x0c\xaf\xed\xb0\x6b\xa0\xdf\x18\x8a\x41\x6e",
+        .decimals = 18,
+    },
+    {
+        .name = "sUSD",
+        .unit = "SUSD",
+        .contract_address =
+            "\x57\xab\x1e\xc2\x8d\x12\x97\x07\x05\x2d\xf4\xdf\x41\x8d\x58\xa2\xd4\x6d\x5f\x51",
+        .decimals = 18,
+    },
+    {
+        .name = "SushiSwap",
+        .unit = "SUSHI",
+        .contract_address =
+            "\x6b\x35\x95\x06\x87\x78\xdd\x59\x2e\x39\xa1\x22\xf4\xf5\xa5\xcf\x09\xc9\x0f\xe2",
+        .decimals = 18,
+    },
+    {
+        .name = "suterusu",
+        .unit = "SUTER",
+        .contract_address =
+            "\xaa\x2c\xe7\xae\x64\x06\x61\x75\xe0\xb9\x04\x97\xce\x7d\x9c\x19\x0c\x31\x5d\xb4",
+        .decimals = 18,
+    },
+    {
+        .name = "Savix",
+        .unit = "SVX",
+        .contract_address =
+            "\xc4\x34\xb2\x77\x36\xa6\x88\x2d\x33\x09\x4d\x34\x79\x29\x99\x70\x28\x60\xa1\x3c",
+        .decimals = 9,
+    },
+    {
+        .name = "Swash",
+        .unit = "SWASH",
+        .contract_address =
+            "\xa1\x30\xe3\xa3\x3a\x4d\x84\xb0\x4c\x39\x18\xc4\xe5\x76\x22\x23\xae\x25\x2f\x80",
+        .decimals = 18,
+    },
+    {
+        .name = "Swingby",
+        .unit = "SWINGBY",
+        .contract_address =
+            "\x82\x87\xc7\xb9\x63\xb4\x05\xb7\xb8\xd4\x67\xdb\x9d\x79\xee\xc4\x06\x25\xb1\x3a",
+        .decimals = 18,
+    },
+    {
+        .name = "Swerve",
+        .unit = "SWRV",
+        .contract_address =
+            "\xb8\xba\xa0\xe4\x28\x78\x90\xa5\xf7\x98\x63\xab\x62\xb7\xf1\x75\xce\xcb\xd4\x33",
+        .decimals = 18,
+    },
+    {
+        .name = "Switcheo",
+        .unit = "SWTH",
+        .contract_address =
+            "\xb4\x37\x1d\xa5\x31\x40\x41\x7c\xbb\x33\x62\x05\x53\x74\xb1\x0d\x97\xe4\x20\xbb",
+        .decimals = 8,
+    },
+    {
+        .name = "Sylo",
+        .unit = "SYLO",
+        .contract_address =
+            "\xf2\x93\xd2\x3b\xf2\xcd\xc0\x54\x11\xca\x0e\xdd\xd5\x88\xeb\x19\x77\xe8\xdc\xd4",
+        .decimals = 18,
+    },
+    {
+        .name = "SynLev",
+        .unit = "SYN",
+        .contract_address =
+            "\x16\x95\x93\x6d\x6a\x95\x3d\xf6\x99\xc3\x8c\xa2\x1c\x21\x40\xd4\x97\xc0\x8b\xd9",
+        .decimals = 18,
+    },
+    {
+        .name = "SYNC Network",
+        .unit = "SYNC",
+        .contract_address =
+            "\xb6\xff\x96\xb8\xa8\xd2\x14\x54\x4c\xa0\xdb\xc9\xb3\x3f\x7a\xd6\x50\x3e\xfd\x32",
+        .decimals = 18,
+    },
+    {
+        .name = "Tadpole Finance",
+        .unit = "TAD",
+        .contract_address =
+            "\x9f\x72\x29\xaf\x0c\x4b\x97\x40\xe2\x07\xea\x28\x3b\x90\x94\x98\x3f\x78\xba\x04",
+        .decimals = 18,
+    },
+    {
+        .name = "Talken",
+        .unit = "TALK",
+        .contract_address =
+            "\xca\xab\xca\xa4\xca\x42\xe1\xd8\x6d\xe1\xa2\x01\xc8\x18\x63\x9d\xef\x0b\xa7\xa7",
+        .decimals = 18,
+    },
+    {
+        .name = "Taklimakan Network",
+        .unit = "TAN",
+        .contract_address =
+            "\x2c\x36\x20\x4a\x07\x12\xa2\xa5\x0e\x54\xa6\x2f\x7c\x4f\x01\x86\x7e\x78\xcb\x53",
+        .decimals = 18,
+    },
+    {
+        .name = "keyTango",
+        .unit = "TANGO",
+        .contract_address =
+            "\x18\x2f\x4c\x4c\x97\xcd\x1c\x24\xe1\xdf\x8f\xc4\xc0\x53\xe5\xc4\x7b\xf5\x3b\xef",
+        .decimals = 18,
+    },
+    {
+        .name = "Tapmydata",
+        .unit = "TAP",
+        .contract_address =
+            "\x7f\x1f\x2d\x3d\xfa\x99\x67\x86\x75\xec\xe1\xc2\x43\xd3\xf7\xbc\x37\x46\xdb\x5d",
+        .decimals = 18,
+    },
+    {
+        .name = "Taraxa",
+        .unit = "TARA",
+        .contract_address =
+            "\xf0\x01\x93\x76\x50\xbb\x4f\x62\xb5\x75\x21\x82\x4b\x2c\x20\xf5\xb9\x1b\xea\x05",
+        .decimals = 18,
+    },
+    {
+        .name = "Tornado",
+        .unit = "TCORE",
+        .contract_address =
+            "\x7a\x3d\x5d\x49\xd6\x4e\x57\xdb\xd6\xfb\xb2\x1d\xf7\x20\x2b\xd3\xee\x7a\x22\x53",
+        .decimals = 18,
+    },
+    {
+        .name = "Telcoin",
+        .unit = "TEL",
+        .contract_address =
+            "\x46\x7b\xcc\xd9\xd2\x9f\x22\x3b\xce\x80\x43\xb8\x4e\x8c\x8b\x28\x28\x27\x79\x0f",
+        .decimals = 2,
+    },
+    {
+        .name = "TrueFeedBack",
+        .unit = "TFBX",
+        .contract_address =
+            "\x40\x57\xdb\x5b\xd9\xf6\x7a\x56\x6a\xa1\x0e\x55\x87\xb1\xa9\x64\xaf\xfc\x6a\x16",
+        .decimals = 18,
+    },
+    {
+        .name = "Throne",
+        .unit = "THN",
+        .contract_address =
+            "\x2e\x95\xce\xa1\x4d\xd3\x84\x42\x9e\xb3\xc4\x33\x1b\x77\x6c\x4c\xfb\xb6\xfc\xd9",
+        .decimals = 18,
+    },
+    {
+        .name = "Tidal Finance",
+        .unit = "TIDAL",
+        .contract_address =
+            "\x29\xcb\xd0\x51\x0e\xec\x03\x27\x99\x2c\xd6\x00\x6e\x63\xf9\xfa\x8e\x7f\x33\xb7",
+        .decimals = 18,
+    },
+    {
+        .name = "ChronoBase",
+        .unit = "TIK",
+        .contract_address =
+            "\x09\x22\xf1\xd8\x08\xad\xc3\xa4\x44\x4b\xed\x2f\x73\xfa\xc5\x3a\x1a\x2a\x58\x59",
+        .decimals = 18,
+    },
+    {
+        .name = "Chrono.tech",
+        .unit = "TIME",
+        .contract_address =
+            "\x48\x5d\x17\xa6\xf1\xb8\x78\x03\x92\xd5\x3d\x64\x75\x18\x24\x25\x30\x11\xa2\x60",
+        .decimals = 8,
+    },
+    {
+        .name = "TitanSwap",
+        .unit = "TITAN",
+        .contract_address =
+            "\x3a\x8c\xcc\xb9\x69\xa6\x15\x32\xd1\xe6\x00\x5e\x2c\xe1\x2c\x20\x0c\xae\xce\x87",
+        .decimals = 18,
+    },
+    {
+        .name = "Tiger King",
+        .unit = "TKING",
+        .contract_address =
+            "\x24\xe8\x9b\xdf\x2f\x65\x32\x6b\x94\xe3\x69\x78\xa7\xed\xea\xc6\x36\x23\xda\xfa",
+        .decimals = 18,
+    },
+    {
+        .name = "Alien Worlds",
+        .unit = "TLM",
+        .contract_address =
+            "\x88\x88\x88\x84\x8b\x65\x2b\x3e\x3a\x0f\x34\xc9\x6e\x00\xee\xc0\xf3\xa2\x3f\x72",
+        .decimals = 4,
+    },
+    {
+        .name = "TouchCon",
+        .unit = "TOC",
+        .contract_address =
+            "\x54\x99\x05\x51\x9f\x9e\x06\xd5\x5d\x7d\xfc\xd4\xd5\x48\x17\x78\x0f\x6b\x93\xe8",
+        .decimals = 18,
+    },
+    {
+        .name = "Tokoin",
+        .unit = "TOKO",
+        .contract_address =
+            "\xa0\xf0\x54\x6e\xb5\xe3\xee\x7e\x8c\xfc\x5d\xa1\x2e\x59\x49\xf3\xae\x62\x26\x75",
+        .decimals = 18,
+    },
+    {
+        .name = "Tokamak Network",
+        .unit = "TON",
+        .contract_address =
+            "\x2b\xe5\xe8\xc1\x09\xe2\x19\x7d\x07\x7d\x13\xa8\x2d\xae\xad\x6a\x9b\x34\x33\xc5",
+        .decimals = 18,
+    },
+    {
+        .name = "TE-FOOD",
+        .unit = "TONE",
+        .contract_address =
+            "\x2a\xb6\xbb\x84\x08\xca\x31\x99\xb8\xfa\x6c\x92\xd5\xb4\x55\xf8\x20\xaf\x03\xc4",
+        .decimals = 18,
+    },
+    {
+        .name = "Tornado Cash",
+        .unit = "TORN",
+        .contract_address =
+            "\x77\x77\x7f\xed\xdd\xdf\xfc\x19\xff\x86\xdb\x63\x79\x67\x01\x3e\x6c\x6a\x11\x6c",
+        .decimals = 18,
+    },
+    {
+        .name = "TotemFi",
+        .unit = "TOTM",
+        .contract_address =
+            "\x6f\xf1\xbf\xa1\x4a\x57\x59\x4a\x58\x74\xb3\x7f\xf6\xac\x5e\xfb\xd9\xf9\x59\x9a",
+        .decimals = 18,
+    },
+    {
+        .name = "TOWER",
+        .unit = "TOWER",
+        .contract_address =
+            "\x1c\x99\x22\x31\x4e\xd1\x41\x5c\x95\xb9\xfd\x45\x3c\x38\x18\xfd\x41\x86\x7d\x0b",
+        .decimals = 18,
+    },
+    {
+        .name = "Polytrade",
+        .unit = "TRADE",
+        .contract_address =
+            "\x6e\x59\x70\xdb\xd6\xfc\x7e\xb1\xf2\x9c\x6d\x2e\xdf\x2b\xc4\xc3\x61\x24\xc0\xc1",
+        .decimals = 18,
+    },
+    {
+        .name = "Unitrade",
+        .unit = "TRADE",
+        .contract_address =
+            "\x6f\x87\xd7\x56\xda\xf0\x50\x3d\x08\xeb\x89\x93\x68\x6c\x7f\xc0\x1d\xc4\x4f\xb1",
+        .decimals = 18,
+    },
+    {
+        .name = "Tellor",
+        .unit = "TRB",
+        .contract_address =
+            "\x88\xdf\x59\x2f\x8e\xb5\xd7\xbd\x38\xbf\xef\x7d\xeb\x0f\xbc\x02\xcf\x37\x78\xa0",
+        .decimals = 18,
+    },
+    {
+        .name = "Tribe",
+        .unit = "TRIBE",
+        .contract_address =
+            "\xc7\x28\x3b\x66\xeb\x1e\xb5\xfb\x86\x32\x7f\x08\xe1\xb5\x81\x6b\x07\x20\x21\x2b",
+        .decimals = 18,
+    },
+    {
+        .name = "TriumphX",
+        .unit = "TRIX",
+        .contract_address =
+            "\x05\x63\x54\xf3\xff\x20\x74\x3a\xa4\xc0\xda\x36\x56\x03\x87\x1c\x70\x00\xb0\x81",
+        .decimals = 18,
+    },
+    {
+        .name = "Triall",
+        .unit = "TRL",
+        .contract_address =
+            "\x58\xf9\x10\x2b\xf5\x3c\xf1\x86\x68\x2b\xd9\xa2\x81\xd3\xcd\x3c\x61\x6e\xec\x41",
+        .decimals = 18,
+    },
+    {
+        .name = "TrueFi",
+        .unit = "TRU",
+        .contract_address =
+            "\x4c\x19\x59\x6f\x5a\xaf\xf4\x59\xfa\x38\xb0\xf7\xed\x92\xf1\x1a\xe6\x54\x37\x84",
+        .decimals = 8,
+    },
+    {
+        .name = "TrustDAO",
+        .unit = "TRUST",
+        .contract_address =
+            "\x57\x70\x02\x44\xb2\x0f\x84\x79\x9a\x31\xc6\xc9\x6d\xad\xff\x37\x3c\xa9\xd6\xc5",
+        .decimals = 18,
+    },
+    {
+        .name = "TradeStars",
+        .unit = "TSX",
+        .contract_address =
+            "\x73\x4c\x90\x04\x4a\x0b\xa3\x1b\x3f\x2e\x64\x0c\x10\xdc\x5d\x35\x40\x49\x9b\xfd",
+        .decimals = 18,
+    },
+    {
+        .name = "Terra Virtua Kolect",
+        .unit = "TVK",
+        .contract_address =
+            "\xd0\x84\xb8\x3c\x30\x5d\xaf\xd7\x6a\xe3\xe1\xb4\xe1\xf1\xfe\x2e\xcc\xcb\x39\x88",
+        .decimals = 18,
+    },
+    {
+        .name = "Project TXA",
+        .unit = "TXA",
+        .contract_address =
+            "\x44\x63\xe6\xa3\xde\xd0\xdb\xe3\xf6\xe1\x5b\xc8\x42\x0d\xfc\x55\xe5\xfe\xa8\x30",
+        .decimals = 18,
+    },
+    {
+        .name = "Tixl",
+        .unit = "TXL",
+        .contract_address =
+            "\x8e\xef\x5a\x82\xe6\xaa\x22\x2a\x60\xf0\x09\xac\x18\xc2\x4e\xe1\x2d\xbf\x4b\x41",
+        .decimals = 18,
+    },
+    {
+        .name = "Tycoon",
+        .unit = "TYC",
+        .contract_address =
+            "\x3a\x82\xd3\x11\x1a\xb5\xfa\xf3\x9d\x84\x7d\x46\x02\x3d\x90\x90\x26\x1a\x65\x8f",
+        .decimals = 18,
+    },
+    {
+        .name = "Unicly Mystic Axies Collection",
+        .unit = "UAXIE",
+        .contract_address =
+            "\x68\xb1\xca\xdb\x8d\x5a\xb0\xc9\x7f\xe9\xd9\xfb\xe0\xeb\x60\xac\xb3\x29\xfe\x3f",
+        .decimals = 18,
+    },
+    {
+        .name = "UpBots",
+        .unit = "UBXT",
+        .contract_address =
+            "\x85\x64\x65\x38\x79\xa1\x8c\x56\x0e\x7c\x0e\xa0\xe0\x84\xc5\x16\xc6\x2f\x56\x53",
+        .decimals = 18,
+    },
+    {
+        .name = "Unicly Chris McCann Collection",
+        .unit = "UCM",
+        .contract_address =
+            "\x5f\xb9\x9a\x35\x93\xd7\x08\x8e\x44\x37\x7a\x1b\xeb\x27\x73\x9b\xd9\x28\xf2\x69",
+        .decimals = 18,
+    },
+    {
+        .name = "Unido EP",
+        .unit = "UDO",
+        .contract_address =
+            "\xea\x39\x83\xfc\x6d\x0f\xbb\xc4\x1f\xb6\xf6\x09\x1f\x68\xf3\xe0\x88\x94\xdc\x06",
+        .decimals = 18,
+    },
+    {
+        .name = "Unicly Doki Doki Collection",
+        .unit = "UDOKI",
+        .contract_address =
+            "\x7e\x6c\x38\xd0\x07\x74\x09\x31\xe4\xb4\x19\xbf\x15\xa6\x8c\x79\xa0\xfb\x0c\x66",
+        .decimals = 18,
+    },
+    {
+        .name = "UFO Gaming",
+        .unit = "UFO",
+        .contract_address =
+            "\x24\x9e\x38\xea\x41\x02\xd0\xcf\x82\x64\xd3\x70\x1f\x1a\x0e\x39\xc4\xf2\xdc\x3b",
+        .decimals = 18,
+    },
+    {
+        .name = "UniLend",
+        .unit = "UFT",
+        .contract_address =
+            "\x02\x02\xbe\x36\x3b\x8a\x48\x20\xf3\xf4\xde\x7f\xaf\x52\x24\xff\x05\x94\x3a\xb1",
+        .decimals = 18,
+    },
+    {
+        .name = "UMA",
+        .unit = "UMA",
+        .contract_address =
+            "\x04\xfa\x0d\x23\x5c\x4a\xbf\x4b\xcf\x47\x87\xaf\x4c\xf4\x47\xde\x57\x2e\xf8\x28",
+        .decimals = 18,
+    },
+    {
+        .name = "Unicly Hashmasks Collection",
+        .unit = "UMASK",
+        .contract_address =
+            "\x58\x72\xe6\x4c\x3f\x93\x36\x38\x22\xd2\xb1\xe4\x71\x7b\xe3\x39\x8f\xdc\xea\x51",
+        .decimals = 18,
+    },
+    {
+        .name = "Umbrella Network",
+        .unit = "UMB",
+        .contract_address =
+            "\x6f\xc1\x3e\xac\xe2\x65\x90\xb8\x0c\xcc\xab\x1b\xa5\xd5\x18\x90\x57\x7d\x83\xb2",
+        .decimals = 18,
+    },
+    {
+        .name = "UniMex Network",
+        .unit = "UMX",
+        .contract_address =
+            "\x10\xbe\x9a\x8d\xae\x44\x1d\x27\x6a\x50\x27\x93\x6c\x3a\xad\xed\x2d\x82\xbc\x15",
+        .decimals = 18,
+    },
+    {
+        .name = "UniCrypt",
+        .unit = "UNCX",
+        .contract_address =
+            "\xad\xb2\x43\x7e\x6f\x65\x68\x2b\x85\xf8\x14\xfb\xc1\x2f\xec\x05\x08\xa7\xb1\xd0",
+        .decimals = 18,
+    },
+    {
+        .name = "Unistake",
+        .unit = "UNISTAKE",
+        .contract_address =
+            "\x9e\xd8\xe7\xc9\x60\x47\x90\xf7\xec\x58\x9f\x99\xb9\x43\x61\xd8\xaa\xb6\x4e\x5e",
+        .decimals = 18,
+    },
+    {
+        .name = "Unvest",
+        .unit = "UNV",
+        .contract_address =
+            "\xf0\x09\xf5\x53\x1d\xe6\x90\x67\x43\x5e\x32\xc4\xb9\xd3\x60\x77\xf4\xc4\xa6\x73",
+        .decimals = 18,
+    },
+    {
+        .name = "Unicly CryptoPunks Collection",
+        .unit = "UPUNK",
+        .contract_address =
+            "\x8d\x2b\xff\xcb\xb1\x9f\xf1\x4a\x69\x8c\x42\x4f\xbc\xdc\xfd\x17\xaa\xb9\xb9\x05",
+        .decimals = 18,
+    },
+    {
+        .name = "Uquid Coin",
+        .unit = "UQC",
+        .contract_address =
+            "\x88\x06\x92\x6a\xb6\x8e\xb5\xa7\xb9\x09\xdc\xaf\x6f\xdb\xe5\xd9\x32\x71\xd6\xe2",
+        .decimals = 18,
+    },
+    {
+        .name = "UREEQA",
+        .unit = "URQA",
+        .contract_address =
+            "\x17\x35\xdb\x6a\xb5\xba\xa1\x9e\xa5\x5d\x0a\xdc\xee\xd7\xbc\xdc\x00\x8b\x31\x36",
+        .decimals = 18,
+    },
+    {
+        .name = "Aurox",
+        .unit = "URUS",
+        .contract_address =
+            "\x6c\x5f\xbc\x90\xe4\xd7\x8f\x70\xcc\x50\x25\xdb\x00\x5b\x39\xb0\x39\x14\xfc\x0c",
+        .decimals = 18,
+    },
+    {
+        .name = "Neutrino USD",
+        .unit = "USDN",
+        .contract_address =
+            "\x67\x4c\x6a\xd9\x2f\xd0\x80\xe4\x00\x4b\x23\x12\xb4\x5f\x79\x6a\x19\x2d\x27\xa0",
+        .decimals = 18,
+    },
+    {
+        .name = "Utrust",
+        .unit = "UTK",
+        .contract_address =
+            "\xdc\x9a\xc3\xc2\x0d\x1e\xd0\xb5\x40\xdf\x9b\x1f\xed\xc1\x00\x39\xdf\x13\xf9\x9c",
+        .decimals = 18,
+    },
+    {
+        .name = "UTU Protocol",
+        .unit = "UTU",
+        .contract_address =
+            "\xa5\x8a\x4f\x5c\x4b\xb0\x43\xd2\xcc\x1e\x17\x06\x13\xb7\x4e\x76\x7c\x94\x18\x9b",
+        .decimals = 18,
+    },
+    {
+        .name = "Unicly Genesis Collection",
+        .unit = "UUNICLY",
+        .contract_address =
+            "\x3d\x92\x33\xf1\x5b\xb9\x3c\x78\xa4\xf0\x7b\x5c\x5f\x7a\x01\x86\x30\x21\x7c\xb3",
+        .decimals = 18,
+    },
+    {
+        .name = "Vabble",
+        .unit = "VAB",
+        .contract_address =
+            "\xe7\xae\x6d\x0c\x56\xca\xca\xf0\x07\xb7\xe4\xd3\x12\xf9\xaf\x68\x6a\x9e\x9a\x04",
+        .decimals = 18,
+    },
+    {
+        .name = "SORA Validator Token",
+        .unit = "VAL",
+        .contract_address =
+            "\xe8\x8f\x83\x13\xe6\x1a\x97\xce\xc1\x87\x1e\xe3\x7f\xbb\xe2\xa8\xbf\x3e\xd1\xe4",
+        .decimals = 18,
+    },
+    {
+        .name = "Valobit",
+        .unit = "VBIT",
+        .contract_address =
+            "\xb8\x36\x69\x48\xb4\xa3\xf0\x7b\xcb\xf1\x4e\xb1\x73\x9d\xaa\x42\xa2\x6b\x07\xc4",
+        .decimals = 18,
+    },
+    {
+        .name = "Vodra",
+        .unit = "VDR",
+        .contract_address =
+            "\xed\x3d\x4e\x44\x6a\x96\xdc\x3b\x18\x1b\x64\xb7\x5c\x3c\x70\xda\x41\xdc\x3c\xbe",
+        .decimals = 18,
+    },
+    {
+        .name = "Vega Protocol",
+        .unit = "VEGA",
+        .contract_address =
+            "\xcb\x84\xd7\x2e\x61\xe3\x83\x76\x7c\x4d\xfe\xb2\xd8\xff\x7f\x4f\xb8\x9a\xbc\x6e",
+        .decimals = 18,
+    },
+    {
+        .name = "vEmpire DDAO",
+        .unit = "VEMP",
+        .contract_address =
+            "\xcf\xeb\x09\xc3\xc5\xf0\xf7\x8a\xd7\x21\x66\xd5\x5f\x9e\x6e\x9a\x60\xe9\x6e\xec",
+        .decimals = 18,
+    },
+    {
+        .name = "Voyager Token",
+        .unit = "VGX",
+        .contract_address =
+            "\x3c\x4b\x6e\x6e\x1e\xa3\xd4\x86\x37\x00\xd7\xf7\x6b\x36\xb7\xf3\xd3\xf1\x3e\x3d",
+        .decimals = 8,
+    },
+    {
+        .name = "Vid",
+        .unit = "VI",
+        .contract_address =
+            "\x8b\x6c\x3b\x7c\x01\xd9\xdb\x43\x93\xf9\xaa\x73\x47\x50\xf3\x6d\xf1\x54\x3e\x9a",
+        .decimals = 18,
+    },
+    {
+        .name = "VIDT Datalink",
+        .unit = "VIDT",
+        .contract_address =
+            "\xfe\xf4\x18\x55\x94\x45\x70\x50\xcc\x9c\x23\x98\x0d\x30\x19\x08\xfe\x05\x7b\xb1",
+        .decimals = 18,
+    },
+    {
+        .name = "Vidya",
+        .unit = "VIDYA",
+        .contract_address =
+            "\x3d\x3d\x35\xbb\x9b\xec\x23\xb0\x6c\xa0\x0f\xe4\x72\xb5\x0e\x7a\x4c\x69\x2c\x30",
+        .decimals = 18,
+    },
+    {
+        .name = "Visor.Finance",
+        .unit = "VISR",
+        .contract_address =
+            "\xf9\x38\x42\x4f\x72\x10\xf3\x1d\xf2\xae\xe3\x01\x12\x91\xb6\x58\xf8\x72\xe9\x1e",
+        .decimals = 18,
+    },
+    {
+        .name = "VelasPad",
+        .unit = "VLXPAD",
+        .contract_address =
+            "\xb8\xe3\xbb\x63\x3f\x72\x76\xcc\x17\x73\x5d\x86\x15\x4e\x0a\xd5\xec\x99\x28\xc0",
+        .decimals = 18,
+    },
+    {
+        .name = "Vanilla Network",
+        .unit = "VNLA",
+        .contract_address =
+            "\xb9\x7f\xaf\x86\x00\x45\x48\x3e\x0c\x7f\x08\xc5\x6a\xcb\x31\x33\x30\x84\xa9\x88",
+        .decimals = 18,
+    },
+    {
+        .name = "Vox.Finance",
+        .unit = "VOX",
+        .contract_address =
+            "\x12\xd1\x02\xf0\x6d\xa3\x5c\xc0\x11\x1e\xb5\x80\x17\xfd\x2c\xd2\x85\x37\xd0\xe1",
+        .decimals = 18,
+    },
+    {
+        .name = "Virtue Poker",
+        .unit = "VPP",
+        .contract_address =
+            "\x5e\xea\xa2\xdc\xb2\x30\x56\xf4\xe8\x65\x4a\x34\x9e\x57\xeb\xe5\xe7\x6b\x5e\x6e",
+        .decimals = 18,
+    },
+    {
+        .name = "Verasity",
+        .unit = "VRA",
+        .contract_address =
+            "\xf4\x11\x90\x3c\xbc\x70\xa7\x4d\x22\x90\x0a\x5d\xe6\x6a\x2d\xda\x66\x50\x72\x55",
+        .decimals = 18,
+    },
+    {
+        .name = "Vesper",
+        .unit = "VSP",
+        .contract_address =
+            "\x1b\x40\x18\x3e\xfb\x4d\xd7\x66\xf1\x1b\xda\x7a\x7c\x3a\xd8\x98\x2e\x99\x84\x21",
+        .decimals = 18,
+    },
+    {
+        .name = "Vortex Defi",
+        .unit = "VTX",
+        .contract_address =
+            "\xce\xb2\x86\xc9\x60\x4c\x54\x2d\x3c\xc0\x8b\x41\xaa\x6c\x96\x75\xb0\x78\xa8\x32",
+        .decimals = 18,
+    },
+    {
+        .name = "WagyuSwap",
+        .unit = "WAG",
+        .contract_address =
+            "\x7f\xa7\xdf\x49\x96\xac\x59\xf3\x98\x47\x68\x92\xcf\xb1\x95\xed\x38\x54\x35\x20",
+        .decimals = 18,
+    },
+    {
+        .name = "Waifu Token",
+        .unit = "WAIF",
+        .contract_address =
+            "\xb2\x27\x9b\x67\x69\xcf\xba\x69\x14\x16\xf0\x06\x09\xb1\x62\x44\xc0\xcf\x4b\x20",
+        .decimals = 18,
+    },
+    {
+        .name = "Warp Finance",
+        .unit = "WARP",
+        .contract_address =
+            "\xed\x40\x83\x4a\x13\x12\x95\x09\xa8\x9b\xe3\x9a\x9b\xe9\xc0\xe9\x6a\x0d\xdd\x71",
+        .decimals = 18,
+    },
+    {
+        .name = "Wrapped Basic CryptoKitties",
+        .unit = "WCK",
+        .contract_address =
+            "\x09\xfe\x5f\x02\x36\xf0\xea\x5d\x93\x01\x97\xdc\xe2\x54\xd7\x7b\x04\x12\x80\x75",
+        .decimals = 18,
+    },
+    {
+        .name = "Webcoin",
+        .unit = "WEB",
+        .contract_address =
+            "\xf3\x44\x49\x0a\xbd\x41\x4d\xaf\xa9\x7f\x34\xc8\xca\x50\x1b\x0a\xa5\xbf\x88\x73",
+        .decimals = 1,
+    },
+    {
+        .name = "WELL",
+        .unit = "WELL",
+        .contract_address =
+            "\x1b\x06\xb4\x3f\x3b\x0b\xba\xd7\x37\x84\xd8\x58\xc7\x82\xe0\x29\xf3\xf5\xaf\x14",
+        .decimals = 18,
+    },
+    {
+        .name = "Wrapped Gen-0 CryptoKitties",
+        .unit = "WG0",
+        .contract_address =
+            "\xa1\x07\x40\xff\x9f\xf6\x85\x2e\xac\x84\xcd\xcf\xf9\x18\x4e\x1d\x6d\x27\xc0\x57",
+        .decimals = 18,
+    },
+    {
+        .name = "WHALE",
+        .unit = "WHALE",
+        .contract_address =
+            "\x93\x55\x37\x23\x96\xe3\xf6\xda\xf1\x33\x59\xb7\xb6\x07\xa3\x37\x4c\xc6\x38\xe0",
+        .decimals = 4,
+    },
+    {
+        .name = "Whiteheart",
+        .unit = "WHITE",
+        .contract_address =
+            "\x5f\x0e\x62\x8b\x69\x30\x18\xf6\x39\xd1\x0e\x4a\x4f\x59\xbd\x4d\x8b\x2b\x6b\x44",
+        .decimals = 18,
+    },
+    {
+        .name = "Wilder World",
+        .unit = "WILD",
+        .contract_address =
+            "\x2a\x3b\xff\x78\xb7\x9a\x00\x99\x76\xee\xa0\x96\xa5\x1a\x94\x8a\x3d\xc0\x0e\x34",
+        .decimals = 18,
+    },
+    {
+        .name = "JustBet",
+        .unit = "WINR",
+        .contract_address =
+            "\x27\x46\x0a\xac\x4b\x00\x5d\xe7\x2e\x23\x26\xbd\x83\x91\xc2\x7f\xb4\x17\x80\xf8",
+        .decimals = 18,
+    },
+    {
+        .name = "Wrapped NCG (Nine Chronicles Gold)",
+        .unit = "WNCG",
+        .contract_address =
+            "\xf2\x03\xca\x17\x69\xca\x8e\x9e\x8f\xe1\xda\x9d\x14\x7d\xb6\x8b\x6c\x91\x98\x17",
+        .decimals = 18,
+    },
+    {
+        .name = "WOM Protocol",
+        .unit = "WOM",
+        .contract_address =
+            "\xbd\x35\x6a\x39\xbf\xf2\xca\xda\x8e\x92\x48\x53\x2d\xd8\x79\x14\x72\x21\xcf\x76",
+        .decimals = 18,
+    },
+    {
+        .name = "WeBlock",
+        .unit = "WON",
+        .contract_address =
+            "\x1e\xdd\xee\x3f\xa2\x15\x91\xa9\x63\x7f\x88\xda\xb9\x61\x5c\x33\xee\x63\x6b\x9d",
+        .decimals = 18,
+    },
+    {
+        .name = "WOO Network",
+        .unit = "WOO",
+        .contract_address =
+            "\x46\x91\x93\x7a\x75\x08\x86\x0f\x87\x6c\x9c\x0a\x2a\x61\x7e\x7d\x9e\x94\x5d\x4b",
+        .decimals = 18,
+    },
+    {
+        .name = "Wolves of Wall Street",
+        .unit = "WOWS",
+        .contract_address =
+            "\x67\x2e\xf7\xe4\xfe\x23\x0b\x5c\xa1\x46\x6c\x5f\xdd\x40\x58\x8d\x30\xfd\xf9\x0a",
+        .decimals = 18,
+    },
+    {
+        .name = "EFFORCE",
+        .unit = "WOZX",
+        .contract_address =
+            "\x34\x95\x0f\xf2\xb4\x87\xd9\xe5\x28\x2c\x5a\xb3\x42\xd0\x8a\x2f\x71\x2e\xb7\x9f",
+        .decimals = 18,
+    },
+    {
+        .name = "WorkQuest Token",
+        .unit = "WQT",
+        .contract_address =
+            "\x06\x67\x7d\xc4\xfe\x12\xd3\xba\x3c\x7c\xcf\xd0\xdf\x8c\xd4\x5e\x4d\x40\x95\xbf",
+        .decimals = 18,
+    },
+    {
+        .name = "Worldcore",
+        .unit = "WRC",
+        .contract_address =
+            "\x72\xad\xad\xb4\x47\x78\x4d\xd7\xab\x1f\x47\x24\x67\x75\x0f\xc4\x85\xe4\xcb\x2d",
+        .decimals = 6,
+    },
+    {
+        .name = "Wrapped Virgin Gen-0 CryptoKitties",
+        .unit = "WVG0",
+        .contract_address =
+            "\x25\xc7\xb6\x4a\x93\xeb\x12\x61\xe1\x30\xec\x21\xa3\xe9\x91\x8c\xaa\x38\xb6\x11",
+        .decimals = 18,
+    },
+    {
+        .name = "Antiample",
+        .unit = "XAMP",
+        .contract_address =
+            "\xf9\x11\xa7\xec\x46\xa2\xc6\xfa\x49\x19\x32\x12\xfe\x4a\x2a\x9b\x95\x85\x1c\x27",
+        .decimals = 9,
+    },
+    {
+        .name = "Tether Gold",
+        .unit = "XAUT",
+        .contract_address =
+            "\x68\x74\x96\x65\xff\x8d\x2d\x11\x2f\xa8\x59\xaa\x29\x3f\x07\xa6\x22\x78\x2f\x38",
+        .decimals = 6,
+    },
+    {
+        .name = "Curate",
+        .unit = "XCUR",
+        .contract_address =
+            "\xe1\xc7\xe3\x0c\x42\xc2\x45\x82\x88\x8c\x75\x89\x84\xf6\xe3\x82\x09\x67\x86\xbd",
+        .decimals = 8,
+    },
+    {
+        .name = "extraDNA",
+        .unit = "XDNA",
+        .contract_address =
+            "\x8e\x57\xc2\x77\x61\xeb\xbd\x38\x1b\x0f\x9d\x09\xbb\x92\xce\xb5\x1a\x35\x8a\xbb",
+        .decimals = 18,
+    },
+    {
+        .name = "Exeedme",
+        .unit = "XED",
+        .contract_address =
+            "\xee\x57\x3a\x94\x5b\x01\xb7\x88\xb9\x28\x7c\xe0\x62\xa0\xcf\xc1\x5b\xe9\xfd\x86",
+        .decimals = 18,
+    },
+    {
+        .name = "Xend Finance",
+        .unit = "XEND",
+        .contract_address =
+            "\xe4\xcf\xe9\xea\xa8\xcd\xb0\x94\x2a\x80\xb7\xbc\x68\xfd\x8a\xb0\xf6\xd4\x49\x03",
+        .decimals = 18,
+    },
+    {
+        .name = "Xfinance",
+        .unit = "XFI",
+        .contract_address =
+            "\x5b\xef\xbb\x27\x22\x90\xdd\x5b\x85\x21\xd4\xa9\x38\xf6\xc4\x75\x77\x42\xc4\x30",
+        .decimals = 18,
+    },
+    {
+        .name = "Offshift",
+        .unit = "XFT",
+        .contract_address =
+            "\xab\xe5\x80\xe7\xee\x15\x8d\xa4\x64\xb5\x1e\xe1\xa8\x3a\xc0\x28\x96\x22\xe6\xbe",
+        .decimals = 18,
+    },
+    {
+        .name = "Xiotri",
+        .unit = "XIOT",
+        .contract_address =
+            "\x31\x02\x4a\x4c\x3e\x9a\xee\xb2\x56\xb8\x25\x79\x0f\x5c\xb7\xac\x64\x5e\x7c\xd5",
+        .decimals = 3,
+    },
+    {
+        .name = "Project Inverse",
+        .unit = "XIV",
+        .contract_address =
+            "\x44\xf2\x62\x62\x22\x48\x02\x7f\x8e\x2a\x8f\xb1\x09\x0c\x4c\xf8\x50\x72\x39\x2c",
+        .decimals = 18,
+    },
+    {
+        .name = "XMON",
+        .unit = "XMON",
+        .contract_address =
+            "\x3a\xad\xa3\xe2\x13\xab\xf8\x52\x96\x06\x92\x4d\x8d\x1c\x55\xcb\xdc\x70\xbf\x74",
+        .decimals = 18,
+    },
+    {
+        .name = "Ink Protocol",
+        .unit = "XNK",
+        .contract_address =
+            "\xbc\x86\x72\x7e\x77\x0d\xe6\x8b\x10\x60\xc9\x1f\x6b\xb6\x94\x5c\x73\xe1\x03\x88",
+        .decimals = 18,
+    },
+    {
+        .name = "Chronicle",
+        .unit = "XNL",
+        .contract_address =
+            "\x06\xa0\x07\x15\xe6\xf9\x22\x10\xaf\x9d\x76\x80\xb5\x84\x93\x1f\xaf\x71\xa8\x33",
+        .decimals = 18,
+    },
+    {
+        .name = "Xeno Token",
+        .unit = "XNO",
+        .contract_address =
+            "\xc0\x3a\x65\x2e\xfb\xba\xcf\xab\xde\x37\xcd\x66\xc7\xa4\xff\x43\x32\xf7\x18\x6c",
+        .decimals = 18,
+    },
+    {
+        .name = "SORA",
+        .unit = "XOR",
+        .contract_address =
+            "\x40\xfd\x72\x25\x75\x97\xaa\x14\xc7\x23\x1a\x7b\x1a\xaa\x29\xfc\xe8\x68\xf6\x77",
+        .decimals = 18,
+    },
+    {
+        .name = "XOVBank",
+        .unit = "XOV",
+        .contract_address =
+            "\x15\x3e\xd9\xcc\x1b\x79\x29\x79\xd2\xbd\xe0\xbb\xf4\x5c\xc2\xa7\xe4\x36\xa5\xf9",
+        .decimals = 18,
+    },
+    {
+        .name = "XPA",
+        .unit = "XPA",
+        .contract_address =
+            "\x90\x52\x8a\xeb\x3a\x2b\x73\x6b\x78\x0f\xd1\xb6\xc4\x78\xbb\x7e\x1d\x64\x31\x70",
+        .decimals = 18,
+    },
+    {
+        .name = "Bitnation",
+        .unit = "XPAT",
+        .contract_address =
+            "\xbb\x1f\xa4\xfd\xeb\x34\x59\x73\x3b\xf6\x7e\xbc\x6f\x89\x30\x03\xfa\x97\x6a\x82",
+        .decimals = 18,
+    },
+    {
+        .name = "PANTHEON X",
+        .unit = "XPN",
+        .contract_address =
+            "\x3b\x9e\x09\x4d\x56\x10\x36\x11\xf0\xac\xef\xda\xb4\x31\x82\x34\x7b\xa6\x0d\xf4",
+        .decimals = 18,
+    },
+    {
+        .name = "Proton",
+        .unit = "XPR",
+        .contract_address =
+            "\xd7\xef\xb0\x0d\x12\xc2\xc1\x31\x31\xfd\x31\x93\x36\xfd\xf9\x52\x52\x5d\xa2\xaf",
+        .decimals = 4,
+    },
+    {
+        .name = "Cryptobuyer",
+        .unit = "XPT",
+        .contract_address =
+            "\x08\xaa\x0e\xd0\x04\x07\x36\xdd\x28\xd4\xc8\xb1\x6a\xb4\x53\xb3\x68\x24\x8d\x19",
+        .decimals = 18,
+    },
+    {
+        .name = "Robonomics.network",
+        .unit = "XRT",
+        .contract_address =
+            "\x7d\xe9\x1b\x20\x4c\x1c\x73\x7b\xce\xe6\xf0\x00\xaa\xa6\x56\x9c\xf7\x06\x1c\xb7",
+        .decimals = 9,
+    },
+    {
+        .name = "Thorstarter",
+        .unit = "XRUNE",
+        .contract_address =
+            "\x69\xfa\x0f\xee\x22\x1a\xd1\x10\x12\xba\xb0\xfd\xb4\x5d\x44\x4d\x3d\x2c\xe7\x1c",
+        .decimals = 18,
+    },
+    {
+        .name = "XSGD",
+        .unit = "XSGD",
+        .contract_address =
+            "\x70\xe8\xde\x73\xce\x53\x8d\xa2\xbe\xed\x35\xd1\x41\x87\xf6\x95\x9a\x8e\xca\x96",
+        .decimals = 6,
+    },
+    {
+        .name = "Torum",
+        .unit = "XTM",
+        .contract_address =
+            "\xcd\x1f\xaf\xf6\xe5\x78\xfa\x5c\xac\x46\x9d\x24\x18\xc9\x56\x71\xba\x1a\x62\xfe",
+        .decimals = 18,
+    },
+    {
+        .name = "Tap",
+        .unit = "XTP",
+        .contract_address =
+            "\x63\x68\xe1\xe1\x8c\x4c\x41\x9d\xdf\xc6\x08\xa0\xbe\xd1\xcc\xb8\x7b\x92\x50\xfc",
+        .decimals = 18,
+    },
+    {
+        .name = "Cryptonovae",
+        .unit = "YAE",
+        .contract_address =
+            "\x4e\xe4\x38\xbe\x38\xf8\x68\x2a\xbb\x08\x9f\x2b\xfe\xa4\x88\x51\xc5\xe7\x1e\xaf",
+        .decimals = 18,
+    },
+    {
+        .name = "YAM V3",
+        .unit = "YAM",
+        .contract_address =
+            "\x0a\xac\xfb\xec\x6a\x24\x75\x6c\x20\xd4\x19\x14\xf2\xca\xba\x81\x7c\x0d\x85\x21",
+        .decimals = 18,
+    },
+    {
+        .name = "yAxis",
+        .unit = "YAXIS",
+        .contract_address =
+            "\x0a\xda\x19\x0c\x81\xb8\x14\x54\x8d\xdc\x2f\x6a\xdc\x4a\x68\x9c\xe7\xc1\xfe\x73",
+        .decimals = 18,
+    },
+    {
+        .name = "YFDAI.FINANCE",
+        .unit = "YF-DAI",
+        .contract_address =
+            "\xf4\xcd\x3d\x3f\xda\x8d\x7f\xd6\xc5\xa5\x00\x20\x3e\x38\x64\x0a\x70\xbf\x95\x77",
+        .decimals = 18,
+    },
+    {
+        .name = "Yearn Finance Bit",
+        .unit = "YFBT",
+        .contract_address =
+            "\xf0\xa0\xf3\xa6\xfa\x6b\xed\x75\x34\x51\x71\xa5\xea\x18\xab\xca\xdf\x64\x53\xba",
+        .decimals = 18,
+    },
+    {
+        .name = "yearn.finance",
+        .unit = "YFI",
+        .contract_address =
+            "\x0b\xc5\x29\xc0\x0c\x64\x01\xae\xf6\xd2\x20\xbe\x8c\x6e\xa1\x66\x7f\x6a\xd9\x3e",
+        .decimals = 18,
+    },
+    {
+        .name = "DFI.Money",
+        .unit = "YFII",
+        .contract_address =
+            "\xa1\xd0\xe2\x15\xa2\x3d\x70\x30\x84\x2f\xc6\x7c\xe5\x82\xa6\xaf\xa3\xcc\xab\x83",
+        .decimals = 18,
+    },
+    {
+        .name = "DiFy.Finance",
+        .unit = "YFIII",
+        .contract_address =
+            "\x4b\xe4\x0b\xc9\x68\x1d\x0a\x7c\x24\xa9\x9b\x4c\x92\xf8\x5b\x90\x53\xfc\x2a\x45",
+        .decimals = 18,
+    },
+    {
+        .name = "YFIVE FINANCE",
+        .unit = "YFIVE",
+        .contract_address =
+            "\xd3\xe8\x69\x5d\x2b\xef\x06\x1e\xab\x38\xb5\xef\x52\x6c\x0f\x71\x41\x08\x11\x9c",
+        .decimals = 18,
+    },
+    {
+        .name = "YF Link",
+        .unit = "YFL",
+        .contract_address =
+            "\x28\xcb\x7e\x84\x1e\xe9\x79\x47\xa8\x6b\x06\xfa\x40\x90\xc8\x45\x1f\x64\xc0\xbe",
+        .decimals = 18,
+    },
+    {
+        .name = "Yield Guild Games",
+        .unit = "YGG",
+        .contract_address =
+            "\x25\xf8\x08\x7e\xad\x17\x3b\x73\xd6\xe8\xb8\x43\x29\x98\x9a\x8e\xea\x16\xcf\x73",
+        .decimals = 18,
+    },
+    {
+        .name = "Yield Stake Finance",
+        .unit = "YI12",
+        .contract_address =
+            "\x03\xe4\xbd\xce\x61\x11\x04\x28\x93\x33\xf3\x5c\x81\x77\x55\x8b\x04\xcc\x99\xff",
+        .decimals = 18,
+    },
+    {
+        .name = "Yield Protocol",
+        .unit = "YIELD",
+        .contract_address =
+            "\xa8\xb6\x1c\xff\x52\x56\x47\x58\xa2\x04\xf8\x41\xe6\x36\x26\x5b\xeb\xc8\xdb\x9b",
+        .decimals = 18,
+    },
+    {
+        .name = "YoloCash",
+        .unit = "YLC",
+        .contract_address =
+            "\x21\xd5\x67\x8a\x62\xdf\xe6\x3a\x47\x06\x24\x69\xeb\xb2\xfa\xc2\x81\x7d\x88\x32",
+        .decimals = 8,
+    },
+    {
+        .name = "YIELD App",
+        .unit = "YLD",
+        .contract_address =
+            "\xf9\x4b\x5c\x56\x51\xc8\x88\xd9\x28\x43\x9a\xb6\x51\x4b\x93\x94\x4e\xee\x6f\x48",
+        .decimals = 18,
+    },
+    {
+        .name = "Yield Optimization Platform & Protocol",
+        .unit = "YOP",
+        .contract_address =
+            "\xae\x1e\xaa\xe3\xf6\x27\xaa\xca\x43\x41\x27\x64\x43\x71\xb6\x7b\x18\x44\x40\x51",
+        .decimals = 8,
+    },
+    {
+        .name = "yOUcash",
+        .unit = "YOUC",
+        .contract_address =
+            "\x3d\x37\x14\x13\xdd\x54\x89\xf3\xa0\x4c\x07\xc0\xc2\xce\x36\x9c\x20\x98\x6c\xeb",
+        .decimals = 10,
+    },
+    {
+        .name = "Yearn Secure",
+        .unit = "YSEC",
+        .contract_address =
+            "\xee\xa9\xae\x78\x7f\x3a\x62\x00\x72\xd1\x3b\x2c\xdc\x8c\xab\xff\xb9\xc0\xab\x96",
+        .decimals = 18,
+    },
+    {
+        .name = "YVS.Finance",
+        .unit = "YVS",
+        .contract_address =
+            "\xec\x68\x1f\x28\xf4\x56\x1c\x2a\x95\x34\x79\x9a\xa3\x8e\x0d\x36\xa8\x3c\xf4\x78",
+        .decimals = 18,
+    },
+    {
+        .name = "Zap",
+        .unit = "ZAP",
+        .contract_address =
+            "\x67\x81\xa0\xf8\x4c\x7e\x9e\x84\x6d\xcb\x84\xa9\xa5\xbd\x49\x33\x30\x67\xb1\x04",
+        .decimals = 18,
+    },
+    {
+        .name = "0Chain",
+        .unit = "ZCN",
+        .contract_address =
+            "\xb9\xef\x77\x0b\x6a\x5e\x12\xe4\x59\x83\xc5\xd8\x05\x45\x25\x8a\xa3\x8f\x3b\x78",
+        .decimals = 10,
+    },
+    {
+        .name = "Zloadr",
+        .unit = "ZDR",
+        .contract_address =
+            "\xbd\xfa\x65\x53\x30\x74\xb0\xb2\x3e\xbc\x18\xc7\x19\x0b\xe7\x9f\xa7\x4b\x30\xc2",
+        .decimals = 18,
+    },
+    {
+        .name = "ZeroSwap",
+        .unit = "ZEE",
+        .contract_address =
+            "\x2e\xdf\x09\x4d\xb6\x9d\x6d\xcd\x48\x7f\x1b\x3d\xb9\xfe\xbe\x2e\xec\x0d\xd4\xc5",
+        .decimals = 18,
+    },
+    {
+        .name = "Zenfuse",
+        .unit = "ZEFU",
+        .contract_address =
+            "\xb1\xe9\x15\x7c\x2f\xdc\xc5\xa8\x56\xc8\xda\x8b\x2d\x89\xb6\xc3\x2b\x3c\x12\x29",
+        .decimals = 18,
+    },
+    {
+        .name = "ZeusNetwork",
+        .unit = "ZEUS",
+        .contract_address =
+            "\xe7\xe4\x27\x9b\x80\xd3\x19\xed\xe2\x88\x98\x55\x13\x5a\x22\x02\x1b\xaf\x09\x07",
+        .decimals = 18,
+    },
+    {
+        .name = "Zuflo Coin",
+        .unit = "ZFL",
+        .contract_address =
+            "\x19\xff\xfd\x12\x4c\xd9\x08\x9e\x21\x02\x6d\x10\xda\x97\xf8\xcd\x6b\x44\x2b\xff",
+        .decimals = 8,
+    },
+    {
+        .name = "Zigcoin",
+        .unit = "ZIG",
+        .contract_address =
+            "\x7b\xeb\xd2\x26\x15\x4e\x86\x59\x54\xa8\x76\x50\xfa\xef\xa8\xf4\x85\xd3\x60\x81",
+        .decimals = 18,
+    },
+    {
+        .name = "ZINC",
+        .unit = "ZINC",
+        .contract_address =
+            "\x4a\xac\x46\x1c\x86\xab\xfa\x71\xe9\xd0\x0d\x9a\x2c\xde\x8d\x74\xe4\xe1\xae\xea",
+        .decimals = 18,
+    },
+    {
+        .name = "ZKSwap",
+        .unit = "ZKS",
+        .contract_address =
+            "\xe4\x81\x5a\xe5\x3b\x12\x4e\x72\x63\xf0\x8d\xcd\xbb\xb7\x57\xd4\x1e\xd6\x58\xc6",
+        .decimals = 18,
+    },
+    {
+        .name = "Zilla",
+        .unit = "ZLA",
+        .contract_address =
+            "\xfd\x89\x71\xd5\xe8\xe1\x74\x0c\xe2\xd0\xa8\x40\x95\xfc\xa4\xde\x72\x9d\x0c\x16",
+        .decimals = 18,
+    },
+    {
+        .name = "Zelwin",
+        .unit = "ZLW",
+        .contract_address =
+            "\x53\x19\xe8\x6f\x0e\x41\xa0\x6e\x49\xeb\x37\x04\x6b\x8c\x11\xd7\x8b\xca\xd6\x8c",
+        .decimals = 18,
+    },
+    {
+        .name = "Zenswap Network Token",
+        .unit = "ZNT",
+        .contract_address =
+            "\xe9\x59\x90\x82\x5a\xab\x1a\x7f\x0a\xf4\xcc\x64\x8f\x76\xa3\xbc\xc9\x9f\x25\xb2",
+        .decimals = 18,
+    },
+    {
+        .name = "Zoracles",
+        .unit = "ZORA",
+        .contract_address =
+            "\xd8\xe3\xfb\x3b\x08\xeb\xa9\x82\xf2\x75\x49\x88\xd7\x0d\x57\xed\xc0\x05\x5a\xe6",
+        .decimals = 9,
+    },
+    {
+        .name = "ZPER",
+        .unit = "ZPR",
+        .contract_address =
+            "\xb5\xb8\xf5\x61\x6f\xe4\x2d\x5c\xec\xa3\xe8\x7f\x3f\xdd\xbd\xd8\xf4\x96\xd7\x60",
+        .decimals = 18,
+    },
+    {
+        .name = "Zeusshield",
+        .unit = "ZSC",
+        .contract_address =
+            "\x7a\x41\xe0\x51\x7a\x5e\xca\x4f\xdb\xc7\xfb\xeb\xa4\xd4\xc4\x7b\x9f\xf6\xdc\x63",
+        .decimals = 18,
+    },
+    {
+        .name = "ZeuxCoin",
+        .unit = "ZUC",
+        .contract_address =
+            "\x6b\x46\x89\xe4\x51\x49\x57\x69\x9e\xde\xb2\xee\x91\xc9\x47\xf1\x8e\x43\x98\x06",
+        .decimals = 18,
+    },
+    {
+        .name = "ZUM TOKEN",
+        .unit = "ZUM",
+        .contract_address =
+            "\xe0\xb9\xbc\xd5\x4b\xf8\xa7\x30\xea\x5d\x3f\x1f\xfc\xe0\x88\x5e\x91\x1a\x50\x2c",
+        .decimals = 8,
+    },
+    {
+        .name = "ZUSD",
+        .unit = "ZUSD",
+        .contract_address =
+            "\xc5\x6c\x2b\x7e\x71\xb5\x4d\x38\xaa\xb6\xd5\x2e\x94\xa0\x4c\xbf\xa8\xf6\x04\xfa",
+        .decimals = 6,
+    },
+    {
+        .name = "Zero Utility Token",
+        .unit = "ZUT",
+        .contract_address =
+            "\x83\xf8\x73\x38\x8c\xd1\x4b\x83\xa9\xf4\x7f\xab\xde\x3c\x98\x50\xb5\xc7\x45\x48",
+        .decimals = 18,
+    },
+    {
+        .name = "0xcert",
+        .unit = "ZXC",
+        .contract_address =
+            "\x83\xe2\xbe\x8d\x11\x4f\x96\x61\x22\x13\x84\xb3\xa5\x0d\x24\xb9\x6a\x56\x53\xf5",
+        .decimals = 18,
+    },
+    {
+        .name = "ankrETH",
+        .unit = "aEth",
+        .contract_address =
+            "\xe9\x5a\x20\x3b\x1a\x91\xa9\x08\xf9\xb9\xce\x46\x45\x9d\x10\x10\x78\xc2\xc3\xcb",
+        .decimals = 18,
+    },
+    {
+        .name = "unFederalReserve",
+        .unit = "eRSDL",
+        .contract_address =
+            "\x52\x18\xe4\x72\xcf\xcf\xe0\xb6\x4a\x06\x4f\x05\x5b\x43\xb4\xcd\xc9\xef\xd3\xa6",
+        .decimals = 18,
+    },
+    {
+        .name = "Mirrored Apple",
+        .unit = "mAAPL",
+        .contract_address =
+            "\xd3\x69\x32\x14\x3f\x6e\xbd\xed\xd8\x72\xd5\xfb\x06\x51\xf4\xb7\x2f\xd1\x5a\x84",
+        .decimals = 18,
+    },
+    {
+        .name = "Mirrored Amazon",
+        .unit = "mAMZN",
+        .contract_address =
+            "\x0c\xae\x9e\x4d\x66\x37\x93\xc2\xa2\xa0\xb2\x11\xc1\xcf\x4b\xbc\xa2\xb9\xca\xa7",
+        .decimals = 18,
+    },
+    {
+        .name = "Mirrored Alibaba",
+        .unit = "mBABA",
+        .contract_address =
+            "\x56\xaa\x29\x8a\x19\xc9\x3c\x68\x01\xfd\xde\x87\x0f\xa6\x3e\xf7\x5c\xc0\xaf\x72",
+        .decimals = 18,
+    },
+    {
+        .name = "Mirrored iShares Gold Trust",
+        .unit = "mIAU",
+        .contract_address =
+            "\x1d\x35\x04\x17\xd9\x78\x7e\x00\x0c\xc1\xb9\x5d\x70\xe9\x53\x6d\xcd\x91\xf3\x73",
+        .decimals = 18,
+    },
+    {
+        .name = "Mirrored Microsoft",
+        .unit = "mMSFT",
+        .contract_address =
+            "\x41\xbb\xed\xd7\x28\x6d\xaa\xb5\x91\x0a\x1f\x15\xd1\x2c\xbd\xa8\x39\x85\x2b\xd7",
+        .decimals = 18,
+    },
+    {
+        .name = "Mirrored Netflix",
+        .unit = "mNFLX",
+        .contract_address =
+            "\xc8\xd6\x74\x11\x4b\xac\x90\x14\x8d\x11\xd3\xc1\xd3\x3c\x61\x83\x5a\x0f\x9d\xcd",
+        .decimals = 18,
+    },
+    {
+        .name = "Mirrored Invesco QQQ Trust",
+        .unit = "mQQQ",
+        .contract_address =
+            "\x13\xb0\x2c\x8d\xe7\x16\x80\xe7\x1f\x08\x20\xc9\x96\xe4\xbe\x43\xc2\xf5\x7d\x15",
+        .decimals = 18,
+    },
+    {
+        .name = "Mirrored iShares Silver Trust",
+        .unit = "mSLV",
+        .contract_address =
+            "\x9d\x15\x55\xd8\xcb\x3c\x84\x6b\xb4\xf7\xd5\xb1\xb1\x08\x08\x72\xc3\x16\x66\x76",
+        .decimals = 18,
+    },
+    {
+        .name = "Mirrored Tesla",
+        .unit = "mTSLA",
+        .contract_address =
+            "\x21\xca\x39\x94\x3e\x91\xd7\x04\x67\x8f\x5d\x00\xb6\x61\x66\x50\xf0\x66\xfd\x63",
+        .decimals = 18,
+    },
+    {
+        .name = "Mirrored Twitter",
+        .unit = "mTWTR",
+        .contract_address =
+            "\xed\xb0\x41\x46\x27\xe6\xf1\xe3\xf0\x82\xde\x65\xcd\x4f\x9c\x69\x3d\x78\xcc\xa9",
+        .decimals = 18,
+    },
+    {
+        .name = "Mirrored United States Oil Fund",
+        .unit = "mUSO",
+        .contract_address =
+            "\x31\xc6\x31\x46\xa6\x35\xeb\x74\x65\xe5\x85\x30\x20\xb3\x97\x13\xac\x35\x69\x91",
+        .decimals = 18,
+    },
+    {
+        .name = "Mirrored ProShares VIX",
+        .unit = "mVIXY",
+        .contract_address =
+            "\xf7\x2f\xcd\x9d\xcf\x01\x90\x92\x3f\xad\xd4\x48\x11\xe2\x40\xef\x45\x33\xfc\x86",
+        .decimals = 18,
+    },
+    {
+        .name = "onLEXpa",
+        .unit = "onLEXpa",
+        .contract_address =
+            "\x33\x38\x4a\xf3\x4b\x03\xea\xca\x63\xfd\x15\x3f\x59\x58\x9f\x50\x47\x72\xb5\x70",
+        .decimals = 18,
+    },
+    {
+        .name = "yTSLA Finance",
+        .unit = "yTSLA",
+        .contract_address =
+            "\x53\x22\xa3\x55\x6f\x97\x9c\xe2\x18\x0b\x30\xe6\x89\xa9\x43\x6f\xdd\xcb\x10\x21",
+        .decimals = 18,
+    },
 };
 
 const app_eth_erc20_params_t* app_eth_erc20_params_get(

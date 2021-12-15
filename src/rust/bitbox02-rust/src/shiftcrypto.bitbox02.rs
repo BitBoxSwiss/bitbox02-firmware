@@ -490,6 +490,7 @@ pub enum BtcOutputType {
     P2sh = 2,
     P2wpkh = 3,
     P2wsh = 4,
+    P2tr = 5,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CardanoXpubsRequest {

@@ -43,12 +43,14 @@ class _BTCOutputTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._
     P2SH = BTCOutputType.V(2)
     P2WPKH = BTCOutputType.V(3)
     P2WSH = BTCOutputType.V(4)
+    P2TR = BTCOutputType.V(5)
 
 UNKNOWN = BTCOutputType.V(0)
 P2PKH = BTCOutputType.V(1)
 P2SH = BTCOutputType.V(2)
 P2WPKH = BTCOutputType.V(3)
 P2WSH = BTCOutputType.V(4)
+P2TR = BTCOutputType.V(5)
 global___BTCOutputType = BTCOutputType
 
 

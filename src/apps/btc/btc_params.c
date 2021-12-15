@@ -26,6 +26,7 @@ static const app_btc_coin_params_t _params_btc = {
     .name = "Bitcoin",
     .unit = "BTC",
     .rbf_support = true,
+    .taproot_support = true,
 };
 
 static const app_btc_coin_params_t _params_tbtc = {
@@ -37,6 +38,7 @@ static const app_btc_coin_params_t _params_tbtc = {
     .name = "BTC Testnet",
     .unit = "TBTC",
     .rbf_support = true,
+    .taproot_support = true,
 };
 
 static const app_btc_coin_params_t _params_ltc = {
@@ -48,6 +50,7 @@ static const app_btc_coin_params_t _params_ltc = {
     .name = "Litecoin",
     .unit = "LTC",
     .rbf_support = false,
+    .taproot_support = false,
 };
 
 static const app_btc_coin_params_t _params_tltc = {
@@ -59,6 +62,7 @@ static const app_btc_coin_params_t _params_tltc = {
     .name = "LTC testnet",
     .unit = "TLTC",
     .rbf_support = false,
+    .taproot_support = false,
 };
 
 const app_btc_coin_params_t* app_btc_params_get(BTCCoin coin)

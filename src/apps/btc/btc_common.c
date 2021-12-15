@@ -179,6 +179,11 @@ bool btc_common_address_from_payload(
         return _encode_base58_address(params->base58_version_p2sh, payload, out, out_len);
     case BTCOutputType_P2WPKH:
     case BTCOutputType_P2WSH: {
+        // Wally's bech32 encoder `wally_addr_segwit_from_bytes` unfortunately takes a pkScript and
+        // then extracts the witness program from it, so we first encode the witness program (in
+        // this case `payload`) and then `wally_addr_segwit_from_bytes` decodes it again. A direct
+        // bech32 encoder that simply took the witness program directly (in this case `payload`)
+        // would be better.
         uint8_t script[WALLY_SCRIPTPUBKEY_P2WSH_LEN] = {0};
         size_t written = 0;
         if (wally_witness_program_from_bytes(
@@ -194,6 +199,27 @@ bool btc_common_address_from_payload(
         wally_free_string(address_string);
         return sprintf_result >= 0 && sprintf_result < (int)out_len;
     }
+    case BTCOutputType_P2TR: {
+        // Wally's bech32 encoder `wally_addr_segwit_from_bytes` unfortunately takes a pkScript and
+        // then extracts the witness program from it, so we first encode the witness program (in
+        // this case `payload`) and then `wally_addr_segwit_from_bytes` decodes it again. A direct
+        // bech32 encoder that simply took the witness program directly (in this case `payload`)
+        // would be better.
+        uint8_t script[WALLY_SCRIPTPUBKEY_P2TR_LEN] = {0};
+        size_t len = sizeof(script);
+        if (!btc_common_pkscript_from_payload(
+                params, output_type, payload, payload_size, script, &len)) {
+            return false;
+        }
+        char* address_string = NULL;
+        if (wally_addr_segwit_from_bytes(script, len, params->bech32_hrp, 0, &address_string) !=
+            WALLY_OK) {
+            return false;
+        }
+        int sprintf_result = snprintf(out, out_len, "%s", address_string);
+        wally_free_string(address_string);
+        return sprintf_result >= 0 && sprintf_result < (int)out_len;
+    }
     default:
         return false;
     }
@@ -201,6 +227,7 @@ bool btc_common_address_from_payload(
 }
 
 bool btc_common_pkscript_from_payload(
+    const app_btc_coin_params_t* params,
     BTCOutputType output_type,
     const uint8_t* payload,
     size_t payload_size,
@@ -228,6 +255,12 @@ bool btc_common_pkscript_from_payload(
     case BTCOutputType_P2WSH:
         return wally_witness_program_from_bytes(
                    payload, payload_size, 0, pk_script, len, pk_script_len) == WALLY_OK;
+    case BTCOutputType_P2TR:
+        if (!params->taproot_support || payload_size != 32) {
+            return false;
+        }
+        return wally_witness_program_from_bytes_and_version(
+                   payload, payload_size, 1, 0, pk_script, len, pk_script_len) == WALLY_OK;
     default:
         return false;
     }

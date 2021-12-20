@@ -10,6 +10,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Support sending to taproot addresses
 - ListBackups: ported to Rust
 - Cardano: allow transactions with a zero TTL value
+- Cardano: add support for sending tokens
 - Protobuf: rename BTCSignOutputRequest.hash to BTCSignOutputRequest.payload
 - Ethereum: add 807 ERC-20 tokens
 

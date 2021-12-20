@@ -21,7 +21,11 @@ use super::Error;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use blake2::{digest::VariableOutput, VarBlake2b};
+use bech32::{ToBase32, Variant};
+use blake2::{
+    digest::{Update, VariableOutput},
+    VarBlake2b,
+};
 
 use crate::workflow::{confirm, status, transaction};
 
@@ -41,7 +45,7 @@ const LOVELACE_DECIMALS: usize = 6;
 // Start of Shelley era
 const SHELLEY_START_EPOCH: u64 = 208;
 // 21600 are the slots per epoch before Shelley.
-const SHELLEY_START_SLOT: u64 = SHELLEY_START_EPOCH*21600;
+const SHELLEY_START_SLOT: u64 = SHELLEY_START_EPOCH * 21600;
 const SHELLEY_SLOTS_IN_EPOCH: u64 = 432000;
 
 fn format_value(params: &params::Params, value: u64) -> String {
@@ -76,6 +80,34 @@ async fn verify_slot(params: &params::Params, title: &str, slot: u64) -> Result<
         ..Default::default()
     })
     .await?;
+    Ok(())
+}
+
+/// Format an asset fingerprint according to CIP-14.
+/// https://github.com/cardano-foundation/CIPs/blob/a2ef32d8a2b485fed7f6ffde2781dd58869ff511/CIP-0014/README.md
+fn format_asset(policy_id: &[u8], asset_name: &[u8]) -> String {
+    let mut hasher = VarBlake2b::new(20).unwrap();
+    hasher.update(policy_id);
+    hasher.update(asset_name);
+    let mut hash = [0u8; 20];
+    hasher.finalize_variable(|res| hash.copy_from_slice(res));
+    bech32::encode("asset", hash.to_base32(), Variant::Bech32).unwrap()
+}
+
+/// Validate size limits in the asset groups.
+fn validate_asset_groups(
+    asset_groups: &[pb::cardano_sign_transaction_request::AssetGroup],
+) -> Result<(), Error> {
+    for asset_group in asset_groups.iter() {
+        if asset_group.policy_id.len() != 28 {
+            return Err(Error::InvalidInput);
+        }
+        for token in asset_group.tokens.iter() {
+            if token.asset_name.len() > 32 {
+                return Err(Error::InvalidInput);
+            }
+        }
+    }
     Ok(())
 }
 
@@ -163,6 +195,8 @@ async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Respons
     for output in request.outputs.iter() {
         super::address::decode_payment_address(params, &output.encoded_address)?;
 
+        validate_asset_groups(&output.asset_groups)?;
+
         match output.script_config {
             Some(ref script_config) => match script_config {
                 CardanoScriptConfig {
@@ -183,6 +217,23 @@ async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Respons
                 let formatted_value = format_value(params, output.value);
                 transaction::verify_recipient(&output.encoded_address, &formatted_value).await?;
                 total += output.value;
+
+                for asset_group in output.asset_groups.iter() {
+                    for token in asset_group.tokens.iter() {
+                        confirm::confirm(&confirm::Params {
+                            title: "Send token",
+                            body: &format!(
+                                "Amount: {}. Asset: {}",
+                                util::decimal::format(token.value, 0),
+                                format_asset(&asset_group.policy_id, &token.asset_name),
+                            ),
+                            accept_is_nextarrow: true,
+                            scrollable: true,
+                            ..Default::default()
+                        })
+                        .await?;
+                    }
+                }
             }
         }
     }
@@ -247,6 +298,52 @@ mod tests {
     use pb::cardano_sign_transaction_request::{certificate, certificate::Cert, Certificate};
 
     #[test]
+    fn test_format_asset() {
+        // Test vectors from:
+        // https://github.com/cardano-foundation/CIPs/blob/a2ef32d8a2b485fed7f6ffde2781dd58869ff511/CIP-0014/README.md#test-vectors
+        assert_eq!(
+            format_asset(
+                b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73", b""),
+            "asset1rjklcrnsdzqp65wjgrg55sy9723kw09mlgvlc3",
+        );
+        assert_eq!(
+            format_asset(
+                b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x7e", b""),
+            "asset1nl0puwxmhas8fawxp8nx4e2q3wekg969n2auw3",
+        );
+        assert_eq!(
+            format_asset(
+                b"\x1e\x34\x9c\x9b\xde\xa1\x9f\xd6\xc1\x47\x62\x6a\x52\x60\xbc\x44\xb7\x16\x35\xf3\x98\xb6\x7c\x59\x88\x1d\xf2\x09", b""),
+            "asset1uyuxku60yqe57nusqzjx38aan3f2wq6s93f6ea",
+        );
+        assert_eq!(
+            format_asset(
+                b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73", b"\x50\x41\x54\x41\x54\x45"),
+            "asset13n25uv0yaf5kus35fm2k86cqy60z58d9xmde92",
+        );
+        assert_eq!(
+            format_asset(
+                b"\x1e\x34\x9c\x9b\xde\xa1\x9f\xd6\xc1\x47\x62\x6a\x52\x60\xbc\x44\xb7\x16\x35\xf3\x98\xb6\x7c\x59\x88\x1d\xf2\x09", b"\x50\x41\x54\x41\x54\x45"),
+            "asset1hv4p5tv2a837mzqrst04d0dcptdjmluqvdx9k3",
+        );
+        assert_eq!(
+            format_asset(
+                b"\x1e\x34\x9c\x9b\xde\xa1\x9f\xd6\xc1\x47\x62\x6a\x52\x60\xbc\x44\xb7\x16\x35\xf3\x98\xb6\x7c\x59\x88\x1d\xf2\x09", b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73"),
+            "asset1aqrdypg669jgazruv5ah07nuyqe0wxjhe2el6f",
+        );
+        assert_eq!(
+            format_asset(
+                b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73", b"\x1e\x34\x9c\x9b\xde\xa1\x9f\xd6\xc1\x47\x62\x6a\x52\x60\xbc\x44\xb7\x16\x35\xf3\x98\xb6\x7c\x59\x88\x1d\xf2\x09"),
+            "asset17jd78wukhtrnmjh3fngzasxm8rck0l2r4hhyyt",
+        );
+        assert_eq!(
+            format_asset(
+                b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73", b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+            "asset1pkpwyknlvul7az0xx8czhl60pyel45rpje4z8w",
+        );
+    }
+
+    #[test]
     fn test_sign_normal_tx() {
         let _guard = MUTEX.lock().unwrap();
 
@@ -262,6 +359,7 @@ mod tests {
                     encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
                     value: 1000000,
                     script_config: None,
+                    asset_groups: vec![],
                 },
                 // change
                 pb::cardano_sign_transaction_request::Output {
@@ -273,6 +371,7 @@ mod tests {
                             keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
                         }))
                     }),
+                    asset_groups: vec![],
                 },
             ],
             fee: 170499,
@@ -365,6 +464,7 @@ mod tests {
                             keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
                         }))
                     }),
+                    asset_groups: vec![],
                 },
             ],
             fee: 191681,
@@ -483,6 +583,7 @@ mod tests {
                             keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
                         }))
                     }),
+                    asset_groups: vec![],
                 },
             ],
             fee: 191681,
@@ -580,6 +681,7 @@ mod tests {
                             keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
                         }))
                     }),
+                    asset_groups: vec![],
                 },
             ],
             fee: 175157,
@@ -664,6 +766,7 @@ mod tests {
                     encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
                     value: 1000000,
                     script_config: None,
+                    asset_groups: vec![],
                 },
                 // change
                 pb::cardano_sign_transaction_request::Output {
@@ -675,6 +778,7 @@ mod tests {
                             keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
                         }))
                     }),
+                    asset_groups: vec![],
                 },
             ],
             fee: 170499,
@@ -723,6 +827,7 @@ mod tests {
                     encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
                     value: 1000000,
                     script_config: None,
+                    asset_groups: vec![],
                 },
                 // change
                 pb::cardano_sign_transaction_request::Output {
@@ -734,6 +839,7 @@ mod tests {
                             keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
                         }))
                     }),
+                    asset_groups: vec![],
                 },
             ],
             fee: 170499,
@@ -795,6 +901,7 @@ mod tests {
                     encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
                     value: 1000000,
                     script_config: None,
+                    asset_groups: vec![],
                 },
                 // change
                 pb::cardano_sign_transaction_request::Output {
@@ -806,6 +913,7 @@ mod tests {
                             keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
                         }))
                     }),
+                    asset_groups: vec![],
                 },
             ],
             fee: 170499,
@@ -856,6 +964,7 @@ mod tests {
                     encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
                     value: 1000000,
                     script_config: None,
+                    asset_groups: vec![],
                 },
                 // change
                 pb::cardano_sign_transaction_request::Output {
@@ -867,6 +976,7 @@ mod tests {
                             keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
                         }))
                     }),
+                    asset_groups: vec![],
                 },
             ],
             fee: 170499,
@@ -899,5 +1009,142 @@ mod tests {
         });
         mock_unlocked();
         assert!(block_on(process(&tx)).is_ok());
+    }
+
+    #[test]
+    fn test_sign_tx_tokens() {
+        let _guard = MUTEX.lock().unwrap();
+
+        let tx = pb::CardanoSignTransactionRequest {
+            network: CardanoNetwork::CardanoMainnet as _,
+            inputs: vec![pb::cardano_sign_transaction_request::Input {
+                keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                prev_out_hash: b"\x59\x86\x4e\xe7\x3c\xa5\xd9\x10\x98\xa3\x2b\x3c\xe9\x81\x1b\xac\x19\x96\xdc\xba\xef\xa6\xb6\x24\x7d\xca\xaf\xb5\x77\x9c\x25\x38".to_vec(),
+                prev_out_index: 0,
+            }],
+            outputs: vec![
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
+                    value: 1000000,
+                    script_config: None,
+                    asset_groups: vec![
+                        pb::cardano_sign_transaction_request::AssetGroup {
+                            policy_id: b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73".to_vec(),
+                            tokens: vec![
+                                pb::cardano_sign_transaction_request::asset_group::Token {
+                                    asset_name: b"\x1e\x34\x9c\x9b\xde\xa1\x9f\xd6\xc1\x47\x62\x6a\x52\x60\xbc\x44\xb7\x16\x35\xf3\x98\xb6\x7c\x59\x88\x1d\xf2\x09".to_vec(),
+                                    value: 3,
+                                },
+                                pb::cardano_sign_transaction_request::asset_group::Token {
+                                    asset_name: b"\x50\x41\x54\x41\x54\x45".to_vec(),
+                                    value: 1,
+                                },
+                            ],
+                        },
+                        pb::cardano_sign_transaction_request::AssetGroup {
+                            policy_id: b"\x1e\x34\x9c\x9b\xde\xa1\x9f\xd6\xc1\x47\x62\x6a\x52\x60\xbc\x44\xb7\x16\x35\xf3\x98\xb6\x7c\x59\x88\x1d\xf2\x09".to_vec(),
+                            tokens: vec![
+                                pb::cardano_sign_transaction_request::asset_group::Token {
+                                    asset_name: b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73".to_vec(),
+                                    value: 5,
+                                },
+                            ],
+                        },
+                    ],
+                },
+                // change
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs".into(),
+                    value: 4829501,
+                    script_config: Some(CardanoScriptConfig{
+                        config: Some(pb::cardano_script_config::Config::PkhSkh(pb::cardano_script_config::PkhSkh {
+                            keypath_payment: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                            keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
+                        }))
+                    }),
+                    asset_groups: vec![
+                        pb::cardano_sign_transaction_request::AssetGroup {
+                            policy_id: b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73".to_vec(),
+                            tokens: vec![
+                                pb::cardano_sign_transaction_request::asset_group::Token {
+                                    asset_name: b"\x1e\x34\x9c\x9b\xde\xa1\x9f\xd6\xc1\x47\x62\x6a\x52\x60\xbc\x44\xb7\x16\x35\xf3\x98\xb6\x7c\x59\x88\x1d\xf2\x09".to_vec(),
+                                    value: 1,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+            fee: 170499,
+            ttl: 0,
+            allow_zero_ttl: false,
+            certificates: vec![],
+            withdrawals: vec![],
+            validity_interval_start: 0,
+        };
+
+        static mut CONFIRM_COUNTER: u32 = 0;
+
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    2 => {
+                        assert_eq!(params.title, "Send token");
+                        assert_eq!(
+                            params.body,
+                            "Amount: 3. Asset: asset17jd78wukhtrnmjh3fngzasxm8rck0l2r4hhyyt"
+                        );
+                        true
+                    }
+                    3 => {
+                        assert_eq!(params.title, "Send token");
+                        assert_eq!(
+                            params.body,
+                            "Amount: 1. Asset: asset13n25uv0yaf5kus35fm2k86cqy60z58d9xmde92"
+                        );
+                        true
+                    }
+                    4 => {
+                        assert_eq!(params.title, "Send token");
+                        assert_eq!(
+                            params.body,
+                            "Amount: 5. Asset: asset1aqrdypg669jgazruv5ah07nuyqe0wxjhe2el6f"
+                        );
+                        true
+                    }
+                    _ => panic!("unexpected user confirmation"),
+                }
+            })),
+            ui_transaction_address_create: Some(Box::new(|_amount, address| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(
+                            address,
+                            "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt");
+                        true
+                    }
+                    _ => panic!("unexpected user confirmation"),
+                }
+            })),
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ..Default::default()
+        });
+        mock_unlocked();
+        let result = block_on(process(&tx)).unwrap();
+        assert_eq!(
+            result,
+            Response::SignTransaction(pb::CardanoSignTransactionResponse {
+                shelley_witnesses: vec![ShelleyWitness {
+                    public_key: b"\x1f\x17\xaf\xff\xe8\x05\x29\x7f\x8e\xc6\x54\x45\x82\xb7\xea\x91\xc3\x0d\xc1\xf9\x11\x9c\x5c\x2b\x26\x3e\x58\xfa\x36\x59\x31\x7d".to_vec(),
+                    signature: b"\xfe\xdd\x2d\xdf\x9d\x00\x69\xe9\xb4\xb6\x11\x83\xae\xdd\xb3\xbb\xe7\x02\x19\x0e\xa5\x8d\x4a\x23\x25\xef\xa2\x2b\xf0\xd6\x32\x5a\x82\x89\x10\x53\xa7\x6b\x6a\x2e\xce\x2d\xf2\xd2\x2a\x6b\x65\x78\x07\x42\xa1\x9f\x27\x61\x18\xee\x68\x34\xa0\x05\x2e\xf9\xa4\x08".to_vec(),
+                }]
+            })
+        );
     }
 }

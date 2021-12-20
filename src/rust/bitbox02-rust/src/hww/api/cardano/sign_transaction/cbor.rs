@@ -109,14 +109,31 @@ pub fn encode_transaction_body<W: Write>(
             .bytes(&input.prev_out_hash)?
             .u32(input.prev_out_index)?;
     }
-    // Map entry 1 is an array of inputs.
+    // Map entry 1 is an array of outputs.
     encoder.u8(1)?.array(tx.outputs.len() as _)?;
     for output in tx.outputs.iter() {
         let decoded_address = decode_payment_address(params, &output.encoded_address)?;
-        encoder
-            .array(2)?
-            .bytes(&decoded_address)?
-            .u64(output.value)?;
+        encoder.array(2)?.bytes(&decoded_address)?;
+        // Second array entry is either the ADA amount, or [ADA amount, assets].
+        //
+        // See
+        // https://github.com/input-output-hk/cardano-ledger/blob/bd9bdb17e493ec1b3c8f329b25a5907d8b3d1cd1/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L362
+        if output.asset_groups.is_empty() {
+            encoder.u64(output.value)?;
+        } else {
+            encoder
+                .array(2)?
+                .u64(output.value)?
+                .map(output.asset_groups.len() as _)?;
+            for asset_group in output.asset_groups.iter() {
+                encoder
+                    .bytes(&asset_group.policy_id)?
+                    .map(asset_group.tokens.len() as _)?;
+                for token in asset_group.tokens.iter() {
+                    encoder.bytes(&token.asset_name)?.u64(token.value)?;
+                }
+            }
+        }
     }
     // Map entry 2 is the fee.
     encoder.u8(2)?.u64(tx.fee)?;

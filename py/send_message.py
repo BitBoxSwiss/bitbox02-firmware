@@ -840,6 +840,58 @@ class SendMessage:
             )
             print(response)
 
+        def sign_tokens() -> None:
+            response = self._device.cardano_sign_transaction(
+                transaction=bitbox02.cardano.CardanoSignTransactionRequest(
+                    network=bitbox02.cardano.CardanoMainnet,
+                    inputs=[
+                        bitbox02.cardano.CardanoSignTransactionRequest.Input(
+                            keypath=[2147485500, 2147485463, 2147483648, 0, 0],
+                            prev_out_hash=bytes.fromhex(
+                                "59864ee73ca5d91098a32b3ce9811bac1996dcbaefa6b6247dcaafb5779c2538"
+                            ),
+                            prev_out_index=0,
+                        )
+                    ],
+                    outputs=[
+                        bitbox02.cardano.CardanoSignTransactionRequest.Output(
+                            encoded_address="addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt",
+                            value=1000000,
+                            asset_groups=[
+                                # Asset policy ids and asset names from: https://github.com/cardano-foundation/CIPs/blob/a2ef32d8a2b485fed7f6ffde2781dd58869ff511/CIP-0014/README.md#test-vectors
+                                bitbox02.cardano.CardanoSignTransactionRequest.AssetGroup(
+                                    policy_id=bytes.fromhex(
+                                        "1e349c9bdea19fd6c147626a5260bc44b71635f398b67c59881df209"
+                                    ),
+                                    tokens=[
+                                        # asset1hv4p5tv2a837mzqrst04d0dcptdjmluqvdx9k3
+                                        bitbox02.cardano.CardanoSignTransactionRequest.AssetGroup.Token(
+                                            asset_name=bytes.fromhex("504154415445"),
+                                            value=1,
+                                        ),
+                                        # asset1aqrdypg669jgazruv5ah07nuyqe0wxjhe2el6f
+                                        bitbox02.cardano.CardanoSignTransactionRequest.AssetGroup.Token(
+                                            asset_name=bytes.fromhex(
+                                                "7eae28af2208be856f7a119668ae52a49b73725e326dc16579dcc373"
+                                            ),
+                                            value=3,
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        bitbox02.cardano.CardanoSignTransactionRequest.Output(
+                            encoded_address=get_address(False),
+                            value=4829501,
+                            script_config=script_config,
+                        ),
+                    ],
+                    fee=170499,
+                    certificates=[],
+                )
+            )
+            print(response)
+
         def delegate() -> None:
             response = self._device.cardano_sign_transaction(
                 transaction=bitbox02.cardano.CardanoSignTransactionRequest(
@@ -925,6 +977,7 @@ class SendMessage:
             ("Retrieve a Shelley address", address),
             ("Sign a transaction", sign),
             ("Sign a transaction with TTL=0", sign_zero_ttl),
+            ("Sign a transaction sending tokens", sign_tokens),
             ("Delegate staking to a pool", delegate),
             ("Withdraw staking rewards", withdraw),
         )

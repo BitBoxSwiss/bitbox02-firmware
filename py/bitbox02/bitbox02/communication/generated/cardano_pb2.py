@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='cardano.proto',
   package='shiftcrypto.bitbox02',
   syntax='proto3',
-  serialized_pb=_b('\n\rcardano.proto\x12\x14shiftcrypto.bitbox02\x1a\x0c\x63ommon.proto\"F\n\x13\x43\x61rdanoXpubsRequest\x12/\n\x08keypaths\x18\x01 \x03(\x0b\x32\x1d.shiftcrypto.bitbox02.Keypath\"%\n\x14\x43\x61rdanoXpubsResponse\x12\r\n\x05xpubs\x18\x01 \x03(\x0c\"\x9e\x01\n\x13\x43\x61rdanoScriptConfig\x12\x43\n\x07pkh_skh\x18\x01 \x01(\x0b\x32\x30.shiftcrypto.bitbox02.CardanoScriptConfig.PkhSkhH\x00\x1a\x38\n\x06PkhSkh\x12\x17\n\x0fkeypath_payment\x18\x01 \x03(\r\x12\x15\n\rkeypath_stake\x18\x02 \x03(\rB\x08\n\x06\x63onfig\"\xa1\x01\n\x15\x43\x61rdanoAddressRequest\x12\x35\n\x07network\x18\x01 \x01(\x0e\x32$.shiftcrypto.bitbox02.CardanoNetwork\x12\x0f\n\x07\x64isplay\x18\x02 \x01(\x08\x12@\n\rscript_config\x18\x03 \x01(\x0b\x32).shiftcrypto.bitbox02.CardanoScriptConfig\"\x93\x08\n\x1d\x43\x61rdanoSignTransactionRequest\x12\x35\n\x07network\x18\x01 \x01(\x0e\x32$.shiftcrypto.bitbox02.CardanoNetwork\x12I\n\x06inputs\x18\x02 \x03(\x0b\x32\x39.shiftcrypto.bitbox02.CardanoSignTransactionRequest.Input\x12K\n\x07outputs\x18\x03 \x03(\x0b\x32:.shiftcrypto.bitbox02.CardanoSignTransactionRequest.Output\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\x12\x0b\n\x03ttl\x18\x05 \x01(\x04\x12U\n\x0c\x63\x65rtificates\x18\x06 \x03(\x0b\x32?.shiftcrypto.bitbox02.CardanoSignTransactionRequest.Certificate\x12S\n\x0bwithdrawals\x18\x07 \x03(\x0b\x32>.shiftcrypto.bitbox02.CardanoSignTransactionRequest.Withdrawal\x12\x1f\n\x17validity_interval_start\x18\x08 \x01(\x04\x12\x16\n\x0e\x61llow_zero_ttl\x18\t \x01(\x08\x1aG\n\x05Input\x12\x0f\n\x07keypath\x18\x01 \x03(\r\x12\x15\n\rprev_out_hash\x18\x02 \x01(\x0c\x12\x16\n\x0eprev_out_index\x18\x03 \x01(\r\x1ar\n\x06Output\x12\x17\n\x0f\x65ncoded_address\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04\x12@\n\rscript_config\x18\x03 \x01(\x0b\x32).shiftcrypto.bitbox02.CardanoScriptConfig\x1a\xb8\x02\n\x0b\x43\x65rtificate\x12;\n\x12stake_registration\x18\x01 \x01(\x0b\x32\x1d.shiftcrypto.bitbox02.KeypathH\x00\x12=\n\x14stake_deregistration\x18\x02 \x01(\x0b\x32\x1d.shiftcrypto.bitbox02.KeypathH\x00\x12k\n\x10stake_delegation\x18\x03 \x01(\x0b\x32O.shiftcrypto.bitbox02.CardanoSignTransactionRequest.Certificate.StakeDelegationH\x00\x1a\x38\n\x0fStakeDelegation\x12\x0f\n\x07keypath\x18\x01 \x03(\r\x12\x14\n\x0cpool_keyhash\x18\x02 \x01(\x0c\x42\x06\n\x04\x63\x65rt\x1a,\n\nWithdrawal\x12\x0f\n\x07keypath\x18\x01 \x03(\r\x12\r\n\x05value\x18\x02 \x01(\x04\"\xb9\x01\n\x1e\x43\x61rdanoSignTransactionResponse\x12^\n\x11shelley_witnesses\x18\x01 \x03(\x0b\x32\x43.shiftcrypto.bitbox02.CardanoSignTransactionResponse.ShelleyWitness\x1a\x37\n\x0eShelleyWitness\x12\x12\n\npublic_key\x18\x01 \x01(\x0c\x12\x11\n\tsignature\x18\x02 \x01(\x0c\"\xe8\x01\n\x0e\x43\x61rdanoRequest\x12:\n\x05xpubs\x18\x01 \x01(\x0b\x32).shiftcrypto.bitbox02.CardanoXpubsRequestH\x00\x12>\n\x07\x61\x64\x64ress\x18\x02 \x01(\x0b\x32+.shiftcrypto.bitbox02.CardanoAddressRequestH\x00\x12O\n\x10sign_transaction\x18\x03 \x01(\x0b\x32\x33.shiftcrypto.bitbox02.CardanoSignTransactionRequestH\x00\x42\t\n\x07request\"\xde\x01\n\x0f\x43\x61rdanoResponse\x12;\n\x05xpubs\x18\x01 \x01(\x0b\x32*.shiftcrypto.bitbox02.CardanoXpubsResponseH\x00\x12\x30\n\x03pub\x18\x02 \x01(\x0b\x32!.shiftcrypto.bitbox02.PubResponseH\x00\x12P\n\x10sign_transaction\x18\x03 \x01(\x0b\x32\x34.shiftcrypto.bitbox02.CardanoSignTransactionResponseH\x00\x42\n\n\x08response*8\n\x0e\x43\x61rdanoNetwork\x12\x12\n\x0e\x43\x61rdanoMainnet\x10\x00\x12\x12\n\x0e\x43\x61rdanoTestnet\x10\x01\x62\x06proto3')
+  serialized_pb=_b('\n\rcardano.proto\x12\x14shiftcrypto.bitbox02\x1a\x0c\x63ommon.proto\"F\n\x13\x43\x61rdanoXpubsRequest\x12/\n\x08keypaths\x18\x01 \x03(\x0b\x32\x1d.shiftcrypto.bitbox02.Keypath\"%\n\x14\x43\x61rdanoXpubsResponse\x12\r\n\x05xpubs\x18\x01 \x03(\x0c\"\x9e\x01\n\x13\x43\x61rdanoScriptConfig\x12\x43\n\x07pkh_skh\x18\x01 \x01(\x0b\x32\x30.shiftcrypto.bitbox02.CardanoScriptConfig.PkhSkhH\x00\x1a\x38\n\x06PkhSkh\x12\x17\n\x0fkeypath_payment\x18\x01 \x03(\r\x12\x15\n\rkeypath_stake\x18\x02 \x03(\rB\x08\n\x06\x63onfig\"\xa1\x01\n\x15\x43\x61rdanoAddressRequest\x12\x35\n\x07network\x18\x01 \x01(\x0e\x32$.shiftcrypto.bitbox02.CardanoNetwork\x12\x0f\n\x07\x64isplay\x18\x02 \x01(\x08\x12@\n\rscript_config\x18\x03 \x01(\x0b\x32).shiftcrypto.bitbox02.CardanoScriptConfig\"\x8e\n\n\x1d\x43\x61rdanoSignTransactionRequest\x12\x35\n\x07network\x18\x01 \x01(\x0e\x32$.shiftcrypto.bitbox02.CardanoNetwork\x12I\n\x06inputs\x18\x02 \x03(\x0b\x32\x39.shiftcrypto.bitbox02.CardanoSignTransactionRequest.Input\x12K\n\x07outputs\x18\x03 \x03(\x0b\x32:.shiftcrypto.bitbox02.CardanoSignTransactionRequest.Output\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\x12\x0b\n\x03ttl\x18\x05 \x01(\x04\x12U\n\x0c\x63\x65rtificates\x18\x06 \x03(\x0b\x32?.shiftcrypto.bitbox02.CardanoSignTransactionRequest.Certificate\x12S\n\x0bwithdrawals\x18\x07 \x03(\x0b\x32>.shiftcrypto.bitbox02.CardanoSignTransactionRequest.Withdrawal\x12\x1f\n\x17validity_interval_start\x18\x08 \x01(\x04\x12\x16\n\x0e\x61llow_zero_ttl\x18\t \x01(\x08\x1aG\n\x05Input\x12\x0f\n\x07keypath\x18\x01 \x03(\r\x12\x15\n\rprev_out_hash\x18\x02 \x01(\x0c\x12\x16\n\x0eprev_out_index\x18\x03 \x01(\r\x1a\xa1\x01\n\nAssetGroup\x12\x11\n\tpolicy_id\x18\x01 \x01(\x0c\x12T\n\x06tokens\x18\x02 \x03(\x0b\x32\x44.shiftcrypto.bitbox02.CardanoSignTransactionRequest.AssetGroup.Token\x1a*\n\x05Token\x12\x12\n\nasset_name\x18\x01 \x01(\x0c\x12\r\n\x05value\x18\x02 \x01(\x04\x1a\xc8\x01\n\x06Output\x12\x17\n\x0f\x65ncoded_address\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04\x12@\n\rscript_config\x18\x03 \x01(\x0b\x32).shiftcrypto.bitbox02.CardanoScriptConfig\x12T\n\x0c\x61sset_groups\x18\x04 \x03(\x0b\x32>.shiftcrypto.bitbox02.CardanoSignTransactionRequest.AssetGroup\x1a\xb8\x02\n\x0b\x43\x65rtificate\x12;\n\x12stake_registration\x18\x01 \x01(\x0b\x32\x1d.shiftcrypto.bitbox02.KeypathH\x00\x12=\n\x14stake_deregistration\x18\x02 \x01(\x0b\x32\x1d.shiftcrypto.bitbox02.KeypathH\x00\x12k\n\x10stake_delegation\x18\x03 \x01(\x0b\x32O.shiftcrypto.bitbox02.CardanoSignTransactionRequest.Certificate.StakeDelegationH\x00\x1a\x38\n\x0fStakeDelegation\x12\x0f\n\x07keypath\x18\x01 \x03(\r\x12\x14\n\x0cpool_keyhash\x18\x02 \x01(\x0c\x42\x06\n\x04\x63\x65rt\x1a,\n\nWithdrawal\x12\x0f\n\x07keypath\x18\x01 \x03(\r\x12\r\n\x05value\x18\x02 \x01(\x04\"\xb9\x01\n\x1e\x43\x61rdanoSignTransactionResponse\x12^\n\x11shelley_witnesses\x18\x01 \x03(\x0b\x32\x43.shiftcrypto.bitbox02.CardanoSignTransactionResponse.ShelleyWitness\x1a\x37\n\x0eShelleyWitness\x12\x12\n\npublic_key\x18\x01 \x01(\x0c\x12\x11\n\tsignature\x18\x02 \x01(\x0c\"\xe8\x01\n\x0e\x43\x61rdanoRequest\x12:\n\x05xpubs\x18\x01 \x01(\x0b\x32).shiftcrypto.bitbox02.CardanoXpubsRequestH\x00\x12>\n\x07\x61\x64\x64ress\x18\x02 \x01(\x0b\x32+.shiftcrypto.bitbox02.CardanoAddressRequestH\x00\x12O\n\x10sign_transaction\x18\x03 \x01(\x0b\x32\x33.shiftcrypto.bitbox02.CardanoSignTransactionRequestH\x00\x42\t\n\x07request\"\xde\x01\n\x0f\x43\x61rdanoResponse\x12;\n\x05xpubs\x18\x01 \x01(\x0b\x32*.shiftcrypto.bitbox02.CardanoXpubsResponseH\x00\x12\x30\n\x03pub\x18\x02 \x01(\x0b\x32!.shiftcrypto.bitbox02.PubResponseH\x00\x12P\n\x10sign_transaction\x18\x03 \x01(\x0b\x32\x34.shiftcrypto.bitbox02.CardanoSignTransactionResponseH\x00\x42\n\n\x08response*8\n\x0e\x43\x61rdanoNetwork\x12\x12\n\x0e\x43\x61rdanoMainnet\x10\x00\x12\x12\n\x0e\x43\x61rdanoTestnet\x10\x01\x62\x06proto3')
   ,
   dependencies=[common__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -43,8 +43,8 @@ _CARDANONETWORK = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=2183,
-  serialized_end=2239,
+  serialized_start=2434,
+  serialized_end=2490,
 )
 _sym_db.RegisterEnumDescriptor(_CARDANONETWORK)
 
@@ -276,6 +276,80 @@ _CARDANOSIGNTRANSACTIONREQUEST_INPUT = _descriptor.Descriptor(
   serialized_end=1056,
 )
 
+_CARDANOSIGNTRANSACTIONREQUEST_ASSETGROUP_TOKEN = _descriptor.Descriptor(
+  name='Token',
+  full_name='shiftcrypto.bitbox02.CardanoSignTransactionRequest.AssetGroup.Token',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='asset_name', full_name='shiftcrypto.bitbox02.CardanoSignTransactionRequest.AssetGroup.Token.asset_name', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='value', full_name='shiftcrypto.bitbox02.CardanoSignTransactionRequest.AssetGroup.Token.value', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1178,
+  serialized_end=1220,
+)
+
+_CARDANOSIGNTRANSACTIONREQUEST_ASSETGROUP = _descriptor.Descriptor(
+  name='AssetGroup',
+  full_name='shiftcrypto.bitbox02.CardanoSignTransactionRequest.AssetGroup',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='policy_id', full_name='shiftcrypto.bitbox02.CardanoSignTransactionRequest.AssetGroup.policy_id', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='tokens', full_name='shiftcrypto.bitbox02.CardanoSignTransactionRequest.AssetGroup.tokens', index=1,
+      number=2, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[_CARDANOSIGNTRANSACTIONREQUEST_ASSETGROUP_TOKEN, ],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1059,
+  serialized_end=1220,
+)
+
 _CARDANOSIGNTRANSACTIONREQUEST_OUTPUT = _descriptor.Descriptor(
   name='Output',
   full_name='shiftcrypto.bitbox02.CardanoSignTransactionRequest.Output',
@@ -304,6 +378,13 @@ _CARDANOSIGNTRANSACTIONREQUEST_OUTPUT = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='asset_groups', full_name='shiftcrypto.bitbox02.CardanoSignTransactionRequest.Output.asset_groups', index=3,
+      number=4, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -316,8 +397,8 @@ _CARDANOSIGNTRANSACTIONREQUEST_OUTPUT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1058,
-  serialized_end=1172,
+  serialized_start=1223,
+  serialized_end=1423,
 )
 
 _CARDANOSIGNTRANSACTIONREQUEST_CERTIFICATE_STAKEDELEGATION = _descriptor.Descriptor(
@@ -353,8 +434,8 @@ _CARDANOSIGNTRANSACTIONREQUEST_CERTIFICATE_STAKEDELEGATION = _descriptor.Descrip
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1423,
-  serialized_end=1479,
+  serialized_start=1674,
+  serialized_end=1730,
 )
 
 _CARDANOSIGNTRANSACTIONREQUEST_CERTIFICATE = _descriptor.Descriptor(
@@ -400,8 +481,8 @@ _CARDANOSIGNTRANSACTIONREQUEST_CERTIFICATE = _descriptor.Descriptor(
       name='cert', full_name='shiftcrypto.bitbox02.CardanoSignTransactionRequest.Certificate.cert',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1175,
-  serialized_end=1487,
+  serialized_start=1426,
+  serialized_end=1738,
 )
 
 _CARDANOSIGNTRANSACTIONREQUEST_WITHDRAWAL = _descriptor.Descriptor(
@@ -437,8 +518,8 @@ _CARDANOSIGNTRANSACTIONREQUEST_WITHDRAWAL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1489,
-  serialized_end=1533,
+  serialized_start=1740,
+  serialized_end=1784,
 )
 
 _CARDANOSIGNTRANSACTIONREQUEST = _descriptor.Descriptor(
@@ -514,7 +595,7 @@ _CARDANOSIGNTRANSACTIONREQUEST = _descriptor.Descriptor(
   ],
   extensions=[
   ],
-  nested_types=[_CARDANOSIGNTRANSACTIONREQUEST_INPUT, _CARDANOSIGNTRANSACTIONREQUEST_OUTPUT, _CARDANOSIGNTRANSACTIONREQUEST_CERTIFICATE, _CARDANOSIGNTRANSACTIONREQUEST_WITHDRAWAL, ],
+  nested_types=[_CARDANOSIGNTRANSACTIONREQUEST_INPUT, _CARDANOSIGNTRANSACTIONREQUEST_ASSETGROUP, _CARDANOSIGNTRANSACTIONREQUEST_OUTPUT, _CARDANOSIGNTRANSACTIONREQUEST_CERTIFICATE, _CARDANOSIGNTRANSACTIONREQUEST_WITHDRAWAL, ],
   enum_types=[
   ],
   options=None,
@@ -524,7 +605,7 @@ _CARDANOSIGNTRANSACTIONREQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=490,
-  serialized_end=1533,
+  serialized_end=1784,
 )
 
 
@@ -561,8 +642,8 @@ _CARDANOSIGNTRANSACTIONRESPONSE_SHELLEYWITNESS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1666,
-  serialized_end=1721,
+  serialized_start=1917,
+  serialized_end=1972,
 )
 
 _CARDANOSIGNTRANSACTIONRESPONSE = _descriptor.Descriptor(
@@ -591,8 +672,8 @@ _CARDANOSIGNTRANSACTIONRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1536,
-  serialized_end=1721,
+  serialized_start=1787,
+  serialized_end=1972,
 )
 
 
@@ -639,8 +720,8 @@ _CARDANOREQUEST = _descriptor.Descriptor(
       name='request', full_name='shiftcrypto.bitbox02.CardanoRequest.request',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1724,
-  serialized_end=1956,
+  serialized_start=1975,
+  serialized_end=2207,
 )
 
 
@@ -687,8 +768,8 @@ _CARDANORESPONSE = _descriptor.Descriptor(
       name='response', full_name='shiftcrypto.bitbox02.CardanoResponse.response',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1959,
-  serialized_end=2181,
+  serialized_start=2210,
+  serialized_end=2432,
 )
 
 _CARDANOXPUBSREQUEST.fields_by_name['keypaths'].message_type = common__pb2._KEYPATH
@@ -700,7 +781,11 @@ _CARDANOSCRIPTCONFIG.fields_by_name['pkh_skh'].containing_oneof = _CARDANOSCRIPT
 _CARDANOADDRESSREQUEST.fields_by_name['network'].enum_type = _CARDANONETWORK
 _CARDANOADDRESSREQUEST.fields_by_name['script_config'].message_type = _CARDANOSCRIPTCONFIG
 _CARDANOSIGNTRANSACTIONREQUEST_INPUT.containing_type = _CARDANOSIGNTRANSACTIONREQUEST
+_CARDANOSIGNTRANSACTIONREQUEST_ASSETGROUP_TOKEN.containing_type = _CARDANOSIGNTRANSACTIONREQUEST_ASSETGROUP
+_CARDANOSIGNTRANSACTIONREQUEST_ASSETGROUP.fields_by_name['tokens'].message_type = _CARDANOSIGNTRANSACTIONREQUEST_ASSETGROUP_TOKEN
+_CARDANOSIGNTRANSACTIONREQUEST_ASSETGROUP.containing_type = _CARDANOSIGNTRANSACTIONREQUEST
 _CARDANOSIGNTRANSACTIONREQUEST_OUTPUT.fields_by_name['script_config'].message_type = _CARDANOSCRIPTCONFIG
+_CARDANOSIGNTRANSACTIONREQUEST_OUTPUT.fields_by_name['asset_groups'].message_type = _CARDANOSIGNTRANSACTIONREQUEST_ASSETGROUP
 _CARDANOSIGNTRANSACTIONREQUEST_OUTPUT.containing_type = _CARDANOSIGNTRANSACTIONREQUEST
 _CARDANOSIGNTRANSACTIONREQUEST_CERTIFICATE_STAKEDELEGATION.containing_type = _CARDANOSIGNTRANSACTIONREQUEST_CERTIFICATE
 _CARDANOSIGNTRANSACTIONREQUEST_CERTIFICATE.fields_by_name['stake_registration'].message_type = common__pb2._KEYPATH
@@ -803,6 +888,20 @@ CardanoSignTransactionRequest = _reflection.GeneratedProtocolMessageType('Cardan
     ))
   ,
 
+  AssetGroup = _reflection.GeneratedProtocolMessageType('AssetGroup', (_message.Message,), dict(
+
+    Token = _reflection.GeneratedProtocolMessageType('Token', (_message.Message,), dict(
+      DESCRIPTOR = _CARDANOSIGNTRANSACTIONREQUEST_ASSETGROUP_TOKEN,
+      __module__ = 'cardano_pb2'
+      # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.CardanoSignTransactionRequest.AssetGroup.Token)
+      ))
+    ,
+    DESCRIPTOR = _CARDANOSIGNTRANSACTIONREQUEST_ASSETGROUP,
+    __module__ = 'cardano_pb2'
+    # @@protoc_insertion_point(class_scope:shiftcrypto.bitbox02.CardanoSignTransactionRequest.AssetGroup)
+    ))
+  ,
+
   Output = _reflection.GeneratedProtocolMessageType('Output', (_message.Message,), dict(
     DESCRIPTOR = _CARDANOSIGNTRANSACTIONREQUEST_OUTPUT,
     __module__ = 'cardano_pb2'
@@ -836,6 +935,8 @@ CardanoSignTransactionRequest = _reflection.GeneratedProtocolMessageType('Cardan
   ))
 _sym_db.RegisterMessage(CardanoSignTransactionRequest)
 _sym_db.RegisterMessage(CardanoSignTransactionRequest.Input)
+_sym_db.RegisterMessage(CardanoSignTransactionRequest.AssetGroup)
+_sym_db.RegisterMessage(CardanoSignTransactionRequest.AssetGroup.Token)
 _sym_db.RegisterMessage(CardanoSignTransactionRequest.Output)
 _sym_db.RegisterMessage(CardanoSignTransactionRequest.Certificate)
 _sym_db.RegisterMessage(CardanoSignTransactionRequest.Certificate.StakeDelegation)

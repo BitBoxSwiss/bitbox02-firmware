@@ -592,6 +592,7 @@ pub mod cardano_sign_transaction_request {
         pub struct Token {
             #[prost(bytes="vec", tag="1")]
             pub asset_name: ::prost::alloc::vec::Vec<u8>,
+            /// Number of tokens transacted of this asset.
             #[prost(uint64, tag="2")]
             pub value: u64,
         }

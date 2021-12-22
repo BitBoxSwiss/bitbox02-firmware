@@ -135,6 +135,8 @@ class CardanoSignTransactionRequest(google.protobuf.message.Message):
             VALUE_FIELD_NUMBER: builtins.int
             asset_name: builtins.bytes = ...
             value: builtins.int = ...
+            """Number of tokens transacted of this asset."""
+
             def __init__(self,
                 *,
                 asset_name : builtins.bytes = ...,

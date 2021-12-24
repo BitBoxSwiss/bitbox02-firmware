@@ -264,7 +264,7 @@ static XPub _derive_our_xpub(const uint32_t* keypath, size_t keypath_len)
 
 static void _test_btc_common_multisig_is_valid(void** state)
 {
-    mock_state(_mock_seed, _mock_bip39_seed);
+    keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
 
     const uint32_t expected_coin = 1 + BIP32_INITIAL_HARDENED_CHILD;
     const uint32_t keypath[4] = {
@@ -288,11 +288,11 @@ static void _test_btc_common_multisig_is_valid(void** state)
         "CugjeksHSbyZT7rq38VQF";
     multisig.xpubs[multisig.our_xpub_index] = btc_util_parse_xpub(our_xpub);
 
-    mock_state(_mock_seed, NULL);
+    keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), NULL);
     assert_false(btc_common_multisig_is_valid(
         &multisig, keypath, sizeof(keypath) / sizeof(uint32_t), expected_coin));
 
-    mock_state(_mock_seed, _mock_bip39_seed);
+    keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
 
     // ok
     assert_true(btc_common_multisig_is_valid(

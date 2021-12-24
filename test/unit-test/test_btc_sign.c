@@ -417,7 +417,8 @@ static bool _stream_prevtx(
 static void _sign(const _modification_t* mod)
 {
     // Need keystore to derive change and input scripts
-    mock_state(mod->seeded ? _mock_seed : NULL, mod->seeded ? _mock_bip39_seed : NULL);
+    keystore_mock_unlocked(
+        mod->seeded ? _mock_seed : NULL, sizeof(_mock_seed), mod->seeded ? _mock_bip39_seed : NULL);
 
     uint32_t purpose;
     switch (mod->script_type) {

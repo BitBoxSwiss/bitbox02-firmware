@@ -80,7 +80,7 @@ bool __wrap_keystore_secp256k1_nonce_commit(
 
 static void _test_keystore_antiklepto(void** state)
 {
-    mock_state(_mock_seed, _mock_bip39_seed);
+    keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
 
     uint32_t keypath[] = {
         84 + BIP32_INITIAL_HARDENED_CHILD,

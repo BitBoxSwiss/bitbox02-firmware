@@ -31,16 +31,17 @@
 // password.
 #define KDF_NUM_ITERATIONS (2)
 
-// change this ONLY via keystore_unlock() or keystore_lock()
+// Change this ONLY via keystore_unlock() or keystore_lock()
 static bool _is_unlocked_device = false;
-// seed length defaults to 32 bytes, but we could accept smaller seeds in the future.
-static uint8_t _seed_length = KEYSTORE_MAX_SEED_LENGTH;
-// must be defined if is_unlocked is true. ONLY ACCESS THIS WITH _get_seed()
+// Must be defined if is_unlocked is true. Length of the seed store in `_retained_seed`. See also:
+// `_validate_seed_length()`.
+static uint8_t _seed_length = 0;
+// Must be defined if is_unlocked is true. ONLY ACCESS THIS WITH _get_seed()
 static uint8_t _retained_seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
 
-// change this ONLY via keystore_unlock_bip39().
+// Change this ONLY via keystore_unlock_bip39().
 static bool _is_unlocked_bip39 = false;
-// must be defined if _is_unlocked is true. ONLY ACCESS THIS WITH _get_bip39_seed().
+// Must be defined if _is_unlocked is true. ONLY ACCESS THIS WITH _get_bip39_seed().
 static uint8_t _retained_bip39_seed[64] = {0};
 
 #ifdef TESTING
@@ -399,7 +400,7 @@ void keystore_lock(void)
 {
     _is_unlocked_device = false;
     _is_unlocked_bip39 = false;
-    _seed_length = KEYSTORE_MAX_SEED_LENGTH;
+    _seed_length = 0;
     util_zero(_retained_seed, sizeof(_retained_seed));
     util_zero(_retained_bip39_seed, sizeof(_retained_bip39_seed));
 }

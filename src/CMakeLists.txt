@@ -343,7 +343,7 @@ add_custom_target(rust-bindgen
     --whitelist-function keystore_secp256k1_sign
     --whitelist-function keystore_bip39_mnemonic_to_seed
     --whitelist-function keystore_get_root_fingerprint
-    --whitelist-function mock_state
+    --whitelist-function keystore_mock_unlocked
     --whitelist-var EC_PUBLIC_KEY_UNCOMPRESSED_LEN
     --whitelist-var EC_PUBLIC_KEY_LEN
     --whitelist-function keystore_encode_xpub_at_keypath

@@ -45,7 +45,7 @@ static bool _is_unlocked_bip39 = false;
 static uint8_t _retained_bip39_seed[64] = {0};
 
 #ifdef TESTING
-void mock_state(const uint8_t* seed, size_t seed_len, const uint8_t* bip39_seed)
+void keystore_mock_unlocked(const uint8_t* seed, size_t seed_len, const uint8_t* bip39_seed)
 {
     _is_unlocked_device = seed != NULL;
     if (seed != NULL) {

@@ -241,7 +241,7 @@ static _tx _make_test_tx(void)
 
 static void _test_tx(const _tx* tx, const uint8_t* expected_signature)
 {
-    mock_state(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
+    keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
 
     BTCSignNextResponse next = {0};
 

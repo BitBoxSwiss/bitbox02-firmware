@@ -50,7 +50,9 @@ pub fn mock(data: Data) {
 /// This mocks an unlocked keystore with the given bip39 recovery words.
 pub fn mock_unlocked_using_mnemonic(mnemonic: &str) {
     let seed = keystore::bip39_mnemonic_to_seed(mnemonic).unwrap();
-    unsafe { bitbox02_sys::mock_state(seed.as_ptr(), seed.len() as _, core::ptr::null()) }
+    unsafe {
+        bitbox02_sys::keystore_mock_unlocked(seed.as_ptr(), seed.len() as _, core::ptr::null())
+    }
     keystore::unlock_bip39(&crate::input::SafeInputString::new()).unwrap();
 }
 

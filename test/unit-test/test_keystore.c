@@ -200,7 +200,7 @@ static bool _pubkeys_equal(
 
 static void _test_keystore_get_xpub(void** state)
 {
-    secp256k1_context* ctx = wally_get_secp_context();
+    const secp256k1_context* ctx = wally_get_secp_context();
 
     struct ext_key xpub = {0};
 
@@ -266,7 +266,7 @@ static void _test_keystore_secp256k1_nonce_commit(void** state)
 
 static void _test_keystore_secp256k1_sign(void** state)
 {
-    secp256k1_context* ctx = wally_get_secp_context();
+    const secp256k1_context* ctx = wally_get_secp_context();
 
     secp256k1_pubkey expected_pubkey;
     assert_true(secp256k1_ec_pubkey_create(ctx, &expected_pubkey, _expected_seckey));

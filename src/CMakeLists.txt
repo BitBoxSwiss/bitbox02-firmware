@@ -396,6 +396,9 @@ add_custom_target(rust-bindgen
     --whitelist-function trinary_input_string_set_input
     --whitelist-function confirm_transaction_address_create
     --whitelist-function confirm_transaction_fee_create
+    --whitelist-function progress_create
+    --whitelist-function progress_set
+    --whitelist-function empty_create
     --whitelist-function reset_reset
     --whitelist-function sd_card_inserted
     --whitelist-function sd_format

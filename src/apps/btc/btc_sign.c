@@ -24,8 +24,6 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <keystore/keystore_antiklepto.h>
-#include <ui/components/empty.h>
-#include <ui/components/progress.h>
 #include <ui/screen_stack.h>
 #include <util.h>
 #include <workflow/confirm.h>
@@ -84,21 +82,6 @@ typedef enum {
     STATE_INPUTS_PASS2,
     STATE_INPUTS_PASS2_ANTIKLEPTO_HOST_NONCE
 } _signing_state_t;
-
-// Base component on the screen stack during signing, which is shown while the device is waiting for
-// the next signing api call. Without this, the 'See the BitBoxApp' waiting screen would flicker in
-// between user confirmations.
-//
-// Pushed with the first output, and, popped in with the last output (and _reset(), which is called
-// if there is an error or if the signing finishes normally).
-// Rationale: the earliest user input happens in the first output, the latest in the last output.
-static component_t* _empty_component = NULL;
-// The progress component is shown when streaming inputs and previous transactions.  Pushed in sign
-// init, popped the last prevtx output, which is the last part of the inputs streaming of pass1.
-//
-// It is also shown when streaming the inputs in the 2nd pass, when signing the inputs, pushed with
-// the last output.
-static component_t* _progress_component = NULL;
 
 static _signing_state_t _state = STATE_INIT;
 static const app_btc_coin_params_t* _coin_params = NULL;
@@ -176,71 +159,6 @@ void testing_app_btc_mock_ui(app_btc_ui_t mock)
 }
 #endif
 
-static void _maybe_pop_empty_screen(void)
-{
-    if (_empty_component != NULL) {
-        if (ui_screen_stack_top() != _empty_component) {
-            Abort("btc_sign: mismatched screen push/pop");
-        }
-        ui_screen_stack_pop_and_clean();
-        _empty_component = NULL;
-    }
-}
-
-static void _maybe_pop_progress_screen(void)
-{
-    if (_progress_component != NULL) {
-        if (ui_screen_stack_top() != _progress_component) {
-            Abort("btc_sign: mismatched screen push/pop");
-        }
-        ui_screen_stack_pop_and_clean();
-        _progress_component = NULL;
-    }
-}
-
-/**
- * Sets the progress of the progress bar depending on the current signing state.
- * During inputs streaming: progress is number of inputs processed, with a subprogress of how many
- * inputs/outputs of the prevtx have been processed.
- */
-static void _update_progress(void)
-{
-    if (_progress_component == NULL) {
-        return;
-    }
-    float progress = 0;
-    switch (_state) {
-    case STATE_INPUTS_PASS1:
-    case STATE_INPUTS_PASS2:
-        progress = _index / (float)_init_request.num_inputs;
-        break;
-    case STATE_OUTPUTS:
-        // Once we reached the outputs stage, the progress for loading the inputs is 100%.
-        progress = 1.F;
-        break;
-    case STATE_PREVTX_INPUTS: {
-        float step = 1.F / (float)_init_request.num_inputs;
-        uint32_t num_inputs_outputs =
-            _prevtx.init_request.num_inputs + _prevtx.init_request.num_outputs;
-        float subprogress = _prevtx.index / (float)num_inputs_outputs;
-        progress = _index * step + subprogress * step;
-        break;
-    }
-    case STATE_PREVTX_OUTPUTS: {
-        float step = 1.F / (float)_init_request.num_inputs;
-        uint32_t num_inputs_outputs =
-            _prevtx.init_request.num_inputs + _prevtx.init_request.num_outputs;
-        float subprogress =
-            (float)(_prevtx.init_request.num_inputs + _prevtx.index) / (float)num_inputs_outputs;
-        progress = _index * step + subprogress * step;
-        break;
-    }
-    default:
-        break;
-    }
-    progress_set(_progress_component, progress);
-}
-
 // Must be called in any code path that exits the signing process (error or regular finish).
 static void _reset(void)
 {
@@ -266,9 +184,6 @@ static void _reset(void)
 
     rust_sha256_free(&_hash_outputs_ctx);
     _hash_outputs_ctx = rust_sha256_new();
-
-    _maybe_pop_empty_screen();
-    _maybe_pop_progress_screen();
 
     keystore_antiklepto_clear();
 }
@@ -316,9 +231,6 @@ app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request, BTCSignNex
     _state = STATE_INPUTS_PASS1;
     next_out->type = BTCSignNextResponse_Type_INPUT;
     next_out->index = _index;
-
-    _progress_component = progress_create("Loading transaction...");
-    ui_screen_stack_push(_progress_component);
 
     return APP_BTC_OK;
 }
@@ -409,7 +321,6 @@ app_btc_result_t app_btc_sign_prevtx_input(
         next_out->index = _index;
         next_out->prev_index = 0;
     }
-    _update_progress();
     return APP_BTC_OK;
 }
 
@@ -485,7 +396,6 @@ app_btc_result_t app_btc_sign_prevtx_output(
             next_out->type = BTCSignNextResponse_Type_OUTPUT;
             next_out->index = _index;
         }
-        _update_progress();
     }
     return APP_BTC_OK;
 }
@@ -624,8 +534,6 @@ static app_btc_result_t _sign_input_pass1(
     _prevtx.referencing_input = *request;
     _prevtx.tx_hash_ctx = rust_sha256_new();
 
-    _update_progress();
-
     _state = STATE_PREVTX_INIT;
     next_out->type = BTCSignNextResponse_Type_PREVTX_INIT;
     next_out->index = _index;
@@ -763,8 +671,6 @@ static app_btc_result_t _sign_input_pass2(
         // Want next input
         next_out->type = BTCSignNextResponse_Type_INPUT;
         next_out->index = _index;
-
-        _update_progress();
     } else {
         // Done with inputs pass2 -> done completely.
         _reset();
@@ -800,8 +706,6 @@ app_btc_result_t app_btc_sign_output(
     const BTCSignOutputRequest* request,
     BTCSignNextResponse* next_out)
 {
-    _maybe_pop_progress_screen();
-
     if (_state != STATE_OUTPUTS) {
         return _error(APP_BTC_ERR_STATE);
     }
@@ -944,24 +848,6 @@ app_btc_result_t app_btc_sign_output(
         rust_sha256_update(_hash_outputs_ctx, pk_script_serialized, pk_script_serialized_len);
     }
 
-    if (_index == 0) {
-        // The device shows the default "See the BitBoxApp" screen, then the progress bar while
-        // processing the inputs, up until the first output is processed. Afterwards, the base
-        // screen is the empty screen to avoid flicker, until the last output is processed.
-        _empty_component = empty_create();
-        ui_screen_stack_push(_empty_component);
-    }
-    if (_index == _init_request.num_outputs - 1) {
-        _maybe_pop_empty_screen();
-        if (_init_request.num_inputs > 2) {
-            // Show progress of signing inputs if there are more than 2 inputs. This is an arbitrary
-            // cutoff; less or equal to 2 inputs is fast enough so it does not need a progress bar.
-            _progress_component = progress_create("Signing transaction...");
-            // Popped with the last input of pass2.
-            ui_screen_stack_push(_progress_component);
-        }
-    }
-
     if (_index < _init_request.num_outputs - 1) {
         _index++;
         // Want next output
@@ -1052,8 +938,6 @@ app_btc_result_t app_btc_sign_antiklepto(
         _state = STATE_INPUTS_PASS2;
         next_out->type = BTCSignNextResponse_Type_INPUT;
         next_out->index = _index;
-
-        _update_progress();
     } else {
         // Done with inputs pass2 -> done completely.
         _reset();

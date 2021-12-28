@@ -185,6 +185,13 @@ async fn get_antiklepto_host_nonce(
 
 pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     bitbox02::app_btc::sign_init_wrapper(encode(request).as_ref())?;
+
+    let mut progress_component = {
+        let mut c = bitbox02::ui::progress_create("Loading transaction...");
+        c.screen_stack_push();
+        Some(c)
+    };
+
     let mut next_response = NextResponse {
         next: pb::BtcSignNextResponse {
             r#type: 0,
@@ -197,26 +204,86 @@ pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error
         wrap: false,
     };
     for input_index in 0..request.num_inputs {
+        // Update progress.
+        bitbox02::ui::progress_set(
+            progress_component.as_mut().unwrap(),
+            (input_index as f32) / (request.num_inputs as f32),
+        );
+
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
         bitbox02::app_btc::sign_input_pass1_wrapper(encode(&tx_input).as_ref())?;
 
         let prevtx_init = get_prevtx_init(input_index, &mut next_response).await?;
         bitbox02::app_btc::sign_prevtx_init_wrapper(encode(&prevtx_init).as_ref())?;
         for prevtx_input_index in 0..prevtx_init.num_inputs {
+            // Update progress.
+            bitbox02::ui::progress_set(progress_component.as_mut().unwrap(), {
+                let step = 1f32 / (request.num_inputs as f32);
+                let subprogress: f32 = (prevtx_input_index as f32)
+                    / (prevtx_init.num_inputs + prevtx_init.num_outputs) as f32;
+                (input_index as f32 + subprogress) * step
+            });
+
             let prevtx_input =
                 get_prevtx_input(input_index, prevtx_input_index, &mut next_response).await?;
             bitbox02::app_btc::sign_prevtx_input_wrapper(encode(&prevtx_input).as_ref())?;
         }
+
         for prevtx_output_index in 0..prevtx_init.num_outputs {
+            // Update progress.
+            bitbox02::ui::progress_set(progress_component.as_mut().unwrap(), {
+                let step = 1f32 / (request.num_inputs as f32);
+                let subprogress: f32 = (prevtx_init.num_inputs + prevtx_output_index) as f32
+                    / (prevtx_init.num_inputs + prevtx_init.num_outputs) as f32;
+                (input_index as f32 + subprogress) * step
+            });
+
             let prevtx_output =
                 get_prevtx_output(input_index, prevtx_output_index, &mut next_response).await?;
             bitbox02::app_btc::sign_prevtx_output_wrapper(encode(&prevtx_output).as_ref())?;
         }
     }
+
+    // The progress for loading the inputs is 100%.
+    bitbox02::ui::progress_set(progress_component.as_mut().unwrap(), 1.);
+
+    // Base component on the screen stack during signing, which is shown while the device is waiting
+    // for the next signing api call. Without this, the 'See the BitBoxApp' waiting screen would
+    // flicker in between user confirmations. All user input happens during output processing.
+    //
+    // We only start rendering this (and stop rendering the inputs progress bar) after we receive
+    // the first output, otherwise there is a noticable delay between processing the last input and
+    // receiving the first output.
+    let mut empty_component = None;
+
     for output_index in 0..request.num_outputs {
         let tx_output = get_tx_output(output_index, &mut next_response).await?;
+        if output_index == 0 {
+            // Stop rendering inputs progress update.
+            drop(progress_component.take());
+
+            empty_component = {
+                let mut c = bitbox02::ui::empty_create();
+                c.screen_stack_push();
+                Some(c)
+            };
+        }
         bitbox02::app_btc::sign_output_wrapper(encode(&tx_output).as_ref())?;
     }
+
+    // Stop rendering the empty component.
+    drop(empty_component);
+
+    // Show progress of signing inputs if there are more than 2 inputs. This is an arbitrary cutoff;
+    // less or equal to 2 inputs is fast enough so it does not need a progress bar.
+    let mut progress_component = if request.num_inputs > 2 {
+        let mut c = bitbox02::ui::progress_create("Signing transaction...");
+        c.screen_stack_push();
+        Some(c)
+    } else {
+        None
+    };
+
     for input_index in 0..request.num_inputs {
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
         let (signature, anti_klepto_signer_commitment) =
@@ -238,6 +305,11 @@ pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error
         } else {
             next_response.next.has_signature = true;
             next_response.next.signature = signature;
+        }
+
+        // Update progress.
+        if let Some(ref mut c) = progress_component {
+            bitbox02::ui::progress_set(c, (input_index + 1) as f32 / (request.num_inputs as f32));
         }
     }
     next_response.next.r#type = NextType::Done as _;

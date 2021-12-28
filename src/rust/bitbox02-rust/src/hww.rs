@@ -28,6 +28,7 @@ const OP_STATUS_FAILURE_UNINITIALIZED: u8 = 2;
 /// Must be called during the execution of a usb task. This sends out the response to the host and
 /// awaits the next request. If the request is not a valid noise encrypted protofbuf api request
 /// message, `Err(Error::InvalidInput)` is returned.
+#[cfg(not(feature = "testing"))]
 pub async fn next_request(
     response: crate::pb::response::Response,
 ) -> Result<crate::pb::request::Request, api::error::Error> {
@@ -42,6 +43,37 @@ pub async fn next_request(
         }
         _ => Err(api::error::Error::InvalidInput),
     }
+}
+
+#[cfg(feature = "testing")]
+pub struct SafeData<T>(T);
+// Safety: must not be accessed concurrently.
+#[cfg(feature = "testing")]
+unsafe impl<T> Sync for SafeData<T> {}
+
+#[cfg(feature = "testing")]
+lazy_static! {
+    pub static ref MOCK_NEXT_REQUEST: SafeData<
+        core::cell::RefCell<
+            Option<
+                alloc::boxed::Box<
+                    dyn Fn(
+                        crate::pb::response::Response,
+                    )
+                        -> Result<crate::pb::request::Request, api::error::Error>,
+                >,
+            >,
+        >,
+    > = SafeData(core::cell::RefCell::new(None));
+}
+
+/// Set `MOCK_NEXT_REQUEST` to mock requests from the host.
+#[cfg(feature = "testing")]
+pub async fn next_request(
+    response: crate::pb::response::Response,
+) -> Result<crate::pb::request::Request, api::error::Error> {
+    let func = MOCK_NEXT_REQUEST.0.borrow();
+    func.as_ref().unwrap()(response)
 }
 
 /// Process OP_UNLOCK.

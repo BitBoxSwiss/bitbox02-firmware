@@ -36,6 +36,8 @@
 #include <wally_script.h>
 #include <wally_transaction.h>
 
+#include <pb_decode.h>
+
 // Singing flow:
 //
 // init
@@ -488,10 +490,101 @@ app_btc_result_t app_btc_sign_prevtx_output(
     return APP_BTC_OK;
 }
 
+static bool _is_valid_keypath(
+    const uint32_t* keypath_account,
+    size_t keypath_account_count,
+    const uint32_t* keypath,
+    size_t keypath_count,
+    const BTCScriptConfig* script_config,
+    uint32_t expected_bip44_coin,
+    bool must_be_change)
+{
+    switch (script_config->which_config) {
+    case BTCScriptConfig_simple_type_tag:
+        if (!btc_common_is_valid_keypath_address_simple(
+                script_config->config.simple_type, keypath, keypath_count, expected_bip44_coin)) {
+            return false;
+        }
+        break;
+    case BTCScriptConfig_multisig_tag:
+        if (!btc_common_is_valid_keypath_address_multisig(
+                script_config->config.multisig.script_type,
+                keypath,
+                keypath_count,
+                expected_bip44_coin)) {
+            return false;
+        }
+        break;
+    default:
+        return false;
+    }
+
+    // check that keypath_account is a prefix to keypath with two elements left (change, address).
+    if (keypath_account_count + 2 != keypath_count) {
+        return false;
+    }
+    for (size_t i = 0; i < keypath_account_count; i++) {
+        if (keypath_account[i] != keypath[i]) {
+            return false;
+        }
+    }
+
+    const uint32_t change = keypath[keypath_count - 2];
+    if (must_be_change && change != 1) {
+        return false;
+    }
+    return true;
+}
+
+static app_btc_result_t _validate_input(const BTCSignInputRequest* request)
+{
+    if (_state != STATE_INPUTS_PASS1 && _state != STATE_INPUTS_PASS2) {
+        return APP_BTC_ERR_STATE;
+    }
+    // relative locktime and sequence nummbers < 0xffffffff-2 are not supported
+    if (request->sequence < 0xffffffff - 2) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+    if (_coin_params->rbf_support) {
+        if (request->sequence == 0xffffffff - 2) {
+            _rbf = CONFIRM_LOCKTIME_RBF_ON;
+        }
+    }
+    if (request->sequence < 0xffffffff) {
+        _locktime_applies = true;
+    }
+    if (request->prevOutValue == 0) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+
+    if (request->script_config_index >= _init_request.script_configs_count) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+    const BTCScriptConfigWithKeypath* script_config_account =
+        &_init_request.script_configs[request->script_config_index];
+
+    if (!_is_valid_keypath(
+            script_config_account->keypath,
+            script_config_account->keypath_count,
+            request->keypath,
+            request->keypath_count,
+            &script_config_account->script_config,
+            _coin_params->bip44_coin,
+            false)) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+    return APP_BTC_OK;
+}
+
 static app_btc_result_t _sign_input_pass1(
     const BTCSignInputRequest* request,
     BTCSignNextResponse* next_out)
 {
+    app_btc_result_t result = _validate_input(request);
+    if (result != APP_BTC_OK) {
+        return _error(result);
+    }
+
     {
         // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
         // point 2: accumulate hashPrevouts
@@ -540,57 +633,15 @@ static app_btc_result_t _sign_input_pass1(
     return APP_BTC_OK;
 }
 
-static bool _is_valid_keypath(
-    const uint32_t* keypath_account,
-    size_t keypath_account_count,
-    const uint32_t* keypath,
-    size_t keypath_count,
-    const BTCScriptConfig* script_config,
-    uint32_t expected_bip44_coin,
-    bool must_be_change)
-{
-    switch (script_config->which_config) {
-    case BTCScriptConfig_simple_type_tag:
-        if (!btc_common_is_valid_keypath_address_simple(
-                script_config->config.simple_type, keypath, keypath_count, expected_bip44_coin)) {
-            return false;
-        }
-        break;
-    case BTCScriptConfig_multisig_tag:
-        if (!btc_common_is_valid_keypath_address_multisig(
-                script_config->config.multisig.script_type,
-                keypath,
-                keypath_count,
-                expected_bip44_coin)) {
-            return false;
-        }
-        break;
-    default:
-        return false;
-    }
-
-    // check that keypath_account is a prefix to keypath with two elements left (change, address).
-    if (keypath_account_count + 2 != keypath_count) {
-        return false;
-    }
-    for (size_t i = 0; i < keypath_account_count; i++) {
-        if (keypath_account[i] != keypath[i]) {
-            return false;
-        }
-    }
-
-    const uint32_t change = keypath[keypath_count - 2];
-    if (must_be_change && change != 1) {
-        return false;
-    }
-    return true;
-}
-
 static app_btc_result_t _sign_input_pass2(
     const BTCSignInputRequest* request,
-    const BTCScriptConfig* script_config_account,
     BTCSignNextResponse* next_out)
 {
+    app_btc_result_t result = _validate_input(request);
+    if (result != APP_BTC_OK) {
+        return _error(result);
+    }
+
     if (!safe_uint64_add(&_inputs_sum_pass2, request->prevOutValue)) {
         return _error(APP_BTC_ERR_INVALID_INPUT);
     }
@@ -614,6 +665,10 @@ static app_btc_result_t _sign_input_pass2(
         // A little more than the max pk script for the data push varint.
         uint8_t sighash_script[MAX_PK_SCRIPT_SIZE + MAX_VARINT_SIZE] = {0};
         size_t sighash_script_size = sizeof(sighash_script);
+
+        const BTCScriptConfig* script_config_account =
+            &_init_request.script_configs[request->script_config_index].script_config;
+
         switch (script_config_account->which_config) {
         case BTCScriptConfig_simple_type_tag:
             if (!btc_common_sighash_script_from_pubkeyhash(
@@ -734,45 +789,11 @@ app_btc_result_t app_btc_sign_input(
     const BTCSignInputRequest* request,
     BTCSignNextResponse* next_out)
 {
-    if (_state != STATE_INPUTS_PASS1 && _state != STATE_INPUTS_PASS2) {
-        return _error(APP_BTC_ERR_STATE);
-    }
-    // relative locktime and sequence nummbers < 0xffffffff-2 are not supported
-    if (request->sequence < 0xffffffff - 2) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-    if (_coin_params->rbf_support) {
-        if (request->sequence == 0xffffffff - 2) {
-            _rbf = CONFIRM_LOCKTIME_RBF_ON;
-        }
-    }
-    if (request->sequence < 0xffffffff) {
-        _locktime_applies = true;
-    }
-    if (request->prevOutValue == 0) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-
-    if (request->script_config_index >= _init_request.script_configs_count) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-    const BTCScriptConfigWithKeypath* script_config_account =
-        &_init_request.script_configs[request->script_config_index];
-
-    if (!_is_valid_keypath(
-            script_config_account->keypath,
-            script_config_account->keypath_count,
-            request->keypath,
-            request->keypath_count,
-            &script_config_account->script_config,
-            _coin_params->bip44_coin,
-            false)) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
     if (_state == STATE_INPUTS_PASS1) {
         return _sign_input_pass1(request, next_out);
     }
-    return _sign_input_pass2(request, &script_config_account->script_config, next_out);
+
+    return _sign_input_pass2(request, next_out);
 }
 
 app_btc_result_t app_btc_sign_output(
@@ -1041,9 +1062,107 @@ app_btc_result_t app_btc_sign_antiklepto(
     return APP_BTC_OK;
 }
 
-#ifdef TESTING
-void tst_app_btc_reset(void)
+app_btc_result_t app_btc_sign_init_wrapper(in_buffer_t request_buf)
 {
-    _reset();
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    BTCSignInitRequest request = {0};
+    if (!pb_decode(&in_stream, BTCSignInitRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    BTCSignNextResponse response = {0};
+    return app_btc_sign_init(&request, &response);
 }
-#endif
+
+app_btc_result_t app_btc_sign_input_pass1_wrapper(in_buffer_t request_buf)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    BTCSignInputRequest request = {0};
+    if (!pb_decode(&in_stream, BTCSignInputRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    BTCSignNextResponse response = {0};
+    return _sign_input_pass1(&request, &response);
+}
+
+app_btc_result_t app_btc_sign_prevtx_init_wrapper(in_buffer_t request_buf)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    BTCPrevTxInitRequest request = {0};
+    if (!pb_decode(&in_stream, BTCPrevTxInitRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    BTCSignNextResponse response = {0};
+    return app_btc_sign_prevtx_init(&request, &response);
+}
+
+app_btc_result_t app_btc_sign_prevtx_input_wrapper(in_buffer_t request_buf)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    BTCPrevTxInputRequest request = {0};
+    if (!pb_decode(&in_stream, BTCPrevTxInputRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    BTCSignNextResponse response = {0};
+    return app_btc_sign_prevtx_input(&request, &response);
+}
+
+app_btc_result_t app_btc_sign_prevtx_output_wrapper(in_buffer_t request_buf)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    BTCPrevTxOutputRequest request = {0};
+    if (!pb_decode(&in_stream, BTCPrevTxOutputRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    BTCSignNextResponse response = {0};
+    return app_btc_sign_prevtx_output(&request, &response);
+}
+
+app_btc_result_t app_btc_sign_output_wrapper(in_buffer_t request_buf)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    BTCSignOutputRequest request = {0};
+    if (!pb_decode(&in_stream, BTCSignOutputRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    BTCSignNextResponse response = {0};
+    return app_btc_sign_output(&request, &response);
+}
+
+app_btc_result_t app_btc_sign_input_pass2_wrapper(
+    in_buffer_t request_buf,
+    uint8_t* sig_out,
+    uint8_t* anti_klepto_signer_commitment_out)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    BTCSignInputRequest request = {0};
+    if (!pb_decode(&in_stream, BTCSignInputRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    BTCSignNextResponse response = {0};
+    app_btc_result_t result = _sign_input_pass2(&request, &response);
+    if (result != APP_BTC_OK) {
+        return result;
+    }
+    memcpy(sig_out, response.signature, sizeof(response.signature));
+    memcpy(
+        anti_klepto_signer_commitment_out,
+        response.anti_klepto_signer_commitment.commitment,
+        sizeof(response.anti_klepto_signer_commitment.commitment));
+    return APP_BTC_OK;
+}
+
+app_btc_result_t app_btc_sign_antiklepto_wrapper(in_buffer_t request_buf, uint8_t* sig_out)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    AntiKleptoSignatureRequest request = {0};
+    if (!pb_decode(&in_stream, AntiKleptoSignatureRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    BTCSignNextResponse response = {0};
+    app_btc_result_t result = app_btc_sign_antiklepto(&request, &response);
+    if (result != APP_BTC_OK) {
+        return result;
+    }
+    memcpy(sig_out, response.signature, sizeof(response.signature));
+    return APP_BTC_OK;
+}

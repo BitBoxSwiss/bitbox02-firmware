@@ -78,68 +78,6 @@ commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* r
     }
 }
 
-// like commander_states, but for requests nested in BTCRequest.
-static commander_states_endpoint_id _force_next = 0;
-
-static void _handle_sign_next(const BTCSignNextResponse* next)
-{
-    switch (next->type) {
-    case BTCSignNextResponse_Type_INPUT:
-        commander_states_force_next(Request_btc_sign_input_tag);
-        break;
-    case BTCSignNextResponse_Type_OUTPUT:
-        commander_states_force_next(Request_btc_sign_output_tag);
-        break;
-    case BTCSignNextResponse_Type_PREVTX_INIT:
-        commander_states_force_next(Request_btc_tag);
-        _force_next = BTCRequest_prevtx_init_tag;
-        break;
-    case BTCSignNextResponse_Type_PREVTX_INPUT:
-        commander_states_force_next(Request_btc_tag);
-        _force_next = BTCRequest_prevtx_input_tag;
-        break;
-    case BTCSignNextResponse_Type_PREVTX_OUTPUT:
-        commander_states_force_next(Request_btc_tag);
-        _force_next = BTCRequest_prevtx_output_tag;
-        break;
-    case BTCSignNextResponse_Type_HOST_NONCE:
-        commander_states_force_next(Request_btc_tag);
-        _force_next = BTCRequest_antiklepto_signature_tag;
-        break;
-    default:
-        break;
-    }
-}
-
-commander_error_t commander_btc_sign(const Request* request, Response* response)
-{
-    response->which_response = Response_btc_sign_next_tag;
-    app_btc_result_t result;
-    switch (request->which_request) {
-    case Request_btc_sign_init_tag:
-        if (!app_btc_enabled(request->request.btc_sign_init.coin)) {
-            return COMMANDER_ERR_DISABLED;
-        }
-        result =
-            app_btc_sign_init(&(request->request.btc_sign_init), &response->response.btc_sign_next);
-        break;
-    case Request_btc_sign_input_tag:
-        result = app_btc_sign_input(
-            &(request->request.btc_sign_input), &response->response.btc_sign_next);
-        break;
-    case Request_btc_sign_output_tag:
-        result = app_btc_sign_output(
-            &(request->request.btc_sign_output), &response->response.btc_sign_next);
-        break;
-    default:
-        return COMMANDER_ERR_GENERIC;
-    }
-    if (result == APP_BTC_OK) {
-        _handle_sign_next(&response->response.btc_sign_next);
-    }
-    return _result(result);
-}
-
 static commander_error_t _api_is_script_config_registered(
     const BTCIsScriptConfigRegisteredRequest* request,
     BTCIsScriptConfigRegisteredResponse* response)
@@ -170,12 +108,6 @@ static commander_error_t _api_register_script_config(const BTCRegisterScriptConf
 
 commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response)
 {
-    bool can_call = _force_next == 0 || _force_next == request->which_request;
-    if (!can_call) {
-        return COMMANDER_ERR_INVALID_STATE;
-    }
-    _force_next = 0;
-
     switch (request->which_request) {
     case BTCRequest_is_script_config_registered_tag:
         response->which_response = BTCResponse_is_script_config_registered_tag;
@@ -185,42 +117,6 @@ commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response
     case BTCRequest_register_script_config_tag:
         response->which_response = BTCResponse_success_tag;
         return _api_register_script_config(&(request->request.register_script_config));
-    case BTCRequest_prevtx_init_tag: {
-        response->which_response = BTCResponse_sign_next_tag;
-        app_btc_result_t result = app_btc_sign_prevtx_init(
-            &(request->request.prevtx_init), &response->response.sign_next);
-        if (result == APP_BTC_OK) {
-            _handle_sign_next(&response->response.sign_next);
-        }
-        return _result(result);
-    }
-    case BTCRequest_prevtx_input_tag: {
-        response->which_response = BTCResponse_sign_next_tag;
-        app_btc_result_t result = app_btc_sign_prevtx_input(
-            &(request->request.prevtx_input), &response->response.sign_next);
-        if (result == APP_BTC_OK) {
-            _handle_sign_next(&response->response.sign_next);
-        }
-        return _result(result);
-    }
-    case BTCRequest_prevtx_output_tag: {
-        response->which_response = BTCResponse_sign_next_tag;
-        app_btc_result_t result = app_btc_sign_prevtx_output(
-            &(request->request.prevtx_output), &response->response.sign_next);
-        if (result == APP_BTC_OK) {
-            _handle_sign_next(&response->response.sign_next);
-        }
-        return _result(result);
-    }
-    case BTCRequest_antiklepto_signature_tag: {
-        response->which_response = BTCResponse_sign_next_tag;
-        app_btc_result_t result = app_btc_sign_antiklepto(
-            &request->request.antiklepto_signature, &response->response.sign_next);
-        if (result == APP_BTC_OK) {
-            _handle_sign_next(&response->response.sign_next);
-        }
-        return _result(result);
-    }
     default:
         return COMMANDER_ERR_GENERIC;
     }

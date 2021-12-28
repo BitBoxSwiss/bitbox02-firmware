@@ -37,6 +37,10 @@ pub mod workflow;
 #[macro_use]
 extern crate alloc;
 
+#[cfg(feature = "testing")]
+#[macro_use]
+extern crate lazy_static;
+
 // reexport arrayvec because it is used in our macro "print_debug"
 pub extern crate arrayvec;
 

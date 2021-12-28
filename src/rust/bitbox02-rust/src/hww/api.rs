@@ -103,6 +103,10 @@ fn request_tag(request: &Request) -> u32 {
 async fn process_api_btc(request: &Request) -> Option<Result<Response, Error>> {
     match request {
         Request::BtcPub(ref request) => bitcoin::process_pub(request).await,
+        Request::BtcSignInit(ref request) => Some(bitcoin::signtx::process(request).await),
+        // These are streamed asynchronously using the `next_request()` primitive in
+        // bitcoin/signtx.rs and are not handled directly.
+        Request::BtcSignInput(_) | Request::BtcSignOutput(_) => Some(Err(Error::InvalidState)),
         Request::Btc(pb::BtcRequest {
             request: Some(request),
         }) => bitcoin::process_api(request)
@@ -153,7 +157,9 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
         Request::Eth(_) => Some(Err(Error::Disabled)),
 
         Request::Fingerprint(pb::RootFingerprintRequest {}) => Some(rootfingerprint::process()),
-        request @ Request::BtcPub(_) | request @ Request::Btc(_) => process_api_btc(request).await,
+        request @ Request::BtcPub(_)
+        | request @ Request::Btc(_)
+        | request @ Request::BtcSignInit(_) => process_api_btc(request).await,
 
         #[cfg(feature = "app-cardano")]
         Request::Cardano(pb::CardanoRequest {

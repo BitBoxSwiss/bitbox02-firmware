@@ -92,6 +92,20 @@ impl core::convert::From<UnlockError> for Error {
     }
 }
 
+#[cfg(feature = "app-bitcoin")]
+impl core::convert::From<bitbox02::app_btc::Error> for Error {
+    fn from(error: bitbox02::app_btc::Error) -> Self {
+        match error {
+            bitbox02::app_btc::Error::APP_BTC_OK => panic!("must be an error"),
+            bitbox02::app_btc::Error::APP_BTC_ERR_USER_ABORT => Error::UserAbort,
+            bitbox02::app_btc::Error::APP_BTC_ERR_INVALID_INPUT => Error::InvalidInput,
+            bitbox02::app_btc::Error::APP_BTC_ERR_DUPLICATE => Error::Duplicate,
+            bitbox02::app_btc::Error::APP_BTC_ERR_STATE => Error::InvalidState,
+            bitbox02::app_btc::Error::APP_BTC_ERR_UNKNOWN => Error::Generic,
+        }
+    }
+}
+
 use pb::response::Response;
 
 /// Creates an Error response. Corresponds to commander.c:_report_error().

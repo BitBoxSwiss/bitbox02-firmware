@@ -21,6 +21,7 @@
 #include <stdint.h>
 
 #include <compiler_util.h>
+#include <util.h>
 #include <workflow/confirm.h>
 
 #include <hww.pb.h>
@@ -46,6 +47,23 @@ app_btc_sign_output(const BTCSignOutputRequest* request, BTCSignNextResponse* ne
 USE_RESULT app_btc_result_t
 app_btc_sign_antiklepto(const AntiKleptoSignatureRequest* request, BTCSignNextResponse* next_out);
 
+USE_RESULT app_btc_result_t app_btc_sign_init_wrapper(in_buffer_t request_buf);
+USE_RESULT app_btc_result_t app_btc_sign_input_pass1_wrapper(in_buffer_t request_buf);
+USE_RESULT app_btc_result_t app_btc_sign_prevtx_init_wrapper(in_buffer_t request_buf);
+USE_RESULT app_btc_result_t app_btc_sign_prevtx_input_wrapper(in_buffer_t request_buf);
+USE_RESULT app_btc_result_t app_btc_sign_prevtx_output_wrapper(in_buffer_t request_buf);
+USE_RESULT app_btc_result_t app_btc_sign_output_wrapper(in_buffer_t request_buf);
+USE_RESULT app_btc_result_t app_btc_sign_input_pass2_wrapper(
+    in_buffer_t request_buf,
+    // 64 bytes
+    uint8_t* sig_out,
+    // 33 bytes
+    uint8_t* anti_klepto_signer_commitment_out);
+USE_RESULT app_btc_result_t app_btc_sign_antiklepto_wrapper(
+    in_buffer_t request_buf,
+    // 64 bytes
+    uint8_t* sig_out);
+
 typedef struct {
     bool (*verify_recipient)(const char* recipient, const char* amount);
     bool (*verify_total)(const char* total, const char* fee);
@@ -54,7 +72,6 @@ typedef struct {
 } app_btc_ui_t;
 
 #ifdef TESTING
-void tst_app_btc_reset(void);
 void testing_app_btc_mock_ui(app_btc_ui_t mock);
 #endif
 

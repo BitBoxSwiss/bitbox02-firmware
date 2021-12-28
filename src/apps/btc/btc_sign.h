@@ -21,6 +21,7 @@
 #include <stdint.h>
 
 #include <compiler_util.h>
+#include <workflow/confirm.h>
 
 #include <hww.pb.h>
 
@@ -45,8 +46,16 @@ app_btc_sign_output(const BTCSignOutputRequest* request, BTCSignNextResponse* ne
 USE_RESULT app_btc_result_t
 app_btc_sign_antiklepto(const AntiKleptoSignatureRequest* request, BTCSignNextResponse* next_out);
 
+typedef struct {
+    bool (*verify_recipient)(const char* recipient, const char* amount);
+    bool (*verify_total)(const char* total, const char* fee);
+    void (*status)(const char* msg, bool status_success);
+    bool (*confirm)(const confirm_params_t* params);
+} app_btc_ui_t;
+
 #ifdef TESTING
 void tst_app_btc_reset(void);
+void testing_app_btc_mock_ui(app_btc_ui_t mock);
 #endif
 
 #endif

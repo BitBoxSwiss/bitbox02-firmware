@@ -160,6 +160,20 @@ static void* _hash_outputs_ctx = NULL;
 // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki step 8.
 static uint8_t _hash_outputs[32] = {0};
 
+static app_btc_ui_t _ui = {
+    .verify_recipient = workflow_verify_recipient,
+    .verify_total = workflow_verify_total,
+    .status = workflow_status_blocking,
+    .confirm = workflow_confirm_blocking,
+};
+
+#ifdef TESTING
+void testing_app_btc_mock_ui(app_btc_ui_t mock)
+{
+    _ui = mock;
+}
+#endif
+
 static void _maybe_pop_empty_screen(void)
 {
     if (_empty_component != NULL) {
@@ -260,7 +274,7 @@ static void _reset(void)
 static app_btc_result_t _error(app_btc_result_t err)
 {
     if (err == APP_BTC_ERR_USER_ABORT) {
-        workflow_status_blocking("Transaction\ncanceled", false);
+        _ui.status("Transaction\ncanceled", false);
     }
     _reset();
     return err;
@@ -713,7 +727,7 @@ static bool _warn_changes(uint16_t num_changes)
         .title = "Warning",
         .body = body,
     };
-    return workflow_confirm_blocking(&params);
+    return _ui.confirm(&params);
 }
 
 app_btc_result_t app_btc_sign_input(
@@ -871,7 +885,7 @@ app_btc_result_t app_btc_sign_output(
             rust_util_cstr_mut(formatted_value, sizeof(formatted_value)));
 
         // This call blocks.
-        if (!workflow_verify_recipient(address, formatted_value)) {
+        if (!_ui.verify_recipient(address, formatted_value)) {
             return _error(APP_BTC_ERR_USER_ABORT);
         }
     }
@@ -981,10 +995,10 @@ app_btc_result_t app_btc_sign_output(
             rust_util_cstr(_coin_params->unit),
             rust_util_cstr_mut(formatted_fee, sizeof(formatted_fee)));
         // This call blocks.
-        if (!workflow_verify_total(formatted_total_out, formatted_fee)) {
+        if (!_ui.verify_total(formatted_total_out, formatted_fee)) {
             return _error(APP_BTC_ERR_USER_ABORT);
         }
-        workflow_status_blocking("Transaction\nconfirmed", true);
+        _ui.status("Transaction\nconfirmed", true);
 
         rust_sha256_finish(&_hash_outputs_ctx, _hash_outputs);
         // hash hash_outputs to produce the final double-hash

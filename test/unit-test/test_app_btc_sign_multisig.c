@@ -275,6 +275,8 @@ static void _test_tx(const _tx* tx, const uint8_t* expected_signature)
     assert_int_equal(APP_BTC_OK, app_btc_sign_input(&tx->inputs[0].input, &next));
     assert_true(next.has_signature);
     assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+
+    app_btc_sign_reset();
 }
 
 static void _test_btc_sign_happy_p2wsh(void** state)

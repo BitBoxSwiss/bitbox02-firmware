@@ -673,7 +673,6 @@ static app_btc_result_t _sign_input_pass2(
         next_out->index = _index;
     } else {
         // Done with inputs pass2 -> done completely.
-        _reset();
         next_out->type = BTCSignNextResponse_Type_DONE;
     }
     return APP_BTC_OK;
@@ -940,7 +939,6 @@ app_btc_result_t app_btc_sign_antiklepto(
         next_out->index = _index;
     } else {
         // Done with inputs pass2 -> done completely.
-        _reset();
         next_out->type = BTCSignNextResponse_Type_DONE;
     }
     return APP_BTC_OK;
@@ -1049,4 +1047,9 @@ app_btc_result_t app_btc_sign_antiklepto_wrapper(in_buffer_t request_buf, uint8_
     }
     memcpy(sig_out, response.signature, sizeof(response.signature));
     return APP_BTC_OK;
+}
+
+void app_btc_sign_reset(void)
+{
+    _reset();
 }

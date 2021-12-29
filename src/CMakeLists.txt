@@ -419,7 +419,7 @@ add_custom_target(rust-bindgen
     --whitelist-function app_btc_sign_output_wrapper
     --whitelist-function app_btc_sign_input_pass2_wrapper
     --whitelist-function app_btc_sign_antiklepto_wrapper
-    --whitelist-function app_btc_sign_init
+    --whitelist-function app_btc_sign_reset
     --whitelist-function reboot
     ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
     -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums ${RUST_BINDGEN_FLAGS} ${RUST_INCLUDES}

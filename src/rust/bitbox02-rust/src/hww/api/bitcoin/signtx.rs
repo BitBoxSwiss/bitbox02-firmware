@@ -312,6 +312,9 @@ pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error
             bitbox02::ui::progress_set(c, (input_index + 1) as f32 / (request.num_inputs as f32));
         }
     }
+
+    bitbox02::app_btc::sign_reset();
+
     next_response.next.r#type = NextType::Done as _;
     Ok(next_response.to_protobuf())
 }

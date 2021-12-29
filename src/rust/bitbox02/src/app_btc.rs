@@ -147,3 +147,7 @@ pub fn sign_antiklepto_wrapper(buffer_in: &[u8]) -> Result<Vec<u8>, Error> {
         }
     }
 }
+
+pub fn sign_reset() {
+    unsafe { bitbox02_sys::app_btc_sign_reset() }
+}

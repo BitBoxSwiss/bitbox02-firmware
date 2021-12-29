@@ -1109,6 +1109,8 @@ static void _sign(const _modification_t* mod)
             }
         }
     }
+
+    app_btc_sign_reset();
 }
 
 static const _modification_t _valid = {

@@ -75,4 +75,6 @@ typedef struct {
 void testing_app_btc_mock_ui(app_btc_ui_t mock);
 #endif
 
+void app_btc_sign_reset(void);
+
 #endif

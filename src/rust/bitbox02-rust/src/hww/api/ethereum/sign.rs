@@ -196,7 +196,7 @@ pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
         || request.gas_price.len() > 16
         || request.gas_limit.len() > 16
         || request.value.len() > 32
-        || request.data.len() > 1024
+        || request.data.len() > 6144
     {
         return Err(Error::InvalidInput);
     }
@@ -626,7 +626,7 @@ mod tests {
         {
             // data too long
             let mut invalid_request = valid_request.clone();
-            invalid_request.data = vec![0; 1025];
+            invalid_request.data = vec![0; 6145];
             assert_eq!(
                 block_on(process(&invalid_request)),
                 Err(Error::InvalidInput)

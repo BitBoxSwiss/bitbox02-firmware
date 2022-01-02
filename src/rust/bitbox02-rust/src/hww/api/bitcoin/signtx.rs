@@ -183,6 +183,42 @@ async fn get_antiklepto_host_nonce(
     }
 }
 
+/// Singing flow:
+///
+/// init
+/// for each input:
+///    inputs_pass1
+///    prevtx init
+///    for each prevtx input:
+///        prevtx inputs
+///    for each prevtx output:
+///        prevtx outputs
+/// for each output:
+///    outputs
+/// for each input:
+///    inputs_pass2
+///    if input contains a host nonce commitment, the anti-klepto protocol is active:
+///       inputs_pass2_antiklepto_host_nonce
+///
+/// The hash_prevout and hash_sequence and total_in are accumulated in inputs_pass1.
+///
+/// For each input in pass1, the input's prevtx is streamed to compute and compare the prevOutHash
+/// and input amount.
+///
+/// For each output, the recipient is confirmed. At the last output, the total out, fee, locktime/RBF
+/// are confirmed.
+///
+/// The inputs are signed in inputs_pass2.
+///
+/// IMPORTANT assumptions:
+///
+/// - In the 2nd pass, if the inputs provided by the host are not the same as in the 1st pass,
+///   nothing bad will happen because the sighash uses the prevout and sequence hashes from the first
+///   pass, and the value from the 2nd pass. The BTC consensus rules will reject the tx if there is a
+///   mismatch.
+///
+/// - Only SIGHASH_ALL. Other sighash types must be carefully studied and might not be secure with
+///   the above flow or the above assumption.
 pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     bitbox02::app_btc::sign_init_wrapper(encode(request).as_ref())?;
 
@@ -211,7 +247,8 @@ pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error
         );
 
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
-        bitbox02::app_btc::sign_input_pass1_wrapper(encode(&tx_input).as_ref())?;
+        let last = input_index == request.num_inputs - 1;
+        bitbox02::app_btc::sign_input_pass1_wrapper(encode(&tx_input).as_ref(), last)?;
 
         let prevtx_init = get_prevtx_init(input_index, &mut next_response).await?;
         bitbox02::app_btc::sign_prevtx_init_wrapper(encode(&prevtx_init).as_ref())?;
@@ -226,7 +263,10 @@ pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error
 
             let prevtx_input =
                 get_prevtx_input(input_index, prevtx_input_index, &mut next_response).await?;
-            bitbox02::app_btc::sign_prevtx_input_wrapper(encode(&prevtx_input).as_ref())?;
+            bitbox02::app_btc::sign_prevtx_input_wrapper(
+                encode(&prevtx_input).as_ref(),
+                prevtx_input_index,
+            )?;
         }
 
         for prevtx_output_index in 0..prevtx_init.num_outputs {
@@ -240,7 +280,10 @@ pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error
 
             let prevtx_output =
                 get_prevtx_output(input_index, prevtx_output_index, &mut next_response).await?;
-            bitbox02::app_btc::sign_prevtx_output_wrapper(encode(&prevtx_output).as_ref())?;
+            bitbox02::app_btc::sign_prevtx_output_wrapper(
+                encode(&prevtx_output).as_ref(),
+                prevtx_output_index,
+            )?;
         }
     }
 
@@ -268,7 +311,8 @@ pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error
                 Some(c)
             };
         }
-        bitbox02::app_btc::sign_output_wrapper(encode(&tx_output).as_ref())?;
+        let last = output_index == request.num_outputs - 1;
+        bitbox02::app_btc::sign_output_wrapper(encode(&tx_output).as_ref(), last)?;
     }
 
     // Stop rendering the empty component.
@@ -286,8 +330,9 @@ pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error
 
     for input_index in 0..request.num_inputs {
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
+        let last = input_index == request.num_inputs - 1;
         let (signature, anti_klepto_signer_commitment) =
-            bitbox02::app_btc::sign_input_pass2_wrapper(encode(&tx_input).as_ref())?;
+            bitbox02::app_btc::sign_input_pass2_wrapper(encode(&tx_input).as_ref(), last)?;
         // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
         if tx_input.host_nonce_commitment.is_some() {
             next_response.next.anti_klepto_signer_commitment =

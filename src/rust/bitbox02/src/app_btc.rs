@@ -54,12 +54,15 @@ pub fn sign_init_wrapper(buffer_in: &[u8]) -> Result<(), Error> {
     }
 }
 
-pub fn sign_input_pass1_wrapper(buffer_in: &[u8]) -> Result<(), Error> {
+pub fn sign_input_pass1_wrapper(buffer_in: &[u8], last: bool) -> Result<(), Error> {
     unsafe {
-        match bitbox02_sys::app_btc_sign_input_pass1_wrapper(bitbox02_sys::in_buffer_t {
-            data: buffer_in.as_ptr(),
-            len: buffer_in.len() as _,
-        }) {
+        match bitbox02_sys::app_btc_sign_input_pass1_wrapper(
+            bitbox02_sys::in_buffer_t {
+                data: buffer_in.as_ptr(),
+                len: buffer_in.len() as _,
+            },
+            last,
+        ) {
             Error::APP_BTC_OK => Ok(()),
             err => Err(err),
         }
@@ -78,43 +81,52 @@ pub fn sign_prevtx_init_wrapper(buffer_in: &[u8]) -> Result<(), Error> {
     }
 }
 
-pub fn sign_prevtx_input_wrapper(buffer_in: &[u8]) -> Result<(), Error> {
+pub fn sign_prevtx_input_wrapper(buffer_in: &[u8], prevtx_input_index: u32) -> Result<(), Error> {
     unsafe {
-        match bitbox02_sys::app_btc_sign_prevtx_input_wrapper(bitbox02_sys::in_buffer_t {
-            data: buffer_in.as_ptr(),
-            len: buffer_in.len() as _,
-        }) {
+        match bitbox02_sys::app_btc_sign_prevtx_input_wrapper(
+            bitbox02_sys::in_buffer_t {
+                data: buffer_in.as_ptr(),
+                len: buffer_in.len() as _,
+            },
+            prevtx_input_index,
+        ) {
             Error::APP_BTC_OK => Ok(()),
             err => Err(err),
         }
     }
 }
 
-pub fn sign_prevtx_output_wrapper(buffer_in: &[u8]) -> Result<(), Error> {
+pub fn sign_prevtx_output_wrapper(buffer_in: &[u8], prevtx_output_index: u32) -> Result<(), Error> {
     unsafe {
-        match bitbox02_sys::app_btc_sign_prevtx_output_wrapper(bitbox02_sys::in_buffer_t {
-            data: buffer_in.as_ptr(),
-            len: buffer_in.len() as _,
-        }) {
+        match bitbox02_sys::app_btc_sign_prevtx_output_wrapper(
+            bitbox02_sys::in_buffer_t {
+                data: buffer_in.as_ptr(),
+                len: buffer_in.len() as _,
+            },
+            prevtx_output_index,
+        ) {
             Error::APP_BTC_OK => Ok(()),
             err => Err(err),
         }
     }
 }
 
-pub fn sign_output_wrapper(buffer_in: &[u8]) -> Result<(), Error> {
+pub fn sign_output_wrapper(buffer_in: &[u8], last: bool) -> Result<(), Error> {
     unsafe {
-        match bitbox02_sys::app_btc_sign_output_wrapper(bitbox02_sys::in_buffer_t {
-            data: buffer_in.as_ptr(),
-            len: buffer_in.len() as _,
-        }) {
+        match bitbox02_sys::app_btc_sign_output_wrapper(
+            bitbox02_sys::in_buffer_t {
+                data: buffer_in.as_ptr(),
+                len: buffer_in.len() as _,
+            },
+            last,
+        ) {
             Error::APP_BTC_OK => Ok(()),
             err => Err(err),
         }
     }
 }
 
-pub fn sign_input_pass2_wrapper(buffer_in: &[u8]) -> Result<(Vec<u8>, Vec<u8>), Error> {
+pub fn sign_input_pass2_wrapper(buffer_in: &[u8], last: bool) -> Result<(Vec<u8>, Vec<u8>), Error> {
     let mut sig_out = vec![0u8; 64];
     let mut anti_klepto_signer_commitment_out = vec![0u8; 33];
     unsafe {
@@ -125,6 +137,7 @@ pub fn sign_input_pass2_wrapper(buffer_in: &[u8]) -> Result<(Vec<u8>, Vec<u8>), 
             },
             sig_out.as_mut_ptr(),
             anti_klepto_signer_commitment_out.as_mut_ptr(),
+            last,
         ) {
             Error::APP_BTC_OK => Ok((sig_out, anti_klepto_signer_commitment_out)),
             err => Err(err),

@@ -20,17 +20,13 @@ use pb::response::Response;
 use crate::workflow::{confirm, mnemonic, password, status, unlock};
 
 pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, Error> {
-    #[cfg(feature = "app-u2f")]
-    {
-        let datetime_string =
-            bitbox02::format_datetime(request.timestamp, request.timezone_offset, false);
-        let params = confirm::Params {
-            title: "Is now?",
-            body: &datetime_string,
-            ..Default::default()
-        };
-        confirm::confirm(&params).await?;
-    }
+    // This is a separate screen because 'Restore backup?' does not fit in the title field.
+    confirm::confirm(&confirm::Params {
+        body: "Restore backup?",
+        accept_is_nextarrow: true,
+        ..Default::default()
+    })
+    .await?;
 
     let data = match bitbox02::backup::restore_from_directory(&request.id) {
         Ok(data) => data,
@@ -39,6 +35,28 @@ pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, E
             return Err(Error::Generic);
         }
     };
+
+    confirm::confirm(&confirm::Params {
+        body: &format!("Name: {}. ID: {}", &data.name, &request.id),
+        scrollable: true,
+        accept_is_nextarrow: true,
+        ..Default::default()
+    })
+    .await?;
+
+    #[cfg(feature = "app-u2f")]
+    {
+        let datetime_string =
+            bitbox02::format_datetime(request.timestamp, request.timezone_offset, false);
+        let params = confirm::Params {
+            title: "Is now?",
+            body: &datetime_string,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        };
+        confirm::confirm(&params).await?;
+    }
+
     let password = password::enter_twice().await?;
     if bitbox02::keystore::encrypt_and_store_seed(&data.seed, &password).is_err() {
         status::status("Could not\nrestore backup", false).await;

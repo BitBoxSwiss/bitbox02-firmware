@@ -9,6 +9,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ### [Unreleased]
 - Support sending to taproot addresses
 - ListBackups: ported to Rust
+- Confirm restore from microSD before setting a device password
 - Cardano: allow transactions with a zero TTL value
 - Cardano: add support for sending tokens
 - Protobuf: rename BTCSignOutputRequest.hash to BTCSignOutputRequest.payload

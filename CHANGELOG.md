@@ -13,6 +13,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Cardano: add support for sending tokens
 - Protobuf: rename BTCSignOutputRequest.hash to BTCSignOutputRequest.payload
 - Ethereum: add 807 ERC-20 tokens
+- Ethereum: increase size limit for transaction data to accommodate Opensea transactions
 
 ### 9.8.0 [released 2021-10-21]
 - Multi edition: add Cardano support.

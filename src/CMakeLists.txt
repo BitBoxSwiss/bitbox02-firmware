@@ -382,7 +382,6 @@ add_custom_target(rust-bindgen
     --rustified-enum commander_error_t
     --whitelist-function commander
     --whitelist-function commander_states_can_call
-    --whitelist-function commander_states_clear_force_next
     --whitelist-var ".*_tag"
     --whitelist-var MAX_LABEL_SIZE
     --whitelist-var font_font_a_9X9

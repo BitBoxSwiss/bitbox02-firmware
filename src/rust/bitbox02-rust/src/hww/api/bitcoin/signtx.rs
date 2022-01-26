@@ -613,6 +613,16 @@ mod tests {
             }));
     }
 
+    /// Pass/accept all user confirmations.
+    fn mock_default_ui() {
+        bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
+            verify_recipient: Box::new(|_recipient, _amount| true),
+            confirm: Box::new(|_title, _body| true),
+            verify_total: Box::new(|_total, _fee| true),
+            status: Box::new(|_msg, _status_success| {}),
+        });
+    }
+
     #[test]
     pub fn test_sign_init_fail() {
         let init_req_valid = pb::BtcSignInitRequest {
@@ -871,5 +881,40 @@ mod tests {
         let result = block_on(process(&transaction.borrow().init_request()));
         assert_eq!(result, Err(Error::InvalidState));
         assert_eq!(unsafe { COUNTER }, 2);
+    }
+
+    /// Test signing if all inputs are of type P2WPKH-P2SH.
+    #[test]
+    pub fn test_script_type_p2wpkh_p2sh() {
+        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new()));
+        for input in transaction.borrow_mut().inputs.iter_mut() {
+            input.input.keypath[0] = 49 + HARDENED;
+        }
+        for output in transaction.borrow_mut().outputs.iter_mut() {
+            if output.ours {
+                output.keypath[0] = 49 + HARDENED;
+            }
+        }
+
+        mock_host_responder(transaction.clone());
+        mock_default_ui();
+        mock_unlocked();
+        let mut init_request = transaction.borrow().init_request();
+        init_request.script_configs[0] = pb::BtcScriptConfigWithKeypath {
+            script_config: Some(pb::BtcScriptConfig {
+                config: Some(pb::btc_script_config::Config::SimpleType(
+                    pb::btc_script_config::SimpleType::P2wpkhP2sh as _,
+                )),
+            }),
+            keypath: vec![49 + HARDENED, 0 + HARDENED, 10 + HARDENED],
+        };
+        let result = block_on(process(&init_request));
+        match result {
+            Ok(Response::BtcSignNext(next)) => {
+                assert!(next.has_signature);
+                assert_eq!(&next.signature, b"\x3a\x46\x18\xf6\x16\x3c\x1d\x55\x3b\xeb\xc2\xc6\xac\x08\x86\x6d\x9f\x02\x7c\xa6\x63\xee\xa7\x43\x65\x8b\xb0\x58\x1c\x42\x33\xa4\x32\x98\x4c\xca\xeb\x52\x04\x4f\x70\x47\x47\x94\xc5\x54\x46\xa5\xd8\x23\xe1\xfb\x96\x9a\x39\x13\x2f\x7d\xa2\x30\xd2\xdd\x33\x75");
+            }
+            _ => panic!("wrong result"),
+        }
     }
 }

@@ -20,12 +20,5 @@
 #include <hww.pb.h>
 
 commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* response);
-commander_error_t commander_btc_sign(const Request* request, Response* response);
-commander_error_t commander_btc_sign_init(const BTCSignInitRequest* request, Response* response);
-commander_error_t commander_btc_sign_input(const BTCSignInputRequest* request, Response* response);
-commander_error_t commander_btc_sign_output(
-    const BTCSignOutputRequest* request,
-    Response* response);
-
 commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response);
 #endif

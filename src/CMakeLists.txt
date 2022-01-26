@@ -382,7 +382,6 @@ add_custom_target(rust-bindgen
     --rustified-enum commander_error_t
     --whitelist-function commander
     --whitelist-function commander_states_can_call
-    --whitelist-function commander_states_clear_force_next
     --whitelist-var ".*_tag"
     --whitelist-var MAX_LABEL_SIZE
     --whitelist-var font_font_a_9X9
@@ -396,6 +395,9 @@ add_custom_target(rust-bindgen
     --whitelist-function trinary_input_string_set_input
     --whitelist-function confirm_transaction_address_create
     --whitelist-function confirm_transaction_fee_create
+    --whitelist-function progress_create
+    --whitelist-function progress_set
+    --whitelist-function empty_create
     --whitelist-function reset_reset
     --whitelist-function sd_card_inserted
     --whitelist-function sd_format
@@ -405,7 +407,18 @@ add_custom_target(rust-bindgen
     --whitelist-function app_eth_params_get
     --whitelist-function app_eth_erc20_params_get
     --whitelist-function app_eth_sighash
+    --rustified-enum app_btc_result_t
     --whitelist-function app_btc_address_simple
+    --whitelist-function testing_app_btc_mock_ui
+    --whitelist-function app_btc_sign_init_wrapper
+    --whitelist-function app_btc_sign_input_pass1_wrapper
+    --whitelist-function app_btc_sign_prevtx_init_wrapper
+    --whitelist-function app_btc_sign_prevtx_input_wrapper
+    --whitelist-function app_btc_sign_prevtx_output_wrapper
+    --whitelist-function app_btc_sign_output_wrapper
+    --whitelist-function app_btc_sign_input_pass2_wrapper
+    --whitelist-function app_btc_sign_antiklepto_wrapper
+    --whitelist-function app_btc_sign_reset
     --whitelist-function reboot
     ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
     -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums ${RUST_BINDGEN_FLAGS} ${RUST_INCLUDES}

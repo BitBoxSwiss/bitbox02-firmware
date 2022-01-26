@@ -18,6 +18,7 @@ compile_error!("Bitcoin code is being compiled even though the app-bitcoin featu
 mod params;
 mod script;
 pub mod signmsg;
+pub mod signtx;
 
 use super::pb;
 use super::Error;
@@ -184,6 +185,12 @@ pub async fn process_pub(request: &pb::BtcPubRequest) -> Option<Result<Response,
 pub async fn process_api(request: &Request) -> Option<Result<pb::btc_response::Response, Error>> {
     match request {
         Request::SignMessage(ref request) => Some(signmsg::process(request).await),
+        // These are streamed asynchronously using the `next_request()` primitive in
+        // bitcoin/signtx.rs and are not handled directly.
+        Request::PrevtxInit(_)
+        | Request::PrevtxInput(_)
+        | Request::PrevtxOutput(_)
+        | Request::AntikleptoSignature(_) => Some(Err(Error::InvalidState)),
         _ => None,
     }
 }

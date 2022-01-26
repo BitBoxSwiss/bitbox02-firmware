@@ -18,12 +18,7 @@
 #include "hww.pb.h"
 #include "memory/memory.h"
 
-// If non-zero (set), only this api endpoint can be called next.
-static commander_states_endpoint_id _force_next = 0;
-
 // api commands the host can invoke regardless of which of the three main states we are in.
-// Exception applies if one of the api endpoints forces subsequent calls, see
-// `commander_states_force_next()`.
 static commander_states_endpoint_id _commands_anytime[] = {
     Request_device_info_tag,
     Request_reboot_tag,
@@ -76,21 +71,8 @@ commander_states_state_t commander_states_state(void)
     return COMMANDER_STATES_UNINITIALIZED;
 }
 
-void commander_states_force_next(commander_states_endpoint_id id)
-{
-    _force_next = id;
-}
-
-void commander_states_clear_force_next(void)
-{
-    _force_next = 0;
-}
-
 bool commander_states_can_call(commander_states_endpoint_id id)
 {
-    if (_force_next != 0) {
-        return _force_next == id;
-    }
     for (size_t i = 0; i < sizeof(_commands_anytime) / sizeof(_commands_anytime[0]); i++) {
         if (_commands_anytime[i] == id) {
             return true;

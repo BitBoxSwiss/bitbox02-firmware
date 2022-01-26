@@ -331,10 +331,10 @@ pub fn trinary_choice_create<'a>(
     let chosen_cb_param = Box::into_raw(Box::new(chosen_callback)) as *mut c_void;
     let component = unsafe {
         bitbox02_sys::trinary_choice_create(
-            crate::str_to_cstr_force!(message, MAX_LABEL_SIZE).as_ptr(), // copied in C,
-            crate::str_to_cstr_force!(label_left, MAX_LABEL_SIZE).as_ptr(), // copied in C,
-            crate::str_to_cstr_force!(label_middle, MAX_LABEL_SIZE).as_ptr(), // copied in C,
-            crate::str_to_cstr_force!(label_right, MAX_LABEL_SIZE).as_ptr(), // copied in C,
+            crate::str_to_cstr_force!(message, MAX_LABEL_SIZE).as_ptr(), // copied in C
+            crate::str_to_cstr_force!(label_left, MAX_LABEL_SIZE).as_ptr(), // copied in C
+            crate::str_to_cstr_force!(label_middle, MAX_LABEL_SIZE).as_ptr(), // copied in C
+            crate::str_to_cstr_force!(label_right, MAX_LABEL_SIZE).as_ptr(), // copied in C
             Some(c_chosen_cb as _),
             chosen_cb_param,
             core::ptr::null_mut(), // parent component, there is no parent.
@@ -429,5 +429,33 @@ pub fn with_lock_animation<F: Fn()>(f: F) {
 pub fn screen_stack_pop_all() {
     unsafe {
         bitbox02_sys::ui_screen_stack_pop_all();
+    }
+}
+
+pub fn progress_create<'a>(title: &str) -> Component<'a> {
+    let component = unsafe {
+        bitbox02_sys::progress_create(
+            crate::str_to_cstr_force!(title, MAX_LABEL_SIZE).as_ptr(), // copied in C
+        )
+    };
+
+    Component {
+        component,
+        is_pushed: false,
+        on_drop: None,
+        _p: PhantomData,
+    }
+}
+
+pub fn progress_set(component: &mut Component, progress: f32) {
+    unsafe { bitbox02_sys::progress_set(component.component, progress) }
+}
+
+pub fn empty_create<'a>() -> Component<'a> {
+    Component {
+        component: unsafe { bitbox02_sys::empty_create() },
+        is_pushed: false,
+        on_drop: None,
+        _p: PhantomData,
     }
 }

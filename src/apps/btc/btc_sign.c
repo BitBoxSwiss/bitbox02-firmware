@@ -24,8 +24,6 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <keystore/keystore_antiklepto.h>
-#include <ui/components/empty.h>
-#include <ui/components/progress.h>
 #include <ui/screen_stack.h>
 #include <util.h>
 #include <workflow/confirm.h>
@@ -36,90 +34,24 @@
 #include <wally_script.h>
 #include <wally_transaction.h>
 
-// Singing flow:
-//
-// init
-// for each input:
-//    inputs_pass1
-//    prevtx init
-//    for each prevtx input:
-//        prevtx inputs
-//    for each prevtx output:
-//        prevtx outputs
-// for each output:
-//    outputs
-// for each input:
-//    inputs_pass2
-//    if input contains a host nonce commitment, the anti-klepto protocol is active:
-//       inputs_pass2_antiklepto_host_nonce
-//
-// The hash_prevout and hash_sequence and total_in are accumulated in inputs_pass1.
-//
-// For each input in pass1, the input's prevtx is streamed to compute and compare the prevOutHash
-// and input amount.
-//
-// For each output, the recipient is confirmed. At the last output, the total out, fee, locktime/RBF
-// are confirmed.
-//
-// The inputs are signed in inputs_pass2.
-//
-// IMPORTANT assumptions:
-//
-// - In the 2nd pass, if the inputs provided by the host are not the same as in the 1st pass,
-//   nothing bad will happen because the sighash uses the prevout and sequence hashes from the first
-//   pass, and the value from the 2nd pass. The BTC consensus rules will reject the tx if there is a
-//   mismatch.
-//
-// - Only SIGHASH_ALL. Other sighash types must be carefully studied and might not be secure with
-//   the above flow or the above assumption.
-typedef enum {
-    STATE_INIT,
-    STATE_PREVTX_INIT,
-    STATE_PREVTX_INPUTS,
-    STATE_PREVTX_OUTPUTS,
-    STATE_INPUTS_PASS1,
-    STATE_OUTPUTS,
-    STATE_INPUTS_PASS2,
-    STATE_INPUTS_PASS2_ANTIKLEPTO_HOST_NONCE
-} _signing_state_t;
+#include <pb_decode.h>
 
-// Base component on the screen stack during signing, which is shown while the device is waiting for
-// the next signing api call. Without this, the 'See the BitBoxApp' waiting screen would flicker in
-// between user confirmations.
-//
-// Pushed with the first output, and, popped in with the last output (and _reset(), which is called
-// if there is an error or if the signing finishes normally).
-// Rationale: the earliest user input happens in the first output, the latest in the last output.
-static component_t* _empty_component = NULL;
-// The progress component is shown when streaming inputs and previous transactions.  Pushed in sign
-// init, popped the last prevtx output, which is the last part of the inputs streaming of pass1.
-//
-// It is also shown when streaming the inputs in the 2nd pass, when signing the inputs, pushed with
-// the last output.
-static component_t* _progress_component = NULL;
-
-static _signing_state_t _state = STATE_INIT;
 static const app_btc_coin_params_t* _coin_params = NULL;
 
 // Inputs and changes must be of a type defined in _init_request.script_configs.
 // Inputs and changes keypaths must have the prefix as defined in the referenced script_config..
 static BTCSignInitRequest _init_request = {0};
 
-// Current input or output being processed.
-static uint32_t _index;
 static enum apps_btc_rbf_flag _rbf;
 static bool _locktime_applies;
 
-// State of previous transaction during STATE_PREVTX_*.
+// State of previous transaction during processing of a previous transaction.
 //
-// The state valid from STATE_PREVTX_INIT until the input referencing this tx is done in
-// STATE_INPUTS_PASS1.
+// This state is valid from `app_btc_sign_prevtx_init()` until the input referencing this tx is done
+// in `app_btc_sign_input_pass1()`.
 static struct {
     // Set for the duration of STATE_PREVTX_*.
     BTCPrevTxInitRequest init_request;
-    // Current index of input/output of the previous transaction, referenced by the current input at
-    // `_index`.
-    uint32_t index;
 
     // Hash accumulator for the whole transaction.
     void* tx_hash_ctx;
@@ -130,110 +62,57 @@ static struct {
     BTCSignInputRequest referencing_input;
 } _prevtx;
 
-// used during STATE_INPUTS_PASS1. Will contain the sum of all spent output
+// used during the first pass through the inputs. Will contain the sum of all spent output
 // values.
 static uint64_t _inputs_sum_pass1 = 0;
-// used during STATE_INPUTS_PASS2. Can't exceed _inputs_sum_pass1.
+// used during the second pass through the inputs. Can't exceed _inputs_sum_pass1.
 static uint64_t _inputs_sum_pass2 = 0;
-// used during STATE_OUTPUTS. Will contain the sum of all our output values
+// used during processing of the outputs. Will contain the sum of all our output values
 // (change or receive to self).
 static uint64_t _outputs_sum_ours = 0;
-// used during STATE_OUTPUTS. Will contain the sum of all outgoing output values
+// used during processing of the outputs. Will contain the sum of all outgoing output values
 // (non-change outputs).
 static uint64_t _outputs_sum_out = 0;
 // number of change outputs. if >1, a warning is shown.
 static uint16_t _num_changes = 0;
 
-// used during STATE_INPUTS_PASS1
+// used during the first pass through the inputs
 static void* _hash_prevouts_ctx = NULL;
 static void* _hash_sequence_ctx = NULL;
-// By the end of STATE_INPUTS_PASS1, will contain the prevouts hash.
+// By the end of the first pass through the inputs, will contain the prevouts hash.
 // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki step 2.
 static uint8_t _hash_prevouts[32] = {0};
-// By the end of STATE_INPUTS_PASS1, will contain the sequence hash.
+// By the end of the first pass through the inputs, will contain the sequence hash.
 // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki step 3.
 static uint8_t _hash_sequence[32] = {0};
 
-// used during STATE_OUTPUTS
+// used during processing of the outputs.
 static void* _hash_outputs_ctx = NULL;
-// By the end of STATE_OUTPUTS, will contain the hashOutputs hash.
+// By the end of processing the outputs, will contain the hashOutputs hash.
 // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki step 8.
 static uint8_t _hash_outputs[32] = {0};
 
-static void _maybe_pop_empty_screen(void)
-{
-    if (_empty_component != NULL) {
-        if (ui_screen_stack_top() != _empty_component) {
-            Abort("btc_sign: mismatched screen push/pop");
-        }
-        ui_screen_stack_pop_and_clean();
-        _empty_component = NULL;
-    }
-}
+static app_btc_ui_t _ui = {
+    .verify_recipient = workflow_verify_recipient,
+    .verify_total = workflow_verify_total,
+    .status = workflow_status_blocking,
+    .confirm = workflow_confirm_blocking,
+};
 
-static void _maybe_pop_progress_screen(void)
+#ifdef TESTING
+void testing_app_btc_mock_ui(app_btc_ui_t mock)
 {
-    if (_progress_component != NULL) {
-        if (ui_screen_stack_top() != _progress_component) {
-            Abort("btc_sign: mismatched screen push/pop");
-        }
-        ui_screen_stack_pop_and_clean();
-        _progress_component = NULL;
-    }
+    _ui = mock;
 }
-
-/**
- * Sets the progress of the progress bar depending on the current signing state.
- * During inputs streaming: progress is number of inputs processed, with a subprogress of how many
- * inputs/outputs of the prevtx have been processed.
- */
-static void _update_progress(void)
-{
-    if (_progress_component == NULL) {
-        return;
-    }
-    float progress = 0;
-    switch (_state) {
-    case STATE_INPUTS_PASS1:
-    case STATE_INPUTS_PASS2:
-        progress = _index / (float)_init_request.num_inputs;
-        break;
-    case STATE_OUTPUTS:
-        // Once we reached the outputs stage, the progress for loading the inputs is 100%.
-        progress = 1.F;
-        break;
-    case STATE_PREVTX_INPUTS: {
-        float step = 1.F / (float)_init_request.num_inputs;
-        uint32_t num_inputs_outputs =
-            _prevtx.init_request.num_inputs + _prevtx.init_request.num_outputs;
-        float subprogress = _prevtx.index / (float)num_inputs_outputs;
-        progress = _index * step + subprogress * step;
-        break;
-    }
-    case STATE_PREVTX_OUTPUTS: {
-        float step = 1.F / (float)_init_request.num_inputs;
-        uint32_t num_inputs_outputs =
-            _prevtx.init_request.num_inputs + _prevtx.init_request.num_outputs;
-        float subprogress =
-            (float)(_prevtx.init_request.num_inputs + _prevtx.index) / (float)num_inputs_outputs;
-        progress = _index * step + subprogress * step;
-        break;
-    }
-    default:
-        break;
-    }
-    progress_set(_progress_component, progress);
-}
+#endif
 
 // Must be called in any code path that exits the signing process (error or regular finish).
 static void _reset(void)
 {
-    _state = STATE_INIT;
     _coin_params = NULL;
     util_zero(&_init_request, sizeof(_init_request));
     rust_sha256_free(&_prevtx.tx_hash_ctx);
     util_zero(&_prevtx, sizeof(_prevtx));
-    _index = 0;
     _rbf = CONFIRM_LOCKTIME_RBF_OFF;
     _locktime_applies = false;
     _inputs_sum_pass1 = 0;
@@ -251,26 +130,20 @@ static void _reset(void)
     rust_sha256_free(&_hash_outputs_ctx);
     _hash_outputs_ctx = rust_sha256_new();
 
-    _maybe_pop_empty_screen();
-    _maybe_pop_progress_screen();
-
     keystore_antiklepto_clear();
 }
 
 static app_btc_result_t _error(app_btc_result_t err)
 {
     if (err == APP_BTC_ERR_USER_ABORT) {
-        workflow_status_blocking("Transaction\ncanceled", false);
+        _ui.status("Transaction\ncanceled", false);
     }
     _reset();
     return err;
 }
 
-app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request, BTCSignNextResponse* next_out)
+app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request)
 {
-    if (_state != STATE_INIT) {
-        return _error(APP_BTC_ERR_STATE);
-    }
     // Currently we do not support time-based nlocktime
     if (request->locktime >= 500000000) {
         return _error(APP_BTC_ERR_INVALID_INPUT);
@@ -295,15 +168,6 @@ app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request, BTCSignNex
     }
     _coin_params = coin_params;
     _init_request = *request;
-    // Want First input
-    _index = 0;
-    _state = STATE_INPUTS_PASS1;
-    next_out->type = BTCSignNextResponse_Type_INPUT;
-    next_out->index = _index;
-
-    _progress_component = progress_create("Loading transaction...");
-    ui_screen_stack_push(_progress_component);
-
     return APP_BTC_OK;
 }
 
@@ -318,13 +182,8 @@ static bool _hash_varint(void* ctx, uint64_t v)
     return true;
 }
 
-app_btc_result_t app_btc_sign_prevtx_init(
-    const BTCPrevTxInitRequest* request,
-    BTCSignNextResponse* next_out)
+app_btc_result_t app_btc_sign_prevtx_init(const BTCPrevTxInitRequest* request)
 {
-    if (_state != STATE_PREVTX_INIT) {
-        return _error(APP_BTC_ERR_STATE);
-    }
     if (request->num_inputs < 1 || request->num_outputs < 1) {
         return _error(APP_BTC_ERR_INVALID_INPUT);
     }
@@ -334,26 +193,14 @@ app_btc_result_t app_btc_sign_prevtx_init(
     rust_sha256_update(_prevtx.tx_hash_ctx, &request->version, sizeof(request->version));
 
     _prevtx.init_request = *request;
-
-    // Want first input of prevtx
-    _state = STATE_PREVTX_INPUTS;
-    // `_index` (main tx input index) unchanged
-    _prevtx.index = 0;
-    next_out->type = BTCSignNextResponse_Type_PREVTX_INPUT;
-    next_out->index = _index;
-    next_out->prev_index = _prevtx.index;
     return APP_BTC_OK;
 }
 
 app_btc_result_t app_btc_sign_prevtx_input(
     const BTCPrevTxInputRequest* request,
-    BTCSignNextResponse* next_out)
+    uint32_t prevtx_input_index)
 {
-    if (_state != STATE_PREVTX_INPUTS) {
-        return _error(APP_BTC_ERR_STATE);
-    }
-
-    if (_prevtx.index == 0) {
+    if (prevtx_input_index == 0) {
         // Hash number of inputs
         if (!_hash_varint(_prevtx.tx_hash_ctx, _prevtx.init_request.num_inputs)) {
             return _error(APP_BTC_ERR_UNKNOWN);
@@ -377,41 +224,20 @@ app_btc_result_t app_btc_sign_prevtx_input(
     // Hash sequence
     // assumes little endian environment
     rust_sha256_update(_prevtx.tx_hash_ctx, &request->sequence, sizeof(request->sequence));
-
-    if (_prevtx.index < _prevtx.init_request.num_inputs - 1) {
-        // Want next input of previous transaction
-        _prevtx.index++;
-        next_out->type = BTCSignNextResponse_Type_PREVTX_INPUT;
-        next_out->index = _index;
-        next_out->prev_index = _prevtx.index;
-    } else {
-        // Done with prevtx inputs.
-        // Want first output.
-        _state = STATE_PREVTX_OUTPUTS;
-        _prevtx.index = 0;
-        next_out->type = BTCSignNextResponse_Type_PREVTX_OUTPUT;
-        next_out->index = _index;
-        next_out->prev_index = 0;
-    }
-    _update_progress();
     return APP_BTC_OK;
 }
 
 app_btc_result_t app_btc_sign_prevtx_output(
     const BTCPrevTxOutputRequest* request,
-    BTCSignNextResponse* next_out)
+    uint32_t prevtx_output_index)
 {
-    if (_state != STATE_PREVTX_OUTPUTS) {
-        return _error(APP_BTC_ERR_STATE);
-    }
-
-    if (_prevtx.index == 0) {
+    if (prevtx_output_index == 0) {
         // Hash number of inputs
         if (!_hash_varint(_prevtx.tx_hash_ctx, _prevtx.init_request.num_outputs)) {
             return _error(APP_BTC_ERR_UNKNOWN);
         }
     }
-    if (_prevtx.index == _prevtx.referencing_input.prevOutIndex) {
+    if (prevtx_output_index == _prevtx.referencing_input.prevOutIndex) {
         if (_prevtx.referencing_input.prevOutValue != request->value) {
             return _error(APP_BTC_ERR_INVALID_INPUT);
         }
@@ -428,7 +254,7 @@ app_btc_result_t app_btc_sign_prevtx_output(
     rust_sha256_update(
         _prevtx.tx_hash_ctx, request->pubkey_script.bytes, request->pubkey_script.size);
 
-    bool last = _prevtx.index == _prevtx.init_request.num_outputs - 1;
+    bool last = prevtx_output_index == _prevtx.init_request.num_outputs - 1;
 
     if (last) {
         // Hash locktime
@@ -447,82 +273,6 @@ app_btc_result_t app_btc_sign_prevtx_output(
             return _error(APP_BTC_ERR_INVALID_INPUT);
         }
     }
-
-    if (!last) {
-        // Want next output of previous transaction
-        _prevtx.index++;
-        next_out->type = BTCSignNextResponse_Type_PREVTX_OUTPUT;
-        next_out->index = _index;
-        next_out->prev_index = _prevtx.index;
-    } else {
-        // Done with prevtx outputs.
-        if (_index < _init_request.num_inputs - 1) {
-            // Want the next input of the main tx.
-            _state = STATE_INPUTS_PASS1;
-            _index++;
-            next_out->type = BTCSignNextResponse_Type_INPUT;
-            next_out->index = _index;
-        } else {
-            // Done with all main tx inputs, want first output.
-            _state = STATE_OUTPUTS;
-            _index = 0;
-            next_out->type = BTCSignNextResponse_Type_OUTPUT;
-            next_out->index = _index;
-        }
-        _update_progress();
-    }
-    return APP_BTC_OK;
-}
-
-static app_btc_result_t _sign_input_pass1(
-    const BTCSignInputRequest* request,
-    BTCSignNextResponse* next_out)
-{
-    {
-        // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
-        // point 2: accumulate hashPrevouts
-        // ANYONECANPAY not supported.
-        rust_sha256_update(_hash_prevouts_ctx, request->prevOutHash, 32);
-        // assumes little endian environment.
-        rust_sha256_update(_hash_prevouts_ctx, &request->prevOutIndex, 4);
-    }
-    {
-        // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
-        // point 3: accumulate hashSequence
-        // only SIGHASH_ALL supported.
-
-        // assumes little endian environment.
-        rust_sha256_update(_hash_sequence_ctx, &request->sequence, 4);
-    }
-    if (!safe_uint64_add(&_inputs_sum_pass1, request->prevOutValue)) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-
-    if (_index == _init_request.num_inputs - 1) {
-        // Done with inputs pass 1.
-
-        rust_sha256_finish(&_hash_prevouts_ctx, _hash_prevouts);
-        // hash hash_prevouts to produce the final double-hash
-        rust_sha256(_hash_prevouts, 32, _hash_prevouts);
-
-        rust_sha256_finish(&_hash_sequence_ctx, _hash_sequence);
-        // hash hash_sequence to produce the final double-hash
-        rust_sha256(_hash_sequence, 32, _hash_sequence);
-    }
-
-    // Want the previous tx of this input.
-    // Init prevtx state.
-    rust_sha256_free(&_prevtx.tx_hash_ctx);
-    util_zero(&_prevtx, sizeof(_prevtx));
-    _prevtx.referencing_input = *request;
-    _prevtx.tx_hash_ctx = rust_sha256_new();
-
-    _update_progress();
-
-    _state = STATE_PREVTX_INIT;
-    next_out->type = BTCSignNextResponse_Type_PREVTX_INIT;
-    next_out->index = _index;
-
     return APP_BTC_OK;
 }
 
@@ -572,15 +322,106 @@ static bool _is_valid_keypath(
     return true;
 }
 
-static app_btc_result_t _sign_input_pass2(
-    const BTCSignInputRequest* request,
-    const BTCScriptConfig* script_config_account,
-    BTCSignNextResponse* next_out)
+static app_btc_result_t _validate_input(const BTCSignInputRequest* request)
 {
+    // relative locktime and sequence nummbers < 0xffffffff-2 are not supported
+    if (request->sequence < 0xffffffff - 2) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+    if (_coin_params->rbf_support) {
+        if (request->sequence == 0xffffffff - 2) {
+            _rbf = CONFIRM_LOCKTIME_RBF_ON;
+        }
+    }
+    if (request->sequence < 0xffffffff) {
+        _locktime_applies = true;
+    }
+    if (request->prevOutValue == 0) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+
+    if (request->script_config_index >= _init_request.script_configs_count) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+    const BTCScriptConfigWithKeypath* script_config_account =
+        &_init_request.script_configs[request->script_config_index];
+
+    if (!_is_valid_keypath(
+            script_config_account->keypath,
+            script_config_account->keypath_count,
+            request->keypath,
+            request->keypath_count,
+            &script_config_account->script_config,
+            _coin_params->bip44_coin,
+            false)) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+    return APP_BTC_OK;
+}
+
+app_btc_result_t app_btc_sign_input_pass1(const BTCSignInputRequest* request, bool last)
+{
+    app_btc_result_t result = _validate_input(request);
+    if (result != APP_BTC_OK) {
+        return _error(result);
+    }
+
+    {
+        // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
+        // point 2: accumulate hashPrevouts
+        // ANYONECANPAY not supported.
+        rust_sha256_update(_hash_prevouts_ctx, request->prevOutHash, 32);
+        // assumes little endian environment.
+        rust_sha256_update(_hash_prevouts_ctx, &request->prevOutIndex, 4);
+    }
+    {
+        // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
+        // point 3: accumulate hashSequence
+        // only SIGHASH_ALL supported.
+
+        // assumes little endian environment.
+        rust_sha256_update(_hash_sequence_ctx, &request->sequence, 4);
+    }
+    if (!safe_uint64_add(&_inputs_sum_pass1, request->prevOutValue)) {
+        return _error(APP_BTC_ERR_INVALID_INPUT);
+    }
+
+    if (last) {
+        // Done with inputs pass 1.
+
+        rust_sha256_finish(&_hash_prevouts_ctx, _hash_prevouts);
+        // hash hash_prevouts to produce the final double-hash
+        rust_sha256(_hash_prevouts, 32, _hash_prevouts);
+
+        rust_sha256_finish(&_hash_sequence_ctx, _hash_sequence);
+        // hash hash_sequence to produce the final double-hash
+        rust_sha256(_hash_sequence, 32, _hash_sequence);
+    }
+
+    // Want the previous tx of this input.
+    // Init prevtx state.
+    rust_sha256_free(&_prevtx.tx_hash_ctx);
+    util_zero(&_prevtx, sizeof(_prevtx));
+    _prevtx.referencing_input = *request;
+    _prevtx.tx_hash_ctx = rust_sha256_new();
+    return APP_BTC_OK;
+}
+
+app_btc_result_t app_btc_sign_input_pass2(
+    const BTCSignInputRequest* request,
+    uint8_t* sig_out,
+    uint8_t* anti_klepto_signer_commitment_out,
+    bool last)
+{
+    app_btc_result_t result = _validate_input(request);
+    if (result != APP_BTC_OK) {
+        return _error(result);
+    }
+
     if (!safe_uint64_add(&_inputs_sum_pass2, request->prevOutValue)) {
         return _error(APP_BTC_ERR_INVALID_INPUT);
     }
-    if (_index == _init_request.num_inputs - 1) {
+    if (last) {
         // In the last input, the two sums have to match.
         if (_inputs_sum_pass2 != _inputs_sum_pass1) {
             return _error(APP_BTC_ERR_INVALID_INPUT);
@@ -600,6 +441,10 @@ static app_btc_result_t _sign_input_pass2(
         // A little more than the max pk script for the data push varint.
         uint8_t sighash_script[MAX_PK_SCRIPT_SIZE + MAX_VARINT_SIZE] = {0};
         size_t sighash_script_size = sizeof(sighash_script);
+
+        const BTCScriptConfig* script_config_account =
+            &_init_request.script_configs[request->script_config_index].script_config;
+
         switch (script_config_account->which_config) {
         case BTCScriptConfig_simple_type_tag:
             if (!btc_common_sighash_script_from_pubkeyhash(
@@ -653,53 +498,31 @@ static app_btc_result_t _sign_input_pass2(
 
         // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
         if (request->has_host_nonce_commitment) {
-            next_out->has_anti_klepto_signer_commitment = true;
             if (!keystore_antiklepto_secp256k1_commit(
                     request->keypath,
                     request->keypath_count,
                     sighash,
                     request->host_nonce_commitment.commitment,
-                    next_out->anti_klepto_signer_commitment.commitment)) {
+                    anti_klepto_signer_commitment_out)) {
                 return _error(APP_BTC_ERR_UNKNOWN);
             }
 
-            _state = STATE_INPUTS_PASS2_ANTIKLEPTO_HOST_NONCE;
-            next_out->type = BTCSignNextResponse_Type_HOST_NONCE;
-            next_out->index = _index;
             return APP_BTC_OK;
         }
 
         // Return signature directly without the anti-klepto protocol, for backwards compatibility.
         uint8_t empty_nonce_contribution[32] = {0}; // no nonce contribution given by host.
-        uint8_t sig_out[64] = {0};
+        uint8_t signature[64] = {0};
         if (!keystore_secp256k1_sign(
                 request->keypath,
                 request->keypath_count,
                 sighash,
                 empty_nonce_contribution,
-                sig_out,
+                signature,
                 NULL)) {
             return _error(APP_BTC_ERR_UNKNOWN);
         }
-        // check assumption
-        if (sizeof(next_out->signature) != sizeof(sig_out)) {
-            return _error(APP_BTC_ERR_UNKNOWN);
-        }
-        memcpy(next_out->signature, sig_out, sizeof(sig_out));
-        next_out->has_signature = true;
-    }
-
-    if (_index < _init_request.num_inputs - 1) {
-        _index++;
-        // Want next input
-        next_out->type = BTCSignNextResponse_Type_INPUT;
-        next_out->index = _index;
-
-        _update_progress();
-    } else {
-        // Done with inputs pass2 -> done completely.
-        _reset();
-        next_out->type = BTCSignNextResponse_Type_DONE;
+        memcpy(sig_out, signature, sizeof(signature));
     }
     return APP_BTC_OK;
 }
@@ -713,63 +536,11 @@ static bool _warn_changes(uint16_t num_changes)
         .title = "Warning",
         .body = body,
     };
-    return workflow_confirm_blocking(&params);
+    return _ui.confirm(&params);
 }
 
-app_btc_result_t app_btc_sign_input(
-    const BTCSignInputRequest* request,
-    BTCSignNextResponse* next_out)
+app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool last)
 {
-    if (_state != STATE_INPUTS_PASS1 && _state != STATE_INPUTS_PASS2) {
-        return _error(APP_BTC_ERR_STATE);
-    }
-    // relative locktime and sequence nummbers < 0xffffffff-2 are not supported
-    if (request->sequence < 0xffffffff - 2) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-    if (_coin_params->rbf_support) {
-        if (request->sequence == 0xffffffff - 2) {
-            _rbf = CONFIRM_LOCKTIME_RBF_ON;
-        }
-    }
-    if (request->sequence < 0xffffffff) {
-        _locktime_applies = true;
-    }
-    if (request->prevOutValue == 0) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-
-    if (request->script_config_index >= _init_request.script_configs_count) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-    const BTCScriptConfigWithKeypath* script_config_account =
-        &_init_request.script_configs[request->script_config_index];
-
-    if (!_is_valid_keypath(
-            script_config_account->keypath,
-            script_config_account->keypath_count,
-            request->keypath,
-            request->keypath_count,
-            &script_config_account->script_config,
-            _coin_params->bip44_coin,
-            false)) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-    if (_state == STATE_INPUTS_PASS1) {
-        return _sign_input_pass1(request, next_out);
-    }
-    return _sign_input_pass2(request, &script_config_account->script_config, next_out);
-}
-
-app_btc_result_t app_btc_sign_output(
-    const BTCSignOutputRequest* request,
-    BTCSignNextResponse* next_out)
-{
-    _maybe_pop_progress_screen();
-
-    if (_state != STATE_OUTPUTS) {
-        return _error(APP_BTC_ERR_STATE);
-    }
     if (request->script_config_index >= _init_request.script_configs_count) {
         return _error(APP_BTC_ERR_INVALID_INPUT);
     }
@@ -871,7 +642,7 @@ app_btc_result_t app_btc_sign_output(
             rust_util_cstr_mut(formatted_value, sizeof(formatted_value)));
 
         // This call blocks.
-        if (!workflow_verify_recipient(address, formatted_value)) {
+        if (!_ui.verify_recipient(address, formatted_value)) {
             return _error(APP_BTC_ERR_USER_ABORT);
         }
     }
@@ -909,30 +680,7 @@ app_btc_result_t app_btc_sign_output(
         rust_sha256_update(_hash_outputs_ctx, pk_script_serialized, pk_script_serialized_len);
     }
 
-    if (_index == 0) {
-        // The device shows the default "See the BitBoxApp" screen, then the progress bar while
-        // processing the inputs, up until the first output is processed. Afterwards, the base
-        // screen is the empty screen to avoid flicker, until the last output is processed.
-        _empty_component = empty_create();
-        ui_screen_stack_push(_empty_component);
-    }
-    if (_index == _init_request.num_outputs - 1) {
-        _maybe_pop_empty_screen();
-        if (_init_request.num_inputs > 2) {
-            // Show progress of signing inputs if there are more than 2 inputs. This is an arbitrary
-            // cutoff; less or equal to 2 inputs is fast enough so it does not need a progress bar.
-            _progress_component = progress_create("Signing transaction...");
-            // Popped with the last input of pass2.
-            ui_screen_stack_push(_progress_component);
-        }
-    }
-
-    if (_index < _init_request.num_outputs - 1) {
-        _index++;
-        // Want next output
-        next_out->type = BTCSignNextResponse_Type_OUTPUT;
-        next_out->index = _index;
-    } else {
+    if (last) {
         // Done with outputs. Verify locktime, total and fee. Warn if there are multiple change
         // outputs.
 
@@ -981,55 +729,117 @@ app_btc_result_t app_btc_sign_output(
             rust_util_cstr(_coin_params->unit),
             rust_util_cstr_mut(formatted_fee, sizeof(formatted_fee)));
         // This call blocks.
-        if (!workflow_verify_total(formatted_total_out, formatted_fee)) {
+        if (!_ui.verify_total(formatted_total_out, formatted_fee)) {
             return _error(APP_BTC_ERR_USER_ABORT);
         }
-        workflow_status_blocking("Transaction\nconfirmed", true);
+        _ui.status("Transaction\nconfirmed", true);
 
         rust_sha256_finish(&_hash_outputs_ctx, _hash_outputs);
         // hash hash_outputs to produce the final double-hash
         rust_sha256(_hash_outputs, 32, _hash_outputs);
-
-        // Want first input of pass2
-        _state = STATE_INPUTS_PASS2;
-        _index = 0;
-        next_out->type = BTCSignNextResponse_Type_INPUT;
-        next_out->index = _index;
     }
     return APP_BTC_OK;
 }
 
 app_btc_result_t app_btc_sign_antiklepto(
     const AntiKleptoSignatureRequest* request,
-    BTCSignNextResponse* next_out)
+    uint8_t* sig_out)
 {
-    if (_state != STATE_INPUTS_PASS2_ANTIKLEPTO_HOST_NONCE) {
-        return _error(APP_BTC_ERR_STATE);
-    }
-    if (!keystore_antiklepto_secp256k1_sign(request->host_nonce, next_out->signature, NULL)) {
+    if (!keystore_antiklepto_secp256k1_sign(request->host_nonce, sig_out, NULL)) {
         return APP_BTC_ERR_UNKNOWN;
-    }
-    next_out->has_signature = true;
-
-    if (_index < _init_request.num_inputs - 1) {
-        _index++;
-        // Want next input
-        _state = STATE_INPUTS_PASS2;
-        next_out->type = BTCSignNextResponse_Type_INPUT;
-        next_out->index = _index;
-
-        _update_progress();
-    } else {
-        // Done with inputs pass2 -> done completely.
-        _reset();
-        next_out->type = BTCSignNextResponse_Type_DONE;
     }
     return APP_BTC_OK;
 }
 
-#ifdef TESTING
-void tst_app_btc_reset(void)
+app_btc_result_t app_btc_sign_init_wrapper(in_buffer_t request_buf)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    BTCSignInitRequest request = {0};
+    if (!pb_decode(&in_stream, BTCSignInitRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    return app_btc_sign_init(&request);
+}
+
+app_btc_result_t app_btc_sign_input_pass1_wrapper(in_buffer_t request_buf, bool last)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    BTCSignInputRequest request = {0};
+    if (!pb_decode(&in_stream, BTCSignInputRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    return app_btc_sign_input_pass1(&request, last);
+}
+
+app_btc_result_t app_btc_sign_prevtx_init_wrapper(in_buffer_t request_buf)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    BTCPrevTxInitRequest request = {0};
+    if (!pb_decode(&in_stream, BTCPrevTxInitRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    return app_btc_sign_prevtx_init(&request);
+}
+
+app_btc_result_t app_btc_sign_prevtx_input_wrapper(
+    in_buffer_t request_buf,
+    uint32_t prevtx_input_index)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    BTCPrevTxInputRequest request = {0};
+    if (!pb_decode(&in_stream, BTCPrevTxInputRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    return app_btc_sign_prevtx_input(&request, prevtx_input_index);
+}
+
+app_btc_result_t app_btc_sign_prevtx_output_wrapper(
+    in_buffer_t request_buf,
+    uint32_t prevtx_output_index)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    BTCPrevTxOutputRequest request = {0};
+    if (!pb_decode(&in_stream, BTCPrevTxOutputRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    return app_btc_sign_prevtx_output(&request, prevtx_output_index);
+}
+
+app_btc_result_t app_btc_sign_output_wrapper(in_buffer_t request_buf, bool last)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    BTCSignOutputRequest request = {0};
+    if (!pb_decode(&in_stream, BTCSignOutputRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    return app_btc_sign_output(&request, last);
+}
+
+app_btc_result_t app_btc_sign_input_pass2_wrapper(
+    in_buffer_t request_buf,
+    uint8_t* sig_out,
+    uint8_t* anti_klepto_signer_commitment_out,
+    bool last)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    BTCSignInputRequest request = {0};
+    if (!pb_decode(&in_stream, BTCSignInputRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    return app_btc_sign_input_pass2(&request, sig_out, anti_klepto_signer_commitment_out, last);
+}
+
+app_btc_result_t app_btc_sign_antiklepto_wrapper(in_buffer_t request_buf, uint8_t* sig_out)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    AntiKleptoSignatureRequest request = {0};
+    if (!pb_decode(&in_stream, AntiKleptoSignatureRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    return app_btc_sign_antiklepto(&request, sig_out);
+}
+
+void app_btc_sign_reset(void)
 {
     _reset();
 }
-#endif

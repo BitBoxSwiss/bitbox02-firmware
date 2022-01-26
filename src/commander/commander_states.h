@@ -41,18 +41,6 @@ typedef enum {
 commander_states_state_t commander_states_state(void);
 
 /**
- * Makes the device only accept the given endpoint until it is processed. The restriction is lifted
- * by calling `commander_states_reset()`.
- */
-void commander_states_force_next(commander_states_endpoint_id id);
-
-/**
- * Lifts any additional restriction imposed by `commander_states_force_next`. This is meant to be
- * called right before processing a valid api call.
- */
-void commander_states_clear_force_next(void);
-
-/**
  * Checks if the device is ready to accept/handle an api endpoint.
  * @param[in] id id of the endpoint.
  * @return true if the device is in the right state to handle this api call, false otherwise.

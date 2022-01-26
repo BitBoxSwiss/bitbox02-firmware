@@ -243,7 +243,8 @@ static void _test_tx(const _tx* tx, const uint8_t* expected_signature)
 {
     keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
 
-    BTCSignNextResponse next = {0};
+    uint8_t signature[64] = {0};
+    uint8_t anti_klepto_signer_commitment[33] = {0};
 
     expect_value(__wrap_apps_btc_confirm_multisig_basic, params->coin, tx->init_req.coin);
     expect_memory(
@@ -251,16 +252,13 @@ static void _test_tx(const _tx* tx, const uint8_t* expected_signature)
         multisig,
         &tx->init_req.script_configs[0].script_config.config.multisig,
         sizeof(BTCScriptConfig_Multisig));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_init(&tx->init_req, &next));
-    assert_int_equal(next.type, BTCSignNextResponse_Type_INPUT);
-    assert_int_equal(next.index, 0);
+    assert_int_equal(APP_BTC_OK, app_btc_sign_init(&tx->init_req));
 
-    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&tx->inputs[0].input, &next));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_init(&tx->inputs[0].prevtx_init, &next));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_input(&tx->inputs[0].prevtx_inputs[0], &next));
-    assert_int_equal(
-        APP_BTC_OK, app_btc_sign_prevtx_output(&tx->inputs[0].prevtx_outputs[0], &next));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&tx->outputs[0], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_input_pass1(&tx->inputs[0].input, true));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_init(&tx->inputs[0].prevtx_init));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_input(&tx->inputs[0].prevtx_inputs[0], 0));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_output(&tx->inputs[0].prevtx_outputs[0], 0));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&tx->outputs[0], false));
 
     expect_string(
         __wrap_workflow_verify_recipient,
@@ -270,11 +268,15 @@ static void _test_tx(const _tx* tx, const uint8_t* expected_signature)
     expect_value(__wrap_apps_btc_confirm_locktime_rbf, rbf, CONFIRM_LOCKTIME_RBF_OFF);
     expect_string(__wrap_workflow_verify_total, total, "0.00090175 TBTC");
     expect_string(__wrap_workflow_verify_total, fee, "0.00000175 TBTC");
-    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&tx->outputs[1], &next));
+    assert_int_equal(APP_BTC_OK, app_btc_sign_output(&tx->outputs[1], true));
 
-    assert_int_equal(APP_BTC_OK, app_btc_sign_input(&tx->inputs[0].input, &next));
-    assert_true(next.has_signature);
-    assert_memory_equal(next.signature, expected_signature, sizeof(next.signature));
+    assert_int_equal(
+        APP_BTC_OK,
+        app_btc_sign_input_pass2(
+            &tx->inputs[0].input, signature, anti_klepto_signer_commitment, true));
+    assert_memory_equal(signature, expected_signature, sizeof(signature));
+
+    app_btc_sign_reset();
 }
 
 static void _test_btc_sign_happy_p2wsh(void** state)

@@ -150,3 +150,19 @@ pub fn with_lock_animation<F: Fn()>(_f: F) {
 pub fn screen_stack_pop_all() {
     panic!("not implemented")
 }
+
+pub fn progress_create<'a>(_title: &str) -> Component<'a> {
+    Component {
+        is_pushed: false,
+        _p: PhantomData,
+    }
+}
+
+pub fn progress_set(_component: &mut Component, _progress: f32) {}
+
+pub fn empty_create<'a>() -> Component<'a> {
+    Component {
+        is_pushed: false,
+        _p: PhantomData,
+    }
+}

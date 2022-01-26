@@ -66,8 +66,7 @@ pub fn decode(input: &[u8]) -> Result<Request, Error> {
 }
 
 /// Returns the field tag number of the request as defined in the .proto file.  This is needed for
-/// compatibility with commander_states.c, and needed as long as API calls processed in C use
-/// `commmander_states_force_next()`.
+/// compatibility with commander_states.c.
 fn request_tag(request: &Request) -> u32 {
     use Request::*;
     match request {
@@ -103,6 +102,10 @@ fn request_tag(request: &Request) -> u32 {
 async fn process_api_btc(request: &Request) -> Option<Result<Response, Error>> {
     match request {
         Request::BtcPub(ref request) => bitcoin::process_pub(request).await,
+        Request::BtcSignInit(ref request) => Some(bitcoin::signtx::process(request).await),
+        // These are streamed asynchronously using the `next_request()` primitive in
+        // bitcoin/signtx.rs and are not handled directly.
+        Request::BtcSignInput(_) | Request::BtcSignOutput(_) => Some(Err(Error::InvalidState)),
         Request::Btc(pb::BtcRequest {
             request: Some(request),
         }) => bitcoin::process_api(request)
@@ -153,7 +156,9 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
         Request::Eth(_) => Some(Err(Error::Disabled)),
 
         Request::Fingerprint(pb::RootFingerprintRequest {}) => Some(rootfingerprint::process()),
-        request @ Request::BtcPub(_) | request @ Request::Btc(_) => process_api_btc(request).await,
+        request @ Request::BtcPub(_)
+        | request @ Request::Btc(_)
+        | request @ Request::BtcSignInit(_) => process_api_btc(request).await,
 
         #[cfg(feature = "app-cardano")]
         Request::Cardano(pb::CardanoRequest {
@@ -183,11 +188,6 @@ pub async fn process(input: Vec<u8>) -> Vec<u8> {
     if !bitbox02::commander::states_can_call(request_tag(&request) as u16) {
         return encode(make_error(Error::InvalidState));
     }
-
-    // Since we will process the call now, so can clear the 'force next' info.
-    // We do this before processing as the api call can potentially define the next api call
-    // to be forced.
-    bitbox02::commander::states_clear_force_next();
 
     match process_api(&request).await {
         Some(Ok(response)) => encode(response),

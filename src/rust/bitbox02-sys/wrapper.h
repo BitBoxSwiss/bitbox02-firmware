@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <apps/btc/btc.h>
+#include <apps/btc/btc_sign.h>
 #include <apps/eth/eth_params.h>
 #include <apps/eth/eth_sighash.h>
 #include <backup/backup.h>
@@ -29,8 +30,10 @@
 #include <system.h>
 #include <ui/components/confirm.h>
 #include <ui/components/confirm_transaction.h>
+#include <ui/components/empty.h>
 #include <ui/components/label.h>
 #include <ui/components/menu.h>
+#include <ui/components/progress.h>
 #include <ui/components/sdcard.h>
 #include <ui/components/status.h>
 #include <ui/components/trinary_choice.h>

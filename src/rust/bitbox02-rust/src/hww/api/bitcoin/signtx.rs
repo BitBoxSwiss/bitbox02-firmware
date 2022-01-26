@@ -841,4 +841,24 @@ mod tests {
         }
         assert_eq!(unsafe { UI_COUNTER }, 6);
     }
+
+    /// Test that receiving an unexpected message from the host results in an invalid state error.
+    #[test]
+    pub fn test_invalid_state() {
+        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new()));
+        mock_unlocked();
+        let tx = transaction.clone();
+        static mut COUNTER: u32 = 0;
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
+            Some(Box::new(move |_response: Response| {
+                unsafe { COUNTER += 1 }
+                // The first input is only expected once, the other times other parts of the
+                // transaction are expected.
+                Ok(Request::BtcSignInput(tx.borrow().inputs[0].input.clone()))
+            }));
+
+        let result = block_on(process(&transaction.borrow().init_request()));
+        assert_eq!(result, Err(Error::InvalidState));
+        assert_eq!(unsafe { COUNTER }, 2);
+    }
 }

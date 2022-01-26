@@ -114,8 +114,6 @@ static uint8_t _mock_bip39_seed[64] =
 typedef struct {
     // true if the sigs should be checked against fixtures.
     bool check_sigs;
-    // keystore seeded?
-    bool seeded;
     BTCScriptConfig_SimpleType script_type;
     // all inputs should be the same coin type.
     bool wrong_coin_input;
@@ -233,8 +231,7 @@ static bool _stream_prevtx(const _modification_t* mod, size_t input_index, const
 static void _sign(const _modification_t* mod)
 {
     // Need keystore to derive change and input scripts
-    keystore_mock_unlocked(
-        mod->seeded ? _mock_seed : NULL, sizeof(_mock_seed), mod->seeded ? _mock_bip39_seed : NULL);
+    keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
 
     uint32_t purpose;
     switch (mod->script_type) {
@@ -782,10 +779,6 @@ static void _sign(const _modification_t* mod)
             outputs[4].keypath,
             outputs[4].keypath_count * sizeof(uint32_t));
     }
-    if (!mod->seeded) {
-        assert_int_equal(APP_BTC_ERR_UNKNOWN, app_btc_sign_output(&outputs[4], false));
-        return;
-    }
     if (mod->wrong_coin_change || mod->wrong_account_change || mod->bip44_change != 1 ||
         mod->invalid_change_script_config_index) {
         assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_output(&outputs[4], false));
@@ -1043,7 +1036,6 @@ static void _sign(const _modification_t* mod)
 
 static const _modification_t _valid = {
     .script_type = BTCScriptConfig_SimpleType_P2WPKH,
-    .seeded = true,
     .bip44_change = 1,
 };
 
@@ -1051,12 +1043,6 @@ static void _test_btc_sign(void** state)
 {
     _modification_t modified = _valid;
     modified.check_sigs = true;
-    _sign(&modified);
-}
-static void _test_seeded(void** state)
-{
-    _modification_t modified = _valid;
-    modified.seeded = false;
     _sign(&modified);
 }
 static void _test_script_type_p2wpkh_p2sh(void** state)
@@ -1257,7 +1243,6 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_btc_sign),
-        cmocka_unit_test(_test_seeded),
         cmocka_unit_test(_test_script_type_p2wpkh_p2sh),
         cmocka_unit_test(_test_wrong_coin_input),
         cmocka_unit_test(_test_wrong_coin_change),

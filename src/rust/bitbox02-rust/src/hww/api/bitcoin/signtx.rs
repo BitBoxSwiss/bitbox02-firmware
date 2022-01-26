@@ -220,6 +220,9 @@ async fn get_antiklepto_host_nonce(
 /// - Only SIGHASH_ALL. Other sighash types must be carefully studied and might not be secure with
 ///   the above flow or the above assumption.
 pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
+    if bitbox02::keystore::is_locked() {
+        return Err(Error::InvalidState);
+    }
     bitbox02::app_btc::sign_init_wrapper(encode(request).as_ref())?;
 
     let mut progress_component = {
@@ -627,6 +630,14 @@ mod tests {
             num_outputs: 1,
             locktime: 0,
         };
+
+        {
+            // test keystore locked
+            bitbox02::keystore::lock();
+            assert_eq!(block_on(process(&init_req_valid)), Err(Error::InvalidState));
+        }
+
+        mock_unlocked();
 
         {
             // test invalid version

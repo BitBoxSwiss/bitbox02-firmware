@@ -1014,4 +1014,27 @@ mod tests {
             assert_eq!(result, Err(Error::InvalidInput));
         }
     }
+
+    /// Test signing with mixed input types.
+    #[test]
+    pub fn test_mixed_inputs() {
+        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new()));
+        transaction.borrow_mut().inputs[0].input.script_config_index = 1;
+        transaction.borrow_mut().inputs[0].input.keypath[0] = 49 + HARDENED;
+        mock_host_responder(transaction.clone());
+        mock_default_ui();
+        mock_unlocked();
+        let mut init_request = transaction.borrow().init_request();
+        init_request
+            .script_configs
+            .push(pb::BtcScriptConfigWithKeypath {
+                script_config: Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::SimpleType(
+                        pb::btc_script_config::SimpleType::P2wpkhP2sh as _,
+                    )),
+                }),
+                keypath: vec![49 + HARDENED, 0 + HARDENED, 10 + HARDENED],
+            });
+        assert!(block_on(process(&init_request)).is_ok());
+    }
 }

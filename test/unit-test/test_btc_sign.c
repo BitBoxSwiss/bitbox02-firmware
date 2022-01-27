@@ -147,8 +147,6 @@ typedef struct {
     bool overflow_output_out;
     // if change overflows
     bool overflow_output_ours;
-    // test tx with mixed input types
-    bool mixed_inputs;
     // exercise the antiklepto protocol
     bool antikepto;
     // make one output a P2TR output to exercise P2TR address generation and sighash.
@@ -349,34 +347,6 @@ static void _sign(const _modification_t* mod)
         },
     };
 
-    if (mod->mixed_inputs) {
-        init_req.script_configs_count = 2;
-        BTCScriptConfigWithKeypath sc = {
-            // Second script config fixed, so in some tests it will be different than the
-            // first, testing that mixed inputs are allowed.
-            .script_config =
-                {
-                    .which_config = BTCScriptConfig_simple_type_tag,
-                    .config =
-                        {
-                            .simple_type = BTCScriptConfig_SimpleType_P2WPKH_P2SH,
-                        },
-                },
-            .keypath_count = 3,
-            .keypath =
-                {
-                    49 + BIP32_INITIAL_HARDENED_CHILD,
-                    0 + BIP32_INITIAL_HARDENED_CHILD,
-                    10 + BIP32_INITIAL_HARDENED_CHILD,
-                },
-        };
-        init_req.script_configs[1] = sc;
-        inputs[0].input.script_config_index = 1;
-        // Fix input keypath prefix to match the account script config.
-        for (size_t i = 0; i < 3; i++) {
-            inputs[0].input.keypath[i] = sc.keypath[i];
-        }
-    };
     if (mod->locktime_applies) {
         init_req.locktime = 1;
         inputs[0].input.sequence = 0xffffffff - 1;
@@ -993,12 +963,6 @@ static void _test_overflow_output_ours(void** state)
     modified.overflow_output_ours = true;
     _sign(&modified);
 }
-static void _test_mixed_inputs(void** state)
-{
-    _modification_t modified = _valid;
-    modified.mixed_inputs = true;
-    _sign(&modified);
-}
 static void _test_antiklepto(void** state)
 {
     _modification_t modified = _valid;
@@ -1030,7 +994,6 @@ int main(void)
         cmocka_unit_test(_test_overflow_input_values_pass2),
         cmocka_unit_test(_test_overflow_output_out),
         cmocka_unit_test(_test_overflow_output_ours),
-        cmocka_unit_test(_test_mixed_inputs),
         cmocka_unit_test(_test_antiklepto),
         cmocka_unit_test(_test_p2tr_output),
     };

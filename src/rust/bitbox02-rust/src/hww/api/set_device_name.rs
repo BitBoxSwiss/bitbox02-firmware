@@ -46,13 +46,11 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, mock_memory, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_memory, Data};
     use std::boxed::Box;
 
     #[test]
     pub fn test_set_device_name() {
-        let _guard = MUTEX.lock().unwrap();
-
         static SOME_NAME: &str = "foo";
 
         // All good.

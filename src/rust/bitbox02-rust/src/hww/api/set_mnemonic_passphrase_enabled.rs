@@ -44,13 +44,11 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, mock_memory, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_memory, Data};
     use std::boxed::Box;
 
     #[test]
     pub fn test_mnemonic_passphrase_enabled() {
-        let _guard = MUTEX.lock().unwrap();
-
         // All good.
         mock(Data {
             ui_confirm_create: Some(Box::new(|params| {

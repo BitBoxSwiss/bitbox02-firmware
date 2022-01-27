@@ -280,7 +280,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, mock_unlocked, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_unlocked, Data};
     use std::boxed::Box;
     use util::bip32::HARDENED;
 
@@ -349,8 +349,6 @@ mod tests {
     /// Standard ETH transaction with no data field.
     #[test]
     pub fn test_process_standard_transaction() {
-        let _guard = MUTEX.lock().unwrap();
-
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock(Data {
@@ -389,8 +387,6 @@ mod tests {
     /// Standard ETH transaction on an unusual keypath (Ropsten on mainnet keypath)
     #[test]
     pub fn test_process_warn_unusual_keypath() {
-        let _guard = MUTEX.lock().unwrap();
-
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -442,8 +438,6 @@ mod tests {
     /// Standard ETH transaction with an unknown data field.
     #[test]
     pub fn test_process_standard_transaction_with_data() {
-        let _guard = MUTEX.lock().unwrap();
-
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
         static mut CONFIRM_COUNTER: u32 = 0;
         mock(Data {
@@ -498,8 +492,6 @@ mod tests {
     /// the data field contains an ERC20 transfer method invocation.
     #[test]
     pub fn test_process_standard_erc20_transaction() {
-        let _guard = MUTEX.lock().unwrap();
-
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock(Data {
@@ -538,8 +530,6 @@ mod tests {
     /// An ERC20 transaction which is not in our list of supported ERC20 tokens.
     #[test]
     pub fn test_process_standard_unknown_erc20_transaction() {
-        let _guard = MUTEX.lock().unwrap();
-
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock(Data {
@@ -577,8 +567,6 @@ mod tests {
 
     #[test]
     pub fn test_process_unhappy() {
-        let _guard = MUTEX.lock().unwrap();
-
         let valid_request = pb::EthSignRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],

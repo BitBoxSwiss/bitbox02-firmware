@@ -302,7 +302,7 @@ pub fn get_ed25519_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{mock_unlocked, MUTEX, TEST_MNEMONIC};
+    use crate::testing::{mock_unlocked, TEST_MNEMONIC};
 
     #[test]
     fn test_bip39_mnemonic_to_seed() {
@@ -339,8 +339,6 @@ mod tests {
 
     #[test]
     fn test_get_bip39_mnemonic() {
-        let _guard = MUTEX.lock().unwrap();
-
         lock();
         assert!(get_bip39_mnemonic().is_err());
 
@@ -363,8 +361,6 @@ mod tests {
 
     #[test]
     fn test_get_ed25519_seed() {
-        let _guard = MUTEX.lock().unwrap();
-
         // No seed on a locked keystore.
         lock();
         assert!(get_ed25519_seed().is_err());

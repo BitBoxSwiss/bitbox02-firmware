@@ -48,12 +48,10 @@ mod tests {
     use super::*;
 
     use bip32_ed25519::HARDENED_OFFSET;
-    use bitbox02::testing::{mock_unlocked, MUTEX};
+    use bitbox02::testing::mock_unlocked;
 
     #[test]
     fn test_get_xpub() {
-        let _guard = MUTEX.lock().unwrap();
-
         assert!(get_xpub(&[]).is_err());
 
         mock_unlocked();

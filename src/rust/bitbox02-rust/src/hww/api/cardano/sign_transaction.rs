@@ -302,7 +302,7 @@ mod tests {
     use super::*;
     use crate::bb02_async::block_on;
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, mock_unlocked, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_unlocked, Data};
     use util::bip32::HARDENED;
 
     use pb::cardano_sign_transaction_request::{certificate, certificate::Cert, Certificate};
@@ -355,8 +355,6 @@ mod tests {
 
     #[test]
     fn test_sign_normal_tx() {
-        let _guard = MUTEX.lock().unwrap();
-
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![pb::cardano_sign_transaction_request::Input {
@@ -481,8 +479,6 @@ mod tests {
 
     #[test]
     fn test_sign_stake_registration() {
-        let _guard = MUTEX.lock().unwrap();
-
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![
@@ -600,8 +596,6 @@ mod tests {
 
     #[test]
     fn test_sign_stake_deregistration() {
-        let _guard = MUTEX.lock().unwrap();
-
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![
@@ -703,8 +697,6 @@ mod tests {
 
     #[test]
     fn test_sign_withdrawal() {
-        let _guard = MUTEX.lock().unwrap();
-
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![
@@ -796,8 +788,6 @@ mod tests {
     /// Test that ttl=0 is not included in the transaction if allow_ttl_zero is false. Up to v9.8.0, ttl was not included if it was zero.
     #[test]
     fn test_sign_tx_no_ttl() {
-        let _guard = MUTEX.lock().unwrap();
-
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![pb::cardano_sign_transaction_request::Input {
@@ -857,8 +847,6 @@ mod tests {
     /// Also test other configurations where the transaction cannot be mined.
     #[test]
     fn test_sign_non_mineable_tx() {
-        let _guard = MUTEX.lock().unwrap();
-
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![pb::cardano_sign_transaction_request::Input {
@@ -931,8 +919,6 @@ mod tests {
 
     #[test]
     fn test_sign_tx_valid_interval_start() {
-        let _guard = MUTEX.lock().unwrap();
-
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![pb::cardano_sign_transaction_request::Input {
@@ -994,8 +980,6 @@ mod tests {
 
     #[test]
     fn test_sign_tx_invalid_interval_start() {
-        let _guard = MUTEX.lock().unwrap();
-
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![pb::cardano_sign_transaction_request::Input {
@@ -1057,8 +1041,6 @@ mod tests {
 
     #[test]
     fn test_sign_tx_tokens() {
-        let _guard = MUTEX.lock().unwrap();
-
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![pb::cardano_sign_transaction_request::Input {

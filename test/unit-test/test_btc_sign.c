@@ -114,16 +114,6 @@ static uint8_t _mock_bip39_seed[64] =
 typedef struct {
     // true if the sigs should be checked against fixtures.
     bool check_sigs;
-    // all inputs should be the same coin type.
-    bool wrong_coin_input;
-    // all change outputs should be the same coin type.
-    bool wrong_coin_change;
-    // all inputs should be from the same account.
-    bool wrong_account_input;
-    // all change outputs should go the same account.
-    bool wrong_account_change;
-    // change num in bip44, should be 1.
-    uint32_t bip44_change;
     // the sum of the inputs in the 2nd pass can't be higher than in the first
     // for all inputs.
     bool input_sum_changes;
@@ -134,11 +124,8 @@ typedef struct {
     bool state_init_after_init;
     // wrong state transition
     bool state_output_after_init;
-    // sequence number below 0xffffffff - 2
-    bool wrong_sequence_number;
     // value 0 is invalid
     bool wrong_input_value;
-    bool wrong_output_value;
     // when a user aborts on an output verification
     bool user_aborts_output;
     // rbf disabled on Litecoin
@@ -160,20 +147,8 @@ typedef struct {
     bool overflow_output_out;
     // if change overflows
     bool overflow_output_ours;
-    // no inputs in prevtx
-    bool prevtx_no_inputs;
-    // no outputs in prevtx
-    bool prevtx_no_outputs;
-    // input value does not match prevtx output value
-    bool input_wrong_value;
-    // input's prevtx hash does not match input's prevOutHash
-    bool wrong_prevouthash;
     // test tx with mixed input types
     bool mixed_inputs;
-    // referenced script config does not exist.
-    bool invalid_input_script_config_index;
-    // referenced script config does not exist.
-    bool invalid_change_script_config_index;
     // exercise the antiklepto protocol
     bool antikepto;
     // make one output a P2TR output to exercise P2TR address generation and sighash.
@@ -194,32 +169,12 @@ typedef struct {
 // Called from `_sign()` to stream and test an input's previous tx.
 static bool _stream_prevtx(const _modification_t* mod, size_t input_index, const _input_t* input)
 {
-    if (mod->prevtx_no_inputs) {
-        BTCPrevTxInitRequest invalid = input->prevtx_init;
-        invalid.num_inputs = 0;
-        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_prevtx_init(&invalid));
-        return false;
-    }
-    if (mod->prevtx_no_outputs) {
-        BTCPrevTxInitRequest invalid = input->prevtx_init;
-        invalid.num_outputs = 0;
-        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_prevtx_init(&invalid));
-        return false;
-    }
-
     assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_init(&input->prevtx_init));
 
     for (size_t i = 0; i < input->prevtx_init.num_inputs; i++) {
         assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_input(&input->prevtx_inputs[i], i));
     }
     for (size_t i = 0; i < input->prevtx_init.num_outputs; i++) {
-        bool last = i == input->prevtx_init.num_outputs - 1;
-        if (last && (mod->input_wrong_value || mod->wrong_prevouthash)) {
-            assert_int_equal(
-                APP_BTC_ERR_INVALID_INPUT,
-                app_btc_sign_prevtx_output(&input->prevtx_outputs[i], i));
-            return false;
-        }
         assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_output(&input->prevtx_outputs[i], i));
     }
     return true;
@@ -422,18 +377,6 @@ static void _sign(const _modification_t* mod)
             inputs[0].input.keypath[i] = sc.keypath[i];
         }
     };
-    if (mod->invalid_input_script_config_index) {
-        inputs[0].input.script_config_index = init_req.script_configs_count;
-    }
-    if (mod->wrong_account_input) {
-        inputs[0].input.keypath[2] = inputs[0].input.keypath[2] + 1;
-    }
-    if (mod->wrong_coin_input) {
-        inputs[0].input.keypath[1] = 1 + BIP32_INITIAL_HARDENED_CHILD;
-    }
-    if (mod->wrong_sequence_number) {
-        inputs[0].input.sequence = 0;
-    }
     if (mod->locktime_applies) {
         init_req.locktime = 1;
         inputs[0].input.sequence = 0xffffffff - 1;
@@ -451,12 +394,6 @@ static void _sign(const _modification_t* mod)
     }
     if (mod->overflow_input_values_pass1) {
         inputs[1].input.prevOutValue = ULLONG_MAX - inputs[0].input.prevOutValue + 1;
-    }
-    if (mod->input_wrong_value) {
-        inputs[0].input.prevOutValue += 1;
-    }
-    if (mod->wrong_prevouthash) {
-        inputs[0].input.prevOutHash[0] += 1;
     }
 
     BTCSignOutputRequest outputs[6] = {
@@ -527,7 +464,7 @@ static void _sign(const _modification_t* mod)
                     init_req.script_configs[0].keypath[0],
                     init_req.script_configs[0].keypath[1],
                     init_req.script_configs[0].keypath[2],
-                    mod->bip44_change,
+                    1,
                     3,
                 },
         },
@@ -541,7 +478,7 @@ static void _sign(const _modification_t* mod)
                     init_req.script_configs[0].keypath[0],
                     init_req.script_configs[0].keypath[1],
                     init_req.script_configs[0].keypath[2],
-                    mod->bip44_change,
+                    1,
                     30,
                 },
         },
@@ -549,18 +486,6 @@ static void _sign(const _modification_t* mod)
     const uint64_t total = 1339999900; // sum of all non-change outputs + fee
     const uint64_t fee = 5419010; // sum of all inputs - sum of all outputs
 
-    if (mod->invalid_change_script_config_index) {
-        outputs[4].script_config_index = init_req.script_configs_count;
-    }
-    if (mod->wrong_account_change) {
-        outputs[4].keypath[2] = outputs[4].keypath[2] + 1;
-    }
-    if (mod->wrong_coin_change) {
-        outputs[4].keypath[1] = 1 + BIP32_INITIAL_HARDENED_CHILD;
-    }
-    if (mod->wrong_output_value) {
-        outputs[0].value = 0;
-    }
     if (mod->overflow_output_out) {
         outputs[0].value = ULLONG_MAX;
     }
@@ -594,8 +519,7 @@ static void _sign(const _modification_t* mod)
     // === Inputs Pass 1
 
     // First input, pass1.
-    if (!mod->wrong_sequence_number && !mod->wrong_input_value &&
-        !mod->invalid_input_script_config_index) {
+    if (!mod->wrong_input_value) {
         expect_value(
             __wrap_btc_common_is_valid_keypath_address_simple,
             script_type,
@@ -607,8 +531,7 @@ static void _sign(const _modification_t* mod)
             inputs[0].input.keypath,
             inputs[0].input.keypath_count * sizeof(uint32_t));
     }
-    if (mod->wrong_coin_input || mod->wrong_account_input || mod->wrong_sequence_number ||
-        mod->wrong_input_value || mod->invalid_input_script_config_index) {
+    if (mod->wrong_input_value) {
         assert_int_equal(
             APP_BTC_ERR_INVALID_INPUT, app_btc_sign_input_pass1(&inputs[0].input, false));
         return;
@@ -651,10 +574,6 @@ static void _sign(const _modification_t* mod)
     // === Outputs
 
     // First output
-    if (mod->wrong_output_value) {
-        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_output(&outputs[0], false));
-        return;
-    }
     expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, outputs[0].value);
     if (!mod->litecoin_rbf_disabled) {
         expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
@@ -755,22 +674,15 @@ static void _sign(const _modification_t* mod)
 
     // Fifth output, change. Last output also invokes verification of total and
     // fee.
-    if (!mod->invalid_change_script_config_index) {
-        expect_value(
-            __wrap_btc_common_is_valid_keypath_address_simple,
-            script_type,
-            init_req.script_configs[0].script_config.config.simple_type);
-        expect_memory(
-            __wrap_btc_common_is_valid_keypath_address_simple,
-            keypath,
-            outputs[4].keypath,
-            outputs[4].keypath_count * sizeof(uint32_t));
-    }
-    if (mod->wrong_coin_change || mod->wrong_account_change || mod->bip44_change != 1 ||
-        mod->invalid_change_script_config_index) {
-        assert_int_equal(APP_BTC_ERR_INVALID_INPUT, app_btc_sign_output(&outputs[4], false));
-        return;
-    }
+    expect_value(
+        __wrap_btc_common_is_valid_keypath_address_simple,
+        script_type,
+        init_req.script_configs[0].script_config.config.simple_type);
+    expect_memory(
+        __wrap_btc_common_is_valid_keypath_address_simple,
+        keypath,
+        outputs[4].keypath,
+        outputs[4].keypath_count * sizeof(uint32_t));
     assert_int_equal(APP_BTC_OK, app_btc_sign_output(&outputs[4], false));
 
     // Sixth output, change. Last output also invokes verification of total and fee.
@@ -989,46 +901,12 @@ static void _sign(const _modification_t* mod)
     app_btc_sign_reset();
 }
 
-static const _modification_t _valid = {
-    .bip44_change = 1,
-};
+static const _modification_t _valid = {0};
 
 static void _test_btc_sign(void** state)
 {
     _modification_t modified = _valid;
     modified.check_sigs = true;
-    _sign(&modified);
-}
-static void _test_wrong_coin_input(void** state)
-{
-    _modification_t modified = _valid;
-    modified.wrong_coin_input = true;
-    _sign(&modified);
-}
-static void _test_wrong_coin_change(void** state)
-{
-    _modification_t modified = _valid;
-    modified.wrong_coin_change = true;
-    _sign(&modified);
-}
-static void _test_wrong_account_input(void** state)
-{
-    _modification_t modified = _valid;
-    modified.wrong_account_input = true;
-    _sign(&modified);
-}
-static void _test_wrong_account_change(void** state)
-{
-    _modification_t modified = _valid;
-    modified.wrong_account_change = true;
-    _sign(&modified);
-}
-static void _test_btc_bip44_change(void** state)
-{
-    _modification_t modified = _valid;
-    modified.bip44_change = 0;
-    _sign(&modified);
-    modified.bip44_change = 2;
     _sign(&modified);
 }
 static void _test_input_sum_changes(void** state)
@@ -1043,22 +921,10 @@ static void _test_input_sum_last_mismatch(void** state)
     modified.input_sum_last_mismatch = true;
     _sign(&modified);
 }
-static void _test_wrong_sequence_number(void** state)
-{
-    _modification_t modified = _valid;
-    modified.wrong_sequence_number = true;
-    _sign(&modified);
-}
 static void _test_wrong_input_value(void** state)
 {
     _modification_t modified = _valid;
     modified.wrong_input_value = true;
-    _sign(&modified);
-}
-static void _test_wrong_output_value(void** state)
-{
-    _modification_t modified = _valid;
-    modified.wrong_output_value = true;
     _sign(&modified);
 }
 static void _test_user_aborts_output(void** state)
@@ -1127,49 +993,9 @@ static void _test_overflow_output_ours(void** state)
     modified.overflow_output_ours = true;
     _sign(&modified);
 }
-static void _test_prevtx_no_inputs(void** state)
-{
-    _modification_t modified = _valid;
-    modified.prevtx_no_inputs = true;
-    _sign(&modified);
-}
-static void _test_prevtx_no_outputs(void** state)
-{
-    _modification_t modified = _valid;
-    modified.prevtx_no_outputs = true;
-    _sign(&modified);
-}
-static void _test_input_wrong_value(void** state)
-{
-    _modification_t modified = _valid;
-    modified.input_wrong_value = true;
-    _sign(&modified);
-}
-static void _test_wrong_prevouthash(void** state)
-{
-    _modification_t modified = _valid;
-    modified.wrong_prevouthash = true;
-    _sign(&modified);
-}
 static void _test_mixed_inputs(void** state)
 {
     _modification_t modified = _valid;
-    modified.mixed_inputs = true;
-    _sign(&modified);
-}
-static void _test_invalid_input_script_config_index(void** state)
-{
-    _modification_t modified = _valid;
-    modified.invalid_input_script_config_index = true;
-    _sign(&modified);
-    modified.mixed_inputs = true;
-    _sign(&modified);
-}
-static void _test_invalid_change_script_config_index(void** state)
-{
-    _modification_t modified = _valid;
-    modified.invalid_change_script_config_index = true;
-    _sign(&modified);
     modified.mixed_inputs = true;
     _sign(&modified);
 }
@@ -1190,16 +1016,9 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_btc_sign),
-        cmocka_unit_test(_test_wrong_coin_input),
-        cmocka_unit_test(_test_wrong_coin_change),
-        cmocka_unit_test(_test_wrong_account_input),
-        cmocka_unit_test(_test_wrong_account_change),
-        cmocka_unit_test(_test_btc_bip44_change),
         cmocka_unit_test(_test_input_sum_changes),
         cmocka_unit_test(_test_input_sum_last_mismatch),
-        cmocka_unit_test(_test_wrong_sequence_number),
         cmocka_unit_test(_test_wrong_input_value),
-        cmocka_unit_test(_test_wrong_output_value),
         cmocka_unit_test(_test_user_aborts_output),
         cmocka_unit_test(_test_litecoin_rbf_disabled),
         cmocka_unit_test(_test_locktime_applies),
@@ -1211,13 +1030,7 @@ int main(void)
         cmocka_unit_test(_test_overflow_input_values_pass2),
         cmocka_unit_test(_test_overflow_output_out),
         cmocka_unit_test(_test_overflow_output_ours),
-        cmocka_unit_test(_test_prevtx_no_inputs),
-        cmocka_unit_test(_test_prevtx_no_outputs),
-        cmocka_unit_test(_test_input_wrong_value),
-        cmocka_unit_test(_test_wrong_prevouthash),
         cmocka_unit_test(_test_mixed_inputs),
-        cmocka_unit_test(_test_invalid_input_script_config_index),
-        cmocka_unit_test(_test_invalid_change_script_config_index),
         cmocka_unit_test(_test_antiklepto),
         cmocka_unit_test(_test_p2tr_output),
     };

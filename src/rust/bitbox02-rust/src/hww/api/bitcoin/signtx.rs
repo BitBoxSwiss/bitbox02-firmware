@@ -917,4 +917,101 @@ mod tests {
             _ => panic!("wrong result"),
         }
     }
+
+    /// Test invalid input cases.
+    #[test]
+    pub fn test_invalid_input() {
+        enum TestCase {
+            // all inputs should be the same coin type.
+            WrongCoinInput,
+            // all change outputs should be the same coin type.
+            WrongCoinChange,
+            // all inputs should be from the same account.
+            WrongAccountInput,
+            // all change outputs should go the same account.
+            WrongAccountChange,
+            // change num in bip44, should be 1.
+            WrongBip44Change(u32),
+            // referenced script config does not exist.
+            InvalidInputScriptConfigIndex,
+            // referenced script config does not exist.
+            InvalidChangeScriptConfigIndex,
+            // sequence number below 0xffffffff - 2
+            WrongSequenceNumber,
+            // value 0 is invalid
+            WrongOutputValue,
+            // input value does not match prevtx output value
+            WrongInputValue,
+            // input's prevtx hash does not match input's prevOutHash
+            WrongPrevoutHash,
+            // no inputs in prevtx
+            PrevTxNoInputs,
+            // no outputs in prevtx
+            PrevTxNoOutputs,
+        }
+        for value in [
+            TestCase::WrongCoinInput,
+            TestCase::WrongCoinChange,
+            TestCase::WrongAccountInput,
+            TestCase::WrongAccountChange,
+            TestCase::WrongBip44Change(0),
+            TestCase::WrongBip44Change(2),
+            TestCase::InvalidInputScriptConfigIndex,
+            TestCase::InvalidChangeScriptConfigIndex,
+            TestCase::WrongSequenceNumber,
+            TestCase::WrongOutputValue,
+            TestCase::WrongInputValue,
+            TestCase::WrongPrevoutHash,
+            TestCase::PrevTxNoInputs,
+            TestCase::PrevTxNoOutputs,
+        ] {
+            let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new()));
+            match value {
+                TestCase::WrongCoinInput => {
+                    transaction.borrow_mut().inputs[0].input.keypath[1] = 1 + HARDENED;
+                }
+                TestCase::WrongCoinChange => {
+                    transaction.borrow_mut().outputs[4].keypath[1] = 1 + HARDENED;
+                }
+                TestCase::WrongAccountInput => {
+                    transaction.borrow_mut().inputs[0].input.keypath[2] += 1;
+                }
+                TestCase::WrongAccountChange => {
+                    transaction.borrow_mut().outputs[4].keypath[2] += 1;
+                }
+                TestCase::WrongBip44Change(change) => {
+                    transaction.borrow_mut().outputs[4].keypath[3] = change;
+                }
+                TestCase::InvalidInputScriptConfigIndex => {
+                    transaction.borrow_mut().inputs[0].input.script_config_index = 1;
+                }
+                TestCase::InvalidChangeScriptConfigIndex => {
+                    transaction.borrow_mut().outputs[4].script_config_index = 1;
+                }
+                TestCase::WrongSequenceNumber => {
+                    transaction.borrow_mut().inputs[0].input.sequence = 0;
+                }
+                TestCase::WrongOutputValue => {
+                    transaction.borrow_mut().outputs[0].value = 0;
+                }
+                TestCase::WrongInputValue => {
+                    transaction.borrow_mut().inputs[0].input.prev_out_value += 1;
+                }
+                TestCase::WrongPrevoutHash => {
+                    transaction.borrow_mut().inputs[0].input.prev_out_hash[0] += 1;
+                }
+                TestCase::PrevTxNoInputs => {
+                    transaction.borrow_mut().inputs[0].prevtx_inputs.clear();
+                }
+                TestCase::PrevTxNoOutputs => {
+                    transaction.borrow_mut().inputs[0].prevtx_outputs.clear();
+                }
+            }
+            mock_host_responder(transaction.clone());
+            mock_default_ui();
+            mock_unlocked();
+            let result = block_on(process(&transaction.borrow().init_request()));
+            assert_eq!(result, Err(Error::InvalidInput));
+        }
+    }
 }

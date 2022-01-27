@@ -98,14 +98,12 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, mock_unlocked, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_unlocked, Data};
     use std::boxed::Box;
     use util::bip32::HARDENED;
 
     #[test]
     pub fn test_process_xpub() {
-        let _guard = MUTEX.lock().unwrap();
-
         const EXPECTED_XPUB: &str = "xpub6FNKHYBc1HTwuwZcj4dz7xiG1kN7Hs3v7efYmgtzu1Gv6wJXxaCnFdQDRodbQpJKwdeVBf1RRNHARa6FsUMTCuRe2gKR7xCkSDdnppUp9oW";
         let request = pb::EthPubRequest {
             output_type: OutputType::Xpub as _,
@@ -155,8 +153,6 @@ mod tests {
 
     #[test]
     pub fn test_process_address() {
-        let _guard = MUTEX.lock().unwrap();
-
         const ADDRESS: &str = "0x773A77b9D32589be03f9132AF759e294f7851be9";
 
         let request = &pb::EthPubRequest {
@@ -296,8 +292,6 @@ mod tests {
 
     #[test]
     pub fn test_process_erc20_address() {
-        let _guard = MUTEX.lock().unwrap();
-
         const ADDRESS: &str = "0x773A77b9D32589be03f9132AF759e294f7851be9";
         const CONTRACT_ADDRESS: [u8; 20] =
             *b"\xda\xc1\x7f\x95\x8d\x2e\xe5\x23\xa2\x20\x62\x06\x99\x45\x97\xc1\x3d\x83\x1e\xc7";

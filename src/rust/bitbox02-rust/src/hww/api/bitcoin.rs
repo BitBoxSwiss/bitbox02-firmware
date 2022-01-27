@@ -202,12 +202,11 @@ mod tests {
     use crate::bb02_async::block_on;
     use alloc::boxed::Box;
     use alloc::vec::Vec;
-    use bitbox02::testing::{mock, mock_unlocked, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_unlocked, Data};
     use util::bip32::HARDENED;
 
     #[test]
     pub fn test_xpub() {
-        let _guard = MUTEX.lock().unwrap();
         struct Test<'a> {
             coin: BtcCoin,
             keypath: &'a [u32],
@@ -398,8 +397,6 @@ mod tests {
 
     #[test]
     pub fn test_address_simple() {
-        let _guard = MUTEX.lock().unwrap();
-
         struct Test<'a> {
             coin: BtcCoin,
             keypath: &'a [u32],

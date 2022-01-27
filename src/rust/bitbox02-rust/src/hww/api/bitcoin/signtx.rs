@@ -369,7 +369,7 @@ mod tests {
     use super::*;
     use crate::bb02_async::block_on;
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, mock_unlocked, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_unlocked, Data};
     use util::bip32::HARDENED;
 
     struct TxInput {
@@ -764,8 +764,6 @@ mod tests {
 
     #[test]
     pub fn test_process() {
-        let _guard = MUTEX.lock().unwrap();
-
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new()));
 
         let tx = transaction.clone();

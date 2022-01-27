@@ -241,8 +241,6 @@ mod tests {
     use super::*;
     use std::prelude::v1::*;
 
-    use bitbox02::testing::MUTEX;
-
     fn assert_panics<F: FnOnce() + std::panic::UnwindSafe>(f: F) {
         assert!(std::panic::catch_unwind(f).is_err());
     }
@@ -250,8 +248,6 @@ mod tests {
     /// Test spawning a task, spinning it, and getting the result.
     #[test]
     fn test_full_cycle() {
-        let _guard = MUTEX.lock().unwrap();
-
         async fn task(usb_in: UsbIn) -> UsbOut {
             assert_eq!(usb_in, [1, 2, 3].to_vec());
             [4, 5, 6, 7].to_vec()
@@ -294,8 +290,6 @@ mod tests {
 
     #[test]
     fn test_next_request() {
-        let _guard = MUTEX.lock().unwrap();
-
         async fn task(usb_in: UsbIn) -> UsbOut {
             assert_eq!(&usb_in, &[1, 2, 3]);
             let next_req = next_request([4, 5, 6, 7].to_vec()).await;

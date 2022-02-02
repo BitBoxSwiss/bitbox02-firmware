@@ -565,51 +565,54 @@ mod tests {
                 locktime: self.locktime,
             }
         }
+
+        /// Return the transaction part requested by the device.
+        fn make_host_request(&self, response: Response) -> Request {
+            let next: pb::BtcSignNextResponse = match response {
+                Response::BtcSignNext(next) => next,
+                Response::Btc(pb::BtcResponse {
+                    response: Some(pb::btc_response::Response::SignNext(next)),
+                }) => next,
+                _ => panic!("wrong response type"),
+            };
+            match NextType::from_i32(next.r#type).unwrap() {
+                NextType::Input => {
+                    Request::BtcSignInput(self.inputs[next.index as usize].input.clone())
+                }
+                NextType::Output => {
+                    Request::BtcSignOutput(self.outputs[next.index as usize].clone())
+                }
+                NextType::PrevtxInit => Request::Btc(pb::BtcRequest {
+                    request: Some(pb::btc_request::Request::PrevtxInit(
+                        pb::BtcPrevTxInitRequest {
+                            version: self.inputs[next.index as usize].prevtx_version,
+                            num_inputs: self.inputs[next.index as usize].prevtx_inputs.len() as _,
+                            num_outputs: self.inputs[next.index as usize].prevtx_outputs.len() as _,
+                            locktime: self.inputs[next.index as usize].prevtx_locktime,
+                        },
+                    )),
+                }),
+                NextType::PrevtxInput => Request::Btc(pb::BtcRequest {
+                    request: Some(pb::btc_request::Request::PrevtxInput(
+                        self.inputs[next.index as usize].prevtx_inputs[next.prev_index as usize]
+                            .clone(),
+                    )),
+                }),
+                NextType::PrevtxOutput => Request::Btc(pb::BtcRequest {
+                    request: Some(pb::btc_request::Request::PrevtxOutput(
+                        self.inputs[next.index as usize].prevtx_outputs[next.prev_index as usize]
+                            .clone(),
+                    )),
+                }),
+                _ => panic!("unexpected next response"),
+            }
+        }
     }
 
     fn mock_host_responder(tx: alloc::rc::Rc<core::cell::RefCell<Transaction>>) {
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
             Some(Box::new(move |response: Response| {
-                let tx = tx.borrow();
-                let next: pb::BtcSignNextResponse = match response {
-                    Response::BtcSignNext(next) => next,
-                    Response::Btc(pb::BtcResponse {
-                        response: Some(pb::btc_response::Response::SignNext(next)),
-                    }) => next,
-                    _ => panic!("wrong response type"),
-                };
-                match NextType::from_i32(next.r#type).unwrap() {
-                    NextType::Input => Ok(Request::BtcSignInput(
-                        tx.inputs[next.index as usize].input.clone(),
-                    )),
-                    NextType::Output => Ok(Request::BtcSignOutput(
-                        tx.outputs[next.index as usize].clone(),
-                    )),
-                    NextType::PrevtxInit => Ok(Request::Btc(pb::BtcRequest {
-                        request: Some(pb::btc_request::Request::PrevtxInit(
-                            pb::BtcPrevTxInitRequest {
-                                version: tx.inputs[next.index as usize].prevtx_version,
-                                num_inputs: tx.inputs[next.index as usize].prevtx_inputs.len() as _,
-                                num_outputs: tx.inputs[next.index as usize].prevtx_outputs.len()
-                                    as _,
-                                locktime: tx.inputs[next.index as usize].prevtx_locktime,
-                            },
-                        )),
-                    })),
-                    NextType::PrevtxInput => Ok(Request::Btc(pb::BtcRequest {
-                        request: Some(pb::btc_request::Request::PrevtxInput(
-                            tx.inputs[next.index as usize].prevtx_inputs[next.prev_index as usize]
-                                .clone(),
-                        )),
-                    })),
-                    NextType::PrevtxOutput => Ok(Request::Btc(pb::BtcRequest {
-                        request: Some(pb::btc_request::Request::PrevtxOutput(
-                            tx.inputs[next.index as usize].prevtx_outputs[next.prev_index as usize]
-                                .clone(),
-                        )),
-                    })),
-                    _ => panic!("unexpected next response"),
-                }
+                Ok(tx.borrow().make_host_request(response))
             }));
     }
 

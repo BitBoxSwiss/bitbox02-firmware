@@ -158,7 +158,7 @@ const BREAK: u8    = 0xff;
 pub use decode::{Decode, Decoder};
 pub use encode::{Encode, Encoder};
 
-#[cfg(feature = "derive")]
+#[cfg(any(feature = "derive", feature = "partial-derive-support"))]
 pub use minicbor_derive::*;
 
 /// Decode a type implementing [`Decode`] from the given byte slice.

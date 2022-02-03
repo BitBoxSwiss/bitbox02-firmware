@@ -7,7 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
--
+- Cardano: support sending to legacy Byron addresses
 
 ### 9.9.0 [released 2022-01-10]
 - Support sending to taproot addresses

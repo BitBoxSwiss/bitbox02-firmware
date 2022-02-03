@@ -2,8 +2,8 @@ use core::{fmt, str};
 use crate::data::Type;
 
 /// Decoding errors.
+#[derive(Debug)]
 #[non_exhaustive]
-#[derive(Debug, Clone)]
 pub enum Error {
     /// Decoding has (unexpectedly) reached the end of the input slice.
     EndOfInput,
@@ -20,7 +20,10 @@ pub enum Error {
     /// A value was missing at the specified index.
     MissingValue(u32, &'static str),
     /// Generic error message.
-    Message(&'static str)
+    Message(&'static str),
+    /// Custom error.
+    #[cfg(feature = "std")]
+    Custom(Box<dyn std::error::Error + Send + Sync>)
 }
 
 impl fmt::Display for Error {
@@ -33,7 +36,9 @@ impl fmt::Display for Error {
             Error::TypeMismatch(t, m) => write!(f, "unexpected type: {}, {}", t, m),
             Error::UnknownVariant(n)  => write!(f, "unknown enum variant {}", n),
             Error::MissingValue(n, s) => write!(f, "missing value at index {} for {}", n, s),
-            Error::Message(m)         => write!(f, "{}", m)
+            Error::Message(m)         => write!(f, "{}", m),
+            #[cfg(feature = "std")]
+            Error::Custom(e)          => write!(f, "{}", e)
         }
     }
 }
@@ -42,8 +47,9 @@ impl fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
+            Error::Custom(e) => Some(&**e),
             Error::Utf8(e) => Some(e),
-            | Error::EndOfInput
+            Error::EndOfInput
             | Error::InvalidChar(_)
             | Error::Overflow(..)
             | Error::TypeMismatch(..)

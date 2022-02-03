@@ -244,7 +244,7 @@ impl<W: Write> Encoder<W> {
     }
 
     /// Write the encoded byte slice.
-    fn put(&mut self, b: &[u8]) -> Result<&mut Self, Error<W::Error>> {
+    pub(crate) fn put(&mut self, b: &[u8]) -> Result<&mut Self, Error<W::Error>> {
         self.writer.write_all(b).map_err(Error::Write)?;
         Ok(self)
     }

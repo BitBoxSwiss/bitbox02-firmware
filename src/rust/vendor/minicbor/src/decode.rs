@@ -19,6 +19,26 @@ pub use tokens::{Token, Tokenizer};
 pub trait Decode<'b>: Sized {
     /// Decode a value using the given `Decoder`.
     fn decode(d: &mut Decoder<'b>) -> Result<Self, Error>;
+
+    /// If possible, return a nil value of `Self`.
+    ///
+    /// This method is primarily used by `minicbor-derive` and allows
+    /// creating a special value denoting the absence of a "real" value if
+    /// no CBOR value is present. The canonical example of a type where
+    /// this is sensible is the `Option` type, whose `Decode::nil` method
+    /// would return `Some(None)`.
+    ///
+    /// With the exception of `Option<_>` all types `T` are considered
+    /// mandatory by default, i.e. `T::nil()` returns `None`. Missing values
+    /// of `T` therefore cause decoding errors in derived `Decode`
+    /// implementations.
+    ///
+    /// NB: A type implementing `Decode` with an overriden `Decode::nil`
+    /// method should also override `Encode::is_nil` if it implements `Encode`
+    /// at all.
+    fn nil() -> Option<Self> {
+        None
+    }
 }
 
 #[cfg(feature = "alloc")]
@@ -59,6 +79,10 @@ impl<'b, T: Decode<'b>> Decode<'b> for Option<T> {
             return Ok(None)
         }
         T::decode(d).map(Some)
+    }
+
+    fn nil() -> Option<Self> {
+        Some(None)
     }
 }
 

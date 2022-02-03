@@ -81,6 +81,16 @@ impl<'b> Tokenizer<'b> {
     /// Note that a sequence of tokens may not necessarily represent
     /// well-formed CBOR items.
     pub fn token(&mut self) -> Result<Token<'b>, Error> {
+        match self.try_token() {
+            Ok(tk) => Ok(tk),
+            Err(e) => {
+                let _ = self.decoder.consume(); // drain decoder
+                Err(e)
+            }
+        }
+    }
+
+    fn try_token(&mut self) -> Result<Token<'b>, Error> {
         match self.decoder.datatype()? {
             Type::Bool         => self.decoder.bool().map(Token::Bool),
             Type::U8           => self.decoder.u8().map(Token::U8),

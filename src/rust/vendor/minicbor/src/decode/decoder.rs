@@ -11,30 +11,12 @@ use core::{convert::TryInto, marker, str};
 // This is used when decoding signed int types whose representation
 // is -1 - unsigned int. Turning the unsigned int into an int may
 // overflow which is what we check here.
-macro_rules! u_to_i {
-    ($val: expr, $typ: ty, $max: expr, $msg: expr) => {{
-        let val = $val; // evaluate only once
-        if val > $max {
-            Err(Error::Overflow(u64::from(val), $msg))
+macro_rules! try_to {
+    ($v: ident, $t: ty, $max: expr, $msg: expr) => {{
+        if $v > $max {
+            Err(Error::Overflow(u64::from($v), $msg))
         } else {
-            Ok(-1 - val as $typ)
-        }
-    }}
-}
-
-// Cast an expression of an unsigned int type to a signed int type.
-//
-// This is used when a CBOR type is parsed as an unsigned int first
-// but later turned into a signed int type, i.e. to support decoding
-// unsigned types that are not too large when actually decoding a
-// signed int.
-macro_rules! u_as_i {
-    ($val: expr, $typ: ty, $max: expr, $msg: expr) => {{
-        let val = $val; // evaluate only once
-        if val > $max {
-            Err(Error::Overflow(u64::from(val), $msg))
-        } else {
-            Ok(val as $typ)
+            Ok(-1 - $v as $t)
         }
     }}
 }
@@ -93,6 +75,9 @@ impl<'b> Decoder<'b> {
         match self.read()? {
             n @ 0 ..= 0x17 => Ok(n),
             0x18           => self.read(),
+            0x19           => self.read_slice(2).map(read_u16).and_then(|n| try_as(n, "u16->u8")),
+            0x1a           => self.read_slice(4).map(read_u32).and_then(|n| try_as(n, "u32->u8")),
+            0x1b           => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "u64->u8")),
             b              => Err(Error::TypeMismatch(Type::read(b), "expected u8"))
         }
     }
@@ -103,6 +88,8 @@ impl<'b> Decoder<'b> {
             n @ 0 ..= 0x17 => Ok(u16::from(n)),
             0x18           => self.read().map(u16::from),
             0x19           => self.read_slice(2).map(read_u16),
+            0x1a           => self.read_slice(4).map(read_u32).and_then(|n| try_as(n, "u32->u16")),
+            0x1b           => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "u64->u16")),
             b              => Err(Error::TypeMismatch(Type::read(b), "expected u16"))
         }
     }
@@ -114,6 +101,7 @@ impl<'b> Decoder<'b> {
             0x18           => self.read().map(u32::from),
             0x19           => self.read_slice(2).map(read_u16).map(u32::from),
             0x1a           => self.read_slice(4).map(read_u32),
+            0x1b           => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "u64->u32")),
             b              => Err(Error::TypeMismatch(Type::read(b), "expected u32"))
         }
     }
@@ -128,9 +116,15 @@ impl<'b> Decoder<'b> {
     pub fn i8(&mut self) -> Result<i8, Error> {
         match self.read()? {
             n @ 0x00 ..= 0x17 => Ok(n as i8),
-            0x18              => u_as_i!(self.read()?, i8, i8::MAX as u8, "u8->i8"),
+            0x18              => self.read().and_then(|n| try_as(n, "u8->i8")),
+            0x19              => self.read_slice(2).map(read_u16).and_then(|n| try_as(n, "u16->i8")),
+            0x1a              => self.read_slice(4).map(read_u32).and_then(|n| try_as(n, "u32->i8")),
+            0x1b              => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "u64->i8")),
             n @ 0x20 ..= 0x37 => Ok(-1 - (n - 0x20) as i8),
-            0x38              => u_to_i!(self.read()?, i8, i8::MAX as u8, "u8->i8"),
+            0x38              => self.read().and_then(|n| try_to!(n, i8, i8::MAX as u8, "u8->i8")),
+            0x39              => self.read_slice(2).map(read_u16).and_then(|n| try_to!(n, i8, i8::MAX as u16, "u16->i8")),
+            0x3a              => self.read_slice(4).map(read_u32).and_then(|n| try_to!(n, i8, i8::MAX as u32, "u32->i8")),
+            0x3b              => self.read_slice(8).map(read_u64).and_then(|n| try_to!(n, i8, i8::MAX as u64, "u64->i8")),
             b                 => Err(Error::TypeMismatch(Type::read(b), "expected i8"))
         }
     }
@@ -140,10 +134,14 @@ impl<'b> Decoder<'b> {
         match self.read()? {
             n @ 0x00 ..= 0x17 => Ok(i16::from(n)),
             0x18              => self.read().map(i16::from),
-            0x19              => u_as_i!(self.read_slice(2).map(read_u16)?, i16, i16::MAX as u16, "u16->i16"),
+            0x19              => self.read_slice(2).map(read_u16).and_then(|n| try_as(n, "u16->i16")),
+            0x1a              => self.read_slice(4).map(read_u32).and_then(|n| try_as(n, "u32->i16")),
+            0x1b              => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "u64->i16")),
             n @ 0x20 ..= 0x37 => Ok(-1 - i16::from(n - 0x20)),
             0x38              => self.read().map(|n| -1 - i16::from(n)),
-            0x39              => u_to_i!(self.read_slice(2).map(read_u16)?, i16, i16::MAX as u16, "u16->i16"),
+            0x39              => self.read_slice(2).map(read_u16).and_then(|n| try_to!(n, i16, i16::MAX as u16, "u16->i16")),
+            0x3a              => self.read_slice(4).map(read_u32).and_then(|n| try_to!(n, i16, i16::MAX as u32, "u32->i16")),
+            0x3b              => self.read_slice(8).map(read_u64).and_then(|n| try_to!(n, i16, i16::MAX as u64, "u64->i16")),
             b                 => Err(Error::TypeMismatch(Type::read(b), "expected i16"))
         }
     }
@@ -154,11 +152,13 @@ impl<'b> Decoder<'b> {
             n @ 0x00 ..= 0x17 => Ok(i32::from(n)),
             0x18              => self.read().map(i32::from),
             0x19              => self.read_slice(2).map(read_u16).map(i32::from),
-            0x1a              => u_as_i!(self.read_slice(4).map(read_u32)?, i32, i32::MAX as u32, "u32->i32"),
+            0x1a              => self.read_slice(4).map(read_u32).and_then(|n| try_as(n, "u32->i32")),
+            0x1b              => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "u64->i32")),
             n @ 0x20 ..= 0x37 => Ok(-1 - i32::from(n - 0x20)),
             0x38              => self.read().map(|n| -1 - i32::from(n)),
             0x39              => self.read_slice(2).map(read_u16).map(|n| -1 - i32::from(n)),
-            0x3a              => u_to_i!(self.read_slice(4).map(read_u32)?, i32, i32::MAX as u32, "u32->i32"),
+            0x3a              => self.read_slice(4).map(read_u32).and_then(|n| try_to!(n, i32, i32::MAX as u32, "u32->i32")),
+            0x3b              => self.read_slice(8).map(read_u64).and_then(|n| try_to!(n, i32, i32::MAX as u64, "u64->i32")),
             b                 => Err(Error::TypeMismatch(Type::read(b), "expected i32"))
         }
     }
@@ -170,12 +170,12 @@ impl<'b> Decoder<'b> {
             0x18              => self.read().map(i64::from),
             0x19              => self.read_slice(2).map(read_u16).map(i64::from),
             0x1a              => self.read_slice(4).map(read_u32).map(i64::from),
-            0x1b              => u_as_i!(self.read_slice(8).map(read_u64)?, i64, i64::MAX as u64, "u64->i64"),
+            0x1b              => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "u64->i64")),
             n @ 0x20 ..= 0x37 => Ok(-1 - i64::from(n - 0x20)),
             0x38              => self.read().map(|n| -1 - i64::from(n)),
             0x39              => self.read_slice(2).map(read_u16).map(|n| -1 - i64::from(n)),
             0x3a              => self.read_slice(4).map(read_u32).map(|n| -1 - i64::from(n)),
-            0x3b              => u_to_i!(self.read_slice(8).map(read_u64)?, i64, i64::MAX as u64, "u64->i64"),
+            0x3b              => self.read_slice(8).map(read_u64).and_then(|n| try_to!(n, i64, i64::MAX as u64, "u64->i64")),
             b                 => Err(Error::TypeMismatch(Type::read(b), "expected i64"))
         }
     }
@@ -362,6 +362,22 @@ impl<'b> Decoder<'b> {
             return Err(Error::TypeMismatch(Type::read(b), "expected tag"))
         }
         self.unsigned(info_of(b)).map(Tag::from)
+    }
+
+    /// Decode a CBOR null value.
+    pub fn null(&mut self) -> Result<(), Error> {
+        match self.read()? {
+            0xf6 => Ok(()),
+            n    => Err(Error::TypeMismatch(Type::read(n), "expected null"))
+        }
+    }
+
+    /// Decode a CBOR undefined value.
+    pub fn undefined(&mut self) -> Result<(), Error> {
+        match self.read()? {
+            0xf7 => Ok(()),
+            n    => Err(Error::TypeMismatch(Type::read(n), "expected undefined"))
+        }
     }
 
     /// Decode a CBOR simple value.
@@ -583,8 +599,17 @@ impl<'b> Decoder<'b> {
 
     /// Consume and return *n* bytes starting at the current position.
     fn read_slice(&mut self, n: usize) -> Result<&'b [u8], Error> {
-        if let Some(b) = self.buf.get(self.pos .. self.pos + n) {
+        if let Some(b) = self.pos.checked_add(n).and_then(|end| self.buf.get(self.pos .. end)) {
             self.pos += n;
+            return Ok(b)
+        }
+        Err(Error::EndOfInput)
+    }
+
+    /// Consume the remaining bytes as is.
+    pub(crate) fn consume(&mut self) -> Result<&'b [u8], Error> {
+        if let Some(b) = self.buf.get(self.pos ..) {
+            self.pos = self.buf.len();
             return Ok(b)
         }
         Err(Error::EndOfInput)
@@ -777,5 +802,12 @@ fn info_of(b: u8) -> u8 {
 
 fn u64_to_usize(n: u64) -> Result<usize, Error> {
     n.try_into().map_err(|_| Error::Overflow(n, "u64->usize"))
+}
+
+fn try_as<A, B>(val: A, msg: &'static str) -> Result<B, Error>
+where
+    A: TryInto<B> + Into<u64> + Copy
+{
+    val.try_into().map_err(|_| Error::Overflow(val.into(), msg))
 }
 

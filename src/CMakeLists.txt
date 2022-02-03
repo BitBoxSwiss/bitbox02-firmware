@@ -375,6 +375,8 @@ add_custom_target(rust-bindgen
     --whitelist-function trinary_choice_create
     --rustified-enum trinary_choice_t
     --whitelist-function wally_sha256
+    --whitelist-function wally_base58_to_bytes
+    --whitelist-var BASE58_CHECKSUM_LEN
     --whitelist-function random_32_bytes_mcu
     --whitelist-type component_t
     --whitelist-type confirm_params_t

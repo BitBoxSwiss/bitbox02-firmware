@@ -42,24 +42,104 @@ pub const ADDRESS_HASH_SIZE: usize = 28;
 /// These address tags are accepted:
 /// https://github.com/cardano-foundation/CIPs/blob/0081c890995ff94618145ae5beb7f288c029a86a/CIP-0019/CIP-0019.md#shelley-addresses
 /// See also: https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L119-L127
-pub fn decode_payment_address(params: &params::Params, address: &str) -> Result<Vec<u8>, Error> {
-    let (hrp, data, variant) = bech32::decode(address).or(Err(Error::InvalidInput))?;
+fn decode_shelley_payment_address(params: &params::Params, address: &str) -> Result<Vec<u8>, ()> {
+    let (hrp, data, variant) = bech32::decode(address).or(Err(()))?;
     if variant != Variant::Bech32 || hrp != params.bech32_hrp_payment {
-        return Err(Error::InvalidInput);
+        return Err(());
     }
-    let data = Vec::from_base32(&data).or(Err(Error::InvalidInput))?;
+    let data = Vec::from_base32(&data).or(Err(()))?;
     if data.is_empty() {
-        return Err(Error::InvalidInput);
+        return Err(());
     }
     let header = data[0];
     if header & 0b0000_1111 != params.network_id {
-        return Err(Error::InvalidInput);
+        return Err(());
     }
     let address_tag = header >> 4;
     if address_tag > 7 {
-        return Err(Error::InvalidInput);
+        return Err(());
     }
     Ok(data)
+}
+
+/// Decode a base58-encoded Byron payment address, validate it's checksum and that it was encoded for the right network.
+///
+/// A byron address is cbor encoded data: https://raw.githubusercontent.com/cardano-foundation/CIPs/0081c890995ff94618145ae5beb7f288c029a86a/CIP-0019/CIP-0019-byron-addresses.cddl
+///
+/// See also:
+/// - https://github.com/input-output-hk/cardano-ledger/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L134-L135
+/// - https://github.com/input-output-hk/technical-docs/blob/8d4f08bc05ec611f3943cdc09a4ae18e72a0eb3c/cardano-components/cardano-wallet/doc/About-Address-Format---Byron.md
+fn decode_byron_payment_address(params: &params::Params, address: &str) -> Result<Vec<u8>, ()> {
+    let base58_decoded = bitbox02::base58::decode(address)?;
+    let payload = {
+        let mut decoder = minicbor::Decoder::new(&base58_decoded);
+        if decoder.array().or(Err(()))?.ok_or(())? != 2 {
+            return Err(());
+        }
+        if decoder.tag().or(Err(()))? != minicbor::data::Tag::Cbor {
+            return Err(());
+        }
+        let payload = decoder.bytes().or(Err(()))?;
+        let address_crc = decoder.u32().or(Err(()))?;
+        if crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC).checksum(payload) != address_crc {
+            return Err(());
+        }
+        payload
+    };
+
+    let mut decoder = minicbor::Decoder::new(payload);
+    // Array with three elements.
+    if decoder.array().or(Err(()))?.ok_or(())? != 3 {
+        return Err(());
+    }
+    // First element: address root digest.
+    if decoder.bytes().or(Err(()))?.len() != 28 {
+        return Err(());
+    }
+    // Second element: address attributes map.  Item with key 2 is the network magic. If absent, it
+    // is mainnet. If present, must not be mainnet.
+    let mut magic: Option<u32> = None;
+    for item in decoder
+        .map_iter::<u32, minicbor::bytes::ByteVec>()
+        .or(Err(()))?
+    {
+        let (key, value) = item.or(Err(()))?;
+        if key == 2 {
+            magic = Some(minicbor::decode(&value).or(Err(()))?);
+            break;
+        }
+    }
+    match magic {
+        None => {
+            if params.network != CardanoNetwork::CardanoMainnet {
+                return Err(());
+            }
+        }
+        Some(magic) => {
+            if params.network == CardanoNetwork::CardanoMainnet
+                || magic != params.protocol_magic.ok_or(())?
+            {
+                return Err(());
+            }
+        }
+    }
+    // Third element: address type
+    let typ = decoder.u32().or(Err(()))?;
+    if typ != 0 && typ != 2 {
+        return Err(());
+    }
+    Ok(base58_decoded)
+}
+
+/// Decode a Byron or Shelley payment address string and check that it was encoded for the right network.
+pub fn decode_payment_address(params: &params::Params, address: &str) -> Result<Vec<u8>, Error> {
+    if let Ok(address) = decode_shelley_payment_address(params, address) {
+        return Ok(address);
+    }
+    if let Ok(address) = decode_byron_payment_address(params, address) {
+        return Ok(address);
+    }
+    Err(Error::InvalidInput)
 }
 
 /// Returns the hash of the pubkey at the keypath. Returns an error if the keystore is locked.
@@ -158,6 +238,8 @@ mod tests {
     fn test_decode_payment_address() {
         // See https://github.com/cardano-foundation/CIPs/blob/0081c890995ff94618145ae5beb7f288c029a86a/CIP-0019/CIP-0019.md#test-vectors
         // One for each Shelley address type, except for stake addresses.
+        //
+        // Apart from the above, some Byron addresses are added.
 
         let valid_addresses_mainnet = vec![
             "addr1qx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3n0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgse35a3x",
@@ -168,6 +250,10 @@ mod tests {
             "addr128phkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gtupnz75xxcrtw79hu",
             "addr1vx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzers66hrl8",
             "addr1w8phkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gtcyjy7wx",
+
+            // Byron addresses:
+            "Ae2tdPwUPEZFRbyhz3cpfC2CumGzNkFBN2L42rcUc2yjQpEkxDbkPodpMAi", // Yoroi style
+            "DdzFFzCqrhtC3C4UY8YFaEyDALJmFAwhx4Kggk3eae3BT9PhymMjzCVYhQE753BH1Rp3LXfVkVaD1FHT4joSBq7Y8rcXbbVWoxkqB7gy", // Daedalus style
         ];
 
         for address in &valid_addresses_mainnet {
@@ -190,6 +276,10 @@ mod tests {
             "addr_test12rphkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gtupnz75xxcryqrvmw",
             "addr_test1vz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzerspjrlsz",
             "addr_test1wrphkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gtcl6szpr",
+
+            // Byron addresses:
+            "37btjrVyb4KEB2STADSsj3MYSAdj52X5FrFWpw2r7Wmj2GDzXjFRsHWuZqrw7zSkwopv8Ci3VWeg6bisU9dgJxW5hb2MZYeduNKbQJrqz3zVBsu9nT", // Daedalus style
+
         ];
 
         for address in &valid_addresses_testnet {

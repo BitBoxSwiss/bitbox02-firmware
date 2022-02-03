@@ -83,6 +83,7 @@ dependencies = [
  "bitbox02",
  "bitbox02-noise",
  "blake2",
+ "crc",
  "digest",
  "ed25519-dalek",
  "hex",
@@ -198,6 +199,21 @@ name = "cpuid-bool"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8aebca1129a03dc6dc2b127edd729435bbc4a37e1d5f4d7513165089ceb02634"
+
+[[package]]
+name = "crc"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "49fc9a695bca7f35f5f4c15cddc84415f66a74ea78eef08e90c5024f2b540e23"
+dependencies = [
+ "crc-catalog",
+]
+
+[[package]]
+name = "crc-catalog"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccaeedb56da03b09f598226e25e80088cb4cd25f316e6e4df7d695f0feeb1403"
 
 [[package]]
 name = "crypto-mac"
@@ -317,9 +333,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "minicbor"
-version = "0.11.3"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9761df552087b47d7651dd4d14717c35ef43d47c01e04e399530faaa427ca541"
+checksum = "c75adbf3b9509b2e5debc0d3bc4e1f44d9e86c821cace902bb80197798cd4f5a"
 
 [[package]]
 name = "noise-protocol"

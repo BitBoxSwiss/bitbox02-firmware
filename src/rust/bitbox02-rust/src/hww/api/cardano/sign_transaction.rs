@@ -356,8 +356,23 @@ mod tests {
             }],
             outputs: vec![
                 pb::cardano_sign_transaction_request::Output {
+                    // Shelley address
                     encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
                     value: 1000000,
+                    script_config: None,
+                    asset_groups: vec![],
+                },
+                pb::cardano_sign_transaction_request::Output {
+                    // Byron Yoroi style address
+                    encoded_address: "Ae2tdPwUPEZFRbyhz3cpfC2CumGzNkFBN2L42rcUc2yjQpEkxDbkPodpMAi".into(),
+                    value: 2000000,
+                    script_config: None,
+                    asset_groups: vec![],
+                },
+                pb::cardano_sign_transaction_request::Output {
+                    // Byron Dadedalus style address
+                    encoded_address: "DdzFFzCqrhtC3C4UY8YFaEyDALJmFAwhx4Kggk3eae3BT9PhymMjzCVYhQE753BH1Rp3LXfVkVaD1FHT4joSBq7Y8rcXbbVWoxkqB7gy".into(),
+                    value: 3000000,
                     script_config: None,
                     asset_groups: vec![],
                 },
@@ -382,7 +397,6 @@ mod tests {
             validity_interval_start: 0,
         };
 
-        static mut OUTPUT_CONFIRMED: bool = false;
         static mut TOTAL_CONFIRMED: bool = false;
         static mut CONFIRM_COUNTER: u32 = 0;
         mock(Data {
@@ -396,20 +410,41 @@ mod tests {
                         assert_eq!(params.body, "Can be mined until\nslot 335011 in\nepoch 292");
                         true
                     }
-                    _ => panic!("too many user confirmations"),
+                    _ => panic!("unexpected user confirmations"),
                 }
             })),
 
             ui_transaction_address_create: Some(Box::new(|amount, address| {
-                assert_eq!(amount, "1 ADA");
-                assert_eq!(address, "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt");
-                unsafe {
-                    OUTPUT_CONFIRMED = true;
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    2 => {
+                        assert_eq!(amount, "1 ADA");
+                        assert_eq!(address, "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt");
+                        true
+                    }
+                    3 => {
+                        assert_eq!(amount, "2 ADA");
+                        assert_eq!(
+                            address,
+                            "Ae2tdPwUPEZFRbyhz3cpfC2CumGzNkFBN2L42rcUc2yjQpEkxDbkPodpMAi"
+                        );
+                        true
+                    }
+                    4 => {
+                        assert_eq!(amount, "3 ADA");
+                        assert_eq!(
+                            address,
+                            "DdzFFzCqrhtC3C4UY8YFaEyDALJmFAwhx4Kggk3eae3BT9PhymMjzCVYhQE753BH1Rp3LXfVkVaD1FHT4joSBq7Y8rcXbbVWoxkqB7gy"
+                        );
+                        true
+                    }
+                    _ => panic!("unexpected user confirmations"),
                 }
-                true
             })),
             ui_transaction_fee_create: Some(Box::new(|total, fee| {
-                assert_eq!(total, "1.170499 ADA");
+                assert_eq!(total, "6.170499 ADA");
                 assert_eq!(fee, "0.170499 ADA");
                 unsafe {
                     TOTAL_CONFIRMED = true;
@@ -426,12 +461,11 @@ mod tests {
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
                 shelley_witnesses: vec![ShelleyWitness {
                     public_key: b"\x1f\x17\xaf\xff\xe8\x05\x29\x7f\x8e\xc6\x54\x45\x82\xb7\xea\x91\xc3\x0d\xc1\xf9\x11\x9c\x5c\x2b\x26\x3e\x58\xfa\x36\x59\x31\x7d".to_vec(),
-                    signature: b"\xf0\x8c\xbb\x77\x76\x03\x14\x22\x4d\xa7\x2b\x88\x62\x5d\xae\x78\xbc\x44\xec\x50\xb4\x98\xf7\x14\xf0\xb2\x3f\x86\x0f\x0c\x0c\x16\x89\x8b\x73\xf1\xa3\x77\xcc\x28\xd9\x78\xfa\x47\xfe\xf8\xba\x79\x7a\x35\x60\x9a\x6a\xd1\x2d\xd7\x9d\x51\x8b\x62\xff\x96\x6c\x06".to_vec(),
+                    signature: b"\xf2\x8c\xf3\xe9\x03\x9f\x09\xcf\x16\x7b\xbd\x60\xff\xc6\xcc\xaf\x39\x44\x19\x39\x0f\x26\x76\x2e\x1f\x45\x05\xd2\x31\x9d\x89\xd8\xaa\x5f\x38\x93\xc0\x0b\xb7\xef\x27\xaf\x15\x5b\xaa\xf0\xad\x16\xd6\x86\x90\x9a\x3a\xc0\x96\x5d\xd1\x76\x72\x23\x38\xa6\xff\x07".to_vec(),
                 }]
             })
         );
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
-        assert!(unsafe { OUTPUT_CONFIRMED });
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 4);
         assert!(unsafe { TOTAL_CONFIRMED });
     }
 

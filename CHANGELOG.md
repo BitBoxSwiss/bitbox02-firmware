@@ -8,6 +8,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 - Cardano: support sending to legacy Byron addresses
+- Cardano: disallow duplicate token keys in an output
 
 ### 9.9.0 [released 2022-01-10]
 - Support sending to taproot addresses

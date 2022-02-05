@@ -17,6 +17,8 @@ use super::Error;
 
 use super::script::serialize_varint;
 
+use crate::workflow::status;
+
 use alloc::vec::Vec;
 
 use pb::request::Request;
@@ -290,7 +292,7 @@ async fn handle_prevtx(
 ///
 /// - Only SIGHASH_ALL. Other sighash types must be carefully studied and might not be secure with
 ///   the above flow or the above assumption.
-pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
+async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     if bitbox02::keystore::is_locked() {
         return Err(Error::InvalidState);
     }
@@ -361,6 +363,8 @@ pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error
         bitbox02::app_btc::sign_output_wrapper(encode(&tx_output).as_ref(), last)?;
     }
 
+    status::status("Transaction\nconfirmed", true).await;
+
     // Stop rendering the empty component.
     drop(empty_component);
 
@@ -404,10 +408,17 @@ pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error
         }
     }
 
-    bitbox02::app_btc::sign_reset();
-
     next_response.next.r#type = NextType::Done as _;
     Ok(next_response.to_protobuf())
+}
+
+pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
+    let result = _process(request).await;
+    bitbox02::app_btc::sign_reset();
+    if let Err(Error::UserAbort) = result {
+        status::status("Transaction\ncanceled", false).await;
+    }
+    result
 }
 
 #[cfg(test)]
@@ -665,7 +676,6 @@ mod tests {
             verify_recipient: Box::new(|_recipient, _amount| true),
             confirm: Box::new(|_title, _body| true),
             verify_total: Box::new(|_total, _fee| true),
-            status: Box::new(|_msg, _status_success| {}),
         });
     }
 
@@ -895,7 +905,6 @@ mod tests {
                     _ => panic!("unexpected UI dialog"),
                 }
             }),
-            status: Box::new(|_msg, _status_success| {}),
         });
         let tx = transaction.borrow();
         let result = block_on(process(&tx.init_request()));

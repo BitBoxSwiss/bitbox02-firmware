@@ -63,7 +63,6 @@ USE_RESULT app_btc_result_t app_btc_sign_antiklepto_wrapper(
 typedef struct {
     bool (*verify_recipient)(const char* recipient, const char* amount);
     bool (*verify_total)(const char* total, const char* fee);
-    void (*status)(const char* msg, bool status_success);
     bool (*confirm)(const confirm_params_t* params);
 } app_btc_ui_t;
 

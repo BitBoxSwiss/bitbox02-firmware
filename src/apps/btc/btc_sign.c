@@ -27,7 +27,6 @@
 #include <ui/screen_stack.h>
 #include <util.h>
 #include <workflow/confirm.h>
-#include <workflow/status.h>
 #include <workflow/verify_recipient.h>
 #include <workflow/verify_total.h>
 
@@ -78,7 +77,6 @@ static uint8_t _hash_outputs[32] = {0};
 static app_btc_ui_t _ui = {
     .verify_recipient = workflow_verify_recipient,
     .verify_total = workflow_verify_total,
-    .status = workflow_status_blocking,
     .confirm = workflow_confirm_blocking,
 };
 
@@ -116,9 +114,6 @@ static void _reset(void)
 
 static app_btc_result_t _error(app_btc_result_t err)
 {
-    if (err == APP_BTC_ERR_USER_ABORT) {
-        _ui.status("Transaction\ncanceled", false);
-    }
     _reset();
     return err;
 }
@@ -601,7 +596,6 @@ app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool l
         if (!_ui.verify_total(formatted_total_out, formatted_fee)) {
             return _error(APP_BTC_ERR_USER_ABORT);
         }
-        _ui.status("Transaction\nconfirmed", true);
 
         rust_sha256_finish(&_hash_outputs_ctx, _hash_outputs);
         // hash hash_outputs to produce the final double-hash

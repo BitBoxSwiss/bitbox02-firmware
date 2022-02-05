@@ -155,28 +155,7 @@ typedef struct {
 
 typedef struct {
     BTCSignInputRequest input;
-
-    // --- Previous transaction data.
-    BTCPrevTxInitRequest prevtx_init;
-    // actual count is in prevtx_init.num_inputs
-    BTCPrevTxInputRequest prevtx_inputs[10];
-    // actual count is in prevtx_init.num_outputs
-    BTCPrevTxOutputRequest prevtx_outputs[10];
 } _input_t;
-
-// Called from `_sign()` to stream and test an input's previous tx.
-static bool _stream_prevtx(const _modification_t* mod, size_t input_index, const _input_t* input)
-{
-    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_init(&input->prevtx_init));
-
-    for (size_t i = 0; i < input->prevtx_init.num_inputs; i++) {
-        assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_input(&input->prevtx_inputs[i], i));
-    }
-    for (size_t i = 0; i < input->prevtx_init.num_outputs; i++) {
-        assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_output(&input->prevtx_outputs[i], i));
-    }
-    return true;
-}
 
 // _sign goes through the whole sign process of an example tx, successfully.
 // The passed params malleate the behavior to induce expected failures.
@@ -235,61 +214,6 @@ static void _sign(const _modification_t* mod)
                             5,
                         },
                 },
-            .prevtx_init =
-                {
-                    .version = 1,
-                    .num_inputs = 2,
-                    .num_outputs = 2,
-                    .locktime = 0,
-                },
-            .prevtx_inputs =
-                {
-                    {
-                        .prev_out_hash =
-                            {
-                                0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
-                                0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
-                                0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
-                            },
-                        .prev_out_index = 3,
-                        .signature_script =
-                            {
-                                .bytes = "signature script",
-                                .size = 16,
-                            },
-                        .sequence = 0xffffffff - 2,
-                    },
-                    {
-                        .prev_out_hash =
-                            {
-                                0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75,
-                                0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75,
-                                0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75, 0x75,
-                            },
-                        .prev_out_index = 23,
-                        .signature_script =
-                            {
-                                .bytes = "signature script 2",
-                                .size = 18,
-                            },
-                        .sequence = 123456,
-                    },
-                },
-            .prevtx_outputs =
-                {
-                    {.value = 101000000, // btc 1.01
-                     .pubkey_script =
-                         {
-                             .bytes = "pubkey script",
-                             .size = 13,
-                         }},
-                    {.value = 1010000000, // btc 10.1
-                     .pubkey_script =
-                         {
-                             .bytes = "pubkey script 2",
-                             .size = 15,
-                         }},
-                },
         },
         {
             .input =
@@ -309,40 +233,6 @@ static void _sign(const _modification_t* mod)
                             0,
                             7,
                         },
-                },
-            .prevtx_init =
-                {
-                    .version = 2,
-                    .num_inputs = 1,
-                    .num_outputs = 1,
-                    .locktime = 87654,
-                },
-            .prevtx_inputs =
-                {
-                    {
-                        .prev_out_hash =
-                            {
-                                0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
-                                0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
-                                0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
-                            },
-                        .prev_out_index = 3,
-                        .signature_script =
-                            {
-                                .bytes = "signature script",
-                                .size = 16,
-                            },
-                        .sequence = 0xffffffff - 2,
-                    },
-                },
-            .prevtx_outputs =
-                {
-                    {.value = 1020000000, // btc 10.2
-                     .pubkey_script =
-                         {
-                             .bytes = "pubkey script",
-                             .size = 13,
-                         }},
                 },
         },
     };
@@ -508,14 +398,6 @@ static void _sign(const _modification_t* mod)
     }
     assert_int_equal(APP_BTC_OK, app_btc_sign_input_pass1(&inputs[0].input, false));
 
-    // First input, prev tx.
-    {
-        size_t input_index = 0;
-        if (!_stream_prevtx(mod, input_index, &inputs[input_index])) {
-            return;
-        }
-    }
-
     // Second input, pass1.
     expect_value(
         __wrap_btc_common_is_valid_keypath_address_simple,
@@ -532,14 +414,6 @@ static void _sign(const _modification_t* mod)
         return;
     }
     assert_int_equal(APP_BTC_OK, app_btc_sign_input_pass1(&inputs[1].input, true));
-
-    // Second input, prev tx.
-    {
-        size_t input_index = 1;
-        if (!_stream_prevtx(mod, input_index, &inputs[input_index])) {
-            return;
-        }
-    }
 
     // === Outputs
 

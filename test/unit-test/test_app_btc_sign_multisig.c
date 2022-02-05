@@ -85,13 +85,6 @@ static uint8_t _mock_bip39_seed[64] =
 
 typedef struct {
     BTCSignInputRequest input;
-
-    // --- Previous transaction data.
-    BTCPrevTxInitRequest prevtx_init;
-    // actual count is in prevtx_init.num_inputs
-    BTCPrevTxInputRequest prevtx_inputs[10];
-    // actual count is in prevtx_init.num_outputs
-    BTCPrevTxOutputRequest prevtx_outputs[10];
 } _input_t;
 
 typedef struct {
@@ -160,41 +153,6 @@ static _tx _make_test_tx(void)
                                     0,
                                 },
                         },
-                    .prevtx_init =
-                        {
-                            .version = 1,
-                            .num_inputs = 1,
-                            .num_outputs = 1,
-                            .locktime = 0,
-                        },
-                    .prevtx_inputs =
-                        {
-                            {
-                                .prev_out_hash =
-                                    {
-                                        0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
-                                        0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
-                                        0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
-                                        0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
-                                    },
-                                .prev_out_index = 3,
-                                .signature_script =
-                                    {
-                                        .bytes = "signature script",
-                                        .size = 16,
-                                    },
-                                .sequence = 0xffffffff - 2,
-                            },
-                        },
-                    .prevtx_outputs =
-                        {
-                            {.value = 100000, // btc 0.001
-                             .pubkey_script =
-                                 {
-                                     .bytes = "pubkey script",
-                                     .size = 13,
-                                 }},
-                        },
                 },
             },
         .outputs =
@@ -255,9 +213,6 @@ static void _test_tx(const _tx* tx, const uint8_t* expected_signature)
     assert_int_equal(APP_BTC_OK, app_btc_sign_init(&tx->init_req));
 
     assert_int_equal(APP_BTC_OK, app_btc_sign_input_pass1(&tx->inputs[0].input, true));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_init(&tx->inputs[0].prevtx_init));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_input(&tx->inputs[0].prevtx_inputs[0], 0));
-    assert_int_equal(APP_BTC_OK, app_btc_sign_prevtx_output(&tx->inputs[0].prevtx_outputs[0], 0));
     assert_int_equal(APP_BTC_OK, app_btc_sign_output(&tx->outputs[0], false));
 
     expect_string(

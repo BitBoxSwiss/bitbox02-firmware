@@ -28,14 +28,6 @@
 
 USE_RESULT app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request);
 
-USE_RESULT app_btc_result_t app_btc_sign_prevtx_init(const BTCPrevTxInitRequest* request);
-
-USE_RESULT app_btc_result_t
-app_btc_sign_prevtx_input(const BTCPrevTxInputRequest* request, uint32_t prevtx_input_index);
-
-USE_RESULT app_btc_result_t
-app_btc_sign_prevtx_output(const BTCPrevTxOutputRequest* request, uint32_t prevtx_output_index);
-
 USE_RESULT app_btc_result_t app_btc_sign_input_pass1(const BTCSignInputRequest* request, bool last);
 
 USE_RESULT app_btc_result_t app_btc_sign_input_pass2(
@@ -55,11 +47,6 @@ USE_RESULT app_btc_result_t app_btc_sign_antiklepto(
 
 USE_RESULT app_btc_result_t app_btc_sign_init_wrapper(in_buffer_t request_buf);
 USE_RESULT app_btc_result_t app_btc_sign_input_pass1_wrapper(in_buffer_t request_buf, bool last);
-USE_RESULT app_btc_result_t app_btc_sign_prevtx_init_wrapper(in_buffer_t request_buf);
-USE_RESULT app_btc_result_t
-app_btc_sign_prevtx_input_wrapper(in_buffer_t request_buf, uint32_t prevtx_input_index);
-USE_RESULT app_btc_result_t
-app_btc_sign_prevtx_output_wrapper(in_buffer_t request_buf, uint32_t prevtx_output_index);
 USE_RESULT app_btc_result_t app_btc_sign_output_wrapper(in_buffer_t request_buf, bool last);
 USE_RESULT app_btc_result_t app_btc_sign_input_pass2_wrapper(
     in_buffer_t request_buf,

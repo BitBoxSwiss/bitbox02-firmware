@@ -15,6 +15,8 @@
 use super::pb;
 use super::Error;
 
+use super::script::serialize_varint;
+
 use alloc::vec::Vec;
 
 use pb::request::Request;
@@ -23,6 +25,8 @@ use pb::response::Response;
 use prost::Message;
 
 use pb::btc_sign_next_response::Type as NextType;
+
+use sha2::{Digest, Sha256};
 
 fn encode<M: Message>(msg: &M) -> Vec<u8> {
     let mut serialized = Vec::<u8>::new();
@@ -183,6 +187,73 @@ async fn get_antiklepto_host_nonce(
     }
 }
 
+/// Stream an input's previous transaction and verify that the prev_out_hash in the input matches
+/// the hash of the previous transaction, as well as that the amount provided in the input is correct.
+async fn handle_prevtx(
+    input_index: u32,
+    input: &pb::BtcSignInputRequest,
+    num_inputs: u32,
+    progress_component: &mut bitbox02::ui::Component<'_>,
+    next_response: &mut NextResponse,
+) -> Result<(), Error> {
+    let prevtx_init = get_prevtx_init(input_index, next_response).await?;
+
+    if prevtx_init.num_inputs < 1 || prevtx_init.num_outputs < 1 {
+        return Err(Error::InvalidInput);
+    }
+
+    let mut hasher = Sha256::new();
+    hasher.update(prevtx_init.version.to_le_bytes());
+
+    hasher.update(serialize_varint(prevtx_init.num_inputs as u64).as_slice());
+    for prevtx_input_index in 0..prevtx_init.num_inputs {
+        // Update progress.
+        bitbox02::ui::progress_set(progress_component, {
+            let step = 1f32 / (num_inputs as f32);
+            let subprogress: f32 = (prevtx_input_index as f32)
+                / (prevtx_init.num_inputs + prevtx_init.num_outputs) as f32;
+            (input_index as f32 + subprogress) * step
+        });
+
+        let prevtx_input = get_prevtx_input(input_index, prevtx_input_index, next_response).await?;
+        hasher.update(prevtx_input.prev_out_hash.as_slice());
+        hasher.update(prevtx_input.prev_out_index.to_le_bytes());
+        hasher.update(serialize_varint(prevtx_input.signature_script.len() as u64).as_slice());
+        hasher.update(prevtx_input.signature_script.as_slice());
+        hasher.update(prevtx_input.sequence.to_le_bytes());
+    }
+
+    hasher.update(serialize_varint(prevtx_init.num_outputs as u64).as_slice());
+    for prevtx_output_index in 0..prevtx_init.num_outputs {
+        // Update progress.
+        bitbox02::ui::progress_set(progress_component, {
+            let step = 1f32 / (num_inputs as f32);
+            let subprogress: f32 = (prevtx_init.num_inputs + prevtx_output_index) as f32
+                / (prevtx_init.num_inputs + prevtx_init.num_outputs) as f32;
+            (input_index as f32 + subprogress) * step
+        });
+
+        let prevtx_output =
+            get_prevtx_output(input_index, prevtx_output_index, next_response).await?;
+        if prevtx_output_index == input.prev_out_index
+            && input.prev_out_value != prevtx_output.value
+        {
+            return Err(Error::InvalidInput);
+        }
+        hasher.update(prevtx_output.value.to_le_bytes());
+        hasher.update(serialize_varint(prevtx_output.pubkey_script.len() as u64).as_slice());
+        hasher.update(prevtx_output.pubkey_script.as_slice());
+    }
+
+    hasher.update(prevtx_init.locktime.to_le_bytes());
+    // Hash again to produce the final double-hash.
+    let hash = Sha256::digest(&hasher.finalize());
+    if hash.as_slice() != input.prev_out_hash.as_slice() {
+        return Err(Error::InvalidInput);
+    }
+    Ok(())
+}
+
 /// Singing flow:
 ///
 /// init
@@ -252,42 +323,14 @@ pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
         let last = input_index == request.num_inputs - 1;
         bitbox02::app_btc::sign_input_pass1_wrapper(encode(&tx_input).as_ref(), last)?;
-
-        let prevtx_init = get_prevtx_init(input_index, &mut next_response).await?;
-        bitbox02::app_btc::sign_prevtx_init_wrapper(encode(&prevtx_init).as_ref())?;
-        for prevtx_input_index in 0..prevtx_init.num_inputs {
-            // Update progress.
-            bitbox02::ui::progress_set(progress_component.as_mut().unwrap(), {
-                let step = 1f32 / (request.num_inputs as f32);
-                let subprogress: f32 = (prevtx_input_index as f32)
-                    / (prevtx_init.num_inputs + prevtx_init.num_outputs) as f32;
-                (input_index as f32 + subprogress) * step
-            });
-
-            let prevtx_input =
-                get_prevtx_input(input_index, prevtx_input_index, &mut next_response).await?;
-            bitbox02::app_btc::sign_prevtx_input_wrapper(
-                encode(&prevtx_input).as_ref(),
-                prevtx_input_index,
-            )?;
-        }
-
-        for prevtx_output_index in 0..prevtx_init.num_outputs {
-            // Update progress.
-            bitbox02::ui::progress_set(progress_component.as_mut().unwrap(), {
-                let step = 1f32 / (request.num_inputs as f32);
-                let subprogress: f32 = (prevtx_init.num_inputs + prevtx_output_index) as f32
-                    / (prevtx_init.num_inputs + prevtx_init.num_outputs) as f32;
-                (input_index as f32 + subprogress) * step
-            });
-
-            let prevtx_output =
-                get_prevtx_output(input_index, prevtx_output_index, &mut next_response).await?;
-            bitbox02::app_btc::sign_prevtx_output_wrapper(
-                encode(&prevtx_output).as_ref(),
-                prevtx_output_index,
-            )?;
-        }
+        handle_prevtx(
+            input_index,
+            &tx_input,
+            request.num_inputs,
+            progress_component.as_mut().unwrap(),
+            &mut next_response,
+        )
+        .await?;
     }
 
     // The progress for loading the inputs is 100%.

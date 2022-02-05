@@ -45,23 +45,6 @@ static BTCSignInitRequest _init_request = {0};
 static enum apps_btc_rbf_flag _rbf;
 static bool _locktime_applies;
 
-// State of previous transaction during processing of a previous transaction.
-//
-// This state is valid from `app_btc_sign_prevtx_init()` until the input referencing this tx is done
-// in `app_btc_sign_input_pass1()`.
-static struct {
-    // Set for the duration of STATE_PREVTX_*.
-    BTCPrevTxInitRequest init_request;
-
-    // Hash accumulator for the whole transaction.
-    void* tx_hash_ctx;
-
-    // TODO: prev tx hash accumulator to compute the prev tx ID.
-
-    // The input that referenced this prev tx. Will be used to validate the supplied input value.
-    BTCSignInputRequest referencing_input;
-} _prevtx;
-
 // used during the first pass through the inputs. Will contain the sum of all spent output
 // values.
 static uint64_t _inputs_sum_pass1 = 0;
@@ -111,8 +94,6 @@ static void _reset(void)
 {
     _coin_params = NULL;
     util_zero(&_init_request, sizeof(_init_request));
-    rust_sha256_free(&_prevtx.tx_hash_ctx);
-    util_zero(&_prevtx, sizeof(_prevtx));
     _rbf = CONFIRM_LOCKTIME_RBF_OFF;
     _locktime_applies = false;
     _inputs_sum_pass1 = 0;
@@ -168,111 +149,6 @@ app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request)
     }
     _coin_params = coin_params;
     _init_request = *request;
-    return APP_BTC_OK;
-}
-
-static bool _hash_varint(void* ctx, uint64_t v)
-{
-    uint8_t varint[MAX_VARINT_SIZE] = {0};
-    size_t size;
-    if (wally_varint_to_bytes(v, varint, sizeof(varint), &size) != WALLY_OK) {
-        return false;
-    }
-    rust_sha256_update(ctx, varint, size);
-    return true;
-}
-
-app_btc_result_t app_btc_sign_prevtx_init(const BTCPrevTxInitRequest* request)
-{
-    if (request->num_inputs < 1 || request->num_outputs < 1) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-
-    // Hash version
-    // assumes little endian environment
-    rust_sha256_update(_prevtx.tx_hash_ctx, &request->version, sizeof(request->version));
-
-    _prevtx.init_request = *request;
-    return APP_BTC_OK;
-}
-
-app_btc_result_t app_btc_sign_prevtx_input(
-    const BTCPrevTxInputRequest* request,
-    uint32_t prevtx_input_index)
-{
-    if (prevtx_input_index == 0) {
-        // Hash number of inputs
-        if (!_hash_varint(_prevtx.tx_hash_ctx, _prevtx.init_request.num_inputs)) {
-            return _error(APP_BTC_ERR_UNKNOWN);
-        }
-    }
-
-    // Hash prevOutHash
-    rust_sha256_update(_prevtx.tx_hash_ctx, request->prev_out_hash, sizeof(request->prev_out_hash));
-    // Hash preOutIndex
-    // assumes little endian environment
-    rust_sha256_update(
-        _prevtx.tx_hash_ctx, &request->prev_out_index, sizeof(request->prev_out_index));
-
-    // Hash sig script
-    if (!_hash_varint(_prevtx.tx_hash_ctx, request->signature_script.size)) {
-        return _error(APP_BTC_ERR_UNKNOWN);
-    }
-    rust_sha256_update(
-        _prevtx.tx_hash_ctx, request->signature_script.bytes, request->signature_script.size);
-
-    // Hash sequence
-    // assumes little endian environment
-    rust_sha256_update(_prevtx.tx_hash_ctx, &request->sequence, sizeof(request->sequence));
-    return APP_BTC_OK;
-}
-
-app_btc_result_t app_btc_sign_prevtx_output(
-    const BTCPrevTxOutputRequest* request,
-    uint32_t prevtx_output_index)
-{
-    if (prevtx_output_index == 0) {
-        // Hash number of inputs
-        if (!_hash_varint(_prevtx.tx_hash_ctx, _prevtx.init_request.num_outputs)) {
-            return _error(APP_BTC_ERR_UNKNOWN);
-        }
-    }
-    if (prevtx_output_index == _prevtx.referencing_input.prevOutIndex) {
-        if (_prevtx.referencing_input.prevOutValue != request->value) {
-            return _error(APP_BTC_ERR_INVALID_INPUT);
-        }
-    }
-
-    // Hash value
-    // assumes little endian environment
-    rust_sha256_update(_prevtx.tx_hash_ctx, &request->value, sizeof(request->value));
-
-    // Hash pubkeyScript
-    if (!_hash_varint(_prevtx.tx_hash_ctx, request->pubkey_script.size)) {
-        return _error(APP_BTC_ERR_UNKNOWN);
-    }
-    rust_sha256_update(
-        _prevtx.tx_hash_ctx, request->pubkey_script.bytes, request->pubkey_script.size);
-
-    bool last = prevtx_output_index == _prevtx.init_request.num_outputs - 1;
-
-    if (last) {
-        // Hash locktime
-        // assumes little endian environment
-        rust_sha256_update(
-            _prevtx.tx_hash_ctx,
-            &_prevtx.init_request.locktime,
-            sizeof(_prevtx.init_request.locktime));
-
-        uint8_t txhash[32] = {0};
-        rust_sha256_finish(&_prevtx.tx_hash_ctx, txhash);
-        // hash again to produce the final double-hash
-        rust_sha256(txhash, sizeof(txhash), txhash);
-
-        if (!MEMEQ(txhash, _prevtx.referencing_input.prevOutHash, sizeof(txhash))) {
-            return _error(APP_BTC_ERR_INVALID_INPUT);
-        }
-    }
     return APP_BTC_OK;
 }
 
@@ -397,13 +273,6 @@ app_btc_result_t app_btc_sign_input_pass1(const BTCSignInputRequest* request, bo
         // hash hash_sequence to produce the final double-hash
         rust_sha256(_hash_sequence, 32, _hash_sequence);
     }
-
-    // Want the previous tx of this input.
-    // Init prevtx state.
-    rust_sha256_free(&_prevtx.tx_hash_ctx);
-    util_zero(&_prevtx, sizeof(_prevtx));
-    _prevtx.referencing_input = *request;
-    _prevtx.tx_hash_ctx = rust_sha256_new();
     return APP_BTC_OK;
 }
 
@@ -769,40 +638,6 @@ app_btc_result_t app_btc_sign_input_pass1_wrapper(in_buffer_t request_buf, bool 
         return _error(APP_BTC_ERR_UNKNOWN);
     }
     return app_btc_sign_input_pass1(&request, last);
-}
-
-app_btc_result_t app_btc_sign_prevtx_init_wrapper(in_buffer_t request_buf)
-{
-    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
-    BTCPrevTxInitRequest request = {0};
-    if (!pb_decode(&in_stream, BTCPrevTxInitRequest_fields, &request)) {
-        return _error(APP_BTC_ERR_UNKNOWN);
-    }
-    return app_btc_sign_prevtx_init(&request);
-}
-
-app_btc_result_t app_btc_sign_prevtx_input_wrapper(
-    in_buffer_t request_buf,
-    uint32_t prevtx_input_index)
-{
-    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
-    BTCPrevTxInputRequest request = {0};
-    if (!pb_decode(&in_stream, BTCPrevTxInputRequest_fields, &request)) {
-        return _error(APP_BTC_ERR_UNKNOWN);
-    }
-    return app_btc_sign_prevtx_input(&request, prevtx_input_index);
-}
-
-app_btc_result_t app_btc_sign_prevtx_output_wrapper(
-    in_buffer_t request_buf,
-    uint32_t prevtx_output_index)
-{
-    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
-    BTCPrevTxOutputRequest request = {0};
-    if (!pb_decode(&in_stream, BTCPrevTxOutputRequest_fields, &request)) {
-        return _error(APP_BTC_ERR_UNKNOWN);
-    }
-    return app_btc_sign_prevtx_output(&request, prevtx_output_index);
 }
 
 app_btc_result_t app_btc_sign_output_wrapper(in_buffer_t request_buf, bool last)

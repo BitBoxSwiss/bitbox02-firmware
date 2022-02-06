@@ -1309,4 +1309,41 @@ mod tests {
             assert_eq!(unsafe { LOCKTIME_CONFIRMED }, test_case.confirm.is_some());
         }
     }
+
+    // Test a P2TR output. It is not part of the default test transaction because Taproot is not
+    // active on Litecoin yet.
+    #[test]
+    fn test_p2tr_output() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        transaction.borrow_mut().outputs[0].r#type = pb::BtcOutputType::P2tr as _;
+        transaction.borrow_mut().outputs[0].payload = b"\xa6\x08\x69\xf0\xdb\xcf\x1d\xc6\x59\xc9\xce\xcb\xaf\x80\x50\x13\x5e\xa9\xe8\xcd\xc4\x87\x05\x3f\x1d\xc6\x88\x09\x49\xdc\x68\x4c".to_vec();
+        mock_host_responder(transaction.clone());
+        static mut UI_COUNTER: u32 = 0;
+        bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
+            verify_recipient: Box::new(|recipient, amount| unsafe {
+                UI_COUNTER += 1;
+                if UI_COUNTER == 1 {
+                    assert_eq!(
+                        recipient,
+                        "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr"
+                    );
+                    assert_eq!(amount, "1 BTC");
+                }
+                true
+            }),
+            confirm: Box::new(|_title, _body| true),
+            verify_total: Box::new(|_total, _fee| true),
+        });
+        mock_unlocked();
+        let result = block_on(process(&transaction.borrow().init_request()));
+        assert!(unsafe { UI_COUNTER >= 1 });
+        match result {
+            Ok(Response::BtcSignNext(next)) => {
+                assert!(next.has_signature);
+                assert_eq!(&next.signature, b"\x8f\x1e\x0e\x8f\x98\xd3\x6d\xb1\x19\x62\x64\xf1\xa3\x00\xfa\xe3\x17\xf1\x50\x8d\x2c\x48\x9f\xbb\xd6\x60\xe0\x48\xc4\x52\x9c\x61\x2f\x59\x57\x6c\x86\xa2\x6f\xfa\x47\x6d\x97\x35\x1e\x46\x9e\xf6\xed\x27\x84\xae\xcb\x71\x05\x3a\x51\x66\x77\x5c\xcb\x4d\x7b\x9b");
+            }
+            _ => panic!("wrong result"),
+        }
+    }
 }

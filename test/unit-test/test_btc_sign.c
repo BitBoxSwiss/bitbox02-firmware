@@ -128,8 +128,6 @@ typedef struct {
     bool overflow_output_ours;
     // exercise the antiklepto protocol
     bool antikepto;
-    // make one output a P2TR output to exercise P2TR address generation and sighash.
-    bool p2tr_output;
 } _modification_t;
 
 typedef struct {
@@ -319,16 +317,6 @@ static void _sign(const _modification_t* mod)
     if (mod->overflow_output_ours) {
         outputs[4].value = ULLONG_MAX;
     }
-    if (mod->p2tr_output) {
-        outputs[0].type = BTCOutputType_P2TR;
-        outputs[0].payload.size = 32;
-        memcpy(
-            outputs[0].payload.bytes,
-            "\xa6\x08\x69\xf0\xdb\xcf\x1d\xc6\x59\xc9\xce\xcb\xaf\x80\x50\x13\x5e\xa9\xe8\xcd\xc4"
-            "\x87\x05\x3f\x1d\xc6\x88\x09\x49\xdc\x68\x4c",
-            32);
-    }
-
     assert_int_equal(APP_BTC_OK, app_btc_sign_init(&init_req));
 
     // === Inputs Pass 1
@@ -376,15 +364,8 @@ static void _sign(const _modification_t* mod)
     expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, outputs[0].value);
     expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     will_return(__wrap_rust_bitcoin_util_format_amount, "amount0");
-    if (mod->p2tr_output) {
-        expect_string(
-            __wrap_workflow_verify_recipient,
-            recipient,
-            "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr");
-    } else {
-        expect_string(
-            __wrap_workflow_verify_recipient, recipient, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
-    }
+    expect_string(
+        __wrap_workflow_verify_recipient, recipient, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
     expect_string(__wrap_workflow_verify_recipient, amount, "amount0");
     will_return(__wrap_workflow_verify_recipient, true);
     assert_int_equal(APP_BTC_OK, app_btc_sign_output(&outputs[0], false));
@@ -507,21 +488,12 @@ static void _sign(const _modification_t* mod)
         app_btc_sign_input_pass2(
             &inputs[0].input, signature, anti_klepto_signer_commitment, false));
     if (mod->check_sigs) {
-        if (mod->p2tr_output) {
-            const uint8_t expected_signature[64] =
-                "\xef\x88\x53\x86\x22\x56\x17\xbe\x17\xb5\xcf\x77\xe5\x99\xcc\x0b\x40\x5f\x3b"
-                "\xa5\xd6\x12\x7d\xa1\x55\xcb\x34\x52\x32\xcb\x65\xcc\x57\x1c\x95\xc5\x36\xf6"
-                "\x05\xbd\x21\x86\x85\x36\xa8\xbd\x9d\xc5\x1d\xfb\x62\x2e\xf8\xe8\x20\x85\x8d"
-                "\x08\x12\x0d\x81\xf1\x34\xe8";
-            assert_memory_equal(signature, expected_signature, sizeof(signature));
-        } else {
-            const uint8_t expected_signature[64] =
-                "\xa0\xe8\xee\x3f\x59\xa0\xae\x03\xbc\x02\x38\x89\x10\xf8\x7b\x57\xbf\x69\x02"
-                "\x07\xd7\x1f\x79\xd8\xec\xb0\xda\x68\x05\x94\xe2\xfd\x1a\xb3\x5a\xcf\x1e\x20"
-                "\x02\x03\x81\x32\x23\xd0\x04\x8d\xb6\xc1\x1d\x0e\x03\xd5\xd5\xc4\xad\xba\x90"
-                "\xd6\x33\x55\x5a\x24\x1e\xa6";
-            assert_memory_equal(signature, expected_signature, sizeof(signature));
-        }
+        const uint8_t expected_signature[64] =
+            "\xa0\xe8\xee\x3f\x59\xa0\xae\x03\xbc\x02\x38\x89\x10\xf8\x7b\x57\xbf\x69\x02"
+            "\x07\xd7\x1f\x79\xd8\xec\xb0\xda\x68\x05\x94\xe2\xfd\x1a\xb3\x5a\xcf\x1e\x20"
+            "\x02\x03\x81\x32\x23\xd0\x04\x8d\xb6\xc1\x1d\x0e\x03\xd5\xd5\xc4\xad\xba\x90"
+            "\xd6\x33\x55\x5a\x24\x1e\xa6";
+        assert_memory_equal(signature, expected_signature, sizeof(signature));
     }
 
     // Second input, pass2.
@@ -598,21 +570,12 @@ static void _sign(const _modification_t* mod)
             app_btc_sign_input_pass2(
                 &inputs[1].input, signature, anti_klepto_signer_commitment, true));
         if (mod->check_sigs) {
-            if (mod->p2tr_output) {
-                const uint8_t expected_signature[64] =
-                    "\x8f\x1e\x0e\x8f\x98\xd3\x6d\xb1\x19\x62\x64\xf1\xa3\x00\xfa\xe3\x17\xf1"
-                    "\x50\x8d\x2c\x48\x9f\xbb\xd6\x60\xe0\x48\xc4\x52\x9c\x61\x2f\x59\x57\x6c"
-                    "\x86\xa2\x6f\xfa\x47\x6d\x97\x35\x1e\x46\x9e\xf6\xed\x27\x84\xae\xcb\x71"
-                    "\x05\x3a\x51\x66\x77\x5c\xcb\x4d\x7b\x9b";
-                assert_memory_equal(signature, expected_signature, sizeof(signature));
-            } else {
-                const uint8_t expected_signature[64] =
-                    "\x2e\x08\x4a\x0a\x5f\x9b\xab\xb3\x5d\xf6\xec\x3a\x89\x72\x0b\xcf\xc0\x88"
-                    "\xd4\xba\x6a\xee\x47\x97\x3c\x55\xfe\xc3\xb3\xdd\xaa\x60\x07\xc7\xb1\x1c"
-                    "\x8b\x5a\x1a\x68\x20\xca\x74\xa8\x5a\xeb\x4c\xf5\x45\xc1\xb3\x37\x53\x70"
-                    "\xf4\x4f\x24\xd5\x3d\x61\xfe\x67\x6e\x4c";
-                assert_memory_equal(signature, expected_signature, sizeof(signature));
-            }
+            const uint8_t expected_signature[64] =
+                "\x2e\x08\x4a\x0a\x5f\x9b\xab\xb3\x5d\xf6\xec\x3a\x89\x72\x0b\xcf\xc0\x88"
+                "\xd4\xba\x6a\xee\x47\x97\x3c\x55\xfe\xc3\xb3\xdd\xaa\x60\x07\xc7\xb1\x1c"
+                "\x8b\x5a\x1a\x68\x20\xca\x74\xa8\x5a\xeb\x4c\xf5\x45\xc1\xb3\x37\x53\x70"
+                "\xf4\x4f\x24\xd5\x3d\x61\xfe\x67\x6e\x4c";
+            assert_memory_equal(signature, expected_signature, sizeof(signature));
         }
     }
 
@@ -675,13 +638,6 @@ static void _test_antiklepto(void** state)
     modified.antikepto = true;
     _sign(&modified);
 }
-static void _test_p2tr_output(void** state)
-{
-    _modification_t modified = _valid;
-    modified.p2tr_output = true;
-    modified.check_sigs = true;
-    _sign(&modified);
-}
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -694,7 +650,6 @@ int main(void)
         cmocka_unit_test(_test_overflow_output_out),
         cmocka_unit_test(_test_overflow_output_ours),
         cmocka_unit_test(_test_antiklepto),
-        cmocka_unit_test(_test_p2tr_output),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

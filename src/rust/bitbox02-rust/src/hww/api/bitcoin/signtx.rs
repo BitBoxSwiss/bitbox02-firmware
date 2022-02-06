@@ -426,7 +426,7 @@ mod tests {
     use super::*;
     use crate::bb02_async::block_on;
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, mock_unlocked, Data};
+    use bitbox02::testing::{mock, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic, Data};
     use util::bip32::HARDENED;
 
     struct TxInput {
@@ -608,6 +608,72 @@ mod tests {
                     },
                 ],
                 locktime: 0,
+            }
+        }
+
+        /// An arbitrary multisig test transaction with some inputs and outputs.
+        fn new_multisig() -> Self {
+            let coin = pb::BtcCoin::Tbtc;
+            let bip44_coin = super::super::params::get(coin).bip44_coin;
+            Transaction {
+                coin,
+                total_confirmations: 5,
+                version: 2,
+                inputs: vec![TxInput {
+                    input: pb::BtcSignInputRequest {
+                        prev_out_hash: vec![
+                            0x41, 0x3b, 0x8e, 0x74, 0x05, 0x15, 0x96, 0x6b, 0x20, 0x2b, 0x24, 0xc3,
+                            0x19, 0xfc, 0xf3, 0x5f, 0xc5, 0x37, 0x6e, 0xb2, 0x71, 0x95, 0xb8, 0x76,
+                            0x62, 0x9a, 0x44, 0x1d, 0x19, 0xaa, 0x6c, 0x0f,
+                        ],
+                        prev_out_index: 0,
+                        prev_out_value: 100000, // btc 0.001
+                        sequence: 0xffffffff - 1,
+                        keypath: vec![48 + HARDENED, bip44_coin, 0 + HARDENED, 2 + HARDENED, 0, 0],
+                        script_config_index: 0,
+                        host_nonce_commitment: None,
+                    },
+                    prevtx_version: 1,
+                    prevtx_inputs: vec![pb::BtcPrevTxInputRequest {
+                        prev_out_hash: vec![
+                            0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
+                            0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
+                            0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74, 0x74,
+                        ],
+                        prev_out_index: 3,
+                        signature_script: b"signature script".to_vec(),
+                        sequence: 0xffffffff - 2,
+                    }],
+                    prevtx_outputs: vec![pb::BtcPrevTxOutputRequest {
+                        value: 100000, // btc 0.001
+                        pubkey_script: b"pubkey script".to_vec(),
+                    }],
+                    prevtx_locktime: 0,
+                    host_nonce: None,
+                }],
+                outputs: vec![
+                    pb::BtcSignOutputRequest {
+                        ours: true,
+                        r#type: pb::BtcOutputType::Unknown as _,
+                        value: 9825, // btc 0.00009825
+                        payload: vec![],
+                        keypath: vec![48 + HARDENED, bip44_coin, 0 + HARDENED, 2 + HARDENED, 1, 0],
+                        script_config_index: 0,
+                    },
+                    pb::BtcSignOutputRequest {
+                        ours: false,
+                        r#type: pb::BtcOutputType::P2wsh as _,
+                        value: 90000, // btc 0.0009
+                        payload: vec![
+                            0x59, 0x88, 0x02, 0x4d, 0x26, 0x74, 0x2c, 0x74, 0xd1, 0x1c, 0x3b, 0x28,
+                            0x83, 0xe7, 0x57, 0x84, 0x67, 0x25, 0xa3, 0xf6, 0x23, 0xae, 0xc2, 0x09,
+                            0x76, 0xd3, 0x0e, 0x29, 0xb0, 0xd4, 0xb3, 0x5b,
+                        ],
+                        keypath: vec![],
+                        script_config_index: 0,
+                    },
+                ],
+                locktime: 1663289,
             }
         }
 
@@ -1388,6 +1454,330 @@ mod tests {
             })) => {
                 assert!(next.has_signature);
                 assert_eq!(&next.signature, b"\x2e\x6d\xe6\x54\x62\x6e\xe9\x12\xbf\x2e\x0c\xf5\xa5\x67\x49\x89\x1a\xa9\x89\x56\xd4\x0e\x29\xe3\x8b\x8a\x64\x4d\x5c\x62\xcf\xcc\x44\xe7\x72\x92\x84\xff\x30\xf9\x24\x8c\xd7\x0a\x54\x57\xb0\xe2\x32\x4e\x7c\x47\x3f\x66\x00\x43\x2a\xcd\xc8\xd9\x2f\xb1\x67\x66");
+            }
+            _ => panic!("wrong result"),
+        }
+    }
+
+    fn parse_xpub(xpub: &str) -> Result<pb::XPub, ()> {
+        let decoded = bitbox02::base58::decode(xpub)?;
+        Ok(pb::XPub {
+            depth: decoded[4..5].to_vec(),
+            parent_fingerprint: decoded[5..9].to_vec(),
+            child_num: u32::from_be_bytes(
+                core::convert::TryInto::try_into(&decoded[9..13]).unwrap(),
+            ),
+            chain_code: decoded[13..45].to_vec(),
+            public_key: decoded[45..78].to_vec(),
+        })
+    }
+
+    #[test]
+    fn test_multisig_p2wsh() {
+        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
+        mock_host_responder(transaction.clone());
+        static mut UI_COUNTER: u32 = 0;
+        bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
+            verify_recipient: Box::new(move |recipient, amount| {
+                match unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER
+                } {
+                    3 => {
+                        assert_eq!(
+                            recipient,
+                            "tb1qtxyqynfxwsk8f5gu8v5g8e6hs3njtglkywhvyztk6v8znvx5kddsmhuve2"
+                        );
+                        assert_eq!(amount, "0.0009 TBTC");
+                    }
+                    _ => panic!("unexpected UI dialog"),
+                }
+                true
+            }),
+            confirm: Box::new(|title, body| {
+                match unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(title, "Spend from");
+                        assert_eq!(body, "1-of-2\nBTC Testnet multisig");
+                    }
+                    2 => {
+                        assert_eq!(title, "Spend from");
+                        assert_eq!(body, "test multisig account name");
+                    }
+                    4 => {
+                        assert_eq!(title, "");
+                        assert_eq!(body, "Locktime on block:\n1663289\nTransaction is not RBF");
+                    }
+                    _ => panic!("unexpected UI dialog"),
+                }
+                true
+            }),
+            verify_total: Box::new(move |total, fee| {
+                match unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER
+                } {
+                    5 => {
+                        assert_eq!(total, "0.00090175 TBTC");
+                        assert_eq!(fee, "0.00000175 TBTC");
+                    }
+                    _ => panic!("unexpected UI dialog"),
+                }
+                true
+            }),
+        });
+        mock_unlocked_using_mnemonic(
+            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+        );
+        // For the multisig registration below.
+        mock_memory();
+
+        // Hash of the multisig configuration as computed by `btc_common_multisig_hash_sorted()`.
+        let multisig_hash = b"\x89\x75\x1d\x19\xe4\xe2\x6f\xbe\xee\x2f\xd2\xc4\xf5\x6a\xb7\xae\x5b\xe6\xdc\x46\x48\x2e\x81\x24\x1f\x4a\xcc\xfb\xc0\xa1\x58\x4e";
+        bitbox02::memory::multisig_set_by_hash(multisig_hash, "test multisig account name")
+            .unwrap();
+
+        let init_request = {
+            let tx = transaction.borrow();
+            pb::BtcSignInitRequest {
+                coin: tx.coin as _,
+                script_configs: vec![pb::BtcScriptConfigWithKeypath {
+                    script_config: Some(pb::BtcScriptConfig {
+                        config: Some(pb::btc_script_config::Config::Multisig(
+                            pb::btc_script_config::Multisig {
+                                threshold: 1,
+                                xpubs: vec![
+                                    // sudden tenant fault inject concert weather maid people chunk
+                                    // youth stumble grit / 48'/1'/0'/2'
+                                    parse_xpub("xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYUCugjeksHSbyZT7rq38VQF").unwrap(),
+                                    // dumb rough room report huge dry sudden hamster wait foot crew
+                                    // obvious / 48'/1'/0'/2'
+                                    parse_xpub("xpub6ERxBysTYfQyY4USv6c6J1HNVv9hpZFN9LHVPu47Ac4rK8fLy6NnAeeAHyEsMvG4G66ay5aFZii2VM7wT3KxLKX8Q8keZPd67kRGmrD1WJj").unwrap(),
+                                ],
+                                our_xpub_index: 0,
+                                script_type: pb::btc_script_config::multisig::ScriptType::P2wsh
+                                    as _,
+                            },
+                        )),
+                    }),
+                    keypath: vec![
+                        48 + HARDENED,
+                        super::super::params::get(tx.coin).bip44_coin,
+                        0 + HARDENED,
+                        2 + HARDENED,
+                    ],
+                }],
+                version: tx.version,
+                num_inputs: tx.inputs.len() as _,
+                num_outputs: tx.outputs.len() as _,
+                locktime: tx.locktime,
+            }
+        };
+        let result = block_on(process(&init_request));
+        match result {
+            Ok(Response::BtcSignNext(next)) => {
+                assert!(next.has_signature);
+                assert_eq!(&next.signature, b"\x1b\xee\x37\xe9\x12\x3f\xd3\x7f\xb8\xbe\x2d\xd2\x53\xea\x81\x0a\x02\x13\x02\xe1\x49\x62\xf4\x6e\xee\xa9\x79\xd9\x6f\xfb\x4c\x67\x69\xd0\x07\xde\x36\x0f\x50\xe1\xde\x37\x8d\xe4\x8e\x7a\x9f\xc7\x9c\x47\x24\x5b\x36\x0d\xaf\x27\x64\x75\x29\xc9\x2e\x86\xb2\x03");
+            }
+            _ => panic!("wrong result"),
+        }
+        assert_eq!(
+            unsafe { UI_COUNTER },
+            transaction.borrow().total_confirmations
+        );
+    }
+
+    /// If the multisig has not been registered before, signing fails.
+    #[test]
+    fn test_multisig_not_registered() {
+        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
+        mock_host_responder(transaction.clone());
+        mock_default_ui();
+        mock_unlocked_using_mnemonic(
+            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+        );
+        let init_request = {
+            let tx = transaction.borrow();
+            pb::BtcSignInitRequest {
+                coin: tx.coin as _,
+                script_configs: vec![pb::BtcScriptConfigWithKeypath {
+                    script_config: Some(pb::BtcScriptConfig {
+                        config: Some(pb::btc_script_config::Config::Multisig(
+                            pb::btc_script_config::Multisig {
+                                threshold: 1,
+                                xpubs: vec![
+                                    // sudden tenant fault inject concert weather maid people chunk
+                                    // youth stumble grit / 48'/1'/0'/2'
+                                    parse_xpub("xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYUCugjeksHSbyZT7rq38VQF").unwrap(),
+                                    // dumb rough room report huge dry sudden hamster wait foot crew
+                                    // obvious / 48'/1'/0'/2'
+                                    parse_xpub("xpub6ERxBysTYfQyY4USv6c6J1HNVv9hpZFN9LHVPu47Ac4rK8fLy6NnAeeAHyEsMvG4G66ay5aFZii2VM7wT3KxLKX8Q8keZPd67kRGmrD1WJj").unwrap(),
+                                ],
+                                our_xpub_index: 0,
+                                script_type: pb::btc_script_config::multisig::ScriptType::P2wsh
+                                    as _,
+                            },
+                        )),
+                    }),
+                    keypath: vec![
+                        48 + HARDENED,
+                        super::super::params::get(tx.coin).bip44_coin,
+                        0 + HARDENED,
+                        2 + HARDENED,
+                    ],
+                }],
+                version: tx.version,
+                num_inputs: tx.inputs.len() as _,
+                num_outputs: tx.outputs.len() as _,
+                locktime: tx.locktime,
+            }
+        };
+        assert_eq!(block_on(process(&init_request)), Err(Error::InvalidInput));
+    }
+
+    #[test]
+    fn test_multisig_p2wsh_p2sh() {
+        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
+        for input in transaction.borrow_mut().inputs.iter_mut() {
+            input.input.keypath[3] = 1 + HARDENED;
+        }
+        for output in transaction.borrow_mut().outputs.iter_mut() {
+            if output.ours {
+                output.keypath[3] = 1 + HARDENED;
+            }
+        }
+
+        mock_host_responder(transaction.clone());
+        mock_default_ui();
+        mock_unlocked_using_mnemonic(
+            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+        );
+        // For the multisig registration below.
+        mock_memory();
+
+        // Hash of the multisig configuration as computed by `btc_common_multisig_hash_sorted()`.
+        let multisig_hash = b"\xa0\xa9\x82\xa6\xf5\xba\x92\x86\xee\x45\xcd\x14\x0f\xd7\x63\xd4\x34\x43\xd6\x85\xa8\x9b\xc6\x07\x72\x55\x3c\xc5\x41\x8f\xcc\xc4";
+        bitbox02::memory::multisig_set_by_hash(multisig_hash, "test multisig account name")
+            .unwrap();
+
+        let init_request = {
+            let tx = transaction.borrow();
+            pb::BtcSignInitRequest {
+                coin: tx.coin as _,
+                script_configs: vec![pb::BtcScriptConfigWithKeypath {
+                    script_config: Some(pb::BtcScriptConfig {
+                        config: Some(pb::btc_script_config::Config::Multisig(
+                            pb::btc_script_config::Multisig {
+                                threshold: 1,
+                                xpubs: vec![
+                                    // sudden tenant fault inject concert weather maid people chunk
+                                    // youth stumble grit / 48'/1'/0'/1'
+                                    parse_xpub("xpub6EMfjyGVUvwhn1H2BwoVysVJi9cX78eyNTkoM3d26NHW4Zd75zrAcikT3dmoii4eZPwobzK4pMBYrLmE2y918UayfqBQFr6HpVze5mQHGyu").unwrap(),
+                                    // dumb rough room report huge dry sudden hamster wait foot crew
+                                    // obvious / 48'/1'/0'/1'
+                                    parse_xpub("xpub6ERxBysTYfQyV5NYAV6WZVj1dfTzESVGkWUiqERomNKCA6nCA8qX4qSLX2RRGNqckn3ps9B9sdfDkpg11nsJwCjXYXSZvkTED2Jx8jFpB9M").unwrap(),
+                                ],
+                                our_xpub_index: 0,
+                                script_type: pb::btc_script_config::multisig::ScriptType::P2wshP2sh
+                                    as _,
+                            },
+                        )),
+                    }),
+                    keypath: vec![
+                        48 + HARDENED,
+                        super::super::params::get(tx.coin).bip44_coin,
+                        0 + HARDENED,
+                        1 + HARDENED,
+                    ],
+                }],
+                version: tx.version,
+                num_inputs: tx.inputs.len() as _,
+                num_outputs: tx.outputs.len() as _,
+                locktime: tx.locktime,
+            }
+        };
+        let result = block_on(process(&init_request));
+        match result {
+            Ok(Response::BtcSignNext(next)) => {
+                assert!(next.has_signature);
+                assert_eq!(&next.signature, b"\xa7\x23\x42\x86\x9a\x29\xb0\x24\x33\xfa\xae\x2a\xc5\xc4\x9f\x03\x3e\xff\xd3\xa6\xb6\x06\x23\x87\x8e\xf7\xbf\x8b\x14\xde\xe2\xa0\x3a\x76\x51\x1b\x37\xba\xf1\x5e\x70\x75\x07\xf4\x8b\x10\xcd\xf5\xa8\xf3\x0b\x0a\xda\x4d\xa2\x2a\x38\xa5\x47\x6f\x69\x91\x1d\x8e");
+            }
+            _ => panic!("wrong result"),
+        }
+    }
+
+    #[test]
+    fn test_multisig_large() {
+        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
+
+        mock_host_responder(transaction.clone());
+        mock_default_ui();
+        mock_unlocked_using_mnemonic(
+            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+        );
+        // For the multisig registration below.
+        mock_memory();
+
+        // Hash of the multisig configuration as computed by `btc_common_multisig_hash_sorted()`.
+        let multisig_hash = b"\x9d\xfc\x06\x52\xe2\xa3\x05\xc8\xb9\x94\x96\x20\xf9\x8e\xe1\x46\x50\x30\x2e\x38\x5f\x23\x94\x1b\xc6\x07\xcc\x35\xfd\x7a\x77\x81";
+        bitbox02::memory::multisig_set_by_hash(multisig_hash, "test multisig account name")
+            .unwrap();
+
+        let init_request = {
+            let tx = transaction.borrow();
+            pb::BtcSignInitRequest {
+                coin: tx.coin as _,
+                script_configs: vec![pb::BtcScriptConfigWithKeypath {
+                    script_config: Some(pb::BtcScriptConfig {
+                        config: Some(pb::btc_script_config::Config::Multisig(
+                            pb::btc_script_config::Multisig {
+                                threshold: 7,
+                                xpubs: vec![
+                                    parse_xpub("xpub6Eu7xJRyXRCi4eLYhJPnfZVjgAQtM7qFaEZwUhvgxGf4enEZMxevGzWvZTawCj9USP2MFTEhKQAwnqHwoaPHetTLqGuvq5r5uaLKyGx5QDZ").unwrap(),
+                                    parse_xpub("xpub6EQcxF2jFkYGn89AwoQJEEJkYMbRjED9AZgt7bkxQA5BLhZEoaQpUHcADbB5GxcMrTdDSGmjP7M3u462Q9otyE2PPam66P5KFLWitPVfYz9").unwrap(),
+                                    parse_xpub("xpub6EP4EycVS5dq1PN7ZqsxBtptkYhfLvLGokZjnB3fvPshMiAohh6E5TaJjAafZWoPRjo6uiZxhtDXLgCuk81ooQgwrsnEdfSWSfa4VUtX8nu").unwrap(),
+                                    parse_xpub("xpub6Eszd4BGGmHShcGtys5gbvV2zrBtW1gaorKf9YuvV4L3bePw7XePyyb2DKswZ5AhFfkcQwjQsiJEUTKhfRstRdHZUjQnJ2RJoQqL8g7FS4b").unwrap(),
+                                    parse_xpub("xpub6Df3nbvH6P3FTvjgKaZcSuydyEofK545U4Bb15JY8R9MtFkKrhYrc3bpEF6fHtNM7xQ1qHwsVpS56TJWUjbKcmRwPkQr17ovV2RaVSJaBq3").unwrap(),
+                                    parse_xpub("xpub6FQQ62gUYzS9wnHWHMPLWrpVnzS8xAf8XvfW1xzXEXTkTCtBrfbeww2zNeCgm3PbueMoq8opQvQDzp5Yf9EtiqVd7d1ASDoWSC1m7g1KHza").unwrap(),
+                                    parse_xpub("xpub6EQNZUUAzJAoFAVVetYUrFVrf7mLyYsnHiQihkA3KPhoRHx7m6SgKBYV4z5Rd9CvUc11ACN8Ap5Wxigt6GYRPUqXGFfm3833ezJpjAmvJKt").unwrap(),
+                                    parse_xpub("xpub6EGZy7cizYn2zUf9NT4qJ3Kr1ZrxdzPRcv2CwAnB1BTGWw7n9ZgDYvwmzzJXM6V7AgZ6CL3DrARZk5DzM9o8tz2RVTeC7QoHh9SxbW3b7Pw").unwrap(),
+                                    parse_xpub("xpub6DaV7oCAkm4HJQMoProrrKYq1RvcgpStgYUCzLRaaeJSBSy9WBRFMNnQyAWJUYy9myUFRTvogq1C2f7x4A2yhtYgr7gL6eZXv2eJvzU12pe").unwrap(),
+                                    parse_xpub("xpub6FFVRbdHt5DgHqR69KuWXRVDp93e1xKxv8rRLwhhCGnWaoF1ecnfdxpg2Nf1pvJTgT1UYg28CVt7YbUXFJL86vi9FaPN9QGtWLeCmf9dA24").unwrap(),
+                                    parse_xpub("xpub6FNywxebMjvSSginZrk7DfNmAHvPJAy3j6pJ9FmUQCoh4FKPzNymdHnkA1z77Ke4GK7g5GkdrBhpyXfWTbZkH6Yo1t4v524wDwF8SAKny9J").unwrap(),
+                                    parse_xpub("xpub6F1V9y6gXejomurTy2hN1UDCJidYahVkqtQJSZLYmcPcPDWkxGgWTrrLnCrCkGESSUSq6GpVVQx9kejPV97BEa9F85utABNL9r6xyPZFiDm").unwrap(),
+                                    parse_xpub("xpub6ECHc4kmTC2tQg2ZoAoazwyag9C4V6yFsZEhjwMJixdVNsUibot6uEvsZY38ZLVqWCtyc9gbzFEwHQLHCT8EiDDKSNNsFAB8NQYRgkiAQwu").unwrap(),
+                                    parse_xpub("xpub6F7CaxXzBCtvXwpRi61KYyhBRkgT1856ujHV5AbJK6ySCUYoDruBH6Pnsi6eHkDiuKuAJ2tSc9x3emP7aax9Dc3u7nP7RCQXEjLKihQu6w1").unwrap(),
+                                    // sudden tenant fault inject concert weather maid people chunk
+                                    // youth stumble grit / 48'/1'/0'/2'
+                                    parse_xpub("xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYUCugjeksHSbyZT7rq38VQF").unwrap(),
+                                ],
+                                our_xpub_index: 14,
+                                script_type: pb::btc_script_config::multisig::ScriptType::P2wsh
+                                    as _,
+                            },
+                        )),
+                    }),
+                    keypath: vec![
+                        48 + HARDENED,
+                        super::super::params::get(tx.coin).bip44_coin,
+                        0 + HARDENED,
+                        2 + HARDENED,
+                    ],
+                }],
+                version: tx.version,
+                num_inputs: tx.inputs.len() as _,
+                num_outputs: tx.outputs.len() as _,
+                locktime: tx.locktime,
+            }
+        };
+        let result = block_on(process(&init_request));
+        match result {
+            Ok(Response::BtcSignNext(next)) => {
+                assert!(next.has_signature);
+                assert_eq!(&next.signature, b"\xdb\xed\x8b\x1a\xef\xbd\xcf\xd7\xf3\xe6\xd9\xdf\xf5\xec\x83\xc5\xed\x77\xca\xd7\x27\x8b\x06\xc5\xf4\xd3\x30\x72\xf3\x00\xc2\xd6\x13\xd1\x66\x17\x1c\x54\xd2\x02\x41\x5b\x53\x44\xa9\x2d\x4f\x6f\x9b\x36\xac\x31\x4d\xc9\x3e\x18\xbd\xcf\x61\x35\xde\x4d\x11\xbf");
             }
             _ => panic!("wrong result"),
         }

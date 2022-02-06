@@ -324,6 +324,8 @@ add_custom_target(rust-bindgen
     --whitelist-function memory_set_mnemonic_passphrase_enabled
     --whitelist-function memory_set_seed_birthdate
     --whitelist-function memory_get_seed_birthdate
+    --whitelist-function memory_multisig_set_by_hash
+    --rustified-enum memory_result_t
     --whitelist-var MEMORY_DEVICE_NAME_MAX_LEN
     --whitelist-function securechip_attestation_sign
     --whitelist-function securechip_monotonic_increments_remaining

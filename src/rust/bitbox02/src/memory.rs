@@ -121,3 +121,20 @@ pub fn get_seed_birthdate() -> u32 {
         timestamp.assume_init()
     }
 }
+
+pub fn multisig_set_by_hash(hash: &[u8], name: &str) -> Result<(), bitbox02_sys::memory_result_t> {
+    if hash.len() != 32 {
+        return Err(bitbox02_sys::memory_result_t::MEMORY_ERR_INVALID_INPUT);
+    }
+    match unsafe {
+        bitbox02_sys::memory_multisig_set_by_hash(
+            hash.as_ptr(),
+            crate::util::str_to_cstr_vec(name)
+                .or(Err(bitbox02_sys::memory_result_t::MEMORY_ERR_INVALID_INPUT))?
+                .as_ptr(),
+        )
+    } {
+        bitbox02_sys::memory_result_t::MEMORY_OK => Ok(()),
+        err => Err(err),
+    }
+}

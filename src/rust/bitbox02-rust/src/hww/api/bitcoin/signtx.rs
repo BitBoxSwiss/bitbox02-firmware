@@ -438,6 +438,8 @@ mod tests {
     }
 
     struct Transaction {
+        // How many dialogs the user has to confirm in the test transaction
+        total_confirmations: u32,
         version: u32,
         inputs: Vec<TxInput>,
         outputs: Vec<pb::BtcSignOutputRequest>,
@@ -448,6 +450,7 @@ mod tests {
         /// An arbitrary test transaction with some inputs and outputs.
         fn new() -> Self {
             Transaction {
+                total_confirmations: 6,
                 version: 1,
                 inputs: vec![
                     TxInput {
@@ -915,7 +918,7 @@ mod tests {
             }
             _ => panic!("wrong result"),
         }
-        assert_eq!(unsafe { UI_COUNTER }, 6);
+        assert_eq!(unsafe { UI_COUNTER }, tx.total_confirmations);
     }
 
     /// Test that receiving an unexpected message from the host results in an invalid state error.
@@ -1091,5 +1094,39 @@ mod tests {
                 keypath: vec![49 + HARDENED, 0 + HARDENED, 10 + HARDENED],
             });
         assert!(block_on(process(&init_request)).is_ok());
+    }
+
+    #[test]
+    fn test_user_aborts() {
+        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new()));
+        mock_host_responder(transaction.clone());
+        static mut UI_COUNTER: u32 = 0;
+        static mut CURRENT_COUNTER: u32 = 0;
+        // We go through all possible user confirmations and abort one of them at a time.
+        for counter in 1..=transaction.borrow().total_confirmations {
+            unsafe {
+                UI_COUNTER = 0;
+                CURRENT_COUNTER = counter
+            }
+            bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
+                verify_recipient: Box::new(|_recipient, _amount| unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER != CURRENT_COUNTER
+                }),
+                confirm: Box::new(|_title, _body| unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER != CURRENT_COUNTER
+                }),
+                verify_total: Box::new(|_total, _fee| unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER != CURRENT_COUNTER
+                }),
+            });
+            mock_unlocked();
+            assert_eq!(
+                block_on(process(&transaction.borrow().init_request())),
+                Err(Error::UserAbort)
+            );
+        }
     }
 }

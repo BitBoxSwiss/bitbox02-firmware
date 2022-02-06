@@ -126,8 +126,6 @@ typedef struct {
     bool state_output_after_init;
     // value 0 is invalid
     bool wrong_input_value;
-    // when a user aborts on an output verification
-    bool user_aborts_output;
     // rbf disabled on Litecoin
     bool litecoin_rbf_disabled;
     // check workflow when a locktime applies
@@ -136,10 +134,6 @@ typedef struct {
     bool user_aborts_locktime_rbf;
     // rbf enabled but 0 locktime: no user verification.
     bool locktime_zero_with_rbf;
-    // when a user aborts on total/fee verification.
-    bool user_aborts_total;
-    // when a user aborts the warning about multiple change outputs being present.
-    bool user_aborts_multiple_changes;
     // if value addition in inputs would overflow
     bool overflow_input_values_pass1;
     bool overflow_input_values_pass2;
@@ -463,11 +457,7 @@ static void _sign(const _modification_t* mod)
             __wrap_workflow_verify_recipient, recipient, "MB1e6aUeL3Zj4s4H2ZqFBHaaHd7kvvzTco");
     }
     expect_string(__wrap_workflow_verify_recipient, amount, "amount1");
-    will_return(__wrap_workflow_verify_recipient, !mod->user_aborts_output);
-    if (mod->user_aborts_output) {
-        assert_int_equal(APP_BTC_ERR_USER_ABORT, app_btc_sign_output(&outputs[1], false));
-        return;
-    }
+    will_return(__wrap_workflow_verify_recipient, true);
     assert_int_equal(APP_BTC_OK, app_btc_sign_output(&outputs[1], false));
 
     // Third output
@@ -546,11 +536,7 @@ static void _sign(const _modification_t* mod)
 
     expect_string(
         __wrap_workflow_confirm_blocking, params->body, "There are 2\nchange outputs.\nProceed?");
-    will_return(__wrap_workflow_confirm_blocking, !mod->user_aborts_multiple_changes);
-    if (mod->user_aborts_multiple_changes) {
-        assert_int_equal(APP_BTC_ERR_USER_ABORT, app_btc_sign_output(&outputs[5], true));
-        return;
-    }
+    will_return(__wrap_workflow_confirm_blocking, true);
 
     if (mod->litecoin_rbf_disabled) {
         expect_value(__wrap_apps_btc_confirm_locktime_rbf, locktime, 1);
@@ -588,11 +574,8 @@ static void _sign(const _modification_t* mod)
     will_return(__wrap_rust_bitcoin_util_format_amount, "amount fee");
     expect_string(__wrap_workflow_verify_total, total, "amount total");
     expect_string(__wrap_workflow_verify_total, fee, "amount fee");
-    will_return(__wrap_workflow_verify_total, !mod->user_aborts_total);
-    if (mod->user_aborts_total) {
-        assert_int_equal(APP_BTC_ERR_USER_ABORT, app_btc_sign_output(&outputs[5], true));
-        return;
-    }
+    will_return(__wrap_workflow_verify_total, true);
+
     assert_int_equal(APP_BTC_OK, app_btc_sign_output(&outputs[5], true));
 
     // === Inputs Pass 2
@@ -771,12 +754,6 @@ static void _test_wrong_input_value(void** state)
     modified.wrong_input_value = true;
     _sign(&modified);
 }
-static void _test_user_aborts_output(void** state)
-{
-    _modification_t modified = _valid;
-    modified.user_aborts_output = true;
-    _sign(&modified);
-}
 static void _test_litecoin_rbf_disabled(void** state)
 {
     _modification_t modified = _valid;
@@ -799,18 +776,6 @@ static void _test_locktime_zero_with_rbf(void** state)
 {
     _modification_t modified = _valid;
     modified.locktime_zero_with_rbf = true;
-    _sign(&modified);
-}
-static void _test_user_aborts_total(void** state)
-{
-    _modification_t modified = _valid;
-    modified.user_aborts_total = true;
-    _sign(&modified);
-}
-static void _test_user_aborts_multiple_changes(void** state)
-{
-    _modification_t modified = _valid;
-    modified.user_aborts_multiple_changes = true;
     _sign(&modified);
 }
 static void _test_overflow_input_values_pass1(void** state)
@@ -857,13 +822,10 @@ int main(void)
         cmocka_unit_test(_test_input_sum_changes),
         cmocka_unit_test(_test_input_sum_last_mismatch),
         cmocka_unit_test(_test_wrong_input_value),
-        cmocka_unit_test(_test_user_aborts_output),
         cmocka_unit_test(_test_litecoin_rbf_disabled),
         cmocka_unit_test(_test_locktime_applies),
         cmocka_unit_test(_test_user_aborts_locktime_rbf),
         cmocka_unit_test(_test_locktime_zero_with_rbf),
-        cmocka_unit_test(_test_user_aborts_total),
-        cmocka_unit_test(_test_user_aborts_multiple_changes),
         cmocka_unit_test(_test_overflow_input_values_pass1),
         cmocka_unit_test(_test_overflow_input_values_pass2),
         cmocka_unit_test(_test_overflow_output_out),

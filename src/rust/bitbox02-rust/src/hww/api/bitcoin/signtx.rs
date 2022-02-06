@@ -851,82 +851,145 @@ mod tests {
 
     #[test]
     pub fn test_process() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-
-        let tx = transaction.clone();
-        mock_host_responder(tx);
-        mock_unlocked();
         static mut UI_COUNTER: u32 = 0;
-        bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
-            verify_recipient: Box::new(|recipient, amount| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(recipient, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
-                        assert_eq!(amount, "1 BTC");
-                        true
+        for coin in &[pb::BtcCoin::Btc, pb::BtcCoin::Ltc] {
+            let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(*coin)));
+
+            let tx = transaction.clone();
+            mock_host_responder(tx);
+            mock_unlocked();
+            unsafe { UI_COUNTER = 0 }
+            bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
+                verify_recipient: Box::new(move |recipient, amount| {
+                    match unsafe {
+                        UI_COUNTER += 1;
+                        UI_COUNTER
+                    } {
+                        1 => {
+                            match coin {
+                                &pb::BtcCoin::Btc => {
+                                    assert_eq!(recipient, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
+                                    assert_eq!(amount, "1 BTC");
+                                }
+                                &pb::BtcCoin::Ltc => {
+                                    assert_eq!(recipient, "LLnCCHbSzfwWquEdaS5TF2Yt7uz5Qb1SZ1");
+                                    assert_eq!(amount, "1 LTC");
+                                }
+                                _ => panic!("unexpected coin"),
+                            }
+                            true
+                        }
+                        2 => {
+                            match coin {
+                                &pb::BtcCoin::Btc => {
+                                    assert_eq!(recipient, "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ");
+                                    assert_eq!(amount, "12.3456789 BTC");
+                                }
+                                &pb::BtcCoin::Ltc => {
+                                    assert_eq!(recipient, "MB1e6aUeL3Zj4s4H2ZqFBHaaHd7kvvzTco");
+                                    assert_eq!(amount, "12.3456789 LTC");
+                                }
+                                _ => panic!("unexpected coin"),
+                            }
+                            true
+                        }
+                        3 => {
+                            match coin {
+                                &pb::BtcCoin::Btc => {
+                                    assert_eq!(
+                                        recipient,
+                                        "bc1qxvenxvenxvenxvenxvenxvenxvenxven2ymjt8"
+                                    );
+                                    assert_eq!(amount, "0.00006 BTC");
+                                }
+                                &pb::BtcCoin::Ltc => {
+                                    assert_eq!(
+                                        recipient,
+                                        "ltc1qxvenxvenxvenxvenxvenxvenxvenxvenwcpknh"
+                                    );
+                                    assert_eq!(amount, "0.00006 LTC");
+                                }
+                                _ => panic!("unexpected coin"),
+                            }
+                            true
+                        }
+                        4 => {
+                            match coin {
+                                &pb::BtcCoin::Btc => {
+                                    assert_eq!(
+                                        recipient,
+                                        "bc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqd8sxw4"
+                                    );
+                                    assert_eq!(amount, "0.00007 BTC");
+                                }
+                                &pb::BtcCoin::Ltc => {
+                                    assert_eq!(
+                                        recipient,
+                                        "ltc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqwr7k5s"
+                                    );
+                                    assert_eq!(amount, "0.00007 LTC");
+                                }
+                                _ => panic!("unexpected coin"),
+                            }
+                            true
+                        }
+                        _ => panic!("unexpected UI dialog"),
                     }
-                    2 => {
-                        assert_eq!(recipient, "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ");
-                        assert_eq!(amount, "12.3456789 BTC");
-                        true
+                }),
+                confirm: Box::new(|title, body| {
+                    match unsafe {
+                        UI_COUNTER += 1;
+                        UI_COUNTER
+                    } {
+                        5 => {
+                            assert_eq!(title, "Warning");
+                            assert_eq!(body, "There are 2\nchange outputs.\nProceed?");
+                            true
+                        }
+                        _ => panic!("unexpected UI dialog"),
                     }
-                    3 => {
-                        assert_eq!(recipient, "bc1qxvenxvenxvenxvenxvenxvenxvenxven2ymjt8");
-                        assert_eq!(amount, "0.00006 BTC");
-                        true
+                }),
+                verify_total: Box::new(move |total, fee| {
+                    match unsafe {
+                        UI_COUNTER += 1;
+                        UI_COUNTER
+                    } {
+                        6 => {
+                            match coin {
+                                &pb::BtcCoin::Btc => {
+                                    assert_eq!(total, "13.399999 BTC");
+                                    assert_eq!(fee, "0.0541901 BTC");
+                                }
+                                &pb::BtcCoin::Ltc => {
+                                    assert_eq!(total, "13.399999 LTC");
+                                    assert_eq!(fee, "0.0541901 LTC");
+                                }
+                                _ => panic!("unexpected coin"),
+                            }
+                            true
+                        }
+                        _ => panic!("unexpected UI dialog"),
                     }
-                    4 => {
-                        assert_eq!(
-                            recipient,
-                            "bc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqd8sxw4"
-                        );
-                        assert_eq!(amount, "0.00007 BTC");
-                        true
+                }),
+            });
+            let tx = transaction.borrow();
+            let result = block_on(process(&tx.init_request()));
+            match result {
+                Ok(Response::BtcSignNext(next)) => {
+                    assert!(next.has_signature);
+                    match coin {
+                        &pb::BtcCoin::Btc => {
+                            assert_eq!(
+                                &next.signature,
+                                b"\x2e\x08\x4a\x0a\x5f\x9b\xab\xb3\x5d\xf6\xec\x3a\x89\x72\x0b\xcf\xc0\x88\xd4\xba\x6a\xee\x47\x97\x3c\x55\xfe\xc3\xb3\xdd\xaa\x60\x07\xc7\xb1\x1c\x8b\x5a\x1a\x68\x20\xca\x74\xa8\x5a\xeb\x4c\xf5\x45\xc1\xb3\x37\x53\x70\xf4\x4f\x24\xd5\x3d\x61\xfe\x67\x6e\x4c");
+                        }
+                        _ => {}
                     }
-                    _ => panic!("unexpected UI dialog"),
                 }
-            }),
-            confirm: Box::new(|title, body| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    5 => {
-                        assert_eq!(title, "Warning");
-                        assert_eq!(body, "There are 2\nchange outputs.\nProceed?");
-                        true
-                    }
-                    _ => panic!("unexpected UI dialog"),
-                }
-            }),
-            verify_total: Box::new(|total, fee| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    6 => {
-                        assert_eq!(total, "13.399999 BTC");
-                        assert_eq!(fee, "0.0541901 BTC");
-                        true
-                    }
-                    _ => panic!("unexpected UI dialog"),
-                }
-            }),
-        });
-        let tx = transaction.borrow();
-        let result = block_on(process(&tx.init_request()));
-        match result {
-            Ok(Response::BtcSignNext(next)) => {
-                assert!(next.has_signature);
-                assert_eq!(&next.signature, b"\x2e\x08\x4a\x0a\x5f\x9b\xab\xb3\x5d\xf6\xec\x3a\x89\x72\x0b\xcf\xc0\x88\xd4\xba\x6a\xee\x47\x97\x3c\x55\xfe\xc3\xb3\xdd\xaa\x60\x07\xc7\xb1\x1c\x8b\x5a\x1a\x68\x20\xca\x74\xa8\x5a\xeb\x4c\xf5\x45\xc1\xb3\x37\x53\x70\xf4\x4f\x24\xd5\x3d\x61\xfe\x67\x6e\x4c");
+                _ => panic!("wrong result"),
             }
-            _ => panic!("wrong result"),
+            assert_eq!(unsafe { UI_COUNTER }, tx.total_confirmations);
         }
-        assert_eq!(unsafe { UI_COUNTER }, tx.total_confirmations);
     }
 
     /// Test that receiving an unexpected message from the host results in an invalid state error.

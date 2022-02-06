@@ -119,8 +119,6 @@ typedef struct {
     bool state_output_after_init;
     // value 0 is invalid
     bool wrong_input_value;
-    // Test Litecoin instead of Bitcoin.
-    bool litecoin;
     // if value addition in inputs would overflow
     bool overflow_input_values_pass1;
     bool overflow_input_values_pass2;
@@ -321,16 +319,6 @@ static void _sign(const _modification_t* mod)
     if (mod->overflow_output_ours) {
         outputs[4].value = ULLONG_MAX;
     }
-    if (mod->litecoin) {
-        init_req.coin = BTCCoin_LTC;
-        for (size_t i = 0; i < init_req.script_configs_count; i++) {
-            init_req.script_configs[i].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
-        }
-        inputs[0].input.keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
-        inputs[1].input.keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
-        outputs[4].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
-        outputs[5].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
-    }
     if (mod->p2tr_output) {
         outputs[0].type = BTCOutputType_P2TR;
         outputs[0].payload.size = 32;
@@ -386,25 +374,16 @@ static void _sign(const _modification_t* mod)
 
     // First output
     expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, outputs[0].value);
-    if (!mod->litecoin) {
-        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
-    } else {
-        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
-    }
+    expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     will_return(__wrap_rust_bitcoin_util_format_amount, "amount0");
-    if (!mod->litecoin) {
-        if (mod->p2tr_output) {
-            expect_string(
-                __wrap_workflow_verify_recipient,
-                recipient,
-                "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr");
-        } else {
-            expect_string(
-                __wrap_workflow_verify_recipient, recipient, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
-        }
+    if (mod->p2tr_output) {
+        expect_string(
+            __wrap_workflow_verify_recipient,
+            recipient,
+            "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr");
     } else {
         expect_string(
-            __wrap_workflow_verify_recipient, recipient, "LLnCCHbSzfwWquEdaS5TF2Yt7uz5Qb1SZ1");
+            __wrap_workflow_verify_recipient, recipient, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
     }
     expect_string(__wrap_workflow_verify_recipient, amount, "amount0");
     will_return(__wrap_workflow_verify_recipient, true);
@@ -416,65 +395,32 @@ static void _sign(const _modification_t* mod)
         return;
     }
     expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, outputs[1].value);
-    if (!mod->litecoin) {
-        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
-    } else {
-        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
-    }
+    expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     will_return(__wrap_rust_bitcoin_util_format_amount, "amount1");
-    if (!mod->litecoin) {
-        expect_string(
-            __wrap_workflow_verify_recipient, recipient, "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ");
-    } else {
-        expect_string(
-            __wrap_workflow_verify_recipient, recipient, "MB1e6aUeL3Zj4s4H2ZqFBHaaHd7kvvzTco");
-    }
+    expect_string(
+        __wrap_workflow_verify_recipient, recipient, "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ");
     expect_string(__wrap_workflow_verify_recipient, amount, "amount1");
     will_return(__wrap_workflow_verify_recipient, true);
     assert_int_equal(APP_BTC_OK, app_btc_sign_output(&outputs[1], false));
 
     // Third output
     expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, outputs[2].value);
-    if (!mod->litecoin) {
-        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
-    } else {
-        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
-    }
+    expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     will_return(__wrap_rust_bitcoin_util_format_amount, "amount2");
-    if (!mod->litecoin) {
-        expect_string(
-            __wrap_workflow_verify_recipient,
-            recipient,
-            "bc1qxvenxvenxvenxvenxvenxvenxvenxven2ymjt8");
-    } else {
-        expect_string(
-            __wrap_workflow_verify_recipient,
-            recipient,
-            "ltc1qxvenxvenxvenxvenxvenxvenxvenxvenwcpknh");
-    }
+    expect_string(
+        __wrap_workflow_verify_recipient, recipient, "bc1qxvenxvenxvenxvenxvenxvenxvenxven2ymjt8");
     expect_string(__wrap_workflow_verify_recipient, amount, "amount2");
     will_return(__wrap_workflow_verify_recipient, true);
     assert_int_equal(APP_BTC_OK, app_btc_sign_output(&outputs[2], false));
 
     // Fourth output
     expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, outputs[3].value);
-    if (!mod->litecoin) {
-        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
-    } else {
-        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
-    }
+    expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     will_return(__wrap_rust_bitcoin_util_format_amount, "amount3");
-    if (!mod->litecoin) {
-        expect_string(
-            __wrap_workflow_verify_recipient,
-            recipient,
-            "bc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqd8sxw4");
-    } else {
-        expect_string(
-            __wrap_workflow_verify_recipient,
-            recipient,
-            "ltc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqwr7k5s");
-    }
+    expect_string(
+        __wrap_workflow_verify_recipient,
+        recipient,
+        "bc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqd8sxw4");
     expect_string(__wrap_workflow_verify_recipient, amount, "amount3");
     will_return(__wrap_workflow_verify_recipient, true);
     assert_int_equal(APP_BTC_OK, app_btc_sign_output(&outputs[3], false));
@@ -512,18 +458,10 @@ static void _sign(const _modification_t* mod)
     will_return(__wrap_workflow_confirm_blocking, true);
 
     expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, total);
-    if (!mod->litecoin) {
-        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
-    } else {
-        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
-    }
+    expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     will_return(__wrap_rust_bitcoin_util_format_amount, "amount total");
     expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, fee);
-    if (!mod->litecoin) {
-        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
-    } else {
-        expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
-    }
+    expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     will_return(__wrap_rust_bitcoin_util_format_amount, "amount fee");
     expect_string(__wrap_workflow_verify_total, total, "amount total");
     expect_string(__wrap_workflow_verify_total, fee, "amount fee");
@@ -707,12 +645,6 @@ static void _test_wrong_input_value(void** state)
     modified.wrong_input_value = true;
     _sign(&modified);
 }
-static void _test_litecoin(void** state)
-{
-    _modification_t modified = _valid;
-    modified.litecoin = true;
-    _sign(&modified);
-}
 static void _test_overflow_input_values_pass1(void** state)
 {
     _modification_t modified = _valid;
@@ -757,7 +689,6 @@ int main(void)
         cmocka_unit_test(_test_input_sum_changes),
         cmocka_unit_test(_test_input_sum_last_mismatch),
         cmocka_unit_test(_test_wrong_input_value),
-        cmocka_unit_test(_test_litecoin),
         cmocka_unit_test(_test_overflow_input_values_pass1),
         cmocka_unit_test(_test_overflow_input_values_pass2),
         cmocka_unit_test(_test_overflow_output_out),

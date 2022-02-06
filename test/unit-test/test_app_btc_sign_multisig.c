@@ -65,7 +65,9 @@ bool __wrap_workflow_verify_total(const char* total, const char* fee)
     return true;
 }
 
-bool __wrap_apps_btc_confirm_locktime_rbf(uint32_t locktime, enum apps_btc_rbf_flag rbf)
+bool __wrap_apps_btc_confirm_locktime_rbf(
+    uint32_t locktime,
+    enum apps_btc_rbf_flag rbf)
 {
     check_expected(locktime);
     check_expected(rbf);

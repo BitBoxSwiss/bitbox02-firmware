@@ -17,6 +17,7 @@
 #include "btc_common.h"
 #include "btc_params.h"
 #include "btc_sign_validate.h"
+#include "btc_ui.h"
 #include "confirm_locktime_rbf.h"
 
 #include <rust/rust.h>
@@ -26,9 +27,6 @@
 #include <keystore/keystore_antiklepto.h>
 #include <ui/screen_stack.h>
 #include <util.h>
-#include <workflow/confirm.h>
-#include <workflow/verify_recipient.h>
-#include <workflow/verify_total.h>
 
 #include <wally_script.h>
 #include <wally_transaction.h>
@@ -73,19 +71,6 @@ static void* _hash_outputs_ctx = NULL;
 // By the end of processing the outputs, will contain the hashOutputs hash.
 // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki step 8.
 static uint8_t _hash_outputs[32] = {0};
-
-static app_btc_ui_t _ui = {
-    .verify_recipient = workflow_verify_recipient,
-    .verify_total = workflow_verify_total,
-    .confirm = workflow_confirm_blocking,
-};
-
-#ifdef TESTING
-void testing_app_btc_mock_ui(app_btc_ui_t mock)
-{
-    _ui = mock;
-}
-#endif
 
 // Must be called in any code path that exits the signing process (error or regular finish).
 static void _reset(void)
@@ -400,7 +385,7 @@ static bool _warn_changes(uint16_t num_changes)
         .title = "Warning",
         .body = body,
     };
-    return _ui.confirm(&params);
+    return app_btc_ui()->confirm(&params);
 }
 
 app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool last)
@@ -506,7 +491,7 @@ app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool l
             rust_util_cstr_mut(formatted_value, sizeof(formatted_value)));
 
         // This call blocks.
-        if (!_ui.verify_recipient(address, formatted_value)) {
+        if (!app_btc_ui()->verify_recipient(address, formatted_value)) {
             return _error(APP_BTC_ERR_USER_ABORT);
         }
     }
@@ -593,7 +578,7 @@ app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool l
             rust_util_cstr(_coin_params->unit),
             rust_util_cstr_mut(formatted_fee, sizeof(formatted_fee)));
         // This call blocks.
-        if (!_ui.verify_total(formatted_total_out, formatted_fee)) {
+        if (!app_btc_ui()->verify_total(formatted_total_out, formatted_fee)) {
             return _error(APP_BTC_ERR_USER_ABORT);
         }
 

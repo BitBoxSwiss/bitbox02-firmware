@@ -51,13 +51,6 @@ bool __wrap_workflow_verify_total(const char* total, const char* fee)
     return mock();
 }
 
-bool __wrap_apps_btc_confirm_locktime_rbf(uint32_t locktime, enum apps_btc_rbf_flag rbf)
-{
-    check_expected(locktime);
-    check_expected(rbf);
-    return mock();
-}
-
 void __wrap_rust_bitcoin_util_format_amount(uint64_t satoshi, CStr unit, CStrMut out)
 {
     check_expected(satoshi);
@@ -126,14 +119,8 @@ typedef struct {
     bool state_output_after_init;
     // value 0 is invalid
     bool wrong_input_value;
-    // rbf disabled on Litecoin
-    bool litecoin_rbf_disabled;
-    // check workflow when a locktime applies
-    bool locktime_applies;
-    // when a user aborts on a locktime verification
-    bool user_aborts_locktime_rbf;
-    // rbf enabled but 0 locktime: no user verification.
-    bool locktime_zero_with_rbf;
+    // Test Litecoin instead of Bitcoin.
+    bool litecoin;
     // if value addition in inputs would overflow
     bool overflow_input_values_pass1;
     bool overflow_input_values_pass2;
@@ -231,18 +218,6 @@ static void _sign(const _modification_t* mod)
         },
     };
 
-    if (mod->locktime_applies) {
-        init_req.locktime = 1;
-        inputs[0].input.sequence = 0xffffffff - 1;
-    }
-    if (mod->user_aborts_locktime_rbf) {
-        init_req.locktime = 1;
-        inputs[0].input.sequence = 0xffffffff - 2;
-    }
-    if (mod->locktime_zero_with_rbf) {
-        init_req.locktime = 0;
-        inputs[0].input.sequence = 0xffffffff - 2;
-    }
     if (mod->wrong_input_value) {
         inputs[0].input.prevOutValue = 0;
     }
@@ -346,13 +321,11 @@ static void _sign(const _modification_t* mod)
     if (mod->overflow_output_ours) {
         outputs[4].value = ULLONG_MAX;
     }
-    if (mod->litecoin_rbf_disabled) {
+    if (mod->litecoin) {
         init_req.coin = BTCCoin_LTC;
-        init_req.locktime = 1;
         for (size_t i = 0; i < init_req.script_configs_count; i++) {
             init_req.script_configs[i].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
         }
-        inputs[0].input.sequence = 0xffffffff - 2;
         inputs[0].input.keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
         inputs[1].input.keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
         outputs[4].keypath[1] = 2 + BIP32_INITIAL_HARDENED_CHILD;
@@ -413,13 +386,13 @@ static void _sign(const _modification_t* mod)
 
     // First output
     expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, outputs[0].value);
-    if (!mod->litecoin_rbf_disabled) {
+    if (!mod->litecoin) {
         expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     } else {
         expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
     }
     will_return(__wrap_rust_bitcoin_util_format_amount, "amount0");
-    if (!mod->litecoin_rbf_disabled) {
+    if (!mod->litecoin) {
         if (mod->p2tr_output) {
             expect_string(
                 __wrap_workflow_verify_recipient,
@@ -443,13 +416,13 @@ static void _sign(const _modification_t* mod)
         return;
     }
     expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, outputs[1].value);
-    if (!mod->litecoin_rbf_disabled) {
+    if (!mod->litecoin) {
         expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     } else {
         expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
     }
     will_return(__wrap_rust_bitcoin_util_format_amount, "amount1");
-    if (!mod->litecoin_rbf_disabled) {
+    if (!mod->litecoin) {
         expect_string(
             __wrap_workflow_verify_recipient, recipient, "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ");
     } else {
@@ -462,13 +435,13 @@ static void _sign(const _modification_t* mod)
 
     // Third output
     expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, outputs[2].value);
-    if (!mod->litecoin_rbf_disabled) {
+    if (!mod->litecoin) {
         expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     } else {
         expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
     }
     will_return(__wrap_rust_bitcoin_util_format_amount, "amount2");
-    if (!mod->litecoin_rbf_disabled) {
+    if (!mod->litecoin) {
         expect_string(
             __wrap_workflow_verify_recipient,
             recipient,
@@ -485,13 +458,13 @@ static void _sign(const _modification_t* mod)
 
     // Fourth output
     expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, outputs[3].value);
-    if (!mod->litecoin_rbf_disabled) {
+    if (!mod->litecoin) {
         expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     } else {
         expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
     }
     will_return(__wrap_rust_bitcoin_util_format_amount, "amount3");
-    if (!mod->litecoin_rbf_disabled) {
+    if (!mod->litecoin) {
         expect_string(
             __wrap_workflow_verify_recipient,
             recipient,
@@ -538,35 +511,15 @@ static void _sign(const _modification_t* mod)
         __wrap_workflow_confirm_blocking, params->body, "There are 2\nchange outputs.\nProceed?");
     will_return(__wrap_workflow_confirm_blocking, true);
 
-    if (mod->litecoin_rbf_disabled) {
-        expect_value(__wrap_apps_btc_confirm_locktime_rbf, locktime, 1);
-        expect_value(__wrap_apps_btc_confirm_locktime_rbf, rbf, CONFIRM_LOCKTIME_RBF_DISABLED);
-        will_return(__wrap_apps_btc_confirm_locktime_rbf, true);
-    }
-
-    if (mod->locktime_applies) {
-        expect_value(__wrap_apps_btc_confirm_locktime_rbf, locktime, 1);
-        expect_value(__wrap_apps_btc_confirm_locktime_rbf, rbf, CONFIRM_LOCKTIME_RBF_OFF);
-        will_return(__wrap_apps_btc_confirm_locktime_rbf, true);
-    }
-
-    if (mod->user_aborts_locktime_rbf) {
-        expect_value(__wrap_apps_btc_confirm_locktime_rbf, locktime, 1);
-        expect_value(__wrap_apps_btc_confirm_locktime_rbf, rbf, CONFIRM_LOCKTIME_RBF_ON);
-        will_return(__wrap_apps_btc_confirm_locktime_rbf, false);
-
-        assert_int_equal(APP_BTC_ERR_USER_ABORT, app_btc_sign_output(&outputs[5], true));
-        return;
-    }
     expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, total);
-    if (!mod->litecoin_rbf_disabled) {
+    if (!mod->litecoin) {
         expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     } else {
         expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
     }
     will_return(__wrap_rust_bitcoin_util_format_amount, "amount total");
     expect_value(__wrap_rust_bitcoin_util_format_amount, satoshi, fee);
-    if (!mod->litecoin_rbf_disabled) {
+    if (!mod->litecoin) {
         expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "BTC");
     } else {
         expect_string(__wrap_rust_bitcoin_util_format_amount, unit.buf, "LTC");
@@ -754,28 +707,10 @@ static void _test_wrong_input_value(void** state)
     modified.wrong_input_value = true;
     _sign(&modified);
 }
-static void _test_litecoin_rbf_disabled(void** state)
+static void _test_litecoin(void** state)
 {
     _modification_t modified = _valid;
-    modified.litecoin_rbf_disabled = true;
-    _sign(&modified);
-}
-static void _test_locktime_applies(void** state)
-{
-    _modification_t modified = _valid;
-    modified.locktime_applies = true;
-    _sign(&modified);
-}
-static void _test_user_aborts_locktime_rbf(void** state)
-{
-    _modification_t modified = _valid;
-    modified.user_aborts_locktime_rbf = true;
-    _sign(&modified);
-}
-static void _test_locktime_zero_with_rbf(void** state)
-{
-    _modification_t modified = _valid;
-    modified.locktime_zero_with_rbf = true;
+    modified.litecoin = true;
     _sign(&modified);
 }
 static void _test_overflow_input_values_pass1(void** state)
@@ -822,10 +757,7 @@ int main(void)
         cmocka_unit_test(_test_input_sum_changes),
         cmocka_unit_test(_test_input_sum_last_mismatch),
         cmocka_unit_test(_test_wrong_input_value),
-        cmocka_unit_test(_test_litecoin_rbf_disabled),
-        cmocka_unit_test(_test_locktime_applies),
-        cmocka_unit_test(_test_user_aborts_locktime_rbf),
-        cmocka_unit_test(_test_locktime_zero_with_rbf),
+        cmocka_unit_test(_test_litecoin),
         cmocka_unit_test(_test_overflow_input_values_pass1),
         cmocka_unit_test(_test_overflow_input_values_pass2),
         cmocka_unit_test(_test_overflow_output_out),

@@ -438,6 +438,7 @@ mod tests {
     }
 
     struct Transaction {
+        coin: pb::BtcCoin,
         // How many dialogs the user has to confirm in the test transaction
         total_confirmations: u32,
         version: u32,
@@ -448,8 +449,10 @@ mod tests {
 
     impl Transaction {
         /// An arbitrary test transaction with some inputs and outputs.
-        fn new() -> Self {
+        fn new(coin: pb::BtcCoin) -> Self {
+            let bip44_coin = super::super::params::get(coin).bip44_coin;
             Transaction {
+                coin,
                 total_confirmations: 6,
                 version: 1,
                 inputs: vec![
@@ -463,7 +466,7 @@ mod tests {
                             prev_out_index: 1,
                             prev_out_value: 1010000000,
                             sequence: 0xffffffff,
-                            keypath: vec![84 + HARDENED, 0 + HARDENED, 10 + HARDENED, 0, 5],
+                            keypath: vec![84 + HARDENED, bip44_coin, 10 + HARDENED, 0, 5],
                             script_config_index: 0,
                             host_nonce_commitment: None,
                         },
@@ -514,7 +517,7 @@ mod tests {
                             prev_out_index: 0,
                             prev_out_value: 1020000000, // btc 10.2, matches prevout tx output at index 0.
                             sequence: 0xffffffff,
-                            keypath: vec![84 + HARDENED, 0 + HARDENED, 10 + HARDENED, 0, 7],
+                            keypath: vec![84 + HARDENED, bip44_coin, 10 + HARDENED, 0, 7],
                             script_config_index: 0,
                             host_nonce_commitment: None,
                         },
@@ -588,7 +591,7 @@ mod tests {
                         r#type: 0,
                         value: 690000000, // btc 6.9
                         payload: vec![],
-                        keypath: vec![84 + HARDENED, 0 + HARDENED, 10 + HARDENED, 1, 3],
+                        keypath: vec![84 + HARDENED, bip44_coin, 10 + HARDENED, 1, 3],
                         script_config_index: 0,
                     },
                     pb::BtcSignOutputRequest {
@@ -597,7 +600,7 @@ mod tests {
                         r#type: 0,
                         value: 100,
                         payload: vec![],
-                        keypath: vec![84 + HARDENED, 0 + HARDENED, 10 + HARDENED, 1, 30],
+                        keypath: vec![84 + HARDENED, bip44_coin, 10 + HARDENED, 1, 30],
                         script_config_index: 0,
                     },
                 ],
@@ -607,14 +610,18 @@ mod tests {
 
         fn init_request(&self) -> pb::BtcSignInitRequest {
             pb::BtcSignInitRequest {
-                coin: pb::BtcCoin::Btc as _,
+                coin: self.coin as _,
                 script_configs: vec![pb::BtcScriptConfigWithKeypath {
                     script_config: Some(pb::BtcScriptConfig {
                         config: Some(pb::btc_script_config::Config::SimpleType(
                             pb::btc_script_config::SimpleType::P2wpkh as _,
                         )),
                     }),
-                    keypath: vec![84 + HARDENED, 0 + HARDENED, 10 + HARDENED],
+                    keypath: vec![
+                        84 + HARDENED,
+                        super::super::params::get(self.coin).bip44_coin,
+                        10 + HARDENED,
+                    ],
                 }],
                 version: self.version,
                 num_inputs: self.inputs.len() as _,
@@ -844,7 +851,8 @@ mod tests {
 
     #[test]
     pub fn test_process() {
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new()));
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
 
         let tx = transaction.clone();
         mock_host_responder(tx);
@@ -924,7 +932,8 @@ mod tests {
     /// Test that receiving an unexpected message from the host results in an invalid state error.
     #[test]
     pub fn test_invalid_state() {
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new()));
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         mock_unlocked();
         let tx = transaction.clone();
         static mut COUNTER: u32 = 0;
@@ -944,7 +953,8 @@ mod tests {
     /// Test signing if all inputs are of type P2WPKH-P2SH.
     #[test]
     pub fn test_script_type_p2wpkh_p2sh() {
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new()));
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         for input in transaction.borrow_mut().inputs.iter_mut() {
             input.input.keypath[0] = 49 + HARDENED;
         }
@@ -1023,7 +1033,8 @@ mod tests {
             TestCase::PrevTxNoInputs,
             TestCase::PrevTxNoOutputs,
         ] {
-            let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new()));
+            let transaction =
+                alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
             match value {
                 TestCase::WrongCoinInput => {
                     transaction.borrow_mut().inputs[0].input.keypath[1] = 1 + HARDENED;
@@ -1076,7 +1087,8 @@ mod tests {
     /// Test signing with mixed input types.
     #[test]
     pub fn test_mixed_inputs() {
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new()));
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         transaction.borrow_mut().inputs[0].input.script_config_index = 1;
         transaction.borrow_mut().inputs[0].input.keypath[0] = 49 + HARDENED;
         mock_host_responder(transaction.clone());
@@ -1098,7 +1110,8 @@ mod tests {
 
     #[test]
     fn test_user_aborts() {
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new()));
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         mock_host_responder(transaction.clone());
         static mut UI_COUNTER: u32 = 0;
         static mut CURRENT_COUNTER: u32 = 0;
@@ -1127,6 +1140,110 @@ mod tests {
                 block_on(process(&transaction.borrow().init_request())),
                 Err(Error::UserAbort)
             );
+        }
+    }
+
+    /// Check workflow when a locktime applies.
+    #[test]
+    fn test_locktime() {
+        struct Test {
+            coin: pb::BtcCoin,
+            locktime: u32,
+            sequence: u32,
+            // If None: no user confirmation expected.
+            // If Some: confirmation body and user response.
+            confirm: Option<(&'static str, bool)>,
+        }
+        static mut LOCKTIME_CONFIRMED: bool = false;
+        for test_case in &[
+            Test {
+                coin: pb::BtcCoin::Btc,
+                locktime: 0,
+                sequence: 0xffffffff,
+                confirm: None,
+            },
+            Test {
+                coin: pb::BtcCoin::Btc,
+                locktime: 0,
+                sequence: 0xffffffff - 1,
+                confirm: None,
+            },
+            Test {
+                coin: pb::BtcCoin::Btc,
+                locktime: 0,
+                sequence: 0xffffffff - 2,
+                confirm: None,
+            },
+            Test {
+                coin: pb::BtcCoin::Btc,
+                locktime: 1,
+                sequence: 0xffffffff - 1,
+                confirm: Some(("Locktime on block:\n1\nTransaction is not RBF", true)),
+            },
+            Test {
+                coin: pb::BtcCoin::Btc,
+                locktime: 1,
+                sequence: 0xffffffff - 1,
+                confirm: Some(("Locktime on block:\n1\nTransaction is not RBF", false)),
+            },
+            Test {
+                coin: pb::BtcCoin::Btc,
+                locktime: 10,
+                sequence: 0xffffffff - 1,
+                confirm: Some(("Locktime on block:\n10\nTransaction is not RBF", true)),
+            },
+            Test {
+                coin: pb::BtcCoin::Btc,
+                locktime: 10,
+                sequence: 0xffffffff - 2,
+                confirm: Some(("Locktime on block:\n10\nTransaction is RBF", true)),
+            },
+            Test {
+                coin: pb::BtcCoin::Ltc,
+                locktime: 10,
+                sequence: 0xffffffff - 1,
+                confirm: Some(("Locktime on block:\n10\n", true)),
+            },
+            Test {
+                coin: pb::BtcCoin::Ltc,
+                locktime: 10,
+                sequence: 0xffffffff - 2,
+                confirm: Some(("Locktime on block:\n10\n", true)),
+            },
+        ] {
+            let transaction =
+                alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(test_case.coin)));
+            transaction.borrow_mut().inputs[0].input.sequence = test_case.sequence;
+            mock_host_responder(transaction.clone());
+            unsafe { LOCKTIME_CONFIRMED = false }
+            bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
+                verify_recipient: Box::new(|_recipient, _amount| true),
+                confirm: Box::new(move |title, body| {
+                    if body.contains("Locktime") {
+                        if let Some((confirm_str, user_response)) = test_case.confirm {
+                            assert_eq!(title, "");
+                            assert_eq!(body, confirm_str);
+                            unsafe { LOCKTIME_CONFIRMED = true }
+                            return user_response;
+                        }
+                        panic!("Unexpected RBF confirmation");
+                    }
+                    true
+                }),
+                verify_total: Box::new(|_total, _fee| true),
+            });
+
+            mock_unlocked();
+
+            let mut init_request = transaction.borrow().init_request();
+            init_request.locktime = test_case.locktime;
+            let result = block_on(process(&init_request));
+            if let Some((_, false)) = test_case.confirm {
+                assert_eq!(result, Err(Error::UserAbort));
+            } else {
+                assert!(result.is_ok());
+            }
+            assert_eq!(unsafe { LOCKTIME_CONFIRMED }, test_case.confirm.is_some());
         }
     }
 }

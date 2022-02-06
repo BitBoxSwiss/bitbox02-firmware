@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "btc_ui.h"
+
 #include "confirm_locktime_rbf.h"
 
 #include <workflow/confirm.h>
@@ -41,9 +43,5 @@ bool apps_btc_confirm_locktime_rbf(uint32_t locktime, enum apps_btc_rbf_flag rbf
         .title = "",
         .body = formatted_locktime_rbf,
     };
-    bool result = workflow_confirm_blocking(&params);
-    if (!result) {
-        workflow_status_blocking("Transaction\ncanceled", false);
-    }
-    return result;
+    return app_btc_ui()->confirm(&params);
 }

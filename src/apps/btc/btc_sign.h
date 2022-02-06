@@ -60,16 +60,6 @@ USE_RESULT app_btc_result_t app_btc_sign_antiklepto_wrapper(
     // 64 bytes
     uint8_t* sig_out);
 
-typedef struct {
-    bool (*verify_recipient)(const char* recipient, const char* amount);
-    bool (*verify_total)(const char* total, const char* fee);
-    bool (*confirm)(const confirm_params_t* params);
-} app_btc_ui_t;
-
-#ifdef TESTING
-void testing_app_btc_mock_ui(app_btc_ui_t mock);
-#endif
-
 void app_btc_sign_reset(void);
 
 #endif

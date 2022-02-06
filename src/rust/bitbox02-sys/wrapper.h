@@ -14,6 +14,7 @@
 
 #include <apps/btc/btc.h>
 #include <apps/btc/btc_sign.h>
+#include <apps/btc/btc_ui.h>
 #include <apps/eth/eth_params.h>
 #include <apps/eth/eth_sighash.h>
 #include <backup/backup.h>

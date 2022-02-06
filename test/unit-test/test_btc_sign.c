@@ -24,7 +24,6 @@
 #include <apps/btc/confirm_locktime_rbf.h>
 #include <keystore.h>
 #include <rust/rust.h>
-#include <secp256k1_ecdsa_s2c.h>
 #include <wally_bip32.h>
 #include <wally_crypto.h>
 #include <workflow/confirm.h>
@@ -76,24 +75,6 @@ bool __wrap_btc_common_is_valid_keypath_address_simple(
         script_type, keypath, keypath_len, expected_coin);
 }
 
-bool __real_keystore_antiklepto_secp256k1_commit(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    const uint8_t* msg32,
-    const uint8_t* host_commitment,
-    uint8_t* signer_commitment_out);
-bool __wrap_keystore_antiklepto_secp256k1_commit(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    const uint8_t* msg32,
-    const uint8_t* host_commitment,
-    uint8_t* signer_commitment_out)
-{
-    check_expected(msg32);
-    return __real_keystore_antiklepto_secp256k1_commit(
-        keypath, keypath_len, msg32, host_commitment, signer_commitment_out);
-}
-
 // Mnemonic: purity concert above invest pigeon category peace tuition hazard vivid latin since
 // legal speak nation session onion library travel spell region blast estate stay
 static uint8_t _mock_seed[32] =
@@ -126,8 +107,6 @@ typedef struct {
     bool overflow_output_out;
     // if change overflows
     bool overflow_output_ours;
-    // exercise the antiklepto protocol
-    bool antikepto;
 } _modification_t;
 
 typedef struct {
@@ -514,69 +493,16 @@ static void _sign(const _modification_t* mod)
         return;
     }
 
-    if (mod->antikepto) {
-        uint8_t host_nonce[32] = {0};
-        memset(host_nonce, 0xAB, sizeof(host_nonce));
-
-        inputs[1].input.has_host_nonce_commitment = true;
-        // Make host commitment from host_nonce.
-        assert_true(secp256k1_ecdsa_anti_exfil_host_commit(
-            wally_get_secp_context(),
-            inputs[1].input.host_nonce_commitment.commitment,
-            host_nonce));
-
-        uint8_t expected_sighash[32] =
-            "\x40\x73\x08\x11\xc2\xb3\xf0\xd3\x4f\x6d\xb8\x58\x22\xe5\xd7\x0f\xbc\x73\x88\xfc\x4e"
-            "\xe0\x4f\x8f\xf2\x0e\x07\xdc\x58\x9b\x93\xc7";
-        expect_memory(
-            __wrap_keystore_antiklepto_secp256k1_commit,
-            msg32,
-            expected_sighash,
-            sizeof(expected_sighash));
-
-        assert_int_equal(
-            APP_BTC_OK,
-            app_btc_sign_input_pass2(
-                &inputs[1].input, signature, anti_klepto_signer_commitment, true));
-
-        AntiKleptoSignatureRequest antiklepto_sig_req = {0};
-        memcpy(antiklepto_sig_req.host_nonce, host_nonce, sizeof(host_nonce));
-        assert_int_equal(APP_BTC_OK, app_btc_sign_antiklepto(&antiklepto_sig_req, signature));
-
-        { // Verify antiklepto nonce
-            secp256k1_ecdsa_signature parsed_signature;
-            assert_true(secp256k1_ecdsa_signature_parse_compact(
-                wally_get_secp_context(), &parsed_signature, signature));
-            uint8_t pubkey[EC_PUBLIC_KEY_UNCOMPRESSED_LEN];
-            assert_true(keystore_secp256k1_pubkey_uncompressed(
-                inputs[1].input.keypath, inputs[1].input.keypath_count, pubkey));
-            secp256k1_pubkey parsed_pubkey;
-            assert_true(secp256k1_ec_pubkey_parse(
-                wally_get_secp_context(), &parsed_pubkey, pubkey, sizeof(pubkey)));
-            secp256k1_ecdsa_s2c_opening opening;
-            assert_true(secp256k1_ecdsa_s2c_opening_parse(
-                wally_get_secp_context(), &opening, anti_klepto_signer_commitment));
-            assert_true(secp256k1_anti_exfil_host_verify(
-                wally_get_secp_context(),
-                &parsed_signature,
-                expected_sighash,
-                &parsed_pubkey,
-                host_nonce,
-                &opening));
-        }
-    } else {
-        assert_int_equal(
-            APP_BTC_OK,
-            app_btc_sign_input_pass2(
-                &inputs[1].input, signature, anti_klepto_signer_commitment, true));
-        if (mod->check_sigs) {
-            const uint8_t expected_signature[64] =
-                "\x2e\x08\x4a\x0a\x5f\x9b\xab\xb3\x5d\xf6\xec\x3a\x89\x72\x0b\xcf\xc0\x88"
-                "\xd4\xba\x6a\xee\x47\x97\x3c\x55\xfe\xc3\xb3\xdd\xaa\x60\x07\xc7\xb1\x1c"
-                "\x8b\x5a\x1a\x68\x20\xca\x74\xa8\x5a\xeb\x4c\xf5\x45\xc1\xb3\x37\x53\x70"
-                "\xf4\x4f\x24\xd5\x3d\x61\xfe\x67\x6e\x4c";
-            assert_memory_equal(signature, expected_signature, sizeof(signature));
-        }
+    assert_int_equal(
+        APP_BTC_OK,
+        app_btc_sign_input_pass2(&inputs[1].input, signature, anti_klepto_signer_commitment, true));
+    if (mod->check_sigs) {
+        const uint8_t expected_signature[64] =
+            "\x2e\x08\x4a\x0a\x5f\x9b\xab\xb3\x5d\xf6\xec\x3a\x89\x72\x0b\xcf\xc0\x88"
+            "\xd4\xba\x6a\xee\x47\x97\x3c\x55\xfe\xc3\xb3\xdd\xaa\x60\x07\xc7\xb1\x1c"
+            "\x8b\x5a\x1a\x68\x20\xca\x74\xa8\x5a\xeb\x4c\xf5\x45\xc1\xb3\x37\x53\x70"
+            "\xf4\x4f\x24\xd5\x3d\x61\xfe\x67\x6e\x4c";
+        assert_memory_equal(signature, expected_signature, sizeof(signature));
     }
 
     app_btc_sign_reset();
@@ -632,12 +558,6 @@ static void _test_overflow_output_ours(void** state)
     modified.overflow_output_ours = true;
     _sign(&modified);
 }
-static void _test_antiklepto(void** state)
-{
-    _modification_t modified = _valid;
-    modified.antikepto = true;
-    _sign(&modified);
-}
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -649,7 +569,6 @@ int main(void)
         cmocka_unit_test(_test_overflow_input_values_pass2),
         cmocka_unit_test(_test_overflow_output_out),
         cmocka_unit_test(_test_overflow_output_ours),
-        cmocka_unit_test(_test_antiklepto),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

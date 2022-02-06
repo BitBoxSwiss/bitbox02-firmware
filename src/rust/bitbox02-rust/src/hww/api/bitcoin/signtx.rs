@@ -435,6 +435,7 @@ mod tests {
         prevtx_inputs: Vec<pb::BtcPrevTxInputRequest>,
         prevtx_outputs: Vec<pb::BtcPrevTxOutputRequest>,
         prevtx_locktime: u32,
+        host_nonce: Option<Vec<u8>>,
     }
 
     struct Transaction {
@@ -506,6 +507,7 @@ mod tests {
                             },
                         ],
                         prevtx_locktime: 0,
+                        host_nonce: None,
                     },
                     TxInput {
                         input: pb::BtcSignInputRequest {
@@ -537,6 +539,7 @@ mod tests {
                             pubkey_script: b"pubkey script".to_vec(),
                         }],
                         prevtx_locktime: 87654,
+                        host_nonce: None,
                     },
                 ],
                 outputs: vec![
@@ -666,6 +669,17 @@ mod tests {
                     request: Some(pb::btc_request::Request::PrevtxOutput(
                         self.inputs[next.index as usize].prevtx_outputs[next.prev_index as usize]
                             .clone(),
+                    )),
+                }),
+                NextType::HostNonce => Request::Btc(pb::BtcRequest {
+                    request: Some(pb::btc_request::Request::AntikleptoSignature(
+                        pb::AntiKleptoSignatureRequest {
+                            host_nonce: self.inputs[next.index as usize]
+                                .host_nonce
+                                .as_ref()
+                                .expect("need host_nonce")
+                                .clone(),
+                        },
                     )),
                 }),
                 _ => panic!("unexpected next response"),
@@ -1342,6 +1356,38 @@ mod tests {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
                 assert_eq!(&next.signature, b"\x8f\x1e\x0e\x8f\x98\xd3\x6d\xb1\x19\x62\x64\xf1\xa3\x00\xfa\xe3\x17\xf1\x50\x8d\x2c\x48\x9f\xbb\xd6\x60\xe0\x48\xc4\x52\x9c\x61\x2f\x59\x57\x6c\x86\xa2\x6f\xfa\x47\x6d\x97\x35\x1e\x46\x9e\xf6\xed\x27\x84\xae\xcb\x71\x05\x3a\x51\x66\x77\x5c\xcb\x4d\x7b\x9b");
+            }
+            _ => panic!("wrong result"),
+        }
+    }
+
+    /// Exercise the antiklepto protocol
+    #[test]
+    fn test_antiklepto() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        let host_nonce = b"\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab";
+        // The host nonce commitment value does not impact this test, but an invalid commitment
+        // would fail the antiklepto signature check on the host. The host check is skipped here and
+        // tested in test_keystore_antiklepto.c. That the host nonce was included in the sig is
+        // tested by the siganture fixture test below.x
+        let host_nonce_commitment = pb::AntiKleptoHostNonceCommitment {
+            commitment: bitbox02::secp256k1::ecdsa_anti_exfil_host_commit(host_nonce).unwrap(),
+        };
+        transaction.borrow_mut().inputs[1].host_nonce = Some(host_nonce.to_vec());
+        transaction.borrow_mut().inputs[1]
+            .input
+            .host_nonce_commitment = Some(host_nonce_commitment);
+        mock_host_responder(transaction.clone());
+        mock_default_ui();
+        mock_unlocked();
+        let result = block_on(process(&transaction.borrow().init_request()));
+        match result {
+            Ok(Response::Btc(pb::BtcResponse {
+                response: Some(pb::btc_response::Response::SignNext(next)),
+            })) => {
+                assert!(next.has_signature);
+                assert_eq!(&next.signature, b"\x2e\x6d\xe6\x54\x62\x6e\xe9\x12\xbf\x2e\x0c\xf5\xa5\x67\x49\x89\x1a\xa9\x89\x56\xd4\x0e\x29\xe3\x8b\x8a\x64\x4d\x5c\x62\xcf\xcc\x44\xe7\x72\x92\x84\xff\x30\xf9\x24\x8c\xd7\x0a\x54\x57\xb0\xe2\x32\x4e\x7c\x47\x3f\x66\x00\x43\x2a\xcd\xc8\xd9\x2f\xb1\x67\x66");
             }
             _ => panic!("wrong result"),
         }

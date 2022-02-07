@@ -95,52 +95,6 @@ app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request)
     return APP_BTC_OK;
 }
 
-static bool _is_valid_keypath(
-    const uint32_t* keypath_account,
-    size_t keypath_account_count,
-    const uint32_t* keypath,
-    size_t keypath_count,
-    const BTCScriptConfig* script_config,
-    uint32_t expected_bip44_coin,
-    bool must_be_change)
-{
-    switch (script_config->which_config) {
-    case BTCScriptConfig_simple_type_tag:
-        if (!btc_common_is_valid_keypath_address_simple(
-                script_config->config.simple_type, keypath, keypath_count, expected_bip44_coin)) {
-            return false;
-        }
-        break;
-    case BTCScriptConfig_multisig_tag:
-        if (!btc_common_is_valid_keypath_address_multisig(
-                script_config->config.multisig.script_type,
-                keypath,
-                keypath_count,
-                expected_bip44_coin)) {
-            return false;
-        }
-        break;
-    default:
-        return false;
-    }
-
-    // check that keypath_account is a prefix to keypath with two elements left (change, address).
-    if (keypath_account_count + 2 != keypath_count) {
-        return false;
-    }
-    for (size_t i = 0; i < keypath_account_count; i++) {
-        if (keypath_account[i] != keypath[i]) {
-            return false;
-        }
-    }
-
-    const uint32_t change = keypath[keypath_count - 2];
-    if (must_be_change && change != 1) {
-        return false;
-    }
-    return true;
-}
-
 app_btc_result_t app_btc_sign_input_pass1(const BTCSignInputRequest* request, bool last)
 {
     {
@@ -278,13 +232,6 @@ app_btc_result_t app_btc_sign_input_pass2(
 
 app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool last)
 {
-    if (request->script_config_index >= _init_request.script_configs_count) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-
-    const BTCScriptConfigWithKeypath* script_config_account =
-        &_init_request.script_configs[request->script_config_index];
-
     // get payload. If request->ours=true, we compute the payload
     // from the keystore, otherwise it is provided in request->payload.
 
@@ -293,16 +240,11 @@ app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool l
 
     BTCOutputType output_type;
     if (request->ours) {
-        if (!_is_valid_keypath(
-                script_config_account->keypath,
-                script_config_account->keypath_count,
-                request->keypath,
-                request->keypath_count,
-                &script_config_account->script_config,
-                _coin_params->bip44_coin,
-                true)) {
+        if (request->script_config_index >= _init_request.script_configs_count) {
             return _error(APP_BTC_ERR_INVALID_INPUT);
         }
+        const BTCScriptConfigWithKeypath* script_config_account =
+            &_init_request.script_configs[request->script_config_index];
 
         switch (script_config_account->script_config.which_config) {
         case BTCScriptConfig_simple_type_tag: {
@@ -345,9 +287,6 @@ app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool l
         payload_size = request->payload.size;
         memcpy(payload_bytes, request->payload.bytes, payload_size);
         output_type = request->type;
-    }
-    if (request->value == 0) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
     }
 
     if (!request->ours) {

@@ -461,6 +461,22 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             };
         }
 
+        if tx_output.value == 0 {
+            return Err(Error::InvalidInput);
+        }
+
+        let _payload = if tx_output.ours {
+            let script_config_account = request
+                .script_configs
+                .get(tx_output.script_config_index as usize)
+                .ok_or(Error::InvalidInput)?;
+
+            validate_keypath(coin_params, script_config_account, &tx_output.keypath, true)?;
+            // TODO: compute payload at keypath
+        } else {
+            // TODO: take payload from provided from output.
+        };
+
         if tx_output.ours {
             num_changes += 1;
             outputs_sum_ours = outputs_sum_ours

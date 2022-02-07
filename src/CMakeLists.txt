@@ -55,7 +55,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign_validate.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_ui.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/confirm_locktime_rbf.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/confirm_multisig.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c

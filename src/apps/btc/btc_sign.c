@@ -18,7 +18,6 @@
 #include "btc_params.h"
 #include "btc_sign_validate.h"
 #include "btc_ui.h"
-#include "confirm_locktime_rbf.h"
 
 #include <rust/rust.h>
 
@@ -38,9 +37,6 @@ static const app_btc_coin_params_t* _coin_params = NULL;
 // Inputs and changes must be of a type defined in _init_request.script_configs.
 // Inputs and changes keypaths must have the prefix as defined in the referenced script_config..
 static BTCSignInitRequest _init_request = {0};
-
-static enum apps_btc_rbf_flag _rbf;
-static bool _locktime_applies;
 
 // number of change outputs. if >1, a warning is shown.
 static uint16_t _num_changes = 0;
@@ -66,8 +62,6 @@ static void _reset(void)
 {
     _coin_params = NULL;
     util_zero(&_init_request, sizeof(_init_request));
-    _rbf = CONFIRM_LOCKTIME_RBF_OFF;
-    _locktime_applies = false;
     _num_changes = 0;
 
     rust_sha256_free(&_hash_prevouts_ctx);
@@ -156,14 +150,6 @@ static app_btc_result_t _validate_input(const BTCSignInputRequest* request)
     // relative locktime and sequence nummbers < 0xffffffff-2 are not supported
     if (request->sequence < 0xffffffff - 2) {
         return APP_BTC_ERR_INVALID_INPUT;
-    }
-    if (_coin_params->rbf_support) {
-        if (request->sequence == 0xffffffff - 2) {
-            _rbf = CONFIRM_LOCKTIME_RBF_ON;
-        }
-    }
-    if (request->sequence < 0xffffffff) {
-        _locktime_applies = true;
     }
     if (request->prevOutValue == 0) {
         return APP_BTC_ERR_INVALID_INPUT;
@@ -484,24 +470,6 @@ app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool l
         if (_num_changes > 1) {
             if (!_warn_changes(_num_changes)) {
                 return _error(APP_BTC_ERR_USER_ABORT);
-            }
-        }
-
-        // A locktime of 0 will also not be verified, as it's certainly in the past and can't do any
-        // harm.
-        if (_init_request.locktime > 0) {
-            // This is not a security feature, the extra locktime/RBF user confirmation is skipped
-            // if the tx is not rbf or has a locktime of 0.
-            if (_locktime_applies || _rbf == CONFIRM_LOCKTIME_RBF_ON) {
-                // The RBF nsequence bytes are often set in conjunction with a locktime,
-                // so verify both simultaneously.
-                // There is no RBF in Litecoin, so make sure it is disabled.
-                if (!_coin_params->rbf_support) {
-                    _rbf = CONFIRM_LOCKTIME_RBF_DISABLED;
-                }
-                if (!apps_btc_confirm_locktime_rbf(_init_request.locktime, _rbf)) {
-                    return _error(APP_BTC_ERR_USER_ABORT);
-                }
             }
         }
 

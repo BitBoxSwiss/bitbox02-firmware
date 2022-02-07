@@ -17,7 +17,7 @@ use super::Error;
 
 use super::script::serialize_varint;
 
-use crate::workflow::{status, transaction};
+use crate::workflow::{confirm, status, transaction};
 
 use alloc::vec::Vec;
 
@@ -334,6 +334,9 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     // Will contain the sum of all spent output values in the first inputs pass.
     let mut inputs_sum_pass1: u64 = 0;
 
+    let mut locktime_applies: bool = false;
+    let mut rbf: bool = false;
+
     for input_index in 0..request.num_inputs {
         // Update progress.
         bitbox02::ui::progress_set(
@@ -342,6 +345,13 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         );
 
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
+
+        if tx_input.sequence == 0xffffffff - 2 {
+            rbf = true;
+        }
+        if tx_input.sequence < 0xffffffff {
+            locktime_applies = true;
+        }
 
         inputs_sum_pass1 = inputs_sum_pass1
             .checked_add(tx_input.prev_out_value)
@@ -401,6 +411,32 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
 
         let last = output_index == request.num_outputs - 1;
         bitbox02::app_btc::sign_output_wrapper(encode(&tx_output).as_ref(), last)?;
+    }
+
+    // Verify locktime/rbf.
+    // A locktime of 0 will also not be verified, as it's certainly in the past and can't do any
+    // harm.
+    if request.locktime > 0 && locktime_applies {
+        // The RBF nsequence bytes are often set in conjunction with a locktime,
+        // so verify both simultaneously.
+        confirm::confirm(&confirm::Params {
+            body: &format!(
+                "Locktime on block:\n{}\n{}",
+                request.locktime,
+                if coin_params.rbf_support {
+                    if rbf {
+                        "Transaction is RBF"
+                    } else {
+                        "Transaction is not RBF"
+                    }
+                } else {
+                    // There is no RBF in Litecoin.
+                    ""
+                }
+            ),
+            ..Default::default()
+        })
+        .await?;
     }
 
     // Total out, including fee.
@@ -832,6 +868,7 @@ mod tests {
     /// Pass/accept all user confirmations.
     fn mock_default_ui() {
         mock(Data {
+            ui_confirm_create: Some(Box::new(move |_params| true)),
             ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
             ..Default::default()
         });
@@ -1437,26 +1474,23 @@ mod tests {
             transaction.borrow_mut().inputs[0].input.sequence = test_case.sequence;
             mock_host_responder(transaction.clone());
             unsafe { LOCKTIME_CONFIRMED = false }
+            mock_default_ui();
             mock(Data {
                 ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
-                ..Default::default()
-            });
-            bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
-                verify_recipient: Box::new(|_recipient, _amount| true),
-                confirm: Box::new(move |title, body| {
-                    if body.contains("Locktime") {
+                ui_confirm_create: Some(Box::new(move |params| {
+                    if params.body.contains("Locktime") {
                         if let Some((confirm_str, user_response)) = test_case.confirm {
-                            assert_eq!(title, "");
-                            assert_eq!(body, confirm_str);
+                            assert_eq!(params.title, "");
+                            assert_eq!(params.body, confirm_str);
                             unsafe { LOCKTIME_CONFIRMED = true }
                             return user_response;
                         }
                         panic!("Unexpected RBF confirmation");
                     }
                     true
-                }),
+                })),
+                ..Default::default()
             });
-
             mock_unlocked();
 
             let mut init_request = transaction.borrow().init_request();
@@ -1708,6 +1742,22 @@ mod tests {
         mock_host_responder(transaction.clone());
         static mut UI_COUNTER: u32 = 0;
         mock(Data {
+            ui_confirm_create: Some(Box::new(move |params| {
+                match unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER
+                } {
+                    4 => {
+                        assert_eq!(params.title, "");
+                        assert_eq!(
+                            params.body,
+                            "Locktime on block:\n1663289\nTransaction is not RBF"
+                        );
+                    }
+                    _ => panic!("unexpected UI dialog"),
+                }
+                true
+            })),
             ui_transaction_fee_create: Some(Box::new(|total, fee| {
                 match unsafe {
                     UI_COUNTER += 1;
@@ -1752,10 +1802,6 @@ mod tests {
                     2 => {
                         assert_eq!(title, "Spend from");
                         assert_eq!(body, "test multisig account name");
-                    }
-                    4 => {
-                        assert_eq!(title, "");
-                        assert_eq!(body, "Locktime on block:\n1663289\nTransaction is not RBF");
                     }
                     _ => panic!("unexpected UI dialog"),
                 }

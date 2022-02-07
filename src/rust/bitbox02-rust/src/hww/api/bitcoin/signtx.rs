@@ -296,6 +296,20 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     if bitbox02::keystore::is_locked() {
         return Err(Error::InvalidState);
     }
+    // Validate the coin.
+    let _coin = pb::BtcCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
+    // Currently we do not support time-based nlocktime
+    if request.locktime >= 500000000 {
+        return Err(Error::InvalidInput);
+    }
+    // Currently only support version 1 or version 2 tx.
+    // Version 2: https://github.com/bitcoin/bips/blob/master/bip-0068.mediawiki
+    if request.version != 1 && request.version != 2 {
+        return Err(Error::InvalidInput);
+    }
+    if request.num_inputs < 1 || request.num_outputs < 1 {
+        return Err(Error::InvalidInput);
+    }
     bitbox02::app_btc::sign_init_wrapper(encode(request).as_ref())?;
 
     let mut progress_component = {

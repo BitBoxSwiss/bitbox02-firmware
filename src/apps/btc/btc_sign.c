@@ -105,18 +105,6 @@ static app_btc_result_t _error(app_btc_result_t err)
 
 app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request)
 {
-    // Currently we do not support time-based nlocktime
-    if (request->locktime >= 500000000) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-    // currently only support version 1 or version 2 tx.
-    // version 2: https://github.com/bitcoin/bips/blob/master/bip-0068.mediawiki
-    if (request->version != 1 && request->version != 2) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-    if (request->num_inputs < 1 || request->num_outputs < 1) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
     app_btc_result_t result = app_btc_sign_validate_init_script_configs(
         request->coin, request->script_configs, request->script_configs_count);
     if (result != APP_BTC_OK) {

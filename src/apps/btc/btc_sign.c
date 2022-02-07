@@ -42,17 +42,6 @@ static BTCSignInitRequest _init_request = {0};
 static enum apps_btc_rbf_flag _rbf;
 static bool _locktime_applies;
 
-// used during the first pass through the inputs. Will contain the sum of all spent output
-// values.
-static uint64_t _inputs_sum_pass1 = 0;
-// used during the second pass through the inputs. Can't exceed _inputs_sum_pass1.
-static uint64_t _inputs_sum_pass2 = 0;
-// used during processing of the outputs. Will contain the sum of all our output values
-// (change or receive to self).
-static uint64_t _outputs_sum_ours = 0;
-// used during processing of the outputs. Will contain the sum of all outgoing output values
-// (non-change outputs).
-static uint64_t _outputs_sum_out = 0;
 // number of change outputs. if >1, a warning is shown.
 static uint16_t _num_changes = 0;
 
@@ -79,10 +68,6 @@ static void _reset(void)
     util_zero(&_init_request, sizeof(_init_request));
     _rbf = CONFIRM_LOCKTIME_RBF_OFF;
     _locktime_applies = false;
-    _inputs_sum_pass1 = 0;
-    _inputs_sum_pass2 = 0;
-    _outputs_sum_out = 0;
-    _outputs_sum_ours = 0;
     _num_changes = 0;
 
     rust_sha256_free(&_hash_prevouts_ctx);
@@ -226,9 +211,6 @@ app_btc_result_t app_btc_sign_input_pass1(const BTCSignInputRequest* request, bo
         // assumes little endian environment.
         rust_sha256_update(_hash_sequence_ctx, &request->sequence, 4);
     }
-    if (!safe_uint64_add(&_inputs_sum_pass1, request->prevOutValue)) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
 
     if (last) {
         // Done with inputs pass 1.
@@ -247,24 +229,11 @@ app_btc_result_t app_btc_sign_input_pass1(const BTCSignInputRequest* request, bo
 app_btc_result_t app_btc_sign_input_pass2(
     const BTCSignInputRequest* request,
     uint8_t* sig_out,
-    uint8_t* anti_klepto_signer_commitment_out,
-    bool last)
+    uint8_t* anti_klepto_signer_commitment_out)
 {
     app_btc_result_t result = _validate_input(request);
     if (result != APP_BTC_OK) {
         return _error(result);
-    }
-
-    if (!safe_uint64_add(&_inputs_sum_pass2, request->prevOutValue)) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-    if (last) {
-        // In the last input, the two sums have to match.
-        if (_inputs_sum_pass2 != _inputs_sum_pass1) {
-            return _error(APP_BTC_ERR_INVALID_INPUT);
-        }
-    } else if (_inputs_sum_pass2 > _inputs_sum_pass1) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
     }
 
     { // Sign input.
@@ -449,15 +418,6 @@ app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool l
     if (request->value == 0) {
         return _error(APP_BTC_ERR_INVALID_INPUT);
     }
-    if (request->ours) {
-        if (!safe_uint64_add(&_outputs_sum_ours, request->value)) {
-            return _error(APP_BTC_ERR_INVALID_INPUT);
-        }
-    } else {
-        if (!safe_uint64_add(&_outputs_sum_out, request->value)) {
-            return _error(APP_BTC_ERR_INVALID_INPUT);
-        }
-    }
 
     if (request->ours) {
         _num_changes++;
@@ -545,31 +505,6 @@ app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool l
             }
         }
 
-        // total_out, including fee.
-        if (_inputs_sum_pass1 < _outputs_sum_ours) {
-            return _error(APP_BTC_ERR_INVALID_INPUT);
-        }
-        uint64_t total_out = _inputs_sum_pass1 - _outputs_sum_ours;
-        if (total_out < _outputs_sum_out) {
-            return _error(APP_BTC_ERR_INVALID_INPUT);
-        }
-        uint64_t fee = total_out - _outputs_sum_out;
-
-        char formatted_total_out[100] = {0};
-        rust_bitcoin_util_format_amount(
-            total_out,
-            rust_util_cstr(_coin_params->unit),
-            rust_util_cstr_mut(formatted_total_out, sizeof(formatted_total_out)));
-        char formatted_fee[100] = {0};
-        rust_bitcoin_util_format_amount(
-            fee,
-            rust_util_cstr(_coin_params->unit),
-            rust_util_cstr_mut(formatted_fee, sizeof(formatted_fee)));
-        // This call blocks.
-        if (!app_btc_ui()->verify_total(formatted_total_out, formatted_fee)) {
-            return _error(APP_BTC_ERR_USER_ABORT);
-        }
-
         rust_sha256_finish(&_hash_outputs_ctx, _hash_outputs);
         // hash hash_outputs to produce the final double-hash
         rust_sha256(_hash_outputs, 32, _hash_outputs);
@@ -620,15 +555,14 @@ app_btc_result_t app_btc_sign_output_wrapper(in_buffer_t request_buf, bool last)
 app_btc_result_t app_btc_sign_input_pass2_wrapper(
     in_buffer_t request_buf,
     uint8_t* sig_out,
-    uint8_t* anti_klepto_signer_commitment_out,
-    bool last)
+    uint8_t* anti_klepto_signer_commitment_out)
 {
     pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
     BTCSignInputRequest request = {0};
     if (!pb_decode(&in_stream, BTCSignInputRequest_fields, &request)) {
         return _error(APP_BTC_ERR_UNKNOWN);
     }
-    return app_btc_sign_input_pass2(&request, sig_out, anti_klepto_signer_commitment_out, last);
+    return app_btc_sign_input_pass2(&request, sig_out, anti_klepto_signer_commitment_out);
 }
 
 app_btc_result_t app_btc_sign_antiklepto_wrapper(in_buffer_t request_buf, uint8_t* sig_out)

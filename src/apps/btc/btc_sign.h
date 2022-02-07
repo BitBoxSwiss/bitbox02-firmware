@@ -35,8 +35,7 @@ USE_RESULT app_btc_result_t app_btc_sign_input_pass2(
     // 64 bytes
     uint8_t* sig_out,
     // 33 bytes
-    uint8_t* anti_klepto_signer_commitment_out,
-    bool last);
+    uint8_t* anti_klepto_signer_commitment_out);
 
 USE_RESULT app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool last);
 
@@ -53,8 +52,7 @@ USE_RESULT app_btc_result_t app_btc_sign_input_pass2_wrapper(
     // 64 bytes
     uint8_t* sig_out,
     // 33 bytes
-    uint8_t* anti_klepto_signer_commitment_out,
-    bool last);
+    uint8_t* anti_klepto_signer_commitment_out);
 USE_RESULT app_btc_result_t app_btc_sign_antiklepto_wrapper(
     in_buffer_t request_buf,
     // 64 bytes

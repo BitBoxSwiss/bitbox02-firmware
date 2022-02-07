@@ -17,7 +17,7 @@ use super::Error;
 
 use super::script::serialize_varint;
 
-use crate::workflow::status;
+use crate::workflow::{status, transaction};
 
 use alloc::vec::Vec;
 
@@ -297,7 +297,8 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         return Err(Error::InvalidState);
     }
     // Validate the coin.
-    let _coin = pb::BtcCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
+    let coin = pb::BtcCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
+    let coin_params = super::params::get(coin);
     // Currently we do not support time-based nlocktime
     if request.locktime >= 500000000 {
         return Err(Error::InvalidInput);
@@ -329,6 +330,10 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         },
         wrap: false,
     };
+
+    // Will contain the sum of all spent output values in the first inputs pass.
+    let mut inputs_sum_pass1: u64 = 0;
+
     for input_index in 0..request.num_inputs {
         // Update progress.
         bitbox02::ui::progress_set(
@@ -337,6 +342,11 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         );
 
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
+
+        inputs_sum_pass1 = inputs_sum_pass1
+            .checked_add(tx_input.prev_out_value)
+            .ok_or(Error::InvalidInput)?;
+
         let last = input_index == request.num_inputs - 1;
         bitbox02::app_btc::sign_input_pass1_wrapper(encode(&tx_input).as_ref(), last)?;
         handle_prevtx(
@@ -361,6 +371,11 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     // receiving the first output.
     let mut empty_component = None;
 
+    // Will contain the sum of all our output values (change or receive to self).
+    let mut outputs_sum_ours: u64 = 0;
+    // Will contain the sum of all outgoing output values (non-change outputs).
+    let mut outputs_sum_out: u64 = 0;
+
     for output_index in 0..request.num_outputs {
         let tx_output = get_tx_output(output_index, &mut next_response).await?;
         if output_index == 0 {
@@ -373,10 +388,33 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                 Some(c)
             };
         }
+
+        if tx_output.ours {
+            outputs_sum_ours = outputs_sum_ours
+                .checked_add(tx_output.value)
+                .ok_or(Error::InvalidInput)?;
+        } else {
+            outputs_sum_out = outputs_sum_out
+                .checked_add(tx_output.value)
+                .ok_or(Error::InvalidInput)?;
+        }
+
         let last = output_index == request.num_outputs - 1;
         bitbox02::app_btc::sign_output_wrapper(encode(&tx_output).as_ref(), last)?;
     }
 
+    // Total out, including fee.
+    let total_out: u64 = inputs_sum_pass1
+        .checked_sub(outputs_sum_ours)
+        .ok_or(Error::InvalidInput)?;
+    let fee: u64 = total_out
+        .checked_sub(outputs_sum_out)
+        .ok_or(Error::InvalidInput)?;
+    transaction::verify_total_fee(
+        &crate::apps::bitcoin::util::format_amount(total_out, coin_params.unit),
+        &crate::apps::bitcoin::util::format_amount(fee, coin_params.unit),
+    )
+    .await?;
     status::status("Transaction\nconfirmed", true).await;
 
     // Stop rendering the empty component.
@@ -392,11 +430,20 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         None
     };
 
+    // Will contain the sum of all spent output values in the second inputs pass.
+    let mut inputs_sum_pass2: u64 = 0;
     for input_index in 0..request.num_inputs {
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
-        let last = input_index == request.num_inputs - 1;
+
+        inputs_sum_pass2 = inputs_sum_pass2
+            .checked_add(tx_input.prev_out_value)
+            .ok_or(Error::InvalidInput)?;
+        if inputs_sum_pass2 > inputs_sum_pass1 {
+            return Err(Error::InvalidInput);
+        }
+
         let (signature, anti_klepto_signer_commitment) =
-            bitbox02::app_btc::sign_input_pass2_wrapper(encode(&tx_input).as_ref(), last)?;
+            bitbox02::app_btc::sign_input_pass2_wrapper(encode(&tx_input).as_ref())?;
         // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
         if tx_input.host_nonce_commitment.is_some() {
             next_response.next.anti_klepto_signer_commitment =
@@ -420,6 +467,10 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         if let Some(ref mut c) = progress_component {
             bitbox02::ui::progress_set(c, (input_index + 1) as f32 / (request.num_inputs as f32));
         }
+    }
+
+    if inputs_sum_pass1 != inputs_sum_pass2 {
+        return Err(Error::InvalidInput);
     }
 
     next_response.next.r#type = NextType::Done as _;
@@ -780,10 +831,13 @@ mod tests {
 
     /// Pass/accept all user confirmations.
     fn mock_default_ui() {
+        mock(Data {
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ..Default::default()
+        });
         bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
             verify_recipient: Box::new(|_recipient, _amount| true),
             confirm: Box::new(|_title, _body| true),
-            verify_total: Box::new(|_total, _fee| true),
         });
     }
 
@@ -955,8 +1009,32 @@ mod tests {
 
             let tx = transaction.clone();
             mock_host_responder(tx);
-            mock_unlocked();
             unsafe { UI_COUNTER = 0 }
+            mock(Data {
+                ui_transaction_fee_create: Some(Box::new(move |total, fee| {
+                    match unsafe {
+                        UI_COUNTER += 1;
+                        UI_COUNTER
+                    } {
+                        6 => {
+                            match coin {
+                                &pb::BtcCoin::Btc => {
+                                    assert_eq!(total, "13.399999 BTC");
+                                    assert_eq!(fee, "0.0541901 BTC");
+                                }
+                                &pb::BtcCoin::Ltc => {
+                                    assert_eq!(total, "13.399999 LTC");
+                                    assert_eq!(fee, "0.0541901 LTC");
+                                }
+                                _ => panic!("unexpected coin"),
+                            }
+                            true
+                        }
+                        _ => panic!("unexpected UI dialog"),
+                    }
+                })),
+                ..Default::default()
+            });
             bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
                 verify_recipient: Box::new(move |recipient, amount| {
                     match unsafe {
@@ -1047,29 +1125,8 @@ mod tests {
                         _ => panic!("unexpected UI dialog"),
                     }
                 }),
-                verify_total: Box::new(move |total, fee| {
-                    match unsafe {
-                        UI_COUNTER += 1;
-                        UI_COUNTER
-                    } {
-                        6 => {
-                            match coin {
-                                &pb::BtcCoin::Btc => {
-                                    assert_eq!(total, "13.399999 BTC");
-                                    assert_eq!(fee, "0.0541901 BTC");
-                                }
-                                &pb::BtcCoin::Ltc => {
-                                    assert_eq!(total, "13.399999 LTC");
-                                    assert_eq!(fee, "0.0541901 LTC");
-                                }
-                                _ => panic!("unexpected coin"),
-                            }
-                            true
-                        }
-                        _ => panic!("unexpected UI dialog"),
-                    }
-                }),
             });
+            mock_unlocked();
             let tx = transaction.borrow();
             let result = block_on(process(&tx.init_request()));
             match result {
@@ -1282,16 +1339,19 @@ mod tests {
                 UI_COUNTER = 0;
                 CURRENT_COUNTER = counter
             }
+            mock(Data {
+                ui_transaction_fee_create: Some(Box::new(|_total, _fee| unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER != CURRENT_COUNTER
+                })),
+                ..Default::default()
+            });
             bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
                 verify_recipient: Box::new(|_recipient, _amount| unsafe {
                     UI_COUNTER += 1;
                     UI_COUNTER != CURRENT_COUNTER
                 }),
                 confirm: Box::new(|_title, _body| unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER != CURRENT_COUNTER
-                }),
-                verify_total: Box::new(|_total, _fee| unsafe {
                     UI_COUNTER += 1;
                     UI_COUNTER != CURRENT_COUNTER
                 }),
@@ -1377,6 +1437,10 @@ mod tests {
             transaction.borrow_mut().inputs[0].input.sequence = test_case.sequence;
             mock_host_responder(transaction.clone());
             unsafe { LOCKTIME_CONFIRMED = false }
+            mock(Data {
+                ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+                ..Default::default()
+            });
             bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
                 verify_recipient: Box::new(|_recipient, _amount| true),
                 confirm: Box::new(move |title, body| {
@@ -1391,7 +1455,6 @@ mod tests {
                     }
                     true
                 }),
-                verify_total: Box::new(|_total, _fee| true),
             });
 
             mock_unlocked();
@@ -1418,6 +1481,10 @@ mod tests {
         transaction.borrow_mut().outputs[0].payload = b"\xa6\x08\x69\xf0\xdb\xcf\x1d\xc6\x59\xc9\xce\xcb\xaf\x80\x50\x13\x5e\xa9\xe8\xcd\xc4\x87\x05\x3f\x1d\xc6\x88\x09\x49\xdc\x68\x4c".to_vec();
         mock_host_responder(transaction.clone());
         static mut UI_COUNTER: u32 = 0;
+        mock(Data {
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ..Default::default()
+        });
         bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
             verify_recipient: Box::new(|recipient, amount| unsafe {
                 UI_COUNTER += 1;
@@ -1431,7 +1498,6 @@ mod tests {
                 true
             }),
             confirm: Box::new(|_title, _body| true),
-            verify_total: Box::new(|_total, _fee| true),
         });
         mock_unlocked();
         let result = block_on(process(&transaction.borrow().init_request()));
@@ -1641,6 +1707,22 @@ mod tests {
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
         mock_host_responder(transaction.clone());
         static mut UI_COUNTER: u32 = 0;
+        mock(Data {
+            ui_transaction_fee_create: Some(Box::new(|total, fee| {
+                match unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER
+                } {
+                    5 => {
+                        assert_eq!(total, "0.00090175 TBTC");
+                        assert_eq!(fee, "0.00000175 TBTC");
+                    }
+                    _ => panic!("unexpected UI dialog"),
+                }
+                true
+            })),
+            ..Default::default()
+        });
         bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
             verify_recipient: Box::new(move |recipient, amount| {
                 match unsafe {
@@ -1674,19 +1756,6 @@ mod tests {
                     4 => {
                         assert_eq!(title, "");
                         assert_eq!(body, "Locktime on block:\n1663289\nTransaction is not RBF");
-                    }
-                    _ => panic!("unexpected UI dialog"),
-                }
-                true
-            }),
-            verify_total: Box::new(move |total, fee| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    5 => {
-                        assert_eq!(total, "0.00090175 TBTC");
-                        assert_eq!(fee, "0.00000175 TBTC");
                     }
                     _ => panic!("unexpected UI dialog"),
                 }

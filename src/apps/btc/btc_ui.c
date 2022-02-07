@@ -16,11 +16,9 @@
 
 #include <workflow/confirm.h>
 #include <workflow/verify_recipient.h>
-#include <workflow/verify_total.h>
 
 static app_btc_ui_t _ui = {
     .verify_recipient = workflow_verify_recipient,
-    .verify_total = workflow_verify_total,
     .confirm = workflow_confirm_blocking,
 };
 

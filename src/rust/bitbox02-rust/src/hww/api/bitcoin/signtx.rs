@@ -1551,6 +1551,64 @@ mod tests {
         );
     }
 
+    /// Outgoing sum overflows.
+    #[test]
+    fn test_overflow_output_out() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = {
+            let tx = transaction.clone();
+            Some(Box::new(move |response: Response| {
+                let tx = tx.borrow();
+                let next = extract_next(&response);
+                match NextType::from_i32(next.r#type).unwrap() {
+                    NextType::Output => {
+                        let mut output = tx.outputs[next.index as usize].clone();
+                        if next.index == 0 {
+                            assert!(!output.ours);
+                            output.value = u64::MAX;
+                        }
+                        Ok(Request::BtcSignOutput(output))
+                    }
+                    _ => Ok(tx.make_host_request(response)),
+                }
+            }))
+        };
+        mock_default_ui();
+        mock_unlocked();
+        let result = block_on(process(&transaction.borrow().init_request()));
+        assert_eq!(result, Err(Error::InvalidInput));
+    }
+
+    /// Outgoing change overflows.
+    #[test]
+    fn test_overflow_output_ours() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = {
+            let tx = transaction.clone();
+            Some(Box::new(move |response: Response| {
+                let tx = tx.borrow();
+                let next = extract_next(&response);
+                match NextType::from_i32(next.r#type).unwrap() {
+                    NextType::Output => {
+                        let mut output = tx.outputs[next.index as usize].clone();
+                        if next.index == 4 {
+                            assert!(output.ours);
+                            output.value = u64::MAX;
+                        }
+                        Ok(Request::BtcSignOutput(output))
+                    }
+                    _ => Ok(tx.make_host_request(response)),
+                }
+            }))
+        };
+        mock_default_ui();
+        mock_unlocked();
+        let result = block_on(process(&transaction.borrow().init_request()));
+        assert_eq!(result, Err(Error::InvalidInput));
+    }
+
     fn parse_xpub(xpub: &str) -> Result<pb::XPub, ()> {
         let decoded = bitbox02::base58::decode(xpub)?;
         Ok(pb::XPub {

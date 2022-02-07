@@ -94,10 +94,11 @@ fn format_asset(policy_id: &[u8], asset_name: &[u8]) -> String {
     bech32::encode("asset", hash.to_base32(), Variant::Bech32).unwrap()
 }
 
-/// Validate size limits in the asset groups.
+/// Validate size limits in the asset groups and that there are no duplicate assets.
 fn validate_asset_groups(
     asset_groups: &[pb::cardano_sign_transaction_request::AssetGroup],
 ) -> Result<(), Error> {
+    let mut token_keys: Vec<(&[u8], &[u8])> = Vec::new();
     for asset_group in asset_groups.iter() {
         if asset_group.policy_id.len() != 28 {
             return Err(Error::InvalidInput);
@@ -106,6 +107,15 @@ fn validate_asset_groups(
             if token.asset_name.len() > 32 {
                 return Err(Error::InvalidInput);
             }
+            // Check for duplicates.
+            let token_key = (
+                asset_group.policy_id.as_slice(),
+                token.asset_name.as_slice(),
+            );
+            if token_keys.contains(&token_key) {
+                return Err(Error::InvalidInput);
+            }
+            token_keys.push(token_key);
         }
     }
     Ok(())
@@ -1180,5 +1190,111 @@ mod tests {
                 }]
             })
         );
+    }
+
+    #[test]
+    fn test_validate_asset_groups() {
+        assert!(validate_asset_groups(&[]).is_ok());
+        assert!(validate_asset_groups(&[
+            pb::cardano_sign_transaction_request::AssetGroup {
+                policy_id: b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73".to_vec(),
+                tokens: vec![
+                    pb::cardano_sign_transaction_request::asset_group::Token {
+                        asset_name: b"\x1e\x34\x9c\x9b\xde\xa1\x9f\xd6\xc1\x47\x62\x6a\x52\x60\xbc\x44\xb7\x16\x35\xf3\x98\xb6\x7c\x59\x88\x1d\xf2\x09".to_vec(),
+                        value: 3,
+                    },
+                    pb::cardano_sign_transaction_request::asset_group::Token {
+                        asset_name: b"\x50\x41\x54\x41\x54\x45".to_vec(),
+                        value: 1,
+                    },
+                ],
+            },
+            pb::cardano_sign_transaction_request::AssetGroup {
+                policy_id: b"\x1e\x34\x9c\x9b\xde\xa1\x9f\xd6\xc1\x47\x62\x6a\x52\x60\xbc\x44\xb7\x16\x35\xf3\x98\xb6\x7c\x59\x88\x1d\xf2\x09".to_vec(),
+                tokens: vec![
+                    pb::cardano_sign_transaction_request::asset_group::Token {
+                        asset_name: b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73".to_vec(),
+                        value: 5,
+                    },
+                ],
+            }]).is_ok());
+
+        // Duplicates are not allowed.
+        // 1) Duplicate asset names inside one policy id.
+        assert_eq!(validate_asset_groups(&[
+            pb::cardano_sign_transaction_request::AssetGroup {
+                policy_id: b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73".to_vec(),
+                tokens: vec![
+                    pb::cardano_sign_transaction_request::asset_group::Token {
+                        asset_name: b"\x1e\x34\x9c\x9b\xde\xa1\x9f\xd6\xc1\x47\x62\x6a\x52\x60\xbc\x44\xb7\x16\x35\xf3\x98\xb6\x7c\x59\x88\x1d\xf2\x09".to_vec(),
+                        value: 3,
+                    },
+                    pb::cardano_sign_transaction_request::asset_group::Token {
+                        asset_name: b"\x50\x41\x54\x41\x54\x45".to_vec(),
+                        value: 1,
+                    },
+                    pb::cardano_sign_transaction_request::asset_group::Token {
+                        asset_name: b"\x1e\x34\x9c\x9b\xde\xa1\x9f\xd6\xc1\x47\x62\x6a\x52\x60\xbc\x44\xb7\x16\x35\xf3\x98\xb6\x7c\x59\x88\x1d\xf2\x09".to_vec(),
+                        value: 5,
+                    },
+                ],
+            },
+            pb::cardano_sign_transaction_request::AssetGroup {
+                policy_id: b"\x1e\x34\x9c\x9b\xde\xa1\x9f\xd6\xc1\x47\x62\x6a\x52\x60\xbc\x44\xb7\x16\x35\xf3\x98\xb6\x7c\x59\x88\x1d\xf2\x09".to_vec(),
+                tokens: vec![
+                    pb::cardano_sign_transaction_request::asset_group::Token {
+                        asset_name: b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73".to_vec(),
+                        value: 5,
+                    },
+                ],
+            }]), Err(Error::InvalidInput));
+        // 2) Duplicate policy id entries containing the same asset name.
+        assert_eq!(validate_asset_groups(&[
+            pb::cardano_sign_transaction_request::AssetGroup {
+                policy_id: b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73".to_vec(),
+                tokens: vec![
+                    pb::cardano_sign_transaction_request::asset_group::Token {
+                        asset_name: b"\x1e\x34\x9c\x9b\xde\xa1\x9f\xd6\xc1\x47\x62\x6a\x52\x60\xbc\x44\xb7\x16\x35\xf3\x98\xb6\x7c\x59\x88\x1d\xf2\x09".to_vec(),
+                        value: 3,
+                    },
+                    pb::cardano_sign_transaction_request::asset_group::Token {
+                        asset_name: b"\x50\x41\x54\x41\x54\x45".to_vec(),
+                        value: 1,
+                    },
+                ],
+            },
+            pb::cardano_sign_transaction_request::AssetGroup {
+                policy_id: b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73".to_vec(),
+                tokens: vec![
+                    pb::cardano_sign_transaction_request::asset_group::Token {
+                        asset_name: b"\x50\x41\x54\x41\x54\x45".to_vec(),
+                        value: 5,
+                    },
+                ],
+            }]), Err(Error::InvalidInput));
+        // Okay to have duplicate policy ids if the asset names are different.
+        assert!(validate_asset_groups(&[
+            pb::cardano_sign_transaction_request::AssetGroup {
+                policy_id: b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73".to_vec(),
+                tokens: vec![
+                    pb::cardano_sign_transaction_request::asset_group::Token {
+                        asset_name: b"\x1e\x34\x9c\x9b\xde\xa1\x9f\xd6\xc1\x47\x62\x6a\x52\x60\xbc\x44\xb7\x16\x35\xf3\x98\xb6\x7c\x59\x88\x1d\xf2\x09".to_vec(),
+                        value: 3,
+                    },
+                    pb::cardano_sign_transaction_request::asset_group::Token {
+                        asset_name: b"\x50\x41\x54\x41\x54\x45".to_vec(),
+                        value: 1,
+                    },
+                ],
+            },
+            pb::cardano_sign_transaction_request::AssetGroup {
+                policy_id: b"\x7e\xae\x28\xaf\x22\x08\xbe\x85\x6f\x7a\x11\x96\x68\xae\x52\xa4\x9b\x73\x72\x5e\x32\x6d\xc1\x65\x79\xdc\xc3\x73".to_vec(),
+                tokens: vec![
+                    pb::cardano_sign_transaction_request::asset_group::Token {
+                        asset_name: b"different asset name".to_vec(),
+                        value: 5,
+                    },
+                ],
+            }]).is_ok());
     }
 }

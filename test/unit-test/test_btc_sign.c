@@ -88,12 +88,6 @@ static uint8_t _mock_bip39_seed[64] =
 typedef struct {
     // true if the sigs should be checked against fixtures.
     bool check_sigs;
-    // the sum of the inputs in the 2nd pass can't be higher than in the first
-    // for all inputs.
-    bool input_sum_changes;
-    // at the last input, the sum of the inputs in the 2nd pass must be the same
-    // as the sum of the inputs in the first pass
-    bool input_sum_last_mismatch;
     // can't init twice in a row -> first input expected
     bool state_init_after_init;
     // wrong state transition
@@ -431,12 +425,6 @@ static void _sign(const _modification_t* mod)
 
     // === Inputs Pass 2
 
-    if (mod->input_sum_changes) {
-        inputs[0].input.prevOutValue += inputs[1].input.prevOutValue + 1;
-    }
-    if (mod->input_sum_last_mismatch) {
-        inputs[0].input.prevOutValue -= 1; // errors even if we decrease the amount
-    }
     if (mod->overflow_input_values_pass2) {
         inputs[1].input.prevOutValue = ULLONG_MAX - inputs[0].input.prevOutValue + 1;
     }
@@ -455,13 +443,6 @@ static void _sign(const _modification_t* mod)
 
     uint8_t signature[64] = {0};
     uint8_t anti_klepto_signer_commitment[33] = {0};
-    if (mod->input_sum_changes) {
-        assert_int_equal(
-            APP_BTC_ERR_INVALID_INPUT,
-            app_btc_sign_input_pass2(
-                &inputs[0].input, signature, anti_klepto_signer_commitment, false));
-        return;
-    }
     assert_int_equal(
         APP_BTC_OK,
         app_btc_sign_input_pass2(
@@ -485,7 +466,7 @@ static void _sign(const _modification_t* mod)
         keypath,
         inputs[1].input.keypath,
         inputs[1].input.keypath_count * sizeof(uint32_t));
-    if (mod->input_sum_last_mismatch || mod->overflow_input_values_pass2) {
+    if (mod->overflow_input_values_pass2) {
         assert_int_equal(
             APP_BTC_ERR_INVALID_INPUT,
             app_btc_sign_input_pass2(
@@ -514,18 +495,6 @@ static void _test_btc_sign(void** state)
 {
     _modification_t modified = _valid;
     modified.check_sigs = true;
-    _sign(&modified);
-}
-static void _test_input_sum_changes(void** state)
-{
-    _modification_t modified = _valid;
-    modified.input_sum_changes = true;
-    _sign(&modified);
-}
-static void _test_input_sum_last_mismatch(void** state)
-{
-    _modification_t modified = _valid;
-    modified.input_sum_last_mismatch = true;
     _sign(&modified);
 }
 static void _test_wrong_input_value(void** state)
@@ -562,8 +531,6 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_btc_sign),
-        cmocka_unit_test(_test_input_sum_changes),
-        cmocka_unit_test(_test_input_sum_last_mismatch),
         cmocka_unit_test(_test_wrong_input_value),
         cmocka_unit_test(_test_overflow_input_values_pass1),
         cmocka_unit_test(_test_overflow_input_values_pass2),

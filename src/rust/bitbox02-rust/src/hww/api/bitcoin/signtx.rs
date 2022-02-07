@@ -429,6 +429,16 @@ mod tests {
     use bitbox02::testing::{mock, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic, Data};
     use util::bip32::HARDENED;
 
+    fn extract_next(response: &Response) -> &pb::BtcSignNextResponse {
+        match response {
+            Response::BtcSignNext(next) => next,
+            Response::Btc(pb::BtcResponse {
+                response: Some(pb::btc_response::Response::SignNext(next)),
+            }) => next,
+            _ => panic!("wrong response type"),
+        }
+    }
+
     struct TxInput {
         input: pb::BtcSignInputRequest,
         prevtx_version: u32,
@@ -701,13 +711,7 @@ mod tests {
 
         /// Return the transaction part requested by the device.
         fn make_host_request(&self, response: Response) -> Request {
-            let next: pb::BtcSignNextResponse = match response {
-                Response::BtcSignNext(next) => next,
-                Response::Btc(pb::BtcResponse {
-                    response: Some(pb::btc_response::Response::SignNext(next)),
-                }) => next,
-                _ => panic!("wrong response type"),
-            };
+            let next = extract_next(&response);
             match NextType::from_i32(next.r#type).unwrap() {
                 NextType::Input => {
                     Request::BtcSignInput(self.inputs[next.index as usize].input.clone())
@@ -1457,6 +1461,94 @@ mod tests {
             }
             _ => panic!("wrong result"),
         }
+    }
+
+    /// The sum of the inputs in the 2nd pass can't be higher than in the first for all inputs.
+    #[test]
+    fn test_input_sum_changes() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        static mut PASS2_INPUT_REQUESTS_COUNTER: u32 = 0;
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = {
+            let tx = transaction.clone();
+            static mut PASS2: bool = false;
+            Some(Box::new(move |response: Response| {
+                let tx = tx.borrow();
+                let next = extract_next(&response);
+                match NextType::from_i32(next.r#type).unwrap() {
+                    NextType::Output => unsafe { PASS2 = true },
+                    NextType::Input => {
+                        if unsafe { PASS2 } {
+                            unsafe { PASS2_INPUT_REQUESTS_COUNTER += 1 }
+                            if next.index == 0 {
+                                let mut input = tx.inputs[next.index as usize].input.clone();
+                                // Amount in first input in pass2 is bigger than the the sum of all
+                                // inputs in the first pass, which fails immediately.
+                                input.prev_out_value = tx
+                                    .inputs
+                                    .iter()
+                                    .map(|inp| inp.input.prev_out_value)
+                                    .sum::<u64>()
+                                    + 1;
+                                return Ok(Request::BtcSignInput(input));
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+                Ok(tx.make_host_request(response))
+            }))
+        };
+        mock_default_ui();
+        mock_unlocked();
+        let result = block_on(process(&transaction.borrow().init_request()));
+        assert_eq!(result, Err(Error::InvalidInput));
+        // Only one input in the 2nd pass was requested, meaning the process failed after validating
+        // the amount in the first input.
+        assert_eq!(unsafe { PASS2_INPUT_REQUESTS_COUNTER }, 1);
+    }
+
+    /// At the last input, the sum of the inputs in the 2nd pass must be the same as the sum of the
+    /// inputs in the first pass.
+    #[test]
+    fn test_input_sum_last_mismatch() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        static mut PASS2_INPUT_REQUESTS_COUNTER: u32 = 0;
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = {
+            let tx = transaction.clone();
+            static mut PASS2: bool = false;
+            Some(Box::new(move |response: Response| {
+                let tx = tx.borrow();
+                let next = extract_next(&response);
+                match NextType::from_i32(next.r#type).unwrap() {
+                    NextType::Output => unsafe { PASS2 = true },
+                    NextType::Input => {
+                        if unsafe { PASS2 } {
+                            unsafe { PASS2_INPUT_REQUESTS_COUNTER += 1 }
+                            if next.index == 0 {
+                                let mut input = tx.inputs[next.index as usize].input.clone();
+                                // errors even if we decrease the amount
+                                input.prev_out_value -= 1;
+                                return Ok(Request::BtcSignInput(input));
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+                Ok(tx.make_host_request(response))
+            }))
+        };
+        mock_default_ui();
+        mock_unlocked();
+        let result = block_on(process(&transaction.borrow().init_request()));
+        assert_eq!(result, Err(Error::InvalidInput));
+        // All inputs were requested, the failure happens when comparing the sums of the two passes
+        // at the end.
+        assert_eq!(
+            unsafe { PASS2_INPUT_REQUESTS_COUNTER },
+            transaction.borrow().inputs.len() as u32
+        );
     }
 
     fn parse_xpub(xpub: &str) -> Result<pb::XPub, ()> {

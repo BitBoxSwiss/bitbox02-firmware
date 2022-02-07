@@ -7,6 +7,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+
+### 9.9.1 [2022-02-07]
+
 - Cardano: support sending to legacy Byron addresses
 - Cardano: disallow duplicate token keys in an output
 

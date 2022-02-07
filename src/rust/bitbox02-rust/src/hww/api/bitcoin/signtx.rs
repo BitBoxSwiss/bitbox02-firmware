@@ -17,6 +17,7 @@ use super::Error;
 
 use super::script::serialize_varint;
 
+use crate::apps::bitcoin::keypath;
 use crate::workflow::{confirm, status, transaction};
 
 use alloc::vec::Vec;
@@ -189,6 +190,61 @@ async fn get_antiklepto_host_nonce(
     }
 }
 
+fn validate_keypath(
+    params: &super::params::Params,
+    script_config_account: &pb::BtcScriptConfigWithKeypath,
+    keypath: &[u32],
+    must_be_change: bool,
+) -> Result<(), Error> {
+    match &script_config_account.script_config {
+        Some(pb::BtcScriptConfig {
+            config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
+        }) => {
+            let simple_type = pb::btc_script_config::SimpleType::from_i32(*simple_type)
+                .ok_or(Error::InvalidInput)?;
+            keypath::validate_address_simple(keypath, params.bip44_coin, simple_type)
+                .or(Err(Error::InvalidInput))?;
+        }
+        Some(pb::BtcScriptConfig {
+            config: Some(pb::btc_script_config::Config::Multisig(multisig)),
+        }) => {
+            let script_type =
+                pb::btc_script_config::multisig::ScriptType::from_i32(multisig.script_type)
+                    .ok_or(Error::InvalidInput)?;
+            keypath::validate_address_multisig(keypath, params.bip44_coin, script_type)
+                .or(Err(Error::InvalidInput))?;
+        }
+        _ => return Err(Error::InvalidInput),
+    }
+    // Check that keypath_account is a prefix to keypath with two elements left (change, address).
+    if script_config_account.keypath.len() + 2 != keypath.len() {
+        return Err(Error::InvalidInput);
+    }
+    if keypath[..script_config_account.keypath.len()] != script_config_account.keypath {
+        return Err(Error::InvalidInput);
+    }
+    let change = keypath[keypath.len() - 2];
+    if must_be_change && change != 1 {
+        return Err(Error::InvalidInput);
+    }
+    Ok(())
+}
+
+fn validate_input(
+    input: &pb::BtcSignInputRequest,
+    params: &super::params::Params,
+    script_config_account: &pb::BtcScriptConfigWithKeypath,
+) -> Result<(), Error> {
+    // relative locktime and sequence nummbers < 0xffffffff-2 are not supported
+    if input.sequence < 0xffffffff - 2 {
+        return Err(Error::InvalidInput);
+    }
+    if input.prev_out_value == 0 {
+        return Err(Error::InvalidInput);
+    }
+    validate_keypath(params, script_config_account, &input.keypath, false)
+}
+
 /// Stream an input's previous transaction and verify that the prev_out_hash in the input matches
 /// the hash of the previous transaction, as well as that the amount provided in the input is correct.
 async fn handle_prevtx(
@@ -345,7 +401,11 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         );
 
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
-
+        let script_config_account = request
+            .script_configs
+            .get(tx_input.script_config_index as usize)
+            .ok_or(Error::InvalidInput)?;
+        validate_input(&tx_input, coin_params, script_config_account)?;
         if tx_input.sequence == 0xffffffff - 2 {
             rbf = true;
         }
@@ -482,6 +542,11 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     let mut inputs_sum_pass2: u64 = 0;
     for input_index in 0..request.num_inputs {
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
+        let script_config_account = request
+            .script_configs
+            .get(tx_input.script_config_index as usize)
+            .ok_or(Error::InvalidInput)?;
+        validate_input(&tx_input, coin_params, script_config_account)?;
 
         inputs_sum_pass2 = inputs_sum_pass2
             .checked_add(tx_input.prev_out_value)

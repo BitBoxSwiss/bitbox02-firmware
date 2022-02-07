@@ -141,42 +141,8 @@ static bool _is_valid_keypath(
     return true;
 }
 
-static app_btc_result_t _validate_input(const BTCSignInputRequest* request)
-{
-    // relative locktime and sequence nummbers < 0xffffffff-2 are not supported
-    if (request->sequence < 0xffffffff - 2) {
-        return APP_BTC_ERR_INVALID_INPUT;
-    }
-    if (request->prevOutValue == 0) {
-        return APP_BTC_ERR_INVALID_INPUT;
-    }
-
-    if (request->script_config_index >= _init_request.script_configs_count) {
-        return APP_BTC_ERR_INVALID_INPUT;
-    }
-    const BTCScriptConfigWithKeypath* script_config_account =
-        &_init_request.script_configs[request->script_config_index];
-
-    if (!_is_valid_keypath(
-            script_config_account->keypath,
-            script_config_account->keypath_count,
-            request->keypath,
-            request->keypath_count,
-            &script_config_account->script_config,
-            _coin_params->bip44_coin,
-            false)) {
-        return APP_BTC_ERR_INVALID_INPUT;
-    }
-    return APP_BTC_OK;
-}
-
 app_btc_result_t app_btc_sign_input_pass1(const BTCSignInputRequest* request, bool last)
 {
-    app_btc_result_t result = _validate_input(request);
-    if (result != APP_BTC_OK) {
-        return _error(result);
-    }
-
     {
         // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
         // point 2: accumulate hashPrevouts
@@ -213,11 +179,6 @@ app_btc_result_t app_btc_sign_input_pass2(
     uint8_t* sig_out,
     uint8_t* anti_klepto_signer_commitment_out)
 {
-    app_btc_result_t result = _validate_input(request);
-    if (result != APP_BTC_OK) {
-        return _error(result);
-    }
-
     { // Sign input.
         uint8_t pubkey_hash160[HASH160_LEN];
         UTIL_CLEANUP_20(pubkey_hash160);

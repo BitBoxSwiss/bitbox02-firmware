@@ -386,6 +386,8 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     // Will contain the sum of all outgoing output values (non-change outputs).
     let mut outputs_sum_out: u64 = 0;
 
+    let mut num_changes: u32 = 0;
+
     for output_index in 0..request.num_outputs {
         let tx_output = get_tx_output(output_index, &mut next_response).await?;
         if output_index == 0 {
@@ -400,6 +402,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         }
 
         if tx_output.ours {
+            num_changes += 1;
             outputs_sum_ours = outputs_sum_ours
                 .checked_add(tx_output.value)
                 .ok_or(Error::InvalidInput)?;
@@ -411,6 +414,15 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
 
         let last = output_index == request.num_outputs - 1;
         bitbox02::app_btc::sign_output_wrapper(encode(&tx_output).as_ref(), last)?;
+    }
+
+    if num_changes > 1 {
+        confirm::confirm(&confirm::Params {
+            title: "Warning",
+            body: &format!("There are {}\nchange outputs.\nProceed?", num_changes),
+            ..Default::default()
+        })
+        .await?;
     }
 
     // Verify locktime/rbf.
@@ -1070,6 +1082,20 @@ mod tests {
                         _ => panic!("unexpected UI dialog"),
                     }
                 })),
+
+                ui_confirm_create: Some(Box::new(|params| {
+                    match unsafe {
+                        UI_COUNTER += 1;
+                        UI_COUNTER
+                    } {
+                        5 => {
+                            assert_eq!(params.title, "Warning");
+                            assert_eq!(params.body, "There are 2\nchange outputs.\nProceed?");
+                            true
+                        }
+                        _ => panic!("unexpected UI dialog"),
+                    }
+                })),
                 ..Default::default()
             });
             bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
@@ -1149,16 +1175,11 @@ mod tests {
                         _ => panic!("unexpected UI dialog"),
                     }
                 }),
-                confirm: Box::new(|title, body| {
+                confirm: Box::new(|_title, _body| {
                     match unsafe {
                         UI_COUNTER += 1;
                         UI_COUNTER
                     } {
-                        5 => {
-                            assert_eq!(title, "Warning");
-                            assert_eq!(body, "There are 2\nchange outputs.\nProceed?");
-                            true
-                        }
                         _ => panic!("unexpected UI dialog"),
                     }
                 }),
@@ -1381,6 +1402,10 @@ mod tests {
                     UI_COUNTER += 1;
                     UI_COUNTER != CURRENT_COUNTER
                 })),
+                ui_confirm_create: Some(Box::new(move |_params| unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER != CURRENT_COUNTER
+                })),
                 ..Default::default()
             });
             bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
@@ -1519,6 +1544,7 @@ mod tests {
             ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
             ..Default::default()
         });
+        mock_default_ui();
         bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
             verify_recipient: Box::new(|recipient, amount| unsafe {
                 UI_COUNTER += 1;

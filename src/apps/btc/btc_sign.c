@@ -38,9 +38,6 @@ static const app_btc_coin_params_t* _coin_params = NULL;
 // Inputs and changes keypaths must have the prefix as defined in the referenced script_config..
 static BTCSignInitRequest _init_request = {0};
 
-// number of change outputs. if >1, a warning is shown.
-static uint16_t _num_changes = 0;
-
 // used during the first pass through the inputs
 static void* _hash_prevouts_ctx = NULL;
 static void* _hash_sequence_ctx = NULL;
@@ -62,7 +59,6 @@ static void _reset(void)
 {
     _coin_params = NULL;
     util_zero(&_init_request, sizeof(_init_request));
-    _num_changes = 0;
 
     rust_sha256_free(&_hash_prevouts_ctx);
     _hash_prevouts_ctx = rust_sha256_new();
@@ -319,18 +315,6 @@ app_btc_result_t app_btc_sign_input_pass2(
     return APP_BTC_OK;
 }
 
-// num_changes must be >1.
-static bool _warn_changes(uint16_t num_changes)
-{
-    char body[100] = {0};
-    snprintf(body, sizeof(body), "There are %d\nchange outputs.\nProceed?", num_changes);
-    const confirm_params_t params = {
-        .title = "Warning",
-        .body = body,
-    };
-    return app_btc_ui()->confirm(&params);
-}
-
 app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool last)
 {
     if (request->script_config_index >= _init_request.script_configs_count) {
@@ -405,10 +389,6 @@ app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool l
         return _error(APP_BTC_ERR_INVALID_INPUT);
     }
 
-    if (request->ours) {
-        _num_changes++;
-    }
-
     if (!request->ours) {
         char address[100] = {0};
         // assemble address to display, get user confirmation
@@ -464,15 +444,6 @@ app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool l
     }
 
     if (last) {
-        // Done with outputs. Verify locktime, total and fee. Warn if there are multiple change
-        // outputs.
-
-        if (_num_changes > 1) {
-            if (!_warn_changes(_num_changes)) {
-                return _error(APP_BTC_ERR_USER_ABORT);
-            }
-        }
-
         rust_sha256_finish(&_hash_outputs_ctx, _hash_outputs);
         // hash hash_outputs to produce the final double-hash
         rust_sha256(_hash_outputs, 32, _hash_outputs);

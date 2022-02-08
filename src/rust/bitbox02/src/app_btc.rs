@@ -141,3 +141,43 @@ pub fn sign_antiklepto_wrapper(buffer_in: &[u8]) -> Result<Vec<u8>, Error> {
 pub fn sign_reset() {
     unsafe { bitbox02_sys::app_btc_sign_reset() }
 }
+
+pub fn address_from_payload(
+    coin: bitbox02_sys::BTCCoin,
+    output_type: bitbox02_sys::BTCOutputType,
+    payload: &[u8],
+) -> Result<String, ()> {
+    let mut out = [0u8; 100];
+    match unsafe {
+        bitbox02_sys::btc_common_address_from_payload(
+            bitbox02_sys::app_btc_params_get(coin),
+            output_type,
+            payload.as_ptr(),
+            payload.len() as _,
+            out.as_mut_ptr(),
+            out.len() as _,
+        )
+    } {
+        true => Ok(crate::util::str_from_null_terminated(&out[..])
+            .unwrap()
+            .into()),
+        false => Err(()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_address_from_payload() {
+        assert_eq!(
+            address_from_payload(
+                bitbox02_sys::_BTCCoin_BTCCoin_BTC,
+                bitbox02_sys::_BTCOutputType_BTCOutputType_P2TR,
+                b"\xa6\x08\x69\xf0\xdb\xcf\x1d\xc6\x59\xc9\xce\xcb\xaf\x80\x50\x13\x5e\xa9\xe8\xcd\xc4\x87\x05\x3f\x1d\xc6\x88\x09\x49\xdc\x68\x4c",
+            ),
+            Ok("bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr".into())
+        )
+    }
+}

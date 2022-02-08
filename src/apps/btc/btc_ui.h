@@ -20,7 +20,6 @@
 #include <workflow/confirm.h>
 
 typedef struct {
-    bool (*verify_recipient)(const char* recipient, const char* amount);
     bool (*confirm)(const confirm_params_t* params);
 } app_btc_ui_t;
 

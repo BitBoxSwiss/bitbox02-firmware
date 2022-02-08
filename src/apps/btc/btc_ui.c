@@ -15,10 +15,8 @@
 #include "btc_ui.h"
 
 #include <workflow/confirm.h>
-#include <workflow/verify_recipient.h>
 
 static app_btc_ui_t _ui = {
-    .verify_recipient = workflow_verify_recipient,
     .confirm = workflow_confirm_blocking,
 };
 

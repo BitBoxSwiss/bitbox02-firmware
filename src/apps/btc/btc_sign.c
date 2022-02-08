@@ -17,7 +17,6 @@
 #include "btc_common.h"
 #include "btc_params.h"
 #include "btc_sign_validate.h"
-#include "btc_ui.h"
 
 #include <rust/rust.h>
 
@@ -243,27 +242,6 @@ app_btc_result_t app_btc_sign_output(
     const uint8_t* payload_bytes,
     size_t payload_size)
 {
-    if (!request->ours) {
-        char address[100] = {0};
-        // assemble address to display, get user confirmation
-        if (!btc_common_address_from_payload(
-                _coin_params, output_type, payload_bytes, payload_size, address, sizeof(address))) {
-            return _error(APP_BTC_ERR_INVALID_INPUT);
-        }
-
-        // Verify output if it is not a change output.
-        char formatted_value[100] = {0};
-        rust_bitcoin_util_format_amount(
-            request->value,
-            rust_util_cstr(_coin_params->unit),
-            rust_util_cstr_mut(formatted_value, sizeof(formatted_value)));
-
-        // This call blocks.
-        if (!app_btc_ui()->verify_recipient(address, formatted_value)) {
-            return _error(APP_BTC_ERR_USER_ABORT);
-        }
-    }
-
     {
         // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
         // point 8: accumulate hashOutputs

@@ -414,6 +414,8 @@ add_custom_target(rust-bindgen
     --rustified-enum app_btc_result_t
     --whitelist-function app_btc_address_simple
     --whitelist-function testing_app_btc_mock_ui
+    --whitelist-function btc_common_address_from_payload
+    --whitelist-function app_btc_params_get
     --whitelist-function app_btc_sign_init_wrapper
     --whitelist-function app_btc_sign_output_wrapper
     --whitelist-function app_btc_sign_payload_at_change_wrapper

@@ -39,6 +39,12 @@ USE_RESULT app_btc_result_t app_btc_sign_input_pass2(
     // 33 bytes
     uint8_t* anti_klepto_signer_commitment_out);
 
+USE_RESULT app_btc_result_t app_btc_sign_payload_at_change(
+    const BTCSignOutputRequest* request,
+    BTCOutputType* output_type,
+    uint8_t* payload_bytes,
+    size_t* payload_size);
+
 USE_RESULT app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool last);
 
 USE_RESULT app_btc_result_t app_btc_sign_antiklepto(

@@ -188,15 +188,12 @@ app_btc_result_t app_btc_sign_input_pass2(
     return APP_BTC_OK;
 }
 
-app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool last)
+app_btc_result_t app_btc_sign_payload_at_change(
+    const BTCSignOutputRequest* request,
+    BTCOutputType* output_type,
+    uint8_t* payload_bytes,
+    size_t* payload_size)
 {
-    // get payload. If request->ours=true, we compute the payload
-    // from the keystore, otherwise it is provided in request->payload.
-
-    uint8_t payload_bytes[sizeof(request->payload.bytes)] = {0};
-    size_t payload_size;
-
-    BTCOutputType output_type;
     if (request->ours) {
         if (request->script_config_index >= _init_request.script_configs_count) {
             return _error(APP_BTC_ERR_INVALID_INPUT);
@@ -218,12 +215,12 @@ app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool l
                     script_config_account->script_config.config.simple_type,
                     pubkey_hash160,
                     payload_bytes,
-                    &payload_size)) {
+                    payload_size)) {
                 return _error(APP_BTC_ERR_UNKNOWN);
             }
-            output_type = btc_common_determine_output_type(
+            *output_type = btc_common_determine_output_type(
                 script_config_account->script_config.config.simple_type);
-            break;
+            return APP_BTC_OK;
         }
         case BTCScriptConfig_multisig_tag:
             if (!btc_common_payload_from_multisig(
@@ -231,16 +228,34 @@ app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool l
                     request->keypath[request->keypath_count - 2],
                     request->keypath[request->keypath_count - 1],
                     payload_bytes,
-                    &payload_size)) {
+                    payload_size)) {
                 return _error(APP_BTC_ERR_UNKNOWN);
             }
-            output_type = btc_common_determine_output_type_multisig(
+            *output_type = btc_common_determine_output_type_multisig(
                 &script_config_account->script_config.config.multisig);
-            break;
+            return APP_BTC_OK;
         default:
             return _error(APP_BTC_ERR_INVALID_INPUT);
         }
+    }
+    return _error(APP_BTC_ERR_INVALID_INPUT);
+}
 
+app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool last)
+{
+    // get payload. If request->ours=true, we compute the payload
+    // from the keystore, otherwise it is provided in request->payload.
+
+    uint8_t payload_bytes[sizeof(request->payload.bytes)] = {0};
+    size_t payload_size;
+
+    BTCOutputType output_type;
+    if (request->ours) {
+        app_btc_result_t result =
+            app_btc_sign_payload_at_change(request, &output_type, payload_bytes, &payload_size);
+        if (result != APP_BTC_OK) {
+            return result;
+        }
     } else {
         payload_size = request->payload.size;
         memcpy(payload_bytes, request->payload.bytes, payload_size);

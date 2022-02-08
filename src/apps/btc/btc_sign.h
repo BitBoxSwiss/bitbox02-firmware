@@ -28,10 +28,12 @@
 
 USE_RESULT app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request);
 
-USE_RESULT app_btc_result_t app_btc_sign_input_pass1(const BTCSignInputRequest* request, bool last);
-
 USE_RESULT app_btc_result_t app_btc_sign_input_pass2(
     const BTCSignInputRequest* request,
+    // 32 bytes
+    const uint8_t* hash_prevouts,
+    // 32 bytes
+    const uint8_t* hash_sequence,
     // 64 bytes
     uint8_t* sig_out,
     // 33 bytes
@@ -45,10 +47,13 @@ USE_RESULT app_btc_result_t app_btc_sign_antiklepto(
     uint8_t* sig_out);
 
 USE_RESULT app_btc_result_t app_btc_sign_init_wrapper(in_buffer_t request_buf);
-USE_RESULT app_btc_result_t app_btc_sign_input_pass1_wrapper(in_buffer_t request_buf, bool last);
 USE_RESULT app_btc_result_t app_btc_sign_output_wrapper(in_buffer_t request_buf, bool last);
 USE_RESULT app_btc_result_t app_btc_sign_input_pass2_wrapper(
     in_buffer_t request_buf,
+    // 32 bytes
+    const uint8_t* hash_prevouts,
+    // 32 bytes
+    const uint8_t* hash_sequence,
     // 64 bytes
     uint8_t* sig_out,
     // 33 bytes

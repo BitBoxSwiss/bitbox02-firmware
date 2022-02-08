@@ -393,6 +393,9 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     let mut locktime_applies: bool = false;
     let mut rbf: bool = false;
 
+    let mut hasher_prevouts = Sha256::new();
+    let mut hasher_sequence = Sha256::new();
+
     for input_index in 0..request.num_inputs {
         // Update progress.
         bitbox02::ui::progress_set(
@@ -417,8 +420,17 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             .checked_add(tx_input.prev_out_value)
             .ok_or(Error::InvalidInput)?;
 
-        let last = input_index == request.num_inputs - 1;
-        bitbox02::app_btc::sign_input_pass1_wrapper(encode(&tx_input).as_ref(), last)?;
+        // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
+        // point 2: accumulate hashPrevouts
+        // ANYONECANPAY not supported.
+        hasher_prevouts.update(tx_input.prev_out_hash.as_slice());
+        hasher_prevouts.update(tx_input.prev_out_index.to_le_bytes());
+
+        // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
+        // point 3: accumulate hashSequence
+        // only SIGHASH_ALL supported.
+        hasher_sequence.update(tx_input.sequence.to_le_bytes());
+
         handle_prevtx(
             input_index,
             &tx_input,
@@ -431,6 +443,9 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
 
     // The progress for loading the inputs is 100%.
     bitbox02::ui::progress_set(progress_component.as_mut().unwrap(), 1.);
+
+    let hash_prevouts = hasher_prevouts.finalize();
+    let hash_sequence = hasher_sequence.finalize();
 
     // Base component on the screen stack during signing, which is shown while the device is waiting
     // for the next signing api call. Without this, the 'See the BitBoxApp' waiting screen would
@@ -572,7 +587,11 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         }
 
         let (signature, anti_klepto_signer_commitment) =
-            bitbox02::app_btc::sign_input_pass2_wrapper(encode(&tx_input).as_ref())?;
+            bitbox02::app_btc::sign_input_pass2_wrapper(
+                encode(&tx_input).as_ref(),
+                &hash_prevouts,
+                &hash_sequence,
+            )?;
         // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
         if tx_input.host_nonce_commitment.is_some() {
             next_response.next.anti_klepto_signer_commitment =

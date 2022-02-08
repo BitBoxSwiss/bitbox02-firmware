@@ -15,6 +15,7 @@
 #[cfg(not(feature = "app-bitcoin"))]
 compile_error!("Bitcoin code is being compiled even though the app-bitcoin feature is not enabled");
 
+mod common;
 mod params;
 mod script;
 pub mod signmsg;

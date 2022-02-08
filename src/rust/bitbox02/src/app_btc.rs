@@ -54,7 +54,30 @@ pub fn sign_init_wrapper(buffer_in: &[u8]) -> Result<(), Error> {
     }
 }
 
-pub fn sign_output_wrapper(buffer_in: &[u8], last: bool) -> Result<(), Error> {
+pub fn sign_payload_at_change_wrapper(buffer_in: &[u8]) -> Result<Vec<u8>, Error> {
+    let mut payload = [0u8; 32];
+    let mut payload_size: bitbox02_sys::size_t = 0;
+    unsafe {
+        match bitbox02_sys::app_btc_sign_payload_at_change_wrapper(
+            bitbox02_sys::in_buffer_t {
+                data: buffer_in.as_ptr(),
+                len: buffer_in.len() as _,
+            },
+            payload.as_mut_ptr(),
+            &mut payload_size,
+        ) {
+            Error::APP_BTC_OK => Ok(payload[..payload_size as usize].to_vec()),
+            err => Err(err),
+        }
+    }
+}
+
+pub fn sign_output_wrapper(
+    buffer_in: &[u8],
+    last: bool,
+    output_type: i32,
+    payload: &[u8],
+) -> Result<(), Error> {
     unsafe {
         match bitbox02_sys::app_btc_sign_output_wrapper(
             bitbox02_sys::in_buffer_t {
@@ -62,6 +85,9 @@ pub fn sign_output_wrapper(buffer_in: &[u8], last: bool) -> Result<(), Error> {
                 len: buffer_in.len() as _,
             },
             last,
+            output_type as _,
+            payload.as_ptr(),
+            payload.len() as _,
         ) {
             Error::APP_BTC_OK => Ok(()),
             err => Err(err),

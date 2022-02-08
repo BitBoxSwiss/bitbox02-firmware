@@ -416,6 +416,7 @@ add_custom_target(rust-bindgen
     --whitelist-function testing_app_btc_mock_ui
     --whitelist-function app_btc_sign_init_wrapper
     --whitelist-function app_btc_sign_output_wrapper
+    --whitelist-function app_btc_sign_payload_at_change_wrapper
     --whitelist-function app_btc_sign_input_pass2_wrapper
     --whitelist-function app_btc_sign_antiklepto_wrapper
     --whitelist-function app_btc_sign_reset

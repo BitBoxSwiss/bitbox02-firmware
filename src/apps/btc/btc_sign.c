@@ -190,7 +190,6 @@ app_btc_result_t app_btc_sign_input_pass2(
 
 app_btc_result_t app_btc_sign_payload_at_change(
     const BTCSignOutputRequest* request,
-    BTCOutputType* output_type,
     uint8_t* payload_bytes,
     size_t* payload_size)
 {
@@ -218,8 +217,6 @@ app_btc_result_t app_btc_sign_payload_at_change(
                     payload_size)) {
                 return _error(APP_BTC_ERR_UNKNOWN);
             }
-            *output_type = btc_common_determine_output_type(
-                script_config_account->script_config.config.simple_type);
             return APP_BTC_OK;
         }
         case BTCScriptConfig_multisig_tag:
@@ -231,37 +228,21 @@ app_btc_result_t app_btc_sign_payload_at_change(
                     payload_size)) {
                 return _error(APP_BTC_ERR_UNKNOWN);
             }
-            *output_type = btc_common_determine_output_type_multisig(
-                &script_config_account->script_config.config.multisig);
             return APP_BTC_OK;
         default:
             return _error(APP_BTC_ERR_INVALID_INPUT);
         }
     }
-    return _error(APP_BTC_ERR_INVALID_INPUT);
+    return _error(APP_BTC_ERR_UNKNOWN);
 }
 
-app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool last)
+app_btc_result_t app_btc_sign_output(
+    const BTCSignOutputRequest* request,
+    bool last,
+    BTCOutputType output_type,
+    const uint8_t* payload_bytes,
+    size_t payload_size)
 {
-    // get payload. If request->ours=true, we compute the payload
-    // from the keystore, otherwise it is provided in request->payload.
-
-    uint8_t payload_bytes[sizeof(request->payload.bytes)] = {0};
-    size_t payload_size;
-
-    BTCOutputType output_type;
-    if (request->ours) {
-        app_btc_result_t result =
-            app_btc_sign_payload_at_change(request, &output_type, payload_bytes, &payload_size);
-        if (result != APP_BTC_OK) {
-            return result;
-        }
-    } else {
-        payload_size = request->payload.size;
-        memcpy(payload_bytes, request->payload.bytes, payload_size);
-        output_type = request->type;
-    }
-
     if (!request->ours) {
         char address[100] = {0};
         // assemble address to display, get user confirmation
@@ -344,14 +325,32 @@ app_btc_result_t app_btc_sign_init_wrapper(in_buffer_t request_buf)
     return app_btc_sign_init(&request);
 }
 
-app_btc_result_t app_btc_sign_output_wrapper(in_buffer_t request_buf, bool last)
+app_btc_result_t app_btc_sign_payload_at_change_wrapper(
+    in_buffer_t request_buf,
+    uint8_t* payload_bytes,
+    size_t* payload_size)
 {
     pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
     BTCSignOutputRequest request = {0};
     if (!pb_decode(&in_stream, BTCSignOutputRequest_fields, &request)) {
         return _error(APP_BTC_ERR_UNKNOWN);
     }
-    return app_btc_sign_output(&request, last);
+    return app_btc_sign_payload_at_change(&request, payload_bytes, payload_size);
+}
+
+app_btc_result_t app_btc_sign_output_wrapper(
+    in_buffer_t request_buf,
+    bool last,
+    BTCOutputType output_type,
+    const uint8_t* payload,
+    size_t payload_size)
+{
+    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
+    BTCSignOutputRequest request = {0};
+    if (!pb_decode(&in_stream, BTCSignOutputRequest_fields, &request)) {
+        return _error(APP_BTC_ERR_UNKNOWN);
+    }
+    return app_btc_sign_output(&request, last, output_type, payload, payload_size);
 }
 
 app_btc_result_t app_btc_sign_input_pass2_wrapper(

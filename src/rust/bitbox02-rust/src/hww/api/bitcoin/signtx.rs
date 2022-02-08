@@ -480,16 +480,32 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             return Err(Error::InvalidInput);
         }
 
-        let _payload = if tx_output.ours {
+        // Get payload. If change output, we compute the payload from the keystore, otherwise it is
+        // provided in tx_output.payload.
+        let (output_type, payload): (pb::BtcOutputType, Vec<u8>) = if tx_output.ours {
+            // Compute the payload from the keystore.
             let script_config_account = request
                 .script_configs
                 .get(tx_output.script_config_index as usize)
                 .ok_or(Error::InvalidInput)?;
 
             validate_keypath(coin_params, script_config_account, &tx_output.keypath, true)?;
-            // TODO: compute payload at keypath
+
+            let output_type = super::common::determine_output_type(
+                script_config_account
+                    .script_config
+                    .as_ref()
+                    .ok_or(Error::InvalidInput)?,
+            )?;
+            let payload =
+                bitbox02::app_btc::sign_payload_at_change_wrapper(encode(&tx_output).as_ref())?;
+            (output_type, payload)
         } else {
-            // TODO: take payload from provided from output.
+            // Take payload from provided output.
+            (
+                pb::BtcOutputType::from_i32(tx_output.r#type).ok_or(Error::InvalidInput)?,
+                tx_output.payload.clone(),
+            )
         };
 
         if tx_output.ours {
@@ -504,7 +520,12 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         }
 
         let last = output_index == request.num_outputs - 1;
-        bitbox02::app_btc::sign_output_wrapper(encode(&tx_output).as_ref(), last)?;
+        bitbox02::app_btc::sign_output_wrapper(
+            encode(&tx_output).as_ref(),
+            last,
+            output_type as _,
+            &payload,
+        )?;
     }
 
     if num_changes > 1 {

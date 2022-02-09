@@ -72,33 +72,11 @@ pub fn sign_payload_at_change_wrapper(buffer_in: &[u8]) -> Result<Vec<u8>, Error
     }
 }
 
-pub fn sign_output_wrapper(
-    buffer_in: &[u8],
-    last: bool,
-    output_type: i32,
-    payload: &[u8],
-) -> Result<(), Error> {
-    unsafe {
-        match bitbox02_sys::app_btc_sign_output_wrapper(
-            bitbox02_sys::in_buffer_t {
-                data: buffer_in.as_ptr(),
-                len: buffer_in.len() as _,
-            },
-            last,
-            output_type as _,
-            payload.as_ptr(),
-            payload.len() as _,
-        ) {
-            Error::APP_BTC_OK => Ok(()),
-            err => Err(err),
-        }
-    }
-}
-
 pub fn sign_input_pass2_wrapper(
     buffer_in: &[u8],
     hash_prevouts: &[u8],
     hash_sequence: &[u8],
+    hash_outputs: &[u8],
 ) -> Result<(Vec<u8>, Vec<u8>), Error> {
     let mut sig_out = vec![0u8; 64];
     let mut anti_klepto_signer_commitment_out = vec![0u8; 33];
@@ -113,6 +91,7 @@ pub fn sign_input_pass2_wrapper(
             },
             hash_prevouts.as_ptr(),
             hash_sequence.as_ptr(),
+            hash_outputs.as_ptr(),
             sig_out.as_mut_ptr(),
             anti_klepto_signer_commitment_out.as_mut_ptr(),
         ) {
@@ -161,6 +140,31 @@ pub fn address_from_payload(
         true => Ok(crate::util::str_from_null_terminated(&out[..])
             .unwrap()
             .into()),
+        false => Err(()),
+    }
+}
+
+pub fn pkscript_from_payload(
+    coin: bitbox02_sys::BTCCoin,
+    output_type: bitbox02_sys::BTCOutputType,
+    payload: &[u8],
+) -> Result<Vec<u8>, ()> {
+    // current expected max pk script size is a m-of-15 multisig. 700 is also enough for m-of-20, which
+    // is technically possible to extend to if needed.
+    const MAX_PK_SCRIPT_SIZE: usize = 700;
+    let mut out = [0u8; MAX_PK_SCRIPT_SIZE];
+    let mut out_len: bitbox02_sys::size_t = out.len() as _;
+    match unsafe {
+        bitbox02_sys::btc_common_pkscript_from_payload(
+            bitbox02_sys::app_btc_params_get(coin),
+            output_type,
+            payload.as_ptr(),
+            payload.len() as _,
+            out.as_mut_ptr(),
+            &mut out_len,
+        )
+    } {
+        true => Ok(out[..out_len as usize].to_vec()),
         false => Err(()),
     }
 }

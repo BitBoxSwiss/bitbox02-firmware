@@ -31,26 +31,14 @@
 
 #include <pb_decode.h>
 
-static const app_btc_coin_params_t* _coin_params = NULL;
-
 // Inputs and changes must be of a type defined in _init_request.script_configs.
 // Inputs and changes keypaths must have the prefix as defined in the referenced script_config..
 static BTCSignInitRequest _init_request = {0};
 
-// used during processing of the outputs.
-static void* _hash_outputs_ctx = NULL;
-// By the end of processing the outputs, will contain the hashOutputs hash.
-// https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki step 8.
-static uint8_t _hash_outputs[32] = {0};
-
 // Must be called in any code path that exits the signing process (error or regular finish).
 static void _reset(void)
 {
-    _coin_params = NULL;
     util_zero(&_init_request, sizeof(_init_request));
-
-    rust_sha256_free(&_hash_outputs_ctx);
-    _hash_outputs_ctx = rust_sha256_new();
 
     keystore_antiklepto_clear();
 }
@@ -69,11 +57,6 @@ app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request)
         return _error(result);
     }
     _reset();
-    const app_btc_coin_params_t* coin_params = app_btc_params_get(request->coin);
-    if (coin_params == NULL) {
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-    _coin_params = coin_params;
     _init_request = *request;
     return APP_BTC_OK;
 }
@@ -82,6 +65,7 @@ app_btc_result_t app_btc_sign_input_pass2(
     const BTCSignInputRequest* request,
     const uint8_t* hash_prevouts,
     const uint8_t* hash_sequence,
+    const uint8_t* hash_outputs,
     uint8_t* sig_out,
     uint8_t* anti_klepto_signer_commitment_out)
 {
@@ -139,6 +123,8 @@ app_btc_result_t app_btc_sign_input_pass2(
         rust_sha256(hash_prevouts, 32, hash_prevouts_d);
         uint8_t hash_sequence_d[32] = {0};
         rust_sha256(hash_sequence, 32, hash_sequence_d);
+        uint8_t hash_outputs_d[32] = {0};
+        rust_sha256(hash_outputs, 32, hash_outputs_d);
         // construct hash to sign
         uint8_t sighash[32] = {0};
         const Bip143Args bip143_args = {
@@ -150,7 +136,7 @@ app_btc_result_t app_btc_sign_input_pass2(
             .sighash_script = rust_util_bytes(sighash_script, sighash_script_size),
             .prevout_value = request->prevOutValue,
             .sequence = request->sequence,
-            .hash_outputs = _hash_outputs,
+            .hash_outputs = hash_outputs_d,
             .locktime = _init_request.locktime,
             .sighash_flags = WALLY_SIGHASH_ALL,
         };
@@ -235,54 +221,6 @@ app_btc_result_t app_btc_sign_payload_at_change(
     return _error(APP_BTC_ERR_UNKNOWN);
 }
 
-app_btc_result_t app_btc_sign_output(
-    const BTCSignOutputRequest* request,
-    bool last,
-    BTCOutputType output_type,
-    const uint8_t* payload_bytes,
-    size_t payload_size)
-{
-    {
-        // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
-        // point 8: accumulate hashOutputs
-        // only SIGHASH_ALL supported.
-
-        // create pk_script
-        uint8_t pk_script[MAX_PK_SCRIPT_SIZE] = {0};
-        size_t pk_script_len = sizeof(pk_script);
-        if (!btc_common_pkscript_from_payload(
-                _coin_params,
-                output_type,
-                payload_bytes,
-                payload_size,
-                pk_script,
-                &pk_script_len)) {
-            return _error(APP_BTC_ERR_INVALID_INPUT);
-        }
-
-        // assumes little endian environment.
-        rust_sha256_update(_hash_outputs_ctx, &request->value, 8);
-        uint8_t pk_script_serialized[sizeof(pk_script) + 8] = {0};
-        size_t pk_script_serialized_len;
-        if (wally_varbuff_to_bytes(
-                pk_script,
-                pk_script_len,
-                pk_script_serialized,
-                sizeof(pk_script_serialized),
-                &pk_script_serialized_len) != WALLY_OK) {
-            return _error(APP_BTC_ERR_UNKNOWN);
-        }
-        rust_sha256_update(_hash_outputs_ctx, pk_script_serialized, pk_script_serialized_len);
-    }
-
-    if (last) {
-        rust_sha256_finish(&_hash_outputs_ctx, _hash_outputs);
-        // hash hash_outputs to produce the final double-hash
-        rust_sha256(_hash_outputs, 32, _hash_outputs);
-    }
-    return APP_BTC_OK;
-}
-
 app_btc_result_t app_btc_sign_antiklepto(
     const AntiKleptoSignatureRequest* request,
     uint8_t* sig_out)
@@ -316,25 +254,11 @@ app_btc_result_t app_btc_sign_payload_at_change_wrapper(
     return app_btc_sign_payload_at_change(&request, payload_bytes, payload_size);
 }
 
-app_btc_result_t app_btc_sign_output_wrapper(
-    in_buffer_t request_buf,
-    bool last,
-    BTCOutputType output_type,
-    const uint8_t* payload,
-    size_t payload_size)
-{
-    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
-    BTCSignOutputRequest request = {0};
-    if (!pb_decode(&in_stream, BTCSignOutputRequest_fields, &request)) {
-        return _error(APP_BTC_ERR_UNKNOWN);
-    }
-    return app_btc_sign_output(&request, last, output_type, payload, payload_size);
-}
-
 app_btc_result_t app_btc_sign_input_pass2_wrapper(
     in_buffer_t request_buf,
     const uint8_t* hash_prevouts,
     const uint8_t* hash_sequence,
+    const uint8_t* hash_outputs,
     uint8_t* sig_out,
     uint8_t* anti_klepto_signer_commitment_out)
 {
@@ -344,7 +268,12 @@ app_btc_result_t app_btc_sign_input_pass2_wrapper(
         return _error(APP_BTC_ERR_UNKNOWN);
     }
     return app_btc_sign_input_pass2(
-        &request, hash_prevouts, hash_sequence, sig_out, anti_klepto_signer_commitment_out);
+        &request,
+        hash_prevouts,
+        hash_sequence,
+        hash_outputs,
+        sig_out,
+        anti_klepto_signer_commitment_out);
 }
 
 app_btc_result_t app_btc_sign_antiklepto_wrapper(in_buffer_t request_buf, uint8_t* sig_out)

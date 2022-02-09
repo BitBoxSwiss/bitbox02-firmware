@@ -463,6 +463,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
 
     let mut num_changes: u32 = 0;
 
+    let mut hasher_outputs = Sha256::new();
     for output_index in 0..request.num_outputs {
         let tx_output = get_tx_output(output_index, &mut next_response).await?;
         if output_index == 0 {
@@ -532,13 +533,19 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                 .ok_or(Error::InvalidInput)?;
         }
 
-        let last = output_index == request.num_outputs - 1;
-        bitbox02::app_btc::sign_output_wrapper(
-            encode(&tx_output).as_ref(),
-            last,
-            output_type as _,
-            &payload,
-        )?;
+        // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
+        // point 8: accumulate hashOutputs
+        // only SIGHASH_ALL supported.
+        hasher_outputs.update(tx_output.value.to_le_bytes());
+        let pk_script_serialized = {
+            let script =
+                bitbox02::app_btc::pkscript_from_payload(coin as _, output_type as _, &payload)
+                    .or(Err(Error::InvalidInput))?;
+            let mut serialized = serialize_varint(script.len() as _);
+            serialized.extend_from_slice(&script);
+            serialized
+        };
+        hasher_outputs.update(pk_script_serialized.as_slice());
     }
 
     if num_changes > 1 {
@@ -590,6 +597,8 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     .await?;
     status::status("Transaction\nconfirmed", true).await;
 
+    let hash_outputs = hasher_outputs.finalize();
+
     // Stop rendering the empty component.
     drop(empty_component);
 
@@ -625,6 +634,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                 encode(&tx_input).as_ref(),
                 &hash_prevouts,
                 &hash_sequence,
+                &hash_outputs,
             )?;
         // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
         if tx_input.host_nonce_commitment.is_some() {

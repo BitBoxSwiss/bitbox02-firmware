@@ -43,16 +43,11 @@ bool app_btc_address_simple(
             script_type, keypath, keypath_len, params->bip44_coin)) {
         return false;
     }
-    uint8_t pubkey_hash160[HASH160_LEN];
-    UTIL_CLEANUP_20(pubkey_hash160);
-    if (!keystore_secp256k1_pubkey_hash160(keypath, keypath_len, pubkey_hash160)) {
-        return false;
-    }
 
     uint8_t payload[32] = {0};
     size_t payload_size_out = 0;
-    if (!btc_common_payload_from_pubkeyhash(
-            script_type, pubkey_hash160, payload, &payload_size_out)) {
+    if (!btc_common_payload_at_keypath(
+            keypath, keypath_len, script_type, payload, &payload_size_out)) {
         return false;
     }
     return btc_common_address_from_payload(

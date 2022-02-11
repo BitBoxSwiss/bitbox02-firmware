@@ -124,17 +124,11 @@ app_btc_result_t app_btc_sign_payload_at_change(
 
         switch (script_config_account->script_config.which_config) {
         case BTCScriptConfig_simple_type_tag: {
-            uint8_t pubkey_hash160[HASH160_LEN];
-            UTIL_CLEANUP_20(pubkey_hash160);
-            if (!keystore_secp256k1_pubkey_hash160(
-                    request->keypath, request->keypath_count, pubkey_hash160)) {
-                return _error(APP_BTC_ERR_UNKNOWN);
-            }
-
             // construct pkScript
-            if (!btc_common_payload_from_pubkeyhash(
+            if (!btc_common_payload_at_keypath(
+                    request->keypath,
+                    request->keypath_count,
                     script_config_account->script_config.config.simple_type,
-                    pubkey_hash160,
                     payload_bytes,
                     payload_size)) {
                 return _error(APP_BTC_ERR_UNKNOWN);

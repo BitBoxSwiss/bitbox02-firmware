@@ -163,14 +163,13 @@ mod tests {
 
     use crate::bb02_async::block_on;
     use bitbox02::testing::{
-        mock, mock_memory, mock_sd, mock_unlocked, mock_unlocked_using_mnemonic, Data, MUTEX,
+        mock, mock_memory, mock_sd, mock_unlocked, mock_unlocked_using_mnemonic, Data,
     };
     use std::boxed::Box;
 
     /// Test backup creation on a uninitialized keystore.
     #[test]
     pub fn test_create_uninitialized() {
-        let _guard = MUTEX.lock().unwrap();
         const EXPECTED_TIMESTMAP: u32 = 1601281809;
 
         // All good.
@@ -197,7 +196,6 @@ mod tests {
 
     #[test]
     pub fn test_list() {
-        let _guard = MUTEX.lock().unwrap();
         const EXPECTED_TIMESTMAP: u32 = 1601281809;
 
         const DEVICE_NAME_1: &str = "test device name";

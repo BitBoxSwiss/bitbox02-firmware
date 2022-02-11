@@ -231,7 +231,7 @@ mod tests {
     use super::*;
     use crate::bb02_async::block_on;
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, mock_unlocked, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_unlocked, Data};
     use util::bip32::HARDENED;
 
     #[test]
@@ -313,7 +313,6 @@ mod tests {
 
     #[test]
     fn test_pubkey_hash_at_keypath() {
-        let _guard = MUTEX.lock().unwrap();
         bitbox02::keystore::lock();
         assert!(
             pubkey_hash_at_keypath(&[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0]).is_err()
@@ -328,8 +327,6 @@ mod tests {
 
     #[test]
     fn test_process_failures() {
-        let _guard = MUTEX.lock().unwrap();
-
         // All good
         mock_unlocked();
         assert_eq!(
@@ -392,8 +389,6 @@ mod tests {
 
     #[test]
     fn test_process_confirm() {
-        let _guard = MUTEX.lock().unwrap();
-
         const EXPECTED: &str = "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs";
 
         mock(Data {
@@ -423,8 +418,6 @@ mod tests {
 
     #[test]
     fn test_process_table() {
-        let _guard = MUTEX.lock().unwrap();
-
         struct Test<'a> {
             keypath_payment: &'a [u32],
             keypath_stake: &'a [u32],

@@ -45,6 +45,7 @@ pub mod keystore;
 pub mod memory;
 pub mod random;
 pub mod sd;
+pub mod secp256k1;
 pub mod securechip;
 pub mod ui;
 

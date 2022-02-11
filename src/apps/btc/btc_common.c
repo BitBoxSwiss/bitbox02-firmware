@@ -166,6 +166,9 @@ bool btc_common_address_from_payload(
     char* out,
     size_t out_len)
 {
+    if (!params) {
+        return false;
+    }
     switch (output_type) {
     case BTCOutputType_P2PKH:
         if (payload_size != HASH160_LEN) {
@@ -234,7 +237,7 @@ bool btc_common_pkscript_from_payload(
     uint8_t* pk_script,
     size_t* pk_script_len)
 {
-    if (!payload || !pk_script || !pk_script_len) {
+    if (!params || !payload || !pk_script || !pk_script_len) {
         return false;
     }
     size_t len = *pk_script_len;

@@ -28,25 +28,23 @@
 
 USE_RESULT app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request);
 
-USE_RESULT app_btc_result_t app_btc_sign_prevtx_init(const BTCPrevTxInitRequest* request);
-
-USE_RESULT app_btc_result_t
-app_btc_sign_prevtx_input(const BTCPrevTxInputRequest* request, uint32_t prevtx_input_index);
-
-USE_RESULT app_btc_result_t
-app_btc_sign_prevtx_output(const BTCPrevTxOutputRequest* request, uint32_t prevtx_output_index);
-
-USE_RESULT app_btc_result_t app_btc_sign_input_pass1(const BTCSignInputRequest* request, bool last);
-
 USE_RESULT app_btc_result_t app_btc_sign_input_pass2(
     const BTCSignInputRequest* request,
+    // 32 bytes
+    const uint8_t* hash_prevouts,
+    // 32 bytes
+    const uint8_t* hash_sequence,
+    // 32 bytes
+    const uint8_t* hash_outputs,
     // 64 bytes
     uint8_t* sig_out,
     // 33 bytes
-    uint8_t* anti_klepto_signer_commitment_out,
-    bool last);
+    uint8_t* anti_klepto_signer_commitment_out);
 
-USE_RESULT app_btc_result_t app_btc_sign_output(const BTCSignOutputRequest* request, bool last);
+USE_RESULT app_btc_result_t app_btc_sign_payload_at_change(
+    const BTCSignOutputRequest* request,
+    uint8_t* payload_bytes,
+    size_t* payload_size);
 
 USE_RESULT app_btc_result_t app_btc_sign_antiklepto(
     const AntiKleptoSignatureRequest* request,
@@ -54,35 +52,26 @@ USE_RESULT app_btc_result_t app_btc_sign_antiklepto(
     uint8_t* sig_out);
 
 USE_RESULT app_btc_result_t app_btc_sign_init_wrapper(in_buffer_t request_buf);
-USE_RESULT app_btc_result_t app_btc_sign_input_pass1_wrapper(in_buffer_t request_buf, bool last);
-USE_RESULT app_btc_result_t app_btc_sign_prevtx_init_wrapper(in_buffer_t request_buf);
-USE_RESULT app_btc_result_t
-app_btc_sign_prevtx_input_wrapper(in_buffer_t request_buf, uint32_t prevtx_input_index);
-USE_RESULT app_btc_result_t
-app_btc_sign_prevtx_output_wrapper(in_buffer_t request_buf, uint32_t prevtx_output_index);
-USE_RESULT app_btc_result_t app_btc_sign_output_wrapper(in_buffer_t request_buf, bool last);
+USE_RESULT app_btc_result_t app_btc_sign_payload_at_change_wrapper(
+    in_buffer_t requet_buf,
+    uint8_t* payload_bytes,
+    size_t* payload_size);
 USE_RESULT app_btc_result_t app_btc_sign_input_pass2_wrapper(
     in_buffer_t request_buf,
+    // 32 bytes
+    const uint8_t* hash_prevouts,
+    // 32 bytes
+    const uint8_t* hash_sequence,
+    // 32 bytes
+    const uint8_t* hash_outputs,
     // 64 bytes
     uint8_t* sig_out,
     // 33 bytes
-    uint8_t* anti_klepto_signer_commitment_out,
-    bool last);
+    uint8_t* anti_klepto_signer_commitment_out);
 USE_RESULT app_btc_result_t app_btc_sign_antiklepto_wrapper(
     in_buffer_t request_buf,
     // 64 bytes
     uint8_t* sig_out);
-
-typedef struct {
-    bool (*verify_recipient)(const char* recipient, const char* amount);
-    bool (*verify_total)(const char* total, const char* fee);
-    void (*status)(const char* msg, bool status_success);
-    bool (*confirm)(const confirm_params_t* params);
-} app_btc_ui_t;
-
-#ifdef TESTING
-void testing_app_btc_mock_ui(app_btc_ui_t mock);
-#endif
 
 void app_btc_sign_reset(void);
 

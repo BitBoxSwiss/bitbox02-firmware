@@ -14,12 +14,12 @@
 
 #include "confirm_multisig.h"
 #include "btc_common.h"
+#include "btc_ui.h"
 
 #include <apps/common/bip32.h>
 #include <hardfault.h>
 #include <keystore.h>
 #include <rust/rust.h>
-#include <workflow/confirm.h>
 
 #include <stdio.h>
 
@@ -45,7 +45,7 @@ bool apps_btc_confirm_multisig_basic(
         .body = basic_info,
         .accept_is_nextarrow = true,
     };
-    if (!workflow_confirm_blocking(&params_basic)) {
+    if (!app_btc_ui()->confirm(&params_basic)) {
         return false;
     }
 
@@ -55,7 +55,7 @@ bool apps_btc_confirm_multisig_basic(
         .scrollable = true,
         .accept_is_nextarrow = true,
     };
-    return workflow_confirm_blocking(&params_name);
+    return app_btc_ui()->confirm(&params_name);
 }
 
 bool apps_btc_confirm_multisig_extended(
@@ -97,7 +97,7 @@ bool apps_btc_confirm_multisig_extended(
         .body = info,
         .accept_is_nextarrow = true,
     };
-    if (!workflow_confirm_blocking(&confirm_params)) {
+    if (!app_btc_ui()->confirm(&confirm_params)) {
         return false;
     }
 
@@ -195,7 +195,7 @@ bool apps_btc_confirm_multisig_extended(
             .longtouch = i == num_cosigners - 1,
             .accept_is_nextarrow = true,
         };
-        if (!workflow_confirm_blocking(&params_xpub)) {
+        if (!app_btc_ui()->confirm(&params_xpub)) {
             return false;
         }
     }

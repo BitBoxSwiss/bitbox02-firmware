@@ -42,13 +42,11 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, Data, MUTEX};
+    use bitbox02::testing::{mock, Data};
     use std::boxed::Box;
 
     #[test]
     pub fn test_reboot() {
-        let _guard = MUTEX.lock().unwrap();
-
         mock(Data {
             ui_confirm_create: Some(Box::new(|_| true)),
             ..Default::default()
@@ -67,8 +65,6 @@ mod tests {
 
     #[test]
     pub fn test_reboot_aborted() {
-        let _guard = MUTEX.lock().unwrap();
-
         mock(Data {
             ui_confirm_create: Some(Box::new(|_| false)),
             ..Default::default()

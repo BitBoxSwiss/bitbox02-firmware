@@ -98,7 +98,7 @@ async fn xpub(
     display: bool,
 ) -> Result<Response, Error> {
     let params = params::get(coin);
-    bitcoin::keypath::validate_xpub(keypath, params.bip44_coin)?;
+    bitcoin::keypath::validate_xpub(keypath, params.bip44_coin, params.taproot_support)?;
     let xpub_type = match xpub_type {
         XPubType::Tpub => xpub_type_t::TPUB,
         XPubType::Xpub => xpub_type_t::XPUB,
@@ -203,12 +203,15 @@ mod tests {
     use crate::bb02_async::block_on;
     use alloc::boxed::Box;
     use alloc::vec::Vec;
-    use bitbox02::testing::{mock, mock_unlocked, Data};
+    use bitbox02::testing::{
+        mock, mock_unlocked, mock_unlocked_using_mnemonic, Data, TEST_MNEMONIC,
+    };
     use util::bip32::HARDENED;
 
     #[test]
     pub fn test_xpub() {
         struct Test<'a> {
+            mnemonic: &'a str,
             coin: BtcCoin,
             keypath: &'a [u32],
             xpub_type: XPubType,
@@ -219,6 +222,7 @@ mod tests {
         for test in vec![
             // BTC P2WPKH-P2SH
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Btc,
                 keypath: &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED],
                 xpub_type: XPubType::Xpub,
@@ -226,6 +230,7 @@ mod tests {
                 expected_display_title: "Bitcoin\naccount #1",
             },
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Btc,
                 keypath: &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED],
                 xpub_type: XPubType::Ypub,
@@ -233,6 +238,7 @@ mod tests {
                 expected_display_title: "Bitcoin\naccount #1",
             },
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Btc,
                 keypath: &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED],
                 xpub_type: XPubType::Zpub,
@@ -240,6 +246,7 @@ mod tests {
                 expected_display_title: "Bitcoin\naccount #1",
             },
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Btc,
                 keypath: &[84 + HARDENED, 0 + HARDENED, 1 + HARDENED],
                 xpub_type: XPubType::Xpub,
@@ -248,14 +255,26 @@ mod tests {
             },
             // BTC P2WPKH
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Btc,
                 keypath: &[84 + HARDENED, 0 + HARDENED, 1 + HARDENED],
                 xpub_type: XPubType::Zpub,
                 expected_xpub: "zpub6qMaznTYmLk3vtEVNKbozbjRJedYqnHPwSwDwEAVaDkuQd7YEnqBvcbmCDpgvEqw2sqHUMtrJTwD6yNYLoqULriz6PXDYsS14LuoLr3KxUC",
                 expected_display_title: "Bitcoin\naccount #2",
             },
+            // BTC P2TR
+            Test {
+                // Test vector from https://github.com/bitcoin/bips/blob/edffe529056f6dfd33d8f716fb871467c3c09263/bip-0086.mediawiki#test-vectors
+                mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+                coin: BtcCoin::Btc,
+                keypath: &[86 + HARDENED, 0 + HARDENED, 0 + HARDENED],
+                xpub_type: XPubType::Xpub,
+                expected_xpub: "xpub6BgBgsespWvERF3LHQu6CnqdvfEvtMcQjYrcRzx53QJjSxarj2afYWcLteoGVky7D3UKDP9QyrLprQ3VCECoY49yfdDEHGCtMMj92pReUsQ",
+                expected_display_title: "Bitcoin\naccount #1",
+            },
             // TBTC P2WPKH-P2SH
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Tbtc,
                 keypath: &[49 + HARDENED, 1 + HARDENED, 0 + HARDENED],
                 xpub_type: XPubType::Xpub,
@@ -263,6 +282,7 @@ mod tests {
                 expected_display_title: "BTC Testnet\naccount #1",
             },
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Tbtc,
                 keypath: &[49 + HARDENED, 1 + HARDENED, 0 + HARDENED],
                 xpub_type: XPubType::Tpub,
@@ -271,6 +291,7 @@ mod tests {
             },
             // TBTC P2WPKH
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Tbtc,
                 keypath: &[84 + HARDENED, 1 + HARDENED, 0 + HARDENED],
                 xpub_type: XPubType::Xpub,
@@ -278,14 +299,25 @@ mod tests {
                 expected_display_title: "BTC Testnet\naccount #1",
             },
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Tbtc,
                 keypath: &[84 + HARDENED, 1 + HARDENED, 0 + HARDENED],
                 xpub_type: XPubType::Tpub,
                 expected_xpub: "tpubDCEnFWrzxNtXzQ325XA1jySSUYt86T8rK79MPK8PhkZ9A6As2YwhwWhvCkMn74JmeTJxQRG1bxjPBqfULyjCovP6bEzLwTBa773SPehtXCt",
                 expected_display_title: "BTC Testnet\naccount #1",
             },
+            // TBTC P2TR
+            Test {
+                mnemonic: TEST_MNEMONIC,
+                coin: BtcCoin::Tbtc,
+                keypath: &[86 + HARDENED, 1 + HARDENED, 0 + HARDENED],
+                xpub_type: XPubType::Xpub,
+                expected_xpub: "xpub6CQ45XSCvP42pyFcnL1pm2xsCwvNbqFUN8BZwRdzFz4ZrMAuJHLjQt4KP9c2pSMfp5GVy64kUkpytwnRiandtuy8KAX7o9iuhFsN8KPj8Fw",
+                expected_display_title: "BTC Testnet\naccount #1",
+            },
             // LTC P2WPKH-P2SH
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Ltc,
                 keypath: &[49 + HARDENED, 2 + HARDENED, 0 + HARDENED],
                 xpub_type: XPubType::Xpub,
@@ -294,6 +326,7 @@ mod tests {
             },
             // LTC P2WPKH
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Ltc,
                 keypath: &[84 + HARDENED, 2 + HARDENED, 0 + HARDENED],
                 xpub_type: XPubType::Xpub,
@@ -301,7 +334,7 @@ mod tests {
                 expected_display_title: "Litecoin\naccount #1",
             },
         ] {
-            mock_unlocked();
+            mock_unlocked_using_mnemonic(test.mnemonic);
 
             // Without display.
             let mut req = pb::BtcPubRequest {
@@ -331,7 +364,7 @@ mod tests {
                 })),
                 ..Default::default()
             });
-            mock_unlocked();
+            mock_unlocked_using_mnemonic(test.mnemonic);
             assert_eq!(
                 block_on(process_pub(&req)),
                 Some(Ok(Response::Pub(pb::PubResponse {
@@ -394,11 +427,21 @@ mod tests {
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Tltc as i32 + 1;
         assert!(block_on(process_pub(&req_invalid)).unwrap().is_err());
+        // -- No taproot in Litecoin
+        assert!(block_on(process_pub(&pb::BtcPubRequest {
+            coin: BtcCoin::Ltc as _,
+            keypath: [86 + HARDENED, 2 + HARDENED, 0 + HARDENED].to_vec(),
+            display: false,
+            output: Some(Output::XpubType(XPubType::Xpub as _)),
+        }))
+        .unwrap()
+        .is_err());
     }
 
     #[test]
     pub fn test_address_simple() {
         struct Test<'a> {
+            mnemonic: &'a str,
             coin: BtcCoin,
             keypath: &'a [u32],
             simple_type: SimpleType,
@@ -409,6 +452,7 @@ mod tests {
         for test in vec![
             // BTC P2WPKH-P2SH
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Btc,
                 keypath: &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkhP2sh,
@@ -416,6 +460,7 @@ mod tests {
                 expected_display_title: "Bitcoin",
             },
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Btc,
                 keypath: &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 1],
                 simple_type: SimpleType::P2wpkhP2sh,
@@ -423,6 +468,7 @@ mod tests {
                 expected_display_title: "Bitcoin",
             },
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Btc,
                 keypath: &[49 + HARDENED, 0 + HARDENED, 1 + HARDENED, 1, 100],
                 simple_type: SimpleType::P2wpkhP2sh,
@@ -431,6 +477,7 @@ mod tests {
             },
             // BTC P2WPKH
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Btc,
                 keypath: &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkh,
@@ -438,6 +485,7 @@ mod tests {
                 expected_display_title: "Bitcoin",
             },
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Btc,
                 keypath: &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 1],
                 simple_type: SimpleType::P2wpkh,
@@ -445,14 +493,42 @@ mod tests {
                 expected_display_title: "Bitcoin",
             },
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Btc,
                 keypath: &[84 + HARDENED, 0 + HARDENED, 1 + HARDENED, 1, 100],
                 simple_type: SimpleType::P2wpkh,
                 expected_address: "bc1qarhxx6daqetewkjwz9p6y78a28ygxm2vndhdas",
                 expected_display_title: "Bitcoin",
             },
+            // BTC P2TR
+            // Test vectors from https://github.com/bitcoin/bips/blob/edffe529056f6dfd33d8f716fb871467c3c09263/bip-0086.mediawiki#test-vectors.
+            Test {
+                mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+                coin: BtcCoin::Btc,
+                keypath: &[86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
+                simple_type: SimpleType::P2tr,
+                expected_address: "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr",
+                expected_display_title: "Bitcoin",
+            },
+            Test {
+                mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+                coin: BtcCoin::Btc,
+                keypath: &[86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 1],
+                simple_type: SimpleType::P2tr,
+                expected_address: "bc1p4qhjn9zdvkux4e44uhx8tc55attvtyu358kutcqkudyccelu0was9fqzwh",
+                expected_display_title: "Bitcoin",
+            },
+            Test {
+                mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+                coin: BtcCoin::Btc,
+                keypath: &[86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 0],
+                simple_type: SimpleType::P2tr,
+                expected_address: "bc1p3qkhfews2uk44qtvauqyr2ttdsw7svhkl9nkm9s9c3x4ax5h60wqwruhk7",
+                expected_display_title: "Bitcoin",
+            },
             // TBTC P2WPKH-P2SH
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Tbtc,
                 keypath: &[49 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkhP2sh,
@@ -461,6 +537,7 @@ mod tests {
             },
             // TBTC P2WPKH
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Tbtc,
                 keypath: &[84 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkh,
@@ -469,6 +546,7 @@ mod tests {
             },
             // LTC P2WPKH-P2SH
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Ltc,
                 keypath: &[49 + HARDENED, 2 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkhP2sh,
@@ -476,6 +554,7 @@ mod tests {
                 expected_display_title: "Litecoin",
             },
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Ltc,
                 keypath: &[49 + HARDENED, 2 + HARDENED, 0 + HARDENED, 0, 1],
                 simple_type: SimpleType::P2wpkhP2sh,
@@ -483,6 +562,7 @@ mod tests {
                 expected_display_title: "Litecoin",
             },
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Ltc,
                 keypath: &[49 + HARDENED, 2 + HARDENED, 1 + HARDENED, 1, 100],
                 simple_type: SimpleType::P2wpkhP2sh,
@@ -491,6 +571,7 @@ mod tests {
             },
             // LTC P2WPKH
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Ltc,
                 keypath: &[84 + HARDENED, 2 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkh,
@@ -498,6 +579,7 @@ mod tests {
                 expected_display_title: "Litecoin",
             },
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Ltc,
                 keypath: &[84 + HARDENED, 2 + HARDENED, 0 + HARDENED, 0, 1],
                 simple_type: SimpleType::P2wpkh,
@@ -505,6 +587,7 @@ mod tests {
                 expected_display_title: "Litecoin",
             },
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Ltc,
                 keypath: &[84 + HARDENED, 2 + HARDENED, 1 + HARDENED, 1, 100],
                 simple_type: SimpleType::P2wpkh,
@@ -513,6 +596,7 @@ mod tests {
             },
             // TLTC P2WPKH-P2SH
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Tltc,
                 keypath: &[49 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkhP2sh,
@@ -521,6 +605,7 @@ mod tests {
             },
             // TLTC P2WPKH
             Test {
+                mnemonic: TEST_MNEMONIC,
                 coin: BtcCoin::Tltc,
                 keypath: &[84 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkh,
@@ -538,7 +623,7 @@ mod tests {
             };
 
             // Without display.
-            mock_unlocked();
+            mock_unlocked_using_mnemonic(test.mnemonic);
             assert_eq!(
                 block_on(process_pub(&req)),
                 Some(Ok(Response::Pub(pb::PubResponse {
@@ -559,7 +644,7 @@ mod tests {
                 })),
                 ..Default::default()
             });
-            mock_unlocked();
+            mock_unlocked_using_mnemonic(test.mnemonic);
             assert_eq!(
                 block_on(process_pub(&req)),
                 Some(Ok(Response::Pub(pb::PubResponse {
@@ -592,5 +677,16 @@ mod tests {
         let mut req_invalid = req.clone();
         req_invalid.keypath = [49 + HARDENED, 0 + HARDENED, 1 + HARDENED, 1, 10000].to_vec();
         assert!(block_on(process_pub(&req_invalid)).unwrap().is_err());
+        // -- No taproot in Litecoin
+        assert!(block_on(process_pub(&pb::BtcPubRequest {
+            coin: BtcCoin::Ltc as _,
+            keypath: [86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
+            display: false,
+            output: Some(Output::ScriptConfig(BtcScriptConfig {
+                config: Some(Config::SimpleType(SimpleType::P2tr as _)),
+            })),
+        }))
+        .unwrap()
+        .is_err());
     }
 }

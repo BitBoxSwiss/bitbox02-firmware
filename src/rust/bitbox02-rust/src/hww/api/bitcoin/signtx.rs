@@ -1218,6 +1218,27 @@ mod tests {
                 Err(Error::InvalidInput)
             );
         }
+        {
+            // no taproot in Litecoin
+            assert_eq!(
+                block_on(process(&pb::BtcSignInitRequest {
+                    coin: pb::BtcCoin::Ltc as _,
+                    script_configs: vec![pb::BtcScriptConfigWithKeypath {
+                        script_config: Some(pb::BtcScriptConfig {
+                            config: Some(pb::btc_script_config::Config::SimpleType(
+                                pb::btc_script_config::SimpleType::P2tr as _,
+                            )),
+                        }),
+                        keypath: vec![84 + HARDENED, 2 + HARDENED, 10 + HARDENED],
+                    }],
+                    version: 1,
+                    num_inputs: 1,
+                    num_outputs: 1,
+                    locktime: 0,
+                })),
+                Err(Error::InvalidInput)
+            );
+        }
     }
 
     #[test]

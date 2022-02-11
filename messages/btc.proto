@@ -32,6 +32,7 @@ message BTCScriptConfig {
   enum SimpleType {
     P2WPKH_P2SH = 0;
     P2WPKH = 1;
+    P2TR = 2;
   }
 
   message Multisig {

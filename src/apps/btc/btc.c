@@ -39,6 +39,9 @@ bool app_btc_address_simple(
     if (params == NULL) {
         return false;
     }
+    if (!params->taproot_support && script_type == BTCScriptConfig_SimpleType_P2TR) {
+        return false;
+    }
     if (!btc_common_is_valid_keypath_address_simple(
             script_type, keypath, keypath_len, params->bip44_coin)) {
         return false;

@@ -74,6 +74,10 @@ app_btc_result_t app_btc_sign_validate_init_script_configs(
         if (script_config->script_config.which_config != BTCScriptConfig_simple_type_tag) {
             return APP_BTC_ERR_INVALID_INPUT;
         }
+        if (!coin_params->taproot_support &&
+            script_config->script_config.config.simple_type == BTCScriptConfig_SimpleType_P2TR) {
+            return APP_BTC_ERR_INVALID_INPUT;
+        }
         if (!btc_common_is_valid_keypath_account_simple(
                 script_config->script_config.config.simple_type,
                 script_config->keypath,

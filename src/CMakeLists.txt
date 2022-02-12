@@ -419,7 +419,7 @@ add_custom_target(rust-bindgen
     --whitelist-var MAX_PK_SCRIPT_SIZE
     --whitelist-function app_btc_params_get
     --whitelist-function app_btc_sign_init_wrapper
-    --whitelist-function app_btc_sign_payload_at_change_wrapper
+    --whitelist-function app_btc_sign_payload_at_keypath_wrapper
     --whitelist-function app_btc_sign_sighash_script_wrapper
     --whitelist-function app_btc_sign_reset
     --whitelist-function reboot

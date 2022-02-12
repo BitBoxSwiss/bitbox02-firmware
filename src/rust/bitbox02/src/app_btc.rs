@@ -54,15 +54,20 @@ pub fn sign_init_wrapper(buffer_in: &[u8]) -> Result<(), Error> {
     }
 }
 
-pub fn sign_payload_at_change_wrapper(buffer_in: &[u8]) -> Result<Vec<u8>, Error> {
+pub fn sign_payload_at_keypath_wrapper(
+    buffer_in: &[u8],
+    keypath: &[u32],
+) -> Result<Vec<u8>, Error> {
     let mut payload = [0u8; 32];
     let mut payload_size: bitbox02_sys::size_t = 0;
     unsafe {
-        match bitbox02_sys::app_btc_sign_payload_at_change_wrapper(
+        match bitbox02_sys::app_btc_sign_payload_at_keypath_wrapper(
             bitbox02_sys::in_buffer_t {
                 data: buffer_in.as_ptr(),
                 len: buffer_in.len() as _,
             },
+            keypath.as_ptr(),
+            keypath.len() as _,
             payload.as_mut_ptr(),
             &mut payload_size,
         ) {

@@ -28,14 +28,17 @@
 
 USE_RESULT app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request);
 
+USE_RESULT app_btc_result_t app_btc_sign_sighash_script(
+    const BTCSignInputRequest* request,
+    // at least MAX_PK_SCRIPT_SIZE + MAX_VARINT_SIZE bytes
+    uint8_t* sighash_script,
+    // in: size of the sighash_script buffer. out: resulting size of sighash_script.
+    size_t* sighash_script_size);
+
 USE_RESULT app_btc_result_t app_btc_sign_input_pass2(
     const BTCSignInputRequest* request,
     // 32 bytes
-    const uint8_t* hash_prevouts,
-    // 32 bytes
-    const uint8_t* hash_sequence,
-    // 32 bytes
-    const uint8_t* hash_outputs,
+    const uint8_t* sighash,
     // 64 bytes
     uint8_t* sig_out,
     // 33 bytes
@@ -56,14 +59,16 @@ USE_RESULT app_btc_result_t app_btc_sign_payload_at_change_wrapper(
     in_buffer_t requet_buf,
     uint8_t* payload_bytes,
     size_t* payload_size);
+USE_RESULT app_btc_result_t app_btc_sign_sighash_script_wrapper(
+    in_buffer_t request_buf,
+    // at least MAX_PK_SCRIPT_SIZE + MAX_VARINT_SIZE bytes
+    uint8_t* sighash_script,
+    // in: size of the sighash_script buffer. out: resulting size of sighash_script.
+    size_t* sighash_script_size);
 USE_RESULT app_btc_result_t app_btc_sign_input_pass2_wrapper(
     in_buffer_t request_buf,
     // 32 bytes
-    const uint8_t* hash_prevouts,
-    // 32 bytes
-    const uint8_t* hash_sequence,
-    // 32 bytes
-    const uint8_t* hash_outputs,
+    const uint8_t* sighash,
     // 64 bytes
     uint8_t* sig_out,
     // 33 bytes

@@ -416,9 +416,12 @@ add_custom_target(rust-bindgen
     --whitelist-function testing_app_btc_mock_ui
     --whitelist-function btc_common_address_from_payload
     --whitelist-function btc_common_pkscript_from_payload
+    --whitelist-var MAX_VARINT_SIZE
+    --whitelist-var MAX_PK_SCRIPT_SIZE
     --whitelist-function app_btc_params_get
     --whitelist-function app_btc_sign_init_wrapper
     --whitelist-function app_btc_sign_payload_at_change_wrapper
+    --whitelist-function app_btc_sign_sighash_script_wrapper
     --whitelist-function app_btc_sign_input_pass2_wrapper
     --whitelist-function app_btc_sign_antiklepto_wrapper
     --whitelist-function app_btc_sign_reset

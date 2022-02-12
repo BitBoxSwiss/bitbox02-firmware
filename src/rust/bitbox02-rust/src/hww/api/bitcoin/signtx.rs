@@ -17,10 +17,11 @@ use super::Error;
 
 use super::script::serialize_varint;
 
-use crate::apps::bitcoin::keypath;
+use crate::apps::bitcoin::{bip143, keypath};
 use crate::workflow::{confirm, status, transaction};
 
 use alloc::vec::Vec;
+use core::convert::TryInto;
 
 use pb::request::Request;
 use pb::response::Response;
@@ -629,13 +630,25 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             return Err(Error::InvalidInput);
         }
 
+        const SIGHASH_ALL: u32 = 0x01;
+        let sighash_script =
+            bitbox02::app_btc::sign_sighash_script_wrapper(encode(&tx_input).as_ref())?;
+        let sighash = bip143::sighash(&bip143::Args {
+            version: request.version,
+            hash_prevouts: Sha256::digest(&hash_prevouts).try_into().unwrap(),
+            hash_sequence: Sha256::digest(&hash_sequence).try_into().unwrap(),
+            outpoint_hash: tx_input.prev_out_hash.as_slice().try_into().unwrap(),
+            outpoint_index: tx_input.prev_out_index,
+            sighash_script: &sighash_script,
+            prevout_value: tx_input.prev_out_value,
+            sequence: tx_input.sequence,
+            hash_outputs: Sha256::digest(&hash_outputs).try_into().unwrap(),
+            locktime: request.locktime,
+            sighash_flags: SIGHASH_ALL,
+        });
+
         let (signature, anti_klepto_signer_commitment) =
-            bitbox02::app_btc::sign_input_pass2_wrapper(
-                encode(&tx_input).as_ref(),
-                &hash_prevouts,
-                &hash_sequence,
-                &hash_outputs,
-            )?;
+            bitbox02::app_btc::sign_input_pass2_wrapper(encode(&tx_input).as_ref(), &sighash[..])?;
         // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
         if tx_input.host_nonce_commitment.is_some() {
             next_response.next.anti_klepto_signer_commitment =

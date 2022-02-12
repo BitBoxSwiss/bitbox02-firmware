@@ -72,15 +72,35 @@ pub fn sign_payload_at_change_wrapper(buffer_in: &[u8]) -> Result<Vec<u8>, Error
     }
 }
 
+pub fn sign_sighash_script_wrapper(buffer_in: &[u8]) -> Result<Vec<u8>, Error> {
+    let mut sighash_script_out = vec![
+        0u8;
+        bitbox02_sys::MAX_PK_SCRIPT_SIZE as usize
+            + bitbox02_sys::MAX_VARINT_SIZE as usize
+    ];
+    let mut sighash_script_out_size: bitbox02_sys::size_t = sighash_script_out.len() as _;
+    unsafe {
+        match bitbox02_sys::app_btc_sign_sighash_script_wrapper(
+            bitbox02_sys::in_buffer_t {
+                data: buffer_in.as_ptr(),
+                len: buffer_in.len() as _,
+            },
+            sighash_script_out.as_mut_ptr(),
+            &mut sighash_script_out_size,
+        ) {
+            Error::APP_BTC_OK => Ok(sighash_script_out[..sighash_script_out_size as _].to_vec()),
+            err => Err(err),
+        }
+    }
+}
+
 pub fn sign_input_pass2_wrapper(
     buffer_in: &[u8],
-    hash_prevouts: &[u8],
-    hash_sequence: &[u8],
-    hash_outputs: &[u8],
+    sighash: &[u8],
 ) -> Result<(Vec<u8>, Vec<u8>), Error> {
     let mut sig_out = vec![0u8; 64];
     let mut anti_klepto_signer_commitment_out = vec![0u8; 33];
-    if hash_prevouts.len() != 32 || hash_sequence.len() != 32 {
+    if sighash.len() != 32 {
         return Err(Error::APP_BTC_ERR_UNKNOWN);
     }
     unsafe {
@@ -89,9 +109,7 @@ pub fn sign_input_pass2_wrapper(
                 data: buffer_in.as_ptr(),
                 len: buffer_in.len() as _,
             },
-            hash_prevouts.as_ptr(),
-            hash_sequence.as_ptr(),
-            hash_outputs.as_ptr(),
+            sighash.as_ptr(),
             sig_out.as_mut_ptr(),
             anti_klepto_signer_commitment_out.as_mut_ptr(),
         ) {

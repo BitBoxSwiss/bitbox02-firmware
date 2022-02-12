@@ -299,6 +299,21 @@ pub fn get_ed25519_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     }
 }
 
+pub fn secp256k1_schnorr_bip86_sign(keypath: &[u32], msg: &[u8; 32]) -> Result<[u8; 64], ()> {
+    let mut signature = [0u8; 64];
+    match unsafe {
+        bitbox02_sys::keystore_secp256k1_schnorr_bip86_sign(
+            keypath.as_ptr(),
+            keypath.len() as _,
+            msg.as_ptr(),
+            signature.as_mut_ptr(),
+        )
+    } {
+        true => Ok(signature),
+        false => Err(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -647,26 +647,37 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             sighash_flags: SIGHASH_ALL,
         });
 
-        let (signature, anti_klepto_signer_commitment) =
-            bitbox02::app_btc::sign_input_pass2_wrapper(encode(&tx_input).as_ref(), &sighash[..])?;
         // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
-        if tx_input.host_nonce_commitment.is_some() {
-            next_response.next.anti_klepto_signer_commitment =
-                Some(pb::AntiKleptoSignerCommitment {
-                    commitment: anti_klepto_signer_commitment,
-                });
+        let host_nonce: [u8; 32] = match tx_input.host_nonce_commitment {
+            Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
+                let signer_commitment = bitbox02::keystore::secp256k1_nonce_commit(
+                    &tx_input.keypath,
+                    &sighash,
+                    commitment
+                        .as_slice()
+                        .try_into()
+                        .or(Err(Error::InvalidInput))?,
+                )?;
+                next_response.next.anti_klepto_signer_commitment =
+                    Some(pb::AntiKleptoSignerCommitment {
+                        commitment: signer_commitment.to_vec(),
+                    });
 
-            let antiklepto_host_nonce =
-                get_antiklepto_host_nonce(input_index, &mut next_response).await?;
+                get_antiklepto_host_nonce(input_index, &mut next_response)
+                    .await?
+                    .host_nonce
+                    .as_slice()
+                    .try_into()
+                    .or(Err(Error::InvalidInput))?
+            }
+            // Return signature directly without the anti-klepto protocol, for backwards compatibility.
+            None => [0; 32],
+        };
 
-            next_response.next.has_signature = true;
-            next_response.next.signature = bitbox02::app_btc::sign_antiklepto_wrapper(
-                encode(&antiklepto_host_nonce).as_ref(),
-            )?;
-        } else {
-            next_response.next.has_signature = true;
-            next_response.next.signature = signature;
-        }
+        let sign_result =
+            bitbox02::keystore::secp256k1_sign(&tx_input.keypath, &sighash, &host_nonce)?;
+        next_response.next.has_signature = true;
+        next_response.next.signature = sign_result.signature.to_vec();
 
         // Update progress.
         if let Some(ref mut c) = progress_component {

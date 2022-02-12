@@ -35,24 +35,10 @@ USE_RESULT app_btc_result_t app_btc_sign_sighash_script(
     // in: size of the sighash_script buffer. out: resulting size of sighash_script.
     size_t* sighash_script_size);
 
-USE_RESULT app_btc_result_t app_btc_sign_input_pass2(
-    const BTCSignInputRequest* request,
-    // 32 bytes
-    const uint8_t* sighash,
-    // 64 bytes
-    uint8_t* sig_out,
-    // 33 bytes
-    uint8_t* anti_klepto_signer_commitment_out);
-
 USE_RESULT app_btc_result_t app_btc_sign_payload_at_change(
     const BTCSignOutputRequest* request,
     uint8_t* payload_bytes,
     size_t* payload_size);
-
-USE_RESULT app_btc_result_t app_btc_sign_antiklepto(
-    const AntiKleptoSignatureRequest* request,
-    // 64 bytes
-    uint8_t* sig_out);
 
 USE_RESULT app_btc_result_t app_btc_sign_init_wrapper(in_buffer_t request_buf);
 USE_RESULT app_btc_result_t app_btc_sign_payload_at_change_wrapper(
@@ -65,18 +51,6 @@ USE_RESULT app_btc_result_t app_btc_sign_sighash_script_wrapper(
     uint8_t* sighash_script,
     // in: size of the sighash_script buffer. out: resulting size of sighash_script.
     size_t* sighash_script_size);
-USE_RESULT app_btc_result_t app_btc_sign_input_pass2_wrapper(
-    in_buffer_t request_buf,
-    // 32 bytes
-    const uint8_t* sighash,
-    // 64 bytes
-    uint8_t* sig_out,
-    // 33 bytes
-    uint8_t* anti_klepto_signer_commitment_out);
-USE_RESULT app_btc_result_t app_btc_sign_antiklepto_wrapper(
-    in_buffer_t request_buf,
-    // 64 bytes
-    uint8_t* sig_out);
 
 void app_btc_sign_reset(void);
 

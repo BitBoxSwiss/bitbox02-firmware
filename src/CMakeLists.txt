@@ -21,7 +21,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/commander/commander_states.c
   ${CMAKE_SOURCE_DIR}/src/commander/protobuf.c
   ${CMAKE_SOURCE_DIR}/src/keystore.c
-  ${CMAKE_SOURCE_DIR}/src/keystore/keystore_antiklepto.c
   ${CMAKE_SOURCE_DIR}/src/random.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
   ${CMAKE_SOURCE_DIR}/src/util.c
@@ -422,8 +421,6 @@ add_custom_target(rust-bindgen
     --whitelist-function app_btc_sign_init_wrapper
     --whitelist-function app_btc_sign_payload_at_change_wrapper
     --whitelist-function app_btc_sign_sighash_script_wrapper
-    --whitelist-function app_btc_sign_input_pass2_wrapper
-    --whitelist-function app_btc_sign_antiklepto_wrapper
     --whitelist-function app_btc_sign_reset
     --whitelist-function reboot
     --whitelist-function secp256k1_ecdsa_anti_exfil_host_commit

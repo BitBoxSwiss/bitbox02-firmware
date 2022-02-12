@@ -22,7 +22,6 @@
 
 #include <hardfault.h>
 #include <keystore.h>
-#include <keystore/keystore_antiklepto.h>
 #include <ui/screen_stack.h>
 #include <util.h>
 
@@ -39,8 +38,6 @@ static BTCSignInitRequest _init_request = {0};
 static void _reset(void)
 {
     util_zero(&_init_request, sizeof(_init_request));
-
-    keystore_antiklepto_clear();
 }
 
 static app_btc_result_t _error(app_btc_result_t err)
@@ -113,44 +110,6 @@ app_btc_result_t app_btc_sign_sighash_script(
     return APP_BTC_OK;
 }
 
-app_btc_result_t app_btc_sign_input_pass2(
-    const BTCSignInputRequest* request,
-    const uint8_t* sighash,
-    uint8_t* sig_out,
-    uint8_t* anti_klepto_signer_commitment_out)
-{
-    { // Sign input.
-        // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
-        if (request->has_host_nonce_commitment) {
-            if (!keystore_antiklepto_secp256k1_commit(
-                    request->keypath,
-                    request->keypath_count,
-                    sighash,
-                    request->host_nonce_commitment.commitment,
-                    anti_klepto_signer_commitment_out)) {
-                return _error(APP_BTC_ERR_UNKNOWN);
-            }
-
-            return APP_BTC_OK;
-        }
-
-        // Return signature directly without the anti-klepto protocol, for backwards compatibility.
-        uint8_t empty_nonce_contribution[32] = {0}; // no nonce contribution given by host.
-        uint8_t signature[64] = {0};
-        if (!keystore_secp256k1_sign(
-                request->keypath,
-                request->keypath_count,
-                sighash,
-                empty_nonce_contribution,
-                signature,
-                NULL)) {
-            return _error(APP_BTC_ERR_UNKNOWN);
-        }
-        memcpy(sig_out, signature, sizeof(signature));
-    }
-    return APP_BTC_OK;
-}
-
 app_btc_result_t app_btc_sign_payload_at_change(
     const BTCSignOutputRequest* request,
     uint8_t* payload_bytes,
@@ -199,16 +158,6 @@ app_btc_result_t app_btc_sign_payload_at_change(
     return _error(APP_BTC_ERR_UNKNOWN);
 }
 
-app_btc_result_t app_btc_sign_antiklepto(
-    const AntiKleptoSignatureRequest* request,
-    uint8_t* sig_out)
-{
-    if (!keystore_antiklepto_secp256k1_sign(request->host_nonce, sig_out, NULL)) {
-        return APP_BTC_ERR_UNKNOWN;
-    }
-    return APP_BTC_OK;
-}
-
 app_btc_result_t app_btc_sign_init_wrapper(in_buffer_t request_buf)
 {
     pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
@@ -243,30 +192,6 @@ app_btc_result_t app_btc_sign_sighash_script_wrapper(
         return _error(APP_BTC_ERR_UNKNOWN);
     }
     return app_btc_sign_sighash_script(&request, sighash_script, sighash_script_size);
-}
-
-app_btc_result_t app_btc_sign_input_pass2_wrapper(
-    in_buffer_t request_buf,
-    const uint8_t* sighash,
-    uint8_t* sig_out,
-    uint8_t* anti_klepto_signer_commitment_out)
-{
-    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
-    BTCSignInputRequest request = {0};
-    if (!pb_decode(&in_stream, BTCSignInputRequest_fields, &request)) {
-        return _error(APP_BTC_ERR_UNKNOWN);
-    }
-    return app_btc_sign_input_pass2(&request, sighash, sig_out, anti_klepto_signer_commitment_out);
-}
-
-app_btc_result_t app_btc_sign_antiklepto_wrapper(in_buffer_t request_buf, uint8_t* sig_out)
-{
-    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
-    AntiKleptoSignatureRequest request = {0};
-    if (!pb_decode(&in_stream, AntiKleptoSignatureRequest_fields, &request)) {
-        return _error(APP_BTC_ERR_UNKNOWN);
-    }
-    return app_btc_sign_antiklepto(&request, sig_out);
 }
 
 void app_btc_sign_reset(void)

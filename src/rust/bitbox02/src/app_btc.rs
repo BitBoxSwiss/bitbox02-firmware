@@ -94,47 +94,6 @@ pub fn sign_sighash_script_wrapper(buffer_in: &[u8]) -> Result<Vec<u8>, Error> {
     }
 }
 
-pub fn sign_input_pass2_wrapper(
-    buffer_in: &[u8],
-    sighash: &[u8],
-) -> Result<(Vec<u8>, Vec<u8>), Error> {
-    let mut sig_out = vec![0u8; 64];
-    let mut anti_klepto_signer_commitment_out = vec![0u8; 33];
-    if sighash.len() != 32 {
-        return Err(Error::APP_BTC_ERR_UNKNOWN);
-    }
-    unsafe {
-        match bitbox02_sys::app_btc_sign_input_pass2_wrapper(
-            bitbox02_sys::in_buffer_t {
-                data: buffer_in.as_ptr(),
-                len: buffer_in.len() as _,
-            },
-            sighash.as_ptr(),
-            sig_out.as_mut_ptr(),
-            anti_klepto_signer_commitment_out.as_mut_ptr(),
-        ) {
-            Error::APP_BTC_OK => Ok((sig_out, anti_klepto_signer_commitment_out)),
-            err => Err(err),
-        }
-    }
-}
-
-pub fn sign_antiklepto_wrapper(buffer_in: &[u8]) -> Result<Vec<u8>, Error> {
-    let mut sig_out = vec![0u8; 64];
-    unsafe {
-        match bitbox02_sys::app_btc_sign_antiklepto_wrapper(
-            bitbox02_sys::in_buffer_t {
-                data: buffer_in.as_ptr(),
-                len: buffer_in.len() as _,
-            },
-            sig_out.as_mut_ptr(),
-        ) {
-            Error::APP_BTC_OK => Ok(sig_out),
-            err => Err(err),
-        }
-    }
-}
-
 pub fn sign_reset() {
     unsafe { bitbox02_sys::app_btc_sign_reset() }
 }

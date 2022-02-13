@@ -17,10 +17,11 @@ use super::Error;
 
 use super::script::serialize_varint;
 
-use crate::apps::bitcoin::keypath;
+use crate::apps::bitcoin::{bip143, keypath};
 use crate::workflow::{confirm, status, transaction};
 
 use alloc::vec::Vec;
+use core::convert::TryInto;
 
 use pb::request::Request;
 use pb::response::Response;
@@ -629,31 +630,54 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             return Err(Error::InvalidInput);
         }
 
-        let (signature, anti_klepto_signer_commitment) =
-            bitbox02::app_btc::sign_input_pass2_wrapper(
-                encode(&tx_input).as_ref(),
-                &hash_prevouts,
-                &hash_sequence,
-                &hash_outputs,
-            )?;
+        const SIGHASH_ALL: u32 = 0x01;
+        let sighash_script =
+            bitbox02::app_btc::sign_sighash_script_wrapper(encode(&tx_input).as_ref())?;
+        let sighash = bip143::sighash(&bip143::Args {
+            version: request.version,
+            hash_prevouts: Sha256::digest(&hash_prevouts).try_into().unwrap(),
+            hash_sequence: Sha256::digest(&hash_sequence).try_into().unwrap(),
+            outpoint_hash: tx_input.prev_out_hash.as_slice().try_into().unwrap(),
+            outpoint_index: tx_input.prev_out_index,
+            sighash_script: &sighash_script,
+            prevout_value: tx_input.prev_out_value,
+            sequence: tx_input.sequence,
+            hash_outputs: Sha256::digest(&hash_outputs).try_into().unwrap(),
+            locktime: request.locktime,
+            sighash_flags: SIGHASH_ALL,
+        });
+
         // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
-        if tx_input.host_nonce_commitment.is_some() {
-            next_response.next.anti_klepto_signer_commitment =
-                Some(pb::AntiKleptoSignerCommitment {
-                    commitment: anti_klepto_signer_commitment,
-                });
+        let host_nonce: [u8; 32] = match tx_input.host_nonce_commitment {
+            Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
+                let signer_commitment = bitbox02::keystore::secp256k1_nonce_commit(
+                    &tx_input.keypath,
+                    &sighash,
+                    commitment
+                        .as_slice()
+                        .try_into()
+                        .or(Err(Error::InvalidInput))?,
+                )?;
+                next_response.next.anti_klepto_signer_commitment =
+                    Some(pb::AntiKleptoSignerCommitment {
+                        commitment: signer_commitment.to_vec(),
+                    });
 
-            let antiklepto_host_nonce =
-                get_antiklepto_host_nonce(input_index, &mut next_response).await?;
+                get_antiklepto_host_nonce(input_index, &mut next_response)
+                    .await?
+                    .host_nonce
+                    .as_slice()
+                    .try_into()
+                    .or(Err(Error::InvalidInput))?
+            }
+            // Return signature directly without the anti-klepto protocol, for backwards compatibility.
+            None => [0; 32],
+        };
 
-            next_response.next.has_signature = true;
-            next_response.next.signature = bitbox02::app_btc::sign_antiklepto_wrapper(
-                encode(&antiklepto_host_nonce).as_ref(),
-            )?;
-        } else {
-            next_response.next.has_signature = true;
-            next_response.next.signature = signature;
-        }
+        let sign_result =
+            bitbox02::keystore::secp256k1_sign(&tx_input.keypath, &sighash, &host_nonce)?;
+        next_response.next.has_signature = true;
+        next_response.next.signature = sign_result.signature.to_vec();
 
         // Update progress.
         if let Some(ref mut c) = progress_component {

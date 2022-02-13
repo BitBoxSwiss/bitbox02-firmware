@@ -22,7 +22,6 @@
 
 #include <hardfault.h>
 #include <keystore.h>
-#include <keystore/keystore_antiklepto.h>
 #include <ui/screen_stack.h>
 #include <util.h>
 
@@ -39,8 +38,6 @@ static BTCSignInitRequest _init_request = {0};
 static void _reset(void)
 {
     util_zero(&_init_request, sizeof(_init_request));
-
-    keystore_antiklepto_clear();
 }
 
 static app_btc_result_t _error(app_btc_result_t err)
@@ -61,114 +58,54 @@ app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request)
     return APP_BTC_OK;
 }
 
-app_btc_result_t app_btc_sign_input_pass2(
+app_btc_result_t app_btc_sign_sighash_script(
     const BTCSignInputRequest* request,
-    const uint8_t* hash_prevouts,
-    const uint8_t* hash_sequence,
-    const uint8_t* hash_outputs,
-    uint8_t* sig_out,
-    uint8_t* anti_klepto_signer_commitment_out)
+    uint8_t* sighash_script,
+    size_t* sighash_script_size)
 {
-    { // Sign input.
-        uint8_t pubkey_hash160[HASH160_LEN];
-        UTIL_CLEANUP_20(pubkey_hash160);
-        if (!keystore_secp256k1_pubkey_hash160(
-                request->keypath, request->keypath_count, pubkey_hash160)) {
-            return _error(APP_BTC_ERR_UNKNOWN);
+    uint8_t pubkey_hash160[HASH160_LEN];
+    UTIL_CLEANUP_20(pubkey_hash160);
+    if (!keystore_secp256k1_pubkey_hash160(
+            request->keypath, request->keypath_count, pubkey_hash160)) {
+        return APP_BTC_ERR_UNKNOWN;
+    }
+
+    const BTCScriptConfig* script_config_account =
+        &_init_request.script_configs[request->script_config_index].script_config;
+
+    switch (script_config_account->which_config) {
+    case BTCScriptConfig_simple_type_tag:
+        if (!btc_common_sighash_script_from_pubkeyhash(
+                script_config_account->config.simple_type,
+                pubkey_hash160,
+                sighash_script,
+                sighash_script_size)) {
+            return APP_BTC_ERR_INVALID_INPUT;
         }
-
-        // A little more than the max pk script for the data push varint.
-        uint8_t sighash_script[MAX_PK_SCRIPT_SIZE + MAX_VARINT_SIZE] = {0};
-        size_t sighash_script_size = sizeof(sighash_script);
-
-        const BTCScriptConfig* script_config_account =
-            &_init_request.script_configs[request->script_config_index].script_config;
-
-        switch (script_config_account->which_config) {
-        case BTCScriptConfig_simple_type_tag:
-            if (!btc_common_sighash_script_from_pubkeyhash(
-                    script_config_account->config.simple_type,
-                    pubkey_hash160,
-                    sighash_script,
-                    &sighash_script_size)) {
-                return _error(APP_BTC_ERR_INVALID_INPUT);
-            }
-            break;
-        case BTCScriptConfig_multisig_tag: {
-            uint8_t sighash_script_tmp[MAX_PK_SCRIPT_SIZE] = {0};
-            sighash_script_size = sizeof(sighash_script_tmp);
-            if (!btc_common_pkscript_from_multisig(
-                    &script_config_account->config.multisig,
-                    request->keypath[request->keypath_count - 2],
-                    request->keypath[request->keypath_count - 1],
-                    sighash_script_tmp,
-                    &sighash_script_size)) {
-                return _error(APP_BTC_ERR_INVALID_INPUT);
-            }
-            if (wally_varbuff_to_bytes(
-                    sighash_script_tmp,
-                    sighash_script_size,
-                    sighash_script,
-                    sizeof(sighash_script),
-                    &sighash_script_size) != WALLY_OK) {
-                return _error(APP_BTC_ERR_UNKNOWN);
-            }
-            break;
+        break;
+    case BTCScriptConfig_multisig_tag: {
+        uint8_t sighash_script_tmp[MAX_PK_SCRIPT_SIZE] = {0};
+        size_t sighash_script_size_tmp = sizeof(sighash_script_tmp);
+        if (!btc_common_pkscript_from_multisig(
+                &script_config_account->config.multisig,
+                request->keypath[request->keypath_count - 2],
+                request->keypath[request->keypath_count - 1],
+                sighash_script_tmp,
+                &sighash_script_size_tmp)) {
+            return APP_BTC_ERR_INVALID_INPUT;
         }
-        default:
-            return _error(APP_BTC_ERR_INVALID_INPUT);
+        if (wally_varbuff_to_bytes(
+                sighash_script_tmp,
+                sighash_script_size_tmp,
+                sighash_script,
+                *sighash_script_size,
+                sighash_script_size) != WALLY_OK) {
+            return APP_BTC_ERR_UNKNOWN;
         }
-        // produce the final double-hash
-        uint8_t hash_prevouts_d[32] = {0};
-        rust_sha256(hash_prevouts, 32, hash_prevouts_d);
-        uint8_t hash_sequence_d[32] = {0};
-        rust_sha256(hash_sequence, 32, hash_sequence_d);
-        uint8_t hash_outputs_d[32] = {0};
-        rust_sha256(hash_outputs, 32, hash_outputs_d);
-        // construct hash to sign
-        uint8_t sighash[32] = {0};
-        const Bip143Args bip143_args = {
-            .version = _init_request.version,
-            .hash_prevouts = hash_prevouts_d,
-            .hash_sequence = hash_sequence_d,
-            .outpoint_hash = request->prevOutHash,
-            .outpoint_index = request->prevOutIndex,
-            .sighash_script = rust_util_bytes(sighash_script, sighash_script_size),
-            .prevout_value = request->prevOutValue,
-            .sequence = request->sequence,
-            .hash_outputs = hash_outputs_d,
-            .locktime = _init_request.locktime,
-            .sighash_flags = WALLY_SIGHASH_ALL,
-        };
-        rust_bitcoin_bip143_sighash(&bip143_args, rust_util_bytes_mut(sighash, sizeof(sighash)));
-
-        // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
-        if (request->has_host_nonce_commitment) {
-            if (!keystore_antiklepto_secp256k1_commit(
-                    request->keypath,
-                    request->keypath_count,
-                    sighash,
-                    request->host_nonce_commitment.commitment,
-                    anti_klepto_signer_commitment_out)) {
-                return _error(APP_BTC_ERR_UNKNOWN);
-            }
-
-            return APP_BTC_OK;
-        }
-
-        // Return signature directly without the anti-klepto protocol, for backwards compatibility.
-        uint8_t empty_nonce_contribution[32] = {0}; // no nonce contribution given by host.
-        uint8_t signature[64] = {0};
-        if (!keystore_secp256k1_sign(
-                request->keypath,
-                request->keypath_count,
-                sighash,
-                empty_nonce_contribution,
-                signature,
-                NULL)) {
-            return _error(APP_BTC_ERR_UNKNOWN);
-        }
-        memcpy(sig_out, signature, sizeof(signature));
+        break;
+    }
+    default:
+        return APP_BTC_ERR_INVALID_INPUT;
     }
     return APP_BTC_OK;
 }
@@ -221,16 +158,6 @@ app_btc_result_t app_btc_sign_payload_at_change(
     return _error(APP_BTC_ERR_UNKNOWN);
 }
 
-app_btc_result_t app_btc_sign_antiklepto(
-    const AntiKleptoSignatureRequest* request,
-    uint8_t* sig_out)
-{
-    if (!keystore_antiklepto_secp256k1_sign(request->host_nonce, sig_out, NULL)) {
-        return APP_BTC_ERR_UNKNOWN;
-    }
-    return APP_BTC_OK;
-}
-
 app_btc_result_t app_btc_sign_init_wrapper(in_buffer_t request_buf)
 {
     pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
@@ -254,36 +181,17 @@ app_btc_result_t app_btc_sign_payload_at_change_wrapper(
     return app_btc_sign_payload_at_change(&request, payload_bytes, payload_size);
 }
 
-app_btc_result_t app_btc_sign_input_pass2_wrapper(
+app_btc_result_t app_btc_sign_sighash_script_wrapper(
     in_buffer_t request_buf,
-    const uint8_t* hash_prevouts,
-    const uint8_t* hash_sequence,
-    const uint8_t* hash_outputs,
-    uint8_t* sig_out,
-    uint8_t* anti_klepto_signer_commitment_out)
+    uint8_t* sighash_script,
+    size_t* sighash_script_size)
 {
     pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
     BTCSignInputRequest request = {0};
     if (!pb_decode(&in_stream, BTCSignInputRequest_fields, &request)) {
         return _error(APP_BTC_ERR_UNKNOWN);
     }
-    return app_btc_sign_input_pass2(
-        &request,
-        hash_prevouts,
-        hash_sequence,
-        hash_outputs,
-        sig_out,
-        anti_klepto_signer_commitment_out);
-}
-
-app_btc_result_t app_btc_sign_antiklepto_wrapper(in_buffer_t request_buf, uint8_t* sig_out)
-{
-    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
-    AntiKleptoSignatureRequest request = {0};
-    if (!pb_decode(&in_stream, AntiKleptoSignatureRequest_fields, &request)) {
-        return _error(APP_BTC_ERR_UNKNOWN);
-    }
-    return app_btc_sign_antiklepto(&request, sig_out);
+    return app_btc_sign_sighash_script(&request, sighash_script, sighash_script_size);
 }
 
 void app_btc_sign_reset(void)

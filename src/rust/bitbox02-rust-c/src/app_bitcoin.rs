@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core::convert::TryInto;
 use core::fmt::Write;
 
 use util::c_types::size_t;
 
+use bitbox02_rust::apps::bitcoin::keypath;
 use bitbox02_rust::apps::bitcoin::util::format_amount;
-use bitbox02_rust::apps::bitcoin::{bip143, keypath};
 
 /// # Safety
 /// `keypath` must be not NULL and contain `keypath_len` u32 elements.
@@ -115,50 +114,4 @@ pub extern "C" fn rust_bitcoin_util_format_amount(
 ) {
     let result = format_amount(satoshi, unit.as_ref());
     out.write_str(&result).unwrap();
-}
-
-#[repr(C)]
-pub struct Bip143Args {
-    version: u32,
-    hash_prevouts: *const u8,
-    hash_sequence: *const u8,
-    outpoint_hash: *const u8,
-    outpoint_index: u32,
-    sighash_script: crate::util::Bytes,
-    prevout_value: u64,
-    sequence: u32,
-    hash_outputs: *const u8,
-    locktime: u32,
-    sighash_flags: u32,
-}
-
-/// # Safety
-/// The *const u8 buffers must be valid 32 byte buffers.
-#[no_mangle]
-pub unsafe extern "C" fn rust_bitcoin_bip143_sighash(
-    args: &Bip143Args,
-    mut hash_out: crate::util::BytesMut,
-) {
-    let hash = bip143::sighash(&bip143::Args {
-        version: args.version,
-        hash_prevouts: core::slice::from_raw_parts(args.hash_prevouts, 32)
-            .try_into()
-            .unwrap(),
-        hash_sequence: core::slice::from_raw_parts(args.hash_sequence, 32)
-            .try_into()
-            .unwrap(),
-        outpoint_hash: core::slice::from_raw_parts(args.outpoint_hash, 32)
-            .try_into()
-            .unwrap(),
-        outpoint_index: args.outpoint_index,
-        sighash_script: args.sighash_script.as_ref(),
-        prevout_value: args.prevout_value,
-        sequence: args.sequence,
-        hash_outputs: core::slice::from_raw_parts(args.hash_outputs, 32)
-            .try_into()
-            .unwrap(),
-        locktime: args.locktime,
-        sighash_flags: args.sighash_flags,
-    });
-    hash_out.as_mut().copy_from_slice(&hash[..]);
 }

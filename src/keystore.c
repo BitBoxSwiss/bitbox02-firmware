@@ -25,7 +25,10 @@
 #include "securechip/securechip.h"
 #include "util.h"
 
+#include <rust/rust.h>
 #include <secp256k1_ecdsa_s2c.h>
+#include <secp256k1_extrakeys.h>
+#include <secp256k1_schnorrsig.h>
 
 // This number of KDF iterations on the 2nd kdf slot when stretching the device
 // password.
@@ -793,4 +796,88 @@ USE_RESULT bool keystore_encode_xpub_at_keypath(
         return false;
     }
     return keystore_encode_xpub(&derived_xpub, xpub_type, out, out_len);
+}
+
+static void _tagged_hash(const char* tag, const uint8_t* msg, size_t msg_len, uint8_t* hash_out)
+{
+    uint8_t tag_hash[32] = {0};
+    rust_sha256(tag, strlen(tag), tag_hash);
+    void* hash_ctx = rust_sha256_new();
+    rust_sha256_update(hash_ctx, tag_hash, sizeof(tag_hash));
+    rust_sha256_update(hash_ctx, tag_hash, sizeof(tag_hash));
+    rust_sha256_update(hash_ctx, msg, msg_len);
+    rust_sha256_finish(&hash_ctx, hash_out);
+}
+
+static bool _schnorr_bip86_keypair(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    secp256k1_keypair* keypair_out,
+    secp256k1_xonly_pubkey* pubkey_out)
+{
+    if (keystore_is_locked()) {
+        return false;
+    }
+    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
+    if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
+        return false;
+    }
+    const uint8_t* secret_key = xprv.priv_key + 1; // first byte is 0;
+    const secp256k1_context* ctx = wally_get_secp_context();
+    if (!secp256k1_keypair_create(ctx, keypair_out, secret_key)) {
+        return false;
+    }
+    if (!secp256k1_keypair_xonly_pub(ctx, pubkey_out, NULL, keypair_out)) {
+        return false;
+    }
+    uint8_t pubkey_serialized[32] = {0};
+    if (!secp256k1_xonly_pubkey_serialize(ctx, pubkey_serialized, pubkey_out)) {
+        return false;
+    }
+    uint8_t hash[32] = {0};
+    _tagged_hash("TapTweak", pubkey_serialized, sizeof(pubkey_serialized), hash);
+
+    if (secp256k1_keypair_xonly_tweak_add(ctx, keypair_out, hash) != 1) {
+        return false;
+    }
+    return secp256k1_keypair_xonly_pub(ctx, pubkey_out, NULL, keypair_out) == 1;
+}
+
+static void _cleanup_keypair(secp256k1_keypair* keypair)
+{
+    util_zero(keypair, sizeof(secp256k1_keypair));
+}
+
+bool keystore_secp256k1_schnorr_bip86_pubkey(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint8_t* pubkey_out)
+{
+    secp256k1_keypair __attribute__((__cleanup__(_cleanup_keypair))) keypair = {0};
+    secp256k1_xonly_pubkey pubkey = {0};
+    if (!_schnorr_bip86_keypair(keypath, keypath_len, &keypair, &pubkey)) {
+        return false;
+    }
+    const secp256k1_context* ctx = wally_get_secp_context();
+    return secp256k1_xonly_pubkey_serialize(ctx, pubkey_out, &pubkey) == 1;
+}
+
+bool keystore_secp256k1_schnorr_bip86_sign(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    const uint8_t* msg32,
+    uint8_t* sig64_out)
+{
+    secp256k1_keypair __attribute__((__cleanup__(_cleanup_keypair))) keypair = {0};
+    secp256k1_xonly_pubkey pubkey = {0};
+    if (!_schnorr_bip86_keypair(keypath, keypath_len, &keypair, &pubkey)) {
+        return false;
+    }
+    const secp256k1_context* ctx = wally_get_secp_context();
+    uint8_t aux_rand[32] = {0};
+    random_32_bytes(aux_rand);
+    if (secp256k1_schnorrsig_sign(ctx, sig64_out, msg32, &keypair, aux_rand) != 1) {
+        return false;
+    }
+    return secp256k1_schnorrsig_verify(ctx, sig64_out, msg32, 32, &pubkey) == 1;
 }

@@ -70,18 +70,19 @@ USE_RESULT bool btc_common_is_valid_keypath_address_multisig(
     uint32_t expected_coin);
 
 /**
- * Converts a pubkeyhash to a payload used in an output script, e.g. pubkeyhash or script hash.
- * The pkScript to be hashed is created based on the script type (output type).
- * @param[in] script_type script type defining the pkScript.
- * @param[in] pubkey_hash hash160 of a public key. Must be of size HASH160_LEN.
+ * Generate the payload used in an output script, e.g. pubkeyhash or script hash or pubkey.
+ * @param[in] keypath address-level keypath, e.g. m/84'/0'/0'/0/0
+ * @param[in] keypath_len number of elements in keypath
+ * @param[in] script_type script type defining the payload.
  * @param[out] output_payload will have the resulting payload. Must be of size 32.
  * @param[out] output_payload_size will be 32 for p2wsh scripts, HASH160_LEN for
  * all others.
  * return true on succes, false on failure.
  */
-USE_RESULT bool btc_common_payload_from_pubkeyhash(
+USE_RESULT bool btc_common_payload_at_keypath(
+    const uint32_t* keypath,
+    size_t keypath_len,
     BTCScriptConfig_SimpleType script_type,
-    const uint8_t* pubkey_hash,
     uint8_t* output_payload,
     size_t* output_payload_size);
 

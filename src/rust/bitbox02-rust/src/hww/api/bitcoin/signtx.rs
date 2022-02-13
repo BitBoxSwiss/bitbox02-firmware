@@ -499,8 +499,10 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                     .as_ref()
                     .ok_or(Error::InvalidInput)?,
             )?;
-            let payload =
-                bitbox02::app_btc::sign_payload_at_change_wrapper(encode(&tx_output).as_ref())?;
+            let payload = bitbox02::app_btc::sign_payload_at_keypath_wrapper(
+                encode(script_config_account).as_ref(),
+                &tx_output.keypath,
+            )?;
             (output_type, payload)
         } else {
             // Take payload from provided output.

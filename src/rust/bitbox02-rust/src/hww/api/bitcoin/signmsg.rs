@@ -53,6 +53,9 @@ pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Er
         ),
         _ => return Err(Error::InvalidInput),
     };
+    if simple_type == SimpleType::P2tr {
+        return Err(Error::InvalidInput);
+    }
     if request.msg.len() > MAX_MESSAGE_SIZE {
         return Err(Error::InvalidInput);
     }
@@ -135,20 +138,17 @@ mod tests {
     use std::boxed::Box;
     use util::bip32::HARDENED;
 
-    const KEYPATH: &[u32] = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
     const MESSAGE: &[u8] = b"message";
-    const EXPECTED_ADDRESS: &str = "bc1qk5f9em9qc8yfpks8ngfg3h8h02n2e3yeqdyhpt";
-    const EXPECTED_SIGNATURE: &[u8] = b"\x0f\x1d\x54\x2a\x9e\x2f\x37\x4e\xfe\xd4\x57\x8c\xaa\x84\x72\xd1\xc3\x12\x68\xfb\x89\x2d\x39\xa6\x15\x44\x59\x18\x5b\x2d\x35\x4d\x3b\x2b\xff\xf0\xe1\x61\x5c\x77\x25\x73\x4f\x43\x13\x4a\xb4\x51\x6b\x7e\x7c\xb3\x9d\x2d\xba\xaa\x5f\x4e\x8b\x8a\xff\x9f\x97\xd0\x00";
 
     #[test]
-    pub fn test_process() {
+    pub fn test_p2wpkh() {
         let request = pb::BtcSignMessageRequest {
             coin: BtcCoin::Btc as _,
             script_config: Some(pb::BtcScriptConfigWithKeypath {
                 script_config: Some(pb::BtcScriptConfig {
                     config: Some(Config::SimpleType(SimpleType::P2wpkh as _)),
                 }),
-                keypath: KEYPATH.to_vec(),
+                keypath: vec![84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
             }),
             msg: MESSAGE.to_vec(),
             host_nonce_commitment: None,
@@ -169,7 +169,7 @@ mod tests {
                     }
                     2 => {
                         assert_eq!(params.title, "Address");
-                        assert_eq!(params.body, EXPECTED_ADDRESS);
+                        assert_eq!(params.body, "bc1qk5f9em9qc8yfpks8ngfg3h8h02n2e3yeqdyhpt");
                         true
                     }
                     3 => {
@@ -186,7 +186,58 @@ mod tests {
         assert_eq!(
             block_on(process(&request)),
             Ok(Response::SignMessage(pb::BtcSignMessageResponse {
-                signature: EXPECTED_SIGNATURE.to_vec(),
+                signature: b"\x0f\x1d\x54\x2a\x9e\x2f\x37\x4e\xfe\xd4\x57\x8c\xaa\x84\x72\xd1\xc3\x12\x68\xfb\x89\x2d\x39\xa6\x15\x44\x59\x18\x5b\x2d\x35\x4d\x3b\x2b\xff\xf0\xe1\x61\x5c\x77\x25\x73\x4f\x43\x13\x4a\xb4\x51\x6b\x7e\x7c\xb3\x9d\x2d\xba\xaa\x5f\x4e\x8b\x8a\xff\x9f\x97\xd0\x00".to_vec(),
+            }))
+        );
+    }
+
+    #[test]
+    pub fn test_p2wpkh_p2sh() {
+        let request = pb::BtcSignMessageRequest {
+            coin: BtcCoin::Btc as _,
+            script_config: Some(pb::BtcScriptConfigWithKeypath {
+                script_config: Some(pb::BtcScriptConfig {
+                    config: Some(Config::SimpleType(SimpleType::P2wpkhP2sh as _)),
+                }),
+                keypath: vec![49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
+            }),
+            msg: MESSAGE.to_vec(),
+            host_nonce_commitment: None,
+        };
+
+        static mut CONFIRM_COUNTER: u32 = 0;
+
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(params.title, "Sign message");
+                        assert_eq!(params.body, "Coin: Bitcoin");
+                        true
+                    }
+                    2 => {
+                        assert_eq!(params.title, "Address");
+                        assert_eq!(params.body, "3BaL6XecvLAidPToUDhXo1zxD99ZUrErpd");
+                        true
+                    }
+                    3 => {
+                        assert_eq!(params.title, "Sign message");
+                        assert_eq!(params.body.as_bytes(), MESSAGE);
+                        true
+                    }
+                    _ => panic!("too many user confirmations"),
+                }
+            })),
+            ..Default::default()
+        });
+        mock_unlocked();
+        assert_eq!(
+            block_on(process(&request)),
+            Ok(Response::SignMessage(pb::BtcSignMessageResponse {
+                signature: b"\x87\x19\x05\x3c\x29\xff\xcf\x54\x31\x40\x69\x86\x75\x8a\xc8\xed\x80\x1c\xff\x3d\x61\x46\xe4\x8c\x46\x25\x75\xb6\x47\x34\x46\xf8\x44\xf1\x38\x7d\x48\xe1\x36\x88\x42\x09\x43\xfa\x8e\x4f\x0a\x23\xaa\x2e\x49\xa8\x3a\xf8\x88\x52\x2c\xec\xa9\x05\x0b\xe6\xc3\x47\x00".to_vec(),
             }))
         );
     }
@@ -199,7 +250,7 @@ mod tests {
                 script_config: Some(pb::BtcScriptConfig {
                     config: Some(Config::SimpleType(SimpleType::P2wpkh as _)),
                 }),
-                keypath: KEYPATH.to_vec(),
+                keypath: vec![84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
             }),
             msg: MESSAGE.to_vec(),
             host_nonce_commitment: None,
@@ -232,17 +283,13 @@ mod tests {
             CONFIRM_COUNTER = 0;
         }
         mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
+            ui_confirm_create: Some(Box::new(|_params| {
                 match unsafe {
                     CONFIRM_COUNTER += 1;
                     CONFIRM_COUNTER
                 } {
                     1 => true,
-                    2 => {
-                        assert_eq!(params.title, "Address");
-                        assert_eq!(params.body, EXPECTED_ADDRESS);
-                        false
-                    }
+                    2 => false,
                     _ => panic!("too many user confirmations"),
                 }
             })),
@@ -278,6 +325,7 @@ mod tests {
 
     #[test]
     pub fn test_process_failures() {
+        const KEYPATH: &[u32] = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
         // Invalid coin
         assert_eq!(
             block_on(process(&pb::BtcSignMessageRequest {
@@ -303,6 +351,22 @@ mod tests {
                         config: Some(Config::SimpleType(-1))
                     }),
                     keypath: KEYPATH.to_vec(),
+                }),
+                msg: MESSAGE.to_vec(),
+                host_nonce_commitment: None,
+            })),
+            Err(Error::InvalidInput)
+        );
+
+        // Invalid script type (taproot not supported)
+        assert_eq!(
+            block_on(process(&pb::BtcSignMessageRequest {
+                coin: BtcCoin::Btc as _,
+                script_config: Some(pb::BtcScriptConfigWithKeypath {
+                    script_config: Some(pb::BtcScriptConfig {
+                        config: Some(Config::SimpleType(SimpleType::P2tr as _)),
+                    }),
+                    keypath: vec![86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
                 }),
                 msg: MESSAGE.to_vec(),
                 host_nonce_commitment: None,

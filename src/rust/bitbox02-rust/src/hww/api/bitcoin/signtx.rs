@@ -17,7 +17,7 @@ use super::Error;
 
 use super::script::serialize_varint;
 
-use crate::apps::bitcoin::{bip143, keypath};
+use crate::apps::bitcoin::{bip143, bip341, keypath};
 use crate::workflow::{confirm, status, transaction};
 
 use alloc::vec::Vec;
@@ -246,6 +246,19 @@ fn validate_input(
     validate_keypath(params, script_config_account, &input.keypath, false)
 }
 
+fn is_taproot(script_config_account: &pb::BtcScriptConfigWithKeypath) -> bool {
+    match script_config_account {
+        pb::BtcScriptConfigWithKeypath {
+            script_config:
+                Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
+                }),
+            ..
+        } => *simple_type == pb::btc_script_config::SimpleType::P2tr as i32,
+        _ => false,
+    }
+}
+
 /// Stream an input's previous transaction and verify that the prev_out_hash in the input matches
 /// the hash of the previous transaction, as well as that the amount provided in the input is correct.
 async fn handle_prevtx(
@@ -333,7 +346,14 @@ async fn handle_prevtx(
 /// The hash_prevout and hash_sequence and total_in are accumulated in inputs_pass1.
 ///
 /// For each input in pass1, the input's prevtx is streamed to compute and compare the prevOutHash
-/// and input amount.
+/// and input amount. This only happens if the script_configs in the init request contain
+/// non-taproot (legacy and v0 segwit) configs. If all inputs are taproot, this step is not needed
+/// as the input amounts and pubkey scripts are committed to in the signature hash. With
+/// SIGHASH_ALL/SIGHASH_DEFAULT, it would technically be enough if there was only one taproot input
+/// to skip streaming the previous transactions, even if there are non-taproot inputs (every input
+/// commits to the taproot inputs presence, and the taproot input commits to all amounts and pubkey
+/// scripts), but we only skip streaming previous transactions if all inputs are taproot, for
+/// simplicity.
 ///
 /// For each output, the recipient is confirmed. At the last output, the total out, fee, locktime/RBF
 /// are confirmed.
@@ -347,8 +367,8 @@ async fn handle_prevtx(
 ///   pass, and the value from the 2nd pass. The BTC consensus rules will reject the tx if there is a
 ///   mismatch.
 ///
-/// - Only SIGHASH_ALL. Other sighash types must be carefully studied and might not be secure with
-///   the above flow or the above assumption.
+/// - Only SIGHASH_ALL (SIGHASH_DEFAULT in taproot inputs). Other sighash types must be carefully
+///   studied and might not be secure with the above flow or the above assumption.
 async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     if bitbox02::keystore::is_locked() {
         return Err(Error::InvalidState);
@@ -396,6 +416,11 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
 
     let mut hasher_prevouts = Sha256::new();
     let mut hasher_sequence = Sha256::new();
+    let mut hasher_amounts = Sha256::new();
+    let mut hasher_scriptpubkeys = Sha256::new();
+
+    // Are all inputs taproot?
+    let taproot_only = request.script_configs.iter().all(is_taproot);
 
     for input_index in 0..request.num_inputs {
         // Update progress.
@@ -432,14 +457,39 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         // only SIGHASH_ALL supported.
         hasher_sequence.update(tx_input.sequence.to_le_bytes());
 
-        handle_prevtx(
-            input_index,
-            &tx_input,
-            request.num_inputs,
-            progress_component.as_mut().unwrap(),
-            &mut next_response,
-        )
-        .await?;
+        // https://github.com/bitcoin/bips/blob/bb8dc57da9b3c6539b88378348728a2ff43f7e9c/bip-0341.mediawiki#common-signature-message
+        // accumulate `sha_amounts`
+        hasher_amounts.update(tx_input.prev_out_value.to_le_bytes());
+
+        // https://github.com/bitcoin/bips/blob/bb8dc57da9b3c6539b88378348728a2ff43f7e9c/bip-0341.mediawiki#common-signature-message
+        // accumulate `sha_scriptpubkeys`
+        let pk_script = {
+            let output_type = super::common::determine_output_type(
+                script_config_account
+                    .script_config
+                    .as_ref()
+                    .ok_or(Error::InvalidInput)?,
+            )?;
+            let payload = bitbox02::app_btc::sign_payload_at_keypath_wrapper(
+                encode(script_config_account).as_ref(),
+                &tx_input.keypath,
+            )?;
+            bitbox02::app_btc::pkscript_from_payload(coin as _, output_type as _, &payload)
+                .or(Err(Error::InvalidInput))?
+        };
+        hasher_scriptpubkeys.update(serialize_varint(pk_script.len() as u64).as_slice());
+        hasher_scriptpubkeys.update(pk_script.as_slice());
+
+        if !taproot_only {
+            handle_prevtx(
+                input_index,
+                &tx_input,
+                request.num_inputs,
+                progress_component.as_mut().unwrap(),
+                &mut next_response,
+            )
+            .await?;
+        }
     }
 
     // The progress for loading the inputs is 100%.
@@ -447,6 +497,8 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
 
     let hash_prevouts = hasher_prevouts.finalize();
     let hash_sequence = hasher_sequence.finalize();
+    let hash_amounts = hasher_amounts.finalize();
+    let hash_scriptpubkeys = hasher_scriptpubkeys.finalize();
 
     // Base component on the screen stack during signing, which is shown while the device is waiting
     // for the next signing api call. Without this, the 'See the BitBoxApp' waiting screen would
@@ -540,15 +592,11 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         // point 8: accumulate hashOutputs
         // only SIGHASH_ALL supported.
         hasher_outputs.update(tx_output.value.to_le_bytes());
-        let pk_script_serialized = {
-            let script =
-                bitbox02::app_btc::pkscript_from_payload(coin as _, output_type as _, &payload)
-                    .or(Err(Error::InvalidInput))?;
-            let mut serialized = serialize_varint(script.len() as _);
-            serialized.extend_from_slice(&script);
-            serialized
-        };
-        hasher_outputs.update(pk_script_serialized.as_slice());
+        let pk_script =
+            bitbox02::app_btc::pkscript_from_payload(coin as _, output_type as _, &payload)
+                .or(Err(Error::InvalidInput))?;
+        hasher_outputs.update(serialize_varint(pk_script.len() as u64).as_slice());
+        hasher_outputs.update(pk_script.as_slice());
     }
 
     if num_changes > 1 {
@@ -632,54 +680,80 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             return Err(Error::InvalidInput);
         }
 
-        const SIGHASH_ALL: u32 = 0x01;
-        let sighash_script =
-            bitbox02::app_btc::sign_sighash_script_wrapper(encode(&tx_input).as_ref())?;
-        let sighash = bip143::sighash(&bip143::Args {
-            version: request.version,
-            hash_prevouts: Sha256::digest(&hash_prevouts).try_into().unwrap(),
-            hash_sequence: Sha256::digest(&hash_sequence).try_into().unwrap(),
-            outpoint_hash: tx_input.prev_out_hash.as_slice().try_into().unwrap(),
-            outpoint_index: tx_input.prev_out_index,
-            sighash_script: &sighash_script,
-            prevout_value: tx_input.prev_out_value,
-            sequence: tx_input.sequence,
-            hash_outputs: Sha256::digest(&hash_outputs).try_into().unwrap(),
-            locktime: request.locktime,
-            sighash_flags: SIGHASH_ALL,
-        });
+        if is_taproot(script_config_account) {
+            // This is a taproot (P2TR) input.
 
-        // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
-        let host_nonce: [u8; 32] = match tx_input.host_nonce_commitment {
-            Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
-                let signer_commitment = bitbox02::keystore::secp256k1_nonce_commit(
-                    &tx_input.keypath,
-                    &sighash,
-                    commitment
+            // Anti-Klepto protocol not supported yet for Schnorr signatures.
+            if tx_input.host_nonce_commitment.is_some() {
+                return Err(Error::InvalidInput);
+            }
+
+            let sighash = bip341::sighash(&bip341::Args {
+                version: request.version,
+                locktime: request.locktime,
+                hash_prevouts: hash_prevouts.as_slice().try_into().unwrap(),
+                hash_amounts: hash_amounts.as_slice().try_into().unwrap(),
+                hash_scriptpubkeys: hash_scriptpubkeys.as_slice().try_into().unwrap(),
+                hash_sequences: hash_sequence.as_slice().try_into().unwrap(),
+                hash_outputs: hash_outputs.as_slice().try_into().unwrap(),
+                input_index,
+            });
+            next_response.next.has_signature = true;
+            next_response.next.signature =
+                bitbox02::keystore::secp256k1_schnorr_bip86_sign(&tx_input.keypath, &sighash)?
+                    .to_vec();
+        } else {
+            // Sign all other supported inputs.
+
+            const SIGHASH_ALL: u32 = 0x01;
+            let sighash_script =
+                bitbox02::app_btc::sign_sighash_script_wrapper(encode(&tx_input).as_ref())?;
+            let sighash = bip143::sighash(&bip143::Args {
+                version: request.version,
+                hash_prevouts: Sha256::digest(&hash_prevouts).try_into().unwrap(),
+                hash_sequence: Sha256::digest(&hash_sequence).try_into().unwrap(),
+                outpoint_hash: tx_input.prev_out_hash.as_slice().try_into().unwrap(),
+                outpoint_index: tx_input.prev_out_index,
+                sighash_script: &sighash_script,
+                prevout_value: tx_input.prev_out_value,
+                sequence: tx_input.sequence,
+                hash_outputs: Sha256::digest(&hash_outputs).try_into().unwrap(),
+                locktime: request.locktime,
+                sighash_flags: SIGHASH_ALL,
+            });
+
+            // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
+            let host_nonce: [u8; 32] = match tx_input.host_nonce_commitment {
+                Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
+                    let signer_commitment = bitbox02::keystore::secp256k1_nonce_commit(
+                        &tx_input.keypath,
+                        &sighash,
+                        commitment
+                            .as_slice()
+                            .try_into()
+                            .or(Err(Error::InvalidInput))?,
+                    )?;
+                    next_response.next.anti_klepto_signer_commitment =
+                        Some(pb::AntiKleptoSignerCommitment {
+                            commitment: signer_commitment.to_vec(),
+                        });
+
+                    get_antiklepto_host_nonce(input_index, &mut next_response)
+                        .await?
+                        .host_nonce
                         .as_slice()
                         .try_into()
-                        .or(Err(Error::InvalidInput))?,
-                )?;
-                next_response.next.anti_klepto_signer_commitment =
-                    Some(pb::AntiKleptoSignerCommitment {
-                        commitment: signer_commitment.to_vec(),
-                    });
+                        .or(Err(Error::InvalidInput))?
+                }
+                // Return signature directly without the anti-klepto protocol, for backwards compatibility.
+                None => [0; 32],
+            };
 
-                get_antiklepto_host_nonce(input_index, &mut next_response)
-                    .await?
-                    .host_nonce
-                    .as_slice()
-                    .try_into()
-                    .or(Err(Error::InvalidInput))?
-            }
-            // Return signature directly without the anti-klepto protocol, for backwards compatibility.
-            None => [0; 32],
-        };
-
-        let sign_result =
-            bitbox02::keystore::secp256k1_sign(&tx_input.keypath, &sighash, &host_nonce)?;
-        next_response.next.has_signature = true;
-        next_response.next.signature = sign_result.signature.to_vec();
+            let sign_result =
+                bitbox02::keystore::secp256k1_sign(&tx_input.keypath, &sighash, &host_nonce)?;
+            next_response.next.has_signature = true;
+            next_response.next.signature = sign_result.signature.to_vec();
+        }
 
         // Update progress.
         if let Some(ref mut c) = progress_component {
@@ -1218,17 +1292,52 @@ mod tests {
                 Err(Error::InvalidInput)
             );
         }
+        {
+            // no taproot in Litecoin
+            assert_eq!(
+                block_on(process(&pb::BtcSignInitRequest {
+                    coin: pb::BtcCoin::Ltc as _,
+                    script_configs: vec![pb::BtcScriptConfigWithKeypath {
+                        script_config: Some(pb::BtcScriptConfig {
+                            config: Some(pb::btc_script_config::Config::SimpleType(
+                                pb::btc_script_config::SimpleType::P2tr as _,
+                            )),
+                        }),
+                        keypath: vec![84 + HARDENED, 2 + HARDENED, 10 + HARDENED],
+                    }],
+                    version: 1,
+                    num_inputs: 1,
+                    num_outputs: 1,
+                    locktime: 0,
+                })),
+                Err(Error::InvalidInput)
+            );
+        }
     }
 
     #[test]
     pub fn test_process() {
         static mut UI_COUNTER: u32 = 0;
+        static mut PREVTX_REQUESTED: u32 = 0;
+
         for coin in &[pb::BtcCoin::Btc, pb::BtcCoin::Ltc] {
+            unsafe {
+                UI_COUNTER = 0;
+                PREVTX_REQUESTED = 0;
+            }
+
             let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(*coin)));
 
             let tx = transaction.clone();
-            mock_host_responder(tx);
-            unsafe { UI_COUNTER = 0 }
+            *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
+                Some(Box::new(move |response: Response| {
+                    let next = extract_next(&response);
+                    if NextType::from_i32(next.r#type).unwrap() == NextType::PrevtxInit {
+                        unsafe { PREVTX_REQUESTED += 1 }
+                    }
+                    Ok(tx.borrow().make_host_request(response))
+                }));
+
             mock(Data {
                 ui_transaction_address_create: Some(Box::new(move |amount, address| {
                     match unsafe {
@@ -1371,6 +1480,7 @@ mod tests {
                 _ => panic!("wrong result"),
             }
             assert_eq!(unsafe { UI_COUNTER }, tx.total_confirmations);
+            assert_eq!(unsafe { PREVTX_REQUESTED }, tx.inputs.len() as _);
         }
     }
 
@@ -1429,6 +1539,95 @@ mod tests {
             }
             _ => panic!("wrong result"),
         }
+    }
+
+    /// Test signing if all inputs are of type P2TR.
+    #[test]
+    pub fn test_script_type_p2tr() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        for input in transaction.borrow_mut().inputs.iter_mut() {
+            input.input.keypath[0] = 86 + HARDENED;
+        }
+        for output in transaction.borrow_mut().outputs.iter_mut() {
+            if output.ours {
+                output.keypath[0] = 86 + HARDENED;
+            }
+        }
+
+        let tx = transaction.clone();
+        // Check that previous transactions are not streamed, as all inputs are taproot.
+        static mut PREVTX_REQUESTED: bool = false;
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
+            Some(Box::new(move |response: Response| {
+                let next = extract_next(&response);
+                if NextType::from_i32(next.r#type).unwrap() == NextType::PrevtxInit {
+                    unsafe { PREVTX_REQUESTED = true }
+                }
+                Ok(tx.borrow().make_host_request(response))
+            }));
+
+        mock_default_ui();
+        mock_unlocked();
+        let mut init_request = transaction.borrow().init_request();
+        init_request.script_configs[0] = pb::BtcScriptConfigWithKeypath {
+            script_config: Some(pb::BtcScriptConfig {
+                config: Some(pb::btc_script_config::Config::SimpleType(
+                    pb::btc_script_config::SimpleType::P2tr as _,
+                )),
+            }),
+            keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
+        };
+        let result = block_on(process(&init_request));
+        match result {
+            Ok(Response::BtcSignNext(next)) => {
+                assert!(next.has_signature);
+                assert_eq!(&next.signature, b"\xde\x90\x3f\x23\x6a\xfd\x3c\x37\x5a\x12\xef\xe9\x23\x2b\x99\xb2\xb7\x78\x29\x51\x4d\x5c\x2d\x76\x47\x58\x38\xa0\x20\x9e\x79\xcf\x60\x73\x72\xc5\xd9\x25\x23\x3b\x65\x3d\x83\x0e\x99\x74\x88\x4d\x58\x70\xb9\xbc\x73\x70\x6d\x96\x02\xfc\xae\x47\x6b\x53\x4f\xa8");
+            }
+            _ => panic!("wrong result"),
+        }
+        assert!(unsafe { !PREVTX_REQUESTED });
+    }
+
+    /// Test signing if with mixed inputs, one of them being taproot. Previous transactions of all
+    /// inputs should be streamed in this case.
+    #[test]
+    pub fn test_script_type_p2tr_mixed() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        transaction.borrow_mut().inputs[0].input.script_config_index = 1;
+        transaction.borrow_mut().inputs[0].input.keypath[0] = 86 + HARDENED;
+
+        let tx = transaction.clone();
+        // Check that previous transactions are streamed, as not all input are taproot.
+        static mut PREVTX_REQUESTED: u32 = 0;
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
+            Some(Box::new(move |response: Response| {
+                let next = extract_next(&response);
+                if NextType::from_i32(next.r#type).unwrap() == NextType::PrevtxInit {
+                    unsafe { PREVTX_REQUESTED += 1 }
+                }
+                Ok(tx.borrow().make_host_request(response))
+            }));
+
+        mock_default_ui();
+        mock_unlocked();
+        let mut init_request = transaction.borrow().init_request();
+        init_request
+            .script_configs
+            .push(pb::BtcScriptConfigWithKeypath {
+                script_config: Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::SimpleType(
+                        pb::btc_script_config::SimpleType::P2tr as _,
+                    )),
+                }),
+                keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
+            });
+        assert!(block_on(process(&init_request)).is_ok());
+        assert_eq!(
+            unsafe { PREVTX_REQUESTED },
+            transaction.borrow().inputs.len() as _
+        );
     }
 
     /// Test invalid input cases.

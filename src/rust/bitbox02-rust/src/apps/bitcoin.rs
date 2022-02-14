@@ -13,5 +13,6 @@
 // limitations under the License.
 
 pub mod bip143;
+pub mod bip341;
 pub mod keypath;
 pub mod util;

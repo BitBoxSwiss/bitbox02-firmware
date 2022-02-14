@@ -92,6 +92,12 @@ bool btc_common_payload_at_keypath(
         *output_payload_size = HASH160_LEN;
         break;
     }
+    case BTCScriptConfig_SimpleType_P2TR:
+        if (!keystore_secp256k1_schnorr_bip86_pubkey(keypath, keypath_len, output_payload)) {
+            return false;
+        }
+        *output_payload_size = 32;
+        break;
     default:
         return false;
     }
@@ -127,6 +133,8 @@ BTCOutputType btc_common_determine_output_type(BTCScriptConfig_SimpleType script
         return BTCOutputType_P2SH;
     case BTCScriptConfig_SimpleType_P2WPKH:
         return BTCOutputType_P2WPKH;
+    case BTCScriptConfig_SimpleType_P2TR:
+        return BTCOutputType_P2TR;
     default:
         return BTCOutputType_UNKNOWN;
     }

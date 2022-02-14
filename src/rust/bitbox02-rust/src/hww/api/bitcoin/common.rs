@@ -28,6 +28,7 @@ pub fn determine_output_type(
             match simple_type {
                 pb::btc_script_config::SimpleType::P2wpkhP2sh => Ok(pb::BtcOutputType::P2sh),
                 pb::btc_script_config::SimpleType::P2wpkh => Ok(pb::BtcOutputType::P2wpkh),
+                pb::btc_script_config::SimpleType::P2tr => Ok(pb::BtcOutputType::P2tr),
             }
         }
         pb::BtcScriptConfig {

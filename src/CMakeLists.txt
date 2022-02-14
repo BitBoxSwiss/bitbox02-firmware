@@ -342,6 +342,7 @@ add_custom_target(rust-bindgen
     --whitelist-function keystore_secp256k1_pubkey_uncompressed
     --whitelist-function keystore_secp256k1_nonce_commit
     --whitelist-function keystore_secp256k1_sign
+    --whitelist-function keystore_secp256k1_schnorr_bip86_sign
     --whitelist-function keystore_bip39_mnemonic_to_seed
     --whitelist-function keystore_get_root_fingerprint
     --whitelist-function keystore_mock_unlocked

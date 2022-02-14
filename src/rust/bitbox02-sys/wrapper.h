@@ -13,7 +13,10 @@
 // limitations under the License.
 
 #include <apps/btc/btc.h>
+#include <apps/btc/btc_common.h>
+#include <apps/btc/btc_params.h>
 #include <apps/btc/btc_sign.h>
+#include <apps/btc/btc_ui.h>
 #include <apps/eth/eth_params.h>
 #include <apps/eth/eth_sighash.h>
 #include <backup/backup.h>
@@ -26,6 +29,7 @@
 #include <reset.h>
 #include <screen.h>
 #include <sd.h>
+#include <secp256k1_ecdsa_s2c.h>
 #include <securechip/securechip.h>
 #include <system.h>
 #include <ui/components/confirm.h>

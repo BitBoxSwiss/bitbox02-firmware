@@ -230,7 +230,7 @@ set(TEST_LIST
    keystore
    "-Wl,--wrap=secp256k1_anti_exfil_sign,--wrap=memory_is_initialized,--wrap=memory_is_seeded,--wrap=memory_get_failed_unlock_attempts,--wrap=memory_reset_failed_unlock_attempts,--wrap=memory_increment_failed_unlock_attempts,--wrap=memory_set_encrypted_seed_and_hmac,--wrap=memory_get_encrypted_seed_and_hmac,--wrap=reset_reset,--wrap=salt_hash_data,--wrap=cipher_aes_hmac_encrypt,--wrap=random_32_bytes"
    keystore_antiklepto
-   "-Wl,--wrap=keystore_secp256k1_nonce_commit,--wrap=keystore_secp256k1_sign"
+   ""
    keystore_functional
    "-Wl,--wrap=memory_is_initialized,--wrap=memory_is_seeded,--wrap=memory_set_encrypted_seed_and_hmac,--wrap=memory_get_encrypted_seed_and_hmac,--wrap=memory_get_salt_root,--wrap=memory_get_failed_unlock_attempts,--wrap=memory_reset_failed_unlock_attempts,--wrap=memory_increment_failed_unlock_attempts,--wrap=securechip_kdf"
    gestures
@@ -243,8 +243,6 @@ set(TEST_LIST
    "-Wl,--wrap=memory_multisig_get_by_hash,--wrap=apps_btc_confirm_multisig_basic"
    app_btc_common
    ""
-   app_btc_confirm_locktime_rbf
-   "-Wl,--wrap=workflow_confirm_blocking,--wrap=workflow_status_blocking"
    sd
    ""
    ui_components
@@ -253,10 +251,6 @@ set(TEST_LIST
    ""
    ui_component_gestures
    ""
-   btc_sign
-   "-Wl,--wrap=workflow_status_blocking,--wrap=workflow_verify_recipient,--wrap=workflow_confirm_blocking,--wrap=workflow_verify_total,--wrap=apps_btc_confirm_locktime_rbf,--wrap=rust_bitcoin_util_format_amount,--wrap=btc_common_is_valid_keypath_address_simple,--wrap=keystore_antiklepto_secp256k1_commit"
-   app_btc_sign_multisig
-   "-Wl,--wrap=workflow_status_blocking,--wrap=workflow_verify_recipient,--wrap=workflow_verify_total,--wrap=apps_btc_confirm_locktime_rbf,--wrap=memory_multisig_get_by_hash,--wrap=apps_btc_confirm_multisig_basic"
    memory
    "-Wl,--wrap=memory_read_chunk_mock,--wrap=memory_write_chunk_mock,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_mock,--wrap=memory_write_to_address_mock"
    memory_functional

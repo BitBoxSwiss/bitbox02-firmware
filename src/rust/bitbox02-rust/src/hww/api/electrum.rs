@@ -52,13 +52,11 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock_unlocked, MUTEX};
+    use bitbox02::testing::mock_unlocked;
     use std::boxed::Box;
 
     #[test]
     pub fn test_process() {
-        let _guard = MUTEX.lock().unwrap();
-
         mock_unlocked();
 
         // All good.

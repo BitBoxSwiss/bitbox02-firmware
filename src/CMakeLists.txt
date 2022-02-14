@@ -21,7 +21,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/commander/commander_states.c
   ${CMAKE_SOURCE_DIR}/src/commander/protobuf.c
   ${CMAKE_SOURCE_DIR}/src/keystore.c
-  ${CMAKE_SOURCE_DIR}/src/keystore/keystore_antiklepto.c
   ${CMAKE_SOURCE_DIR}/src/random.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
   ${CMAKE_SOURCE_DIR}/src/util.c
@@ -54,7 +53,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_params.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign_validate.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/confirm_locktime_rbf.c
+  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_ui.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/confirm_multisig.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
@@ -323,6 +322,8 @@ add_custom_target(rust-bindgen
     --whitelist-function memory_set_mnemonic_passphrase_enabled
     --whitelist-function memory_set_seed_birthdate
     --whitelist-function memory_get_seed_birthdate
+    --whitelist-function memory_multisig_set_by_hash
+    --rustified-enum memory_result_t
     --whitelist-var MEMORY_DEVICE_NAME_MAX_LEN
     --whitelist-function securechip_attestation_sign
     --whitelist-function securechip_monotonic_increments_remaining
@@ -341,6 +342,7 @@ add_custom_target(rust-bindgen
     --whitelist-function keystore_secp256k1_pubkey_uncompressed
     --whitelist-function keystore_secp256k1_nonce_commit
     --whitelist-function keystore_secp256k1_sign
+    --whitelist-function keystore_secp256k1_schnorr_bip86_sign
     --whitelist-function keystore_bip39_mnemonic_to_seed
     --whitelist-function keystore_get_root_fingerprint
     --whitelist-function keystore_mock_unlocked
@@ -412,16 +414,18 @@ add_custom_target(rust-bindgen
     --rustified-enum app_btc_result_t
     --whitelist-function app_btc_address_simple
     --whitelist-function testing_app_btc_mock_ui
+    --whitelist-function btc_common_address_from_payload
+    --whitelist-function btc_common_pkscript_from_payload
+    --whitelist-var MAX_VARINT_SIZE
+    --whitelist-var MAX_PK_SCRIPT_SIZE
+    --whitelist-function app_btc_params_get
     --whitelist-function app_btc_sign_init_wrapper
-    --whitelist-function app_btc_sign_input_pass1_wrapper
-    --whitelist-function app_btc_sign_prevtx_init_wrapper
-    --whitelist-function app_btc_sign_prevtx_input_wrapper
-    --whitelist-function app_btc_sign_prevtx_output_wrapper
-    --whitelist-function app_btc_sign_output_wrapper
-    --whitelist-function app_btc_sign_input_pass2_wrapper
-    --whitelist-function app_btc_sign_antiklepto_wrapper
+    --whitelist-function app_btc_sign_payload_at_keypath_wrapper
+    --whitelist-function app_btc_sign_sighash_script_wrapper
     --whitelist-function app_btc_sign_reset
     --whitelist-function reboot
+    --whitelist-function secp256k1_ecdsa_anti_exfil_host_commit
+    --whitelist-function wally_get_secp_context
     ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
     -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums ${RUST_BINDGEN_FLAGS} ${RUST_INCLUDES}
   COMMAND
@@ -443,7 +447,8 @@ if(NOT CMAKE_CROSSCOMPILING)
         # see src/rust/bitbox02-rust-c/src/lib.rs.
         # https://github.com/rust-lang/rust/issues/66740
         RUSTC_BOOTSTRAP=1
-        ${CARGO} test $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --all-features --target-dir ${RUST_BINARY_DIR}/all-features ${RUST_CARGO_FLAG} -- --nocapture
+        # only one test thread because of unsafe concurrent access to `SafeData`, `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex poisoning and very messy output in case of a unit test failure.
+        ${CARGO} test $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --all-features --target-dir ${RUST_BINARY_DIR}/all-features ${RUST_CARGO_FLAG} -- --nocapture --test-threads 1
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
   add_dependencies(rust-test bitbox_merged)

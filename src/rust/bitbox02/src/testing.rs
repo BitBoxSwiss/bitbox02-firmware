@@ -33,12 +33,11 @@ pub struct Data {
 
 pub struct SafeData(pub RefCell<Data>);
 
-// Safety: must hold MUTEX lock before accessing.
+// Safety: must not be accessed concurrently.
 unsafe impl Sync for SafeData {}
 
 lazy_static! {
     pub static ref DATA: SafeData = SafeData(RefCell::new(Default::default()));
-    pub static ref MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 }
 
 /// Provide mock implementations and data. This also locks the keystore - use `mock_unlocked()` to mock a seeded and unlocked keystore.
@@ -64,14 +63,14 @@ pub fn mock_unlocked() {
     mock_unlocked_using_mnemonic(TEST_MNEMONIC)
 }
 
-/// This mounts a new FAT32 volume in RAM for use in unit tests. As there is only one volume, access only when holding `MUTEX`.
+/// This mounts a new FAT32 volume in RAM for use in unit tests. As there is only one volume, access only serially.
 pub fn mock_sd() {
     unsafe {
         bitbox02_sys::sd_format();
     }
 }
 
-/// This sets up memory in RAM for use in unit tests. As there is only one RAM volume, access only when holding `MUTEX`.
+/// This sets up memory in RAM for use in unit tests. As there is only one RAM volume, access only serially.
 /// The memory is initialized to be like after factory setup, i.e. 0xFF everywhere followed by `memory_setup()`.
 pub fn mock_memory() {
     unsafe {

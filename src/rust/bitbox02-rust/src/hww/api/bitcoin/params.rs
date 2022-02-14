@@ -20,6 +20,7 @@ use util::bip32::HARDENED;
 /// Parameters for BTC-like coins. See also:
 /// https://en.bitcoin.it/wiki/List_of_address_prefixes
 pub struct Params {
+    pub coin: BtcCoin,
     /// https://github.com/satoshilabs/slips/blob/master/slip-0044.md
     pub bip44_coin: u32,
     pub base58_version_p2pkh: u8,
@@ -28,11 +29,13 @@ pub struct Params {
     pub name: &'static str,
     pub unit: &'static str,
     pub rbf_support: bool,
+    pub taproot_support: bool,
 }
 
 /// Keep these in sync with btc_params.c.
 
 const PARAMS_BTC: Params = Params {
+    coin: BtcCoin::Btc,
     bip44_coin: 0 + HARDENED,
     base58_version_p2pkh: 0x00, // starts with 1
     base58_version_p2sh: 0x05,  // starts with 3
@@ -40,9 +43,11 @@ const PARAMS_BTC: Params = Params {
     name: "Bitcoin",
     unit: "BTC",
     rbf_support: true,
+    taproot_support: true,
 };
 
 const PARAMS_TBTC: Params = Params {
+    coin: BtcCoin::Tbtc,
     bip44_coin: 1 + HARDENED,
     base58_version_p2pkh: 0x6f, // starts with m or n
     base58_version_p2sh: 0xc4,  // starts with 2
@@ -50,9 +55,11 @@ const PARAMS_TBTC: Params = Params {
     name: "BTC Testnet",
     unit: "TBTC",
     rbf_support: true,
+    taproot_support: true,
 };
 
 const PARAMS_LTC: Params = Params {
+    coin: BtcCoin::Ltc,
     bip44_coin: 2 + HARDENED,
     base58_version_p2pkh: 0x30, // starts with L
     base58_version_p2sh: 0x32,  // starts with M
@@ -60,9 +67,11 @@ const PARAMS_LTC: Params = Params {
     name: "Litecoin",
     unit: "LTC",
     rbf_support: false,
+    taproot_support: false,
 };
 
 const PARAMS_TLTC: Params = Params {
+    coin: BtcCoin::Tltc,
     bip44_coin: 1 + HARDENED,
     base58_version_p2pkh: 0x6f, // starts with m or n
     base58_version_p2sh: 0xc4,  // starts with 2
@@ -70,6 +79,7 @@ const PARAMS_TLTC: Params = Params {
     name: "LTC Testnet",
     unit: "TLTC",
     rbf_support: false,
+    taproot_support: false,
 };
 
 pub fn get(coin: BtcCoin) -> &'static Params {

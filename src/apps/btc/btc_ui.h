@@ -1,4 +1,4 @@
-// Copyright 2020 Shift Crypto AG
+// Copyright 2022 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod bip143;
-pub mod bip341;
-pub mod keypath;
-pub mod util;
+#ifndef _APPS_BTC_UI_H
+#define _APPS_BTC_UI_H
+
+#include <stdbool.h>
+
+#include <workflow/confirm.h>
+
+typedef struct {
+    bool (*confirm)(const confirm_params_t* params);
+} app_btc_ui_t;
+
+app_btc_ui_t* app_btc_ui(void);
+
+#ifdef TESTING
+void testing_app_btc_mock_ui(app_btc_ui_t mock);
+#endif
+
+#endif

@@ -57,18 +57,26 @@ bool btc_common_is_valid_keypath_address_multisig(
         keypath, keypath_len, expected_coin, script_type);
 }
 
-bool btc_common_payload_from_pubkeyhash(
+bool btc_common_payload_at_keypath(
+    const uint32_t* keypath,
+    size_t keypath_len,
     BTCScriptConfig_SimpleType script_type,
-    const uint8_t* pubkey_hash,
     uint8_t* output_payload,
     size_t* output_payload_size)
 {
     switch (script_type) {
     case BTCScriptConfig_SimpleType_P2WPKH:
-        memcpy(output_payload, pubkey_hash, HASH160_LEN);
+        if (!keystore_secp256k1_pubkey_hash160(keypath, keypath_len, output_payload)) {
+            return false;
+        }
         *output_payload_size = HASH160_LEN;
         break;
     case BTCScriptConfig_SimpleType_P2WPKH_P2SH: {
+        uint8_t pubkey_hash[HASH160_LEN];
+        UTIL_CLEANUP_20(pubkey_hash);
+        if (!keystore_secp256k1_pubkey_hash160(keypath, keypath_len, pubkey_hash)) {
+            return false;
+        }
         uint8_t script[WALLY_SCRIPTPUBKEY_P2WPKH_LEN] = {0};
         size_t written = 0;
         if (wally_witness_program_from_bytes(
@@ -84,6 +92,12 @@ bool btc_common_payload_from_pubkeyhash(
         *output_payload_size = HASH160_LEN;
         break;
     }
+    case BTCScriptConfig_SimpleType_P2TR:
+        if (!keystore_secp256k1_schnorr_bip86_pubkey(keypath, keypath_len, output_payload)) {
+            return false;
+        }
+        *output_payload_size = 32;
+        break;
     default:
         return false;
     }
@@ -119,6 +133,8 @@ BTCOutputType btc_common_determine_output_type(BTCScriptConfig_SimpleType script
         return BTCOutputType_P2SH;
     case BTCScriptConfig_SimpleType_P2WPKH:
         return BTCOutputType_P2WPKH;
+    case BTCScriptConfig_SimpleType_P2TR:
+        return BTCOutputType_P2TR;
     default:
         return BTCOutputType_UNKNOWN;
     }
@@ -166,6 +182,9 @@ bool btc_common_address_from_payload(
     char* out,
     size_t out_len)
 {
+    if (!params) {
+        return false;
+    }
     switch (output_type) {
     case BTCOutputType_P2PKH:
         if (payload_size != HASH160_LEN) {
@@ -234,7 +253,7 @@ bool btc_common_pkscript_from_payload(
     uint8_t* pk_script,
     size_t* pk_script_len)
 {
-    if (!payload || !pk_script || !pk_script_len) {
+    if (!params || !payload || !pk_script || !pk_script_len) {
         return false;
     }
     size_t len = *pk_script_len;

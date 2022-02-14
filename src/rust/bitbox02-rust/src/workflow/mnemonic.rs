@@ -262,7 +262,7 @@ mod tests {
     extern crate std;
     use super::*;
 
-    use bitbox02::testing::{mock, Data, MUTEX};
+    use bitbox02::testing::{mock, Data};
     use std::boxed::Box;
 
     fn bruteforce_lastword(mnemonic: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
@@ -280,8 +280,6 @@ mod tests {
 
     #[test]
     fn test_lastword_choices() {
-        let _guard = MUTEX.lock().unwrap();
-
         assert_eq!(
             &as_str_vec(&bruteforce_lastword(&["violin"; 23])),
             &["boss", "coyote", "dry", "habit", "panel", "regular", "speed", "winter"]

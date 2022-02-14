@@ -92,7 +92,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, mock_unlocked, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_unlocked, Data};
     use std::boxed::Box;
     use util::bip32::HARDENED;
 
@@ -102,8 +102,6 @@ mod tests {
 
     #[test]
     pub fn test_process() {
-        let _guard = MUTEX.lock().unwrap();
-
         const SIGNATURE: [u8; 64] = [b'1'; 64];
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -146,8 +144,6 @@ mod tests {
 
     #[test]
     pub fn test_process_warn_unusual_keypath() {
-        let _guard = MUTEX.lock().unwrap();
-
         const SIGNATURE: [u8; 64] = [b'1'; 64];
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -191,8 +187,6 @@ mod tests {
 
     #[test]
     pub fn test_process_user_aborted() {
-        let _guard = MUTEX.lock().unwrap();
-
         let request = pb::EthSignMessageRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
@@ -249,8 +243,6 @@ mod tests {
 
     #[test]
     pub fn test_process_failures() {
-        let _guard = MUTEX.lock().unwrap();
-
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         // Message too long

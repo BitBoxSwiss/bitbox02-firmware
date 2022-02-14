@@ -434,6 +434,34 @@ class SendMessage:
         for input_index, sig in sigs:
             print("Signature for input {}: {}".format(input_index, sig.hex()))
 
+    def _sign_btc_locktime_rbf(self) -> None:
+        # pylint: disable=no-member
+        bip44_account: int = 0 + HARDENED
+        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        inputs[0]["sequence"] = 0xFFFFFFFF - 2
+        sigs = self._device.btc_sign(
+            bitbox02.btc.BTC,
+            [
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH
+                    ),
+                    keypath=[84 + HARDENED, 0 + HARDENED, bip44_account],
+                ),
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH_P2SH
+                    ),
+                    keypath=[49 + HARDENED, 0 + HARDENED, bip44_account],
+                ),
+            ],
+            inputs=inputs,
+            outputs=outputs,
+            locktime=10,
+        )
+        for input_index, sig in sigs:
+            print("Signature for input {}: {}".format(input_index, sig.hex()))
+
     def _sign_btc_taproot_output(self) -> None:
         # pylint: disable=no-member
         bip44_account: int = 0 + HARDENED
@@ -557,6 +585,7 @@ class SendMessage:
         choices = (
             ("Normal tx", self._sign_btc_normal),
             ("Multiple change outputs", self._sign_btc_multiple_changes),
+            ("Locktime/RBF", self._sign_btc_locktime_rbf),
             ("Taproot output", self._sign_btc_taproot_output),
             ("From testnet tx ID", self._sign_btc_tx_from_raw),
         )

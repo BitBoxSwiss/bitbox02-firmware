@@ -239,7 +239,7 @@ USE_RESULT bool keystore_secp256k1_nonce_commit(
  * @param[in] msg32 32 byte message to sign
  * @param[in] host_nonce32 32 byte nonce contribution. Cannot be NULL.
  * Intended to be a contribution by the host. If there is none available, use 32 zero bytes.
- * @param[out] sig resulting signature in compact format. Must be 64 bytes.
+ * @param[out] sig_compact_out resulting signature in compact format. Must be 64 bytes.
  * @param[out] recid recoverable id. Can be NULL if not needed.
  * Parse with secp256k1_ecdsa_signature_serialize_compact().
  * @return true on success, false if the keystore is locked.
@@ -308,5 +308,38 @@ USE_RESULT bool keystore_encode_xpub_at_keypath(
     xpub_type_t xpub_type,
     char* out,
     size_t out_len);
+
+/**
+ * Return the tweaked taproot pubkey at the given keypath.
+ *
+ * Instead of returning the original pubkey at the keypath directly, it is tweaked with the hash of
+ * the pubkey.
+ *
+ * See
+ * https://github.com/bitcoin/bips/blob/edffe529056f6dfd33d8f716fb871467c3c09263/bip-0086.mediawiki#address-derivation
+ *
+ * @param[in] keypath derivation keypath
+ * @param[in] keypath_len number of elements in keypath
+ * @param[out] pubkey_out 32 byte x-only pubkey (see BIP-340 for details).
+ */
+USE_RESULT bool keystore_secp256k1_schnorr_bip86_pubkey(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    uint8_t* pubkey_out);
+
+/**
+ * Sign a message that verifies against the pubkey returned by
+ * `keystore_secp256k1_schnorr_bip86_pubkey()`.
+ *
+ * @param[in] keypath derivation keypath
+ * @param[in] keypath_len number of elements in keypath
+ * @param[in] msg32 32 byte message to sign
+ * @param[out] sig64_out resulting 64 byte signature
+ */
+USE_RESULT bool keystore_secp256k1_schnorr_bip86_sign(
+    const uint32_t* keypath,
+    size_t keypath_len,
+    const uint8_t* msg32,
+    uint8_t* sig64_out);
 
 #endif

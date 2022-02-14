@@ -175,6 +175,9 @@ Then you can run the tests by executing
 make run-unit-tests # or make -C build-build test
 ```
 
+Rust unit tests, if not invoked via `make run-rust-unit-tests`, must be run with
+`-- --test-threads 1` due to unsafe concurrent access to `SafeData`, `mock_sd()` and `mock_memory()`.
+
 ### Coverage
 
 gcovr or lcov/genhtml can be used to generate HTML coverage reports using the following commands:

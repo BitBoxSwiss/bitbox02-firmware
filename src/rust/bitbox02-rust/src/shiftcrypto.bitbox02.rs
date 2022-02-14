@@ -190,6 +190,7 @@ pub mod btc_script_config {
     pub enum SimpleType {
         P2wpkhP2sh = 0,
         P2wpkh = 1,
+        P2tr = 2,
     }
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Config {

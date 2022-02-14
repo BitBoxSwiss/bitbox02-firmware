@@ -104,12 +104,10 @@ pub fn restore_from_directory(dir: &str) -> Result<RestoreData, RestoreError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{mock_memory, mock_sd, mock_unlocked, MUTEX};
+    use crate::testing::{mock_memory, mock_sd, mock_unlocked};
 
     #[test]
     pub fn test_restore_from_backup() {
-        let _guard = MUTEX.lock().unwrap();
-
         mock_memory();
         mock_sd();
         mock_unlocked();

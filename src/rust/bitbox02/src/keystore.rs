@@ -299,10 +299,25 @@ pub fn get_ed25519_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     }
 }
 
+pub fn secp256k1_schnorr_bip86_sign(keypath: &[u32], msg: &[u8; 32]) -> Result<[u8; 64], ()> {
+    let mut signature = [0u8; 64];
+    match unsafe {
+        bitbox02_sys::keystore_secp256k1_schnorr_bip86_sign(
+            keypath.as_ptr(),
+            keypath.len() as _,
+            msg.as_ptr(),
+            signature.as_mut_ptr(),
+        )
+    } {
+        true => Ok(signature),
+        false => Err(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{mock_unlocked, MUTEX, TEST_MNEMONIC};
+    use crate::testing::{mock_unlocked, TEST_MNEMONIC};
 
     #[test]
     fn test_bip39_mnemonic_to_seed() {
@@ -339,8 +354,6 @@ mod tests {
 
     #[test]
     fn test_get_bip39_mnemonic() {
-        let _guard = MUTEX.lock().unwrap();
-
         lock();
         assert!(get_bip39_mnemonic().is_err());
 
@@ -363,8 +376,6 @@ mod tests {
 
     #[test]
     fn test_get_ed25519_seed() {
-        let _guard = MUTEX.lock().unwrap();
-
         // No seed on a locked keystore.
         lock();
         assert!(get_ed25519_seed().is_err());

@@ -131,7 +131,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use bitbox02::testing::{mock, mock_unlocked, Data, MUTEX};
+    use bitbox02::testing::{mock, mock_unlocked, Data};
     use std::boxed::Box;
     use util::bip32::HARDENED;
 
@@ -142,8 +142,6 @@ mod tests {
 
     #[test]
     pub fn test_process() {
-        let _guard = MUTEX.lock().unwrap();
-
         let request = pb::BtcSignMessageRequest {
             coin: BtcCoin::Btc as _,
             script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -195,8 +193,6 @@ mod tests {
 
     #[test]
     pub fn test_process_user_aborted() {
-        let _guard = MUTEX.lock().unwrap();
-
         let request = pb::BtcSignMessageRequest {
             coin: BtcCoin::Btc as _,
             script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -282,8 +278,6 @@ mod tests {
 
     #[test]
     pub fn test_process_failures() {
-        let _guard = MUTEX.lock().unwrap();
-
         // Invalid coin
         assert_eq!(
             block_on(process(&pb::BtcSignMessageRequest {

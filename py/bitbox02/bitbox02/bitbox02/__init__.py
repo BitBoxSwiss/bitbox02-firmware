@@ -41,6 +41,7 @@ except AttributeError:
 
 # pylint: disable=wrong-import-position
 from .bitbox02 import (
+    btc_sign_needs_prevtxs,
     Backup,
     BitBox02,
     BTCInputType,

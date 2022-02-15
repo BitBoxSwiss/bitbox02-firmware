@@ -68,6 +68,22 @@ class DuplicateEntryException(Exception):
     pass
 
 
+def is_taproot(script_config: btc.BTCScriptConfigWithKeypath) -> bool:
+    # pylint: disable=no-member
+    return (
+        script_config.script_config.WhichOneof("config") == "simple_type"
+        and script_config.script_config.simple_type == btc.BTCScriptConfig.P2TR
+    )
+
+
+def btc_sign_needs_prevtxs(script_configs: Sequence[btc.BTCScriptConfigWithKeypath]) -> bool:
+    """Returns True if the prev_tx field in BTCInputType needs to be
+    populated before calling btc_sign(). This is the case if there are
+    any non-taproot inputs in the transaction to be signed.
+    """
+    return not all(map(is_taproot, script_configs))
+
+
 class BTCPrevTxInputType(TypedDict):
     prev_out_hash: bytes
     prev_out_index: int
@@ -94,7 +110,8 @@ class BTCInputType(TypedDict):
     sequence: int
     keypath: Sequence[int]
     script_config_index: int
-    prev_tx: BTCPrevTxType
+    # Must be the transaction referenced by prev_out_hash. Can be None if `btc_sign_needs_prevtxs()` returns False.
+    prev_tx: Optional[BTCPrevTxType]
 
 
 class BTCOutputInternal:
@@ -378,14 +395,14 @@ class BitBox02(BitBoxCommonAPI):
         - BTC: 0 + HARDENED
         - Testnets: 1 + HARDENED
         - LTC: 2 + HARDENED
-        script_type: type of all inputs and change outputs. The first element of all provided
+        script_configs: types of all inputs and change outputs. The first element of all provided
         keypaths must match this type:
         - SCRIPT_P2PKH: 44 + HARDENED
         - SCRIPT_P2WPKH_P2SH: 49 + HARDENED
         - SCRIPT_P2WPKH: 84 + HARDENED
-        bip44_account: Starting at (0 + HARDENED), must be the third element of all provided
-        keypaths.
-        inputs: transaction inputs.
+        - SCRIPT_P2TR: 86 + HARDENED
+        inputs: transaction inputs. The previous transactions of the inputs need to be provided
+          if `btc_sign_needs_prevtxs()` returns True.
         outputs: transaction outputs. Can be an external output
         (BTCOutputExternal) or an internal output for change (BTCOutputInternal).
         version, locktime: reserved for future use.
@@ -396,6 +413,9 @@ class BitBox02(BitBoxCommonAPI):
 
         # Reserved for future use.
         assert version in (1, 2)
+
+        if any(map(is_taproot, script_configs)):
+            self._require_atleast(semver.VersionInfo(9, 10, 0))
 
         supports_antiklepto = self.version >= semver.VersionInfo(9, 4, 0)
 
@@ -432,7 +452,14 @@ class BitBox02(BitBoxCommonAPI):
                         script_config_index=tx_input["script_config_index"],
                     )
                 )
-                if supports_antiklepto and is_inputs_pass2:
+
+                # Anti-Klepto protocol not supported yet for Schnorr signatures.
+                input_is_schnorr = is_taproot(script_configs[tx_input["script_config_index"]])
+                perform_antiklepto = (
+                    supports_antiklepto and is_inputs_pass2 and not input_is_schnorr
+                )
+
+                if perform_antiklepto:
                     host_nonce = os.urandom(32)
                     request.btc_sign_input.host_nonce_commitment.commitment = (
                         antiklepto_host_commit(host_nonce)
@@ -442,7 +469,7 @@ class BitBox02(BitBoxCommonAPI):
                     request, expected_response="btc_sign_next"
                 ).btc_sign_next
 
-                if supports_antiklepto and is_inputs_pass2:
+                if perform_antiklepto:
                     assert next_response.type == btc.BTCSignNextResponse.HOST_NONCE
                     assert next_response.HasField("anti_klepto_signer_commitment")
                     signer_commitment = next_response.anti_klepto_signer_commitment.commitment
@@ -475,6 +502,7 @@ class BitBox02(BitBoxCommonAPI):
 
             elif next_response.type == btc.BTCSignNextResponse.PREVTX_INIT:
                 prevtx = inputs[next_response.index]["prev_tx"]
+                assert prevtx, "Previous transaction missing"
                 btc_request = btc.BTCRequest()
                 btc_request.prevtx_init.CopyFrom(
                     btc.BTCPrevTxInitRequest(
@@ -488,9 +516,9 @@ class BitBox02(BitBoxCommonAPI):
                     btc_request, expected_response="sign_next"
                 ).sign_next
             elif next_response.type == btc.BTCSignNextResponse.PREVTX_INPUT:
-                prevtx_input = inputs[next_response.index]["prev_tx"]["inputs"][
-                    next_response.prev_index
-                ]
+                prevtx = inputs[next_response.index]["prev_tx"]
+                assert prevtx, "Previous transaction missing"
+                prevtx_input = prevtx["inputs"][next_response.prev_index]
                 btc_request = btc.BTCRequest()
                 btc_request.prevtx_input.CopyFrom(
                     btc.BTCPrevTxInputRequest(
@@ -504,9 +532,9 @@ class BitBox02(BitBoxCommonAPI):
                     btc_request, expected_response="sign_next"
                 ).sign_next
             elif next_response.type == btc.BTCSignNextResponse.PREVTX_OUTPUT:
-                prevtx_output = inputs[next_response.index]["prev_tx"]["outputs"][
-                    next_response.prev_index
-                ]
+                prevtx = inputs[next_response.index]["prev_tx"]
+                assert prevtx, "Previous transaction missing"
+                prevtx_output = prevtx["outputs"][next_response.prev_index]
                 btc_request = btc.BTCRequest()
                 btc_request.prevtx_output.CopyFrom(
                     btc.BTCPrevTxOutputRequest(

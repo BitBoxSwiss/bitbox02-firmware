@@ -65,9 +65,11 @@ class BTCScriptConfig(google.protobuf.message.Message):
         DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
         P2WPKH_P2SH = BTCScriptConfig.SimpleType.V(0)
         P2WPKH = BTCScriptConfig.SimpleType.V(1)
+        P2TR = BTCScriptConfig.SimpleType.V(2)
 
     P2WPKH_P2SH = BTCScriptConfig.SimpleType.V(0)
     P2WPKH = BTCScriptConfig.SimpleType.V(1)
+    P2TR = BTCScriptConfig.SimpleType.V(2)
 
     class Multisig(google.protobuf.message.Message):
         DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...

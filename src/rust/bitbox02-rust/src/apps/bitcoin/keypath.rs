@@ -110,6 +110,7 @@ pub fn validate_address_multisig(
 /// Supported:
 /// - P2WPKH-P2SH: m/49'/coin'/account'
 /// - P2WPKH: m/84'/coin'/account'
+/// - P2TR: m/86'/coin'/account'
 pub fn validate_account_simple(
     keypath: &[u32],
     expected_coin: u32,
@@ -498,6 +499,22 @@ mod tests {
             &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
             bip44_coin,
             SimpleType::P2wpkh
+        )
+        .is_err());
+
+        // valid p2tr
+        assert!(validate_address_simple(
+            &[86 + HARDENED, bip44_coin, bip44_account, 0, 0],
+            bip44_coin,
+            SimpleType::P2tr
+        )
+        .is_ok());
+
+        // invalid p2tr; wrong purpose
+        assert!(validate_address_simple(
+            &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
+            bip44_coin,
+            SimpleType::P2tr,
         )
         .is_err());
     }

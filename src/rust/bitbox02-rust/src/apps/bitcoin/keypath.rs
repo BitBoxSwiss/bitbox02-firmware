@@ -110,12 +110,16 @@ pub fn validate_address_multisig(
 /// Supported:
 /// - P2WPKH-P2SH: m/49'/coin'/account'
 /// - P2WPKH: m/84'/coin'/account'
-/// - P2TR: m/86'/coin'/account'
+/// - P2TR: m/86'/coin'/account' (only if `taproot_support` is true)
 pub fn validate_account_simple(
     keypath: &[u32],
     expected_coin: u32,
     script_type: SimpleType,
+    taproot_support: bool,
 ) -> Result<(), ()> {
+    if !taproot_support && script_type == SimpleType::P2tr {
+        return Err(());
+    }
     let bip44_purpose = match script_type {
         SimpleType::P2wpkhP2sh => PURPOSE_P2WPKH_P2SH,
         SimpleType::P2wpkh => PURPOSE_P2WPKH,
@@ -130,10 +134,11 @@ pub fn validate_address_simple(
     keypath: &[u32],
     expected_coin: u32,
     script_type: SimpleType,
+    taproot_support: bool,
 ) -> Result<(), ()> {
     if keypath.len() >= 2 {
         let (keypath_account, keypath_rest) = keypath.split_at(keypath.len() - 2);
-        validate_account_simple(keypath_account, expected_coin, script_type)?;
+        validate_account_simple(keypath_account, expected_coin, script_type, taproot_support)?;
         validate_change_address(keypath_rest[0], keypath_rest[1])
     } else {
         Err(())
@@ -148,10 +153,7 @@ pub fn validate_xpub(keypath: &[u32], expected_coin: u32, taproot_support: bool)
         }
     }
     for &script_type in ALL_SIMPLE_SCRIPT_TYPES.iter() {
-        if !taproot_support && script_type == SimpleType::P2tr {
-            continue;
-        }
-        if validate_account_simple(keypath, expected_coin, script_type).is_ok() {
+        if validate_account_simple(keypath, expected_coin, script_type, taproot_support).is_ok() {
             return Ok(());
         }
     }
@@ -401,12 +403,13 @@ mod tests {
     fn test_validate_address_simple() {
         let bip44_account = 99 + HARDENED;
         let bip44_coin = 1 + HARDENED;
-
+        let taproot_support = true;
         // valid p2wpkh-p2sh; receive
         assert!(validate_address_simple(
             &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
             bip44_coin,
-            SimpleType::P2wpkhP2sh
+            SimpleType::P2wpkhP2sh,
+            taproot_support,
         )
         .is_ok());
 
@@ -414,7 +417,8 @@ mod tests {
         assert!(validate_address_simple(
             &[49 + HARDENED, bip44_coin, bip44_account, 0, 9999],
             bip44_coin,
-            SimpleType::P2wpkhP2sh
+            SimpleType::P2wpkhP2sh,
+            taproot_support,
         )
         .is_ok());
 
@@ -422,7 +426,8 @@ mod tests {
         assert!(validate_address_simple(
             &[49 + HARDENED, bip44_coin, bip44_account, 0, 10000],
             bip44_coin,
-            SimpleType::P2wpkhP2sh
+            SimpleType::P2wpkhP2sh,
+            taproot_support,
         )
         .is_err());
 
@@ -430,7 +435,8 @@ mod tests {
         assert!(validate_address_simple(
             &[49 + HARDENED, bip44_coin, bip44_account, 1, 0],
             bip44_coin,
-            SimpleType::P2wpkhP2sh
+            SimpleType::P2wpkhP2sh,
+            taproot_support,
         )
         .is_ok());
 
@@ -438,19 +444,22 @@ mod tests {
         assert!(validate_address_simple(
             &[49 + HARDENED, bip44_coin, bip44_account, 2, 0],
             bip44_coin,
-            SimpleType::P2wpkhP2sh
+            SimpleType::P2wpkhP2sh,
+            taproot_support,
         )
         .is_err());
         assert!(validate_address_simple(
             &[49 + HARDENED, bip44_coin, bip44_account, 0 + HARDENED, 0],
             bip44_coin,
-            SimpleType::P2wpkhP2sh
+            SimpleType::P2wpkhP2sh,
+            taproot_support,
         )
         .is_err());
         assert!(validate_address_simple(
             &[49 + HARDENED, bip44_coin, bip44_account, 1 + HARDENED, 0],
             bip44_coin,
-            SimpleType::P2wpkhP2sh
+            SimpleType::P2wpkhP2sh,
+            taproot_support,
         )
         .is_err());
 
@@ -458,7 +467,8 @@ mod tests {
         assert!(validate_address_simple(
             &[84 + HARDENED, bip44_coin, bip44_account, 0, 0],
             bip44_coin,
-            SimpleType::P2wpkhP2sh
+            SimpleType::P2wpkhP2sh,
+            taproot_support,
         )
         .is_err());
 
@@ -466,7 +476,8 @@ mod tests {
         assert!(validate_address_simple(
             &[49 + HARDENED, bip44_coin, 100 + HARDENED, 0, 0],
             bip44_coin,
-            SimpleType::P2wpkhP2sh
+            SimpleType::P2wpkhP2sh,
+            taproot_support,
         )
         .is_err());
 
@@ -474,7 +485,8 @@ mod tests {
         assert!(validate_address_simple(
             &[49 + HARDENED, bip44_coin, HARDENED - 1, 0, 0],
             bip44_coin,
-            SimpleType::P2wpkhP2sh
+            SimpleType::P2wpkhP2sh,
+            taproot_support,
         )
         .is_err());
 
@@ -482,7 +494,8 @@ mod tests {
         assert!(validate_address_simple(
             &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
             bip44_coin + 1,
-            SimpleType::P2wpkhP2sh
+            SimpleType::P2wpkhP2sh,
+            taproot_support,
         )
         .is_err());
 
@@ -490,7 +503,8 @@ mod tests {
         assert!(validate_address_simple(
             &[84 + HARDENED, bip44_coin, bip44_account, 0, 0],
             bip44_coin,
-            SimpleType::P2wpkh
+            SimpleType::P2wpkh,
+            taproot_support,
         )
         .is_ok());
 
@@ -498,7 +512,8 @@ mod tests {
         assert!(validate_address_simple(
             &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
             bip44_coin,
-            SimpleType::P2wpkh
+            SimpleType::P2wpkh,
+            taproot_support,
         )
         .is_err());
 
@@ -506,15 +521,26 @@ mod tests {
         assert!(validate_address_simple(
             &[86 + HARDENED, bip44_coin, bip44_account, 0, 0],
             bip44_coin,
-            SimpleType::P2tr
+            SimpleType::P2tr,
+            taproot_support,
         )
         .is_ok());
+
+        // invalid p2tr, taproot not supported
+        assert!(validate_address_simple(
+            &[86 + HARDENED, bip44_coin, bip44_account, 0, 0],
+            bip44_coin,
+            SimpleType::P2tr,
+            false,
+        )
+        .is_err());
 
         // invalid p2tr; wrong purpose
         assert!(validate_address_simple(
             &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
             bip44_coin,
             SimpleType::P2tr,
+            taproot_support,
         )
         .is_err());
     }

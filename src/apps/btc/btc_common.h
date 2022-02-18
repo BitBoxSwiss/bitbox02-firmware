@@ -44,7 +44,8 @@ USE_RESULT bool btc_common_is_valid_keypath_account_simple(
     BTCScriptConfig_SimpleType script_type,
     const uint32_t* keypath,
     size_t keypath_len,
-    uint32_t expected_coin);
+    uint32_t expected_coin,
+    bool taproot_support);
 
 /**
  * Does limit checks the keypath, whitelisting bip44 purposes, accounts and
@@ -55,7 +56,8 @@ USE_RESULT bool btc_common_is_valid_keypath_address_simple(
     BTCScriptConfig_SimpleType script_type,
     const uint32_t* keypath,
     size_t keypath_len,
-    uint32_t expected_coin);
+    uint32_t expected_coin,
+    bool taproot_support);
 
 /**
  * Checks that the keypath is m/48'/coin'/account'/script_type'/change/address, limiting the number

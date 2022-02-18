@@ -31,20 +31,22 @@ bool btc_common_is_valid_keypath_account_simple(
     BTCScriptConfig_SimpleType script_type,
     const uint32_t* keypath,
     const size_t keypath_len,
-    const uint32_t expected_coin)
+    const uint32_t expected_coin,
+    bool taproot_support)
 {
     return rust_bitcoin_keypath_validate_account_simple(
-        keypath, keypath_len, expected_coin, script_type);
+        keypath, keypath_len, expected_coin, script_type, taproot_support);
 }
 
 bool btc_common_is_valid_keypath_address_simple(
     BTCScriptConfig_SimpleType script_type,
     const uint32_t* keypath,
     const size_t keypath_len,
-    const uint32_t expected_coin)
+    const uint32_t expected_coin,
+    bool taproot_support)
 {
     return rust_bitcoin_keypath_validate_address_simple(
-        keypath, keypath_len, expected_coin, script_type);
+        keypath, keypath_len, expected_coin, script_type, taproot_support);
 }
 
 bool btc_common_is_valid_keypath_address_multisig(

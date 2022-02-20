@@ -203,8 +203,13 @@ fn validate_keypath(
         }) => {
             let simple_type = pb::btc_script_config::SimpleType::from_i32(*simple_type)
                 .ok_or(Error::InvalidInput)?;
-            keypath::validate_address_simple(keypath, params.bip44_coin, simple_type)
-                .or(Err(Error::InvalidInput))?;
+            keypath::validate_address_simple(
+                keypath,
+                params.bip44_coin,
+                simple_type,
+                params.taproot_support,
+            )
+            .or(Err(Error::InvalidInput))?;
         }
         Some(pb::BtcScriptConfig {
             config: Some(pb::btc_script_config::Config::Multisig(multisig)),

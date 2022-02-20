@@ -79,13 +79,14 @@ pub unsafe extern "C" fn rust_bitcoin_keypath_validate_account_simple(
     keypath_len: size_t,
     expected_coin: u32,
     script_type: i32,
+    taproot_support: bool,
 ) -> bool {
     let script_type = match keypath::SimpleType::from_i32(script_type) {
         Some(script_type) => script_type,
         None => return false,
     };
     let keypath = core::slice::from_raw_parts(keypath, keypath_len);
-    keypath::validate_account_simple(keypath, expected_coin, script_type).is_ok()
+    keypath::validate_account_simple(keypath, expected_coin, script_type, taproot_support).is_ok()
 }
 
 /// # Safety
@@ -96,13 +97,14 @@ pub unsafe extern "C" fn rust_bitcoin_keypath_validate_address_simple(
     keypath_len: size_t,
     expected_coin: u32,
     script_type: i32,
+    taproot_support: bool,
 ) -> bool {
     let script_type = match keypath::SimpleType::from_i32(script_type) {
         Some(script_type) => script_type,
         None => return false,
     };
     let keypath = core::slice::from_raw_parts(keypath, keypath_len);
-    keypath::validate_address_simple(keypath, expected_coin, script_type).is_ok()
+    keypath::validate_address_simple(keypath, expected_coin, script_type, taproot_support).is_ok()
 }
 
 /// `out` should be at least 31+len(unit) bytes.

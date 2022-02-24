@@ -13,13 +13,14 @@
 // limitations under the License.
 
 use super::amount::Amount;
+use super::params::Params;
 use super::pb;
 use super::Error;
 
 use bitbox02::keystore;
 
 use crate::workflow::{confirm, status, transaction};
-use bitbox02::app_eth::{params_get, sighash, Params, SighashParams};
+use bitbox02::app_eth::{sighash, SighashParams};
 
 use alloc::vec::Vec;
 use core::convert::TryInto;
@@ -184,12 +185,13 @@ async fn verify_standard_transaction(
 
 /// Verify and sign an Ethereum transaction.
 pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
-    let params = params_get(request.coin as _).ok_or(Error::InvalidInput)?;
+    let coin = pb::EthCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
+    let params = super::params::get(coin).ok_or(Error::InvalidInput)?;
 
     if !super::keypath::is_valid_keypath_address(&request.keypath) {
         return Err(Error::InvalidInput);
     }
-    super::keypath::warn_unusual_keypath(&params, params.name, &request.keypath).await?;
+    super::keypath::warn_unusual_keypath(params, params.name, &request.keypath).await?;
 
     // Size limits.
     if request.nonce.len() > 16
@@ -222,9 +224,9 @@ pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
     }
 
     let verification_result = if let Some((erc20_recipient, erc20_value)) = parse_erc20(request) {
-        verify_erc20_transaction(request, &params, erc20_recipient, erc20_value).await
+        verify_erc20_transaction(request, params, erc20_recipient, erc20_value).await
     } else {
-        verify_standard_transaction(request, &params).await
+        verify_standard_transaction(request, params).await
     };
     match verification_result {
         Ok(()) => status::status("Transaction\nconfirmed", true).await,

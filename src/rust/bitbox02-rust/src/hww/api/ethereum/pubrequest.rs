@@ -25,7 +25,8 @@ extern crate alloc;
 use core::convert::TryInto;
 
 async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error> {
-    let params = bitbox02::app_eth::params_get(request.coin as _).ok_or(Error::InvalidInput)?;
+    let coin = pb::EthCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
+    let params = super::params::get(coin).ok_or(Error::InvalidInput)?;
     // If a contract_address is provided, it has to be a supported ERC20-token.
     let erc20_params: Option<bitbox02::app_eth::ERC20Params> =
         if request.contract_address.is_empty() {
@@ -54,7 +55,7 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
             Some(erc20_params) => erc20_params.name,
             None => params.name,
         };
-        super::keypath::warn_unusual_keypath(&params, title, &request.keypath).await?;
+        super::keypath::warn_unusual_keypath(params, title, &request.keypath).await?;
         let params = confirm::Params {
             title,
             title_autowrap: true,

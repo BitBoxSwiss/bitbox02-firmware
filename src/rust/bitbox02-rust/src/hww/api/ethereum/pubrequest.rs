@@ -74,7 +74,6 @@ fn process_xpub(request: &pb::EthPubRequest) -> Result<Response, Error> {
         return Err(Error::InvalidInput);
     }
 
-    bitbox02::app_eth::params_get(request.coin as _).ok_or(Error::InvalidInput)?;
     if !super::keypath::is_valid_keypath_xpub(&request.keypath) {
         return Err(Error::InvalidInput);
     }

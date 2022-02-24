@@ -34,12 +34,14 @@ pub async fn process(request: &pb::EthSignMessageRequest) -> Result<Response, Er
     if request.msg.len() > 9999 {
         return Err(Error::InvalidInput);
     }
+
     let pub_request = pb::EthPubRequest {
         output_type: pb::eth_pub_request::OutputType::Address as _,
         keypath: request.keypath.clone(),
         coin: request.coin,
         display: true,
         contract_address: Vec::new(),
+        chain_id: request.chain_id,
     };
 
     // Verify address. We don't need the actual result, but we have to propagate validation or user
@@ -134,6 +136,7 @@ mod tests {
                 keypath: KEYPATH.to_vec(),
                 msg: MESSAGE.to_vec(),
                 host_nonce_commitment: None,
+                chain_id: 0,
             })),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\x34\x88\x5e\x93\x74\x37\x5a\x12\xe8\xc5\x18\x6e\xf9\x87\x0b\x03\x6b\x2b\xd2\x51\xb3\xf2\x0b\x97\x95\x11\x91\x2d\xd4\x18\x94\x72\x5c\x0a\x50\x4a\x34\x19\xae\x21\xd6\x9e\x22\x43\xca\x18\xe9\xc6\xee\xe7\x5b\x2e\x16\xea\x57\xb4\xf6\x47\xfd\x10\x6b\xe8\x3f\xd2\x01"
@@ -180,6 +183,7 @@ mod tests {
             keypath: KEYPATH.to_vec(),
             msg: MESSAGE.to_vec(),
             host_nonce_commitment: None,
+            chain_id: 0,
         }))
         .unwrap();
         assert_eq!(unsafe { CONFIRM_COUNTER }, 3);
@@ -192,6 +196,7 @@ mod tests {
             keypath: KEYPATH.to_vec(),
             msg: MESSAGE.to_vec(),
             host_nonce_commitment: None,
+            chain_id: 0,
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -252,6 +257,7 @@ mod tests {
                 keypath: KEYPATH.to_vec(),
                 msg: [0; 10000].to_vec(),
                 host_nonce_commitment: None,
+                chain_id: 0,
             })),
             Err(Error::InvalidInput)
         );
@@ -261,11 +267,12 @@ mod tests {
             ..Default::default()
         });
         assert_eq!(
-            block_on(process(&&pb::EthSignMessageRequest {
+            block_on(process(&pb::EthSignMessageRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 msg: b"message".to_vec(),
                 host_nonce_commitment: None,
+                chain_id: 0,
             })),
             Err(Error::InvalidInput)
         );

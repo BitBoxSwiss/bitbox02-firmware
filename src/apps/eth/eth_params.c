@@ -16207,17 +16207,17 @@ static const app_eth_erc20_params_t _ethereum_erc20_params[] = {
 };
 
 const app_eth_erc20_params_t* app_eth_erc20_params_get(
-    ETHCoin coin,
+    uint64_t chain_id,
     const uint8_t* contract_address)
 {
     const app_eth_erc20_params_t* erc20_params;
     size_t len;
-    switch (coin) {
-    case ETHCoin_ETH:
+    switch (chain_id) {
+    case 1:
         erc20_params = _ethereum_erc20_params;
         len = sizeof(_ethereum_erc20_params) / sizeof(app_eth_erc20_params_t);
         break;
-    case ETHCoin_RopstenETH:
+    case 3:
         erc20_params = _ropsten_erc20_params;
         len = sizeof(_ropsten_erc20_params) / sizeof(app_eth_erc20_params_t);
         break;

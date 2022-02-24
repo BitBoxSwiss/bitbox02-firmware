@@ -26,6 +26,11 @@ pub extern "C" fn rust_util_zero(mut dst: BytesMut) {
 }
 
 #[no_mangle]
+pub extern "C" fn rust_util_u64_be(v: u64, mut dst: BytesMut) {
+    dst.as_mut().copy_from_slice(&v.to_be_bytes())
+}
+
+#[no_mangle]
 pub extern "C" fn rust_util_validate_name(cstr: CStr, max_len: size_t) -> bool {
     let s: &str = cstr.as_ref();
     util::name::validate(s, max_len)

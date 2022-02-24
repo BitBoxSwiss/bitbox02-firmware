@@ -21,7 +21,7 @@ pub struct Params {
     pub coin: EthCoin,
     pub bip44_coin: u32,
     /// https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md#list-of-chain-ids
-    pub chain_id: u8,
+    pub chain_id: u64,
     pub name: &'static str,
     pub unit: &'static str,
 }

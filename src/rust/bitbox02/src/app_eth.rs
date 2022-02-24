@@ -55,7 +55,7 @@ pub struct SighashParams<'a> {
     pub recipient: &'a [u8; 20],
     pub value: &'a [u8],
     pub data: &'a [u8],
-    pub chain_id: u8,
+    pub chain_id: u64,
 }
 
 pub fn sighash(params: SighashParams) -> Result<[u8; 32], ()> {

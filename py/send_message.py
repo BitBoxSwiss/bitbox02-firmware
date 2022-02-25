@@ -798,7 +798,8 @@ class SendMessage:
         msg_hex = binascii.hexlify(msg_bytes).decode("utf-8")
         print(f"signing\nbytes: {repr(msg_bytes)}\nhex: 0x{msg_hex}")
         sig = self._device.eth_sign_msg(
-            msg=msg_bytes, keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0]
+            msg=msg_bytes,
+            keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
         )
 
         print("Signature: 0x{}".format(binascii.hexlify(sig).decode("utf-8")))

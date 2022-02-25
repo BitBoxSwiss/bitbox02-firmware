@@ -22,7 +22,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='eth.proto',
   package='shiftcrypto.bitbox02',
   syntax='proto3',
-  serialized_pb=_b('\n\teth.proto\x12\x14shiftcrypto.bitbox02\x1a\x0c\x63ommon.proto\x1a\x10\x61ntiklepto.proto\"\xe2\x01\n\rETHPubRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\x12+\n\x04\x63oin\x18\x02 \x01(\x0e\x32\x1d.shiftcrypto.bitbox02.ETHCoin\x12\x43\n\x0boutput_type\x18\x03 \x01(\x0e\x32..shiftcrypto.bitbox02.ETHPubRequest.OutputType\x12\x0f\n\x07\x64isplay\x18\x04 \x01(\x08\x12\x18\n\x10\x63ontract_address\x18\x05 \x01(\x0c\"#\n\nOutputType\x12\x0b\n\x07\x41\x44\x44RESS\x10\x00\x12\x08\n\x04XPUB\x10\x01\"\x87\x02\n\x0e\x45THSignRequest\x12+\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x1d.shiftcrypto.bitbox02.ETHCoin\x12\x0f\n\x07keypath\x18\x02 \x03(\r\x12\r\n\x05nonce\x18\x03 \x01(\x0c\x12\x11\n\tgas_price\x18\x04 \x01(\x0c\x12\x11\n\tgas_limit\x18\x05 \x01(\x0c\x12\x11\n\trecipient\x18\x06 \x01(\x0c\x12\r\n\x05value\x18\x07 \x01(\x0c\x12\x0c\n\x04\x64\x61ta\x18\x08 \x01(\x0c\x12R\n\x15host_nonce_commitment\x18\t \x01(\x0b\x32\x33.shiftcrypto.bitbox02.AntiKleptoHostNonceCommitment\"\xb6\x01\n\x15\x45THSignMessageRequest\x12+\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x1d.shiftcrypto.bitbox02.ETHCoin\x12\x0f\n\x07keypath\x18\x02 \x03(\r\x12\x0b\n\x03msg\x18\x03 \x01(\x0c\x12R\n\x15host_nonce_commitment\x18\x04 \x01(\x0b\x32\x33.shiftcrypto.bitbox02.AntiKleptoHostNonceCommitment\"$\n\x0f\x45THSignResponse\x12\x11\n\tsignature\x18\x01 \x01(\x0c\"\x94\x02\n\nETHRequest\x12\x32\n\x03pub\x18\x01 \x01(\x0b\x32#.shiftcrypto.bitbox02.ETHPubRequestH\x00\x12\x34\n\x04sign\x18\x02 \x01(\x0b\x32$.shiftcrypto.bitbox02.ETHSignRequestH\x00\x12?\n\x08sign_msg\x18\x03 \x01(\x0b\x32+.shiftcrypto.bitbox02.ETHSignMessageRequestH\x00\x12P\n\x14\x61ntiklepto_signature\x18\x04 \x01(\x0b\x32\x30.shiftcrypto.bitbox02.AntiKleptoSignatureRequestH\x00\x42\t\n\x07request\"\xdc\x01\n\x0b\x45THResponse\x12\x30\n\x03pub\x18\x01 \x01(\x0b\x32!.shiftcrypto.bitbox02.PubResponseH\x00\x12\x35\n\x04sign\x18\x02 \x01(\x0b\x32%.shiftcrypto.bitbox02.ETHSignResponseH\x00\x12X\n\x1c\x61ntiklepto_signer_commitment\x18\x03 \x01(\x0b\x32\x30.shiftcrypto.bitbox02.AntiKleptoSignerCommitmentH\x00\x42\n\n\x08response*2\n\x07\x45THCoin\x12\x07\n\x03\x45TH\x10\x00\x12\x0e\n\nRopstenETH\x10\x01\x12\x0e\n\nRinkebyETH\x10\x02\x62\x06proto3')
+  serialized_pb=_b('\n\teth.proto\x12\x14shiftcrypto.bitbox02\x1a\x0c\x63ommon.proto\x1a\x10\x61ntiklepto.proto\"\xf4\x01\n\rETHPubRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\x12+\n\x04\x63oin\x18\x02 \x01(\x0e\x32\x1d.shiftcrypto.bitbox02.ETHCoin\x12\x43\n\x0boutput_type\x18\x03 \x01(\x0e\x32..shiftcrypto.bitbox02.ETHPubRequest.OutputType\x12\x0f\n\x07\x64isplay\x18\x04 \x01(\x08\x12\x18\n\x10\x63ontract_address\x18\x05 \x01(\x0c\x12\x10\n\x08\x63hain_id\x18\x06 \x01(\x04\"#\n\nOutputType\x12\x0b\n\x07\x41\x44\x44RESS\x10\x00\x12\x08\n\x04XPUB\x10\x01\"\x99\x02\n\x0e\x45THSignRequest\x12+\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x1d.shiftcrypto.bitbox02.ETHCoin\x12\x0f\n\x07keypath\x18\x02 \x03(\r\x12\r\n\x05nonce\x18\x03 \x01(\x0c\x12\x11\n\tgas_price\x18\x04 \x01(\x0c\x12\x11\n\tgas_limit\x18\x05 \x01(\x0c\x12\x11\n\trecipient\x18\x06 \x01(\x0c\x12\r\n\x05value\x18\x07 \x01(\x0c\x12\x0c\n\x04\x64\x61ta\x18\x08 \x01(\x0c\x12R\n\x15host_nonce_commitment\x18\t \x01(\x0b\x32\x33.shiftcrypto.bitbox02.AntiKleptoHostNonceCommitment\x12\x10\n\x08\x63hain_id\x18\n \x01(\x04\"\xc8\x01\n\x15\x45THSignMessageRequest\x12+\n\x04\x63oin\x18\x01 \x01(\x0e\x32\x1d.shiftcrypto.bitbox02.ETHCoin\x12\x0f\n\x07keypath\x18\x02 \x03(\r\x12\x0b\n\x03msg\x18\x03 \x01(\x0c\x12R\n\x15host_nonce_commitment\x18\x04 \x01(\x0b\x32\x33.shiftcrypto.bitbox02.AntiKleptoHostNonceCommitment\x12\x10\n\x08\x63hain_id\x18\x05 \x01(\x04\"$\n\x0f\x45THSignResponse\x12\x11\n\tsignature\x18\x01 \x01(\x0c\"\x94\x02\n\nETHRequest\x12\x32\n\x03pub\x18\x01 \x01(\x0b\x32#.shiftcrypto.bitbox02.ETHPubRequestH\x00\x12\x34\n\x04sign\x18\x02 \x01(\x0b\x32$.shiftcrypto.bitbox02.ETHSignRequestH\x00\x12?\n\x08sign_msg\x18\x03 \x01(\x0b\x32+.shiftcrypto.bitbox02.ETHSignMessageRequestH\x00\x12P\n\x14\x61ntiklepto_signature\x18\x04 \x01(\x0b\x32\x30.shiftcrypto.bitbox02.AntiKleptoSignatureRequestH\x00\x42\t\n\x07request\"\xdc\x01\n\x0b\x45THResponse\x12\x30\n\x03pub\x18\x01 \x01(\x0b\x32!.shiftcrypto.bitbox02.PubResponseH\x00\x12\x35\n\x04sign\x18\x02 \x01(\x0b\x32%.shiftcrypto.bitbox02.ETHSignResponseH\x00\x12X\n\x1c\x61ntiklepto_signer_commitment\x18\x03 \x01(\x0b\x32\x30.shiftcrypto.bitbox02.AntiKleptoSignerCommitmentH\x00\x42\n\n\x08response*2\n\x07\x45THCoin\x12\x07\n\x03\x45TH\x10\x00\x12\x0e\n\nRopstenETH\x10\x01\x12\x0e\n\nRinkebyETH\x10\x02\x62\x06proto3')
   ,
   dependencies=[common__pb2.DESCRIPTOR,antiklepto__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -48,8 +48,8 @@ _ETHCOIN = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1287,
-  serialized_end=1337,
+  serialized_start=1341,
+  serialized_end=1391,
 )
 _sym_db.RegisterEnumDescriptor(_ETHCOIN)
 
@@ -76,8 +76,8 @@ _ETHPUBREQUEST_OUTPUTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=259,
-  serialized_end=294,
+  serialized_start=277,
+  serialized_end=312,
 )
 _sym_db.RegisterEnumDescriptor(_ETHPUBREQUEST_OUTPUTTYPE)
 
@@ -124,6 +124,13 @@ _ETHPUBREQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='chain_id', full_name='shiftcrypto.bitbox02.ETHPubRequest.chain_id', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -138,7 +145,7 @@ _ETHPUBREQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=68,
-  serialized_end=294,
+  serialized_end=312,
 )
 
 
@@ -212,6 +219,13 @@ _ETHSIGNREQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='chain_id', full_name='shiftcrypto.bitbox02.ETHSignRequest.chain_id', index=9,
+      number=10, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -224,8 +238,8 @@ _ETHSIGNREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=297,
-  serialized_end=560,
+  serialized_start=315,
+  serialized_end=596,
 )
 
 
@@ -264,6 +278,13 @@ _ETHSIGNMESSAGEREQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='chain_id', full_name='shiftcrypto.bitbox02.ETHSignMessageRequest.chain_id', index=4,
+      number=5, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -276,8 +297,8 @@ _ETHSIGNMESSAGEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=563,
-  serialized_end=745,
+  serialized_start=599,
+  serialized_end=799,
 )
 
 
@@ -307,8 +328,8 @@ _ETHSIGNRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=747,
-  serialized_end=783,
+  serialized_start=801,
+  serialized_end=837,
 )
 
 
@@ -362,8 +383,8 @@ _ETHREQUEST = _descriptor.Descriptor(
       name='request', full_name='shiftcrypto.bitbox02.ETHRequest.request',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=786,
-  serialized_end=1062,
+  serialized_start=840,
+  serialized_end=1116,
 )
 
 
@@ -410,8 +431,8 @@ _ETHRESPONSE = _descriptor.Descriptor(
       name='response', full_name='shiftcrypto.bitbox02.ETHResponse.response',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1065,
-  serialized_end=1285,
+  serialized_start=1119,
+  serialized_end=1339,
 )
 
 _ETHPUBREQUEST.fields_by_name['coin'].enum_type = _ETHCOIN

@@ -142,6 +142,20 @@ ATTESTATION_PUBKEYS: Sequence[AttestationPubkeyInfo] = [
         ),
         "accepted_bootloader_hash": None,
     },
+    {
+        "pubkey": binascii.unhexlify(
+            "04adaa011a4ced11310728abb64f09636267ce0b05782da6d3eeaf987cec7c64f"
+            "279ad55327184f9e5b4a1e53089b31bcc65032dad7205325f41ed3d9fdfba1f88"
+        ),
+        "accepted_bootloader_hash": None,
+    },
+    {
+        "pubkey": binascii.unhexlify(
+            "044a70e663d7fe5fe0d4cbbb752883e35222b8d7d7bffdaa8d591995d1252528a"
+            "4e9a3e4d5220d485021728b3cdad4fccc681a6ddeea8e2f7c55b4acde8d53573d"
+        ),
+        "accepted_bootloader_hash": None,
+    },
 ]
 
 ATTESTATION_PUBKEYS_MAP: Dict[bytes, AttestationPubkeyInfo] = {

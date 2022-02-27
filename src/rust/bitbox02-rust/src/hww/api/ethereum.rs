@@ -20,6 +20,7 @@ compile_error!(
 mod address;
 mod amount;
 mod keypath;
+mod params;
 mod pubrequest;
 mod sign;
 mod signmsg;

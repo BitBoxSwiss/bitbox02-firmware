@@ -75,8 +75,23 @@ static void _hash_element(void* ctx, const uint8_t* bytes, pb_size_t len, uint32
     }
 }
 
+static void _hash_uint64(void* ctx, uint64_t value, uint32_t* encoded_len_out)
+{
+    uint8_t bigendian[8] = {0};
+    rust_util_u64_be(value, rust_util_bytes_mut(bigendian, sizeof(bigendian)));
+    size_t num_zero_bytes = 0;
+    while (num_zero_bytes < 8 && bigendian[num_zero_bytes] == 0) {
+        num_zero_bytes++;
+    }
+    _hash_element(ctx, bigendian + num_zero_bytes, 8 - num_zero_bytes, encoded_len_out);
+}
+
 bool app_eth_sighash(eth_sighash_params_t params, uint8_t* sighash_out)
 {
+    if (params.chain_id == 0) {
+        Abort("chain id encoding error");
+    }
+
     // We hash [nonce, gas price, gas limit, recipient, value, data], RLP encoded.
     // The list length prefix is (0xc0 + length of the encoding of all elements).
     // 1) calculate length
@@ -87,7 +102,12 @@ bool app_eth_sighash(eth_sighash_params_t params, uint8_t* sighash_out)
     _hash_element(NULL, params.recipient.data, params.recipient.len, &encoded_length);
     _hash_element(NULL, params.value.data, params.value.len, &encoded_length);
     _hash_element(NULL, params.data.data, params.data.len, &encoded_length);
-    encoded_length += 3; // EIP155 part, see below.
+    { // EIP155 part, see below.
+        _hash_uint64(NULL, params.chain_id, &encoded_length);
+        _hash_uint64(NULL, 0, &encoded_length);
+        _hash_uint64(NULL, 0, &encoded_length);
+    }
+
     if (encoded_length > 0xffff) {
         // Don't support bigger than this for now.
         return false;
@@ -102,12 +122,10 @@ bool app_eth_sighash(eth_sighash_params_t params, uint8_t* sighash_out)
     _hash_element(ctx, params.value.data, params.value.len, NULL);
     _hash_element(ctx, params.data.data, params.data.len, NULL);
     { // EIP155
-        if (params.chain_id == 0 || params.chain_id > 0x7f) {
-            Abort("chain id encoding error");
-        }
-        // encodes <chainID><0><0>
-        uint8_t eip155_part[3] = {params.chain_id, 0x80, 0x80};
-        rust_keccak256_update(ctx, eip155_part, sizeof(eip155_part));
+      // encodes <chainID><0><0>
+        _hash_uint64(ctx, params.chain_id, NULL);
+        _hash_uint64(ctx, 0, NULL);
+        _hash_uint64(ctx, 0, NULL);
     }
     rust_keccak256_finish(&ctx, sighash_out);
     return true;

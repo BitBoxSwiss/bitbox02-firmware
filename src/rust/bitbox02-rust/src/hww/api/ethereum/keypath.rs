@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::params::Params;
 use super::Error;
 use crate::workflow::confirm;
-use bitbox02::app_eth::Params;
 
 use util::bip32::HARDENED;
 

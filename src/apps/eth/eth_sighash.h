@@ -31,7 +31,7 @@ typedef struct {
     in_buffer_t value;
     in_buffer_t data;
     // EIP155 chain id.
-    uint8_t chain_id;
+    uint64_t chain_id;
 } eth_sighash_params_t;
 
 /**

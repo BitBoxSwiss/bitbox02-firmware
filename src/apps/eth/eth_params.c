@@ -16,43 +16,6 @@
 
 #include <util.h>
 
-#include <wally_bip32.h>
-
-static const app_eth_coin_params_t _params_eth = {
-    .bip44_coin = 60 + BIP32_INITIAL_HARDENED_CHILD,
-    .chain_id = 1,
-    .name = "Ethereum",
-    .unit = "ETH",
-};
-
-static const app_eth_coin_params_t _params_ropsten_eth = {
-    .bip44_coin = 1 + BIP32_INITIAL_HARDENED_CHILD,
-    .chain_id = 3,
-    .name = "Ropsten",
-    .unit = "TETH",
-};
-
-static const app_eth_coin_params_t _params_rinkeby_eth = {
-    .bip44_coin = 1 + BIP32_INITIAL_HARDENED_CHILD,
-    .chain_id = 4,
-    .name = "Rinkeby",
-    .unit = "TETH",
-};
-
-const app_eth_coin_params_t* app_eth_params_get(ETHCoin coin)
-{
-    switch (coin) {
-    case ETHCoin_ETH:
-        return &_params_eth;
-    case ETHCoin_RopstenETH:
-        return &_params_ropsten_eth;
-    case ETHCoin_RinkebyETH:
-        return &_params_rinkeby_eth;
-    default:
-        return NULL;
-    }
-}
-
 static const app_eth_erc20_params_t _ropsten_erc20_params[] = {
     {
         .name = "TEST",

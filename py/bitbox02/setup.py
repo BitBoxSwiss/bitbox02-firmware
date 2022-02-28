@@ -33,6 +33,15 @@ def find_version() -> str:
     raise RuntimeError("Version string not found")
 
 
+# Ethereum optional dependencies.
+optdep_eth = ["rlp>=2.0.1"]
+# All optional dependencies.
+# To add another one, define a variable above, add it to the extras_require
+# dict in setup and concatenate all lists here to also add it to the "all"
+# optional deps.
+optdep_all = optdep_eth
+
+
 setup(
     name="bitbox02",
     version=find_version(),
@@ -82,4 +91,8 @@ setup(
         "typing_extensions>=3.7.4",
         "base58>=2.0.0",
     ],
+    extras_require={
+        "ethereum": optdep_eth,
+        "all": optdep_all,
+    },
 )

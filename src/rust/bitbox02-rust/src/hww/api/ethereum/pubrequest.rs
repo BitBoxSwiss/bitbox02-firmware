@@ -26,7 +26,8 @@ use core::convert::TryInto;
 
 async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error> {
     let coin = pb::EthCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
-    let params = super::params::get(coin).ok_or(Error::InvalidInput)?;
+
+    let params = super::params::get(coin, request.chain_id).ok_or(Error::InvalidInput)?;
     // If a contract_address is provided, it has to be a supported ERC20-token.
     let erc20_params: Option<bitbox02::app_eth::ERC20Params> =
         if request.contract_address.is_empty() {
@@ -38,7 +39,7 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
                 .try_into()
                 .or(Err(Error::InvalidInput))?;
             Some(
-                bitbox02::app_eth::erc20_params_get(request.coin as _, address)
+                bitbox02::app_eth::erc20_params_get(params.chain_id, address)
                     .ok_or(Error::InvalidInput)?,
             )
         };
@@ -111,6 +112,7 @@ mod tests {
             coin: pb::EthCoin::Eth as _,
             display: false,
             contract_address: b"".to_vec(),
+            chain_id: 0,
         };
 
         // All good.
@@ -161,6 +163,7 @@ mod tests {
             coin: pb::EthCoin::Eth as _,
             display: false,
             contract_address: b"".to_vec(),
+            chain_id: 0,
         };
 
         // All good.
@@ -192,6 +195,7 @@ mod tests {
                 coin: pb::EthCoin::Eth as _,
                 display: true,
                 contract_address: b"".to_vec(),
+                chain_id: 0,
             })),
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
@@ -229,6 +233,7 @@ mod tests {
                 coin: pb::EthCoin::RopstenEth as _,
                 display: true,
                 contract_address: b"".to_vec(),
+                chain_id: 0,
             })),
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
@@ -248,6 +253,7 @@ mod tests {
                 coin: pb::EthCoin::Eth as _,
                 display: true,
                 contract_address: b"".to_vec(),
+                chain_id: 0,
             })),
             Err(Error::InvalidInput)
         );
@@ -285,6 +291,7 @@ mod tests {
                 coin: pb::EthCoin::Eth as _,
                 display: false,
                 contract_address: b"".to_vec(),
+                chain_id: 0,
             })),
             Err(Error::InvalidInput)
         );
@@ -302,6 +309,7 @@ mod tests {
             coin: pb::EthCoin::Eth as _,
             display: false,
             contract_address: CONTRACT_ADDRESS.to_vec(),
+            chain_id: 0,
         };
 
         // All good.
@@ -333,6 +341,7 @@ mod tests {
                 coin: pb::EthCoin::Eth as _,
                 display: true,
                 contract_address: CONTRACT_ADDRESS.to_vec(),
+                chain_id: 0,
             })),
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
@@ -350,6 +359,7 @@ mod tests {
                 coin: pb::EthCoin::Eth as _,
                 display: false,
                 contract_address: b"aaaaaaaaaaaaaaaaaaaa".to_vec(),
+                chain_id: 0,
             })),
             Err(Error::InvalidInput)
         );

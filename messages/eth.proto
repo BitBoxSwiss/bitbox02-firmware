@@ -26,6 +26,7 @@ enum ETHCoin {
 
 message ETHPubRequest {
   repeated uint32 keypath = 1;
+  // Deprecated: use chain_id instead.
   ETHCoin coin = 2;
   enum OutputType {
     ADDRESS = 0;
@@ -34,9 +35,12 @@ message ETHPubRequest {
   OutputType output_type = 3;
   bool display = 4;
   bytes contract_address = 5;
+  // If non-zero, `coin` is ignored and `chain_id` is used to identify the network.
+  uint64 chain_id = 6;
 }
 
 message ETHSignRequest {
+  // Deprecated: use chain_id instead.
   ETHCoin coin = 1;
   repeated uint32 keypath = 2;
   bytes nonce = 3; // smallest big endian serialization, max. 16 bytes
@@ -46,13 +50,18 @@ message ETHSignRequest {
   bytes value = 7; // smallest big endian serialization, max. 32 bytes
   bytes data = 8;
   AntiKleptoHostNonceCommitment host_nonce_commitment = 9;
+  // If non-zero, `coin` is ignored and `chain_id` is used to identify the network.
+  uint64 chain_id = 10;
 }
 
 message ETHSignMessageRequest {
+  // Deprecated: use chain_id instead.
   ETHCoin coin = 1;
   repeated uint32 keypath = 2;
   bytes msg = 3;
   AntiKleptoHostNonceCommitment host_nonce_commitment = 4;
+  // If non-zero, `coin` is ignored and `chain_id` is used to identify the network.
+  uint64 chain_id = 5;
 }
 
 message ETHSignResponse {

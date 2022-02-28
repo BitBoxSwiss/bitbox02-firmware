@@ -21,12 +21,9 @@ pub struct ERC20Params {
     pub decimals: u8,
 }
 
-pub fn erc20_params_get(
-    coin: bitbox02_sys::ETHCoin,
-    contract_address: [u8; 20],
-) -> Option<ERC20Params> {
+pub fn erc20_params_get(chain_id: u64, contract_address: [u8; 20]) -> Option<ERC20Params> {
     let params = unsafe {
-        bitbox02_sys::app_eth_erc20_params_get(coin, contract_address.as_ptr()).as_ref()?
+        bitbox02_sys::app_eth_erc20_params_get(chain_id, contract_address.as_ptr()).as_ref()?
     };
     Some(ERC20Params {
         unit: {

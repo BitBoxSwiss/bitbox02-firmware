@@ -702,6 +702,7 @@ pub enum CardanoNetwork {
 pub struct EthPubRequest {
     #[prost(uint32, repeated, tag="1")]
     pub keypath: ::prost::alloc::vec::Vec<u32>,
+    /// Deprecated: use chain_id instead.
     #[prost(enumeration="EthCoin", tag="2")]
     pub coin: i32,
     #[prost(enumeration="eth_pub_request::OutputType", tag="3")]
@@ -710,6 +711,9 @@ pub struct EthPubRequest {
     pub display: bool,
     #[prost(bytes="vec", tag="5")]
     pub contract_address: ::prost::alloc::vec::Vec<u8>,
+    /// If non-zero, `coin` is ignored and `chain_id` is used to identify the network.
+    #[prost(uint64, tag="6")]
+    pub chain_id: u64,
 }
 /// Nested message and enum types in `ETHPubRequest`.
 pub mod eth_pub_request {
@@ -722,6 +726,7 @@ pub mod eth_pub_request {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EthSignRequest {
+    /// Deprecated: use chain_id instead.
     #[prost(enumeration="EthCoin", tag="1")]
     pub coin: i32,
     #[prost(uint32, repeated, tag="2")]
@@ -745,9 +750,13 @@ pub struct EthSignRequest {
     pub data: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag="9")]
     pub host_nonce_commitment: ::core::option::Option<AntiKleptoHostNonceCommitment>,
+    /// If non-zero, `coin` is ignored and `chain_id` is used to identify the network.
+    #[prost(uint64, tag="10")]
+    pub chain_id: u64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EthSignMessageRequest {
+    /// Deprecated: use chain_id instead.
     #[prost(enumeration="EthCoin", tag="1")]
     pub coin: i32,
     #[prost(uint32, repeated, tag="2")]
@@ -756,6 +765,9 @@ pub struct EthSignMessageRequest {
     pub msg: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag="4")]
     pub host_nonce_commitment: ::core::option::Option<AntiKleptoHostNonceCommitment>,
+    /// If non-zero, `coin` is ignored and `chain_id` is used to identify the network.
+    #[prost(uint64, tag="5")]
+    pub chain_id: u64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EthSignResponse {

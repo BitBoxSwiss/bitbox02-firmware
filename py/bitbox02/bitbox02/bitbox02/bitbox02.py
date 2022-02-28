@@ -716,10 +716,20 @@ class BitBox02(BitBoxCommonAPI):
             )
         return eth_response
 
+    def _eth_coin(self, chain_id: int) -> "eth.ETHCoin.V":
+        """Returns the deprecated `coin` enum value for a given chain_id. Only ETH, Ropsten and Rinkeby are converted, as these were the only supported networks up to v9.10.0. With v9.10.0, the chain ID is passed directly, and the `coin` field is ignored."""
+        if self.version < semver.VersionInfo(9, 10, 0):
+            return {
+                1: eth.ETHCoin.ETH,
+                3: eth.ETHCoin.RopstenETH,
+                4: eth.ETHCoin.RinkebyETH,
+            }[chain_id]
+        return eth.ETHCoin.ETH
+
     def eth_pub(
         self,
         keypath: Sequence[int],
-        coin: "eth.ETHCoin.V" = eth.ETH,
+        chain_id: int = 1,
         output_type: "eth.ETHPubRequest.OutputType.V" = eth.ETHPubRequest.ADDRESS,
         display: bool = True,
         contract_address: bytes = b"",
@@ -732,7 +742,8 @@ class BitBox02(BitBoxCommonAPI):
         request = eth.ETHRequest()
         request.pub.CopyFrom(
             eth.ETHPubRequest(
-                coin=coin,
+                coin=self._eth_coin(chain_id),
+                chain_id=chain_id,
                 keypath=keypath,
                 output_type=output_type,
                 display=display,
@@ -741,9 +752,7 @@ class BitBox02(BitBoxCommonAPI):
         )
         return self._eth_msg_query(request, expected_response="pub").pub.pub
 
-    def eth_sign(
-        self, transaction: bytes, keypath: Sequence[int], coin: "eth.ETHCoin.V" = eth.ETH
-    ) -> bytes:
+    def eth_sign(self, transaction: bytes, keypath: Sequence[int], chain_id: int = 1) -> bytes:
         """
         transaction should be given as a full rlp encoded eth transaction.
         """
@@ -752,7 +761,8 @@ class BitBox02(BitBoxCommonAPI):
         # pylint: disable=no-member
         request.sign.CopyFrom(
             eth.ETHSignRequest(
-                coin=coin,
+                coin=self._eth_coin(chain_id),
+                chain_id=chain_id,
                 keypath=keypath,
                 nonce=nonce,
                 gas_price=gas_price,
@@ -787,9 +797,7 @@ class BitBox02(BitBoxCommonAPI):
 
         return self._eth_msg_query(request, expected_response="sign").sign.signature
 
-    def eth_sign_msg(
-        self, msg: bytes, keypath: Sequence[int], coin: "eth.ETHCoin.V" = eth.ETH
-    ) -> bytes:
+    def eth_sign_msg(self, msg: bytes, keypath: Sequence[int], chain_id: int = 1) -> bytes:
         """
         Signs message, the msg will be prefixed with "\x19Ethereum message\n" + len(msg) in the
         hardware. 27 is added to the recID to denote an uncompressed pubkey.
@@ -804,7 +812,11 @@ class BitBox02(BitBoxCommonAPI):
 
         request = eth.ETHRequest()
         # pylint: disable=no-member
-        request.sign_msg.CopyFrom(eth.ETHSignMessageRequest(coin=coin, keypath=keypath, msg=msg))
+        request.sign_msg.CopyFrom(
+            eth.ETHSignMessageRequest(
+                coin=self._eth_coin(chain_id), chain_id=chain_id, keypath=keypath, msg=msg
+            )
+        )
 
         supports_antiklepto = self.version >= semver.VersionInfo(9, 5, 0)
         if supports_antiklepto:

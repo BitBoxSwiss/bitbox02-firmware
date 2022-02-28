@@ -17,6 +17,8 @@
 
 #include <hww.pb.h>
 
+#include <stdint.h>
+
 typedef struct {
     const char* unit;
     const char* name;
@@ -25,12 +27,12 @@ typedef struct {
 } app_eth_erc20_params_t;
 
 /**
- * @param[in] coin where the the token lives.
+ * @param[in] chain_id chain ID of the network where the the token lives.
  * @param[in] contract_address 20 bytes erc20 token contract address.
  * @return pointer to static erc20 params on success. NULL if the contract address is unknown.
  */
 const app_eth_erc20_params_t* app_eth_erc20_params_get(
-    ETHCoin coin,
+    uint64_t chain_id,
     const uint8_t* contract_address);
 
 #endif

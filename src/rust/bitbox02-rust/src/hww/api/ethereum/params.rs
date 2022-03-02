@@ -62,9 +62,30 @@ const PARAMS: &[Params] = &[
     Params {
         coin: None,
         bip44_coin: 60 + HARDENED,
+        chain_id: 10,
+        name: "Optimism",
+        unit: "OETH",
+    },
+    Params {
+        coin: None,
+        bip44_coin: 60 + HARDENED,
         chain_id: 137,
         name: "Polygon",
         unit: "MATIC",
+    },
+    Params {
+        coin: None,
+        bip44_coin: 60 + HARDENED,
+        chain_id: 250,
+        name: "Fanton Opera",
+        unit: "FTM",
+    },
+    Params {
+        coin: None,
+        bip44_coin: 60 + HARDENED,
+        chain_id: 42161,
+        name: "Arbitrum One",
+        unit: "AETH",
     },
 ];
 

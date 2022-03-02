@@ -27,7 +27,7 @@ use core::convert::TryInto;
 async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error> {
     let coin = pb::EthCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
 
-    let params = super::params::get(coin, request.chain_id).ok_or(Error::InvalidInput)?;
+    let params = super::params::get_and_warn_unknown(coin, request.chain_id).await?;
     // If a contract_address is provided, it has to be a supported ERC20-token.
     let erc20_params: Option<bitbox02::app_eth::ERC20Params> =
         if request.contract_address.is_empty() {
@@ -56,15 +56,15 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
             Some(erc20_params) => erc20_params.name,
             None => params.name,
         };
-        super::keypath::warn_unusual_keypath(params, title, &request.keypath).await?;
-        let params = confirm::Params {
+        super::keypath::warn_unusual_keypath(&params, title, &request.keypath).await?;
+        confirm::confirm(&confirm::Params {
             title,
             title_autowrap: true,
             body: &address,
             scrollable: true,
             ..Default::default()
-        };
-        confirm::confirm(&params).await?;
+        })
+        .await?;
     }
 
     Ok(Response::Pub(pb::PubResponse { r#pub: address }))

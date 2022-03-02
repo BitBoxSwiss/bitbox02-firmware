@@ -747,9 +747,16 @@ class SendMessage:
         # pylint: disable=line-too-long
 
         inp = input(
-            "Select one of: 1=normal; 2=erc20; 3=erc721; 4=unknown erc20; 5=large data field: "
+            "Select one of: 1=normal; 2=erc20; 3=erc721; 4=unknown erc20; 5=large data field; 6=BSC; 7=unknown network: "
         ).strip()
-        if inp == "1":
+
+        chain_id = 1  # mainnet
+        if inp == "6":
+            chain_id = 56
+        elif inp == "7":
+            chain_id = 123456
+
+        if inp in ("1", "6", "7"):
             # fmt: off
             tx = bytes([0xf8, 0x6e, 0x82, 0x1f, 0xdc, 0x85, 0x01, 0x65, 0xa0, 0xbc, 0x00, 0x82, 0x52,
             0x08, 0x94, 0x04, 0xf2, 0x64, 0xcf, 0x34, 0x44, 0x03, 0x13, 0xb4, 0xa0, 0x19, 0x2a,
@@ -783,7 +790,9 @@ class SendMessage:
 
         try:
             sig = self._device.eth_sign(
-                tx, keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0]
+                tx,
+                keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
+                chain_id=chain_id,
             )
             print("Signature: {}".format(sig.hex()))
         except UserAbortException:

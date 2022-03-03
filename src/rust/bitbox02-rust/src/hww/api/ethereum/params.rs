@@ -13,10 +13,14 @@
 // limitations under the License.
 
 use super::pb;
+use super::Error;
 use pb::EthCoin;
+
+use crate::workflow::confirm;
 
 use util::bip32::HARDENED;
 
+#[derive(Copy, Clone)]
 pub struct Params {
     /// Used until v9.10.0 and kept for backwards compatibility. From v9.10.0, `chain_id` is used to
     /// identify the network.
@@ -62,14 +66,35 @@ const PARAMS: &[Params] = &[
     Params {
         coin: None,
         bip44_coin: 60 + HARDENED,
+        chain_id: 10,
+        name: "Optimism",
+        unit: "OETH",
+    },
+    Params {
+        coin: None,
+        bip44_coin: 60 + HARDENED,
         chain_id: 137,
         name: "Polygon",
         unit: "MATIC",
     },
+    Params {
+        coin: None,
+        bip44_coin: 60 + HARDENED,
+        chain_id: 250,
+        name: "Fanton Opera",
+        unit: "FTM",
+    },
+    Params {
+        coin: None,
+        bip44_coin: 60 + HARDENED,
+        chain_id: 42161,
+        name: "Arbitrum One",
+        unit: "AETH",
+    },
 ];
 
 /// Get the chain parameters by `coin` or `chain_id`. If `chain_id` is non-zero, `coin` is ignored.
-pub fn get(coin: EthCoin, chain_id: u64) -> Option<&'static Params> {
+fn get(coin: EthCoin, chain_id: u64) -> Option<&'static Params> {
     PARAMS.iter().find(|p| {
         if chain_id > 0 {
             p.chain_id == chain_id
@@ -77,6 +102,45 @@ pub fn get(coin: EthCoin, chain_id: u64) -> Option<&'static Params> {
             p.coin == Some(coin)
         }
     })
+}
+
+/// Get the chain parameters by `coin` or `chain_id`. If `chain_id` is non-zero, `coin` is
+/// ignored.
+///
+/// If no params could be found and `chain_id` is non-zero, the user is asked to confirm the chain
+/// ID, and params with this chain ID and "UNKNOWN" name is returned. The main reason for this is
+/// that users can rescue funds sent on an unsupported network.
+pub async fn get_and_warn_unknown(coin: EthCoin, chain_id: u64) -> Result<Params, Error> {
+    match get(coin, chain_id) {
+        Some(params) => Ok(*params),
+        None => {
+            if chain_id == 0 {
+                Err(Error::InvalidInput)
+            } else {
+                confirm::confirm(&confirm::Params {
+                    title: "Warning",
+                    body: &format!("Unknown network\nwith chain ID:\n{}", chain_id),
+                    accept_is_nextarrow: true,
+                    ..Default::default()
+                })
+                .await?;
+                confirm::confirm(&confirm::Params {
+                    title: "Warning",
+                    body: "Only proceed if\nyou recognize\nthis chain ID.",
+                    accept_is_nextarrow: true,
+                    ..Default::default()
+                })
+                .await?;
+                Ok(Params {
+                    coin: None,
+                    bip44_coin: 60 + HARDENED,
+                    chain_id,
+                    name: "UNKNOWN",
+                    unit: "",
+                })
+            }
+        }
+    }
 }
 
 #[cfg(test)]

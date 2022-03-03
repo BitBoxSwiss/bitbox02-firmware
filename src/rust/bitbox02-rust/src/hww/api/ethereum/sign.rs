@@ -184,12 +184,12 @@ async fn verify_standard_transaction(
 /// Verify and sign an Ethereum transaction.
 pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
     let coin = pb::EthCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
-    let params = super::params::get(coin, request.chain_id).ok_or(Error::InvalidInput)?;
+    let params = super::params::get_and_warn_unknown(coin, request.chain_id).await?;
 
     if !super::keypath::is_valid_keypath_address(&request.keypath) {
         return Err(Error::InvalidInput);
     }
-    super::keypath::warn_unusual_keypath(params, params.name, &request.keypath).await?;
+    super::keypath::warn_unusual_keypath(&params, params.name, &request.keypath).await?;
 
     // Size limits.
     if request.nonce.len() > 16
@@ -222,9 +222,9 @@ pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
     }
 
     let verification_result = if let Some((erc20_recipient, erc20_value)) = parse_erc20(request) {
-        verify_erc20_transaction(request, params, erc20_recipient, erc20_value).await
+        verify_erc20_transaction(request, &params, erc20_recipient, erc20_value).await
     } else {
-        verify_standard_transaction(request, params).await
+        verify_standard_transaction(request, &params).await
     };
     match verification_result {
         Ok(()) => status::status("Transaction\nconfirmed", true).await,
@@ -685,5 +685,83 @@ mod tests {
             });
             assert_eq!(block_on(process(&valid_request)), Err(Error::Generic));
         }
+    }
+
+    /// Unknown chain ID (network params not hardcoded in in the firmware).
+    #[test]
+    pub fn test_process_unknown_network() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+
+        static mut CONFIRM_COUNTER: u32 = 0;
+
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(params.title, "Warning");
+                        assert_eq!(params.body, "Unknown network\nwith chain ID:\n12345");
+                        true
+                    }
+                    2 => {
+                        assert_eq!(params.title, "Warning");
+                        assert_eq!(
+                            params.body,
+                            "Only proceed if\nyou recognize\nthis chain ID."
+                        );
+                        true
+                    }
+                    _ => panic!("unexpected user confirmation"),
+                }
+            })),
+            ui_transaction_address_create: Some(Box::new(|amount, address| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    3 => {
+                        assert_eq!(amount, "0.530564 ");
+                        assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
+                        true
+                    }
+                    _ => panic!("unexpected user confirmation"),
+                }
+            })),
+            ui_transaction_fee_create: Some(Box::new(|total, fee| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    4 => {
+                        assert_eq!(total, "0.53069 ");
+                        assert_eq!(fee, "0.000126 ");
+                        true
+                    }
+                    _ => panic!("unexpected user confirmation"),
+                }
+            })),
+            ..Default::default()
+        });
+        mock_unlocked();
+        assert_eq!(
+            block_on(process(&pb::EthSignRequest {
+                coin: pb::EthCoin::Eth as _,
+                keypath: KEYPATH.to_vec(),
+                nonce: b"\x1f\xdc".to_vec(),
+                gas_price: b"\x01\x65\xa0\xbc\x00".to_vec(),
+                gas_limit: b"\x52\x08".to_vec(),
+                recipient: b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85".to_vec(),
+                value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+                data: b"".to_vec(),
+                host_nonce_commitment: None,
+                chain_id: 12345,
+            })),
+            Ok(Response::Sign(pb::EthSignResponse {
+                signature: b"\xb1\xb6\xb3\x4e\x15\xa0\x30\x9d\xdc\x26\x03\xdf\x4c\x40\x38\xea\x86\x65\xed\x85\xd3\xf2\xc8\x1e\x7f\x1a\xa0\x25\x4b\x21\x38\x72\x0d\x60\x1f\x42\x19\xfb\x29\xab\x3d\x5f\xf7\x76\xea\xe1\xbe\x15\x26\xb4\x67\xe2\xb0\xe6\x30\xe8\xe6\x34\xa4\xda\x4a\x82\x2e\x39\x00".to_vec()
+            }))
+        );
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 4);
     }
 }

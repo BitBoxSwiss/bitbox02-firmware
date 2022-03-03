@@ -9,6 +9,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ### [Unreleased]
 
 - Bitcoin: add support for BIP-86: receive to taproot addresses and sign transactions with taproot inputs
+- Ethereum: add support for the Binance Smart Chain, Optimism, Polygon, Fantom Opera and Arbitrum One networks
 
 ### 9.9.1 [2022-02-07]
 

@@ -58,7 +58,7 @@ dockerdev () {
 
     # Use same user/group id as on the host, so that files are not created as root in the mounted
     # volume.
-    docker exec -it "$CONTAINER_NAME" groupadd -g "$(id -g)" dockergroup
+    docker exec -it "$CONTAINER_NAME" groupadd -o -g "$(id -g)" dockergroup
     docker exec -it "$CONTAINER_NAME" useradd -u "$(id -u)" -m -g dockergroup dockeruser
 
     # Call a second time to enter the container.

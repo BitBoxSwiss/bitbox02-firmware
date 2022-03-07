@@ -8,11 +8,11 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 
+### 9.10.0 [2022-03-10]
 - Bitcoin: add support for BIP-86: receive to taproot addresses and sign transactions with taproot inputs
 - Ethereum: add support for the Binance Smart Chain, Optimism, Polygon, Fantom Opera and Arbitrum One networks
 
 ### 9.9.1 [2022-02-07]
-
 - Cardano: support sending to legacy Byron addresses
 - Cardano: disallow duplicate token keys in an output
 

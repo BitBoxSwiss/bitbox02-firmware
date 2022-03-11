@@ -462,6 +462,15 @@ print(hashlib.sha256(b''.join(msg)).hexdigest())
         "\xa0\xbd\x88\x6f\x6d\xec\xf9\xe4\xb8\x45",
         sizeof(hash));
 
+    BTCScriptConfig_Multisig multisig_p2sh = multisig;
+    multisig_p2sh.script_type = BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH;
+    assert_true(btc_common_multisig_hash_unsorted(BTCCoin_BTC, &multisig_p2sh, keypath, 4, hash));
+    assert_memory_equal(
+        hash,
+        "\x24\x51\x31\x14\xc3\x6f\x5c\x1f\x82\xd7\xb3\x0c\x14\x31\xfa\xd2\x48\xd0\x62\xdf\xa1\x33"
+        "\xd0\xf5\x2c\xa8\x57\x08\xb5\xa3\xfc\x2c",
+        sizeof(hash));
+
     assert_false(btc_common_multisig_hash_unsorted(_BTCCoin_MAX + 1, &multisig, keypath, 4, hash));
 
     // Test that the hash is correct, and the same for all xpubs permutations if xpubs sort is

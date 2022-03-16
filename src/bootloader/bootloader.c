@@ -23,6 +23,7 @@
 #include <qtouch/qtouch.h>
 #endif
 #include <flags.h>
+#include <memory/memory_shared.h>
 #include <memory/nvmctrl.h>
 #include <pukcc/curve_p256.h>
 #include <screen.h>
@@ -124,14 +125,6 @@ typedef union {
     uint8_t bytes[FLASH_BOOTDATA_LEN];
 } boot_data_t;
 
-typedef union {
-    // If changed, also need to change memory.c
-    struct __attribute__((__packed__)) {
-        uint8_t auto_enter;
-        uint8_t upside_down;
-    } fields;
-    uint8_t bytes[FLASH_SHARED_DATA_LEN];
-} shared_data_t;
 #pragma GCC diagnostic pop
 // Be sure to not overflow boot data area
 #if (                                                                            \
@@ -793,8 +786,8 @@ static size_t _api_versions(uint8_t* output)
 
 static void _api_reboot(void)
 {
-    shared_data_t shared_data;
-    memcpy(shared_data.bytes, (uint8_t*)(FLASH_SHARED_DATA_START), FLASH_SHARED_DATA_LEN);
+    chunk_shared_t shared_data;
+    memory_read_shared_bootdata(&shared_data);
     if (shared_data.fields.auto_enter == sectrue_u8) {
         shared_data.fields.auto_enter = secfalse_u8;
         _write_chunk(FLASH_SHARED_DATA_START, shared_data.bytes);
@@ -978,10 +971,10 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
 void bootloader_jump(void)
 {
     boot_data_t bootdata;
-    shared_data_t shared_data;
+    chunk_shared_t shared_data;
 
     memcpy(bootdata.bytes, (uint8_t*)(FLASH_BOOTDATA_START), FLASH_BOOTDATA_LEN);
-    memcpy(shared_data.bytes, (uint8_t*)(FLASH_SHARED_DATA_START), FLASH_SHARED_DATA_LEN);
+    memory_read_shared_bootdata(&shared_data);
 
     _check_init(&bootdata);
 

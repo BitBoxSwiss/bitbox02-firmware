@@ -20,7 +20,7 @@ pub(super) mod error;
 mod ethereum;
 
 #[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
-mod bitcoin;
+pub mod bitcoin;
 
 #[cfg(feature = "app-cardano")]
 mod cardano;

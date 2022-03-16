@@ -15,9 +15,10 @@
 use super::pb;
 use super::Error;
 
+use super::common::format_amount;
 use super::script::serialize_varint;
+use super::{bip143, bip341, keypath};
 
-use crate::apps::bitcoin::{bip143, bip341, keypath};
 use crate::workflow::{confirm, status, transaction};
 
 use alloc::vec::Vec;
@@ -577,7 +578,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                     .or(Err(Error::InvalidInput))?;
             transaction::verify_recipient(
                 &address,
-                &crate::apps::bitcoin::util::format_amount(tx_output.value, coin_params.unit),
+                &format_amount(tx_output.value, coin_params.unit),
             )
             .await?;
         }
@@ -647,8 +648,8 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         .checked_sub(outputs_sum_out)
         .ok_or(Error::InvalidInput)?;
     transaction::verify_total_fee(
-        &crate::apps::bitcoin::util::format_amount(total_out, coin_params.unit),
-        &crate::apps::bitcoin::util::format_amount(fee, coin_params.unit),
+        &format_amount(total_out, coin_params.unit),
+        &format_amount(fee, coin_params.unit),
     )
     .await?;
     status::status("Transaction\nconfirmed", true).await;

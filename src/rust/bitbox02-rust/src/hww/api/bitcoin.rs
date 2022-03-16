@@ -15,7 +15,10 @@
 #[cfg(not(feature = "app-bitcoin"))]
 compile_error!("Bitcoin code is being compiled even though the app-bitcoin feature is not enabled");
 
+mod bip143;
+mod bip341;
 mod common;
+pub mod keypath;
 mod params;
 mod script;
 pub mod signmsg;
@@ -24,7 +27,6 @@ pub mod signtx;
 use super::pb;
 use super::Error;
 
-use crate::apps::bitcoin;
 use crate::workflow::confirm;
 
 use util::bip32::HARDENED;
@@ -98,7 +100,7 @@ async fn xpub(
     display: bool,
 ) -> Result<Response, Error> {
     let params = params::get(coin);
-    bitcoin::keypath::validate_xpub(keypath, params.bip44_coin, params.taproot_support)?;
+    keypath::validate_xpub(keypath, params.bip44_coin, params.taproot_support)?;
     let xpub_type = match xpub_type {
         XPubType::Tpub => xpub_type_t::TPUB,
         XPubType::Xpub => xpub_type_t::XPUB,

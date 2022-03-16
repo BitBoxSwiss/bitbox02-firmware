@@ -101,6 +101,7 @@ impl<'a> ConfirmParams<'a> {
     }
 }
 
+#[derive(Default)]
 pub struct TrinaryInputStringParams<'a> {
     /// The confirmation title of the screen. Max 200 chars, otherwise **panic**.
     pub title: &'a str,
@@ -110,19 +111,6 @@ pub struct TrinaryInputStringParams<'a> {
     pub special_chars: bool,
     pub longtouch: bool,
     pub cancel_is_backbutton: bool,
-}
-
-impl<'a> core::default::Default for TrinaryInputStringParams<'a> {
-    fn default() -> Self {
-        TrinaryInputStringParams {
-            title: "",
-            wordlist: None,
-            hide: false,
-            special_chars: false,
-            longtouch: false,
-            cancel_is_backbutton: false,
-        }
-    }
 }
 
 impl<'a> TrinaryInputStringParams<'a> {

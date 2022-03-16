@@ -36,8 +36,8 @@ pub enum UsbResponse {
 #[no_mangle]
 pub unsafe extern "C" fn rust_async_usb_copy_response(out: *mut bitbox02::buffer_t) -> UsbResponse {
     use bitbox02_rust::async_usb::{copy_response, CopyResponseErr};
-    let mut dst = core::slice::from_raw_parts_mut((*out).data, (*out).max_len as usize);
-    match copy_response(&mut dst) {
+    let dst = core::slice::from_raw_parts_mut((*out).data, (*out).max_len as usize);
+    match copy_response(dst) {
         Ok(len) => {
             (*out).len = len as _;
             UsbResponse::UsbResponseAck

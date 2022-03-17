@@ -147,11 +147,6 @@ void memory_get_authorization_key(uint8_t* key_out);
 void memory_get_encryption_key(uint8_t* key_out);
 
 /**
- * @return true if the attestation setup has been completed.
- */
-USE_RESULT bool memory_is_attestation_setup_done(void);
-
-/**
  * Persists the given attestation device pubkey.
  * @param[in] attestation_device_pubkey P256 NIST ECC pubkey (X and Y coordinates).
  * @return false if there was a write error or if the attestation setup was

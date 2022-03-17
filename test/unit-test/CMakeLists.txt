@@ -254,7 +254,7 @@ set(TEST_LIST
    memory
    "-Wl,--wrap=memory_read_chunk_mock,--wrap=memory_write_chunk_mock,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_mock,--wrap=memory_write_to_address_mock"
    memory_functional
-   "-Wl,--wrap=memory_write_chunk_mock,--wrap=memory_read_chunk_mock"
+   ""
    salt
    "-Wl,--wrap=memory_get_salt_root"
    backup

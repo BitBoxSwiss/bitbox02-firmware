@@ -18,31 +18,11 @@
 #include <cmocka.h>
 
 #include <memory/memory.h>
-
-#define CHUNK_SIZE (8 * 1024)
-#define NUM_CHUNKS (3)
-
-static uint8_t _memory[CHUNK_SIZE * NUM_CHUNKS];
-
-bool __wrap_memory_write_chunk_mock(uint32_t chunk_num, uint8_t* chunk)
-{
-    memcpy(&_memory[chunk_num * CHUNK_SIZE], chunk, CHUNK_SIZE);
-    return true;
-}
-
-void __wrap_memory_read_chunk_mock(uint32_t chunk_num, uint8_t* chunk_out)
-{
-    memcpy(chunk_out, &_memory[chunk_num * CHUNK_SIZE], CHUNK_SIZE);
-}
-
-static void _reset_memory(void)
-{
-    memset(_memory, 0xFF, sizeof(_memory));
-}
+#include <mock_memory.h>
 
 static void _test_memory_multisig(void** state)
 {
-    _reset_memory();
+    mock_memory_factoryreset();
 
     const uint8_t hashes[][32] = {
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -103,7 +83,7 @@ static void _test_memory_multisig_invalid(void** state)
 
 static void _test_memory_multisig_full(void** state)
 {
-    _reset_memory();
+    mock_memory_factoryreset();
     // Only 25 slots available.
     const size_t limit = 25;
     uint8_t hashes[limit + 1][32];

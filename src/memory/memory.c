@@ -567,7 +567,10 @@ void memory_get_encryption_key(uint8_t* key_out)
     }
 }
 
-bool memory_is_attestation_setup_done(void)
+/**
+ * @return true if the attestation setup has been completed.
+ */
+static bool _is_attestation_setup_done(void)
 {
     chunk_0_t chunk = {0};
     CLEANUP_CHUNK(chunk);
@@ -608,7 +611,7 @@ bool memory_get_attestation_pubkey_and_certificate(
     uint8_t* certificate_out,
     uint8_t* root_pubkey_identifier_out)
 {
-    if (!memory_is_attestation_setup_done()) {
+    if (!_is_attestation_setup_done()) {
         return false;
     }
     chunk_0_t chunk = {0};

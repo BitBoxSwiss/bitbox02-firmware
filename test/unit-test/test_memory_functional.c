@@ -141,6 +141,79 @@ static void _test_memory_attestation(void** state)
         root_pubkey_identifier, expected_root_pubkey_identifier, sizeof(root_pubkey_identifier));
 }
 
+void _memory_setup_rand_mock(uint8_t* buf_out)
+{
+    static uint8_t ctr = 0;
+    static uint8_t fixtures[][32] = {
+        // salt root
+        "\xbd\xb9\xca\x49\x75\xe5\x9e\x1b\x61\xd9\x14\x1c\x5e\x79\x68\x8c\xba\x7b\x39\x89\xb5\x2b"
+        "\x78\x2d\xe2\xe7\xe4\x9b\x07\xec\x8f\xae",
+        // io_protection_key
+        "\x28\x30\x9e\x5a\x2e\x3b\xcf\x4a\xac\x94\xc0\xe5\x90\x10\xfa\x34\x92\xe1\x08\x39\xef\xb5"
+        "\xb6\x61\x92\xad\x18\xf6\x6a\x80\x51\x0b",
+        // io_protection_key_split
+        "\xae\x5b\xe4\x4d\x8b\x71\xa6\x04\x1a\x7e\x97\x33\xe5\x5f\x8c\x88\xb7\x9d\xd5\x52\x10\x76"
+        "\x24\xe0\xa9\x16\xc1\x0d\x87\x55\xe0\x4e",
+        // authorization_key
+        "\x62\xc7\x41\xd9\xce\x78\x32\xe8\x56\xec\x06\xf6\x35\x1c\xef\xcd\x9e\x7c\x5c\xa6\x07\x93"
+        "\x8a\xbb\x70\x97\x70\xa5\xf2\xdb\xeb\xcb",
+        // authorization_key_split
+        "\x20\x74\x2d\x5a\x58\x2f\x1f\x25\xb6\xe9\xd1\xc1\xe8\xb1\xef\xfb\x40\xcf\xac\x85\x56\x67"
+        "\xea\x7f\x49\x96\x8a\xf7\xf7\xeb\x5c\x19",
+        // encryption_key
+        "\xed\x18\x37\x84\xcb\xd2\x97\xf9\xc2\xc2\x41\xd0\xdd\x7c\xd1\x6d\x62\x36\x6c\x44\xb8\x33"
+        "\xdd\xf2\xc0\x12\xfb\x4b\x49\xe1\xe8\xf3",
+        // encryption_key_split
+        "\x19\xf6\x0e\xe8\x25\xe7\x52\x15\x0d\x30\x88\x17\x34\x8c\x0f\xa6\xb3\xfe\x4f\x60\x4c\x85"
+        "\xc1\x7e\x2e\xb9\x7a\xda\x60\x4a\x47\x6f",
+    };
+    memcpy(buf_out, fixtures[ctr], 32);
+    ctr++;
+}
+
+// Test a series of write/read operations
+static void _test_functional(void** state)
+{
+    mock_memory_factoryreset();
+
+    memory_interface_functions_t ifs = {
+        .random_32_bytes = _memory_setup_rand_mock,
+    };
+    assert_true(memory_setup(&ifs));
+
+    uint8_t io_protection_key[32];
+    const uint8_t expected_io_protection_key[32] =
+        "\x86\x6b\x7a\x17\xa5\x4a\x69\x4e\xb6\xea\x57\xd6\x75\x4f\x76\xbc\x25\x7c\xdd\x6b\xff\xc3"
+        "\x92\x81\x3b\xbb\xd9\xfb\xed\xd5\xb1\x45";
+    memory_get_io_protection_key(io_protection_key);
+    assert_memory_equal(io_protection_key, expected_io_protection_key, sizeof(io_protection_key));
+
+    uint8_t authorization_key[32];
+    const uint8_t expected_authorization_key[32] =
+        "\x42\xb3\x6c\x83\x96\x57\x2d\xcd\xe0\x05\xd7\x37\xdd\xad\x00\x36\xde\xb3\xf0\x23\x51\xf4"
+        "\x60\xc4\x39\x01\xfa\x52\x05\x30\xb7\xd2";
+    memory_get_authorization_key(authorization_key);
+    assert_memory_equal(authorization_key, expected_authorization_key, sizeof(authorization_key));
+
+    uint8_t encryption_key[32];
+    const uint8_t expected_encryption_key[32] =
+        "\xf4\xee\x39\x6c\xee\x35\xc5\xec\xcf\xf2\xc9\xc7\xe9\xf0\xde\xcb\xd1\xc8\x23\x24\xf4\xb6"
+        "\x1c\x8c\xee\xab\x81\x91\x29\xab\xaf\x9c";
+    memory_get_encryption_key(encryption_key);
+    assert_memory_equal(encryption_key, expected_encryption_key, sizeof(encryption_key));
+
+    // Run again, shouldn't do anything. Secure chip keys unchanged.
+    assert_true(memory_setup(&ifs));
+    // Other operations modifying the same memory chunk shouldn't change the secure chip keys.
+    auto_enter_t autoenter = {.value = secfalse_u8};
+    upside_down_t upside_down = {.value = true};
+    assert_true(memory_bootloader_set_flags(autoenter, upside_down));
+
+    assert_memory_equal(io_protection_key, expected_io_protection_key, sizeof(io_protection_key));
+    assert_memory_equal(authorization_key, expected_authorization_key, sizeof(authorization_key));
+    assert_memory_equal(encryption_key, expected_encryption_key, sizeof(encryption_key));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -148,6 +221,7 @@ int main(void)
         cmocka_unit_test(_test_memory_multisig_invalid),
         cmocka_unit_test(_test_memory_multisig_full),
         cmocka_unit_test(_test_memory_attestation),
+        cmocka_unit_test(_test_functional),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

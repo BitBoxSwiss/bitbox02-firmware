@@ -15,30 +15,27 @@
 use crate::workflow::confirm;
 pub use confirm::UserAbort;
 
-use arrayvec::ArrayString;
-use core::fmt::Write;
+use alloc::string::String;
 
-pub async fn confirm(hash: &[u8; 32]) -> Result<(), UserAbort> {
+/// Format a pairing hash to a format that is easy for humans to visually compare.
+pub fn format_hash(hash: &[u8; 32]) -> String {
     let mut encoded = [0u8; 60];
     let encoded = binascii::b32encode(&hash[..], &mut encoded).unwrap();
-
     // Base32 contains only utf-8 valid chars. unwrap is safe
     let encoded = core::str::from_utf8(encoded).expect("invalid utf-8");
-    let mut formatted = ArrayString::<[_; 23]>::new();
-
-    write!(
-        formatted,
+    format!(
         "{} {}\n{} {}",
         &encoded[0..5],
         &encoded[5..10],
         &encoded[10..15],
         &encoded[15..20]
     )
-    .expect("failed to format");
+}
 
+pub async fn confirm(hash: &[u8; 32]) -> Result<(), UserAbort> {
     let params = confirm::Params {
         title: "Pairing code",
-        body: &formatted,
+        body: &format_hash(hash),
         font: confirm::Font::Monogram5X9,
         ..Default::default()
     };

@@ -24,6 +24,7 @@
 extern crate std;
 
 mod noise_xx;
+pub mod testing;
 mod x25519;
 
 pub use noise_xx::{Error, HandshakeHash, HandshakeResult, State};

@@ -156,9 +156,7 @@ pub fn with_lock_animation<F: Fn()>(f: F) {
     f()
 }
 
-pub fn screen_stack_pop_all() {
-    panic!("not implemented")
-}
+pub fn screen_stack_pop_all() {}
 
 pub fn progress_create<'a>(_title: &str) -> Component<'a> {
     Component {

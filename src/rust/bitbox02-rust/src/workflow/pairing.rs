@@ -45,3 +45,33 @@ pub async fn confirm(hash: &[u8; 32]) -> Result<(), UserAbort> {
 
     confirm::confirm(&params).await
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::bb02_async::block_on;
+    use bitbox02::testing::{mock, Data};
+
+    use alloc::boxed::Box;
+
+    #[test]
+    fn test_confirm() {
+        static mut CONFIRMED: bool = false;
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.title, "Pairing code");
+                assert_eq!(params.body, "LEUJX W53W2\n3I5DY SP5E2");
+                unsafe {
+                    CONFIRMED = true;
+                }
+                true
+            })),
+
+            ..Default::default()
+        });
+        assert!(block_on(confirm(
+            b"\x59\x28\x9b\xdb\xbb\xb6\xb6\x8e\x8f\x12\x7f\x49\xa5\x25\xb0\x30\x13\x50\x0b\x3c\x1a\xf2\x62\x6f\x40\x07\xeb\xe4\x4f\x09\xc8\x6b")).is_ok());
+        assert!(unsafe { CONFIRMED });
+    }
+}

@@ -15,33 +15,60 @@
 use crate::workflow::confirm;
 pub use confirm::UserAbort;
 
-use arrayvec::ArrayString;
-use core::fmt::Write;
+use alloc::string::String;
 
-pub async fn confirm(hash: &[u8; 32]) -> Result<(), UserAbort> {
+/// Format a pairing hash to a format that is easy for humans to visually compare.
+pub fn format_hash(hash: &[u8; 32]) -> String {
     let mut encoded = [0u8; 60];
     let encoded = binascii::b32encode(&hash[..], &mut encoded).unwrap();
-
     // Base32 contains only utf-8 valid chars. unwrap is safe
     let encoded = core::str::from_utf8(encoded).expect("invalid utf-8");
-    let mut formatted = ArrayString::<[_; 23]>::new();
-
-    write!(
-        formatted,
+    format!(
         "{} {}\n{} {}",
         &encoded[0..5],
         &encoded[5..10],
         &encoded[10..15],
         &encoded[15..20]
     )
-    .expect("failed to format");
+}
 
+pub async fn confirm(hash: &[u8; 32]) -> Result<(), UserAbort> {
     let params = confirm::Params {
         title: "Pairing code",
-        body: &formatted,
+        body: &format_hash(hash),
         font: confirm::Font::Monogram5X9,
         ..Default::default()
     };
 
     confirm::confirm(&params).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::bb02_async::block_on;
+    use bitbox02::testing::{mock, Data};
+
+    use alloc::boxed::Box;
+
+    #[test]
+    fn test_confirm() {
+        static mut CONFIRMED: bool = false;
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.title, "Pairing code");
+                assert_eq!(params.body, "LEUJX W53W2\n3I5DY SP5E2");
+                unsafe {
+                    CONFIRMED = true;
+                }
+                true
+            })),
+
+            ..Default::default()
+        });
+        assert!(block_on(confirm(
+            b"\x59\x28\x9b\xdb\xbb\xb6\xb6\x8e\x8f\x12\x7f\x49\xa5\x25\xb0\x30\x13\x50\x0b\x3c\x1a\xf2\x62\x6f\x40\x07\xeb\xe4\x4f\x09\xc8\x6b")).is_ok());
+        assert!(unsafe { CONFIRMED });
+    }
 }

@@ -30,12 +30,30 @@ bool securechip_update_keys(void)
     return true;
 }
 
+// Mocked contents of the secure chip rollkey slot.
+static const uint8_t _rollkey[32] =
+    "\x9d\xd1\x34\x1f\x6b\x4b\x26\xb1\x72\x89\xa1\xa3\x92\x71\x5c\xf0\xd0\x57\x8c\x84\xdb\x9a\x51"
+    "\xeb\xde\x14\x24\x06\x69\xd1\xd0\x5e";
+
+// Mocked contents of the securechip kdf slot.
+static const uint8_t _kdfkey[32] =
+    "\xd2\xe1\xe6\xb1\x8b\x6c\x6b\x08\x43\x3e\xdb\xc1\xd1\x68\xc1\xa0\x04\x37\x74\xa4\x22\x18\x77"
+    "\xe7\x9e\xd5\x66\x84\xbe\x5a\xc0\x1b";
+
 int securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out)
 {
-    check_expected(slot);
-    check_expected(msg);
-    // wally_sha256(msg, len, kdf_out, 32);
-    memcpy(kdf_out, (const uint8_t*)mock(), 32);
+    const uint8_t* key;
+    switch (slot) {
+    case SECURECHIP_SLOT_ROLLKEY:
+        key = _rollkey;
+        break;
+    case SECURECHIP_SLOT_KDF:
+        key = _kdfkey;
+        break;
+    default:
+        return SC_ERR_INVALID_ARGS;
+    }
+    wally_hmac_sha256(key, 32, msg, len, kdf_out, 32);
     return 0;
 }
 

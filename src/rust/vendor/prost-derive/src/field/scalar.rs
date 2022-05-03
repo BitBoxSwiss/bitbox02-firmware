@@ -151,7 +151,7 @@ impl Field {
             },
             Kind::Optional(..) => quote! {
                 #merge_fn(wire_type,
-                          #ident.get_or_insert_with(Default::default),
+                          #ident.get_or_insert_with(::core::default::Default::default),
                           buf,
                           ctx)
             },
@@ -703,46 +703,38 @@ impl DefaultValue {
                 }
 
                 // Rust doesn't have a negative literals, so they have to be parsed specially.
-                if value.starts_with('-') {
-                    if let Ok(lit) = syn::parse_str::<Lit>(&value[1..]) {
-                        match lit {
-                            Lit::Int(ref lit) if is_i32 && empty_or_is("i32", lit.suffix()) => {
-                                // Initially parse into an i64, so that i32::MIN does not overflow.
-                                let value: i64 = -lit.base10_parse()?;
-                                return Ok(i32::try_from(value).map(DefaultValue::I32)?);
-                            }
-
-                            Lit::Int(ref lit) if is_i64 && empty_or_is("i64", lit.suffix()) => {
-                                // Initially parse into an i128, so that i64::MIN does not overflow.
-                                let value: i128 = -lit.base10_parse()?;
-                                return Ok(i64::try_from(value).map(DefaultValue::I64)?);
-                            }
-
-                            Lit::Float(ref lit)
-                                if *ty == Ty::Float && empty_or_is("f32", lit.suffix()) =>
-                            {
-                                return Ok(DefaultValue::F32(-lit.base10_parse()?));
-                            }
-
-                            Lit::Float(ref lit)
-                                if *ty == Ty::Double && empty_or_is("f64", lit.suffix()) =>
-                            {
-                                return Ok(DefaultValue::F64(-lit.base10_parse()?));
-                            }
-
-                            Lit::Int(ref lit) if *ty == Ty::Float && lit.suffix().is_empty() => {
-                                return Ok(DefaultValue::F32(-lit.base10_parse()?));
-                            }
-
-                            Lit::Int(ref lit) if *ty == Ty::Double && lit.suffix().is_empty() => {
-                                return Ok(DefaultValue::F64(-lit.base10_parse()?));
-                            }
-
-                            _ => (),
+                if let Some(Ok(lit)) = value.strip_prefix('-').map(syn::parse_str::<Lit>) {
+                    match lit {
+                        Lit::Int(ref lit) if is_i32 && empty_or_is("i32", lit.suffix()) => {
+                            // Initially parse into an i64, so that i32::MIN does not overflow.
+                            let value: i64 = -lit.base10_parse()?;
+                            return Ok(i32::try_from(value).map(DefaultValue::I32)?);
                         }
+                        Lit::Int(ref lit) if is_i64 && empty_or_is("i64", lit.suffix()) => {
+                            // Initially parse into an i128, so that i64::MIN does not overflow.
+                            let value: i128 = -lit.base10_parse()?;
+                            return Ok(i64::try_from(value).map(DefaultValue::I64)?);
+                        }
+                        Lit::Float(ref lit)
+                            if *ty == Ty::Float && empty_or_is("f32", lit.suffix()) =>
+                        {
+                            return Ok(DefaultValue::F32(-lit.base10_parse()?));
+                        }
+                        Lit::Float(ref lit)
+                            if *ty == Ty::Double && empty_or_is("f64", lit.suffix()) =>
+                        {
+                            return Ok(DefaultValue::F64(-lit.base10_parse()?));
+                        }
+                        Lit::Int(ref lit) if *ty == Ty::Float && lit.suffix().is_empty() => {
+                            return Ok(DefaultValue::F32(-lit.base10_parse()?));
+                        }
+                        Lit::Int(ref lit) if *ty == Ty::Double && lit.suffix().is_empty() => {
+                            return Ok(DefaultValue::F64(-lit.base10_parse()?));
+                        }
+                        _ => (),
                     }
                 }
-                match syn::parse_str::<Lit>(&value) {
+                match syn::parse_str::<Lit>(value) {
                     Ok(Lit::Str(_)) => (),
                     Ok(lit) => return DefaultValue::from_lit(ty, lit),
                     _ => (),
@@ -777,7 +769,9 @@ impl DefaultValue {
                 quote!(::prost::alloc::string::String::new())
             }
             DefaultValue::String(ref value) => quote!(#value.into()),
-            DefaultValue::Bytes(ref value) if value.is_empty() => quote!(Default::default()),
+            DefaultValue::Bytes(ref value) if value.is_empty() => {
+                quote!(::core::default::Default::default())
+            }
             DefaultValue::Bytes(ref value) => {
                 let lit = LitByteStr::new(value, Span::call_site());
                 quote!(#lit.as_ref().into())

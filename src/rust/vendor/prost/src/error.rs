@@ -8,7 +8,7 @@ use core::fmt;
 
 /// A Protobuf message decoding error.
 ///
-/// `DecodeError` indicates that the input buffer does not caontain a valid
+/// `DecodeError` indicates that the input buffer does not contain a valid
 /// Protobuf message. The error details should be considered 'best effort': in
 /// general it is not possible to exactly pinpoint why data is malformed.
 #[derive(Clone, PartialEq, Eq)]
@@ -30,8 +30,9 @@ impl DecodeError {
     /// Creates a new `DecodeError` with a 'best effort' root cause description.
     ///
     /// Meant to be used only by `Message` implementations.
+    #[doc(hidden)]
     #[cold]
-    pub(crate) fn new(description: impl Into<Cow<'static, str>>) -> DecodeError {
+    pub fn new(description: impl Into<Cow<'static, str>>) -> DecodeError {
         DecodeError {
             inner: Box::new(Inner {
                 description: description.into(),
@@ -113,7 +114,7 @@ impl fmt::Display for EncodeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "failed to encode Protobuf messsage; insufficient buffer capacity (required: {}, remaining: {})",
+            "failed to encode Protobuf message; insufficient buffer capacity (required: {}, remaining: {})",
             self.required, self.remaining
         )
     }

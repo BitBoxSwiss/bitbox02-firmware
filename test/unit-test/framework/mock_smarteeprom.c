@@ -55,7 +55,7 @@ void smarteeprom_setup(void)
  */
 void smarteeprom_read(size_t address, size_t bytes, uint8_t* out_buffer)
 {
-    assert(address < _allocated_space);
+    assert(address + bytes < _allocated_space);
     assert(_enabled);
     memcpy(out_buffer, _mem_image + address, bytes);
 }

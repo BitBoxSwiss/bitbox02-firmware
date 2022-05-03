@@ -93,6 +93,16 @@ pub fn create_and_store_seed(password: &SafeInputString, host_entropy: &[u8]) ->
     }
 }
 
+#[cfg(feature = "testing")]
+pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH]);
+    let mut seed_len: u32 = 0;
+    match unsafe { bitbox02_sys::keystore_copy_seed(seed.as_mut_ptr(), &mut seed_len) } {
+        true => Ok(zeroize::Zeroizing::new(seed[..seed_len as usize].to_vec())),
+        false => Err(()),
+    }
+}
+
 #[derive(Copy, Clone)]
 struct ZeroizedMnemonic([u8; 256]);
 impl core::default::Default for ZeroizedMnemonic {

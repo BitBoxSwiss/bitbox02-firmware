@@ -87,5 +87,8 @@ pub fn mock_memory() {
             random_32_bytes: Some(c_mock_random_32_bytes),
         };
         assert!(bitbox02_sys::memory_setup(&ifs));
+
+        bitbox02_sys::smarteeprom_bb02_config();
+        bitbox02_sys::bitbox02_smarteeprom_init();
     }
 }

@@ -15,7 +15,8 @@
 use super::Error;
 use crate::pb;
 
-use crate::workflow::password;
+use crate::workflow::{password, unlock};
+use bitbox02::keystore;
 use pb::response::Response;
 
 /// Handles the SetPassword api call. This has the user enter a password twice and creates the
@@ -32,12 +33,104 @@ pub async fn process(
         return Err(Error::InvalidInput);
     }
     let password = password::enter_twice().await?;
-    if !bitbox02::keystore::create_and_store_seed(&password, entropy) {
+    if !keystore::create_and_store_seed(&password, entropy) {
         return Err(Error::Generic);
     }
-    if bitbox02::keystore::unlock(&password).is_err() {
+    if keystore::unlock(&password).is_err() {
         panic!("Unexpected error during restore: unlock failed.");
     }
-    crate::workflow::unlock::unlock_bip39().await;
+    unlock::unlock_bip39().await;
     Ok(Response::Success(pb::Success {}))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::bb02_async::block_on;
+    use bitbox02::testing::{mock, mock_memory, Data};
+
+    use alloc::boxed::Box;
+
+    #[test]
+    fn test_process() {
+        mock_memory();
+        mock(Data {
+            ui_trinary_input_string_create: Some(Box::new(|_params| "password".into())),
+            ..Default::default()
+        });
+        assert!(keystore::is_locked());
+        assert_eq!(
+            block_on(process(&pb::SetPasswordRequest {
+                entropy: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_vec(),
+            })),
+            Ok(Response::Success(pb::Success {}))
+        );
+        assert!(!keystore::is_locked());
+        assert!(keystore::copy_seed().unwrap().len() == 32);
+    }
+
+    /// Shorter host entropy results in shorter seed.
+    #[test]
+    fn test_process_16_bytes() {
+        mock_memory();
+        mock(Data {
+            ui_trinary_input_string_create: Some(Box::new(|_params| "password".into())),
+            ..Default::default()
+        });
+        assert!(keystore::is_locked());
+        assert_eq!(
+            block_on(process(&pb::SetPasswordRequest {
+                entropy: b"aaaaaaaaaaaaaaaa".to_vec(),
+            })),
+            Ok(Response::Success(pb::Success {}))
+        );
+        assert!(!keystore::is_locked());
+        assert!(keystore::copy_seed().unwrap().len() == 16);
+    }
+
+    /// Invalid host entropy size.
+    #[test]
+    fn test_process_invalid_host_entropy() {
+        mock_memory();
+        mock(Data {
+            ui_trinary_input_string_create: Some(Box::new(|_params| "password".into())),
+            ..Default::default()
+        });
+        assert!(keystore::is_locked());
+        assert_eq!(
+            block_on(process(&pb::SetPasswordRequest {
+                entropy: b"aaaaaaaaaaaaaaaaa".to_vec(),
+            })),
+            Err(Error::InvalidInput),
+        );
+        assert!(keystore::is_locked());
+    }
+
+    #[test]
+    fn test_process_2nd_password_doesnt_match() {
+        mock_memory();
+        static mut COUNTER: u32 = 0;
+        mock(Data {
+            ui_trinary_input_string_create: Some(Box::new(|_params| {
+                match unsafe {
+                    COUNTER += 1;
+                    COUNTER
+                } {
+                    1 => "password".into(),
+                    2 => "wrong".into(),
+                    _ => panic!("too many user inputs"),
+                }
+            })),
+            ..Default::default()
+        });
+        assert!(keystore::is_locked());
+        assert_eq!(
+            block_on(process(&pb::SetPasswordRequest {
+                entropy: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_vec(),
+            })),
+            Err(Error::Generic),
+        );
+        assert!(keystore::is_locked());
+    }
 }

@@ -24,7 +24,9 @@
 #include <commander/commander.h>
 #include <commander/commander_states.h>
 #include <keystore.h>
+#include <memory/bitbox02_smarteeprom.h>
 #include <memory/memory.h>
+#include <memory/smarteeprom.h>
 #include <random.h>
 #include <reset.h>
 #include <screen.h>

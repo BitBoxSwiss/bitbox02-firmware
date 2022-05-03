@@ -48,14 +48,23 @@ impl<'a> Drop for Component<'a> {
 }
 
 pub fn trinary_input_string_create<'a, F>(
-    _params: &TrinaryInputStringParams,
-    _confirm_callback: F,
+    params: &TrinaryInputStringParams,
+    mut confirm_callback: F,
     _cancel_callback: Option<ContinueCancelCb<'a>>,
 ) -> Component<'a>
 where
     F: FnMut(SafeInputString) + 'a,
 {
-    panic!("not implemented")
+    let data = crate::testing::DATA.0.borrow();
+    let input_string = data.ui_trinary_input_string_create.as_ref().unwrap()(params);
+    let input_buf = input_string.as_bytes();
+    let mut input = SafeInputString::new();
+    input.as_mut()[..input_buf.len()].copy_from_slice(input_buf);
+    confirm_callback(input);
+    Component {
+        is_pushed: false,
+        _p: PhantomData,
+    }
 }
 
 pub fn confirm_create<'a, F>(params: &ConfirmParams, mut result_callback: F) -> Component<'a>

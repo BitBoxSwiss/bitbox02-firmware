@@ -50,9 +50,7 @@ pub fn encode(response: Response) -> Vec<u8> {
     let response = pb::Response {
         response: Some(response),
     };
-    let mut out = Vec::<u8>::new();
-    response.encode(&mut out).unwrap();
-    out
+    response.encode_to_vec()
 }
 
 /// Decodes a protofbuf Request message.

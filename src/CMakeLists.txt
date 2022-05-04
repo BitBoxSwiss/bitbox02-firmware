@@ -323,6 +323,8 @@ add_custom_target(rust-bindgen
     --whitelist-function memory_set_seed_birthdate
     --whitelist-function memory_get_seed_birthdate
     --whitelist-function memory_multisig_set_by_hash
+    --whitelist-function smarteeprom_bb02_config
+    --whitelist-function bitbox02_smarteeprom_init
     --rustified-enum memory_result_t
     --whitelist-var MEMORY_DEVICE_NAME_MAX_LEN
     --whitelist-function securechip_attestation_sign
@@ -336,6 +338,7 @@ add_custom_target(rust-bindgen
     --whitelist-function keystore_unlock_bip39
     --whitelist-function keystore_lock
     --whitelist-function keystore_create_and_store_seed
+    --whitelist-function keystore_copy_seed
     --whitelist-function keystore_get_bip39_mnemonic
     --whitelist-function keystore_get_bip39_word
     --whitelist-function keystore_get_ed25519_seed

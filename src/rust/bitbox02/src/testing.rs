@@ -15,9 +15,9 @@
 //! Small mocking infrastructure for testing.
 
 extern crate alloc;
-extern crate std;
+use alloc::boxed::Box;
+use alloc::string::String;
 use core::cell::RefCell;
-use std::boxed::Box;
 
 use crate::keystore;
 
@@ -29,6 +29,8 @@ pub struct Data {
     pub ui_sdcard_create_arg: Option<bool>,
     pub ui_transaction_address_create: Option<Box<dyn Fn(&str, &str) -> bool>>,
     pub ui_transaction_fee_create: Option<Box<dyn Fn(&str, &str) -> bool>>,
+    pub ui_trinary_input_string_create:
+        Option<Box<dyn Fn(&super::ui::TrinaryInputStringParams) -> String>>,
 }
 
 pub struct SafeData(pub RefCell<Data>);
@@ -85,5 +87,8 @@ pub fn mock_memory() {
             random_32_bytes: Some(c_mock_random_32_bytes),
         };
         assert!(bitbox02_sys::memory_setup(&ifs));
+
+        bitbox02_sys::smarteeprom_bb02_config();
+        bitbox02_sys::bitbox02_smarteeprom_init();
     }
 }

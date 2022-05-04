@@ -34,6 +34,14 @@
 
 #define PASSWORD ("password")
 
+int __wrap_securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out)
+{
+    check_expected(slot);
+    check_expected(msg);
+    memcpy(kdf_out, (const uint8_t*)mock(), 32);
+    return 0;
+}
+
 static uint8_t _mock_seed[32] = {
     0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
     0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
@@ -324,19 +332,19 @@ static void _expect_stretch(bool valid)
     will_return(__wrap_salt_hash_data, _password_salted_hashed_stretch_in);
 
     // KDF 1
-    expect_value(securechip_kdf, slot, SECURECHIP_SLOT_ROLLKEY);
-    expect_memory(securechip_kdf, msg, _password_salted_hashed_stretch_in, 32);
-    will_return(securechip_kdf, _kdf_out_1);
+    expect_value(__wrap_securechip_kdf, slot, SECURECHIP_SLOT_ROLLKEY);
+    expect_memory(__wrap_securechip_kdf, msg, _password_salted_hashed_stretch_in, 32);
+    will_return(__wrap_securechip_kdf, _kdf_out_1);
 
     // KDF 2
-    expect_value(securechip_kdf, slot, SECURECHIP_SLOT_KDF);
-    expect_memory(securechip_kdf, msg, _kdf_out_1, 32);
-    will_return(securechip_kdf, _kdf_out_2);
+    expect_value(__wrap_securechip_kdf, slot, SECURECHIP_SLOT_KDF);
+    expect_memory(__wrap_securechip_kdf, msg, _kdf_out_1, 32);
+    will_return(__wrap_securechip_kdf, _kdf_out_2);
 
     // KDF 3
-    expect_value(securechip_kdf, slot, SECURECHIP_SLOT_KDF);
-    expect_memory(securechip_kdf, msg, _kdf_out_2, 32);
-    will_return(securechip_kdf, _kdf_out_3);
+    expect_value(__wrap_securechip_kdf, slot, SECURECHIP_SLOT_KDF);
+    expect_memory(__wrap_securechip_kdf, msg, _kdf_out_2, 32);
+    will_return(__wrap_securechip_kdf, _kdf_out_3);
 
     expect_memory(__wrap_salt_hash_data, data, PASSWORD, strlen(PASSWORD));
     expect_value(__wrap_salt_hash_data, data_len, strlen(PASSWORD));

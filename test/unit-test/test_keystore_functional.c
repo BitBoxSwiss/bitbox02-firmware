@@ -48,14 +48,6 @@ static uint8_t _salt_root[KEYSTORE_MAX_SEED_LENGTH] = {
     0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
 };
 
-int __wrap_securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out)
-{
-    assert_true(slot == SECURECHIP_SLOT_KDF || slot == SECURECHIP_SLOT_ROLLKEY);
-    uint8_t key[3] = "key";
-    assert_int_equal(WALLY_OK, wally_hmac_sha256(key, sizeof(key), msg, len, kdf_out, SHA256_LEN));
-    return 0;
-}
-
 /** Reset the SmartEEPROM configuration. */
 static void _smarteeprom_reset(void)
 {

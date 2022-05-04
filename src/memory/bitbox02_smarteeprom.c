@@ -15,7 +15,6 @@
 #include "bitbox02_smarteeprom.h"
 
 #include "hardfault.h"
-#include "memory/mpu.h"
 #include "memory/smarteeprom.h"
 
 #include <stddef.h>

@@ -258,19 +258,9 @@ mod tests {
     #[test]
     pub fn test_full() {
         use noise_protocol::DH;
-        let host_static_key = X25519::<MockRandom32>::genkey();
         let bb02_static_key = X25519::<MockRandom32>::genkey();
 
-        let mut host = HandshakeState::<MockRandom32>::new(
-            noise_protocol::patterns::noise_xx().clone(),
-            true,
-            &b"Noise_XX_25519_ChaChaPoly_SHA256"[..],
-            Some(host_static_key),
-            None,
-            None,
-            None,
-        );
-
+        let mut host = crate::testing::make_host();
         let mut bb02 = State::<MockRandom32>::Nothing;
         bb02.init(bb02_static_key);
 

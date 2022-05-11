@@ -24,8 +24,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#define CHUNK_SIZE FLASH_ERASE_MIN_LEN
-
 static uint8_t _memory_shared_data[FLASH_SHARED_DATA_LEN] = {0};
 static uint8_t _memory_app_data[FLASH_APPDATA_LEN] = {0};
 static uint8_t _memory_smarteeprom[SMARTEEPROM_RESERVED_FLASH_PAGES * FLASH_PAGE_SIZE] = {0};

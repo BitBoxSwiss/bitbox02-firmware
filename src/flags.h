@@ -70,6 +70,8 @@
 #define FLASH_APP_VERSION_LEN (4) // 4 byte big endian unsigned int
 #define FLASH_APP_VERSION_START (FLASH_APP_START + FLASH_APP_LEN - FLASH_APP_VERSION_LEN)
 
+#define CHUNK_SIZE (FLASH_ERASE_MIN_LEN) // 8kB; minimum erase granularity
+
 // SmartEEPROM reserved memory start
 #define FLASH_SMARTEEPROM_START (FLASH_END - SMARTEEPROM_RESERVED_FLASH_PAGES * FLASH_PAGE_SIZE)
 

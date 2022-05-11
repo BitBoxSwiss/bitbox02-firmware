@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "flags.h"
 #include "hardfault.h"
-#include "memory/memory.h"
+#include "memory.h"
+#include "memory_shared.h"
 #include "random.h"
 #include "util.h"
 #include <rust/rust.h>
@@ -39,15 +41,11 @@
 
 // Everything defaults to 0xFF (erased state).
 
-#define CHUNK_SIZE (FLASH_ERASE_MIN_LEN) // 8kB; minimum erase granularity
 #if (FLASH_APPDATA_START % CHUNK_SIZE)
 #error "Chunk start not aligned with erase granularity"
 #endif
 #if (FLASH_APPDATA_LEN % CHUNK_SIZE)
 #error "Chunk end not aligned with erase granularity"
-#endif
-#if (FLASH_SHARED_DATA_LEN != CHUNK_SIZE)
-#error "Shared data chunk not correct length"
 #endif
 
 #pragma GCC diagnostic push
@@ -113,28 +111,6 @@ typedef union {
     } fields;
     uint8_t bytes[CHUNK_SIZE];
 } chunk_2_t;
-
-// CHUNK_SHARED: Shared data between the bootloader and firmware.
-//    auto_enter: if sectrue_u8, bootloader mode is entered on reboot
-//    upside_down: passes screen orientation to the bootloader
-//
-// ** DO NOT CHANGE MEMBER ORDER OR MEMORY LOCATION **
-//
-// Because the bootloader is fixed, changes may break the bootloader!
-//
-typedef union {
-    struct __attribute__((__packed__)) {
-        // Shared flags - do not change order!
-        uint8_t auto_enter;
-        uint8_t upside_down;
-        // Following are used by firmware only
-        uint8_t reserved[2];
-        uint8_t io_protection_key_split[32];
-        uint8_t authorization_key_split[32];
-        uint8_t encryption_key_split[32];
-    } fields;
-    uint8_t bytes[CHUNK_SIZE];
-} chunk_shared_t;
 #pragma GCC diagnostic pop
 
 #define BITMASK_SEEDED ((uint8_t)(1u << 0u))
@@ -227,15 +203,6 @@ static void _read_chunk(uint32_t chunk_num, uint8_t* chunk_out)
 #endif
 }
 
-static void _read_shared_bootdata(uint8_t* chunk_out)
-{
-#ifdef TESTING
-    memory_read_shared_bootdata_mock(chunk_out);
-#else
-    memcpy(chunk_out, (uint8_t*)(FLASH_SHARED_DATA_START), CHUNK_SIZE);
-#endif
-}
-
 static const memory_interface_functions_t* _interface_functions = NULL;
 
 /********* Exposed functions ****************/
@@ -309,7 +276,7 @@ bool memory_setup(const memory_interface_functions_t* ifs)
 
     chunk_shared_t shared_chunk = {0};
     CLEANUP_CHUNK(shared_chunk);
-    _read_shared_bootdata(shared_chunk.bytes);
+    memory_read_shared_bootdata(&shared_chunk);
 
     // Sanity check: io/auth keys must not have been set before.
     uint8_t empty[32] = {0};
@@ -507,7 +474,7 @@ void memory_get_io_protection_key(uint8_t* key_out)
 
     chunk_shared_t shared_chunk = {0};
     CLEANUP_CHUNK(shared_chunk);
-    _read_shared_bootdata(shared_chunk.bytes);
+    memory_read_shared_bootdata(&shared_chunk);
 
     // check assumption
     if (sizeof(shared_chunk.fields.io_protection_key_split) !=
@@ -531,7 +498,7 @@ void memory_get_authorization_key(uint8_t* key_out)
 
     chunk_shared_t shared_chunk = {0};
     CLEANUP_CHUNK(shared_chunk);
-    _read_shared_bootdata(shared_chunk.bytes);
+    memory_read_shared_bootdata(&shared_chunk);
 
     // check assumption
     if (sizeof(shared_chunk.fields.authorization_key_split) !=
@@ -555,7 +522,7 @@ void memory_get_encryption_key(uint8_t* key_out)
 
     chunk_shared_t shared_chunk = {0};
     CLEANUP_CHUNK(shared_chunk);
-    _read_shared_bootdata(shared_chunk.bytes);
+    memory_read_shared_bootdata(&shared_chunk);
 
     // check assumption
     if (sizeof(shared_chunk.fields.encryption_key_split) != sizeof(chunk.fields.encryption_key)) {
@@ -643,7 +610,7 @@ bool memory_bootloader_set_flags(auto_enter_t auto_enter, upside_down_t upside_d
 {
     chunk_shared_t chunk = {0};
     CLEANUP_CHUNK(chunk);
-    _read_shared_bootdata(chunk.bytes);
+    memory_read_shared_bootdata(&chunk);
     chunk.fields.auto_enter = auto_enter.value;
     chunk.fields.upside_down = upside_down.value ? 1 : 0;
     // As this operation is quite important to succeed, we try it multiple times.

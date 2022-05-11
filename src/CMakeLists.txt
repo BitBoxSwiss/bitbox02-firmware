@@ -29,6 +29,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/hww.c
   ${CMAKE_SOURCE_DIR}/src/memory/bitbox02_smarteeprom.c
   ${CMAKE_SOURCE_DIR}/src/memory/memory.c
+  ${CMAKE_SOURCE_DIR}/src/memory/memory_shared.c
   ${CMAKE_SOURCE_DIR}/src/memory/mpu.c
   ${CMAKE_SOURCE_DIR}/src/memory/nvmctrl.c
   ${CMAKE_SOURCE_DIR}/src/memory/smarteeprom.c
@@ -123,6 +124,7 @@ set(DBB-BOOTLOADER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/startup.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/mpu_regions.c
+  ${CMAKE_SOURCE_DIR}/src/memory/memory_shared.c
   ${CMAKE_SOURCE_DIR}/src/memory/mpu.c
   ${CMAKE_SOURCE_DIR}/src/memory/nvmctrl.c
   ${CMAKE_SOURCE_DIR}/src/queue.c

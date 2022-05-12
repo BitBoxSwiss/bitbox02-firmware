@@ -71,5 +71,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ## Bootloader
 
+### v1.0.5
+- Add SSD1312 driver for new OLED screens
+
 ### v1.0.4
 - Make bootloader mode more user-friendly and prompt for action on empty firmware

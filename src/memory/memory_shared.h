@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 
+#include <compiler_util.h>
 #include <flags.h>
 
 #if (FLASH_SHARED_DATA_LEN != CHUNK_SIZE)
@@ -39,8 +40,9 @@ typedef union {
         // Shared flags - do not change order!
         uint8_t auto_enter;
         uint8_t upside_down;
+        uint8_t screen_type;
         // Following are used by firmware only
-        uint8_t reserved[2];
+        uint8_t reserved[1];
         uint8_t io_protection_key_split[32];
         uint8_t authorization_key_split[32];
         uint8_t encryption_key_split[32];
@@ -50,5 +52,20 @@ typedef union {
 #pragma GCC diagnostic pop
 
 void memory_read_shared_bootdata(chunk_shared_t* chunk_out);
+
+// 0xFF is the default memory value if not set otherwise. We use this value for the original screen
+// for backwards compatibility.
+#define MEMORY_SCREEN_TYPE_SH1107 0xFF
+#define MEMORY_SCREEN_TYPE_SSD1312 0x01
+
+/**
+ * Which screen is mounted? Currently there are two possible screens. The original screen uses the
+ * SH1107 driver, and the newer display uses the SSD1312 driver.  See the `SCREEN_TYPE_` consts.
+ * Any undefined value (none of the predefined `SCREEN_TYPE_`) defaults to the original SH1107 for
+ * backwards compatibility.
+ *
+ * Can be called before `memory_setup()`.
+ */
+USE_RESULT uint8_t memory_get_screen_type(void);
 
 #endif

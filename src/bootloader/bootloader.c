@@ -109,6 +109,8 @@ COMPILER_PACK_RESET()
 typedef uint32_t version_t;
 typedef union {
     struct __attribute__((__packed__)) {
+        // `hardware_version` is deprecated/unused, as MPU prevents the firmware from easily reading
+        // this.
         uint16_t hardware_version;
         uint8_t is_initialized[2];
         version_t signing_pubkeys_version;

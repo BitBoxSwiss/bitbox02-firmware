@@ -776,8 +776,86 @@ pub struct EthSignResponse {
     pub signature: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EthSignTypedMessageRequest {
+    #[prost(uint64, tag="1")]
+    pub chain_id: u64,
+    #[prost(uint32, repeated, tag="2")]
+    pub keypath: ::prost::alloc::vec::Vec<u32>,
+    #[prost(message, repeated, tag="3")]
+    pub types: ::prost::alloc::vec::Vec<eth_sign_typed_message_request::StructType>,
+    #[prost(string, tag="4")]
+    pub primary_type: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="5")]
+    pub host_nonce_commitment: ::core::option::Option<AntiKleptoHostNonceCommitment>,
+}
+/// Nested message and enum types in `ETHSignTypedMessageRequest`.
+pub mod eth_sign_typed_message_request {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct MemberType {
+        #[prost(enumeration="DataType", tag="1")]
+        pub r#type: i32,
+        #[prost(uint32, tag="2")]
+        pub size: u32,
+        /// if type==STRUCT, name of struct type.
+        #[prost(string, tag="3")]
+        pub struct_name: ::prost::alloc::string::String,
+        /// if type==ARRAY, type of elements
+        #[prost(message, optional, boxed, tag="4")]
+        pub array_type: ::core::option::Option<::prost::alloc::boxed::Box<MemberType>>,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Member {
+        #[prost(string, tag="1")]
+        pub name: ::prost::alloc::string::String,
+        #[prost(message, optional, tag="2")]
+        pub r#type: ::core::option::Option<MemberType>,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct StructType {
+        #[prost(string, tag="1")]
+        pub name: ::prost::alloc::string::String,
+        #[prost(message, repeated, tag="2")]
+        pub members: ::prost::alloc::vec::Vec<Member>,
+    }
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[repr(i32)]
+    pub enum DataType {
+        Unknown = 0,
+        Bytes = 1,
+        Uint = 2,
+        Int = 3,
+        Bool = 4,
+        Address = 5,
+        String = 6,
+        Array = 7,
+        Struct = 8,
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EthTypedMessageValueResponse {
+    #[prost(enumeration="eth_typed_message_value_response::RootObject", tag="1")]
+    pub root_object: i32,
+    #[prost(uint32, repeated, tag="2")]
+    pub path: ::prost::alloc::vec::Vec<u32>,
+}
+/// Nested message and enum types in `ETHTypedMessageValueResponse`.
+pub mod eth_typed_message_value_response {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[repr(i32)]
+    pub enum RootObject {
+        Unknown = 0,
+        Domain = 1,
+        Message = 2,
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EthTypedMessageValueRequest {
+    #[prost(bytes="vec", tag="1")]
+    pub value: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EthRequest {
-    #[prost(oneof="eth_request::Request", tags="1, 2, 3, 4")]
+    #[prost(oneof="eth_request::Request", tags="1, 2, 3, 4, 5, 6")]
     pub request: ::core::option::Option<eth_request::Request>,
 }
 /// Nested message and enum types in `ETHRequest`.
@@ -792,11 +870,15 @@ pub mod eth_request {
         SignMsg(super::EthSignMessageRequest),
         #[prost(message, tag="4")]
         AntikleptoSignature(super::AntiKleptoSignatureRequest),
+        #[prost(message, tag="5")]
+        SignTypedMsg(super::EthSignTypedMessageRequest),
+        #[prost(message, tag="6")]
+        TypedMsgValue(super::EthTypedMessageValueRequest),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EthResponse {
-    #[prost(oneof="eth_response::Response", tags="1, 2, 3")]
+    #[prost(oneof="eth_response::Response", tags="1, 2, 3, 4")]
     pub response: ::core::option::Option<eth_response::Response>,
 }
 /// Nested message and enum types in `ETHResponse`.
@@ -809,6 +891,8 @@ pub mod eth_response {
         Sign(super::EthSignResponse),
         #[prost(message, tag="3")]
         AntikleptoSignerCommitment(super::AntiKleptoSignerCommitment),
+        #[prost(message, tag="4")]
+        TypedMsgValue(super::EthTypedMessageValueResponse),
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]

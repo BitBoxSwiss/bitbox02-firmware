@@ -26,3 +26,5 @@ ETHSignRequest.data max_size:1024
 ETHSignMessageRequest.msg max_size:1024
 ETHSignMessageRequest.keypath max_count:10
 ETHSignResponse.signature fixed_length:true max_size:65
+# Break recursion, see https://github.com/nanopb/nanopb/issues/493#issuecomment-599544122
+ETHSignTypedMessageRequest.MemberType.array_type type:FT_CALLBACK

@@ -14,7 +14,6 @@
 # limitations under the License.
 """BitBox02"""
 
-
 import os
 import sys
 import time
@@ -841,6 +840,184 @@ class BitBox02(BitBoxCommonAPI):
             return format_as_uncompressed(signature)
 
         signature = self._eth_msg_query(request, expected_response="sign").sign.signature
+        return format_as_uncompressed(signature)
+
+    def eth_sign_typed_msg(
+        self, keypath: Sequence[int], msg: Dict[str, Any], chain_id: int = 1
+    ) -> bytes:
+        """
+        Sign a EIP-712 typed message.
+        """
+        # pylint: disable=too-many-statements
+
+        self._require_atleast(semver.VersionInfo(9, 12, 0))
+
+        def format_as_uncompressed(sig: bytes) -> bytes:
+            # 27 is the magic constant to add to the recoverable ID to denote an uncompressed
+            # pubkey.
+            modified_signature = list(sig)
+            modified_signature[64] += 27
+            return bytes(modified_signature)
+
+        request = eth.ETHRequest()
+
+        host_nonce = os.urandom(32)
+
+        def to_type(typ: str) -> eth.ETHSignTypedMessageRequest.MemberType:
+            # pylint: disable=too-many-return-statements, no-member
+
+            if typ.endswith("]"):
+                rest, size = typ[:-1].rsplit("[", 1)
+                return eth.ETHSignTypedMessageRequest.MemberType(
+                    type=eth.ETHSignTypedMessageRequest.DataType.ARRAY,
+                    size=int(size) if size else 0,
+                    array_type=to_type(rest),
+                )
+            if typ.startswith("bytes"):
+                size = typ[len("bytes") :]
+                return eth.ETHSignTypedMessageRequest.MemberType(
+                    type=eth.ETHSignTypedMessageRequest.DataType.BYTES,
+                    size=int(size) if size else 0,
+                )
+            if typ.startswith("uint"):
+                size = typ[len("uint") :]
+                assert size and int(size) % 8 == 0
+                return eth.ETHSignTypedMessageRequest.MemberType(
+                    type=eth.ETHSignTypedMessageRequest.DataType.UINT,
+                    size=int(size) // 8,
+                )
+            if typ.startswith("int"):
+                size = typ[len("int") :]
+                assert size and int(size) % 8 == 0
+                return eth.ETHSignTypedMessageRequest.MemberType(
+                    type=eth.ETHSignTypedMessageRequest.DataType.INT,
+                    size=int(size) // 8,
+                )
+            if typ == "bool":
+                return eth.ETHSignTypedMessageRequest.MemberType(
+                    type=eth.ETHSignTypedMessageRequest.DataType.BOOL,
+                )
+            if typ == "address":
+                return eth.ETHSignTypedMessageRequest.MemberType(
+                    type=eth.ETHSignTypedMessageRequest.DataType.ADDRESS,
+                )
+            if typ == "string":
+                return eth.ETHSignTypedMessageRequest.MemberType(
+                    type=eth.ETHSignTypedMessageRequest.DataType.STRING,
+                )
+            if typ in msg["types"]:
+                return eth.ETHSignTypedMessageRequest.MemberType(
+                    type=eth.ETHSignTypedMessageRequest.DataType.STRUCT,
+                    struct_name=typ,
+                )
+            raise ValueError("Unrecognized type: {}".format(typ))
+
+        def get_value(
+            root_object: "eth.ETHTypedMessageValueResponse.RootObject.V", path: Sequence[int]
+        ) -> bytes:
+            # pylint: disable=too-many-return-statements, too-many-branches, no-member
+
+            if root_object == eth.ETHTypedMessageValueResponse.RootObject.DOMAIN:
+                value = msg["domain"]
+                typ = to_type("EIP712Domain")
+            elif root_object == eth.ETHTypedMessageValueResponse.RootObject.MESSAGE:
+                value = msg["message"]
+                typ = to_type(msg["primaryType"])
+            else:
+                raise ValueError("Unknown root object: {}".format(root_object))
+
+            for element in path:
+                if typ.type == eth.ETHSignTypedMessageRequest.DataType.STRUCT:
+                    struct_member = msg["types"][typ.struct_name][element]
+                    value = value[struct_member["name"]]
+                    typ = to_type(struct_member["type"])
+                elif typ.type == eth.ETHSignTypedMessageRequest.DataType.ARRAY:
+                    value = value[element]
+                    typ = typ.array_type
+                else:
+                    raise ValueError("Path element does not point to struct or array")
+
+            if typ.type == eth.ETHSignTypedMessageRequest.DataType.BYTES:
+                if isinstance(value, str):
+                    if value == "":
+                        return b""
+                    if value[:2].lower() == "0x":
+                        return bytes.fromhex(value[2:])
+                assert isinstance(value, bytes)
+                return value
+            if typ.type == eth.ETHSignTypedMessageRequest.DataType.UINT:
+                if isinstance(value, str):
+                    value = int(value)
+                assert isinstance(value, int)
+                return value.to_bytes(typ.size, "big")
+            if typ.type == eth.ETHSignTypedMessageRequest.DataType.INT:
+                if isinstance(value, str):
+                    value = int(value)
+                assert isinstance(value, int)
+                return value.to_bytes(typ.size, "big", signed=True)
+            if typ.type == eth.ETHSignTypedMessageRequest.DataType.BOOL:
+                return bytes([value])
+            if typ.type == eth.ETHSignTypedMessageRequest.DataType.ADDRESS:
+                assert isinstance(value, str)
+                return value.encode("ascii")
+            if typ.type == eth.ETHSignTypedMessageRequest.DataType.STRING:
+                assert isinstance(value, str)
+                return value.encode("ascii")
+            if typ.type == eth.ETHSignTypedMessageRequest.DataType.ARRAY:
+                return len(value).to_bytes(4, "big")
+            raise ValueError("Unexpected value query at path: {}. Type={}".format(path, typ))
+
+        # pylint: disable=no-member
+        request.sign_typed_msg.CopyFrom(
+            eth.ETHSignTypedMessageRequest(
+                chain_id=chain_id,
+                keypath=keypath,
+                types=[
+                    eth.ETHSignTypedMessageRequest.StructType(
+                        name=key,
+                        members=[
+                            eth.ETHSignTypedMessageRequest.Member(
+                                name=member["name"],
+                                type=to_type(member["type"]),
+                            )
+                            for member in val
+                        ],
+                    )
+                    for key, val in msg["types"].items()
+                ],
+                primary_type=msg["primaryType"],
+                host_nonce_commitment=antiklepto.AntiKleptoHostNonceCommitment(
+                    commitment=antiklepto_host_commit(host_nonce),
+                ),
+            )
+        )
+
+        response = self._eth_msg_query(request)
+        while response.WhichOneof("response") == "typed_msg_value":
+            response = self._eth_msg_query(
+                eth.ETHRequest(
+                    typed_msg_value=eth.ETHTypedMessageValueRequest(
+                        value=get_value(
+                            response.typed_msg_value.root_object, response.typed_msg_value.path
+                        ),
+                    ),
+                )
+            )
+
+        assert response.WhichOneof("response") == "antiklepto_signer_commitment"
+        signer_commitment = response.antiklepto_signer_commitment.commitment
+
+        request = eth.ETHRequest()
+        request.antiklepto_signature.CopyFrom(
+            antiklepto.AntiKleptoSignatureRequest(host_nonce=host_nonce)
+        )
+
+        signature = self._eth_msg_query(request, expected_response="sign").sign.signature
+        antiklepto_verify(host_nonce, signer_commitment, signature[:64])
+
+        if self.debug:
+            print("Antiklepto nonce verification PASSED")
+
         return format_as_uncompressed(signature)
 
     def reset(self) -> bool:

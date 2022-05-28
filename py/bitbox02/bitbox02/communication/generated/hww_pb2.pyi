@@ -18,30 +18,30 @@ from . import system_pb2
 import typing
 import typing_extensions
 
-DESCRIPTOR: google.protobuf.descriptor.FileDescriptor = ...
+DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 
 class Error(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     CODE_FIELD_NUMBER: builtins.int
     MESSAGE_FIELD_NUMBER: builtins.int
-    code: builtins.int = ...
-    message: typing.Text = ...
+    code: builtins.int
+    message: typing.Text
     def __init__(self,
         *,
-        code : builtins.int = ...,
-        message : typing.Text = ...,
+        code: builtins.int = ...,
+        message: typing.Text = ...,
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["code",b"code","message",b"message"]) -> None: ...
 global___Error = Error
 
 class Success(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     def __init__(self,
         ) -> None: ...
 global___Success = Success
 
 class Request(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     DEVICE_NAME_FIELD_NUMBER: builtins.int
     DEVICE_LANGUAGE_FIELD_NUMBER: builtins.int
     DEVICE_INFO_FIELD_NUMBER: builtins.int
@@ -123,31 +123,31 @@ class Request(google.protobuf.message.Message):
     def cardano(self) -> cardano_pb2.CardanoRequest: ...
     def __init__(self,
         *,
-        device_name : typing.Optional[bitbox02_system_pb2.SetDeviceNameRequest] = ...,
-        device_language : typing.Optional[bitbox02_system_pb2.SetDeviceLanguageRequest] = ...,
-        device_info : typing.Optional[bitbox02_system_pb2.DeviceInfoRequest] = ...,
-        set_password : typing.Optional[bitbox02_system_pb2.SetPasswordRequest] = ...,
-        create_backup : typing.Optional[backup_commands_pb2.CreateBackupRequest] = ...,
-        show_mnemonic : typing.Optional[mnemonic_pb2.ShowMnemonicRequest] = ...,
-        btc_pub : typing.Optional[btc_pb2.BTCPubRequest] = ...,
-        btc_sign_init : typing.Optional[btc_pb2.BTCSignInitRequest] = ...,
-        btc_sign_input : typing.Optional[btc_pb2.BTCSignInputRequest] = ...,
-        btc_sign_output : typing.Optional[btc_pb2.BTCSignOutputRequest] = ...,
-        insert_remove_sdcard : typing.Optional[bitbox02_system_pb2.InsertRemoveSDCardRequest] = ...,
-        check_sdcard : typing.Optional[bitbox02_system_pb2.CheckSDCardRequest] = ...,
-        set_mnemonic_passphrase_enabled : typing.Optional[mnemonic_pb2.SetMnemonicPassphraseEnabledRequest] = ...,
-        list_backups : typing.Optional[backup_commands_pb2.ListBackupsRequest] = ...,
-        restore_backup : typing.Optional[backup_commands_pb2.RestoreBackupRequest] = ...,
-        perform_attestation : typing.Optional[perform_attestation_pb2.PerformAttestationRequest] = ...,
-        reboot : typing.Optional[system_pb2.RebootRequest] = ...,
-        check_backup : typing.Optional[backup_commands_pb2.CheckBackupRequest] = ...,
-        eth : typing.Optional[eth_pb2.ETHRequest] = ...,
-        reset : typing.Optional[bitbox02_system_pb2.ResetRequest] = ...,
-        restore_from_mnemonic : typing.Optional[mnemonic_pb2.RestoreFromMnemonicRequest] = ...,
-        fingerprint : typing.Optional[common_pb2.RootFingerprintRequest] = ...,
-        btc : typing.Optional[btc_pb2.BTCRequest] = ...,
-        electrum_encryption_key : typing.Optional[keystore_pb2.ElectrumEncryptionKeyRequest] = ...,
-        cardano : typing.Optional[cardano_pb2.CardanoRequest] = ...,
+        device_name: typing.Optional[bitbox02_system_pb2.SetDeviceNameRequest] = ...,
+        device_language: typing.Optional[bitbox02_system_pb2.SetDeviceLanguageRequest] = ...,
+        device_info: typing.Optional[bitbox02_system_pb2.DeviceInfoRequest] = ...,
+        set_password: typing.Optional[bitbox02_system_pb2.SetPasswordRequest] = ...,
+        create_backup: typing.Optional[backup_commands_pb2.CreateBackupRequest] = ...,
+        show_mnemonic: typing.Optional[mnemonic_pb2.ShowMnemonicRequest] = ...,
+        btc_pub: typing.Optional[btc_pb2.BTCPubRequest] = ...,
+        btc_sign_init: typing.Optional[btc_pb2.BTCSignInitRequest] = ...,
+        btc_sign_input: typing.Optional[btc_pb2.BTCSignInputRequest] = ...,
+        btc_sign_output: typing.Optional[btc_pb2.BTCSignOutputRequest] = ...,
+        insert_remove_sdcard: typing.Optional[bitbox02_system_pb2.InsertRemoveSDCardRequest] = ...,
+        check_sdcard: typing.Optional[bitbox02_system_pb2.CheckSDCardRequest] = ...,
+        set_mnemonic_passphrase_enabled: typing.Optional[mnemonic_pb2.SetMnemonicPassphraseEnabledRequest] = ...,
+        list_backups: typing.Optional[backup_commands_pb2.ListBackupsRequest] = ...,
+        restore_backup: typing.Optional[backup_commands_pb2.RestoreBackupRequest] = ...,
+        perform_attestation: typing.Optional[perform_attestation_pb2.PerformAttestationRequest] = ...,
+        reboot: typing.Optional[system_pb2.RebootRequest] = ...,
+        check_backup: typing.Optional[backup_commands_pb2.CheckBackupRequest] = ...,
+        eth: typing.Optional[eth_pb2.ETHRequest] = ...,
+        reset: typing.Optional[bitbox02_system_pb2.ResetRequest] = ...,
+        restore_from_mnemonic: typing.Optional[mnemonic_pb2.RestoreFromMnemonicRequest] = ...,
+        fingerprint: typing.Optional[common_pb2.RootFingerprintRequest] = ...,
+        btc: typing.Optional[btc_pb2.BTCRequest] = ...,
+        electrum_encryption_key: typing.Optional[keystore_pb2.ElectrumEncryptionKeyRequest] = ...,
+        cardano: typing.Optional[cardano_pb2.CardanoRequest] = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["btc",b"btc","btc_pub",b"btc_pub","btc_sign_init",b"btc_sign_init","btc_sign_input",b"btc_sign_input","btc_sign_output",b"btc_sign_output","cardano",b"cardano","check_backup",b"check_backup","check_sdcard",b"check_sdcard","create_backup",b"create_backup","device_info",b"device_info","device_language",b"device_language","device_name",b"device_name","electrum_encryption_key",b"electrum_encryption_key","eth",b"eth","fingerprint",b"fingerprint","insert_remove_sdcard",b"insert_remove_sdcard","list_backups",b"list_backups","perform_attestation",b"perform_attestation","reboot",b"reboot","request",b"request","reset",b"reset","restore_backup",b"restore_backup","restore_from_mnemonic",b"restore_from_mnemonic","set_mnemonic_passphrase_enabled",b"set_mnemonic_passphrase_enabled","set_password",b"set_password","show_mnemonic",b"show_mnemonic"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["btc",b"btc","btc_pub",b"btc_pub","btc_sign_init",b"btc_sign_init","btc_sign_input",b"btc_sign_input","btc_sign_output",b"btc_sign_output","cardano",b"cardano","check_backup",b"check_backup","check_sdcard",b"check_sdcard","create_backup",b"create_backup","device_info",b"device_info","device_language",b"device_language","device_name",b"device_name","electrum_encryption_key",b"electrum_encryption_key","eth",b"eth","fingerprint",b"fingerprint","insert_remove_sdcard",b"insert_remove_sdcard","list_backups",b"list_backups","perform_attestation",b"perform_attestation","reboot",b"reboot","request",b"request","reset",b"reset","restore_backup",b"restore_backup","restore_from_mnemonic",b"restore_from_mnemonic","set_mnemonic_passphrase_enabled",b"set_mnemonic_passphrase_enabled","set_password",b"set_password","show_mnemonic",b"show_mnemonic"]) -> None: ...
@@ -155,7 +155,7 @@ class Request(google.protobuf.message.Message):
 global___Request = Request
 
 class Response(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     SUCCESS_FIELD_NUMBER: builtins.int
     ERROR_FIELD_NUMBER: builtins.int
     DEVICE_INFO_FIELD_NUMBER: builtins.int
@@ -202,20 +202,20 @@ class Response(google.protobuf.message.Message):
     def cardano(self) -> cardano_pb2.CardanoResponse: ...
     def __init__(self,
         *,
-        success : typing.Optional[global___Success] = ...,
-        error : typing.Optional[global___Error] = ...,
-        device_info : typing.Optional[bitbox02_system_pb2.DeviceInfoResponse] = ...,
-        pub : typing.Optional[common_pb2.PubResponse] = ...,
-        btc_sign_next : typing.Optional[btc_pb2.BTCSignNextResponse] = ...,
-        list_backups : typing.Optional[backup_commands_pb2.ListBackupsResponse] = ...,
-        check_backup : typing.Optional[backup_commands_pb2.CheckBackupResponse] = ...,
-        perform_attestation : typing.Optional[perform_attestation_pb2.PerformAttestationResponse] = ...,
-        check_sdcard : typing.Optional[bitbox02_system_pb2.CheckSDCardResponse] = ...,
-        eth : typing.Optional[eth_pb2.ETHResponse] = ...,
-        fingerprint : typing.Optional[common_pb2.RootFingerprintResponse] = ...,
-        btc : typing.Optional[btc_pb2.BTCResponse] = ...,
-        electrum_encryption_key : typing.Optional[keystore_pb2.ElectrumEncryptionKeyResponse] = ...,
-        cardano : typing.Optional[cardano_pb2.CardanoResponse] = ...,
+        success: typing.Optional[global___Success] = ...,
+        error: typing.Optional[global___Error] = ...,
+        device_info: typing.Optional[bitbox02_system_pb2.DeviceInfoResponse] = ...,
+        pub: typing.Optional[common_pb2.PubResponse] = ...,
+        btc_sign_next: typing.Optional[btc_pb2.BTCSignNextResponse] = ...,
+        list_backups: typing.Optional[backup_commands_pb2.ListBackupsResponse] = ...,
+        check_backup: typing.Optional[backup_commands_pb2.CheckBackupResponse] = ...,
+        perform_attestation: typing.Optional[perform_attestation_pb2.PerformAttestationResponse] = ...,
+        check_sdcard: typing.Optional[bitbox02_system_pb2.CheckSDCardResponse] = ...,
+        eth: typing.Optional[eth_pb2.ETHResponse] = ...,
+        fingerprint: typing.Optional[common_pb2.RootFingerprintResponse] = ...,
+        btc: typing.Optional[btc_pb2.BTCResponse] = ...,
+        electrum_encryption_key: typing.Optional[keystore_pb2.ElectrumEncryptionKeyResponse] = ...,
+        cardano: typing.Optional[cardano_pb2.CardanoResponse] = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["btc",b"btc","btc_sign_next",b"btc_sign_next","cardano",b"cardano","check_backup",b"check_backup","check_sdcard",b"check_sdcard","device_info",b"device_info","electrum_encryption_key",b"electrum_encryption_key","error",b"error","eth",b"eth","fingerprint",b"fingerprint","list_backups",b"list_backups","perform_attestation",b"perform_attestation","pub",b"pub","response",b"response","success",b"success"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["btc",b"btc","btc_sign_next",b"btc_sign_next","cardano",b"cardano","check_backup",b"check_backup","check_sdcard",b"check_sdcard","device_info",b"device_info","electrum_encryption_key",b"electrum_encryption_key","error",b"error","eth",b"eth","fingerprint",b"fingerprint","list_backups",b"list_backups","perform_attestation",b"perform_attestation","pub",b"pub","response",b"response","success",b"success"]) -> None: ...

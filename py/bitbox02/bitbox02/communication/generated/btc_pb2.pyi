@@ -12,84 +12,88 @@ import google.protobuf.message
 import typing
 import typing_extensions
 
-DESCRIPTOR: google.protobuf.descriptor.FileDescriptor = ...
+DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 
+class _BTCCoin:
+    ValueType = typing.NewType('ValueType', builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+class _BTCCoinEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_BTCCoin.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    BTC: _BTCCoin.ValueType  # 0
+    TBTC: _BTCCoin.ValueType  # 1
+    LTC: _BTCCoin.ValueType  # 2
+    TLTC: _BTCCoin.ValueType  # 3
 class BTCCoin(_BTCCoin, metaclass=_BTCCoinEnumTypeWrapper):
     pass
-class _BTCCoin:
-    V = typing.NewType('V', builtins.int)
-class _BTCCoinEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_BTCCoin.V], builtins.type):
-    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
-    BTC = BTCCoin.V(0)
-    TBTC = BTCCoin.V(1)
-    LTC = BTCCoin.V(2)
-    TLTC = BTCCoin.V(3)
 
-BTC = BTCCoin.V(0)
-TBTC = BTCCoin.V(1)
-LTC = BTCCoin.V(2)
-TLTC = BTCCoin.V(3)
+BTC: BTCCoin.ValueType  # 0
+TBTC: BTCCoin.ValueType  # 1
+LTC: BTCCoin.ValueType  # 2
+TLTC: BTCCoin.ValueType  # 3
 global___BTCCoin = BTCCoin
 
 
+class _BTCOutputType:
+    ValueType = typing.NewType('ValueType', builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+class _BTCOutputTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_BTCOutputType.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    UNKNOWN: _BTCOutputType.ValueType  # 0
+    P2PKH: _BTCOutputType.ValueType  # 1
+    P2SH: _BTCOutputType.ValueType  # 2
+    P2WPKH: _BTCOutputType.ValueType  # 3
+    P2WSH: _BTCOutputType.ValueType  # 4
+    P2TR: _BTCOutputType.ValueType  # 5
 class BTCOutputType(_BTCOutputType, metaclass=_BTCOutputTypeEnumTypeWrapper):
     pass
-class _BTCOutputType:
-    V = typing.NewType('V', builtins.int)
-class _BTCOutputTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_BTCOutputType.V], builtins.type):
-    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
-    UNKNOWN = BTCOutputType.V(0)
-    P2PKH = BTCOutputType.V(1)
-    P2SH = BTCOutputType.V(2)
-    P2WPKH = BTCOutputType.V(3)
-    P2WSH = BTCOutputType.V(4)
-    P2TR = BTCOutputType.V(5)
 
-UNKNOWN = BTCOutputType.V(0)
-P2PKH = BTCOutputType.V(1)
-P2SH = BTCOutputType.V(2)
-P2WPKH = BTCOutputType.V(3)
-P2WSH = BTCOutputType.V(4)
-P2TR = BTCOutputType.V(5)
+UNKNOWN: BTCOutputType.ValueType  # 0
+P2PKH: BTCOutputType.ValueType  # 1
+P2SH: BTCOutputType.ValueType  # 2
+P2WPKH: BTCOutputType.ValueType  # 3
+P2WSH: BTCOutputType.ValueType  # 4
+P2TR: BTCOutputType.ValueType  # 5
 global___BTCOutputType = BTCOutputType
 
 
 class BTCScriptConfig(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    class _SimpleType:
+        ValueType = typing.NewType('ValueType', builtins.int)
+        V: typing_extensions.TypeAlias = ValueType
+    class _SimpleTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[BTCScriptConfig._SimpleType.ValueType], builtins.type):
+        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+        P2WPKH_P2SH: BTCScriptConfig._SimpleType.ValueType  # 0
+        P2WPKH: BTCScriptConfig._SimpleType.ValueType  # 1
+        P2TR: BTCScriptConfig._SimpleType.ValueType  # 2
     class SimpleType(_SimpleType, metaclass=_SimpleTypeEnumTypeWrapper):
         """SimpleType is a "simple" script: one public key, no additional inputs."""
         pass
-    class _SimpleType:
-        V = typing.NewType('V', builtins.int)
-    class _SimpleTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_SimpleType.V], builtins.type):
-        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
-        P2WPKH_P2SH = BTCScriptConfig.SimpleType.V(0)
-        P2WPKH = BTCScriptConfig.SimpleType.V(1)
-        P2TR = BTCScriptConfig.SimpleType.V(2)
 
-    P2WPKH_P2SH = BTCScriptConfig.SimpleType.V(0)
-    P2WPKH = BTCScriptConfig.SimpleType.V(1)
-    P2TR = BTCScriptConfig.SimpleType.V(2)
+    P2WPKH_P2SH: BTCScriptConfig.SimpleType.ValueType  # 0
+    P2WPKH: BTCScriptConfig.SimpleType.ValueType  # 1
+    P2TR: BTCScriptConfig.SimpleType.ValueType  # 2
 
     class Multisig(google.protobuf.message.Message):
-        DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
-        class ScriptType(_ScriptType, metaclass=_ScriptTypeEnumTypeWrapper):
-            pass
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
         class _ScriptType:
-            V = typing.NewType('V', builtins.int)
-        class _ScriptTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_ScriptType.V], builtins.type):
-            DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
-            P2WSH = BTCScriptConfig.Multisig.ScriptType.V(0)
+            ValueType = typing.NewType('ValueType', builtins.int)
+            V: typing_extensions.TypeAlias = ValueType
+        class _ScriptTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[BTCScriptConfig.Multisig._ScriptType.ValueType], builtins.type):
+            DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+            P2WSH: BTCScriptConfig.Multisig._ScriptType.ValueType  # 0
             """native segwit v0 multisig (bech32 addresses)"""
 
-            P2WSH_P2SH = BTCScriptConfig.Multisig.ScriptType.V(1)
+            P2WSH_P2SH: BTCScriptConfig.Multisig._ScriptType.ValueType  # 1
             """wrapped segwit for legacy address compatibility"""
 
+        class ScriptType(_ScriptType, metaclass=_ScriptTypeEnumTypeWrapper):
+            pass
 
-        P2WSH = BTCScriptConfig.Multisig.ScriptType.V(0)
+        P2WSH: BTCScriptConfig.Multisig.ScriptType.ValueType  # 0
         """native segwit v0 multisig (bech32 addresses)"""
 
-        P2WSH_P2SH = BTCScriptConfig.Multisig.ScriptType.V(1)
+        P2WSH_P2SH: BTCScriptConfig.Multisig.ScriptType.ValueType  # 1
         """wrapped segwit for legacy address compatibility"""
 
 
@@ -97,37 +101,37 @@ class BTCScriptConfig(google.protobuf.message.Message):
         XPUBS_FIELD_NUMBER: builtins.int
         OUR_XPUB_INDEX_FIELD_NUMBER: builtins.int
         SCRIPT_TYPE_FIELD_NUMBER: builtins.int
-        threshold: builtins.int = ...
+        threshold: builtins.int
         @property
         def xpubs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[common_pb2.XPub]:
             """xpubs are acount-level xpubs. Addresses are going to be derived from it using: m/<change>/<receive>.
             The number of xpubs defines the number of cosigners.
             """
             pass
-        our_xpub_index: builtins.int = ...
+        our_xpub_index: builtins.int
         """Index to the xpub of our keystore in xpubs. The keypath to it is provided via
         BTCPubRequest/BTCSignInit.
         """
 
-        script_type: global___BTCScriptConfig.Multisig.ScriptType.V = ...
+        script_type: global___BTCScriptConfig.Multisig.ScriptType.ValueType
         def __init__(self,
             *,
-            threshold : builtins.int = ...,
-            xpubs : typing.Optional[typing.Iterable[common_pb2.XPub]] = ...,
-            our_xpub_index : builtins.int = ...,
-            script_type : global___BTCScriptConfig.Multisig.ScriptType.V = ...,
+            threshold: builtins.int = ...,
+            xpubs: typing.Optional[typing.Iterable[common_pb2.XPub]] = ...,
+            our_xpub_index: builtins.int = ...,
+            script_type: global___BTCScriptConfig.Multisig.ScriptType.ValueType = ...,
             ) -> None: ...
         def ClearField(self, field_name: typing_extensions.Literal["our_xpub_index",b"our_xpub_index","script_type",b"script_type","threshold",b"threshold","xpubs",b"xpubs"]) -> None: ...
 
     SIMPLE_TYPE_FIELD_NUMBER: builtins.int
     MULTISIG_FIELD_NUMBER: builtins.int
-    simple_type: global___BTCScriptConfig.SimpleType.V = ...
+    simple_type: global___BTCScriptConfig.SimpleType.ValueType
     @property
     def multisig(self) -> global___BTCScriptConfig.Multisig: ...
     def __init__(self,
         *,
-        simple_type : global___BTCScriptConfig.SimpleType.V = ...,
-        multisig : typing.Optional[global___BTCScriptConfig.Multisig] = ...,
+        simple_type: global___BTCScriptConfig.SimpleType.ValueType = ...,
+        multisig: typing.Optional[global___BTCScriptConfig.Multisig] = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["config",b"config","multisig",b"multisig","simple_type",b"simple_type"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["config",b"config","multisig",b"multisig","simple_type",b"simple_type"]) -> None: ...
@@ -135,56 +139,57 @@ class BTCScriptConfig(google.protobuf.message.Message):
 global___BTCScriptConfig = BTCScriptConfig
 
 class BTCPubRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
-    class XPubType(_XPubType, metaclass=_XPubTypeEnumTypeWrapper):
-        pass
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     class _XPubType:
-        V = typing.NewType('V', builtins.int)
-    class _XPubTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_XPubType.V], builtins.type):
-        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
-        TPUB = BTCPubRequest.XPubType.V(0)
-        XPUB = BTCPubRequest.XPubType.V(1)
-        YPUB = BTCPubRequest.XPubType.V(2)
-        ZPUB = BTCPubRequest.XPubType.V(3)
+        ValueType = typing.NewType('ValueType', builtins.int)
+        V: typing_extensions.TypeAlias = ValueType
+    class _XPubTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[BTCPubRequest._XPubType.ValueType], builtins.type):
+        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+        TPUB: BTCPubRequest._XPubType.ValueType  # 0
+        XPUB: BTCPubRequest._XPubType.ValueType  # 1
+        YPUB: BTCPubRequest._XPubType.ValueType  # 2
+        ZPUB: BTCPubRequest._XPubType.ValueType  # 3
         """zpub"""
 
-        VPUB = BTCPubRequest.XPubType.V(4)
+        VPUB: BTCPubRequest._XPubType.ValueType  # 4
         """vpub"""
 
-        UPUB = BTCPubRequest.XPubType.V(5)
-        CAPITAL_VPUB = BTCPubRequest.XPubType.V(6)
+        UPUB: BTCPubRequest._XPubType.ValueType  # 5
+        CAPITAL_VPUB: BTCPubRequest._XPubType.ValueType  # 6
         """Vpub"""
 
-        CAPITAL_ZPUB = BTCPubRequest.XPubType.V(7)
+        CAPITAL_ZPUB: BTCPubRequest._XPubType.ValueType  # 7
         """Zpub"""
 
-        CAPITAL_UPUB = BTCPubRequest.XPubType.V(8)
+        CAPITAL_UPUB: BTCPubRequest._XPubType.ValueType  # 8
         """Upub"""
 
-        CAPITAL_YPUB = BTCPubRequest.XPubType.V(9)
+        CAPITAL_YPUB: BTCPubRequest._XPubType.ValueType  # 9
         """Ypub"""
 
+    class XPubType(_XPubType, metaclass=_XPubTypeEnumTypeWrapper):
+        pass
 
-    TPUB = BTCPubRequest.XPubType.V(0)
-    XPUB = BTCPubRequest.XPubType.V(1)
-    YPUB = BTCPubRequest.XPubType.V(2)
-    ZPUB = BTCPubRequest.XPubType.V(3)
+    TPUB: BTCPubRequest.XPubType.ValueType  # 0
+    XPUB: BTCPubRequest.XPubType.ValueType  # 1
+    YPUB: BTCPubRequest.XPubType.ValueType  # 2
+    ZPUB: BTCPubRequest.XPubType.ValueType  # 3
     """zpub"""
 
-    VPUB = BTCPubRequest.XPubType.V(4)
+    VPUB: BTCPubRequest.XPubType.ValueType  # 4
     """vpub"""
 
-    UPUB = BTCPubRequest.XPubType.V(5)
-    CAPITAL_VPUB = BTCPubRequest.XPubType.V(6)
+    UPUB: BTCPubRequest.XPubType.ValueType  # 5
+    CAPITAL_VPUB: BTCPubRequest.XPubType.ValueType  # 6
     """Vpub"""
 
-    CAPITAL_ZPUB = BTCPubRequest.XPubType.V(7)
+    CAPITAL_ZPUB: BTCPubRequest.XPubType.ValueType  # 7
     """Zpub"""
 
-    CAPITAL_UPUB = BTCPubRequest.XPubType.V(8)
+    CAPITAL_UPUB: BTCPubRequest.XPubType.ValueType  # 8
     """Upub"""
 
-    CAPITAL_YPUB = BTCPubRequest.XPubType.V(9)
+    CAPITAL_YPUB: BTCPubRequest.XPubType.ValueType  # 9
     """Ypub"""
 
 
@@ -193,20 +198,20 @@ class BTCPubRequest(google.protobuf.message.Message):
     XPUB_TYPE_FIELD_NUMBER: builtins.int
     SCRIPT_CONFIG_FIELD_NUMBER: builtins.int
     DISPLAY_FIELD_NUMBER: builtins.int
-    coin: global___BTCCoin.V = ...
+    coin: global___BTCCoin.ValueType
     @property
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
-    xpub_type: global___BTCPubRequest.XPubType.V = ...
+    xpub_type: global___BTCPubRequest.XPubType.ValueType
     @property
     def script_config(self) -> global___BTCScriptConfig: ...
-    display: builtins.bool = ...
+    display: builtins.bool
     def __init__(self,
         *,
-        coin : global___BTCCoin.V = ...,
-        keypath : typing.Optional[typing.Iterable[builtins.int]] = ...,
-        xpub_type : global___BTCPubRequest.XPubType.V = ...,
-        script_config : typing.Optional[global___BTCScriptConfig] = ...,
-        display : builtins.bool = ...,
+        coin: global___BTCCoin.ValueType = ...,
+        keypath: typing.Optional[typing.Iterable[builtins.int]] = ...,
+        xpub_type: global___BTCPubRequest.XPubType.ValueType = ...,
+        script_config: typing.Optional[global___BTCScriptConfig] = ...,
+        display: builtins.bool = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["output",b"output","script_config",b"script_config","xpub_type",b"xpub_type"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["coin",b"coin","display",b"display","keypath",b"keypath","output",b"output","script_config",b"script_config","xpub_type",b"xpub_type"]) -> None: ...
@@ -214,7 +219,7 @@ class BTCPubRequest(google.protobuf.message.Message):
 global___BTCPubRequest = BTCPubRequest
 
 class BTCScriptConfigWithKeypath(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     SCRIPT_CONFIG_FIELD_NUMBER: builtins.int
     KEYPATH_FIELD_NUMBER: builtins.int
     @property
@@ -223,73 +228,74 @@ class BTCScriptConfigWithKeypath(google.protobuf.message.Message):
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
     def __init__(self,
         *,
-        script_config : typing.Optional[global___BTCScriptConfig] = ...,
-        keypath : typing.Optional[typing.Iterable[builtins.int]] = ...,
+        script_config: typing.Optional[global___BTCScriptConfig] = ...,
+        keypath: typing.Optional[typing.Iterable[builtins.int]] = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["script_config",b"script_config"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["keypath",b"keypath","script_config",b"script_config"]) -> None: ...
 global___BTCScriptConfigWithKeypath = BTCScriptConfigWithKeypath
 
 class BTCSignInitRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     COIN_FIELD_NUMBER: builtins.int
     SCRIPT_CONFIGS_FIELD_NUMBER: builtins.int
     VERSION_FIELD_NUMBER: builtins.int
     NUM_INPUTS_FIELD_NUMBER: builtins.int
     NUM_OUTPUTS_FIELD_NUMBER: builtins.int
     LOCKTIME_FIELD_NUMBER: builtins.int
-    coin: global___BTCCoin.V = ...
+    coin: global___BTCCoin.ValueType
     @property
     def script_configs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BTCScriptConfigWithKeypath]:
         """used script configs in inputs and changes"""
         pass
-    version: builtins.int = ...
+    version: builtins.int
     """must be 1 or 2"""
 
-    num_inputs: builtins.int = ...
-    num_outputs: builtins.int = ...
-    locktime: builtins.int = ...
+    num_inputs: builtins.int
+    num_outputs: builtins.int
+    locktime: builtins.int
     """must be <500000000"""
 
     def __init__(self,
         *,
-        coin : global___BTCCoin.V = ...,
-        script_configs : typing.Optional[typing.Iterable[global___BTCScriptConfigWithKeypath]] = ...,
-        version : builtins.int = ...,
-        num_inputs : builtins.int = ...,
-        num_outputs : builtins.int = ...,
-        locktime : builtins.int = ...,
+        coin: global___BTCCoin.ValueType = ...,
+        script_configs: typing.Optional[typing.Iterable[global___BTCScriptConfigWithKeypath]] = ...,
+        version: builtins.int = ...,
+        num_inputs: builtins.int = ...,
+        num_outputs: builtins.int = ...,
+        locktime: builtins.int = ...,
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["coin",b"coin","locktime",b"locktime","num_inputs",b"num_inputs","num_outputs",b"num_outputs","script_configs",b"script_configs","version",b"version"]) -> None: ...
 global___BTCSignInitRequest = BTCSignInitRequest
 
 class BTCSignNextResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
-    class Type(_Type, metaclass=_TypeEnumTypeWrapper):
-        pass
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     class _Type:
-        V = typing.NewType('V', builtins.int)
-    class _TypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_Type.V], builtins.type):
-        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
-        INPUT = BTCSignNextResponse.Type.V(0)
-        OUTPUT = BTCSignNextResponse.Type.V(1)
-        DONE = BTCSignNextResponse.Type.V(2)
-        PREVTX_INIT = BTCSignNextResponse.Type.V(3)
+        ValueType = typing.NewType('ValueType', builtins.int)
+        V: typing_extensions.TypeAlias = ValueType
+    class _TypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[BTCSignNextResponse._Type.ValueType], builtins.type):
+        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+        INPUT: BTCSignNextResponse._Type.ValueType  # 0
+        OUTPUT: BTCSignNextResponse._Type.ValueType  # 1
+        DONE: BTCSignNextResponse._Type.ValueType  # 2
+        PREVTX_INIT: BTCSignNextResponse._Type.ValueType  # 3
         """For the previous transaction at input `index`."""
 
-        PREVTX_INPUT = BTCSignNextResponse.Type.V(4)
-        PREVTX_OUTPUT = BTCSignNextResponse.Type.V(5)
-        HOST_NONCE = BTCSignNextResponse.Type.V(6)
+        PREVTX_INPUT: BTCSignNextResponse._Type.ValueType  # 4
+        PREVTX_OUTPUT: BTCSignNextResponse._Type.ValueType  # 5
+        HOST_NONCE: BTCSignNextResponse._Type.ValueType  # 6
+    class Type(_Type, metaclass=_TypeEnumTypeWrapper):
+        pass
 
-    INPUT = BTCSignNextResponse.Type.V(0)
-    OUTPUT = BTCSignNextResponse.Type.V(1)
-    DONE = BTCSignNextResponse.Type.V(2)
-    PREVTX_INIT = BTCSignNextResponse.Type.V(3)
+    INPUT: BTCSignNextResponse.Type.ValueType  # 0
+    OUTPUT: BTCSignNextResponse.Type.ValueType  # 1
+    DONE: BTCSignNextResponse.Type.ValueType  # 2
+    PREVTX_INIT: BTCSignNextResponse.Type.ValueType  # 3
     """For the previous transaction at input `index`."""
 
-    PREVTX_INPUT = BTCSignNextResponse.Type.V(4)
-    PREVTX_OUTPUT = BTCSignNextResponse.Type.V(5)
-    HOST_NONCE = BTCSignNextResponse.Type.V(6)
+    PREVTX_INPUT: BTCSignNextResponse.Type.ValueType  # 4
+    PREVTX_OUTPUT: BTCSignNextResponse.Type.ValueType  # 5
+    HOST_NONCE: BTCSignNextResponse.Type.ValueType  # 6
 
     TYPE_FIELD_NUMBER: builtins.int
     INDEX_FIELD_NUMBER: builtins.int
@@ -297,36 +303,36 @@ class BTCSignNextResponse(google.protobuf.message.Message):
     SIGNATURE_FIELD_NUMBER: builtins.int
     PREV_INDEX_FIELD_NUMBER: builtins.int
     ANTI_KLEPTO_SIGNER_COMMITMENT_FIELD_NUMBER: builtins.int
-    type: global___BTCSignNextResponse.Type.V = ...
-    index: builtins.int = ...
+    type: global___BTCSignNextResponse.Type.ValueType
+    index: builtins.int
     """index of the current input or output"""
 
-    has_signature: builtins.bool = ...
+    has_signature: builtins.bool
     """only as a response to BTCSignInputRequest"""
 
-    signature: builtins.bytes = ...
+    signature: builtins.bytes
     """64 bytes (32 bytes big endian R, 32 bytes big endian S). Only if has_signature is true."""
 
-    prev_index: builtins.int = ...
+    prev_index: builtins.int
     """Previous tx's input/output index in case of PREV_INPUT or PREV_OUTPUT, for the input at `index`."""
 
     @property
     def anti_klepto_signer_commitment(self) -> antiklepto_pb2.AntiKleptoSignerCommitment: ...
     def __init__(self,
         *,
-        type : global___BTCSignNextResponse.Type.V = ...,
-        index : builtins.int = ...,
-        has_signature : builtins.bool = ...,
-        signature : builtins.bytes = ...,
-        prev_index : builtins.int = ...,
-        anti_klepto_signer_commitment : typing.Optional[antiklepto_pb2.AntiKleptoSignerCommitment] = ...,
+        type: global___BTCSignNextResponse.Type.ValueType = ...,
+        index: builtins.int = ...,
+        has_signature: builtins.bool = ...,
+        signature: builtins.bytes = ...,
+        prev_index: builtins.int = ...,
+        anti_klepto_signer_commitment: typing.Optional[antiklepto_pb2.AntiKleptoSignerCommitment] = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["anti_klepto_signer_commitment",b"anti_klepto_signer_commitment"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["anti_klepto_signer_commitment",b"anti_klepto_signer_commitment","has_signature",b"has_signature","index",b"index","prev_index",b"prev_index","signature",b"signature","type",b"type"]) -> None: ...
 global___BTCSignNextResponse = BTCSignNextResponse
 
 class BTCSignInputRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     PREVOUTHASH_FIELD_NUMBER: builtins.int
     PREVOUTINDEX_FIELD_NUMBER: builtins.int
     PREVOUTVALUE_FIELD_NUMBER: builtins.int
@@ -334,141 +340,142 @@ class BTCSignInputRequest(google.protobuf.message.Message):
     KEYPATH_FIELD_NUMBER: builtins.int
     SCRIPT_CONFIG_INDEX_FIELD_NUMBER: builtins.int
     HOST_NONCE_COMMITMENT_FIELD_NUMBER: builtins.int
-    prevOutHash: builtins.bytes = ...
-    prevOutIndex: builtins.int = ...
-    prevOutValue: builtins.int = ...
-    sequence: builtins.int = ...
+    prevOutHash: builtins.bytes
+    prevOutIndex: builtins.int
+    prevOutValue: builtins.int
+    sequence: builtins.int
     """must be 0xffffffff-2, 0xffffffff-1 or 0xffffffff"""
 
     @property
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]:
         """all inputs must be ours."""
         pass
-    script_config_index: builtins.int = ...
+    script_config_index: builtins.int
     """References a script config from BTCSignInitRequest"""
 
     @property
     def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment: ...
     def __init__(self,
         *,
-        prevOutHash : builtins.bytes = ...,
-        prevOutIndex : builtins.int = ...,
-        prevOutValue : builtins.int = ...,
-        sequence : builtins.int = ...,
-        keypath : typing.Optional[typing.Iterable[builtins.int]] = ...,
-        script_config_index : builtins.int = ...,
-        host_nonce_commitment : typing.Optional[antiklepto_pb2.AntiKleptoHostNonceCommitment] = ...,
+        prevOutHash: builtins.bytes = ...,
+        prevOutIndex: builtins.int = ...,
+        prevOutValue: builtins.int = ...,
+        sequence: builtins.int = ...,
+        keypath: typing.Optional[typing.Iterable[builtins.int]] = ...,
+        script_config_index: builtins.int = ...,
+        host_nonce_commitment: typing.Optional[antiklepto_pb2.AntiKleptoHostNonceCommitment] = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["host_nonce_commitment",b"host_nonce_commitment"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["host_nonce_commitment",b"host_nonce_commitment","keypath",b"keypath","prevOutHash",b"prevOutHash","prevOutIndex",b"prevOutIndex","prevOutValue",b"prevOutValue","script_config_index",b"script_config_index","sequence",b"sequence"]) -> None: ...
 global___BTCSignInputRequest = BTCSignInputRequest
 
 class BTCSignOutputRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     OURS_FIELD_NUMBER: builtins.int
     TYPE_FIELD_NUMBER: builtins.int
     VALUE_FIELD_NUMBER: builtins.int
     PAYLOAD_FIELD_NUMBER: builtins.int
     KEYPATH_FIELD_NUMBER: builtins.int
     SCRIPT_CONFIG_INDEX_FIELD_NUMBER: builtins.int
-    ours: builtins.bool = ...
-    type: global___BTCOutputType.V = ...
+    ours: builtins.bool
+    type: global___BTCOutputType.ValueType
     """if ours is false"""
 
-    value: builtins.int = ...
+    value: builtins.int
     """20 bytes for p2pkh, p2sh, pw2wpkh. 32 bytes for p2wsh."""
 
-    payload: builtins.bytes = ...
+    payload: builtins.bytes
     """if ours is false. Renamed from `hash`."""
 
     @property
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]:
         """if ours is true"""
         pass
-    script_config_index: builtins.int = ...
+    script_config_index: builtins.int
     """If ours is true. References a script config from BTCSignInitRequest"""
 
     def __init__(self,
         *,
-        ours : builtins.bool = ...,
-        type : global___BTCOutputType.V = ...,
-        value : builtins.int = ...,
-        payload : builtins.bytes = ...,
-        keypath : typing.Optional[typing.Iterable[builtins.int]] = ...,
-        script_config_index : builtins.int = ...,
+        ours: builtins.bool = ...,
+        type: global___BTCOutputType.ValueType = ...,
+        value: builtins.int = ...,
+        payload: builtins.bytes = ...,
+        keypath: typing.Optional[typing.Iterable[builtins.int]] = ...,
+        script_config_index: builtins.int = ...,
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["keypath",b"keypath","ours",b"ours","payload",b"payload","script_config_index",b"script_config_index","type",b"type","value",b"value"]) -> None: ...
 global___BTCSignOutputRequest = BTCSignOutputRequest
 
 class BTCScriptConfigRegistration(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     COIN_FIELD_NUMBER: builtins.int
     SCRIPT_CONFIG_FIELD_NUMBER: builtins.int
     KEYPATH_FIELD_NUMBER: builtins.int
-    coin: global___BTCCoin.V = ...
+    coin: global___BTCCoin.ValueType
     @property
     def script_config(self) -> global___BTCScriptConfig: ...
     @property
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
     def __init__(self,
         *,
-        coin : global___BTCCoin.V = ...,
-        script_config : typing.Optional[global___BTCScriptConfig] = ...,
-        keypath : typing.Optional[typing.Iterable[builtins.int]] = ...,
+        coin: global___BTCCoin.ValueType = ...,
+        script_config: typing.Optional[global___BTCScriptConfig] = ...,
+        keypath: typing.Optional[typing.Iterable[builtins.int]] = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["script_config",b"script_config"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["coin",b"coin","keypath",b"keypath","script_config",b"script_config"]) -> None: ...
 global___BTCScriptConfigRegistration = BTCScriptConfigRegistration
 
 class BTCSuccess(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     def __init__(self,
         ) -> None: ...
 global___BTCSuccess = BTCSuccess
 
 class BTCIsScriptConfigRegisteredRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     REGISTRATION_FIELD_NUMBER: builtins.int
     @property
     def registration(self) -> global___BTCScriptConfigRegistration: ...
     def __init__(self,
         *,
-        registration : typing.Optional[global___BTCScriptConfigRegistration] = ...,
+        registration: typing.Optional[global___BTCScriptConfigRegistration] = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["registration",b"registration"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["registration",b"registration"]) -> None: ...
 global___BTCIsScriptConfigRegisteredRequest = BTCIsScriptConfigRegisteredRequest
 
 class BTCIsScriptConfigRegisteredResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     IS_REGISTERED_FIELD_NUMBER: builtins.int
-    is_registered: builtins.bool = ...
+    is_registered: builtins.bool
     def __init__(self,
         *,
-        is_registered : builtins.bool = ...,
+        is_registered: builtins.bool = ...,
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["is_registered",b"is_registered"]) -> None: ...
 global___BTCIsScriptConfigRegisteredResponse = BTCIsScriptConfigRegisteredResponse
 
 class BTCRegisterScriptConfigRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
-    class XPubType(_XPubType, metaclass=_XPubTypeEnumTypeWrapper):
-        pass
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     class _XPubType:
-        V = typing.NewType('V', builtins.int)
-    class _XPubTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_XPubType.V], builtins.type):
-        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
-        AUTO_ELECTRUM = BTCRegisterScriptConfigRequest.XPubType.V(0)
+        ValueType = typing.NewType('ValueType', builtins.int)
+        V: typing_extensions.TypeAlias = ValueType
+    class _XPubTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[BTCRegisterScriptConfigRequest._XPubType.ValueType], builtins.type):
+        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+        AUTO_ELECTRUM: BTCRegisterScriptConfigRequest._XPubType.ValueType  # 0
         """Automatically choose to match Electrum's xpub format (e.g. Zpub/Vpub for p2wsh multisig mainnet/testnet)."""
 
-        AUTO_XPUB_TPUB = BTCRegisterScriptConfigRequest.XPubType.V(1)
+        AUTO_XPUB_TPUB: BTCRegisterScriptConfigRequest._XPubType.ValueType  # 1
         """Always xpub for mainnets, tpub for testnets."""
 
+    class XPubType(_XPubType, metaclass=_XPubTypeEnumTypeWrapper):
+        pass
 
-    AUTO_ELECTRUM = BTCRegisterScriptConfigRequest.XPubType.V(0)
+    AUTO_ELECTRUM: BTCRegisterScriptConfigRequest.XPubType.ValueType  # 0
     """Automatically choose to match Electrum's xpub format (e.g. Zpub/Vpub for p2wsh multisig mainnet/testnet)."""
 
-    AUTO_XPUB_TPUB = BTCRegisterScriptConfigRequest.XPubType.V(1)
+    AUTO_XPUB_TPUB: BTCRegisterScriptConfigRequest.XPubType.ValueType  # 1
     """Always xpub for mainnets, tpub for testnets."""
 
 
@@ -477,112 +484,112 @@ class BTCRegisterScriptConfigRequest(google.protobuf.message.Message):
     XPUB_TYPE_FIELD_NUMBER: builtins.int
     @property
     def registration(self) -> global___BTCScriptConfigRegistration: ...
-    name: typing.Text = ...
+    name: typing.Text
     """If empty, the name is entered on the device instead."""
 
-    xpub_type: global___BTCRegisterScriptConfigRequest.XPubType.V = ...
+    xpub_type: global___BTCRegisterScriptConfigRequest.XPubType.ValueType
     def __init__(self,
         *,
-        registration : typing.Optional[global___BTCScriptConfigRegistration] = ...,
-        name : typing.Text = ...,
-        xpub_type : global___BTCRegisterScriptConfigRequest.XPubType.V = ...,
+        registration: typing.Optional[global___BTCScriptConfigRegistration] = ...,
+        name: typing.Text = ...,
+        xpub_type: global___BTCRegisterScriptConfigRequest.XPubType.ValueType = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["registration",b"registration"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["name",b"name","registration",b"registration","xpub_type",b"xpub_type"]) -> None: ...
 global___BTCRegisterScriptConfigRequest = BTCRegisterScriptConfigRequest
 
 class BTCPrevTxInitRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     VERSION_FIELD_NUMBER: builtins.int
     NUM_INPUTS_FIELD_NUMBER: builtins.int
     NUM_OUTPUTS_FIELD_NUMBER: builtins.int
     LOCKTIME_FIELD_NUMBER: builtins.int
-    version: builtins.int = ...
-    num_inputs: builtins.int = ...
-    num_outputs: builtins.int = ...
-    locktime: builtins.int = ...
+    version: builtins.int
+    num_inputs: builtins.int
+    num_outputs: builtins.int
+    locktime: builtins.int
     def __init__(self,
         *,
-        version : builtins.int = ...,
-        num_inputs : builtins.int = ...,
-        num_outputs : builtins.int = ...,
-        locktime : builtins.int = ...,
+        version: builtins.int = ...,
+        num_inputs: builtins.int = ...,
+        num_outputs: builtins.int = ...,
+        locktime: builtins.int = ...,
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["locktime",b"locktime","num_inputs",b"num_inputs","num_outputs",b"num_outputs","version",b"version"]) -> None: ...
 global___BTCPrevTxInitRequest = BTCPrevTxInitRequest
 
 class BTCPrevTxInputRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     PREV_OUT_HASH_FIELD_NUMBER: builtins.int
     PREV_OUT_INDEX_FIELD_NUMBER: builtins.int
     SIGNATURE_SCRIPT_FIELD_NUMBER: builtins.int
     SEQUENCE_FIELD_NUMBER: builtins.int
-    prev_out_hash: builtins.bytes = ...
-    prev_out_index: builtins.int = ...
-    signature_script: builtins.bytes = ...
-    sequence: builtins.int = ...
+    prev_out_hash: builtins.bytes
+    prev_out_index: builtins.int
+    signature_script: builtins.bytes
+    sequence: builtins.int
     def __init__(self,
         *,
-        prev_out_hash : builtins.bytes = ...,
-        prev_out_index : builtins.int = ...,
-        signature_script : builtins.bytes = ...,
-        sequence : builtins.int = ...,
+        prev_out_hash: builtins.bytes = ...,
+        prev_out_index: builtins.int = ...,
+        signature_script: builtins.bytes = ...,
+        sequence: builtins.int = ...,
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["prev_out_hash",b"prev_out_hash","prev_out_index",b"prev_out_index","sequence",b"sequence","signature_script",b"signature_script"]) -> None: ...
 global___BTCPrevTxInputRequest = BTCPrevTxInputRequest
 
 class BTCPrevTxOutputRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     VALUE_FIELD_NUMBER: builtins.int
     PUBKEY_SCRIPT_FIELD_NUMBER: builtins.int
-    value: builtins.int = ...
-    pubkey_script: builtins.bytes = ...
+    value: builtins.int
+    pubkey_script: builtins.bytes
     def __init__(self,
         *,
-        value : builtins.int = ...,
-        pubkey_script : builtins.bytes = ...,
+        value: builtins.int = ...,
+        pubkey_script: builtins.bytes = ...,
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["pubkey_script",b"pubkey_script","value",b"value"]) -> None: ...
 global___BTCPrevTxOutputRequest = BTCPrevTxOutputRequest
 
 class BTCSignMessageRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     COIN_FIELD_NUMBER: builtins.int
     SCRIPT_CONFIG_FIELD_NUMBER: builtins.int
     MSG_FIELD_NUMBER: builtins.int
     HOST_NONCE_COMMITMENT_FIELD_NUMBER: builtins.int
-    coin: global___BTCCoin.V = ...
+    coin: global___BTCCoin.ValueType
     @property
     def script_config(self) -> global___BTCScriptConfigWithKeypath: ...
-    msg: builtins.bytes = ...
+    msg: builtins.bytes
     @property
     def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment: ...
     def __init__(self,
         *,
-        coin : global___BTCCoin.V = ...,
-        script_config : typing.Optional[global___BTCScriptConfigWithKeypath] = ...,
-        msg : builtins.bytes = ...,
-        host_nonce_commitment : typing.Optional[antiklepto_pb2.AntiKleptoHostNonceCommitment] = ...,
+        coin: global___BTCCoin.ValueType = ...,
+        script_config: typing.Optional[global___BTCScriptConfigWithKeypath] = ...,
+        msg: builtins.bytes = ...,
+        host_nonce_commitment: typing.Optional[antiklepto_pb2.AntiKleptoHostNonceCommitment] = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["host_nonce_commitment",b"host_nonce_commitment","script_config",b"script_config"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["coin",b"coin","host_nonce_commitment",b"host_nonce_commitment","msg",b"msg","script_config",b"script_config"]) -> None: ...
 global___BTCSignMessageRequest = BTCSignMessageRequest
 
 class BTCSignMessageResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     SIGNATURE_FIELD_NUMBER: builtins.int
-    signature: builtins.bytes = ...
+    signature: builtins.bytes
     """65 bytes (32 bytes big endian R, 32 bytes big endian S, 1 recid)."""
 
     def __init__(self,
         *,
-        signature : builtins.bytes = ...,
+        signature: builtins.bytes = ...,
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["signature",b"signature"]) -> None: ...
 global___BTCSignMessageResponse = BTCSignMessageResponse
 
 class BTCRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     IS_SCRIPT_CONFIG_REGISTERED_FIELD_NUMBER: builtins.int
     REGISTER_SCRIPT_CONFIG_FIELD_NUMBER: builtins.int
     PREVTX_INIT_FIELD_NUMBER: builtins.int
@@ -606,13 +613,13 @@ class BTCRequest(google.protobuf.message.Message):
     def antiklepto_signature(self) -> antiklepto_pb2.AntiKleptoSignatureRequest: ...
     def __init__(self,
         *,
-        is_script_config_registered : typing.Optional[global___BTCIsScriptConfigRegisteredRequest] = ...,
-        register_script_config : typing.Optional[global___BTCRegisterScriptConfigRequest] = ...,
-        prevtx_init : typing.Optional[global___BTCPrevTxInitRequest] = ...,
-        prevtx_input : typing.Optional[global___BTCPrevTxInputRequest] = ...,
-        prevtx_output : typing.Optional[global___BTCPrevTxOutputRequest] = ...,
-        sign_message : typing.Optional[global___BTCSignMessageRequest] = ...,
-        antiklepto_signature : typing.Optional[antiklepto_pb2.AntiKleptoSignatureRequest] = ...,
+        is_script_config_registered: typing.Optional[global___BTCIsScriptConfigRegisteredRequest] = ...,
+        register_script_config: typing.Optional[global___BTCRegisterScriptConfigRequest] = ...,
+        prevtx_init: typing.Optional[global___BTCPrevTxInitRequest] = ...,
+        prevtx_input: typing.Optional[global___BTCPrevTxInputRequest] = ...,
+        prevtx_output: typing.Optional[global___BTCPrevTxOutputRequest] = ...,
+        sign_message: typing.Optional[global___BTCSignMessageRequest] = ...,
+        antiklepto_signature: typing.Optional[antiklepto_pb2.AntiKleptoSignatureRequest] = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["antiklepto_signature",b"antiklepto_signature","is_script_config_registered",b"is_script_config_registered","prevtx_init",b"prevtx_init","prevtx_input",b"prevtx_input","prevtx_output",b"prevtx_output","register_script_config",b"register_script_config","request",b"request","sign_message",b"sign_message"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["antiklepto_signature",b"antiklepto_signature","is_script_config_registered",b"is_script_config_registered","prevtx_init",b"prevtx_init","prevtx_input",b"prevtx_input","prevtx_output",b"prevtx_output","register_script_config",b"register_script_config","request",b"request","sign_message",b"sign_message"]) -> None: ...
@@ -620,7 +627,7 @@ class BTCRequest(google.protobuf.message.Message):
 global___BTCRequest = BTCRequest
 
 class BTCResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     SUCCESS_FIELD_NUMBER: builtins.int
     IS_SCRIPT_CONFIG_REGISTERED_FIELD_NUMBER: builtins.int
     SIGN_NEXT_FIELD_NUMBER: builtins.int
@@ -638,11 +645,11 @@ class BTCResponse(google.protobuf.message.Message):
     def antiklepto_signer_commitment(self) -> antiklepto_pb2.AntiKleptoSignerCommitment: ...
     def __init__(self,
         *,
-        success : typing.Optional[global___BTCSuccess] = ...,
-        is_script_config_registered : typing.Optional[global___BTCIsScriptConfigRegisteredResponse] = ...,
-        sign_next : typing.Optional[global___BTCSignNextResponse] = ...,
-        sign_message : typing.Optional[global___BTCSignMessageResponse] = ...,
-        antiklepto_signer_commitment : typing.Optional[antiklepto_pb2.AntiKleptoSignerCommitment] = ...,
+        success: typing.Optional[global___BTCSuccess] = ...,
+        is_script_config_registered: typing.Optional[global___BTCIsScriptConfigRegisteredResponse] = ...,
+        sign_next: typing.Optional[global___BTCSignNextResponse] = ...,
+        sign_message: typing.Optional[global___BTCSignMessageResponse] = ...,
+        antiklepto_signer_commitment: typing.Optional[antiklepto_pb2.AntiKleptoSignerCommitment] = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["antiklepto_signer_commitment",b"antiklepto_signer_commitment","is_script_config_registered",b"is_script_config_registered","response",b"response","sign_message",b"sign_message","sign_next",b"sign_next","success",b"success"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["antiklepto_signer_commitment",b"antiklepto_signer_commitment","is_script_config_registered",b"is_script_config_registered","response",b"response","sign_message",b"sign_message","sign_next",b"sign_next","success",b"success"]) -> None: ...

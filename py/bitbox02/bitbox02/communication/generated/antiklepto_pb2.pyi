@@ -7,37 +7,37 @@ import google.protobuf.descriptor
 import google.protobuf.message
 import typing_extensions
 
-DESCRIPTOR: google.protobuf.descriptor.FileDescriptor = ...
+DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 
 class AntiKleptoHostNonceCommitment(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     COMMITMENT_FIELD_NUMBER: builtins.int
-    commitment: builtins.bytes = ...
+    commitment: builtins.bytes
     def __init__(self,
         *,
-        commitment : builtins.bytes = ...,
+        commitment: builtins.bytes = ...,
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["commitment",b"commitment"]) -> None: ...
 global___AntiKleptoHostNonceCommitment = AntiKleptoHostNonceCommitment
 
 class AntiKleptoSignerCommitment(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     COMMITMENT_FIELD_NUMBER: builtins.int
-    commitment: builtins.bytes = ...
+    commitment: builtins.bytes
     def __init__(self,
         *,
-        commitment : builtins.bytes = ...,
+        commitment: builtins.bytes = ...,
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["commitment",b"commitment"]) -> None: ...
 global___AntiKleptoSignerCommitment = AntiKleptoSignerCommitment
 
 class AntiKleptoSignatureRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     HOST_NONCE_FIELD_NUMBER: builtins.int
-    host_nonce: builtins.bytes = ...
+    host_nonce: builtins.bytes
     def __init__(self,
         *,
-        host_nonce : builtins.bytes = ...,
+        host_nonce: builtins.bytes = ...,
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["host_nonce",b"host_nonce"]) -> None: ...
 global___AntiKleptoSignatureRequest = AntiKleptoSignatureRequest

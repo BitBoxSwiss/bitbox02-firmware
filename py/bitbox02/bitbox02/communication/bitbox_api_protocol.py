@@ -293,12 +293,10 @@ class BitBoxProtocol(ABC):
     @abstractmethod
     def _encode_noise_request(self, encrypted_msg: bytes) -> bytes:
         """Encapsulates an OP_NOISE_MSG message."""
-        ...
 
     @abstractmethod
     def _decode_noise_response(self, encrypted_msg: bytes) -> Tuple[bytes, bytes]:
         """De-encapsulate an OP_NOISE_MSG response."""
-        ...
 
     @abstractmethod
     def _handshake_query(self, req: bytes) -> Tuple[bytes, bytes]:
@@ -307,7 +305,6 @@ class BitBoxProtocol(ABC):
         request data.
         Returns a pair (response status, response data).
         """
-        ...
 
     def encrypted_query(self, msg: bytes) -> bytes:
         """
@@ -394,14 +391,12 @@ class BitBoxProtocol(ABC):
         Executes an unlock query.
         Returns the bytes containing the response status.
         """
-        ...
 
     @abstractmethod
     def cancel_outstanding_request(self) -> None:
         """
         Aborts/force close the outstanding request on the device.
         """
-        ...
 
 
 class BitBoxProtocolV1(BitBoxProtocol):

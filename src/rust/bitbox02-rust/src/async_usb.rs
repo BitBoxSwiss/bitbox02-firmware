@@ -222,17 +222,19 @@ pub fn cancel() -> bool {
 /// Must be called during the execution of a usb task. This sends out the response to the host and
 /// awaits the next request.
 pub async fn next_request(response: UsbOut) -> UsbIn {
-    let mut state = USB_TASK_STATE.0.borrow_mut();
-    match *state {
-        UsbTaskState::Running(None, ref mut next_request_state) => {
-            *next_request_state = WaitingForNextRequestState::SendingResponse(response);
-            // release borrow
-            drop(state);
-
-            option(&NEXT_REQUEST.0).await
+    // Scope so that `state` is dropped before `.await`, see
+    // https://rust-lang.github.io/rust-clippy/master/index.html#await_holding_refcell_ref
+    {
+        let mut state = USB_TASK_STATE.0.borrow_mut();
+        match *state {
+            UsbTaskState::Running(None, ref mut next_request_state) => {
+                *next_request_state = WaitingForNextRequestState::SendingResponse(response);
+            }
+            _ => panic!("next_request() called in wrong state"),
         }
-        _ => panic!("next_request() called in wrong state"),
     }
+
+    option(&NEXT_REQUEST.0).await
 }
 
 #[cfg(test)]

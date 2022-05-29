@@ -12,37 +12,39 @@ import google.protobuf.message
 import typing
 import typing_extensions
 
-DESCRIPTOR: google.protobuf.descriptor.FileDescriptor = ...
+DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 
+class _ETHCoin:
+    ValueType = typing.NewType('ValueType', builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+class _ETHCoinEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_ETHCoin.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    ETH: _ETHCoin.ValueType  # 0
+    RopstenETH: _ETHCoin.ValueType  # 1
+    RinkebyETH: _ETHCoin.ValueType  # 2
 class ETHCoin(_ETHCoin, metaclass=_ETHCoinEnumTypeWrapper):
     pass
-class _ETHCoin:
-    V = typing.NewType('V', builtins.int)
-class _ETHCoinEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_ETHCoin.V], builtins.type):
-    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
-    ETH = ETHCoin.V(0)
-    RopstenETH = ETHCoin.V(1)
-    RinkebyETH = ETHCoin.V(2)
 
-ETH = ETHCoin.V(0)
-RopstenETH = ETHCoin.V(1)
-RinkebyETH = ETHCoin.V(2)
+ETH: ETHCoin.ValueType  # 0
+RopstenETH: ETHCoin.ValueType  # 1
+RinkebyETH: ETHCoin.ValueType  # 2
 global___ETHCoin = ETHCoin
 
 
 class ETHPubRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    class _OutputType:
+        ValueType = typing.NewType('ValueType', builtins.int)
+        V: typing_extensions.TypeAlias = ValueType
+    class _OutputTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[ETHPubRequest._OutputType.ValueType], builtins.type):
+        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+        ADDRESS: ETHPubRequest._OutputType.ValueType  # 0
+        XPUB: ETHPubRequest._OutputType.ValueType  # 1
     class OutputType(_OutputType, metaclass=_OutputTypeEnumTypeWrapper):
         pass
-    class _OutputType:
-        V = typing.NewType('V', builtins.int)
-    class _OutputTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_OutputType.V], builtins.type):
-        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
-        ADDRESS = ETHPubRequest.OutputType.V(0)
-        XPUB = ETHPubRequest.OutputType.V(1)
 
-    ADDRESS = ETHPubRequest.OutputType.V(0)
-    XPUB = ETHPubRequest.OutputType.V(1)
+    ADDRESS: ETHPubRequest.OutputType.ValueType  # 0
+    XPUB: ETHPubRequest.OutputType.ValueType  # 1
 
     KEYPATH_FIELD_NUMBER: builtins.int
     COIN_FIELD_NUMBER: builtins.int
@@ -52,29 +54,29 @@ class ETHPubRequest(google.protobuf.message.Message):
     CHAIN_ID_FIELD_NUMBER: builtins.int
     @property
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
-    coin: global___ETHCoin.V = ...
+    coin: global___ETHCoin.ValueType
     """Deprecated: use chain_id instead."""
 
-    output_type: global___ETHPubRequest.OutputType.V = ...
-    display: builtins.bool = ...
-    contract_address: builtins.bytes = ...
-    chain_id: builtins.int = ...
+    output_type: global___ETHPubRequest.OutputType.ValueType
+    display: builtins.bool
+    contract_address: builtins.bytes
+    chain_id: builtins.int
     """If non-zero, `coin` is ignored and `chain_id` is used to identify the network."""
 
     def __init__(self,
         *,
-        keypath : typing.Optional[typing.Iterable[builtins.int]] = ...,
-        coin : global___ETHCoin.V = ...,
-        output_type : global___ETHPubRequest.OutputType.V = ...,
-        display : builtins.bool = ...,
-        contract_address : builtins.bytes = ...,
-        chain_id : builtins.int = ...,
+        keypath: typing.Optional[typing.Iterable[builtins.int]] = ...,
+        coin: global___ETHCoin.ValueType = ...,
+        output_type: global___ETHPubRequest.OutputType.ValueType = ...,
+        display: builtins.bool = ...,
+        contract_address: builtins.bytes = ...,
+        chain_id: builtins.int = ...,
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["chain_id",b"chain_id","coin",b"coin","contract_address",b"contract_address","display",b"display","keypath",b"keypath","output_type",b"output_type"]) -> None: ...
 global___ETHPubRequest = ETHPubRequest
 
 class ETHSignRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     COIN_FIELD_NUMBER: builtins.int
     KEYPATH_FIELD_NUMBER: builtins.int
     NONCE_FIELD_NUMBER: builtins.int
@@ -85,94 +87,94 @@ class ETHSignRequest(google.protobuf.message.Message):
     DATA_FIELD_NUMBER: builtins.int
     HOST_NONCE_COMMITMENT_FIELD_NUMBER: builtins.int
     CHAIN_ID_FIELD_NUMBER: builtins.int
-    coin: global___ETHCoin.V = ...
+    coin: global___ETHCoin.ValueType
     """Deprecated: use chain_id instead."""
 
     @property
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
-    nonce: builtins.bytes = ...
+    nonce: builtins.bytes
     """smallest big endian serialization, max. 16 bytes"""
 
-    gas_price: builtins.bytes = ...
+    gas_price: builtins.bytes
     """smallest big endian serialization, max. 16 bytes"""
 
-    gas_limit: builtins.bytes = ...
+    gas_limit: builtins.bytes
     """smallest big endian serialization, max. 16 bytes"""
 
-    recipient: builtins.bytes = ...
+    recipient: builtins.bytes
     """20 byte recipient"""
 
-    value: builtins.bytes = ...
+    value: builtins.bytes
     """smallest big endian serialization, max. 32 bytes"""
 
-    data: builtins.bytes = ...
+    data: builtins.bytes
     @property
     def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment: ...
-    chain_id: builtins.int = ...
+    chain_id: builtins.int
     """If non-zero, `coin` is ignored and `chain_id` is used to identify the network."""
 
     def __init__(self,
         *,
-        coin : global___ETHCoin.V = ...,
-        keypath : typing.Optional[typing.Iterable[builtins.int]] = ...,
-        nonce : builtins.bytes = ...,
-        gas_price : builtins.bytes = ...,
-        gas_limit : builtins.bytes = ...,
-        recipient : builtins.bytes = ...,
-        value : builtins.bytes = ...,
-        data : builtins.bytes = ...,
-        host_nonce_commitment : typing.Optional[antiklepto_pb2.AntiKleptoHostNonceCommitment] = ...,
-        chain_id : builtins.int = ...,
+        coin: global___ETHCoin.ValueType = ...,
+        keypath: typing.Optional[typing.Iterable[builtins.int]] = ...,
+        nonce: builtins.bytes = ...,
+        gas_price: builtins.bytes = ...,
+        gas_limit: builtins.bytes = ...,
+        recipient: builtins.bytes = ...,
+        value: builtins.bytes = ...,
+        data: builtins.bytes = ...,
+        host_nonce_commitment: typing.Optional[antiklepto_pb2.AntiKleptoHostNonceCommitment] = ...,
+        chain_id: builtins.int = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["host_nonce_commitment",b"host_nonce_commitment"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["chain_id",b"chain_id","coin",b"coin","data",b"data","gas_limit",b"gas_limit","gas_price",b"gas_price","host_nonce_commitment",b"host_nonce_commitment","keypath",b"keypath","nonce",b"nonce","recipient",b"recipient","value",b"value"]) -> None: ...
 global___ETHSignRequest = ETHSignRequest
 
 class ETHSignMessageRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     COIN_FIELD_NUMBER: builtins.int
     KEYPATH_FIELD_NUMBER: builtins.int
     MSG_FIELD_NUMBER: builtins.int
     HOST_NONCE_COMMITMENT_FIELD_NUMBER: builtins.int
     CHAIN_ID_FIELD_NUMBER: builtins.int
-    coin: global___ETHCoin.V = ...
+    coin: global___ETHCoin.ValueType
     """Deprecated: use chain_id instead."""
 
     @property
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
-    msg: builtins.bytes = ...
+    msg: builtins.bytes
     @property
     def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment: ...
-    chain_id: builtins.int = ...
+    chain_id: builtins.int
     """If non-zero, `coin` is ignored and `chain_id` is used to identify the network."""
 
     def __init__(self,
         *,
-        coin : global___ETHCoin.V = ...,
-        keypath : typing.Optional[typing.Iterable[builtins.int]] = ...,
-        msg : builtins.bytes = ...,
-        host_nonce_commitment : typing.Optional[antiklepto_pb2.AntiKleptoHostNonceCommitment] = ...,
-        chain_id : builtins.int = ...,
+        coin: global___ETHCoin.ValueType = ...,
+        keypath: typing.Optional[typing.Iterable[builtins.int]] = ...,
+        msg: builtins.bytes = ...,
+        host_nonce_commitment: typing.Optional[antiklepto_pb2.AntiKleptoHostNonceCommitment] = ...,
+        chain_id: builtins.int = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["host_nonce_commitment",b"host_nonce_commitment"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["chain_id",b"chain_id","coin",b"coin","host_nonce_commitment",b"host_nonce_commitment","keypath",b"keypath","msg",b"msg"]) -> None: ...
 global___ETHSignMessageRequest = ETHSignMessageRequest
 
 class ETHSignResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     SIGNATURE_FIELD_NUMBER: builtins.int
-    signature: builtins.bytes = ...
+    signature: builtins.bytes
     """65 bytes, last byte is the recid"""
 
     def __init__(self,
         *,
-        signature : builtins.bytes = ...,
+        signature: builtins.bytes = ...,
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["signature",b"signature"]) -> None: ...
 global___ETHSignResponse = ETHSignResponse
 
 class ETHRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     PUB_FIELD_NUMBER: builtins.int
     SIGN_FIELD_NUMBER: builtins.int
     SIGN_MSG_FIELD_NUMBER: builtins.int
@@ -187,10 +189,10 @@ class ETHRequest(google.protobuf.message.Message):
     def antiklepto_signature(self) -> antiklepto_pb2.AntiKleptoSignatureRequest: ...
     def __init__(self,
         *,
-        pub : typing.Optional[global___ETHPubRequest] = ...,
-        sign : typing.Optional[global___ETHSignRequest] = ...,
-        sign_msg : typing.Optional[global___ETHSignMessageRequest] = ...,
-        antiklepto_signature : typing.Optional[antiklepto_pb2.AntiKleptoSignatureRequest] = ...,
+        pub: typing.Optional[global___ETHPubRequest] = ...,
+        sign: typing.Optional[global___ETHSignRequest] = ...,
+        sign_msg: typing.Optional[global___ETHSignMessageRequest] = ...,
+        antiklepto_signature: typing.Optional[antiklepto_pb2.AntiKleptoSignatureRequest] = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["antiklepto_signature",b"antiklepto_signature","pub",b"pub","request",b"request","sign",b"sign","sign_msg",b"sign_msg"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["antiklepto_signature",b"antiklepto_signature","pub",b"pub","request",b"request","sign",b"sign","sign_msg",b"sign_msg"]) -> None: ...
@@ -198,7 +200,7 @@ class ETHRequest(google.protobuf.message.Message):
 global___ETHRequest = ETHRequest
 
 class ETHResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
     PUB_FIELD_NUMBER: builtins.int
     SIGN_FIELD_NUMBER: builtins.int
     ANTIKLEPTO_SIGNER_COMMITMENT_FIELD_NUMBER: builtins.int
@@ -210,9 +212,9 @@ class ETHResponse(google.protobuf.message.Message):
     def antiklepto_signer_commitment(self) -> antiklepto_pb2.AntiKleptoSignerCommitment: ...
     def __init__(self,
         *,
-        pub : typing.Optional[common_pb2.PubResponse] = ...,
-        sign : typing.Optional[global___ETHSignResponse] = ...,
-        antiklepto_signer_commitment : typing.Optional[antiklepto_pb2.AntiKleptoSignerCommitment] = ...,
+        pub: typing.Optional[common_pb2.PubResponse] = ...,
+        sign: typing.Optional[global___ETHSignResponse] = ...,
+        antiklepto_signer_commitment: typing.Optional[antiklepto_pb2.AntiKleptoSignerCommitment] = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["antiklepto_signer_commitment",b"antiklepto_signer_commitment","pub",b"pub","response",b"response","sign",b"sign"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing_extensions.Literal["antiklepto_signer_commitment",b"antiklepto_signer_commitment","pub",b"pub","response",b"response","sign",b"sign"]) -> None: ...

@@ -113,10 +113,13 @@ pub(crate) async fn process(usb_in: Vec<u8>, usb_out: &mut Vec<u8>) -> Result<()
             }
         }
         Some((&OP_I_CAN_HAS_PAIRIN_VERIFICASHUN, b"")) => {
-            let mut state = NOISE_STATE.0.borrow_mut();
-            let hash = state.get_handshake_hash()?;
+            let hash = {
+                let state = NOISE_STATE.0.borrow();
+                state.get_handshake_hash()?
+            };
             match pairing::confirm(&hash).await {
                 Ok(()) => {
+                    let mut state = NOISE_STATE.0.borrow_mut();
                     state.set_pairing_verified()?;
                     let _: Result<(), ()> = {
                         // If this fails, we continue anyway, as the communication still works (just the
@@ -127,6 +130,7 @@ pub(crate) async fn process(usb_in: Vec<u8>, usb_out: &mut Vec<u8>) -> Result<()
                     Ok(())
                 }
                 Err(pairing::UserAbort) => {
+                    let mut state = NOISE_STATE.0.borrow_mut();
                     state.reset();
                     Err(Error)
                 }

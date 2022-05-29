@@ -131,7 +131,7 @@ class APDU:
             0x03: enforce-user-presence-and-sign
             0X08: dont-enforce-user-presence-and-sign
         """
-        # pylint: disable=too-many-arguments
+        # pylint: disable=too-many-arguments,invalid-name
         self._apdubytes = bytearray()
         self._apdubytes.append(0)
         self._apdubytes.append(ins)

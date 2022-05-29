@@ -248,11 +248,11 @@ endif()
 
 if(CMAKE_CROSSCOMPILING)
   set(RUST_TARGET_ARCH thumbv7em-none-eabi)
-  set(RUST_TARGET_ARCH_DIR ${RUST_TARGET_ARCH})
-  set(RUST_TARGET_ARCH_ARG --target ${RUST_TARGET_ARCH})
 else()
-  set(RUST_TARGET_ARCH_DIR .)
+  set(RUST_TARGET_ARCH x86_64-unknown-linux-gnu)
 endif()
+set(RUST_TARGET_ARCH_DIR ${RUST_TARGET_ARCH})
+set(RUST_TARGET_ARCH_ARG --target ${RUST_TARGET_ARCH})
 
 set(RUST_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/rust/target)
 set(LIBBITBOX02_RUST_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust-c)
@@ -546,7 +546,7 @@ foreach(type ${RUST_LIBS})
       # see src/rust/bitbox02-rust-c/src/lib.rs.
       # https://github.com/rust-lang/rust/issues/66740
       RUSTC_BOOTSTRAP=1
-      ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --features target-${type} --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
+      ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --features target-${type} --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG} -Z build-std=core,alloc,panic_abort
     COMMAND
       ${CMAKE_COMMAND} -E copy_if_different ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
     # DEPFILES are only supported with the Ninja build tool

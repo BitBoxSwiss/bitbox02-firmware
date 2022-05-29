@@ -55,11 +55,3 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     bitbox02_rust::print_debug!(0, "Error: {}", info);
     loop {}
 }
-
-// Needed to link the C unit test executables in /test/unit-test.
-//
-// See https://doc.rust-lang.org/unstable-book/language-features/lang-items.html#writing-an-executable-without-stdlib.
-#[cfg(not(feature = "dont-export-eh-personality"))]
-#[lang = "eh_personality"]
-#[no_mangle]
-pub extern "C" fn rust_eh_personality() {}

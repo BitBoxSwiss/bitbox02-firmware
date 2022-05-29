@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+#
+# Currently cargo vendor doesn't know how to download rust-src dependencies, see
+# https://github.com/rust-lang/wg-cargo-std-aware/issues/23.
+# Run this script to fetch all the needed dependencies instead.
+#
+# When the version of rust is updated, this list needs to be updated. You can
+# find the correct versions by trying to build the unit-tests, cargo will complain
+# and tell you what version it needs.
+
+if ! which cargo-download 2>/dev/null; then
+  echo "Cannot find cargo download, please install with 'cargo install cargo-download'"
+fi
+
+# This function uses a cargo plugin `cargo-download` to download the sources
+# of a crate. After that it generates a checksum file as is needed for cargo
+download-crate() {
+  FILENAME=$(mktemp)
+
+  if [ -z "$2" ]; then
+    cargo download "$1" -o "$FILENAME"
+  else
+    cargo download "$1==$2" -o "$FILENAME"
+  fi
+  HASH=$(sha256sum "$FILENAME" | awk '{print $1}' | tr -d '\n')
+  rm -rf "vendor/$1"
+  mkdir "vendor/$1"
+  (cd "vendor/$1" || exit 1; tar xa --strip 1 -f "$FILENAME")
+  echo "{\"files\": {}, \"package\": \"$HASH\"}" > "vendor/$1/.cargo-checksum.json"
+  rm -f "$FILENAME"
+}
+
+# Versions of deps to rust-src version 1.61
+
+declare -A DEPS
+DEPS["addr2line"]=0.16.0
+DEPS["adler"]=0.2.3
+DEPS["cc"]=1.0.69
+DEPS["cfg_if"]=0.1.10
+DEPS["compiler_builtins"]=0.1.70
+DEPS["dlmalloc"]=0.2.3
+DEPS["fortanix-sgx-abi"]=0.3.3
+DEPS["getopts"]=0.2.21
+DEPS["gimli"]=0.25.0
+DEPS["hashbrown"]=0.12.0
+DEPS["hermit-abi"]=0.2.0
+DEPS["libc"]=0.2.116
+DEPS["memchr"]=2.4.1
+DEPS["miniz_oxide"]=0.4.0
+DEPS["object"]=0.26.2
+DEPS["rustc-demangle"]=0.1.21
+DEPS["unicode-width"]=0.1.8
+DEPS["wasi"]=0.11.0+wasi-snapshot-preview1
+
+for key in "${!DEPS[@]}"; do
+  download-crate $key ${DEPS[$key]}
+done

@@ -1,0 +1,175 @@
+name: Rust
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"]
+        rust_channel: ["stable", "beta", "nightly", "1.42.0"]
+        include:
+          - rust_channel: "stable"
+            os: "macOS-latest"
+    runs-on: ${{matrix.os}}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install rustup
+      run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile=minimal
+    - name: Install rust channel
+      run: |
+        rustup install ${{matrix.rust_channel}}
+        rustup default ${{matrix.rust_channel}}
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose
+    - name: Run dwarfdump (macos)
+      if: matrix.os == 'macOS-latest'
+      run: |
+        cargo run --example dwarfdump -- \
+            $(find ./target/debug -type f | grep DWARF | grep gimli | head -n 1) \
+            > /dev/null
+    - name: Run dwarfdump (linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        cargo run --example dwarfdump -- \
+            $(find ./target/debug -type f -perm -100 | grep gimli | head -n 1) \
+            > /dev/null
+
+  build_fuzz_targets:
+    name: Build fuzz targets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install rustup
+        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile=minimal
+      - name: Install nightly rust
+        run: |
+          rustup install nightly
+          rustup default nightly
+      - name: Install `cargo fuzz`
+        run: cargo install cargo-fuzz --vers "^0.7.4"
+      - run: cargo fuzz build -Oa
+      - uses: actions/upload-artifact@v2
+        with:
+          name: fuzz-targets
+          path: fuzz/target/x86_64-unknown-linux-gnu/release/debug_*
+      - uses: actions/upload-artifact@v2
+        with:
+          name: fuzz-targets
+          path: fuzz/target/x86_64-unknown-linux-gnu/release/eh_*
+
+  #run_fuzz_targets:
+    #strategy:
+      #matrix:
+        #fuzz_target: ["debug_abbrev", "debug_aranges", "debug_info", "debug_line", "eh_frame", "eh_frame_hdr"]
+    #name: "Run `${{matrix.fuzz_target}}` fuzz target"
+    #needs: build_fuzz_targets
+    #runs-on: ubuntu-latest
+    #steps:
+      #- name: Clone the fuzz corpora
+        #uses: actions/checkout@v2
+        #with:
+          #repository: gimli-rs/gimli-libfuzzer-corpora
+          #path: corpora
+      #- name: Download fuzz targets
+        #uses: actions/download-artifact@v1
+        #with:
+          #name: fuzz-targets
+        # Note: -max_total_time=300 == 300 seconds == 5 minutes.
+      #- name: "Run `${{matrix.fuzz_target}}` fuzz target"
+        #run: |
+          #mkdir ${{matrix.fuzz_target}}_artifacts
+          #chmod +x ./fuzz-targets/${{matrix.fuzz_target}}
+          #./fuzz-targets/${{matrix.fuzz_target}} ./corpora/${{matrix.fuzz_target}} \
+              #-max_total_time=300 \
+              #-artifact_prefix=./${{matrix.fuzz_target}}_artifacts/
+      # If fuzzing finds a new crash/panic/etc, upload the input artifacts so we
+      # can debug them.
+      #- name: Upload fuzz artifacts
+        #if: failure()
+        #uses: actions/upload-artifact@v2
+        #with:
+          #name: ${{matrix.fuzz_target}}_artifacts
+          #path: ./${{matrix.fuzz_target}}_artifacts
+
+  features:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: cargo test --no-default-features
+      - run: cargo test --no-default-features --features read
+      - run: cargo test --no-default-features --features read,fallible-iterator
+      - run: cargo test --no-default-features --features read,std
+      - run: cargo test --no-default-features --features read,endian-reader
+      - run: cargo test --no-default-features --features read,endian-reader,std
+      - run: cargo test --no-default-features --features write
+
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install rustup
+        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile=minimal
+      - name: Install nightly rust
+        run: |
+          rustup install nightly
+          rustup default nightly
+      - run: cargo bench
+
+  cross:
+    strategy:
+      matrix:
+        target:
+          # A 32-bit target.
+          - "i686-unknown-linux-gnu"
+          # A big-endian target
+          - "mips64-unknown-linux-gnuabi64"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install rustup
+        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile=minimal
+      - run: cargo install cross
+      - run: rustup target add ${{matrix.target}}
+      - run: cross test --target ${{matrix.target}}
+
+  rustfmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install rustup
+        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile=minimal
+      - name: Install rust
+        run: |
+          rustup install stable
+          rustup default stable
+          rustup component add rustfmt
+      - run: cargo fmt --all -- --check
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install rustup
+        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile=minimal
+      - name: Install nightly rust
+        run: |
+          rustup install nightly
+          rustup default nightly
+      - name: Install cargo tarpaulin
+        run: RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install --force cargo-tarpaulin
+      - name: Run cargo tarpaulin
+        # TODO: Hook this up to coveralls, so we actually get coverage reports.
+        run: cargo tarpaulin --verbose # --ciserver travis-ci --coveralls "$TRAVIS_JOB_ID";
+
+  doc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: cargo doc

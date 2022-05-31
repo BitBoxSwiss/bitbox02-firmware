@@ -33,6 +33,7 @@ sha3 = { version = "0.9.1", default-features = false, optional = true }
 
 [features]
 # "Negative" feature is a hack because tests are ran with `--all-features`, currently without a way to exclude specific features.
+# This should be enabled for Rust unit tests and Clippy, and not enabled for the firmware targets and the C unit tests.
 dont-export-eh-personality = []
 
 # Only one of the "target-" should be activated, which in turn defines/activates the dependent features.

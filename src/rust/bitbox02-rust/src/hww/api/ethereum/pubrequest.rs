@@ -21,7 +21,6 @@ use pb::eth_response::Response;
 use crate::workflow::confirm;
 use bitbox02::keystore;
 
-extern crate alloc;
 use core::convert::TryInto;
 
 async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error> {
@@ -95,12 +94,11 @@ pub async fn process(request: &pb::EthPubRequest) -> Result<Response, Error> {
 
 #[cfg(test)]
 mod tests {
-    extern crate std;
     use super::*;
 
     use crate::bb02_async::block_on;
+    use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_unlocked, Data};
-    use std::boxed::Box;
     use util::bip32::HARDENED;
 
     #[test]

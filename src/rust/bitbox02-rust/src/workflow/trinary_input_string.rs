@@ -19,7 +19,6 @@ use crate::bb02_async::option;
 use bitbox02::input::SafeInputString;
 use core::cell::RefCell;
 
-extern crate alloc;
 use alloc::boxed::Box;
 
 pub enum CanCancel {

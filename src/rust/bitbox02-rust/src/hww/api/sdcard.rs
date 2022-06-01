@@ -40,12 +40,11 @@ pub async fn process(
 
 #[cfg(test)]
 mod tests {
-    extern crate std;
     use super::*;
 
     use crate::bb02_async::block_on;
+    use alloc::boxed::Box;
     use bitbox02::testing::{mock, Data};
-    use std::boxed::Box;
 
     #[test]
     pub fn test_reset() {

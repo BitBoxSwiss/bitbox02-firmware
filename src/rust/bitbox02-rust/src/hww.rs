@@ -15,7 +15,6 @@
 pub mod api;
 pub mod noise;
 
-extern crate alloc;
 use alloc::vec::Vec;
 
 const OP_UNLOCK: u8 = b'u';

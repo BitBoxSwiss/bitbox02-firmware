@@ -16,7 +16,6 @@ pub use super::cancel::Error as CancelError;
 
 use crate::bb02_async::option;
 
-extern crate alloc;
 use alloc::boxed::Box;
 use core::cell::RefCell;
 

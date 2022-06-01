@@ -15,8 +15,6 @@
 //! This module provides the executor for tasks that are spawned with an API request and deliver a
 //! USB response. Terminology: host = computer, device = BitBox02.
 
-extern crate alloc;
-
 use crate::bb02_async::{option, spin as spin_task, Task};
 use alloc::boxed::Box;
 use alloc::vec::Vec;

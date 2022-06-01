@@ -45,14 +45,11 @@ pub extern crate arrayvec;
 
 #[cfg(test)]
 mod test {
-    // Enable standard library for testing
-    extern crate std;
     use super::*;
-    use std::prelude::v1::*;
 
     #[test]
     fn trivial_test() {
-        let a = String::from("abc");
+        let a = alloc::string::String::from("abc");
         assert!(&a == "abc");
     }
 }

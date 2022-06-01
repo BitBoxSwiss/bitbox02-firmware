@@ -2,7 +2,6 @@
 // https://github.com/async-rs/async-task/blob/b7a249680490991f92cc2144d4eff65e4effb3b7/src/waker_fn.rs
 // https://github.com/async-rs/async-task/blob/b7a249680490991f92cc2144d4eff65e4effb3b7/LICENSE-APACHE
 
-extern crate alloc;
 use alloc::sync::Arc;
 use core::mem::{self, ManuallyDrop};
 use core::task::{RawWaker, RawWakerVTable, Waker};

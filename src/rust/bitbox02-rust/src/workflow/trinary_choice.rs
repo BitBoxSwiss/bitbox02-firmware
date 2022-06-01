@@ -15,7 +15,6 @@
 use crate::bb02_async::option;
 use core::cell::RefCell;
 
-extern crate alloc;
 use alloc::boxed::Box;
 
 use bitbox02::ui::trinary_choice_create;

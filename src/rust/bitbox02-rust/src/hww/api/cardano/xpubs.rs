@@ -15,7 +15,6 @@
 use super::pb;
 use super::Error;
 
-extern crate alloc;
 use alloc::vec::Vec;
 
 use pb::cardano_response::Response;

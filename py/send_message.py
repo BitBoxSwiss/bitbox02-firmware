@@ -24,6 +24,7 @@ from typing import List, Any, Optional, Callable, Union, Tuple, Sequence
 import base64
 import binascii
 import textwrap
+import json
 
 import requests  # type: ignore
 import hid
@@ -813,6 +814,56 @@ class SendMessage:
 
         print("Signature: 0x{}".format(binascii.hexlify(sig).decode("utf-8")))
 
+    def _sign_eth_typed_message(self) -> None:
+        msg = """{
+    "types": {
+        "EIP712Domain": [
+            { "name": "name", "type": "string" },
+            { "name": "version", "type": "string" },
+            { "name": "chainId", "type": "uint256" },
+            { "name": "verifyingContract", "type": "address" }
+        ],
+        "Attachment": [
+            { "name": "contents", "type": "string" }
+        ],
+        "Person": [
+            { "name": "name", "type": "string" },
+            { "name": "wallet", "type": "address" }
+        ],
+        "Mail": [
+            { "name": "from", "type": "Person" },
+            { "name": "to", "type": "Person" },
+            { "name": "contents", "type": "string" },
+            { "name": "attachments", "type": "Attachment[]" }
+        ]
+    },
+    "primaryType": "Mail",
+    "domain": {
+        "name": "Ether Mail",
+        "version": "1",
+        "chainId": 1,
+        "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
+    },
+    "message": {
+        "from": {
+            "name": "Cow",
+            "wallet": "0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826"
+        },
+        "to": {
+            "name": "Bob",
+            "wallet": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"
+        },
+        "contents": "Hello, Bob!",
+        "attachments": [{ "contents": "attachment1" }, { "contents": "attachment2" }]
+    }
+}"""
+        print("Signing:\n{}".format(msg))
+        sig = self._device.eth_sign_typed_msg(
+            keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0], msg=json.loads(msg)
+        )
+
+        print("Signature: 0x{}".format(binascii.hexlify(sig).decode("utf-8")))
+
     def _cardano(self) -> None:
         def xpubs() -> None:
             xpubs = self._device.cardano_xpubs(
@@ -1116,6 +1167,7 @@ class SendMessage:
             ),
             ("Sign Ethereum tx", self._sign_eth_tx),
             ("Sign Ethereum Message", self._sign_eth_message),
+            ("Sign Ethereum Typed Message (EIP-712)", self._sign_eth_typed_message),
             ("Cardano", self._cardano),
             ("Show Electrum wallet encryption key", self._get_electrum_encryption_key),
             ("Reset Device", self._reset_device),

@@ -68,12 +68,65 @@ message ETHSignResponse {
   bytes signature = 1; // 65 bytes, last byte is the recid
 }
 
+message ETHSignTypedMessageRequest {
+  enum DataType {
+    UNKNOWN = 0;
+    BYTES = 1;
+    UINT = 2;
+    INT = 3;
+    BOOL = 4;
+    ADDRESS = 5;
+    STRING = 6;
+    ARRAY = 7;
+    STRUCT = 8;
+  }
+
+  message MemberType {
+    DataType type = 1;
+    uint32 size = 2;
+    string struct_name = 3; // if type==STRUCT, name of struct type.
+    MemberType array_type = 4; // if type==ARRAY, type of elements
+  }
+
+  message Member {
+    string name = 1;
+    MemberType type = 2;
+  }
+
+  message StructType {
+    string name = 1;
+    repeated Member members = 2;
+  }
+
+  uint64 chain_id = 1;
+  repeated uint32 keypath = 2;
+  repeated StructType types = 3;
+  string primary_type = 4;
+  AntiKleptoHostNonceCommitment host_nonce_commitment = 5;
+}
+
+message ETHTypedMessageValueResponse {
+  enum RootObject {
+    UNKNOWN = 0;
+    DOMAIN = 1;
+    MESSAGE = 2;
+  }
+  RootObject root_object = 1;
+  repeated uint32 path = 2;
+}
+
+message ETHTypedMessageValueRequest {
+  bytes value = 1;
+}
+
 message ETHRequest {
   oneof request {
     ETHPubRequest pub = 1;
     ETHSignRequest sign = 2;
     ETHSignMessageRequest sign_msg = 3;
     AntiKleptoSignatureRequest antiklepto_signature = 4;
+    ETHSignTypedMessageRequest sign_typed_msg = 5;
+    ETHTypedMessageValueRequest typed_msg_value = 6;
   }
 }
 
@@ -82,5 +135,6 @@ message ETHResponse {
     PubResponse pub = 1;
     ETHSignResponse sign = 2;
     AntiKleptoSignerCommitment antiklepto_signer_commitment = 3;
+    ETHTypedMessageValueResponse typed_msg_value = 4;
   }
 }

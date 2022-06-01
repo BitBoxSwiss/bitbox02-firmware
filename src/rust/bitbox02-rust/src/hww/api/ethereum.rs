@@ -23,6 +23,7 @@ mod keypath;
 mod params;
 mod pubrequest;
 mod sign;
+mod sign_typed_msg;
 mod signmsg;
 
 use super::pb;
@@ -79,5 +80,7 @@ pub async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
         Request::SignMsg(ref request) => Some(signmsg::process(request).await),
         Request::Sign(ref request) => Some(sign::process(request).await),
         Request::AntikleptoSignature(_) => Some(Err(Error::InvalidInput)),
+        Request::SignTypedMsg(ref request) => Some(sign_typed_msg::process(request).await),
+        Request::TypedMsgValue(_) => Some(Err(Error::InvalidInput)),
     }
 }

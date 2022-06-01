@@ -6,6 +6,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ## Firmware
 
+### [Unreleased]
+- Ethereum: add support for EIP-712 structured data signing
+
 ### 9.11.0
 - Add SSD1312 driver for new OLED screens
 

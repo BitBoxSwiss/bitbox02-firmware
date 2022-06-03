@@ -20,7 +20,6 @@ use super::status::status;
 use super::trinary_choice::{choose, TrinaryChoice};
 use super::trinary_input_string;
 
-extern crate alloc;
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -259,11 +258,10 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, ()> {
 
 #[cfg(test)]
 mod tests {
-    extern crate std;
     use super::*;
 
+    use alloc::boxed::Box;
     use bitbox02::testing::{mock, Data};
-    use std::boxed::Box;
 
     fn bruteforce_lastword(mnemonic: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
         let mut result = Vec::new();

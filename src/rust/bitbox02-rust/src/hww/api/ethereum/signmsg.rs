@@ -90,12 +90,11 @@ pub async fn process(request: &pb::EthSignMessageRequest) -> Result<Response, Er
 
 #[cfg(test)]
 mod tests {
-    extern crate std;
     use super::*;
 
     use crate::bb02_async::block_on;
+    use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_unlocked, Data};
-    use std::boxed::Box;
     use util::bip32::HARDENED;
 
     const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];

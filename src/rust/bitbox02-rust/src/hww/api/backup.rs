@@ -158,14 +158,13 @@ pub fn list() -> Result<Response, Error> {
 
 #[cfg(test)]
 mod tests {
-    extern crate std;
     use super::*;
 
     use crate::bb02_async::block_on;
+    use alloc::boxed::Box;
     use bitbox02::testing::{
         mock, mock_memory, mock_sd, mock_unlocked, mock_unlocked_using_mnemonic, Data,
     };
-    use std::boxed::Box;
 
     /// Test backup creation on a uninitialized keystore.
     #[test]

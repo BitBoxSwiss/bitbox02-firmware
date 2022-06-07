@@ -1,4 +1,4 @@
-# zeroize_derive 🄌 <a href="https://www.iqlusion.io"><img src="https://storage.googleapis.com/iqlusion-production-web/img/logo/iqlusion-rings-sm.png" alt="iqlusion" width="24" height="24"></a>
+# [RustCrypto]: `zeroize_derive`
 
 [![Crate][crate-image]][crate-link]
 ![Apache 2.0 Licensed/MIT][license-image]
@@ -13,37 +13,37 @@ See [zeroize] crate for documentation.
 
 ## Minimum Supported Rust Version
 
-Requires Rust **1.36** or newer.
+Rust **1.51** or newer.
 
 In the future, we reserve the right to change MSRV (i.e. MSRV is out-of-scope
-for this crate's SemVer guarantees), however when we do it will be accompanied
-with a minor version bump.
+for this crate's SemVer guarantees), however when we do it will be accompanied by
+a minor version bump.
 
 ## License
 
-**zeroize_derive** is distributed under the terms of either the MIT license
-or the Apache License (Version 2.0), at your option.
+Licensed under either of:
 
-See [LICENSE] (Apache License, Version 2.0) file in the `iqlusioninc/crates`
-toplevel directory of this repository or [LICENSE-MIT] for details.
+* [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+* [MIT license](http://opensource.org/licenses/MIT)
 
-## Contribution
+at your option.
 
-Unless you explicitly state otherwise, any contribution intentionally
-submitted for inclusion in the work by you shall be dual licensed as above,
-without any additional terms or conditions.
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
 [crate-image]: https://img.shields.io/crates/v/zeroize_derive.svg
 [crate-link]: https://crates.io/crates/zeroize_derive
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.36+-blue.svg
-[build-image]: https://github.com/iqlusioninc/crates/workflows/Rust/badge.svg
-[build-link]: https://github.com/iqlusioninc/crates/actions
+[rustc-image]: https://img.shields.io/badge/rustc-1.51+-blue.svg
+[build-image]: https://github.com/RustCrypto/utils/actions/workflows/zeroize.yml/badge.svg
+[build-link]: https://github.com/RustCrypto/utils/actions/workflows/zeroize.yml
 
 [//]: # (general links)
 
-[zeroize]: https://github.com/iqlusioninc/crates/tree/develop/zeroize
-[LICENSE]: https://github.com/iqlusioninc/crates/blob/develop/LICENSE
-[LICENSE-MIT]: https://github.com/iqlusioninc/crates/blob/develop/zeroize/LICENSE-MIT
+[RustCrypto]: https://github.com/RustCrypto
+[zeroize]: https://github.com/RustCrypto/utils/tree/master/zeroize

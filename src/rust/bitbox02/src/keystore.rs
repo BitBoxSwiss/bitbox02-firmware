@@ -103,23 +103,14 @@ pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     }
 }
 
-#[derive(Copy, Clone)]
-struct ZeroizedMnemonic([u8; 256]);
-impl core::default::Default for ZeroizedMnemonic {
-    fn default() -> Self {
-        ZeroizedMnemonic([0; 256])
-    }
-}
-impl zeroize::DefaultIsZeroes for ZeroizedMnemonic {}
-
 pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
-    let mut mnemonic = zeroize::Zeroizing::new(ZeroizedMnemonic([0u8; 256]));
+    let mut mnemonic = zeroize::Zeroizing::new([0u8; 256]);
     match unsafe {
-        bitbox02_sys::keystore_get_bip39_mnemonic(mnemonic.0.as_mut_ptr(), mnemonic.0.len() as _)
+        bitbox02_sys::keystore_get_bip39_mnemonic(mnemonic.as_mut_ptr(), mnemonic.len() as _)
     } {
         false => Err(()),
         true => Ok(zeroize::Zeroizing::new(
-            crate::util::str_from_null_terminated(&mnemonic.0[..])
+            crate::util::str_from_null_terminated(&mnemonic[..])
                 .unwrap()
                 .into(),
         )),

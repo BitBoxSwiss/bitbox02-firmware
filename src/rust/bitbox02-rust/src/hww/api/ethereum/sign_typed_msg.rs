@@ -284,6 +284,7 @@ async fn encode_member<U: sha3::digest::Update>(
     root_object: RootObject,
     path: &[u32],
     formatted_path: &[String],
+    title_suffix: Option<String>,
 ) -> Result<(), Error> {
     if member_type.r#type == DataType::Struct as _ {
         let value_encoded = hash_struct(
@@ -292,18 +293,30 @@ async fn encode_member<U: sha3::digest::Update>(
             &member_type.struct_name,
             path,
             formatted_path,
+            title_suffix,
         )
         .await?;
         hasher.update(&value_encoded);
     } else if member_type.r#type == DataType::Array as _ {
-        let encoded_value =
-            hash_array(types, member_type, root_object, path, formatted_path).await?;
+        let encoded_value = hash_array(
+            types,
+            member_type,
+            root_object,
+            path,
+            formatted_path,
+            title_suffix,
+        )
+        .await?;
         hasher.update(&encoded_value);
     } else {
         let value = get_value_from_host(root_object, path).await?;
         let (value_encoded, value_formatted) = encode_value(member_type, value)?;
         confirm::confirm(&confirm::Params {
-            title: confirm_title(root_object),
+            title: &format!(
+                "{}{}",
+                confirm_title(root_object),
+                title_suffix.as_deref().unwrap_or("")
+            ),
             body: &format!("{}: {}", formatted_path.join("."), value_formatted),
             scrollable: true,
             accept_is_nextarrow: true,
@@ -322,6 +335,7 @@ async fn hash_array(
     root_object: RootObject,
     path: &[u32],
     formatted_path: &[String],
+    title_suffix: Option<String>,
 ) -> Result<Vec<u8>, Error> {
     let array_size = if member_type.size > 0 {
         member_type.size
@@ -333,7 +347,11 @@ async fn hash_array(
     let array_type = member_type.array_type.as_ref().ok_or(Error::InvalidInput)?;
 
     confirm::confirm(&confirm::Params {
-        title: confirm_title(root_object),
+        title: &format!(
+            "{}{}",
+            confirm_title(root_object),
+            title_suffix.as_deref().unwrap_or("")
+        ),
         body: &format!(
             "{}: {}",
             formatted_path.join("."),
@@ -366,6 +384,7 @@ async fn hash_array(
             root_object,
             &child_path,
             &child_formatted_path,
+            title_suffix.clone(),
         )
         .await?;
     }
@@ -379,6 +398,7 @@ async fn hash_struct(
     struct_name: &str,
     path: &[u32],
     formatted_path: &[String],
+    title_suffix: Option<String>,
 ) -> Result<Vec<u8>, Error> {
     let mut hasher = sha3::Keccak256::new();
     hasher.update(&type_hash(types, struct_name)?);
@@ -399,6 +419,11 @@ async fn hash_struct(
             root_object,
             &child_path,
             &child_formatted_path,
+            if title_suffix.is_some() {
+                title_suffix.clone()
+            } else {
+                Some(format!(" ({}/{})", index + 1, typ.members.len()))
+            },
         )
         .await?;
     }
@@ -437,14 +462,14 @@ async fn eip712_sighash(types: &[StructType], primary_type: &str) -> Result<[u8;
     let mut hasher = sha3::Keccak256::new();
     hasher.update(&[0x19u8, 0x01]);
     let domain_separator =
-        hash_struct(types, RootObject::Domain, DOMAIN_TYPE_NAME, &[], &[]).await?;
+        hash_struct(types, RootObject::Domain, DOMAIN_TYPE_NAME, &[], &[], None).await?;
     hasher.update(&domain_separator);
     // If primaryType is the domain type, skip the message hashing. This does not seem to conform to
     // the spec, but eth-sig-util implements it like that:
     // https://github.com/MetaMask/eth-sig-util/pull/51#issuecomment-1135089739
     if primary_type != DOMAIN_TYPE_NAME {
         let message_struct_hash =
-            hash_struct(types, RootObject::Message, primary_type, &[], &[]).await?;
+            hash_struct(types, RootObject::Message, primary_type, &[], &[], None).await?;
         hasher.update(&message_struct_hash);
     }
     Ok(hasher.finalize().into())
@@ -905,18 +930,29 @@ mod tests {
         static mut UI_COUNTER: u32 = 0;
         mock(Data {
             ui_confirm_create: Some(Box::new(|params| unsafe {
-                assert_eq!(params.title, "Domain");
                 match {
                     UI_COUNTER += 1;
                     UI_COUNTER
                 } {
-                    1 => assert_eq!(params.body, "name: Ether Mail"),
-                    2 => assert_eq!(params.body, "version: 1"),
-                    3 => assert_eq!(params.body, "chainId: 1"),
-                    4 => assert_eq!(
-                        params.body,
-                        "verifyingContract: 0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
-                    ),
+                    1 => {
+                        assert_eq!(params.title, "Domain (1/4)");
+                        assert_eq!(params.body, "name: Ether Mail");
+                    }
+                    2 => {
+                        assert_eq!(params.title, "Domain (2/4)");
+                        assert_eq!(params.body, "version: 1");
+                    }
+                    3 => {
+                        assert_eq!(params.title, "Domain (3/4)");
+                        assert_eq!(params.body, "chainId: 1");
+                    }
+                    4 => {
+                        assert_eq!(params.title, "Domain (4/4)");
+                        assert_eq!(
+                            params.body,
+                            "verifyingContract: 0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
+                        );
+                    }
                     _ => panic!("unexpected"),
                 }
                 true
@@ -930,6 +966,7 @@ mod tests {
             "EIP712Domain",
             &[],
             &[],
+            None,
         ))
         .unwrap();
         assert_eq!(

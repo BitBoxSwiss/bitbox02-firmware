@@ -48,18 +48,6 @@ USE_RESULT bool btc_common_is_valid_keypath_account_simple(
     bool taproot_support);
 
 /**
- * Does limit checks the keypath, whitelisting bip44 purposes, accounts and
- * (change) addresses.
- * @return true if the keypath is valid, false if it is invalid.
- */
-USE_RESULT bool btc_common_is_valid_keypath_address_simple(
-    BTCScriptConfig_SimpleType script_type,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint32_t expected_coin,
-    bool taproot_support);
-
-/**
  * Checks that the keypath is m/48'/coin'/account'/script_type'/change/address, limiting the number
  * of valid accounts/addresses.
  * script_type' is 2' for P2WSH and 1' for P2WSH-P2SH.
@@ -113,18 +101,6 @@ USE_RESULT BTCOutputType btc_common_determine_output_type(BTCScriptConfig_Simple
  */
 USE_RESULT BTCOutputType
 btc_common_determine_output_type_multisig(const BTCScriptConfig_Multisig* multisig);
-
-/**
- * Converts a payload to an address.
- * payload, payload_size can be obtained from btc_common_payload_from_pubkeyhash().
- */
-USE_RESULT bool btc_common_address_from_payload(
-    const app_btc_coin_params_t* params,
-    BTCOutputType output_type,
-    const uint8_t* payload,
-    size_t payload_size,
-    char* out,
-    size_t out_len);
 
 /**
  * Computes the pkScript from a pubkey hash or script hash or pubkey, depending on the output

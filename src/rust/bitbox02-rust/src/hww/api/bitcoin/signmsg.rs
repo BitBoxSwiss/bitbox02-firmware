@@ -61,8 +61,7 @@ pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Er
     }
 
     // Keypath and script_config are validated in address_simple().
-    let address = bitbox02::app_btc::address_simple(coin as _, simple_type as _, keypath)
-        .or(Err(Error::InvalidInput))?;
+    let address = super::derive_address_simple(coin, simple_type, keypath)?;
 
     let basic_info = format!("Coin: {}", super::params::get(coin).name);
     let confirm_params = confirm::Params {

@@ -17,9 +17,9 @@ compile_error!("Bitcoin code is being compiled even though the app-bitcoin featu
 
 mod bip143;
 mod bip341;
-mod common;
+pub mod common;
 pub mod keypath;
-mod params;
+pub mod params;
 mod script;
 pub mod signmsg;
 pub mod signtx;
@@ -40,6 +40,7 @@ use pb::response::Response;
 use pb::BtcCoin;
 use pb::BtcScriptConfig;
 
+use alloc::string::String;
 use core::convert::TryInto;
 
 /// Like `hww::next_request`, but for Bitcoin requests/responses.
@@ -127,6 +128,28 @@ async fn xpub(
     Ok(Response::Pub(pb::PubResponse { r#pub: xpub }))
 }
 
+pub fn derive_address_simple(
+    coin: BtcCoin,
+    simple_type: SimpleType,
+    keypath: &[u32],
+) -> Result<String, Error> {
+    let coin_params = params::get(coin);
+    keypath::validate_address_simple(
+        keypath,
+        coin_params.bip44_coin,
+        simple_type,
+        coin_params.taproot_support,
+    )
+    .or(Err(Error::InvalidInput))?;
+    let payload = bitbox02::app_btc::payload_at_keypath(keypath, simple_type as _)?;
+    let address = common::address_from_payload(
+        coin_params,
+        common::determine_output_type_from_simple_type(simple_type),
+        &payload,
+    )?;
+    Ok(address)
+}
+
 /// Processes a SimpleType (single-sig) adress api call.
 async fn address_simple(
     coin: BtcCoin,
@@ -134,7 +157,7 @@ async fn address_simple(
     keypath: &[u32],
     display: bool,
 ) -> Result<Response, Error> {
-    let address = bitbox02::app_btc::address_simple(coin as _, simple_type as _, keypath)?;
+    let address = derive_address_simple(coin, simple_type, keypath)?;
     if display {
         let confirm_params = confirm::Params {
             title: params::get(coin).name,

@@ -420,10 +420,9 @@ add_custom_target(rust-bindgen
     --whitelist-function app_eth_erc20_params_get
     --whitelist-function app_eth_sighash
     --rustified-enum app_btc_result_t
-    --whitelist-function app_btc_address_simple
     --whitelist-function testing_app_btc_mock_ui
-    --whitelist-function btc_common_address_from_payload
     --whitelist-function btc_common_pkscript_from_payload
+    --whitelist-function btc_common_payload_at_keypath
     --whitelist-var MAX_VARINT_SIZE
     --whitelist-var MAX_PK_SCRIPT_SIZE
     --whitelist-function app_btc_params_get

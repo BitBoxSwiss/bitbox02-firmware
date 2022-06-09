@@ -27,38 +27,6 @@
 #include <workflow/confirm.h>
 #include <workflow/status.h>
 
-bool app_btc_address_simple(
-    BTCCoin coin,
-    BTCScriptConfig_SimpleType script_type,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    char* out,
-    size_t out_len)
-{
-    const app_btc_coin_params_t* params = app_btc_params_get(coin);
-    if (params == NULL) {
-        return false;
-    }
-    if (!btc_common_is_valid_keypath_address_simple(
-            script_type, keypath, keypath_len, params->bip44_coin, params->taproot_support)) {
-        return false;
-    }
-
-    uint8_t payload[32] = {0};
-    size_t payload_size_out = 0;
-    if (!btc_common_payload_at_keypath(
-            keypath, keypath_len, script_type, payload, &payload_size_out)) {
-        return false;
-    }
-    return btc_common_address_from_payload(
-        params,
-        btc_common_determine_output_type(script_type),
-        payload,
-        payload_size_out,
-        out,
-        out_len);
-}
-
 app_btc_result_t app_btc_address_multisig(
     BTCCoin coin,
     const BTCScriptConfig_Multisig* multisig,
@@ -102,13 +70,11 @@ app_btc_result_t app_btc_address_multisig(
         return APP_BTC_ERR_UNKNOWN;
     }
 
-    if (!btc_common_address_from_payload(
-            params,
+    if (!rust_bitcoin_address_from_payload(
+            params->coin,
             btc_common_determine_output_type_multisig(multisig),
-            payload,
-            written,
-            out,
-            out_len)) {
+            rust_util_bytes(payload, written),
+            rust_util_cstr_mut(out, out_len))) {
         return APP_BTC_ERR_UNKNOWN;
     }
 

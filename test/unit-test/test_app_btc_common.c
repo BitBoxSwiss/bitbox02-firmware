@@ -117,9 +117,121 @@ static void _test_btc_common_payload_at_keypath(void** state)
 
 static void _test_btc_common_address_from_payload(void** state)
 {
+    keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
+
     const app_btc_coin_params_t* params_btc = app_btc_params_get(BTCCoin_BTC);
     const app_btc_coin_params_t* params_ltc = app_btc_params_get(BTCCoin_LTC);
     char addr[100] = {0};
+
+    // In the below tests, we use `btc_common_payload_at_keypath()` where possible to get the input
+    // payload so it's easier to verify the expected addresses, e.g. using
+    // https://iancoleman.io/bip39/ with the mock mnemonic.
+
+    { // BTC & LTC p2pkh
+        uint8_t payload[20] =
+            "\x67\xfe\x0b\xdd\xe7\x98\x46\x71\xf2\xed\x59\xbb\x68\xa9\x7d\x9c\xc6\x8a\x02\xe0";
+        assert_true(btc_common_address_from_payload(
+            params_btc, BTCOutputType_P2PKH, payload, sizeof(payload), addr, sizeof(addr)));
+        assert_string_equal(addr, "1AUrwD77AL5ax5zj2BhZQ1x43wA5NLsYg1");
+        assert_true(btc_common_address_from_payload(
+            params_ltc, BTCOutputType_P2PKH, payload, sizeof(payload), addr, sizeof(addr)));
+        assert_string_equal(addr, "LUhpCRQwEzKeCtgtCKgrg31pG9XMZLm6qX");
+    }
+
+    { // BTC p2wpkh
+        uint8_t payload[32] = {0};
+        size_t payload_size;
+        const uint32_t keypath[] = {
+            84 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            0,
+        };
+        assert_true(btc_common_payload_at_keypath(
+            keypath,
+            sizeof(keypath) / sizeof(uint32_t),
+            BTCScriptConfig_SimpleType_P2WPKH,
+            payload,
+            &payload_size));
+        assert_true(btc_common_address_from_payload(
+            params_btc, BTCOutputType_P2WPKH, payload, payload_size, addr, sizeof(addr)));
+        assert_string_equal(addr, "bc1q8uxu96g59kyrnt5ujzsee2rvxmvj8k9trg5ltx");
+    }
+
+    { // LTC p2wpkh
+        uint8_t payload[32] = {0};
+        size_t payload_size;
+        const uint32_t keypath[] = {
+            84 + BIP32_INITIAL_HARDENED_CHILD,
+            2 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            0,
+        };
+        assert_true(btc_common_payload_at_keypath(
+            keypath,
+            sizeof(keypath) / sizeof(uint32_t),
+            BTCScriptConfig_SimpleType_P2WPKH,
+            payload,
+            &payload_size));
+        assert_true(btc_common_address_from_payload(
+            params_ltc, BTCOutputType_P2WPKH, payload, payload_size, addr, sizeof(addr)));
+        assert_string_equal(addr, "ltc1qd9wf5uvntjmf8ugf4j48w90jex6hxxxr5pkkqt");
+    }
+
+    { // BTC p2wpkh-p2sh
+        uint8_t payload[32] = {0};
+        size_t payload_size;
+        const uint32_t keypath[] = {
+            49 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            0,
+        };
+        assert_true(btc_common_payload_at_keypath(
+            keypath,
+            sizeof(keypath) / sizeof(uint32_t),
+            BTCScriptConfig_SimpleType_P2WPKH_P2SH,
+            payload,
+            &payload_size));
+        assert_true(btc_common_address_from_payload(
+            params_btc, BTCOutputType_P2SH, payload, payload_size, addr, sizeof(addr)));
+        assert_string_equal(addr, "3Ecs74kCeeAc6EKWMGe7RXupUoeeXPdyj7");
+    }
+
+    { // LTC p2wpkh-p2sh
+        uint8_t payload[32] = {0};
+        size_t payload_size;
+        const uint32_t keypath[] = {
+            49 + BIP32_INITIAL_HARDENED_CHILD,
+            2 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            0,
+        };
+        assert_true(btc_common_payload_at_keypath(
+            keypath,
+            sizeof(keypath) / sizeof(uint32_t),
+            BTCScriptConfig_SimpleType_P2WPKH_P2SH,
+            payload,
+            &payload_size));
+        assert_true(btc_common_address_from_payload(
+            params_ltc, BTCOutputType_P2SH, payload, payload_size, addr, sizeof(addr)));
+        assert_string_equal(addr, "MCwdgGYUvF5XwD6c5mo3mvrZN3CGYw635J");
+    }
+
+    { // BTC & LTC p2wsh
+        uint8_t payload[32] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        assert_true(btc_common_address_from_payload(
+            params_btc, BTCOutputType_P2WSH, payload, sizeof(payload), addr, sizeof(addr)));
+        assert_string_equal(addr, "bc1qv9skzctpv9skzctpv9skzctpv9skzctpv9skzctpv9skzctpv9ss52vqes");
+        assert_true(btc_common_address_from_payload(
+            params_ltc, BTCOutputType_P2WSH, payload, sizeof(payload), addr, sizeof(addr)));
+        assert_string_equal(
+            addr, "ltc1qv9skzctpv9skzctpv9skzctpv9skzctpv9skzctpv9skzctpv9sshwzsr4");
+    }
 
     // Taproot addresses, test vectors from
     // https://github.com/bitcoin/bips/blob/fb5bd37d0cdec14b47c45fda7aba4f7e8f801690/bip-0086.mediawiki#Test_vectors

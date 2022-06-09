@@ -117,6 +117,7 @@ dependencies = [
  "bitbox02",
  "bitbox02-noise",
  "bitbox02-rust",
+ "bs58",
  "hex",
  "sha2",
  "sha3",

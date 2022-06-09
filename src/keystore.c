@@ -728,7 +728,6 @@ bool keystore_encode_xpub(
     char* out,
     size_t out_len)
 {
-    char* xpub_string = NULL;
     uint8_t bytes[BIP32_SERIALIZED_LEN] = {0};
     if (bip32_key_serialize(xpub, BIP32_FLAG_KEY_PUBLIC, bytes, sizeof(bytes)) != WALLY_OK) {
         return false;
@@ -770,18 +769,10 @@ bool keystore_encode_xpub(
         return false;
     }
 
-    // Overwrite bip32 version (libwally doesn't give the option to provide a
-    // different one)
+    // Overwrite bip32 version.
     memcpy(bytes, version, 4);
-    int ret =
-        wally_base58_from_bytes(bytes, BIP32_SERIALIZED_LEN, BASE58_FLAG_CHECKSUM, &xpub_string);
-    util_zero(bytes, sizeof(bytes));
-    if (ret != WALLY_OK) {
-        return false;
-    }
-    int sprintf_result = snprintf(out, out_len, "%s", xpub_string);
-    wally_free_string(xpub_string);
-    return sprintf_result >= 0 && sprintf_result < (int)out_len;
+    return rust_base58_encode_check(
+        rust_util_bytes(bytes, sizeof(bytes)), rust_util_cstr_mut(out, out_len));
 }
 
 USE_RESULT bool keystore_encode_xpub_at_keypath(

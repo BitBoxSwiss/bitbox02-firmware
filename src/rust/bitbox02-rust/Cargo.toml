@@ -97,6 +97,7 @@ app-cardano = [
   # enable these deps
   "bech32",
   "blake2",
+  "bs58",
   "minicbor",
   "crc",
 

@@ -2124,7 +2124,7 @@ mod tests {
     }
 
     fn parse_xpub(xpub: &str) -> Result<pb::XPub, ()> {
-        let decoded = bitbox02::base58::decode(xpub)?;
+        let decoded = bs58::decode(xpub).into_vec().or(Err(()))?;
         Ok(pb::XPub {
             depth: decoded[4..5].to_vec(),
             parent_fingerprint: decoded[5..9].to_vec(),

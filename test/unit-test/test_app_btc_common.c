@@ -47,6 +47,74 @@ typedef struct {
     const char* expected_script_hex;
 } test_case_redeemscript_multisig_p2wsh;
 
+static void _test_btc_common_payload_at_keypath(void** state)
+{
+    keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
+    uint8_t payload[32] = {0};
+    size_t payload_size;
+    { //  p2wpkh
+        const uint32_t keypath[] = {
+            84 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            0,
+        };
+        assert_true(btc_common_payload_at_keypath(
+            keypath,
+            sizeof(keypath) / sizeof(uint32_t),
+            BTCScriptConfig_SimpleType_P2WPKH,
+            payload,
+            &payload_size));
+        assert_int_equal(payload_size, 20);
+        assert_memory_equal(
+            payload,
+            "\x3f\x0d\xc2\xe9\x14\x2d\x88\x39\xae\x9c\x90\xa1\x9c\xa8\x6c\x36\xd9\x23\xd8\xab",
+            20);
+    }
+    { //  p2wpkh-p2sh
+        const uint32_t keypath[] = {
+            49 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            0,
+        };
+        assert_true(btc_common_payload_at_keypath(
+            keypath,
+            sizeof(keypath) / sizeof(uint32_t),
+            BTCScriptConfig_SimpleType_P2WPKH_P2SH,
+            payload,
+            &payload_size));
+        assert_int_equal(payload_size, 20);
+        assert_memory_equal(
+            payload,
+            "\x8d\xd0\x9c\x25\xc9\x28\xbe\x67\x66\xf4\x50\x73\x87\x0c\xe3\xbb\x93\x1f\x2f\x55",
+            20);
+    }
+    { // p2tr
+        const uint32_t keypath[] = {
+            86 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0 + BIP32_INITIAL_HARDENED_CHILD,
+            0,
+            0,
+        };
+        assert_true(btc_common_payload_at_keypath(
+            keypath,
+            sizeof(keypath) / sizeof(uint32_t),
+            BTCScriptConfig_SimpleType_P2TR,
+            payload,
+            &payload_size));
+        assert_int_equal(payload_size, 32);
+        assert_memory_equal(
+            payload,
+            "\x25\x0e\xc8\x02\xb6\xd3\xdb\x98\x42\xd1\xbd\xbe\x0e\xe4\x8d\x52\xf9\xa4\xb4\x6e\x60"
+            "\xcb\xbb\xab\x3b\xcc\x4e\xe9\x15\x73\xfc\xe8",
+            32);
+    }
+}
+
 static void _test_btc_common_address_from_payload(void** state)
 {
     const app_btc_coin_params_t* params_btc = app_btc_params_get(BTCCoin_BTC);
@@ -621,6 +689,7 @@ print(hashlib.sha256(b''.join(msg)).hexdigest())
 int main(void)
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test(_test_btc_common_payload_at_keypath),
         cmocka_unit_test(_test_btc_common_address_from_payload),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig_unhappy),

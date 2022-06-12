@@ -146,7 +146,6 @@ add_dependencies(bitbox_objects
   rust-cbindgen
   wallycore
   secp256k1
-  base32
   ctaes
   fatfs
   sd-mock
@@ -176,7 +175,6 @@ target_link_libraries(bitbox
     secp256k1
   PRIVATE
     wallycore
-    base32
     ctaes
     fatfs
     sd-mock

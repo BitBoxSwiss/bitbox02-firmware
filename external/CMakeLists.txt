@@ -236,11 +236,6 @@ set_property(TARGET fatfs PROPERTY INTERFACE_LINK_LIBRARIES "")
 target_include_directories(fatfs SYSTEM PUBLIC fatfs/source)
 target_compile_options(fatfs PRIVATE -Wno-switch-default)
 
-add_library(base32
-  base32/base32.c
-)
-target_include_directories(base32 SYSTEM PUBLIC base32)
-
 add_library(ctaes
   ctaes/ctaes.c
   ctaes/ctaes-cbc.c

@@ -642,7 +642,6 @@ if(CMAKE_CROSSCOMPILING)
       PRIVATE
         cryptoauthlib
         fatfs
-        base32
         ctaes
         c
         samd51a-ds

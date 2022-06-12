@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "cipher.h"
-#include <ctaes-cbc.h>
+#include <ctaes.h>
 
 #include <stdlib.h>
 #include <string.h>

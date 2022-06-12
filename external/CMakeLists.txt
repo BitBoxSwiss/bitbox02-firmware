@@ -243,6 +243,5 @@ target_include_directories(base32 SYSTEM PUBLIC base32)
 
 add_library(ctaes
   ctaes/ctaes.c
-  ctaes/ctaes-cbc.c
 )
 target_include_directories(ctaes SYSTEM PUBLIC ctaes)

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use core::fmt::Write;
 use util::c_types::{c_char, c_uchar, size_t};
 
 /// Zero a buffer using volatile writes. Accepts null-ptr and 0-length buffers and does nothing.
@@ -43,14 +44,17 @@ pub extern "C" fn rust_util_validate_name(cstr: CStr, max_len: size_t) -> bool {
 #[no_mangle]
 pub extern "C" fn rust_util_uint8_to_hex(buf: Bytes, mut out: CStrMut) {
     let min_len = buf.len * 2;
-    out.write(min_len, |out| {
+    match out.write(min_len, |out| {
         // Avoid .unwrap() here until the following compiler regression is fixed:
         // https://github.com/rust-lang/rust/issues/83925
         match hex::encode_to_slice(&buf, out) {
             Ok(()) => {}
             Err(err) => panic!("{:?}", err),
         }
-    });
+    }) {
+        Ok(()) => {}
+        Err(_) => panic!("couldn't write to buffer"),
+    }
 }
 
 #[repr(C)]
@@ -187,16 +191,17 @@ impl CStrMut {
     ///
     /// # Panics
     ///
-    /// This function panics in case the provided buffer contains NULL or non-valid utf-8
-    /// characters after function `f` is applied. It will also panic if more bytes are requested
-    /// then are available.
-    pub fn write<F>(&mut self, req: usize, f: F)
+    /// This function returns an error in case the provided buffer contains NULL or non-valid utf-8
+    /// characters after function `f` is applied. It will also return an error if more bytes are
+    /// requested then are available.
+    pub fn write<F>(&mut self, req: usize, f: F) -> Result<(), core::fmt::Error>
     where
         F: FnOnce(&mut [u8]),
     {
         // Must be room for requested amount of bytes and null terminator.
         if self.cap - self.len < req + 1 {
-            panic!("Not enough bytes left in buffer");
+            // Not enough bytes left in buffer
+            return Err(core::fmt::Error);
         }
         let len = self.len;
         let slice = unsafe { self.as_bytes_mut() };
@@ -204,13 +209,16 @@ impl CStrMut {
         let write_slice = &mut slice[0..req];
         f(write_slice);
         if write_slice.iter().any(|&c| c == 0) {
-            panic!("null terminated strings can't contain null");
+            // null terminated strings can't contain null
+            return Err(core::fmt::Error);
         }
         if core::str::from_utf8(write_slice).is_err() {
-            panic!("strings must be valid utf-8");
+            // strings must be valid utf-8
+            return Err(core::fmt::Error);
         }
         slice[req] = 0;
         self.len += req;
+        Ok(())
     }
 
     /// Get slice of underlying byte array. Unsafe because you have to ensure that length is up to
@@ -230,8 +238,7 @@ impl core::fmt::Write for CStrMut {
     fn write_str(&mut self, s: &str) -> Result<(), core::fmt::Error> {
         self.write(s.len(), |buf| {
             buf.copy_from_slice(s.as_bytes());
-        });
-        Ok(())
+        })
     }
 }
 
@@ -271,6 +278,19 @@ pub unsafe extern "C" fn rust_util_cstr_mut(buf: *mut c_char, cap: usize) -> CSt
         buf.write(0);
     }
     CStrMut::new(buf, cap)
+}
+
+/// Base58Check-encode the input.
+///
+/// #Safety
+/// buf and out must not be NULL and point to valid memory areas.
+#[no_mangle]
+pub unsafe extern "C" fn rust_base58_encode_check(buf: Bytes, mut out: CStrMut) -> bool {
+    if buf.len == 0 {
+        return false;
+    }
+    let encoded = bs58::encode(buf.as_ref()).with_check().into_string();
+    write!(&mut out, "{}", encoded).is_ok()
 }
 
 #[cfg(test)]
@@ -327,7 +347,7 @@ mod tests {
         let mut cstr_mut = unsafe { rust_util_cstr_mut(start.as_mut_ptr(), start.len()) };
         assert_eq!(cstr_mut.len, 0);
         assert_eq!(cstr_mut.as_ref(), "");
-        cstr_mut.write(1, |buf| buf[0] = b'g');
+        cstr_mut.write(1, |buf| buf[0] = b'g').unwrap();
         assert_eq!(cstr_mut.as_ref(), "g");
     }
 
@@ -337,7 +357,7 @@ mod tests {
         let mut cstr_mut = unsafe { CStrMut::new(start.as_mut_ptr(), start.len()) };
         assert_eq!(cstr_mut.len, 3);
         assert_eq!(cstr_mut.as_ref(), "foo");
-        cstr_mut.write(1, |buf| buf[0] = b'g');
+        cstr_mut.write(1, |buf| buf[0] = b'g').unwrap();
         assert_eq!(cstr_mut.as_ref(), "foog");
     }
 
@@ -351,19 +371,17 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_invalid_cstr_mut_write_null() {
         let mut s = String::from("abc\0xxx");
         let mut cstr_mut = unsafe { CStrMut::new(s.as_mut_ptr(), s.len()) };
-        cstr_mut.write(1, |buf| buf[0] = 0);
+        assert!(cstr_mut.write(1, |buf| buf[0] = 0).is_err());
     }
 
     #[test]
-    #[should_panic]
     fn test_invalid_cstr_mut_out_of_buffer() {
         let mut s = String::from("abc\0");
         let mut cstr_mut = unsafe { CStrMut::new(s.as_mut_ptr(), s.len()) };
-        cstr_mut.write(1, |buf| buf[0] = b'd');
+        assert!(cstr_mut.write(1, |buf| buf[0] = b'd').is_err());
     }
 
     #[test]
@@ -378,12 +396,11 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_cstr_mut_write_too_much() {
         let mut buf = vec![0; 9];
         let mut cstr_mut = unsafe { CStrMut::new(buf.as_mut_ptr(), buf.len()) };
         use std::fmt::Write;
-        let _ = write!(&mut cstr_mut, "test foo ");
+        assert!(write!(&mut cstr_mut, "test foo ").is_err());
     }
 
     #[test]
@@ -401,5 +418,21 @@ mod tests {
             rust_util_cstr_mut(string.as_mut_ptr(), string.len())
         });
         assert_eq!(string, "0102030e0fff\0xxxxxxxxxxxxxxxxxxxxxxx");
+    }
+
+    #[test]
+    fn test_rust_base58_encode_check() {
+        let buf = b"test";
+        let mut result_buf = [0u8; 100];
+        assert!(unsafe {
+            rust_base58_encode_check(
+                rust_util_bytes(buf.as_ptr(), buf.len()),
+                rust_util_cstr_mut(result_buf.as_mut_ptr(), result_buf.len()),
+            )
+        });
+        assert_eq!(
+            (unsafe { rust_util_cstr(result_buf.as_ptr()) }).as_ref(),
+            "LUC1eAJa5jW"
+        );
     }
 }

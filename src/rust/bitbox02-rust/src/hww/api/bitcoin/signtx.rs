@@ -15,7 +15,7 @@
 use super::pb;
 use super::Error;
 
-use super::common::format_amount;
+use super::common::{address_from_payload, format_amount};
 use super::script::serialize_varint;
 use super::{bip143, bip341, keypath};
 
@@ -573,9 +573,8 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         if !tx_output.ours {
             // Verify output if it is not a change output.
             // Assemble address to display, get user confirmation.
-            let address =
-                bitbox02::app_btc::address_from_payload(coin as _, output_type as _, &payload)
-                    .or(Err(Error::InvalidInput))?;
+            let address = address_from_payload(coin_params, output_type, &payload)
+                .or(Err(Error::InvalidInput))?;
             transaction::verify_recipient(
                 &address,
                 &format_amount(tx_output.value, coin_params.unit),
@@ -2125,7 +2124,7 @@ mod tests {
     }
 
     fn parse_xpub(xpub: &str) -> Result<pb::XPub, ()> {
-        let decoded = bitbox02::base58::decode(xpub)?;
+        let decoded = bs58::decode(xpub).into_vec().or(Err(()))?;
         Ok(pb::XPub {
             depth: decoded[4..5].to_vec(),
             parent_fingerprint: decoded[5..9].to_vec(),

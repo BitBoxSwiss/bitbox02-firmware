@@ -38,17 +38,6 @@ bool btc_common_is_valid_keypath_account_simple(
         keypath, keypath_len, expected_coin, script_type, taproot_support);
 }
 
-bool btc_common_is_valid_keypath_address_simple(
-    BTCScriptConfig_SimpleType script_type,
-    const uint32_t* keypath,
-    const size_t keypath_len,
-    const uint32_t expected_coin,
-    bool taproot_support)
-{
-    return rust_bitcoin_keypath_validate_address_simple(
-        keypath, keypath_len, expected_coin, script_type, taproot_support);
-}
-
 bool btc_common_is_valid_keypath_address_multisig(
     BTCScriptConfig_Multisig_ScriptType script_type,
     const uint32_t* keypath,
@@ -152,99 +141,6 @@ BTCOutputType btc_common_determine_output_type_multisig(const BTCScriptConfig_Mu
     default:
         return BTCOutputType_UNKNOWN;
     }
-}
-
-/**
- * @param[in] version base58 check version, e.g. 0x05 for the "3" prefix.
- * @param[in] hash hash160 hash of pubkey or script, to bebase58Check encoded.
- * @param[out] out will contain the resulting address.
- * @param[in] out_len size allocation of `out`.
- * @return true on success, false on failure.
- */
-static bool _encode_base58_address(uint8_t version, const uint8_t* hash, char* out, size_t out_len)
-{
-    uint8_t vhash[1 + HASH160_LEN] = {0};
-    vhash[0] = version;
-    memcpy(vhash + 1, hash, HASH160_LEN);
-    char* address_string = NULL;
-    if (wally_base58_from_bytes(vhash, sizeof(vhash), BASE58_FLAG_CHECKSUM, &address_string) !=
-        WALLY_OK) {
-        return false;
-    }
-    int sprintf_result = snprintf(out, out_len, "%s", address_string);
-    wally_free_string(address_string);
-    return sprintf_result >= 0 && sprintf_result < (int)out_len;
-}
-
-bool btc_common_address_from_payload(
-    const app_btc_coin_params_t* params,
-    BTCOutputType output_type,
-    const uint8_t* payload,
-    size_t payload_size,
-    char* out,
-    size_t out_len)
-{
-    if (!params) {
-        return false;
-    }
-    switch (output_type) {
-    case BTCOutputType_P2PKH:
-        if (payload_size != HASH160_LEN) {
-            return false;
-        }
-        return _encode_base58_address(params->base58_version_p2pkh, payload, out, out_len);
-    case BTCOutputType_P2SH:
-        if (payload_size != HASH160_LEN) {
-            return false;
-        }
-        return _encode_base58_address(params->base58_version_p2sh, payload, out, out_len);
-    case BTCOutputType_P2WPKH:
-    case BTCOutputType_P2WSH: {
-        // Wally's bech32 encoder `wally_addr_segwit_from_bytes` unfortunately takes a pkScript and
-        // then extracts the witness program from it, so we first encode the witness program (in
-        // this case `payload`) and then `wally_addr_segwit_from_bytes` decodes it again. A direct
-        // bech32 encoder that simply took the witness program directly (in this case `payload`)
-        // would be better.
-        uint8_t script[WALLY_SCRIPTPUBKEY_P2WSH_LEN] = {0};
-        size_t written = 0;
-        if (wally_witness_program_from_bytes(
-                payload, payload_size, 0, script, sizeof(script), &written) != WALLY_OK) {
-            return false;
-        }
-        char* address_string = NULL;
-        if (wally_addr_segwit_from_bytes(script, written, params->bech32_hrp, 0, &address_string) !=
-            WALLY_OK) {
-            return false;
-        }
-        int sprintf_result = snprintf(out, out_len, "%s", address_string);
-        wally_free_string(address_string);
-        return sprintf_result >= 0 && sprintf_result < (int)out_len;
-    }
-    case BTCOutputType_P2TR: {
-        // Wally's bech32 encoder `wally_addr_segwit_from_bytes` unfortunately takes a pkScript and
-        // then extracts the witness program from it, so we first encode the witness program (in
-        // this case `payload`) and then `wally_addr_segwit_from_bytes` decodes it again. A direct
-        // bech32 encoder that simply took the witness program directly (in this case `payload`)
-        // would be better.
-        uint8_t script[WALLY_SCRIPTPUBKEY_P2TR_LEN] = {0};
-        size_t len = sizeof(script);
-        if (!btc_common_pkscript_from_payload(
-                params, output_type, payload, payload_size, script, &len)) {
-            return false;
-        }
-        char* address_string = NULL;
-        if (wally_addr_segwit_from_bytes(script, len, params->bech32_hrp, 0, &address_string) !=
-            WALLY_OK) {
-            return false;
-        }
-        int sprintf_result = snprintf(out, out_len, "%s", address_string);
-        wally_free_string(address_string);
-        return sprintf_result >= 0 && sprintf_result < (int)out_len;
-    }
-    default:
-        return false;
-    }
-    return true;
 }
 
 bool btc_common_pkscript_from_payload(

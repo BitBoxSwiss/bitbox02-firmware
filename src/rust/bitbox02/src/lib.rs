@@ -38,7 +38,6 @@ pub mod app_btc_sign_ui;
 #[cfg(feature = "app-ethereum")]
 pub mod app_eth;
 pub mod backup;
-pub mod base58;
 pub mod commander;
 pub mod input;
 pub mod keystore;

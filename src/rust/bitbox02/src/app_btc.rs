@@ -13,34 +13,10 @@
 // limitations under the License.
 
 extern crate alloc;
-use alloc::string::String;
 use alloc::{vec, vec::Vec};
 
 pub use bitbox02_sys::app_btc_result_t as Error;
 pub use bitbox02_sys::{BTCCoin, BTCScriptConfig_SimpleType};
-
-pub fn address_simple(
-    coin: BTCCoin,
-    script_type: BTCScriptConfig_SimpleType,
-    keypath: &[u32],
-) -> Result<String, ()> {
-    let mut address = [0u8; 500];
-    match unsafe {
-        bitbox02_sys::app_btc_address_simple(
-            coin,
-            script_type,
-            keypath.as_ptr(),
-            keypath.len() as _,
-            address.as_mut_ptr(),
-            address.len() as _,
-        )
-    } {
-        true => Ok(crate::util::str_from_null_terminated(&address[..])
-            .unwrap()
-            .into()),
-        false => Err(()),
-    }
-}
 
 pub fn sign_init_wrapper(buffer_in: &[u8]) -> Result<(), Error> {
     unsafe {
@@ -103,29 +79,6 @@ pub fn sign_reset() {
     unsafe { bitbox02_sys::app_btc_sign_reset() }
 }
 
-pub fn address_from_payload(
-    coin: bitbox02_sys::BTCCoin,
-    output_type: bitbox02_sys::BTCOutputType,
-    payload: &[u8],
-) -> Result<String, ()> {
-    let mut out = [0u8; 100];
-    match unsafe {
-        bitbox02_sys::btc_common_address_from_payload(
-            bitbox02_sys::app_btc_params_get(coin),
-            output_type,
-            payload.as_ptr(),
-            payload.len() as _,
-            out.as_mut_ptr(),
-            out.len() as _,
-        )
-    } {
-        true => Ok(crate::util::str_from_null_terminated(&out[..])
-            .unwrap()
-            .into()),
-        false => Err(()),
-    }
-}
-
 pub fn pkscript_from_payload(
     coin: bitbox02_sys::BTCCoin,
     output_type: bitbox02_sys::BTCOutputType,
@@ -151,19 +104,47 @@ pub fn pkscript_from_payload(
     }
 }
 
+pub fn payload_at_keypath(
+    keypath: &[u32],
+    script_type: BTCScriptConfig_SimpleType,
+) -> Result<Vec<u8>, ()> {
+    let mut out = [0u8; 32];
+    let mut out_len: bitbox02_sys::size_t = 0;
+    match unsafe {
+        bitbox02_sys::btc_common_payload_at_keypath(
+            keypath.as_ptr(),
+            keypath.len() as _,
+            script_type,
+            out.as_mut_ptr(),
+            &mut out_len,
+        )
+    } {
+        true => Ok(out[..out_len as usize].to_vec()),
+        false => Err(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    use crate::testing::mock_unlocked_using_mnemonic;
+    use util::bip32::HARDENED;
+
     #[test]
-    fn test_address_from_payload() {
+    fn test_payload_at_keypath() {
+        mock_unlocked_using_mnemonic(
+            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+        );
         assert_eq!(
-            address_from_payload(
-                bitbox02_sys::_BTCCoin_BTCCoin_BTC,
-                bitbox02_sys::_BTCOutputType_BTCOutputType_P2TR,
-                b"\xa6\x08\x69\xf0\xdb\xcf\x1d\xc6\x59\xc9\xce\xcb\xaf\x80\x50\x13\x5e\xa9\xe8\xcd\xc4\x87\x05\x3f\x1d\xc6\x88\x09\x49\xdc\x68\x4c",
+            payload_at_keypath(
+                &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
+                bitbox02_sys::_BTCScriptConfig_SimpleType_BTCScriptConfig_SimpleType_P2WPKH,
             ),
-            Ok("bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr".into())
-        )
+            Ok(
+                b"\x3f\x0d\xc2\xe9\x14\x2d\x88\x39\xae\x9c\x90\xa1\x9c\xa8\x6c\x36\xd9\x23\xd8\xab"
+                    .to_vec()
+            )
+        );
     }
 }

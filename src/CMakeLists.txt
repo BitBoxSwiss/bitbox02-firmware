@@ -385,7 +385,6 @@ add_custom_target(rust-bindgen
     --whitelist-function trinary_choice_create
     --rustified-enum trinary_choice_t
     --whitelist-function wally_sha256
-    --whitelist-function wally_base58_to_bytes
     --whitelist-var BASE58_CHECKSUM_LEN
     --whitelist-function random_32_bytes_mcu
     --whitelist-type component_t
@@ -420,10 +419,9 @@ add_custom_target(rust-bindgen
     --whitelist-function app_eth_erc20_params_get
     --whitelist-function app_eth_sighash
     --rustified-enum app_btc_result_t
-    --whitelist-function app_btc_address_simple
     --whitelist-function testing_app_btc_mock_ui
-    --whitelist-function btc_common_address_from_payload
     --whitelist-function btc_common_pkscript_from_payload
+    --whitelist-function btc_common_payload_at_keypath
     --whitelist-var MAX_VARINT_SIZE
     --whitelist-var MAX_PK_SCRIPT_SIZE
     --whitelist-function app_btc_params_get

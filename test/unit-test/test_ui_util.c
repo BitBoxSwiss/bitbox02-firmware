@@ -111,7 +111,7 @@ static void test_ui_util_position_left_bottom(void** state)
 
     ui_util_position_left_bottom(mock_component_1, mock_component_2);
 
-    assert_int_equal(mock_component_2->position.left, 0);
+    assert_int_equal(mock_component_2->position.left, 1);
     assert_int_equal(mock_component_2->position.top, 90);
 
     mock_component_1->f->cleanup(mock_component_1);
@@ -135,7 +135,7 @@ static void test_ui_util_position_left_top(void** state)
 
     ui_util_position_left_top(mock_component_1, mock_component_2);
 
-    assert_int_equal(mock_component_2->position.left, 0);
+    assert_int_equal(mock_component_2->position.left, 1);
     assert_int_equal(mock_component_2->position.top, 0);
 
     mock_component_1->f->cleanup(mock_component_1);

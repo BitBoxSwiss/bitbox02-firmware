@@ -172,16 +172,4 @@ void ui_util_position_left_center_offset(
     component_t* child,
     int16_t left_offset);
 
-/**
- * Positions the child component on the right center of the
- * parent component with the given offsets.
- * @param[in] parent The parent component.
- * @param[in] child The child/sub-component.
- * @param[in] right_offset The horizontal offset to the parent component's position.
- */
-void ui_util_position_right_center_offset(
-    component_t* parent,
-    component_t* child,
-    int16_t right_offset);
-
 #endif

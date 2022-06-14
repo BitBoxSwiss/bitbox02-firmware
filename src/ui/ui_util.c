@@ -115,6 +115,28 @@ void ui_util_position_center_bottom(component_t* parent, component_t* child)
         parent->position.left + parent->dimension.width / 2 - child->dimension.width / 2;
 }
 
+static void _position_left(component_t* parent, component_t* child)
+{
+    child->position.left = parent->position.left;
+    // The frame of some SSD1312 screens slightly covers around 0.5px on each side, cutting off the
+    // text a bit, especially when looking at the device at an angle. We move by one pixel to
+    // improve visibility.
+    if (child->position.left == 0) {
+        child->position.left = 1;
+    }
+}
+
+static void _position_right(component_t* parent, component_t* child)
+{
+    child->position.left = parent->position.left + parent->dimension.width - child->dimension.width;
+    // The frame of some SSD1312 screens slightly covers around 0.5px on each side, cutting off the
+    // text a bit, especially when looking at the device at an angle. We move by one pixel to
+    // improve visibility.
+    if (parent->position.left + parent->dimension.width == SCREEN_WIDTH) {
+        child->position.left -= 1;
+    }
+}
+
 /**
  * Positions the child component on the left bottom of the
  * parent component.
@@ -124,7 +146,7 @@ void ui_util_position_center_bottom(component_t* parent, component_t* child)
 void ui_util_position_left_bottom(component_t* parent, component_t* child)
 {
     child->position.top = parent->position.top + parent->dimension.height - child->dimension.height;
-    child->position.left = parent->position.left;
+    _position_left(parent, child);
 }
 
 /**
@@ -137,7 +159,7 @@ void ui_util_position_left_center(component_t* parent, component_t* child)
 {
     child->position.top =
         parent->position.top + parent->dimension.height / 2 - child->dimension.height / 2;
-    child->position.left = parent->position.left;
+    _position_left(parent, child);
 }
 
 /**
@@ -150,7 +172,7 @@ void ui_util_position_right_center(component_t* parent, component_t* child)
 {
     child->position.top =
         parent->position.top + parent->dimension.height / 2 - child->dimension.height / 2;
-    child->position.left = parent->position.left + parent->dimension.width - child->dimension.width;
+    _position_right(parent, child);
 }
 
 /**
@@ -162,7 +184,7 @@ void ui_util_position_right_center(component_t* parent, component_t* child)
 void ui_util_position_right_bottom(component_t* parent, component_t* child)
 {
     child->position.top = parent->position.top + parent->dimension.height - child->dimension.height;
-    child->position.left = parent->position.left + parent->dimension.width - child->dimension.width;
+    _position_right(parent, child);
 }
 
 /**
@@ -174,7 +196,7 @@ void ui_util_position_right_bottom(component_t* parent, component_t* child)
 void ui_util_position_left_top(component_t* parent, component_t* child)
 {
     child->position.top = parent->position.top;
-    child->position.left = parent->position.left;
+    _position_left(parent, child);
 }
 
 /**
@@ -186,7 +208,7 @@ void ui_util_position_left_top(component_t* parent, component_t* child)
 void ui_util_position_right_top(component_t* parent, component_t* child)
 {
     child->position.top = parent->position.top;
-    child->position.left = parent->position.left + parent->dimension.width - child->dimension.width;
+    _position_right(parent, child);
 }
 
 /**

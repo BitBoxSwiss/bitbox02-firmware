@@ -242,20 +242,3 @@ void ui_util_position_left_center_offset(
         parent->position.top + (parent->dimension.height - child->dimension.height) / 2;
     child->position.left = parent->position.left + left_offset;
 }
-
-/**
- * Positions the child component on the right center of the
- * parent component with the given offset.
- * @param[in] parent The parent component.
- * @param[in] child The child/sub-component.
- * @param[in] right_offset The horizontal offset to the parent component's position.
- */
-void ui_util_position_right_center_offset(
-    component_t* parent,
-    component_t* child,
-    int16_t right_offset)
-{
-    child->position.top =
-        parent->position.top + (parent->dimension.height - child->dimension.height) / 2;
-    child->position.left = parent->position.left + parent->dimension.width - right_offset;
-}

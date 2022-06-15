@@ -16,8 +16,11 @@ docker build --pull --force-rm --no-cache -t bitbox02-firmware .
 
 # Build the firmware. The inlined python package install can be
 # removed after v4.1.0, but is necessary for v4.1.0 as it is missing
-# in the Dockerfile of that release.
-docker run -it --rm --volume `pwd`:/bb02 bitbox02-firmware bash -c "apt-get update && apt-get install -y python && cd /bb02 && $2"
+# in the Dockerfile of that release. The safe.directory config is so
+# that git commands work. even though the repo folder mounted in
+# Docker is owned by root, which can be different from the owner on
+# the host.
+docker run -it --rm --volume `pwd`:/bb02 bitbox02-firmware bash -c "apt-get update && apt-get install -y python && git config --global --add safe.directory /bb02 && cd /bb02 && $2"
 
 echo "firmware.bin created at:"
 echo `pwd`/build/bin/firmware.bin

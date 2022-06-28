@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Allow arbitrary input sequence numbers (fixes compatibility with Taproot transactions in Sparrow wallet)
 
 ### 9.12.0
 - Ethereum: add support for EIP-712 structured data signing

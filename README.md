@@ -62,6 +62,14 @@ messages. The encryption protocol used is Noise with out-of-band authentication.
 The instructions for setting up a development environment can be found in [BUILD.md](BUILD.md).
 Please also read our [CONTRIBUTING.md](CONTRIBUTING.md) before filing issues and pull requests.
 
+## Installing/upgrading firmware
+
+There are two main ways to install or upgrade firmware on a BitBox02:
+
+1. by running the [BitBoxApp](https://github.com/digitalbitbox/bitbox-wallet-app/)
+2. by running [./py/load_firmware.py](./py/load_firmware.py) after installing the [bitbox02](./py)
+   Python package, e.g. `./py/load_firmware.py firmware-btc.v9.12.0.signed.bin`.
+
 ## Reporting a vulnerability
 
 See our [security policy](SECURITY.md).

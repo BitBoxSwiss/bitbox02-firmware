@@ -85,8 +85,8 @@ static void _get_file_name(uint32_t backup_create_timestamp, char* file_name, ui
  */
 static backup_error_t _check_backup(uint8_t* output, size_t output_length, const Backup* backup)
 {
-    Backup __attribute__((__cleanup__(backup_cleanup_backup))) backup_check;
-    BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data_check;
+    Backup __attribute__((__cleanup__(backup_cleanup_backup))) backup_check = {0};
+    BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data_check = {0};
     restore_error_t res =
         restore_from_buffer(output, output_length, &backup_check, &backup_data_check);
     if (res != RESTORE_OK) {
@@ -103,8 +103,8 @@ static backup_error_t _check_backup(uint8_t* output, size_t output_length, const
  */
 backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_birthdate_timestamp)
 {
-    Backup __attribute__((__cleanup__(backup_cleanup_backup))) backup;
-    BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data;
+    Backup __attribute__((__cleanup__(backup_cleanup_backup))) backup = {0};
+    BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data = {0};
     encode_data_t encode_data;
     backup_error_t res = backup_fill(
         DIGITAL_BITBOX_VERSION_SHORT,
@@ -170,8 +170,8 @@ backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_bir
 
 backup_error_t backup_check(char* id_out, char* name_out, uint32_t* birthdate_out)
 {
-    Backup __attribute__((__cleanup__(backup_cleanup_backup))) backup;
-    BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data;
+    Backup __attribute__((__cleanup__(backup_cleanup_backup))) backup = {0};
+    BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data = {0};
     encode_data_t encode_data;
     backup_error_t backup_res = backup_fill("", 0, 0, &backup, &backup_data, &encode_data);
     if (backup_res != BACKUP_OK) {
@@ -180,8 +180,8 @@ backup_error_t backup_check(char* id_out, char* name_out, uint32_t* birthdate_ou
     char* dir_name = id_out;
     _get_directory_name(backup_data.seed, dir_name);
 
-    Backup __attribute__((__cleanup__(backup_cleanup_backup))) backup_copy;
-    BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data_copy;
+    Backup __attribute__((__cleanup__(backup_cleanup_backup))) backup_copy = {0};
+    BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data_copy = {0};
     restore_error_t restore_res = restore_from_directory(dir_name, &backup_copy, &backup_data_copy);
     if (restore_res != RESTORE_OK) {
         return BACKUP_ERR_CHECK;

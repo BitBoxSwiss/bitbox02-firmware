@@ -210,7 +210,7 @@ mod tests {
         // Create the three files using the a fixture in the directory with the backup ID of the
         // above seed.
         let expected_id = "577782fdfffbe314b23acaeefc39ad5e8641fba7e7dbe418a35956a879a67dd2";
-        let backup_fixture_v9_12_0: Vec<u8> = hex::decode("0a6e0a6c0a20ef526d789b78b9447b2fde3b04bdf4c22c1ae7f6e512a28a6efe1c98ed5076a812110891bec6fb0512094d7920426974426f7818352233081012208af64d31126a39b98f59708a3a463e5b000000000000000000000000000000001891bec6fb05220776392e31332e30").unwrap();
+        let backup_fixture_v9_12_0: Vec<u8> = hex::decode("0a6c0a6a0a2017834e53e17370800c0bc49b49ef3f1309df104d7239db5bbd093c90eefc995112110891bec6fb0512094d7920426974426f782233081012208af64d31126a39b98f59708a3a463e5b000000000000000000000000000000001891bec6fb05220776392e31332e30").unwrap();
         for i in 0..3 {
             bitbox02::sd::write_bin(
                 &format!("backup_Mon_2020-09-28T08-30-09Z_{}.bin", i),

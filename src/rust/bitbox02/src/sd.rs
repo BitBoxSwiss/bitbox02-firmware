@@ -16,6 +16,8 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use crate::util::str_to_cstr_vec;
+
 struct SdList(bitbox02_sys::sd_list_t);
 
 impl Drop for SdList {
@@ -29,11 +31,12 @@ pub fn list_subdir(subdir: Option<&str>) -> Result<Vec<String>, ()> {
         num_files: 0,
         files: core::ptr::null_mut(),
     });
+    let c_subdir = subdir.map(|s| str_to_cstr_vec(s).unwrap());
     match unsafe {
         bitbox02_sys::sd_list_subdir(
             &mut list.0,
-            match subdir {
-                Some(subdir) => crate::util::str_to_cstr_vec(subdir).unwrap().as_ptr(),
+            match c_subdir.as_ref() {
+                Some(s) => s.as_ptr(),
                 None => core::ptr::null(),
             },
         )

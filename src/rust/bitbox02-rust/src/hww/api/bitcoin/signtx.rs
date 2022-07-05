@@ -629,6 +629,9 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     // Verify locktime/rbf.
     // A locktime of 0 will also not be verified, as it's certainly in the past and can't do any
     // harm.
+    //
+    // This is not a security feature, the extra locktime/RBF user confirmation is skipped if the tx
+    // is not rbf or has a locktime of 0.
     if request.locktime > 0 && locktime_applies {
         // The RBF nsequence bytes are often set in conjunction with a locktime,
         // so verify both simultaneously.

@@ -49,9 +49,11 @@ git fetch origin
 
 TARGET_BRANCH=origin/${TARGET_BRANCH}
 
+# The safe.directory config is so that git commands work. even though the repo folder mounted in
+# Docker is owned by root, which can be different from the owner on the host.
 docker run -e TARGET_BRANCH="${TARGET_BRANCH}" \
 	--cap-add SYS_PTRACE \
 	--volume ${WORKSPACE_DIR}:/bitbox02-firmware/ \
 	--workdir /bitbox02-firmware \
 	${CONTAINER} \
-	bash -c "./.ci/ci"
+	bash -c "git config --global --add safe.directory /bitbox02-firmware && ./.ci/ci"

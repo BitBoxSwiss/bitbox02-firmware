@@ -106,7 +106,7 @@ if(GIT_FOUND AND PYTHONINTERP_FOUND)
     OUTPUT_STRIP_TRAILING_WHITESPACE
   )
   if(NOT exit_code EQUAL "0")
-    set(GIT_FIRMWARE_VERSION_STRING "v0.0.0")
+    message(FATAL_ERROR "get_version firmware failed")
   endif()
   execute_process(
     COMMAND ${PYTHON_EXECUTABLE} ./scripts/get_version firmware-btc-only --check-semver --check-gpg
@@ -116,7 +116,7 @@ if(GIT_FOUND AND PYTHONINTERP_FOUND)
     OUTPUT_STRIP_TRAILING_WHITESPACE
   )
   if(NOT exit_code EQUAL "0")
-    set(GIT_FIRMWARE_BTC_ONLY_VERSION_STRING "v0.0.0")
+    message(FATAL_ERROR "get_version firmware-btc-only failed")
   endif()
   execute_process(
     COMMAND ${PYTHON_EXECUTABLE} ./scripts/get_version bootloader --check-semver --check-gpg
@@ -126,7 +126,7 @@ if(GIT_FOUND AND PYTHONINTERP_FOUND)
     OUTPUT_STRIP_TRAILING_WHITESPACE
   )
   if(NOT exit_code EQUAL "0")
-    set(GIT_BOOTLOADER_VERSION_STRING "v0.0.0")
+    message(FATAL_ERROR "get_version bootloader failed")
   endif()
 
   execute_process(

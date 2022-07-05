@@ -24,7 +24,6 @@ use crate::keystore;
 #[derive(Default)]
 pub struct Data {
     pub ui_confirm_create: Option<Box<dyn Fn(&super::ui::ConfirmParams) -> bool>>,
-    pub reset: Option<Box<dyn Fn(bool)>>,
     pub sdcard_inserted: Option<bool>,
     pub ui_sdcard_create_arg: Option<bool>,
     pub ui_transaction_address_create: Option<Box<dyn Fn(&str, &str) -> bool>>,
@@ -72,21 +71,23 @@ pub fn mock_sd() {
     }
 }
 
+unsafe extern "C" fn c_mock_random_32_bytes(buf_out: *mut u8) {
+    let s = core::slice::from_raw_parts_mut(buf_out, 32);
+    s.copy_from_slice(b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+}
+
+static MEMORY_IFS: bitbox02_sys::memory_interface_functions_t =
+    bitbox02_sys::memory_interface_functions_t {
+        random_32_bytes: Some(c_mock_random_32_bytes),
+    };
+
 /// This sets up memory in RAM for use in unit tests. As there is only one RAM volume, access only serially.
 /// The memory is initialized to be like after factory setup, i.e. 0xFF everywhere followed by `memory_setup()`.
 pub fn mock_memory() {
     unsafe {
         bitbox02_sys::mock_memory_factoryreset();
 
-        unsafe extern "C" fn c_mock_random_32_bytes(buf_out: *mut u8) {
-            let s = core::slice::from_raw_parts_mut(buf_out, 32);
-            s.copy_from_slice(b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-        }
-
-        let ifs = bitbox02_sys::memory_interface_functions_t {
-            random_32_bytes: Some(c_mock_random_32_bytes),
-        };
-        assert!(bitbox02_sys::memory_setup(&ifs));
+        assert!(bitbox02_sys::memory_setup(&MEMORY_IFS));
 
         bitbox02_sys::smarteeprom_bb02_config();
         bitbox02_sys::bitbox02_smarteeprom_init();

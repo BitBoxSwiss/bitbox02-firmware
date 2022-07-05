@@ -40,22 +40,12 @@ mod tests {
 
     use crate::bb02_async::block_on;
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, Data};
+    use bitbox02::testing::{mock, mock_memory, Data};
 
     #[test]
     pub fn test_reset() {
-        // All good.
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.body, "Proceed to\nfactory reset?");
-                true
-            })),
-            reset: Some(Box::new(|status| {
-                assert_eq!(status, true);
-            })),
-            ..Default::default()
-        });
-        assert_eq!(block_on(process()), Ok(Response::Success(pb::Success {})));
+        mock_memory();
+        bitbox02::memory::set_device_name("test device name").unwrap();
 
         // User aborted confirmation.
         mock(Data {
@@ -66,5 +56,21 @@ mod tests {
             ..Default::default()
         });
         assert_eq!(block_on(process()), Err(Error::Generic));
+
+        assert_eq!(
+            bitbox02::memory::get_device_name().as_str(),
+            "test device name",
+        );
+
+        // All good.
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.body, "Proceed to\nfactory reset?");
+                true
+            })),
+            ..Default::default()
+        });
+        assert_eq!(block_on(process()), Ok(Response::Success(pb::Success {})));
+        assert_eq!(bitbox02::memory::get_device_name().as_str(), "My BitBox");
     }
 }

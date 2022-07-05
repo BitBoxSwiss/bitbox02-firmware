@@ -152,15 +152,8 @@ pub fn sha256(input: &[u8], output: &mut [u8]) -> Result<(), ()> {
     }
 }
 
-#[cfg(not(feature = "testing"))]
 pub fn reset(status: bool) {
     unsafe { bitbox02_sys::reset_reset(status) }
-}
-
-#[cfg(feature = "testing")]
-pub fn reset(status: bool) {
-    let data = crate::testing::DATA.0.borrow();
-    data.reset.as_ref().unwrap()(status)
 }
 
 #[cfg(not(feature = "testing"))]

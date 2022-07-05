@@ -242,10 +242,6 @@ fn validate_input(
     params: &super::params::Params,
     script_config_account: &pb::BtcScriptConfigWithKeypath,
 ) -> Result<(), Error> {
-    // relative locktime and sequence nummbers < 0xffffffff-2 are not supported
-    if input.sequence < 0xffffffff - 2 {
-        return Err(Error::InvalidInput);
-    }
     if input.prev_out_value == 0 {
         return Err(Error::InvalidInput);
     }
@@ -441,13 +437,30 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             .get(tx_input.script_config_index as usize)
             .ok_or(Error::InvalidInput)?;
         validate_input(&tx_input, coin_params, script_config_account)?;
-        if tx_input.sequence == 0xffffffff - 2 {
+        if tx_input.sequence < 0xffffffff - 1 {
             rbf = true;
         }
         if tx_input.sequence < 0xffffffff {
             locktime_applies = true;
         }
-
+        if tx_input.sequence < 0xffffffff - 2 {
+            // A sequence number less than 0xffffffff-2 does not add functionality (we don't support
+            // relative locktime). We allow it since wallets can set it anyway. Example: Sparrow
+            // sets it to improve privacy of off-chain protocols
+            // (https://github.com/sparrowwallet/sparrow/issues/161).
+            confirm::confirm(&confirm::Params {
+                title: "Warning",
+                body: &format!(
+                    "Unusual sequence number in input #{}: {}",
+                    input_index + 1,
+                    tx_input.sequence
+                ),
+                scrollable: true,
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
+        }
         inputs_sum_pass1 = inputs_sum_pass1
             .checked_add(tx_input.prev_out_value)
             .ok_or(Error::InvalidInput)?;
@@ -1653,8 +1666,6 @@ mod tests {
             InvalidInputScriptConfigIndex,
             // referenced script config does not exist.
             InvalidChangeScriptConfigIndex,
-            // sequence number below 0xffffffff - 2
-            WrongSequenceNumber,
             // value 0 is invalid
             WrongOutputValue,
             // input value does not match prevtx output value
@@ -1675,7 +1686,6 @@ mod tests {
             TestCase::WrongBip44Change(2),
             TestCase::InvalidInputScriptConfigIndex,
             TestCase::InvalidChangeScriptConfigIndex,
-            TestCase::WrongSequenceNumber,
             TestCase::WrongOutputValue,
             TestCase::WrongInputValue,
             TestCase::WrongPrevoutHash,
@@ -1705,9 +1715,6 @@ mod tests {
                 }
                 TestCase::InvalidChangeScriptConfigIndex => {
                     transaction.borrow_mut().outputs[4].script_config_index = 1;
-                }
-                TestCase::WrongSequenceNumber => {
-                    transaction.borrow_mut().inputs[0].input.sequence = 0;
                 }
                 TestCase::WrongOutputValue => {
                     transaction.borrow_mut().outputs[0].value = 0;
@@ -2121,6 +2128,44 @@ mod tests {
         mock_unlocked();
         let result = block_on(process(&transaction.borrow().init_request()));
         assert_eq!(result, Err(Error::InvalidInput));
+    }
+
+    /// Low/unusual sequence number.
+    #[test]
+    fn test_unusual_sequence_number() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        transaction.borrow_mut().inputs[0].input.sequence = 12345;
+        mock_host_responder(transaction.clone());
+        static mut UI_COUNTER: u32 = 0;
+        mock(Data {
+            ui_confirm_create: Some(Box::new(move |params| {
+                match unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(params.title, "Warning");
+                        assert_eq!(params.body, "Unusual sequence number in input #1: 12345");
+                        true
+                    }
+                    3 => {
+                        assert_eq!(params.title, "");
+                        assert_eq!(params.body, "Locktime on block:\n10\nTransaction is RBF");
+                        true
+                    }
+                    _ => true,
+                }
+            })),
+            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ..Default::default()
+        });
+        mock_unlocked();
+        let mut init_request = transaction.borrow().init_request();
+        init_request.locktime = 10;
+        assert!(block_on(process(&init_request)).is_ok());
+        assert!(unsafe { UI_COUNTER >= 3 })
     }
 
     fn parse_xpub(xpub: &str) -> Result<pb::XPub, ()> {

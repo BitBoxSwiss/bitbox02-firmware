@@ -28,6 +28,7 @@ import json
 
 import requests  # type: ignore
 import hid
+import semver
 from tzlocal import get_localzone  # type: ignore
 
 from bitbox02 import util
@@ -183,9 +184,7 @@ class SendMessage:
 
     def _setup_workflow(self) -> None:
         """TODO: Document"""
-        self._device.insert_sdcard()
-        print("SD Card Inserted")
-        self._change_name_workflow("Shifty")
+        self._change_name_workflow()
         print(
             "Please choose a password of the BitBox02. "
             + "This password will be used to unlock your BitBox02."
@@ -194,14 +193,38 @@ class SendMessage:
             eprint("Passwords did not match. please try again")
 
         print("Your BitBox02 will now create a backup of your wallet...")
-        print("Please confirm the date on your device.")
-        if not self._device.create_backup():
-            eprint("Creating the backup failed")
-            return
-        print("Backup created sucessfully")
 
-        print("Please Remove SD Card")
-        self._device.remove_sdcard()
+        def backup_sd() -> None:
+            if not self._device.create_backup():
+                eprint("Creating the backup failed")
+                return
+            print("Backup created sucessfully")
+            print("Please Remove SD Card")
+            self._device.remove_sdcard()
+
+        def backup_mnemonic() -> None:
+            if self._device.version < semver.VersionInfo(9, 13, 0):
+                eprint("Backing up using recovery words is supported from firmware version 9.13.0")
+                return
+
+            try:
+                self._device.show_mnemonic()
+            except Bitbox02Exception:
+                eprint("Creating the backup failed")
+                return
+            print("Backup created sucessfully")
+
+        choice = ask_user(
+            (
+                ("Backup onto a microSD card", backup_sd),
+                ("Backup manually by writing down recovey words", backup_mnemonic),
+            ),
+        )
+        if callable(choice):
+            try:
+                choice()
+            except UserAbortException:
+                eprint("Aborted by user")
 
     def _print_backups(self, backups: Optional[Sequence[bitbox02.Backup]] = None) -> None:
         local_timezone = get_localzone()

@@ -40,6 +40,7 @@ static commander_states_endpoint_id _commands_uninitialized[] = {
 static commander_states_endpoint_id _commands_seeded[] = {
     Request_create_backup_tag,
     Request_set_password_tag,
+    Request_show_mnemonic_tag,
     Request_restore_backup_tag,
     Request_restore_from_mnemonic_tag,
 };

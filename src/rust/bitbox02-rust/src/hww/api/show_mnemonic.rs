@@ -71,23 +71,33 @@ fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroi
 /// is asked to pick the right word among 5 words, to check if they
 /// wrote it down correctly.
 pub async fn process() -> Result<Response, Error> {
-    unlock::unlock_keystore("Unlock device", unlock::CanCancel::Yes).await?;
+    if bitbox02::memory::is_initialized() {
+        unlock::unlock_keystore("Unlock device", unlock::CanCancel::Yes).await?;
+    }
 
     let mnemonic_sentence = keystore::get_bip39_mnemonic()?;
+
+    confirm::confirm(&confirm::Params {
+        title: "Recovery words",
+        body: "Please write down\nthe following words",
+        accept_is_nextarrow: true,
+        ..Default::default()
+    })
+    .await?;
 
     let words: Vec<&str> = mnemonic_sentence.split(' ').collect();
 
     // Part 1) Scroll through words
     mnemonic::show_mnemonic(&words).await?;
 
-    let params = confirm::Params {
+    confirm::confirm(&confirm::Params {
         title: "",
         body: "Please confirm\neach word",
         accept_only: true,
         accept_is_nextarrow: true,
         ..Default::default()
-    };
-    confirm::confirm(&params).await?;
+    })
+    .await?;
 
     // Part 2) Confirm words
     for (word_idx, word) in words.iter().enumerate() {
@@ -105,6 +115,8 @@ pub async fn process() -> Result<Response, Error> {
         }
     }
 
-    status::status("Success", true).await;
+    bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
+
+    status::status("Backup created", true).await;
     Ok(Response::Success(pb::Success {}))
 }

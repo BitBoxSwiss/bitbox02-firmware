@@ -49,7 +49,7 @@ pub fn u2f_counter_set(counter: u32) -> Result<(), ()> {
 #[cfg(feature = "app-u2f")]
 #[cfg(feature = "testing")]
 pub fn u2f_counter_set(_counter: u32) -> Result<(), ()> {
-    unimplemented!();
+    Ok(())
 }
 
 pub fn model() -> Result<Model, ()> {

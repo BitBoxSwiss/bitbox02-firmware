@@ -381,4 +381,187 @@ mod tests {
             Err(msg) => assert_eq!(msg.downcast_ref::<&str>(), Some(&"reboot called")),
         }
     }
+
+    /// Test creating a seed, backing it up on SD, checking the backup, and restoring from the that backup.
+    #[test]
+    fn test_backup_create_check_list_restore() {
+        static mut UI_COUNTER: u32 = 0;
+
+        // Test everything with a 32 and 16 byte seed (determined by the host entropy when creating the seed).
+        for host_entropy in &[
+            &b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"[..],
+            &b"aaaaaaaaaaaaaaaa"[..],
+        ] {
+            bitbox02::keystore::lock();
+            mock_memory();
+            mock_sd();
+
+            bitbox02::memory::set_device_name("test device name").unwrap();
+
+            let mut make_request = init_noise();
+            unsafe { UI_COUNTER = 0 };
+            mock(Data {
+                ui_trinary_input_string_create: Some(Box::new(|_params| "password".into())),
+                sdcard_inserted: Some(true),
+                ui_confirm_create: Some(Box::new(|params| {
+                    match unsafe {
+                        UI_COUNTER += 1;
+                        UI_COUNTER
+                    } {
+                        1 => assert_eq!(params.body, "<date>"),
+                        2 => assert_eq!(params.title, "RESET"),
+                        3 => assert_eq!(params.body, "Restore backup?"),
+                        4 => assert!(params.body.starts_with("Name: test device name.")),
+                        5 => assert_eq!(params.title, "Is now?"),
+                        _ => panic!("too many dialogs"),
+                    }
+                    true
+                })),
+                ..Default::default()
+            });
+
+            make_request(
+                (crate::pb::Request {
+                    request: Some(crate::pb::request::Request::SetPassword(
+                        crate::pb::SetPasswordRequest {
+                            entropy: host_entropy.to_vec(),
+                        },
+                    )),
+                })
+                .encode_to_vec()
+                .as_ref(),
+            )
+            .unwrap();
+            make_request(
+                (crate::pb::Request {
+                    request: Some(crate::pb::request::Request::CreateBackup(
+                        crate::pb::CreateBackupRequest {
+                            timestamp: 1601281809,
+                            timezone_offset: 18000,
+                        },
+                    )),
+                })
+                .encode_to_vec()
+                .as_ref(),
+            )
+            .unwrap();
+
+            let seed = bitbox02::keystore::copy_seed().unwrap();
+            assert_eq!(seed.len(), host_entropy.len());
+            assert!(matches!(
+                crate::pb::Response::decode(
+                    make_request(
+                        (crate::pb::Request {
+                            request: Some(crate::pb::request::Request::CheckBackup(
+                                crate::pb::CheckBackupRequest { silent: true },
+                            )),
+                        })
+                        .encode_to_vec()
+                        .as_ref(),
+                    )
+                    .unwrap()
+                    .as_slice(),
+                )
+                .unwrap(),
+                crate::pb::Response {
+                    response: Some(crate::pb::response::Response::CheckBackup(
+                        crate::pb::CheckBackupResponse { .. }
+                    )),
+                }
+            ));
+
+            make_request(
+                (crate::pb::Request {
+                    request: Some(crate::pb::request::Request::Reset(
+                        crate::pb::ResetRequest {},
+                    )),
+                })
+                .encode_to_vec()
+                .as_ref(),
+            )
+            .unwrap();
+
+            assert!(matches!(
+                crate::pb::Response::decode(
+                    make_request(
+                        (crate::pb::Request {
+                            request: Some(crate::pb::request::Request::CheckBackup(
+                                crate::pb::CheckBackupRequest { silent: true },
+                            )),
+                        })
+                        .encode_to_vec()
+                        .as_ref(),
+                    )
+                    .unwrap()
+                    .as_slice(),
+                )
+                .unwrap(),
+                crate::pb::Response {
+                    response: Some(crate::pb::response::Response::Error(
+                        crate::pb::Error { .. }
+                    )),
+                }
+            ));
+
+            let backup_id = match crate::pb::Response::decode(
+                make_request(
+                    (crate::pb::Request {
+                        request: Some(crate::pb::request::Request::ListBackups(
+                            crate::pb::ListBackupsRequest {},
+                        )),
+                    })
+                    .encode_to_vec()
+                    .as_ref(),
+                )
+                .unwrap()
+                .as_slice(),
+            )
+            .unwrap()
+            {
+                crate::pb::Response {
+                    response:
+                        Some(crate::pb::response::Response::ListBackups(
+                            crate::pb::ListBackupsResponse { info },
+                        )),
+                } => match info.as_slice() {
+                    &[crate::pb::BackupInfo {
+                        ref id, ref name, ..
+                    }] => {
+                        assert_eq!(name.as_str(), "test device name");
+                        id.clone()
+                    }
+                    _ => panic!("unexpected response"),
+                },
+                _ => panic!("unexpected response"),
+            };
+            assert!(matches!(
+                crate::pb::Response::decode(
+                    make_request(
+                        (crate::pb::Request {
+                            request: Some(crate::pb::request::Request::RestoreBackup(
+                                crate::pb::RestoreBackupRequest {
+                                    id: backup_id,
+                                    timestamp: 1601281809,
+                                    timezone_offset: 18000,
+                                },
+                            )),
+                        })
+                        .encode_to_vec()
+                        .as_ref(),
+                    )
+                    .unwrap()
+                    .as_slice(),
+                )
+                .unwrap(),
+                crate::pb::Response {
+                    response: Some(crate::pb::response::Response::Success(
+                        crate::pb::Success { .. }
+                    )),
+                }
+            ));
+
+            // Restored seed is the same as the seed that was backed up.
+            assert_eq!(seed, bitbox02::keystore::copy_seed().unwrap());
+        }
+    }
 }

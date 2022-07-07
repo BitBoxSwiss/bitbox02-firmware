@@ -24,6 +24,16 @@ use hmac::{Hmac, Mac, NewMac};
 use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, Zeroizing};
 
+#[derive(Debug)]
+pub enum Error {
+    Generic,
+    Stale,
+    SdList,
+    SdRead,
+    SdWrite,
+    Check,
+}
+
 #[derive(Default)]
 pub struct BackupData(pub Box<pb_backup::BackupData>);
 
@@ -43,7 +53,6 @@ impl Zeroize for BackupData {
         self.0.generator.zeroize();
     }
 }
-
 /// Pad a seed with zeroes to the right up to 32 bytes.  That the seed field in backups is always 32
 /// bytes is a historical "accident" as it was easier to fix the size when using C (and nanopb
 /// protobuf), with the seed_length indicating the actual length.
@@ -60,11 +69,11 @@ pub fn id(seed: &[u8]) -> String {
 }
 
 fn compute_checksum(
-    content: &pb_backup::BackupContent,
+    metadata: &pb_backup::BackupMetaData,
     data: &pb_backup::BackupData,
+    data_length: u32,
 ) -> Result<Vec<u8>, ()> {
     let mut hasher = Sha256::new();
-    let metadata = content.metadata.as_ref().unwrap();
     hasher.update(metadata.timestamp.to_le_bytes());
     let mode: u8 = metadata.mode as _;
     hasher.update(mode.to_le_bytes());
@@ -94,7 +103,7 @@ fn compute_checksum(
         result
     };
     hasher.update(&padded_generator);
-    hasher.update(content.length.to_le_bytes());
+    hasher.update(data_length.to_le_bytes());
     Ok(hasher.finalize().to_vec())
 }
 
@@ -107,7 +116,11 @@ fn load_from_buffer(buf: &[u8]) -> Result<(Zeroizing<BackupData>, pb_backup::Bac
             let mut backup_data: Zeroizing<BackupData> = Default::default();
             backup_data.0.merge(content.data.as_slice()).or(Err(()))?;
 
-            let checksum = compute_checksum(&content, &backup_data.0)?;
+            let checksum = compute_checksum(
+                content.metadata.as_ref().unwrap(),
+                &backup_data.0,
+                content.length,
+            )?;
             if checksum != content.checksum {
                 Err(())
             } else {
@@ -167,9 +180,156 @@ pub fn load(dir: &str) -> Result<(Zeroizing<BackupData>, pb_backup::BackupMetaDa
     )?)
 }
 
+pub fn create(
+    seed: &[u8],
+    name: &str,
+    backup_create_timestamp: u32,
+    seed_birthdate_timestamp: u32,
+) -> Result<(), Error> {
+    let backup_data = zeroize::Zeroizing::new(BackupData(Box::new(pb_backup::BackupData {
+        seed_length: seed.len() as _,
+        seed: padded_seed(seed).to_vec(),
+        birthdate: seed_birthdate_timestamp,
+        generator: crate::version::FIRMWARE_VERSION_SHORT.into(),
+    })));
+    let length: u32 = {
+        // See the documentation in the backup.proto file - the length field is obsolete, but for
+        // backwards compatbility still set, as it is part of the checksum.
+        0
+    };
+    let metadata = pb_backup::BackupMetaData {
+        timestamp: backup_create_timestamp,
+        name: name.into(),
+        mode: pb_backup::BackupMode::Plaintext as _,
+    };
+
+    // We cap at 19/63 because the previous implementation in C/nanopb used null terminated strings
+    // with a buffer of 20/64 bytes when decoding the protobuf message. This allows the backup to be
+    // restored on older firmware.
+    if backup_data.0.generator.len() > 19 || metadata.name.len() > 63 {
+        return Err(Error::Generic);
+    }
+
+    let checksum = compute_checksum(&metadata, &backup_data.0, length).or(Err(Error::Generic))?;
+    let backup = pb_backup::Backup {
+        backup_version: Some(pb_backup::backup::BackupVersion::BackupV1(
+            pb_backup::BackupV1 {
+                content: Some(pb_backup::BackupContent {
+                    checksum,
+                    metadata: Some(metadata),
+                    length,
+                    data: backup_data.0.encode_to_vec(),
+                }),
+            },
+        )),
+    };
+    let backup_encoded = backup.encode_to_vec();
+    let dir = id(seed);
+    let files = bitbox02::sd::list_subdir(Some(&dir)).or(Err(Error::SdList))?;
+
+    for i in 0..3 {
+        let filename = format!(
+            "backup_{}_{}.bin",
+            bitbox02::strftime(backup_create_timestamp, "%a_%Y-%m-%dT%H-%M-%SZ"),
+            i,
+        );
+        // Timestamp must be different from an existing backup when recreating a backup, otherwise
+        // we might end up corrupting the existing backup.
+        if files.contains(&filename) {
+            return Err(Error::Generic);
+        }
+        bitbox02::sd::write_bin(&filename, &dir, &backup_encoded).or(Err(Error::SdWrite))?;
+        if bitbox02::sd::load_bin(&filename, &dir)
+            .or(Err(Error::SdRead))?
+            .as_slice()
+            != backup_encoded.as_slice()
+        {
+            return Err(Error::Check);
+        }
+    }
+    let mut stale = false;
+    for file in files {
+        if bitbox02::sd::erase_file_in_subdir(&file, &dir).is_err() {
+            stale = true
+        }
+    }
+    if stale {
+        return Err(Error::Stale);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use core::convert::TryInto;
+
+    use bitbox02::testing::mock_sd;
+
+    fn _test_create_load(seed: &[u8]) {
+        mock_sd();
+        let timestamp = 1601281809;
+        let birthdate = timestamp - 32400;
+        assert!(create(seed, "test name", timestamp, birthdate).is_ok());
+        let dir = id(seed);
+        assert_eq!(bitbox02::sd::list_subdir(None), Ok(vec![dir.clone()]));
+        assert_eq!(
+            bitbox02::sd::list_subdir(Some(&dir)),
+            Ok(vec![
+                "backup_Mon_2020-09-28T08-30-09Z_0.bin".into(),
+                "backup_Mon_2020-09-28T08-30-09Z_1.bin".into(),
+                "backup_Mon_2020-09-28T08-30-09Z_2.bin".into()
+            ])
+        );
+
+        // Recreating using same timestamp is not allowed and doesn't change the backups.
+        assert!(create(seed, "new name", timestamp, birthdate).is_err());
+        assert_eq!(
+            bitbox02::sd::list_subdir(Some(&dir)),
+            Ok(vec![
+                "backup_Mon_2020-09-28T08-30-09Z_0.bin".into(),
+                "backup_Mon_2020-09-28T08-30-09Z_1.bin".into(),
+                "backup_Mon_2020-09-28T08-30-09Z_2.bin".into()
+            ])
+        );
+
+        let contents: [zeroize::Zeroizing<Vec<u8>>; 3] = bitbox02::sd::list_subdir(Some(&dir))
+            .unwrap()
+            .iter()
+            .map(|file| bitbox02::sd::load_bin(file, &dir).unwrap())
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
+        assert!(
+            contents[0].as_slice() == contents[1].as_slice()
+                && contents[0].as_slice() == contents[2].as_slice()
+        );
+
+        // Recreating the backup removes the previous files.
+        assert!(create(seed, "new name", timestamp + 1, birthdate).is_ok());
+        assert_eq!(
+            bitbox02::sd::list_subdir(Some(&dir)),
+            Ok(vec![
+                "backup_Mon_2020-09-28T08-30-10Z_0.bin".into(),
+                "backup_Mon_2020-09-28T08-30-10Z_1.bin".into(),
+                "backup_Mon_2020-09-28T08-30-10Z_2.bin".into()
+            ])
+        );
+
+        let (backup_data, metadata) = load(&dir).unwrap();
+        assert_eq!(backup_data.get_seed(), seed);
+        assert_eq!(backup_data.0.birthdate, birthdate);
+        assert_eq!(metadata.name.as_str(), "new name");
+        assert_eq!(metadata.timestamp, timestamp + 1);
+    }
+
+    #[test]
+    fn test_create_load() {
+        // Test for seeds of different size.
+        _test_create_load(&b"\x52\x20\xa4\xe9\xce\xea\xc6\x80\x5d\xf2\x36\x09\xf6\xb4\x78\xbb\x28\xca\x69\xb5\x16\x95\xed\x7c\x03\xbf\x74\x3a\xa5\xde\xe3\x7e"[..]);
+        _test_create_load(&b"\x52\x20\xa4\xe9\xce\xea\xc6\x80\x5d\xf2\x36\x09"[..]);
+    }
 
     #[test]
     fn test_bitwise_recovery() {

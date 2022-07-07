@@ -19,8 +19,8 @@ use alloc::vec::Vec;
 
 use pb::response::Response;
 
+use crate::backup;
 use crate::workflow::{confirm, status, unlock};
-use bitbox02::backup;
 
 pub async fn check(
     &pb::CheckBackupRequest { silent }: &pb::CheckBackupRequest,
@@ -30,8 +30,8 @@ pub async fn check(
     }
 
     let seed = bitbox02::keystore::copy_seed()?;
-    let id = crate::backup::id(&seed);
-    let (backup_data, metadata) = crate::backup::load(&id)?;
+    let id = backup::id(&seed);
+    let (backup_data, metadata) = backup::load(&id)?;
     if seed.as_slice() != backup_data.get_seed() {
         if !silent {
             status::status("Backup missing\nor invalid", false).await;
@@ -102,21 +102,25 @@ pub async fn create(
         unlock::unlock_keystore("Unlock device", unlock::CanCancel::Yes).await?;
     }
 
+    let seed = bitbox02::keystore::copy_seed()?;
     let seed_birthdate = if !is_initialized {
         if bitbox02::memory::set_seed_birthdate(timestamp).is_err() {
             return Err(Error::Memory);
         }
         timestamp
-    } else if let Ok((data, _)) =
-        crate::backup::load(&crate::backup::id(&bitbox02::keystore::copy_seed()?))
-    {
+    } else if let Ok((data, _)) = backup::load(&backup::id(&seed)) {
         // If adding new backup after initialized, we do not know the seed birthdate.
         // If re-creating it, we use the already existing one.
         data.0.birthdate
     } else {
         0
     };
-    match backup::create(timestamp, seed_birthdate) {
+    match backup::create(
+        &seed,
+        &bitbox02::memory::get_device_name(),
+        timestamp,
+        seed_birthdate,
+    ) {
         Ok(()) => {
             // The backup was created, so reporting an error here
             // could have bad consequences like replacing the sd card,
@@ -129,8 +133,7 @@ pub async fn create(
             Ok(Response::Success(pb::Success {}))
         }
         Err(err) => {
-            let msg = format!("Backup not created\nPlease contact\nsupport ({:?})", err)
-                .replace("BACKUP_ERR_", "");
+            let msg = format!("Backup not created\nPlease contact\nsupport ({:?})", err);
             status::status(&msg, false).await;
             Err(Error::Generic)
         }
@@ -140,7 +143,7 @@ pub async fn create(
 pub fn list() -> Result<Response, Error> {
     let mut info: Vec<pb::BackupInfo> = Vec::new();
     for dir in bitbox02::sd::list_subdir(None)? {
-        let (_, metadata) = match crate::backup::load(&dir) {
+        let (_, metadata) = match backup::load(&dir) {
             Ok(d) => d,
             Err(_) => continue,
         };

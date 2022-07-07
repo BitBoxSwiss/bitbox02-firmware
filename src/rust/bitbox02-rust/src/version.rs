@@ -1,4 +1,4 @@
-// Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2022 Shift Cryptosecurity AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,27 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _BACKUP_RESTORE_H_
-#define _BACKUP_RESTORE_H_
-
-#include <backup.pb.h>
-#include <hww.pb.h>
-
-typedef enum {
-    RESTORE_OK,
-    RESTORE_TOO_MANY,
-    RESTORE_ERR_DECODE,
-    RESTORE_ERR_SD_LIST,
-    RESTORE_ERR_SD_READ,
-    RESTORE_ERR_SD_WRITE,
-    RESTORE_ERR_RECOVER,
-    RESTORE_ERR_CHECK,
-} restore_error_t;
-
-restore_error_t restore_from_buffer(
-    uint8_t* input,
-    uint32_t length,
-    Backup* backup,
-    BackupData* backup_data);
-
-#endif
+/// Firmware version, short format, e.g. "v9.12.0".
+// This is evaluated at compile time, if the env var is missing or not set, there will be a compiler error.
+pub static FIRMWARE_VERSION_SHORT: &str = {
+    let version = env!("FIRMWARE_VERSION_SHORT");
+    // Need explicit check as the env var could be set to an empty string accidentally (env!() only
+    // panics if it is not set at all).
+    if version.is_empty() {
+        panic!("FIRMWARE_VERSION_SHORT is not set");
+    }
+    version
+};

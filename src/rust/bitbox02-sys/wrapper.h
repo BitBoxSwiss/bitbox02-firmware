@@ -17,7 +17,6 @@
 #include <apps/btc/btc_sign.h>
 #include <apps/eth/eth_params.h>
 #include <apps/eth/eth_sighash.h>
-#include <backup/backup.h>
 #include <commander/commander_states.h>
 #include <keystore.h>
 #include <memory/bitbox02_smarteeprom.h>

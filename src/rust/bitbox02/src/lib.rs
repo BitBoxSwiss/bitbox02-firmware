@@ -34,7 +34,6 @@ pub mod testing;
 pub mod app_btc;
 #[cfg(feature = "app-ethereum")]
 pub mod app_eth;
-pub mod backup;
 pub mod commander;
 pub mod input;
 pub mod keystore;

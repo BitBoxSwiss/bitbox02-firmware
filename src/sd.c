@@ -321,22 +321,6 @@ bool sd_card_inserted(void)
 }
 
 /**
- * Deletes the directory in the given sub-directory if no files are in the directory.
- * Expects that the filesystem is already mounted.
- */
-static bool _delete_dir(const char* dir_name)
-{
-    char absolute_path[772] = {0};
-    if (!_get_absolute_path(NULL, dir_name, absolute_path, sizeof(absolute_path), false)) {
-        return false;
-    }
-    FRESULT res = f_unlink(absolute_path);
-    if (res != FR_OK) {
-        return false;
-    }
-    return true;
-}
-/**
  * Deletes the file in the given sub-directory.
  * Expects that the filesystem is already mounted.
  */
@@ -364,27 +348,17 @@ static bool _delete_file(const char* fn, const char* subdir)
     return true;
 }
 
-static bool _erase_in_subdir(const char* fn, const char* subdir, bool is_dir)
+bool sd_erase_file_in_subdir(const char* fn, const char* subdir)
 {
-    if ((!strlens(fn) && !is_dir) || (!strlens(subdir) && is_dir)) {
+    if (!strlens(fn)) {
         return false;
     }
     if (!_mount()) {
         return false;
     }
-    bool status = false;
-    if (is_dir) {
-        status = _delete_dir(subdir);
-    } else {
-        status = _delete_file(fn, subdir);
-    }
+    bool status = _delete_file(fn, subdir);
     _unmount();
     return status;
-}
-
-bool sd_erase_file_in_subdir(const char* fn, const char* subdir)
-{
-    return _erase_in_subdir(fn, subdir, false);
 }
 
 #ifdef TESTING

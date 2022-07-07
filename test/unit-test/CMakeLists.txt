@@ -241,8 +241,6 @@ set(TEST_LIST
    "-Wl,--wrap=memory_multisig_get_by_hash,--wrap=apps_btc_confirm_multisig_basic"
    app_btc_common
    ""
-   sd
-   ""
    ui_components
    ""
    ui_util

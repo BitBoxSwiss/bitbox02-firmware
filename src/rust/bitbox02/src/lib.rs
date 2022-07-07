@@ -157,17 +157,6 @@ pub fn reset(status: bool) {
 }
 
 #[cfg(not(feature = "testing"))]
-pub fn sdcard_inserted() -> bool {
-    unsafe { bitbox02_sys::sd_card_inserted() }
-}
-
-#[cfg(feature = "testing")]
-pub fn sdcard_inserted() -> bool {
-    let data = crate::testing::DATA.0.borrow();
-    data.sdcard_inserted.unwrap()
-}
-
-#[cfg(not(feature = "testing"))]
 pub fn format_datetime(timestamp: u32, timezone_offset: i32, date_only: bool) -> String {
     let mut out = [0u8; 100];
     unsafe {

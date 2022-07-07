@@ -17,6 +17,18 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::util::str_to_cstr_vec;
+use bitbox02_sys::SD_MAX_FILE_SIZE;
+
+#[cfg(not(feature = "testing"))]
+pub fn sdcard_inserted() -> bool {
+    unsafe { bitbox02_sys::sd_card_inserted() }
+}
+
+#[cfg(feature = "testing")]
+pub fn sdcard_inserted() -> bool {
+    let data = crate::testing::DATA.0.borrow();
+    data.sdcard_inserted.unwrap()
+}
 
 struct SdList(bitbox02_sys::sd_list_t);
 
@@ -48,5 +60,78 @@ pub fn list_subdir(subdir: Option<&str>) -> Result<Vec<String>, ()> {
             })
             .collect(),
         false => Err(()),
+    }
+}
+
+pub fn erase_file_in_subdir(filename: &str, dir: &str) -> Result<(), ()> {
+    match unsafe {
+        bitbox02_sys::sd_erase_file_in_subdir(
+            str_to_cstr_vec(filename).unwrap().as_ptr(),
+            str_to_cstr_vec(dir).unwrap().as_ptr(),
+        )
+    } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
+
+pub fn load_bin(filename: &str, dir: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let mut contents = zeroize::Zeroizing::new([0u8; SD_MAX_FILE_SIZE as _]);
+    let mut contents_len: bitbox02_sys::size_t = 0;
+    match unsafe {
+        bitbox02_sys::sd_load_bin(
+            str_to_cstr_vec(filename).unwrap().as_ptr(),
+            str_to_cstr_vec(dir).unwrap().as_ptr(),
+            contents.as_mut_ptr(),
+            &mut contents_len,
+        )
+    } {
+        true => Ok(zeroize::Zeroizing::new(
+            contents[..contents_len as usize].to_vec(),
+        )),
+        false => Err(()),
+    }
+}
+
+pub fn write_bin(filename: &str, dir: &str, data: &[u8]) -> Result<(), ()> {
+    match unsafe {
+        bitbox02_sys::sd_write_bin(
+            str_to_cstr_vec(filename).unwrap().as_ptr(),
+            str_to_cstr_vec(dir).unwrap().as_ptr(),
+            data.as_ptr(),
+            data.len() as _,
+            true,
+        )
+    } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::testing::mock_sd;
+
+    #[test]
+    fn test_list_write_read_erase() {
+        mock_sd();
+
+        assert_eq!(list_subdir(None), Ok(vec![]));
+        assert_eq!(list_subdir(Some("dir1")), Ok(vec![]));
+
+        assert!(load_bin("file1.txt", "dir1").is_err());
+        assert!(write_bin("file1.txt", "dir1", b"data").is_ok());
+        assert_eq!(list_subdir(None), Ok(vec!["dir1".into()]));
+        assert_eq!(list_subdir(Some("dir1")), Ok(vec!["file1.txt".into()]));
+        assert_eq!(load_bin("file1.txt", "dir1").unwrap().as_slice(), b"data");
+        assert!(write_bin("file1.txt", "dir1", b"replaced data").is_ok());
+        assert_eq!(
+            load_bin("file1.txt", "dir1").unwrap().as_slice(),
+            b"replaced data"
+        );
+        assert!(erase_file_in_subdir("doesnt-exist.txt", "dir1").is_err());
+        assert!(erase_file_in_subdir("file1.txt", "dir1").is_ok());
+        assert_eq!(list_subdir(Some("dir1")), Ok(vec![]));
     }
 }

@@ -413,6 +413,10 @@ add_custom_target(rust-bindgen
     --whitelist-function sd_card_inserted
     --whitelist-function sd_format
     --whitelist-function sd_list_subdir
+    --whitelist-function sd_erase_file_in_subdir
+    --whitelist-function sd_load_bin
+    --whitelist-function sd_write_bin
+    --whitelist-var SD_MAX_FILE_SIZE
     --whitelist-function sd_free_list
     --whitelist-var BIP39_WORDLIST_LEN
     --whitelist-function app_eth_params_get

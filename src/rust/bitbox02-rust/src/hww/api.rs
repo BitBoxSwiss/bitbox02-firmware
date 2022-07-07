@@ -135,7 +135,7 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
         Request::InsertRemoveSdcard(ref request) => Some(sdcard::process(request).await),
         Request::ListBackups(_) => Some(backup::list()),
         Request::CheckSdcard(_) => Some(Ok(Response::CheckSdcard(pb::CheckSdCardResponse {
-            inserted: bitbox02::sdcard_inserted(),
+            inserted: bitbox02::sd::sdcard_inserted(),
         }))),
         Request::CheckBackup(ref request) => Some(backup::check(request).await),
         Request::CreateBackup(ref request) => Some(backup::create(request).await),

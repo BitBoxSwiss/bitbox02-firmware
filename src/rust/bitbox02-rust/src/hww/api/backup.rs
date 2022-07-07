@@ -25,7 +25,7 @@ use bitbox02::backup;
 pub async fn check(
     &pb::CheckBackupRequest { silent }: &pb::CheckBackupRequest,
 ) -> Result<Response, Error> {
-    if !bitbox02::sdcard_inserted() {
+    if !bitbox02::sd::sdcard_inserted() {
         return Err(Error::InvalidInput);
     }
     match backup::check() {

@@ -149,6 +149,21 @@ pub fn reset(status: bool) {
     unsafe { bitbox02_sys::reset_reset(status) }
 }
 
+pub fn strftime(timestamp: u32, format: &str) -> String {
+    let mut out = [0u8; 100];
+    unsafe {
+        bitbox02_sys::strftime(
+            out.as_mut_ptr(),
+            out.len() as _,
+            crate::util::str_to_cstr_vec(format).unwrap().as_ptr(),
+            bitbox02_sys::localtime(&(timestamp as bitbox02_sys::time_t)),
+        );
+    }
+    crate::util::str_from_null_terminated(&out[..])
+        .unwrap()
+        .into()
+}
+
 #[cfg(not(feature = "testing"))]
 pub fn format_datetime(timestamp: u32, timezone_offset: i32, date_only: bool) -> String {
     let mut out = [0u8; 100];
@@ -199,4 +214,17 @@ pub fn reboot() -> ! {
 #[cfg(feature = "testing")]
 pub fn reboot() -> ! {
     panic!("reboot called")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_strftime() {
+        assert_eq!(
+            strftime(1601281809, "%a %Y-%m-%d\n%H:%M").as_str(),
+            "Mon 2020-09-28\n08:30",
+        );
+    }
 }

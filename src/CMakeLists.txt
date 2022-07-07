@@ -297,6 +297,8 @@ add_custom_target(rust-bindgen
     --use-core
     --with-derive-default
     --ctypes-prefix util::c_types
+    --whitelist-function strftime
+    --whitelist-function localtime
     --rustified-enum backup_error_t
     --whitelist-function wally_free_string
     --whitelist-function backup_create

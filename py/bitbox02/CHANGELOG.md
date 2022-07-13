@@ -2,6 +2,8 @@
 
 ## 6.1.0
 - Add `eth_sign_typed_msg()`
+- Update protobuf dependency to >= 3.21
+- Regenerate protobuf files with protoc v3.21.2
 
 ## 6.0.0
 - Offset the recoverable ID by 27 in the signature returned by `eth_sign_msg()`.

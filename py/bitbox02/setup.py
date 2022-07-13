@@ -75,7 +75,7 @@ setup(
     install_requires=[
         "hidapi>=0.7.99.post21",
         "noiseprotocol>=0.3",
-        "protobuf>=3.7",
+        "protobuf>=3.21",
         "ecdsa>=0.14",
         "semver>=2.8.1",
         # Needed as long as we support python < 3.7

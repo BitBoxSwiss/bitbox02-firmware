@@ -29,6 +29,13 @@ pub fn mcu_32_bytes(out: &mut [u8; 32]) {
     }
 }
 
+#[cfg(feature = "testing")]
+pub fn mock_reset() {
+    unsafe {
+        bitbox02_sys::random_mock_reset();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

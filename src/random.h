@@ -30,4 +30,10 @@ void random_32_bytes(uint8_t* buf);
  */
 uint8_t random_byte_mcu(void);
 
+#ifdef TESTING
+// In testing, `rand()` is used for mocking. This function resets the seed using `srand(0)`, which
+// allows individual unit tests to be independent of others.
+void random_mock_reset(void);
+#endif
+
 #endif

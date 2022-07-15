@@ -108,3 +108,10 @@ void random_32_bytes(uint8_t* buf)
         Abort("Abort: wally_sha256");
     }
 }
+
+#ifdef TESTING
+void random_mock_reset(void)
+{
+    srand(0);
+}
+#endif

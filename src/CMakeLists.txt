@@ -387,6 +387,7 @@ add_custom_target(rust-bindgen
     --whitelist-function wally_sha256
     --whitelist-var BASE58_CHECKSUM_LEN
     --whitelist-function random_32_bytes_mcu
+    --whitelist-function random_mock_reset
     --whitelist-type component_t
     --whitelist-type confirm_params_t
     --whitelist-type commander_error_t

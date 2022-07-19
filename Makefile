@@ -99,19 +99,7 @@ coverage: | build-build
 #./build/bin/test_ui_component_gestures;
 run-valgrind-on-unit-tests:
 	$(MAKE) unit-test
-# TODO: wrap all unit tests in one script
-	bash -c 'set -e; \
-		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_hww; \
-		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_gestures; \
-		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_random; \
-		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_app_btc; \
-		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_sd; \
-		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_ui_util; \
-		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_ui_components; \
-		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_cleanup; \
-		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_keystore; \
-		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_backup;'
-#		valgrind --leak-check=yes --track-origins=yes ./build/bin/test_ui_component_gestures;'
+	bash -c 'find build-build/bin/ -name "test_*" -exec valgrind --leak-check=yes --track-origins=yes {} \;'
 flash-dev-firmware:
 	./py/load_firmware.py build/bin/firmware.bin --debug
 jlink-flash-bootloader-development: | build

@@ -17,7 +17,7 @@
 FROM ubuntu:18.04
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y wget nano rsync curl gnupg2 jq
+RUN apt-get update && apt-get upgrade -y && apt-get install -y wget nano rsync curl gnupg2 jq unzip
 
 # for clang-*-8, see https://apt.llvm.org/
 RUN echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main" >> /etc/apt/sources.list && \
@@ -96,8 +96,12 @@ RUN python3 -m pip install --upgrade \
     wheel==0.33.6 \
     twine==1.15.0
 
-# For protoc
-RUN apt-get update && apt-get install -y protobuf-compiler
+#Install protoc from release, because the version available on the repo is too old
+RUN mkdir -p /opt/protoc && \
+    curl -L0 https://github.com/protocolbuffers/protobuf/releases/download/v21.2/protoc-21.2-linux-x86_64.zip -o /tmp/protoc-21.2-linux-x86_64.zip && \
+    unzip /tmp/protoc-21.2-linux-x86_64.zip -d /opt/protoc
+ENV PATH /opt/protoc/bin:$PATH
+
 # Make Python3 the default, so tools/nanopb/generator/*.py run with Python3.
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 

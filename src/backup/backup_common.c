@@ -61,16 +61,18 @@ void backup_cleanup_backup_data(BackupData* backup_data)
 
 void backup_calculate_checksum(BackupContent* content, BackupData* backup_data, uint8_t* hash)
 {
+    uint8_t mode = content->metadata.mode;
+
     // size = all fields in backup data, all fields in backup meta data and the length
-    const uint16_t size = sizeof(uint32_t) + sizeof(BackupMode) + sizeof(content->metadata.name) +
+    const uint16_t size = sizeof(uint32_t) + sizeof(mode) + sizeof(content->metadata.name) +
                           sizeof(uint32_t) + sizeof(backup_data->seed) + sizeof(uint32_t) +
                           sizeof(backup_data->generator) + sizeof(uint32_t);
     uint16_t start = 0;
     uint8_t bytes[size];
     memcpy(bytes + start, &content->metadata.timestamp, sizeof(uint32_t));
     start += sizeof(uint32_t);
-    memcpy(bytes + start, &content->metadata.mode, sizeof(BackupMode));
-    start += sizeof(BackupMode);
+    memcpy(bytes + start, &mode, sizeof(mode));
+    start += sizeof(mode);
     memcpy(bytes + start, &content->metadata.name, sizeof(content->metadata.name));
     start += sizeof(content->metadata.name);
     memcpy(bytes + start, &backup_data->seed_length, sizeof(uint32_t));

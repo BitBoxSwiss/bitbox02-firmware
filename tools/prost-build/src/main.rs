@@ -27,6 +27,6 @@ fn main() {
     let mut config = prost_build::Config::new();
     config.out_dir(opts.out_dir);
     config
-        .compile_protos(&["hww.proto"], &[&opts.messages_dir])
+        .compile_protos(&["hww.proto", "backup.proto"], &[&opts.messages_dir])
         .unwrap();
 }

@@ -28,6 +28,7 @@ mod pb_backup {
 pub mod general;
 pub mod async_usb;
 pub mod attestation;
+pub mod backup;
 pub mod bb02_async;
 #[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
 mod bip32;

@@ -35,14 +35,4 @@ restore_error_t restore_from_buffer(
     Backup* backup,
     BackupData* backup_data);
 
-/**
- * Restore a backup from directory.
- * @param[in] dir The directory from which we want to restore the backup.
- * @param[out] backup_data The restored backup_data.
- * @return RESTORE_OK if the error correction was successful, RESTORE_ERR_DECODE if we couldn't
- * decode, RESTORE_ERR_CHECK if the integrity check failed, and RESTORE_ERR_RECOVER if we couldn't
- * recover for other reasons.
- */
-restore_error_t restore_from_directory(const char* dir, Backup* backup, BackupData* backup_data);
-
 #endif

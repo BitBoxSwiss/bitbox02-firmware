@@ -18,7 +18,6 @@
 #include <apps/eth/eth_params.h>
 #include <apps/eth/eth_sighash.h>
 #include <backup/backup.h>
-#include <backup/restore.h>
 #include <commander/commander_states.h>
 #include <keystore.h>
 #include <memory/bitbox02_smarteeprom.h>

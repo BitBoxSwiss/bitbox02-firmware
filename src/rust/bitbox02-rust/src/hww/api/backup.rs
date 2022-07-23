@@ -28,43 +28,38 @@ pub async fn check(
     if !bitbox02::sd::sdcard_inserted() {
         return Err(Error::InvalidInput);
     }
-    match backup::check() {
-        Ok(backup::CheckData { id, name, .. }) => {
-            if !silent {
-                let params = confirm::Params {
-                    title: "Name?",
-                    body: &name,
-                    scrollable: true,
-                    ..Default::default()
-                };
 
-                confirm::confirm(&params).await?;
-
-                let params = confirm::Params {
-                    title: "ID?",
-                    body: &id,
-                    scrollable: true,
-                    ..Default::default()
-                };
-
-                confirm::confirm(&params).await?;
-
-                status::status("Backup valid", true).await;
-            }
-            Ok(Response::CheckBackup(pb::CheckBackupResponse { id }))
+    let seed = bitbox02::keystore::copy_seed()?;
+    let id = crate::backup::id(&seed);
+    let (backup_data, metadata) = crate::backup::load(&id)?;
+    if seed.as_slice() != backup_data.get_seed() {
+        if !silent {
+            status::status("Backup missing\nor invalid", false).await;
         }
-        Err(backup::Error::BACKUP_ERR_CHECK) => {
-            if !silent {
-                status::status("Backup missing\nor invalid", false).await;
-            }
-            Err(Error::Generic)
-        }
-        Err(err) => {
-            let msg = format!("Could not check\nbackup\n{:?}", err).replace("BACKUP_ERR_", "");
-            status::status(&msg, false).await;
-            Err(Error::Generic)
-        }
+        return Err(Error::Generic);
     }
+    if !silent {
+        let params = confirm::Params {
+            title: "Name?",
+            body: &metadata.name,
+            scrollable: true,
+            ..Default::default()
+        };
+
+        confirm::confirm(&params).await?;
+
+        let params = confirm::Params {
+            title: "ID?",
+            body: &id,
+            scrollable: true,
+            ..Default::default()
+        };
+
+        confirm::confirm(&params).await?;
+
+        status::status("Backup valid", true).await;
+    }
+    Ok(Response::CheckBackup(pb::CheckBackupResponse { id }))
 }
 
 /// Creates a backup on the microsD card.
@@ -112,10 +107,12 @@ pub async fn create(
             return Err(Error::Memory);
         }
         timestamp
-    } else if let Ok(backup::CheckData { birthdate, .. }) = backup::check() {
+    } else if let Ok((data, _)) =
+        crate::backup::load(&crate::backup::id(&bitbox02::keystore::copy_seed()?))
+    {
         // If adding new backup after initialized, we do not know the seed birthdate.
         // If re-creating it, we use the already existing one.
-        birthdate
+        data.0.birthdate
     } else {
         0
     };
@@ -143,14 +140,14 @@ pub async fn create(
 pub fn list() -> Result<Response, Error> {
     let mut info: Vec<pb::BackupInfo> = Vec::new();
     for dir in bitbox02::sd::list_subdir(None)? {
-        let data = match bitbox02::backup::restore_from_directory(&dir) {
-            Ok(data) => data,
+        let (_, metadata) = match crate::backup::load(&dir) {
+            Ok(d) => d,
             Err(_) => continue,
         };
         info.push(pb::BackupInfo {
             id: dir,
-            timestamp: data.timestamp,
-            name: data.name,
+            timestamp: metadata.timestamp,
+            name: metadata.name,
         })
     }
     Ok(Response::ListBackups(pb::ListBackupsResponse { info }))
@@ -191,6 +188,13 @@ mod tests {
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(EXPECTED_TIMESTMAP, bitbox02::memory::get_seed_birthdate());
+
+        assert_eq!(
+            block_on(check(&pb::CheckBackupRequest { silent: true })),
+            Ok(Response::CheckBackup(pb::CheckBackupResponse {
+                id: "41233dfbad010723dbbb93514b7b81016b73f8aa35c5148e1b478f60d5750dce".into()
+            }))
+        );
     }
 
     /// Use backup file fixtures generated using firmware v9.12.0 and perform tests on it. This

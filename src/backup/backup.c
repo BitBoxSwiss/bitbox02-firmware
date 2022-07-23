@@ -167,39 +167,3 @@ backup_error_t backup_create(uint32_t backup_create_timestamp, uint32_t seed_bir
     }
     return BACKUP_OK;
 }
-
-backup_error_t backup_check(char* id_out, char* name_out, uint32_t* birthdate_out)
-{
-    Backup __attribute__((__cleanup__(backup_cleanup_backup))) backup;
-    BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data;
-    encode_data_t encode_data;
-    backup_error_t backup_res = backup_fill("", 0, 0, &backup, &backup_data, &encode_data);
-    if (backup_res != BACKUP_OK) {
-        return backup_res;
-    }
-    char* dir_name = id_out;
-    _get_directory_name(backup_data.seed, dir_name);
-
-    Backup __attribute__((__cleanup__(backup_cleanup_backup))) backup_copy;
-    BackupData __attribute__((__cleanup__(backup_cleanup_backup_data))) backup_data_copy;
-    restore_error_t restore_res = restore_from_directory(dir_name, &backup_copy, &backup_data_copy);
-    if (restore_res != RESTORE_OK) {
-        return BACKUP_ERR_CHECK;
-    }
-
-    if (!MEMEQ(backup_data.seed, backup_data_copy.seed, 32) ||
-        backup_data.seed_length != backup_data_copy.seed_length) {
-        return BACKUP_ERR_CHECK;
-    }
-    if (name_out != NULL) {
-        snprintf(
-            name_out,
-            MEMORY_DEVICE_NAME_MAX_LEN,
-            "%s",
-            backup_copy.backup_v1.content.metadata.name);
-    }
-    if (birthdate_out != NULL) {
-        *birthdate_out = backup_data_copy.birthdate;
-    }
-    return BACKUP_OK;
-}

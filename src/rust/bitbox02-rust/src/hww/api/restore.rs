@@ -28,8 +28,8 @@ pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, E
     })
     .await?;
 
-    let data = match bitbox02::backup::restore_from_directory(&request.id) {
-        Ok(data) => data,
+    let (data, metadata) = match crate::backup::load(&request.id) {
+        Ok(d) => d,
         Err(_) => {
             status::status("Could not\nrestore backup", false).await;
             return Err(Error::Generic);
@@ -37,7 +37,7 @@ pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, E
     };
 
     confirm::confirm(&confirm::Params {
-        body: &format!("Name: {}. ID: {}", &data.name, &request.id),
+        body: &format!("Name: {}. ID: {}", &metadata.name, &request.id),
         scrollable: true,
         accept_is_nextarrow: true,
         ..Default::default()
@@ -58,13 +58,13 @@ pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, E
     }
 
     let password = password::enter_twice().await?;
-    if bitbox02::keystore::encrypt_and_store_seed(&data.seed, &password).is_err() {
+    if bitbox02::keystore::encrypt_and_store_seed(data.get_seed(), &password).is_err() {
         status::status("Could not\nrestore backup", false).await;
         return Err(Error::Generic);
     }
 
     // Ignore error here. Missing birthdate should not abort an otherwise successful restore.
-    let _ = bitbox02::memory::set_seed_birthdate(data.birthdate);
+    let _ = bitbox02::memory::set_seed_birthdate(data.0.birthdate);
 
     #[cfg(feature = "app-u2f")]
     {
@@ -77,7 +77,7 @@ pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, E
     bitbox02::keystore::unlock(&password).expect("restore_from_file: unlock failed");
 
     // Ignore non-critical error.
-    let _ = bitbox02::memory::set_device_name(&data.name);
+    let _ = bitbox02::memory::set_device_name(&metadata.name);
 
     unlock::unlock_bip39().await;
     Ok(Response::Success(pb::Success {}))

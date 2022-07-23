@@ -20,6 +20,9 @@
 mod pb {
     include!("./shiftcrypto.bitbox02.rs");
 }
+mod pb_backup {
+    include!("./shiftcrypto.bitbox02.backups.rs");
+}
 
 #[macro_use]
 pub mod general;

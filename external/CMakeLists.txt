@@ -238,6 +238,5 @@ target_compile_options(fatfs PRIVATE -Wno-switch-default)
 
 add_library(ctaes
   ctaes/ctaes.c
-  ctaes/ctaes-cbc.c
 )
 target_include_directories(ctaes SYSTEM PUBLIC ctaes)

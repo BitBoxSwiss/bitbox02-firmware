@@ -78,22 +78,6 @@ commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* r
     }
 }
 
-static commander_error_t _api_is_script_config_registered(
-    const BTCIsScriptConfigRegisteredRequest* request,
-    BTCIsScriptConfigRegisteredResponse* response)
-{
-    const BTCScriptConfigRegistration* reg = &request->registration;
-    if (!app_btc_is_script_config_registered(
-            reg->coin,
-            &reg->script_config,
-            reg->keypath,
-            reg->keypath_count,
-            &response->is_registered)) {
-        return COMMANDER_ERR_GENERIC;
-    }
-    return COMMANDER_OK;
-}
-
 static commander_error_t _api_register_script_config(const BTCRegisterScriptConfigRequest* request)
 {
     app_btc_result_t result = app_btc_register_script_config(
@@ -109,11 +93,6 @@ static commander_error_t _api_register_script_config(const BTCRegisterScriptConf
 commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response)
 {
     switch (request->which_request) {
-    case BTCRequest_is_script_config_registered_tag:
-        response->which_response = BTCResponse_is_script_config_registered_tag;
-        return _api_is_script_config_registered(
-            &(request->request.is_script_config_registered),
-            &response->response.is_script_config_registered);
     case BTCRequest_register_script_config_tag:
         response->which_response = BTCResponse_success_tag;
         return _api_register_script_config(&(request->request.register_script_config));

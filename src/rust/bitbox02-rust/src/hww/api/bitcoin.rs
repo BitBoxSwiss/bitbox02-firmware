@@ -19,6 +19,7 @@ mod bip143;
 mod bip341;
 pub mod common;
 pub mod keypath;
+mod multisig;
 pub mod params;
 mod script;
 pub mod signmsg;
@@ -210,6 +211,9 @@ pub async fn process_pub(request: &pb::BtcPubRequest) -> Option<Result<Response,
 /// the C commander.
 pub async fn process_api(request: &Request) -> Option<Result<pb::btc_response::Response, Error>> {
     match request {
+        Request::IsScriptConfigRegistered(ref request) => {
+            Some(multisig::process_is_script_config_registered(request))
+        }
         Request::SignMessage(ref request) => Some(signmsg::process(request).await),
         // These are streamed asynchronously using the `next_request()` primitive in
         // bitcoin/signtx.rs and are not handled directly.

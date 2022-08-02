@@ -19,6 +19,9 @@ use alloc::string::String;
 // deduct one for the null terminator.
 pub const DEVICE_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_DEVICE_NAME_MAX_LEN as usize - 1;
 
+// deduct one for the null terminator.
+pub const MULTISIG_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_MULTISIG_NAME_MAX_LEN as usize - 1;
+
 #[derive(Debug)]
 pub struct Error;
 
@@ -136,5 +139,17 @@ pub fn multisig_set_by_hash(hash: &[u8], name: &str) -> Result<(), bitbox02_sys:
     } {
         bitbox02_sys::memory_result_t::MEMORY_OK => Ok(()),
         err => Err(err),
+    }
+}
+
+pub fn multisig_get_by_hash(hash: &[u8]) -> Option<String> {
+    let mut name = [0u8; MULTISIG_NAME_MAX_LEN + 1];
+    match unsafe { bitbox02_sys::memory_multisig_get_by_hash(hash.as_ptr(), name.as_mut_ptr()) } {
+        true => Some(
+            crate::util::str_from_null_terminated(&name[..])
+                .unwrap()
+                .into(),
+        ),
+        false => None,
     }
 }

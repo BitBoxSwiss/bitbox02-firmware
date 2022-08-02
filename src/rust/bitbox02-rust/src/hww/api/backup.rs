@@ -83,6 +83,13 @@ pub async fn create(
         return Err(Error::InvalidInput);
     }
 
+    confirm::confirm(&confirm::Params {
+        title: "Is today?",
+        body: &bitbox02::format_datetime(timestamp, timezone_offset, true),
+        ..Default::default()
+    })
+    .await?;
+
     // Wait for sd card
     super::sdcard::process(&pb::InsertRemoveSdCardRequest {
         action: pb::insert_remove_sd_card_request::SdCardAction::InsertCard as _,
@@ -96,13 +103,6 @@ pub async fn create(
     }
 
     let seed_birthdate = if !is_initialized {
-        let date_string = bitbox02::format_datetime(timestamp, timezone_offset, true);
-        let params = confirm::Params {
-            title: "Is today?",
-            body: &date_string,
-            ..Default::default()
-        };
-        confirm::confirm(&params).await?;
         if bitbox02::memory::set_seed_birthdate(timestamp).is_err() {
             return Err(Error::Memory);
         }

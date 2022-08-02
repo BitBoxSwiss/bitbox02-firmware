@@ -197,8 +197,29 @@ mod tests {
     /// should catch regressions when changing backup loading/verification in the firmware code.
     #[test]
     fn test_fixture() {
+        static mut UI_COUNTER: u32 = 0;
+        static EXPECTED_ID: &str =
+            "577782fdfffbe314b23acaeefc39ad5e8641fba7e7dbe418a35956a879a67dd2";
         mock(Data {
             sdcard_inserted: Some(true),
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(params.title, "Name?");
+                        assert_eq!(params.body, "My BitBox");
+                        true
+                    }
+                    2 => {
+                        assert_eq!(params.title, "ID?");
+                        assert_eq!(params.body, EXPECTED_ID);
+                        true
+                    }
+                    _ => panic!("unexpected UI dialog"),
+                }
+            })),
             ..Default::default()
         });
         mock_sd();
@@ -209,23 +230,23 @@ mod tests {
 
         // Create the three files using the a fixture in the directory with the backup ID of the
         // above seed.
-        let expected_id = "577782fdfffbe314b23acaeefc39ad5e8641fba7e7dbe418a35956a879a67dd2";
         let backup_fixture_v9_12_0: Vec<u8> = hex::decode("0a6c0a6a0a2017834e53e17370800c0bc49b49ef3f1309df104d7239db5bbd093c90eefc995112110891bec6fb0512094d7920426974426f782233081012208af64d31126a39b98f59708a3a463e5b000000000000000000000000000000001891bec6fb05220776392e31332e30").unwrap();
         for i in 0..3 {
             bitbox02::sd::write_bin(
                 &format!("backup_Mon_2020-09-28T08-30-09Z_{}.bin", i),
-                expected_id,
+                EXPECTED_ID,
                 &backup_fixture_v9_12_0,
             )
             .unwrap();
         }
         // Check that the loaded seed matches the backup.
         assert_eq!(
-            block_on(check(&pb::CheckBackupRequest { silent: true })),
+            block_on(check(&pb::CheckBackupRequest { silent: false })),
             Ok(Response::CheckBackup(pb::CheckBackupResponse {
-                id: expected_id.into()
+                id: EXPECTED_ID.into()
             }))
         );
+        assert_eq!(unsafe { UI_COUNTER }, 2);
     }
 
     #[test]

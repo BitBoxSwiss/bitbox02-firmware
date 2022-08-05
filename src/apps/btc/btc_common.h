@@ -92,11 +92,6 @@ USE_RESULT bool btc_common_sighash_script_from_pubkeyhash(
     size_t* script_size);
 
 /**
- * For an input type (e.g. a script wrapped in p2sh), determine the output type.
- */
-USE_RESULT BTCOutputType btc_common_determine_output_type(BTCScriptConfig_SimpleType script_type);
-
-/**
  * For a multisig input type, determine the output type.
  */
 USE_RESULT BTCOutputType

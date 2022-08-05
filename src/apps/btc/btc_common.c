@@ -117,20 +117,6 @@ bool btc_common_sighash_script_from_pubkeyhash(
     }
 }
 
-BTCOutputType btc_common_determine_output_type(BTCScriptConfig_SimpleType script_type)
-{
-    switch (script_type) {
-    case BTCScriptConfig_SimpleType_P2WPKH_P2SH:
-        return BTCOutputType_P2SH;
-    case BTCScriptConfig_SimpleType_P2WPKH:
-        return BTCOutputType_P2WPKH;
-    case BTCScriptConfig_SimpleType_P2TR:
-        return BTCOutputType_P2TR;
-    default:
-        return BTCOutputType_UNKNOWN;
-    }
-}
-
 BTCOutputType btc_common_determine_output_type_multisig(const BTCScriptConfig_Multisig* multisig)
 {
     switch (multisig->script_type) {

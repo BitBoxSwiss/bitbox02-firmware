@@ -220,13 +220,16 @@ static void _test_btc_common_pkscript_from_multisig(void** state)
          test_case_index < sizeof(tests) / sizeof(test_case_redeemscript_multisig_p2wsh);
          test_case_index++) {
         const test_case_redeemscript_multisig_p2wsh* test_case = &tests[test_case_index];
-        BTCScriptConfig_Multisig multisig = {
+        multisig_t multisig = {
             .threshold = test_case->threshold,
             .xpubs_count = test_case->xpubs_count,
         };
         for (size_t xpub_idx = 0; xpub_idx < test_case->xpubs_count; xpub_idx++) {
-            multisig.xpubs[xpub_idx] = btc_util_parse_xpub(test_case->xpubs[xpub_idx]);
+            assert_int_equal(
+                bip32_key_from_base58(test_case->xpubs[xpub_idx], &multisig.xpubs[xpub_idx]),
+                WALLY_OK);
         }
+
         uint8_t script[520];
         size_t script_size = sizeof(script);
         assert_true(btc_common_pkscript_from_multisig(
@@ -245,20 +248,26 @@ static void _test_btc_common_pkscript_from_multisig(void** state)
 
 static void _test_btc_common_pkscript_from_multisig_unhappy(void** state)
 {
-    BTCScriptConfig_Multisig multisig = {
+    multisig_t multisig = {
         .threshold = 1,
         .xpubs_count = 2,
     };
-    multisig.xpubs[0] = btc_util_parse_xpub(
-        "xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYU"
-        "CugjeksHSbyZT7rq38VQF");
-    multisig.xpubs[1] = btc_util_parse_xpub(
-        "xpub6ERxBysTYfQyY4USv6c6J1HNVv9hpZFN9LHVPu47Ac4rK8fLy6NnAeeAHyEsMvG4G66ay5aFZii2VM7wT3KxLK"
-        "X8Q8keZPd67kRGmrD1WJj");
+    assert_int_equal(
+        bip32_key_from_base58(
+            "xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPd"
+            "tnYUCugjeksHSbyZT7rq38VQF",
+            &multisig.xpubs[0]),
+        WALLY_OK);
+    assert_int_equal(
+        bip32_key_from_base58(
+            "xpub6ERxBysTYfQyY4USv6c6J1HNVv9hpZFN9LHVPu47Ac4rK8fLy6NnAeeAHyEsMvG4G66ay5aFZii2VM7wT3"
+            "KxLKX8Q8keZPd67kRGmrD1WJj",
+            &multisig.xpubs[1]),
+        WALLY_OK);
     uint8_t script[520];
     size_t script_size;
 
-    BTCScriptConfig_Multisig invalid = multisig;
+    multisig_t invalid = multisig;
     invalid.xpubs_count = 0;
     script_size = sizeof(script);
     assert_false(btc_common_pkscript_from_multisig(&invalid, 1, 2, script, &script_size));

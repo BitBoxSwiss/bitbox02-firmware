@@ -65,8 +65,19 @@ app_btc_result_t app_btc_address_multisig(
 
     uint8_t payload[SHA256_LEN] = {0};
     size_t written = 0;
+
+    multisig_t ms = {0};
+    if (!btc_common_convert_multisig(multisig, &ms)) {
+        return APP_BTC_ERR_INVALID_INPUT;
+    }
+
     if (!btc_common_payload_from_multisig(
-            multisig, keypath[keypath_len - 2], keypath[keypath_len - 1], payload, &written)) {
+            &ms,
+            multisig->script_type,
+            keypath[keypath_len - 2],
+            keypath[keypath_len - 1],
+            payload,
+            &written)) {
         return APP_BTC_ERR_UNKNOWN;
     }
 

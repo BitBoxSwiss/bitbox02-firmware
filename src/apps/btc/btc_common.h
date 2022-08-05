@@ -30,11 +30,23 @@
 #include <wally_crypto.h>
 #include <wally_script.h>
 
+#define MULTISIG_P2WSH_MAX_SIGNERS 15
+
+typedef struct {
+    size_t xpubs_count;
+    struct ext_key xpubs[MULTISIG_P2WSH_MAX_SIGNERS];
+    uint32_t threshold;
+} multisig_t;
+
 // see https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer
 #define MAX_VARINT_SIZE (9)
 // current expected max pk script size is a m-of-15 multisig. 700 is also enough for m-of-20, which
 // is technically possible to extend to if needed.
 #define MAX_PK_SCRIPT_SIZE (700)
+
+USE_RESULT bool btc_common_convert_multisig(
+    const BTCScriptConfig_Multisig* multisig,
+    multisig_t* multisig_out);
 
 /**
  * Does limit checks the keypath, whitelisting bip44 purposes and accounts.
@@ -124,7 +136,7 @@ USE_RESULT bool btc_common_pkscript_from_payload(
  * @return true on success, false on failure.
  */
 USE_RESULT bool btc_common_pkscript_from_multisig(
-    const BTCScriptConfig_Multisig* multisig,
+    const multisig_t* multisig,
     uint32_t keypath_change,
     uint32_t keypath_address,
     uint8_t* script_out,
@@ -142,7 +154,8 @@ USE_RESULT bool btc_common_pkscript_from_multisig(
  * `HASH160_LEN` for P2WSH-P2SH.
  */
 USE_RESULT bool btc_common_payload_from_multisig(
-    const BTCScriptConfig_Multisig* multisig,
+    const multisig_t* multisig,
+    BTCScriptConfig_Multisig_ScriptType script_type,
     uint32_t keypath_change,
     uint32_t keypath_address,
     uint8_t* output_payload,

@@ -25,7 +25,17 @@
 #include <util.h>
 #include <wally_address.h>
 
-#define MULTISIG_P2WSH_MAX_SIGNERS 15
+bool btc_common_convert_multisig(const BTCScriptConfig_Multisig* multisig, multisig_t* multisig_out)
+{
+    multisig_out->xpubs_count = multisig->xpubs_count;
+    multisig_out->threshold = multisig->threshold;
+    for (size_t i = 0; i < multisig_out->xpubs_count; i++) {
+        if (!apps_common_bip32_xpub_from_protobuf(&multisig->xpubs[i], &multisig_out->xpubs[i])) {
+            return false;
+        }
+    }
+    return true;
+}
 
 bool btc_common_is_valid_keypath_account_simple(
     BTCScriptConfig_SimpleType script_type,
@@ -171,7 +181,7 @@ bool btc_common_pkscript_from_payload(
 }
 
 bool btc_common_pkscript_from_multisig(
-    const BTCScriptConfig_Multisig* multisig,
+    const multisig_t* multisig,
     uint32_t keypath_change,
     uint32_t keypath_address,
     uint8_t* script_out,
@@ -180,15 +190,11 @@ bool btc_common_pkscript_from_multisig(
     uint8_t pubkeys[MULTISIG_P2WSH_MAX_SIGNERS * EC_PUBLIC_KEY_LEN];
 
     for (size_t index = 0; index < multisig->xpubs_count; index++) {
-        const XPub* xpub_in = &multisig->xpubs[index];
-        struct ext_key xpub = {0};
-        if (!apps_common_bip32_xpub_from_protobuf(xpub_in, &xpub)) {
-            return false;
-        }
+        const struct ext_key* xpub = &multisig->xpubs[index];
         struct ext_key derived_cosigner_xpub = {0};
         const uint32_t keypath[2] = {keypath_change, keypath_address};
         if (bip32_key_from_parent_path(
-                &xpub, keypath, 2, BIP32_FLAG_KEY_PUBLIC, &derived_cosigner_xpub) != WALLY_OK) {
+                xpub, keypath, 2, BIP32_FLAG_KEY_PUBLIC, &derived_cosigner_xpub) != WALLY_OK) {
             return false;
         }
         memcpy(
@@ -217,7 +223,8 @@ bool btc_common_pkscript_from_multisig(
 }
 
 bool btc_common_payload_from_multisig(
-    const BTCScriptConfig_Multisig* multisig,
+    const multisig_t* multisig,
+    BTCScriptConfig_Multisig_ScriptType script_type,
     uint32_t keypath_change,
     uint32_t keypath_address,
     uint8_t* output_payload,
@@ -235,7 +242,7 @@ bool btc_common_payload_from_multisig(
     // See https://bitcoincore.org/en/segwit_wallet_dev/.
     // Note that the witness script has an additional varint prefix.
 
-    switch (multisig->script_type) {
+    switch (script_type) {
     case BTCScriptConfig_Multisig_ScriptType_P2WSH:
         *output_payload_size = SHA256_LEN;
         return wally_sha256(script, written, output_payload, SHA256_LEN) == WALLY_OK;

@@ -86,8 +86,13 @@ app_btc_result_t app_btc_sign_sighash_script(
     case BTCScriptConfig_multisig_tag: {
         uint8_t sighash_script_tmp[MAX_PK_SCRIPT_SIZE] = {0};
         size_t sighash_script_size_tmp = sizeof(sighash_script_tmp);
+        const BTCScriptConfig_Multisig* ms = &script_config_account->config.multisig;
+        multisig_t multisig = {0};
+        if (!btc_common_convert_multisig(ms, &multisig)) {
+            return APP_BTC_ERR_INVALID_INPUT;
+        }
         if (!btc_common_pkscript_from_multisig(
-                &script_config_account->config.multisig,
+                &multisig,
                 request->keypath[request->keypath_count - 2],
                 request->keypath[request->keypath_count - 1],
                 sighash_script_tmp,
@@ -130,9 +135,16 @@ app_btc_result_t app_btc_sign_payload_at_keypath(
         }
         return APP_BTC_OK;
     }
-    case BTCScriptConfig_multisig_tag:
+    case BTCScriptConfig_multisig_tag: {
+        const BTCScriptConfig_Multisig* ms = &script_config_account->script_config.config.multisig;
+        multisig_t multisig = {0};
+        if (!btc_common_convert_multisig(ms, &multisig)) {
+            return _error(APP_BTC_ERR_INVALID_INPUT);
+        }
+
         if (!btc_common_payload_from_multisig(
-                &script_config_account->script_config.config.multisig,
+                &multisig,
+                ms->script_type,
                 keypath[keypath_len - 2],
                 keypath[keypath_len - 1],
                 payload_bytes,
@@ -140,6 +152,7 @@ app_btc_result_t app_btc_sign_payload_at_keypath(
             return _error(APP_BTC_ERR_UNKNOWN);
         }
         return APP_BTC_OK;
+    }
     default:
         return _error(APP_BTC_ERR_INVALID_INPUT);
     }

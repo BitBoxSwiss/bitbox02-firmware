@@ -225,9 +225,17 @@ static void _test_btc_common_pkscript_from_multisig(void** state)
             .xpubs_count = test_case->xpubs_count,
         };
         for (size_t xpub_idx = 0; xpub_idx < test_case->xpubs_count; xpub_idx++) {
+            size_t written;
+            uint8_t deser[BIP32_SERIALIZED_LEN + BASE58_CHECKSUM_LEN];
             assert_int_equal(
-                bip32_key_from_base58(test_case->xpubs[xpub_idx], &multisig.xpubs[xpub_idx]),
+                wally_base58_to_bytes(
+                    test_case->xpubs[xpub_idx],
+                    BASE58_FLAG_CHECKSUM,
+                    deser,
+                    sizeof(deser),
+                    &written),
                 WALLY_OK);
+            memcpy(multisig.xpubs[xpub_idx], deser, sizeof(multisig.xpubs[xpub_idx]));
         }
 
         uint8_t script[520];
@@ -252,18 +260,28 @@ static void _test_btc_common_pkscript_from_multisig_unhappy(void** state)
         .threshold = 1,
         .xpubs_count = 2,
     };
+    uint8_t deser[BIP32_SERIALIZED_LEN + BASE58_CHECKSUM_LEN];
+    size_t written;
     assert_int_equal(
-        bip32_key_from_base58(
+        wally_base58_to_bytes(
             "xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPd"
             "tnYUCugjeksHSbyZT7rq38VQF",
-            &multisig.xpubs[0]),
+            BASE58_FLAG_CHECKSUM,
+            deser,
+            sizeof(deser),
+            &written),
         WALLY_OK);
+    memcpy(multisig.xpubs[0], deser, sizeof(multisig.xpubs[0]));
     assert_int_equal(
-        bip32_key_from_base58(
+        wally_base58_to_bytes(
             "xpub6ERxBysTYfQyY4USv6c6J1HNVv9hpZFN9LHVPu47Ac4rK8fLy6NnAeeAHyEsMvG4G66ay5aFZii2VM7wT3"
             "KxLKX8Q8keZPd67kRGmrD1WJj",
-            &multisig.xpubs[1]),
+            BASE58_FLAG_CHECKSUM,
+            deser,
+            sizeof(deser),
+            &written),
         WALLY_OK);
+    memcpy(multisig.xpubs[1], deser, sizeof(multisig.xpubs[1]));
     uint8_t script[520];
     size_t script_size;
 

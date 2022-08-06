@@ -30,7 +30,15 @@ bool btc_common_convert_multisig(const BTCScriptConfig_Multisig* multisig, multi
     multisig_out->xpubs_count = multisig->xpubs_count;
     multisig_out->threshold = multisig->threshold;
     for (size_t i = 0; i < multisig_out->xpubs_count; i++) {
-        if (!apps_common_bip32_xpub_from_protobuf(&multisig->xpubs[i], &multisig_out->xpubs[i])) {
+        struct ext_key xpub = {0};
+        if (!apps_common_bip32_xpub_from_protobuf(&multisig->xpubs[i], &xpub)) {
+            return false;
+        }
+        if (bip32_key_serialize(
+                &xpub,
+                BIP32_FLAG_KEY_PUBLIC,
+                multisig_out->xpubs[i],
+                sizeof(multisig_out->xpubs[i])) != WALLY_OK) {
             return false;
         }
     }
@@ -127,18 +135,6 @@ bool btc_common_sighash_script_from_pubkeyhash(
     }
 }
 
-BTCOutputType btc_common_determine_output_type_multisig(const BTCScriptConfig_Multisig* multisig)
-{
-    switch (multisig->script_type) {
-    case BTCScriptConfig_Multisig_ScriptType_P2WSH:
-        return BTCOutputType_P2WSH;
-    case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH:
-        return BTCOutputType_P2SH;
-    default:
-        return BTCOutputType_UNKNOWN;
-    }
-}
-
 bool btc_common_pkscript_from_payload(
     const app_btc_coin_params_t* params,
     BTCOutputType output_type,
@@ -190,11 +186,15 @@ bool btc_common_pkscript_from_multisig(
     uint8_t pubkeys[MULTISIG_P2WSH_MAX_SIGNERS * EC_PUBLIC_KEY_LEN];
 
     for (size_t index = 0; index < multisig->xpubs_count; index++) {
-        const struct ext_key* xpub = &multisig->xpubs[index];
+        struct ext_key xpub = {0};
+        if (bip32_key_unserialize(multisig->xpubs[index], sizeof(multisig->xpubs[index]), &xpub) !=
+            WALLY_OK) {
+            return false;
+        }
         struct ext_key derived_cosigner_xpub = {0};
         const uint32_t keypath[2] = {keypath_change, keypath_address};
         if (bip32_key_from_parent_path(
-                xpub, keypath, 2, BIP32_FLAG_KEY_PUBLIC, &derived_cosigner_xpub) != WALLY_OK) {
+                &xpub, keypath, 2, BIP32_FLAG_KEY_PUBLIC, &derived_cosigner_xpub) != WALLY_OK) {
             return false;
         }
         memcpy(

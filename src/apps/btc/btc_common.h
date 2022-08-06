@@ -34,7 +34,7 @@
 
 typedef struct {
     size_t xpubs_count;
-    struct ext_key xpubs[MULTISIG_P2WSH_MAX_SIGNERS];
+    uint8_t xpubs[MULTISIG_P2WSH_MAX_SIGNERS][BIP32_SERIALIZED_LEN];
     uint32_t threshold;
 } multisig_t;
 
@@ -102,12 +102,6 @@ USE_RESULT bool btc_common_sighash_script_from_pubkeyhash(
     const uint8_t* pubkey_hash,
     uint8_t* script,
     size_t* script_size);
-
-/**
- * For a multisig input type, determine the output type.
- */
-USE_RESULT BTCOutputType
-btc_common_determine_output_type_multisig(const BTCScriptConfig_Multisig* multisig);
 
 /**
  * Computes the pkScript from a pubkey hash or script hash or pubkey, depending on the output

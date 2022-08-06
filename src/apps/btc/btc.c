@@ -20,87 +20,11 @@
 #include "confirm_multisig.h"
 
 #include <hww.pb.h>
-#include <keystore.h>
 #include <memory/memory.h>
 #include <rust/rust.h>
 #include <util.h>
 #include <workflow/confirm.h>
 #include <workflow/status.h>
-
-app_btc_result_t app_btc_address_multisig(
-    BTCCoin coin,
-    const BTCScriptConfig_Multisig* multisig,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    char* out,
-    size_t out_len,
-    bool display)
-{
-    const app_btc_coin_params_t* params = app_btc_params_get(coin);
-    if (params == NULL) {
-        return APP_BTC_ERR_INVALID_INPUT;
-    }
-    if (!btc_common_is_valid_keypath_address_multisig(
-            multisig->script_type, keypath, keypath_len, params->bip44_coin)) {
-        return APP_BTC_ERR_INVALID_INPUT;
-    }
-
-    if (!btc_common_multisig_is_valid(multisig, keypath, keypath_len - 2, params->bip44_coin)) {
-        return APP_BTC_ERR_INVALID_INPUT;
-    }
-
-    // Confirm previously registered multisig.
-    char multisig_registered_name[MEMORY_MULTISIG_NAME_MAX_LEN] = {0};
-    if (!btc_common_multisig_name(
-            coin, multisig, keypath, keypath_len - 2, multisig_registered_name)) {
-        // Not previously registered -> fail.
-        return APP_BTC_ERR_INVALID_INPUT;
-    }
-
-    const char* title = "Receive to";
-
-    if (!apps_btc_confirm_multisig_basic(title, params, multisig_registered_name, multisig)) {
-        return APP_BTC_ERR_USER_ABORT;
-    }
-
-    uint8_t payload[SHA256_LEN] = {0};
-    size_t written = 0;
-
-    multisig_t ms = {0};
-    if (!btc_common_convert_multisig(multisig, &ms)) {
-        return APP_BTC_ERR_INVALID_INPUT;
-    }
-
-    if (!btc_common_payload_from_multisig(
-            &ms,
-            multisig->script_type,
-            keypath[keypath_len - 2],
-            keypath[keypath_len - 1],
-            payload,
-            &written)) {
-        return APP_BTC_ERR_UNKNOWN;
-    }
-
-    if (!rust_bitcoin_address_from_payload(
-            params->coin,
-            btc_common_determine_output_type_multisig(multisig),
-            rust_util_bytes(payload, written),
-            rust_util_cstr_mut(out, out_len))) {
-        return APP_BTC_ERR_UNKNOWN;
-    }
-
-    if (display) {
-        const confirm_params_t confirm_params = {
-            .title = title,
-            .body = out,
-            .scrollable = true,
-        };
-        if (!workflow_confirm_blocking(&confirm_params)) {
-            return APP_BTC_ERR_USER_ABORT;
-        }
-    }
-    return APP_BTC_OK;
-}
 
 bool app_btc_enabled(BTCCoin coin)
 {

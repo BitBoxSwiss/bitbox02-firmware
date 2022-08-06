@@ -104,6 +104,15 @@ pub fn determine_output_type_from_simple_type(simple_type: SimpleType) -> BtcOut
     }
 }
 
+pub fn determine_output_type_multisig(
+    script_type: pb::btc_script_config::multisig::ScriptType,
+) -> BtcOutputType {
+    match script_type {
+        pb::btc_script_config::multisig::ScriptType::P2wsh => BtcOutputType::P2wsh,
+        pb::btc_script_config::multisig::ScriptType::P2wshP2sh => BtcOutputType::P2sh,
+    }
+}
+
 /// Determine the output type from the given an input script config.
 pub fn determine_output_type(script_config: &pb::BtcScriptConfig) -> Result<BtcOutputType, Error> {
     match script_config {
@@ -119,10 +128,7 @@ pub fn determine_output_type(script_config: &pb::BtcScriptConfig) -> Result<BtcO
             let script_type =
                 pb::btc_script_config::multisig::ScriptType::from_i32(multisig.script_type)
                     .ok_or(Error::InvalidInput)?;
-            match script_type {
-                pb::btc_script_config::multisig::ScriptType::P2wsh => Ok(BtcOutputType::P2wsh),
-                pb::btc_script_config::multisig::ScriptType::P2wshP2sh => Ok(BtcOutputType::P2sh),
-            }
+            Ok(determine_output_type_multisig(script_type))
         }
         _ => Err(Error::InvalidInput),
     }
@@ -156,6 +162,15 @@ pub fn serialize_xpub_no_version(xpub: &pb::XPub) -> Result<Vec<u8>, ()> {
     result.extend_from_slice(&xpub.child_num.to_be_bytes());
     result.extend_from_slice(&xpub.chain_code);
     result.extend_from_slice(&xpub.public_key);
+    Ok(result)
+}
+
+/// Serializes a protobuf XPub to bytes according to the BIP32 specification, using the public
+/// mainnet version bytes.
+pub fn serialize_xpub(xpub: &pb::XPub) -> Result<Vec<u8>, ()> {
+    // Version bytes for mainnet public, see BIP32.
+    let mut result = b"\x04\x88\xb2\x1e".to_vec();
+    result.extend_from_slice(&serialize_xpub_no_version(xpub)?);
     Ok(result)
 }
 
@@ -304,6 +319,10 @@ mod tests {
         assert_eq!(
             serialize_xpub_no_version(&xpub).unwrap(),
             hex::decode("04b9d184d180000002b5b571ead68edac616c38491d9fd78d4697077e7675333452b586e3282705a3a0281bec7de8d182945744445948b54800e95267a5ac039bab6218a03b8e6f4b38a").unwrap(),
+        );
+        assert_eq!(
+            serialize_xpub(&xpub).unwrap(),
+            hex::decode("0488b21e04b9d184d180000002b5b571ead68edac616c38491d9fd78d4697077e7675333452b586e3282705a3a0281bec7de8d182945744445948b54800e95267a5ac039bab6218a03b8e6f4b38a").unwrap(),
         );
     }
 }

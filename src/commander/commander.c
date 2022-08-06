@@ -58,9 +58,6 @@ static commander_error_t _api_process(const Request* request, Response* response
 {
     switch (request->which_request) {
 #if APP_BTC == 1 || APP_LTC == 1
-    case Request_btc_pub_tag:
-        response->which_response = Response_pub_tag;
-        return commander_btc_pub(&(request->request.btc_pub), &(response->response.pub));
     case Request_btc_tag:
         response->which_response = Response_btc_tag;
         return commander_btc(&(request->request.btc), &(response->response.btc));

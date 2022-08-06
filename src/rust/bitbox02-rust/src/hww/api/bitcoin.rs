@@ -36,6 +36,8 @@ use bitbox02::keystore::{encode_xpub_at_keypath, xpub_type_t};
 
 use pb::btc_pub_request::{Output, XPubType};
 use pb::btc_request::Request;
+use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
+use pb::btc_script_config::Multisig;
 use pb::btc_script_config::{Config, SimpleType};
 use pb::response::Response;
 use pb::BtcCoin;
@@ -171,6 +173,64 @@ async fn address_simple(
     Ok(Response::Pub(pb::PubResponse { r#pub: address }))
 }
 
+/// Processes a multisig adress api call.
+pub async fn address_multisig(
+    coin: BtcCoin,
+    multisig: &Multisig,
+    keypath: &[u32],
+    display: bool,
+) -> Result<Response, Error> {
+    let coin_params = params::get(coin);
+    let script_type =
+        MultisigScriptType::from_i32(multisig.script_type).ok_or(Error::InvalidInput)?;
+    keypath::validate_address_multisig(keypath, coin_params.bip44_coin, script_type)
+        .or(Err(Error::InvalidInput))?;
+    let account_keypath = &keypath[..keypath.len() - 2];
+    multisig::validate(multisig, account_keypath, coin_params.bip44_coin)?;
+    let name = match multisig::get_name(coin, multisig, account_keypath)? {
+        Some(name) => name,
+        None => return Err(Error::InvalidInput),
+    };
+    let title = "Receive to";
+    if display {
+        multisig::confirm(title, coin_params, &name, multisig).await?;
+    }
+    let payload = bitbox02::app_btc::payload_from_multisig(
+        &bitbox02::app_btc::Multisig {
+            xpubs_count: multisig.xpubs.len() as _,
+            xpubs: {
+                let mut xpubs = [[0u8; 78]; multisig::MAX_SIGNERS];
+                for (i, xpub) in multisig.xpubs.iter().enumerate() {
+                    xpubs[i] = common::serialize_xpub(xpub)
+                        .or(Err(Error::InvalidInput))?
+                        .try_into()
+                        .or(Err(Error::Generic))?;
+                }
+                xpubs
+            },
+            threshold: multisig.threshold,
+        },
+        script_type as _,
+        keypath[keypath.len() - 2],
+        keypath[keypath.len() - 1],
+    )?;
+    let address = common::address_from_payload(
+        coin_params,
+        common::determine_output_type_multisig(script_type),
+        &payload,
+    )?;
+    if display {
+        confirm::confirm(&confirm::Params {
+            title,
+            body: &address,
+            scrollable: true,
+            ..Default::default()
+        })
+        .await?;
+    }
+    Ok(Response::Pub(pb::PubResponse { r#pub: address }))
+}
+
 /// Handle a Bitcoin xpub/address protobuf api call.
 ///
 /// Returns `None` if the call was not handled by Rust, in which case it should be handled by
@@ -201,6 +261,9 @@ pub async fn process_pub(request: &pb::BtcPubRequest) -> Option<Result<Response,
             };
             Some(address_simple(coin, simple_type, &request.keypath, request.display).await)
         }
+        Some(Output::ScriptConfig(BtcScriptConfig {
+            config: Some(Config::Multisig(ref multisig)),
+        })) => Some(address_multisig(coin, multisig, &request.keypath, request.display).await),
         _ => None,
     }
 }
@@ -233,8 +296,9 @@ mod tests {
     use alloc::boxed::Box;
     use alloc::vec::Vec;
     use bitbox02::testing::{
-        mock, mock_unlocked, mock_unlocked_using_mnemonic, Data, TEST_MNEMONIC,
+        mock, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic, Data, TEST_MNEMONIC,
     };
+    use common::parse_xpub;
     use util::bip32::HARDENED;
 
     #[test]
@@ -717,5 +781,206 @@ mod tests {
         }))
         .unwrap()
         .is_err());
+    }
+
+    #[test]
+    pub fn test_address_multisig() {
+        static mut UI_COUNTER: u32 = 0;
+        struct Test<'a> {
+            coin: BtcCoin,
+            xpubs: &'a [&'a str],
+            threshold: u32,
+            expected_info: &'a str,
+            our_xpub_index: u32,
+            keypath: &'a [u32],
+            script_type: MultisigScriptType,
+            expected_address: &'a str,
+        }
+        let tests = &[
+            /* P2WSH */
+            Test {
+                coin: BtcCoin::Btc,
+                threshold: 1,
+                xpubs: &[
+                    "xpub6FEZ9Bv73h1vnE4TJG4QFj2RPXJhhsPbnXgFyH3ErLvpcZrDcynY65bhWga8PazWHLSLi23PoBhGcLcYW6JRiJ12zXZ9Aop4LbAqsS3gtcy",
+                    "xpub6EGAio99SxruuNxoBtG4fbYx3xM8fs7wjYJLRNcUg7UQin3LTANQiUYyb3RLjZ2EAyLsQBrtbNENUGh3oWzjHtgfQ3mtjPNFgNMronzTTVR",
+                ],
+                expected_info: "1-of-2\nBitcoin multisig",
+                our_xpub_index: 1,
+                keypath: &[
+                    48 + HARDENED,
+                    0 + HARDENED,
+                    0 + HARDENED,
+                    2 + HARDENED,
+                    1,
+                    2,
+                ],
+                script_type: MultisigScriptType::P2wsh,
+                expected_address: "bc1q2fhgukymf0caaqrhfxrdju4wm94wwrch2ukntl5fuc0faz8zm49q0h6ss8",
+            },
+            Test {
+                coin: BtcCoin::Tbtc,
+                threshold: 1,
+                xpubs: &[
+                    "xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYUCugjeksHSbyZT7rq38VQF",
+                    "xpub6ERxBysTYfQyY4USv6c6J1HNVv9hpZFN9LHVPu47Ac4rK8fLy6NnAeeAHyEsMvG4G66ay5aFZii2VM7wT3KxLKX8Q8keZPd67kRGmrD1WJj",
+                ],
+                expected_info: "1-of-2\nBTC Testnet multisig",
+                our_xpub_index: 0,
+                keypath: &[
+                    48 + HARDENED,
+                    1 + HARDENED,
+                    0 + HARDENED,
+                    2 + HARDENED,
+                    1,
+                    2,
+                ],
+                script_type: MultisigScriptType::P2wsh,
+                expected_address: "tb1qw2scxk3zq0znr4ug9xkf3n7nfjsc8ldvemrm9dxjpl847zyu6afsfjjy28",
+            },
+            Test {
+                coin: BtcCoin::Tbtc,
+                threshold: 7,
+                xpubs: &[
+                    "xpub6Eu7xJRyXRCi4eLYhJPnfZVjgAQtM7qFaEZwUhvgxGf4enEZMxevGzWvZTawCj9USP2MFTEhKQAwnqHwoaPHetTLqGuvq5r5uaLKyGx5QDZ",
+                    "xpub6EQcxF2jFkYGn89AwoQJEEJkYMbRjED9AZgt7bkxQA5BLhZEoaQpUHcADbB5GxcMrTdDSGmjP7M3u462Q9otyE2PPam66P5KFLWitPVfYz9",
+                    "xpub6EP4EycVS5dq1PN7ZqsxBtptkYhfLvLGokZjnB3fvPshMiAohh6E5TaJjAafZWoPRjo6uiZxhtDXLgCuk81ooQgwrsnEdfSWSfa4VUtX8nu",
+                    "xpub6Eszd4BGGmHShcGtys5gbvV2zrBtW1gaorKf9YuvV4L3bePw7XePyyb2DKswZ5AhFfkcQwjQsiJEUTKhfRstRdHZUjQnJ2RJoQqL8g7FS4b",
+                    "xpub6Df3nbvH6P3FTvjgKaZcSuydyEofK545U4Bb15JY8R9MtFkKrhYrc3bpEF6fHtNM7xQ1qHwsVpS56TJWUjbKcmRwPkQr17ovV2RaVSJaBq3",
+                    "xpub6FQQ62gUYzS9wnHWHMPLWrpVnzS8xAf8XvfW1xzXEXTkTCtBrfbeww2zNeCgm3PbueMoq8opQvQDzp5Yf9EtiqVd7d1ASDoWSC1m7g1KHza",
+                    "xpub6EQNZUUAzJAoFAVVetYUrFVrf7mLyYsnHiQihkA3KPhoRHx7m6SgKBYV4z5Rd9CvUc11ACN8Ap5Wxigt6GYRPUqXGFfm3833ezJpjAmvJKt",
+                    "xpub6EGZy7cizYn2zUf9NT4qJ3Kr1ZrxdzPRcv2CwAnB1BTGWw7n9ZgDYvwmzzJXM6V7AgZ6CL3DrARZk5DzM9o8tz2RVTeC7QoHh9SxbW3b7Pw",
+                    "xpub6DaV7oCAkm4HJQMoProrrKYq1RvcgpStgYUCzLRaaeJSBSy9WBRFMNnQyAWJUYy9myUFRTvogq1C2f7x4A2yhtYgr7gL6eZXv2eJvzU12pe",
+                    "xpub6FFVRbdHt5DgHqR69KuWXRVDp93e1xKxv8rRLwhhCGnWaoF1ecnfdxpg2Nf1pvJTgT1UYg28CVt7YbUXFJL86vi9FaPN9QGtWLeCmf9dA24",
+                    "xpub6FNywxebMjvSSginZrk7DfNmAHvPJAy3j6pJ9FmUQCoh4FKPzNymdHnkA1z77Ke4GK7g5GkdrBhpyXfWTbZkH6Yo1t4v524wDwF8SAKny9J",
+                    "xpub6F1V9y6gXejomurTy2hN1UDCJidYahVkqtQJSZLYmcPcPDWkxGgWTrrLnCrCkGESSUSq6GpVVQx9kejPV97BEa9F85utABNL9r6xyPZFiDm",
+                    "xpub6ECHc4kmTC2tQg2ZoAoazwyag9C4V6yFsZEhjwMJixdVNsUibot6uEvsZY38ZLVqWCtyc9gbzFEwHQLHCT8EiDDKSNNsFAB8NQYRgkiAQwu",
+                    "xpub6F7CaxXzBCtvXwpRi61KYyhBRkgT1856ujHV5AbJK6ySCUYoDruBH6Pnsi6eHkDiuKuAJ2tSc9x3emP7aax9Dc3u7nP7RCQXEjLKihQu6w1",
+                    "xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYUCugjeksHSbyZT7rq38VQF",
+                ],
+                expected_info: "7-of-15\nBTC Testnet multisig",
+                our_xpub_index: 14,
+                keypath: &[
+                    48 + HARDENED,
+                    1 + HARDENED,
+                    0 + HARDENED,
+                    2 + HARDENED,
+                    1,
+                    2,
+                ],
+                script_type: MultisigScriptType::P2wsh,
+                expected_address: "tb1qndz49j0arp8g6jc8vcrgf9ugrsw96a0j5d7vqcun6jev6rlv47jsv99y5m",
+            },
+            /* P2WSH-P2SH */
+            Test {
+                coin: BtcCoin::Btc,
+                threshold: 2,
+                xpubs: &[
+                    "xpub6FEZ9Bv73h1vnE4TJG4QFj2RPXJhhsPbnXgFyH3ErLvpcZrDcynY65bhWga8PazWHLSLi23PoBhGcLcYW6JRiJ12zXZ9Aop4LbAqsS3gtcy",
+                    "xpub6EGAio99SxrurYgGH5BEzSiM4ZNedDX68RTGTSzGt5gk4STbs8B35ASC3RMdysGhJ7dJfffQcQEzFAkLxvMTyDsdrvMmsd45gr8pDmtTzEX",
+                ],
+                expected_info: "2-of-2\nBitcoin multisig",
+                our_xpub_index: 1,
+                keypath: &[
+                    48 + HARDENED,
+                    0 + HARDENED,
+                    0 + HARDENED,
+                    1 + HARDENED,
+                    1,
+                    0,
+                ],
+                script_type: MultisigScriptType::P2wshP2sh,
+                expected_address: "3BKdK5c2kcFrNmmJbMAeWuveaoYDB4BYvu",
+            },
+            /* P2WSH-P2SH Nunchuk keypath */
+            Test {
+                coin: BtcCoin::Btc,
+                threshold: 2,
+                xpubs: &[
+                    "xpub6FEZ9Bv73h1vnE4TJG4QFj2RPXJhhsPbnXgFyH3ErLvpcZrDcynY65bhWga8PazWHLSLi23PoBhGcLcYW6JRiJ12zXZ9Aop4LbAqsS3gtcy",
+                    "xpub6C2Btqv4ZLgC3f2kjqEvsWUsJosEYVzrMTS8JHjZHrQpuVRyjtXcGfwR5dtueTQaTPAEyiiAknU6V5GUyR4ryT2y2tv3VRnCNf57GWqocgd",
+                ],
+                expected_info: "2-of-2\nBitcoin multisig",
+                our_xpub_index: 1,
+                keypath: &[
+                    48 + HARDENED,
+                    0 + HARDENED,
+                    0 + HARDENED,
+                    1,
+                    0,
+                ],
+                script_type: MultisigScriptType::P2wshP2sh,
+                expected_address: "341hw7cuzpf2AtSuXupX5Pu3tkkXv24bvo",
+            },
+        ];
+        for test in tests.iter() {
+            mock_memory();
+            unsafe { UI_COUNTER = 0 };
+            let name = "some name";
+            let expected_info = test.expected_info;
+            let expected_address = test.expected_address;
+            mock(Data {
+                ui_confirm_create: Some(Box::new(move |params| {
+                    match unsafe {
+                        UI_COUNTER += 1;
+                        UI_COUNTER
+                    } {
+                        1 => {
+                            assert_eq!(params.title, "Receive to");
+                            assert_eq!(params.body, expected_info);
+                            true
+                        }
+                        2 => {
+                            assert_eq!(params.title, "Receive to");
+                            assert_eq!(params.body, name);
+                            true
+                        }
+                        3 => {
+                            assert_eq!(params.title, "Receive to");
+                            assert_eq!(params.body, expected_address);
+                            true
+                        }
+                        _ => panic!("too many dialogs"),
+                    }
+                })),
+                ..Default::default()
+            });
+            mock_unlocked_using_mnemonic(
+                "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+            );
+
+            let multisig = Multisig {
+                threshold: test.threshold,
+                xpubs: test.xpubs.iter().map(|s| parse_xpub(s).unwrap()).collect(),
+                our_xpub_index: test.our_xpub_index,
+                script_type: test.script_type as _,
+            };
+            bitbox02::memory::multisig_set_by_hash(
+                &multisig::get_hash(
+                    test.coin,
+                    &multisig,
+                    multisig::SortXpubs::Yes,
+                    &test.keypath[..test.keypath.len() - 2],
+                )
+                .unwrap(),
+                name,
+            )
+            .unwrap();
+            let req = pb::BtcPubRequest {
+                coin: test.coin as _,
+                keypath: test.keypath.to_vec(),
+                display: true,
+                output: Some(Output::ScriptConfig(BtcScriptConfig {
+                    config: Some(Config::Multisig(multisig)),
+                })),
+            };
+            assert_eq!(
+                block_on(process_pub(&req)),
+                Some(Ok(Response::Pub(pb::PubResponse {
+                    r#pub: test.expected_address.into(),
+                }))),
+            );
+            assert_eq!(unsafe { UI_COUNTER }, 3);
+        }
     }
 }

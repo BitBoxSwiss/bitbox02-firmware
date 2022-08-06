@@ -12,11 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core::fmt::Write;
-
 use util::c_types::size_t;
 
-use bitbox02_rust::hww::api::bitcoin::{common, keypath, params};
+use bitbox02_rust::hww::api::bitcoin::keypath;
 
 /// # Safety
 /// `keypath` must be not NULL and contain `keypath_len` u32 elements.
@@ -81,25 +79,4 @@ pub unsafe extern "C" fn rust_bitcoin_keypath_validate_account_simple(
     };
     let keypath = core::slice::from_raw_parts(keypath, keypath_len);
     keypath::validate_account_simple(keypath, expected_coin, script_type, taproot_support).is_ok()
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rust_bitcoin_address_from_payload(
-    coin: i32,
-    output_type: i32,
-    payload: crate::util::Bytes,
-    mut out: crate::util::CStrMut,
-) -> bool {
-    let coin = match common::BtcCoin::from_i32(coin) {
-        Some(coin) => coin,
-        None => return false,
-    };
-    let output_type = match common::BtcOutputType::from_i32(output_type) {
-        Some(output_type) => output_type,
-        None => return false,
-    };
-    match common::address_from_payload(params::get(coin), output_type, payload.as_ref()) {
-        Ok(result) => write!(&mut out, "{}", result).is_ok(),
-        Err(_) => false,
-    }
 }

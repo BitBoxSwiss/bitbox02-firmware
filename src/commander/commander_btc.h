@@ -19,6 +19,5 @@
 
 #include <hww.pb.h>
 
-commander_error_t commander_btc_pub(const BTCPubRequest* request, PubResponse* response);
 commander_error_t commander_btc(const BTCRequest* request, BTCResponse* response);
 #endif

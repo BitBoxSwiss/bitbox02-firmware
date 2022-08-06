@@ -111,24 +111,6 @@ bool app_btc_enabled(BTCCoin coin)
     }
 }
 
-bool app_btc_is_script_config_registered(
-    BTCCoin coin,
-    const BTCScriptConfig* script_config,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    bool* is_registered)
-{
-    // Only multisig registration supported for now.
-    if (script_config->which_config != BTCScriptConfig_multisig_tag) {
-        return false;
-    }
-
-    *is_registered =
-        btc_common_multisig_name(coin, &script_config->config.multisig, keypath, keypath_len, NULL);
-
-    return true;
-}
-
 app_btc_result_t app_btc_register_script_config(
     BTCCoin coin,
     const BTCScriptConfig* script_config,

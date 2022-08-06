@@ -325,8 +325,10 @@ add_custom_target(rust-bindgen
     --whitelist-function memory_get_device_name
     --whitelist-function memory_set_device_name
     --whitelist-function memory_set_mnemonic_passphrase_enabled
+    --whitelist-var MEMORY_MULTISIG_NAME_MAX_LEN
     --whitelist-function memory_set_seed_birthdate
     --whitelist-function memory_get_seed_birthdate
+    --whitelist-function memory_multisig_get_by_hash
     --whitelist-function memory_multisig_set_by_hash
     --whitelist-function smarteeprom_bb02_config
     --whitelist-function bitbox02_smarteeprom_init

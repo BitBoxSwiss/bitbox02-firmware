@@ -58,17 +58,6 @@ USE_RESULT app_btc_result_t app_btc_address_multisig(
 bool app_btc_enabled(BTCCoin coin);
 
 /**
- * @param[out] is_registered is true if the script config was previously registered on the device.
- * @return true on success, false on failure.
- */
-USE_RESULT bool app_btc_is_script_config_registered(
-    BTCCoin coin,
-    const BTCScriptConfig* script_config,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    bool* is_registered);
-
-/**
  * Stores a script configuration alongside a user chosen name on the device. If the user aborts,
  * nothing is stored.
  * @param[in] name Name to give to the script config. Must be at most MEMORY_MULTISIG_NAME_MAX_LEN

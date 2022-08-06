@@ -801,6 +801,7 @@ pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error
 
 #[cfg(test)]
 mod tests {
+    use super::super::common::parse_xpub;
     use super::*;
     use crate::bb02_async::block_on;
     use alloc::boxed::Box;
@@ -2171,19 +2172,6 @@ mod tests {
         init_request.locktime = 10;
         assert!(block_on(process(&init_request)).is_ok());
         assert!(unsafe { UI_COUNTER >= 3 })
-    }
-
-    fn parse_xpub(xpub: &str) -> Result<pb::XPub, ()> {
-        let decoded = bs58::decode(xpub).into_vec().or(Err(()))?;
-        Ok(pb::XPub {
-            depth: decoded[4..5].to_vec(),
-            parent_fingerprint: decoded[5..9].to_vec(),
-            child_num: u32::from_be_bytes(
-                core::convert::TryInto::try_into(&decoded[9..13]).unwrap(),
-            ),
-            chain_code: decoded[13..45].to_vec(),
-            public_key: decoded[45..78].to_vec(),
-        })
     }
 
     #[test]

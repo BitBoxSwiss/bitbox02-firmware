@@ -16,9 +16,7 @@
 
 set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/firmware_main_loop.c
-  ${CMAKE_SOURCE_DIR}/src/commander/commander.c
   ${CMAKE_SOURCE_DIR}/src/commander/commander_states.c
-  ${CMAKE_SOURCE_DIR}/src/commander/protobuf.c
   ${CMAKE_SOURCE_DIR}/src/keystore.c
   ${CMAKE_SOURCE_DIR}/src/random.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
@@ -367,6 +365,7 @@ add_custom_target(rust-bindgen
     --rustified-enum keystore_secp256k1_pubkey_format
     --whitelist-function util_format_datetime
     --whitelist-function util_version_short
+    --whitelist-type buffer_t
     --whitelist-function delay_ms
     --whitelist-function UG_PutString
     --whitelist-function UG_FontSelect
@@ -390,9 +389,6 @@ add_custom_target(rust-bindgen
     --whitelist-function random_mock_reset
     --whitelist-type component_t
     --whitelist-type confirm_params_t
-    --whitelist-type commander_error_t
-    --rustified-enum commander_error_t
-    --whitelist-function commander
     --whitelist-function commander_states_can_call
     --whitelist-var ".*_tag"
     --whitelist-var MAX_LABEL_SIZE

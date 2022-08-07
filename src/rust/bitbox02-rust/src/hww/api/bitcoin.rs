@@ -233,46 +233,40 @@ pub async fn address_multisig(
 }
 
 /// Handle a Bitcoin xpub/address protobuf api call.
-///
-/// Returns `None` if the call was not handled by Rust, in which case it should be handled by
-/// the C commander.
-pub async fn process_pub(request: &pb::BtcPubRequest) -> Option<Result<Response, Error>> {
+pub async fn process_pub(request: &pb::BtcPubRequest) -> Result<Response, Error> {
     let coin = match BtcCoin::from_i32(request.coin) {
         Some(coin) => coin,
-        None => return Some(Err(Error::InvalidInput)),
+        None => return Err(Error::InvalidInput),
     };
     if let Err(err) = coin_enabled(coin) {
-        return Some(Err(err));
+        return Err(err);
     }
     match request.output {
-        None => Some(Err(Error::InvalidInput)),
+        None => Err(Error::InvalidInput),
         Some(Output::XpubType(xpub_type)) => {
             let xpub_type = match XPubType::from_i32(xpub_type) {
                 Some(xpub_type) => xpub_type,
-                None => return Some(Err(Error::InvalidInput)),
+                None => return Err(Error::InvalidInput),
             };
-            Some(xpub(coin, xpub_type, &request.keypath, request.display).await)
+            xpub(coin, xpub_type, &request.keypath, request.display).await
         }
         Some(Output::ScriptConfig(BtcScriptConfig {
             config: Some(Config::SimpleType(simple_type)),
         })) => {
             let simple_type = match SimpleType::from_i32(simple_type) {
                 Some(simple_type) => simple_type,
-                None => return Some(Err(Error::InvalidInput)),
+                None => return Err(Error::InvalidInput),
             };
-            Some(address_simple(coin, simple_type, &request.keypath, request.display).await)
+            address_simple(coin, simple_type, &request.keypath, request.display).await
         }
         Some(Output::ScriptConfig(BtcScriptConfig {
             config: Some(Config::Multisig(ref multisig)),
-        })) => Some(address_multisig(coin, multisig, &request.keypath, request.display).await),
-        _ => None,
+        })) => address_multisig(coin, multisig, &request.keypath, request.display).await,
+        _ => Err(Error::InvalidInput),
     }
 }
 
 /// Handle a nexted Bitcoin protobuf api call.
-///
-/// Returns `None` if the call was not handled by Rust, in which case it should be handled by
-/// the C commander.
 pub async fn process_api(request: &Request) -> Result<pb::btc_response::Response, Error> {
     match request {
         Request::IsScriptConfigRegistered(ref request) => {
@@ -442,9 +436,9 @@ mod tests {
 
             assert_eq!(
                 block_on(process_pub(&req)),
-                Some(Ok(Response::Pub(pb::PubResponse {
+                Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_xpub.into(),
-                }))),
+                })),
             );
 
             // With display.
@@ -463,9 +457,9 @@ mod tests {
             mock_unlocked_using_mnemonic(test.mnemonic);
             assert_eq!(
                 block_on(process_pub(&req)),
-                Some(Ok(Response::Pub(pb::PubResponse {
+                Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_xpub.into(),
-                }))),
+                })),
             );
         }
 
@@ -478,7 +472,6 @@ mod tests {
             display: false,
             output: Some(Output::XpubType(XPubType::Xpub as _)),
         }))
-        .unwrap()
         .is_err());
         // -- Invalid keypath for BTC
         assert!(block_on(process_pub(&pb::BtcPubRequest {
@@ -487,7 +480,6 @@ mod tests {
             display: false,
             output: Some(Output::XpubType(XPubType::Xpub as _)),
         }))
-        .unwrap()
         .is_err());
         // -- Invalid keypath for TBTC
         assert!(block_on(process_pub(&pb::BtcPubRequest {
@@ -496,7 +488,6 @@ mod tests {
             display: false,
             output: Some(Output::XpubType(XPubType::Xpub as _)),
         }))
-        .unwrap()
         .is_err());
         // -- Invalid keypath for LTC
         assert!(block_on(process_pub(&pb::BtcPubRequest {
@@ -505,7 +496,6 @@ mod tests {
             display: false,
             output: Some(Output::XpubType(XPubType::Xpub as _)),
         }))
-        .unwrap()
         .is_err());
 
         let req = pb::BtcPubRequest {
@@ -518,11 +508,11 @@ mod tests {
         // -- Wrong coin: MIN-1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Btc as i32 - 1;
-        assert!(block_on(process_pub(&req_invalid)).unwrap().is_err());
+        assert!(block_on(process_pub(&req_invalid)).is_err());
         // -- Wrong coin: MAX + 1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Tltc as i32 + 1;
-        assert!(block_on(process_pub(&req_invalid)).unwrap().is_err());
+        assert!(block_on(process_pub(&req_invalid)).is_err());
         // -- No taproot in Litecoin
         assert!(block_on(process_pub(&pb::BtcPubRequest {
             coin: BtcCoin::Ltc as _,
@@ -530,7 +520,6 @@ mod tests {
             display: false,
             output: Some(Output::XpubType(XPubType::Xpub as _)),
         }))
-        .unwrap()
         .is_err());
     }
 
@@ -722,9 +711,9 @@ mod tests {
             mock_unlocked_using_mnemonic(test.mnemonic);
             assert_eq!(
                 block_on(process_pub(&req)),
-                Some(Ok(Response::Pub(pb::PubResponse {
+                Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into(),
-                }))),
+                })),
             );
 
             // With display.
@@ -743,9 +732,9 @@ mod tests {
             mock_unlocked_using_mnemonic(test.mnemonic);
             assert_eq!(
                 block_on(process_pub(&req)),
-                Some(Ok(Response::Pub(pb::PubResponse {
+                Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into()
-                }))),
+                })),
             );
         }
 
@@ -760,19 +749,19 @@ mod tests {
                 config: Some(Config::SimpleType(SimpleType::P2wpkhP2sh as _)),
             })),
         };
-        assert!(block_on(process_pub(&req)).unwrap().is_ok());
+        assert!(block_on(process_pub(&req)).is_ok());
         // -- Wrong coin: MIN-1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Btc as i32 - 1;
-        assert!(block_on(process_pub(&req_invalid)).unwrap().is_err());
+        assert!(block_on(process_pub(&req_invalid)).is_err());
         // -- Wrong coin: MAX + 1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Tltc as i32 + 1;
-        assert!(block_on(process_pub(&req_invalid)).unwrap().is_err());
+        assert!(block_on(process_pub(&req_invalid)).is_err());
         // -- Wrong keypath
         let mut req_invalid = req.clone();
         req_invalid.keypath = [49 + HARDENED, 0 + HARDENED, 1 + HARDENED, 1, 10000].to_vec();
-        assert!(block_on(process_pub(&req_invalid)).unwrap().is_err());
+        assert!(block_on(process_pub(&req_invalid)).is_err());
         // -- No taproot in Litecoin
         assert!(block_on(process_pub(&pb::BtcPubRequest {
             coin: BtcCoin::Ltc as _,
@@ -782,7 +771,6 @@ mod tests {
                 config: Some(Config::SimpleType(SimpleType::P2tr as _)),
             })),
         }))
-        .unwrap()
         .is_err());
     }
 
@@ -979,9 +967,9 @@ mod tests {
             };
             assert_eq!(
                 block_on(process_pub(&req)),
-                Some(Ok(Response::Pub(pb::PubResponse {
+                Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into(),
-                }))),
+                })),
             );
             assert_eq!(unsafe { UI_COUNTER }, 3);
         }

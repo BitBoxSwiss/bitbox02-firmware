@@ -62,10 +62,6 @@ pub use bitbox02_sys::{
     Request_show_mnemonic_tag,
 };
 
-// Use this for functions exported to "C"
-#[allow(non_camel_case_types)]
-pub type commander_error_t = bitbox02_sys::commander_error_t;
-
 pub use bitbox02_sys::font_monogram_5X9;
 
 pub use bitbox02_sys::confirm_params_t;

@@ -97,65 +97,60 @@ fn request_tag(request: &Request) -> u32 {
 }
 
 #[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
-async fn process_api_btc(request: &Request) -> Option<Result<Response, Error>> {
+async fn process_api_btc(request: &Request) -> Result<Response, Error> {
     match request {
         Request::BtcPub(ref request) => bitcoin::process_pub(request).await,
-        Request::BtcSignInit(ref request) => Some(bitcoin::signtx::process(request).await),
+        Request::BtcSignInit(ref request) => bitcoin::signtx::process(request).await,
         // These are streamed asynchronously using the `next_request()` primitive in
         // bitcoin/signtx.rs and are not handled directly.
-        Request::BtcSignInput(_) | Request::BtcSignOutput(_) => Some(Err(Error::InvalidState)),
+        Request::BtcSignInput(_) | Request::BtcSignOutput(_) => Err(Error::InvalidState),
         Request::Btc(pb::BtcRequest {
             request: Some(request),
-        }) => Some(
-            bitcoin::process_api(request)
-                .await
-                .map(|r| Response::Btc(pb::BtcResponse { response: Some(r) })),
-        ),
-        _ => None,
+        }) => bitcoin::process_api(request)
+            .await
+            .map(|r| Response::Btc(pb::BtcResponse { response: Some(r) })),
+        _ => Err(Error::Generic),
     }
 }
 
 #[cfg(not(any(feature = "app-bitcoin", feature = "app-litecoin")))]
-async fn process_api_btc(_request: &Request) -> Option<Result<Response, Error>> {
-    Some(Err(Error::Disabled))
+async fn process_api_btc(_request: &Request) -> Result<Response, Error> {
+    Err(Error::Disabled)
 }
 
 /// Handle a protobuf api call.
-///
-/// Returns `None` if the call was not handled by Rust, in which case it should be handled by
-/// the C commander.
-async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
+async fn process_api(request: &Request) -> Result<Response, Error> {
     match request {
-        Request::Reboot(ref request) => Some(system::reboot(request).await),
-        Request::DeviceInfo(_) => Some(device_info::process()),
-        Request::DeviceName(ref request) => Some(set_device_name::process(request).await),
-        Request::SetPassword(ref request) => Some(set_password::process(request).await),
-        Request::Reset(_) => Some(reset::process().await),
+        Request::Reboot(ref request) => system::reboot(request).await,
+        Request::DeviceInfo(_) => device_info::process(),
+        Request::DeviceName(ref request) => set_device_name::process(request).await,
+        Request::SetPassword(ref request) => set_password::process(request).await,
+        Request::Reset(_) => reset::process().await,
         Request::SetMnemonicPassphraseEnabled(ref request) => {
-            Some(set_mnemonic_passphrase_enabled::process(request).await)
+            set_mnemonic_passphrase_enabled::process(request).await
         }
-        Request::InsertRemoveSdcard(ref request) => Some(sdcard::process(request).await),
-        Request::ListBackups(_) => Some(backup::list()),
-        Request::CheckSdcard(_) => Some(Ok(Response::CheckSdcard(pb::CheckSdCardResponse {
+        Request::InsertRemoveSdcard(ref request) => sdcard::process(request).await,
+        Request::ListBackups(_) => backup::list(),
+        Request::CheckSdcard(_) => Ok(Response::CheckSdcard(pb::CheckSdCardResponse {
             inserted: bitbox02::sd::sdcard_inserted(),
-        }))),
-        Request::CheckBackup(ref request) => Some(backup::check(request).await),
-        Request::CreateBackup(ref request) => Some(backup::create(request).await),
-        Request::RestoreBackup(ref request) => Some(restore::from_file(request).await),
-        Request::ShowMnemonic(_) => Some(show_mnemonic::process().await),
-        Request::RestoreFromMnemonic(ref request) => Some(restore::from_mnemonic(request).await),
-        Request::ElectrumEncryptionKey(ref request) => Some(electrum::process(request).await),
+        })),
+        Request::CheckBackup(ref request) => backup::check(request).await,
+        Request::CreateBackup(ref request) => backup::create(request).await,
+        Request::RestoreBackup(ref request) => restore::from_file(request).await,
+        Request::ShowMnemonic(_) => show_mnemonic::process().await,
+        Request::RestoreFromMnemonic(ref request) => restore::from_mnemonic(request).await,
+        Request::ElectrumEncryptionKey(ref request) => electrum::process(request).await,
 
         #[cfg(feature = "app-ethereum")]
         Request::Eth(pb::EthRequest {
             request: Some(ref request),
         }) => ethereum::process_api(request)
             .await
-            .map(|r| r.map(|r| Response::Eth(pb::EthResponse { response: Some(r) }))),
+            .map(|r| Response::Eth(pb::EthResponse { response: Some(r) })),
         #[cfg(not(feature = "app-ethereum"))]
-        Request::Eth(_) => Some(Err(Error::Disabled)),
+        Request::Eth(_) => Err(Error::Disabled),
 
-        Request::Fingerprint(pb::RootFingerprintRequest {}) => Some(rootfingerprint::process()),
+        Request::Fingerprint(pb::RootFingerprintRequest {}) => rootfingerprint::process(),
         request @ Request::BtcPub(_)
         | request @ Request::Btc(_)
         | request @ Request::BtcSignInit(_) => process_api_btc(request).await,
@@ -163,20 +158,16 @@ async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
         #[cfg(feature = "app-cardano")]
         Request::Cardano(pb::CardanoRequest {
             request: Some(ref request),
-        }) => Some(
-            cardano::process_api(request)
-                .await
-                .map(|r| Response::Cardano(pb::CardanoResponse { response: Some(r) })),
-        ),
+        }) => cardano::process_api(request)
+            .await
+            .map(|r| Response::Cardano(pb::CardanoResponse { response: Some(r) })),
         #[cfg(not(feature = "app-cardano"))]
-        Request::Cardano(_) => Some(Err(Error::Disabled)),
-        _ => None,
+        Request::Cardano(_) => Err(Error::Disabled),
+        _ => Err(Error::InvalidInput),
     }
 }
 
-/// Handle a protobuf api call.  API calls not handled by Rust are
-/// handled by the C commander, which allows us to use Rust for new
-/// api calls and port the old calls step by step.
+/// Handle a protobuf api call.
 ///
 /// `input` is a hww.proto Request message, protobuf encoded.
 /// Returns a protobuf encoded hww.proto Response message.
@@ -190,9 +181,7 @@ pub async fn process(input: Vec<u8>) -> Vec<u8> {
     }
 
     match process_api(&request).await {
-        Some(Ok(response)) => encode(response),
-        Some(Err(error)) => encode(make_error(error)),
-        // Api call not handled in Rust -> handle it in C.
-        None => bitbox02::commander::commander(input),
+        Ok(response) => encode(response),
+        Err(error) => encode(make_error(error)),
     }
 }

@@ -28,8 +28,6 @@ mod alloc;
 
 mod util;
 
-#[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
-mod app_bitcoin;
 #[cfg(feature = "firmware")]
 mod async_usb;
 #[cfg(feature = "firmware")]

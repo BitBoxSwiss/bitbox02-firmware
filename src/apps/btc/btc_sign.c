@@ -16,7 +16,6 @@
 #include "btc_sign.h"
 #include "btc_common.h"
 #include "btc_params.h"
-#include "btc_sign_validate.h"
 
 #include <rust/rust.h>
 
@@ -48,11 +47,6 @@ static app_btc_result_t _error(app_btc_result_t err)
 
 app_btc_result_t app_btc_sign_init(const BTCSignInitRequest* request)
 {
-    app_btc_result_t result = app_btc_sign_validate_init_script_configs(
-        request->coin, request->script_configs, request->script_configs_count);
-    if (result != APP_BTC_OK) {
-        return _error(result);
-    }
     _reset();
     _init_request = *request;
     return APP_BTC_OK;

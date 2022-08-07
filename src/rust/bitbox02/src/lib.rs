@@ -32,9 +32,6 @@ pub mod testing;
 
 #[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
 pub mod app_btc;
-#[cfg(feature = "testing")]
-#[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
-pub mod app_btc_sign_ui;
 #[cfg(feature = "app-ethereum")]
 pub mod app_eth;
 pub mod backup;

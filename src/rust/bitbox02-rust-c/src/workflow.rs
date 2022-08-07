@@ -131,26 +131,3 @@ pub unsafe extern "C" fn rust_workflow_status_blocking(
 ) {
     block_on(status::status(msg.as_ref(), status_success))
 }
-
-#[no_mangle]
-pub unsafe extern "C" fn rust_workflow_confirm_blocking(
-    params: &bitbox02::confirm_params_t,
-) -> bool {
-    let title = crate::util::rust_util_cstr(params.title);
-    let body = crate::util::rust_util_cstr(params.body);
-    if !params.font.is_null() {
-        panic!("Only default font supported");
-    }
-    let params = confirm::Params {
-        title: title.as_ref(),
-        title_autowrap: params.title_autowrap,
-        body: body.as_ref(),
-        font: confirm::Font::Default,
-        scrollable: params.scrollable,
-        longtouch: params.longtouch,
-        accept_only: params.accept_only,
-        accept_is_nextarrow: params.accept_is_nextarrow,
-        display_size: params.display_size as _,
-    };
-    block_on(confirm::confirm(&params)).is_ok()
-}

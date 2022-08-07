@@ -39,7 +39,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/reset.c
   ${CMAKE_SOURCE_DIR}/src/cipher/cipher.c
   ${CMAKE_SOURCE_DIR}/src/workflow/blocking.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
   ${CMAKE_SOURCE_DIR}/src/workflow/idle_workflow.c
   ${CMAKE_SOURCE_DIR}/src/workflow/orientation_screen.c
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c
@@ -49,9 +48,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_common.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_params.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign_validate.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_ui.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/confirm_multisig.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
 )
@@ -420,7 +416,6 @@ add_custom_target(rust-bindgen
     --whitelist-function app_eth_erc20_params_get
     --whitelist-function app_eth_sighash
     --rustified-enum app_btc_result_t
-    --whitelist-function testing_app_btc_mock_ui
     --whitelist-function btc_common_pkscript_from_payload
     --whitelist-function btc_common_payload_at_keypath
     --whitelist-function btc_common_payload_from_multisig

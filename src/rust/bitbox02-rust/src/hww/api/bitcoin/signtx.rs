@@ -801,9 +801,9 @@ pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error
 
 #[cfg(test)]
 mod tests {
-    use super::super::common::parse_xpub;
     use super::*;
     use crate::bb02_async::block_on;
+    use crate::bip32::parse_xpub;
     use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic, Data};
     use util::bip32::HARDENED;

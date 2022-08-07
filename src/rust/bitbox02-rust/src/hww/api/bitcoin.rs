@@ -201,10 +201,11 @@ pub async fn address_multisig(
             xpubs: {
                 let mut xpubs = [[0u8; 78]; multisig::MAX_SIGNERS];
                 for (i, xpub) in multisig.xpubs.iter().enumerate() {
-                    xpubs[i] = common::serialize_xpub(xpub)
-                        .or(Err(Error::InvalidInput))?
-                        .try_into()
-                        .or(Err(Error::Generic))?;
+                    xpubs[i] =
+                        crate::bip32::serialize_xpub(xpub, Some(crate::bip32::XPubType::Xpub))
+                            .or(Err(Error::InvalidInput))?
+                            .try_into()
+                            .or(Err(Error::Generic))?;
                 }
                 xpubs
             },
@@ -293,12 +294,12 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::bip32::parse_xpub;
     use alloc::boxed::Box;
     use alloc::vec::Vec;
     use bitbox02::testing::{
         mock, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic, Data, TEST_MNEMONIC,
     };
-    use common::parse_xpub;
     use util::bip32::HARDENED;
 
     #[test]

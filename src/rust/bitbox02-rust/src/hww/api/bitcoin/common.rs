@@ -16,7 +16,6 @@ use super::pb;
 use super::Error;
 
 use alloc::string::String;
-use alloc::vec::Vec;
 
 use bech32::{ToBase32, Variant};
 
@@ -134,49 +133,11 @@ pub fn determine_output_type(script_config: &pb::BtcScriptConfig) -> Result<BtcO
     }
 }
 
-#[cfg(feature = "testing")]
-pub fn parse_xpub(xpub: &str) -> Result<pb::XPub, ()> {
-    let decoded = bs58::decode(xpub).into_vec().or(Err(()))?;
-    Ok(pb::XPub {
-        depth: decoded[4..5].to_vec(),
-        parent_fingerprint: decoded[5..9].to_vec(),
-        child_num: u32::from_be_bytes(core::convert::TryInto::try_into(&decoded[9..13]).unwrap()),
-        chain_code: decoded[13..45].to_vec(),
-        public_key: decoded[45..78].to_vec(),
-    })
-}
-
-/// Serializes a protobuf XPub to bytes according to the BIP32 specification, **skipping** the first
-/// four version bytes.
-pub fn serialize_xpub_no_version(xpub: &pb::XPub) -> Result<Vec<u8>, ()> {
-    if xpub.depth.len() != 1
-        || xpub.parent_fingerprint.len() != 4
-        || xpub.chain_code.len() != 32
-        || xpub.public_key.len() != 33
-    {
-        return Err(());
-    }
-    let mut result = Vec::new();
-    result.extend_from_slice(&xpub.depth);
-    result.extend_from_slice(&xpub.parent_fingerprint);
-    result.extend_from_slice(&xpub.child_num.to_be_bytes());
-    result.extend_from_slice(&xpub.chain_code);
-    result.extend_from_slice(&xpub.public_key);
-    Ok(result)
-}
-
-/// Serializes a protobuf XPub to bytes according to the BIP32 specification, using the public
-/// mainnet version bytes.
-pub fn serialize_xpub(xpub: &pb::XPub) -> Result<Vec<u8>, ()> {
-    // Version bytes for mainnet public, see BIP32.
-    let mut result = b"\x04\x88\xb2\x1e".to_vec();
-    result.extend_from_slice(&serialize_xpub_no_version(xpub)?);
-    Ok(result)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use alloc::vec::Vec;
 
     #[test]
     fn test_address_from_payload() {
@@ -311,18 +272,5 @@ mod tests {
         for (satoshi, expected) in tests {
             assert_eq!(format_amount(satoshi, "LOL"), expected);
         }
-    }
-
-    #[test]
-    fn test_parse_serialize_xpub() {
-        let xpub = parse_xpub("xpub6Eu7xJRyXRCi4eLYhJPnfZVjgAQtM7qFaEZwUhvgxGf4enEZMxevGzWvZTawCj9USP2MFTEhKQAwnqHwoaPHetTLqGuvq5r5uaLKyGx5QDZ").unwrap();
-        assert_eq!(
-            serialize_xpub_no_version(&xpub).unwrap(),
-            hex::decode("04b9d184d180000002b5b571ead68edac616c38491d9fd78d4697077e7675333452b586e3282705a3a0281bec7de8d182945744445948b54800e95267a5ac039bab6218a03b8e6f4b38a").unwrap(),
-        );
-        assert_eq!(
-            serialize_xpub(&xpub).unwrap(),
-            hex::decode("0488b21e04b9d184d180000002b5b571ead68edac616c38491d9fd78d4697077e7675333452b586e3282705a3a0281bec7de8d182945744445948b54800e95267a5ac039bab6218a03b8e6f4b38a").unwrap(),
-        );
     }
 }

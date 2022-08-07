@@ -78,7 +78,7 @@ pub fn get_hash(
         let mut xpubs_serialized: Vec<Vec<u8>> = multisig
             .xpubs
             .iter()
-            .map(super::common::serialize_xpub_no_version)
+            .map(|xpub| crate::bip32::serialize_xpub(xpub, None))
             .collect::<Result<Vec<Vec<u8>>, ()>>()?;
         if let SortXpubs::Yes = sort_xpubs {
             xpubs_serialized.sort();
@@ -193,8 +193,10 @@ pub fn validate(multisig: &Multisig, keypath: &[u32], expected_coin: u32) -> Res
             .into_vec()
             .or(Err(Error::Generic))?
     };
-    let maybe_our_xpub =
-        super::common::serialize_xpub(&multisig.xpubs[multisig.our_xpub_index as usize])?;
+    let maybe_our_xpub = crate::bip32::serialize_xpub(
+        &multisig.xpubs[multisig.our_xpub_index as usize],
+        Some(crate::bip32::XPubType::Xpub),
+    )?;
     if our_xpub != maybe_our_xpub {
         return Err(Error::InvalidInput);
     }
@@ -233,7 +235,7 @@ pub fn process_is_script_config_registered(
 mod tests {
     use super::*;
 
-    use super::super::common::parse_xpub;
+    use crate::bip32::parse_xpub;
     use bitbox02::testing::{mock_memory, mock_unlocked_using_mnemonic};
     use util::bip32::HARDENED;
 

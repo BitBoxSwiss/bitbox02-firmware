@@ -482,6 +482,7 @@ if(NOT CMAKE_CROSSCOMPILING)
           --all-features
           --target-dir ${RUST_BINARY_DIR}/all-features
           --release
+          --tests
           -- # disabled linters:
             -A clippy::large_enum_variant
             -A clippy::identity_op

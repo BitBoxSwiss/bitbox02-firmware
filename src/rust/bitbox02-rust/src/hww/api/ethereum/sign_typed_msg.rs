@@ -642,7 +642,7 @@ mod tests {
         }
 
         fn get_value(&self, path: &[u32]) -> Vec<u8> {
-            if path.len() == 0 {
+            if path.is_empty() {
                 return self.encode();
             }
 
@@ -745,7 +745,7 @@ mod tests {
 
     #[test]
     fn test_get_transitive_types() {
-        assert!(get_transitive_types(&vec![], "type-doesnt-exist").is_err());
+        assert!(get_transitive_types(&[], "type-doesnt-exist").is_err());
 
         let types = make_types();
         assert_eq!(

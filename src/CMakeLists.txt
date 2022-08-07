@@ -17,7 +17,6 @@
 set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/firmware_main_loop.c
   ${CMAKE_SOURCE_DIR}/src/commander/commander.c
-  ${CMAKE_SOURCE_DIR}/src/commander/commander_btc.c
   ${CMAKE_SOURCE_DIR}/src/commander/commander_states.c
   ${CMAKE_SOURCE_DIR}/src/commander/protobuf.c
   ${CMAKE_SOURCE_DIR}/src/keystore.c
@@ -49,7 +48,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_total.c
   ${CMAKE_SOURCE_DIR}/src/apps/common/bip32.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_common.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_params.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign.c

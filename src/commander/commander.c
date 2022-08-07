@@ -17,9 +17,6 @@
 
 #include "commander.h"
 #include "protobuf.h"
-#if APP_BTC == 1 || APP_LTC == 1
-#include "commander/commander_btc.h"
-#endif
 
 #include <flags.h>
 #include <hardfault.h>
@@ -56,11 +53,9 @@ static void _report_error(Response* response, commander_error_t error_code)
  */
 static commander_error_t _api_process(const Request* request, Response* response)
 {
+    (void)response;
     switch (request->which_request) {
 #if APP_BTC == 1 || APP_LTC == 1
-    case Request_btc_tag:
-        response->which_response = Response_btc_tag;
-        return commander_btc(&(request->request.btc), &(response->response.btc));
 #else
     case Request_btc_pub_tag:
     case Request_btc_sign_init_tag:

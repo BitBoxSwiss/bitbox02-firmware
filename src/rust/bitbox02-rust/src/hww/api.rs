@@ -106,9 +106,11 @@ async fn process_api_btc(request: &Request) -> Option<Result<Response, Error>> {
         Request::BtcSignInput(_) | Request::BtcSignOutput(_) => Some(Err(Error::InvalidState)),
         Request::Btc(pb::BtcRequest {
             request: Some(request),
-        }) => bitcoin::process_api(request)
-            .await
-            .map(|r| r.map(|r| Response::Btc(pb::BtcResponse { response: Some(r) }))),
+        }) => Some(
+            bitcoin::process_api(request)
+                .await
+                .map(|r| Response::Btc(pb::BtcResponse { response: Some(r) })),
+        ),
         _ => None,
     }
 }

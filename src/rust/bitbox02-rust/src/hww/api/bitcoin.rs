@@ -273,19 +273,21 @@ pub async fn process_pub(request: &pb::BtcPubRequest) -> Option<Result<Response,
 ///
 /// Returns `None` if the call was not handled by Rust, in which case it should be handled by
 /// the C commander.
-pub async fn process_api(request: &Request) -> Option<Result<pb::btc_response::Response, Error>> {
+pub async fn process_api(request: &Request) -> Result<pb::btc_response::Response, Error> {
     match request {
         Request::IsScriptConfigRegistered(ref request) => {
-            Some(multisig::process_is_script_config_registered(request))
+            multisig::process_is_script_config_registered(request)
         }
-        Request::SignMessage(ref request) => Some(signmsg::process(request).await),
+        Request::RegisterScriptConfig(ref request) => {
+            multisig::process_register_script_config(request).await
+        }
+        Request::SignMessage(ref request) => signmsg::process(request).await,
         // These are streamed asynchronously using the `next_request()` primitive in
         // bitcoin/signtx.rs and are not handled directly.
         Request::PrevtxInit(_)
         | Request::PrevtxInput(_)
         | Request::PrevtxOutput(_)
-        | Request::AntikleptoSignature(_) => Some(Err(Error::InvalidState)),
-        _ => None,
+        | Request::AntikleptoSignature(_) => Err(Error::InvalidState),
     }
 }
 

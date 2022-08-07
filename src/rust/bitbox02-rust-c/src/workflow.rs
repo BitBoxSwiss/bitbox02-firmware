@@ -21,8 +21,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::string::String;
 use bitbox02_rust::bb02_async::{block_on, spin, Task};
-use bitbox02_rust::workflow::{confirm, status, trinary_input_string};
-use core::fmt::Write;
+use bitbox02_rust::workflow::{confirm, status};
 use core::task::Poll;
 
 enum TaskState<'a, O> {
@@ -154,30 +153,4 @@ pub unsafe extern "C" fn rust_workflow_confirm_blocking(
         display_size: params.display_size as _,
     };
     block_on(confirm::confirm(&params)).is_ok()
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rust_workflow_trinary_input_name(
-    mut name_out: crate::util::CStrMut,
-) -> bool {
-    let params = trinary_input_string::Params {
-        title: "Enter account name",
-        longtouch: true,
-        ..Default::default()
-    };
-    match block_on(trinary_input_string::enter(
-        &params,
-        trinary_input_string::CanCancel::Yes,
-        "",
-    )) {
-        Ok(name) => {
-            // We truncate the user input string to fit into the desired output buffer. This is not
-            // very nice, but it has to do until we have some sort of indication in the input
-            // component.
-            let truncated = bitbox02::util::truncate_str(name.as_str(), name_out.cap() - 1);
-            name_out.write_str(truncated).unwrap();
-            true
-        }
-        Err(_) => false,
-    }
 }

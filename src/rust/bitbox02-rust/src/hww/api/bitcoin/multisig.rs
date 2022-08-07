@@ -12,15 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::params::Params;
+use super::params::{self, Params};
 use super::pb;
 use super::Error;
 
+use pb::btc_register_script_config_request::XPubType;
 use pb::btc_response::Response;
 use pb::btc_script_config::{multisig::ScriptType, Config, Multisig};
 use pb::BtcCoin;
 
-use crate::workflow::confirm;
+use crate::bip32;
+
+use crate::workflow::{confirm, status, trinary_input_string};
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -78,7 +81,7 @@ pub fn get_hash(
         let mut xpubs_serialized: Vec<Vec<u8>> = multisig
             .xpubs
             .iter()
-            .map(|xpub| crate::bip32::serialize_xpub(xpub, None))
+            .map(|xpub| bip32::serialize_xpub(xpub, None))
             .collect::<Result<Vec<Vec<u8>>, ()>>()?;
         if let SortXpubs::Yes = sort_xpubs {
             xpubs_serialized.sort();
@@ -157,6 +160,89 @@ pub async fn confirm(
     Ok(())
 }
 
+/// Confirms a multisig setup with the user during account registration.
+/// Verified are:
+/// - coin
+/// - multisig type (m-of-n)
+/// - name given by the user
+/// - script type (e.g. p2wsh, p2wsh-p2sh)
+/// - account keypath
+/// - all xpubs (formatted according to `xpub_type`).
+///
+/// xpub_type: if AUTO_ELECTRUM, will automatically format xpubs as `Zpub/Vpub`,
+/// `Ypub/UPub` depending on the script type, to match Electrum's formatting. If AUTO_XPUB_TPUB,
+/// format as xpub (mainnets) or tpub (testnets).
+pub async fn confirm_extended(
+    title: &str,
+    params: &Params,
+    name: &str,
+    multisig: &Multisig,
+    xpub_type: XPubType,
+    keypath: &[u32],
+) -> Result<(), Error> {
+    let script_type = ScriptType::from_i32(multisig.script_type).ok_or(Error::InvalidInput)?;
+
+    confirm(title, params, name, multisig).await?;
+    confirm::confirm(&confirm::Params {
+        title,
+        body: &format!(
+            "{}\nat\n{}",
+            match ScriptType::from_i32(multisig.script_type).ok_or(Error::InvalidInput)? {
+                ScriptType::P2wsh => "p2wsh",
+                ScriptType::P2wshP2sh => "p2wsh-p2sh",
+            },
+            util::bip32::to_string(keypath)
+        ),
+        accept_is_nextarrow: true,
+        ..Default::default()
+    })
+    .await?;
+
+    // Confirm cosigners.
+    let output_xpub_type: bip32::XPubType = match xpub_type {
+        XPubType::AutoElectrum => match params.coin {
+            BtcCoin::Btc | BtcCoin::Ltc => match script_type {
+                ScriptType::P2wsh => bip32::XPubType::CapitalZpub,
+                ScriptType::P2wshP2sh => bip32::XPubType::CapitalYpub,
+            },
+            BtcCoin::Tbtc | BtcCoin::Tltc => match script_type {
+                ScriptType::P2wsh => bip32::XPubType::CapitalVpub,
+                ScriptType::P2wshP2sh => bip32::XPubType::CapitalUpub,
+            },
+        },
+        XPubType::AutoXpubTpub => match params.coin {
+            BtcCoin::Btc | BtcCoin::Ltc => bip32::XPubType::Xpub,
+            BtcCoin::Tbtc | BtcCoin::Tltc => bip32::XPubType::Tpub,
+        },
+    };
+    let num_cosigners = multisig.xpubs.len();
+    for (i, xpub) in multisig.xpubs.iter().enumerate() {
+        let xpub_str =
+            bip32::serialize_xpub_str(xpub, output_xpub_type).or(Err(Error::InvalidInput))?;
+        confirm::confirm(&confirm::Params {
+            title,
+            body: (if i == multisig.our_xpub_index as usize {
+                format!(
+                    "Cosigner {}/{} (this device): {}",
+                    i + 1,
+                    num_cosigners,
+                    xpub_str
+                )
+            } else {
+                format!("Cosigner {}/{}: {}", i + 1, num_cosigners, xpub_str)
+            })
+            .as_str(),
+            scrollable: true,
+            longtouch: i == num_cosigners - 1,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+    }
+    // TODO rest
+    Ok(())
+}
+
 /// Validate a m-of-n multisig account. This includes checking that:
 /// - 0 < m <= n <= 15
 /// - the keypath conforms to bip48 for p2wsh: m/48'/coin'/account'/script_type'
@@ -193,9 +279,9 @@ pub fn validate(multisig: &Multisig, keypath: &[u32], expected_coin: u32) -> Res
             .into_vec()
             .or(Err(Error::Generic))?
     };
-    let maybe_our_xpub = crate::bip32::serialize_xpub(
+    let maybe_our_xpub = bip32::serialize_xpub(
         &multisig.xpubs[multisig.our_xpub_index as usize],
-        Some(crate::bip32::XPubType::Xpub),
+        Some(bip32::XPubType::Xpub),
     )?;
     if our_xpub != maybe_our_xpub {
         return Err(Error::InvalidInput);
@@ -231,11 +317,75 @@ pub fn process_is_script_config_registered(
     }
 }
 
+pub async fn process_register_script_config(
+    request: &pb::BtcRegisterScriptConfigRequest,
+) -> Result<Response, Error> {
+    match request.registration.as_ref() {
+        Some(pb::BtcScriptConfigRegistration {
+            coin,
+            script_config:
+                Some(pb::BtcScriptConfig {
+                    config: Some(Config::Multisig(multisig)),
+                }),
+            keypath,
+        }) => {
+            let coin = BtcCoin::from_i32(*coin).ok_or(Error::InvalidInput)?;
+            let coin_params = params::get(coin);
+            let name = if request.name.is_empty() {
+                confirm::confirm(&confirm::Params {
+                    title: "Register",
+                    body: "Please name this\nmultisig account",
+                    accept_is_nextarrow: true,
+                    ..Default::default()
+                })
+                .await?;
+
+                let name = trinary_input_string::enter(
+                    &trinary_input_string::Params {
+                        title: "Enter account name",
+                        longtouch: true,
+                        ..Default::default()
+                    },
+                    trinary_input_string::CanCancel::Yes,
+                    "",
+                )
+                .await?;
+                // We truncate the user input string to fit into the maximum allowed multisig
+                // account name length. This is not very nice, but it has to do until we have some
+                // sort of indication in the input component.
+                bitbox02::util::truncate_str(name.as_str(), bitbox02::memory::MULTISIG_NAME_MAX_LEN)
+                    .into()
+            } else {
+                request.name.clone()
+            };
+            if !util::name::validate(&name, bitbox02::memory::MULTISIG_NAME_MAX_LEN) {
+                return Err(Error::InvalidInput);
+            }
+            validate(multisig, keypath, coin_params.bip44_coin)?;
+            let xpub_type = XPubType::from_i32(request.xpub_type).ok_or(Error::InvalidInput)?;
+            confirm_extended("Register", coin_params, &name, multisig, xpub_type, keypath).await?;
+            let hash = get_hash(coin, multisig, SortXpubs::Yes, keypath)?;
+            match bitbox02::memory::multisig_set_by_hash(&hash, &name) {
+                Ok(()) => {
+                    status::status("Multisig account\nregistered", true).await;
+                    Ok(Response::Success(pb::BtcSuccess {}))
+                }
+                Err(bitbox02::memory::MemoryError::MEMORY_ERR_DUPLICATE_NAME) => {
+                    Err(Error::Duplicate)
+                }
+                Err(_) => Err(Error::Generic),
+            }
+        }
+        // Only multisig registration supported for now.
+        _ => Err(Error::InvalidInput),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use crate::bip32::parse_xpub;
+    use bip32::parse_xpub;
     use bitbox02::testing::{mock_memory, mock_unlocked_using_mnemonic};
     use util::bip32::HARDENED;
 

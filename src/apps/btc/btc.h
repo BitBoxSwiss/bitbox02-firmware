@@ -15,14 +15,6 @@
 #ifndef _APPS_BTC_H
 #define _APPS_BTC_H
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-
-#include <compiler_util.h>
-
-#include <hww.pb.h>
-
 typedef enum {
     APP_BTC_OK,
     APP_BTC_ERR_USER_ABORT,
@@ -31,26 +23,5 @@ typedef enum {
     APP_BTC_ERR_STATE,
     APP_BTC_ERR_UNKNOWN,
 } app_btc_result_t;
-
-/**
- * @return true if coin is enabled
- */
-bool app_btc_enabled(BTCCoin coin);
-
-/**
- * Stores a script configuration alongside a user chosen name on the device. If the user aborts,
- * nothing is stored.
- * @param[in] name Name to give to the script config. Must be at most MEMORY_MULTISIG_NAME_MAX_LEN
- * bytes (including null terminator). If it is the empty string, the name is entered on the device.
- * @return OK if the registration was successful, ERR_USER_ABORT if the user aborted, ERR_UNKNOWN
- * for unknown errors.
- */
-USE_RESULT app_btc_result_t app_btc_register_script_config(
-    BTCCoin coin,
-    const BTCScriptConfig* script_config,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    const char* name,
-    BTCRegisterScriptConfigRequest_XPubType xpub_type);
 
 #endif

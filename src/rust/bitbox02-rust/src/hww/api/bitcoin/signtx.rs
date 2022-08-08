@@ -328,6 +328,67 @@ async fn handle_prevtx(
     Ok(())
 }
 
+async fn validate_script_configs(
+    coin_params: &super::params::Params,
+    script_configs: &[pb::BtcScriptConfigWithKeypath],
+) -> Result<(), Error> {
+    if script_configs.is_empty() {
+        return Err(Error::InvalidInput);
+    }
+
+    // If there are multiple script configs, only SimpleType (single sig, no additional inputs)
+    // configs are allowed, so e.g. mixing p2wpkh and pw2wpkh-p2sh is okay, but mixing p2wpkh with
+    // multisig-pw2sh is not.
+
+    // We get multisig out of the way first.
+
+    if let [pb::BtcScriptConfigWithKeypath {
+        script_config:
+            Some(pb::BtcScriptConfig {
+                config: Some(pb::btc_script_config::Config::Multisig(multisig)),
+            }),
+        keypath,
+    }] = script_configs
+    {
+        super::multisig::validate(multisig, keypath, coin_params.bip44_coin)?;
+        let name = super::multisig::get_name(coin_params.coin, multisig, keypath)?
+            .ok_or(Error::InvalidInput)?;
+        super::multisig::confirm("Spend from", coin_params, &name, multisig).await?;
+        return Ok(());
+    }
+
+    for script_config in script_configs.iter() {
+        // Only allow simple single sig configs here.
+        match script_config {
+            pb::BtcScriptConfigWithKeypath {
+                script_config:
+                    Some(pb::BtcScriptConfig {
+                        config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
+                    }),
+                keypath,
+            } => {
+                keypath::validate_account_simple(
+                    keypath,
+                    coin_params.bip44_coin,
+                    pb::btc_script_config::SimpleType::from_i32(*simple_type)
+                        .ok_or(Error::InvalidInput)?,
+                    coin_params.taproot_support,
+                )
+                .or(Err(Error::InvalidInput))?;
+
+                // Check that the bip44 account is the same for all. While we allow mixing input
+                // types (bip44 purpose), we do not allow mixing accounts.
+
+                if keypath[2] != script_configs[0].keypath[2] {
+                    return Err(Error::InvalidInput);
+                }
+            }
+            _ => return Err(Error::InvalidInput),
+        }
+    }
+    Ok(())
+}
+
 /// Singing flow:
 ///
 /// init
@@ -390,6 +451,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     if request.num_inputs < 1 || request.num_outputs < 1 {
         return Err(Error::InvalidInput);
     }
+    validate_script_configs(coin_params, &request.script_configs).await?;
     bitbox02::app_btc::sign_init_wrapper(encode(request).as_ref())?;
 
     let mut progress_component = {
@@ -801,9 +863,9 @@ pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error
 
 #[cfg(test)]
 mod tests {
-    use super::super::common::parse_xpub;
     use super::*;
     use crate::bb02_async::block_on;
+    use crate::bip32::parse_xpub;
     use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic, Data};
     use util::bip32::HARDENED;
@@ -1151,13 +1213,12 @@ mod tests {
             ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
             ..Default::default()
         });
-        bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
-            confirm: Box::new(|_title, _body| true),
-        });
     }
 
     #[test]
     pub fn test_sign_init_fail() {
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = None;
+
         let init_req_valid = pb::BtcSignInitRequest {
             coin: pb::BtcCoin::Btc as _,
             script_configs: vec![pb::BtcScriptConfigWithKeypath {
@@ -1474,11 +1535,6 @@ mod tests {
                 })),
                 ..Default::default()
             });
-            bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
-                confirm: Box::new(|_title, _body| {
-                    panic!("unexpected UI dialog");
-                }),
-            });
             mock_unlocked();
             let tx = transaction.borrow();
             let result = block_on(process(&tx.init_request()));
@@ -1793,12 +1849,6 @@ mod tests {
                 })),
                 ..Default::default()
             });
-            bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
-                confirm: Box::new(|_title, _body| unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER != CURRENT_COUNTER
-                }),
-            });
             mock_unlocked();
             assert_eq!(
                 block_on(process(&transaction.borrow().init_request())),
@@ -1937,9 +1987,6 @@ mod tests {
             ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
             ui_confirm_create: Some(Box::new(move |_params| true)),
             ..Default::default()
-        });
-        bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
-            confirm: Box::new(|_title, _body| true),
         });
         mock_unlocked();
         let result = block_on(process(&transaction.borrow().init_request()));
@@ -2180,6 +2227,14 @@ mod tests {
                     UI_COUNTER += 1;
                     UI_COUNTER
                 } {
+                    1 => {
+                        assert_eq!(params.title, "Spend from");
+                        assert_eq!(params.body, "1-of-2\nBTC Testnet multisig");
+                    }
+                    2 => {
+                        assert_eq!(params.title, "Spend from");
+                        assert_eq!(params.body, "test multisig account name");
+                    }
                     4 => {
                         assert_eq!(params.title, "");
                         assert_eq!(
@@ -2221,25 +2276,6 @@ mod tests {
                 true
             })),
             ..Default::default()
-        });
-        bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
-            confirm: Box::new(|title, body| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(title, "Spend from");
-                        assert_eq!(body, "1-of-2\nBTC Testnet multisig");
-                    }
-                    2 => {
-                        assert_eq!(title, "Spend from");
-                        assert_eq!(body, "test multisig account name");
-                    }
-                    _ => panic!("unexpected UI dialog"),
-                }
-                true
-            }),
         });
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",

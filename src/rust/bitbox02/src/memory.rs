@@ -22,6 +22,8 @@ pub const DEVICE_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_DEVICE_NAME_MAX_LEN 
 // deduct one for the null terminator.
 pub const MULTISIG_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_MULTISIG_NAME_MAX_LEN as usize - 1;
 
+pub use bitbox02_sys::memory_result_t as MemoryError;
+
 #[derive(Debug)]
 pub struct Error;
 
@@ -125,19 +127,19 @@ pub fn get_seed_birthdate() -> u32 {
     }
 }
 
-pub fn multisig_set_by_hash(hash: &[u8], name: &str) -> Result<(), bitbox02_sys::memory_result_t> {
+pub fn multisig_set_by_hash(hash: &[u8], name: &str) -> Result<(), MemoryError> {
     if hash.len() != 32 {
-        return Err(bitbox02_sys::memory_result_t::MEMORY_ERR_INVALID_INPUT);
+        return Err(MemoryError::MEMORY_ERR_INVALID_INPUT);
     }
     match unsafe {
         bitbox02_sys::memory_multisig_set_by_hash(
             hash.as_ptr(),
             crate::util::str_to_cstr_vec(name)
-                .or(Err(bitbox02_sys::memory_result_t::MEMORY_ERR_INVALID_INPUT))?
+                .or(Err(MemoryError::MEMORY_ERR_INVALID_INPUT))?
                 .as_ptr(),
         )
     } {
-        bitbox02_sys::memory_result_t::MEMORY_OK => Ok(()),
+        MemoryError::MEMORY_OK => Ok(()),
         err => Err(err),
     }
 }

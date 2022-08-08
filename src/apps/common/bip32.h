@@ -28,11 +28,4 @@
  */
 USE_RESULT bool apps_common_bip32_xpub_from_protobuf(const XPub* xpub_in, struct ext_key* xpub_out);
 
-/**
- * @return true if both provided xpubs are the same.
- */
-USE_RESULT bool apps_common_bip32_xpubs_equal(
-    const struct ext_key* xpub1,
-    const struct ext_key* xpub2);
-
 #endif

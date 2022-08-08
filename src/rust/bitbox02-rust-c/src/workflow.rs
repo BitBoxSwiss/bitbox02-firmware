@@ -21,8 +21,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::string::String;
 use bitbox02_rust::bb02_async::{block_on, spin, Task};
-use bitbox02_rust::workflow::{confirm, status, trinary_input_string};
-use core::fmt::Write;
+use bitbox02_rust::workflow::{confirm, status};
 use core::task::Poll;
 
 enum TaskState<'a, O> {
@@ -131,53 +130,4 @@ pub unsafe extern "C" fn rust_workflow_status_blocking(
     status_success: bool,
 ) {
     block_on(status::status(msg.as_ref(), status_success))
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rust_workflow_confirm_blocking(
-    params: &bitbox02::confirm_params_t,
-) -> bool {
-    let title = crate::util::rust_util_cstr(params.title);
-    let body = crate::util::rust_util_cstr(params.body);
-    if !params.font.is_null() {
-        panic!("Only default font supported");
-    }
-    let params = confirm::Params {
-        title: title.as_ref(),
-        title_autowrap: params.title_autowrap,
-        body: body.as_ref(),
-        font: confirm::Font::Default,
-        scrollable: params.scrollable,
-        longtouch: params.longtouch,
-        accept_only: params.accept_only,
-        accept_is_nextarrow: params.accept_is_nextarrow,
-        display_size: params.display_size as _,
-    };
-    block_on(confirm::confirm(&params)).is_ok()
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rust_workflow_trinary_input_name(
-    mut name_out: crate::util::CStrMut,
-) -> bool {
-    let params = trinary_input_string::Params {
-        title: "Enter account name",
-        longtouch: true,
-        ..Default::default()
-    };
-    match block_on(trinary_input_string::enter(
-        &params,
-        trinary_input_string::CanCancel::Yes,
-        "",
-    )) {
-        Ok(name) => {
-            // We truncate the user input string to fit into the desired output buffer. This is not
-            // very nice, but it has to do until we have some sort of indication in the input
-            // component.
-            let truncated = bitbox02::util::truncate_str(name.as_str(), name_out.cap() - 1);
-            name_out.write_str(truncated).unwrap();
-            true
-        }
-        Err(_) => false,
-    }
 }

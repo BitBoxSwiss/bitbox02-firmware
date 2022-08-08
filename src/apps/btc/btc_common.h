@@ -30,34 +30,23 @@
 #include <wally_crypto.h>
 #include <wally_script.h>
 
+#define MULTISIG_P2WSH_MAX_SIGNERS 15
+
+typedef struct {
+    size_t xpubs_count;
+    uint8_t xpubs[MULTISIG_P2WSH_MAX_SIGNERS][BIP32_SERIALIZED_LEN];
+    uint32_t threshold;
+} multisig_t;
+
 // see https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer
 #define MAX_VARINT_SIZE (9)
 // current expected max pk script size is a m-of-15 multisig. 700 is also enough for m-of-20, which
 // is technically possible to extend to if needed.
 #define MAX_PK_SCRIPT_SIZE (700)
 
-/**
- * Does limit checks the keypath, whitelisting bip44 purposes and accounts.
- * @return true if the keypath is valid, false if it is invalid.
- */
-USE_RESULT bool btc_common_is_valid_keypath_account_simple(
-    BTCScriptConfig_SimpleType script_type,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint32_t expected_coin,
-    bool taproot_support);
-
-/**
- * Checks that the keypath is m/48'/coin'/account'/script_type'/change/address, limiting the number
- * of valid accounts/addresses.
- * script_type' is 2' for P2WSH and 1' for P2WSH-P2SH.
- * @return true if the keypath is valid, false if it is invalid.
- */
-USE_RESULT bool btc_common_is_valid_keypath_address_multisig(
-    BTCScriptConfig_Multisig_ScriptType script_type,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint32_t expected_coin);
+USE_RESULT bool btc_common_convert_multisig(
+    const BTCScriptConfig_Multisig* multisig,
+    multisig_t* multisig_out);
 
 /**
  * Generate the payload used in an output script, e.g. pubkeyhash or script hash or pubkey.
@@ -92,12 +81,6 @@ USE_RESULT bool btc_common_sighash_script_from_pubkeyhash(
     size_t* script_size);
 
 /**
- * For a multisig input type, determine the output type.
- */
-USE_RESULT BTCOutputType
-btc_common_determine_output_type_multisig(const BTCScriptConfig_Multisig* multisig);
-
-/**
  * Computes the pkScript from a pubkey hash or script hash or pubkey, depending on the output
  * type.
  * @param[in] output_type type of pkScript.
@@ -124,7 +107,7 @@ USE_RESULT bool btc_common_pkscript_from_payload(
  * @return true on success, false on failure.
  */
 USE_RESULT bool btc_common_pkscript_from_multisig(
-    const BTCScriptConfig_Multisig* multisig,
+    const multisig_t* multisig,
     uint32_t keypath_change,
     uint32_t keypath_address,
     uint8_t* script_out,
@@ -142,81 +125,11 @@ USE_RESULT bool btc_common_pkscript_from_multisig(
  * `HASH160_LEN` for P2WSH-P2SH.
  */
 USE_RESULT bool btc_common_payload_from_multisig(
-    const BTCScriptConfig_Multisig* multisig,
+    const multisig_t* multisig,
+    BTCScriptConfig_Multisig_ScriptType script_type,
     uint32_t keypath_change,
     uint32_t keypath_address,
     uint8_t* output_payload,
     size_t* output_payload_size);
-
-/**
- * Validate a m-of-n multisig account. This includes checking that:
- * - 0 < m <= n <= 15
- * - the keypath conforms to bip48 for p2wsh: m/48'/coin'/account'/script_type'
- * - our designated xpub is actually ours (corresponds to the xpub of the currenty unlocked
- *   keystore).
- * - no two xpubs are the same.
- * @param[in] multisig Multisig configuration (threshold, signers). The xpubs are account-level
- * xpubs.
- * @param[in] keypath account-level keypath, e.g. m/48'/0'/10'/2'
- * @param[in] keypath_len number of elements in keypath
- * @param[in] expected_coin expected bip44 coin in the keypath.
- */
-USE_RESULT bool btc_common_multisig_is_valid(
-    const BTCScriptConfig_Multisig* multisig,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint32_t expected_coin);
-
-/**
- * Creates a hash of this multisig config, useful for multisig account registration and
- * identification. The individual params are not validated, they must be pre-validated!
- *
- * The xpubs in the multisig config are not sorted before hashing. This was the default for firmware
- * <= v9.2.1
- *
- * @param[in] coin The coin this multisig is used with.
- * @param[in] multisig The multisig config details.
- * @param[in] keypath Account-level keypath.
- * @param[in] keypath_len number of elements in keypath.
- * @param[out] hash_out resulting hash; must be `SHA256_LEN` bytes.
- * @return true on success, false on failure.
- */
-USE_RESULT bool btc_common_multisig_hash_unsorted(
-    BTCCoin coin,
-    const BTCScriptConfig_Multisig* multisig,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* hash_out);
-
-/**
- * Same as `btc_common_multisig_hash_unsorted()`, but the xpubs are sorted before hashing.
- */
-USE_RESULT bool btc_common_multisig_hash_sorted(
-    BTCCoin coin,
-    const BTCScriptConfig_Multisig* multisig,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* hash_out);
-
-/**
- * Get the name of a registered multisig account. If `name` is NULL, this serves as a check whether
- * the account was registered.
- *
- * The individual params are not validated, they must be pre-validated!
- *
- * @param[in] coin The coin this multisig is used with.
- * @param[in] multisig The multisig config details.
- * @param[in] keypath Account-level keypath.
- * @param[in] keypath_len number of elements in keypath.
- * @param[out] name_out will contain the name. Must have at least `MEMORY_MULTISIG_NAME_MAX_LEN`
- * bytes. Can be NULL.
- * @return true on success, false on failure.
- */
-USE_RESULT bool btc_common_multisig_name(
-    BTCCoin coin,
-    const BTCScriptConfig_Multisig* multisig,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    char* name_out);
 
 #endif

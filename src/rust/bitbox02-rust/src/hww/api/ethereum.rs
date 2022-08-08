@@ -74,13 +74,13 @@ pub async fn antiklepto_get_host_nonce(
 ///
 /// Returns `None` if the call was not handled by Rust, in which case it should be handled by
 /// the C commander.
-pub async fn process_api(request: &Request) -> Option<Result<Response, Error>> {
+pub async fn process_api(request: &Request) -> Result<Response, Error> {
     match request {
-        Request::Pub(ref request) => Some(pubrequest::process(request).await),
-        Request::SignMsg(ref request) => Some(signmsg::process(request).await),
-        Request::Sign(ref request) => Some(sign::process(request).await),
-        Request::AntikleptoSignature(_) => Some(Err(Error::InvalidInput)),
-        Request::SignTypedMsg(ref request) => Some(sign_typed_msg::process(request).await),
-        Request::TypedMsgValue(_) => Some(Err(Error::InvalidInput)),
+        Request::Pub(ref request) => pubrequest::process(request).await,
+        Request::SignMsg(ref request) => signmsg::process(request).await,
+        Request::Sign(ref request) => sign::process(request).await,
+        Request::AntikleptoSignature(_) => Err(Error::InvalidInput),
+        Request::SignTypedMsg(ref request) => sign_typed_msg::process(request).await,
+        Request::TypedMsgValue(_) => Err(Error::InvalidInput),
     }
 }

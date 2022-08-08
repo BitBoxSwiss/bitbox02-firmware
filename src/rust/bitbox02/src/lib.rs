@@ -32,9 +32,6 @@ pub mod testing;
 
 #[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
 pub mod app_btc;
-#[cfg(feature = "testing")]
-#[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
-pub mod app_btc_sign_ui;
 #[cfg(feature = "app-ethereum")]
 pub mod app_eth;
 pub mod backup;
@@ -61,10 +58,6 @@ pub use bitbox02_sys::{
     Request_set_mnemonic_passphrase_enabled_tag, Request_set_password_tag,
     Request_show_mnemonic_tag,
 };
-
-// Use this for functions exported to "C"
-#[allow(non_camel_case_types)]
-pub type commander_error_t = bitbox02_sys::commander_error_t;
 
 pub use bitbox02_sys::font_monogram_5X9;
 

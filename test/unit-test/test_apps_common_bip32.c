@@ -36,30 +36,10 @@ static void _test_apps_common_bip32_xpub_from_protobuf(void** state)
     assert_string_equal(xpub_str, test_xpub);
 }
 
-static void _test_apps_common_bip32_xpubs_are_equal(void** state)
-{
-    uint8_t seed1[16] = "0123456789012345";
-    struct ext_key xpub1;
-    assert_int_equal(
-        bip32_key_from_seed(
-            seed1, sizeof(seed1), BIP32_VER_MAIN_PRIVATE, BIP32_FLAG_SKIP_HASH, &xpub1),
-        WALLY_OK);
-
-    uint8_t seed2[16] = "1234567890123456";
-    struct ext_key xpub2;
-    assert_int_equal(
-        bip32_key_from_seed(seed2, sizeof(seed2), BIP32_VER_MAIN_PRIVATE, 0, &xpub2), WALLY_OK);
-
-    assert_true(apps_common_bip32_xpubs_equal(&xpub1, &xpub1));
-    assert_true(apps_common_bip32_xpubs_equal(&xpub2, &xpub2));
-    assert_false(apps_common_bip32_xpubs_equal(&xpub1, &xpub2));
-}
-
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_apps_common_bip32_xpub_from_protobuf),
-        cmocka_unit_test(_test_apps_common_bip32_xpubs_are_equal),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

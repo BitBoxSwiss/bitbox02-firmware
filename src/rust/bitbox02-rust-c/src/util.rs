@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use core::fmt::Write;
-use util::c_types::{c_char, c_uchar, size_t};
+use util::c_types::{c_char, c_uchar};
 
 /// Zero a buffer using volatile writes. Accepts null-ptr and 0-length buffers and does nothing.
 ///
@@ -29,12 +29,6 @@ pub extern "C" fn rust_util_zero(mut dst: BytesMut) {
 #[no_mangle]
 pub extern "C" fn rust_util_u64_be(v: u64, mut dst: BytesMut) {
     dst.as_mut().copy_from_slice(&v.to_be_bytes())
-}
-
-#[no_mangle]
-pub extern "C" fn rust_util_validate_name(cstr: CStr, max_len: size_t) -> bool {
-    let s: &str = cstr.as_ref();
-    util::name::validate(s, max_len)
 }
 
 /// Convert bytes to hex representation
@@ -156,10 +150,6 @@ pub struct CStrMut {
 }
 
 impl CStrMut {
-    pub fn cap(&self) -> usize {
-        self.cap
-    }
-
     /// Create a new growable string with capacity `cap`. Only allowed for non-null pointers with
     /// length or null pointers with 0 length due to limitation in `core::slice`. Unsafe because it
     /// will read until it finds a null character.

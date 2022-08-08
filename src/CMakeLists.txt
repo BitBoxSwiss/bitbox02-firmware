@@ -16,10 +16,7 @@
 
 set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/firmware_main_loop.c
-  ${CMAKE_SOURCE_DIR}/src/commander/commander.c
-  ${CMAKE_SOURCE_DIR}/src/commander/commander_btc.c
   ${CMAKE_SOURCE_DIR}/src/commander/commander_states.c
-  ${CMAKE_SOURCE_DIR}/src/commander/protobuf.c
   ${CMAKE_SOURCE_DIR}/src/keystore.c
   ${CMAKE_SOURCE_DIR}/src/random.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
@@ -42,20 +39,15 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/reset.c
   ${CMAKE_SOURCE_DIR}/src/cipher/cipher.c
   ${CMAKE_SOURCE_DIR}/src/workflow/blocking.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/confirm.c
   ${CMAKE_SOURCE_DIR}/src/workflow/idle_workflow.c
   ${CMAKE_SOURCE_DIR}/src/workflow/orientation_screen.c
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_total.c
   ${CMAKE_SOURCE_DIR}/src/apps/common/bip32.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_common.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_params.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign_validate.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_ui.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/confirm_multisig.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
 )
@@ -369,6 +361,7 @@ add_custom_target(rust-bindgen
     --rustified-enum keystore_secp256k1_pubkey_format
     --whitelist-function util_format_datetime
     --whitelist-function util_version_short
+    --whitelist-type buffer_t
     --whitelist-function delay_ms
     --whitelist-function UG_PutString
     --whitelist-function UG_FontSelect
@@ -392,9 +385,6 @@ add_custom_target(rust-bindgen
     --whitelist-function random_mock_reset
     --whitelist-type component_t
     --whitelist-type confirm_params_t
-    --whitelist-type commander_error_t
-    --rustified-enum commander_error_t
-    --whitelist-function commander
     --whitelist-function commander_states_can_call
     --whitelist-var ".*_tag"
     --whitelist-var MAX_LABEL_SIZE
@@ -426,9 +416,9 @@ add_custom_target(rust-bindgen
     --whitelist-function app_eth_erc20_params_get
     --whitelist-function app_eth_sighash
     --rustified-enum app_btc_result_t
-    --whitelist-function testing_app_btc_mock_ui
     --whitelist-function btc_common_pkscript_from_payload
     --whitelist-function btc_common_payload_at_keypath
+    --whitelist-function btc_common_payload_from_multisig
     --whitelist-var MAX_VARINT_SIZE
     --whitelist-var MAX_PK_SCRIPT_SIZE
     --whitelist-function app_btc_params_get

@@ -39,18 +39,3 @@ bool apps_common_bip32_xpub_from_protobuf(const XPub* xpub_in, struct ext_key* x
                sizeof(parent_fingerprint),
                xpub_out) == WALLY_OK;
 }
-
-bool apps_common_bip32_xpubs_equal(const struct ext_key* xpub1, const struct ext_key* xpub2)
-{
-    uint8_t xpub1_bytes[BIP32_SERIALIZED_LEN] = {0};
-    uint8_t xpub2_bytes[BIP32_SERIALIZED_LEN] = {0};
-    if (bip32_key_serialize(xpub1, BIP32_FLAG_KEY_PUBLIC, xpub1_bytes, sizeof(xpub1_bytes)) !=
-        WALLY_OK) {
-        Abort("_xpubs_equal/0");
-    }
-    if (bip32_key_serialize(xpub2, BIP32_FLAG_KEY_PUBLIC, xpub2_bytes, sizeof(xpub2_bytes)) !=
-        WALLY_OK) {
-        Abort("_xpubs_equal/1");
-    }
-    return MEMEQ(xpub1_bytes, xpub2_bytes, BIP32_SERIALIZED_LEN);
-}

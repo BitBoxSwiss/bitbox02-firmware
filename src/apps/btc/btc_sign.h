@@ -22,7 +22,6 @@
 
 #include <compiler_util.h>
 #include <util.h>
-#include <workflow/confirm.h>
 
 #include <hww.pb.h>
 

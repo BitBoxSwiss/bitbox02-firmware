@@ -16,12 +16,10 @@
 #include <apps/btc/btc_common.h>
 #include <apps/btc/btc_params.h>
 #include <apps/btc/btc_sign.h>
-#include <apps/btc/btc_ui.h>
 #include <apps/eth/eth_params.h>
 #include <apps/eth/eth_sighash.h>
 #include <backup/backup.h>
 #include <backup/restore.h>
-#include <commander/commander.h>
 #include <commander/commander_states.h>
 #include <keystore.h>
 #include <memory/bitbox02_smarteeprom.h>
@@ -57,7 +55,6 @@
 #include <wally_bip39.h>
 #include <wally_core.h>
 #include <wally_crypto.h>
-#include <workflow/confirm.h>
 
 #if defined(TESTING)
 #include <mock_memory.h>

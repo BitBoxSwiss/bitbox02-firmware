@@ -16,7 +16,8 @@ extern crate alloc;
 use alloc::{vec, vec::Vec};
 
 pub use bitbox02_sys::app_btc_result_t as Error;
-pub use bitbox02_sys::{BTCCoin, BTCScriptConfig_SimpleType};
+pub use bitbox02_sys::multisig_t as Multisig;
+pub use bitbox02_sys::{BTCCoin, BTCScriptConfig_Multisig_ScriptType, BTCScriptConfig_SimpleType};
 
 pub fn sign_init_wrapper(buffer_in: &[u8]) -> Result<(), Error> {
     unsafe {
@@ -115,6 +116,29 @@ pub fn payload_at_keypath(
             keypath.as_ptr(),
             keypath.len() as _,
             script_type,
+            out.as_mut_ptr(),
+            &mut out_len,
+        )
+    } {
+        true => Ok(out[..out_len as usize].to_vec()),
+        false => Err(()),
+    }
+}
+
+pub fn payload_from_multisig(
+    multisig: &Multisig,
+    script_type: BTCScriptConfig_Multisig_ScriptType,
+    keypath_change: u32,
+    keypath_address: u32,
+) -> Result<Vec<u8>, ()> {
+    let mut out = [0u8; 32];
+    let mut out_len: bitbox02_sys::size_t = 0;
+    match unsafe {
+        bitbox02_sys::btc_common_payload_from_multisig(
+            multisig,
+            script_type,
+            keypath_change,
+            keypath_address,
             out.as_mut_ptr(),
             &mut out_len,
         )

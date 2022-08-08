@@ -237,8 +237,6 @@ set(TEST_LIST
    "-Wl,--wrap=rand,--wrap=wally_sha256"
    apps_common_bip32
    ""
-   app_btc_multisig
-   "-Wl,--wrap=memory_multisig_get_by_hash,--wrap=apps_btc_confirm_multisig_basic"
    app_btc_common
    ""
    ui_components

@@ -81,7 +81,7 @@ mod tests {
 
     fn from(buf: &[u8]) -> SafeInputString {
         let mut pw = SafeInputString::new();
-        pw.as_mut()[..buf.len()].copy_from_slice(&buf);
+        pw.as_mut()[..buf.len()].copy_from_slice(buf);
         pw
     }
 

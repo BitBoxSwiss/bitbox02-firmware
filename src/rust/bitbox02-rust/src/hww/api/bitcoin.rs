@@ -382,8 +382,8 @@ mod tests {
 
             // With display.
             req.display = true;
-            let expected_display_title = test.expected_display_title.clone();
-            let expected_xpub = test.expected_xpub.clone();
+            let expected_display_title = test.expected_display_title;
+            let expected_xpub = test.expected_xpub;
             mock(Data {
                 ui_confirm_create: Some(Box::new(move |params| {
                     assert_eq!(params.title, expected_display_title);
@@ -662,8 +662,8 @@ mod tests {
 
             // With display.
             req.display = true;
-            let expected_display_title = test.expected_display_title.clone();
-            let expected_address = test.expected_address.clone();
+            let expected_display_title = test.expected_display_title;
+            let expected_address = test.expected_address;
             mock(Data {
                 ui_confirm_create: Some(Box::new(move |params| {
                     assert_eq!(params.title, expected_display_title);

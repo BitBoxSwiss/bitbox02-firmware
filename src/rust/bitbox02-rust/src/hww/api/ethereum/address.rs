@@ -116,7 +116,7 @@ mod tests {
             expected_address,
         } in tests
         {
-            assert_eq!(from_pubkey(&pubkey), expected_address);
+            assert_eq!(from_pubkey(pubkey), expected_address);
         }
     }
 }

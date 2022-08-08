@@ -1476,12 +1476,7 @@ mod tests {
             });
             bitbox02::app_btc_sign_ui::mock(bitbox02::app_btc_sign_ui::Ui {
                 confirm: Box::new(|_title, _body| {
-                    match unsafe {
-                        UI_COUNTER += 1;
-                        UI_COUNTER
-                    } {
-                        _ => panic!("unexpected UI dialog"),
-                    }
+                    panic!("unexpected UI dialog");
                 }),
             });
             mock_unlocked();

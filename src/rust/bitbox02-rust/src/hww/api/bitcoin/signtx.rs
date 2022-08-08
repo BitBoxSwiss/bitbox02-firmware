@@ -389,6 +389,37 @@ async fn validate_script_configs(
     Ok(())
 }
 
+fn payload_at_keypath(
+    keypath: &[u32],
+    script_config_account: &pb::BtcScriptConfigWithKeypath,
+) -> Result<Vec<u8>, Error> {
+    match script_config_account {
+        pb::BtcScriptConfigWithKeypath {
+            script_config:
+                Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
+                }),
+            ..
+        } => Ok(bitbox02::app_btc::payload_at_keypath(
+            keypath,
+            (*simple_type) as _,
+        )?),
+        pb::BtcScriptConfigWithKeypath {
+            script_config:
+                Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::Multisig(multisig)),
+                }),
+            ..
+        } => Ok(bitbox02::app_btc::payload_from_multisig(
+            &super::multisig::convert_multisig(multisig)?,
+            multisig.script_type as _,
+            keypath[keypath.len() - 2],
+            keypath[keypath.len() - 1],
+        )?),
+        _ => Err(Error::InvalidInput),
+    }
+}
+
 /// Singing flow:
 ///
 /// init
@@ -551,10 +582,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                     .as_ref()
                     .ok_or(Error::InvalidInput)?,
             )?;
-            let payload = bitbox02::app_btc::sign_payload_at_keypath_wrapper(
-                encode(script_config_account).as_ref(),
-                &tx_input.keypath,
-            )?;
+            let payload = payload_at_keypath(&tx_input.keypath, script_config_account)?;
             bitbox02::app_btc::pkscript_from_payload(coin as _, output_type as _, &payload)
                 .or(Err(Error::InvalidInput))?
         };
@@ -632,10 +660,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                     .as_ref()
                     .ok_or(Error::InvalidInput)?,
             )?;
-            let payload = bitbox02::app_btc::sign_payload_at_keypath_wrapper(
-                encode(script_config_account).as_ref(),
-                &tx_output.keypath,
-            )?;
+            let payload = payload_at_keypath(&tx_output.keypath, script_config_account)?;
             (output_type, payload)
         } else {
             // Take payload from provided output.

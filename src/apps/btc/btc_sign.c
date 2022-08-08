@@ -109,49 +109,6 @@ app_btc_result_t app_btc_sign_sighash_script(
     return APP_BTC_OK;
 }
 
-app_btc_result_t app_btc_sign_payload_at_keypath(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    const BTCScriptConfigWithKeypath* script_config_account,
-    uint8_t* payload_bytes,
-    size_t* payload_size)
-{
-    switch (script_config_account->script_config.which_config) {
-    case BTCScriptConfig_simple_type_tag: {
-        // construct pkScript
-        if (!btc_common_payload_at_keypath(
-                keypath,
-                keypath_len,
-                script_config_account->script_config.config.simple_type,
-                payload_bytes,
-                payload_size)) {
-            return _error(APP_BTC_ERR_UNKNOWN);
-        }
-        return APP_BTC_OK;
-    }
-    case BTCScriptConfig_multisig_tag: {
-        const BTCScriptConfig_Multisig* ms = &script_config_account->script_config.config.multisig;
-        multisig_t multisig = {0};
-        if (!btc_common_convert_multisig(ms, &multisig)) {
-            return _error(APP_BTC_ERR_INVALID_INPUT);
-        }
-
-        if (!btc_common_payload_from_multisig(
-                &multisig,
-                ms->script_type,
-                keypath[keypath_len - 2],
-                keypath[keypath_len - 1],
-                payload_bytes,
-                payload_size)) {
-            return _error(APP_BTC_ERR_UNKNOWN);
-        }
-        return APP_BTC_OK;
-    }
-    default:
-        return _error(APP_BTC_ERR_INVALID_INPUT);
-    }
-}
-
 app_btc_result_t app_btc_sign_init_wrapper(in_buffer_t request_buf)
 {
     pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
@@ -160,22 +117,6 @@ app_btc_result_t app_btc_sign_init_wrapper(in_buffer_t request_buf)
         return _error(APP_BTC_ERR_UNKNOWN);
     }
     return app_btc_sign_init(&request);
-}
-
-app_btc_result_t app_btc_sign_payload_at_keypath_wrapper(
-    in_buffer_t request_buf,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* payload_bytes,
-    size_t* payload_size)
-{
-    pb_istream_t in_stream = pb_istream_from_buffer(request_buf.data, request_buf.len);
-    BTCScriptConfigWithKeypath script_config_account = {0};
-    if (!pb_decode(&in_stream, BTCScriptConfigWithKeypath_fields, &script_config_account)) {
-        return _error(APP_BTC_ERR_UNKNOWN);
-    }
-    return app_btc_sign_payload_at_keypath(
-        keypath, keypath_len, &script_config_account, payload_bytes, payload_size);
 }
 
 app_btc_result_t app_btc_sign_sighash_script_wrapper(

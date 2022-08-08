@@ -34,20 +34,7 @@ USE_RESULT app_btc_result_t app_btc_sign_sighash_script(
     // in: size of the sighash_script buffer. out: resulting size of sighash_script.
     size_t* sighash_script_size);
 
-USE_RESULT app_btc_result_t app_btc_sign_payload_at_keypath(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    const BTCScriptConfigWithKeypath* script_config_account,
-    uint8_t* payload_bytes,
-    size_t* payload_size);
-
 USE_RESULT app_btc_result_t app_btc_sign_init_wrapper(in_buffer_t request_buf);
-USE_RESULT app_btc_result_t app_btc_sign_payload_at_keypath_wrapper(
-    in_buffer_t requet_buf,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* payload_bytes,
-    size_t* payload_size);
 USE_RESULT app_btc_result_t app_btc_sign_sighash_script_wrapper(
     in_buffer_t request_buf,
     // at least MAX_PK_SCRIPT_SIZE + MAX_VARINT_SIZE bytes

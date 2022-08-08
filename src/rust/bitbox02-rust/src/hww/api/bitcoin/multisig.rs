@@ -27,10 +27,29 @@ use crate::workflow::{confirm, status, trinary_input_string};
 
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::convert::TryInto;
 
 use sha2::{Digest, Sha256};
 
 pub const MAX_SIGNERS: usize = 15;
+
+/// Converts a Rust protobuf multisig to a representation suitable to be passed to C functions.
+pub fn convert_multisig(multisig: &Multisig) -> Result<bitbox02::app_btc::Multisig, Error> {
+    Ok(bitbox02::app_btc::Multisig {
+        xpubs_count: multisig.xpubs.len() as _,
+        xpubs: {
+            let mut xpubs = [[0u8; 78]; MAX_SIGNERS];
+            for (i, xpub) in multisig.xpubs.iter().enumerate() {
+                xpubs[i] = bip32::serialize_xpub(xpub, Some(bip32::XPubType::Xpub))
+                    .or(Err(Error::InvalidInput))?
+                    .try_into()
+                    .or(Err(Error::Generic))?;
+            }
+            xpubs
+        },
+        threshold: multisig.threshold,
+    })
+}
 
 pub enum SortXpubs {
     No,

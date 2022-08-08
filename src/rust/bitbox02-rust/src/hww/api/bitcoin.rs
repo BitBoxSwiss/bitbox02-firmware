@@ -196,21 +196,7 @@ pub async fn address_multisig(
         multisig::confirm(title, coin_params, &name, multisig).await?;
     }
     let payload = bitbox02::app_btc::payload_from_multisig(
-        &bitbox02::app_btc::Multisig {
-            xpubs_count: multisig.xpubs.len() as _,
-            xpubs: {
-                let mut xpubs = [[0u8; 78]; multisig::MAX_SIGNERS];
-                for (i, xpub) in multisig.xpubs.iter().enumerate() {
-                    xpubs[i] =
-                        crate::bip32::serialize_xpub(xpub, Some(crate::bip32::XPubType::Xpub))
-                            .or(Err(Error::InvalidInput))?
-                            .try_into()
-                            .or(Err(Error::Generic))?;
-                }
-                xpubs
-            },
-            threshold: multisig.threshold,
-        },
+        &multisig::convert_multisig(multisig)?,
         script_type as _,
         keypath[keypath.len() - 2],
         keypath[keypath.len() - 1],

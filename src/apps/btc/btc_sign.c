@@ -15,7 +15,6 @@
 
 #include "btc_sign.h"
 #include "btc_common.h"
-#include "btc_params.h"
 
 #include <rust/rust.h>
 

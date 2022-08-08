@@ -20,7 +20,6 @@
 #include <btc_util.h>
 
 #include <apps/btc/btc_common.h>
-#include <apps/btc/btc_params.h>
 #include <keystore.h>
 #include <stdbool.h>
 #include <stdint.h>

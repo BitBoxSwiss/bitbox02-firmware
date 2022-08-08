@@ -17,7 +17,7 @@ use alloc::{vec, vec::Vec};
 
 pub use bitbox02_sys::app_btc_result_t as Error;
 pub use bitbox02_sys::multisig_t as Multisig;
-pub use bitbox02_sys::{BTCCoin, BTCScriptConfig_Multisig_ScriptType, BTCScriptConfig_SimpleType};
+pub use bitbox02_sys::{BTCScriptConfig_Multisig_ScriptType, BTCScriptConfig_SimpleType};
 
 pub fn sign_init_wrapper(buffer_in: &[u8]) -> Result<(), Error> {
     unsafe {
@@ -58,7 +58,7 @@ pub fn sign_reset() {
 }
 
 pub fn pkscript_from_payload(
-    coin: bitbox02_sys::BTCCoin,
+    taproot_support: bool,
     output_type: bitbox02_sys::BTCOutputType,
     payload: &[u8],
 ) -> Result<Vec<u8>, ()> {
@@ -69,7 +69,7 @@ pub fn pkscript_from_payload(
     let mut out_len: bitbox02_sys::size_t = out.len() as _;
     match unsafe {
         bitbox02_sys::btc_common_pkscript_from_payload(
-            bitbox02_sys::app_btc_params_get(coin),
+            taproot_support,
             output_type,
             payload.as_ptr(),
             payload.len() as _,

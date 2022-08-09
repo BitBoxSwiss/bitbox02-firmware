@@ -115,14 +115,14 @@ bool btc_common_sighash_script_from_pubkeyhash(
 }
 
 bool btc_common_pkscript_from_payload(
-    const app_btc_coin_params_t* params,
+    bool taproot_support,
     BTCOutputType output_type,
     const uint8_t* payload,
     size_t payload_size,
     uint8_t* pk_script,
     size_t* pk_script_len)
 {
-    if (!params || !payload || !pk_script || !pk_script_len) {
+    if (!payload || !pk_script || !pk_script_len) {
         return false;
     }
     size_t len = *pk_script_len;
@@ -144,7 +144,7 @@ bool btc_common_pkscript_from_payload(
         return wally_witness_program_from_bytes(
                    payload, payload_size, 0, pk_script, len, pk_script_len) == WALLY_OK;
     case BTCOutputType_P2TR:
-        if (!params->taproot_support || payload_size != 32) {
+        if (!taproot_support || payload_size != 32) {
             return false;
         }
         return wally_witness_program_from_bytes_and_version(

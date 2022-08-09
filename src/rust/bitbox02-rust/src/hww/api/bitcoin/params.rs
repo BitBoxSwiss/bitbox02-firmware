@@ -32,8 +32,6 @@ pub struct Params {
     pub taproot_support: bool,
 }
 
-/// Keep these in sync with btc_params.c.
-
 const PARAMS_BTC: Params = Params {
     coin: BtcCoin::Btc,
     bip44_coin: 0 + HARDENED,

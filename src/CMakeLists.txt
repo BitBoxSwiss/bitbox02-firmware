@@ -46,7 +46,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_total.c
   ${CMAKE_SOURCE_DIR}/src/apps/common/bip32.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_common.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_params.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
@@ -421,7 +420,6 @@ add_custom_target(rust-bindgen
     --whitelist-function btc_common_payload_from_multisig
     --whitelist-var MAX_VARINT_SIZE
     --whitelist-var MAX_PK_SCRIPT_SIZE
-    --whitelist-function app_btc_params_get
     --whitelist-function app_btc_sign_init_wrapper
     --whitelist-function app_btc_sign_sighash_script_wrapper
     --whitelist-function app_btc_sign_reset

@@ -15,8 +15,6 @@
 #ifndef _APPS_BTC_COMMON_H
 #define _APPS_BTC_COMMON_H
 
-#include "btc_params.h"
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -88,7 +86,7 @@ USE_RESULT bool btc_common_sighash_script_from_pubkeyhash(
  * @param[inout] pk_script_len: size of pk_script IN, size of the resulting pk_script OUT.
  */
 USE_RESULT bool btc_common_pkscript_from_payload(
-    const app_btc_coin_params_t* params,
+    bool taproot_support,
     BTCOutputType output_type,
     const uint8_t* payload,
     size_t payload_size,

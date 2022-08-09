@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.1.1
+- Update protobuf dependency to >= 3.20, for better compatibility
+
 ## 6.1.0
 - Add `eth_sign_typed_msg()`
 - Update protobuf dependency to >= 3.21

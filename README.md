@@ -46,7 +46,7 @@ The sliders along the edges of the device are used for user input.  There are th
 
 ### USB
 
-The USB communication is implemented using the request-response pattern with enecrypted protobuf
+The USB communication is implemented using the request-response pattern with encrypted protobuf
 messages. The encryption protocol used is Noise with out-of-band authentication.
 
 ### Hardware docs

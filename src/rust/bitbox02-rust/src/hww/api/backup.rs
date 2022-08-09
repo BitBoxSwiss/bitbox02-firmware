@@ -258,7 +258,7 @@ mod tests {
 
     #[test]
     pub fn test_list() {
-        const EXPECTED_TIMESTMAP: u32 = 1601281809;
+        const EXPECTED_TIMESTAMP: u32 = 1601281809;
 
         const DEVICE_NAME_1: &str = "test device name";
         const DEVICE_NAME_2: &str = "another test device name";
@@ -283,7 +283,7 @@ mod tests {
         mock_memory();
         bitbox02::memory::set_device_name(DEVICE_NAME_1).unwrap();
         assert!(block_on(create(&pb::CreateBackupRequest {
-            timestamp: EXPECTED_TIMESTMAP,
+            timestamp: EXPECTED_TIMESTAMP,
             timezone_offset: 18000,
         }))
         .is_ok());
@@ -293,7 +293,7 @@ mod tests {
             Ok(Response::ListBackups(pb::ListBackupsResponse {
                 info: vec![pb::BackupInfo {
                     id: "41233dfbad010723dbbb93514b7b81016b73f8aa35c5148e1b478f60d5750dce".into(),
-                    timestamp: EXPECTED_TIMESTMAP,
+                    timestamp: EXPECTED_TIMESTAMP,
                     name: DEVICE_NAME_1.into(),
                 }]
             }))
@@ -309,7 +309,7 @@ mod tests {
         mock_memory();
         bitbox02::memory::set_device_name(DEVICE_NAME_2).unwrap();
         assert!(block_on(create(&pb::CreateBackupRequest {
-            timestamp: EXPECTED_TIMESTMAP,
+            timestamp: EXPECTED_TIMESTAMP,
             timezone_offset: 18000,
         }))
         .is_ok());
@@ -321,13 +321,13 @@ mod tests {
                     pb::BackupInfo {
                         id: "41233dfbad010723dbbb93514b7b81016b73f8aa35c5148e1b478f60d5750dce"
                             .into(),
-                        timestamp: EXPECTED_TIMESTMAP,
+                        timestamp: EXPECTED_TIMESTAMP,
                         name: DEVICE_NAME_1.into(),
                     },
                     pb::BackupInfo {
                         id: "4c7005846ffc09f31850201a6fdfff084191164eb318db2c6fe5a39df4a97ba0"
                             .into(),
-                        timestamp: EXPECTED_TIMESTMAP,
+                        timestamp: EXPECTED_TIMESTAMP,
                         name: DEVICE_NAME_2.into(),
                     }
                 ]

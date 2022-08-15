@@ -17,33 +17,12 @@
 
 #include "btc_common.h"
 
-#include <apps/common/bip32.h>
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory/memory.h>
 #include <rust/rust.h>
 #include <util.h>
 #include <wally_address.h>
-
-bool btc_common_convert_multisig(const BTCScriptConfig_Multisig* multisig, multisig_t* multisig_out)
-{
-    multisig_out->xpubs_count = multisig->xpubs_count;
-    multisig_out->threshold = multisig->threshold;
-    for (size_t i = 0; i < multisig_out->xpubs_count; i++) {
-        struct ext_key xpub = {0};
-        if (!apps_common_bip32_xpub_from_protobuf(&multisig->xpubs[i], &xpub)) {
-            return false;
-        }
-        if (bip32_key_serialize(
-                &xpub,
-                BIP32_FLAG_KEY_PUBLIC,
-                multisig_out->xpubs[i],
-                sizeof(multisig_out->xpubs[i])) != WALLY_OK) {
-            return false;
-        }
-    }
-    return true;
-}
 
 bool btc_common_payload_at_keypath(
     const uint32_t* keypath,
@@ -92,12 +71,19 @@ bool btc_common_payload_at_keypath(
     return true;
 }
 
-bool btc_common_sighash_script_from_pubkeyhash(
+bool btc_common_sighash_script_at_keypath(
+    const uint32_t* keypath,
+    size_t keypath_len,
     BTCScriptConfig_SimpleType script_type,
-    const uint8_t* pubkey_hash,
     uint8_t* script,
     size_t* script_size)
 {
+    uint8_t pubkey_hash[HASH160_LEN];
+    UTIL_CLEANUP_20(pubkey_hash);
+    if (!keystore_secp256k1_pubkey_hash160(keypath, keypath_len, pubkey_hash)) {
+        return false;
+    }
+
     size_t size_in = *script_size;
     switch (script_type) {
     case BTCScriptConfig_SimpleType_P2WPKH_P2SH:
@@ -209,7 +195,7 @@ bool btc_common_payload_from_multisig(
     uint8_t* output_payload,
     size_t* output_payload_size)
 {
-    uint8_t script[700] = {0};
+    uint8_t script[MAX_PK_SCRIPT_SIZE] = {0};
     size_t written = sizeof(script);
     if (!btc_common_pkscript_from_multisig(
             multisig, keypath_change, keypath_address, script, &written)) {

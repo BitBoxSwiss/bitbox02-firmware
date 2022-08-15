@@ -42,10 +42,6 @@ typedef struct {
 // is technically possible to extend to if needed.
 #define MAX_PK_SCRIPT_SIZE (700)
 
-USE_RESULT bool btc_common_convert_multisig(
-    const BTCScriptConfig_Multisig* multisig,
-    multisig_t* multisig_out);
-
 /**
  * Generate the payload used in an output script, e.g. pubkeyhash or script hash or pubkey.
  * @param[in] keypath address-level keypath, e.g. m/84'/0'/0'/0/0
@@ -64,17 +60,19 @@ USE_RESULT bool btc_common_payload_at_keypath(
     size_t* output_payload_size);
 
 /**
- * Converts a pubkeyhash to the subscript/scriptCode used in the sighash algo.
+ * Generates the subscript/scriptCode used in the sighash algo.
+ * @param[in] keypath address-level keypath, e.g. m/84'/0'/0'/0/0
+ * @param[in] keypath_len number of elements in keypath
  * @param[in] script_type script type of the output to be spent.
- * @param[in] pubkey_hash hash160 of a public key. Must be of size HASH160_LEN.
  * @param[out] script will have the resulting subscript/scriptCode. Must be of size
  * MAX_SIGHASH_SCRIPT_SIZE.
  * @param[out] script_size the size of the produced subscript/scriptCode.
  * return true on succes, false on failure.
  */
-USE_RESULT bool btc_common_sighash_script_from_pubkeyhash(
+USE_RESULT bool btc_common_sighash_script_at_keypath(
+    const uint32_t* keypath,
+    size_t keypath_len,
     BTCScriptConfig_SimpleType script_type,
-    const uint8_t* pubkey_hash,
     uint8_t* script,
     size_t* script_size);
 

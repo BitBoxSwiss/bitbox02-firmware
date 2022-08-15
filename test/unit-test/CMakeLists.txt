@@ -74,7 +74,6 @@ add_library(bitbox_objects
   framework/mock_smarteeprom.c
   framework/mock_securechip.c
   framework/mock_delay.c
-  framework/btc_util.c
 )
 
 add_library(bitbox
@@ -235,8 +234,6 @@ set(TEST_LIST
    ""
    random
    "-Wl,--wrap=rand,--wrap=wally_sha256"
-   apps_common_bip32
-   ""
    app_btc_common
    ""
    ui_components

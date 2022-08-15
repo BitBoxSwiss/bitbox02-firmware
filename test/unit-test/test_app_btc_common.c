@@ -17,8 +17,6 @@
 #include <stddef.h>
 #include <cmocka.h>
 
-#include <btc_util.h>
-
 #include <apps/btc/btc_common.h>
 #include <keystore.h>
 #include <stdbool.h>

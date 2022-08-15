@@ -253,6 +253,28 @@ fn is_taproot(script_config_account: &pb::BtcScriptConfigWithKeypath) -> bool {
     }
 }
 
+/// Generates the subscript (scriptCode without the length prefix) used in the bip143 sighash algo.
+///
+/// See https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification, item 5:
+/// > For P2WPKH witness program, the scriptCode is 0x1976a914{20-byte-pubkey-hash}88ac.
+fn sighash_script_at_keypath(
+    keypath: &[u32],
+    simple_type: pb::btc_script_config::SimpleType,
+) -> Result<Vec<u8>, Error> {
+    match simple_type {
+        pb::btc_script_config::SimpleType::P2wpkhP2sh
+        | pb::btc_script_config::SimpleType::P2wpkh => {
+            let pubkey_hash160 = bitbox02::keystore::secp256k1_pubkey_hash160(keypath)?;
+            let mut result = Vec::<u8>::new();
+            result.extend_from_slice(b"\x76\xa9\x14");
+            result.extend_from_slice(&pubkey_hash160);
+            result.extend_from_slice(b"\x88\xac");
+            Ok(result)
+        }
+        _ => Err(Error::Generic),
+    }
+}
+
 /// Stream an input's previous transaction and verify that the prev_out_hash in the input matches
 /// the hash of the previous transaction, as well as that the amount provided in the input is correct.
 async fn handle_prevtx(
@@ -819,10 +841,11 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                             config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
                         }),
                     ..
-                } => bitbox02::app_btc::sighash_script_at_keypath(
-                    &tx_input.keypath,
-                    *simple_type as _,
-                )?,
+                } => {
+                    let simple_type = pb::btc_script_config::SimpleType::from_i32(*simple_type)
+                        .ok_or(Error::InvalidInput)?;
+                    sighash_script_at_keypath(&tx_input.keypath, simple_type)?
+                }
                 pb::BtcScriptConfigWithKeypath {
                     script_config:
                         Some(pb::BtcScriptConfig {

@@ -71,33 +71,6 @@ bool btc_common_payload_at_keypath(
     return true;
 }
 
-bool btc_common_sighash_script_at_keypath(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    BTCScriptConfig_SimpleType script_type,
-    uint8_t* script,
-    size_t* script_size)
-{
-    uint8_t pubkey_hash[HASH160_LEN];
-    UTIL_CLEANUP_20(pubkey_hash);
-    if (!keystore_secp256k1_pubkey_hash160(keypath, keypath_len, pubkey_hash)) {
-        return false;
-    }
-
-    size_t size_in = *script_size;
-    switch (script_type) {
-    case BTCScriptConfig_SimpleType_P2WPKH_P2SH:
-    case BTCScriptConfig_SimpleType_P2WPKH:
-        if (wally_scriptpubkey_p2pkh_from_bytes(
-                pubkey_hash, HASH160_LEN, 0, script, size_in, script_size) != WALLY_OK) {
-            return false;
-        }
-        return true;
-    default:
-        return false;
-    }
-}
-
 bool btc_common_pkscript_from_payload(
     bool taproot_support,
     BTCOutputType output_type,

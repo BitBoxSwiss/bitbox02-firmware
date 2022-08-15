@@ -60,22 +60,6 @@ USE_RESULT bool btc_common_payload_at_keypath(
     size_t* output_payload_size);
 
 /**
- * Generates the subscript (scriptCode without the length prefix) used in the sighash algo.
- * @param[in] keypath address-level keypath, e.g. m/84'/0'/0'/0/0
- * @param[in] keypath_len number of elements in keypath
- * @param[in] script_type script type of the output to be spent.
- * @param[out] script will have the resulting subscript/scriptCode. Must be at least 25 bytes.
- * @param[out] script_size the size of the produced subscript.
- * return true on succes, false on failure.
- */
-USE_RESULT bool btc_common_sighash_script_at_keypath(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    BTCScriptConfig_SimpleType script_type,
-    uint8_t* script,
-    size_t* script_size);
-
-/**
  * Computes the pkScript from a pubkey hash or script hash or pubkey, depending on the output
  * type.
  * @param[in] output_type type of pkScript.

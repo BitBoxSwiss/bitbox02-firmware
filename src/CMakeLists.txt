@@ -339,6 +339,7 @@ add_custom_target(rust-bindgen
     --whitelist-function keystore_bip39_mnemonic_to_seed
     --whitelist-function keystore_get_root_fingerprint
     --whitelist-function keystore_mock_unlocked
+    --whitelist-function keystore_secp256k1_pubkey_hash160
     --whitelist-var EC_PUBLIC_KEY_UNCOMPRESSED_LEN
     --whitelist-var EC_PUBLIC_KEY_LEN
     --whitelist-function keystore_encode_xpub_at_keypath
@@ -406,7 +407,6 @@ add_custom_target(rust-bindgen
     --whitelist-function app_eth_params_get
     --whitelist-function app_eth_erc20_params_get
     --whitelist-function app_eth_sighash
-    --whitelist-function btc_common_sighash_script_at_keypath
     --whitelist-function btc_common_pkscript_from_payload
     --whitelist-function btc_common_payload_at_keypath
     --whitelist-function btc_common_pkscript_from_multisig

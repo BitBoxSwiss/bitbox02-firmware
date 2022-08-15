@@ -13,7 +13,7 @@
 // limitations under the License.
 
 extern crate alloc;
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 
 pub use bitbox02_sys::multisig_t as Multisig;
 pub use bitbox02_sys::{BTCScriptConfig_Multisig_ScriptType, BTCScriptConfig_SimpleType};
@@ -98,31 +98,6 @@ pub fn payload_from_multisig(
             script_type,
             keypath_change,
             keypath_address,
-            out.as_mut_ptr(),
-            &mut out_len,
-        )
-    } {
-        true => Ok(out[..out_len as usize].to_vec()),
-        false => Err(()),
-    }
-}
-
-pub fn sighash_script_at_keypath(
-    keypath: &[u32],
-    script_type: BTCScriptConfig_SimpleType,
-) -> Result<Vec<u8>, ()> {
-    let mut out = vec![
-        0u8;
-        bitbox02_sys::MAX_PK_SCRIPT_SIZE as usize
-            + bitbox02_sys::MAX_VARINT_SIZE as usize
-    ];
-    let mut out_len: bitbox02_sys::size_t = out.len() as _;
-
-    match unsafe {
-        bitbox02_sys::btc_common_sighash_script_at_keypath(
-            keypath.as_ptr(),
-            keypath.len() as _,
-            script_type,
             out.as_mut_ptr(),
             &mut out_len,
         )

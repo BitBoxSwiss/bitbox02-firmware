@@ -256,22 +256,47 @@ fn is_taproot(script_config_account: &pb::BtcScriptConfigWithKeypath) -> bool {
 /// Generates the subscript (scriptCode without the length prefix) used in the bip143 sighash algo.
 ///
 /// See https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification, item 5:
-/// > For P2WPKH witness program, the scriptCode is 0x1976a914{20-byte-pubkey-hash}88ac.
-fn sighash_script_at_keypath(
+fn sighash_script(
+    script_config_account: &pb::BtcScriptConfigWithKeypath,
     keypath: &[u32],
-    simple_type: pb::btc_script_config::SimpleType,
 ) -> Result<Vec<u8>, Error> {
-    match simple_type {
-        pb::btc_script_config::SimpleType::P2wpkhP2sh
-        | pb::btc_script_config::SimpleType::P2wpkh => {
-            let pubkey_hash160 = bitbox02::keystore::secp256k1_pubkey_hash160(keypath)?;
-            let mut result = Vec::<u8>::new();
-            result.extend_from_slice(b"\x76\xa9\x14");
-            result.extend_from_slice(&pubkey_hash160);
-            result.extend_from_slice(b"\x88\xac");
-            Ok(result)
+    match script_config_account {
+        pb::BtcScriptConfigWithKeypath {
+            script_config:
+                Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
+                }),
+            ..
+        } => {
+            match pb::btc_script_config::SimpleType::from_i32(*simple_type)
+                .ok_or(Error::InvalidInput)?
+            {
+                pb::btc_script_config::SimpleType::P2wpkhP2sh
+                | pb::btc_script_config::SimpleType::P2wpkh => {
+                    // See https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification, item 5:
+                    // > For P2WPKH witness program, the scriptCode is 0x1976a914{20-byte-pubkey-hash}88ac.
+                    let pubkey_hash160 = bitbox02::keystore::secp256k1_pubkey_hash160(keypath)?;
+                    let mut result = Vec::<u8>::new();
+                    result.extend_from_slice(b"\x76\xa9\x14");
+                    result.extend_from_slice(&pubkey_hash160);
+                    result.extend_from_slice(b"\x88\xac");
+                    Ok(result)
+                }
+                _ => Err(Error::Generic),
+            }
         }
-        _ => Err(Error::Generic),
+        pb::BtcScriptConfigWithKeypath {
+            script_config:
+                Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::Multisig(multisig)),
+                }),
+            ..
+        } => Ok(bitbox02::app_btc::pkscript_from_multisig(
+            &super::multisig::convert_multisig(multisig)?,
+            keypath[keypath.len() - 2],
+            keypath[keypath.len() - 1],
+        )?),
+        _ => Err(Error::InvalidInput),
     }
 }
 
@@ -834,38 +859,13 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             // Sign all other supported inputs.
 
             const SIGHASH_ALL: u32 = 0x01;
-            let sighash_script = match script_config_account {
-                pb::BtcScriptConfigWithKeypath {
-                    script_config:
-                        Some(pb::BtcScriptConfig {
-                            config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
-                        }),
-                    ..
-                } => {
-                    let simple_type = pb::btc_script_config::SimpleType::from_i32(*simple_type)
-                        .ok_or(Error::InvalidInput)?;
-                    sighash_script_at_keypath(&tx_input.keypath, simple_type)?
-                }
-                pb::BtcScriptConfigWithKeypath {
-                    script_config:
-                        Some(pb::BtcScriptConfig {
-                            config: Some(pb::btc_script_config::Config::Multisig(multisig)),
-                        }),
-                    ..
-                } => bitbox02::app_btc::pkscript_from_multisig(
-                    &super::multisig::convert_multisig(multisig)?,
-                    tx_input.keypath[tx_input.keypath.len() - 2],
-                    tx_input.keypath[tx_input.keypath.len() - 1],
-                )?,
-                _ => return Err(Error::InvalidInput),
-            };
             let sighash = bip143::sighash(&bip143::Args {
                 version: request.version,
                 hash_prevouts: Sha256::digest(&hash_prevouts).try_into().unwrap(),
                 hash_sequence: Sha256::digest(&hash_sequence).try_into().unwrap(),
                 outpoint_hash: tx_input.prev_out_hash.as_slice().try_into().unwrap(),
                 outpoint_index: tx_input.prev_out_index,
-                sighash_script: &sighash_script,
+                sighash_script: &sighash_script(script_config_account, &tx_input.keypath)?,
                 prevout_value: tx_input.prev_out_value,
                 sequence: tx_input.sequence,
                 hash_outputs: Sha256::digest(&hash_outputs).try_into().unwrap(),

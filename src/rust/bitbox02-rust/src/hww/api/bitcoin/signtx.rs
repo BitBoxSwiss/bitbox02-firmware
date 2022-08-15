@@ -829,18 +829,11 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                             config: Some(pb::btc_script_config::Config::Multisig(multisig)),
                         }),
                     ..
-                } => {
-                    let mut result = Vec::<u8>::new();
-                    let script = bitbox02::app_btc::pkscript_from_multisig(
-                        &super::multisig::convert_multisig(multisig)?,
-                        tx_input.keypath[tx_input.keypath.len() - 2],
-                        tx_input.keypath[tx_input.keypath.len() - 1],
-                    )?;
-                    result.extend_from_slice(&serialize_varint(script.len() as u64));
-                    result.extend_from_slice(&script);
-
-                    result
-                }
+                } => bitbox02::app_btc::pkscript_from_multisig(
+                    &super::multisig::convert_multisig(multisig)?,
+                    tx_input.keypath[tx_input.keypath.len() - 2],
+                    tx_input.keypath[tx_input.keypath.len() - 1],
+                )?,
                 _ => return Err(Error::InvalidInput),
             };
             let sighash = bip143::sighash(&bip143::Args {

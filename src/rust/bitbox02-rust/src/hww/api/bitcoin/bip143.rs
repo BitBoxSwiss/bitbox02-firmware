@@ -15,6 +15,8 @@
 use sha2::Digest;
 use sha2::Sha256;
 
+use super::script::serialize_varint;
+
 /// https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification
 pub struct Args<'a> {
     pub version: u32,
@@ -22,6 +24,7 @@ pub struct Args<'a> {
     pub hash_sequence: [u8; 32],
     pub outpoint_hash: [u8; 32],
     pub outpoint_index: u32,
+    // The script used in the script code, without the VarInt length prefix.
     pub sighash_script: &'a [u8],
     pub prevout_value: u64,
     pub sequence: u32,
@@ -45,6 +48,7 @@ pub fn sighash(args: &Args) -> [u8; 32] {
     ctx.update(args.outpoint_hash);
     ctx.update(args.outpoint_index.to_le_bytes());
     // 5.
+    ctx.update(&serialize_varint(args.sighash_script.len() as u64));
     ctx.update(args.sighash_script);
     // 6.
     ctx.update(args.prevout_value.to_le_bytes());
@@ -75,7 +79,7 @@ mod tests {
                 hash_sequence:  *b"\x52\xb0\xa6\x42\xee\xa2\xfb\x7a\xe6\x38\xc3\x6f\x62\x52\xb6\x75\x02\x93\xdb\xe5\x74\xa8\x06\x98\x4b\x8e\x4d\x85\x48\x33\x9a\x3b",
                 outpoint_hash:  *b"\xef\x51\xe1\xb8\x04\xcc\x89\xd1\x82\xd2\x79\x65\x5c\x3a\xa8\x9e\x81\x5b\x1b\x30\x9f\xe2\x87\xd9\xb2\xb5\x5d\x57\xb9\x0e\xc6\x8a",
                 outpoint_index: 1,
-                sighash_script: b"\x19\x76\xa9\x14\x1d\x0f\x17\x2a\x0e\xcb\x48\xae\xe1\xbe\x1f\x26\x87\xd2\x96\x3a\xe3\x3f\x71\xa1\x88\xac",
+                sighash_script: b"\x76\xa9\x14\x1d\x0f\x17\x2a\x0e\xcb\x48\xae\xe1\xbe\x1f\x26\x87\xd2\x96\x3a\xe3\x3f\x71\xa1\x88\xac",
                 prevout_value: 600000000,
                 sequence:      0xFFFFFFFF,
                 hash_outputs:   *b"\x86\x3e\xf3\xe1\xa9\x2a\xfb\xfd\xb9\x7f\x31\xad\x0f\xc7\x68\x3e\xe9\x43\xe9\xab\xcf\x25\x01\x59\x0f\xf8\xf6\x55\x1f\x47\xe5\xe5",

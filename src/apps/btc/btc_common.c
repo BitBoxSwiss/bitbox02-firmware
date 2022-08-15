@@ -88,12 +88,10 @@ bool btc_common_sighash_script_at_keypath(
     switch (script_type) {
     case BTCScriptConfig_SimpleType_P2WPKH_P2SH:
     case BTCScriptConfig_SimpleType_P2WPKH:
-        script[0] = 0x19; // 25 byte data push
         if (wally_scriptpubkey_p2pkh_from_bytes(
-                pubkey_hash, HASH160_LEN, 0, script + 1, size_in - 1, script_size) != WALLY_OK) {
+                pubkey_hash, HASH160_LEN, 0, script, size_in, script_size) != WALLY_OK) {
             return false;
         }
-        *script_size = *script_size + 1;
         return true;
     default:
         return false;

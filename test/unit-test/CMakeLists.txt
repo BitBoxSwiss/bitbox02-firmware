@@ -251,10 +251,6 @@ set(TEST_LIST
    ""
    salt
    "-Wl,--wrap=memory_get_salt_root"
-   backup
-   "-Wl,--wrap=keystore_copy_seed,--wrap=memory_get_seed_birthdate,--wrap=memory_get_device_name"
-   restore
-   "-Wl,--wrap=keystore_copy_seed,--wrap=keystore_encrypt_and_store_seed,--wrap=memory_get_seed_birthdate,--wrap=memory_get_device_name,--wrap=memory_set_device_name"
    cipher
    "-Wl,--wrap=random_32_bytes"
    app_eth_sighash

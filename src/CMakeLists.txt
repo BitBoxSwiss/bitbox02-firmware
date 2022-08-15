@@ -33,9 +33,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/salt.c
   ${CMAKE_SOURCE_DIR}/src/i2c_ecc.c
   ${CMAKE_SOURCE_DIR}/src/touch/gestures.c
-  ${CMAKE_SOURCE_DIR}/src/backup/backup.c
-  ${CMAKE_SOURCE_DIR}/src/backup/restore.c
-  ${CMAKE_SOURCE_DIR}/src/backup/backup_common.c
   ${CMAKE_SOURCE_DIR}/src/reset.c
   ${CMAKE_SOURCE_DIR}/src/cipher/cipher.c
   ${CMAKE_SOURCE_DIR}/src/workflow/blocking.c
@@ -297,14 +294,11 @@ add_custom_target(rust-bindgen
     --use-core
     --with-derive-default
     --ctypes-prefix util::c_types
-    --rustified-enum backup_error_t
-    --rustified-enum restore_error_t
+    --whitelist-function strftime
+    --whitelist-function localtime
     --whitelist-function wally_free_string
-    --whitelist-function backup_check
-    --whitelist-function backup_create
     --whitelist-function mock_memory_factoryreset
     --whitelist-function memory_setup
-    --whitelist-function restore_from_directory
     --whitelist-function memory_is_initialized
     --whitelist-function memory_set_initialized
     --whitelist-function memory_is_mnemonic_passphrase_enabled
@@ -447,6 +441,7 @@ if(NOT CMAKE_CROSSCOMPILING)
         # see src/rust/bitbox02-rust-c/src/lib.rs.
         # https://github.com/rust-lang/rust/issues/66740
         RUSTC_BOOTSTRAP=1
+        FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
         # only one test thread because of unsafe concurrent access to `SafeData`, `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex poisoning and very messy output in case of a unit test failure.
         ${CARGO} test $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --all-features --target-dir ${RUST_BINARY_DIR}/all-features ${RUST_CARGO_FLAG} -- --nocapture --test-threads 1
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
@@ -464,6 +459,7 @@ if(NOT CMAKE_CROSSCOMPILING)
         # see src/rust/bitbox02-rust-c/src/lib.rs.
         # https://github.com/rust-lang/rust/issues/66740
         RUSTC_BOOTSTRAP=1
+        FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
         ${CARGO} clippy
           $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v>
           --all-features
@@ -539,6 +535,7 @@ foreach(type ${RUST_LIBS})
       # see src/rust/bitbox02-rust-c/src/lib.rs.
       # https://github.com/rust-lang/rust/issues/66740
       RUSTC_BOOTSTRAP=1
+      FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
       ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --features target-${type} --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
     COMMAND
       ${CMAKE_COMMAND} -E copy_if_different ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
@@ -565,6 +562,7 @@ if(CMAKE_CROSSCOMPILING)
       # see src/rust/bitbox02-rust-c/src/lib.rs.
       # https://github.com/rust-lang/rust/issues/66740
       RUSTC_BOOTSTRAP=1
+      FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
       SYSROOT=${CMAKE_SYSROOT}
       INCLUDES="${RUST_INCLUDES}"

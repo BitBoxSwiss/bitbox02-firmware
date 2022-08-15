@@ -93,7 +93,6 @@ pub fn create_and_store_seed(password: &SafeInputString, host_entropy: &[u8]) ->
     }
 }
 
-#[cfg(feature = "testing")]
 pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH]);
     let mut seed_len: u32 = 0;

@@ -19,8 +19,8 @@ use alloc::vec::Vec;
 
 use pb::response::Response;
 
+use crate::backup;
 use crate::workflow::{confirm, status, unlock};
-use bitbox02::backup;
 
 pub async fn check(
     &pb::CheckBackupRequest { silent }: &pb::CheckBackupRequest,
@@ -28,43 +28,38 @@ pub async fn check(
     if !bitbox02::sd::sdcard_inserted() {
         return Err(Error::InvalidInput);
     }
-    match backup::check() {
-        Ok(backup::CheckData { id, name, .. }) => {
-            if !silent {
-                let params = confirm::Params {
-                    title: "Name?",
-                    body: &name,
-                    scrollable: true,
-                    ..Default::default()
-                };
 
-                confirm::confirm(&params).await?;
-
-                let params = confirm::Params {
-                    title: "ID?",
-                    body: &id,
-                    scrollable: true,
-                    ..Default::default()
-                };
-
-                confirm::confirm(&params).await?;
-
-                status::status("Backup valid", true).await;
-            }
-            Ok(Response::CheckBackup(pb::CheckBackupResponse { id }))
+    let seed = bitbox02::keystore::copy_seed()?;
+    let id = backup::id(&seed);
+    let (backup_data, metadata) = backup::load(&id)?;
+    if seed.as_slice() != backup_data.get_seed() {
+        if !silent {
+            status::status("Backup missing\nor invalid", false).await;
         }
-        Err(backup::Error::BACKUP_ERR_CHECK) => {
-            if !silent {
-                status::status("Backup missing\nor invalid", false).await;
-            }
-            Err(Error::Generic)
-        }
-        Err(err) => {
-            let msg = format!("Could not check\nbackup\n{:?}", err).replace("BACKUP_ERR_", "");
-            status::status(&msg, false).await;
-            Err(Error::Generic)
-        }
+        return Err(Error::Generic);
     }
+    if !silent {
+        let params = confirm::Params {
+            title: "Name?",
+            body: &metadata.name,
+            scrollable: true,
+            ..Default::default()
+        };
+
+        confirm::confirm(&params).await?;
+
+        let params = confirm::Params {
+            title: "ID?",
+            body: &id,
+            scrollable: true,
+            ..Default::default()
+        };
+
+        confirm::confirm(&params).await?;
+
+        status::status("Backup valid", true).await;
+    }
+    Ok(Response::CheckBackup(pb::CheckBackupResponse { id }))
 }
 
 /// Creates a backup on the microsD card.
@@ -88,6 +83,13 @@ pub async fn create(
         return Err(Error::InvalidInput);
     }
 
+    confirm::confirm(&confirm::Params {
+        title: "Is today?",
+        body: &bitbox02::format_datetime(timestamp, timezone_offset, true),
+        ..Default::default()
+    })
+    .await?;
+
     // Wait for sd card
     super::sdcard::process(&pb::InsertRemoveSdCardRequest {
         action: pb::insert_remove_sd_card_request::SdCardAction::InsertCard as _,
@@ -100,26 +102,25 @@ pub async fn create(
         unlock::unlock_keystore("Unlock device", unlock::CanCancel::Yes).await?;
     }
 
+    let seed = bitbox02::keystore::copy_seed()?;
     let seed_birthdate = if !is_initialized {
-        let date_string = bitbox02::format_datetime(timestamp, timezone_offset, true);
-        let params = confirm::Params {
-            title: "Is today?",
-            body: &date_string,
-            ..Default::default()
-        };
-        confirm::confirm(&params).await?;
         if bitbox02::memory::set_seed_birthdate(timestamp).is_err() {
             return Err(Error::Memory);
         }
         timestamp
-    } else if let Ok(backup::CheckData { birthdate, .. }) = backup::check() {
+    } else if let Ok((data, _)) = backup::load(&backup::id(&seed)) {
         // If adding new backup after initialized, we do not know the seed birthdate.
         // If re-creating it, we use the already existing one.
-        birthdate
+        data.0.birthdate
     } else {
         0
     };
-    match backup::create(timestamp, seed_birthdate) {
+    match backup::create(
+        &seed,
+        &bitbox02::memory::get_device_name(),
+        timestamp,
+        seed_birthdate,
+    ) {
         Ok(()) => {
             // The backup was created, so reporting an error here
             // could have bad consequences like replacing the sd card,
@@ -132,8 +133,7 @@ pub async fn create(
             Ok(Response::Success(pb::Success {}))
         }
         Err(err) => {
-            let msg = format!("Backup not created\nPlease contact\nsupport ({:?})", err)
-                .replace("BACKUP_ERR_", "");
+            let msg = format!("Backup not created\nPlease contact\nsupport ({:?})", err);
             status::status(&msg, false).await;
             Err(Error::Generic)
         }
@@ -143,14 +143,14 @@ pub async fn create(
 pub fn list() -> Result<Response, Error> {
     let mut info: Vec<pb::BackupInfo> = Vec::new();
     for dir in bitbox02::sd::list_subdir(None)? {
-        let data = match bitbox02::backup::restore_from_directory(&dir) {
-            Ok(data) => data,
+        let (_, metadata) = match backup::load(&dir) {
+            Ok(d) => d,
             Err(_) => continue,
         };
         info.push(pb::BackupInfo {
             id: dir,
-            timestamp: data.timestamp,
-            name: data.name,
+            timestamp: metadata.timestamp,
+            name: metadata.name,
         })
     }
     Ok(Response::ListBackups(pb::ListBackupsResponse { info }))
@@ -191,6 +191,13 @@ mod tests {
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(EXPECTED_TIMESTMAP, bitbox02::memory::get_seed_birthdate());
+
+        assert_eq!(
+            block_on(check(&pb::CheckBackupRequest { silent: true })),
+            Ok(Response::CheckBackup(pb::CheckBackupResponse {
+                id: "41233dfbad010723dbbb93514b7b81016b73f8aa35c5148e1b478f60d5750dce".into()
+            }))
+        );
     }
 
     /// Use backup file fixtures generated using firmware v9.12.0 and perform tests on it. This
@@ -251,7 +258,7 @@ mod tests {
 
     #[test]
     pub fn test_list() {
-        const EXPECTED_TIMESTMAP: u32 = 1601281809;
+        const EXPECTED_TIMESTAMP: u32 = 1601281809;
 
         const DEVICE_NAME_1: &str = "test device name";
         const DEVICE_NAME_2: &str = "another test device name";
@@ -276,7 +283,7 @@ mod tests {
         mock_memory();
         bitbox02::memory::set_device_name(DEVICE_NAME_1).unwrap();
         assert!(block_on(create(&pb::CreateBackupRequest {
-            timestamp: EXPECTED_TIMESTMAP,
+            timestamp: EXPECTED_TIMESTAMP,
             timezone_offset: 18000,
         }))
         .is_ok());
@@ -286,7 +293,7 @@ mod tests {
             Ok(Response::ListBackups(pb::ListBackupsResponse {
                 info: vec![pb::BackupInfo {
                     id: "41233dfbad010723dbbb93514b7b81016b73f8aa35c5148e1b478f60d5750dce".into(),
-                    timestamp: EXPECTED_TIMESTMAP,
+                    timestamp: EXPECTED_TIMESTAMP,
                     name: DEVICE_NAME_1.into(),
                 }]
             }))
@@ -302,7 +309,7 @@ mod tests {
         mock_memory();
         bitbox02::memory::set_device_name(DEVICE_NAME_2).unwrap();
         assert!(block_on(create(&pb::CreateBackupRequest {
-            timestamp: EXPECTED_TIMESTMAP,
+            timestamp: EXPECTED_TIMESTAMP,
             timezone_offset: 18000,
         }))
         .is_ok());
@@ -314,13 +321,13 @@ mod tests {
                     pb::BackupInfo {
                         id: "41233dfbad010723dbbb93514b7b81016b73f8aa35c5148e1b478f60d5750dce"
                             .into(),
-                        timestamp: EXPECTED_TIMESTMAP,
+                        timestamp: EXPECTED_TIMESTAMP,
                         name: DEVICE_NAME_1.into(),
                     },
                     pb::BackupInfo {
                         id: "4c7005846ffc09f31850201a6fdfff084191164eb318db2c6fe5a39df4a97ba0"
                             .into(),
-                        timestamp: EXPECTED_TIMESTMAP,
+                        timestamp: EXPECTED_TIMESTAMP,
                         name: DEVICE_NAME_2.into(),
                     }
                 ]

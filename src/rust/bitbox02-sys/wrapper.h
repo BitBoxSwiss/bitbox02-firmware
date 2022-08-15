@@ -17,8 +17,6 @@
 #include <apps/btc/btc_sign.h>
 #include <apps/eth/eth_params.h>
 #include <apps/eth/eth_sighash.h>
-#include <backup/backup.h>
-#include <backup/restore.h>
 #include <commander/commander_states.h>
 #include <keystore.h>
 #include <memory/bitbox02_smarteeprom.h>
@@ -31,6 +29,7 @@
 #include <secp256k1_ecdsa_s2c.h>
 #include <securechip/securechip.h>
 #include <system.h>
+#include <time.h>
 #include <ui/components/confirm.h>
 #include <ui/components/confirm_transaction.h>
 #include <ui/components/empty.h>

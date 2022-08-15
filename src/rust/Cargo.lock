@@ -100,6 +100,7 @@ dependencies = [
  "digest",
  "ed25519-dalek",
  "hex",
+ "hmac",
  "lazy_static",
  "minicbor",
  "num-bigint",

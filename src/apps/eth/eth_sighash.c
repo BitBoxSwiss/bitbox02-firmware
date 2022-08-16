@@ -14,7 +14,7 @@ static void _hash_header(
     void* ctx,
     uint8_t small_tag,
     uint8_t large_tag,
-    pb_size_t len,
+    uint16_t len,
     uint32_t* encoded_len_out)
 {
     if (sizeof(len) != 2) {
@@ -57,7 +57,7 @@ static void _hash_header(
 // If encoded_len_out is NULL, we skip counting the bytes.
 // If encoded_len_out is not NULL, we add to it, so it has to be initialized to 0 before the first
 // call.
-static void _hash_element(void* ctx, const uint8_t* bytes, pb_size_t len, uint32_t* encoded_len_out)
+static void _hash_element(void* ctx, const uint8_t* bytes, uint16_t len, uint32_t* encoded_len_out)
 {
     if (sizeof(len) != 2) {
         Abort("_hash_element: unexpected size");
@@ -114,7 +114,7 @@ bool app_eth_sighash(eth_sighash_params_t params, uint8_t* sighash_out)
     }
     // 2) hash len and encoded tx elements
     void* ctx = rust_keccak256_new();
-    _hash_header(ctx, 0xc0, 0xf7, (pb_size_t)encoded_length, NULL);
+    _hash_header(ctx, 0xc0, 0xf7, (uint16_t)encoded_length, NULL);
     _hash_element(ctx, params.nonce.data, params.nonce.len, NULL);
     _hash_element(ctx, params.gas_price.data, params.gas_price.len, NULL);
     _hash_element(ctx, params.gas_limit.data, params.gas_limit.len, NULL);

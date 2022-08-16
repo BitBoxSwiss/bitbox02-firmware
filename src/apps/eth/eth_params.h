@@ -15,8 +15,6 @@
 #ifndef _APPS_ETH_PARAMS_H
 #define _APPS_ETH_PARAMS_H
 
-#include <hww.pb.h>
-
 #include <stdint.h>
 
 typedef struct {

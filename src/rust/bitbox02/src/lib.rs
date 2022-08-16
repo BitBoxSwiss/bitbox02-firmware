@@ -34,7 +34,6 @@ pub mod testing;
 pub mod app_btc;
 #[cfg(feature = "app-ethereum")]
 pub mod app_eth;
-pub mod commander;
 pub mod input;
 pub mod keystore;
 pub mod memory;
@@ -45,18 +44,6 @@ pub mod securechip;
 pub mod ui;
 
 use core::time::Duration;
-
-pub use bitbox02_sys::{
-    Request_btc_pub_tag, Request_btc_sign_init_tag, Request_btc_sign_input_tag,
-    Request_btc_sign_output_tag, Request_btc_tag, Request_cardano_tag, Request_check_backup_tag,
-    Request_check_sdcard_tag, Request_create_backup_tag, Request_device_info_tag,
-    Request_device_language_tag, Request_device_name_tag, Request_electrum_encryption_key_tag,
-    Request_eth_tag, Request_fingerprint_tag, Request_insert_remove_sdcard_tag,
-    Request_list_backups_tag, Request_perform_attestation_tag, Request_reboot_tag,
-    Request_reset_tag, Request_restore_backup_tag, Request_restore_from_mnemonic_tag,
-    Request_set_mnemonic_passphrase_enabled_tag, Request_set_password_tag,
-    Request_show_mnemonic_tag,
-};
 
 pub use bitbox02_sys::font_monogram_5X9;
 

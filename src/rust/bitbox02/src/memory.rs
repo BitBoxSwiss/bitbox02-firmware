@@ -59,6 +59,10 @@ pub fn set_initialized() -> Result<(), ()> {
     }
 }
 
+pub fn is_seeded() -> bool {
+    unsafe { bitbox02_sys::memory_is_seeded() }
+}
+
 pub fn is_mnemonic_passphrase_enabled() -> bool {
     unsafe { bitbox02_sys::memory_is_mnemonic_passphrase_enabled() }
 }

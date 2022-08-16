@@ -1,5 +1,4 @@
-// Copyright 2020 Shift Cryptosecurity AG
-// Copyright 2020 Shift Crypto AG
+// Copyright 2022 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub fn states_can_call(request_tag: u16) -> bool {
-    unsafe { bitbox02_sys::commander_states_can_call(request_tag) }
-}
+use crate::pb;

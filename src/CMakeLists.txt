@@ -16,7 +16,6 @@
 
 set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/firmware_main_loop.c
-  ${CMAKE_SOURCE_DIR}/src/commander/commander_states.c
   ${CMAKE_SOURCE_DIR}/src/keystore.c
   ${CMAKE_SOURCE_DIR}/src/random.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
@@ -299,6 +298,7 @@ add_custom_target(rust-bindgen
     --whitelist-function memory_setup
     --whitelist-function memory_is_initialized
     --whitelist-function memory_set_initialized
+    --whitelist-function memory_is_seeded
     --whitelist-function memory_is_mnemonic_passphrase_enabled
     --whitelist-function memory_get_attestation_pubkey_and_certificate
     --whitelist-function memory_bootloader_hash
@@ -377,8 +377,6 @@ add_custom_target(rust-bindgen
     --whitelist-function random_mock_reset
     --whitelist-type component_t
     --whitelist-type confirm_params_t
-    --whitelist-function commander_states_can_call
-    --whitelist-var ".*_tag"
     --whitelist-var MAX_LABEL_SIZE
     --whitelist-var font_font_a_9X9
     --whitelist-var font_font_a_11X10

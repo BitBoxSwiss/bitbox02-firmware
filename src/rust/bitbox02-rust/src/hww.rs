@@ -298,6 +298,65 @@ mod tests {
         }
     }
 
+    /// Can initiate noise and send the Reboot protobuf request when the device is seeded.
+    #[test]
+    fn test_reboot_when_seeded() {
+        mock_memory();
+
+        let mut make_request = init_noise();
+
+        static mut UI_COUNTER: u32 = 0;
+        mock(Data {
+            ui_trinary_input_string_create: Some(Box::new(|_params| "password".into())),
+            sdcard_inserted: Some(true),
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER
+                } {
+                    1 => assert_eq!(params.body, "Proceed to upgrade?"),
+                    _ => panic!("too many dialogs"),
+                }
+                true
+            })),
+            ..Default::default()
+        });
+        make_request(
+            (crate::pb::Request {
+                request: Some(crate::pb::request::Request::SetPassword(
+                    crate::pb::SetPasswordRequest {
+                        entropy: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_vec(),
+                    },
+                )),
+            })
+            .encode_to_vec()
+            .as_ref(),
+        )
+        .unwrap();
+        assert!(!bitbox02::keystore::is_locked());
+        assert!(bitbox02::memory::is_seeded());
+        assert!(!bitbox02::memory::is_initialized());
+
+        let reboot_request = crate::pb::Request {
+            request: Some(crate::pb::request::Request::Reboot(
+                crate::pb::RebootRequest {
+                    purpose: crate::pb::reboot_request::Purpose::Upgrade as _,
+                },
+            )),
+        };
+
+        // Can reboot when seeded and locked. This happens when the user sets a password and then
+        // reconnects the device.
+        bitbox02::keystore::lock();
+        let reboot_called = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            make_request(reboot_request.encode_to_vec().as_ref()).unwrap();
+        }));
+        match reboot_called {
+            Ok(()) => panic!("reboot was not called"),
+            Err(msg) => assert_eq!(msg.downcast_ref::<&str>(), Some(&"reboot called")),
+        }
+    }
+
     /// Can initiate noise and send the Reboot protobuf request when the device is initialized.
     #[test]
     fn test_reboot_when_initialized() {

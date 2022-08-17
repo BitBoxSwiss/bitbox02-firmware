@@ -405,6 +405,9 @@ add_custom_target(rust-bindgen
     --whitelist-function app_eth_params_get
     --whitelist-function app_eth_erc20_params_get
     --whitelist-function app_eth_sighash
+    --rustified-enum simple_type_t
+    --rustified-enum multisig_script_type_t
+    --rustified-enum output_type_t
     --whitelist-function btc_common_pkscript_from_payload
     --whitelist-function btc_common_payload_at_keypath
     --whitelist-function btc_common_pkscript_from_multisig

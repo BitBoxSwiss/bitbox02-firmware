@@ -27,18 +27,18 @@
 bool btc_common_payload_at_keypath(
     const uint32_t* keypath,
     size_t keypath_len,
-    BTCScriptConfig_SimpleType script_type,
+    simple_type_t script_type,
     uint8_t* output_payload,
     size_t* output_payload_size)
 {
     switch (script_type) {
-    case BTCScriptConfig_SimpleType_P2WPKH:
+    case SIMPLE_TYPE_P2WPKH:
         if (!keystore_secp256k1_pubkey_hash160(keypath, keypath_len, output_payload)) {
             return false;
         }
         *output_payload_size = HASH160_LEN;
         break;
-    case BTCScriptConfig_SimpleType_P2WPKH_P2SH: {
+    case SIMPLE_TYPE_P2WPKH_P2SH: {
         uint8_t pubkey_hash[HASH160_LEN];
         UTIL_CLEANUP_20(pubkey_hash);
         if (!keystore_secp256k1_pubkey_hash160(keypath, keypath_len, pubkey_hash)) {
@@ -59,7 +59,7 @@ bool btc_common_payload_at_keypath(
         *output_payload_size = HASH160_LEN;
         break;
     }
-    case BTCScriptConfig_SimpleType_P2TR:
+    case SIMPLE_TYPE_P2TR:
         if (!keystore_secp256k1_schnorr_bip86_pubkey(keypath, keypath_len, output_payload)) {
             return false;
         }
@@ -73,7 +73,7 @@ bool btc_common_payload_at_keypath(
 
 bool btc_common_pkscript_from_payload(
     bool taproot_support,
-    BTCOutputType output_type,
+    output_type_t output_type,
     const uint8_t* payload,
     size_t payload_size,
     uint8_t* pk_script,
@@ -84,23 +84,23 @@ bool btc_common_pkscript_from_payload(
     }
     size_t len = *pk_script_len;
     switch (output_type) {
-    case BTCOutputType_P2PKH:
+    case OUTPUT_TYPE_P2PKH:
         if (payload_size != HASH160_LEN) {
             return false;
         }
         return wally_scriptpubkey_p2pkh_from_bytes(
                    payload, payload_size, 0, pk_script, len, pk_script_len) == WALLY_OK;
-    case BTCOutputType_P2SH:
+    case OUTPUT_TYPE_P2SH:
         if (payload_size != HASH160_LEN) {
             return false;
         }
         return wally_scriptpubkey_p2sh_from_bytes(
                    payload, payload_size, 0, pk_script, len, pk_script_len) == WALLY_OK;
-    case BTCOutputType_P2WPKH:
-    case BTCOutputType_P2WSH:
+    case OUTPUT_TYPE_P2WPKH:
+    case OUTPUT_TYPE_P2WSH:
         return wally_witness_program_from_bytes(
                    payload, payload_size, 0, pk_script, len, pk_script_len) == WALLY_OK;
-    case BTCOutputType_P2TR:
+    case OUTPUT_TYPE_P2TR:
         if (!taproot_support || payload_size != 32) {
             return false;
         }
@@ -160,7 +160,7 @@ bool btc_common_pkscript_from_multisig(
 
 bool btc_common_payload_from_multisig(
     const multisig_t* multisig,
-    BTCScriptConfig_Multisig_ScriptType script_type,
+    multisig_script_type_t script_type,
     uint32_t keypath_change,
     uint32_t keypath_address,
     uint8_t* output_payload,
@@ -179,10 +179,10 @@ bool btc_common_payload_from_multisig(
     // Note that the witness script has an additional varint prefix.
 
     switch (script_type) {
-    case BTCScriptConfig_Multisig_ScriptType_P2WSH:
+    case MULTISIG_SCRIPT_TYPE_P2WSH:
         *output_payload_size = SHA256_LEN;
         return wally_sha256(script, written, output_payload, SHA256_LEN) == WALLY_OK;
-    case BTCScriptConfig_Multisig_ScriptType_P2WSH_P2SH: {
+    case MULTISIG_SCRIPT_TYPE_P2WSH_P2SH: {
         // script_sha256 contains the hash of the multisig redeem script as used in a P2WSH output.
         uint8_t script_sha256[SHA256_LEN] = {0};
         if (wally_sha256(script, written, script_sha256, sizeof(script_sha256)) != WALLY_OK) {

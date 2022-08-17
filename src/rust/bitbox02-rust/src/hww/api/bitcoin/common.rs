@@ -133,6 +133,27 @@ pub fn determine_output_type(script_config: &pb::BtcScriptConfig) -> Result<BtcO
     }
 }
 
+/// Converts a Rust protobuf SimpleType to a representation suitable to be passed to C functions.
+pub fn convert_simple_type(simple_type: SimpleType) -> bitbox02::app_btc::SimpleType {
+    match simple_type {
+        SimpleType::P2wpkhP2sh => bitbox02::app_btc::SimpleType::SIMPLE_TYPE_P2WPKH_P2SH,
+        SimpleType::P2wpkh => bitbox02::app_btc::SimpleType::SIMPLE_TYPE_P2WPKH,
+        SimpleType::P2tr => bitbox02::app_btc::SimpleType::SIMPLE_TYPE_P2TR,
+    }
+}
+
+/// Converts a Rust protobuf OutputType to a representation suitable to be passed to C functions.
+pub fn convert_output_type(simple_type: BtcOutputType) -> bitbox02::app_btc::OutputType {
+    match simple_type {
+        BtcOutputType::Unknown => bitbox02::app_btc::OutputType::OUTPUT_TYPE_UNKNOWN,
+        BtcOutputType::P2pkh => bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2PKH,
+        BtcOutputType::P2sh => bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2SH,
+        BtcOutputType::P2wpkh => bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2WPKH,
+        BtcOutputType::P2wsh => bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2WSH,
+        BtcOutputType::P2tr => bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2TR,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

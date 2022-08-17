@@ -60,7 +60,7 @@ static void _test_btc_common_payload_at_keypath(void** state)
         assert_true(btc_common_payload_at_keypath(
             keypath,
             sizeof(keypath) / sizeof(uint32_t),
-            BTCScriptConfig_SimpleType_P2WPKH,
+            SIMPLE_TYPE_P2WPKH,
             payload,
             &payload_size));
         assert_int_equal(payload_size, 20);
@@ -80,7 +80,7 @@ static void _test_btc_common_payload_at_keypath(void** state)
         assert_true(btc_common_payload_at_keypath(
             keypath,
             sizeof(keypath) / sizeof(uint32_t),
-            BTCScriptConfig_SimpleType_P2WPKH_P2SH,
+            SIMPLE_TYPE_P2WPKH_P2SH,
             payload,
             &payload_size));
         assert_int_equal(payload_size, 20);
@@ -98,11 +98,7 @@ static void _test_btc_common_payload_at_keypath(void** state)
             0,
         };
         assert_true(btc_common_payload_at_keypath(
-            keypath,
-            sizeof(keypath) / sizeof(uint32_t),
-            BTCScriptConfig_SimpleType_P2TR,
-            payload,
-            &payload_size));
+            keypath, sizeof(keypath) / sizeof(uint32_t), SIMPLE_TYPE_P2TR, payload, &payload_size));
         assert_int_equal(payload_size, 32);
         assert_memory_equal(
             payload,

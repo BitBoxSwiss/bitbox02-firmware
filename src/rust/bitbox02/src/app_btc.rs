@@ -16,11 +16,14 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 pub use bitbox02_sys::multisig_t as Multisig;
-pub use bitbox02_sys::{BTCScriptConfig_Multisig_ScriptType, BTCScriptConfig_SimpleType};
+pub use bitbox02_sys::{
+    multisig_script_type_t as MultisigScriptType, output_type_t as OutputType,
+    simple_type_t as SimpleType,
+};
 
 pub fn pkscript_from_payload(
     taproot_support: bool,
-    output_type: bitbox02_sys::BTCOutputType,
+    output_type: OutputType,
     payload: &[u8],
 ) -> Result<Vec<u8>, ()> {
     // current expected max pk script size is a m-of-15 multisig. 700 is also enough for m-of-20, which
@@ -43,10 +46,7 @@ pub fn pkscript_from_payload(
     }
 }
 
-pub fn payload_at_keypath(
-    keypath: &[u32],
-    script_type: BTCScriptConfig_SimpleType,
-) -> Result<Vec<u8>, ()> {
+pub fn payload_at_keypath(keypath: &[u32], script_type: SimpleType) -> Result<Vec<u8>, ()> {
     let mut out = [0u8; 32];
     let mut out_len: bitbox02_sys::size_t = 0;
     match unsafe {
@@ -86,7 +86,7 @@ pub fn pkscript_from_multisig(
 
 pub fn payload_from_multisig(
     multisig: &Multisig,
-    script_type: BTCScriptConfig_Multisig_ScriptType,
+    script_type: MultisigScriptType,
     keypath_change: u32,
     keypath_address: u32,
 ) -> Result<Vec<u8>, ()> {
@@ -122,7 +122,7 @@ mod tests {
         assert_eq!(
             payload_at_keypath(
                 &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
-                bitbox02_sys::_BTCScriptConfig_SimpleType_BTCScriptConfig_SimpleType_P2WPKH,
+                SimpleType::SIMPLE_TYPE_P2WPKH,
             ),
             Ok(
                 b"\x3f\x0d\xc2\xe9\x14\x2d\x88\x39\xae\x9c\x90\xa1\x9c\xa8\x6c\x36\xd9\x23\xd8\xab"

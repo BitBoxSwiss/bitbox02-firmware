@@ -16,7 +16,6 @@ use bitbox02_sys::in_buffer_t;
 
 pub struct ERC20Params {
     pub unit: &'static str,
-    pub name: &'static str,
     pub contract_address: [u8; 20],
     pub decimals: u8,
 }
@@ -30,13 +29,6 @@ pub fn erc20_params_get(chain_id: u64, contract_address: [u8; 20]) -> Option<ERC
             let s = unsafe {
                 let len = crate::util::strlen_ptr(params.unit);
                 core::slice::from_raw_parts(params.unit, len as _)
-            };
-            core::str::from_utf8(s).unwrap()
-        },
-        name: {
-            let s = unsafe {
-                let len = crate::util::strlen_ptr(params.name);
-                core::slice::from_raw_parts(params.name, len as _)
             };
             core::str::from_utf8(s).unwrap()
         },

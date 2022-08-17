@@ -11,6 +11,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Allow arbitrary input sequence numbers (fixes compatibility with Taproot transactions in Sparrow wallet)
 - The BackupData.length field is now obsolete and always set to 0
 - Port remaining protobuf code to Rust, remove the C nanopb protobuf dependency.
+- Ethereum: replace ERC20 token names with their unit codes in the receive screen
 
 ### 9.12.0
 - Ethereum: add support for EIP-712 structured data signing

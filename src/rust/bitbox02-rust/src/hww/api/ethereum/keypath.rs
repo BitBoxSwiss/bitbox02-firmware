@@ -45,6 +45,7 @@ pub async fn warn_unusual_keypath(
         let params = confirm::Params {
             title,
             body: &body,
+            title_autowrap: true,
             scrollable: true,
             ..Default::default()
         };

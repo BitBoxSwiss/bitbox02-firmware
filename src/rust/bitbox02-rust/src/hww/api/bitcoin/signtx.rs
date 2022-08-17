@@ -439,22 +439,31 @@ fn payload_at_keypath(
                     config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
                 }),
             ..
-        } => Ok(bitbox02::app_btc::payload_at_keypath(
-            keypath,
-            (*simple_type) as _,
-        )?),
+        } => {
+            let simple_type = pb::btc_script_config::SimpleType::from_i32(*simple_type)
+                .ok_or(Error::InvalidInput)?;
+            Ok(bitbox02::app_btc::payload_at_keypath(
+                keypath,
+                super::common::convert_simple_type(simple_type),
+            )?)
+        }
         pb::BtcScriptConfigWithKeypath {
             script_config:
                 Some(pb::BtcScriptConfig {
                     config: Some(pb::btc_script_config::Config::Multisig(multisig)),
                 }),
             ..
-        } => Ok(bitbox02::app_btc::payload_from_multisig(
-            &super::multisig::convert_multisig(multisig)?,
-            multisig.script_type as _,
-            keypath[keypath.len() - 2],
-            keypath[keypath.len() - 1],
-        )?),
+        } => {
+            let script_type =
+                pb::btc_script_config::multisig::ScriptType::from_i32(multisig.script_type)
+                    .ok_or(Error::InvalidInput)?;
+            Ok(bitbox02::app_btc::payload_from_multisig(
+                &super::multisig::convert_multisig(multisig)?,
+                super::multisig::convert_multisig_script_type(script_type),
+                keypath[keypath.len() - 2],
+                keypath[keypath.len() - 1],
+            )?)
+        }
         _ => Err(Error::InvalidInput),
     }
 }
@@ -623,7 +632,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             let payload = payload_at_keypath(&tx_input.keypath, script_config_account)?;
             bitbox02::app_btc::pkscript_from_payload(
                 coin_params.taproot_support,
-                output_type as _,
+                super::common::convert_output_type(output_type),
                 &payload,
             )
             .or(Err(Error::InvalidInput))?
@@ -741,7 +750,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         hasher_outputs.update(tx_output.value.to_le_bytes());
         let pk_script = bitbox02::app_btc::pkscript_from_payload(
             coin_params.taproot_support,
-            output_type as _,
+            super::common::convert_output_type(output_type),
             &payload,
         )
         .or(Err(Error::InvalidInput))?;

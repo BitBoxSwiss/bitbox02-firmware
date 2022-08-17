@@ -22,8 +22,6 @@
 #include <compiler_util.h>
 #include <keystore.h>
 
-#include <hww.pb.h>
-
 #include <wally_bip32.h>
 #include <wally_crypto.h>
 #include <wally_script.h>
@@ -35,6 +33,26 @@ typedef struct {
     uint8_t xpubs[MULTISIG_P2WSH_MAX_SIGNERS][BIP32_SERIALIZED_LEN];
     uint32_t threshold;
 } multisig_t;
+
+typedef enum {
+    SIMPLE_TYPE_P2WPKH_P2SH = 0,
+    SIMPLE_TYPE_P2WPKH = 1,
+    SIMPLE_TYPE_P2TR = 2
+} simple_type_t;
+
+typedef enum {
+    MULTISIG_SCRIPT_TYPE_P2WSH = 0,
+    MULTISIG_SCRIPT_TYPE_P2WSH_P2SH = 1
+} multisig_script_type_t;
+
+typedef enum {
+    OUTPUT_TYPE_UNKNOWN = 0,
+    OUTPUT_TYPE_P2PKH = 1,
+    OUTPUT_TYPE_P2SH = 2,
+    OUTPUT_TYPE_P2WPKH = 3,
+    OUTPUT_TYPE_P2WSH = 4,
+    OUTPUT_TYPE_P2TR = 5
+} output_type_t;
 
 // see https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer
 #define MAX_VARINT_SIZE (9)
@@ -55,7 +73,7 @@ typedef struct {
 USE_RESULT bool btc_common_payload_at_keypath(
     const uint32_t* keypath,
     size_t keypath_len,
-    BTCScriptConfig_SimpleType script_type,
+    simple_type_t script_type,
     uint8_t* output_payload,
     size_t* output_payload_size);
 
@@ -68,7 +86,7 @@ USE_RESULT bool btc_common_payload_at_keypath(
  */
 USE_RESULT bool btc_common_pkscript_from_payload(
     bool taproot_support,
-    BTCOutputType output_type,
+    output_type_t output_type,
     const uint8_t* payload,
     size_t payload_size,
     uint8_t* pk_script,
@@ -105,7 +123,7 @@ USE_RESULT bool btc_common_pkscript_from_multisig(
  */
 USE_RESULT bool btc_common_payload_from_multisig(
     const multisig_t* multisig,
-    BTCScriptConfig_Multisig_ScriptType script_type,
+    multisig_script_type_t script_type,
     uint32_t keypath_change,
     uint32_t keypath_address,
     uint8_t* output_payload,

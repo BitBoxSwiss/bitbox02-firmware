@@ -144,7 +144,8 @@ pub fn derive_address_simple(
         coin_params.taproot_support,
     )
     .or(Err(Error::InvalidInput))?;
-    let payload = bitbox02::app_btc::payload_at_keypath(keypath, simple_type as _)?;
+    let payload =
+        bitbox02::app_btc::payload_at_keypath(keypath, common::convert_simple_type(simple_type))?;
     let address = common::address_from_payload(
         coin_params,
         common::determine_output_type_from_simple_type(simple_type),
@@ -197,7 +198,7 @@ pub async fn address_multisig(
     }
     let payload = bitbox02::app_btc::payload_from_multisig(
         &multisig::convert_multisig(multisig)?,
-        script_type as _,
+        multisig::convert_multisig_script_type(script_type),
         keypath[keypath.len() - 2],
         keypath[keypath.len() - 1],
     )?;

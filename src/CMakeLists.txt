@@ -41,9 +41,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/status.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
   ${CMAKE_SOURCE_DIR}/src/workflow/verify_total.c
-  ${CMAKE_SOURCE_DIR}/src/apps/common/bip32.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_common.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_sign.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
 )
@@ -341,6 +339,7 @@ add_custom_target(rust-bindgen
     --whitelist-function keystore_bip39_mnemonic_to_seed
     --whitelist-function keystore_get_root_fingerprint
     --whitelist-function keystore_mock_unlocked
+    --whitelist-function keystore_secp256k1_pubkey_hash160
     --whitelist-var EC_PUBLIC_KEY_UNCOMPRESSED_LEN
     --whitelist-var EC_PUBLIC_KEY_LEN
     --whitelist-function keystore_encode_xpub_at_keypath
@@ -408,15 +407,12 @@ add_custom_target(rust-bindgen
     --whitelist-function app_eth_params_get
     --whitelist-function app_eth_erc20_params_get
     --whitelist-function app_eth_sighash
-    --rustified-enum app_btc_result_t
     --whitelist-function btc_common_pkscript_from_payload
     --whitelist-function btc_common_payload_at_keypath
+    --whitelist-function btc_common_pkscript_from_multisig
     --whitelist-function btc_common_payload_from_multisig
     --whitelist-var MAX_VARINT_SIZE
     --whitelist-var MAX_PK_SCRIPT_SIZE
-    --whitelist-function app_btc_sign_init_wrapper
-    --whitelist-function app_btc_sign_sighash_script_wrapper
-    --whitelist-function app_btc_sign_reset
     --whitelist-function reboot
     --whitelist-function secp256k1_ecdsa_anti_exfil_host_commit
     --whitelist-function wally_get_secp_context

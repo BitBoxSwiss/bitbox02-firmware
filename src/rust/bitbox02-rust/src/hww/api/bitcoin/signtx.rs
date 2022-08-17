@@ -27,17 +27,9 @@ use core::convert::TryInto;
 use pb::request::Request;
 use pb::response::Response;
 
-use prost::Message;
-
 use pb::btc_sign_next_response::Type as NextType;
 
 use sha2::{Digest, Sha256};
-
-fn encode<M: Message>(msg: &M) -> Vec<u8> {
-    let mut serialized = Vec::<u8>::new();
-    msg.encode(&mut serialized).unwrap();
-    serialized
-}
 
 /// After each request from the host, we send a `BtcSignNextResponse` response back to the host,
 /// containing information which request we want next, and containing additional metadata if
@@ -258,6 +250,53 @@ fn is_taproot(script_config_account: &pb::BtcScriptConfigWithKeypath) -> bool {
             ..
         } => *simple_type == pb::btc_script_config::SimpleType::P2tr as i32,
         _ => false,
+    }
+}
+
+/// Generates the subscript (scriptCode without the length prefix) used in the bip143 sighash algo.
+///
+/// See https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification, item 5:
+fn sighash_script(
+    script_config_account: &pb::BtcScriptConfigWithKeypath,
+    keypath: &[u32],
+) -> Result<Vec<u8>, Error> {
+    match script_config_account {
+        pb::BtcScriptConfigWithKeypath {
+            script_config:
+                Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
+                }),
+            ..
+        } => {
+            match pb::btc_script_config::SimpleType::from_i32(*simple_type)
+                .ok_or(Error::InvalidInput)?
+            {
+                pb::btc_script_config::SimpleType::P2wpkhP2sh
+                | pb::btc_script_config::SimpleType::P2wpkh => {
+                    // See https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification, item 5:
+                    // > For P2WPKH witness program, the scriptCode is 0x1976a914{20-byte-pubkey-hash}88ac.
+                    let pubkey_hash160 = bitbox02::keystore::secp256k1_pubkey_hash160(keypath)?;
+                    let mut result = Vec::<u8>::new();
+                    result.extend_from_slice(b"\x76\xa9\x14");
+                    result.extend_from_slice(&pubkey_hash160);
+                    result.extend_from_slice(b"\x88\xac");
+                    Ok(result)
+                }
+                _ => Err(Error::Generic),
+            }
+        }
+        pb::BtcScriptConfigWithKeypath {
+            script_config:
+                Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::Multisig(multisig)),
+                }),
+            ..
+        } => Ok(bitbox02::app_btc::pkscript_from_multisig(
+            &super::multisig::convert_multisig(multisig)?,
+            keypath[keypath.len() - 2],
+            keypath[keypath.len() - 1],
+        )?),
+        _ => Err(Error::InvalidInput),
     }
 }
 
@@ -483,7 +522,6 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         return Err(Error::InvalidInput);
     }
     validate_script_configs(coin_params, &request.script_configs).await?;
-    bitbox02::app_btc::sign_init_wrapper(encode(request).as_ref())?;
 
     let mut progress_component = {
         let mut c = bitbox02::ui::progress_create("Loading transaction...");
@@ -821,15 +859,13 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             // Sign all other supported inputs.
 
             const SIGHASH_ALL: u32 = 0x01;
-            let sighash_script =
-                bitbox02::app_btc::sign_sighash_script_wrapper(encode(&tx_input).as_ref())?;
             let sighash = bip143::sighash(&bip143::Args {
                 version: request.version,
                 hash_prevouts: Sha256::digest(&hash_prevouts).try_into().unwrap(),
                 hash_sequence: Sha256::digest(&hash_sequence).try_into().unwrap(),
                 outpoint_hash: tx_input.prev_out_hash.as_slice().try_into().unwrap(),
                 outpoint_index: tx_input.prev_out_index,
-                sighash_script: &sighash_script,
+                sighash_script: &sighash_script(script_config_account, &tx_input.keypath)?,
                 prevout_value: tx_input.prev_out_value,
                 sequence: tx_input.sequence,
                 hash_outputs: Sha256::digest(&hash_outputs).try_into().unwrap(),
@@ -886,7 +922,6 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
 
 pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     let result = _process(request).await;
-    bitbox02::app_btc::sign_reset();
     if let Err(Error::UserAbort) = result {
         status::status("Transaction\ncanceled", false).await;
     }

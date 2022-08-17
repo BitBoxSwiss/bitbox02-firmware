@@ -13,49 +13,10 @@
 // limitations under the License.
 
 extern crate alloc;
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 
-pub use bitbox02_sys::app_btc_result_t as Error;
 pub use bitbox02_sys::multisig_t as Multisig;
 pub use bitbox02_sys::{BTCScriptConfig_Multisig_ScriptType, BTCScriptConfig_SimpleType};
-
-pub fn sign_init_wrapper(buffer_in: &[u8]) -> Result<(), Error> {
-    unsafe {
-        match bitbox02_sys::app_btc_sign_init_wrapper(bitbox02_sys::in_buffer_t {
-            data: buffer_in.as_ptr(),
-            len: buffer_in.len() as _,
-        }) {
-            Error::APP_BTC_OK => Ok(()),
-            err => Err(err),
-        }
-    }
-}
-
-pub fn sign_sighash_script_wrapper(buffer_in: &[u8]) -> Result<Vec<u8>, Error> {
-    let mut sighash_script_out = vec![
-        0u8;
-        bitbox02_sys::MAX_PK_SCRIPT_SIZE as usize
-            + bitbox02_sys::MAX_VARINT_SIZE as usize
-    ];
-    let mut sighash_script_out_size: bitbox02_sys::size_t = sighash_script_out.len() as _;
-    unsafe {
-        match bitbox02_sys::app_btc_sign_sighash_script_wrapper(
-            bitbox02_sys::in_buffer_t {
-                data: buffer_in.as_ptr(),
-                len: buffer_in.len() as _,
-            },
-            sighash_script_out.as_mut_ptr(),
-            &mut sighash_script_out_size,
-        ) {
-            Error::APP_BTC_OK => Ok(sighash_script_out[..sighash_script_out_size as _].to_vec()),
-            err => Err(err),
-        }
-    }
-}
-
-pub fn sign_reset() {
-    unsafe { bitbox02_sys::app_btc_sign_reset() }
-}
 
 pub fn pkscript_from_payload(
     taproot_support: bool,
@@ -93,6 +54,27 @@ pub fn payload_at_keypath(
             keypath.as_ptr(),
             keypath.len() as _,
             script_type,
+            out.as_mut_ptr(),
+            &mut out_len,
+        )
+    } {
+        true => Ok(out[..out_len as usize].to_vec()),
+        false => Err(()),
+    }
+}
+
+pub fn pkscript_from_multisig(
+    multisig: &Multisig,
+    keypath_change: u32,
+    keypath_address: u32,
+) -> Result<Vec<u8>, ()> {
+    let mut out = [0u8; bitbox02_sys::MAX_PK_SCRIPT_SIZE as usize];
+    let mut out_len: bitbox02_sys::size_t = out.len() as _;
+    match unsafe {
+        bitbox02_sys::btc_common_pkscript_from_multisig(
+            multisig,
+            keypath_change,
+            keypath_address,
             out.as_mut_ptr(),
             &mut out_len,
         )

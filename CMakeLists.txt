@@ -45,7 +45,6 @@ endif()
 
 # Where to find custom cmake modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/tools/nanopb/extra)
 
 #-----------------------------------------------------------------------------
 # Options for building
@@ -364,7 +363,6 @@ if(DOXYGEN_FOUND)
     ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generating API documentation with Doxygen.." VERBATIM)
-  add_dependencies(doxygen-docs generate-protobufs)
   add_dependencies(doc doxygen-docs)
 else()
   message("Doxygen: doxygen not found - docs disabled")

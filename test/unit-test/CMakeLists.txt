@@ -21,7 +21,6 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-missing-prototype
 set(DBB-FILTERED-SOURCES
   ${DBB-FIRMWARE-SOURCES}
   ${DBB-FIRMWARE-UI-SOURCES}
-  ${DBB-FIRMWARE-PROTOBUF-SOURCES}
   ${FIRMWARE-U2F-SOURCES}
   ${DBB-FIRMWARE-USB-SOURCES}
   )
@@ -40,9 +39,6 @@ foreach(SOURCEFILE ${IGNORE_SOURCES})
 endforeach()
 
 message("FILTERED SOURCES: ${DBB-FILTERED-SOURCES}")
-
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/tools/nanopb/extra)
-find_package(Nanopb REQUIRED)
 
 add_library(sd-mock
   STATIC
@@ -151,21 +147,12 @@ add_dependencies(bitbox_objects
 )
 target_link_libraries(bitbox PRIVATE ${LIBBITBOX02_RUST} "-lm")
 
-set_source_files_properties(
-  ${DBB-FIRMWARE-PROTOBUF-SOURCES}
-  PROPERTIES GENERATED TRUE
-)
-target_include_directories(bitbox_objects SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
-target_compile_definitions(bitbox_objects PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 target_compile_definitions(bitbox_objects PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 target_compile_definitions(bitbox_objects PUBLIC TESTING)
-add_dependencies(bitbox_objects generate-protobufs)
 
 # Since wallycore is an external projects we need to specify the dependency
 add_dependencies(bitbox_objects libwally-core)
 
-target_include_directories(bitbox SYSTEM PUBLIC ${NANOPB_INCLUDE_DIRS})
-target_compile_definitions(bitbox PUBLIC "PB_NO_PACKED_STRUCTS=1" "PB_FIELD_16BIT=1")
 target_compile_definitions(bitbox PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 target_compile_definitions(bitbox PUBLIC TESTING)
 

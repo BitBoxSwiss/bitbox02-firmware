@@ -131,7 +131,7 @@ generate-atecc608-config:
 ci:
 	./.ci/ci
 prepare-tidy: | build build-build
-	make -C build generate-protobufs rust-cbindgen
-	make -C build-build generate-protobufs rust-cbindgen
+	make -C build rust-cbindgen
+	make -C build-build rust-cbindgen
 clean:
 	rm -rf build build-build build-semihosting build-build-rust-unit-tests

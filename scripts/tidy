@@ -31,7 +31,7 @@ for dir in build build-build; do
 	# Exclude drivers and external for now. We get the base file set from compile_commands.json, as
 	# clang-tidy unfortunately tries to lint a provided source anyway even if it is not part of the
 	# build.
-	SOURCES=$(cat ${dir}/compile_commands.json | ${JQ} 'map_values(.file) | .[]' | grep -v -e '/drivers/' -e '/external/' -e '/tools/nanopb/' -e '/test/unit-test/u2f/' -e '/build/' -e '/build-build/' | sort | uniq | xargs echo)
+	SOURCES=$(cat ${dir}/compile_commands.json | ${JQ} 'map_values(.file) | .[]' | grep -v -e '/drivers/' -e '/external/' -e '/test/unit-test/u2f/' -e '/build/' -e '/build-build/' | sort | uniq | xargs echo)
 
 	# The list of tidy checks must stay in sync with .ci/check-tidy
 	${CLANGTIDY} -quiet -p ${dir} -checks=-*,clang-analyzer-*,-clang-analyzer-cplusplus*,bugprone-*,performance-*,portability-*,readability-*,-readability-braces-around-statements,-readability-magic-numbers,-readability-isolate-declaration -warnings-as-errors=* -header-filter '.*' ${SOURCES}

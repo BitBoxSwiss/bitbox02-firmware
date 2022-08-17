@@ -102,7 +102,7 @@ RUN mkdir -p /opt/protoc && \
     unzip /tmp/protoc-21.2-linux-x86_64.zip -d /opt/protoc
 ENV PATH /opt/protoc/bin:$PATH
 
-# Make Python3 the default, so tools/nanopb/generator/*.py run with Python3.
+# Make Python3 the default
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
 # Developer tools

@@ -14,10 +14,6 @@
   - [others](https://www.segger.com/downloads/jlink/)
 - cmake
 - git
-- protobuf-compiler
-- [protoc-gen-nanopb](https://jpa.kapsi.fi/nanopb/download/)
-  - Choose appropriate linux/macosx/windows file which includes the binaries
-  - Add generator-bin/ to your path
 - Install the pre-built [protobuf python binary](https://github.com/protocolbuffers/protobuf/releases)
   - Then install the included [Python Protocol Buffers](https://github.com/protocolbuffers/protobuf/tree/master/python#installation) runtime library
 
@@ -53,12 +49,6 @@ brew install hidapi cmake protobuf
 brew install automake libtool # for building some code in the external/ folder
 brew tap osx-cross/arm
 brew install arm-gcc-bin
-```
-
-Add the following directory in this repository to your `PATH` in `~/.bash_login`:
-
-```sh
-export PATH="$PATH:[…]/bitbox02-firmware/tools/nanopb/generator"
 ```
 
 ## Instructions

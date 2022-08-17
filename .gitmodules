@@ -1,6 +1,3 @@
-[submodule "tools/nanopb"]
-	path = tools/nanopb
-	url = https://github.com/digitalbitbox/nanopb.git
 [submodule "external/cryptoauthlib"]
 	path = external/cryptoauthlib
 	url = https://github.com/digitalbitbox/cryptoauthlib.git

@@ -34,7 +34,6 @@ pub mod bb02_async;
 mod bip32;
 pub mod hww;
 pub mod keystore;
-pub mod util;
 mod version;
 mod waker_fn;
 pub mod workflow;

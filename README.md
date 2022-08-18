@@ -1,6 +1,5 @@
 <img src="./doc/BB02_logo_github.svg" width="345px"/>
 
-[![Build Status](https://travis-ci.org/digitalbitbox/bitbox02-firmware.svg?branch=master)](https://travis-ci.org/digitalbitbox/bitbox02-firmware)
 ![CI](https://github.com/digitalbitbox/bitbox02-firmware/workflows/ci/badge.svg?branch=master)
 
 The BitBox02 is a hardware wallet that simplifies secure handling of crypto coins through storing

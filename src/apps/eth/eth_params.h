@@ -19,7 +19,6 @@
 
 typedef struct {
     const char* unit;
-    const char* name;
     const uint8_t contract_address[20];
     uint8_t decimals;
 } app_eth_erc20_params_t;

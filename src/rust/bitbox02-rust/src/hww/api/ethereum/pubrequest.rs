@@ -52,12 +52,12 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
 
     if request.display {
         let title = match erc20_params {
-            Some(erc20_params) => erc20_params.name,
-            None => params.name,
+            Some(erc20_params) => format!("{}\n{}", params.name, erc20_params.unit),
+            None => params.name.into(),
         };
-        super::keypath::warn_unusual_keypath(&params, title, &request.keypath).await?;
+        super::keypath::warn_unusual_keypath(&params, &title, &request.keypath).await?;
         confirm::confirm(&confirm::Params {
-            title,
+            title: &title,
             title_autowrap: true,
             body: &address,
             scrollable: true,
@@ -325,7 +325,7 @@ mod tests {
         // All good, with display.
         mock(Data {
             ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.title, "Tether USD");
+                assert_eq!(params.title, "Ethereum\nUSDT");
                 assert_eq!(params.body, ADDRESS);
                 true
             })),

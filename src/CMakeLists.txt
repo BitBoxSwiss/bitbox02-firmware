@@ -355,7 +355,6 @@ add_custom_target(rust-bindgen
     --whitelist-function menu_create
     --whitelist-function trinary_choice_create
     --rustified-enum trinary_choice_t
-    --whitelist-function wally_sha256
     --whitelist-var BASE58_CHECKSUM_LEN
     --whitelist-function random_32_bytes_mcu
     --whitelist-function random_mock_reset
@@ -366,7 +365,6 @@ add_custom_target(rust-bindgen
     --whitelist-var font_font_a_11X10
     --whitelist-var font_monogram_5X9
     --whitelist-var font_password_11X12
-    --whitelist-var WALLY_OK
     --whitelist-type trinary_input_string_params_t
     --whitelist-var INPUT_STRING_MAX_SIZE
     --whitelist-function trinary_input_string_create

@@ -336,7 +336,6 @@ add_custom_target(rust-bindgen
     --rustified-enum keystore_error_t
     --rustified-enum keystore_secp256k1_pubkey_format
     --whitelist-function util_format_datetime
-    --whitelist-function util_version_short
     --whitelist-type buffer_t
     --whitelist-function delay_ms
     --whitelist-function UG_PutString

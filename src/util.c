@@ -70,9 +70,3 @@ void util_format_datetime(
     struct tm* local_time = localtime(&local_timestamp);
     strftime(out, out_size, date_only ? "%a %Y-%m-%d" : "%a %Y-%m-%d\n%H:%M", local_time);
 }
-
-const char* util_version_short(void)
-{
-    static const char* version = DIGITAL_BITBOX_VERSION_SHORT;
-    return version;
-}

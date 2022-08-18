@@ -155,7 +155,4 @@ void util_format_datetime(
     char* out,
     size_t out_size);
 
-/** Returns DIGITAL_BITBOX_VERSION_SHORT, e.g. "9.2.0".  */
-const char* util_version_short(void);
-
 #endif

@@ -177,21 +177,6 @@ pub fn format_datetime(_timestamp: u32, _timezone_offset: i32, date_only: bool) 
 }
 
 #[cfg(not(feature = "testing"))]
-pub fn version_short() -> &'static str {
-    let s = unsafe {
-        let ptr = bitbox02_sys::util_version_short();
-        let len = crate::util::strlen_ptr(ptr);
-        core::slice::from_raw_parts(ptr, len as _)
-    };
-    core::str::from_utf8(s).unwrap()
-}
-
-#[cfg(feature = "testing")]
-pub fn version_short() -> &'static str {
-    "9.2.0-testing"
-}
-
-#[cfg(not(feature = "testing"))]
 pub fn reboot() -> ! {
     unsafe { bitbox02_sys::reboot() }
     loop {}

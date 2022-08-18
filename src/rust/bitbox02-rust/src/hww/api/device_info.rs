@@ -23,7 +23,7 @@ pub fn process() -> Result<Response, Error> {
     Ok(Response::DeviceInfo(pb::DeviceInfoResponse {
         name: memory::get_device_name(),
         initialized: memory::is_initialized(),
-        version: bitbox02::version_short().into(),
+        version: crate::version::FIRMWARE_VERSION_SHORT.into(),
         mnemonic_passphrase_enabled: memory::is_mnemonic_passphrase_enabled(),
         monotonic_increments_remaining: securechip::monotonic_increments_remaining()?,
         securechip_model: match securechip::model()? {

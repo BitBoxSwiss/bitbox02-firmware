@@ -59,27 +59,6 @@ void util_cleanup_64(uint8_t** buf)
     util_zero(*buf, 64);
 }
 
-char* util_strdup(const char* str)
-{
-    char* result = strdup(str);
-    if (!result) {
-        Abort("malloc failed in util_strdup.");
-    }
-    return result;
-}
-
-bool safe_uint64_add(uint64_t* a, uint64_t b)
-{
-    if (a == NULL) {
-        return false;
-    }
-    if (*a > ULLONG_MAX - b) {
-        return false;
-    }
-    *a += b;
-    return true;
-}
-
 void util_format_datetime(
     uint32_t timestamp,
     int32_t timezone_offset,
@@ -90,10 +69,4 @@ void util_format_datetime(
     time_t local_timestamp = timestamp + timezone_offset;
     struct tm* local_time = localtime(&local_timestamp);
     strftime(out, out_size, date_only ? "%a %Y-%m-%d" : "%a %Y-%m-%d\n%H:%M", local_time);
-}
-
-const char* util_version_short(void)
-{
-    static const char* version = DIGITAL_BITBOX_VERSION_SHORT;
-    return version;
 }

@@ -57,7 +57,6 @@ typedef uint8_t secbool_u8;
 #define secfalse_u8 0x00u
 
 void util_zero(volatile void* dst, size_t len);
-void util_clear_buffers(void);
 
 // `out` must be of size in_len*2+1. Use BB_HEX_SIZE() to compute the size.
 void util_uint8_to_hex(const uint8_t* in_bin, size_t in_len, char* out);
@@ -72,12 +71,6 @@ void util_cleanup_20(uint8_t** buf);
 void util_cleanup_32(uint8_t** buf);
 void util_cleanup_64(uint8_t** buf);
 
-/**
- * Creates a duplicate of a string.
- * Guaranteed to return non-NULL (aborts if allocation fails).
- */
-char* util_strdup(const char* str);
-
 #define UTIL_CLEANUP_20(var)                                                                     \
     uint8_t* __attribute__((__cleanup__(util_cleanup_20))) var##_clean __attribute__((unused)) = \
         var;
@@ -87,18 +80,6 @@ char* util_strdup(const char* str);
 #define UTIL_CLEANUP_64(var)                                                                     \
     uint8_t* __attribute__((__cleanup__(util_cleanup_64))) var##_clean __attribute__((unused)) = \
         var;
-
-/**
- * adds b to a safely.
- * @return Returns false if the operation would overflow.
- */
-bool safe_uint64_add(uint64_t* a, uint64_t b);
-
-#if defined(__GNUC__)
-#define UTIL_WARN_UNUSED_RESULT __attribute__((__warn_unused_result__))
-#else
-#define UTIL_WARN_UNUSED_RESULT
-#endif
 
 /**
  * Tracing tools. Only enabled in semihosting builds
@@ -173,8 +154,5 @@ void util_format_datetime(
     bool date_only,
     char* out,
     size_t out_size);
-
-/** Returns DIGITAL_BITBOX_VERSION_SHORT, e.g. "9.2.0".  */
-const char* util_version_short(void);
 
 #endif

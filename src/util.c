@@ -59,27 +59,6 @@ void util_cleanup_64(uint8_t** buf)
     util_zero(*buf, 64);
 }
 
-char* util_strdup(const char* str)
-{
-    char* result = strdup(str);
-    if (!result) {
-        Abort("malloc failed in util_strdup.");
-    }
-    return result;
-}
-
-bool safe_uint64_add(uint64_t* a, uint64_t b)
-{
-    if (a == NULL) {
-        return false;
-    }
-    if (*a > ULLONG_MAX - b) {
-        return false;
-    }
-    *a += b;
-    return true;
-}
-
 void util_format_datetime(
     uint32_t timestamp,
     int32_t timezone_offset,

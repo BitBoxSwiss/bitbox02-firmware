@@ -19,8 +19,6 @@
 #include "util.h"
 #include <string.h>
 
-struct i2c_m_sync_desc I2C_0;
-
 uint8_t i2c_ecc_read(uint8_t* rxdata, uint32_t rxlen)
 {
     struct _i2c_m_msg packet;
@@ -28,7 +26,7 @@ uint8_t i2c_ecc_read(uint8_t* rxdata, uint32_t rxlen)
     int32_t r;
 
     packet.addr = I2C_ECC_ADDR >> 1;
-    packet.len = rxlen;
+    packet.len = (int32_t)rxlen;
     packet.buffer = rxdata;
     packet.flags = I2C_M_SEVEN | I2C_M_RD | I2C_M_STOP;
 
@@ -47,7 +45,7 @@ uint8_t i2c_ecc_write(uint8_t* txdata, uint32_t txlen)
     int32_t r;
 
     packet.addr = I2C_ECC_ADDR >> 1;
-    packet.len = txlen;
+    packet.len = (int32_t)txlen;
     packet.buffer = txdata;
     packet.flags = I2C_M_SEVEN | I2C_M_STOP;
 

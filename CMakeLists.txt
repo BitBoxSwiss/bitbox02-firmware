@@ -320,6 +320,10 @@ string(APPEND CMAKE_C_FLAGS " -Wno-cast-function-type")
 # Hardening
 string(APPEND CMAKE_C_FLAGS " -fstack-protector-all")
 
+# Disallow duplicate definitions, which is the default since GCC
+# 10. It was not default in gcc-arm-none-eabi-8-2018-q4.
+string(APPEND CMAKE_C_FLAGS " -fno-common")
+
 # For `struct timespec` and `strdup`
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_XOPEN_SOURCE=600")
 

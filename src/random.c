@@ -25,10 +25,6 @@
 #include "util.h"
 #include <wally_crypto.h>
 
-#ifndef TESTING
-struct rand_sync_desc RAND_0;
-#endif
-
 void random_32_bytes_mcu(uint8_t* buf)
 {
     if (buf == NULL) {

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use sha2::{Digest, Sha256};
+
 pub struct Data {
     pub bootloader_hash: [u8; 32],
     pub device_pubkey: [u8; 64],
@@ -33,8 +35,7 @@ pub fn perform(host_challenge: [u8; 32]) -> Result<Data, ()> {
         &mut result.certificate,
         &mut result.root_pubkey_identifier,
     )?;
-    let mut hash: [u8; 32] = [0; 32];
-    bitbox02::sha256(&host_challenge[..], &mut hash[..])?;
+    let hash: [u8; 32] = Sha256::digest(&host_challenge).into();
     bitbox02::memory::bootloader_hash(&mut result.bootloader_hash);
     bitbox02::securechip::attestation_sign(&hash, &mut result.challenge_signature)?;
     Ok(result)

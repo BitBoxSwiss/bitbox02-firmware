@@ -111,22 +111,6 @@ pub fn screen_print_debug(msg: &str, duration: i32) {
     }
 }
 
-pub fn sha256(input: &[u8], output: &mut [u8]) -> Result<(), ()> {
-    let res = unsafe {
-        bitbox02_sys::wally_sha256(
-            input.as_ptr(),
-            input.len() as _,
-            output.as_mut_ptr(),
-            output.len() as _,
-        )
-    };
-    if res == bitbox02_sys::WALLY_OK as i32 {
-        Ok(())
-    } else {
-        Err(())
-    }
-}
-
 pub fn reset(status: bool) {
     unsafe { bitbox02_sys::reset_reset(status) }
 }

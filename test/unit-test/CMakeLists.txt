@@ -207,8 +207,6 @@ target_compile_definitions(u2f-util PUBLIC "USE_KECCAK")
 # Tests
 
 set(TEST_LIST
-   simple
-   ""
    cleanup
    "-Wl,--wrap=util_cleanup_32"
    keystore

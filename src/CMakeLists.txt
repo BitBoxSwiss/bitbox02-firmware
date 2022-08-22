@@ -382,7 +382,6 @@ add_custom_target(rust-bindgen
     --whitelist-var SD_MAX_FILE_SIZE
     --whitelist-function sd_free_list
     --whitelist-var BIP39_WORDLIST_LEN
-    --whitelist-function app_eth_params_get
     --whitelist-function app_eth_erc20_params_get
     --rustified-enum simple_type_t
     --rustified-enum multisig_script_type_t

@@ -22,6 +22,7 @@ mod amount;
 mod keypath;
 mod params;
 mod pubrequest;
+mod sighash;
 mod sign;
 mod sign_typed_msg;
 mod signmsg;

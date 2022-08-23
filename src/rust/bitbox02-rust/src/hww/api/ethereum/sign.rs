@@ -20,7 +20,6 @@ use super::Error;
 use bitbox02::keystore;
 
 use crate::workflow::{confirm, status, transaction};
-use bitbox02::app_eth::{sighash, SighashParams};
 
 use alloc::vec::Vec;
 use core::convert::TryInto;
@@ -236,7 +235,7 @@ pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
         }
     }
 
-    let hash = sighash(SighashParams {
+    let hash = super::sighash::compute(&super::sighash::Params {
         nonce: &request.nonce,
         gas_price: &request.gas_price,
         gas_limit: &request.gas_limit,

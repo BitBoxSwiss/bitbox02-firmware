@@ -235,8 +235,6 @@ set(TEST_LIST
    "-Wl,--wrap=memory_get_salt_root"
    cipher
    "-Wl,--wrap=random_32_bytes"
-   app_eth_sighash
-   ""
    util
    ""
    workflow_blocking

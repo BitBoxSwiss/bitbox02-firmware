@@ -106,28 +106,3 @@ pub fn payload_from_multisig(
         false => Err(()),
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use crate::testing::mock_unlocked_using_mnemonic;
-    use util::bip32::HARDENED;
-
-    #[test]
-    fn test_payload_at_keypath() {
-        mock_unlocked_using_mnemonic(
-            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
-        );
-        assert_eq!(
-            payload_at_keypath(
-                &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
-                SimpleType::SIMPLE_TYPE_P2WPKH,
-            ),
-            Ok(
-                b"\x3f\x0d\xc2\xe9\x14\x2d\x88\x39\xae\x9c\x90\xa1\x9c\xa8\x6c\x36\xd9\x23\xd8\xab"
-                    .to_vec()
-            )
-        );
-    }
-}

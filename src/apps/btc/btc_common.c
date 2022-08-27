@@ -33,11 +33,8 @@ bool btc_common_payload_at_keypath(
 {
     switch (script_type) {
     case SIMPLE_TYPE_P2WPKH:
-        if (!keystore_secp256k1_pubkey_hash160(keypath, keypath_len, output_payload)) {
-            return false;
-        }
-        *output_payload_size = HASH160_LEN;
-        break;
+        // Handled in Rust.
+        return false;
     case SIMPLE_TYPE_P2WPKH_P2SH: {
         uint8_t pubkey_hash[HASH160_LEN];
         UTIL_CLEANUP_20(pubkey_hash);

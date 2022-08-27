@@ -17,15 +17,20 @@ use super::Error;
 
 use super::multisig;
 
+use bitbox02::keystore;
+
 use pb::btc_script_config::SimpleType;
 
 use alloc::vec::Vec;
 
 pub fn compute_simple(simple_type: SimpleType, keypath: &[u32]) -> Result<Vec<u8>, Error> {
-    Ok(bitbox02::app_btc::payload_at_keypath(
-        keypath,
-        super::common::convert_simple_type(simple_type),
-    )?)
+    match simple_type {
+        SimpleType::P2wpkh => Ok(keystore::secp256k1_pubkey_hash160(keypath)?.to_vec()),
+        simple_type => Ok(bitbox02::app_btc::payload_at_keypath(
+            keypath,
+            super::common::convert_simple_type(simple_type),
+        )?),
+    }
 }
 
 pub fn compute_multisig(

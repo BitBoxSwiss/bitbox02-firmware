@@ -26,6 +26,7 @@ use alloc::vec::Vec;
 pub fn compute_simple(simple_type: SimpleType, keypath: &[u32]) -> Result<Vec<u8>, Error> {
     match simple_type {
         SimpleType::P2wpkh => Ok(keystore::secp256k1_pubkey_hash160(keypath)?.to_vec()),
+        SimpleType::P2tr => Ok(keystore::secp256k1_schnorr_bip86_pubkey(keypath)?.to_vec()),
         simple_type => Ok(bitbox02::app_btc::payload_at_keypath(
             keypath,
             super::common::convert_simple_type(simple_type),

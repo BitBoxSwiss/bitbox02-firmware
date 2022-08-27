@@ -57,11 +57,8 @@ bool btc_common_payload_at_keypath(
         break;
     }
     case SIMPLE_TYPE_P2TR:
-        if (!keystore_secp256k1_schnorr_bip86_pubkey(keypath, keypath_len, output_payload)) {
-            return false;
-        }
-        *output_payload_size = 32;
-        break;
+        // Handled in Rust.
+        return false;
     default:
         return false;
     }

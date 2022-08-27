@@ -24,17 +24,6 @@
 #include <stdio.h>
 #include <util.h>
 
-static uint8_t _mock_seed[32] = {
-    0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
-    0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
-};
-
-// sudden tenant fault inject concert weather maid people chunk youth stumble grit
-static uint8_t _mock_bip39_seed[64] =
-    "\x5a\x11\x5b\xcd\xbe\x0f\xe1\x70\x0e\x60\x95\x74\xf3\x57\xb0\x8d\xca\x37\x15\xb0\x35\xe6\xc7"
-    "\x76\x77\x0a\xc7\xa0\xab\x2e\x2f\xea\x84\x0b\xa2\x76\x35\x06\xfa\x9c\x39\xde\x4d\xef\x27\xf6"
-    "\xf8\xeb\xce\x36\x37\x02\xe9\x83\xe5\x49\xbd\x7d\xef\x14\xa0\x31\xbf\xdd";
-
 typedef struct {
     uint32_t threshold;
     size_t xpubs_count;
@@ -43,70 +32,6 @@ typedef struct {
     uint32_t keypath_address;
     const char* expected_script_hex;
 } test_case_redeemscript_multisig_p2wsh;
-
-static void _test_btc_common_payload_at_keypath(void** state)
-{
-    keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
-    uint8_t payload[32] = {0};
-    size_t payload_size;
-    { //  p2wpkh
-        const uint32_t keypath[] = {
-            84 + BIP32_INITIAL_HARDENED_CHILD,
-            0 + BIP32_INITIAL_HARDENED_CHILD,
-            0 + BIP32_INITIAL_HARDENED_CHILD,
-            0,
-            0,
-        };
-        assert_true(btc_common_payload_at_keypath(
-            keypath,
-            sizeof(keypath) / sizeof(uint32_t),
-            SIMPLE_TYPE_P2WPKH,
-            payload,
-            &payload_size));
-        assert_int_equal(payload_size, 20);
-        assert_memory_equal(
-            payload,
-            "\x3f\x0d\xc2\xe9\x14\x2d\x88\x39\xae\x9c\x90\xa1\x9c\xa8\x6c\x36\xd9\x23\xd8\xab",
-            20);
-    }
-    { //  p2wpkh-p2sh
-        const uint32_t keypath[] = {
-            49 + BIP32_INITIAL_HARDENED_CHILD,
-            0 + BIP32_INITIAL_HARDENED_CHILD,
-            0 + BIP32_INITIAL_HARDENED_CHILD,
-            0,
-            0,
-        };
-        assert_true(btc_common_payload_at_keypath(
-            keypath,
-            sizeof(keypath) / sizeof(uint32_t),
-            SIMPLE_TYPE_P2WPKH_P2SH,
-            payload,
-            &payload_size));
-        assert_int_equal(payload_size, 20);
-        assert_memory_equal(
-            payload,
-            "\x8d\xd0\x9c\x25\xc9\x28\xbe\x67\x66\xf4\x50\x73\x87\x0c\xe3\xbb\x93\x1f\x2f\x55",
-            20);
-    }
-    { // p2tr
-        const uint32_t keypath[] = {
-            86 + BIP32_INITIAL_HARDENED_CHILD,
-            0 + BIP32_INITIAL_HARDENED_CHILD,
-            0 + BIP32_INITIAL_HARDENED_CHILD,
-            0,
-            0,
-        };
-        assert_true(btc_common_payload_at_keypath(
-            keypath, sizeof(keypath) / sizeof(uint32_t), SIMPLE_TYPE_P2TR, payload, &payload_size));
-        assert_int_equal(payload_size, 32);
-        assert_memory_equal(
-            payload,
-            "\x25\x0e\xc8\x02\xb6\xd3\xdb\x98\x42\xd1\xbd\xbe\x0e\xe4\x8d\x52\xf9\xa4\xb4\x6e\x60"
-            "\xcb\xbb\xab\x3b\xcc\x4e\xe9\x15\x73\xfc\xe8",
-            32);
-    }
-}
 
 static void _test_btc_common_pkscript_from_multisig(void** state)
 {
@@ -301,7 +226,6 @@ static void _test_btc_common_pkscript_from_multisig_unhappy(void** state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(_test_btc_common_payload_at_keypath),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig),
         cmocka_unit_test(_test_btc_common_pkscript_from_multisig_unhappy),
     };

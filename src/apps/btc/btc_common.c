@@ -24,47 +24,6 @@
 #include <util.h>
 #include <wally_address.h>
 
-bool btc_common_payload_at_keypath(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    simple_type_t script_type,
-    uint8_t* output_payload,
-    size_t* output_payload_size)
-{
-    switch (script_type) {
-    case SIMPLE_TYPE_P2WPKH:
-        // Handled in Rust.
-        return false;
-    case SIMPLE_TYPE_P2WPKH_P2SH: {
-        uint8_t pubkey_hash[HASH160_LEN];
-        UTIL_CLEANUP_20(pubkey_hash);
-        if (!keystore_secp256k1_pubkey_hash160(keypath, keypath_len, pubkey_hash)) {
-            return false;
-        }
-        uint8_t script[WALLY_SCRIPTPUBKEY_P2WPKH_LEN] = {0};
-        size_t written = 0;
-        if (wally_witness_program_from_bytes(
-                pubkey_hash, HASH160_LEN, 0, script, sizeof(script), &written) != WALLY_OK) {
-            return false;
-        }
-        if (written != WALLY_SCRIPTPUBKEY_P2WPKH_LEN) {
-            return false;
-        }
-        if (wally_hash160(script, sizeof(script), output_payload, HASH160_LEN) != WALLY_OK) {
-            return false;
-        }
-        *output_payload_size = HASH160_LEN;
-        break;
-    }
-    case SIMPLE_TYPE_P2TR:
-        // Handled in Rust.
-        return false;
-    default:
-        return false;
-    }
-    return true;
-}
-
 bool btc_common_pkscript_from_payload(
     bool taproot_support,
     output_type_t output_type,

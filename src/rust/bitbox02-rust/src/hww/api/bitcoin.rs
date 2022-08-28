@@ -145,7 +145,7 @@ pub fn derive_address_simple(
         coin_params.taproot_support,
     )
     .or(Err(Error::InvalidInput))?;
-    let payload = payload::compute_simple(simple_type, keypath)?;
+    let payload = payload::compute_simple(coin_params, simple_type, keypath)?;
     let address = common::address_from_payload(
         coin_params,
         common::determine_output_type_from_simple_type(simple_type),

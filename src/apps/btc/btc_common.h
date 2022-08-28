@@ -35,12 +35,6 @@ typedef struct {
 } multisig_t;
 
 typedef enum {
-    SIMPLE_TYPE_P2WPKH_P2SH = 0,
-    SIMPLE_TYPE_P2WPKH = 1,
-    SIMPLE_TYPE_P2TR = 2
-} simple_type_t;
-
-typedef enum {
     MULTISIG_SCRIPT_TYPE_P2WSH = 0,
     MULTISIG_SCRIPT_TYPE_P2WSH_P2SH = 1
 } multisig_script_type_t;
@@ -59,23 +53,6 @@ typedef enum {
 // current expected max pk script size is a m-of-15 multisig. 700 is also enough for m-of-20, which
 // is technically possible to extend to if needed.
 #define MAX_PK_SCRIPT_SIZE (700)
-
-/**
- * Generate the payload used in an output script, e.g. pubkeyhash or script hash or pubkey.
- * @param[in] keypath address-level keypath, e.g. m/84'/0'/0'/0/0
- * @param[in] keypath_len number of elements in keypath
- * @param[in] script_type script type defining the payload.
- * @param[out] output_payload will have the resulting payload. Must be of size 32.
- * @param[out] output_payload_size will be 32 for p2wsh scripts, HASH160_LEN for
- * all others.
- * return true on succes, false on failure.
- */
-USE_RESULT bool btc_common_payload_at_keypath(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    simple_type_t script_type,
-    uint8_t* output_payload,
-    size_t* output_payload_size);
 
 /**
  * Computes the pkScript from a pubkey hash or script hash or pubkey, depending on the output

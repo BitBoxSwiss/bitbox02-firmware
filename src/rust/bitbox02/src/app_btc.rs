@@ -16,10 +16,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 pub use bitbox02_sys::multisig_t as Multisig;
-pub use bitbox02_sys::{
-    multisig_script_type_t as MultisigScriptType, output_type_t as OutputType,
-    simple_type_t as SimpleType,
-};
+pub use bitbox02_sys::{multisig_script_type_t as MultisigScriptType, output_type_t as OutputType};
 
 pub fn pkscript_from_payload(
     taproot_support: bool,
@@ -37,23 +34,6 @@ pub fn pkscript_from_payload(
             output_type,
             payload.as_ptr(),
             payload.len() as _,
-            out.as_mut_ptr(),
-            &mut out_len,
-        )
-    } {
-        true => Ok(out[..out_len as usize].to_vec()),
-        false => Err(()),
-    }
-}
-
-pub fn payload_at_keypath(keypath: &[u32], script_type: SimpleType) -> Result<Vec<u8>, ()> {
-    let mut out = [0u8; 32];
-    let mut out_len: bitbox02_sys::size_t = 0;
-    match unsafe {
-        bitbox02_sys::btc_common_payload_at_keypath(
-            keypath.as_ptr(),
-            keypath.len() as _,
-            script_type,
             out.as_mut_ptr(),
             &mut out_len,
         )
@@ -105,4 +85,17 @@ pub fn payload_from_multisig(
         true => Ok(out[..out_len as usize].to_vec()),
         false => Err(()),
     }
+}
+
+pub fn hash160(data: &[u8]) -> [u8; 20] {
+    let mut out = [0u8; 20];
+    unsafe {
+        bitbox02_sys::wally_hash160(
+            data.as_ptr(),
+            data.len() as _,
+            out.as_mut_ptr(),
+            out.len() as _,
+        );
+    }
+    out
 }

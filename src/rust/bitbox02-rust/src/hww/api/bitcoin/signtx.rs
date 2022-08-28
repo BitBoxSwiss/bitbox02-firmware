@@ -589,7 +589,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                     .as_ref()
                     .ok_or(Error::InvalidInput)?,
             )?;
-            let payload = payload::compute(&tx_input.keypath, script_config_account)?;
+            let payload = payload::compute(coin_params, &tx_input.keypath, script_config_account)?;
             bitbox02::app_btc::pkscript_from_payload(
                 coin_params.taproot_support,
                 super::common::convert_output_type(output_type),
@@ -671,7 +671,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                     .as_ref()
                     .ok_or(Error::InvalidInput)?,
             )?;
-            let payload = payload::compute(&tx_output.keypath, script_config_account)?;
+            let payload = payload::compute(coin_params, &tx_output.keypath, script_config_account)?;
             (output_type, payload)
         } else {
             // Take payload from provided output.

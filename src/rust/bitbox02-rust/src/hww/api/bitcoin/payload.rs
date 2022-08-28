@@ -15,7 +15,7 @@
 use super::pb;
 use super::Error;
 
-use super::multisig;
+use super::{multisig, params::Params};
 
 use bitbox02::keystore;
 
@@ -23,14 +23,29 @@ use pb::btc_script_config::SimpleType;
 
 use alloc::vec::Vec;
 
-pub fn compute_simple(simple_type: SimpleType, keypath: &[u32]) -> Result<Vec<u8>, Error> {
+pub fn compute_simple(
+    params: &Params,
+    simple_type: SimpleType,
+    keypath: &[u32],
+) -> Result<Vec<u8>, Error> {
     match simple_type {
         SimpleType::P2wpkh => Ok(keystore::secp256k1_pubkey_hash160(keypath)?.to_vec()),
-        SimpleType::P2tr => Ok(keystore::secp256k1_schnorr_bip86_pubkey(keypath)?.to_vec()),
-        simple_type => Ok(bitbox02::app_btc::payload_at_keypath(
-            keypath,
-            super::common::convert_simple_type(simple_type),
-        )?),
+        SimpleType::P2wpkhP2sh => {
+            let payload_p2wpkh = keystore::secp256k1_pubkey_hash160(keypath)?;
+            let pkscript_p2wpkh = bitbox02::app_btc::pkscript_from_payload(
+                params.taproot_support,
+                bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2WPKH,
+                &payload_p2wpkh,
+            )?;
+            Ok(bitbox02::app_btc::hash160(&pkscript_p2wpkh).to_vec())
+        }
+        SimpleType::P2tr => {
+            if params.taproot_support {
+                Ok(keystore::secp256k1_schnorr_bip86_pubkey(keypath)?.to_vec())
+            } else {
+                Err(Error::InvalidInput)
+            }
+        }
     }
 }
 
@@ -51,6 +66,7 @@ pub fn compute_multisig(
 /// Computes the payload data from a script config. The payload can then be used generate a pkScript
 /// or an address.
 pub fn compute(
+    params: &Params,
     keypath: &[u32],
     script_config_account: &pb::BtcScriptConfigWithKeypath,
 ) -> Result<Vec<u8>, Error> {
@@ -64,7 +80,7 @@ pub fn compute(
         } => {
             let simple_type = pb::btc_script_config::SimpleType::from_i32(*simple_type)
                 .ok_or(Error::InvalidInput)?;
-            compute_simple(simple_type, keypath)
+            compute_simple(params, simple_type, keypath)
         }
         pb::BtcScriptConfigWithKeypath {
             script_config:
@@ -89,10 +105,11 @@ mod tests {
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
         );
-
+        let coin_params = super::super::params::get(pb::BtcCoin::Btc);
         // p2wpkh
         assert_eq!(
             compute_simple(
+                coin_params,
                 SimpleType::P2wpkh,
                 &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
             )
@@ -104,6 +121,7 @@ mod tests {
         //  p2wpkh-p2sh
         assert_eq!(
             compute_simple(
+                coin_params,
                 SimpleType::P2wpkhP2sh,
                 &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
             )
@@ -115,6 +133,7 @@ mod tests {
         // p2tr
         assert_eq!(
             compute_simple(
+                coin_params,
                 SimpleType::P2tr,
                 &[86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
             )

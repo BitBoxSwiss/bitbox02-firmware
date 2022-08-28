@@ -50,7 +50,7 @@ fn encode_segwit_addr(
     bech32::encode(hrp, &b32, variant).or(Err(()))
 }
 
-/// Converts a payload to an address. The payload can be obtained from `btc_common_payload_at_keypath()`.
+/// Converts a payload to an address. The payload can be obtained from `payload::compute()`.
 pub fn address_from_payload(
     params: &Params,
     output_type: BtcOutputType,
@@ -130,15 +130,6 @@ pub fn determine_output_type(script_config: &pb::BtcScriptConfig) -> Result<BtcO
             Ok(determine_output_type_multisig(script_type))
         }
         _ => Err(Error::InvalidInput),
-    }
-}
-
-/// Converts a Rust protobuf SimpleType to a representation suitable to be passed to C functions.
-pub fn convert_simple_type(simple_type: SimpleType) -> bitbox02::app_btc::SimpleType {
-    match simple_type {
-        SimpleType::P2wpkhP2sh => bitbox02::app_btc::SimpleType::SIMPLE_TYPE_P2WPKH_P2SH,
-        SimpleType::P2wpkh => bitbox02::app_btc::SimpleType::SIMPLE_TYPE_P2WPKH,
-        SimpleType::P2tr => bitbox02::app_btc::SimpleType::SIMPLE_TYPE_P2TR,
     }
 }
 

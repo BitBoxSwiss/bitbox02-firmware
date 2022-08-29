@@ -15,14 +15,17 @@
 use super::pb;
 use super::Error;
 
+use bitbox02::keystore;
+
 use alloc::string::String;
+use alloc::vec::Vec;
 
 use bech32::{ToBase32, Variant};
 
 use pb::btc_script_config::SimpleType;
 pub use pb::{BtcCoin, BtcOutputType};
 
-use super::params::Params;
+use super::{multisig, params::Params};
 
 const HASH160_LEN: usize = 20;
 const SHA256_LEN: usize = 32;
@@ -33,6 +36,76 @@ pub fn format_amount(satoshi: u64, unit: &str) -> String {
     s.push(' ');
     s.push_str(unit);
     s
+}
+
+pub fn payload_simple(
+    params: &Params,
+    simple_type: SimpleType,
+    keypath: &[u32],
+) -> Result<Vec<u8>, Error> {
+    match simple_type {
+        SimpleType::P2wpkh => Ok(keystore::secp256k1_pubkey_hash160(keypath)?.to_vec()),
+        SimpleType::P2wpkhP2sh => {
+            let payload_p2wpkh = keystore::secp256k1_pubkey_hash160(keypath)?;
+            let pkscript_p2wpkh = bitbox02::app_btc::pkscript_from_payload(
+                params.taproot_support,
+                bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2WPKH,
+                &payload_p2wpkh,
+            )?;
+            Ok(bitbox02::app_btc::hash160(&pkscript_p2wpkh).to_vec())
+        }
+        SimpleType::P2tr => {
+            if params.taproot_support {
+                Ok(keystore::secp256k1_schnorr_bip86_pubkey(keypath)?.to_vec())
+            } else {
+                Err(Error::InvalidInput)
+            }
+        }
+    }
+}
+
+pub fn payload_multisig(
+    multisig: &pb::btc_script_config::Multisig,
+    keypath: &[u32],
+) -> Result<Vec<u8>, Error> {
+    let script_type = pb::btc_script_config::multisig::ScriptType::from_i32(multisig.script_type)
+        .ok_or(Error::InvalidInput)?;
+    Ok(bitbox02::app_btc::payload_from_multisig(
+        &multisig::convert_multisig(multisig)?,
+        multisig::convert_multisig_script_type(script_type),
+        keypath[keypath.len() - 2],
+        keypath[keypath.len() - 1],
+    )?)
+}
+
+/// Computes the payload data from a script config. The payload can then be used generate a pkScript
+/// or an address.
+pub fn payload(
+    params: &Params,
+    keypath: &[u32],
+    script_config_account: &pb::BtcScriptConfigWithKeypath,
+) -> Result<Vec<u8>, Error> {
+    match script_config_account {
+        pb::BtcScriptConfigWithKeypath {
+            script_config:
+                Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
+                }),
+            ..
+        } => {
+            let simple_type = pb::btc_script_config::SimpleType::from_i32(*simple_type)
+                .ok_or(Error::InvalidInput)?;
+            payload_simple(params, simple_type, keypath)
+        }
+        pb::BtcScriptConfigWithKeypath {
+            script_config:
+                Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::Multisig(multisig)),
+                }),
+            ..
+        } => payload_multisig(multisig, keypath),
+        _ => Err(Error::InvalidInput),
+    }
 }
 
 fn encode_segwit_addr(
@@ -149,7 +222,8 @@ pub fn convert_output_type(simple_type: BtcOutputType) -> bitbox02::app_btc::Out
 mod tests {
     use super::*;
 
-    use alloc::vec::Vec;
+    use bitbox02::testing::mock_unlocked_using_mnemonic;
+    use util::bip32::HARDENED;
 
     #[test]
     fn test_address_from_payload() {
@@ -284,5 +358,48 @@ mod tests {
         for (satoshi, expected) in tests {
             assert_eq!(format_amount(satoshi, "LOL"), expected);
         }
+    }
+
+    #[test]
+    fn test_payload_simple() {
+        mock_unlocked_using_mnemonic(
+            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+        );
+        let coin_params = super::super::params::get(pb::BtcCoin::Btc);
+        // p2wpkh
+        assert_eq!(
+            payload_simple(
+                coin_params,
+                SimpleType::P2wpkh,
+                &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
+            )
+            .unwrap()
+            .as_slice(),
+            b"\x3f\x0d\xc2\xe9\x14\x2d\x88\x39\xae\x9c\x90\xa1\x9c\xa8\x6c\x36\xd9\x23\xd8\xab"
+        );
+
+        //  p2wpkh-p2sh
+        assert_eq!(
+            payload_simple(
+                coin_params,
+                SimpleType::P2wpkhP2sh,
+                &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
+            )
+            .unwrap()
+            .as_slice(),
+            b"\x8d\xd0\x9c\x25\xc9\x28\xbe\x67\x66\xf4\x50\x73\x87\x0c\xe3\xbb\x93\x1f\x2f\x55"
+        );
+
+        // p2tr
+        assert_eq!(
+            payload_simple(
+                coin_params,
+                SimpleType::P2tr,
+                &[86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
+            )
+            .unwrap()
+            .as_slice(),
+            b"\x25\x0e\xc8\x02\xb6\xd3\xdb\x98\x42\xd1\xbd\xbe\x0e\xe4\x8d\x52\xf9\xa4\xb4\x6e\x60\xcb\xbb\xab\x3b\xcc\x4e\xe9\x15\x73\xfc\xe8"
+        );
     }
 }

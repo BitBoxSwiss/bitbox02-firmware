@@ -21,7 +21,6 @@ pub mod common;
 pub mod keypath;
 mod multisig;
 pub mod params;
-mod payload;
 mod script;
 pub mod signmsg;
 pub mod signtx;
@@ -145,7 +144,7 @@ pub fn derive_address_simple(
         coin_params.taproot_support,
     )
     .or(Err(Error::InvalidInput))?;
-    let payload = payload::compute_simple(coin_params, simple_type, keypath)?;
+    let payload = common::payload_simple(coin_params, simple_type, keypath)?;
     let address = common::address_from_payload(
         coin_params,
         common::determine_output_type_from_simple_type(simple_type),
@@ -196,7 +195,7 @@ pub async fn address_multisig(
     if display {
         multisig::confirm(title, coin_params, &name, multisig).await?;
     }
-    let payload = payload::compute_multisig(multisig, keypath)?;
+    let payload = common::payload_multisig(multisig, keypath)?;
     let address = common::address_from_payload(
         coin_params,
         common::determine_output_type_multisig(script_type),

@@ -24,47 +24,6 @@
 #include <util.h>
 #include <wally_address.h>
 
-bool btc_common_pkscript_from_payload(
-    bool taproot_support,
-    output_type_t output_type,
-    const uint8_t* payload,
-    size_t payload_size,
-    uint8_t* pk_script,
-    size_t* pk_script_len)
-{
-    if (!payload || !pk_script || !pk_script_len) {
-        return false;
-    }
-    size_t len = *pk_script_len;
-    switch (output_type) {
-    case OUTPUT_TYPE_P2PKH:
-        if (payload_size != HASH160_LEN) {
-            return false;
-        }
-        return wally_scriptpubkey_p2pkh_from_bytes(
-                   payload, payload_size, 0, pk_script, len, pk_script_len) == WALLY_OK;
-    case OUTPUT_TYPE_P2SH:
-        if (payload_size != HASH160_LEN) {
-            return false;
-        }
-        return wally_scriptpubkey_p2sh_from_bytes(
-                   payload, payload_size, 0, pk_script, len, pk_script_len) == WALLY_OK;
-    case OUTPUT_TYPE_P2WPKH:
-    case OUTPUT_TYPE_P2WSH:
-        return wally_witness_program_from_bytes(
-                   payload, payload_size, 0, pk_script, len, pk_script_len) == WALLY_OK;
-    case OUTPUT_TYPE_P2TR:
-        if (!taproot_support || payload_size != 32) {
-            return false;
-        }
-        return wally_witness_program_from_bytes_and_version(
-                   payload, payload_size, 1, 0, pk_script, len, pk_script_len) == WALLY_OK;
-    default:
-        return false;
-    }
-    return true;
-}
-
 bool btc_common_pkscript_from_multisig(
     const multisig_t* multisig,
     uint32_t keypath_change,

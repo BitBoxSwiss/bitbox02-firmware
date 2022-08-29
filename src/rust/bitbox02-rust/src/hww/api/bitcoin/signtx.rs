@@ -590,12 +590,8 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                     .ok_or(Error::InvalidInput)?,
             )?;
             let payload = common::payload(coin_params, &tx_input.keypath, script_config_account)?;
-            bitbox02::app_btc::pkscript_from_payload(
-                coin_params.taproot_support,
-                super::common::convert_output_type(output_type),
-                &payload,
-            )
-            .or(Err(Error::InvalidInput))?
+            common::pkscript_from_payload(coin_params, output_type, &payload)
+                .or(Err(Error::InvalidInput))?
         };
         hasher_scriptpubkeys.update(serialize_varint(pk_script.len() as u64).as_slice());
         hasher_scriptpubkeys.update(pk_script.as_slice());
@@ -708,12 +704,8 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         // point 8: accumulate hashOutputs
         // only SIGHASH_ALL supported.
         hasher_outputs.update(tx_output.value.to_le_bytes());
-        let pk_script = bitbox02::app_btc::pkscript_from_payload(
-            coin_params.taproot_support,
-            super::common::convert_output_type(output_type),
-            &payload,
-        )
-        .or(Err(Error::InvalidInput))?;
+        let pk_script = common::pkscript_from_payload(coin_params, output_type, &payload)
+            .or(Err(Error::InvalidInput))?;
         hasher_outputs.update(serialize_varint(pk_script.len() as u64).as_slice());
         hasher_outputs.update(pk_script.as_slice());
     }

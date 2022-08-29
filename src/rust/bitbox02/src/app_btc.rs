@@ -15,33 +15,8 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
+pub use bitbox02_sys::multisig_script_type_t as MultisigScriptType;
 pub use bitbox02_sys::multisig_t as Multisig;
-pub use bitbox02_sys::{multisig_script_type_t as MultisigScriptType, output_type_t as OutputType};
-
-pub fn pkscript_from_payload(
-    taproot_support: bool,
-    output_type: OutputType,
-    payload: &[u8],
-) -> Result<Vec<u8>, ()> {
-    // current expected max pk script size is a m-of-15 multisig. 700 is also enough for m-of-20, which
-    // is technically possible to extend to if needed.
-    const MAX_PK_SCRIPT_SIZE: usize = 700;
-    let mut out = [0u8; MAX_PK_SCRIPT_SIZE];
-    let mut out_len: bitbox02_sys::size_t = out.len() as _;
-    match unsafe {
-        bitbox02_sys::btc_common_pkscript_from_payload(
-            taproot_support,
-            output_type,
-            payload.as_ptr(),
-            payload.len() as _,
-            out.as_mut_ptr(),
-            &mut out_len,
-        )
-    } {
-        true => Ok(out[..out_len as usize].to_vec()),
-        false => Err(()),
-    }
-}
 
 pub fn pkscript_from_multisig(
     multisig: &Multisig,

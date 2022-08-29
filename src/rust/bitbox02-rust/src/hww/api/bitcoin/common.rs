@@ -25,7 +25,7 @@ use bech32::{ToBase32, Variant};
 use pb::btc_script_config::SimpleType;
 pub use pb::{BtcCoin, BtcOutputType};
 
-use super::{multisig, params::Params};
+use super::{multisig, params::Params, script};
 
 const HASH160_LEN: usize = 20;
 const SHA256_LEN: usize = 32;
@@ -47,11 +47,8 @@ pub fn payload_simple(
         SimpleType::P2wpkh => Ok(keystore::secp256k1_pubkey_hash160(keypath)?.to_vec()),
         SimpleType::P2wpkhP2sh => {
             let payload_p2wpkh = keystore::secp256k1_pubkey_hash160(keypath)?;
-            let pkscript_p2wpkh = bitbox02::app_btc::pkscript_from_payload(
-                params.taproot_support,
-                bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2WPKH,
-                &payload_p2wpkh,
-            )?;
+            let pkscript_p2wpkh =
+                pkscript_from_payload(params, BtcOutputType::P2wpkh, &payload_p2wpkh)?;
             Ok(bitbox02::app_btc::hash160(&pkscript_p2wpkh).to_vec())
         }
         SimpleType::P2tr => {
@@ -168,6 +165,56 @@ pub fn address_from_payload(
     }
 }
 
+/// Computes the pkScript from a pubkey hash or script hash or pubkey, depending on the output type.
+pub fn pkscript_from_payload(
+    params: &Params,
+    output_type: BtcOutputType,
+    payload: &[u8],
+) -> Result<Vec<u8>, Error> {
+    match output_type {
+        BtcOutputType::Unknown => Err(Error::InvalidInput),
+        BtcOutputType::P2pkh => {
+            if payload.len() != HASH160_LEN {
+                return Err(Error::Generic);
+            }
+            let mut result = vec![script::OP_DUP, script::OP_HASH160];
+            script::push_data(&mut result, payload);
+            result.extend_from_slice(&[script::OP_EQUALVERIFY, script::OP_CHECKSIG]);
+            Ok(result)
+        }
+        BtcOutputType::P2sh => {
+            if payload.len() != HASH160_LEN {
+                return Err(Error::Generic);
+            }
+            let mut result = vec![script::OP_HASH160];
+            script::push_data(&mut result, payload);
+            result.push(script::OP_EQUAL);
+            Ok(result)
+        }
+        BtcOutputType::P2wpkh | BtcOutputType::P2wsh => {
+            if (output_type == BtcOutputType::P2wpkh && payload.len() != HASH160_LEN)
+                || (output_type == BtcOutputType::P2wsh && payload.len() != SHA256_LEN)
+            {
+                return Err(Error::Generic);
+            }
+            let mut result = vec![script::OP_0];
+            script::push_data(&mut result, payload);
+            Ok(result)
+        }
+        BtcOutputType::P2tr => {
+            if !params.taproot_support {
+                return Err(Error::InvalidInput);
+            }
+            if payload.len() != 32 {
+                return Err(Error::Generic);
+            }
+            let mut result = vec![script::OP_1];
+            script::push_data(&mut result, payload);
+            Ok(result)
+        }
+    }
+}
+
 pub fn determine_output_type_from_simple_type(simple_type: SimpleType) -> BtcOutputType {
     match simple_type {
         SimpleType::P2wpkhP2sh => BtcOutputType::P2sh,
@@ -203,18 +250,6 @@ pub fn determine_output_type(script_config: &pb::BtcScriptConfig) -> Result<BtcO
             Ok(determine_output_type_multisig(script_type))
         }
         _ => Err(Error::InvalidInput),
-    }
-}
-
-/// Converts a Rust protobuf OutputType to a representation suitable to be passed to C functions.
-pub fn convert_output_type(simple_type: BtcOutputType) -> bitbox02::app_btc::OutputType {
-    match simple_type {
-        BtcOutputType::Unknown => bitbox02::app_btc::OutputType::OUTPUT_TYPE_UNKNOWN,
-        BtcOutputType::P2pkh => bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2PKH,
-        BtcOutputType::P2sh => bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2SH,
-        BtcOutputType::P2wpkh => bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2WPKH,
-        BtcOutputType::P2wsh => bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2WSH,
-        BtcOutputType::P2tr => bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2TR,
     }
 }
 

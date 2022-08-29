@@ -14,6 +14,15 @@
 
 use alloc::vec::Vec;
 
+// https://en.bitcoin.it/wiki/Script
+pub const OP_0: u8 = 0;
+pub const OP_1: u8 = 0x51;
+pub const OP_HASH160: u8 = 0xa9;
+pub const OP_DUP: u8 = 0x76;
+pub const OP_EQUALVERIFY: u8 = 0x88;
+pub const OP_CHECKSIG: u8 = 0xac;
+pub const OP_EQUAL: u8 = 0x87;
+
 /// Serialize a number in the VarInt encoding.
 /// https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer
 pub fn serialize_varint(value: u64) -> Vec<u8> {
@@ -36,12 +45,18 @@ pub fn serialize_varint(value: u64) -> Vec<u8> {
     out
 }
 
+/// Performs a data push onto `v`: the varint length of data followed by data.
+pub fn push_data(v: &mut Vec<u8>, data: &[u8]) {
+    v.extend_from_slice(&serialize_varint(data.len() as _));
+    v.extend_from_slice(data);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    pub fn test_serialize_varint() {
+    fn test_serialize_varint() {
         // Go script to generate the test vectors below.
         /*
         package main
@@ -94,6 +109,28 @@ mod tests {
         assert_eq!(
             serialize_varint(0xffffffffffffffff),
             b"\xff\xff\xff\xff\xff\xff\xff\xff\xff"
+        );
+    }
+
+    #[test]
+    fn test_push_data() {
+        assert_eq!(
+            {
+                let mut v = Vec::new();
+                push_data(&mut v, b"");
+                v
+            },
+            vec![0]
+        );
+
+        // Data with length 255.
+        assert_eq!(
+            {
+                let mut v = Vec::new();
+                push_data(&mut v, b"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+                v
+            },
+            b"\xfd\xff\x00bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_vec(),
         );
     }
 }

@@ -39,35 +39,11 @@ typedef enum {
     MULTISIG_SCRIPT_TYPE_P2WSH_P2SH = 1
 } multisig_script_type_t;
 
-typedef enum {
-    OUTPUT_TYPE_UNKNOWN = 0,
-    OUTPUT_TYPE_P2PKH = 1,
-    OUTPUT_TYPE_P2SH = 2,
-    OUTPUT_TYPE_P2WPKH = 3,
-    OUTPUT_TYPE_P2WSH = 4,
-    OUTPUT_TYPE_P2TR = 5
-} output_type_t;
-
 // see https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer
 #define MAX_VARINT_SIZE (9)
 // current expected max pk script size is a m-of-15 multisig. 700 is also enough for m-of-20, which
 // is technically possible to extend to if needed.
 #define MAX_PK_SCRIPT_SIZE (700)
-
-/**
- * Computes the pkScript from a pubkey hash or script hash or pubkey, depending on the output
- * type.
- * @param[in] output_type type of pkScript.
- * @param[in] payload pubkey hash or script hash or pubkey.
- * @param[inout] pk_script_len: size of pk_script IN, size of the resulting pk_script OUT.
- */
-USE_RESULT bool btc_common_pkscript_from_payload(
-    bool taproot_support,
-    output_type_t output_type,
-    const uint8_t* payload,
-    size_t payload_size,
-    uint8_t* pk_script,
-    size_t* pk_script_len);
 
 /**
  * Creates a n-of-m multisig script based on OP_CHECKMULTISIG. 0<n<=m<=15.

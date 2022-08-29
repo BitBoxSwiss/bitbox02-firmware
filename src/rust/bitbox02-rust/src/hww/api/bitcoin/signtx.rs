@@ -15,7 +15,7 @@
 use super::pb;
 use super::Error;
 
-use super::common::{address_from_payload, format_amount};
+use super::common::format_amount;
 use super::script::serialize_varint;
 use super::{bip143, bip341, common, keypath};
 
@@ -582,17 +582,9 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
 
         // https://github.com/bitcoin/bips/blob/bb8dc57da9b3c6539b88378348728a2ff43f7e9c/bip-0341.mediawiki#common-signature-message
         // accumulate `sha_scriptpubkeys`
-        let pk_script = {
-            let output_type = super::common::determine_output_type(
-                script_config_account
-                    .script_config
-                    .as_ref()
-                    .ok_or(Error::InvalidInput)?,
-            )?;
-            let payload = common::payload(coin_params, &tx_input.keypath, script_config_account)?;
-            common::pkscript_from_payload(coin_params, output_type, &payload)
-                .or(Err(Error::InvalidInput))?
-        };
+        let pk_script =
+            common::Payload::from(coin_params, &tx_input.keypath, script_config_account)?
+                .pk_script(coin_params)?;
         hasher_scriptpubkeys.update(serialize_varint(pk_script.len() as u64).as_slice());
         hasher_scriptpubkeys.update(pk_script.as_slice());
 
@@ -652,7 +644,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
 
         // Get payload. If change output, we compute the payload from the keystore, otherwise it is
         // provided in tx_output.payload.
-        let (output_type, payload): (pb::BtcOutputType, Vec<u8>) = if tx_output.ours {
+        let payload: common::Payload = if tx_output.ours {
             // Compute the payload from the keystore.
             let script_config_account = request
                 .script_configs
@@ -661,27 +653,20 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
 
             validate_keypath(coin_params, script_config_account, &tx_output.keypath, true)?;
 
-            let output_type = super::common::determine_output_type(
-                script_config_account
-                    .script_config
-                    .as_ref()
-                    .ok_or(Error::InvalidInput)?,
-            )?;
-            let payload = common::payload(coin_params, &tx_output.keypath, script_config_account)?;
-            (output_type, payload)
+            common::Payload::from(coin_params, &tx_output.keypath, script_config_account)?
         } else {
             // Take payload from provided output.
-            (
-                pb::BtcOutputType::from_i32(tx_output.r#type).ok_or(Error::InvalidInput)?,
-                tx_output.payload.clone(),
-            )
+            common::Payload {
+                data: tx_output.payload.clone(),
+                output_type: pb::BtcOutputType::from_i32(tx_output.r#type)
+                    .ok_or(Error::InvalidInput)?,
+            }
         };
 
         if !tx_output.ours {
             // Verify output if it is not a change output.
             // Assemble address to display, get user confirmation.
-            let address = address_from_payload(coin_params, output_type, &payload)
-                .or(Err(Error::InvalidInput))?;
+            let address = payload.address(coin_params)?;
             transaction::verify_recipient(
                 &address,
                 &format_amount(tx_output.value, coin_params.unit),
@@ -704,8 +689,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         // point 8: accumulate hashOutputs
         // only SIGHASH_ALL supported.
         hasher_outputs.update(tx_output.value.to_le_bytes());
-        let pk_script = common::pkscript_from_payload(coin_params, output_type, &payload)
-            .or(Err(Error::InvalidInput))?;
+        let pk_script = payload.pk_script(coin_params)?;
         hasher_outputs.update(serialize_varint(pk_script.len() as u64).as_slice());
         hasher_outputs.update(pk_script.as_slice());
     }

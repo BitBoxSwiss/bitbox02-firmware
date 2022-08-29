@@ -144,13 +144,7 @@ pub fn derive_address_simple(
         coin_params.taproot_support,
     )
     .or(Err(Error::InvalidInput))?;
-    let payload = common::payload_simple(coin_params, simple_type, keypath)?;
-    let address = common::address_from_payload(
-        coin_params,
-        common::determine_output_type_from_simple_type(simple_type),
-        &payload,
-    )?;
-    Ok(address)
+    Ok(common::Payload::from_simple(coin_params, simple_type, keypath)?.address(coin_params)?)
 }
 
 /// Processes a SimpleType (single-sig) adress api call.
@@ -195,12 +189,7 @@ pub async fn address_multisig(
     if display {
         multisig::confirm(title, coin_params, &name, multisig).await?;
     }
-    let payload = common::payload_multisig(multisig, keypath)?;
-    let address = common::address_from_payload(
-        coin_params,
-        common::determine_output_type_multisig(script_type),
-        &payload,
-    )?;
+    let address = common::Payload::from_multisig(multisig, keypath)?.address(coin_params)?;
     if display {
         confirm::confirm(&confirm::Params {
             title,

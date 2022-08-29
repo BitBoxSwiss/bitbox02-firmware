@@ -34,11 +34,6 @@ typedef struct {
     uint32_t threshold;
 } multisig_t;
 
-typedef enum {
-    MULTISIG_SCRIPT_TYPE_P2WSH = 0,
-    MULTISIG_SCRIPT_TYPE_P2WSH_P2SH = 1
-} multisig_script_type_t;
-
 // see https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer
 #define MAX_VARINT_SIZE (9)
 // current expected max pk script size is a m-of-15 multisig. 700 is also enough for m-of-20, which
@@ -62,24 +57,5 @@ USE_RESULT bool btc_common_pkscript_from_multisig(
     uint32_t keypath_address,
     uint8_t* script_out,
     size_t* script_out_size);
-
-/**
- * Constructs sha256(<multisig pkScript>) from the provided multisig.
- * Note that the multisig config and keypaths are *not* validated, this must be done before calling.
- * @param[in] multisig Multisig configuration (threshold, signers). The xpubs are account-level
- * xpubs.
- * @param[in] keypath_change 0 for receive addresses, 1 for change addresses.
- * @param[in] keypath_address receive address index.
- * @param[out] output_payload result, must be at least `SHA256_LEN` bytes.
- * @param[out] output_payload_size of the output hash. Will be `SHA256_LEN` for P2WSH and
- * `HASH160_LEN` for P2WSH-P2SH.
- */
-USE_RESULT bool btc_common_payload_from_multisig(
-    const multisig_t* multisig,
-    multisig_script_type_t script_type,
-    uint32_t keypath_change,
-    uint32_t keypath_address,
-    uint8_t* output_payload,
-    size_t* output_payload_size);
 
 #endif

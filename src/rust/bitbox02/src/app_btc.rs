@@ -15,7 +15,6 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-pub use bitbox02_sys::multisig_script_type_t as MultisigScriptType;
 pub use bitbox02_sys::multisig_t as Multisig;
 
 pub fn pkscript_from_multisig(
@@ -28,29 +27,6 @@ pub fn pkscript_from_multisig(
     match unsafe {
         bitbox02_sys::btc_common_pkscript_from_multisig(
             multisig,
-            keypath_change,
-            keypath_address,
-            out.as_mut_ptr(),
-            &mut out_len,
-        )
-    } {
-        true => Ok(out[..out_len as usize].to_vec()),
-        false => Err(()),
-    }
-}
-
-pub fn payload_from_multisig(
-    multisig: &Multisig,
-    script_type: MultisigScriptType,
-    keypath_change: u32,
-    keypath_address: u32,
-) -> Result<Vec<u8>, ()> {
-    let mut out = [0u8; 32];
-    let mut out_len: bitbox02_sys::size_t = 0;
-    match unsafe {
-        bitbox02_sys::btc_common_payload_from_multisig(
-            multisig,
-            script_type,
             keypath_change,
             keypath_address,
             out.as_mut_ptr(),

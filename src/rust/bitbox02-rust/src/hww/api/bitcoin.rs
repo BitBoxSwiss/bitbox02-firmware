@@ -189,7 +189,13 @@ pub async fn address_multisig(
     if display {
         multisig::confirm(title, coin_params, &name, multisig).await?;
     }
-    let address = common::Payload::from_multisig(multisig, keypath)?.address(coin_params)?;
+    let address = common::Payload::from_multisig(
+        coin_params,
+        multisig,
+        keypath[keypath.len() - 2],
+        keypath[keypath.len() - 1],
+    )?
+    .address(coin_params)?;
     if display {
         confirm::confirm(&confirm::Params {
             title,

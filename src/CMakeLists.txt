@@ -389,7 +389,6 @@ add_custom_target(rust-bindgen
     --rustified-enum output_type_t
     --whitelist-function btc_common_pkscript_from_payload
     --whitelist-function btc_common_pkscript_from_multisig
-    --whitelist-function btc_common_payload_from_multisig
     --whitelist-var MAX_VARINT_SIZE
     --whitelist-var MAX_PK_SCRIPT_SIZE
     --whitelist-function reboot

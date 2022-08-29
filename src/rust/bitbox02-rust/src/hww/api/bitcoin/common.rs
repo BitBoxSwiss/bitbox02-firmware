@@ -27,6 +27,8 @@ pub use pb::{BtcCoin, BtcOutputType};
 
 use super::{multisig, params::Params, script};
 
+use sha2::{Digest, Sha256};
+
 const HASH160_LEN: usize = 20;
 const SHA256_LEN: usize = 32;
 
@@ -76,26 +78,44 @@ impl Payload {
         }
     }
 
+    /// Constructs sha256(<multisig pkScript>) from the provided multisig.
+    /// Note that the multisig config and keypaths are *not* validated, this must be done before calling.
+    /// The xpubs are account-level xpubs.
+    /// keypath_change: 0 for receive addresses, 1 for change addresses.
+    /// keypath_address: receive address index.
     pub fn from_multisig(
+        params: &Params,
         multisig: &pb::btc_script_config::Multisig,
-        keypath: &[u32],
+        keypath_change: u32,
+        keypath_address: u32,
     ) -> Result<Self, Error> {
+        // TODO: double check that the witness script must be <= 10,000 bytes /
+        // 201 opCounts (consensus rule), resp. 3,600 bytes (standardness rule).
+        // See https://bitcoincore.org/en/segwit_wallet_dev/.
+        // Note that the witness script has an additional varint prefix.
+
         let script_type =
             pb::btc_script_config::multisig::ScriptType::from_i32(multisig.script_type)
                 .ok_or(Error::InvalidInput)?;
-        let data = bitbox02::app_btc::payload_from_multisig(
+        let script = bitbox02::app_btc::pkscript_from_multisig(
             &multisig::convert_multisig(multisig)?,
-            multisig::convert_multisig_script_type(script_type),
-            keypath[keypath.len() - 2],
-            keypath[keypath.len() - 1],
+            keypath_change,
+            keypath_address,
         )?;
-        Ok(Payload {
-            data,
-            output_type: match script_type {
-                pb::btc_script_config::multisig::ScriptType::P2wsh => BtcOutputType::P2wsh,
-                pb::btc_script_config::multisig::ScriptType::P2wshP2sh => BtcOutputType::P2sh,
-            },
-        })
+        let payload_p2wsh = Payload {
+            data: Sha256::digest(&script).to_vec(),
+            output_type: BtcOutputType::P2wsh,
+        };
+        match script_type {
+            pb::btc_script_config::multisig::ScriptType::P2wsh => Ok(payload_p2wsh),
+            pb::btc_script_config::multisig::ScriptType::P2wshP2sh => {
+                let pkscript_p2wsh = payload_p2wsh.pk_script(params)?;
+                Ok(Payload {
+                    data: bitbox02::app_btc::hash160(&pkscript_p2wsh).to_vec(),
+                    output_type: BtcOutputType::P2sh,
+                })
+            }
+        }
     }
 
     /// Computes the payload data from a script config. The payload can then be used generate a
@@ -123,7 +143,12 @@ impl Payload {
                         config: Some(pb::btc_script_config::Config::Multisig(multisig)),
                     }),
                 ..
-            } => Self::from_multisig(multisig, keypath),
+            } => Self::from_multisig(
+                params,
+                multisig,
+                keypath[keypath.len() - 2],
+                keypath[keypath.len() - 1],
+            ),
             _ => Err(Error::InvalidInput),
         }
     }

@@ -51,18 +51,6 @@ pub fn convert_multisig(multisig: &Multisig) -> Result<bitbox02::app_btc::Multis
     })
 }
 
-/// Converts a Rust multisig script type to a representation suitable to be passed to C functions.
-pub fn convert_multisig_script_type(
-    script_type: ScriptType,
-) -> bitbox02::app_btc::MultisigScriptType {
-    match script_type {
-        ScriptType::P2wsh => bitbox02::app_btc::MultisigScriptType::MULTISIG_SCRIPT_TYPE_P2WSH,
-        ScriptType::P2wshP2sh => {
-            bitbox02::app_btc::MultisigScriptType::MULTISIG_SCRIPT_TYPE_P2WSH_P2SH
-        }
-    }
-}
-
 pub enum SortXpubs {
     No,
     Yes,

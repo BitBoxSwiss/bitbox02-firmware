@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub use super::cancel::Error;
+pub use super::cancel::{cancel, set_result, with_cancel, Error};
 pub use bitbox02::ui::TrinaryInputStringParams as Params;
 
-use crate::bb02_async::option;
 use bitbox02::input::SafeInputString;
 use core::cell::RefCell;
 
@@ -35,20 +34,17 @@ pub async fn enter(
     can_cancel: CanCancel,
     preset: &str,
 ) -> Result<SafeInputString, Error> {
-    let result = RefCell::new(None as Option<Result<SafeInputString, ()>>); // Err means cancelled.
+    let result = RefCell::new(None);
     let mut component = bitbox02::ui::trinary_input_string_create(
         params,
-        |string| *result.borrow_mut() = Some(Ok(string)),
+        |string| set_result(&result, string),
         match can_cancel {
-            CanCancel::Yes => Some(Box::new(|| *result.borrow_mut() = Some(Err(())))),
+            CanCancel::Yes => Some(Box::new(|| cancel(&result))),
             CanCancel::No => None,
         },
     );
     if !preset.is_empty() {
         bitbox02::ui::trinary_input_string_set_input(&mut component, preset);
     }
-    component.screen_stack_push();
-    option(&result)
-        .await
-        .or(Err(super::cancel::Error::Cancelled))
+    with_cancel("", &mut component, &result).await
 }

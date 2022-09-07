@@ -15,7 +15,7 @@
 use super::{confirm, status, trinary_input_string};
 use bitbox02::input::SafeInputString;
 
-pub use trinary_input_string::CanCancel;
+pub use trinary_input_string::{CanCancel, Error};
 
 /// If `can_cancel` is `Yes`, the workflow can be cancelled.
 /// If it is no, the result is always `Ok(())`.
@@ -29,7 +29,7 @@ pub async fn enter(
     title: &str,
     special_chars: bool,
     can_cancel: CanCancel,
-) -> Result<SafeInputString, super::cancel::Error> {
+) -> Result<SafeInputString, Error> {
     let params = trinary_input_string::Params {
         title,
         hide: true,
@@ -40,6 +40,19 @@ pub async fn enter(
     trinary_input_string::enter(&params, can_cancel, "").await
 }
 
+pub enum EnterTwiceError {
+    DoNotMatch,
+    Cancelled,
+}
+
+impl core::convert::From<Error> for EnterTwiceError {
+    fn from(error: Error) -> Self {
+        match error {
+            Error::Cancelled => EnterTwiceError::Cancelled,
+        }
+    }
+}
+
 /// Prompt the user to enter a password twice. A warning is displayed
 /// if the password has fewer than 4 chars. Returns `Err` if the two
 /// passwords do not match, or if the user aborts at the warning.
@@ -48,26 +61,35 @@ pub async fn enter(
 /// ```no_run
 /// let pw = enter_twice().await.unwrap();
 /// // use pw.
-pub async fn enter_twice() -> Result<SafeInputString, ()> {
-    let password = enter("Set password", false, CanCancel::No)
-        .await
-        .expect("not cancelable");
-    let password_repeat = enter("Repeat password", false, CanCancel::No)
-        .await
-        .expect("not cancelable");
+pub async fn enter_twice() -> Result<SafeInputString, EnterTwiceError> {
+    let password = enter("Set password", false, CanCancel::Yes).await?;
+    let password_repeat = enter("Repeat password", false, CanCancel::Yes).await?;
     if password.as_str() != password_repeat.as_str() {
         status::status("Passwords\ndo not match", false).await;
-        return Err(());
+        return Err(EnterTwiceError::DoNotMatch);
     }
     if password.as_str().len() < 4 {
-        let params = confirm::Params {
-            title: "WARNING",
-            body: "Your password\n has fewer than\n 4 characters.\nContinue?",
-            longtouch: true,
-            ..Default::default()
-        };
-
-        confirm::confirm(&params).await.or(Err(()))?;
+        loop {
+            match confirm::confirm(&confirm::Params {
+                title: "WARNING",
+                body: "Your password\n has fewer than\n 4 characters.\nContinue?",
+                longtouch: true,
+                ..Default::default()
+            })
+            .await
+            {
+                Ok(()) => break,
+                Err(confirm::UserAbort) => match confirm::confirm(&confirm::Params {
+                    body: "Do you really\nwant to cancel?",
+                    ..Default::default()
+                })
+                .await
+                {
+                    Ok(()) => return Err(EnterTwiceError::Cancelled),
+                    Err(confirm::UserAbort) => {}
+                },
+            }
+        }
     }
     status::status("Success", true).await;
     Ok(password)

@@ -115,14 +115,15 @@ pub async fn from_mnemonic(
     // the process immediately. We break out only if the user confirms.
     let password = loop {
         match password::enter_twice().await {
-            Err(()) => {
-                let params = confirm::Params {
+            Err(password::EnterTwiceError::DoNotMatch) => {
+                confirm::confirm(&confirm::Params {
                     title: "",
                     body: "Passwords\ndo not match.\nTry again?",
                     ..Default::default()
-                };
-                confirm::confirm(&params).await?;
+                })
+                .await?;
             }
+            Err(password::EnterTwiceError::Cancelled) => return Err(Error::UserAbort),
             Ok(password) => break password,
         }
     };

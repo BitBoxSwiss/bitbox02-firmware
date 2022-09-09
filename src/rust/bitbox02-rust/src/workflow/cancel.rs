@@ -47,7 +47,6 @@ pub async fn with_cancel<R>(
     component: &mut bitbox02::ui::Component<'_>,
     result_cell: &ResultCell<R>,
 ) -> Result<R, Error> {
-    *result_cell.borrow_mut() = None;
     component.screen_stack_push();
     loop {
         let result = option(result_cell).await;

@@ -67,13 +67,15 @@ static void _test_seeds(void** state)
     assert_false(keystore_copy_seed(read_seed, &read_seed_len));
 
     will_return(__wrap_memory_is_initialized, true);
-    assert_false(keystore_encrypt_and_store_seed(_seed, 32, _some_password));
+    assert_int_equal(
+        keystore_encrypt_and_store_seed(_seed, 32, _some_password), KEYSTORE_ERR_MEMORY);
 
     uint32_t seed_sizes[3] = {16, 24, 32};
     for (size_t seed_size_idx = 0; seed_size_idx < 3; seed_size_idx++) {
         uint32_t seed_size = seed_sizes[seed_size_idx];
         will_return(__wrap_memory_is_initialized, false);
-        assert_true(keystore_encrypt_and_store_seed(_seed, seed_size, _some_password));
+        assert_int_equal(
+            keystore_encrypt_and_store_seed(_seed, seed_size, _some_password), KEYSTORE_OK);
         uint8_t remaining_attempts;
         will_return(__wrap_memory_is_seeded, true);
         assert_int_equal(
@@ -146,7 +148,7 @@ static void _test_combination(
     assert_false(keystore_unlock_bip39(mnemonic_passphrase));
 
     will_return(__wrap_memory_is_initialized, false);
-    assert_true(keystore_encrypt_and_store_seed(_seed, seed_len, _some_password));
+    assert_int_equal(keystore_encrypt_and_store_seed(_seed, seed_len, _some_password), KEYSTORE_OK);
     assert_false(keystore_unlock_bip39(mnemonic_passphrase));
     uint8_t remaining_attempts;
     assert_true(keystore_is_locked());

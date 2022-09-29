@@ -140,7 +140,7 @@ static keystore_error_t _stretch_password(
         if (securechip_result_out != NULL) {
             *securechip_result_out = securechip_result;
         }
-        return KEYSTORE_ERR_SC_KDF;
+        return KEYSTORE_ERR_SECURECHIP;
     }
     // Second KDF does not use the counter and we call it multiple times.
     for (int i = 0; i < KDF_NUM_ITERATIONS; i++) {
@@ -150,7 +150,7 @@ static keystore_error_t _stretch_password(
             if (securechip_result_out != NULL) {
                 *securechip_result_out = securechip_result;
             }
-            return KEYSTORE_ERR_SC_KDF;
+            return KEYSTORE_ERR_SECURECHIP;
         }
     }
 
@@ -234,58 +234,59 @@ static bool _verify_seed(
     return true;
 }
 
-bool keystore_encrypt_and_store_seed(
+keystore_error_t keystore_encrypt_and_store_seed(
     const uint8_t* seed,
     uint32_t seed_length,
     const char* password)
 {
     if (memory_is_initialized()) {
-        return false;
+        return KEYSTORE_ERR_MEMORY;
     }
     keystore_lock();
     if (!_validate_seed_length(seed_length)) {
-        return false;
+        return KEYSTORE_ERR_SEED_SIZE;
     }
     // Update the two kdf keys before setting a new password. This already
     // happens on a device reset, but we do it here again anyway so the keys are
     // initialized also on first use, reducing trust in the factory setup.
     if (!securechip_update_keys()) {
-        return false;
+        return KEYSTORE_ERR_SECURECHIP;
     }
     uint8_t secret[32] = {0};
     UTIL_CLEANUP_32(secret);
-    if (_stretch_password(password, secret, NULL) != KEYSTORE_OK) {
-        return false;
+    keystore_error_t res = _stretch_password(password, secret, NULL);
+    if (res != KEYSTORE_OK) {
+        return res;
     }
 
     size_t encrypted_seed_len = seed_length + 64;
     uint8_t encrypted_seed[encrypted_seed_len];
     UTIL_CLEANUP_32(encrypted_seed);
     if (!cipher_aes_hmac_encrypt(seed, seed_length, encrypted_seed, &encrypted_seed_len, secret)) {
-        return false;
+        return KEYSTORE_ERR_ENCRYPT;
     }
     if (encrypted_seed_len > 255) { // sanity check, can't happen
         Abort("keystore_encrypt_and_store_seed");
     }
     if (!memory_set_encrypted_seed_and_hmac(encrypted_seed, encrypted_seed_len)) {
-        return false;
+        return KEYSTORE_ERR_MEMORY;
     }
     if (!_verify_seed(password, seed, seed_length)) {
         if (!memory_reset_hww()) {
-            return false;
+            return KEYSTORE_ERR_MEMORY;
         }
-        return false;
+        return KEYSTORE_ERR_MEMORY;
     }
-    return true;
+    return KEYSTORE_OK;
 }
 
-bool keystore_create_and_store_seed(
+keystore_error_t keystore_create_and_store_seed(
     const char* password,
     const uint8_t* host_entropy,
     size_t host_entropy_size)
 {
     if (host_entropy_size != 16 && host_entropy_size != 32) {
-        return false;
+        return KEYSTORE_ERR_SEED_SIZE;
     }
     if (KEYSTORE_MAX_SEED_LENGTH != RANDOM_NUM_SIZE) {
         Abort("keystore create: size mismatch");
@@ -307,7 +308,7 @@ bool keystore_create_and_store_seed(
             strlen(password),
             "keystore_seed_generation",
             password_salted_hashed)) {
-        return false;
+        return KEYSTORE_ERR_SALT;
     }
 
     for (size_t i = 0; i < host_entropy_size; i++) {

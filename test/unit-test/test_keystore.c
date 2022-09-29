@@ -369,7 +369,7 @@ static void _expect_encrypt_and_store_seed(void)
 static void _test_keystore_encrypt_and_store_seed(void** state)
 {
     _expect_encrypt_and_store_seed();
-    assert_true(keystore_encrypt_and_store_seed(_mock_seed, 32, PASSWORD));
+    assert_int_equal(keystore_encrypt_and_store_seed(_mock_seed, 32, PASSWORD), KEYSTORE_OK);
 }
 
 // this tests that you can create a keystore, unlock it, and then do this again. This is an expected
@@ -378,7 +378,7 @@ static void _test_keystore_encrypt_and_store_seed(void** state)
 static void _test_keystore_create_and_unlock_twice(void** state)
 {
     _expect_encrypt_and_store_seed();
-    assert_true(keystore_encrypt_and_store_seed(_mock_seed, 32, PASSWORD));
+    assert_int_equal(keystore_encrypt_and_store_seed(_mock_seed, 32, PASSWORD), KEYSTORE_OK);
 
     uint8_t remaining_attempts;
     _smarteeprom_reset();
@@ -389,7 +389,7 @@ static void _test_keystore_create_and_unlock_twice(void** state)
 
     // Create new (different) seed.
     _expect_encrypt_and_store_seed();
-    assert_true(keystore_encrypt_and_store_seed(_mock_seed_2, 32, PASSWORD));
+    assert_int_equal(keystore_encrypt_and_store_seed(_mock_seed_2, 32, PASSWORD), KEYSTORE_OK);
 
     will_return(__wrap_memory_is_seeded, true);
     _expect_stretch(true);
@@ -428,7 +428,7 @@ static void _test_keystore_unlock(void** state)
     will_return(__wrap_memory_is_seeded, false);
     assert_int_equal(KEYSTORE_ERR_UNSEEDED, keystore_unlock(PASSWORD, &remaining_attempts, NULL));
     _expect_encrypt_and_store_seed();
-    assert_true(keystore_encrypt_and_store_seed(_mock_seed, 32, PASSWORD));
+    assert_int_equal(keystore_encrypt_and_store_seed(_mock_seed, 32, PASSWORD), KEYSTORE_OK);
     _expect_seeded(false);
 
     _perform_some_unlocks();
@@ -576,9 +576,12 @@ static void _test_keystore_create_and_store_seed(void** state)
         "\x9f\x66\x08\xfd\x67\x90\x30\xc0\xaf\xb5";
 
     // Invalid seed lengths.
-    assert_false(keystore_create_and_store_seed(PASSWORD, host_entropy, 8));
-    assert_false(keystore_create_and_store_seed(PASSWORD, host_entropy, 24));
-    assert_false(keystore_create_and_store_seed(PASSWORD, host_entropy, 40));
+    assert_int_equal(
+        keystore_create_and_store_seed(PASSWORD, host_entropy, 8), KEYSTORE_ERR_SEED_SIZE);
+    assert_int_equal(
+        keystore_create_and_store_seed(PASSWORD, host_entropy, 24), KEYSTORE_ERR_SEED_SIZE);
+    assert_int_equal(
+        keystore_create_and_store_seed(PASSWORD, host_entropy, 40), KEYSTORE_ERR_SEED_SIZE);
 
     size_t test_sizes[2] = {16, 32};
     for (size_t i = 0; i < sizeof(test_sizes) / sizeof(test_sizes[0]); i++) {
@@ -590,7 +593,8 @@ static void _test_keystore_create_and_store_seed(void** state)
         expect_string(__wrap_salt_hash_data, purpose, "keystore_seed_generation");
         will_return(__wrap_salt_hash_data, password_salted_hashed);
         _expect_encrypt_and_store_seed();
-        assert_true(keystore_create_and_store_seed(PASSWORD, host_entropy, seed_len));
+        assert_int_equal(
+            keystore_create_and_store_seed(PASSWORD, host_entropy, seed_len), KEYSTORE_OK);
 
         // Decrypt and check seed.
         uint8_t encrypted_seed_and_hmac[96] = {0};

@@ -40,11 +40,11 @@ pub enum Error {
     Unseeded,
     Memory,
     // Securechip error with the error code from securechip.c
-    ScKdf(i32),
+    SecureChip(i32),
     Salt,
     Hash,
     SeedSize,
-    Unknown,
+    Encrypt,
 }
 
 pub fn unlock(password: &SafeInputString) -> Result<(), Error> {
@@ -65,9 +65,10 @@ pub fn unlock(password: &SafeInputString) -> Result<(), Error> {
         keystore_error_t::KEYSTORE_ERR_UNSEEDED => Err(Error::Unseeded),
         keystore_error_t::KEYSTORE_ERR_MEMORY => Err(Error::Memory),
         keystore_error_t::KEYSTORE_ERR_SEED_SIZE => Err(Error::SeedSize),
-        keystore_error_t::KEYSTORE_ERR_SC_KDF => Err(Error::ScKdf(securechip_result)),
+        keystore_error_t::KEYSTORE_ERR_SECURECHIP => Err(Error::SecureChip(securechip_result)),
         keystore_error_t::KEYSTORE_ERR_SALT => Err(Error::Salt),
         keystore_error_t::KEYSTORE_ERR_HASH => Err(Error::Hash),
+        keystore_error_t::KEYSTORE_ERR_ENCRYPT => Err(Error::Encrypt),
     }
 }
 
@@ -84,12 +85,15 @@ pub fn unlock_bip39(mnemonic_passphrase: &SafeInputString) -> Result<(), Error> 
 }
 
 pub fn create_and_store_seed(password: &SafeInputString, host_entropy: &[u8]) -> bool {
-    unsafe {
+    match unsafe {
         bitbox02_sys::keystore_create_and_store_seed(
             password.as_cstr(),
             host_entropy.as_ptr(),
             host_entropy.len() as _,
         )
+    } {
+        keystore_error_t::KEYSTORE_OK => true,
+        _ => false,
     }
 }
 
@@ -286,8 +290,8 @@ pub fn encrypt_and_store_seed(seed: &[u8], password: &SafeInputString) -> Result
             password.as_cstr(),
         )
     } {
-        true => Ok(()),
-        false => Err(()),
+        keystore_error_t::KEYSTORE_OK => Ok(()),
+        _ => Err(()),
     }
 }
 

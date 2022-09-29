@@ -48,6 +48,21 @@ impl core::convert::From<crate::workflow::cancel::Error> for Error {
     }
 }
 
+impl core::convert::From<crate::workflow::password::EnterTwiceError> for Error {
+    fn from(error: crate::workflow::password::EnterTwiceError) -> Self {
+        match error {
+            crate::workflow::password::EnterTwiceError::DoNotMatch => {
+                // For backwards compatibility.
+                Error::Generic
+            }
+            crate::workflow::password::EnterTwiceError::Cancelled => {
+                // Added in v9.13.0.
+                Error::UserAbort
+            }
+        }
+    }
+}
+
 impl core::convert::From<crate::workflow::confirm::UserAbort> for Error {
     fn from(_error: crate::workflow::confirm::UserAbort) -> Self {
         Error::UserAbort

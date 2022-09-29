@@ -15,7 +15,7 @@
 use super::Error;
 use crate::pb;
 
-use crate::workflow::{password, unlock};
+use crate::workflow::{password, status, unlock};
 use bitbox02::keystore;
 use pb::response::Response;
 
@@ -33,7 +33,8 @@ pub async fn process(
         return Err(Error::InvalidInput);
     }
     let password = password::enter_twice().await?;
-    if !keystore::create_and_store_seed(&password, entropy) {
+    if let Err(err) = keystore::create_and_store_seed(&password, entropy) {
+        status::status(&format!("Error\n{:?}", err), false).await;
         return Err(Error::Generic);
     }
     if keystore::unlock(&password).is_err() {

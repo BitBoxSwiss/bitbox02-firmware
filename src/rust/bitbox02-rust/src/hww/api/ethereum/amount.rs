@@ -115,6 +115,13 @@ mod tests {
                 unit: "LOL",
                 expected_result: "12.4567890123... LOL",
             },
+            Test {
+                // 123456
+                bigendian: b"\x01\xe2\x40",
+                decimals: 0,
+                unit: "LOL",
+                expected_result: "123456 LOL",
+            },
         ];
 
         for test in tests.iter() {

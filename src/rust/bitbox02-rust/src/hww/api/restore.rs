@@ -58,8 +58,8 @@ pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, E
     }
 
     let password = password::enter_twice().await?;
-    if bitbox02::keystore::encrypt_and_store_seed(data.get_seed(), &password).is_err() {
-        status::status("Could not\nrestore backup", false).await;
+    if let Err(err) = bitbox02::keystore::encrypt_and_store_seed(data.get_seed(), &password) {
+        status::status(&format!("Could not\nrestore backup\n{:?}", err), false).await;
         return Err(Error::Generic);
     }
 
@@ -128,8 +128,8 @@ pub async fn from_mnemonic(
         }
     };
 
-    if bitbox02::keystore::encrypt_and_store_seed(&seed, &password).is_err() {
-        status::status("Could not\nrestore backup", false).await;
+    if let Err(err) = bitbox02::keystore::encrypt_and_store_seed(&seed, &password) {
+        status::status(&format!("Could not\nrestore backup\n{:?}", err), false).await;
         return Err(Error::Generic);
     };
 

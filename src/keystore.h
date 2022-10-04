@@ -38,10 +38,11 @@ typedef enum {
     KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED,
     KEYSTORE_ERR_UNSEEDED,
     KEYSTORE_ERR_MEMORY,
-    KEYSTORE_ERR_SC_KDF,
+    KEYSTORE_ERR_SECURECHIP,
     KEYSTORE_ERR_SEED_SIZE,
     KEYSTORE_ERR_SALT,
     KEYSTORE_ERR_HASH,
+    KEYSTORE_ERR_ENCRYPT,
 } keystore_error_t;
 
 #ifdef TESTING
@@ -67,10 +68,8 @@ USE_RESULT bool keystore_copy_seed(uint8_t* seed_out, uint32_t* length_out);
  * @param[in] seed_length The length of the seed (max. 32 bytes).
  * @param[in] password The password with which we encrypt the seed.
  */
-USE_RESULT bool keystore_encrypt_and_store_seed(
-    const uint8_t* seed,
-    uint32_t seed_length,
-    const char* password);
+USE_RESULT keystore_error_t
+keystore_encrypt_and_store_seed(const uint8_t* seed, uint32_t seed_length, const char* password);
 
 /**
    Generates the seed, mixes it with host_entropy, and stores it encrypted with the
@@ -79,7 +78,7 @@ USE_RESULT bool keystore_encrypt_and_store_seed(
    @param[in] host_entropy bytes of entropy to be mixed in.
    @param[in] host_entropy_size must be 16 or 32.
 */
-USE_RESULT bool keystore_create_and_store_seed(
+USE_RESULT keystore_error_t keystore_create_and_store_seed(
     const char* password,
     const uint8_t* host_entropy,
     size_t host_entropy_size);

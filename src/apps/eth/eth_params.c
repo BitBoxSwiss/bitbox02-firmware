@@ -13892,6 +13892,12 @@ static const app_eth_erc20_params_t _ethereum_erc20_params[] = {
             "\x53\x22\xa3\x55\x6f\x97\x9c\xe2\x18\x0b\x30\xe6\x89\xa9\x43\x6f\xdd\xcb\x10\x21",
         .decimals = 18,
     },
+    {
+        .unit = "REALU",
+        .contract_address =
+            "\x55\x3c\x7f\x9c\x78\x03\x16\xfc\x1d\x34\xb8\xe1\x4a\xc2\x46\x5a\xb2\x2a\x09\x0b",
+        .decimals = 0,
+    },
 };
 
 const app_eth_erc20_params_t* app_eth_erc20_params_get(

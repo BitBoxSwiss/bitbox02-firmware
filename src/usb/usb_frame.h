@@ -111,18 +111,6 @@ queue_error_t usb_frame_reply(
     struct queue* queue);
 
 /**
- * Takes data and a channel id and constructs USB frames that are added
- * to the USB queue and send back to the host as a FRAME_MSG.
- */
-void usb_frame_send_message(const uint8_t* data, uint32_t len, uint8_t cid);
-
-/**
- * Takes data and a channel id and constructs USB frames that are added
- * to the USB queue and send back to the host with the given cmd identifier.
- */
-void usb_frame_send_cmd(uint8_t cmd, const uint8_t* data, uint32_t len, uint8_t cid);
-
-/**
  * Prepares an error USB frame, containing the channel id
  * and error code and adds it to the given callback.
  * @param[in] cid The channel id.
@@ -137,10 +125,5 @@ queue_error_t usb_frame_prepare_err(uint8_t err, uint32_t cid, struct queue* que
  * @param[in] state The frame processing state.
  */
 int32_t usb_frame_process(const USB_FRAME* frame, State* state);
-
-/**
- * Resets the current state.
- */
-void usb_frame_device_reset_state(void);
 
 #endif

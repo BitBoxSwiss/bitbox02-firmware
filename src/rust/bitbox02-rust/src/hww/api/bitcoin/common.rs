@@ -20,6 +20,7 @@ use alloc::string::String;
 use bech32::{ToBase32, Variant};
 
 use pb::btc_script_config::SimpleType;
+pub use pb::btc_sign_init_request::FormatUnit;
 pub use pb::{BtcCoin, BtcOutputType};
 
 use super::params::Params;
@@ -28,11 +29,33 @@ const HASH160_LEN: usize = 20;
 const SHA256_LEN: usize = 32;
 
 /// Converts a satoshi value to a string, suffixed with `unit`, e.g. 1234567890 -> "12.3456789 BTC".
-pub fn format_amount(satoshi: u64, unit: &str) -> String {
-    let mut s = util::decimal::format(satoshi, 8);
+pub fn format_amount(
+    params: &Params,
+    format_unit: FormatUnit,
+    satoshi: u64,
+) -> Result<String, Error> {
+    let (decimals, unit) = match params.coin {
+        BtcCoin::Btc => match format_unit {
+            FormatUnit::Default => (8, "BTC"),
+            FormatUnit::Sat => (0, "sat"),
+        },
+        BtcCoin::Tbtc => match format_unit {
+            FormatUnit::Default => (8, "TBTC"),
+            FormatUnit::Sat => (0, "tsat"),
+        },
+        BtcCoin::Ltc => match format_unit {
+            FormatUnit::Default => (8, "LTC"),
+            _ => return Err(Error::InvalidInput),
+        },
+        BtcCoin::Tltc => match format_unit {
+            FormatUnit::Default => (8, "TLTC"),
+            _ => return Err(Error::InvalidInput),
+        },
+    };
+    let mut s = util::decimal::format(satoshi, decimals);
     s.push(' ');
     s.push_str(unit);
-    s
+    Ok(s)
 }
 
 fn encode_segwit_addr(
@@ -258,40 +281,126 @@ mod tests {
 
     #[test]
     fn test_format_amount() {
-        let tests: Vec<(u64, &str)> = vec![
-            (1234567890, "12.3456789 LOL"),
-            (0, "0 LOL"),
-            (1, "0.00000001 LOL"),
-            (2, "0.00000002 LOL"),
-            (10, "0.0000001 LOL"),
-            (15, "0.00000015 LOL"),
-            (20, "0.0000002 LOL"),
-            (300, "0.000003 LOL"),
-            (370, "0.0000037 LOL"),
-            (371, "0.00000371 LOL"),
-            (40000000000, "400 LOL"),
-            (4000000000, "40 LOL"),
-            (400000000, "4 LOL"),
-            (40000000, "0.4 LOL"),
-            (4000000, "0.04 LOL"),
-            (400000, "0.004 LOL"),
-            (40000, "0.0004 LOL"),
-            (4000, "0.00004 LOL"),
-            (400, "0.000004 LOL"),
-            (40, "0.0000004 LOL"),
-            (4, "0.00000004 LOL"),
-            (5432345, "0.05432345 LOL"),
-            (54323452, "0.54323452 LOL"),
-            (543234527, "5.43234527 LOL"),
-            (5432345270, "54.3234527 LOL"),
-            (54323452708, "543.23452708 LOL"),
-            (100000000, "1 LOL"),
-            (1234567800000001, "12345678.00000001 LOL"),
-            (0xffffffffffffffff, "184467440737.09551615 LOL"),
-            (0xffffffffffffffff - 5, "184467440737.0955161 LOL"),
+        let params = super::super::params::get(pb::BtcCoin::Btc);
+        let params_tbtc = super::super::params::get(pb::BtcCoin::Tbtc);
+        let params_ltc = super::super::params::get(pb::BtcCoin::Ltc);
+        let params_tltc = super::super::params::get(pb::BtcCoin::Tltc);
+        let tests: Vec<(&Params, FormatUnit, u64, Result<&str, Error>)> = vec![
+            (
+                params,
+                FormatUnit::Default,
+                1234567890,
+                Ok("12.3456789 BTC"),
+            ),
+            (params, FormatUnit::Default, 0, Ok("0 BTC")),
+            (params, FormatUnit::Sat, 0, Ok("0 sat")),
+            (params, FormatUnit::Default, 1, Ok("0.00000001 BTC")),
+            (params, FormatUnit::Sat, 1, Ok("1 sat")),
+            (params, FormatUnit::Default, 2, Ok("0.00000002 BTC")),
+            (params, FormatUnit::Sat, 2, Ok("2 sat")),
+            (params, FormatUnit::Default, 10, Ok("0.0000001 BTC")),
+            (params, FormatUnit::Sat, 10, Ok("10 sat")),
+            (params, FormatUnit::Default, 15, Ok("0.00000015 BTC")),
+            (params, FormatUnit::Default, 20, Ok("0.0000002 BTC")),
+            (params, FormatUnit::Default, 300, Ok("0.000003 BTC")),
+            (params, FormatUnit::Default, 370, Ok("0.0000037 BTC")),
+            (params, FormatUnit::Default, 371, Ok("0.00000371 BTC")),
+            (params, FormatUnit::Sat, 371, Ok("371 sat")),
+            (params, FormatUnit::Default, 40000000000, Ok("400 BTC")),
+            (params, FormatUnit::Sat, 40000000000, Ok("40000000000 sat")),
+            (params, FormatUnit::Default, 4000000000, Ok("40 BTC")),
+            (params, FormatUnit::Default, 400000000, Ok("4 BTC")),
+            (params, FormatUnit::Default, 40000000, Ok("0.4 BTC")),
+            (params, FormatUnit::Default, 4000000, Ok("0.04 BTC")),
+            (params, FormatUnit::Default, 400000, Ok("0.004 BTC")),
+            (params, FormatUnit::Default, 40000, Ok("0.0004 BTC")),
+            (params, FormatUnit::Default, 4000, Ok("0.00004 BTC")),
+            (params, FormatUnit::Default, 400, Ok("0.000004 BTC")),
+            (params, FormatUnit::Default, 40, Ok("0.0000004 BTC")),
+            (params, FormatUnit::Default, 4, Ok("0.00000004 BTC")),
+            (params, FormatUnit::Default, 5432345, Ok("0.05432345 BTC")),
+            (params, FormatUnit::Default, 54323452, Ok("0.54323452 BTC")),
+            (params, FormatUnit::Default, 543234527, Ok("5.43234527 BTC")),
+            (params, FormatUnit::Sat, 543234527, Ok("543234527 sat")),
+            (
+                params,
+                FormatUnit::Default,
+                5432345270,
+                Ok("54.3234527 BTC"),
+            ),
+            (
+                params,
+                FormatUnit::Default,
+                54323452708,
+                Ok("543.23452708 BTC"),
+            ),
+            (params, FormatUnit::Default, 100000000, Ok("1 BTC")),
+            (
+                params,
+                FormatUnit::Default,
+                1234567800000001,
+                Ok("12345678.00000001 BTC"),
+            ),
+            (
+                params,
+                FormatUnit::Sat,
+                1234567800000001,
+                Ok("1234567800000001 sat"),
+            ),
+            (
+                params,
+                FormatUnit::Default,
+                0xffffffffffffffff,
+                Ok("184467440737.09551615 BTC"),
+            ),
+            (
+                params,
+                FormatUnit::Default,
+                0xffffffffffffffff - 5,
+                Ok("184467440737.0955161 BTC"),
+            ),
+            // TBTC
+            (
+                params_tbtc,
+                FormatUnit::Default,
+                40001000000,
+                Ok("400.01 TBTC"),
+            ),
+            // LTC
+            (
+                params_ltc,
+                FormatUnit::Default,
+                40001000000,
+                Ok("400.01 LTC"),
+            ),
+            // TLTC
+            (
+                params_tltc,
+                FormatUnit::Default,
+                40001000000,
+                Ok("400.01 TLTC"),
+            ),
+            // Failures
+            // No sats in LTC
+            (
+                params_ltc,
+                FormatUnit::Sat,
+                40001000000,
+                Err(Error::InvalidInput),
+            ),
+            // No sats in TLTC
+            (
+                params_tltc,
+                FormatUnit::Sat,
+                40001000000,
+                Err(Error::InvalidInput),
+            ),
         ];
-        for (satoshi, expected) in tests {
-            assert_eq!(format_amount(satoshi, "LOL"), expected);
+        for (params, format_unit, satoshi, expected) in tests {
+            assert_eq!(
+                format_amount(params, format_unit, satoshi),
+                expected.map(|s| s.into())
+            );
         }
     }
 }

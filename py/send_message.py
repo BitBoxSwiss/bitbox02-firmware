@@ -398,7 +398,10 @@ class SendMessage:
         except UserAbortException:
             print("Aborted by user")
 
-    def _sign_btc_normal(self) -> None:
+    def _sign_btc_normal(
+        self,
+        format_unit: "bitbox02.btc.BTCSignInitRequest.FormatUnit.V" = bitbox02.btc.BTCSignInitRequest.FormatUnit.DEFAULT,
+    ) -> None:
         # pylint: disable=no-member
         bip44_account: int = 0 + HARDENED
         inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
@@ -420,6 +423,7 @@ class SendMessage:
             ],
             inputs=inputs,
             outputs=outputs,
+            format_unit=format_unit,
         )
         for input_index, sig in sigs:
             print("Signature for input {}: {}".format(input_index, sig.hex()))
@@ -637,6 +641,12 @@ class SendMessage:
         """btc signing demos"""
         choices = (
             ("Normal tx", self._sign_btc_normal),
+            (
+                "Normal tx, formatted in sats",
+                lambda: self._sign_btc_normal(
+                    format_unit=bitbox02.btc.BTCSignInitRequest.FormatUnit.SAT
+                ),
+            ),
             ("Multiple change outputs", self._sign_btc_multiple_changes),
             ("Locktime/RBF", self._sign_btc_locktime_rbf),
             ("Taproot inputs", self._sign_btc_taproot_inputs),

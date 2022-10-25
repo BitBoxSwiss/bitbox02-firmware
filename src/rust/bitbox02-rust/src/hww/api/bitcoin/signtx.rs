@@ -27,8 +27,8 @@ use core::convert::TryInto;
 use pb::request::Request;
 use pb::response::Response;
 
+use pb::btc_sign_init_request::FormatUnit;
 use pb::btc_sign_next_response::Type as NextType;
-
 use sha2::{Digest, Sha256};
 
 /// After each request from the host, we send a `BtcSignNextResponse` response back to the host,
@@ -518,6 +518,8 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     // Validate the coin.
     let coin = pb::BtcCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
     let coin_params = super::params::get(coin);
+    // Validate the format_unit.
+    let format_unit = FormatUnit::from_i32(request.format_unit).ok_or(Error::InvalidInput)?;
     // Currently we do not support time-based nlocktime
     if request.locktime >= 500000000 {
         return Err(Error::InvalidInput);
@@ -728,7 +730,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                 .or(Err(Error::InvalidInput))?;
             transaction::verify_recipient(
                 &address,
-                &format_amount(tx_output.value, coin_params.unit),
+                &format_amount(coin_params, format_unit, tx_output.value)?,
             )
             .await?;
         }
@@ -804,8 +806,8 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         .checked_sub(outputs_sum_out)
         .ok_or(Error::InvalidInput)?;
     transaction::verify_total_fee(
-        &format_amount(total_out, coin_params.unit),
-        &format_amount(fee, coin_params.unit),
+        &format_amount(coin_params, format_unit, total_out)?,
+        &format_amount(coin_params, format_unit, fee)?,
     )
     .await?;
     status::status("Transaction\nconfirmed", true).await;
@@ -1223,6 +1225,7 @@ mod tests {
                 num_inputs: self.inputs.len() as _,
                 num_outputs: self.outputs.len() as _,
                 locktime: self.locktime,
+                format_unit: FormatUnit::Default as _,
             }
         }
 
@@ -1309,6 +1312,7 @@ mod tests {
             num_inputs: 1,
             num_outputs: 1,
             locktime: 0,
+            format_unit: FormatUnit::Default as _,
         };
 
         {
@@ -1318,7 +1322,16 @@ mod tests {
         }
 
         mock_unlocked();
-
+        {
+            // test invalid format unit
+            let mut init_req_invalid = init_req_valid.clone();
+            init_req_invalid.coin = pb::BtcCoin::Ltc as _;
+            init_req_invalid.format_unit = FormatUnit::Sat as _;
+            assert_eq!(
+                block_on(process(&init_req_invalid)),
+                Err(Error::InvalidInput)
+            );
+        }
         {
             // test invalid version
             let mut init_req_invalid = init_req_valid.clone();
@@ -1468,6 +1481,7 @@ mod tests {
                     num_inputs: 1,
                     num_outputs: 1,
                     locktime: 0,
+                    format_unit: FormatUnit::Default as _,
                 })),
                 Err(Error::InvalidInput)
             );
@@ -1479,7 +1493,11 @@ mod tests {
         static mut UI_COUNTER: u32 = 0;
         static mut PREVTX_REQUESTED: u32 = 0;
 
-        for coin in &[pb::BtcCoin::Btc, pb::BtcCoin::Ltc] {
+        for (coin, format_unit) in &[
+            (pb::BtcCoin::Btc, FormatUnit::Default),
+            (pb::BtcCoin::Btc, FormatUnit::Sat),
+            (pb::BtcCoin::Ltc, FormatUnit::Default),
+        ] {
             unsafe {
                 UI_COUNTER = 0;
                 PREVTX_REQUESTED = 0;
@@ -1507,7 +1525,10 @@ mod tests {
                             match coin {
                                 &pb::BtcCoin::Btc => {
                                     assert_eq!(address, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
-                                    assert_eq!(amount, "1 BTC");
+                                    match format_unit {
+                                        &FormatUnit::Default => assert_eq!(amount, "1 BTC"),
+                                        &FormatUnit::Sat => assert_eq!(amount, "100000000 sat"),
+                                    }
                                 }
                                 &pb::BtcCoin::Ltc => {
                                     assert_eq!(address, "LLnCCHbSzfwWquEdaS5TF2Yt7uz5Qb1SZ1");
@@ -1521,7 +1542,12 @@ mod tests {
                             match coin {
                                 &pb::BtcCoin::Btc => {
                                     assert_eq!(address, "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ");
-                                    assert_eq!(amount, "12.3456789 BTC");
+                                    match format_unit {
+                                        &FormatUnit::Default => {
+                                            assert_eq!(amount, "12.3456789 BTC")
+                                        }
+                                        &FormatUnit::Sat => assert_eq!(amount, "1234567890 sat"),
+                                    }
                                 }
                                 &pb::BtcCoin::Ltc => {
                                     assert_eq!(address, "MB1e6aUeL3Zj4s4H2ZqFBHaaHd7kvvzTco");
@@ -1538,7 +1564,12 @@ mod tests {
                                         address,
                                         "bc1qxvenxvenxvenxvenxvenxvenxvenxven2ymjt8"
                                     );
-                                    assert_eq!(amount, "0.00006 BTC");
+                                    match format_unit {
+                                        &FormatUnit::Default => {
+                                            assert_eq!(amount, "0.00006 BTC")
+                                        }
+                                        &FormatUnit::Sat => assert_eq!(amount, "6000 sat"),
+                                    }
                                 }
                                 &pb::BtcCoin::Ltc => {
                                     assert_eq!(
@@ -1558,7 +1589,12 @@ mod tests {
                                         address,
                                         "bc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqd8sxw4"
                                     );
-                                    assert_eq!(amount, "0.00007 BTC");
+                                    match format_unit {
+                                        &FormatUnit::Default => {
+                                            assert_eq!(amount, "0.00007 BTC")
+                                        }
+                                        &FormatUnit::Sat => assert_eq!(amount, "7000 sat"),
+                                    }
                                 }
                                 &pb::BtcCoin::Ltc => {
                                     assert_eq!(
@@ -1581,10 +1617,16 @@ mod tests {
                     } {
                         6 => {
                             match coin {
-                                &pb::BtcCoin::Btc => {
-                                    assert_eq!(total, "13.399999 BTC");
-                                    assert_eq!(fee, "0.0541901 BTC");
-                                }
+                                &pb::BtcCoin::Btc => match format_unit {
+                                    &FormatUnit::Default => {
+                                        assert_eq!(total, "13.399999 BTC");
+                                        assert_eq!(fee, "0.0541901 BTC");
+                                    }
+                                    &FormatUnit::Sat => {
+                                        assert_eq!(total, "1339999900 sat");
+                                        assert_eq!(fee, "5419010 sat");
+                                    }
+                                },
                                 &pb::BtcCoin::Ltc => {
                                     assert_eq!(total, "13.399999 LTC");
                                     assert_eq!(fee, "0.0541901 LTC");
@@ -1613,7 +1655,9 @@ mod tests {
             });
             mock_unlocked();
             let tx = transaction.borrow();
-            let result = block_on(process(&tx.init_request()));
+            let mut init_request = tx.init_request();
+            init_request.format_unit = *format_unit as _;
+            let result = block_on(process(&init_request));
             match result {
                 Ok(Response::BtcSignNext(next)) => {
                     assert!(next.has_signature);
@@ -2398,6 +2442,7 @@ mod tests {
                 num_inputs: tx.inputs.len() as _,
                 num_outputs: tx.outputs.len() as _,
                 locktime: tx.locktime,
+                format_unit: FormatUnit::Default as _,
             }
         };
         let result = block_on(process(&init_request));
@@ -2457,6 +2502,7 @@ mod tests {
                 num_inputs: tx.inputs.len() as _,
                 num_outputs: tx.outputs.len() as _,
                 locktime: tx.locktime,
+                format_unit: FormatUnit::Default as _,
             }
         };
         assert_eq!(block_on(process(&init_request)), Err(Error::InvalidInput));
@@ -2521,6 +2567,7 @@ mod tests {
                 num_inputs: tx.inputs.len() as _,
                 num_outputs: tx.outputs.len() as _,
                 locktime: tx.locktime,
+                format_unit: FormatUnit::Default as _,
             }
         };
         let result = block_on(process(&init_request));
@@ -2595,6 +2642,7 @@ mod tests {
                 num_inputs: tx.inputs.len() as _,
                 num_outputs: tx.outputs.len() as _,
                 locktime: tx.locktime,
+                format_unit: FormatUnit::Default as _,
             }
         };
         let result = block_on(process(&init_request));

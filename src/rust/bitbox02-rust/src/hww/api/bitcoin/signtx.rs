@@ -1493,7 +1493,7 @@ mod tests {
         static mut UI_COUNTER: u32 = 0;
         static mut PREVTX_REQUESTED: u32 = 0;
 
-        for (coin, format_unit) in &[
+        for (coin, format_unit) in [
             (pb::BtcCoin::Btc, FormatUnit::Default),
             (pb::BtcCoin::Btc, FormatUnit::Sat),
             (pb::BtcCoin::Ltc, FormatUnit::Default),
@@ -1503,7 +1503,7 @@ mod tests {
                 PREVTX_REQUESTED = 0;
             }
 
-            let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(*coin)));
+            let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(coin)));
 
             let tx = transaction.clone();
             *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
@@ -1523,14 +1523,14 @@ mod tests {
                     } {
                         1 => {
                             match coin {
-                                &pb::BtcCoin::Btc => {
+                                pb::BtcCoin::Btc => {
                                     assert_eq!(address, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
                                     match format_unit {
-                                        &FormatUnit::Default => assert_eq!(amount, "1 BTC"),
-                                        &FormatUnit::Sat => assert_eq!(amount, "100000000 sat"),
+                                        FormatUnit::Default => assert_eq!(amount, "1 BTC"),
+                                        FormatUnit::Sat => assert_eq!(amount, "100000000 sat"),
                                     }
                                 }
-                                &pb::BtcCoin::Ltc => {
+                                pb::BtcCoin::Ltc => {
                                     assert_eq!(address, "LLnCCHbSzfwWquEdaS5TF2Yt7uz5Qb1SZ1");
                                     assert_eq!(amount, "1 LTC");
                                 }
@@ -1540,16 +1540,16 @@ mod tests {
                         }
                         2 => {
                             match coin {
-                                &pb::BtcCoin::Btc => {
+                                pb::BtcCoin::Btc => {
                                     assert_eq!(address, "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ");
                                     match format_unit {
-                                        &FormatUnit::Default => {
+                                        FormatUnit::Default => {
                                             assert_eq!(amount, "12.3456789 BTC")
                                         }
-                                        &FormatUnit::Sat => assert_eq!(amount, "1234567890 sat"),
+                                        FormatUnit::Sat => assert_eq!(amount, "1234567890 sat"),
                                     }
                                 }
-                                &pb::BtcCoin::Ltc => {
+                                pb::BtcCoin::Ltc => {
                                     assert_eq!(address, "MB1e6aUeL3Zj4s4H2ZqFBHaaHd7kvvzTco");
                                     assert_eq!(amount, "12.3456789 LTC");
                                 }
@@ -1559,19 +1559,19 @@ mod tests {
                         }
                         3 => {
                             match coin {
-                                &pb::BtcCoin::Btc => {
+                                pb::BtcCoin::Btc => {
                                     assert_eq!(
                                         address,
                                         "bc1qxvenxvenxvenxvenxvenxvenxvenxven2ymjt8"
                                     );
                                     match format_unit {
-                                        &FormatUnit::Default => {
+                                        FormatUnit::Default => {
                                             assert_eq!(amount, "0.00006 BTC")
                                         }
-                                        &FormatUnit::Sat => assert_eq!(amount, "6000 sat"),
+                                        FormatUnit::Sat => assert_eq!(amount, "6000 sat"),
                                     }
                                 }
-                                &pb::BtcCoin::Ltc => {
+                                pb::BtcCoin::Ltc => {
                                     assert_eq!(
                                         address,
                                         "ltc1qxvenxvenxvenxvenxvenxvenxvenxvenwcpknh"
@@ -1584,19 +1584,19 @@ mod tests {
                         }
                         4 => {
                             match coin {
-                                &pb::BtcCoin::Btc => {
+                                pb::BtcCoin::Btc => {
                                     assert_eq!(
                                         address,
                                         "bc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqd8sxw4"
                                     );
                                     match format_unit {
-                                        &FormatUnit::Default => {
+                                        FormatUnit::Default => {
                                             assert_eq!(amount, "0.00007 BTC")
                                         }
-                                        &FormatUnit::Sat => assert_eq!(amount, "7000 sat"),
+                                        FormatUnit::Sat => assert_eq!(amount, "7000 sat"),
                                     }
                                 }
-                                &pb::BtcCoin::Ltc => {
+                                pb::BtcCoin::Ltc => {
                                     assert_eq!(
                                         address,
                                         "ltc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqwr7k5s"
@@ -1617,17 +1617,17 @@ mod tests {
                     } {
                         6 => {
                             match coin {
-                                &pb::BtcCoin::Btc => match format_unit {
-                                    &FormatUnit::Default => {
+                                pb::BtcCoin::Btc => match format_unit {
+                                    FormatUnit::Default => {
                                         assert_eq!(total, "13.399999 BTC");
                                         assert_eq!(fee, "0.0541901 BTC");
                                     }
-                                    &FormatUnit::Sat => {
+                                    FormatUnit::Sat => {
                                         assert_eq!(total, "1339999900 sat");
                                         assert_eq!(fee, "5419010 sat");
                                     }
                                 },
-                                &pb::BtcCoin::Ltc => {
+                                pb::BtcCoin::Ltc => {
                                     assert_eq!(total, "13.399999 LTC");
                                     assert_eq!(fee, "0.0541901 LTC");
                                 }
@@ -1656,13 +1656,13 @@ mod tests {
             mock_unlocked();
             let tx = transaction.borrow();
             let mut init_request = tx.init_request();
-            init_request.format_unit = *format_unit as _;
+            init_request.format_unit = format_unit as _;
             let result = block_on(process(&init_request));
             match result {
                 Ok(Response::BtcSignNext(next)) => {
                     assert!(next.has_signature);
                     match coin {
-                        &pb::BtcCoin::Btc => {
+                        pb::BtcCoin::Btc => {
                             assert_eq!(
                                 &next.signature,
                                 b"\x2e\x08\x4a\x0a\x5f\x9b\xab\xb3\x5d\xf6\xec\x3a\x89\x72\x0b\xcf\xc0\x88\xd4\xba\x6a\xee\x47\x97\x3c\x55\xfe\xc3\xb3\xdd\xaa\x60\x07\xc7\xb1\x1c\x8b\x5a\x1a\x68\x20\xca\x74\xa8\x5a\xeb\x4c\xf5\x45\xc1\xb3\x37\x53\x70\xf4\x4f\x24\xd5\x3d\x61\xfe\x67\x6e\x4c");

@@ -388,6 +388,7 @@ class BitBox02(BitBoxCommonAPI):
         outputs: Sequence[BTCOutputType],
         version: int = 1,
         locktime: int = 0,
+        format_unit: "btc.BTCSignInitRequest.FormatUnit.V" = btc.BTCSignInitRequest.FormatUnit.DEFAULT,
     ) -> Sequence[Tuple[int, bytes]]:
         """
         coin: the first element of all provided keypaths must match the coin:
@@ -430,6 +431,7 @@ class BitBox02(BitBoxCommonAPI):
                 num_inputs=len(inputs),
                 num_outputs=len(outputs),
                 locktime=locktime,
+                format_unit=format_unit,
             )
         )
         next_response = self._msg_query(request, expected_response="btc_sign_next").btc_sign_next

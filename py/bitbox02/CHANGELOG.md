@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.2.0
+- btc_sign: allow displaying BTC values in the 'sat' unit
+
 ## 6.1.1
 - Update protobuf dependency to >= 3.20, for better compatibility
 

@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Bitcoin: allow displaying BTC values in the 'sat' unit
 - Allow skipping the microSD card backup in favor of backing up using the recovery words
 - Allow arbitrary input sequence numbers (fixes compatibility with Taproot transactions in Sparrow wallet)
 - The BackupData.length field is now obsolete and always set to 0

@@ -237,12 +237,34 @@ global___BTCScriptConfigWithKeypath = BTCScriptConfigWithKeypath
 
 class BTCSignInitRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    class _FormatUnit:
+        ValueType = typing.NewType('ValueType', builtins.int)
+        V: typing_extensions.TypeAlias = ValueType
+    class _FormatUnitEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[BTCSignInitRequest._FormatUnit.ValueType], builtins.type):
+        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+        DEFAULT: BTCSignInitRequest._FormatUnit.ValueType  # 0
+        """According to BTCCoin (BTC, LTC, etc.)."""
+
+        SAT: BTCSignInitRequest._FormatUnit.ValueType  # 1
+        """Only valid for BTC/TBTC, formats as "sat"/"tsat"."""
+
+    class FormatUnit(_FormatUnit, metaclass=_FormatUnitEnumTypeWrapper):
+        pass
+
+    DEFAULT: BTCSignInitRequest.FormatUnit.ValueType  # 0
+    """According to BTCCoin (BTC, LTC, etc.)."""
+
+    SAT: BTCSignInitRequest.FormatUnit.ValueType  # 1
+    """Only valid for BTC/TBTC, formats as "sat"/"tsat"."""
+
+
     COIN_FIELD_NUMBER: builtins.int
     SCRIPT_CONFIGS_FIELD_NUMBER: builtins.int
     VERSION_FIELD_NUMBER: builtins.int
     NUM_INPUTS_FIELD_NUMBER: builtins.int
     NUM_OUTPUTS_FIELD_NUMBER: builtins.int
     LOCKTIME_FIELD_NUMBER: builtins.int
+    FORMAT_UNIT_FIELD_NUMBER: builtins.int
     coin: global___BTCCoin.ValueType
     @property
     def script_configs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BTCScriptConfigWithKeypath]:
@@ -256,6 +278,7 @@ class BTCSignInitRequest(google.protobuf.message.Message):
     locktime: builtins.int
     """must be <500000000"""
 
+    format_unit: global___BTCSignInitRequest.FormatUnit.ValueType
     def __init__(self,
         *,
         coin: global___BTCCoin.ValueType = ...,
@@ -264,8 +287,9 @@ class BTCSignInitRequest(google.protobuf.message.Message):
         num_inputs: builtins.int = ...,
         num_outputs: builtins.int = ...,
         locktime: builtins.int = ...,
+        format_unit: global___BTCSignInitRequest.FormatUnit.ValueType = ...,
         ) -> None: ...
-    def ClearField(self, field_name: typing_extensions.Literal["coin",b"coin","locktime",b"locktime","num_inputs",b"num_inputs","num_outputs",b"num_outputs","script_configs",b"script_configs","version",b"version"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["coin",b"coin","format_unit",b"format_unit","locktime",b"locktime","num_inputs",b"num_inputs","num_outputs",b"num_outputs","script_configs",b"script_configs","version",b"version"]) -> None: ...
 global___BTCSignInitRequest = BTCSignInitRequest
 
 class BTCSignNextResponse(google.protobuf.message.Message):

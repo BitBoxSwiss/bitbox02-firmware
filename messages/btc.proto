@@ -96,6 +96,14 @@ message BTCSignInitRequest {
   uint32 num_inputs = 5;
   uint32 num_outputs = 6;
   uint32 locktime = 7; // must be <500000000
+
+  enum FormatUnit {
+    // According to `coin` (BTC, LTC, etc.).
+    DEFAULT = 0;
+    // Only valid for BTC/TBTC, formats as "sat"/"tsat".
+    SAT = 1;
+  }
+  FormatUnit format_unit = 8;
 }
 
 message BTCSignNextResponse {

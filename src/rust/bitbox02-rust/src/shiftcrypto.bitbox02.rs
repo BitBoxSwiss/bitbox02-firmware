@@ -265,6 +265,19 @@ pub struct BtcSignInitRequest {
     /// must be <500000000
     #[prost(uint32, tag="7")]
     pub locktime: u32,
+    #[prost(enumeration="btc_sign_init_request::FormatUnit", tag="8")]
+    pub format_unit: i32,
+}
+/// Nested message and enum types in `BTCSignInitRequest`.
+pub mod btc_sign_init_request {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[repr(i32)]
+    pub enum FormatUnit {
+        /// According to `coin` (BTC, LTC, etc.).
+        Default = 0,
+        /// Only valid for BTC/TBTC, formats as "sat"/"tsat".
+        Sat = 1,
+    }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcSignNextResponse {

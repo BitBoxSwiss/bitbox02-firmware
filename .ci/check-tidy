@@ -8,7 +8,7 @@ set -e
 # Exit on pipe fail
 set -o pipefail
 
-CLANGTIDY=${CLANGTIDY:-clang-tidy-8}
+CLANGTIDY=${CLANGTIDY:-clang-tidy-15}
 
 command -v git >/dev/null 2>&1 || { echo >&2 "git is missing"; exit 1; }
 command -v xargs >/dev/null 2>&1 || { echo >&2 "xargs is missing"; exit 1; }

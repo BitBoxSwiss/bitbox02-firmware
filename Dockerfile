@@ -14,14 +14,14 @@
 # limitations under the License.
 
 # Latest Ubuntu LTS
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y wget nano rsync curl gnupg2 jq unzip
+RUN apt-get update && apt-get upgrade -y && apt-get install -y wget nano rsync curl gnupg2 jq unzip bzip2
 
-# for clang-*-8, see https://apt.llvm.org/
-RUN echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main" >> /etc/apt/sources.list && \
-    echo "deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main" >> /etc/apt/sources.list && \
+# for clang-*-15, see https://apt.llvm.org/
+RUN echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-15 main" >> /etc/apt/sources.list && \
+    echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-15 main" >> /etc/apt/sources.list && \
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 
 # Install gcc8-arm-none-eabi
@@ -38,7 +38,7 @@ RUN mkdir ~/Downloads &&\
 RUN apt-get update && apt-get install -y \
     build-essential \
     llvm \
-    gcc-8 \
+    gcc-10 \
     binutils \
     valgrind \
     cmake \
@@ -60,17 +60,16 @@ RUN apt-get update && apt-get install -y \
     doxygen \
     graphviz
 
-# Set gcc-8 as the default gcc
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100
-RUN update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-8 100
+# Set gcc-10 as the default gcc
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100
+RUN update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-10 100
 
 # Tools for CI
 RUN apt-get update && apt-get install -y \
-    python \
     python3 \
     python3-pip \
-    clang-format-8 \
-    clang-tidy-8
+    clang-format-15 \
+    clang-tidy-15
 
 RUN python3 -m pip install --upgrade pip
 

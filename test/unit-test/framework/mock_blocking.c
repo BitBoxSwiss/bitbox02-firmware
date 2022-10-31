@@ -18,7 +18,6 @@
 #include <cmocka.h>
 
 #include <workflow/blocking.h>
-#include <workflow/workflow.h>
 
 static void (*_unblock_func)(void*) = NULL;
 static void* _unblock_param = NULL;

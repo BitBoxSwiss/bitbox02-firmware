@@ -18,7 +18,6 @@
 #include <cmocka.h>
 
 #include <workflow/blocking.h>
-#include <workflow/workflow.h>
 
 void __wrap_screen_process(void)
 {

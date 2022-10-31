@@ -22,7 +22,6 @@
 #include <screen.h>
 #include <stdint.h>
 #include <string.h>
-#include <workflow/status.h>
 
 #define SMARTEEPROM_WRITE_MODE_UNBUFFERED (0)
 #define SMARTEEPROM_WRITE_MODE_BUFFERED (1)
@@ -69,8 +68,8 @@ void smarteeprom_setup(void)
          * however, we want to inform the user that there's a big issue.
          */
         for (int i = 0; i < 3; ++i) {
-            workflow_status_blocking("Failed to erase SmartEEPROM memory area.", false);
-            workflow_status_blocking("We suggest you reset the device and contact support.", false);
+            screen_print_debug("Failed to erase SmartEEPROM memory area.", 3000);
+            screen_print_debug("We suggest you reset the device and contact support.", 3000);
         }
     }
     /*
@@ -110,9 +109,8 @@ void smarteeprom_bb02_config(void)
     NVMCTRL->SEECFG.bit.WMODE = SMARTEEPROM_WRITE_MODE_BUFFERED;
     if (NVMCTRL->SEESTAT.bit.LOAD != 0) {
         for (int i = 0; i < 3; ++i) {
-            workflow_status_blocking(
-                "SmartEEPROM just initialized, but data found in cache!", false);
-            workflow_status_blocking("We suggest you reset the device and contact support.", false);
+            screen_print_debug("SmartEEPROM just initialized, but data found in cache!", 3000);
+            screen_print_debug("We suggest you reset the device and contact support.", 3000);
         }
     }
 }

@@ -21,7 +21,6 @@
 #include <stdint.h>
 
 #include <util.h>
-#include <workflow/workflow.h>
 
 /** Size of application IDs */
 #define U2F_APPID_SIZE 32

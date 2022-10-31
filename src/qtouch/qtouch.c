@@ -589,7 +589,7 @@ uint16_t qtouch_get_sensor_node_signal_filtered(uint16_t sensor_node)
     if ((sensor_node == DEF_SCROLLER_OFFSET_0) || (sensor_node == DEF_SCROLLER_OFFSET_1) ||
         (sensor_node == DEF_SCROLLER_OFFSET_0 + DEF_SCROLLER_NUM_CHANNELS - 1) ||
         (sensor_node == DEF_SCROLLER_OFFSET_1 + DEF_SCROLLER_NUM_CHANNELS - 1)) {
-        X = X * (1 + DEF_SENSOR_EDGE_WEIGHT);
+        X = (uint16_t)((double)X * (1 + DEF_SENSOR_EDGE_WEIGHT));
     }
     // Saturate out-of-range readings.
     X = (X > 50) ? 50 : X;

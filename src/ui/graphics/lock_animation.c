@@ -166,11 +166,12 @@ static void _animation_timer_cb(const struct timer_task* const timer_task)
 
     /* Draw the frame. */
     UG_ClearBuffer();
-    position_t pos = {.left = (SCREEN_WIDTH - LOCK_ANIMATION_FRAME_WIDTH) / 2,
-                      .top = (SCREEN_HEIGHT - LOCK_ANIMATION_FRAME_HEIGHT) / 2};
+    position_t pos = {
+        .left = (SCREEN_WIDTH - LOCK_ANIMATION_FRAME_WIDTH) / 2,
+        .top = (SCREEN_HEIGHT - LOCK_ANIMATION_FRAME_HEIGHT) / 2};
     dimension_t dim = {.width = LOCK_ANIMATION_FRAME_WIDTH, .height = LOCK_ANIMATION_FRAME_HEIGHT};
-    in_buffer_t image = {.data = _get_frame(_animation_current_frame),
-                         .len = LOCK_ANIMATION_FRAME_SIZE};
+    in_buffer_t image = {
+        .data = _get_frame(_animation_current_frame), .len = LOCK_ANIMATION_FRAME_SIZE};
     graphics_draw_image(&pos, &dim, &image);
     UG_SendBuffer();
     _animation_current_frame++;

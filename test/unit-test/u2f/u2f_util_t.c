@@ -16,7 +16,7 @@
 
 #include "u2f_util_t.h"
 #include "usb/usb.h"
-//#include "u2f_device.h"
+
 #define MIN(a, b)                                       \
     __extension__({                                     \
         _Pragma("GCC diagnostic push");                 \

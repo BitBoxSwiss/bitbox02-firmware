@@ -199,14 +199,15 @@ static const sha2_word32 K256[64] = {
     0x90befffaUL, 0xa4506cebUL, 0xbef9a3f7UL, 0xc67178f2UL};
 
 /* Initial hash value H for SHA-256: */
-static const sha2_word32 sha256_initial_hash_value[8] = {0x6a09e667UL,
-                                                         0xbb67ae85UL,
-                                                         0x3c6ef372UL,
-                                                         0xa54ff53aUL,
-                                                         0x510e527fUL,
-                                                         0x9b05688cUL,
-                                                         0x1f83d9abUL,
-                                                         0x5be0cd19UL};
+static const sha2_word32 sha256_initial_hash_value[8] = {
+    0x6a09e667UL,
+    0xbb67ae85UL,
+    0x3c6ef372UL,
+    0xa54ff53aUL,
+    0x510e527fUL,
+    0x9b05688cUL,
+    0x1f83d9abUL,
+    0x5be0cd19UL};
 
 /* Hash constant words K for SHA-384 and SHA-512: */
 static const sha2_word64 K512[80] = {
@@ -232,14 +233,15 @@ static const sha2_word64 K512[80] = {
     0x4cc5d4becb3e42b6ULL, 0x597f299cfc657e2aULL, 0x5fcb6fab3ad6faecULL, 0x6c44198c4a475817ULL};
 
 /* Initial hash value H for SHA-512 */
-static const sha2_word64 sha512_initial_hash_value[8] = {0x6a09e667f3bcc908ULL,
-                                                         0xbb67ae8584caa73bULL,
-                                                         0x3c6ef372fe94f82bULL,
-                                                         0xa54ff53a5f1d36f1ULL,
-                                                         0x510e527fade682d1ULL,
-                                                         0x9b05688c2b3e6c1fULL,
-                                                         0x1f83d9abfb41bd6bULL,
-                                                         0x5be0cd19137e2179ULL};
+static const sha2_word64 sha512_initial_hash_value[8] = {
+    0x6a09e667f3bcc908ULL,
+    0xbb67ae8584caa73bULL,
+    0x3c6ef372fe94f82bULL,
+    0xa54ff53a5f1d36f1ULL,
+    0x510e527fade682d1ULL,
+    0x9b05688c2b3e6c1fULL,
+    0x1f83d9abfb41bd6bULL,
+    0x5be0cd19137e2179ULL};
 
 /*** SHA-256: *********************************************************/
 void sha256_Init(SHA256_CTX* context)

@@ -148,14 +148,15 @@ static void test_ui_components_status(void** state)
 
 int main(void)
 {
-    const struct CMUnitTest tests[] = {cmocka_unit_test(test_ui_components_label),
-                                       cmocka_unit_test(test_ui_components_right_arrow),
-                                       cmocka_unit_test(test_ui_components_left_arrow),
-                                       cmocka_unit_test(test_ui_components_image),
-                                       cmocka_unit_test(test_ui_components_info_centered),
-                                       cmocka_unit_test(test_ui_components_keyboard_switch),
-                                       cmocka_unit_test(test_ui_components_status),
-                                       cmocka_unit_test(test_ui_components_confirm)};
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_ui_components_label),
+        cmocka_unit_test(test_ui_components_right_arrow),
+        cmocka_unit_test(test_ui_components_left_arrow),
+        cmocka_unit_test(test_ui_components_image),
+        cmocka_unit_test(test_ui_components_info_centered),
+        cmocka_unit_test(test_ui_components_keyboard_switch),
+        cmocka_unit_test(test_ui_components_status),
+        cmocka_unit_test(test_ui_components_confirm)};
 
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

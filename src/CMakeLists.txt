@@ -334,6 +334,7 @@ add_custom_target(rust-bindgen
     --whitelist-function delay_us
     --rustified-enum keystore_error_t
     --rustified-enum keystore_secp256k1_pubkey_format
+    --whitelist-function keystore_secp256k1_schnorr_bip86_pubkey
     --whitelist-function util_format_datetime
     --whitelist-type buffer_t
     --whitelist-function delay_ms
@@ -387,14 +388,13 @@ add_custom_target(rust-bindgen
     --rustified-enum multisig_script_type_t
     --rustified-enum output_type_t
     --whitelist-function btc_common_pkscript_from_payload
-    --whitelist-function btc_common_payload_at_keypath
     --whitelist-function btc_common_pkscript_from_multisig
-    --whitelist-function btc_common_payload_from_multisig
     --whitelist-var MAX_VARINT_SIZE
     --whitelist-var MAX_PK_SCRIPT_SIZE
     --whitelist-function reboot
     --whitelist-function secp256k1_ecdsa_anti_exfil_host_commit
     --whitelist-function wally_get_secp_context
+    --whitelist-function wally_hash160
     ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
     -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums ${RUST_BINDGEN_FLAGS} ${RUST_INCLUDES}
   COMMAND

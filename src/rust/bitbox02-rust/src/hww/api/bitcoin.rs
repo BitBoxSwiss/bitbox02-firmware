@@ -144,14 +144,7 @@ pub fn derive_address_simple(
         coin_params.taproot_support,
     )
     .or(Err(Error::InvalidInput))?;
-    let payload =
-        bitbox02::app_btc::payload_at_keypath(keypath, common::convert_simple_type(simple_type))?;
-    let address = common::address_from_payload(
-        coin_params,
-        common::determine_output_type_from_simple_type(simple_type),
-        &payload,
-    )?;
-    Ok(address)
+    Ok(common::Payload::from_simple(coin_params, simple_type, keypath)?.address(coin_params)?)
 }
 
 /// Processes a SimpleType (single-sig) adress api call.
@@ -196,17 +189,13 @@ pub async fn address_multisig(
     if display {
         multisig::confirm(title, coin_params, &name, multisig).await?;
     }
-    let payload = bitbox02::app_btc::payload_from_multisig(
-        &multisig::convert_multisig(multisig)?,
-        multisig::convert_multisig_script_type(script_type),
+    let address = common::Payload::from_multisig(
+        coin_params,
+        multisig,
         keypath[keypath.len() - 2],
         keypath[keypath.len() - 1],
-    )?;
-    let address = common::address_from_payload(
-        coin_params,
-        common::determine_output_type_multisig(script_type),
-        &payload,
-    )?;
+    )?
+    .address(coin_params)?;
     if display {
         confirm::confirm(&confirm::Params {
             title,

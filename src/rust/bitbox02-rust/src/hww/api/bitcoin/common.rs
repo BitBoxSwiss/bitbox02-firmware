@@ -15,7 +15,10 @@
 use super::pb;
 use super::Error;
 
+use bitbox02::keystore;
+
 use alloc::string::String;
+use alloc::vec::Vec;
 
 use bech32::{ToBase32, Variant};
 
@@ -23,7 +26,9 @@ use pb::btc_script_config::SimpleType;
 pub use pb::btc_sign_init_request::FormatUnit;
 pub use pb::{BtcCoin, BtcOutputType};
 
-use super::params::Params;
+use super::{multisig, params::Params, script};
+
+use sha2::{Digest, Sha256};
 
 const HASH160_LEN: usize = 20;
 const SHA256_LEN: usize = 32;
@@ -58,6 +63,209 @@ pub fn format_amount(
     Ok(s)
 }
 
+/// Payload contains the data needed to construct output pkScripts and addresses.
+pub struct Payload {
+    pub data: Vec<u8>,
+    pub output_type: BtcOutputType,
+}
+
+impl Payload {
+    pub fn from_simple(
+        params: &Params,
+        simple_type: SimpleType,
+        keypath: &[u32],
+    ) -> Result<Self, Error> {
+        match simple_type {
+            SimpleType::P2wpkh => Ok(Payload {
+                data: keystore::secp256k1_pubkey_hash160(keypath)?.to_vec(),
+                output_type: BtcOutputType::P2wpkh,
+            }),
+            SimpleType::P2wpkhP2sh => {
+                let payload_p2wpkh = Payload::from_simple(params, SimpleType::P2wpkh, keypath)?;
+                let pkscript_p2wpkh = payload_p2wpkh.pk_script(params)?;
+                Ok(Payload {
+                    data: bitbox02::app_btc::hash160(&pkscript_p2wpkh).to_vec(),
+                    output_type: BtcOutputType::P2sh,
+                })
+            }
+            SimpleType::P2tr => {
+                if params.taproot_support {
+                    Ok(Payload {
+                        data: keystore::secp256k1_schnorr_bip86_pubkey(keypath)?.to_vec(),
+                        output_type: BtcOutputType::P2tr,
+                    })
+                } else {
+                    Err(Error::InvalidInput)
+                }
+            }
+        }
+    }
+
+    /// Constructs sha256(<multisig pkScript>) from the provided multisig.
+    /// Note that the multisig config and keypaths are *not* validated, this must be done before calling.
+    /// The xpubs are account-level xpubs.
+    /// keypath_change: 0 for receive addresses, 1 for change addresses.
+    /// keypath_address: receive address index.
+    pub fn from_multisig(
+        params: &Params,
+        multisig: &pb::btc_script_config::Multisig,
+        keypath_change: u32,
+        keypath_address: u32,
+    ) -> Result<Self, Error> {
+        // TODO: double check that the witness script must be <= 10,000 bytes /
+        // 201 opCounts (consensus rule), resp. 3,600 bytes (standardness rule).
+        // See https://bitcoincore.org/en/segwit_wallet_dev/.
+        // Note that the witness script has an additional varint prefix.
+
+        let script_type =
+            pb::btc_script_config::multisig::ScriptType::from_i32(multisig.script_type)
+                .ok_or(Error::InvalidInput)?;
+        let script = bitbox02::app_btc::pkscript_from_multisig(
+            &multisig::convert_multisig(multisig)?,
+            keypath_change,
+            keypath_address,
+        )?;
+        let payload_p2wsh = Payload {
+            data: Sha256::digest(&script).to_vec(),
+            output_type: BtcOutputType::P2wsh,
+        };
+        match script_type {
+            pb::btc_script_config::multisig::ScriptType::P2wsh => Ok(payload_p2wsh),
+            pb::btc_script_config::multisig::ScriptType::P2wshP2sh => {
+                let pkscript_p2wsh = payload_p2wsh.pk_script(params)?;
+                Ok(Payload {
+                    data: bitbox02::app_btc::hash160(&pkscript_p2wsh).to_vec(),
+                    output_type: BtcOutputType::P2sh,
+                })
+            }
+        }
+    }
+
+    /// Computes the payload data from a script config. The payload can then be used generate a
+    /// pkScript or an address.
+    pub fn from(
+        params: &Params,
+        keypath: &[u32],
+        script_config_account: &pb::BtcScriptConfigWithKeypath,
+    ) -> Result<Self, Error> {
+        match script_config_account {
+            pb::BtcScriptConfigWithKeypath {
+                script_config:
+                    Some(pb::BtcScriptConfig {
+                        config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
+                    }),
+                ..
+            } => {
+                let simple_type = pb::btc_script_config::SimpleType::from_i32(*simple_type)
+                    .ok_or(Error::InvalidInput)?;
+                Self::from_simple(params, simple_type, keypath)
+            }
+            pb::BtcScriptConfigWithKeypath {
+                script_config:
+                    Some(pb::BtcScriptConfig {
+                        config: Some(pb::btc_script_config::Config::Multisig(multisig)),
+                    }),
+                ..
+            } => Self::from_multisig(
+                params,
+                multisig,
+                keypath[keypath.len() - 2],
+                keypath[keypath.len() - 1],
+            ),
+            _ => Err(Error::InvalidInput),
+        }
+    }
+
+    /// Converts a payload to an address.
+    pub fn address(&self, params: &Params) -> Result<String, ()> {
+        let payload = self.data.as_slice();
+        match self.output_type {
+            BtcOutputType::Unknown => Err(()),
+            BtcOutputType::P2pkh => {
+                if payload.len() != HASH160_LEN {
+                    return Err(());
+                }
+                Ok(bs58::encode(payload)
+                    .with_check_version(params.base58_version_p2pkh)
+                    .into_string())
+            }
+            BtcOutputType::P2sh => {
+                if payload.len() != HASH160_LEN {
+                    return Err(());
+                }
+                Ok(bs58::encode(payload)
+                    .with_check_version(params.base58_version_p2sh)
+                    .into_string())
+            }
+            BtcOutputType::P2wpkh => {
+                if payload.len() != HASH160_LEN {
+                    return Err(());
+                }
+                encode_segwit_addr(params.bech32_hrp, 0, payload)
+            }
+            BtcOutputType::P2wsh => {
+                if payload.len() != SHA256_LEN {
+                    return Err(());
+                }
+                encode_segwit_addr(params.bech32_hrp, 0, payload)
+            }
+            BtcOutputType::P2tr => {
+                if !params.taproot_support || payload.len() != 32 {
+                    return Err(());
+                }
+                encode_segwit_addr(params.bech32_hrp, 1, payload)
+            }
+        }
+    }
+
+    /// Computes the pkScript from a pubkey hash or script hash or pubkey, depending on the output type.
+    pub fn pk_script(&self, params: &Params) -> Result<Vec<u8>, Error> {
+        let payload = self.data.as_slice();
+        match self.output_type {
+            BtcOutputType::Unknown => Err(Error::InvalidInput),
+            BtcOutputType::P2pkh => {
+                if payload.len() != HASH160_LEN {
+                    return Err(Error::Generic);
+                }
+                let mut result = vec![script::OP_DUP, script::OP_HASH160];
+                script::push_data(&mut result, payload);
+                result.extend_from_slice(&[script::OP_EQUALVERIFY, script::OP_CHECKSIG]);
+                Ok(result)
+            }
+            BtcOutputType::P2sh => {
+                if payload.len() != HASH160_LEN {
+                    return Err(Error::Generic);
+                }
+                let mut result = vec![script::OP_HASH160];
+                script::push_data(&mut result, payload);
+                result.push(script::OP_EQUAL);
+                Ok(result)
+            }
+            BtcOutputType::P2wpkh | BtcOutputType::P2wsh => {
+                if (self.output_type == BtcOutputType::P2wpkh && payload.len() != HASH160_LEN)
+                    || (self.output_type == BtcOutputType::P2wsh && payload.len() != SHA256_LEN)
+                {
+                    return Err(Error::Generic);
+                }
+                let mut result = vec![script::OP_0];
+                script::push_data(&mut result, payload);
+                Ok(result)
+            }
+            BtcOutputType::P2tr => {
+                if !params.taproot_support {
+                    return Err(Error::InvalidInput);
+                }
+                if payload.len() != 32 {
+                    return Err(Error::Generic);
+                }
+                let mut result = vec![script::OP_1];
+                script::push_data(&mut result, payload);
+                Ok(result)
+            }
+        }
+    }
+}
+
 fn encode_segwit_addr(
     hrp: &str,
     witness_version: u8,
@@ -73,115 +281,12 @@ fn encode_segwit_addr(
     bech32::encode(hrp, &b32, variant).or(Err(()))
 }
 
-/// Converts a payload to an address. The payload can be obtained from `btc_common_payload_at_keypath()`.
-pub fn address_from_payload(
-    params: &Params,
-    output_type: BtcOutputType,
-    payload: &[u8],
-) -> Result<String, ()> {
-    match output_type {
-        BtcOutputType::Unknown => Err(()),
-        BtcOutputType::P2pkh => {
-            if payload.len() != HASH160_LEN {
-                return Err(());
-            }
-            Ok(bs58::encode(payload)
-                .with_check_version(params.base58_version_p2pkh)
-                .into_string())
-        }
-        BtcOutputType::P2sh => {
-            if payload.len() != HASH160_LEN {
-                return Err(());
-            }
-            Ok(bs58::encode(payload)
-                .with_check_version(params.base58_version_p2sh)
-                .into_string())
-        }
-        BtcOutputType::P2wpkh => {
-            if payload.len() != HASH160_LEN {
-                return Err(());
-            }
-            encode_segwit_addr(params.bech32_hrp, 0, payload)
-        }
-        BtcOutputType::P2wsh => {
-            if payload.len() != SHA256_LEN {
-                return Err(());
-            }
-            encode_segwit_addr(params.bech32_hrp, 0, payload)
-        }
-        BtcOutputType::P2tr => {
-            if !params.taproot_support || payload.len() != 32 {
-                return Err(());
-            }
-            encode_segwit_addr(params.bech32_hrp, 1, payload)
-        }
-    }
-}
-
-pub fn determine_output_type_from_simple_type(simple_type: SimpleType) -> BtcOutputType {
-    match simple_type {
-        SimpleType::P2wpkhP2sh => BtcOutputType::P2sh,
-        SimpleType::P2wpkh => BtcOutputType::P2wpkh,
-        SimpleType::P2tr => BtcOutputType::P2tr,
-    }
-}
-
-pub fn determine_output_type_multisig(
-    script_type: pb::btc_script_config::multisig::ScriptType,
-) -> BtcOutputType {
-    match script_type {
-        pb::btc_script_config::multisig::ScriptType::P2wsh => BtcOutputType::P2wsh,
-        pb::btc_script_config::multisig::ScriptType::P2wshP2sh => BtcOutputType::P2sh,
-    }
-}
-
-/// Determine the output type from the given an input script config.
-pub fn determine_output_type(script_config: &pb::BtcScriptConfig) -> Result<BtcOutputType, Error> {
-    match script_config {
-        pb::BtcScriptConfig {
-            config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
-        } => {
-            let simple_type = SimpleType::from_i32(*simple_type).ok_or(Error::InvalidInput)?;
-            Ok(determine_output_type_from_simple_type(simple_type))
-        }
-        pb::BtcScriptConfig {
-            config: Some(pb::btc_script_config::Config::Multisig(multisig)),
-        } => {
-            let script_type =
-                pb::btc_script_config::multisig::ScriptType::from_i32(multisig.script_type)
-                    .ok_or(Error::InvalidInput)?;
-            Ok(determine_output_type_multisig(script_type))
-        }
-        _ => Err(Error::InvalidInput),
-    }
-}
-
-/// Converts a Rust protobuf SimpleType to a representation suitable to be passed to C functions.
-pub fn convert_simple_type(simple_type: SimpleType) -> bitbox02::app_btc::SimpleType {
-    match simple_type {
-        SimpleType::P2wpkhP2sh => bitbox02::app_btc::SimpleType::SIMPLE_TYPE_P2WPKH_P2SH,
-        SimpleType::P2wpkh => bitbox02::app_btc::SimpleType::SIMPLE_TYPE_P2WPKH,
-        SimpleType::P2tr => bitbox02::app_btc::SimpleType::SIMPLE_TYPE_P2TR,
-    }
-}
-
-/// Converts a Rust protobuf OutputType to a representation suitable to be passed to C functions.
-pub fn convert_output_type(simple_type: BtcOutputType) -> bitbox02::app_btc::OutputType {
-    match simple_type {
-        BtcOutputType::Unknown => bitbox02::app_btc::OutputType::OUTPUT_TYPE_UNKNOWN,
-        BtcOutputType::P2pkh => bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2PKH,
-        BtcOutputType::P2sh => bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2SH,
-        BtcOutputType::P2wpkh => bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2WPKH,
-        BtcOutputType::P2wsh => bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2WSH,
-        BtcOutputType::P2tr => bitbox02::app_btc::OutputType::OUTPUT_TYPE_P2TR,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use alloc::vec::Vec;
+    use bitbox02::testing::mock_unlocked_using_mnemonic;
+    use util::bip32::HARDENED;
 
     #[test]
     fn test_address_from_payload() {
@@ -190,28 +295,33 @@ mod tests {
         {
             // BTC & LTC p2pkh
 
-            let payload =
-                b"\x67\xfe\x0b\xdd\xe7\x98\x46\x71\xf2\xed\x59\xbb\x68\xa9\x7d\x9c\xc6\x8a\x02\xe0";
+            let payload = Payload {
+                data: b"\x67\xfe\x0b\xdd\xe7\x98\x46\x71\xf2\xed\x59\xbb\x68\xa9\x7d\x9c\xc6\x8a\x02\xe0".to_vec(),
+                output_type: BtcOutputType::P2pkh,
+            };
+
             assert_eq!(
-                address_from_payload(params_btc, BtcOutputType::P2pkh, payload),
+                payload.address(params_btc),
                 Ok("1AUrwD77AL5ax5zj2BhZQ1x43wA5NLsYg1".into())
             );
             assert_eq!(
-                address_from_payload(params_ltc, BtcOutputType::P2pkh, payload),
+                payload.address(params_ltc),
                 Ok("LUhpCRQwEzKeCtgtCKgrg31pG9XMZLm6qX".into())
             );
         }
         {
             // BTC & LTC p2wpkh
 
-            let payload =
-                b"\x3f\x0d\xc2\xe9\x14\x2d\x88\x39\xae\x9c\x90\xa1\x9c\xa8\x6c\x36\xd9\x23\xd8\xab";
+            let payload = Payload {
+                data: b"\x3f\x0d\xc2\xe9\x14\x2d\x88\x39\xae\x9c\x90\xa1\x9c\xa8\x6c\x36\xd9\x23\xd8\xab".to_vec(),
+                output_type: BtcOutputType::P2wpkh,
+            };
             assert_eq!(
-                address_from_payload(params_btc, BtcOutputType::P2wpkh, payload),
+                payload.address(params_btc),
                 Ok("bc1q8uxu96g59kyrnt5ujzsee2rvxmvj8k9trg5ltx".into())
             );
             assert_eq!(
-                address_from_payload(params_ltc, BtcOutputType::P2wpkh, payload),
+                payload.address(params_ltc),
                 Ok("ltc1q8uxu96g59kyrnt5ujzsee2rvxmvj8k9t85wmnk".into())
             );
         }
@@ -219,14 +329,16 @@ mod tests {
         {
             // BTC & LTC p2sh
 
-            let payload =
-                b"\x8d\xd0\x9c\x25\xc9\x28\xbe\x67\x66\xf4\x50\x73\x87\x0c\xe3\xbb\x93\x1f\x2f\x55";
+            let payload = Payload {
+                data: b"\x8d\xd0\x9c\x25\xc9\x28\xbe\x67\x66\xf4\x50\x73\x87\x0c\xe3\xbb\x93\x1f\x2f\x55".to_vec(),
+                output_type: BtcOutputType::P2sh,
+            };
             assert_eq!(
-                address_from_payload(params_btc, BtcOutputType::P2sh, payload),
+                payload.address(params_btc),
                 Ok("3Ecs74kCeeAc6EKWMGe7RXupUoeeXPdyj7".into())
             );
             assert_eq!(
-                address_from_payload(params_ltc, BtcOutputType::P2sh, payload),
+                payload.address(params_ltc),
                 Ok("MLq1QxAAbm22tjbQT9dTFBADoWF6UwYB7R".into())
             );
         }
@@ -234,13 +346,16 @@ mod tests {
         {
             // BTC & LTC p2wsh
 
-            let payload = b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            let payload = Payload {
+                data: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_vec(),
+                output_type: BtcOutputType::P2wsh,
+            };
             assert_eq!(
-                address_from_payload(params_btc, BtcOutputType::P2wsh, payload),
+                payload.address(params_btc),
                 Ok("bc1qv9skzctpv9skzctpv9skzctpv9skzctpv9skzctpv9skzctpv9ss52vqes".into())
             );
             assert_eq!(
-                address_from_payload(params_ltc, BtcOutputType::P2wsh, payload),
+                payload.address(params_ltc),
                 Ok("ltc1qv9skzctpv9skzctpv9skzctpv9skzctpv9skzctpv9skzctpv9sshwzsr4".into())
             );
         }
@@ -250,30 +365,39 @@ mod tests {
         {
             // First receiving address
 
-            let payload = b"\xa6\x08\x69\xf0\xdb\xcf\x1d\xc6\x59\xc9\xce\xcb\xaf\x80\x50\x13\x5e\xa9\xe8\xcd\xc4\x87\x05\x3f\x1d\xc6\x88\x09\x49\xdc\x68\x4c";
-            assert!(address_from_payload(params_ltc, BtcOutputType::P2tr, payload).is_err());
+            let payload = Payload {
+                data: b"\xa6\x08\x69\xf0\xdb\xcf\x1d\xc6\x59\xc9\xce\xcb\xaf\x80\x50\x13\x5e\xa9\xe8\xcd\xc4\x87\x05\x3f\x1d\xc6\x88\x09\x49\xdc\x68\x4c".to_vec(),
+                output_type: BtcOutputType::P2tr,
+            };
+            assert!(payload.address(params_ltc).is_err());
             assert_eq!(
-                address_from_payload(params_btc, BtcOutputType::P2tr, payload),
+                payload.address(params_btc),
                 Ok("bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr".into())
             );
         }
         {
             // Second receiving address
 
-            let payload = b"\xa8\x2f\x29\x94\x4d\x65\xb8\x6a\xe6\xb5\xe5\xcc\x75\xe2\x94\xea\xd6\xc5\x93\x91\xa1\xed\xc5\xe0\x16\xe3\x49\x8c\x67\xfc\x7b\xbb";
-            assert!(address_from_payload(params_ltc, BtcOutputType::P2tr, payload).is_err());
+            let payload = Payload {
+                data: b"\xa8\x2f\x29\x94\x4d\x65\xb8\x6a\xe6\xb5\xe5\xcc\x75\xe2\x94\xea\xd6\xc5\x93\x91\xa1\xed\xc5\xe0\x16\xe3\x49\x8c\x67\xfc\x7b\xbb".to_vec(),
+                output_type: BtcOutputType::P2tr,
+            };
+            assert!(payload.address(params_ltc).is_err());
             assert_eq!(
-                address_from_payload(params_btc, BtcOutputType::P2tr, payload),
+                payload.address(params_btc),
                 Ok("bc1p4qhjn9zdvkux4e44uhx8tc55attvtyu358kutcqkudyccelu0was9fqzwh".into())
             );
         }
         {
             // First change address
 
-            let payload = b"\x88\x2d\x74\xe5\xd0\x57\x2d\x5a\x81\x6c\xef\x00\x41\xa9\x6b\x6c\x1d\xe8\x32\xf6\xf9\x67\x6d\x96\x05\xc4\x4d\x5e\x9a\x97\xd3\xdc";
-            assert!(address_from_payload(params_ltc, BtcOutputType::P2tr, payload).is_err());
+            let payload = Payload {
+                data: b"\x88\x2d\x74\xe5\xd0\x57\x2d\x5a\x81\x6c\xef\x00\x41\xa9\x6b\x6c\x1d\xe8\x32\xf6\xf9\x67\x6d\x96\x05\xc4\x4d\x5e\x9a\x97\xd3\xdc".to_vec(),
+                output_type: BtcOutputType::P2tr,
+            };
+            assert!(payload.address(params_ltc).is_err());
             assert_eq!(
-                address_from_payload(params_btc, BtcOutputType::P2tr, payload),
+                payload.address(params_btc),
                 Ok("bc1p3qkhfews2uk44qtvauqyr2ttdsw7svhkl9nkm9s9c3x4ax5h60wqwruhk7".into())
             );
         }
@@ -402,5 +526,51 @@ mod tests {
                 expected.map(|s| s.into())
             );
         }
+    }
+
+    #[test]
+    fn test_payload_simple() {
+        mock_unlocked_using_mnemonic(
+            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+        );
+        let coin_params = super::super::params::get(pb::BtcCoin::Btc);
+        // p2wpkh
+        assert_eq!(
+            Payload::from_simple(
+                coin_params,
+                SimpleType::P2wpkh,
+                &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
+            )
+            .unwrap()
+            .data
+            .as_slice(),
+            b"\x3f\x0d\xc2\xe9\x14\x2d\x88\x39\xae\x9c\x90\xa1\x9c\xa8\x6c\x36\xd9\x23\xd8\xab"
+        );
+
+        //  p2wpkh-p2sh
+        assert_eq!(
+            Payload::from_simple(
+                coin_params,
+                SimpleType::P2wpkhP2sh,
+                &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
+            )
+            .unwrap()
+            .data
+            .as_slice(),
+            b"\x8d\xd0\x9c\x25\xc9\x28\xbe\x67\x66\xf4\x50\x73\x87\x0c\xe3\xbb\x93\x1f\x2f\x55"
+        );
+
+        // p2tr
+        assert_eq!(
+            Payload::from_simple(
+                coin_params,
+                SimpleType::P2tr,
+                &[86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
+            )
+            .unwrap()
+            .data
+            .as_slice(),
+            b"\x25\x0e\xc8\x02\xb6\xd3\xdb\x98\x42\xd1\xbd\xbe\x0e\xe4\x8d\x52\xf9\xa4\xb4\x6e\x60\xcb\xbb\xab\x3b\xcc\x4e\xe9\x15\x73\xfc\xe8"
+        );
     }
 }

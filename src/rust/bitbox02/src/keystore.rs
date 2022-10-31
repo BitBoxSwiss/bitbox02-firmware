@@ -342,6 +342,20 @@ pub fn secp256k1_pubkey_hash160(keypath: &[u32]) -> Result<[u8; 20], ()> {
     }
 }
 
+pub fn secp256k1_schnorr_bip86_pubkey(keypath: &[u32]) -> Result<[u8; 32], ()> {
+    let mut pubkey = [0u8; 32];
+    match unsafe {
+        bitbox02_sys::keystore_secp256k1_schnorr_bip86_pubkey(
+            keypath.as_ptr(),
+            keypath.len() as _,
+            pubkey.as_mut_ptr(),
+        )
+    } {
+        true => Ok(pubkey),
+        false => Err(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

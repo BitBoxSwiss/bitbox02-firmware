@@ -15,9 +15,9 @@
 use super::pb;
 use super::Error;
 
-use super::common::{address_from_payload, format_amount};
+use super::common::format_amount;
 use super::script::serialize_varint;
-use super::{bip143, bip341, keypath};
+use super::{bip143, bip341, common, keypath};
 
 use crate::workflow::{confirm, status, transaction};
 
@@ -428,46 +428,6 @@ async fn validate_script_configs(
     Ok(())
 }
 
-fn payload_at_keypath(
-    keypath: &[u32],
-    script_config_account: &pb::BtcScriptConfigWithKeypath,
-) -> Result<Vec<u8>, Error> {
-    match script_config_account {
-        pb::BtcScriptConfigWithKeypath {
-            script_config:
-                Some(pb::BtcScriptConfig {
-                    config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
-                }),
-            ..
-        } => {
-            let simple_type = pb::btc_script_config::SimpleType::from_i32(*simple_type)
-                .ok_or(Error::InvalidInput)?;
-            Ok(bitbox02::app_btc::payload_at_keypath(
-                keypath,
-                super::common::convert_simple_type(simple_type),
-            )?)
-        }
-        pb::BtcScriptConfigWithKeypath {
-            script_config:
-                Some(pb::BtcScriptConfig {
-                    config: Some(pb::btc_script_config::Config::Multisig(multisig)),
-                }),
-            ..
-        } => {
-            let script_type =
-                pb::btc_script_config::multisig::ScriptType::from_i32(multisig.script_type)
-                    .ok_or(Error::InvalidInput)?;
-            Ok(bitbox02::app_btc::payload_from_multisig(
-                &super::multisig::convert_multisig(multisig)?,
-                super::multisig::convert_multisig_script_type(script_type),
-                keypath[keypath.len() - 2],
-                keypath[keypath.len() - 1],
-            )?)
-        }
-        _ => Err(Error::InvalidInput),
-    }
-}
-
 /// Singing flow:
 ///
 /// init
@@ -624,21 +584,9 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
 
         // https://github.com/bitcoin/bips/blob/bb8dc57da9b3c6539b88378348728a2ff43f7e9c/bip-0341.mediawiki#common-signature-message
         // accumulate `sha_scriptpubkeys`
-        let pk_script = {
-            let output_type = super::common::determine_output_type(
-                script_config_account
-                    .script_config
-                    .as_ref()
-                    .ok_or(Error::InvalidInput)?,
-            )?;
-            let payload = payload_at_keypath(&tx_input.keypath, script_config_account)?;
-            bitbox02::app_btc::pkscript_from_payload(
-                coin_params.taproot_support,
-                super::common::convert_output_type(output_type),
-                &payload,
-            )
-            .or(Err(Error::InvalidInput))?
-        };
+        let pk_script =
+            common::Payload::from(coin_params, &tx_input.keypath, script_config_account)?
+                .pk_script(coin_params)?;
         hasher_scriptpubkeys.update(serialize_varint(pk_script.len() as u64).as_slice());
         hasher_scriptpubkeys.update(pk_script.as_slice());
 
@@ -698,7 +646,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
 
         // Get payload. If change output, we compute the payload from the keystore, otherwise it is
         // provided in tx_output.payload.
-        let (output_type, payload): (pb::BtcOutputType, Vec<u8>) = if tx_output.ours {
+        let payload: common::Payload = if tx_output.ours {
             // Compute the payload from the keystore.
             let script_config_account = request
                 .script_configs
@@ -707,27 +655,20 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
 
             validate_keypath(coin_params, script_config_account, &tx_output.keypath, true)?;
 
-            let output_type = super::common::determine_output_type(
-                script_config_account
-                    .script_config
-                    .as_ref()
-                    .ok_or(Error::InvalidInput)?,
-            )?;
-            let payload = payload_at_keypath(&tx_output.keypath, script_config_account)?;
-            (output_type, payload)
+            common::Payload::from(coin_params, &tx_output.keypath, script_config_account)?
         } else {
             // Take payload from provided output.
-            (
-                pb::BtcOutputType::from_i32(tx_output.r#type).ok_or(Error::InvalidInput)?,
-                tx_output.payload.clone(),
-            )
+            common::Payload {
+                data: tx_output.payload.clone(),
+                output_type: pb::BtcOutputType::from_i32(tx_output.r#type)
+                    .ok_or(Error::InvalidInput)?,
+            }
         };
 
         if !tx_output.ours {
             // Verify output if it is not a change output.
             // Assemble address to display, get user confirmation.
-            let address = address_from_payload(coin_params, output_type, &payload)
-                .or(Err(Error::InvalidInput))?;
+            let address = payload.address(coin_params)?;
             transaction::verify_recipient(
                 &address,
                 &format_amount(coin_params, format_unit, tx_output.value)?,
@@ -750,12 +691,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         // point 8: accumulate hashOutputs
         // only SIGHASH_ALL supported.
         hasher_outputs.update(tx_output.value.to_le_bytes());
-        let pk_script = bitbox02::app_btc::pkscript_from_payload(
-            coin_params.taproot_support,
-            super::common::convert_output_type(output_type),
-            &payload,
-        )
-        .or(Err(Error::InvalidInput))?;
+        let pk_script = payload.pk_script(coin_params)?;
         hasher_outputs.update(serialize_varint(pk_script.len() as u64).as_slice());
         hasher_outputs.update(pk_script.as_slice());
     }

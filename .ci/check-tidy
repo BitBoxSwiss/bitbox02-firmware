@@ -32,7 +32,7 @@ for dir in build build-build; do
 	fi
 
 	# Remove flags unknown to tidy
-	sed -i 's/-mcpu=cortex-m4//g; s/-mfloat-abi=softfp//g; s/-mlong-calls//g; s/-mthumb//g;
+	sed -i 's/-mcpu=cortex-m4//g; s/-mfloat-abi=softfp//g; s/-mlong-calls//g; s/-mthumb//g; s/--specs=nano.specs//g; s/--specs=nosys.specs//g;
 	        s/-Wno-cast-function-type//g; s/-mfpu=fpv4-sp-d16//g; s/-Wformat-signedness//g' ${dir}/compile_commands.json
 
 	# Only check our files

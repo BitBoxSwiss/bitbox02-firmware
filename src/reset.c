@@ -18,7 +18,6 @@
 #include "keystore.h"
 #include "memory/memory.h"
 #include "memory/smarteeprom.h"
-#include "workflow/status.h"
 
 #ifndef TESTING
 #include "securechip/securechip.h"

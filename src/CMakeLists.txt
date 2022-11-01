@@ -37,9 +37,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/blocking.c
   ${CMAKE_SOURCE_DIR}/src/workflow/idle_workflow.c
   ${CMAKE_SOURCE_DIR}/src/workflow/orientation_screen.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/status.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/verify_recipient.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/verify_total.c
   ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_common.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c

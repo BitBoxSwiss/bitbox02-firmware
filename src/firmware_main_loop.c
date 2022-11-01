@@ -22,7 +22,6 @@
 #include "ui/screen_stack.h"
 #include "usb/usb.h"
 #include "usb/usb_processing.h"
-#include "workflow/workflow.h"
 #include <rust/rust.h>
 
 void firmware_main_loop(void)

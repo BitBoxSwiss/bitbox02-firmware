@@ -84,29 +84,32 @@ uint8_t module_error_code = 0;
 uint16_t touch_acq_signals_raw[DEF_NUM_CHANNELS];
 
 /* Acquisition set 1 - General settings */
-qtm_acq_node_group_config_t ptc_qtlib_acq_gen1 = {DEF_NUM_CHANNELS,
-                                                  DEF_SENSOR_TYPE,
-                                                  DEF_PTC_CAL_AUTO_TUNE,
-                                                  DEF_SEL_FREQ_INIT,
-                                                  DEF_PTC_INTERRUPT_PRIORITY};
+qtm_acq_node_group_config_t ptc_qtlib_acq_gen1 = {
+    DEF_NUM_CHANNELS,
+    DEF_SENSOR_TYPE,
+    DEF_PTC_CAL_AUTO_TUNE,
+    DEF_SEL_FREQ_INIT,
+    DEF_PTC_INTERRUPT_PRIORITY};
 
 /* Node status, signal, calibration values */
 qtm_acq_node_data_t ptc_qtlib_node_stat1[DEF_NUM_CHANNELS];
 
 /* Node configurations */
-qtm_acq_samd51_node_config_t ptc_seq_node_cfg1[DEF_NUM_CHANNELS] = {NODE_0_PARAMS,
-                                                                    NODE_1_PARAMS,
-                                                                    NODE_2_PARAMS,
-                                                                    NODE_3_PARAMS,
-                                                                    NODE_4_PARAMS,
-                                                                    NODE_5_PARAMS,
-                                                                    NODE_6_PARAMS,
-                                                                    NODE_7_PARAMS};
+qtm_acq_samd51_node_config_t ptc_seq_node_cfg1[DEF_NUM_CHANNELS] = {
+    NODE_0_PARAMS,
+    NODE_1_PARAMS,
+    NODE_2_PARAMS,
+    NODE_3_PARAMS,
+    NODE_4_PARAMS,
+    NODE_5_PARAMS,
+    NODE_6_PARAMS,
+    NODE_7_PARAMS};
 
 /* Container */
-qtm_acquisition_control_t qtlib_acq_set1 = {&ptc_qtlib_acq_gen1,
-                                            &ptc_seq_node_cfg1[0],
-                                            &ptc_qtlib_node_stat1[0]};
+qtm_acquisition_control_t qtlib_acq_set1 = {
+    &ptc_qtlib_acq_gen1,
+    &ptc_seq_node_cfg1[0],
+    &ptc_qtlib_node_stat1[0]};
 
 /* Stores recent unfiltered scroller positions for custom filter */
 __extension__ static uint16_t scroller_previous_position[][DEF_SCROLLER_NUM_PREV_POS] = {
@@ -124,15 +127,16 @@ __extension__ static bool scroller_active[DEF_NUM_SCROLLERS] = {[0 ...(DEF_NUM_S
 /**********************************************************/
 
 /* Keys set 1 - General settings */
-qtm_touch_key_group_config_t qtlib_key_grp_config_set1 = {DEF_NUM_SENSORS,
-                                                          DEF_TOUCH_DET_INT,
-                                                          DEF_MAX_ON_DURATION,
-                                                          DEF_ANTI_TCH_DET_INT,
-                                                          DEF_ANTI_TCH_RECAL_THRSHLD,
-                                                          DEF_TCH_DRIFT_RATE,
-                                                          DEF_ANTI_TCH_DRIFT_RATE,
-                                                          DEF_DRIFT_HOLD_TIME,
-                                                          DEF_REBURST_MODE};
+qtm_touch_key_group_config_t qtlib_key_grp_config_set1 = {
+    DEF_NUM_SENSORS,
+    DEF_TOUCH_DET_INT,
+    DEF_MAX_ON_DURATION,
+    DEF_ANTI_TCH_DET_INT,
+    DEF_ANTI_TCH_RECAL_THRSHLD,
+    DEF_TCH_DRIFT_RATE,
+    DEF_ANTI_TCH_DRIFT_RATE,
+    DEF_DRIFT_HOLD_TIME,
+    DEF_REBURST_MODE};
 
 qtm_touch_key_group_data_t qtlib_key_grp_data_set1;
 
@@ -140,19 +144,21 @@ qtm_touch_key_group_data_t qtlib_key_grp_data_set1;
 qtm_touch_key_data_t qtlib_key_data_set1[DEF_NUM_SENSORS];
 
 /* Key Configurations */
-qtm_touch_key_config_t qtlib_key_configs_set1[DEF_NUM_SENSORS] = {KEY_0_PARAMS,
-                                                                  KEY_1_PARAMS,
-                                                                  KEY_2_PARAMS,
-                                                                  KEY_3_PARAMS,
-                                                                  KEY_4_PARAMS,
-                                                                  KEY_5_PARAMS,
-                                                                  KEY_6_PARAMS,
-                                                                  KEY_7_PARAMS};
+qtm_touch_key_config_t qtlib_key_configs_set1[DEF_NUM_SENSORS] = {
+    KEY_0_PARAMS,
+    KEY_1_PARAMS,
+    KEY_2_PARAMS,
+    KEY_3_PARAMS,
+    KEY_4_PARAMS,
+    KEY_5_PARAMS,
+    KEY_6_PARAMS,
+    KEY_7_PARAMS};
 /* Container */
-qtm_touch_key_control_t qtlib_key_set1 = {&qtlib_key_grp_data_set1,
-                                          &qtlib_key_grp_config_set1,
-                                          &qtlib_key_data_set1[0],
-                                          &qtlib_key_configs_set1[0]};
+qtm_touch_key_control_t qtlib_key_set1 = {
+    &qtlib_key_grp_data_set1,
+    &qtlib_key_grp_config_set1,
+    &qtlib_key_data_set1[0],
+    &qtlib_key_configs_set1[0]};
 
 /**********************************************************/
 /***************** Scroller Module ********************/
@@ -583,7 +589,7 @@ uint16_t qtouch_get_sensor_node_signal_filtered(uint16_t sensor_node)
     if ((sensor_node == DEF_SCROLLER_OFFSET_0) || (sensor_node == DEF_SCROLLER_OFFSET_1) ||
         (sensor_node == DEF_SCROLLER_OFFSET_0 + DEF_SCROLLER_NUM_CHANNELS - 1) ||
         (sensor_node == DEF_SCROLLER_OFFSET_1 + DEF_SCROLLER_NUM_CHANNELS - 1)) {
-        X = X * (1 + DEF_SENSOR_EDGE_WEIGHT);
+        X = (uint16_t)((double)X * (1 + DEF_SENSOR_EDGE_WEIGHT));
     }
     // Saturate out-of-range readings.
     X = (X > 50) ? 50 : X;

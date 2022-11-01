@@ -49,18 +49,19 @@ static void random_32_bytes(uint8_t* buf)
 
 #ifndef ECC_USE_SECP256K1_LIB
 /* link the bitcoin ECC wrapper to uECC if secp256k1 is not available */
-struct ecc_wrapper bitcoin_ecc = {ecc_context_init,
-                                  ecc_context_destroy,
-                                  ecc_sign_digest,
-                                  ecc_sign,
-                                  ecc_sign_double,
-                                  ecc_verify,
-                                  ecc_generate_private_key,
-                                  ecc_isValid,
-                                  ecc_get_public_key65,
-                                  ecc_get_public_key33,
-                                  ecc_ecdh,
-                                  ecc_recover_public_key};
+struct ecc_wrapper bitcoin_ecc = {
+    ecc_context_init,
+    ecc_context_destroy,
+    ecc_sign_digest,
+    ecc_sign,
+    ecc_sign_double,
+    ecc_verify,
+    ecc_generate_private_key,
+    ecc_isValid,
+    ecc_get_public_key65,
+    ecc_get_public_key33,
+    ecc_ecdh,
+    ecc_recover_public_key};
 #endif
 
 static int ecc_rng_function(uint8_t* r, unsigned l)
@@ -103,12 +104,14 @@ int ecc_sign_digest(
 {
     (void)recid; // not implemented in uECC
     uint8_t tmp[32 + 32 + 64];
-    SHA256_HashContext ctx = {.uECC = {.init_hash = &init_SHA256,
-                                       .update_hash = &update_SHA256,
-                                       .finish_hash = &finish_SHA256,
-                                       .block_size = 64,
-                                       .result_size = 32,
-                                       .tmp = tmp}};
+    SHA256_HashContext ctx = {
+        .uECC = {
+            .init_hash = &init_SHA256,
+            .update_hash = &update_SHA256,
+            .finish_hash = &finish_SHA256,
+            .block_size = 64,
+            .result_size = 32,
+            .tmp = tmp}};
     if (uECC_sign_deterministic(
             private_key, data, SHA256_DIGEST_LENGTH, &ctx.uECC, sig, ecc_curve_from_id(curve))) {
         uECC_normalize_signature(sig, ecc_curve_from_id(curve));

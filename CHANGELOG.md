@@ -7,6 +7,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+
+### 9.13.0
 - Bitcoin: allow displaying BTC values in the 'sat' unit
 - Allow skipping the microSD card backup in favor of backing up using the recovery words
 - Allow arbitrary input sequence numbers (fixes compatibility with Taproot transactions in Sparrow wallet)

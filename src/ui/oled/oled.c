@@ -143,13 +143,7 @@ void oled_clear_buffer(void)
 
 void oled_mirror(bool mirror)
 {
-#if PLATFORM_BITBOX02 == 1
     bb02_display.mirror(mirror);
-#elif PLATFORM_BITBOXBASE == 1
-    (void)mirror;
-    // DON'T ABORT HERE, this is called in the bootloader
-    screen_print_debug("BitBoxBase cannot mirror screen", 5000);
-#endif
 }
 
 void oled_set_pixel(uint16_t x, uint16_t y, uint8_t c)

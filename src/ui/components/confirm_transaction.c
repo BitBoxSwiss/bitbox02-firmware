@@ -89,6 +89,7 @@ static component_t* _confirm_transaction_create(
     const char* address,
     const char* fee,
     bool verify_total, /* if true, verify total and fee, otherwise verify amount and address */
+    bool longtouch,
     void (*callback)(bool, void*),
     void* callback_param)
 {
@@ -119,7 +120,6 @@ static component_t* _confirm_transaction_create(
 
     ui_util_add_sub_component(confirm, icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel));
 
-    bool longtouch = verify_total;
     ui_util_add_sub_component(confirm, confirm_button_create(longtouch, ICON_BUTTON_NEXT));
 
     if (data->has_address) {
@@ -156,14 +156,17 @@ component_t* confirm_transaction_address_create(
     void (*callback)(bool accepted, void* param),
     void* callback_param)
 {
-    return _confirm_transaction_create(amount, address, NULL, false, callback, callback_param);
+    return _confirm_transaction_create(
+        amount, address, NULL, false, false, callback, callback_param);
 }
 
 component_t* confirm_transaction_fee_create(
     const char* amount,
     const char* fee,
+    bool longtouch,
     void (*callback)(bool accepted, void* param),
     void* callback_param)
 {
-    return _confirm_transaction_create(amount, NULL, fee, true, callback, callback_param);
+    return _confirm_transaction_create(
+        amount, NULL, fee, true, longtouch, callback, callback_param);
 }

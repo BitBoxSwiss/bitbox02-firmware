@@ -741,9 +741,11 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     let fee: u64 = total_out
         .checked_sub(outputs_sum_out)
         .ok_or(Error::InvalidInput)?;
+    let fee_percentage: f64 = 100. * (fee as f64) / (outputs_sum_out as f64);
     transaction::verify_total_fee(
         &format_amount(coin_params, format_unit, total_out)?,
         &format_amount(coin_params, format_unit, fee)?,
+        Some(fee_percentage),
     )
     .await?;
     status::status("Transaction\nconfirmed", true).await;
@@ -1225,7 +1227,7 @@ mod tests {
         mock(Data {
             ui_confirm_create: Some(Box::new(move |_params| true)),
             ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
             ..Default::default()
         });
     }
@@ -1546,7 +1548,7 @@ mod tests {
                         _ => panic!("unexpected UI dialog"),
                     }
                 })),
-                ui_transaction_fee_create: Some(Box::new(move |total, fee| {
+                ui_transaction_fee_create: Some(Box::new(move |total, fee, longtouch| {
                     match unsafe {
                         UI_COUNTER += 1;
                         UI_COUNTER
@@ -1569,6 +1571,7 @@ mod tests {
                                 }
                                 _ => panic!("unexpected coin"),
                             }
+                            assert!(longtouch);
                             true
                         }
                         _ => panic!("unexpected UI dialog"),
@@ -1895,7 +1898,7 @@ mod tests {
                     UI_COUNTER += 1;
                     UI_COUNTER != CURRENT_COUNTER
                 })),
-                ui_transaction_fee_create: Some(Box::new(|_total, _fee| unsafe {
+                ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| unsafe {
                     UI_COUNTER += 1;
                     UI_COUNTER != CURRENT_COUNTER
                 })),
@@ -1988,7 +1991,7 @@ mod tests {
             unsafe { LOCKTIME_CONFIRMED = false }
             mock_default_ui();
             mock(Data {
-                ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+                ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
                 ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
                 ui_confirm_create: Some(Box::new(move |params| {
                     if params.body.contains("Locktime") {
@@ -2018,6 +2021,53 @@ mod tests {
         }
     }
 
+    // Test a transaction with an unusually high fee.
+    #[test]
+    fn test_high_fee_warning() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        transaction.borrow_mut().outputs[1].value = 1034567890;
+        // One more confirmation for the high fee warning.
+        transaction.borrow_mut().total_confirmations += 1;
+        mock_host_responder(transaction.clone());
+        static mut UI_COUNTER: u32 = 0;
+        static mut FEE_CHECKED: bool = false;
+        mock(Data {
+            ui_transaction_address_create: Some(Box::new(|_amount, _address| unsafe {
+                UI_COUNTER += 1;
+                true
+            })),
+            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| unsafe {
+                UI_COUNTER += 1;
+                assert_eq!(total, "13.399999 BTC");
+                assert_eq!(fee, "2.0541901 BTC");
+                assert!(!longtouch);
+                true
+            })),
+            ui_confirm_create: Some(Box::new(move |params| unsafe {
+                match {
+                    UI_COUNTER += 1;
+                    UI_COUNTER
+                } {
+                    7 => {
+                        assert_eq!(params.title, "High fee");
+                        assert_eq!(params.body, "The fee rate\nis 18.1%.\nProceed?");
+                        assert!(params.longtouch);
+                        FEE_CHECKED = true;
+                        true
+                    }
+                    _ => true,
+                }
+            })),
+            ..Default::default()
+        });
+        mock_unlocked();
+        let tx = transaction.borrow();
+        assert!(block_on(process(&tx.init_request())).is_ok());
+        assert_eq!(unsafe { UI_COUNTER }, tx.total_confirmations);
+        assert!(unsafe { FEE_CHECKED });
+    }
+
     // Test a P2TR output. It is not part of the default test transaction because Taproot is not
     // active on Litecoin yet.
     #[test]
@@ -2040,7 +2090,7 @@ mod tests {
                 }
                 true
             })),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
             ui_confirm_create: Some(Box::new(move |_params| true)),
             ..Default::default()
         });
@@ -2262,7 +2312,7 @@ mod tests {
                 }
             })),
             ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
             ..Default::default()
         });
         mock_unlocked();
@@ -2318,7 +2368,7 @@ mod tests {
                 }
                 true
             })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee| {
+            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
                 match unsafe {
                     UI_COUNTER += 1;
                     UI_COUNTER
@@ -2326,6 +2376,7 @@ mod tests {
                     5 => {
                         assert_eq!(total, "0.00090175 TBTC");
                         assert_eq!(fee, "0.00000175 TBTC");
+                        assert!(longtouch);
                     }
                     _ => panic!("unexpected UI dialog"),
                 }

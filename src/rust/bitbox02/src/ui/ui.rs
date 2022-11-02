@@ -384,6 +384,7 @@ pub fn confirm_transaction_address_create<'a, 'b>(
 pub fn confirm_transaction_fee_create<'a, 'b>(
     amount: &'a str,
     fee: &'a str,
+    longtouch: bool,
     callback: AcceptRejectCb<'b>,
 ) -> Component<'b> {
     unsafe extern "C" fn c_callback(result: bool, param: *mut c_void) {
@@ -396,6 +397,7 @@ pub fn confirm_transaction_fee_create<'a, 'b>(
         bitbox02_sys::confirm_transaction_fee_create(
             crate::util::str_to_cstr_vec(amount).unwrap().as_ptr(), // copied in C
             crate::util::str_to_cstr_vec(fee).unwrap().as_ptr(),    // copied in C
+            longtouch,
             Some(c_callback as _),
             callback_param,
         )

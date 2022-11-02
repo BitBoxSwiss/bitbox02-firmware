@@ -35,6 +35,8 @@ component_t* confirm_transaction_address_create(
  * Creates a confirm screen.
  * @param[in] amount of coins to send, including the unit suffix.
  * @param[in] fee to send coins
+ * @param[in] longtouch if the confirmation dialog should have a longtouch. Otherwise, the
+ * next-arrow is shown.
  * @param[in] callback The callback triggered when the user accepts or rejects. Is called at most
  * once.
  * @param[in] callback_param Passed to `callback`.
@@ -42,6 +44,7 @@ component_t* confirm_transaction_address_create(
 component_t* confirm_transaction_fee_create(
     const char* amount,
     const char* fee,
+    bool longtouch,
     void (*callback)(bool accepted, void* param),
     void* callback_param);
 

@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Bitcoin: warn if the transaction fee is higher than 10% of the coins sent
 
 ### 9.13.0
 - Bitcoin: allow displaying BTC values in the 'sat' unit

@@ -260,6 +260,7 @@ async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Respons
         transaction::verify_total_fee(
             &format_value(params, total + request.fee),
             &format_value(params, request.fee),
+            None,
         )
         .await?;
     }
@@ -451,9 +452,10 @@ mod tests {
                     _ => panic!("unexpected user confirmations"),
                 }
             })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee| {
+            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
                 assert_eq!(total, "6.170499 ADA");
                 assert_eq!(fee, "0.170499 ADA");
+                assert!(longtouch);
                 unsafe {
                     TOTAL_CONFIRMED = true;
                 }
@@ -826,7 +828,7 @@ mod tests {
         mock(Data {
             ui_confirm_create: Some(Box::new(|_params| true)),
             ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
             ..Default::default()
         });
         mock_unlocked();
@@ -901,7 +903,7 @@ mod tests {
             })),
 
             ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
             ..Default::default()
         });
         mock_unlocked();
@@ -971,7 +973,7 @@ mod tests {
                 }
             })),
             ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
             ..Default::default()
         });
         mock_unlocked();
@@ -1032,7 +1034,7 @@ mod tests {
                 }
             })),
             ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
             ..Default::default()
         });
         mock_unlocked();
@@ -1158,7 +1160,7 @@ mod tests {
                     _ => panic!("unexpected user confirmation"),
                 }
             })),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee| true)),
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
             ..Default::default()
         });
         mock_unlocked();

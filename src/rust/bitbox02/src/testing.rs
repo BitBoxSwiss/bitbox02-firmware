@@ -27,7 +27,7 @@ pub struct Data {
     pub sdcard_inserted: Option<bool>,
     pub ui_sdcard_create_arg: Option<bool>,
     pub ui_transaction_address_create: Option<Box<dyn Fn(&str, &str) -> bool>>,
-    pub ui_transaction_fee_create: Option<Box<dyn Fn(&str, &str) -> bool>>,
+    pub ui_transaction_fee_create: Option<Box<dyn Fn(&str, &str, bool) -> bool>>,
     pub ui_trinary_input_string_create:
         Option<Box<dyn Fn(&super::ui::TrinaryInputStringParams) -> String>>,
 }

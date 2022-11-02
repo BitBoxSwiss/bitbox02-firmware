@@ -113,7 +113,7 @@ async fn verify_erc20_transaction(
         None => ("Unknown token".into(), "Unknown amount".into()),
     };
     transaction::verify_recipient(&recipient_address, &formatted_value).await?;
-    transaction::verify_total_fee(&formatted_total, &formatted_fee).await?;
+    transaction::verify_total_fee(&formatted_total, &formatted_fee, None).await?;
     Ok(())
 }
 
@@ -176,7 +176,7 @@ async fn verify_standard_transaction(
         decimals: WEI_DECIMALS,
         value: amount.value.add(&fee.value),
     };
-    transaction::verify_total_fee(&total.format(), &fee.format()).await?;
+    transaction::verify_total_fee(&total.format(), &fee.format(), None).await?;
     Ok(())
 }
 
@@ -355,9 +355,10 @@ mod tests {
                 assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
                 true
             })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee| {
+            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
                 assert_eq!(total, "0.53069 ETH");
                 assert_eq!(fee, "0.000126 ETH");
+                assert!(longtouch);
                 true
             })),
             ..Default::default()
@@ -408,9 +409,10 @@ mod tests {
                 assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
                 true
             })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee| {
+            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
                 assert_eq!(total, "0.53069 TETH");
                 assert_eq!(fee, "0.000126 TETH");
+                assert!(longtouch);
                 true
             })),
             ..Default::default()
@@ -461,9 +463,10 @@ mod tests {
                 assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
                 true
             })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee| {
+            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
                 assert_eq!(total, "0.53069 ETH");
                 assert_eq!(fee, "0.000126 ETH");
+                assert!(longtouch);
                 true
             })),
             ..Default::default()
@@ -501,9 +504,10 @@ mod tests {
                 assert_eq!(address, "0xE6CE0a092A99700CD4ccCcBb1fEDc39Cf53E6330");
                 true
             })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee| {
+            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
                 assert_eq!(total, "57 USDT");
                 assert_eq!(fee, "0.0012658164 ETH");
+                assert!(longtouch);
                 true
             })),
             ..Default::default()
@@ -540,9 +544,10 @@ mod tests {
                 assert_eq!(address, "0x857B3D969eAcB775a9f79cabc62Ec4bB1D1cd60e");
                 true
             })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee| {
+            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
                 assert_eq!(total, "Unknown amount");
                 assert_eq!(fee, "0.000067973 ETH");
+                assert!(longtouch);
                 true
             })),
             ..Default::default()
@@ -665,9 +670,10 @@ mod tests {
                     assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
                     true
                 })),
-                ui_transaction_fee_create: Some(Box::new(|total, fee| {
+                ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
                     assert_eq!(total, "0.53069 ETH");
                     assert_eq!(fee, "0.000126 ETH");
+                    assert!(longtouch);
                     false
                 })),
                 ..Default::default()
@@ -678,7 +684,7 @@ mod tests {
             // Keystore locked.
             mock(Data {
                 ui_transaction_address_create: Some(Box::new(|_, _| true)),
-                ui_transaction_fee_create: Some(Box::new(|_, _| true)),
+                ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
                 ..Default::default()
             });
             assert_eq!(block_on(process(&valid_request)), Err(Error::Generic));
@@ -727,7 +733,7 @@ mod tests {
                     _ => panic!("unexpected user confirmation"),
                 }
             })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee| {
+            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
                 match unsafe {
                     CONFIRM_COUNTER += 1;
                     CONFIRM_COUNTER
@@ -735,6 +741,7 @@ mod tests {
                     4 => {
                         assert_eq!(total, "0.53069 ");
                         assert_eq!(fee, "0.000126 ");
+                        assert!(longtouch);
                         true
                     }
                     _ => panic!("unexpected user confirmation"),

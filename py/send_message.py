@@ -428,6 +428,33 @@ class SendMessage:
         for input_index, sig in sigs:
             print("Signature for input {}: {}".format(input_index, sig.hex()))
 
+    def _sign_btc_high_fee(self) -> None:
+        # pylint: disable=no-member
+        bip44_account: int = 0 + HARDENED
+        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        outputs[1].value = int(1e8 * 0.18)
+        sigs = self._device.btc_sign(
+            bitbox02.btc.BTC,
+            [
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH
+                    ),
+                    keypath=[84 + HARDENED, 0 + HARDENED, bip44_account],
+                ),
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH_P2SH
+                    ),
+                    keypath=[49 + HARDENED, 0 + HARDENED, bip44_account],
+                ),
+            ],
+            inputs=inputs,
+            outputs=outputs,
+        )
+        for input_index, sig in sigs:
+            print("Signature for input {}: {}".format(input_index, sig.hex()))
+
     def _sign_btc_multiple_changes(self) -> None:
         # pylint: disable=no-member
         bip44_account: int = 0 + HARDENED
@@ -647,6 +674,7 @@ class SendMessage:
                     format_unit=bitbox02.btc.BTCSignInitRequest.FormatUnit.SAT
                 ),
             ),
+            ("High fee warning", self._sign_btc_high_fee),
             ("Multiple change outputs", self._sign_btc_multiple_changes),
             ("Locktime/RBF", self._sign_btc_locktime_rbf),
             ("Taproot inputs", self._sign_btc_taproot_inputs),

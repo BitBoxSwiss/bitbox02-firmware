@@ -33,16 +33,39 @@ pub async fn verify_recipient(recipient: &str, amount: &str) -> Result<(), UserA
     option(&result).await
 }
 
-pub async fn verify_total_fee(total: &str, fee: &str) -> Result<(), UserAbort> {
+pub async fn verify_total_fee(
+    total: &str,
+    fee: &str,
+    fee_percentage: Option<f64>,
+) -> Result<(), UserAbort> {
     let result = RefCell::new(None as Option<Result<(), UserAbort>>);
 
+    const FEE_WARNING_THRESHOLD: f64 = 10.;
+    let fee_percentage = fee_percentage.filter(|&f| f >= FEE_WARNING_THRESHOLD);
+    let longtouch = fee_percentage.is_none();
     let mut component = bitbox02::ui::confirm_transaction_fee_create(
         total,
         fee,
+        longtouch,
         Box::new(|ok| {
             *result.borrow_mut() = Some(if ok { Ok(()) } else { Err(UserAbort) });
         }),
     );
     component.screen_stack_push();
-    option(&result).await
+    option(&result).await?;
+
+    if let Some(fee_percentage) = fee_percentage {
+        match super::confirm::confirm(&super::confirm::Params {
+            title: "High fee",
+            body: &format!("The fee rate\nis {:.1}%.\nProceed?", fee_percentage),
+            longtouch: true,
+            ..Default::default()
+        })
+        .await
+        {
+            Ok(()) => (),
+            Err(super::confirm::UserAbort) => return Err(UserAbort),
+        }
+    }
+    Ok(())
 }

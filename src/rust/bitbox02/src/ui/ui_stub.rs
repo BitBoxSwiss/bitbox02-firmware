@@ -137,10 +137,11 @@ pub fn confirm_transaction_address_create<'a, 'b>(
 pub fn confirm_transaction_fee_create<'a, 'b>(
     amount: &'a str,
     fee: &'a str,
+    longtouch: bool,
     mut callback: AcceptRejectCb<'b>,
 ) -> Component<'b> {
     let data = crate::testing::DATA.0.borrow();
-    let result = data.ui_transaction_fee_create.as_ref().unwrap()(amount, fee);
+    let result = data.ui_transaction_fee_create.as_ref().unwrap()(amount, fee, longtouch);
     callback(result);
     Component {
         is_pushed: false,

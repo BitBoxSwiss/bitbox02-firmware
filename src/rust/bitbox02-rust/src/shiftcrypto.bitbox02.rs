@@ -912,8 +912,11 @@ pub mod eth_response {
 #[repr(i32)]
 pub enum EthCoin {
     Eth = 0,
+    // Removed in v9.14.0 - deprecated
     RopstenEth = 1,
+    // Removed in v9.14.0 - deprecated
     RinkebyEth = 2,
+    GoerliEth = 3,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ElectrumEncryptionKeyRequest {

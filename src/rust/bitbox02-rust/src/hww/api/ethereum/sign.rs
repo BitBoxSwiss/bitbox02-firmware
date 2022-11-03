@@ -384,7 +384,7 @@ mod tests {
         );
     }
 
-    /// Standard ETH transaction on an unusual keypath (Ropsten on mainnet keypath)
+    /// Standard ETH transaction on an unusual keypath (Goerly on mainnet keypath)
     #[test]
     pub fn test_process_warn_unusual_keypath() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
@@ -397,7 +397,7 @@ mod tests {
                     CONFIRM_COUNTER
                 } {
                     1 => {
-                        assert_eq!(params.title, "Ropsten");
+                        assert_eq!(params.title, "Goerli");
                         assert_eq!(params.body, "Unusual keypath warning: m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
                         true
                     }
@@ -405,13 +405,13 @@ mod tests {
                 }
             })),
             ui_transaction_address_create: Some(Box::new(|amount, address| {
-                assert_eq!(amount, "0.530564 TETH");
+                assert_eq!(amount, "0.530564 GOETH");
                 assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
                 true
             })),
             ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                assert_eq!(total, "0.53069 TETH");
-                assert_eq!(fee, "0.000126 TETH");
+                assert_eq!(total, "0.53069 GOETH");
+                assert_eq!(fee, "0.000126 GOETH");
                 assert!(longtouch);
                 true
             })),
@@ -420,7 +420,7 @@ mod tests {
         mock_unlocked();
 
         block_on(process(&pb::EthSignRequest {
-            coin: pb::EthCoin::RopstenEth as _,
+            coin: pb::EthCoin::GoerliEth as _,
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
             gas_price: b"\x01\x65\xa0\xbc\x00".to_vec(),
@@ -515,7 +515,7 @@ mod tests {
         mock_unlocked();
         assert_eq!(
             block_on(process(&pb::EthSignRequest {
-                coin: pb::EthCoin::RinkebyEth as _, // ignored because chain_id > 0
+                coin: pb::EthCoin::GoerliEth as _, // ignored because chain_id > 0
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x23\x67".to_vec(),
                 gas_price: b"\x02\x7a\xca\x1a\x80".to_vec(),

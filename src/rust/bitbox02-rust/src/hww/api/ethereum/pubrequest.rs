@@ -210,11 +210,11 @@ mod tests {
                     CONFIRM_COUNTER
                 } {
                     1 => {
-                        assert_eq!(params.title, "Ropsten");
+                        assert_eq!(params.title, "Goerli");
                         assert_eq!(params.body, "Unusual keypath warning: m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
                     }
                     2 => {
-                        assert_eq!(params.title, "Ropsten");
+                        assert_eq!(params.title, "Goerli");
                         assert_eq!(params.body, ADDRESS);
                     }
                     _ => panic!("too many user confirmations"),
@@ -228,7 +228,7 @@ mod tests {
             block_on(process(&pb::EthPubRequest {
                 output_type: OutputType::Address as _,
                 keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
-                coin: pb::EthCoin::RopstenEth as _,
+                coin: pb::EthCoin::GoerliEth as _,
                 display: true,
                 contract_address: b"".to_vec(),
                 chain_id: 0,

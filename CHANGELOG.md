@@ -8,6 +8,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 - Bitcoin: warn if the transaction fee is higher than 10% of the coins sent
+- ETH Testnets: add Goerli and remove deprecated Rinkeby and Ropsten
 
 ### 9.13.0
 - Bitcoin: allow displaying BTC values in the 'sat' unit

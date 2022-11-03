@@ -43,18 +43,11 @@ const PARAMS: &[Params] = &[
         unit: "ETH",
     },
     Params {
-        coin: Some(EthCoin::RopstenEth),
+        coin: Some(EthCoin::GoerliEth),
         bip44_coin: 1 + HARDENED,
-        chain_id: 3,
-        name: "Ropsten",
-        unit: "TETH",
-    },
-    Params {
-        coin: Some(EthCoin::RinkebyEth),
-        bip44_coin: 1 + HARDENED,
-        chain_id: 4,
-        name: "Rinkeby",
-        unit: "TETH",
+        chain_id: 5,
+        name: "Goerli",
+        unit: "GOETH",
     },
     Params {
         coin: None,
@@ -151,10 +144,8 @@ mod tests {
     pub fn test_get() {
         assert_eq!(get(EthCoin::Eth, 0).unwrap().name, "Ethereum");
         assert_eq!(get(EthCoin::Eth, 1).unwrap().name, "Ethereum");
-        assert_eq!(get(EthCoin::RopstenEth, 0).unwrap().name, "Ropsten");
-        assert_eq!(get(EthCoin::Eth, 3).unwrap().name, "Ropsten");
-        assert_eq!(get(EthCoin::RinkebyEth, 0).unwrap().name, "Rinkeby");
-        assert_eq!(get(EthCoin::Eth, 4).unwrap().name, "Rinkeby");
+        assert_eq!(get(EthCoin::GoerliEth, 0).unwrap().name, "Goerli");
+        assert_eq!(get(EthCoin::Eth, 5).unwrap().name, "Goerli");
         assert_eq!(get(EthCoin::Eth, 56).unwrap().name, "Binance Smart Chain");
 
         // Unknown chain id.

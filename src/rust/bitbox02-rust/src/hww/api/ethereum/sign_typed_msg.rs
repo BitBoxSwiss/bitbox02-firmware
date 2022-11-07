@@ -123,7 +123,7 @@ fn format_member_type(typ: &MemberType) -> Result<String, Error> {
 fn encode_type(types: &[StructType], name: &str) -> Result<String, Error> {
     let mut transitive_types = get_transitive_types(types, name)?;
     // First element contains the name of the type to encode - sort the rest of the types.
-    (&mut transitive_types[1..]).sort_unstable();
+    transitive_types[1..].sort_unstable();
     Ok(transitive_types
         .iter()
         .map(|name| -> Result<String, Error> {
@@ -460,7 +460,7 @@ async fn validate_chain_id(request: &pb::EthSignTypedMessageRequest) -> Result<(
 
 async fn eip712_sighash(types: &[StructType], primary_type: &str) -> Result<[u8; 32], Error> {
     let mut hasher = sha3::Keccak256::new();
-    hasher.update(&[0x19u8, 0x01]);
+    hasher.update([0x19u8, 0x01]);
     let domain_separator =
         hash_struct(types, RootObject::Domain, DOMAIN_TYPE_NAME, &[], &[], None).await?;
     hasher.update(&domain_separator);
@@ -633,7 +633,7 @@ mod tests {
             match self {
                 Object::String(s) => s.as_bytes().to_vec(),
                 Object::Bytes(b) => b.to_vec(),
-                Object::Bool(b) => [if *b { 1 } else { 0 }].to_vec(),
+                Object::Bool(b) => [(*b).into()].to_vec(),
                 Object::BigInt(i) => i.to_signed_bytes_be(),
                 Object::BigUint(i) => i.to_bytes_be(),
                 Object::List(l) => (l.len() as u32).to_be_bytes().to_vec(),

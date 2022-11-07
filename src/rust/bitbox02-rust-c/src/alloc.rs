@@ -23,7 +23,7 @@ fn bitbox02_alloc_error_handler(layout: core::alloc::Layout) -> ! {
 struct BB02Allocator;
 
 extern "C" {
-    pub fn malloc(size: util::c_types::size_t) -> *mut util::c_types::c_void;
+    pub fn malloc(size: usize) -> *mut util::c_types::c_void;
     pub fn free(p: *mut util::c_types::c_void);
 }
 

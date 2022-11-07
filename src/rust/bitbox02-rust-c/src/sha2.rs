@@ -57,7 +57,7 @@ pub unsafe extern "C" fn rust_sha256_finish(ctx: *mut *mut c_void, out: *mut c_u
 pub unsafe extern "C" fn rust_sha256_free(ctx: *mut *mut c_void) {
     if !(*ctx).is_null() {
         #[allow(clippy::cast_ptr_alignment)] // ctx is properly aligned, see `Box::into_raw`.
-        Box::from_raw(*ctx as *mut Sha256);
+        drop(Box::from_raw(*ctx as *mut Sha256));
         *ctx = core::ptr::null_mut();
     }
 }

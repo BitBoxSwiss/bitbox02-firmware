@@ -72,19 +72,20 @@
 //! feature is enabled. To enable it include rand as
 //!
 //! ```toml
-//! rand = "0.7"
-//! num-bigint = { version = "0.3", features = ["rand"] }
+//! rand = "0.8"
+//! num-bigint = { version = "0.4", features = ["rand"] }
 //! ```
 //!
 //! Note that you must use the version of `rand` that `num-bigint` is compatible
-//! with: `0.7`.
+//! with: `0.8`.
 //!
 //!
 //! ## Compatibility
 //!
 //! The `num-bigint` crate is tested for rustc 1.31 and greater.
 
-#![doc(html_root_url = "https://docs.rs/num-bigint/0.3")]
+#![doc(html_root_url = "https://docs.rs/num-bigint/0.4")]
+#![warn(rust_2018_idioms)]
 #![no_std]
 
 #[cfg(feature = "std")]
@@ -94,7 +95,7 @@ extern crate std;
 #[cfg(feature = "std")]
 mod std_alloc {
     pub(crate) use std::borrow::Cow;
-    #[cfg(any(feature = "quickcheck", feature = "arbitrary"))]
+    #[cfg(any(feature = "quickcheck"))]
     pub(crate) use std::boxed::Box;
     pub(crate) use std::string::String;
     pub(crate) use std::vec::Vec;
@@ -107,7 +108,7 @@ extern crate alloc;
 #[cfg(not(feature = "std"))]
 mod std_alloc {
     pub(crate) use alloc::borrow::Cow;
-    #[cfg(any(feature = "quickcheck", feature = "arbitrary"))]
+    #[cfg(any(feature = "quickcheck"))]
     pub(crate) use alloc::boxed::Box;
     pub(crate) use alloc::string::String;
     pub(crate) use alloc::vec::Vec;
@@ -221,13 +222,15 @@ where
 
 #[cfg(has_try_from)]
 impl<T> fmt::Display for TryFromBigIntError<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.__description().fmt(f)
     }
 }
 
 pub use crate::biguint::BigUint;
 pub use crate::biguint::ToBigUint;
+pub use crate::biguint::U32Digits;
+pub use crate::biguint::U64Digits;
 
 pub use crate::bigint::BigInt;
 pub use crate::bigint::Sign;

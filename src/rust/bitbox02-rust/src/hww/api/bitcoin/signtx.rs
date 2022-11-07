@@ -741,11 +741,15 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     let fee: u64 = total_out
         .checked_sub(outputs_sum_out)
         .ok_or(Error::InvalidInput)?;
-    let fee_percentage: f64 = 100. * (fee as f64) / (outputs_sum_out as f64);
+    let fee_percentage: Option<f64> = if outputs_sum_out == 0 {
+        None
+    } else {
+        Some(100. * (fee as f64) / (outputs_sum_out as f64))
+    };
     transaction::verify_total_fee(
         &format_amount(coin_params, format_unit, total_out)?,
         &format_amount(coin_params, format_unit, fee)?,
-        Some(fee_percentage),
+        fee_percentage,
     )
     .await?;
     status::status("Transaction\nconfirmed", true).await;

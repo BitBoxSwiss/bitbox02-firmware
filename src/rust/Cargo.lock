@@ -104,6 +104,7 @@ dependencies = [
  "lazy_static",
  "minicbor",
  "num-bigint",
+ "num-traits",
  "prost",
  "sha2",
  "sha3",

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::amount::Amount;
+use super::amount::{calculate_percentage, Amount};
 use super::params::Params;
 use super::pb;
 use super::Error;
@@ -174,9 +174,10 @@ async fn verify_standard_transaction(
     let total = Amount {
         unit: params.unit,
         decimals: WEI_DECIMALS,
-        value: amount.value.add(&fee.value),
+        value: (&amount.value).add(&fee.value),
     };
-    transaction::verify_total_fee(&total.format(), &fee.format(), None).await?;
+    let percentage = calculate_percentage(&fee.value, &amount.value);
+    transaction::verify_total_fee(&total.format(), &fee.format(), percentage).await?;
     Ok(())
 }
 
@@ -384,7 +385,58 @@ mod tests {
         );
     }
 
-    /// Standard ETH transaction on an unusual keypath (Goerly on mainnet keypath)
+    /// Test a transaction with an unusually high fee.
+    #[test]
+    fn test_high_fee_warning() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+
+        static mut UI_COUNTER: u32 = 0;
+        mock(Data {
+            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
+            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
+                assert_eq!(total, "0.59427728 ETH");
+                assert_eq!(fee, "0.06371328 ETH");
+                assert!(!longtouch);
+                true
+            })),
+            ui_confirm_create: Some(Box::new(move |params| {
+                match unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(params.title, "High fee");
+                        assert_eq!(params.body, "The fee rate\nis 12.0%.\nProceed?");
+                        assert!(params.longtouch);
+                        true
+                    }
+                    _ => panic!("too many user confirmations"),
+                }
+            })),
+            ..Default::default()
+        });
+        mock_unlocked();
+        assert!(block_on(process(&pb::EthSignRequest {
+            coin: pb::EthCoin::Eth as _,
+            keypath: KEYPATH.to_vec(),
+            nonce: b"\x1f\xdc".to_vec(),
+            // fee=gas_price*gas_limit=63713280000000000
+            gas_price: b"\x01\x65\xa0\xbc\x00\x00".to_vec(),
+            gas_limit: b"\xa2\x08".to_vec(),
+            recipient:
+                b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85"
+                    .to_vec(),
+            // 530564000000000000
+            value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+            data: b"".to_vec(),
+            host_nonce_commitment: None,
+            chain_id: 0,
+        }))
+        .is_ok());
+        assert_eq!(unsafe { UI_COUNTER }, 1);
+    }
+
+    /// Standard ETH transaction on an unusual keypath (Goerli on mainnet keypath)
     #[test]
     pub fn test_process_warn_unusual_keypath() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];

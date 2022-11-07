@@ -14,6 +14,7 @@
 
 use alloc::string::String;
 use num_bigint::BigUint;
+use num_traits::{ToPrimitive, Zero};
 
 pub struct Amount<'a> {
     pub unit: &'a str,
@@ -43,6 +44,15 @@ impl<'a> Amount<'a> {
             format!("{} {}", v, self.unit)
         }
     }
+}
+
+/// Computes the percentage of the fee of the amount, up to one decimal point.
+/// Returns None if the amount is 0 or either fee or amount cannot be represented by `f64`.
+pub fn calculate_percentage(fee: &BigUint, amount: &BigUint) -> Option<f64> {
+    if amount.is_zero() {
+        return None;
+    }
+    Some(100. * fee.to_f64()? / amount.to_f64()?)
 }
 
 #[cfg(test)]
@@ -135,5 +145,27 @@ mod tests {
                 test.expected_result
             );
         }
+    }
+
+    #[test]
+    pub fn test_calculate_percentage() {
+        let p = |f: u64, a: u64| calculate_percentage(&f.into(), &a.into());
+        assert_eq!(p(1, 0), None);
+        assert_eq!(p(3, 4), Some(75.));
+        assert_eq!(p(0, 100), Some(0.));
+        assert_eq!(p(1, 100), Some(1.));
+        assert_eq!(p(9, 100), Some(9.));
+        assert_eq!(p(10, 100), Some(10.));
+        assert_eq!(p(99, 100), Some(99.));
+        assert_eq!(p(909, 1000), Some(90.9));
+        assert_eq!(
+            calculate_percentage(
+                // 63713280000000000
+                &BigUint::from_bytes_be(b"\xe2\x5a\xe3\xfd\xe0\x00\x00"),
+                // 530564000000000000
+                &BigUint::from_bytes_be(b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00"),
+            ),
+            Some(12.008594627603833)
+        );
     }
 }

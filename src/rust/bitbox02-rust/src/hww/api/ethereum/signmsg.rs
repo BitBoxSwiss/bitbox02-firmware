@@ -157,12 +157,12 @@ mod tests {
                     CONFIRM_COUNTER
                 } {
                     1 => {
-                        assert_eq!(params.title, "Ropsten");
+                        assert_eq!(params.title, "Goerli");
                         assert_eq!(params.body, "Unusual keypath warning: m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
                         true
                     }
                     2 => {
-                        assert_eq!(params.title, "Ropsten");
+                        assert_eq!(params.title, "Goerli");
                         assert_eq!(params.body, EXPECTED_ADDRESS);
                         true
                     }
@@ -178,7 +178,7 @@ mod tests {
         });
         mock_unlocked();
         block_on(process(&pb::EthSignMessageRequest {
-            coin: pb::EthCoin::RopstenEth as _,
+            coin: pb::EthCoin::GoerliEth as _,
             keypath: KEYPATH.to_vec(),
             msg: MESSAGE.to_vec(),
             host_nonce_commitment: None,

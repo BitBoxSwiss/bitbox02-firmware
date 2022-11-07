@@ -16,15 +16,6 @@
 
 #include <util.h>
 
-static const app_eth_erc20_params_t _ropsten_erc20_params[] = {
-    {
-        .unit = "TEST",
-        .contract_address =
-            "\x2f\x45\xb6\xfb\x2f\x28\xa7\x3f\x11\x04\x00\x38\x6d\xa3\x10\x44\xb2\xe9\x53\xd4",
-        .decimals = 18,
-    },
-};
-
 static const app_eth_erc20_params_t _ethereum_erc20_params[] = {
     {
         .unit = "1SG",
@@ -13904,22 +13895,12 @@ const app_eth_erc20_params_t* app_eth_erc20_params_get(
     uint64_t chain_id,
     const uint8_t* contract_address)
 {
-    const app_eth_erc20_params_t* erc20_params;
-    size_t len;
-    switch (chain_id) {
-    case 1:
-        erc20_params = _ethereum_erc20_params;
-        len = sizeof(_ethereum_erc20_params) / sizeof(app_eth_erc20_params_t);
-        break;
-    case 3:
-        erc20_params = _ropsten_erc20_params;
-        len = sizeof(_ropsten_erc20_params) / sizeof(app_eth_erc20_params_t);
-        break;
-    default:
+    if (chain_id != 1) {
         return NULL;
     }
+    size_t len = sizeof(_ethereum_erc20_params) / sizeof(app_eth_erc20_params_t);
     for (size_t index = 0; index < len; index++) {
-        const app_eth_erc20_params_t* params = &erc20_params[index];
+        const app_eth_erc20_params_t* params = &_ethereum_erc20_params[index];
         if (MEMEQ(contract_address, params->contract_address, sizeof(params->contract_address))) {
             return params;
         }

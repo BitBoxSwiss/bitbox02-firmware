@@ -12,21 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use clap::Clap;
-
-#[derive(Clap)]
-struct Opts {
-    #[clap(long)]
-    messages_dir: String,
-    #[clap(long)]
-    out_dir: String,
-}
+use std::env;
 
 fn main() {
-    let opts: Opts = Opts::parse();
+    let args: Vec<String> = env::args().collect();
+    let messages_dir = &args[1];
+    let out_dir = &args[2];
     let mut config = prost_build::Config::new();
-    config.out_dir(opts.out_dir);
+    config.out_dir(out_dir);
     config
-        .compile_protos(&["hww.proto", "backup.proto"], &[&opts.messages_dir])
+        .compile_protos(&["hww.proto", "backup.proto"], &[messages_dir])
         .unwrap();
 }

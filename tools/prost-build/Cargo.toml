@@ -16,11 +16,8 @@
 name = "prost-build"
 version = "0.1.0"
 authors = ["Shift Crypto AG <support@shiftcrypto.ch>"]
-edition = "2018"
+edition = "2021"
 license = "Apache-2.0"
-
-[dependencies]
-clap = "3.0.0-beta.1"
 
 [dependencies.prost-build]
 # keep version in sync with src/rust/bitbox02-rust/Cargo.toml

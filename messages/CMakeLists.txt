@@ -33,7 +33,7 @@ add_custom_command(
   # Using prost-build the normal way as part of build.rs does not work due to a cargo bug:
   # https://github.com/danburkert/prost/issues/344#issuecomment-650721245
   COMMAND
-    ${PROST_BUILD} --messages-dir=${CMAKE_CURRENT_SOURCE_DIR} --out-dir=${CMAKE_SOURCE_DIR}/src/rust/bitbox02-rust/src/
+    ${PROST_BUILD} ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/src/rust/bitbox02-rust/src/
 )
 
 add_custom_target(

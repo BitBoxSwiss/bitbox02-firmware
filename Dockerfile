@@ -37,7 +37,7 @@ RUN mkdir ~/Downloads &&\
 # Tools for building
 RUN apt-get update && apt-get install -y \
     build-essential \
-    llvm \
+    llvm-15 \
     gcc-10 \
     binutils \
     valgrind \
@@ -129,8 +129,8 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/
 RUN rustup target add thumbv7em-none-eabi
 RUN rustup component add rustfmt
 RUN rustup component add clippy
-RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.23.0
-RUN CARGO_HOME=/opt/cargo cargo install bindgen --version 0.59.2
+RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.24.3
+RUN CARGO_HOME=/opt/cargo cargo install bindgen-cli --version 0.61.0
 
 COPY tools/prost-build prost-build
 RUN CARGO_HOME=/opt/cargo cargo install --path prost-build --locked

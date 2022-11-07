@@ -271,7 +271,7 @@ pub fn secp256k1_nonce_commit(
 pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let mnemonic = zeroize::Zeroizing::new(crate::util::str_to_cstr_vec(mnemonic)?);
     let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH]);
-    let mut seed_len: util::c_types::c_uint = 0;
+    let mut seed_len: usize = 0;
     match unsafe {
         bitbox02_sys::keystore_bip39_mnemonic_to_seed(
             mnemonic.as_ptr(),
@@ -279,7 +279,7 @@ pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u
             &mut seed_len,
         )
     } {
-        true => Ok(zeroize::Zeroizing::new(seed[..seed_len as usize].to_vec())),
+        true => Ok(zeroize::Zeroizing::new(seed[..seed_len].to_vec())),
         false => Err(()),
     }
 }

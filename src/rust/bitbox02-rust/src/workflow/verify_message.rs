@@ -36,7 +36,7 @@ impl core::convert::From<confirm::UserAbort> for Error {
 ///
 /// Otherwise, it is displayed as hex.
 pub async fn verify(msg: &[u8]) -> Result<(), Error> {
-    if ascii::is_printable_ascii(&msg, ascii::Charset::AllNewline) {
+    if ascii::is_printable_ascii(msg, ascii::Charset::AllNewline) {
         // The message is all ascii and printable.
         let msg = core::str::from_utf8(msg).unwrap();
 

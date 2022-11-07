@@ -55,7 +55,7 @@ pub fn list_subdir(subdir: Option<&str>) -> Result<Vec<String>, ()> {
     } {
         true => (0..list.0.num_files)
             .map(|i| unsafe {
-                let ptr = *list.0.files.offset(i as _) as *const u8;
+                let ptr = *list.0.files.add(i) as *const u8;
                 crate::util::str_from_null_terminated_ptr(ptr).map(String::from)
             })
             .collect(),
@@ -77,7 +77,7 @@ pub fn erase_file_in_subdir(filename: &str, dir: &str) -> Result<(), ()> {
 
 pub fn load_bin(filename: &str, dir: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let mut contents = zeroize::Zeroizing::new([0u8; SD_MAX_FILE_SIZE as _]);
-    let mut contents_len: bitbox02_sys::size_t = 0;
+    let mut contents_len: usize = 0;
     match unsafe {
         bitbox02_sys::sd_load_bin(
             str_to_cstr_vec(filename).unwrap().as_ptr(),

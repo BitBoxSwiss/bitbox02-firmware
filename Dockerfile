@@ -115,7 +115,7 @@ ENV GOPATH /opt/go
 ENV GOROOT /opt/go_dist/go
 ENV PATH $GOROOT/bin:$GOPATH/bin:$PATH
 RUN mkdir -p /opt/go_dist && \
-    curl https://dl.google.com/go/go1.14.4.linux-amd64.tar.gz | tar -xz -C /opt/go_dist
+    curl https://dl.google.com/go/go1.19.3.linux-amd64.tar.gz | tar -xz -C /opt/go_dist
 
 # Install lcov from release (the one from the repos is too old).
 RUN cd /opt && wget https://github.com/linux-test-project/lcov/releases/download/v1.14/lcov-1.14.tar.gz && tar -xf lcov-1.14.tar.gz

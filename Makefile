@@ -127,7 +127,7 @@ dockerdev:
 dockerrel:
 	./scripts/dockerenv.sh release
 generate-atecc608-config:
-	${MAKE} -C tools/go/src/atecc608a run
+	cd tools/atecc608a && go run main.go
 ci:
 	./.ci/ci
 prepare-tidy: | build build-build

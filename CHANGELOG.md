@@ -10,6 +10,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Bitcoin: warn if the transaction fee is higher than 10% of the coins sent
 - ETH Testnets: add Goerli and remove deprecated Rinkeby and Ropsten
 
+### 9.13.1
+- Fix bug introduced in 9.13.0: remove double cancel confirmation in the 'Restore from recovery words' workflow
+
 ### 9.13.0
 - Bitcoin: allow displaying BTC values in the 'sat' unit
 - Allow skipping the microSD card backup in favor of backing up using the recovery words

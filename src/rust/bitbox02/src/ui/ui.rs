@@ -279,7 +279,7 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
     };
     let title = params
         .title
-        .map(|title| crate::str_to_cstr_force!(title, MAX_LABEL_SIZE));
+        .map(|title| crate::util::str_to_cstr_vec(title).unwrap());
     let component = unsafe {
         bitbox02_sys::menu_create(
             c_words.as_ptr(),
@@ -287,7 +287,9 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
             select_word_cb_param,
             words.len() as _,
             // copied in C
-            title.map_or_else(|| core::ptr::null(), |title| title.as_ptr()),
+            title
+                .as_ref()
+                .map_or_else(|| core::ptr::null(), |title| title.as_ptr()),
             continue_on_last_cb,
             continue_on_last_cb_param,
             cancel_cb,

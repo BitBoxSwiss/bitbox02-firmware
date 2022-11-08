@@ -51,18 +51,3 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     bitbox02_rust::print_debug!(0, "Error: {}", info);
     loop {}
 }
-
-// Needed to link the C unit test executables in /test/unit-test.
-//
-// See https://doc.rust-lang.org/unstable-book/language-features/lang-items.html#writing-an-executable-without-stdlib.
-//
-// One could get rid of this and also considerably shrink the binary size by compiling core instead
-// of using pre-built binaries. See a proof of concept implementation here:
-// https://github.com/digitalbitbox/bitbox02-firmware/tree/build-std-PoC.  We decided against doing
-// this for now as the feature seems immature and because of the warnings against using it in
-// production:
-// https://github.com/rust-lang/wg-cargo-std-aware/tree/81765f0eb744b9c47840c16f43a32c9f61fd7f0c#mvp-implementation
-#[cfg(not(feature = "dont-export-eh-personality"))]
-#[lang = "eh_personality"]
-#[no_mangle]
-pub extern "C" fn rust_eh_personality() {}

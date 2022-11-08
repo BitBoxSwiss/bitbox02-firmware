@@ -37,7 +37,7 @@ RUN mkdir ~/Downloads &&\
 # Tools for building
 RUN apt-get update && apt-get install -y \
     build-essential \
-    llvm \
+    llvm-15 \
     gcc-10 \
     binutils \
     valgrind \
@@ -115,7 +115,7 @@ ENV GOPATH /opt/go
 ENV GOROOT /opt/go_dist/go
 ENV PATH $GOROOT/bin:$GOPATH/bin:$PATH
 RUN mkdir -p /opt/go_dist && \
-    curl https://dl.google.com/go/go1.14.4.linux-amd64.tar.gz | tar -xz -C /opt/go_dist
+    curl https://dl.google.com/go/go1.19.3.linux-amd64.tar.gz | tar -xz -C /opt/go_dist
 
 # Install lcov from release (the one from the repos is too old).
 RUN cd /opt && wget https://github.com/linux-test-project/lcov/releases/download/v1.14/lcov-1.14.tar.gz && tar -xf lcov-1.14.tar.gz
@@ -129,8 +129,8 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/
 RUN rustup target add thumbv7em-none-eabi
 RUN rustup component add rustfmt
 RUN rustup component add clippy
-RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.23.0
-RUN CARGO_HOME=/opt/cargo cargo install bindgen --version 0.59.2
+RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.24.3
+RUN CARGO_HOME=/opt/cargo cargo install bindgen-cli --version 0.61.0
 
 COPY tools/prost-build prost-build
 RUN CARGO_HOME=/opt/cargo cargo install --path prost-build --locked

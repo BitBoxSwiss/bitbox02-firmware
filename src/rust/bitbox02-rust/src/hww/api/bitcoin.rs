@@ -214,9 +214,7 @@ pub async fn process_pub(request: &pb::BtcPubRequest) -> Result<Response, Error>
         Some(coin) => coin,
         None => return Err(Error::InvalidInput),
     };
-    if let Err(err) = coin_enabled(coin) {
-        return Err(err);
-    }
+    coin_enabled(coin)?;
     match request.output {
         None => Err(Error::InvalidInput),
         Some(Output::XpubType(xpub_type)) => {

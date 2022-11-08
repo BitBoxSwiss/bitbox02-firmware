@@ -252,7 +252,7 @@ foreach(I RANGE 0 ${TEST_LIST_LEN} 2)
   list(GET TEST_LIST ${I} TEST_NAME)
   list(GET TEST_LIST ${I2} TEST_LINK_ARGS)
   set(EXE test_${TEST_NAME})
-  add_executable(${EXE} test_${TEST_NAME}.c)
+  add_executable(${EXE} test_${TEST_NAME}.c framework/eh_personality.c)
   # asan must be first library in linking order
   target_link_libraries(${EXE} PRIVATE
     $<$<BOOL:SANITIZE_ADDRESS>:asan>
@@ -279,7 +279,7 @@ foreach(TEST_NAME ${U2F_TESTS})
   set(EXE test_${TEST_NAME})
 
   # This tests link to our code
-  add_executable(${EXE} test_${TEST_NAME}.c framework/mock_hidapi.c)
+  add_executable(${EXE} test_${TEST_NAME}.c framework/mock_hidapi.c framework/eh_personality.c)
   target_link_libraries(${EXE} PRIVATE
     $<$<BOOL:SANITIZE_ADDRESS>:asan>
     $<$<BOOL:SANITIZE_UNDEFINED>:-fsanitize=undefined>

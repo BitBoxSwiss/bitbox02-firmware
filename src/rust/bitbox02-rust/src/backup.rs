@@ -86,7 +86,7 @@ fn compute_checksum(
         result[..name.len()].copy_from_slice(name);
         result
     };
-    hasher.update(&padded_name);
+    hasher.update(padded_name);
     hasher.update(data.seed_length.to_le_bytes());
     if data.seed.len() != 32 {
         return Err(());
@@ -102,7 +102,7 @@ fn compute_checksum(
         result[..generator.len()].copy_from_slice(generator);
         result
     };
-    hasher.update(&padded_generator);
+    hasher.update(padded_generator);
     hasher.update(data_length.to_le_bytes());
     Ok(hasher.finalize().to_vec())
 }

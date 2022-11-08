@@ -50,7 +50,7 @@ make -j8 factory-setup
 make -j8 bootloader-semihosting
 make -j8 firmware-semihosting
 
-make -C tools/go/src/atecc608a test
+(cd tools/atecc608a; go test ./...)
 
 # Don't generate graphics in CI
 (cd build; cmake -DDOC_GRAPHS=NO ..)

@@ -23,7 +23,7 @@ pub fn pkscript_from_multisig(
     keypath_address: u32,
 ) -> Result<Vec<u8>, ()> {
     let mut out = [0u8; bitbox02_sys::MAX_PK_SCRIPT_SIZE as usize];
-    let mut out_len: bitbox02_sys::size_t = out.len() as _;
+    let mut out_len: usize = out.len() as _;
     match unsafe {
         bitbox02_sys::btc_common_pkscript_from_multisig(
             multisig,

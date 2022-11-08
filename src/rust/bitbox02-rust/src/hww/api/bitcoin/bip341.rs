@@ -38,8 +38,8 @@ pub struct Args {
 pub fn sighash(args: &Args) -> [u8; 32] {
     let tag = Sha256::digest(b"TapSighash");
     let mut ctx = Sha256::new();
-    ctx.update(&tag);
-    ctx.update(&tag);
+    ctx.update(tag);
+    ctx.update(tag);
     // Sighash epoch 0
     ctx.update(0u8.to_le_bytes());
     // Control:

@@ -12,14 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub use super::cancel::{cancel, set_result, with_cancel, Error};
+pub use super::cancel::{cancel, set_result, Error};
 pub use bitbox02::ui::TrinaryInputStringParams as Params;
 
+use crate::bb02_async::option;
 use bitbox02::input::SafeInputString;
 use core::cell::RefCell;
 
 use alloc::boxed::Box;
 
+#[derive(Copy, Clone)]
 pub enum CanCancel {
     No,
     Yes,
@@ -46,5 +48,8 @@ pub async fn enter(
     if !preset.is_empty() {
         bitbox02::ui::trinary_input_string_set_input(&mut component, preset);
     }
-    with_cancel("", &mut component, &result).await
+    component.screen_stack_push();
+    option(&result)
+        .await
+        .or(Err(super::cancel::Error::Cancelled))
 }

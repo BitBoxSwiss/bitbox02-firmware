@@ -17,6 +17,14 @@ use bitbox02::input::SafeInputString;
 
 pub use trinary_input_string::{CanCancel, Error};
 
+async fn prompt_cancel() -> Result<(), confirm::UserAbort> {
+    confirm::confirm(&confirm::Params {
+        body: "Do you really\nwant to cancel?",
+        ..Default::default()
+    })
+    .await
+}
+
 /// If `can_cancel` is `Yes`, the workflow can be cancelled.
 /// If it is no, the result is always `Ok(())`.
 ///
@@ -37,7 +45,16 @@ pub async fn enter(
         longtouch: true,
         ..Default::default()
     };
-    trinary_input_string::enter(&params, can_cancel, "").await
+
+    loop {
+        match trinary_input_string::enter(&params, can_cancel, "").await {
+            o @ Ok(_) => return o,
+            Err(Error::Cancelled) => match prompt_cancel().await {
+                Ok(()) => return Err(Error::Cancelled),
+                Err(confirm::UserAbort) => {}
+            },
+        }
+    }
 }
 
 pub enum EnterTwiceError {
@@ -79,12 +96,7 @@ pub async fn enter_twice() -> Result<SafeInputString, EnterTwiceError> {
             .await
             {
                 Ok(()) => break,
-                Err(confirm::UserAbort) => match confirm::confirm(&confirm::Params {
-                    body: "Do you really\nwant to cancel?",
-                    ..Default::default()
-                })
-                .await
-                {
+                Err(confirm::UserAbort) => match prompt_cancel().await {
                     Ok(()) => return Err(EnterTwiceError::Cancelled),
                     Err(confirm::UserAbort) => {}
                 },

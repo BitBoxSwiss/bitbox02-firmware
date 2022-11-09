@@ -5,18 +5,11 @@ extern crate test;
 
 use num_bigint::{BigInt, BigUint, RandBigInt};
 use num_traits::{FromPrimitive, Num, One, Zero};
-use rand::rngs::StdRng;
-use rand::SeedableRng;
 use std::mem::replace;
 use test::Bencher;
 
-fn get_rng() -> StdRng {
-    let mut seed = [0; 32];
-    for i in 1..32 {
-        seed[usize::from(i)] = i;
-    }
-    SeedableRng::from_seed(seed)
-}
+mod rng;
+use rng::get_rng;
 
 fn multiply_bench(b: &mut Bencher, xbits: u64, ybits: u64) {
     let mut rng = get_rng();
@@ -46,7 +39,7 @@ fn factorial(n: usize) -> BigUint {
     let mut f: BigUint = One::one();
     for i in 1..=n {
         let bu: BigUint = FromPrimitive::from_usize(i).unwrap();
-        f += bu;
+        f *= bu;
     }
     f
 }
@@ -181,35 +174,40 @@ fn fib_to_string(b: &mut Bencher) {
     b.iter(|| fib.to_string());
 }
 
-fn to_str_radix_bench(b: &mut Bencher, radix: u32) {
+fn to_str_radix_bench(b: &mut Bencher, radix: u32, bits: u64) {
     let mut rng = get_rng();
-    let x = rng.gen_bigint(1009);
+    let x = rng.gen_bigint(bits);
     b.iter(|| x.to_str_radix(radix));
 }
 
 #[bench]
 fn to_str_radix_02(b: &mut Bencher) {
-    to_str_radix_bench(b, 2);
+    to_str_radix_bench(b, 2, 1009);
 }
 
 #[bench]
 fn to_str_radix_08(b: &mut Bencher) {
-    to_str_radix_bench(b, 8);
+    to_str_radix_bench(b, 8, 1009);
 }
 
 #[bench]
 fn to_str_radix_10(b: &mut Bencher) {
-    to_str_radix_bench(b, 10);
+    to_str_radix_bench(b, 10, 1009);
+}
+
+#[bench]
+fn to_str_radix_10_2(b: &mut Bencher) {
+    to_str_radix_bench(b, 10, 10009);
 }
 
 #[bench]
 fn to_str_radix_16(b: &mut Bencher) {
-    to_str_radix_bench(b, 16);
+    to_str_radix_bench(b, 16, 1009);
 }
 
 #[bench]
 fn to_str_radix_36(b: &mut Bencher) {
-    to_str_radix_bench(b, 36);
+    to_str_radix_bench(b, 36, 1009);
 }
 
 fn from_str_radix_bench(b: &mut Bencher, radix: u32) {
@@ -358,6 +356,21 @@ fn pow_bench_bigexp(b: &mut Bencher) {
     });
 }
 
+#[bench]
+fn pow_bench_1e1000(b: &mut Bencher) {
+    b.iter(|| BigUint::from(10u32).pow(1_000));
+}
+
+#[bench]
+fn pow_bench_1e10000(b: &mut Bencher) {
+    b.iter(|| BigUint::from(10u32).pow(10_000));
+}
+
+#[bench]
+fn pow_bench_1e100000(b: &mut Bencher) {
+    b.iter(|| BigUint::from(10u32).pow(100_000));
+}
+
 /// This modulus is the prime from the 2048-bit MODP DH group:
 /// https://tools.ietf.org/html/rfc3526#section-3
 const RFC3526_2048BIT_MODP_GROUP: &str = "\
@@ -392,4 +405,36 @@ fn modpow_even(b: &mut Bencher) {
     let m = BigUint::from_str_radix(RFC3526_2048BIT_MODP_GROUP, 16).unwrap() - 1u32;
 
     b.iter(|| base.modpow(&e, &m));
+}
+
+#[bench]
+fn to_u32_digits(b: &mut Bencher) {
+    let mut rng = get_rng();
+    let n = rng.gen_biguint(2048);
+
+    b.iter(|| n.to_u32_digits());
+}
+
+#[bench]
+fn iter_u32_digits(b: &mut Bencher) {
+    let mut rng = get_rng();
+    let n = rng.gen_biguint(2048);
+
+    b.iter(|| n.iter_u32_digits().max());
+}
+
+#[bench]
+fn to_u64_digits(b: &mut Bencher) {
+    let mut rng = get_rng();
+    let n = rng.gen_biguint(2048);
+
+    b.iter(|| n.to_u64_digits());
+}
+
+#[bench]
+fn iter_u64_digits(b: &mut Bencher) {
+    let mut rng = get_rng();
+    let n = rng.gen_biguint(2048);
+
+    b.iter(|| n.iter_u64_digits().max());
 }

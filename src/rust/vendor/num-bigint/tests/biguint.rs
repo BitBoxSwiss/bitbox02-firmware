@@ -1008,10 +1008,24 @@ fn test_checked_mul() {
 #[test]
 fn test_mul_overflow() {
     // Test for issue #187 - overflow due to mac3 incorrectly sizing temporary
-    let s = "531137992816767098689588206552468627329593117727031923199444138200403559860852242739162502232636710047537552105951370000796528760829212940754539968588340162273730474622005920097370111";
+    let s = "5311379928167670986895882065524686273295931177270319231994441382\
+             0040355986085224273916250223263671004753755210595137000079652876\
+             0829212940754539968588340162273730474622005920097370111";
     let a: BigUint = s.parse().unwrap();
     let b = a.clone();
     let _ = a.checked_mul(&b);
+}
+
+#[test]
+fn test_mul_overflow_2() {
+    // Try a bunch of sizes that are right on the edge of multiplication length
+    // overflow, where (x * x).data.len() == 2 * x.data.len() + 1.
+    for i in 1u8..20 {
+        let bits = 1u32 << i;
+        let x = (BigUint::one() << bits) - 1u32;
+        let x2 = (BigUint::one() << (2 * bits)) - &x - &x - 1u32;
+        assert_eq!(&x * &x, x2);
+    }
 }
 
 #[test]
@@ -1551,6 +1565,8 @@ fn test_from_and_to_radix() {
     }
 
     assert!(BigUint::from_radix_le(&[10, 100, 10], 50).is_none());
+    assert_eq!(BigUint::from_radix_le(&[], 2), Some(BigUint::zero()));
+    assert_eq!(BigUint::from_radix_be(&[], 2), Some(BigUint::zero()));
 }
 
 #[test]
@@ -1595,6 +1611,16 @@ fn test_all_str_radix() {
         let s = s.to_ascii_uppercase();
         let x = BigUint::from_str_radix(&s, radix);
         assert_eq!(x.unwrap(), n);
+    }
+}
+
+#[test]
+fn test_big_str() {
+    for n in 2..=20_u32 {
+        let x: BigUint = BigUint::from(n).pow(10_000_u32);
+        let s = x.to_string();
+        let y: BigUint = s.parse().unwrap();
+        assert_eq!(x, y);
     }
 }
 
@@ -1774,4 +1800,65 @@ fn test_pow() {
     check!(u64);
     check!(u128);
     check!(usize);
+
+    let pow_1e10000 = BigUint::from(10u32).pow(10_000_u32);
+    let manual_1e10000 = repeat(10u32).take(10_000).product::<BigUint>();
+    assert!(manual_1e10000 == pow_1e10000);
+}
+
+#[test]
+fn test_trailing_zeros() {
+    assert!(BigUint::from(0u8).trailing_zeros().is_none());
+    assert_eq!(BigUint::from(1u8).trailing_zeros().unwrap(), 0);
+    assert_eq!(BigUint::from(2u8).trailing_zeros().unwrap(), 1);
+    let x: BigUint = BigUint::one() << 128;
+    assert_eq!(x.trailing_zeros().unwrap(), 128);
+}
+
+#[test]
+fn test_trailing_ones() {
+    assert_eq!(BigUint::from(0u8).trailing_ones(), 0);
+    assert_eq!(BigUint::from(1u8).trailing_ones(), 1);
+    assert_eq!(BigUint::from(2u8).trailing_ones(), 0);
+    assert_eq!(BigUint::from(3u8).trailing_ones(), 2);
+    let x: BigUint = (BigUint::from(3u8) << 128) | BigUint::from(3u8);
+    assert_eq!(x.trailing_ones(), 2);
+    let x: BigUint = (BigUint::one() << 128) - BigUint::one();
+    assert_eq!(x.trailing_ones(), 128);
+}
+
+#[test]
+fn test_count_ones() {
+    assert_eq!(BigUint::from(0u8).count_ones(), 0);
+    assert_eq!(BigUint::from(1u8).count_ones(), 1);
+    assert_eq!(BigUint::from(2u8).count_ones(), 1);
+    assert_eq!(BigUint::from(3u8).count_ones(), 2);
+    let x: BigUint = (BigUint::from(3u8) << 128) | BigUint::from(3u8);
+    assert_eq!(x.count_ones(), 4);
+}
+
+#[test]
+fn test_bit() {
+    assert!(!BigUint::from(0u8).bit(0));
+    assert!(!BigUint::from(0u8).bit(100));
+    assert!(!BigUint::from(42u8).bit(4));
+    assert!(BigUint::from(42u8).bit(5));
+    let x: BigUint = (BigUint::from(3u8) << 128) | BigUint::from(3u8);
+    assert!(x.bit(129));
+    assert!(!x.bit(130));
+}
+
+#[test]
+fn test_set_bit() {
+    let mut x = BigUint::from(3u8);
+    x.set_bit(128, true);
+    x.set_bit(129, true);
+    assert_eq!(x, (BigUint::from(3u8) << 128) | BigUint::from(3u8));
+    x.set_bit(0, false);
+    x.set_bit(128, false);
+    x.set_bit(130, false);
+    assert_eq!(x, (BigUint::from(2u8) << 128) | BigUint::from(2u8));
+    x.set_bit(129, false);
+    x.set_bit(1, false);
+    assert_eq!(x, BigUint::zero());
 }

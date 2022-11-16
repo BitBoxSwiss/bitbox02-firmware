@@ -257,10 +257,11 @@ async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Respons
         })
         .await?;
     } else {
+        let fee_percentage: f64 = 100. * (request.fee as f64) / (total as f64);
         transaction::verify_total_fee(
             &format_value(params, total + request.fee),
             &format_value(params, request.fee),
-            None,
+            Some(fee_percentage),
         )
         .await?;
     }
@@ -564,6 +565,10 @@ mod tests {
                     4 => {
                         assert_eq!(params.title, "Cardano");
                         assert_eq!(params.body, "Fee\n0.191681 ADA");
+                        true
+                    }
+                    5 => {
+                        assert_eq!(params.title, "High fee");
                         true
                     }
                     _ => panic!("too many user confirmations"),
@@ -898,6 +903,10 @@ mod tests {
                         assert_eq!(params.body, "Transaction\ncannot be\nmined");
                         true
                     }
+                    2 => {
+                        assert_eq!(params.title, "High fee");
+                        true
+                    }
                     _ => panic!("too many user confirmations"),
                 }
             })),
@@ -969,6 +978,10 @@ mod tests {
                         assert_eq!(params.body, "Can be mined from\nslot 335011 in\nepoch 292");
                         true
                     }
+                    2 => {
+                        assert_eq!(params.title, "High fee");
+                        true
+                    }
                     _ => panic!("too many user confirmations"),
                 }
             })),
@@ -1028,6 +1041,10 @@ mod tests {
                     1 => {
                         assert_eq!(params.title, "Cardano");
                         assert_eq!(params.body, "Transaction\ncannot be\nmined");
+                        true
+                    }
+                    2 => {
+                        assert_eq!(params.title, "High fee");
                         true
                     }
                     _ => panic!("too many user confirmations"),
@@ -1143,6 +1160,10 @@ mod tests {
                         );
                         true
                     }
+                    5 => {
+                        assert_eq!(params.title, "High fee");
+                        true
+                    }
                     _ => panic!("unexpected user confirmation"),
                 }
             })),
@@ -1174,6 +1195,76 @@ mod tests {
                 }]
             })
         );
+    }
+
+    // Test a transaction with an unusually high fee.
+    #[test]
+    fn test_high_fee_warning() {
+        let tx = pb::CardanoSignTransactionRequest {
+            network: CardanoNetwork::CardanoMainnet as _,
+            inputs: vec![pb::cardano_sign_transaction_request::Input {
+                keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                prev_out_hash: b"\x59\x86\x4e\xe7\x3c\xa5\xd9\x10\x98\xa3\x2b\x3c\xe9\x81\x1b\xac\x19\x96\xdc\xba\xef\xa6\xb6\x24\x7d\xca\xaf\xb5\x77\x9c\x25\x38".to_vec(),
+                prev_out_index: 0,
+            }],
+            outputs: vec![
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
+                    value: 1000000,
+                    script_config: None,
+                    asset_groups: vec![],
+                },
+                // change
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs".into(),
+                    value: 4829501,
+                    script_config: Some(CardanoScriptConfig{
+                        config: Some(pb::cardano_script_config::Config::PkhSkh(pb::cardano_script_config::PkhSkh {
+                            keypath_payment: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                            keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
+                        }))
+                    }),
+                    asset_groups: vec![],
+                },
+            ],
+            fee: 170499,
+            ttl: 0,
+            allow_zero_ttl: false,
+            certificates: vec![],
+            withdrawals: vec![],
+            validity_interval_start: 0,
+        };
+
+        static mut CONFIRM_COUNTER: u32 = 0;
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(params.title, "High fee");
+                        assert_eq!(params.body, "The fee rate\nis 17.0%.\nProceed?");
+                        assert!(params.longtouch);
+                        true
+                    }
+                    _ => panic!("unexpected user confirmations"),
+                }
+            })),
+
+            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
+            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
+                assert_eq!(total, "1.170499 ADA");
+                assert_eq!(fee, "0.170499 ADA");
+                assert!(!longtouch);
+                true
+            })),
+            ..Default::default()
+        });
+        mock_unlocked();
+
+        assert!(block_on(process(&tx)).is_ok());
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
     }
 
     #[test]

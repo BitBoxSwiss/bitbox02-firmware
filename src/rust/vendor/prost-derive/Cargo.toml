@@ -10,11 +10,13 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 name = "prost-derive"
-version = "0.10.1"
+version = "0.11.5"
 authors = [
     "Dan Burkert <dan@danburkert.com>",
+    "Lucio Franco <luciofranco14@gmail.com>",
     "Tokio Contributors <team@tokio.rs>",
 ]
 description = "A Protocol Buffers implementation for the Rust Language."
@@ -27,10 +29,12 @@ repository = "https://github.com/tokio-rs/prost"
 proc_macro = true
 
 [dependencies.anyhow]
-version = "1"
+version = "1.0.1"
 
 [dependencies.itertools]
 version = "0.10"
+features = ["use_alloc"]
+default-features = false
 
 [dependencies.proc-macro2]
 version = "1"
@@ -39,5 +43,5 @@ version = "1"
 version = "1"
 
 [dependencies.syn]
-version = "1"
+version = "1.0.3"
 features = ["extra-traits"]

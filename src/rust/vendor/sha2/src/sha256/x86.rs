@@ -1,9 +1,11 @@
+//! SHA-256 `x86`/`x86_64` backend
+
 #![allow(clippy::many_single_char_names)]
 
-#[cfg(target_arch = "x86_64")]
-use core::arch::x86_64::*;
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
+#[cfg(target_arch = "x86_64")]
+use core::arch::x86_64::*;
 
 unsafe fn schedule(v0: __m128i, v1: __m128i, v2: __m128i, v3: __m128i) -> __m128i {
     let t1 = _mm_sha256msg1_epu32(v0, v1);
@@ -61,7 +63,7 @@ unsafe fn digest_blocks(state: &mut [u32; 8], blocks: &[[u8; 64]]) {
         let mut w0 = _mm_shuffle_epi8(_mm_loadu_si128(data_ptr.add(0)), MASK);
         let mut w1 = _mm_shuffle_epi8(_mm_loadu_si128(data_ptr.add(1)), MASK);
         let mut w2 = _mm_shuffle_epi8(_mm_loadu_si128(data_ptr.add(2)), MASK);
-        let mut w3 = _mm_shuffle_epi8( _mm_loadu_si128(data_ptr.add(3)), MASK);
+        let mut w3 = _mm_shuffle_epi8(_mm_loadu_si128(data_ptr.add(3)), MASK);
         let mut w4;
 
         rounds4!(abef, cdgh, w0, 0);
@@ -95,10 +97,12 @@ unsafe fn digest_blocks(state: &mut [u32; 8], blocks: &[[u8; 64]]) {
     _mm_storeu_si128(state_ptr_mut.add(1), hgef);
 }
 
+cpufeatures::new!(shani_cpuid, "sha", "sse2", "ssse3", "sse4.1");
+
 pub fn compress(state: &mut [u32; 8], blocks: &[[u8; 64]]) {
     // TODO: Replace with https://github.com/rust-lang/rfcs/pull/2725
     // after stabilization
-    if cpuid_bool::cpuid_bool!("sha", "sse2", "ssse3", "sse4.1") {
+    if shani_cpuid::get() {
         unsafe {
             digest_blocks(state, blocks);
         }

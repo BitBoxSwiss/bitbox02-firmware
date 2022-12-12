@@ -1,5 +1,6 @@
+use core::fmt;
 use proc_macro2::{Ident, Span};
-use std::fmt;
+use std::borrow::Cow;
 
 /// Specialized formatting trait used by `format_ident!`.
 ///
@@ -54,6 +55,19 @@ impl IdentFragment for Ident {
     }
 }
 
+impl<T> IdentFragment for Cow<'_, T>
+where
+    T: IdentFragment + ToOwned + ?Sized,
+{
+    fn span(&self) -> Option<Span> {
+        T::span(self)
+    }
+
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        T::fmt(self, f)
+    }
+}
+
 // Limited set of types which this is implemented for, as we want to avoid types
 // which will often include non-identifier characters in their `Display` impl.
 macro_rules! ident_fragment_display {
@@ -65,8 +79,8 @@ macro_rules! ident_fragment_display {
                 }
             }
         )*
-    }
+    };
 }
 
-ident_fragment_display!(bool, str, String);
+ident_fragment_display!(bool, str, String, char);
 ident_fragment_display!(u8, u16, u32, u64, u128, usize);

@@ -1,16 +1,10 @@
 use crate::{SIGNED, BYTES, TEXT, ARRAY, MAP, TAGGED, SIMPLE};
-use crate::data::Tag;
+use crate::data::{Int, Tag};
 use crate::encode::{Encode, Error, Write};
 
 /// A non-allocating CBOR encoder writing encoded bytes to the given [`Write`] sink.
 #[derive(Debug, Clone)]
 pub struct Encoder<W> { writer: W }
-
-impl<W> AsRef<W> for Encoder<W> {
-    fn as_ref(&self) -> &W {
-        &self.writer
-    }
-}
 
 impl<W: Write> Encoder<W> {
     /// Construct an `Encoder` that writes to the given [`Write`] sink.
@@ -19,13 +13,35 @@ impl<W: Write> Encoder<W> {
     }
 
     /// Get back the [`Write`] impl.
+    #[deprecated(note = "use Encoder::into_writer instead")]
     pub fn into_inner(self) -> W {
         self.writer
     }
 
+    /// Access the inner writer.
+    pub fn writer(&self) -> &W {
+        &self.writer
+    }
+
+    /// Get mutable access to the inner writer.
+    pub fn writer_mut(&mut self) -> &mut W {
+        &mut self.writer
+    }
+
+    /// Get back the [`Write`] impl.
+    pub fn into_writer(self) -> W {
+        self.writer
+    }
+
     /// Encode any type that implements [`Encode`].
-    pub fn encode<T: Encode>(&mut self, x: T) -> Result<&mut Self, Error<W::Error>> {
-        x.encode(self)?;
+    pub fn encode<T: Encode<()>>(&mut self, x: T) -> Result<&mut Self, Error<W::Error>> {
+        x.encode(self, &mut ())?;
+        Ok(self)
+    }
+
+    /// Encode any type that implements [`Encode`].
+    pub fn encode_with<C, T: Encode<C>>(&mut self, x: T, ctx: &mut C) -> Result<&mut Self, Error<W::Error>> {
+        x.encode(self, ctx)?;
         Ok(self)
     }
 
@@ -110,6 +126,22 @@ impl<W: Write> Encoder<W> {
             return self.u64(x as u64)
         }
         match (-1 - x) as u64 {
+            n @ 0        ..= 0x17        => self.put(&[SIGNED | n as u8]),
+            n @ 0x18     ..= 0xff        => self.put(&[SIGNED | 24, n as u8]),
+            n @ 0x100    ..= 0xffff      => self.put(&[SIGNED | 25])?.put(&(n as u16).to_be_bytes()[..]),
+            n @ 0x1_0000 ..= 0xffff_ffff => self.put(&[SIGNED | 26])?.put(&(n as u32).to_be_bytes()[..]),
+            n                            => self.put(&[SIGNED | 27])?.put(&n.to_be_bytes()[..])
+        }
+    }
+
+    /// Encode a CBOR integer.
+    ///
+    /// See [`Int`] for details regarding the value range of CBOR integers.
+    pub fn int(&mut self, x: Int) -> Result<&mut Self, Error<W::Error>> {
+        if !x.is_negative() {
+            return self.u64(x.value())
+        }
+        match x.value() {
             n @ 0        ..= 0x17        => self.put(&[SIGNED | n as u8]),
             n @ 0x18     ..= 0xff        => self.put(&[SIGNED | 24, n as u8]),
             n @ 0x100    ..= 0xffff      => self.put(&[SIGNED | 25])?.put(&(n as u16).to_be_bytes()[..]),
@@ -245,7 +277,7 @@ impl<W: Write> Encoder<W> {
 
     /// Write the encoded byte slice.
     pub(crate) fn put(&mut self, b: &[u8]) -> Result<&mut Self, Error<W::Error>> {
-        self.writer.write_all(b).map_err(Error::Write)?;
+        self.writer.write_all(b).map_err(Error::write)?;
         Ok(self)
     }
 

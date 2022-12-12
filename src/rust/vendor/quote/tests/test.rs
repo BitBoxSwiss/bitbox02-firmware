@@ -1,10 +1,16 @@
-#![cfg_attr(feature = "cargo-clippy", allow(blacklisted_name))]
+#![allow(
+    clippy::blacklisted_name,
+    clippy::let_underscore_drop,
+    clippy::shadow_unrelated,
+    clippy::unseparated_literal_suffix,
+    clippy::used_underscore_binding
+)]
 
 use std::borrow::Cow;
 use std::collections::BTreeSet;
 
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{format_ident, quote, TokenStreamExt};
+use quote::{format_ident, quote, quote_spanned, TokenStreamExt};
 
 struct X;
 
@@ -26,8 +32,30 @@ fn test_quote_impl() {
 
     let expected = concat!(
         "impl < 'a , T : ToTokens > ToTokens for & 'a T { ",
-        "fn to_tokens ( & self , tokens : & mut TokenStream ) { ",
-        "( * * self ) . to_tokens ( tokens ) ",
+        "fn to_tokens (& self , tokens : & mut TokenStream) { ",
+        "(* * self) . to_tokens (tokens) ",
+        "} ",
+        "}"
+    );
+
+    assert_eq!(expected, tokens.to_string());
+}
+
+#[test]
+fn test_quote_spanned_impl() {
+    let span = Span::call_site();
+    let tokens = quote_spanned! {span=>
+        impl<'a, T: ToTokens> ToTokens for &'a T {
+            fn to_tokens(&self, tokens: &mut TokenStream) {
+                (**self).to_tokens(tokens)
+            }
+        }
+    };
+
+    let expected = concat!(
+        "impl < 'a , T : ToTokens > ToTokens for & 'a T { ",
+        "fn to_tokens (& self , tokens : & mut TokenStream) { ",
+        "(* * self) . to_tokens (tokens) ",
         "} ",
         "}"
     );
@@ -40,7 +68,7 @@ fn test_substitution() {
     let x = X;
     let tokens = quote!(#x <#x> (#x) [#x] {#x});
 
-    let expected = "X < X > ( X ) [ X ] { X }";
+    let expected = "X < X > (X) [X] { X }";
 
     assert_eq!(expected, tokens.to_string());
 }
@@ -54,6 +82,27 @@ fn test_iter() {
     assert_eq!("X , X , X , X ,", quote!(#(#primes,)*).to_string());
 
     assert_eq!("X , X , X , X", quote!(#(#primes),*).to_string());
+}
+
+#[test]
+fn test_array() {
+    let array: [u8; 40] = [0; 40];
+    let _ = quote!(#(#array #array)*);
+
+    let ref_array: &[u8; 40] = &[0; 40];
+    let _ = quote!(#(#ref_array #ref_array)*);
+
+    let ref_slice: &[u8] = &[0; 40];
+    let _ = quote!(#(#ref_slice #ref_slice)*);
+
+    let array: [X; 2] = [X, X]; // !Copy
+    let _ = quote!(#(#array #array)*);
+
+    let ref_array: &[X; 2] = &[X, X];
+    let _ = quote!(#(#ref_array #ref_array)*);
+
+    let ref_slice: &[X] = &[X, X];
+    let _ = quote!(#(#ref_slice #ref_slice)*);
 }
 
 #[test]
@@ -96,10 +145,10 @@ fn test_advanced() {
         "phantom : :: std :: marker :: PhantomData < Cow < 'a , str > > , ",
         "} ",
         "impl < 'a , T > :: serde :: Serialize for SerializeWith < 'a , T > where T : Serialize { ",
-        "fn serialize < S > ( & self , s : & mut S ) -> Result < ( ) , S :: Error > ",
+        "fn serialize < S > (& self , s : & mut S) -> Result < () , S :: Error > ",
         "where S : :: serde :: Serializer ",
         "{ ",
-        "SomeTrait :: serialize_with ( self . value , s ) ",
+        "SomeTrait :: serialize_with (self . value , s) ",
         "} ",
         "} ",
         "SerializeWith { ",
@@ -127,10 +176,12 @@ fn test_integer() {
     let uusize = 1usize;
 
     let tokens = quote! {
+        1 1i32 1u256
         #ii8 #ii16 #ii32 #ii64 #ii128 #iisize
         #uu8 #uu16 #uu32 #uu64 #uu128 #uusize
     };
-    let expected = "-1i8 -1i16 -1i32 -1i64 -1i128 -1isize 1u8 1u16 1u32 1u64 1u128 1usize";
+    let expected =
+        "1 1i32 1u256 - 1i8 - 1i16 - 1i32 - 1i64 - 1i128 - 1isize 1u8 1u16 1u32 1u64 1u128 1usize";
     assert_eq!(expected, tokens.to_string());
 }
 
@@ -150,7 +201,7 @@ fn test_floating() {
 
 #[test]
 fn test_char() {
-    let zero = '\0';
+    let zero = '\u{1}';
     let pound = '#';
     let quote = '"';
     let apost = '\'';
@@ -160,23 +211,48 @@ fn test_char() {
     let tokens = quote! {
         #zero #pound #quote #apost #newline #heart
     };
-    let expected = "'\\u{0}' '#' '\"' '\\'' '\\n' '\u{2764}'";
+    let expected = "'\\u{1}' '#' '\"' '\\'' '\\n' '\u{2764}'";
     assert_eq!(expected, tokens.to_string());
 }
 
 #[test]
 fn test_str() {
-    let s = "\0 a 'b \" c";
+    let s = "\u{1} a 'b \" c";
     let tokens = quote!(#s);
-    let expected = "\"\\u{0} a 'b \\\" c\"";
+    let expected = "\"\\u{1} a 'b \\\" c\"";
     assert_eq!(expected, tokens.to_string());
 }
 
 #[test]
 fn test_string() {
-    let s = "\0 a 'b \" c".to_string();
+    let s = "\u{1} a 'b \" c".to_string();
     let tokens = quote!(#s);
-    let expected = "\"\\u{0} a 'b \\\" c\"";
+    let expected = "\"\\u{1} a 'b \\\" c\"";
+    assert_eq!(expected, tokens.to_string());
+}
+
+#[test]
+fn test_interpolated_literal() {
+    macro_rules! m {
+        ($literal:literal) => {
+            quote!($literal)
+        };
+    }
+
+    let tokens = m!(1);
+    let expected = "1";
+    assert_eq!(expected, tokens.to_string());
+
+    let tokens = m!(-1);
+    let expected = "- 1";
+    assert_eq!(expected, tokens.to_string());
+
+    let tokens = m!(true);
+    let expected = "true";
+    assert_eq!(expected, tokens.to_string());
+
+    let tokens = m!(-true);
+    let expected = "- true";
     assert_eq!(expected, tokens.to_string());
 }
 
@@ -186,6 +262,13 @@ fn test_ident() {
     let bar = Ident::new(&format!("Bar{}", 7), Span::call_site());
     let tokens = quote!(struct #foo; enum #bar {});
     let expected = "struct Foo ; enum Bar7 { }";
+    assert_eq!(expected, tokens.to_string());
+}
+
+#[test]
+fn test_underscore() {
+    let tokens = quote!(let _;);
+    let expected = "let _ ;";
     assert_eq!(expected, tokens.to_string());
 }
 
@@ -341,12 +424,14 @@ fn test_format_ident() {
     let id2 = format_ident!("Hello{x}", x = 5usize);
     let id3 = format_ident!("Hello{}_{x}", id0, x = 10usize);
     let id4 = format_ident!("Aa", span = Span::call_site());
+    let id5 = format_ident!("Hello{}", Cow::Borrowed("World"));
 
     assert_eq!(id0, "Aa");
     assert_eq!(id1, "HelloAa");
     assert_eq!(id2, "Hello5");
     assert_eq!(id3, "HelloAa_10");
     assert_eq!(id4, "Aa");
+    assert_eq!(id5, "HelloWorld");
 }
 
 #[test]
@@ -365,7 +450,7 @@ fn test_outer_line_comment() {
     let tokens = quote! {
         /// doc
     };
-    let expected = "# [ doc = r\" doc\" ]";
+    let expected = "# [doc = r\" doc\"]";
     assert_eq!(expected, tokens.to_string());
 }
 
@@ -374,7 +459,7 @@ fn test_inner_line_comment() {
     let tokens = quote! {
         //! doc
     };
-    let expected = "# ! [ doc = r\" doc\" ]";
+    let expected = "# ! [doc = r\" doc\"]";
     assert_eq!(expected, tokens.to_string());
 }
 
@@ -383,7 +468,7 @@ fn test_outer_block_comment() {
     let tokens = quote! {
         /** doc */
     };
-    let expected = "# [ doc = r\" doc \" ]";
+    let expected = "# [doc = r\" doc \"]";
     assert_eq!(expected, tokens.to_string());
 }
 
@@ -392,7 +477,7 @@ fn test_inner_block_comment() {
     let tokens = quote! {
         /*! doc */
     };
-    let expected = "# ! [ doc = r\" doc \" ]";
+    let expected = "# ! [doc = r\" doc \"]";
     assert_eq!(expected, tokens.to_string());
 }
 
@@ -401,7 +486,7 @@ fn test_outer_attr() {
     let tokens = quote! {
         #[inline]
     };
-    let expected = "# [ inline ]";
+    let expected = "# [inline]";
     assert_eq!(expected, tokens.to_string());
 }
 
@@ -410,7 +495,7 @@ fn test_inner_attr() {
     let tokens = quote! {
         #![no_std]
     };
-    let expected = "# ! [ no_std ]";
+    let expected = "# ! [no_std]";
     assert_eq!(expected, tokens.to_string());
 }
 
@@ -424,7 +509,7 @@ fn test_star_after_repetition() {
         )*
         *out = None;
     };
-    let expected = "f ( '0' ) ; f ( '1' ) ; * out = None ;";
+    let expected = "f ('0') ; f ('1') ; * out = None ;";
     assert_eq!(expected, tokens.to_string());
 }
 

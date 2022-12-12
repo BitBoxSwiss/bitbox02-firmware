@@ -16,6 +16,7 @@ pub enum Type {
     I16,
     I32,
     I64,
+    Int,
     F16,
     F32,
     F64,
@@ -47,6 +48,7 @@ impl fmt::Display for Type {
             Type::I16         => f.write_str("i16"),
             Type::I32         => f.write_str("i32"),
             Type::I64         => f.write_str("i64"),
+            Type::Int         => f.write_str("int"),
             Type::F16         => f.write_str("f16"),
             Type::F32         => f.write_str("f32"),
             Type::F64         => f.write_str("f64"),
@@ -62,39 +64,6 @@ impl fmt::Display for Type {
             Type::Tag         => f.write_str("tag"),
             Type::Break       => f.write_str("break"),
             Type::Unknown(n)  => write!(f, "{:#x}", n)
-        }
-    }
-}
-
-impl Type {
-    pub(crate) fn read(n: u8) -> Self {
-        match n {
-            0x00 ..= 0x18        => Type::U8,
-            0x19                 => Type::U16,
-            0x1a                 => Type::U32,
-            0x1b                 => Type::U64,
-            0x20 ..= 0x38        => Type::I8,
-            0x39                 => Type::I16,
-            0x3a                 => Type::I32,
-            0x3b                 => Type::I64,
-            0x40 ..= 0x5b        => Type::Bytes,
-            0x5f                 => Type::BytesIndef,
-            0x60 ..= 0x7b        => Type::String,
-            0x7f                 => Type::StringIndef,
-            0x80 ..= 0x9b        => Type::Array,
-            0x9f                 => Type::ArrayIndef,
-            0xa0 ..= 0xbb        => Type::Map,
-            0xbf                 => Type::MapIndef,
-            0xc0 ..= 0xdb        => Type::Tag,
-            0xe0 ..= 0xf3 | 0xf8 => Type::Simple,
-            0xf4 | 0xf5          => Type::Bool,
-            0xf6                 => Type::Null,
-            0xf7                 => Type::Undefined,
-            0xf9                 => Type::F16,
-            0xfa                 => Type::F32,
-            0xfb                 => Type::F64,
-            0xff                 => Type::Break,
-            _                    => Type::Unknown(n)
         }
     }
 }
@@ -164,60 +133,222 @@ impl Tag {
     }
 }
 
-/// The neutral element w.r.t. [`Encode`](crate::Encode) and [`Decode`](crate::Decode).
+/// CBOR integer type that covers values of [-2<sup>64</sup>, 2<sup>64</sup> - 1]
 ///
-/// This newtype merely wraps a byte slice which is assumed to be a CBOR value
-/// and implements `Encode` and `Decode` as no-ops, i.e. the `Encode` impl
-/// writes the byte slice as is and the `Decode` impl returns the byte slice
-/// as is.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct Cbor<'b>(&'b [u8]);
+/// CBOR integers keep the sign bit in the major type so there is one extra bit
+/// available for signed numbers compared to Rust's integer types. This type can
+/// be used to encode and decode the full CBOR integer range.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Int { neg: bool, val: u64 }
 
-impl<'b> From<&'b [u8]> for Cbor<'b> {
-    fn from(cbor: &'b [u8]) -> Self {
-        Cbor(cbor)
+/// Max. CBOR integer value (2<sup>64</sup> - 1).
+pub const MAX_INT: Int = Int { neg: false, val: u64::MAX };
+
+/// Min. CBOR integer value (-2<sup>64</sup>).
+pub const MIN_INT: Int = Int { neg: true, val: u64::MAX };
+
+impl Int {
+    pub(crate) fn pos<T: Into<u64>>(val: T) -> Self {
+        Int { neg: false, val: val.into() }
+    }
+
+    pub(crate) fn neg<T: Into<u64>>(val: T) -> Self {
+        Int { neg: true, val: val.into() }
+    }
+
+    pub(crate) fn value(&self) -> u64 {
+        self.val
+    }
+
+    pub(crate) fn is_negative(&self) -> bool {
+        self.neg
     }
 }
 
-impl<'b> From<Cbor<'b>> for &'b [u8] {
-    fn from(cbor: Cbor<'b>) -> Self {
-        cbor.0
+impl fmt::Display for Int {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", i128::from(*self))
     }
 }
 
-impl AsRef<[u8]> for Cbor<'_> {
-    fn as_ref(&self) -> &[u8] {
-        self.0
+// Introductions:
+
+impl From<u8> for Int {
+    fn from(i: u8) -> Self {
+        Int::from(u64::from(i))
     }
 }
 
-impl core::ops::Deref for Cbor<'_> {
-    type Target = [u8];
-
-    fn deref(&self) -> &Self::Target {
-        self.0
+impl From<u16> for Int {
+    fn from(i: u16) -> Self {
+        Int::from(u64::from(i))
     }
 }
 
-impl crate::Encode for Cbor<'_> {
-    fn encode<W>(&self, e: &mut crate::Encoder<W>) -> Result<(), crate::encode::Error<W::Error>>
-    where
-        W: crate::encode::Write
-    {
-        e.put(self.0)?.ok()
+impl From<u32> for Int {
+    fn from(i: u32) -> Self {
+        Int::from(u64::from(i))
     }
 }
 
-impl<'b> crate::Decode<'b> for Cbor<'b> {
-    fn decode(d: &mut crate::Decoder<'b>) -> Result<Self, crate::decode::Error> {
-        d.consume().map(Cbor)
+impl From<u64> for Int {
+    fn from(i: u64) -> Self {
+        Int::pos(i)
     }
 }
 
-#[cfg(all(feature = "alloc", feature = "half"))]
-impl core::fmt::Display for Cbor<'_> {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        crate::display(self.0).fmt(f)
+impl TryFrom<u128> for Int {
+    type Error = TryFromIntError;
+
+    fn try_from(i: u128) -> Result<Self, Self::Error> {
+        Ok(Int::from(u64::try_from(i).map_err(|_| TryFromIntError("u64"))?))
     }
 }
+
+impl From<i8> for Int {
+    fn from(i: i8) -> Self {
+        Int::from(i64::from(i))
+    }
+}
+
+impl From<i16> for Int {
+    fn from(i: i16) -> Self {
+        Int::from(i64::from(i))
+    }
+}
+
+impl From<i32> for Int {
+    fn from(i: i32) -> Self {
+        Int::from(i64::from(i))
+    }
+}
+
+impl From<i64> for Int {
+    fn from(i: i64) -> Self {
+        if i.is_negative() {
+            Int { neg: true, val: (-1 - i) as u64 }
+        } else {
+            Int { neg: false, val: i as u64 }
+        }
+    }
+}
+
+impl TryFrom<i128> for Int {
+    type Error = TryFromIntError;
+
+    fn try_from(i: i128) -> Result<Self, Self::Error> {
+        if i.is_negative() {
+            if i < -0x1_0000_0000_0000_0000 {
+                Err(TryFromIntError("Int"))
+            } else {
+                Ok(Int { neg: true, val: (-1 - i) as u64 })
+            }
+        } else if i > 0xFFFF_FFFF_FFFF_FFFF {
+            Err(TryFromIntError("Int"))
+        } else {
+            Ok(Int { neg: false, val: i as u64 })
+        }
+    }
+}
+
+// Eliminations:
+
+impl TryFrom<Int> for u8 {
+    type Error = TryFromIntError;
+
+    fn try_from(i: Int) -> Result<Self, Self::Error> {
+        u64::try_from(i).and_then(|n| u8::try_from(n).map_err(|_| TryFromIntError("u8")))
+    }
+}
+
+impl TryFrom<Int> for u16 {
+    type Error = TryFromIntError;
+
+    fn try_from(i: Int) -> Result<Self, Self::Error> {
+        u64::try_from(i).and_then(|n| u16::try_from(n).map_err(|_| TryFromIntError("u16")))
+    }
+}
+
+impl TryFrom<Int> for u32 {
+    type Error = TryFromIntError;
+
+    fn try_from(i: Int) -> Result<Self, Self::Error> {
+        u64::try_from(i).and_then(|n| u32::try_from(n).map_err(|_| TryFromIntError("u32")))
+    }
+}
+
+impl TryFrom<Int> for u64 {
+    type Error = TryFromIntError;
+
+    fn try_from(i: Int) -> Result<Self, Self::Error> {
+        if i.neg {
+            return Err(TryFromIntError("u64"))
+        }
+        Ok(i.val)
+    }
+}
+
+impl TryFrom<Int> for u128 {
+    type Error = TryFromIntError;
+
+    fn try_from(i: Int) -> Result<Self, Self::Error> {
+        if i.neg {
+            return Err(TryFromIntError("u128"))
+        }
+        Ok(u128::from(i.val))
+    }
+}
+
+impl TryFrom<Int> for i8 {
+    type Error = TryFromIntError;
+
+    fn try_from(i: Int) -> Result<Self, Self::Error> {
+        i64::try_from(i).and_then(|n| i8::try_from(n).map_err(|_| TryFromIntError("i8")))
+    }
+}
+
+impl TryFrom<Int> for i16 {
+    type Error = TryFromIntError;
+
+    fn try_from(i: Int) -> Result<Self, Self::Error> {
+        i64::try_from(i).and_then(|n| i16::try_from(n).map_err(|_| TryFromIntError("i16")))
+    }
+}
+
+impl TryFrom<Int> for i32 {
+    type Error = TryFromIntError;
+
+    fn try_from(i: Int) -> Result<Self, Self::Error> {
+        i64::try_from(i).and_then(|n| i32::try_from(n).map_err(|_| TryFromIntError("i32")))
+    }
+}
+
+impl TryFrom<Int> for i64 {
+    type Error = TryFromIntError;
+
+    fn try_from(i: Int) -> Result<Self, Self::Error> {
+        let j = i64::try_from(i.val).map_err(|_| TryFromIntError("i64"))?;
+        Ok(if i.neg { -1 - j } else { j })
+    }
+}
+
+impl From<Int> for i128 {
+    fn from(i: Int) -> Self {
+        let j = i128::from(i.val);
+        if i.neg { -1 - j } else { j }
+    }
+}
+
+/// Error when conversion of a CBOR [`Int`] to another type failed.
+#[derive(Debug)]
+pub struct TryFromIntError(&'static str);
+
+impl fmt::Display for TryFromIntError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "value out of {} range", self.0)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for TryFromIntError {}
 

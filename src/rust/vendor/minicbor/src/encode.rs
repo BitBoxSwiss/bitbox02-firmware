@@ -17,9 +17,17 @@ pub use write::Write;
 /// derived with [`minicbor_derive`] *it is advisable to only produce a
 /// single CBOR data item*. Tagging, maps or arrays can and should be used
 /// for multiple values.
-pub trait Encode {
+pub trait Encode<C> {
     /// Encode a value of this type using the given `Encoder`.
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>>;
+    ///
+    /// In addition to the encoder a user provided encoding context is given
+    /// as another parameter. Most implementations of this trait do not need an
+    /// encoding context and should be completely generic in the context
+    /// type. In cases where a context is needed and the `Encode` impl type is
+    /// meant to be combined with other types that require a different context
+    /// type, it is preferrable to constrain the context type variable `C` with
+    /// a trait bound instead of fixing the type.
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>>;
 
     /// Is this value of `Self` a nil value?
     ///
@@ -38,35 +46,35 @@ pub trait Encode {
     }
 }
 
-impl<T: Encode + ?Sized> Encode for &T {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-        (**self).encode(e)
+impl<C, T: Encode<C> + ?Sized> Encode<C> for &T {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+        (**self).encode(e, ctx)
     }
 }
 
-impl<T: Encode + ?Sized> Encode for &mut T {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-        (**self).encode(e)
+impl<C, T: Encode<C> + ?Sized> Encode<C> for &mut T {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+        (**self).encode(e, ctx)
     }
 }
 
 #[cfg(feature = "alloc")]
-impl<T: Encode + ?Sized> Encode for alloc::boxed::Box<T> {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-        (**self).encode(e)
+impl<C, T: Encode<C> + ?Sized> Encode<C> for alloc::boxed::Box<T> {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+        (**self).encode(e, ctx)
     }
 }
 
-impl Encode for str {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C> Encode<C> for str {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
         e.str(self)?.ok()
     }
 }
 
-impl<T: Encode> Encode for Option<T> {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C, T: Encode<C>> Encode<C> for Option<T> {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
         if let Some(x) = self {
-            x.encode(e)?;
+            x.encode(e, ctx)?;
         } else {
             e.null()?;
         }
@@ -78,132 +86,138 @@ impl<T: Encode> Encode for Option<T> {
     }
 }
 
-impl<T: Encode, E: Encode> Encode for Result<T, E> {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C, T: Encode<C>, E: Encode<C>> Encode<C> for Result<T, E> {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
         e.array(2)?;
         match self {
-            Ok(v)  => e.u32(0)?.encode(v)?.ok(),
-            Err(v) => e.u32(1)?.encode(v)?.ok()
+            Ok(v)  => e.u32(0)?.encode_with(v, ctx)?.ok(),
+            Err(v) => e.u32(1)?.encode_with(v, ctx)?.ok()
         }
     }
 }
 
 #[cfg(feature = "alloc")]
-impl Encode for alloc::string::String {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C> Encode<C> for alloc::string::String {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
         e.str(self)?.ok()
     }
 }
 
 #[cfg(feature = "alloc")]
-impl<T> Encode for alloc::borrow::Cow<'_, T>
+impl<C, T> Encode<C> for alloc::borrow::Cow<'_, T>
 where
-    T: Encode + alloc::borrow::ToOwned + ?Sized
+    T: Encode<C> + alloc::borrow::ToOwned + ?Sized
 {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-        self.as_ref().encode(e)
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+        self.as_ref().encode(e, ctx)
     }
 }
 
 #[cfg(feature = "std")]
-impl<T, S> Encode for std::collections::HashSet<T, S>
+impl<C, T, S> Encode<C> for std::collections::HashSet<T, S>
 where
-    T: Encode,
+    T: Encode<C>,
     S: std::hash::BuildHasher
 {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-        e.array(as_u64(self.len()))?;
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+        e.array(self.len() as u64)?;
         for x in self {
-            x.encode(e)?
+            x.encode(e, ctx)?
         }
         Ok(())
     }
 }
 
 #[cfg(feature = "std")]
-impl<K, V, S> Encode for std::collections::HashMap<K, V, S>
+impl<C, K, V, S> Encode<C> for std::collections::HashMap<K, V, S>
 where
-    K: Encode + Eq + std::hash::Hash,
-    V: Encode,
+    K: Encode<C> + Eq + std::hash::Hash,
+    V: Encode<C>,
     S: std::hash::BuildHasher
 {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-        e.map(as_u64(self.len()))?;
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+        e.map(self.len() as u64)?;
         for (k, v) in self {
-            k.encode(e)?;
-            v.encode(e)?;
+            k.encode(e, ctx)?;
+            v.encode(e, ctx)?;
         }
         Ok(())
     }
 }
 
 #[cfg(feature = "alloc")]
-impl<K, V> Encode for alloc::collections::BTreeMap<K, V>
+impl<C, K, V> Encode<C> for alloc::collections::BTreeMap<K, V>
 where
-    K: Encode + Eq + Ord,
-    V: Encode
+    K: Encode<C> + Eq + Ord,
+    V: Encode<C>
 {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-        e.map(as_u64(self.len()))?;
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+        e.map(self.len() as u64)?;
         for (k, v) in self {
-            k.encode(e)?;
-            v.encode(e)?;
+            k.encode(e, ctx)?;
+            v.encode(e, ctx)?;
         }
         Ok(())
     }
 }
 
-impl<T> Encode for core::marker::PhantomData<T> {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C, T> Encode<C> for core::marker::PhantomData<T> {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
         e.array(0)?.ok()
     }
 }
 
-impl Encode for () {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C> Encode<C> for () {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
         e.array(0)?.ok()
     }
 }
 
-impl<T: Encode> Encode for core::num::Wrapping<T> {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-        self.0.encode(e)
+impl<C, T: Encode<C>> Encode<C> for core::num::Wrapping<T> {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+        self.0.encode(e, ctx)
     }
 }
 
 #[cfg(target_pointer_width = "32")]
-impl Encode for usize {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C> Encode<C> for usize {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
         e.u32(*self as u32)?.ok()
     }
 }
 
 #[cfg(target_pointer_width = "64")]
-impl Encode for usize {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C> Encode<C> for usize {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
         e.u64(*self as u64)?.ok()
     }
 }
 
 #[cfg(target_pointer_width = "32")]
-impl Encode for isize {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C> Encode<C> for isize {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
         e.i32(*self as i32)?.ok()
     }
 }
 
 #[cfg(target_pointer_width = "64")]
-impl Encode for isize {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C> Encode<C> for isize {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
         e.i64(*self as i64)?.ok()
+    }
+}
+
+impl<C> Encode<C> for crate::data::Int {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
+        e.int(*self)?.ok()
     }
 }
 
 macro_rules! encode_basic {
     ($($t:ident)*) => {
         $(
-            impl Encode for $t {
-                fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+            impl<C> Encode<C> for $t {
+                fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
                     e.$t(*self)?;
                     Ok(())
                 }
@@ -217,9 +231,9 @@ encode_basic!(u8 i8 u16 i16 u32 i32 u64 i64 bool f32 f64 char);
 macro_rules! encode_nonzero {
     ($($t:ty)*) => {
         $(
-            impl Encode for $t {
-                fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-                    self.get().encode(e)
+            impl<C> Encode<C> for $t {
+                fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+                    self.get().encode(e, ctx)
                 }
             }
         )*
@@ -241,9 +255,9 @@ encode_nonzero! {
 macro_rules! encode_atomic {
     ($($t:ty)*) => {
         $(
-            impl Encode for $t {
-                fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-                    self.load(core::sync::atomic::Ordering::SeqCst).encode(e)?;
+            impl<C> Encode<C> for $t {
+                fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+                    self.load(core::sync::atomic::Ordering::SeqCst).encode(e, ctx)?;
                     Ok(())
                 }
             }
@@ -282,11 +296,11 @@ encode_atomic! {
 macro_rules! encode_sequential {
     ($($t:ty)*) => {
         $(
-            impl<T: Encode> Encode for $t {
-                fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-                    e.array(as_u64(self.len()))?;
+            impl<C, T: Encode<C>> Encode<C> for $t {
+                fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+                    e.array(self.len() as u64)?;
                     for x in self {
-                        x.encode(e)?
+                        x.encode(e, ctx)?
                     }
                     Ok(())
                 }
@@ -309,11 +323,11 @@ encode_sequential! {
 macro_rules! encode_arrays {
     ($($n:expr)*) => {
         $(
-            impl<T: Encode> Encode for [T; $n] {
-                fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+            impl<C, T: Encode<C>> Encode<C> for [T; $n] {
+                fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
                     e.array($n)?;
                     for x in self {
-                        x.encode(e)?
+                        x.encode(e, ctx)?
                     }
                     Ok(())
                 }
@@ -327,10 +341,10 @@ encode_arrays!(0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16);
 macro_rules! encode_tuples {
     ($( $len:expr => { $($T:ident ($idx:tt))+ } )+) => {
         $(
-            impl<$($T: Encode),+> Encode for ($($T,)+) {
-                fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+            impl<Ctx, $($T: Encode<Ctx>),+> Encode<Ctx> for ($($T,)+) {
+                fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut Ctx) -> Result<(), Error<W::Error>> {
                     e.array($len)?
-                        $(.encode(&self.$idx)?)+
+                        $(.encode_with(&self.$idx, ctx)?)+
                         .ok()
                 }
             }
@@ -357,171 +371,241 @@ encode_tuples! {
     16 => { A(0) B(1) C(2) D(3) E(4) F(5) G(6) H(7) I(8) J(9) K(10) L(11) M(12) N(13) O(14) P(15) }
 }
 
-impl Encode for core::time::Duration {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C> Encode<C> for core::time::Duration {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
         e.array(2)?
-            .encode(self.as_secs())?
-            .encode(self.subsec_nanos())?
+            .encode_with(self.as_secs(), ctx)?
+            .encode_with(self.subsec_nanos(), ctx)?
             .ok()
     }
 }
 
 #[cfg(feature = "std")]
-impl Encode for std::time::SystemTime {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-        if let Ok(d) = self.duration_since(std::time::UNIX_EPOCH) {
-            d.encode(e)
-        } else {
-            Err(Error::Message("could not determine system time duration"))
+impl<C> Encode<C> for std::time::SystemTime {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+        match self.duration_since(std::time::UNIX_EPOCH) {
+            Ok(d)  => d.encode(e, ctx),
+            Err(e) => Err(Error::custom(e).with_message("when encoding system time"))
         }
     }
 }
 
-impl<T: Encode + Copy> Encode for core::cell::Cell<T> {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-        self.get().encode(e)
+impl<C, T: Encode<C> + Copy> Encode<C> for core::cell::Cell<T> {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+        self.get().encode(e, ctx)
     }
 }
 
-impl<T: Encode> Encode for core::cell::RefCell<T> {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C, T: Encode<C>> Encode<C> for core::cell::RefCell<T> {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
         if let Ok(v) = self.try_borrow() {
-            v.encode(e)
+            v.encode(e, ctx)
         } else {
-            Err(Error::Message("could not borrow ref cell value"))
+            Err(Error::message("could not borrow ref cell value"))
         }
     }
 }
 
 #[cfg(feature = "std")]
-impl Encode for std::path::Path {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C> Encode<C> for std::path::Path {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
         if let Some(s) = self.to_str() {
             e.str(s)?.ok()
         } else {
-            Err(Error::Message("non-utf-8 path values are not supported"))
+            Err(Error::message("non-utf-8 path values are not supported"))
         }
     }
 }
 
 #[cfg(feature = "std")]
-impl Encode for std::path::PathBuf {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-        self.as_path().encode(e)
+impl<C> Encode<C> for std::path::PathBuf {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+        self.as_path().encode(e, ctx)
     }
 }
 
 #[cfg(feature = "std")]
-impl Encode for std::net::IpAddr {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C> Encode<C> for std::net::IpAddr {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
         e.array(2)?;
         match self {
-            std::net::IpAddr::V4(a) => e.u32(0)?.encode(a)?.ok(),
-            std::net::IpAddr::V6(a) => e.u32(1)?.encode(a)?.ok()
+            std::net::IpAddr::V4(a) => e.u32(0)?.encode_with(a, ctx)?.ok(),
+            std::net::IpAddr::V6(a) => e.u32(1)?.encode_with(a, ctx)?.ok()
         }
     }
 }
 
 #[cfg(feature = "std")]
-impl Encode for std::net::Ipv4Addr {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-        self.octets().encode(e)
+impl<C> Encode<C> for std::net::Ipv4Addr {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
+        e.bytes(&self.octets())?.ok()
     }
 }
 
 #[cfg(feature = "std")]
-impl Encode for std::net::Ipv6Addr {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
-        self.octets().encode(e)
+impl<C> Encode<C> for std::net::Ipv6Addr {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
+        e.bytes(&self.octets())?.ok()
     }
 }
 
 #[cfg(feature = "std")]
-impl Encode for std::net::SocketAddr {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C> Encode<C> for std::net::SocketAddr {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
         e.array(2)?;
         match self {
-            std::net::SocketAddr::V4(a) => e.u32(0)?.encode(a)?.ok(),
-            std::net::SocketAddr::V6(a) => e.u32(1)?.encode(a)?.ok()
+            std::net::SocketAddr::V4(a) => e.u32(0)?.encode_with(a, ctx)?.ok(),
+            std::net::SocketAddr::V6(a) => e.u32(1)?.encode_with(a, ctx)?.ok()
         }
     }
 }
 
 #[cfg(feature = "std")]
-impl Encode for std::net::SocketAddrV4 {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C> Encode<C> for std::net::SocketAddrV4 {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
         e.array(2)?
-            .encode(self.ip())?
-            .encode(self.port())?
+            .encode_with(self.ip(), ctx)?
+            .encode_with(self.port(), ctx)?
             .ok()
     }
 }
 
 #[cfg(feature = "std")]
-impl Encode for std::net::SocketAddrV6 {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C> Encode<C> for std::net::SocketAddrV6 {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
         e.array(2)?
-            .encode(self.ip())?
-            .encode(self.port())?
+            .encode_with(self.ip(), ctx)?
+            .encode_with(self.port(), ctx)?
             .ok()
     }
 }
 
-impl<T: Encode> Encode for core::ops::Range<T> {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C, T: Encode<C>> Encode<C> for core::ops::Range<T> {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
         e.array(2)?
-            .encode(&self.start)?
-            .encode(&self.end)?
+            .encode_with(&self.start, ctx)?
+            .encode_with(&self.end, ctx)?
             .ok()
     }
 }
 
-impl<T: Encode> Encode for core::ops::RangeFrom<T> {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C, T: Encode<C>> Encode<C> for core::ops::RangeFrom<T> {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
         e.array(1)?
-            .encode(&self.start)?
+            .encode_with(&self.start, ctx)?
             .ok()
     }
 }
 
-impl<T: Encode> Encode for core::ops::RangeTo<T> {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C, T: Encode<C>> Encode<C> for core::ops::RangeTo<T> {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
         e.array(1)?
-            .encode(&self.end)?
+            .encode_with(&self.end, ctx)?
             .ok()
     }
 }
 
-impl<T: Encode> Encode for core::ops::RangeToInclusive<T> {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C, T: Encode<C>> Encode<C> for core::ops::RangeToInclusive<T> {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
         e.array(1)?
-            .encode(&self.end)?
+            .encode_with(&self.end, ctx)?
             .ok()
     }
 }
 
-impl<T: Encode> Encode for core::ops::RangeInclusive<T> {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C, T: Encode<C>> Encode<C> for core::ops::RangeInclusive<T> {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
         e.array(2)?
-            .encode(self.start())?
-            .encode(self.end())?
+            .encode_with(self.start(), ctx)?
+            .encode_with(self.end(), ctx)?
             .ok()
     }
 }
 
-impl<T: Encode> Encode for core::ops::Bound<T> {
-    fn encode<W: Write>(&self, e: &mut Encoder<W>) -> Result<(), Error<W::Error>> {
+impl<C, T: Encode<C>> Encode<C> for core::ops::Bound<T> {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
         e.array(2)?;
         match self {
-            core::ops::Bound::Included(v) => e.u32(0)?.encode(v)?.ok(),
-            core::ops::Bound::Excluded(v) => e.u32(1)?.encode(v)?.ok(),
+            core::ops::Bound::Included(v) => e.u32(0)?.encode_with(v, ctx)?.ok(),
+            core::ops::Bound::Excluded(v) => e.u32(1)?.encode_with(v, ctx)?.ok(),
             core::ops::Bound::Unbounded   => e.u32(2)?.array(0)?.ok()
         }
     }
 }
 
-#[cfg(any(target_pointer_width = "32", target_pointer_width = "64"))]
-fn as_u64(n: usize) -> u64 {
-    n as u64
+/// An encodable iterator writing its items as a CBOR array.
+///
+/// This type wraps any type implementing [`Iterator`] + [`Clone`] and encodes
+/// the items produced by the iterator as a CBOR array.
+#[derive(Debug)]
+pub struct ArrayIter<I>(I);
+
+impl<I> ArrayIter<I> {
+    pub fn new(it: I) -> Self {
+        ArrayIter(it)
+    }
+}
+
+impl<C, I, T> Encode<C> for ArrayIter<I>
+where
+    I: Iterator<Item = T> + Clone,
+    T: Encode<C>
+{
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+        let iter = self.0.clone();
+        let (low, up) = iter.size_hint();
+        let exact = Some(low) == up;
+        if exact {
+            e.array(low as u64)?;
+        } else {
+            e.begin_array()?;
+        }
+        for item in iter {
+            item.encode(e, ctx)?;
+        }
+        if !exact {
+            e.end()?;
+        }
+        Ok(())
+    }
+}
+
+/// An encodable iterator writing its items as a CBOR map.
+///
+/// This type wraps any type implementing [`Iterator`] + [`Clone`] and encodes
+/// the items produced by the iterator as a CBOR map.
+#[derive(Debug)]
+pub struct MapIter<I>(I);
+
+impl<I> MapIter<I> {
+    pub fn new(it: I) -> Self {
+        MapIter(it)
+    }
+}
+
+impl<C, I, K, V> Encode<C> for MapIter<I>
+where
+    I: Iterator<Item = (K, V)> + Clone,
+    K: Encode<C>,
+    V: Encode<C>
+{
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+        let iter = self.0.clone();
+        let (low, up) = iter.size_hint();
+        let exact = Some(low) == up;
+        if exact {
+            e.map(low as u64)?;
+        } else {
+            e.begin_map()?;
+        }
+        for (k, v) in iter {
+            k.encode(e, ctx)?;
+            v.encode(e, ctx)?;
+        }
+        if !exact {
+            e.end()?;
+        }
+        Ok(())
+    }
 }
 

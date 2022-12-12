@@ -2,7 +2,7 @@
 
 use core::fmt;
 use crate::Decoder;
-use crate::data::{Tag, Type};
+use crate::data::{Int, Tag, Type};
 use crate::decode::Error;
 
 /// Representation of possible CBOR tokens.
@@ -19,6 +19,7 @@ pub enum Token<'b> {
     I16(i16),
     I32(i32),
     I64(i64),
+    Int(Int),
     F16(f32),
     F32(f32),
     F64(f64),
@@ -43,8 +44,7 @@ pub enum Token<'b> {
 
 /// An [`Iterator`] over CBOR tokens.
 ///
-/// The `Iterator` implementation calls [`Tokenizer::token`] until
-/// [`Error::EndOfInput`] is returned which is mapped to `None`.
+/// The `Iterator` implementation calls [`Tokenizer::token`] until end of input has been reached.
 ///
 /// *Requires feature* `"half"`.
 #[derive(Debug, Clone)]
@@ -58,7 +58,7 @@ impl<'b> Iterator for Tokenizer<'b> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.token() {
             Ok(t) => Some(Ok(t)),
-            Err(Error::EndOfInput) => None,
+            Err(e) if e.is_end_of_input() => None,
             Err(e) => Some(Err(e))
         }
     }
@@ -84,7 +84,7 @@ impl<'b> Tokenizer<'b> {
         match self.try_token() {
             Ok(tk) => Ok(tk),
             Err(e) => {
-                let _ = self.decoder.consume(); // drain decoder
+                self.decoder.set_position(self.decoder.input().len()); // drain decoder
                 Err(e)
             }
         }
@@ -101,6 +101,7 @@ impl<'b> Tokenizer<'b> {
             Type::I16          => self.decoder.i16().map(Token::I16),
             Type::I32          => self.decoder.i32().map(Token::I32),
             Type::I64          => self.decoder.i64().map(Token::I64),
+            Type::Int          => self.decoder.int().map(Token::Int),
             Type::F16          => self.decoder.f16().map(Token::F16),
             Type::F32          => self.decoder.f32().map(Token::F32),
             Type::F64          => self.decoder.f64().map(Token::F64),
@@ -108,18 +109,22 @@ impl<'b> Tokenizer<'b> {
             Type::String       => self.decoder.str().map(Token::String),
             Type::Tag          => self.decoder.tag().map(Token::Tag),
             Type::Simple       => self.decoder.simple().map(Token::Simple),
-            Type::Array        =>
+            Type::Array        => {
+                let p = self.decoder.position();
                 if let Some(n) = self.decoder.array()? {
                     Ok(Token::Array(n))
                 } else {
-                    Err(Error::TypeMismatch(Type::Array, "missing array length"))
+                    Err(Error::type_mismatch(Type::Array).at(p).with_message("missing array length"))
                 }
-            Type::Map          =>
+            }
+            Type::Map          => {
+                let p = self.decoder.position();
                 if let Some(n) = self.decoder.map()? {
                     Ok(Token::Map(n))
                 } else {
-                    Err(Error::TypeMismatch(Type::Array, "missing map length"))
+                    Err(Error::type_mismatch(Type::Array).at(p).with_message("missing map length"))
                 }
+            }
             Type::BytesIndef   => { self.skip_byte(); Ok(Token::BeginBytes)  }
             Type::StringIndef  => { self.skip_byte(); Ok(Token::BeginString) }
             Type::ArrayIndef   => { self.skip_byte(); Ok(Token::BeginArray)  }
@@ -127,7 +132,9 @@ impl<'b> Tokenizer<'b> {
             Type::Null         => { self.skip_byte(); Ok(Token::Null)        }
             Type::Undefined    => { self.skip_byte(); Ok(Token::Undefined)   }
             Type::Break        => { self.skip_byte(); Ok(Token::Break)       }
-            t@Type::Unknown(_) => Err(Error::TypeMismatch(t, "unknown cbor type"))
+            t@Type::Unknown(_) => Err(Error::type_mismatch(t)
+                .at(self.decoder.position())
+                .with_message("unknown cbor type"))
         }
     }
 
@@ -345,6 +352,7 @@ impl fmt::Display for Token<'_> {
             Token::I16(n)      => write!(f, "{}", n),
             Token::I32(n)      => write!(f, "{}", n),
             Token::I64(n)      => write!(f, "{}", n),
+            Token::Int(n)      => write!(f, "{}", n),
             Token::F16(n)      => write!(f, "{:e}", n),
             Token::F32(n)      => write!(f, "{:e}", n),
             Token::F64(n)      => write!(f, "{:e}", n),

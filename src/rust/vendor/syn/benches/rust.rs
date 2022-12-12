@@ -1,10 +1,11 @@
-// $ cargo bench --features full --bench rust
+// $ cargo bench --features full,test --bench rust
 //
 // Syn only, useful for profiling:
-// $ RUSTFLAGS='--cfg syn_only' cargo build --release --features full --bench rust
+// $ RUSTFLAGS='--cfg syn_only' cargo build --release --features full,test --bench rust
 
 #![cfg_attr(not(syn_only), feature(rustc_private))]
 #![recursion_limit = "1024"]
+#![allow(clippy::cast_lossless, clippy::unnecessary_wraps)]
 
 #[macro_use]
 #[path = "../tests/macros/mod.rs"]
@@ -35,16 +36,17 @@ mod syn_parse {
 }
 
 #[cfg(not(syn_only))]
-mod libsyntax_parse {
-    extern crate rustc_ast;
+mod librustc_parse {
     extern crate rustc_data_structures;
+    extern crate rustc_error_messages;
     extern crate rustc_errors;
     extern crate rustc_parse;
     extern crate rustc_session;
     extern crate rustc_span;
 
     use rustc_data_structures::sync::Lrc;
-    use rustc_errors::{emitter::Emitter, Diagnostic, Handler};
+    use rustc_error_messages::FluentBundle;
+    use rustc_errors::{emitter::Emitter, translation::Translate, Diagnostic, Handler};
     use rustc_session::parse::ParseSess;
     use rustc_span::source_map::{FilePathMapping, SourceMap};
     use rustc_span::{edition::Edition, FileName};
@@ -59,12 +61,21 @@ mod libsyntax_parse {
             }
         }
 
-        rustc_ast::with_globals(Edition::Edition2018, || {
+        impl Translate for SilentEmitter {
+            fn fluent_bundle(&self) -> Option<&Lrc<FluentBundle>> {
+                None
+            }
+            fn fallback_fluent_bundle(&self) -> &FluentBundle {
+                panic!("silent emitter attempted to translate a diagnostic");
+            }
+        }
+
+        rustc_span::create_session_if_not_set_then(Edition::Edition2018, |_| {
             let cm = Lrc::new(SourceMap::new(FilePathMapping::empty()));
             let emitter = Box::new(SilentEmitter);
             let handler = Handler::with_emitter(false, None, emitter);
             let sess = ParseSess::with_span_handler(handler, cm);
-            if let Err(mut diagnostic) = rustc_parse::parse_crate_from_source_str(
+            if let Err(diagnostic) = rustc_parse::parse_crate_from_source_str(
                 FileName::Custom("bench".to_owned()),
                 content.to_owned(),
                 &sess,
@@ -80,7 +91,7 @@ mod libsyntax_parse {
 #[cfg(not(syn_only))]
 mod read_from_disk {
     pub fn bench(content: &str) -> Result<(), ()> {
-        let _ = content;
+        _ = content;
         Ok(())
     }
 }
@@ -116,11 +127,11 @@ fn main() {
     repo::clone_rust();
 
     macro_rules! testcases {
-        ($($(#[$cfg:meta])* $name:path,)*) => {
-            vec![
+        ($($(#[$cfg:meta])* $name:ident,)*) => {
+            [
                 $(
                     $(#[$cfg])*
-                    (stringify!($name), $name as fn(&str) -> Result<(), ()>),
+                    (stringify!($name), $name::bench as fn(&str) -> Result<(), ()>),
                 )*
             ]
         };
@@ -140,12 +151,12 @@ fn main() {
 
     for (name, f) in testcases!(
         #[cfg(not(syn_only))]
-        read_from_disk::bench,
+        read_from_disk,
         #[cfg(not(syn_only))]
-        tokenstream_parse::bench,
-        syn_parse::bench,
+        tokenstream_parse,
+        syn_parse,
         #[cfg(not(syn_only))]
-        libsyntax_parse::bench,
+        librustc_parse,
     ) {
         eprint!("{:20}", format!("{}:", name));
         let elapsed = exec(f);

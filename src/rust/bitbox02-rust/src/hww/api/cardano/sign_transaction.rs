@@ -24,7 +24,7 @@ use alloc::vec::Vec;
 use bech32::{ToBase32, Variant};
 use blake2::{
     digest::{Update, VariableOutput},
-    VarBlake2b,
+    Blake2bVar,
 };
 
 use crate::workflow::{confirm, status, transaction};
@@ -86,11 +86,11 @@ async fn verify_slot(params: &params::Params, title: &str, slot: u64) -> Result<
 /// Format an asset fingerprint according to CIP-14.
 /// https://github.com/cardano-foundation/CIPs/blob/a2ef32d8a2b485fed7f6ffde2781dd58869ff511/CIP-0014/README.md
 fn format_asset(policy_id: &[u8], asset_name: &[u8]) -> String {
-    let mut hasher = VarBlake2b::new(20).unwrap();
+    let mut hasher = Blake2bVar::new(20).unwrap();
     hasher.update(policy_id);
     hasher.update(asset_name);
     let mut hash = [0u8; 20];
-    hasher.finalize_variable(|res| hash.copy_from_slice(res));
+    hasher.finalize_variable(&mut hash).unwrap();
     bech32::encode("asset", hash.to_base32(), Variant::Bech32).unwrap()
 }
 
@@ -269,11 +269,11 @@ async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Respons
     status::status("Transaction\nconfirmed", true).await;
 
     let tx_body_hash: [u8; 32] = {
-        let mut hasher = VarBlake2b::new(32).unwrap();
+        let mut hasher = Blake2bVar::new(32).unwrap();
         cbor::encode_transaction_body(request, cbor::HashedWriter::new(&mut hasher))?;
 
         let mut out = [0u8; 32];
-        hasher.finalize_variable(|res| out.copy_from_slice(res));
+        hasher.finalize_variable(&mut out).or(Err(Error::Generic))?;
         out
     };
 

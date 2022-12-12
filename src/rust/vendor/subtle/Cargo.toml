@@ -12,7 +12,7 @@
 
 [package]
 name = "subtle"
-version = "2.2.2"
+version = "2.4.1"
 authors = ["Isis Lovecruft <isis@patternsinthevoid.net>", "Henry de Valence <hdevalence@hdevalence.ca>"]
 exclude = ["**/.gitignore", ".travis.yml"]
 description = "Pure-Rust traits and utilities for constant-time cryptographic implementations."
@@ -23,6 +23,8 @@ keywords = ["cryptography", "crypto", "constant-time", "utilities"]
 categories = ["cryptography", "no-std"]
 license = "BSD-3-Clause"
 repository = "https://github.com/dalek-cryptography/subtle"
+[dev-dependencies.rand]
+version = "0.7"
 
 [features]
 default = ["std", "i128"]

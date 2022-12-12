@@ -188,7 +188,7 @@ pub fn encode_transaction_body<W: Write>(
 mod tests {
     use super::*;
     use alloc::vec::Vec;
-    use blake2::{digest::VariableOutput, VarBlake2b};
+    use blake2::{digest::VariableOutput, Blake2bVar};
 
     fn encode_something<W: Write>(
         encoder: &mut Encoder<W>,
@@ -223,20 +223,20 @@ mod tests {
             let mut encoder = Encoder::new(&mut cbor_encoded);
             encode_something(&mut encoder).unwrap();
 
-            let mut hasher = VarBlake2b::new(32).unwrap();
+            let mut hasher = Blake2bVar::new(32).unwrap();
             hasher.update(&cbor_encoded);
             let mut out = [0u8; 32];
-            hasher.finalize_variable(|res| out.copy_from_slice(res));
+            hasher.finalize_variable(&mut out).unwrap();
             out
         };
 
         // Now encode CBOR into the hasher directly and compare results.
         let hash = {
-            let mut hasher = VarBlake2b::new(32).unwrap();
+            let mut hasher = Blake2bVar::new(32).unwrap();
             let mut encoder = Encoder::new(HashedWriter::new(&mut hasher));
             encode_something(&mut encoder).unwrap();
             let mut out = [0u8; 32];
-            hasher.finalize_variable(|res| out.copy_from_slice(res));
+            hasher.finalize_variable(&mut out).unwrap();
             out
         };
         assert_eq!(hash, expected_hash);

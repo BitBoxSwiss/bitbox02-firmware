@@ -8,7 +8,7 @@
 //! example,
 //!
 //! ```rust
-//! use typenum::{N4, Integer};
+//! use typenum::{Integer, N4};
 //!
 //! assert_eq!(N4::to_i32(), -4);
 //! ```
@@ -34,14 +34,13 @@
 //! could be replaced with
 //!
 //! ```rust
-//! use typenum::{Sum, Integer, P3, P4};
+//! use typenum::{Integer, Sum, P3, P4};
 //!
 //! type X = Sum<P3, P4>;
 //! assert_eq!(<X as Integer>::to_i32(), 7);
 //! ```
 //!
 //! Documented in each module is the full list of type operators implemented.
-//!
 
 #![no_std]
 #![forbid(unsafe_code)]
@@ -51,13 +50,16 @@
 #![cfg_attr(
     feature = "cargo-clippy",
     allow(
-        clippy::type_complexity,
         clippy::len_without_is_empty,
+        clippy::many_single_char_names,
         clippy::new_without_default,
-        clippy::many_single_char_names
+        clippy::suspicious_arithmetic_impl,
+        clippy::type_complexity,
+        clippy::wrong_self_convention,
     )
 )]
 #![cfg_attr(feature = "cargo-clippy", deny(clippy::missing_inline_in_public_items))]
+#![doc(html_root_url = "https://docs.rs/typenum/1.16.0")]
 
 // For debugging macros:
 // #![feature(trace_macros)]
@@ -69,12 +71,16 @@ use core::cmp::Ordering;
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/op.rs"));
     include!(concat!(env!("OUT_DIR"), "/consts.rs"));
+    #[cfg(feature = "const-generics")]
+    include!(concat!(env!("OUT_DIR"), "/generic_const_mappings.rs"));
 }
 
 #[cfg(not(feature = "force_unix_path_separator"))]
 mod generated {
     include!(env!("TYPENUM_BUILD_OP"));
     include!(env!("TYPENUM_BUILD_CONSTS"));
+    #[cfg(feature = "const-generics")]
+    include!(env!("TYPENUM_BUILD_GENERIC_CONSTS"));
 }
 
 pub mod bit;
@@ -87,29 +93,47 @@ pub mod uint;
 
 pub mod array;
 
-pub use consts::*;
-pub use generated::consts;
-pub use marker_traits::*;
-pub use operator_aliases::*;
-pub use type_operators::*;
+pub use crate::{
+    array::{ATerm, TArr},
+    generated::consts,
+    int::{NInt, PInt},
+    marker_traits::*,
+    operator_aliases::*,
+    type_operators::*,
+    uint::{UInt, UTerm},
+};
 
-pub use array::{ATerm, TArr};
-pub use int::{NInt, PInt};
-pub use uint::{UInt, UTerm};
+#[doc(no_inline)]
+#[rustfmt::skip]
+pub use consts::{
+    False, True, B0, B1,
+    U0, U1, U2, *,
+    N1, N2, Z0, P1, P2, *,
+};
+
+#[cfg(feature = "const-generics")]
+pub use crate::generated::generic_const_mappings;
+
+#[cfg(feature = "const-generics")]
+#[doc(no_inline)]
+pub use generic_const_mappings::{Const, ToUInt, U};
 
 /// A potential output from `Cmp`, this is the type equivalent to the enum variant
 /// `core::cmp::Ordering::Greater`.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, Default)]
+#[cfg_attr(feature = "scale_info", derive(scale_info::TypeInfo))]
 pub struct Greater;
 
 /// A potential output from `Cmp`, this is the type equivalent to the enum variant
 /// `core::cmp::Ordering::Less`.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, Default)]
+#[cfg_attr(feature = "scale_info", derive(scale_info::TypeInfo))]
 pub struct Less;
 
 /// A potential output from `Cmp`, this is the type equivalent to the enum variant
 /// `core::cmp::Ordering::Equal`.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, Default)]
+#[cfg_attr(feature = "scale_info", derive(scale_info::TypeInfo))]
 pub struct Equal;
 
 /// Returns `core::cmp::Ordering::Greater`
@@ -140,7 +164,8 @@ impl Ord for Equal {
 #[macro_export]
 macro_rules! assert_type_eq {
     ($a:ty, $b:ty) => {
-        let _: <$a as $crate::Same<$b>>::Output;
+        const _: core::marker::PhantomData<<$a as $crate::Same<$b>>::Output> =
+            core::marker::PhantomData;
     };
 }
 
@@ -148,6 +173,33 @@ macro_rules! assert_type_eq {
 #[macro_export]
 macro_rules! assert_type {
     ($a:ty) => {
-        let _: <$a as $crate::Same<True>>::Output;
+        const _: core::marker::PhantomData<<$a as $crate::Same<True>>::Output> =
+            core::marker::PhantomData;
     };
+}
+
+mod sealed {
+    use crate::{
+        ATerm, Bit, Equal, Greater, Less, NInt, NonZero, PInt, TArr, UInt, UTerm, Unsigned, B0, B1,
+        Z0,
+    };
+
+    pub trait Sealed {}
+
+    impl Sealed for B0 {}
+    impl Sealed for B1 {}
+
+    impl Sealed for UTerm {}
+    impl<U: Unsigned, B: Bit> Sealed for UInt<U, B> {}
+
+    impl Sealed for Z0 {}
+    impl<U: Unsigned + NonZero> Sealed for PInt<U> {}
+    impl<U: Unsigned + NonZero> Sealed for NInt<U> {}
+
+    impl Sealed for Less {}
+    impl Sealed for Equal {}
+    impl Sealed for Greater {}
+
+    impl Sealed for ATerm {}
+    impl<V, A> Sealed for TArr<V, A> {}
 }

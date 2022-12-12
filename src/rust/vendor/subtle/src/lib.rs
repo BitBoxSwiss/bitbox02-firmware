@@ -9,40 +9,104 @@
 // - Henry de Valence <hdevalence@hdevalence.ca>
 
 #![no_std]
-#![cfg_attr(feature = "nightly", feature(asm))]
-#![cfg_attr(feature = "nightly", feature(external_doc))]
-#![cfg_attr(feature = "nightly", doc(include = "../README.md"))]
-#![cfg_attr(feature = "nightly", deny(missing_docs))]
+#![deny(missing_docs)]
 #![doc(html_logo_url = "https://doc.dalek.rs/assets/dalek-logo-clear.png")]
+#![doc(html_root_url = "https://docs.rs/subtle/2.4.1")]
 
-//! Note that docs will only build on nightly Rust until
-//! [RFC 1990 stabilizes](https://github.com/rust-lang/rust/issues/44732).
+//! # subtle [![](https://img.shields.io/crates/v/subtle.svg)](https://crates.io/crates/subtle) [![](https://img.shields.io/badge/dynamic/json.svg?label=docs&uri=https%3A%2F%2Fcrates.io%2Fapi%2Fv1%2Fcrates%2Fsubtle%2Fversions&query=%24.versions%5B0%5D.num&colorB=4F74A6)](https://doc.dalek.rs/subtle) [![](https://travis-ci.org/dalek-cryptography/subtle.svg?branch=master)](https://travis-ci.org/dalek-cryptography/subtle)
+//!
+//! **Pure-Rust traits and utilities for constant-time cryptographic implementations.**
+//!
+//! It consists of a `Choice` type, and a collection of traits using `Choice`
+//! instead of `bool` which are intended to execute in constant-time.  The `Choice`
+//! type is a wrapper around a `u8` that holds a `0` or `1`.
+//!
+//! ```toml
+//! subtle = "2.4"
+//! ```
+//!
+//! This crate represents a “best-effort” attempt, since side-channels
+//! are ultimately a property of a deployed cryptographic system
+//! including the hardware it runs on, not just of software.
+//!
+//! The traits are implemented using bitwise operations, and should execute in
+//! constant time provided that a) the bitwise operations are constant-time and
+//! b) the bitwise operations are not recognized as a conditional assignment and
+//! optimized back into a branch.
+//!
+//! For a compiler to recognize that bitwise operations represent a conditional
+//! assignment, it needs to know that the value used to generate the bitmasks is
+//! really a boolean `i1` rather than an `i8` byte value. In an attempt to
+//! prevent this refinement, the crate tries to hide the value of a `Choice`'s
+//! inner `u8` by passing it through a volatile read. For more information, see
+//! the _About_ section below.
+//!
+//! Versions prior to `2.2` recommended use of the `nightly` feature to enable an
+//! optimization barrier; this is not required in versions `2.2` and above.
+//!
+//! Note: the `subtle` crate contains `debug_assert`s to check invariants during
+//! debug builds. These invariant checks involve secret-dependent branches, and
+//! are not present when compiled in release mode. This crate is intended to be
+//! used in release mode.
+//!
+//! ## Documentation
+//!
+//! Documentation is available [here][docs].
+//!
+//! ## Minimum Supported Rust Version
+//!
+//! Rust **1.41** or higher.
+//!
+//! Minimum supported Rust version can be changed in the future, but it will be done with a minor version bump.
+//!
+//! ## About
+//!
+//! This library aims to be the Rust equivalent of Go’s `crypto/subtle` module.
+//!
+//! The optimization barrier in `impl From<u8> for Choice` was based on Tim
+//! Maclean's [work on `rust-timing-shield`][rust-timing-shield], which attempts to
+//! provide a more comprehensive approach for preventing software side-channels in
+//! Rust code.
+//!
+//! `subtle` is authored by isis agora lovecruft and Henry de Valence.
+//!
+//! ## Warning
+//!
+//! This code is a low-level library, intended for specific use-cases implementing
+//! cryptographic protocols.  It represents a best-effort attempt to protect
+//! against some software side-channels.  Because side-channel resistance is not a
+//! property of software alone, but of software together with hardware, any such
+//! effort is fundamentally limited.
+//!
+//! **USE AT YOUR OWN RISK**
+//!
+//! [docs]: https://docs.rs/subtle
+//! [rust-timing-shield]: https://www.chosenplaintext.ca/open-source/rust-timing-shield/security
 
 #[cfg(feature = "std")]
 #[macro_use]
 extern crate std;
 
 use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not};
+use core::option::Option;
 
-/// The `Choice` struct represents a choice for use in conditional
-/// assignment.
+/// The `Choice` struct represents a choice for use in conditional assignment.
 ///
-/// It is a wrapper around a `u8`, which should have the value either
-/// `1` (true) or `0` (false).
+/// It is a wrapper around a `u8`, which should have the value either `1` (true)
+/// or `0` (false).
 ///
-/// With the `nightly` feature enabled, the conversion from `u8` to
-/// `Choice` passes the value through an optimization barrier, as a
-/// best-effort attempt to prevent the compiler from inferring that the
-/// `Choice` value is a boolean.  This strategy is based on Tim
-/// Maclean's [work on `rust-timing-shield`][rust-timing-shield],
-/// which attempts to provide a more comprehensive approach for
-/// preventing software side-channels in Rust code.
+/// The conversion from `u8` to `Choice` passes the value through an optimization
+/// barrier, as a best-effort attempt to prevent the compiler from inferring that
+/// the `Choice` value is a boolean. This strategy is based on Tim Maclean's
+/// [work on `rust-timing-shield`][rust-timing-shield], which attempts to provide
+/// a more comprehensive approach for preventing software side-channels in Rust
+/// code.
 ///
-/// The `Choice` struct implements operators for AND, OR, XOR, and
-/// NOT, to allow combining `Choice` values.
-/// These operations do not short-circuit.
+/// The `Choice` struct implements operators for AND, OR, XOR, and NOT, to allow
+/// combining `Choice` values. These operations do not short-circuit.
 ///
-/// [rust-timing-shield]: https://www.chosenplaintext.ca/open-source/rust-timing-shield/security
+/// [rust-timing-shield]:
+/// https://www.chosenplaintext.ca/open-source/rust-timing-shield/security
 #[derive(Copy, Clone, Debug)]
 pub struct Choice(u8);
 
@@ -51,11 +115,11 @@ impl Choice {
     ///
     /// # Note
     ///
-    /// This function only exists as an escape hatch for the rare case
+    /// This function only exists as an **escape hatch** for the rare case
     /// where it's not possible to use one of the `subtle`-provided
     /// trait impls.
     ///
-    /// To convert a `Choice` to a `bool`, use the `From` implementation instead.
+    /// **To convert a `Choice` to a `bool`, use the `From` implementation instead.**
     #[inline]
     pub fn unwrap_u8(&self) -> u8 {
         self.0
@@ -136,30 +200,19 @@ impl Not for Choice {
     }
 }
 
-/// This function is a best-effort attempt to prevent the compiler
-/// from knowing anything about the value of the returned `u8`, other
-/// than its type.
+/// This function is a best-effort attempt to prevent the compiler from knowing
+/// anything about the value of the returned `u8`, other than its type.
 ///
-/// Uses inline asm when available, otherwise it's a no-op.
-#[cfg(all(feature = "nightly", not(any(target_arch = "asmjs", target_arch = "wasm32"))))]
-#[inline(always)]
-fn black_box(mut input: u8) -> u8 {
-    debug_assert!((input == 0u8) | (input == 1u8));
-
-    // Move value through assembler, which is opaque to the compiler, even though we don't do anything.
-    unsafe { asm!("" : "=r"(input) : "0"(input) ) }
-
-    input
-}
-#[cfg(any(target_arch = "asmjs", target_arch = "wasm32", not(feature = "nightly")))]
+/// Because we want to support stable Rust, we don't have access to inline
+/// assembly or test::black_box, so we use the fact that volatile values will
+/// never be elided to register values.
+///
+/// Note: Rust's notion of "volatile" is subject to change over time. While this
+/// code may break in a non-destructive way in the future, “constant-time” code
+/// is a continually moving target, and this is better than doing nothing.
 #[inline(never)]
 fn black_box(input: u8) -> u8 {
     debug_assert!((input == 0u8) | (input == 1u8));
-    // We don't have access to inline assembly or test::black_box, so we use the fact that
-    // volatile values will never be elided to register values.
-    //
-    // Note: Rust's notion of "volatile" is subject to change over time. While this code may break
-    // in a non-destructive way in the future, it is better than doing nothing.
 
     unsafe {
         // Optimization barrier
@@ -250,6 +303,13 @@ impl<T: ConstantTimeEq> ConstantTimeEq for [T] {
         }
 
         x.into()
+    }
+}
+
+impl ConstantTimeEq for Choice {
+    #[inline]
+    fn ct_eq(&self, rhs: &Choice) -> Choice {
+        !(*self ^ *rhs)
     }
 }
 
@@ -512,6 +572,25 @@ pub struct CtOption<T> {
     is_some: Choice,
 }
 
+impl<T> From<CtOption<T>> for Option<T> {
+    /// Convert the `CtOption<T>` wrapper into an `Option<T>`, depending on whether
+    /// the underlying `is_some` `Choice` was a `0` or a `1` once unwrapped.
+    ///
+    /// # Note
+    ///
+    /// This function exists to avoid ending up with ugly, verbose and/or bad handled
+    /// conversions from the `CtOption<T>` wraps to an `Option<T>` or `Result<T, E>`.
+    /// This implementation doesn't intend to be constant-time nor try to protect the
+    /// leakage of the `T` since the `Option<T>` will do it anyways.
+    fn from(source: CtOption<T>) -> Option<T> {
+        if source.is_some().unwrap_u8() == 1u8 {
+            Option::Some(source.value)
+        } else {
+            None
+        }
+    }
+}
+
 impl<T> CtOption<T> {
     /// This method is used to construct a new `CtOption<T>` and takes
     /// a value of type `T`, and a `Choice` that determines whether
@@ -520,7 +599,10 @@ impl<T> CtOption<T> {
     /// exposed.
     #[inline]
     pub fn new(value: T, is_some: Choice) -> CtOption<T> {
-        CtOption { value: value, is_some: is_some }
+        CtOption {
+            value: value,
+            is_some: is_some,
+        }
     }
 
     /// This returns the underlying value but panics if it
@@ -647,3 +729,136 @@ impl<T: ConstantTimeEq> ConstantTimeEq for CtOption<T> {
         (a & b & self.value.ct_eq(&rhs.value)) | (!a & !b)
     }
 }
+
+/// A type which can be compared in some manner and be determined to be greater
+/// than another of the same type.
+pub trait ConstantTimeGreater {
+    /// Determine whether `self > other`.
+    ///
+    /// The bitwise-NOT of the return value of this function should be usable to
+    /// determine if `self <= other`.
+    ///
+    /// This function should execute in constant time.
+    ///
+    /// # Returns
+    ///
+    /// A `Choice` with a set bit if `self > other`, and with no set bits
+    /// otherwise.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # extern crate subtle;
+    /// use subtle::ConstantTimeGreater;
+    ///
+    /// let x: u8 = 13;
+    /// let y: u8 = 42;
+    ///
+    /// let x_gt_y = x.ct_gt(&y);
+    ///
+    /// assert_eq!(x_gt_y.unwrap_u8(), 0);
+    ///
+    /// let y_gt_x = y.ct_gt(&x);
+    ///
+    /// assert_eq!(y_gt_x.unwrap_u8(), 1);
+    ///
+    /// let x_gt_x = x.ct_gt(&x);
+    ///
+    /// assert_eq!(x_gt_x.unwrap_u8(), 0);
+    /// ```
+    fn ct_gt(&self, other: &Self) -> Choice;
+}
+
+macro_rules! generate_unsigned_integer_greater {
+    ($t_u: ty, $bit_width: expr) => {
+        impl ConstantTimeGreater for $t_u {
+            /// Returns Choice::from(1) iff x > y, and Choice::from(0) iff x <= y.
+            ///
+            /// # Note
+            ///
+            /// This algoritm would also work for signed integers if we first
+            /// flip the top bit, e.g. `let x: u8 = x ^ 0x80`, etc.
+            #[inline]
+            fn ct_gt(&self, other: &$t_u) -> Choice {
+                let gtb = self & !other; // All the bits in self that are greater than their corresponding bits in other.
+                let mut ltb = !self & other; // All the bits in self that are less than their corresponding bits in other.
+                let mut pow = 1;
+
+                // Less-than operator is okay here because it's dependent on the bit-width.
+                while pow < $bit_width {
+                    ltb |= ltb >> pow; // Bit-smear the highest set bit to the right.
+                    pow += pow;
+                }
+                let mut bit = gtb & !ltb; // Select the highest set bit.
+                let mut pow = 1;
+
+                while pow < $bit_width {
+                    bit |= bit >> pow; // Shift it to the right until we end up with either 0 or 1.
+                    pow += pow;
+                }
+                // XXX We should possibly do the above flattening to 0 or 1 in the
+                //     Choice constructor rather than making it a debug error?
+                Choice::from((bit & 1) as u8)
+            }
+        }
+    }
+}
+
+generate_unsigned_integer_greater!(u8, 8);
+generate_unsigned_integer_greater!(u16, 16);
+generate_unsigned_integer_greater!(u32, 32);
+generate_unsigned_integer_greater!(u64, 64);
+#[cfg(feature = "i128")]
+generate_unsigned_integer_greater!(u128, 128);
+
+/// A type which can be compared in some manner and be determined to be less
+/// than another of the same type.
+pub trait ConstantTimeLess: ConstantTimeEq + ConstantTimeGreater {
+    /// Determine whether `self < other`.
+    ///
+    /// The bitwise-NOT of the return value of this function should be usable to
+    /// determine if `self >= other`.
+    ///
+    /// A default implementation is provided and implemented for the unsigned
+    /// integer types.
+    ///
+    /// This function should execute in constant time.
+    ///
+    /// # Returns
+    ///
+    /// A `Choice` with a set bit if `self < other`, and with no set bits
+    /// otherwise.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # extern crate subtle;
+    /// use subtle::ConstantTimeLess;
+    ///
+    /// let x: u8 = 13;
+    /// let y: u8 = 42;
+    ///
+    /// let x_lt_y = x.ct_lt(&y);
+    ///
+    /// assert_eq!(x_lt_y.unwrap_u8(), 1);
+    ///
+    /// let y_lt_x = y.ct_lt(&x);
+    ///
+    /// assert_eq!(y_lt_x.unwrap_u8(), 0);
+    ///
+    /// let x_lt_x = x.ct_lt(&x);
+    ///
+    /// assert_eq!(x_lt_x.unwrap_u8(), 0);
+    /// ```
+    #[inline]
+    fn ct_lt(&self, other: &Self) -> Choice {
+        !self.ct_gt(other) & !self.ct_eq(other)
+    }
+}
+
+impl ConstantTimeLess for u8 {}
+impl ConstantTimeLess for u16 {}
+impl ConstantTimeLess for u32 {}
+impl ConstantTimeLess for u64 {}
+#[cfg(feature = "i128")]
+impl ConstantTimeLess for u128 {}

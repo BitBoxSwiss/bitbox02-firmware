@@ -2160,6 +2160,12 @@ static const app_eth_erc20_params_t _ethereum_erc20_params[] = {
         .decimals = 18,
     },
     {
+        .unit = "PRQ",
+        .contract_address =
+            "\x36\x2b\xc8\x47\xA3\xa9\x63\x7d\x3a\xf6\x62\x4E\xeC\x85\x36\x18\xa4\x3e\xd7\xD2",
+        .decimals = 18,
+    },
+    {
         .unit = "PRS",
         .contract_address =
             "\xe0\xd9\x55\x30\x82\x0a\xaf\xc5\x1b\x1d\x98\x02\x3a\xa1\xff\x00\x0b\x78\xd8\xb2",
@@ -6795,6 +6801,12 @@ static const app_eth_erc20_params_t _ethereum_erc20_params[] = {
         .unit = "MESG",
         .contract_address =
             "\x42\x01\x67\xd8\x7d\x35\xc3\xa2\x49\xb3\x2e\xf6\x22\x58\x72\xfb\xd9\xab\x85\xd2",
+        .decimals = 18,
+    },
+    {
+        .unit = "METIS",
+        .contract_address =
+            "\x9E\x32\xb1\x3c\xe7\xf2\xE8\x0A\x01\x93\x2B\x42\x55\x36\x52\xE0\x53\xD6\xed\x8e",
         .decimals = 18,
     },
     {

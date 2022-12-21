@@ -39,7 +39,7 @@ pub fn serialize_varint(value: u64) -> Vec<u8> {
         }
         _ => {
             out.push(0xFF);
-            out.extend_from_slice(&(value as u64).to_le_bytes());
+            out.extend_from_slice(&value.to_le_bytes());
         }
     }
     out

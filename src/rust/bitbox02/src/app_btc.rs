@@ -33,7 +33,7 @@ pub fn pkscript_from_multisig(
             &mut out_len,
         )
     } {
-        true => Ok(out[..out_len as usize].to_vec()),
+        true => Ok(out[..out_len].to_vec()),
         false => Err(()),
     }
 }

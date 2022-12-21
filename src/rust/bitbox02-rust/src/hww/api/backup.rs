@@ -39,23 +39,22 @@ pub async fn check(
         return Err(Error::Generic);
     }
     if !silent {
-        let params = confirm::Params {
+        confirm::confirm(&confirm::Params {
             title: "Name?",
             body: &metadata.name,
             scrollable: true,
+            accept_is_nextarrow: true,
             ..Default::default()
-        };
+        })
+        .await?;
 
-        confirm::confirm(&params).await?;
-
-        let params = confirm::Params {
+        confirm::confirm(&confirm::Params {
             title: "ID?",
             body: &id,
             scrollable: true,
             ..Default::default()
-        };
-
-        confirm::confirm(&params).await?;
+        })
+        .await?;
 
         status::status("Backup valid", true).await;
     }

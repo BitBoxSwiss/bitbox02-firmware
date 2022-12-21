@@ -700,6 +700,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         confirm::confirm(&confirm::Params {
             title: "Warning",
             body: &format!("There are {}\nchange outputs.\nProceed?", num_changes),
+            accept_is_nextarrow: true,
             ..Default::default()
         })
         .await?;
@@ -729,6 +730,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                     ""
                 }
             ),
+            accept_is_nextarrow: true,
             ..Default::default()
         })
         .await?;

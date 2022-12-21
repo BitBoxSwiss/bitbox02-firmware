@@ -42,14 +42,15 @@ pub async fn warn_unusual_keypath(
             "Unusual keypath warning: {}. Proceed only if you know what you are doing.",
             util::bip32::to_string(keypath)
         );
-        let params = confirm::Params {
+        return Ok(confirm::confirm(&confirm::Params {
             title,
             body: &body,
             title_autowrap: true,
             scrollable: true,
+            accept_is_nextarrow: true,
             ..Default::default()
-        };
-        return Ok(confirm::confirm(&params).await?);
+        })
+        .await?);
     }
     Ok(())
 }

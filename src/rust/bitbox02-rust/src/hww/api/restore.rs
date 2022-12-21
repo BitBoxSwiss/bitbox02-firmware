@@ -93,12 +93,13 @@ pub async fn from_mnemonic(
     #[cfg(feature = "app-u2f")]
     {
         let datetime_string = bitbox02::format_datetime(timestamp, timezone_offset, false);
-        let params = confirm::Params {
+        confirm::confirm(&confirm::Params {
             title: "Is now?",
             body: &datetime_string,
+            accept_is_nextarrow: true,
             ..Default::default()
-        };
-        confirm::confirm(&params).await?;
+        })
+        .await?;
     }
 
     let mnemonic = mnemonic::get().await?;

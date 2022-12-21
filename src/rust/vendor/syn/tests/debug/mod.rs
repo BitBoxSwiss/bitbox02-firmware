@@ -1,3 +1,10 @@
+#![allow(
+    clippy::no_effect_underscore_binding,
+    clippy::too_many_lines,
+    clippy::used_underscore_binding
+)]
+
+#[rustfmt::skip]
 mod gen;
 
 use proc_macro2::{Ident, Literal, TokenStream};
@@ -63,7 +70,15 @@ impl Debug for Lite<Literal> {
 
 impl Debug for Lite<TokenStream> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "`{}`", self.value)
+        let string = self.value.to_string();
+        if string.len() <= 80 {
+            write!(formatter, "TokenStream(`{}`)", self.value)
+        } else {
+            formatter
+                .debug_tuple("TokenStream")
+                .field(&format_args!("`{}`", string))
+                .finish()
+        }
     }
 }
 
@@ -72,7 +87,7 @@ where
     Lite<T>: Debug,
 {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        Debug::fmt(Lite(&*self.value), formatter)
+        Debug::fmt(Lite(self.value), formatter)
     }
 }
 

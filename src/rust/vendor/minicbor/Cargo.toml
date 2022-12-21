@@ -10,38 +10,53 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "minicbor"
-version = "0.13.0"
+version = "0.18.0"
 authors = ["Toralf Wittner <tw@dtex.org>"]
 build = "build.rs"
 description = "A small CBOR codec suitable for no_std environments."
 documentation = "https://twittner.gitlab.io/minicbor/minicbor/"
-keywords = ["cbor", "encoding", "binary"]
+keywords = [
+    "cbor",
+    "serialization",
+    "encoding",
+    "binary",
+    "no_std",
+]
 categories = ["encoding"]
 license = "BlueOak-1.0.0"
 repository = "https://gitlab.com/twittner/minicbor"
+
 [package.metadata.docs.rs]
-features = ["std", "derive", "half"]
+features = [
+    "std",
+    "derive",
+    "half",
+]
 
 [[bin]]
 name = "cbor-display"
-required-features = ["std", "half"]
+required-features = [
+    "std",
+    "half",
+]
+
 [dependencies.half]
 version = "1"
 optional = true
 default-features = false
 
 [dependencies.minicbor-derive]
-version = "0.8.0"
+version = "0.12.0"
 optional = true
 
 [dev-dependencies]
 
 [features]
-__test-partial-skip-support = []
-alloc = []
-derive = ["minicbor-derive", "alloc"]
-partial-derive-support = ["minicbor-derive", "partial-skip-support"]
-partial-skip-support = []
-std = ["alloc"]
+alloc = ["minicbor-derive?/alloc"]
+derive = ["minicbor-derive"]
+std = [
+    "alloc",
+    "minicbor-derive?/std",
+]

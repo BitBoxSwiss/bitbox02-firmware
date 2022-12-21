@@ -1,12 +1,10 @@
-use std::cell::RefCell;
-
-use proc_macro2::{Delimiter, Span};
-
 use crate::buffer::Cursor;
 use crate::error::{self, Error};
 use crate::sealed::lookahead::Sealed;
 use crate::span::IntoSpans;
 use crate::token::Token;
+use proc_macro2::{Delimiter, Span};
+use std::cell::RefCell;
 
 /// Support for checking the next token in a stream to decide how to parse.
 ///
@@ -19,6 +17,9 @@ use crate::token::Token;
 ///
 /// [`ParseStream::peek`]: crate::parse::ParseBuffer::peek
 /// [`ParseStream::lookahead1`]: crate::parse::ParseBuffer::lookahead1
+///
+/// Consuming tokens from the source stream after constructing a lookahead
+/// object does not also advance the lookahead object.
 ///
 /// # Example
 ///

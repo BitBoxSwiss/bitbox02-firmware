@@ -36,19 +36,7 @@
 //! - `"std"`: Implies `"alloc"` and enables more functionality that depends
 //!   on the `std` crate.
 //!
-//! - `"derive"`: Implies `"alloc"` and allows deriving [`Encode`] and
-//!   [`Decode`] traits.
-//!
-//! - `"partial-skip-support"`: Enables the method [`Decoder::skip`] to skip
-//!   over any CBOR item other than indefinite-length arrays or maps inside of
-//!   regular maps or arrays. Support for skipping over any CBOR item is
-//!   enabled by `"alloc"` but without`"alloc"` or `"partial-skip-support"`
-//!   `Decoder::skip` is not available at all.
-//!
-//! - `"partial-derive-support"`: Implies `"partial-skip-support"` and allows
-//!   deriving [`Encode`] and [`Decode`] traits, but does not support
-//!   indefinite-length CBOR maps and arrays inside of regular CBOR maps and
-//!   arrays.
+//! - `"derive"`: Allows deriving [`Encode`] and [`Decode`] traits.
 //!
 //! # Example: generic encoding and decoding
 //!
@@ -158,42 +146,78 @@ const BREAK: u8    = 0xff;
 pub use decode::{Decode, Decoder};
 pub use encode::{Encode, Encoder};
 
-#[cfg(any(feature = "derive", feature = "partial-derive-support"))]
+#[cfg(feature = "derive")]
 pub use minicbor_derive::*;
+
+#[cfg(feature = "alloc")]
+use core::convert::Infallible;
+
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 
 /// Decode a type implementing [`Decode`] from the given byte slice.
 pub fn decode<'b, T>(b: &'b [u8]) -> Result<T, decode::Error>
 where
-    T: Decode<'b>
+    T: Decode<'b, ()>
 {
     Decoder::new(b).decode()
+}
+
+/// Decode a type implementing [`Decode`] from the given byte slice.
+pub fn decode_with<'b, C, T>(b: &'b [u8], ctx: &mut C) -> Result<T, decode::Error>
+where
+    T: Decode<'b, C>
+{
+    Decoder::new(b).decode_with(ctx)
 }
 
 /// Encode a type implementing [`Encode`] to the given [`encode::Write`] impl.
 pub fn encode<T, W>(x: T, w: W) -> Result<(), encode::Error<W::Error>>
 where
-    T: Encode,
+    T: Encode<()>,
     W: encode::Write
 {
     Encoder::new(w).encode(x)?.ok()
 }
 
+/// Encode a type implementing [`Encode`] to the given [`encode::Write`] impl.
+pub fn encode_with<C, T, W>(x: T, w: W, ctx: &mut C) -> Result<(), encode::Error<W::Error>>
+where
+    T: Encode<C>,
+    W: encode::Write
+{
+    Encoder::new(w).encode_with(x, ctx)?.ok()
+}
+
 /// Encode a type implementing [`Encode`] and return the encoded byte vector.
 ///
-/// *Requires feature* `"std"`.
-#[cfg(feature = "std")]
-pub fn to_vec<T>(x: T) -> Result<Vec<u8>, encode::Error<std::io::Error>>
+/// *Requires feature* `"alloc"`.
+#[cfg(feature = "alloc")]
+pub fn to_vec<T>(x: T) -> Result<Vec<u8>, encode::Error<Infallible>>
 where
-    T: Encode
+    T: Encode<()>
 {
     let mut e = Encoder::new(Vec::new());
-    x.encode(&mut e)?;
-    Ok(e.into_inner())
+    x.encode(&mut e, &mut ())?;
+    Ok(e.into_writer())
+}
+
+/// Encode a type implementing [`Encode`] and return the encoded byte vector.
+///
+/// *Requires feature* `"alloc"`.
+#[cfg(feature = "alloc")]
+pub fn to_vec_with<C, T>(x: T, ctx: &mut C) -> Result<Vec<u8>, encode::Error<Infallible>>
+where
+    T: Encode<C>
+{
+    let mut e = Encoder::new(Vec::new());
+    x.encode(&mut e, ctx)?;
+    Ok(e.into_writer())
 }
 
 /// Display the given CBOR bytes in [diagnostic notation][1].
 ///
-/// *Requires features* `"alloc"` and `"half"`.
+/// *Requires features* `"alloc"` *and* `"half"`.
 ///
 /// Quick syntax summary:
 ///
@@ -224,4 +248,8 @@ where
 pub fn display<'b>(cbor: &'b [u8]) -> impl core::fmt::Display + 'b {
     decode::Tokenizer::new(cbor)
 }
+
+// Ensure we can safely cast a `usize` to a `u64`.
+const __USIZE_FITS_INTO_U64: () =
+    assert!(core::mem::size_of::<usize>() <= core::mem::size_of::<u64>());
 

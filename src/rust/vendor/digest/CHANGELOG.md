@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.10.6 (2022-11-17)
+### Added
+- `Mac::verify_reset` and `Mac::verify_slice_reset` methods ([#1154])
+
+[#1154]: https://github.com/RustCrypto/traits/pull/1154
+
+## 0.10.5 (2022-09-16)
+### Fixed 
+- MSRV build ([#1117])
+
+[#1117]: https://github.com/RustCrypto/traits/pull/1117
+
+## 0.10.4 (2022-09-16)
+### Added
+- Feature-gated implementation of the `const_oid::AssociatedOid` trait
+for the core wrappers. ([#1098])
+
+[#1098]: https://github.com/RustCrypto/traits/pull/1098
+
+## 0.10.3 (2022-02-16)
+### Fixed
+- Minimal versions build ([#940])
+
+[#940]: https://github.com/RustCrypto/traits/pull/940
+
+## 0.10.2 (2022-02-10)
+### Changed
+- Relax bounds on the `Mac` trait ([#849])
+
+[#849]: https://github.com/RustCrypto/traits/pull/849
+
+## 0.10.1 (2021-12-14) [YANKED]
+### Added
+- `Update::chain` and `Digest::new_with_prefix` methods. ([#846])
+- `Mac::generate_key` method. ([#847])
+
+### Fixed
+- Doc cfg attribute for `CtOutput` and `MacError`. ([#842])
+- Expose `KeyInit::generate_key` method in docs. ([#847])
+
+[#842]: https://github.com/RustCrypto/traits/pull/842
+[#846]: https://github.com/RustCrypto/traits/pull/846
+[#847]: https://github.com/RustCrypto/traits/pull/847
+
+## 0.10.0 (2021-12-07) [YANKED]
+### Changed
+- Dirty traits are removed and instead block-level traits are introduced.
+Variable output traits reworked and now support both run and compile time selection of output size. ([#380], [#819])
+- The `crypto-mac` traits are reworked and merged in. ([#819])
+
+[#819]: https://github.com/RustCrypto/traits/pull/819
+[#380]: https://github.com/RustCrypto/traits/pull/380
+
 ## 0.9.0 (2020-06-09)
 ### Added
 - `ExtendableOutputDirty` and `VariableOutputDirty` traits ([#183])

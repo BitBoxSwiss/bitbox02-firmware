@@ -2,7 +2,7 @@
 // It is not intended for manual editing.
 
 use super::{Lite, RefCast};
-use std::fmt::{self, Debug};
+use std::fmt::{self, Debug, Display};
 impl Debug for Lite<syn::Abi> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let _val = &self.value;
@@ -591,18 +591,6 @@ impl Debug for Lite<syn::Expr> {
                 if !_val.attrs.is_empty() {
                     formatter.field("attrs", Lite(&_val.attrs));
                 }
-                if let Some(val) = &_val.asyncness {
-                    #[derive(RefCast)]
-                    #[repr(transparent)]
-                    struct Print(syn::token::Async);
-                    impl Debug for Print {
-                        fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                            formatter.write_str("Some")?;
-                            Ok(())
-                        }
-                    }
-                    formatter.field("asyncness", Print::ref_cast(val));
-                }
                 if let Some(val) = &_val.movability {
                     #[derive(RefCast)]
                     #[repr(transparent)]
@@ -614,6 +602,18 @@ impl Debug for Lite<syn::Expr> {
                         }
                     }
                     formatter.field("movability", Print::ref_cast(val));
+                }
+                if let Some(val) = &_val.asyncness {
+                    #[derive(RefCast)]
+                    #[repr(transparent)]
+                    struct Print(syn::token::Async);
+                    impl Debug for Print {
+                        fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                            formatter.write_str("Some")?;
+                            Ok(())
+                        }
+                    }
+                    formatter.field("asyncness", Print::ref_cast(val));
                 }
                 if let Some(val) = &_val.capture {
                     #[derive(RefCast)]
@@ -1039,9 +1039,9 @@ impl Debug for Lite<syn::Expr> {
             }
             syn::Expr::Verbatim(_val) => {
                 formatter.write_str("Verbatim")?;
-                formatter.write_str("(")?;
-                Debug::fmt(Lite(_val), formatter)?;
-                formatter.write_str(")")?;
+                formatter.write_str("(`")?;
+                Display::fmt(_val, formatter)?;
+                formatter.write_str("`)")?;
                 Ok(())
             }
             syn::Expr::While(_val) => {
@@ -1294,18 +1294,6 @@ impl Debug for Lite<syn::ExprClosure> {
         if !_val.attrs.is_empty() {
             formatter.field("attrs", Lite(&_val.attrs));
         }
-        if let Some(val) = &_val.asyncness {
-            #[derive(RefCast)]
-            #[repr(transparent)]
-            struct Print(syn::token::Async);
-            impl Debug for Print {
-                fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                    formatter.write_str("Some")?;
-                    Ok(())
-                }
-            }
-            formatter.field("asyncness", Print::ref_cast(val));
-        }
         if let Some(val) = &_val.movability {
             #[derive(RefCast)]
             #[repr(transparent)]
@@ -1317,6 +1305,18 @@ impl Debug for Lite<syn::ExprClosure> {
                 }
             }
             formatter.field("movability", Print::ref_cast(val));
+        }
+        if let Some(val) = &_val.asyncness {
+            #[derive(RefCast)]
+            #[repr(transparent)]
+            struct Print(syn::token::Async);
+            impl Debug for Print {
+                fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                    formatter.write_str("Some")?;
+                    Ok(())
+                }
+            }
+            formatter.field("asyncness", Print::ref_cast(val));
         }
         if let Some(val) = &_val.capture {
             #[derive(RefCast)]
@@ -2116,9 +2116,9 @@ impl Debug for Lite<syn::ForeignItem> {
             }
             syn::ForeignItem::Verbatim(_val) => {
                 formatter.write_str("Verbatim")?;
-                formatter.write_str("(")?;
-                Debug::fmt(Lite(_val), formatter)?;
-                formatter.write_str(")")?;
+                formatter.write_str("(`")?;
+                Display::fmt(_val, formatter)?;
+                formatter.write_str("`)")?;
                 Ok(())
             }
             _ => unreachable!(),
@@ -2215,6 +2215,13 @@ impl Debug for Lite<syn::GenericArgument> {
                 formatter.write_str(")")?;
                 Ok(())
             }
+            syn::GenericArgument::Const(_val) => {
+                formatter.write_str("Const")?;
+                formatter.write_str("(")?;
+                Debug::fmt(Lite(_val), formatter)?;
+                formatter.write_str(")")?;
+                Ok(())
+            }
             syn::GenericArgument::Binding(_val) => {
                 formatter.write_str("Binding")?;
                 formatter.write_str("(")?;
@@ -2224,13 +2231,6 @@ impl Debug for Lite<syn::GenericArgument> {
             }
             syn::GenericArgument::Constraint(_val) => {
                 formatter.write_str("Constraint")?;
-                formatter.write_str("(")?;
-                Debug::fmt(Lite(_val), formatter)?;
-                formatter.write_str(")")?;
-                Ok(())
-            }
-            syn::GenericArgument::Const(_val) => {
-                formatter.write_str("Const")?;
                 formatter.write_str("(")?;
                 Debug::fmt(Lite(_val), formatter)?;
                 formatter.write_str(")")?;
@@ -2432,9 +2432,9 @@ impl Debug for Lite<syn::ImplItem> {
             }
             syn::ImplItem::Verbatim(_val) => {
                 formatter.write_str("Verbatim")?;
-                formatter.write_str("(")?;
-                Debug::fmt(Lite(_val), formatter)?;
-                formatter.write_str(")")?;
+                formatter.write_str("(`")?;
+                Display::fmt(_val, formatter)?;
+                formatter.write_str("`)")?;
                 Ok(())
             }
             _ => unreachable!(),
@@ -2672,8 +2672,7 @@ impl Debug for Lite<syn::Item> {
                                             fn fmt(
                                                 &self,
                                                 formatter: &mut fmt::Formatter,
-                                            ) -> fmt::Result
-                                            {
+                                            ) -> fmt::Result {
                                                 match &self.0 {
                                                     Some(_val) => {
                                                         formatter.write_str("Some")?;
@@ -2940,9 +2939,9 @@ impl Debug for Lite<syn::Item> {
             }
             syn::Item::Verbatim(_val) => {
                 formatter.write_str("Verbatim")?;
-                formatter.write_str("(")?;
-                Debug::fmt(Lite(_val), formatter)?;
-                formatter.write_str(")")?;
+                formatter.write_str("(`")?;
+                Display::fmt(_val, formatter)?;
+                formatter.write_str("`)")?;
                 Ok(())
             }
             _ => unreachable!(),
@@ -3082,7 +3081,10 @@ impl Debug for Lite<syn::ItemImpl> {
                                 #[repr(transparent)]
                                 struct Print(Option<syn::token::Bang>);
                                 impl Debug for Print {
-                                    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                                    fn fmt(
+                                        &self,
+                                        formatter: &mut fmt::Formatter,
+                                    ) -> fmt::Result {
                                         match &self.0 {
                                             Some(_val) => {
                                                 formatter.write_str("Some")?;
@@ -3437,9 +3439,9 @@ impl Debug for Lite<syn::Lit> {
             }
             syn::Lit::Verbatim(_val) => {
                 formatter.write_str("Verbatim")?;
-                formatter.write_str("(")?;
-                Debug::fmt(Lite(_val), formatter)?;
-                formatter.write_str(")")?;
+                formatter.write_str("(`")?;
+                Display::fmt(_val, formatter)?;
+                formatter.write_str("`)")?;
                 Ok(())
             }
         }
@@ -3878,9 +3880,9 @@ impl Debug for Lite<syn::Pat> {
             }
             syn::Pat::Verbatim(_val) => {
                 formatter.write_str("Verbatim")?;
-                formatter.write_str("(")?;
-                Debug::fmt(Lite(_val), formatter)?;
-                formatter.write_str(")")?;
+                formatter.write_str("(`")?;
+                Display::fmt(_val, formatter)?;
+                formatter.write_str("`)")?;
                 Ok(())
             }
             syn::Pat::Wild(_val) => {
@@ -4190,7 +4192,8 @@ impl Debug for Lite<syn::PathArguments> {
         match _val {
             syn::PathArguments::None => formatter.write_str("None"),
             syn::PathArguments::AngleBracketed(_val) => {
-                let mut formatter = formatter.debug_struct("PathArguments::AngleBracketed");
+                let mut formatter = formatter
+                    .debug_struct("PathArguments::AngleBracketed");
                 if let Some(val) = &_val.colon2_token {
                     #[derive(RefCast)]
                     #[repr(transparent)]
@@ -4209,7 +4212,8 @@ impl Debug for Lite<syn::PathArguments> {
                 formatter.finish()
             }
             syn::PathArguments::Parenthesized(_val) => {
-                let mut formatter = formatter.debug_struct("PathArguments::Parenthesized");
+                let mut formatter = formatter
+                    .debug_struct("PathArguments::Parenthesized");
                 if !_val.inputs.is_empty() {
                     formatter.field("inputs", Lite(&_val.inputs));
                 }
@@ -4333,7 +4337,10 @@ impl Debug for Lite<syn::Receiver> {
                             #[repr(transparent)]
                             struct Print(Option<syn::Lifetime>);
                             impl Debug for Print {
-                                fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                                fn fmt(
+                                    &self,
+                                    formatter: &mut fmt::Formatter,
+                                ) -> fmt::Result {
                                     match &self.0 {
                                         Some(_val) => {
                                             formatter.write_str("Some")?;
@@ -4674,9 +4681,9 @@ impl Debug for Lite<syn::TraitItem> {
             }
             syn::TraitItem::Verbatim(_val) => {
                 formatter.write_str("Verbatim")?;
-                formatter.write_str("(")?;
-                Debug::fmt(Lite(_val), formatter)?;
-                formatter.write_str(")")?;
+                formatter.write_str("(`")?;
+                Display::fmt(_val, formatter)?;
+                formatter.write_str("`)")?;
                 Ok(())
             }
             _ => unreachable!(),
@@ -5040,9 +5047,9 @@ impl Debug for Lite<syn::Type> {
             }
             syn::Type::Verbatim(_val) => {
                 formatter.write_str("Verbatim")?;
-                formatter.write_str("(")?;
-                Debug::fmt(Lite(_val), formatter)?;
-                formatter.write_str(")")?;
+                formatter.write_str("(`")?;
+                Display::fmt(_val, formatter)?;
+                formatter.write_str("`)")?;
                 Ok(())
             }
             _ => unreachable!(),

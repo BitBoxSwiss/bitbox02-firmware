@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.9.9 (2022-01-06)
+### Fixed
+- Backport [#345] bug fix for the AVX2 backend ([#346])
+
+[#345]: https://github.com/RustCrypto/hashes/pull/345
+[#346]: https://github.com/RustCrypto/hashes/pull/346
+
+## 0.9.8 (2021-09-09) [YANKED]
+### Fixed
+- Bug in the AVX2 backend ([#314])
+
+[#314]: https://github.com/RustCrypto/hashes/pull/314
+
+## 0.9.7 (2021-09-08) [YANKED]
+### Added
+- x86 intrinsics support for SHA-512 ([#312])
+
+[#312]: https://github.com/RustCrypto/hashes/pull/312
+
+## 0.9.6 (2021-08-27)
+### Changed
+- Bump `cpufeatures` dependency to 0.2 ([#306])
+
+[#306]: https://github.com/RustCrypto/hashes/pull/306
+
+## 0.9.5 (2021-05-11)
+### Changed
+- Use `cpufeatures` to detect intrinsics support on `aarch64` targets ([#267])
+
+[#267]: https://github.com/RustCrypto/hashes/pull/267
+
+## 0.9.4 (2021-05-05)
+### Added
+- Hardware accelerated SHA-256 for Apple M1 CPUs with `asm` feature ([#262])
+
+### Changed
+- Bump `sha2-asm` to v0.6.1 release ([#262])
+- Switch from `cpuid-bool` to `cpufeatures` ([#263])
+
+[#262]: https://github.com/RustCrypto/hashes/pull/262
+[#263]: https://github.com/RustCrypto/hashes/pull/263
+
+## 0.9.3 (2021-01-30)
+### Changed
+- Use the SHA-NI extension backend with enabled `asm` feature. ([#224])
+
+[#224]: https://github.com/RustCrypto/hashes/pull/224
+
 ## 0.9.2 (2020-11-04)
 ### Added
 - `force-soft` feature to enforce use of software implementation. ([#203])

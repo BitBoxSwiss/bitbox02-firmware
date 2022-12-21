@@ -1,4 +1,4 @@
-mod features;
+#![allow(clippy::assertions_on_result_states, clippy::too_many_lines)]
 
 #[macro_use]
 mod macros;
@@ -48,7 +48,7 @@ fn test_struct() {
                         },
                     ],
                 },
-                tokens: `( Debug , Clone )`,
+                tokens: TokenStream(`(Debug , Clone)`),
             },
         ],
         vis: Visibility::Public,
@@ -221,7 +221,7 @@ fn test_enum() {
                         },
                     ],
                 },
-                tokens: `= r" See the std::result module documentation for details."`,
+                tokens: TokenStream(`= r" See the std::result module documentation for details."`),
             },
             Attribute {
                 style: Outer,
@@ -233,7 +233,7 @@ fn test_enum() {
                         },
                     ],
                 },
-                tokens: ``,
+                tokens: TokenStream(``),
             },
         ],
         vis: Visibility::Public,
@@ -380,7 +380,7 @@ fn test_attr_with_path() {
                         },
                     ],
                 },
-                tokens: `fn main ( ) { assert_eq ! ( foo ( ) , "Hello, world!" ) ; }`,
+                tokens: TokenStream(`fn main () { assert_eq ! (foo () , "Hello, world!") ; }`),
             },
         ],
         vis: Inherited,
@@ -416,7 +416,7 @@ fn test_attr_with_non_mod_style_path() {
                         },
                     ],
                 },
-                tokens: `< T >`,
+                tokens: TokenStream(`< T >`),
             },
         ],
         vis: Inherited,
@@ -456,7 +456,7 @@ fn test_attr_with_mod_style_path_with_self() {
                         },
                     ],
                 },
-                tokens: ``,
+                tokens: TokenStream(``),
             },
         ],
         vis: Inherited,

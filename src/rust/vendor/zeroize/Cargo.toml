@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "zeroize"
-version = "1.5.5"
+version = "1.5.7"
 authors = ["The RustCrypto Project Developers"]
 description = """
 Securely clear secrets from memory with a simple trait built on
@@ -44,6 +44,11 @@ rustdoc-args = [
     "--cfg",
     "docsrs",
 ]
+
+[dependencies.serde]
+version = "1.0"
+optional = true
+default-features = false
 
 [dependencies.zeroize_derive]
 version = "1.3"

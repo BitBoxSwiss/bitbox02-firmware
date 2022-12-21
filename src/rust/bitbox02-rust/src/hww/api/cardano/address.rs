@@ -28,7 +28,7 @@ use bech32::{FromBase32, ToBase32, Variant};
 
 use blake2::{
     digest::{Update, VariableOutput},
-    VarBlake2b,
+    Blake2bVar,
 };
 
 use super::params;
@@ -146,10 +146,10 @@ pub fn decode_payment_address(params: &params::Params, address: &str) -> Result<
 pub fn pubkey_hash_at_keypath(keypath: &[u32]) -> Result<[u8; ADDRESS_HASH_SIZE], ()> {
     let xpub = crate::keystore::ed25519::get_xpub(keypath)?;
     let pubkey_bytes = xpub.pubkey_bytes();
-    let mut hasher = VarBlake2b::new(ADDRESS_HASH_SIZE).unwrap();
+    let mut hasher = Blake2bVar::new(ADDRESS_HASH_SIZE).unwrap();
     hasher.update(pubkey_bytes);
     let mut out = [0u8; ADDRESS_HASH_SIZE];
-    hasher.finalize_variable(|res| out.copy_from_slice(res));
+    hasher.finalize_variable(&mut out).or(Err(()))?;
     Ok(out)
 }
 

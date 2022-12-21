@@ -1,20 +1,15 @@
-use libc::{getauxval, AT_HWCAP, HWCAP_SHA2};
+//! SHA-256 `aarch64` backend.
 
-#[inline(always)]
-pub fn sha2_supported() -> bool {
-    let hwcaps: u64 = unsafe { getauxval(AT_HWCAP) };
-    (hwcaps & HWCAP_SHA2) != 0
-}
+// TODO: stdarch intrinsics: RustCrypto/hashes#257
+
+cpufeatures::new!(sha2_hwcap, "sha2");
 
 pub fn compress(state: &mut [u32; 8], blocks: &[[u8; 64]]) {
     // TODO: Replace with https://github.com/rust-lang/rfcs/pull/2725
     // after stabilization
-    if sha2_supported() {
-        // TODO: replace after sha2-asm rework
-        for block in blocks {
-            sha2_asm::compress256(&mut self.h, block);
-        }
+    if sha2_hwcap::get() {
+        sha2_asm::compress256(state, blocks);
     } else {
-        super::soft::compress(&mut self.h, block);
+        super::soft::compress(state, blocks);
     }
 }

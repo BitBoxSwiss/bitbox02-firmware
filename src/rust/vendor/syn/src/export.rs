@@ -1,6 +1,5 @@
 pub use std::clone::Clone;
 pub use std::cmp::{Eq, PartialEq};
-pub use std::convert::From;
 pub use std::default::Default;
 pub use std::fmt::{self, Debug, Formatter};
 pub use std::hash::{Hash, Hasher};
@@ -12,6 +11,9 @@ pub use std::result::Result::{Err, Ok};
 pub extern crate quote;
 
 pub use proc_macro2::{Span, TokenStream as TokenStream2};
+
+#[cfg(feature = "parsing")]
+pub use crate::group::{parse_braces, parse_brackets, parse_parens};
 
 pub use crate::span::IntoSpans;
 
@@ -33,3 +35,5 @@ mod help {
     pub type Bool = bool;
     pub type Str = str;
 }
+
+pub struct private(pub(crate) ());

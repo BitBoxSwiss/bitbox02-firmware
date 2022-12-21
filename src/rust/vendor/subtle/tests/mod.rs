@@ -1,4 +1,8 @@
+extern crate rand;
 extern crate subtle;
+
+use rand::rngs::OsRng;
+use rand::RngCore;
 
 use subtle::*;
 
@@ -133,6 +137,14 @@ fn conditional_select_choice() {
     assert_eq!(bool::from(Choice::conditional_select(&t, &f, t)), false);
     assert_eq!(bool::from(Choice::conditional_select(&f, &t, f)), false);
     assert_eq!(bool::from(Choice::conditional_select(&f, &t, t)), true);
+}
+
+#[test]
+fn choice_equal() {
+    assert!(Choice::from(0).ct_eq(&Choice::from(0)).unwrap_u8() == 1);
+    assert!(Choice::from(0).ct_eq(&Choice::from(1)).unwrap_u8() == 0);
+    assert!(Choice::from(1).ct_eq(&Choice::from(0)).unwrap_u8() == 0);
+    assert!(Choice::from(1).ct_eq(&Choice::from(1)).unwrap_u8() == 1);
 }
 
 #[test]
@@ -272,4 +284,106 @@ fn unwrap_none_ctoption() {
     // This test might fail (in release mode?) if the
     // compiler decides to optimize it away.
     CtOption::new(10, Choice::from(0)).unwrap();
+}
+
+macro_rules! generate_greater_than_test {
+    ($ty: ty) => {
+        for _ in 0..100 {
+            let x = OsRng.next_u64() as $ty;
+            let y = OsRng.next_u64() as $ty;
+            let z = x.ct_gt(&y);
+
+            println!("x={}, y={}, z={:?}", x, y, z);
+
+            if x < y {
+                assert!(z.unwrap_u8() == 0);
+            } else if x == y {
+                assert!(z.unwrap_u8() == 0);
+            } else if x > y {
+                assert!(z.unwrap_u8() == 1);
+            }
+        }
+    }
+}
+
+#[test]
+fn greater_than_u8() {
+    generate_greater_than_test!(u8);
+}
+
+#[test]
+fn greater_than_u16() {
+    generate_greater_than_test!(u16);
+}
+
+#[test]
+fn greater_than_u32() {
+    generate_greater_than_test!(u32);
+}
+
+#[test]
+fn greater_than_u64() {
+    generate_greater_than_test!(u64);
+}
+
+#[cfg(feature = "i128")]
+#[test]
+fn greater_than_u128() {
+    generate_greater_than_test!(u128);
+}
+
+#[test]
+/// Test that the two's compliment min and max, i.e. 0000...0001 < 1111...1110,
+/// gives the correct result. (This fails using the bit-twiddling algorithm that
+/// go/crypto/subtle uses.)
+fn less_than_twos_compliment_minmax() {
+    let z = 1u32.ct_lt(&(2u32.pow(31)-1));
+
+    assert!(z.unwrap_u8() == 1);
+}
+
+macro_rules! generate_less_than_test {
+    ($ty: ty) => {
+        for _ in 0..100 {
+            let x = OsRng.next_u64() as $ty;
+            let y = OsRng.next_u64() as $ty;
+            let z = x.ct_gt(&y);
+
+            println!("x={}, y={}, z={:?}", x, y, z);
+
+            if x < y {
+                assert!(z.unwrap_u8() == 0);
+            } else if x == y {
+                assert!(z.unwrap_u8() == 0);
+            } else if x > y {
+                assert!(z.unwrap_u8() == 1);
+            }
+        }
+    }
+}
+
+#[test]
+fn less_than_u8() {
+    generate_less_than_test!(u8);
+}
+
+#[test]
+fn less_than_u16() {
+    generate_less_than_test!(u16);
+}
+
+#[test]
+fn less_than_u32() {
+    generate_less_than_test!(u32);
+}
+
+#[test]
+fn less_than_u64() {
+    generate_less_than_test!(u64);
+}
+
+#[cfg(feature = "i128")]
+#[test]
+fn less_than_u128() {
+    generate_less_than_test!(u128);
 }

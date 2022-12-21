@@ -86,9 +86,7 @@ pub fn load_bin(filename: &str, dir: &str) -> Result<zeroize::Zeroizing<Vec<u8>>
             &mut contents_len,
         )
     } {
-        true => Ok(zeroize::Zeroizing::new(
-            contents[..contents_len as usize].to_vec(),
-        )),
+        true => Ok(zeroize::Zeroizing::new(contents[..contents_len].to_vec())),
         false => Err(()),
     }
 }

@@ -223,7 +223,6 @@ set_property(TARGET asf4-drivers PROPERTY INTERFACE_LINK_LIBRARIES "")
   )
   target_link_libraries(cryptoauthlib samd51a-ds asf4-drivers-min)
   set_property(TARGET cryptoauthlib PROPERTY INTERFACE_LINK_LIBRARIES "")
-  target_compile_definitions(cryptoauthlib PUBLIC ATCA_NO_POLL)
   target_include_directories(cryptoauthlib SYSTEM PUBLIC
     cryptoauthlib/lib
     ${CMAKE_CURRENT_SOURCE_DIR} # for the BitBox02-custom "atca_config.h"

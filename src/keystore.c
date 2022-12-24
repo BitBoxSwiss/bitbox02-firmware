@@ -47,21 +47,6 @@ static bool _is_unlocked_bip39 = false;
 // Must be defined if _is_unlocked is true. ONLY ACCESS THIS WITH _copy_bip39_seed().
 static uint8_t _retained_bip39_seed[64] = {0};
 
-#ifdef TESTING
-void keystore_mock_unlocked(const uint8_t* seed, size_t seed_len, const uint8_t* bip39_seed)
-{
-    _is_unlocked_device = seed != NULL;
-    if (seed != NULL) {
-        _seed_length = seed_len;
-        memcpy(_retained_seed, seed, seed_len);
-    }
-    _is_unlocked_bip39 = bip39_seed != NULL;
-    if (bip39_seed != NULL) {
-        memcpy(_retained_bip39_seed, bip39_seed, sizeof(_retained_bip39_seed));
-    }
-}
-#endif
-
 /**
  * We allow seeds of 16, 24 or 32 bytes.
  */
@@ -319,6 +304,25 @@ static void _free_string(char** str)
     wally_free_string(*str);
 }
 
+static void _retain_seed(const uint8_t* seed, size_t seed_len)
+{
+    memcpy(_retained_seed, seed, seed_len);
+    _seed_length = seed_len;
+}
+
+USE_RESULT static bool _retain_bip39_seed(const uint8_t* bip39_seed)
+{
+    memcpy(_retained_bip39_seed, bip39_seed, sizeof(_retained_bip39_seed));
+    return true;
+}
+
+static void _delete_retained_seeds(void)
+{
+    _seed_length = 0;
+    util_zero(_retained_seed, sizeof(_retained_seed));
+    util_zero(_retained_bip39_seed, sizeof(_retained_bip39_seed));
+}
+
 keystore_error_t keystore_unlock(
     const char* password,
     uint8_t* remaining_attempts_out,
@@ -354,8 +358,7 @@ keystore_error_t keystore_unlock(
                 Abort("Seed has suddenly changed. This should never happen.");
             }
         } else {
-            memcpy(_retained_seed, seed, seed_len);
-            _seed_length = seed_len;
+            _retain_seed(seed, seed_len);
             _is_unlocked_device = true;
         }
         bitbox02_smarteeprom_reset_unlock_attempts();
@@ -396,7 +399,9 @@ bool keystore_unlock_bip39(const char* mnemonic_passphrase)
             mnemonic, mnemonic_passphrase, bip39_seed, sizeof(bip39_seed), NULL) != WALLY_OK) {
         return false;
     }
-    memcpy(_retained_bip39_seed, bip39_seed, sizeof(bip39_seed));
+    if (!_retain_bip39_seed(bip39_seed)) {
+        return false;
+    }
     _is_unlocked_bip39 = true;
     return true;
 }
@@ -405,9 +410,7 @@ void keystore_lock(void)
 {
     _is_unlocked_device = false;
     _is_unlocked_bip39 = false;
-    _seed_length = 0;
-    util_zero(_retained_seed, sizeof(_retained_seed));
-    util_zero(_retained_bip39_seed, sizeof(_retained_bip39_seed));
+    _delete_retained_seeds();
 }
 
 bool keystore_is_locked(void)
@@ -789,3 +792,17 @@ bool keystore_secp256k1_schnorr_bip86_sign(
     }
     return secp256k1_schnorrsig_verify(ctx, sig64_out, msg32, 32, &pubkey) == 1;
 }
+
+#ifdef TESTING
+void keystore_mock_unlocked(const uint8_t* seed, size_t seed_len, const uint8_t* bip39_seed)
+{
+    _is_unlocked_device = seed != NULL;
+    if (seed != NULL) {
+        _retain_seed(seed, seed_len);
+    }
+    _is_unlocked_bip39 = bip39_seed != NULL;
+    if (bip39_seed != NULL) {
+        memcpy(_retained_bip39_seed, bip39_seed, sizeof(_retained_bip39_seed));
+    }
+}
+#endif

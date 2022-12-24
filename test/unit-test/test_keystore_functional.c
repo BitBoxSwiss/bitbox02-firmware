@@ -64,7 +64,7 @@ static void _test_seeds(void** state)
     _smarteeprom_reset();
     assert_true(keystore_is_locked());
     uint8_t read_seed[KEYSTORE_MAX_SEED_LENGTH];
-    uint32_t read_seed_len;
+    size_t read_seed_len;
     assert_false(keystore_copy_seed(read_seed, &read_seed_len));
 
     will_return(__wrap_memory_is_initialized, true);

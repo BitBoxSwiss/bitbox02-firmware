@@ -108,9 +108,9 @@ pub fn create_and_store_seed(password: &SafeInputString, host_entropy: &[u8]) ->
 
 pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH]);
-    let mut seed_len: u32 = 0;
+    let mut seed_len: usize = 0;
     match unsafe { bitbox02_sys::keystore_copy_seed(seed.as_mut_ptr(), &mut seed_len) } {
-        true => Ok(zeroize::Zeroizing::new(seed[..seed_len as usize].to_vec())),
+        true => Ok(zeroize::Zeroizing::new(seed[..seed_len].to_vec())),
         false => Err(()),
     }
 }
@@ -283,7 +283,7 @@ pub fn encrypt_and_store_seed(seed: &[u8], password: &SafeInputString) -> Result
     match unsafe {
         bitbox02_sys::keystore_encrypt_and_store_seed(
             seed.as_ptr(),
-            seed.len() as _,
+            seed.len(),
             password.as_cstr(),
         )
     } {

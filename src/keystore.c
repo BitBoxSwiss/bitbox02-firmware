@@ -574,14 +574,11 @@ bool keystore_secp256k1_pubkey_hash160(
     size_t keypath_len,
     uint8_t* hash160_out)
 {
-    if (keystore_is_locked()) {
+    struct ext_key xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
+    if (!keystore_get_xpub(keypath, keypath_len, &xpub)) {
         return false;
     }
-    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
-        return false;
-    }
-    memcpy(hash160_out, xprv.hash160, sizeof(xprv.hash160));
+    memcpy(hash160_out, xpub.hash160, sizeof(xpub.hash160));
     return true;
 }
 
@@ -590,14 +587,11 @@ bool keystore_secp256k1_pubkey_uncompressed(
     size_t keypath_len,
     uint8_t* pubkey_out)
 {
-    if (keystore_is_locked()) {
+    struct ext_key xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
+    if (!keystore_get_xpub(keypath, keypath_len, &xpub)) {
         return false;
     }
-    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
-        return false;
-    }
-    return _compressed_to_uncompressed(xprv.pub_key, pubkey_out);
+    return _compressed_to_uncompressed(xpub.pub_key, pubkey_out);
 }
 
 bool keystore_secp256k1_nonce_commit(

@@ -1736,8 +1736,6 @@ mod tests {
     /// Test signing if all inputs are of type P2TR.
     #[test]
     pub fn test_script_type_p2tr() {
-        bitbox02::random::mock_reset();
-
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         for input in transaction.borrow_mut().inputs.iter_mut() {
@@ -1763,6 +1761,7 @@ mod tests {
 
         mock_default_ui();
         mock_unlocked();
+        bitbox02::random::mock_reset();
         let mut init_request = transaction.borrow().init_request();
         init_request.script_configs[0] = pb::BtcScriptConfigWithKeypath {
             script_config: Some(pb::BtcScriptConfig {

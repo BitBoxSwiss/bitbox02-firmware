@@ -43,6 +43,7 @@ typedef enum {
     KEYSTORE_ERR_SALT,
     KEYSTORE_ERR_HASH,
     KEYSTORE_ERR_ENCRYPT,
+    KEYSTORE_ERR_DECRYPT,
 } keystore_error_t;
 
 /**
@@ -282,6 +283,8 @@ USE_RESULT bool keystore_secp256k1_schnorr_bip86_sign(
  * convenience to mock the keystore state (locked, seed) in tests.
  */
 void keystore_mock_unlocked(const uint8_t* seed, size_t seed_len, const uint8_t* bip39_seed);
+
+const uint8_t* keystore_test_get_retained_seed_encrypted(size_t* len_out);
 #endif
 
 #endif

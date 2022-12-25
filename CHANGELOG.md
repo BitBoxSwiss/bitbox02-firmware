@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Improved security: keep seed encrypted in RAM
 
 ### 9.14.0
 - Improved touch button positional accuracy in noisy environments

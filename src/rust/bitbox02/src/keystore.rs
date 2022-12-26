@@ -14,6 +14,7 @@
 
 extern crate alloc;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use core::convert::TryInto;
@@ -198,19 +199,16 @@ pub fn secp256k1_pubkey_uncompressed(
     }
 }
 
-pub fn encode_xpub_at_keypath(keypath: &[u32]) -> Result<String, ()> {
-    let mut xpub = [0u8; bitbox02_sys::XPUB_ENCODED_LEN as _];
+pub fn encode_xpub_at_keypath(keypath: &[u32]) -> Result<Vec<u8>, ()> {
+    let mut xpub = vec![0u8; bitbox02_sys::BIP32_SERIALIZED_LEN as _];
     match unsafe {
         bitbox02_sys::keystore_encode_xpub_at_keypath(
             keypath.as_ptr(),
             keypath.len() as _,
             xpub.as_mut_ptr(),
-            xpub.len() as _,
         )
     } {
-        true => Ok(crate::util::str_from_null_terminated(&xpub[..])
-            .unwrap()
-            .into()),
+        true => Ok(xpub),
         false => Err(()),
     }
 }

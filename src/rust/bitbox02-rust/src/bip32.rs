@@ -61,19 +61,26 @@ pub fn serialize_xpub_str(xpub: &pb::XPub, xpub_type: XPubType) -> Result<String
         .into_string())
 }
 
-/// Parses a Base58Check-encoded xpub string. The 4 version bytes are not checked and discarded.
-pub fn parse_xpub(xpub: &str) -> Result<pb::XPub, ()> {
-    let decoded = bs58::decode(xpub).with_check(None).into_vec().or(Err(()))?;
-    if decoded.len() != 78 {
+/// Parses an 78-ytes xpub bytestring, encoded according to BIP32. The 4 version bytes are not
+/// checked and discarded.
+pub fn parse_xpub_bytes(xpub: &[u8]) -> Result<pb::XPub, ()> {
+    if xpub.len() != 78 {
         return Err(());
     }
     Ok(pb::XPub {
-        depth: decoded[4..5].to_vec(),
-        parent_fingerprint: decoded[5..9].to_vec(),
-        child_num: u32::from_be_bytes(core::convert::TryInto::try_into(&decoded[9..13]).unwrap()),
-        chain_code: decoded[13..45].to_vec(),
-        public_key: decoded[45..78].to_vec(),
+        depth: xpub[4..5].to_vec(),
+        parent_fingerprint: xpub[5..9].to_vec(),
+        child_num: u32::from_be_bytes(core::convert::TryInto::try_into(&xpub[9..13]).unwrap()),
+        chain_code: xpub[13..45].to_vec(),
+        public_key: xpub[45..78].to_vec(),
     })
+}
+
+/// Parses a Base58Check-encoded xpub string. The 4 version bytes are not checked and discarded.
+#[cfg(test)]
+pub fn parse_xpub(xpub: &str) -> Result<pb::XPub, ()> {
+    let decoded = bs58::decode(xpub).with_check(None).into_vec().or(Err(()))?;
+    parse_xpub_bytes(&decoded)
 }
 
 #[cfg(test)]

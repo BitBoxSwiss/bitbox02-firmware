@@ -24,9 +24,8 @@ use bitbox02::keystore;
 
 /// Derives an xpub from the keystore seed at the given keypath.
 pub fn get_xpub(keypath: &[u32]) -> Result<pb::XPub, ()> {
-    // Convert from C keystore to Rust by encoding the xpub in C and decoding it in Rust. Would be a
-    // bit better to encode/decoding using the raw 78 bytes, not the base58Check encoding.
-    bip32::parse_xpub(&keystore::encode_xpub_at_keypath(keypath)?)
+    // Convert from C keystore to Rust by encoding the xpub in C and decoding it in Rust.
+    bip32::parse_xpub_bytes(&keystore::encode_xpub_at_keypath(keypath)?)
 }
 
 /// Return the hash160 of the secp256k1 public key at the keypath.

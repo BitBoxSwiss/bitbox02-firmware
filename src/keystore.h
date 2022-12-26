@@ -249,24 +249,14 @@ USE_RESULT bool keystore_get_u2f_seed(uint8_t* seed_out);
 USE_RESULT bool keystore_get_ed25519_seed(uint8_t* seed_out);
 
 /**
- * Encode an xpub as a base58 string.
- * @param[in] xpub the xpub to encode.
- * @param[out] out resulting string, must be at least of size `XPUB_ENCODED_LEN` (including the null
- * terminator).
- * @param[in] out_len size of `out`.
- * @return false on failure, true on success.
- */
-USE_RESULT bool keystore_encode_xpub(const struct ext_key* xpub, char* out, size_t out_len);
-
-/**
- * Encode an xpub as a base58 string at the given `keypath`.
- * Args the same as `keystore_encode_xpub`.
+ * Encode an xpub at the given `keypath` as 78 bytes according to BIP32. The version bytes are
+ * the ones corresponding to `xpub`, i.e. 0x0488B21E.
+ * `out` must be `BIP32_SERIALIZED_LEN` long.
  */
 USE_RESULT bool keystore_encode_xpub_at_keypath(
     const uint32_t* keypath,
     size_t keypath_len,
-    char* out,
-    size_t out_len);
+    uint8_t* out);
 
 /**
  * Return the tweaked taproot pubkey at the given keypath.

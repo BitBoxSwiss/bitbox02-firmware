@@ -323,6 +323,7 @@ add_custom_target(rust-bindgen
     --allowlist-function keystore_encode_xpub_at_keypath
     --allowlist-function keystore_encrypt_and_store_seed
     --allowlist-var XPUB_ENCODED_LEN
+    --allowlist-var BIP32_SERIALIZED_LEN
     --allowlist-function lock_animation_start
     --allowlist-function lock_animation_stop
     --allowlist-function delay_us

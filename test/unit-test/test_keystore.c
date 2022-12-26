@@ -449,28 +449,6 @@ static void _test_keystore_get_bip39_mnemonic(void** state)
     assert_true(keystore_get_bip39_mnemonic(mnemonic, strlen(expected_mnemonic) + 1));
 }
 
-static void _test_keystore_encode_xpub(void** state)
-{
-    struct ext_key xpub = {0};
-    assert_int_equal(
-        bip32_key_from_seed(
-            (const unsigned char*)"seedseedseedseed",
-            BIP32_ENTROPY_LEN_128,
-            BIP32_VER_MAIN_PRIVATE,
-            BIP32_FLAG_SKIP_HASH,
-            &xpub),
-        WALLY_OK);
-    assert_int_equal(bip32_key_strip_private_key(&xpub), WALLY_OK);
-    char out[XPUB_ENCODED_LEN] = {0};
-    assert_false(keystore_encode_xpub(&xpub, out, 110));
-
-    assert_true(keystore_encode_xpub(&xpub, out, sizeof(out)));
-    assert_string_equal(
-        out,
-        "xpub661MyMwAqRbcFLG1NSwsGkQxYGaRj3qDsDB6g64CviEc82D3r7Dp4eMnWdarcVkpPbMgwwuLLPPwCXVQFWWomv"
-        "yj6QKEuDXWvNbCDF98tgM");
-}
-
 static void _test_keystore_create_and_store_seed(void** state)
 {
     const uint8_t seed_random[32] =
@@ -736,7 +714,6 @@ int main(void)
         cmocka_unit_test(_test_keystore_unlock),
         cmocka_unit_test(_test_keystore_lock),
         cmocka_unit_test(_test_keystore_get_bip39_mnemonic),
-        cmocka_unit_test(_test_keystore_encode_xpub),
         cmocka_unit_test(_test_keystore_create_and_store_seed),
         cmocka_unit_test(_test_keystore_get_ed25519_seed),
         cmocka_unit_test(_test_secp256k1_schnorr_sign),

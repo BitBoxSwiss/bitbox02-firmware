@@ -681,27 +681,17 @@ bool keystore_get_ed25519_seed(uint8_t* seed_out)
     return true;
 }
 
-bool keystore_encode_xpub(const struct ext_key* xpub, char* out, size_t out_len)
-{
-    uint8_t bytes[BIP32_SERIALIZED_LEN] = {0};
-    if (bip32_key_serialize(xpub, BIP32_FLAG_KEY_PUBLIC, bytes, sizeof(bytes)) != WALLY_OK) {
-        return false;
-    }
-    return rust_base58_encode_check(
-        rust_util_bytes(bytes, sizeof(bytes)), rust_util_cstr_mut(out, out_len));
-}
-
 USE_RESULT bool keystore_encode_xpub_at_keypath(
     const uint32_t* keypath,
     size_t keypath_len,
-    char* out,
-    size_t out_len)
+    uint8_t* out)
 {
     struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
     if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
         return false;
     }
-    return keystore_encode_xpub(&derived_xpub, out, out_len);
+    return bip32_key_serialize(&derived_xpub, BIP32_FLAG_KEY_PUBLIC, out, BIP32_SERIALIZED_LEN) ==
+           WALLY_OK;
 }
 
 static void _tagged_hash(const char* tag, const uint8_t* msg, size_t msg_len, uint8_t* hash_out)

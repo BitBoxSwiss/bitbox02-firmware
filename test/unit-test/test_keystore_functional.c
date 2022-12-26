@@ -23,6 +23,7 @@
 #include <memory/bitbox02_smarteeprom.h>
 #include <memory/smarteeprom.h>
 #include <mock_memory.h>
+#include <rust/rust.h>
 #include <securechip/securechip.h>
 #include <util.h>
 
@@ -107,6 +108,16 @@ static void _assert_equal_memory_hex(const uint8_t* buf, size_t buf_size, const 
     assert_string_equal(buf_hex, expected_hex);
 }
 
+static bool _encode_xpub(const struct ext_key* xpub, char* out, size_t out_len)
+{
+    uint8_t bytes[BIP32_SERIALIZED_LEN] = {0};
+    if (bip32_key_serialize(xpub, BIP32_FLAG_KEY_PUBLIC, bytes, sizeof(bytes)) != WALLY_OK) {
+        return false;
+    }
+    return rust_base58_encode_check(
+        rust_util_bytes(bytes, sizeof(bytes)), rust_util_cstr_mut(out, out_len));
+}
+
 static void _check_pubs(const char* expected_xpub, const char* expected_pubkey_uncompressed_hex)
 {
     struct ext_key __attribute__((__cleanup__(keystore_zero_xkey))) xpub;
@@ -120,7 +131,7 @@ static void _check_pubs(const char* expected_xpub, const char* expected_pubkey_u
 
     assert_true(keystore_get_xpub(keypath, 3, &xpub));
     char xpub_serialized[120];
-    assert_true(keystore_encode_xpub(&xpub, xpub_serialized, sizeof(xpub_serialized)));
+    assert_true(_encode_xpub(&xpub, xpub_serialized, sizeof(xpub_serialized)));
     assert_string_equal(xpub_serialized, expected_xpub);
 
     uint8_t pubkey_uncompressed[EC_PUBLIC_KEY_UNCOMPRESSED_LEN];

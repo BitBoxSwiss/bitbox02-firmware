@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	// Currently in active use.
+	// See securechip.h/securechip.c for how the slots are used.
 
 	// ioProtectionKeySlot holds the io protection key and is referenced by the kdf slots for output
 	// encryption. Use needs to be authorized using authKeySlot for encrypted reads/writes.
@@ -47,15 +47,11 @@ const (
 	// attestationKeySlot is an ECC slot. read/write disabled. Key internally generated at factory
 	// setup and used to sign the device attestation host challenge.
 	attestationKeySlot = 5
-)
-
-const (
-	// Reserved for future use.
 
 	// eccUnsafeSignKeySlot is a ECC slot. read disabled, encrypted write enabled. Can be used to
 	// write any secret key in order to use the chip to create NIST P256 signatures. This is not
-	// meant to use the SC for security, but might be used in the future as an alternative to adding
-	// firmware code for signing with this curve.
+	// meant to use the SC for security, but used as an alternative to adding firmware code for
+	// signing with this curve.
 	eccUnsafeSignKeySlot = 6
 
 	// internalECCKeySlot is an ECC slot. read/write disabled. Key internally generated using
@@ -67,7 +63,6 @@ const (
 	dataKeySlot = 8
 
 	// All pubkey/certificate slots (9-15) have the same config as dataKeySlot.
-
 )
 
 // defaultConfigurationHex is a working start configuration. The final configuration is created by

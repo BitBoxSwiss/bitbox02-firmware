@@ -58,6 +58,7 @@ typedef enum {
     SECURECHIP_SLOT_ATTESTATION = 5,
     SECURECHIP_SLOT_ECC_UNSAFE_SIGN = 6,
     SECURECHIP_SLOT_DATA0 = 9,
+    // The other slots are currently not in use.
 } securechip_slot_t;
 
 /**

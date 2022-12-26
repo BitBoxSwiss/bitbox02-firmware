@@ -90,11 +90,11 @@ static void _test_keystore_antiklepto(void** state)
         secp256k1_ecdsa_signature parsed_signature;
         assert_true(secp256k1_ecdsa_signature_parse_compact(
             wally_get_secp_context(), &parsed_signature, sig));
-        uint8_t pubkey[EC_PUBLIC_KEY_UNCOMPRESSED_LEN];
-        assert_true(keystore_secp256k1_pubkey_uncompressed(keypath, 5, pubkey));
+        struct ext_key xpub;
+        assert_true(keystore_get_xpub(keypath, 5, &xpub));
         secp256k1_pubkey parsed_pubkey;
         assert_true(secp256k1_ec_pubkey_parse(
-            wally_get_secp_context(), &parsed_pubkey, pubkey, sizeof(pubkey)));
+            wally_get_secp_context(), &parsed_pubkey, xpub.pub_key, sizeof(xpub.pub_key)));
         secp256k1_ecdsa_s2c_opening opening;
         assert_true(secp256k1_ecdsa_s2c_opening_parse(
             wally_get_secp_context(), &opening, signer_commitment));

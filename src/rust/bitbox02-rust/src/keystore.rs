@@ -38,6 +38,13 @@ pub fn secp256k1_pubkey_hash160(keypath: &[u32]) -> Result<Vec<u8>, ()> {
     Ok(bitbox02::hash160(&xpub.public_key).to_vec())
 }
 
+/// Returns fingerprint of the root public key at m/, which are the first four bytes of its hash160
+/// according to:
+/// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#serialization-format
+pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
+    Ok(secp256k1_pubkey_hash160(&[])?.get(..4).ok_or(())?.to_vec())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -114,5 +121,21 @@ mod tests {
             secp256k1_pubkey_hash160(&[44 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 2]).unwrap(),
             *b"\xe5\xf8\x9a\xb6\x54\x37\x44\xf7\x8f\x15\x86\x7c\x43\x06\xee\x86\x6b\xb1\x1d\xf9"
         );
+    }
+
+    #[test]
+    fn test_root_fingerprint() {
+        keystore::lock();
+        assert_eq!(root_fingerprint(), Err(()));
+
+        mock_unlocked_using_mnemonic(
+            "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay"
+        );
+        assert_eq!(root_fingerprint(), Ok(vec![0x02, 0x40, 0xe9, 0x2a]));
+
+        mock_unlocked_using_mnemonic(
+            "small agent wife animal marine cloth exit thank stool idea steel frame",
+        );
+        assert_eq!(root_fingerprint(), Ok(vec![0xf4, 0x0b, 0x46, 0x9a]));
     }
 }

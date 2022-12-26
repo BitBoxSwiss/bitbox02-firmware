@@ -17,7 +17,7 @@ use super::Error;
 
 use pb::response::Response;
 
-use bitbox02::keystore;
+use crate::keystore;
 
 /// Returns the keystore's root fingerprint, which is the first 32
 /// bits of the hash160 of the pubkey at the keypath m/.
@@ -25,7 +25,7 @@ use bitbox02::keystore;
 pub fn process() -> Result<Response, Error> {
     let fingerprint = keystore::root_fingerprint()?;
     Ok(Response::Fingerprint(pb::RootFingerprintResponse {
-        fingerprint: fingerprint.to_vec(),
+        fingerprint,
     }))
 }
 

@@ -284,14 +284,6 @@ pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u
     }
 }
 
-pub fn root_fingerprint() -> Result<[u8; 4], ()> {
-    let mut fingerprint = [0u8; 4];
-    match unsafe { bitbox02_sys::keystore_get_root_fingerprint(fingerprint.as_mut_ptr()) } {
-        true => Ok(fingerprint),
-        false => Err(()),
-    }
-}
-
 pub fn encrypt_and_store_seed(seed: &[u8], password: &SafeInputString) -> Result<(), Error> {
     match unsafe {
         bitbox02_sys::keystore_encrypt_and_store_seed(

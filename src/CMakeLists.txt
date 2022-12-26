@@ -317,7 +317,6 @@ add_custom_target(rust-bindgen
     --allowlist-function keystore_secp256k1_sign
     --allowlist-function keystore_secp256k1_schnorr_bip86_sign
     --allowlist-function keystore_bip39_mnemonic_to_seed
-    --allowlist-function keystore_get_root_fingerprint
     --allowlist-function keystore_mock_unlocked
     --allowlist-var EC_PUBLIC_KEY_UNCOMPRESSED_LEN
     --allowlist-var EC_PUBLIC_KEY_LEN

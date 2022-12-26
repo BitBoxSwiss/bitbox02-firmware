@@ -466,18 +466,6 @@ static bool _get_xprv(const uint32_t* keypath, const size_t keypath_len, struct 
     return true;
 }
 
-bool keystore_get_root_fingerprint(uint8_t* fingerprint)
-{
-    struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!keystore_get_xpub(NULL, 0, &derived_xpub)) {
-        return false;
-    }
-    if (bip32_key_get_fingerprint(&derived_xpub, fingerprint, 4) != WALLY_OK) {
-        return false;
-    }
-    return true;
-}
-
 static bool _ext_key_equal(struct ext_key* one, struct ext_key* two)
 {
     if (!MEMEQ(one->chain_code, two->chain_code, sizeof(one->chain_code))) {

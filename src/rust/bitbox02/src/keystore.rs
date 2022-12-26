@@ -328,20 +328,6 @@ pub fn secp256k1_schnorr_bip86_sign(keypath: &[u32], msg: &[u8; 32]) -> Result<[
     }
 }
 
-pub fn secp256k1_pubkey_hash160(keypath: &[u32]) -> Result<[u8; 20], ()> {
-    let mut pubkey_hash = [0u8; 20];
-    match unsafe {
-        bitbox02_sys::keystore_secp256k1_pubkey_hash160(
-            keypath.as_ptr(),
-            keypath.len() as _,
-            pubkey_hash.as_mut_ptr(),
-        )
-    } {
-        true => Ok(pubkey_hash),
-        false => Err(()),
-    }
-}
-
 pub fn secp256k1_schnorr_bip86_pubkey(keypath: &[u32]) -> Result<[u8; 32], ()> {
     let mut pubkey = [0u8; 32];
     match unsafe {
@@ -360,7 +346,6 @@ pub fn secp256k1_schnorr_bip86_pubkey(keypath: &[u32]) -> Result<[u8; 32], ()> {
 mod tests {
     use super::*;
     use crate::testing::{mock_unlocked, TEST_MNEMONIC};
-    use util::bip32::HARDENED;
 
     #[test]
     fn test_bip39_mnemonic_to_seed() {
@@ -427,15 +412,6 @@ mod tests {
         assert_eq!(
             get_ed25519_seed().unwrap().as_ref() as &[u8],
             b"\xf8\xcb\x28\x85\x37\x60\x2b\x90\xd1\x29\x75\x4b\xdd\x0e\x4b\xed\xf9\xe2\x92\x3a\x04\xb6\x86\x7e\xdb\xeb\xc7\x93\xa7\x17\x6f\x5d\xca\xc5\xc9\x5d\x5f\xd2\x3a\x8e\x01\x6c\x95\x57\x69\x0e\xad\x1f\x00\x2b\x0f\x35\xd7\x06\xff\x8e\x59\x84\x1c\x09\xe0\xb6\xbb\x23\xf0\xa5\x91\x06\x42\xd0\x77\x98\x17\x40\x2e\x5e\x7a\x75\x54\x95\xe7\x44\xf5\x5c\xf1\x1e\x49\xee\xfd\x22\xa4\x60\xe9\xb2\xf7\x53",
-        );
-    }
-
-    #[test]
-    fn test_secp256k1_pubkey_hash160() {
-        mock_unlocked();
-        assert_eq!(
-            secp256k1_pubkey_hash160(&[84 + HARDENED, HARDENED, HARDENED, 0, 0]).unwrap(),
-            *b"\xb5\x12\x5c\xec\xa0\xc1\xc8\x90\xda\x07\x9a\x12\x88\xdc\xf7\x7a\xa6\xac\xc4\x99"
         );
     }
 }

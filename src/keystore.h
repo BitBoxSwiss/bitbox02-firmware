@@ -176,18 +176,6 @@ void keystore_zero_xkey(struct ext_key* xkey);
 USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);
 
 /**
- * Return the hash160 of the secp256k1 public key at the keypath.
- * @param[in] keypath derivation keypath
- * @param[in] keypath_len size of keypath buffer
- * @param[out] hash160_out serialized output. Must be HASH160_LEN bytes.
- * @return true on success, false if the keystore is locked or the input is invalid.
- */
-USE_RESULT bool keystore_secp256k1_pubkey_hash160(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* hash160_out);
-
-/**
  * Return the serialized secp256k1 public key at the keypath, in uncompressed format.
  * @param[in] keypath derivation keypath
  * @param[in] keypath_len size of keypath buffer

@@ -569,19 +569,6 @@ static bool _compressed_to_uncompressed(const uint8_t* pubkey_bytes, uint8_t* un
     return true;
 }
 
-bool keystore_secp256k1_pubkey_hash160(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* hash160_out)
-{
-    struct ext_key xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!keystore_get_xpub(keypath, keypath_len, &xpub)) {
-        return false;
-    }
-    memcpy(hash160_out, xpub.hash160, sizeof(xpub.hash160));
-    return true;
-}
-
 bool keystore_secp256k1_pubkey_uncompressed(
     const uint32_t* keypath,
     size_t keypath_len,

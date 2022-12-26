@@ -61,9 +61,12 @@ pub fn serialize_xpub_str(xpub: &pb::XPub, xpub_type: XPubType) -> Result<String
         .into_string())
 }
 
-#[cfg(test)]
+/// Parses a Base58Check-encoded xpub string. The 4 version bytes are not checked and discarded.
 pub fn parse_xpub(xpub: &str) -> Result<pb::XPub, ()> {
-    let decoded = bs58::decode(xpub).into_vec().or(Err(()))?;
+    let decoded = bs58::decode(xpub).with_check(None).into_vec().or(Err(()))?;
+    if decoded.len() != 78 {
+        return Err(());
+    }
     Ok(pb::XPub {
         depth: decoded[4..5].to_vec(),
         parent_fingerprint: decoded[5..9].to_vec(),

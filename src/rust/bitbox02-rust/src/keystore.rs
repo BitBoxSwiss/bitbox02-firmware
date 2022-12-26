@@ -14,3 +14,105 @@
 
 #[cfg(feature = "ed25519")]
 pub mod ed25519;
+
+use super::pb;
+
+use alloc::vec::Vec;
+
+use crate::bip32;
+use bitbox02::keystore;
+
+/// Derives an xpub from the keystore seed at the given keypath.
+pub fn get_xpub(keypath: &[u32]) -> Result<pb::XPub, ()> {
+    // Convert from C keystore to Rust by encoding the xpub in C and decoding it in Rust. Would be a
+    // bit better to encode/decoding using the raw 78 bytes, not the base58Check encoding.
+    bip32::parse_xpub(&keystore::encode_xpub_at_keypath(
+        keypath,
+        keystore::xpub_type_t::XPUB,
+    )?)
+}
+
+/// Return the hash160 of the secp256k1 public key at the keypath.
+pub fn secp256k1_pubkey_hash160(keypath: &[u32]) -> Result<Vec<u8>, ()> {
+    let xpub = get_xpub(keypath)?;
+    Ok(bitbox02::hash160(&xpub.public_key).to_vec())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use bitbox02::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
+    use util::bip32::HARDENED;
+
+    #[test]
+    fn test_get_xpub() {
+        let keypath = &[44 + HARDENED, 0 + HARDENED, 0 + HARDENED];
+
+        keystore::lock();
+        assert!(get_xpub(keypath).is_err());
+
+        // 24 words
+        mock_unlocked_using_mnemonic("sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before sport action praise tunnel hood donate man");
+        assert_eq!(
+            bip32::serialize_xpub_str(
+                &get_xpub(&[]).unwrap(),
+                bip32::XPubType::Xpub
+            )
+            .unwrap(),
+            "xpub661MyMwAqRbcEhX8d9WJh78SZrxusAzWFoykz4n5CF75uYRzixw5FZPUSoWyhaaJ1bpiPFdzdHSQqJN38PcTkyrLmxT4J2JDYfoGJQ4ioE2",
+        );
+        assert_eq!(
+            bip32::serialize_xpub_str(
+                &get_xpub(keypath).unwrap(),
+                bip32::XPubType::Xpub
+            )
+            .unwrap(),
+            "xpub6Cj6NNCGj2CRPHvkuEG1rbW3nrNCAnLjaoTg1P67FCGoahSsbg9WQ7YaMEEP83QDxt2kZ3hTPAPpGdyEZcfAC1C75HfR66UbjpAb39f4PnG",
+        );
+
+        // 18 words
+        mock_unlocked_using_mnemonic("sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before subject");
+        assert_eq!(
+            bip32::serialize_xpub_str(
+                &get_xpub(keypath).unwrap(),
+                bip32::XPubType::Xpub
+            )
+            .unwrap(),
+            "xpub6C7fKxGtTzEVxCC22U2VHx4GpaVy77DzU6KdZ1CLuHgoUGviBMWDc62uoQVxqcRa5RQbMPnffjpwxve18BG81VJhJDXnSpRe5NGKwVpXiAb",
+        );
+
+        // 12 words
+        mock_unlocked_using_mnemonic(
+            "sleep own lobster state clean thrive tail exist cactus bitter pass sniff",
+        );
+        assert_eq!(
+            bip32::serialize_xpub_str(
+                &get_xpub(keypath).unwrap(),
+                bip32::XPubType::Xpub
+            )
+            .unwrap(),
+            "xpub6DLvpzjKpJ8k4xYrWYPmZQkUe9dkG1eRig2v6Jz4iYgo8hcpHWx87gGoCGDaB2cHFZ3ExUfe1jDiMu7Ch6gA4ULCBhvwZj29mHCPYSux3YV",
+        )
+    }
+
+    #[test]
+    fn test_secp256k1_pubkey_hash160() {
+        let keypath = &[84 + HARDENED, HARDENED, HARDENED, 0, 0];
+
+        keystore::lock();
+        assert!(secp256k1_pubkey_hash160(keypath).is_err());
+
+        mock_unlocked();
+        assert_eq!(
+            secp256k1_pubkey_hash160(keypath).unwrap(),
+            *b"\xb5\x12\x5c\xec\xa0\xc1\xc8\x90\xda\x07\x9a\x12\x88\xdc\xf7\x7a\xa6\xac\xc4\x99"
+        );
+
+        mock_unlocked_using_mnemonic("sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before sport action praise tunnel hood donate man");
+        assert_eq!(
+            secp256k1_pubkey_hash160(&[44 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 2]).unwrap(),
+            *b"\xe5\xf8\x9a\xb6\x54\x37\x44\xf7\x8f\x15\x86\x7c\x43\x06\xee\x86\x6b\xb1\x1d\xf9"
+        );
+    }
+}

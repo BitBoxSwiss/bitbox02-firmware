@@ -319,7 +319,6 @@ add_custom_target(rust-bindgen
     --allowlist-function keystore_bip39_mnemonic_to_seed
     --allowlist-function keystore_get_root_fingerprint
     --allowlist-function keystore_mock_unlocked
-    --allowlist-function keystore_secp256k1_pubkey_hash160
     --allowlist-var EC_PUBLIC_KEY_UNCOMPRESSED_LEN
     --allowlist-var EC_PUBLIC_KEY_LEN
     --allowlist-function keystore_encode_xpub_at_keypath

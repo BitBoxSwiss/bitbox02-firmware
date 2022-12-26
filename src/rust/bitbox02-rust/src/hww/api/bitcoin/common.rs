@@ -77,14 +77,14 @@ impl Payload {
     ) -> Result<Self, Error> {
         match simple_type {
             SimpleType::P2wpkh => Ok(Payload {
-                data: keystore::secp256k1_pubkey_hash160(keypath)?.to_vec(),
+                data: crate::keystore::secp256k1_pubkey_hash160(keypath)?,
                 output_type: BtcOutputType::P2wpkh,
             }),
             SimpleType::P2wpkhP2sh => {
                 let payload_p2wpkh = Payload::from_simple(params, SimpleType::P2wpkh, keypath)?;
                 let pkscript_p2wpkh = payload_p2wpkh.pk_script(params)?;
                 Ok(Payload {
-                    data: bitbox02::app_btc::hash160(&pkscript_p2wpkh).to_vec(),
+                    data: bitbox02::hash160(&pkscript_p2wpkh).to_vec(),
                     output_type: BtcOutputType::P2sh,
                 })
             }
@@ -134,7 +134,7 @@ impl Payload {
             pb::btc_script_config::multisig::ScriptType::P2wshP2sh => {
                 let pkscript_p2wsh = payload_p2wsh.pk_script(params)?;
                 Ok(Payload {
-                    data: bitbox02::app_btc::hash160(&pkscript_p2wsh).to_vec(),
+                    data: bitbox02::hash160(&pkscript_p2wsh).to_vec(),
                     output_type: BtcOutputType::P2sh,
                 })
             }

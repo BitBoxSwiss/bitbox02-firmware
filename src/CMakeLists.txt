@@ -322,7 +322,6 @@ add_custom_target(rust-bindgen
     --allowlist-var EC_PUBLIC_KEY_LEN
     --allowlist-function keystore_encode_xpub_at_keypath
     --allowlist-function keystore_encrypt_and_store_seed
-    --rustified-enum xpub_type_t
     --allowlist-var XPUB_ENCODED_LEN
     --allowlist-function lock_animation_start
     --allowlist-function lock_animation_stop

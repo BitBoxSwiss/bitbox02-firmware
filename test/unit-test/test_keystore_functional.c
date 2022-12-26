@@ -120,7 +120,7 @@ static void _check_pubs(const char* expected_xpub, const char* expected_pubkey_u
 
     assert_true(keystore_get_xpub(keypath, 3, &xpub));
     char xpub_serialized[120];
-    assert_true(keystore_encode_xpub(&xpub, XPUB, xpub_serialized, sizeof(xpub_serialized)));
+    assert_true(keystore_encode_xpub(&xpub, xpub_serialized, sizeof(xpub_serialized)));
     assert_string_equal(xpub_serialized, expected_xpub);
 
     uint8_t pubkey_uncompressed[EC_PUBLIC_KEY_UNCOMPRESSED_LEN];

@@ -21,8 +21,6 @@ use core::convert::TryInto;
 use crate::input::SafeInputString;
 use bitbox02_sys::keystore_error_t;
 
-pub use bitbox02_sys::xpub_type_t;
-
 pub const BIP39_WORDLIST_LEN: u16 = bitbox02_sys::BIP39_WORDLIST_LEN as u16;
 pub const EC_PUBLIC_KEY_UNCOMPRESSED_LEN: usize = bitbox02_sys::EC_PUBLIC_KEY_UNCOMPRESSED_LEN as _;
 pub const EC_PUBLIC_KEY_LEN: usize = bitbox02_sys::EC_PUBLIC_KEY_LEN as _;
@@ -200,13 +198,12 @@ pub fn secp256k1_pubkey_uncompressed(
     }
 }
 
-pub fn encode_xpub_at_keypath(keypath: &[u32], xpub_type: xpub_type_t) -> Result<String, ()> {
+pub fn encode_xpub_at_keypath(keypath: &[u32]) -> Result<String, ()> {
     let mut xpub = [0u8; bitbox02_sys::XPUB_ENCODED_LEN as _];
     match unsafe {
         bitbox02_sys::keystore_encode_xpub_at_keypath(
             keypath.as_ptr(),
             keypath.len() as _,
-            xpub_type,
             xpub.as_mut_ptr(),
             xpub.len() as _,
         )

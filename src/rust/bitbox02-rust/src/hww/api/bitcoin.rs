@@ -32,7 +32,7 @@ use crate::workflow::confirm;
 
 use util::bip32::HARDENED;
 
-use bitbox02::keystore::{encode_xpub_at_keypath, xpub_type_t};
+use crate::keystore;
 
 use pb::btc_pub_request::{Output, XPubType};
 use pb::btc_request::Request;
@@ -105,21 +105,12 @@ async fn xpub(
 ) -> Result<Response, Error> {
     let params = params::get(coin);
     keypath::validate_xpub(keypath, params.bip44_coin, params.taproot_support)?;
-    let xpub_type = match xpub_type {
-        XPubType::Tpub => xpub_type_t::TPUB,
-        XPubType::Xpub => xpub_type_t::XPUB,
-        XPubType::Ypub => xpub_type_t::YPUB,
-        XPubType::Zpub => xpub_type_t::ZPUB,
-        XPubType::Vpub => xpub_type_t::VPUB,
-        XPubType::Upub => xpub_type_t::UPUB,
-        XPubType::CapitalVpub => xpub_type_t::CAPITAL_VPUB,
-        XPubType::CapitalZpub => xpub_type_t::CAPITAL_ZPUB,
-        XPubType::CapitalUpub => xpub_type_t::CAPITAL_UPUB,
-        XPubType::CapitalYpub => xpub_type_t::CAPITAL_YPUB,
-    };
-    let xpub = encode_xpub_at_keypath(keypath, xpub_type).or(Err(Error::InvalidInput))?;
+    let xpub = crate::bip32::serialize_xpub_str(
+        &keystore::get_xpub(keypath).or(Err(Error::InvalidInput))?,
+        xpub_type,
+    )?;
     if display {
-        let title = format!("{}\naccount #{}", params.name, keypath[2] - HARDENED + 1,);
+        let title = format!("{}\naccount #{}", params.name, keypath[2] - HARDENED + 1);
         let confirm_params = confirm::Params {
             title: &title,
             body: &xpub,

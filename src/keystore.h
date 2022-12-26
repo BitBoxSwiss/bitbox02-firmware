@@ -248,33 +248,15 @@ USE_RESULT bool keystore_get_u2f_seed(uint8_t* seed_out);
  */
 USE_RESULT bool keystore_get_ed25519_seed(uint8_t* seed_out);
 
-typedef enum {
-    XPUB,
-    YPUB,
-    ZPUB,
-    TPUB,
-    VPUB,
-    UPUB,
-    CAPITAL_VPUB,
-    CAPITAL_ZPUB,
-    CAPITAL_UPUB,
-    CAPITAL_YPUB,
-} xpub_type_t;
 /**
  * Encode an xpub as a base58 string.
  * @param[in] xpub the xpub to encode.
- * @param[in] xpub_type determines the xpub format.
- * etc.
  * @param[out] out resulting string, must be at least of size `XPUB_ENCODED_LEN` (including the null
  * terminator).
  * @param[in] out_len size of `out`.
  * @return false on failure, true on success.
  */
-USE_RESULT bool keystore_encode_xpub(
-    const struct ext_key* xpub,
-    xpub_type_t xpub_type,
-    char* out,
-    size_t out_len);
+USE_RESULT bool keystore_encode_xpub(const struct ext_key* xpub, char* out, size_t out_len);
 
 /**
  * Encode an xpub as a base58 string at the given `keypath`.
@@ -283,7 +265,6 @@ USE_RESULT bool keystore_encode_xpub(
 USE_RESULT bool keystore_encode_xpub_at_keypath(
     const uint32_t* keypath,
     size_t keypath_len,
-    xpub_type_t xpub_type,
     char* out,
     size_t out_len);
 

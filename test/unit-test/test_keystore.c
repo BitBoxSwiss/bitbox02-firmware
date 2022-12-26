@@ -219,24 +219,32 @@ static void _test_keystore_secp256k1_nonce_commit(void** state)
 {
     uint8_t msg[32] = {0};
     memset(msg, 0x88, sizeof(msg));
-    uint8_t commitment[EC_PUBLIC_KEY_LEN] = {0};
-    uint8_t host_nonce_commitment[32] = {0};
-    memset(host_nonce_commitment, 0xAB, sizeof(host_nonce_commitment));
+    uint8_t client_commitment[EC_PUBLIC_KEY_LEN] = {0};
+    uint8_t host_commitment[32] = {0};
+    memset(host_commitment, 0xAB, sizeof(host_commitment));
 
     {
         keystore_mock_unlocked(NULL, 0, NULL);
         // fails because keystore is locked
         assert_false(keystore_secp256k1_nonce_commit(
-            _keypath, sizeof(_keypath) / sizeof(uint32_t), msg, host_nonce_commitment, commitment));
+            _keypath,
+            sizeof(_keypath) / sizeof(uint32_t),
+            msg,
+            host_commitment,
+            client_commitment));
     }
     {
         keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
         assert_true(keystore_secp256k1_nonce_commit(
-            _keypath, sizeof(_keypath) / sizeof(uint32_t), msg, host_nonce_commitment, commitment));
+            _keypath,
+            sizeof(_keypath) / sizeof(uint32_t),
+            msg,
+            host_commitment,
+            client_commitment));
         const uint8_t expected_commitment[EC_PUBLIC_KEY_LEN] =
             "\x02\xfd\xcf\x79\xf9\xc0\x3f\x6a\xcc\xc6\x56\x95\xa1\x90\x82\xe3\x0b\xfb\x9e\xdc\x93"
             "\x04\x5a\x03\x05\x8a\x99\x09\xe4\x9b\x1a\x37\x7b";
-        assert_memory_equal(expected_commitment, commitment, sizeof(commitment));
+        assert_memory_equal(expected_commitment, client_commitment, sizeof(client_commitment));
     }
 }
 

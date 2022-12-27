@@ -47,7 +47,7 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
     if !super::keypath::is_valid_keypath_address(&request.keypath) {
         return Err(Error::InvalidInput);
     }
-    let pubkey = bitbox02::keystore::secp256k1_pubkey_uncompressed(&request.keypath)
+    let pubkey = crate::keystore::secp256k1_pubkey_uncompressed(&request.keypath)
         .or(Err(Error::InvalidInput))?;
     let address = super::address::from_pubkey(&pubkey);
 

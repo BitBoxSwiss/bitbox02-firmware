@@ -166,17 +166,13 @@ void keystore_zero_xkey(struct ext_key* xkey);
  */
 USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);
 
-/**
- * Return the serialized secp256k1 public key at the keypath, in uncompressed format.
- * @param[in] keypath derivation keypath
- * @param[in] keypath_len size of keypath buffer
- * @param[out] pubkey_out serialized output. Must be EC_PUBLIC_KEY_UNCOMPRESSED_LEN bytes.
- * @return true on success, false if the keystore is locked or the input is invalid.
- */
-USE_RESULT bool keystore_secp256k1_pubkey_uncompressed(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* pubkey_out);
+// Reformats pubkey from compressed 33 bytes to uncompressed 65 bytes (<0x04><64 bytes X><64 bytes
+// Y>),
+// pubkey must be 33 bytes
+// uncompressed_out must be 65 bytes.
+USE_RESULT bool keystore_secp256k1_compressed_to_uncompressed(
+    const uint8_t* pubkey_bytes,
+    uint8_t* uncompressed_out);
 
 /**
  * Get a commitment to the original nonce before tweaking it with the host nonce. This is part of

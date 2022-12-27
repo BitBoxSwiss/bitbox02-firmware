@@ -538,11 +538,9 @@ bool keystore_get_bip39_word(uint16_t idx, char** word_out)
     return bip39_get_word(NULL, idx, word_out) == WALLY_OK;
 }
 
-// Reformats xpub from compressed 33 bytes to uncompressed 65 bytes (<0x04><64 bytes X><64 bytes
-// Y>),
-// pubkey must be 33 bytes
-// uncompressed_out must be 65 bytes.
-static bool _compressed_to_uncompressed(const uint8_t* pubkey_bytes, uint8_t* uncompressed_out)
+bool keystore_secp256k1_compressed_to_uncompressed(
+    const uint8_t* pubkey_bytes,
+    uint8_t* uncompressed_out)
 {
     const secp256k1_context* ctx = wally_get_secp_context();
     secp256k1_pubkey pubkey;
@@ -555,18 +553,6 @@ static bool _compressed_to_uncompressed(const uint8_t* pubkey_bytes, uint8_t* un
         return false;
     }
     return true;
-}
-
-bool keystore_secp256k1_pubkey_uncompressed(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* pubkey_out)
-{
-    struct ext_key xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!keystore_get_xpub(keypath, keypath_len, &xpub)) {
-        return false;
-    }
-    return _compressed_to_uncompressed(xpub.pub_key, pubkey_out);
 }
 
 bool keystore_secp256k1_nonce_commit(

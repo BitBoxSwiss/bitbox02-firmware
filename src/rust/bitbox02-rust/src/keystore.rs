@@ -34,6 +34,13 @@ pub fn secp256k1_pubkey_hash160(keypath: &[u32]) -> Result<Vec<u8>, ()> {
     Ok(bitbox02::hash160(&xpub.public_key).to_vec())
 }
 
+pub fn secp256k1_pubkey_uncompressed(
+    keypath: &[u32],
+) -> Result<[u8; keystore::EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()> {
+    let xpub = get_xpub(keypath)?;
+    keystore::secp256k1_pubkey_compressed_to_uncompressed(&xpub.public_key)
+}
+
 /// Returns fingerprint of the root public key at m/, which are the first four bytes of its hash160
 /// according to:
 /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#serialization-format
@@ -133,5 +140,19 @@ mod tests {
             "small agent wife animal marine cloth exit thank stool idea steel frame",
         );
         assert_eq!(root_fingerprint(), Ok(vec![0xf4, 0x0b, 0x46, 0x9a]));
+    }
+
+    #[test]
+    fn test_secp256k1_pubkey_uncompressed() {
+        let keypath = &[44 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 2];
+
+        keystore::lock();
+        assert_eq!(secp256k1_pubkey_uncompressed(keypath), Err(()));
+
+        mock_unlocked_using_mnemonic("sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before sport action praise tunnel hood donate man");
+        assert_eq!(
+            secp256k1_pubkey_uncompressed(keypath).unwrap(),
+            *b"\x04\x77\xa4\x4a\xa9\xe8\xc8\xfb\x51\x05\xef\x5e\xe2\x39\x4e\x8a\xed\x89\xad\x73\xfc\x74\x36\x14\x25\xf0\x63\x47\xec\xfe\x32\x61\x31\xe1\x33\x93\x67\xee\x3c\xbe\x87\x71\x92\x85\xa0\x7f\x77\x4b\x17\xeb\x93\x3e\xcf\x0b\x9b\x82\xac\xeb\xc1\x95\x22\x6d\x63\x42\x44",
+        );
     }
 }

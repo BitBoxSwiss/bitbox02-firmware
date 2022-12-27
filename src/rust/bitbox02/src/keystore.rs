@@ -14,14 +14,13 @@
 
 extern crate alloc;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use core::convert::TryInto;
 
 use crate::input::SafeInputString;
 use bitbox02_sys::keystore_error_t;
-
-pub use bitbox02_sys::xpub_type_t;
 
 pub const BIP39_WORDLIST_LEN: u16 = bitbox02_sys::BIP39_WORDLIST_LEN as u16;
 pub const EC_PUBLIC_KEY_UNCOMPRESSED_LEN: usize = bitbox02_sys::EC_PUBLIC_KEY_UNCOMPRESSED_LEN as _;
@@ -200,20 +199,16 @@ pub fn secp256k1_pubkey_uncompressed(
     }
 }
 
-pub fn encode_xpub_at_keypath(keypath: &[u32], xpub_type: xpub_type_t) -> Result<String, ()> {
-    let mut xpub = [0u8; bitbox02_sys::XPUB_ENCODED_LEN as _];
+pub fn encode_xpub_at_keypath(keypath: &[u32]) -> Result<Vec<u8>, ()> {
+    let mut xpub = vec![0u8; bitbox02_sys::BIP32_SERIALIZED_LEN as _];
     match unsafe {
         bitbox02_sys::keystore_encode_xpub_at_keypath(
             keypath.as_ptr(),
             keypath.len() as _,
-            xpub_type,
             xpub.as_mut_ptr(),
-            xpub.len() as _,
         )
     } {
-        true => Ok(crate::util::str_from_null_terminated(&xpub[..])
-            .unwrap()
-            .into()),
+        true => Ok(xpub),
         false => Err(()),
     }
 }
@@ -284,14 +279,6 @@ pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u
     }
 }
 
-pub fn root_fingerprint() -> Result<[u8; 4], ()> {
-    let mut fingerprint = [0u8; 4];
-    match unsafe { bitbox02_sys::keystore_get_root_fingerprint(fingerprint.as_mut_ptr()) } {
-        true => Ok(fingerprint),
-        false => Err(()),
-    }
-}
-
 pub fn encrypt_and_store_seed(seed: &[u8], password: &SafeInputString) -> Result<(), Error> {
     match unsafe {
         bitbox02_sys::keystore_encrypt_and_store_seed(
@@ -328,20 +315,6 @@ pub fn secp256k1_schnorr_bip86_sign(keypath: &[u32], msg: &[u8; 32]) -> Result<[
     }
 }
 
-pub fn secp256k1_pubkey_hash160(keypath: &[u32]) -> Result<[u8; 20], ()> {
-    let mut pubkey_hash = [0u8; 20];
-    match unsafe {
-        bitbox02_sys::keystore_secp256k1_pubkey_hash160(
-            keypath.as_ptr(),
-            keypath.len() as _,
-            pubkey_hash.as_mut_ptr(),
-        )
-    } {
-        true => Ok(pubkey_hash),
-        false => Err(()),
-    }
-}
-
 pub fn secp256k1_schnorr_bip86_pubkey(keypath: &[u32]) -> Result<[u8; 32], ()> {
     let mut pubkey = [0u8; 32];
     match unsafe {
@@ -360,7 +333,6 @@ pub fn secp256k1_schnorr_bip86_pubkey(keypath: &[u32]) -> Result<[u8; 32], ()> {
 mod tests {
     use super::*;
     use crate::testing::{mock_unlocked, TEST_MNEMONIC};
-    use util::bip32::HARDENED;
 
     #[test]
     fn test_bip39_mnemonic_to_seed() {
@@ -427,15 +399,6 @@ mod tests {
         assert_eq!(
             get_ed25519_seed().unwrap().as_ref() as &[u8],
             b"\xf8\xcb\x28\x85\x37\x60\x2b\x90\xd1\x29\x75\x4b\xdd\x0e\x4b\xed\xf9\xe2\x92\x3a\x04\xb6\x86\x7e\xdb\xeb\xc7\x93\xa7\x17\x6f\x5d\xca\xc5\xc9\x5d\x5f\xd2\x3a\x8e\x01\x6c\x95\x57\x69\x0e\xad\x1f\x00\x2b\x0f\x35\xd7\x06\xff\x8e\x59\x84\x1c\x09\xe0\xb6\xbb\x23\xf0\xa5\x91\x06\x42\xd0\x77\x98\x17\x40\x2e\x5e\x7a\x75\x54\x95\xe7\x44\xf5\x5c\xf1\x1e\x49\xee\xfd\x22\xa4\x60\xe9\xb2\xf7\x53",
-        );
-    }
-
-    #[test]
-    fn test_secp256k1_pubkey_hash160() {
-        mock_unlocked();
-        assert_eq!(
-            secp256k1_pubkey_hash160(&[84 + HARDENED, HARDENED, HARDENED, 0, 0]).unwrap(),
-            *b"\xb5\x12\x5c\xec\xa0\xc1\xc8\x90\xda\x07\x9a\x12\x88\xdc\xf7\x7a\xa6\xac\xc4\x99"
         );
     }
 }

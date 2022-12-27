@@ -17,7 +17,8 @@ use super::Error;
 
 use pb::response::Response;
 
-use bitbox02::keystore;
+use crate::bip32;
+use crate::keystore;
 
 const HARDENED: u32 = 0x80000000;
 const ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE: u32 = 4541509 + HARDENED;
@@ -38,8 +39,10 @@ pub async fn process(
     {
         return Err(Error::InvalidInput);
     }
-    let xpub = keystore::encode_xpub_at_keypath(keypath, keystore::xpub_type_t::XPUB)
-        .or(Err(Error::InvalidInput))?;
+    let xpub = bip32::serialize_xpub_str(
+        &keystore::get_xpub(keypath).or(Err(Error::InvalidInput))?,
+        bip32::XPubType::Xpub,
+    )?;
 
     Ok(Response::ElectrumEncryptionKey(
         pb::ElectrumEncryptionKeyResponse { key: xpub },

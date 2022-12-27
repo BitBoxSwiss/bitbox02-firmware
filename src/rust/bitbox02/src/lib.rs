@@ -162,6 +162,19 @@ pub fn reboot() -> ! {
     loop {}
 }
 
+pub fn hash160(data: &[u8]) -> [u8; 20] {
+    let mut out = [0u8; 20];
+    unsafe {
+        bitbox02_sys::wally_hash160(
+            data.as_ptr(),
+            data.len() as _,
+            out.as_mut_ptr(),
+            out.len() as _,
+        );
+    }
+    out
+}
+
 #[cfg(feature = "testing")]
 pub fn reboot() -> ! {
     panic!("reboot called")

@@ -18,8 +18,9 @@ use super::Error;
 use pb::eth_pub_request::OutputType;
 use pb::eth_response::Response;
 
+use crate::bip32;
+use crate::keystore;
 use crate::workflow::confirm;
-use bitbox02::keystore;
 
 use core::convert::TryInto;
 
@@ -78,8 +79,10 @@ fn process_xpub(request: &pb::EthPubRequest) -> Result<Response, Error> {
     if !super::keypath::is_valid_keypath_xpub(&request.keypath) {
         return Err(Error::InvalidInput);
     }
-    let xpub = keystore::encode_xpub_at_keypath(&request.keypath, keystore::xpub_type_t::XPUB)
-        .or(Err(Error::InvalidInput))?;
+    let xpub = bip32::serialize_xpub_str(
+        &keystore::get_xpub(&request.keypath).or(Err(Error::InvalidInput))?,
+        bip32::XPubType::Xpub,
+    )?;
 
     Ok(Response::Pub(pb::PubResponse { r#pub: xpub }))
 }

@@ -143,15 +143,6 @@ USE_RESULT bool keystore_bip39_mnemonic_to_seed(
     size_t* seed_len_out);
 
 /**
- * Fills a uint8_t buffer with a fingerprint of the root public key at m/, which are the first four
- * bytes of its hash160 according to:
- * https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#serialization-format
- * @param[out] fingerprint, buffer of the fingerprint that is supposed to be filled, has to be size
- * 4
- */
-USE_RESULT bool keystore_get_root_fingerprint(uint8_t* fingerprint);
-
-/**
  * Can be used only if the keystore is unlocked. Returns the derived xpub,
  * using bip32 derivation. Derivation is done from the xprv master, so hardened
  * derivation is allowed.
@@ -174,18 +165,6 @@ void keystore_zero_xkey(struct ext_key* xkey);
  * @param[out] word_out The pointer to the character array for the given index.
  */
 USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);
-
-/**
- * Return the hash160 of the secp256k1 public key at the keypath.
- * @param[in] keypath derivation keypath
- * @param[in] keypath_len size of keypath buffer
- * @param[out] hash160_out serialized output. Must be HASH160_LEN bytes.
- * @return true on success, false if the keystore is locked or the input is invalid.
- */
-USE_RESULT bool keystore_secp256k1_pubkey_hash160(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* hash160_out);
 
 /**
  * Return the serialized secp256k1 public key at the keypath, in uncompressed format.
@@ -269,44 +248,15 @@ USE_RESULT bool keystore_get_u2f_seed(uint8_t* seed_out);
  */
 USE_RESULT bool keystore_get_ed25519_seed(uint8_t* seed_out);
 
-typedef enum {
-    XPUB,
-    YPUB,
-    ZPUB,
-    TPUB,
-    VPUB,
-    UPUB,
-    CAPITAL_VPUB,
-    CAPITAL_ZPUB,
-    CAPITAL_UPUB,
-    CAPITAL_YPUB,
-} xpub_type_t;
 /**
- * Encode an xpub as a base58 string.
- * @param[in] xpub the xpub to encode.
- * @param[in] xpub_type determines the xpub format.
- * etc.
- * @param[out] out resulting string, must be at least of size `XPUB_ENCODED_LEN` (including the null
- * terminator).
- * @param[in] out_len size of `out`.
- * @return false on failure, true on success.
- */
-USE_RESULT bool keystore_encode_xpub(
-    const struct ext_key* xpub,
-    xpub_type_t xpub_type,
-    char* out,
-    size_t out_len);
-
-/**
- * Encode an xpub as a base58 string at the given `keypath`.
- * Args the same as `keystore_encode_xpub`.
+ * Encode an xpub at the given `keypath` as 78 bytes according to BIP32. The version bytes are
+ * the ones corresponding to `xpub`, i.e. 0x0488B21E.
+ * `out` must be `BIP32_SERIALIZED_LEN` long.
  */
 USE_RESULT bool keystore_encode_xpub_at_keypath(
     const uint32_t* keypath,
     size_t keypath_len,
-    xpub_type_t xpub_type,
-    char* out,
-    size_t out_len);
+    uint8_t* out);
 
 /**
  * Return the tweaked taproot pubkey at the given keypath.

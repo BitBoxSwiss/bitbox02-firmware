@@ -38,7 +38,7 @@ zeroize = "1.5.5"
 num-bigint = { version = "0.4.3", default-features = false, optional = true }
 num-traits = { version = "0.2", default-features = false, optional = true }
 bip32-ed25519 = { git = "https://github.com/digitalbitbox/rust-bip32-ed25519", tag = "v0.1.0", optional = true }
-bs58 = { version = "0.4.0", default-features = false, features = ["alloc", "check"], optional = true }
+bs58 = { version = "0.4.0", default-features = false, features = ["alloc", "check"] }
 bech32 = { version = "0.8.1", default-features = false, optional = true }
 blake2 = { version = "0.10.5", default-features = false, optional = true }
 minicbor = { version = "0.18.0", default-features = false, features = ["alloc"], optional = true }
@@ -78,14 +78,12 @@ app-ethereum = [
 
 app-bitcoin = [
   # enable these dependencies
-  "bs58",
   "bech32",
   # enable this feature in the deps
   "bitbox02/app-bitcoin",
 ]
 app-litecoin = [
   # enable these dependencies
-  "bs58",
   "bech32",
   # enable this feature in the deps
   "bitbox02/app-litecoin",
@@ -100,7 +98,6 @@ app-cardano = [
   # enable these deps
   "bech32",
   "blake2",
-  "bs58",
   "minicbor",
   "crc",
 

@@ -466,18 +466,6 @@ static bool _get_xprv(const uint32_t* keypath, const size_t keypath_len, struct 
     return true;
 }
 
-bool keystore_get_root_fingerprint(uint8_t* fingerprint)
-{
-    struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!keystore_get_xpub(NULL, 0, &derived_xpub)) {
-        return false;
-    }
-    if (bip32_key_get_fingerprint(&derived_xpub, fingerprint, 4) != WALLY_OK) {
-        return false;
-    }
-    return true;
-}
-
 static bool _ext_key_equal(struct ext_key* one, struct ext_key* two)
 {
     if (!MEMEQ(one->chain_code, two->chain_code, sizeof(one->chain_code))) {
@@ -566,19 +554,6 @@ static bool _compressed_to_uncompressed(const uint8_t* pubkey_bytes, uint8_t* un
             ctx, uncompressed_out, &len, &pubkey, SECP256K1_EC_UNCOMPRESSED)) {
         return false;
     }
-    return true;
-}
-
-bool keystore_secp256k1_pubkey_hash160(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* hash160_out)
-{
-    struct ext_key xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!keystore_get_xpub(keypath, keypath_len, &xpub)) {
-        return false;
-    }
-    memcpy(hash160_out, xpub.hash160, sizeof(xpub.hash160));
     return true;
 }
 
@@ -706,82 +681,17 @@ bool keystore_get_ed25519_seed(uint8_t* seed_out)
     return true;
 }
 
-static const uint8_t _xpub_version[4] = {0x04, 0x88, 0xb2, 0x1e};
-static const uint8_t _ypub_version[4] = {0x04, 0x9d, 0x7c, 0xb2};
-static const uint8_t _zpub_version[4] = {0x04, 0xb2, 0x47, 0x46};
-static const uint8_t _tpub_version[4] = {0x04, 0x35, 0x87, 0xcf};
-static const uint8_t _vpub_version[4] = {0x04, 0x5f, 0x1c, 0xf6};
-static const uint8_t _upub_version[4] = {0x04, 0x4a, 0x52, 0x62};
-static const uint8_t _capital_vpub_version[4] = {0x02, 0x57, 0x54, 0x83};
-static const uint8_t _capital_zpub_version[4] = {0x02, 0xaa, 0x7e, 0xd3};
-static const uint8_t _capital_upub_version[4] = {0x02, 0x42, 0x89, 0xef};
-static const uint8_t _capital_ypub_version[4] = {0x02, 0x95, 0xb4, 0x3f};
-
-bool keystore_encode_xpub(
-    const struct ext_key* xpub,
-    xpub_type_t xpub_type,
-    char* out,
-    size_t out_len)
-{
-    uint8_t bytes[BIP32_SERIALIZED_LEN] = {0};
-    if (bip32_key_serialize(xpub, BIP32_FLAG_KEY_PUBLIC, bytes, sizeof(bytes)) != WALLY_OK) {
-        return false;
-    }
-
-    const uint8_t* version;
-    switch (xpub_type) {
-    case XPUB:
-        version = _xpub_version;
-        break;
-    case YPUB:
-        version = _ypub_version;
-        break;
-    case ZPUB:
-        version = _zpub_version;
-        break;
-    case TPUB:
-        version = _tpub_version;
-        break;
-    case VPUB:
-        version = _vpub_version;
-        break;
-    case UPUB:
-        version = _upub_version;
-        break;
-    case CAPITAL_VPUB:
-        version = _capital_vpub_version;
-        break;
-    case CAPITAL_ZPUB:
-        version = _capital_zpub_version;
-        break;
-    case CAPITAL_UPUB:
-        version = _capital_upub_version;
-        break;
-    case CAPITAL_YPUB:
-        version = _capital_ypub_version;
-        break;
-    default:
-        return false;
-    }
-
-    // Overwrite bip32 version.
-    memcpy(bytes, version, 4);
-    return rust_base58_encode_check(
-        rust_util_bytes(bytes, sizeof(bytes)), rust_util_cstr_mut(out, out_len));
-}
-
 USE_RESULT bool keystore_encode_xpub_at_keypath(
     const uint32_t* keypath,
     size_t keypath_len,
-    xpub_type_t xpub_type,
-    char* out,
-    size_t out_len)
+    uint8_t* out)
 {
     struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
     if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
         return false;
     }
-    return keystore_encode_xpub(&derived_xpub, xpub_type, out, out_len);
+    return bip32_key_serialize(&derived_xpub, BIP32_FLAG_KEY_PUBLIC, out, BIP32_SERIALIZED_LEN) ==
+           WALLY_OK;
 }
 
 static void _tagged_hash(const char* tag, const uint8_t* msg, size_t msg_len, uint8_t* hash_out)

@@ -314,12 +314,11 @@ pub fn secp256k1_schnorr_bip86_sign(keypath: &[u32], msg: &[u8; 32]) -> Result<[
     }
 }
 
-pub fn secp256k1_schnorr_bip86_pubkey(keypath: &[u32]) -> Result<[u8; 32], ()> {
+pub fn secp256k1_schnorr_bip86_pubkey(pubkey33: &[u8]) -> Result<[u8; 32], ()> {
     let mut pubkey = [0u8; 32];
     match unsafe {
         bitbox02_sys::keystore_secp256k1_schnorr_bip86_pubkey(
-            keypath.as_ptr(),
-            keypath.len() as _,
+            pubkey33.as_ptr(),
             pubkey.as_mut_ptr(),
         )
     } {

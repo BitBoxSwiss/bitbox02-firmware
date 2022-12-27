@@ -255,21 +255,18 @@ USE_RESULT bool keystore_encode_xpub_at_keypath(
     uint8_t* out);
 
 /**
- * Return the tweaked taproot pubkey at the given keypath.
+ * Return the tweaked taproot pubkey.
  *
- * Instead of returning the original pubkey at the keypath directly, it is tweaked with the hash of
- * the pubkey.
+ * Instead of returning the original pubkey directly, it is tweaked with the hash of the pubkey.
  *
  * See
  * https://github.com/bitcoin/bips/blob/edffe529056f6dfd33d8f716fb871467c3c09263/bip-0086.mediawiki#address-derivation
  *
- * @param[in] keypath derivation keypath
- * @param[in] keypath_len number of elements in keypath
+ * @param[in] pubkey33 33 byte compressed pubkey.
  * @param[out] pubkey_out 32 byte x-only pubkey (see BIP-340 for details).
  */
 USE_RESULT bool keystore_secp256k1_schnorr_bip86_pubkey(
-    const uint32_t* keypath,
-    size_t keypath_len,
+    const uint8_t* pubkey33,
     uint8_t* pubkey_out);
 
 /**

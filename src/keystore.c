@@ -691,23 +691,12 @@ static void _tagged_hash(const char* tag, const uint8_t* msg, size_t msg_len, ui
     rust_sha256_finish(&hash_ctx, hash_out);
 }
 
-bool keystore_secp256k1_schnorr_bip86_pubkey(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* pubkey_out)
+bool keystore_secp256k1_schnorr_bip86_pubkey(const uint8_t* pubkey33, uint8_t* pubkey_out)
 {
-    if (keystore_is_locked()) {
-        return false;
-    }
-    struct ext_key xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!keystore_get_xpub(keypath, keypath_len, &xpub)) {
-        return false;
-    }
-
     const secp256k1_context* ctx = wally_get_secp_context();
 
     secp256k1_pubkey pubkey = {0};
-    if (!secp256k1_ec_pubkey_parse(ctx, &pubkey, xpub.pub_key, sizeof(xpub.pub_key))) {
+    if (!secp256k1_ec_pubkey_parse(ctx, &pubkey, pubkey33, 33)) {
         return false;
     }
     secp256k1_xonly_pubkey xonly_pubkey = {0};

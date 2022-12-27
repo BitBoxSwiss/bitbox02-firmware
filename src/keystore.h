@@ -166,17 +166,13 @@ void keystore_zero_xkey(struct ext_key* xkey);
  */
 USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);
 
-/**
- * Return the serialized secp256k1 public key at the keypath, in uncompressed format.
- * @param[in] keypath derivation keypath
- * @param[in] keypath_len size of keypath buffer
- * @param[out] pubkey_out serialized output. Must be EC_PUBLIC_KEY_UNCOMPRESSED_LEN bytes.
- * @return true on success, false if the keystore is locked or the input is invalid.
- */
-USE_RESULT bool keystore_secp256k1_pubkey_uncompressed(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* pubkey_out);
+// Reformats pubkey from compressed 33 bytes to uncompressed 65 bytes (<0x04><64 bytes X><64 bytes
+// Y>),
+// pubkey must be 33 bytes
+// uncompressed_out must be 65 bytes.
+USE_RESULT bool keystore_secp256k1_compressed_to_uncompressed(
+    const uint8_t* pubkey_bytes,
+    uint8_t* uncompressed_out);
 
 /**
  * Get a commitment to the original nonce before tweaking it with the host nonce. This is part of
@@ -259,21 +255,18 @@ USE_RESULT bool keystore_encode_xpub_at_keypath(
     uint8_t* out);
 
 /**
- * Return the tweaked taproot pubkey at the given keypath.
+ * Return the tweaked taproot pubkey.
  *
- * Instead of returning the original pubkey at the keypath directly, it is tweaked with the hash of
- * the pubkey.
+ * Instead of returning the original pubkey directly, it is tweaked with the hash of the pubkey.
  *
  * See
  * https://github.com/bitcoin/bips/blob/edffe529056f6dfd33d8f716fb871467c3c09263/bip-0086.mediawiki#address-derivation
  *
- * @param[in] keypath derivation keypath
- * @param[in] keypath_len number of elements in keypath
+ * @param[in] pubkey33 33 byte compressed pubkey.
  * @param[out] pubkey_out 32 byte x-only pubkey (see BIP-340 for details).
  */
 USE_RESULT bool keystore_secp256k1_schnorr_bip86_pubkey(
-    const uint32_t* keypath,
-    size_t keypath_len,
+    const uint8_t* pubkey33,
     uint8_t* pubkey_out);
 
 /**

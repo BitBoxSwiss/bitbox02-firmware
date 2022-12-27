@@ -183,14 +183,13 @@ pub fn get_bip39_wordlist() -> Result<Bip39Wordlist, ()> {
     Ok(result)
 }
 
-pub fn secp256k1_pubkey_uncompressed(
-    keypath: &[u32],
+pub fn secp256k1_pubkey_compressed_to_uncompressed(
+    compressed_pubkey: &[u8],
 ) -> Result<[u8; EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()> {
     let mut pubkey = [0u8; EC_PUBLIC_KEY_UNCOMPRESSED_LEN];
     match unsafe {
-        bitbox02_sys::keystore_secp256k1_pubkey_uncompressed(
-            keypath.as_ptr(),
-            keypath.len() as _,
+        bitbox02_sys::keystore_secp256k1_compressed_to_uncompressed(
+            compressed_pubkey.as_ptr(),
             pubkey.as_mut_ptr(),
         )
     } {
@@ -315,12 +314,11 @@ pub fn secp256k1_schnorr_bip86_sign(keypath: &[u32], msg: &[u8; 32]) -> Result<[
     }
 }
 
-pub fn secp256k1_schnorr_bip86_pubkey(keypath: &[u32]) -> Result<[u8; 32], ()> {
+pub fn secp256k1_schnorr_bip86_pubkey(pubkey33: &[u8]) -> Result<[u8; 32], ()> {
     let mut pubkey = [0u8; 32];
     match unsafe {
         bitbox02_sys::keystore_secp256k1_schnorr_bip86_pubkey(
-            keypath.as_ptr(),
-            keypath.len() as _,
+            pubkey33.as_ptr(),
             pubkey.as_mut_ptr(),
         )
     } {

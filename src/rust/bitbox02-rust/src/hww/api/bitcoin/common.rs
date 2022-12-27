@@ -15,7 +15,7 @@
 use super::pb;
 use super::Error;
 
-use bitbox02::keystore;
+use crate::keystore;
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -77,7 +77,7 @@ impl Payload {
     ) -> Result<Self, Error> {
         match simple_type {
             SimpleType::P2wpkh => Ok(Payload {
-                data: crate::keystore::secp256k1_pubkey_hash160(keypath)?,
+                data: keystore::secp256k1_pubkey_hash160(keypath)?,
                 output_type: BtcOutputType::P2wpkh,
             }),
             SimpleType::P2wpkhP2sh => {

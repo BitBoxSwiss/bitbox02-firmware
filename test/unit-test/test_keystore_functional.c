@@ -120,7 +120,8 @@ static bool _encode_xpub(const struct ext_key* xpub, char* out, size_t out_len)
 
 static void _check_pubs(const char* expected_xpub, const char* expected_pubkey_uncompressed_hex)
 {
-    struct ext_key __attribute__((__cleanup__(keystore_zero_xkey))) xpub;
+    struct ext_key __attribute__((__cleanup__(keystore_zero_xkey))) xpub_3;
+    struct ext_key __attribute__((__cleanup__(keystore_zero_xkey))) xpub_5;
     uint32_t keypath[] = {
         44 + BIP32_INITIAL_HARDENED_CHILD,
         0 + BIP32_INITIAL_HARDENED_CHILD,
@@ -129,13 +130,14 @@ static void _check_pubs(const char* expected_xpub, const char* expected_pubkey_u
         2,
     };
 
-    assert_true(keystore_get_xpub(keypath, 3, &xpub));
+    assert_true(keystore_get_xpub(keypath, 3, &xpub_3));
+    assert_true(keystore_get_xpub(keypath, 5, &xpub_5));
     char xpub_serialized[120];
-    assert_true(_encode_xpub(&xpub, xpub_serialized, sizeof(xpub_serialized)));
+    assert_true(_encode_xpub(&xpub_3, xpub_serialized, sizeof(xpub_serialized)));
     assert_string_equal(xpub_serialized, expected_xpub);
 
     uint8_t pubkey_uncompressed[EC_PUBLIC_KEY_UNCOMPRESSED_LEN];
-    assert_true(keystore_secp256k1_pubkey_uncompressed(keypath, 5, pubkey_uncompressed));
+    assert_true(keystore_secp256k1_compressed_to_uncompressed(xpub_5.pub_key, pubkey_uncompressed));
     _assert_equal_memory_hex(
         pubkey_uncompressed, sizeof(pubkey_uncompressed), expected_pubkey_uncompressed_hex);
 }

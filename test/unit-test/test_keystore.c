@@ -364,7 +364,7 @@ static void _test_keystore_create_and_unlock_twice(void** state)
 static void _expect_seeded(bool seeded)
 {
     uint8_t seed[KEYSTORE_MAX_SEED_LENGTH];
-    uint32_t len;
+    size_t len;
     assert_int_equal(seeded, keystore_copy_seed(seed, &len));
 }
 

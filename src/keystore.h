@@ -60,7 +60,7 @@ void keystore_mock_unlocked(const uint8_t* seed, size_t seed_len, const uint8_t*
  * @param[out] length_out The seed length.
  * @return true if the seed was still retained.
  */
-USE_RESULT bool keystore_copy_seed(uint8_t* seed_out, uint32_t* length_out);
+USE_RESULT bool keystore_copy_seed(uint8_t* seed_out, size_t* length_out);
 
 /**
  * Restores a seed.
@@ -69,7 +69,7 @@ USE_RESULT bool keystore_copy_seed(uint8_t* seed_out, uint32_t* length_out);
  * @param[in] password The password with which we encrypt the seed.
  */
 USE_RESULT keystore_error_t
-keystore_encrypt_and_store_seed(const uint8_t* seed, uint32_t seed_length, const char* password);
+keystore_encrypt_and_store_seed(const uint8_t* seed, size_t seed_length, const char* password);
 
 /**
    Generates the seed, mixes it with host_entropy, and stores it encrypted with the

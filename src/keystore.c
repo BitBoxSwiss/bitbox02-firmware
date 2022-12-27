@@ -38,7 +38,7 @@
 static bool _is_unlocked_device = false;
 // Must be defined if is_unlocked is true. Length of the seed store in `_retained_seed`. See also:
 // `_validate_seed_length()`.
-static uint8_t _seed_length = 0;
+static size_t _seed_length = 0;
 // Must be defined if is_unlocked is true. ONLY ACCESS THIS WITH _get_seed()
 static uint8_t _retained_seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
 
@@ -78,7 +78,7 @@ static const uint8_t* _get_seed(void)
     return _retained_seed;
 }
 
-bool keystore_copy_seed(uint8_t* seed_out, uint32_t* length_out)
+bool keystore_copy_seed(uint8_t* seed_out, size_t* length_out)
 {
     if (_get_seed() == NULL) {
         return false;
@@ -236,7 +236,7 @@ static bool _verify_seed(
 
 keystore_error_t keystore_encrypt_and_store_seed(
     const uint8_t* seed,
-    uint32_t seed_length,
+    size_t seed_length,
     const char* password)
 {
     if (memory_is_initialized()) {
@@ -268,7 +268,8 @@ keystore_error_t keystore_encrypt_and_store_seed(
     if (encrypted_seed_len > 255) { // sanity check, can't happen
         Abort("keystore_encrypt_and_store_seed");
     }
-    if (!memory_set_encrypted_seed_and_hmac(encrypted_seed, encrypted_seed_len)) {
+    uint8_t encrypted_seed_len_u8 = (uint8_t)encrypted_seed_len;
+    if (!memory_set_encrypted_seed_and_hmac(encrypted_seed, encrypted_seed_len_u8)) {
         return KEYSTORE_ERR_MEMORY;
     }
     if (!_verify_seed(password, seed, seed_length)) {

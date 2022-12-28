@@ -47,8 +47,9 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
     if !super::keypath::is_valid_keypath_address(&request.keypath) {
         return Err(Error::InvalidInput);
     }
-    let pubkey = crate::keystore::secp256k1_pubkey_uncompressed(&request.keypath)
-        .or(Err(Error::InvalidInput))?;
+    let pubkey = crate::keystore::get_xpub(&request.keypath)
+        .or(Err(Error::InvalidInput))?
+        .pubkey_uncompressed()?;
     let address = super::address::from_pubkey(&pubkey);
 
     if request.display {
@@ -79,10 +80,9 @@ fn process_xpub(request: &pb::EthPubRequest) -> Result<Response, Error> {
     if !super::keypath::is_valid_keypath_xpub(&request.keypath) {
         return Err(Error::InvalidInput);
     }
-    let xpub = bip32::serialize_xpub_str(
-        &keystore::get_xpub(&request.keypath).or(Err(Error::InvalidInput))?,
-        bip32::XPubType::Xpub,
-    )?;
+    let xpub = keystore::get_xpub(&request.keypath)
+        .or(Err(Error::InvalidInput))?
+        .serialize_str(bip32::XPubType::Xpub)?;
 
     Ok(Response::Pub(pb::PubResponse { r#pub: xpub }))
 }

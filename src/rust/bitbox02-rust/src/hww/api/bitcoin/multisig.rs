@@ -40,7 +40,8 @@ pub fn convert_multisig(multisig: &Multisig) -> Result<bitbox02::app_btc::Multis
         xpubs: {
             let mut xpubs = [[0u8; 78]; MAX_SIGNERS];
             for (i, xpub) in multisig.xpubs.iter().enumerate() {
-                xpubs[i] = bip32::serialize_xpub(xpub, Some(bip32::XPubType::Xpub))
+                xpubs[i] = bip32::Xpub::from(xpub)
+                    .serialize(Some(bip32::XPubType::Xpub))
                     .or(Err(Error::InvalidInput))?
                     .try_into()
                     .or(Err(Error::Generic))?;
@@ -100,7 +101,7 @@ pub fn get_hash(
         let mut xpubs_serialized: Vec<Vec<u8>> = multisig
             .xpubs
             .iter()
-            .map(|xpub| bip32::serialize_xpub(xpub, None))
+            .map(|xpub| bip32::Xpub::from(xpub).serialize(None))
             .collect::<Result<Vec<Vec<u8>>, ()>>()?;
         if let SortXpubs::Yes = sort_xpubs {
             xpubs_serialized.sort();
@@ -236,8 +237,9 @@ pub async fn confirm_extended(
     };
     let num_cosigners = multisig.xpubs.len();
     for (i, xpub) in multisig.xpubs.iter().enumerate() {
-        let xpub_str =
-            bip32::serialize_xpub_str(xpub, output_xpub_type).or(Err(Error::InvalidInput))?;
+        let xpub_str = bip32::Xpub::from(xpub)
+            .serialize_str(output_xpub_type)
+            .or(Err(Error::InvalidInput))?;
         confirm::confirm(&confirm::Params {
             title,
             body: (if i == multisig.our_xpub_index as usize {
@@ -287,9 +289,9 @@ pub fn validate(multisig: &Multisig, keypath: &[u32], expected_coin: u32) -> Res
     )
     .or(Err(Error::InvalidInput))?;
 
-    let our_xpub = bip32::serialize_xpub(&crate::keystore::get_xpub(keypath)?, None)?;
+    let our_xpub = crate::keystore::get_xpub(keypath)?.serialize(None)?;
     let maybe_our_xpub =
-        bip32::serialize_xpub(&multisig.xpubs[multisig.our_xpub_index as usize], None)?;
+        bip32::Xpub::from(&multisig.xpubs[multisig.our_xpub_index as usize]).serialize(None)?;
     if our_xpub != maybe_our_xpub {
         return Err(Error::InvalidInput);
     }
@@ -774,7 +776,7 @@ mod tests {
             // invalid keypath, wrong purpose
             let mut invalid = multisig.clone();
             let keypath = &[49 + HARDENED, expected_coin, 0 + HARDENED, 2 + HARDENED];
-            invalid.xpubs[1] = crate::keystore::get_xpub(keypath).unwrap();
+            invalid.xpubs[1] = crate::keystore::get_xpub(keypath).unwrap().into();
             assert!(validate(&invalid, keypath, expected_coin).is_err());
         }
 
@@ -783,7 +785,7 @@ mod tests {
 
             let mut invalid = multisig.clone();
             let keypath = &[48 + HARDENED, expected_coin + 1, 0 + HARDENED, 2 + HARDENED];
-            invalid.xpubs[1] = crate::keystore::get_xpub(keypath).unwrap();
+            invalid.xpubs[1] = crate::keystore::get_xpub(keypath).unwrap().into();
             assert!(validate(&invalid, keypath, expected_coin).is_err());
         }
 
@@ -792,7 +794,7 @@ mod tests {
 
             let mut invalid = multisig.clone();
             let keypath = &[48 + HARDENED, expected_coin, 100 + HARDENED, 2 + HARDENED];
-            invalid.xpubs[1] = crate::keystore::get_xpub(keypath).unwrap();
+            invalid.xpubs[1] = crate::keystore::get_xpub(keypath).unwrap().into();
             assert!(validate(&invalid, keypath, expected_coin).is_err());
         }
 
@@ -801,7 +803,7 @@ mod tests {
 
             let mut invalid = multisig.clone();
             let keypath = &[48 + HARDENED, expected_coin, 0 + HARDENED, 1 + HARDENED];
-            invalid.xpubs[1] = crate::keystore::get_xpub(keypath).unwrap();
+            invalid.xpubs[1] = crate::keystore::get_xpub(keypath).unwrap().into();
             assert!(validate(&invalid, keypath, expected_coin).is_err());
         }
 

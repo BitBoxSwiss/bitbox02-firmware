@@ -77,7 +77,7 @@ impl Payload {
     ) -> Result<Self, Error> {
         match simple_type {
             SimpleType::P2wpkh => Ok(Payload {
-                data: keystore::secp256k1_pubkey_hash160(keypath)?,
+                data: keystore::get_xpub(keypath)?.pubkey_hash160(),
                 output_type: BtcOutputType::P2wpkh,
             }),
             SimpleType::P2wpkhP2sh => {

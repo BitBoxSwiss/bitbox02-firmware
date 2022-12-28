@@ -39,10 +39,9 @@ pub async fn process(
     {
         return Err(Error::InvalidInput);
     }
-    let xpub = bip32::serialize_xpub_str(
-        &keystore::get_xpub(keypath).or(Err(Error::InvalidInput))?,
-        bip32::XPubType::Xpub,
-    )?;
+    let xpub = keystore::get_xpub(keypath)
+        .or(Err(Error::InvalidInput))?
+        .serialize_str(bip32::XPubType::Xpub)?;
 
     Ok(Response::ElectrumEncryptionKey(
         pb::ElectrumEncryptionKeyResponse { key: xpub },

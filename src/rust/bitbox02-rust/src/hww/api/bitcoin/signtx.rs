@@ -275,7 +275,7 @@ fn sighash_script(
                 | pb::btc_script_config::SimpleType::P2wpkh => {
                     // See https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification, item 5:
                     // > For P2WPKH witness program, the scriptCode is 0x1976a914{20-byte-pubkey-hash}88ac.
-                    let pubkey_hash160 = crate::keystore::secp256k1_pubkey_hash160(keypath)?;
+                    let pubkey_hash160 = crate::keystore::get_xpub(keypath)?.pubkey_hash160();
                     let mut result = Vec::<u8>::new();
                     result.extend_from_slice(b"\x76\xa9\x14");
                     result.extend_from_slice(&pubkey_hash160);

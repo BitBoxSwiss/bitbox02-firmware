@@ -105,10 +105,9 @@ async fn xpub(
 ) -> Result<Response, Error> {
     let params = params::get(coin);
     keypath::validate_xpub(keypath, params.bip44_coin, params.taproot_support)?;
-    let xpub = crate::bip32::serialize_xpub_str(
-        &keystore::get_xpub(keypath).or(Err(Error::InvalidInput))?,
-        xpub_type,
-    )?;
+    let xpub = keystore::get_xpub(keypath)
+        .or(Err(Error::InvalidInput))?
+        .serialize_str(xpub_type)?;
     if display {
         let title = format!("{}\naccount #{}", params.name, keypath[2] - HARDENED + 1);
         let confirm_params = confirm::Params {

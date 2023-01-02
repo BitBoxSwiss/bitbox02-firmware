@@ -56,6 +56,7 @@ impl Xpub {
             public_key: xpub[45..78].to_vec(),
         }))
     }
+
     /// Serializes a protobuf XPub to bytes according to the BIP32 specification. If xpub_type is
     /// None, the four version bytes are skipped.
     pub fn serialize(&self, xpub_type: Option<XPubType>) -> Result<Vec<u8>, ()> {
@@ -100,6 +101,12 @@ impl Xpub {
             .into_string())
     }
 
+    /// Derives child xpub at the keypath. All keypath elements must be unhardened.
+    pub fn derive(&self, keypath: &[u32]) -> Result<Self, ()> {
+        let xpub_ser = self.serialize(Some(XPubType::Xpub))?;
+        Xpub::from_bytes(&bitbox02::bip32::derive_xpub(&xpub_ser, keypath)?)
+    }
+
     /// Returns the 33 bytes secp256k1 compressed pubkey.
     pub fn public_key(&self) -> &[u8] {
         self.xpub.public_key.as_slice()
@@ -115,6 +122,17 @@ impl Xpub {
     /// (<0x04><64 bytes X><64 bytes Y>).
     pub fn pubkey_uncompressed(&self) -> Result<[u8; 65], ()> {
         bitbox02::keystore::secp256k1_pubkey_compressed_to_uncompressed(self.public_key())
+    }
+
+    /// Return the tweaked taproot pubkey.
+    ///
+    /// Instead of returning the original pubkey at the keypath directly, it is tweaked with the
+    /// hash of the pubkey.
+    ///
+    /// See
+    /// https://github.com/bitcoin/bips/blob/edffe529056f6dfd33d8f716fb871467c3c09263/bip-0086.mediawiki#address-derivation
+    pub fn schnorr_bip86_pubkey(&self) -> Result<[u8; 32], ()> {
+        bitbox02::keystore::secp256k1_schnorr_bip86_pubkey(self.public_key())
     }
 }
 
@@ -179,6 +197,30 @@ mod tests {
     }
 
     #[test]
+    fn test_derive() {
+        let xpub_str = "xpub661MyMwAqRbcGpuMRXa55WgyqinF4dpxvqQK63xBHtnH5yK4e3cTLqbX9CP4mEMHUbqsjSQ8y3hhbAzuMhpn8eEiLNVSWYaVSbKMAtUPyYH";
+        let xpub = Xpub::from(parse_xpub(xpub_str).unwrap());
+
+        assert_eq!(
+            xpub.derive(&[])
+                .unwrap()
+                .serialize_str(XPubType::Xpub)
+                .unwrap(),
+            xpub_str,
+        );
+        let expected = "xpub6CYiDoWMtLVQNrc4tbAvuRk5wjsp6MFgtYEdBUV7TGLUjutavHdEKLu9KpTpRxEZULbSwM1UQPaQpqAhmWYvngXCGHGE7hSZFNofeSRzmk5";
+        assert_eq!(
+            xpub.derive(&[0, 1, 2])
+                .unwrap()
+                .serialize_str(XPubType::Xpub)
+                .unwrap(),
+            expected,
+        );
+
+        assert!(xpub.derive(&[0, 1, util::bip32::HARDENED]).is_err());
+    }
+
+    #[test]
     fn test_pubkey_hash160() {
         let xpub = Xpub::from(parse_xpub("xpub6GugPDcUhrSudznFss7wXvQV3gwFTEanxHdCyoNoHnZEr3PTbh2Fosg4JjfphaYAsqjBhmtTZ3Yo8tmGjSHtaPhExNiMCSvPzreqjrX4Wr7").unwrap());
         assert_eq!(
@@ -199,6 +241,30 @@ mod tests {
         assert_eq!(
             xpub.pubkey_uncompressed().unwrap(),
             *b"\x04\x77\xa4\x4a\xa9\xe8\xc8\xfb\x51\x05\xef\x5e\xe2\x39\x4e\x8a\xed\x89\xad\x73\xfc\x74\x36\x14\x25\xf0\x63\x47\xec\xfe\x32\x61\x31\xe1\x33\x93\x67\xee\x3c\xbe\x87\x71\x92\x85\xa0\x7f\x77\x4b\x17\xeb\x93\x3e\xcf\x0b\x9b\x82\xac\xeb\xc1\x95\x22\x6d\x63\x42\x44",
+        );
+    }
+
+    #[test]
+    fn test_schnorr_bip86_pubkey() {
+        // Test vectors from:
+        // https://github.com/bitcoin/bips/blob/edffe529056f6dfd33d8f716fb871467c3c09263/bip-0086.mediawiki#test-vectors
+        // Here we only test the creation of the tweaked pubkkey. See `Payload::from_simple` for address generation.
+
+        let xpub = Xpub::from(parse_xpub("xpub6BgBgsespWvERF3LHQu6CnqdvfEvtMcQjYrcRzx53QJjSxarj2afYWcLteoGVky7D3UKDP9QyrLprQ3VCECoY49yfdDEHGCtMMj92pReUsQ").unwrap());
+
+        assert_eq!(
+            xpub.derive(&[0, 0]).unwrap().schnorr_bip86_pubkey().unwrap(),
+            *b"\xa6\x08\x69\xf0\xdb\xcf\x1d\xc6\x59\xc9\xce\xcb\xaf\x80\x50\x13\x5e\xa9\xe8\xcd\xc4\x87\x05\x3f\x1d\xc6\x88\x09\x49\xdc\x68\x4c",
+        );
+
+        assert_eq!(
+            xpub.derive(&[0, 1]).unwrap().schnorr_bip86_pubkey().unwrap(),
+            *b"\xa8\x2f\x29\x94\x4d\x65\xb8\x6a\xe6\xb5\xe5\xcc\x75\xe2\x94\xea\xd6\xc5\x93\x91\xa1\xed\xc5\xe0\x16\xe3\x49\x8c\x67\xfc\x7b\xbb",
+        );
+
+        assert_eq!(
+            xpub.derive(&[1, 0]).unwrap().schnorr_bip86_pubkey().unwrap(),
+            *b"\x88\x2d\x74\xe5\xd0\x57\x2d\x5a\x81\x6c\xef\x00\x41\xa9\x6b\x6c\x1d\xe8\x32\xf6\xf9\x67\x6d\x96\x05\xc4\x4d\x5e\x9a\x97\xd3\xdc",
         );
     }
 }

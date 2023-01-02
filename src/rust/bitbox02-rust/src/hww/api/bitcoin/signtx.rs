@@ -20,6 +20,7 @@ use super::script::serialize_varint;
 use super::{bip143, bip341, common, keypath};
 
 use crate::workflow::{confirm, status, transaction};
+use crate::xpubcache::Bip32XpubCache;
 
 use alloc::vec::Vec;
 use core::convert::TryInto;
@@ -257,6 +258,7 @@ fn is_taproot(script_config_account: &pb::BtcScriptConfigWithKeypath) -> bool {
 ///
 /// See https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification, item 5:
 fn sighash_script(
+    xpub_cache: &mut Bip32XpubCache,
     script_config_account: &pb::BtcScriptConfigWithKeypath,
     keypath: &[u32],
 ) -> Result<Vec<u8>, Error> {
@@ -275,7 +277,7 @@ fn sighash_script(
                 | pb::btc_script_config::SimpleType::P2wpkh => {
                     // See https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification, item 5:
                     // > For P2WPKH witness program, the scriptCode is 0x1976a914{20-byte-pubkey-hash}88ac.
-                    let pubkey_hash160 = crate::keystore::get_xpub(keypath)?.pubkey_hash160();
+                    let pubkey_hash160 = xpub_cache.get_xpub(keypath)?.pubkey_hash160();
                     let mut result = Vec::<u8>::new();
                     result.extend_from_slice(b"\x76\xa9\x14");
                     result.extend_from_slice(&pubkey_hash160);
@@ -428,6 +430,42 @@ async fn validate_script_configs(
     Ok(())
 }
 
+// We configure the xpub cache to cache up to change/receive level. If e.g. there is an input/change
+// with keypath `m/84'/0'/0'/0/0`, we want the xpub cache to return the xpub at `m/84'/0'/0'/0`, so
+// only one child derivation needs to be done for the input/change.
+//
+// Only xpubs for simple configs (single-sig) are cached - multisig already provides all necessary
+// xpubs in the script config itself.
+fn setup_xpub_cache(cache: &mut Bip32XpubCache, script_configs: &[pb::BtcScriptConfigWithKeypath]) {
+    for script_config in script_configs.iter() {
+        match script_config {
+            pb::BtcScriptConfigWithKeypath {
+                script_config:
+                    Some(pb::BtcScriptConfig {
+                        config: Some(pb::btc_script_config::Config::SimpleType(_)),
+                    }),
+                keypath,
+            } => {
+                let mut receive = keypath.to_vec();
+                receive.push(0);
+                let mut change = keypath.to_vec();
+                change.push(1);
+                // Cache xpubs at the receive chain, e.g. m/84'/0'/0'/0.
+                cache.add_keypath(&receive);
+                // Cache xpubs at change chain, e.g. m/84'/0'/0'/1.
+                cache.add_keypath(&change);
+                // Also cache xpubs at the account level, e.g. m/84'/0'/0', so that the above two
+                // xpubs (change and receive) can reuse the xpub the account-level.
+                cache.add_keypath(keypath);
+            }
+            _ => {
+                // We don't need to cache anything for multisig, as there, the xpubs are already
+                // provided in the script config.
+            }
+        }
+    }
+}
+
 /// Singing flow:
 ///
 /// init
@@ -493,6 +531,9 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         return Err(Error::InvalidInput);
     }
     validate_script_configs(coin_params, &request.script_configs).await?;
+
+    let mut xpub_cache = Bip32XpubCache::new();
+    setup_xpub_cache(&mut xpub_cache, &request.script_configs);
 
     let mut progress_component = {
         let mut c = bitbox02::ui::progress_create("Loading transaction...");
@@ -584,9 +625,13 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
 
         // https://github.com/bitcoin/bips/blob/bb8dc57da9b3c6539b88378348728a2ff43f7e9c/bip-0341.mediawiki#common-signature-message
         // accumulate `sha_scriptpubkeys`
-        let pk_script =
-            common::Payload::from(coin_params, &tx_input.keypath, script_config_account)?
-                .pk_script(coin_params)?;
+        let pk_script = common::Payload::from(
+            &mut xpub_cache,
+            coin_params,
+            &tx_input.keypath,
+            script_config_account,
+        )?
+        .pk_script(coin_params)?;
         hasher_scriptpubkeys.update(serialize_varint(pk_script.len() as u64).as_slice());
         hasher_scriptpubkeys.update(pk_script.as_slice());
 
@@ -655,7 +700,12 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
 
             validate_keypath(coin_params, script_config_account, &tx_output.keypath, true)?;
 
-            common::Payload::from(coin_params, &tx_output.keypath, script_config_account)?
+            common::Payload::from(
+                &mut xpub_cache,
+                coin_params,
+                &tx_output.keypath,
+                script_config_account,
+            )?
         } else {
             // Take payload from provided output.
             common::Payload {
@@ -820,7 +870,11 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                 hash_sequence: Sha256::digest(&hash_sequence).try_into().unwrap(),
                 outpoint_hash: tx_input.prev_out_hash.as_slice().try_into().unwrap(),
                 outpoint_index: tx_input.prev_out_index,
-                sighash_script: &sighash_script(script_config_account, &tx_input.keypath)?,
+                sighash_script: &sighash_script(
+                    &mut xpub_cache,
+                    script_config_account,
+                    &tx_input.keypath,
+                )?,
                 prevout_value: tx_input.prev_out_value,
                 sequence: tx_input.sequence,
                 hash_outputs: Sha256::digest(&hash_outputs).try_into().unwrap(),

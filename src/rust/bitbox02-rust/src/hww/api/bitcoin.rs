@@ -134,7 +134,13 @@ pub fn derive_address_simple(
         coin_params.taproot_support,
     )
     .or(Err(Error::InvalidInput))?;
-    Ok(common::Payload::from_simple(coin_params, simple_type, keypath)?.address(coin_params)?)
+    Ok(common::Payload::from_simple(
+        &mut crate::xpubcache::XpubCache::new(),
+        coin_params,
+        simple_type,
+        keypath,
+    )?
+    .address(coin_params)?)
 }
 
 /// Processes a SimpleType (single-sig) adress api call.

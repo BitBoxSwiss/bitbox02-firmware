@@ -42,7 +42,8 @@ mod tests {
         assert_eq!(process(), Err(Error::Generic));
 
         mock_unlocked_using_mnemonic(
-            "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay"
+            "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay",
+            "",
         );
         assert_eq!(
             process(),
@@ -53,6 +54,7 @@ mod tests {
 
         mock_unlocked_using_mnemonic(
             "small agent wife animal marine cloth exit thank stool idea steel frame",
+            "",
         );
         assert_eq!(
             process(),

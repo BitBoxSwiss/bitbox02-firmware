@@ -2446,6 +2446,7 @@ mod tests {
         });
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+            "",
         );
         // For the multisig registration below.
         mock_memory();
@@ -2514,6 +2515,7 @@ mod tests {
         mock_default_ui();
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+            "",
         );
         let init_request = {
             let tx = transaction.borrow();
@@ -2571,6 +2573,7 @@ mod tests {
         mock_default_ui();
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+            "",
         );
         // For the multisig registration below.
         mock_memory();
@@ -2635,6 +2638,7 @@ mod tests {
         mock_default_ui();
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+            "",
         );
         // For the multisig registration below.
         mock_memory();

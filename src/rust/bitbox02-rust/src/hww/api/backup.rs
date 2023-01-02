@@ -231,6 +231,7 @@ mod tests {
         mock_sd();
         mock_unlocked_using_mnemonic(
             "memory raven era cave phone system dice come mechanic split moon repeat",
+            "",
         );
         mock_memory();
 
@@ -278,7 +279,7 @@ mod tests {
             ui_confirm_create: Some(Box::new(|_params| true)),
             ..Default::default()
         });
-        mock_unlocked_using_mnemonic("purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay");
+        mock_unlocked_using_mnemonic("purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay", "");
         mock_memory();
         bitbox02::memory::set_device_name(DEVICE_NAME_1).unwrap();
         assert!(block_on(create(&pb::CreateBackupRequest {
@@ -304,7 +305,7 @@ mod tests {
             ui_confirm_create: Some(Box::new(|_params| true)),
             ..Default::default()
         });
-        mock_unlocked_using_mnemonic("goddess item rack improve shaft occur actress rib emerge salad rich blame model glare lounge stable electric height scrub scrub oyster now dinner oven");
+        mock_unlocked_using_mnemonic("goddess item rack improve shaft occur actress rib emerge salad rich blame model glare lounge stable electric height scrub scrub oyster now dinner oven", "");
         mock_memory();
         bitbox02::memory::set_device_name(DEVICE_NAME_2).unwrap();
         assert!(block_on(create(&pb::CreateBackupRequest {

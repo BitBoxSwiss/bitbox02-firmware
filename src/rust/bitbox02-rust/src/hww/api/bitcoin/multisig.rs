@@ -714,6 +714,7 @@ mod tests {
         // ok.
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+            "",
         );
         assert!(validate(&multisig, keypath, expected_coin).is_ok());
 

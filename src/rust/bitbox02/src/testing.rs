@@ -47,13 +47,16 @@ pub fn mock(data: Data) {
     keystore::lock();
 }
 
-/// This mocks an unlocked keystore with the given bip39 recovery words.
-pub fn mock_unlocked_using_mnemonic(mnemonic: &str) {
+/// This mocks an unlocked keystore with the given bip39 recovery words and bip39 passphrase.
+pub fn mock_unlocked_using_mnemonic(mnemonic: &str, passphrase: &str) {
     let seed = keystore::bip39_mnemonic_to_seed(mnemonic).unwrap();
     unsafe {
         bitbox02_sys::keystore_mock_unlocked(seed.as_ptr(), seed.len() as _, core::ptr::null())
     }
-    keystore::unlock_bip39(&crate::input::SafeInputString::new()).unwrap();
+    keystore::unlock_bip39(&crate::input::SafeInputString::from_buf(
+        passphrase.as_bytes(),
+    ))
+    .unwrap();
 }
 
 pub const TEST_MNEMONIC: &str = "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay";
@@ -61,7 +64,7 @@ pub const TEST_MNEMONIC: &str = "purity concert above invest pigeon category pea
 /// This mocks an unlocked keystore with a fixed bip39 seed based on these bip39 recovery words:
 /// `purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay`
 pub fn mock_unlocked() {
-    mock_unlocked_using_mnemonic(TEST_MNEMONIC)
+    mock_unlocked_using_mnemonic(TEST_MNEMONIC, "")
 }
 
 /// This mounts a new FAT32 volume in RAM for use in unit tests. As there is only one volume, access only serially.

@@ -538,6 +538,7 @@ mod tests {
     fn test_payload_simple() {
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+            "",
         );
         let mut xpub_cache = Bip32XpubCache::new();
         let coin_params = super::super::params::get(pb::BtcCoin::Btc);

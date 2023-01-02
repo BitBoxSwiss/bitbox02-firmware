@@ -369,6 +369,7 @@ mod tests {
         // 12 words
         mock_unlocked_using_mnemonic(
             "trust cradle viable innocent stand equal little small junior frost laundry room",
+            "",
         );
         assert_eq!(
             copy_seed().unwrap().as_slice(),
@@ -378,6 +379,7 @@ mod tests {
         // 18 words
         mock_unlocked_using_mnemonic(
             "pupil parent toe bright slam plastic spy suspect verb battle nominee loan call crystal upset razor luggage join",
+            "",
         );
         assert_eq!(
             copy_seed().unwrap().as_slice(),
@@ -386,6 +388,7 @@ mod tests {
 
         mock_unlocked_using_mnemonic(
             "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay",
+            "",
         );
         assert_eq!(
             copy_seed().unwrap().as_slice(),

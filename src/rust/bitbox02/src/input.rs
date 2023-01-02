@@ -29,6 +29,13 @@ impl SafeInputString {
         SafeInputString(Box::new([0; INPUT_STRING_MAX_SIZE]))
     }
 
+    #[cfg(feature = "testing")]
+    pub fn from_buf(buf: &[u8]) -> SafeInputString {
+        let mut s = SafeInputString::new();
+        s.as_mut()[..buf.len()].copy_from_slice(buf);
+        s
+    }
+
     /// Copies the string bytes from `source` without additional allocations.
     pub fn copy_from(&mut self, source: &Self) {
         self.0.copy_from_slice(&source.0[..]);
@@ -80,9 +87,7 @@ mod tests {
     use std::prelude::v1::*;
 
     fn from(buf: &[u8]) -> SafeInputString {
-        let mut pw = SafeInputString::new();
-        pw.as_mut()[..buf.len()].copy_from_slice(buf);
-        pw
+        SafeInputString::from_buf(buf)
     }
 
     #[test]

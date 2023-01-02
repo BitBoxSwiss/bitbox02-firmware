@@ -394,7 +394,7 @@ mod tests {
                 expected_display_title: "Litecoin\naccount #1",
             },
         ] {
-            mock_unlocked_using_mnemonic(test.mnemonic);
+            mock_unlocked_using_mnemonic(test.mnemonic, "");
 
             // Without display.
             let mut req = pb::BtcPubRequest {
@@ -424,7 +424,7 @@ mod tests {
                 })),
                 ..Default::default()
             });
-            mock_unlocked_using_mnemonic(test.mnemonic);
+            mock_unlocked_using_mnemonic(test.mnemonic, "");
             assert_eq!(
                 block_on(process_pub(&req)),
                 Ok(Response::Pub(pb::PubResponse {
@@ -678,7 +678,7 @@ mod tests {
             };
 
             // Without display.
-            mock_unlocked_using_mnemonic(test.mnemonic);
+            mock_unlocked_using_mnemonic(test.mnemonic, "");
             assert_eq!(
                 block_on(process_pub(&req)),
                 Ok(Response::Pub(pb::PubResponse {
@@ -699,7 +699,7 @@ mod tests {
                 })),
                 ..Default::default()
             });
-            mock_unlocked_using_mnemonic(test.mnemonic);
+            mock_unlocked_using_mnemonic(test.mnemonic, "");
             assert_eq!(
                 block_on(process_pub(&req)),
                 Ok(Response::Pub(pb::PubResponse {
@@ -908,6 +908,7 @@ mod tests {
             });
             mock_unlocked_using_mnemonic(
                 "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+                "",
             );
 
             let multisig = Multisig {

@@ -107,10 +107,13 @@ pub fn create_and_store_seed(password: &SafeInputString, host_entropy: &[u8]) ->
 }
 
 pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH]);
+    let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH].to_vec());
     let mut seed_len: usize = 0;
     match unsafe { bitbox02_sys::keystore_copy_seed(seed.as_mut_ptr(), &mut seed_len) } {
-        true => Ok(zeroize::Zeroizing::new(seed[..seed_len].to_vec())),
+        true => {
+            seed.truncate(seed_len);
+            Ok(seed)
+        }
         false => Err(()),
     }
 }
@@ -280,11 +283,7 @@ pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u
 
 pub fn encrypt_and_store_seed(seed: &[u8], password: &SafeInputString) -> Result<(), Error> {
     match unsafe {
-        bitbox02_sys::keystore_encrypt_and_store_seed(
-            seed.as_ptr(),
-            seed.len(),
-            password.as_cstr(),
-        )
+        bitbox02_sys::keystore_encrypt_and_store_seed(seed.as_ptr(), seed.len(), password.as_cstr())
     } {
         keystore_error_t::KEYSTORE_OK => Ok(()),
         err => Err(err.into()),
@@ -330,7 +329,7 @@ pub fn secp256k1_schnorr_bip86_pubkey(pubkey33: &[u8]) -> Result<[u8; 32], ()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{mock_unlocked, TEST_MNEMONIC};
+    use crate::testing::{mock_unlocked, mock_unlocked_using_mnemonic, TEST_MNEMONIC};
 
     #[test]
     fn test_bip39_mnemonic_to_seed() {
@@ -361,6 +360,35 @@ mod tests {
         // 24 words
         assert_eq!(
             bip39_mnemonic_to_seed("purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay").unwrap().as_ref() as &[u8],
+            b"\xae\x45\xd4\x02\x3a\xfa\x4a\x48\x68\x77\x51\x69\xfe\xa5\xf5\xe4\x97\xf7\xa1\xa4\xd6\x22\x9a\xd0\x23\x9e\x68\x9b\x48\x2e\xd3\x5e",
+        );
+    }
+
+    #[test]
+    fn test_copy_seed() {
+        // 12 words
+        mock_unlocked_using_mnemonic(
+            "trust cradle viable innocent stand equal little small junior frost laundry room",
+        );
+        assert_eq!(
+            copy_seed().unwrap().as_slice(),
+            b"\xe9\xa6\x3f\xcd\x3a\x4d\x48\x98\x20\xa6\x63\x79\x2b\xad\xf6\xdd",
+        );
+
+        // 18 words
+        mock_unlocked_using_mnemonic(
+            "pupil parent toe bright slam plastic spy suspect verb battle nominee loan call crystal upset razor luggage join",
+        );
+        assert_eq!(
+            copy_seed().unwrap().as_slice(),
+            b"\xad\xf4\x07\x8e\x0e\x0c\xb1\x4c\x34\xd6\xd6\xf2\x82\x6a\x57\xc1\x82\x06\x6a\xbb\xcd\x95\x84\xcf",
+        );
+
+        mock_unlocked_using_mnemonic(
+            "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay",
+        );
+        assert_eq!(
+            copy_seed().unwrap().as_slice(),
             b"\xae\x45\xd4\x02\x3a\xfa\x4a\x48\x68\x77\x51\x69\xfe\xa5\xf5\xe4\x97\xf7\xa1\xa4\xd6\x22\x9a\xd0\x23\x9e\x68\x9b\x48\x2e\xd3\x5e",
         );
     }

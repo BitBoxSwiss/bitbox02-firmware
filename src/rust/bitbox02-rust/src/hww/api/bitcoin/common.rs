@@ -15,7 +15,7 @@
 use super::pb;
 use super::Error;
 
-use crate::keystore;
+use crate::xpubcache::Bip32XpubCache;
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -71,17 +71,19 @@ pub struct Payload {
 
 impl Payload {
     pub fn from_simple(
+        xpub_cache: &mut Bip32XpubCache,
         params: &Params,
         simple_type: SimpleType,
         keypath: &[u32],
     ) -> Result<Self, Error> {
         match simple_type {
             SimpleType::P2wpkh => Ok(Payload {
-                data: keystore::get_xpub(keypath)?.pubkey_hash160(),
+                data: xpub_cache.get_xpub(keypath)?.pubkey_hash160(),
                 output_type: BtcOutputType::P2wpkh,
             }),
             SimpleType::P2wpkhP2sh => {
-                let payload_p2wpkh = Payload::from_simple(params, SimpleType::P2wpkh, keypath)?;
+                let payload_p2wpkh =
+                    Payload::from_simple(xpub_cache, params, SimpleType::P2wpkh, keypath)?;
                 let pkscript_p2wpkh = payload_p2wpkh.pk_script(params)?;
                 Ok(Payload {
                     data: bitbox02::hash160(&pkscript_p2wpkh).to_vec(),
@@ -91,7 +93,10 @@ impl Payload {
             SimpleType::P2tr => {
                 if params.taproot_support {
                     Ok(Payload {
-                        data: keystore::secp256k1_schnorr_bip86_pubkey(keypath)?.to_vec(),
+                        data: xpub_cache
+                            .get_xpub(keypath)?
+                            .schnorr_bip86_pubkey()?
+                            .to_vec(),
                         output_type: BtcOutputType::P2tr,
                     })
                 } else {
@@ -144,6 +149,7 @@ impl Payload {
     /// Computes the payload data from a script config. The payload can then be used generate a
     /// pkScript or an address.
     pub fn from(
+        xpub_cache: &mut Bip32XpubCache,
         params: &Params,
         keypath: &[u32],
         script_config_account: &pb::BtcScriptConfigWithKeypath,
@@ -158,7 +164,7 @@ impl Payload {
             } => {
                 let simple_type = pb::btc_script_config::SimpleType::from_i32(*simple_type)
                     .ok_or(Error::InvalidInput)?;
-                Self::from_simple(params, simple_type, keypath)
+                Self::from_simple(xpub_cache, params, simple_type, keypath)
             }
             pb::BtcScriptConfigWithKeypath {
                 script_config:
@@ -533,10 +539,12 @@ mod tests {
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
         );
+        let mut xpub_cache = Bip32XpubCache::new();
         let coin_params = super::super::params::get(pb::BtcCoin::Btc);
         // p2wpkh
         assert_eq!(
             Payload::from_simple(
+                &mut xpub_cache,
                 coin_params,
                 SimpleType::P2wpkh,
                 &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
@@ -550,6 +558,7 @@ mod tests {
         //  p2wpkh-p2sh
         assert_eq!(
             Payload::from_simple(
+                &mut xpub_cache,
                 coin_params,
                 SimpleType::P2wpkhP2sh,
                 &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
@@ -563,6 +572,7 @@ mod tests {
         // p2tr
         assert_eq!(
             Payload::from_simple(
+                &mut xpub_cache,
                 coin_params,
                 SimpleType::P2tr,
                 &[86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]

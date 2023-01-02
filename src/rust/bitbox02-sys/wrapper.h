@@ -14,6 +14,7 @@
 
 #include <apps/btc/btc_common.h>
 #include <apps/eth/eth_params.h>
+#include <bip32.h>
 #include <keystore.h>
 #include <memory/bitbox02_smarteeprom.h>
 #include <memory/memory.h>

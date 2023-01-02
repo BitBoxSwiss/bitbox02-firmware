@@ -15,6 +15,7 @@
 # limitations under the License.
 
 set(DBB-FIRMWARE-SOURCES
+  ${CMAKE_SOURCE_DIR}/src/bip32.c
   ${CMAKE_SOURCE_DIR}/src/firmware_main_loop.c
   ${CMAKE_SOURCE_DIR}/src/keystore.c
   ${CMAKE_SOURCE_DIR}/src/random.c
@@ -271,6 +272,7 @@ add_custom_target(rust-bindgen
     --use-core
     --with-derive-default
     --ctypes-prefix util::c_types
+    --allowlist-function bip32_derive_xpub
     --allowlist-function strftime
     --allowlist-function localtime
     --allowlist-function wally_free_string

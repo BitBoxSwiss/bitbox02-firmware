@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Increased performance when signing Bitcoin transactions
 - Warn if the transaction fee is higher than 10% of the coins sent
 - ETH Testnets: add Goerli and remove deprecated Rinkeby and Ropsten
 

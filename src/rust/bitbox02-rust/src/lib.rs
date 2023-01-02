@@ -36,6 +36,7 @@ pub mod keystore;
 mod version;
 mod waker_fn;
 pub mod workflow;
+mod xpubcache;
 
 // for `format!`
 #[macro_use]

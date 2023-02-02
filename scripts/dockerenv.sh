@@ -16,6 +16,14 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
+if [ -n "$CONTAINER_RUNTIME" ]; then
+  RUNTIME="$CONTAINER_RUNTIME"
+elif command -v podman &>/dev/null; then
+  RUNTIME=podman
+else
+  RUNTIME=docker
+fi
+
 if [ "$1" = "release" ] ; then
     MOUNT_DIR=/bb02
     CONTAINER_NAME_SUFFIX=rel
@@ -37,18 +45,24 @@ dockerdev () {
         exit 1
     fi
 
+    USERFLAG=""
+    if [ "$RUNTIME" = "docker" ] ; then
+        # Only needed for docker - see the comment below.
+        USERFLAG="--user=dockeruser"
+    fi
+
     # If already running, enter the container.
-    if docker ps --filter "name=^${CONTAINER_NAME}$" | grep -q "$CONTAINER_NAME"; then
-        docker exec --user=dockeruser --workdir="$MOUNT_DIR" -it "$CONTAINER_NAME" bash
+    if $RUNTIME ps --filter "name=^${CONTAINER_NAME}$" | grep -q "$CONTAINER_NAME"; then
+        $RUNTIME exec $USERFLAG --workdir="$MOUNT_DIR" -it "$CONTAINER_NAME" bash
         return
     fi
 
-    if docker ps --all --filter "name=^${CONTAINER_NAME}$" | grep -q "$CONTAINER_NAME"; then
-        docker rm "$CONTAINER_NAME"
+    if $RUNTIME ps --all --filter "name=^${CONTAINER_NAME}$" | grep -q "$CONTAINER_NAME"; then
+        $RUNTIME rm "$CONTAINER_NAME"
     fi
 
     # SYS_PTRACE is needed to run address sanitizer
-    docker run \
+    $RUNTIME run \
            --detach \
            --interactive --tty \
            --name="$CONTAINER_NAME" \
@@ -56,18 +70,21 @@ dockerdev () {
            --cap-add SYS_PTRACE \
            ${CONTAINER_IMAGE} bash
 
-    # Use same user/group id as on the host, so that files are not created as root in the mounted
-    # volume.
-    docker exec -it "$CONTAINER_NAME" groupadd -o -g "$(id -g)" dockergroup
-    docker exec -it "$CONTAINER_NAME" useradd -u "$(id -u)" -m -g dockergroup dockeruser
+    if [ "$RUNTIME" = "docker" ] ; then
+        # Use same user/group id as on the host, so that files are not created as root in the
+        # mounted volume. Only needed for Docker. On rootless podman, the host user maps to the
+        # container root user.
+        $RUNTIME exec -it "$CONTAINER_NAME" groupadd -o -g "$(id -g)" dockergroup
+        $RUNTIME exec -it "$CONTAINER_NAME" useradd -u "$(id -u)" -m -g dockergroup dockeruser
+    fi
 
     # Call a second time to enter the container.
     dockerdev
 }
 
 if test "$1" == "stop"; then
-    if docker ps -a | grep -q "$CONTAINER_NAME"; then
-        docker stop "$CONTAINER_NAME"
+    if $RUNTIME ps -a | grep -q "$CONTAINER_NAME"; then
+        $RUNTIME stop "$CONTAINER_NAME"
     fi
 else
     dockerdev

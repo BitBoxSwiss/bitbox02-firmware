@@ -1,4 +1,3 @@
-
 /*============================================================================
 Filename : touch.c
 Project : QTouch Modular Library
@@ -570,7 +569,7 @@ uint16_t qtouch_get_sensor_node_signal_filtered(uint16_t sensor_node)
 {
     // Filter the sensor signal.
     //
-    // Smooth it out and saturate it so that values never go beyond 50.
+    // Smooth it out and saturate it so that values never go beyond DEF_SENSOR_CEILING.
     // This helps to mitigate 'jumpy' channels that exist at higher sensor readings when
     // in noisy environments.
     //
@@ -592,7 +591,7 @@ uint16_t qtouch_get_sensor_node_signal_filtered(uint16_t sensor_node)
         X = (uint16_t)((double)X * (1 + DEF_SENSOR_EDGE_WEIGHT));
     }
     // Saturate out-of-range readings.
-    X = (X > 50) ? 50 : X;
+    X = (X > DEF_SENSOR_CEILING) ? DEF_SENSOR_CEILING : X;
 
     // Calculate sensor readout using a moving average
     // The moving average wieghts previous N readings twice current reading
@@ -630,21 +629,38 @@ void qtouch_process_scroller_positions(void)
         uint8_t i, j;
         uint16_t sum = 0;
         uint16_t max_sensor_reading = 0;
+        uint16_t min_sensor_reading = DEF_SENSOR_CEILING;
         uint16_t weighted_sum = 0;
+        uint16_t filtered_readings[DEF_SCROLLER_NUM_CHANNELS] = {0};
         uint16_t sensor_location[DEF_SCROLLER_NUM_CHANNELS] = {
             1, // Offset by `1` because a `0` location cannot be weight-averaged
             DEF_SCROLLER_RESOLUTION / 3,
             DEF_SCROLLER_RESOLUTION / 3 * 2,
             DEF_SCROLLER_RESOLUTION};
 
-        // Read filterd data and weight by sensor physical location
         for (i = 0; i < DEF_SCROLLER_NUM_CHANNELS; i++) {
-            uint16_t value;
-            value = qtouch_get_sensor_node_signal_filtered(
+            filtered_readings[i] = qtouch_get_sensor_node_signal_filtered(
                 i + (scroller ? DEF_SCROLLER_OFFSET_1 : DEF_SCROLLER_OFFSET_0));
-            sum += value;
-            weighted_sum += value * sensor_location[i];
-            max_sensor_reading = (value > max_sensor_reading) ? value : max_sensor_reading;
+            min_sensor_reading = (filtered_readings[i] < min_sensor_reading) ? filtered_readings[i]
+                                                                             : min_sensor_reading;
+            max_sensor_reading = (filtered_readings[i] > max_sensor_reading) ? filtered_readings[i]
+                                                                             : max_sensor_reading;
+        }
+
+        // Read filterd data and weight by sensor physical location
+        // Reduce the value by the min_sensor_reading to improve positional accuracy.
+        // Touch position is calculated with a weighted average of the sensor readings.
+        // If properly calibrated, sensors on the opposite end of a finger touch would
+        // be zero and thus make no contribution to the weighted average. If the baseline
+        // sensor readings are elevated, the sensors on the opposite edge DO contribute
+        // to the weighted average making a positional artifact (i.e. the position is more
+        // central than it should be in reality). This artifact is higher when the finger
+        // is a bit distant while approaching and lower/negligible when the finger is
+        // fully touching the device. This can cause the position to move enough to enter
+        // "slide" mode and disable "tap" events being emitted.
+        for (i = 0; i < DEF_SCROLLER_NUM_CHANNELS; i++) {
+            sum += filtered_readings[i] - min_sensor_reading;
+            weighted_sum += (filtered_readings[i] - min_sensor_reading) * sensor_location[i];
         }
 
         // Compensate for deadband (i.e. when only a single edge button gives a reading and

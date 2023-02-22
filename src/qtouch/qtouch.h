@@ -262,6 +262,9 @@ extern "C" {
     0.15 // Percent added weight to edge sensors, which are physically smaller
 #define DEF_SENSOR_NUM_PREV_POS \
     4 // Number of previous sensor positions to remember; used in a simple filter
+#define DEF_SENSOR_CEILING \
+    50 // Maximum sensor reading. Mitigates 'jumpy' channels that exist at higher
+       // sensor readings when in noisy environments.
 
 #ifdef __cplusplus
 }

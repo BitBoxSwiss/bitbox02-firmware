@@ -41,9 +41,7 @@ pub fn str_from_null_terminated(input: &[u8]) -> Result<&str, ()> {
 /// # Safety `ptr` must be not null and be a null terminated string. The resulting string is only
 /// valid as long the memory pointed to by `ptr` is valid.
 pub unsafe fn str_from_null_terminated_ptr<'a>(ptr: *const u8) -> Result<&'a str, ()> {
-    let len = strlen_ptr(ptr);
-    let s = core::slice::from_raw_parts(ptr, len as _);
-    core::str::from_utf8(s).or(Err(()))
+    core::ffi::CStr::from_ptr(ptr.cast()).to_str().or(Err(()))
 }
 
 /// Macro for creating a stack allocated buffer with the content of a string and a null-terminator

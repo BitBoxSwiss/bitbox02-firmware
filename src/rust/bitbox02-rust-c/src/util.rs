@@ -100,40 +100,6 @@ impl AsMut<[u8]> for BytesMut {
     }
 }
 
-/// CStr is a null-terminated string. Null pointers are interpreted as empty strings.
-#[repr(C)]
-pub struct CStr {
-    buf: *const c_char,
-    len: usize,
-}
-
-impl CStr {
-    /// Create a CStr from a null-terminated string or null pointer. Unsafe because it will read
-    /// until it finds a null character.
-    pub unsafe fn new(buf: *const c_char) -> Self {
-        if buf.is_null() {
-            CStr {
-                buf: core::ptr::NonNull::dangling().as_ptr(),
-                len: 0,
-            }
-        } else {
-            let mut len = 0;
-            let mut b = buf;
-            while b.read() != 0 {
-                len += 1;
-                b = b.offset(1);
-            }
-            CStr { buf, len }
-        }
-    }
-}
-
-impl AsRef<str> for CStr {
-    fn as_ref(&self) -> &str {
-        unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(self.buf, self.len)) }
-    }
-}
-
 /// CStrMut is a "growable" container which keeps track of some array allocated by C with a length
 /// and a capacity state. It always contains a null-terminated string. The string (excluding null
 /// terminator) can therefore be maximally `capacity-1` long.
@@ -245,14 +211,6 @@ pub unsafe extern "C" fn rust_util_bytes_mut(buf: *mut c_uchar, len: usize) -> B
     BytesMut { buf, len }
 }
 
-/// Convert buffer to str.
-///
-/// * `buf` - Must be a valid pointer to a null terminated array of bytes.
-#[no_mangle]
-pub unsafe extern "C" fn rust_util_cstr(buf: *const c_char) -> CStr {
-    CStr::new(buf)
-}
-
 /// Convert buffer to mutable str. The whole buffer is considered empty from start.
 ///
 /// * `buf` - Must be a valid pointer to an array of bytes
@@ -299,17 +257,6 @@ mod tests {
     #[test]
     fn zeroing_null() {
         rust_util_zero(unsafe { rust_util_bytes_mut(core::ptr::null_mut(), 0) });
-    }
-
-    #[test]
-    fn test_rust_util_cstr() {
-        let cstr = unsafe { rust_util_cstr(b"\0".as_ptr()) };
-        assert_eq!(cstr.as_ref(), "");
-        assert_eq!(cstr.len, 0);
-
-        let cstr = unsafe { rust_util_cstr(b"foo\0bar".as_ptr()) };
-        assert_eq!(cstr.as_ref(), "foo");
-        assert_eq!(cstr.len, 3);
     }
 
     #[test]

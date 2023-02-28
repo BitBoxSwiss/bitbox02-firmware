@@ -213,7 +213,7 @@ void u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
     }
     _state.outstanding_confirm = type;
     memcpy(_state.app_id, app_id, 32);
-    rust_workflow_spawn_confirm(rust_util_cstr(title), rust_util_cstr(app_string));
+    rust_workflow_spawn_confirm(title, app_string);
 }
 
 async_op_result_t u2f_app_confirm_retry(enum u2f_app_confirm_t type, const uint8_t* app_id)

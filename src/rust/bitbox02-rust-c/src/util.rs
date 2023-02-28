@@ -26,11 +26,6 @@ pub extern "C" fn rust_util_zero(mut dst: BytesMut) {
     util::zero(dst.as_mut())
 }
 
-#[no_mangle]
-pub extern "C" fn rust_util_u64_be(v: u64, mut dst: BytesMut) {
-    dst.as_mut().copy_from_slice(&v.to_be_bytes())
-}
-
 /// Convert bytes to hex representation
 ///
 /// * `buf` - bytes to convert to hex.

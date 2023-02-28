@@ -241,7 +241,7 @@ pub extern "C" fn rust_util_bytes(buf: *const c_uchar, len: usize) -> Bytes {
 /// * `buf` - Must be a valid pointer to an array of bytes
 /// * `len` - Length of buffer, `buf[len-1]` must be a valid dereference
 #[no_mangle]
-pub extern "C" fn rust_util_bytes_mut(buf: *mut c_uchar, len: usize) -> BytesMut {
+pub unsafe extern "C" fn rust_util_bytes_mut(buf: *mut c_uchar, len: usize) -> BytesMut {
     BytesMut { buf, len }
 }
 
@@ -286,19 +286,19 @@ mod tests {
     #[test]
     fn zeroing() {
         let mut buf = [1u8, 2, 3, 4];
-        rust_util_zero(rust_util_bytes_mut(buf.as_mut_ptr(), buf.len() - 1));
+        rust_util_zero(unsafe { rust_util_bytes_mut(buf.as_mut_ptr(), buf.len() - 1) });
         assert_eq!(&buf[..], &[0, 0, 0, 4]);
     }
 
     #[test]
     fn zeroing_empty() {
         let mut buf = [];
-        rust_util_zero(rust_util_bytes_mut(buf.as_mut_ptr(), 0));
+        rust_util_zero(unsafe { rust_util_bytes_mut(buf.as_mut_ptr(), 0) });
     }
 
     #[test]
     fn zeroing_null() {
-        rust_util_zero(rust_util_bytes_mut(core::ptr::null_mut(), 0));
+        rust_util_zero(unsafe { rust_util_bytes_mut(core::ptr::null_mut(), 0) });
     }
 
     #[test]
@@ -316,7 +316,9 @@ mod tests {
     #[should_panic]
     fn create_invalid_bytes_mut() {
         // Calling `as_mut()` will panic because it tries to create an invalid rust slice.
-        rust_util_bytes_mut(core::ptr::null_mut(), 1).as_mut();
+        unsafe {
+            rust_util_bytes_mut(core::ptr::null_mut(), 1).as_mut();
+        }
     }
 
     #[test]

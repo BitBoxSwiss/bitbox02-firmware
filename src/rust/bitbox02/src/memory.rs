@@ -35,12 +35,10 @@ pub fn get_device_name() -> String {
         .into()
 }
 
-/// `name.as_bytes()` must be smaller or equal to
-/// `DEVICE_NAME_MAX_LEN`, otherwise this function panics.
 pub fn set_device_name(name: &str) -> Result<(), Error> {
     match unsafe {
         bitbox02_sys::memory_set_device_name(
-            crate::str_to_cstr_force!(name, DEVICE_NAME_MAX_LEN).as_ptr(),
+            crate::util::str_to_cstr_vec(name).or(Err(Error))?.as_ptr(),
         )
     } {
         true => Ok(()),

@@ -51,13 +51,14 @@ pub use bitbox02_sys::buffer_t;
 #[macro_use]
 pub mod util;
 
-// ug_put_string displays a debug message on the screen for 3 sec.
 pub fn ug_put_string(x: i16, y: i16, input: &str, inverted: bool) {
-    match str_to_cstr!(input, 128) {
-        Ok(buf) => unsafe {
-            bitbox02_sys::UG_PutString(x, y, buf.as_ptr() as *const _, inverted);
-        },
-        Err(msg) => screen_print_debug(msg, 3000),
+    unsafe {
+        bitbox02_sys::UG_PutString(
+            x,
+            y,
+            crate::util::str_to_cstr_vec(input).unwrap().as_ptr(),
+            inverted,
+        );
     }
 }
 
@@ -99,16 +100,11 @@ pub fn delay(duration: Duration) {
 }
 
 pub fn screen_print_debug(msg: &str, duration: i32) {
-    match str_to_cstr!(msg, 200) {
-        Ok(cstr) => unsafe {
-            bitbox02_sys::screen_print_debug(cstr.as_ptr() as *const _, duration)
-        },
-        Err(errmsg) => unsafe {
-            bitbox02_sys::screen_print_debug(
-                str_to_cstr_force!(errmsg, 200).as_ptr() as *const _,
-                duration,
-            )
-        },
+    unsafe {
+        bitbox02_sys::screen_print_debug(
+            crate::util::str_to_cstr_vec(msg).unwrap().as_ptr(),
+            duration,
+        )
     }
 }
 

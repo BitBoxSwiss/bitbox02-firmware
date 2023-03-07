@@ -39,9 +39,9 @@ CONTAINER_NAME="$PROJECT_NAME-$CONTAINER_NAME_SUFFIX"
 dockerdev () {
     local repo_path="$DIR/.."
 
-    if ! docker images --filter "reference=${CONTAINER_IMAGE}" | grep -q "${CONTAINER_IMAGE}"; then
-        echo "No '${CONTAINER_IMAGE}' docker image found! Maybe you need to run
-              'docker build --pull -t ${CONTAINER_IMAGE} .'?" >&2
+    if ! $RUNTIME images --filter "reference=${CONTAINER_IMAGE}" | grep -q "${CONTAINER_IMAGE}"; then
+        echo "No '${CONTAINER_IMAGE}' ${RUNTIME} image found! Maybe you need to run
+              '${RUNTIME} build --pull -t ${CONTAINER_IMAGE} .'?" >&2
         exit 1
     fi
 

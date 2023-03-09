@@ -121,7 +121,7 @@ jlink-flash-factory-setup: | build
 jlink-flash-firmware-semihosting: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-semihosting.jlink
 dockerinit:
-	docker build --pull --force-rm --no-cache -t shiftcrypto/firmware_v2 .
+	./scripts/container.sh build --pull --force-rm --no-cache -t shiftcrypto/firmware_v2 .
 dockerdev:
 	./scripts/dockerenv.sh
 dockerrel:

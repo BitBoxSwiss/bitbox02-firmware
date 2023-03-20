@@ -15,19 +15,6 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-/// Must be given a null-terminated string
-/// # Safety
-/// ptr must be not NULL and the memory must be valid until a null byte.
-pub unsafe fn strlen_ptr(ptr: *const u8) -> isize {
-    let mut end = ptr;
-    loop {
-        if *end == 0 {
-            return end.offset_from(ptr);
-        }
-        end = end.offset(1);
-    }
-}
-
 /// Parses a utf-8 string out of a null terminated buffer. Returns `Err(())` if there
 /// is no null terminator or if the bytes before the null terminator is invalid UTF8.
 pub fn str_from_null_terminated(input: &[u8]) -> Result<&str, ()> {
@@ -41,9 +28,7 @@ pub fn str_from_null_terminated(input: &[u8]) -> Result<&str, ()> {
 /// # Safety `ptr` must be not null and be a null terminated string. The resulting string is only
 /// valid as long the memory pointed to by `ptr` is valid.
 pub unsafe fn str_from_null_terminated_ptr<'a>(ptr: *const u8) -> Result<&'a str, ()> {
-    let len = strlen_ptr(ptr);
-    let s = core::slice::from_raw_parts(ptr, len as _);
-    core::str::from_utf8(s).or(Err(()))
+    core::ffi::CStr::from_ptr(ptr.cast()).to_str().or(Err(()))
 }
 
 /// Macro for creating a stack allocated buffer with the content of a string and a null-terminator
@@ -105,15 +90,9 @@ pub fn truncate_str(s: &str, len: usize) -> &str {
 /// Converts a Rust string to a null terminated C string by appending a null
 /// terminator.  Returns `Err(())` if the input already contians a null byte.
 pub fn str_to_cstr_vec(input: &str) -> Result<Vec<u8>, ()> {
-    let bytes = input.as_bytes();
-    if bytes.contains(&0) {
-        Err(())
-    } else {
-        let mut out = Vec::with_capacity(input.len() + 1);
-        out.extend_from_slice(bytes);
-        out.push(0); // null terminator
-        Ok(out)
-    }
+    Ok(alloc::ffi::CString::new(input)
+        .or(Err(()))?
+        .into_bytes_with_nul())
 }
 
 #[cfg(test)]
@@ -129,14 +108,6 @@ mod tests {
         assert_eq!(truncate_str("test", 4), "test");
         assert_eq!(truncate_str("test", 5), "test");
         assert_eq!(truncate_str("test", 6), "test");
-    }
-
-    #[test]
-    fn test_strlen_ptr() {
-        assert_eq!(unsafe { strlen_ptr(b"\0".as_ptr()) }, 0);
-        assert_eq!(unsafe { strlen_ptr(b"a\0".as_ptr()) }, 1);
-        assert_eq!(unsafe { strlen_ptr(b"abcdef\0".as_ptr()) }, 6);
-        assert_eq!(unsafe { strlen_ptr(b"abcdef\0defghji".as_ptr()) }, 6);
     }
 
     #[test]

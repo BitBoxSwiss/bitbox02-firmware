@@ -138,11 +138,11 @@ pub fn get_bip39_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
     match unsafe { bitbox02_sys::keystore_get_bip39_word(idx, &mut word_ptr) } {
         false => Err(()),
         true => {
-            let word = unsafe {
-                let len = crate::util::strlen_ptr(word_ptr);
-                let slice = core::slice::from_raw_parts(word_ptr, len as _);
-                zeroize::Zeroizing::new(core::str::from_utf8(slice).unwrap().into())
-            };
+            let word = zeroize::Zeroizing::new(unsafe {
+                crate::util::str_from_null_terminated_ptr(word_ptr)
+                    .unwrap()
+                    .into()
+            });
             unsafe {
                 bitbox02_sys::wally_free_string(word_ptr as _);
             }

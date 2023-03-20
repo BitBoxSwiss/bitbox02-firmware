@@ -44,12 +44,11 @@ pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_workflow_spawn_confirm(
-    title: crate::util::CStr,
-    body: crate::util::CStr,
+    title: *const core::ffi::c_char,
+    body: *const core::ffi::c_char,
 ) {
-    CONFIRM_TITLE = Some(title.as_ref().into());
-    CONFIRM_BODY = Some(body.as_ref().into());
-
+    CONFIRM_TITLE = Some(core::ffi::CStr::from_ptr(title).to_str().unwrap().into());
+    CONFIRM_BODY = Some(core::ffi::CStr::from_ptr(body).to_str().unwrap().into());
     CONFIRM_PARAMS = Some(confirm::Params {
         title: CONFIRM_TITLE.as_ref().unwrap(),
         body: CONFIRM_BODY.as_ref().unwrap(),

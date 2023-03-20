@@ -115,7 +115,7 @@ static bool _encode_xpub(const struct ext_key* xpub, char* out, size_t out_len)
         return false;
     }
     return rust_base58_encode_check(
-        rust_util_bytes(bytes, sizeof(bytes)), rust_util_cstr_mut(out, out_len));
+        rust_util_bytes(bytes, sizeof(bytes)), rust_util_bytes_mut((uint8_t*)out, out_len));
 }
 
 static void _check_pubs(const char* expected_xpub, const char* expected_pubkey_uncompressed_hex)

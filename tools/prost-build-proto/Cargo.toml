@@ -13,7 +13,7 @@
 # limitations under the License.
 
 [package]
-name = "prost-build"
+name = "prost-build-proto"
 version = "0.1.0"
 authors = ["Shift Crypto AG <support@shiftcrypto.ch>"]
 edition = "2021"

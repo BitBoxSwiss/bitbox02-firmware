@@ -23,7 +23,9 @@ pub use bitbox02_sys::trinary_choice_t as TrinaryChoice;
 #[cfg_attr(feature = "testing", allow(dead_code))]
 pub(crate) const MAX_LABEL_SIZE: usize = bitbox02_sys::MAX_LABEL_SIZE as _;
 
+#[derive(Default)]
 pub enum Font {
+    #[default]
     Default,
     Password11X12,
     Monogram5X9,
@@ -37,12 +39,6 @@ impl Font {
             Font::Password11X12 => unsafe { &bitbox02_sys::font_password_11X12 },
             Font::Monogram5X9 => unsafe { &bitbox02_sys::font_monogram_5X9 },
         }
-    }
-}
-
-impl Default for Font {
-    fn default() -> Self {
-        Font::Default
     }
 }
 

@@ -19,7 +19,7 @@ foreach(i ${PROTO_FILES})
   list(APPEND PROTO_FILES_ABSOLUTE "${CMAKE_CURRENT_SOURCE_DIR}/${i}")
 endforeach()
 
-find_program(PROST_BUILD prost-build)
+find_program(PROST_BUILD prost-build-proto)
 
 set(OUTPUT_FILES
   ${CMAKE_SOURCE_DIR}/src/rust/bitbox02-rust/src/shiftcrypto.bitbox02.rs

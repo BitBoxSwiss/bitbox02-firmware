@@ -408,10 +408,6 @@ if(NOT CMAKE_CROSSCOMPILING)
     COMMAND
       ${CMAKE_COMMAND} -E env
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
-        # enable nightly features in the stable release - needed to activate alloc_error_handler.
-        # see src/rust/bitbox02-rust-c/src/lib.rs.
-        # https://github.com/rust-lang/rust/issues/66740
-        RUSTC_BOOTSTRAP=1
         FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
         # only one test thread because of unsafe concurrent access to `SafeData`, `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex poisoning and very messy output in case of a unit test failure.
         ${CARGO} test $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --all-features --target-dir ${RUST_BINARY_DIR}/all-features ${RUST_CARGO_FLAG} -- --nocapture --test-threads 1
@@ -426,10 +422,6 @@ if(NOT CMAKE_CROSSCOMPILING)
     COMMAND
       ${CMAKE_COMMAND} -E env
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
-        # enable nightly features in the stable release - needed to activate alloc_error_handler.
-        # see src/rust/bitbox02-rust-c/src/lib.rs.
-        # https://github.com/rust-lang/rust/issues/66740
-        RUSTC_BOOTSTRAP=1
         FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
         ${CARGO} clippy
           $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v>
@@ -505,10 +497,6 @@ foreach(type ${RUST_LIBS})
       ${CMAKE_COMMAND} -E env
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
       RUSTFLAGS=${RUSTFLAGS}
-      # enable nightly features in the stable release - needed to activate alloc_error_handler.
-      # see src/rust/bitbox02-rust-c/src/lib.rs.
-      # https://github.com/rust-lang/rust/issues/66740
-      RUSTC_BOOTSTRAP=1
       FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
       ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --features target-${type} --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
     COMMAND
@@ -532,10 +520,6 @@ if(CMAKE_CROSSCOMPILING)
   add_custom_target(rust-docs
     COMMAND
       ${CMAKE_COMMAND} -E env
-      # enable nightly features in the stable release - needed to activate alloc_error_handler.
-      # see src/rust/bitbox02-rust-c/src/lib.rs.
-      # https://github.com/rust-lang/rust/issues/66740
-      RUSTC_BOOTSTRAP=1
       FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
       SYSROOT=${CMAKE_SYSROOT}

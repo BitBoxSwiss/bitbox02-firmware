@@ -13,8 +13,6 @@
 // limitations under the License.
 
 #![no_std]
-#![feature(alloc_error_handler)] // used in alloc.rs
-#![feature(lang_items)]
 
 #[cfg(test)]
 #[macro_use]

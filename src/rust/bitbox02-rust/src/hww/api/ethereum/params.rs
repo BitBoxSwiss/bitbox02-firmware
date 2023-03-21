@@ -43,7 +43,7 @@ const PARAMS: &[Params] = &[
         unit: "ETH",
     },
     Params {
-        coin: Some(EthCoin::GoerliEth),
+        coin: None,
         bip44_coin: 1 + HARDENED,
         chain_id: 5,
         name: "Goerli",
@@ -144,7 +144,6 @@ mod tests {
     pub fn test_get() {
         assert_eq!(get(EthCoin::Eth, 0).unwrap().name, "Ethereum");
         assert_eq!(get(EthCoin::Eth, 1).unwrap().name, "Ethereum");
-        assert_eq!(get(EthCoin::GoerliEth, 0).unwrap().name, "Goerli");
         assert_eq!(get(EthCoin::Eth, 5).unwrap().name, "Goerli");
         assert_eq!(get(EthCoin::Eth, 56).unwrap().name, "Binance Smart Chain");
 

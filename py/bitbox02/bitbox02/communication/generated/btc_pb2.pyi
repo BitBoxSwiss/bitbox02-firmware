@@ -243,7 +243,7 @@ class BTCSignInitRequest(google.protobuf.message.Message):
     class _FormatUnitEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[BTCSignInitRequest._FormatUnit.ValueType], builtins.type):
         DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
         DEFAULT: BTCSignInitRequest._FormatUnit.ValueType  # 0
-        """According to BTCCoin (BTC, LTC, etc.)."""
+        """According to `coin` (BTC, LTC, etc.)."""
 
         SAT: BTCSignInitRequest._FormatUnit.ValueType  # 1
         """Only valid for BTC/TBTC, formats as "sat"/"tsat"."""
@@ -252,7 +252,7 @@ class BTCSignInitRequest(google.protobuf.message.Message):
         pass
 
     DEFAULT: BTCSignInitRequest.FormatUnit.ValueType  # 0
-    """According to BTCCoin (BTC, LTC, etc.)."""
+    """According to `coin` (BTC, LTC, etc.)."""
 
     SAT: BTCSignInitRequest.FormatUnit.ValueType  # 1
     """Only valid for BTC/TBTC, formats as "sat"/"tsat"."""

@@ -178,11 +178,11 @@ mod tests {
         });
         mock_unlocked();
         block_on(process(&pb::EthSignMessageRequest {
-            coin: pb::EthCoin::GoerliEth as _,
+            coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
             msg: MESSAGE.to_vec(),
             host_nonce_commitment: None,
-            chain_id: 0,
+            chain_id: 5,
         }))
         .unwrap();
         assert_eq!(unsafe { CONFIRM_COUNTER }, 3);

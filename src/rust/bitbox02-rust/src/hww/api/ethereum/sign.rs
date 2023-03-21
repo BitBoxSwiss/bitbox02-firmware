@@ -472,7 +472,7 @@ mod tests {
         mock_unlocked();
 
         block_on(process(&pb::EthSignRequest {
-            coin: pb::EthCoin::GoerliEth as _,
+            coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
             gas_price: b"\x01\x65\xa0\xbc\x00".to_vec(),
@@ -483,7 +483,7 @@ mod tests {
             value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
             data: b"".to_vec(),
             host_nonce_commitment: None,
-            chain_id: 0,
+            chain_id: 5,
         }))
         .unwrap();
         assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
@@ -567,7 +567,7 @@ mod tests {
         mock_unlocked();
         assert_eq!(
             block_on(process(&pb::EthSignRequest {
-                coin: pb::EthCoin::GoerliEth as _, // ignored because chain_id > 0
+                coin: pb::EthCoin::RopstenEth as _, // ignored because chain_id > 0
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x23\x67".to_vec(),
                 gas_price: b"\x02\x7a\xca\x1a\x80".to_vec(),

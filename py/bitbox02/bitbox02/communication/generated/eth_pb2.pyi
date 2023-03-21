@@ -21,13 +21,22 @@ class _ETHCoinEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTy
     DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
     ETH: _ETHCoin.ValueType  # 0
     RopstenETH: _ETHCoin.ValueType  # 1
+    """Removed in v9.14.0 - deprecated"""
+
     RinkebyETH: _ETHCoin.ValueType  # 2
+    """Removed in v9.14.0 - deprecated"""
+
 class ETHCoin(_ETHCoin, metaclass=_ETHCoinEnumTypeWrapper):
+    """Kept for backwards compatibility. Use chain_id instead, introduced in v9.10.0."""
     pass
 
 ETH: ETHCoin.ValueType  # 0
 RopstenETH: ETHCoin.ValueType  # 1
+"""Removed in v9.14.0 - deprecated"""
+
 RinkebyETH: ETHCoin.ValueType  # 2
+"""Removed in v9.14.0 - deprecated"""
+
 global___ETHCoin = ETHCoin
 
 

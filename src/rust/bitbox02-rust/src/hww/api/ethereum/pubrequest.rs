@@ -231,10 +231,10 @@ mod tests {
             block_on(process(&pb::EthPubRequest {
                 output_type: OutputType::Address as _,
                 keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
-                coin: pb::EthCoin::GoerliEth as _,
+                coin: pb::EthCoin::Eth as _,
                 display: true,
                 contract_address: b"".to_vec(),
-                chain_id: 0,
+                chain_id: 5,
             })),
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()

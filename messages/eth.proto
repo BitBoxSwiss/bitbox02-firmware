@@ -18,9 +18,12 @@ package shiftcrypto.bitbox02;
 import "common.proto";
 import "antiklepto.proto";
 
+// Kept for backwards compatibility. Use chain_id instead, introduced in v9.10.0.
 enum ETHCoin {
   ETH = 0;
+  // Removed in v9.14.0 - deprecated
   RopstenETH = 1;
+  // Removed in v9.14.0 - deprecated
   RinkebyETH = 2;
 }
 

@@ -7,10 +7,12 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+
+### 9.14.0
+- Improved touch button positional accuracy in noisy environments
 - Increased performance when signing Bitcoin transactions
 - Warn if the transaction fee is higher than 10% of the coins sent
 - ETH Testnets: add Goerli and remove deprecated Rinkeby and Ropsten
-- Improved touch button positional accuracy in noisy environments
 
 ### 9.13.1
 - Fix bug introduced in 9.13.0: remove double cancel confirmation in the 'Restore from recovery words' workflow

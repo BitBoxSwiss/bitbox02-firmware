@@ -31,52 +31,6 @@ pub unsafe fn str_from_null_terminated_ptr<'a>(ptr: *const u8) -> Result<&'a str
     core::ffi::CStr::from_ptr(ptr.cast()).to_str().or(Err(()))
 }
 
-/// Macro for creating a stack allocated buffer with the content of a string and a null-terminator
-///
-/// Example usage:
-///
-/// ```
-/// # #[macro_use] extern crate bitbox02;
-/// let name = "sample_string";
-/// let buf = match str_to_cstr!(name, 50) {
-///     Ok(buf) => buf,
-///     Err(msg) => panic!("{}", msg),
-/// };
-/// ```
-#[macro_export]
-macro_rules! str_to_cstr {
-    ($input:expr, $len:expr) => {{
-        let mut buf = [0u8; $len + 1];
-        if !$input.is_ascii() {
-            Err("non-ascii input")
-        } else {
-            let len = core::cmp::min($len, $input.len());
-            {
-                // Take a slice of buf of the correct length
-                let buf = &mut buf[..len];
-                // Take a slice of input of the correct length
-                let input = &$input.as_bytes()[..len];
-                buf.copy_from_slice(input);
-            }
-            if $input.len() > len {
-                Err("str is too long")
-            } else {
-                Ok(buf)
-            }
-        }
-    }};
-}
-
-#[macro_export]
-macro_rules! str_to_cstr_force {
-    ($input:expr, $len:expr) => {
-        match $crate::str_to_cstr!($input, $len) {
-            Ok(buf) => buf,
-            Err(msg) => panic!("{}", msg),
-        }
-    };
-}
-
 /// truncate_str truncates string `s` to `len` chars. If `s` is
 /// shorter than `len`, the string is returned unchanged (no panics).
 pub fn truncate_str(s: &str, len: usize) -> &str {

@@ -14,6 +14,7 @@
 
 extern crate alloc;
 use alloc::boxed::Box;
+use alloc::vec::Vec;
 
 use util::Survive;
 
@@ -69,20 +70,18 @@ impl<'a> ConfirmParams<'a> {
     /// alive for as long as the C params live.
     pub(crate) fn to_c_params(
         &self,
-        title_scatch: &'a mut [u8; MAX_LABEL_SIZE + 2],
-        body_scratch: &'a mut [u8; MAX_LABEL_SIZE + 2],
+        title_scatch: &'a mut Vec<u8>,
+        body_scratch: &'a mut Vec<u8>,
     ) -> Survive<'a, bitbox02_sys::confirm_params_t> {
         // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
         // truncate and append '...'.
         const TRUNCATE_SIZE: usize = MAX_LABEL_SIZE + 1;
-        *title_scatch = crate::str_to_cstr_force!(
-            crate::util::truncate_str(self.title, TRUNCATE_SIZE),
-            TRUNCATE_SIZE
-        );
-        *body_scratch = crate::str_to_cstr_force!(
-            crate::util::truncate_str(self.body, TRUNCATE_SIZE),
-            TRUNCATE_SIZE
-        );
+        *title_scatch =
+            crate::util::str_to_cstr_vec(crate::util::truncate_str(self.title, TRUNCATE_SIZE))
+                .unwrap();
+        *body_scratch =
+            crate::util::str_to_cstr_vec(crate::util::truncate_str(self.body, TRUNCATE_SIZE))
+                .unwrap();
         Survive::new(bitbox02_sys::confirm_params_t {
             title: title_scatch.as_ptr(),
             title_autowrap: self.title_autowrap,
@@ -113,16 +112,15 @@ impl<'a> TrinaryInputStringParams<'a> {
     #[cfg_attr(feature = "testing", allow(dead_code))]
     pub(crate) fn to_c_params(
         &self,
-        title_scratch: &'a mut [u8; MAX_LABEL_SIZE + 2],
+        title_scratch: &'a mut Vec<u8>,
     ) -> Survive<'a, bitbox02_sys::trinary_input_string_params_t> {
         // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
         // truncate and append '...'.
         const TRUNCATE_SIZE: usize = MAX_LABEL_SIZE + 1;
 
-        *title_scratch = crate::str_to_cstr_force!(
-            crate::util::truncate_str(self.title, TRUNCATE_SIZE),
-            TRUNCATE_SIZE
-        );
+        *title_scratch =
+            crate::util::str_to_cstr_vec(crate::util::truncate_str(self.title, TRUNCATE_SIZE))
+                .unwrap();
 
         Survive::new(bitbox02_sys::trinary_input_string_params_t {
             title: title_scratch.as_ptr(),

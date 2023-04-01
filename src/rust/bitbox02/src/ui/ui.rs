@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::types::MAX_LABEL_SIZE;
 pub use super::types::{
     AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
     TrinaryChoiceCb, TrinaryInputStringParams,
@@ -101,7 +100,7 @@ where
             Box::into_raw(Box::new(cb)) as *mut c_void,
         ),
     };
-    let mut title_scratch = [0; MAX_LABEL_SIZE + 2];
+    let mut title_scratch = Vec::new();
     let component = unsafe {
         bitbox02_sys::trinary_input_string_create(
             &params.to_c_params(&mut title_scratch).data, // title copied in C
@@ -141,8 +140,8 @@ where
         let mut callback = Box::from_raw(param as *mut F2);
         callback(result);
     }
-    let mut title_scratch = [0; MAX_LABEL_SIZE + 2];
-    let mut body_scratch = [0; MAX_LABEL_SIZE + 2];
+    let mut title_scratch = Vec::new();
+    let mut body_scratch = Vec::new();
     let component = unsafe {
         bitbox02_sys::confirm_create(
             &params
@@ -184,7 +183,7 @@ where
 
     let component = unsafe {
         bitbox02_sys::status_create(
-            crate::str_to_cstr_force!(text, MAX_LABEL_SIZE).as_ptr(), // copied in C
+            crate::util::str_to_cstr_vec(text).unwrap().as_ptr(), // copied in C
             status_success,
             Some(c_callback::<F>),
             Box::into_raw(Box::new(callback)) as *mut _, // passed to c_callback as `param`.
@@ -244,10 +243,10 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
     //
     // Step 1: create the C strings. This var has to be alive until after menu_create() finishes,
     // otherwise the pointers we send to menu_create() will be invalid.
-    let words: Vec<[u8; 101]> = params
+    let words: Vec<Vec<u8>> = params
         .words
         .iter()
-        .map(|word| crate::str_to_cstr_force!(word, 100))
+        .map(|word| crate::util::str_to_cstr_vec(word).unwrap())
         .collect();
     // Step two: collect pointers. This var also has to be valid until menu_create() finishes, or
     // the pointer will be invalid.
@@ -333,10 +332,10 @@ pub fn trinary_choice_create<'a>(
     let chosen_cb_param = Box::into_raw(Box::new(chosen_callback)) as *mut c_void;
     let component = unsafe {
         bitbox02_sys::trinary_choice_create(
-            crate::str_to_cstr_force!(message, MAX_LABEL_SIZE).as_ptr(), // copied in C
-            crate::str_to_cstr_force!(label_left, MAX_LABEL_SIZE).as_ptr(), // copied in C
-            crate::str_to_cstr_force!(label_middle, MAX_LABEL_SIZE).as_ptr(), // copied in C
-            crate::str_to_cstr_force!(label_right, MAX_LABEL_SIZE).as_ptr(), // copied in C
+            crate::util::str_to_cstr_vec(message).unwrap().as_ptr(), // copied in C
+            crate::util::str_to_cstr_vec(label_left).unwrap().as_ptr(), // copied in C
+            crate::util::str_to_cstr_vec(label_middle).unwrap().as_ptr(), // copied in C
+            crate::util::str_to_cstr_vec(label_right).unwrap().as_ptr(), // copied in C
             Some(c_chosen_cb as _),
             chosen_cb_param,
             core::ptr::null_mut(), // parent component, there is no parent.
@@ -419,7 +418,7 @@ pub fn trinary_input_string_set_input(component: &mut Component, word: &str) {
     unsafe {
         bitbox02_sys::trinary_input_string_set_input(
             component.component,
-            crate::str_to_cstr_force!(word, bitbox02_sys::INPUT_STRING_MAX_SIZE as usize).as_ptr(),
+            crate::util::str_to_cstr_vec(word).unwrap().as_ptr(),
         )
     }
 }
@@ -439,7 +438,7 @@ pub fn screen_stack_pop_all() {
 pub fn progress_create<'a>(title: &str) -> Component<'a> {
     let component = unsafe {
         bitbox02_sys::progress_create(
-            crate::str_to_cstr_force!(title, MAX_LABEL_SIZE).as_ptr(), // copied in C
+            crate::util::str_to_cstr_vec(title).unwrap().as_ptr(), // copied in C
         )
     };
 

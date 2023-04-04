@@ -61,6 +61,7 @@ add_library(bitbox_objects
   ${CTAES-SOURCES}
   ${ETHEREUM-SOURCES}
   framework/mock_blocking.c
+  framework/mock_cipher.c
   framework/mock_screen.c
   framework/mock_screen_stack.c
   framework/mock_memory.c
@@ -234,7 +235,7 @@ set(TEST_LIST
    salt
    "-Wl,--wrap=memory_get_salt_root"
    cipher
-   "-Wl,--wrap=random_32_bytes"
+   "-Wl,--wrap=cipher_mock_iv"
    util
    ""
    workflow_blocking

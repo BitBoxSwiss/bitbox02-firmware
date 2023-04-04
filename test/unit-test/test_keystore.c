@@ -57,8 +57,6 @@ static uint8_t _mock_bip39_seed[64] = {
     0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
 };
 
-const uint8_t _aes_iv[32] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-
 static const uint32_t _keypath[] = {
     44 + BIP32_INITIAL_HARDENED_CHILD,
     0 + BIP32_INITIAL_HARDENED_CHILD,
@@ -259,9 +257,6 @@ static void _test_keystore_secp256k1_sign(void** state)
 static void _expect_encrypt_and_store_seed(void)
 {
     will_return(__wrap_memory_is_initialized, false);
-
-    // For the AES IV:
-    will_return(__wrap_random_32_bytes, _aes_iv);
 }
 
 static void _test_keystore_encrypt_and_store_seed(void** state)

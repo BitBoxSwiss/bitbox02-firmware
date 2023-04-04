@@ -255,8 +255,8 @@ foreach(I RANGE 0 ${TEST_LIST_LEN} 2)
   add_executable(${EXE} test_${TEST_NAME}.c framework/eh_personality.c)
   # asan must be first library in linking order
   target_link_libraries(${EXE} PRIVATE
-    $<$<BOOL:SANITIZE_ADDRESS>:asan>
-    $<$<BOOL:SANITIZE_UNDEFINED>:-fsanitize=undefined>
+    $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
+    $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
     -Wl,--start-group
     c-unit-tests_rust_c
     bitbox
@@ -281,8 +281,8 @@ foreach(TEST_NAME ${U2F_TESTS})
   # This tests link to our code
   add_executable(${EXE} test_${TEST_NAME}.c framework/mock_hidapi.c framework/eh_personality.c)
   target_link_libraries(${EXE} PRIVATE
-    $<$<BOOL:SANITIZE_ADDRESS>:asan>
-    $<$<BOOL:SANITIZE_UNDEFINED>:-fsanitize=undefined>
+    $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
+    $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
     -Wl,--start-group
     c-unit-tests_rust_c
     bitbox
@@ -298,8 +298,8 @@ foreach(TEST_NAME ${U2F_TESTS})
   add_executable(${EXE} test_${TEST_NAME}.c)
   # asan must be first library in linking order
   target_link_libraries(${EXE} PRIVATE
-    $<$<BOOL:SANITIZE_ADDRESS>:asan>
-    $<$<BOOL:SANITIZE_UNDEFINED>:-fsanitize=undefined>
+    $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
+    $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
     u2f-util
     hidapi-hidraw
     ${CMOCKA_LIBRARIES}

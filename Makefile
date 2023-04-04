@@ -15,6 +15,7 @@
 # This makefile is used as a command runner and not for tracking dependencies between recipies
 
 .DEFAULT_GOAL := firmware
+SANITIZE ?= ON
 
 bootstrap:
 	git submodule update --init --recursive
@@ -26,7 +27,7 @@ build/Makefile:
 
 build-build/Makefile:
 	mkdir -p build-build
-	cd build-build && cmake .. -DCOVERAGE=ON -DSANITIZE_ADDRESS=ON -DSANITIZE_UNDEFINED=ON
+	cd build-build && cmake .. -DCOVERAGE=ON -DSANITIZE_ADDRESS=$(SANITIZE) -DSANITIZE_UNDEFINED=$(SANITIZE)
 	$(MAKE) -C py/bitbox02
 
 # Should only be used for rust unit tests since we didn't add support to

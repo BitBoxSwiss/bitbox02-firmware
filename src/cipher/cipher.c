@@ -22,6 +22,10 @@
 #include <util.h>
 #include <wally_crypto.h>
 
+#ifdef TESTING
+#include <mock_cipher.h>
+#endif
+
 #define N_BLOCK (16U)
 // Used to sanity-check input to avoid large stack allocations
 #define CIPHER_MAX_ALLOC (200U)
@@ -65,7 +69,11 @@ static bool _aes_encrypt(
     }
 
     uint8_t iv[32] = {0}; // only 16 bytes needed for IV.
+#ifdef TESTING
+    cipher_mock_iv(iv);
+#else
     random_32_bytes(iv);
+#endif
     memcpy(out, iv, N_BLOCK);
 
     AES256_CBC_ctx ctx = {0};

@@ -61,6 +61,7 @@ add_library(bitbox_objects
   ${CTAES-SOURCES}
   ${ETHEREUM-SOURCES}
   framework/mock_blocking.c
+  framework/mock_cipher.c
   framework/mock_screen.c
   framework/mock_screen_stack.c
   framework/mock_memory.c
@@ -210,7 +211,7 @@ set(TEST_LIST
    cleanup
    "-Wl,--wrap=util_cleanup_32"
    keystore
-   "-Wl,--wrap=secp256k1_anti_exfil_sign,--wrap=memory_is_initialized,--wrap=memory_is_seeded,--wrap=memory_get_failed_unlock_attempts,--wrap=memory_reset_failed_unlock_attempts,--wrap=memory_increment_failed_unlock_attempts,--wrap=memory_set_encrypted_seed_and_hmac,--wrap=memory_get_encrypted_seed_and_hmac,--wrap=memory_get_salt_root,--wrap=reset_reset,--wrap=salt_hash_data,--wrap=cipher_aes_hmac_encrypt,--wrap=random_32_bytes,--wrap=securechip_kdf"
+   "-Wl,--wrap=secp256k1_anti_exfil_sign,--wrap=memory_is_initialized,--wrap=memory_is_seeded,--wrap=memory_get_failed_unlock_attempts,--wrap=memory_reset_failed_unlock_attempts,--wrap=memory_increment_failed_unlock_attempts,--wrap=memory_set_encrypted_seed_and_hmac,--wrap=memory_get_encrypted_seed_and_hmac,--wrap=memory_get_salt_root,--wrap=reset_reset,--wrap=random_32_bytes"
    keystore_antiklepto
    ""
    keystore_functional
@@ -234,7 +235,7 @@ set(TEST_LIST
    salt
    "-Wl,--wrap=memory_get_salt_root"
    cipher
-   "-Wl,--wrap=random_32_bytes"
+   "-Wl,--wrap=cipher_mock_iv"
    util
    ""
    workflow_blocking

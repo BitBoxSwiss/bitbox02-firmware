@@ -1,4 +1,4 @@
-// Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2023 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,19 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _MOCK_MEMORY_H_
-#define _MOCK_MEMORY_H_
+#ifndef _MOCK_CIPHER_H_
+#define _MOCK_CIPHER_H_
 
-#include <stdbool.h>
 #include <stdint.h>
 
-#include <flags.h>
+void cipher_mock_iv(uint8_t* iv_out);
 
-void mock_memory_factoryreset(void);
-bool memory_write_to_address_mock(uint32_t base, uint32_t addr, const uint8_t* chunk);
-bool memory_write_chunk_mock(uint32_t chunk_num, const uint8_t* chunk);
-void memory_read_chunk_mock(uint32_t chunk_num, uint8_t* chunk_out);
-// Size: `FLASH_SHARED_DATA_LEN`.
-void memory_read_shared_bootdata_mock(uint8_t* chunk_out);
-void mock_memory_set_salt_root(const uint8_t* salt_root);
 #endif

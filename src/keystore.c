@@ -564,7 +564,7 @@ bool keystore_secp256k1_nonce_commit(
     uint8_t* signer_commitment_out)
 {
     struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
+    if (!_get_xprv(keypath, keypath_len, &xprv)) {
         return false;
     }
     const secp256k1_context* ctx = wally_get_secp_context();
@@ -596,7 +596,7 @@ bool keystore_secp256k1_sign(
         return false;
     }
     struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
+    if (!_get_xprv(keypath, keypath_len, &xprv)) {
         return false;
     }
     const secp256k1_context* ctx = wally_get_secp_context();
@@ -731,7 +731,7 @@ static bool _schnorr_bip86_keypair(
         return false;
     }
     struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
+    if (!_get_xprv(keypath, keypath_len, &xprv)) {
         return false;
     }
     const uint8_t* secret_key = xprv.priv_key + 1; // first byte is 0;

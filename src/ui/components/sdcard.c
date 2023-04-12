@@ -90,7 +90,7 @@ component_t* sdcard_create(
             screen_is_upside_down() ? RIGHT_CENTER : LEFT_CENTER,
             component));
     ui_util_add_sub_component(
-        component, icon_button_create(bottom_slider, ICON_BUTTON_CHECK, _continue_callback));
+        component, icon_button_create(top_slider, ICON_BUTTON_CHECK, _continue_callback));
 
     return component;
 }

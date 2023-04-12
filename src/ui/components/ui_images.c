@@ -110,14 +110,15 @@ void image_sdcard(bool mirror)
     int16_t x = mirror ? 0 : 127; // Position of base edge
     int16_t m = mirror ? -1 : 1;
     // Base edge
-    UG_FillFrame(x - m * (4), y - h / 2, x - m * (0), y + h / 2, C_WHITE);
+    UG_FillFrame(x - m * (4), y - m * h / 2, x - m * (0), y + m * h / 2, C_WHITE);
     // Front edge
-    UG_FillFrame(x - m * (w), y - h / 2 + c, x - m * (w - 1), y + h / 2, C_WHITE);
+    UG_FillFrame(x - m * (w), y - m * h / 2 + m * c, x - m * (w - 1), y + m * h / 2, C_WHITE);
     // Top edge
-    UG_FillFrame(x - m * (0), y - h / 2, x - m * (w - c - 1), y - h / 2 - 1, C_WHITE);
+    UG_FillFrame(x - m * (0), y - m * h / 2, x - m * (w - c - 1), y - m * h / 2 - 1, C_WHITE);
     // Bottom edge
-    UG_FillFrame(x - m * (0), y + h / 2, x - m * (w), y + h / 2 - 1, C_WHITE);
+    UG_FillFrame(x - m * (0), y + m * h / 2, x - m * (w), y + m * h / 2 - 1, C_WHITE);
     // Corner
-    UG_DrawLine(x - m * (w - c), y - h / 2, x - m * (w), y - h / 2 + c, C_WHITE);
-    UG_DrawLine(x - m * (w - c - 1), y - h / 2, x - m * (w - 1), y - h / 2 + c, C_WHITE);
+    UG_DrawLine(x - m * (w - c), y - m * h / 2, x - m * (w), y - m * h / 2 + m * c, C_WHITE);
+    UG_DrawLine(
+        x - m * (w - c - 1), y - m * h / 2, x - m * (w - 1), y - m * h / 2 + m * c, C_WHITE);
 }

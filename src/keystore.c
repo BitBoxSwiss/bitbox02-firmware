@@ -39,12 +39,12 @@ static bool _is_unlocked_device = false;
 // Must be defined if is_unlocked is true. Length of the seed store in `_retained_seed`. See also:
 // `_validate_seed_length()`.
 static size_t _seed_length = 0;
-// Must be defined if is_unlocked is true. ONLY ACCESS THIS WITH _get_seed()
+// Must be defined if is_unlocked is true. ONLY ACCESS THIS WITH keystore_copy_seed().
 static uint8_t _retained_seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
 
 // Change this ONLY via keystore_unlock_bip39().
 static bool _is_unlocked_bip39 = false;
-// Must be defined if _is_unlocked is true. ONLY ACCESS THIS WITH _get_bip39_seed().
+// Must be defined if _is_unlocked is true. ONLY ACCESS THIS WITH _copy_bip39_seed().
 static uint8_t _retained_bip39_seed[64] = {0};
 
 #ifdef TESTING
@@ -70,40 +70,36 @@ static bool _validate_seed_length(size_t seed_len)
     return seed_len == 16 || seed_len == 24 || seed_len == 32;
 }
 
-static const uint8_t* _get_seed(void)
-{
-    if (!_is_unlocked_device) {
-        return NULL;
-    }
-    return _retained_seed;
-}
-
 bool keystore_copy_seed(uint8_t* seed_out, size_t* length_out)
 {
-    if (_get_seed() == NULL) {
+    if (!_is_unlocked_device) {
         return false;
     }
-    memcpy(seed_out, _get_seed(), _seed_length);
+    memcpy(seed_out, _retained_seed, _seed_length);
     *length_out = _seed_length;
     return true;
 }
 
 /**
- * @return the pointer ot the static bip39 seed on success. returns NULL if the
- * keystore is locked.
+ * Copies the retained bip39 seed into the given buffer. The caller must
+ * zero the seed with util_zero once it is no longer needed.
+ * @param[out] bip39_seed_out The seed bytes copied from the retained bip39 seed.
+ * The buffer must be 64 bytes long.
+ * @return true if the bip39 seed is available.
  */
-static const uint8_t* _get_bip39_seed(void)
+static bool _copy_bip39_seed(uint8_t* bip39_seed_out)
 {
     if (!_is_unlocked_bip39) {
-        return NULL;
+        return false;
     }
     // sanity check
     uint8_t zero[64] = {0};
     util_zero(zero, 64);
     if (MEMEQ(_retained_bip39_seed, zero, sizeof(_retained_bip39_seed))) {
-        return NULL;
+        return false;
     }
-    return _retained_bip39_seed;
+    memcpy(bip39_seed_out, _retained_bip39_seed, sizeof(_retained_bip39_seed));
+    return true;
 }
 
 /**
@@ -382,13 +378,17 @@ bool keystore_unlock_bip39(const char* mnemonic_passphrase)
     if (!_is_unlocked_device) {
         return false;
     }
-    const uint8_t* seed = _get_seed();
-    if (seed == NULL) {
-        return false;
-    }
     char* mnemonic __attribute__((__cleanup__(_free_string))) = NULL;
-    if (bip39_mnemonic_from_bytes(NULL, seed, _seed_length, &mnemonic) != WALLY_OK) {
-        return false;
+    { // block so that `seed` is zeroed as soon as possible
+        uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
+        UTIL_CLEANUP_32(seed);
+        size_t seed_length = 0;
+        if (!keystore_copy_seed(seed, &seed_length)) {
+            return false;
+        }
+        if (bip39_mnemonic_from_bytes(NULL, seed, seed_length, &mnemonic) != WALLY_OK) {
+            return false;
+        }
     }
     uint8_t bip39_seed[BIP39_SEED_LEN_512] = {0};
     UTIL_CLEANUP_64(bip39_seed);
@@ -421,13 +421,17 @@ bool keystore_get_bip39_mnemonic(char* mnemonic_out, size_t mnemonic_out_size)
     if (keystore_is_locked()) {
         return false;
     }
-    const uint8_t* seed = _get_seed();
-    if (seed == NULL) {
-        return false;
-    }
     char* mnemonic = NULL;
-    if (bip39_mnemonic_from_bytes(NULL, seed, _seed_length, &mnemonic) != WALLY_OK) {
-        return false;
+    { // block so that `seed` is zeroed as soon as possible
+        uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
+        UTIL_CLEANUP_32(seed);
+        size_t seed_length = 0;
+        if (!keystore_copy_seed(seed, &seed_length)) {
+            return false;
+        }
+        if (bip39_mnemonic_from_bytes(NULL, seed, seed_length, &mnemonic) != WALLY_OK) {
+            return false;
+        }
     }
     int snprintf_result = snprintf(mnemonic_out, mnemonic_out_size, "%s", mnemonic);
     util_cleanup_str(&mnemonic);
@@ -445,8 +449,10 @@ static bool _get_xprv(const uint32_t* keypath, const size_t keypath_len, struct 
     if (keystore_is_locked()) {
         return false;
     }
-    const uint8_t* bip39_seed = _get_bip39_seed();
-    if (bip39_seed == NULL) {
+
+    uint8_t bip39_seed[64] = {0};
+    UTIL_CLEANUP_64(bip39_seed);
+    if (!_copy_bip39_seed(bip39_seed)) {
         return false;
     }
     struct ext_key xprv_master __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
@@ -456,6 +462,7 @@ static bool _get_xprv(const uint32_t* keypath, const size_t keypath_len, struct 
         WALLY_OK) {
         return false;
     }
+    util_zero(bip39_seed, sizeof(bip39_seed));
     if (keypath_len == 0) {
         *xprv_out = xprv_master;
     } else if (
@@ -621,8 +628,9 @@ bool keystore_get_u2f_seed(uint8_t* seed_out)
     if (keystore_is_locked()) {
         return false;
     }
-    const uint8_t* bip39_seed = _get_bip39_seed();
-    if (bip39_seed == NULL) {
+    uint8_t bip39_seed[64] = {0};
+    UTIL_CLEANUP_64(bip39_seed);
+    if (!_copy_bip39_seed(bip39_seed)) {
         return false;
     }
     const uint8_t message[] = "u2f";
@@ -635,8 +643,9 @@ bool keystore_get_u2f_seed(uint8_t* seed_out)
 
 bool keystore_get_ed25519_seed(uint8_t* seed_out)
 {
-    const uint8_t* bip39_seed = _get_bip39_seed();
-    if (bip39_seed == NULL) {
+    uint8_t bip39_seed[64] = {0};
+    UTIL_CLEANUP_64(bip39_seed);
+    if (!_copy_bip39_seed(bip39_seed)) {
         return false;
     }
 
@@ -659,6 +668,7 @@ bool keystore_get_ed25519_seed(uint8_t* seed_out)
     uint8_t message[65] = {0};
     message[0] = 0x01;
     memcpy(&message[1], bip39_seed, 64);
+    util_zero(bip39_seed, sizeof(bip39_seed));
     if (wally_hmac_sha256(key, sizeof(key), message, sizeof(message), &seed_out[64], 32) !=
         WALLY_OK) {
         util_zero(message, sizeof(message));

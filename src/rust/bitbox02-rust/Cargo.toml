@@ -45,7 +45,7 @@ minicbor = { version = "0.19.1", default-features = false, features = ["alloc"],
 crc = { version = "3.0.1", optional = true }
 ed25519-dalek = { version = "1.0.1", default-features = false, features = ["u32_backend"], optional = true }
 lazy_static = { version = "1.4.0", optional = true }
-async-recursion = "1.0.0"
+async-recursion = "1.0.4"
 hmac = { version = "0.12.1", default-features = false, features = ["reset"] }
 
 # For stack allocated strings

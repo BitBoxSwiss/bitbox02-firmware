@@ -1,59 +1,51 @@
 use core::convert::TryInto;
 
 const PLEN: usize = 25;
+const DEFAULT_ROUND_COUNT: usize = 24;
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub(crate) struct Sha3State {
     pub state: [u64; PLEN],
+    round_count: usize,
+}
+
+impl Default for Sha3State {
+    fn default() -> Self {
+        Self {
+            state: [0u64; PLEN],
+            round_count: DEFAULT_ROUND_COUNT,
+        }
+    }
 }
 
 impl Sha3State {
+    pub(crate) fn new(round_count: usize) -> Self {
+        Self {
+            state: [0u64; PLEN],
+            round_count,
+        }
+    }
+
     #[inline(always)]
     pub(crate) fn absorb_block(&mut self, block: &[u8]) {
         debug_assert_eq!(block.len() % 8, 0);
 
-        if cfg!(target_endian = "little") {
-            #[allow(unsafe_code)]
-            let state = unsafe { &mut *(self.state.as_mut_ptr() as *mut [u8; 8 * PLEN]) };
-            for (d, i) in state.iter_mut().zip(block) {
-                *d ^= *i;
-            }
-        } else if cfg!(target_endian = "big") {
-            let n = block.len() / 8;
-            let mut buf = [0u64; 21];
-            let buf = &mut buf[..n];
-            for (o, chunk) in buf.iter_mut().zip(block.chunks_exact(8)) {
-                *o = u64::from_le_bytes(chunk.try_into().unwrap());
-            }
-            for (d, i) in self.state[..n].iter_mut().zip(buf) {
-                *d ^= *i;
-            }
+        for (b, s) in block.chunks_exact(8).zip(self.state.iter_mut()) {
+            *s ^= u64::from_le_bytes(b.try_into().unwrap());
         }
 
-        keccak::f1600(&mut self.state);
+        keccak::keccak_p(&mut self.state, self.round_count);
     }
 
     #[inline(always)]
-    pub(crate) fn as_bytes<F: FnOnce(&[u8; 8 * PLEN])>(&self, f: F) {
-        let mut data_copy;
-        let data_ref: &[u8; 8 * PLEN] = if cfg!(target_endian = "little") {
-            #[allow(unsafe_code)]
-            unsafe {
-                &*(self.state.as_ptr() as *const [u8; 8 * PLEN])
-            }
-        } else {
-            data_copy = [0u8; 8 * PLEN];
-
-            for (chunk, v) in data_copy.chunks_exact_mut(8).zip(self.state.iter()) {
-                chunk.copy_from_slice(&v.to_le_bytes());
-            }
-            &data_copy
-        };
-        f(data_ref);
+    pub(crate) fn as_bytes(&self, out: &mut [u8]) {
+        for (o, s) in out.chunks_mut(8).zip(self.state.iter()) {
+            o.copy_from_slice(&s.to_le_bytes()[..o.len()]);
+        }
     }
 
     #[inline(always)]
-    pub(crate) fn apply_f(&mut self) {
-        keccak::f1600(&mut self.state);
+    pub(crate) fn permute(&mut self) {
+        keccak::keccak_p(&mut self.state, self.round_count);
     }
 }

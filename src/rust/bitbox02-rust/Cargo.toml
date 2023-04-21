@@ -42,7 +42,7 @@ bs58 = { version = "0.4.0", default-features = false, features = ["alloc", "chec
 bech32 = { version = "0.9.1", default-features = false, optional = true }
 blake2 = { version = "0.10.6", default-features = false, optional = true }
 minicbor = { version = "0.19.1", default-features = false, features = ["alloc"], optional = true }
-crc = { version = "2.1.0", optional = true }
+crc = { version = "3.0.1", optional = true }
 ed25519-dalek = { version = "1.0.1", default-features = false, features = ["u32_backend"], optional = true }
 lazy_static = { version = "1.4.0", optional = true }
 async-recursion = "1.0.0"

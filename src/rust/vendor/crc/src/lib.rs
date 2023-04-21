@@ -1,5 +1,5 @@
 //! # crc
-//! Rust implementation of CRC(8, 16, 32, 64)
+//! Rust implementation of CRC.
 //!
 //! ## Usage
 //! ### Compute CRC16
@@ -14,6 +14,7 @@
 //!
 //! // use custom algorithm
 //! const CUSTOM_ALG: Algorithm<u16> = Algorithm {
+//!     width: 16,
 //!     poly: 0x8005,
 //!     init: 0xffff,
 //!     refin: false,
@@ -32,6 +33,7 @@
 
 pub use crc_catalog::*;
 
+mod crc128;
 mod crc16;
 mod crc32;
 mod crc64;
@@ -44,6 +46,7 @@ pub struct Crc<W: Width> {
     table: [W; 256],
 }
 
+#[derive(Clone)]
 pub struct Digest<'a, W: Width> {
     crc: &'a Crc<W>,
     value: W,

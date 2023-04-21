@@ -10,9 +10,10 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 name = "zeroize"
-version = "1.5.7"
+version = "1.6.0"
 authors = ["The RustCrypto Project Developers"]
 description = """
 Securely clear secrets from memory with a simple trait built on
@@ -37,6 +38,7 @@ categories = [
 ]
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/RustCrypto/utils/tree/master/zeroize"
+resolver = "1"
 
 [package.metadata.docs.rs]
 all-features = true

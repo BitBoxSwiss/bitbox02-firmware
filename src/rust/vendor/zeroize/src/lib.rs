@@ -64,7 +64,7 @@
 //!
 //! With the `std` feature enabled (which it is **not** by default), [`Zeroize`]
 //! is also implemented for [`CString`]. After calling `zeroize()` on a `CString`,
-//! it will its internal buffer will contain exactly one nul byte. The backing
+//! its internal buffer will contain exactly one nul byte. The backing
 //! memory is zeroed by converting it to a `Vec<u8>` and back into a `CString`.
 //! (NOTE: see "Stack/Heap Zeroing Notes" for important `Vec`/`String`/`CString` details)
 //!
@@ -254,8 +254,8 @@ use core::{
     marker::{PhantomData, PhantomPinned},
     mem::{self, MaybeUninit},
     num::{
-        NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroIsize, NonZeroU128,
-        NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8, NonZeroUsize,
+        self, NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroIsize,
+        NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8, NonZeroUsize,
     },
     ops, ptr,
     slice::IterMut,
@@ -348,6 +348,15 @@ impl_zeroize_for_non_zero!(
     NonZeroU128,
     NonZeroUsize
 );
+
+impl<Z> Zeroize for num::Wrapping<Z>
+where
+    Z: Zeroize,
+{
+    fn zeroize(&mut self) {
+        self.0.zeroize();
+    }
+}
 
 /// Impl [`Zeroize`] on arrays of types that impl [`Zeroize`].
 impl<Z, const N: usize> Zeroize for [Z; N]
@@ -467,6 +476,14 @@ where
     }
 }
 
+impl Zeroize for str {
+    fn zeroize(&mut self) {
+        // Safety:
+        // A zeroized byte slice is a valid UTF-8 string.
+        unsafe { self.as_bytes_mut().zeroize() }
+    }
+}
+
 /// [`PhantomData`] is always zero sized so provide a [`Zeroize`] implementation.
 impl<Z> Zeroize for PhantomData<Z> {
     fn zeroize(&mut self) {}
@@ -578,6 +595,14 @@ where
 #[cfg(feature = "alloc")]
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 impl<Z> ZeroizeOnDrop for Box<[Z]> where Z: ZeroizeOnDrop {}
+
+#[cfg(feature = "alloc")]
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+impl Zeroize for Box<str> {
+    fn zeroize(&mut self) {
+        self.as_mut().zeroize();
+    }
+}
 
 #[cfg(feature = "alloc")]
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]

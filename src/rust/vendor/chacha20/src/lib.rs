@@ -6,21 +6,25 @@
 //! with no cost to performance.
 //!
 //! Cipher functionality is accessed using traits from re-exported
-//! [`stream-cipher`](https://docs.rs/stream-cipher) crate.
+//! [`cipher`](https://docs.rs/cipher) crate.
 //!
-//! This crate contains three variants of ChaCha20:
+//! This crate contains the following variants of the ChaCha20 core algorithm:
 //!
-//! - `ChaCha20`: standard IETF variant with 96-bit nonce
-//! - `ChaCha20Legacy`: (gated under the `legacy` feature) "djb" variant with 64-bit nonce
-//! - `ChaCha8` / `ChaCha12`: reduced round variants of ChaCha20
-//! - `XChaCha20`: (gated under the `xchacha20` feature) 192-bit extended nonce variant
+//! - [`ChaCha20`]: standard IETF variant with 96-bit nonce
+//! - [`ChaCha20Legacy`]: (gated under the `legacy` feature) "djb" variant with 64-bit nonce
+//! - [`ChaCha8`] / [`ChaCha12`]: reduced round variants of ChaCha20
+//! - [`XChaCha20`]: 192-bit extended nonce variant
+//! - [`XChaCha8`] / [`XChaCha12`]: reduced round variants of XChaCha20
 //!
-//! # Security Warning
+//! # ⚠️ Security Warning: [Hazmat!]
 //!
 //! This crate does not ensure ciphertexts are authentic, which can lead to
 //! serious vulnerabilities if used incorrectly!
 //!
-//! USE AT YOUR OWN RISK!
+//! If in doubt, use the [`chacha20poly1305`](https://docs.rs/chacha20poly1305)
+//! crate instead, which provides an authenticated mode on top of ChaCha20.
+//!
+//! **USE AT YOUR OWN RISK!**
 //!
 //! # Diagram
 //!
@@ -38,8 +42,10 @@
 //! # Usage
 //!
 //! ```
+//! # #[cfg(feature = "cipher")]
+//! # {
 //! use chacha20::{ChaCha20, Key, Nonce};
-//! use chacha20::stream_cipher::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
+//! use chacha20::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
 //!
 //! let mut data = [1, 2, 3, 4, 5, 6, 7];
 //!
@@ -57,46 +63,63 @@
 //! cipher.seek(0);
 //! cipher.apply_keystream(&mut data);
 //! assert_eq!(data, [1, 2, 3, 4, 5, 6, 7]);
+//! # }
 //! ```
 //!
 //! [RFC 8439]: https://tools.ietf.org/html/rfc8439
 //! [Salsa20]: https://docs.rs/salsa20
+//! [Hazmat!]: https://github.com/RustCrypto/meta/blob/master/HAZMAT.md
 
 #![no_std]
 #![doc(
-    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
-    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg"
+    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
+    html_root_url = "https://docs.rs/chacha20/0.8.1"
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(
+    all(feature = "neon", target_arch = "aarch64", target_feature = "neon"),
+    feature(stdsimd, aarch64_target_feature)
+)]
 #![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
 
-mod block;
-#[cfg(feature = "stream-cipher")]
-pub(crate) mod cipher;
+mod backend;
+#[cfg(feature = "cipher")]
+mod chacha;
 #[cfg(feature = "legacy")]
 mod legacy;
+mod max_blocks;
 #[cfg(feature = "rng")]
 mod rng;
 mod rounds;
-#[cfg(feature = "xchacha20")]
-mod xchacha20;
+#[cfg(feature = "cipher")]
+mod xchacha;
 
-#[cfg(feature = "stream-cipher")]
-pub use stream_cipher;
+#[cfg(feature = "cipher")]
+pub use cipher;
 
-#[cfg(feature = "stream-cipher")]
-pub use self::cipher::{ChaCha12, ChaCha20, ChaCha8, Cipher, Key, Nonce};
+#[cfg(feature = "cipher")]
+pub use crate::{
+    chacha::{ChaCha, ChaCha12, ChaCha20, ChaCha8, Key, Nonce},
+    xchacha::{XChaCha, XChaCha12, XChaCha20, XChaCha8, XNonce},
+};
+
+#[cfg(feature = "expose-core")]
+pub use crate::{
+    backend::Core,
+    rounds::{R12, R20, R8},
+};
+
+#[cfg(feature = "hchacha")]
+pub use crate::xchacha::hchacha;
 
 #[cfg(feature = "legacy")]
-pub use self::legacy::{ChaCha20Legacy, LegacyNonce};
+pub use crate::legacy::{ChaCha20Legacy, LegacyNonce};
 
 #[cfg(feature = "rng")]
 pub use rng::{
     ChaCha12Rng, ChaCha12RngCore, ChaCha20Rng, ChaCha20RngCore, ChaCha8Rng, ChaCha8RngCore,
 };
-
-#[cfg(feature = "xchacha20")]
-pub use self::xchacha20::{XChaCha20, XNonce};
 
 /// Size of a ChaCha20 block in bytes
 pub const BLOCK_SIZE: usize = 64;
@@ -104,15 +127,8 @@ pub const BLOCK_SIZE: usize = 64;
 /// Size of a ChaCha20 key in bytes
 pub const KEY_SIZE: usize = 32;
 
-/// Maximum number of blocks that can be encrypted with ChaCha20 before the
-/// counter overflows.
-pub const MAX_BLOCKS: usize = core::u32::MAX as usize;
-
 /// Number of bytes in the core (non-extended) ChaCha20 IV
 const IV_SIZE: usize = 8;
-
-/// Number of 32-bit words in the ChaCha20 state
-const STATE_WORDS: usize = 16;
 
 /// State initialization constant ("expand 32-byte k")
 const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];

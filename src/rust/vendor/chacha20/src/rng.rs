@@ -1,18 +1,42 @@
 //! Block RNG based on rand_core::BlockRng
 
-use rand_core::block::{BlockRng, BlockRngCore};
-use rand_core::{CryptoRng, Error, RngCore, SeedableRng};
+use rand_core::{
+    block::{BlockRng, BlockRngCore},
+    CryptoRng, Error, RngCore, SeedableRng,
+};
 
 use crate::{
-    block::{Block, BUFFER_SIZE},
+    backend::{Core, BUFFER_SIZE},
     rounds::{R12, R20, R8},
-    KEY_SIZE, MAX_BLOCKS,
+    KEY_SIZE,
 };
+use core::convert::TryInto;
+
+/// Array wrapper used for `BlockRngCore::Results` associated types.
+#[repr(transparent)]
+pub struct BlockRngResults([u32; BUFFER_SIZE / 4]);
+
+impl Default for BlockRngResults {
+    fn default() -> Self {
+        BlockRngResults([u32::default(); BUFFER_SIZE / 4])
+    }
+}
+
+impl AsRef<[u32]> for BlockRngResults {
+    fn as_ref(&self) -> &[u32] {
+        &self.0
+    }
+}
+
+impl AsMut<[u32]> for BlockRngResults {
+    fn as_mut(&mut self) -> &mut [u32] {
+        &mut self.0
+    }
+}
 
 macro_rules! impl_chacha_rng {
     ($name:ident, $core:ident, $rounds:ident, $doc:expr) => {
         #[doc = $doc]
-        #[derive(Clone, Debug)]
         #[cfg_attr(docsrs, doc(cfg(feature = "rng")))]
         pub struct $name(BlockRng<$core>);
 
@@ -51,10 +75,9 @@ macro_rules! impl_chacha_rng {
         impl CryptoRng for $name {}
 
         #[doc = "Core random number generator, for use with [`rand_core::block::BlockRng`]"]
-        #[derive(Clone, Debug)]
         #[cfg_attr(docsrs, doc(cfg(feature = "rng")))]
         pub struct $core {
-            block: Block<$rounds>,
+            block: Core<$rounds>,
             counter: u64,
         }
 
@@ -63,28 +86,35 @@ macro_rules! impl_chacha_rng {
 
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
-                let block = Block::new(&seed, Default::default());
+                let block = Core::new(&seed, Default::default());
                 Self { block, counter: 0 }
             }
         }
 
         impl BlockRngCore for $core {
             type Item = u32;
-            type Results = [u32; BUFFER_SIZE / 4];
+            type Results = BlockRngResults;
 
             fn generate(&mut self, results: &mut Self::Results) {
-                assert!(self.counter <= MAX_BLOCKS as u64, "maximum number of allowed ChaCha blocks exceeded");
+                // is this necessary?
+                assert!(
+                    self.counter < u32::MAX as u64,
+                    "maximum number of allowed ChaCha blocks exceeded"
+                );
 
-                // TODO(tarcieri): eliminate unsafety (replace w\ [u8; BLOCK_SIZE)
-                self.block.generate(self.counter, unsafe {
-                    &mut *(results.as_mut_ptr() as *mut [u8; BUFFER_SIZE])
-                });
+                let mut buffer = [0u8; BUFFER_SIZE];
+                self.block.generate(self.counter, &mut buffer);
+
+                for (n, chunk) in results.as_mut().iter_mut().zip(buffer.chunks_exact(4)) {
+                    *n = u32::from_le_bytes(chunk.try_into().unwrap());
+                }
+
                 self.counter += 1;
             }
         }
 
         impl CryptoRng for $core {}
-    }
+    };
 }
 
 impl_chacha_rng!(

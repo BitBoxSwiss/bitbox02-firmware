@@ -1,5 +1,6 @@
 //! Numbers of rounds allowed to be used with the ChaCha stream cipher
 
+/// Marker type for a number of ChaCha rounds to perform.
 pub trait Rounds: Copy {
     const COUNT: usize;
 }

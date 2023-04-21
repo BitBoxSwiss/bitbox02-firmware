@@ -3,51 +3,81 @@
 # When uploading crates to the registry Cargo will automatically
 # "normalize" Cargo.toml files for maximal compatibility
 # with all versions of Cargo and also rewrite `path` dependencies
-# to registry (e.g., crates.io) dependencies
+# to registry (e.g., crates.io) dependencies.
 #
-# If you believe there's an error in this file please file an
-# issue against the rust-lang/cargo repository. If you're
-# editing this file be aware that the upstream Cargo.toml
-# will likely look very different (and much more reasonable)
+# If you are reading this file be aware that the original Cargo.toml
+# will likely look very different (and much more reasonable).
+# See Cargo.toml.orig for the original contents.
 
 [package]
 edition = "2018"
 name = "chacha20poly1305"
-version = "0.6.0"
+version = "0.9.1"
 authors = ["RustCrypto Developers"]
-description = "Pure Rust implementation of the ChaCha20Poly1305 Authenticated Encryption\nwith Additional Data Cipher (RFC 8439) with optional architecture-specific\nhardware acceleration. Also contains implementations of the XChaCha20Poly1305\nextended nonce variant of ChaCha20Poly1305, and the reduced-round\nChaCha8Poly1305 and ChaCha12Poly1305 lightweight variants.\n"
+description = """
+Pure Rust implementation of the ChaCha20Poly1305 Authenticated Encryption
+with Additional Data Cipher (RFC 8439) with optional architecture-specific
+hardware acceleration. Also contains implementations of the XChaCha20Poly1305
+extended nonce variant of ChaCha20Poly1305, and the reduced-round
+ChaCha8Poly1305 and ChaCha12Poly1305 lightweight variants.
+"""
 documentation = "https://docs.rs/chacha20poly1305"
 readme = "README.md"
-keywords = ["aead", "chacha20", "poly1305", "xchacha20", "xchacha20poly1305"]
-categories = ["cryptography", "no-std"]
+keywords = [
+    "aead",
+    "chacha20",
+    "poly1305",
+    "xchacha20",
+    "xchacha20poly1305",
+]
+categories = [
+    "cryptography",
+    "no-std",
+]
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/RustCrypto/AEADs"
+
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+rustdoc-args = [
+    "--cfg",
+    "docsrs",
+]
+
 [dependencies.aead]
-version = "0.3"
+version = "0.4"
 default-features = false
 
 [dependencies.chacha20]
-version = "0.5"
+version = "0.8"
 features = ["zeroize"]
-optional = true
+
+[dependencies.cipher]
+version = "0.3"
 
 [dependencies.poly1305]
-version = "0.6"
-
-[dependencies.stream-cipher]
 version = "0.7"
 
 [dependencies.zeroize]
 version = "1"
 default-features = false
 
+[dev-dependencies.aead]
+version = "0.4"
+features = ["dev"]
+default-features = false
+
 [features]
 alloc = ["aead/alloc"]
-default = ["alloc", "chacha20", "xchacha20poly1305"]
+default = ["alloc"]
+force-soft = [
+    "chacha20/force-soft",
+    "poly1305/force-soft",
+]
 heapless = ["aead/heapless"]
-reduced-round = ["chacha20"]
-std = ["aead/std", "alloc"]
-xchacha20poly1305 = ["chacha20/xchacha20"]
+reduced-round = []
+std = [
+    "aead/std",
+    "alloc",
+]
+stream = ["aead/stream"]

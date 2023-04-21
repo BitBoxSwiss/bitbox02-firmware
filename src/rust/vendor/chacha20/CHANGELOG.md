@@ -5,6 +5,87 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.8.2 (2022-07-07)
+### Changed
+- Unpin `zeroize` dependency ([#301])
+
+[#301]: https://github.com/RustCrypto/stream-ciphers/pull/301
+
+## 0.8.1 (2021-08-30)
+### Added
+- NEON implementation for aarch64 ([#274])
+
+[#274]: https://github.com/RustCrypto/stream-ciphers/pull/274
+
+## 0.8.0 (2021-08-29)
+### Added
+- SSE2 autodetection support ([#270])
+
+### Changed
+- AVX2 performance improvements ([#267], [#267])
+- MSRV 1.51+ ([#267])
+- Lock to `zeroize` <1.5 ([#269])
+
+### Removed
+- `xchacha` feature: all `XChaCha*` types are now available by-default ([#271])
+
+[#267]: https://github.com/RustCrypto/stream-ciphers/pull/267
+[#269]: https://github.com/RustCrypto/stream-ciphers/pull/269
+[#270]: https://github.com/RustCrypto/stream-ciphers/pull/270
+[#271]: https://github.com/RustCrypto/stream-ciphers/pull/271
+
+## 0.7.3 (2021-08-27)
+### Changed
+- Improve AVX2 performance ([#261])
+- Bump `cpufeatures` to v0.2 ([#265])
+
+[#261]: https://github.com/RustCrypto/stream-ciphers/pull/261
+[#265]: https://github.com/RustCrypto/stream-ciphers/pull/265
+
+## 0.7.2 (2021-07-20)
+### Changed
+- Pin `zeroize` dependency to v1.3 ([#256])
+
+[#256]: https://github.com/RustCrypto/stream-ciphers/pull/256
+
+## 0.7.1 (2021-04-29)
+### Added
+- `hchacha` feature ([#234])
+
+[#234]: https://github.com/RustCrypto/stream-ciphers/pull/234
+
+## 0.7.0 (2021-04-29) [YANKED]
+### Added
+- AVX2 detection; MSRV 1.49+ ([#200], [#212])
+- `XChaCha8` and `XChaCha12` ([#215])
+
+### Changed
+- Full 64-bit counters ([#217])
+- Bump `cipher` crate dependency to v0.3 release ([#226])
+
+### Fixed
+- `rng` feature on big endian platforms ([#202])
+- Stream-length overflow check ([#216])
+
+### Removed
+- `Clone` impls on RNGs ([#220])
+
+[#200]: https://github.com/RustCrypto/stream-ciphers/pull/200
+[#202]: https://github.com/RustCrypto/stream-ciphers/pull/202
+[#212]: https://github.com/RustCrypto/stream-ciphers/pull/212
+[#215]: https://github.com/RustCrypto/stream-ciphers/pull/215
+[#216]: https://github.com/RustCrypto/stream-ciphers/pull/216
+[#217]: https://github.com/RustCrypto/stream-ciphers/pull/217
+[#220]: https://github.com/RustCrypto/stream-ciphers/pull/220
+[#226]: https://github.com/RustCrypto/stream-ciphers/pull/226
+
+## 0.6.0 (2020-10-16)
+### Changed
+- Rename `Cipher` to `ChaCha` ([#177])
+- Replace `block-cipher`/`stream-cipher` with `cipher` crate ([#177])
+
+[#177]: https://github.com/RustCrypto/stream-ciphers/pull/177
+
 ## 0.5.0 (2020-08-25)
 ### Changed
 - Bump `stream-cipher` dependency to v0.7 ([#161], [#164])

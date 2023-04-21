@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.4.3 (2021-08-29)
+### Added
+- `Result` type alias ([#725])
+
+[#725]: https://github.com/RustCrypto/traits/pull/725
+
+## 0.4.2 (2021-07-12)
+### Added
+- Re-export `rand_core` ([#682])
+
+[#682]: https://github.com/RustCrypto/traits/pull/682
+
+## 0.4.1 (2021-05-03)
+### Changed
+- Bump `heapless` dependency to v0.7 ([#628])
+
+[#628]: https://github.com/RustCrypto/traits/pull/628
+
+## 0.4.0 (2021-02-05) [YANKED]
+### Added
+- `stream` module ([#436], [#445], [#447])
+- `NewAead::generate_key` method gated under `rand_core` feature ([#513])
+
+### Changed
+- Extract `AeadCore` trait ([#508])
+- Rename `NewAead::new_var` to `::new_from_slice` ([#512])
+- Disable alloc by default ([#514])
+- Bump `heapless` dependency to v0.6 ([#522])
+
+[#436]: https://github.com/RustCrypto/traits/pull/436
+[#445]: https://github.com/RustCrypto/traits/pull/445
+[#447]: https://github.com/RustCrypto/traits/pull/447
+[#508]: https://github.com/RustCrypto/traits/pull/508
+[#512]: https://github.com/RustCrypto/traits/pull/512
+[#513]: https://github.com/RustCrypto/traits/pull/513
+[#514]: https://github.com/RustCrypto/traits/pull/514
+[#522]: https://github.com/RustCrypto/traits/pull/522
+
 ## 0.3.2 (2020-07-01)
 ### Added
 - `dev` module ([#194])

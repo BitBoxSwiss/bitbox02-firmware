@@ -12,12 +12,8 @@
 // ...and was originally a port of Andrew Moons poly1305-donna
 // https://github.com/floodyberry/poly1305-donna
 
-use core::convert::TryInto;
-
-#[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
-
 use crate::{Block, Key, Tag};
+use core::convert::TryInto;
 
 #[derive(Clone, Default)]
 pub(crate) struct State {
@@ -27,7 +23,7 @@ pub(crate) struct State {
 }
 
 impl State {
-    /// Initialize Poly1305State with the given key
+    /// Initialize Poly1305 [`State`] with the given key
     pub(crate) fn new(key: &Key) -> State {
         let mut poly = State::default();
 
@@ -47,7 +43,6 @@ impl State {
     }
 
     /// Reset internal state
-    #[allow(dead_code)]
     pub(crate) fn reset(&mut self) {
         self.h = Default::default();
     }
@@ -144,6 +139,7 @@ impl State {
         self.h[4] = h4;
     }
 
+    /// Finalize output producing a [`Tag`]
     pub(crate) fn finalize(&mut self) -> Tag {
         // fully carry h
         let mut h0 = self.h[0];
@@ -239,6 +235,7 @@ impl State {
 #[cfg(feature = "zeroize")]
 impl Drop for State {
     fn drop(&mut self) {
+        use zeroize::Zeroize;
         self.r.zeroize();
         self.h.zeroize();
         self.pad.zeroize();

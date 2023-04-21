@@ -48,25 +48,24 @@ fn write_130_wide(f: &mut fmt::Formatter<'_>, limbs: [u64; 5]) -> fmt::Result {
 }
 
 /// Derives the Poly1305 addition and polynomial keys.
-pub(super) fn prepare_keys(key: &Key) -> (AdditionKey, PrecomputedMultiplier) {
-    unsafe {
-        // [k7, k6, k5, k4, k3, k2, k1, k0]
-        let key = _mm256_loadu_si256(key.as_ptr() as *const _);
+#[target_feature(enable = "avx2")]
+pub(super) unsafe fn prepare_keys(key: &Key) -> (AdditionKey, PrecomputedMultiplier) {
+    // [k7, k6, k5, k4, k3, k2, k1, k0]
+    let key = _mm256_loadu_si256(key.as_ptr() as *const _);
 
-        // Prepare addition key: [0, k7, 0, k6, 0, k5, 0, k4]
-        let k = AdditionKey(_mm256_and_si256(
-            _mm256_permutevar8x32_epi32(key, _mm256_set_epi32(3, 7, 2, 6, 1, 5, 0, 4)),
-            _mm256_set_epi32(0, -1, 0, -1, 0, -1, 0, -1),
-        ));
+    // Prepare addition key: [0, k7, 0, k6, 0, k5, 0, k4]
+    let k = AdditionKey(_mm256_and_si256(
+        _mm256_permutevar8x32_epi32(key, _mm256_set_epi32(3, 7, 2, 6, 1, 5, 0, 4)),
+        _mm256_set_epi32(0, -1, 0, -1, 0, -1, 0, -1),
+    ));
 
-        // Prepare polynomial key R = k & 0xffffffc0ffffffc0ffffffc0fffffff:
-        let r = Aligned130::new(_mm256_and_si256(
-            key,
-            _mm256_set_epi32(0, 0, 0, 0, 0x0ffffffc, 0x0ffffffc, 0x0ffffffc, 0x0fffffff),
-        ));
+    // Prepare polynomial key R = k & 0xffffffc0ffffffc0ffffffc0fffffff:
+    let r = Aligned130::new(_mm256_and_si256(
+        key,
+        _mm256_set_epi32(0, 0, 0, 0, 0x0ffffffc, 0x0ffffffc, 0x0ffffffc, 0x0fffffff),
+    ));
 
-        (k, r.into())
-    }
+    (k, r.into())
 }
 
 /// A 130-bit integer aligned across five 26-bit limbs.
@@ -102,36 +101,35 @@ impl fmt::Display for Aligned130 {
 impl Aligned130 {
     /// Aligns a 16-byte Poly1305 block at 26-bit boundaries within 32-bit words, and sets
     /// the high bit.
-    pub(super) fn from_block(block: &Block) -> Self {
-        unsafe {
-            Aligned130::new(_mm256_or_si256(
-                _mm256_and_si256(
-                    // Load the 128-bit block into a 256-bit vector.
-                    _mm256_castsi128_si256(_mm_loadu_si128(block.as_ptr() as *const _)),
-                    // Mask off the upper 128 bits (undefined by _mm256_castsi128_si256).
-                    _mm256_set_epi64x(0, 0, -1, -1),
-                ),
-                // Set the high bit.
-                _mm256_set_epi64x(0, 1, 0, 0),
-            ))
-        }
+    #[target_feature(enable = "avx2")]
+    pub(super) unsafe fn from_block(block: &Block) -> Self {
+        Aligned130::new(_mm256_or_si256(
+            _mm256_and_si256(
+                // Load the 128-bit block into a 256-bit vector.
+                _mm256_castsi128_si256(_mm_loadu_si128(block.as_ptr() as *const _)),
+                // Mask off the upper 128 bits (undefined by _mm256_castsi128_si256).
+                _mm256_set_epi64x(0, 0, -1, -1),
+            ),
+            // Set the high bit.
+            _mm256_set_epi64x(0, 1, 0, 0),
+        ))
     }
 
     /// Aligns a partial Poly1305 block at 26-bit boundaries within 32-bit words.
     ///
     /// Assumes that the high bit is already correctly set for the partial block.
-    pub(super) fn from_partial_block(block: &Block) -> Self {
-        unsafe {
-            Aligned130::new(_mm256_and_si256(
-                // Load the 128-bit block into a 256-bit vector.
-                _mm256_castsi128_si256(_mm_loadu_si128(block.as_ptr() as *const _)),
-                // Mask off the upper 128 bits (undefined by _mm256_castsi128_si256).
-                _mm256_set_epi64x(0, 0, -1, -1),
-            ))
-        }
+    #[target_feature(enable = "avx2")]
+    pub(super) unsafe fn from_partial_block(block: &Block) -> Self {
+        Aligned130::new(_mm256_and_si256(
+            // Load the 128-bit block into a 256-bit vector.
+            _mm256_castsi128_si256(_mm_loadu_si128(block.as_ptr() as *const _)),
+            // Mask off the upper 128 bits (undefined by _mm256_castsi128_si256).
+            _mm256_set_epi64x(0, 0, -1, -1),
+        ))
     }
 
     /// Splits a 130-bit integer into five 26-bit limbs.
+    #[target_feature(enable = "avx2")]
     unsafe fn new(x: __m256i) -> Self {
         // Starting from a 130-bit integer split across 32-bit words:
         //     [0, 0, 0, [0; 30] || x4[2..0], x3, x2, x1, x0]
@@ -450,62 +448,9 @@ impl Unreduced130 {
     pub(super) fn reduce(self) -> Aligned130 {
         unsafe {
             // Starting with the following limb layout:
-            // x.v1 = [  _,   _,   _, t_4]
-            // x.v0 = [t_3, t_2, t_1, t_0]
-            let x = self;
-
-            // Carry chain
-            let adc = |v1: __m256i, v0: __m256i| -> (__m256i, __m256i) {
-                //   [t_3,       t_2 % 2^26, t_1 % 2^26, t_0 % 2^26]
-                // + [t_2 >> 26, t_1 >>  26, t_0 >>  26,  0        ]
-                // = [
-                //     t_3        + t_2 >> 26,
-                //     t_2 % 2^26 + t_1 >> 26,
-                //     t_1 % 2^26 + t_0 >> 26,
-                //     t_0 % 2^26,
-                // ]
-                let v0 = _mm256_add_epi64(
-                    _mm256_and_si256(v0, _mm256_set_epi64x(-1, 0x3ffffff, 0x3ffffff, 0x3ffffff)),
-                    _mm256_permute4x64_epi64(
-                        _mm256_srlv_epi64(v0, _mm256_set_epi64x(64, 26, 26, 26)),
-                        set02(2, 1, 0, 3),
-                    ),
-                );
-                //   [_, _, _, t_4]
-                // + [
-                //     (t_2 % 2^26 + t_1 >> 26) >> 26,
-                //     (t_1 % 2^26 + t_0 >> 26) >> 26,
-                //     (t_0 % 2^26            ) >> 26,
-                //     (t_3        + t_2 >> 26) >> 26,
-                // ]
-                // = [_, _, _, t_4 + (t_3 + t_2 >> 26) >> 26]
-                let v1 = _mm256_add_epi64(
-                    v1,
-                    _mm256_permute4x64_epi64(_mm256_srli_epi64(v0, 26), set02(2, 1, 0, 3)),
-                );
-                // [
-                //     (t_3 + t_2 >> 26) % 2^26,
-                //     t_2 % 2^26 + t_1 >> 26,
-                //     t_1 % 2^26 + t_0 >> 26,
-                //     t_0 % 2^26,
-                // ]
-                let chain = _mm256_and_si256(v0, _mm256_set_epi64x(0x3ffffff, -1, -1, -1));
-
-                (v1, chain)
-            };
-
-            // Reduction modulus 2^130-5
-            let red = |v1: __m256i, v0: __m256i| -> (__m256i, __m256i) {
-                // t = [0, 0, 0, t_4 >> 26]
-                let t = _mm256_srlv_epi64(v1, _mm256_set_epi64x(64, 64, 64, 26));
-                // v0 + 5·t = [t_3, t_2, t_1, t_0 + 5·(t_4 >> 26)]
-                let red_0 = _mm256_add_epi64(_mm256_add_epi64(v0, t), _mm256_slli_epi64(t, 2));
-                // [0, 0, 0, t_4 % 2^26]
-                let red_1 = _mm256_and_si256(v1, _mm256_set_epi64x(0, 0, 0, 0x3ffffff));
-                (red_1, red_0)
-            };
-
-            let (red_1, red_0) = adc(x.v1, x.v0);
+            // self.v1 = [  _,   _,   _, t_4]
+            // self.v0 = [t_3, t_2, t_1, t_0]
+            let (red_1, red_0) = adc(self.v1, self.v0);
             let (red_1, red_0) = red(red_1, red_0);
             let (red_1, red_0) = adc(red_1, red_0);
 
@@ -517,6 +462,59 @@ impl Unreduced130 {
             ))
         }
     }
+}
+
+/// Carry chain
+#[inline(always)]
+unsafe fn adc(v1: __m256i, v0: __m256i) -> (__m256i, __m256i) {
+    //   [t_3,       t_2 % 2^26, t_1 % 2^26, t_0 % 2^26]
+    // + [t_2 >> 26, t_1 >>  26, t_0 >>  26,  0        ]
+    // = [
+    //     t_3        + t_2 >> 26,
+    //     t_2 % 2^26 + t_1 >> 26,
+    //     t_1 % 2^26 + t_0 >> 26,
+    //     t_0 % 2^26,
+    // ]
+    let v0 = _mm256_add_epi64(
+        _mm256_and_si256(v0, _mm256_set_epi64x(-1, 0x3ffffff, 0x3ffffff, 0x3ffffff)),
+        _mm256_permute4x64_epi64(
+            _mm256_srlv_epi64(v0, _mm256_set_epi64x(64, 26, 26, 26)),
+            set02(2, 1, 0, 3),
+        ),
+    );
+    //   [_, _, _, t_4]
+    // + [
+    //     (t_2 % 2^26 + t_1 >> 26) >> 26,
+    //     (t_1 % 2^26 + t_0 >> 26) >> 26,
+    //     (t_0 % 2^26            ) >> 26,
+    //     (t_3        + t_2 >> 26) >> 26,
+    // ]
+    // = [_, _, _, t_4 + (t_3 + t_2 >> 26) >> 26]
+    let v1 = _mm256_add_epi64(
+        v1,
+        _mm256_permute4x64_epi64(_mm256_srli_epi64(v0, 26), set02(2, 1, 0, 3)),
+    );
+    // [
+    //     (t_3 + t_2 >> 26) % 2^26,
+    //     t_2 % 2^26 + t_1 >> 26,
+    //     t_1 % 2^26 + t_0 >> 26,
+    //     t_0 % 2^26,
+    // ]
+    let chain = _mm256_and_si256(v0, _mm256_set_epi64x(0x3ffffff, -1, -1, -1));
+
+    (v1, chain)
+}
+
+/// Reduction modulus 2^130-5
+#[inline(always)]
+unsafe fn red(v1: __m256i, v0: __m256i) -> (__m256i, __m256i) {
+    // t = [0, 0, 0, t_4 >> 26]
+    let t = _mm256_srlv_epi64(v1, _mm256_set_epi64x(64, 64, 64, 26));
+    // v0 + 5·t = [t_3, t_2, t_1, t_0 + 5·(t_4 >> 26)]
+    let red_0 = _mm256_add_epi64(_mm256_add_epi64(v0, t), _mm256_slli_epi64(t, 2));
+    // [0, 0, 0, t_4 % 2^26]
+    let red_1 = _mm256_and_si256(v1, _mm256_set_epi64x(0, 0, 0, 0x3ffffff));
+    (red_1, red_0)
 }
 
 /// A pair of `Aligned130`s.
@@ -542,7 +540,8 @@ impl Aligned2x130 {
     /// # Panics
     ///
     /// Panics if `src.len() < 32`.
-    pub(super) fn from_blocks(src: &[Block; 2]) -> Self {
+    #[target_feature(enable = "avx2")]
+    pub(super) unsafe fn from_blocks(src: &[Block; 2]) -> Self {
         Aligned2x130 {
             v0: Aligned130::from_block(&src[0]),
             v1: Aligned130::from_block(&src[1]),
@@ -857,30 +856,29 @@ pub(super) struct SpacedMultiplier4x130 {
 
 impl SpacedMultiplier4x130 {
     /// Returns `(multipler, R^4)` given `(R^1, R^2)`.
-    pub(super) fn new(
+    #[target_feature(enable = "avx2")]
+    pub(super) unsafe fn new(
         r1: PrecomputedMultiplier,
         r2: PrecomputedMultiplier,
     ) -> (Self, PrecomputedMultiplier) {
         let r3 = (r2 * r1).reduce();
         let r4 = (r2 * r2).reduce();
 
-        let m = unsafe {
-            // v0 = [r2_4, r2_3, r2_1, r3_4, r3_3, r3_2, r3_1, r3_0]
-            let v0 = _mm256_blend_epi32(
-                r3.0,
-                _mm256_permutevar8x32_epi32(r2.a, _mm256_set_epi32(4, 3, 1, 0, 0, 0, 0, 0)),
-                0b11100000,
-            );
+        // v0 = [r2_4, r2_3, r2_1, r3_4, r3_3, r3_2, r3_1, r3_0]
+        let v0 = _mm256_blend_epi32(
+            r3.0,
+            _mm256_permutevar8x32_epi32(r2.a, _mm256_set_epi32(4, 3, 1, 0, 0, 0, 0, 0)),
+            0b11100000,
+        );
 
-            // v1 = [r2_4, r2_2, r2_0, r4_4, r4_3, r4_2, r4_1, r4_0]
-            let v1 = _mm256_blend_epi32(
-                r4.0,
-                _mm256_permutevar8x32_epi32(r2.a, _mm256_set_epi32(4, 2, 0, 0, 0, 0, 0, 0)),
-                0b11100000,
-            );
+        // v1 = [r2_4, r2_2, r2_0, r4_4, r4_3, r4_2, r4_1, r4_0]
+        let v1 = _mm256_blend_epi32(
+            r4.0,
+            _mm256_permutevar8x32_epi32(r2.a, _mm256_set_epi32(4, 2, 0, 0, 0, 0, 0, 0)),
+            0b11100000,
+        );
 
-            SpacedMultiplier4x130 { v0, v1, r1 }
-        };
+        let m = SpacedMultiplier4x130 { v0, v1, r1 };
 
         (m, r4.into())
     }
@@ -890,7 +888,7 @@ impl SpacedMultiplier4x130 {
 ///
 /// Unlike `Aligned2x130` which wraps two `Aligned130`s, this struct represents the four
 /// integers as 20 limbs spread across three 256-bit vectors.
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub(super) struct Aligned4x130 {
     v0: __m256i,
     v1: __m256i,
@@ -970,120 +968,119 @@ impl Aligned4x130 {
     /// # Panics
     ///
     /// Panics if `src.len() < 64`.
-    pub(super) fn from_blocks(src: &[Block; 4]) -> Self {
-        unsafe {
-            // 26-bit mask on each 32-bit word.
-            let mask_26 = _mm256_set1_epi32(0x3ffffff);
-            // Sets bit 24 of each 32-bit word.
-            let set_hibit = _mm256_set1_epi32(1 << 24);
+    #[target_feature(enable = "avx2")]
+    pub(super) unsafe fn from_blocks(src: &[Block; 4]) -> Self {
+        // 26-bit mask on each 32-bit word.
+        let mask_26 = _mm256_set1_epi32(0x3ffffff);
+        // Sets bit 24 of each 32-bit word.
+        let set_hibit = _mm256_set1_epi32(1 << 24);
 
-            // - Load the four blocks into the following 32-bit word layout:
-            //      [b33, b32, b31, b30, b23, b22, b21, b20]
-            //      [b13, b12, b11, b10, b03, b02, b01, b00]
-            //
-            // - Unpack the upper and lower 64 bits:
-            //      [b33, b32, b13, b12, b23, b22, b03, b02]
-            //      [b31, b30, b11, b10, b21, b20, b01, b00]
-            //
-            // - Swap the middle two 64-bit words:
-            // a0 = [b33, b32, b23, b22, b13, b12, b03, b02]
-            // a1 = [b31, b30, b21, b20, b11, b10, b01, b00]
-            let (lo, hi) = src.split_at(2);
-            let blocks_23 = _mm256_loadu_si256(hi.as_ptr() as *const _);
-            let blocks_01 = _mm256_loadu_si256(lo.as_ptr() as *const _);
-            let a0 = _mm256_permute4x64_epi64(
-                _mm256_unpackhi_epi64(blocks_01, blocks_23),
-                set02(3, 1, 2, 0),
-            );
-            let a1 = _mm256_permute4x64_epi64(
-                _mm256_unpacklo_epi64(blocks_01, blocks_23),
-                set02(3, 1, 2, 0),
-            );
+        // - Load the four blocks into the following 32-bit word layout:
+        //      [b33, b32, b31, b30, b23, b22, b21, b20]
+        //      [b13, b12, b11, b10, b03, b02, b01, b00]
+        //
+        // - Unpack the upper and lower 64 bits:
+        //      [b33, b32, b13, b12, b23, b22, b03, b02]
+        //      [b31, b30, b11, b10, b21, b20, b01, b00]
+        //
+        // - Swap the middle two 64-bit words:
+        // a0 = [b33, b32, b23, b22, b13, b12, b03, b02]
+        // a1 = [b31, b30, b21, b20, b11, b10, b01, b00]
+        let (lo, hi) = src.split_at(2);
+        let blocks_23 = _mm256_loadu_si256(hi.as_ptr() as *const _);
+        let blocks_01 = _mm256_loadu_si256(lo.as_ptr() as *const _);
+        let a0 = _mm256_permute4x64_epi64(
+            _mm256_unpackhi_epi64(blocks_01, blocks_23),
+            set02(3, 1, 2, 0),
+        );
+        let a1 = _mm256_permute4x64_epi64(
+            _mm256_unpacklo_epi64(blocks_01, blocks_23),
+            set02(3, 1, 2, 0),
+        );
 
-            // - Take the upper 24 bits of each 64-bit word in a0, and set the high bits:
-            // v2 = [
-            //     [0; 7] || 1 || [0; 31] || 1 || b33[32..8],
-            //     [0; 7] || 1 || [0; 31] || 1 || b23[32..8],
-            //     [0; 7] || 1 || [0; 31] || 1 || b13[32..8],
-            //     [0; 7] || 1 || [0; 31] || 1 || b03[32..8],
-            // ]
-            let v2 = _mm256_or_si256(_mm256_srli_epi64(a0, 40), set_hibit);
+        // - Take the upper 24 bits of each 64-bit word in a0, and set the high bits:
+        // v2 = [
+        //     [0; 7] || 1 || [0; 31] || 1 || b33[32..8],
+        //     [0; 7] || 1 || [0; 31] || 1 || b23[32..8],
+        //     [0; 7] || 1 || [0; 31] || 1 || b13[32..8],
+        //     [0; 7] || 1 || [0; 31] || 1 || b03[32..8],
+        // ]
+        let v2 = _mm256_or_si256(_mm256_srli_epi64(a0, 40), set_hibit);
 
-            // - Combine the lower 46 bits of each 64-bit word in a0 with the upper 18
-            //   bits of each 64-bit word in a1:
-            // a2 = [
-            //     b33[14..0] || b32 || b31[32..14],
-            //     b23[14..0] || b22 || b21[32..14],
-            //     b13[14..0] || b12 || b11[32..14],
-            //     b03[14..0] || b02 || b01[32..14],
-            // ]
-            let a2 = _mm256_or_si256(_mm256_srli_epi64(a1, 46), _mm256_slli_epi64(a0, 18));
+        // - Combine the lower 46 bits of each 64-bit word in a0 with the upper 18
+        //   bits of each 64-bit word in a1:
+        // a2 = [
+        //     b33[14..0] || b32 || b31[32..14],
+        //     b23[14..0] || b22 || b21[32..14],
+        //     b13[14..0] || b12 || b11[32..14],
+        //     b03[14..0] || b02 || b01[32..14],
+        // ]
+        let a2 = _mm256_or_si256(_mm256_srli_epi64(a1, 46), _mm256_slli_epi64(a0, 18));
 
-            // - Take the upper 38 bits of each 64-bit word in a1:
-            // [
-            //     [0; 26] || b31 || b30[32..26],
-            //     [0; 26] || b21 || b20[32..26],
-            //     [0; 26] || b11 || b10[32..26],
-            //     [0; 26] || b01 || b00[32..26],
-            // ]
-            // - Blend in a2 on 32-bit words with alternating [a2 a1 ..] control pattern:
-            // [
-            //     b33[14..0] || b32[32..14] || b31[26..0] || b30[32..26],
-            //     b23[14..0] || b22[32..14] || b21[26..0] || b20[32..26],
-            //     b13[14..0] || b12[32..14] || b11[26..0] || b10[32..26],
-            //     b03[14..0] || b02[32..14] || b01[26..0] || b00[32..26],
-            // ]
-            // - Apply the 26-bit mask to each 32-bit word:
-            // v1 = [
-            //     [0; 6] || b33[8..0] || b32[32..14] || [0; 6] || b31[20..0] || b30[32..26],
-            //     [0; 6] || b23[8..0] || b22[32..14] || [0; 6] || b21[20..0] || b20[32..26],
-            //     [0; 6] || b13[8..0] || b12[32..14] || [0; 6] || b11[20..0] || b10[32..26],
-            //     [0; 6] || b03[8..0] || b02[32..14] || [0; 6] || b01[20..0] || b00[32..26],
-            // ]
-            let v1 = _mm256_and_si256(
-                _mm256_blend_epi32(_mm256_srli_epi64(a1, 26), a2, 0xAA),
-                mask_26,
-            );
+        // - Take the upper 38 bits of each 64-bit word in a1:
+        // [
+        //     [0; 26] || b31 || b30[32..26],
+        //     [0; 26] || b21 || b20[32..26],
+        //     [0; 26] || b11 || b10[32..26],
+        //     [0; 26] || b01 || b00[32..26],
+        // ]
+        // - Blend in a2 on 32-bit words with alternating [a2 a1 ..] control pattern:
+        // [
+        //     b33[14..0] || b32[32..14] || b31[26..0] || b30[32..26],
+        //     b23[14..0] || b22[32..14] || b21[26..0] || b20[32..26],
+        //     b13[14..0] || b12[32..14] || b11[26..0] || b10[32..26],
+        //     b03[14..0] || b02[32..14] || b01[26..0] || b00[32..26],
+        // ]
+        // - Apply the 26-bit mask to each 32-bit word:
+        // v1 = [
+        //     [0; 6] || b33[8..0] || b32[32..14] || [0; 6] || b31[20..0] || b30[32..26],
+        //     [0; 6] || b23[8..0] || b22[32..14] || [0; 6] || b21[20..0] || b20[32..26],
+        //     [0; 6] || b13[8..0] || b12[32..14] || [0; 6] || b11[20..0] || b10[32..26],
+        //     [0; 6] || b03[8..0] || b02[32..14] || [0; 6] || b01[20..0] || b00[32..26],
+        // ]
+        let v1 = _mm256_and_si256(
+            _mm256_blend_epi32(_mm256_srli_epi64(a1, 26), a2, 0xAA),
+            mask_26,
+        );
 
-            // - Take the lower 38 bits of each 64-bit word in a2:
-            // [
-            //     b32[20..0] || b31[32..14] || [0; 26],
-            //     b22[20..0] || b21[32..14] || [0; 26],
-            //     b12[20..0] || b11[32..14] || [0; 26],
-            //     b02[20..0] || b01[32..14] || [0; 26],
-            // ]
-            // - Blend in a1 on 32-bit words with alternating [a2 a1 ..] control pattern:
-            // [
-            //     b32[20..0] || b31[32..20] || b30,
-            //     b22[20..0] || b21[32..20] || b20,
-            //     b12[20..0] || b11[32..20] || b10,
-            //     b02[20..0] || b01[32..20] || b00,
-            // ]
-            // - Apply the 26-bit mask to each 32-bit word:
-            // v0 = [
-            //     [0; 6] || b32[14..0] || b31[32..20] || [0; 6] || b30[26..0],
-            //     [0; 6] || b22[14..0] || b21[32..20] || [0; 6] || b20[26..0],
-            //     [0; 6] || b12[14..0] || b11[32..20] || [0; 6] || b10[26..0],
-            //     [0; 6] || b02[14..0] || b01[32..20] || [0; 6] || b00[26..0],
-            // ]
-            let v0 = _mm256_and_si256(
-                _mm256_blend_epi32(a1, _mm256_slli_epi64(a2, 26), 0xAA),
-                mask_26,
-            );
+        // - Take the lower 38 bits of each 64-bit word in a2:
+        // [
+        //     b32[20..0] || b31[32..14] || [0; 26],
+        //     b22[20..0] || b21[32..14] || [0; 26],
+        //     b12[20..0] || b11[32..14] || [0; 26],
+        //     b02[20..0] || b01[32..14] || [0; 26],
+        // ]
+        // - Blend in a1 on 32-bit words with alternating [a2 a1 ..] control pattern:
+        // [
+        //     b32[20..0] || b31[32..20] || b30,
+        //     b22[20..0] || b21[32..20] || b20,
+        //     b12[20..0] || b11[32..20] || b10,
+        //     b02[20..0] || b01[32..20] || b00,
+        // ]
+        // - Apply the 26-bit mask to each 32-bit word:
+        // v0 = [
+        //     [0; 6] || b32[14..0] || b31[32..20] || [0; 6] || b30[26..0],
+        //     [0; 6] || b22[14..0] || b21[32..20] || [0; 6] || b20[26..0],
+        //     [0; 6] || b12[14..0] || b11[32..20] || [0; 6] || b10[26..0],
+        //     [0; 6] || b02[14..0] || b01[32..20] || [0; 6] || b00[26..0],
+        // ]
+        let v0 = _mm256_and_si256(
+            _mm256_blend_epi32(a1, _mm256_slli_epi64(a2, 26), 0xAA),
+            mask_26,
+        );
 
-            // The result:
-            // v2 = [                         v1 = [                                   v0 = [
-            //     [0; 7] || 1 ||    [0; 24],     [0; 6] || b33[ 8..0] || b32[32..14],     [0; 6] || b32[14..0] || b31[32..20],
-            //     [0; 7] || 1 || b33[32..8],     [0; 6] || b31[20..0] || b30[32..26],     [0; 6] || b30[26..0],
-            //     [0; 7] || 1 ||    [0; 24],     [0; 6] || b23[ 8..0] || b22[32..14],     [0; 6] || b22[14..0] || b21[32..20],
-            //     [0; 7] || 1 || b23[32..8],     [0; 6] || b21[20..0] || b20[32..26],     [0; 6] || b20[26..0],
-            //     [0; 7] || 1 ||    [0; 24],     [0; 6] || b13[ 8..0] || b12[32..14],     [0; 6] || b12[14..0] || b11[32..20],
-            //     [0; 7] || 1 || b13[32..8],     [0; 6] || b11[20..0] || b10[32..26],     [0; 6] || b10[26..0],
-            //     [0; 7] || 1 ||    [0; 24],     [0; 6] || b03[ 8..0] || b02[32..14],     [0; 6] || b02[14..0] || b01[32..20],
-            //     [0; 7] || 1 || b03[32..8],     [0; 6] || b01[20..0] || b00[32..26],     [0; 6] || b00[26..0],
-            // ]                              ]                                        ]
-            Aligned4x130 { v0, v1, v2 }
-        }
+        // The result:
+        // v2 = [                         v1 = [                                   v0 = [
+        //     [0; 7] || 1 ||    [0; 24],     [0; 6] || b33[ 8..0] || b32[32..14],     [0; 6] || b32[14..0] || b31[32..20],
+        //     [0; 7] || 1 || b33[32..8],     [0; 6] || b31[20..0] || b30[32..26],     [0; 6] || b30[26..0],
+        //     [0; 7] || 1 ||    [0; 24],     [0; 6] || b23[ 8..0] || b22[32..14],     [0; 6] || b22[14..0] || b21[32..20],
+        //     [0; 7] || 1 || b23[32..8],     [0; 6] || b21[20..0] || b20[32..26],     [0; 6] || b20[26..0],
+        //     [0; 7] || 1 ||    [0; 24],     [0; 6] || b13[ 8..0] || b12[32..14],     [0; 6] || b12[14..0] || b11[32..20],
+        //     [0; 7] || 1 || b13[32..8],     [0; 6] || b11[20..0] || b10[32..26],     [0; 6] || b10[26..0],
+        //     [0; 7] || 1 ||    [0; 24],     [0; 6] || b03[ 8..0] || b02[32..14],     [0; 6] || b02[14..0] || b01[32..20],
+        //     [0; 7] || 1 || b03[32..8],     [0; 6] || b01[20..0] || b00[32..26],     [0; 6] || b00[26..0],
+        // ]                              ]                                        ]
+        Aligned4x130 { v0, v1, v2 }
     }
 }
 
@@ -1116,7 +1113,7 @@ impl Mul<PrecomputedMultiplier> for &Aligned4x130 {
             // x.v0 = [  x32,   x30,   x22,   x20,   x12,   x10,   x02,   x00]
             // y =    [5·r_4, 5·r_3, 5·r_2,   r_4,   r_3,   r_2,   r_1,   r_0]
             // z =    [5·r_1, 5·r_1, 5·r_1, 5·r_1, 5·r_1, 5·r_1, 5·r_1, 5·r_1]
-            let mut x = self.clone();
+            let mut x = *self;
             let y = other.a;
             let z = other.a_5;
 

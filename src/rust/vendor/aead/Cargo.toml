@@ -13,9 +13,9 @@
 [package]
 edition = "2018"
 name = "aead"
-version = "0.3.2"
+version = "0.4.3"
 authors = ["RustCrypto Developers"]
-description = "Traits for Authenticated Encryption with Associated Data (AEAD) algorithms"
+description = "Traits for Authenticated Encryption with Associated Data (AEAD) algorithms,\nsuch as AES-GCM as ChaCha20Poly1305, which provide a high-level API\n"
 documentation = "https://docs.rs/aead"
 readme = "README.md"
 keywords = ["crypto", "encryption"]
@@ -34,11 +34,16 @@ version = "0.14"
 default-features = false
 
 [dependencies.heapless]
-version = "0.5"
+version = "0.7"
+optional = true
+default-features = false
+
+[dependencies.rand_core]
+version = "0.6"
 optional = true
 
 [features]
 alloc = []
-default = ["alloc"]
 dev = ["blobby"]
-std = ["alloc"]
+std = ["alloc", "rand_core/std"]
+stream = []

@@ -1,21 +1,295 @@
 //! Tests for ChaCha20 (IETF and "djb" versions) as well as XChaCha20
 
+#![cfg(feature = "cipher")]
+
 use chacha20::ChaCha20;
-use stream_cipher::{new_seek_test, new_sync_test};
 
 // IETF version of ChaCha20 (96-bit nonce)
-new_sync_test!(chacha20_core, ChaCha20, "chacha20");
-new_seek_test!(chacha20_seek, ChaCha20);
+cipher::stream_cipher_test!(chacha20_core, ChaCha20, "chacha20");
+cipher::stream_cipher_seek_test!(chacha20_seek, ChaCha20);
 
-#[cfg(feature = "xchacha20")]
+mod overflow {
+    use cipher::{NewCipher, StreamCipher, StreamCipherSeek};
+
+    const OFFSET_256GB: u64 = 256u64 << 30;
+    const OFFSET_256PB: u64 = 256u64 << 50;
+    const OFFSET_1ZB: u128 = (64u128) << 64;
+
+    #[test]
+    fn bad_overflow_check1() {
+        let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_256GB - 1)
+            .expect("Couldn't seek to nearly 256GB");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt the last byte of 256GB");
+        assert_eq!(cipher.try_current_pos::<u64>().unwrap(), OFFSET_256GB);
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect_err("Could encrypt past the last byte of 256GB");
+    }
+
+    #[test]
+    fn bad_overflow_check2() {
+        let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_256GB - 1)
+            .expect("Couldn't seek to nearly 256GB");
+        let mut data = [0u8; 2];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect_err("Could encrypt over the 256GB boundary");
+    }
+
+    #[test]
+    fn bad_overflow_check3() {
+        let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_256GB - 1)
+            .expect("Couldn't seek to nearly 256GB");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt the last byte of 256GB");
+        assert_eq!(cipher.try_current_pos::<u64>().unwrap(), OFFSET_256GB);
+        let mut data = [0u8; 63];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect_err("Could encrypt past the last byte of 256GB");
+    }
+
+    #[test]
+    fn bad_overflow_check4() {
+        let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_256GB - 1)
+            .expect("Couldn't seek to nearly 256GB");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt the last byte of 256GB");
+        assert_eq!(cipher.try_current_pos::<u64>().unwrap(), OFFSET_256GB);
+        let mut data = [0u8; 64];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect_err("Could encrypt past the last byte of 256GB");
+    }
+
+    #[test]
+    fn bad_overflow_check5() {
+        let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_256GB - 1)
+            .expect("Couldn't seek to nearly 256GB");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt the last byte of 256GB");
+        assert_eq!(cipher.try_current_pos::<u64>().unwrap(), OFFSET_256GB);
+        let mut data = [0u8; 65];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect_err("Could encrypt past the last byte of 256GB");
+    }
+
+    #[test]
+    fn bad_overflow_check6() {
+        let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_256GB)
+            .expect_err("Could seek to 256GB");
+    }
+
+    #[test]
+    fn bad_overflow_check7() {
+        let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
+        if let Ok(()) = cipher.try_seek(OFFSET_256GB + 63) {
+            let mut data = [0u8; 1];
+            cipher
+                .try_apply_keystream(&mut data)
+                .expect_err("Could encrypt the 64th byte past the 256GB boundary");
+        }
+    }
+
+    #[test]
+    fn xchacha_256gb() {
+        let mut cipher = chacha20::XChaCha20::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_256GB - 1)
+            .expect("Couldn't seek to nearly 256GB");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt the last byte of 256GB");
+        assert_eq!(cipher.try_current_pos::<u64>().unwrap(), OFFSET_256GB);
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt past the last byte of 256GB");
+    }
+
+    #[test]
+    fn xchacha_upper_limit() {
+        let mut cipher = chacha20::XChaCha20::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_1ZB - 1)
+            .expect("Couldn't seek to nearly 1 zebibyte");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt the last byte of 1 zebibyte");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect_err("Could encrypt past 1 zebibyte");
+    }
+
+    #[test]
+    fn xchacha_has_a_big_counter() {
+        let mut cipher = chacha20::XChaCha20::new(&Default::default(), &Default::default());
+        cipher.try_seek(OFFSET_256PB).expect("Could seek to 256PB");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt the next byte after 256PB");
+    }
+
+    #[cfg(feature = "legacy")]
+    #[test]
+    fn legacy_256gb() {
+        let mut cipher = chacha20::ChaCha20Legacy::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_256GB - 1)
+            .expect("Couldn't seek to nearly 256GB");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt the last byte of 256GB");
+        assert_eq!(cipher.try_current_pos::<u64>().unwrap(), OFFSET_256GB);
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt past the last byte of 256GB");
+    }
+
+    #[cfg(feature = "legacy")]
+    #[test]
+    fn legacy_upper_limit() {
+        let mut cipher = chacha20::ChaCha20Legacy::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_1ZB - 1)
+            .expect("Couldn't seek to nearly 1 zebibyte");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt the last byte of 1 zebibyte");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect_err("Could encrypt past 1 zebibyte");
+    }
+
+    #[cfg(feature = "legacy")]
+    #[test]
+    fn legacy_has_a_big_counter() {
+        let mut cipher = chacha20::ChaCha20Legacy::new(&Default::default(), &Default::default());
+        cipher.try_seek(OFFSET_256PB).expect("Could seek to 256PB");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt the next byte after 256PB");
+    }
+}
+
+mod chacha20test {
+    use chacha20::{
+        cipher::{NewCipher, StreamCipher},
+        ChaCha20, Key, Nonce,
+    };
+    use hex_literal::hex;
+
+    //
+    // ChaCha20 test vectors from:
+    // <https://datatracker.ietf.org/doc/html/rfc8439#section-2.4.2>
+    //
+
+    const KEY: [u8; 32] = hex!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
+
+    const IV: [u8; 12] = hex!("000000000000004a00000000");
+
+    const PLAINTEXT: [u8; 114] = hex!(
+        "
+        4c616469657320616e642047656e746c
+        656d656e206f662074686520636c6173
+        73206f66202739393a20496620492063
+        6f756c64206f6666657220796f75206f
+        6e6c79206f6e652074697020666f7220
+        746865206675747572652c2073756e73
+        637265656e20776f756c642062652069
+        742e
+        "
+    );
+
+    const KEYSTREAM: [u8; 114] = hex!(
+        "
+        224f51f3401bd9e12fde276fb8631ded8c131f823d2c06
+        e27e4fcaec9ef3cf788a3b0aa372600a92b57974cded2b
+        9334794cba40c63e34cdea212c4cf07d41b769a6749f3f
+        630f4122cafe28ec4dc47e26d4346d70b98c73f3e9c53a
+        c40c5945398b6eda1a832c89c167eacd901d7e2bf363
+        "
+    );
+
+    const CIPHERTEXT: [u8; 114] = hex!(
+        "
+        6e2e359a2568f98041ba0728dd0d6981
+        e97e7aec1d4360c20a27afccfd9fae0b
+        f91b65c5524733ab8f593dabcd62b357
+        1639d624e65152ab8f530c359f0861d8
+        07ca0dbf500d6a6156a38e088a22b65e
+        52bc514d16ccf806818ce91ab7793736
+        5af90bbf74a35be6b40b8eedf2785e42
+        874d
+        "
+    );
+
+    #[test]
+    fn chacha20_keystream() {
+        let mut cipher = ChaCha20::new(&Key::from(KEY), &Nonce::from(IV));
+
+        // The test vectors omit the first 64-bytes of the keystream
+        let mut prefix = [0u8; 64];
+        cipher.apply_keystream(&mut prefix);
+
+        let mut buf = [0u8; 114];
+        cipher.apply_keystream(&mut buf);
+        assert_eq!(&buf[..], &KEYSTREAM[..]);
+    }
+
+    #[test]
+    fn chacha20_encryption() {
+        let mut cipher = ChaCha20::new(&Key::from(KEY), &Nonce::from(IV));
+        let mut buf = PLAINTEXT.clone();
+
+        // The test vectors omit the first 64-bytes of the keystream
+        let mut prefix = [0u8; 64];
+        cipher.apply_keystream(&mut prefix);
+
+        cipher.apply_keystream(&mut buf);
+        assert_eq!(&buf[..], &CIPHERTEXT[..]);
+    }
+}
+
 #[rustfmt::skip]
 mod xchacha20 {
     use chacha20::{Key, XChaCha20, XNonce};
-    use stream_cipher::{NewStreamCipher, StreamCipher};
+    use cipher::{NewCipher, StreamCipher};
     use hex_literal::hex;
-    use stream_cipher::new_seek_test;
 
-    new_seek_test!(xchacha20_seek, XChaCha20);
+    cipher::stream_cipher_seek_test!(xchacha20_seek, XChaCha20);
 
     //
     // XChaCha20 test vectors from:
@@ -75,10 +349,10 @@ mod xchacha20 {
 
         // The test vectors omit the first 64-bytes of the keystream
         let mut prefix = [0u8; 64];
-        cipher.encrypt(&mut prefix);
+        cipher.apply_keystream(&mut prefix);
 
         let mut buf = [0u8; 304];
-        cipher.encrypt(&mut buf);
+        cipher.apply_keystream(&mut buf);
         assert_eq!(&buf[..], &KEYSTREAM[..]);
     }
 
@@ -89,9 +363,9 @@ mod xchacha20 {
 
         // The test vectors omit the first 64-bytes of the keystream
         let mut prefix = [0u8; 64];
-        cipher.encrypt(&mut prefix);
+        cipher.apply_keystream(&mut prefix);
 
-        cipher.encrypt(&mut buf);
+        cipher.apply_keystream(&mut buf);
         assert_eq!(&buf[..], &CIPHERTEXT[..]);
     }
 }
@@ -101,12 +375,11 @@ mod xchacha20 {
 #[rustfmt::skip]
 mod legacy {
     use chacha20::{ChaCha20Legacy, Key, LegacyNonce};
-    use stream_cipher::{new_seek_test, new_sync_test};
-    use stream_cipher::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
+    use cipher::{NewCipher, StreamCipher, StreamCipherSeek};
     use hex_literal::hex;
 
-    new_sync_test!(chacha20_legacy_core, ChaCha20Legacy, "chacha20-legacy");
-    new_seek_test!(chacha20_legacy_seek, ChaCha20Legacy);
+    cipher::stream_cipher_test!(chacha20_legacy_core, ChaCha20Legacy, "chacha20-legacy");
+    cipher::stream_cipher_seek_test!(chacha20_legacy_seek, ChaCha20Legacy);
 
     const KEY_LONG: [u8; 32] = hex!("
         0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20
@@ -136,8 +409,8 @@ mod legacy {
                     let mut buf = [0; 256];
 
                     cipher.seek(idx as u64);
-                    cipher.encrypt(&mut buf[idx..middle]);
-                    cipher.encrypt(&mut buf[middle..last]);
+                    cipher.apply_keystream(&mut buf[idx..middle]);
+                    cipher.apply_keystream(&mut buf[middle..last]);
 
                     for k in idx..last {
                         assert_eq!(buf[k], EXPECTED_LONG[k])

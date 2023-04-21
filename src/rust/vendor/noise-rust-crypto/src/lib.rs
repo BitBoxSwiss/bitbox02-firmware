@@ -209,7 +209,7 @@ impl Hash for Sha512 {
 
 #[cfg(feature = "use-blake2")]
 #[derive(Default, Clone)]
-pub struct Blake2s(blake2::Blake2s);
+pub struct Blake2s(blake2::Blake2s256);
 
 #[cfg(feature = "use-blake2")]
 impl Hash for Blake2s {
@@ -233,7 +233,7 @@ impl Hash for Blake2s {
 
 #[cfg(feature = "use-blake2")]
 #[derive(Default, Clone)]
-pub struct Blake2b(blake2::Blake2b);
+pub struct Blake2b(blake2::Blake2b512);
 
 #[cfg(feature = "use-blake2")]
 impl Hash for Blake2b {

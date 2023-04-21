@@ -23,7 +23,7 @@ where
     // Get the lifetime of a reference if its type matches the predicate.
     fn tyref_lifetime(ty: &syn::Type, pred: impl FnOnce(&syn::Type) -> bool) -> Option<syn::Lifetime> {
         if let syn::Type::Reference(p) = ty {
-            if pred(&*p.elem) {
+            if pred(&p.elem) {
                 return p.lifetime.clone()
             }
         }
@@ -75,7 +75,7 @@ where
                     if let syn::PathArguments::AngleBracketed(b) = &s.arguments {
                         if b.args.len() == 1 {
                             if let syn::GenericArgument::Type(syn::Type::Reference(ty)) = &b.args[0] {
-                                if pred(&*ty.elem) {
+                                if pred(&ty.elem) {
                                     return ty.lifetime.clone()
                                 }
                             }

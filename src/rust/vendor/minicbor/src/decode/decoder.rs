@@ -501,8 +501,8 @@ impl<'b> Decoder<'b> {
             match self.current()? {
                 UNSIGNED ..= 0x1b => { self.u64()?; }
                 SIGNED   ..= 0x3b => { self.int()?; }
-                BYTES    ..= 0x5f => { for _ in self.bytes_iter()? {} }
-                TEXT     ..= 0x7f => { for _ in self.str_iter()? {} }
+                BYTES    ..= 0x5f => { for v in self.bytes_iter()? { v?; } }
+                TEXT     ..= 0x7f => { for v in self.str_iter()? { v?; } }
                 ARRAY    ..= 0x9f =>
                     match self.array()? {
                         Some(0) => {}
@@ -608,8 +608,8 @@ impl<'b> Decoder<'b> {
             match self.current()? {
                 UNSIGNED ..= 0x1b => { self.u64()?; }
                 SIGNED   ..= 0x3b => { self.int()?; }
-                BYTES    ..= 0x5f => { for _ in self.bytes_iter()? {} }
-                TEXT     ..= 0x7f => { for _ in self.str_iter()? {} }
+                BYTES    ..= 0x5f => { for v in self.bytes_iter()? { v?; } }
+                TEXT     ..= 0x7f => { for v in self.str_iter()? { v?; } }
                 ARRAY    ..= 0x9f =>
                     if let Some(n) = self.array()? {
                         nrounds = nrounds.saturating_add(n)

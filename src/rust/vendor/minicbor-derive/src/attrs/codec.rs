@@ -70,6 +70,11 @@ impl CustomCodec {
         !matches!(self, CustomCodec::Encode(_))
     }
 
+    /// Is this a custom codec from `with`?
+    pub fn is_module(&self) -> bool {
+        matches!(self, CustomCodec::Module(..))
+    }
+
     /// Extract the encode function unless this `CustomCodec` does not declare one.
     pub fn to_encode_path(&self) -> Option<syn::ExprPath> {
         match self {
@@ -129,6 +134,18 @@ impl CustomCodec {
             }
             CustomCodec::Module(_, false) => None,
             CustomCodec::Encode(_)        => None
+        }
+    }
+
+    /// Extract the `cbor_len` function if possible.
+    pub fn to_cbor_len_path(&self) -> Option<syn::ExprPath> {
+        if let CustomCodec::Module(p, _) = self {
+            let mut p = p.clone();
+            let ident = syn::Ident::new("cbor_len", proc_macro2::Span::call_site());
+            p.path.segments.push(ident.into());
+            Some(p)
+        } else {
+            None
         }
     }
 }

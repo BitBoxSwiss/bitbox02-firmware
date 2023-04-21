@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "blake2"
-version = "0.10.5"
+version = "0.10.6"
 authors = ["RustCrypto Developers"]
 description = "BLAKE2 hash functions"
 documentation = "https://docs.rs/blake2"
@@ -47,4 +47,5 @@ reset = []
 simd = []
 simd_asm = ["simd_opt"]
 simd_opt = ["simd"]
+size_opt = []
 std = ["digest/std"]

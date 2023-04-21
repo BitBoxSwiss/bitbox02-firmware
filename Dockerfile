@@ -130,7 +130,7 @@ RUN rustup target add thumbv7em-none-eabi
 RUN rustup component add rustfmt
 RUN rustup component add clippy
 RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.24.3
-RUN CARGO_HOME=/opt/cargo cargo install bindgen-cli --version 0.64.0
+RUN CARGO_HOME=/opt/cargo cargo install bindgen-cli --version 0.65.1
 
 COPY tools/prost-build-proto prost-build-proto
 RUN CARGO_HOME=/opt/cargo cargo install --path prost-build-proto --locked

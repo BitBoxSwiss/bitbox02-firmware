@@ -18,8 +18,10 @@ use alloc::vec::Vec;
 /// Parses a utf-8 string out of a null terminated buffer. Returns `Err(())` if there
 /// is no null terminator or if the bytes before the null terminator is invalid UTF8.
 pub fn str_from_null_terminated(input: &[u8]) -> Result<&str, ()> {
-    let len = input.iter().position(|&c| c == 0).ok_or(())?;
-    core::str::from_utf8(&input[0..len]).or(Err(()))
+    core::ffi::CStr::from_bytes_until_nul(input)
+        .or(Err(()))?
+        .to_str()
+        .or(Err(()))
 }
 
 /// Parses a utf-8 string out of a null terminated buffer starting at `ptr`. Returns `Err(())` if

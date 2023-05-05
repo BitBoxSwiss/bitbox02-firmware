@@ -784,7 +784,7 @@ bool keystore_secp256k1_schnorr_bip86_sign(
     const secp256k1_context* ctx = wally_get_secp_context();
     uint8_t aux_rand[32] = {0};
     random_32_bytes(aux_rand);
-    if (secp256k1_schnorrsig_sign(ctx, sig64_out, msg32, &keypair, aux_rand) != 1) {
+    if (secp256k1_schnorrsig_sign32(ctx, sig64_out, msg32, &keypair, aux_rand) != 1) {
         return false;
     }
     return secp256k1_schnorrsig_verify(ctx, sig64_out, msg32, 32, &pubkey) == 1;

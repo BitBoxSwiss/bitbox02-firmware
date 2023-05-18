@@ -26,6 +26,8 @@ typedef struct {
     const char* title;
     // Restrict and autocomplete to this list of words. Set to NULL to allow arbitrary input.
     const char* const* wordlist;
+    // If true, the user can enter numbers only.
+    bool number_input;
     // Set to 0 if wordlist is NULL.
     size_t wordlist_size;
     // Mask the chars entered as `*`. For password input.

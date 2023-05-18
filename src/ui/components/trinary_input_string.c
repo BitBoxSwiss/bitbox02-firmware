@@ -64,6 +64,7 @@ typedef struct {
     // Can be NULL.
     const char* const* wordlist;
     size_t wordlist_size;
+    bool number_input;
     // Only applies if wordlist != NULL: determines if a word from the wordlist was entered.
     bool can_confirm;
     // Mask user input with '*'?
@@ -294,6 +295,8 @@ static void _set_alphabet(component_t* trinary_input_string)
         }
         // Since wordlist is sorted, charset is sorted automatically.
         trinary_input_char_set_alphabet(trinary_char, charset, 1);
+    } else if (data->number_input) {
+        trinary_input_char_set_alphabet(trinary_char, _digits, 1);
     } else {
         // Otherwise set the input charset based on the user selected keyboard mode.
         keyboard_mode_t keyboard_mode = keyboard_current_mode(data->keyboard_switch_component);
@@ -450,12 +453,17 @@ component_t* trinary_input_string_create(
     memset(component, 0, sizeof(component_t));
     memset(data, 0, sizeof(data_t));
 
+    if (params->number_input && data->wordlist != NULL) {
+        Abort("trinary_input_string: invalid params");
+    }
+
     data->confirm_cb = confirm_cb;
     data->confirm_callback_param = confirm_callback_param;
     data->cancel_cb = cancel_cb;
     data->cancel_callback_param = cancel_callback_param;
     data->wordlist = params->wordlist;
     data->wordlist_size = params->wordlist_size;
+    data->number_input = params->number_input;
     data->hide = params->hide;
     data->longtouch = params->longtouch;
     data->cancel_is_backbutton = params->cancel_is_backbutton;
@@ -481,7 +489,7 @@ component_t* trinary_input_string_create(
     data->confirm_component = confirm_button_create(params->longtouch, ICON_BUTTON_CHECK);
     ui_util_add_sub_component(component, data->confirm_component);
 
-    if (params->wordlist == NULL) {
+    if (params->wordlist == NULL && !params->number_input) {
         data->keyboard_switch_component =
             keyboard_switch_create(top_slider, params->special_chars, component);
         ui_util_add_sub_component(component, data->keyboard_switch_component);

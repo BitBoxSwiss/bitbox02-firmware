@@ -100,7 +100,7 @@ pub async fn process(pb::Bip85Request {}: &pb::Bip85Request) -> Result<Response,
 
     let mnemonic = keystore::bip85_bip39(num_words, index)?;
     let words: Vec<&str> = mnemonic.split(' ').collect();
-    mnemonic::show_mnemonic(&words).await?;
+    mnemonic::show_and_confirm_mnemonic(&words).await?;
 
     status::status("Finished", true).await;
 

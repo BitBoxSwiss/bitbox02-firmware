@@ -27,12 +27,54 @@ use core::cell::RefCell;
 
 use sha2::{Digest, Sha256};
 
+const NUM_RANDOM_WORDS: u8 = 5;
+
 fn as_str_vec(v: &[zeroize::Zeroizing<String>]) -> Vec<&str> {
     v.iter().map(|s| s.as_str()).collect()
 }
 
+/// Return 5 words from the BIP39 wordlist, 4 of which are random, and
+/// one of them is provided `word`. Returns the position of `word` in
+/// the list of words, and the lis of words.  This is used to test if
+/// the user wrote down the seed words properly.
+fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroizing<String>>) {
+    fn rand16() -> u16 {
+        let mut rand = [0u8; 32];
+        bitbox02::random::mcu_32_bytes(&mut rand);
+        ((rand[0] as u16) << 8) | (rand[1] as u16)
+    }
+
+    let index_word = (rand16() as u8) % length;
+    let mut picked_indices = Vec::new();
+    let result = (0..length)
+        .map(|i| {
+            // The correct word at the right index.
+            if i == index_word {
+                return zeroize::Zeroizing::new(word.into());
+            }
+
+            // A random word everywhere else.
+            // Loop until we get a unique word, we don't want repeated words in the list.
+            loop {
+                let idx = rand16() % bitbox02::keystore::BIP39_WORDLIST_LEN;
+                if picked_indices.contains(&idx) {
+                    continue;
+                };
+                let random_word = bitbox02::keystore::get_bip39_word(idx).unwrap();
+                if random_word.as_str() == word {
+                    continue;
+                }
+                picked_indices.push(idx);
+                return random_word;
+            }
+        })
+        .collect();
+
+    (index_word, result)
+}
+
 /// Displays all mnemonic words in a scroll-through screen.
-pub async fn show_mnemonic(words: &[&str]) -> Result<(), CancelError> {
+async fn show_mnemonic(words: &[&str]) -> Result<(), CancelError> {
     let result = RefCell::new(None);
     let mut component = bitbox02::ui::menu_create(bitbox02::ui::MenuParams {
         words,
@@ -49,7 +91,7 @@ pub async fn show_mnemonic(words: &[&str]) -> Result<(), CancelError> {
 }
 
 /// Displays the `choices` to the user, returning the index of the selected choice.
-pub async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelError> {
+async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelError> {
     let result = RefCell::new(None);
     let mut component = bitbox02::ui::menu_create(bitbox02::ui::MenuParams {
         words: choices,
@@ -63,6 +105,39 @@ pub async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelErr
         })),
     });
     with_cancel("Recovery\nwords", &mut component, &result).await
+}
+
+pub async fn show_and_confirm_mnemonic(words: &[&str]) -> Result<(), CancelError> {
+    // Part 1) Scroll through words
+    show_mnemonic(words).await?;
+
+    // Can only succeed due to `accept_only`.
+    let _ = confirm::confirm(&confirm::Params {
+        title: "",
+        body: "Please confirm\neach word",
+        accept_only: true,
+        accept_is_nextarrow: true,
+        ..Default::default()
+    })
+    .await;
+
+    // Part 2) Confirm words
+    for (word_idx, word) in words.iter().enumerate() {
+        let title = format!("{:02}", word_idx + 1);
+        let (correct_idx, choices) = create_random_unique_words(word, NUM_RANDOM_WORDS);
+        let mut choices: Vec<&str> = choices.iter().map(|c| c.as_ref()).collect();
+        choices.push("Back to\nrecovery words");
+        let back_idx = (choices.len() - 1) as u8;
+        loop {
+            match confirm_word(&choices, &title).await? {
+                selected_idx if selected_idx == correct_idx => break,
+                selected_idx if selected_idx == back_idx => show_mnemonic(words).await?,
+                _ => status("Incorrect word\nTry again", false).await,
+            }
+        }
+    }
+
+    Ok(())
 }
 
 /// Given 11/17/23 initial words, this function returns a list of candidate words for the last word,

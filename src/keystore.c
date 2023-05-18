@@ -36,15 +36,20 @@
 
 // Change this ONLY via keystore_unlock() or keystore_lock()
 static bool _is_unlocked_device = false;
+// Stores a random key after unlock which, after stretching, is used to encrypt the retained seed.
 static uint8_t _unstretched_retained_seed_encryption_key[32] = {0};
 // Must be defined if is_unlocked is true. ONLY ACCESS THIS WITH keystore_copy_seed().
+// Stores the encrypted seed after unlock.
 static uint8_t _retained_seed_encrypted[KEYSTORE_MAX_SEED_LENGTH + 64] = {0};
 static size_t _retained_seed_encrypted_len = 0;
 
 // Change this ONLY via keystore_unlock_bip39().
 static bool _is_unlocked_bip39 = false;
+// Stores a random keyy after bip39-unlock which, after stretching, is used to encrypt the retained
+// bip39 seed.
 static uint8_t _unstretched_retained_bip39_seed_encryption_key[32] = {0};
 // Must be defined if _is_unlocked is true. ONLY ACCESS THIS WITH _copy_bip39_seed().
+// Stores the encrypted BIP-39 seed after bip39-unlock.
 static uint8_t _retained_bip39_seed_encrypted[64 + 64] = {0};
 static size_t _retained_bip39_seed_encrypted_len = 0;
 

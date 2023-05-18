@@ -307,6 +307,20 @@ pub fn get_ed25519_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     }
 }
 
+pub fn bip85_bip39(words: u32, index: u32) -> Result<zeroize::Zeroizing<String>, ()> {
+    let mut mnemonic = zeroize::Zeroizing::new([0u8; 256]);
+    match unsafe {
+        bitbox02_sys::keystore_bip85_bip39(words, index, mnemonic.as_mut_ptr(), mnemonic.len() as _)
+    } {
+        false => Err(()),
+        true => Ok(zeroize::Zeroizing::new(
+            crate::util::str_from_null_terminated(&mnemonic[..])
+                .unwrap()
+                .into(),
+        )),
+    }
+}
+
 pub fn secp256k1_schnorr_bip86_sign(keypath: &[u32], msg: &[u8; 32]) -> Result<[u8; 64], ()> {
     let mut signature = [0u8; 64];
     match unsafe {
@@ -438,5 +452,51 @@ mod tests {
             get_ed25519_seed().unwrap().as_ref() as &[u8],
             b"\xf8\xcb\x28\x85\x37\x60\x2b\x90\xd1\x29\x75\x4b\xdd\x0e\x4b\xed\xf9\xe2\x92\x3a\x04\xb6\x86\x7e\xdb\xeb\xc7\x93\xa7\x17\x6f\x5d\xca\xc5\xc9\x5d\x5f\xd2\x3a\x8e\x01\x6c\x95\x57\x69\x0e\xad\x1f\x00\x2b\x0f\x35\xd7\x06\xff\x8e\x59\x84\x1c\x09\xe0\xb6\xbb\x23\xf0\xa5\x91\x06\x42\xd0\x77\x98\x17\x40\x2e\x5e\x7a\x75\x54\x95\xe7\x44\xf5\x5c\xf1\x1e\x49\xee\xfd\x22\xa4\x60\xe9\xb2\xf7\x53",
         );
+    }
+
+    #[test]
+    fn test_bip85_bip39() {
+        lock();
+        assert!(bip85_bip39(12, 0).is_err());
+
+        // Test fixtures generated using:
+        // `docker build -t bip85 .`
+        // `podman run --rm bip85 --index 0 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 12`
+        // `podman run --rm bip85 --index 1 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 12`
+        // `podman run --rm bip85 --index 2147483647 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 12`
+        // `podman run --rm bip85 --index 0 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 18`
+        // `podman run --rm bip85 --index 0 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 24`
+        // in  https://github.com/ethankosakovsky/bip85/tree/435a0589746c1036735d0a5081167e08abfa7413.
+
+        mock_unlocked_using_mnemonic(
+            "virtual weapon code laptop defy cricket vicious target wave leopard garden give",
+            "",
+        );
+
+        assert_eq!(
+            bip85_bip39(12, 0).unwrap().as_ref() as &str,
+            "slender whip place siren tissue chaos ankle door only assume tent shallow",
+        );
+        assert_eq!(
+            bip85_bip39(12, 1).unwrap().as_ref() as &str,
+            "income soft level reunion height pony crane use unfold win keen satisfy",
+        );
+        assert_eq!(
+            bip85_bip39(12, util::bip32::HARDENED - 1).unwrap().as_ref() as &str,
+            "carry build nerve market domain energy mistake script puzzle replace mixture idea",
+        );
+        assert_eq!(
+            bip85_bip39(18, 0).unwrap().as_ref() as &str,
+            "enact peasant tragic habit expand jar senior melody coin acid logic upper soccer later earn napkin planet stereo",
+        );
+        assert_eq!(
+            bip85_bip39(24, 0).unwrap().as_ref() as &str,
+            "cabbage wink october add anchor mean tray surprise gasp tomorrow garbage habit beyond merge where arrive beef gentle animal office drop panel chest size",
+        );
+
+        // Invalid number of words.
+        assert!(bip85_bip39(10, 0).is_err());
+        // Index too high.
+        assert!(bip85_bip39(12, util::bip32::HARDENED).is_err());
     }
 }

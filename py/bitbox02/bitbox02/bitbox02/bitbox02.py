@@ -678,6 +678,15 @@ class BitBox02(BitBoxCommonAPI):
         )
         return self._msg_query(request).electrum_encryption_key.key
 
+    def bip85(self) -> None:
+        """Invokes the BIP-85 workflow on the device"""
+        self._require_atleast(semver.VersionInfo(9, 16, 0))
+
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.bip85.CopyFrom(keystore.BIP85Request())
+        self._msg_query(request)
+
     def enable_mnemonic_passphrase(self) -> None:
         """
         Enable the bip39 passphrase.

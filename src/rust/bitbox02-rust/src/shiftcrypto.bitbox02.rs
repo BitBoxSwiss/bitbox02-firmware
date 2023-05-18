@@ -1512,6 +1512,12 @@ pub struct ElectrumEncryptionKeyResponse {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Bip85Request {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Bip85Response {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ShowMnemonicRequest {}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -1611,7 +1617,7 @@ pub struct Success {}
 pub struct Request {
     #[prost(
         oneof = "request::Request",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28"
     )]
     pub request: ::core::option::Option<request::Request>,
 }
@@ -1672,6 +1678,8 @@ pub mod request {
         ElectrumEncryptionKey(super::ElectrumEncryptionKeyRequest),
         #[prost(message, tag = "27")]
         Cardano(super::CardanoRequest),
+        #[prost(message, tag = "28")]
+        Bip85(super::Bip85Request),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -1679,7 +1687,7 @@ pub mod request {
 pub struct Response {
     #[prost(
         oneof = "response::Response",
-        tags = "1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15"
+        tags = "1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16"
     )]
     pub response: ::core::option::Option<response::Response>,
 }
@@ -1717,5 +1725,7 @@ pub mod response {
         ElectrumEncryptionKey(super::ElectrumEncryptionKeyResponse),
         #[prost(message, tag = "15")]
         Cardano(super::CardanoResponse),
+        #[prost(message, tag = "16")]
+        Bip85(super::Bip85Response),
     }
 }

@@ -160,6 +160,6 @@ def get_any_bitbox02_bootloader() -> DeviceInfo:
 def parse_device_version(serial_number: str) -> semver.VersionInfo:
     match = re.search(r"v([0-9]+\.[0-9]+\.[0-9]+.*)", serial_number)
     if match is None:
-        return None
+        raise Exception(f"Could not parse version string from serial_number: {serial_number}")
 
     return semver.VersionInfo.parse(match.group(1))

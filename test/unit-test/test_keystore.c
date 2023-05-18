@@ -57,6 +57,14 @@ static uint8_t _mock_bip39_seed[64] = {
     0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
 };
 
+static uint8_t _unstretched_retained_seed_encryption_key[32] =
+    "\xfe\x09\x76\x01\x14\x52\xa7\x22\x12\xe4\xb8\xbd\x57\x2b\x5b\xe3\x01\x41\xa3\x56\xf1\x13\x37"
+    "\xd2\x9d\x35\xea\x8f\xf9\x97\xbe\xfc";
+
+static uint8_t _unstretched_retained_bip39_seed_encryption_key[32] =
+    "\x9b\x44\xc7\x04\x88\x93\xfa\xaf\x6e\x2d\x76\x25\xd1\x3d\x8f\x1c\xab\x07\x65\xfd\x61\xf1\x59"
+    "\xd9\x71\x3e\x08\x15\x5d\x06\x71\x7c";
+
 static const uint32_t _keypath[] = {
     44 + BIP32_INITIAL_HARDENED_CHILD,
     0 + BIP32_INITIAL_HARDENED_CHILD,
@@ -69,6 +77,14 @@ static const uint8_t _expected_seckey[32] = {
     0x4e, 0x64, 0xdf, 0xd3, 0x3a, 0xae, 0x66, 0xc4, 0xc7, 0x52, 0x6c, 0xf0, 0x2e, 0xe8, 0xae, 0x3f,
     0x58, 0x92, 0x32, 0x9d, 0x67, 0xdf, 0xd4, 0xad, 0x05, 0xe9, 0xc3, 0xd0, 0x6e, 0xdf, 0x74, 0xfb,
 };
+
+static uint8_t _expected_retained_seed_secret[32] =
+    "\xb1\x56\xbe\x41\x65\x30\xc6\xfc\x00\x01\x88\x44\x16\x17\x74\xa3\x54\x6a\x53\xac\x6d\xd4\xa0"
+    "\x46\x26\x08\x83\x8e\x21\x60\x08\xf7";
+
+const uint8_t _expected_retained_bip39_seed_secret[32] =
+    "\x85\x6d\x9a\x8c\x1e\xa4\x2a\x69\xae\x76\x32\x42\x44\xac\xe6\x74\x39\x7f\xf1\x36\x0a\x4b\xa4"
+    "\xc8\x5f\xfb\xd4\x2c\xee\x8a\x7f\x29";
 
 static uint8_t _expected_secret[32] =
     "\xa8\xf4\xfe\x54\x33\x0e\x1a\xb7\xa0\xe3\xbe\x8a\x8d\x75\xd2\x22\xb2\xae\xc2\xb3\xab\x41\xca"
@@ -124,6 +140,27 @@ void __wrap_random_32_bytes(uint8_t* buf)
     memcpy(buf, (const void*)mock(), 32);
 }
 
+static void _expect_retain_seed(void)
+{
+    will_return(__wrap_random_32_bytes, _unstretched_retained_seed_encryption_key);
+}
+
+static void _expect_retain_bip39_seed(void)
+{
+    will_return(__wrap_random_32_bytes, _unstretched_retained_bip39_seed_encryption_key);
+}
+
+void _mock_unlocked(const uint8_t* seed, size_t seed_len, const uint8_t* bip39_seed)
+{
+    if (seed != NULL) {
+        _expect_retain_seed();
+    }
+    if (bip39_seed != NULL) {
+        _expect_retain_bip39_seed();
+    }
+    keystore_mock_unlocked(seed, seed_len, bip39_seed);
+}
+
 static bool _pubkeys_equal(
     const secp256k1_context* ctx,
     const secp256k1_pubkey* pubkey1,
@@ -145,11 +182,11 @@ static void _test_keystore_get_xpub(void** state)
 
     struct ext_key xpub = {0};
 
-    keystore_mock_unlocked(NULL, 0, NULL);
+    _mock_unlocked(NULL, 0, NULL);
     // fails because keystore is locked
     assert_false(keystore_get_xpub(_keypath, sizeof(_keypath) / sizeof(uint32_t), &xpub));
 
-    keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
+    _mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
     assert_true(keystore_get_xpub(_keypath, sizeof(_keypath) / sizeof(uint32_t), &xpub));
 
     secp256k1_pubkey expected_pubkey;
@@ -180,7 +217,7 @@ static void _test_keystore_secp256k1_nonce_commit(void** state)
     memset(host_commitment, 0xAB, sizeof(host_commitment));
 
     {
-        keystore_mock_unlocked(NULL, 0, NULL);
+        _mock_unlocked(NULL, 0, NULL);
         // fails because keystore is locked
         assert_false(keystore_secp256k1_nonce_commit(
             _keypath,
@@ -190,7 +227,7 @@ static void _test_keystore_secp256k1_nonce_commit(void** state)
             client_commitment));
     }
     {
-        keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
+        _mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
         assert_true(keystore_secp256k1_nonce_commit(
             _keypath,
             sizeof(_keypath) / sizeof(uint32_t),
@@ -219,13 +256,13 @@ static void _test_keystore_secp256k1_sign(void** state)
     memset(host_nonce, 0x56, sizeof(host_nonce));
 
     {
-        keystore_mock_unlocked(NULL, 0, NULL);
+        _mock_unlocked(NULL, 0, NULL);
         // fails because keystore is locked
         assert_false(keystore_secp256k1_sign(
             _keypath, sizeof(_keypath) / sizeof(uint32_t), msg, host_nonce, sig, NULL));
     }
     {
-        keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
+        _mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
 
         _sign_expected_seckey = _expected_seckey;
         _sign_expected_msg = msg;
@@ -277,6 +314,7 @@ static void _test_keystore_create_and_unlock_twice(void** state)
     _smarteeprom_reset();
 
     will_return(__wrap_memory_is_seeded, true);
+    _expect_retain_seed();
     assert_int_equal(KEYSTORE_OK, keystore_unlock(PASSWORD, &remaining_attempts, NULL));
 
     // Create new (different) seed.
@@ -284,6 +322,7 @@ static void _test_keystore_create_and_unlock_twice(void** state)
     assert_int_equal(keystore_encrypt_and_store_seed(_mock_seed_2, 32, PASSWORD), KEYSTORE_OK);
 
     will_return(__wrap_memory_is_seeded, true);
+    _expect_retain_seed();
     assert_int_equal(KEYSTORE_OK, keystore_unlock(PASSWORD, &remaining_attempts, NULL));
 }
 
@@ -292,6 +331,23 @@ static void _expect_seeded(bool seeded)
     uint8_t seed[KEYSTORE_MAX_SEED_LENGTH];
     size_t len;
     assert_int_equal(seeded, keystore_copy_seed(seed, &len));
+    if (seeded) {
+        assert_memory_equal(seed, _mock_seed, sizeof(_mock_seed));
+        // Also check that the retained seed was encrypted with the expected encryption key.
+        size_t encrypted_len = 0;
+        const uint8_t* retained_seed_encrypted =
+            keystore_test_get_retained_seed_encrypted(&encrypted_len);
+        size_t decrypted_len = encrypted_len - 48;
+        uint8_t out[decrypted_len];
+        assert_true(cipher_aes_hmac_decrypt(
+            retained_seed_encrypted,
+            encrypted_len,
+            out,
+            &decrypted_len,
+            _expected_retained_seed_secret));
+        assert_int_equal(decrypted_len, 32);
+        assert_memory_equal(out, _mock_seed, decrypted_len);
+    }
 }
 
 static void _perform_some_unlocks(void)
@@ -301,6 +357,9 @@ static void _perform_some_unlocks(void)
     for (int i = 0; i < 3; i++) {
         _reset_reset_called = false;
         will_return(__wrap_memory_is_seeded, true);
+        if (i == 0) {
+            _expect_retain_seed();
+        }
         assert_int_equal(KEYSTORE_OK, keystore_unlock(PASSWORD, &remaining_attempts, NULL));
         assert_int_equal(remaining_attempts, MAX_UNLOCK_ATTEMPTS);
         assert_false(_reset_reset_called);
@@ -311,7 +370,7 @@ static void _perform_some_unlocks(void)
 static void _test_keystore_unlock(void** state)
 {
     _smarteeprom_reset();
-    keystore_mock_unlocked(NULL, 0, NULL); // reset to locked
+    _mock_unlocked(NULL, 0, NULL); // reset to locked
 
     uint8_t remaining_attempts;
 
@@ -347,13 +406,43 @@ static void _test_keystore_unlock(void** state)
     assert_true(_reset_reset_called);
 }
 
+static void _test_keystore_unlock_bip39(void** state)
+{
+    keystore_lock();
+    assert_false(keystore_unlock_bip39(""));
+
+    _mock_unlocked(_mock_seed, sizeof(_mock_seed), NULL);
+    assert_true(keystore_is_locked());
+
+    _expect_retain_bip39_seed();
+    assert_true(keystore_unlock_bip39("foo"));
+    // Check that the retained bip39 seed was encrypted with the expected encryption key.
+    size_t encrypted_len = 0;
+    const uint8_t* retained_bip39_seed_encrypted =
+        keystore_test_get_retained_bip39_seed_encrypted(&encrypted_len);
+    size_t decrypted_len = encrypted_len - 48;
+    uint8_t out[decrypted_len];
+    assert_true(cipher_aes_hmac_decrypt(
+        retained_bip39_seed_encrypted,
+        encrypted_len,
+        out,
+        &decrypted_len,
+        _expected_retained_bip39_seed_secret));
+    assert_int_equal(decrypted_len, 64);
+    const uint8_t expected_bip39_seed[64] =
+        "\x2b\x3c\x63\xde\x86\xf0\xf2\xb1\x3c\xc6\xa3\x6c\x1b\xa2\x31\x4f\xbc\x1b\x40\xc7\x7a\xb9"
+        "\xcb\x64\xe9\x6b\xa4\xd5\xc6\x2f\xc2\x04\x74\x8c\xa6\x62\x6a\x9f\x03\x5e\x7d\x43\x1b\xce"
+        "\x8c\x92\x10\xec\x0b\xdf\xfc\x2e\x7d\xb8\x73\xde\xe5\x6c\x8a\xc2\x15\x3e\xee\x9a";
+    assert_memory_equal(out, expected_bip39_seed, decrypted_len);
+}
+
 static void _test_keystore_lock(void** state)
 {
-    keystore_mock_unlocked(NULL, 0, NULL);
+    _mock_unlocked(NULL, 0, NULL);
     assert_true(keystore_is_locked());
-    keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), NULL);
+    _mock_unlocked(_mock_seed, sizeof(_mock_seed), NULL);
     assert_true(keystore_is_locked());
-    keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
+    _mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
     assert_false(keystore_is_locked());
     keystore_lock();
     assert_true(keystore_is_locked());
@@ -362,13 +451,13 @@ static void _test_keystore_lock(void** state)
 static void _test_keystore_get_bip39_mnemonic(void** state)
 {
     char mnemonic[300];
-    keystore_mock_unlocked(NULL, 0, NULL);
+    _mock_unlocked(NULL, 0, NULL);
     assert_false(keystore_get_bip39_mnemonic(mnemonic, sizeof(mnemonic)));
 
-    keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), NULL);
+    _mock_unlocked(_mock_seed, sizeof(_mock_seed), NULL);
     assert_false(keystore_get_bip39_mnemonic(mnemonic, sizeof(mnemonic)));
 
-    keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
+    _mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
     assert_true(keystore_get_bip39_mnemonic(mnemonic, sizeof(mnemonic)));
     const char* expected_mnemonic =
         "baby mass dust captain baby mass mass dust captain baby mass dutch creek office smoke "
@@ -430,7 +519,8 @@ static void _mock_with_mnemonic(const char* mnemonic, const char* passphrase)
     size_t seed_len;
     assert_true(keystore_bip39_mnemonic_to_seed(mnemonic, seed, &seed_len));
 
-    keystore_mock_unlocked(seed, seed_len, NULL);
+    _mock_unlocked(seed, seed_len, NULL);
+    _expect_retain_bip39_seed();
     assert_true(keystore_unlock_bip39(passphrase));
 }
 
@@ -648,6 +738,7 @@ int main(void)
         cmocka_unit_test(_test_keystore_encrypt_and_store_seed),
         cmocka_unit_test(_test_keystore_create_and_unlock_twice),
         cmocka_unit_test(_test_keystore_unlock),
+        cmocka_unit_test(_test_keystore_unlock_bip39),
         cmocka_unit_test(_test_keystore_lock),
         cmocka_unit_test(_test_keystore_get_bip39_mnemonic),
         cmocka_unit_test(_test_keystore_create_and_store_seed),

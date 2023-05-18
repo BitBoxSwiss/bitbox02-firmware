@@ -90,6 +90,7 @@ static void _test_seeds(void** state)
         }
         assert_true(keystore_copy_seed(read_seed, &read_seed_len));
         assert_int_equal(seed_size, read_seed_len);
+        assert_memory_equal(read_seed, _seed, seed_size);
         keystore_lock();
     }
 }

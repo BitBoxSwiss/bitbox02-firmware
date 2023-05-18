@@ -65,21 +65,26 @@ pub async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelErr
     with_cancel("Recovery\nwords", &mut component, &result).await
 }
 
-/// Given 23 initial words, this function returns list of candidate words for the last word, such
-/// that the resulting bip39 phrase has a valid checksum. There are always exactly 8 such words.
-/// `entered_words` must contain 23 words from the BIP39 wordlist.
+/// Given 11/17/23 initial words, this function returns a list of candidate words for the last word,
+/// such that the resulting bip39 phrase has a valid checksum. There are always exactly 8 such words
+/// for 24 word mnemonics, 32 words for 18 word mnemonics and 128 words for 12 word mnemonics.
+/// `entered_words` must contain 11/17/23 words from the BIP39 wordlist.
 fn lastword_choices(entered_words: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
-    if entered_words.len() != 23 {
-        panic!("must have entered 23 words");
-    }
+    let (seed_len_bits, checksum_len_bits, bitmask_seed) = match entered_words.len() {
+        11 => (128, 4, 0b10000000),
+        17 => (192, 6, 0b11100000),
+        23 => (256, 8, 0b11111000),
+        _ => panic!("invalid number of entered words"),
+    };
+    let num_candidates = 1 << (seed_len_bits % 11);
 
-    // A 24 word seedphrase encodes 24*11 bits (33 bytes). The last byte is the checksum (hash over
-    // the first 32 bytes). The last word, 11 bits, is the last 3 bits of the seed plus 8 bits of
-    // the checksum. We first need the first 23 words converted to bytes so we can enumerate the 8
-    // choices for the last word. libwally only lets us convert 24 words if the checksum
-    // matches. Instead of rolling our own decoding function, we quickly find one valid word by
-    // brute-force. We need to check at most 256 words for that, as there is exactly one valid word
-    // for each 256 words block.
+    // A seedphrase for 12/18/24 words encodes 128/192/256 bits. The last 4/6/8 bits is the checksum
+    // (hash over the first 32 bytes). The last word, 11 bits, is the last 7/5/3 bits of the seed
+    // plus 4/6/8 bits of the checksum. We first need the first 11/17/23 words converted to bytes so
+    // we can enumerate the 8/32/128 choices for the last word. libwally only lets us convert a
+    // seedphrase if the checksum matches. Instead of rolling our own decoding function, we quickly
+    // find one valid word by brute-force. We need to check at most 16/64/256 words for that, as
+    // there is exactly one valid word for each 256 words block.
     let mut seed: zeroize::Zeroizing<Vec<u8>> = {
         let mut i = 0;
         loop {
@@ -92,23 +97,25 @@ fn lastword_choices(entered_words: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
                 break seed;
             }
             i += 1;
-            if i >= 256 {
-                // There must be a valid word in the first 256 bip39 words. Something went wrong.
+            if i >= 2048 / num_candidates {
+                // There must be a valid word in the first 16/64/256 bip39 words. Something went
+                // wrong.
                 panic!("Could not find a valid word");
             }
         }
     };
-
-    // Generate all 8 words matching the bip39 checksum.
-    (0..8)
-        .map(|i| {
-            // Set last three bits of the seed to `i`.
-            seed[31] &= 0b11111000;
-            seed[31] |= i;
+    let seed_len = seed.len();
+    // Generate all words matching the bip39 checksum.
+    (0..num_candidates)
+        .map(|i: u16| {
+            // Set last 7/5/3 bits of the seed to `i`.
+            seed[seed_len - 1] &= bitmask_seed;
+            seed[seed_len - 1] |= i as u8;
             // Compute checksum.
             let hash = Sha256::digest(&seed);
-            // Last word is 11 bits: <last 3 bits of the seed || 8 bits checksum>.
-            let word_idx: u16 = ((i as u16) << 8) | (hash[0] as u16);
+            // Last word is 11 bits: <last 7/5/3 bits of the seed || 4/6/8 bits checksum>.
+            let word_idx: u16 =
+                (i << checksum_len_bits) | (hash[0] >> (8 - checksum_len_bits)) as u16;
             bitbox02::keystore::get_bip39_word(word_idx).unwrap()
         })
         .collect()
@@ -290,6 +297,8 @@ mod tests {
 
     #[test]
     fn test_lastword_choices() {
+        // 23 words
+
         assert_eq!(
             &as_str_vec(&bruteforce_lastword(&["violin"; 23])),
             &["boss", "coyote", "dry", "habit", "panel", "regular", "speed", "winter"]
@@ -301,6 +310,65 @@ mod tests {
         );
 
         let mnemonic = "side stuff card razor rescue enhance risk exchange ozone render large describe gas juice offer permit vendor custom forget lecture divide junior narrow".split(' ').collect::<Vec<&str>>();
+        assert_eq!(
+            &lastword_choices(&mnemonic),
+            &bruteforce_lastword(&mnemonic)
+        );
+
+        // 17 words
+
+        assert_eq!(
+            &as_str_vec(&bruteforce_lastword(&["violin"; 17])),
+            &[
+                "all", "appear", "bike", "book", "cash", "click", "cycle", "disagree", "donate",
+                "essence", "fence", "gadget", "ghost", "hotel", "industry", "lab", "lizard",
+                "modify", "much", "oblige", "pond", "pull", "raccoon", "reunion", "side", "smoke",
+                "steak", "taxi", "tongue", "used", "wall", "wonder"
+            ]
+        );
+
+        assert_eq!(
+            &lastword_choices(&["violin"; 17]),
+            &bruteforce_lastword(&["violin"; 17]),
+        );
+
+        let mnemonic = "alpha write diary chicken cable spoil dirt hair bike fiction system bright mimic garage giggle involve leisure".split(' ').collect::<Vec<&str>>();
+        assert_eq!(
+            &lastword_choices(&mnemonic),
+            &bruteforce_lastword(&mnemonic)
+        );
+
+        // 11 words
+
+        assert_eq!(
+            &as_str_vec(&bruteforce_lastword(&["violin"; 11])),
+            &[
+                "achieve", "actress", "affair", "all", "amount", "arm", "arrest", "attend",
+                "bacon", "bar", "best", "bitter", "body", "box", "brush", "bulk", "cage", "carry",
+                "chalk", "chicken", "city", "climb", "color", "convince", "cotton", "crawl",
+                "cruel", "dawn", "degree", "desk", "diet", "disease", "double", "dumb", "duty",
+                "elder", "enemy", "engage", "essay", "evoke", "faint", "family", "feel", "finger",
+                "flush", "foil", "frame", "garage", "giant", "glue", "gorilla", "green", "habit",
+                "health", "horse", "hover", "illness", "inherit", "intact", "island", "keen",
+                "know", "ladder", "lawsuit", "lesson", "lobster", "love", "main", "matter",
+                "mention", "milk", "monitor", "mother", "myself", "nest", "nose", "offer", "open",
+                "outer", "paddle", "peanut", "pear", "piece", "polar", "post", "print", "pulse",
+                "purpose", "rally", "rebuild", "regret", "report", "rifle", "rocket", "royal",
+                "salon", "sea", "segment", "shallow", "ship", "similar", "slice", "snake", "soft",
+                "source", "spray", "steel", "style", "super", "swim", "talk", "tent", "they",
+                "tiny", "tone", "treat", "trim", "turtle", "unaware", "upper", "van", "viable",
+                "vivid", "walnut", "weird", "window", "worth", "zero"
+            ]
+        );
+
+        assert_eq!(
+            &lastword_choices(&["violin"; 11]),
+            &bruteforce_lastword(&["violin"; 11]),
+        );
+
+        let mnemonic = "outer elite desert faint cliff useless teach screen combine exercise below"
+            .split(' ')
+            .collect::<Vec<&str>>();
         assert_eq!(
             &lastword_choices(&mnemonic),
             &bruteforce_lastword(&mnemonic)

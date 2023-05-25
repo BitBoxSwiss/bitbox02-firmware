@@ -18,11 +18,11 @@ macro_rules! group_decode {
         });
         group.bench_function("decode_bs58_noalloc_slice", |b| {
             let mut output = [0; $decoded_length];
-            b.iter(|| bs58::decode($encoded).onto(&mut output[..]).unwrap());
+            b.iter(|| bs58::decode($encoded).into(&mut output[..]).unwrap());
         });
         group.bench_function("decode_bs58_noalloc_array", |b| {
             let mut output = [0; $decoded_length];
-            b.iter(|| bs58::decode($encoded).onto(&mut output).unwrap());
+            b.iter(|| bs58::decode($encoded).into(&mut output).unwrap());
         });
         group.finish();
     }};
@@ -42,7 +42,7 @@ macro_rules! group_decode_long {
         });
         group.bench_function("decode_bs58_noalloc_slice", |b| {
             let mut output = [0; $decoded_length];
-            b.iter(|| bs58::decode($encoded).onto(&mut output[..]).unwrap());
+            b.iter(|| bs58::decode($encoded).into(&mut output[..]).unwrap());
         });
         // bs58_noalloc_array is not possible because of limited array lengths in trait impls
         group.finish();

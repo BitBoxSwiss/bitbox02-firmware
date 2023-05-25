@@ -95,7 +95,7 @@ dependencies = [
  "bitbox02",
  "bitbox02-noise",
  "blake2",
- "bs58",
+ "bs58 0.5.0",
  "crc",
  "digest 0.10.6",
  "ed25519-dalek",
@@ -119,7 +119,7 @@ dependencies = [
  "bitbox02",
  "bitbox02-noise",
  "bitbox02-rust",
- "bs58",
+ "bs58 0.4.0",
  "hex",
  "sha2 0.10.6",
  "sha3",
@@ -167,6 +167,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "771fe0050b883fcc3ea2359b1a96bcfbc090b7116eae7c3c512c7a083fdf23d3"
 dependencies = [
  "sha2 0.9.9",
+]
+
+[[package]]
+name = "bs58"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5353f36341f7451062466f0b755b96ac3a9547e4d7f6b70d603fc721a7d7896"
+dependencies = [
+ "sha2 0.10.6",
+ "tinyvec",
 ]
 
 [[package]]
@@ -604,6 +614,21 @@ dependencies = [
  "syn 1.0.105",
  "unicode-xid",
 ]
+
+[[package]]
+name = "tinyvec"
+version = "1.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87cc5ceb3875bb20c2890005a4e226a4651264a5c75edb2421b52861a0a0cb50"
+dependencies = [
+ "tinyvec_macros",
+]
+
+[[package]]
+name = "tinyvec_macros"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "typenum"

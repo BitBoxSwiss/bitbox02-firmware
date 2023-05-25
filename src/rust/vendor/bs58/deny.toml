@@ -1,0 +1,19 @@
+[advisories]
+ignore = [
+  # criterion dependencies
+  "RUSTSEC-2021-0127",
+  "RUSTSEC-2021-0139",
+]
+
+[licenses]
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Unicode-DFS-2016",
+]
+
+[bans]
+skip = [
+  # criterion dependency
+  { name = "itoa", version = "0.4" },
+]

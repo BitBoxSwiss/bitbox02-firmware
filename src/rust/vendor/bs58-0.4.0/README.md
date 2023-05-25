@@ -1,4 +1,4 @@
-[![version-badge][]][version] [![license-badge][]][license] [![rust-version-badge][]][rust-version]
+# bs58 [![travis-badge][]][travis] [![cargo-badge][]][cargo] [![license-badge][]][license] [![rust-version-badge][]][rust-version]
 
 Another Rust [Base58][] codec implementation.
 
@@ -11,12 +11,19 @@ Compared to [`rust-base58`][] this is massively faster (over ten times as
 fast when decoding 32 bytes, almost 40 times as fast when encoding 32
 bytes), has no external dependencies and supports a configurable alphabet.
 
-# Rust Version Policy
+## Rust Version Policy
 
 This crate only supports the current stable version of Rust, patch releases may
 use new features at any time.
 
-# License
+## Developing
+
+This project uses [clippy][] and denies warnings in CI builds. To ensure your
+changes will be accepted please check them with `cargo clippy` (available via
+`rustup component add clippy`) before submitting a pull request (along with
+`cargo test` as usual).
+
+## License
 
 Licensed under either of
 
@@ -25,17 +32,19 @@ Licensed under either of
 
 at your option.
 
-## Contribution
+### Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you shall be dual licensed as above, without any
 additional terms or conditions.
 
-[version-badge]: https://img.shields.io/crates/v/bs58.svg?style=flat-square
-[version]: https://crates.io/crates/bs58
-[license-badge]: https://img.shields.io/crates/l/bs58.svg?style=flat-square
+[travis-badge]: https://img.shields.io/travis/mycorrhiza/bs58-rs/master.svg?style=flat-square
+[travis]: https://travis-ci.org/mycorrhiza/bs58-rs
+[cargo-badge]: https://img.shields.io/crates/v/bs58.svg?style=flat-square
+[cargo]: https://crates.io/crates/bs58
+[license-badge]: https://img.shields.io/badge/license-MIT/Apache--2.0-lightgray.svg?style=flat-square
 [license]: #license
-[rust-version-badge]: https://img.shields.io/badge/rust-latest%20stable-blueviolet.svg?style=flat-square
+[rust-version-badge]: https://img.shields.io/badge/rust-latest%20stable-blue.svg?style=flat-square
 [rust-version]: #rust-version-policy
 
 [Base58]: https://en.wikipedia.org/wiki/Base58

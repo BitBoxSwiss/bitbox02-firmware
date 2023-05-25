@@ -6,7 +6,7 @@ use core::fmt;
 use alloc::{string::String, vec::Vec};
 
 use crate::Check;
-#[cfg(any(feature = "check", feature = "cb58"))]
+#[cfg(feature = "check")]
 use crate::CHECKSUM_LEN;
 
 use crate::Alphabet;
@@ -30,7 +30,7 @@ pub enum Error {
     BufferTooSmall,
 }
 
-/// Represents a buffer that can be encoded into. See [`EncodeBuilder::onto`] and the provided
+/// Represents a buffer that can be encoded into. See [`EncodeBuilder::into`] and the provided
 /// implementations for more details.
 pub trait EncodeTarget {
     /// Encodes into this buffer, provides the maximum length for implementations that wish to
@@ -54,95 +54,29 @@ impl<T: EncodeTarget + ?Sized> EncodeTarget for &mut T {
 }
 
 #[cfg(feature = "alloc")]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "alloc", feature = "std"))))]
 impl EncodeTarget for Vec<u8> {
     fn encode_with(
         &mut self,
         max_len: usize,
         f: impl for<'a> FnOnce(&'a mut [u8]) -> Result<usize>,
     ) -> Result<usize> {
-        let original = self.len();
-        self.resize(original + max_len, 0);
-        let len = f(&mut self[original..])?;
-        self.truncate(original + len);
-        Ok(len)
-    }
-}
-
-#[cfg(feature = "smallvec")]
-impl<A: smallvec::Array<Item = u8>> EncodeTarget for smallvec::SmallVec<A> {
-    /// Encodes data into a [`smallvec::SmallVec`].
-    ///
-    /// Note that even if the encoded value fits into vector’s inline buffer,
-    /// this may result in allocation if `max_len` is greater than vector’s
-    /// inline size.  To make sure that the inline buffer is enough for N-byte
-    /// buffer encoded in base58, use smallvec with ⌈N*1.5⌉-byte long inline
-    /// buffer (or ⌈(N+5)*1.5⌉ if version and checksum are included).
-    fn encode_with(
-        &mut self,
-        max_len: usize,
-        f: impl for<'a> FnOnce(&'a mut [u8]) -> Result<usize>,
-    ) -> Result<usize> {
-        let original = self.len();
-        self.resize(original + max_len, 0);
-        let len = f(&mut self[original..])?;
-        self.truncate(original + len);
-        Ok(len)
-    }
-}
-
-#[cfg(feature = "tinyvec")]
-impl<A: tinyvec::Array<Item = u8>> EncodeTarget for tinyvec::ArrayVec<A> {
-    fn encode_with(
-        &mut self,
-        max_len: usize,
-        f: impl for<'a> FnOnce(&'a mut [u8]) -> Result<usize>,
-    ) -> Result<usize> {
-        let _ = max_len;
-        let original = self.len();
-        let len = f(self.grab_spare_slice_mut())?;
-        self.set_len(original + len);
-        Ok(len)
-    }
-}
-
-#[cfg(feature = "tinyvec")]
-impl EncodeTarget for tinyvec::SliceVec<'_, u8> {
-    fn encode_with(
-        &mut self,
-        max_len: usize,
-        f: impl for<'a> FnOnce(&'a mut [u8]) -> Result<usize>,
-    ) -> Result<usize> {
-        let _ = max_len;
-        let original = self.len();
-        let len = f(self.grab_spare_slice_mut())?;
-        self.set_len(original + len);
-        Ok(len)
-    }
-}
-
-#[cfg(all(feature = "tinyvec", feature = "alloc"))]
-impl<A: tinyvec::Array<Item = u8>> EncodeTarget for tinyvec::TinyVec<A> {
-    fn encode_with(
-        &mut self,
-        max_len: usize,
-        f: impl for<'a> FnOnce(&'a mut [u8]) -> Result<usize>,
-    ) -> Result<usize> {
-        let original = self.len();
-        self.resize(original + max_len, 0);
-        let len = f(&mut self[original..])?;
-        self.truncate(original + len);
+        self.resize(max_len, 0);
+        let len = f(&mut *self)?;
+        self.truncate(len);
         Ok(len)
     }
 }
 
 #[cfg(feature = "alloc")]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "alloc", feature = "std"))))]
 impl EncodeTarget for String {
     fn encode_with(
         &mut self,
         max_len: usize,
         f: impl for<'a> FnOnce(&'a mut [u8]) -> Result<usize>,
     ) -> Result<usize> {
-        let mut output = core::mem::take(self).into_bytes();
+        let mut output = core::mem::replace(self, String::new()).into_bytes();
         let len = output.encode_with(max_len, f)?;
         *self = String::from_utf8(output).unwrap();
         Ok(len)
@@ -195,9 +129,6 @@ impl EncodeTarget for str {
 
         let _ = max_len;
 
-        #[allow(unsafe_code)]
-        // SAFETY: before returning the guard will be dropped and ensure the slice is valid utf-8
-        // by replacing invalid bytes with nul-bytes
         let guard = Guard(unsafe { self.as_bytes_mut() });
         f(&mut *guard.0)
     }
@@ -256,6 +187,7 @@ impl<'a, I: AsRef<[u8]>> EncodeBuilder<'a, I> {
     ///         .into_string());
     /// ```
     #[cfg(feature = "check")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "check")))]
     pub fn with_check(self) -> EncodeBuilder<'a, I> {
         let check = Check::Enabled(None);
         EncodeBuilder { check, ..self }
@@ -277,29 +209,9 @@ impl<'a, I: AsRef<[u8]>> EncodeBuilder<'a, I> {
     ///         .into_string());
     /// ```
     #[cfg(feature = "check")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "check")))]
     pub fn with_check_version(self, expected_ver: u8) -> EncodeBuilder<'a, I> {
         let check = Check::Enabled(Some(expected_ver));
-        EncodeBuilder { check, ..self }
-    }
-
-    /// Include checksum calculated using the [CB58][] algorithm and
-    /// version (if specified) when encoding.
-    ///
-    /// [CB58]: https://support.avax.network/en/articles/4587395-what-is-cb58
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let input = [0x60, 0x65, 0xe7, 0x9b, 0xba, 0x2f, 0x78];
-    /// assert_eq!(
-    ///     "oP8aA4HEEyChXhM2",
-    ///     bs58::encode(input)
-    ///         .as_cb58(Some(42))
-    ///         .into_string());
-    /// ```
-    #[cfg(feature = "cb58")]
-    pub fn as_cb58(self, expected_ver: Option<u8>) -> EncodeBuilder<'a, I> {
-        let check = Check::CB58(expected_ver);
         EncodeBuilder { check, ..self }
     }
 
@@ -312,9 +224,10 @@ impl<'a, I: AsRef<[u8]>> EncodeBuilder<'a, I> {
     /// assert_eq!("he11owor1d", bs58::encode(input).into_string());
     /// ```
     #[cfg(feature = "alloc")]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "alloc", feature = "std"))))]
     pub fn into_string(self) -> String {
         let mut output = String::new();
-        self.onto(&mut output).unwrap();
+        self.into(&mut output).unwrap();
         output
     }
 
@@ -327,18 +240,19 @@ impl<'a, I: AsRef<[u8]>> EncodeBuilder<'a, I> {
     /// assert_eq!(b"he11owor1d", &*bs58::encode(input).into_vec());
     /// ```
     #[cfg(feature = "alloc")]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "alloc", feature = "std"))))]
     pub fn into_vec(self) -> Vec<u8> {
         let mut output = Vec::new();
-        self.onto(&mut output).unwrap();
+        self.into(&mut output).unwrap();
         output
     }
 
-    /// Encode onto the given buffer.
+    /// Encode into the given buffer.
     ///
-    /// Returns the length written onto the buffer.
+    /// Returns the length written into the buffer.
     ///
-    /// If the buffer is resizeable it will be extended and the new data will be written to the end
-    /// of it, otherwise the data will be overwritten from the start.
+    /// If the buffer is resizeable it will be reallocated to fit the encoded data and truncated to
+    /// size.
     ///
     /// If the buffer is not resizeable bytes after the final character will be left alone, except
     /// up to 3 null bytes may be written to an `&mut str` to overwrite remaining characters of a
@@ -353,9 +267,9 @@ impl<'a, I: AsRef<[u8]>> EncodeBuilder<'a, I> {
     ///
     /// ```rust
     /// let input = [0x04, 0x30, 0x5e, 0x2b, 0x24, 0x73, 0xf0, 0x58];
-    /// let mut output = b"goodbye world ".to_vec();
-    /// bs58::encode(input).onto(&mut output)?;
-    /// assert_eq!(b"goodbye world he11owor1d", output.as_slice());
+    /// let mut output = "goodbye world".to_owned().into_bytes();
+    /// bs58::encode(input).into(&mut output)?;
+    /// assert_eq!(b"he11owor1d", &*output);
     /// # Ok::<(), bs58::encode::Error>(())
     /// ```
     ///
@@ -363,9 +277,9 @@ impl<'a, I: AsRef<[u8]>> EncodeBuilder<'a, I> {
     ///
     /// ```rust
     /// let input = [0x04, 0x30, 0x5e, 0x2b, 0x24, 0x73, 0xf0, 0x58];
-    /// let mut output = b"goodbye world".to_owned();
-    /// bs58::encode(input).onto(&mut output[..])?;
-    /// assert_eq!(b"he11owor1drld", output.as_ref());
+    /// let mut output = Vec::from("goodbye world");
+    /// bs58::encode(input).into(&mut output[..])?;
+    /// assert_eq!(b"he11owor1drld", &*output);
     /// # Ok::<(), bs58::encode::Error>(())
     /// ```
     ///
@@ -373,9 +287,9 @@ impl<'a, I: AsRef<[u8]>> EncodeBuilder<'a, I> {
     ///
     /// ```rust
     /// let input = [0x04, 0x30, 0x5e, 0x2b, 0x24, 0x73, 0xf0, 0x58];
-    /// let mut output = "goodbye world ".to_owned();
-    /// bs58::encode(input).onto(&mut output)?;
-    /// assert_eq!("goodbye world he11owor1d", output);
+    /// let mut output = "goodbye world".to_owned();
+    /// bs58::encode(input).into(&mut output)?;
+    /// assert_eq!("he11owor1d", output);
     /// # Ok::<(), bs58::encode::Error>(())
     /// ```
     ///
@@ -384,7 +298,7 @@ impl<'a, I: AsRef<[u8]>> EncodeBuilder<'a, I> {
     /// ```rust
     /// let input = [0x04, 0x30, 0x5e, 0x2b, 0x24, 0x73, 0xf0, 0x58];
     /// let mut output = "goodbye world".to_owned();
-    /// bs58::encode(input).onto(output.as_mut_str())?;
+    /// bs58::encode(input).into(output.as_mut_str())?;
     /// assert_eq!("he11owor1drld", output);
     /// # Ok::<(), bs58::encode::Error>(())
     /// ```
@@ -394,41 +308,27 @@ impl<'a, I: AsRef<[u8]>> EncodeBuilder<'a, I> {
     /// ```rust
     /// let input = [0x04, 0x30, 0x5e, 0x2b, 0x24, 0x73, 0xf0, 0x58];
     /// let mut output = "goodbye w®ld".to_owned();
-    /// bs58::encode(input).onto(output.as_mut_str())?;
+    /// bs58::encode(input).into(output.as_mut_str())?;
     /// assert_eq!("he11owor1d\0ld", output);
     /// # Ok::<(), bs58::encode::Error>(())
     /// ```
-    pub fn onto(self, mut output: impl EncodeTarget) -> Result<usize> {
-        let input = self.input.as_ref();
+    pub fn into(self, mut output: impl EncodeTarget) -> Result<usize> {
         match self.check {
-            Check::Disabled => output.encode_with(max_encoded_len(input.len()), |output| {
-                encode_into(input, output, self.alpha)
-            }),
-            #[cfg(feature = "check")]
-            Check::Enabled(version) => {
-                let input_len = input.len() + CHECKSUM_LEN + version.map_or(0, |_| 1);
-                output.encode_with(max_encoded_len(input_len), |output| {
-                    encode_check_into(self.input.as_ref(), output, self.alpha, version)
+            Check::Disabled => {
+                let max_encoded_len = (self.input.as_ref().len() / 5 + 1) * 8;
+                output.encode_with(max_encoded_len, |output| {
+                    encode_into(self.input.as_ref(), output, &self.alpha)
                 })
             }
-            #[cfg(feature = "cb58")]
-            Check::CB58(version) => {
-                let input_len = input.len() + CHECKSUM_LEN + version.map_or(0, |_| 1);
-                output.encode_with(max_encoded_len(input_len), |output| {
-                    encode_cb58_into(self.input.as_ref(), output, self.alpha, version)
+            #[cfg(feature = "check")]
+            Check::Enabled(version) => {
+                let max_encoded_len = ((self.input.as_ref().len() + CHECKSUM_LEN) / 5 + 1) * 8;
+                output.encode_with(max_encoded_len, |output| {
+                    encode_check_into(self.input.as_ref(), output, &self.alpha, version)
                 })
             }
         }
     }
-}
-
-/// Return maximum possible encoded length of a buffer with given length.
-///
-/// Assumes that the `len` already includes version and checksum bytes if those
-/// are
-fn max_encoded_len(len: usize) -> usize {
-    // log_2(256) / log_2(58) ≈ 1.37.  Assume 1.5 for easier calculation.
-    len + (len + 1) / 2
 }
 
 fn encode_into<'a, I>(input: I, output: &mut [u8], alpha: &Alphabet) -> Result<usize>
@@ -480,10 +380,10 @@ fn encode_check_into(
 
     let mut first_hash = Sha256::new();
     if let Some(version) = version {
-        first_hash.update([version; 1]);
+        first_hash.update(&[version; 1]);
     }
-    let first_hash = first_hash.chain_update(input).finalize();
-    let second_hash = Sha256::digest(first_hash);
+    let first_hash = first_hash.chain(input).finalize();
+    let second_hash = Sha256::digest(&first_hash);
 
     let checksum = &second_hash[0..CHECKSUM_LEN];
 
@@ -494,31 +394,8 @@ fn encode_check_into(
     )
 }
 
-#[cfg(feature = "cb58")]
-fn encode_cb58_into(
-    input: &[u8],
-    output: &mut [u8],
-    alpha: &Alphabet,
-    version: Option<u8>,
-) -> Result<usize> {
-    use sha2::{Digest, Sha256};
-
-    let mut hash = Sha256::new();
-    if let Some(version) = version {
-        hash.update([version; 1]);
-    }
-    let hash = hash.chain_update(input).finalize();
-
-    let checksum = &hash[hash.len() - CHECKSUM_LEN..];
-
-    encode_into(
-        version.iter().chain(input.iter()).chain(checksum.iter()),
-        output,
-        alpha,
-    )
-}
-
 #[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl std::error::Error for Error {}
 
 impl fmt::Display for Error {

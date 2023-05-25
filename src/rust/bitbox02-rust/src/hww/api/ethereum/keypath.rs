@@ -18,7 +18,13 @@ use crate::workflow::confirm;
 
 use util::bip32::HARDENED;
 
+const PURPOSE: u32 = 44 + HARDENED;
+const COIN_MAINNET: u32 = 60 + HARDENED;
+const COIN_TESTNET: u32 = 1 + HARDENED;
+
 const ACCOUNT_MAX: u32 = 99; // 100 accounts
+const ACCOUNT_MIN_H: u32 = 0 + HARDENED;
+const ACCOUNT_MAX_H: u32 = ACCOUNT_MAX + HARDENED;
 
 /// If the second element of `keypath` does not match the expected bip44 coin value for the given
 /// coin, we warn the user about an unusual keypath.
@@ -56,29 +62,30 @@ pub async fn warn_unusual_keypath(
 }
 
 /// Does limit checks the keypath, whitelisting bip44 purpose, account and change.
-/// Only allows the well-known xpubs of m'/44'/60'/0'/0 and m'/44'/1'/0'/0 for now.
-/// Since ethereum doesn't use the "change" path part it is always 0 and have become part of the
-/// xpub keypath.
+/// Allows the following xpubs:
+/// For BitBoxApp, MyEtherWalelt: m'/44'/60'/0'/0 and m'/44'/1'/0'/0.
+/// For Ledger Live compatibility: m/44'/60'/account' and m/44'/1'/account'
 /// @return true if the keypath is valid, false if it is invalid.
 pub fn is_valid_keypath_xpub(keypath: &[u32]) -> bool {
-    keypath.len() == 4
-        && (keypath[..4] == [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0]
-            || keypath[..4] == [44 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0])
+    match keypath {
+        // BitBoxApp, MyEtherWallet
+        [PURPOSE, COIN_MAINNET | COIN_TESTNET, HARDENED, 0] => true,
+        // Ledger Live
+        [PURPOSE, COIN_MAINNET | COIN_TESTNET, ACCOUNT_MIN_H..=ACCOUNT_MAX_H] => true,
+        _ => false,
+    }
 }
 
-/// Does limit checks the keypath, whitelisting bip44 purpose, account and change.
+/// Does limit checks the keypath.
 /// Returns true if the keypath is valid, false if it is invalid.
 pub fn is_valid_keypath_address(keypath: &[u32]) -> bool {
-    if keypath.len() != 5 {
-        return false;
+    match keypath {
+        // BitBoxApp, MyEtherWallet
+        [PURPOSE, COIN_MAINNET | COIN_TESTNET, HARDENED, 0, 0..=ACCOUNT_MAX] => true,
+        // Ledger Live
+        [PURPOSE, COIN_MAINNET | COIN_TESTNET, ACCOUNT_MIN_H..=ACCOUNT_MAX_H, 0, 0] => true,
+        _ => false,
     }
-    if !is_valid_keypath_xpub(&keypath[..4]) {
-        return false;
-    }
-    if keypath[4] > ACCOUNT_MAX {
-        return false;
-    }
-    true
 }
 
 #[cfg(test)]
@@ -107,11 +114,7 @@ mod tests {
             0
         ]));
         // too short
-        assert!(!is_valid_keypath_xpub(&[
-            44 + HARDENED,
-            60 + HARDENED,
-            0 + HARDENED
-        ]));
+        assert!(!is_valid_keypath_xpub(&[44 + HARDENED, 60 + HARDENED,]));
         // too long
         assert!(!is_valid_keypath_xpub(&[
             44 + HARDENED,
@@ -119,6 +122,24 @@ mod tests {
             0 + HARDENED,
             0,
             0
+        ]));
+
+        // Ledger Live
+        assert!(is_valid_keypath_xpub(&[
+            44 + HARDENED,
+            60 + HARDENED,
+            0 + HARDENED,
+        ]));
+        assert!(is_valid_keypath_xpub(&[
+            44 + HARDENED,
+            60 + HARDENED,
+            99 + HARDENED,
+        ]));
+        // account too high
+        assert!(!is_valid_keypath_xpub(&[
+            44 + HARDENED,
+            60 + HARDENED,
+            100 + HARDENED,
         ]));
     }
 
@@ -175,10 +196,76 @@ mod tests {
             0
         ]));
         // tweak keypath elements
-        for i in 0..4 {
-            let mut keypath = [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-            keypath[i] += 1;
-            assert!(!is_valid_keypath_address(&keypath));
+        assert!(!is_valid_keypath_address(&[
+            44 + HARDENED + 1,
+            60 + HARDENED,
+            0 + HARDENED,
+            0,
+            0
+        ]));
+        assert!(!is_valid_keypath_address(&[
+            44 + HARDENED,
+            60 + HARDENED + 1,
+            0 + HARDENED,
+            0,
+            0
+        ]));
+        assert!(!is_valid_keypath_address(&[
+            44 + HARDENED,
+            60 + HARDENED,
+            0 + HARDENED,
+            0 + 1,
+            0
+        ]));
+
+        // Ledger Live
+
+        // 100 good paths.
+        for account in 0..100 {
+            assert!(is_valid_keypath_address(&[
+                44 + HARDENED,
+                60 + HARDENED,
+                account + HARDENED,
+                0,
+                0
+            ]));
         }
+        // account too high
+        assert!(!is_valid_keypath_address(&[
+            44 + HARDENED,
+            60 + HARDENED,
+            100 + HARDENED,
+            0,
+            0
+        ]));
+        // tweak keypath elements
+        assert!(!is_valid_keypath_address(&[
+            44 + HARDENED + 1,
+            60 + HARDENED,
+            1 + HARDENED,
+            0,
+            0
+        ]));
+        assert!(!is_valid_keypath_address(&[
+            44 + HARDENED,
+            60 + HARDENED + 1,
+            1 + HARDENED,
+            0,
+            0
+        ]));
+        assert!(!is_valid_keypath_address(&[
+            44 + HARDENED,
+            60 + HARDENED,
+            1 + HARDENED,
+            0 + 1,
+            0
+        ]));
+        assert!(!is_valid_keypath_address(&[
+            44 + HARDENED,
+            60 + HARDENED,
+            1 + HARDENED,
+            0,
+            0 + 1,
+        ]));
     }
 }

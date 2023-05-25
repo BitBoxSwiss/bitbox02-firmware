@@ -8,6 +8,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 - Improved security: keep seed encrypted in RAM
+- Allow additional keypaths for Ethereum for compatibility with Ledger Live
 
 ### 9.14.0
 - Improved touch button positional accuracy in noisy environments

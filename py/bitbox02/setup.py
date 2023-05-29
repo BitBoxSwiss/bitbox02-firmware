@@ -73,7 +73,7 @@ setup(
         ],
     },
     install_requires=[
-        "hidapi>=0.7.99.post21",
+        "hidapi>=0.14.0",
         "noiseprotocol>=0.3",
         "protobuf>=3.20",
         "ecdsa>=0.14",

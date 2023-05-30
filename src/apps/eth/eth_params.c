@@ -13889,6 +13889,12 @@ static const app_eth_erc20_params_t _ethereum_erc20_params[] = {
             "\x55\x3c\x7f\x9c\x78\x03\x16\xfc\x1d\x34\xb8\xe1\x4a\xc2\x46\x5a\xb2\x2a\x09\x0b",
         .decimals = 0,
     },
+    {
+        .unit = "rETH",
+        .contract_address =
+            "\xae\x78\x73\x6c\xd6\x15\xf3\x74\xd3\x08\x51\x23\xa2\x10\x44\x8e\x74\xfc\x63\x93",
+        .decimals = 18,
+    },
 };
 
 const app_eth_erc20_params_t* app_eth_erc20_params_get(

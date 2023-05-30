@@ -2,6 +2,7 @@
 
 ## 6.2.0
 - btc_sign: allow displaying BTC values in the 'sat' unit
+- require hidapi 0.14.0 to fix a bug on macOS 13.3 which lists two BitBox02s instead of one
 
 ## 6.1.1
 - Update protobuf dependency to >= 3.20, for better compatibility

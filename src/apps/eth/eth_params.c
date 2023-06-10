@@ -13901,6 +13901,12 @@ static const app_eth_erc20_params_t _ethereum_erc20_params[] = {
             "\x7d\x81\x46\xcf\x21\xe8\xd7\xcb\xe4\x60\x54\xe0\x15\x88\x20\x7b\x51\x19\x87\x29",
         .decimals = 18,
     },
+    {
+        .unit = "CLLN",
+        .contract_address =
+            "\x14\x6a\x29\x2b\x03\x75\xe0\x6e\x93\xee\x07\xd5\x0e\x39\xc9\x89\x77\x91\x70\xf5",
+        .decimals = 18,
+    },
 };
 
 const app_eth_erc20_params_t* app_eth_erc20_params_get(

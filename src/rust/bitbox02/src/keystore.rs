@@ -152,7 +152,7 @@ pub fn get_bip39_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
 }
 
 /// An opaque C type which gives access to all BIP39 words.
-pub struct Bip39Wordlist([*const u8; BIP39_WORDLIST_LEN as usize]);
+pub struct Bip39Wordlist(Vec<*const u8>);
 
 impl Bip39Wordlist {
     pub fn as_ptr(&self) -> *const *const u8 {
@@ -175,7 +175,7 @@ impl Drop for Bip39Wordlist {
 }
 
 pub fn get_bip39_wordlist() -> Result<Bip39Wordlist, ()> {
-    let mut result = Bip39Wordlist([core::ptr::null(); BIP39_WORDLIST_LEN as usize]);
+    let mut result = Bip39Wordlist(vec![core::ptr::null(); BIP39_WORDLIST_LEN as usize]);
     for i in 0..BIP39_WORDLIST_LEN {
         let mut word_ptr: *mut u8 = core::ptr::null_mut();
         match unsafe { bitbox02_sys::keystore_get_bip39_word(i, &mut word_ptr) } {

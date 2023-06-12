@@ -30,7 +30,7 @@ static const uint8_t MIN_BUTTON_WIDTH = 32; // 0:SCREEN_WIDTH
  * Component data.
  */
 typedef struct {
-    const char* text;
+    char text[20];
     slider_location_t location;
     bool span_over_slider;
     bool upside_down;
@@ -203,7 +203,7 @@ void button_update(component_t* button, const char* text, void (*callback)(compo
 {
     button_data_t* data = (button_data_t*)button->data;
     data->callback = callback;
-    data->text = text;
+    snprintf(data->text, sizeof(data->text), "%s", text);
     UG_FontSelect(&font_font_a_11X10);
     UG_FontSetHSpace(0);
     UG_MeasureString(&(button->dimension.width), &(button->dimension.height), text);

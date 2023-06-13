@@ -7,6 +7,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+
+### 9.14.1
 - Improved security: keep seed encrypted in RAM
 
 ### 9.14.0

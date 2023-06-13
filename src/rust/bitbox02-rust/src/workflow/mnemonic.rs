@@ -115,7 +115,7 @@ fn lastword_choices(entered_words: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
 }
 
 /// Retrieve a BIP39 mnemonic sentence of 12, 18 or 24 words from the user.
-pub async fn get() -> Result<zeroize::Zeroizing<String>, ()> {
+pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
     let num_words: usize = match choose("How many words?", "12", "18", "24").await {
         TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
         TrinaryChoice::TRINARY_CHOICE_MIDDLE => 18,
@@ -125,7 +125,7 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, ()> {
     status(&format!("Enter {} words", num_words), true).await;
 
     // Provide all bip39 words to restrict the keyboard entry.
-    let bip39_wordlist = bitbox02::keystore::get_bip39_wordlist()?;
+    let bip39_wordlist = bitbox02::keystore::get_bip39_wordlist().unwrap();
 
     let mut word_idx: usize = 0;
     let mut entered_words = vec![zeroize::Zeroizing::new(String::new()); num_words];
@@ -166,7 +166,7 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, ()> {
                         ..Default::default()
                     };
                     if let Ok(()) = confirm::confirm(&params).await {
-                        return Err(());
+                        return Err(CancelError::Cancelled);
                     }
                     continue;
                 }
@@ -241,7 +241,7 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, ()> {
                             // Cancel cancelled.
                             continue;
                         }
-                        return Err(());
+                        return Err(CancelError::Cancelled);
                     }
                 }
             }

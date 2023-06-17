@@ -21,6 +21,7 @@ pub mod common;
 pub mod keypath;
 mod multisig;
 pub mod params;
+mod registration;
 mod script;
 pub mod signmsg;
 pub mod signtx;
@@ -240,10 +241,10 @@ pub async fn process_pub(request: &pb::BtcPubRequest) -> Result<Response, Error>
 pub async fn process_api(request: &Request) -> Result<pb::btc_response::Response, Error> {
     match request {
         Request::IsScriptConfigRegistered(ref request) => {
-            multisig::process_is_script_config_registered(request)
+            registration::process_is_script_config_registered(request)
         }
         Request::RegisterScriptConfig(ref request) => {
-            multisig::process_register_script_config(request).await
+            registration::process_register_script_config(request).await
         }
         Request::SignMessage(ref request) => signmsg::process(request).await,
         // These are streamed asynchronously using the `next_request()` primitive in

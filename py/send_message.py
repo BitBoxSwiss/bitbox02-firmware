@@ -185,11 +185,29 @@ class SendMessage:
     def _setup_workflow(self) -> None:
         """TODO: Document"""
         self._change_name_workflow()
+
+        entropy_size_inp = input(
+            "Choose a seed size: 32 (24 words) or 16 (12 words). Default is 32: "
+        )
+
+        if not entropy_size_inp:
+            entropy_size = 32
+        else:
+            try:
+                entropy_size = int(entropy_size_inp)
+            except:
+                eprint("Failed")
+                return
+
+        if entropy_size not in (16, 32):
+            eprint("You must enter 16 or 32")
+            return
+
         print(
             "Please choose a password of the BitBox02. "
             + "This password will be used to unlock your BitBox02."
         )
-        while not self._device.set_password():
+        while not self._device.set_password(entropy_size=entropy_size):
             eprint("Passwords did not match. please try again")
 
         print("Your BitBox02 will now create a backup of your wallet...")

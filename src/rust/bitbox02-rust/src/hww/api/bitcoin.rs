@@ -21,6 +21,7 @@ pub mod common;
 pub mod keypath;
 mod multisig;
 pub mod params;
+mod policies;
 mod registration;
 mod script;
 pub mod signmsg;
@@ -38,8 +39,8 @@ use crate::keystore;
 use pb::btc_pub_request::{Output, XPubType};
 use pb::btc_request::Request;
 use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
-use pb::btc_script_config::Multisig;
 use pb::btc_script_config::{Config, SimpleType};
+use pb::btc_script_config::{Multisig, Policy};
 use pb::response::Response;
 use pb::BtcCoin;
 use pb::BtcScriptConfig;
@@ -144,7 +145,7 @@ pub fn derive_address_simple(
     .address(coin_params)?)
 }
 
-/// Processes a SimpleType (single-sig) adress api call.
+/// Processes a SimpleType (single-sig) address api call.
 async fn address_simple(
     coin: BtcCoin,
     simple_type: SimpleType,
@@ -164,7 +165,7 @@ async fn address_simple(
     Ok(Response::Pub(pb::PubResponse { r#pub: address }))
 }
 
-/// Processes a multisig adress api call.
+/// Processes a multisig address api call.
 pub async fn address_multisig(
     coin: BtcCoin,
     multisig: &Multisig,
@@ -205,6 +206,25 @@ pub async fn address_multisig(
     Ok(Response::Pub(pb::PubResponse { r#pub: address }))
 }
 
+/// Processes a policy address api call.
+async fn address_policy(
+    coin: BtcCoin,
+    policy: &Policy,
+    _keypath: &[u32],
+    _display: bool,
+) -> Result<Response, Error> {
+    let parsed = policies::parse(policy)?;
+    parsed.validate(coin)?;
+
+    // TODO: check that the policy was registered before.
+
+    // TODO: confirm policy registration
+
+    // TODO: create address at keypath and do user verification
+
+    todo!();
+}
+
 /// Handle a Bitcoin xpub/address protobuf api call.
 pub async fn process_pub(request: &pb::BtcPubRequest) -> Result<Response, Error> {
     let coin = match BtcCoin::from_i32(request.coin) {
@@ -233,6 +253,9 @@ pub async fn process_pub(request: &pb::BtcPubRequest) -> Result<Response, Error>
         Some(Output::ScriptConfig(BtcScriptConfig {
             config: Some(Config::Multisig(ref multisig)),
         })) => address_multisig(coin, multisig, &request.keypath, request.display).await,
+        Some(Output::ScriptConfig(BtcScriptConfig {
+            config: Some(Config::Policy(ref policy)),
+        })) => address_policy(coin, policy, &request.keypath, request.display).await,
         _ => Err(Error::InvalidInput),
     }
 }

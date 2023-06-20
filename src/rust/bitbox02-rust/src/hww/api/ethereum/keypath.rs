@@ -39,7 +39,7 @@ pub async fn warn_unusual_keypath(
     }
     if keypath[1] != params.bip44_coin {
         let body = format!(
-            "Unusual keypath warning: {}. Proceed only if you know what you are doing.",
+            "Warning: unusual keypath {}. Proceed only if you know what you are doing.",
             util::bip32::to_string(keypath)
         );
         return Ok(confirm::confirm(&confirm::Params {

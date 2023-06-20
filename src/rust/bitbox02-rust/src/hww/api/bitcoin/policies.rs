@@ -33,6 +33,25 @@ fn check_enabled(coin: BtcCoin) -> Result<(), Error> {
     Ok(())
 }
 
+/// Checks if the key is our key by comparing the root fingerprints
+/// and deriving and comparing the xpub at the keypath.
+fn is_our_key(key: &pb::KeyOriginInfo) -> Result<bool, ()> {
+    let our_root_fingerprint = crate::keystore::root_fingerprint()?;
+    match key {
+        pb::KeyOriginInfo {
+            root_fingerprint,
+            keypath,
+            xpub: Some(xpub),
+            ..
+        } if root_fingerprint.as_slice() == our_root_fingerprint.as_slice() => {
+            let our_xpub = crate::keystore::get_xpub(keypath)?.serialize(None)?;
+            let maybe_our_xpub = crate::bip32::Xpub::from(xpub).serialize(None)?;
+            Ok(our_xpub == maybe_our_xpub)
+        }
+        _ => Ok(false),
+    }
+}
+
 /// See `ParsedPolicy`.
 #[derive(Debug)]
 pub struct Wsh<'a> {
@@ -58,6 +77,7 @@ impl<'a> ParsedPolicy<'a> {
     /// Validate a policy.
     /// - Coin is supported (only Bitcoin testnet for now)
     /// - Number of keys
+    /// - At least one of the keys is ours
     /// - TODO: many more checks.
     pub fn validate(&self, coin: BtcCoin) -> Result<(), Error> {
         check_enabled(coin)?;
@@ -65,6 +85,19 @@ impl<'a> ParsedPolicy<'a> {
         let policy = self.get_policy();
 
         if policy.keys.len() > MAX_KEYS {
+            return Err(Error::InvalidInput);
+        }
+
+        // Check that at least one key is ours.
+        let has_our_key = 'block: {
+            for key in policy.keys.iter() {
+                if is_our_key(key)? {
+                    break 'block true;
+                }
+            }
+            false
+        };
+        if !has_our_key {
             return Err(Error::InvalidInput);
         }
 
@@ -215,6 +248,24 @@ mod tests {
             .collect();
         assert_eq!(
             parse(&make_policy("wsh(pk(@0/**))", &many_keys))
+                .unwrap()
+                .validate(BtcCoin::Tbtc),
+            Err(Error::InvalidInput)
+        );
+
+        // Our key is not present - fingerprint missing.
+        assert_eq!(
+            parse(&make_policy("wsh(pk(@0/**))", &[make_key(SOME_XPUB_1)]))
+                .unwrap()
+                .validate(BtcCoin::Tbtc),
+            Err(Error::InvalidInput)
+        );
+
+        // Our key is not present - fingerprint and keypath exit but xpub does not match.
+        let mut wrong_key = our_key.clone();
+        wrong_key.xpub = Some(parse_xpub(SOME_XPUB_1).unwrap());
+        assert_eq!(
+            parse(&make_policy("wsh(pk(@0/**))", &[wrong_key]))
                 .unwrap()
                 .validate(BtcCoin::Tbtc),
             Err(Error::InvalidInput)

@@ -19,6 +19,7 @@ use pb::BtcCoin;
 use pb::btc_script_config::Policy;
 
 use alloc::string::String;
+use alloc::vec::Vec;
 
 use core::str::FromStr;
 
@@ -78,6 +79,7 @@ impl<'a> ParsedPolicy<'a> {
     /// - Coin is supported (only Bitcoin testnet for now)
     /// - Number of keys
     /// - At least one of the keys is ours
+    /// - There are no duplicate or missing xpubs
     /// - TODO: many more checks.
     pub fn validate(&self, coin: BtcCoin) -> Result<(), Error> {
         check_enabled(coin)?;
@@ -98,6 +100,22 @@ impl<'a> ParsedPolicy<'a> {
             false
         };
         if !has_our_key {
+            return Err(Error::InvalidInput);
+        }
+
+        // Check for duplicate xpubs and that all keys contain an xpub.
+        // Extract all xpubs first.
+        let xpubs: Vec<&pb::XPub> = policy
+            .keys
+            .iter()
+            .map(|key| match key {
+                pb::KeyOriginInfo {
+                    xpub: Some(xpub), ..
+                } => Ok(xpub),
+                _ => Err(Error::InvalidInput),
+            })
+            .collect::<Result<Vec<&pb::XPub>, Error>>()?;
+        if (1..xpubs.len()).any(|i| xpubs[i..].contains(&xpubs[i - 1])) {
             return Err(Error::InvalidInput);
         }
 
@@ -134,8 +152,6 @@ pub fn parse(policy: &Policy) -> Result<ParsedPolicy, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use alloc::vec::Vec;
 
     use crate::bip32::parse_xpub;
     use bitbox02::testing::mock_unlocked;
@@ -268,6 +284,39 @@ mod tests {
             parse(&make_policy("wsh(pk(@0/**))", &[wrong_key]))
                 .unwrap()
                 .validate(BtcCoin::Tbtc),
+            Err(Error::InvalidInput)
+        );
+
+        // Contains duplicate keys.
+        assert_eq!(
+            parse(&make_policy(
+                "wsh(multi(2,@0/**,@1/**,@2/**))",
+                &[
+                    make_key(SOME_XPUB_1),
+                    our_key.clone(),
+                    make_key(SOME_XPUB_1)
+                ]
+            ))
+            .unwrap()
+            .validate(BtcCoin::Tbtc),
+            Err(Error::InvalidInput)
+        );
+
+        // Contains a key with missing xpub.
+        assert_eq!(
+            parse(&make_policy(
+                "wsh(multi(2,@0/**,@1/**))",
+                &[
+                    our_key.clone(),
+                    pb::KeyOriginInfo {
+                        root_fingerprint: vec![],
+                        keypath: vec![],
+                        xpub: None // missing
+                    }
+                ]
+            ))
+            .unwrap()
+            .validate(BtcCoin::Tbtc),
             Err(Error::InvalidInput)
         );
     }

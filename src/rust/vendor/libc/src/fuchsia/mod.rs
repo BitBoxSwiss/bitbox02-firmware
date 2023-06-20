@@ -2602,6 +2602,7 @@ pub const PR_SET_MM_MAP: ::c_int = 14;
 pub const PR_SET_MM_MAP_SIZE: ::c_int = 15;
 
 pub const PR_SET_PTRACER: ::c_int = 0x59616d61;
+pub const PR_SET_PTRACER_ANY: ::c_ulong = 0xffffffffffffffff;
 
 pub const PR_SET_CHILD_SUBREAPER: ::c_int = 36;
 pub const PR_GET_CHILD_SUBREAPER: ::c_int = 37;
@@ -3270,7 +3271,7 @@ f! {
             as ::c_uint
     }
 
-    pub fn CMSG_LEN(len: ::c_uint) -> ::c_uint {
+    pub {const} fn CMSG_LEN(len: ::c_uint) -> ::c_uint {
         (CMSG_ALIGN(::mem::size_of::<cmsghdr>()) + len as ::size_t) as ::c_uint
     }
 }
@@ -3402,11 +3403,16 @@ extern "C" {
     pub fn feof(stream: *mut FILE) -> c_int;
     pub fn ferror(stream: *mut FILE) -> c_int;
     pub fn perror(s: *const c_char);
+    pub fn atof(s: *const c_char) -> c_double;
     pub fn atoi(s: *const c_char) -> c_int;
+    pub fn atol(s: *const c_char) -> c_long;
+    pub fn atoll(s: *const c_char) -> c_longlong;
     pub fn strtod(s: *const c_char, endp: *mut *mut c_char) -> c_double;
     pub fn strtof(s: *const c_char, endp: *mut *mut c_char) -> c_float;
     pub fn strtol(s: *const c_char, endp: *mut *mut c_char, base: c_int) -> c_long;
+    pub fn strtoll(s: *const c_char, endp: *mut *mut c_char, base: c_int) -> c_longlong;
     pub fn strtoul(s: *const c_char, endp: *mut *mut c_char, base: c_int) -> c_ulong;
+    pub fn strtoull(s: *const c_char, endp: *mut *mut c_char, base: c_int) -> c_ulonglong;
     pub fn calloc(nobj: size_t, size: size_t) -> *mut c_void;
     pub fn malloc(size: size_t) -> *mut c_void;
     pub fn realloc(p: *mut c_void, size: size_t) -> *mut c_void;
@@ -3448,7 +3454,6 @@ extern "C" {
     pub fn memset(dest: *mut c_void, c: c_int, n: size_t) -> *mut c_void;
 
     pub fn abs(i: c_int) -> c_int;
-    pub fn atof(s: *const c_char) -> c_double;
     pub fn labs(i: c_long) -> c_long;
     pub fn rand() -> c_int;
     pub fn srand(seed: c_uint);
@@ -4255,6 +4260,9 @@ cfg_if! {
     } else if #[cfg(any(target_arch = "x86_64"))] {
         mod x86_64;
         pub use self::x86_64::*;
+    } else if #[cfg(any(target_arch = "riscv64"))] {
+        mod riscv64;
+        pub use self::riscv64::*;
     } else {
         // Unknown target_arch
     }

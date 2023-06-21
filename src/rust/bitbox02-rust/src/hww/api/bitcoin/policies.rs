@@ -25,6 +25,8 @@ use core::str::FromStr;
 
 use util::bip32::HARDENED;
 
+use miniscript::TranslatePk;
+
 // Arbitrary limit of keys that can be present in a policy.
 const MAX_KEYS: usize = 20;
 
@@ -90,6 +92,41 @@ fn parse_wallet_policy_pk(pk: &str) -> Result<(usize, u32, u32), ()> {
         return Err(());
     }
     Ok((left.parse().or(Err(()))?, receive_index, change_index))
+}
+
+struct WalletPolicyPkTranslator<'a> {
+    keys: &'a [pb::KeyOriginInfo],
+    is_change: bool,
+    address_index: u32,
+}
+
+impl<'a> miniscript::Translator<String, bitcoin::PublicKey, Error>
+    for WalletPolicyPkTranslator<'a>
+{
+    fn pk(&mut self, pk: &String) -> Result<bitcoin::PublicKey, Error> {
+        let (key_index, multipath_index_left, multipath_index_right) =
+            parse_wallet_policy_pk(&pk).or(Err(Error::InvalidInput))?;
+
+        match self.keys.get(key_index) {
+            Some(pb::KeyOriginInfo {
+                xpub: Some(xpub), ..
+            }) => {
+                let multipath_index = if self.is_change {
+                    multipath_index_right
+                } else {
+                    multipath_index_left
+                };
+                let derived_xpub = crate::bip32::Xpub::from(xpub)
+                    .derive(&[multipath_index, self.address_index])?;
+                Ok(bitcoin::PublicKey::from_slice(derived_xpub.public_key())
+                    .or(Err(Error::Generic))?)
+            }
+            _ => Err(Error::InvalidInput),
+        }
+    }
+
+    // Miniscript hash fragments not supported.
+    miniscript::translate_hash_fail!(String, bitcoin::PublicKey, Error);
 }
 
 /// See `ParsedPolicy`.
@@ -207,6 +244,34 @@ impl<'a> ParsedPolicy<'a> {
 
         Ok(())
     }
+
+    /// Derive the witness script of the policy derived at a receive or change path.
+    /// If is_change is false, the witness script for the receive address is derived.
+    /// If is_change is true, the witness script for the change address is derived.
+    /// Example: wsh(and_v(v:pk(@0/**),pk(@1/<20;21>/*))) derived using `is_change=false, address_index=5` derives
+    /// wsh(and_v(v:pk(@0/0/5),pk(@1/20/5))).
+    /// The same derived using `is_change=true` derives: wsh(and_v(v:pk(@0/1/5),pk(@1/21/5)))
+    #[allow(dead_code)] // will be used soon in the creation of receive addresses
+    pub fn witness_script(&self, is_change: bool, address_index: u32) -> Result<Vec<u8>, Error> {
+        match self {
+            Self::Wsh(Wsh {
+                policy,
+                miniscript_expr,
+            }) => {
+                let mut translator = WalletPolicyPkTranslator {
+                    keys: policy.keys.as_ref(),
+                    is_change,
+                    address_index,
+                };
+                let miniscript_expr = match miniscript_expr.translate_pk(&mut translator) {
+                    Ok(m) => m,
+                    Err(miniscript::TranslateErr::TranslatorErr(e)) => return Err(e),
+                    Err(miniscript::TranslateErr::OuterError(_)) => return Err(Error::Generic),
+                };
+                Ok(miniscript_expr.encode().as_bytes().to_vec())
+            }
+        }
+    }
 }
 
 /// Parses a policy as specified by 'Wallet policies': https://github.com/bitcoin/bips/pull/1389.
@@ -238,7 +303,7 @@ mod tests {
     use super::*;
 
     use crate::bip32::parse_xpub;
-    use bitbox02::testing::mock_unlocked;
+    use bitbox02::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
 
     const SOME_XPUB_1: &str = "xpub6FMWuwbCA9KhoRzAMm63ZhLspk5S2DM5sePo8J8mQhcS1xyMbAqnc7Q7UescVEVFCS6qBMQLkEJWQ9Z3aDPgBov5nFUYxsJhwumsxM4npSo";
 
@@ -513,5 +578,97 @@ mod tests {
             &[our_key.clone()],
         );
         assert!(parse(&pol).unwrap().validate(coin).is_err());
+    }
+
+    #[test]
+    fn test_witness_script() {
+        mock_unlocked_using_mnemonic(
+            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+            "",
+        );
+
+        let our_key = make_our_key(KEYPATH_ACCOUNT);
+        let our_xpub = crate::bip32::Xpub::from(our_key.xpub.as_ref().unwrap());
+
+        let some_key = make_key(SOME_XPUB_1);
+        let some_xpub = crate::bip32::Xpub::from(some_key.xpub.as_ref().unwrap());
+        let address_index = 5;
+
+        let witness_script = |pol: &str, keys: &[pb::KeyOriginInfo], is_change: bool| {
+            hex::encode(
+                &parse(&make_policy(pol, keys))
+                    .unwrap()
+                    .witness_script(is_change, address_index)
+                    .unwrap(),
+            )
+        };
+
+        // pk(key) => <key> OP_CHECKSIG
+        let result = witness_script("wsh(pk(@0/**))", &[our_key.clone()], false);
+        let expected_derived_pubkey =
+            "039d626054b8fd7e8371ee7341549846cc7703b5530d6b7ddc08dc8a3b78455924";
+        assert_eq!(
+            hex::encode(our_xpub.derive(&[0, address_index]).unwrap().public_key()).as_str(),
+            expected_derived_pubkey
+        );
+        assert_eq!(result, format!("21{}ac", expected_derived_pubkey));
+
+        // multi(2,key1,key2) => OP_1 <key1> <key2> OP_2 CHECKMULTISIGVERIFY OP_1 = 0x51, OP_2 =
+        // 0x52 Use <10;11> and <20;21> for receive/change instead of the usual <0;1> to test these
+        // derivations.
+        {
+            // 1. Test the receive path
+            let result = witness_script(
+                "wsh(multi(1,@0/<10;11>/*,@1/<20;21>/*))",
+                &[our_key.clone(), some_key.clone()],
+                false,
+            );
+            let expected_derived_pubkey1 =
+                "0290ad738002018d6e9551603f1913983bd52145e3a026b79b133b9d36bacc7f25";
+            let expected_derived_pubkey2 =
+                "02d56a3aeb73509ddaea764d2af3094092a80ab5d282ac35c7c42a03c397302a1b";
+            assert_eq!(
+                hex::encode(our_xpub.derive(&[10, address_index]).unwrap().public_key()).as_str(),
+                expected_derived_pubkey1
+            );
+            assert_eq!(
+                hex::encode(some_xpub.derive(&[20, address_index]).unwrap().public_key()).as_str(),
+                expected_derived_pubkey2
+            );
+            assert_eq!(
+                result,
+                format!(
+                    "5121{}21{}52ae",
+                    expected_derived_pubkey1, expected_derived_pubkey2
+                ),
+            );
+        }
+        {
+            // 2. Test the change path
+            let result = witness_script(
+                "wsh(multi(1,@0/<10;11>/*,@1/<20;21>/*))",
+                &[our_key.clone(), some_key.clone()],
+                true,
+            );
+            let expected_derived_pubkey1 =
+                "038294e6b0f046e869c3211b8c937ccb19ab0913e3170b7ec32d07d241d97d0e07";
+            let expected_derived_pubkey2 =
+                "029684141cf8eb01224cbe0470cca0ad4dae482c70d8e5c1601686f9b2b69f3d0f";
+            assert_eq!(
+                hex::encode(our_xpub.derive(&[11, address_index]).unwrap().public_key()).as_str(),
+                expected_derived_pubkey1
+            );
+            assert_eq!(
+                hex::encode(some_xpub.derive(&[21, address_index]).unwrap().public_key()).as_str(),
+                expected_derived_pubkey2
+            );
+            assert_eq!(
+                result,
+                format!(
+                    "5121{}21{}52ae",
+                    expected_derived_pubkey1, expected_derived_pubkey2
+                ),
+            );
+        }
     }
 }

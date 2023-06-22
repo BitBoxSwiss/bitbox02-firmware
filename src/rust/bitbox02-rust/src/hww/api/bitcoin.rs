@@ -210,19 +210,30 @@ pub async fn address_multisig(
 async fn address_policy(
     coin: BtcCoin,
     policy: &Policy,
-    _keypath: &[u32],
-    _display: bool,
+    keypath: &[u32],
+    display: bool,
 ) -> Result<Response, Error> {
+    let coin_params = params::get(coin);
     let parsed = policies::parse(policy)?;
     parsed.validate(coin)?;
+
+    let title = "Receive to";
 
     // TODO: check that the policy was registered before.
 
     // TODO: confirm policy registration
 
-    // TODO: create address at keypath and do user verification
-
-    todo!();
+    let address = common::Payload::from_policy(&parsed, keypath)?.address(coin_params)?;
+    if display {
+        confirm::confirm(&confirm::Params {
+            title,
+            body: &address,
+            scrollable: true,
+            ..Default::default()
+        })
+        .await?;
+    }
+    Ok(Response::Pub(pb::PubResponse { r#pub: address }))
 }
 
 /// Handle a Bitcoin xpub/address protobuf api call.

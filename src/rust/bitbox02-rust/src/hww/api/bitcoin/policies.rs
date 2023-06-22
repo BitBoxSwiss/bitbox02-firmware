@@ -94,6 +94,44 @@ fn parse_wallet_policy_pk(pk: &str) -> Result<(usize, u32, u32), ()> {
     Ok((left.parse().or(Err(()))?, receive_index, change_index))
 }
 
+/// Given policy pubkeys like `@0/<left;right>/*` and the keys list, determine if the given keypath
+/// is valid and whether it points to a receive or change address.
+///
+/// Example: pubkeys "@0/<10;11>/*" and "@1/<20;21>/*", with our key [fp/48'/1'/0'/3']xpub...],
+/// derived using keypath m/48'/1'/0'/3'/11/5 means that this is the address index 5 at the change
+/// path.
+fn get_change_and_address_index<R: core::convert::AsRef<str>, T: core::iter::Iterator<Item = R>>(
+    pubkeys: T,
+    keys: &[pb::KeyOriginInfo],
+    keypath: &[u32],
+) -> Result<(bool, u32), Error> {
+    for pk in pubkeys {
+        let (key_index, multipath_index_left, multipath_index_right) =
+            parse_wallet_policy_pk(pk.as_ref()).or(Err(Error::InvalidInput))?;
+
+        match keys.get(key_index) {
+            Some(pb::KeyOriginInfo {
+                keypath: keypath_account,
+                ..
+            }) if keypath.starts_with(&keypath_account)
+                && keypath.len() == keypath_account.len() + 2 =>
+            {
+                let keypath_change = keypath[keypath.len() - 2];
+                let is_change = if keypath_change == multipath_index_left {
+                    false
+                } else if keypath_change == multipath_index_right {
+                    true
+                } else {
+                    continue;
+                };
+                return Ok((is_change, keypath[keypath.len() - 1]));
+            }
+            _ => continue,
+        }
+    }
+    Err(Error::InvalidInput)
+}
+
 struct WalletPolicyPkTranslator<'a> {
     keys: &'a [pb::KeyOriginInfo],
     is_change: bool,
@@ -251,7 +289,6 @@ impl<'a> ParsedPolicy<'a> {
     /// Example: wsh(and_v(v:pk(@0/**),pk(@1/<20;21>/*))) derived using `is_change=false, address_index=5` derives
     /// wsh(and_v(v:pk(@0/0/5),pk(@1/20/5))).
     /// The same derived using `is_change=true` derives: wsh(and_v(v:pk(@0/1/5),pk(@1/21/5)))
-    #[allow(dead_code)] // will be used soon in the creation of receive addresses
     pub fn witness_script(&self, is_change: bool, address_index: u32) -> Result<Vec<u8>, Error> {
         match self {
             Self::Wsh(Wsh {
@@ -269,6 +306,23 @@ impl<'a> ParsedPolicy<'a> {
                     Err(miniscript::TranslateErr::OuterError(_)) => return Err(Error::Generic),
                 };
                 Ok(miniscript_expr.encode().as_bytes().to_vec())
+            }
+        }
+    }
+
+    /// Derive the witness script of the policy derived at the given full keypath.
+    /// Example: wsh(and_v(v:pk(@0/<10;11>/*),pk(@1/<20;21>/*))) with our key [fp/48'/1'/0'/3']xpub...]
+    /// derived using keypath m/48'/1'/0'/3'/11/5 derives:
+    /// wsh(and_v(v:pk(@0/11/5),pk(@1/21/5))).
+    pub fn witness_script_at_keypath(&self, keypath: &[u32]) -> Result<Vec<u8>, Error> {
+        match self {
+            Self::Wsh(Wsh {
+                ref policy,
+                ref miniscript_expr,
+            }) => {
+                let (is_change, address_index) =
+                    get_change_and_address_index(miniscript_expr.iter_pk(), &policy.keys, keypath)?;
+                self.witness_script(is_change, address_index)
             }
         }
     }
@@ -581,6 +635,99 @@ mod tests {
     }
 
     #[test]
+    fn test_get_change_and_address_index() {
+        mock_unlocked();
+        let our_key = make_our_key(KEYPATH_ACCOUNT);
+        let some_key = make_key(SOME_XPUB_1);
+
+        assert_eq!(
+            get_change_and_address_index(
+                ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
+                &[our_key.clone(), some_key.clone()],
+                &[
+                    48 + HARDENED,
+                    1 + HARDENED,
+                    0 + HARDENED,
+                    3 + HARDENED,
+                    10,
+                    0,
+                ],
+            ),
+            Ok((false, 0))
+        );
+
+        assert_eq!(
+            get_change_and_address_index(
+                ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
+                &[our_key.clone(), some_key.clone()],
+                &[
+                    48 + HARDENED,
+                    1 + HARDENED,
+                    0 + HARDENED,
+                    3 + HARDENED,
+                    11,
+                    5,
+                ],
+            ),
+            Ok((true, 5))
+        );
+
+        // Account keypath does not match.
+        assert!(get_change_and_address_index(
+            ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
+            &[our_key.clone(), some_key.clone()],
+            &[
+                48 + HARDENED,
+                1 + HARDENED,
+                0 + HARDENED,
+                0 + HARDENED,
+                11,
+                5,
+            ],
+        )
+        .is_err());
+
+        // Keypath change/receive element does not match.
+        assert!(get_change_and_address_index(
+            ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
+            &[our_key.clone(), some_key.clone()],
+            &[
+                48 + HARDENED,
+                1 + HARDENED,
+                0 + HARDENED,
+                3 + HARDENED,
+                20,
+                5,
+            ],
+        )
+        .is_err());
+
+        // Keypath too long
+        assert!(get_change_and_address_index(
+            ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
+            &[our_key.clone(), some_key.clone()],
+            &[
+                48 + HARDENED,
+                1 + HARDENED,
+                0 + HARDENED,
+                3 + HARDENED,
+                10,
+                5,
+                0,
+            ],
+        )
+        .is_err());
+
+        // Keypath too short
+        assert!(get_change_and_address_index(
+            ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
+            &[our_key.clone(), some_key.clone()],
+            &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED, 10,],
+        )
+        .is_err());
+    }
+
+    #[test]
     fn test_witness_script() {
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
@@ -599,6 +746,14 @@ mod tests {
                 &parse(&make_policy(pol, keys))
                     .unwrap()
                     .witness_script(is_change, address_index)
+                    .unwrap(),
+            )
+        };
+        let witness_script_at_keypath = |pol: &str, keys: &[pb::KeyOriginInfo], keypath: &[u32]| {
+            hex::encode(
+                &parse(&make_policy(pol, keys))
+                    .unwrap()
+                    .witness_script_at_keypath(keypath)
                     .unwrap(),
             )
         };
@@ -635,12 +790,27 @@ mod tests {
                 hex::encode(some_xpub.derive(&[20, address_index]).unwrap().public_key()).as_str(),
                 expected_derived_pubkey2
             );
+            let expected_witness_script = format!(
+                "5121{}21{}52ae",
+                expected_derived_pubkey1, expected_derived_pubkey2
+            );
+            assert_eq!(result, expected_witness_script);
+
+            // Test the same using a full keypath.
             assert_eq!(
-                result,
-                format!(
-                    "5121{}21{}52ae",
-                    expected_derived_pubkey1, expected_derived_pubkey2
+                witness_script_at_keypath(
+                    "wsh(multi(1,@0/<10;11>/*,@1/<20;21>/*))",
+                    &[our_key.clone(), some_key.clone()],
+                    &[
+                        48 + HARDENED,
+                        1 + HARDENED,
+                        0 + HARDENED,
+                        3 + HARDENED,
+                        10,
+                        address_index,
+                    ],
                 ),
+                expected_witness_script,
             );
         }
         {
@@ -662,12 +832,27 @@ mod tests {
                 hex::encode(some_xpub.derive(&[21, address_index]).unwrap().public_key()).as_str(),
                 expected_derived_pubkey2
             );
+            let expected_witness_script = format!(
+                "5121{}21{}52ae",
+                expected_derived_pubkey1, expected_derived_pubkey2
+            );
+            assert_eq!(result, expected_witness_script);
+
+            // Test the same using a full keypath.
             assert_eq!(
-                result,
-                format!(
-                    "5121{}21{}52ae",
-                    expected_derived_pubkey1, expected_derived_pubkey2
+                witness_script_at_keypath(
+                    "wsh(multi(1,@0/<10;11>/*,@1/<20;21>/*))",
+                    &[our_key.clone(), some_key.clone()],
+                    &[
+                        48 + HARDENED,
+                        1 + HARDENED,
+                        0 + HARDENED,
+                        3 + HARDENED,
+                        11,
+                        address_index,
+                    ],
                 ),
+                expected_witness_script,
             );
         }
     }

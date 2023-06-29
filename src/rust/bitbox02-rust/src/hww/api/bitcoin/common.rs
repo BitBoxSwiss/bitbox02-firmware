@@ -146,6 +146,27 @@ impl Payload {
         }
     }
 
+    /// Constructs payload from the provided policy.
+    /// Note that the policy is *not* validated, this must be done before calling.
+    ///
+    /// The policy key xpubs are account-level xpubs.  The keypath must have a account-level keypath
+    /// prefix followed by two unhardened elements.
+    /// Example: wsh(and_v(v:pk(@0/<10;11>/*),pk(@1/<20;21>/*))) with our key [fp/48'/1'/0'/3']xpub...]
+    /// derived using keypath m/48'/1'/0'/3'/11/5 derives the payload for
+    /// wsh(and_v(v:pk(@0/11/5),pk(@1/21/5))).
+    pub fn from_policy(
+        policy: &super::policies::ParsedPolicy,
+        keypath: &[u32],
+    ) -> Result<Self, Error> {
+        let witness_script = policy.witness_script_at_keypath(keypath)?;
+        match policy {
+            super::policies::ParsedPolicy::Wsh { .. } => Ok(Payload {
+                data: Sha256::digest(&witness_script).to_vec(),
+                output_type: BtcOutputType::P2wsh,
+            }),
+        }
+    }
+
     /// Computes the payload data from a script config. The payload can then be used generate a
     /// pkScript or an address.
     pub fn from(

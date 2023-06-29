@@ -662,6 +662,31 @@ class SendMessage:
         for input_index, sig in sigs:
             print("Signature for input {}: {}".format(input_index, sig.hex()))
 
+    def _sign_btc_policy(self) -> None:
+        bip44_account: int = 0 + HARDENED
+        account_keypath = [48 + HARDENED, 1 + HARDENED, bip44_account, 3 + HARDENED]
+        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        for (i, inp) in enumerate(inputs):
+            inp["keypath"] = account_keypath + [0, i]
+            inp["script_config_index"] = 0
+        assert isinstance(outputs[0], bitbox02.BTCOutputInternal)
+        outputs[0].keypath = account_keypath + [1, 0]
+
+        coin = bitbox02.btc.TBTC
+        sigs = self._device.btc_sign(
+            coin,
+            [
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=self._btc_policy_config(coin),
+                    keypath=account_keypath,
+                ),
+            ],
+            inputs=inputs,
+            outputs=outputs,
+        )
+        for input_index, sig in sigs:
+            print("Signature for input {}: {}".format(input_index, sig.hex()))
+
     def _sign_btc_tx_from_raw(self) -> None:
         """
         Experiment with testnet transactions.
@@ -764,6 +789,7 @@ class SendMessage:
             ("Locktime/RBF", self._sign_btc_locktime_rbf),
             ("Taproot inputs", self._sign_btc_taproot_inputs),
             ("Taproot output", self._sign_btc_taproot_output),
+            ("Policy", self._sign_btc_policy),
             ("From testnet tx ID", self._sign_btc_tx_from_raw),
         )
         choice = ask_user(choices)

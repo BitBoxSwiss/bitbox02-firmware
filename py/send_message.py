@@ -395,6 +395,52 @@ class SendMessage:
 
         return multisig_config
 
+    def _btc_policy_config(self, coin: "bitbox02.btc.BTCCoin.V") -> bitbox02.btc.BTCScriptConfig:
+        account_keypath = [48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED]
+        our_xpub = self._device.btc_xpub(
+            keypath=account_keypath,
+            coin=coin,
+            xpub_type=bitbox02.btc.BTCPubRequest.XPUB,
+            display=False,
+        )
+        our_root_fingerprint = self._device.root_fingerprint()
+
+        policy_config = bitbox02.btc.BTCScriptConfig(
+            policy=bitbox02.btc.BTCScriptConfig.Policy(
+                policy="wsh(and_v(v:pk(@0/**),pk(@1/**)))",
+                keys=[
+                    bitbox02.common.KeyOriginInfo(
+                        root_fingerprint=our_root_fingerprint,
+                        keypath=account_keypath,
+                        xpub=util.parse_xpub(our_xpub),
+                    ),
+                    bitbox02.common.KeyOriginInfo(
+                        xpub=util.parse_xpub(
+                            "xpub6Eq64jDihkRvLg91wnckeTFWDT5jzdoKwX24aL9MHY4pS49E9jH69zFRnHuJzZijQaLZs7t5jtUxUhywhXGtUzsCf5EjunnDUNhzJFqhowa"
+                        ),
+                    ),
+                ],
+            )
+        )
+
+        is_registered = self._device.btc_is_script_config_registered(
+            coin,
+            policy_config,
+            [],
+        )
+        if is_registered:
+            print("Policy account already registered on the device.")
+        else:
+            policy_name = input("Enter a name for the policy account: ").strip()
+            self._device.btc_register_script_config(
+                coin=coin,
+                script_config=policy_config,
+                keypath=[],
+                name=policy_name,
+            )
+
+        return policy_config
+
     def _btc_multisig_address(self) -> None:
         try:
             coin = bitbox02.btc.BTC
@@ -410,6 +456,27 @@ class SendMessage:
                         2,
                     ],
                     script_config=self._btc_multisig_config(coin),
+                    display=True,
+                )
+            )
+        except UserAbortException:
+            print("Aborted by user")
+
+    def _btc_policy_address(self) -> None:
+        try:
+            coin = bitbox02.btc.TBTC
+            print(
+                self._device.btc_address(
+                    coin=coin,
+                    keypath=[
+                        48 + HARDENED,
+                        1 + HARDENED,
+                        0 + HARDENED,
+                        3 + HARDENED,
+                        1,
+                        2,
+                    ],
+                    script_config=self._btc_policy_config(coin),
                     display=True,
                 )
             )
@@ -1225,6 +1292,7 @@ class SendMessage:
             ("Retrieve zpub of first account", self._display_zpub),
             ("Retrieve a BTC address", self._btc_address),
             ("Retrieve a BTC Multisig address", self._btc_multisig_address),
+            ("Retrieve a BTC policy address", self._btc_policy_address),
             ("Sign a BTC tx", self._sign_btc_tx),
             ("Sign a BTC Message", self._sign_btc_message),
             ("List backups", self._print_backups),

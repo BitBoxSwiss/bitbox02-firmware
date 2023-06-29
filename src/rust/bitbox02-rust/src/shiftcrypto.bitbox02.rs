@@ -621,6 +621,7 @@ pub struct BtcScriptConfigRegistration {
     pub coin: i32,
     #[prost(message, optional, tag = "2")]
     pub script_config: ::core::option::Option<BtcScriptConfig>,
+    /// Unused for policy registrations.
     #[prost(uint32, repeated, tag = "3")]
     pub keypath: ::prost::alloc::vec::Vec<u32>,
 }

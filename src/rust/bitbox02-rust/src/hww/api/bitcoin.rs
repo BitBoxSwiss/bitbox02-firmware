@@ -240,11 +240,16 @@ async fn address_policy(
     let parsed = policies::parse(policy)?;
     parsed.validate(coin)?;
 
+    let name = match policies::get_name(coin, policy)? {
+        Some(name) => name,
+        None => return Err(Error::InvalidInput),
+    };
+
     let title = "Receive to";
 
-    // TODO: check that the policy was registered before.
-
-    // TODO: confirm policy registration
+    if display {
+        policies::confirm(title, coin_params, &name, policy, policies::Mode::Basic).await?;
+    }
 
     let address = common::Payload::from_policy(&parsed, keypath)?.address(coin_params)?;
     if display {

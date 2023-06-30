@@ -234,6 +234,9 @@ async fn address_policy(
     display: bool,
 ) -> Result<Response, Error> {
     let coin_params = params::get(coin);
+
+    keypath::validate_address_policy(keypath).or(Err(Error::InvalidInput))?;
+
     let parsed = policies::parse(policy)?;
     parsed.validate(coin)?;
 

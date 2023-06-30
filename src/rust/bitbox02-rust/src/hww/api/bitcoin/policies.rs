@@ -46,15 +46,14 @@ fn check_enabled(coin: BtcCoin) -> Result<(), Error> {
 
 /// Checks if the key is our key by comparing the root fingerprints
 /// and deriving and comparing the xpub at the keypath.
-fn is_our_key(key: &pb::KeyOriginInfo) -> Result<bool, ()> {
-    let our_root_fingerprint = crate::keystore::root_fingerprint()?;
+fn is_our_key(key: &pb::KeyOriginInfo, our_root_fingerprint: &[u8]) -> Result<bool, ()> {
     match key {
         pb::KeyOriginInfo {
             root_fingerprint,
             keypath,
             xpub: Some(xpub),
             ..
-        } if root_fingerprint.as_slice() == our_root_fingerprint.as_slice() => {
+        } if root_fingerprint.as_slice() == our_root_fingerprint => {
             let our_xpub = crate::keystore::get_xpub(keypath)?.serialize(None)?;
             let maybe_our_xpub = bip32::Xpub::from(xpub).serialize(None)?;
             Ok(our_xpub == maybe_our_xpub)
@@ -257,10 +256,12 @@ impl<'a> ParsedPolicy<'a> {
 
         self.validate_keys()?;
 
+        let our_root_fingerprint = crate::keystore::root_fingerprint()?;
+
         // Check that at least one key is ours.
         let has_our_key = 'block: {
             for key in policy.keys.iter() {
-                if is_our_key(key)? {
+                if is_our_key(key, &our_root_fingerprint)? {
                     break 'block true;
                 }
             }
@@ -428,6 +429,8 @@ pub async fn confirm(
     })
     .await?;
 
+    let our_root_fingerprint = crate::keystore::root_fingerprint()?;
+
     let num_keys = policy.keys.len();
     for (i, key) in policy.keys.iter().enumerate() {
         let key_str = match key {
@@ -456,7 +459,7 @@ pub async fn confirm(
         };
         confirm::confirm(&confirm::Params {
             title: &format!("Key {}/{}", i + 1, num_keys),
-            body: (if is_our_key(key)? {
+            body: (if is_our_key(key, &our_root_fingerprint)? {
                 format!("This device: {}", key_str)
             } else {
                 key_str

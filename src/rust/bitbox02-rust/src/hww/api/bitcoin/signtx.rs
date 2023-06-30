@@ -228,10 +228,24 @@ fn validate_keypath(
     if keypath[..script_config_account.keypath.len()] != script_config_account.keypath {
         return Err(Error::InvalidInput);
     }
-    let change = keypath[keypath.len() - 2];
-    // TODO: change path in a policy must be determined using multipath
-    if must_be_change && change != 1 {
-        return Err(Error::InvalidInput);
+    if must_be_change {
+        // The change addresses are usually at /1/*.
+        // For policies, they can be at a different location, e.g. `@0/<10;11>/*` means the change
+        // is at /11/*.
+        let is_change = match &script_config_account.script_config {
+            // Policy.
+            Some(pb::BtcScriptConfig {
+                config: Some(pb::btc_script_config::Config::Policy(policy)),
+            }) => super::policies::parse(policy)?.is_change_keypath(keypath)?,
+            // Everything else.
+            _ => {
+                let change = keypath[keypath.len() - 2];
+                change == 1
+            }
+        };
+        if !is_change {
+            return Err(Error::InvalidInput);
+        }
     }
     Ok(())
 }
@@ -2911,6 +2925,63 @@ mod tests {
             unsafe { UI_COUNTER },
             transaction.borrow().total_confirmations
         );
+    }
+
+    /// Test that a policy with derivations other than `/**` work.
+    #[test]
+    fn test_policy_different_multipath_derivations() {
+        let policy_str = "wsh(multi(2,@0/<10;11>/*,@1/<20;21>/*))";
+
+        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_policy()));
+        transaction.borrow_mut().inputs[0].input.keypath[4] = 10; // receive path at /10/*
+        transaction.borrow_mut().outputs[0].keypath[4] = 11; // change path at /11/*
+
+        mock_host_responder(transaction.clone());
+
+        static mut UI_COUNTER: u32 = 0;
+        mock_default_ui();
+
+        mock_unlocked_using_mnemonic(
+            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+            "",
+        );
+        // For the policy registration below.
+        mock_memory();
+
+        let keypath_account = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
+
+        let policy = pb::btc_script_config::Policy {
+            policy: policy_str.into(),
+            keys: vec![
+                pb::KeyOriginInfo {
+                    root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
+                    keypath: keypath_account.to_vec(),
+                    xpub: Some(crate::keystore::get_xpub(keypath_account).unwrap().into()),
+                },
+                pb::KeyOriginInfo {
+                    root_fingerprint: vec![],
+                    keypath: vec![],
+                    xpub: Some(parse_xpub("xpub6Eu7xJRyXRCi4eLYhJPnfZVjgAQtM7qFaEZwUhvgxGf4enEZMxevGzWvZTawCj9USP2MFTEhKQAwnqHwoaPHetTLqGuvq5r5uaLKyGx5QDZ").unwrap()),
+                },
+            ],
+        };
+
+        // Register policy.
+        let policy_hash = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
+        bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
+
+        let result = block_on(process(
+            &transaction
+                .borrow()
+                .init_request_policy(policy, keypath_account),
+        ));
+        match result {
+            Ok(Response::BtcSignNext(next)) => {
+                assert!(next.has_signature);
+                assert_eq!(&next.signature, b"\x1c\x6b\x54\x65\x85\x9d\xb7\xdb\xd8\x8f\x17\x4d\x07\xa9\xdf\x41\x6d\x6d\xfa\x1e\x74\x29\x03\x98\x95\x84\xcd\x72\xe9\x89\xd1\x41\x48\x5a\xd9\xd7\x12\xdf\x28\x52\xa6\x50\x0e\x06\x85\x64\x04\x95\x9c\x01\x0d\x52\x54\x35\x3d\x11\xab\x31\x67\x37\x7e\xd4\xee\x88");
+            }
+            _ => panic!("wrong result"),
+        }
     }
 
     #[test]

@@ -332,6 +332,20 @@ impl<'a> ParsedPolicy<'a> {
             }
         }
     }
+
+    /// Returns true if the address-level keypath points to a change address.
+    pub fn is_change_keypath(&self, keypath: &[u32]) -> Result<bool, Error> {
+        match self {
+            Self::Wsh(Wsh {
+                policy,
+                miniscript_expr,
+            }) => {
+                let (is_change, _) =
+                    get_change_and_address_index(miniscript_expr.iter_pk(), &policy.keys, keypath)?;
+                Ok(is_change)
+            }
+        }
+    }
 }
 
 /// Parses a policy as specified by 'Wallet policies': https://github.com/bitcoin/bips/pull/1389.

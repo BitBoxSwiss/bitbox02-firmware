@@ -450,7 +450,7 @@ mod tests {
                 } {
                     1 => {
                         assert_eq!(params.title, "Goerli");
-                        assert_eq!(params.body, "Unusual keypath warning: m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
+                        assert_eq!(params.body, "Warning: unusual keypath m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
                         true
                     }
                     _ => panic!("too many user confirmations"),

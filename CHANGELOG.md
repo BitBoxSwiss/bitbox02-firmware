@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Allow exporting the xpub at any keypath after user confirmation
 
 ### 9.14.1
 - Improved security: keep seed encrypted in RAM

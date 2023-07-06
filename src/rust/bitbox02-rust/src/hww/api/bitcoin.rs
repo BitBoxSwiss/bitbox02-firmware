@@ -106,12 +106,32 @@ async fn xpub(
     display: bool,
 ) -> Result<Response, Error> {
     let params = params::get(coin);
-    keypath::validate_xpub(keypath, params.bip44_coin, params.taproot_support)?;
+    let is_unusual =
+        keypath::validate_xpub(keypath, params.bip44_coin, params.taproot_support).is_err();
+    if is_unusual {
+        // For unusual keypaths, we allow export after a confirmation.
+        confirm::confirm(&confirm::Params {
+            title: if display { "xpub" } else { "Export xpub" },
+            body: &format!(
+                "Warning: unusual keypath {}. Proceed only if you know what you are doing.",
+                util::bip32::to_string(keypath)
+            ),
+            scrollable: true,
+            longtouch: true,
+            ..Default::default()
+        })
+        .await?
+    }
     let xpub = keystore::get_xpub(keypath)
         .or(Err(Error::InvalidInput))?
         .serialize_str(xpub_type)?;
     if display {
-        let title = format!("{}\naccount #{}", params.name, keypath[2] - HARDENED + 1);
+        let title = if is_unusual {
+            "".into()
+        } else {
+            format!("{}\naccount #{}", params.name, keypath[2] - HARDENED + 1)
+        };
+
         let confirm_params = confirm::Params {
             title: &title,
             body: &xpub,
@@ -468,40 +488,71 @@ mod tests {
             );
         }
 
-        // --- Negative tests
-        mock_unlocked();
-        // -- Invalid keypath for BTC
-        assert!(block_on(process_pub(&pb::BtcPubRequest {
-            coin: BtcCoin::Btc as _,
-            keypath: [49 + HARDENED, 0 + HARDENED, 100 + HARDENED].to_vec(),
-            display: false,
-            output: Some(Output::XpubType(XPubType::Xpub as _)),
-        }))
-        .is_err());
-        // -- Invalid keypath for BTC
-        assert!(block_on(process_pub(&pb::BtcPubRequest {
-            coin: BtcCoin::Btc as _,
-            keypath: [49 + HARDENED, 2 + HARDENED, 0 + HARDENED].to_vec(),
-            display: false,
-            output: Some(Output::XpubType(XPubType::Xpub as _)),
-        }))
-        .is_err());
-        // -- Invalid keypath for TBTC
-        assert!(block_on(process_pub(&pb::BtcPubRequest {
-            coin: BtcCoin::Tbtc as _,
-            keypath: [49 + HARDENED, 0 + HARDENED, 0 + HARDENED].to_vec(),
-            display: false,
-            output: Some(Output::XpubType(XPubType::Xpub as _)),
-        }))
-        .is_err());
-        // -- Invalid keypath for LTC
-        assert!(block_on(process_pub(&pb::BtcPubRequest {
-            coin: BtcCoin::Ltc as _,
-            keypath: [49 + HARDENED, 0 + HARDENED, 0 + HARDENED].to_vec(),
-            display: false,
-            output: Some(Output::XpubType(XPubType::Xpub as _)),
-        }))
-        .is_err());
+        {
+            // --- Unusual keypath, no display (still forces confirmation of unusual keypath)
+            mock(Data {
+                ui_confirm_create: Some(Box::new(move |params| {
+                    assert_eq!(params.title, "Export xpub");
+                    assert_eq!(params.body, "Warning: unusual keypath m/1'/2'/3'/4. Proceed only if you know what you are doing.");
+                    assert!(params.scrollable);
+                    assert!(params.longtouch);
+                    true
+                })),
+                ..Default::default()
+            });
+            mock_unlocked();
+            assert_eq!(
+                block_on(process_pub(&pb::BtcPubRequest {
+                    coin: BtcCoin::Btc as _,
+                    keypath: [1 + HARDENED, 2 + HARDENED, 3 + HARDENED, 4].to_vec(),
+                    display: false,
+                    output: Some(Output::XpubType(XPubType::Xpub as _)),
+                })),
+                Ok(Response::Pub(pb::PubResponse {
+                    r#pub: "xpub6DdW7n2P4Ht8m9DNumbzVKPU4yXoBMR9mm39q6tGp8PHGgNTJWL3fBdoUS4E8tP9XmyK4F85ApxLEBTB6f3fJf3Ujk5PaqssRuTLsRVTn6E".into(),
+                }))
+            );
+        }
+
+        {
+            // --- Unusual keypath, with display
+            static mut UI_COUNTER: u32 = 0;
+            mock(Data {
+                ui_confirm_create: Some(Box::new(move |params| {
+                    match unsafe {
+                        UI_COUNTER += 1;
+                        UI_COUNTER
+                    } {
+                        1 => {
+                            assert_eq!(params.title, "xpub");
+                            assert_eq!(params.body, "Warning: unusual keypath m/1'/2'/3'/4. Proceed only if you know what you are doing.");
+                            assert!(params.scrollable);
+                            assert!(params.longtouch);
+                        }
+                        2 => {
+                            assert_eq!(params.title, "");
+                            assert_eq!(params.body, "xpub6DdW7n2P4Ht8m9DNumbzVKPU4yXoBMR9mm39q6tGp8PHGgNTJWL3fBdoUS4E8tP9XmyK4F85ApxLEBTB6f3fJf3Ujk5PaqssRuTLsRVTn6E");
+                            assert!(params.scrollable);
+                        }
+                        _ => panic!("too many dialogs"),
+                    }
+                    true
+                })),
+                ..Default::default()
+            });
+            mock_unlocked();
+            assert_eq!(
+                block_on(process_pub(&pb::BtcPubRequest {
+                    coin: BtcCoin::Btc as _,
+                    keypath: [1 + HARDENED, 2 + HARDENED, 3 + HARDENED, 4].to_vec(),
+                    display: true,
+                    output: Some(Output::XpubType(XPubType::Xpub as _)),
+                })),
+                Ok(Response::Pub(pb::PubResponse {
+                    r#pub: "xpub6DdW7n2P4Ht8m9DNumbzVKPU4yXoBMR9mm39q6tGp8PHGgNTJWL3fBdoUS4E8tP9XmyK4F85ApxLEBTB6f3fJf3Ujk5PaqssRuTLsRVTn6E".into(),
+                }))
+            );
+        }
 
         let req = pb::BtcPubRequest {
             coin: BtcCoin::Btc as _,
@@ -518,14 +569,6 @@ mod tests {
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Tltc as i32 + 1;
         assert!(block_on(process_pub(&req_invalid)).is_err());
-        // -- No taproot in Litecoin
-        assert!(block_on(process_pub(&pb::BtcPubRequest {
-            coin: BtcCoin::Ltc as _,
-            keypath: [86 + HARDENED, 2 + HARDENED, 0 + HARDENED].to_vec(),
-            display: false,
-            output: Some(Output::XpubType(XPubType::Xpub as _)),
-        }))
-        .is_err());
     }
 
     #[test]

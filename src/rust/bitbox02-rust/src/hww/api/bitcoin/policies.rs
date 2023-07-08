@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::params::Params;
 use super::pb;
 use super::Error;
 use pb::BtcCoin;
@@ -27,6 +28,11 @@ use util::bip32::HARDENED;
 
 use miniscript::TranslatePk;
 
+use crate::bip32;
+use crate::workflow::confirm;
+
+use sha2::{Digest, Sha256};
+
 // Arbitrary limit of keys that can be present in a policy.
 const MAX_KEYS: usize = 20;
 
@@ -40,17 +46,16 @@ fn check_enabled(coin: BtcCoin) -> Result<(), Error> {
 
 /// Checks if the key is our key by comparing the root fingerprints
 /// and deriving and comparing the xpub at the keypath.
-fn is_our_key(key: &pb::KeyOriginInfo) -> Result<bool, ()> {
-    let our_root_fingerprint = crate::keystore::root_fingerprint()?;
+fn is_our_key(key: &pb::KeyOriginInfo, our_root_fingerprint: &[u8]) -> Result<bool, ()> {
     match key {
         pb::KeyOriginInfo {
             root_fingerprint,
             keypath,
             xpub: Some(xpub),
             ..
-        } if root_fingerprint.as_slice() == our_root_fingerprint.as_slice() => {
+        } if root_fingerprint.as_slice() == our_root_fingerprint => {
             let our_xpub = crate::keystore::get_xpub(keypath)?.serialize(None)?;
-            let maybe_our_xpub = crate::bip32::Xpub::from(xpub).serialize(None)?;
+            let maybe_our_xpub = bip32::Xpub::from(xpub).serialize(None)?;
             Ok(our_xpub == maybe_our_xpub)
         }
         _ => Ok(false),
@@ -154,8 +159,8 @@ impl<'a> miniscript::Translator<String, bitcoin::PublicKey, Error>
                 } else {
                     multipath_index_left
                 };
-                let derived_xpub = crate::bip32::Xpub::from(xpub)
-                    .derive(&[multipath_index, self.address_index])?;
+                let derived_xpub =
+                    bip32::Xpub::from(xpub).derive(&[multipath_index, self.address_index])?;
                 Ok(bitcoin::PublicKey::from_slice(derived_xpub.public_key())
                     .or(Err(Error::Generic))?)
             }
@@ -251,10 +256,12 @@ impl<'a> ParsedPolicy<'a> {
 
         self.validate_keys()?;
 
+        let our_root_fingerprint = crate::keystore::root_fingerprint()?;
+
         // Check that at least one key is ours.
         let has_our_key = 'block: {
             for key in policy.keys.iter() {
-                if is_our_key(key)? {
+                if is_our_key(key, &our_root_fingerprint)? {
                     break 'block true;
                 }
             }
@@ -326,6 +333,20 @@ impl<'a> ParsedPolicy<'a> {
             }
         }
     }
+
+    /// Returns true if the address-level keypath points to a change address.
+    pub fn is_change_keypath(&self, keypath: &[u32]) -> Result<bool, Error> {
+        match self {
+            Self::Wsh(Wsh {
+                policy,
+                miniscript_expr,
+            }) => {
+                let (is_change, _) =
+                    get_change_and_address_index(miniscript_expr.iter_pk(), &policy.keys, keypath)?;
+                Ok(is_change)
+            }
+        }
+    }
 }
 
 /// Parses a policy as specified by 'Wallet policies': https://github.com/bitcoin/bips/pull/1389.
@@ -350,6 +371,153 @@ pub fn parse(policy: &Policy) -> Result<ParsedPolicy, Error> {
         }
         _ => Err(Error::InvalidInput),
     }
+}
+
+/// Confirmation mode.
+pub enum Mode {
+    /// Confirm coin, number of keys and account name and optionally the advanced details.
+    Basic,
+    /// Confirm coin, number of keys, account name, the policy string, and the key origin infos.
+    Advanced,
+}
+
+/// Confirm the policy. In advanced mode, all details are shown. In basic mode, the advanced details
+/// are optional. Used to verify the policy during account registration (advanced mode), creating a
+/// receive address (basic mode) and signing a transaction (basic mode).
+pub async fn confirm(
+    title: &str,
+    params: &Params,
+    name: &str,
+    policy: &Policy,
+    mode: Mode,
+) -> Result<(), Error> {
+    confirm::confirm(&confirm::Params {
+        title,
+        body: &format!("{}\npolicy with\n{} keys", params.name, policy.keys.len(),),
+        accept_is_nextarrow: true,
+        ..Default::default()
+    })
+    .await?;
+
+    confirm::confirm(&confirm::Params {
+        title: "Name",
+        body: name,
+        scrollable: true,
+        accept_is_nextarrow: true,
+        ..Default::default()
+    })
+    .await?;
+
+    if matches!(mode, Mode::Basic) {
+        if let Err(confirm::UserAbort) = confirm::confirm(&confirm::Params {
+            body: "Show policy\ndetails?",
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await
+        {
+            return Ok(());
+        }
+    }
+
+    confirm::confirm(&confirm::Params {
+        title: "Policy",
+        body: &policy.policy,
+        scrollable: true,
+        accept_is_nextarrow: true,
+        ..Default::default()
+    })
+    .await?;
+
+    let our_root_fingerprint = crate::keystore::root_fingerprint()?;
+
+    let num_keys = policy.keys.len();
+    for (i, key) in policy.keys.iter().enumerate() {
+        let key_str = match key {
+            pb::KeyOriginInfo {
+                root_fingerprint,
+                keypath,
+                xpub: Some(xpub),
+            } => {
+                let xpub_str = bip32::Xpub::from(xpub)
+                    .serialize_str(bip32::XPubType::Xpub)
+                    .or(Err(Error::InvalidInput))?;
+                if root_fingerprint.is_empty() {
+                    xpub_str
+                } else if root_fingerprint.len() != 4 {
+                    return Err(Error::InvalidInput);
+                } else {
+                    format!(
+                        "[{}/{}]{}",
+                        hex::encode(root_fingerprint),
+                        util::bip32::to_string_no_prefix(keypath),
+                        xpub_str
+                    )
+                }
+            }
+            _ => return Err(Error::InvalidInput),
+        };
+        confirm::confirm(&confirm::Params {
+            title: &format!("Key {}/{}", i + 1, num_keys),
+            body: (if is_our_key(key, &our_root_fingerprint)? {
+                format!("This device: {}", key_str)
+            } else {
+                key_str
+            })
+            .as_str(),
+            scrollable: true,
+            longtouch: i == num_keys - 1 && matches!(mode, Mode::Advanced),
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+    }
+    Ok(())
+}
+
+/// Creates a hash of this policy config, useful for registration and identification.
+pub fn get_hash(coin: BtcCoin, policy: &Policy) -> Result<Vec<u8>, ()> {
+    let mut hasher = Sha256::new();
+    {
+        // 1. Type of registration: policy.
+        // It is chosen to never conflict with multisig hashes which start with the coin (0x00-0x03).
+        hasher.update(&[0xff]);
+    }
+    {
+        // 2. coin
+        let byte: u8 = match coin {
+            BtcCoin::Btc => 0x00,
+            BtcCoin::Tbtc => 0x01,
+            BtcCoin::Ltc => 0x02,
+            BtcCoin::Tltc => 0x03,
+        };
+        hasher.update(byte.to_le_bytes());
+    }
+    {
+        // 3. policy
+        let len: u32 = policy.policy.len() as _;
+        hasher.update(len.to_le_bytes());
+        hasher.update(policy.policy.as_bytes());
+    }
+    {
+        // 4. keys
+        let num: u32 = policy.keys.len() as _;
+        hasher.update(num.to_le_bytes());
+        for key in policy.keys.iter() {
+            hasher.update(&bip32::Xpub::from(key.xpub.as_ref().unwrap()).serialize(None)?);
+        }
+    }
+    Ok(hasher.finalize().as_slice().into())
+}
+
+/// Get the name of a registered policy account. The poliy is not validated, it must be
+/// pre-validated!
+///
+/// Returns the name of the registered policy account if it exists or None otherwise.
+pub fn get_name(coin: BtcCoin, policy: &Policy) -> Result<Option<String>, ()> {
+    Ok(bitbox02::memory::multisig_get_by_hash(&get_hash(
+        coin, policy,
+    )?))
 }
 
 #[cfg(test)]
@@ -735,10 +903,10 @@ mod tests {
         );
 
         let our_key = make_our_key(KEYPATH_ACCOUNT);
-        let our_xpub = crate::bip32::Xpub::from(our_key.xpub.as_ref().unwrap());
+        let our_xpub = bip32::Xpub::from(our_key.xpub.as_ref().unwrap());
 
         let some_key = make_key(SOME_XPUB_1);
-        let some_xpub = crate::bip32::Xpub::from(some_key.xpub.as_ref().unwrap());
+        let some_xpub = bip32::Xpub::from(some_key.xpub.as_ref().unwrap());
         let address_index = 5;
 
         let witness_script = |pol: &str, keys: &[pb::KeyOriginInfo], is_change: bool| {
@@ -855,5 +1023,57 @@ mod tests {
                 expected_witness_script,
             );
         }
+    }
+
+    #[test]
+    fn test_get_hash() {
+        // Fixture below verified with:
+        // import hashlib
+        // import base58
+        //
+        // xpubs = [
+        //     "xpub6EMfjyGVUvwhqh719Z4b9j4hxgWwZg9NrNRhs4s4QHP4qMkYfkxD3i3fcQuE51i99G1AhSyoSymjbEZMfa1bcPJK281gPNCS7VPQ7YmovG4",
+        //     "xpub6FMWuwbCA9KhoRzAMm63ZhLspk5S2DM5sePo8J8mQhcS1xyMbAqnc7Q7UescVEVFCS6qBMQLkEJWQ9Z3aDPgBov5nFUYxsJhwumsxM4npSo",
+        // ]
+        //
+        // policy = b'wsh(multi(2,@0/**,@1/**))'
+        //
+        // i32 = lambda i: i.to_bytes(4, 'little')
+        //
+        // msg = []
+        // msg.append(b'\xff') # registration type
+        // msg.append(b'\x00') # coin
+        // msg.append(i32(len(policy)))
+        // msg.append(policy) # script config type
+        // msg.append(i32(len(xpubs)))
+        // msg.extend(base58.b58decode_check(xpub)[4:] for xpub in xpubs)
+        // print(hashlib.sha256(b''.join(msg)).hexdigest())
+
+        mock_unlocked_using_mnemonic(
+            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+            "",
+        );
+
+        let pol = make_policy(
+            "wsh(multi(2,@0/**,@1/**))",
+            &[make_our_key(KEYPATH_ACCOUNT), make_key(SOME_XPUB_1)],
+        );
+
+        assert_eq!(
+            hex::encode(get_hash(BtcCoin::Btc, &pol).unwrap()).as_str(),
+            "26b4cd47ee808288cebf95b77b31cafa2ab88ec377eb94f01aa8860abf67b6d6",
+        );
+        assert_eq!(
+            hex::encode(get_hash(BtcCoin::Tbtc, &pol).unwrap()).as_str(),
+            "3c2e1194a9c5ebe0703f580e1493818b2af3eb30368f1dddcaddb2b4a93fbcf3",
+        );
+        assert_eq!(
+            hex::encode(get_hash(BtcCoin::Ltc, &pol).unwrap()).as_str(),
+            "7538418014c911a2812afabca3f725d32a076fb756a867d0a2f7bf23879bd474",
+        );
+        assert_eq!(
+            hex::encode(get_hash(BtcCoin::Tltc, &pol).unwrap()).as_str(),
+            "6160dc5cf72b79380e9e715c75ae54573b81dcb4ed8ab2e90fde5d661e443781",
+        );
     }
 }

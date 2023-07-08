@@ -199,6 +199,13 @@ impl Payload {
                 keypath[keypath.len() - 2],
                 keypath[keypath.len() - 1],
             ),
+            pb::BtcScriptConfigWithKeypath {
+                script_config:
+                    Some(pb::BtcScriptConfig {
+                        config: Some(pb::btc_script_config::Config::Policy(policy)),
+                    }),
+                ..
+            } => Self::from_policy(&super::policies::parse(policy)?, keypath),
             _ => Err(Error::InvalidInput),
         }
     }

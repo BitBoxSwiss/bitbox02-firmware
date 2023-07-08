@@ -106,6 +106,28 @@ pub fn validate_address_multisig(
     }
 }
 
+/// Validates that the address index is valid and that the account keypath prefix is not empty.
+///
+/// Note that the change index is not verified as in policies, it can be different to 0 and 1
+/// (e.g. with a key `@0/<10;11>` it can be 10 or 11). This is verified by the user during policy
+/// registration.
+///
+/// The account-level keypath is also not validated (except that it is not empty), as there is no
+/// standard for policy keypaths, and the keypaths pointing to our own account-level xpubs are
+/// verified by the user during policy registration.
+pub fn validate_address_policy(keypath: &[u32]) -> Result<(), ()> {
+    if keypath.len() >= 2 {
+        let (keypath_account, keypath_rest) = keypath.split_at(keypath.len() - 2);
+        if !keypath_account.is_empty() && keypath_rest[1] <= BIP44_ADDRESS_MAX {
+            Ok(())
+        } else {
+            Err(())
+        }
+    } else {
+        Err(())
+    }
+}
+
 /// Validates a singlesig keypath.
 /// Supported:
 /// - P2WPKH-P2SH: m/49'/coin'/account'
@@ -543,6 +565,16 @@ mod tests {
             taproot_support,
         )
         .is_err());
+    }
+
+    #[test]
+    fn test_validate_address_policy() {
+        assert!(validate_address_policy(&[523, 2342, 0]).is_ok());
+        assert!(validate_address_policy(&[523, 2342, 9999]).is_ok());
+        // Address too high.
+        assert!(validate_address_policy(&[523, 2342, 10000]).is_err());
+        // No account-level part.
+        assert!(validate_address_policy(&[2342, 0]).is_err());
     }
 
     #[test]

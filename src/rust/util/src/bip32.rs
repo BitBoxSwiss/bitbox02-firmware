@@ -18,10 +18,8 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-/// Turn a keypath represented as a list of u32 to a string, e.g. "m/84'/0'/0'". Hardened elements
-/// are bigger or equal to `HARDENED`
-pub fn to_string(keypath: &[u32]) -> String {
-    let s = keypath
+pub fn to_string_no_prefix(keypath: &[u32]) -> String {
+    keypath
         .iter()
         .map(|&el| {
             if el >= HARDENED {
@@ -31,9 +29,13 @@ pub fn to_string(keypath: &[u32]) -> String {
             }
         })
         .collect::<Vec<_>>()
-        .join("/");
-    // Prepend "m/".
-    format!("m/{}", s)
+        .join("/")
+}
+
+/// Turn a keypath represented as a list of u32 to a string, e.g. "m/84'/0'/0'". Hardened elements
+/// are bigger or equal to `HARDENED`
+pub fn to_string(keypath: &[u32]) -> String {
+    format!("m/{}", to_string_no_prefix(keypath))
 }
 
 #[cfg(test)]

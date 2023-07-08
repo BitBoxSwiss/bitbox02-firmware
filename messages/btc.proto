@@ -170,6 +170,7 @@ message BTCSignOutputRequest {
 message BTCScriptConfigRegistration {
   BTCCoin coin = 1;
   BTCScriptConfig script_config = 2;
+  // Unused for policy registrations.
   repeated uint32 keypath = 3;
 }
 

@@ -16,6 +16,8 @@ use super::params;
 use super::pb;
 use super::Error;
 
+use alloc::string::String;
+
 use pb::btc_register_script_config_request::XPubType;
 use pb::btc_response::Response;
 use pb::btc_script_config::Config;
@@ -44,13 +46,63 @@ pub fn process_is_script_config_registered(
                 },
             ))
         }
+        Some(pb::BtcScriptConfigRegistration {
+            coin,
+            script_config:
+                Some(pb::BtcScriptConfig {
+                    config: Some(Config::Policy(policy)),
+                }),
+            ..
+        }) => {
+            let coin = BtcCoin::from_i32(*coin).ok_or(Error::InvalidInput)?;
+            Ok(Response::IsScriptConfigRegistered(
+                pb::BtcIsScriptConfigRegisteredResponse {
+                    is_registered: super::policies::get_name(coin, policy)?.is_some(),
+                },
+            ))
+        }
+
         _ => Err(Error::InvalidInput),
     }
+}
+
+async fn get_name(request: &pb::BtcRegisterScriptConfigRequest) -> Result<String, Error> {
+    let name = if request.name.is_empty() {
+        confirm::confirm(&confirm::Params {
+            title: "Register",
+            body: "Please name this\naccount",
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+
+        let name = trinary_input_string::enter(
+            &trinary_input_string::Params {
+                title: "Enter account name",
+                longtouch: true,
+                ..Default::default()
+            },
+            trinary_input_string::CanCancel::Yes,
+            "",
+        )
+        .await?;
+        // We truncate the user input string to fit into the maximum allowed multisig
+        // account name length. This is not very nice, but it has to do until we have some
+        // sort of indication in the input component.
+        bitbox02::util::truncate_str(name.as_str(), bitbox02::memory::MULTISIG_NAME_MAX_LEN).into()
+    } else {
+        request.name.clone()
+    };
+    if !util::name::validate(&name, bitbox02::memory::MULTISIG_NAME_MAX_LEN) {
+        return Err(Error::InvalidInput);
+    }
+    Ok(name)
 }
 
 pub async fn process_register_script_config(
     request: &pb::BtcRegisterScriptConfigRequest,
 ) -> Result<Response, Error> {
+    let title = "Register";
     match request.registration.as_ref() {
         Some(pb::BtcScriptConfigRegistration {
             coin,
@@ -62,40 +114,11 @@ pub async fn process_register_script_config(
         }) => {
             let coin = BtcCoin::from_i32(*coin).ok_or(Error::InvalidInput)?;
             let coin_params = params::get(coin);
-            let name = if request.name.is_empty() {
-                confirm::confirm(&confirm::Params {
-                    title: "Register",
-                    body: "Please name this\nmultisig account",
-                    accept_is_nextarrow: true,
-                    ..Default::default()
-                })
-                .await?;
-
-                let name = trinary_input_string::enter(
-                    &trinary_input_string::Params {
-                        title: "Enter account name",
-                        longtouch: true,
-                        ..Default::default()
-                    },
-                    trinary_input_string::CanCancel::Yes,
-                    "",
-                )
-                .await?;
-                // We truncate the user input string to fit into the maximum allowed multisig
-                // account name length. This is not very nice, but it has to do until we have some
-                // sort of indication in the input component.
-                bitbox02::util::truncate_str(name.as_str(), bitbox02::memory::MULTISIG_NAME_MAX_LEN)
-                    .into()
-            } else {
-                request.name.clone()
-            };
-            if !util::name::validate(&name, bitbox02::memory::MULTISIG_NAME_MAX_LEN) {
-                return Err(Error::InvalidInput);
-            }
+            let name = get_name(request).await?;
             super::multisig::validate(multisig, keypath, coin_params.bip44_coin)?;
             let xpub_type = XPubType::from_i32(request.xpub_type).ok_or(Error::InvalidInput)?;
             super::multisig::confirm_extended(
-                "Register",
+                title,
                 coin_params,
                 &name,
                 multisig,
@@ -115,7 +138,39 @@ pub async fn process_register_script_config(
                 Err(_) => Err(Error::Generic),
             }
         }
-        // Only multisig registration supported for now.
+        Some(pb::BtcScriptConfigRegistration {
+            coin,
+            script_config:
+                Some(pb::BtcScriptConfig {
+                    config: Some(Config::Policy(policy)),
+                }),
+            ..
+        }) => {
+            let coin = BtcCoin::from_i32(*coin).ok_or(Error::InvalidInput)?;
+            let coin_params = params::get(coin);
+            let name = get_name(request).await?;
+            super::policies::parse(policy)?.validate(coin)?;
+            super::policies::confirm(
+                title,
+                coin_params,
+                &name,
+                policy,
+                super::policies::Mode::Advanced,
+            )
+            .await?;
+            let hash = super::policies::get_hash(coin, policy)?;
+            match bitbox02::memory::multisig_set_by_hash(&hash, &name) {
+                Ok(()) => {
+                    status::status("Policy\nregistered", true).await;
+                    Ok(Response::Success(pb::BtcSuccess {}))
+                }
+                Err(bitbox02::memory::MemoryError::MEMORY_ERR_DUPLICATE_NAME) => {
+                    Err(Error::Duplicate)
+                }
+                Err(_) => Err(Error::Generic),
+            }
+        }
+        // Only multisig and policy registration supported for now.
         _ => Err(Error::InvalidInput),
     }
 }

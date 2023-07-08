@@ -8,6 +8,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 - Allow exporting the xpub at any keypath after user confirmation
+- Support for Miniscript wallet policies of the form `wsh(<miniscript expression>)`
 
 ### 9.14.1
 - Improved security: keep seed encrypted in RAM

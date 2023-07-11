@@ -57,7 +57,10 @@ pub fn format_amount(
             _ => return Err(Error::InvalidInput),
         },
     };
-    let mut s = util::decimal::format(satoshi, decimals);
+    let mut s = match format_unit {
+        FormatUnit::Default => util::decimal::format_no_trim(satoshi, decimals),
+        _ => util::decimal::format(satoshi, decimals),
+    };
     s.push(' ');
     s.push_str(unit);
     Ok(s)
@@ -420,33 +423,43 @@ mod tests {
                 params,
                 FormatUnit::Default,
                 1234567890,
-                Ok("12.3456789 BTC"),
+                Ok("12.34567890 BTC"),
             ),
-            (params, FormatUnit::Default, 0, Ok("0 BTC")),
+            (params, FormatUnit::Default, 0, Ok("0.00000000 BTC")),
             (params, FormatUnit::Sat, 0, Ok("0 sat")),
             (params, FormatUnit::Default, 1, Ok("0.00000001 BTC")),
             (params, FormatUnit::Sat, 1, Ok("1 sat")),
             (params, FormatUnit::Default, 2, Ok("0.00000002 BTC")),
             (params, FormatUnit::Sat, 2, Ok("2 sat")),
-            (params, FormatUnit::Default, 10, Ok("0.0000001 BTC")),
+            (params, FormatUnit::Default, 10, Ok("0.00000010 BTC")),
             (params, FormatUnit::Sat, 10, Ok("10 sat")),
             (params, FormatUnit::Default, 15, Ok("0.00000015 BTC")),
-            (params, FormatUnit::Default, 20, Ok("0.0000002 BTC")),
-            (params, FormatUnit::Default, 300, Ok("0.000003 BTC")),
-            (params, FormatUnit::Default, 370, Ok("0.0000037 BTC")),
+            (params, FormatUnit::Default, 20, Ok("0.00000020 BTC")),
+            (params, FormatUnit::Default, 300, Ok("0.00000300 BTC")),
+            (params, FormatUnit::Default, 370, Ok("0.00000370 BTC")),
             (params, FormatUnit::Default, 371, Ok("0.00000371 BTC")),
             (params, FormatUnit::Sat, 371, Ok("371 sat")),
-            (params, FormatUnit::Default, 40000000000, Ok("400 BTC")),
+            (
+                params,
+                FormatUnit::Default,
+                40000000000,
+                Ok("400.00000000 BTC"),
+            ),
             (params, FormatUnit::Sat, 40000000000, Ok("40000000000 sat")),
-            (params, FormatUnit::Default, 4000000000, Ok("40 BTC")),
-            (params, FormatUnit::Default, 400000000, Ok("4 BTC")),
-            (params, FormatUnit::Default, 40000000, Ok("0.4 BTC")),
-            (params, FormatUnit::Default, 4000000, Ok("0.04 BTC")),
-            (params, FormatUnit::Default, 400000, Ok("0.004 BTC")),
-            (params, FormatUnit::Default, 40000, Ok("0.0004 BTC")),
-            (params, FormatUnit::Default, 4000, Ok("0.00004 BTC")),
-            (params, FormatUnit::Default, 400, Ok("0.000004 BTC")),
-            (params, FormatUnit::Default, 40, Ok("0.0000004 BTC")),
+            (
+                params,
+                FormatUnit::Default,
+                4000000000,
+                Ok("40.00000000 BTC"),
+            ),
+            (params, FormatUnit::Default, 400000000, Ok("4.00000000 BTC")),
+            (params, FormatUnit::Default, 40000000, Ok("0.40000000 BTC")),
+            (params, FormatUnit::Default, 4000000, Ok("0.04000000 BTC")),
+            (params, FormatUnit::Default, 400000, Ok("0.00400000 BTC")),
+            (params, FormatUnit::Default, 40000, Ok("0.00040000 BTC")),
+            (params, FormatUnit::Default, 4000, Ok("0.00004000 BTC")),
+            (params, FormatUnit::Default, 400, Ok("0.00000400 BTC")),
+            (params, FormatUnit::Default, 40, Ok("0.00000040 BTC")),
             (params, FormatUnit::Default, 4, Ok("0.00000004 BTC")),
             (params, FormatUnit::Default, 5432345, Ok("0.05432345 BTC")),
             (params, FormatUnit::Default, 54323452, Ok("0.54323452 BTC")),
@@ -456,7 +469,7 @@ mod tests {
                 params,
                 FormatUnit::Default,
                 5432345270,
-                Ok("54.3234527 BTC"),
+                Ok("54.32345270 BTC"),
             ),
             (
                 params,
@@ -464,7 +477,7 @@ mod tests {
                 54323452708,
                 Ok("543.23452708 BTC"),
             ),
-            (params, FormatUnit::Default, 100000000, Ok("1 BTC")),
+            (params, FormatUnit::Default, 100000000, Ok("1.00000000 BTC")),
             (
                 params,
                 FormatUnit::Default,
@@ -487,28 +500,28 @@ mod tests {
                 params,
                 FormatUnit::Default,
                 0xffffffffffffffff - 5,
-                Ok("184467440737.0955161 BTC"),
+                Ok("184467440737.09551610 BTC"),
             ),
             // TBTC
             (
                 params_tbtc,
                 FormatUnit::Default,
                 40001000000,
-                Ok("400.01 TBTC"),
+                Ok("400.01000000 TBTC"),
             ),
             // LTC
             (
                 params_ltc,
                 FormatUnit::Default,
                 40001000000,
-                Ok("400.01 LTC"),
+                Ok("400.01000000 LTC"),
             ),
             // TLTC
             (
                 params_tltc,
                 FormatUnit::Default,
                 40001000000,
-                Ok("400.01 TLTC"),
+                Ok("400.01000000 TLTC"),
             ),
             // Failures
             // No sats in LTC

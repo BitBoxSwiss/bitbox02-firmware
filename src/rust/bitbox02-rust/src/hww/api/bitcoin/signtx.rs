@@ -1524,13 +1524,13 @@ mod tests {
                                 pb::BtcCoin::Btc => {
                                     assert_eq!(address, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
                                     match format_unit {
-                                        FormatUnit::Default => assert_eq!(amount, "1 BTC"),
+                                        FormatUnit::Default => assert_eq!(amount, "1.00000000 BTC"),
                                         FormatUnit::Sat => assert_eq!(amount, "100000000 sat"),
                                     }
                                 }
                                 pb::BtcCoin::Ltc => {
                                     assert_eq!(address, "LLnCCHbSzfwWquEdaS5TF2Yt7uz5Qb1SZ1");
-                                    assert_eq!(amount, "1 LTC");
+                                    assert_eq!(amount, "1.00000000 LTC");
                                 }
                                 _ => panic!("unexpected coin"),
                             }
@@ -1542,14 +1542,14 @@ mod tests {
                                     assert_eq!(address, "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ");
                                     match format_unit {
                                         FormatUnit::Default => {
-                                            assert_eq!(amount, "12.3456789 BTC")
+                                            assert_eq!(amount, "12.34567890 BTC")
                                         }
                                         FormatUnit::Sat => assert_eq!(amount, "1234567890 sat"),
                                     }
                                 }
                                 pb::BtcCoin::Ltc => {
                                     assert_eq!(address, "MB1e6aUeL3Zj4s4H2ZqFBHaaHd7kvvzTco");
-                                    assert_eq!(amount, "12.3456789 LTC");
+                                    assert_eq!(amount, "12.34567890 LTC");
                                 }
                                 _ => panic!("unexpected coin"),
                             }
@@ -1564,7 +1564,7 @@ mod tests {
                                     );
                                     match format_unit {
                                         FormatUnit::Default => {
-                                            assert_eq!(amount, "0.00006 BTC")
+                                            assert_eq!(amount, "0.00006000 BTC")
                                         }
                                         FormatUnit::Sat => assert_eq!(amount, "6000 sat"),
                                     }
@@ -1574,7 +1574,7 @@ mod tests {
                                         address,
                                         "ltc1qxvenxvenxvenxvenxvenxvenxvenxvenwcpknh"
                                     );
-                                    assert_eq!(amount, "0.00006 LTC");
+                                    assert_eq!(amount, "0.00006000 LTC");
                                 }
                                 _ => panic!("unexpected coin"),
                             }
@@ -1589,7 +1589,7 @@ mod tests {
                                     );
                                     match format_unit {
                                         FormatUnit::Default => {
-                                            assert_eq!(amount, "0.00007 BTC")
+                                            assert_eq!(amount, "0.00007000 BTC")
                                         }
                                         FormatUnit::Sat => assert_eq!(amount, "7000 sat"),
                                     }
@@ -1599,7 +1599,7 @@ mod tests {
                                         address,
                                         "ltc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqwr7k5s"
                                     );
-                                    assert_eq!(amount, "0.00007 LTC");
+                                    assert_eq!(amount, "0.00007000 LTC");
                                 }
                                 _ => panic!("unexpected coin"),
                             }
@@ -1617,8 +1617,8 @@ mod tests {
                             match coin {
                                 pb::BtcCoin::Btc => match format_unit {
                                     FormatUnit::Default => {
-                                        assert_eq!(total, "13.399999 BTC");
-                                        assert_eq!(fee, "0.0541901 BTC");
+                                        assert_eq!(total, "13.39999900 BTC");
+                                        assert_eq!(fee, "0.05419010 BTC");
                                     }
                                     FormatUnit::Sat => {
                                         assert_eq!(total, "1339999900 sat");
@@ -1626,8 +1626,8 @@ mod tests {
                                     }
                                 },
                                 pb::BtcCoin::Ltc => {
-                                    assert_eq!(total, "13.399999 LTC");
-                                    assert_eq!(fee, "0.0541901 LTC");
+                                    assert_eq!(total, "13.39999900 LTC");
+                                    assert_eq!(fee, "0.05419010 LTC");
                                 }
                                 _ => panic!("unexpected coin"),
                             }
@@ -2098,8 +2098,8 @@ mod tests {
             })),
             ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| unsafe {
                 UI_COUNTER += 1;
-                assert_eq!(total, "13.399999 BTC");
-                assert_eq!(fee, "2.0541901 BTC");
+                assert_eq!(total, "13.39999900 BTC");
+                assert_eq!(fee, "2.05419010 BTC");
                 assert!(!longtouch);
                 true
             })),
@@ -2145,7 +2145,7 @@ mod tests {
                         address,
                         "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr"
                     );
-                    assert_eq!(amount, "1 BTC");
+                    assert_eq!(amount, "1.00000000 BTC");
                 }
                 true
             })),
@@ -2421,7 +2421,7 @@ mod tests {
                             address,
                             "tb1qtxyqynfxwsk8f5gu8v5g8e6hs3njtglkywhvyztk6v8znvx5kddsmhuve2"
                         );
-                        assert_eq!(amount, "0.0009 TBTC");
+                        assert_eq!(amount, "0.00090000 TBTC");
                     }
                     _ => panic!("unexpected UI dialog"),
                 }

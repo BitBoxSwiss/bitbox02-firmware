@@ -1280,8 +1280,8 @@ pub const FILENAME_MAX: ::c_uint = 1024;
 pub const L_tmpnam: ::c_uint = 25;
 pub const TMP_MAX: ::c_uint = 17576;
 
-pub const GRND_NONBLOCK: ::c_int = 0x0001;
-pub const GRND_RANDOM: ::c_int = 0x0002;
+pub const GRND_NONBLOCK: ::c_uint = 0x0001;
+pub const GRND_RANDOM: ::c_uint = 0x0002;
 
 pub const O_RDONLY: ::c_int = 0;
 pub const O_WRONLY: ::c_int = 1;
@@ -2579,10 +2579,12 @@ pub const AT_SUN_FPTYPE: ::c_uint = 2027;
 // and 4 bytes everywhere else:
 #[cfg(target_arch = "sparc64")]
 const _CMSG_HDR_ALIGNMENT: usize = 8;
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[cfg(not(target_arch = "sparc64"))]
 const _CMSG_HDR_ALIGNMENT: usize = 4;
 
 const _CMSG_DATA_ALIGNMENT: usize = ::mem::size_of::<::c_int>();
+
+const NEWDEV: ::c_int = 1;
 
 const_fn! {
     {const} fn _CMSG_HDR_ALIGN(p: usize) -> usize {
@@ -2599,7 +2601,7 @@ f! {
         _CMSG_DATA_ALIGN(cmsg.offset(1) as usize) as *mut ::c_uchar
     }
 
-    pub fn CMSG_LEN(length: ::c_uint) -> ::c_uint {
+    pub {const} fn CMSG_LEN(length: ::c_uint) -> ::c_uint {
         _CMSG_DATA_ALIGN(::mem::size_of::<::cmsghdr>()) as ::c_uint + length
     }
 
@@ -2710,7 +2712,6 @@ extern "C" {
 
     pub fn abs(i: ::c_int) -> ::c_int;
     pub fn acct(filename: *const ::c_char) -> ::c_int;
-    pub fn atof(s: *const ::c_char) -> ::c_double;
     pub fn dirfd(dirp: *mut ::DIR) -> ::c_int;
     pub fn labs(i: ::c_long) -> ::c_long;
     pub fn rand() -> ::c_int;
@@ -3197,6 +3198,12 @@ extern "C" {
         longopts: *const option,
         longindex: *mut ::c_int,
     ) -> ::c_int;
+
+    pub fn sync();
+
+    fn __major(version: ::c_int, devnum: ::dev_t) -> ::major_t;
+    fn __minor(version: ::c_int, devnum: ::dev_t) -> ::minor_t;
+    fn __makedev(version: ::c_int, majdev: ::major_t, mindev: ::minor_t) -> ::dev_t;
 }
 
 #[link(name = "sendfile")]
@@ -3251,6 +3258,18 @@ extern "C" {
         tpe: ::lgrp_rsrc_t,
     ) -> ::c_int;
     pub fn lgrp_root(cookie: ::lgrp_cookie_t) -> ::lgrp_id_t;
+}
+
+pub unsafe fn major(device: ::dev_t) -> ::major_t {
+    __major(NEWDEV, device)
+}
+
+pub unsafe fn minor(device: ::dev_t) -> ::minor_t {
+    __minor(NEWDEV, device)
+}
+
+pub unsafe fn makedev(maj: ::major_t, min: ::minor_t) -> ::dev_t {
+    __makedev(NEWDEV, maj, min)
 }
 
 mod compat;

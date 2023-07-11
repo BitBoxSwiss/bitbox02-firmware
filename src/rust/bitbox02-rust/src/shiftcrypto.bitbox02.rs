@@ -38,6 +38,16 @@ pub struct Keypath {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct KeyOriginInfo {
+    #[prost(bytes = "vec", tag = "1")]
+    pub root_fingerprint: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint32, repeated, tag = "2")]
+    pub keypath: ::prost::alloc::vec::Vec<u32>,
+    #[prost(message, optional, tag = "3")]
+    pub xpub: ::core::option::Option<XPub>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckBackupRequest {
     #[prost(bool, tag = "1")]
     pub silent: bool,
@@ -203,7 +213,7 @@ pub struct AntiKleptoSignatureRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcScriptConfig {
-    #[prost(oneof = "btc_script_config::Config", tags = "1, 2")]
+    #[prost(oneof = "btc_script_config::Config", tags = "1, 2, 3")]
     pub config: ::core::option::Option<btc_script_config::Config>,
 }
 /// Nested message and enum types in `BTCScriptConfig`.
@@ -265,6 +275,16 @@ pub mod btc_script_config {
             }
         }
     }
+    /// A policy as specified by 'Wallet policies':
+    /// <https://github.com/bitcoin/bips/pull/1389>
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Policy {
+        #[prost(string, tag = "1")]
+        pub policy: ::prost::alloc::string::String,
+        #[prost(message, repeated, tag = "2")]
+        pub keys: ::prost::alloc::vec::Vec<super::KeyOriginInfo>,
+    }
     /// SimpleType is a "simple" script: one public key, no additional inputs.
     #[derive(
         Clone,
@@ -312,6 +332,8 @@ pub mod btc_script_config {
         SimpleType(i32),
         #[prost(message, tag = "2")]
         Multisig(Multisig),
+        #[prost(message, tag = "3")]
+        Policy(Policy),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -599,6 +621,7 @@ pub struct BtcScriptConfigRegistration {
     pub coin: i32,
     #[prost(message, optional, tag = "2")]
     pub script_config: ::core::option::Option<BtcScriptConfig>,
+    /// Unused for policy registrations.
     #[prost(uint32, repeated, tag = "3")]
     pub keypath: ::prost::alloc::vec::Vec<u32>,
 }

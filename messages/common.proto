@@ -40,3 +40,9 @@ message XPub {
 message Keypath {
   repeated uint32 keypath = 1;
 }
+
+message KeyOriginInfo {
+  bytes root_fingerprint = 1;
+  repeated uint32 keypath = 2;
+  XPub xpub = 3;
+}

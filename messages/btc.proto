@@ -52,9 +52,17 @@ message BTCScriptConfig {
     ScriptType script_type = 4;
   }
 
+  // A policy as specified by 'Wallet policies':
+  // https://github.com/bitcoin/bips/pull/1389
+  message Policy {
+    string policy = 1;
+    repeated KeyOriginInfo keys = 2;
+  }
+
   oneof config {
     SimpleType simple_type = 1;
     Multisig multisig = 2;
+    Policy policy = 3;
   }
 }
 
@@ -162,6 +170,7 @@ message BTCSignOutputRequest {
 message BTCScriptConfigRegistration {
   BTCCoin coin = 1;
   BTCScriptConfig script_config = 2;
+  // Unused for policy registrations.
   repeated uint32 keypath = 3;
 }
 

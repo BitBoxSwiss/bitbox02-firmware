@@ -21,6 +21,7 @@ pub mod common;
 pub mod keypath;
 mod multisig;
 pub mod params;
+mod policies;
 mod registration;
 mod script;
 pub mod signmsg;
@@ -38,8 +39,8 @@ use crate::keystore;
 use pb::btc_pub_request::{Output, XPubType};
 use pb::btc_request::Request;
 use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
-use pb::btc_script_config::Multisig;
 use pb::btc_script_config::{Config, SimpleType};
+use pb::btc_script_config::{Multisig, Policy};
 use pb::response::Response;
 use pb::BtcCoin;
 use pb::BtcScriptConfig;
@@ -105,12 +106,32 @@ async fn xpub(
     display: bool,
 ) -> Result<Response, Error> {
     let params = params::get(coin);
-    keypath::validate_xpub(keypath, params.bip44_coin, params.taproot_support)?;
+    let is_unusual =
+        keypath::validate_xpub(keypath, params.bip44_coin, params.taproot_support).is_err();
+    if is_unusual {
+        // For unusual keypaths, we allow export after a confirmation.
+        confirm::confirm(&confirm::Params {
+            title: if display { "xpub" } else { "Export xpub" },
+            body: &format!(
+                "Warning: unusual keypath {}. Proceed only if you know what you are doing.",
+                util::bip32::to_string(keypath)
+            ),
+            scrollable: true,
+            longtouch: true,
+            ..Default::default()
+        })
+        .await?
+    }
     let xpub = keystore::get_xpub(keypath)
         .or(Err(Error::InvalidInput))?
         .serialize_str(xpub_type)?;
     if display {
-        let title = format!("{}\naccount #{}", params.name, keypath[2] - HARDENED + 1);
+        let title = if is_unusual {
+            "".into()
+        } else {
+            format!("{}\naccount #{}", params.name, keypath[2] - HARDENED + 1)
+        };
+
         let confirm_params = confirm::Params {
             title: &title,
             body: &xpub,
@@ -144,7 +165,7 @@ pub fn derive_address_simple(
     .address(coin_params)?)
 }
 
-/// Processes a SimpleType (single-sig) adress api call.
+/// Processes a SimpleType (single-sig) address api call.
 async fn address_simple(
     coin: BtcCoin,
     simple_type: SimpleType,
@@ -164,7 +185,7 @@ async fn address_simple(
     Ok(Response::Pub(pb::PubResponse { r#pub: address }))
 }
 
-/// Processes a multisig adress api call.
+/// Processes a multisig address api call.
 pub async fn address_multisig(
     coin: BtcCoin,
     multisig: &Multisig,
@@ -205,6 +226,44 @@ pub async fn address_multisig(
     Ok(Response::Pub(pb::PubResponse { r#pub: address }))
 }
 
+/// Processes a policy address api call.
+async fn address_policy(
+    coin: BtcCoin,
+    policy: &Policy,
+    keypath: &[u32],
+    display: bool,
+) -> Result<Response, Error> {
+    let coin_params = params::get(coin);
+
+    keypath::validate_address_policy(keypath).or(Err(Error::InvalidInput))?;
+
+    let parsed = policies::parse(policy)?;
+    parsed.validate(coin)?;
+
+    let name = match policies::get_name(coin, policy)? {
+        Some(name) => name,
+        None => return Err(Error::InvalidInput),
+    };
+
+    let title = "Receive to";
+
+    if display {
+        policies::confirm(title, coin_params, &name, policy, policies::Mode::Basic).await?;
+    }
+
+    let address = common::Payload::from_policy(&parsed, keypath)?.address(coin_params)?;
+    if display {
+        confirm::confirm(&confirm::Params {
+            title,
+            body: &address,
+            scrollable: true,
+            ..Default::default()
+        })
+        .await?;
+    }
+    Ok(Response::Pub(pb::PubResponse { r#pub: address }))
+}
+
 /// Handle a Bitcoin xpub/address protobuf api call.
 pub async fn process_pub(request: &pb::BtcPubRequest) -> Result<Response, Error> {
     let coin = match BtcCoin::from_i32(request.coin) {
@@ -233,6 +292,9 @@ pub async fn process_pub(request: &pb::BtcPubRequest) -> Result<Response, Error>
         Some(Output::ScriptConfig(BtcScriptConfig {
             config: Some(Config::Multisig(ref multisig)),
         })) => address_multisig(coin, multisig, &request.keypath, request.display).await,
+        Some(Output::ScriptConfig(BtcScriptConfig {
+            config: Some(Config::Policy(ref policy)),
+        })) => address_policy(coin, policy, &request.keypath, request.display).await,
         _ => Err(Error::InvalidInput),
     }
 }
@@ -434,40 +496,71 @@ mod tests {
             );
         }
 
-        // --- Negative tests
-        mock_unlocked();
-        // -- Invalid keypath for BTC
-        assert!(block_on(process_pub(&pb::BtcPubRequest {
-            coin: BtcCoin::Btc as _,
-            keypath: [49 + HARDENED, 0 + HARDENED, 100 + HARDENED].to_vec(),
-            display: false,
-            output: Some(Output::XpubType(XPubType::Xpub as _)),
-        }))
-        .is_err());
-        // -- Invalid keypath for BTC
-        assert!(block_on(process_pub(&pb::BtcPubRequest {
-            coin: BtcCoin::Btc as _,
-            keypath: [49 + HARDENED, 2 + HARDENED, 0 + HARDENED].to_vec(),
-            display: false,
-            output: Some(Output::XpubType(XPubType::Xpub as _)),
-        }))
-        .is_err());
-        // -- Invalid keypath for TBTC
-        assert!(block_on(process_pub(&pb::BtcPubRequest {
-            coin: BtcCoin::Tbtc as _,
-            keypath: [49 + HARDENED, 0 + HARDENED, 0 + HARDENED].to_vec(),
-            display: false,
-            output: Some(Output::XpubType(XPubType::Xpub as _)),
-        }))
-        .is_err());
-        // -- Invalid keypath for LTC
-        assert!(block_on(process_pub(&pb::BtcPubRequest {
-            coin: BtcCoin::Ltc as _,
-            keypath: [49 + HARDENED, 0 + HARDENED, 0 + HARDENED].to_vec(),
-            display: false,
-            output: Some(Output::XpubType(XPubType::Xpub as _)),
-        }))
-        .is_err());
+        {
+            // --- Unusual keypath, no display (still forces confirmation of unusual keypath)
+            mock(Data {
+                ui_confirm_create: Some(Box::new(move |params| {
+                    assert_eq!(params.title, "Export xpub");
+                    assert_eq!(params.body, "Warning: unusual keypath m/1'/2'/3'/4. Proceed only if you know what you are doing.");
+                    assert!(params.scrollable);
+                    assert!(params.longtouch);
+                    true
+                })),
+                ..Default::default()
+            });
+            mock_unlocked();
+            assert_eq!(
+                block_on(process_pub(&pb::BtcPubRequest {
+                    coin: BtcCoin::Btc as _,
+                    keypath: [1 + HARDENED, 2 + HARDENED, 3 + HARDENED, 4].to_vec(),
+                    display: false,
+                    output: Some(Output::XpubType(XPubType::Xpub as _)),
+                })),
+                Ok(Response::Pub(pb::PubResponse {
+                    r#pub: "xpub6DdW7n2P4Ht8m9DNumbzVKPU4yXoBMR9mm39q6tGp8PHGgNTJWL3fBdoUS4E8tP9XmyK4F85ApxLEBTB6f3fJf3Ujk5PaqssRuTLsRVTn6E".into(),
+                }))
+            );
+        }
+
+        {
+            // --- Unusual keypath, with display
+            static mut UI_COUNTER: u32 = 0;
+            mock(Data {
+                ui_confirm_create: Some(Box::new(move |params| {
+                    match unsafe {
+                        UI_COUNTER += 1;
+                        UI_COUNTER
+                    } {
+                        1 => {
+                            assert_eq!(params.title, "xpub");
+                            assert_eq!(params.body, "Warning: unusual keypath m/1'/2'/3'/4. Proceed only if you know what you are doing.");
+                            assert!(params.scrollable);
+                            assert!(params.longtouch);
+                        }
+                        2 => {
+                            assert_eq!(params.title, "");
+                            assert_eq!(params.body, "xpub6DdW7n2P4Ht8m9DNumbzVKPU4yXoBMR9mm39q6tGp8PHGgNTJWL3fBdoUS4E8tP9XmyK4F85ApxLEBTB6f3fJf3Ujk5PaqssRuTLsRVTn6E");
+                            assert!(params.scrollable);
+                        }
+                        _ => panic!("too many dialogs"),
+                    }
+                    true
+                })),
+                ..Default::default()
+            });
+            mock_unlocked();
+            assert_eq!(
+                block_on(process_pub(&pb::BtcPubRequest {
+                    coin: BtcCoin::Btc as _,
+                    keypath: [1 + HARDENED, 2 + HARDENED, 3 + HARDENED, 4].to_vec(),
+                    display: true,
+                    output: Some(Output::XpubType(XPubType::Xpub as _)),
+                })),
+                Ok(Response::Pub(pb::PubResponse {
+                    r#pub: "xpub6DdW7n2P4Ht8m9DNumbzVKPU4yXoBMR9mm39q6tGp8PHGgNTJWL3fBdoUS4E8tP9XmyK4F85ApxLEBTB6f3fJf3Ujk5PaqssRuTLsRVTn6E".into(),
+                }))
+            );
+        }
 
         let req = pb::BtcPubRequest {
             coin: BtcCoin::Btc as _,
@@ -484,14 +577,6 @@ mod tests {
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Tltc as i32 + 1;
         assert!(block_on(process_pub(&req_invalid)).is_err());
-        // -- No taproot in Litecoin
-        assert!(block_on(process_pub(&pb::BtcPubRequest {
-            coin: BtcCoin::Ltc as _,
-            keypath: [86 + HARDENED, 2 + HARDENED, 0 + HARDENED].to_vec(),
-            display: false,
-            output: Some(Output::XpubType(XPubType::Xpub as _)),
-        }))
-        .is_err());
     }
 
     #[test]

@@ -2857,7 +2857,7 @@ mod tests {
                             address,
                             "tb1qtxyqynfxwsk8f5gu8v5g8e6hs3njtglkywhvyztk6v8znvx5kddsmhuve2"
                         );
-                        assert_eq!(amount, "0.0009 TBTC");
+                        assert_eq!(amount, "0.00090000 TBTC");
                     }
                     _ => panic!("unexpected UI dialog"),
                 }

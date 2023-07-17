@@ -128,11 +128,6 @@ async fn verify_standard_transaction(
     request: &pb::EthSignRequest,
     params: &Params,
 ) -> Result<(), Error> {
-    if request.data.is_empty() && request.value.is_empty() {
-        // Must transfer non-zero value, unless there is data (contract invocation).
-        return Err(Error::InvalidInput);
-    }
-
     let recipient = parse_recipient(&request.recipient)?;
 
     if !request.data.is_empty() {

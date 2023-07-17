@@ -431,6 +431,10 @@ pub async fn confirm(
 
     let our_root_fingerprint = crate::keystore::root_fingerprint()?;
 
+    let output_xpub_type = match params.coin {
+        BtcCoin::Btc | BtcCoin::Ltc => bip32::XPubType::Xpub,
+        BtcCoin::Tbtc | BtcCoin::Tltc => bip32::XPubType::Tpub,
+    };
     let num_keys = policy.keys.len();
     for (i, key) in policy.keys.iter().enumerate() {
         let key_str = match key {
@@ -440,7 +444,7 @@ pub async fn confirm(
                 xpub: Some(xpub),
             } => {
                 let xpub_str = bip32::Xpub::from(xpub)
-                    .serialize_str(bip32::XPubType::Xpub)
+                    .serialize_str(output_xpub_type)
                     .or(Err(Error::InvalidInput))?;
                 if root_fingerprint.is_empty() {
                     xpub_str
@@ -527,7 +531,7 @@ mod tests {
     use crate::bip32::parse_xpub;
     use bitbox02::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
 
-    const SOME_XPUB_1: &str = "xpub6FMWuwbCA9KhoRzAMm63ZhLspk5S2DM5sePo8J8mQhcS1xyMbAqnc7Q7UescVEVFCS6qBMQLkEJWQ9Z3aDPgBov5nFUYxsJhwumsxM4npSo";
+    const SOME_XPUB_1: &str = "tpubDFj9SBQssRHA5EB1ox58mcgF9sB61br9RGz6UrBukcNKmFe4fPgskZ4wigxQ1jSUzLdjnvvDHL8Z6L3ey5Ev5FNNqrDrePxwXsNHiLZhBTc";
 
     const KEYPATH_ACCOUNT: &[u32] = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
 

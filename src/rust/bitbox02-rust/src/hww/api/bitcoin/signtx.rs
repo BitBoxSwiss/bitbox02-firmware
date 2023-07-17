@@ -2828,12 +2828,12 @@ mod tests {
                     }
                     5 => {
                         assert_eq!(params.title, "Key 1/2");
-                        assert_eq!(params.body, "This device: [93531fa9/48'/1'/0'/3']xpub6EMfjyGVUvwhqh719Z4b9j4hxgWwZg9NrNRhs4s4QHP4qMkYfkxD3i3fcQuE51i99G1AhSyoSymjbEZMfa1bcPJK281gPNCS7VPQ7YmovG4");
+                        assert_eq!(params.body, "This device: [93531fa9/48'/1'/0'/3']tpubDEjJGD6BCCuA7VHrbk3gMeQ5HocbZ4eSQ121DcvCkC8xaeRFjyoJC9iVrSz1bWfNwAY5K2Vfz5bnHR3y4RrqVpkc5ikz4trfhSyosZPrcnk");
                         assert!(params.scrollable);
                     }
                     6 => {
                         assert_eq!(params.title, "Key 2/2");
-                        assert_eq!(params.body, "xpub6Eu7xJRyXRCi4eLYhJPnfZVjgAQtM7qFaEZwUhvgxGf4enEZMxevGzWvZTawCj9USP2MFTEhKQAwnqHwoaPHetTLqGuvq5r5uaLKyGx5QDZ");
+                        assert_eq!(params.body, "tpubDFGkUYFfEhAALSXQ9VNssUq71HWYLWLK7sAEqFyqJBQxQ4uGSBW1RSBkoVfijE6iEHZFs2kZrVzzV1nZCSEXYKudtsfEWcWKVXvjjLeRyd8");
                         assert!(params.scrollable);
                     }
                     8 => {
@@ -2900,7 +2900,7 @@ mod tests {
                 pb::KeyOriginInfo {
                     root_fingerprint: vec![],
                     keypath: vec![],
-                    xpub: Some(parse_xpub("xpub6Eu7xJRyXRCi4eLYhJPnfZVjgAQtM7qFaEZwUhvgxGf4enEZMxevGzWvZTawCj9USP2MFTEhKQAwnqHwoaPHetTLqGuvq5r5uaLKyGx5QDZ").unwrap()),
+                    xpub: Some(parse_xpub("tpubDFGkUYFfEhAALSXQ9VNssUq71HWYLWLK7sAEqFyqJBQxQ4uGSBW1RSBkoVfijE6iEHZFs2kZrVzzV1nZCSEXYKudtsfEWcWKVXvjjLeRyd8").unwrap()),
                 },
             ],
         };
@@ -2961,7 +2961,7 @@ mod tests {
                 pb::KeyOriginInfo {
                     root_fingerprint: vec![],
                     keypath: vec![],
-                    xpub: Some(parse_xpub("xpub6Eu7xJRyXRCi4eLYhJPnfZVjgAQtM7qFaEZwUhvgxGf4enEZMxevGzWvZTawCj9USP2MFTEhKQAwnqHwoaPHetTLqGuvq5r5uaLKyGx5QDZ").unwrap()),
+                    xpub: Some(parse_xpub("tpubDFGkUYFfEhAALSXQ9VNssUq71HWYLWLK7sAEqFyqJBQxQ4uGSBW1RSBkoVfijE6iEHZFs2kZrVzzV1nZCSEXYKudtsfEWcWKVXvjjLeRyd8").unwrap()),
                 },
             ],
         };
@@ -3013,7 +3013,7 @@ mod tests {
                 pb::KeyOriginInfo {
                     root_fingerprint: vec![],
                     keypath: vec![],
-                    xpub: Some(parse_xpub("xpub6Eu7xJRyXRCi4eLYhJPnfZVjgAQtM7qFaEZwUhvgxGf4enEZMxevGzWvZTawCj9USP2MFTEhKQAwnqHwoaPHetTLqGuvq5r5uaLKyGx5QDZ").unwrap()),
+                    xpub: Some(parse_xpub("tpubDFGkUYFfEhAALSXQ9VNssUq71HWYLWLK7sAEqFyqJBQxQ4uGSBW1RSBkoVfijE6iEHZFs2kZrVzzV1nZCSEXYKudtsfEWcWKVXvjjLeRyd8").unwrap()),
                 },
             ],
         };
@@ -3062,7 +3062,7 @@ mod tests {
                 pb::KeyOriginInfo {
                     root_fingerprint: vec![],
                     keypath: vec![],
-                    xpub: Some(parse_xpub("xpub6Eu7xJRyXRCi4eLYhJPnfZVjgAQtM7qFaEZwUhvgxGf4enEZMxevGzWvZTawCj9USP2MFTEhKQAwnqHwoaPHetTLqGuvq5r5uaLKyGx5QDZ").unwrap()),
+                    xpub: Some(parse_xpub("tpubDFGkUYFfEhAALSXQ9VNssUq71HWYLWLK7sAEqFyqJBQxQ4uGSBW1RSBkoVfijE6iEHZFs2kZrVzzV1nZCSEXYKudtsfEWcWKVXvjjLeRyd8").unwrap()),
                 },
             ],
         };

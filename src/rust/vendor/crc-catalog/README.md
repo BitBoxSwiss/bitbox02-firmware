@@ -1,7 +1,10 @@
 # crc-catalog
 
+[![rust](https://github.com/akhilles/crc-catalog/actions/workflows/rust.yaml/badge.svg)](https://github.com/akhilles/crc-catalog/actions/workflows/rust.yaml)
 [![Crate](https://img.shields.io/crates/v/crc-catalog.svg)](https://crates.io/crates/crc-catalog)
 [![Docs](https://docs.rs/crc-catalog/badge.svg)](https://docs.rs/crc-catalog)
+
+MSRV is 1.46.
 
 Catalog of CRC algorithms expressed as simple Rust structs. The Rust code is generated from the "[Catalogue of parametrised CRC algorithms](http://reveng.sourceforge.net/crc-catalogue)" using the `generate_catalog.sh` script:
 

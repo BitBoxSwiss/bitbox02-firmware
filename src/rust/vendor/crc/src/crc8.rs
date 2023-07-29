@@ -3,21 +3,21 @@ use crate::table::crc8_table;
 
 impl Crc<u8> {
     pub const fn new(algorithm: &'static Algorithm<u8>) -> Self {
-        let table = crc8_table(algorithm.poly, algorithm.refin);
+        let table = crc8_table(algorithm.width, algorithm.poly, algorithm.refin);
         Self { algorithm, table }
     }
 
     pub const fn checksum(&self, bytes: &[u8]) -> u8 {
-        let mut crc = self.init();
+        let mut crc = self.init(self.algorithm.init);
         crc = self.update(crc, bytes);
         self.finalize(crc)
     }
 
-    const fn init(&self) -> u8 {
+    const fn init(&self, initial: u8) -> u8 {
         if self.algorithm.refin {
-            self.algorithm.init.reverse_bits()
+            initial.reverse_bits() >> (8u8 - self.algorithm.width)
         } else {
-            self.algorithm.init
+            initial << (8u8 - self.algorithm.width)
         }
     }
 
@@ -40,17 +40,29 @@ impl Crc<u8> {
         if self.algorithm.refin ^ self.algorithm.refout {
             crc = crc.reverse_bits();
         }
+        if !self.algorithm.refout {
+            crc >>= 8u8 - self.algorithm.width;
+        }
         crc ^ self.algorithm.xorout
     }
 
     pub const fn digest(&self) -> Digest<u8> {
-        Digest::new(self)
+        self.digest_with_initial(self.algorithm.init)
+    }
+
+    /// Construct a `Digest` with a given initial value.
+    ///
+    /// This overrides the initial value specified by the algorithm.
+    /// The effects of the algorithm's properties `refin` and `width`
+    /// are applied to the custom initial value.
+    pub const fn digest_with_initial(&self, initial: u8) -> Digest<u8> {
+        let value = self.init(initial);
+        Digest::new(self, value)
     }
 }
 
 impl<'a> Digest<'a, u8> {
-    const fn new(crc: &'a Crc<u8>) -> Self {
-        let value = crc.init();
+    const fn new(crc: &'a Crc<u8>, value: u8) -> Self {
         Digest { crc, value }
     }
 

@@ -52,7 +52,7 @@ fn on_struct(inp: &mut syn::DeriveInput) -> syn::Result<proc_macro2::TokenStream
     let blacklist = {
         let iter = data.fields.iter()
             .zip(&decode_fns)
-            .filter_map(|(f, ff)| ff.is_some().then(|| f));
+            .filter_map(|(f, ff)| ff.is_some().then_some(f));
         collect_type_params(&inp.generics, iter)
     };
 
@@ -173,7 +173,7 @@ fn on_enum(inp: &mut syn::DeriveInput) -> syn::Result<proc_macro2::TokenStream> 
             blacklist.extend({
                 let iter = var.fields.iter()
                     .zip(&decode_fns)
-                    .filter_map(|(f, ff)| ff.is_some().then(|| f));
+                    .filter_map(|(f, ff)| ff.is_some().then_some(f));
                 collect_type_params(&inp.generics, iter)
             });
             let statements = gen_statements(&fields, &decode_fns, encoding)?;

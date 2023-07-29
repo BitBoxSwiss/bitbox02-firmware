@@ -96,9 +96,9 @@ impl Xpub {
 
     /// Serialize an xpub as a Base58Check encoded string according to BIP32.
     pub fn serialize_str(&self, xpub_type: XPubType) -> Result<String, ()> {
-        Ok(bs58::encode(self.serialize(Some(xpub_type))?)
-            .with_check()
-            .into_string())
+        Ok(bitcoin::base58::encode_check(
+            &self.serialize(Some(xpub_type))?,
+        ))
     }
 
     /// Derives child xpub at the keypath. All keypath elements must be unhardened.
@@ -139,7 +139,7 @@ impl Xpub {
 /// Parses a Base58Check-encoded xpub string. The 4 version bytes are not checked and discarded.
 #[cfg(test)]
 pub fn parse_xpub(xpub: &str) -> Result<pb::XPub, ()> {
-    let decoded = bs58::decode(xpub).with_check(None).into_vec().or(Err(()))?;
+    let decoded = bitcoin::base58::decode_check(xpub).or(Err(()))?;
     Ok(Xpub::from_bytes(&decoded)?.into())
 }
 

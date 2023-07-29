@@ -222,17 +222,19 @@ impl Payload {
                 if payload.len() != HASH160_LEN {
                     return Err(());
                 }
-                Ok(bs58::encode(payload)
-                    .with_check_version(params.base58_version_p2pkh)
-                    .into_string())
+                let mut prefixed = [0; 21];
+                prefixed[0] = params.base58_version_p2pkh;
+                prefixed[1..].copy_from_slice(payload);
+                Ok(bitcoin::base58::encode_check(&prefixed))
             }
             BtcOutputType::P2sh => {
                 if payload.len() != HASH160_LEN {
                     return Err(());
                 }
-                Ok(bs58::encode(payload)
-                    .with_check_version(params.base58_version_p2sh)
-                    .into_string())
+                let mut prefixed = [0; 21];
+                prefixed[0] = params.base58_version_p2sh;
+                prefixed[1..].copy_from_slice(payload);
+                Ok(bitcoin::base58::encode_check(&prefixed))
             }
             BtcOutputType::P2wpkh => {
                 if payload.len() != HASH160_LEN {

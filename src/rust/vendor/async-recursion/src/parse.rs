@@ -1,6 +1,9 @@
 use proc_macro2::Span;
-use syn::parse::{Error, Parse, ParseStream, Result};
-use syn::{token::Question, ItemFn, Token};
+use syn::{
+    parse::{Error, Parse, ParseStream, Result},
+    token::Question,
+    ItemFn, Token,
+};
 
 pub struct AsyncItem(pub ItemFn);
 

@@ -1,6 +1,9 @@
 //! # async-recursion macro
 //!
-//! ![Build Status](https://github.com/dcchut/async-recursion/workflows/Push%20action/badge.svg?branch=master)
+//! [![Latest version](https://img.shields.io/crates/v/async-recursion)](https://crates.io/crates/async-recursion)
+//! [![crates.io downloads](https://img.shields.io/crates/d/async_recursion)](https://crates.io/crates/async-recursion)
+//! [![Build Status](https://img.shields.io/github/actions/workflow/status/dcchut/async-recursion/ci.yml?branch=master)](https://github.com/dcchut/async-recursion/actions)
+//! ![Apache/MIT2.0 License](https://img.shields.io/crates/l/async-recursion)
 //!
 //! Procedural macro for recursive async functions.
 //!
@@ -10,12 +13,10 @@
 //! ## Motivation
 //! Consider the following recursive implementation of the fibonacci numbers:
 //!
-//! ```rust,ignore
-//! async fn fib(n : u32) -> u64 {
+//! ```rust,compile_fail
+//! async fn fib(n : u32) -> u32 {
 //!    match n {
-//!        0     => panic!("zero is not a valid argument to fib()!"),
-//!        1 | 2 => 1,
-//!        3     => 2,
+//!        0 | 1 => 1,
 //!        _ => fib(n-1).await + fib(n-2).await
 //!    }
 //! }
@@ -27,7 +28,7 @@
 //! error[E0733]: recursion in an `async fn` requires boxing
 //! --> src/main.rs:1:26
 //!   |
-//! 1 | async fn fib(n : u32) -> u64 {
+//! 1 | async fn fib(n : u32) -> u32 {
 //!   |                          ^^^ recursive `async fn`
 //!   |
 //!   = note: a recursive `async fn` must be rewritten to return a boxed `dyn Future`.
@@ -43,11 +44,9 @@
 //! use async_recursion::async_recursion;
 //!
 //! #[async_recursion]
-//! async fn fib(n : u32) -> u64 {
+//! async fn fib(n : u32) -> u32 {
 //!    match n {
-//!        0     => panic!("zero is not a valid argument to fib()!"),
-//!        1 | 2 => 1,
-//!        3     => 2,
+//!        0 | 1 => 1,
 //!        _ => fib(n-1).await + fib(n-2).await
 //!    }
 //! }

@@ -37,10 +37,8 @@ pub fn print_debug_internal(duration: Duration, msg: &str) {
 #[macro_export]
 macro_rules! print_debug {
     ($duration:expr, $($arg:tt)*) => ({
-        use core::fmt::Write;
+        extern crate alloc;
         let duration = core::time::Duration::from_millis($duration);
-        let mut buf = $crate::arrayvec::ArrayString::<[_; 256]>::new();
-        let _ = write!(buf, $($arg)*);
-        $crate::general::screen::print_debug_internal(duration, &buf);
+        $crate::general::screen::print_debug_internal(duration, &alloc::format!($($arg)*));
     })
 }

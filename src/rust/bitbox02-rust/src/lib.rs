@@ -46,9 +46,6 @@ extern crate alloc;
 #[macro_use]
 extern crate lazy_static;
 
-// reexport arrayvec because it is used in our macro "print_debug"
-pub extern crate arrayvec;
-
 #[cfg(test)]
 mod test {
     use super::*;

@@ -98,7 +98,6 @@ dependencies = [
 name = "bitbox02-rust"
 version = "0.1.0"
 dependencies = [
- "arrayvec",
  "async-recursion",
  "bech32",
  "binascii",

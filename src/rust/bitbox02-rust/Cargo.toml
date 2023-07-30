@@ -51,12 +51,6 @@ hmac = "0.11.0"
 miniscript = { version = "10.0.0", default-features = false, features = ["no-std"] }
 bitcoin = { version = "0.30.0", default-features = false, features = ["no-std"] }
 
-# For stack allocated strings
-[dependencies.arrayvec]
-version  = "0.5.1"
-# Disable the "std" feature
-default-features = false
-
 [dependencies.prost]
 # keep version in sync with tools/prost-build/Cargo.toml.
 version = "0.11.5"

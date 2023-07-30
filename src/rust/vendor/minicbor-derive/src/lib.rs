@@ -1,4 +1,5 @@
-//! Procedural macros to derive minicbor's `Encode` and `Decode` traits.
+//! Procedural macros to derive minicbor's `Encode`, `Decode`, and `CborLen`
+//! traits.
 //!
 //! Deriving is supported for `struct`s and `enum`s. The encoding is optimised
 //! for forward and backward compatibility and the overall approach is
@@ -101,6 +102,7 @@
 //! - [`#[cbor(encode_bound)]`](#cborencode_bound--)
 //! - [`#[cbor(bound)]`](#cborbound)
 //! - [`#[cbor(context_bound)]`](#cborcontext_bound--)
+//! - [`#[cbor(cbor_len)]`](#cborcbor_len--path)
 //!
 //! ## `#[n(...)]` and `#[b(...)]` (or `#[cbor(n(...))]` and `#[cbor(b(...))]`)
 //!
@@ -155,10 +157,13 @@
 //! ```no_run
 //! use minicbor::decode::{Decoder, Error};
 //!
-//! fn decode<'b, C, T: 'b>(d: &mut Decoder<'b>, ctx: &mut C) -> Result<T, Error> {
+//! fn decode<'b, Ctx, T: 'b>(d: &mut Decoder<'b>, ctx: &mut Ctx) -> Result<T, Error> {
 //!     todo!()
 //! }
 //! ```
+//!
+//! Please note that if the decode function is generic in its context parameter that the
+//! derive macro uses the type variable name `Ctx`.
 //!
 //! ## `#[cbor(encode_with = "<path>")]`
 //!
@@ -168,10 +173,13 @@
 //! ```no_run
 //! use minicbor::encode::{Encoder, Error, Write};
 //!
-//! fn encode<C, T, W: Write>(v: &T, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+//! fn encode<Ctx, T, W: Write>(v: &T, e: &mut Encoder<W>, ctx: &mut Ctx) -> Result<(), Error<W::Error>> {
 //!     todo!()
 //! }
 //! ```
+//!
+//! Please note that if the encode function is generic in its context parameter that the
+//! derive macro uses the type variable name `Ctx`.
 //!
 //! ## `#[cbor(with = "<path>")]`
 //!
@@ -179,6 +187,9 @@
 //! [`#[cbor(encode_with = "...")]`](#cborencode_with--path). Here, `<path>` denotes
 //! a module that contains functions named `encode` and `decode` that satisfy the
 //! respective type signatures mentioned in `encode_with` and `decode_with`.
+//! If `CborLen` is also derived, the module is assumed to contain a function named
+//! `cbor_len` with a signature matching the one described in
+//! [`#[cbor(cbor_len = "...")]`](#cborcbor_len--path) below.
 //!
 //! ## `#[cbor(nil = "<path>")]`
 //!
@@ -211,6 +222,21 @@
 //!     todo!()
 //! }
 //! ```
+//!
+//! ## `#[cbor(cbor_len = "<path>")]`
+//!
+//! Only applicable when deriving `CborLen`. When applied to a field of type `T`, the
+//! function denoted by `<path>` will be used to calculate the CBOR length in bytes.
+//! The function needs to be equivalent to the following type:
+//!
+//! ```no_run
+//! fn cbor_len<Ctx, T>(val: &T, ctx: &mut Ctx) -> usize {
+//!     todo!()
+//! }
+//! ```
+//!
+//! Please note that if the cbor_len function is generic in its context parameter that the
+//! derive macro uses the type variable name `Ctx`.
 //!
 //! ## `#[cbor(decode_bound = "...")]`
 //!
@@ -436,6 +462,7 @@ extern crate proc_macro;
 
 mod decode;
 mod encode;
+mod cbor_len;
 
 pub(crate) mod attrs;
 pub(crate) mod fields;
@@ -464,6 +491,14 @@ pub fn derive_encode(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
 enum Mode {
     Encode,
     Decode
+}
+
+/// Derive the `minicbor::CborLen` trait for a struct or enum.
+///
+/// See the [crate] documentation for details.
+#[proc_macro_derive(CborLen, attributes(n, b, cbor))]
+pub fn derive_cbor_len(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    cbor_len::derive_from(input)
 }
 
 // Helpers ////////////////////////////////////////////////////////////////////

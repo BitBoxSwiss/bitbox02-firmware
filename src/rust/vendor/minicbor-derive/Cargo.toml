@@ -12,10 +12,11 @@
 [package]
 edition = "2021"
 name = "minicbor-derive"
-version = "0.12.0"
+version = "0.13.0"
 authors = ["Toralf Wittner <tw@dtex.org>"]
 description = "Derive minicbor `Decode` and `Encode` traits."
 documentation = "https://twittner.gitlab.io/minicbor/minicbor_derive/"
+readme = "README.md"
 keywords = [
     "cbor",
     "serialization",
@@ -26,6 +27,7 @@ keywords = [
 categories = ["encoding"]
 license = "BlueOak-1.0.0"
 repository = "https://gitlab.com/twittner/minicbor"
+resolver = "1"
 
 [lib]
 proc-macro = true

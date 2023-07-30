@@ -1,5 +1,6 @@
 #![no_std]
 
+#[rustfmt::skip]
 mod catalog;
 pub use catalog::*;
 
@@ -8,10 +9,14 @@ impl Width for u8 {}
 impl Width for u16 {}
 impl Width for u32 {}
 impl Width for u64 {}
+impl Width for u128 {}
 
 /// This struct describes a CRC algorithm using the fields specified by the [Catalogue of
 /// parametrised CRC algorithms](https://reveng.sourceforge.io/crc-catalogue/all.htm).
 pub struct Algorithm<W: Width> {
+    /// The number of bit cells in the linear feedback shift register; the degree of the generator
+    /// polynomial, minus one.
+    pub width: u8,
     /// The generator polynomial that sets the feedback tap positions of the shift register. The
     /// least significant bit corresponds to the inward end of the shift register, and is always
     /// set. The highest-order term is omitted.

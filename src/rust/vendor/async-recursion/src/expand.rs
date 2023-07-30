@@ -1,8 +1,11 @@
-use crate::parse::{AsyncItem, RecursionArgs};
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
-use syn::punctuated::Punctuated;
-use syn::{parse_quote, Block, FnArg, Lifetime, ReturnType, Signature, Type, WhereClause};
+use syn::{
+    parse_quote, punctuated::Punctuated, Block, FnArg, Lifetime, ReturnType, Signature, Type,
+    WhereClause,
+};
+
+use crate::parse::{AsyncItem, RecursionArgs};
 
 impl ToTokens for AsyncItem {
     fn to_tokens(&self, tokens: &mut TokenStream) {
@@ -11,6 +14,7 @@ impl ToTokens for AsyncItem {
 }
 
 pub fn expand(item: &mut AsyncItem, args: &RecursionArgs) {
+    item.0.attrs.push(parse_quote!(#[must_use]));
     transform_sig(&mut item.0.sig, args);
     transform_block(&mut item.0.block);
 }
@@ -74,7 +78,7 @@ fn transform_sig(sig: &mut Signature, args: &RecursionArgs) {
         for ra in &mut ref_arguments {
             // If this reference arg doesn't have a lifetime, give it an explicit one
             if ra.lifetime.is_none() {
-                let lt = Lifetime::new(&format!("'life{}", counter), Span::call_site());
+                let lt = Lifetime::new(&format!("'life{counter}"), Span::call_site());
 
                 lifetimes.push(ArgLifetime::New(parse_quote!(#lt)));
 

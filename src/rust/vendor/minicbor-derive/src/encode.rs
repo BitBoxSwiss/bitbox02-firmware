@@ -45,7 +45,7 @@ fn on_struct(inp: &mut syn::DeriveInput) -> syn::Result<proc_macro2::TokenStream
     let blacklist = {
         let iter = data.fields.iter()
             .zip(&custom_enc)
-            .filter_map(|(f, ff)| ff.is_some().then(|| f));
+            .filter_map(|(f, ff)| ff.is_some().then_some(f));
         collect_type_params(&inp.generics, iter)
     };
 
@@ -113,7 +113,7 @@ fn on_enum(inp: &mut syn::DeriveInput) -> syn::Result<proc_macro2::TokenStream> 
         blacklist.extend({
             let iter = var.fields.iter()
                 .zip(&custom_enc)
-                .filter_map(|(f, ff)| ff.is_some().then(|| f));
+                .filter_map(|(f, ff)| ff.is_some().then_some(f));
             collect_type_params(&inp.generics, iter)
         });
         let con = &var.ident;
@@ -531,7 +531,7 @@ fn gen_encode_bound() -> syn::Result<syn::TypeParamBound> {
     syn::parse_str("minicbor::Encode<Ctx>")
 }
 
-fn is_nil(ty: &syn::Type, codec: &Option<CustomCodec>) -> proc_macro2::TokenStream {
+pub(crate) fn is_nil(ty: &syn::Type, codec: &Option<CustomCodec>) -> proc_macro2::TokenStream {
     if let Some(ce) = codec {
         if let Some(p) = ce.to_is_nil_path() {
             p.to_token_stream()

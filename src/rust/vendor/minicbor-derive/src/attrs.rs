@@ -31,7 +31,8 @@ enum Kind {
     Nil,
     IsNil,
     HasNil,
-    ContextBound
+    ContextBound,
+    CborLen
 }
 
 #[derive(Debug, Clone)]
@@ -44,7 +45,8 @@ enum Value {
     Nil(syn::ExprPath, proc_macro2::Span),
     IsNil(syn::ExprPath, proc_macro2::Span),
     HasNil(proc_macro2::Span),
-    ContextBound(HashSet<syn::TraitBound>, proc_macro2::Span)
+    ContextBound(HashSet<syn::TraitBound>, proc_macro2::Span),
+    CborLen(syn::ExprPath, proc_macro2::Span)
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -216,6 +218,13 @@ impl Attributes {
                         } else {
                             return Err(syn::Error::new(arg.span(), "string required"))
                         }
+                    } else if arg.path.is_ident("cbor_len") {
+                        if let syn::Lit::Str(path) = &arg.lit {
+                            let cl = syn::parse_str(&path.value())?;
+                            attrs.try_insert(Kind::CborLen, Value::CborLen(cl, nested.span()))?
+                        } else {
+                            return Err(syn::Error::new(arg.span(), "string required"))
+                        }
                     } else {
                         return Err(syn::Error::new(nested.span(), "unknown attribute"))
                     }
@@ -274,6 +283,10 @@ impl Attributes {
         self.contains_key(Kind::IndexOnly)
     }
 
+    pub fn cbor_len(&self) -> Option<&syn::ExprPath> {
+        self.get(Kind::CborLen).and_then(|v| v.cbor_len())
+    }
+
     fn contains_key(&self, k: Kind) -> bool {
         self.1.contains_key(&k)
     }
@@ -304,6 +317,7 @@ impl Attributes {
                 | Kind::Nil
                 | Kind::IsNil
                 | Kind::HasNil
+                | Kind::CborLen
                 => {
                     let msg = format!("attribute is not supported on {}-level", self.0);
                     return Err(syn::Error::new(val.span(), msg))
@@ -316,6 +330,7 @@ impl Attributes {
                 | Kind::Nil
                 | Kind::IsNil
                 | Kind::HasNil
+                | Kind::CborLen
                 => {}
                 | Kind::Encoding
                 | Kind::IndexOnly
@@ -338,6 +353,7 @@ impl Attributes {
                 | Kind::Nil
                 | Kind::IsNil
                 | Kind::HasNil
+                | Kind::CborLen
                 => {
                     let msg = format!("attribute is not supported on {}-level", self.0);
                     return Err(syn::Error::new(val.span(), msg))
@@ -355,6 +371,7 @@ impl Attributes {
                 | Kind::IsNil
                 | Kind::HasNil
                 | Kind::ContextBound
+                | Kind::CborLen
                 => {
                     let msg = format!("attribute is not supported on {}-level", self.0);
                     return Err(syn::Error::new(val.span(), msg))
@@ -480,6 +497,16 @@ impl Attributes {
                     }
                     *b = true
                 }
+                if self.contains_key(Kind::CborLen) {
+                    return Err(syn::Error::new(*s, "`with` and `cbor_len` are mutually exclusive"))
+                }
+            }
+            Value::CborLen(_, s) => {
+                if let Some(Value::Codec(c, _)) = self.get(Kind::Codec) {
+                    if c.is_module() {
+                        return Err(syn::Error::new(*s, "`cbor_len` and `with` are mutually exclusive"))
+                    }
+                }
             }
             _ => {}
         }
@@ -499,7 +526,8 @@ impl Value {
             Value::Nil(_, s)          => *s,
             Value::IsNil(_, s)        => *s,
             Value::HasNil(s)          => *s,
-            Value::ContextBound(_, s) => *s
+            Value::ContextBound(_, s) => *s,
+            Value::CborLen(_, s)      => *s
         }
     }
 
@@ -542,6 +570,15 @@ impl Value {
             None
         }
     }
+
+    fn cbor_len(&self) -> Option<&syn::ExprPath> {
+        if let Value::CborLen(x, _) = self {
+            Some(x)
+        } else {
+            None
+        }
+    }
+
 }
 
 fn parse_u32_arg(a: &syn::Attribute) -> syn::Result<u32> {

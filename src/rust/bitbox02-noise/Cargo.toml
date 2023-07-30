@@ -21,7 +21,7 @@ description = "BitBox02 noise protocol primitives"
 license = "Apache-2.0"
 
 [dependencies]
-zeroize = "1.5.5"
+zeroize = "1.6.0"
 
 [dependencies.noise-protocol]
 version = "0.1.3"

@@ -17,7 +17,9 @@
 //! [`data::Type`] that can represent every possible CBOR type and decoding
 //! can thus proceed based on this information. It is also possible to just
 //! tokenize the input bytes using a [`Tokenizer`](decode::Tokenizer), i.e.
-//! an `Iterator` over CBOR [`Token`](decode::Token)s.
+//! an `Iterator` over CBOR [`Token`](decode::Token)s. Finally, the length
+//! in bytes of a value's CBOR representation can be calculated if the
+//! value's type implements the [`CborLen`] trait.
 //!
 //! Optionally, `Encode` and `Decode` can be derived for structs and enums
 //! using the respective derive macros (*requires feature* `"derive"`).
@@ -144,7 +146,7 @@ const SIMPLE: u8   = 0xe0;
 const BREAK: u8    = 0xff;
 
 pub use decode::{Decode, Decoder};
-pub use encode::{Encode, Encoder};
+pub use encode::{Encode, Encoder, CborLen};
 
 #[cfg(feature = "derive")]
 pub use minicbor_derive::*;
@@ -247,6 +249,22 @@ where
 #[cfg(all(feature = "alloc", feature = "half"))]
 pub fn display<'b>(cbor: &'b [u8]) -> impl core::fmt::Display + 'b {
     decode::Tokenizer::new(cbor)
+}
+
+/// Calculate the length in bytes of the given value's CBOR representation.
+pub fn len<T>(x: T) -> usize
+where
+    T: CborLen<()>
+{
+    x.cbor_len(&mut ())
+}
+
+/// Calculate the length in bytes of the given value's CBOR representation.
+pub fn len_with<C, T>(x: T, ctx: &mut C) -> usize
+where
+    T: CborLen<C>
+{
+    x.cbor_len(ctx)
 }
 
 // Ensure we can safely cast a `usize` to a `u64`.

@@ -70,7 +70,7 @@ fn decode_shelley_payment_address(params: &params::Params, address: &str) -> Res
 /// - https://github.com/input-output-hk/cardano-ledger/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L134-L135
 /// - https://github.com/input-output-hk/technical-docs/blob/8d4f08bc05ec611f3943cdc09a4ae18e72a0eb3c/cardano-components/cardano-wallet/doc/About-Address-Format---Byron.md
 fn decode_byron_payment_address(params: &params::Params, address: &str) -> Result<Vec<u8>, ()> {
-    let base58_decoded = bs58::decode(address).into_vec().or(Err(()))?;
+    let base58_decoded = bitcoin::base58::decode(address).or(Err(()))?;
     let payload = {
         let mut decoder = minicbor::Decoder::new(&base58_decoded);
         if decoder.array().or(Err(()))?.ok_or(())? != 2 {

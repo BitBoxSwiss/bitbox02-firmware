@@ -106,7 +106,6 @@ dependencies = [
  "bitbox02-noise",
  "bitcoin",
  "blake2",
- "bs58",
  "crc",
  "digest 0.10.6",
  "ed25519-dalek",
@@ -131,7 +130,7 @@ dependencies = [
  "bitbox02",
  "bitbox02-noise",
  "bitbox02-rust",
- "bs58",
+ "bitcoin",
  "hex",
  "sha2",
  "sha3",
@@ -217,15 +216,6 @@ name = "block-padding"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
-
-[[package]]
-name = "bs58"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "771fe0050b883fcc3ea2359b1a96bcfbc090b7116eae7c3c512c7a083fdf23d3"
-dependencies = [
- "sha2",
-]
 
 [[package]]
 name = "byteorder"

@@ -124,7 +124,7 @@ pub unsafe extern "C" fn rust_base58_encode_check(buf: Bytes, mut out: BytesMut)
     if buf.len == 0 {
         return false;
     }
-    let encoded = bs58::encode(buf.as_ref()).with_check().into_string();
+    let encoded = bitcoin::base58::encode_check(buf.as_ref());
     out.as_mut()[..encoded.len()].copy_from_slice(encoded.as_bytes());
     // Null-terminator.
     out.as_mut()[encoded.len()] = 0;

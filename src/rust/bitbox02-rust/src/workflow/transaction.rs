@@ -57,7 +57,7 @@ pub async fn verify_total_fee(
     if let Some(fee_percentage) = fee_percentage {
         match super::confirm::confirm(&super::confirm::Params {
             title: "High fee",
-            body: &format!("The fee rate\nis {:.1}%.\nProceed?", fee_percentage),
+            body: &format!("The fee is {:.1}%\nthe send amount.\nProceed?", fee_percentage),
             longtouch: true,
             ..Default::default()
         })

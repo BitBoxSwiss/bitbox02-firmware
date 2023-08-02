@@ -401,7 +401,7 @@ mod tests {
                 } {
                     1 => {
                         assert_eq!(params.title, "High fee");
-                        assert_eq!(params.body, "The fee rate\nis 12.0%.\nProceed?");
+                        assert_eq!(params.body, "The fee is 12.0%\nthe send amount.\nProceed?");
                         assert!(params.longtouch);
                         true
                     }

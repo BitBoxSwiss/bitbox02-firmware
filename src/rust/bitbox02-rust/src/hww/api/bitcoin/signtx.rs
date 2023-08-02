@@ -2202,7 +2202,7 @@ mod tests {
                 } {
                     7 => {
                         assert_eq!(params.title, "High fee");
-                        assert_eq!(params.body, "The fee rate\nis 18.1%.\nProceed?");
+                        assert_eq!(params.body, "The fee is 18.1%\nthe send amount.\nProceed?");
                         assert!(params.longtouch);
                         FEE_CHECKED = true;
                         true

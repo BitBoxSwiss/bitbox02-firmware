@@ -189,7 +189,6 @@ fn validate_keypath(
     params: &super::params::Params,
     script_config_account: &pb::BtcScriptConfigWithKeypath,
     keypath: &[u32],
-    must_be_change: bool,
 ) -> Result<(), Error> {
     match &script_config_account.script_config {
         Some(pb::BtcScriptConfig {
@@ -228,25 +227,6 @@ fn validate_keypath(
     if keypath[..script_config_account.keypath.len()] != script_config_account.keypath {
         return Err(Error::InvalidInput);
     }
-    if must_be_change {
-        // The change addresses are usually at /1/*.
-        // For policies, they can be at a different location, e.g. `@0/<10;11>/*` means the change
-        // is at /11/*.
-        let is_change = match &script_config_account.script_config {
-            // Policy.
-            Some(pb::BtcScriptConfig {
-                config: Some(pb::btc_script_config::Config::Policy(policy)),
-            }) => super::policies::parse(policy)?.is_change_keypath(keypath)?,
-            // Everything else.
-            _ => {
-                let change = keypath[keypath.len() - 2];
-                change == 1
-            }
-        };
-        if !is_change {
-            return Err(Error::InvalidInput);
-        }
-    }
     Ok(())
 }
 
@@ -258,7 +238,7 @@ fn validate_input(
     if input.prev_out_value == 0 {
         return Err(Error::InvalidInput);
     }
-    validate_keypath(params, script_config_account, &input.keypath, false)
+    validate_keypath(params, script_config_account, &input.keypath)
 }
 
 fn is_taproot(script_config_account: &pb::BtcScriptConfigWithKeypath) -> bool {
@@ -748,8 +728,8 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             return Err(Error::InvalidInput);
         }
 
-        // Get payload. If change output, we compute the payload from the keystore, otherwise it is
-        // provided in tx_output.payload.
+        // Get payload. If the output is marked ours, we compute the payload from the keystore,
+        // otherwise it is provided in tx_output.payload.
         let payload: common::Payload = if tx_output.ours {
             // Compute the payload from the keystore.
             let script_config_account = request
@@ -757,7 +737,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                 .get(tx_output.script_config_index as usize)
                 .ok_or(Error::InvalidInput)?;
 
-            validate_keypath(coin_params, script_config_account, &tx_output.keypath, true)?;
+            validate_keypath(coin_params, script_config_account, &tx_output.keypath)?;
 
             common::Payload::from(
                 &mut xpub_cache,
@@ -774,18 +754,43 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             }
         };
 
-        if !tx_output.ours {
+        let is_change = if tx_output.ours {
+            let script_config_account = request
+                .script_configs
+                .get(tx_output.script_config_index as usize)
+                .ok_or(Error::InvalidInput)?;
+
+            match &script_config_account.script_config {
+                // Policy.
+                Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::Policy(policy)),
+                }) => super::policies::parse(policy)?.is_change_keypath(&tx_output.keypath)?,
+                // Everything else.
+                _ => {
+                    let change = tx_output.keypath[tx_output.keypath.len() - 2];
+                    change == 1
+                }
+            }
+        } else {
+            false
+        };
+
+        if !is_change {
             // Verify output if it is not a change output.
             // Assemble address to display, get user confirmation.
             let address = payload.address(coin_params)?;
             transaction::verify_recipient(
-                &address,
+                &(if tx_output.ours {
+                    format!("This BitBox02: {}", address)
+                } else {
+                    address
+                }),
                 &format_amount(coin_params, format_unit, tx_output.value)?,
             )
             .await?;
         }
 
-        if tx_output.ours {
+        if is_change {
             num_changes += 1;
             outputs_sum_ours = outputs_sum_ours
                 .checked_add(tx_output.value)
@@ -1949,7 +1954,6 @@ mod tests {
             TestCase::WrongCoinChange,
             TestCase::WrongAccountInput,
             TestCase::WrongAccountChange,
-            TestCase::WrongBip44Change(0),
             TestCase::WrongBip44Change(2),
             TestCase::InvalidInputScriptConfigIndex,
             TestCase::InvalidChangeScriptConfigIndex,
@@ -2252,6 +2256,51 @@ mod tests {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
                 assert_eq!(&next.signature, b"\x8f\x1e\x0e\x8f\x98\xd3\x6d\xb1\x19\x62\x64\xf1\xa3\x00\xfa\xe3\x17\xf1\x50\x8d\x2c\x48\x9f\xbb\xd6\x60\xe0\x48\xc4\x52\x9c\x61\x2f\x59\x57\x6c\x86\xa2\x6f\xfa\x47\x6d\x97\x35\x1e\x46\x9e\xf6\xed\x27\x84\xae\xcb\x71\x05\x3a\x51\x66\x77\x5c\xcb\x4d\x7b\x9b");
+            }
+            _ => panic!("wrong result"),
+        }
+    }
+
+    // Test an output that is marked ours but is not a change output by keypath.
+    #[test]
+    fn test_our_non_change_output() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        transaction.borrow_mut().outputs[5].keypath[3] = 0;
+        mock_host_responder(transaction.clone());
+        static mut UI_COUNTER: u32 = 0;
+        static mut TOTAL_AND_FEE_CHECKED: bool = false;
+        mock(Data {
+            ui_transaction_address_create: Some(Box::new(|amount, address| unsafe {
+                UI_COUNTER += 1;
+                if UI_COUNTER == 5 {
+                    assert_eq!(
+                        address,
+                        "This BitBox02: bc1qnu4x8dlrx6dety47gehf4uhk5tj3q7yhywgry6"
+                    );
+                    assert_eq!(amount, "0.00000100 BTC");
+                }
+                true
+            })),
+            ui_transaction_fee_create: Some(Box::new(|total, fee, _longtouch| unsafe {
+                // The total is the same as if the output was an external output. It includes the
+                // amount sent to the internal non-change address.
+                assert_eq!(total, "13.40000000 BTC");
+                assert_eq!(fee, "0.05419010 BTC");
+                TOTAL_AND_FEE_CHECKED = true;
+                true
+            })),
+            ui_confirm_create: Some(Box::new(move |_params| true)),
+            ..Default::default()
+        });
+        mock_unlocked();
+        let result = block_on(process(&transaction.borrow().init_request()));
+        assert!(unsafe { UI_COUNTER >= 5 });
+        assert!(unsafe { TOTAL_AND_FEE_CHECKED });
+        match result {
+            Ok(Response::BtcSignNext(next)) => {
+                assert!(next.has_signature);
+                assert_eq!(&next.signature, b"\xe1\x15\xd7\xd2\xd2\xb7\xef\x06\x8e\x7b\x89\xde\x83\xec\x79\x17\x44\xd4\x6b\x8b\xae\x8a\x59\x31\xa7\x3e\xf6\x44\xc0\xdb\x01\xcf\x2f\x2e\x2a\x02\x79\x7a\x29\xa1\x81\xfe\x74\xea\x1f\x5d\x2b\xca\xba\x4d\x70\xe0\xe7\x74\x24\x12\xa6\x80\xfd\x62\x95\x7a\x90\xf7");
             }
             _ => panic!("wrong result"),
         }

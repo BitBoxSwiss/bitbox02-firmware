@@ -36,9 +36,9 @@ use sha2::{Digest, Sha256};
 // Arbitrary limit of keys that can be present in a policy.
 const MAX_KEYS: usize = 20;
 
-// We only support Bitcoin testnet for now.
+// We only support Bitcoin for now.
 fn check_enabled(coin: BtcCoin) -> Result<(), Error> {
-    if !matches!(coin, BtcCoin::Tbtc) {
+    if !matches!(coin, BtcCoin::Btc | BtcCoin::Tbtc) {
         return Err(Error::InvalidInput);
     }
     Ok(())
@@ -653,7 +653,7 @@ mod tests {
             .is_ok());
 
         // Unsupported coins
-        for coin in [BtcCoin::Btc, BtcCoin::Ltc, BtcCoin::Tltc] {
+        for coin in [BtcCoin::Ltc, BtcCoin::Tltc] {
             assert_eq!(
                 parse(&make_policy("wsh(pk(@0/**))", &[our_key.clone()]))
                     .unwrap()

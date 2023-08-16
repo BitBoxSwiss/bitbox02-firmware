@@ -36,6 +36,8 @@
 #include <usb/usb_processing.h>
 #include <util.h>
 
+#include <assert.h>
+
 #define BOOT_OP_LEN 2u // 1 byte op code and 1 byte parameter
 #define BOOTLOADER_CMD (HID_VENDOR_FIRST + 0x03) // Hardware wallet command
 
@@ -129,14 +131,7 @@ typedef union {
 
 #pragma GCC diagnostic pop
 // Be sure to not overflow boot data area
-#if (                                                                            \
-    10 + /* hardawre_version + is_initialized + pad + signing_pubkeys_version */ \
-        BOOT_PUBKEY_LEN * BOOT_NUM_FIRMWARE_SIGNING_KEYS +                       \
-        BOOT_SIG_LEN * BOOT_NUM_ROOT_SIGNING_KEYS +                              \
-        BOOT_SIG_LEN * BOOT_NUM_FIRMWARE_SIGNING_KEYS + 4 /* firware_version */  \
-    > FLASH_BOOTDATA_LEN)
-#error "incompatible bootloader data macro"
-#endif
+static_assert(sizeof(((boot_data_t*)0)->fields) <= FLASH_BOOTDATA_LEN, "boot_data_t too large");
 // Be sure signing pubkey data fits within a single chunk
 #if (                                                                               \
     1 + 4 + /* op code + signing_pubkeys_version */                                 \

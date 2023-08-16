@@ -32,6 +32,8 @@
 #include <mock_memory.h>
 #endif
 
+#include <assert.h>
+
 /********* Definitions and read/write helper functions ****************/
 
 // Documentation of all appData chunks and their contents.  A chunk is defined as
@@ -75,6 +77,8 @@ typedef union {
     uint8_t bytes[CHUNK_SIZE];
 } chunk_0_t;
 
+static_assert(sizeof(((chunk_0_t*)0)->fields) <= (size_t)CHUNK_SIZE, "chunk too large");
+
 // CHUNK_1: Firmware system data
 #define CHUNK_1 (1)
 typedef union {
@@ -94,6 +98,8 @@ typedef union {
     uint8_t bytes[CHUNK_SIZE];
 } chunk_1_t;
 
+static_assert(sizeof(((chunk_1_t*)0)->fields) <= (size_t)CHUNK_SIZE, "chunk too large");
+
 typedef struct __attribute__((__packed__)) {
     // version fixed at 0xFF for now - can be repurposed to turn this struct into an union to
     // support other types of data.
@@ -111,6 +117,9 @@ typedef union {
     } fields;
     uint8_t bytes[CHUNK_SIZE];
 } chunk_2_t;
+
+static_assert(sizeof(((chunk_2_t*)0)->fields) <= (size_t)CHUNK_SIZE, "chunk too large");
+
 #pragma GCC diagnostic pop
 
 #define BITMASK_SEEDED ((uint8_t)(1u << 0u))
@@ -119,7 +128,7 @@ typedef union {
 
 static void _clean_chunk(uint8_t** chunk_bytes)
 {
-    util_zero(*chunk_bytes, CHUNK_SIZE);
+    util_zero(*chunk_bytes, (size_t)CHUNK_SIZE);
 }
 
 #define CLEANUP_CHUNK(var)                                                                    \
@@ -311,7 +320,7 @@ bool memory_cleanup_smarteeprom(void)
 {
     // Erase all SmartEEPROM data chunks.
     for (size_t i = 0; i < SMARTEEPROM_ALLOCATED_BLOCKS; ++i) {
-        uint32_t w_offset = i * CHUNK_SIZE;
+        uint32_t w_offset = i * (size_t)CHUNK_SIZE;
         if (!_write_to_address(FLASH_SMARTEEPROM_START, w_offset, NULL)) {
             return false;
         }

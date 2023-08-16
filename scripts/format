@@ -18,6 +18,7 @@ command -v ${CLANGFORMAT} >/dev/null 2>&1 || { echo >&2 "${CLANGFORMAT} is missi
 FILES=$(find src/ test/ \
 	\( \
 		-path src/ui/fonts -o \
+		-path src/rust/vendor -o \
 		-name "ugui*" \
 	\) -prune -o \( -name "*.c" -o -name "*.h" \) -print)
 

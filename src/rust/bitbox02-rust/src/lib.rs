@@ -36,6 +36,7 @@ pub mod keystore;
 mod version;
 mod waker_fn;
 pub mod workflow;
+#[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
 mod xpubcache;
 
 // for `format!`

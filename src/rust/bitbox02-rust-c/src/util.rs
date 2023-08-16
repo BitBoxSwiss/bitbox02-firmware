@@ -119,6 +119,7 @@ pub unsafe extern "C" fn rust_util_bytes_mut(buf: *mut c_uchar, len: usize) -> B
 ///
 /// #Safety
 /// buf and out must not be NULL and point to valid memory areas.
+#[cfg(feature = "bitcoin")]
 #[no_mangle]
 pub unsafe extern "C" fn rust_base58_encode_check(buf: Bytes, mut out: BytesMut) -> bool {
     if buf.len == 0 {

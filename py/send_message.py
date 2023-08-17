@@ -115,7 +115,7 @@ def _btc_demo_inputs_outputs(
             "prev_out_hash": binascii.unhexlify(
                 "c58b7e3f1200e0c0ec9a5e81e925baface2cc1d4715514f2d8205be2508b48ee"
             ),
-            "prev_out_index": 1,
+            "prev_out_index": 0,
             "prev_out_value": int(1e8 * 0.60005),
             "sequence": 0xFFFFFFFF,
             "keypath": [49 + HARDENED, 0 + HARDENED, bip44_account, 0, 1],

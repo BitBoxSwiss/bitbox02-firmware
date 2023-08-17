@@ -320,7 +320,10 @@ async fn handle_prevtx(
 ) -> Result<(), Error> {
     let prevtx_init = get_prevtx_init(input_index, next_response).await?;
 
-    if prevtx_init.num_inputs < 1 || prevtx_init.num_outputs < 1 {
+    if prevtx_init.num_inputs < 1
+        || prevtx_init.num_outputs < 1
+        || input.prev_out_index >= prevtx_init.num_outputs
+    {
         return Err(Error::InvalidInput);
     }
 
@@ -1944,6 +1947,8 @@ mod tests {
             WrongInputValue,
             // input's prevtx hash does not match input's prevOutHash
             WrongPrevoutHash,
+            // input's prev_out_index too high
+            WrongPrevoutIndex,
             // no inputs in prevtx
             PrevTxNoInputs,
             // no outputs in prevtx
@@ -1960,6 +1965,7 @@ mod tests {
             TestCase::WrongOutputValue,
             TestCase::WrongInputValue,
             TestCase::WrongPrevoutHash,
+            TestCase::WrongPrevoutIndex,
             TestCase::PrevTxNoInputs,
             TestCase::PrevTxNoOutputs,
         ] {
@@ -1995,6 +2001,10 @@ mod tests {
                 }
                 TestCase::WrongPrevoutHash => {
                     transaction.borrow_mut().inputs[0].input.prev_out_hash[0] += 1;
+                }
+                TestCase::WrongPrevoutIndex => {
+                    let mut tx = transaction.borrow_mut();
+                    tx.inputs[0].input.prev_out_index = tx.inputs[0].prevtx_outputs.len() as _;
                 }
                 TestCase::PrevTxNoInputs => {
                     transaction.borrow_mut().inputs[0].prevtx_inputs.clear();

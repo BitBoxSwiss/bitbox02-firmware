@@ -1031,4 +1031,152 @@ mod tests {
             assert_eq!(unsafe { UI_COUNTER }, 3);
         }
     }
+
+    #[test]
+    fn test_address_policy() {
+        mock_unlocked_using_mnemonic(
+            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+            "",
+        );
+
+        const SOME_XPUB: &str = "tpubDFj9SBQssRHA5EB1ox58mcgF9sB61br9RGz6UrBukcNKmFe4fPgskZ4wigxQ1jSUzLdjnvvDHL8Z6L3ey5Ev5FNNqrDrePxwXsNHiLZhBTc";
+        const KEYPATH_ACCOUNT_TESTNET: &[u32] =
+            &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
+        const KEYPATH_ACCOUNT_MAINNET: &[u32] =
+            &[48 + HARDENED, 0 + HARDENED, 0 + HARDENED, 3 + HARDENED];
+
+        let our_key_testnet = pb::KeyOriginInfo {
+            root_fingerprint: keystore::root_fingerprint().unwrap(),
+            keypath: KEYPATH_ACCOUNT_TESTNET.to_vec(),
+            xpub: Some(
+                crate::keystore::get_xpub(KEYPATH_ACCOUNT_TESTNET)
+                    .unwrap()
+                    .into(),
+            ),
+        };
+        let our_key_mainnet = pb::KeyOriginInfo {
+            root_fingerprint: keystore::root_fingerprint().unwrap(),
+            keypath: KEYPATH_ACCOUNT_MAINNET.to_vec(),
+            xpub: Some(
+                crate::keystore::get_xpub(KEYPATH_ACCOUNT_MAINNET)
+                    .unwrap()
+                    .into(),
+            ),
+        };
+        let some_key = pb::KeyOriginInfo {
+            root_fingerprint: vec![],
+            keypath: vec![],
+            xpub: Some(parse_xpub(SOME_XPUB).unwrap()),
+        };
+
+        struct Test<'a> {
+            coin: BtcCoin,
+            policy: &'a str,
+            keys: &'a [pb::KeyOriginInfo],
+            keypath: &'a [u32],
+            expected_address: &'a str,
+        }
+        let tests = &[
+            Test {
+                coin: BtcCoin::Btc,
+                policy: "wsh(multi(2,@0/**,@1/**))",
+                keys: &[our_key_mainnet.clone(), some_key.clone()],
+                keypath: &[
+                    48 + HARDENED,
+                    0 + HARDENED,
+                    0 + HARDENED,
+                    3 + HARDENED,
+                    0,
+                    0,
+                ],
+                expected_address: "bc1q9n0nxanmarawjpj2xz0echuhk4a2qga99xpn0nrpgfv2vv9279vsvrh6rj",
+            },
+            Test {
+                coin: BtcCoin::Tbtc,
+                policy: "wsh(multi(2,@0/**,@1/**))",
+                keys: &[our_key_testnet.clone(), some_key.clone()],
+                keypath: &[
+                    48 + HARDENED,
+                    1 + HARDENED,
+                    0 + HARDENED,
+                    3 + HARDENED,
+                    0,
+                    0,
+                ],
+                expected_address: "tb1qvq2793p7nyuxzqn5ts3kgqywxn9kj277skyvtz895gf7urfdxenqvq39sp",
+            },
+            Test {
+                coin: BtcCoin::Tbtc,
+                policy: "wsh(andor(pk(@0/**),older(12960),pk(@1/**)))",
+                keys: &[our_key_testnet.clone(), some_key.clone()],
+                keypath: &[
+                    48 + HARDENED,
+                    1 + HARDENED,
+                    0 + HARDENED,
+                    3 + HARDENED,
+                    0,
+                    0,
+                ],
+                expected_address: "tb1qeah5dqvya674w60ce6d3gk2xy7n8n0g4weztlywdd6zhu0csdv7s8yynr3",
+            },
+            Test {
+                coin: BtcCoin::Tbtc,
+                policy: "wsh(or_b(pk(@0/<10;11>/*),s:pk(@1/**)))",
+                keys: &[our_key_testnet.clone(), some_key.clone()],
+                keypath: &[
+                    48 + HARDENED,
+                    1 + HARDENED,
+                    0 + HARDENED,
+                    3 + HARDENED,
+                    10,
+                    0,
+                ],
+                expected_address: "tb1qeyetg3vgjvrgax0c5z70yuev3egdtxvv870jvzn235agtqe0l3gqytjrmc",
+            },
+            Test {
+                coin: BtcCoin::Tbtc,
+                policy: "wsh(or_b(pk(@0/<10;11>/*),s:pk(@1/**)))",
+                keys: &[our_key_testnet.clone(), some_key.clone()],
+                keypath: &[
+                    48 + HARDENED,
+                    1 + HARDENED,
+                    0 + HARDENED,
+                    3 + HARDENED,
+                    11,
+                    5,
+                ],
+                expected_address: "tb1qkfpeqx87pwjruet9c2xt88n6k47mz9q9m5jt77906780qrv4sl4sr5m72q",
+            },
+        ];
+        for test in tests {
+            let policy = pb::btc_script_config::Policy {
+                policy: test.policy.into(),
+                keys: test.keys.to_vec(),
+            };
+
+            // Register policy.
+            mock_memory();
+            let name = "some name";
+            bitbox02::memory::multisig_set_by_hash(
+                &policies::get_hash(test.coin, &policy).unwrap(),
+                name,
+            )
+            .unwrap();
+
+            let req = pb::BtcPubRequest {
+                coin: test.coin as _,
+                keypath: test.keypath.to_vec(),
+                display: false,
+                output: Some(Output::ScriptConfig(BtcScriptConfig {
+                    config: Some(Config::Policy(policy)),
+                })),
+            };
+            assert_eq!(
+                block_on(process_pub(&req)),
+                Ok(Response::Pub(pb::PubResponse {
+                    r#pub: test.expected_address.into(),
+                })),
+            );
+        }
+    }
 }

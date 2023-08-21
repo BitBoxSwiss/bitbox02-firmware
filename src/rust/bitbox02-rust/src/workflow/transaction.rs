@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bb02_async::option;
+use crate::bb02_async::option_no_screensaver;
 use core::cell::RefCell;
 
 use alloc::boxed::Box;
@@ -30,7 +30,7 @@ pub async fn verify_recipient(recipient: &str, amount: &str) -> Result<(), UserA
         }),
     );
     component.screen_stack_push();
-    option(&result).await
+    option_no_screensaver(&result).await
 }
 
 pub async fn verify_total_fee(
@@ -52,7 +52,7 @@ pub async fn verify_total_fee(
         }),
     );
     component.screen_stack_push();
-    option(&result).await?;
+    option_no_screensaver(&result).await?;
 
     if let Some(fee_percentage) = fee_percentage {
         match super::confirm::confirm(&super::confirm::Params {

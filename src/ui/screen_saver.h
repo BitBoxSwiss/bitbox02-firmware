@@ -35,4 +35,14 @@ void screen_saver_process(void);
  */
 void screen_saver_reset(void);
 
+/**
+ * disables the screensaver until enabled with `screen_saver_enable`.
+ */
+void screen_saver_disable(void);
+
+/**
+ * re-enables the screensaver.
+ */
+void screen_saver_enable(void);
+
 #endif

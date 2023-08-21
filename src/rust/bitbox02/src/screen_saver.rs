@@ -1,4 +1,4 @@
-// Copyright 2020 Shift Crypto AG
+// Copyright 2023 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bb02_async::option_no_screensaver;
-use core::cell::RefCell;
+/// calls the C function in screen_saver.c to enable the screen saver
+pub fn screen_saver_enable() {
+    unsafe {
+        bitbox02_sys::screen_saver_enable();
+    }
+}
 
-pub async fn sdcard(insert: bool) {
-    let result = RefCell::new(None);
-    let mut component = bitbox02::ui::sdcard_create(insert, || {
-        *result.borrow_mut() = Some(());
-    });
-    component.screen_stack_push();
-    option_no_screensaver(&result).await
+// calls the C function in screen_saver.c to disable the screen saver
+pub fn screen_saver_disable() {
+    unsafe {
+        bitbox02_sys::screen_saver_disable();
+    }
 }

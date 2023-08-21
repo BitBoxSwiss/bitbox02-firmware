@@ -29,6 +29,7 @@
 
 static uint32_t _counter = 0;
 static bool _is_active = false;
+static bool _disabled = false;
 
 component_t* screen_saver_get(void)
 {
@@ -47,7 +48,7 @@ component_t* screen_saver_get(void)
 
 void screen_saver_process(void)
 {
-    if (!_is_active) {
+    if (!_is_active && !_disabled) {
         _counter++;
         if (_counter > ACTIVE_AFTER) {
             _is_active = true;
@@ -73,4 +74,15 @@ void screen_saver_reset(void)
         _is_active = false;
     }
     _counter = 0;
+}
+
+void screen_saver_disable(void)
+{
+    screen_saver_reset();
+    _disabled = true;
+}
+
+void screen_saver_enable(void)
+{
+    _disabled = false;
 }

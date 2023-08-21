@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bb02_async::option;
+use crate::bb02_async::option_no_screensaver;
 use core::cell::RefCell;
 
 use alloc::boxed::Box;
@@ -38,5 +38,5 @@ pub async fn choose(
         }),
     );
     component.screen_stack_push();
-    option(&result).await
+    option_no_screensaver(&result).await
 }

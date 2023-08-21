@@ -44,6 +44,14 @@ impl<O> core::future::Future for AsyncOption<'_, O> {
     }
 }
 
+/// Disables the screensaver while waiting for an option to contain a value. Afterwards, it returns that value
+pub async fn option_no_screensaver<O>(opt: &RefCell<Option<O>>) -> O {
+    bitbox02::screen_saver::screen_saver_disable();
+    let result = option(opt).await;
+    bitbox02::screen_saver::screen_saver_enable();
+    result
+}
+
 /// Waits for an option to contain a value and returns that value, leaving `None` in its place.
 /// E.g. `assert_eq!(option(&Some(42)).await, 42)`.
 pub fn option<O>(option: &RefCell<Option<O>>) -> AsyncOption<O> {

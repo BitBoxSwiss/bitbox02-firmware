@@ -39,6 +39,7 @@ pub mod input;
 pub mod keystore;
 pub mod memory;
 pub mod random;
+pub mod screen_saver;
 pub mod sd;
 pub mod secp256k1;
 pub mod securechip;

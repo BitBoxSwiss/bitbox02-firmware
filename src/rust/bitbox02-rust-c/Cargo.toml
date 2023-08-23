@@ -30,7 +30,7 @@ util = { path = "../util" }
 hex = { version = "0.4", default-features = false }
 sha2 = { version = "0.9.2", default-features = false, optional = true }
 sha3 = { version = "0.9.1", default-features = false, optional = true }
-bitcoin = { version = "0.30.0", default-features = false, features = ["no-std"] }
+bitcoin = { version = "0.30.0", default-features = false, features = ["no-std"], optional = true }
 
 [features]
 # Only one of the "target-" should be activated, which in turn defines/activates the dependent features.
@@ -43,9 +43,24 @@ target-bootloader-btc-development = ["bootloader", "platform-bitbox02"]
 target-bootloader-btc-production = ["bootloader", "platform-bitbox02"]
 target-firmware = ["firmware", "platform-bitbox02", "app-bitcoin", "app-litecoin", "app-ethereum", "app-u2f", "app-cardano"]
 target-firmware-btc = ["firmware", "platform-bitbox02", "app-bitcoin"]
-target-factory-setup = ["firmware", "platform-bitbox02"]
+target-factory-setup = [
+  # enable these features in dependencies
+  # enable the bitcoin dep as workaround, because the bitbox02-rust::bip32 crate etc. are not
+  # currently needed in the factorysetup, but not explicitly excluded from compilation.
+  "bitbox02-rust/bitcoin",
+  # enable these features
+  "firmware",
+  "platform-bitbox02",
+]
 # add Rust features which are called in the C unit tests (currently there is only one target for C tests).
-target-c-unit-tests = ["app-bitcoin", "app-ethereum", "firmware"]
+target-c-unit-tests = [
+  # enable this dependency
+  "bitcoin", # for rust_base58_encode_check()
+  # enable these features
+  "app-bitcoin",
+  "app-ethereum",
+  "firmware"
+]
 
 platform-bitbox02 = []
 

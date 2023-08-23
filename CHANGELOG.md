@@ -7,6 +7,11 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+-
+
+### 9.15.0
+- Security bugfix: check index of an input's previous output to prevent the fee attack originally
+  reported by Saleem Rashid
 - Allow exporting the xpub at any keypath after user confirmation
 - Support for Miniscript wallet policies of the form `wsh(<miniscript expression>)`
 - Updated BTC/LTC amount formatting to display the trailing zeroes

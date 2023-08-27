@@ -630,7 +630,7 @@ static void _test_secp256k1_schnorr_sign(void** state)
 #pragma GCC diagnostic ignored "-Wcast-qual"
         uint8_t* aux_rand_cast = (uint8_t*)test->aux_rand;
 #pragma GCC diagnostic pop
-        assert_true(secp256k1_schnorrsig_sign(ctx, sig, test->msg, &keypair, aux_rand_cast));
+        assert_true(secp256k1_schnorrsig_sign32(ctx, sig, test->msg, &keypair, aux_rand_cast));
         assert_memory_equal(sig, test->expected_sig, sizeof(sig));
     }
 }

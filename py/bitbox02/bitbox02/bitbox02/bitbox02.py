@@ -949,7 +949,10 @@ class BitBox02(BitBoxCommonAPI):
                 return value
             if typ.type == eth.ETHSignTypedMessageRequest.DataType.UINT:
                 if isinstance(value, str):
-                    value = int(value)
+                    if value[:2].lower() == "0x":
+                        value = int(value[2:], 16)
+                    else:
+                        value = int(value)
                 assert isinstance(value, int)
                 return value.to_bytes(typ.size, "big")
             if typ.type == eth.ETHSignTypedMessageRequest.DataType.INT:

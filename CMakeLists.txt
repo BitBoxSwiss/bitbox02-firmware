@@ -213,7 +213,7 @@ configure_file(src/bootloader/bootloader_version.h.in src/bootloader/bootloader_
 #-----------------------------------------------------------------------------
 # Set the default compiler options (Only set global options that truly are necessary for all files)
 
-string(APPEND CMAKE_C_FLAGS " -std=c99 -pipe")
+string(APPEND CMAKE_C_FLAGS " -std=c11 -pipe")
 if(CMAKE_CROSSCOMPILING)
   set(CMAKE_C_FLAGS "\
     ${CMAKE_C_FLAGS} -mcpu=cortex-m4 -mthumb -mlong-calls \

@@ -71,7 +71,7 @@ impl<X: Xpub + Clone> XpubCache<X> {
         // from an xpub (hardened elements require the xprv).
         const UNHARDENED_LAST: u32 = util::bip32::HARDENED - 1;
         let xpub = if let [prefix @ .., last @ 0..=UNHARDENED_LAST] = keypath {
-            self.get_xpub(&prefix)?.derive(&[*last])?
+            self.get_xpub(prefix)?.derive(&[*last])?
         } else {
             X::from_keypath(keypath)?
         };

@@ -441,7 +441,6 @@ if(NOT CMAKE_CROSSCOMPILING)
             -A clippy::type_complexity
             -A clippy::len_without_is_empty
             -A clippy::result_unit_err
-            -A clippy::manual_range_contains
             -A clippy::enum_variant_names
             -A clippy::derive_partial_eq_without_eq
             -A clippy::forget_non_drop

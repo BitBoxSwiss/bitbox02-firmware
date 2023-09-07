@@ -435,22 +435,15 @@ if(NOT CMAKE_CROSSCOMPILING)
           -- # disabled linters:
             -A clippy::large_enum_variant
             -A clippy::identity_op
-            -A clippy::match_bool
             -A clippy::new_without_default
             -A clippy::single_match
-            -A clippy::iter_nth_zero
             -A clippy::redundant_clone
             -A clippy::type_complexity
-            -A clippy::collapsible-if
             -A clippy::len_without_is_empty
             -A clippy::result_unit_err
-            -A clippy::upper_case_acronyms
-            -A clippy::manual_range_contains
-            -A clippy::match_ref_pats
             -A clippy::enum_variant_names
             -A clippy::derive_partial_eq_without_eq
             -A clippy::forget_non_drop
-            -A clippy::needless_borrow
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
   add_dependencies(rust-clippy rust-bindgen generate-protobufs)

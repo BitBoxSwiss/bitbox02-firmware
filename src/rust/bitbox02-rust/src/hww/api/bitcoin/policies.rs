@@ -118,7 +118,7 @@ fn get_change_and_address_index<R: core::convert::AsRef<str>, T: core::iter::Ite
             Some(pb::KeyOriginInfo {
                 keypath: keypath_account,
                 ..
-            }) if keypath.starts_with(&keypath_account)
+            }) if keypath.starts_with(keypath_account)
                 && keypath.len() == keypath_account.len() + 2 =>
             {
                 let keypath_change = keypath[keypath.len() - 2];
@@ -148,7 +148,7 @@ impl<'a> miniscript::Translator<String, bitcoin::PublicKey, Error>
 {
     fn pk(&mut self, pk: &String) -> Result<bitcoin::PublicKey, Error> {
         let (key_index, multipath_index_left, multipath_index_right) =
-            parse_wallet_policy_pk(&pk).or(Err(Error::InvalidInput))?;
+            parse_wallet_policy_pk(pk).or(Err(Error::InvalidInput))?;
 
         match self.keys.get(key_index) {
             Some(pb::KeyOriginInfo {
@@ -190,7 +190,7 @@ pub enum ParsedPolicy<'a> {
 impl<'a> ParsedPolicy<'a> {
     fn get_policy(&self) -> &Policy {
         match self {
-            Self::Wsh(Wsh { ref policy, .. }) => policy,
+            Self::Wsh(Wsh { policy, .. }) => policy,
         }
     }
 
@@ -324,8 +324,8 @@ impl<'a> ParsedPolicy<'a> {
     pub fn witness_script_at_keypath(&self, keypath: &[u32]) -> Result<Vec<u8>, Error> {
         match self {
             Self::Wsh(Wsh {
-                ref policy,
-                ref miniscript_expr,
+                policy,
+                miniscript_expr,
             }) => {
                 let (is_change, address_index) =
                     get_change_and_address_index(miniscript_expr.iter_pk(), &policy.keys, keypath)?;
@@ -485,7 +485,7 @@ pub fn get_hash(coin: BtcCoin, policy: &Policy) -> Result<Vec<u8>, ()> {
     {
         // 1. Type of registration: policy.
         // It is chosen to never conflict with multisig hashes which start with the coin (0x00-0x03).
-        hasher.update(&[0xff]);
+        hasher.update([0xff]);
     }
     {
         // 2. coin
@@ -915,7 +915,7 @@ mod tests {
 
         let witness_script = |pol: &str, keys: &[pb::KeyOriginInfo], is_change: bool| {
             hex::encode(
-                &parse(&make_policy(pol, keys))
+                parse(&make_policy(pol, keys))
                     .unwrap()
                     .witness_script(is_change, address_index)
                     .unwrap(),
@@ -923,7 +923,7 @@ mod tests {
         };
         let witness_script_at_keypath = |pol: &str, keys: &[pb::KeyOriginInfo], keypath: &[u32]| {
             hex::encode(
-                &parse(&make_policy(pol, keys))
+                parse(&make_policy(pol, keys))
                     .unwrap()
                     .witness_script_at_keypath(keypath)
                     .unwrap(),

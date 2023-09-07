@@ -29,7 +29,7 @@ pub fn is_printable_ascii<T: AsRef<[u8]>>(bytes: T, charset: Charset) -> bool {
     bytes
         .as_ref()
         .iter()
-        .all(|&b| (b >= 32 && b <= 126) || (charset == Charset::AllNewline && b == b'\n'))
+        .all(|&b| (32..=126).contains(&b) || (charset == Charset::AllNewline && b == b'\n'))
 }
 
 #[cfg(test)]

@@ -78,7 +78,7 @@ pub async fn create(
     const MAX_EAST_UTC_OFFSET: i32 = 50400; // 14 hours in seconds
     const MAX_WEST_UTC_OFFSET: i32 = -43200; // 12 hours in seconds
 
-    if timezone_offset < MAX_WEST_UTC_OFFSET || timezone_offset > MAX_EAST_UTC_OFFSET {
+    if !(MAX_WEST_UTC_OFFSET..=MAX_EAST_UTC_OFFSET).contains(&timezone_offset) {
         return Err(Error::InvalidInput);
     }
 

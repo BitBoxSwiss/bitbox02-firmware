@@ -26,7 +26,7 @@ const BIP44_STAKE_ADDRESS: u32 = 0;
 pub struct Error;
 
 fn check_account(account: u32) -> Result<(), Error> {
-    if account >= BIP44_ACCOUNT_MIN && account <= BIP44_ACCOUNT_MAX {
+    if (BIP44_ACCOUNT_MIN..=BIP44_ACCOUNT_MAX).contains(&account) {
         Ok(())
     } else {
         Err(Error)

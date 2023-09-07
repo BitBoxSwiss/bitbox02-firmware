@@ -45,8 +45,7 @@ pub fn validate_account(
     if let [purpose, coin, account] = *keypath {
         if purpose == expected_purpose
             && coin == expected_coin
-            && account >= BIP44_ACCOUNT_MIN
-            && account <= BIP44_ACCOUNT_MAX
+            && (BIP44_ACCOUNT_MIN..=BIP44_ACCOUNT_MAX).contains(&account)
         {
             return Ok(());
         }

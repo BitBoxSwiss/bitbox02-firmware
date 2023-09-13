@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bb02_async::option;
+use crate::bb02_async::option_no_screensaver;
 use core::cell::RefCell;
 
 pub async fn status(title: &str, status_success: bool) {
@@ -21,5 +21,5 @@ pub async fn status(title: &str, status_success: bool) {
         *result.borrow_mut() = Some(());
     });
     component.screen_stack_push();
-    option(&result).await
+    option_no_screensaver(&result).await
 }

@@ -17,6 +17,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Updated BTC/LTC amount formatting to display the trailing zeroes
 - Bitcoin: allow marking non-change transaction outputs as internal
 - Allow ETH transactions with empty data + zero value
+- Disable screensaver when displaying a receive address, confirming a transaction, and other interactive actions
 
 ### 9.14.1
 - Improved security: keep seed encrypted in RAM

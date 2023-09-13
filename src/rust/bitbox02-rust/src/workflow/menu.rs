@@ -14,7 +14,7 @@
 
 pub use super::cancel::Error as CancelError;
 
-use crate::bb02_async::option;
+use crate::bb02_async::option_no_screensaver;
 
 use alloc::boxed::Box;
 use core::cell::RefCell;
@@ -34,5 +34,5 @@ pub async fn pick(words: &[&str], title: Option<&str>) -> Result<u8, CancelError
         })),
     });
     component.screen_stack_push();
-    option(&result).await
+    option_no_screensaver(&result).await
 }

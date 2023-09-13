@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bb02_async::option;
+use crate::bb02_async::option_no_screensaver;
 
 pub use bitbox02::ui::{ConfirmParams as Params, Font};
 
@@ -31,5 +31,5 @@ pub async fn confirm(params: &Params<'_>) -> Result<(), UserAbort> {
         };
     });
     component.screen_stack_push();
-    option(&result).await
+    option_no_screensaver(&result).await
 }

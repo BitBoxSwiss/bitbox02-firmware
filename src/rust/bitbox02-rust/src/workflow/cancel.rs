@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bb02_async::option;
+use crate::bb02_async::option_no_screensaver;
 use core::cell::RefCell;
 
 use super::confirm;
@@ -49,7 +49,7 @@ pub async fn with_cancel<R>(
 ) -> Result<R, Error> {
     component.screen_stack_push();
     loop {
-        let result = option(result_cell).await;
+        let result = option_no_screensaver(result_cell).await;
         if let Err(Error::Cancelled) = result {
             let params = confirm::Params {
                 title,

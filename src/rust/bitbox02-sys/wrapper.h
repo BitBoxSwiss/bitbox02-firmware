@@ -44,6 +44,7 @@
 #include <ui/graphics/lock_animation.h>
 #include <ui/oled/oled.h>
 #include <ui/screen_process.h>
+#include <ui/screen_saver.h>
 #include <ui/screen_stack.h>
 #include <ui/ugui/ugui.h>
 #include <util.h>

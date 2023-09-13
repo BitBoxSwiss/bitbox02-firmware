@@ -346,6 +346,8 @@ add_custom_target(rust-bindgen
     --allowlist-function ui_screen_stack_push
     --allowlist-function ui_screen_stack_pop
     --allowlist-function ui_screen_stack_pop_all
+    --allowlist-function screen_saver_disable
+    --allowlist-function screen_saver_enable
     --allowlist-function screen_process
     --allowlist-function label_create
     --allowlist-function confirm_create

@@ -51,6 +51,13 @@ const PARAMS: &[Params] = &[
     },
     Params {
         coin: None,
+        bip44_coin: 1 + HARDENED,
+        chain_id: 11155111,
+        name: "Sepolia",
+        unit: "SEPETH",
+    },
+    Params {
+        coin: None,
         bip44_coin: 60 + HARDENED,
         chain_id: 56,
         name: "Binance Smart Chain",

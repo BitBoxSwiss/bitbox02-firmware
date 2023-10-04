@@ -42,7 +42,7 @@ message BTCScriptConfig {
     }
 
     uint32 threshold = 1;
-    // xpubs are acount-level xpubs. Addresses are going to be derived from it using: m/<change>/<receive>.
+    // xpubs are acount-level xpubs. Addresses are going to be derived from it using: `m/<change>/<receive>`.
     // The number of xpubs defines the number of cosigners.
     repeated XPub xpubs = 2;
     // Index to the xpub of our keystore in xpubs. The keypath to it is provided via

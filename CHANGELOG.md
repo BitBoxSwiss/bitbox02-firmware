@@ -8,6 +8,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 - Disable screensaver when displaying a receive address, confirming a transaction, and other interactive actions
+- Add Sepolia testnet for Ethereum
 
 ### 9.15.0
 - Security bugfix: check index of an input's previous output to prevent the fee attack originally

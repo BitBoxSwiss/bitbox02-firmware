@@ -57,6 +57,19 @@ message ETHSignRequest {
   uint64 chain_id = 10;
 }
 
+message ETHSignEIP1559Request {
+  uint64 chain_id = 1;
+  repeated uint32 keypath = 2;
+  bytes nonce = 3; // smallest big endian serialization, max. 16 bytes
+  bytes max_priority_fee_per_gas = 4; // smallest big endian serialization, max. 16 bytes
+  bytes max_fee_per_gas = 5; // smallest big endian serialization, max. 16 bytes
+  bytes gas_limit = 6; // smallest big endian serialization, max. 16 bytes
+  bytes recipient = 7; // 20 byte recipient
+  bytes value = 8; // smallest big endian serialization, max. 32 bytes
+  bytes data = 9;
+  AntiKleptoHostNonceCommitment host_nonce_commitment = 10;
+}
+
 message ETHSignMessageRequest {
   // Deprecated: use chain_id instead.
   ETHCoin coin = 1;
@@ -130,6 +143,7 @@ message ETHRequest {
     AntiKleptoSignatureRequest antiklepto_signature = 4;
     ETHSignTypedMessageRequest sign_typed_msg = 5;
     ETHTypedMessageValueRequest typed_msg_value = 6;
+    ETHSignEIP1559Request sign_eip1559 = 7;
   }
 }
 

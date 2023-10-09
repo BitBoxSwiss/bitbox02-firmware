@@ -1,5 +1,8 @@
 # Changelog
 
+## [Unreleased]
+- Accept EIP1559 transactions in `eth_sign()` - requires BitBox02 firmware v9.16.0
+
 ## 6.2.0
 - btc_sign: allow displaying BTC values in the 'sat' unit
 - require hidapi 0.14.0 to fix a bug on macOS 13.3 which lists two BitBox02s instead of one

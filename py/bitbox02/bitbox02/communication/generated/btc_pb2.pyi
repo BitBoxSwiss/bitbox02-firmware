@@ -104,7 +104,7 @@ class BTCScriptConfig(google.protobuf.message.Message):
         threshold: builtins.int
         @property
         def xpubs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[common_pb2.XPub]:
-            """xpubs are acount-level xpubs. Addresses are going to be derived from it using: m/<change>/<receive>.
+            """xpubs are acount-level xpubs. Addresses are going to be derived from it using: `m/<change>/<receive>`.
             The number of xpubs defines the number of cosigners.
             """
             pass
@@ -460,7 +460,9 @@ class BTCScriptConfigRegistration(google.protobuf.message.Message):
     @property
     def script_config(self) -> global___BTCScriptConfig: ...
     @property
-    def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
+    def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]:
+        """Unused for policy registrations."""
+        pass
     def __init__(self,
         *,
         coin: global___BTCCoin.ValueType = ...,

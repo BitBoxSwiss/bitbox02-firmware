@@ -757,6 +757,71 @@ class BitBox02(BitBoxCommonAPI):
         """
         transaction should be given as a full rlp encoded eth transaction.
         """
+        is_eip1559 = transaction.startswith(b"\x02")
+
+        def handle_antiklepto(request: eth.ETHRequest) -> bytes:
+            host_nonce = os.urandom(32)
+            if is_eip1559:
+                request.sign_eip1559.host_nonce_commitment.commitment = antiklepto_host_commit(
+                    host_nonce
+                )
+            else:
+                request.sign.host_nonce_commitment.commitment = antiklepto_host_commit(host_nonce)
+
+            signer_commitment = self._eth_msg_query(
+                request, expected_response="antiklepto_signer_commitment"
+            ).antiklepto_signer_commitment.commitment
+
+            request = eth.ETHRequest()
+            request.antiklepto_signature.CopyFrom(
+                antiklepto.AntiKleptoSignatureRequest(host_nonce=host_nonce)
+            )
+
+            signature = self._eth_msg_query(request, expected_response="sign").sign.signature
+            antiklepto_verify(host_nonce, signer_commitment, signature[:64])
+
+            if self.debug:
+                print("Antiklepto nonce verification PASSED")
+
+            return signature
+
+        if is_eip1559:
+            self._require_atleast(semver.VersionInfo(9, 16, 0))
+            (
+                decoded_chain_id,
+                nonce,
+                priority_fee,
+                max_fee,
+                gas_limit,
+                recipient,
+                value,
+                data,
+                _,
+                _,
+                _,
+            ) = rlp.decode(transaction[1:])
+            decoded_chain_id_int = int.from_bytes(decoded_chain_id, byteorder="big")
+            if decoded_chain_id_int != chain_id:
+                raise Exception(
+                    f"chainID argument ({chain_id}) does not match chainID encoded in transaction ({decoded_chain_id_int})"
+                )
+            request = eth.ETHRequest()
+            # pylint: disable=no-member
+            request.sign_eip1559.CopyFrom(
+                eth.ETHSignEIP1559Request(
+                    chain_id=chain_id,
+                    keypath=keypath,
+                    nonce=nonce,
+                    max_priority_fee_per_gas=priority_fee,
+                    max_fee_per_gas=max_fee,
+                    gas_limit=gas_limit,
+                    recipient=recipient,
+                    value=value,
+                    data=data,
+                )
+            )
+            return handle_antiklepto(request)
+
         nonce, gas_price, gas_limit, recipient, value, data, _, _, _ = rlp.decode(transaction)
         request = eth.ETHRequest()
         # pylint: disable=no-member
@@ -776,25 +841,7 @@ class BitBox02(BitBoxCommonAPI):
 
         supports_antiklepto = self.version >= semver.VersionInfo(9, 5, 0)
         if supports_antiklepto:
-            host_nonce = os.urandom(32)
-
-            request.sign.host_nonce_commitment.commitment = antiklepto_host_commit(host_nonce)
-            signer_commitment = self._eth_msg_query(
-                request, expected_response="antiklepto_signer_commitment"
-            ).antiklepto_signer_commitment.commitment
-
-            request = eth.ETHRequest()
-            request.antiklepto_signature.CopyFrom(
-                antiklepto.AntiKleptoSignatureRequest(host_nonce=host_nonce)
-            )
-
-            signature = self._eth_msg_query(request, expected_response="sign").sign.signature
-            antiklepto_verify(host_nonce, signer_commitment, signature[:64])
-
-            if self.debug:
-                print("Antiklepto nonce verification PASSED")
-
-            return signature
+            return handle_antiklepto(request)
 
         return self._eth_msg_query(request, expected_response="sign").sign.signature
 

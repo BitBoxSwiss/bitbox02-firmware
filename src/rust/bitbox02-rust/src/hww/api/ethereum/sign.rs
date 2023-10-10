@@ -31,6 +31,69 @@ use num_bigint::BigUint;
 // 1 ETH = 1e18 wei.
 const WEI_DECIMALS: usize = 18;
 
+pub enum Transaction<'a> {
+    Legacy(&'a pb::EthSignRequest),
+    Eip1559(&'a pb::EthSignEip1559Request),
+}
+
+impl<'a> Transaction<'a> {
+    fn nonce(&self) -> &'a [u8] {
+        match self {
+            Transaction::Legacy(legacy) => &legacy.nonce,
+            Transaction::Eip1559(eip1559) => &eip1559.nonce,
+        }
+    }
+    fn gas_limit(&self) -> &'a [u8] {
+        match self {
+            Transaction::Legacy(legacy) => &legacy.gas_limit,
+            Transaction::Eip1559(eip1559) => &eip1559.gas_limit,
+        }
+    }
+    fn recipient(&self) -> &'a [u8] {
+        match self {
+            Transaction::Legacy(legacy) => &legacy.recipient,
+            Transaction::Eip1559(eip1559) => &eip1559.recipient,
+        }
+    }
+    fn value(&self) -> &'a [u8] {
+        match self {
+            Transaction::Legacy(legacy) => &legacy.value,
+            Transaction::Eip1559(eip1559) => &eip1559.value,
+        }
+    }
+    fn data(&self) -> &'a [u8] {
+        match self {
+            Transaction::Legacy(legacy) => &legacy.data,
+            Transaction::Eip1559(eip1559) => &eip1559.data,
+        }
+    }
+    fn chain_id(&self) -> u64 {
+        match self {
+            Transaction::Legacy(legacy) => legacy.chain_id,
+            Transaction::Eip1559(eip1559) => eip1559.chain_id,
+        }
+    }
+    fn keypath(&self) -> &Vec<u32> {
+        match self {
+            Transaction::Legacy(legacy) => &legacy.keypath,
+            Transaction::Eip1559(eip1559) => &eip1559.keypath,
+        }
+    }
+    fn host_nonce_commitment(&self) -> &Option<pb::AntiKleptoHostNonceCommitment> {
+        match self {
+            Transaction::Legacy(legacy) => &legacy.host_nonce_commitment,
+            Transaction::Eip1559(eip1559) => &eip1559.host_nonce_commitment,
+        }
+    }
+    // for backwards compatibility in get_and_warn_unknown
+    fn coin(&self) -> i32 {
+        match self {
+            Transaction::Legacy(legacy) => legacy.coin,
+            Transaction::Eip1559(_) => 0,
+        }
+    }
+}
+
 /// Converts `recipient` to an array of 20 chars. If `recipient` is
 /// not exactly 20 elements, `InvalidInput` is returned.
 fn parse_recipient(recipient: &[u8]) -> Result<[u8; 20], Error> {
@@ -43,14 +106,14 @@ fn parse_recipient(recipient: &[u8]) -> Result<[u8; 20], Error> {
 /// `<0xa9059cbb><32 bytes recipient><32 bytes value>`
 /// where recipient 20 bytes (zero padded to 32 bytes), and value is zero padded big endian number.
 /// On success, the 20 byte recipient and transaction value are returned.
-fn parse_erc20(request: &pb::EthSignRequest) -> Option<([u8; 20], BigUint)> {
-    if !request.value.is_empty() || request.data.len() != 68 {
+fn parse_erc20(request: &Transaction<'_>) -> Option<([u8; 20], BigUint)> {
+    if !request.value().is_empty() || request.data().len() != 68 {
         return None;
     }
     let (method, recipient, value) = (
-        &request.data[..4],
-        &request.data[4..36],
-        &request.data[36..68],
+        &request.data()[..4],
+        &request.data()[4..36],
+        &request.data()[36..68],
     );
     if method != [0xa9, 0x05, 0x9c, 0xbb] {
         return None;
@@ -70,14 +133,41 @@ fn parse_erc20(request: &pb::EthSignRequest) -> Option<([u8; 20], BigUint)> {
 }
 
 // fee: gas limit * gas price:
-fn parse_fee<'a>(request: &pb::EthSignRequest, params: &'a Params) -> Amount<'a> {
-    let gas_price = BigUint::from_bytes_be(&request.gas_price);
-    let gas_limit = BigUint::from_bytes_be(&request.gas_limit);
-    Amount {
-        unit: params.unit,
-        decimals: WEI_DECIMALS,
-        value: gas_price.mul(gas_limit),
+fn parse_fee<'a>(request: &Transaction<'a>, params: &'a Params) -> Amount<'a> {
+    let gas_limit = BigUint::from_bytes_be(&request.gas_limit());
+    match request {
+        Transaction::Legacy(legacy) => {
+            let gas_price = BigUint::from_bytes_be(&legacy.gas_price);
+            Amount {
+                unit: params.unit,
+                decimals: WEI_DECIMALS,
+                value: gas_price.mul(gas_limit),
+            }
+        }
+        Transaction::Eip1559(eip1559) => {
+            let max_fee_per_gas = BigUint::from_bytes_be(&eip1559.max_fee_per_gas);
+            // We show the user the max possible fee, but the actual fee might be lower
+            Amount {
+                unit: params.unit,
+                decimals: WEI_DECIMALS,
+                value: max_fee_per_gas.mul(gas_limit),
+            }
+         }
     }
+}
+
+fn hash_legacy(chain_id: u64, recipient: [u8; 20], request: &pb::EthSignRequest) -> Result<[u8; 32], Error> {
+    let hash = super::sighash::compute_legacy(&super::sighash::ParamsLegacy {
+        nonce: &request.nonce,
+        gas_price: &request.gas_price,
+        gas_limit: &request.gas_limit,
+        recipient: &recipient,
+        value: &request.value,
+        data: &request.data,
+        chain_id: chain_id,
+    })
+    .map_err(|_| Error::InvalidInput)?;
+    Ok(hash)
 }
 
 /// Verifies an ERC20 transfer.
@@ -89,13 +179,13 @@ fn parse_fee<'a>(request: &pb::EthSignRequest, params: &'a Params) -> Amount<'a>
 /// amount are displayed as "unknown". The amount is not known because we don't know the number of
 /// decimal places (specified in the ERC20 contract).
 async fn verify_erc20_transaction(
-    request: &pb::EthSignRequest,
+    request: &Transaction<'_>,
     params: &Params,
     erc20_recipient: [u8; 20],
     erc20_value: BigUint,
 ) -> Result<(), Error> {
     let erc20_params =
-        bitbox02::app_eth::erc20_params_get(params.chain_id, parse_recipient(&request.recipient)?);
+        bitbox02::app_eth::erc20_params_get(params.chain_id, parse_recipient(&request.recipient())?);
     let formatted_fee = parse_fee(request, params).format();
     let recipient_address = super::address::from_pubkey_hash(&erc20_recipient);
     let (formatted_value, formatted_total) = match erc20_params {
@@ -125,12 +215,12 @@ async fn verify_erc20_transaction(
 ///
 /// The transacted value, recipient address, total and fee are confirmed.
 async fn verify_standard_transaction(
-    request: &pb::EthSignRequest,
+    request: &Transaction<'_>,
     params: &Params,
 ) -> Result<(), Error> {
-    let recipient = parse_recipient(&request.recipient)?;
+    let recipient = parse_recipient(&request.recipient())?;
 
-    if !request.data.is_empty() {
+    if !request.data().is_empty() {
         confirm::confirm(&confirm::Params {
             title: "Unknown\ncontract",
             body: "You will be shown\nthe raw\ntransaction data.",
@@ -148,9 +238,9 @@ async fn verify_standard_transaction(
 
         confirm::confirm(&confirm::Params {
             title: "Transaction\ndata",
-            body: &hex::encode(&request.data),
+            body: &hex::encode(&request.data()),
             scrollable: true,
-            display_size: request.data.len(),
+            display_size: request.data().len(),
             accept_is_nextarrow: true,
             ..Default::default()
         })
@@ -161,7 +251,7 @@ async fn verify_standard_transaction(
     let amount = Amount {
         unit: params.unit,
         decimals: WEI_DECIMALS,
-        value: BigUint::from_bytes_be(&request.value),
+        value: BigUint::from_bytes_be(&request.value()),
     };
     transaction::verify_recipient(&address, &amount.format()).await?;
 
@@ -177,49 +267,69 @@ async fn verify_standard_transaction(
 }
 
 /// Verify and sign an Ethereum transaction.
-pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
-    let coin = pb::EthCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
-    let params = super::params::get_and_warn_unknown(coin, request.chain_id).await?;
+pub async fn process(request: &Transaction<'_>) -> Result<Response, Error> {
+    let coin = pb::EthCoin::from_i32(request.coin()).ok_or(Error::InvalidInput)?;
+    let params = super::params::get_and_warn_unknown(coin, request.chain_id()).await?;
 
-    if !super::keypath::is_valid_keypath_address(&request.keypath) {
+    if !super::keypath::is_valid_keypath_address(&request.keypath()) {
         return Err(Error::InvalidInput);
     }
-    super::keypath::warn_unusual_keypath(&params, params.name, &request.keypath).await?;
+    super::keypath::warn_unusual_keypath(&params, params.name, &request.keypath()).await?;
 
     // Size limits.
-    if request.nonce.len() > 16
-        || request.gas_price.len() > 16
-        || request.gas_limit.len() > 16
-        || request.value.len() > 32
-        || request.data.len() > 6144
+    if request.nonce().len() > 16
+        || request.gas_limit().len() > 16
+        || request.value().len() > 32
+        || request.data().len() > 6144
     {
         return Err(Error::InvalidInput);
     }
 
     // No zero prefix in the big endian numbers.
-    if let [0, ..] = &request.nonce[..] {
+    if let [0, ..] = &request.nonce()[..] {
         return Err(Error::InvalidInput);
     }
-    if let [0, ..] = &request.gas_price[..] {
+    if let [0, ..] = &request.gas_limit()[..] {
         return Err(Error::InvalidInput);
     }
-    if let [0, ..] = &request.gas_limit[..] {
-        return Err(Error::InvalidInput);
-    }
-    if let [0, ..] = &request.value[..] {
+    if let [0, ..] = &request.value()[..] {
         return Err(Error::InvalidInput);
     }
 
-    let recipient = parse_recipient(&request.recipient)?;
+    // size and zero prefix checks for legacy and eip1559 transactions
+    match request {
+        Transaction::Legacy(legacy) => {
+            if let [0, ..] = &legacy.gas_price[..] {
+                return Err(Error::InvalidInput);
+            }
+            if legacy.gas_price.len() > 16 {
+                return Err(Error::InvalidInput);
+            }
+        }
+        Transaction::Eip1559(eip1559) => {
+            if let [0, ..] = &eip1559.max_priority_fee_per_gas[..] {
+                return Err(Error::InvalidInput);
+            }
+            if let [0, ..] = &eip1559.gas_limit[..] {
+                return Err(Error::InvalidInput);
+            }
+            if eip1559.max_priority_fee_per_gas.len() > 16
+                || eip1559.max_fee_per_gas.len() > 16 {
+                return Err(Error::InvalidInput);
+            }
+         }
+    }
+
+    let recipient = parse_recipient(&request.recipient())?;
     if recipient == [0; 20] {
         // Reserved for contract creation.
         return Err(Error::InvalidInput);
     }
 
-    let verification_result = if let Some((erc20_recipient, erc20_value)) = parse_erc20(request) {
-        verify_erc20_transaction(request, &params, erc20_recipient, erc20_value).await
+    let verification_result = if let Some((erc20_recipient, erc20_value)) = parse_erc20(&request) {
+        verify_erc20_transaction(&request, &params, erc20_recipient, erc20_value).await
     } else {
-        verify_standard_transaction(request, &params).await
+        verify_standard_transaction(&request, &params).await
     };
     match verification_result {
         Ok(()) => status::status("Transaction\nconfirmed", true).await,
@@ -231,22 +341,16 @@ pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
         }
     }
 
-    let hash = super::sighash::compute(&super::sighash::Params {
-        nonce: &request.nonce,
-        gas_price: &request.gas_price,
-        gas_limit: &request.gas_limit,
-        recipient: &recipient,
-        value: &request.value,
-        data: &request.data,
-        chain_id: params.chain_id,
-    })
-    .or(Err(Error::InvalidInput))?;
+    let hash: [u8; 32] = match request {
+        Transaction::Legacy(legacy) => hash_legacy(params.chain_id, recipient, &legacy)?,
+        Transaction::Eip1559(_eip1559) => { return Err(Error::Disabled) }
+    };
 
-    let host_nonce = match request.host_nonce_commitment {
+    let host_nonce = match request.host_nonce_commitment() {
         // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
         Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
             let signer_commitment = keystore::secp256k1_nonce_commit(
-                &request.keypath,
+                &request.keypath(),
                 &hash,
                 commitment
                     .as_slice()
@@ -261,7 +365,7 @@ pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
         // Return signature directly without the anti-klepto protocol, for backwards compatibility.
         None => [0; 32],
     };
-    let sign_result = keystore::secp256k1_sign(&request.keypath, &hash, &host_nonce)?;
+    let sign_result = keystore::secp256k1_sign(&request.keypath(), &hash, &host_nonce)?;
 
     let mut signature: Vec<u8> = sign_result.signature.to_vec();
     signature.push(sign_result.recid);

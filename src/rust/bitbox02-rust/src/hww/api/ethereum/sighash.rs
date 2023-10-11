@@ -212,7 +212,7 @@ mod tests {
         */
 
         struct Test<'a> {
-            params: Params<'a>,
+            params: ParamsLegacy<'a>,
             expected_sighash: [u8; 32],
         }
         let tests = &[
@@ -2618,7 +2618,7 @@ mod tests {
             },
         ];
         for test in tests.iter() {
-            assert_eq!(compute(&test.params).unwrap(), test.expected_sighash);
+            assert_eq!(compute_legacy(&test.params).unwrap(), test.expected_sighash);
         }
     }
 }

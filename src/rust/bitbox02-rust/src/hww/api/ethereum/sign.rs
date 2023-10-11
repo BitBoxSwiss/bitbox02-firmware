@@ -134,7 +134,7 @@ fn parse_erc20(request: &Transaction<'_>) -> Option<([u8; 20], BigUint)> {
 
 // fee: gas limit * gas price:
 fn parse_fee<'a>(request: &Transaction<'a>, params: &'a Params) -> Amount<'a> {
-    let gas_limit = BigUint::from_bytes_be(&request.gas_limit());
+    let gas_limit = BigUint::from_bytes_be(request.gas_limit());
     match request {
         Transaction::Legacy(legacy) => {
             let gas_price = BigUint::from_bytes_be(&legacy.gas_price);
@@ -164,7 +164,7 @@ fn hash_legacy(chain_id: u64, recipient: [u8; 20], request: &pb::EthSignRequest)
         recipient: &recipient,
         value: &request.value,
         data: &request.data,
-        chain_id: chain_id,
+        chain_id,
     })
     .map_err(|_| Error::InvalidInput)?;
     Ok(hash)
@@ -185,7 +185,7 @@ async fn verify_erc20_transaction(
     erc20_value: BigUint,
 ) -> Result<(), Error> {
     let erc20_params =
-        bitbox02::app_eth::erc20_params_get(params.chain_id, parse_recipient(&request.recipient())?);
+        bitbox02::app_eth::erc20_params_get(params.chain_id, parse_recipient(request.recipient())?);
     let formatted_fee = parse_fee(request, params).format();
     let recipient_address = super::address::from_pubkey_hash(&erc20_recipient);
     let (formatted_value, formatted_total) = match erc20_params {
@@ -218,7 +218,7 @@ async fn verify_standard_transaction(
     request: &Transaction<'_>,
     params: &Params,
 ) -> Result<(), Error> {
-    let recipient = parse_recipient(&request.recipient())?;
+    let recipient = parse_recipient(request.recipient())?;
 
     if !request.data().is_empty() {
         confirm::confirm(&confirm::Params {
@@ -238,7 +238,7 @@ async fn verify_standard_transaction(
 
         confirm::confirm(&confirm::Params {
             title: "Transaction\ndata",
-            body: &hex::encode(&request.data()),
+            body: &hex::encode(request.data()),
             scrollable: true,
             display_size: request.data().len(),
             accept_is_nextarrow: true,
@@ -251,7 +251,7 @@ async fn verify_standard_transaction(
     let amount = Amount {
         unit: params.unit,
         decimals: WEI_DECIMALS,
-        value: BigUint::from_bytes_be(&request.value()),
+        value: BigUint::from_bytes_be(request.value()),
     };
     transaction::verify_recipient(&address, &amount.format()).await?;
 
@@ -271,10 +271,10 @@ pub async fn process(request: &Transaction<'_>) -> Result<Response, Error> {
     let coin = pb::EthCoin::from_i32(request.coin()).ok_or(Error::InvalidInput)?;
     let params = super::params::get_and_warn_unknown(coin, request.chain_id()).await?;
 
-    if !super::keypath::is_valid_keypath_address(&request.keypath()) {
+    if !super::keypath::is_valid_keypath_address(request.keypath()) {
         return Err(Error::InvalidInput);
     }
-    super::keypath::warn_unusual_keypath(&params, params.name, &request.keypath()).await?;
+    super::keypath::warn_unusual_keypath(&params, params.name, request.keypath()).await?;
 
     // Size limits.
     if request.nonce().len() > 16
@@ -320,16 +320,16 @@ pub async fn process(request: &Transaction<'_>) -> Result<Response, Error> {
          }
     }
 
-    let recipient = parse_recipient(&request.recipient())?;
+    let recipient = parse_recipient(request.recipient())?;
     if recipient == [0; 20] {
         // Reserved for contract creation.
         return Err(Error::InvalidInput);
     }
 
-    let verification_result = if let Some((erc20_recipient, erc20_value)) = parse_erc20(&request) {
-        verify_erc20_transaction(&request, &params, erc20_recipient, erc20_value).await
+    let verification_result = if let Some((erc20_recipient, erc20_value)) = parse_erc20(request) {
+        verify_erc20_transaction(request, &params, erc20_recipient, erc20_value).await
     } else {
-        verify_standard_transaction(&request, &params).await
+        verify_standard_transaction(request, &params).await
     };
     match verification_result {
         Ok(()) => status::status("Transaction\nconfirmed", true).await,
@@ -342,7 +342,7 @@ pub async fn process(request: &Transaction<'_>) -> Result<Response, Error> {
     }
 
     let hash: [u8; 32] = match request {
-        Transaction::Legacy(legacy) => hash_legacy(params.chain_id, recipient, &legacy)?,
+        Transaction::Legacy(legacy) => hash_legacy(params.chain_id, recipient, legacy)?,
         Transaction::Eip1559(_eip1559) => { return Err(Error::Disabled) }
     };
 
@@ -350,7 +350,7 @@ pub async fn process(request: &Transaction<'_>) -> Result<Response, Error> {
         // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
         Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
             let signer_commitment = keystore::secp256k1_nonce_commit(
-                &request.keypath(),
+                request.keypath(),
                 &hash,
                 commitment
                     .as_slice()
@@ -365,7 +365,7 @@ pub async fn process(request: &Transaction<'_>) -> Result<Response, Error> {
         // Return signature directly without the anti-klepto protocol, for backwards compatibility.
         None => [0; 32],
     };
-    let sign_result = keystore::secp256k1_sign(&request.keypath(), &hash, &host_nonce)?;
+    let sign_result = keystore::secp256k1_sign(request.keypath(), &hash, &host_nonce)?;
 
     let mut signature: Vec<u8> = sign_result.signature.to_vec();
     signature.push(sign_result.recid);
@@ -404,43 +404,43 @@ mod tests {
         let valid_data =
             b"\xa9\x05\x9c\xbb\0\0\0\0\0\0\0\0\0\0\0\0abcdefghijklmnopqrst\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x55\0\0\0\xff";
         assert_eq!(
-            parse_erc20(&pb::EthSignRequest {
+            parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
                 data: valid_data.to_vec(),
                 ..Default::default()
-            }),
+            })),
             Some((*b"abcdefghijklmnopqrst", 365072220415u64.into()))
         );
 
         // ETH value must be 0 when transacting ERC20.
-        assert!(parse_erc20(&pb::EthSignRequest {
+        assert!(parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
             value: vec![0],
             data: valid_data.to_vec(),
             ..Default::default()
-        })
+        }))
         .is_none());
 
         // Invalid method (first byte)
         let invalid_data = b"\xa8\x05\x9c\xbb\0\0\0\0\0\0\0\0\0\0\0\0abcdefghijklmnopqrst\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xff";
-        assert!(parse_erc20(&pb::EthSignRequest {
+        assert!(parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
             data: invalid_data.to_vec(),
             ..Default::default()
-        })
+        }))
         .is_none());
 
         // Recipient too long (not zero padded)
         let invalid_data = b"\xa9\x05\x9c\xbb\0\0\0\0\0\0\0\0\0\0\0babcdefghijklmnopqrst\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xff";
-        assert!(parse_erc20(&pb::EthSignRequest {
+        assert!(parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
             data: invalid_data.to_vec(),
             ..Default::default()
-        })
+        }))
         .is_none());
 
         // Value can't be zero
         let invalid_data = b"\xa9\x05\x9c\xbb\0\0\0\0\0\0\0\0\0\0\0\0abcdefghijklmnopqrst\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x00";
-        assert!(parse_erc20(&pb::EthSignRequest {
+        assert!(parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
             data: invalid_data.to_vec(),
             ..Default::default()
-        })
+        }))
         .is_none());
     }
 
@@ -465,7 +465,7 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&pb::EthSignRequest {
+            block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
@@ -476,7 +476,7 @@ mod tests {
                 data: b"".to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 0,
-            })),
+            }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\xc3\xae\x24\xc1\x67\xe2\x16\xcf\xb7\x5c\x72\xb5\xe0\x3e\xf9\x7a\xcc\x2b\x60\x7f\x3a\xcf\x63\x86\x5f\x80\x96\x0f\x76\xf6\x56\x47\x0f\x8e\x23\xf1\xd2\x78\x8f\xb0\x07\x0e\x28\xc2\xa5\xc8\xaa\xf1\x5b\x5d\xbf\x30\xb4\x09\x07\xff\x6c\x50\x68\xfd\xcb\xc1\x1a\x2d\x00"
                     .to_vec()
@@ -515,7 +515,7 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert!(block_on(process(&pb::EthSignRequest {
+        assert!(block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
@@ -530,7 +530,7 @@ mod tests {
             data: b"".to_vec(),
             host_nonce_commitment: None,
             chain_id: 0,
-        }))
+        })))
         .is_ok());
         assert_eq!(unsafe { UI_COUNTER }, 1);
     }
@@ -570,7 +570,7 @@ mod tests {
         });
         mock_unlocked();
 
-        block_on(process(&pb::EthSignRequest {
+        block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
@@ -583,7 +583,7 @@ mod tests {
             data: b"".to_vec(),
             host_nonce_commitment: None,
             chain_id: 5,
-        }))
+        })))
         .unwrap();
         assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
     }
@@ -624,7 +624,7 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&pb::EthSignRequest {
+            block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
@@ -635,7 +635,7 @@ mod tests {
                 data: b"foo bar".to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 0,
-            })),
+            }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\x7d\x3f\x37\x13\xe3\xcf\x10\x82\x79\x1d\x5c\x0f\xc6\x8e\xc2\x9e\xaf\xf5\xe1\xee\x84\x67\xa8\xec\x54\x7d\xc7\x96\xe8\x5a\x79\x04\x2b\x7c\x01\x69\x2f\xb7\x2f\x55\x76\xab\x50\xdc\xaa\x62\x1a\xd1\xee\xab\xd9\x97\x59\x73\xb8\x62\x56\xf4\x0c\x6f\x85\x50\xef\x44\x00"
                     .to_vec()
@@ -665,7 +665,7 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&pb::EthSignRequest {
+            block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::RopstenEth as _, // ignored because chain_id > 0
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x23\x67".to_vec(),
@@ -676,7 +676,7 @@ mod tests {
                 data: b"\xa9\x05\x9c\xbb\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xe6\xce\x0a\x09\x2a\x99\x70\x0c\xd4\xcc\xcc\xbb\x1f\xed\xc3\x9c\xf5\x3e\x63\x30\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\x65\xc0\x40".to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 1,
-            })),
+            }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\x67\x4e\x9a\x01\x70\xee\xe0\xca\x8c\x40\x6e\xc9\xa7\xdf\x2e\x3a\x6b\xdd\x17\x9c\xf6\x93\x85\x80\x0e\x1f\xd3\x78\xe7\xcf\xb1\x9c\x4d\x55\x16\x2c\x54\x7b\x04\xd1\x81\x8e\x43\x90\x16\x91\xae\xc9\x88\xef\x75\xcd\x67\xd9\xbb\x30\x1d\x14\x90\x2f\xd6\xe6\x92\x92\x01"
                     .to_vec()
@@ -705,7 +705,7 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&pb::EthSignRequest {
+            block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\xb9".to_vec(),
@@ -716,7 +716,7 @@ mod tests {
                 data: b"\xa9\x05\x9c\xbb\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x85\x7b\x3d\x96\x9e\xac\xb7\x75\xa9\xf7\x9c\xab\xc6\x2e\xc4\xbb\x1d\x1c\xd6\x0e\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x98\xa6\x3c\xbe\xb8\x59\xd0\x27\xb0".to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 0,
-            })),
+            }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\xec\x6e\x53\x0c\x8e\xe2\x54\x34\xfc\x44\x0e\x9a\xc0\xf8\x88\xe9\xc6\x3c\xf0\x7e\xbc\xf1\xc2\xf8\xa8\x3e\x2e\x8c\x39\x83\x2c\x55\x15\x12\x71\x6f\x6e\x1a\x8b\x66\xce\x38\x11\xa7\x26\xbc\xb2\x44\x66\x4e\xf2\x6f\x98\xee\x35\xc0\xc9\xdb\x4c\xaa\xb0\x73\x98\x56\x00"
                     .to_vec()
@@ -746,7 +746,7 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.coin = 100;
             assert_eq!(
-                block_on(process(&invalid_request)),
+                block_on(process(&Transaction::Legacy(&invalid_request))),
                 Err(Error::InvalidInput)
             );
         }
@@ -756,7 +756,7 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.keypath = vec![44 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
             assert_eq!(
-                block_on(process(&invalid_request)),
+                block_on(process(&Transaction::Legacy(&invalid_request))),
                 Err(Error::InvalidInput)
             );
         }
@@ -766,7 +766,7 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.keypath = vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 100];
             assert_eq!(
-                block_on(process(&invalid_request)),
+                block_on(process(&Transaction::Legacy(&invalid_request))),
                 Err(Error::InvalidInput)
             );
         }
@@ -776,7 +776,7 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.data = vec![0; 6145];
             assert_eq!(
-                block_on(process(&invalid_request)),
+                block_on(process(&Transaction::Legacy(&invalid_request))),
                 Err(Error::InvalidInput)
             );
         }
@@ -786,7 +786,7 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.recipient = vec![b'a'; 21];
             assert_eq!(
-                block_on(process(&invalid_request)),
+                block_on(process(&Transaction::Legacy(&invalid_request))),
                 Err(Error::InvalidInput)
             );
         }
@@ -796,7 +796,7 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.recipient = vec![0; 20];
             assert_eq!(
-                block_on(process(&invalid_request)),
+                block_on(process(&Transaction::Legacy(&invalid_request))),
                 Err(Error::InvalidInput)
             );
         }
@@ -811,7 +811,7 @@ mod tests {
                 })),
                 ..Default::default()
             });
-            assert_eq!(block_on(process(&valid_request)), Err(Error::UserAbort));
+            assert_eq!(block_on(process(&Transaction::Legacy(&valid_request))), Err(Error::UserAbort));
         }
         {
             // User rejects total/fee.
@@ -829,7 +829,7 @@ mod tests {
                 })),
                 ..Default::default()
             });
-            assert_eq!(block_on(process(&valid_request)), Err(Error::UserAbort));
+            assert_eq!(block_on(process(&Transaction::Legacy(&valid_request))), Err(Error::UserAbort));
         }
         {
             // Keystore locked.
@@ -838,7 +838,7 @@ mod tests {
                 ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
                 ..Default::default()
             });
-            assert_eq!(block_on(process(&valid_request)), Err(Error::Generic));
+            assert_eq!(block_on(process(&Transaction::Legacy(&valid_request))), Err(Error::Generic));
         }
     }
 
@@ -902,7 +902,7 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&pb::EthSignRequest {
+            block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
@@ -913,7 +913,7 @@ mod tests {
                 data: b"".to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 12345,
-            })),
+            }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\xb1\xb6\xb3\x4e\x15\xa0\x30\x9d\xdc\x26\x03\xdf\x4c\x40\x38\xea\x86\x65\xed\x85\xd3\xf2\xc8\x1e\x7f\x1a\xa0\x25\x4b\x21\x38\x72\x0d\x60\x1f\x42\x19\xfb\x29\xab\x3d\x5f\xf7\x76\xea\xe1\xbe\x15\x26\xb4\x67\xe2\xb0\xe6\x30\xe8\xe6\x34\xa4\xda\x4a\x82\x2e\x39\x00".to_vec()
             }))

@@ -78,6 +78,14 @@ pub async fn process() -> Result<Response, Error> {
     let mnemonic_sentence = keystore::get_bip39_mnemonic()?;
 
     confirm::confirm(&confirm::Params {
+        title: "Warning",
+        body: "DO NOT share your\nrecovery words with\nanyone!",
+        accept_is_nextarrow: true,
+        ..Default::default()
+    })
+    .await?;
+
+    confirm::confirm(&confirm::Params {
         title: "Recovery\nwords",
         body: "Please write down\nthe following words",
         accept_is_nextarrow: true,

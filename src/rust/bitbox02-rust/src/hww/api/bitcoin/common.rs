@@ -128,11 +128,7 @@ impl Payload {
         let script_type =
             pb::btc_script_config::multisig::ScriptType::from_i32(multisig.script_type)
                 .ok_or(Error::InvalidInput)?;
-        let script = bitbox02::app_btc::pkscript_from_multisig(
-            &multisig::convert_multisig(multisig)?,
-            keypath_change,
-            keypath_address,
-        )?;
+        let script = multisig::pkscript(multisig, keypath_change, keypath_address)?;
         let payload_p2wsh = Payload {
             data: Sha256::digest(&script).to_vec(),
             output_type: BtcOutputType::P2wsh,

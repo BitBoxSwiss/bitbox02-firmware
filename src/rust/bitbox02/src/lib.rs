@@ -30,8 +30,6 @@ extern crate lazy_static;
 #[cfg(feature = "testing")]
 pub mod testing;
 
-#[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
-pub mod app_btc;
 #[cfg(feature = "app-ethereum")]
 pub mod app_eth;
 pub mod bip32;

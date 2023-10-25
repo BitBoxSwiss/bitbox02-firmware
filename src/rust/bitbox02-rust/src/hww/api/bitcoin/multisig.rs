@@ -32,25 +32,6 @@ use sha2::{Digest, Sha256};
 
 pub const MAX_SIGNERS: usize = 15;
 
-/// Converts a Rust protobuf multisig to a representation suitable to be passed to C functions.
-pub fn convert_multisig(multisig: &Multisig) -> Result<bitbox02::app_btc::Multisig, Error> {
-    Ok(bitbox02::app_btc::Multisig {
-        xpubs_count: multisig.xpubs.len() as _,
-        xpubs: {
-            let mut xpubs = [[0u8; 78]; MAX_SIGNERS];
-            for (i, xpub) in multisig.xpubs.iter().enumerate() {
-                xpubs[i] = bip32::Xpub::from(xpub)
-                    .serialize(Some(bip32::XPubType::Xpub))
-                    .or(Err(Error::InvalidInput))?
-                    .try_into()
-                    .or(Err(Error::Generic))?;
-            }
-            xpubs
-        },
-        threshold: multisig.threshold,
-    })
-}
-
 pub enum SortXpubs {
     No,
     Yes,
@@ -311,11 +292,35 @@ pub fn pkscript(
     keypath_change: u32,
     keypath_address: u32,
 ) -> Result<Vec<u8>, Error> {
-    Ok(bitbox02::app_btc::pkscript_from_multisig(
-        &convert_multisig(multisig)?,
-        keypath_change,
-        keypath_address,
-    )?)
+    if multisig.xpubs.len() < 2 || multisig.xpubs.len() > MAX_SIGNERS {
+        return Err(Error::InvalidInput);
+    }
+    if multisig.threshold == 0 || multisig.threshold > multisig.xpubs.len() as _ {
+        return Err(Error::InvalidInput);
+    }
+    let mut pubkeys: Vec<Vec<u8>> = multisig
+        .xpubs
+        .iter()
+        .map(|xpub| -> Result<Vec<u8>, ()> {
+            Ok(bip32::Xpub::from(xpub)
+                .derive(&[keypath_change, keypath_address])?
+                .public_key()
+                .to_vec())
+        })
+        .collect::<Result<_, _>>()?;
+    pubkeys.sort();
+
+    let mut script_builder = bitcoin::script::Builder::new().push_int(multisig.threshold as _);
+    for pk in pubkeys.iter() {
+        let pk: &bitcoin::script::PushBytes =
+            pk.as_slice().try_into().map_err(|_| Error::Generic)?;
+        script_builder = script_builder.push_slice(pk);
+    }
+    script_builder = script_builder
+        .push_int(pubkeys.len() as _)
+        .push_opcode(bitcoin::opcodes::all::OP_CHECKMULTISIG);
+
+    Ok(script_builder.into_bytes())
 }
 
 #[cfg(test)]

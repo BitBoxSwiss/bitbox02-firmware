@@ -69,7 +69,8 @@ pub async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelErr
 /// such that the resulting bip39 phrase has a valid checksum. There are always exactly 8 such words
 /// for 24 word mnemonics, 32 words for 18 word mnemonics and 128 words for 12 word mnemonics.
 /// `entered_words` must contain 11/17/23 words from the BIP39 wordlist.
-fn lastword_choices(entered_words: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
+/// The result is the list of indices of the words in the BIP39 wordlist.
+fn lastword_choices(entered_words: &[&str]) -> Vec<u16> {
     let (seed_len_bits, checksum_len_bits, bitmask_seed) = match entered_words.len() {
         11 => (128, 4, 0b10000000),
         17 => (192, 6, 0b11100000),
@@ -116,8 +117,15 @@ fn lastword_choices(entered_words: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
             // Last word is 11 bits: <last 7/5/3 bits of the seed || 4/6/8 bits checksum>.
             let word_idx: u16 =
                 (i << checksum_len_bits) | (hash[0] >> (8 - checksum_len_bits)) as u16;
-            bitbox02::keystore::get_bip39_word(word_idx).unwrap()
+            word_idx
         })
+        .collect()
+}
+
+fn lastword_choices_strings(entered_words: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
+    lastword_choices(entered_words)
+        .into_iter()
+        .map(|word_idx| bitbox02::keystore::get_bip39_word(word_idx).unwrap())
         .collect()
 }
 
@@ -129,7 +137,7 @@ async fn get_24th_word(
     title: &str,
     entered_words: &[&str],
 ) -> Result<Option<zeroize::Zeroizing<String>>, CancelError> {
-    let mut choices = lastword_choices(entered_words);
+    let mut choices = lastword_choices_strings(entered_words);
     // Add one more menu entry.
     let none_of_them_idx = {
         choices.push(zeroize::Zeroizing::new("None of them".into()));
@@ -166,6 +174,46 @@ async fn get_24th_word(
     }
 }
 
+/// Select the last word of a 12 or 18 word mnemonic from a list of valid candidate words. The input
+/// is the trinary input keyboard with the wordlist restricted to these candidates.
+///
+/// Returns `Ok(word)` if the user chooses a word.
+/// Returns `Err(CancelError::Cancelled)` if the user cancels.
+async fn get_12th_18th_word(
+    title: &str,
+    entered_words: &[&str],
+) -> Result<zeroize::Zeroizing<String>, CancelError> {
+    // With 12/18 words there are 128/32 candidates, so we limit the keyboard to allow entering only
+    // these.
+    loop {
+        let choices = lastword_choices(entered_words);
+        let candidates = bitbox02::keystore::get_bip39_wordlist(Some(&choices));
+        let word = trinary_input_string::enter(
+            &trinary_input_string::Params {
+                title,
+                wordlist: Some(&candidates),
+                ..Default::default()
+            },
+            trinary_input_string::CanCancel::Yes,
+            "",
+        )
+        .await
+        .map(|s| s.as_string())?;
+
+        // Confirm word picked again, as a typo here would be extremely annoying.  Double checking
+        // is also safer, as the user might not even realize they made a typo.
+        if let Ok(()) = confirm::confirm(&confirm::Params {
+            title,
+            body: &word,
+            ..Default::default()
+        })
+        .await
+        {
+            return Ok(word);
+        }
+    }
+}
+
 /// Retrieve a BIP39 mnemonic sentence of 12, 18 or 24 words from the user.
 pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
     let num_words: usize = match choose("How many words?", "12", "18", "24").await {
@@ -194,30 +242,35 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
         // goes forward again.
         let preset = entered_words[word_idx].as_str();
 
-        let user_entry: Result<zeroize::Zeroizing<String>, CancelError> = if word_idx == 23 {
-            // For the last word, we can restrict to a subset of bip39 words that fulfil the
-            // checksum requirement. We do this only when entering 24 words, which results in a
-            // small list of 8 valid candidates.  This special case exists so that users can
-            // generate a seed using only the device and no external software, allowing seed
-            // generation via dice throws, for example.
-            match get_24th_word(&title, &as_str_vec(&entered_words[..word_idx])).await {
-                Ok(None) => return Err(CancelError::Cancelled),
-                Ok(Some(r)) => Ok(r),
-                Err(e) => Err(e),
-            }
-        } else {
-            trinary_input_string::enter(
-                &trinary_input_string::Params {
-                    title: &title,
-                    wordlist: Some(&bip39_wordlist),
-                    ..Default::default()
-                },
-                trinary_input_string::CanCancel::Yes,
-                preset,
-            )
-            .await
-            .map(|s| s.as_string())
-        };
+        let user_entry: Result<zeroize::Zeroizing<String>, CancelError> =
+            if word_idx == num_words - 1 {
+                // For the last word, we can restrict to a subset of bip39 words that fulfil the
+                // checksum requirement. This special case exists so that users can generate a seed
+                // using only the device and no external software, allowing seed generation via dice
+                // throws, for example.
+                if num_words == 24 {
+                    // With 24 words there are only 8 valid candidates. We presnet them as a menu.
+                    match get_24th_word(&title, &as_str_vec(&entered_words[..word_idx])).await {
+                        Ok(None) => return Err(CancelError::Cancelled),
+                        Ok(Some(r)) => Ok(r),
+                        Err(e) => Err(e),
+                    }
+                } else {
+                    get_12th_18th_word(&title, &as_str_vec(&entered_words[..word_idx])).await
+                }
+            } else {
+                trinary_input_string::enter(
+                    &trinary_input_string::Params {
+                        title: &title,
+                        wordlist: Some(&bip39_wordlist),
+                        ..Default::default()
+                    },
+                    trinary_input_string::CanCancel::Yes,
+                    preset,
+                )
+                .await
+                .map(|s| s.as_string())
+            };
 
         match user_entry {
             Err(CancelError::Cancelled) => {
@@ -305,13 +358,13 @@ mod tests {
         );
 
         assert_eq!(
-            &lastword_choices(&["violin"; 23]),
+            &lastword_choices_strings(&["violin"; 23]),
             &bruteforce_lastword(&["violin"; 23]),
         );
 
         let mnemonic = "side stuff card razor rescue enhance risk exchange ozone render large describe gas juice offer permit vendor custom forget lecture divide junior narrow".split(' ').collect::<Vec<&str>>();
         assert_eq!(
-            &lastword_choices(&mnemonic),
+            &lastword_choices_strings(&mnemonic),
             &bruteforce_lastword(&mnemonic)
         );
 
@@ -328,13 +381,13 @@ mod tests {
         );
 
         assert_eq!(
-            &lastword_choices(&["violin"; 17]),
+            &lastword_choices_strings(&["violin"; 17]),
             &bruteforce_lastword(&["violin"; 17]),
         );
 
         let mnemonic = "alpha write diary chicken cable spoil dirt hair bike fiction system bright mimic garage giggle involve leisure".split(' ').collect::<Vec<&str>>();
         assert_eq!(
-            &lastword_choices(&mnemonic),
+            &lastword_choices_strings(&mnemonic),
             &bruteforce_lastword(&mnemonic)
         );
 
@@ -362,7 +415,7 @@ mod tests {
         );
 
         assert_eq!(
-            &lastword_choices(&["violin"; 11]),
+            &lastword_choices_strings(&["violin"; 11]),
             &bruteforce_lastword(&["violin"; 11]),
         );
 
@@ -370,7 +423,7 @@ mod tests {
             .split(' ')
             .collect::<Vec<&str>>();
         assert_eq!(
-            &lastword_choices(&mnemonic),
+            &lastword_choices_strings(&mnemonic),
             &bruteforce_lastword(&mnemonic)
         );
     }

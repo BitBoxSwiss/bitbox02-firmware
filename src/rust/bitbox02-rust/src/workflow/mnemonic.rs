@@ -114,6 +114,51 @@ fn lastword_choices(entered_words: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
         .collect()
 }
 
+/// Select the 24th word from a list of 8 valid candidate words presented as a menu.
+/// Returns `Ok(None)` if the user chooses "None of them".
+/// Returns `Ok(Some(word))` if the user chooses a word.
+/// Returns `Err(CancelError::Cancelled)` if the user cancels.
+async fn get_24th_word(
+    title: &str,
+    entered_words: &[&str],
+) -> Result<Option<zeroize::Zeroizing<String>>, CancelError> {
+    let mut choices = lastword_choices(entered_words);
+    // Add one more menu entry.
+    let none_of_them_idx = {
+        choices.push(zeroize::Zeroizing::new("None of them".into()));
+        choices.len() - 1
+    };
+    loop {
+        match super::menu::pick(&as_str_vec(&choices), Some(title)).await {
+            Err(super::menu::CancelError::Cancelled) => return Err(CancelError::Cancelled),
+            Ok(choice_idx) if choice_idx as usize == none_of_them_idx => {
+                let params = confirm::Params {
+                    title: "",
+                    body: "Recovery words\ninvalid.\nRestart?",
+                    ..Default::default()
+                };
+                if let Ok(()) = confirm::confirm(&params).await {
+                    return Ok(None);
+                }
+            }
+            Ok(choice_idx) => {
+                // Confirm word picked from menu again, as a typo here would be extremely annoying.
+                // Double checking is also safer, as the user might not even realize they made a typo.
+                let word = choices[choice_idx as usize].clone();
+                if let Ok(()) = confirm::confirm(&confirm::Params {
+                    title,
+                    body: &word,
+                    ..Default::default()
+                })
+                .await
+                {
+                    return Ok(Some(word));
+                }
+            }
+        }
+    }
+}
+
 /// Retrieve a BIP39 mnemonic sentence of 12, 18 or 24 words from the user.
 pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
     let num_words: usize = match choose("How many words?", "12", "18", "24").await {
@@ -142,49 +187,16 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
         // goes forward again.
         let preset = entered_words[word_idx].as_str();
 
-        let user_entry = if word_idx == 23 {
+        let user_entry: Result<zeroize::Zeroizing<String>, CancelError> = if word_idx == 23 {
             // For the last word, we can restrict to a subset of bip39 words that fulfil the
             // checksum requirement. We do this only when entering 24 words, which results in a
             // small list of 8 valid candidates.  This special case exists so that users can
             // generate a seed using only the device and no external software, allowing seed
             // generation via dice throws, for example.
-
-            let mut choices = lastword_choices(&as_str_vec(&entered_words[..word_idx]));
-            // Add one more menu entry.
-            let none_of_them_idx = {
-                choices.push(zeroize::Zeroizing::new("None of them".into()));
-                choices.len() - 1
-            };
-            match super::menu::pick(&as_str_vec(&choices), Some(&title)).await {
-                Err(super::menu::CancelError::Cancelled) => {
-                    Err(trinary_input_string::Error::Cancelled)
-                }
-                Ok(choice_idx) if choice_idx as usize == none_of_them_idx => {
-                    let params = confirm::Params {
-                        title: "",
-                        body: "Recovery words\ninvalid.\nRestart?",
-                        ..Default::default()
-                    };
-                    if let Ok(()) = confirm::confirm(&params).await {
-                        return Err(CancelError::Cancelled);
-                    }
-                    continue;
-                }
-                Ok(choice_idx) => {
-                    // Confirm word picked from menu again, as a typo here would be extremely annoying.
-                    // Double checking is also safer, as the user might not even realize they made a typo.
-                    let word = choices[choice_idx as usize].clone();
-                    match confirm::confirm(&confirm::Params {
-                        title: &title,
-                        body: &word,
-                        ..Default::default()
-                    })
-                    .await
-                    {
-                        Err(confirm::UserAbort) => continue,
-                        Ok(()) => Ok(word),
-                    }
-                }
+            match get_24th_word(&title, &as_str_vec(&entered_words[..word_idx])).await {
+                Ok(None) => return Err(CancelError::Cancelled),
+                Ok(Some(r)) => Ok(r),
+                Err(e) => Err(e),
             }
         } else {
             trinary_input_string::enter(

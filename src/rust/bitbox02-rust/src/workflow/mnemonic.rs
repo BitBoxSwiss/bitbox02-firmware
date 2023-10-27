@@ -177,7 +177,7 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
     status(&format!("Enter {} words", num_words), true).await;
 
     // Provide all bip39 words to restrict the keyboard entry.
-    let bip39_wordlist = bitbox02::keystore::get_bip39_wordlist().unwrap();
+    let bip39_wordlist = bitbox02::keystore::get_bip39_wordlist(None);
 
     let mut word_idx: usize = 0;
     let mut entered_words = vec![zeroize::Zeroizing::new(String::new()); num_words];

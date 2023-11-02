@@ -23,6 +23,8 @@ use pb::btc_response::Response;
 use pb::btc_script_config::Config;
 use pb::BtcCoin;
 
+use core::convert::TryFrom;
+
 use super::multisig::SortXpubs;
 
 use crate::workflow::{confirm, status, trinary_input_string};
@@ -39,7 +41,7 @@ pub fn process_is_script_config_registered(
                 }),
             keypath,
         }) => {
-            let coin = BtcCoin::from_i32(*coin).ok_or(Error::InvalidInput)?;
+            let coin = BtcCoin::try_from(*coin)?;
             Ok(Response::IsScriptConfigRegistered(
                 pb::BtcIsScriptConfigRegisteredResponse {
                     is_registered: super::multisig::get_name(coin, multisig, keypath)?.is_some(),
@@ -54,7 +56,7 @@ pub fn process_is_script_config_registered(
                 }),
             ..
         }) => {
-            let coin = BtcCoin::from_i32(*coin).ok_or(Error::InvalidInput)?;
+            let coin = BtcCoin::try_from(*coin)?;
             Ok(Response::IsScriptConfigRegistered(
                 pb::BtcIsScriptConfigRegisteredResponse {
                     is_registered: super::policies::get_name(coin, policy)?.is_some(),
@@ -112,11 +114,11 @@ pub async fn process_register_script_config(
                 }),
             keypath,
         }) => {
-            let coin = BtcCoin::from_i32(*coin).ok_or(Error::InvalidInput)?;
+            let coin = BtcCoin::try_from(*coin)?;
             let coin_params = params::get(coin);
             let name = get_name(request).await?;
             super::multisig::validate(multisig, keypath, coin_params.bip44_coin)?;
-            let xpub_type = XPubType::from_i32(request.xpub_type).ok_or(Error::InvalidInput)?;
+            let xpub_type = XPubType::try_from(request.xpub_type)?;
             super::multisig::confirm_extended(
                 title,
                 coin_params,
@@ -146,7 +148,7 @@ pub async fn process_register_script_config(
                 }),
             ..
         }) => {
-            let coin = BtcCoin::from_i32(*coin).ok_or(Error::InvalidInput)?;
+            let coin = BtcCoin::try_from(*coin)?;
             let coin_params = params::get(coin);
             let name = get_name(request).await?;
             super::policies::parse(policy)?.validate(coin)?;

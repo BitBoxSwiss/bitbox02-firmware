@@ -23,6 +23,7 @@ use crate::workflow::{confirm, status, transaction};
 use crate::xpubcache::Bip32XpubCache;
 
 use alloc::vec::Vec;
+use core::convert::TryFrom;
 use core::convert::TryInto;
 
 use pb::request::Request;
@@ -194,8 +195,7 @@ fn validate_keypath(
         Some(pb::BtcScriptConfig {
             config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
         }) => {
-            let simple_type = pb::btc_script_config::SimpleType::from_i32(*simple_type)
-                .ok_or(Error::InvalidInput)?;
+            let simple_type = pb::btc_script_config::SimpleType::try_from(*simple_type)?;
             keypath::validate_address_simple(
                 keypath,
                 params.bip44_coin,
@@ -208,8 +208,7 @@ fn validate_keypath(
             config: Some(pb::btc_script_config::Config::Multisig(multisig)),
         }) => {
             let script_type =
-                pb::btc_script_config::multisig::ScriptType::from_i32(multisig.script_type)
-                    .ok_or(Error::InvalidInput)?;
+                pb::btc_script_config::multisig::ScriptType::try_from(multisig.script_type)?;
             keypath::validate_address_multisig(keypath, params.bip44_coin, script_type)
                 .or(Err(Error::InvalidInput))?;
         }
@@ -270,9 +269,7 @@ fn sighash_script(
                 }),
             ..
         } => {
-            match pb::btc_script_config::SimpleType::from_i32(*simple_type)
-                .ok_or(Error::InvalidInput)?
-            {
+            match pb::btc_script_config::SimpleType::try_from(*simple_type)? {
                 pb::btc_script_config::SimpleType::P2wpkhP2sh
                 | pb::btc_script_config::SimpleType::P2wpkh => {
                     // See https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification, item 5:
@@ -453,8 +450,7 @@ async fn validate_script_configs(
                 keypath::validate_account_simple(
                     keypath,
                     coin_params.bip44_coin,
-                    pb::btc_script_config::SimpleType::from_i32(*simple_type)
-                        .ok_or(Error::InvalidInput)?,
+                    pb::btc_script_config::SimpleType::try_from(*simple_type)?,
                     coin_params.taproot_support,
                 )
                 .or(Err(Error::InvalidInput))?;
@@ -556,10 +552,10 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         return Err(Error::InvalidState);
     }
     // Validate the coin.
-    let coin = pb::BtcCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
+    let coin = pb::BtcCoin::try_from(request.coin)?;
     let coin_params = super::params::get(coin);
     // Validate the format_unit.
-    let format_unit = FormatUnit::from_i32(request.format_unit).ok_or(Error::InvalidInput)?;
+    let format_unit = FormatUnit::try_from(request.format_unit)?;
     // Currently we do not support time-based nlocktime
     if request.locktime >= 500000000 {
         return Err(Error::InvalidInput);
@@ -752,8 +748,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             // Take payload from provided output.
             common::Payload {
                 data: tx_output.payload.clone(),
-                output_type: pb::BtcOutputType::from_i32(tx_output.r#type)
-                    .ok_or(Error::InvalidInput)?,
+                output_type: pb::BtcOutputType::try_from(tx_output.r#type)?,
             }
         };
 
@@ -1330,7 +1325,7 @@ mod tests {
         /// Return the transaction part requested by the device.
         fn make_host_request(&self, response: Response) -> Request {
             let next = extract_next(&response);
-            match NextType::from_i32(next.r#type).unwrap() {
+            match NextType::try_from(next.r#type).unwrap() {
                 NextType::Input => {
                     Request::BtcSignInput(self.inputs[next.index as usize].input.clone())
                 }
@@ -1607,7 +1602,7 @@ mod tests {
             *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
                 Some(Box::new(move |response: Response| {
                     let next = extract_next(&response);
-                    if NextType::from_i32(next.r#type).unwrap() == NextType::PrevtxInit {
+                    if NextType::try_from(next.r#type).unwrap() == NextType::PrevtxInit {
                         unsafe { PREVTX_REQUESTED += 1 }
                     }
                     Ok(tx.borrow().make_host_request(response))
@@ -1853,7 +1848,7 @@ mod tests {
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
             Some(Box::new(move |response: Response| {
                 let next = extract_next(&response);
-                if NextType::from_i32(next.r#type).unwrap() == NextType::PrevtxInit {
+                if NextType::try_from(next.r#type).unwrap() == NextType::PrevtxInit {
                     unsafe { PREVTX_REQUESTED = true }
                 }
                 Ok(tx.borrow().make_host_request(response))
@@ -1897,7 +1892,7 @@ mod tests {
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
             Some(Box::new(move |response: Response| {
                 let next = extract_next(&response);
-                if NextType::from_i32(next.r#type).unwrap() == NextType::PrevtxInit {
+                if NextType::try_from(next.r#type).unwrap() == NextType::PrevtxInit {
                     unsafe { PREVTX_REQUESTED += 1 }
                 }
                 Ok(tx.borrow().make_host_request(response))
@@ -2360,7 +2355,7 @@ mod tests {
             Some(Box::new(move |response: Response| {
                 let tx = tx.borrow();
                 let next = extract_next(&response);
-                match NextType::from_i32(next.r#type).unwrap() {
+                match NextType::try_from(next.r#type).unwrap() {
                     NextType::Output => unsafe { PASS2 = true },
                     NextType::Input => {
                         if unsafe { PASS2 } {
@@ -2406,7 +2401,7 @@ mod tests {
             Some(Box::new(move |response: Response| {
                 let tx = tx.borrow();
                 let next = extract_next(&response);
-                match NextType::from_i32(next.r#type).unwrap() {
+                match NextType::try_from(next.r#type).unwrap() {
                     NextType::Output => unsafe { PASS2 = true },
                     NextType::Input => {
                         if unsafe { PASS2 } {
@@ -2446,7 +2441,7 @@ mod tests {
             Some(Box::new(move |response: Response| {
                 let tx = tx.borrow();
                 let next = extract_next(&response);
-                match NextType::from_i32(next.r#type).unwrap() {
+                match NextType::try_from(next.r#type).unwrap() {
                     NextType::Output => {
                         let mut output = tx.outputs[next.index as usize].clone();
                         if next.index == 0 {
@@ -2475,7 +2470,7 @@ mod tests {
             Some(Box::new(move |response: Response| {
                 let tx = tx.borrow();
                 let next = extract_next(&response);
-                match NextType::from_i32(next.r#type).unwrap() {
+                match NextType::try_from(next.r#type).unwrap() {
                     NextType::Output => {
                         let mut output = tx.outputs[next.index as usize].clone();
                         if next.index == 4 {

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use alloc::vec::Vec;
+use core::convert::TryFrom;
 use core::convert::TryInto;
 
 use sha2::{Digest, Sha256};
@@ -36,7 +37,7 @@ const MAX_MESSAGE_SIZE: usize = 1024;
 /// The result contains a 65 byte signature. The first 64 bytes are the secp256k1 signature in
 /// compact format (R and S values), and the last byte is the recoverable id (recid).
 pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Error> {
-    let coin = BtcCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
+    let coin = BtcCoin::try_from(request.coin)?;
     if coin != BtcCoin::Btc {
         return Err(Error::InvalidInput);
     }
@@ -47,10 +48,7 @@ pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Er
                     config: Some(Config::SimpleType(simple_type)),
                 }),
             keypath,
-        }) => (
-            keypath,
-            SimpleType::from_i32(*simple_type).ok_or(Error::InvalidInput)?,
-        ),
+        }) => (keypath, SimpleType::try_from(*simple_type)?),
         _ => return Err(Error::InvalidInput),
     };
     if simple_type == SimpleType::P2tr {

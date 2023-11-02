@@ -19,6 +19,7 @@ use crate::xpubcache::Bip32XpubCache;
 
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::convert::TryFrom;
 
 use bech32::{ToBase32, Variant};
 
@@ -126,8 +127,7 @@ impl Payload {
         // Note that the witness script has an additional varint prefix.
 
         let script_type =
-            pb::btc_script_config::multisig::ScriptType::from_i32(multisig.script_type)
-                .ok_or(Error::InvalidInput)?;
+            pb::btc_script_config::multisig::ScriptType::try_from(multisig.script_type)?;
         let script = multisig::pkscript(multisig, keypath_change, keypath_address)?;
         let payload_p2wsh = Payload {
             data: Sha256::digest(&script).to_vec(),
@@ -182,8 +182,7 @@ impl Payload {
                     }),
                 ..
             } => {
-                let simple_type = pb::btc_script_config::SimpleType::from_i32(*simple_type)
-                    .ok_or(Error::InvalidInput)?;
+                let simple_type = pb::btc_script_config::SimpleType::try_from(*simple_type)?;
                 Self::from_simple(xpub_cache, params, simple_type, keypath)
             }
             pb::BtcScriptConfigWithKeypath {

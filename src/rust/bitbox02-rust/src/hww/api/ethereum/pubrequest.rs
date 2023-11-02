@@ -22,10 +22,11 @@ use crate::bip32;
 use crate::keystore;
 use crate::workflow::confirm;
 
+use core::convert::TryFrom;
 use core::convert::TryInto;
 
 async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error> {
-    let coin = pb::EthCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
+    let coin = pb::EthCoin::try_from(request.coin)?;
 
     let params = super::params::get_and_warn_unknown(coin, request.chain_id).await?;
     // If a contract_address is provided, it has to be a supported ERC20-token.
@@ -88,7 +89,7 @@ fn process_xpub(request: &pb::EthPubRequest) -> Result<Response, Error> {
 }
 
 pub async fn process(request: &pb::EthPubRequest) -> Result<Response, Error> {
-    let output_type = OutputType::from_i32(request.output_type).ok_or(Error::InvalidInput)?;
+    let output_type = OutputType::try_from(request.output_type)?;
     match output_type {
         OutputType::Address => process_address(request).await,
         OutputType::Xpub => process_xpub(request),

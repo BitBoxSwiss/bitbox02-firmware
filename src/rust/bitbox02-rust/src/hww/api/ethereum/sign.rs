@@ -22,6 +22,7 @@ use bitbox02::keystore;
 use crate::workflow::{confirm, status, transaction};
 
 use alloc::vec::Vec;
+use core::convert::TryFrom;
 use core::convert::TryInto;
 use pb::eth_response::Response;
 
@@ -178,7 +179,7 @@ async fn verify_standard_transaction(
 
 /// Verify and sign an Ethereum transaction.
 pub async fn process(request: &pb::EthSignRequest) -> Result<Response, Error> {
-    let coin = pb::EthCoin::from_i32(request.coin).ok_or(Error::InvalidInput)?;
+    let coin = pb::EthCoin::try_from(request.coin)?;
     let params = super::params::get_and_warn_unknown(coin, request.chain_id).await?;
 
     if !super::keypath::is_valid_keypath_address(&request.keypath) {

@@ -20,6 +20,7 @@ use super::Error;
 
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::convert::TryFrom;
 
 use bech32::{ToBase32, Variant};
 use blake2::{
@@ -122,7 +123,7 @@ fn validate_asset_groups(
 }
 
 async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Response, Error> {
-    let network = CardanoNetwork::from_i32(request.network).ok_or(Error::InvalidInput)?;
+    let network = CardanoNetwork::try_from(request.network)?;
     let params = params::get(network);
     if request.inputs.is_empty() {
         return Err(Error::InvalidInput);

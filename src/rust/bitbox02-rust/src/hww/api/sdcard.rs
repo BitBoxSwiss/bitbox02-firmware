@@ -20,13 +20,15 @@ use pb::response::Response;
 
 use crate::workflow::sdcard;
 
+use core::convert::TryFrom;
+
 pub async fn process(
     &pb::InsertRemoveSdCardRequest { action }: &pb::InsertRemoveSdCardRequest,
 ) -> Result<Response, Error> {
     let inserted = bitbox02::sd::sdcard_inserted();
-    let action = match SdCardAction::from_i32(action) {
-        Some(action) => action,
-        None => return Ok(Response::Success(pb::Success {})),
+    let action = match SdCardAction::try_from(action) {
+        Ok(action) => action,
+        Err(_) => return Ok(Response::Success(pb::Success {})),
     };
     // No action required, already inserted (INSERT request) or not inserted (REMOVE request)
     if (action == SdCardAction::InsertCard && inserted)

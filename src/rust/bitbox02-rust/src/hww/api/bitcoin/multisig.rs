@@ -26,6 +26,7 @@ use crate::workflow::confirm;
 
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::convert::TryFrom;
 use core::convert::TryInto;
 
 use sha2::{Digest, Sha256};
@@ -61,7 +62,7 @@ pub fn get_hash(
     }
     {
         // 2. script config type
-        let byte: u8 = match ScriptType::from_i32(multisig.script_type).ok_or(())? {
+        let byte: u8 = match ScriptType::try_from(multisig.script_type).map_err(|_| ())? {
             ScriptType::P2wsh => 0x00,
             ScriptType::P2wshP2sh => 0x01,
         };
@@ -180,14 +181,14 @@ pub async fn confirm_extended(
     xpub_type: XPubType,
     keypath: &[u32],
 ) -> Result<(), Error> {
-    let script_type = ScriptType::from_i32(multisig.script_type).ok_or(Error::InvalidInput)?;
+    let script_type = ScriptType::try_from(multisig.script_type)?;
 
     confirm(title, params, name, multisig).await?;
     confirm::confirm(&confirm::Params {
         title,
         body: &format!(
             "{}\nat\n{}",
-            match ScriptType::from_i32(multisig.script_type).ok_or(Error::InvalidInput)? {
+            match ScriptType::try_from(multisig.script_type)? {
                 ScriptType::P2wsh => "p2wsh",
                 ScriptType::P2wshP2sh => "p2wsh-p2sh",
             },
@@ -265,7 +266,7 @@ pub fn validate(multisig: &Multisig, keypath: &[u32], expected_coin: u32) -> Res
     super::keypath::validate_account_multisig(
         keypath,
         expected_coin,
-        ScriptType::from_i32(multisig.script_type).ok_or(Error::InvalidInput)?,
+        ScriptType::try_from(multisig.script_type)?,
     )
     .or(Err(Error::InvalidInput))?;
 

@@ -17,6 +17,7 @@ use super::Error;
 
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::convert::TryFrom;
 
 use crate::workflow::confirm;
 
@@ -199,7 +200,7 @@ pub fn validate_and_encode_payment_address(
 }
 
 pub async fn process(request: &pb::CardanoAddressRequest) -> Result<Response, Error> {
-    let network = CardanoNetwork::from_i32(request.network).ok_or(Error::InvalidInput)?;
+    let network = CardanoNetwork::try_from(request.network)?;
     let params = params::get(network);
     let script_config: &Config = request
         .script_config

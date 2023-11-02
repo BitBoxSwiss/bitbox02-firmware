@@ -293,8 +293,8 @@ fn sighash_script(
                     config: Some(pb::btc_script_config::Config::Multisig(multisig)),
                 }),
             ..
-        } => Ok(bitbox02::app_btc::pkscript_from_multisig(
-            &super::multisig::convert_multisig(multisig)?,
+        } => Ok(super::multisig::pkscript(
+            multisig,
             keypath[keypath.len() - 2],
             keypath[keypath.len() - 1],
         )?),

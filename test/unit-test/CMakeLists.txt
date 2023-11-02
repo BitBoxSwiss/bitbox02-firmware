@@ -220,8 +220,6 @@ set(TEST_LIST
    ""
    random
    "-Wl,--wrap=rand,--wrap=wally_sha256"
-   app_btc_common
-   ""
    ui_components
    ""
    ui_util

@@ -38,7 +38,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/workflow/blocking.c
   ${CMAKE_SOURCE_DIR}/src/workflow/idle_workflow.c
   ${CMAKE_SOURCE_DIR}/src/workflow/orientation_screen.c
-  ${CMAKE_SOURCE_DIR}/src/apps/btc/btc_common.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
 )
@@ -389,8 +388,6 @@ add_custom_target(rust-bindgen
     --rustified-enum simple_type_t
     --rustified-enum multisig_script_type_t
     --rustified-enum output_type_t
-    --allowlist-function btc_common_pkscript_from_payload
-    --allowlist-function btc_common_pkscript_from_multisig
     --allowlist-var MAX_VARINT_SIZE
     --allowlist-var MAX_PK_SCRIPT_SIZE
     --allowlist-function reboot

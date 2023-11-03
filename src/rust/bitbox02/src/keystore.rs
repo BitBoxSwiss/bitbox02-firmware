@@ -174,16 +174,25 @@ impl Drop for Bip39Wordlist {
     }
 }
 
-pub fn get_bip39_wordlist() -> Result<Bip39Wordlist, ()> {
-    let mut result = Bip39Wordlist(vec![core::ptr::null(); BIP39_WORDLIST_LEN as usize]);
-    for i in 0..BIP39_WORDLIST_LEN {
-        let mut word_ptr: *mut u8 = core::ptr::null_mut();
-        match unsafe { bitbox02_sys::keystore_get_bip39_word(i, &mut word_ptr) } {
-            false => return Err(()),
-            true => result.0[i as usize] = word_ptr,
-        }
-    }
-    Ok(result)
+/// If indices is None, all BIP39 English words are returned, otherwise only the words of the given
+/// indices in the BIP39 English wordlist.
+pub fn get_bip39_wordlist(indices: Option<&[u16]>) -> Bip39Wordlist {
+    let indices = match indices {
+        Some(indices) => indices.to_vec(),
+        None => (0..BIP39_WORDLIST_LEN).collect(),
+    };
+    Bip39Wordlist(
+        indices
+            .into_iter()
+            .map(|i| {
+                let mut word_ptr: *mut u8 = core::ptr::null_mut();
+                match unsafe { bitbox02_sys::keystore_get_bip39_word(i, &mut word_ptr) } {
+                    false => panic!("get_bip39_wordlist"),
+                    true => word_ptr as _,
+                }
+            })
+            .collect(),
+    )
 }
 
 pub fn secp256k1_pubkey_compressed_to_uncompressed(

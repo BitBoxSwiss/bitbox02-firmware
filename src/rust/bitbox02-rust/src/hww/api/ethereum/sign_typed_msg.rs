@@ -32,6 +32,7 @@ use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
+use core::convert::TryFrom;
 use core::convert::TryInto;
 
 use sha3::digest::Digest;
@@ -75,7 +76,7 @@ fn get_transitive_types<'a>(types: &'a [StructType], name: &'a str) -> Result<Ve
 }
 
 fn format_member_type(typ: &MemberType) -> Result<String, Error> {
-    let formatted = match DataType::from_i32(typ.r#type).ok_or(Error::InvalidInput)? {
+    let formatted = match DataType::try_from(typ.r#type)? {
         DataType::Unknown => return Err(Error::InvalidInput),
         DataType::Bytes => {
             if typ.size == 0 {
@@ -198,7 +199,7 @@ async fn get_value_from_host(root_object: RootObject, path: &[u32]) -> Result<Ve
 /// Returns the 32 byte encoded value as well as a human readable representation that can be used
 /// for user verification.
 fn encode_value(typ: &MemberType, value: Vec<u8>) -> Result<(Vec<u8>, String), Error> {
-    let result = match DataType::from_i32(typ.r#type).ok_or(Error::InvalidInput)? {
+    let result = match DataType::try_from(typ.r#type)? {
         DataType::Unknown => return Err(Error::InvalidInput),
         DataType::Bytes => {
             let encoded = if typ.size > 0 {
@@ -683,7 +684,7 @@ mod tests {
                             root_object,
                             path,
                         })),
-                }) => match RootObject::from_i32(*root_object).unwrap() {
+                }) => match RootObject::try_from(*root_object).unwrap() {
                     RootObject::Domain => return Some(self.domain.get_value_protobuf(path)),
                     RootObject::Message => return Some(self.message.get_value_protobuf(path)),
                     _ => {}

@@ -52,7 +52,7 @@ bitcoin = { version = "0.30.0", default-features = false, features = ["no-std"],
 
 [dependencies.prost]
 # keep version in sync with tools/prost-build/Cargo.toml.
-version = "0.11.5"
+version = "0.12.1"
 default-features = false
 features = ["prost-derive"]
 

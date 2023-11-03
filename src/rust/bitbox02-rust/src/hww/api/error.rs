@@ -107,6 +107,12 @@ impl core::convert::From<UnlockError> for Error {
     }
 }
 
+impl core::convert::From<prost::DecodeError> for Error {
+    fn from(_error: prost::DecodeError) -> Self {
+        Error::InvalidInput
+    }
+}
+
 use pb::response::Response;
 
 /// Creates an Error response. Corresponds to commander.c:_report_error().

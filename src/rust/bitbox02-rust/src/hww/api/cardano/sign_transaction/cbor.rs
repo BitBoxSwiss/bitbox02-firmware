@@ -17,6 +17,7 @@ use super::super::pb;
 use super::super::Error;
 
 use alloc::vec::Vec;
+use core::convert::TryFrom;
 
 use digest::Update;
 use minicbor::encode::{Encoder, Write};
@@ -80,7 +81,7 @@ pub fn encode_transaction_body<W: Write>(
     tx: &pb::CardanoSignTransactionRequest,
     writer: W,
 ) -> Result<(), Error> {
-    let params = params::get(pb::CardanoNetwork::from_i32(tx.network).ok_or(Error::InvalidInput)?);
+    let params = params::get(pb::CardanoNetwork::try_from(tx.network)?);
     let mut encoder = Encoder::new(writer);
 
     let mut num_map_entries = 3; // inputs, outputs, fee

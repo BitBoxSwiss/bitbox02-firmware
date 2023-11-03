@@ -46,6 +46,7 @@ use pb::BtcCoin;
 use pb::BtcScriptConfig;
 
 use alloc::string::String;
+use core::convert::TryFrom;
 use core::convert::TryInto;
 
 /// Like `hww::next_request`, but for Bitcoin requests/responses.
@@ -193,8 +194,7 @@ pub async fn address_multisig(
     display: bool,
 ) -> Result<Response, Error> {
     let coin_params = params::get(coin);
-    let script_type =
-        MultisigScriptType::from_i32(multisig.script_type).ok_or(Error::InvalidInput)?;
+    let script_type = MultisigScriptType::try_from(multisig.script_type)?;
     keypath::validate_address_multisig(keypath, coin_params.bip44_coin, script_type)
         .or(Err(Error::InvalidInput))?;
     let account_keypath = &keypath[..keypath.len() - 2];
@@ -266,27 +266,18 @@ async fn address_policy(
 
 /// Handle a Bitcoin xpub/address protobuf api call.
 pub async fn process_pub(request: &pb::BtcPubRequest) -> Result<Response, Error> {
-    let coin = match BtcCoin::from_i32(request.coin) {
-        Some(coin) => coin,
-        None => return Err(Error::InvalidInput),
-    };
+    let coin = BtcCoin::try_from(request.coin)?;
     coin_enabled(coin)?;
     match request.output {
         None => Err(Error::InvalidInput),
         Some(Output::XpubType(xpub_type)) => {
-            let xpub_type = match XPubType::from_i32(xpub_type) {
-                Some(xpub_type) => xpub_type,
-                None => return Err(Error::InvalidInput),
-            };
+            let xpub_type = XPubType::try_from(xpub_type)?;
             xpub(coin, xpub_type, &request.keypath, request.display).await
         }
         Some(Output::ScriptConfig(BtcScriptConfig {
             config: Some(Config::SimpleType(simple_type)),
         })) => {
-            let simple_type = match SimpleType::from_i32(simple_type) {
-                Some(simple_type) => simple_type,
-                None => return Err(Error::InvalidInput),
-            };
+            let simple_type = SimpleType::try_from(simple_type)?;
             address_simple(coin, simple_type, &request.keypath, request.display).await
         }
         Some(Output::ScriptConfig(BtcScriptConfig {

@@ -624,24 +624,6 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         if tx_input.sequence < 0xffffffff {
             locktime_applies = true;
         }
-        if tx_input.sequence < 0xffffffff - 2 {
-            // A sequence number less than 0xffffffff-2 does not add functionality (we don't support
-            // relative locktime). We allow it since wallets can set it anyway. Example: Sparrow
-            // sets it to improve privacy of off-chain protocols
-            // (https://github.com/sparrowwallet/sparrow/issues/161).
-            confirm::confirm(&confirm::Params {
-                title: "Warning",
-                body: &format!(
-                    "Unusual sequence number in input #{}: {}",
-                    input_index + 1,
-                    tx_input.sequence
-                ),
-                scrollable: true,
-                accept_is_nextarrow: true,
-                ..Default::default()
-            })
-            .await?;
-        }
         inputs_sum_pass1 = inputs_sum_pass1
             .checked_add(tx_input.prev_out_value)
             .ok_or(Error::InvalidInput)?;
@@ -2487,44 +2469,6 @@ mod tests {
         mock_unlocked();
         let result = block_on(process(&transaction.borrow().init_request()));
         assert_eq!(result, Err(Error::InvalidInput));
-    }
-
-    /// Low/unusual sequence number.
-    #[test]
-    fn test_unusual_sequence_number() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-        transaction.borrow_mut().inputs[0].input.sequence = 12345;
-        mock_host_responder(transaction.clone());
-        static mut UI_COUNTER: u32 = 0;
-        mock(Data {
-            ui_confirm_create: Some(Box::new(move |params| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Warning");
-                        assert_eq!(params.body, "Unusual sequence number in input #1: 12345");
-                        true
-                    }
-                    3 => {
-                        assert_eq!(params.title, "");
-                        assert_eq!(params.body, "Locktime on block:\n10\nTransaction is RBF");
-                        true
-                    }
-                    _ => true,
-                }
-            })),
-            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
-            ..Default::default()
-        });
-        mock_unlocked();
-        let mut init_request = transaction.borrow().init_request();
-        init_request.locktime = 10;
-        assert!(block_on(process(&init_request)).is_ok());
-        assert!(unsafe { UI_COUNTER >= 3 })
     }
 
     #[test]

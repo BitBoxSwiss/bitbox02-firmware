@@ -149,7 +149,7 @@ async fn get_24th_word(
             Ok(choice_idx) if choice_idx as usize == none_of_them_idx => {
                 let params = confirm::Params {
                     title: "",
-                    body: "Recovery words\ninvalid.\nRestart?",
+                    body: "Invalid. Check\nrecovery words.\nRestart?",
                     ..Default::default()
                 };
                 if let Ok(()) = confirm::confirm(&params).await {

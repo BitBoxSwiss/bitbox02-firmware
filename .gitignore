@@ -9,6 +9,8 @@
 .ccls-cache
 compile_commands.json
 compile_flags.txt
+.vscode
+.DS_Store
 
 # gnu global
 /src/GPATH

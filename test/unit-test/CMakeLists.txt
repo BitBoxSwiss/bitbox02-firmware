@@ -240,6 +240,8 @@ set(TEST_LIST
    "-Wl,--wrap=screen_process"
    ugui
    ""
+   simulator
+   ""
 )
 
 find_package(CMocka REQUIRED)
@@ -263,7 +265,9 @@ foreach(I RANGE 0 ${TEST_LIST_LEN} 2)
     ${CMOCKA_LIBRARIES}
     ${TEST_LINK_ARGS}
   )
-  add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
+  if(NOT ${TEST_NAME} STREQUAL "simulator")
+      add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
+    endif()
 endforeach()
 
 

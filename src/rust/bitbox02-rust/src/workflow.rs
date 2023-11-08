@@ -15,6 +15,7 @@
 pub mod cancel;
 pub mod confirm;
 pub mod menu;
+#[cfg_attr(feature = "c-unit-testing", path = "workflow/mnemonic_c_unit_tests.rs")]
 pub mod mnemonic;
 pub mod pairing;
 pub mod password;

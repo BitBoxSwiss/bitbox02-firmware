@@ -183,6 +183,14 @@ pub fn print_stdout(msg: &str) {
     }
 }
 
+#[cfg(any(feature = "testing", feature = "c-unit-testing"))]
+pub fn println_stdout(msg: &str) {
+    unsafe {
+        bitbox02_sys::printf(crate::util::str_to_cstr_vec(msg).unwrap().as_ptr());
+        bitbox02_sys::printf(crate::util::str_to_cstr_vec("\n").unwrap().as_ptr());
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

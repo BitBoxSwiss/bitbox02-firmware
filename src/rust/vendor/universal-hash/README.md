@@ -4,9 +4,10 @@
 [![Docs][docs-image]][docs-link]
 ![Apache2/MIT licensed][license-image]
 ![Rust Version][rustc-image]
+[![Project Chat][chat-image]][chat-link]
 [![Build Status][build-image]][build-link]
 
-Traits which define functionality of [universal hash functions].
+Traits which describe functionality of [universal hash functions] (UHFs).
 
 See [RustCrypto/universal-hashes] for implementations which use this trait.
 
@@ -14,7 +15,7 @@ See [RustCrypto/universal-hashes] for implementations which use this trait.
 
 ## Minimum Supported Rust Version
 
-Rust **1.41** or higher.
+Rust **1.56** or higher.
 
 Minimum supported Rust version can be changed in the future, but it will be
 done with a minor version bump.
@@ -46,7 +47,9 @@ dual licensed as above, without any additional terms or conditions.
 [docs-image]: https://docs.rs/universal-hash/badge.svg
 [docs-link]: https://docs.rs/universal-hash/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.56+-blue.svg
+[chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
+[chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260051-universal-hashes
 [build-image]: https://github.com/RustCrypto/traits/workflows/universal-hash/badge.svg?branch=master&event=push
 [build-link]: https://github.com/RustCrypto/traits/actions?query=workflow%3Auniversal-hash
 

@@ -4,7 +4,7 @@
 [![Docs][docs-image]][docs-link]
 ![Apache2/MIT licensed][license-image]
 ![Rust Version][rustc-image]
-[![CodeCov Status][codecov-image]][codecov-link]
+[![Project Chat][chat-image]][chat-link]
 [![Build Status][build-image]][build-link]
 
 Pure Rust implementation of **ChaCha20Poly1305** ([RFC 8439][1]): an
@@ -16,6 +16,19 @@ This crate also contains an implementation of **XChaCha20Poly1305**: a variant
 of ChaCha20Poly1305 with an extended 192-bit (24-byte) nonce.
 
 [Documentation][docs-link]
+
+## About
+
+ChaCha20Poly1305 is notable for being simple and fast when implemented in pure
+software. The underlying ChaCha20 stream cipher uses a simple combination of
+add, rotate, and XOR instructions (a.k.a. "ARX"), and the Poly1305 hash
+function is likewise extremely simple.
+
+While it hasn't received approval from certain standards bodies (i.e. NIST)
+the algorithm is widely used and deployed. Notably it's mandatory to implement
+in the Transport Layer Security (TLS) protocol. The underlying ChaCha20 cipher
+is also widely used as a cryptographically secure random number generator,
+including internal use by the Rust standard library.
 
 ## Security Notes
 
@@ -48,14 +61,15 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
-[crate-image]: https://img.shields.io/crates/v/chacha20poly1305.svg
+[crate-image]: https://buildstats.info/crate/chacha20poly1305
 [crate-link]: https://crates.io/crates/chacha20poly1305
 [docs-image]: https://docs.rs/chacha20poly1305/badge.svg
 [docs-link]: https://docs.rs/chacha20poly1305/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
-[codecov-image]: https://codecov.io/gh/RustCrypto/AEADs/branch/master/graph/badge.svg
-[codecov-link]: https://codecov.io/gh/RustCrypto/AEADs
+[rustc-image]: https://img.shields.io/badge/rustc-1.56+-blue.svg
+[chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
+[chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260038-AEADs
+[downloads-image]: https://img.shields.io/crates/d/chacha20poly1305.svg
 [build-image]: https://github.com/RustCrypto/AEADs/workflows/chacha20poly1305/badge.svg?branch=master&event=push
 [build-link]: https://github.com/RustCrypto/AEADs/actions
 

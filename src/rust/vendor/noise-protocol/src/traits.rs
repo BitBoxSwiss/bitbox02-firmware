@@ -107,6 +107,20 @@ pub trait Cipher {
     /// If `out.len() != plaintext.len() + Self::tag_len()`
     fn encrypt(k: &Self::Key, nonce: u64, ad: &[u8], plaintext: &[u8], out: &mut [u8]);
 
+    /// AEAD encryption, but encrypt on one buffer.
+    /// return the length of ciphertext.
+    ///
+    /// # Panics
+    ///
+    /// If `in_out.len() < plaintext_len + Self::tag_len()`
+    fn encrypt_in_place(
+        k: &Self::Key,
+        nonce: u64,
+        ad: &[u8],
+        in_out: &mut [u8],
+        plaintext_len: usize,
+    ) -> usize;
+
     /// AEAD decryption.
     ///
     /// # Panics
@@ -119,6 +133,20 @@ pub trait Cipher {
         ciphertext: &[u8],
         out: &mut [u8],
     ) -> Result<(), ()>;
+
+    /// AEAD decryption, but decrypt on one buffer.
+    /// return the length of plaintext.
+    ///
+    /// # Panics
+    ///
+    /// If `in_out.len() < ciphertext_len` or `ciphertext_len < Self::tag_len()`
+    fn decrypt_in_place(
+        k: &Self::Key,
+        nonce: u64,
+        ad: &[u8],
+        in_out: &mut [u8],
+        ciphertext_len: usize,
+    ) -> Result<usize, ()>;
 
     /// Rekey. Returns a new cipher key as a pseudorandom function of `k`.
     fn rekey(k: &Self::Key) -> Self::Key {

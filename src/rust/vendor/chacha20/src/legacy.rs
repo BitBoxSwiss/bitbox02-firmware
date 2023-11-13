@@ -1,47 +1,76 @@
 //! Legacy version of ChaCha20 with a 64-bit nonce
 
-use crate::cipher::{ChaCha20, Key};
-use stream_cipher::{
-    consts::{U32, U8},
-    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+use super::{ChaChaCore, Key, Nonce};
+use cipher::{
+    consts::{U10, U32, U64, U8},
+    generic_array::GenericArray,
+    BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore, StreamCipherCoreWrapper,
+    StreamCipherSeekCore, StreamClosure,
 };
 
-/// Size of the nonce for the legacy ChaCha20 stream cipher
-#[cfg_attr(docsrs, doc(cfg(feature = "legacy")))]
-pub type LegacyNonce = stream_cipher::Nonce<ChaCha20Legacy>;
+#[cfg(feature = "zeroize")]
+use cipher::zeroize::ZeroizeOnDrop;
+
+/// Nonce type used by [`ChaCha20Legacy`].
+pub type LegacyNonce = GenericArray<u8, U8>;
 
 /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
 ///
-/// The `legacy` Cargo feature must be enabled to use this.
-#[cfg_attr(docsrs, doc(cfg(feature = "legacy")))]
-pub struct ChaCha20Legacy(ChaCha20);
+/// **WARNING:** this implementation uses 32-bit counter, while the original
+/// implementation uses 64-bit counter. In other words, it does
+/// not allow encrypting of more than 256 GiB of data.
+pub type ChaCha20Legacy = StreamCipherCoreWrapper<ChaCha20LegacyCore>;
 
-impl NewStreamCipher for ChaCha20Legacy {
-    /// Key size in bytes
+/// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
+pub struct ChaCha20LegacyCore(ChaChaCore<U10>);
+
+impl KeySizeUser for ChaCha20LegacyCore {
     type KeySize = U32;
+}
 
-    /// Nonce size in bytes
-    type NonceSize = U8;
+impl IvSizeUser for ChaCha20LegacyCore {
+    type IvSize = U8;
+}
 
-    fn new(key: &Key, nonce: &LegacyNonce) -> Self {
-        let mut exp_iv = [0u8; 12];
-        exp_iv[4..].copy_from_slice(nonce);
-        ChaCha20Legacy(ChaCha20::new(key, &exp_iv.into()))
+impl BlockSizeUser for ChaCha20LegacyCore {
+    type BlockSize = U64;
+}
+
+impl KeyIvInit for ChaCha20LegacyCore {
+    #[inline(always)]
+    fn new(key: &Key, iv: &LegacyNonce) -> Self {
+        let mut padded_iv = Nonce::default();
+        padded_iv[4..].copy_from_slice(iv);
+        ChaCha20LegacyCore(ChaChaCore::new(key, &padded_iv))
     }
 }
 
-impl SyncStreamCipher for ChaCha20Legacy {
-    fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
-        self.0.try_apply_keystream(data)
+impl StreamCipherCore for ChaCha20LegacyCore {
+    #[inline(always)]
+    fn remaining_blocks(&self) -> Option<usize> {
+        self.0.remaining_blocks()
+    }
+
+    #[inline(always)]
+    fn process_with_backend(&mut self, f: impl StreamClosure<BlockSize = Self::BlockSize>) {
+        self.0.process_with_backend(f);
     }
 }
 
-impl SyncStreamCipherSeek for ChaCha20Legacy {
-    fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
-        self.0.try_current_pos()
+impl StreamCipherSeekCore for ChaCha20LegacyCore {
+    type Counter = u32;
+
+    #[inline(always)]
+    fn get_block_pos(&self) -> u32 {
+        self.0.get_block_pos()
     }
 
-    fn try_seek<T: SeekNum>(&mut self, pos: T) -> Result<(), LoopError> {
-        self.0.try_seek(pos)
+    #[inline(always)]
+    fn set_block_pos(&mut self, pos: u32) {
+        self.0.set_block_pos(pos);
     }
 }
+
+#[cfg(feature = "zeroize")]
+#[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
+impl ZeroizeOnDrop for ChaCha20LegacyCore {}

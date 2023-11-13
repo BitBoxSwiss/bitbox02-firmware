@@ -1,66 +1,43 @@
-//! [`ChaCha20Poly1305`] ([RFC 8439][1]) is an
-//! [Authenticated Encryption with Associated Data (AEAD)][2]
-//! cipher amenable to fast, constant-time implementations in software, based on
-//! the [ChaCha20][3] stream cipher and [Poly1305][4] universal hash function.
+#![no_std]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![doc = include_str!("../README.md")]
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg"
+)]
+#![warn(missing_docs, rust_2018_idioms)]
+
+//! ## Supported Algorithms
 //!
-//! This crate contains pure Rust implementations of `ChaCha20Poly1305`
+//! This crate contains pure Rust implementations of [`ChaCha20Poly1305`]
 //! (with optional AVX2 acceleration) as well as the following variants thereof:
 //!
 //! - [`XChaCha20Poly1305`] - ChaCha20Poly1305 variant with an extended 192-bit (24-byte) nonce.
 //! - [`ChaCha8Poly1305`] / [`ChaCha12Poly1305`] - non-standard, reduced-round variants
 //!   (gated under the `reduced-round` Cargo feature). See the [Too Much Crypto][5]
 //!   paper for background and rationale on when these constructions could be used.
-//!   When in doubt, prefer `ChaCha20Poly1305`.
-//!
-//! ## Performance Notes
-//!
-//! By default this crate will use portable software implementations of the
-//! underlying ChaCha20 and Poly1305 ciphers it's based on.
-//!
-//! When targeting modern x86/x86_64 CPUs, use the following `RUSTFLAGS` to
-//! take advantage of AVX2 acceleration:
-//!
-//! ```text
-//! RUSTFLAGS="-Ctarget-feature=+avx2"
-//! ```
-//!
-//! Ideally target the `haswell` or `skylake` architectures as a baseline:
-//!
-//! ```text
-//! RUSTFLAGS="-Ctarget-cpu=haswell -Ctarget-feature=+avx2"
-//! ```
-//!
-//! ## Security Notes
-//!
-//! This crate has received one [security audit by NCC Group][6], with no significant
-//! findings. We would like to thank [MobileCoin][7] for funding the audit.
-//!
-//! All implementations contained in the crate are designed to execute in
-//! constant time, either by relying on hardware intrinsics (i.e. AVX2 on
-//! x86/x86_64), or using a portable implementation which is only constant time
-//! on processors which implement constant-time multiplication.
-//!
-//! It is not suitable for use on processors with a variable-time multiplication
-//! operation (e.g. short circuit on multiply-by-zero / multiply-by-one, such as
-//! certain 32-bit PowerPC CPUs and some non-ARM microcontrollers).
+//!   When in doubt, prefer [`ChaCha20Poly1305`].
+//! - [`XChaCha8Poly1305`] / [`XChaCha12Poly1305`] - same as above,
+//!   but with an extended 192-bit (24-byte) nonce.
 //!
 //! # Usage
 //!
-//! ```
-//! use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce}; // Or `XChaCha20Poly1305`
-//! use chacha20poly1305::aead::{Aead, NewAead};
+#![cfg_attr(all(feature = "getrandom", feature = "std"), doc = "```")]
+#![cfg_attr(not(all(feature = "getrandom", feature = "std")), doc = "```ignore")]
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! use chacha20poly1305::{
+//!     aead::{Aead, AeadCore, KeyInit, OsRng},
+//!     ChaCha20Poly1305, Nonce
+//! };
 //!
-//! let key = Key::from_slice(b"an example very very secret key."); // 32-bytes
-//! let cipher = ChaCha20Poly1305::new(key);
-//!
-//! let nonce = Nonce::from_slice(b"unique nonce"); // 12-bytes; unique per message
-//!
-//! let ciphertext = cipher.encrypt(nonce, b"plaintext message".as_ref())
-//!     .expect("encryption failure!");  // NOTE: handle this error to avoid panics!
-//! let plaintext = cipher.decrypt(nonce, ciphertext.as_ref())
-//!     .expect("decryption failure!");  // NOTE: handle this error to avoid panics!
-//!
+//! let key = ChaCha20Poly1305::generate_key(&mut OsRng);
+//! let cipher = ChaCha20Poly1305::new(&key);
+//! let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng); // 96-bits; unique per message
+//! let ciphertext = cipher.encrypt(&nonce, b"plaintext message".as_ref())?;
+//! let plaintext = cipher.decrypt(&nonce, ciphertext.as_ref())?;
 //! assert_eq!(&plaintext, b"plaintext message");
+//! # Ok(())
+//! # }
 //! ```
 //!
 //! ## In-place Usage (eliminates `alloc` requirement)
@@ -78,74 +55,104 @@
 //! which can then be passed as the `buffer` parameter to the in-place encrypt
 //! and decrypt methods:
 //!
-//! ```
-//! # #[cfg(feature = "heapless")]
-//! # {
-//! use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce}; // Or `XChaCha20Poly1305`
-//! use chacha20poly1305::aead::{AeadInPlace, NewAead};
-//! use chacha20poly1305::aead::heapless::{Vec, consts::U128};
+#![cfg_attr(
+    all(feature = "getrandom", feature = "heapless", feature = "std"),
+    doc = "```"
+)]
+#![cfg_attr(
+    not(all(feature = "getrandom", feature = "heapless", feature = "std")),
+    doc = "```ignore"
+)]
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! use chacha20poly1305::{
+//!     aead::{AeadCore, AeadInPlace, KeyInit, OsRng, heapless::Vec},
+//!     ChaCha20Poly1305, Nonce,
+//! };
 //!
-//! let key = Key::from_slice(b"an example very very secret key.");
-//! let cipher = ChaCha20Poly1305::new(key);
+//! let key = ChaCha20Poly1305::generate_key(&mut OsRng);
+//! let cipher = ChaCha20Poly1305::new(&key);
+//! let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng); // 96-bits; unique per message
 //!
-//! let nonce = Nonce::from_slice(b"unique nonce"); // 128-bits; unique per message
-//!
-//! let mut buffer: Vec<u8, U128> = Vec::new();
+//! let mut buffer: Vec<u8, 128> = Vec::new(); // Note: buffer needs 16-bytes overhead for auth tag
 //! buffer.extend_from_slice(b"plaintext message");
 //!
 //! // Encrypt `buffer` in-place, replacing the plaintext contents with ciphertext
-//! cipher.encrypt_in_place(nonce, b"", &mut buffer).expect("encryption failure!");
+//! cipher.encrypt_in_place(&nonce, b"", &mut buffer)?;
 //!
 //! // `buffer` now contains the message ciphertext
 //! assert_ne!(&buffer, b"plaintext message");
 //!
 //! // Decrypt `buffer` in-place, replacing its ciphertext context with the original plaintext
-//! cipher.decrypt_in_place(nonce, b"", &mut buffer).expect("decryption failure!");
+//! cipher.decrypt_in_place(&nonce, b"", &mut buffer)?;
 //! assert_eq!(&buffer, b"plaintext message");
+//! # Ok(())
 //! # }
 //! ```
 //!
-//! [1]: https://tools.ietf.org/html/rfc8439
-//! [2]: https://en.wikipedia.org/wiki/Authenticated_encryption
-//! [3]: https://github.com/RustCrypto/stream-ciphers/tree/master/chacha20
-//! [4]: https://github.com/RustCrypto/universal-hashes/tree/master/poly1305
-//! [5]: https://eprint.iacr.org/2019/1492.pdf
-//! [6]: https://research.nccgroup.com/2020/02/26/public-report-rustcrypto-aes-gcm-and-chacha20poly1305-implementation-review/
-//! [7]: https://www.mobilecoin.com/
-
-#![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg))]
-#![doc(
-    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
-    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg"
-)]
-#![warn(missing_docs, rust_2018_idioms, intra_doc_link_resolution_failure)]
+//! ## [`XChaCha20Poly1305`]
+//!
+//! ChaCha20Poly1305 variant with an extended 192-bit (24-byte) nonce.
+//!
+//! The construction is an adaptation of the same techniques used by
+//! XSalsa20 as described in the paper "Extending the Salsa20 Nonce"
+//! to the 96-bit nonce variant of ChaCha20, which derive a
+//! separate subkey/nonce for each extended nonce:
+//!
+//! <https://cr.yp.to/snuffle/xsalsa-20081128.pdf>
+//!
+//! No authoritative specification exists for XChaCha20Poly1305, however the
+//! construction has "rough consensus and running code" in the form of
+//! several interoperable libraries and protocols (e.g. libsodium, WireGuard)
+//! and is documented in an (expired) IETF draft, which also applies the
+//! proof from the XSalsa20 paper to the construction in order to demonstrate
+//! that XChaCha20 is secure if ChaCha20 is secure (see Section 3.1):
+//!
+//! <https://tools.ietf.org/html/draft-arciszewski-xchacha-03>
+//!
+//! It is worth noting that NaCl/libsodium's default "secretbox" algorithm is
+//! XSalsa20Poly1305, not XChaCha20Poly1305, and thus not compatible with
+//! this library. If you are interested in that construction, please see the
+//! `xsalsa20poly1305` crate:
+//!
+//! <https://docs.rs/xsalsa20poly1305/>
+//!
+//! # Usage
+//!
+#![cfg_attr(all(feature = "getrandom", feature = "std"), doc = "```")]
+#![cfg_attr(not(all(feature = "getrandom", feature = "std")), doc = "```ignore")]
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! use chacha20poly1305::{
+//!     aead::{Aead, AeadCore, KeyInit, OsRng},
+//!     XChaCha20Poly1305, XNonce
+//! };
+//!
+//! let key = XChaCha20Poly1305::generate_key(&mut OsRng);
+//! let cipher = XChaCha20Poly1305::new(&key);
+//! let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng); // 192-bits; unique per message
+//! let ciphertext = cipher.encrypt(&nonce, b"plaintext message".as_ref())?;
+//! let plaintext = cipher.decrypt(&nonce, ciphertext.as_ref())?;
+//! assert_eq!(&plaintext, b"plaintext message");
+//! # Ok(())
+//! # }
+//! ```
 
 mod cipher;
 
-#[cfg(feature = "xchacha20poly1305")]
-mod xchacha20poly1305;
-
-pub use aead;
-
-#[cfg(feature = "xchacha20poly1305")]
-pub use xchacha20poly1305::{XChaCha20Poly1305, XNonce};
+pub use aead::{self, consts, AeadCore, AeadInPlace, Error, KeyInit, KeySizeUser};
 
 use self::cipher::Cipher;
+use ::cipher::{KeyIvInit, StreamCipher, StreamCipherSeek};
 use aead::{
-    consts::{U0, U12, U16, U32},
-    generic_array::GenericArray,
-    AeadInPlace, Error, NewAead,
+    consts::{U0, U12, U16, U24, U32},
+    generic_array::{ArrayLength, GenericArray},
 };
 use core::marker::PhantomData;
-use stream_cipher::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
-use zeroize::Zeroize;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
-#[cfg(feature = "chacha20")]
-use chacha20::ChaCha20;
+use chacha20::{ChaCha20, XChaCha20};
 
 #[cfg(feature = "reduced-round")]
-use chacha20::{ChaCha12, ChaCha8};
+use chacha20::{ChaCha12, ChaCha8, XChaCha12, XChaCha8};
 
 /// Key type (256-bits/32-bytes).
 ///
@@ -160,65 +167,94 @@ pub type Key = GenericArray<u8, U32>;
 /// Implemented as an alias for [`GenericArray`].
 pub type Nonce = GenericArray<u8, U12>;
 
+/// XNonce type (192-bits/24-bytes).
+///
+/// Implemented as an alias for [`GenericArray`].
+pub type XNonce = GenericArray<u8, U24>;
+
 /// Poly1305 tag.
 ///
 /// Implemented as an alias for [`GenericArray`].
 pub type Tag = GenericArray<u8, U16>;
 
 /// ChaCha20Poly1305 Authenticated Encryption with Additional Data (AEAD).
-#[cfg(feature = "chacha20")]
-#[cfg_attr(docsrs, doc(cfg(feature = "chacha20")))]
-pub type ChaCha20Poly1305 = ChaChaPoly1305<ChaCha20>;
+pub type ChaCha20Poly1305 = ChaChaPoly1305<ChaCha20, U12>;
+
+/// XChaCha20Poly1305 Authenticated Encryption with Additional Data (AEAD).
+pub type XChaCha20Poly1305 = ChaChaPoly1305<XChaCha20, U24>;
 
 /// ChaCha8Poly1305 (reduced round variant) Authenticated Encryption with Additional Data (AEAD).
 #[cfg(feature = "reduced-round")]
 #[cfg_attr(docsrs, doc(cfg(feature = "reduced-round")))]
-pub type ChaCha8Poly1305 = ChaChaPoly1305<ChaCha8>;
+pub type ChaCha8Poly1305 = ChaChaPoly1305<ChaCha8, U12>;
 
 /// ChaCha12Poly1305 (reduced round variant) Authenticated Encryption with Additional Data (AEAD).
 #[cfg(feature = "reduced-round")]
 #[cfg_attr(docsrs, doc(cfg(feature = "reduced-round")))]
-pub type ChaCha12Poly1305 = ChaChaPoly1305<ChaCha12>;
+pub type ChaCha12Poly1305 = ChaChaPoly1305<ChaCha12, U12>;
+
+/// XChaCha8Poly1305 (reduced round variant) Authenticated Encryption with Additional Data (AEAD).
+#[cfg(feature = "reduced-round")]
+#[cfg_attr(docsrs, doc(cfg(feature = "reduced-round")))]
+pub type XChaCha8Poly1305 = ChaChaPoly1305<XChaCha8, U24>;
+
+/// XChaCha12Poly1305 (reduced round variant) Authenticated Encryption with Additional Data (AEAD).
+#[cfg(feature = "reduced-round")]
+#[cfg_attr(docsrs, doc(cfg(feature = "reduced-round")))]
+pub type XChaCha12Poly1305 = ChaChaPoly1305<XChaCha12, U24>;
 
 /// Generic ChaCha+Poly1305 Authenticated Encryption with Additional Data (AEAD) construction.
 ///
 /// See the [toplevel documentation](index.html) for a usage example.
-pub struct ChaChaPoly1305<C>
-where
-    C: NewStreamCipher<KeySize = U32, NonceSize = U12> + SyncStreamCipher + SyncStreamCipherSeek,
-{
-    /// Secret key
-    key: GenericArray<u8, U32>,
+pub struct ChaChaPoly1305<C, N: ArrayLength<u8> = U12> {
+    /// Secret key.
+    key: Key,
 
-    /// ChaCha stream cipher
+    /// ChaCha stream cipher.
     stream_cipher: PhantomData<C>,
+
+    /// Nonce size.
+    nonce_size: PhantomData<N>,
 }
 
-impl<C> NewAead for ChaChaPoly1305<C>
+impl<C, N> KeySizeUser for ChaChaPoly1305<C, N>
 where
-    C: NewStreamCipher<KeySize = U32, NonceSize = U12> + SyncStreamCipher + SyncStreamCipherSeek,
+    N: ArrayLength<u8>,
 {
     type KeySize = U32;
+}
 
+impl<C, N> KeyInit for ChaChaPoly1305<C, N>
+where
+    N: ArrayLength<u8>,
+{
+    #[inline]
     fn new(key: &Key) -> Self {
         Self {
             key: *key,
             stream_cipher: PhantomData,
+            nonce_size: PhantomData,
         }
     }
 }
 
-impl<C> AeadInPlace for ChaChaPoly1305<C>
+impl<C, N> AeadCore for ChaChaPoly1305<C, N>
 where
-    C: NewStreamCipher<KeySize = U32, NonceSize = U12> + SyncStreamCipher + SyncStreamCipherSeek,
+    N: ArrayLength<u8>,
 {
-    type NonceSize = U12;
+    type NonceSize = N;
     type TagSize = U16;
     type CiphertextOverhead = U0;
+}
 
+impl<C, N> AeadInPlace for ChaChaPoly1305<C, N>
+where
+    C: KeyIvInit<KeySize = U32, IvSize = N> + StreamCipher + StreamCipherSeek,
+    N: ArrayLength<u8>,
+{
     fn encrypt_in_place_detached(
         &self,
-        nonce: &Nonce,
+        nonce: &aead::Nonce<Self>,
         associated_data: &[u8],
         buffer: &mut [u8],
     ) -> Result<Tag, Error> {
@@ -227,7 +263,7 @@ where
 
     fn decrypt_in_place_detached(
         &self,
-        nonce: &Nonce,
+        nonce: &aead::Nonce<Self>,
         associated_data: &[u8],
         buffer: &mut [u8],
         tag: &Tag,
@@ -240,23 +276,26 @@ where
     }
 }
 
-impl<C> Clone for ChaChaPoly1305<C>
+impl<C, N> Clone for ChaChaPoly1305<C, N>
 where
-    C: NewStreamCipher<KeySize = U32, NonceSize = U12> + SyncStreamCipher + SyncStreamCipherSeek,
+    N: ArrayLength<u8>,
 {
     fn clone(&self) -> Self {
         Self {
             key: self.key,
             stream_cipher: PhantomData,
+            nonce_size: PhantomData,
         }
     }
 }
 
-impl<C> Drop for ChaChaPoly1305<C>
+impl<C, N> Drop for ChaChaPoly1305<C, N>
 where
-    C: NewStreamCipher<KeySize = U32, NonceSize = U12> + SyncStreamCipher + SyncStreamCipherSeek,
+    N: ArrayLength<u8>,
 {
     fn drop(&mut self) {
         self.key.as_mut_slice().zeroize();
     }
 }
+
+impl<C, N: ArrayLength<u8>> ZeroizeOnDrop for ChaChaPoly1305<C, N> {}

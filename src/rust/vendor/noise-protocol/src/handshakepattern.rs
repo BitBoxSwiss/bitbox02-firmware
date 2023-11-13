@@ -20,9 +20,9 @@ use self::Token::*;
 /// Noise handshake pattern.
 #[derive(Clone)]
 pub struct HandshakePattern {
-    pre_i: ArrayVec<[Token; 4]>,
-    pre_r: ArrayVec<[Token; 4]>,
-    msg_patterns: ArrayVec<[ArrayVec<[Token; 8]>; 8]>,
+    pre_i: ArrayVec<Token, 4>,
+    pre_r: ArrayVec<Token, 4>,
+    msg_patterns: ArrayVec<ArrayVec<Token, 8>, 8>,
     name: &'static str,
 }
 

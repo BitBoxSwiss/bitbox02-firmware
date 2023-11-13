@@ -52,8 +52,29 @@ where
     /// AEAD encryption.
     pub fn encrypt_ad(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) {
         C::encrypt(&self.key, self.n, authtext, plaintext, out);
+        #[cfg(feature = "use_std")]
+        if option_env!("NOISE_RUST_TEST_IN_PLACE").is_some() {
+            let mut inout = plaintext.to_vec();
+            inout.extend_from_slice(&[0; 16]);
+            let l = C::encrypt_in_place(&self.key, self.n, authtext, &mut inout, plaintext.len());
+            assert_eq!(inout, out);
+            assert_eq!(l, out.len());
+        }
         // This will fail when n == 2 ^ 64 - 1, complying to the spec.
         self.n = self.n.checked_add(1).unwrap();
+    }
+
+    /// AEAD encryption in place.
+    pub fn encrypt_ad_in_place(
+        &mut self,
+        authtext: &[u8],
+        in_out: &mut [u8],
+        plaintext_len: usize,
+    ) -> usize {
+        let size = C::encrypt_in_place(&self.key, self.n, authtext, in_out, plaintext_len);
+        // This will fail when n == 2 ^ 64 - 1, complying to the spec.
+        self.n = self.n.checked_add(1).unwrap();
+        size
     }
 
     /// AEAD decryption.
@@ -63,14 +84,41 @@ where
         ciphertext: &[u8],
         out: &mut [u8],
     ) -> Result<(), ()> {
-        C::decrypt(&self.key, self.n, authtext, ciphertext, out)?;
+        let r = C::decrypt(&self.key, self.n, authtext, ciphertext, out);
+        #[cfg(feature = "use_std")]
+        if option_env!("NOISE_RUST_TEST_IN_PLACE").is_some() {
+            let mut inout = ciphertext.to_vec();
+            let r2 = C::decrypt_in_place(&self.key, self.n, authtext, &mut inout, ciphertext.len());
+            assert_eq!(r.map(|_| out.len()), r2);
+            if r.is_ok() {
+                assert_eq!(&inout[..out.len()], out);
+            }
+        }
+        r?;
         self.n = self.n.checked_add(1).unwrap();
         Ok(())
+    }
+
+    /// AEAD decryption in place.
+    pub fn decrypt_ad_in_place(
+        &mut self,
+        authtext: &[u8],
+        in_out: &mut [u8],
+        ciphertext_len: usize,
+    ) -> Result<usize, ()> {
+        let size = C::decrypt_in_place(&self.key, self.n, authtext, in_out, ciphertext_len)?;
+        self.n = self.n.checked_add(1).unwrap();
+        Ok(size)
     }
 
     /// Encryption.
     pub fn encrypt(&mut self, plaintext: &[u8], out: &mut [u8]) {
         self.encrypt_ad(&[0u8; 0], plaintext, out)
+    }
+
+    /// Encryption in place.
+    pub fn encrypt_in_place(&mut self, in_out: &mut [u8], plaintext_len: usize) -> usize {
+        self.encrypt_ad_in_place(&[0u8; 0], in_out, plaintext_len)
     }
 
     /// Encryption, returns ciphertext as `Vec<u8>`.
@@ -84,6 +132,15 @@ where
     /// Decryption.
     pub fn decrypt(&mut self, ciphertext: &[u8], out: &mut [u8]) -> Result<(), ()> {
         self.decrypt_ad(&[0u8; 0], ciphertext, out)
+    }
+
+    /// Decryption in place.
+    pub fn decrypt_in_place(
+        &mut self,
+        in_out: &mut [u8],
+        ciphertext_len: usize,
+    ) -> Result<usize, ()> {
+        self.decrypt_ad_in_place(&[0u8; 0], in_out, ciphertext_len)
     }
 
     /// Decryption, returns plaintext as `Vec<u8>`.

@@ -130,7 +130,7 @@ impl Payload {
             pb::btc_script_config::multisig::ScriptType::try_from(multisig.script_type)?;
         let script = multisig::pkscript(multisig, keypath_change, keypath_address)?;
         let payload_p2wsh = Payload {
-            data: Sha256::digest(&script).to_vec(),
+            data: Sha256::digest(script).to_vec(),
             output_type: BtcOutputType::P2wsh,
         };
         match script_type {
@@ -160,7 +160,7 @@ impl Payload {
         let witness_script = policy.witness_script_at_keypath(keypath)?;
         match policy {
             super::policies::ParsedPolicy::Wsh { .. } => Ok(Payload {
-                data: Sha256::digest(&witness_script).to_vec(),
+                data: Sha256::digest(witness_script).to_vec(),
                 output_type: BtcOutputType::P2wsh,
             }),
         }

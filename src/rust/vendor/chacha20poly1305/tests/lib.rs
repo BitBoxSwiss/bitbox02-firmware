@@ -1,5 +1,22 @@
 //! ChaCha20Poly1305 and XChaCha20Poly1305 tests
 
+#![cfg(feature = "alloc")]
+
+use chacha20poly1305::ChaCha20Poly1305;
+use chacha20poly1305::XChaCha20Poly1305;
+
+// Test vectors from Wycheproof
+aead::new_test!(
+    wycheproof_chacha20poly1305,
+    "wycheproof_chacha20poly1305",
+    ChaCha20Poly1305
+);
+aead::new_test!(
+    wycheproof_xchacha20poly1305,
+    "wycheproof_xchacha20poly1305",
+    XChaCha20Poly1305
+);
+
 macro_rules! impl_tests {
     ($cipher:ty, $key:expr, $nonce:expr, $aad:expr, $plaintext:expr, $ciphertext:expr, $tag:expr) => {
         #[test]
@@ -80,7 +97,7 @@ const PLAINTEXT: &[u8] = b"Ladies and Gentlemen of the class of '99: \
 mod chacha20 {
     use super::{AAD, KEY, PLAINTEXT};
     use chacha20poly1305::aead::generic_array::GenericArray;
-    use chacha20poly1305::aead::{Aead, NewAead, Payload};
+    use chacha20poly1305::aead::{Aead, KeyInit, Payload};
     use chacha20poly1305::ChaCha20Poly1305;
 
     const NONCE: &[u8; 12] = &[
@@ -122,11 +139,10 @@ mod chacha20 {
 /// XChaCha20Poly1305 test vectors.
 ///
 /// From <https://tools.ietf.org/html/draft-arciszewski-xchacha-03#appendix-A.1>
-#[cfg(feature = "xchacha20poly1305")]
 mod xchacha20 {
     use super::{AAD, KEY, PLAINTEXT};
     use chacha20poly1305::aead::generic_array::GenericArray;
-    use chacha20poly1305::aead::{Aead, NewAead, Payload};
+    use chacha20poly1305::aead::{Aead, KeyInit, Payload};
     use chacha20poly1305::XChaCha20Poly1305;
 
     const NONCE: &[u8; 24] = &[

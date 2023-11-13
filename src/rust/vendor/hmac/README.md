@@ -5,7 +5,6 @@
 ![Apache2/MIT licensed][license-image]
 ![Rust Version][rustc-image]
 [![Project Chat][chat-image]][chat-link]
-[![Build Status][build-image]][build-link]
 
 Pure Rust implementation of the [Hash-based Message Authentication Code (HMAC)][1].
 
@@ -48,8 +47,6 @@ dual licensed as above, without any additional terms or conditions.
 [rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260044-MACs
-[build-image]: https://github.com/RustCrypto/MACs/workflows/hmac/badge.svg?branch=master&event=push
-[build-link]: https://github.com/RustCrypto/MACs/actions?query=workflow%3Ahmac
 
 [//]: # (general links)
 

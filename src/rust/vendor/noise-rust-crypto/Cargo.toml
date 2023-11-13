@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "noise-rust-crypto"
-version = "0.6.1"
+version = "0.6.2"
 authors = ["Guanhao Yin <sopium@mysterious.site>"]
 description = "Wrappers of dalek and RustCrypto crates for noise-protocol"
 readme = "README.md"
@@ -32,6 +32,7 @@ optional = true
 [dependencies.chacha20poly1305]
 version = "0.10.1"
 optional = true
+default-features = false
 
 [dependencies.noise-protocol]
 version = "0.2.0"

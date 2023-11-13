@@ -22,11 +22,8 @@ pub type Result<T> = core::result::Result<T, Error>;
 ///
 /// [BB'06]: https://en.wikipedia.org/wiki/Daniel_Bleichenbacher
 #[derive(Default)]
+#[non_exhaustive]
 pub struct Error {
-    /// Prevent from being instantiated as `Error {}` when the `std` feature
-    /// is disabled
-    _private: (),
-
     /// Source of the error (if applicable).
     #[cfg(feature = "std")]
     source: Option<Box<dyn std::error::Error + Send + Sync + 'static>>,
@@ -45,12 +42,10 @@ impl Error {
     /// cases are for propagating errors related to external signers, e.g.
     /// communication/authentication errors with HSMs, KMS, etc.
     #[cfg(feature = "std")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn from_source(
         source: impl Into<Box<dyn std::error::Error + Send + Sync + 'static>>,
     ) -> Self {
         Self {
-            _private: (),
             source: Some(source.into()),
         }
     }
@@ -78,7 +73,16 @@ impl Debug for Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("signature error")
+        f.write_str("signature error")?;
+
+        #[cfg(feature = "std")]
+        {
+            if let Some(source) = &self.source {
+                write!(f, ": {}", source)?;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -86,6 +90,19 @@ impl Display for Error {
 impl From<Box<dyn std::error::Error + Send + Sync + 'static>> for Error {
     fn from(source: Box<dyn std::error::Error + Send + Sync + 'static>) -> Error {
         Self::from_source(source)
+    }
+}
+
+#[cfg(feature = "rand_core")]
+impl From<rand_core::Error> for Error {
+    #[cfg(not(feature = "std"))]
+    fn from(_source: rand_core::Error) -> Error {
+        Error::new()
+    }
+
+    #[cfg(feature = "std")]
+    fn from(source: rand_core::Error) -> Error {
+        Error::from_source(source)
     }
 }
 

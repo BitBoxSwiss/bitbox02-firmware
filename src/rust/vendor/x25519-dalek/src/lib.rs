@@ -1,8 +1,8 @@
 // -*- mode: rust; -*-
 //
 // This file is part of x25519-dalek.
-// Copyright (c) 2017-2019 isis lovecruft
-// Copyright (c) 2019 DebugSteven
+// Copyright (c) 2017-2021 isis lovecruft
+// Copyright (c) 2019-2021 DebugSteven
 // See LICENSE for licensing information.
 //
 // Authors:
@@ -16,20 +16,17 @@
 
 #![no_std]
 #![cfg_attr(feature = "bench", feature(test))]
-#![cfg_attr(feature = "nightly", feature(external_doc))]
-#![cfg_attr(feature = "nightly", deny(missing_docs))]
-#![cfg_attr(feature = "nightly", doc(include = "../README.md"))]
-#![doc(html_logo_url = "https://doc.dalek.rs/assets/dalek-logo-clear.png")]
-#![doc(html_root_url = "https://docs.rs/x25519-dalek/1.1.0")]
+#![cfg_attr(docsrs, feature(doc_auto_cfg, doc_cfg, doc_cfg_hide))]
+#![cfg_attr(docsrs, doc(cfg_hide(docsrs)))]
+#![deny(missing_docs)]
+#![doc(
+    html_logo_url = "https://cdn.jsdelivr.net/gh/dalek-cryptography/curve25519-dalek/docs/assets/dalek-logo-clear.png"
+)]
+#![doc = include_str!("../README.md")]
 
-//! Note that docs will only build on nightly Rust until
-//! `feature(external_doc)` is stabilized.
-
-extern crate curve25519_dalek;
-
-extern crate rand_core;
-
-extern crate zeroize;
+//------------------------------------------------------------------------
+// x25519-dalek public API
+//------------------------------------------------------------------------
 
 mod x25519;
 

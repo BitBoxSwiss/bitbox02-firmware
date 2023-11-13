@@ -15,7 +15,7 @@ use alloc::boxed::Box;
 use core::convert::TryInto;
 
 use core::ops::{Deref, DerefMut};
-use hmac::{Hmac, Mac, NewMac};
+use hmac::{Hmac, Mac};
 use sha2::Sha512;
 use zeroize::{Zeroize, Zeroizing};
 
@@ -367,11 +367,10 @@ mod tests {
         let mut xprv = Xprv::from_normalize(KEY, CHAIN_CODE)
             .derive(HARDENED_OFFSET)
             .derive(0);
-        let sk =
-            ed25519_dalek::ExpandedSecretKey::from_bytes(&xprv.expanded_secret_key()[..]).unwrap();
-        let pk = ed25519_dalek::PublicKey::from(&sk);
+        let sk = ed25519_dalek::hazmat::ExpandedSecretKey::from_bytes(&xprv.expanded_secret_key());
+        let pk = ed25519_dalek::VerifyingKey::from(&sk);
 
-        let signature = sk.sign(b"message", &pk);
+        let signature = ed25519_dalek::hazmat::raw_sign::<Sha512>(&sk, b"message", &pk);
         assert_eq!(
             *b"\xe1\xe2\x87\xc0\xc3\x92\x66\x40\xfa\x1a\x30\xf6\x87\x76\x52\x8f\x0c\x3d\x1e\xf2\x5e\xc0\xf6\x18\x92\x50\xd9\x77\xbb\x83\x32\xd8\x22\x5d\xe9\x9f\x33\xb0\xdf\x77\x96\x48\xb9\x5b\x9f\xb2\x2b\xf3\x53\x66\x18\x8f\x17\x94\x53\x62\x87\xac\x86\x71\xba\xba\xd3\x02",
             signature.to_bytes(),
@@ -381,10 +380,10 @@ mod tests {
 
         for index in 0..300 {
             xprv = xprv.derive(HARDENED_OFFSET + index);
-            let sk = ed25519_dalek::ExpandedSecretKey::from_bytes(&xprv.expanded_secret_key()[..])
-                .unwrap();
-            let pk = ed25519_dalek::PublicKey::from(&sk);
-            let signature = sk.sign(b"message", &pk);
+            let sk =
+                ed25519_dalek::hazmat::ExpandedSecretKey::from_bytes(&xprv.expanded_secret_key());
+            let pk = ed25519_dalek::VerifyingKey::from(&sk);
+            let signature = ed25519_dalek::hazmat::raw_sign::<Sha512>(&sk, b"message", &pk);
             assert!(ed25519_dalek::Verifier::verify(&pk, b"message", &signature).is_ok());
         }
     }

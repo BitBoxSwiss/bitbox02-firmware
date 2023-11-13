@@ -15,6 +15,7 @@
 use alloc::vec::Vec;
 
 use bip32_ed25519::{Xprv, Xpub, ED25519_EXPANDED_SECRET_KEY_SIZE};
+use sha2::Sha512;
 
 fn get_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     bitbox02::keystore::get_ed25519_seed()
@@ -35,16 +36,17 @@ pub fn get_xpub(keypath: &[u32]) -> Result<Xpub, ()> {
 
 pub struct SignResult {
     pub signature: [u8; 64],
-    pub public_key: ed25519_dalek::PublicKey,
+    pub public_key: ed25519_dalek::VerifyingKey,
 }
 
 pub fn sign(keypath: &[u32], msg: &[u8; 32]) -> Result<SignResult, ()> {
     let xprv = get_xprv(keypath)?;
-    let secret_key = ed25519_dalek::ExpandedSecretKey::from_bytes(&xprv.expanded_secret_key()[..])
-        .or(Err(()))?;
-    let public_key = ed25519_dalek::PublicKey::from(&secret_key);
+    let secret_key =
+        ed25519_dalek::hazmat::ExpandedSecretKey::from_bytes(&xprv.expanded_secret_key());
+    let public_key = ed25519_dalek::VerifyingKey::from(&secret_key);
     Ok(SignResult {
-        signature: secret_key.sign(msg, &public_key).to_bytes(),
+        signature: ed25519_dalek::hazmat::raw_sign::<Sha512>(&secret_key, msg, &public_key)
+            .to_bytes(),
         public_key,
     })
 }

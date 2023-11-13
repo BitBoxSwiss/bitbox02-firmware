@@ -1,11 +1,12 @@
 // -*- mode: rust; -*-
 //
 // This file is part of curve25519-dalek.
-// Copyright (c) 2016-2019 Isis Lovecruft, Henry de Valence
+// Copyright (c) 2016-2021 isis lovecruft
+// Copyright (c) 2016-2019 Henry de Valence
 // See LICENSE for licensing information.
 //
 // Authors:
-// - Isis Agora Lovecruft <isis@patternsinthevoid.net>
+// - isis agora lovecruft <isis@patternsinthevoid.net>
 // - Henry de Valence <hdevalence@hdevalence.ca>
 
 //! Implementations of various scalar multiplication algorithms.
@@ -16,8 +17,10 @@
 //! scalar multiplication implementations, since it only uses one
 //! curve model.
 
+#[allow(missing_docs)]
 pub mod variable_base;
 
+#[allow(missing_docs)]
 pub mod vartime_double_base;
 
 #[cfg(feature = "alloc")]

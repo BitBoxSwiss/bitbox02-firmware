@@ -1,19 +1,28 @@
-# RustCrypto: SHA-3
+# RustCrypto: Keccak Sponge Function
 
 [![crate][crate-image]][crate-link]
 [![Docs][docs-image]][docs-link]
+[![Build Status][build-image]][build-link]
 ![Apache2/MIT licensed][license-image]
 ![Rust Version][rustc-image]
 [![Project Chat][chat-image]][chat-link]
-[![Build Status][build-image]][build-link]
 
-Pure Rust implementation of the [SHA-3 (Keccak) hash function][1].
+Pure Rust implementation of the [Keccak Sponge Function][1] including the keccak-f
+and keccak-p variants.
 
 [Documentation][docs-link]
 
+## About
+
+This crate implements the core Keccak sponge function, upon which many other
+cryptographic functions are built.
+
+For the SHA-3 family including the SHAKE XOFs, see the [`sha3`] crate, which
+is built on this crate.
+
 ## Minimum Supported Rust Version
 
-Rust **1.41** or higher.
+Rust **1.41** or higher by default, or **1.59** with the `asm` feature enabled.
 
 Minimum supported Rust version can be changed in the future, but it will be
 done with a minor version bump.
@@ -40,17 +49,18 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
-[crate-image]: https://img.shields.io/crates/v/sha3.svg
-[crate-link]: https://crates.io/crates/sha3
-[docs-image]: https://docs.rs/sha3/badge.svg
-[docs-link]: https://docs.rs/sha3/
+[crate-image]: https://img.shields.io/crates/v/keccak.svg
+[crate-link]: https://crates.io/crates/keccak
+[docs-image]: https://docs.rs/keccak/badge.svg
+[docs-link]: https://docs.rs/keccak/
+[build-image]: https://github.com/RustCrypto/sponges/actions/workflows/keccak.yml/badge.svg
+[build-link]: https://github.com/RustCrypto/sponges/actions/workflows/keccak.yml
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
 [rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
-[chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260041-hashes
-[build-image]: https://github.com/RustCrypto/hashes/workflows/sha3/badge.svg?branch=master
-[build-link]: https://github.com/RustCrypto/hashes/actions?query=workflow%3Asha3
+[chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/369879-sponges
 
 [//]: # (general links)
 
-[1]: https://en.wikipedia.org/wiki/SHA-3
+[1]: https://keccak.team/keccak.html
+[`sha3`]: https://github.com/RustCrypto/hashes/tree/master/sha3

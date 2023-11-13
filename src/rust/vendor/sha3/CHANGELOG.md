@@ -5,6 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.10.8 (2023-04-08)
+### Fixed
+- Performance regression: now uses `p1600` fn ([#472])
+
+[#472]: https://github.com/RustCrypto/hashes/pull/472
+
+## 0.10.7 (2023-04-11)
+### Added
+- `asm` feature ([#437])
+- TurboSHAKE ([#458])
+
+[#437]: https://github.com/RustCrypto/hashes/pull/437
+[#458]: https://github.com/RustCrypto/hashes/pull/458
+
+## 0.10.6 (2022-10-19)
+### Fixed
+- XOF reader type aliases ([#427])
+
+[#427]: https://github.com/RustCrypto/hashes/pull/427
+
+## 0.10.5 (2022-09-16)
+### Added
+- Feature-gated OID support ([#405])
+
+[#405]: https://github.com/RustCrypto/hashes/pull/405
+
+## 0.10.4 (2022-09-02)
+### Fixed
+- MSRV issue which was not resolved by v0.10.3 ([#401])
+
+[#401]: https://github.com/RustCrypto/hashes/pull/401
+
+## 0.10.3 (2022-09-02)
+### Fixed
+- MSRV issue caused by publishing v0.10.2 using a buggy Nightly toolchain ([#399])
+
+[#399]: https://github.com/RustCrypto/hashes/pull/399
+
+## 0.10.2 (2022-07-30)
+### Added
+- cSHAKE128 and cSHAKE256 implementations ([#355])
+
+[#355]: https://github.com/RustCrypto/hashes/pull/355
+
+## 0.10.1 (2022-02-17)
+### Fixed
+- Minimal versions build ([#363])
+
+[#363]: https://github.com/RustCrypto/hashes/pull/363
+
+## 0.10.0 (2021-12-07)
+### Changed
+- Update to `digest` v0.10 ([#217])
+
+[#217]: https://github.com/RustCrypto/hashes/pull/217
 
 ## 0.9.1 (2020-06-28)
 ### Changed

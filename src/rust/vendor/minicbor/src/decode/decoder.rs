@@ -72,9 +72,9 @@ impl<'b> Decoder<'b> {
         match self.read()? {
             n @ 0 ..= 0x17 => Ok(n),
             0x18           => self.read(),
-            0x19           => self.read_slice(2).map(read_u16).and_then(|n| try_as(n, "when converting u16 to u8", p)),
-            0x1a           => self.read_slice(4).map(read_u32).and_then(|n| try_as(n, "when converting u32 to u8", p)),
-            0x1b           => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "when converting u64 to u8", p)),
+            0x19           => self.read_array().map(u16::from_be_bytes).and_then(|n| try_as(n, "when converting u16 to u8", p)),
+            0x1a           => self.read_array().map(u32::from_be_bytes).and_then(|n| try_as(n, "when converting u32 to u8", p)),
+            0x1b           => self.read_array().map(u64::from_be_bytes).and_then(|n| try_as(n, "when converting u64 to u8", p)),
             b              => Err(Error::type_mismatch(self.type_of(b)?).at(p).with_message("expected u8"))
         }
     }
@@ -85,9 +85,9 @@ impl<'b> Decoder<'b> {
         match self.read()? {
             n @ 0 ..= 0x17 => Ok(u16::from(n)),
             0x18           => self.read().map(u16::from),
-            0x19           => self.read_slice(2).map(read_u16),
-            0x1a           => self.read_slice(4).map(read_u32).and_then(|n| try_as(n, "when converting u32 to u16", p)),
-            0x1b           => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "when converting u64 to u16", p)),
+            0x19           => self.read_array().map(u16::from_be_bytes),
+            0x1a           => self.read_array().map(u32::from_be_bytes).and_then(|n| try_as(n, "when converting u32 to u16", p)),
+            0x1b           => self.read_array().map(u64::from_be_bytes).and_then(|n| try_as(n, "when converting u64 to u16", p)),
             b              => Err(Error::type_mismatch(self.type_of(b)?).at(p).with_message("expected u16"))
         }
     }
@@ -98,9 +98,9 @@ impl<'b> Decoder<'b> {
         match self.read()? {
             n @ 0 ..= 0x17 => Ok(u32::from(n)),
             0x18           => self.read().map(u32::from),
-            0x19           => self.read_slice(2).map(read_u16).map(u32::from),
-            0x1a           => self.read_slice(4).map(read_u32),
-            0x1b           => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "when converting u64 to u32", p)),
+            0x19           => self.read_array().map(u16::from_be_bytes).map(u32::from),
+            0x1a           => self.read_array().map(u32::from_be_bytes),
+            0x1b           => self.read_array().map(u64::from_be_bytes).and_then(|n| try_as(n, "when converting u64 to u32", p)),
             b              => Err(Error::type_mismatch(self.type_of(b)?).at(p).with_message("expected u32"))
         }
     }
@@ -118,14 +118,14 @@ impl<'b> Decoder<'b> {
         match self.read()? {
             n @ 0x00 ..= 0x17 => Ok(n as i8),
             0x18              => self.read().and_then(|n| try_as(n, "when converting u8 to i8", p)),
-            0x19              => self.read_slice(2).map(read_u16).and_then(|n| try_as(n, "when converting u16 to i8", p)),
-            0x1a              => self.read_slice(4).map(read_u32).and_then(|n| try_as(n, "when converting u32 to i8", p)),
-            0x1b              => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "when converting u64 to i8", p)),
+            0x19              => self.read_array().map(u16::from_be_bytes).and_then(|n| try_as(n, "when converting u16 to i8", p)),
+            0x1a              => self.read_array().map(u32::from_be_bytes).and_then(|n| try_as(n, "when converting u32 to i8", p)),
+            0x1b              => self.read_array().map(u64::from_be_bytes).and_then(|n| try_as(n, "when converting u64 to i8", p)),
             n @ 0x20 ..= 0x37 => Ok(-1 - (n - 0x20) as i8),
             0x38              => self.read().and_then(|n| try_as(n, "when converting u8 to i8", p).map(|n: i8| -1 - n)),
-            0x39              => self.read_slice(2).map(read_u16).and_then(|n| try_as(n, "when converting u16 to i8", p).map(|n: i8| -1 - n)),
-            0x3a              => self.read_slice(4).map(read_u32).and_then(|n| try_as(n, "when converting u32 to i8", p).map(|n: i8| -1 - n)),
-            0x3b              => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "when converting u64 to i8", p).map(|n: i8| -1 - n)),
+            0x39              => self.read_array().map(u16::from_be_bytes).and_then(|n| try_as(n, "when converting u16 to i8", p).map(|n: i8| -1 - n)),
+            0x3a              => self.read_array().map(u32::from_be_bytes).and_then(|n| try_as(n, "when converting u32 to i8", p).map(|n: i8| -1 - n)),
+            0x3b              => self.read_array().map(u64::from_be_bytes).and_then(|n| try_as(n, "when converting u64 to i8", p).map(|n: i8| -1 - n)),
             b                 => Err(Error::type_mismatch(self.type_of(b)?).at(p).with_message("expected i8"))
         }
     }
@@ -136,14 +136,14 @@ impl<'b> Decoder<'b> {
         match self.read()? {
             n @ 0x00 ..= 0x17 => Ok(i16::from(n)),
             0x18              => self.read().map(i16::from),
-            0x19              => self.read_slice(2).map(read_u16).and_then(|n| try_as(n, "when converting u16 to i16", p)),
-            0x1a              => self.read_slice(4).map(read_u32).and_then(|n| try_as(n, "when converting u32 to i16", p)),
-            0x1b              => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "when converting u64 to i16", p)),
+            0x19              => self.read_array().map(u16::from_be_bytes).and_then(|n| try_as(n, "when converting u16 to i16", p)),
+            0x1a              => self.read_array().map(u32::from_be_bytes).and_then(|n| try_as(n, "when converting u32 to i16", p)),
+            0x1b              => self.read_array().map(u64::from_be_bytes).and_then(|n| try_as(n, "when converting u64 to i16", p)),
             n @ 0x20 ..= 0x37 => Ok(-1 - i16::from(n - 0x20)),
             0x38              => self.read().map(|n| -1 - i16::from(n)),
-            0x39              => self.read_slice(2).map(read_u16).and_then(|n| try_as(n, "when converting u16 to i16", p).map(|n: i16| -1 - n)),
-            0x3a              => self.read_slice(4).map(read_u32).and_then(|n| try_as(n, "when converting u32 to i16", p).map(|n: i16| -1 - n)),
-            0x3b              => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "when converting u64 to i16", p).map(|n: i16| -1 - n)),
+            0x39              => self.read_array().map(u16::from_be_bytes).and_then(|n| try_as(n, "when converting u16 to i16", p).map(|n: i16| -1 - n)),
+            0x3a              => self.read_array().map(u32::from_be_bytes).and_then(|n| try_as(n, "when converting u32 to i16", p).map(|n: i16| -1 - n)),
+            0x3b              => self.read_array().map(u64::from_be_bytes).and_then(|n| try_as(n, "when converting u64 to i16", p).map(|n: i16| -1 - n)),
             b                 => Err(Error::type_mismatch(self.type_of(b)?).at(p).with_message("expected i16"))
         }
     }
@@ -154,14 +154,14 @@ impl<'b> Decoder<'b> {
         match self.read()? {
             n @ 0x00 ..= 0x17 => Ok(i32::from(n)),
             0x18              => self.read().map(i32::from),
-            0x19              => self.read_slice(2).map(read_u16).map(i32::from),
-            0x1a              => self.read_slice(4).map(read_u32).and_then(|n| try_as(n, "when converting u32 to i32", p)),
-            0x1b              => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "when converting u64 to i32", p)),
+            0x19              => self.read_array().map(u16::from_be_bytes).map(i32::from),
+            0x1a              => self.read_array().map(u32::from_be_bytes).and_then(|n| try_as(n, "when converting u32 to i32", p)),
+            0x1b              => self.read_array().map(u64::from_be_bytes).and_then(|n| try_as(n, "when converting u64 to i32", p)),
             n @ 0x20 ..= 0x37 => Ok(-1 - i32::from(n - 0x20)),
             0x38              => self.read().map(|n| -1 - i32::from(n)),
-            0x39              => self.read_slice(2).map(read_u16).map(|n| -1 - i32::from(n)),
-            0x3a              => self.read_slice(4).map(read_u32).and_then(|n| try_as(n, "when converting u32 to i32", p).map(|n: i32| -1 - n)),
-            0x3b              => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "when converting u64 to i32", p).map(|n: i32| -1 - n)),
+            0x39              => self.read_array().map(u16::from_be_bytes).map(|n| -1 - i32::from(n)),
+            0x3a              => self.read_array().map(u32::from_be_bytes).and_then(|n| try_as(n, "when converting u32 to i32", p).map(|n: i32| -1 - n)),
+            0x3b              => self.read_array().map(u64::from_be_bytes).and_then(|n| try_as(n, "when converting u64 to i32", p).map(|n: i32| -1 - n)),
             b                 => Err(Error::type_mismatch(self.type_of(b)?).at(p).with_message("expected i32"))
         }
     }
@@ -172,14 +172,14 @@ impl<'b> Decoder<'b> {
         match self.read()? {
             n @ 0x00 ..= 0x17 => Ok(i64::from(n)),
             0x18              => self.read().map(i64::from),
-            0x19              => self.read_slice(2).map(read_u16).map(i64::from),
-            0x1a              => self.read_slice(4).map(read_u32).map(i64::from),
-            0x1b              => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "when converting u64 to i64", p)),
+            0x19              => self.read_array().map(u16::from_be_bytes).map(i64::from),
+            0x1a              => self.read_array().map(u32::from_be_bytes).map(i64::from),
+            0x1b              => self.read_array().map(u64::from_be_bytes).and_then(|n| try_as(n, "when converting u64 to i64", p)),
             n @ 0x20 ..= 0x37 => Ok(-1 - i64::from(n - 0x20)),
             0x38              => self.read().map(|n| -1 - i64::from(n)),
-            0x39              => self.read_slice(2).map(read_u16).map(|n| -1 - i64::from(n)),
-            0x3a              => self.read_slice(4).map(read_u32).map(|n| -1 - i64::from(n)),
-            0x3b              => self.read_slice(8).map(read_u64).and_then(|n| try_as(n, "when converting u64 to i64", p).map(|n: i64| -1 - n)),
+            0x39              => self.read_array().map(u16::from_be_bytes).map(|n| -1 - i64::from(n)),
+            0x3a              => self.read_array().map(u32::from_be_bytes).map(|n| -1 - i64::from(n)),
+            0x3b              => self.read_array().map(u64::from_be_bytes).and_then(|n| try_as(n, "when converting u64 to i64", p).map(|n: i64| -1 - n)),
             b                 => Err(Error::type_mismatch(self.type_of(b)?).at(p).with_message("expected i64"))
         }
     }
@@ -192,14 +192,14 @@ impl<'b> Decoder<'b> {
         match self.read()? {
             n @ 0x00 ..= 0x17 => Ok(Int::pos(n)),
             0x18              => self.read().map(Int::pos),
-            0x19              => self.read_slice(2).map(read_u16).map(Int::pos),
-            0x1a              => self.read_slice(4).map(read_u32).map(Int::pos),
-            0x1b              => self.read_slice(8).map(read_u64).map(Int::pos),
+            0x19              => self.read_array().map(u16::from_be_bytes).map(Int::pos),
+            0x1a              => self.read_array().map(u32::from_be_bytes).map(Int::pos),
+            0x1b              => self.read_array().map(u64::from_be_bytes).map(Int::pos),
             n @ 0x20 ..= 0x37 => Ok(Int::neg(n - 0x20)),
             0x38              => self.read().map(Int::neg),
-            0x39              => self.read_slice(2).map(read_u16).map(Int::neg),
-            0x3a              => self.read_slice(4).map(read_u32).map(Int::neg),
-            0x3b              => self.read_slice(8).map(read_u64).map(Int::neg),
+            0x39              => self.read_array().map(u16::from_be_bytes).map(Int::neg),
+            0x3a              => self.read_array().map(u32::from_be_bytes).map(Int::neg),
+            0x3b              => self.read_array().map(u64::from_be_bytes).map(Int::neg),
             b                 => Err(Error::type_mismatch(self.type_of(b)?).at(p).with_message("expected int"))
         }
     }
@@ -214,9 +214,7 @@ impl<'b> Decoder<'b> {
         if 0xf9 != b {
             return Err(Error::type_mismatch(self.type_of(b)?).at(p).with_message("expected f16"))
         }
-        let mut n = [0; 2];
-        n.copy_from_slice(self.read_slice(2)?);
-        Ok(half::f16::from_bits(u16::from_be_bytes(n)).to_f32())
+        Ok(half::f16::from_bits(u16::from_be_bytes(self.read_array()?)).to_f32())
     }
 
     /// Decode an `f32` value.
@@ -227,9 +225,7 @@ impl<'b> Decoder<'b> {
             0xf9 => self.f16(),
             0xfa => {
                 self.read()?;
-                let mut n = [0; 4];
-                n.copy_from_slice(self.read_slice(4)?);
-                Ok(f32::from_be_bytes(n))
+                Ok(f32::from_be_bytes(self.read_array()?))
             }
             b => Err(Error::type_mismatch(self.type_of(b)?).at(p).with_message("expected f32"))
         }
@@ -244,9 +240,7 @@ impl<'b> Decoder<'b> {
             0xfa => self.f32().map(f64::from),
             0xfb => {
                 self.read()?;
-                let mut n = [0; 8];
-                n.copy_from_slice(self.read_slice(8)?);
-                Ok(f64::from_be_bytes(n))
+                Ok(f64::from_be_bytes(self.read_array()?))
             }
             b => Err(Error::type_mismatch(self.type_of(b)?).at(p).with_message("expected f64"))
         }
@@ -650,13 +644,13 @@ impl<'b> Decoder<'b> {
     }
 
     /// Decode a `u64` value beginning with `b`.
-    fn unsigned(&mut self, b: u8, p: usize) -> Result<u64, Error> {
+    pub(crate) fn unsigned(&mut self, b: u8, p: usize) -> Result<u64, Error> {
         match b {
             n @ 0 ..= 0x17 => Ok(u64::from(n)),
             0x18 => self.read().map(u64::from),
-            0x19 => self.read_slice(2).map(read_u16).map(u64::from),
-            0x1a => self.read_slice(4).map(read_u32).map(u64::from),
-            0x1b => self.read_slice(8).map(read_u64),
+            0x19 => self.read_array().map(u16::from_be_bytes).map(u64::from),
+            0x1a => self.read_array().map(u32::from_be_bytes).map(u64::from),
+            0x1b => self.read_array().map(u64::from_be_bytes),
             _    => Err(Error::type_mismatch(self.type_of(b)?)
                 .with_message("expected u64")
                 .at(p))
@@ -694,6 +688,15 @@ impl<'b> Decoder<'b> {
             return Ok(b)
         }
         Err(Error::end_of_input())
+    }
+
+    /// Consume and return *N* bytes starting at the current position.
+    fn read_array<const N: usize>(&mut self) -> Result<[u8; N], Error> {
+        self.read_slice(N).map(|slice| {
+            let mut a = [0; N];
+            a.copy_from_slice(slice);
+            a
+        })
     }
 
     /// Map the given byte to a [`Type`].
@@ -958,31 +961,13 @@ impl<'b> core::ops::DerefMut for Probe<'_, 'b> {
     }
 }
 
-fn read_u16(b: &[u8]) -> u16 {
-    let mut n = [0; 2];
-    n.copy_from_slice(b);
-    u16::from_be_bytes(n)
-}
-
-fn read_u32(b: &[u8]) -> u32 {
-    let mut n = [0; 4];
-    n.copy_from_slice(b);
-    u32::from_be_bytes(n)
-}
-
-fn read_u64(b: &[u8]) -> u64 {
-    let mut n = [0; 8];
-    n.copy_from_slice(b);
-    u64::from_be_bytes(n)
-}
-
 /// Get the major type info of the given byte (highest 3 bits).
-fn type_of(b: u8) -> u8 {
+pub(crate) fn type_of(b: u8) -> u8 {
     b & 0b111_00000
 }
 
 /// Get the additionl type info of the given byte (lowest 5 bits).
-fn info_of(b: u8) -> u8 {
+pub(crate) fn info_of(b: u8) -> u8 {
     b & 0b000_11111
 }
 

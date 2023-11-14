@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "minicbor"
-version = "0.19.1"
+version = "0.20.0"
 authors = ["Toralf Wittner <tw@dtex.org>"]
 build = "build.rs"
 description = "A small CBOR codec suitable for no_std environments."
@@ -28,7 +28,6 @@ keywords = [
 categories = ["encoding"]
 license = "BlueOak-1.0.0"
 repository = "https://gitlab.com/twittner/minicbor"
-resolver = "1"
 
 [package.metadata.docs.rs]
 features = [

@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "async-recursion"
-version = "1.0.4"
+version = "1.0.5"
 authors = ["Robert Usher <266585+dcchut@users.noreply.github.com>"]
 description = "Recursion for async functions"
 documentation = "https://docs.rs/async-recursion"

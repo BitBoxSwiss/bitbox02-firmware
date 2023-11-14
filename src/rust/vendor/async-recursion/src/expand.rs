@@ -61,8 +61,18 @@ fn transform_sig(sig: &mut Signature, args: &RecursionArgs) {
 
     for arg in &mut sig.inputs {
         if let FnArg::Typed(pt) = arg {
-            if let Type::Reference(tr) = pt.ty.as_mut() {
-                ref_arguments.push(tr);
+            match pt.ty.as_mut() {
+                // rustc can give us a None-delimited group if this type comes from
+                // a macro_rules macro.  I don't this can happen for code the user has written.
+                Type::Group(tg) => {
+                    if let Type::Reference(tr) = &mut *tg.elem {
+                        ref_arguments.push(tr);
+                    }
+                }
+                Type::Reference(tr) => {
+                    ref_arguments.push(tr);
+                }
+                _ => {}
             }
         } else if let FnArg::Receiver(recv) = arg {
             if let Some((_, slt)) = &mut recv.reference {

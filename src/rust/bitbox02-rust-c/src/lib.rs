@@ -32,8 +32,6 @@ mod async_usb;
 mod noise;
 #[cfg(feature = "firmware")]
 mod sha2;
-#[cfg(feature = "app-ethereum")]
-mod sha3;
 #[cfg(feature = "firmware")]
 mod workflow;
 

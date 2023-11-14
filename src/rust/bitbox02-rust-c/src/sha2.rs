@@ -50,18 +50,6 @@ pub unsafe extern "C" fn rust_sha256_finish(ctx: *mut *mut c_void, out: *mut c_u
     *ctx = core::ptr::null_mut();
 }
 
-/// Safety: ctx must be a pointer to a valid sha256 context produced by `rust_sha256_new()`, or a
-/// pointer to NULL.
-/// After this, the hasher is dropped and `ctx` is set to NULL and must not be used anymore.
-#[no_mangle]
-pub unsafe extern "C" fn rust_sha256_free(ctx: *mut *mut c_void) {
-    if !(*ctx).is_null() {
-        #[allow(clippy::cast_ptr_alignment)] // ctx is properly aligned, see `Box::into_raw`.
-        drop(Box::from_raw(*ctx as *mut Sha256));
-        *ctx = core::ptr::null_mut();
-    }
-}
-
 /// Safety: data must be a valid buffer for `len` bytes. `out` must be 32 bytes long.
 #[no_mangle]
 pub unsafe extern "C" fn rust_sha256(data: *const c_void, len: usize, out: *mut c_uchar) {
@@ -108,30 +96,6 @@ mod tests {
             rust_sha256(data.as_ptr() as *const _, data.len(), result.as_mut_ptr());
         }
         assert_eq!(result, &Sha256::digest(b"foo abc def xyz bar")[..]);
-    }
-
-    #[test]
-    fn test_free() {
-        let mut ctx = rust_sha256_new();
-        unsafe {
-            rust_sha256_free(&mut ctx);
-            assert!(ctx.is_null());
-            rust_sha256_free(&mut ctx);
-        }
-    }
-
-    // Technically redundant to the other tests. Check that freeing always works.
-    #[test]
-    fn test_free_after_use() {
-        let mut ctx = rust_sha256_new();
-        unsafe {
-            let mut result = [0u8; 32];
-            // This frees ctx.
-            rust_sha256_finish(&mut ctx, result.as_mut_ptr());
-            // ctx is NULL now.
-            rust_sha256_free(&mut ctx);
-            assert!(ctx.is_null());
-        };
     }
 
     /// Test that input and output can be the same buffer.

@@ -53,6 +53,7 @@ impl Zeroize for BackupData {
         self.0.generator.zeroize();
     }
 }
+
 /// Pad a seed with zeroes to the right up to 32 bytes.  That the seed field in backups is always 32
 /// bytes is a historical "accident" as it was easier to fix the size when using C (and nanopb
 /// protobuf), with the seed_length indicating the actual length.
@@ -266,6 +267,24 @@ mod tests {
     use core::convert::TryInto;
 
     use bitbox02::testing::mock_sd;
+
+    #[test]
+    fn test_id() {
+        // Seeds of different lengths (16, 24, 32 bytes)
+        let seed_16 = [1u8; 16];
+        let seed_24 = [2u8; 24];
+        let seed_32 = [3u8; 32];
+
+        // Expected outputs for each seed length
+        let expected_output_16 = "2ca3c18f988437806217db3bbee04913cbfaaa7152d4a9c00c80cf3802d0ef6f";
+        let expected_output_24 = "57c24fa271ba9c6f4d5f2519c26f52dae8f491423daffb87d1c1002ca8a2b172";
+        let expected_output_32 = "89910bac6d7f82e4e97ea2b6449e201dfd793adb75b342a90314d178866c89eb";
+
+        // Assert that id function produces expected outputs
+        assert_eq!(id(&seed_16), expected_output_16);
+        assert_eq!(id(&seed_24), expected_output_24);
+        assert_eq!(id(&seed_32), expected_output_32);
+    }
 
     fn _test_create_load(seed: &[u8]) {
         mock_sd();

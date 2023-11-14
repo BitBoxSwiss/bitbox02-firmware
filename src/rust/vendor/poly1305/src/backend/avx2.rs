@@ -15,15 +15,22 @@
 // optimisations provided by Bhattacharyya and Sarkar. The latter require the message
 // length to be known, which is incompatible with the streaming API of UniversalHash.
 
-use core::convert::TryInto;
-use universal_hash::generic_array::GenericArray;
+use universal_hash::{
+    consts::{U16, U4},
+    crypto_common::{BlockSizeUser, ParBlocksSizeUser},
+    generic_array::GenericArray,
+    UhfBackend,
+};
 
 use crate::{Block, Key, Tag};
 
 mod helpers;
 use self::helpers::*;
 
-#[derive(Clone)]
+/// Four Poly1305 blocks (64-bytes)
+type ParBlocks = universal_hash::ParBlocks<State>;
+
+#[derive(Copy, Clone)]
 struct Initialized {
     p: Aligned4x130,
     m: SpacedMultiplier4x130,
@@ -42,10 +49,10 @@ pub(crate) struct State {
 }
 
 impl State {
-    /// Initialize Poly1305 state with the given key
+    /// Initialize Poly1305 [`State`] with the given key
     pub(crate) fn new(key: &Key) -> Self {
         // Prepare addition key and polynomial key.
-        let (k, r1) = prepare_keys(key);
+        let (k, r1) = unsafe { prepare_keys(key) };
 
         // Precompute R^2.
         let r2 = (r1 * r1).reduce();
@@ -61,13 +68,18 @@ impl State {
         }
     }
 
-    /// Reset internal state
-    pub(crate) fn reset(&mut self) {
-        self.initialized = None;
-        self.num_cached_blocks = 0;
+    /// Process four Poly1305 blocks at once.
+    #[target_feature(enable = "avx2")]
+    pub(crate) unsafe fn compute_par_blocks(&mut self, blocks: &ParBlocks) {
+        assert!(self.partial_block.is_none());
+        assert_eq!(self.num_cached_blocks, 0);
+
+        self.process_blocks(Aligned4x130::from_par_blocks(blocks));
     }
 
-    pub(crate) fn compute_block(&mut self, block: &Block, partial: bool) {
+    /// Compute a Poly1305 block
+    #[target_feature(enable = "avx2")]
+    pub(crate) unsafe fn compute_block(&mut self, block: &Block, partial: bool) {
         // We can cache a single partial block.
         if partial {
             assert!(self.partial_block.is_none());
@@ -83,13 +95,18 @@ impl State {
             self.num_cached_blocks = 0;
         }
 
+        self.process_blocks(Aligned4x130::from_blocks(&self.cached_blocks));
+    }
+
+    /// Compute a Poly1305 block
+    #[target_feature(enable = "avx2")]
+    unsafe fn process_blocks(&mut self, blocks: Aligned4x130) {
         if let Some(inner) = &mut self.initialized {
             // P <-- R^4 * P + blocks
-            inner.p =
-                (&inner.p * inner.r4).reduce() + Aligned4x130::from_blocks(&self.cached_blocks);
+            inner.p = (&inner.p * inner.r4).reduce() + blocks;
         } else {
             // Initialize the polynomial.
-            let p = Aligned4x130::from_blocks(&self.cached_blocks);
+            let p = blocks;
 
             // Initialize the multiplier (used to merge down the polynomial during
             // finalization).
@@ -99,7 +116,9 @@ impl State {
         }
     }
 
-    pub(crate) fn finalize(&mut self) -> Tag {
+    /// Finalize output producing a [`Tag`]
+    #[target_feature(enable = "avx2")]
+    pub(crate) unsafe fn finalize(&mut self) -> Tag {
         assert!(self.num_cached_blocks < 4);
         let mut data = &self.cached_blocks[..];
 
@@ -149,6 +168,42 @@ impl State {
         };
         tag_int.write(tag.as_mut_slice());
 
-        Tag::new(tag)
+        tag
+    }
+}
+
+impl BlockSizeUser for State {
+    type BlockSize = U16;
+}
+
+impl ParBlocksSizeUser for State {
+    type ParBlocksSize = U4;
+}
+
+impl UhfBackend for State {
+    fn proc_block(&mut self, block: &Block) {
+        unsafe { self.compute_block(block, false) };
+    }
+
+    fn proc_par_blocks(&mut self, blocks: &ParBlocks) {
+        if self.num_cached_blocks == 0 {
+            // Fast path.
+            unsafe { self.compute_par_blocks(blocks) };
+        } else {
+            // We are unaligned; use the slow fallback.
+            for block in blocks {
+                self.proc_block(block);
+            }
+        }
+    }
+
+    fn blocks_needed_to_align(&self) -> usize {
+        if self.num_cached_blocks == 0 {
+            // There are no cached blocks; fast path is available.
+            0
+        } else {
+            // There are cached blocks; report how many more we need.
+            self.cached_blocks.len() - self.num_cached_blocks
+        }
     }
 }

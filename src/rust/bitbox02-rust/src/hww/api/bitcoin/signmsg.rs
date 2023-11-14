@@ -90,7 +90,7 @@ pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Er
     msg.extend(super::script::serialize_varint(request.msg.len() as _));
     msg.extend(&request.msg);
 
-    let sighash: [u8; 32] = Sha256::digest(&Sha256::digest(&msg))
+    let sighash: [u8; 32] = Sha256::digest(Sha256::digest(msg))
         .as_slice()
         .try_into()
         .unwrap();

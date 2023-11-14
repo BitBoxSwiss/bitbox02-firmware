@@ -60,7 +60,7 @@ pub fn sighash(args: &Args) -> [u8; 32] {
     ctx.update(args.locktime.to_le_bytes());
     // 10.
     ctx.update(args.sighash_flags.to_le_bytes());
-    Sha256::digest(&ctx.finalize()).into()
+    Sha256::digest(ctx.finalize()).into()
 }
 
 #[cfg(test)]

@@ -4,6 +4,95 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.10.1 (2022-08-09)
+### Added
+- `rand_core` feature ([#467])
+
+[#467]: https://github.com/RustCrypto/AEADs/pull/467
+
+## 0.10.0 (2022-07-31)
+### Added
+- `getrandom` feature ([#446])
+- Impl `ZeroizeOnDrop` for `ChaChaPoly1305` ([#447])
+
+### Changed
+- Bump `chacha20` dependency to v0.9 ([#402])
+- Rust 2021 edition upgrade; MSRV 1.56+ ([#435])
+- Bump `aead` dependency to v0.5 ([#444])
+- Bump `poly1305` dependency to v0.8 ([#454])
+
+[#402]: https://github.com/RustCrypto/AEADs/pull/402
+[#435]: https://github.com/RustCrypto/AEADs/pull/435
+[#444]: https://github.com/RustCrypto/AEADs/pull/444
+[#446]: https://github.com/RustCrypto/AEADs/pull/446
+[#447]: https://github.com/RustCrypto/AEADs/pull/447
+[#454]: https://github.com/RustCrypto/AEADs/pull/454
+
+## 0.9.1 (2022-07-07)
+### Changed
+- Unpin `zeroize` dependency ([#438])
+
+[#438]: https://github.com/RustCrypto/AEADs/pull/438
+
+## 0.9.0 (2021-08-29)
+### Changed
+- Bump `chacha20` to v0.8: now a hard dependency ([#365])
+- MSRV 1.51+ ([#365])
+
+### Removed
+- `chacha20` feature: now a hard dependency ([#365])
+- `xchacha20` feature: now always-on ([#365])
+- `chacha20-reduced-round` and `xchacha20-reduced-round` have been coalesced
+  into the `reduced-round` feature ([#365])
+
+[#365]: https://github.com/RustCrypto/AEADs/pull/365
+
+## 0.8.2 (2021-08-28)
+### Added
+- `XChaCha*` reduced-round variants ([#355])
+
+### Changed
+- Relax `subtle` and `zeroize` requirements ([#360])
+
+[#355]: https://github.com/RustCrypto/AEADs/pull/355
+[#360]: https://github.com/RustCrypto/AEADs/pull/360
+
+## 0.8.1 (2021-07-20)
+### Changed
+- Pin `zeroize` dependency to v1.3 ([#349])
+
+[#349]: https://github.com/RustCrypto/AEADs/pull/349
+
+## 0.8.0 (2021-04-29)
+### Added
+- Wycheproof test vectors ([#274])
+
+### Changed
+- Bump `aead` crate dependency to v0.4 ([#270])
+- `xchacha` feature name ([#257])
+- MSRV 1.49+ ([#286], [#289])
+- Bump `chacha20` crate dependency to v0.7 ([#286])
+- Bump `poly1305` crate dependency to v0.7 ([#289])
+
+[#257]: https://github.com/RustCrypto/AEADs/pull/257
+[#270]: https://github.com/RustCrypto/AEADs/pull/270
+[#274]: https://github.com/RustCrypto/AEADs/pull/274
+[#286]: https://github.com/RustCrypto/AEADs/pull/286
+[#289]: https://github.com/RustCrypto/AEADs/pull/289
+
+## 0.7.1 (2020-10-25)
+### Changed
+- Expand README.md ([#233])
+
+[#233]: https://github.com/RustCrypto/AEADs/pull/233
+
+## 0.7.0 (2020-10-16)
+### Changed
+- Replace `block-cipher`/`stream-cipher` with `cipher` crate ([#229])
+- Bump `chacha20` dependency to v0.6 ([#229])
+
+[#229]: https://github.com/RustCrypto/AEADs/pull/229
+
 ## 0.6.0 (2020-09-17)
 ### Added
 - Optional `std` feature; disabled by default ([#217])

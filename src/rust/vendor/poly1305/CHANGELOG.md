@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.8.0 (2022-07-31)
+### Changed
+- Relax `zeroize` constraints ([#147])
+- Upgrade to Rust 2021 edition ([#147])
+- Use stable `aarch64_target_feature` ([#154])
+- Bump `universal-hash` to v0.5 ([#155], [#162])
+- Replace `armv8`/`force-soft` features with `cfg` attributes ([#159])
+
+### Removed
+- `armv8`/`force-soft` features ([#159])
+
+[#147]: https://github.com/RustCrypto/universal-hashes/pull/147
+[#154]: https://github.com/RustCrypto/universal-hashes/pull/154
+[#155]: https://github.com/RustCrypto/universal-hashes/pull/155
+[#159]: https://github.com/RustCrypto/universal-hashes/pull/159
+[#162]: https://github.com/RustCrypto/universal-hashes/pull/162
+
+## 0.7.2 (2021-08-27)
+### Changed
+- Bump `cpufeatures` dependency to v0.2 ([#136])
+
+[#136]: https://github.com/RustCrypto/universal-hashes/pull/136
+
+## 0.7.1 (2021-07-20)
+### Changed
+- Pin `zeroize` dependency to v1.3 ([#134])
+
+[#134]: https://github.com/RustCrypto/universal-hashes/pull/134
+
+## 0.7.0 (2021-04-29)
+### Changed
+- Use `ManuallyDrop` unions; MSRV 1.49+ ([#114])
+- Use `cpufeatures` v0.1 crate release ([#116])
+
+[#114]: https://github.com/RustCrypto/universal-hashes/pull/114
+[#116]: https://github.com/RustCrypto/universal-hashes/pull/116
+
+## 0.6.2 (2020-12-09)
+### Added
+- Runtime AVX2 detection ([#97])
+
+[#97]: https://github.com/RustCrypto/universal-hashes/pull/97
+
 ## 0.6.1 (2020-09-29)
 ### Added
 - AVX2 backend ([#49])

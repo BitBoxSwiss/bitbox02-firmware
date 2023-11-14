@@ -14,24 +14,10 @@
 //!
 //! # Minimum Supported Rust Version
 //!
-//! Rust **1.41** or higher.
+//! Rust **1.56** or higher.
 //!
 //! Minimum supported Rust version may be changed in the future, but such
 //! changes will be accompanied with a minor version bump.
-//!
-//! # Performance Notes
-//!
-//! For maximum performance on x86/x86_64 CPUs, we recommend enabling the AVX2
-//! backend using the following `RUSTFLAGS`:
-//!
-//! - x86(-64) CPU: `target-cpu=haswell` or newer
-//! - AVX2: `target-feature=+avx2`
-//!
-//! Example:
-//!
-//! ```text
-//! $ RUSTFLAGS="-Ctarget-cpu=haswell -Ctarget-feature=+avx2" cargo bench
-//! ```
 //!
 //! # Security Notes
 //!
@@ -56,7 +42,10 @@
 //! [MobileCoin]: https://mobilecoin.com
 
 #![no_std]
-#![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
+)]
 #![warn(missing_docs, rust_2018_idioms)]
 
 #[cfg(feature = "std")]
@@ -66,18 +55,32 @@ pub use universal_hash;
 
 use universal_hash::{
     consts::{U16, U32},
+    crypto_common::{BlockSizeUser, KeySizeUser},
     generic_array::GenericArray,
-    NewUniversalHash, UniversalHash,
+    KeyInit, UniversalHash,
 };
 
 mod backend;
 
 #[cfg(all(
     any(target_arch = "x86", target_arch = "x86_64"),
-    target_feature = "avx2",
+    not(poly1305_force_soft),
+    target_feature = "avx2", // Fuzz tests bypass AVX2 autodetection code
     any(fuzzing, test)
 ))]
 mod fuzz;
+
+#[cfg(all(
+    any(target_arch = "x86", target_arch = "x86_64"),
+    not(poly1305_force_soft)
+))]
+use crate::backend::autodetect::State;
+
+#[cfg(not(all(
+    any(target_arch = "x86", target_arch = "x86_64"),
+    not(poly1305_force_soft)
+)))]
+use crate::backend::soft::State;
 
 /// Size of a Poly1305 key
 pub const KEY_SIZE: usize = 32;
@@ -92,7 +95,7 @@ pub type Key = universal_hash::Key<Poly1305>;
 pub type Block = universal_hash::Block<Poly1305>;
 
 /// Poly1305 tags (16-bytes)
-pub type Tag = universal_hash::Output<Poly1305>;
+pub type Tag = universal_hash::Block<Poly1305>;
 
 /// The Poly1305 universal hash function.
 ///
@@ -102,35 +105,36 @@ pub type Tag = universal_hash::Output<Poly1305>;
 /// For this reason it doesn't impl the `crypto_mac::Mac` trait.
 #[derive(Clone)]
 pub struct Poly1305 {
-    state: backend::State,
+    state: State,
 }
 
-impl NewUniversalHash for Poly1305 {
+impl KeySizeUser for Poly1305 {
     type KeySize = U32;
+}
 
+impl KeyInit for Poly1305 {
     /// Initialize Poly1305 with the given key
     fn new(key: &Key) -> Poly1305 {
         Poly1305 {
-            state: backend::State::new(key),
+            state: State::new(key),
         }
     }
 }
 
-impl UniversalHash for Poly1305 {
+impl BlockSizeUser for Poly1305 {
     type BlockSize = U16;
+}
 
-    /// Input data into the Poly1305 universal hash function
-    fn update(&mut self, block: &Block) {
-        self.state.compute_block(block, false);
-    }
-
-    /// Reset internal state
-    fn reset(&mut self) {
-        self.state.reset();
+impl UniversalHash for Poly1305 {
+    fn update_with_backend(
+        &mut self,
+        f: impl universal_hash::UhfClosure<BlockSize = Self::BlockSize>,
+    ) {
+        self.state.update_with_backend(f);
     }
 
     /// Get the hashed output
-    fn finalize(mut self) -> Tag {
+    fn finalize(self) -> Tag {
         self.state.finalize()
     }
 }
@@ -156,9 +160,12 @@ impl Poly1305 {
     }
 }
 
+opaque_debug::implement!(Poly1305);
+
 #[cfg(all(
     any(target_arch = "x86", target_arch = "x86_64"),
-    target_feature = "avx2",
+    not(poly1305_force_soft),
+    target_feature = "avx2", // Fuzz tests bypass AVX2 autodetection code
     any(fuzzing, test)
 ))]
 pub use crate::fuzz::fuzz_avx2;

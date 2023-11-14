@@ -1,11 +1,12 @@
 // -*- mode: rust; -*-
 //
 // This file is part of curve25519-dalek.
-// Copyright (c) 2016-2019 Isis Lovecruft, Henry de Valence
+// Copyright (c) 2016-2021 isis lovecruft
+// Copyright (c) 2016-2019 Henry de Valence
 // See LICENSE for licensing information.
 //
 // Authors:
-// - Isis Agora Lovecruft <isis@patternsinthevoid.net>
+// - isis agora lovecruft <isis@patternsinthevoid.net>
 // - Henry de Valence <hdevalence@hdevalence.ca>
 
 //! Parallel Edwards Arithmetic for Curve25519.
@@ -40,10 +41,15 @@ use core::ops::{Add, Neg, Sub};
 use subtle::Choice;
 use subtle::ConditionallySelectable;
 
-use edwards;
-use window::{LookupTable, NafLookupTable5, NafLookupTable8};
+use curve25519_dalek_derive::unsafe_target_feature;
 
-use traits::Identity;
+use crate::edwards;
+use crate::window::{LookupTable, NafLookupTable5};
+
+#[cfg(any(feature = "precomputed-tables", feature = "alloc"))]
+use crate::window::NafLookupTable8;
+
+use crate::traits::Identity;
 
 use super::constants;
 use super::field::{FieldElement2625x4, Lanes, Shuffle};
@@ -58,12 +64,14 @@ use super::field::{FieldElement2625x4, Lanes, Shuffle};
 #[derive(Copy, Clone, Debug)]
 pub struct ExtendedPoint(pub(super) FieldElement2625x4);
 
+#[unsafe_target_feature("avx2")]
 impl From<edwards::EdwardsPoint> for ExtendedPoint {
     fn from(P: edwards::EdwardsPoint) -> ExtendedPoint {
         ExtendedPoint(FieldElement2625x4::new(&P.X, &P.Y, &P.Z, &P.T))
     }
 }
 
+#[unsafe_target_feature("avx2")]
 impl From<ExtendedPoint> for edwards::EdwardsPoint {
     fn from(P: ExtendedPoint) -> edwards::EdwardsPoint {
         let tmp = P.0.split();
@@ -76,6 +84,7 @@ impl From<ExtendedPoint> for edwards::EdwardsPoint {
     }
 }
 
+#[unsafe_target_feature("avx2")]
 impl ConditionallySelectable for ExtendedPoint {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         ExtendedPoint(FieldElement2625x4::conditional_select(&a.0, &b.0, choice))
@@ -86,18 +95,21 @@ impl ConditionallySelectable for ExtendedPoint {
     }
 }
 
+#[unsafe_target_feature("avx2")]
 impl Default for ExtendedPoint {
     fn default() -> ExtendedPoint {
         ExtendedPoint::identity()
     }
 }
 
+#[unsafe_target_feature("avx2")]
 impl Identity for ExtendedPoint {
     fn identity() -> ExtendedPoint {
         constants::EXTENDEDPOINT_IDENTITY
     }
 }
 
+#[unsafe_target_feature("avx2")]
 impl ExtendedPoint {
     /// Compute the double of this point.
     pub fn double(&self) -> ExtendedPoint {
@@ -133,7 +145,7 @@ impl ExtendedPoint {
         //    =======================
         //        S5   S6   S8   S9
 
-        let zero = FieldElement2625x4::zero();
+        let zero = FieldElement2625x4::ZERO;
         let S_1 = tmp1.shuffle(Shuffle::AAAA);
         let S_2 = tmp1.shuffle(Shuffle::BBBB);
 
@@ -153,7 +165,7 @@ impl ExtendedPoint {
         // Set tmp1 = ( S_9,  S_6,  S_6,  S_9)
         //        b < ( 1.6,  1.6,  1.6,  1.6)
         tmp1 = tmp0.shuffle(Shuffle::DBBD);
-        // Set tmp1 = ( S_8,  S_5,  S_8,  S_5)
+        // Set tmp0 = ( S_8,  S_5,  S_8,  S_5)
         //        b < (2.33, 1.01, 2.33, 1.01)
         tmp0 = tmp0.shuffle(Shuffle::CACA);
 
@@ -183,12 +195,13 @@ impl ExtendedPoint {
 #[derive(Copy, Clone, Debug)]
 pub struct CachedPoint(pub(super) FieldElement2625x4);
 
+#[unsafe_target_feature("avx2")]
 impl From<ExtendedPoint> for CachedPoint {
     fn from(P: ExtendedPoint) -> CachedPoint {
         let mut x = P.0;
 
         x = x.blend(x.diff_sum(), Lanes::AB);
-        // x = (X1 - Y1, X2 + Y2, Z2, T2) = (S2 S3 Z2 T2)
+        // x = (Y2 - X2, Y2 + X2, Z2, T2) = (S2 S3 Z2 T2)
 
         x = x * (121666, 121666, 2 * 121666, 2 * 121665);
         // x = (121666*S2 121666*S3 2*121666*Z2 2*121665*T2)
@@ -201,18 +214,21 @@ impl From<ExtendedPoint> for CachedPoint {
     }
 }
 
+#[unsafe_target_feature("avx2")]
 impl Default for CachedPoint {
     fn default() -> CachedPoint {
         CachedPoint::identity()
     }
 }
 
+#[unsafe_target_feature("avx2")]
 impl Identity for CachedPoint {
     fn identity() -> CachedPoint {
         constants::CACHEDPOINT_IDENTITY
     }
 }
 
+#[unsafe_target_feature("avx2")]
 impl ConditionallySelectable for CachedPoint {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         CachedPoint(FieldElement2625x4::conditional_select(&a.0, &b.0, choice))
@@ -223,7 +239,8 @@ impl ConditionallySelectable for CachedPoint {
     }
 }
 
-impl<'a> Neg for &'a CachedPoint {
+#[unsafe_target_feature("avx2")]
+impl Neg for &CachedPoint {
     type Output = CachedPoint;
     /// Lazily negate the point.
     ///
@@ -237,11 +254,12 @@ impl<'a> Neg for &'a CachedPoint {
     }
 }
 
-impl<'a, 'b> Add<&'b CachedPoint> for &'a ExtendedPoint {
+#[unsafe_target_feature("avx2")]
+impl Add<&CachedPoint> for &ExtendedPoint {
     type Output = ExtendedPoint;
 
     /// Add an `ExtendedPoint` and a `CachedPoint`.
-    fn add(self, other: &'b CachedPoint) -> ExtendedPoint {
+    fn add(self, other: &CachedPoint) -> ExtendedPoint {
         // The coefficients of an `ExtendedPoint` are reduced after
         // every operation.  If the `CachedPoint` was negated, its
         // coefficients grow by one bit.  So on input, `self` is
@@ -274,7 +292,8 @@ impl<'a, 'b> Add<&'b CachedPoint> for &'a ExtendedPoint {
     }
 }
 
-impl<'a, 'b> Sub<&'b CachedPoint> for &'a ExtendedPoint {
+#[unsafe_target_feature("avx2")]
+impl Sub<&CachedPoint> for &ExtendedPoint {
     type Output = ExtendedPoint;
 
     /// Implement subtraction by negating the point and adding.
@@ -282,13 +301,14 @@ impl<'a, 'b> Sub<&'b CachedPoint> for &'a ExtendedPoint {
     /// Empirically, this seems about the same cost as a custom
     /// subtraction impl (maybe because the benefit is cancelled by
     /// increased code size?)
-    fn sub(self, other: &'b CachedPoint) -> ExtendedPoint {
+    fn sub(self, other: &CachedPoint) -> ExtendedPoint {
         self + &(-other)
     }
 }
 
-impl<'a> From<&'a edwards::EdwardsPoint> for LookupTable<CachedPoint> {
-    fn from(point: &'a edwards::EdwardsPoint) -> Self {
+#[unsafe_target_feature("avx2")]
+impl From<&edwards::EdwardsPoint> for LookupTable<CachedPoint> {
+    fn from(point: &edwards::EdwardsPoint) -> Self {
         let P = ExtendedPoint::from(*point);
         let mut points = [CachedPoint::from(P); 8];
         for i in 0..7 {
@@ -298,8 +318,9 @@ impl<'a> From<&'a edwards::EdwardsPoint> for LookupTable<CachedPoint> {
     }
 }
 
-impl<'a> From<&'a edwards::EdwardsPoint> for NafLookupTable5<CachedPoint> {
-    fn from(point: &'a edwards::EdwardsPoint) -> Self {
+#[unsafe_target_feature("avx2")]
+impl From<&edwards::EdwardsPoint> for NafLookupTable5<CachedPoint> {
+    fn from(point: &edwards::EdwardsPoint) -> Self {
         let A = ExtendedPoint::from(*point);
         let mut Ai = [CachedPoint::from(A); 8];
         let A2 = A.double();
@@ -311,8 +332,10 @@ impl<'a> From<&'a edwards::EdwardsPoint> for NafLookupTable5<CachedPoint> {
     }
 }
 
-impl<'a> From<&'a edwards::EdwardsPoint> for NafLookupTable8<CachedPoint> {
-    fn from(point: &'a edwards::EdwardsPoint) -> Self {
+#[cfg(any(feature = "precomputed-tables", feature = "alloc"))]
+#[unsafe_target_feature("avx2")]
+impl From<&edwards::EdwardsPoint> for NafLookupTable8<CachedPoint> {
+    fn from(point: &edwards::EdwardsPoint) -> Self {
         let A = ExtendedPoint::from(*point);
         let mut Ai = [CachedPoint::from(A); 64];
         let A2 = A.double();
@@ -324,19 +347,21 @@ impl<'a> From<&'a edwards::EdwardsPoint> for NafLookupTable8<CachedPoint> {
     }
 }
 
+#[cfg(target_feature = "avx2")]
 #[cfg(test)]
 mod test {
     use super::*;
 
+    #[rustfmt::skip] // keep alignment of some S* calculations
     fn serial_add(P: edwards::EdwardsPoint, Q: edwards::EdwardsPoint) -> edwards::EdwardsPoint {
-        use backend::serial::u64::field::FieldElement51;
+        use crate::backend::serial::u64::field::FieldElement51;
 
         let (X1, Y1, Z1, T1) = (P.X, P.Y, P.Z, P.T);
         let (X2, Y2, Z2, T2) = (Q.X, Q.Y, Q.Z, Q.T);
 
         macro_rules! print_var {
             ($x:ident) => {
-                println!("{} = {:?}", stringify!($x), $x.to_bytes());
+                println!("{} = {:?}", stringify!($x), $x.as_bytes());
             };
         }
 
@@ -419,8 +444,8 @@ mod test {
 
     #[test]
     fn vector_addition_vs_serial_addition_vs_edwards_extendedpoint() {
-        use constants;
-        use scalar::Scalar;
+        use crate::constants;
+        use crate::scalar::Scalar;
 
         println!("Testing id +- id");
         let P = edwards::EdwardsPoint::identity();
@@ -439,7 +464,7 @@ mod test {
 
         println!("Testing B +- kB");
         let P = constants::ED25519_BASEPOINT_POINT;
-        let Q = &constants::ED25519_BASEPOINT_TABLE * &Scalar::from(8475983829u64);
+        let Q = constants::ED25519_BASEPOINT_TABLE * &Scalar::from(8475983829u64);
         addition_test_helper(P, Q);
     }
 
@@ -448,7 +473,7 @@ mod test {
 
         macro_rules! print_var {
             ($x:ident) => {
-                println!("{} = {:?}", stringify!($x), $x.to_bytes());
+                println!("{} = {:?}", stringify!($x), $x.as_bytes());
             };
         }
 
@@ -506,8 +531,8 @@ mod test {
 
     #[test]
     fn vector_doubling_vs_serial_doubling_vs_edwards_extendedpoint() {
-        use constants;
-        use scalar::Scalar;
+        use crate::constants;
+        use crate::scalar::Scalar;
 
         println!("Testing [2]id");
         let P = edwards::EdwardsPoint::identity();
@@ -518,7 +543,29 @@ mod test {
         doubling_test_helper(P);
 
         println!("Testing [2]([k]B)");
-        let P = &constants::ED25519_BASEPOINT_TABLE * &Scalar::from(8475983829u64);
+        let P = constants::ED25519_BASEPOINT_TABLE * &Scalar::from(8475983829u64);
         doubling_test_helper(P);
+    }
+
+    #[cfg(any(feature = "precomputed-tables", feature = "alloc"))]
+    #[test]
+    fn basepoint_odd_lookup_table_verify() {
+        use crate::backend::vector::avx2::constants::BASEPOINT_ODD_LOOKUP_TABLE;
+        use crate::constants;
+
+        let basepoint_odd_table =
+            NafLookupTable8::<CachedPoint>::from(&constants::ED25519_BASEPOINT_POINT);
+        println!("basepoint_odd_lookup_table = {:?}", basepoint_odd_table);
+
+        let table_B = &BASEPOINT_ODD_LOOKUP_TABLE;
+        for (b_vec, base_vec) in table_B.0.iter().zip(basepoint_odd_table.0.iter()) {
+            let b_splits = b_vec.0.split();
+            let base_splits = base_vec.0.split();
+
+            assert_eq!(base_splits[0], b_splits[0]);
+            assert_eq!(base_splits[1], b_splits[1]);
+            assert_eq!(base_splits[2], b_splits[2]);
+            assert_eq!(base_splits[3], b_splits[3]);
+        }
     }
 }

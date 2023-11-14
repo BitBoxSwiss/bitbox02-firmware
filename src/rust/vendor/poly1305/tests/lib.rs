@@ -1,7 +1,7 @@
 use hex_literal::hex;
 use poly1305::{
-    universal_hash::{NewUniversalHash, UniversalHash},
-    Poly1305, BLOCK_SIZE, KEY_SIZE,
+    universal_hash::{KeyInit, UniversalHash},
+    Block, Poly1305, BLOCK_SIZE, KEY_SIZE,
 };
 use std::iter::repeat;
 
@@ -24,7 +24,7 @@ fn test_nacl_vector() {
     let expected = hex!("f3ffc7703f9400e52a7dfb4b3d3305d9");
 
     let result1 = Poly1305::new(key.as_ref().into()).compute_unpadded(&msg);
-    assert_eq!(&expected[..], result1.into_bytes().as_slice());
+    assert_eq!(&expected[..], result1.as_slice());
 }
 
 #[test]
@@ -43,8 +43,8 @@ fn donna_self_test1() {
     let expected = hex!("03000000000000000000000000000000");
 
     let mut poly = Poly1305::new(key.as_ref().into());
-    poly.update(msg.as_ref().into());
-    assert_eq!(&expected[..], poly.finalize().into_bytes().as_slice());
+    poly.update(&[Block::clone_from_slice(msg.as_ref())]);
+    assert_eq!(&expected[..], poly.finalize().as_slice());
 }
 
 #[test]
@@ -60,10 +60,10 @@ fn donna_self_test2() {
 
         let msg: Vec<u8> = repeat(i as u8).take(256).collect();
         let tag = Poly1305::new(key.as_ref().into()).compute_unpadded(&msg[..i]);
-        tpoly.update(&tag.into_bytes());
+        tpoly.update(&[tag.into()]);
     }
 
-    assert_eq!(&total_mac[..], tpoly.finalize().into_bytes().as_slice());
+    assert_eq!(&total_mac[..], tpoly.finalize().as_slice());
 }
 
 #[test]
@@ -75,11 +75,13 @@ fn test_tls_vectors() {
 
     let mut poly = Poly1305::new(key.as_ref().into());
 
-    for chunk in msg.chunks(BLOCK_SIZE) {
-        poly.update(chunk.into());
-    }
+    let blocks = msg
+        .chunks(BLOCK_SIZE)
+        .map(|chunk| Block::clone_from_slice(chunk))
+        .collect::<Vec<_>>();
+    poly.update(&blocks);
 
-    assert_eq!(&expected[..], poly.finalize().into_bytes().as_slice());
+    assert_eq!(&expected[..], poly.finalize().as_slice());
 }
 
 #[test]
@@ -90,7 +92,7 @@ fn test_rfc7539_vector() {
     let expected = hex!("a8061dc1305136c6c22b8baf0c0127a9");
 
     let result = Poly1305::new(key.as_ref().into()).compute_unpadded(&msg);
-    assert_eq!(&expected[..], result.into_bytes().as_slice());
+    assert_eq!(&expected[..], result.as_slice());
 }
 
 #[test]
@@ -102,5 +104,5 @@ fn padded_input() {
 
     let mut poly = Poly1305::new(key.as_ref().into());
     poly.update_padded(&msg);
-    assert_eq!(&expected[..], poly.finalize().into_bytes().as_slice());
+    assert_eq!(&expected[..], poly.finalize().as_slice());
 }

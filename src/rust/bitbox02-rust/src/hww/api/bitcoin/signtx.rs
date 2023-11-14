@@ -369,7 +369,7 @@ async fn handle_prevtx(
 
     hasher.update(prevtx_init.locktime.to_le_bytes());
     // Hash again to produce the final double-hash.
-    let hash = Sha256::digest(&hasher.finalize());
+    let hash = Sha256::digest(hasher.finalize());
     if hash.as_slice() != input.prev_out_hash.as_slice() {
         return Err(Error::InvalidInput);
     }
@@ -910,8 +910,8 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             const SIGHASH_ALL: u32 = 0x01;
             let sighash = bip143::sighash(&bip143::Args {
                 version: request.version,
-                hash_prevouts: Sha256::digest(&hash_prevouts).try_into().unwrap(),
-                hash_sequence: Sha256::digest(&hash_sequence).try_into().unwrap(),
+                hash_prevouts: Sha256::digest(hash_prevouts).try_into().unwrap(),
+                hash_sequence: Sha256::digest(hash_sequence).try_into().unwrap(),
                 outpoint_hash: tx_input.prev_out_hash.as_slice().try_into().unwrap(),
                 outpoint_index: tx_input.prev_out_index,
                 sighash_script: &sighash_script(
@@ -921,7 +921,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                 )?,
                 prevout_value: tx_input.prev_out_value,
                 sequence: tx_input.sequence,
-                hash_outputs: Sha256::digest(&hash_outputs).try_into().unwrap(),
+                hash_outputs: Sha256::digest(hash_outputs).try_into().unwrap(),
                 locktime: request.locktime,
                 sighash_flags: SIGHASH_ALL,
             });

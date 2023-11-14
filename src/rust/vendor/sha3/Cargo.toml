@@ -3,44 +3,54 @@
 # When uploading crates to the registry Cargo will automatically
 # "normalize" Cargo.toml files for maximal compatibility
 # with all versions of Cargo and also rewrite `path` dependencies
-# to registry (e.g., crates.io) dependencies
+# to registry (e.g., crates.io) dependencies.
 #
-# If you believe there's an error in this file please file an
-# issue against the rust-lang/cargo repository. If you're
-# editing this file be aware that the upstream Cargo.toml
-# will likely look very different (and much more reasonable)
+# If you are reading this file be aware that the original Cargo.toml
+# will likely look very different (and much more reasonable).
+# See Cargo.toml.orig for the original contents.
 
 [package]
 edition = "2018"
 name = "sha3"
-version = "0.9.1"
+version = "0.10.8"
 authors = ["RustCrypto Developers"]
-description = "SHA-3 (Keccak) hash function"
+description = """
+Pure Rust implementation of SHA-3, a family of Keccak-based hash functions
+including the SHAKE family of eXtendable-Output Functions (XOFs), as well as
+the accelerated variant TurboSHAKE
+"""
 documentation = "https://docs.rs/sha3"
 readme = "README.md"
-keywords = ["crypto", "sha3", "keccak", "hash", "digest"]
-categories = ["cryptography", "no-std"]
+keywords = [
+    "crypto",
+    "sha3",
+    "keccak",
+    "hash",
+    "digest",
+]
+categories = [
+    "cryptography",
+    "no-std",
+]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/RustCrypto/hashes"
-[dependencies.block-buffer]
-version = "0.9"
-features = ["block-padding"]
 
 [dependencies.digest]
-version = "0.9"
+version = "0.10.4"
 
 [dependencies.keccak]
-version = "0.1"
+version = "0.1.4"
 
-[dependencies.opaque-debug]
-version = "0.3"
 [dev-dependencies.digest]
-version = "0.9"
+version = "0.10.4"
 features = ["dev"]
 
 [dev-dependencies.hex-literal]
-version = "0.2"
+version = "0.2.2"
 
 [features]
+asm = ["keccak/asm"]
 default = ["std"]
+oid = ["digest/oid"]
+reset = []
 std = ["digest/std"]

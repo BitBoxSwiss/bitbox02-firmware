@@ -28,7 +28,7 @@ use core::convert::TryInto;
 async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error> {
     let coin = pb::EthCoin::try_from(request.coin)?;
 
-    let params = super::params::get_and_warn_unknown(coin, request.chain_id).await?;
+    let params = super::params::get_and_warn_unknown(Some(coin), request.chain_id).await?;
     // If a contract_address is provided, it has to be a supported ERC20-token.
     let erc20_params: Option<bitbox02::app_eth::ERC20Params> =
         if request.contract_address.is_empty() {

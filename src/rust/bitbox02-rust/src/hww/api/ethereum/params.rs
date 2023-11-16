@@ -94,23 +94,25 @@ const PARAMS: &[Params] = &[
 ];
 
 /// Get the chain parameters by `coin` or `chain_id`. If `chain_id` is non-zero, `coin` is ignored.
-fn get(coin: EthCoin, chain_id: u64) -> Option<&'static Params> {
+fn get(coin: Option<EthCoin>, chain_id: u64) -> Option<&'static Params> {
     PARAMS.iter().find(|p| {
         if chain_id > 0 {
             p.chain_id == chain_id
+        } else if coin.is_some() {
+            p.coin == coin
         } else {
-            p.coin == Some(coin)
+            false
         }
     })
 }
 
 /// Get the chain parameters by `coin` or `chain_id`. If `chain_id` is non-zero, `coin` is
-/// ignored.
+/// ignored. If `coin` is None. `chain_id` alone is used.
 ///
 /// If no params could be found and `chain_id` is non-zero, the user is asked to confirm the chain
 /// ID, and params with this chain ID and "UNKNOWN" name is returned. The main reason for this is
 /// that users can rescue funds sent on an unsupported network.
-pub async fn get_and_warn_unknown(coin: EthCoin, chain_id: u64) -> Result<Params, Error> {
+pub async fn get_and_warn_unknown(coin: Option<EthCoin>, chain_id: u64) -> Result<Params, Error> {
     match get(coin, chain_id) {
         Some(params) => Ok(*params),
         None => {
@@ -149,12 +151,20 @@ mod tests {
 
     #[test]
     pub fn test_get() {
-        assert_eq!(get(EthCoin::Eth, 0).unwrap().name, "Ethereum");
-        assert_eq!(get(EthCoin::Eth, 1).unwrap().name, "Ethereum");
-        assert_eq!(get(EthCoin::Eth, 5).unwrap().name, "Goerli");
-        assert_eq!(get(EthCoin::Eth, 56).unwrap().name, "Binance Smart Chain");
+        assert_eq!(get(Some(EthCoin::Eth), 0).unwrap().name, "Ethereum");
+        assert_eq!(get(Some(EthCoin::Eth), 1).unwrap().name, "Ethereum");
+        assert_eq!(get(None, 1).unwrap().name, "Ethereum");
+        assert_eq!(get(Some(EthCoin::Eth), 5).unwrap().name, "Goerli");
+        assert_eq!(get(None, 5).unwrap().name, "Goerli");
+        assert_eq!(
+            get(Some(EthCoin::Eth), 56).unwrap().name,
+            "Binance Smart Chain"
+        );
+        assert_eq!(get(None, 56).unwrap().name, "Binance Smart Chain");
 
         // Unknown chain id.
-        assert!(get(EthCoin::Eth, 2).is_none());
+        assert!(get(Some(EthCoin::Eth), 2).is_none());
+        assert!(get(None, 2).is_none());
+        assert!(get(None, 0).is_none());
     }
 }

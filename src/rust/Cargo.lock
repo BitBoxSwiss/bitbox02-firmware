@@ -95,6 +95,7 @@ dependencies = [
  "bitbox02",
  "bitbox02-noise",
  "bitcoin",
+ "bitcoin_hashes",
  "blake2",
  "crc",
  "digest",

@@ -1,26 +1,14 @@
-// Bitcoin Hashes Library
-// Written in 2018 by
-//   Andrew Poelstra <apoelstra@wpsoftware.net>
-//
-// To the extent possible under law, the author(s) have dedicated all
-// copyright and related and neighboring rights to this software to
-// the public domain worldwide. This software is distributed without
-// any warranty.
-//
-// You should have received a copy of the CC0 Public Domain Dedication
-// along with this software.
-// If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
-//
+// SPDX-License-Identifier: CC0-1.0
 
 //! SHA1 implementation.
 //!
 
-use core::{cmp, str};
 use core::convert::TryInto;
 use core::ops::Index;
 use core::slice::SliceIndex;
+use core::{cmp, str};
 
-use crate::{Error, HashEngine as _};
+use crate::{FromSliceError, HashEngine as _};
 
 crate::internal_macros::hash_type! {
     160,
@@ -71,7 +59,7 @@ impl Default for HashEngine {
 impl crate::HashEngine for HashEngine {
     type MidState = [u8; 20];
 
-    #[cfg(not(fuzzing))]
+    #[cfg(not(hashes_fuzz))]
     fn midstate(&self) -> [u8; 20] {
         let mut ret = [0; 20];
         for (val, ret_bytes) in self.h.iter().zip(ret.chunks_exact_mut(4)) {
@@ -80,7 +68,7 @@ impl crate::HashEngine for HashEngine {
         ret
     }
 
-    #[cfg(fuzzing)]
+    #[cfg(hashes_fuzz)]
     fn midstate(&self) -> [u8; 20] {
         let mut ret = [0; 20];
         ret.copy_from_slice(&self.buffer[..20]);
@@ -89,9 +77,7 @@ impl crate::HashEngine for HashEngine {
 
     const BLOCK_SIZE: usize = 64;
 
-    fn n_bytes_hashed(&self) -> usize {
-        self.length
-    }
+    fn n_bytes_hashed(&self) -> usize { self.length }
 
     engine_input_impl!();
 }
@@ -106,7 +92,7 @@ impl HashEngine {
             *w_val = u32::from_be_bytes(buff_bytes.try_into().expect("4 bytes slice"))
         }
         for i in 16..80 {
-            w[i] =(w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16]).rotate_left(1);
+            w[i] = (w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16]).rotate_left(1);
         }
 
         let mut a = self.h[0];
@@ -117,14 +103,15 @@ impl HashEngine {
 
         for (i, &wi) in w.iter().enumerate() {
             let (f, k) = match i {
-                 0...19 => ((b & c) | (!b & d), 0x5a827999),
+                0...19 => ((b & c) | (!b & d), 0x5a827999),
                 20...39 => (b ^ c ^ d, 0x6ed9eba1),
                 40...59 => ((b & c) | (b & d) | (c & d), 0x8f1bbcdc),
                 60...79 => (b ^ c ^ d, 0xca62c1d6),
-                _ => unreachable!()
+                _ => unreachable!(),
             };
 
-            let new_a = a.rotate_left(5).wrapping_add(f).wrapping_add(e).wrapping_add(k).wrapping_add(wi);
+            let new_a =
+                a.rotate_left(5).wrapping_add(f).wrapping_add(e).wrapping_add(k).wrapping_add(wi);
             e = d;
             d = c;
             c = b.rotate_left(30);
@@ -154,7 +141,7 @@ mod tests {
             output_str: &'static str,
         }
 
-
+        #[rustfmt::skip]
         let tests = vec![
             // Examples from wikipedia
             Test {
@@ -213,9 +200,11 @@ mod tests {
     #[cfg(feature = "serde")]
     #[test]
     fn sha1_serde() {
-        use serde_test::{Configure, Token, assert_tokens};
+        use serde_test::{assert_tokens, Configure, Token};
+
         use crate::{sha1, Hash};
 
+        #[rustfmt::skip]
         static HASH_BYTES: [u8; 20] = [
             0x13, 0x20, 0x72, 0xdf,
             0x69, 0x09, 0x33, 0x83,
@@ -234,13 +223,13 @@ mod tests {
 mod benches {
     use test::Bencher;
 
-    use crate::{Hash, HashEngine, sha1};
+    use crate::{sha1, Hash, HashEngine};
 
     #[bench]
     pub fn sha1_10(bh: &mut Bencher) {
         let mut engine = sha1::Hash::engine();
         let bytes = [1u8; 10];
-        bh.iter( || {
+        bh.iter(|| {
             engine.input(&bytes);
         });
         bh.bytes = bytes.len() as u64;
@@ -250,7 +239,7 @@ mod benches {
     pub fn sha1_1k(bh: &mut Bencher) {
         let mut engine = sha1::Hash::engine();
         let bytes = [1u8; 1024];
-        bh.iter( || {
+        bh.iter(|| {
             engine.input(&bytes);
         });
         bh.bytes = bytes.len() as u64;
@@ -260,10 +249,9 @@ mod benches {
     pub fn sha1_64k(bh: &mut Bencher) {
         let mut engine = sha1::Hash::engine();
         let bytes = [1u8; 65536];
-        bh.iter( || {
+        bh.iter(|| {
             engine.input(&bytes);
         });
         bh.bytes = bytes.len() as u64;
     }
-
 }

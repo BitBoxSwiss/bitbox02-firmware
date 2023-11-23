@@ -1,4 +1,14 @@
-# 0.27.0 - 2023-13-15
+# 0.28.0 - 2023-10-23
+
+* Add bindings to the ElligatorSwift implementation [#627](https://github.com/rust-bitcoin/rust-secp256k1/pull/627)
+* Depend on recent release of `bitcoin_hashes` v0.13.0 [#621](https://github.com/rust-bitcoin/rust-secp256k1/pull/621)
+* Add a verify function to `PublicKey` [#618](https://github.com/rust-bitcoin/rust-secp256k1/pull/618)
+* Add serialize function for schnorr::Signature [#607](https://github.com/rust-bitcoin/rust-secp256k1/pull/607)
+* Bump MSRV to 1.48 [#595](https://github.com/rust-bitcoin/rust-secp256k1/pull/595)
+* Remove implementations of `PartialEq`, `Eq`, `PartialOrd`, `Ord`, and `Hash` from the
+  `impl_array_newtype` macro. Users will now need to derive these traits if they are wanted.
+
+# 0.27.0 - 2023-03-15
 
 * [Depend on newly release `bitcoin_hashes` v0.12](https://github.com/rust-bitcoin/rust-secp256k1/pull/588).
 * [Implement `Debug` trait for `Scalar` type](https://github.com/rust-bitcoin/rust-secp256k1/pull/578).
@@ -17,6 +27,7 @@
 * [Introduce `rustfmt`](https://github.com/rust-bitcoin/rust-secp256k1/pull/499) to the codebase.
 * [Make all raw pointer methods go through the CPtr trait](https://github.com/rust-bitcoin/rust-secp256k1/pull/507).
 * [Make comparison functions stable](https://github.com/rust-bitcoin/rust-secp256k1/pull/518).
+* [Remove](https://github.com/rust-bitcoin/rust-secp256k1/pull/512) public constant `ONE_KEY` (consider using `FromStr` as a replacement).
 
 # 0.24.1 - 2022-10-25
 

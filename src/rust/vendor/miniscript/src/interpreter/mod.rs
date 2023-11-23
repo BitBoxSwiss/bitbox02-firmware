@@ -111,15 +111,11 @@ impl fmt::Display for BitcoinKey {
 }
 
 impl From<bitcoin::PublicKey> for BitcoinKey {
-    fn from(pk: bitcoin::PublicKey) -> Self {
-        BitcoinKey::Fullkey(pk)
-    }
+    fn from(pk: bitcoin::PublicKey) -> Self { BitcoinKey::Fullkey(pk) }
 }
 
 impl From<bitcoin::key::XOnlyPublicKey> for BitcoinKey {
-    fn from(xpk: bitcoin::key::XOnlyPublicKey) -> Self {
-        BitcoinKey::XOnlyPublicKey(xpk)
-    }
+    fn from(xpk: bitcoin::key::XOnlyPublicKey) -> Self { BitcoinKey::XOnlyPublicKey(xpk) }
 }
 
 impl MiniscriptKey for BitcoinKey {
@@ -127,10 +123,6 @@ impl MiniscriptKey for BitcoinKey {
     type Hash256 = hash256::Hash;
     type Ripemd160 = ripemd160::Hash;
     type Hash160 = hash160::Hash;
-
-    fn num_der_paths(&self) -> usize {
-        0
-    }
 }
 
 impl<'txin> Interpreter<'txin> {
@@ -148,13 +140,7 @@ impl<'txin> Interpreter<'txin> {
         lock_time: absolute::LockTime, // CLTV, absolute lock time.
     ) -> Result<Self, Error> {
         let (inner, stack, script_code) = inner::from_txdata(spk, script_sig, witness)?;
-        Ok(Interpreter {
-            inner,
-            stack,
-            script_code,
-            age,
-            lock_time,
-        })
+        Ok(Interpreter { inner, stack, script_code, age, lock_time })
     }
 
     /// Same as [`Interpreter::iter`], but allows for a custom verification function.
@@ -172,11 +158,7 @@ impl<'txin> Interpreter<'txin> {
                 None
             },
             state: if let inner::Inner::Script(ref script, _) = self.inner {
-                vec![NodeEvaluationState {
-                    node: script,
-                    n_evaluated: 0,
-                    n_satisfied: 0,
-                }]
+                vec![NodeEvaluationState { node: script, n_evaluated: 0, n_satisfied: 0 }]
             } else {
                 vec![]
             },
@@ -199,6 +181,8 @@ impl<'txin> Interpreter<'txin> {
     /// - Insufficient sighash information is present
     /// - sighash single without corresponding output
     // TODO: Create a good first isse to change this to error
+    // TODO: Requires refactor to remove the script_code logic in order to use the new sighash API.
+    #[allow(deprecated)] // For segwit_signature_hash
     pub fn verify_sig<C: secp256k1::Verification, T: Borrow<TxOut>>(
         &self,
         secp: &secp256k1::Secp256k1<C>,
@@ -230,9 +214,7 @@ impl<'txin> Interpreter<'txin> {
                     let sighash_u32 = ecdsa_sig.hash_ty.to_u32();
                     let sighash =
                         cache.legacy_signature_hash(input_idx, script_pubkey, sighash_u32);
-                    sighash.map(|hash| {
-                        secp256k1::Message::from_slice(hash.as_byte_array()).expect("32 byte")
-                    })
+                    sighash.map(|hash| secp256k1::Message::from_digest(hash.to_byte_array()))
                 } else if self.is_segwit_v0() {
                     let amt = match get_prevout(prevouts, input_idx) {
                         Some(txout) => txout.borrow().value,
@@ -244,9 +226,7 @@ impl<'txin> Interpreter<'txin> {
                         amt,
                         ecdsa_sig.hash_ty,
                     );
-                    sighash.map(|hash| {
-                        secp256k1::Message::from_slice(hash.as_byte_array()).expect("32 byte")
-                    })
+                    sighash.map(|hash| secp256k1::Message::from_digest(hash.to_byte_array()))
                 } else {
                     // taproot(or future) signatures in segwitv0 context
                     return false;
@@ -278,9 +258,8 @@ impl<'txin> Interpreter<'txin> {
                     // schnorr sigs in ecdsa descriptors
                     return false;
                 };
-                let msg = sighash_msg.map(|hash| {
-                    secp256k1::Message::from_slice(hash.as_byte_array()).expect("32 byte")
-                });
+                let msg =
+                    sighash_msg.map(|hash| secp256k1::Message::from_digest(hash.to_byte_array()));
                 let success =
                     msg.map(|msg| secp.verify_schnorr(&schnorr_sig.sig, &msg, xpk).is_ok());
                 success.unwrap_or(false) // unwrap_or_default checks for errors, while success would have checksig results
@@ -312,9 +291,7 @@ impl<'txin> Interpreter<'txin> {
         input_idx: usize,
         prevouts: &'iter sighash::Prevouts<T>, // actually a 'prevouts, but 'prevouts: 'iter
     ) -> Iter<'txin, 'iter> {
-        self.iter_custom(Box::new(move |sig| {
-            self.verify_sig(secp, tx, input_idx, prevouts, sig)
-        }))
+        self.iter_custom(Box::new(move |sig| self.verify_sig(secp, tx, input_idx, prevouts, sig)))
     }
 
     /// Creates an iterator over the satisfied spending conditions without checking signatures
@@ -376,7 +353,7 @@ impl<'txin> Interpreter<'txin> {
         }
     }
 
-    /// Whether this is a segwit spend
+    /// Whether this is a segwit v0 spend (wrapped or native)
     pub fn is_segwit_v0(&self) -> bool {
         match self.inner {
             inner::Inner::PublicKey(_, inner::PubkeyType::Pk) => false,
@@ -569,11 +546,8 @@ where
         n_evaluated: usize,
         n_satisfied: usize,
     ) {
-        self.state.push(NodeEvaluationState {
-            node,
-            n_evaluated,
-            n_satisfied,
-        })
+        self.state
+            .push(NodeEvaluationState { node, n_evaluated, n_satisfied })
     }
 
     /// Helper function to step the iterator
@@ -1072,8 +1046,7 @@ mod tests {
         Vec<Vec<u8>>,
     ) {
         let secp = secp256k1::Secp256k1::new();
-        let msg = secp256k1::Message::from_slice(&b"Yoda: btc, I trust. HODL I must!"[..])
-            .expect("32 bytes");
+        let msg = secp256k1::Message::from_digest(*b"Yoda: btc, I trust. HODL I must!");
         let mut pks = vec![];
         let mut ecdsa_sigs = vec![];
         let mut der_sigs = vec![];
@@ -1102,7 +1075,7 @@ mod tests {
             pks.push(pk);
             der_sigs.push(sigser);
 
-            let keypair = bitcoin::key::KeyPair::from_secret_key(&secp, &sk);
+            let keypair = bitcoin::key::Keypair::from_secret_key(&secp, &sk);
             let (x_only_pk, _parity) = bitcoin::key::XOnlyPublicKey::from_keypair(&keypair);
             x_only_pks.push(x_only_pk);
             let schnorr_sig = secp.sign_schnorr_with_aux_rand(&msg, &keypair, &[0u8; 32]);
@@ -1113,16 +1086,7 @@ mod tests {
             ser_schnorr_sigs.push(schnorr_sig.to_vec());
             schnorr_sigs.push(schnorr_sig);
         }
-        (
-            pks,
-            der_sigs,
-            ecdsa_sigs,
-            msg,
-            secp,
-            x_only_pks,
-            schnorr_sigs,
-            ser_schnorr_sigs,
-        )
+        (pks, der_sigs, ecdsa_sigs, msg, secp, x_only_pks, schnorr_sigs, ser_schnorr_sigs)
     }
 
     #[test]
@@ -1148,11 +1112,7 @@ mod tests {
                 verify_sig: verify_fn,
                 stack,
                 public_key: None,
-                state: vec![NodeEvaluationState {
-                    node: ms,
-                    n_evaluated: 0,
-                    n_satisfied: 0,
-                }],
+                state: vec![NodeEvaluationState { node: ms, n_evaluated: 0, n_satisfied: 0 }],
                 age: Sequence::from_height(1002),
                 lock_time: absolute::LockTime::from_height(1002).unwrap(),
                 has_errored: false,
@@ -1225,9 +1185,7 @@ mod tests {
         let older_satisfied: Result<Vec<SatisfiedConstraint>, Error> = constraints.collect();
         assert_eq!(
             older_satisfied.unwrap(),
-            vec![SatisfiedConstraint::RelativeTimelock {
-                n: Sequence::from_height(1000)
-            }]
+            vec![SatisfiedConstraint::RelativeTimelock { n: Sequence::from_height(1000) }]
         );
 
         //Check Sha256
@@ -1307,10 +1265,7 @@ mod tests {
             stack::Element::Push(&preimage),
             stack::Element::Push(&der_sigs[0]),
         ]);
-        let elem = no_checks_ms(&format!(
-            "and_b(c:pk_k({}),sjtv:sha256({}))",
-            pks[0], sha256_hash
-        ));
+        let elem = no_checks_ms(&format!("and_b(c:pk_k({}),sjtv:sha256({}))", pks[0], sha256_hash));
         let constraints = from_stack(Box::new(vfyfn), stack, &elem);
 
         let and_b_satisfied: Result<Vec<SatisfiedConstraint>, Error> = constraints.collect();
@@ -1320,10 +1275,7 @@ mod tests {
                 SatisfiedConstraint::PublicKey {
                     key_sig: KeySigPair::Ecdsa(pks[0], ecdsa_sigs[0])
                 },
-                SatisfiedConstraint::HashLock {
-                    hash: HashLockType::Sha256(sha256_hash),
-                    preimage,
-                }
+                SatisfiedConstraint::HashLock { hash: HashLockType::Sha256(sha256_hash), preimage }
             ]
         );
 
@@ -1345,10 +1297,7 @@ mod tests {
                 SatisfiedConstraint::PublicKey {
                     key_sig: KeySigPair::Ecdsa(pks[0], ecdsa_sigs[0])
                 },
-                SatisfiedConstraint::HashLock {
-                    hash: HashLockType::Sha256(sha256_hash),
-                    preimage,
-                }
+                SatisfiedConstraint::HashLock { hash: HashLockType::Sha256(sha256_hash), preimage }
             ]
         );
 
@@ -1375,10 +1324,7 @@ mod tests {
             stack::Element::Push(&preimage),
             stack::Element::Dissatisfied,
         ]);
-        let elem = no_checks_ms(&format!(
-            "or_b(c:pk_k({}),sjtv:sha256({}))",
-            pks[0], sha256_hash
-        ));
+        let elem = no_checks_ms(&format!("or_b(c:pk_k({}),sjtv:sha256({}))", pks[0], sha256_hash));
         let constraints = from_stack(Box::new(vfyfn), stack, &elem);
 
         let or_b_satisfied: Result<Vec<SatisfiedConstraint>, Error> = constraints.collect();
@@ -1392,10 +1338,7 @@ mod tests {
 
         //Check OrD
         let stack = Stack::from(vec![stack::Element::Push(&der_sigs[0])]);
-        let elem = no_checks_ms(&format!(
-            "or_d(c:pk_k({}),jtv:sha256({}))",
-            pks[0], sha256_hash
-        ));
+        let elem = no_checks_ms(&format!("or_d(c:pk_k({}),jtv:sha256({}))", pks[0], sha256_hash));
         let constraints = from_stack(Box::new(vfyfn), stack, &elem);
 
         let or_d_satisfied: Result<Vec<SatisfiedConstraint>, Error> = constraints.collect();
@@ -1411,10 +1354,8 @@ mod tests {
             stack::Element::Push(&der_sigs[0]),
             stack::Element::Dissatisfied,
         ]);
-        let elem = no_checks_ms(&format!(
-            "t:or_c(jtv:sha256({}),vc:pk_k({}))",
-            sha256_hash, pks[0]
-        ));
+        let elem =
+            no_checks_ms(&format!("t:or_c(jtv:sha256({}),vc:pk_k({}))", sha256_hash, pks[0]));
         let constraints = from_stack(Box::new(vfyfn), stack, &elem);
 
         let or_c_satisfied: Result<Vec<SatisfiedConstraint>, Error> = constraints.collect();
@@ -1430,10 +1371,7 @@ mod tests {
             stack::Element::Push(&der_sigs[0]),
             stack::Element::Dissatisfied,
         ]);
-        let elem = no_checks_ms(&format!(
-            "or_i(jtv:sha256({}),c:pk_k({}))",
-            sha256_hash, pks[0]
-        ));
+        let elem = no_checks_ms(&format!("or_i(jtv:sha256({}),c:pk_k({}))", sha256_hash, pks[0]));
         let constraints = from_stack(Box::new(vfyfn), stack, &elem);
 
         let or_i_satisfied: Result<Vec<SatisfiedConstraint>, Error> = constraints.collect();

@@ -1,4 +1,3 @@
-// Written in 2019 by Andrew Poelstra <apoelstra@wpsoftware.net>
 // SPDX-License-Identifier: CC0-1.0
 
 //! Correctness/Soundness type properties
@@ -115,30 +114,15 @@ impl Property for Correctness {
     }
 
     fn from_true() -> Self {
-        Correctness {
-            base: Base::B,
-            input: Input::Zero,
-            dissatisfiable: false,
-            unit: true,
-        }
+        Correctness { base: Base::B, input: Input::Zero, dissatisfiable: false, unit: true }
     }
 
     fn from_false() -> Self {
-        Correctness {
-            base: Base::B,
-            input: Input::Zero,
-            dissatisfiable: true,
-            unit: true,
-        }
+        Correctness { base: Base::B, input: Input::Zero, dissatisfiable: true, unit: true }
     }
 
     fn from_pk_k<Ctx: ScriptContext>() -> Self {
-        Correctness {
-            base: Base::K,
-            input: Input::OneNonZero,
-            dissatisfiable: true,
-            unit: true,
-        }
+        Correctness { base: Base::K, input: Input::OneNonZero, dissatisfiable: true, unit: true }
     }
 
     fn from_pk_h<Ctx: ScriptContext>() -> Self {
@@ -151,39 +135,19 @@ impl Property for Correctness {
     }
 
     fn from_multi(_: usize, _: usize) -> Self {
-        Correctness {
-            base: Base::B,
-            input: Input::AnyNonZero,
-            dissatisfiable: true,
-            unit: true,
-        }
+        Correctness { base: Base::B, input: Input::AnyNonZero, dissatisfiable: true, unit: true }
     }
 
     fn from_multi_a(_: usize, _: usize) -> Self {
-        Correctness {
-            base: Base::B,
-            input: Input::Any,
-            dissatisfiable: true,
-            unit: true,
-        }
+        Correctness { base: Base::B, input: Input::Any, dissatisfiable: true, unit: true }
     }
 
     fn from_hash() -> Self {
-        Correctness {
-            base: Base::B,
-            input: Input::OneNonZero,
-            dissatisfiable: true,
-            unit: true,
-        }
+        Correctness { base: Base::B, input: Input::OneNonZero, dissatisfiable: true, unit: true }
     }
 
     fn from_time(_: u32) -> Self {
-        Correctness {
-            base: Base::B,
-            input: Input::Zero,
-            dissatisfiable: false,
-            unit: false,
-        }
+        Correctness { base: Base::B, input: Input::Zero, dissatisfiable: false, unit: false }
     }
 
     fn cast_alt(self) -> Result<Self, ErrorKind> {

@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "miniscript"
-version = "10.0.0"
+version = "11.0.0"
 authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>, Sanket Kanjalkar <sanket1729@gmail.com>"]
 description = "Miniscript: a subset of Bitcoin Script designed for analysis"
 homepage = "https://github.com/rust-bitcoin/rust-miniscript/"
@@ -46,10 +46,6 @@ name = "verify_tx"
 required-features = ["std"]
 
 [[example]]
-name = "psbt"
-required-features = ["std"]
-
-[[example]]
 name = "xpub_descriptors"
 required-features = ["std"]
 
@@ -72,29 +68,25 @@ version = "1.0.103"
 optional = true
 package = "serde"
 
-[dependencies.bitcoin]
-version = "0.30.0"
+[dependencies.bech32]
+version = "0.10.0-beta"
 default-features = false
 
-[dependencies.hashbrown]
-version = "0.11"
-optional = true
+[dependencies.bitcoin]
+version = "0.31.0"
+default-features = false
 
 [dependencies.internals]
-version = "0.1.0"
+version = "0.2.0"
 default_features = false
-package = "bitcoin-private"
-
-[dev-dependencies.actual-base64]
-version = "0.13.0"
-package = "base64"
+package = "bitcoin-internals"
 
 [dev-dependencies.bitcoin]
-version = "0.30.0"
+version = "0.31.0"
 features = ["base64"]
 
 [dev-dependencies.secp256k1]
-version = "0.27.0"
+version = "0.28.0"
 features = ["rand-std"]
 
 [dev-dependencies.serde_test]
@@ -105,8 +97,8 @@ base64 = ["bitcoin/base64"]
 compiler = []
 default = ["std"]
 no-std = [
-    "hashbrown",
     "bitcoin/no-std",
+    "bech32/alloc",
 ]
 rand = ["bitcoin/rand"]
 serde = [
@@ -116,6 +108,6 @@ serde = [
 std = [
     "bitcoin/std",
     "bitcoin/secp-recovery",
+    "bech32/std",
 ]
 trace = []
-unstable = []

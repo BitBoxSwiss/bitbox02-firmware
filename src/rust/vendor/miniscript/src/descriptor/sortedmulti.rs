@@ -1,4 +1,3 @@
-// Written in 2020 by the rust-miniscript developers
 // SPDX-License-Identifier: CC0-1.0
 
 //! # Sorted Multi
@@ -15,10 +14,12 @@ use bitcoin::script;
 use crate::miniscript::context::ScriptContext;
 use crate::miniscript::decode::Terminal;
 use crate::miniscript::limits::MAX_PUBKEYS_PER_MULTISIG;
+use crate::miniscript::satisfy::{Placeholder, Satisfaction};
+use crate::plan::AssetProvider;
 use crate::prelude::*;
 use crate::{
-    errstr, expression, miniscript, policy, script_num_size, Error, ForEachKey, Miniscript,
-    MiniscriptKey, Satisfier, ToPublicKey, TranslateErr, Translator,
+    errstr, expression, policy, script_num_size, Error, ForEachKey, Miniscript, MiniscriptKey,
+    Satisfier, ToPublicKey, TranslateErr, Translator,
 };
 
 /// Contents of a "sortedmulti" descriptor
@@ -45,18 +46,14 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> SortedMultiVec<Pk, Ctx> {
         // Check the limits before creating a new SortedMultiVec
         // For example, under p2sh context the scriptlen can only be
         // upto 520 bytes.
-        let term: miniscript::decode::Terminal<Pk, Ctx> = Terminal::Multi(k, pks.clone());
+        let term: Terminal<Pk, Ctx> = Terminal::Multi(k, pks.clone());
         let ms = Miniscript::from_ast(term)?;
 
         // This would check all the consensus rules for p2sh/p2wsh and
         // even tapscript in future
         Ctx::check_local_validity(&ms)?;
 
-        Ok(Self {
-            k,
-            pks,
-            phantom: PhantomData,
-        })
+        Ok(Self { k, pks, phantom: PhantomData })
     }
     /// Parse an expression tree into a SortedMultiVec
     pub fn from_tree(tree: &expression::Tree) -> Result<Self, Error>
@@ -69,9 +66,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> SortedMultiVec<Pk, Ctx> {
         }
         let k = expression::parse_num(tree.args[0].name)?;
         if k > (tree.args.len() - 1) as u32 {
-            return Err(errstr(
-                "higher threshold than there were keys in sortedmulti",
-            ));
+            return Err(errstr("higher threshold than there were keys in sortedmulti"));
         }
         let pks: Result<Vec<Pk>, _> = tree.args[1..]
             .iter()
@@ -155,6 +150,16 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> SortedMultiVec<Pk, Ctx> {
         ms.satisfy(satisfier)
     }
 
+    /// Attempt to produce a witness template given the assets available
+    pub fn build_template<P>(&self, provider: &P) -> Satisfaction<Placeholder<Pk>>
+    where
+        Pk: ToPublicKey,
+        P: AssetProvider<Pk>,
+    {
+        let ms = Miniscript::from_ast(self.sorted_node()).expect("Multi node typecheck");
+        ms.build_template(provider)
+    }
+
     /// Size, in bytes of the script-pubkey. If this Miniscript is used outside
     /// of segwit (e.g. in a bare or P2SH descriptor), this quantity should be
     /// multiplied by 4 to compute the weight.
@@ -177,9 +182,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> SortedMultiVec<Pk, Ctx> {
     /// This function may panic on malformed `Miniscript` objects which do
     /// not correspond to semantically sane Scripts. (Such scripts should be
     /// rejected at parse time. Any exceptions are bugs.)
-    pub fn max_satisfaction_witness_elements(&self) -> usize {
-        2 + self.k
-    }
+    pub fn max_satisfaction_witness_elements(&self) -> usize { 2 + self.k }
 
     /// Maximum size, in bytes, of a satisfying witness.
     /// In general, it is not recommended to use this function directly, but
@@ -189,9 +192,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> SortedMultiVec<Pk, Ctx> {
     /// All signatures are assumed to be 73 bytes in size, including the
     /// length prefix (segwit) or push opcode (pre-segwit) and sighash
     /// postfix.
-    pub fn max_satisfaction_size(&self) -> usize {
-        1 + 73 * self.k
-    }
+    pub fn max_satisfaction_size(&self) -> usize { 1 + 73 * self.k }
 }
 
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> policy::Liftable<Pk> for SortedMultiVec<Pk, Ctx> {
@@ -208,9 +209,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> policy::Liftable<Pk> for SortedMulti
 }
 
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> fmt::Debug for SortedMultiVec<Pk, Ctx> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(self, f)
-    }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { fmt::Display::fmt(self, f) }
 }
 
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> fmt::Display for SortedMultiVec<Pk, Ctx> {
@@ -226,9 +225,9 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> fmt::Display for SortedMultiVec<Pk, 
 #[cfg(test)]
 mod tests {
     use bitcoin::secp256k1::PublicKey;
-    use miniscript::context::Legacy;
 
     use super::*;
+    use crate::miniscript::context::Legacy;
 
     #[test]
     fn too_many_pubkeys() {

@@ -1,14 +1,15 @@
+// SPDX-License-Identifier: CC0-1.0
+
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
-use actual_base64 as base64;
-use bitcoin::sighash::SighashCache;
-use bitcoin::PrivateKey;
 use miniscript::bitcoin::consensus::encode::deserialize;
 use miniscript::bitcoin::hashes::hex::FromHex;
-use miniscript::bitcoin::psbt::PartiallySignedTransaction as Psbt;
+use miniscript::bitcoin::psbt::{self, Psbt};
+use miniscript::bitcoin::sighash::SighashCache;
 use miniscript::bitcoin::{
-    self, psbt, secp256k1, Address, Network, OutPoint, Script, Sequence, Transaction, TxIn, TxOut,
+    self, secp256k1, transaction, Address, Amount, Network, OutPoint, PrivateKey, Script, Sequence,
+    Transaction, TxIn, TxOut,
 };
 use miniscript::psbt::{PsbtExt, PsbtInputExt};
 use miniscript::Descriptor;
@@ -20,14 +21,8 @@ fn main() {
     let bridge_descriptor = Descriptor::from_str(&s).unwrap();
     //let bridge_descriptor = Descriptor::<bitcoin::PublicKey>::from_str(&s).expect("parse descriptor string");
     assert!(bridge_descriptor.sanity_check().is_ok());
-    println!(
-        "Bridge pubkey script: {}",
-        bridge_descriptor.script_pubkey()
-    );
-    println!(
-        "Bridge address: {}",
-        bridge_descriptor.address(Network::Regtest).unwrap()
-    );
+    println!("Bridge pubkey script: {}", bridge_descriptor.script_pubkey());
+    println!("Bridge address: {}", bridge_descriptor.address(Network::Regtest).unwrap());
     println!(
         "Weight for witness satisfaction cost {}",
         bridge_descriptor.max_weight_to_satisfy().unwrap()
@@ -36,40 +31,28 @@ fn main() {
     let master_private_key_str = "cQhdvB3McbBJdx78VSSumqoHQiSXs75qwLptqwxSQBNBMDxafvaw";
     let _master_private_key =
         PrivateKey::from_str(master_private_key_str).expect("Can't create private key");
-    println!(
-        "Master public key: {}",
-        _master_private_key.public_key(&secp256k1)
-    );
+    println!("Master public key: {}", _master_private_key.public_key(&secp256k1));
 
     let backup1_private_key_str = "cWA34TkfWyHa3d4Vb2jNQvsWJGAHdCTNH73Rht7kAz6vQJcassky";
     let backup1_private =
         PrivateKey::from_str(backup1_private_key_str).expect("Can't create private key");
 
-    println!(
-        "Backup1 public key: {}",
-        backup1_private.public_key(&secp256k1)
-    );
+    println!("Backup1 public key: {}", backup1_private.public_key(&secp256k1));
 
     let backup2_private_key_str = "cPJFWUKk8sdL7pcDKrmNiWUyqgovimmhaaZ8WwsByDaJ45qLREkh";
     let backup2_private =
         PrivateKey::from_str(backup2_private_key_str).expect("Can't create private key");
 
-    println!(
-        "Backup2 public key: {}",
-        backup2_private.public_key(&secp256k1)
-    );
+    println!("Backup2 public key: {}", backup2_private.public_key(&secp256k1));
 
     let backup3_private_key_str = "cT5cH9UVm81W5QAf5KABXb23RKNSMbMzMx85y6R2mF42L94YwKX6";
     let _backup3_private =
         PrivateKey::from_str(backup3_private_key_str).expect("Can't create private key");
 
-    println!(
-        "Backup3 public key: {}",
-        _backup3_private.public_key(&secp256k1)
-    );
+    println!("Backup3 public key: {}", _backup3_private.public_key(&secp256k1));
 
     let spend_tx = Transaction {
-        version: 2,
+        version: transaction::Version::TWO,
         lock_time: bitcoin::absolute::LockTime::from_consensus(5000),
         input: vec![],
         output: vec![],
@@ -105,12 +88,12 @@ fn main() {
 
     psbt.unsigned_tx.output.push(TxOut {
         script_pubkey: receiver.script_pubkey(),
-        value: amount / 5 - 500,
+        value: Amount::from_sat(amount / 5 - 500),
     });
 
     psbt.unsigned_tx.output.push(TxOut {
         script_pubkey: bridge_descriptor.script_pubkey(),
-        value: amount * 4 / 5,
+        value: Amount::from_sat(amount * 4 / 5),
     });
 
     // Generating signatures & witness data
@@ -147,23 +130,17 @@ fn main() {
     let pk2 = backup2_private.public_key(&secp256k1);
     assert!(secp256k1.verify_ecdsa(&msg, &sig2, &pk2.inner).is_ok());
 
-    psbt.inputs[0].partial_sigs.insert(
-        pk1,
-        bitcoin::ecdsa::Signature {
-            sig: sig1,
-            hash_ty: hash_ty,
-        },
-    );
+    psbt.inputs[0]
+        .partial_sigs
+        .insert(pk1, bitcoin::ecdsa::Signature { sig: sig1, hash_ty: hash_ty });
 
     println!("{:#?}", psbt);
-
-    let serialized = psbt.serialize();
-    println!("{}", base64::encode(&serialized));
+    println!("{}", psbt);
 
     psbt.finalize_mut(&secp256k1).unwrap();
     println!("{:#?}", psbt);
 
-    let tx = psbt.extract_tx();
+    let tx = psbt.extract_tx().expect("failed to extract tx");
     println!("{}", bitcoin::consensus::encode::serialize_hex(&tx));
 }
 

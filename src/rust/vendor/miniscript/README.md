@@ -1,6 +1,6 @@
 ![Build](https://github.com/rust-bitcoin/rust-miniscript/workflows/Continuous%20integration/badge.svg)
 
-**Minimum Supported Rust Version:** 1.41.1
+**Minimum Supported Rust Version:** 1.48.0
 
 # Miniscript
 
@@ -31,7 +31,7 @@ coins in a given Bitcoin transaction
 `"no-std"`. See `embedded/` for an example.
 
 More information can be found in [the documentation](https://docs.rs/miniscript)
-or in [the `examples/` directory](https://github.com/apoelstra/rust-miniscript/tree/master/examples)
+or in [the `examples/` directory](https://github.com/rust-bitcoin/rust-miniscript/tree/master/examples)
 
 ## Building
 
@@ -40,18 +40,10 @@ The cargo feature `std` is enabled by default. At least one of the features `std
 Enabling the `no-std` feature does not disable `std`. To disable the `std` feature you must disable default features. The `no-std` feature only enables additional features required for this crate to be usable without `std`. Both can be enabled without conflict.
 
 ## Minimum Supported Rust Version (MSRV)
-This library should always compile with any combination of features (minus
-`no-std`) on **Rust 1.41.1** or **Rust 1.47** with `no-std`.
+This library should always compile with any combination of features on **Rust 1.48.0**.
 
 Some dependencies do not play nicely with our MSRV, if you are running the tests
-you may need to pin as follows:
-
-```
-cargo update --package url --precise 2.2.2
-cargo update --package form_urlencoded --precise 1.0.1
-cargo update -p once_cell --precise 1.13.1
-cargo update -p bzip2 --precise 0.4.2
-```
+you may need to pin some dependencies. See `./contrib/test.sh` for current pinning.
 
 ## Contributing
 
@@ -60,6 +52,11 @@ discuss them in an issue before PRing them to avoid duplicate work and
 architectural mismatches. If you have any questions or ideas you want to discuss
 please join us in
 [##miniscript](https://web.libera.chat/?channels=##miniscript) on Libera.
+
+## Benchmarks
+
+We use a custom Rust compiler configuration conditional to guard the bench mark code. To run the
+bench marks use: `RUSTFLAGS='--cfg=bench' cargo +nightly bench`.
 
 
 ## Release Notes

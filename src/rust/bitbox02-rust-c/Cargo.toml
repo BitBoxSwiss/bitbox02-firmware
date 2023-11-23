@@ -30,7 +30,7 @@ util = { path = "../util" }
 hex = { version = "0.4", default-features = false }
 sha2 = { version = "0.10.8", default-features = false, optional = true }
 sha3 = { version = "0.10.8", default-features = false, optional = true }
-bitcoin = { version = "0.30.0", default-features = false, features = ["no-std"], optional = true }
+bitcoin = { version = "0.31.0", default-features = false, features = ["no-std"], optional = true }
 
 [features]
 # Only one of the "target-" should be activated, which in turn defines/activates the dependent features.

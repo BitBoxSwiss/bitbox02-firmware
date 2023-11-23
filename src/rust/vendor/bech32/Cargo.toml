@@ -12,22 +12,32 @@
 [package]
 edition = "2018"
 name = "bech32"
-version = "0.9.1"
-authors = ["Clark Moody"]
-description = "Encodes and decodes the Bech32 format"
+version = "0.10.0-beta"
+authors = [
+    "Clark Moody",
+    "Andrew Poelstra",
+    "Tobin Harding",
+]
+description = "Encodes and decodes the Bech32 format and implements the bech32 and bech32m checksums"
+documentation = "https://docs.rs/bech32/"
 readme = "README.md"
 keywords = [
     "base32",
     "encoding",
     "bech32",
+    "bitcoin",
+    "cryptocurrency",
 ]
-categories = ["encoding"]
+categories = [
+    "encoding",
+    "cryptography::cryptocurrencies",
+]
 license = "MIT"
 repository = "https://github.com/rust-bitcoin/rust-bech32"
 
-[dependencies]
-
 [features]
+alloc = []
 default = ["std"]
-std = []
-strict = []
+std = ["alloc"]
+
+[target."cfg(mutate)".dev-dependencies]

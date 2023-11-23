@@ -21,8 +21,6 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::convert::TryFrom;
 
-use bech32::{ToBase32, Variant};
-
 use pb::btc_script_config::SimpleType;
 pub use pb::btc_sign_init_request::FormatUnit;
 pub use pb::{BtcCoin, BtcOutputType};
@@ -305,14 +303,12 @@ fn encode_segwit_addr(
     witness_version: u8,
     witness_program: &[u8],
 ) -> Result<String, ()> {
-    let variant = match witness_version {
-        0 => Variant::Bech32,
-        1 => Variant::Bech32m,
+    let version = match witness_version {
+        0 => bech32::segwit::VERSION_0,
+        1 => bech32::segwit::VERSION_1,
         _ => return Err(()),
     };
-    let mut b32 = witness_program.to_base32();
-    b32.insert(0, bech32::u5::try_from_u8(witness_version).or(Err(()))?);
-    bech32::encode(hrp, &b32, variant).or(Err(()))
+    bech32::segwit::encode(&bech32::Hrp::parse_unchecked(hrp), version, witness_program).or(Err(()))
 }
 
 #[cfg(test)]

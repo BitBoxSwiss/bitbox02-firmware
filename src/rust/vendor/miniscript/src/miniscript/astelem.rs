@@ -1,4 +1,3 @@
-// Written in 2019 by Andrew Poelstra <apoelstra@wpsoftware.net>
 // SPDX-License-Identifier: CC0-1.0
 
 //! AST Elements
@@ -21,8 +20,7 @@ use crate::miniscript::ScriptContext;
 use crate::prelude::*;
 use crate::util::MsKeyBuilder;
 use crate::{
-    errstr, expression, script_num_size, AbsLockTime, Error, ForEachKey, Miniscript, MiniscriptKey,
-    Terminal, ToPublicKey, TranslateErr, TranslatePk, Translator,
+    errstr, expression, AbsLockTime, Error, Miniscript, MiniscriptKey, Terminal, ToPublicKey,
 };
 
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> Terminal<Pk, Ctx> {
@@ -46,151 +44,10 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Terminal<Pk, Ctx> {
     }
 }
 
-impl<Pk, Q, Ctx> TranslatePk<Pk, Q> for Terminal<Pk, Ctx>
-where
-    Pk: MiniscriptKey,
-    Q: MiniscriptKey,
-    Ctx: ScriptContext,
-{
-    type Output = Terminal<Q, Ctx>;
-
-    /// Converts an AST element with one public key type to one of another public key type.
-    fn translate_pk<T, E>(&self, translate: &mut T) -> Result<Self::Output, TranslateErr<E>>
-    where
-        T: Translator<Pk, Q, E>,
-    {
-        self.real_translate_pk(translate)
-    }
-}
-
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> Terminal<Pk, Ctx> {
-    pub(super) fn real_for_each_key<'a, F: FnMut(&'a Pk) -> bool>(&'a self, pred: &mut F) -> bool {
-        match *self {
-            Terminal::PkK(ref p) => pred(p),
-            Terminal::PkH(ref p) => pred(p),
-            Terminal::RawPkH(..)
-            | Terminal::After(..)
-            | Terminal::Older(..)
-            | Terminal::Sha256(..)
-            | Terminal::Hash256(..)
-            | Terminal::Ripemd160(..)
-            | Terminal::Hash160(..)
-            | Terminal::True
-            | Terminal::False => true,
-            Terminal::Alt(ref sub)
-            | Terminal::Swap(ref sub)
-            | Terminal::Check(ref sub)
-            | Terminal::DupIf(ref sub)
-            | Terminal::Verify(ref sub)
-            | Terminal::NonZero(ref sub)
-            | Terminal::ZeroNotEqual(ref sub) => sub.real_for_each_key(pred),
-            Terminal::AndV(ref left, ref right)
-            | Terminal::AndB(ref left, ref right)
-            | Terminal::OrB(ref left, ref right)
-            | Terminal::OrD(ref left, ref right)
-            | Terminal::OrC(ref left, ref right)
-            | Terminal::OrI(ref left, ref right) => {
-                left.real_for_each_key(&mut *pred) && right.real_for_each_key(pred)
-            }
-            Terminal::AndOr(ref a, ref b, ref c) => {
-                a.real_for_each_key(&mut *pred)
-                    && b.real_for_each_key(&mut *pred)
-                    && c.real_for_each_key(pred)
-            }
-            Terminal::Thresh(_, ref subs) => subs.iter().all(|sub| sub.real_for_each_key(pred)),
-            Terminal::Multi(_, ref keys) | Terminal::MultiA(_, ref keys) => keys.iter().all(pred),
-        }
-    }
-
-    pub(super) fn real_translate_pk<Q, CtxQ, T, E>(
-        &self,
-        t: &mut T,
-    ) -> Result<Terminal<Q, CtxQ>, TranslateErr<E>>
-    where
-        Q: MiniscriptKey,
-        CtxQ: ScriptContext,
-        T: Translator<Pk, Q, E>,
-    {
-        let frag: Terminal<Q, CtxQ> = match *self {
-            Terminal::PkK(ref p) => Terminal::PkK(t.pk(p)?),
-            Terminal::PkH(ref p) => Terminal::PkH(t.pk(p)?),
-            Terminal::RawPkH(ref p) => Terminal::RawPkH(*p),
-            Terminal::After(n) => Terminal::After(n),
-            Terminal::Older(n) => Terminal::Older(n),
-            Terminal::Sha256(ref x) => Terminal::Sha256(t.sha256(x)?),
-            Terminal::Hash256(ref x) => Terminal::Hash256(t.hash256(x)?),
-            Terminal::Ripemd160(ref x) => Terminal::Ripemd160(t.ripemd160(x)?),
-            Terminal::Hash160(ref x) => Terminal::Hash160(t.hash160(x)?),
-            Terminal::True => Terminal::True,
-            Terminal::False => Terminal::False,
-            Terminal::Alt(ref sub) => Terminal::Alt(Arc::new(sub.real_translate_pk(t)?)),
-            Terminal::Swap(ref sub) => Terminal::Swap(Arc::new(sub.real_translate_pk(t)?)),
-            Terminal::Check(ref sub) => Terminal::Check(Arc::new(sub.real_translate_pk(t)?)),
-            Terminal::DupIf(ref sub) => Terminal::DupIf(Arc::new(sub.real_translate_pk(t)?)),
-            Terminal::Verify(ref sub) => Terminal::Verify(Arc::new(sub.real_translate_pk(t)?)),
-            Terminal::NonZero(ref sub) => Terminal::NonZero(Arc::new(sub.real_translate_pk(t)?)),
-            Terminal::ZeroNotEqual(ref sub) => {
-                Terminal::ZeroNotEqual(Arc::new(sub.real_translate_pk(t)?))
-            }
-            Terminal::AndV(ref left, ref right) => Terminal::AndV(
-                Arc::new(left.real_translate_pk(t)?),
-                Arc::new(right.real_translate_pk(t)?),
-            ),
-            Terminal::AndB(ref left, ref right) => Terminal::AndB(
-                Arc::new(left.real_translate_pk(t)?),
-                Arc::new(right.real_translate_pk(t)?),
-            ),
-            Terminal::AndOr(ref a, ref b, ref c) => Terminal::AndOr(
-                Arc::new(a.real_translate_pk(t)?),
-                Arc::new(b.real_translate_pk(t)?),
-                Arc::new(c.real_translate_pk(t)?),
-            ),
-            Terminal::OrB(ref left, ref right) => Terminal::OrB(
-                Arc::new(left.real_translate_pk(t)?),
-                Arc::new(right.real_translate_pk(t)?),
-            ),
-            Terminal::OrD(ref left, ref right) => Terminal::OrD(
-                Arc::new(left.real_translate_pk(t)?),
-                Arc::new(right.real_translate_pk(t)?),
-            ),
-            Terminal::OrC(ref left, ref right) => Terminal::OrC(
-                Arc::new(left.real_translate_pk(t)?),
-                Arc::new(right.real_translate_pk(t)?),
-            ),
-            Terminal::OrI(ref left, ref right) => Terminal::OrI(
-                Arc::new(left.real_translate_pk(t)?),
-                Arc::new(right.real_translate_pk(t)?),
-            ),
-            Terminal::Thresh(k, ref subs) => {
-                let subs: Result<Vec<Arc<Miniscript<Q, _>>>, _> = subs
-                    .iter()
-                    .map(|s| s.real_translate_pk(t).map(Arc::new))
-                    .collect();
-                Terminal::Thresh(k, subs?)
-            }
-            Terminal::Multi(k, ref keys) => {
-                let keys: Result<Vec<Q>, _> = keys.iter().map(|k| t.pk(k)).collect();
-                Terminal::Multi(k, keys?)
-            }
-            Terminal::MultiA(k, ref keys) => {
-                let keys: Result<Vec<Q>, _> = keys.iter().map(|k| t.pk(k)).collect();
-                Terminal::MultiA(k, keys?)
-            }
-        };
-        Ok(frag)
-    }
-}
-
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> ForEachKey<Pk> for Terminal<Pk, Ctx> {
-    fn for_each_key<'a, F: FnMut(&'a Pk) -> bool>(&'a self, mut pred: F) -> bool {
-        self.real_for_each_key(&mut pred)
-    }
-}
-
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> fmt::Debug for Terminal<Pk, Ctx> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str("[")?;
-        if let Ok(type_map) = types::Type::type_check(self, |_| None) {
+        if let Ok(type_map) = types::Type::type_check(self) {
             f.write_str(match type_map.corr.base {
                 types::Base::B => "B",
                 types::Base::K => "K",
@@ -607,7 +464,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Terminal<Pk, Ctx> {
             Terminal::RawPkH(ref hash) => builder
                 .push_opcode(opcodes::all::OP_DUP)
                 .push_opcode(opcodes::all::OP_HASH160)
-                .push_slice(&hash.to_byte_array())
+                .push_slice(hash.to_byte_array())
                 .push_opcode(opcodes::all::OP_EQUALVERIFY),
             Terminal::After(t) => builder
                 .push_int(absolute::LockTime::from(t).to_consensus_u32() as i64)
@@ -732,66 +589,6 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Terminal<Pk, Ctx> {
                 builder
                     .push_int(k as i64)
                     .push_opcode(opcodes::all::OP_NUMEQUAL)
-            }
-        }
-    }
-
-    /// Size, in bytes of the script-pubkey. If this Miniscript is used outside
-    /// of segwit (e.g. in a bare or P2SH descriptor), this quantity should be
-    /// multiplied by 4 to compute the weight.
-    ///
-    /// In general, it is not recommended to use this function directly, but
-    /// to instead call the corresponding function on a `Descriptor`, which
-    /// will handle the segwit/non-segwit technicalities for you.
-    pub fn script_size(&self) -> usize {
-        match *self {
-            Terminal::PkK(ref pk) => Ctx::pk_len(pk),
-            Terminal::PkH(..) | Terminal::RawPkH(..) => 24,
-            Terminal::After(n) => script_num_size(n.to_consensus_u32() as usize) + 1,
-            Terminal::Older(n) => script_num_size(n.to_consensus_u32() as usize) + 1,
-            Terminal::Sha256(..) => 33 + 6,
-            Terminal::Hash256(..) => 33 + 6,
-            Terminal::Ripemd160(..) => 21 + 6,
-            Terminal::Hash160(..) => 21 + 6,
-            Terminal::True => 1,
-            Terminal::False => 1,
-            Terminal::Alt(ref sub) => sub.node.script_size() + 2,
-            Terminal::Swap(ref sub) => sub.node.script_size() + 1,
-            Terminal::Check(ref sub) => sub.node.script_size() + 1,
-            Terminal::DupIf(ref sub) => sub.node.script_size() + 3,
-            Terminal::Verify(ref sub) => {
-                sub.node.script_size() + usize::from(!sub.ext.has_free_verify)
-            }
-            Terminal::NonZero(ref sub) => sub.node.script_size() + 4,
-            Terminal::ZeroNotEqual(ref sub) => sub.node.script_size() + 1,
-            Terminal::AndV(ref l, ref r) => l.node.script_size() + r.node.script_size(),
-            Terminal::AndB(ref l, ref r) => l.node.script_size() + r.node.script_size() + 1,
-            Terminal::AndOr(ref a, ref b, ref c) => {
-                a.node.script_size() + b.node.script_size() + c.node.script_size() + 3
-            }
-            Terminal::OrB(ref l, ref r) => l.node.script_size() + r.node.script_size() + 1,
-            Terminal::OrD(ref l, ref r) => l.node.script_size() + r.node.script_size() + 3,
-            Terminal::OrC(ref l, ref r) => l.node.script_size() + r.node.script_size() + 2,
-            Terminal::OrI(ref l, ref r) => l.node.script_size() + r.node.script_size() + 3,
-            Terminal::Thresh(k, ref subs) => {
-                assert!(!subs.is_empty(), "threshold must be nonempty");
-                script_num_size(k) // k
-                    + 1 // EQUAL
-                    + subs.iter().map(|s| s.node.script_size()).sum::<usize>()
-                    + subs.len() // ADD
-                    - 1 // no ADD on first element
-            }
-            Terminal::Multi(k, ref pks) => {
-                script_num_size(k)
-                    + 1
-                    + script_num_size(pks.len())
-                    + pks.iter().map(|pk| Ctx::pk_len(pk)).sum::<usize>()
-            }
-            Terminal::MultiA(k, ref pks) => {
-                script_num_size(k)
-                    + 1 // NUMEQUAL
-                    + pks.iter().map(|pk| Ctx::pk_len(pk)).sum::<usize>() // n keys
-                    + pks.len() // n times CHECKSIGADD
             }
         }
     }

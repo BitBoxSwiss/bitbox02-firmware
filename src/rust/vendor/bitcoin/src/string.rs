@@ -7,7 +7,7 @@
 
 use core::fmt;
 
-use bitcoin_internals::write_err;
+use internals::write_err;
 
 use crate::prelude::String;
 
@@ -35,7 +35,8 @@ pub trait FromHexStr: Sized {
 }
 
 /// Hex parsing error
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum FromHexError<E> {
     /// The input was not a valid hex string, contains the error that occurred while parsing.
     ParseHex(E),
@@ -49,7 +50,7 @@ impl<E> From<E> for FromHexError<E> {
 
 impl<E: fmt::Display> fmt::Display for FromHexError<E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use self::FromHexError::*;
+        use FromHexError::*;
 
         match *self {
             ParseHex(ref e) => write_err!(f, "failed to parse hex string"; e),
@@ -60,13 +61,12 @@ impl<E: fmt::Display> fmt::Display for FromHexError<E> {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl<E> std::error::Error for FromHexError<E>
 where
     E: std::error::Error + 'static,
 {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        use self::FromHexError::*;
+        use FromHexError::*;
 
         match *self {
             ParseHex(ref e) => Some(e),

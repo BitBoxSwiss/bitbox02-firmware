@@ -1,4 +1,3 @@
-// Written in 2019 by Tammas Blummer.
 // SPDX-License-Identifier: CC0-1.0
 
 // This module was largely copied from https://github.com/rust-bitcoin/murmel/blob/master/src/blockfilter.rs
@@ -43,7 +42,8 @@ use core::cmp::{self, Ordering};
 use core::convert::TryInto;
 use core::fmt::{self, Display, Formatter};
 
-use bitcoin_internals::write_err;
+use hashes::{siphash24, Hash};
+use internals::write_err;
 
 use crate::blockdata::block::Block;
 use crate::blockdata::script::Script;
@@ -51,7 +51,6 @@ use crate::blockdata::transaction::OutPoint;
 use crate::consensus::encode::VarInt;
 use crate::consensus::{Decodable, Encodable};
 use crate::hash_types::{BlockHash, FilterHash, FilterHeader};
-use crate::hashes::{siphash24, Hash};
 use crate::io;
 use crate::prelude::*;
 
@@ -71,22 +70,23 @@ pub enum Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        use Error::*;
+
         match *self {
-            Error::UtxoMissing(ref coin) => write!(f, "unresolved UTXO {}", coin),
-            Error::Io(ref e) => write_err!(f, "IO error"; e),
+            UtxoMissing(ref coin) => write!(f, "unresolved UTXO {}", coin),
+            Io(ref e) => write_err!(f, "IO error"; e),
         }
     }
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        use self::Error::*;
+        use Error::*;
 
-        match self {
+        match *self {
             UtxoMissing(_) => None,
-            Io(e) => Some(e),
+            Io(ref e) => Some(e),
         }
     }
 }
@@ -393,7 +393,7 @@ impl<'a, W: io::Write> GcsFilterWriter<'a, W> {
         mapped.sort_unstable();
 
         // write number of elements as varint
-        let mut wrote = VarInt(mapped.len() as u64).consensus_encode(&mut self.writer)?;
+        let mut wrote = VarInt::from(mapped.len()).consensus_encode(&mut self.writer)?;
 
         // write out deltas of sorted values into a Golonb-Rice coded bit stream
         let mut writer = BitStreamWriter::new(self.writer);
@@ -556,12 +556,12 @@ impl<'a, W: io::Write> BitStreamWriter<'a, W> {
 mod test {
     use std::collections::HashMap;
 
+    use hex::test_hex_unwrap as hex;
     use serde_json::Value;
 
     use super::*;
     use crate::consensus::encode::deserialize;
     use crate::hash_types::BlockHash;
-    use crate::internal_macros::hex;
     use crate::ScriptBuf;
 
     #[test]
@@ -618,7 +618,7 @@ mod test {
                 .unwrap());
 
             for script in txmap.values() {
-                let query = vec![script];
+                let query = [script];
                 if !script.is_empty() {
                     assert!(filter
                         .match_any(block_hash, &mut query.iter().map(|s| s.as_bytes()))

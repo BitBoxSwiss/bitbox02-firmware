@@ -1,16 +1,4 @@
-// Bitcoin secp256k1 bindings
-// Written in 2015 by
-//   Andrew Poelstra
-//
-// To the extent possible under law, the author(s) have dedicated all
-// copyright and related and neighboring rights to this software to
-// the public domain worldwide. This software is distributed without
-// any warranty.
-//
-// You should have received a copy of the CC0 Public Domain Dedication
-// along with this software.
-// If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
-//
+// SPDX-License-Identifier: CC0-1.0
 
 //! Support for shared secret computations.
 //!
@@ -122,7 +110,7 @@ impl AsRef<[u8]> for SharedSecret {
 ///
 /// # Examples
 /// ```
-/// # #[cfg(all(feature = "bitcoin-hashes-std", feature = "rand-std"))] {
+/// # #[cfg(all(feature = "hashes-std", feature = "rand-std"))] {
 /// # use secp256k1::{ecdh, rand, Secp256k1, PublicKey, SecretKey};
 /// # use secp256k1::hashes::{Hash, sha512};
 ///
@@ -168,7 +156,6 @@ unsafe extern "C" fn c_callback(
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl ::serde::Serialize for SharedSecret {
     fn serialize<S: ::serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         if s.is_human_readable() {
@@ -181,7 +168,6 @@ impl ::serde::Serialize for SharedSecret {
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<'de> ::serde::Deserialize<'de> for SharedSecret {
     fn deserialize<D: ::serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         if d.is_human_readable() {
@@ -238,10 +224,10 @@ mod tests {
     }
 
     #[test]
-    #[cfg(not(fuzzing))]
-    #[cfg(all(feature = "bitcoin-hashes-std", feature = "rand-std"))]
-    fn bitcoin_hashes_and_sys_generate_same_secret() {
-        use bitcoin_hashes::{sha256, Hash, HashEngine};
+    #[cfg(not(secp256k1_fuzz))]
+    #[cfg(all(feature = "hashes-std", feature = "rand-std"))]
+    fn hashes_and_sys_generate_same_secret() {
+        use hashes::{sha256, Hash, HashEngine};
 
         use crate::ecdh::shared_secret_point;
 

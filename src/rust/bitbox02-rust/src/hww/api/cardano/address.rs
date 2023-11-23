@@ -25,8 +25,6 @@ use pb::cardano_response::Response;
 use pb::cardano_script_config::Config;
 use pb::CardanoNetwork;
 
-use bech32::{FromBase32, ToBase32, Variant};
-
 use blake2::{
     digest::{Update, VariableOutput},
     Blake2bVar,
@@ -44,11 +42,14 @@ pub const ADDRESS_HASH_SIZE: usize = 28;
 /// https://github.com/cardano-foundation/CIPs/blob/0081c890995ff94618145ae5beb7f288c029a86a/CIP-0019/CIP-0019.md#shelley-addresses
 /// See also: https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L119-L127
 fn decode_shelley_payment_address(params: &params::Params, address: &str) -> Result<Vec<u8>, ()> {
-    let (hrp, data, variant) = bech32::decode(address).or(Err(()))?;
-    if variant != Variant::Bech32 || hrp != params.bech32_hrp_payment {
+    let result =
+        bech32::primitives::decode::CheckedHrpstring::new::<bech32::Bech32>(address).or(Err(()))?;
+    // TODO: use `result.hrp().as_str()` once bech32 has a new release.
+    let hrp: String = result.hrp().char_iter().collect();
+    if hrp != params.bech32_hrp_payment {
         return Err(());
     }
-    let data = Vec::from_base32(&data).or(Err(()))?;
+    let data: Vec<u8> = result.byte_iter().collect();
     if data.is_empty() {
         return Err(());
     }
@@ -189,10 +190,9 @@ pub fn validate_and_encode_payment_address(
             bytes.extend_from_slice(&payment_key_hash);
             bytes.extend_from_slice(&stake_key_hash);
 
-            Ok(bech32::encode(
-                params.bech32_hrp_payment,
-                bytes.to_base32(),
-                Variant::Bech32,
+            Ok(bech32::encode::<bech32::Bech32>(
+                bech32::Hrp::parse_unchecked(params.bech32_hrp_payment),
+                &bytes,
             )
             .unwrap())
         }

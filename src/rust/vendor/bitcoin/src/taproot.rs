@@ -10,54 +10,43 @@ use core::convert::TryFrom;
 use core::fmt;
 use core::iter::FusedIterator;
 
-use bitcoin_internals::write_err;
+use hashes::{sha256t_hash_newtype, Hash, HashEngine};
+use internals::write_err;
 use secp256k1::{self, Scalar, Secp256k1};
 
 use crate::consensus::Encodable;
 use crate::crypto::key::{TapTweak, TweakedPublicKey, UntweakedPublicKey, XOnlyPublicKey};
 // Re-export these so downstream only has to use one `taproot` module.
-pub use crate::crypto::taproot::{Error, Signature};
-use crate::hashes::{sha256t_hash_newtype, Hash, HashEngine};
+pub use crate::crypto::taproot::{SigFromSliceError, Signature};
 use crate::prelude::*;
 use crate::{io, Script, ScriptBuf};
 
-/// The SHA-256 midstate value for the TapLeaf hash.
-const MIDSTATE_TAPLEAF: [u8; 32] = [
-    156, 224, 228, 230, 124, 17, 108, 57, 56, 179, 202, 242, 195, 15, 80, 137, 211, 243, 147, 108,
-    71, 99, 110, 96, 125, 179, 62, 234, 221, 198, 240, 201,
-];
-// 9ce0e4e67c116c3938b3caf2c30f5089d3f3936c47636e607db33eeaddc6f0c9
-
-/// The SHA-256 midstate value for the TapBranch hash.
-const MIDSTATE_TAPBRANCH: [u8; 32] = [
-    35, 168, 101, 169, 184, 164, 13, 167, 151, 124, 30, 4, 196, 158, 36, 111, 181, 190, 19, 118,
-    157, 36, 201, 183, 181, 131, 181, 212, 168, 210, 38, 210,
-];
-// 23a865a9b8a40da7977c1e04c49e246fb5be13769d24c9b7b583b5d4a8d226d2
-
-/// The SHA-256 midstate value for the TapTweak hash.
-const MIDSTATE_TAPTWEAK: [u8; 32] = [
-    209, 41, 162, 243, 112, 28, 101, 93, 101, 131, 182, 195, 185, 65, 151, 39, 149, 244, 226, 50,
-    148, 253, 84, 244, 162, 174, 141, 133, 71, 202, 89, 11,
-];
-// d129a2f3701c655d6583b6c3b941972795f4e23294fd54f4a2ae8d8547ca590b
-
 // Taproot test vectors from BIP-341 state the hashes without any reversing
-#[rustfmt::skip]
-sha256t_hash_newtype!(TapLeafHash, TapLeafTag, MIDSTATE_TAPLEAF, 64,
-    doc="Taproot-tagged hash with tag \"TapLeaf\".
+sha256t_hash_newtype! {
+    pub struct TapLeafTag = hash_str("TapLeaf");
 
-This is used for computing tapscript script spend hash.", forward
-);
-#[rustfmt::skip]
-sha256t_hash_newtype!(TapNodeHash, TapBranchTag, MIDSTATE_TAPBRANCH, 64,
-    doc="Tagged hash used in taproot trees; see BIP-340 for tagging rules", forward
-);
-#[rustfmt::skip]
-sha256t_hash_newtype!(TapTweakHash, TapTweakTag, MIDSTATE_TAPTWEAK, 64,
-    doc="Taproot-tagged hash with tag \"TapTweak\".
-    This hash type is used while computing the tweaked public key", forward
-);
+    /// Taproot-tagged hash with tag \"TapLeaf\".
+    ///
+    /// This is used for computing tapscript script spend hash.
+    #[hash_newtype(forward)]
+    pub struct TapLeafHash(_);
+
+    pub struct TapBranchTag = hash_str("TapBranch");
+
+    /// Tagged hash used in taproot trees.
+    ///
+    /// See BIP-340 for tagging rules.
+    #[hash_newtype(forward)]
+    pub struct TapNodeHash(_);
+
+    pub struct TapTweakTag = hash_str("TapTweak");
+
+    /// Taproot-tagged hash with tag \"TapTweak\".
+    ///
+    /// This hash type is used while computing the tweaked public key.
+    #[hash_newtype(forward)]
+    pub struct TapTweakHash(_);
+}
 
 impl TapTweakHash {
     /// Creates a new BIP341 [`TapTweakHash`] from key and tweak. Produces `H_taptweak(P||R)` where
@@ -262,6 +251,9 @@ impl TaprootSpendInfo {
     /// Returns the parity of the output key. See also [`TaprootSpendInfo::output_key`].
     pub fn output_key_parity(&self) -> secp256k1::Parity { self.output_key_parity }
 
+    /// Returns a reference to the internal script map.
+    pub fn script_map(&self) -> &ScriptMerkleProofMap { &self.script_map }
+
     /// Computes the [`TaprootSpendInfo`] from `internal_key` and `node`.
     ///
     /// This is useful when you want to manually build a taproot tree without using
@@ -300,7 +292,8 @@ impl TaprootSpendInfo {
     }
 
     /// Returns the internal script map.
-    pub fn as_script_map(&self) -> &ScriptMerkleProofMap { &self.script_map }
+    #[deprecated(since = "0.31.0", note = "use Self::script_map instead")]
+    pub fn as_script_map(&self) -> &ScriptMerkleProofMap { self.script_map() }
 
     /// Constructs a [`ControlBlock`] for particular script with the given version.
     ///
@@ -475,11 +468,11 @@ impl TaprootBuilder {
     ///
     /// # Errors:
     ///
-    /// [`IncompleteBuilder::NotFinalized`] if the builder is not finalized. The builder
-    /// can be restored by calling [`IncompleteBuilder::into_builder`]
-    pub fn try_into_node_info(mut self) -> Result<NodeInfo, IncompleteBuilder> {
+    /// [`IncompleteBuilderError::NotFinalized`] if the builder is not finalized. The builder
+    /// can be restored by calling [`IncompleteBuilderError::into_builder`]
+    pub fn try_into_node_info(mut self) -> Result<NodeInfo, IncompleteBuilderError> {
         if self.branch().len() != 1 {
-            return Err(IncompleteBuilder::NotFinalized(self));
+            return Err(IncompleteBuilderError::NotFinalized(self));
         }
         Ok(self
             .branch
@@ -490,11 +483,11 @@ impl TaprootBuilder {
 
     /// Converts the builder into a [`TapTree`] if the builder is a full tree and
     /// does not contain any hidden nodes
-    pub fn try_into_taptree(self) -> Result<TapTree, IncompleteBuilder> {
+    pub fn try_into_taptree(self) -> Result<TapTree, IncompleteBuilderError> {
         let node = self.try_into_node_info()?;
         if node.has_hidden_nodes {
             // Reconstruct the builder as it was if it has hidden nodes
-            return Err(IncompleteBuilder::HiddenParts(TaprootBuilder {
+            return Err(IncompleteBuilderError::HiddenParts(TaprootBuilder {
                 branch: vec![Some(node)],
             }));
         }
@@ -581,43 +574,45 @@ impl Default for TaprootBuilder {
 
 /// Error happening when [`TapTree`] is constructed from a [`TaprootBuilder`]
 /// having hidden branches or not being finalized.
-#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum IncompleteBuilder {
+pub enum IncompleteBuilderError {
     /// Indicates an attempt to construct a tap tree from a builder containing incomplete branches.
     NotFinalized(TaprootBuilder),
     /// Indicates an attempt to construct a tap tree from a builder containing hidden parts.
     HiddenParts(TaprootBuilder),
 }
 
-impl IncompleteBuilder {
+impl IncompleteBuilderError {
     /// Converts error into the original incomplete [`TaprootBuilder`] instance.
     pub fn into_builder(self) -> TaprootBuilder {
+        use IncompleteBuilderError::*;
+
         match self {
-            IncompleteBuilder::NotFinalized(builder) | IncompleteBuilder::HiddenParts(builder) =>
-                builder,
+            NotFinalized(builder) | HiddenParts(builder) => builder,
         }
     }
 }
 
-impl core::fmt::Display for IncompleteBuilder {
+impl core::fmt::Display for IncompleteBuilderError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        use IncompleteBuilderError::*;
+
         f.write_str(match self {
-            IncompleteBuilder::NotFinalized(_) =>
+            NotFinalized(_) =>
                 "an attempt to construct a tap tree from a builder containing incomplete branches.",
-            IncompleteBuilder::HiddenParts(_) =>
+            HiddenParts(_) =>
                 "an attempt to construct a tap tree from a builder containing hidden parts.",
         })
     }
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl std::error::Error for IncompleteBuilder {
+impl std::error::Error for IncompleteBuilderError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        use self::IncompleteBuilder::*;
+        use IncompleteBuilderError::*;
 
-        match self {
+        match *self {
             NotFinalized(_) | HiddenParts(_) => None,
         }
     }
@@ -625,36 +620,39 @@ impl std::error::Error for IncompleteBuilder {
 
 /// Error happening when [`TapTree`] is constructed from a [`NodeInfo`]
 /// having hidden branches.
-#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum HiddenNodes {
+pub enum HiddenNodesError {
     /// Indicates an attempt to construct a tap tree from a builder containing hidden parts.
     HiddenParts(NodeInfo),
 }
 
-impl HiddenNodes {
+impl HiddenNodesError {
     /// Converts error into the original incomplete [`NodeInfo`] instance.
     pub fn into_node_info(self) -> NodeInfo {
+        use HiddenNodesError::*;
+
         match self {
-            HiddenNodes::HiddenParts(node_info) => node_info,
+            HiddenParts(node_info) => node_info,
         }
     }
 }
 
-impl core::fmt::Display for HiddenNodes {
+impl core::fmt::Display for HiddenNodesError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        use HiddenNodesError::*;
+
         f.write_str(match self {
-            HiddenNodes::HiddenParts(_) =>
+            HiddenParts(_) =>
                 "an attempt to construct a tap tree from a node_info containing hidden parts.",
         })
     }
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl std::error::Error for HiddenNodes {
+impl std::error::Error for HiddenNodesError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        use self::HiddenNodes::*;
+        use HiddenNodesError::*;
 
         match self {
             HiddenParts(_) => None,
@@ -694,29 +692,29 @@ impl TapTree {
 }
 
 impl TryFrom<TaprootBuilder> for TapTree {
-    type Error = IncompleteBuilder;
+    type Error = IncompleteBuilderError;
 
     /// Constructs [`TapTree`] from a [`TaprootBuilder`] if it is complete binary tree.
     ///
     /// # Returns
     ///
-    /// A [`TapTree`] iff the `builder` is complete, otherwise return [`IncompleteBuilder`]
+    /// A [`TapTree`] iff the `builder` is complete, otherwise return [`IncompleteBuilderError`]
     /// error with the content of incomplete `builder` instance.
     fn try_from(builder: TaprootBuilder) -> Result<Self, Self::Error> { builder.try_into_taptree() }
 }
 
 impl TryFrom<NodeInfo> for TapTree {
-    type Error = HiddenNodes;
+    type Error = HiddenNodesError;
 
     /// Constructs [`TapTree`] from a [`NodeInfo`] if it is complete binary tree.
     ///
     /// # Returns
     ///
-    /// A [`TapTree`] iff the [`NodeInfo`] has no hidden nodes, otherwise return [`HiddenNodes`]
-    /// error with the content of incomplete [`NodeInfo`] instance.
+    /// A [`TapTree`] iff the [`NodeInfo`] has no hidden nodes, otherwise return
+    /// [`HiddenNodesError`] error with the content of incomplete [`NodeInfo`] instance.
     fn try_from(node_info: NodeInfo) -> Result<Self, Self::Error> {
         if node_info.has_hidden_nodes {
-            Err(HiddenNodes::HiddenParts(node_info))
+            Err(HiddenNodesError::HiddenParts(node_info))
         } else {
             Ok(TapTree(node_info))
         }
@@ -843,7 +841,7 @@ impl NodeInfo {
 }
 
 impl TryFrom<TaprootBuilder> for NodeInfo {
-    type Error = IncompleteBuilder;
+    type Error = IncompleteBuilderError;
 
     fn try_from(builder: TaprootBuilder) -> Result<Self, Self::Error> {
         builder.try_into_node_info()
@@ -851,7 +849,6 @@ impl TryFrom<TaprootBuilder> for NodeInfo {
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl serde::Serialize for NodeInfo {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -868,7 +865,6 @@ impl serde::Serialize for NodeInfo {
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<'de> serde::Deserialize<'de> for NodeInfo {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -1072,10 +1068,6 @@ impl TaprootMerkleBranch {
     pub fn is_empty(&self) -> bool { self.0.is_empty() }
 
     /// Decodes bytes from control block.
-    #[deprecated(since = "0.30.0", note = "Use decode instead")]
-    pub fn from_slice(sl: &[u8]) -> Result<Self, TaprootError> { Self::decode(sl) }
-
-    /// Decodes bytes from control block.
     ///
     /// This reads the branch as encoded in the control block: the concatenated 32B byte chunks -
     /// one for each hash.
@@ -1210,10 +1202,6 @@ pub struct ControlBlock {
 }
 
 impl ControlBlock {
-    /// Constructs a `ControlBlock` from slice.
-    #[deprecated(since = "0.30.0", note = "Use decode instead")]
-    pub fn from_slice(sl: &[u8]) -> Result<ControlBlock, TaprootError> { Self::decode(sl) }
-
     /// Decodes bytes representing a `ControlBlock`.
     ///
     /// This is an extra witness element that provides the proof that taproot script pubkey is
@@ -1398,7 +1386,6 @@ impl fmt::UpperHex for LeafVersion {
 
 /// Serializes [`LeafVersion`] as a `u8` using consensus encoding.
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl serde::Serialize for LeafVersion {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -1410,7 +1397,6 @@ impl serde::Serialize for LeafVersion {
 
 /// Deserializes [`LeafVersion`] as a `u8` using consensus encoding.
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<'de> serde::Deserialize<'de> for LeafVersion {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -1448,7 +1434,7 @@ impl<'de> serde::Deserialize<'de> for LeafVersion {
 }
 
 /// Detailed error type for taproot builder.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum TaprootBuilderError {
     /// Merkle tree depth must not be more than 128.
@@ -1465,26 +1451,28 @@ pub enum TaprootBuilderError {
 
 impl fmt::Display for TaprootBuilderError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use TaprootBuilderError::*;
+
         match *self {
-            TaprootBuilderError::InvalidMerkleTreeDepth(d) => {
+            InvalidMerkleTreeDepth(d) => {
                 write!(
                     f,
                     "Merkle Tree depth({}) must be less than {}",
                     d, TAPROOT_CONTROL_MAX_NODE_COUNT
                 )
             }
-            TaprootBuilderError::NodeNotInDfsOrder => {
+            NodeNotInDfsOrder => {
                 write!(f, "add_leaf/add_hidden must be called in DFS walk order",)
             }
-            TaprootBuilderError::OverCompleteTree => write!(
+            OverCompleteTree => write!(
                 f,
                 "Attempted to create a tree with two nodes at depth 0. There must\
                 only be a exactly one node at depth 0",
             ),
-            TaprootBuilderError::InvalidInternalKey(ref e) => {
+            InvalidInternalKey(ref e) => {
                 write_err!(f, "invalid internal x-only key"; e)
             }
-            TaprootBuilderError::EmptyTree => {
+            EmptyTree => {
                 write!(f, "Called finalize on an empty tree")
             }
         }
@@ -1492,10 +1480,9 @@ impl fmt::Display for TaprootBuilderError {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl std::error::Error for TaprootBuilderError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        use self::TaprootBuilderError::*;
+        use TaprootBuilderError::*;
 
         match self {
             InvalidInternalKey(e) => Some(e),
@@ -1505,7 +1492,7 @@ impl std::error::Error for TaprootBuilderError {
 }
 
 /// Detailed error type for taproot utilities.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum TaprootError {
     /// Proof size must be a multiple of 32.
@@ -1526,39 +1513,40 @@ pub enum TaprootError {
 
 impl fmt::Display for TaprootError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use TaprootError::*;
+
         match *self {
-            TaprootError::InvalidMerkleBranchSize(sz) => write!(
+            InvalidMerkleBranchSize(sz) => write!(
                 f,
                 "Merkle branch size({}) must be a multiple of {}",
                 sz, TAPROOT_CONTROL_NODE_SIZE
             ),
-            TaprootError::InvalidMerkleTreeDepth(d) => write!(
+            InvalidMerkleTreeDepth(d) => write!(
                 f,
                 "Merkle Tree depth({}) must be less than {}",
                 d, TAPROOT_CONTROL_MAX_NODE_COUNT
             ),
-            TaprootError::InvalidTaprootLeafVersion(v) => {
+            InvalidTaprootLeafVersion(v) => {
                 write!(f, "Leaf version({}) must have the least significant bit 0", v)
             }
-            TaprootError::InvalidControlBlockSize(sz) => write!(
+            InvalidControlBlockSize(sz) => write!(
                 f,
                 "Control Block size({}) must be of the form 33 + 32*m where  0 <= m <= {} ",
                 sz, TAPROOT_CONTROL_MAX_NODE_COUNT
             ),
-            TaprootError::InvalidInternalKey(ref e) => {
+            InvalidInternalKey(ref e) => {
                 write_err!(f, "invalid internal x-only key"; e)
             }
-            TaprootError::InvalidParity(_) => write!(f, "invalid parity value for internal key"),
-            TaprootError::EmptyTree => write!(f, "Taproot Tree must contain at least one script"),
+            InvalidParity(_) => write!(f, "invalid parity value for internal key"),
+            EmptyTree => write!(f, "Taproot Tree must contain at least one script"),
         }
     }
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl std::error::Error for TaprootError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        use self::TaprootError::*;
+        use TaprootError::*;
 
         match self {
             InvalidInternalKey(e) => Some(e),
@@ -1576,19 +1564,19 @@ impl std::error::Error for TaprootError {
 mod test {
     use core::str::FromStr;
 
+    use hashes::sha256t::Tag;
+    use hashes::{sha256, Hash, HashEngine};
+    use hex::FromHex;
     use secp256k1::{VerifyOnly, XOnlyPublicKey};
 
     use super::*;
-    use crate::hashes::hex::FromHex;
-    use crate::hashes::sha256t::Tag;
-    use crate::hashes::{sha256, Hash, HashEngine};
     use crate::sighash::{TapSighash, TapSighashTag};
     use crate::{Address, Network};
     extern crate serde_json;
 
     #[cfg(feature = "serde")]
     use {
-        crate::internal_macros::hex,
+        hex::test_hex_unwrap as hex,
         serde_test::Configure,
         serde_test::{assert_tokens, Token},
     };
@@ -1603,14 +1591,6 @@ mod test {
 
     #[test]
     fn test_midstates() {
-        use crate::crypto::sighash::MIDSTATE_TAPSIGHASH;
-
-        // check midstate against hard-coded values
-        assert_eq!(MIDSTATE_TAPLEAF, tag_engine("TapLeaf").midstate().to_byte_array());
-        assert_eq!(MIDSTATE_TAPBRANCH, tag_engine("TapBranch").midstate().to_byte_array());
-        assert_eq!(MIDSTATE_TAPTWEAK, tag_engine("TapTweak").midstate().to_byte_array());
-        assert_eq!(MIDSTATE_TAPSIGHASH, tag_engine("TapSighash").midstate().to_byte_array());
-
         // test that engine creation roundtrips
         assert_eq!(tag_engine("TapLeaf").midstate(), TapLeafTag::engine().midstate());
         assert_eq!(tag_engine("TapBranch").midstate(), TapBranchTag::engine().midstate());

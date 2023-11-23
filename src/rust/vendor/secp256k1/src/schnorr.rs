@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: CC0-1.0
+
 //! Support for schnorr signatures.
 //!
 
@@ -7,7 +9,7 @@ use core::{fmt, ptr, str};
 use rand::{CryptoRng, Rng};
 
 use crate::ffi::{self, CPtr};
-use crate::key::{KeyPair, XOnlyPublicKey};
+use crate::key::{Keypair, XOnlyPublicKey};
 #[cfg(feature = "global-context")]
 use crate::SECP256K1;
 use crate::{
@@ -15,7 +17,7 @@ use crate::{
 };
 
 /// Represents a schnorr signature.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Signature([u8; constants::SCHNORR_SIGNATURE_SIZE]);
 impl_array_newtype!(Signature, u8, constants::SCHNORR_SIGNATURE_SIZE);
 impl_pretty_debug!(Signature);
@@ -86,10 +88,13 @@ impl Signature {
         }
     }
 
+    /// Returns a signature as a byte array.
+    #[inline]
+    pub fn serialize(&self) -> [u8; constants::SCHNORR_SIGNATURE_SIZE] { self.0 }
+
     /// Verifies a schnorr signature for `msg` using `pk` and the global [`SECP256K1`] context.
     #[inline]
     #[cfg(feature = "global-context")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "global-context")))]
     pub fn verify(&self, msg: &Message, pk: &XOnlyPublicKey) -> Result<(), Error> {
         SECP256K1.verify_schnorr(self, msg, pk)
     }
@@ -99,7 +104,7 @@ impl<C: Signing> Secp256k1<C> {
     fn sign_schnorr_helper(
         &self,
         msg: &Message,
-        keypair: &KeyPair,
+        keypair: &Keypair,
         nonce_data: *const ffi::types::c_uchar,
     ) -> Signature {
         unsafe {
@@ -122,13 +127,12 @@ impl<C: Signing> Secp256k1<C> {
     /// Creates a schnorr signature internally using the [`rand::rngs::ThreadRng`] random number
     /// generator to generate the auxiliary random data.
     #[cfg(feature = "rand-std")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "rand-std")))]
-    pub fn sign_schnorr(&self, msg: &Message, keypair: &KeyPair) -> Signature {
+    pub fn sign_schnorr(&self, msg: &Message, keypair: &Keypair) -> Signature {
         self.sign_schnorr_with_rng(msg, keypair, &mut rand::thread_rng())
     }
 
     /// Creates a schnorr signature without using any auxiliary random data.
-    pub fn sign_schnorr_no_aux_rand(&self, msg: &Message, keypair: &KeyPair) -> Signature {
+    pub fn sign_schnorr_no_aux_rand(&self, msg: &Message, keypair: &Keypair) -> Signature {
         self.sign_schnorr_helper(msg, keypair, ptr::null())
     }
 
@@ -136,7 +140,7 @@ impl<C: Signing> Secp256k1<C> {
     pub fn sign_schnorr_with_aux_rand(
         &self,
         msg: &Message,
-        keypair: &KeyPair,
+        keypair: &Keypair,
         aux_rand: &[u8; 32],
     ) -> Signature {
         self.sign_schnorr_helper(msg, keypair, aux_rand.as_c_ptr() as *const ffi::types::c_uchar)
@@ -145,11 +149,10 @@ impl<C: Signing> Secp256k1<C> {
     /// Creates a schnorr signature using the given random number generator to
     /// generate the auxiliary random data.
     #[cfg(feature = "rand")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
     pub fn sign_schnorr_with_rng<R: Rng + CryptoRng>(
         &self,
         msg: &Message,
-        keypair: &KeyPair,
+        keypair: &Keypair,
         rng: &mut R,
     ) -> Signature {
         let mut aux = [0u8; 32];
@@ -195,11 +198,11 @@ mod tests {
     use wasm_bindgen_test::wasm_bindgen_test as test;
 
     use super::*;
-    use crate::schnorr::{KeyPair, Signature, XOnlyPublicKey};
+    use crate::schnorr::{Keypair, Signature, XOnlyPublicKey};
     use crate::Error::InvalidPublicKey;
     use crate::{constants, from_hex, Message, Secp256k1, SecretKey};
 
-    #[cfg(all(not(fuzzing), feature = "alloc"))]
+    #[cfg(all(not(secp256k1_fuzz), feature = "alloc"))]
     macro_rules! hex_32 {
         ($hex:expr) => {{
             let mut result = [0u8; 32];
@@ -235,17 +238,17 @@ mod tests {
 
     #[cfg(feature = "rand-std")]
     fn sign_helper(
-        sign: fn(&Secp256k1<crate::All>, &Message, &KeyPair, &mut ThreadRng) -> Signature,
+        sign: fn(&Secp256k1<crate::All>, &Message, &Keypair, &mut ThreadRng) -> Signature,
     ) {
         let secp = Secp256k1::new();
 
         let mut rng = rand::thread_rng();
-        let kp = KeyPair::new(&secp, &mut rng);
+        let kp = Keypair::new(&secp, &mut rng);
         let (pk, _parity) = kp.x_only_public_key();
 
         for _ in 0..100 {
             let msg = crate::random_32_bytes(&mut rand::thread_rng());
-            let msg = Message::from_slice(&msg).unwrap();
+            let msg = Message::from_digest_slice(&msg).unwrap();
 
             let sig = sign(&secp, &msg, &kp, &mut rng);
 
@@ -255,13 +258,13 @@ mod tests {
 
     #[test]
     #[cfg(feature = "alloc")]
-    #[cfg(not(fuzzing))] // fixed sig vectors can't work with fuzz-sigs
+    #[cfg(not(secp256k1_fuzz))] // fixed sig vectors can't work with fuzz-sigs
     fn schnorr_sign() {
         let secp = Secp256k1::new();
 
         let hex_msg = hex_32!("E48441762FB75010B2AA31A512B62B4148AA3FB08EB0765D76B252559064A614");
-        let msg = Message::from_slice(&hex_msg).unwrap();
-        let sk = KeyPair::from_seckey_str(
+        let msg = Message::from_digest_slice(&hex_msg).unwrap();
+        let sk = Keypair::from_seckey_str(
             &secp,
             "688C77BC2D5AAFF5491CF309D4753B732135470D05B7B2CD21ADD0744FE97BEF",
         )
@@ -276,13 +279,13 @@ mod tests {
     }
 
     #[test]
-    #[cfg(not(fuzzing))] // fixed sig vectors can't work with fuzz-sigs
+    #[cfg(not(secp256k1_fuzz))] // fixed sig vectors can't work with fuzz-sigs
     #[cfg(feature = "alloc")]
     fn schnorr_verify() {
         let secp = Secp256k1::new();
 
         let hex_msg = hex_32!("E48441762FB75010B2AA31A512B62B4148AA3FB08EB0765D76B252559064A614");
-        let msg = Message::from_slice(&hex_msg).unwrap();
+        let msg = Message::from_digest_slice(&hex_msg).unwrap();
         let sig = Signature::from_str("6470FD1303DDA4FDA717B9837153C24A6EAB377183FC438F939E0ED2B620E9EE5077C4A8B8DCA28963D772A94F5F0DDF598E1C47C137F91933274C7C3EDADCE8").unwrap();
         let pubkey = XOnlyPublicKey::from_str(
             "B33CC9EDC096D0A83416964BD3C6247B8FECD256E4EFA7870D2C854BDEB33390",
@@ -290,6 +293,19 @@ mod tests {
         .unwrap();
 
         assert!(secp.verify_schnorr(&sig, &msg, &pubkey).is_ok());
+    }
+
+    #[test]
+    fn test_serialize() {
+        let sig = Signature::from_str("6470FD1303DDA4FDA717B9837153C24A6EAB377183FC438F939E0ED2B620E9EE5077C4A8B8DCA28963D772A94F5F0DDF598E1C47C137F91933274C7C3EDADCE8").unwrap();
+        let sig_bytes = sig.serialize();
+        let bytes = [
+            100, 112, 253, 19, 3, 221, 164, 253, 167, 23, 185, 131, 113, 83, 194, 74, 110, 171, 55,
+            113, 131, 252, 67, 143, 147, 158, 14, 210, 182, 32, 233, 238, 80, 119, 196, 168, 184,
+            220, 162, 137, 99, 215, 114, 169, 79, 95, 13, 223, 89, 142, 28, 71, 193, 55, 249, 25,
+            51, 39, 76, 124, 62, 218, 220, 232,
+        ];
+        assert_eq!(sig_bytes, bytes);
     }
 
     #[test]
@@ -308,7 +324,7 @@ mod tests {
     #[cfg(feature = "rand-std")]
     fn test_pubkey_serialize_roundtrip() {
         let secp = Secp256k1::new();
-        let kp = KeyPair::new(&secp, &mut rand::thread_rng());
+        let kp = Keypair::new(&secp, &mut rand::thread_rng());
         let (pk, _parity) = kp.x_only_public_key();
 
         let ser = pk.serialize();
@@ -321,7 +337,7 @@ mod tests {
     fn test_xonly_key_extraction() {
         let secp = Secp256k1::new();
         let sk_str = "688C77BC2D5AAFF5491CF309D4753B732135470D05B7B2CD21ADD0744FE97BEF";
-        let keypair = KeyPair::from_seckey_str(&secp, sk_str).unwrap();
+        let keypair = Keypair::from_seckey_str(&secp, sk_str).unwrap();
         let sk = SecretKey::from_keypair(&keypair);
         assert_eq!(SecretKey::from_str(sk_str).unwrap(), sk);
         let pk = crate::key::PublicKey::from_keypair(&keypair);
@@ -349,7 +365,7 @@ mod tests {
         );
         // In fuzzing mode restrictions on public key validity are much more
         // relaxed, thus the invalid check below is expected to fail.
-        #[cfg(not(fuzzing))]
+        #[cfg(not(secp256k1_fuzz))]
         assert_eq!(
             XOnlyPublicKey::from_slice(&[0x55; constants::SCHNORR_PUBLIC_KEY_SIZE]),
             Err(InvalidPublicKey)
@@ -360,7 +376,7 @@ mod tests {
     #[test]
     #[cfg(feature = "std")]
     fn test_pubkey_display_output() {
-        #[cfg(not(fuzzing))]
+        #[cfg(not(secp256k1_fuzz))]
         let pk = {
             let secp = Secp256k1::new();
             static SK_BYTES: [u8; 32] = [
@@ -369,14 +385,14 @@ mod tests {
                 0x63, 0x63, 0x63, 0x63,
             ];
 
-            let kp = KeyPair::from_seckey_slice(&secp, &SK_BYTES).expect("sk");
+            let kp = Keypair::from_seckey_slice(&secp, &SK_BYTES).expect("sk");
 
             // In fuzzing mode secret->public key derivation is different, so
             // hard-code the expected result.
             let (pk, _parity) = kp.x_only_public_key();
             pk
         };
-        #[cfg(fuzzing)]
+        #[cfg(secp256k1_fuzz)]
         let pk = XOnlyPublicKey::from_slice(&[
             0x18, 0x84, 0x57, 0x81, 0xf6, 0x31, 0xc4, 0x8f, 0x1c, 0x97, 0x09, 0xe2, 0x30, 0x92,
             0x06, 0x7d, 0x06, 0x83, 0x7f, 0x30, 0xaa, 0x0c, 0xd0, 0x54, 0x4a, 0xc8, 0x87, 0xfe,
@@ -424,12 +440,12 @@ mod tests {
     #[test]
     // In fuzzing mode secret->public key derivation is different, so
     // this test will never correctly derive the static pubkey.
-    #[cfg(not(fuzzing))]
+    #[cfg(not(secp256k1_fuzz))]
     #[cfg(all(feature = "rand", feature = "alloc"))]
     fn test_pubkey_serialize() {
         use rand::rngs::mock::StepRng;
         let secp = Secp256k1::new();
-        let kp = KeyPair::new(&secp, &mut StepRng::new(1, 1));
+        let kp = Keypair::new(&secp, &mut StepRng::new(1, 1));
         let (pk, _parity) = kp.x_only_public_key();
         assert_eq!(
             &pk.serialize()[..],
@@ -440,7 +456,7 @@ mod tests {
         );
     }
 
-    #[cfg(not(fuzzing))] // fixed sig vectors can't work with fuzz-sigs
+    #[cfg(not(secp256k1_fuzz))] // fixed sig vectors can't work with fuzz-sigs
     #[test]
     #[cfg(all(feature = "serde", feature = "alloc"))]
     fn test_serde() {
@@ -448,8 +464,8 @@ mod tests {
 
         let s = Secp256k1::new();
 
-        let msg = Message::from_slice(&[1; 32]).unwrap();
-        let keypair = KeyPair::from_seckey_slice(&s, &[2; 32]).unwrap();
+        let msg = Message::from_digest_slice(&[1; 32]).unwrap();
+        let keypair = Keypair::from_seckey_slice(&s, &[2; 32]).unwrap();
         let aux = [3u8; 32];
         let sig = s.sign_schnorr_with_aux_rand(&msg, &keypair, &aux);
         static SIG_BYTES: [u8; constants::SCHNORR_SIGNATURE_SIZE] = [

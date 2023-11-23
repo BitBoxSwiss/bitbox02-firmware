@@ -1,7 +1,9 @@
-// Written in 2019 by Andrew Poelstra <apoelstra@wpsoftware.net>
 // SPDX-License-Identifier: CC0-1.0
 
 //! Abstract Policies
+//!
+//! We use the terms "semantic" and "abstract" interchangeably because
+//! "abstract" is a reserved keyword in Rust.
 
 use core::str::FromStr;
 use core::{fmt, str};
@@ -13,33 +15,33 @@ use super::ENTAILMENT_MAX_TERMINALS;
 use crate::prelude::*;
 use crate::{errstr, expression, AbsLockTime, Error, ForEachKey, MiniscriptKey, Translator};
 
-/// Abstract policy which corresponds to the semantics of a Miniscript
-/// and which allows complex forms of analysis, e.g. filtering and
-/// normalization.
+/// Abstract policy which corresponds to the semantics of a miniscript and
+/// which allows complex forms of analysis, e.g. filtering and normalization.
+///
 /// Semantic policies store only hashes of keys to ensure that objects
-/// representing the same policy are lifted to the same `Semantic`,
+/// representing the same policy are lifted to the same abstract `Policy`,
 /// regardless of their choice of `pk` or `pk_h` nodes.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Policy<Pk: MiniscriptKey> {
-    /// Unsatisfiable
+    /// Unsatisfiable.
     Unsatisfiable,
-    /// Trivially satisfiable
+    /// Trivially satisfiable.
     Trivial,
-    /// Signature and public key matching a given hash is required
+    /// Signature and public key matching a given hash is required.
     Key(Pk),
-    /// An absolute locktime restriction
+    /// An absolute locktime restriction.
     After(AbsLockTime),
-    /// A relative locktime restriction
+    /// A relative locktime restriction.
     Older(Sequence),
-    /// A SHA256 whose preimage must be provided to satisfy the descriptor
+    /// A SHA256 whose preimage must be provided to satisfy the descriptor.
     Sha256(Pk::Sha256),
-    /// A SHA256d whose preimage must be provided to satisfy the descriptor
+    /// A SHA256d whose preimage must be provided to satisfy the descriptor.
     Hash256(Pk::Hash256),
-    /// A RIPEMD160 whose preimage must be provided to satisfy the descriptor
+    /// A RIPEMD160 whose preimage must be provided to satisfy the descriptor.
     Ripemd160(Pk::Ripemd160),
-    /// A HASH160 whose preimage must be provided to satisfy the descriptor
+    /// A HASH160 whose preimage must be provided to satisfy the descriptor.
     Hash160(Pk::Hash160),
-    /// A set of descriptors, satisfactions must be provided for `k` of them
+    /// A set of descriptors, satisfactions must be provided for `k` of them.
     Threshold(usize, Vec<Policy<Pk>>),
 }
 
@@ -47,17 +49,17 @@ impl<Pk> Policy<Pk>
 where
     Pk: MiniscriptKey,
 {
-    /// Construct a `Policy::After` from `n`. Helper function equivalent to
-    /// `Policy::After(absolute::LockTime::from_consensus(n))`.
+    /// Constructs a `Policy::After` from `n`.
+    ///
+    /// Helper function equivalent to `Policy::After(absolute::LockTime::from_consensus(n))`.
     pub fn after(n: u32) -> Policy<Pk> {
         Policy::After(AbsLockTime::from(absolute::LockTime::from_consensus(n)))
     }
 
-    /// Construct a `Policy::Older` from `n`. Helper function equivalent to
-    /// `Policy::Older(Sequence::from_consensus(n))`.
-    pub fn older(n: u32) -> Policy<Pk> {
-        Policy::Older(Sequence::from_consensus(n))
-    }
+    /// Construct a `Policy::Older` from `n`.
+    ///
+    /// Helper function equivalent to `Policy::Older(Sequence::from_consensus(n))`.
+    pub fn older(n: u32) -> Policy<Pk> { Policy::Older(Sequence::from_consensus(n)) }
 }
 
 impl<Pk: MiniscriptKey> ForEachKey<Pk> for Policy<Pk> {
@@ -83,42 +85,41 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
         }
     }
 
-    /// Convert a policy using one kind of public key to another
-    /// type of public key
+    /// Converts a policy using one kind of public key to another type of public key.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```
-    /// use miniscript::{bitcoin::{hashes::hash160, PublicKey}, policy::semantic::Policy, Translator};
-    /// use miniscript::translate_hash_fail;
-    /// use std::str::FromStr;
     /// use std::collections::HashMap;
+    /// use std::str::FromStr;
+    /// use miniscript::bitcoin::{hashes::hash160, PublicKey};
+    /// use miniscript::{translate_hash_fail, policy::semantic::Policy, Translator};
     /// let alice_pk = "02c79ef3ede6d14f72a00d0e49b4becfb152197b64c0707425c4f231df29500ee7";
     /// let bob_pk = "03d008a849fbf474bd17e9d2c1a827077a468150e58221582ec3410ab309f5afe4";
     /// let placeholder_policy = Policy::<String>::from_str("and(pk(alice_pk),pk(bob_pk))").unwrap();
     ///
-    /// // Information to translator abstract String type keys to concrete bitcoin::PublicKey.
-    /// // In practice, wallets would map from String key names to BIP32 keys
+    /// // Information to translate abstract string type keys to concrete `bitcoin::PublicKey`s.
+    /// // In practice, wallets would map from string key names to BIP32 keys.
     /// struct StrPkTranslator {
     ///     pk_map: HashMap<String, bitcoin::PublicKey>
     /// }
     ///
-    /// // If we also wanted to provide mapping of other associated types(sha256, older etc),
-    /// // we would use the general Translator Trait.
+    /// // If we also wanted to provide mapping of other associated types (sha256, older etc),
+    /// // we would use the general [`Translator`] trait.
     /// impl Translator<String, bitcoin::PublicKey, ()> for StrPkTranslator {
     ///     fn pk(&mut self, pk: &String) -> Result<bitcoin::PublicKey, ()> {
     ///         self.pk_map.get(pk).copied().ok_or(()) // Dummy Err
     ///     }
     ///
-    ///    // Handy macro for failing if we encounter any other fragment.
-    ///    // also see translate_hash_clone! for cloning instead of failing
+    ///     // Handy macro for failing if we encounter any other fragment.
+    ///     // See also [`translate_hash_clone!`] for cloning instead of failing.
     ///     translate_hash_fail!(String, bitcoin::PublicKey, ());
     /// }
     ///
     /// let mut pk_map = HashMap::new();
     /// pk_map.insert(String::from("alice_pk"), bitcoin::PublicKey::from_str(alice_pk).unwrap());
     /// pk_map.insert(String::from("bob_pk"), bitcoin::PublicKey::from_str(bob_pk).unwrap());
-    /// let mut t = StrPkTranslator { pk_map: pk_map };
+    /// let mut t = StrPkTranslator { pk_map };
     ///
     /// let real_policy = placeholder_policy.translate_pk(&mut t).unwrap();
     ///
@@ -126,14 +127,6 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
     /// assert_eq!(real_policy, expected_policy);
     /// ```
     pub fn translate_pk<Q, E, T>(&self, t: &mut T) -> Result<Policy<Q>, E>
-    where
-        T: Translator<Pk, Q, E>,
-        Q: MiniscriptKey,
-    {
-        self._translate_pk(t)
-    }
-
-    fn _translate_pk<Q, E, T>(&self, t: &mut T) -> Result<Policy<Q>, E>
     where
         T: Translator<Pk, Q, E>,
         Q: MiniscriptKey,
@@ -150,17 +143,18 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
             Policy::Older(n) => Ok(Policy::Older(n)),
             Policy::Threshold(k, ref subs) => {
                 let new_subs: Result<Vec<Policy<Q>>, _> =
-                    subs.iter().map(|sub| sub._translate_pk(t)).collect();
+                    subs.iter().map(|sub| sub.translate_pk(t)).collect();
                 new_subs.map(|ok| Policy::Threshold(k, ok))
             }
         }
     }
 
-    /// This function computes whether the current policy entails the second one.
+    /// Computes whether the current policy entails the second one.
+    ///
     /// A |- B means every satisfaction of A is also a satisfaction of B.
-    /// This implementation will run slow for larger policies but should be sufficient for
-    /// most practical policies.
-
+    ///
+    /// This implementation will run slowly for larger policies but should be
+    /// sufficient for most practical policies.
     // This algorithm has a naive implementation. It is possible to optimize this
     // by memoizing and maintaining a hashmap.
     pub fn entails(self, other: Policy<Pk>) -> Result<bool, PolicyError> {
@@ -208,11 +202,10 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
         }
     }
 
-    // Helper function that takes in witness and its availability,
-    // changing it to true or false and returning the resultant normalized
-    // policy.
-    // Witness is currently encoded as policy. Only accepts leaf fragment and
-    // a normalized policy
+    // Helper function that takes in witness and its availability, changing it
+    // to true or false and returning the resultant normalized policy. Witness
+    // is currently encoded as policy. Only accepts leaf fragment and a
+    // normalized policy
     pub(crate) fn satisfy_constraint(self, witness: &Policy<Pk>, available: bool) -> Policy<Pk> {
         debug_assert!(self.clone().normalized() == self);
         if let Policy::Threshold { .. } = *witness {
@@ -311,11 +304,7 @@ impl_from_str!(
     Policy<Pk>,
     type Err = Error;,
     fn from_str(s: &str) -> Result<Policy<Pk>, Error> {
-        for ch in s.as_bytes() {
-            if *ch < 20 || *ch > 127 {
-                return Err(Error::Unprintable(*ch));
-            }
-        }
+        expression::check_valid_chars(s)?;
 
         let tree = expression::Tree::from_str(s)?;
         expression::FromTree::from_tree(&tree)
@@ -337,9 +326,9 @@ impl_from_tree!(
             ("older", 1) => expression::terminal(&top.args[0], |x| {
                 expression::parse_num(x).map(|x| Policy::older(x))
             }),
-            ("sha256", 1) => expression::terminal(&top.args[0], |x| {
-                Pk::Sha256::from_str(x).map(Policy::Sha256)
-            }),
+            ("sha256", 1) => {
+                expression::terminal(&top.args[0], |x| Pk::Sha256::from_str(x).map(Policy::Sha256))
+            }
             ("hash256", 1) => expression::terminal(&top.args[0], |x| {
                 Pk::Hash256::from_str(x).map(Policy::Hash256)
             }),
@@ -402,7 +391,7 @@ impl_from_tree!(
 );
 
 impl<Pk: MiniscriptKey> Policy<Pk> {
-    /// Flatten out trees of `And`s and `Or`s; eliminate `Trivial` and
+    /// Flattens out trees of `And`s and `Or`s; eliminate `Trivial` and
     /// `Unsatisfiable`s. Does not reorder any branches; use `.sort`.
     pub fn normalized(self) -> Policy<Pk> {
         match self {
@@ -457,27 +446,19 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
         }
     }
 
-    /// Helper function to detect a true/trivial policy
-    /// This function only checks whether the policy is Policy::Trivial
-    /// For checking if the normalized form is trivial, the caller
-    /// is expected to normalize the policy first.
-    pub fn is_trivial(&self) -> bool {
-        match *self {
-            Policy::Trivial => true,
-            _ => false,
-        }
-    }
+    /// Detects a true/trivial policy.
+    ///
+    /// Only checks whether the policy is `Policy::Trivial`, to check if the
+    /// normalized form is trivial, the caller is expected to normalize the
+    /// policy first.
+    pub fn is_trivial(&self) -> bool { matches!(*self, Policy::Trivial) }
 
-    /// Helper function to detect a false/unsatisfiable policy
-    /// This function only checks whether the policy is Policy::Unsatisfiable
-    /// For checking if the normalized form is unsatisfiable, the caller
-    /// is expected to normalize the policy first.
-    pub fn is_unsatisfiable(&self) -> bool {
-        match *self {
-            Policy::Unsatisfiable => true,
-            _ => false,
-        }
-    }
+    /// Detects a false/unsatisfiable policy.
+    ///
+    /// Only checks whether the policy is `Policy::Unsatisfiable`, to check if
+    /// the normalized form is unsatisfiable, the caller is expected to
+    /// normalize the policy first.
+    pub fn is_unsatisfiable(&self) -> bool { matches!(*self, Policy::Unsatisfiable) }
 
     /// Helper function to do the recursion in `timelocks`.
     fn real_relative_timelocks(&self) -> Vec<u32> {
@@ -498,8 +479,8 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
         }
     }
 
-    /// Returns a list of all relative timelocks, not including 0,
-    /// which appear in the policy
+    /// Returns a list of all relative timelocks, not including 0, which appear
+    /// in the policy.
     pub fn relative_timelocks(&self) -> Vec<u32> {
         let mut ret = self.real_relative_timelocks();
         ret.sort_unstable();
@@ -526,8 +507,8 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
         }
     }
 
-    /// Returns a list of all absolute timelocks, not including 0,
-    /// which appear in the policy
+    /// Returns a list of all absolute timelocks, not including 0, which appear
+    /// in the policy.
     pub fn absolute_timelocks(&self) -> Vec<u32> {
         let mut ret = self.real_absolute_timelocks();
         ret.sort_unstable();
@@ -535,7 +516,7 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
         ret
     }
 
-    /// Filter a policy by eliminating relative timelock constraints
+    /// Filters a policy by eliminating relative timelock constraints
     /// that are not satisfied at the given `age`.
     pub fn at_age(mut self, age: Sequence) -> Policy<Pk> {
         self = match self {
@@ -557,7 +538,7 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
         self.normalized()
     }
 
-    /// Filter a policy by eliminating absolute timelock constraints
+    /// Filters a policy by eliminating absolute timelock constraints
     /// that are not satisfied at the given `n` (`n OP_CHECKLOCKTIMEVERIFY`).
     pub fn at_lock_time(mut self, n: absolute::LockTime) -> Policy<Pk> {
         use absolute::LockTime::*;
@@ -584,7 +565,7 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
         self.normalized()
     }
 
-    /// Count the number of public keys and keyhashes referenced in a policy.
+    /// Counts the number of public keys and keyhashes referenced in a policy.
     /// Duplicate keys will be double-counted.
     pub fn n_keys(&self) -> usize {
         match *self {
@@ -600,8 +581,11 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
         }
     }
 
-    /// Count the minimum number of public keys for which signatures
-    /// could be used to satisfy the policy.
+    /// Counts the minimum number of public keys for which signatures could be
+    /// used to satisfy the policy.
+    ///
+    /// # Returns
+    ///
     /// Returns `None` if the policy is not satisfiable.
     pub fn minimum_n_keys(&self) -> Option<usize> {
         match *self {
@@ -630,7 +614,8 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
 }
 
 impl<Pk: MiniscriptKey> Policy<Pk> {
-    /// "Sort" a policy to bring it into a canonical form to allow comparisons.
+    /// "Sorts" a policy to bring it into a canonical form to allow comparisons.
+    ///
     /// Does **not** allow policies to be compared for functional equivalence;
     /// in general this appears to require Gröbner basis techniques that are not
     /// implemented.
@@ -696,10 +681,7 @@ mod tests {
         assert_eq!(policy.absolute_timelocks(), vec![]);
         assert_eq!(policy.relative_timelocks(), vec![1000]);
         assert_eq!(policy.clone().at_age(Sequence::ZERO), Policy::Unsatisfiable);
-        assert_eq!(
-            policy.clone().at_age(Sequence::from_height(999)),
-            Policy::Unsatisfiable
-        );
+        assert_eq!(policy.clone().at_age(Sequence::from_height(999)), Policy::Unsatisfiable);
         assert_eq!(policy.clone().at_age(Sequence::from_height(1000)), policy);
         assert_eq!(policy.clone().at_age(Sequence::from_height(10000)), policy);
         assert_eq!(policy.n_keys(), 0);
@@ -718,18 +700,9 @@ mod tests {
         );
         assert_eq!(policy.relative_timelocks(), vec![1000]);
         assert_eq!(policy.absolute_timelocks(), vec![]);
-        assert_eq!(
-            policy.clone().at_age(Sequence::ZERO),
-            Policy::Key("".to_owned())
-        );
-        assert_eq!(
-            policy.clone().at_age(Sequence::from_height(999)),
-            Policy::Key("".to_owned())
-        );
-        assert_eq!(
-            policy.clone().at_age(Sequence::from_height(1000)),
-            policy.clone().normalized()
-        );
+        assert_eq!(policy.clone().at_age(Sequence::ZERO), Policy::Key("".to_owned()));
+        assert_eq!(policy.clone().at_age(Sequence::from_height(999)), Policy::Key("".to_owned()));
+        assert_eq!(policy.clone().at_age(Sequence::from_height(1000)), policy.clone().normalized());
         assert_eq!(
             policy.clone().at_age(Sequence::from_height(10000)),
             policy.clone().normalized()
@@ -812,10 +785,7 @@ mod tests {
         assert_eq!(policy, Policy::after(1000));
         assert_eq!(policy.absolute_timelocks(), vec![1000]);
         assert_eq!(policy.relative_timelocks(), vec![]);
-        assert_eq!(
-            policy.clone().at_lock_time(absolute::LockTime::ZERO),
-            Policy::Unsatisfiable
-        );
+        assert_eq!(policy.clone().at_lock_time(absolute::LockTime::ZERO), Policy::Unsatisfiable);
         assert_eq!(
             policy
                 .clone()
@@ -850,10 +820,7 @@ mod tests {
         assert_eq!(policy.absolute_timelocks(), vec![500_000_010]);
         assert_eq!(policy.relative_timelocks(), vec![]);
         // Pass a block height to at_lock_time while policy uses a UNIX timestapm.
-        assert_eq!(
-            policy.clone().at_lock_time(absolute::LockTime::ZERO),
-            Policy::Unsatisfiable
-        );
+        assert_eq!(policy.clone().at_lock_time(absolute::LockTime::ZERO), Policy::Unsatisfiable);
         assert_eq!(
             policy
                 .clone()

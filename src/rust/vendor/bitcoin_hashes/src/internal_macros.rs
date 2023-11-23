@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: CC0-1.0
+
 //! Non-public macros
 
 macro_rules! arr_newtype_fmt_impl {
@@ -7,11 +9,11 @@ macro_rules! arr_newtype_fmt_impl {
             fn fmt(&self, f: &mut $crate::_export::_core::fmt::Formatter) -> $crate::_export::_core::fmt::Result {
                 #[allow(unused)]
                 use crate::Hash as _;
-                let case = internals::hex::Case::Lower;
+                let case = $crate::hex::Case::Lower;
                 if <$ty<$($gen),*>>::DISPLAY_BACKWARD {
-                    internals::hex::display::fmt_hex_exact!(f, $bytes, self.0.iter().rev(), case)
+                    $crate::hex::fmt_hex_exact!(f, $bytes, self.0.iter().rev(), case)
                 } else {
-                    internals::hex::display::fmt_hex_exact!(f, $bytes, self.0.iter(), case)
+                    $crate::hex::fmt_hex_exact!(f, $bytes, self.0.iter(), case)
                 }
             }
         }
@@ -21,11 +23,11 @@ macro_rules! arr_newtype_fmt_impl {
             fn fmt(&self, f: &mut $crate::_export::_core::fmt::Formatter) -> $crate::_export::_core::fmt::Result {
                 #[allow(unused)]
                 use crate::Hash as _;
-                let case = internals::hex::Case::Upper;
+                let case = $crate::hex::Case::Upper;
                 if <$ty<$($gen),*>>::DISPLAY_BACKWARD {
-                    internals::hex::display::fmt_hex_exact!(f, $bytes, self.0.iter().rev(), case)
+                    $crate::hex::fmt_hex_exact!(f, $bytes, self.0.iter().rev(), case)
                 } else {
-                    internals::hex::display::fmt_hex_exact!(f, $bytes, self.0.iter(), case)
+                    $crate::hex::fmt_hex_exact!(f, $bytes, self.0.iter(), case)
                 }
             }
         }
@@ -74,7 +76,7 @@ macro_rules! hash_trait_impls {
             /// This is mainly intended as an internal method and you shouldn't need it unless
             /// you're doing something special.
             pub fn forward_hex(&self) -> impl '_ + core::fmt::LowerHex + core::fmt::UpperHex {
-                internals::hex::display::DisplayHex::as_hex(&self.0)
+                $crate::hex::DisplayHex::as_hex(&self.0)
             }
 
             /// Displays hex backwards, regardless of how this type would display it naturally.
@@ -82,20 +84,34 @@ macro_rules! hash_trait_impls {
             /// This is mainly intended as an internal method and you shouldn't need it unless
             /// you're doing something special.
             pub fn backward_hex(&self) -> impl '_ + core::fmt::LowerHex + core::fmt::UpperHex {
-                internals::hex::display::DisplayArray::<_, [u8; $bits / 8 * 2]>::new(self.0.iter().rev())
+                $crate::hex::display::DisplayArray::<_, [u8; $bits / 8 * 2]>::new(self.0.iter().rev())
+            }
+
+            /// Zero cost conversion between a fixed length byte array shared reference and
+            /// a shared reference to this Hash type.
+            pub fn from_bytes_ref(bytes: &[u8; $bits / 8]) -> &Self {
+                // Safety: Sound because Self is #[repr(transparent)] containing [u8; $bits / 8]
+                unsafe { &*(bytes as *const _ as *const Self) }
+            }
+
+            /// Zero cost conversion between a fixed length byte array exclusive reference and
+            /// an exclusive reference to this Hash type.
+            pub fn from_bytes_mut(bytes: &mut [u8; $bits / 8]) -> &mut Self {
+                // Safety: Sound because Self is #[repr(transparent)] containing [u8; $bits / 8]
+                unsafe { &mut *(bytes as *mut _ as *mut Self) }
             }
         }
 
         impl<$($gen: $gent),*> str::FromStr for Hash<$($gen),*> {
-            type Err = $crate::hex::Error;
+            type Err = $crate::hex::HexToArrayError;
             fn from_str(s: &str) -> Result<Self, Self::Err> {
-                use $crate::hex::{FromHex, HexIterator};
+                use $crate::hex::{FromHex, HexToBytesIter};
                 use $crate::Hash;
 
                 let inner: [u8; $bits / 8] = if $reverse {
-                    FromHex::from_byte_iter(HexIterator::new(s)?.rev())?
+                    FromHex::from_byte_iter(HexToBytesIter::new(s)?.rev())?
                 } else {
-                    FromHex::from_byte_iter(HexIterator::new(s)?)?
+                    FromHex::from_byte_iter(HexToBytesIter::new(s)?)?
                 };
                 Ok(Self::from_byte_array(inner))
             }
@@ -135,9 +151,9 @@ macro_rules! hash_trait_impls {
                 from_engine(e)
             }
 
-            fn from_slice(sl: &[u8]) -> Result<Hash<$($gen),*>, Error> {
+            fn from_slice(sl: &[u8]) -> Result<Hash<$($gen),*>, FromSliceError> {
                 if sl.len() != $bits / 8 {
-                    Err(Error::InvalidLength(Self::LEN, sl.len()))
+                    Err(FromSliceError{expected: Self::LEN, got: sl.len()})
                 } else {
                     let mut ret = [0; $bits / 8];
                     ret.copy_from_slice(sl);
@@ -186,21 +202,16 @@ macro_rules! hash_type {
         #[cfg_attr(feature = "schemars", derive(crate::schemars::JsonSchema))]
         #[repr(transparent)]
         pub struct Hash(
-            #[cfg_attr(feature = "schemars", schemars(schema_with = $schemars))]
-            [u8; $bits / 8]
+            #[cfg_attr(feature = "schemars", schemars(schema_with = $schemars))] [u8; $bits / 8],
         );
 
         impl Hash {
-            fn internal_new(arr: [u8; $bits / 8]) -> Self {
-                Hash(arr)
-            }
+            fn internal_new(arr: [u8; $bits / 8]) -> Self { Hash(arr) }
 
-            fn internal_engine() -> HashEngine {
-                Default::default()
-            }
+            fn internal_engine() -> HashEngine { Default::default() }
         }
 
         crate::internal_macros::hash_trait_impls!($bits, $reverse);
-    }
+    };
 }
 pub(crate) use hash_type;

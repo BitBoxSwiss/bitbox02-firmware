@@ -1,17 +1,4 @@
-// Bitcoin secp256k1 bindings
-// Written in 2014 by
-//   Dawid Ciężarkiewicz
-//   Andrew Poelstra
-//
-// To the extent possible under law, the author(s) have dedicated all
-// copyright and related and neighboring rights to this software to
-// the public domain worldwide. This software is distributed without
-// any warranty.
-//
-// You should have received a copy of the CC0 Public Domain Dedication
-// along with this software.
-// If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
-//
+// SPDX-License-Identifier: CC0-1.0
 
 //! Provides a signing function that allows recovering the public key from the
 //! signature.
@@ -126,7 +113,6 @@ impl RecoverableSignature {
     /// verify-capable context.
     #[inline]
     #[cfg(feature = "global-context")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "global-context")))]
     pub fn recover(&self, msg: &Message) -> Result<key::PublicKey, Error> {
         crate::SECP256K1.recover_ecdsa(msg, self)
     }
@@ -240,7 +226,7 @@ mod tests {
         let full = Secp256k1::new();
 
         let msg = crate::random_32_bytes(&mut rand::thread_rng());
-        let msg = Message::from_slice(&msg).unwrap();
+        let msg = Message::from_digest_slice(&msg).unwrap();
 
         // Try key generation
         let (sk, pk) = full.generate_keypair(&mut rand::thread_rng());
@@ -264,7 +250,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(not(fuzzing))]  // fixed sig vectors can't work with fuzz-sigs
+    #[cfg(not(secp256k1_fuzz))]  // fixed sig vectors can't work with fuzz-sigs
     #[cfg(feature = "rand-std")]
     #[rustfmt::skip]
     fn sign() {
@@ -272,7 +258,7 @@ mod tests {
         s.randomize(&mut rand::thread_rng());
 
         let sk = SecretKey::from_slice(&ONE).unwrap();
-        let msg = Message::from_slice(&ONE).unwrap();
+        let msg = Message::from_digest_slice(&ONE).unwrap();
 
         let sig = s.sign_ecdsa_recoverable(&msg, &sk);
 
@@ -289,7 +275,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(not(fuzzing))]  // fixed sig vectors can't work with fuzz-sigs
+    #[cfg(not(secp256k1_fuzz))]  // fixed sig vectors can't work with fuzz-sigs
     #[cfg(feature = "rand-std")]
     #[rustfmt::skip]
     fn sign_with_noncedata() {
@@ -297,7 +283,7 @@ mod tests {
         s.randomize(&mut rand::thread_rng());
 
         let sk = SecretKey::from_slice(&ONE).unwrap();
-        let msg = Message::from_slice(&ONE).unwrap();
+        let msg = Message::from_digest_slice(&ONE).unwrap();
         let noncedata = [42u8; 32];
 
         let sig = s.sign_ecdsa_recoverable_with_noncedata(&msg, &sk, &noncedata);
@@ -321,7 +307,7 @@ mod tests {
         s.randomize(&mut rand::thread_rng());
 
         let msg = crate::random_32_bytes(&mut rand::thread_rng());
-        let msg = Message::from_slice(&msg).unwrap();
+        let msg = Message::from_digest_slice(&msg).unwrap();
 
         let (sk, pk) = s.generate_keypair(&mut rand::thread_rng());
 
@@ -329,7 +315,7 @@ mod tests {
         let sig = sigr.to_standard();
 
         let msg = crate::random_32_bytes(&mut rand::thread_rng());
-        let msg = Message::from_slice(&msg).unwrap();
+        let msg = Message::from_digest_slice(&msg).unwrap();
         assert_eq!(s.verify_ecdsa(&msg, &sig, &pk), Err(Error::IncorrectSignature));
 
         let recovered_key = s.recover_ecdsa(&msg, &sigr).unwrap();
@@ -343,7 +329,7 @@ mod tests {
         s.randomize(&mut rand::thread_rng());
 
         let msg = crate::random_32_bytes(&mut rand::thread_rng());
-        let msg = Message::from_slice(&msg).unwrap();
+        let msg = Message::from_digest_slice(&msg).unwrap();
 
         let (sk, pk) = s.generate_keypair(&mut rand::thread_rng());
 
@@ -359,7 +345,7 @@ mod tests {
         s.randomize(&mut rand::thread_rng());
 
         let msg = crate::random_32_bytes(&mut rand::thread_rng());
-        let msg = Message::from_slice(&msg).unwrap();
+        let msg = Message::from_digest_slice(&msg).unwrap();
 
         let noncedata = [42u8; 32];
 
@@ -376,7 +362,7 @@ mod tests {
         let mut s = Secp256k1::new();
         s.randomize(&mut rand::thread_rng());
 
-        let msg = Message::from_slice(&[0x55; 32]).unwrap();
+        let msg = Message::from_digest_slice(&[0x55; 32]).unwrap();
 
         // Zero is not a valid sig
         let sig = RecoverableSignature::from_compact(&[0; 64], RecoveryId(0)).unwrap();
@@ -447,7 +433,7 @@ mod benches {
     pub fn bench_recover(bh: &mut Bencher) {
         let s = Secp256k1::new();
         let msg = crate::random_32_bytes(&mut rand::thread_rng());
-        let msg = Message::from_slice(&msg).unwrap();
+        let msg = Message::from_digest_slice(&msg).unwrap();
         let (sk, _) = s.generate_keypair(&mut rand::thread_rng());
         let sig = s.sign_ecdsa_recoverable(&msg, &sk);
 

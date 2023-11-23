@@ -7,6 +7,12 @@ FEATURES="compiler serde rand base64"
 cargo --version
 rustc --version
 
+# Cache the toolchain we are using.
+NIGHTLY=false
+if cargo --version | grep nightly; then
+    NIGHTLY=true
+fi
+
 # Format if told to
 if [ "$DO_FMT" = true ]
 then
@@ -14,16 +20,17 @@ then
     cargo fmt -- --check
 fi
 
-# Pin dependencies required to build with Rust 1.41.1
-if cargo --version | grep "1\.41\.0"; then
+# Pin dependencies required to build with Rust 1.48.0
+if cargo --version | grep "1\.48\.0"; then
     cargo update -p once_cell --precise 1.13.1
-    cargo update -p serde --precise 1.0.156
-fi
-
-# Pin dependencies required to build with Rust 1.47.0
-if cargo --version | grep "1\.47\.0"; then
-    cargo update -p once_cell --precise 1.13.1
-    cargo update -p serde --precise 1.0.156
+    cargo update -p quote --precise 1.0.28
+    cargo update -p syn --precise 2.0.32
+    cargo update -p proc-macro2 --precise 1.0.63
+    cargo update -p serde_json --precise 1.0.99
+    cargo update -p serde --precise 1.0.152
+    cargo update -p log --precise 0.4.18
+    cargo update -p serde_test --precise 1.0.152
+    cargo update -p memchr --precise 2.5.0
 fi
 
 # Test bitcoind integration tests if told to (this only works with the stable toolchain)
@@ -56,7 +63,6 @@ then
     cargo run --example parse
     cargo run --example sign_multisig
     cargo run --example verify_tx > /dev/null
-    cargo run --example psbt
     cargo run --example xpub_descriptors
     cargo run --example taproot --features=compiler
     cargo run --example psbt_sign_finalize --features=base64
@@ -80,10 +86,18 @@ then
   done
 fi
 
-# Bench if told to (this only works with the nightly toolchain)
+# Bench if told to, only works with non-stable toolchain (nightly, beta).
 if [ "$DO_BENCH" = true ]
 then
-    cargo bench --features="unstable compiler"
+    if [ "$NIGHTLY" = false ]; then
+        if [ -n "$RUSTUP_TOOLCHAIN" ]; then
+            echo "RUSTUP_TOOLCHAIN is set to a non-nightly toolchain but DO_BENCH requires a nightly toolchain"
+        else
+            echo "DO_BENCH requires a nightly toolchain"
+        fi
+        exit 1
+    fi
+    RUSTFLAGS='--cfg=bench' cargo bench
 fi
 
 # Build the docs if told to (this only works with the nightly toolchain)

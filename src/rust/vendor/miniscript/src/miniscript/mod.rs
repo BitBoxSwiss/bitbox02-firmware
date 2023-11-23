@@ -1,4 +1,3 @@
-// Written in 2019 by Andrew Poelstra <apoelstra@wpsoftware.net>
 // SPDX-License-Identifier: CC0-1.0
 
 //! # Abstract Syntax Tree
@@ -16,13 +15,15 @@
 use core::marker::PhantomData;
 use core::{fmt, hash, str};
 
+use bitcoin::hashes::hash160;
 use bitcoin::script;
 use bitcoin::taproot::{LeafVersion, TapLeafHash};
 
 use self::analyzable::ExtParams;
 pub use self::context::{BareCtx, Legacy, Segwitv0, Tap};
+use crate::iter::TreeLike;
 use crate::prelude::*;
-use crate::TranslateErr;
+use crate::{script_num_size, TranslateErr};
 
 pub mod analyzable;
 pub mod astelem;
@@ -44,65 +45,23 @@ pub use crate::miniscript::context::ScriptContext;
 use crate::miniscript::decode::Terminal;
 use crate::miniscript::types::extra_props::ExtData;
 use crate::miniscript::types::Type;
-use crate::{expression, Error, ForEachKey, MiniscriptKey, ToPublicKey, TranslatePk, Translator};
+use crate::{
+    expression, plan, Error, ForEachKey, MiniscriptKey, ToPublicKey, TranslatePk, Translator,
+};
 #[cfg(test)]
 mod ms_tests;
 
-/// Top-level script AST type
+/// The top-level miniscript abstract syntax tree (AST).
 #[derive(Clone)]
 pub struct Miniscript<Pk: MiniscriptKey, Ctx: ScriptContext> {
-    ///A node in the Abstract Syntax Tree(
+    /// A node in the AST.
     pub node: Terminal<Pk, Ctx>,
-    ///The correctness and malleability type information for the AST node
+    /// The correctness and malleability type information for the AST node.
     pub ty: types::Type,
-    ///Additional information helpful for extra analysis.
+    /// Additional information helpful for extra analysis.
     pub ext: types::extra_props::ExtData,
     /// Context PhantomData. Only accessible inside this crate
     phantom: PhantomData<Ctx>,
-}
-
-/// `PartialOrd` of `Miniscript` must depend only on node and not the type information.
-/// The type information and extra_properties can be deterministically determined
-/// by the ast.
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> PartialOrd for Miniscript<Pk, Ctx> {
-    fn partial_cmp(&self, other: &Miniscript<Pk, Ctx>) -> Option<cmp::Ordering> {
-        Some(self.node.cmp(&other.node))
-    }
-}
-
-/// `Ord` of `Miniscript` must depend only on node and not the type information.
-/// The type information and extra_properties can be deterministically determined
-/// by the ast.
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> Ord for Miniscript<Pk, Ctx> {
-    fn cmp(&self, other: &Miniscript<Pk, Ctx>) -> cmp::Ordering {
-        self.node.cmp(&other.node)
-    }
-}
-
-/// `PartialEq` of `Miniscript` must depend only on node and not the type information.
-/// The type information and extra_properties can be deterministically determined
-/// by the ast.
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> PartialEq for Miniscript<Pk, Ctx> {
-    fn eq(&self, other: &Miniscript<Pk, Ctx>) -> bool {
-        self.node.eq(&other.node)
-    }
-}
-
-/// `Eq` of `Miniscript` must depend only on node and not the type information.
-/// The type information and extra_properties can be deterministically determined
-/// by the ast.
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> Eq for Miniscript<Pk, Ctx> {}
-
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> fmt::Debug for Miniscript<Pk, Ctx> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self.node)
-    }
-}
-
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> hash::Hash for Miniscript<Pk, Ctx> {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        self.node.hash(state);
-    }
 }
 
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
@@ -111,8 +70,8 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
     /// Display code of type_check.
     pub fn from_ast(t: Terminal<Pk, Ctx>) -> Result<Miniscript<Pk, Ctx>, Error> {
         let res = Miniscript {
-            ty: Type::type_check(&t, |_| None)?,
-            ext: ExtData::type_check(&t, |_| None)?,
+            ty: Type::type_check(&t)?,
+            ext: ExtData::type_check(&t)?,
             node: t,
             phantom: PhantomData,
         };
@@ -130,30 +89,177 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
         ty: types::Type,
         ext: types::extra_props::ExtData,
     ) -> Miniscript<Pk, Ctx> {
-        Miniscript {
-            node,
-            ty,
-            ext,
-            phantom: PhantomData,
-        }
+        Miniscript { node, ty, ext, phantom: PhantomData }
     }
-}
 
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> fmt::Display for Miniscript<Pk, Ctx> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.node)
-    }
-}
-
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
     /// Extracts the `AstElem` representing the root of the miniscript
-    pub fn into_inner(self) -> Terminal<Pk, Ctx> {
-        self.node
-    }
+    pub fn into_inner(self) -> Terminal<Pk, Ctx> { self.node }
 
     /// Get a reference to the inner `AstElem` representing the root of miniscript
-    pub fn as_inner(&self) -> &Terminal<Pk, Ctx> {
-        &self.node
+    pub fn as_inner(&self) -> &Terminal<Pk, Ctx> { &self.node }
+
+    /// Encode as a Bitcoin script
+    pub fn encode(&self) -> script::ScriptBuf
+    where
+        Pk: ToPublicKey,
+    {
+        self.node.encode(script::Builder::new()).into_script()
+    }
+
+    /// Size, in bytes of the script-pubkey. If this Miniscript is used outside
+    /// of segwit (e.g. in a bare or P2SH descriptor), this quantity should be
+    /// multiplied by 4 to compute the weight.
+    ///
+    /// In general, it is not recommended to use this function directly, but
+    /// to instead call the corresponding function on a `Descriptor`, which
+    /// will handle the segwit/non-segwit technicalities for you.
+    pub fn script_size(&self) -> usize {
+        use Terminal::*;
+
+        let mut len = 0;
+        for ms in self.pre_order_iter() {
+            len += match ms.node {
+                AndV(..) => 0,
+                True | False | Swap(..) | Check(..) | ZeroNotEqual(..) | AndB(..) | OrB(..) => 1,
+                Alt(..) | OrC(..) => 2,
+                DupIf(..) | AndOr(..) | OrD(..) | OrI(..) => 3,
+                NonZero(..) => 4,
+                PkH(..) | RawPkH(..) => 24,
+                Ripemd160(..) | Hash160(..) => 21 + 6,
+                Sha256(..) | Hash256(..) => 33 + 6,
+
+                Terminal::PkK(ref pk) => Ctx::pk_len(pk),
+                Terminal::After(n) => script_num_size(n.to_consensus_u32() as usize) + 1,
+                Terminal::Older(n) => script_num_size(n.to_consensus_u32() as usize) + 1,
+                Terminal::Verify(ref sub) => usize::from(!sub.ext.has_free_verify),
+                Terminal::Thresh(k, ref subs) => {
+                    assert!(!subs.is_empty(), "threshold must be nonempty");
+                    script_num_size(k) // k
+                        + 1 // EQUAL
+                        + subs.len() // ADD
+                        - 1 // no ADD on first element
+                }
+                Terminal::Multi(k, ref pks) => {
+                    script_num_size(k)
+                        + 1
+                        + script_num_size(pks.len())
+                        + pks.iter().map(|pk| Ctx::pk_len(pk)).sum::<usize>()
+                }
+                Terminal::MultiA(k, ref pks) => {
+                    script_num_size(k)
+                        + 1 // NUMEQUAL
+                        + pks.iter().map(|pk| Ctx::pk_len(pk)).sum::<usize>() // n keys
+                        + pks.len() // n times CHECKSIGADD
+                }
+            }
+        }
+        len
+    }
+
+    /// Maximum number of witness elements used to satisfy the Miniscript
+    /// fragment, including the witness script itself. Used to estimate
+    /// the weight of the `VarInt` that specifies this number in a serialized
+    /// transaction.
+    ///
+    /// This function may returns Error when the Miniscript is
+    /// impossible to satisfy
+    pub fn max_satisfaction_witness_elements(&self) -> Result<usize, Error> {
+        self.ext
+            .stack_elem_count_sat
+            .map(|x| x + 1)
+            .ok_or(Error::ImpossibleSatisfaction)
+    }
+
+    /// Maximum size, in bytes, of a satisfying witness. For Segwit outputs
+    /// `one_cost` should be set to 2, since the number `1` requires two
+    /// bytes to encode. For non-segwit outputs `one_cost` should be set to
+    /// 1, since `OP_1` is available in scriptSigs.
+    ///
+    /// In general, it is not recommended to use this function directly, but
+    /// to instead call the corresponding function on a `Descriptor`, which
+    /// will handle the segwit/non-segwit technicalities for you.
+    ///
+    /// All signatures are assumed to be 73 bytes in size, including the
+    /// length prefix (segwit) or push opcode (pre-segwit) and sighash
+    /// postfix.
+    pub fn max_satisfaction_size(&self) -> Result<usize, Error> {
+        Ctx::max_satisfaction_size(self).ok_or(Error::ImpossibleSatisfaction)
+    }
+
+    /// Attempt to produce non-malleable satisfying witness for the
+    /// witness script represented by the parse tree
+    pub fn satisfy<S: satisfy::Satisfier<Pk>>(&self, satisfier: S) -> Result<Vec<Vec<u8>>, Error>
+    where
+        Pk: ToPublicKey,
+    {
+        // Only satisfactions for default versions (0xc0) are allowed.
+        let leaf_hash = TapLeafHash::from_script(&self.encode(), LeafVersion::TapScript);
+        let satisfaction =
+            satisfy::Satisfaction::satisfy(&self.node, &satisfier, self.ty.mall.safe, &leaf_hash);
+        self._satisfy(satisfaction)
+    }
+
+    /// Attempt to produce a malleable satisfying witness for the
+    /// witness script represented by the parse tree
+    pub fn satisfy_malleable<S: satisfy::Satisfier<Pk>>(
+        &self,
+        satisfier: S,
+    ) -> Result<Vec<Vec<u8>>, Error>
+    where
+        Pk: ToPublicKey,
+    {
+        let leaf_hash = TapLeafHash::from_script(&self.encode(), LeafVersion::TapScript);
+        let satisfaction = satisfy::Satisfaction::satisfy_mall(
+            &self.node,
+            &satisfier,
+            self.ty.mall.safe,
+            &leaf_hash,
+        );
+        self._satisfy(satisfaction)
+    }
+
+    fn _satisfy(&self, satisfaction: satisfy::Satisfaction<Vec<u8>>) -> Result<Vec<Vec<u8>>, Error>
+    where
+        Pk: ToPublicKey,
+    {
+        match satisfaction.stack {
+            satisfy::Witness::Stack(stack) => {
+                Ctx::check_witness::<Pk>(&stack)?;
+                Ok(stack)
+            }
+            satisfy::Witness::Unavailable | satisfy::Witness::Impossible => {
+                Err(Error::CouldNotSatisfy)
+            }
+        }
+    }
+
+    /// Attempt to produce a non-malleable witness template given the assets available
+    pub fn build_template<P: plan::AssetProvider<Pk>>(
+        &self,
+        provider: &P,
+    ) -> satisfy::Satisfaction<satisfy::Placeholder<Pk>>
+    where
+        Pk: ToPublicKey,
+    {
+        let leaf_hash = TapLeafHash::from_script(&self.encode(), LeafVersion::TapScript);
+        satisfy::Satisfaction::build_template(&self.node, provider, self.ty.mall.safe, &leaf_hash)
+    }
+
+    /// Attempt to produce a malleable witness template given the assets available
+    pub fn build_template_mall<P: plan::AssetProvider<Pk>>(
+        &self,
+        provider: &P,
+    ) -> satisfy::Satisfaction<satisfy::Placeholder<Pk>>
+    where
+        Pk: ToPublicKey,
+    {
+        let leaf_hash = TapLeafHash::from_script(&self.encode(), LeafVersion::TapScript);
+        satisfy::Satisfaction::build_template_mall(
+            &self.node,
+            provider,
+            self.ty.mall.safe,
+            &leaf_hash,
+        )
     }
 }
 
@@ -185,7 +291,7 @@ impl<Ctx: ScriptContext> Miniscript<Ctx::Key, Ctx> {
 
         let top = decode::parse(&mut iter)?;
         Ctx::check_global_validity(&top)?;
-        let type_check = types::Type::type_check(&top.node, |_| None)?;
+        let type_check = types::Type::type_check(&top.node)?;
         if type_check.corr.base != types::Base::B {
             return Err(Error::NonTopLevel(format!("{:?}", top)));
         };
@@ -236,66 +342,72 @@ impl<Ctx: ScriptContext> Miniscript<Ctx::Key, Ctx> {
     }
 }
 
-impl<Pk, Ctx> Miniscript<Pk, Ctx>
-where
-    Pk: MiniscriptKey,
-    Ctx: ScriptContext,
-{
-    /// Encode as a Bitcoin script
-    pub fn encode(&self) -> script::ScriptBuf
-    where
-        Pk: ToPublicKey,
-    {
-        self.node.encode(script::Builder::new()).into_script()
-    }
-
-    /// Size, in bytes of the script-pubkey. If this Miniscript is used outside
-    /// of segwit (e.g. in a bare or P2SH descriptor), this quantity should be
-    /// multiplied by 4 to compute the weight.
-    ///
-    /// In general, it is not recommended to use this function directly, but
-    /// to instead call the corresponding function on a `Descriptor`, which
-    /// will handle the segwit/non-segwit technicalities for you.
-    pub fn script_size(&self) -> usize {
-        self.node.script_size()
+/// `PartialOrd` of `Miniscript` must depend only on node and not the type information.
+///
+/// The type information and extra properties are implied by the AST.
+impl<Pk: MiniscriptKey, Ctx: ScriptContext> PartialOrd for Miniscript<Pk, Ctx> {
+    fn partial_cmp(&self, other: &Miniscript<Pk, Ctx>) -> Option<cmp::Ordering> {
+        Some(self.node.cmp(&other.node))
     }
 }
 
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
-    /// Maximum number of witness elements used to satisfy the Miniscript
-    /// fragment, including the witness script itself. Used to estimate
-    /// the weight of the `VarInt` that specifies this number in a serialized
-    /// transaction.
-    ///
-    /// This function may returns Error when the Miniscript is
-    /// impossible to satisfy
-    pub fn max_satisfaction_witness_elements(&self) -> Result<usize, Error> {
-        self.ext
-            .stack_elem_count_sat
-            .map(|x| x + 1)
-            .ok_or(Error::ImpossibleSatisfaction)
-    }
+/// `Ord` of `Miniscript` must depend only on node and not the type information.
+///
+/// The type information and extra properties are implied by the AST.
+impl<Pk: MiniscriptKey, Ctx: ScriptContext> Ord for Miniscript<Pk, Ctx> {
+    fn cmp(&self, other: &Miniscript<Pk, Ctx>) -> cmp::Ordering { self.node.cmp(&other.node) }
+}
 
-    /// Maximum size, in bytes, of a satisfying witness. For Segwit outputs
-    /// `one_cost` should be set to 2, since the number `1` requires two
-    /// bytes to encode. For non-segwit outputs `one_cost` should be set to
-    /// 1, since `OP_1` is available in scriptSigs.
-    ///
-    /// In general, it is not recommended to use this function directly, but
-    /// to instead call the corresponding function on a `Descriptor`, which
-    /// will handle the segwit/non-segwit technicalities for you.
-    ///
-    /// All signatures are assumed to be 73 bytes in size, including the
-    /// length prefix (segwit) or push opcode (pre-segwit) and sighash
-    /// postfix.
-    pub fn max_satisfaction_size(&self) -> Result<usize, Error> {
-        Ctx::max_satisfaction_size(self).ok_or(Error::ImpossibleSatisfaction)
-    }
+/// `PartialEq` of `Miniscript` must depend only on node and not the type information.
+///
+/// The type information and extra properties are implied by the AST.
+impl<Pk: MiniscriptKey, Ctx: ScriptContext> PartialEq for Miniscript<Pk, Ctx> {
+    fn eq(&self, other: &Miniscript<Pk, Ctx>) -> bool { self.node.eq(&other.node) }
+}
+
+/// `Eq` of `Miniscript` must depend only on node and not the type information.
+///
+/// The type information and extra properties are implied by the AST.
+impl<Pk: MiniscriptKey, Ctx: ScriptContext> Eq for Miniscript<Pk, Ctx> {}
+
+/// `Hash` of `Miniscript` must depend only on node and not the type information.
+///
+/// The type information and extra properties are implied by the AST.
+impl<Pk: MiniscriptKey, Ctx: ScriptContext> hash::Hash for Miniscript<Pk, Ctx> {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) { self.node.hash(state); }
+}
+
+impl<Pk: MiniscriptKey, Ctx: ScriptContext> fmt::Debug for Miniscript<Pk, Ctx> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{:?}", self.node) }
+}
+
+impl<Pk: MiniscriptKey, Ctx: ScriptContext> fmt::Display for Miniscript<Pk, Ctx> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", self.node) }
 }
 
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> ForEachKey<Pk> for Miniscript<Pk, Ctx> {
     fn for_each_key<'a, F: FnMut(&'a Pk) -> bool>(&'a self, mut pred: F) -> bool {
-        self.real_for_each_key(&mut pred)
+        for ms in self.pre_order_iter() {
+            match ms.node {
+                Terminal::PkK(ref p) => {
+                    if !pred(p) {
+                        return false;
+                    }
+                }
+                Terminal::PkH(ref p) => {
+                    if !pred(p) {
+                        return false;
+                    }
+                }
+                Terminal::Multi(_, ref keys) | Terminal::MultiA(_, ref keys) => {
+                    if !keys.iter().all(&mut pred) {
+                        return false;
+                    }
+                }
+                _ => {}
+            }
+        }
+        true
     }
 }
 
@@ -309,20 +421,16 @@ where
 
     /// Translates a struct from one generic to another where the translation
     /// for Pk is provided by [`Translator`]
-    fn translate_pk<T, E>(&self, translate: &mut T) -> Result<Self::Output, TranslateErr<E>>
+    fn translate_pk<T, E>(&self, t: &mut T) -> Result<Self::Output, TranslateErr<E>>
     where
         T: Translator<Pk, Q, E>,
     {
-        self.real_translate_pk(translate)
+        self.translate_pk_ctx(t)
     }
 }
 
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
-    fn real_for_each_key<'a, F: FnMut(&'a Pk) -> bool>(&'a self, pred: &mut F) -> bool {
-        self.node.real_for_each_key(pred)
-    }
-
-    pub(super) fn real_translate_pk<Q, CtxQ, T, FuncError>(
+    pub(super) fn translate_pk_ctx<Q, CtxQ, T, FuncError>(
         &self,
         t: &mut T,
     ) -> Result<Miniscript<Q, CtxQ>, TranslateErr<FuncError>>
@@ -331,8 +439,73 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
         CtxQ: ScriptContext,
         T: Translator<Pk, Q, FuncError>,
     {
-        let inner = self.node.real_translate_pk(t)?;
-        Miniscript::from_ast(inner).map_err(TranslateErr::OuterError)
+        let mut translated = vec![];
+        for data in Arc::new(self.clone()).post_order_iter() {
+            let child_n = |n| Arc::clone(&translated[data.child_indices[n]]);
+
+            let new_term = match data.node.node {
+                Terminal::PkK(ref p) => Terminal::PkK(t.pk(p)?),
+                Terminal::PkH(ref p) => Terminal::PkH(t.pk(p)?),
+                Terminal::RawPkH(ref p) => Terminal::RawPkH(*p),
+                Terminal::After(n) => Terminal::After(n),
+                Terminal::Older(n) => Terminal::Older(n),
+                Terminal::Sha256(ref x) => Terminal::Sha256(t.sha256(x)?),
+                Terminal::Hash256(ref x) => Terminal::Hash256(t.hash256(x)?),
+                Terminal::Ripemd160(ref x) => Terminal::Ripemd160(t.ripemd160(x)?),
+                Terminal::Hash160(ref x) => Terminal::Hash160(t.hash160(x)?),
+                Terminal::True => Terminal::True,
+                Terminal::False => Terminal::False,
+                Terminal::Alt(..) => Terminal::Alt(child_n(0)),
+                Terminal::Swap(..) => Terminal::Swap(child_n(0)),
+                Terminal::Check(..) => Terminal::Check(child_n(0)),
+                Terminal::DupIf(..) => Terminal::DupIf(child_n(0)),
+                Terminal::Verify(..) => Terminal::Verify(child_n(0)),
+                Terminal::NonZero(..) => Terminal::NonZero(child_n(0)),
+                Terminal::ZeroNotEqual(..) => Terminal::ZeroNotEqual(child_n(0)),
+                Terminal::AndV(..) => Terminal::AndV(child_n(0), child_n(1)),
+                Terminal::AndB(..) => Terminal::AndB(child_n(0), child_n(1)),
+                Terminal::AndOr(..) => Terminal::AndOr(child_n(0), child_n(1), child_n(2)),
+                Terminal::OrB(..) => Terminal::OrB(child_n(0), child_n(1)),
+                Terminal::OrD(..) => Terminal::OrD(child_n(0), child_n(1)),
+                Terminal::OrC(..) => Terminal::OrC(child_n(0), child_n(1)),
+                Terminal::OrI(..) => Terminal::OrI(child_n(0), child_n(1)),
+                Terminal::Thresh(k, ref subs) => {
+                    Terminal::Thresh(k, (0..subs.len()).map(child_n).collect())
+                }
+                Terminal::Multi(k, ref keys) => {
+                    let keys: Result<Vec<Q>, _> = keys.iter().map(|k| t.pk(k)).collect();
+                    Terminal::Multi(k, keys?)
+                }
+                Terminal::MultiA(k, ref keys) => {
+                    let keys: Result<Vec<Q>, _> = keys.iter().map(|k| t.pk(k)).collect();
+                    Terminal::MultiA(k, keys?)
+                }
+            };
+            let new_ms = Miniscript::from_ast(new_term).map_err(TranslateErr::OuterError)?;
+            translated.push(Arc::new(new_ms));
+        }
+
+        Ok(Arc::try_unwrap(translated.pop().unwrap()).unwrap())
+    }
+
+    /// Substitutes raw public keys hashes with the public keys as provided by map.
+    pub fn substitute_raw_pkh(&self, pk_map: &BTreeMap<hash160::Hash, Pk>) -> Miniscript<Pk, Ctx> {
+        let mut translated = vec![];
+        for data in Arc::new(self.clone()).post_order_iter() {
+            let new_term = if let Terminal::RawPkH(ref p) = data.node.node {
+                match pk_map.get(p) {
+                    Some(pk) => Terminal::PkH(pk.clone()),
+                    None => Terminal::RawPkH(*p),
+                }
+            } else {
+                data.node.node.clone()
+            };
+
+            let new_ms = Miniscript::from_ast(new_term).expect("typeck");
+            translated.push(Arc::new(new_ms));
+        }
+
+        Arc::try_unwrap(translated.pop().unwrap()).unwrap()
     }
 }
 
@@ -374,57 +547,6 @@ impl_block_str!(
         }
     }
 );
-
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
-    /// Attempt to produce non-malleable satisfying witness for the
-    /// witness script represented by the parse tree
-    pub fn satisfy<S: satisfy::Satisfier<Pk>>(&self, satisfier: S) -> Result<Vec<Vec<u8>>, Error>
-    where
-        Pk: ToPublicKey,
-    {
-        // Only satisfactions for default versions (0xc0) are allowed.
-        let leaf_hash = TapLeafHash::from_script(&self.encode(), LeafVersion::TapScript);
-        match satisfy::Satisfaction::satisfy(&self.node, &satisfier, self.ty.mall.safe, &leaf_hash)
-            .stack
-        {
-            satisfy::Witness::Stack(stack) => {
-                Ctx::check_witness::<Pk>(&stack)?;
-                Ok(stack)
-            }
-            satisfy::Witness::Unavailable | satisfy::Witness::Impossible => {
-                Err(Error::CouldNotSatisfy)
-            }
-        }
-    }
-
-    /// Attempt to produce a malleable satisfying witness for the
-    /// witness script represented by the parse tree
-    pub fn satisfy_malleable<S: satisfy::Satisfier<Pk>>(
-        &self,
-        satisfier: S,
-    ) -> Result<Vec<Vec<u8>>, Error>
-    where
-        Pk: ToPublicKey,
-    {
-        let leaf_hash = TapLeafHash::from_script(&self.encode(), LeafVersion::TapScript);
-        match satisfy::Satisfaction::satisfy_mall(
-            &self.node,
-            &satisfier,
-            self.ty.mall.safe,
-            &leaf_hash,
-        )
-        .stack
-        {
-            satisfy::Witness::Stack(stack) => {
-                Ctx::check_witness::<Pk>(&stack)?;
-                Ok(stack)
-            }
-            satisfy::Witness::Unavailable | satisfy::Witness::Impossible => {
-                Err(Error::CouldNotSatisfy)
-            }
-        }
-    }
-}
 
 impl_from_tree!(
     ;Ctx; ScriptContext,
@@ -735,10 +857,7 @@ mod tests {
         roundtrip(&ms_str!("1"), "OP_PUSHNUM_1");
         roundtrip(&ms_str!("tv:1"), "OP_PUSHNUM_1 OP_VERIFY OP_PUSHNUM_1");
         roundtrip(&ms_str!("0"), "OP_0");
-        roundtrip(
-            &ms_str!("andor(0,1,0)"),
-            "OP_0 OP_NOTIF OP_0 OP_ELSE OP_PUSHNUM_1 OP_ENDIF",
-        );
+        roundtrip(&ms_str!("andor(0,1,0)"), "OP_0 OP_NOTIF OP_0 OP_ELSE OP_PUSHNUM_1 OP_ENDIF");
 
         assert!(Segwitv0Script::from_str("1()").is_err());
         assert!(Segwitv0Script::from_str("tv:1()").is_err());
@@ -888,14 +1007,7 @@ mod tests {
         );
 
         roundtrip(
-            &ms_str!(
-                "multi(3,{},{},{},{},{})",
-                keys[0],
-                keys[1],
-                keys[2],
-                keys[3],
-                keys[4]
-            ),
+            &ms_str!("multi(3,{},{},{},{},{})", keys[0], keys[1], keys[2], keys[3], keys[4]),
             "OP_PUSHNUM_3 \
              OP_PUSHBYTES_33 028c28a97bf8298bc0d23d8c749452a32e694b65e30a9472a3954ab30fe5324caa \
              OP_PUSHBYTES_33 03ab1ac1872a38a2f196bed5a6047f0da2c8130fe8de49fc4d5dfb201f7611d8e2 \
@@ -1088,8 +1200,11 @@ mod tests {
 
         let schnorr_sig = secp256k1::schnorr::Signature::from_str("84526253c27c7aef56c7b71a5cd25bebb66dddda437826defc5b2568bde81f0784526253c27c7aef56c7b71a5cd25bebb66dddda437826defc5b2568bde81f07").unwrap();
         let s = SimpleSatisfier(schnorr_sig);
+        let template = tap_ms.build_template(&s);
+        assert_eq!(template.absolute_timelock, None);
+        assert_eq!(template.relative_timelock, None);
 
-        let wit = tap_ms.satisfy(s).unwrap();
+        let wit = tap_ms.satisfy(&s).unwrap();
         assert_eq!(wit, vec![schnorr_sig.as_ref().to_vec(), vec![], vec![]]);
     }
 
@@ -1141,5 +1256,98 @@ mod tests {
         let uncompressed = bitcoin::PublicKey::from_str("0400232a2acfc9b43fa89f1b4f608fde335d330d7114f70ea42bfb4a41db368a3e3be6934a4097dd25728438ef73debb1f2ffdb07fec0f18049df13bdc5285dc5b").unwrap();
         t.pk_map.insert(String::from("A"), uncompressed);
         ms.translate_pk(&mut t).unwrap_err();
+    }
+
+    #[test]
+    fn template_timelocks() {
+        use crate::AbsLockTime;
+        let key_present = bitcoin::PublicKey::from_str(
+            "0327a6ed0e71b451c79327aa9e4a6bb26ffb1c0056abc02c25e783f6096b79bb4f",
+        )
+        .unwrap();
+        let key_missing = bitcoin::PublicKey::from_str(
+            "03e4d788718644a59030b1d234d8bb8fff28314720b9a1a237874b74b089c638da",
+        )
+        .unwrap();
+
+        // ms, absolute_timelock, relative_timelock
+        let test_cases = vec![
+            (format!("t:or_c(pk({}),v:pkh({}))", key_present, key_missing), None, None),
+            (
+                format!("thresh(2,pk({}),s:pk({}),snl:after(1))", key_present, key_missing),
+                Some(AbsLockTime::from_consensus(1)),
+                None,
+            ),
+            (
+                format!("or_d(pk({}),and_v(v:pk({}),older(12960)))", key_present, key_missing),
+                None,
+                None,
+            ),
+            (
+                format!("or_d(pk({}),and_v(v:pk({}),older(12960)))", key_missing, key_present),
+                None,
+                Some(bitcoin::Sequence(12960)),
+            ),
+            (
+                format!(
+                    "thresh(3,pk({}),s:pk({}),snl:older(10),snl:after(11))",
+                    key_present, key_missing
+                ),
+                Some(AbsLockTime::from_consensus(11)),
+                Some(bitcoin::Sequence(10)),
+            ),
+            (
+                format!("and_v(v:and_v(v:pk({}),older(10)),older(20))", key_present),
+                None,
+                Some(bitcoin::Sequence(20)),
+            ),
+            (
+                format!(
+                    "andor(pk({}),older(10),and_v(v:pk({}),older(20)))",
+                    key_present, key_missing
+                ),
+                None,
+                Some(bitcoin::Sequence(10)),
+            ),
+        ];
+
+        // Test satisfaction code
+        struct SimpleSatisfier(secp256k1::schnorr::Signature, bitcoin::PublicKey);
+
+        // a simple satisfier that always outputs the same signature
+        impl Satisfier<bitcoin::PublicKey> for SimpleSatisfier {
+            fn lookup_tap_leaf_script_sig(
+                &self,
+                pk: &bitcoin::PublicKey,
+                _h: &TapLeafHash,
+            ) -> Option<bitcoin::taproot::Signature> {
+                if pk == &self.1 {
+                    Some(bitcoin::taproot::Signature {
+                        sig: self.0,
+                        hash_ty: bitcoin::sighash::TapSighashType::Default,
+                    })
+                } else {
+                    None
+                }
+            }
+
+            fn check_older(&self, _: bitcoin::Sequence) -> bool { true }
+
+            fn check_after(&self, _: bitcoin::absolute::LockTime) -> bool { true }
+        }
+
+        let schnorr_sig = secp256k1::schnorr::Signature::from_str("84526253c27c7aef56c7b71a5cd25bebb66dddda437826defc5b2568bde81f0784526253c27c7aef56c7b71a5cd25bebb66dddda437826defc5b2568bde81f07").unwrap();
+        let s = SimpleSatisfier(schnorr_sig, key_present);
+
+        for (ms_str, absolute_timelock, relative_timelock) in test_cases {
+            let ms = Miniscript::<bitcoin::PublicKey, Tap>::from_str(&ms_str).unwrap();
+            let template = ms.build_template(&s);
+            match template.stack {
+                crate::miniscript::satisfy::Witness::Stack(_) => {}
+                _ => panic!("All testcases should be possible"),
+            }
+            assert_eq!(template.absolute_timelock, absolute_timelock, "{}", ms_str);
+            assert_eq!(template.relative_timelock, relative_timelock, "{}", ms_str);
+        }
     }
 }

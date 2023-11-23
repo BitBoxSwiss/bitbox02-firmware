@@ -1,16 +1,4 @@
-// Bitcoin secp256k1 bindings
-// Written in 2021 by
-//   Maxim Orlovsky <orlovsky@pandoracore.com>
-//
-// To the extent possible under law, the author(s) have dedicated all
-// copyright and related and neighboring rights to this software to
-// the public domain worldwide. This software is distributed without
-// any warranty.
-//
-// You should have received a copy of the CC0 Public Domain Dedication
-// along with this software.
-// If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
-//
+// SPDX-License-Identifier: CC0-1.0
 
 //! Helpers for displaying secret values
 
@@ -18,13 +6,12 @@ use core::fmt;
 
 use crate::constants::SECRET_KEY_SIZE;
 use crate::ecdh::SharedSecret;
-use crate::key::{KeyPair, SecretKey};
+use crate::key::{Keypair, SecretKey};
 use crate::to_hex;
 macro_rules! impl_display_secret {
     // Default hasher exists only in standard library and not alloc
     ($thing:ident) => {
         #[cfg(feature = "std")]
-        #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
         impl core::fmt::Debug for $thing {
             fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
                 use core::hash::Hasher;
@@ -45,10 +32,10 @@ macro_rules! impl_display_secret {
             }
         }
 
-        #[cfg(all(not(feature = "std"), feature = "bitcoin_hashes"))]
+        #[cfg(all(not(feature = "std"), feature = "hashes"))]
         impl ::core::fmt::Debug for $thing {
             fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-                use crate::hashes::{sha256, Hash, HashEngine};
+                use hashes::{sha256, Hash, HashEngine};
 
                 let tag = "rust-secp256k1DEBUG";
 
@@ -63,10 +50,10 @@ macro_rules! impl_display_secret {
             }
         }
 
-        #[cfg(all(not(feature = "std"), not(feature = "bitcoin_hashes")))]
+        #[cfg(all(not(feature = "std"), not(feature = "hashes")))]
         impl ::core::fmt::Debug for $thing {
             fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-                write!(f, "<secret requires std or bitcoin_hashes feature to display>")
+                write!(f, "<secret requires std or hashes feature to display>")
             }
         }
     };
@@ -140,7 +127,7 @@ impl SecretKey {
     pub fn display_secret(&self) -> DisplaySecret { DisplaySecret { secret: self.secret_bytes() } }
 }
 
-impl KeyPair {
+impl Keypair {
     /// Formats the explicit byte value of the secret key kept inside the type as a
     /// little-endian hexadecimal string using the provided formatter.
     ///
@@ -152,11 +139,11 @@ impl KeyPair {
     /// ```
     /// # #[cfg(feature = "std")] {
     /// # use std::str::FromStr;
-    /// use secp256k1::{KeyPair, Secp256k1, SecretKey};
+    /// use secp256k1::{Keypair, Secp256k1, SecretKey};
     ///
     /// let secp = Secp256k1::new();
     /// let key = SecretKey::from_str("0000000000000000000000000000000000000000000000000000000000000001").unwrap();
-    /// let key = KeyPair::from_secret_key(&secp, &key);
+    /// let key = Keypair::from_secret_key(&secp, &key);
     /// // Here we explicitly display the secret value:
     /// assert_eq!(
     ///     "0000000000000000000000000000000000000000000000000000000000000001",
@@ -183,7 +170,7 @@ impl SharedSecret {
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(not(fuzzing))]
+    /// # #[cfg(not(secp256k1_fuzz))]
     /// # #[cfg(feature = "std")] {
     /// # use std::str::FromStr;
     /// use secp256k1::{SecretKey, PublicKey};

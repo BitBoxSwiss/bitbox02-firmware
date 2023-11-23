@@ -1,11 +1,13 @@
+// SPDX-License-Identifier: CC0-1.0
+
 //! Implements `FeeRate` and assoctiated features.
 
 use core::fmt;
-use core::ops::{Mul, Div};
+use core::ops::{Div, Mul};
 
+use super::Weight;
 use crate::prelude::*;
 use crate::Amount;
-use super::Weight;
 
 /// Represents fee rate.
 ///
@@ -26,10 +28,10 @@ impl FeeRate {
     /// Minimum possible value (0 sat/kwu).
     ///
     /// Equivalent to [`ZERO`](Self::ZERO), may better express intent in some contexts.
-    pub const MIN: FeeRate = FeeRate(u64::min_value());
+    pub const MIN: FeeRate = FeeRate::ZERO;
 
     /// Maximum possible value.
-    pub const MAX: FeeRate = FeeRate(u64::max_value());
+    pub const MAX: FeeRate = FeeRate(u64::MAX);
 
     /// Minimum fee rate required to broadcast a transaction.
     ///
@@ -40,9 +42,7 @@ impl FeeRate {
     pub const DUST: FeeRate = FeeRate::from_sat_per_vb_unchecked(3);
 
     /// Constructs `FeeRate` from satoshis per 1000 weight units.
-    pub const fn from_sat_per_kwu(sat_kwu: u64) -> Self {
-        FeeRate(sat_kwu)
-    }
+    pub const fn from_sat_per_kwu(sat_kwu: u64) -> Self { FeeRate(sat_kwu) }
 
     /// Constructs `FeeRate` from satoshis per virtual bytes.
     ///
@@ -57,39 +57,61 @@ impl FeeRate {
     }
 
     /// Constructs `FeeRate` from satoshis per virtual bytes without overflow check.
-    pub const fn from_sat_per_vb_unchecked(sat_vb: u64) -> Self {
-        FeeRate(sat_vb * (1000 / 4))
-    }
+    pub const fn from_sat_per_vb_unchecked(sat_vb: u64) -> Self { FeeRate(sat_vb * (1000 / 4)) }
 
     /// Returns raw fee rate.
     ///
     /// Can be used instead of `into()` to avoid inference issues.
-    pub const fn to_sat_per_kwu(self) -> u64 {
-        self.0
-    }
+    pub const fn to_sat_per_kwu(self) -> u64 { self.0 }
 
     /// Converts to sat/vB rounding down.
-    pub const fn to_sat_per_vb_floor(self) -> u64 {
-        self.0 / (1000 / 4)
-    }
+    pub const fn to_sat_per_vb_floor(self) -> u64 { self.0 / (1000 / 4) }
 
     /// Converts to sat/vB rounding up.
-    pub const fn to_sat_per_vb_ceil(self) -> u64 {
-        (self.0 + (1000 / 4 - 1)) / (1000 / 4)
-    }
+    pub const fn to_sat_per_vb_ceil(self) -> u64 { (self.0 + (1000 / 4 - 1)) / (1000 / 4) }
 
     /// Checked multiplication.
     ///
     /// Computes `self * rhs` returning `None` if overflow occurred.
-    pub fn checked_mul(self, rhs: u64) -> Option<Self> {
-        self.0.checked_mul(rhs).map(Self)
-    }
+    pub fn checked_mul(self, rhs: u64) -> Option<Self> { self.0.checked_mul(rhs).map(Self) }
 
     /// Checked division.
     ///
     /// Computes `self / rhs` returning `None` if `rhs == 0`.
-    pub fn checked_div(self, rhs: u64) -> Option<Self> {
-        self.0.checked_div(rhs).map(Self)
+    pub fn checked_div(self, rhs: u64) -> Option<Self> { self.0.checked_div(rhs).map(Self) }
+
+    /// Checked weight multiplication.
+    ///
+    /// Computes `self * rhs` where rhs is of type Weight. `None` is returned if an overflow
+    /// occurred.
+    pub fn checked_mul_by_weight(self, rhs: Weight) -> Option<Amount> {
+        self.0.checked_mul(rhs.to_wu()).map(Amount::from_sat)
+    }
+
+    /// Calculates fee by multiplying this fee rate by weight, in weight units, returning `None`
+    /// if overflow occurred.
+    ///
+    /// This is equivalent to `Self::checked_mul_by_weight()`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use bitcoin::{absolute, transaction, FeeRate, Transaction};
+    /// # // Dummy transaction.
+    /// # let tx = Transaction { version: transaction::Version::ONE, lock_time: absolute::LockTime::ZERO, input: vec![], output: vec![] };
+    ///
+    /// let rate = FeeRate::from_sat_per_vb(1).expect("1 sat/vbyte is valid");
+    /// let fee = rate.fee_wu(tx.weight());
+    /// ```
+    pub fn fee_wu(self, weight: Weight) -> Option<Amount> { self.checked_mul_by_weight(weight) }
+
+    /// Calculates fee by multiplying this fee rate by weight, in virtual bytes, returning `None`
+    /// if overflow occurred.
+    ///
+    /// This is equivalent to converting `vb` to `weight` using `Weight::from_vb` and then calling
+    /// `Self::fee_wu(weight)`.
+    pub fn fee_vb(self, vb: u64) -> Option<Amount> {
+        Weight::from_vb(vb).and_then(|w| self.fee_wu(w))
     }
 }
 
@@ -97,7 +119,7 @@ impl FeeRate {
 impl fmt::Display for FeeRate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if f.alternate() {
-            write!(f, "{} sat/kwu", self.0)
+            write!(f, "{}.00 sat/vbyte", self.to_sat_per_vb_ceil())
         } else {
             fmt::Display::fmt(&self.0, f)
         }
@@ -105,9 +127,7 @@ impl fmt::Display for FeeRate {
 }
 
 impl From<FeeRate> for u64 {
-    fn from(value: FeeRate) -> Self {
-        value.to_sat_per_kwu()
-    }
+    fn from(value: FeeRate) -> Self { value.to_sat_per_kwu() }
 }
 
 /// Computes ceiling so that fee computation is conservative.
@@ -122,31 +142,28 @@ impl Mul<FeeRate> for Weight {
 impl Mul<Weight> for FeeRate {
     type Output = Amount;
 
-    fn mul(self, rhs: Weight) -> Self::Output {
-        rhs * self
-    }
+    fn mul(self, rhs: Weight) -> Self::Output { rhs * self }
 }
 
 impl Div<Weight> for Amount {
     type Output = FeeRate;
 
-    fn div(self, rhs: Weight) -> Self::Output {
-        FeeRate(self.to_sat() * 1000 / rhs.to_wu())
-    }
+    fn div(self, rhs: Weight) -> Self::Output { FeeRate(self.to_sat() * 1000 / rhs.to_wu()) }
 }
 
 crate::parse::impl_parse_str_from_int_infallible!(FeeRate, u64, from_sat_per_kwu);
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::u64;
+
+    use super::*;
 
     #[test]
     fn fee_rate_const_test() {
         assert_eq!(0, FeeRate::ZERO.to_sat_per_kwu());
-        assert_eq!(u64::min_value(), FeeRate::MIN.to_sat_per_kwu());
-        assert_eq!(u64::max_value(), FeeRate::MAX.to_sat_per_kwu());
+        assert_eq!(u64::MIN, FeeRate::MIN.to_sat_per_kwu());
+        assert_eq!(u64::MAX, FeeRate::MAX.to_sat_per_kwu());
         assert_eq!(250, FeeRate::BROADCAST_MIN.to_sat_per_kwu());
         assert_eq!(750, FeeRate::DUST.to_sat_per_kwu());
     }
@@ -171,9 +188,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn from_sat_per_vb_unchecked_panic_test() {
-        FeeRate::from_sat_per_vb_unchecked(u64::MAX);
-    }
+    fn from_sat_per_vb_unchecked_panic_test() { FeeRate::from_sat_per_vb_unchecked(u64::MAX); }
 
     #[test]
     fn raw_feerate_test() {
@@ -193,11 +208,38 @@ mod tests {
     }
 
     #[test]
+    fn checked_weight_mul_test() {
+        let weight = Weight::from_wu(10);
+        let fee: Amount = FeeRate(10).checked_mul_by_weight(weight).expect("expected Amount");
+        assert_eq!(Amount::from_sat(100), fee);
+
+        let fee = FeeRate(10).checked_mul_by_weight(Weight::MAX);
+        assert!(fee.is_none());
+    }
+
+    #[test]
     fn checked_div_test() {
         let fee_rate = FeeRate(10).checked_div(10).expect("expected feerate in sat/kwu");
         assert_eq!(FeeRate(1), fee_rate);
 
         let fee_rate = FeeRate(10).checked_div(0);
         assert!(fee_rate.is_none());
+    }
+
+    #[test]
+    fn fee_convenience_functions_agree() {
+        use hex::test_hex_unwrap as hex;
+
+        use crate::blockdata::transaction::Transaction;
+        use crate::consensus::Decodable;
+
+        const SOME_TX: &str = "0100000001a15d57094aa7a21a28cb20b59aab8fc7d1149a3bdbcddba9c622e4f5f6a99ece010000006c493046022100f93bb0e7d8db7bd46e40132d1f8242026e045f03a0efe71bbb8e3f475e970d790221009337cd7f1f929f00cc6ff01f03729b069a7c21b59b1736ddfee5db5946c5da8c0121033b9b137ee87d5a812d6f506efdd37f0affa7ffc310711c06c7f3e097c9447c52ffffffff0100e1f505000000001976a9140389035a9225b3839e2bbf32d826a1e222031fd888ac00000000";
+
+        let raw_tx = hex!(SOME_TX);
+        let tx: Transaction = Decodable::consensus_decode(&mut raw_tx.as_slice()).unwrap();
+
+        let rate = FeeRate::from_sat_per_vb(1).expect("1 sat/byte is valid");
+
+        assert_eq!(rate.fee_vb(tx.vsize() as u64), rate.fee_wu(tx.weight()));
     }
 }

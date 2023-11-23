@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "bitcoin"
-version = "0.30.0"
+version = "0.31.0"
 authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>"]
 exclude = [
     "tests",
@@ -72,19 +72,11 @@ default-features = false
 package = "serde"
 
 [dependencies.base64]
-version = "0.13.0"
+version = "0.21.3"
 optional = true
 
 [dependencies.bech32]
-version = "0.9.0"
-default-features = false
-
-[dependencies.bitcoin-internals]
-version = "0.1.0"
-package = "bitcoin-private"
-
-[dependencies.bitcoin_hashes]
-version = "0.12.0"
+version = "0.10.0-beta"
 default-features = false
 
 [dependencies.bitcoinconsensus]
@@ -93,17 +85,31 @@ optional = true
 default-features = false
 
 [dependencies.core2]
-version = "0.3.0"
+version = "0.3.2"
 features = ["alloc"]
 optional = true
 default-features = false
 
+[dependencies.hashes]
+version = "0.13.0"
+default-features = false
+package = "bitcoin_hashes"
+
+[dependencies.hex]
+version = "0.1.1"
+default-features = false
+package = "hex-conservative"
+
 [dependencies.hex_lit]
 version = "0.1.1"
 
+[dependencies.internals]
+version = "0.2.0"
+package = "bitcoin-internals"
+
 [dependencies.secp256k1]
-version = "0.27.0"
-features = ["bitcoin_hashes"]
+version = "0.28.0"
+features = ["hashes"]
 default-features = false
 
 [dev-dependencies.bincode]
@@ -129,24 +135,32 @@ default = [
 ]
 no-std = [
     "core2",
-    "bitcoin_hashes/alloc",
-    "bitcoin_hashes/core2",
+    "hashes/alloc",
+    "hashes/core2",
+    "bech32/alloc",
     "secp256k1/alloc",
+    "hex/alloc",
+    "hex/core2",
 ]
 rand = ["secp256k1/rand"]
-rand-std = ["secp256k1/rand-std"]
+rand-std = [
+    "secp256k1/rand-std",
+    "std",
+]
 secp-lowmemory = ["secp256k1/lowmemory"]
 secp-recovery = ["secp256k1/recovery"]
 serde = [
     "actual-serde",
-    "bitcoin_hashes/serde",
+    "hashes/serde",
     "secp256k1/serde",
+    "internals/serde",
 ]
 std = [
     "secp256k1/std",
-    "bitcoin_hashes/std",
+    "hashes/std",
     "bech32/std",
-    "bitcoin-internals/std",
+    "internals/std",
+    "hex/std",
 ]
 
 [target."cfg(mutate)".dev-dependencies]

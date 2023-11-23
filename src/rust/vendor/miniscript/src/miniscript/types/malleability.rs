@@ -1,4 +1,3 @@
-// Written in 2019 by Andrew Poelstra <apoelstra@wpsoftware.net>
 // SPDX-License-Identifier: CC0-1.0
 
 //! Malleability-related Type properties
@@ -69,80 +68,42 @@ impl Malleability {
 
 impl Property for Malleability {
     fn from_true() -> Self {
-        Malleability {
-            dissat: Dissat::None,
-            safe: false,
-            non_malleable: true,
-        }
+        Malleability { dissat: Dissat::None, safe: false, non_malleable: true }
     }
 
     fn from_false() -> Self {
-        Malleability {
-            dissat: Dissat::Unique,
-            safe: true,
-            non_malleable: true,
-        }
+        Malleability { dissat: Dissat::Unique, safe: true, non_malleable: true }
     }
 
     fn from_pk_k<Ctx: ScriptContext>() -> Self {
-        Malleability {
-            dissat: Dissat::Unique,
-            safe: true,
-            non_malleable: true,
-        }
+        Malleability { dissat: Dissat::Unique, safe: true, non_malleable: true }
     }
 
     fn from_pk_h<Ctx: ScriptContext>() -> Self {
-        Malleability {
-            dissat: Dissat::Unique,
-            safe: true,
-            non_malleable: true,
-        }
+        Malleability { dissat: Dissat::Unique, safe: true, non_malleable: true }
     }
 
     fn from_multi(_: usize, _: usize) -> Self {
-        Malleability {
-            dissat: Dissat::Unique,
-            safe: true,
-            non_malleable: true,
-        }
+        Malleability { dissat: Dissat::Unique, safe: true, non_malleable: true }
     }
 
     fn from_multi_a(_: usize, _: usize) -> Self {
-        Malleability {
-            dissat: Dissat::Unique,
-            safe: true,
-            non_malleable: true,
-        }
+        Malleability { dissat: Dissat::Unique, safe: true, non_malleable: true }
     }
 
     fn from_hash() -> Self {
-        Malleability {
-            dissat: Dissat::Unknown,
-            safe: false,
-            non_malleable: true,
-        }
+        Malleability { dissat: Dissat::Unknown, safe: false, non_malleable: true }
     }
 
     fn from_time(_: u32) -> Self {
-        Malleability {
-            dissat: Dissat::None,
-            safe: false,
-            non_malleable: true,
-        }
+        Malleability { dissat: Dissat::None, safe: false, non_malleable: true }
     }
 
-    fn cast_alt(self) -> Result<Self, ErrorKind> {
-        Ok(self)
-    }
+    fn cast_alt(self) -> Result<Self, ErrorKind> { Ok(self) }
 
-    fn cast_swap(self) -> Result<Self, ErrorKind> {
-        Ok(self)
-    }
+    fn cast_swap(self) -> Result<Self, ErrorKind> { Ok(self) }
 
-    fn cast_check(self) -> Result<Self, ErrorKind> {
-        Ok(self)
-    }
+    fn cast_check(self) -> Result<Self, ErrorKind> { Ok(self) }
 
     fn cast_dupif(self) -> Result<Self, ErrorKind> {
         Ok(Malleability {
@@ -176,9 +137,7 @@ impl Property for Malleability {
         })
     }
 
-    fn cast_zeronotequal(self) -> Result<Self, ErrorKind> {
-        Ok(self)
-    }
+    fn cast_zeronotequal(self) -> Result<Self, ErrorKind> { Ok(self) }
 
     fn cast_true(self) -> Result<Self, ErrorKind> {
         Ok(Malleability {

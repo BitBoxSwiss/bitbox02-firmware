@@ -1,7 +1,7 @@
-extern crate bitcoin_hashes;
+extern crate hashes;
 extern crate secp256k1;
 
-use bitcoin_hashes::{sha256, Hash};
+use hashes::{sha256, Hash};
 use secp256k1::{ecdsa, Error, Message, PublicKey, Secp256k1, SecretKey, Signing, Verification};
 
 fn recover<C: Verification>(
@@ -11,7 +11,7 @@ fn recover<C: Verification>(
     recovery_id: u8,
 ) -> Result<PublicKey, Error> {
     let msg = sha256::Hash::hash(msg);
-    let msg = Message::from_slice(msg.as_ref())?;
+    let msg = Message::from_digest_slice(msg.as_ref())?;
     let id = ecdsa::RecoveryId::from_i32(recovery_id as i32)?;
     let sig = ecdsa::RecoverableSignature::from_compact(&sig, id)?;
 
@@ -24,7 +24,7 @@ fn sign_recovery<C: Signing>(
     seckey: [u8; 32],
 ) -> Result<ecdsa::RecoverableSignature, Error> {
     let msg = sha256::Hash::hash(msg);
-    let msg = Message::from_slice(msg.as_ref())?;
+    let msg = Message::from_digest_slice(msg.as_ref())?;
     let seckey = SecretKey::from_slice(&seckey)?;
     Ok(secp.sign_ecdsa_recoverable(&msg, &seckey))
 }

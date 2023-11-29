@@ -1,4 +1,3 @@
-// Written in 2014 by Andrew Poelstra <apoelstra@wpsoftware.net>
 // SPDX-License-Identifier: CC0-1.0
 
 //! # Rust Bitcoin Library
@@ -7,9 +6,9 @@
 //! primitives. It is designed for Rust programs built to work with the Bitcoin
 //! network.
 //!
-//! It is also written entirely in Rust to illustrate the benefits of strong type
-//! safety, including ownership and lifetime, for financial and/or cryptographic
-//! software.
+//! Except for its dependency on libsecp256k1 (and optionally libbitcoinconsensus),
+//! this library is written entirely in Rust. It illustrates the benefits of
+//! strong type safety, including ownership and lifetime, for financial and/or cryptographic software.
 //!
 //! See README.md for detailed documentation about development and supported
 //! environments.
@@ -34,11 +33,13 @@
 #![cfg_attr(all(not(feature = "std"), not(test)), no_std)]
 // Experimental features we need.
 #![cfg_attr(bench, feature(test))]
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 // Coding conventions
 #![warn(missing_docs)]
 // Instead of littering the codebase for non-fuzzing code just globally allow.
 #![cfg_attr(fuzzing, allow(dead_code, unused_imports))]
+// Exclude clippy lints we don't think are valuable
+#![allow(clippy::needless_question_mark)] // https://github.com/rust-bitcoin/rust-bitcoin/pull/2134
 
 #[cfg(not(any(feature = "std", feature = "no-std")))]
 compile_error!("at least one of the `std` or `no-std` features must be enabled");
@@ -57,13 +58,27 @@ extern crate test;
 extern crate alloc;
 
 #[cfg(feature = "base64")]
-#[cfg_attr(docsrs, doc(cfg(feature = "base64")))]
+/// Encodes and decodes base64 as bytes or utf8.
 pub extern crate base64;
+
+/// Encodes and decodes the Bech32 forrmat.
 pub extern crate bech32;
-pub extern crate bitcoin_hashes as hashes;
+
 #[cfg(feature = "bitcoinconsensus")]
-#[cfg_attr(docsrs, doc(cfg(feature = "bitcoinconsensus")))]
+/// Bitcoin's libbitcoinconsensus with Rust binding.
 pub extern crate bitcoinconsensus;
+
+#[cfg(not(feature = "std"))]
+extern crate core2;
+
+/// Rust implementation of cryptographic hash function algorithems.
+pub extern crate hashes;
+
+/// Re-export the `hex-conservative` crate.
+pub extern crate hex;
+
+/// Rust wrapper library for Pieter Wuille's libsecp256k1.  Implements ECDSA and BIP 340 signatures
+/// for the SECG elliptic curve group secp256k1 and related utilities.
 pub extern crate secp256k1;
 
 #[cfg(feature = "serde")]
@@ -79,7 +94,7 @@ mod parse;
 mod serde_utils;
 
 #[macro_use]
-pub mod network;
+pub mod p2p;
 pub mod address;
 pub mod amount;
 pub mod base58;
@@ -93,13 +108,13 @@ pub(crate) mod crypto;
 pub mod error;
 pub mod hash_types;
 pub mod merkle_tree;
+pub mod network;
 pub mod policy;
 pub mod pow;
 pub mod psbt;
 pub mod sign_message;
 pub mod string;
 pub mod taproot;
-pub mod util;
 
 // May depend on crate features and we don't want to bother with it
 #[allow(unused)]
@@ -116,24 +131,35 @@ use core2::io;
 
 pub use crate::address::{Address, AddressType};
 pub use crate::amount::{Amount, Denomination, SignedAmount};
+pub use crate::bip32::XKeyIdentifier;
 pub use crate::blockdata::block::{self, Block};
+pub use crate::blockdata::constants;
 pub use crate::blockdata::fee_rate::FeeRate;
 pub use crate::blockdata::locktime::{self, absolute, relative};
-pub use crate::blockdata::script::{self, Script, ScriptBuf};
+pub use crate::blockdata::opcodes::{self, Opcode};
+pub use crate::blockdata::script::witness_program::{self, WitnessProgram};
+pub use crate::blockdata::script::witness_version::{self, WitnessVersion};
+pub use crate::blockdata::script::{self, Script, ScriptBuf, ScriptHash, WScriptHash};
 pub use crate::blockdata::transaction::{self, OutPoint, Sequence, Transaction, TxIn, TxOut};
 pub use crate::blockdata::weight::Weight;
 pub use crate::blockdata::witness::{self, Witness};
-pub use crate::blockdata::{constants, opcodes};
 pub use crate::consensus::encode::VarInt;
-pub use crate::crypto::key::{self, PrivateKey, PublicKey};
-pub use crate::crypto::{ecdsa, sighash};
-pub use crate::error::Error;
+pub use crate::crypto::ecdsa;
+pub use crate::crypto::key::{
+    self, PrivateKey, PubkeyHash, PublicKey, WPubkeyHash, XOnlyPublicKey,
+};
+pub use crate::crypto::sighash::{self, LegacySighash, SegwitV0Sighash, TapSighash, TapSighashTag};
 pub use crate::hash_types::{
-    BlockHash, PubkeyHash, ScriptHash, Txid, WPubkeyHash, WScriptHash, Wtxid,
+    BlockHash, FilterHash, FilterHeader, TxMerkleNode, Txid, WitnessCommitment, Wtxid,
 };
 pub use crate::merkle_tree::MerkleBlock;
-pub use crate::network::constants::Network;
+pub use crate::network::Network;
 pub use crate::pow::{CompactTarget, Target, Work};
+pub use crate::psbt::Psbt;
+pub use crate::sighash::{EcdsaSighashType, TapSighashType};
+pub use crate::taproot::{
+    TapBranchTag, TapLeafHash, TapLeafTag, TapNodeHash, TapTweakHash, TapTweakTag,
+};
 
 #[cfg(not(feature = "std"))]
 mod io_extras {
@@ -157,13 +183,13 @@ mod io_extras {
 #[rustfmt::skip]
 mod prelude {
     #[cfg(all(not(feature = "std"), not(test)))]
-    pub use alloc::{string::{String, ToString}, vec::Vec, boxed::Box, borrow::{Borrow, Cow, ToOwned}, slice, rc};
+    pub use alloc::{string::{String, ToString}, vec::Vec, boxed::Box, borrow::{Borrow, BorrowMut, Cow, ToOwned}, slice, rc};
 
     #[cfg(all(not(feature = "std"), not(test), any(not(rust_v_1_60), target_has_atomic = "ptr")))]
     pub use alloc::sync;
 
     #[cfg(any(feature = "std", test))]
-    pub use std::{string::{String, ToString}, vec::Vec, boxed::Box, borrow::{Borrow, Cow, ToOwned}, slice, rc, sync};
+    pub use std::{string::{String, ToString}, vec::Vec, boxed::Box, borrow::{Borrow, BorrowMut, Cow, ToOwned}, slice, rc, sync};
 
     #[cfg(all(not(feature = "std"), not(test)))]
     pub use alloc::collections::{BTreeMap, BTreeSet, btree_map, BinaryHeap};
@@ -177,7 +203,7 @@ mod prelude {
     #[cfg(not(feature = "std"))]
     pub use crate::io_extras::sink;
 
-    pub use bitcoin_internals::hex::display::DisplayHex;
+    pub use hex::DisplayHex;
 }
 
 #[cfg(bench)]

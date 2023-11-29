@@ -1,17 +1,4 @@
-// Bitcoin secp256k1 bindings
-// Written in 2014 by
-//   Dawid Ciężarkiewicz
-//   Andrew Poelstra
-//
-// To the extent possible under law, the author(s) have dedicated all
-// copyright and related and neighboring rights to this software to
-// the public domain worldwide. This software is distributed without
-// any warranty.
-//
-// You should have received a copy of the CC0 Public Domain Dedication
-// along with this software.
-// If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
-//
+// SPDX-License-Identifier: CC0-1.0
 
 //! Constants related to the API and the underlying curve.
 //!
@@ -42,6 +29,9 @@ pub const SCHNORR_PUBLIC_KEY_SIZE: usize = 32;
 
 /// The size of a key pair.
 pub const KEY_PAIR_SIZE: usize = 96;
+
+/// The size of a full ElligatorSwift encoding.
+pub const ELLSWIFT_ENCODING_SIZE: usize = 64;
 
 /// The Prime for the secp256k1 field element.
 #[rustfmt::skip]

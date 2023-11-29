@@ -1,4 +1,3 @@
-// Written in 2020 by the rust-miniscript developers
 // SPDX-License-Identifier: CC0-1.0
 
 //! # Segwit Output Descriptors
@@ -10,10 +9,13 @@ use core::fmt;
 
 use bitcoin::{Address, Network, ScriptBuf};
 
-use super::checksum::{self, verify_checksum};
+use super::checksum::verify_checksum;
 use super::SortedMultiVec;
+use crate::descriptor::{write_descriptor, DefiniteDescriptorKey};
 use crate::expression::{self, FromTree};
 use crate::miniscript::context::{ScriptContext, ScriptContextError};
+use crate::miniscript::satisfy::{Placeholder, Satisfaction, Witness};
+use crate::plan::AssetProvider;
 use crate::policy::{semantic, Liftable};
 use crate::prelude::*;
 use crate::util::varint_len;
@@ -30,38 +32,28 @@ pub struct Wsh<Pk: MiniscriptKey> {
 
 impl<Pk: MiniscriptKey> Wsh<Pk> {
     /// Get the Inner
-    pub fn into_inner(self) -> WshInner<Pk> {
-        self.inner
-    }
+    pub fn into_inner(self) -> WshInner<Pk> { self.inner }
 
     /// Get a reference to inner
-    pub fn as_inner(&self) -> &WshInner<Pk> {
-        &self.inner
-    }
+    pub fn as_inner(&self) -> &WshInner<Pk> { &self.inner }
 
     /// Create a new wsh descriptor
     pub fn new(ms: Miniscript<Pk, Segwitv0>) -> Result<Self, Error> {
         // do the top-level checks
         Segwitv0::top_level_checks(&ms)?;
-        Ok(Self {
-            inner: WshInner::Ms(ms),
-        })
+        Ok(Self { inner: WshInner::Ms(ms) })
     }
 
     /// Create a new sortedmulti wsh descriptor
     pub fn new_sortedmulti(k: usize, pks: Vec<Pk>) -> Result<Self, Error> {
         // The context checks will be carried out inside new function for
         // sortedMultiVec
-        Ok(Self {
-            inner: WshInner::SortedMulti(SortedMultiVec::new(k, pks)?),
-        })
+        Ok(Self { inner: WshInner::SortedMulti(SortedMultiVec::new(k, pks)?) })
     }
 
     /// Get the descriptor without the checksum
     #[deprecated(since = "8.0.0", note = "use format!(\"{:#}\") instead")]
-    pub fn to_string_no_checksum(&self) -> String {
-        format!("{:#}", self)
-    }
+    pub fn to_string_no_checksum(&self) -> String { format!("{:#}", self) }
 
     /// Checks whether the descriptor is safe.
     pub fn sanity_check(&self) -> Result<(), Error> {
@@ -133,9 +125,7 @@ impl<Pk: MiniscriptKey> Wsh<Pk> {
 
 impl<Pk: MiniscriptKey + ToPublicKey> Wsh<Pk> {
     /// Obtains the corresponding script pubkey for this descriptor.
-    pub fn script_pubkey(&self) -> ScriptBuf {
-        self.inner_script().to_v0_p2wsh()
-    }
+    pub fn script_pubkey(&self) -> ScriptBuf { self.inner_script().to_p2wsh() }
 
     /// Obtains the corresponding script pubkey for this descriptor.
     pub fn address(&self, network: Network) -> Address {
@@ -154,9 +144,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Wsh<Pk> {
     }
 
     /// Obtains the pre bip-340 signature script code for this descriptor.
-    pub fn ecdsa_sighash_script_code(&self) -> ScriptBuf {
-        self.inner_script()
-    }
+    pub fn ecdsa_sighash_script_code(&self) -> ScriptBuf { self.inner_script() }
 
     /// Returns satisfying non-malleable witness and scriptSig with minimum
     /// weight to spend an output controlled by the given descriptor if it is
@@ -192,6 +180,36 @@ impl<Pk: MiniscriptKey + ToPublicKey> Wsh<Pk> {
     }
 }
 
+impl Wsh<DefiniteDescriptorKey> {
+    /// Returns a plan if the provided assets are sufficient to produce a non-malleable satisfaction
+    pub fn plan_satisfaction<P>(
+        &self,
+        provider: &P,
+    ) -> Satisfaction<Placeholder<DefiniteDescriptorKey>>
+    where
+        P: AssetProvider<DefiniteDescriptorKey>,
+    {
+        match &self.inner {
+            WshInner::SortedMulti(sm) => sm.build_template(provider),
+            WshInner::Ms(ms) => ms.build_template(provider),
+        }
+    }
+
+    /// Returns a plan if the provided assets are sufficient to produce a malleable satisfaction
+    pub fn plan_satisfaction_mall<P>(
+        &self,
+        provider: &P,
+    ) -> Satisfaction<Placeholder<DefiniteDescriptorKey>>
+    where
+        P: AssetProvider<DefiniteDescriptorKey>,
+    {
+        match &self.inner {
+            WshInner::SortedMulti(sm) => sm.build_template(provider),
+            WshInner::Ms(ms) => ms.build_template_mall(provider),
+        }
+    }
+}
+
 /// Wsh Inner
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum WshInner<Pk: MiniscriptKey> {
@@ -216,15 +234,11 @@ impl_from_tree!(
         if top.name == "wsh" && top.args.len() == 1 {
             let top = &top.args[0];
             if top.name == "sortedmulti" {
-                return Ok(Wsh {
-                    inner: WshInner::SortedMulti(SortedMultiVec::from_tree(top)?),
-                });
+                return Ok(Wsh { inner: WshInner::SortedMulti(SortedMultiVec::from_tree(top)?) });
             }
             let sub = Miniscript::from_tree(top)?;
             Segwitv0::top_level_checks(&sub)?;
-            Ok(Wsh {
-                inner: WshInner::Ms(sub),
-            })
+            Ok(Wsh { inner: WshInner::Ms(sub) })
         } else {
             Err(Error::Unexpected(format!(
                 "{}({} args) while parsing wsh descriptor",
@@ -246,13 +260,10 @@ impl<Pk: MiniscriptKey> fmt::Debug for Wsh<Pk> {
 
 impl<Pk: MiniscriptKey> fmt::Display for Wsh<Pk> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use fmt::Write;
-        let mut wrapped_f = checksum::Formatter::new(f);
         match self.inner {
-            WshInner::SortedMulti(ref smv) => write!(wrapped_f, "wsh({})", smv)?,
-            WshInner::Ms(ref ms) => write!(wrapped_f, "wsh({})", ms)?,
+            WshInner::SortedMulti(ref smv) => write_descriptor!(f, "wsh({})", smv),
+            WshInner::Ms(ref ms) => write_descriptor!(f, "wsh({})", ms),
         }
-        wrapped_f.write_checksum_if_not_alt()
     }
 }
 
@@ -312,27 +323,19 @@ impl<Pk: MiniscriptKey> Wpkh<Pk> {
     }
 
     /// Get the inner key
-    pub fn into_inner(self) -> Pk {
-        self.pk
-    }
+    pub fn into_inner(self) -> Pk { self.pk }
 
     /// Get the inner key
-    pub fn as_inner(&self) -> &Pk {
-        &self.pk
-    }
+    pub fn as_inner(&self) -> &Pk { &self.pk }
 
     /// Get the descriptor without the checksum
     #[deprecated(since = "8.0.0", note = "use format!(\"{:#}\") instead")]
-    pub fn to_string_no_checksum(&self) -> String {
-        format!("{:#}", self)
-    }
+    pub fn to_string_no_checksum(&self) -> String { format!("{:#}", self) }
 
     /// Checks whether the descriptor is safe.
     pub fn sanity_check(&self) -> Result<(), Error> {
         if self.pk.is_uncompressed() {
-            Err(Error::ContextError(ScriptContextError::CompressedOnly(
-                self.pk.to_string(),
-            )))
+            Err(Error::ContextError(ScriptContextError::CompressedOnly(self.pk.to_string())))
         } else {
             Ok(())
         }
@@ -357,9 +360,7 @@ impl<Pk: MiniscriptKey> Wpkh<Pk> {
     /// Assumes all ec-signatures are 73 bytes, including push opcode and
     /// sighash suffix. Includes the weight of the VarInts encoding the
     /// scriptSig and witness stack length.
-    pub fn max_satisfaction_weight(&self) -> usize {
-        4 + 1 + 73 + Segwitv0::pk_len(&self.pk)
-    }
+    pub fn max_satisfaction_weight(&self) -> usize { 4 + 1 + 73 + Segwitv0::pk_len(&self.pk) }
 }
 
 impl<Pk: MiniscriptKey + ToPublicKey> Wpkh<Pk> {
@@ -377,9 +378,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Wpkh<Pk> {
     }
 
     /// Obtains the underlying miniscript for this descriptor.
-    pub fn inner_script(&self) -> ScriptBuf {
-        self.script_pubkey()
-    }
+    pub fn inner_script(&self) -> ScriptBuf { self.script_pubkey() }
 
     /// Obtains the pre bip-340 signature script code for this descriptor.
     pub fn ecdsa_sighash_script_code(&self) -> ScriptBuf {
@@ -419,18 +418,47 @@ impl<Pk: MiniscriptKey + ToPublicKey> Wpkh<Pk> {
     }
 }
 
-impl<Pk: MiniscriptKey> fmt::Debug for Wpkh<Pk> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "wpkh({:?})", self.pk)
+impl Wpkh<DefiniteDescriptorKey> {
+    /// Returns a plan if the provided assets are sufficient to produce a non-malleable satisfaction
+    pub fn plan_satisfaction<P>(
+        &self,
+        provider: &P,
+    ) -> Satisfaction<Placeholder<DefiniteDescriptorKey>>
+    where
+        P: AssetProvider<DefiniteDescriptorKey>,
+    {
+        let stack = if provider.provider_lookup_ecdsa_sig(&self.pk) {
+            let stack = vec![
+                Placeholder::EcdsaSigPk(self.pk.clone()),
+                Placeholder::Pubkey(self.pk.clone(), Segwitv0::pk_len(&self.pk)),
+            ];
+            Witness::Stack(stack)
+        } else {
+            Witness::Unavailable
+        };
+
+        Satisfaction { stack, has_sig: true, relative_timelock: None, absolute_timelock: None }
     }
+
+    /// Returns a plan if the provided assets are sufficient to produce a malleable satisfaction
+    pub fn plan_satisfaction_mall<P>(
+        &self,
+        provider: &P,
+    ) -> Satisfaction<Placeholder<DefiniteDescriptorKey>>
+    where
+        P: AssetProvider<DefiniteDescriptorKey>,
+    {
+        self.plan_satisfaction(provider)
+    }
+}
+
+impl<Pk: MiniscriptKey> fmt::Debug for Wpkh<Pk> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "wpkh({:?})", self.pk) }
 }
 
 impl<Pk: MiniscriptKey> fmt::Display for Wpkh<Pk> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use fmt::Write;
-        let mut wrapped_f = checksum::Formatter::new(f);
-        write!(wrapped_f, "wpkh({})", self.pk)?;
-        wrapped_f.write_checksum_if_not_alt()
+        write_descriptor!(f, "wpkh({})", self.pk)
     }
 }
 
@@ -444,9 +472,7 @@ impl_from_tree!(
     Wpkh<Pk>,
     fn from_tree(top: &expression::Tree) -> Result<Self, Error> {
         if top.name == "wpkh" && top.args.len() == 1 {
-            Ok(Wpkh::new(expression::terminal(&top.args[0], |pk| {
-                Pk::from_str(pk)
-            })?)?)
+            Ok(Wpkh::new(expression::terminal(&top.args[0], |pk| Pk::from_str(pk))?)?)
         } else {
             Err(Error::Unexpected(format!(
                 "{}({} args) while parsing wpkh descriptor",
@@ -468,9 +494,7 @@ impl_from_str!(
 );
 
 impl<Pk: MiniscriptKey> ForEachKey<Pk> for Wpkh<Pk> {
-    fn for_each_key<'a, F: FnMut(&'a Pk) -> bool>(&'a self, mut pred: F) -> bool {
-        pred(&self.pk)
-    }
+    fn for_each_key<'a, F: FnMut(&'a Pk) -> bool>(&'a self, mut pred: F) -> bool { pred(&self.pk) }
 }
 
 impl<P, Q> TranslatePk<P, Q> for Wpkh<P>

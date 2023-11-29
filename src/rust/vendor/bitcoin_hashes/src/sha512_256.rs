@@ -1,21 +1,4 @@
-// Bitcoin Hashes Library
-// Written in 2022 by
-//   The rust-bitcoin developers.
-//
-// To the extent possible under law, the author(s) have dedicated all
-// copyright and related and neighboring rights to this software to
-// the public domain worldwide. This software is distributed without
-// any warranty.
-//
-// You should have received a copy of the CC0 Public Domain Dedication
-// along with this software.
-// If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
-//
-
-// This module is largely copied from the rust-crypto ripemd.rs file;
-// while rust-crypto is licensed under Apache, that file specifically
-// was written entirely by Andrew Poelstra, who is re-licensing its
-// contents here as CC0.
+// SPDX-License-Identifier: CC0-1.0
 
 //! SHA512_256 implementation.
 //!
@@ -24,11 +7,11 @@
 //! produces an entirely different hash compared to sha512. More information at
 //! <https://eprint.iacr.org/2010/548.pdf>.
 
-use core::str;
 use core::ops::Index;
 use core::slice::SliceIndex;
+use core::str;
 
-use crate::{sha512, sha512::BLOCK_SIZE, Error};
+use crate::{sha512, FromSliceError};
 
 /// Engine to compute SHA512/256 hash function.
 ///
@@ -40,34 +23,22 @@ use crate::{sha512, sha512::BLOCK_SIZE, Error};
 pub struct HashEngine(sha512::HashEngine);
 
 impl Default for HashEngine {
+    #[rustfmt::skip]
     fn default() -> Self {
-        HashEngine(sha512::HashEngine {
-            h: [
-                0x22312194fc2bf72c, 0x9f555fa3c84c64c2, 0x2393b86b6f53b151, 0x963877195940eabd,
-                0x96283ee2a88effe3, 0xbe5e1e2553863992, 0x2b0199fc2c85b8aa, 0x0eb72ddc81c52ca2,
-            ],
-            length: 0,
-            buffer: [0; BLOCK_SIZE],
-        })
+        HashEngine(sha512::HashEngine::sha512_256())
     }
 }
 
 impl crate::HashEngine for HashEngine {
     type MidState = [u8; 64];
 
-    fn midstate(&self) -> [u8; 64] {
-        self.0.midstate()
-    }
+    fn midstate(&self) -> [u8; 64] { self.0.midstate() }
 
     const BLOCK_SIZE: usize = sha512::BLOCK_SIZE;
 
-    fn n_bytes_hashed(&self) -> usize {
-        self.0.length
-    }
+    fn n_bytes_hashed(&self) -> usize { self.0.n_bytes_hashed() }
 
-    fn input(&mut self, inp: &[u8]) {
-        self.0.input(inp);
-    }
+    fn input(&mut self, inp: &[u8]) { self.0.input(inp); }
 }
 
 crate::internal_macros::hash_type! {
@@ -97,6 +68,7 @@ mod tests {
             output_str: &'static str,
         }
 
+        #[rustfmt::skip]
         let tests = vec![
             // Examples from go sha512/256 tests.
             Test {
@@ -174,13 +146,13 @@ mod tests {
 mod benches {
     use test::Bencher;
 
-    use crate::{Hash, HashEngine, sha512_256};
+    use crate::{sha512_256, Hash, HashEngine};
 
     #[bench]
     pub fn sha512_256_10(bh: &mut Bencher) {
         let mut engine = sha512_256::Hash::engine();
         let bytes = [1u8; 10];
-        bh.iter( || {
+        bh.iter(|| {
             engine.input(&bytes);
         });
         bh.bytes = bytes.len() as u64;
@@ -190,7 +162,7 @@ mod benches {
     pub fn sha512_256_1k(bh: &mut Bencher) {
         let mut engine = sha512_256::Hash::engine();
         let bytes = [1u8; 1024];
-        bh.iter( || {
+        bh.iter(|| {
             engine.input(&bytes);
         });
         bh.bytes = bytes.len() as u64;
@@ -200,10 +172,9 @@ mod benches {
     pub fn sha512_256_64k(bh: &mut Bencher) {
         let mut engine = sha512_256::Hash::engine();
         let bytes = [1u8; 65536];
-        bh.iter( || {
+        bh.iter(|| {
             engine.input(&bytes);
         });
         bh.bytes = bytes.len() as u64;
     }
-
 }

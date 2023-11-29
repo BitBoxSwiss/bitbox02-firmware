@@ -1,16 +1,4 @@
-// Bitcoin Hashes Library
-// Written in 2018 by
-//   Andrew Poelstra <apoelstra@wpsoftware.net>
-//
-// To the extent possible under law, the author(s) have dedicated all
-// copyright and related and neighboring rights to this software to
-// the public domain worldwide. This software is distributed without
-// any warranty.
-//
-// You should have received a copy of the CC0 Public Domain Dedication
-// along with this software.
-// If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
-//
+// SPDX-License-Identifier: CC0-1.0
 
 #[macro_export]
 /// Adds hexadecimal formatting implementation of a trait `$imp` to a given type `$ty`.
@@ -80,7 +68,7 @@ macro_rules! borrow_slice_impl(
 
 macro_rules! engine_input_impl(
     () => (
-        #[cfg(not(fuzzing))]
+        #[cfg(not(hashes_fuzz))]
         fn input(&mut self, mut inp: &[u8]) {
             while !inp.is_empty() {
                 let buf_idx = self.length % <Self as crate::HashEngine>::BLOCK_SIZE;
@@ -97,7 +85,7 @@ macro_rules! engine_input_impl(
             }
         }
 
-        #[cfg(fuzzing)]
+        #[cfg(hashes_fuzz)]
         fn input(&mut self, inp: &[u8]) {
             for c in inp {
                 self.buffer[0] ^= *c;
@@ -106,8 +94,6 @@ macro_rules! engine_input_impl(
         }
     )
 );
-
-
 
 /// Creates a new newtype around a [`Hash`] type.
 ///
@@ -141,7 +127,7 @@ macro_rules! engine_input_impl(
 /// You can add arbitrary doc comments or other attributes to the struct or it's field. Note that
 /// the macro already derives [`Copy`], [`Clone`], [`Eq`], [`PartialEq`],
 /// [`Hash`](core::hash::Hash), [`Ord`], [`PartialOrd`]. With the `serde` feature on, this also adds
-/// [`Serialize`](serde::Serialize) and [`Deserialize](serde::Deserialize) implementations.
+/// `Serialize` and `Deserialize` implementations.
 ///
 /// You can also define multiple newtypes within one macro call:
 ///
@@ -255,7 +241,7 @@ macro_rules! hash_newtype {
             }
 
             #[inline]
-            fn from_slice(sl: &[u8]) -> Result<$newtype, $crate::Error> {
+            fn from_slice(sl: &[u8]) -> Result<$newtype, $crate::FromSliceError> {
                 Ok($newtype(<$hash as $crate::Hash>::from_slice(sl)?))
             }
 
@@ -282,15 +268,15 @@ macro_rules! hash_newtype {
         }
 
         impl $crate::_export::_core::str::FromStr for $newtype {
-            type Err = $crate::hex::Error;
+            type Err = $crate::hex::HexToArrayError;
             fn from_str(s: &str) -> $crate::_export::_core::result::Result<$newtype, Self::Err> {
-                use $crate::hex::{HexIterator, FromHex};
+                use $crate::hex::{FromHex, HexToBytesIter};
                 use $crate::Hash;
 
                 let inner: <$hash as Hash>::Bytes = if <Self as $crate::Hash>::DISPLAY_BACKWARD {
-                    FromHex::from_byte_iter(HexIterator::new(s)?.rev())?
+                    FromHex::from_byte_iter(HexToBytesIter::new(s)?.rev())?
                 } else {
-                    FromHex::from_byte_iter(HexIterator::new(s)?)?
+                    FromHex::from_byte_iter(HexToBytesIter::new(s)?)?
                 };
                 Ok($newtype(<$hash>::from_byte_array(inner)))
             }
@@ -401,10 +387,10 @@ macro_rules! hash_newtype_known_attrs {
 }
 
 #[cfg(feature = "schemars")]
-#[cfg_attr(docsrs, doc(cfg(feature = "schemars")))]
 pub mod json_hex_string {
+    use schemars::gen::SchemaGenerator;
     use schemars::schema::{Schema, SchemaObject};
-    use schemars::{gen::SchemaGenerator, JsonSchema};
+    use schemars::JsonSchema;
     macro_rules! define_custom_hex {
         ($name:ident, $len:expr) => {
             pub fn $name(gen: &mut SchemaGenerator) -> Schema {
@@ -426,7 +412,7 @@ pub mod json_hex_string {
 
 #[cfg(test)]
 mod test {
-    use crate::{Hash, sha256};
+    use crate::{sha256, Hash};
 
     #[test]
     fn hash_as_ref_array() {

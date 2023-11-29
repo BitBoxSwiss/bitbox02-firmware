@@ -1,4 +1,3 @@
-// Written in 2018 by Andrew Poelstra <apoelstra@wpsoftware.net>
 // SPDX-License-Identifier: CC0-1.0
 
 //!  Script Policies
@@ -20,42 +19,44 @@ pub mod concrete;
 pub mod semantic;
 
 pub use self::concrete::Policy as Concrete;
-/// Semantic policies are "abstract" policies elsewhere; but we
-/// avoid this word because it is a reserved keyword in Rust
 pub use self::semantic::Policy as Semantic;
 use crate::descriptor::Descriptor;
 use crate::miniscript::{Miniscript, ScriptContext};
+use crate::sync::Arc;
 use crate::{Error, MiniscriptKey, Terminal};
 
-/// Policy entailment algorithm maximum number of terminals allowed
+/// Policy entailment algorithm maximum number of terminals allowed.
 const ENTAILMENT_MAX_TERMINALS: usize = 20;
+
 /// Trait describing script representations which can be lifted into
 /// an abstract policy, by discarding information.
+///
 /// After Lifting all policies are converted into `KeyHash(Pk::HasH)` to
 /// maintain the following invariant(modulo resource limits):
 /// `Lift(Concrete) == Concrete -> Miniscript -> Script -> Miniscript -> Semantic`
-/// Lifting from [Miniscript], [Descriptor] can fail
-/// if the miniscript contains a timelock combination or if it contains a
-/// branch that exceeds resource limits.
-/// Lifting from Concrete policies can fail if it contains a timelock
-/// combination. It is possible that concrete policy has some branches that
-/// exceed resource limits for any compilation, but cannot detect such
-/// policies while lifting. Note that our compiler would not succeed for any
-/// such policies.
+///
+/// Lifting from [`Miniscript`] or [`Descriptor`] can fail if the miniscript
+/// contains a timelock combination or if it contains a branch that exceeds
+/// resource limits.
+///
+/// Lifting from concrete policies can fail if the policy contains a timelock
+/// combination. It is possible that a concrete policy has some branches that
+/// exceed resource limits for any compilation but cannot detect such policies
+/// while lifting. Note that our compiler would not succeed for any such
+/// policies.
 pub trait Liftable<Pk: MiniscriptKey> {
-    /// Convert the object into an abstract policy
+    /// Converts this object into an abstract policy.
     fn lift(&self) -> Result<Semantic<Pk>, Error>;
 }
 
-/// Detailed Error type for Policies
+/// Error occurring during lifting.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum LiftError {
-    /// Cannot lift policies that have
-    /// a combination of height and timelocks.
+    /// Cannot lift policies that have a combination of height and timelocks.
     HeightTimelockCombination,
-    /// Duplicate Public Keys
+    /// Duplicate public keys.
     BranchExceedResourceLimits,
-    /// Cannot lift raw descriptors
+    /// Cannot lift raw descriptors.
     RawDescriptorLift,
 }
 
@@ -85,14 +86,13 @@ impl error::Error for LiftError {
 }
 
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
-    /// Lifting corresponds conversion of miniscript into Policy
-    /// [policy.semantic.Policy] for human readable or machine analysis.
-    /// However, naively lifting miniscripts can result in incorrect
-    /// interpretations that don't correspond underlying semantics when
-    /// we try to spend them on bitcoin network.
-    /// This can occur if the miniscript contains a
-    /// 1. Timelock combination
-    /// 2. Contains a spend that exceeds resource limits
+    /// Lifting corresponds to conversion of a miniscript into a [`Semantic`]
+    /// policy for human readable or machine analysis. However, naively lifting
+    /// miniscripts can result in incorrect interpretations that don't
+    /// correspond to the underlying semantics when we try to spend them on
+    /// bitcoin network. This can occur if the miniscript contains:
+    /// 1. A combination of timelocks
+    /// 2. A spend that exceeds resource limits
     pub fn lift_check(&self) -> Result<(), LiftError> {
         if !self.within_resource_limits() {
             Err(LiftError::BranchExceedResourceLimits)
@@ -178,9 +178,7 @@ impl<Pk: MiniscriptKey> Liftable<Pk> for Descriptor<Pk> {
 }
 
 impl<Pk: MiniscriptKey> Liftable<Pk> for Semantic<Pk> {
-    fn lift(&self) -> Result<Semantic<Pk>, Error> {
-        Ok(self.clone())
-    }
+    fn lift(&self) -> Result<Semantic<Pk>, Error> { Ok(self.clone()) }
 }
 
 impl<Pk: MiniscriptKey> Liftable<Pk> for Concrete<Pk> {
@@ -215,6 +213,9 @@ impl<Pk: MiniscriptKey> Liftable<Pk> for Concrete<Pk> {
         .normalized();
         Ok(ret)
     }
+}
+impl<Pk: MiniscriptKey> Liftable<Pk> for Arc<Concrete<Pk>> {
+    fn lift(&self) -> Result<Semantic<Pk>, Error> { self.as_ref().lift() }
 }
 
 #[cfg(test)]
@@ -339,12 +340,10 @@ mod tests {
                 .parse()
                 .unwrap();
 
-        let ms_str: Miniscript<bitcoin::PublicKey, Segwitv0> = format!(
-            "andor(multi(1,{}),older(42),c:pk_k({}))",
-            key_a.inner, key_b.inner
-        )
-        .parse()
-        .unwrap();
+        let ms_str: Miniscript<bitcoin::PublicKey, Segwitv0> =
+            format!("andor(multi(1,{}),older(42),c:pk_k({}))", key_a.inner, key_b.inner)
+                .parse()
+                .unwrap();
         assert_eq!(
             Semantic::Threshold(
                 1,
@@ -388,9 +387,11 @@ mod tests {
                 Arc::new(ms_str!("and_v(v:pk(C),pk(D))"));
             let right_ms_compilation: Arc<Miniscript<String, Tap>> =
                 Arc::new(ms_str!("and_v(v:pk(A),pk(B))"));
-            let left_node: Arc<TapTree<String>> = Arc::from(TapTree::Leaf(left_ms_compilation));
-            let right_node: Arc<TapTree<String>> = Arc::from(TapTree::Leaf(right_ms_compilation));
-            let tree: TapTree<String> = TapTree::Tree(left_node, right_node);
+
+            let left = TapTree::Leaf(left_ms_compilation);
+            let right = TapTree::Leaf(right_ms_compilation);
+            let tree = TapTree::combine(left, right);
+
             let expected_descriptor =
                 Descriptor::new_tr(unspendable_key.clone(), Some(tree)).unwrap();
             assert_eq!(descriptor, expected_descriptor);
@@ -401,10 +402,7 @@ mod tests {
             let policy: Concrete<String> = policy_str!("or(and(pk(A),pk(B)),and(pk(A),pk(D)))");
             let descriptor = policy.compile_tr(Some(unspendable_key.clone()));
 
-            assert_eq!(
-                descriptor.unwrap_err().to_string(),
-                "Policy contains duplicate keys"
-            );
+            assert_eq!(descriptor.unwrap_err().to_string(), "Policy contains duplicate keys");
         }
 
         // Non-trivial multi-node compilation
@@ -458,21 +456,18 @@ mod tests {
                 .collect::<Vec<_>>();
 
             // Arrange leaf compilations (acc. to probabilities) using huffman encoding into a TapTree
-            let tree = TapTree::Tree(
-                Arc::from(TapTree::Tree(
-                    Arc::from(node_compilations[4].clone()),
-                    Arc::from(node_compilations[5].clone()),
-                )),
-                Arc::from(TapTree::Tree(
-                    Arc::from(TapTree::Tree(
-                        Arc::from(TapTree::Tree(
-                            Arc::from(node_compilations[0].clone()),
-                            Arc::from(node_compilations[1].clone()),
-                        )),
-                        Arc::from(node_compilations[3].clone()),
-                    )),
-                    Arc::from(node_compilations[6].clone()),
-                )),
+            let tree = TapTree::combine(
+                TapTree::combine(node_compilations[4].clone(), node_compilations[5].clone()),
+                TapTree::combine(
+                    TapTree::combine(
+                        TapTree::combine(
+                            node_compilations[0].clone(),
+                            node_compilations[1].clone(),
+                        ),
+                        node_compilations[3].clone(),
+                    ),
+                    node_compilations[6].clone(),
+                ),
             );
 
             let expected_descriptor = Descriptor::new_tr("E".to_string(), Some(tree)).unwrap();
@@ -541,7 +536,7 @@ mod tests {
     }
 }
 
-#[cfg(all(test, feature = "compiler", feature = "unstable"))]
+#[cfg(all(bench, feature = "compiler"))]
 mod benches {
     use core::str::FromStr;
 

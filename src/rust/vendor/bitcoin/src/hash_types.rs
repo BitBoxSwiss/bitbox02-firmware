@@ -1,4 +1,3 @@
-// Written in 2014 by Andrew Poelstra <apoelstra@wpsoftware.net>
 // SPDX-License-Identifier: CC0-1.0
 
 //! Bitcoin hash types.
@@ -47,13 +46,13 @@ macro_rules! impl_asref_push_bytes {
         )*
     };
 }
-
+pub(crate) use impl_asref_push_bytes;
 // newtypes module is solely here so we can rustfmt::skip.
 pub use newtypes::*;
 
 #[rustfmt::skip]
 mod newtypes {
-    use crate::hashes::{sha256, sha256d, hash160, hash_newtype};
+    use hashes::{sha256d, hash_newtype};
 
     hash_newtype! {
         /// A bitcoin transaction hash/transaction ID.
@@ -70,23 +69,12 @@ mod newtypes {
         /// A bitcoin block hash.
         pub struct BlockHash(sha256d::Hash);
 
-        /// A hash of a public key.
-        pub struct PubkeyHash(hash160::Hash);
-        /// A hash of Bitcoin Script bytecode.
-        pub struct ScriptHash(hash160::Hash);
-        /// SegWit version of a public key hash.
-        pub struct WPubkeyHash(hash160::Hash);
-        /// SegWit version of a Bitcoin Script bytecode hash.
-        pub struct WScriptHash(sha256::Hash);
-
         /// A hash of the Merkle tree branch or root for transactions
         pub struct TxMerkleNode(sha256d::Hash);
         /// A hash corresponding to the Merkle tree root for witness data
         pub struct WitnessMerkleNode(sha256d::Hash);
         /// A hash corresponding to the witness structure commitment in the coinbase transaction
         pub struct WitnessCommitment(sha256d::Hash);
-        /// XpubIdentifier as defined in BIP-32.
-        pub struct XpubIdentifier(hash160::Hash);
 
         /// Filter hash, as defined in BIP-157
         pub struct FilterHash(sha256d::Hash);
@@ -103,6 +91,4 @@ mod newtypes {
 
     impl_hashencode!(FilterHash);
     impl_hashencode!(FilterHeader);
-
-    impl_asref_push_bytes!(PubkeyHash, ScriptHash, WPubkeyHash, WScriptHash);
 }

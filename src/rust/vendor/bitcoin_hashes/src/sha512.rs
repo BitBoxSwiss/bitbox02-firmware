@@ -1,31 +1,14 @@
-// Bitcoin Hashes Library
-// Written in 2018 by
-//   Andrew Poelstra <apoelstra@wpsoftware.net>
-//
-// To the extent possible under law, the author(s) have dedicated all
-// copyright and related and neighboring rights to this software to
-// the public domain worldwide. This software is distributed without
-// any warranty.
-//
-// You should have received a copy of the CC0 Public Domain Dedication
-// along with this software.
-// If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
-//
-
-// This module is largely copied from the rust-crypto ripemd.rs file;
-// while rust-crypto is licensed under Apache, that file specifically
-// was written entirely by Andrew Poelstra, who is re-licensing its
-// contents here as CC0.
+// SPDX-License-Identifier: CC0-1.0
 
 //! SHA512 implementation.
 //!
 
-use core::{cmp, hash, str};
 use core::convert::TryInto;
 use core::ops::Index;
 use core::slice::SliceIndex;
+use core::{cmp, str};
 
-use crate::{Error, HashEngine as _};
+use crate::{FromSliceError, HashEngine as _};
 
 crate::internal_macros::hash_trait_impls!(512, false);
 
@@ -34,12 +17,13 @@ pub(crate) const BLOCK_SIZE: usize = 128;
 /// Engine to compute SHA512 hash function.
 #[derive(Clone)]
 pub struct HashEngine {
-    pub(crate) h: [u64; 8],
-    pub(crate) length: usize,
-    pub(crate) buffer: [u8; BLOCK_SIZE],
+    h: [u64; 8],
+    length: usize,
+    buffer: [u8; BLOCK_SIZE],
 }
 
 impl Default for HashEngine {
+    #[rustfmt::skip]
     fn default() -> Self {
         HashEngine {
             h: [
@@ -52,10 +36,25 @@ impl Default for HashEngine {
     }
 }
 
+impl HashEngine {
+    /// Constructs a hash engine suitable for use inside the default `sha512_256::HashEngine`.
+    #[rustfmt::skip]
+    pub(crate) fn sha512_256() -> Self {
+        HashEngine {
+            h: [
+                0x22312194fc2bf72c, 0x9f555fa3c84c64c2, 0x2393b86b6f53b151, 0x963877195940eabd,
+                0x96283ee2a88effe3, 0xbe5e1e2553863992, 0x2b0199fc2c85b8aa, 0x0eb72ddc81c52ca2,
+            ],
+            length: 0,
+            buffer: [0; BLOCK_SIZE],
+        }
+    }
+}
+
 impl crate::HashEngine for HashEngine {
     type MidState = [u8; 64];
 
-    #[cfg(not(fuzzing))]
+    #[cfg(not(hashes_fuzz))]
     fn midstate(&self) -> [u8; 64] {
         let mut ret = [0; 64];
         for (val, ret_bytes) in self.h.iter().zip(ret.chunks_exact_mut(8)) {
@@ -64,7 +63,7 @@ impl crate::HashEngine for HashEngine {
         ret
     }
 
-    #[cfg(fuzzing)]
+    #[cfg(hashes_fuzz)]
     fn midstate(&self) -> [u8; 64] {
         let mut ret = [0; 64];
         ret.copy_from_slice(&self.buffer[..64]);
@@ -73,74 +72,30 @@ impl crate::HashEngine for HashEngine {
 
     const BLOCK_SIZE: usize = 128;
 
-    fn n_bytes_hashed(&self) -> usize {
-        self.length
-    }
+    fn n_bytes_hashed(&self) -> usize { self.length }
 
     engine_input_impl!();
 }
 
 /// Output of the SHA512 hash function.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(transparent)]
 pub struct Hash(
-    #[cfg_attr(feature = "schemars", schemars(schema_with = "crate::util::json_hex_string::len_64"))]
-    [u8; 64]
+    #[cfg_attr(
+        feature = "schemars",
+        schemars(schema_with = "crate::util::json_hex_string::len_64")
+    )]
+    [u8; 64],
 );
 
 impl Hash {
-    fn internal_new(arr: [u8; 64]) -> Self {
-        Hash(arr)
-    }
+    fn internal_new(arr: [u8; 64]) -> Self { Hash(arr) }
 
-    fn internal_engine() -> HashEngine {
-        Default::default()
-    }
+    fn internal_engine() -> HashEngine { Default::default() }
 }
 
-impl Copy for Hash {}
-
-impl Clone for Hash {
-    fn clone(&self) -> Hash {
-        let mut ret = [0; 64];
-        ret.copy_from_slice(&self.0);
-        Hash(ret)
-    }
-}
-
-impl PartialEq for Hash {
-    fn eq(&self, other: &Hash) -> bool {
-        self.0[..] == other.0[..]
-    }
-}
-
-impl Eq for Hash {}
-
-impl Default for Hash {
-    fn default() -> Hash {
-        Hash([0; 64])
-    }
-}
-
-impl PartialOrd for Hash {
-    fn partial_cmp(&self, other: &Hash) -> Option<cmp::Ordering> {
-        self.0.partial_cmp(&other.0)
-    }
-}
-
-impl Ord for Hash {
-    fn cmp(&self, other: &Hash) -> cmp::Ordering {
-        self.0.cmp(&other.0)
-    }
-}
-
-impl hash::Hash for Hash {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        self.0.hash(state)
-    }
-}
-
-#[cfg(not(fuzzing))]
+#[cfg(not(hashes_fuzz))]
 pub(crate) fn from_engine(mut e: HashEngine) -> Hash {
     // pad buffer with a single 1-bit then all 0s, until there are exactly 16 bytes remaining
     let data_len = e.length as u64;
@@ -161,34 +116,79 @@ pub(crate) fn from_engine(mut e: HashEngine) -> Hash {
     Hash(e.midstate())
 }
 
-#[cfg(fuzzing)]
+#[cfg(hashes_fuzz)]
 pub(crate) fn from_engine(e: HashEngine) -> Hash {
     let mut hash = e.midstate();
     hash[0] ^= 0xff; // Make this distinct from SHA-256
     Hash(hash)
 }
 
-macro_rules! Ch( ($x:expr, $y:expr, $z:expr) => ($z ^ ($x & ($y ^ $z))) );
-macro_rules! Maj( ($x:expr, $y:expr, $z:expr) => (($x & $y) | ($z & ($x | $y))) );
-macro_rules! Sigma0( ($x:expr) => ($x.rotate_left(36) ^ $x.rotate_left(30) ^ $x.rotate_left(25)) );
-macro_rules! Sigma1( ($x:expr) => ($x.rotate_left(50) ^ $x.rotate_left(46) ^ $x.rotate_left(23)) );
-macro_rules! sigma0( ($x:expr) => ($x.rotate_left(63) ^ $x.rotate_left(56) ^ ($x >> 7)) );
-macro_rules! sigma1( ($x:expr) => ($x.rotate_left(45) ^ $x.rotate_left(3) ^ ($x >> 6)) );
+#[allow(non_snake_case)]
+fn Ch(x: u64, y: u64, z: u64) -> u64 { z ^ (x & (y ^ z)) }
+#[allow(non_snake_case)]
+fn Maj(x: u64, y: u64, z: u64) -> u64 { (x & y) | (z & (x | y)) }
+#[allow(non_snake_case)]
+fn Sigma0(x: u64) -> u64 { x.rotate_left(36) ^ x.rotate_left(30) ^ x.rotate_left(25) }
+#[allow(non_snake_case)]
+fn Sigma1(x: u64) -> u64 { x.rotate_left(50) ^ x.rotate_left(46) ^ x.rotate_left(23) }
+fn sigma0(x: u64) -> u64 { x.rotate_left(63) ^ x.rotate_left(56) ^ (x >> 7) }
+fn sigma1(x: u64) -> u64 { x.rotate_left(45) ^ x.rotate_left(3) ^ (x >> 6) }
 
-macro_rules! round(
-    // first round
-    ($a:expr, $b:expr, $c:expr, $d:expr, $e:expr, $f:expr, $g:expr, $h:expr, $k:expr, $w:expr) => (
-        let t1 = $h.wrapping_add(Sigma1!($e)).wrapping_add(Ch!($e, $f, $g)).wrapping_add($k).wrapping_add($w);
-        let t2 = Sigma0!($a).wrapping_add(Maj!($a, $b, $c));
-        $d = $d.wrapping_add(t1);
-        $h = t1.wrapping_add(t2);
+#[cfg(feature = "small-hash")]
+#[macro_use]
+mod small_hash {
+    use super::*;
+
+    #[rustfmt::skip]
+    pub(super) fn round(a: u64, b: u64, c: u64, d: &mut u64, e: u64,
+                        f: u64, g: u64, h: &mut u64, k: u64, w: u64,
+    ) {
+        let t1 =
+            h.wrapping_add(Sigma1(e)).wrapping_add(Ch(e, f, g)).wrapping_add(k).wrapping_add(w);
+        let t2 = Sigma0(a).wrapping_add(Maj(a, b, c));
+        *d = d.wrapping_add(t1);
+        *h = t1.wrapping_add(t2);
+    }
+    #[rustfmt::skip]
+    pub(super) fn later_round(a: u64, b: u64, c: u64, d: &mut u64, e: u64,
+                              f: u64, g: u64, h: &mut u64, k: u64, w: u64,
+                              w1: u64, w2: u64, w3: u64,
+    ) -> u64 {
+        let w = w.wrapping_add(sigma1(w1)).wrapping_add(w2).wrapping_add(sigma0(w3));
+        round(a, b, c, d, e, f, g, h, k, w);
+        w
+    }
+
+    macro_rules! round(
+        // first round
+        ($a:expr, $b:expr, $c:expr, $d:expr, $e:expr, $f:expr, $g:expr, $h:expr, $k:expr, $w:expr) => (
+            small_hash::round($a, $b, $c, &mut $d, $e, $f, $g, &mut $h, $k, $w)
+        );
+        // later rounds we reassign $w before doing the first-round computation
+        ($a:expr, $b:expr, $c:expr, $d:expr, $e:expr, $f:expr, $g:expr, $h:expr, $k:expr, $w:expr, $w1:expr, $w2:expr, $w3:expr) => (
+            $w = small_hash::later_round($a, $b, $c, &mut $d, $e, $f, $g, &mut $h, $k, $w, $w1, $w2, $w3)
+        )
     );
-    // later rounds we reassign $w before doing the first-round computation
-    ($a:expr, $b:expr, $c:expr, $d:expr, $e:expr, $f:expr, $g:expr, $h:expr, $k:expr, $w:expr, $w1:expr, $w2:expr, $w3:expr) => (
-        $w = $w.wrapping_add(sigma1!($w1)).wrapping_add($w2).wrapping_add(sigma0!($w3));
-        round!($a, $b, $c, $d, $e, $f, $g, $h, $k, $w);
-    )
-);
+}
+
+#[cfg(not(feature = "small-hash"))]
+#[macro_use]
+mod fast_hash {
+    macro_rules! round(
+        // first round
+        ($a:expr, $b:expr, $c:expr, $d:expr, $e:expr, $f:expr, $g:expr, $h:expr, $k:expr, $w:expr) => (
+            let t1 = $h.wrapping_add(Sigma1($e)).wrapping_add(Ch($e, $f, $g)).wrapping_add($k).wrapping_add($w);
+            let t2 = Sigma0($a).wrapping_add(Maj($a, $b, $c));
+            $d = $d.wrapping_add(t1);
+            $h = t1.wrapping_add(t2);
+        );
+        // later rounds we reassign $w before doing the first-round computation
+        ($a:expr, $b:expr, $c:expr, $d:expr, $e:expr, $f:expr, $g:expr, $h:expr, $k:expr, $w:expr, $w1:expr, $w2:expr, $w3:expr) => (
+            $w = $w.wrapping_add(sigma1($w1)).wrapping_add($w2).wrapping_add(sigma0($w3));
+            round!($a, $b, $c, $d, $e, $f, $g, $h, $k, $w);
+        )
+    );
+}
 
 impl HashEngine {
     // Algorithm copied from libsecp256k1
@@ -319,6 +319,7 @@ mod tests {
             output_str: &'static str,
         }
 
+        #[rustfmt::skip]
         let tests = vec![
             // Test vectors computed with `sha512sum`
             Test {
@@ -386,9 +387,11 @@ mod tests {
     #[cfg(feature = "serde")]
     #[test]
     fn sha512_serde() {
-        use serde_test::{Configure, Token, assert_tokens};
+        use serde_test::{assert_tokens, Configure, Token};
+
         use crate::{sha512, Hash};
 
+        #[rustfmt::skip]
         static HASH_BYTES: [u8; 64] = [
             0x8b, 0x41, 0xe1, 0xb7, 0x8a, 0xd1, 0x15, 0x21,
             0x11, 0x3c, 0x52, 0xff, 0x18, 0x2a, 0x1b, 0x8e,
@@ -406,7 +409,7 @@ mod tests {
             &hash.readable(),
             &[Token::Str(
                 "8b41e1b78ad11521113c52ff182a1b8e0a195754aa527fcd00a411620b46f20f\
-                 fffb8088ccf85497121ad4499e0845b876f6dd6640088a2f0b2d8a600bdf4c0c"
+                 fffb8088ccf85497121ad4499e0845b876f6dd6640088a2f0b2d8a600bdf4c0c",
             )],
         );
     }
@@ -416,13 +419,13 @@ mod tests {
 mod benches {
     use test::Bencher;
 
-    use crate::{Hash, HashEngine, sha512};
+    use crate::{sha512, Hash, HashEngine};
 
     #[bench]
     pub fn sha512_10(bh: &mut Bencher) {
         let mut engine = sha512::Hash::engine();
         let bytes = [1u8; 10];
-        bh.iter( || {
+        bh.iter(|| {
             engine.input(&bytes);
         });
         bh.bytes = bytes.len() as u64;
@@ -432,7 +435,7 @@ mod benches {
     pub fn sha512_1k(bh: &mut Bencher) {
         let mut engine = sha512::Hash::engine();
         let bytes = [1u8; 1024];
-        bh.iter( || {
+        bh.iter(|| {
             engine.input(&bytes);
         });
         bh.bytes = bytes.len() as u64;
@@ -442,10 +445,9 @@ mod benches {
     pub fn sha512_64k(bh: &mut Bencher) {
         let mut engine = sha512::Hash::engine();
         let bytes = [1u8; 65536];
-        bh.iter( || {
+        bh.iter(|| {
             engine.input(&bytes);
         });
         bh.bytes = bytes.len() as u64;
     }
-
 }

@@ -11,6 +11,8 @@ use core::fmt::{self, Write};
 use core::str::FromStr;
 use core::{default, ops};
 
+use crate::consensus::encode::{self, Decodable, Encodable};
+use crate::io;
 use crate::prelude::*;
 
 /// A set of denominations in which amounts can be expressed.
@@ -83,7 +85,29 @@ impl Denomination {
             Denomination::MilliSatoshi => "msat",
         }
     }
+
+    /// The different str forms of denominations that are recognized.
+    fn forms(s: &str) -> Option<Self> {
+        match s {
+            "BTC" | "btc" => Some(Denomination::Bitcoin),
+            "cBTC" | "cbtc" => Some(Denomination::CentiBitcoin),
+            "mBTC" | "mbtc" => Some(Denomination::MilliBitcoin),
+            "uBTC" | "ubtc" => Some(Denomination::MicroBitcoin),
+            "nBTC" | "nbtc" => Some(Denomination::NanoBitcoin),
+            "pBTC" | "pbtc" => Some(Denomination::PicoBitcoin),
+            "bit" | "bits" | "BIT" | "BITS" => Some(Denomination::Bit),
+            "SATOSHI" | "satoshi" | "SATOSHIS" | "satoshis" | "SAT" | "sat" | "SATS" | "sats" =>
+                Some(Denomination::Satoshi),
+            "mSAT" | "msat" | "mSATs" | "msats" => Some(Denomination::MilliSatoshi),
+            _ => None,
+        }
+    }
 }
+
+/// These form are ambigous and could have many meanings.  For example, M could denote Mega or Milli.
+/// If any of these forms are used, an error type PossiblyConfusingDenomination is returned.
+const CONFUSING_FORMS: [&str; 9] =
+    ["Msat", "Msats", "MSAT", "MSATS", "MSat", "MSats", "MBTC", "Mbtc", "PBTC"];
 
 impl fmt::Display for Denomination {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { f.write_str(self.as_str()) }
@@ -100,66 +124,16 @@ impl FromStr for Denomination {
     ///
     /// Due to ambiguity between mega and milli, pico and peta we prohibit usage of leading capital 'M', 'P'.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use self::Denomination as D;
         use self::ParseAmountError::*;
 
-        let starts_with_uppercase = || s.starts_with(char::is_uppercase);
-        match denomination_from_str(s) {
-            None => Err(UnknownDenomination(s.to_owned())),
-            Some(D::MilliBitcoin) | Some(D::PicoBitcoin) | Some(D::MilliSatoshi)
-                if starts_with_uppercase() =>
-                Err(PossiblyConfusingDenomination(s.to_owned())),
-            Some(D::NanoBitcoin) | Some(D::MicroBitcoin) if starts_with_uppercase() =>
-                Err(UnknownDenomination(s.to_owned())),
-            Some(d) => Ok(d),
-        }
-    }
-}
+        if CONFUSING_FORMS.contains(&s) {
+            return Err(PossiblyConfusingDenomination(s.to_owned()));
+        };
 
-fn denomination_from_str(mut s: &str) -> Option<Denomination> {
-    if s.eq_ignore_ascii_case("BTC") {
-        return Some(Denomination::Bitcoin);
-    }
+        let form = self::Denomination::forms(s);
 
-    if s.eq_ignore_ascii_case("cBTC") {
-        return Some(Denomination::CentiBitcoin);
+        form.ok_or_else(|| UnknownDenomination(s.to_owned()))
     }
-
-    if s.eq_ignore_ascii_case("mBTC") {
-        return Some(Denomination::MilliBitcoin);
-    }
-
-    if s.eq_ignore_ascii_case("uBTC") {
-        return Some(Denomination::MicroBitcoin);
-    }
-
-    if s.eq_ignore_ascii_case("nBTC") {
-        return Some(Denomination::NanoBitcoin);
-    }
-
-    if s.eq_ignore_ascii_case("pBTC") {
-        return Some(Denomination::PicoBitcoin);
-    }
-
-    if s.ends_with('s') || s.ends_with('S') {
-        s = &s[..(s.len() - 1)];
-    }
-
-    if s.eq_ignore_ascii_case("bit") {
-        return Some(Denomination::Bit);
-    }
-    if s.eq_ignore_ascii_case("satoshi") {
-        return Some(Denomination::Satoshi);
-    }
-    if s.eq_ignore_ascii_case("sat") {
-        return Some(Denomination::Satoshi);
-    }
-
-    if s.eq_ignore_ascii_case("msat") {
-        return Some(Denomination::MilliSatoshi);
-    }
-
-    None
 }
 
 /// An error during amount parsing.
@@ -186,16 +160,17 @@ pub enum ParseAmountError {
 
 impl fmt::Display for ParseAmountError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use ParseAmountError::*;
+
         match *self {
-            ParseAmountError::Negative => f.write_str("amount is negative"),
-            ParseAmountError::TooBig => f.write_str("amount is too big"),
-            ParseAmountError::TooPrecise => f.write_str("amount has a too high precision"),
-            ParseAmountError::InvalidFormat => f.write_str("invalid number format"),
-            ParseAmountError::InputTooLarge => f.write_str("input string was too large"),
-            ParseAmountError::InvalidCharacter(c) => write!(f, "invalid character in input: {}", c),
-            ParseAmountError::UnknownDenomination(ref d) =>
-                write!(f, "unknown denomination: {}", d),
-            ParseAmountError::PossiblyConfusingDenomination(ref d) => {
+            Negative => f.write_str("amount is negative"),
+            TooBig => f.write_str("amount is too big"),
+            TooPrecise => f.write_str("amount has a too high precision"),
+            InvalidFormat => f.write_str("invalid number format"),
+            InputTooLarge => f.write_str("input string was too large"),
+            InvalidCharacter(c) => write!(f, "invalid character in input: {}", c),
+            UnknownDenomination(ref d) => write!(f, "unknown denomination: {}", d),
+            PossiblyConfusingDenomination(ref d) => {
                 let (letter, upper, lower) = match d.chars().next() {
                     Some('M') => ('M', "Mega", "milli"),
                     Some('P') => ('P', "Peta", "pico"),
@@ -209,10 +184,9 @@ impl fmt::Display for ParseAmountError {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl std::error::Error for ParseAmountError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        use self::ParseAmountError::*;
+        use ParseAmountError::*;
 
         match *self {
             Negative
@@ -228,7 +202,13 @@ impl std::error::Error for ParseAmountError {
 }
 
 fn is_too_precise(s: &str, precision: usize) -> bool {
-    s.contains('.') || precision >= s.len() || s.chars().rev().take(precision).any(|d| d != '0')
+    match s.find('.') {
+        Some(pos) =>
+            s[(pos + 1)..].chars().any(|d| d != '0')
+                || precision >= pos
+                || s[..pos].chars().rev().take(precision).any(|d| d != '0'),
+        None => precision >= s.len() || s.chars().rev().take(precision).any(|d| d != '0'),
+    }
 }
 
 /// Parse decimal string in the given denomination into a satoshi value and a
@@ -256,7 +236,7 @@ fn parse_signed_to_satoshi(
         // The difference in precision between native (satoshi)
         // and desired denomination.
         let precision_diff = -denom.precision();
-        if precision_diff < 0 {
+        if precision_diff <= 0 {
             // If precision diff is negative, this means we are parsing
             // into a less precise amount. That is not allowed unless
             // there are no decimals and the last digits are zeroes as
@@ -264,11 +244,11 @@ fn parse_signed_to_satoshi(
             let last_n = unsigned_abs(precision_diff).into();
             if is_too_precise(s, last_n) {
                 match s.parse::<i64>() {
-                    Ok(v) if v == 0_i64 => return Ok((is_negative, 0)),
+                    Ok(0) => return Ok((is_negative, 0)),
                     _ => return Err(ParseAmountError::TooPrecise),
                 }
             }
-            s = &s[0..s.len() - last_n];
+            s = &s[0..s.find('.').unwrap_or(s.len()) - last_n];
             0
         } else {
             precision_diff
@@ -296,6 +276,7 @@ fn parse_signed_to_satoshi(
                 };
             }
             '.' => match decimals {
+                None if max_decimals <= 0 => break,
                 None => decimals = Some(0),
                 // Double decimal dot.
                 _ => return Err(ParseAmountError::InvalidFormat),
@@ -512,6 +493,8 @@ fn fmt_satoshi_in(
 /// the checked arithmetic methods.
 ///
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct Amount(u64);
 
 impl Amount {
@@ -520,9 +503,15 @@ impl Amount {
     /// Exactly one satoshi.
     pub const ONE_SAT: Amount = Amount(1);
     /// Exactly one bitcoin.
-    pub const ONE_BTC: Amount = Amount(100_000_000);
+    pub const ONE_BTC: Amount = Self::from_int_btc(1);
     /// The maximum value allowed as an amount. Useful for sanity checking.
-    pub const MAX_MONEY: Amount = Amount(21_000_000 * 100_000_000);
+    pub const MAX_MONEY: Amount = Self::from_int_btc(21_000_000);
+    /// The minimum value of an amount.
+    pub const MIN: Amount = Amount::ZERO;
+    /// The maximum value of an amount.
+    pub const MAX: Amount = Amount(u64::MAX);
+    /// The number of bytes that an amount contributes to the size of a transaction.
+    pub const SIZE: usize = 8; // Serialized length of a u64.
 
     /// Create an [Amount] with satoshi precision and the given number of satoshis.
     pub const fn from_sat(satoshi: u64) -> Amount { Amount(satoshi) }
@@ -531,14 +520,38 @@ impl Amount {
     pub fn to_sat(self) -> u64 { self.0 }
 
     /// The maximum value of an [Amount].
+    #[deprecated(since = "0.31.0", note = "Use Self::MAX instead")]
     pub const fn max_value() -> Amount { Amount(u64::max_value()) }
 
     /// The minimum value of an [Amount].
+    #[deprecated(since = "0.31.0", note = "Use Self::MIN instead")]
     pub const fn min_value() -> Amount { Amount(u64::min_value()) }
 
     /// Convert from a value expressing bitcoins to an [Amount].
     pub fn from_btc(btc: f64) -> Result<Amount, ParseAmountError> {
         Amount::from_float_in(btc, Denomination::Bitcoin)
+    }
+
+    /// Convert from a value expressing integer values of bitcoins to an [Amount]
+    /// in const context.
+    ///
+    /// ## Panics
+    ///
+    /// The function panics if the argument multiplied by the number of sats
+    /// per bitcoin overflows a u64 type.
+    pub const fn from_int_btc(btc: u64) -> Amount {
+        // TODO replace whith unwrap() when available in const context.
+        match btc.checked_mul(100_000_000) {
+            Some(amount) => Amount::from_sat(amount),
+            None => {
+                // TODO replace with panic!() when MSRV = 1.57+
+                #[allow(unconditional_panic)]
+                // disabling this lint until panic!() can be used.
+                #[allow(clippy::let_unit_value)]
+                let _int_overflow_converting_btc_to_sats = [(); 0][1];
+                Amount(0)
+            }
+        }
     }
 
     /// Parse a decimal string as a value in the given denomination.
@@ -550,7 +563,7 @@ impl Amount {
         if negative {
             return Err(ParseAmountError::Negative);
         }
-        if satoshi > i64::max_value() as u64 {
+        if satoshi > i64::MAX as u64 {
             return Err(ParseAmountError::TooBig);
         }
         Ok(Amount::from_sat(satoshi))
@@ -675,11 +688,25 @@ impl Amount {
 
     /// Convert to a signed amount.
     pub fn to_signed(self) -> Result<SignedAmount, ParseAmountError> {
-        if self.to_sat() > SignedAmount::max_value().to_sat() as u64 {
+        if self.to_sat() > SignedAmount::MAX.to_sat() as u64 {
             Err(ParseAmountError::TooBig)
         } else {
             Ok(SignedAmount::from_sat(self.to_sat() as i64))
         }
+    }
+}
+
+impl Decodable for Amount {
+    #[inline]
+    fn consensus_decode<R: io::Read + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
+        Ok(Amount(Decodable::consensus_decode(r)?))
+    }
+}
+
+impl Encodable for Amount {
+    #[inline]
+    fn consensus_encode<W: io::Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+        self.0.consensus_encode(w)
     }
 }
 
@@ -858,6 +885,10 @@ impl SignedAmount {
     pub const ONE_BTC: SignedAmount = SignedAmount(100_000_000);
     /// The maximum value allowed as an amount. Useful for sanity checking.
     pub const MAX_MONEY: SignedAmount = SignedAmount(21_000_000 * 100_000_000);
+    /// The minimum value of an amount.
+    pub const MIN: SignedAmount = SignedAmount(i64::MIN);
+    /// The maximum value of an amount.
+    pub const MAX: SignedAmount = SignedAmount(i64::MAX);
 
     /// Create an [SignedAmount] with satoshi precision and the given number of satoshis.
     pub const fn from_sat(satoshi: i64) -> SignedAmount { SignedAmount(satoshi) }
@@ -866,9 +897,11 @@ impl SignedAmount {
     pub fn to_sat(self) -> i64 { self.0 }
 
     /// The maximum value of an [SignedAmount].
+    #[deprecated(since = "0.31.0", note = "Use Self::MAX instead")]
     pub const fn max_value() -> SignedAmount { SignedAmount(i64::max_value()) }
 
     /// The minimum value of an [SignedAmount].
+    #[deprecated(since = "0.31.0", note = "Use Self::MIN instead")]
     pub const fn min_value() -> SignedAmount { SignedAmount(i64::min_value()) }
 
     /// Convert from a value expressing bitcoins to an [SignedAmount].
@@ -882,7 +915,7 @@ impl SignedAmount {
     /// with denomination, use [FromStr].
     pub fn from_str_in(s: &str, denom: Denomination) -> Result<SignedAmount, ParseAmountError> {
         let (negative, satoshi) = parse_signed_to_satoshi(s, denom)?;
-        if satoshi > i64::max_value() as u64 {
+        if satoshi > i64::MAX as u64 {
             return Err(ParseAmountError::TooBig);
         }
         Ok(match negative {
@@ -1001,7 +1034,7 @@ impl SignedAmount {
     pub fn is_negative(self) -> bool { self.0.is_negative() }
 
     /// Get the absolute value of this [SignedAmount].
-    /// Returns [None] if overflow occurred. (`self == min_value()`)
+    /// Returns [None] if overflow occurred. (`self == MIN`)
     pub fn checked_abs(self) -> Option<SignedAmount> { self.0.checked_abs().map(SignedAmount) }
 
     /// Checked addition.
@@ -1188,7 +1221,6 @@ mod private {
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 pub mod serde {
     // methods are implementation of a standardized serde-specific signature
     #![allow(missing_docs)]
@@ -1583,6 +1615,16 @@ mod tests {
     }
 
     #[test]
+    fn from_int_btc() {
+        let amt = Amount::from_int_btc(2);
+        assert_eq!(Amount::from_sat(200_000_000), amt);
+    }
+
+    #[should_panic]
+    #[test]
+    fn from_int_btc_panic() { Amount::from_int_btc(u64::MAX); }
+
+    #[test]
     fn mul_div() {
         let sat = Amount::from_sat;
         let ssat = SignedAmount::from_sat;
@@ -1605,7 +1647,7 @@ mod tests {
     #[test]
     fn test_overflows() {
         // panic on overflow
-        let result = panic::catch_unwind(|| Amount::max_value() + Amount::from_sat(1));
+        let result = panic::catch_unwind(|| Amount::MAX + Amount::from_sat(1));
         assert!(result.is_err());
         let result = panic::catch_unwind(|| Amount::from_sat(8446744073709551615) * 3);
         assert!(result.is_err());
@@ -1616,10 +1658,10 @@ mod tests {
         let sat = Amount::from_sat;
         let ssat = SignedAmount::from_sat;
 
-        assert_eq!(SignedAmount::max_value().checked_add(ssat(1)), None);
-        assert_eq!(SignedAmount::min_value().checked_sub(ssat(1)), None);
-        assert_eq!(Amount::max_value().checked_add(sat(1)), None);
-        assert_eq!(Amount::min_value().checked_sub(sat(1)), None);
+        assert_eq!(SignedAmount::MAX.checked_add(ssat(1)), None);
+        assert_eq!(SignedAmount::MIN.checked_sub(ssat(1)), None);
+        assert_eq!(Amount::MAX.checked_add(sat(1)), None);
+        assert_eq!(Amount::MIN.checked_sub(sat(1)), None);
 
         assert_eq!(sat(5).checked_div(2), Some(sat(2))); // integer division
         assert_eq!(ssat(-6).checked_div(2), Some(ssat(-3)));
@@ -1648,11 +1690,11 @@ mod tests {
         assert_eq!(sf(-184467440738.0, D::Bitcoin), Err(ParseAmountError::TooBig));
         assert_eq!(f(18446744073709551617.0, D::Satoshi), Err(ParseAmountError::TooBig));
         assert_eq!(
-            f(SignedAmount::max_value().to_float_in(D::Satoshi) + 1.0, D::Satoshi),
+            f(SignedAmount::MAX.to_float_in(D::Satoshi) + 1.0, D::Satoshi),
             Err(ParseAmountError::TooBig)
         );
         assert_eq!(
-            f(Amount::max_value().to_float_in(D::Satoshi) + 1.0, D::Satoshi),
+            f(Amount::MAX.to_float_in(D::Satoshi) + 1.0, D::Satoshi),
             Err(ParseAmountError::TooBig)
         );
 
@@ -1672,6 +1714,7 @@ mod tests {
         use super::ParseAmountError as E;
         let btc = Denomination::Bitcoin;
         let sat = Denomination::Satoshi;
+        let msat = Denomination::MilliSatoshi;
         let p = Amount::from_str_in;
         let sp = SignedAmount::from_str_in;
 
@@ -1681,9 +1724,18 @@ mod tests {
         assert_eq!(p("-1.0x", btc), Err(E::InvalidCharacter('x')));
         assert_eq!(p("0.0 ", btc), Err(ParseAmountError::InvalidCharacter(' ')));
         assert_eq!(p("0.000.000", btc), Err(E::InvalidFormat));
-        let more_than_max = format!("1{}", Amount::max_value());
+        let more_than_max = format!("1{}", Amount::MAX);
         assert_eq!(p(&more_than_max, btc), Err(E::TooBig));
         assert_eq!(p("0.000000042", btc), Err(E::TooPrecise));
+        assert_eq!(p("999.0000000", msat), Err(E::TooPrecise));
+        assert_eq!(p("1.0000000", msat), Err(E::TooPrecise));
+        assert_eq!(p("1.1", msat), Err(E::TooPrecise));
+        assert_eq!(p("1000.1", msat), Err(E::TooPrecise));
+        assert_eq!(p("1001.0000000", msat), Err(E::TooPrecise));
+        assert_eq!(p("1000.0000001", msat), Err(E::TooPrecise));
+        assert_eq!(p("1000.1000000", msat), Err(E::TooPrecise));
+        assert_eq!(p("1100.0000000", msat), Err(E::TooPrecise));
+        assert_eq!(p("10001.0000000", msat), Err(E::TooPrecise));
 
         assert_eq!(p("1", btc), Ok(Amount::from_sat(1_000_000_00)));
         assert_eq!(sp("-.5", btc), Ok(SignedAmount::from_sat(-500_000_00)));
@@ -1697,9 +1749,11 @@ mod tests {
             p("12345678901.12345678", btc),
             Ok(Amount::from_sat(12_345_678_901__123_456_78))
         );
+        assert_eq!(p("1000.0", msat), Ok(Amount::from_sat(1)));
+        assert_eq!(p("1000.000000000000000000000000000", msat), Ok(Amount::from_sat(1)));
 
-        // make sure satoshi > i64::max_value() is checked.
-        let amount = Amount::from_sat(i64::max_value() as u64);
+        // make sure satoshi > i64::MAX is checked.
+        let amount = Amount::from_sat(i64::MAX as u64);
         assert_eq!(Amount::from_str_in(&amount.to_string_in(sat), sat), Ok(amount));
         assert_eq!(
             Amount::from_str_in(&(amount + Amount(1)).to_string_in(sat), sat),
@@ -1930,16 +1984,13 @@ mod tests {
         let sa = SignedAmount::from_sat;
         let ua = Amount::from_sat;
 
-        assert_eq!(Amount::max_value().to_signed(), Err(E::TooBig));
-        assert_eq!(ua(i64::max_value() as u64).to_signed(), Ok(sa(i64::max_value())));
-        assert_eq!(ua(i64::max_value() as u64 + 1).to_signed(), Err(E::TooBig));
+        assert_eq!(Amount::MAX.to_signed(), Err(E::TooBig));
+        assert_eq!(ua(i64::MAX as u64).to_signed(), Ok(sa(i64::MAX)));
+        assert_eq!(ua(i64::MAX as u64 + 1).to_signed(), Err(E::TooBig));
 
-        assert_eq!(sa(i64::max_value()).to_unsigned(), Ok(ua(i64::max_value() as u64)));
+        assert_eq!(sa(i64::MAX).to_unsigned(), Ok(ua(i64::MAX as u64)));
 
-        assert_eq!(
-            sa(i64::max_value()).to_unsigned().unwrap().to_signed(),
-            Ok(sa(i64::max_value()))
-        );
+        assert_eq!(sa(i64::MAX).to_unsigned().unwrap().to_signed(), Ok(sa(i64::MAX)));
     }
 
     #[test]
@@ -1953,13 +2004,13 @@ mod tests {
         assert_eq!(Amount::from_str("5BTC BTC"), Err(E::InvalidCharacter('B')));
         assert_eq!(Amount::from_str("5 5 BTC"), Err(E::UnknownDenomination("5 BTC".into())));
 
-        #[cfg_attr(rust_v_1_46, track_caller)]
+        #[track_caller]
         fn case(s: &str, expected: Result<Amount, ParseAmountError>) {
             assert_eq!(Amount::from_str(s), expected);
             assert_eq!(Amount::from_str(&s.replace(' ', "")), expected);
         }
 
-        #[cfg_attr(rust_v_1_46, track_caller)]
+        #[track_caller]
         fn scase(s: &str, expected: Result<SignedAmount, ParseAmountError>) {
             assert_eq!(SignedAmount::from_str(s), expected);
             assert_eq!(SignedAmount::from_str(&s.replace(' ', "")), expected);
@@ -2027,7 +2078,7 @@ mod tests {
             Ok(ua_sat(1_000_000_000_000))
         );
         assert_eq!(
-            ua_str(&ua_sat(u64::max_value()).to_string_in(D::MilliBitcoin), D::MilliBitcoin),
+            ua_str(&ua_sat(u64::MAX).to_string_in(D::MilliBitcoin), D::MilliBitcoin),
             Err(ParseAmountError::TooBig)
         );
 
@@ -2037,12 +2088,12 @@ mod tests {
         );
 
         assert_eq!(
-            sa_str(&sa_sat(i64::max_value()).to_string_in(D::Satoshi), D::MicroBitcoin),
+            sa_str(&sa_sat(i64::MAX).to_string_in(D::Satoshi), D::MicroBitcoin),
             Err(ParseAmountError::TooBig)
         );
         // Test an overflow bug in `abs()`
         assert_eq!(
-            sa_str(&sa_sat(i64::min_value()).to_string_in(D::Satoshi), D::MicroBitcoin),
+            sa_str(&sa_sat(i64::MIN).to_string_in(D::Satoshi), D::MicroBitcoin),
             Err(ParseAmountError::TooBig)
         );
 
@@ -2051,11 +2102,11 @@ mod tests {
             Ok(sa_sat(-1))
         );
         assert_eq!(
-            sa_str(&sa_sat(i64::max_value()).to_string_in(D::Satoshi), D::NanoBitcoin),
+            sa_str(&sa_sat(i64::MAX).to_string_in(D::Satoshi), D::NanoBitcoin),
             Err(ParseAmountError::TooPrecise)
         );
         assert_eq!(
-            sa_str(&sa_sat(i64::min_value()).to_string_in(D::Satoshi), D::NanoBitcoin),
+            sa_str(&sa_sat(i64::MIN).to_string_in(D::Satoshi), D::NanoBitcoin),
             Err(ParseAmountError::TooPrecise)
         );
 
@@ -2064,11 +2115,11 @@ mod tests {
             Ok(sa_sat(-1))
         );
         assert_eq!(
-            sa_str(&sa_sat(i64::max_value()).to_string_in(D::Satoshi), D::PicoBitcoin),
+            sa_str(&sa_sat(i64::MAX).to_string_in(D::Satoshi), D::PicoBitcoin),
             Err(ParseAmountError::TooPrecise)
         );
         assert_eq!(
-            sa_str(&sa_sat(i64::min_value()).to_string_in(D::Satoshi), D::PicoBitcoin),
+            sa_str(&sa_sat(i64::MIN).to_string_in(D::Satoshi), D::PicoBitcoin),
             Err(ParseAmountError::TooPrecise)
         );
     }
@@ -2270,12 +2321,12 @@ mod tests {
         assert_eq!(Some(Amount::from_sat(1400)), sum);
 
         let amounts =
-            vec![Amount::from_sat(u64::max_value()), Amount::from_sat(1337), Amount::from_sat(21)];
+            vec![Amount::from_sat(u64::MAX), Amount::from_sat(1337), Amount::from_sat(21)];
         let sum = amounts.into_iter().checked_sum();
         assert_eq!(None, sum);
 
         let amounts = vec![
-            SignedAmount::from_sat(i64::min_value()),
+            SignedAmount::from_sat(i64::MIN),
             SignedAmount::from_sat(-1),
             SignedAmount::from_sat(21),
         ];
@@ -2283,7 +2334,7 @@ mod tests {
         assert_eq!(None, sum);
 
         let amounts = vec![
-            SignedAmount::from_sat(i64::max_value()),
+            SignedAmount::from_sat(i64::MAX),
             SignedAmount::from_sat(1),
             SignedAmount::from_sat(21),
         ];
@@ -2303,8 +2354,8 @@ mod tests {
     fn denomination_string_acceptable_forms() {
         // Non-exhaustive list of valid forms.
         let valid = vec![
-            "BTC", "btc", "mBTC", "mbtc", "uBTC", "ubtc", "SATOSHI", "Satoshi", "Satoshis",
-            "satoshis", "SAT", "Sat", "sats", "bit", "bits", "nBTC", "pBTC",
+            "BTC", "btc", "mBTC", "mbtc", "uBTC", "ubtc", "SATOSHI", "satoshi", "SATOSHIS",
+            "satoshis", "SAT", "sat", "SATS", "sats", "bit", "bits", "nBTC", "pBTC",
         ];
         for denom in valid.iter() {
             assert!(Denomination::from_str(denom).is_ok());
@@ -2313,9 +2364,7 @@ mod tests {
 
     #[test]
     fn disallow_confusing_forms() {
-        // Non-exhaustive list of confusing forms.
-        let confusing =
-            vec!["Msat", "Msats", "MSAT", "MSATS", "MSat", "MSats", "MBTC", "Mbtc", "PBTC"];
+        let confusing = ["Msat", "Msats", "MSAT", "MSATS", "MSat", "MSats", "MBTC", "Mbtc", "PBTC"];
         for denom in confusing.iter() {
             match Denomination::from_str(denom) {
                 Ok(_) => panic!("from_str should error for {}", denom),
@@ -2328,7 +2377,7 @@ mod tests {
     #[test]
     fn disallow_unknown_denomination() {
         // Non-exhaustive list of unknown forms.
-        let unknown = vec!["NBTC", "UBTC", "ABC", "abc"];
+        let unknown = ["NBTC", "UBTC", "ABC", "abc", "cBtC", "Sat", "Sats"];
         for denom in unknown.iter() {
             match Denomination::from_str(denom) {
                 Ok(_) => panic!("from_str should error for {}", denom),

@@ -25,7 +25,7 @@
 //! thresholds) of signature requirements, hash preimage requirements, and
 //! timelocks.
 //!
-//! A [full description of Miniscript is available here](http://bitcoin.sipa.be/miniscript/miniscript.html).
+//! A [full description of Miniscript is available here](https://bitcoin.sipa.be/miniscript).
 //!
 //! Miniscript also admits a more human-readable encoding.
 //!
@@ -74,7 +74,8 @@
 //!
 
 #![cfg_attr(all(not(feature = "std"), not(test)), no_std)]
-#![cfg_attr(all(test, feature = "unstable"), feature(test))]
+// Experimental features we need.
+#![cfg_attr(bench, feature(test))]
 // Coding conventions
 #![deny(unsafe_code)]
 #![deny(non_upper_case_globals)]
@@ -84,6 +85,8 @@
 #![deny(dead_code)]
 #![deny(unused_imports)]
 #![deny(missing_docs)]
+// Clippy lints that we have disabled
+#![allow(clippy::iter_kv_map)] // https://github.com/rust-lang/rust-clippy/issues/11752
 
 #[cfg(target_pointer_width = "16")]
 compile_error!(
@@ -99,15 +102,13 @@ pub use bitcoin;
 #[macro_use]
 extern crate alloc;
 
-#[cfg(not(feature = "std"))]
-extern crate hashbrown;
-
 #[cfg(any(feature = "std", test))]
 extern crate core;
 
 #[cfg(feature = "serde")]
 pub use actual_serde as serde;
-#[cfg(all(test, feature = "unstable"))]
+
+#[cfg(bench)]
 extern crate test;
 
 #[macro_use]
@@ -117,12 +118,13 @@ mod macros;
 mod pub_macros;
 
 use internals::hex::exts::DisplayHex;
-pub use pub_macros::*;
 
 pub mod descriptor;
 pub mod expression;
 pub mod interpreter;
+pub mod iter;
 pub mod miniscript;
+pub mod plan;
 pub mod policy;
 pub mod psbt;
 
@@ -134,9 +136,9 @@ use core::{cmp, fmt, hash, str};
 #[cfg(feature = "std")]
 use std::error;
 
-use bitcoin::blockdata::{opcodes, script};
 use bitcoin::hashes::{hash160, ripemd160, sha256, Hash};
 use bitcoin::locktime::absolute;
+use bitcoin::{script, Opcode};
 
 pub use crate::descriptor::{DefiniteDescriptorKey, Descriptor, DescriptorPublicKey};
 pub use crate::interpreter::Interpreter;
@@ -150,20 +152,16 @@ use crate::prelude::*;
 ///Public key trait which can be converted to Hash type
 pub trait MiniscriptKey: Clone + Eq + Ord + fmt::Debug + fmt::Display + hash::Hash {
     /// Returns true if the pubkey is uncompressed. Defaults to `false`.
-    fn is_uncompressed(&self) -> bool {
-        false
-    }
+    fn is_uncompressed(&self) -> bool { false }
 
     /// Returns true if the pubkey is an x-only pubkey. Defaults to `false`.
     // This is required to know what in DescriptorPublicKey to know whether the inner
     // key in allowed in descriptor context
-    fn is_x_only_key(&self) -> bool {
-        false
-    }
+    fn is_x_only_key(&self) -> bool { false }
 
     /// Returns the number of different derivation paths in this key. Only >1 for keys
     /// in BIP389 multipath descriptors.
-    fn num_der_paths(&self) -> usize;
+    fn num_der_paths(&self) -> usize { 0 }
 
     /// The associated [`bitcoin::hashes::sha256::Hash`] for this [`MiniscriptKey`], used in the
     /// sha256 fragment.
@@ -187,21 +185,11 @@ impl MiniscriptKey for bitcoin::secp256k1::PublicKey {
     type Hash256 = hash256::Hash;
     type Ripemd160 = ripemd160::Hash;
     type Hash160 = hash160::Hash;
-
-    fn num_der_paths(&self) -> usize {
-        0
-    }
 }
 
 impl MiniscriptKey for bitcoin::PublicKey {
     /// Returns the compressed-ness of the underlying secp256k1 key.
-    fn is_uncompressed(&self) -> bool {
-        !self.compressed
-    }
-
-    fn num_der_paths(&self) -> usize {
-        0
-    }
+    fn is_uncompressed(&self) -> bool { !self.compressed }
 
     type Sha256 = sha256::Hash;
     type Hash256 = hash256::Hash;
@@ -215,13 +203,7 @@ impl MiniscriptKey for bitcoin::secp256k1::XOnlyPublicKey {
     type Ripemd160 = ripemd160::Hash;
     type Hash160 = hash160::Hash;
 
-    fn is_x_only_key(&self) -> bool {
-        true
-    }
-
-    fn num_der_paths(&self) -> usize {
-        0
-    }
+    fn is_x_only_key(&self) -> bool { true }
 }
 
 impl MiniscriptKey for String {
@@ -229,10 +211,6 @@ impl MiniscriptKey for String {
     type Hash256 = String;
     type Ripemd160 = String;
     type Hash160 = String;
-
-    fn num_der_paths(&self) -> usize {
-        0
-    }
 }
 
 /// Trait describing public key types which can be converted to bitcoin pubkeys
@@ -271,47 +249,27 @@ pub trait ToPublicKey: MiniscriptKey {
 }
 
 impl ToPublicKey for bitcoin::PublicKey {
-    fn to_public_key(&self) -> bitcoin::PublicKey {
-        *self
-    }
+    fn to_public_key(&self) -> bitcoin::PublicKey { *self }
 
-    fn to_sha256(hash: &sha256::Hash) -> sha256::Hash {
-        *hash
-    }
+    fn to_sha256(hash: &sha256::Hash) -> sha256::Hash { *hash }
 
-    fn to_hash256(hash: &hash256::Hash) -> hash256::Hash {
-        *hash
-    }
+    fn to_hash256(hash: &hash256::Hash) -> hash256::Hash { *hash }
 
-    fn to_ripemd160(hash: &ripemd160::Hash) -> ripemd160::Hash {
-        *hash
-    }
+    fn to_ripemd160(hash: &ripemd160::Hash) -> ripemd160::Hash { *hash }
 
-    fn to_hash160(hash: &hash160::Hash) -> hash160::Hash {
-        *hash
-    }
+    fn to_hash160(hash: &hash160::Hash) -> hash160::Hash { *hash }
 }
 
 impl ToPublicKey for bitcoin::secp256k1::PublicKey {
-    fn to_public_key(&self) -> bitcoin::PublicKey {
-        bitcoin::PublicKey::new(*self)
-    }
+    fn to_public_key(&self) -> bitcoin::PublicKey { bitcoin::PublicKey::new(*self) }
 
-    fn to_sha256(hash: &sha256::Hash) -> sha256::Hash {
-        *hash
-    }
+    fn to_sha256(hash: &sha256::Hash) -> sha256::Hash { *hash }
 
-    fn to_hash256(hash: &hash256::Hash) -> hash256::Hash {
-        *hash
-    }
+    fn to_hash256(hash: &hash256::Hash) -> hash256::Hash { *hash }
 
-    fn to_ripemd160(hash: &ripemd160::Hash) -> ripemd160::Hash {
-        *hash
-    }
+    fn to_ripemd160(hash: &ripemd160::Hash) -> ripemd160::Hash { *hash }
 
-    fn to_hash160(hash: &hash160::Hash) -> hash160::Hash {
-        *hash
-    }
+    fn to_hash160(hash: &hash160::Hash) -> hash160::Hash { *hash }
 }
 
 impl ToPublicKey for bitcoin::secp256k1::XOnlyPublicKey {
@@ -324,25 +282,15 @@ impl ToPublicKey for bitcoin::secp256k1::XOnlyPublicKey {
             .expect("Failed to construct 33 Publickey from 0x02 appended x-only key")
     }
 
-    fn to_x_only_pubkey(&self) -> bitcoin::secp256k1::XOnlyPublicKey {
-        *self
-    }
+    fn to_x_only_pubkey(&self) -> bitcoin::secp256k1::XOnlyPublicKey { *self }
 
-    fn to_sha256(hash: &sha256::Hash) -> sha256::Hash {
-        *hash
-    }
+    fn to_sha256(hash: &sha256::Hash) -> sha256::Hash { *hash }
 
-    fn to_hash256(hash: &hash256::Hash) -> hash256::Hash {
-        *hash
-    }
+    fn to_hash256(hash: &hash256::Hash) -> hash256::Hash { *hash }
 
-    fn to_ripemd160(hash: &ripemd160::Hash) -> ripemd160::Hash {
-        *hash
-    }
+    fn to_ripemd160(hash: &ripemd160::Hash) -> ripemd160::Hash { *hash }
 
-    fn to_hash160(hash: &hash160::Hash) -> hash160::Hash {
-        *hash
-    }
+    fn to_hash160(hash: &hash160::Hash) -> hash160::Hash { *hash }
 }
 
 /// Describes an object that can translate various keys and hashes from one key to the type
@@ -404,9 +352,7 @@ impl<E> TranslateErr<E> {
 }
 
 impl<E> From<E> for TranslateErr<E> {
-    fn from(v: E) -> Self {
-        Self::TranslatorErr(v)
-    }
+    fn from(v: E) -> Self { Self::TranslatorErr(v) }
 }
 
 // Required for unwrap
@@ -469,7 +415,7 @@ pub trait ForEachKey<Pk: MiniscriptKey> {
 #[derive(Debug, PartialEq)]
 pub enum Error {
     /// Opcode appeared which is not part of the script subset
-    InvalidOpcode(opcodes::All),
+    InvalidOpcode(Opcode),
     /// Some opcode occurred followed by `OP_VERIFY` when it had
     /// a `VERIFY` version that should have been used instead
     NonMinimalVerify(String),
@@ -481,8 +427,8 @@ pub enum Error {
     AddrError(bitcoin::address::Error),
     /// A `CHECKMULTISIG` opcode was preceded by a number > 20
     CmsTooManyKeys(u32),
-    /// A tapscript multi_a cannot support more than MAX_BLOCK_WEIGHT/32 keys
-    MultiATooManyKeys(u32),
+    /// A tapscript multi_a cannot support more than Weight::MAX_BLOCK/32 keys
+    MultiATooManyKeys(u64),
     /// Encountered unprintable character in descriptor
     Unprintable(u8),
     /// expected character while parsing descriptor; didn't find one
@@ -695,64 +641,46 @@ where
     Pk: MiniscriptKey,
     Ctx: ScriptContext,
 {
-    fn from(e: miniscript::types::Error<Pk, Ctx>) -> Error {
-        Error::TypeCheck(e.to_string())
-    }
+    fn from(e: miniscript::types::Error<Pk, Ctx>) -> Error { Error::TypeCheck(e.to_string()) }
 }
 
 #[doc(hidden)]
 impl From<policy::LiftError> for Error {
-    fn from(e: policy::LiftError) -> Error {
-        Error::LiftError(e)
-    }
+    fn from(e: policy::LiftError) -> Error { Error::LiftError(e) }
 }
 
 #[doc(hidden)]
 impl From<miniscript::context::ScriptContextError> for Error {
-    fn from(e: miniscript::context::ScriptContextError) -> Error {
-        Error::ContextError(e)
-    }
+    fn from(e: miniscript::context::ScriptContextError) -> Error { Error::ContextError(e) }
 }
 
 #[doc(hidden)]
 impl From<miniscript::analyzable::AnalysisError> for Error {
-    fn from(e: miniscript::analyzable::AnalysisError) -> Error {
-        Error::AnalysisError(e)
-    }
+    fn from(e: miniscript::analyzable::AnalysisError) -> Error { Error::AnalysisError(e) }
 }
 
 #[doc(hidden)]
 impl From<bitcoin::secp256k1::Error> for Error {
-    fn from(e: bitcoin::secp256k1::Error) -> Error {
-        Error::Secp(e)
-    }
+    fn from(e: bitcoin::secp256k1::Error) -> Error { Error::Secp(e) }
 }
 
 #[doc(hidden)]
 impl From<bitcoin::address::Error> for Error {
-    fn from(e: bitcoin::address::Error) -> Error {
-        Error::AddrError(e)
-    }
+    fn from(e: bitcoin::address::Error) -> Error { Error::AddrError(e) }
 }
 
 #[doc(hidden)]
 #[cfg(feature = "compiler")]
 impl From<crate::policy::compiler::CompilerError> for Error {
-    fn from(e: crate::policy::compiler::CompilerError) -> Error {
-        Error::CompilerError(e)
-    }
+    fn from(e: crate::policy::compiler::CompilerError) -> Error { Error::CompilerError(e) }
 }
 
 #[doc(hidden)]
 impl From<policy::concrete::PolicyError> for Error {
-    fn from(e: policy::concrete::PolicyError) -> Error {
-        Error::PolicyError(e)
-    }
+    fn from(e: policy::concrete::PolicyError) -> Error { Error::PolicyError(e) }
 }
 
-fn errstr(s: &str) -> Error {
-    Error::Unexpected(s.to_owned())
-}
+fn errstr(s: &str) -> Error { Error::Unexpected(s.to_owned()) }
 
 /// The size of an encoding of a number in Script
 pub fn script_num_size(n: usize) -> usize {
@@ -796,43 +724,31 @@ pub struct AbsLockTime(absolute::LockTime);
 
 impl AbsLockTime {
     /// Constructs an `AbsLockTime` from an nLockTime value or the argument to OP_CHEKCLOCKTIMEVERIFY.
-    pub fn from_consensus(n: u32) -> Self {
-        Self(absolute::LockTime::from_consensus(n))
-    }
+    pub fn from_consensus(n: u32) -> Self { Self(absolute::LockTime::from_consensus(n)) }
 
     /// Returns the inner `u32` value. This is the value used when creating this `LockTime`
     /// i.e., `n OP_CHECKLOCKTIMEVERIFY` or nLockTime.
     ///
     /// This calls through to `absolute::LockTime::to_consensus_u32()` and the same usage warnings
     /// apply.
-    pub fn to_consensus_u32(self) -> u32 {
-        self.0.to_consensus_u32()
-    }
+    pub fn to_consensus_u32(self) -> u32 { self.0.to_consensus_u32() }
 
     /// Returns the inner `u32` value.
     ///
     /// Equivalent to `AbsLockTime::to_consensus_u32()`.
-    pub fn to_u32(self) -> u32 {
-        self.to_consensus_u32()
-    }
+    pub fn to_u32(self) -> u32 { self.to_consensus_u32() }
 }
 
 impl From<absolute::LockTime> for AbsLockTime {
-    fn from(lock_time: absolute::LockTime) -> Self {
-        Self(lock_time)
-    }
+    fn from(lock_time: absolute::LockTime) -> Self { Self(lock_time) }
 }
 
 impl From<AbsLockTime> for absolute::LockTime {
-    fn from(lock_time: AbsLockTime) -> absolute::LockTime {
-        lock_time.0
-    }
+    fn from(lock_time: AbsLockTime) -> absolute::LockTime { lock_time.0 }
 }
 
 impl cmp::PartialOrd for AbsLockTime {
-    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        Some(self.cmp(other))
-    }
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> { Some(self.cmp(other)) }
 }
 
 impl cmp::Ord for AbsLockTime {
@@ -844,9 +760,7 @@ impl cmp::Ord for AbsLockTime {
 }
 
 impl fmt::Display for AbsLockTime {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(&self.0, f)
-    }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { fmt::Display::fmt(&self.0, f) }
 }
 
 #[cfg(test)]
@@ -899,6 +813,7 @@ mod tests {
     }
 }
 
+#[allow(unused_imports)] // this is an internal prelude module; not all imports are used with every feature combination
 mod prelude {
     // Mutex implementation from LDK
     // https://github.com/lightningdevkit/rust-lightning/blob/9bdce47f0e0516e37c89c09f1975dfc06b5870b1/lightning-invoice/src/sync.rs
@@ -924,28 +839,18 @@ mod prelude {
         impl<T: ?Sized> Deref for MutexGuard<'_, T> {
             type Target = T;
 
-            fn deref(&self) -> &T {
-                &self.lock.deref()
-            }
+            fn deref(&self) -> &T { &self.lock.deref() }
         }
 
         impl<T: ?Sized> DerefMut for MutexGuard<'_, T> {
-            fn deref_mut(&mut self) -> &mut T {
-                self.lock.deref_mut()
-            }
+            fn deref_mut(&mut self) -> &mut T { self.lock.deref_mut() }
         }
 
         impl<T> Mutex<T> {
-            pub fn new(inner: T) -> Mutex<T> {
-                Mutex {
-                    inner: RefCell::new(inner),
-                }
-            }
+            pub fn new(inner: T) -> Mutex<T> { Mutex { inner: RefCell::new(inner) } }
 
             pub fn lock<'a>(&'a self) -> LockResult<MutexGuard<'a, T>> {
-                Ok(MutexGuard {
-                    lock: self.inner.borrow_mut(),
-                })
+                Ok(MutexGuard { lock: self.inner.borrow_mut() })
             }
         }
     }
@@ -971,9 +876,6 @@ mod prelude {
         sync::Mutex,
         vec::Vec,
     };
-
-    #[cfg(all(not(feature = "std"), not(test)))]
-    pub use hashbrown::{HashMap, HashSet};
 
     #[cfg(all(not(feature = "std"), not(test)))]
     pub use self::mutex::Mutex;

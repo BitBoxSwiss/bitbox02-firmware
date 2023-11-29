@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "secp256k1"
-version = "0.27.0"
+version = "0.28.0"
 authors = [
     "Dawid Ciężarkiewicz <dpc@ucore.info>",
     "Andrew Poelstra <apoelstra@wpsoftware.net>",
@@ -32,14 +32,7 @@ license = "CC0-1.0"
 repository = "https://github.com/rust-bitcoin/rust-secp256k1/"
 
 [package.metadata.docs.rs]
-features = [
-    "rand",
-    "rand-std",
-    "serde",
-    "bitcoin_hashes",
-    "recovery",
-    "global-context",
-]
+all-features = true
 rustdoc-args = [
     "--cfg",
     "docsrs",
@@ -49,21 +42,22 @@ rustdoc-args = [
 name = "sign_verify_recovery"
 required-features = [
     "recovery",
-    "bitcoin-hashes-std",
+    "hashes-std",
 ]
 
 [[example]]
 name = "sign_verify"
-required-features = ["bitcoin-hashes-std"]
+required-features = ["hashes-std"]
 
 [[example]]
 name = "generate_keys"
 required-features = ["rand-std"]
 
-[dependencies.bitcoin_hashes]
-version = "0.12"
+[dependencies.hashes]
+version = ">= 0.12, <= 0.13"
 optional = true
 default-features = false
+package = "bitcoin_hashes"
 
 [dependencies.rand]
 version = "0.8"
@@ -71,11 +65,11 @@ optional = true
 default-features = false
 
 [dependencies.secp256k1-sys]
-version = "0.8.1"
+version = "0.9.0"
 default-features = false
 
 [dependencies.serde]
-version = "1.0"
+version = "1.0.103"
 optional = true
 default-features = false
 
@@ -85,20 +79,21 @@ version = "1.3.3"
 [dev-dependencies.rand_core]
 version = "0.6"
 
+[dev-dependencies.serde_cbor]
+version = "0.10.0"
+
 [dev-dependencies.serde_test]
-version = "1.0"
+version = "1.0.19"
 
 [features]
 alloc = ["secp256k1-sys/alloc"]
-bitcoin-hashes = ["bitcoin_hashes"]
-bitcoin-hashes-std = [
-    "std",
-    "bitcoin_hashes",
-    "bitcoin_hashes/std",
-]
 default = ["std"]
 global-context = ["std"]
 global-context-less-secure = ["global-context"]
+hashes-std = [
+    "std",
+    "hashes/std",
+]
 lowmemory = ["secp256k1-sys/lowmemory"]
 rand-std = [
     "std",
@@ -111,9 +106,6 @@ std = [
     "alloc",
     "secp256k1-sys/std",
 ]
-
-[target."cfg(target_arch = \"x86_64\")".dev-dependencies.cbor]
-version = "0.4.1"
 
 [target.wasm32-unknown-unknown.dev-dependencies.getrandom]
 version = "0.2"

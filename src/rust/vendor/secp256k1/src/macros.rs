@@ -1,47 +1,9 @@
-// Bitcoin secp256k1 bindings
-// Written in 2014 by
-//   Dawid Ciężarkiewicz
-//   Andrew Poelstra
-//
-// To the extent possible under law, the author(s) have dedicated all
-// copyright and related and neighboring rights to this software to
-// the public domain worldwide. This software is distributed without
-// any warranty.
-//
-// You should have received a copy of the CC0 Public Domain Dedication
-// along with this software.
-// If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
-//
+// SPDX-License-Identifier: CC0-1.0
 
 /// Implement methods and traits for types that contain an inner array.
 #[macro_export]
 macro_rules! impl_array_newtype {
     ($thing:ident, $ty:ty, $len:expr) => {
-        // We cannot derive these traits because Rust 1.41.1 requires `std::array::LengthAtMost32`.
-
-        impl PartialEq for $thing {
-            #[inline]
-            fn eq(&self, other: &$thing) -> bool { &self[..] == &other[..] }
-        }
-
-        impl Eq for $thing {}
-
-        impl core::hash::Hash for $thing {
-            fn hash<H: core::hash::Hasher>(&self, state: &mut H) { (&self[..]).hash(state) }
-        }
-
-        impl PartialOrd for $thing {
-            #[inline]
-            fn partial_cmp(&self, other: &$thing) -> Option<core::cmp::Ordering> {
-                self[..].partial_cmp(&other[..])
-            }
-        }
-
-        impl Ord for $thing {
-            #[inline]
-            fn cmp(&self, other: &$thing) -> core::cmp::Ordering { self[..].cmp(&other[..]) }
-        }
-
         impl AsRef<[$ty; $len]> for $thing {
             #[inline]
             /// Gets a reference to the underlying array

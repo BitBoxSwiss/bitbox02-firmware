@@ -40,7 +40,7 @@ const UTXO_SCRIPT_PUBKEY: &str =
     "5120be27fa8b1f5278faf82cab8da23e8761f8f9bd5d5ebebbb37e0e12a70d92dd16";
 const UTXO_PUBKEY: &str = "a6ac32163539c16b6b5dbbca01b725b8e8acaa5f821ba42c80e7940062140d19";
 const UTXO_MASTER_FINGERPRINT: &str = "e61b318f";
-const ABSOLUTE_FEES_IN_SATS: u64 = 1000;
+const ABSOLUTE_FEES_IN_SATS: Amount = Amount::from_sat(1_000);
 
 // UTXO_1 will be used for spending example 1
 const UTXO_1: P2trUtxo = P2trUtxo {
@@ -49,7 +49,7 @@ const UTXO_1: P2trUtxo = P2trUtxo {
     script_pubkey: UTXO_SCRIPT_PUBKEY,
     pubkey: UTXO_PUBKEY,
     master_fingerprint: UTXO_MASTER_FINGERPRINT,
-    amount_in_sats: 50 * COIN_VALUE, // 50 BTC
+    amount_in_sats: Amount::from_int_btc(50),
     derivation_path: BIP86_DERIVATION_PATH,
 };
 
@@ -60,7 +60,7 @@ const UTXO_2: P2trUtxo = P2trUtxo {
     script_pubkey: UTXO_SCRIPT_PUBKEY,
     pubkey: UTXO_PUBKEY,
     master_fingerprint: UTXO_MASTER_FINGERPRINT,
-    amount_in_sats: 50 * COIN_VALUE,
+    amount_in_sats: Amount::from_int_btc(50),
     derivation_path: BIP86_DERIVATION_PATH,
 };
 
@@ -71,16 +71,16 @@ const UTXO_3: P2trUtxo = P2trUtxo {
     script_pubkey: UTXO_SCRIPT_PUBKEY,
     pubkey: UTXO_PUBKEY,
     master_fingerprint: UTXO_MASTER_FINGERPRINT,
-    amount_in_sats: 50 * COIN_VALUE,
+    amount_in_sats: Amount::from_int_btc(50),
     derivation_path: BIP86_DERIVATION_PATH,
 };
 
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
-use bitcoin::bip32::{ChildNumber, DerivationPath, ExtendedPrivKey, ExtendedPubKey, Fingerprint};
+use bitcoin::bip32::{ChildNumber, DerivationPath, Fingerprint, Xpriv, Xpub};
 use bitcoin::consensus::encode;
-use bitcoin::constants::COIN_VALUE;
+use bitcoin::hashes::Hash;
 use bitcoin::key::{TapTweak, XOnlyPublicKey};
 use bitcoin::opcodes::all::{OP_CHECKSIG, OP_CLTV, OP_DROP};
 use bitcoin::psbt::{self, Input, Output, Psbt, PsbtSighashType};
@@ -88,8 +88,8 @@ use bitcoin::secp256k1::Secp256k1;
 use bitcoin::sighash::{self, SighashCache, TapSighash, TapSighashType};
 use bitcoin::taproot::{self, LeafVersion, TapLeafHash, TaprootBuilder, TaprootSpendInfo};
 use bitcoin::{
-    absolute, script, Address, Amount, Network, OutPoint, ScriptBuf, Transaction, TxIn, TxOut,
-    Witness,
+    absolute, script, transaction, Address, Amount, Network, OutPoint, ScriptBuf, Transaction,
+    TxIn, TxOut, Witness,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -105,7 +105,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let change_address =
         Address::from_str("bcrt1pz449kexzydh2kaypatup5ultru3ej284t6eguhnkn6wkhswt0l7q3a7j76")?
             .require_network(Network::Regtest)?;
-    let amount_to_send_in_sats = COIN_VALUE;
+    let amount_to_send_in_sats = Amount::ONE_BTC;
     let change_amount = UTXO_1
         .amount_in_sats
         .checked_sub(amount_to_send_in_sats)
@@ -115,7 +115,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tx_hex_string = encode::serialize_hex(&generate_bip86_key_spend_tx(
         &secp,
         // The master extended private key from the descriptor in step 4
-        ExtendedPrivKey::from_str(BENEFACTOR_XPRIV_STR)?,
+        Xpriv::from_str(BENEFACTOR_XPRIV_STR)?,
         // Set these fields with valid data for the UTXO from step 5 above
         UTXO_1,
         vec![
@@ -134,11 +134,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("START EXAMPLE 2 - Script path spending of inheritance UTXO\n");
 
     {
-        let beneficiary =
-            BeneficiaryWallet::new(ExtendedPrivKey::from_str(BENEFICIARY_XPRIV_STR)?)?;
+        let beneficiary = BeneficiaryWallet::new(Xpriv::from_str(BENEFICIARY_XPRIV_STR)?)?;
 
         let mut benefactor = BenefactorWallet::new(
-            ExtendedPrivKey::from_str(BENEFACTOR_XPRIV_STR)?,
+            Xpriv::from_str(BENEFACTOR_XPRIV_STR)?,
             beneficiary.master_xpub(),
         )?;
         let (tx, psbt) = benefactor.create_inheritance_funding_tx(
@@ -173,11 +172,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("START EXAMPLE 3 - Key path spending of inheritance UTXO\n");
 
     {
-        let beneficiary =
-            BeneficiaryWallet::new(ExtendedPrivKey::from_str(BENEFICIARY_XPRIV_STR)?)?;
+        let beneficiary = BeneficiaryWallet::new(Xpriv::from_str(BENEFICIARY_XPRIV_STR)?)?;
 
         let mut benefactor = BenefactorWallet::new(
-            ExtendedPrivKey::from_str(BENEFACTOR_XPRIV_STR)?,
+            Xpriv::from_str(BENEFACTOR_XPRIV_STR)?,
             beneficiary.master_xpub(),
         )?;
         let (tx, _) = benefactor.create_inheritance_funding_tx(
@@ -216,13 +214,14 @@ struct P2trUtxo<'a> {
     script_pubkey: &'a str,
     pubkey: &'a str,
     master_fingerprint: &'a str,
-    amount_in_sats: u64,
+    amount_in_sats: Amount,
     derivation_path: &'a str,
 }
 
+#[allow(clippy::single_element_loop)]
 fn generate_bip86_key_spend_tx(
     secp: &secp256k1::Secp256k1<secp256k1::All>,
-    master_xpriv: ExtendedPrivKey,
+    master_xpriv: Xpriv,
     input_utxo: P2trUtxo,
     outputs: Vec<TxOut>,
 ) -> Result<Transaction, Box<dyn std::error::Error>> {
@@ -231,7 +230,7 @@ fn generate_bip86_key_spend_tx(
 
     // CREATOR + UPDATER
     let tx1 = Transaction {
-        version: 2,
+        version: transaction::Version::TWO,
         lock_time: absolute::LockTime::ZERO,
         input: vec![TxIn {
             previous_output: OutPoint { txid: input_utxo.txid.parse()?, vout: input_utxo.vout },
@@ -259,9 +258,7 @@ fn generate_bip86_key_spend_tx(
         witness_utxo: {
             let script_pubkey = ScriptBuf::from_hex(input_utxo.script_pubkey)
                 .expect("failed to parse input utxo scriptPubkey");
-            let amount = Amount::from_sat(from_amount);
-
-            Some(TxOut { value: amount.to_sat(), script_pubkey })
+            Some(TxOut { value: from_amount, script_pubkey })
         },
         tap_key_origins: origins,
         ..Default::default()
@@ -270,6 +267,16 @@ fn generate_bip86_key_spend_tx(
     input.sighash_type = Some(ty);
     input.tap_internal_key = Some(input_pubkey);
     psbt.inputs = vec![input];
+
+    // The `Prevouts::All` array is used to create the sighash to sign for each input in the
+    // `psbt.inputs` array, as such it must be the same length and in the same order as the inputs.
+    let mut input_txouts = Vec::<TxOut>::new();
+    for input in [&input_utxo].iter() {
+        input_txouts.push(TxOut {
+            value: input.amount_in_sats,
+            script_pubkey: ScriptBuf::from_hex(input.script_pubkey)?,
+        });
+    }
 
     // SIGNER
     let unsigned_tx = psbt.unsigned_tx.clone();
@@ -281,10 +288,7 @@ fn generate_bip86_key_spend_tx(
                 .unwrap_or(TapSighashType::All);
             let hash = SighashCache::new(&unsigned_tx).taproot_key_spend_signature_hash(
                 vout,
-                &sighash::Prevouts::All(&[TxOut {
-                    value: from_amount,
-                    script_pubkey: ScriptBuf::from_hex(input_utxo.script_pubkey)?,
-                }]),
+                &sighash::Prevouts::All(input_txouts.as_slice()),
                 hash_ty,
             )?;
 
@@ -323,7 +327,7 @@ fn generate_bip86_key_spend_tx(
     });
 
     // EXTRACTOR
-    let tx = psbt.extract_tx();
+    let tx = psbt.extract_tx_unchecked_fee_rate();
     tx.verify(|_| {
         Some(TxOut {
             value: from_amount,
@@ -338,8 +342,8 @@ fn generate_bip86_key_spend_tx(
 /// A wallet that allows creating and spending from an inheritance directly via the key path for purposes
 /// of refreshing the inheritance timelock or changing other spending conditions.
 struct BenefactorWallet {
-    master_xpriv: ExtendedPrivKey,
-    beneficiary_xpub: ExtendedPubKey,
+    master_xpriv: Xpriv,
+    beneficiary_xpub: Xpub,
     current_spend_info: Option<TaprootSpendInfo>,
     next_psbt: Option<Psbt>,
     secp: Secp256k1<secp256k1::All>,
@@ -348,8 +352,8 @@ struct BenefactorWallet {
 
 impl BenefactorWallet {
     fn new(
-        master_xpriv: ExtendedPrivKey,
-        beneficiary_xpub: ExtendedPubKey,
+        master_xpriv: Xpriv,
+        beneficiary_xpub: Xpub,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Self {
             master_xpriv,
@@ -401,7 +405,7 @@ impl BenefactorWallet {
             .finalize(&self.secp, internal_keypair.x_only_public_key().0)
             .expect("Should be finalizable");
         self.current_spend_info = Some(taproot_spend_info.clone());
-        let script_pubkey = ScriptBuf::new_v1_p2tr(
+        let script_pubkey = ScriptBuf::new_p2tr(
             &self.secp,
             taproot_spend_info.internal_key(),
             taproot_spend_info.merkle_root(),
@@ -418,7 +422,7 @@ impl BenefactorWallet {
 
         // CREATOR + UPDATER
         let next_tx = Transaction {
-            version: 2,
+            version: transaction::Version::TWO,
             lock_time,
             input: vec![TxIn {
                 previous_output: OutPoint { txid: tx.txid(), vout: 0 },
@@ -446,12 +450,7 @@ impl BenefactorWallet {
         );
 
         let input = Input {
-            witness_utxo: {
-                let script_pubkey = script_pubkey;
-                let amount = Amount::from_sat(value);
-
-                Some(TxOut { value: amount.to_sat(), script_pubkey })
-            },
+            witness_utxo: { Some(TxOut { value, script_pubkey }) },
             tap_key_origins: origins,
             tap_merkle_root: taproot_spend_info.merkle_root(),
             sighash_type: Some(ty),
@@ -502,7 +501,7 @@ impl BenefactorWallet {
                 .expect("Should be finalizable");
             self.current_spend_info = Some(taproot_spend_info.clone());
             let prevout_script_pubkey = input.witness_utxo.as_ref().unwrap().script_pubkey.clone();
-            let output_script_pubkey = ScriptBuf::new_v1_p2tr(
+            let output_script_pubkey = ScriptBuf::new_p2tr(
                 &self.secp,
                 taproot_spend_info.internal_key(),
                 taproot_spend_info.merkle_root(),
@@ -559,14 +558,14 @@ impl BenefactorWallet {
             });
 
             // EXTRACTOR
-            let tx = psbt.extract_tx();
+            let tx = psbt.extract_tx_unchecked_fee_rate();
             tx.verify(|_| {
                 Some(TxOut { value: input_value, script_pubkey: output_script_pubkey.clone() })
             })
             .expect("failed to verify transaction");
 
             let next_tx = Transaction {
-                version: 2,
+                version: transaction::Version::TWO,
                 lock_time,
                 input: vec![TxIn {
                     previous_output: OutPoint { txid: tx.txid(), vout: 0 },
@@ -594,9 +593,9 @@ impl BenefactorWallet {
             let input = Input {
                 witness_utxo: {
                     let script_pubkey = output_script_pubkey;
-                    let amount = Amount::from_sat(output_value);
+                    let amount = output_value;
 
-                    Some(TxOut { value: amount.to_sat(), script_pubkey })
+                    Some(TxOut { value: amount, script_pubkey })
                 },
                 tap_key_origins: origins,
                 tap_merkle_root: taproot_spend_info.merkle_root(),
@@ -620,18 +619,16 @@ impl BenefactorWallet {
 /// A wallet that allows spending from an inheritance locked to a P2TR UTXO via a script path
 /// after some expiry using CLTV.
 struct BeneficiaryWallet {
-    master_xpriv: ExtendedPrivKey,
+    master_xpriv: Xpriv,
     secp: secp256k1::Secp256k1<secp256k1::All>,
 }
 
 impl BeneficiaryWallet {
-    fn new(master_xpriv: ExtendedPrivKey) -> Result<Self, Box<dyn std::error::Error>> {
+    fn new(master_xpriv: Xpriv) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Self { master_xpriv, secp: Secp256k1::new() })
     }
 
-    fn master_xpub(&self) -> ExtendedPubKey {
-        ExtendedPubKey::from_priv(&self.secp, &self.master_xpriv)
-    }
+    fn master_xpub(&self) -> Xpub { Xpub::from_priv(&self.secp, &self.master_xpriv) }
 
     fn spend_inheritance(
         &self,
@@ -703,7 +700,7 @@ impl BeneficiaryWallet {
         });
 
         // EXTRACTOR
-        let tx = psbt.extract_tx();
+        let tx = psbt.extract_tx_unchecked_fee_rate();
         tx.verify(|_| {
             Some(TxOut { value: input_value, script_pubkey: input_script_pubkey.clone() })
         })
@@ -736,13 +733,14 @@ fn sign_psbt_taproot(
     hash_ty: TapSighashType,
     secp: &Secp256k1<secp256k1::All>,
 ) {
-    let keypair = secp256k1::KeyPair::from_seckey_slice(secp, secret_key.as_ref()).unwrap();
+    let keypair = secp256k1::Keypair::from_seckey_slice(secp, secret_key.as_ref()).unwrap();
     let keypair = match leaf_hash {
         None => keypair.tap_tweak(secp, psbt_input.tap_merkle_root).to_inner(),
         Some(_) => keypair, // no tweak for script spend
     };
 
-    let sig = secp.sign_schnorr(&hash.into(), &keypair);
+    let msg = secp256k1::Message::from_digest(hash.to_byte_array());
+    let sig = secp.sign_schnorr(&msg, &keypair);
 
     let final_signature = taproot::Signature { sig, hash_ty };
 

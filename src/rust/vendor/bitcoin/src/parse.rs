@@ -1,10 +1,11 @@
+// SPDX-License-Identifier: CC0-1.0
+
 use core::convert::TryFrom;
 use core::fmt;
 use core::str::FromStr;
 
-use bitcoin_internals::write_err;
+use internals::write_err;
 
-use crate::error::impl_std_error;
 use crate::prelude::*;
 
 /// Error with rich context returned when a string can't be parsed as an integer.
@@ -16,7 +17,8 @@ use crate::prelude::*;
 /// Note that this is larger than the type from `core` so if it's passed through a deep call stack
 /// in a performance-critical application you may want to box it or throw away the context by
 /// converting to `core` type.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct ParseIntError {
     input: String,
     // for displaying - see Display impl with nice error message below
@@ -33,20 +35,25 @@ impl ParseIntError {
     pub fn input(&self) -> &str { &self.input }
 }
 
-impl From<ParseIntError> for core::num::ParseIntError {
-    fn from(value: ParseIntError) -> Self { value.source }
-}
-
-impl AsRef<core::num::ParseIntError> for ParseIntError {
-    fn as_ref(&self) -> &core::num::ParseIntError { &self.source }
-}
-
 impl fmt::Display for ParseIntError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let signed = if self.is_signed { "signed" } else { "unsigned" };
         let n = if self.bits == 8 { "n" } else { "" };
         write_err!(f, "failed to parse '{}' as a{} {}-bit {} integer", self.input, n, self.bits, signed; self.source)
     }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ParseIntError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> { Some(&self.source) }
+}
+
+impl From<ParseIntError> for core::num::ParseIntError {
+    fn from(value: ParseIntError) -> Self { value.source }
+}
+
+impl AsRef<core::num::ParseIntError> for ParseIntError {
+    fn as_ref(&self) -> &core::num::ParseIntError { &self.source }
 }
 
 /// Not strictly neccessary but serves as a lint - avoids weird behavior if someone accidentally
@@ -92,8 +99,6 @@ pub(crate) fn hex_u32<S: AsRef<str> + Into<String>>(s: S) -> Result<u32, ParseIn
         source: error,
     })
 }
-
-impl_std_error!(ParseIntError, source);
 
 /// Implements `TryFrom<$from> for $to` using `parse::int`, mapping the output using infallible
 /// conversion function `fn`.

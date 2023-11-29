@@ -1,4 +1,3 @@
-// Written in 2020 by the rust-miniscript developers
 // SPDX-License-Identifier: CC0-1.0
 
 //! # P2SH Descriptors
@@ -14,10 +13,13 @@ use core::fmt;
 use bitcoin::script::PushBytes;
 use bitcoin::{script, Address, Network, ScriptBuf};
 
-use super::checksum::{self, verify_checksum};
+use super::checksum::verify_checksum;
 use super::{SortedMultiVec, Wpkh, Wsh};
+use crate::descriptor::{write_descriptor, DefiniteDescriptorKey};
 use crate::expression::{self, FromTree};
 use crate::miniscript::context::ScriptContext;
+use crate::miniscript::satisfy::{Placeholder, Satisfaction};
+use crate::plan::AssetProvider;
 use crate::policy::{semantic, Liftable};
 use crate::prelude::*;
 use crate::util::{varint_len, witness_to_scriptsig};
@@ -70,15 +72,12 @@ impl<Pk: MiniscriptKey> fmt::Debug for Sh<Pk> {
 
 impl<Pk: MiniscriptKey> fmt::Display for Sh<Pk> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use fmt::Write;
-        let mut wrapped_f = checksum::Formatter::new(f);
         match self.inner {
-            ShInner::Wsh(ref wsh) => write!(wrapped_f, "sh({:#})", wsh)?,
-            ShInner::Wpkh(ref pk) => write!(wrapped_f, "sh({:#})", pk)?,
-            ShInner::SortedMulti(ref smv) => write!(wrapped_f, "sh({})", smv)?,
-            ShInner::Ms(ref ms) => write!(wrapped_f, "sh({})", ms)?,
+            ShInner::Wsh(ref wsh) => write_descriptor!(f, "sh({:#})", wsh),
+            ShInner::Wpkh(ref pk) => write_descriptor!(f, "sh({:#})", pk),
+            ShInner::SortedMulti(ref smv) => write_descriptor!(f, "sh({})", smv),
+            ShInner::Ms(ref ms) => write_descriptor!(f, "sh({})", ms),
         }
-        wrapped_f.write_checksum_if_not_alt()
     }
 }
 
@@ -120,22 +119,16 @@ impl_from_str!(
 
 impl<Pk: MiniscriptKey> Sh<Pk> {
     /// Get the Inner
-    pub fn into_inner(self) -> ShInner<Pk> {
-        self.inner
-    }
+    pub fn into_inner(self) -> ShInner<Pk> { self.inner }
 
     /// Get a reference to inner
-    pub fn as_inner(&self) -> &ShInner<Pk> {
-        &self.inner
-    }
+    pub fn as_inner(&self) -> &ShInner<Pk> { &self.inner }
 
     /// Create a new p2sh descriptor with the raw miniscript
     pub fn new(ms: Miniscript<Pk, Legacy>) -> Result<Self, Error> {
         // do the top-level checks
         Legacy::top_level_checks(&ms)?;
-        Ok(Self {
-            inner: ShInner::Ms(ms),
-        })
+        Ok(Self { inner: ShInner::Ms(ms) })
     }
 
     /// Create a new p2sh sortedmulti descriptor with threshold `k`
@@ -143,24 +136,16 @@ impl<Pk: MiniscriptKey> Sh<Pk> {
     pub fn new_sortedmulti(k: usize, pks: Vec<Pk>) -> Result<Self, Error> {
         // The context checks will be carried out inside new function for
         // sortedMultiVec
-        Ok(Self {
-            inner: ShInner::SortedMulti(SortedMultiVec::new(k, pks)?),
-        })
+        Ok(Self { inner: ShInner::SortedMulti(SortedMultiVec::new(k, pks)?) })
     }
 
     /// Create a new p2sh wrapped wsh descriptor with the raw miniscript
     pub fn new_wsh(ms: Miniscript<Pk, Segwitv0>) -> Result<Self, Error> {
-        Ok(Self {
-            inner: ShInner::Wsh(Wsh::new(ms)?),
-        })
+        Ok(Self { inner: ShInner::Wsh(Wsh::new(ms)?) })
     }
 
     /// Create a new p2sh wrapper for the given wsh descriptor
-    pub fn new_with_wsh(wsh: Wsh<Pk>) -> Self {
-        Self {
-            inner: ShInner::Wsh(wsh),
-        }
-    }
+    pub fn new_with_wsh(wsh: Wsh<Pk>) -> Self { Self { inner: ShInner::Wsh(wsh) } }
 
     /// Checks whether the descriptor is safe.
     pub fn sanity_check(&self) -> Result<(), Error> {
@@ -178,24 +163,16 @@ impl<Pk: MiniscriptKey> Sh<Pk> {
     pub fn new_wsh_sortedmulti(k: usize, pks: Vec<Pk>) -> Result<Self, Error> {
         // The context checks will be carried out inside new function for
         // sortedMultiVec
-        Ok(Self {
-            inner: ShInner::Wsh(Wsh::new_sortedmulti(k, pks)?),
-        })
+        Ok(Self { inner: ShInner::Wsh(Wsh::new_sortedmulti(k, pks)?) })
     }
 
     /// Create a new p2sh wrapped wpkh from `Pk`
     pub fn new_wpkh(pk: Pk) -> Result<Self, Error> {
-        Ok(Self {
-            inner: ShInner::Wpkh(Wpkh::new(pk)?),
-        })
+        Ok(Self { inner: ShInner::Wpkh(Wpkh::new(pk)?) })
     }
 
     /// Create a new p2sh wrapper for the given wpkh descriptor
-    pub fn new_with_wpkh(wpkh: Wpkh<Pk>) -> Self {
-        Self {
-            inner: ShInner::Wpkh(wpkh),
-        }
-    }
+    pub fn new_with_wpkh(wpkh: Wpkh<Pk>) -> Self { Self { inner: ShInner::Wpkh(wpkh) } }
 
     /// Computes an upper bound on the difference between a non-satisfied
     /// `TxIn`'s `segwit_weight` and a satisfied `TxIn`'s `segwit_weight`
@@ -345,16 +322,16 @@ impl<Pk: MiniscriptKey + ToPublicKey> Sh<Pk> {
         match self.inner {
             ShInner::Wsh(ref wsh) => {
                 // wsh explicit must contain exactly 1 element
-                let witness_script = wsh.inner_script().to_v0_p2wsh();
+                let witness_script = wsh.inner_script().to_p2wsh();
                 let push_bytes = <&PushBytes>::try_from(witness_script.as_bytes())
                     .expect("Witness script is not too large");
-                script::Builder::new().push_slice(&push_bytes).into_script()
+                script::Builder::new().push_slice(push_bytes).into_script()
             }
             ShInner::Wpkh(ref wpkh) => {
                 let redeem_script = wpkh.script_pubkey();
                 let push_bytes: &PushBytes =
                     <&PushBytes>::try_from(redeem_script.as_bytes()).expect("Script not too large");
-                script::Builder::new().push_slice(&push_bytes).into_script()
+                script::Builder::new().push_slice(push_bytes).into_script()
             }
             ShInner::SortedMulti(..) | ShInner::Ms(..) => ScriptBuf::new(),
         }
@@ -415,6 +392,39 @@ impl<Pk: MiniscriptKey + ToPublicKey> Sh<Pk> {
                 Ok((witness, script_sig))
             }
             _ => self.get_satisfaction(satisfier),
+        }
+    }
+}
+
+impl Sh<DefiniteDescriptorKey> {
+    /// Returns a plan if the provided assets are sufficient to produce a non-malleable satisfaction
+    pub fn plan_satisfaction<P>(
+        &self,
+        provider: &P,
+    ) -> Satisfaction<Placeholder<DefiniteDescriptorKey>>
+    where
+        P: AssetProvider<DefiniteDescriptorKey>,
+    {
+        match &self.inner {
+            ShInner::Wsh(ref wsh) => wsh.plan_satisfaction(provider),
+            ShInner::Wpkh(ref wpkh) => wpkh.plan_satisfaction(provider),
+            ShInner::SortedMulti(ref smv) => smv.build_template(provider),
+            ShInner::Ms(ref ms) => ms.build_template(provider),
+        }
+    }
+
+    /// Returns a plan if the provided assets are sufficient to produce a malleable satisfaction
+    pub fn plan_satisfaction_mall<P>(
+        &self,
+        provider: &P,
+    ) -> Satisfaction<Placeholder<DefiniteDescriptorKey>>
+    where
+        P: AssetProvider<DefiniteDescriptorKey>,
+    {
+        match &self.inner {
+            ShInner::Wsh(ref wsh) => wsh.plan_satisfaction_mall(provider),
+            ShInner::Ms(ref ms) => ms.build_template_mall(provider),
+            _ => self.plan_satisfaction(provider),
         }
     }
 }

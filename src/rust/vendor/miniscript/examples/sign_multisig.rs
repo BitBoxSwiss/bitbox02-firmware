@@ -1,16 +1,4 @@
-// Miniscript
-// Written in 2019 by
-//     Andrew Poelstra <apoelstra@wpsoftware.net>
-//
-// To the extent possible under law, the author(s) have dedicated all
-// copyright and related and neighboring rights to this software to
-// the public domain worldwide. This software is distributed without
-// any warranty.
-//
-// You should have received a copy of the CC0 Public Domain Dedication
-// along with this software.
-// If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
-//
+// SPDX-License-Identifier: CC0-1.0
 
 //! Example: Signing a 2-of-3 multisignature.
 
@@ -18,7 +6,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use bitcoin::blockdata::witness::Witness;
-use bitcoin::{absolute, ecdsa, secp256k1, Sequence};
+use bitcoin::{absolute, ecdsa, secp256k1, transaction, Amount, Sequence};
 
 fn main() {
     let mut tx = spending_transaction();
@@ -90,7 +78,7 @@ fn main() {
 // Transaction which spends some output.
 fn spending_transaction() -> bitcoin::Transaction {
     bitcoin::Transaction {
-        version: 2,
+        version: transaction::Version::TWO,
         lock_time: absolute::LockTime::ZERO,
         input: vec![bitcoin::TxIn {
             previous_output: Default::default(),
@@ -100,7 +88,7 @@ fn spending_transaction() -> bitcoin::Transaction {
         }],
         output: vec![bitcoin::TxOut {
             script_pubkey: bitcoin::ScriptBuf::new(),
-            value: 100_000_000,
+            value: Amount::from_sat(100_000_000),
         }],
     }
 }

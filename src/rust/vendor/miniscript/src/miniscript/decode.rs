@@ -1,4 +1,3 @@
-// Written in 2019 by Andrew Poelstra <apoelstra@wpsoftware.net>
 // SPDX-License-Identifier: CC0-1.0
 
 //! Script Decoder
@@ -11,9 +10,8 @@ use core::marker::PhantomData;
 #[cfg(feature = "std")]
 use std::error;
 
-use bitcoin::constants::MAX_BLOCK_WEIGHT;
 use bitcoin::hashes::{hash160, ripemd160, sha256, Hash};
-use bitcoin::Sequence;
+use bitcoin::{Sequence, Weight};
 use sync::Arc;
 
 use crate::miniscript::lex::{Token as Tk, TokenIter};
@@ -24,11 +22,7 @@ use crate::miniscript::ScriptContext;
 use crate::prelude::*;
 #[cfg(doc)]
 use crate::Descriptor;
-use crate::{bitcoin, hash256, AbsLockTime, Error, Miniscript, MiniscriptKey, ToPublicKey};
-
-fn return_none<T>(_: usize) -> Option<T> {
-    None
-}
+use crate::{hash256, AbsLockTime, Error, Miniscript, MiniscriptKey, ToPublicKey};
 
 /// Trait for parsing keys from byte slices
 pub trait ParseableKey: Sized + ToPublicKey + private::Sealed {
@@ -50,7 +44,7 @@ impl ParseableKey for bitcoin::secp256k1::XOnlyPublicKey {
 }
 
 /// Decoding error while parsing keys
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KeyParseError {
     /// Bitcoin PublicKey parse error
     FullKeyParseError(bitcoin::key::Error),
@@ -83,8 +77,8 @@ mod private {
     pub trait Sealed {}
 
     // Implement for those same types, but no others.
-    impl Sealed for super::bitcoin::PublicKey {}
-    impl Sealed for super::bitcoin::secp256k1::XOnlyPublicKey {}
+    impl Sealed for bitcoin::PublicKey {}
+    impl Sealed for bitcoin::secp256k1::XOnlyPublicKey {}
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -174,11 +168,7 @@ pub enum Terminal<Pk: MiniscriptKey, Ctx: ScriptContext> {
     /// `[E] [W] BOOLAND`
     AndB(Arc<Miniscript<Pk, Ctx>>, Arc<Miniscript<Pk, Ctx>>),
     /// `[various] NOTIF [various] ELSE [various] ENDIF`
-    AndOr(
-        Arc<Miniscript<Pk, Ctx>>,
-        Arc<Miniscript<Pk, Ctx>>,
-        Arc<Miniscript<Pk, Ctx>>,
-    ),
+    AndOr(Arc<Miniscript<Pk, Ctx>>, Arc<Miniscript<Pk, Ctx>>, Arc<Miniscript<Pk, Ctx>>),
     // Disjunctions
     /// `[E] [W] BOOLOR`
     OrB(Arc<Miniscript<Pk, Ctx>>, Arc<Miniscript<Pk, Ctx>>),
@@ -218,20 +208,13 @@ struct TerminalStack<Pk: MiniscriptKey, Ctx: ScriptContext>(Vec<Miniscript<Pk, C
 
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> TerminalStack<Pk, Ctx> {
     ///Wrapper around self.0.pop()
-    fn pop(&mut self) -> Option<Miniscript<Pk, Ctx>> {
-        self.0.pop()
-    }
+    fn pop(&mut self) -> Option<Miniscript<Pk, Ctx>> { self.0.pop() }
 
     ///reduce, type check and push a 0-arg node
     fn reduce0(&mut self, ms: Terminal<Pk, Ctx>) -> Result<(), Error> {
-        let ty = Type::type_check(&ms, return_none)?;
-        let ext = ExtData::type_check(&ms, return_none)?;
-        let ms = Miniscript {
-            node: ms,
-            ty,
-            ext,
-            phantom: PhantomData,
-        };
+        let ty = Type::type_check(&ms)?;
+        let ext = ExtData::type_check(&ms)?;
+        let ms = Miniscript { node: ms, ty, ext, phantom: PhantomData };
         Ctx::check_global_validity(&ms)?;
         self.0.push(ms);
         Ok(())
@@ -245,14 +228,9 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> TerminalStack<Pk, Ctx> {
         let top = self.pop().unwrap();
         let wrapped_ms = wrap(Arc::new(top));
 
-        let ty = Type::type_check(&wrapped_ms, return_none)?;
-        let ext = ExtData::type_check(&wrapped_ms, return_none)?;
-        let ms = Miniscript {
-            node: wrapped_ms,
-            ty,
-            ext,
-            phantom: PhantomData,
-        };
+        let ty = Type::type_check(&wrapped_ms)?;
+        let ext = ExtData::type_check(&wrapped_ms)?;
+        let ms = Miniscript { node: wrapped_ms, ty, ext, phantom: PhantomData };
         Ctx::check_global_validity(&ms)?;
         self.0.push(ms);
         Ok(())
@@ -268,14 +246,9 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> TerminalStack<Pk, Ctx> {
 
         let wrapped_ms = wrap(Arc::new(left), Arc::new(right));
 
-        let ty = Type::type_check(&wrapped_ms, return_none)?;
-        let ext = ExtData::type_check(&wrapped_ms, return_none)?;
-        let ms = Miniscript {
-            node: wrapped_ms,
-            ty,
-            ext,
-            phantom: PhantomData,
-        };
+        let ty = Type::type_check(&wrapped_ms)?;
+        let ext = ExtData::type_check(&wrapped_ms)?;
+        let ms = Miniscript { node: wrapped_ms, ty, ext, phantom: PhantomData };
         Ctx::check_global_validity(&ms)?;
         self.0.push(ms);
         Ok(())
@@ -488,9 +461,10 @@ pub fn parse<Ctx: ScriptContext>(
                     },
                     // MultiA
                     Tk::NumEqual, Tk::Num(k) => {
+                        let max = Weight::MAX_BLOCK.to_wu() / 32;
                         // Check size before allocating keys
-                        if k > MAX_BLOCK_WEIGHT/32 {
-                            return Err(Error::MultiATooManyKeys(MAX_BLOCK_WEIGHT/32))
+                        if k as u64 > max {
+                            return Err(Error::MultiATooManyKeys(max))
                         }
                         let mut keys = Vec::with_capacity(k as usize); // atleast k capacity
                         while tokens.peek() == Some(&Tk::CheckSigAdd) {
@@ -557,15 +531,11 @@ pub fn parse<Ctx: ScriptContext>(
                 let c = term.pop().unwrap();
                 let wrapped_ms = Terminal::AndOr(Arc::new(a), Arc::new(c), Arc::new(b));
 
-                let ty = Type::type_check(&wrapped_ms, return_none)?;
-                let ext = ExtData::type_check(&wrapped_ms, return_none)?;
+                let ty = Type::type_check(&wrapped_ms)?;
+                let ext = ExtData::type_check(&wrapped_ms)?;
 
-                term.0.push(Miniscript {
-                    node: wrapped_ms,
-                    ty,
-                    ext,
-                    phantom: PhantomData,
-                });
+                term.0
+                    .push(Miniscript { node: wrapped_ms, ty, ext, phantom: PhantomData });
             }
             Some(NonTerm::ThreshW { n, k }) => {
                 match_token!(
@@ -651,13 +621,12 @@ pub fn parse<Ctx: ScriptContext>(
 }
 
 fn is_and_v(tokens: &mut TokenIter) -> bool {
-    match tokens.peek() {
-        None
-        | Some(&Tk::If)
-        | Some(&Tk::NotIf)
-        | Some(&Tk::Else)
-        | Some(&Tk::ToAltStack)
-        | Some(&Tk::Swap) => false,
-        _ => true,
-    }
+    !matches!(
+        tokens.peek(),
+        None | Some(&Tk::If)
+            | Some(&Tk::NotIf)
+            | Some(&Tk::Else)
+            | Some(&Tk::ToAltStack)
+            | Some(&Tk::Swap)
+    )
 }

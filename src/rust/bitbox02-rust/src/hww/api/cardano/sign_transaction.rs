@@ -22,7 +22,6 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::convert::TryFrom;
 
-use bech32::{ToBase32, Variant};
 use blake2::{
     digest::{Update, VariableOutput},
     Blake2bVar,
@@ -92,7 +91,7 @@ fn format_asset(policy_id: &[u8], asset_name: &[u8]) -> String {
     hasher.update(asset_name);
     let mut hash = [0u8; 20];
     hasher.finalize_variable(&mut hash).unwrap();
-    bech32::encode("asset", hash.to_base32(), Variant::Bech32).unwrap()
+    bech32::encode::<bech32::Bech32>(bech32::Hrp::parse_unchecked("asset"), &hash).unwrap()
 }
 
 /// Validate size limits in the asset groups and that there are no duplicate assets.

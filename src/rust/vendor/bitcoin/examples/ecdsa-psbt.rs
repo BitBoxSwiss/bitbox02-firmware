@@ -33,16 +33,14 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::str::FromStr;
 
-use bitcoin::bip32::{
-    ChildNumber, DerivationPath, ExtendedPrivKey, ExtendedPubKey, Fingerprint, IntoDerivationPath,
-};
+use bitcoin::bip32::{ChildNumber, DerivationPath, Fingerprint, IntoDerivationPath, Xpriv, Xpub};
 use bitcoin::consensus::encode;
 use bitcoin::locktime::absolute;
 use bitcoin::psbt::{self, Input, Psbt, PsbtSighashType};
 use bitcoin::secp256k1::{Secp256k1, Signing, Verification};
 use bitcoin::{
-    Address, Amount, Network, OutPoint, PublicKey, ScriptBuf, Sequence, Transaction, TxIn, TxOut,
-    Witness,
+    transaction, Address, Amount, Network, OutPoint, PublicKey, ScriptBuf, Sequence, Transaction,
+    TxIn, TxOut, Witness,
 };
 
 type Result<T> = std::result::Result<T, Error>;
@@ -84,7 +82,7 @@ fn main() -> Result<()> {
     let finalized = online.finalize_psbt(signed)?;
 
     // You can use `bt sendrawtransaction` to broadcast the extracted transaction.
-    let tx = finalized.extract_tx();
+    let tx = finalized.extract_tx_unchecked_fee_rate();
     tx.verify(|_| Some(previous_output())).expect("failed to verify transaction");
 
     let hex = encode::serialize_hex(&tx);
@@ -97,14 +95,14 @@ fn main() -> Result<()> {
 /// An example of an offline signer i.e., a cold-storage device.
 struct ColdStorage {
     /// The master extended private key.
-    master_xpriv: ExtendedPrivKey,
+    master_xpriv: Xpriv,
     /// The master extended public key.
-    master_xpub: ExtendedPubKey,
+    master_xpub: Xpub,
 }
 
 /// The data exported from an offline wallet to enable creation of a watch-only online wallet.
 /// (wallet, fingerprint, account_0_xpub, input_utxo_xpub)
-type ExportData = (ColdStorage, Fingerprint, ExtendedPubKey, ExtendedPubKey);
+type ExportData = (ColdStorage, Fingerprint, Xpub, Xpub);
 
 impl ColdStorage {
     /// Constructs a new `ColdStorage` signer.
@@ -113,18 +111,18 @@ impl ColdStorage {
     ///
     /// The newly created signer along with the data needed to configure a watch-only wallet.
     fn new<C: Signing>(secp: &Secp256k1<C>, xpriv: &str) -> Result<ExportData> {
-        let master_xpriv = ExtendedPrivKey::from_str(xpriv)?;
-        let master_xpub = ExtendedPubKey::from_priv(secp, &master_xpriv);
+        let master_xpriv = Xpriv::from_str(xpriv)?;
+        let master_xpub = Xpub::from_priv(secp, &master_xpriv);
 
         // Hardened children require secret data to derive.
 
         let path = "m/84h/0h/0h".into_derivation_path()?;
         let account_0_xpriv = master_xpriv.derive_priv(secp, &path)?;
-        let account_0_xpub = ExtendedPubKey::from_priv(secp, &account_0_xpriv);
+        let account_0_xpub = Xpub::from_priv(secp, &account_0_xpriv);
 
         let path = INPUT_UTXO_DERIVATION_PATH.into_derivation_path()?;
         let input_xpriv = master_xpriv.derive_priv(secp, &path)?;
-        let input_xpub = ExtendedPubKey::from_priv(secp, &input_xpriv);
+        let input_xpub = Xpub::from_priv(secp, &input_xpriv);
 
         let wallet = ColdStorage { master_xpriv, master_xpub };
         let fingerprint = wallet.master_fingerprint();
@@ -151,9 +149,9 @@ impl ColdStorage {
 /// An example of an watch-only online wallet.
 struct WatchOnly {
     /// The xpub for account 0 derived from derivation path "m/84h/0h/0h".
-    account_0_xpub: ExtendedPubKey,
+    account_0_xpub: Xpub,
     /// The xpub derived from `INPUT_UTXO_DERIVATION_PATH`.
-    input_xpub: ExtendedPubKey,
+    input_xpub: Xpub,
     /// The master extended pubkey fingerprint.
     master_fingerprint: Fingerprint,
 }
@@ -166,11 +164,7 @@ impl WatchOnly {
     ///
     /// The reason for importing the `input_xpub` is so one can use bitcoind to grab a valid input
     /// to verify the workflow presented in this file.
-    fn new(
-        account_0_xpub: ExtendedPubKey,
-        input_xpub: ExtendedPubKey,
-        master_fingerprint: Fingerprint,
-    ) -> Self {
+    fn new(account_0_xpub: Xpub, input_xpub: Xpub, master_fingerprint: Fingerprint) -> Self {
         WatchOnly { account_0_xpub, input_xpub, master_fingerprint }
     }
 
@@ -183,7 +177,7 @@ impl WatchOnly {
         let change_amount = Amount::from_str(CHANGE_AMOUNT_BTC)?;
 
         let tx = Transaction {
-            version: 2,
+            version: transaction::Version::TWO,
             lock_time: absolute::LockTime::ZERO,
             input: vec![TxIn {
                 previous_output: OutPoint { txid: INPUT_UTXO_TXID.parse()?, vout: INPUT_UTXO_VOUT },
@@ -192,11 +186,8 @@ impl WatchOnly {
                 witness: Witness::default(),
             }],
             output: vec![
-                TxOut { value: to_amount.to_sat(), script_pubkey: to_address.script_pubkey() },
-                TxOut {
-                    value: change_amount.to_sat(),
-                    script_pubkey: change_address.script_pubkey(),
-                },
+                TxOut { value: to_amount, script_pubkey: to_address.script_pubkey() },
+                TxOut { value: change_amount, script_pubkey: change_address.script_pubkey() },
             ],
         };
 
@@ -212,7 +203,7 @@ impl WatchOnly {
         let pk = self.input_xpub.to_pub();
         let wpkh = pk.wpubkey_hash().expect("a compressed pubkey");
 
-        let redeem_script = ScriptBuf::new_v0_p2wpkh(&wpkh);
+        let redeem_script = ScriptBuf::new_p2wpkh(&wpkh);
         input.redeem_script = Some(redeem_script);
 
         let fingerprint = self.master_fingerprint;
@@ -282,7 +273,7 @@ fn previous_output() -> TxOut {
         .expect("failed to parse input utxo scriptPubkey");
     let amount = Amount::from_str(INPUT_UTXO_VALUE).expect("failed to parse input utxo value");
 
-    TxOut { value: amount.to_sat(), script_pubkey }
+    TxOut { value: amount, script_pubkey }
 }
 
 struct Error(Box<dyn std::error::Error>);

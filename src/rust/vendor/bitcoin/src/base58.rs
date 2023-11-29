@@ -1,4 +1,3 @@
-// Written in 2014 by Andrew Poelstra <apoelstra@wpsoftware.net>
 // SPDX-License-Identifier: CC0-1.0
 
 //! Base58 encoder and decoder.
@@ -10,7 +9,8 @@
 use core::convert::TryInto;
 use core::{fmt, iter, slice, str};
 
-use crate::hashes::{sha256d, Hash};
+use hashes::{sha256d, Hash};
+
 use crate::prelude::*;
 
 static BASE58_CHARS: &[u8] = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
@@ -34,10 +34,6 @@ static BASE58_DIGITS: [Option<u8>; 128] = [
     Some(47), Some(48), Some(49), Some(50), Some(51), Some(52), Some(53), Some(54), // 112-119
     Some(55), Some(56), Some(57), None,     None,     None,     None,     None,     // 120-127
 ];
-
-/// Decodes a base58-encoded string into a byte vector.
-#[deprecated(since = "0.30.0", note = "Use base58::decode() instead")]
-pub fn from(data: &str) -> Result<Vec<u8>, Error> { decode(data) }
 
 /// Decodes a base58-encoded string into a byte vector.
 pub fn decode(data: &str) -> Result<Vec<u8>, Error> {
@@ -71,10 +67,6 @@ pub fn decode(data: &str) -> Result<Vec<u8>, Error> {
 }
 
 /// Decodes a base58check-encoded string into a byte vector verifying the checksum.
-#[deprecated(since = "0.30.0", note = "Use base58::decode_check() instead")]
-pub fn from_check(data: &str) -> Result<Vec<u8>, Error> { decode_check(data) }
-
-/// Decodes a base58check-encoded string into a byte vector verifying the checksum.
 pub fn decode_check(data: &str) -> Result<Vec<u8>, Error> {
     let mut ret: Vec<u8> = decode(data)?;
     if ret.len() < 4 {
@@ -97,18 +89,8 @@ pub fn decode_check(data: &str) -> Result<Vec<u8>, Error> {
     Ok(ret)
 }
 
-/// Encodes `data` as a base58 string.
-#[deprecated(since = "0.30.0", note = "Use base58::encode() instead")]
-pub fn encode_slice(data: &[u8]) -> String { encode(data) }
-
 /// Encodes `data` as a base58 string (see also `base58::encode_check()`).
 pub fn encode(data: &[u8]) -> String { encode_iter(data.iter().cloned()) }
-
-/// Encodes `data` as a base58 string including the checksum.
-///
-/// The checksum is the first four bytes of the sha256d of the data, concatenated onto the end.
-#[deprecated(since = "0.30.0", note = "Use base58::encode_check() instead")]
-pub fn check_encode_slice(data: &[u8]) -> String { encode_check(data) }
 
 /// Encodes `data` as a base58 string including the checksum.
 ///
@@ -116,14 +98,6 @@ pub fn check_encode_slice(data: &[u8]) -> String { encode_check(data) }
 pub fn encode_check(data: &[u8]) -> String {
     let checksum = sha256d::Hash::hash(data);
     encode_iter(data.iter().cloned().chain(checksum[0..4].iter().cloned()))
-}
-
-/// Encodes `data` as base58, including the checksum, into a formatter.
-///
-/// The checksum is the first four bytes of the sha256d of the data, concatenated onto the end.
-#[deprecated(since = "0.30.0", note = "Use base58::encode_check_to_fmt() instead")]
-pub fn check_encode_slice_to_fmt(fmt: &mut fmt::Formatter, data: &[u8]) -> fmt::Result {
-    encode_check_to_fmt(fmt, data)
 }
 
 /// Encodes a slice as base58, including the checksum, into a formatter.
@@ -217,7 +191,7 @@ impl<T: Default + Copy> SmallVec<T> {
 }
 
 /// An error that might occur during base58 decoding.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Error {
     /// Invalid character encountered.
@@ -239,25 +213,26 @@ pub enum Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use Error::*;
+
         match *self {
-            Error::BadByte(b) => write!(f, "invalid base58 character {:#x}", b),
-            Error::BadChecksum(exp, actual) =>
+            BadByte(b) => write!(f, "invalid base58 character {:#x}", b),
+            BadChecksum(exp, actual) =>
                 write!(f, "base58ck checksum {:#x} does not match expected {:#x}", actual, exp),
-            Error::InvalidLength(ell) => write!(f, "length {} invalid for this base58 type", ell),
-            Error::InvalidExtendedKeyVersion(ref v) =>
+            InvalidLength(ell) => write!(f, "length {} invalid for this base58 type", ell),
+            InvalidExtendedKeyVersion(ref v) =>
                 write!(f, "extended key version {:#04x?} is invalid for this base58 type", v),
-            Error::InvalidAddressVersion(ref v) =>
+            InvalidAddressVersion(ref v) =>
                 write!(f, "address version {} is invalid for this base58 type", v),
-            Error::TooShort(_) => write!(f, "base58ck data not even long enough for a checksum"),
+            TooShort(_) => write!(f, "base58ck data not even long enough for a checksum"),
         }
     }
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        use self::Error::*;
+        use Error::*;
 
         match self {
             BadByte(_)
@@ -272,8 +247,9 @@ impl std::error::Error for Error {
 
 #[cfg(test)]
 mod tests {
+    use hex::test_hex_unwrap as hex;
+
     use super::*;
-    use crate::internal_macros::hex;
 
     #[test]
     fn test_base58_encode() {

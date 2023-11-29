@@ -38,7 +38,7 @@ zeroize = "1.6.0"
 num-bigint = { version = "0.4.3", default-features = false, optional = true }
 num-traits = { version = "0.2", default-features = false, optional = true }
 bip32-ed25519 = { git = "https://github.com/digitalbitbox/rust-bip32-ed25519", tag = "v0.1.2", optional = true }
-bech32 = { version = "0.9", default-features = false, optional = true }
+bech32 = { version = "0.10.0-beta", default-features = false, optional = true }
 blake2 = { version = "0.10.6", default-features = false, optional = true }
 minicbor = { version = "0.20.0", default-features = false, features = ["alloc"], optional = true }
 crc = { version = "3.0.1", optional = true }
@@ -47,8 +47,12 @@ lazy_static = { version = "1.4.0", optional = true }
 async-recursion = "1.0.5"
 hmac = { version = "0.12.1", default-features = false, features = ["reset"] }
 
-miniscript = { version = "10.0.0", default-features = false, features = ["no-std"], optional = true }
-bitcoin = { version = "0.30.0", default-features = false, features = ["no-std"], optional = true }
+miniscript = { version = "11.0.0", default-features = false, features = ["no-std"], optional = true }
+bitcoin = { version = "0.31.0", default-features = false, features = ["no-std"], optional = true }
+# We don't rely on this dep directly, the miniscript/bitcoin deps do. We list it here to enable the
+# small-hash feature to reduce the binary size, saving around 2784 bytes (as measured at time of
+# writing, this might fluctuate over time).
+bitcoin_hashes = { version = "0.13.0", default-features = false, features = ["small-hash"] }
 
 [dependencies.prost]
 # keep version in sync with tools/prost-build/Cargo.toml.

@@ -1,4 +1,3 @@
-// Written in 2019 by Andrew Poelstra <apoelstra@wpsoftware.net>
 // SPDX-License-Identifier: CC0-1.0
 
 //! # Function-like Expression Language
@@ -7,6 +6,29 @@ use core::str::FromStr;
 
 use crate::prelude::*;
 use crate::{errstr, Error, MAX_RECURSION_DEPTH};
+
+/// Allowed characters are descriptor strings.
+pub const INPUT_CHARSET: &str = "0123456789()[],'/*abcdefgh@:$%{}IJKLMNOPQRSTUVWXYZ&+-.;<=>?!^_|~ijklmnopqrstuvwxyzABCDEFGH`#\"\\ ";
+
+/// Map of valid characters in descriptor strings.
+#[rustfmt::skip]
+pub const VALID_CHARS: [Option<u8>; 128] = [
+    None, None, None, None, None, None, None, None, None, None, None, None, None,
+    None, None, None, None, None, None, None, None, None, None, None, None, None,
+    None, None, None, None, None, None, Some(94), Some(59), Some(92), Some(91),
+    Some(28), Some(29), Some(50), Some(15), Some(10), Some(11), Some(17), Some(51),
+    Some(14), Some(52), Some(53), Some(16), Some(0), Some(1), Some(2), Some(3),
+    Some(4), Some(5), Some(6), Some(7), Some(8), Some(9), Some(27), Some(54),
+    Some(55), Some(56), Some(57), Some(58), Some(26), Some(82), Some(83),
+    Some(84), Some(85), Some(86), Some(87), Some(88), Some(89), Some(32), Some(33),
+    Some(34), Some(35), Some(36), Some(37), Some(38), Some(39), Some(40), Some(41),
+    Some(42), Some(43), Some(44), Some(45), Some(46), Some(47), Some(48), Some(49),
+    Some(12), Some(93), Some(13), Some(60), Some(61), Some(90), Some(18), Some(19),
+    Some(20), Some(21), Some(22), Some(23), Some(24), Some(25), Some(64), Some(65),
+    Some(66), Some(67), Some(68), Some(69), Some(70), Some(71), Some(72), Some(73),
+    Some(74), Some(75), Some(76), Some(77), Some(78), Some(79), Some(80), Some(81),
+    Some(30), Some(62), Some(31), Some(63), None,
+];
 
 #[derive(Debug)]
 /// A token of the form `x(...)` or `x`
@@ -115,27 +137,14 @@ impl<'a> Tree<'a> {
 
         match next_expr(sl, delim) {
             // String-ending terminal
-            Found::Nothing => Ok((
-                Tree {
-                    name: sl,
-                    args: vec![],
-                },
-                "",
-            )),
+            Found::Nothing => Ok((Tree { name: sl, args: vec![] }, "")),
             // Terminal
-            Found::Comma(n) | Found::RBracket(n) => Ok((
-                Tree {
-                    name: &sl[..n],
-                    args: vec![],
-                },
-                &sl[n..],
-            )),
+            Found::Comma(n) | Found::RBracket(n) => {
+                Ok((Tree { name: &sl[..n], args: vec![] }, &sl[n..]))
+            }
             // Function call
             Found::LBracket(n) => {
-                let mut ret = Tree {
-                    name: &sl[..n],
-                    args: vec![],
-                };
+                let mut ret = Tree { name: &sl[..n], args: vec![] };
 
                 sl = &sl[n + 1..];
                 loop {
@@ -166,13 +175,7 @@ impl<'a> Tree<'a> {
     /// Parses a tree from a string
     #[allow(clippy::should_implement_trait)] // Cannot use std::str::FromStr because of lifetimes.
     pub fn from_str(s: &'a str) -> Result<Tree<'a>, Error> {
-        // Filter out non-ASCII because we byte-index strings all over the
-        // place and Rust gets very upset when you splinch a string.
-        for ch in s.bytes() {
-            if !ch.is_ascii() {
-                return Err(Error::Unprintable(ch));
-            }
-        }
+        check_valid_chars(s)?;
 
         let (top, rem) = Tree::from_slice(s)?;
         if rem.is_empty() {
@@ -183,14 +186,29 @@ impl<'a> Tree<'a> {
     }
 }
 
+/// Filter out non-ASCII because we byte-index strings all over the
+/// place and Rust gets very upset when you splinch a string.
+pub fn check_valid_chars(s: &str) -> Result<(), Error> {
+    for ch in s.bytes() {
+        if !ch.is_ascii() {
+            return Err(Error::Unprintable(ch));
+        }
+        // Index bounds: We know that ch is ASCII, so it is <= 127.
+        if VALID_CHARS[ch as usize].is_none() {
+            return Err(Error::Unexpected(
+                "Only characters in INPUT_CHARSET are allowed".to_string(),
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Parse a string as a u32, for timelocks or thresholds
 pub fn parse_num(s: &str) -> Result<u32, Error> {
     if s.len() > 1 {
         let ch = s.chars().next().unwrap();
         if !('1'..='9').contains(&ch) {
-            return Err(Error::Unexpected(
-                "Number must start with a digit 1-9".to_string(),
-            ));
+            return Err(Error::Unexpected("Number must start with a digit 1-9".to_string()));
         }
     }
     u32::from_str(s).map_err(|_| errstr(s))
@@ -252,5 +270,14 @@ mod tests {
         assert!(parse_num("06").is_err());
         assert!(parse_num("+6").is_err());
         assert!(parse_num("-6").is_err());
+    }
+
+    #[test]
+    fn test_valid_char_map() {
+        let mut valid_chars = [None; 128];
+        for (i, ch) in super::INPUT_CHARSET.chars().enumerate() {
+            valid_chars[ch as usize] = Some(i as u8);
+        }
+        assert_eq!(valid_chars, super::VALID_CHARS);
     }
 }

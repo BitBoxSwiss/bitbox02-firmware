@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: CC0-1.0
+
 //! Structs and functionality related to the ECDSA signature algorithm.
 //!
 
@@ -8,7 +10,6 @@ pub mod serialized_signature;
 use core::{fmt, ptr, str};
 
 #[cfg(feature = "recovery")]
-#[cfg_attr(docsrs, doc(cfg(feature = "recovery")))]
 pub use self::recovery::{RecoverableSignature, RecoveryId};
 pub use self::serialized_signature::SerializedSignature;
 use crate::ffi::CPtr;
@@ -124,8 +125,8 @@ impl Signature {
     /// changing even the signature itself can be a problem. Such applications
     /// require a "strong signature". It is believed that ECDSA is a strong
     /// signature except for this ambiguity in the sign of s, so to accommodate
-    /// these applications libsecp256k1 will only accept signatures for which
-    /// s is in the lower half of the field range. This eliminates the
+    /// these applications libsecp256k1 considers signatures for which s is in
+    /// the upper half of the field range invalid. This eliminates the
     /// ambiguity.
     ///
     /// However, for some systems, signatures with high s-values are considered
@@ -190,9 +191,9 @@ impl Signature {
     }
 
     /// Verifies an ECDSA signature for `msg` using `pk` and the global [`SECP256K1`] context.
+    /// The signature must be normalized or verification will fail (see [`Signature::normalize_s`]).
     #[inline]
     #[cfg(feature = "global-context")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "global-context")))]
     pub fn verify(&self, msg: &Message, pk: &PublicKey) -> Result<(), Error> {
         SECP256K1.verify_ecdsa(msg, self, pk)
     }
@@ -213,7 +214,6 @@ impl From<ffi::Signature> for Signature {
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl serde::Serialize for Signature {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         if s.is_human_readable() {
@@ -225,7 +225,6 @@ impl serde::Serialize for Signature {
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<'de> serde::Deserialize<'de> for Signature {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         if d.is_human_readable() {
@@ -325,7 +324,7 @@ impl<C: Signing> Secp256k1<C> {
                 entropy_p = extra_entropy.as_c_ptr().cast::<ffi::types::c_void>();
 
                 // When fuzzing, these checks will usually spinloop forever, so just short-circuit them.
-                #[cfg(fuzzing)]
+                #[cfg(secp256k1_fuzz)]
                 return Signature::from(ret);
             }
         }
@@ -372,11 +371,11 @@ impl<C: Verification> Secp256k1<C> {
     /// # let secp = Secp256k1::new();
     /// # let (secret_key, public_key) = secp.generate_keypair(&mut rand::thread_rng());
     /// #
-    /// let message = Message::from_slice(&[0xab; 32]).expect("32 bytes");
+    /// let message = Message::from_digest_slice(&[0xab; 32]).expect("32 bytes");
     /// let sig = secp.sign_ecdsa(&message, &secret_key);
     /// assert_eq!(secp.verify_ecdsa(&message, &sig, &public_key), Ok(()));
     ///
-    /// let message = Message::from_slice(&[0xcd; 32]).expect("32 bytes");
+    /// let message = Message::from_digest_slice(&[0xcd; 32]).expect("32 bytes");
     /// assert_eq!(secp.verify_ecdsa(&message, &sig, &public_key), Err(Error::IncorrectSignature));
     /// # }
     /// ```

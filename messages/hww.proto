@@ -66,6 +66,7 @@ message Request {
         BTCRequest btc = 25;
         ElectrumEncryptionKeyRequest electrum_encryption_key = 26;
         CardanoRequest cardano = 27;
+        BIP85Request bip85 = 28;
     }
 }
 
@@ -87,5 +88,6 @@ message Response {
         BTCResponse btc = 13;
         ElectrumEncryptionKeyResponse electrum_encryption_key = 14;
         CardanoResponse cardano = 15;
+        BIP85Response bip85 = 16;
     }
 }

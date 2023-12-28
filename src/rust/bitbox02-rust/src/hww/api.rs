@@ -26,6 +26,7 @@ pub mod bitcoin;
 mod cardano;
 
 mod backup;
+mod bip85;
 mod device_info;
 mod electrum;
 mod reset;
@@ -133,6 +134,7 @@ fn can_call(request: &Request) -> bool {
         Request::Eth(_) => matches!(state, State::Initialized),
         Request::Reset(_) => matches!(state, State::Initialized),
         Request::Cardano(_) => matches!(state, State::Initialized),
+        Request::Bip85(_) => matches!(state, State::Initialized),
     }
 }
 
@@ -181,6 +183,7 @@ async fn process_api(request: &Request) -> Result<Response, Error> {
             .map(|r| Response::Cardano(pb::CardanoResponse { response: Some(r) })),
         #[cfg(not(feature = "app-cardano"))]
         Request::Cardano(_) => Err(Error::Disabled),
+        Request::Bip85(ref request) => bip85::process(request).await,
         _ => Err(Error::InvalidInput),
     }
 }

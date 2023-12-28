@@ -33,3 +33,15 @@ class ElectrumEncryptionKeyResponse(google.protobuf.message.Message):
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["key",b"key"]) -> None: ...
 global___ElectrumEncryptionKeyResponse = ElectrumEncryptionKeyResponse
+
+class BIP85Request(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    def __init__(self,
+        ) -> None: ...
+global___BIP85Request = BIP85Request
+
+class BIP85Response(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    def __init__(self,
+        ) -> None: ...
+global___BIP85Response = BIP85Response

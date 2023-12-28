@@ -102,6 +102,7 @@ pub struct TrinaryInputStringParams<'a> {
     pub title: &'a str,
     /// Currently specialized to the BIP39 wordlist. Can be extended if needed.
     pub wordlist: Option<&'a crate::keystore::Bip39Wordlist>,
+    pub number_input: bool,
     pub hide: bool,
     pub special_chars: bool,
     pub longtouch: bool,
@@ -132,6 +133,7 @@ impl<'a> TrinaryInputStringParams<'a> {
                 None => 0,
                 Some(wordlist) => wordlist.len() as _,
             },
+            number_input: self.number_input,
             hide: self.hide,
             special_chars: self.special_chars,
             longtouch: self.longtouch,

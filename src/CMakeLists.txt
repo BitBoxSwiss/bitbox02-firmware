@@ -395,6 +395,7 @@ add_custom_target(rust-bindgen
     --allowlist-function secp256k1_ecdsa_anti_exfil_host_commit
     --allowlist-function wally_get_secp_context
     --allowlist-function wally_hash160
+    --allowlist-function printf
     ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
     -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums ${RUST_BINDGEN_FLAGS} ${RUST_INCLUDES}
   COMMAND

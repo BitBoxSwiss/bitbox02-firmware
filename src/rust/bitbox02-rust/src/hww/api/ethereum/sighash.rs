@@ -158,7 +158,7 @@ pub fn compute_eip1559(params: &ParamsEIP1559) -> Result<[u8; 32], ()> {
 
     // 2) hash len and encoded tx elements
     let mut hasher = Hasher(Keccak256::new());
-    hasher.write(&[0x02]); // prefix the rlp encoding with transaction type before hashing 
+    hasher.write(&[0x02]); // prefix the rlp encoding with transaction type before hashing
     hash_header(&mut hasher, RLP_SMALL_TAG, RLP_LARGE_TAG, counter.0 as u16);
     hash_params_eip1559(&mut hasher, params);
     Ok(hasher.0.finalize().into())
@@ -1565,10 +1565,12 @@ mod tests {
                 },
                 expected_sighash: *b"\x45\x7c\x06\xaf\x8c\xb6\x60\x30\xde\xc9\x39\x2d\x0e\x3d\x3a\xae\xb4\xad\xa8\xe5\xc7\x11\x38\x21\x86\xa5\x68\x75\x5d\x5a\xba\xb9",
             },
-            
         ];
         for test in tests.iter() {
-            assert_eq!(compute_eip1559(&test.params).unwrap(), test.expected_sighash);
+            assert_eq!(
+                compute_eip1559(&test.params).unwrap(),
+                test.expected_sighash
+            );
         }
     }
 

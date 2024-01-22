@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Add support for deriving BIP-39 mnemonics according to BIP-85
 
 ### 9.16.0
 - Disable screensaver when displaying a receive address, confirming a transaction, and other interactive actions
@@ -16,7 +17,6 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
   For 24 words, this feature was already introduced in 9.4.0.
 - Bitcoin: don't warn about "unusual" sequence numbers in transactions anymore
 - Add EIP-1559 transaction support for Ethereum
-- Add support for deriving BIP-39 mnemonics according to BIP-85
 
 ### 9.15.0
 - Security bugfix: check index of an input's previous output to prevent the fee attack originally

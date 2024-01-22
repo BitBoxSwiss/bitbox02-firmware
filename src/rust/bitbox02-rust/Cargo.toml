@@ -107,6 +107,8 @@ app-cardano = [
   "ed25519"
 ]
 
+app-bip85 = []
+
 testing = [
   # enable these deps
   "lazy_static",

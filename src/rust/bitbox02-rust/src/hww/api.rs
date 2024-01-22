@@ -26,6 +26,7 @@ pub mod bitcoin;
 mod cardano;
 
 mod backup;
+#[cfg(feature = "app-bip85")]
 mod bip85;
 mod device_info;
 mod electrum;
@@ -183,6 +184,9 @@ async fn process_api(request: &Request) -> Result<Response, Error> {
             .map(|r| Response::Cardano(pb::CardanoResponse { response: Some(r) })),
         #[cfg(not(feature = "app-cardano"))]
         Request::Cardano(_) => Err(Error::Disabled),
+        #[cfg(not(feature = "app-bip85"))]
+        Request::Bip85(_) => Err(Error::Disabled),
+        #[cfg(feature = "app-bip85")]
         Request::Bip85(ref request) => bip85::process(request).await,
         _ => Err(Error::InvalidInput),
     }

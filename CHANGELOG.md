@@ -7,6 +7,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+
+### 9.16.0
 - Disable screensaver when displaying a receive address, confirming a transaction, and other interactive actions
 - Add Sepolia testnet for Ethereum
 - Added a disclaimer screen before the recovery words are displayed

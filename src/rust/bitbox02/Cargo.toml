@@ -29,6 +29,8 @@ lazy_static = { version = "1.4.0", optional = true }
 [features]
 # Only to be enabled in unit tests.
 testing = ["lazy_static"]
+# Active when the Rust code is compiled to be linked into the C unit tests and simulator.
+c-unit-testing = []
 
 app-ethereum = []
 app-bitcoin = []

@@ -116,3 +116,5 @@ testing = [
   # enable these features
   "bitbox02/testing"
 ]
+
+c-unit-testing = []

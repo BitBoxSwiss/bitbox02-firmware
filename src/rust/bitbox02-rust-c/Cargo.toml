@@ -59,7 +59,8 @@ target-c-unit-tests = [
   # enable these features
   "app-bitcoin",
   "app-ethereum",
-  "firmware"
+  "firmware",
+  "c-unit-testing",
 ]
 
 platform-bitbox02 = []
@@ -67,8 +68,11 @@ platform-bitbox02 = []
 bootloader = []
 firmware = ["bitbox02-rust", "bitbox02", "bitbox02-noise", "sha2"]
 
-# Only to be enabled in unit tests.
+# Only to be enabled in Rust unit tests.
 testing = ["bitbox02-rust/testing", "bitbox02/testing"]
+
+# Active when the Rust code is compiled to be linked into the C unit tests and simulator.
+c-unit-testing = ["bitbox02-rust/c-unit-testing", "bitbox02/c-unit-testing"]
 
 app-ethereum = [
   # enable this dep

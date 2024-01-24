@@ -176,7 +176,7 @@ pub fn reboot() -> ! {
     panic!("reboot called")
 }
 
-#[cfg(feature = "testing")]
+#[cfg(any(feature = "testing", feature = "c-unit-testing"))]
 pub fn print_stdout(msg: &str) {
     unsafe {
         bitbox02_sys::printf(crate::util::str_to_cstr_vec(msg).unwrap().as_ptr());

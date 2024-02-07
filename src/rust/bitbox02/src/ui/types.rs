@@ -21,7 +21,7 @@ use util::Survive;
 pub use bitbox02_sys::trinary_choice_t as TrinaryChoice;
 
 // Taking the constant straight from C, as it's excluding the null terminator.
-#[cfg_attr(feature = "testing", allow(dead_code))]
+#[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
 pub(crate) const MAX_LABEL_SIZE: usize = bitbox02_sys::MAX_LABEL_SIZE as _;
 
 #[derive(Default)]
@@ -33,7 +33,7 @@ pub enum Font {
 }
 
 impl Font {
-    #[cfg_attr(feature = "testing", allow(dead_code))]
+    #[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
     pub(crate) fn as_ptr(&self) -> *const bitbox02_sys::UG_FONT {
         match self {
             Font::Default => core::ptr::null() as *const _,
@@ -65,7 +65,7 @@ pub struct ConfirmParams<'a> {
 }
 
 impl<'a> ConfirmParams<'a> {
-    #[cfg_attr(feature = "testing", allow(dead_code))]
+    #[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
     /// `title_scratch` and `body_scratch` exist to keep the data
     /// alive for as long as the C params live.
     pub(crate) fn to_c_params(
@@ -110,7 +110,7 @@ pub struct TrinaryInputStringParams<'a> {
 }
 
 impl<'a> TrinaryInputStringParams<'a> {
-    #[cfg_attr(feature = "testing", allow(dead_code))]
+    #[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
     pub(crate) fn to_c_params(
         &self,
         title_scratch: &'a mut Vec<u8>,

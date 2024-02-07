@@ -86,10 +86,12 @@ bool securechip_attestation_sign(const uint8_t* msg, uint8_t* signature_out)
 
 bool securechip_monotonic_increments_remaining(uint32_t* remaining_out)
 {
-    return false;
+    *remaining_out = 1;
+    return true;
 }
 
 bool securechip_model(securechip_model_t* model_out)
 {
-    return false;
+    *model_out = SECURECHIP_ATECC608B;
+    return true;
 }

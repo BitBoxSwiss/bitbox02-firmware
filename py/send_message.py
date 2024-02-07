@@ -18,6 +18,7 @@
 # pylint: disable=too-many-lines
 
 import argparse
+import socket
 import pprint
 import sys
 from typing import List, Any, Optional, Callable, Union, Tuple, Sequence
@@ -41,6 +42,7 @@ from bitbox02.communication import (
     FirmwareVersionOutdatedException,
     u2fhid,
     bitbox_api_protocol,
+    PhysicalLayer,
 )
 
 import u2f
@@ -1556,6 +1558,65 @@ class U2FApp:
         return 0
 
 
+def connect_to_simulator_bitbox(debug: bool) -> int:
+    """
+    Connects and runs the main menu on host computer,
+    simulating a BitBox02 connected over USB.
+    """
+
+    class Simulator(PhysicalLayer):
+        """
+        Simulator class handles the communication
+        with the firmware simulator
+        """
+
+        def __init__(self) -> None:
+            self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            port = 15423
+            self.client_socket.bind(("", port))
+            self.client_socket.listen(50)
+            print(f"Waiting for connection on port {port}")
+            self.connection, addr = self.client_socket.accept()
+            print(f"Connected to {addr}")
+
+        def write(self, data: bytes) -> None:
+            self.connection.send(data[1:])
+            if debug:
+                print(f"Written to the simulator:\n{data.hex()[2:]}")
+
+        def read(self, size: int, timeout_ms: int) -> bytes:
+            res = self.connection.recv(64)
+            if debug:
+                print(f"Read from the simulator:\n{res.hex()}")
+            return res
+
+        def __del__(self) -> None:
+            print("Simulator quit")
+            if self.connection:
+                self.connection.shutdown(socket.SHUT_RDWR)
+                self.connection.close()
+
+    simulator = Simulator()
+
+    device_info: devices.DeviceInfo = {
+        "serial_number": "v9.16.0",
+        "path": b"",
+        "product_string": "BitBox02BTC",
+    }
+    noise_config = bitbox_api_protocol.BitBoxNoiseConfig()
+    bitbox_connection = bitbox02.BitBox02(
+        transport=u2fhid.U2FHid(simulator),
+        device_info=device_info,
+        noise_config=noise_config,
+    )
+    try:
+        bitbox_connection.check_min_version()
+    except FirmwareVersionOutdatedException as exc:
+        print("WARNING: ", exc)
+
+    return SendMessage(bitbox_connection, debug).run()
+
+
 def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
     """
     Connects and runs the main menu on a BitBox02 connected
@@ -1644,6 +1705,11 @@ def main() -> int:
     parser.add_argument("--debug", action="store_true", help="Print messages sent and received")
     parser.add_argument("--u2f", action="store_true", help="Use u2f menu instead")
     parser.add_argument(
+        "--simulator",
+        action="store_true",
+        help="Connect to the BitBox02 simulator instead of a real BitBox02",
+    )
+    parser.add_argument(
         "--no-cache", action="store_true", help="Don't use cached or store noise keys"
     )
     args = parser.parse_args()
@@ -1662,6 +1728,9 @@ def main() -> int:
             u2fapp = U2FApp(u2fdevice, args.debug)
             return u2fapp.run()
         return 1
+
+    if args.simulator:
+        return connect_to_simulator_bitbox(args.debug)
 
     return connect_to_usb_bitbox(args.debug, not args.no_cache)
 

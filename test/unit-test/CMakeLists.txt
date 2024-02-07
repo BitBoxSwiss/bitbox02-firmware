@@ -240,8 +240,6 @@ set(TEST_LIST
    "-Wl,--wrap=screen_process"
    ugui
    ""
-   simulator
-   ""
 )
 
 find_package(CMocka REQUIRED)

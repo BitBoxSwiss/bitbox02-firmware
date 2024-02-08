@@ -26,21 +26,9 @@ UG_COLOR screen_back_color = C_BLACK;
 slider_location_t top_slider = 1;
 slider_location_t bottom_slider = 0;
 
-void screen_init(void) {}
-
 void screen_print_debug(const char* message, int duration)
 {
     printf("%s\n", message);
-}
-
-void screen_sprintf_debug(int duration, const char* fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    char print[100] = {0};
-    vsnprintf(print, sizeof(print) - 1, fmt, args); // NOLINT
-    va_end(args);
-    printf("%s\n", print);
 }
 
 void screen_splash(void)

@@ -72,36 +72,3 @@ void memory_read_shared_bootdata_mock(uint8_t* chunk_out)
 {
     memcpy(chunk_out, _memory_shared_data, FLASH_SHARED_DATA_LEN);
 }
-
-static uint8_t _encrypted_seed_and_hmac[96];
-static uint8_t _encrypted_seed_and_hmac_len;
-
-bool __wrap_memory_set_encrypted_seed_and_hmac(uint8_t* encrypted_seed_and_hmac, uint8_t len)
-{
-    memcpy(_encrypted_seed_and_hmac, encrypted_seed_and_hmac, len);
-    _encrypted_seed_and_hmac_len = len;
-    return true;
-}
-
-bool __wrap_memory_get_encrypted_seed_and_hmac(
-    uint8_t* encrypted_seed_and_hmac_out,
-    uint8_t* len_out)
-{
-    *len_out = _encrypted_seed_and_hmac_len;
-    memcpy(encrypted_seed_and_hmac_out, _encrypted_seed_and_hmac, *len_out);
-    return true;
-}
-
-static uint8_t _salt_root[32] = {
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
-    0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33,
-};
-void mock_memory_set_salt_root(const uint8_t* salt_root)
-{
-    memcpy(_salt_root, salt_root, 32);
-}
-bool __wrap_memory_get_salt_root(uint8_t* salt_root_out)
-{
-    memcpy(salt_root_out, _salt_root, 32);
-    return true;
-}

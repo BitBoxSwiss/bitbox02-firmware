@@ -1,4 +1,4 @@
-# Copyright 2018 Shift Cryptosecurity AG
+# Copyright 2024 Shift Cryptosecurity AG
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ set(IGNORE_SOURCES
     "src/memory/smarteeprom.c"
     "src/memory.mpu.c"
     )
-#f9b3ceaa91e
 
 # Exclude some files which depends on the hardware.
 foreach(SOURCEFILE ${IGNORE_SOURCES})
@@ -106,7 +105,7 @@ target_include_directories(
   bitbox_objects-simulator
   PUBLIC
   ${INCLUDES}
-  ${CMAKE_CURRENT_SOURCE_DIR}/framework/includes
+  ${CMAKE_CURRENT_SOURCE_DIR}/../unit-test/framework/includes
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/src
 )
@@ -127,7 +126,7 @@ target_include_directories(
   bitbox-simulator
   PUBLIC
   ${INCLUDES}
-  ${CMAKE_CURRENT_SOURCE_DIR}/framework/includes
+  ${CMAKE_CURRENT_SOURCE_DIR}/../unit-test/framework/includes
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/src
 )
@@ -168,11 +167,6 @@ endif()
 if(SANTIZE_UNDEFINED)
   target_compile_options(bitbox_objects-simulator PUBLIC "-fsanitize=undefined")
   target_compile_options(bitbox-simulator PUBLIC "-fsanitize=undefined")
-endif()
-if(COVERAGE)
-  target_link_libraries(bitbox-simulator PUBLIC "--coverage")
-  target_compile_options(bitbox_objects-simulator PUBLIC "--coverage")
-  target_compile_options(bitbox-simulator PUBLIC "--coverage")
 endif()
 
 #-----------------------------------------------------------------------------

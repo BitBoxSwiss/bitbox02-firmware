@@ -35,11 +35,11 @@
 #define BUFFER_SIZE 1024
 
 int data_len;
-int sockfd;
+int commfd;
 
 int get_usb_message_socket(uint8_t* input)
 {
-    return read(sockfd, input, USB_HID_REPORT_OUT_SIZE);
+    return read(commfd, input, USB_HID_REPORT_OUT_SIZE);
 }
 
 void send_usb_message_socket(void)
@@ -48,7 +48,7 @@ void send_usb_message_socket(void)
     const uint8_t* data = queue_pull(q);
     if (data != NULL) {
         data_len = 256 * (int)data[5] + (int)data[6];
-        if (!write(sockfd, data, USB_HID_REPORT_OUT_SIZE)) {
+        if (!write(commfd, data, USB_HID_REPORT_OUT_SIZE)) {
             perror("ERROR, could not write to socket");
             exit(1);
         }
@@ -67,27 +67,31 @@ int main(void)
 {
     // Establish socket connection with client
     int portno = 15423;
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         perror("ERROR opening socket");
         return 1;
     }
-    struct hostent* server = gethostbyname("host.docker.internal");
-    if (server == NULL) {
-        fprintf(stderr, "ERROR, no such host\n");
-        return 1;
-    }
     struct sockaddr_in serv_addr;
-    memset((char*)&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    memcpy((char*)&serv_addr.sin_addr.s_addr, (char*)server->h_addr_list[0], server->h_length);
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(portno);
-    if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-        perror("ERROR, could not connect to client");
+    int serv_addr_len = sizeof(serv_addr);
+    if (bind(sockfd, (struct sockaddr*)&serv_addr, serv_addr_len) < 0) {
+        perror("ERROR binding socket");
         return 1;
     }
+    if (listen(sockfd, 50) < 0) {
+        perror("ERROR listening on socket");
+        return 1;
+    }
+    if ((commfd = accept(sockfd, (struct sockaddr*)&serv_addr, (socklen_t*)&serv_addr_len)) < 0) {
+        perror("accept");
+        return 1;
+    }
+    printf("Socket connection setup success\n");
 
-    // BitBox02 simulation initializaition
+    // BitBox02 simulation initialization
     usb_processing_init();
     usb_processing_set_send(usb_processing_hww(), send_usb_message_socket);
     printf("USB setup success\n");
@@ -137,6 +141,6 @@ int main(void)
             temp_len -= (USB_HID_REPORT_OUT_SIZE - 5);
         }
     }
-    close(sockfd);
+    close(commfd);
     return 0;
 }

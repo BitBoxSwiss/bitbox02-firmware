@@ -1573,28 +1573,24 @@ def connect_to_simulator_bitbox(debug: bool) -> int:
         def __init__(self) -> None:
             self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             port = 15423
-            self.client_socket.bind(("", port))
-            self.client_socket.listen(50)
-            print(f"Waiting for connection on port {port}")
-            self.connection, addr = self.client_socket.accept()
-            print(f"Connected to {addr}")
+            self.client_socket.connect(("127.0.0.1", port))
+            if debug:
+                print("Connected to the simulator")
 
         def write(self, data: bytes) -> None:
-            self.connection.send(data[1:])
+            self.client_socket.send(data[1:])
             if debug:
                 print(f"Written to the simulator:\n{data.hex()[2:]}")
 
         def read(self, size: int, timeout_ms: int) -> bytes:
-            res = self.connection.recv(64)
+            res = self.client_socket.recv(64)
             if debug:
                 print(f"Read from the simulator:\n{res.hex()}")
             return res
 
         def __del__(self) -> None:
             print("Simulator quit")
-            if self.connection:
-                self.connection.shutdown(socket.SHUT_RDWR)
-                self.connection.close()
+            self.client_socket.close()
 
     simulator = Simulator()
 

@@ -17,7 +17,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include <atecc/atecc.h>
+#include <securechip/securechip.h>
 #include <stdio.h>
 #include <string.h>
 #include <wally_crypto.h>
@@ -25,11 +25,11 @@
 typedef enum {
     SECURECHIP_SLOT_ROLLKEY = 3,
     SECURECHIP_SLOT_KDF = 4,
-} atecc_slot_t;
+} securechip_slot_t;
 
 static uint32_t _u2f_counter;
 
-bool atecc_update_keys(void)
+bool securechip_update_keys(void)
 {
     return true;
 }
@@ -44,7 +44,7 @@ static const uint8_t _kdfkey[32] =
     "\xd2\xe1\xe6\xb1\x8b\x6c\x6b\x08\x43\x3e\xdb\xc1\xd1\x68\xc1\xa0\x04\x37\x74\xa4\x22\x18\x77"
     "\xe7\x9e\xd5\x66\x84\xbe\x5a\xc0\x1b";
 
-static int _securechip_kdf(atecc_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out)
+static int _securechip_kdf(securechip_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out)
 {
     const uint8_t* key;
     switch (slot) {
@@ -55,54 +55,54 @@ static int _securechip_kdf(atecc_slot_t slot, const uint8_t* msg, size_t len, ui
         key = _kdfkey;
         break;
     default:
-        return ATECC_ERR_INVALID_ARGS;
+        return SC_ERR_INVALID_ARGS;
     }
     wally_hmac_sha256(key, 32, msg, len, kdf_out, 32);
     return 0;
 }
-int atecc_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out)
+int securechip_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out)
 {
     return _securechip_kdf(SECURECHIP_SLOT_KDF, msg, len, kdf_out);
 }
-int atecc_kdf_rollkey(const uint8_t* msg, size_t len, uint8_t* kdf_out)
+int securechip_kdf_rollkey(const uint8_t* msg, size_t len, uint8_t* kdf_out)
 {
     return _securechip_kdf(SECURECHIP_SLOT_ROLLKEY, msg, len, kdf_out);
 }
 
-bool atecc_u2f_counter_set(uint32_t counter)
+bool securechip_u2f_counter_set(uint32_t counter)
 {
     _u2f_counter = counter;
     return true;
 }
 
-bool atecc_u2f_counter_inc(uint32_t* counter)
+bool securechip_u2f_counter_inc(uint32_t* counter)
 {
     *counter = _u2f_counter++;
     return true;
 }
 
-bool atecc_ecc_unsafe_sign(const uint8_t* priv_key, const uint8_t* msg, uint8_t* sig)
+bool securechip_ecc_unsafe_sign(const uint8_t* priv_key, const uint8_t* msg, uint8_t* sig)
 {
     return false;
 }
 
-bool atecc_ecc_generate_public_key(uint8_t* priv_key, uint8_t* pub_key)
+bool securechip_ecc_generate_public_key(uint8_t* priv_key, uint8_t* pub_key)
 {
     return false;
 }
 
-bool atecc_attestation_sign(const uint8_t* msg, uint8_t* signature_out)
+bool securechip_attestation_sign(const uint8_t* msg, uint8_t* signature_out)
 {
     return false;
 }
 
-bool atecc_monotonic_increments_remaining(uint32_t* remaining_out)
+bool securechip_monotonic_increments_remaining(uint32_t* remaining_out)
 {
     *remaining_out = 1;
     return true;
 }
 
-bool atecc_model(atecc_model_t* model_out)
+bool securechip_model(securechip_model_t* model_out)
 {
     *model_out = ATECC_ATECC608B;
     return true;

@@ -14,6 +14,7 @@
 
 #include "atecc.h"
 #include "hardfault.h"
+#include "securechip/securechip.h"
 #include <i2c_ecc.h>
 #include <util.h>
 
@@ -90,7 +91,7 @@ typedef union {
 
 #pragma GCC diagnostic pop
 
-static const atecc_interface_functions_t* _interface_functions = NULL;
+static const securechip_interface_functions_t* _interface_functions = NULL;
 
 /** \brief initialize an I2C interface using given config.
  * \param[in] hal - opaque ptr to HAL data
@@ -378,7 +379,7 @@ static int _verify_config(void)
     return ATCA_SUCCESS;
 }
 
-int atecc_setup(const atecc_interface_functions_t* ifs)
+int atecc_setup(const securechip_interface_functions_t* ifs)
 {
     if (ifs == NULL) {
         return ATECC_ERR_IFS;
@@ -781,7 +782,7 @@ bool atecc_u2f_counter_inc(uint32_t* counter)
 }
 #endif
 
-bool atecc_model(atecc_model_t* model_out)
+bool atecc_model(securechip_model_t* model_out)
 {
     uint8_t revision[4] = {0};
     if (atcab_info(revision) != ATCA_SUCCESS) {

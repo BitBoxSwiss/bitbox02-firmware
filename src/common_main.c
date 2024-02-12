@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "common_main.h"
-#include "atecc/atecc.h"
 #include "driver_init.h"
 #include "flags.h"
 #include "hardfault.h"
@@ -23,6 +22,7 @@
 #include "memory/smarteeprom.h"
 #include "random.h"
 #include "screen.h"
+#include "securechip/securechip.h"
 #include "util.h"
 #include <wally_core.h>
 
@@ -45,7 +45,7 @@ static const memory_interface_functions_t _memory_interface_functions = {
     .random_32_bytes = random_32_bytes_mcu,
 };
 
-static const atecc_interface_functions_t _securechip_interface_functions = {
+static const securechip_interface_functions_t _securechip_interface_functions = {
     .get_auth_key = memory_get_authorization_key,
     .get_io_protection_key = memory_get_io_protection_key,
     .get_encryption_key = memory_get_encryption_key,
@@ -83,9 +83,12 @@ void common_main(void)
     /* Enable/configure SmartEEPROM. */
     smarteeprom_bb02_config();
 
+    if (!securechip_init()) {
+        AbortAutoenter("Failed to detect securechip");
+    }
     // securechip_setup must come after memory_setup, so the io/auth keys to be
     // used are already initialized.
-    int securechip_result = atecc_setup(&_securechip_interface_functions);
+    int securechip_result = securechip_setup(&_securechip_interface_functions);
     if (securechip_result) {
         char errmsg[100] = {0};
         snprintf(

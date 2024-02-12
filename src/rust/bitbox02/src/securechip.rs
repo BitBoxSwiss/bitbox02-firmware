@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub use bitbox02_sys::atecc_model_t as Model;
+pub use bitbox02_sys::securechip_model_t as Model;
 
 pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
     match unsafe {
-        bitbox02_sys::atecc_attestation_sign(challenge.as_ptr(), signature.as_mut_ptr())
+        bitbox02_sys::securechip_attestation_sign(challenge.as_ptr(), signature.as_mut_ptr())
     } {
         true => Ok(()),
         false => Err(()),
@@ -25,7 +25,7 @@ pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Resul
 
 pub fn monotonic_increments_remaining() -> Result<u32, ()> {
     let mut result: u32 = 0;
-    match unsafe { bitbox02_sys::atecc_monotonic_increments_remaining(&mut result as _) } {
+    match unsafe { bitbox02_sys::securechip_monotonic_increments_remaining(&mut result as _) } {
         true => Ok(result),
         false => Err(()),
     }
@@ -34,7 +34,7 @@ pub fn monotonic_increments_remaining() -> Result<u32, ()> {
 #[cfg(feature = "app-u2f")]
 #[cfg(not(feature = "testing"))]
 pub fn u2f_counter_set(counter: u32) -> Result<(), ()> {
-    match unsafe { bitbox02_sys::atecc_u2f_counter_set(counter) } {
+    match unsafe { bitbox02_sys::securechip_u2f_counter_set(counter) } {
         true => Ok(()),
         false => Err(()),
     }
@@ -48,7 +48,7 @@ pub fn u2f_counter_set(_counter: u32) -> Result<(), ()> {
 
 pub fn model() -> Result<Model, ()> {
     let mut ver = core::mem::MaybeUninit::uninit();
-    match unsafe { bitbox02_sys::atecc_model(ver.as_mut_ptr()) } {
+    match unsafe { bitbox02_sys::securechip_model(ver.as_mut_ptr()) } {
         true => Ok(unsafe { ver.assume_init() }),
         false => Err(()),
     }

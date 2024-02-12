@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "atecc/atecc.h"
 #include "common_main.h"
 #include "driver_init.h"
 #include "flags.h"
@@ -20,6 +19,7 @@
 #include "memory/memory.h"
 #include "platform_init.h"
 #include "screen.h"
+#include "securechip/securechip.h"
 #include "usb/usb.h"
 #include "usb/usb_packet.h"
 #include "usb/usb_processing.h"
@@ -210,7 +210,7 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
     case OP_GENKEY: {
         screen_print_debug("generating pubkey...", 0);
         uint8_t pubkey[64];
-        if (!atecc_gen_attestation_key(pubkey)) {
+        if (!securechip_gen_attestation_key(pubkey)) {
             screen_print_debug("generating pubkey\nfailed", 0);
             result = ERR_FAILED;
             break;
@@ -277,13 +277,13 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
         screen_print_debug("DONE", 0);
         break;
     case OP_SC_ROLLKEYS:
-        if (!atecc_update_keys()) {
+        if (!securechip_update_keys()) {
             screen_print_debug("rollkeys: failed", 0);
             result = ERR_FAILED;
             break;
         }
         screen_print_debug("rollkeys: success", 100);
-        if (!atecc_u2f_counter_set(0)) {
+        if (!securechip_u2f_counter_set(0)) {
             screen_print_debug("reset u2f counter", 0);
             result = ERR_FAILED;
             break;

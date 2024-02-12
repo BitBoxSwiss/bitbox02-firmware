@@ -20,7 +20,7 @@
 #include "memory/smarteeprom.h"
 
 #ifndef TESTING
-#include "atecc/atecc.h"
+#include "securechip/securechip.h"
 #include <driver_init.h>
 #include <hal_delay.h>
 #include <ui/components/status.h>
@@ -50,7 +50,7 @@ void reset_reset(bool status)
 #if !defined(TESTING)
     bool sc_result_update_keys = false;
     for (int retries = 0; retries < 5; retries++) {
-        sc_result_update_keys = atecc_update_keys();
+        sc_result_update_keys = securechip_update_keys();
         if (sc_result_update_keys) {
             break;
         }
@@ -61,7 +61,7 @@ void reset_reset(bool status)
 #if APP_U2F == 1
     bool sc_result_u2f_counter_set = false;
     for (int retries = 0; retries < 5; retries++) {
-        sc_result_u2f_counter_set = atecc_u2f_counter_set(0);
+        sc_result_u2f_counter_set = securechip_u2f_counter_set(0);
         if (sc_result_u2f_counter_set) {
             break;
         }

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <atecc/atecc.h>
 #include <bip32.h>
 #include <keystore.h>
 #include <memory/bitbox02_smarteeprom.h>
@@ -22,7 +23,6 @@
 #include <screen.h>
 #include <sd.h>
 #include <secp256k1_ecdsa_s2c.h>
-#include <securechip/securechip.h>
 #include <system.h>
 #include <time.h>
 #include <ui/components/confirm.h>

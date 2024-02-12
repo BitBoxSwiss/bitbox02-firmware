@@ -17,7 +17,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include <securechip/securechip.h>
+#include <atecc/atecc.h>
 #include <stdio.h>
 #include <string.h>
 #include <wally_crypto.h>

@@ -105,6 +105,10 @@ RUN python3 -m pip install --upgrade \
     wheel==0.33.6 \
     twine==1.15.0
 
+# python modules for mbedtls
+RUN --mount=source=external/mbedtls/scripts/driver.requirements.txt,target=/mnt/driver.requirements.txt,rw \
+    python3 -m pip install --no-compile --no-cache-dir --upgrade --requirement /mnt/driver.requirements.txt
+
 #Install protoc from release, because the version available on the repo is too old
 RUN if [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
       PROTOC_URL=https://github.com/protocolbuffers/protobuf/releases/download/v21.2/protoc-21.2-linux-aarch_64.zip; \

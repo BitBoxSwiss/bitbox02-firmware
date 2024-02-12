@@ -15,9 +15,9 @@
 #include <stdio.h>
 #include <string.h>
 #ifndef TESTING
+#include "atecc/atecc.h"
 #include "driver_init.h"
 #include "flags.h"
-#include "securechip/securechip.h"
 #include <hal_rand_sync.h>
 #endif
 #include "hardfault.h"
@@ -72,8 +72,8 @@ static void random_32_bytes_sec(uint8_t* buf)
         random[i] = rand();
     }
 #else
-    if (!securechip_random(random)) {
-        Abort("Abort: securechip_random");
+    if (!atecc_random(random)) {
+        Abort("Abort: atecc_random");
     }
 #endif
     for (size_t i = 0; i < sizeof(random); i++) {

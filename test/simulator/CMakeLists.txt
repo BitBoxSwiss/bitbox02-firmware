@@ -63,7 +63,7 @@ add_library(bitbox_objects-simulator
   framework/mock_memory.c
   framework/mock_screen.c
   framework/mock_smarteeprom.c
-  framework/mock_securechip.c
+  framework/mock_atecc.c
 )
 
 add_library(bitbox-simulator

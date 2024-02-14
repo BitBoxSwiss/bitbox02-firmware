@@ -39,6 +39,16 @@ void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
         rust_util_bytes(in_bin, in_len), rust_util_bytes_mut((uint8_t*)out, in_len * 2 + 1));
 }
 
+#if defined(SEMIHOSTING)
+char* util_uint8_to_hex_alloc(const uint8_t* in_bin, const size_t in_len)
+{
+    void* out = malloc(in_len * 2 + 1);
+    rust_util_uint8_to_hex(
+        rust_util_bytes(in_bin, in_len), rust_util_bytes_mut((uint8_t*)out, in_len * 2 + 1));
+    return (char*)out;
+}
+#endif
+
 void util_cleanup_str(char** str)
 {
     util_zero(*str, strlens(*str));

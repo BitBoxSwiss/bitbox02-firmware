@@ -13907,6 +13907,12 @@ static const app_eth_erc20_params_t _ethereum_erc20_params[] = {
             "\x14\x6a\x29\x2b\x03\x75\xe0\x6e\x93\xee\x07\xd5\x0e\x39\xc9\x89\x77\x91\x70\xf5",
         .decimals = 18,
     },
+    {
+        .unit = "GUNTHY",
+        .contract_address =
+            "\x36\x84\xb5\x81\xdb\x1f\x94\xb7\x21\xee\x00\x22\x62\x43\x29\xfe\xb1\x6a\xb6\x53",
+        .decimals = 18,
+    },
 };
 
 const app_eth_erc20_params_t* app_eth_erc20_params_get(

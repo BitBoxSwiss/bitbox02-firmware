@@ -25,6 +25,36 @@
 
 #include "memory/smarteeprom.h"
 
+//
+// Memory layout flash
+//
+// +-------------+ 0xFA000
+// |  Boot data  |
+// |  (0x02000)  |
+// |             |
+// +-------------+ 0xF8000
+// |  App data   |
+// |  (0x10000)  |
+// |             |
+// +-------------+ 0xE8000
+// |     App     |
+// |  (0xD8000)  |
+// |             |
+// +-------------+ 0x10000
+// | Shared data |
+// |  (0x02000)  |
+// |             |
+// +-------------+ 0x0E000
+// |   Factory   |
+// |  Randomness |
+// |  (0x00020)  |
+// +-------------+ 0x0DFE0
+// |    Boot     |
+// |  (0x0DFE0)  |
+// |             |
+// +-------------+ 0x00000
+//
+
 // The total size of the flash is 1MB (2048 pages).
 #define FLASH_END (2048 * FLASH_PAGE_SIZE)
 

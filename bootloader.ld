@@ -35,7 +35,7 @@ SEARCH_DIR(.)
 /* Memory Spaces Definitions */
 MEMORY
 {
-  /* Reserve (at least) 32 bytes of space for factory install random bytes */
+  /* Reserve 32 bytes of space for factory install random bytes */
   rom      (rx)  : ORIGIN = 0x00000000, LENGTH = 0x0000DFE0
   ram      (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00040000
   bkupram  (rwx) : ORIGIN = 0x47000000, LENGTH = 0x00002000

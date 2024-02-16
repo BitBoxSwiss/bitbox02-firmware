@@ -179,3 +179,12 @@ make coverage # or make -C build-build coverage
 ```sh
 make -C build-build coverage-lcovr
 ```
+
+### SCCache / CCache
+
+The build systems supports sccache/ccache, you just need to have it available in your path. You can
+install it into your dev container with the following commands:
+
+```
+docker exec -u 0 -it bitbox02-firmware-dev bash -c 'apt update && apt install -y libssl-dev && CARGO_HOME=/opt/cargo cargo install --locked sccache'
+```

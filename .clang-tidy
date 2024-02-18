@@ -15,7 +15,8 @@ Checks: >-
   -bugprone-narrowing-conversions,
   -performance-no-int-to-ptr,
   -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
-  -readability-avoid-unconditional-preprocessor-if
+  -readability-avoid-unconditional-preprocessor-if,
+  -readability-suspicious-call-argument
 HeaderFilterRegex: '.*'
 ExtraArgs:
   - -Wno-unknown-warning-option

@@ -2,7 +2,10 @@ include(ExternalProject)
 
 if(CMAKE_CROSSCOMPILING)
   set(CONFIGURE_FLAGS
-    --host=${CMAKE_SYSTEM_PROCESSOR}-none-eabi --build=${CMAKE_HOST_SYSTEM_PROCESSOR}-linux-gnu)
+    --host=${CMAKE_SYSTEM_PROCESSOR}-none-eabi
+    --build=${CMAKE_HOST_SYSTEM_PROCESSOR}-linux-gnu
+    "$<$<BOOL:${CMAKE_C_COMPILER_LAUNCHER}>:CC=${CMAKE_C_COMPILER_LAUNCHER} ${CMAKE_C_COMPILER}>"
+  )
 endif()
 
 # Remove parameters to make build identical to older build

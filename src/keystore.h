@@ -254,6 +254,16 @@ USE_RESULT bool keystore_bip85_bip39(
     size_t mnemonic_out_size);
 
 /**
+ * Computes a 16 byte deterministic seed specifically for Lightning hot wallets according to BIP-85.
+ * It is the same as BIP-85 with app number 39', but instead using app number 19534' (= 0x4c4e =
+ * 'LN'). https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39
+ * Restricted to 16 byte output entropy.
+ * @param[in] index must be smaller than `BIP32_INITIAL_HARDENED_CHILD`.
+ * @param[out] entropy_out resulting entropy, must be at least 16 bytes in size.
+ */
+USE_RESULT bool keystore_bip85_ln(uint32_t index, uint8_t* entropy_out);
+
+/**
  * Encode an xpub at the given `keypath` as 78 bytes according to BIP32. The version bytes are
  * the ones corresponding to `xpub`, i.e. 0x0488B21E.
  * `out` must be `BIP32_SERIALIZED_LEN` long.

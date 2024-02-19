@@ -690,7 +690,28 @@ class BitBox02(BitBoxCommonAPI):
                 bip39=google.protobuf.empty_pb2.Empty(),
             )
         )
-        self._msg_query(request)
+        response = self._msg_query(request, expected_response="bip85").bip85
+        assert response.WhichOneof("app") == "bip39"
+
+    def bip85_ln(self) -> bytes:
+        """
+        Generates and returns a mnemonic for a hot Lightning wallet from the device using BIP-85.
+        """
+        self._require_atleast(semver.VersionInfo(9, 17, 0))
+
+        # Only account_number=0 is allowed for now.
+        account_number = 0
+
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.bip85.CopyFrom(
+            keystore.BIP85Request(
+                ln=keystore.BIP85Request.AppLn(account_number=account_number),
+            )
+        )
+        response = self._msg_query(request, expected_response="bip85").bip85
+        assert response.WhichOneof("app") == "ln"
+        return response.ln
 
     def enable_mnemonic_passphrase(self) -> None:
         """

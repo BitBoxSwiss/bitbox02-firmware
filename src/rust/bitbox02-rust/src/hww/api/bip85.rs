@@ -17,26 +17,35 @@ use super::Error;
 
 use pb::response::Response;
 
-use bitbox02::keystore;
+use crate::workflow::confirm;
 
-use crate::workflow::trinary_choice::{choose, TrinaryChoice};
-use crate::workflow::{confirm, menu, mnemonic, status, trinary_input_string};
+use bitbox02::keystore;
 
 use alloc::vec::Vec;
 
 /// Processes a BIP-85 API call.
 pub async fn process(request: &pb::Bip85Request) -> Result<Response, Error> {
-    match request.app {
+    match &request.app {
         None => Err(Error::InvalidInput),
+        #[cfg(not(feature = "app-bip85-bip39"))]
+        Some(pb::bip85_request::App::Bip39(())) => Err(Error::Disabled),
+        #[cfg(feature = "app-bip85-bip39")]
         Some(pb::bip85_request::App::Bip39(())) => Ok(Response::Bip85(pb::Bip85Response {
             app: Some(pb::bip85_response::App::Bip39(process_bip39().await?)),
+        })),
+        Some(pb::bip85_request::App::Ln(request)) => Ok(Response::Bip85(pb::Bip85Response {
+            app: Some(pb::bip85_response::App::Ln(process_ln(request).await?)),
         })),
     }
 }
 
 /// Derives and displays a BIP-39 seed according to BIP-85:
 /// https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39.
+#[cfg(feature = "app-bip85-bip39")]
 async fn process_bip39() -> Result<(), Error> {
+    use crate::workflow::trinary_choice::{choose, TrinaryChoice};
+    use crate::workflow::{menu, mnemonic, status, trinary_input_string};
+
     confirm::confirm(&confirm::Params {
         title: "BIP-85",
         body: "Derive BIP-39\nmnemonic?",
@@ -115,4 +124,26 @@ async fn process_bip39() -> Result<(), Error> {
     status::status("Finished", true).await;
 
     Ok(())
+}
+
+/// Derives and displays a LN seed according to BIP-85.
+/// It is the same as BIP-85 with app number 39', but instead using app number 19534' (= 0x4c4e = 'LN'),
+/// and restricted to 12 word mnemonics.
+/// https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39
+async fn process_ln(
+    &pb::bip85_request::AppLn { account_number }: &pb::bip85_request::AppLn,
+) -> Result<Vec<u8>, Error> {
+    // We allow only one LN account until we see a reason to have more.
+    if account_number != 0 {
+        return Err(Error::InvalidInput);
+    }
+    confirm::confirm(&confirm::Params {
+        title: "",
+        body: "Create\nLightning wallet\non host device?",
+        longtouch: true,
+        ..Default::default()
+    })
+    .await?;
+
+    keystore::bip85_ln(account_number).map_err(|_| Error::Generic)
 }

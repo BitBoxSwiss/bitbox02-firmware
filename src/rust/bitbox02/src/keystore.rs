@@ -321,6 +321,14 @@ pub fn bip85_bip39(words: u32, index: u32) -> Result<zeroize::Zeroizing<String>,
     }
 }
 
+pub fn bip85_ln(index: u32) -> Result<Vec<u8>, ()> {
+    let mut entropy = vec![0u8; 16];
+    match unsafe { bitbox02_sys::keystore_bip85_ln(index, entropy.as_mut_ptr()) } {
+        false => Err(()),
+        true => Ok(entropy),
+    }
+}
+
 pub fn secp256k1_schnorr_bip86_sign(keypath: &[u32], msg: &[u8; 32]) -> Result<[u8; 64], ()> {
     let mut signature = [0u8; 64];
     match unsafe {
@@ -498,5 +506,32 @@ mod tests {
         assert!(bip85_bip39(10, 0).is_err());
         // Index too high.
         assert!(bip85_bip39(12, util::bip32::HARDENED).is_err());
+    }
+
+    #[test]
+    fn test_bip85_ln() {
+        lock();
+        assert!(bip85_ln(0).is_err());
+
+        mock_unlocked_using_mnemonic(
+            "virtual weapon code laptop defy cricket vicious target wave leopard garden give",
+            "",
+        );
+
+        assert_eq!(
+            bip85_ln(0).unwrap().as_slice(),
+            b"\x3a\x5f\x3b\x88\x8a\xab\x88\xe2\xa9\xab\x99\x1b\x60\xa0\x3e\xd8",
+        );
+        assert_eq!(
+            bip85_ln(1).unwrap().as_slice(),
+            b"\xe7\xd9\xce\x75\xf8\xcb\x17\x57\x0e\x66\x54\x17\xb4\x7f\xa0\xbe",
+        );
+        assert_eq!(
+            bip85_ln(util::bip32::HARDENED - 1).unwrap().as_slice(),
+            b"\x1f\x3b\x75\xea\x25\x27\x49\x70\x0a\x1e\x45\x34\x69\x14\x8c\xa6",
+        );
+
+        // Index too high.
+        assert!(bip85_ln(util::bip32::HARDENED).is_err());
     }
 }

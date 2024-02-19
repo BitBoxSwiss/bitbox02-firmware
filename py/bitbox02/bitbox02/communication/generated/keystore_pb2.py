@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0ekeystore.proto\x12\x14shiftcrypto.bitbox02\x1a\x1bgoogle/protobuf/empty.proto\"/\n\x1c\x45lectrumEncryptionKeyRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\",\n\x1d\x45lectrumEncryptionKeyResponse\x12\x0b\n\x03key\x18\x01 \x01(\t\">\n\x0c\x42IP85Request\x12\'\n\x05\x62ip39\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x42\x05\n\x03\x61pp\"?\n\rBIP85Response\x12\'\n\x05\x62ip39\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x42\x05\n\x03\x61ppb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0ekeystore.proto\x12\x14shiftcrypto.bitbox02\x1a\x1bgoogle/protobuf/empty.proto\"/\n\x1c\x45lectrumEncryptionKeyRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\",\n\x1d\x45lectrumEncryptionKeyResponse\x12\x0b\n\x03key\x18\x01 \x01(\t\"\x97\x01\n\x0c\x42IP85Request\x12\'\n\x05\x62ip39\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x12\x36\n\x02ln\x18\x02 \x01(\x0b\x32(.shiftcrypto.bitbox02.BIP85Request.AppLnH\x00\x1a\x1f\n\x05\x41ppLn\x12\x16\n\x0e\x61\x63\x63ount_number\x18\x01 \x01(\rB\x05\n\x03\x61pp\"M\n\rBIP85Response\x12\'\n\x05\x62ip39\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x12\x0c\n\x02ln\x18\x02 \x01(\x0cH\x00\x42\x05\n\x03\x61ppb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'keystore_pb2', globals())
@@ -25,8 +25,10 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _ELECTRUMENCRYPTIONKEYREQUEST._serialized_end=116
   _ELECTRUMENCRYPTIONKEYRESPONSE._serialized_start=118
   _ELECTRUMENCRYPTIONKEYRESPONSE._serialized_end=162
-  _BIP85REQUEST._serialized_start=164
-  _BIP85REQUEST._serialized_end=226
-  _BIP85RESPONSE._serialized_start=228
-  _BIP85RESPONSE._serialized_end=291
+  _BIP85REQUEST._serialized_start=165
+  _BIP85REQUEST._serialized_end=316
+  _BIP85REQUEST_APPLN._serialized_start=278
+  _BIP85REQUEST_APPLN._serialized_end=309
+  _BIP85RESPONSE._serialized_start=318
+  _BIP85RESPONSE._serialized_end=395
 # @@protoc_insertion_point(module_scope)

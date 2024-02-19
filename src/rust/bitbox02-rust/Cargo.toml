@@ -107,7 +107,7 @@ app-cardano = [
   "ed25519"
 ]
 
-app-bip85 = []
+app-bip85-bip39 = []
 
 testing = [
   # enable these deps

@@ -864,6 +864,30 @@ bool keystore_bip85_bip39(
     return snprintf_result >= 0 && snprintf_result < (int)mnemonic_out_size;
 }
 
+bool keystore_bip85_ln(uint32_t index, uint8_t* entropy_out)
+{
+    if (index >= BIP32_INITIAL_HARDENED_CHILD) {
+        return false;
+    }
+
+    const uint32_t keypath[] = {
+        83696968 + BIP32_INITIAL_HARDENED_CHILD,
+        19534 + BIP32_INITIAL_HARDENED_CHILD,
+        0 + BIP32_INITIAL_HARDENED_CHILD,
+        12 + BIP32_INITIAL_HARDENED_CHILD,
+        index + BIP32_INITIAL_HARDENED_CHILD,
+    };
+
+    uint8_t entropy[64] = {0};
+    UTIL_CLEANUP_64(entropy);
+    if (!_bip85_entropy(keypath, sizeof(keypath) / sizeof(uint32_t), entropy)) {
+        return false;
+    }
+
+    memcpy(entropy_out, entropy, 16);
+    return true;
+}
+
 USE_RESULT bool keystore_encode_xpub_at_keypath(
     const uint32_t* keypath,
     size_t keypath_len,

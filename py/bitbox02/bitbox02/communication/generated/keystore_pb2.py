@@ -11,21 +11,22 @@ from google.protobuf import symbol_database as _symbol_database
 _sym_db = _symbol_database.Default()
 
 
+from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0ekeystore.proto\x12\x14shiftcrypto.bitbox02\"/\n\x1c\x45lectrumEncryptionKeyRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\",\n\x1d\x45lectrumEncryptionKeyResponse\x12\x0b\n\x03key\x18\x01 \x01(\t\"\x0e\n\x0c\x42IP85Request\"\x0f\n\rBIP85Responseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0ekeystore.proto\x12\x14shiftcrypto.bitbox02\x1a\x1bgoogle/protobuf/empty.proto\"/\n\x1c\x45lectrumEncryptionKeyRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\",\n\x1d\x45lectrumEncryptionKeyResponse\x12\x0b\n\x03key\x18\x01 \x01(\t\">\n\x0c\x42IP85Request\x12\'\n\x05\x62ip39\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x42\x05\n\x03\x61pp\"?\n\rBIP85Response\x12\'\n\x05\x62ip39\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x42\x05\n\x03\x61ppb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'keystore_pb2', globals())
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
-  _ELECTRUMENCRYPTIONKEYREQUEST._serialized_start=40
-  _ELECTRUMENCRYPTIONKEYREQUEST._serialized_end=87
-  _ELECTRUMENCRYPTIONKEYRESPONSE._serialized_start=89
-  _ELECTRUMENCRYPTIONKEYRESPONSE._serialized_end=133
-  _BIP85REQUEST._serialized_start=135
-  _BIP85REQUEST._serialized_end=149
-  _BIP85RESPONSE._serialized_start=151
-  _BIP85RESPONSE._serialized_end=166
+  _ELECTRUMENCRYPTIONKEYREQUEST._serialized_start=69
+  _ELECTRUMENCRYPTIONKEYREQUEST._serialized_end=116
+  _ELECTRUMENCRYPTIONKEYRESPONSE._serialized_start=118
+  _ELECTRUMENCRYPTIONKEYRESPONSE._serialized_end=162
+  _BIP85REQUEST._serialized_start=164
+  _BIP85REQUEST._serialized_end=226
+  _BIP85RESPONSE._serialized_start=228
+  _BIP85RESPONSE._serialized_end=291
 # @@protoc_insertion_point(module_scope)

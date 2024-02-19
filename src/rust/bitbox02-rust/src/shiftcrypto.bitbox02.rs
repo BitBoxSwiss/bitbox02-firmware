@@ -1512,10 +1512,34 @@ pub struct ElectrumEncryptionKeyResponse {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Bip85Request {}
+pub struct Bip85Request {
+    #[prost(oneof = "bip85_request::App", tags = "1")]
+    pub app: ::core::option::Option<bip85_request::App>,
+}
+/// Nested message and enum types in `BIP85Request`.
+pub mod bip85_request {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum App {
+        #[prost(message, tag = "1")]
+        Bip39(()),
+    }
+}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Bip85Response {}
+pub struct Bip85Response {
+    #[prost(oneof = "bip85_response::App", tags = "1")]
+    pub app: ::core::option::Option<bip85_response::App>,
+}
+/// Nested message and enum types in `BIP85Response`.
+pub mod bip85_response {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum App {
+        #[prost(message, tag = "1")]
+        Bip39(()),
+    }
+}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ShowMnemonicRequest {}

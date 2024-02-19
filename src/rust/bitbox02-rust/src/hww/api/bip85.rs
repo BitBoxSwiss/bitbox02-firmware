@@ -24,9 +24,19 @@ use crate::workflow::{confirm, menu, mnemonic, status, trinary_input_string};
 
 use alloc::vec::Vec;
 
+/// Processes a BIP-85 API call.
+pub async fn process(request: &pb::Bip85Request) -> Result<Response, Error> {
+    match request.app {
+        None => Err(Error::InvalidInput),
+        Some(pb::bip85_request::App::Bip39(())) => Ok(Response::Bip85(pb::Bip85Response {
+            app: Some(pb::bip85_response::App::Bip39(process_bip39().await?)),
+        })),
+    }
+}
+
 /// Derives and displays a BIP-39 seed according to BIP-85:
 /// https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39.
-pub async fn process(pb::Bip85Request {}: &pb::Bip85Request) -> Result<Response, Error> {
+async fn process_bip39() -> Result<(), Error> {
     confirm::confirm(&confirm::Params {
         title: "BIP-85",
         body: "Derive BIP-39\nmnemonic?",
@@ -104,5 +114,5 @@ pub async fn process(pb::Bip85Request {}: &pb::Bip85Request) -> Result<Response,
 
     status::status("Finished", true).await;
 
-    Ok(Response::Bip85(pb::Bip85Response {}))
+    Ok(())
 }

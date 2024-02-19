@@ -340,8 +340,8 @@ class SendMessage:
             ),
         )
 
-    def _bip85(self) -> None:
-        self._device.bip85()
+    def _bip85_bip39(self) -> None:
+        self._device.bip85_bip39()
 
     def _btc_address(self) -> None:
         def address(display: bool) -> str:
@@ -1391,7 +1391,7 @@ class SendMessage:
             ("Sign Ethereum Typed Message (EIP-712)", self._sign_eth_typed_message),
             ("Cardano", self._cardano),
             ("Show Electrum wallet encryption key", self._get_electrum_encryption_key),
-            ("BIP85", self._bip85),
+            ("BIP85 - BIP39", self._bip85_bip39),
             ("Reset Device", self._reset_device),
         )
         choice = ask_user(choices)

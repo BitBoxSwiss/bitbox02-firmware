@@ -43,6 +43,7 @@ try:
     from bitbox02.communication.generated import common_pb2 as common
     from bitbox02.communication.generated import keystore_pb2 as keystore
     from bitbox02.communication.generated import antiklepto_pb2 as antiklepto
+    import google.protobuf.empty_pb2
 
     # pylint: disable=unused-import
     # We export it in __init__.py
@@ -678,13 +679,17 @@ class BitBox02(BitBoxCommonAPI):
         )
         return self._msg_query(request).electrum_encryption_key.key
 
-    def bip85(self) -> None:
-        """Invokes the BIP-85 workflow on the device"""
-        self._require_atleast(semver.VersionInfo(9, 16, 0))
+    def bip85_bip39(self) -> None:
+        """Invokes the BIP85-BIP39 workflow on the device"""
+        self._require_atleast(semver.VersionInfo(9, 17, 0))
 
         # pylint: disable=no-member
         request = hww.Request()
-        request.bip85.CopyFrom(keystore.BIP85Request())
+        request.bip85.CopyFrom(
+            keystore.BIP85Request(
+                bip39=google.protobuf.empty_pb2.Empty(),
+            )
+        )
         self._msg_query(request)
 
     def enable_mnemonic_passphrase(self) -> None:

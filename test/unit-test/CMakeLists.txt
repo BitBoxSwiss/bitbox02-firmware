@@ -31,7 +31,6 @@ set(IGNORE_SOURCES
     "src/memory/smarteeprom.c"
     "src/memory.mpu.c"
     )
-#f9b3ceaa91e
 
 # Exclude some files which depends on the hardware.
 foreach(SOURCEFILE ${IGNORE_SOURCES})
@@ -239,8 +238,6 @@ set(TEST_LIST
    workflow_blocking
    "-Wl,--wrap=screen_process"
    ugui
-   ""
-   simulator
    ""
 )
 

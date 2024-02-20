@@ -1,4 +1,4 @@
-// Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2022 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,33 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <unistd.h>
-
-#include <screen.h>
-
-UG_COLOR screen_front_color = C_WHITE;
-UG_COLOR screen_back_color = C_BLACK;
-
-slider_location_t top_slider = 1;
-slider_location_t bottom_slider = 0;
-
-void screen_print_debug(const char* message, int duration)
-{
-    printf("%s\n", message);
-}
-
-void screen_splash(void)
-{
-    puts("screen splash\n");
-}
-
-void screen_rotate(void) {}
-
-bool screen_is_upside_down(void)
-{
-    return false;
-}
+// Needed to link the simulator executable in /test/simulator, which link to
+// bitbox_merged-simulator. `rust_eh_personality` is provided by Rust when building the firmware or
+// running Rust unit tests.
+void rust_eh_personality(void);
+void rust_eh_personality(void) {}

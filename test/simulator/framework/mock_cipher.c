@@ -1,4 +1,4 @@
-// Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2023 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,33 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <unistd.h>
+#include <string.h>
 
-#include <screen.h>
+#include <mock_cipher.h>
 
-UG_COLOR screen_front_color = C_WHITE;
-UG_COLOR screen_back_color = C_BLACK;
-
-slider_location_t top_slider = 1;
-slider_location_t bottom_slider = 0;
-
-void screen_print_debug(const char* message, int duration)
+void cipher_mock_iv(uint8_t* iv_out)
 {
-    printf("%s\n", message);
-}
-
-void screen_splash(void)
-{
-    puts("screen splash\n");
-}
-
-void screen_rotate(void) {}
-
-bool screen_is_upside_down(void)
-{
-    return false;
+    memset(iv_out, 'a', 32);
 }

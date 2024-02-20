@@ -85,6 +85,10 @@ docs: | build
 	$(MAKE) -C build doc
 rust-docs: | build
 	$(MAKE) -C build rust-docs
+simulator: | build-build
+	$(MAKE) -C build-build simulator
+run-simulator: | simulator
+	./build-build/bin/simulator
 unit-test: | build-build
 	$(MAKE) -C build-build
 # Must compile C tests before running them

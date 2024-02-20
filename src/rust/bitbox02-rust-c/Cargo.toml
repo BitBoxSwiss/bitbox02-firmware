@@ -59,6 +59,7 @@ target-c-unit-tests = [
   # enable these features
   "app-bitcoin",
   "app-ethereum",
+  "app-cardano",
   "firmware",
   "c-unit-testing",
 ]

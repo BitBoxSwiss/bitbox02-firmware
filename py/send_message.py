@@ -340,8 +340,18 @@ class SendMessage:
             ),
         )
 
-    def _bip85(self) -> None:
-        self._device.bip85()
+    def _bip85_bip39(self) -> None:
+        try:
+            self._device.bip85_bip39()
+        except UserAbortException:
+            print("Aborted by user")
+
+    def _bip85_ln(self) -> None:
+        try:
+            entropy = self._device.bip85_ln()
+            print("Derived entropy for a Breez Lightning wallet:", entropy.hex())
+        except UserAbortException:
+            print("Aborted by user")
 
     def _btc_address(self) -> None:
         def address(display: bool) -> str:
@@ -1391,7 +1401,8 @@ class SendMessage:
             ("Sign Ethereum Typed Message (EIP-712)", self._sign_eth_typed_message),
             ("Cardano", self._cardano),
             ("Show Electrum wallet encryption key", self._get_electrum_encryption_key),
-            ("BIP85", self._bip85),
+            ("BIP85 - BIP39", self._bip85_bip39),
+            ("BIP85 - LN", self._bip85_ln),
             ("Reset Device", self._reset_device),
         )
         choice = ask_user(choices)

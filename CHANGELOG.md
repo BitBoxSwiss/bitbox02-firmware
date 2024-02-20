@@ -9,6 +9,10 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ### [Unreleased]
 - Add support for deriving BIP-39 mnemonics according to BIP-85
 
+### 9.17.0
+- Add support for deriving mnemonics for Lightning hot wallets according to BIP-85 (using a custom
+  BIP-85 application number)
+
 ### 9.16.0
 - Disable screensaver when displaying a receive address, confirming a transaction, and other interactive actions
 - Add Sepolia testnet for Ethereum

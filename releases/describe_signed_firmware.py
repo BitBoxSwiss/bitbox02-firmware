@@ -54,16 +54,19 @@ def main() -> int:
     magic, rest = signed_firmware[:MAGIC_LEN], signed_firmware[MAGIC_LEN:]
     sigdata, firmware = rest[:SIGDATA_LEN], rest[SIGDATA_LEN:]
 
-    print(
-        "The following information assumes the provided binary was signed correctly; "
-        "the signatures are not being verified."
-    )
     if magic == MAGIC_MULTI:
         print("This is a Multi-edition firmware.")
     elif magic == MAGIC_BTCONLY:
         print("This is a Bitcoin-only edition firmware.")
     else:
-        print("Unrecognized firmware edition; magic =", magic.hex())
+        print(
+            f"Unrecognized firmware edition; magic = f{magic.hex()}. Maybe you have accidentally invoked this script on an unsigned binary. Make sure to use a signed firmware binary."
+        )
+        return 1
+    print(
+        "The following information assumes the provided binary was signed correctly; "
+        "the signatures are not being verified."
+    )
 
     firmware_padded = firmware + b"\xFF" * (MAX_FIRMWARE_SIZE - len(firmware))
 

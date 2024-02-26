@@ -25,6 +25,7 @@
 #include "securechip/securechip.h"
 #include "util.h"
 #include <wally_core.h>
+#include "mfi/mfi.h"
 
 extern void __attribute__((noreturn)) __stack_chk_fail(void);
 void __attribute__((noreturn)) __stack_chk_fail(void)
@@ -82,6 +83,9 @@ void common_main(void)
 
     /* Enable/configure SmartEEPROM. */
     smarteeprom_bb02_config();
+
+    init_mfi();
+    for(;;){}
 
     // securechip_setup must come after memory_setup, so the io/auth keys to be
     // used are already initialized.

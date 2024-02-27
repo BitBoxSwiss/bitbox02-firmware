@@ -1,11 +1,9 @@
-#include <stdbool.h>
 #include "mfi/mfi.h"
-#include "util.h"
-#include "hal_i2c_m_sync.h"
 #include "hal_delay.h"
+#include "hal_i2c_m_sync.h"
 #include "hardfault.h"
-
-
+#include "util.h"
+#include <stdbool.h>
 
 extern struct i2c_m_sync_desc I2C_0;
 
@@ -15,7 +13,8 @@ extern struct i2c_m_sync_desc I2C_0;
 #define MFI_CHIP_RETRIES 25
 #define MFI_CHIP_RETRY_DELAY 10
 
-static bool _send(uint8_t* txdata, int txlen) {
+static bool _send(uint8_t* txdata, int txlen)
+{
     struct _i2c_m_msg packet;
     uint8_t retries = MFI_CHIP_RETRIES;
     int32_t r;
@@ -33,7 +32,8 @@ static bool _send(uint8_t* txdata, int txlen) {
     return (r == I2C_OK ? true : false);
 }
 
-static bool _recv(uint8_t* rxdata, int rxlen) {
+static bool _recv(uint8_t* rxdata, int rxlen)
+{
     struct _i2c_m_msg packet;
     uint8_t retries = MFI_CHIP_RETRIES;
     int32_t r;
@@ -90,9 +90,12 @@ static bool _recv(uint8_t* rxdata, int rxlen) {
 #define MFI_SELF_TEST_STATUS_LEN 1
 #define MFI_DEVICE_CERTIFICATE_SERIAL_NUMBER 0x4E
 #define MFI_DEVICE_CERTIFICATE_SERIAL_NUMBER_LEN 32
+#define MFI_SLEEP 0x60
+#define MFI_SLEEP_LEN 1
 
-static uint8_t _reg_len(uint8_t reg) {
-    switch(reg) {
+static uint8_t _reg_len(uint8_t reg)
+{
+    switch (reg) {
     case MFI_DEVICE_VERSION:
         return MFI_DEVICE_VERSION_LEN;
     case MFI_AUTHENTICATION_REVISION:
@@ -107,15 +110,40 @@ static uint8_t _reg_len(uint8_t reg) {
         return MFI_ERROR_CODE;
     case MFI_AUTHENTICATION_CONTROL_AND_STATUS:
         return MFI_AUTHENTICATION_CONTROL_AND_STATUS_LEN;
+    case MFI_CHALLENGE_RESPONSE_DATA_LENGTH:
+        return MFI_CHALLENGE_RESPONSE_DATA_LENGTH_LEN;
+    case MFI_CHALLENGE_RESPONSE_DATA:
+        return MFI_CHALLENGE_RESPONSE_DATA_LEN;
+    case MFI_CHALLENGE_DATA_LENGTH:
+        return MFI_CHALLENGE_DATA_LENGTH_LEN;
+    case MFI_CHALLENGE_DATA:
+        return MFI_CHALLENGE_DATA_LEN;
+    case MFI_ACCESSORY_CERTIFICATE_DATA_LENGTH:
+        return MFI_ACCESSORY_CERTIFICATE_DATA_LENGTH_LEN;
+    case MFI_ACCESSORY_CERTIFICATE_DATA1:
+        return MFI_ACCESSORY_CERTIFICATE_DATA1_LEN;
+    case MFI_ACCESSORY_CERTIFICATE_DATA2:
+        return MFI_ACCESSORY_CERTIFICATE_DATA2_LEN;
+    case MFI_ACCESSORY_CERTIFICATE_DATA3:
+        return MFI_ACCESSORY_CERTIFICATE_DATA3_LEN;
+    case MFI_ACCESSORY_CERTIFICATE_DATA4:
+        return MFI_ACCESSORY_CERTIFICATE_DATA4_LEN;
+    case MFI_ACCESSORY_CERTIFICATE_DATA5:
+        return MFI_ACCESSORY_CERTIFICATE_DATA5_LEN;
+    case MFI_SELF_TEST_STATUS:
+        return MFI_SELF_TEST_STATUS_LEN;
+    case MFI_DEVICE_CERTIFICATE_SERIAL_NUMBER:
+        return MFI_DEVICE_CERTIFICATE_SERIAL_NUMBER_LEN;
     default:
         return 0;
     }
 }
 
 // Returns number of bytes read
-static uint8_t _read_reg(uint8_t reg, uint8_t* buf, int buflen) {
+static uint8_t _read_reg(uint8_t reg, uint8_t* buf, int buflen)
+{
     uint8_t reg_len = _reg_len(reg);
-    if(buflen < _reg_len(reg)) {
+    if (buflen < _reg_len(reg)) {
         Abort("buflen to short");
     }
 
@@ -124,7 +152,8 @@ static uint8_t _read_reg(uint8_t reg, uint8_t* buf, int buflen) {
     return reg_len;
 }
 
-void init_mfi(void) {
+void init_mfi(void)
+{
     delay_ms(1000);
 
     uint8_t value;

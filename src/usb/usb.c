@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "util.h"
 #include "usb.h"
 #ifndef TESTING
 #include "hid_hww.h"
 #include "usb_desc.h"
 #include "usbdc.h"
+#include "iap2/iap2.h"
 #if APP_U2F == 1
 #include "u2f.h"
 #include <usb/class/hid/u2f/hid_u2f.h>
@@ -80,6 +82,14 @@ static void _timeout_cb(const struct timer_task* const timer_task)
 
 static bool _usb_enabled = false;
 
+
+static void iap2_cb_rd(void) {
+    traceln("%s", "read got data");
+}
+static void iap2_cb_wr(void) {
+    traceln("%s", "write got data");
+}
+
 int32_t usb_start(void (*on_hww_init)(void))
 {
 #if !defined(TESTING) && APP_U2F == 1
@@ -103,6 +113,9 @@ int32_t usb_start(void (*on_hww_init)(void))
     if (ret != 0) {
         return ret;
     }
+    ret = iap2_init();
+    ret = iap2_register_callback(IAP2_CB_READ, iap2_cb_rd);
+    ret = iap2_register_callback(IAP2_CB_WRITE, iap2_cb_wr);
 #if APP_U2F == 1
     ret = hid_u2f_init(_u2f_endpoint_available);
     if (ret != 0) {

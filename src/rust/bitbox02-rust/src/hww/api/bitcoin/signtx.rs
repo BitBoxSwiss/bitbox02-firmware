@@ -910,8 +910,8 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             const SIGHASH_ALL: u32 = 0x01;
             let sighash = bip143::sighash(&bip143::Args {
                 version: request.version,
-                hash_prevouts: Sha256::digest(hash_prevouts).try_into().unwrap(),
-                hash_sequence: Sha256::digest(hash_sequence).try_into().unwrap(),
+                hash_prevouts: Sha256::digest(hash_prevouts).into(),
+                hash_sequence: Sha256::digest(hash_sequence).into(),
                 outpoint_hash: tx_input.prev_out_hash.as_slice().try_into().unwrap(),
                 outpoint_index: tx_input.prev_out_index,
                 sighash_script: &sighash_script(
@@ -921,7 +921,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                 )?,
                 prevout_value: tx_input.prev_out_value,
                 sequence: tx_input.sequence,
-                hash_outputs: Sha256::digest(hash_outputs).try_into().unwrap(),
+                hash_outputs: Sha256::digest(hash_outputs).into(),
                 locktime: request.locktime,
                 sighash_flags: SIGHASH_ALL,
             });
@@ -2187,10 +2187,8 @@ mod tests {
                 true
             })),
             ui_confirm_create: Some(Box::new(move |params| unsafe {
-                match {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
+                UI_COUNTER += 1;
+                match UI_COUNTER {
                     7 => {
                         assert_eq!(params.title, "High fee");
                         assert_eq!(params.body, "The fee is 18.1%\nthe send amount.\nProceed?");

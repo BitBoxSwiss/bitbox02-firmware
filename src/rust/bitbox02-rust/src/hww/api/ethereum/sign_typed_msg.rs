@@ -931,10 +931,8 @@ mod tests {
         static mut UI_COUNTER: u32 = 0;
         mock(Data {
             ui_confirm_create: Some(Box::new(|params| unsafe {
-                match {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
+                UI_COUNTER += 1;
+                match UI_COUNTER {
                     1 => {
                         assert_eq!(params.title, "Domain (1/4)");
                         assert_eq!(params.body, "name: Ether Mail");

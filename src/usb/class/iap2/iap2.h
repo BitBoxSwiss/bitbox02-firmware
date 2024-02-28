@@ -1,10 +1,12 @@
 #ifndef _IAP2_H_
 #define _IAP2_H_
 
-#include <stdint.h>
 #include "usbdc.h"
+#include <stdint.h>
 
-enum iap2_cb_type { IAP2_CB_READ, IAP2_CB_WRITE };
+enum iap2_cb_type { IAP2_CTRL_READ_CB, IAP2_CTRL_WRITE_CB, IAP2_BULK_READ_CB, IAP2_BULK_WRITE_CB };
+
+typedef void (*iap2_ctrl_cb_t)(uint16_t);
 
 int32_t iap2_req(
     struct usbdf_driver* drv,

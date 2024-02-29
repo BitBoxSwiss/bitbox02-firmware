@@ -231,13 +231,13 @@
         USB_DESC_IAP2_EP_IN, /* ep_in.bEndpointAddress */                \
         0x02, /* ep_in.bmAttributes */                                   \
         USB_DESC_LE16(USB_DESC_HID_EP_SIZE), /* ep_in.wMaxPacketSize */  \
-        4, /* ep_in.bInterval */                                         \
+        0, /* ep_in.bInterval */                                         \
         7, /* ep_out.bLength */                                          \
         0x05, /* ep_out.bDescriptorType: ENDPOINT */                     \
         USB_DESC_IAP2_EP_OUT, /* ep_out.bEndpointAddress */              \
         0x02, /* ep_out.bmAttributes */                                  \
         USB_DESC_LE16(USB_DESC_HID_EP_SIZE), /* ep_out.wMaxPacketSize */ \
-        4 /* ep_out.bInterval */
+        0 /* ep_out.bInterval */
 
 #if APP_U2F == 1
 #define USB_DESC_IFACE_U2F                                                  \
@@ -275,7 +275,7 @@
     USB_DESC_CONFIG_LEN, /* bLength */                               \
         0x02, /* bDescriptorType: CONFIGURATION */                   \
         USB_DESC_LE16(USB_DESC_WTOTALLEN), /* wTotalLength */        \
-        1 /* IAP2 */ + USB_DESC_NUM_HID_IFACES, /* bNumInterfaces */ \
+        3, /* bNumInterfaces */ \
         USB_DESC_BCONFIGVAL, /* bConfigurationValue */               \
         0x00, /* iConfiguration */                                   \
         USB_DESC_BMATTRI, /* bmAttributes */                         \

@@ -133,19 +133,25 @@ int32_t usb_start(void (*on_hww_init)(void))
     if (ret != 0) {
         return ret;
     }
-    ret = iap2_register_callback(IAP2_CTRL_READ_CB, (FUNC_PTR)iap2_ctrl_rd);
-    ret = iap2_register_callback(IAP2_CTRL_WRITE_CB, (FUNC_PTR)iap2_ctrl_wr);
-    ret = iap2_register_callback(IAP2_BULK_READ_CB, (FUNC_PTR)iap2_bulk_rd);
-    ret = iap2_register_callback(IAP2_BULK_WRITE_CB, (FUNC_PTR)iap2_bulk_wr);
-    traceln("%s", "callbacks registered");
-    ret = iap2_init();
 #if APP_U2F == 1
     ret = hid_u2f_init(_u2f_endpoint_available);
     if (ret != 0) {
         return ret;
     }
 #endif
-    usbdc_start(_descriptor);
+    ret = iap2_register_callback(IAP2_CTRL_READ_CB, (FUNC_PTR)iap2_ctrl_rd);
+    ret = iap2_register_callback(IAP2_CTRL_WRITE_CB, (FUNC_PTR)iap2_ctrl_wr);
+    ret = iap2_register_callback(IAP2_BULK_READ_CB, (FUNC_PTR)iap2_bulk_rd);
+    ret = iap2_register_callback(IAP2_BULK_WRITE_CB, (FUNC_PTR)iap2_bulk_wr);
+    traceln("%s", "callbacks registered");
+    ret = iap2_init();
+    if (ret != 0) {
+        return ret;
+    }
+    ret = usbdc_start(_descriptor);
+    if (ret != 0) {
+        return ret;
+    }
     usbdc_attach();
     while (!iap2_is_enabled()) {
     }

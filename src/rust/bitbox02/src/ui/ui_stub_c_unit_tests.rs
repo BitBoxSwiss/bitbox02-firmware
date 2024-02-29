@@ -48,13 +48,18 @@ impl<'a> Drop for Component<'a> {
 }
 
 pub fn trinary_input_string_create<'a, F>(
-    _params: &TrinaryInputStringParams,
+    params: &TrinaryInputStringParams,
     mut confirm_callback: F,
     _cancel_callback: Option<ContinueCancelCb<'a>>,
 ) -> Component<'a>
 where
     F: FnMut(SafeInputString) + 'a,
 {
+    crate::print_stdout(&format!(
+        "ENTER SCREEN START\nTITLE: {}\nENTER SCREEN END\n",
+        params.title
+    ));
+
     confirm_callback(SafeInputString::new());
     Component {
         is_pushed: false,
@@ -62,10 +67,15 @@ where
     }
 }
 
-pub fn confirm_create<'a, F>(_params: &ConfirmParams, mut result_callback: F) -> Component<'a>
+pub fn confirm_create<'a, F>(params: &ConfirmParams, mut result_callback: F) -> Component<'a>
 where
     F: FnMut(bool) + 'a,
 {
+    crate::print_stdout(&format!(
+        "CONFIRM SCREEN START\nTITLE: {}\nBODY: {}\nCONFIRM SCREEN END\n",
+        params.title, params.body
+    ));
+
     result_callback(true);
     Component {
         is_pushed: false,
@@ -75,10 +85,14 @@ where
 
 pub fn screen_process() {}
 
-pub fn status_create<'a, F>(_text: &str, _status_success: bool, mut callback: F) -> Component<'a>
+pub fn status_create<'a, F>(text: &str, _status_success: bool, mut callback: F) -> Component<'a>
 where
     F: FnMut() + 'a,
 {
+    crate::print_stdout(&format!(
+        "STATUS SCREEN START\nTITLE: {}\nSTATUS SCREEN END\n",
+        text,
+    ));
     callback();
     Component {
         is_pushed: false,

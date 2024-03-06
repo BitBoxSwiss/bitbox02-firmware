@@ -21,7 +21,5 @@ pub async fn status(title: &str, status_success: bool) {
         *result.borrow_mut() = Some(());
     });
     component.screen_stack_push();
-    #[cfg(feature = "c-unit-testing")]
-    bitbox02::print_stdout(&format!("STATUS SCREEN START\nTITLE: {}\nSTATUS SCREEN END\n", title));
     option_no_screensaver(&result).await
 }

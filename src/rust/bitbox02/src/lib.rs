@@ -20,7 +20,14 @@
 #[macro_use]
 extern crate std;
 
+// allow unused as we use format!() only in some build configs (for
+// the simulator), but replicating the conditions under which it is
+// used here is not worth it.
+#[allow(unused_imports)]
+// for `format!`
+#[macro_use]
 extern crate alloc;
+
 use alloc::string::String;
 
 #[cfg(feature = "testing")]

@@ -31,7 +31,5 @@ pub async fn confirm(params: &Params<'_>) -> Result<(), UserAbort> {
         };
     });
     component.screen_stack_push();
-    #[cfg(feature = "c-unit-testing")]
-    bitbox02::print_stdout(&format!("CONFIRM SCREEN START\nTITLE: {}\nBODY: {}\nCONFIRM SCREEN END\n", params.title, params.body));
     option_no_screensaver(&result).await
 }

@@ -49,8 +49,6 @@ pub async fn enter(
         bitbox02::ui::trinary_input_string_set_input(&mut component, preset);
     }
     component.screen_stack_push();
-    #[cfg(feature = "c-unit-testing")]
-    bitbox02::print_stdout(&format!("ENTER SCREEN START\nTITLE: {}\nENTER SCREEN END\n", params.title));
     option(&result)
         .await
         .or(Err(super::cancel::Error::Cancelled))

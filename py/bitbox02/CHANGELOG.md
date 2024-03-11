@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 - Accept EIP1559 transactions in `eth_sign()` - requires BitBox02 firmware v9.16.0
+- Add `bip85_bip39()` and `bip85_ln()`
 
 ## 6.2.0
 - btc_sign: allow displaying BTC values in the 'sat' unit

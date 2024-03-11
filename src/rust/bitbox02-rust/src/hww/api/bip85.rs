@@ -27,9 +27,6 @@ use alloc::vec::Vec;
 pub async fn process(request: &pb::Bip85Request) -> Result<Response, Error> {
     match &request.app {
         None => Err(Error::InvalidInput),
-        #[cfg(not(feature = "app-bip85-bip39"))]
-        Some(pb::bip85_request::App::Bip39(())) => Err(Error::Disabled),
-        #[cfg(feature = "app-bip85-bip39")]
         Some(pb::bip85_request::App::Bip39(())) => Ok(Response::Bip85(pb::Bip85Response {
             app: Some(pb::bip85_response::App::Bip39(process_bip39().await?)),
         })),
@@ -41,7 +38,6 @@ pub async fn process(request: &pb::Bip85Request) -> Result<Response, Error> {
 
 /// Derives and displays a BIP-39 seed according to BIP-85:
 /// https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39.
-#[cfg(feature = "app-bip85-bip39")]
 async fn process_bip39() -> Result<(), Error> {
     use crate::workflow::trinary_choice::{choose, TrinaryChoice};
     use crate::workflow::{menu, mnemonic, status, trinary_input_string};

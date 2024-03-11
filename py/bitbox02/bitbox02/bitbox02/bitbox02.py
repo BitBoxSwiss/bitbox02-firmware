@@ -681,7 +681,7 @@ class BitBox02(BitBoxCommonAPI):
 
     def bip85_bip39(self) -> None:
         """Invokes the BIP85-BIP39 workflow on the device"""
-        self._require_atleast(semver.VersionInfo(9, 17, 0))
+        self._require_atleast(semver.VersionInfo(9, 18, 0))
 
         # pylint: disable=no-member
         request = hww.Request()

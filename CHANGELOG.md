@@ -7,6 +7,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+
+### 9.18.0
 - Add support for deriving BIP-39 mnemonics according to BIP-85
 
 ### 9.17.0

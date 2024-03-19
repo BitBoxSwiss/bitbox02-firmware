@@ -19,6 +19,7 @@
 
 #include <memory/memory.h>
 #include <mock_memory.h>
+#include <random.h>
 
 static void _test_memory_multisig(void** state)
 {
@@ -141,7 +142,7 @@ static void _test_memory_attestation(void** state)
         root_pubkey_identifier, expected_root_pubkey_identifier, sizeof(root_pubkey_identifier));
 }
 
-void _memory_setup_rand_mock(uint8_t* buf_out)
+void _memory_setup_rand_mock_test_functional(uint8_t* buf_out)
 {
     static uint8_t ctr = 0;
     static uint8_t fixtures[][32] = {
@@ -177,7 +178,7 @@ static void _test_functional(void** state)
     mock_memory_factoryreset();
 
     memory_interface_functions_t ifs = {
-        .random_32_bytes = _memory_setup_rand_mock,
+        .random_32_bytes = _memory_setup_rand_mock_test_functional,
     };
     assert_true(memory_setup(&ifs));
 
@@ -214,6 +215,49 @@ static void _test_functional(void** state)
     assert_memory_equal(encryption_key, expected_encryption_key, sizeof(encryption_key));
 }
 
+static void _test_attestation_bootloader_hash(void** state)
+{
+    mock_memory_factoryreset();
+
+    memory_interface_functions_t ifs = {
+        .random_32_bytes = random_32_bytes_mcu,
+    };
+    assert_true(memory_setup(&ifs));
+
+    const uint8_t mock1[32] =
+        "\x03\x22\xb3\x19\x1a\xab\x5b\xc4\x15\xc5\xba\xfa\xc5\x33\x34\x45\x17\x5b\xe2\xfa\xa8\x33"
+        "\x3a\xc3\xab\xee\x4c\xd1\x7e\x49\x08\x2a";
+    memory_set_bootloader_hash_mock(mock1);
+    uint8_t hash[32];
+    memory_bootloader_hash(hash);
+    memory_get_attestation_bootloader_hash(hash);
+    assert_memory_equal(hash, mock1, sizeof(hash));
+
+    assert_true(memory_set_attestation_bootloader_hash());
+    memset(hash, 0x00, sizeof(hash));
+    memory_get_attestation_bootloader_hash(hash);
+    assert_memory_equal(hash, mock1, sizeof(hash));
+
+    const uint8_t mock2[32] =
+        "\x6c\xad\x6a\xbc\x3f\xd4\x47\xa5\x8d\x7a\x26\x2d\x76\x06\xa0\x40\xe4\x9e\x82\xb0\x06\x48"
+        "\x62\x36\x25\x88\x3e\x9f\xc0\xfa\xa8\xad";
+    memory_set_bootloader_hash_mock(mock2);
+
+    memset(hash, 0x00, sizeof(hash));
+    memory_bootloader_hash(hash);
+    assert_memory_equal(hash, mock2, sizeof(hash));
+
+    memset(hash, 0x00, sizeof(hash));
+    memory_get_attestation_bootloader_hash(hash);
+    assert_memory_equal(hash, mock1, sizeof(hash));
+
+    assert_true(memory_reset_hww());
+
+    memset(hash, 0x00, sizeof(hash));
+    memory_get_attestation_bootloader_hash(hash);
+    assert_memory_equal(hash, mock1, sizeof(hash));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -222,6 +266,7 @@ int main(void)
         cmocka_unit_test(_test_memory_multisig_full),
         cmocka_unit_test(_test_memory_attestation),
         cmocka_unit_test(_test_functional),
+        cmocka_unit_test(_test_attestation_bootloader_hash),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

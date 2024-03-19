@@ -147,6 +147,17 @@ void memory_get_authorization_key(uint8_t* key_out);
 void memory_get_encryption_key(uint8_t* key_out);
 
 /**
+ * Persists the current bootloader hash, which is part of the attestation sighash.
+ */
+USE_RESULT bool memory_set_attestation_bootloader_hash(void);
+
+/**
+ * Retreives the bootloader hash that is part of the attestation sighash.
+ * @param[out] hash_out must be 32 bytes and will contain the result.
+ */
+void memory_get_attestation_bootloader_hash(uint8_t* hash_out);
+
+/**
  * Persists the given attestation device pubkey.
  * @param[in] attestation_device_pubkey P256 NIST ECC pubkey (X and Y coordinates).
  * @return false if there was a write error or if the attestation setup was

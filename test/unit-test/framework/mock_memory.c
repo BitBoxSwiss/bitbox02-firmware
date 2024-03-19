@@ -52,26 +52,26 @@ static uint8_t* _get_memory(uint32_t base)
 bool memory_write_to_address_mock(uint32_t base, uint32_t addr, const uint8_t* chunk)
 {
     if (chunk == NULL) {
-        memset(_get_memory(base) + addr, 0xff, CHUNK_SIZE);
+        memset(_get_memory(base) + addr, 0xff, (size_t)CHUNK_SIZE);
     } else {
-        memcpy(_get_memory(base) + addr, chunk, CHUNK_SIZE);
+        memcpy(_get_memory(base) + addr, chunk, (size_t)CHUNK_SIZE);
     }
     return true;
 }
 
 bool memory_write_chunk_mock(uint32_t chunk_num, const uint8_t* chunk)
 {
-    return memory_write_to_address_mock(FLASH_APPDATA_START, chunk_num * CHUNK_SIZE, chunk);
+    return memory_write_to_address_mock(FLASH_APPDATA_START, chunk_num * (size_t)CHUNK_SIZE, chunk);
 }
 
 void memory_read_chunk_mock(uint32_t chunk_num, uint8_t* chunk_out)
 {
-    memcpy(chunk_out, _memory_app_data + chunk_num * CHUNK_SIZE, CHUNK_SIZE);
+    memcpy(chunk_out, _memory_app_data + chunk_num * (size_t)CHUNK_SIZE, (size_t)CHUNK_SIZE);
 }
 
 void memory_read_shared_bootdata_mock(uint8_t* chunk_out)
 {
-    memcpy(chunk_out, _memory_shared_data, FLASH_SHARED_DATA_LEN);
+    memcpy(chunk_out, _memory_shared_data, (size_t)FLASH_SHARED_DATA_LEN);
 }
 
 bool __wrap_memory_is_initialized(void)
@@ -131,4 +131,20 @@ bool __wrap_memory_get_salt_root(uint8_t* salt_root_out)
 {
     memcpy(salt_root_out, _salt_root, 32);
     return true;
+}
+
+// Arbitrary value.
+static uint8_t _bootloader_hash[32] =
+    "\x71\x3d\xf0\xd5\x8c\x71\x7d\x40\x31\x78\x7c\xdc\x8f\xa3\x5b\x90\x25\x82\xbe\x6a\xb6\xa2\x2e"
+    "\x09\xde\x44\x77\xd3\x0e\x22\x30\xfc";
+
+void memory_bootloader_hash_mock(uint8_t* hash_out)
+{
+    memcpy(hash_out, _bootloader_hash, 32);
+}
+
+void memory_set_bootloader_hash_mock(const uint8_t* mock_hash)
+{
+    // NOLINTNEXTLINE(bugprone-not-null-terminated-result)
+    memcpy(_bootloader_hash, mock_hash, sizeof(_bootloader_hash));
 }

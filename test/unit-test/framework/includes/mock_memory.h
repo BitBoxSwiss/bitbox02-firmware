@@ -27,4 +27,6 @@ void memory_read_chunk_mock(uint32_t chunk_num, uint8_t* chunk_out);
 // Size: `FLASH_SHARED_DATA_LEN`.
 void memory_read_shared_bootdata_mock(uint8_t* chunk_out);
 void mock_memory_set_salt_root(const uint8_t* salt_root);
+void memory_bootloader_hash_mock(uint8_t* hash_out);
+void memory_set_bootloader_hash_mock(const uint8_t* mock_hash);
 #endif

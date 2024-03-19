@@ -65,6 +65,14 @@ pub fn is_mnemonic_passphrase_enabled() -> bool {
     unsafe { bitbox02_sys::memory_is_mnemonic_passphrase_enabled() }
 }
 
+pub fn get_attestation_bootloader_hash() -> [u8; 32] {
+    let mut hash = [0u8; 32];
+    unsafe {
+        bitbox02_sys::memory_get_attestation_bootloader_hash(hash.as_mut_ptr());
+    }
+    hash
+}
+
 pub fn get_attestation_pubkey_and_certificate(
     device_pubkey: &mut [u8; 64],
     certificate: &mut [u8; 64],
@@ -79,12 +87,6 @@ pub fn get_attestation_pubkey_and_certificate(
     } {
         true => Ok(()),
         false => Err(()),
-    }
-}
-
-pub fn bootloader_hash(out: &mut [u8; 32]) {
-    unsafe {
-        bitbox02_sys::memory_bootloader_hash(out.as_mut_ptr());
     }
 }
 
@@ -155,5 +157,16 @@ pub fn multisig_get_by_hash(hash: &[u8]) -> Option<String> {
                 .into(),
         ),
         false => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_attestation_bootloader_hash() {
+        let expected: [u8; 32] = *b"\x71\x3d\xf0\xd5\x8c\x71\x7d\x40\x31\x78\x7c\xdc\x8f\xa3\x5b\x90\x25\x82\xbe\x6a\xb6\xa2\x2e\x09\xde\x44\x77\xd3\x0e\x22\x30\xfc";
+        assert_eq!(get_attestation_bootloader_hash(), expected);
     }
 }

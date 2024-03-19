@@ -120,6 +120,26 @@ typedef union {
 
 static_assert(sizeof(((chunk_2_t*)0)->fields) <= (size_t)CHUNK_SIZE, "chunk too large");
 
+#if FLASH_APPDATA_LEN / CHUNK_SIZE != 8
+#error \
+    "We expect 8 chunks in app data. This check is to ensure that chunk_7_t below is the last chunk, so it is not erased during reset."
+#endif
+
+// CHUNK_7: A chunk that survives device resets (is not erased during `memory_reset_hww()`).
+#define CHUNK_7_PERMANENT (7)
+typedef union {
+    struct __attribute__((__packed__)) {
+        // Hash of bootloader used in the attestation sighash.
+        // If not set, the actual bootloader area is hashed.
+        secbool_u8 attestation_bootloader_hash_set;
+        uint8_t reserved[3];
+        uint8_t attestation_bootloader_hash[32];
+    } fields;
+    uint8_t bytes[CHUNK_SIZE];
+} chunk_7_t;
+
+static_assert(sizeof(((chunk_7_t*)0)->fields) <= (size_t)CHUNK_SIZE, "chunk too large");
+
 #pragma GCC diagnostic pop
 
 #define BITMASK_SEEDED ((uint8_t)(1u << 0u))
@@ -330,8 +350,8 @@ bool memory_cleanup_smarteeprom(void)
 
 bool memory_reset_hww(void)
 {
-    // Erase all app data chunks expect the first one, which is permanent.
-    for (uint32_t chunk = CHUNK_1; chunk < FLASH_APPDATA_LEN / CHUNK_SIZE; chunk++) {
+    // Erase all app data chunks expect the first and the last one, which is permanent.
+    for (uint32_t chunk = CHUNK_1; chunk < (FLASH_APPDATA_LEN / CHUNK_SIZE) - 1; chunk++) {
         if (!_write_chunk(chunk, NULL)) {
             return false;
         }
@@ -557,6 +577,38 @@ static bool _is_attestation_setup_done(void)
     return !MEMEQ(chunk.fields.attestation.certificate, empty, 64);
 }
 
+bool memory_set_attestation_bootloader_hash(void)
+{
+    chunk_7_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    _read_chunk(CHUNK_7_PERMANENT, chunk_bytes);
+    uint8_t empty[32];
+    memset(empty, 0xff, sizeof(empty));
+    if (chunk.fields.attestation_bootloader_hash_set != sectrue_u8 ||
+        MEMEQ(chunk.fields.attestation_bootloader_hash, empty, sizeof(empty))) {
+        chunk.fields.attestation_bootloader_hash_set = sectrue_u8;
+        memory_bootloader_hash(chunk.fields.attestation_bootloader_hash);
+        return _write_chunk(CHUNK_7_PERMANENT, chunk.bytes);
+    }
+
+    return true;
+}
+
+void memory_get_attestation_bootloader_hash(uint8_t* hash_out)
+{
+    chunk_7_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    _read_chunk(CHUNK_7_PERMANENT, chunk_bytes);
+    uint8_t empty[32];
+    memset(empty, 0xff, sizeof(empty));
+    if (chunk.fields.attestation_bootloader_hash_set != sectrue_u8 ||
+        MEMEQ(chunk.fields.attestation_bootloader_hash, empty, sizeof(empty))) {
+        memory_bootloader_hash(hash_out);
+        return;
+    }
+    memcpy(hash_out, chunk.fields.attestation_bootloader_hash, 32);
+}
+
 bool memory_set_attestation_device_pubkey(const uint8_t* attestation_device_pubkey)
 {
     chunk_0_t chunk = {0};
@@ -610,9 +662,13 @@ bool memory_get_attestation_pubkey_and_certificate(
 
 void memory_bootloader_hash(uint8_t* hash_out)
 {
+#ifdef TESTING
+    memory_bootloader_hash_mock(hash_out);
+#else
     uint8_t* bootloader = FLASH_BOOT_START;
     size_t len = FLASH_BOOT_LEN - 32; // 32 bytes are random
     rust_sha256(bootloader, len, hash_out);
+#endif
 }
 
 bool memory_bootloader_set_flags(auto_enter_t auto_enter, upside_down_t upside_down)

@@ -23,12 +23,6 @@ pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Resul
     }
 }
 
-pub fn bootloader_hash(out: &mut [u8; 32]) {
-    unsafe {
-        bitbox02_sys::memory_bootloader_hash(out.as_mut_ptr());
-    }
-}
-
 pub fn monotonic_increments_remaining() -> Result<u32, ()> {
     let mut result: u32 = 0;
     match unsafe { bitbox02_sys::securechip_monotonic_increments_remaining(&mut result as _) } {

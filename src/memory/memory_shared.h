@@ -24,6 +24,40 @@
 #error "Shared data chunk not correct length"
 #endif
 
+#define BOOT_NUM_FIRMWARE_SIGNING_KEYS 3u
+#define BOOT_NUM_ROOT_SIGNING_KEYS 3u
+#define BOOT_FIRMWARE_SIG_M 2u
+#define BOOT_ROOT_SIG_M 2u
+#define BOOT_PUBKEY_LEN 64u
+#define BOOT_SIG_LEN 64u
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpacked"
+#pragma GCC diagnostic ignored "-Wattributes"
+// Packed to make the layout more explicit.
+// Total size equals min erase granularity
+typedef uint32_t version_t;
+typedef union {
+    struct __attribute__((__packed__)) {
+        // `hardware_version` is deprecated/unused, as MPU prevents the firmware from easily reading
+        // this.
+        uint16_t hardware_version;
+        uint8_t is_initialized[2];
+        version_t signing_pubkeys_version;
+        uint8_t signing_pubkeys
+            [BOOT_PUBKEY_LEN *
+             BOOT_NUM_FIRMWARE_SIGNING_KEYS]; // Keep after signing_pubkeys_version
+        uint8_t root_signatures_of_signing_pubkeys[BOOT_SIG_LEN * BOOT_NUM_ROOT_SIGNING_KEYS];
+        version_t firmware_version;
+        uint8_t
+            firmware_signatures[BOOT_SIG_LEN * BOOT_NUM_FIRMWARE_SIGNING_KEYS]; // Keep after
+                                                                                // firmware_version
+        uint8_t show_firmware_hash;
+    } fields;
+    uint8_t bytes[FLASH_BOOTDATA_LEN];
+} boot_data_t;
+#pragma GCC diagnostic pop
+
 // CHUNK_SHARED: Shared data between the bootloader and firmware.
 //    auto_enter: if sectrue_u8, bootloader mode is entered on reboot
 //    upside_down: passes screen orientation to the bootloader

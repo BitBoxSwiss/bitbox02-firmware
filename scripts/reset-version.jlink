@@ -1,0 +1,9 @@
+mem 0xf8004 4
+// signing keys v1
+w4 0xf8004 0x00000001
+mem 0xf8004 4
+mem 0xf8188 4
+// fw monotonic version 1
+w4 0xf8188 0x00000001
+mem 0xf8188 4
+q

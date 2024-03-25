@@ -36,7 +36,7 @@ pub fn perform(host_challenge: [u8; 32]) -> Result<Data, ()> {
         &mut result.root_pubkey_identifier,
     )?;
     let hash: [u8; 32] = Sha256::digest(host_challenge).into();
-    bitbox02::memory::bootloader_hash(&mut result.bootloader_hash);
+    result.bootloader_hash = bitbox02::memory::get_attestation_bootloader_hash();
     bitbox02::securechip::attestation_sign(&hash, &mut result.challenge_signature)?;
     Ok(result)
 }

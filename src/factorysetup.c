@@ -147,6 +147,10 @@ static void _api_msg(const Packet* in_packet, Packet* out_packet, const size_t m
     switch (input[0]) {
     case OP_BOOTLOADER_HASH:
         memory_bootloader_hash(output + 2);
+        // This is the hash that will be used for the attestation, persist for later use.
+        if (!memory_set_attestation_bootloader_hash()) {
+            screen_print_debug("setting attestation bootloader hash failed", 0);
+        }
         out_len = 2 + 32;
         break;
     case OP_GENKEY: {

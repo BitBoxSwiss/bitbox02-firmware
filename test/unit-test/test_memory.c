@@ -114,8 +114,8 @@ static const memory_interface_functions_t _ifs = {
 
 static void _expect_reset(uint8_t* empty_chunk1, uint8_t* empty_chunk2)
 {
-    // Reset all
-    for (uint32_t write_calls = 0; write_calls < FLASH_APP_DATA_LEN / CHUNK_SIZE - 1;
+    // Reset all except first and last chunk.
+    for (uint32_t write_calls = 0; write_calls < FLASH_APP_DATA_LEN / CHUNK_SIZE - 2;
          write_calls++) {
         expect_value(__wrap_memory_write_chunk_mock, chunk_num, write_calls + 1);
         expect_value(__wrap_memory_write_chunk_mock, chunk, NULL);

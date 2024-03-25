@@ -298,6 +298,7 @@ add_custom_target(rust-bindgen
     --allowlist-function memory_is_seeded
     --allowlist-function memory_is_mnemonic_passphrase_enabled
     --allowlist-function memory_get_attestation_pubkey_and_certificate
+    --allowlist-function memory_get_attestation_bootloader_hash
     --allowlist-function memory_bootloader_hash
     --allowlist-function memory_get_noise_static_private_key
     --allowlist-function memory_check_noise_remote_static_pubkey

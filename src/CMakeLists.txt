@@ -651,6 +651,7 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(factory-setup.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
+  target_link_libraries(factory-setup.elf PRIVATE rtt)
 
   foreach(name ${BOOTLOADERS} ${FIRMWARES})
     add_custom_command(

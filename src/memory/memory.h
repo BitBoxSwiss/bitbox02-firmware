@@ -147,9 +147,9 @@ void memory_get_authorization_key(uint8_t* key_out);
 void memory_get_encryption_key(uint8_t* key_out);
 
 /**
- * Persists the current bootloader hash, which is part of the attestation sighash.
+ * Persists the current attestation salt, which is part of the attestation sighash.
  */
-USE_RESULT bool memory_set_attestation_bootloader_hash(void);
+USE_RESULT bool memory_set_attestation_bootloader_hash(const uint8_t* salt);
 
 /**
  * Retreives the bootloader hash that is part of the attestation sighash.

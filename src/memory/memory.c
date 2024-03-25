@@ -577,21 +577,17 @@ static bool _is_attestation_setup_done(void)
     return !MEMEQ(chunk.fields.attestation.certificate, empty, 64);
 }
 
-bool memory_set_attestation_bootloader_hash(void)
+bool memory_set_attestation_bootloader_hash(const uint8_t* salt)
 {
     chunk_7_t chunk = {0};
     CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_7_PERMANENT, chunk_bytes);
-    uint8_t empty[32];
-    memset(empty, 0xff, sizeof(empty));
-    if (chunk.fields.attestation_bootloader_hash_set != sectrue_u8 ||
-        MEMEQ(chunk.fields.attestation_bootloader_hash, empty, sizeof(empty))) {
-        chunk.fields.attestation_bootloader_hash_set = sectrue_u8;
-        memory_bootloader_hash(chunk.fields.attestation_bootloader_hash);
-        return _write_chunk(CHUNK_7_PERMANENT, chunk.bytes);
-    }
-
-    return true;
+    chunk.fields.attestation_bootloader_hash_set = sectrue_u8;
+    memcpy(
+        chunk.fields.attestation_bootloader_hash,
+        salt,
+        sizeof(chunk.fields.attestation_bootloader_hash));
+    return _write_chunk(CHUNK_7_PERMANENT, chunk.bytes);
 }
 
 void memory_get_attestation_bootloader_hash(uint8_t* hash_out)

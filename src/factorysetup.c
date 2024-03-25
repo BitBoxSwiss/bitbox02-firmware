@@ -24,13 +24,23 @@
 #include "usb/usb_packet.h"
 #include "usb/usb_processing.h"
 #include <secp256k1.h>
+
 #include <wally_crypto.h>
+
+#include <SEGGER_RTT.h>
+
+#if BUFFER_SIZE_DOWN != 1024 || BUFFER_SIZE_UP != 1024
+#error "Misconfigured buffer sizes"
+#endif
+
+// Size of length prefix (2 bytes).
+#define LENSIZE (2)
 
 #define FACTORYSETUP_CMD (HID_VENDOR_FIRST + 0x02) // factory setup commands
 
 // 65 bytes uncompressed secp256k1 root attestation pubkey.
 #define ROOT_PUBKEY_SIZE 65
-static uint8_t _root_pubkey_bytes[10][ROOT_PUBKEY_SIZE] = {
+static uint8_t _root_pubkey_bytes[11][ROOT_PUBKEY_SIZE] = {
     {
         0x04, 0x07, 0x4f, 0xf1, 0x27, 0x3b, 0x36, 0xc2, 0x4e, 0x80, 0xfe, 0x3d, 0x59,
         0xe0, 0xe8, 0x97, 0xa8, 0x17, 0x32, 0xd3, 0xf8, 0xe9, 0xcd, 0x07, 0xe1, 0x7e,
@@ -106,7 +116,7 @@ static uint8_t _root_pubkey_bytes[10][ROOT_PUBKEY_SIZE] = {
 uint32_t __stack_chk_guard = 0;
 
 typedef enum {
-    OP_BOOTLOADER_HASH = 'b',
+    OP_SET_ATTESTATION_SALT = 'a',
     OP_GENKEY = 'g',
     OP_SET_CERTIFICATE = 'c',
     OP_SC_ROLLKEYS = 'k',
@@ -120,6 +130,47 @@ typedef enum {
     ERR_UNKNOWN_COMMAND,
 } error_code_t;
 
+static void _rtt_send(const uint8_t* msg, size_t len)
+{
+    if (len + 2 >= BUFFER_SIZE_UP) {
+        Abort("Buffer to send to host too large");
+    }
+    uint16_t len16 = len;
+    SEGGER_RTT_Write(0, &len16, LENSIZE);
+    SEGGER_RTT_Write(0, msg, len);
+}
+
+static bool _rtt_receive(uint8_t* msg_out, size_t* len_out)
+{
+    uint8_t buffer[BUFFER_SIZE_DOWN]; // Adjust size as needed
+    while (1) {
+        if (SEGGER_RTT_HASDATA(0)) {
+            int read = SEGGER_RTT_Read(0, buffer, sizeof(buffer));
+            if (read == 0) {
+                continue;
+            }
+            if (read < LENSIZE) {
+                screen_sprintf_debug(2000, "Error: read less than 2 bytes: %d bytes.", read);
+                // TODO: send error.
+                return false;
+            }
+            uint16_t len = *((uint16_t*)buffer);
+            if (len >= BUFFER_SIZE_DOWN - LENSIZE) {
+                screen_sprintf_debug(
+                    2000,
+                    "Error: read more than buffer size: %d bytes (total read: %d)",
+                    len,
+                    read);
+                screen_print_debug_hex(buffer, read, 5000);
+                return false;
+            }
+            *len_out = (size_t)len;
+            memcpy(msg_out, buffer + LENSIZE, (size_t)len);
+            return true;
+        }
+    }
+}
+
 /**
  * Computes the hash which is signed by the root key.
  * @param[in] attestation_device_pubkey 64 bytes P-256 pubkey.
@@ -128,31 +179,34 @@ typedef enum {
 static void _attestation_sighash(const uint8_t* attestation_device_pubkey, uint8_t* sighash_out)
 {
     uint8_t msg[32 + 64];
-    memory_bootloader_hash(msg);
+    memory_get_attestation_bootloader_hash(msg);
     memcpy(msg + 32, attestation_device_pubkey, 64);
     if (wally_sha256(msg, sizeof(msg), sighash_out, SHA256_LEN) != WALLY_OK) {
         Abort("wally_sha256 failed here");
     }
 }
 
-static void _api_msg(const Packet* in_packet, Packet* out_packet, const size_t max_out_len)
+static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_t* output_len)
 {
-    (void)max_out_len;
-    const uint8_t* input = in_packet->data_addr;
-    uint8_t* output = out_packet->data_addr;
     output[0] = input[0]; // OP_CODE
     error_code_t result = ERR_OK;
     size_t out_len = 2;
-    size_t in_len = in_packet->len;
     switch (input[0]) {
-    case OP_BOOTLOADER_HASH:
-        memory_bootloader_hash(output + 2);
-        // This is the hash that will be used for the attestation, persist for later use.
-        if (!memory_set_attestation_bootloader_hash()) {
-            screen_print_debug("setting attestation bootloader hash failed", 0);
+    case OP_SET_ATTESTATION_SALT: {
+        if (in_len != 1 + 32) {
+            result = ERR_INVALID_INPUT;
+            break;
         }
-        out_len = 2 + 32;
+
+        const uint8_t* salt = input + 1;
+        // This is the salt that will be used for the attestation, persist for later use.
+        if (!memory_set_attestation_bootloader_hash(salt)) {
+            screen_print_debug("setting attestation bootloader hash failed", 0);
+            result = ERR_FAILED;
+            break;
+        }
         break;
+    }
     case OP_GENKEY: {
         screen_print_debug("generating pubkey...", 0);
         uint8_t pubkey[64];
@@ -245,15 +299,7 @@ static void _api_msg(const Packet* in_packet, Packet* out_packet, const size_t m
         break;
     }
     output[1] = result; // error code
-    out_packet->len = out_len;
-}
-
-static void _api_setup(void)
-{
-    const CMD_Callback cmd_callbacks[] = {{FACTORYSETUP_CMD, _api_msg}};
-    usb_processing_register_cmds(
-        usb_processing_hww(), cmd_callbacks, sizeof(cmd_callbacks) / sizeof(CMD_Callback));
-    screen_print_debug("READY", 0);
+    *output_len = out_len;
 }
 
 int main(void)
@@ -265,6 +311,7 @@ int main(void)
     screen_init();
     screen_splash();
     common_main();
+
     {
         // Set to re-enter bootloader again, otherwise we are stuck with this
         // firmware forever.
@@ -278,9 +325,24 @@ int main(void)
             // Not much we can do here.
         }
     }
-    usb_start(_api_setup);
+
+    SEGGER_RTT_Init();
+
+    screen_print_debug("READY", 0);
+
+    uint8_t msg_read[BUFFER_SIZE_DOWN] = {0};
+    size_t len_read;
+    uint8_t out[BUFFER_SIZE_UP];
+    size_t out_len;
 
     while (1) {
-        usb_processing_process(usb_processing_hww());
+        if (_rtt_receive(msg_read, &len_read)) {
+            _api_msg(msg_read, len_read, out, &out_len);
+            // screen_print_debug_hex(msg_read, len_read, 5000);
+            _rtt_send(out, out_len);
+        }
     }
+
+    while (1)
+        ;
 }

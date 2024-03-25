@@ -233,7 +233,7 @@ static void _test_attestation_bootloader_hash(void** state)
     memory_get_attestation_bootloader_hash(hash);
     assert_memory_equal(hash, mock1, sizeof(hash));
 
-    assert_true(memory_set_attestation_bootloader_hash());
+    assert_true(memory_set_attestation_bootloader_hash(hash));
     memset(hash, 0x00, sizeof(hash));
     memory_get_attestation_bootloader_hash(hash);
     assert_memory_equal(hash, mock1, sizeof(hash));

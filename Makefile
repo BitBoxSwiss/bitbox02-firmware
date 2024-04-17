@@ -16,6 +16,7 @@
 
 .DEFAULT_GOAL := firmware
 SANITIZE ?= ON
+simulator: SANITIZE = OFF
 
 bootstrap:
 	git submodule update --init --recursive

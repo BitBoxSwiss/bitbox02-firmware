@@ -11,6 +11,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ### 9.18.0
 - Add support for deriving BIP-39 mnemonics according to BIP-85
 
+### 9.17.1
+- Intermediate release to rotate the root pubkeys in the bootloader
+
 ### 9.17.0
 - Add support for deriving mnemonics for Lightning hot wallets according to BIP-85 (using a custom
   BIP-85 application number)

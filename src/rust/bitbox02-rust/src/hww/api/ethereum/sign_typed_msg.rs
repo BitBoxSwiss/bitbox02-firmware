@@ -1058,6 +1058,106 @@ mod tests {
     /// ```
     #[test]
     fn test_exhaustive_data() {
+        const EXPECTED_DIALOGS: &[(&str, &str)] = &[
+            ("Domain (1/4)", "name: Ether Mail"),
+            ("Domain (2/4)", "version: 1"),
+            ("Domain (3/4)", "chainId: 1"),
+            (
+                "Domain (4/4)",
+                "verifyingContract: 0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            ),
+            ("Message (1/23)", "str: str"),
+            ("Message (2/23)", "emptyArray: (empty list)"),
+            ("Message (3/23)", "name_address: 0xa21A16EC22a940990922220E4ab5bF4C2310F556"),
+            ("Message (4/23)", "name_string: list with 5 elements"),
+            ("Message (4/23)", "name_string[1/5]: "),
+            ("Message (4/23)", "name_string[2/5]: a"),
+            ("Message (4/23)", "name_string[3/5]: aa"),
+            ("Message (4/23)", "name_string[4/5]: |@#!$"),
+            ("Message (4/23)", "name_string[5/5]: long long long long long long long long"),
+            ("Message (5/23)", "name_bytes: list with 2 elements"),
+            ("Message (5/23)", "name_bytes[1/2]: 0x"),
+            ("Message (5/23)", "name_bytes[2/2]: 0xaabbcc"),
+            ("Message (6/23)", "name_bytes1: 0xaa"),
+            ("Message (7/23)", "name_bytes10: 0x112233445566778899aa"),
+            ("Message (8/23)", "name_bytes32: 0xd0f02988fd881565e927c7473c287322db166901bac03bef55d7a52a5c750ab4"),
+            ("Message (9/23)", "name_uint8: list with 4 elements"),
+            ("Message (9/23)", "name_uint8[1/4]: 0"),
+            ("Message (9/23)", "name_uint8[2/4]: 1"),
+            ("Message (9/23)", "name_uint8[3/4]: 10"),
+            ("Message (9/23)", "name_uint8[4/4]: 255"),
+            ("Message (10/23)", "name_uint32: list with 4 elements"),
+            ("Message (10/23)", "name_uint32[1/4]: 0"),
+            ("Message (10/23)", "name_uint32[2/4]: 256"),
+            ("Message (10/23)", "name_uint32[3/4]: 65536"),
+            ("Message (10/23)", "name_uint32[4/4]: 4294967295"),
+            ("Message (11/23)", "name_uint64: 18446744073709551615"),
+            ("Message (12/23)", "name_uint128: 340282366920938463463374607431768211455"),
+            ("Message (13/23)", "name_uint256: 115792089237316195423570985008687907853269984665640564039457584007913129639935"),
+            ("Message (14/23)", "name_int8: list with 5 elements"),
+            ("Message (14/23)", "name_int8[1/5]: 0"),
+            ("Message (14/23)", "name_int8[2/5]: 10"),
+            ("Message (14/23)", "name_int8[3/5]: -10"),
+            ("Message (14/23)", "name_int8[4/5]: 127"),
+            ("Message (14/23)", "name_int8[5/5]: -128"),
+            ("Message (15/23)", "name_int32: list with 2 elements"),
+            ("Message (15/23)", "name_int32[1/2]: 2147483647"),
+            ("Message (15/23)", "name_int32[2/2]: -2147483648"),
+            ("Message (16/23)", "name_int64: list with 4 elements"),
+            ("Message (16/23)", "name_int64[1/4]: 500"),
+            ("Message (16/23)", "name_int64[2/4]: -500"),
+            ("Message (16/23)", "name_int64[3/4]: 9223372036854775807"),
+            ("Message (16/23)", "name_int64[4/4]: -9223372036854775808"),
+            ("Message (17/23)", "name_int128: list with 2 elements"),
+            ("Message (17/23)", "name_int128[1/2]: 170141183460469231731687303715884105727"),
+            ("Message (17/23)", "name_int128[2/2]: -170141183460469231731687303715884105728"),
+            ("Message (18/23)", "name_int256: list with 2 elements"),
+            ("Message (18/23)", "name_int256[1/2]: 57896044618658097711785492504343953926634992332820282019728792003956564819967"),
+            ("Message (18/23)", "name_int256[2/2]: -57896044618658097711785492504343953926634992332820282019728792003956564819968"),
+            ("Message (19/23)", "name_bool: list with 2 elements"),
+            ("Message (19/23)", "name_bool[1/2]: false"),
+            ("Message (19/23)", "name_bool[2/2]: true"),
+            ("Message (20/23)", "name_struct.name: struct name"),
+            ("Message (20/23)", "name_struct.arr: (empty list)"),
+            ("Message (21/23)", "arrayOfStructs: list with 3 elements"),
+            ("Message (21/23)", "arrayOfStructs[1/3].name: name 1"),
+            ("Message (21/23)", "arrayOfStructs[1/3].arr: (empty list)"),
+            ("Message (21/23)", "arrayOfStructs[2/3].name: name 2"),
+            ("Message (21/23)", "arrayOfStructs[2/3].arr: list with 1 elements"),
+            ("Message (21/23)", "arrayOfStructs[2/3].arr[1/1]: false"),
+            ("Message (21/23)", "arrayOfStructs[3/3].name: name 3"),
+            ("Message (21/23)", "arrayOfStructs[3/3].arr: list with 2 elements"),
+            ("Message (21/23)", "arrayOfStructs[3/3].arr[1/2]: false"),
+            ("Message (21/23)", "arrayOfStructs[3/3].arr[2/2]: true"),
+            ("Message (22/23)", "fixedArrayOfStructs: list with 2 elements"),
+            ("Message (22/23)", "fixedArrayOfStructs[1/2].name: name 1"),
+            ("Message (22/23)", "fixedArrayOfStructs[1/2].arr: (empty list)"),
+            ("Message (22/23)", "fixedArrayOfStructs[2/2].name: name 2"),
+            ("Message (22/23)", "fixedArrayOfStructs[2/2].arr: list with 3 elements"),
+            ("Message (22/23)", "fixedArrayOfStructs[2/2].arr[1/3]: false"),
+            ("Message (22/23)", "fixedArrayOfStructs[2/2].arr[2/3]: false"),
+            ("Message (22/23)", "fixedArrayOfStructs[2/2].arr[3/3]: true"),
+            ("Message (23/23)", "nestedArray: list with 3 elements"),
+            ("Message (23/23)", "nestedArray[1/3]: list with 2 elements"),
+            ("Message (23/23)", "nestedArray[1/3][1/2]: list with 2 elements"),
+            ("Message (23/23)", "nestedArray[1/3][1/2][1/2]: 1"),
+            ("Message (23/23)", "nestedArray[1/3][1/2][2/2]: 2"),
+            ("Message (23/23)", "nestedArray[1/3][2/2]: list with 3 elements"),
+            ("Message (23/23)", "nestedArray[1/3][2/2][1/3]: 3"),
+            ("Message (23/23)", "nestedArray[1/3][2/2][2/3]: 4"),
+            ("Message (23/23)", "nestedArray[1/3][2/2][3/3]: 5"),
+            ("Message (23/23)", "nestedArray[2/3]: list with 2 elements"),
+            ("Message (23/23)", "nestedArray[2/3][1/2]: list with 2 elements"),
+            ("Message (23/23)", "nestedArray[2/3][1/2][1/2]: 6"),
+            ("Message (23/23)", "nestedArray[2/3][1/2][2/2]: 7"),
+            ("Message (23/23)", "nestedArray[2/3][2/2]: list with 1 elements"),
+            ("Message (23/23)", "nestedArray[2/3][2/2][1/1]: 8"),
+            ("Message (23/23)", "nestedArray[3/3]: list with 2 elements"),
+            ("Message (23/23)", "nestedArray[3/3][1/2]: (empty list)"),
+            ("Message (23/23)", "nestedArray[3/3][2/2]: list with 1 elements"),
+            ("Message (23/23)", "nestedArray[3/3][2/2][1/1]: 9"),
+        ];
+
         let bytes32 = b"\xd0\xf0\x29\x88\xfd\x88\x15\x65\xe9\x27\xc7\x47\x3c\x28\x73\x22\xdb\x16\x69\x01\xba\xc0\x3b\xef\x55\xd7\xa5\x2a\x5c\x75\x0a\xb4";
         let bigint256_positive = b"\x7f\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff";
         let bigint256_negative = b"\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
@@ -1290,8 +1390,14 @@ mod tests {
                 Ok(typed_msg.handle_host_response(&response).unwrap())
             }));
         }
+        static mut UI_COUNTER: usize = 0;
         mock(Data {
-            ui_confirm_create: Some(Box::new(|_params| true)),
+            ui_confirm_create: Some(Box::new(|params| unsafe {
+                let expected = EXPECTED_DIALOGS[UI_COUNTER];
+                assert_eq!((params.title, params.body), expected);
+                UI_COUNTER += 1;
+                true
+            })),
             ..Default::default()
         });
         let typed_msg = typed_msg.borrow();
@@ -1300,6 +1406,7 @@ mod tests {
             sighash,
             *b"\xc5\x4f\xa7\x87\x13\x18\xb6\xc2\xd8\x71\x62\xde\xbe\xff\x4c\xdf\x13\xf2\x85\x45\x12\xf3\x43\x6a\x04\xa6\x0c\xd1\xa7\xcf\x47\xc5",
         );
+        assert_eq!(unsafe { UI_COUNTER }, EXPECTED_DIALOGS.len());
     }
 
     /// Test case whree primaryType=='EIP712Domain'.

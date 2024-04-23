@@ -257,7 +257,7 @@ fn encode_value(typ: &MemberType, value: Vec<u8>) -> Result<(Vec<u8>, String), E
             )
         }
         DataType::String => {
-            if !util::ascii::is_printable_ascii(&value, util::ascii::Charset::All) {
+            if !util::ascii::is_printable_ascii(&value, util::ascii::Charset::AllNewline) {
                 return Err(Error::InvalidInput);
             }
             (
@@ -312,18 +312,30 @@ async fn encode_member<U: sha3::digest::Update>(
     } else {
         let value = get_value_from_host(root_object, path).await?;
         let (value_encoded, value_formatted) = encode_value(member_type, value)?;
-        confirm::confirm(&confirm::Params {
-            title: &format!(
-                "{}{}",
-                confirm_title(root_object),
-                title_suffix.as_deref().unwrap_or("")
-            ),
-            body: &format!("{}: {}", formatted_path.join("."), value_formatted),
-            scrollable: true,
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
+        let lines: Vec<&str> = value_formatted.split('\n').collect();
+        for (i, &line) in lines.iter().enumerate() {
+            confirm::confirm(&confirm::Params {
+                title: &format!(
+                    "{}{}",
+                    confirm_title(root_object),
+                    title_suffix.as_deref().unwrap_or("")
+                ),
+                body: &format!(
+                    "{}{}: {}",
+                    formatted_path.join("."),
+                    if lines.len() > 1 {
+                        format!(", line {}/{}", i + 1, lines.len())
+                    } else {
+                        "".into()
+                    },
+                    line
+                ),
+                scrollable: true,
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
+        }
         hasher.update(&value_encoded);
     }
     Ok(())
@@ -1031,7 +1043,7 @@ mod tests {
     ///     str: 'str',
     ///     emptyArray: [],
     ///     name_address: '0xa21A16EC22a940990922220E4ab5bF4C2310F556',
-    ///     name_string: ['', 'a', 'aa', '|@#!$', 'long long long long long long long long'],
+    ///     name_string: ['', 'a', 'aa', '|@#!$', 'long long long long long long long long', 'multi\n\nline'],
     ///     name_bytes: ['', '0xaabbcc'],
     ///     name_bytes1: '0xaa',
     ///     name_bytes10: '0x112233445566778899aa',
@@ -1069,12 +1081,15 @@ mod tests {
             ("Message (1/23)", "str: str"),
             ("Message (2/23)", "emptyArray: (empty list)"),
             ("Message (3/23)", "name_address: 0xa21A16EC22a940990922220E4ab5bF4C2310F556"),
-            ("Message (4/23)", "name_string: list with 5 elements"),
-            ("Message (4/23)", "name_string[1/5]: "),
-            ("Message (4/23)", "name_string[2/5]: a"),
-            ("Message (4/23)", "name_string[3/5]: aa"),
-            ("Message (4/23)", "name_string[4/5]: |@#!$"),
-            ("Message (4/23)", "name_string[5/5]: long long long long long long long long"),
+            ("Message (4/23)", "name_string: list with 6 elements"),
+            ("Message (4/23)", "name_string[1/6]: "),
+            ("Message (4/23)", "name_string[2/6]: a"),
+            ("Message (4/23)", "name_string[3/6]: aa"),
+            ("Message (4/23)", "name_string[4/6]: |@#!$"),
+            ("Message (4/23)", "name_string[5/6]: long long long long long long long long"),
+            ("Message (4/23)", "name_string[6/6], line 1/3: multi"),
+            ("Message (4/23)", "name_string[6/6], line 2/3: "),
+            ("Message (4/23)", "name_string[6/6], line 3/3: line"),
             ("Message (5/23)", "name_bytes: list with 2 elements"),
             ("Message (5/23)", "name_bytes[1/2]: 0x"),
             ("Message (5/23)", "name_bytes[2/2]: 0xaabbcc"),
@@ -1252,6 +1267,7 @@ mod tests {
                     Object::String("aa"),
                     Object::String("|@#!$"),
                     Object::String("long long long long long long long long"),
+                    Object::String("multi\n\nline"),
                 ]),
                 // name_bytes
                 Object::List(vec![Object::Bytes(b""), Object::Bytes(b"\xaa\xbb\xcc")]),
@@ -1404,7 +1420,7 @@ mod tests {
         let sighash = block_on(eip712_sighash(&typed_msg.types, typed_msg.primary_type)).unwrap();
         assert_eq!(
             sighash,
-            *b"\xc5\x4f\xa7\x87\x13\x18\xb6\xc2\xd8\x71\x62\xde\xbe\xff\x4c\xdf\x13\xf2\x85\x45\x12\xf3\x43\x6a\x04\xa6\x0c\xd1\xa7\xcf\x47\xc5",
+            *b"\x0e\xfe\x31\xa8\x81\x9b\x6c\x38\x1c\x9e\x97\xcf\xd2\x99\x5a\xa6\xf2\x1e\x4a\x72\x87\x9a\xc1\x31\xb2\xf6\x48\xd0\x83\x28\x1c\x83",
         );
         assert_eq!(unsafe { UI_COUNTER }, EXPECTED_DIALOGS.len());
     }

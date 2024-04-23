@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Ethereum: allow signing EIP-712 messages containing multi-line strings
 
 ### 9.18.0
 - Add support for deriving BIP-39 mnemonics according to BIP-85

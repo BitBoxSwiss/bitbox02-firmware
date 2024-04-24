@@ -1604,16 +1604,10 @@ def connect_to_simulator_bitbox(debug: bool) -> int:
             self.client_socket.close()
 
     simulator = Simulator()
-
-    device_info: devices.DeviceInfo = {
-        "serial_number": "v9.16.0",
-        "path": b"",
-        "product_string": "BitBox02BTC",
-    }
     noise_config = bitbox_api_protocol.BitBoxNoiseConfig()
     bitbox_connection = bitbox02.BitBox02(
         transport=u2fhid.U2FHid(simulator),
-        device_info=device_info,
+        device_info=None,
         noise_config=noise_config,
     )
     try:

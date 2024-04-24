@@ -65,32 +65,6 @@ void simulate_firmware_execution(const uint8_t* input)
 
 int main(void)
 {
-    // Establish socket connection with client
-    int portno = 15423;
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        perror("ERROR opening socket");
-        return 1;
-    }
-    struct sockaddr_in serv_addr;
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(portno);
-    int serv_addr_len = sizeof(serv_addr);
-    if (bind(sockfd, (struct sockaddr*)&serv_addr, serv_addr_len) < 0) {
-        perror("ERROR binding socket");
-        return 1;
-    }
-    if (listen(sockfd, 50) < 0) {
-        perror("ERROR listening on socket");
-        return 1;
-    }
-    if ((commfd = accept(sockfd, (struct sockaddr*)&serv_addr, (socklen_t*)&serv_addr_len)) < 0) {
-        perror("accept");
-        return 1;
-    }
-    printf("Socket connection setup success\n");
-
     // BitBox02 simulation initialization
     usb_processing_init();
     usb_processing_set_send(usb_processing_hww(), send_usb_message_socket);
@@ -121,26 +95,57 @@ int main(void)
     bitbox02_smarteeprom_init();
     idle_workflow_blocking();
 
-    // BitBox02 firmware loop
-    uint8_t input[BUFFER_SIZE];
-    int temp_len;
-    while (1) {
-        // Simulator polls for USB messages from client and then processes them
-        if (!get_usb_message_socket(input)) break;
-        simulate_firmware_execution(input);
-
-        // If the USB message to be sent from firmware is bigger than one packet,
-        // then the simulator sends the message in multiple packets. Packets use
-        // HID format, just like the real USB messages.
-        temp_len = data_len - (USB_HID_REPORT_OUT_SIZE - 7);
-        while (temp_len > 0) {
-            // When USB message processing function is called without a new
-            // input, then it does not consume any packets but it still calls
-            // the send function to send further USB messages
-            usb_processing_process(usb_processing_hww());
-            temp_len -= (USB_HID_REPORT_OUT_SIZE - 5);
-        }
+    // Establish socket connection with client
+    int portno = 15423;
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        perror("ERROR opening socket");
+        return 1;
     }
-    close(commfd);
+    struct sockaddr_in serv_addr;
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
+    serv_addr.sin_port = htons(portno);
+    int serv_addr_len = sizeof(serv_addr);
+    if (bind(sockfd, (struct sockaddr*)&serv_addr, serv_addr_len) < 0) {
+        perror("ERROR binding socket");
+        return 1;
+    }
+    if (listen(sockfd, 50) < 0) {
+        perror("ERROR listening on socket");
+        return 1;
+    }
+    while (1) {
+        if ((commfd = accept(sockfd, (struct sockaddr*)&serv_addr, (socklen_t*)&serv_addr_len)) <
+            0) {
+            perror("accept");
+            return 1;
+        }
+        printf("Socket connection setup success\n");
+
+        // BitBox02 firmware loop
+        uint8_t input[BUFFER_SIZE];
+        int temp_len;
+        while (1) {
+            // Simulator polls for USB messages from client and then processes them
+            if (!get_usb_message_socket(input)) break;
+            simulate_firmware_execution(input);
+
+            // If the USB message to be sent from firmware is bigger than one packet,
+            // then the simulator sends the message in multiple packets. Packets use
+            // HID format, just like the real USB messages.
+            temp_len = data_len - (USB_HID_REPORT_OUT_SIZE - 7);
+            while (temp_len > 0) {
+                // When USB message processing function is called without a new
+                // input, then it does not consume any packets but it still calls
+                // the send function to send further USB messages
+                usb_processing_process(usb_processing_hww());
+                temp_len -= (USB_HID_REPORT_OUT_SIZE - 5);
+            }
+        }
+        close(commfd);
+        printf("Socket connection closed\n");
+        printf("Waiting for new clients, CTRL+C to shut down the simulator\n");
+    }
     return 0;
 }

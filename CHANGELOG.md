@@ -127,6 +127,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ## Bootloader
 
+### v1.0.6
+- Replace root pubkeys
+
 ### v1.0.5
 - Add SSD1312 driver for new OLED screens
 

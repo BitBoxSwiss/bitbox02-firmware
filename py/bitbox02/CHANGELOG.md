@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+
+# 6.3.0
+- Allow infering product and version via API call instead of via USB descriptor
 - Accept EIP1559 transactions in `eth_sign()` - requires BitBox02 firmware v9.16.0
 - Add `bip85_bip39()` and `bip85_ln()`
 

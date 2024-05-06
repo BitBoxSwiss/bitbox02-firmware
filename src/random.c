@@ -93,7 +93,7 @@ void random_32_bytes(uint8_t* buf)
 
 #ifndef TESTING
     { // mix in factory randomness
-        uint8_t* factory_randomness = (uint8_t*)(FLASH_BOOT_START + FLASH_BOOT_LEN - 32);
+        const uint8_t* factory_randomness = (uint8_t*)(FLASH_BOOT_START + FLASH_BOOT_LEN - 32);
         for (uint32_t i = 0; i < RANDOM_NUM_SIZE; i++) {
             random[i] ^= factory_randomness[i];
         }

@@ -48,11 +48,25 @@ void reset_reset(bool status)
 {
     keystore_lock();
 #if !defined(TESTING)
-    if (!securechip_update_keys()) {
+    bool sc_result_update_keys = false;
+    for (int retries = 0; retries < 5; retries++) {
+        sc_result_update_keys = securechip_update_keys();
+        if (sc_result_update_keys) {
+            break;
+        }
+    }
+    if (!sc_result_update_keys) {
         Abort("Could not reset secure chip.");
     }
 #if APP_U2F == 1
-    if (!securechip_u2f_counter_set(0)) {
+    bool sc_result_u2f_counter_set = false;
+    for (int retries = 0; retries < 5; retries++) {
+        sc_result_u2f_counter_set = securechip_u2f_counter_set(0);
+        if (sc_result_u2f_counter_set) {
+            break;
+        }
+    }
+    if (!sc_result_u2f_counter_set) {
         Abort("Could not initialize U2F counter.");
     }
 #endif

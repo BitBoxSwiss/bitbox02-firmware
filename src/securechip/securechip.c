@@ -605,7 +605,12 @@ bool securechip_monotonic_increments_remaining(uint32_t* remaining_out)
 
 bool securechip_random(uint8_t* rand_out)
 {
-    return atcab_random(rand_out) == ATCA_SUCCESS;
+    for (int retries = 0; retries < 5; retries++) {
+        if (atcab_random(rand_out) == ATCA_SUCCESS) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Length of priv_key must be 32 bytes

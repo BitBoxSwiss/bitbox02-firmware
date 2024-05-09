@@ -251,3 +251,13 @@ add_library(ctaes
   ctaes/ctaes.c
 )
 target_include_directories(ctaes SYSTEM PUBLIC ctaes)
+
+add_library(rtt
+  SEGGER_RTT_V796b/RTT/SEGGER_RTT.c
+)
+target_compile_options(rtt PRIVATE "-Wno-cast-qual")
+# Define RTT config vars. The default DOWN buffer size (buffer for reading from host) is 64, which
+# is too small for our need.  The default UP buffer size (buffer for writing to host) is 1024, but
+# we define it anyway here in case the default changes.
+target_compile_definitions(rtt PUBLIC "BUFFER_SIZE_DOWN=(1024)" "BUFFER_SIZE_UP=(1024)")
+target_include_directories(rtt SYSTEM PUBLIC SEGGER_RTT_V796b/RTT SEGGER_RTT_V796b/Config)

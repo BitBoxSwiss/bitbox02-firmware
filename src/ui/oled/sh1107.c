@@ -16,7 +16,7 @@
 #include "oled_writer.h"
 
 // Specify the column address of display RAM 0-127
-#define SH1107_CMD_SET_LOW_COL(column) (0x00 | ((column)&0x0F))
+#define SH1107_CMD_SET_LOW_COL(column) (0x00 | ((column) & 0x0F))
 #define SH1107_CMD_SET_HIGH_COL(column) (0x10 | (((column) >> 4) & 0x07))
 
 // In page adressing mode, after the display RAM is written to, the column address is
@@ -55,7 +55,7 @@
 #define SH1107_CMD_SET_DISPLAY_ON 0xAF
 #define SH1107_CMD_SET_DISPLAY_OFF 0xAE
 
-#define SH1107_CMD_SET_PAGE_START_ADDRESS(page) (0xB0 | ((page)&0x0f))
+#define SH1107_CMD_SET_PAGE_START_ADDRESS(page) (0xB0 | ((page) & 0x0f))
 
 #define SH1107_CMD_SET_COM_OUTPUT_SCAN_UP 0xC0
 #define SH1107_CMD_SET_COM_OUTPUT_SCAN_DOWN 0xC8

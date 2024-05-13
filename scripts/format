@@ -8,7 +8,7 @@ set -e
 # Exit on pipe fail
 set -o pipefail
 
-CLANGFORMAT=${CLANGFORMAT:-clang-format-15}
+CLANGFORMAT=${CLANGFORMAT:-clang-format-18}
 CLANGFORMAT_FLAGS=${CLANGFORMAT_FLAGS:--i}
 VERBOSE=${VERBOSE:-NO}
 

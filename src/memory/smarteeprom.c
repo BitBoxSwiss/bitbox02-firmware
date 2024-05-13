@@ -48,10 +48,8 @@ void smarteeprom_disable(void)
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_PBC); // Clear page buffer
     *((uint32_t*)NVMCTRL_FUSES_SEEPSZ_ADDR) = config_word;
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_WQW); // Write a 128-bit word
-    while (!NVMCTRL->STATUS.bit.READY)
-        ;
-    while (NVMCTRL->SEESTAT.bit.BUSY)
-        ;
+    while (!NVMCTRL->STATUS.bit.READY);
+    while (NVMCTRL->SEESTAT.bit.BUSY);
 }
 
 void smarteeprom_setup(void)
@@ -88,10 +86,8 @@ void smarteeprom_setup(void)
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_PBC); // Clear page buffer
     *((uint32_t*)NVMCTRL_FUSES_SEEPSZ_ADDR) = config_word;
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_WQW); // Write a 128-bit word
-    while (!NVMCTRL->STATUS.bit.READY)
-        ;
-    while (NVMCTRL->SEESTAT.bit.BUSY)
-        ;
+    while (!NVMCTRL->STATUS.bit.READY);
+    while (NVMCTRL->SEESTAT.bit.BUSY);
 }
 
 void smarteeprom_bb02_config(void)
@@ -122,8 +118,7 @@ void smarteeprom_read(size_t address, size_t bytes, uint8_t* out_buffer)
     }
 
     volatile uint8_t* eeprom = (uint8_t*)SEEPROM_ADDR + address;
-    while (NVMCTRL->SEESTAT.bit.BUSY)
-        ;
+    while (NVMCTRL->SEESTAT.bit.BUSY);
     for (size_t i = 0; i < bytes; ++i) {
         out_buffer[i] = *eeprom;
         eeprom++;
@@ -136,8 +131,7 @@ void smarteeprom_write(size_t address, size_t bytes, const uint8_t* buffer)
         Abort("NULL input buffer in smarteeprom_write.");
     }
     volatile uint8_t* eeprom = (uint8_t*)SEEPROM_ADDR + address;
-    while (NVMCTRL->SEESTAT.bit.BUSY)
-        ;
+    while (NVMCTRL->SEESTAT.bit.BUSY);
     /*
      * Buffered write of multiple bytes.
      * Note that crossing a 32B page will still result in a partial flush
@@ -149,10 +143,8 @@ void smarteeprom_write(size_t address, size_t bytes, const uint8_t* buffer)
     }
     /* Now, flush the write we have issued. */
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_SEEFLUSH);
-    while (NVMCTRL->SEESTAT.bit.LOAD != 0)
-        ;
-    while (NVMCTRL->SEESTAT.bit.BUSY != 0)
-        ;
+    while (NVMCTRL->SEESTAT.bit.LOAD != 0);
+    while (NVMCTRL->SEESTAT.bit.BUSY != 0);
     /*
      * Read back the buffer.
      * Check that it matches what we've just written.

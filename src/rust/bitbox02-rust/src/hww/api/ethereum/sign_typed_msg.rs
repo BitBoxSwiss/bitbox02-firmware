@@ -423,7 +423,10 @@ async fn hash_struct(
     child_formatted_path.push("".into());
     for (index, member) in typ.members.iter().enumerate() {
         *child_path.last_mut().unwrap() = index as u32;
-        *child_formatted_path.last_mut().unwrap() = member.name.clone();
+        child_formatted_path
+            .last_mut()
+            .unwrap()
+            .clone_from(&member.name);
         let member_type = member.r#type.as_ref().ok_or(Error::InvalidInput)?;
         encode_member(
             &mut hasher,

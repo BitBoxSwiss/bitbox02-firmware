@@ -37,6 +37,7 @@ digest = "0.10.6"
 zeroize = "1.6.0"
 num-bigint = { version = "0.4.3", default-features = false, optional = true }
 num-traits = { version = "0.2", default-features = false, optional = true }
+# If you change this, also change src/rust/.cargo/config.toml.
 bip32-ed25519 = { git = "https://github.com/digitalbitbox/rust-bip32-ed25519", tag = "v0.1.2", optional = true }
 bech32 = { version = "0.10.0-beta", default-features = false, optional = true }
 blake2 = { version = "0.10.6", default-features = false, optional = true }

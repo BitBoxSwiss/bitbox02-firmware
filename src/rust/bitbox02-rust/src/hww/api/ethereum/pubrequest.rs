@@ -27,8 +27,7 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
 
     let params = super::params::get_and_warn_unknown(Some(coin), request.chain_id).await?;
     // If a contract_address is provided, it has to be a supported ERC20-token.
-    let erc20_params: Option<&super::erc20_params::Params> = if request.contract_address.is_empty()
-    {
+    let erc20_params: Option<super::erc20_params::Params> = if request.contract_address.is_empty() {
         None
     } else {
         let address: [u8; 20] = request

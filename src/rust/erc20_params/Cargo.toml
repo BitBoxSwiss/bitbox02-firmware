@@ -18,3 +18,9 @@ version = "0.1.0"
 authors = ["Shift Crypto AG <support@bitbox.swiss>"]
 edition = "2021"
 license = "Apache-2.0"
+
+[dev-dependencies]
+hex = { workspace = true }
+
+[build-dependencies]
+hex = { workspace = true }

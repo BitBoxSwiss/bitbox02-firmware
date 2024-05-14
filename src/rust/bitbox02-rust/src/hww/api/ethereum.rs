@@ -19,7 +19,6 @@ compile_error!(
 
 mod address;
 mod amount;
-mod erc20_params;
 mod keypath;
 mod params;
 mod pubrequest;

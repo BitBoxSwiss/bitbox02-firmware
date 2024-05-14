@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#[repr(packed)]
 struct P {
     pub unit: *const u8,
     pub contract_address: [u8; 20],

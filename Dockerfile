@@ -20,8 +20,8 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get upgrade -y && apt-get install -y wget nano rsync curl gnupg2 jq unzip bzip2
 
 # for clang-*-15, see https://apt.llvm.org/
-RUN echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-15 main" >> /etc/apt/sources.list && \
-    echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-15 main" >> /etc/apt/sources.list && \
+RUN echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" >> /etc/apt/sources.list && \
+    echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" >> /etc/apt/sources.list && \
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 
 # Install gcc8-arm-none-eabi
@@ -37,7 +37,7 @@ RUN mkdir ~/Downloads &&\
 # Tools for building
 RUN apt-get update && apt-get install -y \
     build-essential \
-    llvm-15 \
+    llvm-18 \
     gcc-10 \
     binutils \
     valgrind \
@@ -68,8 +68,8 @@ RUN update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-10 100
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
-    clang-format-15 \
-    clang-tidy-15
+    clang-format-18 \
+    clang-tidy-18
 
 RUN python3 -m pip install --upgrade pip
 

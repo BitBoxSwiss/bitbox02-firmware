@@ -177,19 +177,14 @@ static void pukcc_self_test(void)
 {
     static bool self_test_run = false;
     if (!self_test_run) {
-        while ((PUKCCSR & BIT_PUKCCSR_CLRRAM_BUSY) != 0)
-            ;
+        while ((PUKCCSR & BIT_PUKCCSR_CLRRAM_BUSY) != 0);
         memset(&PUKCLParam, 0, sizeof(PUKCL_PARAM));
         pvPUKCLParam = &PUKCLParam;
         vPUKCL_Process(SelfTest, pvPUKCLParam);
-        while (PUKCL(u2Status) != PUKCL_OK)
-            ;
-        while (pvPUKCLParam->P.PUKCL_SelfTest.u4Version != PUKCL_VERSION)
-            ;
-        while (pvPUKCLParam->P.PUKCL_SelfTest.u4CheckNum1 != 0x6E70DDD2)
-            ;
-        while (pvPUKCLParam->P.PUKCL_SelfTest.u4CheckNum2 != 0x25C8D64F)
-            ;
+        while (PUKCL(u2Status) != PUKCL_OK);
+        while (pvPUKCLParam->P.PUKCL_SelfTest.u4Version != PUKCL_VERSION);
+        while (pvPUKCLParam->P.PUKCL_SelfTest.u4CheckNum1 != 0x6E70DDD2);
+        while (pvPUKCLParam->P.PUKCL_SelfTest.u4CheckNum2 != 0x25C8D64F);
         self_test_run = true;
     }
 }

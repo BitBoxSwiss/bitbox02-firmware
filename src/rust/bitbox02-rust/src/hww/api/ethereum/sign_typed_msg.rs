@@ -288,25 +288,25 @@ async fn encode_member<U: sha3::digest::Update>(
     title_suffix: Option<String>,
 ) -> Result<(), Error> {
     if member_type.r#type == DataType::Struct as _ {
-        let value_encoded = hash_struct(
+        let value_encoded = Box::pin(hash_struct(
             types,
             root_object,
             &member_type.struct_name,
             path,
             formatted_path,
             title_suffix,
-        )
+        ))
         .await?;
         hasher.update(&value_encoded);
     } else if member_type.r#type == DataType::Array as _ {
-        let encoded_value = hash_array(
+        let encoded_value = Box::pin(hash_array(
             types,
             member_type,
             root_object,
             path,
             formatted_path,
             title_suffix,
-        )
+        ))
         .await?;
         hasher.update(&encoded_value);
     } else {
@@ -341,7 +341,6 @@ async fn encode_member<U: sha3::digest::Update>(
     Ok(())
 }
 
-#[async_recursion::async_recursion(?Send)]
 async fn hash_array(
     types: &[StructType],
     member_type: &MemberType,
@@ -404,7 +403,6 @@ async fn hash_array(
     Ok(hasher.finalize().to_vec())
 }
 
-#[async_recursion::async_recursion(?Send)]
 async fn hash_struct(
     types: &[StructType],
     root_object: RootObject,
@@ -423,7 +421,10 @@ async fn hash_struct(
     child_formatted_path.push("".into());
     for (index, member) in typ.members.iter().enumerate() {
         *child_path.last_mut().unwrap() = index as u32;
-        *child_formatted_path.last_mut().unwrap() = member.name.clone();
+        child_formatted_path
+            .last_mut()
+            .unwrap()
+            .clone_from(&member.name);
         let member_type = member.r#type.as_ref().ok_or(Error::InvalidInput)?;
         encode_member(
             &mut hasher,

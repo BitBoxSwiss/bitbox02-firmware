@@ -213,6 +213,7 @@ else()
   # For binary reproducibility, strip path prefixes that can be different depending on environment (e.g. /home/<user>, etc.).
   set(RUSTFLAGS "--remap-path-prefix=${CMAKE_CURRENT_SOURCE_DIR}/rust=src --remap-path-prefix=$ENV{HOME}=")
 endif()
+
 # Use libsecp256k1 that we link ourselves (included via external/libwally-core).
 # See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
 set(RUSTFLAGS "${RUSTFLAGS} --cfg=rust_secp_no_symbol_renaming")
@@ -244,8 +245,19 @@ set(LIBBITBOX02_RUST ${LIBBITBOX02_RUST} PARENT_SCOPE)
 
 # Generate c-headers for the rust library
 add_custom_target(rust-cbindgen
+  # cbindgen can automatically create the metadata, but it does so without the `--offline` flag.
+  # The workaround is to manually create and pass the metadata.
   COMMAND
-    ${CBINDGEN} --quiet --config ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-cbindgen.toml --output ${CMAKE_CURRENT_BINARY_DIR}/rust/rust.h ${LIBBITBOX02_RUST_SOURCE_DIR}
+    ${CARGO} metadata --offline >  ${CMAKE_CURRENT_BINARY_DIR}/rust-metadata
+  COMMAND
+    ${CBINDGEN}
+      --quiet
+      --config ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-cbindgen.toml
+      --output ${CMAKE_CURRENT_BINARY_DIR}/rust/rust.h
+      --profile release
+      --metadata ${CMAKE_CURRENT_BINARY_DIR}/rust-metadata
+      ${LIBBITBOX02_RUST_SOURCE_DIR}
+  WORKING_DIRECTORY ${LIBBITBOX02_RUST_SOURCE_DIR}
   BYPRODUCTS
     ${CMAKE_CURRENT_BINARY_DIR}/rust/rust.h
 )
@@ -511,7 +523,7 @@ foreach(type ${RUST_LIBS})
       RUSTFLAGS=${RUSTFLAGS}
       FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
       $<$<BOOL:${SCCACHE_PROGRAM}>:RUSTC_WRAPPER=${SCCACHE_PROGRAM}>
-      ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --features target-${type} --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
+      ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv> --offline --features target-${type} --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
     COMMAND
       ${CMAKE_COMMAND} -E copy_if_different ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
     # DEPFILES are only supported with the Ninja build tool

@@ -16,7 +16,7 @@
 #include "oled_writer.h"
 #include <stdbool.h>
 
-#define SSD1312_CMD_SET_LOW_COL(column) (0x00 | ((column)&0x0F))
+#define SSD1312_CMD_SET_LOW_COL(column) (0x00 | ((column) & 0x0F))
 #define SSD1312_CMD_SET_HIGH_COL(column) (0x10 | (((column) >> 4) & 0x07))
 
 // Double byte ecommand
@@ -32,7 +32,7 @@
 #define SSD1312_CMD_SET_PAGE_ADDRESS 0x22
 
 // Specify column address to determine the initial line (0-63)
-#define SSD1312_CMD_SET_DISPLAY_START_LINE(reg) (0x40 | ((reg)&0x3f))
+#define SSD1312_CMD_SET_DISPLAY_START_LINE(reg) (0x40 | ((reg) & 0x3f))
 
 // Double byte command (0x01-0xff)
 #define SSD1312_CMD_SET_CONTRAST_CONTROL 0x81
@@ -55,7 +55,7 @@
 #define SSD1312_CMD_SET_DISPLAY_ON 0xAF
 #define SSD1312_CMD_SET_DISPLAY_OFF 0xAE
 
-#define SSD1312_CMD_SET_PAGE_START_ADDRESS(page) (0xB0 | ((page)&0x07))
+#define SSD1312_CMD_SET_PAGE_START_ADDRESS(page) (0xB0 | ((page) & 0x07))
 
 #define SSD1312_CMD_SET_COM_OUTPUT_SCAN_UP 0xC0
 #define SSD1312_CMD_SET_COM_OUTPUT_SCAN_DOWN 0xC8

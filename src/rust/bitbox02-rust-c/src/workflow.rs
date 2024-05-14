@@ -100,8 +100,8 @@ pub unsafe extern "C" fn rust_workflow_unlock_poll(result_out: &mut bool) -> boo
 /// Returns true if there was a result.
 #[no_mangle]
 pub unsafe extern "C" fn rust_workflow_confirm_poll(result_out: &mut bool) -> bool {
-    match &CONFIRM_STATE {
-        TaskState::ResultAvailable(result) => {
+    match CONFIRM_STATE {
+        TaskState::ResultAvailable(ref result) => {
             CONFIRM_TITLE = None;
             CONFIRM_BODY = None;
             CONFIRM_PARAMS = None;

@@ -174,35 +174,17 @@ qtm_touch_key_control_t qtlib_key_set1 = {
 /**********************************************************/
 /****************  Binding Layer Module  ******************/
 /**********************************************************/
-#define LIB_MODULES_INIT_LIST                                   \
-    {                                                           \
-        (module_init_t) & qtm_ptc_init_acquisition_module, null \
-    }
+#define LIB_MODULES_INIT_LIST {(module_init_t) & qtm_ptc_init_acquisition_module, null}
 
-#define LIB_MODULES_PROC_LIST                           \
-    {                                                   \
-        (module_proc_t) & qtm_key_sensors_process, null \
-    }
+#define LIB_MODULES_PROC_LIST {(module_proc_t) & qtm_key_sensors_process, null}
 
-#define LIB_INIT_DATA_MODELS_LIST    \
-    {                                \
-        (void*)&qtlib_acq_set1, null \
-    }
+#define LIB_INIT_DATA_MODELS_LIST {(void*)&qtlib_acq_set1, null}
 
-#define LIB_DATA_MODELS_PROC_LIST    \
-    {                                \
-        (void*)&qtlib_key_set1, null \
-    }
+#define LIB_DATA_MODELS_PROC_LIST {(void*)&qtlib_key_set1, null}
 
-#define LIB_MODULES_ACQ_ENGINES_LIST                         \
-    {                                                        \
-        (module_acq_t) & qtm_ptc_start_measurement_seq, null \
-    }
+#define LIB_MODULES_ACQ_ENGINES_LIST {(module_acq_t) & qtm_ptc_start_measurement_seq, null}
 
-#define LIB_MODULES_ACQ_ENGINES_LIST_DM \
-    {                                   \
-        (void*)&qtlib_acq_set1, null    \
-    }
+#define LIB_MODULES_ACQ_ENGINES_LIST_DM {(void*)&qtlib_acq_set1, null}
 
 /* QTM run time options */
 module_init_t library_modules_init[] = LIB_MODULES_INIT_LIST;

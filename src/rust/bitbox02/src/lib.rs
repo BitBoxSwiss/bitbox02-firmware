@@ -37,8 +37,6 @@ extern crate lazy_static;
 #[cfg(feature = "testing")]
 pub mod testing;
 
-#[cfg(feature = "app-ethereum")]
-pub mod app_eth;
 pub mod bip32;
 pub mod input;
 pub mod keystore;

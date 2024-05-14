@@ -145,11 +145,6 @@ set(CRYPTOAUTHLIB-SOURCES
 )
 set(CRYPTOAUTHLIB-SOURCES ${CRYPTOAUTHLIB-SOURCES} PARENT_SCOPE)
 
-set(ETHEREUM-SOURCES
-  ${CMAKE_SOURCE_DIR}/src/apps/eth/eth_params.c
-)
-set(ETHEREUM-SOURCES ${ETHEREUM-SOURCES} PARENT_SCOPE)
-
 set(FIRMWARE-DRIVER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid/u2f/hid_u2f.c
 )
@@ -412,7 +407,6 @@ add_custom_target(rust-bindgen
     --allowlist-var SD_MAX_FILE_SIZE
     --allowlist-function sd_free_list
     --allowlist-var BIP39_WORDLIST_LEN
-    --allowlist-function app_eth_erc20_params_get
     --rustified-enum simple_type_t
     --rustified-enum multisig_script_type_t
     --rustified-enum output_type_t
@@ -654,7 +648,7 @@ if(CMAKE_CROSSCOMPILING)
 
   target_sources(firmware.elf PRIVATE firmware.c)
   target_compile_definitions(firmware.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_BTC=1" "APP_LTC=1" "APP_ETH=1" "APP_U2F=1")
-  target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${ETHEREUM-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
+  target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
 
   target_sources(firmware-btc.elf PRIVATE firmware.c)
   target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_BTC=1" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")

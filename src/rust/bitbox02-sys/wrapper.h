@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <apps/eth/eth_params.h>
 #include <bip32.h>
 #include <keystore.h>
 #include <memory/bitbox02_smarteeprom.h>

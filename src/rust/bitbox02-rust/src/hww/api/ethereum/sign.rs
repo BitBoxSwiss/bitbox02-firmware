@@ -202,7 +202,7 @@ async fn verify_erc20_transaction(
     erc20_value: BigUint,
 ) -> Result<(), Error> {
     let erc20_params =
-        bitbox02::app_eth::erc20_params_get(params.chain_id, parse_recipient(request.recipient())?);
+        super::erc20_params::get(params.chain_id, parse_recipient(request.recipient())?);
     let formatted_fee = parse_fee(request, params).format();
     let recipient_address = super::address::from_pubkey_hash(&erc20_recipient);
     let (formatted_value, formatted_total) = match erc20_params {

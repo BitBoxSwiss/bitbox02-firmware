@@ -13,8 +13,6 @@
 // limitations under the License.
 
 use alloc::vec::Vec;
-use core::convert::TryFrom;
-use core::convert::TryInto;
 
 use sha2::{Digest, Sha256};
 

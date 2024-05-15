@@ -46,8 +46,6 @@ use pb::BtcCoin;
 use pb::BtcScriptConfig;
 
 use alloc::string::String;
-use core::convert::TryFrom;
-use core::convert::TryInto;
 
 /// Like `hww::next_request`, but for Bitcoin requests/responses.
 pub async fn next_request(response: pb::btc_response::Response) -> Result<Request, Error> {

@@ -17,7 +17,6 @@ use super::super::pb;
 use super::super::Error;
 
 use alloc::vec::Vec;
-use core::convert::TryFrom;
 
 use digest::Update;
 use minicbor::encode::{Encoder, Write};

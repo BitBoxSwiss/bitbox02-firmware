@@ -20,8 +20,6 @@ use pb::response::Response;
 
 use crate::workflow::sdcard;
 
-use core::convert::TryFrom;
-
 pub async fn process(
     &pb::InsertRemoveSdCardRequest { action }: &pb::InsertRemoveSdCardRequest,
 ) -> Result<Response, Error> {

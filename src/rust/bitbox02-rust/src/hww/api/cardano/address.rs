@@ -17,7 +17,6 @@ use super::Error;
 
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::convert::TryFrom;
 
 use crate::workflow::confirm;
 

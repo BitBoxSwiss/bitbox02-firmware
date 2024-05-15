@@ -23,8 +23,6 @@ use pb::btc_response::Response;
 use pb::btc_script_config::Config;
 use pb::BtcCoin;
 
-use core::convert::TryFrom;
-
 use super::multisig::SortXpubs;
 
 use crate::workflow::{confirm, status, trinary_input_string};

@@ -27,10 +27,10 @@ bitbox02-rust = { path = "../bitbox02-rust", optional = true }
 bitbox02 = { path = "../bitbox02", optional = true }
 bitbox02-noise = { path = "../bitbox02-noise", optional = true }
 util = { path = "../util" }
-hex = { version = "0.4", default-features = false }
-sha2 = { version = "0.10.8", default-features = false, optional = true }
-sha3 = { version = "0.10.8", default-features = false, optional = true }
-bitcoin = { version = "0.31.0", default-features = false, features = ["no-std"], optional = true }
+hex = { workspace = true }
+sha2 = { workspace = true, optional = true }
+sha3 = { workspace = true, optional = true }
+bitcoin = { workspace = true, optional = true }
 
 [features]
 # Only one of the "target-" should be activated, which in turn defines/activates the dependent features.

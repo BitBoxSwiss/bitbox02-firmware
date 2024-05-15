@@ -21,4 +21,4 @@ edition = "2021"
 license = "Apache-2.0"
 
 [dependencies]
-num-bigint = { version = "0.4.3", default-features = false }
+num-bigint = { workspace = true, default-features = false }

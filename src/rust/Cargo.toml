@@ -23,6 +23,8 @@ members = [
     "bitbox02-sys",
 ]
 
+resolver = "2"
+
 [profile.release]
 # This only affects the .elf output. Debug info is stripped from the final .bin.
 # Paths to source code can still appear in the final bin, as they are part of the panic!() output.

@@ -1,4 +1,5 @@
 # Copyright 2020 Shift Cryptosecurity AG
+# Copyright 2024 Shift Crypto AG
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,8 +16,8 @@
 [package]
 name = "bitbox02"
 version = "0.1.0"
-authors = ["Shift Crypto AG <support@shiftcrypto.ch>"]
-edition = "2018"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+edition = "2021"
 description = "Idiomatic rust bindings for C code in bitbox02-firmware"
 license = "Apache-2.0"
 

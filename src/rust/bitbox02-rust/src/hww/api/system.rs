@@ -14,7 +14,6 @@
 
 use super::Error;
 use crate::pb;
-use core::convert::TryFrom;
 
 use pb::reboot_request::Purpose;
 use pb::response::Response;

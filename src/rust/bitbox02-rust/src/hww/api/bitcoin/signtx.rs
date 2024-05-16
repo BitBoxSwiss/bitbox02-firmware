@@ -23,8 +23,6 @@ use crate::workflow::{confirm, status, transaction};
 use crate::xpubcache::Bip32XpubCache;
 
 use alloc::vec::Vec;
-use core::convert::TryFrom;
-use core::convert::TryInto;
 
 use pb::request::Request;
 use pb::response::Response;

@@ -19,7 +19,6 @@ use crate::xpubcache::Bip32XpubCache;
 
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::convert::TryFrom;
 
 use pb::btc_script_config::SimpleType;
 pub use pb::btc_sign_init_request::FormatUnit;

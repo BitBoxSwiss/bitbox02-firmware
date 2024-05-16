@@ -1,4 +1,5 @@
 # Copyright 2020 Shift Cryptosecurity AG
+# Copyright 2024 Shift Crypto AG
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,8 +16,8 @@
 [package]
 name = "bitbox02-rust"
 version = "0.1.0"
-authors = ["Shift Crypto AG <support@shiftcrypto.ch>"]
-edition = "2018"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+edition = "2021"
 description = "BitBox02 functionality implemented in rust"
 license = "Apache-2.0"
 
@@ -30,12 +31,12 @@ bitbox02 = {path = "../bitbox02"}
 util = {path = "../util"}
 binascii = { version = "0.1.4", default-features = false, features = ["encode"] }
 bitbox02-noise = {path = "../bitbox02-noise"}
-hex = { version = "0.4", default-features = false, features = ["alloc"] }
-sha2 = { version = "0.10.8", default-features = false }
-sha3 = { version = "0.10.8", default-features = false, optional = true }
+hex = { workspace = true }
+sha2 = { workspace = true }
+sha3 = { workspace = true, optional = true }
 digest = "0.10.6"
-zeroize = "1.6.0"
-num-bigint = { version = "0.4.3", default-features = false, optional = true }
+zeroize = { workspace = true }
+num-bigint = { workspace = true, optional = true }
 num-traits = { version = "0.2", default-features = false, optional = true }
 # If you change this, also change src/rust/.cargo/config.toml.
 bip32-ed25519 = { git = "https://github.com/digitalbitbox/rust-bip32-ed25519", tag = "v0.1.2", optional = true }
@@ -44,11 +45,11 @@ blake2 = { version = "0.10.6", default-features = false, optional = true }
 minicbor = { version = "0.20.0", default-features = false, features = ["alloc"], optional = true }
 crc = { version = "3.0.1", optional = true }
 ed25519-dalek = { version = "2.0.0", default-features = false, features = ["hazmat"], optional = true }
-lazy_static = { version = "1.4.0", optional = true }
+lazy_static = { workspace = true, optional = true }
 hmac = { version = "0.12.1", default-features = false, features = ["reset"] }
 
 miniscript = { version = "11.0.0", default-features = false, features = ["no-std"], optional = true }
-bitcoin = { version = "0.31.0", default-features = false, features = ["no-std"], optional = true }
+bitcoin = { workspace = true, optional = true }
 # We don't rely on this dep directly, the miniscript/bitcoin deps do. We list it here to enable the
 # small-hash feature to reduce the binary size, saving around 2784 bytes (as measured at time of
 # writing, this might fluctuate over time).

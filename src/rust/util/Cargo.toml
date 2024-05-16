@@ -1,4 +1,5 @@
 # Copyright 2020 Shift Cryptosecurity AG
+# Copyright 2024 Shift Crypto AG
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,9 +16,9 @@
 [package]
 name = "util"
 version = "0.1.0"
-authors = ["Shift Crypto AG <support@shiftcrypto.ch>"]
-edition = "2018"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+edition = "2021"
 license = "Apache-2.0"
 
 [dependencies]
-num-bigint = { version = "0.4.3", default-features = false }
+num-bigint = { workspace = true, default-features = false }

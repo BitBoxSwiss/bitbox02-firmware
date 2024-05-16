@@ -22,9 +22,6 @@ use crate::bip32;
 use crate::keystore;
 use crate::workflow::confirm;
 
-use core::convert::TryFrom;
-use core::convert::TryInto;
-
 async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error> {
     let coin = pb::EthCoin::try_from(request.coin)?;
 

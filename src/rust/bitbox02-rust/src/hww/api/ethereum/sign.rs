@@ -22,8 +22,6 @@ use bitbox02::keystore;
 use crate::workflow::{confirm, status, transaction};
 
 use alloc::vec::Vec;
-use core::convert::TryFrom;
-use core::convert::TryInto;
 use pb::eth_response::Response;
 
 use core::ops::{Add, Mul};

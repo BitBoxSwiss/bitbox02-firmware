@@ -53,10 +53,10 @@ fn main() {
     }
 
     // Group tokens by decimals
-    let mut grouped_tokens: HashMap<u8, Vec<&Token>> = HashMap::new();
+    let mut grouped_tokens: HashMap<(u8, u8), Vec<&Token>> = HashMap::new();
     for token in &tokens {
         grouped_tokens
-            .entry(token.decimals)
+            .entry((token.decimals, token.unit.len().try_into().unwrap()))
             .or_default()
             .push(token);
     }
@@ -69,12 +69,17 @@ fn main() {
         .open(out_filename)
         .unwrap();
 
-    for (decimals, tokens) in &grouped_tokens {
-        writeln!(output_file, "const PARAMS_{}: &[P] = &[", decimals).unwrap();
+    for ((decimals, unit_len), tokens) in &grouped_tokens {
+        writeln!(
+            output_file,
+            "const PARAMS_D{}_U{}: &[P] = &[",
+            decimals, unit_len
+        )
+        .unwrap();
         for token in tokens {
             writeln!(
                 output_file,
-                "    P {{ unit: b\"{}\\0\".as_ptr(), contract_address: *b\"{}\" }},",
+                "    P {{ unit: b\"{}\".as_ptr(), contract_address: *b\"{}\" }},",
                 token.unit,
                 token
                     .contract_address
@@ -87,14 +92,15 @@ fn main() {
         writeln!(output_file, "];").unwrap();
     }
 
-    let mut decimals_vec: Vec<u8> = grouped_tokens.keys().cloned().collect();
-    decimals_vec.sort();
     writeln!(
         output_file,
-        "const ALL: &[(u8, &[P])] = &[{}];",
-        decimals_vec
-            .iter()
-            .map(|decimal| format!("({}, PARAMS_{})", decimal, decimal))
+        "const ALL: &[(u8, u8, &[P])] = &[{}];",
+        grouped_tokens
+            .keys()
+            .map(|(decimal, unit_len)| format!(
+                "({}, {}, PARAMS_D{}_U{})",
+                decimal, unit_len, decimal, unit_len
+            ))
             .collect::<Vec<String>>()
             .join(", ")
     )

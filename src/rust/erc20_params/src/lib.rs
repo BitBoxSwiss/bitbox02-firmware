@@ -31,11 +31,14 @@ pub struct Params {
 }
 
 impl Params {
-    fn from_p(p: &P, decimals: u8) -> Self {
+    fn from_p(p: &P, decimals: u8, unit_len: u8) -> Self {
         Params {
-            unit: (unsafe { core::ffi::CStr::from_ptr(p.unit as *const i8) })
-                .to_str()
-                .unwrap(),
+            unit: unsafe {
+                core::str::from_utf8_unchecked(core::slice::from_raw_parts(
+                    p.unit,
+                    unit_len as usize,
+                ))
+            },
             contract_address: p.contract_address,
             decimals,
         }
@@ -52,11 +55,11 @@ pub fn get(chain_id: u64, contract_address: [u8; 20]) -> Option<Params> {
     if chain_id != 1 {
         return None;
     }
-    for &(decimals, params) in ALL.iter() {
+    for &(decimals, unit_len, params) in ALL.iter() {
         let result = params
             .iter()
             .find(|p| p.contract_address == contract_address)
-            .map(|p| Params::from_p(p, decimals));
+            .map(|p| Params::from_p(p, decimals, unit_len));
         if result.is_some() {
             return result;
         }

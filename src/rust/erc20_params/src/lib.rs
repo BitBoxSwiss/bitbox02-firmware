@@ -57,9 +57,9 @@ pub fn get(chain_id: u64, contract_address: [u8; 20]) -> Option<Params> {
     }
     for &(decimals, unit_len, params) in ALL.iter() {
         let result = params
-            .iter()
-            .find(|p| p.contract_address == contract_address)
-            .map(|p| Params::from_p(p, decimals, unit_len));
+            .binary_search_by_key(&contract_address, |p| p.contract_address)
+            .ok()
+            .map(|idx| Params::from_p(&params[idx], decimals, unit_len));
         if result.is_some() {
             return result;
         }

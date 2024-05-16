@@ -69,7 +69,10 @@ fn main() {
         .open(out_filename)
         .unwrap();
 
-    for ((decimals, unit_len), tokens) in &grouped_tokens {
+    for ((decimals, unit_len), tokens) in &mut grouped_tokens {
+        // Sort by contract address so we can look up by contract
+        // address more efficiently.
+        tokens.sort_by_key(|token| token.contract_address);
         writeln!(
             output_file,
             "const PARAMS_D{}_U{}: &[P] = &[",

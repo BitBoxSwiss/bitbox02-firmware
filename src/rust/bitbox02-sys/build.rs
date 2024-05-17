@@ -224,6 +224,8 @@ pub fn main() -> Result<(), &'static str> {
         .args(["--allowlist-function", "wally_hash160"])
         .args(["--allowlist-function", "wally_sha512"])
         .args(["--allowlist-function", "printf"])
+        .args(["--allowlist-function", "bitbox_secp256k1_dleq_prove"])
+        .args(["--allowlist-function", "bitbox_secp256k1_dleq_verify"])
         .arg("wrapper.h")
         .arg("--")
         .arg("-DPB_NO_PACKED_STRUCTS=1")

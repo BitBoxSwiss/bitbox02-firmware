@@ -22,11 +22,13 @@ members = [
     "bitbox02",
     "bitbox02-sys",
     "erc20_params",
+    "streaming-silent-payments",
 ]
 
 resolver = "2"
 
 [workspace.dependencies]
+bech32 = { version = "0.11.0", default-features = false }
 bitcoin = { version = "0.32.2", default-features = false }
 hex = { version = "0.4", default-features = false, features = ["alloc"] }
 lazy_static = { version = "1.4.0" }

@@ -1,5 +1,11 @@
-use super::*;
+use crate::attr::Attribute;
+use crate::expr::Expr;
+use crate::ident::Ident;
+use crate::lifetime::Lifetime;
+use crate::path::Path;
 use crate::punctuated::{Iter, IterMut, Punctuated};
+use crate::token;
+use crate::ty::Type;
 use proc_macro2::TokenStream;
 #[cfg(all(feature = "printing", feature = "extra-traits"))]
 use std::fmt::{self, Debug};
@@ -33,7 +39,7 @@ ast_enum_of_structs! {
     ///
     /// This type is a [syntax tree enum].
     ///
-    /// [syntax tree enum]: Expr#syntax-tree-enums
+    /// [syntax tree enum]: crate::expr::Expr#syntax-tree-enums
     #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
     pub enum GenericParam {
         /// A lifetime parameter: `'a: 'b + 'c + 'd`.
@@ -493,7 +499,7 @@ ast_enum_of_structs! {
     ///
     /// This type is a [syntax tree enum].
     ///
-    /// [syntax tree enum]: Expr#syntax-tree-enums
+    /// [syntax tree enum]: crate::expr::Expr#syntax-tree-enums
     #[cfg_attr(doc_cfg, doc(cfg(any(feature = "full", feature = "derive"))))]
     #[non_exhaustive]
     pub enum WherePredicate {
@@ -531,9 +537,22 @@ ast_struct! {
 
 #[cfg(feature = "parsing")]
 pub(crate) mod parsing {
-    use super::*;
-    use crate::ext::IdentExt;
-    use crate::parse::{Parse, ParseStream, Result};
+    use crate::attr::Attribute;
+    use crate::error::Result;
+    use crate::ext::IdentExt as _;
+    use crate::generics::{
+        BoundLifetimes, ConstParam, GenericParam, Generics, LifetimeParam, PredicateLifetime,
+        PredicateType, TraitBound, TraitBoundModifier, TypeParam, TypeParamBound, WhereClause,
+        WherePredicate,
+    };
+    use crate::ident::Ident;
+    use crate::lifetime::Lifetime;
+    use crate::parse::{Parse, ParseStream};
+    use crate::path::{self, ParenthesizedGenericArguments, Path, PathArguments};
+    use crate::punctuated::Punctuated;
+    use crate::token;
+    use crate::ty::Type;
+    use crate::verbatim;
 
     #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
     impl Parse for Generics {
@@ -970,10 +989,20 @@ pub(crate) mod parsing {
 }
 
 #[cfg(feature = "printing")]
-mod printing {
-    use super::*;
+pub(crate) mod printing {
     use crate::attr::FilterAttrs;
+    #[cfg(feature = "full")]
+    use crate::expr;
+    use crate::expr::Expr;
+    #[cfg(feature = "full")]
+    use crate::fixup::FixupContext;
+    use crate::generics::{
+        BoundLifetimes, ConstParam, GenericParam, Generics, ImplGenerics, LifetimeParam,
+        PredicateLifetime, PredicateType, TraitBound, TraitBoundModifier, Turbofish, TypeGenerics,
+        TypeParam, WhereClause,
+    };
     use crate::print::TokensOrDefault;
+    use crate::token;
     use proc_macro2::TokenStream;
     use quote::{ToTokens, TokenStreamExt};
 
@@ -1191,7 +1220,7 @@ mod printing {
             self.ty.to_tokens(tokens);
             if let Some(default) = &self.default {
                 TokensOrDefault(&self.eq_token).to_tokens(tokens);
-                default.to_tokens(tokens);
+                print_const_argument(default, tokens);
             }
         }
     }
@@ -1222,6 +1251,36 @@ mod printing {
             self.bounded_ty.to_tokens(tokens);
             self.colon_token.to_tokens(tokens);
             self.bounds.to_tokens(tokens);
+        }
+    }
+
+    pub(crate) fn print_const_argument(expr: &Expr, tokens: &mut TokenStream) {
+        match expr {
+            Expr::Lit(expr) => expr.to_tokens(tokens),
+
+            Expr::Path(expr)
+                if expr.attrs.is_empty()
+                    && expr.qself.is_none()
+                    && expr.path.get_ident().is_some() =>
+            {
+                expr.to_tokens(tokens);
+            }
+
+            #[cfg(feature = "full")]
+            Expr::Block(expr) => expr.to_tokens(tokens),
+
+            #[cfg(not(feature = "full"))]
+            Expr::Verbatim(expr) => expr.to_tokens(tokens),
+
+            // ERROR CORRECTION: Add braces to make sure that the
+            // generated code is valid.
+            _ => token::Brace::default().surround(tokens, |tokens| {
+                #[cfg(feature = "full")]
+                expr::printing::print_expr(expr, tokens, FixupContext::new_stmt());
+
+                #[cfg(not(feature = "full"))]
+                expr.to_tokens(tokens);
+            }),
         }
     }
 }

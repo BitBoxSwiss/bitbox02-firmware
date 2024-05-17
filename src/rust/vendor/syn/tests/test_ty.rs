@@ -4,8 +4,9 @@
 mod macros;
 
 use proc_macro2::{Delimiter, Group, Ident, Punct, Spacing, Span, TokenStream, TokenTree};
-use quote::quote;
-use syn::Type;
+use quote::{quote, ToTokens as _};
+use syn::punctuated::Punctuated;
+use syn::{parse_quote, token, Token, Type, TypeTuple};
 
 #[test]
 fn test_mut_self() {
@@ -20,7 +21,7 @@ fn test_mut_self() {
 #[test]
 fn test_macro_variable_type() {
     // mimics the token stream corresponding to `$ty<T>`
-    let tokens = TokenStream::from_iter(vec![
+    let tokens = TokenStream::from_iter([
         TokenTree::Group(Group::new(Delimiter::None, quote! { ty })),
         TokenTree::Punct(Punct::new('<', Spacing::Alone)),
         TokenTree::Ident(Ident::new("T", Span::call_site())),
@@ -53,7 +54,7 @@ fn test_macro_variable_type() {
     "###);
 
     // mimics the token stream corresponding to `$ty::<T>`
-    let tokens = TokenStream::from_iter(vec![
+    let tokens = TokenStream::from_iter([
         TokenTree::Group(Group::new(Delimiter::None, quote! { ty })),
         TokenTree::Punct(Punct::new(':', Spacing::Joint)),
         TokenTree::Punct(Punct::new(':', Spacing::Alone)),
@@ -92,7 +93,7 @@ fn test_macro_variable_type() {
 #[test]
 fn test_group_angle_brackets() {
     // mimics the token stream corresponding to `Option<$ty>`
-    let tokens = TokenStream::from_iter(vec![
+    let tokens = TokenStream::from_iter([
         TokenTree::Ident(Ident::new("Option", Span::call_site())),
         TokenTree::Punct(Punct::new('<', Spacing::Alone)),
         TokenTree::Group(Group::new(Delimiter::None, quote! { Vec<u8> })),
@@ -143,7 +144,7 @@ fn test_group_angle_brackets() {
 #[test]
 fn test_group_colons() {
     // mimics the token stream corresponding to `$ty::Item`
-    let tokens = TokenStream::from_iter(vec![
+    let tokens = TokenStream::from_iter([
         TokenTree::Group(Group::new(Delimiter::None, quote! { Vec<u8> })),
         TokenTree::Punct(Punct::new(':', Spacing::Joint)),
         TokenTree::Punct(Punct::new(':', Spacing::Alone)),
@@ -170,6 +171,7 @@ fn test_group_colons() {
                         ],
                     },
                 },
+                Token![::],
                 PathSegment {
                     ident: "Item",
                 },
@@ -178,7 +180,7 @@ fn test_group_colons() {
     }
     "###);
 
-    let tokens = TokenStream::from_iter(vec![
+    let tokens = TokenStream::from_iter([
         TokenTree::Group(Group::new(Delimiter::None, quote! { [T] })),
         TokenTree::Punct(Punct::new(':', Spacing::Joint)),
         TokenTree::Punct(Punct::new(':', Spacing::Alone)),
@@ -245,6 +247,7 @@ fn test_trait_object() {
                     ],
                 },
             }),
+            Token![+],
             TypeParamBound::Lifetime {
                 ident: "static",
             },
@@ -260,6 +263,7 @@ fn test_trait_object() {
             TypeParamBound::Lifetime {
                 ident: "a",
             },
+            Token![+],
             TypeParamBound::Trait(TraitBound {
                 path: Path {
                     segments: [
@@ -294,6 +298,7 @@ fn test_trailing_plus() {
                     ],
                 },
             }),
+            Token![+],
         ],
     }
     "###);
@@ -313,6 +318,7 @@ fn test_trailing_plus() {
                     ],
                 },
             }),
+            Token![+],
         ],
     }
     "###);
@@ -331,6 +337,60 @@ fn test_trailing_plus() {
                     ],
                 },
             }),
+            Token![+],
+        ],
+    }
+    "###);
+}
+
+#[test]
+fn test_tuple_comma() {
+    let mut expr = TypeTuple {
+        paren_token: token::Paren::default(),
+        elems: Punctuated::new(),
+    };
+    snapshot!(expr.to_token_stream() as Type, @"Type::Tuple");
+
+    expr.elems.push_value(parse_quote!(_));
+    // Must not parse to Type::Paren
+    snapshot!(expr.to_token_stream() as Type, @r###"
+    Type::Tuple {
+        elems: [
+            Type::Infer,
+            Token![,],
+        ],
+    }
+    "###);
+
+    expr.elems.push_punct(<Token![,]>::default());
+    snapshot!(expr.to_token_stream() as Type, @r###"
+    Type::Tuple {
+        elems: [
+            Type::Infer,
+            Token![,],
+        ],
+    }
+    "###);
+
+    expr.elems.push_value(parse_quote!(_));
+    snapshot!(expr.to_token_stream() as Type, @r###"
+    Type::Tuple {
+        elems: [
+            Type::Infer,
+            Token![,],
+            Type::Infer,
+        ],
+    }
+    "###);
+
+    expr.elems.push_punct(<Token![,]>::default());
+    snapshot!(expr.to_token_stream() as Type, @r###"
+    Type::Tuple {
+        elems: [
+            Type::Infer,
+            Token![,],
+            Type::Infer,
+            Token![,],
         ],
     }
     "###);

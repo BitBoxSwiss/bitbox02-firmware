@@ -78,59 +78,12 @@ ast_enum! {
 
 #[cfg(feature = "parsing")]
 pub(crate) mod parsing {
-    use super::*;
-    use crate::parse::{Parse, ParseStream, Result};
-
-    fn parse_binop(input: ParseStream) -> Result<BinOp> {
-        if input.peek(Token![&&]) {
-            input.parse().map(BinOp::And)
-        } else if input.peek(Token![||]) {
-            input.parse().map(BinOp::Or)
-        } else if input.peek(Token![<<]) {
-            input.parse().map(BinOp::Shl)
-        } else if input.peek(Token![>>]) {
-            input.parse().map(BinOp::Shr)
-        } else if input.peek(Token![==]) {
-            input.parse().map(BinOp::Eq)
-        } else if input.peek(Token![<=]) {
-            input.parse().map(BinOp::Le)
-        } else if input.peek(Token![!=]) {
-            input.parse().map(BinOp::Ne)
-        } else if input.peek(Token![>=]) {
-            input.parse().map(BinOp::Ge)
-        } else if input.peek(Token![+]) {
-            input.parse().map(BinOp::Add)
-        } else if input.peek(Token![-]) {
-            input.parse().map(BinOp::Sub)
-        } else if input.peek(Token![*]) {
-            input.parse().map(BinOp::Mul)
-        } else if input.peek(Token![/]) {
-            input.parse().map(BinOp::Div)
-        } else if input.peek(Token![%]) {
-            input.parse().map(BinOp::Rem)
-        } else if input.peek(Token![^]) {
-            input.parse().map(BinOp::BitXor)
-        } else if input.peek(Token![&]) {
-            input.parse().map(BinOp::BitAnd)
-        } else if input.peek(Token![|]) {
-            input.parse().map(BinOp::BitOr)
-        } else if input.peek(Token![<]) {
-            input.parse().map(BinOp::Lt)
-        } else if input.peek(Token![>]) {
-            input.parse().map(BinOp::Gt)
-        } else {
-            Err(input.error("expected binary operator"))
-        }
-    }
+    use crate::error::Result;
+    use crate::op::{BinOp, UnOp};
+    use crate::parse::{Parse, ParseStream};
 
     #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
     impl Parse for BinOp {
-        #[cfg(not(feature = "full"))]
-        fn parse(input: ParseStream) -> Result<Self> {
-            parse_binop(input)
-        }
-
-        #[cfg(feature = "full")]
         fn parse(input: ParseStream) -> Result<Self> {
             if input.peek(Token![+=]) {
                 input.parse().map(BinOp::AddAssign)
@@ -152,8 +105,44 @@ pub(crate) mod parsing {
                 input.parse().map(BinOp::ShlAssign)
             } else if input.peek(Token![>>=]) {
                 input.parse().map(BinOp::ShrAssign)
+            } else if input.peek(Token![&&]) {
+                input.parse().map(BinOp::And)
+            } else if input.peek(Token![||]) {
+                input.parse().map(BinOp::Or)
+            } else if input.peek(Token![<<]) {
+                input.parse().map(BinOp::Shl)
+            } else if input.peek(Token![>>]) {
+                input.parse().map(BinOp::Shr)
+            } else if input.peek(Token![==]) {
+                input.parse().map(BinOp::Eq)
+            } else if input.peek(Token![<=]) {
+                input.parse().map(BinOp::Le)
+            } else if input.peek(Token![!=]) {
+                input.parse().map(BinOp::Ne)
+            } else if input.peek(Token![>=]) {
+                input.parse().map(BinOp::Ge)
+            } else if input.peek(Token![+]) {
+                input.parse().map(BinOp::Add)
+            } else if input.peek(Token![-]) {
+                input.parse().map(BinOp::Sub)
+            } else if input.peek(Token![*]) {
+                input.parse().map(BinOp::Mul)
+            } else if input.peek(Token![/]) {
+                input.parse().map(BinOp::Div)
+            } else if input.peek(Token![%]) {
+                input.parse().map(BinOp::Rem)
+            } else if input.peek(Token![^]) {
+                input.parse().map(BinOp::BitXor)
+            } else if input.peek(Token![&]) {
+                input.parse().map(BinOp::BitAnd)
+            } else if input.peek(Token![|]) {
+                input.parse().map(BinOp::BitOr)
+            } else if input.peek(Token![<]) {
+                input.parse().map(BinOp::Lt)
+            } else if input.peek(Token![>]) {
+                input.parse().map(BinOp::Gt)
             } else {
-                parse_binop(input)
+                Err(input.error("expected binary operator"))
             }
         }
     }
@@ -177,7 +166,7 @@ pub(crate) mod parsing {
 
 #[cfg(feature = "printing")]
 mod printing {
-    use super::*;
+    use crate::op::{BinOp, UnOp};
     use proc_macro2::TokenStream;
     use quote::ToTokens;
 

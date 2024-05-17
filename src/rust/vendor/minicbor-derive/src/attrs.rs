@@ -9,6 +9,8 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::Hash;
 use std::iter;
+
+use syn::{LitInt, LitStr};
 use syn::spanned::Spanned;
 
 pub use typeparam::TypeParams;
@@ -32,7 +34,9 @@ enum Kind {
     IsNil,
     HasNil,
     ContextBound,
-    CborLen
+    CborLen,
+    Tag,
+    Skip
 }
 
 #[derive(Debug, Clone)]
@@ -40,13 +44,16 @@ enum Value {
     Codec(CustomCodec, proc_macro2::Span),
     Encoding(Encoding, proc_macro2::Span),
     Index(Idx, proc_macro2::Span),
-    Span(proc_macro2::Span),
+    IndexOnly(proc_macro2::Span),
+    Transparent(proc_macro2::Span),
     TypeParam(TypeParams, proc_macro2::Span),
     Nil(syn::ExprPath, proc_macro2::Span),
     IsNil(syn::ExprPath, proc_macro2::Span),
     HasNil(proc_macro2::Span),
     ContextBound(HashSet<syn::TraitBound>, proc_macro2::Span),
-    CborLen(syn::ExprPath, proc_macro2::Span)
+    CborLen(syn::ExprPath, proc_macro2::Span),
+    Tag(u64, proc_macro2::Span),
+    Skip(proc_macro2::Span)
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -93,6 +100,19 @@ impl Attributes {
         if let Some(Value::HasNil(s)) = this.get(Kind::HasNil) {
             return Err(syn::Error::new(*s, "`has_nil` requires `with`"))
         }
+        if let Some(Value::Tag(_, s)) = this.get(Kind::Tag) {
+            if this.contains_key(Kind::IndexOnly) {
+                return Err(syn::Error::new(*s, "`tag` and `index_only` are mutually exclusive"))
+            }
+            if this.contains_key(Kind::Transparent) {
+                return Err(syn::Error::new(*s, "`tag` and `transparent` are mutually exclusive"))
+            }
+        }
+        if let Some(Value::Skip(s)) = this.get(Kind::Skip) {
+            if this.1.len() > 1 {
+                return Err(syn::Error::new(*s, "`skip` does not allow other attributes"))
+            }
+        }
         Ok(this)
     }
 
@@ -100,157 +120,104 @@ impl Attributes {
         let mut attrs = Attributes::new(l);
 
         // #[n(...)]
-        if a.path.is_ident("n") {
+        if a.path().is_ident("n") {
             let idx = parse_u32_arg(a).map(Idx::N)?;
-            attrs.try_insert(Kind::Index, Value::Index(idx, a.tokens.span()))?;
+            attrs.try_insert(Kind::Index, Value::Index(idx, a.span()))?;
             return Ok(attrs)
         }
 
         // #[b(...)]
-        if a.path.is_ident("b") {
+        if a.path().is_ident("b") {
             let idx = parse_u32_arg(a).map(Idx::B)?;
-            attrs.try_insert(Kind::Index, Value::Index(idx, a.tokens.span()))?;
+            attrs.try_insert(Kind::Index, Value::Index(idx, a.span()))?;
             return Ok(attrs)
         }
 
         // #[cbor(...)]
-        let cbor =
-            if let syn::Meta::List(ml) = a.parse_meta()? {
-                if !ml.path.is_ident("cbor") {
-                    return Ok(Attributes::new(l))
-                }
-                ml
-            } else {
-                return Ok(Attributes::new(l))
-            };
-
-        for nested in &cbor.nested {
-            match nested {
-                syn::NestedMeta::Meta(syn::Meta::Path(arg)) =>
-                    if arg.is_ident("index_only") {
-                        attrs.try_insert(Kind::IndexOnly, Value::Span(nested.span()))?
-                    } else if arg.is_ident("transparent") {
-                        attrs.try_insert(Kind::Transparent, Value::Span(nested.span()))?
-                    } else if arg.is_ident("map") {
-                        attrs.try_insert(Kind::Encoding, Value::Encoding(Encoding::Map, nested.span()))?
-                    } else if arg.is_ident("array") {
-                        attrs.try_insert(Kind::Encoding, Value::Encoding(Encoding::Array, nested.span()))?
-                    } else if arg.is_ident("has_nil") {
-                        attrs.try_insert(Kind::HasNil, Value::HasNil(nested.span()))?
-                    } else {
-                        return Err(syn::Error::new(nested.span(), "unknown attribute"))
-                    }
-                syn::NestedMeta::Meta(syn::Meta::NameValue(arg)) =>
-                    if arg.path.is_ident("encode_with") {
-                        if let syn::Lit::Str(path) = &arg.lit {
-                            let cc = CustomCodec::Encode(codec::Encode {
-                                encode: syn::parse_str(&path.value())?,
-                                is_nil: None
-                            });
-                            attrs.try_insert(Kind::Codec, Value::Codec(cc, nested.span()))?
-                        } else {
-                            return Err(syn::Error::new(arg.span(), "string required"))
-                        }
-                    } else if arg.path.is_ident("is_nil") {
-                        if let syn::Lit::Str(path) = &arg.lit {
-                            attrs.try_insert(Kind::IsNil, Value::IsNil(syn::parse_str(&path.value())?, nested.span()))?
-                        } else {
-                            return Err(syn::Error::new(arg.span(), "string required"))
-                        }
-                    } else if arg.path.is_ident("decode_with") {
-                        if let syn::Lit::Str(path) = &arg.lit {
-                            let cc = CustomCodec::Decode(codec::Decode {
-                                decode: syn::parse_str(&path.value())?,
-                                nil: None
-                            });
-                            attrs.try_insert(Kind::Codec, Value::Codec(cc, nested.span()))?
-                        } else {
-                            return Err(syn::Error::new(arg.span(), "string required"))
-                        }
-                    } else if arg.path.is_ident("nil") {
-                        if let syn::Lit::Str(path) = &arg.lit {
-                            attrs.try_insert(Kind::Nil, Value::Nil(syn::parse_str(&path.value())?, nested.span()))?
-                        } else {
-                            return Err(syn::Error::new(arg.span(), "string required"))
-                        }
-                    } else if arg.path.is_ident("with") {
-                        if let syn::Lit::Str(path) = &arg.lit {
-                            let cc = CustomCodec::Module(syn::parse_str(&path.value())?, false);
-                            attrs.try_insert(Kind::Codec, Value::Codec(cc, nested.span()))?
-                        } else {
-                            return Err(syn::Error::new(arg.span(), "string required"))
-                        }
-                    } else if arg.path.is_ident("encode_bound") {
-                        if let syn::Lit::Str(path) = &arg.lit {
-                            let t: syn::TypeParam = syn::parse_str(&path.value())?;
-                            let b = TypeParams::Encode(iter::once((t.ident.clone(), t)).collect());
-                            attrs.try_insert(Kind::TypeParam, Value::TypeParam(b, nested.span()))?
-                        } else {
-                            return Err(syn::Error::new(arg.span(), "string required"))
-                        }
-                    } else if arg.path.is_ident("decode_bound") {
-                        if let syn::Lit::Str(path) = &arg.lit {
-                            let t: syn::TypeParam = syn::parse_str(&path.value())?;
-                            let b = TypeParams::Decode(iter::once((t.ident.clone(), t)).collect());
-                            attrs.try_insert(Kind::TypeParam, Value::TypeParam(b, nested.span()))?
-                        } else {
-                            return Err(syn::Error::new(arg.span(), "string required"))
-                        }
-                    } else if arg.path.is_ident("bound") {
-                        if let syn::Lit::Str(path) = &arg.lit {
-                            let t: syn::TypeParam = syn::parse_str(&path.value())?;
-                            let m = iter::once((t.ident.clone(), t)).collect::<HashMap<_, _>>();
-                            let b = TypeParams::Both { encode: m.clone(), decode: m };
-                            attrs.try_insert(Kind::TypeParam, Value::TypeParam(b, nested.span()))?
-                        } else {
-                            return Err(syn::Error::new(arg.span(), "string required"))
-                        }
-                    } else if arg.path.is_ident("context_bound") {
-                        if let syn::Lit::Str(path) = &arg.lit {
-                            let mut s = HashSet::new();
-                            for b in path.value().split('+') {
-                                if b.is_empty() {
-                                    continue
-                                }
-                                s.insert(syn::parse_str::<syn::TraitBound>(b.trim())?);
-                            }
-                            attrs.try_insert(Kind::ContextBound, Value::ContextBound(s, nested.span()))?
-                        } else {
-                            return Err(syn::Error::new(arg.span(), "string required"))
-                        }
-                    } else if arg.path.is_ident("cbor_len") {
-                        if let syn::Lit::Str(path) = &arg.lit {
-                            let cl = syn::parse_str(&path.value())?;
-                            attrs.try_insert(Kind::CborLen, Value::CborLen(cl, nested.span()))?
-                        } else {
-                            return Err(syn::Error::new(arg.span(), "string required"))
-                        }
-                    } else {
-                        return Err(syn::Error::new(nested.span(), "unknown attribute"))
-                    }
-                syn::NestedMeta::Meta(syn::Meta::List(arg)) =>
-                    if arg.path.is_ident("n") {
-                        if let Some(syn::NestedMeta::Lit(syn::Lit::Int(n))) = arg.nested.first() {
-                            let idx = parse_int(n).map(Idx::N)?;
-                            attrs.try_insert(Kind::Index, Value::Index(idx, a.tokens.span()))?;
-                        } else {
-                            return Err(syn::Error::new(arg.span(), "`n` expects a u32 argument"))
-                        }
-                    } else if arg.path.is_ident("b") {
-                        if let Some(syn::NestedMeta::Lit(syn::Lit::Int(n))) = arg.nested.first() {
-                            let idx = parse_int(n).map(Idx::B)?;
-                            attrs.try_insert(Kind::Index, Value::Index(idx, a.tokens.span()))?;
-                        } else {
-                            return Err(syn::Error::new(arg.span(), "`b` expects a u32 argument"))
-                        }
-                    } else {
-                        return Err(syn::Error::new(nested.span(), "unknown attribute"))
-                    }
-                syn::NestedMeta::Lit(_) => {
-                    return Err(syn::Error::new(nested.span(), "unknown attribute"))
-                }
-            }
+        if !a.path().is_ident("cbor") {
+            return Ok(Attributes::new(l))
         }
+
+        a.parse_nested_meta(|meta| {
+            if meta.path.is_ident("index_only") {
+                attrs.try_insert(Kind::IndexOnly, Value::IndexOnly(meta.path.span()))?
+            } else if meta.path.is_ident("transparent") {
+                attrs.try_insert(Kind::Transparent, Value::Transparent(meta.path.span()))?
+            } else if meta.path.is_ident("map") {
+                attrs.try_insert(Kind::Encoding, Value::Encoding(Encoding::Map, meta.path.span()))?
+            } else if meta.path.is_ident("array") {
+                attrs.try_insert(Kind::Encoding, Value::Encoding(Encoding::Array, meta.path.span()))?
+            } else if meta.path.is_ident("has_nil") {
+                attrs.try_insert(Kind::HasNil, Value::HasNil(meta.path.span()))?
+            } else if meta.path.is_ident("encode_with") {
+                let s: LitStr = meta.value()?.parse()?;
+                let c = CustomCodec::Encode(codec::Encode { encode: s.parse()?, is_nil: None });
+                attrs.try_insert(Kind::Codec, Value::Codec(c, meta.path.span()))?
+            } else if meta.path.is_ident("is_nil") {
+                let s: LitStr = meta.value()?.parse()?;
+                attrs.try_insert(Kind::IsNil, Value::IsNil(s.parse()?, meta.path.span()))?
+            } else if meta.path.is_ident("decode_with") {
+                let s: LitStr = meta.value()?.parse()?;
+                let c = CustomCodec::Decode(codec::Decode { decode: s.parse()?, nil: None });
+                attrs.try_insert(Kind::Codec, Value::Codec(c, meta.path.span()))?
+            } else if meta.path.is_ident("nil") {
+                let s: LitStr = meta.value()?.parse()?;
+                attrs.try_insert(Kind::Nil, Value::Nil(s.parse()?, meta.path.span()))?
+            } else if meta.path.is_ident("with") {
+                let s: LitStr = meta.value()?.parse()?;
+                let c = CustomCodec::Module(s.parse()?, false);
+                attrs.try_insert(Kind::Codec, Value::Codec(c, meta.path.span()))?
+            } else if meta.path.is_ident("encode_bound") {
+                let s: LitStr = meta.value()?.parse()?;
+                let t: syn::TypeParam = s.parse()?;
+                let b = TypeParams::Encode(iter::once((t.ident.clone(), t)).collect());
+                attrs.try_insert(Kind::TypeParam, Value::TypeParam(b, meta.path.span()))?
+            } else if meta.path.is_ident("decode_bound") {
+                let s: LitStr = meta.value()?.parse()?;
+                let t: syn::TypeParam = s.parse()?;
+                let b = TypeParams::Decode(iter::once((t.ident.clone(), t)).collect());
+                attrs.try_insert(Kind::TypeParam, Value::TypeParam(b, meta.path.span()))?
+            } else if meta.path.is_ident("bound") {
+                let s: LitStr = meta.value()?.parse()?;
+                let t: syn::TypeParam = s.parse()?;
+                let m = iter::once((t.ident.clone(), t)).collect::<HashMap<_, _>>();
+                let b = TypeParams::Both { encode: m.clone(), decode: m };
+                attrs.try_insert(Kind::TypeParam, Value::TypeParam(b, meta.path.span()))?
+            } else if meta.path.is_ident("context_bound") {
+                let s: LitStr = meta.value()?.parse()?;
+                let mut h = HashSet::new();
+                for b in s.value().split('+').filter(|b| !b.is_empty()) {
+                    h.insert(syn::parse_str::<syn::TraitBound>(b.trim())?);
+                }
+                attrs.try_insert(Kind::ContextBound, Value::ContextBound(h, meta.path.span()))?
+            } else if meta.path.is_ident("cbor_len") {
+                let s: LitStr = meta.value()?.parse()?;
+                attrs.try_insert(Kind::CborLen, Value::CborLen(s.parse()?, meta.path.span()))?
+            } else if meta.path.is_ident("n") {
+                let content;
+                syn::parenthesized!(content in meta.input);
+                let n: LitInt = content.parse()?;
+                let i = parse_int(&n).map(Idx::N)?;
+                attrs.try_insert(Kind::Index, Value::Index(i, meta.path.span()))?
+            } else if meta.path.is_ident("b") {
+                let content;
+                syn::parenthesized!(content in meta.input);
+                let n: LitInt = content.parse()?;
+                let i = parse_int(&n).map(Idx::B)?;
+                attrs.try_insert(Kind::Index, Value::Index(i, meta.path.span()))?
+            } else if meta.path.is_ident("tag") {
+                let content;
+                syn::parenthesized!(content in meta.input);
+                let n: LitInt = content.parse()?;
+                let i = n.base10_parse()?;
+                attrs.try_insert(Kind::Tag, Value::Tag(i, meta.path.span()))?
+            } else if meta.path.is_ident("skip") {
+                attrs.try_insert(Kind::Skip, Value::Skip(meta.path.span()))?
+            } else {
+                return Err(meta.error("unsupported attribute"))
+            }
+            Ok(())
+        })?;
 
         Ok(attrs)
     }
@@ -287,6 +254,14 @@ impl Attributes {
         self.get(Kind::CborLen).and_then(|v| v.cbor_len())
     }
 
+    pub fn tag(&self) -> Option<u64> {
+        self.get(Kind::Tag).and_then(|v| v.tag())
+    }
+
+    pub fn skip(&self) -> bool {
+        self.contains_key(Kind::Skip)
+    }
+
     fn contains_key(&self, k: Kind) -> bool {
         self.1.contains_key(&k)
     }
@@ -309,6 +284,7 @@ impl Attributes {
                 | Kind::Encoding
                 | Kind::Transparent
                 | Kind::ContextBound
+                | Kind::Tag
                 => {}
                 | Kind::TypeParam
                 | Kind::Codec
@@ -318,6 +294,7 @@ impl Attributes {
                 | Kind::IsNil
                 | Kind::HasNil
                 | Kind::CborLen
+                | Kind::Skip
                 => {
                     let msg = format!("attribute is not supported on {}-level", self.0);
                     return Err(syn::Error::new(val.span(), msg))
@@ -331,6 +308,8 @@ impl Attributes {
                 | Kind::IsNil
                 | Kind::HasNil
                 | Kind::CborLen
+                | Kind::Tag
+                | Kind::Skip
                 => {}
                 | Kind::Encoding
                 | Kind::IndexOnly
@@ -345,6 +324,7 @@ impl Attributes {
                 | Kind::Encoding
                 | Kind::IndexOnly
                 | Kind::ContextBound
+                | Kind::Tag
                 => {}
                 | Kind::TypeParam
                 | Kind::Codec
@@ -354,6 +334,7 @@ impl Attributes {
                 | Kind::IsNil
                 | Kind::HasNil
                 | Kind::CborLen
+                | Kind::Skip
                 => {
                     let msg = format!("attribute is not supported on {}-level", self.0);
                     return Err(syn::Error::new(val.span(), msg))
@@ -362,6 +343,7 @@ impl Attributes {
             Level::Variant => match key {
                 | Kind::Encoding
                 | Kind::Index
+                | Kind::Tag
                 => {}
                 | Kind::TypeParam
                 | Kind::Codec
@@ -372,6 +354,7 @@ impl Attributes {
                 | Kind::HasNil
                 | Kind::ContextBound
                 | Kind::CborLen
+                | Kind::Skip
                 => {
                     let msg = format!("attribute is not supported on {}-level", self.0);
                     return Err(syn::Error::new(val.span(), msg))
@@ -522,12 +505,15 @@ impl Value {
             Value::Codec(_, s)        => *s,
             Value::Encoding(_, s)     => *s,
             Value::Index(_, s)        => *s,
-            Value::Span(s)            => *s,
+            Value::IndexOnly(s)       => *s,
+            Value::Transparent(s)     => *s,
             Value::Nil(_, s)          => *s,
             Value::IsNil(_, s)        => *s,
             Value::HasNil(s)          => *s,
             Value::ContextBound(_, s) => *s,
-            Value::CborLen(_, s)      => *s
+            Value::CborLen(_, s)      => *s,
+            Value::Tag(_, s)          => *s,
+            Value::Skip(s)            => *s
         }
     }
 
@@ -579,6 +565,13 @@ impl Value {
         }
     }
 
+    fn tag(&self) -> Option<u64> {
+        if let Value::Tag(x, _) = self {
+            Some(*x)
+        } else {
+            None
+        }
+    }
 }
 
 fn parse_u32_arg(a: &syn::Attribute) -> syn::Result<u32> {
@@ -586,8 +579,6 @@ fn parse_u32_arg(a: &syn::Attribute) -> syn::Result<u32> {
 }
 
 fn parse_int(n: &syn::LitInt) -> syn::Result<u32> {
-    n.base10_digits()
-     .parse()
-     .map_err(|_| syn::Error::new(n.span(), "expected `u32` value"))
+    n.base10_parse().map_err(|_| syn::Error::new(n.span(), "expected `u32` value"))
 }
 

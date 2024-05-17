@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "minicbor"
-version = "0.20.0"
+version = "0.24.0"
 authors = ["Toralf Wittner <tw@dtex.org>"]
 build = "build.rs"
 description = "A small CBOR codec suitable for no_std environments."
@@ -44,12 +44,12 @@ required-features = [
 ]
 
 [dependencies.half]
-version = "1"
+version = "2.4.0"
 optional = true
 default-features = false
 
 [dependencies.minicbor-derive]
-version = "0.13.0"
+version = "0.15.0"
 optional = true
 
 [dev-dependencies]
@@ -57,6 +57,11 @@ optional = true
 [features]
 alloc = ["minicbor-derive?/alloc"]
 derive = ["minicbor-derive"]
+full = [
+    "std",
+    "derive",
+    "half",
+]
 std = [
     "alloc",
     "minicbor-derive?/std",

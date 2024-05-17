@@ -3,13 +3,13 @@ use crate::attrs::Idx;
 use std::collections::HashSet;
 
 /// Generate the decode lifetime.
-pub fn gen_lifetime() -> syn::Result<syn::LifetimeDef> {
+pub fn gen_lifetime() -> syn::Result<syn::LifetimeParam> {
     syn::parse_str("'bytes")
 }
 
 /// Return a modified clone of `syn::Generics` with the given lifetime
 /// parameter put before the other type and lifetime parameters.
-pub fn add_lifetime(g: &syn::Generics, l: syn::LifetimeDef) -> syn::Generics {
+pub fn add_lifetime(g: &syn::Generics, l: syn::LifetimeParam) -> syn::Generics {
     let mut g2 = g.clone();
     g2.params = Some(l.into()).into_iter().chain(g2.params).collect();
     g2
@@ -54,10 +54,10 @@ where
                     if let syn::PathArguments::AngleBracketed(b) = &s.arguments {
                         for a in &b.args {
                             match a {
-                                syn::GenericArgument::Type(t)     => get_lifetimes(t, set),
-                                syn::GenericArgument::Binding(b)  => get_lifetimes(&b.ty, set),
-                                syn::GenericArgument::Lifetime(l) => { set.insert(l.clone()); }
-                                _                                 => {}
+                                syn::GenericArgument::Type(t)      => get_lifetimes(t, set),
+                                syn::GenericArgument::AssocType(b) => get_lifetimes(&b.ty, set),
+                                syn::GenericArgument::Lifetime(l)  => { set.insert(l.clone()); }
+                                _                                  => {}
                             }
                         }
                     }

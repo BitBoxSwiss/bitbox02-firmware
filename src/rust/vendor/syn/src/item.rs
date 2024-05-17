@@ -1,8 +1,19 @@
-use super::*;
+use crate::attr::Attribute;
+use crate::data::{Fields, FieldsNamed, Variant};
 use crate::derive::{Data, DataEnum, DataStruct, DataUnion, DeriveInput};
+use crate::expr::Expr;
+use crate::generics::{Generics, TypeParamBound};
+use crate::ident::Ident;
+use crate::lifetime::Lifetime;
+use crate::mac::Macro;
+use crate::pat::{Pat, PatType};
+use crate::path::Path;
 use crate::punctuated::Punctuated;
+use crate::restriction::Visibility;
+use crate::stmt::Block;
+use crate::token;
+use crate::ty::{Abi, ReturnType, Type};
 use proc_macro2::TokenStream;
-
 #[cfg(feature = "parsing")]
 use std::mem;
 
@@ -13,7 +24,7 @@ ast_enum_of_structs! {
     ///
     /// This type is a [syntax tree enum].
     ///
-    /// [syntax tree enum]: Expr#syntax-tree-enums
+    /// [syntax tree enum]: crate::expr::Expr#syntax-tree-enums
     #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
     #[non_exhaustive]
     pub enum Item {
@@ -70,12 +81,13 @@ ast_enum_of_structs! {
         // For testing exhaustiveness in downstream code, use the following idiom:
         //
         //     match item {
+        //         #![cfg_attr(test, deny(non_exhaustive_omitted_patterns))]
+        //
         //         Item::Const(item) => {...}
         //         Item::Enum(item) => {...}
         //         ...
         //         Item::Verbatim(item) => {...}
         //
-        //         #[cfg_attr(test, deny(non_exhaustive_omitted_patterns))]
         //         _ => { /* some sane fallback */ }
         //     }
         //
@@ -416,7 +428,7 @@ ast_enum_of_structs! {
     ///
     /// This type is a [syntax tree enum].
     ///
-    /// [syntax tree enum]: Expr#syntax-tree-enums
+    /// [syntax tree enum]: crate::expr::Expr#syntax-tree-enums
     #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
     pub enum UseTree {
         /// A path prefix of imports in a `use` item: `std::...`.
@@ -488,7 +500,7 @@ ast_enum_of_structs! {
     ///
     /// This type is a [syntax tree enum].
     ///
-    /// [syntax tree enum]: Expr#syntax-tree-enums
+    /// [syntax tree enum]: crate::expr::Expr#syntax-tree-enums
     #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
     #[non_exhaustive]
     pub enum ForeignItem {
@@ -510,12 +522,13 @@ ast_enum_of_structs! {
         // For testing exhaustiveness in downstream code, use the following idiom:
         //
         //     match item {
+        //         #![cfg_attr(test, deny(non_exhaustive_omitted_patterns))]
+        //
         //         ForeignItem::Fn(item) => {...}
         //         ForeignItem::Static(item) => {...}
         //         ...
         //         ForeignItem::Verbatim(item) => {...}
         //
-        //         #[cfg_attr(test, deny(non_exhaustive_omitted_patterns))]
         //         _ => { /* some sane fallback */ }
         //     }
         //
@@ -582,7 +595,7 @@ ast_enum_of_structs! {
     ///
     /// This type is a [syntax tree enum].
     ///
-    /// [syntax tree enum]: Expr#syntax-tree-enums
+    /// [syntax tree enum]: crate::expr::Expr#syntax-tree-enums
     #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
     #[non_exhaustive]
     pub enum TraitItem {
@@ -604,12 +617,13 @@ ast_enum_of_structs! {
         // For testing exhaustiveness in downstream code, use the following idiom:
         //
         //     match item {
+        //         #![cfg_attr(test, deny(non_exhaustive_omitted_patterns))]
+        //
         //         TraitItem::Const(item) => {...}
         //         TraitItem::Fn(item) => {...}
         //         ...
         //         TraitItem::Verbatim(item) => {...}
         //
-        //         #[cfg_attr(test, deny(non_exhaustive_omitted_patterns))]
         //         _ => { /* some sane fallback */ }
         //     }
         //
@@ -678,7 +692,7 @@ ast_enum_of_structs! {
     ///
     /// This type is a [syntax tree enum].
     ///
-    /// [syntax tree enum]: Expr#syntax-tree-enums
+    /// [syntax tree enum]: crate::expr::Expr#syntax-tree-enums
     #[cfg_attr(doc_cfg, doc(cfg(feature = "full")))]
     #[non_exhaustive]
     pub enum ImplItem {
@@ -700,12 +714,13 @@ ast_enum_of_structs! {
         // For testing exhaustiveness in downstream code, use the following idiom:
         //
         //     match item {
+        //         #![cfg_attr(test, deny(non_exhaustive_omitted_patterns))]
+        //
         //         ImplItem::Const(item) => {...}
         //         ImplItem::Fn(item) => {...}
         //         ...
         //         ImplItem::Verbatim(item) => {...}
         //
-        //         #[cfg_attr(test, deny(non_exhaustive_omitted_patterns))]
         //         _ => { /* some sane fallback */ }
         //     }
         //
@@ -889,10 +904,35 @@ ast_enum! {
 
 #[cfg(feature = "parsing")]
 pub(crate) mod parsing {
-    use super::*;
-    use crate::ext::IdentExt;
-    use crate::parse::discouraged::Speculative;
-    use crate::parse::{Parse, ParseBuffer, ParseStream, Result};
+    use crate::attr::{self, Attribute};
+    use crate::derive;
+    use crate::error::{Error, Result};
+    use crate::expr::Expr;
+    use crate::ext::IdentExt as _;
+    use crate::generics::{Generics, TypeParamBound};
+    use crate::ident::Ident;
+    use crate::item::{
+        FnArg, ForeignItem, ForeignItemFn, ForeignItemMacro, ForeignItemStatic, ForeignItemType,
+        ImplItem, ImplItemConst, ImplItemFn, ImplItemMacro, ImplItemType, Item, ItemConst,
+        ItemEnum, ItemExternCrate, ItemFn, ItemForeignMod, ItemImpl, ItemMacro, ItemMod,
+        ItemStatic, ItemStruct, ItemTrait, ItemTraitAlias, ItemType, ItemUnion, ItemUse, Receiver,
+        Signature, StaticMutability, TraitItem, TraitItemConst, TraitItemFn, TraitItemMacro,
+        TraitItemType, UseGlob, UseGroup, UseName, UsePath, UseRename, UseTree, Variadic,
+    };
+    use crate::lifetime::Lifetime;
+    use crate::lit::LitStr;
+    use crate::mac::{self, Macro};
+    use crate::parse::discouraged::Speculative as _;
+    use crate::parse::{Parse, ParseBuffer, ParseStream};
+    use crate::pat::{Pat, PatType, PatWild};
+    use crate::path::Path;
+    use crate::punctuated::Punctuated;
+    use crate::restriction::Visibility;
+    use crate::stmt::Block;
+    use crate::token;
+    use crate::ty::{Abi, ReturnType, Type, TypePath, TypeReference};
+    use crate::verbatim;
+    use proc_macro2::TokenStream;
 
     #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
     impl Parse for Item {
@@ -985,24 +1025,35 @@ pub(crate) mod parsing {
             } else {
                 return Err(lookahead.error());
             };
+            let mut generics: Generics = input.parse()?;
             let colon_token = input.parse()?;
             let ty = input.parse()?;
-            if input.peek(Token![;]) {
-                input.parse::<Token![;]>()?;
-                Ok(Item::Verbatim(verbatim::between(&begin, input)))
+            let value = if let Some(eq_token) = input.parse::<Option<Token![=]>>()? {
+                let expr: Expr = input.parse()?;
+                Some((eq_token, expr))
             } else {
-                Ok(Item::Const(ItemConst {
-                    attrs: Vec::new(),
-                    vis,
-                    const_token,
-                    ident,
-                    generics: Generics::default(),
-                    colon_token,
-                    ty,
-                    eq_token: input.parse()?,
-                    expr: input.parse()?,
-                    semi_token: input.parse()?,
-                }))
+                None
+            };
+            generics.where_clause = input.parse()?;
+            let semi_token: Token![;] = input.parse()?;
+            match value {
+                Some((eq_token, expr))
+                    if generics.lt_token.is_none() && generics.where_clause.is_none() =>
+                {
+                    Ok(Item::Const(ItemConst {
+                        attrs: Vec::new(),
+                        vis,
+                        const_token,
+                        ident,
+                        generics,
+                        colon_token,
+                        ty,
+                        eq_token,
+                        expr: Box::new(expr),
+                        semi_token,
+                    }))
+                }
+                _ => Ok(Item::Verbatim(verbatim::between(&begin, input))),
             }
         } else if lookahead.peek(Token![unsafe]) {
             ahead.parse::<Token![unsafe]>()?;
@@ -1400,24 +1451,34 @@ pub(crate) mod parsing {
     #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
     impl Parse for ItemConst {
         fn parse(input: ParseStream) -> Result<Self> {
+            let attrs = input.call(Attribute::parse_outer)?;
+            let vis: Visibility = input.parse()?;
+            let const_token: Token![const] = input.parse()?;
+
+            let lookahead = input.lookahead1();
+            let ident = if lookahead.peek(Ident) || lookahead.peek(Token![_]) {
+                input.call(Ident::parse_any)?
+            } else {
+                return Err(lookahead.error());
+            };
+
+            let colon_token: Token![:] = input.parse()?;
+            let ty: Type = input.parse()?;
+            let eq_token: Token![=] = input.parse()?;
+            let expr: Expr = input.parse()?;
+            let semi_token: Token![;] = input.parse()?;
+
             Ok(ItemConst {
-                attrs: input.call(Attribute::parse_outer)?,
-                vis: input.parse()?,
-                const_token: input.parse()?,
-                ident: {
-                    let lookahead = input.lookahead1();
-                    if lookahead.peek(Ident) || lookahead.peek(Token![_]) {
-                        input.call(Ident::parse_any)?
-                    } else {
-                        return Err(lookahead.error());
-                    }
-                },
+                attrs,
+                vis,
+                const_token,
+                ident,
                 generics: Generics::default(),
-                colon_token: input.parse()?,
-                ty: input.parse()?,
-                eq_token: input.parse()?,
-                expr: input.parse()?,
-                semi_token: input.parse()?,
+                colon_token,
+                ty: Box::new(ty),
+                eq_token,
+                expr: Box::new(expr),
+                semi_token,
             })
         }
     }
@@ -2224,10 +2285,36 @@ pub(crate) mod parsing {
             let mut item = if lookahead.peek(Token![fn]) || peek_signature(&ahead) {
                 input.parse().map(TraitItem::Fn)
             } else if lookahead.peek(Token![const]) {
-                ahead.parse::<Token![const]>()?;
+                let const_token: Token![const] = ahead.parse()?;
                 let lookahead = ahead.lookahead1();
                 if lookahead.peek(Ident) || lookahead.peek(Token![_]) {
-                    input.parse().map(TraitItem::Const)
+                    input.advance_to(&ahead);
+                    let ident = input.call(Ident::parse_any)?;
+                    let mut generics: Generics = input.parse()?;
+                    let colon_token: Token![:] = input.parse()?;
+                    let ty: Type = input.parse()?;
+                    let default = if let Some(eq_token) = input.parse::<Option<Token![=]>>()? {
+                        let expr: Expr = input.parse()?;
+                        Some((eq_token, expr))
+                    } else {
+                        None
+                    };
+                    generics.where_clause = input.parse()?;
+                    let semi_token: Token![;] = input.parse()?;
+                    if generics.lt_token.is_none() && generics.where_clause.is_none() {
+                        Ok(TraitItem::Const(TraitItemConst {
+                            attrs: Vec::new(),
+                            const_token,
+                            ident,
+                            generics,
+                            colon_token,
+                            ty,
+                            default,
+                            semi_token,
+                        }))
+                    } else {
+                        return Ok(TraitItem::Verbatim(verbatim::between(&begin, input)));
+                    }
                 } else if lookahead.peek(Token![async])
                     || lookahead.peek(Token![unsafe])
                     || lookahead.peek(Token![extern])
@@ -2273,30 +2360,36 @@ pub(crate) mod parsing {
     #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
     impl Parse for TraitItemConst {
         fn parse(input: ParseStream) -> Result<Self> {
+            let attrs = input.call(Attribute::parse_outer)?;
+            let const_token: Token![const] = input.parse()?;
+
+            let lookahead = input.lookahead1();
+            let ident = if lookahead.peek(Ident) || lookahead.peek(Token![_]) {
+                input.call(Ident::parse_any)?
+            } else {
+                return Err(lookahead.error());
+            };
+
+            let colon_token: Token![:] = input.parse()?;
+            let ty: Type = input.parse()?;
+            let default = if input.peek(Token![=]) {
+                let eq_token: Token![=] = input.parse()?;
+                let default: Expr = input.parse()?;
+                Some((eq_token, default))
+            } else {
+                None
+            };
+            let semi_token: Token![;] = input.parse()?;
+
             Ok(TraitItemConst {
-                attrs: input.call(Attribute::parse_outer)?,
-                const_token: input.parse()?,
-                ident: {
-                    let lookahead = input.lookahead1();
-                    if lookahead.peek(Ident) || lookahead.peek(Token![_]) {
-                        input.call(Ident::parse_any)?
-                    } else {
-                        return Err(lookahead.error());
-                    }
-                },
+                attrs,
+                const_token,
+                ident,
                 generics: Generics::default(),
-                colon_token: input.parse()?,
-                ty: input.parse()?,
-                default: {
-                    if input.peek(Token![=]) {
-                        let eq_token: Token![=] = input.parse()?;
-                        let default: Expr = input.parse()?;
-                        Some((eq_token, default))
-                    } else {
-                        None
-                    }
-                },
-                semi_token: input.parse()?,
+                colon_token,
+                ty,
+                default,
+                semi_token,
             })
         }
     }
@@ -2550,26 +2643,37 @@ pub(crate) mod parsing {
                 } else {
                     return Err(lookahead.error());
                 };
+                let mut generics: Generics = input.parse()?;
                 let colon_token: Token![:] = input.parse()?;
                 let ty: Type = input.parse()?;
-                if let Some(eq_token) = input.parse()? {
-                    return Ok(ImplItem::Const(ImplItemConst {
-                        attrs,
-                        vis,
-                        defaultness,
-                        const_token,
-                        ident,
-                        generics: Generics::default(),
-                        colon_token,
-                        ty,
-                        eq_token,
-                        expr: input.parse()?,
-                        semi_token: input.parse()?,
-                    }));
+                let value = if let Some(eq_token) = input.parse::<Option<Token![=]>>()? {
+                    let expr: Expr = input.parse()?;
+                    Some((eq_token, expr))
                 } else {
-                    input.parse::<Token![;]>()?;
-                    return Ok(ImplItem::Verbatim(verbatim::between(&begin, input)));
-                }
+                    None
+                };
+                generics.where_clause = input.parse()?;
+                let semi_token: Token![;] = input.parse()?;
+                return match value {
+                    Some((eq_token, expr))
+                        if generics.lt_token.is_none() && generics.where_clause.is_none() =>
+                    {
+                        Ok(ImplItem::Const(ImplItemConst {
+                            attrs,
+                            vis,
+                            defaultness,
+                            const_token,
+                            ident,
+                            generics,
+                            colon_token,
+                            ty,
+                            eq_token,
+                            expr,
+                            semi_token,
+                        }))
+                    }
+                    _ => Ok(ImplItem::Verbatim(verbatim::between(&begin, input))),
+                };
             } else if lookahead.peek(Token![type]) {
                 parse_impl_item_type(begin, input)
             } else if vis.is_inherited()
@@ -2604,25 +2708,36 @@ pub(crate) mod parsing {
     #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
     impl Parse for ImplItemConst {
         fn parse(input: ParseStream) -> Result<Self> {
+            let attrs = input.call(Attribute::parse_outer)?;
+            let vis: Visibility = input.parse()?;
+            let defaultness: Option<Token![default]> = input.parse()?;
+            let const_token: Token![const] = input.parse()?;
+
+            let lookahead = input.lookahead1();
+            let ident = if lookahead.peek(Ident) || lookahead.peek(Token![_]) {
+                input.call(Ident::parse_any)?
+            } else {
+                return Err(lookahead.error());
+            };
+
+            let colon_token: Token![:] = input.parse()?;
+            let ty: Type = input.parse()?;
+            let eq_token: Token![=] = input.parse()?;
+            let expr: Expr = input.parse()?;
+            let semi_token: Token![;] = input.parse()?;
+
             Ok(ImplItemConst {
-                attrs: input.call(Attribute::parse_outer)?,
-                vis: input.parse()?,
-                defaultness: input.parse()?,
-                const_token: input.parse()?,
-                ident: {
-                    let lookahead = input.lookahead1();
-                    if lookahead.peek(Ident) || lookahead.peek(Token![_]) {
-                        input.call(Ident::parse_any)?
-                    } else {
-                        return Err(lookahead.error());
-                    }
-                },
+                attrs,
+                vis,
+                defaultness,
+                const_token,
+                ident,
                 generics: Generics::default(),
-                colon_token: input.parse()?,
-                ty: input.parse()?,
-                eq_token: input.parse()?,
-                expr: input.parse()?,
-                semi_token: input.parse()?,
+                colon_token,
+                ty,
+                eq_token,
+                expr,
+                semi_token,
             })
         }
     }
@@ -2757,15 +2872,6 @@ pub(crate) mod parsing {
         }
     }
 
-    impl MacroDelimiter {
-        pub(crate) fn is_brace(&self) -> bool {
-            match self {
-                MacroDelimiter::Brace(_) => true,
-                MacroDelimiter::Paren(_) | MacroDelimiter::Bracket(_) => false,
-            }
-        }
-    }
-
     #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
     impl Parse for StaticMutability {
         fn parse(input: ParseStream) -> Result<Self> {
@@ -2777,9 +2883,19 @@ pub(crate) mod parsing {
 
 #[cfg(feature = "printing")]
 mod printing {
-    use super::*;
     use crate::attr::FilterAttrs;
+    use crate::data::Fields;
+    use crate::item::{
+        ForeignItemFn, ForeignItemMacro, ForeignItemStatic, ForeignItemType, ImplItemConst,
+        ImplItemFn, ImplItemMacro, ImplItemType, ItemConst, ItemEnum, ItemExternCrate, ItemFn,
+        ItemForeignMod, ItemImpl, ItemMacro, ItemMod, ItemStatic, ItemStruct, ItemTrait,
+        ItemTraitAlias, ItemType, ItemUnion, ItemUse, Receiver, Signature, StaticMutability,
+        TraitItemConst, TraitItemFn, TraitItemMacro, TraitItemType, UseGlob, UseGroup, UseName,
+        UsePath, UseRename, Variadic,
+    };
+    use crate::mac::MacroDelimiter;
     use crate::print::TokensOrDefault;
+    use crate::ty::Type;
     use proc_macro2::TokenStream;
     use quote::{ToTokens, TokenStreamExt};
 

@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.60"
 name = "zeroize"
-version = "1.6.0"
+version = "1.7.0"
 authors = ["The RustCrypto Project Developers"]
 description = """
 Securely clear secrets from memory with a simple trait built on
@@ -38,7 +38,6 @@ categories = [
 ]
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/RustCrypto/utils/tree/master/zeroize"
-resolver = "1"
 
 [package.metadata.docs.rs]
 all-features = true

@@ -1,5 +1,12 @@
-use super::*;
+#[cfg(feature = "parsing")]
+use crate::error::Result;
+use crate::expr::Expr;
+use crate::generics::TypeParamBound;
+use crate::ident::Ident;
+use crate::lifetime::Lifetime;
 use crate::punctuated::Punctuated;
+use crate::token;
+use crate::ty::{ReturnType, Type};
 
 ast_struct! {
     /// A path at which a named item is exported (e.g. `std::collections::HashMap`).
@@ -81,6 +88,19 @@ impl Path {
         } else {
             None
         }
+    }
+
+    /// An error if this path is not a single ident, as defined in `get_ident`.
+    #[cfg(feature = "parsing")]
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    pub fn require_ident(&self) -> Result<&Ident> {
+        self.get_ident().ok_or_else(|| {
+            crate::error::new2(
+                self.segments.first().unwrap().ident.span(),
+                self.segments.last().unwrap().ident.span(),
+                "expected this path to be an identifier",
+            )
+        })
     }
 }
 
@@ -262,10 +282,28 @@ ast_struct! {
 
 #[cfg(feature = "parsing")]
 pub(crate) mod parsing {
-    use super::*;
-
-    use crate::ext::IdentExt;
-    use crate::parse::{Parse, ParseStream, Result};
+    use crate::error::Result;
+    #[cfg(feature = "full")]
+    use crate::expr::ExprBlock;
+    use crate::expr::{Expr, ExprPath};
+    use crate::ext::IdentExt as _;
+    #[cfg(feature = "full")]
+    use crate::generics::TypeParamBound;
+    use crate::ident::Ident;
+    use crate::lifetime::Lifetime;
+    use crate::lit::Lit;
+    use crate::parse::{Parse, ParseStream};
+    #[cfg(feature = "full")]
+    use crate::path::Constraint;
+    use crate::path::{
+        AngleBracketedGenericArguments, AssocConst, AssocType, GenericArgument,
+        ParenthesizedGenericArguments, Path, PathArguments, PathSegment, QSelf,
+    };
+    use crate::punctuated::Punctuated;
+    use crate::token;
+    use crate::ty::{ReturnType, Type};
+    #[cfg(not(feature = "full"))]
+    use crate::verbatim;
 
     #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
     impl Parse for Path {
@@ -411,7 +449,10 @@ pub(crate) mod parsing {
             Self::do_parse(Some(colon2_token), input)
         }
 
-        fn do_parse(colon2_token: Option<Token![::]>, input: ParseStream) -> Result<Self> {
+        pub(crate) fn do_parse(
+            colon2_token: Option<Token![::]>,
+            input: ParseStream,
+        ) -> Result<Self> {
             Ok(AngleBracketedGenericArguments {
                 colon2_token,
                 lt_token: input.parse()?,
@@ -647,7 +688,11 @@ pub(crate) mod parsing {
 
 #[cfg(feature = "printing")]
 pub(crate) mod printing {
-    use super::*;
+    use crate::generics;
+    use crate::path::{
+        AngleBracketedGenericArguments, AssocConst, AssocType, Constraint, GenericArgument,
+        ParenthesizedGenericArguments, Path, PathArguments, PathSegment, QSelf,
+    };
     use crate::print::TokensOrDefault;
     #[cfg(feature = "parsing")]
     use crate::spanned::Spanned;
@@ -695,29 +740,9 @@ pub(crate) mod printing {
             match self {
                 GenericArgument::Lifetime(lt) => lt.to_tokens(tokens),
                 GenericArgument::Type(ty) => ty.to_tokens(tokens),
-                GenericArgument::Const(expr) => match expr {
-                    Expr::Lit(expr) => expr.to_tokens(tokens),
-
-                    Expr::Path(expr)
-                        if expr.attrs.is_empty()
-                            && expr.qself.is_none()
-                            && expr.path.get_ident().is_some() =>
-                    {
-                        expr.to_tokens(tokens);
-                    }
-
-                    #[cfg(feature = "full")]
-                    Expr::Block(expr) => expr.to_tokens(tokens),
-
-                    #[cfg(not(feature = "full"))]
-                    Expr::Verbatim(expr) => expr.to_tokens(tokens),
-
-                    // ERROR CORRECTION: Add braces to make sure that the
-                    // generated code is valid.
-                    _ => token::Brace::default().surround(tokens, |tokens| {
-                        expr.to_tokens(tokens);
-                    }),
-                },
+                GenericArgument::Const(expr) => {
+                    generics::printing::print_const_argument(expr, tokens);
+                }
                 GenericArgument::AssocType(assoc) => assoc.to_tokens(tokens),
                 GenericArgument::AssocConst(assoc) => assoc.to_tokens(tokens),
                 GenericArgument::Constraint(constraint) => constraint.to_tokens(tokens),
@@ -784,7 +809,7 @@ pub(crate) mod printing {
             self.ident.to_tokens(tokens);
             self.generics.to_tokens(tokens);
             self.eq_token.to_tokens(tokens);
-            self.value.to_tokens(tokens);
+            generics::printing::print_const_argument(&self.value, tokens);
         }
     }
 

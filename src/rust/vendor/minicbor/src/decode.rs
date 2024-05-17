@@ -8,15 +8,21 @@ mod decoder;
 mod error;
 pub mod info;
 
+use crate::data::{Int, Tag, Tagged};
+
 pub use decoder::{Decoder, Probe};
 pub use decoder::{ArrayIter, ArrayIterWithCtx, BytesIter, MapIter, MapIterWithCtx, StrIter};
 pub use error::Error;
 
 #[cfg(feature = "half")]
-mod tokens;
+mod tokenizer;
 
 #[cfg(feature = "half")]
-pub use tokens::{Token, Tokenizer};
+pub use tokenizer::Tokenizer;
+
+#[cfg(feature = "half")]
+#[deprecated(since = "0.23.0", note = "import `Token` from `minicbor::data` instead")]
+pub type Token<'b> = crate::data::Token<'b>;
 
 /// A type that can be decoded from CBOR.
 pub trait Decode<'b, C>: Sized {
@@ -274,9 +280,30 @@ impl<'b, C> Decode<'b, C> for isize {
     }
 }
 
-impl<'b, C> Decode<'b, C> for crate::data::Int {
+impl<'b, C> Decode<'b, C> for Int {
     fn decode(d: &mut Decoder<'b>, _: &mut C) -> Result<Self, Error> {
         d.int()
+    }
+}
+
+impl<'b, C> Decode<'b, C> for Tag {
+    fn decode(d: &mut Decoder<'b>, _: &mut C) -> Result<Self, Error> {
+        d.tag()
+    }
+}
+
+impl<'b, C, const N: u64, T: Decode<'b, C>> Decode<'b, C> for Tagged<N, T> {
+    fn decode(d: &mut Decoder<'b>, ctx: &mut C) -> Result<Self, Error> {
+        let p = d.position();
+        let t = d.tag()?;
+        if N != t.as_u64() {
+            #[cfg(feature = "alloc")]
+            return Err(Error::tag_mismatch(t).with_message(alloc::format!("expected tag {N}")).at(p));
+            #[cfg(not(feature = "alloc"))]
+            return Err(Error::tag_mismatch(t).at(p))
+        }
+        let v = d.decode_with(ctx)?;
+        Ok(Tagged::new(v))
     }
 }
 
@@ -714,3 +741,4 @@ impl<'b, C, T: Decode<'b, C>> Decode<'b, C> for core::ops::Bound<T> {
         }
     }
 }
+

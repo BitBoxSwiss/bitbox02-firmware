@@ -1,5 +1,5 @@
 use core::{fmt, str};
-use crate::data::Type;
+use crate::data::{Tag, Type};
 
 #[cfg(feature = "alloc")]
 use alloc::string::ToString;
@@ -29,6 +29,15 @@ impl Error {
     pub fn type_mismatch(ty: Type) -> Self {
         Error {
             err: ErrorImpl::TypeMismatch(ty),
+            pos: None,
+            msg: Default::default()
+        }
+    }
+
+    /// A tag error.
+    pub fn tag_mismatch(tg: Tag) -> Self {
+        Error {
+            err: ErrorImpl::TagMismatch(tg),
             pos: None,
             msg: Default::default()
         }
@@ -154,6 +163,10 @@ impl Error {
         matches!(self.err, ErrorImpl::TypeMismatch(_))
     }
 
+    pub fn is_tag_mismatch(&self) -> bool {
+        matches!(self.err, ErrorImpl::TagMismatch(_))
+    }
+
     pub fn is_message(&self) -> bool {
         matches!(self.err, ErrorImpl::Message)
     }
@@ -187,6 +200,8 @@ enum ErrorImpl {
     Overflow(u64),
     /// An unexpected type was encountered.
     TypeMismatch(Type),
+    /// An unexpected tag was encountered.
+    TagMismatch(Tag),
     /// An unknown enum variant was encountered.
     UnknownVariant(u32),
     /// A value was missing at the specified index.
@@ -245,6 +260,13 @@ impl fmt::Display for Error {
                     (m, None)     => write!(f, "unexpected type {t}: {m}"),
                     (m, Some(p))  => write!(f, "unexpected type {t} at position {p}: {m}")
                 }
+            ErrorImpl::TagMismatch(t) =>
+                match (self.msg.as_ref(), self.pos) {
+                    ("", None)    => write!(f, "unexpected tag {t}"),
+                    ("", Some(p)) => write!(f, "unexpected tag {t} at position {p}"),
+                    (m, None)     => write!(f, "unexpected tag {t}: {m}"),
+                    (m, Some(p))  => write!(f, "unexpected tag {t} at position {p}: {m}")
+                }
             ErrorImpl::UnknownVariant(n) =>
                 match (self.msg.as_ref(), self.pos) {
                     ("", None)    => write!(f, "unknown enum variant {n}"),
@@ -285,6 +307,7 @@ impl std::error::Error for Error {
             | ErrorImpl::InvalidChar(_)
             | ErrorImpl::Overflow(_)
             | ErrorImpl::TypeMismatch(_)
+            | ErrorImpl::TagMismatch(_)
             | ErrorImpl::UnknownVariant(_)
             | ErrorImpl::MissingValue(_)
             | ErrorImpl::Message

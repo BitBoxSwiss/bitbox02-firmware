@@ -108,6 +108,7 @@ dependencies = [
  "prost",
  "sha2",
  "sha3",
+ "streaming-silent-payments",
  "util",
  "zeroize",
 ]

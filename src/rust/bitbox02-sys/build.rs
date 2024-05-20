@@ -140,6 +140,7 @@ pub fn main() -> Result<(), &'static str> {
         .args(["--allowlist-function", "keystore_lock"])
         .args(["--allowlist-function", "keystore_create_and_store_seed"])
         .args(["--allowlist-function", "keystore_copy_seed"])
+        .args(["--allowlist-function", "keystore_secp256k1_get_private_key"])
         .args(["--allowlist-function", "keystore_get_bip39_mnemonic"])
         .args(["--allowlist-function", "keystore_get_bip39_word"])
         .args(["--allowlist-function", "keystore_get_ed25519_seed"])

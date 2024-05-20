@@ -292,6 +292,7 @@ class BTCSignInitRequest(google.protobuf.message.Message):
     NUM_OUTPUTS_FIELD_NUMBER: builtins.int
     LOCKTIME_FIELD_NUMBER: builtins.int
     FORMAT_UNIT_FIELD_NUMBER: builtins.int
+    CONTAINS_SILENT_PAYMENT_OUTPUTS_FIELD_NUMBER: builtins.int
     coin: global___BTCCoin.ValueType
     @property
     def script_configs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BTCScriptConfigWithKeypath]:
@@ -306,6 +307,7 @@ class BTCSignInitRequest(google.protobuf.message.Message):
     """must be <500000000"""
 
     format_unit: global___BTCSignInitRequest.FormatUnit.ValueType
+    contains_silent_payment_outputs: builtins.bool
     def __init__(self,
         *,
         coin: global___BTCCoin.ValueType = ...,
@@ -315,8 +317,9 @@ class BTCSignInitRequest(google.protobuf.message.Message):
         num_outputs: builtins.int = ...,
         locktime: builtins.int = ...,
         format_unit: global___BTCSignInitRequest.FormatUnit.ValueType = ...,
+        contains_silent_payment_outputs: builtins.bool = ...,
         ) -> None: ...
-    def ClearField(self, field_name: typing_extensions.Literal["coin",b"coin","format_unit",b"format_unit","locktime",b"locktime","num_inputs",b"num_inputs","num_outputs",b"num_outputs","script_configs",b"script_configs","version",b"version"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["coin",b"coin","contains_silent_payment_outputs",b"contains_silent_payment_outputs","format_unit",b"format_unit","locktime",b"locktime","num_inputs",b"num_inputs","num_outputs",b"num_outputs","script_configs",b"script_configs","version",b"version"]) -> None: ...
 global___BTCSignInitRequest = BTCSignInitRequest
 
 class BTCSignNextResponse(google.protobuf.message.Message):
@@ -356,6 +359,8 @@ class BTCSignNextResponse(google.protobuf.message.Message):
     SIGNATURE_FIELD_NUMBER: builtins.int
     PREV_INDEX_FIELD_NUMBER: builtins.int
     ANTI_KLEPTO_SIGNER_COMMITMENT_FIELD_NUMBER: builtins.int
+    GENERATED_OUTPUT_PKSCRIPT_FIELD_NUMBER: builtins.int
+    SILENT_PAYMENT_DLEQ_PROOF_FIELD_NUMBER: builtins.int
     type: global___BTCSignNextResponse.Type.ValueType
     index: builtins.int
     """index of the current input or output"""
@@ -371,6 +376,10 @@ class BTCSignNextResponse(google.protobuf.message.Message):
 
     @property
     def anti_klepto_signer_commitment(self) -> antiklepto_pb2.AntiKleptoSignerCommitment: ...
+    generated_output_pkscript: builtins.bytes
+    """Generated output. The host *must* verify its correctness using `silent_payment_dleq_proof`."""
+
+    silent_payment_dleq_proof: builtins.bytes
     def __init__(self,
         *,
         type: global___BTCSignNextResponse.Type.ValueType = ...,
@@ -379,9 +388,11 @@ class BTCSignNextResponse(google.protobuf.message.Message):
         signature: builtins.bytes = ...,
         prev_index: builtins.int = ...,
         anti_klepto_signer_commitment: typing.Optional[antiklepto_pb2.AntiKleptoSignerCommitment] = ...,
+        generated_output_pkscript: builtins.bytes = ...,
+        silent_payment_dleq_proof: builtins.bytes = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["anti_klepto_signer_commitment",b"anti_klepto_signer_commitment"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["anti_klepto_signer_commitment",b"anti_klepto_signer_commitment","has_signature",b"has_signature","index",b"index","prev_index",b"prev_index","signature",b"signature","type",b"type"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["anti_klepto_signer_commitment",b"anti_klepto_signer_commitment","generated_output_pkscript",b"generated_output_pkscript","has_signature",b"has_signature","index",b"index","prev_index",b"prev_index","signature",b"signature","silent_payment_dleq_proof",b"silent_payment_dleq_proof","type",b"type"]) -> None: ...
 global___BTCSignNextResponse = BTCSignNextResponse
 
 class BTCSignInputRequest(google.protobuf.message.Message):
@@ -424,6 +435,17 @@ global___BTCSignInputRequest = BTCSignInputRequest
 
 class BTCSignOutputRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    class SilentPayment(google.protobuf.message.Message):
+        """https://github.com/bitcoin/bips/blob/master/bip-0352.mediawiki"""
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+        ADDRESS_FIELD_NUMBER: builtins.int
+        address: typing.Text
+        def __init__(self,
+            *,
+            address: typing.Text = ...,
+            ) -> None: ...
+        def ClearField(self, field_name: typing_extensions.Literal["address",b"address"]) -> None: ...
+
     OURS_FIELD_NUMBER: builtins.int
     TYPE_FIELD_NUMBER: builtins.int
     VALUE_FIELD_NUMBER: builtins.int
@@ -431,6 +453,7 @@ class BTCSignOutputRequest(google.protobuf.message.Message):
     KEYPATH_FIELD_NUMBER: builtins.int
     SCRIPT_CONFIG_INDEX_FIELD_NUMBER: builtins.int
     PAYMENT_REQUEST_INDEX_FIELD_NUMBER: builtins.int
+    SILENT_PAYMENT_FIELD_NUMBER: builtins.int
     ours: builtins.bool
     type: global___BTCOutputType.ValueType
     """if ours is false"""
@@ -449,6 +472,12 @@ class BTCSignOutputRequest(google.protobuf.message.Message):
     """If ours is true. References a script config from BTCSignInitRequest"""
 
     payment_request_index: builtins.int
+    @property
+    def silent_payment(self) -> global___BTCSignOutputRequest.SilentPayment:
+        """If provided, `type` and `payload` is ignored. The generated output pkScript is returned in
+        BTCSignNextResponse. `contains_silent_payment_outputs` in the init request must be true.
+        """
+        pass
     def __init__(self,
         *,
         ours: builtins.bool = ...,
@@ -458,9 +487,10 @@ class BTCSignOutputRequest(google.protobuf.message.Message):
         keypath: typing.Optional[typing.Iterable[builtins.int]] = ...,
         script_config_index: builtins.int = ...,
         payment_request_index: typing.Optional[builtins.int] = ...,
+        silent_payment: typing.Optional[global___BTCSignOutputRequest.SilentPayment] = ...,
         ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["_payment_request_index",b"_payment_request_index","payment_request_index",b"payment_request_index"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["_payment_request_index",b"_payment_request_index","keypath",b"keypath","ours",b"ours","payload",b"payload","payment_request_index",b"payment_request_index","script_config_index",b"script_config_index","type",b"type","value",b"value"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_payment_request_index",b"_payment_request_index","payment_request_index",b"payment_request_index","silent_payment",b"silent_payment"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_payment_request_index",b"_payment_request_index","keypath",b"keypath","ours",b"ours","payload",b"payload","payment_request_index",b"payment_request_index","script_config_index",b"script_config_index","silent_payment",b"silent_payment","type",b"type","value",b"value"]) -> None: ...
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_payment_request_index",b"_payment_request_index"]) -> typing.Optional[typing_extensions.Literal["payment_request_index"]]: ...
 global___BTCSignOutputRequest = BTCSignOutputRequest
 

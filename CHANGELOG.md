@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Bitcoin: add support for sending to silent payment (BIP-352) addresses
 - Bitcoin: add support for regtest
 
 ### 9.20.0

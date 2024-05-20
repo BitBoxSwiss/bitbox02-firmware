@@ -454,6 +454,8 @@ pub struct BtcSignInitRequest {
     pub locktime: u32,
     #[prost(enumeration = "btc_sign_init_request::FormatUnit", tag = "8")]
     pub format_unit: i32,
+    #[prost(bool, tag = "9")]
+    pub contains_silent_payment_outputs: bool,
 }
 /// Nested message and enum types in `BTCSignInitRequest`.
 pub mod btc_sign_init_request {
@@ -517,6 +519,11 @@ pub struct BtcSignNextResponse {
     pub anti_klepto_signer_commitment: ::core::option::Option<
         AntiKleptoSignerCommitment,
     >,
+    /// Generated output. The host *must* verify its correctness using `silent_payment_dleq_proof`.
+    #[prost(bytes = "vec", tag = "7")]
+    pub generated_output_pkscript: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "8")]
+    pub silent_payment_dleq_proof: ::prost::alloc::vec::Vec<u8>,
 }
 /// Nested message and enum types in `BTCSignNextResponse`.
 pub mod btc_sign_next_response {
@@ -619,6 +626,20 @@ pub struct BtcSignOutputRequest {
     pub script_config_index: u32,
     #[prost(uint32, optional, tag = "7")]
     pub payment_request_index: ::core::option::Option<u32>,
+    /// If provided, `type` and `payload` is ignored. The generated output pkScript is returned in
+    /// BTCSignNextResponse. `contains_silent_payment_outputs` in the init request must be true.
+    #[prost(message, optional, tag = "8")]
+    pub silent_payment: ::core::option::Option<btc_sign_output_request::SilentPayment>,
+}
+/// Nested message and enum types in `BTCSignOutputRequest`.
+pub mod btc_sign_output_request {
+    /// <https://github.com/bitcoin/bips/blob/master/bip-0352.mediawiki>
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct SilentPayment {
+        #[prost(string, tag = "1")]
+        pub address: ::prost::alloc::string::String,
+    }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

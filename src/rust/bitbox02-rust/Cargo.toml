@@ -32,6 +32,7 @@ util = { path = "../util" }
 erc20_params = { path = "../erc20_params", optional = true }
 binascii = { version = "0.1.4", default-features = false, features = ["encode"] }
 bitbox02-noise = {path = "../bitbox02-noise"}
+streaming-silent-payments = { path = "../streaming-silent-payments", optional = true }
 hex = { workspace = true }
 sha2 = { workspace = true }
 sha3 = { workspace = true, optional = true }
@@ -83,6 +84,7 @@ app-bitcoin = [
   "bech32",
   "miniscript",
   "bitcoin",
+  "streaming-silent-payments",
   # enable this feature in the deps
   "bitbox02/app-bitcoin",
 ]

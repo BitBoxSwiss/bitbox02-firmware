@@ -69,6 +69,7 @@ version = "0.1.0"
 dependencies = [
  "bitbox02-sys",
  "bitcoin",
+ "hex",
  "lazy_static",
  "util",
  "zeroize",
@@ -109,6 +110,7 @@ dependencies = [
  "prost",
  "sha2",
  "sha3",
+ "streaming-silent-payments",
  "util",
  "zeroize",
 ]

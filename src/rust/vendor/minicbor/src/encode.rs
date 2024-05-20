@@ -7,6 +7,8 @@ mod encoder;
 mod error;
 pub mod write;
 
+use crate::data::{IanaTag, Int, Tag, Tagged};
+
 pub use encoder::Encoder;
 pub use error::Error;
 pub use write::Write;
@@ -387,15 +389,51 @@ impl<C> CborLen<C> for isize {
     }
 }
 
-impl<C> Encode<C> for crate::data::Int {
+impl<C> Encode<C> for Int {
     fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
         e.int(*self)?.ok()
     }
 }
 
-impl<C> CborLen<C> for crate::data::Int {
+impl<C> CborLen<C> for Int {
     fn cbor_len(&self, ctx: &mut C) -> usize {
         self.value().cbor_len(ctx)
+    }
+}
+
+impl<C> Encode<C> for Tag {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
+        e.tag(*self)?.ok()
+    }
+}
+
+impl<C> CborLen<C> for Tag {
+    fn cbor_len(&self, ctx: &mut C) -> usize {
+        self.as_u64().cbor_len(ctx)
+    }
+}
+
+impl<C> Encode<C> for IanaTag {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), Error<W::Error>> {
+        e.tag(*self)?.ok()
+    }
+}
+
+impl<C> CborLen<C> for IanaTag {
+    fn cbor_len(&self, ctx: &mut C) -> usize {
+        self.tag().cbor_len(ctx)
+    }
+}
+
+impl<C, const N: u64, T: Encode<C>> Encode<C> for Tagged<N, T> {
+    fn encode<W: Write>(&self, e: &mut Encoder<W>, ctx: &mut C) -> Result<(), Error<W::Error>> {
+        e.tag(Tag::new(N))?.encode_with(self.value(), ctx)?.ok()
+    }
+}
+
+impl<C, const N: u64, T: CborLen<C>> CborLen<C> for Tagged<N, T> {
+    fn cbor_len(&self, ctx: &mut C) -> usize {
+        Tag::new(N).cbor_len(ctx) + self.value().cbor_len(ctx)
     }
 }
 
@@ -1037,4 +1075,3 @@ where
         Ok(())
     }
 }
-

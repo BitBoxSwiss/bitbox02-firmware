@@ -27,7 +27,7 @@ impl Variants {
             attrs.push(attr);
         }
 
-        idx::check_uniq(span, &indices)?;
+        idx::check_uniq(span, indices.iter().copied())?;
 
         Ok(Variants { indices, attrs })
     }

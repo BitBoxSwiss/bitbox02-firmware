@@ -77,7 +77,7 @@ fn decode_byron_payment_address(params: &params::Params, address: &str) -> Resul
         if decoder.array().or(Err(()))?.ok_or(())? != 2 {
             return Err(());
         }
-        if decoder.tag().or(Err(()))? != minicbor::data::Tag::Cbor {
+        if decoder.tag().or(Err(()))? != minicbor::data::IanaTag::Cbor.tag() {
             return Err(());
         }
         let payload = decoder.bytes().or(Err(()))?;

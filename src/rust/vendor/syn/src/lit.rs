@@ -6,6 +6,7 @@ use crate::{Error, Result};
 use proc_macro2::{Ident, Literal, Span};
 #[cfg(feature = "parsing")]
 use proc_macro2::{TokenStream, TokenTree};
+use std::ffi::{CStr, CString};
 use std::fmt::{self, Display};
 #[cfg(feature = "extra-traits")]
 use std::hash::{Hash, Hasher};
@@ -18,7 +19,7 @@ ast_enum_of_structs! {
     ///
     /// This type is a [syntax tree enum].
     ///
-    /// [syntax tree enum]: crate::Expr#syntax-tree-enums
+    /// [syntax tree enum]: crate::expr::Expr#syntax-tree-enums
     #[non_exhaustive]
     pub enum Lit {
         /// A UTF-8 string literal: `"foo"`.
@@ -26,6 +27,9 @@ ast_enum_of_structs! {
 
         /// A byte string literal: `b"foo"`.
         ByteStr(LitByteStr),
+
+        /// A nul-terminated C-string literal: `c"foo"`.
+        CStr(LitCStr),
 
         /// A byte literal: `b'f'`.
         Byte(LitByte),
@@ -59,6 +63,13 @@ ast_struct! {
 ast_struct! {
     /// A byte string literal: `b"foo"`.
     pub struct LitByteStr {
+        repr: Box<LitRepr>,
+    }
+}
+
+ast_struct! {
+    /// A nul-terminated C-string literal: `c"foo"`.
+    pub struct LitCStr {
         repr: Box<LitRepr>,
     }
 }
@@ -225,10 +236,11 @@ impl LitStr {
 
         // Parse string literal into a token stream with every span equal to the
         // original literal's span.
+        let span = self.span();
         let mut tokens = TokenStream::from_str(&self.value())?;
-        tokens = respan_token_stream(tokens, self.span());
+        tokens = respan_token_stream(tokens, span);
 
-        let result = parser.parse2(tokens)?;
+        let result = crate::parse::parse_scoped(parser, span, tokens)?;
 
         let suffix = self.suffix();
         if !suffix.is_empty() {
@@ -273,6 +285,41 @@ impl LitByteStr {
     pub fn value(&self) -> Vec<u8> {
         let repr = self.repr.token.to_string();
         let (value, _suffix) = value::parse_lit_byte_str(&repr);
+        value
+    }
+
+    pub fn span(&self) -> Span {
+        self.repr.token.span()
+    }
+
+    pub fn set_span(&mut self, span: Span) {
+        self.repr.token.set_span(span);
+    }
+
+    pub fn suffix(&self) -> &str {
+        &self.repr.suffix
+    }
+
+    pub fn token(&self) -> Literal {
+        self.repr.token.clone()
+    }
+}
+
+impl LitCStr {
+    pub fn new(value: &CStr, span: Span) -> Self {
+        let mut token = Literal::c_string(value);
+        token.set_span(span);
+        LitCStr {
+            repr: Box::new(LitRepr {
+                token,
+                suffix: Box::<str>::default(),
+            }),
+        }
+    }
+
+    pub fn value(&self) -> CString {
+        let repr = self.repr.token.to_string();
+        let (value, _suffix) = value::parse_lit_c_str(&repr);
         value
     }
 
@@ -367,7 +414,7 @@ impl LitInt {
     pub fn new(repr: &str, span: Span) -> Self {
         let (digits, suffix) = match value::parse_lit_int(repr) {
             Some(parse) => parse,
-            None => panic!("Not an integer literal: `{}`", repr),
+            None => panic!("not an integer literal: `{}`", repr),
         };
 
         let mut token: Literal = repr.parse().unwrap();
@@ -446,7 +493,7 @@ impl From<Literal> for LitInt {
                 }),
             }
         } else {
-            panic!("Not an integer literal: `{}`", repr);
+            panic!("not an integer literal: `{}`", repr);
         }
     }
 }
@@ -461,7 +508,7 @@ impl LitFloat {
     pub fn new(repr: &str, span: Span) -> Self {
         let (digits, suffix) = match value::parse_lit_float(repr) {
             Some(parse) => parse,
-            None => panic!("Not a float literal: `{}`", repr),
+            None => panic!("not a float literal: `{}`", repr),
         };
 
         let mut token: Literal = repr.parse().unwrap();
@@ -518,7 +565,7 @@ impl From<Literal> for LitFloat {
                 }),
             }
         } else {
-            panic!("Not a float literal: `{}`", repr);
+            panic!("not a float literal: `{}`", repr);
         }
     }
 }
@@ -554,139 +601,134 @@ impl LitBool {
 
 #[cfg(feature = "extra-traits")]
 mod debug_impls {
-    use super::*;
+    use crate::lit::{LitBool, LitByte, LitByteStr, LitCStr, LitChar, LitFloat, LitInt, LitStr};
     use std::fmt::{self, Debug};
 
     #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
     impl Debug for LitStr {
         fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            impl LitStr {
-                pub(crate) fn debug(
-                    &self,
-                    formatter: &mut fmt::Formatter,
-                    name: &str,
-                ) -> fmt::Result {
-                    formatter
-                        .debug_struct(name)
-                        .field("token", &format_args!("{}", self.repr.token))
-                        .finish()
-                }
-            }
             self.debug(formatter, "LitStr")
+        }
+    }
+
+    impl LitStr {
+        pub(crate) fn debug(&self, formatter: &mut fmt::Formatter, name: &str) -> fmt::Result {
+            formatter
+                .debug_struct(name)
+                .field("token", &format_args!("{}", self.repr.token))
+                .finish()
         }
     }
 
     #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
     impl Debug for LitByteStr {
         fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            impl LitByteStr {
-                pub(crate) fn debug(
-                    &self,
-                    formatter: &mut fmt::Formatter,
-                    name: &str,
-                ) -> fmt::Result {
-                    formatter
-                        .debug_struct(name)
-                        .field("token", &format_args!("{}", self.repr.token))
-                        .finish()
-                }
-            }
             self.debug(formatter, "LitByteStr")
+        }
+    }
+
+    impl LitByteStr {
+        pub(crate) fn debug(&self, formatter: &mut fmt::Formatter, name: &str) -> fmt::Result {
+            formatter
+                .debug_struct(name)
+                .field("token", &format_args!("{}", self.repr.token))
+                .finish()
+        }
+    }
+
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+    impl Debug for LitCStr {
+        fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            self.debug(formatter, "LitCStr")
+        }
+    }
+
+    impl LitCStr {
+        pub(crate) fn debug(&self, formatter: &mut fmt::Formatter, name: &str) -> fmt::Result {
+            formatter
+                .debug_struct(name)
+                .field("token", &format_args!("{}", self.repr.token))
+                .finish()
         }
     }
 
     #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
     impl Debug for LitByte {
         fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            impl LitByte {
-                pub(crate) fn debug(
-                    &self,
-                    formatter: &mut fmt::Formatter,
-                    name: &str,
-                ) -> fmt::Result {
-                    formatter
-                        .debug_struct(name)
-                        .field("token", &format_args!("{}", self.repr.token))
-                        .finish()
-                }
-            }
             self.debug(formatter, "LitByte")
+        }
+    }
+
+    impl LitByte {
+        pub(crate) fn debug(&self, formatter: &mut fmt::Formatter, name: &str) -> fmt::Result {
+            formatter
+                .debug_struct(name)
+                .field("token", &format_args!("{}", self.repr.token))
+                .finish()
         }
     }
 
     #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
     impl Debug for LitChar {
         fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            impl LitChar {
-                pub(crate) fn debug(
-                    &self,
-                    formatter: &mut fmt::Formatter,
-                    name: &str,
-                ) -> fmt::Result {
-                    formatter
-                        .debug_struct(name)
-                        .field("token", &format_args!("{}", self.repr.token))
-                        .finish()
-                }
-            }
             self.debug(formatter, "LitChar")
+        }
+    }
+
+    impl LitChar {
+        pub(crate) fn debug(&self, formatter: &mut fmt::Formatter, name: &str) -> fmt::Result {
+            formatter
+                .debug_struct(name)
+                .field("token", &format_args!("{}", self.repr.token))
+                .finish()
         }
     }
 
     #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
     impl Debug for LitInt {
         fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            impl LitInt {
-                pub(crate) fn debug(
-                    &self,
-                    formatter: &mut fmt::Formatter,
-                    name: &str,
-                ) -> fmt::Result {
-                    formatter
-                        .debug_struct(name)
-                        .field("token", &format_args!("{}", self.repr.token))
-                        .finish()
-                }
-            }
             self.debug(formatter, "LitInt")
+        }
+    }
+
+    impl LitInt {
+        pub(crate) fn debug(&self, formatter: &mut fmt::Formatter, name: &str) -> fmt::Result {
+            formatter
+                .debug_struct(name)
+                .field("token", &format_args!("{}", self.repr.token))
+                .finish()
         }
     }
 
     #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
     impl Debug for LitFloat {
         fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            impl LitFloat {
-                pub(crate) fn debug(
-                    &self,
-                    formatter: &mut fmt::Formatter,
-                    name: &str,
-                ) -> fmt::Result {
-                    formatter
-                        .debug_struct(name)
-                        .field("token", &format_args!("{}", self.repr.token))
-                        .finish()
-                }
-            }
             self.debug(formatter, "LitFloat")
+        }
+    }
+
+    impl LitFloat {
+        pub(crate) fn debug(&self, formatter: &mut fmt::Formatter, name: &str) -> fmt::Result {
+            formatter
+                .debug_struct(name)
+                .field("token", &format_args!("{}", self.repr.token))
+                .finish()
         }
     }
 
     #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
     impl Debug for LitBool {
         fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            impl LitBool {
-                pub(crate) fn debug(
-                    &self,
-                    formatter: &mut fmt::Formatter,
-                    name: &str,
-                ) -> fmt::Result {
-                    formatter
-                        .debug_struct(name)
-                        .field("value", &self.value)
-                        .finish()
-                }
-            }
             self.debug(formatter, "LitBool")
+        }
+    }
+
+    impl LitBool {
+        pub(crate) fn debug(&self, formatter: &mut fmt::Formatter, name: &str) -> fmt::Result {
+            formatter
+                .debug_struct(name)
+                .field("value", &self.value)
+                .finish()
         }
     }
 }
@@ -758,54 +800,64 @@ macro_rules! lit_extra_traits {
         }
 
         #[cfg(feature = "parsing")]
-        #[doc(hidden)]
-        #[allow(non_snake_case)]
-        pub fn $ty(marker: lookahead::TokenMarker) -> $ty {
-            match marker {}
+        pub_if_not_doc! {
+            #[doc(hidden)]
+            #[allow(non_snake_case)]
+            pub fn $ty(marker: lookahead::TokenMarker) -> $ty {
+                match marker {}
+            }
         }
     };
 }
 
 lit_extra_traits!(LitStr);
 lit_extra_traits!(LitByteStr);
+lit_extra_traits!(LitCStr);
 lit_extra_traits!(LitByte);
 lit_extra_traits!(LitChar);
 lit_extra_traits!(LitInt);
 lit_extra_traits!(LitFloat);
 
 #[cfg(feature = "parsing")]
-#[doc(hidden)]
-#[allow(non_snake_case)]
-pub fn LitBool(marker: lookahead::TokenMarker) -> LitBool {
-    match marker {}
+pub_if_not_doc! {
+    #[doc(hidden)]
+    #[allow(non_snake_case)]
+    pub fn LitBool(marker: lookahead::TokenMarker) -> LitBool {
+        match marker {}
+    }
 }
 
-ast_enum! {
-    /// The style of a string literal, either plain quoted or a raw string like
-    /// `r##"data"##`.
-    pub enum StrStyle #no_visit {
-        /// An ordinary string like `"data"`.
-        Cooked,
-        /// A raw string like `r##"data"##`.
-        ///
-        /// The unsigned integer is the number of `#` symbols used.
-        Raw(usize),
+/// The style of a string literal, either plain quoted or a raw string like
+/// `r##"data"##`.
+#[doc(hidden)] // https://github.com/dtolnay/syn/issues/1566
+pub enum StrStyle {
+    /// An ordinary string like `"data"`.
+    Cooked,
+    /// A raw string like `r##"data"##`.
+    ///
+    /// The unsigned integer is the number of `#` symbols used.
+    Raw(usize),
+}
+
+#[cfg(feature = "parsing")]
+pub_if_not_doc! {
+    #[doc(hidden)]
+    #[allow(non_snake_case)]
+    pub fn Lit(marker: lookahead::TokenMarker) -> Lit {
+        match marker {}
     }
 }
 
 #[cfg(feature = "parsing")]
-#[doc(hidden)]
-#[allow(non_snake_case)]
-pub fn Lit(marker: lookahead::TokenMarker) -> Lit {
-    match marker {}
-}
-
-#[cfg(feature = "parsing")]
 pub(crate) mod parsing {
-    use super::*;
     use crate::buffer::Cursor;
-    use crate::parse::{Parse, ParseStream, Result};
-    use proc_macro2::Punct;
+    use crate::error::Result;
+    use crate::lit::{
+        value, Lit, LitBool, LitByte, LitByteStr, LitCStr, LitChar, LitFloat, LitFloatRepr, LitInt,
+        LitIntRepr, LitStr,
+    };
+    use crate::parse::{Parse, ParseStream};
+    use proc_macro2::{Literal, Punct};
 
     #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
     impl Parse for Lit {
@@ -901,6 +953,17 @@ pub(crate) mod parsing {
     }
 
     #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    impl Parse for LitCStr {
+        fn parse(input: ParseStream) -> Result<Self> {
+            let head = input.fork();
+            match input.parse() {
+                Ok(Lit::CStr(lit)) => Ok(lit),
+                _ => Err(head.error("expected C string literal")),
+            }
+        }
+    }
+
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
     impl Parse for LitByte {
         fn parse(input: ParseStream) -> Result<Self> {
             let head = input.fork();
@@ -958,7 +1021,7 @@ pub(crate) mod parsing {
 
 #[cfg(feature = "printing")]
 mod printing {
-    use super::*;
+    use crate::lit::{LitBool, LitByte, LitByteStr, LitCStr, LitChar, LitFloat, LitInt, LitStr};
     use proc_macro2::TokenStream;
     use quote::{ToTokens, TokenStreamExt};
 
@@ -971,6 +1034,13 @@ mod printing {
 
     #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
     impl ToTokens for LitByteStr {
+        fn to_tokens(&self, tokens: &mut TokenStream) {
+            self.repr.token.to_tokens(tokens);
+        }
+    }
+
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    impl ToTokens for LitCStr {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.repr.token.to_tokens(tokens);
         }
@@ -1013,9 +1083,15 @@ mod printing {
 }
 
 mod value {
-    use super::*;
     use crate::bigint::BigInt;
+    use crate::lit::{
+        Lit, LitBool, LitByte, LitByteStr, LitCStr, LitChar, LitFloat, LitFloatRepr, LitInt,
+        LitIntRepr, LitRepr, LitStr,
+    };
+    use proc_macro2::{Literal, Span};
+    use std::ascii;
     use std::char;
+    use std::ffi::CString;
     use std::ops::{Index, RangeFrom};
 
     impl Lit {
@@ -1048,6 +1124,13 @@ mod value {
                     }
                     _ => {}
                 },
+                // c"...", cr"...", cr#"..."#
+                b'c' => {
+                    let (_, suffix) = parse_lit_c_str(&repr);
+                    return Lit::CStr(LitCStr {
+                        repr: Box::new(LitRepr { token, suffix }),
+                    });
+                }
                 // '...'
                 b'\'' => {
                     let (_, suffix) = parse_lit_char(&repr);
@@ -1086,19 +1169,18 @@ mod value {
                         });
                     }
                 }
-                // c"...", cr"...", cr#"..."#
-                // TODO: add a Lit::CStr variant?
-                b'c' => return Lit::Verbatim(token),
+                b'(' if repr == "(/*ERROR*/)" => return Lit::Verbatim(token),
                 _ => {}
             }
 
-            panic!("Unrecognized literal: `{}`", repr);
+            panic!("unrecognized literal: `{}`", repr);
         }
 
         pub fn suffix(&self) -> &str {
             match self {
                 Lit::Str(lit) => lit.suffix(),
                 Lit::ByteStr(lit) => lit.suffix(),
+                Lit::CStr(lit) => lit.suffix(),
                 Lit::Byte(lit) => lit.suffix(),
                 Lit::Char(lit) => lit.suffix(),
                 Lit::Int(lit) => lit.suffix(),
@@ -1111,6 +1193,7 @@ mod value {
             match self {
                 Lit::Str(lit) => lit.span(),
                 Lit::ByteStr(lit) => lit.span(),
+                Lit::CStr(lit) => lit.span(),
                 Lit::Byte(lit) => lit.span(),
                 Lit::Char(lit) => lit.span(),
                 Lit::Int(lit) => lit.span(),
@@ -1124,6 +1207,7 @@ mod value {
             match self {
                 Lit::Str(lit) => lit.set_span(span),
                 Lit::ByteStr(lit) => lit.set_span(span),
+                Lit::CStr(lit) => lit.set_span(span),
                 Lit::Byte(lit) => lit.set_span(span),
                 Lit::Char(lit) => lit.set_span(span),
                 Lit::Int(lit) => lit.set_span(span),
@@ -1176,13 +1260,13 @@ mod value {
                         b'x' => {
                             let (byte, rest) = backslash_x(s);
                             s = rest;
-                            assert!(byte <= 0x7F, "Invalid \\x byte in string literal");
+                            assert!(byte <= 0x7F, "invalid \\x byte in string literal");
                             char::from_u32(u32::from(byte)).unwrap()
                         }
                         b'u' => {
-                            let (chr, rest) = backslash_u(s);
+                            let (ch, rest) = backslash_u(s);
                             s = rest;
-                            chr
+                            ch
                         }
                         b'n' => '\n',
                         b'r' => '\r',
@@ -1198,11 +1282,14 @@ mod value {
                                 _ => continue 'outer,
                             }
                         },
-                        b => panic!("unexpected byte {:?} after \\ character in byte literal", b),
+                        b => panic!(
+                            "unexpected byte '{}' after \\ character in string literal",
+                            ascii::escape_default(b),
+                        ),
                     }
                 }
                 b'\r' => {
-                    assert_eq!(byte(s, 1), b'\n', "Bare CR not allowed in string");
+                    assert_eq!(byte(s, 1), b'\n', "bare CR not allowed in string");
                     s = &s[2..];
                     '\n'
                 }
@@ -1289,11 +1376,14 @@ mod value {
                                 continue 'outer;
                             }
                         },
-                        b => panic!("unexpected byte {:?} after \\ character in byte literal", b),
+                        b => panic!(
+                            "unexpected byte '{}' after \\ character in byte-string literal",
+                            ascii::escape_default(b),
+                        ),
                     }
                 }
                 b'\r' => {
-                    assert_eq!(byte(v, 1), b'\n', "Bare CR not allowed in string");
+                    assert_eq!(byte(v, 1), b'\n', "bare CR not allowed in string");
                     v = &v[2..];
                     b'\n'
                 }
@@ -1314,6 +1404,92 @@ mod value {
         assert_eq!(byte(s, 0), b'b');
         let (value, suffix) = parse_lit_str_raw(&s[1..]);
         (String::from(value).into_bytes(), suffix)
+    }
+
+    // Returns (content, suffix).
+    pub(crate) fn parse_lit_c_str(s: &str) -> (CString, Box<str>) {
+        assert_eq!(byte(s, 0), b'c');
+        match byte(s, 1) {
+            b'"' => parse_lit_c_str_cooked(s),
+            b'r' => parse_lit_c_str_raw(s),
+            _ => unreachable!(),
+        }
+    }
+
+    // Clippy false positive
+    // https://github.com/rust-lang-nursery/rust-clippy/issues/2329
+    #[allow(clippy::needless_continue)]
+    fn parse_lit_c_str_cooked(mut s: &str) -> (CString, Box<str>) {
+        assert_eq!(byte(s, 0), b'c');
+        assert_eq!(byte(s, 1), b'"');
+        s = &s[2..];
+
+        // We're going to want to have slices which don't respect codepoint boundaries.
+        let mut v = s.as_bytes();
+
+        let mut out = Vec::new();
+        'outer: loop {
+            let byte = match byte(v, 0) {
+                b'"' => break,
+                b'\\' => {
+                    let b = byte(v, 1);
+                    v = &v[2..];
+                    match b {
+                        b'x' => {
+                            let (b, rest) = backslash_x(v);
+                            assert!(b != 0, "\\x00 is not allowed in C-string literal");
+                            v = rest;
+                            b
+                        }
+                        b'u' => {
+                            let (ch, rest) = backslash_u(v);
+                            assert!(ch != '\0', "\\u{{0}} is not allowed in C-string literal");
+                            v = rest;
+                            out.extend_from_slice(ch.encode_utf8(&mut [0u8; 4]).as_bytes());
+                            continue 'outer;
+                        }
+                        b'n' => b'\n',
+                        b'r' => b'\r',
+                        b't' => b'\t',
+                        b'\\' => b'\\',
+                        b'\'' => b'\'',
+                        b'"' => b'"',
+                        b'\r' | b'\n' => loop {
+                            let byte = byte(v, 0);
+                            if matches!(byte, b' ' | b'\t' | b'\n' | b'\r') {
+                                v = &v[1..];
+                            } else {
+                                continue 'outer;
+                            }
+                        },
+                        b => panic!(
+                            "unexpected byte '{}' after \\ character in byte literal",
+                            ascii::escape_default(b),
+                        ),
+                    }
+                }
+                b'\r' => {
+                    assert_eq!(byte(v, 1), b'\n', "bare CR not allowed in string");
+                    v = &v[2..];
+                    b'\n'
+                }
+                b => {
+                    v = &v[1..];
+                    b
+                }
+            };
+            out.push(byte);
+        }
+
+        assert_eq!(byte(v, 0), b'"');
+        let suffix = s[s.len() - v.len() + 1..].to_owned().into_boxed_str();
+        (CString::new(out).unwrap(), suffix)
+    }
+
+    fn parse_lit_c_str_raw(s: &str) -> (CString, Box<str>) {
+        assert_eq!(byte(s, 0), b'c');
+        let (value, suffix) = parse_lit_str_raw(&s[1..]);
+        (CString::new(String::from(value)).unwrap(), suffix)
     }
 
     // Returns (value, suffix).
@@ -1341,7 +1517,10 @@ mod value {
                     b'0' => b'\0',
                     b'\'' => b'\'',
                     b'"' => b'"',
-                    b => panic!("unexpected byte {:?} after \\ character in byte literal", b),
+                    b => panic!(
+                        "unexpected byte '{}' after \\ character in byte literal",
+                        ascii::escape_default(b),
+                    ),
                 }
             }
             b => {
@@ -1368,13 +1547,13 @@ mod value {
                     b'x' => {
                         let (byte, rest) = backslash_x(s);
                         s = rest;
-                        assert!(byte <= 0x80, "Invalid \\x byte in string literal");
+                        assert!(byte <= 0x7F, "invalid \\x byte in character literal");
                         char::from_u32(u32::from(byte)).unwrap()
                     }
                     b'u' => {
-                        let (chr, rest) = backslash_u(s);
+                        let (ch, rest) = backslash_u(s);
                         s = rest;
-                        chr
+                        ch
                     }
                     b'n' => '\n',
                     b'r' => '\r',
@@ -1383,7 +1562,10 @@ mod value {
                     b'0' => '\0',
                     b'\'' => '\'',
                     b'"' => '"',
-                    b => panic!("unexpected byte {:?} after \\ character in byte literal", b),
+                    b => panic!(
+                        "unexpected byte '{}' after \\ character in character literal",
+                        ascii::escape_default(b),
+                    ),
                 }
             }
             _ => {
@@ -1420,7 +1602,10 @@ mod value {
         (ch, &s[2..])
     }
 
-    fn backslash_u(mut s: &str) -> (char, &str) {
+    fn backslash_u<S>(mut s: &S) -> (char, &S)
+    where
+        S: Index<RangeFrom<usize>, Output = S> + AsRef<[u8]> + ?Sized,
+    {
         if byte(s, 0) != b'{' {
             panic!("{}", "expected { after \\u");
         }

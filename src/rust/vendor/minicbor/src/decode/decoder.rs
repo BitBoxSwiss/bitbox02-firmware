@@ -4,7 +4,7 @@ use crate::{ARRAY, BREAK, BYTES, MAP, SIMPLE, TAGGED, TEXT, SIGNED, UNSIGNED};
 use crate::data::{Int, Tag, Type};
 use crate::decode::{Decode, Error};
 use core::{char, f32, i8, i16, i32, i64};
-use core::{convert::TryInto, marker, str};
+use core::{marker, str};
 
 /// A non-allocating CBOR decoder.
 #[derive(Debug, Clone)]
@@ -431,7 +431,7 @@ impl<'b> Decoder<'b> {
                 .with_message("expected tag")
                 .at(p))
         }
-        self.unsigned(info_of(b), p).map(Tag::from)
+        self.unsigned(info_of(b), p).map(Tag::new)
     }
 
     /// Decode a CBOR null value.
@@ -471,6 +471,12 @@ impl<'b> Decoder<'b> {
     /// Inspect the CBOR type at the current position.
     pub fn datatype(&self) -> Result<Type, Error> {
         self.type_of(self.current()?)
+    }
+
+    /// Iterate over a series of CBOR tokens.
+    #[cfg(feature = "half")]
+    pub fn tokens<'a>(&'a mut self) -> crate::decode::Tokenizer<'a, 'b> {
+        crate::decode::Tokenizer::from(self)
     }
 
     /// Skip over the current CBOR value.

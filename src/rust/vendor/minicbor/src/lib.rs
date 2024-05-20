@@ -17,7 +17,7 @@
 //! [`data::Type`] that can represent every possible CBOR type and decoding
 //! can thus proceed based on this information. It is also possible to just
 //! tokenize the input bytes using a [`Tokenizer`](decode::Tokenizer), i.e.
-//! an `Iterator` over CBOR [`Token`](decode::Token)s. Finally, the length
+//! an `Iterator` over CBOR [`Token`](data::Token)s. Finally, the length
 //! in bytes of a value's CBOR representation can be calculated if the
 //! value's type implements the [`CborLen`] trait.
 //!
@@ -79,7 +79,7 @@
 //!
 //! ```
 //! use minicbor::Decoder;
-//! use minicbor::data::Tag;
+//! use minicbor::data::IanaTag;
 //!
 //! let input = [
 //!     0xc0, 0x74, 0x32, 0x30, 0x31, 0x33, 0x2d, 0x30,
@@ -88,7 +88,7 @@
 //! ];
 //!
 //! let mut decoder = Decoder::new(&input);
-//! assert_eq!(Tag::DateTime, decoder.tag()?);
+//! assert_eq!(IanaTag::DateTime.tag(), decoder.tag()?);
 //! assert_eq!("2013-03-21T20:04:00Z", decoder.str()?);
 //! # Ok::<_, Box<dyn std::error::Error>>(())
 //! ```
@@ -97,13 +97,14 @@
 //!
 //! ```
 //! use minicbor::display;
-//! use minicbor::decode::{Token, Tokenizer};
+//! use minicbor::{Encoder, Decoder};
+//! use minicbor::data::Token;
 //!
 //! let input  = [0x83, 0x01, 0x9f, 0x02, 0x03, 0xff, 0x82, 0x04, 0x05];
 //!
 //! assert_eq!("[1, [_ 2, 3], [4, 5]]", format!("{}", display(&input)));
 //!
-//! let tokens = Tokenizer::new(&input).collect::<Result<Vec<Token>, _>>()?;
+//! let tokens = Decoder::new(&input).tokens().collect::<Result<Vec<Token>, _>>()?;
 //!
 //! assert_eq! { &tokens[..],
 //!     &[Token::Array(3),
@@ -117,13 +118,18 @@
 //!       Token::U8(5)]
 //! };
 //!
+//! let mut buffer = [0u8; 9];
+//! Encoder::new(buffer.as_mut()).tokens(&tokens)?;
+//!
+//! assert_eq!(input, buffer);
+//!
 //! # Ok::<_, Box<dyn std::error::Error>>(())
 //! ```
 //!
-//! [CBOR]: https://tools.ietf.org/html/rfc7049
+//! [CBOR]: https://datatracker.ietf.org/doc/html/rfc8949
 //! [serde]: https://serde.rs
 
-#![forbid(unused_imports, unused_variables)]
+#![forbid(unused_variables)]
 #![allow(clippy::needless_lifetimes)]
 #![cfg_attr(not(feature = "std"), no_std)]
 

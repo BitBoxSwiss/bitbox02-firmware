@@ -33,9 +33,9 @@ impl Idx {
 }
 
 /// Check that there are no duplicate `Idx` values in `iter`.
-pub fn check_uniq<'a, I>(s: Span, iter: I) -> syn::Result<()>
+pub fn check_uniq<I>(s: Span, iter: I) -> syn::Result<()>
 where
-    I: IntoIterator<Item = &'a Idx>
+    I: IntoIterator<Item = Idx>
 {
     let mut set = HashSet::new();
     let mut ctr = 0;

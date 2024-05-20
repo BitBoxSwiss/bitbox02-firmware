@@ -4,10 +4,12 @@ use crate::lookahead;
 pub use proc_macro2::Ident;
 
 #[cfg(feature = "parsing")]
-#[doc(hidden)]
-#[allow(non_snake_case)]
-pub fn Ident(marker: lookahead::TokenMarker) -> Ident {
-    match marker {}
+pub_if_not_doc! {
+    #[doc(hidden)]
+    #[allow(non_snake_case)]
+    pub fn Ident(marker: lookahead::TokenMarker) -> Ident {
+        match marker {}
+    }
 }
 
 macro_rules! ident_from_token {
@@ -49,7 +51,8 @@ pub(crate) fn xid_ok(symbol: &str) -> bool {
 #[cfg(feature = "parsing")]
 mod parsing {
     use crate::buffer::Cursor;
-    use crate::parse::{Parse, ParseStream, Result};
+    use crate::error::Result;
+    use crate::parse::{Parse, ParseStream};
     use crate::token::Token;
     use proc_macro2::Ident;
 

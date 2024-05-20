@@ -12,12 +12,6 @@ impl<W: Write> Encoder<W> {
         Encoder { writer }
     }
 
-    /// Get back the [`Write`] impl.
-    #[deprecated(note = "use Encoder::into_writer instead")]
-    pub fn into_inner(self) -> W {
-        self.writer
-    }
-
     /// Access the inner writer.
     pub fn writer(&self) -> &W {
         &self.writer
@@ -213,8 +207,8 @@ impl<W: Write> Encoder<W> {
     }
 
     /// Encode a CBOR tag.
-    pub fn tag(&mut self, x: Tag) -> Result<&mut Self, Error<W::Error>> {
-        self.type_len(TAGGED, x.numeric())
+    pub fn tag<T: Into<Tag>>(&mut self, x: T) -> Result<&mut Self, Error<W::Error>> {
+        self.type_len(TAGGED, x.into().into())
     }
 
     /// Encode a byte slice.
@@ -272,6 +266,18 @@ impl<W: Write> Encoder<W> {
 
     /// Syntactic sugar for `Ok(())`.
     pub fn ok(&mut self) -> Result<(), Error<W::Error>> {
+        Ok(())
+    }
+
+    /// Encode a sequence of CBOR tokens.
+    #[cfg(feature = "half")]
+    pub fn tokens<'a, 'b: 'a, I>(&mut self, tokens: I) -> Result<(), Error<W::Error>>
+    where
+        I: IntoIterator<Item = &'a crate::data::Token<'b>>
+    {
+        for t in tokens {
+            self.encode(t)?;
+        }
         Ok(())
     }
 

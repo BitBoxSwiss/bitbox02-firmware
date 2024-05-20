@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "minicbor-derive"
-version = "0.13.0"
+version = "0.15.0"
 authors = ["Toralf Wittner <tw@dtex.org>"]
 description = "Derive minicbor `Decode` and `Encode` traits."
 documentation = "https://twittner.gitlab.io/minicbor/minicbor_derive/"
@@ -27,19 +27,18 @@ keywords = [
 categories = ["encoding"]
 license = "BlueOak-1.0.0"
 repository = "https://gitlab.com/twittner/minicbor"
-resolver = "1"
 
 [lib]
 proc-macro = true
 
 [dependencies.proc-macro2]
-version = "1.0.18"
+version = "1.0.79"
 
 [dependencies.quote]
-version = "1.0.7"
+version = "1.0.35"
 
 [dependencies.syn]
-version = "1.0.72"
+version = "2.0.58"
 features = [
     "derive",
     "extra-traits",
@@ -50,4 +49,4 @@ features = [
 
 [features]
 alloc = []
-std = []
+std = ["alloc"]

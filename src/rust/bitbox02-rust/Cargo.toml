@@ -28,7 +28,8 @@ doctest = false
 
 [dependencies]
 bitbox02 = {path = "../bitbox02"}
-util = {path = "../util"}
+util = { path = "../util" }
+erc20_params = { path = "../erc20_params", optional = true }
 binascii = { version = "0.1.4", default-features = false, features = ["encode"] }
 bitbox02-noise = {path = "../bitbox02-noise"}
 hex = { workspace = true }
@@ -70,6 +71,7 @@ ed25519 = [
 
 app-ethereum = [
   # enable these dependencies
+  "erc20_params",
   "sha3",
   "num-bigint",
   "num-traits",

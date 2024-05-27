@@ -27,20 +27,16 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
 
     let params = super::params::get_and_warn_unknown(Some(coin), request.chain_id).await?;
     // If a contract_address is provided, it has to be a supported ERC20-token.
-    let erc20_params: Option<bitbox02::app_eth::ERC20Params> =
-        if request.contract_address.is_empty() {
-            None
-        } else {
-            let address: [u8; 20] = request
-                .contract_address
-                .as_slice()
-                .try_into()
-                .or(Err(Error::InvalidInput))?;
-            Some(
-                bitbox02::app_eth::erc20_params_get(params.chain_id, address)
-                    .ok_or(Error::InvalidInput)?,
-            )
-        };
+    let erc20_params: Option<erc20_params::Params> = if request.contract_address.is_empty() {
+        None
+    } else {
+        let address: [u8; 20] = request
+            .contract_address
+            .as_slice()
+            .try_into()
+            .or(Err(Error::InvalidInput))?;
+        Some(erc20_params::get(params.chain_id, address).ok_or(Error::InvalidInput)?)
+    };
 
     if !super::keypath::is_valid_keypath_address(&request.keypath) {
         return Err(Error::InvalidInput);

@@ -21,6 +21,7 @@ members = [
     "bitbox02-noise",
     "bitbox02",
     "bitbox02-sys",
+    "erc20_params",
 ]
 
 resolver = "2"

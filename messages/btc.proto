@@ -124,6 +124,7 @@ message BTCSignNextResponse {
     PREVTX_INPUT = 4;
     PREVTX_OUTPUT = 5;
     HOST_NONCE = 6;
+    PAYMENT_REQUEST = 7;
   }
   Type type = 1;
   // index of the current input or output
@@ -165,6 +166,7 @@ message BTCSignOutputRequest {
   repeated uint32 keypath = 5; // if ours is true
   // If ours is true. References a script config from BTCSignInitRequest
   uint32 script_config_index = 6;
+  optional uint32 payment_request_index = 7;
 }
 
 message BTCScriptConfigRegistration {
@@ -217,6 +219,23 @@ message BTCPrevTxOutputRequest {
   bytes pubkey_script = 2;
 }
 
+message BTCPaymentRequestRequest {
+  message Memo {
+    message TextMemo {
+      string note = 1;
+    }
+    oneof memo {
+      TextMemo text_memo = 1;
+    }
+  }
+
+  string recipient_name = 1;
+  repeated Memo memos = 2;
+  bytes nonce = 3;
+  uint64 total_amount = 4;
+  bytes signature = 5;
+}
+
 message BTCSignMessageRequest {
   BTCCoin coin = 1;
   BTCScriptConfigWithKeypath script_config = 2;
@@ -238,6 +257,7 @@ message BTCRequest {
     BTCPrevTxOutputRequest prevtx_output = 5;
     BTCSignMessageRequest sign_message = 6;
     AntiKleptoSignatureRequest antiklepto_signature = 7;
+    BTCPaymentRequestRequest payment_request = 8;
   }
 }
 

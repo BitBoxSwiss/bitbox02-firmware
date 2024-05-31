@@ -540,6 +540,7 @@ pub mod btc_sign_next_response {
         PrevtxInput = 4,
         PrevtxOutput = 5,
         HostNonce = 6,
+        PaymentRequest = 7,
     }
     impl Type {
         /// String value of the enum field names used in the ProtoBuf definition.
@@ -555,6 +556,7 @@ pub mod btc_sign_next_response {
                 Type::PrevtxInput => "PREVTX_INPUT",
                 Type::PrevtxOutput => "PREVTX_OUTPUT",
                 Type::HostNonce => "HOST_NONCE",
+                Type::PaymentRequest => "PAYMENT_REQUEST",
             }
         }
         /// Creates an enum from field names used in the ProtoBuf definition.
@@ -567,6 +569,7 @@ pub mod btc_sign_next_response {
                 "PREVTX_INPUT" => Some(Self::PrevtxInput),
                 "PREVTX_OUTPUT" => Some(Self::PrevtxOutput),
                 "HOST_NONCE" => Some(Self::HostNonce),
+                "PAYMENT_REQUEST" => Some(Self::PaymentRequest),
                 _ => None,
             }
         }
@@ -613,6 +616,8 @@ pub struct BtcSignOutputRequest {
     /// If ours is true. References a script config from BTCSignInitRequest
     #[prost(uint32, tag = "6")]
     pub script_config_index: u32,
+    #[prost(uint32, optional, tag = "7")]
+    pub payment_request_index: ::core::option::Option<u32>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -726,6 +731,44 @@ pub struct BtcPrevTxOutputRequest {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BtcPaymentRequestRequest {
+    #[prost(string, tag = "1")]
+    pub recipient_name: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub memos: ::prost::alloc::vec::Vec<btc_payment_request_request::Memo>,
+    #[prost(bytes = "vec", tag = "3")]
+    pub nonce: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "4")]
+    pub total_amount: u64,
+    #[prost(bytes = "vec", tag = "5")]
+    pub signature: ::prost::alloc::vec::Vec<u8>,
+}
+/// Nested message and enum types in `BTCPaymentRequestRequest`.
+pub mod btc_payment_request_request {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Memo {
+        #[prost(oneof = "memo::Memo", tags = "1")]
+        pub memo: ::core::option::Option<memo::Memo>,
+    }
+    /// Nested message and enum types in `Memo`.
+    pub mod memo {
+        #[allow(clippy::derive_partial_eq_without_eq)]
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct TextMemo {
+            #[prost(string, tag = "1")]
+            pub note: ::prost::alloc::string::String,
+        }
+        #[allow(clippy::derive_partial_eq_without_eq)]
+        #[derive(Clone, PartialEq, ::prost::Oneof)]
+        pub enum Memo {
+            #[prost(message, tag = "1")]
+            TextMemo(TextMemo),
+        }
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcSignMessageRequest {
     #[prost(enumeration = "BtcCoin", tag = "1")]
     pub coin: i32,
@@ -746,7 +789,7 @@ pub struct BtcSignMessageResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcRequest {
-    #[prost(oneof = "btc_request::Request", tags = "1, 2, 3, 4, 5, 6, 7")]
+    #[prost(oneof = "btc_request::Request", tags = "1, 2, 3, 4, 5, 6, 7, 8")]
     pub request: ::core::option::Option<btc_request::Request>,
 }
 /// Nested message and enum types in `BTCRequest`.
@@ -768,6 +811,8 @@ pub mod btc_request {
         SignMessage(super::BtcSignMessageRequest),
         #[prost(message, tag = "7")]
         AntikleptoSignature(super::AntiKleptoSignatureRequest),
+        #[prost(message, tag = "8")]
+        PaymentRequest(super::BtcPaymentRequestRequest),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]

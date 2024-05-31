@@ -16,6 +16,7 @@ use super::pb;
 use super::Error;
 
 use super::common::format_amount;
+use super::payment_request;
 use super::script::serialize_varint;
 use super::{bip143, bip341, common, keypath};
 
@@ -166,6 +167,20 @@ async fn get_tx_output(
     response.wrap = false;
     match request {
         Request::BtcSignOutput(request) => Ok(request),
+        _ => Err(Error::InvalidState),
+    }
+}
+
+async fn get_payment_request(
+    index: u32,
+    response: &mut NextResponse,
+) -> Result<pb::BtcPaymentRequestRequest, Error> {
+    let request = get_request(NextType::PaymentRequest, index, None, response).await?;
+    response.wrap = true;
+    match request {
+        Request::Btc(pb::BtcRequest {
+            request: Some(pb::btc_request::Request::PaymentRequest(request)),
+        }) => Ok(request),
         _ => Err(Error::InvalidState),
     }
 }
@@ -571,6 +586,12 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     let mut xpub_cache = Bip32XpubCache::new();
     setup_xpub_cache(&mut xpub_cache, &request.script_configs);
 
+    // For now we only allow one payment request with one output per transaction.  In the future,
+    // this could be extended to allow multiple outputs per payment request (payment request
+    // requests payout to multiple addresses/outputs), as well as multiple payment requests per
+    // transaction.
+    let mut payment_request_seen = false;
+
     let mut progress_component = {
         let mut c = bitbox02::ui::progress_create("Loading transaction...");
         c.screen_stack_push();
@@ -753,19 +774,50 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             false
         };
 
+        // Only non-change outputs can belong to a payment request.
+        if is_change && tx_output.payment_request_index.is_some() {
+            return Err(Error::InvalidInput);
+        }
+
         if !is_change {
             // Verify output if it is not a change output.
             // Assemble address to display, get user confirmation.
             let address = payload.address(coin_params)?;
-            transaction::verify_recipient(
-                &(if tx_output.ours {
-                    format!("This BitBox02: {}", address)
-                } else {
-                    address
-                }),
-                &format_amount(coin_params, format_unit, tx_output.value)?,
-            )
-            .await?;
+
+            if let Some(output_payment_request_index) = tx_output.payment_request_index {
+                if output_payment_request_index != 0 {
+                    return Err(Error::InvalidInput);
+                }
+                if payment_request_seen {
+                    return Err(Error::InvalidInput);
+                }
+                let payment_request: pb::BtcPaymentRequestRequest =
+                    get_payment_request(output_index, &mut next_response).await?;
+                payment_request::user_verify(coin_params, &payment_request, format_unit).await?;
+                if payment_request::validate(
+                    coin_params,
+                    &payment_request,
+                    tx_output.value,
+                    &address,
+                )
+                .is_err()
+                {
+                    status::status("Invalid\npayment request", true).await;
+                    return Err(Error::InvalidInput);
+                }
+
+                payment_request_seen = true;
+            } else {
+                transaction::verify_recipient(
+                    &(if tx_output.ours {
+                        format!("This BitBox02: {}", address)
+                    } else {
+                        address
+                    }),
+                    &format_amount(coin_params, format_unit, tx_output.value)?,
+                )
+                .await?;
+            }
         }
 
         if is_change {
@@ -986,6 +1038,7 @@ mod tests {
     use crate::bip32::parse_xpub;
     use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic, Data};
+    use pb::btc_payment_request_request::{memo, Memo};
     use util::bip32::HARDENED;
 
     fn extract_next(response: &Response) -> &pb::BtcSignNextResponse {
@@ -1015,6 +1068,7 @@ mod tests {
         inputs: Vec<TxInput>,
         outputs: Vec<pb::BtcSignOutputRequest>,
         locktime: u32,
+        payment_request: Option<pb::BtcPaymentRequestRequest>,
     }
 
     impl Transaction {
@@ -1122,6 +1176,7 @@ mod tests {
                         ],
                         keypath: vec![],
                         script_config_index: 0,
+                        payment_request_index: None,
                     },
                     pb::BtcSignOutputRequest {
                         ours: false,
@@ -1133,6 +1188,7 @@ mod tests {
                         ],
                         keypath: vec![],
                         script_config_index: 0,
+                        payment_request_index: None,
                     },
                     pb::BtcSignOutputRequest {
                         ours: false,
@@ -1144,6 +1200,7 @@ mod tests {
                         ],
                         keypath: vec![],
                         script_config_index: 0,
+                        payment_request_index: None,
                     },
                     pb::BtcSignOutputRequest {
                         ours: false,
@@ -1156,6 +1213,7 @@ mod tests {
                         ],
                         keypath: vec![],
                         script_config_index: 0,
+                        payment_request_index: None,
                     },
                     pb::BtcSignOutputRequest {
                         // change
@@ -1165,6 +1223,7 @@ mod tests {
                         payload: vec![],
                         keypath: vec![84 + HARDENED, bip44_coin, 10 + HARDENED, 1, 3],
                         script_config_index: 0,
+                        payment_request_index: None,
                     },
                     pb::BtcSignOutputRequest {
                         // change #2
@@ -1174,9 +1233,11 @@ mod tests {
                         payload: vec![],
                         keypath: vec![84 + HARDENED, bip44_coin, 10 + HARDENED, 1, 30],
                         script_config_index: 0,
+                        payment_request_index: None,
                     },
                 ],
                 locktime: 0,
+                payment_request: None,
             }
         }
 
@@ -1228,6 +1289,7 @@ mod tests {
                         payload: vec![],
                         keypath: vec![48 + HARDENED, bip44_coin, 0 + HARDENED, 2 + HARDENED, 1, 0],
                         script_config_index: 0,
+                        payment_request_index: None,
                     },
                     pb::BtcSignOutputRequest {
                         ours: false,
@@ -1240,9 +1302,11 @@ mod tests {
                         ],
                         keypath: vec![],
                         script_config_index: 0,
+                        payment_request_index: None,
                     },
                 ],
                 locktime: 1663289,
+                payment_request: None,
             }
         }
 
@@ -1312,6 +1376,11 @@ mod tests {
                 NextType::Output => {
                     Request::BtcSignOutput(self.outputs[next.index as usize].clone())
                 }
+                NextType::PaymentRequest => Request::Btc(pb::BtcRequest {
+                    request: Some(pb::btc_request::Request::PaymentRequest(
+                        self.payment_request.clone().unwrap(),
+                    )),
+                }),
                 NextType::PrevtxInit => Request::Btc(pb::BtcRequest {
                     request: Some(pb::btc_request::Request::PrevtxInit(
                         pb::BtcPrevTxInitRequest {
@@ -3072,6 +3141,118 @@ mod tests {
                     .init_request_policy(policy, keypath_account)
             )),
             Err(Error::InvalidInput)
+        );
+    }
+
+    #[test]
+    pub fn test_payment_request() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+
+        // Attach second output to a payment request.
+        {
+            let mut tx = transaction.borrow_mut();
+            // An additional confirmation for the text memo.
+            tx.total_confirmations += 1;
+            let payment_request_output_index = 1;
+            let output_value = tx.outputs[payment_request_output_index].value;
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![Memo {
+                    memo: Some(memo::Memo::TextMemo(memo::TextMemo {
+                        note: "Test memo".into(),
+                    })),
+                }],
+                nonce: vec![],
+                total_amount: output_value,
+                signature: vec![],
+            };
+            let coin_params = super::super::params::get(tx.coin);
+            payment_request::tst_sign_payment_request(
+                coin_params,
+                &mut payment_request,
+                output_value,
+                "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ",
+            );
+            tx.payment_request = Some(payment_request);
+            tx.outputs[payment_request_output_index].payment_request_index = Some(0);
+        }
+
+        mock_host_responder(transaction.clone());
+        static mut UI_COUNTER: u32 = 0;
+        mock(Data {
+            ui_transaction_address_create: Some(Box::new(move |amount, address| {
+                match unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(address, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
+                        assert_eq!(amount, "1.00000000 BTC");
+                        true
+                    }
+                    2 => {
+                        // Payment request
+                        assert_eq!(address, "Test Merchant");
+                        assert_eq!(amount, "12.34567890 BTC");
+                        true
+                    }
+                    4 => {
+                        assert_eq!(address, "bc1qxvenxvenxvenxvenxvenxvenxvenxven2ymjt8");
+                        assert_eq!(amount, "0.00006000 BTC");
+                        true
+                    }
+                    5 => {
+                        assert_eq!(
+                            address,
+                            "bc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqd8sxw4"
+                        );
+                        assert_eq!(amount, "0.00007000 BTC");
+                        true
+                    }
+                    _ => panic!("unexpected UI dialog"),
+                }
+            })),
+            ui_transaction_fee_create: Some(Box::new(move |total, fee, _longtouch| {
+                match unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER
+                } {
+                    7 => {
+                        assert_eq!(total, "13.39999900 BTC");
+                        assert_eq!(fee, "0.05419010 BTC");
+                        true
+                    }
+                    _ => panic!("unexpected UI dialog"),
+                }
+            })),
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    UI_COUNTER += 1;
+                    UI_COUNTER
+                } {
+                    3 => {
+                        assert_eq!(params.body, "Memo from Test Merchant: Test memo");
+                        true
+                    }
+                    6 => {
+                        assert_eq!(params.title, "Warning");
+                        assert_eq!(params.body, "There are 2\nchange outputs.\nProceed?");
+                        true
+                    }
+                    _ => panic!("unexpected UI dialog"),
+                }
+            })),
+            ..Default::default()
+        });
+        mock_unlocked();
+        bitbox02::random::mock_reset();
+        let init_request = transaction.borrow().init_request();
+        let result = block_on(process(&init_request));
+        assert!(result.is_ok());
+        assert_eq!(
+            unsafe { UI_COUNTER },
+            transaction.borrow().total_confirmations
         );
     }
 }

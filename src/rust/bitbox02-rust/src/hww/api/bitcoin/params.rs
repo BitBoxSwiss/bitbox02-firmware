@@ -31,6 +31,14 @@ pub struct Params {
     pub taproot_support: bool,
 }
 
+impl Params {
+    /// Returns the SLIP44 coin type:
+    /// https://github.com/satoshilabs/slips/blob/master/slip-0044.md
+    pub fn slip44(&self) -> u32 {
+        self.bip44_coin - HARDENED
+    }
+}
+
 const PARAMS_BTC: Params = Params {
     coin: BtcCoin::Btc,
     bip44_coin: 0 + HARDENED,

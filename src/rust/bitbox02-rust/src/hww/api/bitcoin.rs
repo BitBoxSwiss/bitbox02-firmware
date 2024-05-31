@@ -21,6 +21,7 @@ pub mod common;
 pub mod keypath;
 mod multisig;
 pub mod params;
+mod payment_request;
 mod policies;
 mod registration;
 mod script;
@@ -303,7 +304,8 @@ pub async fn process_api(request: &Request) -> Result<pb::btc_response::Response
         Request::PrevtxInit(_)
         | Request::PrevtxInput(_)
         | Request::PrevtxOutput(_)
-        | Request::AntikleptoSignature(_) => Err(Error::InvalidState),
+        | Request::AntikleptoSignature(_)
+        | Request::PaymentRequest(_) => Err(Error::InvalidState),
     }
 }
 

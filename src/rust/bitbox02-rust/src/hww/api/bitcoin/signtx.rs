@@ -792,7 +792,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                     return Err(Error::InvalidInput);
                 }
                 let payment_request: pb::BtcPaymentRequestRequest =
-                    get_payment_request(output_index, &mut next_response).await?;
+                    get_payment_request(output_payment_request_index, &mut next_response).await?;
                 payment_request::user_verify(coin_params, &payment_request, format_unit).await?;
                 if payment_request::validate(
                     coin_params,

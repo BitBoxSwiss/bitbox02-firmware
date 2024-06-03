@@ -25,6 +25,9 @@ make -j8 run-unit-tests
 make -j8 run-rust-unit-tests
 make -j8 run-valgrind-on-unit-tests
 
+# BUild simulator
+make -j8 simulator
+
 # Rust linter
 make -j8 run-rust-clippy
 

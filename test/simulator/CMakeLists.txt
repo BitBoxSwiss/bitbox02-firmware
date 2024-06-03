@@ -183,3 +183,10 @@ target_link_libraries(simulator PRIVATE
   -Wl,--end-group
   ""
 )
+
+add_custom_command(
+  TARGET simulator POST_BUILD
+  COMMAND ${CMAKE_STRIP} simulator
+  WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+  COMMENT "\nStripping simulator binary"
+)

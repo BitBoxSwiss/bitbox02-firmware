@@ -58,7 +58,7 @@ pub fn validate_account(
 /// - Electrum-style: m/48'/coin'/account'/script_type', where script_type is 1 for p2wsh-p2sh and 2
 ///   for p2wsh.
 /// - Nunchuk-style: m/48'/coin'/account', independent of the script type.
-pub fn validate_account_multisig(
+fn validate_account_multisig(
     keypath: &[u32],
     expected_coin: u32,
     script_type: MultisigScriptType,
@@ -84,22 +84,6 @@ pub fn validate_account_multisig(
 fn validate_change_address(change: u32, address: u32) -> Result<(), ()> {
     if change <= 1 && address <= BIP44_ADDRESS_MAX {
         Ok(())
-    } else {
-        Err(())
-    }
-}
-
-/// Validates that the prefix (all but last two elements) of the keypath is a valid multisig account
-/// keypath and the last to elements are a valid change and receive element.
-pub fn validate_address_multisig(
-    keypath: &[u32],
-    expected_coin: u32,
-    script_type: MultisigScriptType,
-) -> Result<(), ()> {
-    if keypath.len() >= 2 {
-        let (keypath_account, keypath_rest) = keypath.split_at(keypath.len() - 2);
-        validate_account_multisig(keypath_account, expected_coin, script_type)?;
-        validate_change_address(keypath_rest[0], keypath_rest[1])
     } else {
         Err(())
     }
@@ -166,7 +150,8 @@ pub fn validate_address_simple(
     }
 }
 
-/// Checks if the keypath is a valid account-level keypath for any supported script type.
+/// Checks if the the xpub at this keypath can be exported without warning the user of that it is an
+/// unusual keypath.
 pub fn validate_xpub(keypath: &[u32], expected_coin: u32, taproot_support: bool) -> Result<(), ()> {
     for &script_type in ALL_MULTISCRIPT_SCRIPT_TYPES.iter() {
         if validate_account_multisig(keypath, expected_coin, script_type).is_ok() {
@@ -177,6 +162,10 @@ pub fn validate_xpub(keypath: &[u32], expected_coin: u32, taproot_support: bool)
         if validate_account_simple(keypath, expected_coin, script_type, taproot_support).is_ok() {
             return Ok(());
         }
+    }
+    // m/45', used/exported by Unchained.
+    if keypath == [45 + HARDENED] {
+        return Ok(());
     }
     Err(())
 }
@@ -259,161 +248,6 @@ mod tests {
         // Wrong purpose.
         assert!(validate_account_multisig(
             &[49 + HARDENED, coin, 0 + HARDENED, 2 + HARDENED],
-            coin,
-            MultisigScriptType::P2wsh
-        )
-        .is_err());
-    }
-
-    #[test]
-    fn test_validate_address_multisig() {
-        let coin = 1 + HARDENED;
-        // valid p2wsh
-        assert!(validate_address_multisig(
-            &[48 + HARDENED, coin, 0 + HARDENED, 2 + HARDENED, 0, 0],
-            coin,
-            MultisigScriptType::P2wsh
-        )
-        .is_ok());
-
-        // valid p2wsh-p2sh
-        assert!(validate_address_multisig(
-            &[48 + HARDENED, coin, 0 + HARDENED, 1 + HARDENED, 0, 0],
-            coin,
-            MultisigScriptType::P2wshP2sh
-        )
-        .is_ok());
-
-        // valid Nunchuk-style
-        assert!(validate_address_multisig(
-            &[48 + HARDENED, coin, 0 + HARDENED, 0, 0],
-            coin,
-            MultisigScriptType::P2wsh
-        )
-        .is_ok());
-        assert!(validate_address_multisig(
-            &[48 + HARDENED, coin, 0 + HARDENED, 0, 0],
-            coin,
-            MultisigScriptType::P2wshP2sh
-        )
-        .is_ok());
-
-        // wrong script type for p2wsh
-        assert!(validate_address_multisig(
-            &[
-                48 + HARDENED,
-                coin,
-                0 + HARDENED,
-                1 + HARDENED, // should be 2'
-                0,
-                0,
-            ],
-            coin,
-            MultisigScriptType::P2wsh
-        )
-        .is_err());
-
-        // wrong script type for p2wsh-p2sh
-        assert!(validate_address_multisig(
-            &[
-                48 + HARDENED,
-                coin,
-                0 + HARDENED,
-                2 + HARDENED, // should be 1'
-                0,
-                0,
-            ],
-            coin,
-            MultisigScriptType::P2wshP2sh
-        )
-        .is_err());
-
-        // too short
-        assert!(validate_address_multisig(
-            &[48 + HARDENED, coin, 0 + HARDENED, 2 + HARDENED, 0],
-            coin,
-            MultisigScriptType::P2wsh
-        )
-        .is_err());
-
-        // too long
-        assert!(validate_address_multisig(
-            &[48 + HARDENED, coin, 0 + HARDENED, 2 + HARDENED, 0, 0, 0],
-            coin,
-            MultisigScriptType::P2wsh
-        )
-        .is_err());
-
-        // wrong purpose
-        assert!(validate_address_multisig(
-            &[
-                49 + HARDENED, // <- wrong
-                coin,
-                0 + HARDENED,
-                2 + HARDENED,
-                0,
-                0,
-            ],
-            coin,
-            MultisigScriptType::P2wsh
-        )
-        .is_err());
-
-        // unhardened account
-        assert!(validate_address_multisig(
-            &[
-                48 + HARDENED,
-                coin,
-                0, // <- wrong
-                2 + HARDENED,
-                0,
-                0,
-            ],
-            coin,
-            MultisigScriptType::P2wsh
-        )
-        .is_err());
-
-        // account too high
-        assert!(validate_address_multisig(
-            &[
-                48 + HARDENED,
-                coin,
-                100 + HARDENED, // <- wrong
-                2 + HARDENED,
-                0,
-                0,
-            ],
-            coin,
-            MultisigScriptType::P2wsh
-        )
-        .is_err());
-
-        // wrong change
-        assert!(validate_address_multisig(
-            &[
-                48 + HARDENED,
-                coin,
-                0 + HARDENED,
-                2 + HARDENED,
-                2, // <- wrong
-                0,
-            ],
-            coin,
-            MultisigScriptType::P2wsh
-        )
-        .is_err());
-
-        // address too high
-        assert!(validate_address_multisig(
-            &[
-                48 + HARDENED,
-                coin,
-                0 + HARDENED,
-                2 + HARDENED,
-                0,
-                10000, // <- wrong
-            ],
             coin,
             MultisigScriptType::P2wsh
         )

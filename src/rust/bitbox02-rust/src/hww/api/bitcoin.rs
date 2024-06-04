@@ -39,7 +39,6 @@ use crate::keystore;
 
 use pb::btc_pub_request::{Output, XPubType};
 use pb::btc_request::Request;
-use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
 use pb::btc_script_config::{Config, SimpleType};
 use pb::btc_script_config::{Multisig, Policy};
 use pb::response::Response;
@@ -128,6 +127,8 @@ async fn xpub(
     if display {
         let title = if is_unusual {
             "".into()
+        } else if keypath == [45 + HARDENED] {
+            format!("{}\nat\n{}", params.name, util::bip32::to_string(keypath))
         } else {
             format!("{}\naccount #{}", params.name, keypath[2] - HARDENED + 1)
         };
@@ -193,11 +194,9 @@ pub async fn address_multisig(
     display: bool,
 ) -> Result<Response, Error> {
     let coin_params = params::get(coin);
-    let script_type = MultisigScriptType::try_from(multisig.script_type)?;
-    keypath::validate_address_multisig(keypath, coin_params.bip44_coin, script_type)
-        .or(Err(Error::InvalidInput))?;
+    keypath::validate_address_policy(keypath).or(Err(Error::InvalidInput))?;
     let account_keypath = &keypath[..keypath.len() - 2];
-    multisig::validate(multisig, account_keypath, coin_params.bip44_coin)?;
+    multisig::validate(multisig, account_keypath)?;
     let name = match multisig::get_name(coin, multisig, account_keypath)? {
         Some(name) => name,
         None => return Err(Error::InvalidInput),
@@ -320,6 +319,7 @@ mod tests {
     use bitbox02::testing::{
         mock, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic, Data, TEST_MNEMONIC,
     };
+    use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
     use util::bip32::HARDENED;
 
     #[test]
@@ -375,6 +375,15 @@ mod tests {
                 xpub_type: XPubType::Zpub,
                 expected_xpub: "zpub6qMaznTYmLk3vtEVNKbozbjRJedYqnHPwSwDwEAVaDkuQd7YEnqBvcbmCDpgvEqw2sqHUMtrJTwD6yNYLoqULriz6PXDYsS14LuoLr3KxUC",
                 expected_display_title: "Bitcoin\naccount #2",
+            },
+            // BTC m/45', no warning
+            Test {
+                mnemonic: TEST_MNEMONIC,
+                coin: BtcCoin::Btc,
+                keypath: &[45 + HARDENED],
+                xpub_type: XPubType::Xpub,
+                expected_xpub: "xpub67uTYzYstMMVao9Z7sseYh5m9N51ft82f6Wo3Lp773Qxe1JxFFDyP71C3xvo3jZ3p1Cg3xZQ8eqsFBHYEVFZt9iqoTBEcCigcmxF1xgqBPm",
+                expected_display_title: "Bitcoin\nat\nm/45'",
             },
             // BTC P2TR
             Test {
@@ -908,6 +917,24 @@ mod tests {
                 ],
                 script_type: MultisigScriptType::P2wsh,
                 expected_address: "tb1qndz49j0arp8g6jc8vcrgf9ugrsw96a0j5d7vqcun6jev6rlv47jsv99y5m",
+            },
+            // An arbitrary "non-standard" keypath
+            Test {
+                coin: BtcCoin::Btc,
+                threshold: 1,
+                xpubs: &[
+                    "xpub6FEZ9Bv73h1vnE4TJG4QFj2RPXJhhsPbnXgFyH3ErLvpcZrDcynY65bhWga8PazWHLSLi23PoBhGcLcYW6JRiJ12zXZ9Aop4LbAqsS3gtcy",
+                    "xpub68yJakxtRe3azab9rb8DJqxDeCG7oBY3zhsNnvZybjTE9qc9Hgw4bCqdLjVGykZrwD6CC6r6xHrnuep5Dmb9uq2R4emCm8YzBuddFyhgvAD",
+                ],
+                expected_info: "1-of-2\nBitcoin multisig",
+                our_xpub_index: 1,
+                keypath: &[
+                    45 + HARDENED,
+                    1,
+                    2
+                ],
+                script_type: MultisigScriptType::P2wsh,
+                expected_address: "bc1qtsvlhzltl05etjjeqh00urwttu6ep4xn3c0ccndz77unttut9h0qvrcs04",
             },
             /* P2WSH-P2SH */
             Test {

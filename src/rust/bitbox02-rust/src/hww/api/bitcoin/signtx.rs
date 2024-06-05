@@ -218,12 +218,9 @@ fn validate_keypath(
             .or(Err(Error::InvalidInput))?;
         }
         Some(pb::BtcScriptConfig {
-            config: Some(pb::btc_script_config::Config::Multisig(multisig)),
+            config: Some(pb::btc_script_config::Config::Multisig(_)),
         }) => {
-            let script_type =
-                pb::btc_script_config::multisig::ScriptType::try_from(multisig.script_type)?;
-            keypath::validate_address_multisig(keypath, params.bip44_coin, script_type)
-                .or(Err(Error::InvalidInput))?;
+            keypath::validate_address_policy(keypath).or(Err(Error::InvalidInput))?;
         }
         Some(pb::BtcScriptConfig {
             config: Some(pb::btc_script_config::Config::Policy(_)),
@@ -411,7 +408,7 @@ async fn validate_script_configs(
         keypath,
     }] = script_configs
     {
-        super::multisig::validate(multisig, keypath, coin_params.bip44_coin)?;
+        super::multisig::validate(multisig, keypath)?;
         let name = super::multisig::get_name(coin_params.coin, multisig, keypath)?
             .ok_or(Error::InvalidInput)?;
         super::multisig::confirm("Spend from", coin_params, &name, multisig).await?;

@@ -155,6 +155,7 @@ pub fn derive_address_simple(
         coin_params.bip44_coin,
         simple_type,
         coin_params.taproot_support,
+        keypath::ReceiveSpend::Receive,
     )
     .or(Err(Error::InvalidInput))?;
     Ok(common::Payload::from_simple(
@@ -194,7 +195,8 @@ pub async fn address_multisig(
     display: bool,
 ) -> Result<Response, Error> {
     let coin_params = params::get(coin);
-    keypath::validate_address_policy(keypath).or(Err(Error::InvalidInput))?;
+    keypath::validate_address_policy(keypath, keypath::ReceiveSpend::Receive)
+        .or(Err(Error::InvalidInput))?;
     let account_keypath = &keypath[..keypath.len() - 2];
     multisig::validate(multisig, account_keypath)?;
     let name = match multisig::get_name(coin, multisig, account_keypath)? {
@@ -233,7 +235,8 @@ async fn address_policy(
 ) -> Result<Response, Error> {
     let coin_params = params::get(coin);
 
-    keypath::validate_address_policy(keypath).or(Err(Error::InvalidInput))?;
+    keypath::validate_address_policy(keypath, keypath::ReceiveSpend::Receive)
+        .or(Err(Error::InvalidInput))?;
 
     let parsed = policies::parse(policy)?;
     parsed.validate(coin)?;

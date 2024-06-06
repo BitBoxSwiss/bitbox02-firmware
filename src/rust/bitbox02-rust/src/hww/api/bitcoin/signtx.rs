@@ -203,6 +203,7 @@ fn validate_keypath(
     params: &super::params::Params,
     script_config_account: &pb::BtcScriptConfigWithKeypath,
     keypath: &[u32],
+    mode: keypath::ReceiveSpend,
 ) -> Result<(), Error> {
     match &script_config_account.script_config {
         Some(pb::BtcScriptConfig {
@@ -214,18 +215,19 @@ fn validate_keypath(
                 params.bip44_coin,
                 simple_type,
                 params.taproot_support,
+                mode,
             )
             .or(Err(Error::InvalidInput))?;
         }
         Some(pb::BtcScriptConfig {
             config: Some(pb::btc_script_config::Config::Multisig(_)),
         }) => {
-            keypath::validate_address_policy(keypath).or(Err(Error::InvalidInput))?;
+            keypath::validate_address_policy(keypath, mode).or(Err(Error::InvalidInput))?;
         }
         Some(pb::BtcScriptConfig {
             config: Some(pb::btc_script_config::Config::Policy(_)),
         }) => {
-            keypath::validate_address_policy(keypath).or(Err(Error::InvalidInput))?;
+            keypath::validate_address_policy(keypath, mode).or(Err(Error::InvalidInput))?;
         }
         _ => return Err(Error::InvalidInput),
     }
@@ -247,7 +249,12 @@ fn validate_input(
     if input.prev_out_value == 0 {
         return Err(Error::InvalidInput);
     }
-    validate_keypath(params, script_config_account, &input.keypath)
+    validate_keypath(
+        params,
+        script_config_account,
+        &input.keypath,
+        keypath::ReceiveSpend::Spend,
+    )
 }
 
 fn is_taproot(script_config_account: &pb::BtcScriptConfigWithKeypath) -> bool {
@@ -734,7 +741,12 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                 .get(tx_output.script_config_index as usize)
                 .ok_or(Error::InvalidInput)?;
 
-            validate_keypath(coin_params, script_config_account, &tx_output.keypath)?;
+            validate_keypath(
+                coin_params,
+                script_config_account,
+                &tx_output.keypath,
+                keypath::ReceiveSpend::Receive,
+            )?;
 
             common::Payload::from(
                 &mut xpub_cache,
@@ -1964,6 +1976,23 @@ mod tests {
         );
     }
 
+    /// Test signing UTXOs with high keypath address indices. Even though we don't support verifying
+    /// receive addresses at these indices (to mitigate ransom attacks), we should still be able to
+    /// spend them.
+    #[test]
+    pub fn test_spend_high_address_index() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        transaction.borrow_mut().inputs[0].input.keypath[4] = 100000;
+
+        mock_host_responder(transaction.clone());
+        mock_default_ui();
+        mock_unlocked();
+        bitbox02::random::mock_reset();
+        let result = block_on(process(&transaction.borrow().init_request()));
+        assert!(result.is_ok());
+    }
+
     /// Test invalid input cases.
     #[test]
     pub fn test_invalid_input() {
@@ -1978,6 +2007,8 @@ mod tests {
             WrongAccountChange,
             // change num in bip44, should be 1.
             WrongBip44Change(u32),
+            // change address index in bip44, should be <10000
+            WrongBip44ChangeAddressTooHigh,
             // referenced script config does not exist.
             InvalidInputScriptConfigIndex,
             // referenced script config does not exist.
@@ -2001,6 +2032,7 @@ mod tests {
             TestCase::WrongAccountInput,
             TestCase::WrongAccountChange,
             TestCase::WrongBip44Change(2),
+            TestCase::WrongBip44ChangeAddressTooHigh,
             TestCase::InvalidInputScriptConfigIndex,
             TestCase::InvalidChangeScriptConfigIndex,
             TestCase::WrongOutputValue,
@@ -2017,21 +2049,29 @@ mod tests {
                     transaction.borrow_mut().inputs[0].input.keypath[1] = 1 + HARDENED;
                 }
                 TestCase::WrongCoinChange => {
+                    assert!(transaction.borrow().outputs[4].ours);
                     transaction.borrow_mut().outputs[4].keypath[1] = 1 + HARDENED;
                 }
                 TestCase::WrongAccountInput => {
                     transaction.borrow_mut().inputs[0].input.keypath[2] += 1;
                 }
                 TestCase::WrongAccountChange => {
+                    assert!(transaction.borrow().outputs[4].ours);
                     transaction.borrow_mut().outputs[4].keypath[2] += 1;
                 }
                 TestCase::WrongBip44Change(change) => {
+                    assert!(transaction.borrow().outputs[4].ours);
                     transaction.borrow_mut().outputs[4].keypath[3] = change;
+                }
+                TestCase::WrongBip44ChangeAddressTooHigh => {
+                    assert!(transaction.borrow().outputs[4].ours);
+                    transaction.borrow_mut().outputs[4].keypath[4] = 10000;
                 }
                 TestCase::InvalidInputScriptConfigIndex => {
                     transaction.borrow_mut().inputs[0].input.script_config_index = 1;
                 }
                 TestCase::InvalidChangeScriptConfigIndex => {
+                    assert!(transaction.borrow().outputs[4].ours);
                     transaction.borrow_mut().outputs[4].script_config_index = 1;
                 }
                 TestCase::WrongOutputValue => {

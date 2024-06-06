@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Display device name on screen before unlock
 - Bitcoin: add support for payment requests
 - Bitcoin: allow multisig accounts at arbitrary keypaths
 - Bitcoin: allow spendung UTXOs at very high BIP-44 address indices

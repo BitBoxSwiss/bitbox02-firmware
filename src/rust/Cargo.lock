@@ -70,7 +70,6 @@ dependencies = [
  "noise-protocol",
  "noise-rust-crypto",
  "x25519-dalek",
- "zeroize",
 ]
 
 [[package]]

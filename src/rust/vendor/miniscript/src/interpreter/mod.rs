@@ -12,7 +12,7 @@ use core::fmt;
 use core::str::FromStr;
 
 use bitcoin::hashes::{hash160, ripemd160, sha256, Hash};
-use bitcoin::{absolute, secp256k1, sighash, taproot, Sequence, TxOut, Witness};
+use bitcoin::{absolute, relative, secp256k1, sighash, taproot, Sequence, TxOut, Witness};
 
 use crate::miniscript::context::{NoChecks, SigType};
 use crate::miniscript::ScriptContext;
@@ -35,7 +35,7 @@ pub struct Interpreter<'txin> {
     /// For non-Taproot spends, the scriptCode; for Taproot script-spends, this
     /// is the leaf script; for key-spends it is `None`.
     script_code: Option<bitcoin::ScriptBuf>,
-    age: Sequence,
+    sequence: Sequence,
     lock_time: absolute::LockTime,
 }
 
@@ -43,7 +43,7 @@ pub struct Interpreter<'txin> {
 // Ecdsa and Schnorr signatures
 
 /// A type for representing signatures supported as of bitcoin core 22.0
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum KeySigPair {
     /// A Full public key and corresponding Ecdsa signature
     Ecdsa(bitcoin::PublicKey, bitcoin::ecdsa::Signature),
@@ -123,6 +123,13 @@ impl MiniscriptKey for BitcoinKey {
     type Hash256 = hash256::Hash;
     type Ripemd160 = ripemd160::Hash;
     type Hash160 = hash160::Hash;
+
+    fn is_uncompressed(&self) -> bool {
+        match *self {
+            BitcoinKey::Fullkey(pk) => !pk.compressed,
+            BitcoinKey::XOnlyPublicKey(_) => false,
+        }
+    }
 }
 
 impl<'txin> Interpreter<'txin> {
@@ -136,11 +143,11 @@ impl<'txin> Interpreter<'txin> {
         spk: &bitcoin::ScriptBuf,
         script_sig: &'txin bitcoin::Script,
         witness: &'txin Witness,
-        age: Sequence,                 // CSV, relative lock time.
+        sequence: Sequence,            // CSV, relative lock time.
         lock_time: absolute::LockTime, // CLTV, absolute lock time.
     ) -> Result<Self, Error> {
         let (inner, stack, script_code) = inner::from_txdata(spk, script_sig, witness)?;
-        Ok(Interpreter { inner, stack, script_code, age, lock_time })
+        Ok(Interpreter { inner, stack, script_code, sequence, lock_time })
     }
 
     /// Same as [`Interpreter::iter`], but allows for a custom verification function.
@@ -165,7 +172,7 @@ impl<'txin> Interpreter<'txin> {
             // Cloning the references to elements of stack should be fine as it allows
             // call interpreter.iter() without mutating interpreter
             stack: self.stack.clone(),
-            age: self.age,
+            sequence: self.sequence,
             lock_time: self.lock_time,
             has_errored: false,
             sig_type: self.sig_type(),
@@ -211,7 +218,7 @@ impl<'txin> Interpreter<'txin> {
             KeySigPair::Ecdsa(key, ecdsa_sig) => {
                 let script_pubkey = self.script_code.as_ref().expect("Legacy have script code");
                 let msg = if self.is_legacy() {
-                    let sighash_u32 = ecdsa_sig.hash_ty.to_u32();
+                    let sighash_u32 = ecdsa_sig.sighash_type.to_u32();
                     let sighash =
                         cache.legacy_signature_hash(input_idx, script_pubkey, sighash_u32);
                     sighash.map(|hash| secp256k1::Message::from_digest(hash.to_byte_array()))
@@ -220,11 +227,12 @@ impl<'txin> Interpreter<'txin> {
                         Some(txout) => txout.borrow().value,
                         None => return false,
                     };
-                    let sighash = cache.segwit_signature_hash(
+                    // TODO: Don't manually handle the script code.
+                    let sighash = cache.p2wsh_signature_hash(
                         input_idx,
                         script_pubkey,
                         amt,
-                        ecdsa_sig.hash_ty,
+                        ecdsa_sig.sighash_type,
                     );
                     sighash.map(|hash| secp256k1::Message::from_digest(hash.to_byte_array()))
                 } else {
@@ -232,13 +240,19 @@ impl<'txin> Interpreter<'txin> {
                     return false;
                 };
 
-                let success =
-                    msg.map(|msg| secp.verify_ecdsa(&msg, &ecdsa_sig.sig, &key.inner).is_ok());
+                let success = msg.map(|msg| {
+                    secp.verify_ecdsa(&msg, &ecdsa_sig.signature, &key.inner)
+                        .is_ok()
+                });
                 success.unwrap_or(false) // unwrap_or checks for errors, while success would have checksig results
             }
             KeySigPair::Schnorr(xpk, schnorr_sig) => {
                 let sighash_msg = if self.is_taproot_v1_key_spend() {
-                    cache.taproot_key_spend_signature_hash(input_idx, prevouts, schnorr_sig.hash_ty)
+                    cache.taproot_key_spend_signature_hash(
+                        input_idx,
+                        prevouts,
+                        schnorr_sig.sighash_type,
+                    )
                 } else if self.is_taproot_v1_script_spend() {
                     let tap_script = self.script_code.as_ref().expect(
                         "Internal Hack: Saving leaf script instead\
@@ -252,7 +266,7 @@ impl<'txin> Interpreter<'txin> {
                         input_idx,
                         prevouts,
                         leaf_hash,
-                        schnorr_sig.hash_ty,
+                        schnorr_sig.sighash_type,
                     )
                 } else {
                     // schnorr sigs in ecdsa descriptors
@@ -260,8 +274,10 @@ impl<'txin> Interpreter<'txin> {
                 };
                 let msg =
                     sighash_msg.map(|hash| secp256k1::Message::from_digest(hash.to_byte_array()));
-                let success =
-                    msg.map(|msg| secp.verify_schnorr(&schnorr_sig.sig, &msg, xpk).is_ok());
+                let success = msg.map(|msg| {
+                    secp.verify_schnorr(&schnorr_sig.signature, &msg, xpk)
+                        .is_ok()
+                });
                 success.unwrap_or(false) // unwrap_or_default checks for errors, while success would have checksig results
             }
         }
@@ -429,7 +445,7 @@ impl<'txin> Interpreter<'txin> {
 }
 
 /// Type of HashLock used for SatisfiedConstraint structure
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum HashLockType {
     ///SHA 256 hashlock
     Sha256(sha256::Hash),
@@ -444,7 +460,7 @@ pub enum HashLockType {
 /// A satisfied Miniscript condition (Signature, Hashlock, Timelock)
 /// 'intp represents the lifetime of descriptor and `stack represents
 /// the lifetime of witness
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum SatisfiedConstraint {
     ///Public key and corresponding signature
     PublicKey {
@@ -468,7 +484,7 @@ pub enum SatisfiedConstraint {
     ///Relative Timelock for CSV.
     RelativeTimelock {
         /// The value of RelativeTimelock
-        n: Sequence,
+        n: relative::LockTime,
     },
     ///Absolute Timelock for CLTV.
     AbsoluteTimelock {
@@ -508,7 +524,7 @@ pub struct Iter<'intp, 'txin: 'intp> {
     public_key: Option<&'intp BitcoinKey>,
     state: Vec<NodeEvaluationState<'intp>>,
     stack: Stack<'txin>,
-    age: Sequence,
+    sequence: Sequence,
     lock_time: absolute::LockTime,
     has_errored: bool,
     sig_type: SigType,
@@ -608,7 +624,7 @@ where
                 Terminal::Older(ref n) => {
                     debug_assert_eq!(node_state.n_evaluated, 0);
                     debug_assert_eq!(node_state.n_satisfied, 0);
-                    let res = self.stack.evaluate_older(n, self.age);
+                    let res = self.stack.evaluate_older(&(*n).into(), self.sequence);
                     if res.is_some() {
                         return res;
                     }
@@ -793,16 +809,20 @@ where
                         None => return Some(Err(Error::UnexpectedStackEnd)),
                     }
                 }
-                Terminal::Thresh(ref _k, ref subs) if node_state.n_evaluated == 0 => {
+                Terminal::Thresh(ref thresh) if node_state.n_evaluated == 0 => {
                     self.push_evaluation_state(node_state.node, 1, 0);
-                    self.push_evaluation_state(&subs[0], 0, 0);
+                    self.push_evaluation_state(&thresh.data()[0], 0, 0);
                 }
-                Terminal::Thresh(k, ref subs) if node_state.n_evaluated == subs.len() => {
+                Terminal::Thresh(ref thresh) if node_state.n_evaluated == thresh.n() => {
                     match self.stack.pop() {
-                        Some(stack::Element::Dissatisfied) if node_state.n_satisfied == k => {
+                        Some(stack::Element::Dissatisfied)
+                            if node_state.n_satisfied == thresh.k() =>
+                        {
                             self.stack.push(stack::Element::Satisfied)
                         }
-                        Some(stack::Element::Satisfied) if node_state.n_satisfied == k - 1 => {
+                        Some(stack::Element::Satisfied)
+                            if node_state.n_satisfied == thresh.k() - 1 =>
+                        {
                             self.stack.push(stack::Element::Satisfied)
                         }
                         Some(stack::Element::Satisfied) | Some(stack::Element::Dissatisfied) => {
@@ -814,7 +834,7 @@ where
                         None => return Some(Err(Error::UnexpectedStackEnd)),
                     }
                 }
-                Terminal::Thresh(ref _k, ref subs) if node_state.n_evaluated != 0 => {
+                Terminal::Thresh(ref thresh) if node_state.n_evaluated != 0 => {
                     match self.stack.pop() {
                         Some(stack::Element::Dissatisfied) => {
                             self.push_evaluation_state(
@@ -822,7 +842,11 @@ where
                                 node_state.n_evaluated + 1,
                                 node_state.n_satisfied,
                             );
-                            self.push_evaluation_state(&subs[node_state.n_evaluated], 0, 0);
+                            self.push_evaluation_state(
+                                &thresh.data()[node_state.n_evaluated],
+                                0,
+                                0,
+                            );
                         }
                         Some(stack::Element::Satisfied) => {
                             self.push_evaluation_state(
@@ -830,7 +854,11 @@ where
                                 node_state.n_evaluated + 1,
                                 node_state.n_satisfied + 1,
                             );
-                            self.push_evaluation_state(&subs[node_state.n_evaluated], 0, 0);
+                            self.push_evaluation_state(
+                                &thresh.data()[node_state.n_evaluated],
+                                0,
+                                0,
+                            );
                         }
                         Some(stack::Element::Push(_v)) => {
                             return Some(Err(Error::UnexpectedStackElementPush))
@@ -838,9 +866,9 @@ where
                         None => return Some(Err(Error::UnexpectedStackEnd)),
                     }
                 }
-                Terminal::MultiA(k, ref subs) => {
-                    if node_state.n_evaluated == subs.len() {
-                        if node_state.n_satisfied == k {
+                Terminal::MultiA(ref thresh) => {
+                    if node_state.n_evaluated == thresh.n() {
+                        if node_state.n_satisfied == thresh.k() {
                             self.stack.push(stack::Element::Satisfied);
                         } else {
                             self.stack.push(stack::Element::Dissatisfied);
@@ -849,10 +877,10 @@ where
                         // evaluate each key with as a pk
                         // note that evaluate_pk will error on non-empty incorrect sigs
                         // push 1 on satisfied sigs and push 0 on empty sigs
-                        match self
-                            .stack
-                            .evaluate_pk(&mut self.verify_sig, subs[node_state.n_evaluated])
-                        {
+                        match self.stack.evaluate_pk(
+                            &mut self.verify_sig,
+                            thresh.data()[node_state.n_evaluated],
+                        ) {
                             Some(Ok(x)) => {
                                 self.push_evaluation_state(
                                     node_state.node,
@@ -879,9 +907,9 @@ where
                         }
                     }
                 }
-                Terminal::Multi(ref k, ref subs) if node_state.n_evaluated == 0 => {
+                Terminal::Multi(ref thresh) if node_state.n_evaluated == 0 => {
                     let len = self.stack.len();
-                    if len < k + 1 {
+                    if len < thresh.k() + 1 {
                         return Some(Err(Error::InsufficientSignaturesMultiSig));
                     } else {
                         //Non-sat case. If the first sig is empty, others k elements must
@@ -889,13 +917,13 @@ where
                         match self.stack.last() {
                             Some(&stack::Element::Dissatisfied) => {
                                 //Remove the extra zero from multi-sig check
-                                let sigs = self.stack.split_off(len - (k + 1));
+                                let sigs = self.stack.split_off(len - (thresh.k() + 1));
                                 let nonsat = sigs
                                     .iter()
                                     .map(|sig| *sig == stack::Element::Dissatisfied)
                                     .filter(|empty| *empty)
                                     .count();
-                                if nonsat == *k + 1 {
+                                if nonsat == thresh.k() + 1 {
                                     self.stack.push(stack::Element::Dissatisfied);
                                 } else {
                                     return Some(Err(Error::MissingExtraZeroMultiSig));
@@ -903,10 +931,10 @@ where
                             }
                             None => return Some(Err(Error::UnexpectedStackEnd)),
                             _ => {
-                                match self
-                                    .stack
-                                    .evaluate_multi(&mut self.verify_sig, &subs[subs.len() - 1])
-                                {
+                                match self.stack.evaluate_multi(
+                                    &mut self.verify_sig,
+                                    &thresh.data()[thresh.n() - 1],
+                                ) {
                                     Some(Ok(x)) => {
                                         self.push_evaluation_state(
                                             node_state.node,
@@ -926,20 +954,20 @@ where
                         }
                     }
                 }
-                Terminal::Multi(k, ref subs) => {
-                    if node_state.n_satisfied == k {
+                Terminal::Multi(ref thresh) => {
+                    if node_state.n_satisfied == thresh.k() {
                         //multi-sig bug: Pop extra 0
                         if let Some(stack::Element::Dissatisfied) = self.stack.pop() {
                             self.stack.push(stack::Element::Satisfied);
                         } else {
                             return Some(Err(Error::MissingExtraZeroMultiSig));
                         }
-                    } else if node_state.n_evaluated == subs.len() {
+                    } else if node_state.n_evaluated == thresh.n() {
                         return Some(Err(Error::MultiSigEvaluationError));
                     } else {
                         match self.stack.evaluate_multi(
                             &mut self.verify_sig,
-                            &subs[subs.len() - node_state.n_evaluated - 1],
+                            &thresh.data()[thresh.n() - node_state.n_evaluated - 1],
                         ) {
                             Some(Ok(x)) => {
                                 self.push_evaluation_state(
@@ -1023,16 +1051,13 @@ fn verify_sersig<'txin>(
 #[cfg(test)]
 mod tests {
 
-    use bitcoin;
-    use bitcoin::hashes::{hash160, ripemd160, sha256, Hash};
-    use bitcoin::secp256k1::{self, Secp256k1};
+    use bitcoin::secp256k1::Secp256k1;
 
     use super::inner::ToNoChecks;
     use super::*;
     use crate::miniscript::analyzable::ExtParams;
-    use crate::miniscript::context::NoChecks;
-    use crate::{Miniscript, ToPublicKey};
 
+    #[allow(clippy::type_complexity)]
     fn setup_keys_sigs(
         n: usize,
     ) -> (
@@ -1065,12 +1090,12 @@ mod tests {
                 inner: secp256k1::PublicKey::from_secret_key(&secp, &sk),
                 compressed: true,
             };
-            let sig = secp.sign_ecdsa(&msg, &sk);
+            let signature = secp.sign_ecdsa(&msg, &sk);
             ecdsa_sigs.push(bitcoin::ecdsa::Signature {
-                sig,
-                hash_ty: bitcoin::sighash::EcdsaSighashType::All,
+                signature,
+                sighash_type: bitcoin::sighash::EcdsaSighashType::All,
             });
-            let mut sigser = sig.serialize_der().to_vec();
+            let mut sigser = signature.serialize_der().to_vec();
             sigser.push(0x01); // sighash_all
             pks.push(pk);
             der_sigs.push(sigser);
@@ -1080,8 +1105,8 @@ mod tests {
             x_only_pks.push(x_only_pk);
             let schnorr_sig = secp.sign_schnorr_with_aux_rand(&msg, &keypair, &[0u8; 32]);
             let schnorr_sig = bitcoin::taproot::Signature {
-                sig: schnorr_sig,
-                hash_ty: bitcoin::sighash::TapSighashType::Default,
+                signature: schnorr_sig,
+                sighash_type: bitcoin::sighash::TapSighashType::Default,
             };
             ser_schnorr_sigs.push(schnorr_sig.to_vec());
             schnorr_sigs.push(schnorr_sig);
@@ -1096,10 +1121,10 @@ mod tests {
         let secp_ref = &secp;
         let vfyfn = |pksig: &KeySigPair| match pksig {
             KeySigPair::Ecdsa(pk, ecdsa_sig) => secp_ref
-                .verify_ecdsa(&sighash, &ecdsa_sig.sig, &pk.inner)
+                .verify_ecdsa(&sighash, &ecdsa_sig.signature, &pk.inner)
                 .is_ok(),
             KeySigPair::Schnorr(xpk, schnorr_sig) => secp_ref
-                .verify_schnorr(&schnorr_sig.sig, &sighash, xpk)
+                .verify_schnorr(&schnorr_sig.signature, &sighash, xpk)
                 .is_ok(),
         };
 
@@ -1113,7 +1138,7 @@ mod tests {
                 stack,
                 public_key: None,
                 state: vec![NodeEvaluationState { node: ms, n_evaluated: 0, n_satisfied: 0 }],
-                age: Sequence::from_height(1002),
+                sequence: Sequence::from_height(1002),
                 lock_time: absolute::LockTime::from_height(1002).unwrap(),
                 has_errored: false,
                 sig_type: SigType::Ecdsa,
@@ -1185,7 +1210,9 @@ mod tests {
         let older_satisfied: Result<Vec<SatisfiedConstraint>, Error> = constraints.collect();
         assert_eq!(
             older_satisfied.unwrap(),
-            vec![SatisfiedConstraint::RelativeTimelock { n: Sequence::from_height(1000) }]
+            vec![SatisfiedConstraint::RelativeTimelock {
+                n: crate::RelLockTime::from_height(1000).into()
+            }]
         );
 
         //Check Sha256

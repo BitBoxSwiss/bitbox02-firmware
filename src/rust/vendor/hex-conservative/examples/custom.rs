@@ -64,14 +64,11 @@ impl FromStr for ALittleBitHexy {
 // If the object can be parsed from hex, implement `FromHex`.
 
 impl FromHex for ALittleBitHexy {
-    type Err = HexToArrayError;
+    type Error = HexToArrayError;
 
-    fn from_byte_iter<I>(iter: I) -> Result<Self, Self::Err>
-    where
-        I: Iterator<Item = Result<u8, HexToBytesError>> + ExactSizeIterator + DoubleEndedIterator,
-    {
-        // Errors if the iterator is the wrong length.
-        let data = <[u8; 32] as FromHex>::from_byte_iter(iter)?;
+    fn from_hex(s: &str) -> Result<Self, Self::Error> {
+        // Errors if the input is invalid
+        let data = <[u8; 32] as FromHex>::from_hex(s)?;
         // This is a contrived example (using x==0).
         Ok(ALittleBitHexy { data, x: 0 })
     }
@@ -117,7 +114,7 @@ impl<'a> fmt::UpperHex for DisplayALittleBitHexy<'a> {
 }
 
 /// Example Error.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
     /// Conversion error while parsing hex string.
     Conversion(HexToBytesError),

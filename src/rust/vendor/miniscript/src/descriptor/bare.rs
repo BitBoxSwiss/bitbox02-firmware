@@ -10,7 +10,7 @@
 use core::fmt;
 
 use bitcoin::script::{self, PushBytes};
-use bitcoin::{Address, Network, ScriptBuf};
+use bitcoin::{Address, Network, ScriptBuf, Weight};
 
 use super::checksum::verify_checksum;
 use crate::descriptor::{write_descriptor, DefiniteDescriptorKey};
@@ -22,8 +22,8 @@ use crate::policy::{semantic, Liftable};
 use crate::prelude::*;
 use crate::util::{varint_len, witness_to_scriptsig};
 use crate::{
-    BareCtx, Error, ForEachKey, Miniscript, MiniscriptKey, Satisfier, ToPublicKey, TranslateErr,
-    TranslatePk, Translator,
+    BareCtx, Error, ForEachKey, FromStrKey, Miniscript, MiniscriptKey, Satisfier, ToPublicKey,
+    TranslateErr, TranslatePk, Translator,
 };
 
 /// Create a Bare Descriptor. That is descriptor that is
@@ -67,11 +67,12 @@ impl<Pk: MiniscriptKey> Bare<Pk> {
     ///
     /// # Errors
     /// When the descriptor is impossible to safisfy (ex: sh(OP_FALSE)).
-    pub fn max_weight_to_satisfy(&self) -> Result<usize, Error> {
+    pub fn max_weight_to_satisfy(&self) -> Result<Weight, Error> {
         let scriptsig_size = self.ms.max_satisfaction_size()?;
         // scriptSig varint difference between non-satisfied (0) and satisfied
         let scriptsig_varint_diff = varint_len(scriptsig_size) - varint_len(0);
-        Ok(4 * (scriptsig_varint_diff + scriptsig_size))
+        Weight::from_vb((scriptsig_varint_diff + scriptsig_size) as u64)
+            .ok_or(Error::CouldNotSatisfy)
     }
 
     /// Computes an upper bound on the weight of a satisfying witness to the
@@ -83,7 +84,10 @@ impl<Pk: MiniscriptKey> Bare<Pk> {
     ///
     /// # Errors
     /// When the descriptor is impossible to safisfy (ex: sh(OP_FALSE)).
-    #[deprecated(note = "use max_weight_to_satisfy instead")]
+    #[deprecated(
+        since = "10.0.0",
+        note = "Use max_weight_to_satisfy instead. The method to count bytes was redesigned and the results will differ from max_weight_to_satisfy. For more details check rust-bitcoin/rust-miniscript#476."
+    )]
     pub fn max_satisfaction_weight(&self) -> Result<usize, Error> {
         let scriptsig_len = self.ms.max_satisfaction_size()?;
         Ok(4 * (varint_len(scriptsig_len) + scriptsig_len))
@@ -163,24 +167,22 @@ impl<Pk: MiniscriptKey> Liftable<Pk> for Bare<Pk> {
     fn lift(&self) -> Result<semantic::Policy<Pk>, Error> { self.ms.lift() }
 }
 
-impl_from_tree!(
-    Bare<Pk>,
+impl<Pk: FromStrKey> FromTree for Bare<Pk> {
     fn from_tree(top: &expression::Tree) -> Result<Self, Error> {
         let sub = Miniscript::<Pk, BareCtx>::from_tree(top)?;
         BareCtx::top_level_checks(&sub)?;
         Bare::new(sub)
     }
-);
+}
 
-impl_from_str!(
-    Bare<Pk>,
-    type Err = Error;,
+impl<Pk: FromStrKey> core::str::FromStr for Bare<Pk> {
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let desc_str = verify_checksum(s)?;
         let top = expression::Tree::from_str(desc_str)?;
         Self::from_tree(&top)
     }
-);
+}
 
 impl<Pk: MiniscriptKey> ForEachKey<Pk> for Bare<Pk> {
     fn for_each_key<'a, F: FnMut(&'a Pk) -> bool>(&'a self, pred: F) -> bool {
@@ -239,12 +241,12 @@ impl<Pk: MiniscriptKey> Pkh<Pk> {
     ///
     /// # Errors
     /// When the descriptor is impossible to safisfy (ex: sh(OP_FALSE)).
-    pub fn max_weight_to_satisfy(&self) -> usize {
+    pub fn max_weight_to_satisfy(&self) -> Weight {
         // OP_72 + <sig(71)+sigHash(1)> + OP_33 + <pubkey>
         let scriptsig_size = 73 + BareCtx::pk_len(&self.pk);
         // scriptSig varint different between non-satisfied (0) and satisfied
         let scriptsig_varint_diff = varint_len(scriptsig_size) - varint_len(0);
-        4 * (scriptsig_varint_diff + scriptsig_size)
+        Weight::from_vb((scriptsig_varint_diff + scriptsig_size) as u64).unwrap()
     }
 
     /// Computes an upper bound on the weight of a satisfying witness to the
@@ -253,6 +255,10 @@ impl<Pk: MiniscriptKey> Pkh<Pk> {
     /// Assumes all ec-signatures are 73 bytes, including push opcode and
     /// sighash suffix. Includes the weight of the VarInts encoding the
     /// scriptSig and witness stack length.
+    #[deprecated(
+        since = "10.0.0",
+        note = "Use max_weight_to_satisfy instead. The method to count bytes was redesigned and the results will differ from max_weight_to_satisfy. For more details check rust-bitcoin/rust-miniscript#476."
+    )]
     pub fn max_satisfaction_weight(&self) -> usize { 4 * (1 + 73 + BareCtx::pk_len(&self.pk)) }
 }
 
@@ -267,7 +273,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Pkh<Pk> {
 
     /// Obtains the corresponding script pubkey for this descriptor.
     pub fn address(&self, network: Network) -> Address {
-        Address::p2pkh(&self.pk.to_public_key(), network)
+        Address::p2pkh(self.pk.to_public_key(), network)
     }
 
     /// Obtains the underlying miniscript for this descriptor.
@@ -359,8 +365,7 @@ impl<Pk: MiniscriptKey> Liftable<Pk> for Pkh<Pk> {
     }
 }
 
-impl_from_tree!(
-    Pkh<Pk>,
+impl<Pk: FromStrKey> FromTree for Pkh<Pk> {
     fn from_tree(top: &expression::Tree) -> Result<Self, Error> {
         if top.name == "pkh" && top.args.len() == 1 {
             Ok(Pkh::new(expression::terminal(&top.args[0], |pk| Pk::from_str(pk))?)?)
@@ -372,17 +377,16 @@ impl_from_tree!(
             )))
         }
     }
-);
+}
 
-impl_from_str!(
-    Pkh<Pk>,
-    type Err = Error;,
+impl<Pk: FromStrKey> core::str::FromStr for Pkh<Pk> {
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let desc_str = verify_checksum(s)?;
         let top = expression::Tree::from_str(desc_str)?;
         Self::from_tree(&top)
     }
-);
+}
 
 impl<Pk: MiniscriptKey> ForEachKey<Pk> for Pkh<Pk> {
     fn for_each_key<'a, F: FnMut(&'a Pk) -> bool>(&'a self, mut pred: F) -> bool { pred(&self.pk) }

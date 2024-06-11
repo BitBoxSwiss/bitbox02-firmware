@@ -12,8 +12,7 @@ use crate::{sha256, FromSliceError};
 crate::internal_macros::hash_type! {
     256,
     true,
-    "Output of the SHA256d hash function.",
-    "crate::util::json_hex_string::len_32"
+    "Output of the SHA256d hash function."
 }
 
 type HashEngine = sha256::HashEngine;
@@ -31,10 +30,12 @@ fn from_engine(e: sha256::HashEngine) -> Hash {
 
 #[cfg(test)]
 mod tests {
+    use crate::{sha256d, Hash as _};
+
     #[test]
     #[cfg(feature = "alloc")]
     fn test() {
-        use crate::{sha256, sha256d, Hash, HashEngine};
+        use crate::{sha256, HashEngine};
 
         #[derive(Clone)]
         struct Test {
@@ -82,12 +83,18 @@ mod tests {
         }
     }
 
+    #[test]
+    fn fmt_roundtrips() {
+        let hash = sha256d::Hash::hash(b"some arbitrary bytes");
+        let hex = format!("{}", hash);
+        let rinsed = hex.parse::<sha256d::Hash>().expect("failed to parse hex");
+        assert_eq!(rinsed, hash)
+    }
+
     #[cfg(feature = "serde")]
     #[test]
     fn sha256_serde() {
         use serde_test::{assert_tokens, Configure, Token};
-
-        use crate::{sha256d, Hash};
 
         #[rustfmt::skip]
         static HASH_BYTES: [u8; 32] = [

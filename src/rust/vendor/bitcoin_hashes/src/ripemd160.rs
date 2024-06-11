@@ -3,7 +3,6 @@
 //! RIPEMD160 implementation.
 //!
 
-use core::convert::TryInto;
 use core::ops::Index;
 use core::slice::SliceIndex;
 use core::{cmp, str};
@@ -13,8 +12,7 @@ use crate::{FromSliceError, HashEngine as _};
 crate::internal_macros::hash_type! {
     160,
     false,
-    "Output of the RIPEMD160 hash function.",
-    "crate::util::json_hex_string::len_20"
+    "Output of the RIPEMD160 hash function."
 }
 
 #[cfg(not(hashes_fuzz))]

@@ -3,17 +3,17 @@
 #[macro_export]
 /// Adds hexadecimal formatting implementation of a trait `$imp` to a given type `$ty`.
 macro_rules! hex_fmt_impl(
-    ($reverse:expr, $ty:ident) => (
-        $crate::hex_fmt_impl!($reverse, $ty, );
+    ($reverse:expr, $len:expr, $ty:ident) => (
+        $crate::hex_fmt_impl!($reverse, $len, $ty, );
     );
-    ($reverse:expr, $ty:ident, $($gen:ident: $gent:ident),*) => (
+    ($reverse:expr, $len:expr, $ty:ident, $($gen:ident: $gent:ident),*) => (
         impl<$($gen: $gent),*> $crate::_export::_core::fmt::LowerHex for $ty<$($gen),*> {
             #[inline]
             fn fmt(&self, f: &mut $crate::_export::_core::fmt::Formatter) -> $crate::_export::_core::fmt::Result {
                 if $reverse {
-                    $crate::_export::_core::fmt::LowerHex::fmt(&self.0.backward_hex(), f)
+                    $crate::hex::fmt_hex_exact!(f, $len, <Self as $crate::Hash>::as_byte_array(&self).iter().rev(), $crate::hex::Case::Lower)
                 } else {
-                    $crate::_export::_core::fmt::LowerHex::fmt(&self.0.forward_hex(), f)
+                    $crate::hex::fmt_hex_exact!(f, $len, <Self as $crate::Hash>::as_byte_array(&self), $crate::hex::Case::Lower)
                 }
             }
         }
@@ -22,9 +22,9 @@ macro_rules! hex_fmt_impl(
             #[inline]
             fn fmt(&self, f: &mut $crate::_export::_core::fmt::Formatter) -> $crate::_export::_core::fmt::Result {
                 if $reverse {
-                    $crate::_export::_core::fmt::UpperHex::fmt(&self.0.backward_hex(), f)
+                    $crate::hex::fmt_hex_exact!(f, $len, <Self as $crate::Hash>::as_byte_array(&self).iter().rev(), $crate::hex::Case::Upper)
                 } else {
-                    $crate::_export::_core::fmt::UpperHex::fmt(&self.0.forward_hex(), f)
+                    $crate::hex::fmt_hex_exact!(f, $len, <Self as $crate::Hash>::as_byte_array(&self), $crate::hex::Case::Upper)
                 }
             }
         }
@@ -39,7 +39,7 @@ macro_rules! hex_fmt_impl(
         impl<$($gen: $gent),*> $crate::_export::_core::fmt::Debug for $ty<$($gen),*> {
             #[inline]
             fn fmt(&self, f: &mut $crate::_export::_core::fmt::Formatter) -> $crate::_export::_core::fmt::Result {
-                write!(f, "{:#}", self)
+                write!(f, "{}", self)
             }
         }
     );
@@ -188,7 +188,7 @@ macro_rules! hash_newtype {
             $({ $($type_attrs)* })*
         }
 
-        $crate::hex_fmt_impl!(<$newtype as $crate::Hash>::DISPLAY_BACKWARD, $newtype);
+        $crate::hex_fmt_impl!(<$newtype as $crate::Hash>::DISPLAY_BACKWARD, <$newtype as $crate::Hash>::LEN, $newtype);
         $crate::serde_impl!($newtype, <$newtype as $crate::Hash>::LEN);
         $crate::borrow_slice_impl!($newtype);
 
@@ -241,7 +241,7 @@ macro_rules! hash_newtype {
             }
 
             #[inline]
-            fn from_slice(sl: &[u8]) -> Result<$newtype, $crate::FromSliceError> {
+            fn from_slice(sl: &[u8]) -> $crate::_export::_core::result::Result<$newtype, $crate::FromSliceError> {
                 Ok($newtype(<$hash as $crate::Hash>::from_slice(sl)?))
             }
 
@@ -270,15 +270,13 @@ macro_rules! hash_newtype {
         impl $crate::_export::_core::str::FromStr for $newtype {
             type Err = $crate::hex::HexToArrayError;
             fn from_str(s: &str) -> $crate::_export::_core::result::Result<$newtype, Self::Err> {
-                use $crate::hex::{FromHex, HexToBytesIter};
-                use $crate::Hash;
+                use $crate::{Hash, hex::FromHex};
 
-                let inner: <$hash as Hash>::Bytes = if <Self as $crate::Hash>::DISPLAY_BACKWARD {
-                    FromHex::from_byte_iter(HexToBytesIter::new(s)?.rev())?
-                } else {
-                    FromHex::from_byte_iter(HexToBytesIter::new(s)?)?
+                let mut bytes = <[u8; <Self as $crate::Hash>::LEN]>::from_hex(s)?;
+                if <Self as $crate::Hash>::DISPLAY_BACKWARD {
+                    bytes.reverse();
                 };
-                Ok($newtype(<$hash>::from_byte_array(inner)))
+                Ok($newtype(<$hash>::from_byte_array(bytes)))
             }
         }
 
@@ -384,30 +382,6 @@ macro_rules! hash_newtype_known_attrs {
     (#[hash_newtype(backward)]) => {};
     (#[hash_newtype($($unknown:tt)*)]) => { compile_error!(concat!("Unrecognized attribute ", stringify!($($unknown)*))); };
     ($($ignore:tt)*) => {};
-}
-
-#[cfg(feature = "schemars")]
-pub mod json_hex_string {
-    use schemars::gen::SchemaGenerator;
-    use schemars::schema::{Schema, SchemaObject};
-    use schemars::JsonSchema;
-    macro_rules! define_custom_hex {
-        ($name:ident, $len:expr) => {
-            pub fn $name(gen: &mut SchemaGenerator) -> Schema {
-                let mut schema: SchemaObject = <String>::json_schema(gen).into();
-                schema.string = Some(Box::new(schemars::schema::StringValidation {
-                    max_length: Some($len * 2),
-                    min_length: Some($len * 2),
-                    pattern: Some("[0-9a-fA-F]+".to_owned()),
-                }));
-                schema.into()
-            }
-        };
-    }
-    define_custom_hex!(len_8, 8);
-    define_custom_hex!(len_20, 20);
-    define_custom_hex!(len_32, 32);
-    define_custom_hex!(len_64, 64);
 }
 
 #[cfg(test)]

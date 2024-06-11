@@ -40,13 +40,13 @@ use core::cmp;
 use sync::Arc;
 
 use self::lex::{lex, TokenIter};
-use self::types::Property;
 pub use crate::miniscript::context::ScriptContext;
 use crate::miniscript::decode::Terminal;
 use crate::miniscript::types::extra_props::ExtData;
 use crate::miniscript::types::Type;
 use crate::{
-    expression, plan, Error, ForEachKey, MiniscriptKey, ToPublicKey, TranslatePk, Translator,
+    expression, plan, Error, ForEachKey, FromStrKey, MiniscriptKey, ToPublicKey, TranslatePk,
+    Translator,
 };
 #[cfg(test)]
 mod ms_tests;
@@ -65,6 +65,22 @@ pub struct Miniscript<Pk: MiniscriptKey, Ctx: ScriptContext> {
 }
 
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
+    /// The `1` combinator.
+    pub const TRUE: Self = Miniscript {
+        node: Terminal::True,
+        ty: types::Type::TRUE,
+        ext: types::extra_props::ExtData::TRUE,
+        phantom: PhantomData,
+    };
+
+    /// The `0` combinator.
+    pub const FALSE: Self = Miniscript {
+        node: Terminal::False,
+        ty: types::Type::FALSE,
+        ext: types::extra_props::ExtData::FALSE,
+        phantom: PhantomData,
+    };
+
     /// Add type information(Type and Extdata) to Miniscript based on
     /// `AstElem` fragment. Dependent on display and clone because of Error
     /// Display code of type_check.
@@ -132,24 +148,23 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
                 Terminal::After(n) => script_num_size(n.to_consensus_u32() as usize) + 1,
                 Terminal::Older(n) => script_num_size(n.to_consensus_u32() as usize) + 1,
                 Terminal::Verify(ref sub) => usize::from(!sub.ext.has_free_verify),
-                Terminal::Thresh(k, ref subs) => {
-                    assert!(!subs.is_empty(), "threshold must be nonempty");
-                    script_num_size(k) // k
+                Terminal::Thresh(ref thresh) => {
+                    script_num_size(thresh.k()) // k
                         + 1 // EQUAL
-                        + subs.len() // ADD
+                        + thresh.n() // ADD
                         - 1 // no ADD on first element
                 }
-                Terminal::Multi(k, ref pks) => {
-                    script_num_size(k)
+                Terminal::Multi(ref thresh) => {
+                    script_num_size(thresh.k())
                         + 1
-                        + script_num_size(pks.len())
-                        + pks.iter().map(|pk| Ctx::pk_len(pk)).sum::<usize>()
+                        + script_num_size(thresh.n())
+                        + thresh.iter().map(|pk| Ctx::pk_len(pk)).sum::<usize>()
                 }
-                Terminal::MultiA(k, ref pks) => {
-                    script_num_size(k)
+                Terminal::MultiA(ref thresh) => {
+                    script_num_size(thresh.k())
                         + 1 // NUMEQUAL
-                        + pks.iter().map(|pk| Ctx::pk_len(pk)).sum::<usize>() // n keys
-                        + pks.len() // n times CHECKSIGADD
+                        + thresh.iter().map(|pk| Ctx::pk_len(pk)).sum::<usize>() // n keys
+                        + thresh.n() // n times CHECKSIGADD
                 }
             }
         }
@@ -224,7 +239,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
     {
         match satisfaction.stack {
             satisfy::Witness::Stack(stack) => {
-                Ctx::check_witness::<Pk>(&stack)?;
+                Ctx::check_witness(&stack)?;
                 Ok(stack)
             }
             satisfy::Witness::Unavailable | satisfy::Witness::Impossible => {
@@ -399,8 +414,15 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> ForEachKey<Pk> for Miniscript<Pk, Ct
                         return false;
                     }
                 }
-                Terminal::Multi(_, ref keys) | Terminal::MultiA(_, ref keys) => {
-                    if !keys.iter().all(&mut pred) {
+                // These branches cannot be combined since technically the two `thresh`es
+                // have different types (have different maximum values).
+                Terminal::Multi(ref thresh) => {
+                    if !thresh.iter().all(&mut pred) {
+                        return false;
+                    }
+                }
+                Terminal::MultiA(ref thresh) => {
+                    if !thresh.iter().all(&mut pred) {
                         return false;
                     }
                 }
@@ -469,16 +491,12 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
                 Terminal::OrD(..) => Terminal::OrD(child_n(0), child_n(1)),
                 Terminal::OrC(..) => Terminal::OrC(child_n(0), child_n(1)),
                 Terminal::OrI(..) => Terminal::OrI(child_n(0), child_n(1)),
-                Terminal::Thresh(k, ref subs) => {
-                    Terminal::Thresh(k, (0..subs.len()).map(child_n).collect())
-                }
-                Terminal::Multi(k, ref keys) => {
-                    let keys: Result<Vec<Q>, _> = keys.iter().map(|k| t.pk(k)).collect();
-                    Terminal::Multi(k, keys?)
-                }
-                Terminal::MultiA(k, ref keys) => {
-                    let keys: Result<Vec<Q>, _> = keys.iter().map(|k| t.pk(k)).collect();
-                    Terminal::MultiA(k, keys?)
+                Terminal::Thresh(ref thresh) => Terminal::Thresh(
+                    thresh.map_from_post_order_iter(&data.child_indices, &translated),
+                ),
+                Terminal::Multi(ref thresh) => Terminal::Multi(thresh.translate_ref(|k| t.pk(k))?),
+                Terminal::MultiA(ref thresh) => {
+                    Terminal::MultiA(thresh.translate_ref(|k| t.pk(k))?)
                 }
             };
             let new_ms = Miniscript::from_ast(new_term).map_err(TranslateErr::OuterError)?;
@@ -509,9 +527,100 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
     }
 }
 
-impl_block_str!(
-    ;Ctx; ScriptContext,
-    Miniscript<Pk, Ctx>,
+/// Utility function used when parsing a script from an expression tree.
+///
+/// Checks that the name of each fragment has at most one `:`, splits
+/// the name at the `:`, and implements aliases for the old `pk`/`pk_h`
+/// fragments.
+///
+/// Returns the fragment name (right of the `:`) and a list of wrappers
+/// (left of the `:`).
+fn split_expression_name(name: &str) -> Result<(&str, Cow<str>), Error> {
+    let mut aliased_wrap;
+    let frag_name;
+    let frag_wrap;
+    let mut name_split = name.split(':');
+    match (name_split.next(), name_split.next(), name_split.next()) {
+        (None, _, _) => {
+            frag_name = "";
+            frag_wrap = "".into();
+        }
+        (Some(name), None, _) => {
+            if name == "pk" {
+                frag_name = "pk_k";
+                frag_wrap = "c".into();
+            } else if name == "pkh" {
+                frag_name = "pk_h";
+                frag_wrap = "c".into();
+            } else {
+                frag_name = name;
+                frag_wrap = "".into();
+            }
+        }
+        (Some(wrap), Some(name), None) => {
+            if wrap.is_empty() {
+                return Err(Error::Unexpected(name.to_owned()));
+            }
+            if name == "pk" {
+                frag_name = "pk_k";
+                aliased_wrap = wrap.to_owned();
+                aliased_wrap.push('c');
+                frag_wrap = aliased_wrap.into();
+            } else if name == "pkh" {
+                frag_name = "pk_h";
+                aliased_wrap = wrap.to_owned();
+                aliased_wrap.push('c');
+                frag_wrap = aliased_wrap.into();
+            } else {
+                frag_name = name;
+                frag_wrap = wrap.into();
+            }
+        }
+        (Some(_), Some(_), Some(_)) => {
+            return Err(Error::MultiColon(name.to_owned()));
+        }
+    }
+    Ok((frag_name, frag_wrap))
+}
+
+/// Utility function used when parsing a script from an expression tree.
+///
+/// Once a Miniscript fragment has been parsed into a terminal, apply any
+/// wrappers that were included in its name.
+fn wrap_into_miniscript<Pk, Ctx>(
+    term: Terminal<Pk, Ctx>,
+    frag_wrap: Cow<str>,
+) -> Result<Miniscript<Pk, Ctx>, Error>
+where
+    Pk: MiniscriptKey,
+    Ctx: ScriptContext,
+{
+    let mut unwrapped = term;
+    for ch in frag_wrap.chars().rev() {
+        // Check whether the wrapper is valid under the current context
+        let ms = Miniscript::from_ast(unwrapped)?;
+        Ctx::check_global_validity(&ms)?;
+        match ch {
+            'a' => unwrapped = Terminal::Alt(Arc::new(ms)),
+            's' => unwrapped = Terminal::Swap(Arc::new(ms)),
+            'c' => unwrapped = Terminal::Check(Arc::new(ms)),
+            'd' => unwrapped = Terminal::DupIf(Arc::new(ms)),
+            'v' => unwrapped = Terminal::Verify(Arc::new(ms)),
+            'j' => unwrapped = Terminal::NonZero(Arc::new(ms)),
+            'n' => unwrapped = Terminal::ZeroNotEqual(Arc::new(ms)),
+            't' => unwrapped = Terminal::AndV(Arc::new(ms), Arc::new(Miniscript::TRUE)),
+            'u' => unwrapped = Terminal::OrI(Arc::new(ms), Arc::new(Miniscript::FALSE)),
+            'l' => unwrapped = Terminal::OrI(Arc::new(Miniscript::FALSE), Arc::new(ms)),
+            x => return Err(Error::UnknownWrapper(x)),
+        }
+    }
+    // Check whether the unwrapped miniscript is valid under the current context
+    let ms = Miniscript::from_ast(unwrapped)?;
+    Ctx::check_global_validity(&ms)?;
+    Ok(ms)
+}
+
+impl<Pk: FromStrKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
     /// Attempt to parse an insane(scripts don't clear sanity checks)
     /// from string into a Miniscript representation.
     /// Use this to parse scripts with repeated pubkeys, timelock mixing, malleable
@@ -519,22 +628,16 @@ impl_block_str!(
     /// Some of the analysis guarantees of miniscript are lost when dealing with
     /// insane scripts. In general, in a multi-party setting users should only
     /// accept sane scripts.
-    pub fn from_str_insane(s: &str,) -> Result<Miniscript<Pk, Ctx>, Error>
-    {
+    pub fn from_str_insane(s: &str) -> Result<Miniscript<Pk, Ctx>, Error> {
         Miniscript::from_str_ext(s, &ExtParams::insane())
     }
-);
 
-impl_block_str!(
-    ;Ctx; ScriptContext,
-    Miniscript<Pk, Ctx>,
     /// Attempt to parse an Miniscripts that don't follow the spec.
     /// Use this to parse scripts with repeated pubkeys, timelock mixing, malleable
     /// scripts, raw pubkey hashes without sig or scripts that can exceed resource limits.
     ///
     /// Use [`ExtParams`] builder to specify the types of non-sane rules to allow while parsing.
-    pub fn from_str_ext(s: &str, ext: &ExtParams,) -> Result<Miniscript<Pk, Ctx>, Error>
-    {
+    pub fn from_str_ext(s: &str, ext: &ExtParams) -> Result<Miniscript<Pk, Ctx>, Error> {
         // This checks for invalid ASCII chars
         let top = expression::Tree::from_str(s)?;
         let ms: Miniscript<Pk, Ctx> = expression::FromTree::from_tree(&top)?;
@@ -546,31 +649,25 @@ impl_block_str!(
             Ok(ms)
         }
     }
-);
+}
 
-impl_from_tree!(
-    ;Ctx; ScriptContext,
-    Arc<Miniscript<Pk, Ctx>>,
+impl<Pk: FromStrKey, Ctx: ScriptContext> crate::expression::FromTree for Arc<Miniscript<Pk, Ctx>> {
     fn from_tree(top: &expression::Tree) -> Result<Arc<Miniscript<Pk, Ctx>>, Error> {
         Ok(Arc::new(expression::FromTree::from_tree(top)?))
     }
-);
+}
 
-impl_from_tree!(
-    ;Ctx; ScriptContext,
-    Miniscript<Pk, Ctx>,
+impl<Pk: FromStrKey, Ctx: ScriptContext> crate::expression::FromTree for Miniscript<Pk, Ctx> {
     /// Parse an expression tree into a Miniscript. As a general rule, this
     /// should not be called directly; rather go through the descriptor API.
     fn from_tree(top: &expression::Tree) -> Result<Miniscript<Pk, Ctx>, Error> {
         let inner: Terminal<Pk, Ctx> = expression::FromTree::from_tree(top)?;
         Miniscript::from_ast(inner)
     }
-);
+}
 
-impl_from_str!(
-    ;Ctx; ScriptContext,
-    Miniscript<Pk, Ctx>,
-    type Err = Error;,
+impl<Pk: FromStrKey, Ctx: ScriptContext> str::FromStr for Miniscript<Pk, Ctx> {
+    type Err = Error;
     /// Parse a Miniscript from string and perform sanity checks
     /// See [Miniscript::from_str_insane] to parse scripts from string that
     /// do not clear the [Miniscript::sanity_check] checks.
@@ -578,7 +675,7 @@ impl_from_str!(
         let ms = Self::from_str_ext(s, &ExtParams::sane())?;
         Ok(ms)
     }
-);
+}
 
 serde_string_impl_pk!(Miniscript, "a miniscript", Ctx; ScriptContext);
 
@@ -603,16 +700,15 @@ mod tests {
     use bitcoin::hashes::{hash160, sha256, Hash};
     use bitcoin::secp256k1::XOnlyPublicKey;
     use bitcoin::taproot::TapLeafHash;
-    use bitcoin::{self, secp256k1, Sequence};
     use sync::Arc;
 
     use super::{Miniscript, ScriptContext, Segwitv0, Tap};
-    use crate::miniscript::types::{self, ExtData, Property, Type};
+    use crate::miniscript::types::{self, ExtData, Type};
     use crate::miniscript::Terminal;
     use crate::policy::Liftable;
     use crate::prelude::*;
     use crate::test_utils::{StrKeyTranslator, StrXOnlyKeyTranslator};
-    use crate::{hex_script, ExtParams, Satisfier, ToPublicKey, TranslatePk};
+    use crate::{hex_script, ExtParams, RelLockTime, Satisfier, ToPublicKey, TranslatePk};
 
     type Segwitv0Script = Miniscript<bitcoin::PublicKey, Segwitv0>;
     type Tapscript = Miniscript<bitcoin::secp256k1::XOnlyPublicKey, Tap>;
@@ -795,22 +891,22 @@ mod tests {
 
         let pk_node = Terminal::Check(Arc::new(Miniscript {
             node: Terminal::PkK(String::from("")),
-            ty: Type::from_pk_k::<Segwitv0>(),
-            ext: types::extra_props::ExtData::from_pk_k::<Segwitv0>(),
+            ty: Type::pk_k(),
+            ext: types::extra_props::ExtData::pk_k::<Segwitv0>(),
             phantom: PhantomData,
         }));
         let pkk_ms: Miniscript<String, Segwitv0> = Miniscript::from_ast(pk_node).unwrap();
-        dummy_string_rtt(pkk_ms, "[B/onduesm]c:[K/onduesm]pk_k(\"\")", "pk()");
+        dummy_string_rtt(pkk_ms, "[B/onduesm]pk(\"\")", "pk()");
 
         let pkh_node = Terminal::Check(Arc::new(Miniscript {
             node: Terminal::PkH(String::from("")),
-            ty: Type::from_pk_h::<Segwitv0>(),
-            ext: types::extra_props::ExtData::from_pk_h::<Segwitv0>(),
+            ty: Type::pk_h(),
+            ext: types::extra_props::ExtData::pk_h::<Segwitv0>(),
             phantom: PhantomData,
         }));
         let pkh_ms: Miniscript<String, Segwitv0> = Miniscript::from_ast(pkh_node).unwrap();
 
-        let expected_debug = "[B/nduesm]c:[K/nduesm]pk_h(\"\")";
+        let expected_debug = "[B/nduesm]pkh(\"\")";
         let expected_display = "pkh()";
 
         assert_eq!(pkh_ms.ty.corr.base, types::Base::B);
@@ -825,8 +921,8 @@ mod tests {
 
         let pkk_node = Terminal::Check(Arc::new(Miniscript {
             node: Terminal::PkK(pk),
-            ty: Type::from_pk_k::<Segwitv0>(),
-            ext: types::extra_props::ExtData::from_pk_k::<Segwitv0>(),
+            ty: Type::pk_k(),
+            ext: types::extra_props::ExtData::pk_k::<Segwitv0>(),
             phantom: PhantomData,
         }));
         let pkk_ms: Segwitv0Script = Miniscript::from_ast(pkk_node).unwrap();
@@ -840,12 +936,12 @@ mod tests {
         let pkh_ms: Segwitv0Script = Miniscript {
             node: Terminal::Check(Arc::new(Miniscript {
                 node: Terminal::RawPkH(hash),
-                ty: Type::from_pk_h::<Segwitv0>(),
-                ext: types::extra_props::ExtData::from_pk_h::<Segwitv0>(),
+                ty: Type::pk_h(),
+                ext: types::extra_props::ExtData::pk_h::<Segwitv0>(),
                 phantom: PhantomData,
             })),
-            ty: Type::cast_check(Type::from_pk_h::<Segwitv0>()).unwrap(),
-            ext: ExtData::cast_check(ExtData::from_pk_h::<Segwitv0>()).unwrap(),
+            ty: Type::cast_check(Type::pk_h()).unwrap(),
+            ext: ExtData::cast_check(ExtData::pk_h::<Segwitv0>()),
             phantom: PhantomData,
         };
 
@@ -890,7 +986,7 @@ mod tests {
 
         string_rtt(
             script,
-            "[B/onduesm]c:[K/onduesm]pk_k(PublicKey { compressed: true, inner: PublicKey(aa4c32e50fb34a95a372940ae3654b692ea35294748c3dd2c08b29f87ba9288c8294efcb73dc719e45b91c45f084e77aebc07c1ff3ed8f37935130a36304a340) })",
+            "[B/onduesm]pk(PublicKey { compressed: true, inner: PublicKey(aa4c32e50fb34a95a372940ae3654b692ea35294748c3dd2c08b29f87ba9288c8294efcb73dc719e45b91c45f084e77aebc07c1ff3ed8f37935130a36304a340) })",
             "pk(028c28a97bf8298bc0d23d8c749452a32e694b65e30a9472a3954ab30fe5324caa)"
         );
 
@@ -898,7 +994,7 @@ mod tests {
 
         string_rtt(
             script,
-            "[B/onduesm]c:[K/onduesm]pk_k(PublicKey { compressed: true, inner: PublicKey(aa4c32e50fb34a95a372940ae3654b692ea35294748c3dd2c08b29f87ba9288c8294efcb73dc719e45b91c45f084e77aebc07c1ff3ed8f37935130a36304a340) })",
+            "[B/onduesm]pk(PublicKey { compressed: true, inner: PublicKey(aa4c32e50fb34a95a372940ae3654b692ea35294748c3dd2c08b29f87ba9288c8294efcb73dc719e45b91c45f084e77aebc07c1ff3ed8f37935130a36304a340) })",
             "pk(028c28a97bf8298bc0d23d8c749452a32e694b65e30a9472a3954ab30fe5324caa)"
         );
 
@@ -906,7 +1002,7 @@ mod tests {
 
         string_rtt(
             script,
-            "[B/onufsm]t[V/onfsm]v[B/onduesm]c:[K/onduesm]pk_k(PublicKey { compressed: true, inner: PublicKey(aa4c32e50fb34a95a372940ae3654b692ea35294748c3dd2c08b29f87ba9288c8294efcb73dc719e45b91c45f084e77aebc07c1ff3ed8f37935130a36304a340) })",
+            "[B/onufsm]t[V/onfsm]v:[B/onduesm]pk(PublicKey { compressed: true, inner: PublicKey(aa4c32e50fb34a95a372940ae3654b692ea35294748c3dd2c08b29f87ba9288c8294efcb73dc719e45b91c45f084e77aebc07c1ff3ed8f37935130a36304a340) })",
             "tv:pk(028c28a97bf8298bc0d23d8c749452a32e694b65e30a9472a3954ab30fe5324caa)"
         );
 
@@ -914,7 +1010,7 @@ mod tests {
 
         string_display_debug_test(
             script,
-            "[B/nduesm]c:[K/nduesm]pk_h(PublicKey { compressed: true, inner: PublicKey(aa4c32e50fb34a95a372940ae3654b692ea35294748c3dd2c08b29f87ba9288c8294efcb73dc719e45b91c45f084e77aebc07c1ff3ed8f37935130a36304a340) })",
+            "[B/nduesm]pkh(PublicKey { compressed: true, inner: PublicKey(aa4c32e50fb34a95a372940ae3654b692ea35294748c3dd2c08b29f87ba9288c8294efcb73dc719e45b91c45f084e77aebc07c1ff3ed8f37935130a36304a340) })",
             "pkh(028c28a97bf8298bc0d23d8c749452a32e694b65e30a9472a3954ab30fe5324caa)",
         );
 
@@ -922,7 +1018,7 @@ mod tests {
 
         string_display_debug_test(
             script,
-            "[B/nduesm]c:[K/nduesm]pk_h(PublicKey { compressed: true, inner: PublicKey(aa4c32e50fb34a95a372940ae3654b692ea35294748c3dd2c08b29f87ba9288c8294efcb73dc719e45b91c45f084e77aebc07c1ff3ed8f37935130a36304a340) })",
+            "[B/nduesm]pkh(PublicKey { compressed: true, inner: PublicKey(aa4c32e50fb34a95a372940ae3654b692ea35294748c3dd2c08b29f87ba9288c8294efcb73dc719e45b91c45f084e77aebc07c1ff3ed8f37935130a36304a340) })",
             "pkh(028c28a97bf8298bc0d23d8c749452a32e694b65e30a9472a3954ab30fe5324caa)",
         );
 
@@ -930,7 +1026,7 @@ mod tests {
 
         string_display_debug_test(
             script,
-            "[B/nufsm]t[V/nfsm]v[B/nduesm]c:[K/nduesm]pk_h(PublicKey { compressed: true, inner: PublicKey(aa4c32e50fb34a95a372940ae3654b692ea35294748c3dd2c08b29f87ba9288c8294efcb73dc719e45b91c45f084e77aebc07c1ff3ed8f37935130a36304a340) })",
+            "[B/nufsm]t[V/nfsm]v:[B/nduesm]pkh(PublicKey { compressed: true, inner: PublicKey(aa4c32e50fb34a95a372940ae3654b692ea35294748c3dd2c08b29f87ba9288c8294efcb73dc719e45b91c45f084e77aebc07c1ff3ed8f37935130a36304a340) })",
             "tv:pkh(028c28a97bf8298bc0d23d8c749452a32e694b65e30a9472a3954ab30fe5324caa)",
         );
     }
@@ -989,13 +1085,13 @@ mod tests {
         let mut abs = miniscript.lift().unwrap();
         assert_eq!(abs.n_keys(), 5);
         assert_eq!(abs.minimum_n_keys(), Some(2));
-        abs = abs.at_age(Sequence::from_height(10000));
+        abs = abs.at_age(RelLockTime::from_height(10000).into());
         assert_eq!(abs.n_keys(), 5);
         assert_eq!(abs.minimum_n_keys(), Some(2));
-        abs = abs.at_age(Sequence::from_height(9999));
+        abs = abs.at_age(RelLockTime::from_height(9999).into());
         assert_eq!(abs.n_keys(), 3);
         assert_eq!(abs.minimum_n_keys(), Some(3));
-        abs = abs.at_age(Sequence::ZERO);
+        abs = abs.at_age(RelLockTime::ZERO.into());
         assert_eq!(abs.n_keys(), 3);
         assert_eq!(abs.minimum_n_keys(), Some(3));
 
@@ -1192,8 +1288,8 @@ mod tests {
                 _h: &TapLeafHash,
             ) -> Option<bitcoin::taproot::Signature> {
                 Some(bitcoin::taproot::Signature {
-                    sig: self.0,
-                    hash_ty: bitcoin::sighash::TapSighashType::Default,
+                    signature: self.0,
+                    sighash_type: bitcoin::sighash::TapSighashType::Default,
                 })
             }
         }
@@ -1260,7 +1356,7 @@ mod tests {
 
     #[test]
     fn template_timelocks() {
-        use crate::AbsLockTime;
+        use crate::{AbsLockTime, RelLockTime};
         let key_present = bitcoin::PublicKey::from_str(
             "0327a6ed0e71b451c79327aa9e4a6bb26ffb1c0056abc02c25e783f6096b79bb4f",
         )
@@ -1275,7 +1371,7 @@ mod tests {
             (format!("t:or_c(pk({}),v:pkh({}))", key_present, key_missing), None, None),
             (
                 format!("thresh(2,pk({}),s:pk({}),snl:after(1))", key_present, key_missing),
-                Some(AbsLockTime::from_consensus(1)),
+                Some(AbsLockTime::from_consensus(1).unwrap()),
                 None,
             ),
             (
@@ -1286,20 +1382,20 @@ mod tests {
             (
                 format!("or_d(pk({}),and_v(v:pk({}),older(12960)))", key_missing, key_present),
                 None,
-                Some(bitcoin::Sequence(12960)),
+                Some(RelLockTime::from_height(12960)),
             ),
             (
                 format!(
                     "thresh(3,pk({}),s:pk({}),snl:older(10),snl:after(11))",
                     key_present, key_missing
                 ),
-                Some(AbsLockTime::from_consensus(11)),
-                Some(bitcoin::Sequence(10)),
+                Some(AbsLockTime::from_consensus(11).unwrap()),
+                Some(RelLockTime::from_height(10)),
             ),
             (
                 format!("and_v(v:and_v(v:pk({}),older(10)),older(20))", key_present),
                 None,
-                Some(bitcoin::Sequence(20)),
+                Some(RelLockTime::from_height(20)),
             ),
             (
                 format!(
@@ -1307,7 +1403,7 @@ mod tests {
                     key_present, key_missing
                 ),
                 None,
-                Some(bitcoin::Sequence(10)),
+                Some(RelLockTime::from_height(10)),
             ),
         ];
 
@@ -1323,15 +1419,15 @@ mod tests {
             ) -> Option<bitcoin::taproot::Signature> {
                 if pk == &self.1 {
                     Some(bitcoin::taproot::Signature {
-                        sig: self.0,
-                        hash_ty: bitcoin::sighash::TapSighashType::Default,
+                        signature: self.0,
+                        sighash_type: bitcoin::sighash::TapSighashType::Default,
                     })
                 } else {
                     None
                 }
             }
 
-            fn check_older(&self, _: bitcoin::Sequence) -> bool { true }
+            fn check_older(&self, _: bitcoin::relative::LockTime) -> bool { true }
 
             fn check_after(&self, _: bitcoin::absolute::LockTime) -> bool { true }
         }
@@ -1349,5 +1445,34 @@ mod tests {
             assert_eq!(template.absolute_timelock, absolute_timelock, "{}", ms_str);
             assert_eq!(template.relative_timelock, relative_timelock, "{}", ms_str);
         }
+    }
+}
+
+#[cfg(bench)]
+mod benches {
+    use test::{black_box, Bencher};
+
+    use super::*;
+
+    #[bench]
+    pub fn parse_segwit0(bh: &mut Bencher) {
+        bh.iter(|| {
+            let tree = Miniscript::<String, context::Segwitv0>::from_str_ext(
+                "and_v(v:pk(E),thresh(2,j:and_v(v:sha256(H),t:or_i(v:sha256(H),v:pkh(A))),s:pk(B),s:pk(C),s:pk(D),sjtv:sha256(H)))",
+                &ExtParams::sane(),
+            ).unwrap();
+            black_box(tree);
+        });
+    }
+
+    #[bench]
+    pub fn parse_segwit0_deep(bh: &mut Bencher) {
+        bh.iter(|| {
+            let tree = Miniscript::<String, context::Segwitv0>::from_str_ext(
+                "and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:pk(1),pk(2)),pk(3)),pk(4)),pk(5)),pk(6)),pk(7)),pk(8)),pk(9)),pk(10)),pk(11)),pk(12)),pk(13)),pk(14)),pk(15)),pk(16)),pk(17)),pk(18)),pk(19)),pk(20)),pk(21))",
+                &ExtParams::sane(),
+            ).unwrap();
+            black_box(tree);
+        });
     }
 }

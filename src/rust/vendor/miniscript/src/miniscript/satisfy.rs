@@ -6,19 +6,22 @@
 //! scriptpubkeys.
 //!
 
-use core::{cmp, fmt, i64, mem};
+use core::{cmp, fmt, mem};
 
 use bitcoin::hashes::hash160;
 use bitcoin::key::XOnlyPublicKey;
 use bitcoin::taproot::{ControlBlock, LeafVersion, TapLeafHash, TapNodeHash};
-use bitcoin::{absolute, ScriptBuf, Sequence};
+use bitcoin::{absolute, relative, ScriptBuf, Sequence};
 use sync::Arc;
 
 use super::context::SigType;
 use crate::plan::AssetProvider;
 use crate::prelude::*;
 use crate::util::witness_size;
-use crate::{AbsLockTime, Miniscript, MiniscriptKey, ScriptContext, Terminal, ToPublicKey};
+use crate::{
+    AbsLockTime, Miniscript, MiniscriptKey, RelLockTime, ScriptContext, Terminal, Threshold,
+    ToPublicKey,
+};
 
 /// Type alias for 32 byte Preimage.
 pub type Preimage32 = [u8; 32];
@@ -94,7 +97,7 @@ pub trait Satisfier<Pk: MiniscriptKey + ToPublicKey> {
     /// NOTE: If a descriptor mixes time-based and height-based timelocks, the implementation of
     /// this method MUST only allow timelocks of either unit, but not both. Allowing both could cause
     /// miniscript to construct an invalid witness.
-    fn check_older(&self, _: Sequence) -> bool { false }
+    fn check_older(&self, _: relative::LockTime) -> bool { false }
 
     /// Assert whether a absolute locktime is satisfied
     ///
@@ -108,39 +111,27 @@ pub trait Satisfier<Pk: MiniscriptKey + ToPublicKey> {
 impl<Pk: MiniscriptKey + ToPublicKey> Satisfier<Pk> for () {}
 
 impl<Pk: MiniscriptKey + ToPublicKey> Satisfier<Pk> for Sequence {
-    fn check_older(&self, n: Sequence) -> bool {
-        if !self.is_relative_lock_time() {
-            return false;
-        }
-
-        // We need a relative lock time type in rust-bitcoin to clean this up.
-
-        /* If nSequence encodes a relative lock-time, this mask is
-         * applied to extract that lock-time from the sequence field. */
-        const SEQUENCE_LOCKTIME_MASK: u32 = 0x0000ffff;
-        const SEQUENCE_LOCKTIME_TYPE_FLAG: u32 = 0x00400000;
-
-        let mask = SEQUENCE_LOCKTIME_MASK | SEQUENCE_LOCKTIME_TYPE_FLAG;
-        let masked_n = n.to_consensus_u32() & mask;
-        let masked_seq = self.to_consensus_u32() & mask;
-        if masked_n < SEQUENCE_LOCKTIME_TYPE_FLAG && masked_seq >= SEQUENCE_LOCKTIME_TYPE_FLAG {
-            false
+    fn check_older(&self, n: relative::LockTime) -> bool {
+        if let Some(lt) = self.to_relative_lock_time() {
+            Satisfier::<Pk>::check_older(&lt, n)
         } else {
-            masked_n <= masked_seq
+            false
         }
     }
 }
 
-impl<Pk: MiniscriptKey + ToPublicKey> Satisfier<Pk> for absolute::LockTime {
-    fn check_after(&self, n: absolute::LockTime) -> bool {
-        use absolute::LockTime::*;
-
-        match (n, *self) {
-            (Blocks(n), Blocks(lock_time)) => n <= lock_time,
-            (Seconds(n), Seconds(lock_time)) => n <= lock_time,
-            _ => false, // Not the same units.
-        }
+impl<Pk: MiniscriptKey + ToPublicKey> Satisfier<Pk> for RelLockTime {
+    fn check_older(&self, n: relative::LockTime) -> bool {
+        <relative::LockTime as Satisfier<Pk>>::check_older(&(*self).into(), n)
     }
+}
+
+impl<Pk: MiniscriptKey + ToPublicKey> Satisfier<Pk> for relative::LockTime {
+    fn check_older(&self, n: relative::LockTime) -> bool { n.is_implied_by(*self) }
+}
+
+impl<Pk: MiniscriptKey + ToPublicKey> Satisfier<Pk> for absolute::LockTime {
+    fn check_after(&self, n: absolute::LockTime) -> bool { n.is_implied_by(*self) }
 }
 
 macro_rules! impl_satisfier_for_map_key_to_ecdsa_sig {
@@ -323,7 +314,7 @@ impl<'a, Pk: MiniscriptKey + ToPublicKey, S: Satisfier<Pk>> Satisfier<Pk> for &'
 
     fn lookup_hash160(&self, h: &Pk::Hash160) -> Option<Preimage32> { (**self).lookup_hash160(h) }
 
-    fn check_older(&self, t: Sequence) -> bool { (**self).check_older(t) }
+    fn check_older(&self, t: relative::LockTime) -> bool { (**self).check_older(t) }
 
     fn check_after(&self, n: absolute::LockTime) -> bool { (**self).check_after(n) }
 }
@@ -383,7 +374,7 @@ impl<'a, Pk: MiniscriptKey + ToPublicKey, S: Satisfier<Pk>> Satisfier<Pk> for &'
 
     fn lookup_hash160(&self, h: &Pk::Hash160) -> Option<Preimage32> { (**self).lookup_hash160(h) }
 
-    fn check_older(&self, t: Sequence) -> bool { (**self).check_older(t) }
+    fn check_older(&self, t: relative::LockTime) -> bool { (**self).check_older(t) }
 
     fn check_after(&self, n: absolute::LockTime) -> bool { (**self).check_after(n) }
 }
@@ -529,7 +520,7 @@ macro_rules! impl_tuple_satisfier {
                 None
             }
 
-            fn check_older(&self, n: Sequence) -> bool {
+            fn check_older(&self, n: relative::LockTime) -> bool {
                 let &($(ref $ty,)*) = self;
                 $(
                     if $ty.check_older(n) {
@@ -561,7 +552,7 @@ impl_tuple_satisfier!(A, B, C, D, E, F);
 impl_tuple_satisfier!(A, B, C, D, E, F, G);
 impl_tuple_satisfier!(A, B, C, D, E, F, G, H);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// Type of schnorr signature to produce
 pub enum SchnorrSigType {
     /// Key spend signature
@@ -576,7 +567,7 @@ pub enum SchnorrSigType {
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// Placeholder for some data in a [`Plan`]
 ///
 /// [`Plan`]: crate::plan::Plan
@@ -707,7 +698,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Placeholder<Pk> {
 }
 
 /// A witness, if available, for a Miniscript fragment
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub enum Witness<T> {
     /// Witness Available and the value of the witness
     Stack(Vec<T>),
@@ -884,7 +875,7 @@ impl<Pk: MiniscriptKey> Witness<Placeholder<Pk>> {
 }
 
 /// A (dis)satisfaction of a Miniscript fragment
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Satisfaction<T> {
     /// The actual witness stack
     pub stack: Witness<T>,
@@ -894,7 +885,7 @@ pub struct Satisfaction<T> {
     /// The absolute timelock used by this satisfaction
     pub absolute_timelock: Option<AbsLockTime>,
     /// The relative timelock used by this satisfaction
-    pub relative_timelock: Option<Sequence>,
+    pub relative_timelock: Option<RelLockTime>,
 }
 
 impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
@@ -940,8 +931,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
 
     // produce a non-malleable satisafaction for thesh frag
     fn thresh<Ctx, Sat, F>(
-        k: usize,
-        subs: &[Arc<Miniscript<Pk, Ctx>>],
+        thresh: &Threshold<Arc<Miniscript<Pk, Ctx>>, 0>,
         stfr: &Sat,
         root_has_sig: bool,
         leaf_hash: &TapLeafHash,
@@ -955,7 +945,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
             Satisfaction<Placeholder<Pk>>,
         ) -> Satisfaction<Placeholder<Pk>>,
     {
-        let mut sats = subs
+        let mut sats = thresh
             .iter()
             .map(|s| {
                 Self::satisfy_helper(
@@ -969,7 +959,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
             })
             .collect::<Vec<_>>();
         // Start with the to-return stack set to all dissatisfactions
-        let mut ret_stack = subs
+        let mut ret_stack = thresh
             .iter()
             .map(|s| {
                 Self::dissatisfy_helper(
@@ -986,7 +976,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
         // Sort everything by (sat cost - dissat cost), except that
         // satisfactions without signatures beat satisfactions with
         // signatures
-        let mut sat_indices = (0..subs.len()).collect::<Vec<_>>();
+        let mut sat_indices = (0..thresh.n()).collect::<Vec<_>>();
         sat_indices.sort_by_key(|&i| {
             let stack_weight = match (&sats[i].stack, &ret_stack[i].stack) {
                 (&Witness::Unavailable, _) | (&Witness::Impossible, _) => i64::MAX,
@@ -1005,7 +995,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
             (is_impossible, sats[i].has_sig, stack_weight)
         });
 
-        for i in 0..k {
+        for i in 0..thresh.k() {
             mem::swap(&mut ret_stack[sat_indices[i]], &mut sats[sat_indices[i]]);
         }
 
@@ -1014,8 +1004,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
         // then the threshold branch is impossible to satisfy
         // For example, the fragment thresh(2, hash, 0, 0, 0)
         // is has an impossible witness
-        assert!(k > 0);
-        if sats[sat_indices[k - 1]].stack == Witness::Impossible {
+        if sats[sat_indices[thresh.k() - 1]].stack == Witness::Impossible {
             Satisfaction {
                 stack: Witness::Impossible,
                 // If the witness is impossible, we don't care about the
@@ -1034,9 +1023,8 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
         // For example, the fragment thresh(2, hash, hash, 0, 0)
         // is uniquely satisfyiable because there is no satisfaction
         // for the 0 fragment
-        else if k < sat_indices.len()
-            && !sats[sat_indices[k]].has_sig
-            && sats[sat_indices[k]].stack != Witness::Impossible
+        else if !sats[sat_indices[thresh.k()]].has_sig
+            && sats[sat_indices[thresh.k()]].stack != Witness::Impossible
         {
             // All arguments should be `d`, so dissatisfactions have no
             // signatures; and in this branch we assume too many weak
@@ -1072,8 +1060,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
 
     // produce a possily malleable satisafaction for thesh frag
     fn thresh_mall<Ctx, Sat, F>(
-        k: usize,
-        subs: &[Arc<Miniscript<Pk, Ctx>>],
+        thresh: &Threshold<Arc<Miniscript<Pk, Ctx>>, 0>,
         stfr: &Sat,
         root_has_sig: bool,
         leaf_hash: &TapLeafHash,
@@ -1087,7 +1074,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
             Satisfaction<Placeholder<Pk>>,
         ) -> Satisfaction<Placeholder<Pk>>,
     {
-        let mut sats = subs
+        let mut sats = thresh
             .iter()
             .map(|s| {
                 Self::satisfy_helper(
@@ -1101,7 +1088,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
             })
             .collect::<Vec<_>>();
         // Start with the to-return stack set to all dissatisfactions
-        let mut ret_stack = subs
+        let mut ret_stack = thresh
             .iter()
             .map(|s| {
                 Self::dissatisfy_helper(
@@ -1118,7 +1105,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
         // Sort everything by (sat cost - dissat cost), except that
         // satisfactions without signatures beat satisfactions with
         // signatures
-        let mut sat_indices = (0..subs.len()).collect::<Vec<_>>();
+        let mut sat_indices = (0..thresh.n()).collect::<Vec<_>>();
         sat_indices.sort_by_key(|&i| {
             // For malleable satifactions, directly choose smallest weights
             match (&sats[i].stack, &ret_stack[i].stack) {
@@ -1132,7 +1119,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
         });
 
         // swap the satisfactions
-        for i in 0..k {
+        for i in 0..thresh.k() {
             mem::swap(&mut ret_stack[sat_indices[i]], &mut sats[sat_indices[i]]);
         }
 
@@ -1246,8 +1233,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
             Satisfaction<Placeholder<Pk>>,
         ) -> Satisfaction<Placeholder<Pk>>,
         G: FnMut(
-            usize,
-            &[Arc<Miniscript<Pk, Ctx>>],
+            &Threshold<Arc<Miniscript<Pk, Ctx>>, 0>,
             &Sat,
             bool,
             &TapLeafHash,
@@ -1295,7 +1281,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
                 Satisfaction { stack, has_sig: false, relative_timelock: None, absolute_timelock }
             }
             Terminal::Older(t) => {
-                let (stack, relative_timelock) = if stfr.check_older(t) {
+                let (stack, relative_timelock) = if stfr.check_older(t.into()) {
                     (Witness::empty(), Some(t))
                 } else if root_has_sig {
                     // If the root terminal has signature, the
@@ -1505,14 +1491,14 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
                     },
                 )
             }
-            Terminal::Thresh(k, ref subs) => {
-                thresh_fn(k, subs, stfr, root_has_sig, leaf_hash, min_fn)
+            Terminal::Thresh(ref thresh) => {
+                thresh_fn(thresh, stfr, root_has_sig, leaf_hash, min_fn)
             }
-            Terminal::Multi(k, ref keys) => {
+            Terminal::Multi(ref thresh) => {
                 // Collect all available signatures
                 let mut sig_count = 0;
-                let mut sigs = Vec::with_capacity(k);
-                for pk in keys {
+                let mut sigs = Vec::with_capacity(thresh.k());
+                for pk in thresh.data() {
                     match Witness::signature::<_, Ctx>(stfr, pk, leaf_hash) {
                         Witness::Stack(sig) => {
                             sigs.push(sig);
@@ -1525,7 +1511,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
                     }
                 }
 
-                if sig_count < k {
+                if sig_count < thresh.k() {
                     Satisfaction {
                         stack: Witness::Impossible,
                         has_sig: false,
@@ -1534,7 +1520,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
                     }
                 } else {
                     // Throw away the most expensive ones
-                    for _ in 0..sig_count - k {
+                    for _ in 0..sig_count - thresh.k() {
                         let max_idx = sigs
                             .iter()
                             .enumerate()
@@ -1554,11 +1540,11 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
                     }
                 }
             }
-            Terminal::MultiA(k, ref keys) => {
+            Terminal::MultiA(ref thresh) => {
                 // Collect all available signatures
                 let mut sig_count = 0;
-                let mut sigs = vec![vec![Placeholder::PushZero]; keys.len()];
-                for (i, pk) in keys.iter().rev().enumerate() {
+                let mut sigs = vec![vec![Placeholder::PushZero]; thresh.n()];
+                for (i, pk) in thresh.iter().rev().enumerate() {
                     match Witness::signature::<_, Ctx>(stfr, pk, leaf_hash) {
                         Witness::Stack(sig) => {
                             sigs[i] = sig;
@@ -1567,7 +1553,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
                             // sigs. Incase pk at pos 1 is not selected, we know we did not have access to it
                             // bitcoin core also implements the same logic for MULTISIG, so I am not bothering
                             // permuting the sigs for now
-                            if sig_count == k {
+                            if sig_count == thresh.k() {
                                 break;
                             }
                         }
@@ -1578,7 +1564,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
                     }
                 }
 
-                if sig_count < k {
+                if sig_count < thresh.k() {
                     Satisfaction {
                         stack: Witness::Impossible,
                         has_sig: false,
@@ -1616,8 +1602,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
             Satisfaction<Placeholder<Pk>>,
         ) -> Satisfaction<Placeholder<Pk>>,
         G: FnMut(
-            usize,
-            &[Arc<Miniscript<Pk, Ctx>>],
+            &Threshold<Arc<Miniscript<Pk, Ctx>>, 0>,
             &Sat,
             bool,
             &TapLeafHash,
@@ -1765,8 +1750,8 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
                 // Dissatisfactions don't need to non-malleable. Use minimum_mall always
                 Satisfaction::minimum_mall(dissat_1, dissat_2)
             }
-            Terminal::Thresh(_, ref subs) => Satisfaction {
-                stack: subs.iter().fold(Witness::empty(), |acc, sub| {
+            Terminal::Thresh(ref thresh) => Satisfaction {
+                stack: thresh.iter().fold(Witness::empty(), |acc, sub| {
                     let nsat = Self::dissatisfy_helper(
                         &sub.node,
                         stfr,
@@ -1782,14 +1767,14 @@ impl<Pk: MiniscriptKey + ToPublicKey> Satisfaction<Placeholder<Pk>> {
                 relative_timelock: None,
                 absolute_timelock: None,
             },
-            Terminal::Multi(k, _) => Satisfaction {
-                stack: Witness::Stack(vec![Placeholder::PushZero; k + 1]),
+            Terminal::Multi(ref thresh) => Satisfaction {
+                stack: Witness::Stack(vec![Placeholder::PushZero; thresh.k() + 1]),
                 has_sig: false,
                 relative_timelock: None,
                 absolute_timelock: None,
             },
-            Terminal::MultiA(_, ref pks) => Satisfaction {
-                stack: Witness::Stack(vec![Placeholder::PushZero; pks.len()]),
+            Terminal::MultiA(ref thresh) => Satisfaction {
+                stack: Witness::Stack(vec![Placeholder::PushZero; thresh.n()]),
                 has_sig: false,
                 relative_timelock: None,
                 absolute_timelock: None,

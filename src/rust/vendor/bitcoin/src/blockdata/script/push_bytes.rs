@@ -2,22 +2,20 @@
 
 //! Contains `PushBytes` & co
 
-use core::borrow::{Borrow, BorrowMut};
 use core::ops::{Deref, DerefMut};
-
-pub use primitive::*;
 
 #[allow(unused)]
 use crate::prelude::*;
 
+#[rustfmt::skip]                // Keep public re-exports separate.
+#[doc(inline)]
+pub use self::primitive::*;
+
 /// This module only contains required operations so that outside functions wouldn't accidentally
 /// break invariants. Therefore auditing this module should be sufficient.
 mod primitive {
-    use core::convert::{TryFrom, TryInto};
-    #[cfg(rust_v_1_53)]
-    use core::ops::Bound;
     use core::ops::{
-        Index, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive,
+        Bound, Index, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive,
     };
 
     use super::PushBytesError;
@@ -103,10 +101,9 @@ mod primitive {
         RangeTo<usize>,
         RangeFull,
         RangeInclusive<usize>,
-        RangeToInclusive<usize>
+        RangeToInclusive<usize>,
+        (Bound<usize>, Bound<usize>)
     );
-    #[cfg(rust_v_1_53)]
-    delegate_index!((Bound<usize>, Bound<usize>));
 
     impl Index<usize> for PushBytes {
         type Output = u8;
@@ -197,7 +194,8 @@ mod primitive {
 
     impl PushBytesBuf {
         /// Creates a new empty `PushBytesBuf`.
-        pub fn new() -> Self { PushBytesBuf(Vec::new()) }
+        #[inline]
+        pub const fn new() -> Self { PushBytesBuf(Vec::new()) }
 
         /// Creates a new empty `PushBytesBuf` with reserved capacity.
         pub fn with_capacity(capacity: usize) -> Self { PushBytesBuf(Vec::with_capacity(capacity)) }

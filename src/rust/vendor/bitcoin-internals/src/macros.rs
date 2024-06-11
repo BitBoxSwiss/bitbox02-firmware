@@ -42,7 +42,7 @@ macro_rules! impl_array_newtype {
         impl<'a> core::convert::TryFrom<&'a [$ty]> for $thing {
             type Error = core::array::TryFromSliceError;
 
-            fn try_from(data: &'a [$ty]) -> Result<Self, Self::Error> {
+            fn try_from(data: &'a [$ty]) -> core::result::Result<Self, Self::Error> {
                 use core::convert::TryInto;
 
                 Ok($thing(data.try_into()?))
@@ -99,7 +99,10 @@ macro_rules! impl_array_newtype {
 macro_rules! debug_from_display {
     ($thing:ident) => {
         impl core::fmt::Debug for $thing {
-            fn fmt(&self, f: &mut core::fmt::Formatter) -> Result<(), core::fmt::Error> {
+            fn fmt(
+                &self,
+                f: &mut core::fmt::Formatter,
+            ) -> core::result::Result<(), core::fmt::Error> {
                 core::fmt::Display::fmt(self, f)
             }
         }
@@ -112,4 +115,60 @@ macro_rules! const_assert {
     ($x:expr) => {{
         const _: [(); 0 - !$x as usize] = [];
     }};
+}
+
+/// Derives `From<core::convert::Infallible>` for the given type.
+///
+/// Supports types with arbitrary combinations of lifetimes and type parameters.
+///
+/// Note: Paths are not supported (for ex. impl_from_infallible!(Hello<D: std::fmt::Display>).
+///
+/// ## Examples
+///
+/// ```rust
+/// # use core::fmt::{Display, Debug};
+/// use bitcoin_internals::impl_from_infallible;
+///
+/// enum AlphaEnum { Item }
+/// impl_from_infallible!(AlphaEnum);
+///
+/// enum BetaEnum<'b> { Item(&'b usize) }
+/// impl_from_infallible!(BetaEnum<'b>);
+///
+/// enum GammaEnum<T> { Item(T) };
+/// impl_from_infallible!(GammaEnum<T>);
+///
+/// enum DeltaEnum<'b, 'a: 'static + 'b, T: 'a, D: Debug + Display + 'a> {
+///     Item((&'b usize, &'a usize, T, D))
+/// }
+/// impl_from_infallible!(DeltaEnum<'b, 'a: 'static + 'b, T: 'a, D: Debug + Display + 'a>);
+///
+/// struct AlphaStruct;
+/// impl_from_infallible!(AlphaStruct);
+///
+/// struct BetaStruct<'b>(&'b usize);
+/// impl_from_infallible!(BetaStruct<'b>);
+///
+/// struct GammaStruct<T>(T);
+/// impl_from_infallible!(GammaStruct<T>);
+///
+/// struct DeltaStruct<'b, 'a: 'static + 'b, T: 'a, D: Debug + Display + 'a> {
+///     hello: &'a T,
+///     what: &'b D,
+/// }
+/// impl_from_infallible!(DeltaStruct<'b, 'a: 'static + 'b, T: 'a, D: Debug + Display + 'a>);
+/// ```
+///
+/// See <https://stackoverflow.com/a/61189128> for more information about this macro.
+#[macro_export]
+macro_rules! impl_from_infallible {
+    ( $name:ident $(< $( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+ >)? ) => {
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)?
+            From<core::convert::Infallible>
+        for $name
+            $(< $( $lt ),+ >)?
+        {
+            fn from(never: core::convert::Infallible) -> Self { match never {} }
+        }
+    }
 }

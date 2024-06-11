@@ -41,14 +41,13 @@
 use core::fmt;
 
 use hashes::Hash;
+use io::{BufRead, Write};
 
 use self::MerkleBlockError::*;
-use crate::blockdata::block::{self, Block};
-use crate::blockdata::transaction::Transaction;
+use crate::blockdata::block::{self, Block, TxMerkleNode};
+use crate::blockdata::transaction::{Transaction, Txid};
 use crate::blockdata::weight::Weight;
-use crate::consensus::encode::{self, Decodable, Encodable};
-use crate::hash_types::{TxMerkleNode, Txid};
-use crate::io;
+use crate::consensus::encode::{self, Decodable, Encodable, MAX_VEC_SIZE};
 use crate::prelude::*;
 
 /// Data structure that represents a block header paired to a partial merkle tree.
@@ -104,7 +103,7 @@ impl MerkleBlock {
     where
         F: Fn(&Txid) -> bool,
     {
-        let block_txids: Vec<_> = block.txdata.iter().map(Transaction::txid).collect();
+        let block_txids: Vec<_> = block.txdata.iter().map(Transaction::compute_txid).collect();
         Self::from_header_txids_with_predicate(&block.header, &block_txids, match_txids)
     }
 
@@ -145,14 +144,14 @@ impl MerkleBlock {
 }
 
 impl Encodable for MerkleBlock {
-    fn consensus_encode<W: io::Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         let len = self.header.consensus_encode(w)? + self.txn.consensus_encode(w)?;
         Ok(len)
     }
 }
 
 impl Decodable for MerkleBlock {
-    fn consensus_decode<R: io::Read + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
+    fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
         Ok(MerkleBlock {
             header: Decodable::consensus_decode(r)?,
             txn: Decodable::consensus_decode(r)?,
@@ -435,7 +434,7 @@ impl PartialMerkleTree {
 }
 
 impl Encodable for PartialMerkleTree {
-    fn consensus_encode<W: io::Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         let mut ret = self.num_transactions.consensus_encode(w)?;
         ret += self.hashes.consensus_encode(w)?;
 
@@ -453,13 +452,19 @@ impl Encodable for PartialMerkleTree {
 }
 
 impl Decodable for PartialMerkleTree {
-    fn consensus_decode_from_finite_reader<R: io::Read + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         let num_transactions: u32 = Decodable::consensus_decode(r)?;
         let hashes: Vec<TxMerkleNode> = Decodable::consensus_decode(r)?;
 
         let nb_bytes_for_bits = encode::VarInt::consensus_decode(r)?.0 as usize;
+        if nb_bytes_for_bits > MAX_VEC_SIZE {
+            return Err(encode::Error::OversizedVectorAllocation {
+                requested: nb_bytes_for_bits,
+                max: MAX_VEC_SIZE,
+            });
+        }
         let mut bits = vec![false; nb_bytes_for_bits * 8];
         for chunk in bits.chunks_mut(8) {
             let byte = u8::consensus_decode(r)?;
@@ -499,6 +504,8 @@ pub enum MerkleBlockError {
     IdenticalHashesFound,
 }
 
+internals::impl_from_infallible!(MerkleBlockError);
+
 impl fmt::Display for MerkleBlockError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use MerkleBlockError::*;
@@ -533,17 +540,12 @@ impl std::error::Error for MerkleBlockError {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "rand-std")]
-    use hashes::Hash;
     use hex::test_hex_unwrap as hex;
     #[cfg(feature = "rand-std")]
     use secp256k1::rand::prelude::*;
 
     use super::*;
     use crate::consensus::encode::{deserialize, serialize};
-    #[cfg(feature = "rand-std")]
-    use crate::hash_types::TxMerkleNode;
-    use crate::{Block, Txid};
 
     #[cfg(feature = "rand-std")]
     macro_rules! pmt_tests {
@@ -820,5 +822,20 @@ mod tests {
         tree_width_19, 7, 1, 4;
         tree_width_20, 7, 2, 2;
         tree_width_21, 7, 3, 1;
+    }
+
+    #[test]
+    fn regression_2606() {
+        // Attempt
+        let bytes = hex!(
+            "000006000000000000000004ee00000004c7f1ccb1000000ffff000000010000\
+             0000ffffffffff1f000000000400000000000002000000000500000000000000\
+             000000000300000000000003000000000200000000ff00000000c7f1ccb10407\
+             00000000000000ccb100c76538b100000004bfa9c251681b1b00040000000025\
+             00000004bfaac251681b1b25\
+         "
+        );
+        let deser = crate::consensus::deserialize::<MerkleBlock>(&bytes);
+        assert!(deser.is_err());
     }
 }

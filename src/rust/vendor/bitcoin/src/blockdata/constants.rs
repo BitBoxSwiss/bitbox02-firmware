@@ -7,8 +7,6 @@
 //! single transaction.
 //!
 
-use core::default::Default;
-
 use hashes::{sha256d, Hash};
 use hex_lit::hex;
 use internals::impl_array_newtype;
@@ -19,6 +17,7 @@ use crate::blockdata::opcodes::all::*;
 use crate::blockdata::script;
 use crate::blockdata::transaction::{self, OutPoint, Sequence, Transaction, TxIn, TxOut};
 use crate::blockdata::witness::Witness;
+use crate::consensus::Params;
 use crate::internal_macros::impl_bytes_newtype;
 use crate::network::Network;
 use crate::pow::CompactTarget;
@@ -31,16 +30,8 @@ pub const DIFFCHANGE_INTERVAL: u32 = 2016;
 /// How much time on average should occur between diffchanges.
 pub const DIFFCHANGE_TIMESPAN: u32 = 14 * 24 * 3600;
 
-#[deprecated(since = "0.31.0", note = "Use Weight::MAX_BLOCK instead")]
-/// The maximum allowed weight for a block, see BIP 141 (network rule).
-pub const MAX_BLOCK_WEIGHT: u32 = 4_000_000;
-
-#[deprecated(since = "0.31.0", note = "Use Weight::MIN_TRANSACTION instead")]
-/// The minimum transaction weight for a valid serialized transaction.
-pub const MIN_TRANSACTION_WEIGHT: u32 = 4 * 60;
-
 /// The factor that non-witness serialization data is multiplied by during weight calculation.
-pub const WITNESS_SCALE_FACTOR: usize = 4;
+pub const WITNESS_SCALE_FACTOR: usize = units::weight::WITNESS_SCALE_FACTOR;
 /// The maximum allowed number of signature check operations in a block.
 pub const MAX_BLOCK_SIGOPS_COST: i64 = 80_000;
 /// Mainnet (bitcoin) pubkey address prefix.
@@ -94,11 +85,11 @@ fn bitcoin_genesis_tx() -> Transaction {
 }
 
 /// Constructs and returns the genesis block.
-pub fn genesis_block(network: Network) -> Block {
+pub fn genesis_block(params: impl AsRef<Params>) -> Block {
     let txdata = vec![bitcoin_genesis_tx()];
-    let hash: sha256d::Hash = txdata[0].txid().into();
+    let hash: sha256d::Hash = txdata[0].compute_txid().into();
     let merkle_root = hash.into();
-    match network {
+    match params.as_ref().network {
         Network::Bitcoin => Block {
             header: block::Header {
                 version: block::Version::ONE,
@@ -179,7 +170,17 @@ impl ChainHash {
     ///
     /// See [BOLT 0](https://github.com/lightning/bolts/blob/ffeece3dab1c52efdb9b53ae476539320fa44938/00-introduction.md#chain_hash)
     /// for specification.
-    pub const fn using_genesis_block(network: Network) -> Self {
+    pub fn using_genesis_block(params: impl AsRef<Params>) -> Self {
+        let network = params.as_ref().network;
+        let hashes = [Self::BITCOIN, Self::TESTNET, Self::SIGNET, Self::REGTEST];
+        hashes[network as usize]
+    }
+
+    /// Returns the hash of the `network` genesis block for use as a chain hash.
+    ///
+    /// See [BOLT 0](https://github.com/lightning/bolts/blob/ffeece3dab1c52efdb9b53ae476539320fa44938/00-introduction.md#chain_hash)
+    /// for specification.
+    pub const fn using_genesis_block_const(network: Network) -> Self {
         let hashes = [Self::BITCOIN, Self::TESTNET, Self::SIGNET, Self::REGTEST];
         hashes[network as usize]
     }
@@ -197,10 +198,8 @@ mod test {
     use hex::test_hex_unwrap as hex;
 
     use super::*;
-    use crate::blockdata::locktime::absolute;
-    use crate::blockdata::transaction;
+    use crate::consensus::params;
     use crate::consensus::encode::serialize;
-    use crate::network::Network;
 
     #[test]
     fn bitcoin_genesis_first_transaction() {
@@ -221,14 +220,26 @@ mod test {
         assert_eq!(gen.lock_time, absolute::LockTime::ZERO);
 
         assert_eq!(
-            gen.wtxid().to_string(),
+            gen.compute_wtxid().to_string(),
             "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
         );
     }
 
     #[test]
+    fn bitcoin_genesis_block_calling_convention() {
+        // This is the best.
+        let _ = genesis_block(&params::MAINNET);
+        // this works and is ok too.
+        let _ = genesis_block(&Network::Bitcoin);
+        let _ = genesis_block(Network::Bitcoin);
+        // This works too, but is suboptimal because it inlines the const.
+        let _ = genesis_block(Params::MAINNET);
+        let _ = genesis_block(&Params::MAINNET);
+    }
+
+    #[test]
     fn bitcoin_genesis_full_block() {
-        let gen = genesis_block(Network::Bitcoin);
+        let gen = genesis_block(&params::MAINNET);
 
         assert_eq!(gen.header.version, block::Version::ONE);
         assert_eq!(gen.header.prev_blockhash, Hash::all_zeros());
@@ -248,7 +259,7 @@ mod test {
 
     #[test]
     fn testnet_genesis_full_block() {
-        let gen = genesis_block(Network::Testnet);
+        let gen = genesis_block(&params::TESTNET);
         assert_eq!(gen.header.version, block::Version::ONE);
         assert_eq!(gen.header.prev_blockhash, Hash::all_zeros());
         assert_eq!(
@@ -266,7 +277,7 @@ mod test {
 
     #[test]
     fn signet_genesis_full_block() {
-        let gen = genesis_block(Network::Signet);
+        let gen = genesis_block(&params::SIGNET);
         assert_eq!(gen.header.version, block::Version::ONE);
         assert_eq!(gen.header.prev_blockhash, Hash::all_zeros());
         assert_eq!(
@@ -293,7 +304,7 @@ mod test {
         let hash = sha256::Hash::from_slice(genesis_hash.as_byte_array()).unwrap();
         let want = format!("{:02x}", hash);
 
-        let chain_hash = ChainHash::using_genesis_block(network);
+        let chain_hash = ChainHash::using_genesis_block_const(network);
         let got = format!("{:02x}", chain_hash);
 
         // Compare strings because the spec specifically states how the chain hash must encode to hex.
@@ -330,7 +341,7 @@ mod test {
     // Test vector taken from: https://github.com/lightning/bolts/blob/master/00-introduction.md
     #[test]
     fn mainnet_chain_hash_test_vector() {
-        let got = ChainHash::using_genesis_block(Network::Bitcoin).to_string();
+        let got = ChainHash::using_genesis_block_const(Network::Bitcoin).to_string();
         let want = "6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000";
         assert_eq!(got, want);
     }

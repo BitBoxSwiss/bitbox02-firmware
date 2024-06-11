@@ -1,3 +1,16 @@
+# 0.10.0 - 2024-03-28
+
+* Bump MSRV to Rust `v1.56.1` [#693](https://github.com/rust-bitcoin/rust-secp256k1/pull/693)
+* Vendor `secp256k1 v0.4.1` [#688](https://github.com/rust-bitcoin/rust-secp256k1/pull/688)
+
+# 0.9.2 - 2023-12-18
+
+* Fix incorrect FFI binding for `secp256k1_pubkey_combine`
+
+# 0.9.1 - 2023-12-07
+
+* Patch out any instances of printf in upstream [#663](https://github.com/rust-bitcoin/rust-secp256k1/pull/663)
+
 # 0.9.0 - 2023-10-23
 
 * Add bindings to the ElligatorSwift implementation [#627](https://github.com/rust-bitcoin/rust-secp256k1/pull/627)

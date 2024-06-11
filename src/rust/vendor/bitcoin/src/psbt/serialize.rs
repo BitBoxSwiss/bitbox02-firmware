@@ -6,10 +6,8 @@
 //! according to the BIP-174 specification.
 //!
 
-use core::convert::{TryFrom, TryInto};
-
 use hashes::{hash160, ripemd160, sha256, sha256d, Hash};
-use secp256k1::{self, XOnlyPublicKey};
+use secp256k1::XOnlyPublicKey;
 
 use super::map::{Input, Map, Output, PsbtSighashType};
 use crate::bip32::{ChildNumber, Fingerprint, KeySource};
@@ -24,7 +22,7 @@ use crate::psbt::{Error, Psbt};
 use crate::taproot::{
     ControlBlock, LeafVersion, TapLeafHash, TapNodeHash, TapTree, TaprootBuilder,
 };
-use crate::{io, VarInt};
+use crate::VarInt;
 /// A trait for serializing a value as raw data for insertion into PSBT
 /// key-value maps.
 pub(crate) trait Serialize {
@@ -323,7 +321,6 @@ impl Serialize for (Vec<TapLeafHash>, KeySource) {
     fn serialize(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(32 * self.0.len() + key_source_len(&self.1));
         self.0.consensus_encode(&mut buf).expect("Vecs don't error allocation");
-        // TODO: Add support for writing into a writer for key-source
         buf.extend(self.1.serialize());
         buf
     }
@@ -386,8 +383,6 @@ fn key_source_len(key_source: &KeySource) -> usize { 4 + 4 * (key_source.1).as_r
 
 #[cfg(test)]
 mod tests {
-    use core::convert::TryFrom;
-
     use super::*;
 
     // Composes tree matching a given depth map, filled with dumb script leafs,

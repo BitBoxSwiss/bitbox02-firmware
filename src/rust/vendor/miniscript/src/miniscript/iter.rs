@@ -29,7 +29,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
     /// them.
     pub fn branches(&self) -> Vec<&Miniscript<Pk, Ctx>> {
         match self.node {
-            Terminal::PkK(_) | Terminal::PkH(_) | Terminal::RawPkH(_) | Terminal::Multi(_, _) => {
+            Terminal::PkK(_) | Terminal::PkH(_) | Terminal::RawPkH(_) | Terminal::Multi(_) => {
                 vec![]
             }
 
@@ -50,7 +50,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
 
             Terminal::AndOr(ref node1, ref node2, ref node3) => vec![node1, node2, node3],
 
-            Terminal::Thresh(_, ref node_vec) => node_vec.iter().map(Arc::deref).collect(),
+            Terminal::Thresh(ref thresh) => thresh.iter().map(Arc::deref).collect(),
 
             _ => vec![],
         }
@@ -82,7 +82,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
             | (1, Terminal::AndOr(_, node, _))
             | (2, Terminal::AndOr(_, _, node)) => Some(node),
 
-            (n, Terminal::Thresh(_, node_vec)) => node_vec.get(n).map(|x| &**x),
+            (n, Terminal::Thresh(thresh)) => thresh.data().get(n).map(|x| &**x),
 
             _ => None,
         }
@@ -94,10 +94,9 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
     /// NB: The function analyzes only single miniscript item and not any of its descendants in AST.
     pub fn get_nth_pk(&self, n: usize) -> Option<Pk> {
         match (&self.node, n) {
-            (&Terminal::PkK(ref key), 0) | (&Terminal::PkH(ref key), 0) => Some(key.clone()),
-            (&Terminal::Multi(_, ref keys), _) | (&Terminal::MultiA(_, ref keys), _) => {
-                keys.get(n).cloned()
-            }
+            (Terminal::PkK(key), 0) | (Terminal::PkH(key), 0) => Some(key.clone()),
+            (Terminal::Multi(thresh), _) => thresh.data().get(n).cloned(),
+            (Terminal::MultiA(thresh), _) => thresh.data().get(n).cloned(),
             _ => None,
         }
     }
@@ -204,9 +203,7 @@ impl<'a, Pk: MiniscriptKey, Ctx: ScriptContext> Iterator for PkIter<'a, Pk, Ctx>
 // dependent libraries for their own tasts based on Miniscript AST
 #[cfg(test)]
 pub mod test {
-    use bitcoin;
     use bitcoin::hashes::{hash160, ripemd160, sha256, sha256d, Hash};
-    use bitcoin::secp256k1;
 
     use super::Miniscript;
     use crate::miniscript::context::Segwitv0;

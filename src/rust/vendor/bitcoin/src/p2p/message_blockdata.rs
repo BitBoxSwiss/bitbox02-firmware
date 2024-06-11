@@ -7,12 +7,13 @@
 //!
 
 use hashes::{sha256d, Hash as _};
+use io::{BufRead, Write};
 
+use crate::blockdata::block::BlockHash;
+use crate::blockdata::transaction::{Txid, Wtxid};
 use crate::consensus::encode::{self, Decodable, Encodable};
-use crate::hash_types::{BlockHash, Txid, Wtxid};
 use crate::internal_macros::impl_consensus_encoding;
-use crate::prelude::*;
-use crate::{io, p2p};
+use crate::p2p;
 
 /// An inventory item.
 #[derive(PartialEq, Eq, Clone, Debug, Copy, Hash, PartialOrd, Ord)]
@@ -60,7 +61,7 @@ impl Inventory {
 
 impl Encodable for Inventory {
     #[inline]
-    fn consensus_encode<W: io::Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         macro_rules! encode_inv {
             ($code:expr, $item:expr) => {
                 u32::consensus_encode(&$code, w)? + $item.consensus_encode(w)?
@@ -81,7 +82,7 @@ impl Encodable for Inventory {
 
 impl Decodable for Inventory {
     #[inline]
-    fn consensus_decode<R: io::Read + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
+    fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
         let inv_type: u32 = Decodable::consensus_decode(r)?;
         Ok(match inv_type {
             0 => Inventory::Error,
@@ -147,7 +148,7 @@ mod tests {
     use hashes::Hash;
     use hex::test_hex_unwrap as hex;
 
-    use super::{GetBlocksMessage, GetHeadersMessage, Vec};
+    use super::{GetBlocksMessage, GetHeadersMessage};
     use crate::consensus::encode::{deserialize, serialize};
 
     #[test]

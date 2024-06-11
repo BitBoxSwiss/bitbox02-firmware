@@ -307,7 +307,7 @@ fn encode_segwit_addr(
         1 => bech32::segwit::VERSION_1,
         _ => return Err(()),
     };
-    bech32::segwit::encode(&bech32::Hrp::parse_unchecked(hrp), version, witness_program).or(Err(()))
+    bech32::segwit::encode(bech32::Hrp::parse_unchecked(hrp), version, witness_program).or(Err(()))
 }
 
 #[cfg(test)]

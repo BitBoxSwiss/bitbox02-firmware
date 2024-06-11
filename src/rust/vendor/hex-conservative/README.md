@@ -4,7 +4,7 @@ General purpose hex encoding/decoding library with a conservative MSRV and depen
 
 ## Minimum Supported Rust Version (MSRV)
 
-This library should compile with almost any combination of features on **Rust 1.48.0**, however we
+This library should compile with almost any combination of features on **Rust 1.56.1**, however we
 reserve the right to use features to guard compiler specific code so `--all-features` may not work
 using the MSRV toolchain.
 

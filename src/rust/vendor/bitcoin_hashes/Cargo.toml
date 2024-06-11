@@ -10,9 +10,10 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.56.1"
 name = "bitcoin_hashes"
-version = "0.13.0"
+version = "0.14.0"
 authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>"]
 exclude = [
     "tests",
@@ -38,24 +39,20 @@ rustdoc-args = [
     "docsrs",
 ]
 
-[dependencies.actual-core2]
-version = "0.3.2"
+[dependencies.bitcoin-io]
+version = "0.1.1"
 optional = true
 default-features = false
-package = "core2"
 
 [dependencies.hex]
-version = "0.1.1"
+version = "0.2.0"
 default-features = false
 package = "hex-conservative"
-
-[dependencies.internals]
-version = "0.2.0"
-package = "bitcoin-internals"
 
 [dependencies.schemars]
 version = "0.8.3"
 optional = true
+default-features = false
 
 [dependencies.serde]
 version = "1.0"
@@ -69,22 +66,12 @@ version = "1.0"
 version = "1.0"
 
 [features]
-alloc = [
-    "internals/alloc",
-    "hex/alloc",
-]
-core2 = [
-    "actual-core2",
-    "hex/core2",
-]
+alloc = ["hex/alloc"]
 default = ["std"]
-serde-std = ["serde/std"]
+io = ["bitcoin-io"]
 small-hash = []
 std = [
     "alloc",
-    "internals/std",
     "hex/std",
+    "bitcoin-io/std",
 ]
-
-[target.wasm32-unknown-unknown.dev-dependencies.wasm-bindgen-test]
-version = "0.3"

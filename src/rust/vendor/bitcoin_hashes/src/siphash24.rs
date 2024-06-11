@@ -12,8 +12,7 @@ use crate::{FromSliceError, Hash as _, HashEngine as _};
 crate::internal_macros::hash_type! {
     64,
     false,
-    "Output of the SipHash24 hash function.",
-    "crate::util::json_hex_string::len_8"
+    "Output of the SipHash24 hash function."
 }
 
 #[cfg(not(hashes_fuzz))]
@@ -91,7 +90,8 @@ pub struct HashEngine {
 
 impl HashEngine {
     /// Creates a new SipHash24 engine with keys.
-    pub fn with_keys(k0: u64, k1: u64) -> HashEngine {
+    #[inline]
+    pub const fn with_keys(k0: u64, k1: u64) -> HashEngine {
         HashEngine {
             k0,
             k1,
@@ -108,7 +108,8 @@ impl HashEngine {
     }
 
     /// Creates a new SipHash24 engine.
-    pub fn new() -> HashEngine { HashEngine::with_keys(0, 0) }
+    #[inline]
+    pub const fn new() -> HashEngine { HashEngine::with_keys(0, 0) }
 
     /// Retrieves the keys of this engine.
     pub fn keys(&self) -> (u64, u64) { (self.k0, self.k1) }

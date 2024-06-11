@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-use core::convert::TryFrom;
-
 use secp256k1::XOnlyPublicKey;
-use {core, secp256k1};
 
 use crate::bip32::KeySource;
 use crate::blockdata::script::ScriptBuf;

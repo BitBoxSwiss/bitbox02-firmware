@@ -8,8 +8,6 @@
 #[cfg(feature = "std")]
 pub mod address;
 #[cfg(feature = "std")]
-pub use self::address::Address;
-#[cfg(feature = "std")]
 pub mod message;
 #[cfg(feature = "std")]
 pub mod message_blockdata;
@@ -22,16 +20,22 @@ pub mod message_filter;
 #[cfg(feature = "std")]
 pub mod message_network;
 
-use core::convert::TryFrom;
 use core::str::FromStr;
 use core::{fmt, ops};
 
 use hex::FromHex;
 use internals::{debug_from_display, write_err};
+use io::{BufRead, Write};
 
 use crate::consensus::encode::{self, Decodable, Encodable};
-use crate::prelude::{Borrow, BorrowMut, String, ToOwned};
-use crate::{io, Network};
+use crate::consensus::Params;
+use crate::prelude::*;
+use crate::Network;
+
+#[rustfmt::skip]
+#[doc(inline)]
+#[cfg(feature = "std")]
+pub use self::address::Address;
 
 /// Version of the protocol as appearing in network message headers.
 ///
@@ -87,6 +91,10 @@ impl ServiceFlags {
     /// 288 (2 day) blocks.
     /// See BIP159 for details on how this is implemented.
     pub const NETWORK_LIMITED: ServiceFlags = ServiceFlags(1 << 10);
+
+    /// P2P_V2 indicates that the node supports the P2P v2 encrypted transport protocol.
+    /// See BIP324 for details on how this is implemented.
+    pub const P2P_V2: ServiceFlags = ServiceFlags(1 << 11);
 
     // NOTE: When adding new flags, remember to update the Display impl accordingly.
 
@@ -147,6 +155,7 @@ impl fmt::Display for ServiceFlags {
         write_flag!(WITNESS);
         write_flag!(COMPACT_FILTERS);
         write_flag!(NETWORK_LIMITED);
+        write_flag!(P2P_V2);
         // If there are unknown flags left, we append them in hex.
         if flags != ServiceFlags::NONE {
             if !first {
@@ -188,14 +197,14 @@ impl ops::BitXorAssign for ServiceFlags {
 
 impl Encodable for ServiceFlags {
     #[inline]
-    fn consensus_encode<W: io::Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         self.0.consensus_encode(w)
     }
 }
 
 impl Decodable for ServiceFlags {
     #[inline]
-    fn consensus_decode<R: io::Read + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
+    fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
         Ok(ServiceFlags(Decodable::consensus_decode(r)?))
     }
 }
@@ -218,6 +227,11 @@ impl Magic {
 
     /// Get network magic bytes.
     pub fn to_bytes(self) -> [u8; 4] { self.0 }
+
+    /// Returns the magic bytes for the network defined by `params`.
+    pub fn from_params(params: impl AsRef<Params>) -> Self {
+        params.as_ref().network.into()
+    }
 }
 
 impl FromStr for Magic {
@@ -281,13 +295,13 @@ impl fmt::UpperHex for Magic {
 }
 
 impl Encodable for Magic {
-    fn consensus_encode<W: io::Write + ?Sized>(&self, writer: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, writer: &mut W) -> Result<usize, io::Error> {
         self.0.consensus_encode(writer)
     }
 }
 
 impl Decodable for Magic {
-    fn consensus_decode<R: io::Read + ?Sized>(reader: &mut R) -> Result<Self, encode::Error> {
+    fn consensus_decode<R: BufRead + ?Sized>(reader: &mut R) -> Result<Self, encode::Error> {
         Ok(Magic(Decodable::consensus_decode(reader)?))
     }
 }

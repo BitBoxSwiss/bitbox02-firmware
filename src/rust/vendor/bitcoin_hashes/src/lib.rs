@@ -65,22 +65,22 @@
 //! # fn main() {}
 //! ```
 
-// Coding conventions
-#![warn(missing_docs)]
+#![cfg_attr(all(not(test), not(feature = "std")), no_std)]
+
 // Experimental features we need.
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![cfg_attr(bench, feature(test))]
-// In general, rust is absolutely horrid at supporting users doing things like,
-// for example, compiling Rust code for real environments. Disable useless lints
-// that don't do anything but annoy us and cant actually ever be resolved.
-#![allow(bare_trait_objects)]
-#![allow(ellipsis_inclusive_range_patterns)]
-#![cfg_attr(all(not(test), not(feature = "std")), no_std)]
+
+// Coding conventions.
+#![warn(missing_docs)]
+
 // Instead of littering the codebase for non-fuzzing code just globally allow.
 #![cfg_attr(hashes_fuzz, allow(dead_code, unused_imports))]
 
-#[cfg(all(not(test), not(feature = "std"), feature = "core2"))]
-extern crate actual_core2 as core2;
+// Exclude lints we don't think are valuable.
+#![allow(clippy::needless_question_mark)] // https://github.com/rust-bitcoin/rust-bitcoin/pull/2134
+#![allow(clippy::manual_range_contains)] // More readable than clippy's format.
+
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 extern crate alloc;
 #[cfg(any(test, feature = "std"))]
@@ -117,24 +117,20 @@ pub mod serde_macros;
 pub mod cmp;
 pub mod hash160;
 pub mod hmac;
-#[cfg(any(test, feature = "std", feature = "core2"))]
+#[cfg(feature = "bitcoin-io")]
 mod impls;
 pub mod ripemd160;
 pub mod sha1;
 pub mod sha256;
 pub mod sha256d;
 pub mod sha256t;
+pub mod sha384;
 pub mod sha512;
 pub mod sha512_256;
 pub mod siphash24;
 
 use core::{borrow, fmt, hash, ops};
-// You get I/O if you enable "std" or "core2" (as well as during testing).
-#[cfg(any(test, feature = "std"))]
-use std::io;
 
-#[cfg(all(not(test), not(feature = "std"), feature = "core2"))]
-use core2::io;
 pub use hmac::{Hmac, HmacEngine};
 
 /// A hashing engine which bytes can be serialized into.
@@ -202,6 +198,19 @@ pub trait Hash:
         Self::from_engine(engine)
     }
 
+    /// Hashes all the byte slices retrieved from the iterator together.
+    fn hash_byte_chunks<B, I>(byte_slices: I) -> Self
+    where
+        B: AsRef<[u8]>,
+        I: IntoIterator<Item = B>,
+    {
+        let mut engine = Self::engine();
+        for slice in byte_slices {
+            engine.input(slice.as_ref());
+        }
+        Self::from_engine(engine)
+    }
+
     /// Flag indicating whether user-visible serializations of this hash
     /// should be backward. For some reason Satoshi decided this should be
     /// true for `Sha256dHash`, so here we are.
@@ -225,10 +234,18 @@ pub trait Hash:
 }
 
 /// Attempted to create a hash from an invalid length slice.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FromSliceError {
     expected: usize,
     got: usize,
+}
+
+impl FromSliceError {
+    /// Returns the expected slice length.
+    pub fn expected_length(&self) -> usize { self.expected }
+
+    /// Returns the invalid slice length.
+    pub fn invalid_length(&self) -> usize { self.got }
 }
 
 impl fmt::Display for FromSliceError {
@@ -238,9 +255,7 @@ impl fmt::Display for FromSliceError {
 }
 
 #[cfg(feature = "std")]
-impl std::error::Error for FromSliceError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> { None }
-}
+impl std::error::Error for FromSliceError {}
 
 #[cfg(test)]
 mod tests {
@@ -263,5 +278,13 @@ mod tests {
         let h = sha256d::Hash::hash(&[]);
         let h2: TestNewtype = h.to_string().parse().unwrap();
         assert_eq!(h2.to_raw_hash(), h);
+    }
+
+    #[test]
+    fn newtype_fmt_roundtrip() {
+        let orig = TestNewtype::hash(&[]);
+        let hex = format!("{}", orig);
+        let rinsed = hex.parse::<TestNewtype>().expect("failed to parse hex");
+        assert_eq!(rinsed, orig)
     }
 }

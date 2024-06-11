@@ -2,14 +2,14 @@
 
 //! ECDSA Bitcoin signatures.
 //!
-//! This module provides ECDSA signatures used Bitcoin that can be roundtrip (de)serialized.
+//! This module provides ECDSA signatures used by Bitcoin that can be roundtrip (de)serialized.
 
 use core::str::FromStr;
 use core::{fmt, iter};
 
 use hex::FromHex;
 use internals::write_err;
-use secp256k1;
+use io::Write;
 
 use crate::prelude::*;
 use crate::script::PushBytes;
@@ -22,24 +22,24 @@ const MAX_SIG_LEN: usize = 73;
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct Signature {
-    /// The underlying ECDSA Signature
-    pub sig: secp256k1::ecdsa::Signature,
-    /// The corresponding hash type
-    pub hash_ty: EcdsaSighashType,
+    /// The underlying ECDSA Signature.
+    pub signature: secp256k1::ecdsa::Signature,
+    /// The corresponding hash type.
+    pub sighash_type: EcdsaSighashType,
 }
 
 impl Signature {
-    /// Constructs an ECDSA bitcoin signature for [`EcdsaSighashType::All`].
-    pub fn sighash_all(sig: secp256k1::ecdsa::Signature) -> Signature {
-        Signature { sig, hash_ty: EcdsaSighashType::All }
+    /// Constructs an ECDSA Bitcoin signature for [`EcdsaSighashType::All`].
+    pub fn sighash_all(signature: secp256k1::ecdsa::Signature) -> Signature {
+        Signature { signature, sighash_type: EcdsaSighashType::All }
     }
 
     /// Deserializes from slice following the standardness rules for [`EcdsaSighashType`].
     pub fn from_slice(sl: &[u8]) -> Result<Self, Error> {
-        let (hash_ty, sig) = sl.split_last().ok_or(Error::EmptySignature)?;
-        let hash_ty = EcdsaSighashType::from_standard(*hash_ty as u32)?;
-        let sig = secp256k1::ecdsa::Signature::from_der(sig).map_err(Error::Secp256k1)?;
-        Ok(Signature { sig, hash_ty })
+        let (sighash_type, sig) = sl.split_last().ok_or(Error::EmptySignature)?;
+        let sighash_type = EcdsaSighashType::from_standard(*sighash_type as u32)?;
+        let signature = secp256k1::ecdsa::Signature::from_der(sig).map_err(Error::Secp256k1)?;
+        Ok(Signature { signature, sighash_type })
     }
 
     /// Serializes an ECDSA signature (inner secp256k1 signature in DER format).
@@ -47,9 +47,9 @@ impl Signature {
     /// This does **not** perform extra heap allocation.
     pub fn serialize(&self) -> SerializedSignature {
         let mut buf = [0u8; MAX_SIG_LEN];
-        let signature = self.sig.serialize_der();
+        let signature = self.signature.serialize_der();
         buf[..signature.len()].copy_from_slice(&signature);
-        buf[signature.len()] = self.hash_ty as u8;
+        buf[signature.len()] = self.sighash_type as u8;
         SerializedSignature { data: buf, len: signature.len() + 1 }
     }
 
@@ -58,15 +58,26 @@ impl Signature {
     /// Note: this performs an extra heap allocation, you might prefer the
     /// [`serialize`](Self::serialize) method instead.
     pub fn to_vec(self) -> Vec<u8> {
-        // TODO: add support to serialize to a writer to SerializedSig
-        self.sig.serialize_der().iter().copied().chain(iter::once(self.hash_ty as u8)).collect()
+        self.signature
+            .serialize_der()
+            .iter()
+            .copied()
+            .chain(iter::once(self.sighash_type as u8))
+            .collect()
+    }
+
+    /// Serializes an ECDSA signature (inner secp256k1 signature in DER format) to a `writer`.
+    #[inline]
+    pub fn serialize_to_writer<W: Write + ?Sized>(&self, writer: &mut W) -> Result<(), io::Error> {
+        let sig = self.serialize();
+        sig.write_to(writer)
     }
 }
 
 impl fmt::Display for Signature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::LowerHex::fmt(&self.sig.serialize_der().as_hex(), f)?;
-        fmt::LowerHex::fmt(&[self.hash_ty as u8].as_hex(), f)
+        fmt::LowerHex::fmt(&self.signature.serialize_der().as_hex(), f)?;
+        fmt::LowerHex::fmt(&[self.sighash_type as u8].as_hex(), f)
     }
 }
 
@@ -77,8 +88,8 @@ impl FromStr for Signature {
         let bytes = Vec::from_hex(s)?;
         let (sighash_byte, signature) = bytes.split_last().ok_or(Error::EmptySignature)?;
         Ok(Signature {
-            sig: secp256k1::ecdsa::Signature::from_der(signature)?,
-            hash_ty: EcdsaSighashType::from_standard(*sighash_byte as u32)?,
+            signature: secp256k1::ecdsa::Signature::from_der(signature)?,
+            sighash_type: EcdsaSighashType::from_standard(*sighash_byte as u32)?,
         })
     }
 }
@@ -100,6 +111,12 @@ impl SerializedSignature {
     /// Returns an iterator over bytes of the signature.
     #[inline]
     pub fn iter(&self) -> core::slice::Iter<'_, u8> { self.into_iter() }
+
+    /// Writes this serialized signature to a `writer`.
+    #[inline]
+    pub fn write_to<W: Write + ?Sized>(&self, writer: &mut W) -> Result<(), io::Error> {
+        writer.write_all(self)
+    }
 }
 
 impl core::ops::Deref for SerializedSignature {
@@ -196,6 +213,8 @@ pub enum Error {
     Secp256k1(secp256k1::Error),
 }
 
+internals::impl_from_infallible!(Error);
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Error::*;
@@ -224,13 +243,32 @@ impl std::error::Error for Error {
 }
 
 impl From<secp256k1::Error> for Error {
-    fn from(e: secp256k1::Error) -> Error { Error::Secp256k1(e) }
+    fn from(e: secp256k1::Error) -> Self { Self::Secp256k1(e) }
 }
 
 impl From<NonStandardSighashTypeError> for Error {
-    fn from(err: NonStandardSighashTypeError) -> Self { Error::SighashType(err) }
+    fn from(e: NonStandardSighashTypeError) -> Self { Self::SighashType(e) }
 }
 
 impl From<hex::HexToBytesError> for Error {
-    fn from(err: hex::HexToBytesError) -> Self { Error::Hex(err) }
+    fn from(e: hex::HexToBytesError) -> Self { Self::Hex(e) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn write_serialized_signature() {
+        let hex = "3046022100839c1fbc5304de944f697c9f4b1d01d1faeba32d751c0f7acb21ac8a0f436a72022100e89bd46bb3a5a62adc679f659b7ce876d83ee297c7a5587b2011c4fcc72eab45";
+        let sig = Signature {
+            signature: secp256k1::ecdsa::Signature::from_str(hex).unwrap(),
+            sighash_type: EcdsaSighashType::All,
+        };
+
+        let mut buf = vec![];
+        sig.serialize_to_writer(&mut buf).expect("write failed");
+
+        assert_eq!(sig.to_vec(), buf)
+    }
 }

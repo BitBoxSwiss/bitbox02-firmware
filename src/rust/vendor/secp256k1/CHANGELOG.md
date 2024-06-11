@@ -1,3 +1,29 @@
+# 0.29.0 - 2024-04-02
+
+* Deprecate `ThirtyTwoByteHash` [#686](https://github.com/rust-bitcoin/rust-secp256k1/pull/686)
+
+  This trait turned out to be problematic during upgrade because we support a ranged dependency for
+  `bitcoin_hashes`. Consider implementing `From<T> for Message` for your type iff your type is a 32
+  byte hash (ie, output from a hash algorithm that produces a 32 byte digest like sha256). When
+  using the impl, consider using `Message::from` instead of `hash.into()` because we will be
+  introducing generics in a future version and the compiler will not be able to work out the target
+  type.
+
+* Bump MSRV to Rust `v1.56.1` [#693](https://github.com/rust-bitcoin/rust-secp256k1/pull/693)
+* Upgrade `hashes` using range dependency `version = ">= 0.12, <= 0.14"` [#690](https://github.com/rust-bitcoin/rust-secp256k1/pull/690)
+* Depend on latest `secp256k1-sys` (vendors `secp256k1 v0.4.1`) [#688](https://github.com/rust-bitcoin/rust-secp256k1/pull/688)
+
+# 0.28.2 - 2024-01-30
+
+* Implement `Hash` for `Scalar` [#674](https://github.com/rust-bitcoin/rust-secp256k1/pull/674)
+* Implement `Ord` and `PartialOrd` for `RecoverableSignature` [#611](https://github.com/rust-bitcoin/rust-secp256k1/pull/611)
+* Add byte accessors to `ElligatorSwiftSharedSecret` [#676](https://github.com/rust-bitcoin/rust-secp256k1/pull/676)
+
+# 0.28.1 - 2024-01-03
+
+* Update secp265k1-sys to 0.9.2 (contains some fixes for WASM and [a FFI binding fix](https://github.com/rust-bitcoin/rust-secp256k1/pull/6700))
+* Various improvements to the `SerializedSignature` type [#658](https://github.com/rust-bitcoin/rust-secp256k1/pull/658) [#659](https://github.com/rust-bitcoin/rust-secp256k1/pull/659)
+
 # 0.28.0 - 2023-10-23
 
 * Add bindings to the ElligatorSwift implementation [#627](https://github.com/rust-bitcoin/rust-secp256k1/pull/627)

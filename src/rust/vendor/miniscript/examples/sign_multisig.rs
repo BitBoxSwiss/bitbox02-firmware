@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use bitcoin::blockdata::witness::Witness;
-use bitcoin::{absolute, ecdsa, secp256k1, transaction, Amount, Sequence};
+use bitcoin::{absolute, ecdsa, transaction, Amount, Sequence};
 
 fn main() {
     let mut tx = spending_transaction();
@@ -20,7 +20,7 @@ fn main() {
     // Check weight for witness satisfaction cost ahead of time.
     // 106 (serialized witnessScript)
     // + 73*2 (signature length + signatures + sighash bytes) + 1 (dummy byte) = 253
-    assert_eq!(descriptor.max_weight_to_satisfy().unwrap(), 253);
+    assert_eq!(descriptor.max_weight_to_satisfy().unwrap().to_wu(), 253);
 
     // Sometimes it is necessary to have additional information to get the
     // `bitcoin::PublicKey` from the `MiniscriptKey` which can be supplied by
@@ -93,8 +93,8 @@ fn spending_transaction() -> bitcoin::Transaction {
     }
 }
 
+#[rustfmt::skip]
 fn list_of_three_arbitrary_public_keys() -> Vec<bitcoin::PublicKey> {
-    #[cfg_attr(feature="cargo-fmt", rustfmt_skip)]
     vec![
         bitcoin::PublicKey::from_slice(&[2; 33]).expect("key 1"),
         bitcoin::PublicKey::from_slice(&[
@@ -118,7 +118,7 @@ fn list_of_three_arbitrary_public_keys() -> Vec<bitcoin::PublicKey> {
 // a valid signature for this transaction; Miniscript does not verify the validity.
 fn random_signature_from_the_blockchain() -> ecdsa::Signature {
     ecdsa::Signature {
-        sig: secp256k1::ecdsa::Signature::from_str(
+        signature: secp256k1::ecdsa::Signature::from_str(
             "3045\
              0221\
              00f7c3648c390d87578cd79c8016940aa8e3511c4104cb78daa8fb8e429375efc1\
@@ -126,6 +126,6 @@ fn random_signature_from_the_blockchain() -> ecdsa::Signature {
              531d75c136272f127a5dc14acc0722301cbddc222262934151f140da345af177",
         )
         .unwrap(),
-        hash_ty: bitcoin::sighash::EcdsaSighashType::All,
+        sighash_type: bitcoin::sighash::EcdsaSighashType::All,
     }
 }

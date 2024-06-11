@@ -6,15 +6,13 @@
 //! are used for (de)serializing Bitcoin objects for transmission on the network.
 //!
 
-use core::convert::TryFrom;
 use core::{fmt, iter};
 
 use hashes::{sha256d, Hash};
-use io::Read as _;
+use io::{BufRead, Write};
 
 use crate::blockdata::{block, transaction};
 use crate::consensus::encode::{self, CheckedData, Decodable, Encodable, VarInt};
-use crate::io;
 use crate::merkle_tree::MerkleBlock;
 use crate::p2p::address::{AddrV2Message, Address};
 use crate::p2p::{
@@ -101,7 +99,7 @@ impl AsRef<str> for CommandString {
 
 impl Encodable for CommandString {
     #[inline]
-    fn consensus_encode<W: io::Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         let mut rawbytes = [0u8; 12];
         let strbytes = self.0.as_bytes();
         debug_assert!(strbytes.len() <= 12);
@@ -112,7 +110,7 @@ impl Encodable for CommandString {
 
 impl Decodable for CommandString {
     #[inline]
-    fn consensus_decode<R: io::Read + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
+    fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
         let rawbytes: [u8; 12] = Decodable::consensus_decode(r)?;
         let rv = iter::FromIterator::from_iter(rawbytes.iter().filter_map(|&u| {
             if u > 0 {
@@ -191,9 +189,6 @@ pub enum NetworkMessage {
     SendHeaders,
     /// `getaddr`
     GetAddr,
-    // TODO: checkorder,
-    // TODO: submitorder,
-    // TODO: reply,
     /// `ping`
     Ping(u64),
     /// `pong`
@@ -337,7 +332,7 @@ struct HeaderSerializationWrapper<'a>(&'a Vec<block::Header>);
 
 impl<'a> Encodable for HeaderSerializationWrapper<'a> {
     #[inline]
-    fn consensus_encode<W: io::Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         let mut len = 0;
         len += VarInt::from(self.0.len()).consensus_encode(w)?;
         for header in self.0.iter() {
@@ -349,7 +344,7 @@ impl<'a> Encodable for HeaderSerializationWrapper<'a> {
 }
 
 impl Encodable for NetworkMessage {
-    fn consensus_encode<W: io::Write + ?Sized>(&self, writer: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, writer: &mut W) -> Result<usize, io::Error> {
         match self {
             NetworkMessage::Version(ref dat) => dat.consensus_encode(writer),
             NetworkMessage::Addr(ref dat) => dat.consensus_encode(writer),
@@ -394,7 +389,7 @@ impl Encodable for NetworkMessage {
 }
 
 impl Encodable for RawNetworkMessage {
-    fn consensus_encode<W: io::Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         let mut len = 0;
         len += self.magic.consensus_encode(w)?;
         len += self.command().consensus_encode(w)?;
@@ -409,7 +404,7 @@ struct HeaderDeserializationWrapper(Vec<block::Header>);
 
 impl Decodable for HeaderDeserializationWrapper {
     #[inline]
-    fn consensus_decode_from_finite_reader<R: io::Read + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         let len = VarInt::consensus_decode(r)?.0;
@@ -428,13 +423,13 @@ impl Decodable for HeaderDeserializationWrapper {
     }
 
     #[inline]
-    fn consensus_decode<R: io::Read + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
-        Self::consensus_decode_from_finite_reader(r.take(MAX_MSG_SIZE as u64).by_ref())
+    fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
+        Self::consensus_decode_from_finite_reader(&mut r.take(MAX_MSG_SIZE as u64))
     }
 }
 
 impl Decodable for RawNetworkMessage {
-    fn consensus_decode_from_finite_reader<R: io::Read + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         let magic = Decodable::consensus_decode_from_finite_reader(r)?;
@@ -444,7 +439,7 @@ impl Decodable for RawNetworkMessage {
         let raw_payload = checked_data.into_data();
         let payload_len = raw_payload.len() as u32;
 
-        let mut mem_d = io::Cursor::new(raw_payload);
+        let mut mem_d = raw_payload.as_slice();
         let payload = match &cmd.0[..] {
             "version" =>
                 NetworkMessage::Version(Decodable::consensus_decode_from_finite_reader(&mut mem_d)?),
@@ -527,14 +522,14 @@ impl Decodable for RawNetworkMessage {
             "addrv2" =>
                 NetworkMessage::AddrV2(Decodable::consensus_decode_from_finite_reader(&mut mem_d)?),
             "sendaddrv2" => NetworkMessage::SendAddrV2,
-            _ => NetworkMessage::Unknown { command: cmd, payload: mem_d.into_inner() },
+            _ => NetworkMessage::Unknown { command: cmd, payload: raw_payload },
         };
         Ok(RawNetworkMessage { magic, payload, payload_len, checksum })
     }
 
     #[inline]
-    fn consensus_decode<R: io::Read + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
-        Self::consensus_decode_from_finite_reader(r.take(MAX_MSG_SIZE as u64).by_ref())
+    fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
+        Self::consensus_decode_from_finite_reader(&mut r.take(MAX_MSG_SIZE as u64))
     }
 }
 
@@ -547,27 +542,25 @@ mod test {
     use hex::test_hex_unwrap as hex;
 
     use super::message_network::{Reject, RejectReason, VersionMessage};
-    use super::{CommandString, NetworkMessage, RawNetworkMessage, *};
+    use super::*;
     use crate::bip152::BlockTransactionsRequest;
-    use crate::blockdata::block::{self, Block};
+    use crate::blockdata::block::Block;
     use crate::blockdata::script::ScriptBuf;
     use crate::blockdata::transaction::Transaction;
     use crate::consensus::encode::{deserialize, deserialize_partial, serialize};
-    use crate::network::Network;
-    use crate::p2p::address::{AddrV2, AddrV2Message, Address};
+    use crate::p2p::address::AddrV2;
     use crate::p2p::message_blockdata::{GetBlocksMessage, GetHeadersMessage, Inventory};
     use crate::p2p::message_bloom::{BloomFlags, FilterAdd, FilterLoad};
     use crate::p2p::message_compact_blocks::{GetBlockTxn, SendCmpct};
     use crate::p2p::message_filter::{
         CFCheckpt, CFHeaders, CFilter, GetCFCheckpt, GetCFHeaders, GetCFilters,
     };
-    use crate::p2p::{Magic, ServiceFlags};
+    use crate::p2p::ServiceFlags;
 
     fn hash(slice: [u8; 32]) -> Hash { Hash::from_slice(&slice).unwrap() }
 
     #[test]
     fn full_round_ser_der_raw_network_message_test() {
-        // TODO: Impl Rand traits here to easily generate random values.
         let version_msg: VersionMessage = deserialize(&hex!("721101000100000000000000e6e0845300000000010000000000000000000000000000000000ffff0000000000000100000000000000fd87d87eeb4364f22cf54dca59412db7208d47d920cffce83ee8102f5361746f7368693a302e392e39392f2c9f040001")).unwrap();
         let tx: Transaction = deserialize(&hex!("0100000001a15d57094aa7a21a28cb20b59aab8fc7d1149a3bdbcddba9c622e4f5f6a99ece010000006c493046022100f93bb0e7d8db7bd46e40132d1f8242026e045f03a0efe71bbb8e3f475e970d790221009337cd7f1f929f00cc6ff01f03729b069a7c21b59b1736ddfee5db5946c5da8c0121033b9b137ee87d5a812d6f506efdd37f0affa7ffc310711c06c7f3e097c9447c52ffffffff0100e1f505000000001976a9140389035a9225b3839e2bbf32d826a1e222031fd888ac00000000")).unwrap();
         let block: Block = deserialize(&include_bytes!("../../tests/data/testnet_block_000000000000045e0b1660b6445b5e5c5ab63c9a4f956be7e1e69be04fa4497b.raw")[..]).unwrap();
@@ -707,7 +700,7 @@ mod test {
     #[test]
     #[rustfmt::skip]
     fn serialize_verack_test() {
-        assert_eq!(serialize(&RawNetworkMessage::new(Magic::from(Network::Bitcoin), NetworkMessage::Verack)),
+        assert_eq!(serialize(&RawNetworkMessage::new(Magic::BITCOIN, NetworkMessage::Verack)),
                    vec![0xf9, 0xbe, 0xb4, 0xd9, 0x76, 0x65, 0x72, 0x61,
                         0x63, 0x6B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x5d, 0xf6, 0xe0, 0xe2]);
@@ -716,7 +709,7 @@ mod test {
     #[test]
     #[rustfmt::skip]
     fn serialize_ping_test() {
-        assert_eq!(serialize(&RawNetworkMessage::new(Magic::from(Network::Bitcoin), NetworkMessage::Ping(100))),
+        assert_eq!(serialize(&RawNetworkMessage::new(Magic::BITCOIN, NetworkMessage::Ping(100))),
                    vec![0xf9, 0xbe, 0xb4, 0xd9, 0x70, 0x69, 0x6e, 0x67,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x08, 0x00, 0x00, 0x00, 0x24, 0x67, 0xf1, 0x1d,
@@ -726,7 +719,7 @@ mod test {
     #[test]
     #[rustfmt::skip]
     fn serialize_mempool_test() {
-        assert_eq!(serialize(&RawNetworkMessage::new(Magic::from(Network::Bitcoin), NetworkMessage::MemPool)),
+        assert_eq!(serialize(&RawNetworkMessage::new(Magic::BITCOIN, NetworkMessage::MemPool)),
                    vec![0xf9, 0xbe, 0xb4, 0xd9, 0x6d, 0x65, 0x6d, 0x70,
                         0x6f, 0x6f, 0x6c, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x5d, 0xf6, 0xe0, 0xe2]);
@@ -735,7 +728,7 @@ mod test {
     #[test]
     #[rustfmt::skip]
     fn serialize_getaddr_test() {
-        assert_eq!(serialize(&RawNetworkMessage::new(Magic::from(Network::Bitcoin), NetworkMessage::GetAddr)),
+        assert_eq!(serialize(&RawNetworkMessage::new(Magic::BITCOIN, NetworkMessage::GetAddr)),
                    vec![0xf9, 0xbe, 0xb4, 0xd9, 0x67, 0x65, 0x74, 0x61,
                         0x64, 0x64, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x5d, 0xf6, 0xe0, 0xe2]);
@@ -749,8 +742,7 @@ mod test {
             0x64, 0x64, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x5d, 0xf6, 0xe0, 0xe2
         ]);
-        let preimage =
-            RawNetworkMessage::new(Magic::from(Network::Bitcoin), NetworkMessage::GetAddr);
+        let preimage = RawNetworkMessage::new(Magic::BITCOIN, NetworkMessage::GetAddr);
         assert!(msg.is_ok());
         let msg: RawNetworkMessage = msg.unwrap();
         assert_eq!(preimage.magic, msg.magic);
@@ -781,7 +773,7 @@ mod test {
 
         assert!(msg.is_ok());
         let msg = msg.unwrap();
-        assert_eq!(msg.magic, Magic::from(Network::Bitcoin));
+        assert_eq!(msg.magic, Magic::BITCOIN);
         if let NetworkMessage::Version(version_msg) = msg.payload {
             assert_eq!(version_msg.version, 70015);
             assert_eq!(
@@ -827,7 +819,7 @@ mod test {
 
         let (msg, consumed) = msg.unwrap();
         assert_eq!(consumed, data.to_vec().len() - 2);
-        assert_eq!(msg.magic, Magic::from(Network::Bitcoin));
+        assert_eq!(msg.magic, Magic::BITCOIN);
         if let NetworkMessage::Version(version_msg) = msg.payload {
             assert_eq!(version_msg.version, 70015);
             assert_eq!(

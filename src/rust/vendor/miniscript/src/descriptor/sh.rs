@@ -11,7 +11,7 @@ use core::convert::TryFrom;
 use core::fmt;
 
 use bitcoin::script::PushBytes;
-use bitcoin::{script, Address, Network, ScriptBuf};
+use bitcoin::{script, Address, Network, ScriptBuf, Weight};
 
 use super::checksum::verify_checksum;
 use super::{SortedMultiVec, Wpkh, Wsh};
@@ -24,8 +24,8 @@ use crate::policy::{semantic, Liftable};
 use crate::prelude::*;
 use crate::util::{varint_len, witness_to_scriptsig};
 use crate::{
-    push_opcode_size, Error, ForEachKey, Legacy, Miniscript, MiniscriptKey, Satisfier, Segwitv0,
-    ToPublicKey, TranslateErr, TranslatePk, Translator,
+    push_opcode_size, Error, ForEachKey, FromStrKey, Legacy, Miniscript, MiniscriptKey, Satisfier,
+    Segwitv0, ToPublicKey, TranslateErr, TranslatePk, Translator,
 };
 
 /// A Legacy p2sh Descriptor
@@ -81,8 +81,7 @@ impl<Pk: MiniscriptKey> fmt::Display for Sh<Pk> {
     }
 }
 
-impl_from_tree!(
-    Sh<Pk>,
+impl<Pk: FromStrKey> crate::expression::FromTree for Sh<Pk> {
     fn from_tree(top: &expression::Tree) -> Result<Self, Error> {
         if top.name == "sh" && top.args.len() == 1 {
             let top = &top.args[0];
@@ -105,17 +104,16 @@ impl_from_tree!(
             )))
         }
     }
-);
+}
 
-impl_from_str!(
-    Sh<Pk>,
-    type Err = Error;,
+impl<Pk: FromStrKey> core::str::FromStr for Sh<Pk> {
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let desc_str = verify_checksum(s)?;
         let top = expression::Tree::from_str(desc_str)?;
         Self::from_tree(&top)
     }
-);
+}
 
 impl<Pk: MiniscriptKey> Sh<Pk> {
     /// Get the Inner
@@ -187,7 +185,7 @@ impl<Pk: MiniscriptKey> Sh<Pk> {
     ///
     /// # Errors
     /// When the descriptor is impossible to safisfy (ex: sh(OP_FALSE)).
-    pub fn max_weight_to_satisfy(&self) -> Result<usize, Error> {
+    pub fn max_weight_to_satisfy(&self) -> Result<Weight, Error> {
         let (scriptsig_size, witness_size) = match self.inner {
             // add weighted script sig, len byte stays the same
             ShInner::Wsh(ref wsh) => {
@@ -200,7 +198,7 @@ impl<Pk: MiniscriptKey> Sh<Pk> {
                 let ss = smv.script_size();
                 let ps = push_opcode_size(ss);
                 let scriptsig_size = ps + ss + smv.max_satisfaction_size();
-                (scriptsig_size, 0)
+                (scriptsig_size, Weight::ZERO)
             }
             // add weighted script sig, len byte stays the same
             ShInner::Wpkh(ref wpkh) => {
@@ -213,14 +211,18 @@ impl<Pk: MiniscriptKey> Sh<Pk> {
                 let ss = ms.script_size();
                 let ps = push_opcode_size(ss);
                 let scriptsig_size = ps + ss + ms.max_satisfaction_size()?;
-                (scriptsig_size, 0)
+                (scriptsig_size, Weight::ZERO)
             }
         };
 
         // scriptSigLen varint difference between non-satisfied (0) and satisfied
         let scriptsig_varint_diff = varint_len(scriptsig_size) - varint_len(0);
 
-        Ok(4 * (scriptsig_varint_diff + scriptsig_size) + witness_size)
+        let wu = Weight::from_vb((scriptsig_varint_diff + scriptsig_size) as u64);
+        match wu {
+            Some(w) => Ok(w + witness_size),
+            None => Err(Error::CouldNotSatisfy),
+        }
     }
 
     /// Computes an upper bound on the weight of a satisfying witness to the
@@ -232,7 +234,10 @@ impl<Pk: MiniscriptKey> Sh<Pk> {
     ///
     /// # Errors
     /// When the descriptor is impossible to safisfy (ex: sh(OP_FALSE)).
-    #[deprecated(note = "use max_weight_to_satisfy instead")]
+    #[deprecated(
+        since = "10.0.0",
+        note = "Use max_weight_to_satisfy instead. The method to count bytes was redesigned and the results will differ from max_weight_to_satisfy. For more details check rust-bitcoin/rust-miniscript#476."
+    )]
     #[allow(deprecated)]
     pub fn max_satisfaction_weight(&self) -> Result<usize, Error> {
         Ok(match self.inner {

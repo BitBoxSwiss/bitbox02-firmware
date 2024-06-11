@@ -6,9 +6,9 @@ use hashes::Hash;
 use hex_lit::hex;
 
 use super::*;
-use crate::blockdata::opcodes;
 use crate::consensus::encode::{deserialize, serialize};
 use crate::crypto::key::{PubkeyHash, PublicKey, WPubkeyHash, XOnlyPublicKey};
+use crate::FeeRate;
 
 #[test]
 #[rustfmt::skip]
@@ -175,7 +175,7 @@ fn p2pk_public_key_compressed_key_returns_some() {
 
 #[test]
 fn script_x_only_key() {
-    // Notice the "20" which prepends the keystr. That 20 is hexidecimal for "32". The Builder automatically adds the 32 opcode
+    // Notice the "20" which prepends the keystr. That 20 is hexadecimal for "32". The Builder automatically adds the 32 opcode
     // to our script in order to give a heads up to the script compiler that it should add the next 32 bytes to the stack.
     // From: https://github.com/bitcoin-core/btcdeb/blob/e8c2750c4a4702768c52d15640ed03bf744d2601/doc/tapscript-example.md?plain=1#L43
     const KEYSTR: &str = "209997a497d964fc1a62885b05a51166a65a90df00492c8d7cf61d6accf54803be";
@@ -354,15 +354,15 @@ fn script_hashes() {
 #[test]
 fn provably_unspendable_test() {
     // p2pk
-    assert!(!ScriptBuf::from_hex("410446ef0102d1ec5240f0d061a4246c1bdef63fc3dbab7733052fbbf0ecd8f41fc26bf049ebb4f9527f374280259e7cfa99c48b0e3f39c51347a19a5819651503a5ac").unwrap().is_provably_unspendable());
-    assert!(!ScriptBuf::from_hex("4104ea1feff861b51fe3f5f8a3b12d0f4712db80e919548a80839fc47c6a21e66d957e9c5d8cd108c7a2d2324bad71f9904ac0ae7336507d785b17a2c115e427a32fac").unwrap().is_provably_unspendable());
+    assert!(!ScriptBuf::from_hex("410446ef0102d1ec5240f0d061a4246c1bdef63fc3dbab7733052fbbf0ecd8f41fc26bf049ebb4f9527f374280259e7cfa99c48b0e3f39c51347a19a5819651503a5ac").unwrap().is_op_return());
+    assert!(!ScriptBuf::from_hex("4104ea1feff861b51fe3f5f8a3b12d0f4712db80e919548a80839fc47c6a21e66d957e9c5d8cd108c7a2d2324bad71f9904ac0ae7336507d785b17a2c115e427a32fac").unwrap().is_op_return());
     // p2pkhash
     assert!(!ScriptBuf::from_hex("76a914ee61d57ab51b9d212335b1dba62794ac20d2bcf988ac")
         .unwrap()
-        .is_provably_unspendable());
+        .is_op_return());
     assert!(ScriptBuf::from_hex("6aa9149eb21980dc9d413d8eac27314938b9da920ee53e87")
         .unwrap()
-        .is_provably_unspendable());
+        .is_op_return());
 }
 
 #[test]
@@ -649,7 +649,11 @@ fn defult_dust_value_tests() {
     // well-known scriptPubKey types.
     let script_p2wpkh = Builder::new().push_int(0).push_slice([42; 20]).into_script();
     assert!(script_p2wpkh.is_p2wpkh());
-    assert_eq!(script_p2wpkh.dust_value(), crate::Amount::from_sat(294));
+    assert_eq!(script_p2wpkh.minimal_non_dust(), crate::Amount::from_sat(294));
+    assert_eq!(
+        script_p2wpkh.minimal_non_dust_custom(FeeRate::from_sat_per_vb_unchecked(6)),
+        crate::Amount::from_sat(588)
+    );
 
     let script_p2pkh = Builder::new()
         .push_opcode(OP_DUP)
@@ -659,7 +663,11 @@ fn defult_dust_value_tests() {
         .push_opcode(OP_CHECKSIG)
         .into_script();
     assert!(script_p2pkh.is_p2pkh());
-    assert_eq!(script_p2pkh.dust_value(), crate::Amount::from_sat(546));
+    assert_eq!(script_p2pkh.minimal_non_dust(), crate::Amount::from_sat(546));
+    assert_eq!(
+        script_p2pkh.minimal_non_dust_custom(FeeRate::from_sat_per_vb_unchecked(6)),
+        crate::Amount::from_sat(1092)
+    );
 }
 
 #[test]

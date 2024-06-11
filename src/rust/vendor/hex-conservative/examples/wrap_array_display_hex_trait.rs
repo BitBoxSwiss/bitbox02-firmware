@@ -5,7 +5,7 @@
 //! For an example using the standard library `fmt` traits see `./wrap_array_fmt_traits.rs`.
 
 use hex_conservative::display::DisplayArray;
-use hex_conservative::{DisplayHex, FromHex, HexToArrayError, HexToBytesError};
+use hex_conservative::{DisplayHex, FromHex, HexToArrayError};
 
 fn main() {
     let hex = "00000000cafebabedeadbeefcafebabedeadbeefcafebabedeadbeefcafebabe";
@@ -45,14 +45,9 @@ fn main() {
 pub struct Wrap([u8; 32]);
 
 impl FromHex for Wrap {
-    type Err = HexToArrayError;
+    type Error = HexToArrayError;
 
-    fn from_byte_iter<I>(iter: I) -> Result<Self, Self::Err>
-    where
-        I: Iterator<Item = Result<u8, HexToBytesError>> + ExactSizeIterator + DoubleEndedIterator,
-    {
-        Ok(Self(FromHex::from_byte_iter(iter)?))
-    }
+    fn from_hex(s: &str) -> Result<Self, Self::Error> { Ok(Self(FromHex::from_hex(s)?)) }
 }
 
 /// Use `DisplayArray` to display the `Wrap` type.
@@ -65,7 +60,7 @@ impl FromHex for Wrap {
 //     fn hex_reserve_suggestion(self) -> usize { self.0.as_ref().hex_reserve_suggestion() }
 // }
 impl<'a> DisplayHex for &'a Wrap {
-    type Display = DisplayArray<core::slice::Iter<'a, u8>, [u8; 64]>;
-    fn as_hex(self) -> Self::Display { DisplayArray::new(self.0.iter()) }
+    type Display = DisplayArray<'a, 64>;
+    fn as_hex(self) -> Self::Display { self.0.as_hex() }
     fn hex_reserve_suggestion(self) -> usize { 64 }
 }

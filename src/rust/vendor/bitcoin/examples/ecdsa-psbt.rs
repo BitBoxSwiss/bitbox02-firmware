@@ -28,7 +28,6 @@
 //!    `bt listunspent`
 //!
 
-use std::boxed::Box;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::str::FromStr;
@@ -39,8 +38,8 @@ use bitcoin::locktime::absolute;
 use bitcoin::psbt::{self, Input, Psbt, PsbtSighashType};
 use bitcoin::secp256k1::{Secp256k1, Signing, Verification};
 use bitcoin::{
-    transaction, Address, Amount, Network, OutPoint, PublicKey, ScriptBuf, Sequence, Transaction,
-    TxIn, TxOut, Witness,
+    transaction, Address, Amount, CompressedPublicKey, Network, OutPoint, ScriptBuf, Sequence,
+    Transaction, TxIn, TxOut, Witness,
 };
 
 type Result<T> = std::result::Result<T, Error>;
@@ -55,7 +54,7 @@ const INPUT_UTXO_SCRIPT_PUBKEY: &str = "00149891eeb8891b3e80a2a1ade180f143add23b
 const INPUT_UTXO_VALUE: &str = "50 BTC";
 // Get this from the desciptor,
 // "wpkh([97f17dca/0'/0'/0']02749483607dafb30c66bd93ece4474be65745ce538c2d70e8e246f17e7a4e0c0c)#m9n56cx0".
-const INPUT_UTXO_DERIVATION_PATH: &str = "m/0h/0h/0h";
+const INPUT_UTXO_DERIVATION_PATH: &str = "0h/0h/0h";
 
 // Grab an address to receive on: `bt generatenewaddress` (obviously contrived but works as an example).
 const RECEIVE_ADDRESS: &str = "bcrt1qcmnpjjjw78yhyjrxtql6lk7pzpujs3h244p7ae"; // The address to receive the coins we send.
@@ -116,7 +115,7 @@ impl ColdStorage {
 
         // Hardened children require secret data to derive.
 
-        let path = "m/84h/0h/0h".into_derivation_path()?;
+        let path = "84h/0h/0h".into_derivation_path()?;
         let account_0_xpriv = master_xpriv.derive_priv(secp, &path)?;
         let account_0_xpub = Xpub::from_priv(secp, &account_0_xpriv);
 
@@ -134,7 +133,11 @@ impl ColdStorage {
     fn master_fingerprint(&self) -> Fingerprint { self.master_xpub.fingerprint() }
 
     /// Signs `psbt` with this signer.
-    fn sign_psbt<C: Signing>(&self, secp: &Secp256k1<C>, mut psbt: Psbt) -> Result<Psbt> {
+    fn sign_psbt<C: Signing + Verification>(
+        &self,
+        secp: &Secp256k1<C>,
+        mut psbt: Psbt,
+    ) -> Result<Psbt> {
         match psbt.sign(&self.master_xpriv, secp) {
             Ok(keys) => assert_eq!(keys.len(), 1),
             Err((_, e)) => {
@@ -201,7 +204,7 @@ impl WatchOnly {
         let mut input = Input { witness_utxo: Some(previous_output()), ..Default::default() };
 
         let pk = self.input_xpub.to_pub();
-        let wpkh = pk.wpubkey_hash().expect("a compressed pubkey");
+        let wpkh = pk.wpubkey_hash();
 
         let redeem_script = ScriptBuf::new_p2wpkh(&wpkh);
         input.redeem_script = Some(redeem_script);
@@ -209,7 +212,7 @@ impl WatchOnly {
         let fingerprint = self.master_fingerprint;
         let path = input_derivation_path()?;
         let mut map = BTreeMap::new();
-        map.insert(pk.inner, (fingerprint, path));
+        map.insert(pk.0, (fingerprint, path));
         input.bip32_derivation = map;
 
         let ty = PsbtSighashType::from_str("SIGHASH_ALL")?;
@@ -251,12 +254,12 @@ impl WatchOnly {
     fn change_address<C: Verification>(
         &self,
         secp: &Secp256k1<C>,
-    ) -> Result<(PublicKey, Address, DerivationPath)> {
+    ) -> Result<(CompressedPublicKey, Address, DerivationPath)> {
         let path = [ChildNumber::from_normal_idx(1)?, ChildNumber::from_normal_idx(0)?];
         let derived = self.account_0_xpub.derive_pub(secp, &path)?;
 
         let pk = derived.to_pub();
-        let addr = Address::p2wpkh(&pk, NETWORK)?;
+        let addr = Address::p2wpkh(&pk, NETWORK);
         let path = path.into_derivation_path()?;
 
         Ok((pk, addr, path))

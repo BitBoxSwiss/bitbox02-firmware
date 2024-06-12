@@ -12,7 +12,7 @@ macro_rules! impl_consensus_encoding {
             fn consensus_encode<R: $crate::io::Write + ?Sized>(
                 &self,
                 r: &mut R,
-            ) -> Result<usize, $crate::io::Error> {
+            ) -> core::result::Result<usize, $crate::io::Error> {
                 let mut len = 0;
                 $(len += self.$field.consensus_encode(r)?;)+
                 Ok(len)
@@ -22,22 +22,21 @@ macro_rules! impl_consensus_encoding {
         impl $crate::consensus::Decodable for $thing {
 
             #[inline]
-            fn consensus_decode_from_finite_reader<R: $crate::io::Read + ?Sized>(
+            fn consensus_decode_from_finite_reader<R: $crate::io::BufRead + ?Sized>(
                 r: &mut R,
-            ) -> Result<$thing, $crate::consensus::encode::Error> {
+            ) -> core::result::Result<$thing, $crate::consensus::encode::Error> {
                 Ok($thing {
                     $($field: $crate::consensus::Decodable::consensus_decode_from_finite_reader(r)?),+
                 })
             }
 
             #[inline]
-            fn consensus_decode<R: $crate::io::Read + ?Sized>(
+            fn consensus_decode<R: $crate::io::BufRead + ?Sized>(
                 r: &mut R,
-            ) -> Result<$thing, $crate::consensus::encode::Error> {
-                use crate::io::Read as _;
+            ) -> core::result::Result<$thing, $crate::consensus::encode::Error> {
                 let mut r = r.take($crate::consensus::encode::MAX_VEC_SIZE as u64);
                 Ok($thing {
-                    $($field: $crate::consensus::Decodable::consensus_decode(r.by_ref())?),+
+                    $($field: $crate::consensus::Decodable::consensus_decode(&mut r)?),+
                 })
             }
         }
@@ -51,7 +50,6 @@ pub(crate) use impl_consensus_encoding;
 /// - core::fmt::UpperHex
 /// - core::fmt::Display
 /// - core::str::FromStr
-/// - hex::FromHex
 macro_rules! impl_bytes_newtype {
     ($t:ident, $len:literal) => {
         impl $t {
@@ -68,6 +66,11 @@ macro_rules! impl_bytes_newtype {
                 check_copy::<$t>();
 
                 self.0
+            }
+
+            /// Creates `Self` from a hex string.
+            pub fn from_hex(s: &str) -> Result<Self, hex::HexToArrayError> {
+                Ok($t($crate::hex::FromHex::from_hex(s)?))
             }
         }
 
@@ -97,27 +100,17 @@ macro_rules! impl_bytes_newtype {
             }
         }
 
-        impl $crate::hex::FromHex for $t {
-            type Err = $crate::hex::HexToArrayError;
-
-            fn from_byte_iter<I>(iter: I) -> Result<Self, $crate::hex::HexToArrayError>
-            where
-                I: core::iter::Iterator<Item = Result<u8, $crate::hex::HexToBytesError>>
-                    + core::iter::ExactSizeIterator
-                    + core::iter::DoubleEndedIterator,
-            {
-                Ok($t($crate::hex::FromHex::from_byte_iter(iter)?))
-            }
-        }
-
         impl core::str::FromStr for $t {
             type Err = $crate::hex::HexToArrayError;
-            fn from_str(s: &str) -> Result<Self, Self::Err> { $crate::hex::FromHex::from_hex(s) }
+            fn from_str(s: &str) -> core::result::Result<Self, Self::Err> { Self::from_hex(s) }
         }
 
         #[cfg(feature = "serde")]
         impl $crate::serde::Serialize for $t {
-            fn serialize<S: $crate::serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+            fn serialize<S: $crate::serde::Serializer>(
+                &self,
+                s: S,
+            ) -> core::result::Result<S::Ok, S::Error> {
                 if s.is_human_readable() {
                     s.collect_str(self)
                 } else {
@@ -128,7 +121,9 @@ macro_rules! impl_bytes_newtype {
 
         #[cfg(feature = "serde")]
         impl<'de> $crate::serde::Deserialize<'de> for $t {
-            fn deserialize<D: $crate::serde::Deserializer<'de>>(d: D) -> Result<$t, D::Error> {
+            fn deserialize<D: $crate::serde::Deserializer<'de>>(
+                d: D,
+            ) -> core::result::Result<$t, D::Error> {
                 if d.is_human_readable() {
                     struct HexVisitor;
 
@@ -139,24 +134,24 @@ macro_rules! impl_bytes_newtype {
                             f.write_str("an ASCII hex string")
                         }
 
-                        fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+                        fn visit_bytes<E>(self, v: &[u8]) -> core::result::Result<Self::Value, E>
                         where
                             E: $crate::serde::de::Error,
                         {
                             use $crate::serde::de::Unexpected;
 
                             if let Ok(hex) = core::str::from_utf8(v) {
-                                $crate::hex::FromHex::from_hex(hex).map_err(E::custom)
+                                core::str::FromStr::from_str(hex).map_err(E::custom)
                             } else {
                                 return Err(E::invalid_value(Unexpected::Bytes(v), &self));
                             }
                         }
 
-                        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+                        fn visit_str<E>(self, hex: &str) -> core::result::Result<Self::Value, E>
                         where
                             E: $crate::serde::de::Error,
                         {
-                            $crate::hex::FromHex::from_hex(v).map_err(E::custom)
+                            core::str::FromStr::from_str(hex).map_err(E::custom)
                         }
                     }
 
@@ -171,7 +166,7 @@ macro_rules! impl_bytes_newtype {
                             f.write_str("a bytestring")
                         }
 
-                        fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+                        fn visit_bytes<E>(self, v: &[u8]) -> core::result::Result<Self::Value, E>
                         where
                             E: $crate::serde::de::Error,
                         {
@@ -192,3 +187,44 @@ macro_rules! impl_bytes_newtype {
     };
 }
 pub(crate) use impl_bytes_newtype;
+
+#[rustfmt::skip]
+macro_rules! impl_hashencode {
+    ($hashtype:ident) => {
+        impl $crate::consensus::Encodable for $hashtype {
+            fn consensus_encode<W: $crate::io::Write + ?Sized>(&self, w: &mut W) -> core::result::Result<usize, $crate::io::Error> {
+                self.0.consensus_encode(w)
+            }
+        }
+
+        impl $crate::consensus::Decodable for $hashtype {
+            fn consensus_decode<R: $crate::io::BufRead + ?Sized>(r: &mut R) -> core::result::Result<Self, $crate::consensus::encode::Error> {
+                use $crate::hashes::Hash;
+                Ok(Self::from_byte_array(<<$hashtype as $crate::hashes::Hash>::Bytes>::consensus_decode(r)?))
+            }
+        }
+    };
+}
+pub(crate) use impl_hashencode;
+
+#[rustfmt::skip]
+macro_rules! impl_asref_push_bytes {
+    ($($hashtype:ident),*) => {
+        $(
+            impl AsRef<$crate::blockdata::script::PushBytes> for $hashtype {
+                fn as_ref(&self) -> &$crate::blockdata::script::PushBytes {
+                    use $crate::hashes::Hash;
+                    self.as_byte_array().into()
+                }
+            }
+
+            impl From<$hashtype> for $crate::blockdata::script::PushBytesBuf {
+                fn from(hash: $hashtype) -> Self {
+                    use $crate::hashes::Hash;
+                    hash.as_byte_array().into()
+                }
+            }
+        )*
+    };
+}
+pub(crate) use impl_asref_push_bytes;

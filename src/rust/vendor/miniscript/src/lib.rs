@@ -69,7 +69,7 @@
 //! // stackItem[Sig]: varint <sig+sighash>
 //! // = 1 + 73 = 74 WU
 //! // Expected satisfaction weight: 140 + 74 + 74 = 288
-//! assert_eq!(desc.max_weight_to_satisfy().unwrap(), 288);
+//! assert_eq!(desc.max_weight_to_satisfy().unwrap().to_wu(), 288);
 //! ```
 //!
 
@@ -87,6 +87,8 @@
 #![deny(missing_docs)]
 // Clippy lints that we have disabled
 #![allow(clippy::iter_kv_map)] // https://github.com/rust-lang/rust-clippy/issues/11752
+#![allow(clippy::manual_range_contains)] // I hate this lint -asp
+#![allow(unexpected_cfgs)] // This one is just batshit.
 
 #[cfg(target_pointer_width = "16")]
 compile_error!(
@@ -117,8 +119,7 @@ mod macros;
 #[macro_use]
 mod pub_macros;
 
-use internals::hex::exts::DisplayHex;
-
+mod blanket_traits;
 pub mod descriptor;
 pub mod expression;
 pub mod interpreter;
@@ -126,21 +127,24 @@ pub mod iter;
 pub mod miniscript;
 pub mod plan;
 pub mod policy;
+mod primitives;
 pub mod psbt;
 
 #[cfg(test)]
 mod test_utils;
 mod util;
 
-use core::{cmp, fmt, hash, str};
+use core::{fmt, hash, str};
 #[cfg(feature = "std")]
 use std::error;
 
 use bitcoin::hashes::{hash160, ripemd160, sha256, Hash};
-use bitcoin::locktime::absolute;
+use bitcoin::hex::DisplayHex;
 use bitcoin::{script, Opcode};
 
+pub use crate::blanket_traits::FromStrKey;
 pub use crate::descriptor::{DefiniteDescriptorKey, Descriptor, DescriptorPublicKey};
+pub use crate::expression::ParseThresholdError;
 pub use crate::interpreter::Interpreter;
 pub use crate::miniscript::analyzable::{AnalysisError, ExtParams};
 pub use crate::miniscript::context::{BareCtx, Legacy, ScriptContext, Segwitv0, SigType, Tap};
@@ -148,8 +152,11 @@ pub use crate::miniscript::decode::Terminal;
 pub use crate::miniscript::satisfy::{Preimage32, Satisfier};
 pub use crate::miniscript::{hash256, Miniscript};
 use crate::prelude::*;
+pub use crate::primitives::absolute_locktime::{AbsLockTime, AbsLockTimeError};
+pub use crate::primitives::relative_locktime::{RelLockTime, RelLockTimeError};
+pub use crate::primitives::threshold::{Threshold, ThresholdError};
 
-///Public key trait which can be converted to Hash type
+/// Public key trait which can be converted to Hash type
 pub trait MiniscriptKey: Clone + Eq + Ord + fmt::Debug + fmt::Display + hash::Hash {
     /// Returns true if the pubkey is uncompressed. Defaults to `false`.
     fn is_uncompressed(&self) -> bool { false }
@@ -424,7 +431,9 @@ pub enum Error {
     /// rust-bitcoin script error
     Script(script::Error),
     /// rust-bitcoin address error
-    AddrError(bitcoin::address::Error),
+    AddrError(bitcoin::address::ParseError),
+    /// rust-bitcoin p2sh address error
+    AddrP2shError(bitcoin::address::P2shError),
     /// A `CHECKMULTISIG` opcode was preceded by a number > 20
     CmsTooManyKeys(u32),
     /// A tapscript multi_a cannot support more than Weight::MAX_BLOCK/32 keys
@@ -439,28 +448,16 @@ pub enum Error {
     Unexpected(String),
     /// Name of a fragment contained `:` multiple times
     MultiColon(String),
-    /// Name of a fragment contained `@` multiple times
-    MultiAt(String),
     /// Name of a fragment contained `@` but we were not parsing an OR
     AtOutsideOr(String),
-    /// Encountered a `l:0` which is syntactically equal to `u:0` except stupid
-    LikelyFalse,
     /// Encountered a wrapping character that we don't recognize
     UnknownWrapper(char),
     /// Parsed a miniscript and the result was not of type T
     NonTopLevel(String),
     /// Parsed a miniscript but there were more script opcodes after it
     Trailing(String),
-    /// Failed to parse a push as a public key
-    BadPubkey(bitcoin::key::Error),
-    /// Could not satisfy a script (fragment) because of a missing hash preimage
-    MissingHash(sha256::Hash),
     /// Could not satisfy a script (fragment) because of a missing signature
     MissingSig(bitcoin::PublicKey),
-    /// Could not satisfy, relative locktime not met
-    RelativeLocktimeNotMet(u32),
-    /// Could not satisfy, absolute locktime not met
-    AbsoluteLocktimeNotMet(u32),
     /// General failure to satisfy
     CouldNotSatisfy,
     /// Typechecking failed
@@ -480,8 +477,6 @@ pub enum Error {
     ContextError(miniscript::context::ScriptContextError),
     /// Recursion depth exceeded when parsing policy/miniscript from string
     MaxRecursiveDepthExceeded,
-    /// Script size too large
-    ScriptSizeTooLarge,
     /// Anything but c:pk(key) (P2PK), c:pk_h(key) (P2PKH), and thresh_m(k,...)
     /// up to n=3 is invalid by standardness (bare)
     NonStandardBareScript,
@@ -493,21 +488,23 @@ pub enum Error {
     BareDescriptorAddr,
     /// PubKey invalid under current context
     PubKeyCtxError(miniscript::decode::KeyParseError, &'static str),
-    /// Attempted to call function that requires PreComputed taproot info
-    TaprootSpendInfoUnavialable,
     /// No script code for Tr descriptors
     TrNoScriptCode,
-    /// No explicit script for Tr descriptors
-    TrNoExplicitScript,
     /// At least two BIP389 key expressions in the descriptor contain tuples of
     /// derivation indexes of different lengths.
     MultipathDescLenMismatch,
+    /// Invalid absolute locktime
+    AbsoluteLockTime(AbsLockTimeError),
+    /// Invalid absolute locktime
+    RelativeLockTime(RelLockTimeError),
+    /// Invalid threshold.
+    Threshold(ThresholdError),
+    /// Invalid threshold.
+    ParseThreshold(ParseThresholdError),
 }
 
 // https://github.com/sipa/miniscript/pull/5 for discussion on this number
 const MAX_RECURSION_DEPTH: u32 = 402;
-// https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki
-const MAX_SCRIPT_SIZE: u32 = 10000;
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -519,30 +516,19 @@ impl fmt::Display for Error {
             },
             Error::Script(ref e) => fmt::Display::fmt(e, f),
             Error::AddrError(ref e) => fmt::Display::fmt(e, f),
+            Error::AddrP2shError(ref e) => fmt::Display::fmt(e, f),
             Error::CmsTooManyKeys(n) => write!(f, "checkmultisig with {} keys", n),
             Error::Unprintable(x) => write!(f, "unprintable character 0x{:02x}", x),
             Error::ExpectedChar(c) => write!(f, "expected {}", c),
             Error::UnexpectedStart => f.write_str("unexpected start of script"),
             Error::Unexpected(ref s) => write!(f, "unexpected «{}»", s),
             Error::MultiColon(ref s) => write!(f, "«{}» has multiple instances of «:»", s),
-            Error::MultiAt(ref s) => write!(f, "«{}» has multiple instances of «@»", s),
             Error::AtOutsideOr(ref s) => write!(f, "«{}» contains «@» in non-or() context", s),
-            Error::LikelyFalse => write!(f, "0 is not very likely (use «u:0»)"),
             Error::UnknownWrapper(ch) => write!(f, "unknown wrapper «{}:»", ch),
             Error::NonTopLevel(ref s) => write!(f, "non-T miniscript: {}", s),
             Error::Trailing(ref s) => write!(f, "trailing tokens: {}", s),
-            Error::MissingHash(ref h) => write!(f, "missing preimage of hash {}", h),
             Error::MissingSig(ref pk) => write!(f, "missing signature for key {:?}", pk),
-            Error::RelativeLocktimeNotMet(n) => {
-                write!(f, "required relative locktime CSV of {} blocks, not met", n)
-            }
-            Error::AbsoluteLocktimeNotMet(n) => write!(
-                f,
-                "required absolute locktime CLTV of {} blocks, not met",
-                n
-            ),
             Error::CouldNotSatisfy => f.write_str("could not satisfy"),
-            Error::BadPubkey(ref e) => fmt::Display::fmt(e, f),
             Error::TypeCheck(ref e) => write!(f, "typecheck: {}", e),
             Error::BadDescriptor(ref e) => write!(f, "Invalid descriptor: {}", e),
             Error::Secp(ref e) => fmt::Display::fmt(e, f),
@@ -555,11 +541,6 @@ impl fmt::Display for Error {
                 f,
                 "Recursive depth over {} not permitted",
                 MAX_RECURSION_DEPTH
-            ),
-            Error::ScriptSizeTooLarge => write!(
-                f,
-                "Standardness rules imply bitcoin than {} bytes",
-                MAX_SCRIPT_SIZE
             ),
             Error::NonStandardBareScript => write!(
                 f,
@@ -574,10 +555,12 @@ impl fmt::Display for Error {
                 write!(f, "Pubkey error: {} under {} scriptcontext", pk, ctx)
             }
             Error::MultiATooManyKeys(k) => write!(f, "MultiA too many keys {}", k),
-            Error::TaprootSpendInfoUnavialable => write!(f, "Taproot Spend Info not computed."),
             Error::TrNoScriptCode => write!(f, "No script code for Tr descriptors"),
-            Error::TrNoExplicitScript => write!(f, "No script code for Tr descriptors"),
             Error::MultipathDescLenMismatch => write!(f, "At least two BIP389 key expressions in the descriptor contain tuples of derivation indexes of different lengths"),
+            Error::AbsoluteLockTime(ref e) => e.fmt(f),
+            Error::RelativeLockTime(ref e) => e.fmt(f),
+            Error::Threshold(ref e) => e.fmt(f),
+            Error::ParseThreshold(ref e) => e.fmt(f),
         }
     }
 }
@@ -598,31 +581,23 @@ impl error::Error for Error {
             | UnexpectedStart
             | Unexpected(_)
             | MultiColon(_)
-            | MultiAt(_)
             | AtOutsideOr(_)
-            | LikelyFalse
             | UnknownWrapper(_)
             | NonTopLevel(_)
             | Trailing(_)
-            | MissingHash(_)
             | MissingSig(_)
-            | RelativeLocktimeNotMet(_)
-            | AbsoluteLocktimeNotMet(_)
             | CouldNotSatisfy
             | TypeCheck(_)
             | BadDescriptor(_)
             | MaxRecursiveDepthExceeded
-            | ScriptSizeTooLarge
             | NonStandardBareScript
             | ImpossibleSatisfaction
             | BareDescriptorAddr
-            | TaprootSpendInfoUnavialable
             | TrNoScriptCode
-            | TrNoExplicitScript
             | MultipathDescLenMismatch => None,
             Script(e) => Some(e),
             AddrError(e) => Some(e),
-            BadPubkey(e) => Some(e),
+            AddrP2shError(e) => Some(e),
             Secp(e) => Some(e),
             #[cfg(feature = "compiler")]
             CompilerError(e) => Some(e),
@@ -631,17 +606,17 @@ impl error::Error for Error {
             ContextError(e) => Some(e),
             AnalysisError(e) => Some(e),
             PubKeyCtxError(e, _) => Some(e),
+            AbsoluteLockTime(e) => Some(e),
+            RelativeLockTime(e) => Some(e),
+            Threshold(e) => Some(e),
+            ParseThreshold(e) => Some(e),
         }
     }
 }
 
 #[doc(hidden)]
-impl<Pk, Ctx> From<miniscript::types::Error<Pk, Ctx>> for Error
-where
-    Pk: MiniscriptKey,
-    Ctx: ScriptContext,
-{
-    fn from(e: miniscript::types::Error<Pk, Ctx>) -> Error { Error::TypeCheck(e.to_string()) }
+impl From<miniscript::types::Error> for Error {
+    fn from(e: miniscript::types::Error) -> Error { Error::TypeCheck(e.to_string()) }
 }
 
 #[doc(hidden)]
@@ -665,8 +640,13 @@ impl From<bitcoin::secp256k1::Error> for Error {
 }
 
 #[doc(hidden)]
-impl From<bitcoin::address::Error> for Error {
-    fn from(e: bitcoin::address::Error) -> Error { Error::AddrError(e) }
+impl From<bitcoin::address::ParseError> for Error {
+    fn from(e: bitcoin::address::ParseError) -> Error { Error::AddrError(e) }
+}
+
+#[doc(hidden)]
+impl From<bitcoin::address::P2shError> for Error {
+    fn from(e: bitcoin::address::P2shError) -> Error { Error::AddrP2shError(e) }
 }
 
 #[doc(hidden)]
@@ -716,51 +696,6 @@ fn push_opcode_size(script_size: usize) -> usize {
 fn hex_script(s: &str) -> bitcoin::ScriptBuf {
     let v: Vec<u8> = bitcoin::hashes::hex::FromHex::from_hex(s).unwrap();
     bitcoin::ScriptBuf::from(v)
-}
-
-/// An absolute locktime that implements `Ord`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct AbsLockTime(absolute::LockTime);
-
-impl AbsLockTime {
-    /// Constructs an `AbsLockTime` from an nLockTime value or the argument to OP_CHEKCLOCKTIMEVERIFY.
-    pub fn from_consensus(n: u32) -> Self { Self(absolute::LockTime::from_consensus(n)) }
-
-    /// Returns the inner `u32` value. This is the value used when creating this `LockTime`
-    /// i.e., `n OP_CHECKLOCKTIMEVERIFY` or nLockTime.
-    ///
-    /// This calls through to `absolute::LockTime::to_consensus_u32()` and the same usage warnings
-    /// apply.
-    pub fn to_consensus_u32(self) -> u32 { self.0.to_consensus_u32() }
-
-    /// Returns the inner `u32` value.
-    ///
-    /// Equivalent to `AbsLockTime::to_consensus_u32()`.
-    pub fn to_u32(self) -> u32 { self.to_consensus_u32() }
-}
-
-impl From<absolute::LockTime> for AbsLockTime {
-    fn from(lock_time: absolute::LockTime) -> Self { Self(lock_time) }
-}
-
-impl From<AbsLockTime> for absolute::LockTime {
-    fn from(lock_time: AbsLockTime) -> absolute::LockTime { lock_time.0 }
-}
-
-impl cmp::PartialOrd for AbsLockTime {
-    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> { Some(self.cmp(other)) }
-}
-
-impl cmp::Ord for AbsLockTime {
-    fn cmp(&self, other: &Self) -> cmp::Ordering {
-        let this = self.0.to_consensus_u32();
-        let that = other.0.to_consensus_u32();
-        this.cmp(&that)
-    }
-}
-
-impl fmt::Display for AbsLockTime {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { fmt::Display::fmt(&self.0, f) }
 }
 
 #[cfg(test)]
@@ -839,7 +774,7 @@ mod prelude {
         impl<T: ?Sized> Deref for MutexGuard<'_, T> {
             type Target = T;
 
-            fn deref(&self) -> &T { &self.lock.deref() }
+            fn deref(&self) -> &T { self.lock.deref() }
         }
 
         impl<T: ?Sized> DerefMut for MutexGuard<'_, T> {
@@ -849,7 +784,7 @@ mod prelude {
         impl<T> Mutex<T> {
             pub fn new(inner: T) -> Mutex<T> { Mutex { inner: RefCell::new(inner) } }
 
-            pub fn lock<'a>(&'a self) -> LockResult<MutexGuard<'a, T>> {
+            pub fn lock(&self) -> LockResult<MutexGuard<'_, T>> {
                 Ok(MutexGuard { lock: self.inner.borrow_mut() })
             }
         }

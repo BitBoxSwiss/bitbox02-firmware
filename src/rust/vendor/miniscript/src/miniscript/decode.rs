@@ -11,18 +11,19 @@ use core::marker::PhantomData;
 use std::error;
 
 use bitcoin::hashes::{hash160, ripemd160, sha256, Hash};
-use bitcoin::{Sequence, Weight};
 use sync::Arc;
 
 use crate::miniscript::lex::{Token as Tk, TokenIter};
-use crate::miniscript::limits::MAX_PUBKEYS_PER_MULTISIG;
+use crate::miniscript::limits::{MAX_PUBKEYS_IN_CHECKSIGADD, MAX_PUBKEYS_PER_MULTISIG};
 use crate::miniscript::types::extra_props::ExtData;
-use crate::miniscript::types::{Property, Type};
+use crate::miniscript::types::Type;
 use crate::miniscript::ScriptContext;
 use crate::prelude::*;
 #[cfg(doc)]
 use crate::Descriptor;
-use crate::{hash256, AbsLockTime, Error, Miniscript, MiniscriptKey, ToPublicKey};
+use crate::{
+    hash256, AbsLockTime, Error, Miniscript, MiniscriptKey, RelLockTime, Threshold, ToPublicKey,
+};
 
 /// Trait for parsing keys from byte slices
 pub trait ParseableKey: Sized + ToPublicKey + private::Sealed {
@@ -47,7 +48,7 @@ impl ParseableKey for bitcoin::secp256k1::XOnlyPublicKey {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KeyParseError {
     /// Bitcoin PublicKey parse error
-    FullKeyParseError(bitcoin::key::Error),
+    FullKeyParseError(bitcoin::key::FromSliceError),
     /// Xonly key parse Error
     XonlyKeyParseError(bitcoin::secp256k1::Error),
 }
@@ -137,7 +138,7 @@ pub enum Terminal<Pk: MiniscriptKey, Ctx: ScriptContext> {
     /// `n CHECKLOCKTIMEVERIFY`
     After(AbsLockTime),
     /// `n CHECKSEQUENCEVERIFY`
-    Older(Sequence),
+    Older(RelLockTime),
     // hashlocks
     /// `SIZE 32 EQUALVERIFY SHA256 <hash> EQUAL`
     Sha256(Pk::Sha256),
@@ -180,11 +181,11 @@ pub enum Terminal<Pk: MiniscriptKey, Ctx: ScriptContext> {
     OrI(Arc<Miniscript<Pk, Ctx>>, Arc<Miniscript<Pk, Ctx>>),
     // Thresholds
     /// `[E] ([W] ADD)* k EQUAL`
-    Thresh(usize, Vec<Arc<Miniscript<Pk, Ctx>>>),
+    Thresh(Threshold<Arc<Miniscript<Pk, Ctx>>, 0>),
     /// `k (<key>)* n CHECKMULTISIG`
-    Multi(usize, Vec<Pk>),
+    Multi(Threshold<Pk, MAX_PUBKEYS_PER_MULTISIG>),
     /// `<key> CHECKSIG (<key> CHECKSIGADD)*(n-1) k NUMEQUAL`
-    MultiA(usize, Vec<Pk>),
+    MultiA(Threshold<Pk, MAX_PUBKEYS_IN_CHECKSIGADD>),
 }
 
 macro_rules! match_token {
@@ -228,12 +229,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> TerminalStack<Pk, Ctx> {
         let top = self.pop().unwrap();
         let wrapped_ms = wrap(Arc::new(top));
 
-        let ty = Type::type_check(&wrapped_ms)?;
-        let ext = ExtData::type_check(&wrapped_ms)?;
-        let ms = Miniscript { node: wrapped_ms, ty, ext, phantom: PhantomData };
-        Ctx::check_global_validity(&ms)?;
-        self.0.push(ms);
-        Ok(())
+        self.reduce0(wrapped_ms)
     }
 
     ///reduce, type check and push a 2-arg node
@@ -246,12 +242,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> TerminalStack<Pk, Ctx> {
 
         let wrapped_ms = wrap(Arc::new(left), Arc::new(right));
 
-        let ty = Type::type_check(&wrapped_ms)?;
-        let ext = ExtData::type_check(&wrapped_ms)?;
-        let ms = Miniscript { node: wrapped_ms, ty, ext, phantom: PhantomData };
-        Ctx::check_global_validity(&ms)?;
-        self.0.push(ms);
-        Ok(())
+        self.reduce0(wrapped_ms)
     }
 }
 
@@ -367,9 +358,9 @@ pub fn parse<Ctx: ScriptContext>(
                     },
                     // timelocks
                     Tk::CheckSequenceVerify, Tk::Num(n)
-                        => term.reduce0(Terminal::Older(Sequence::from_consensus(n)))?,
+                        => term.reduce0(Terminal::Older(RelLockTime::from_consensus(n).map_err(Error::RelativeLockTime)?))?,
                     Tk::CheckLockTimeVerify, Tk::Num(n)
-                        => term.reduce0(Terminal::After(AbsLockTime::from_consensus(n)))?,
+                        => term.reduce0(Terminal::After(AbsLockTime::from_consensus(n).map_err(Error::AbsoluteLockTime)?))?,
                     // hashlocks
                     Tk::Equal => match_token!(
                         tokens,
@@ -439,6 +430,7 @@ pub fn parse<Ctx: ScriptContext>(
                     },
                     // CHECKMULTISIG based multisig
                     Tk::CheckMultiSig, Tk::Num(n) => {
+                        // Check size before allocating keys
                         if n as usize > MAX_PUBKEYS_PER_MULTISIG {
                             return Err(Error::CmsTooManyKeys(n));
                         }
@@ -457,14 +449,14 @@ pub fn parse<Ctx: ScriptContext>(
                             Tk::Num(k) => k,
                         );
                         keys.reverse();
-                        term.reduce0(Terminal::Multi(k as usize, keys))?;
+                        let thresh = Threshold::new(k as usize, keys).map_err(Error::Threshold)?;
+                        term.reduce0(Terminal::Multi(thresh))?;
                     },
                     // MultiA
                     Tk::NumEqual, Tk::Num(k) => {
-                        let max = Weight::MAX_BLOCK.to_wu() / 32;
                         // Check size before allocating keys
-                        if k as u64 > max {
-                            return Err(Error::MultiATooManyKeys(max))
+                        if k as usize > MAX_PUBKEYS_IN_CHECKSIGADD {
+                            return Err(Error::MultiATooManyKeys(MAX_PUBKEYS_IN_CHECKSIGADD as u64))
                         }
                         let mut keys = Vec::with_capacity(k as usize); // atleast k capacity
                         while tokens.peek() == Some(&Tk::CheckSigAdd) {
@@ -481,7 +473,8 @@ pub fn parse<Ctx: ScriptContext>(
                                 .map_err(|e| Error::PubKeyCtxError(e, Ctx::name_str()))?),
                         );
                         keys.reverse();
-                        term.reduce0(Terminal::MultiA(k as usize, keys))?;
+                        let thresh = Threshold::new(k as usize, keys).map_err(Error::Threshold)?;
+                        term.reduce0(Terminal::MultiA(thresh))?;
                     },
                 );
             }
@@ -556,7 +549,7 @@ pub fn parse<Ctx: ScriptContext>(
                 for _ in 0..n {
                     subs.push(Arc::new(term.pop().unwrap()));
                 }
-                term.reduce0(Terminal::Thresh(k, subs))?;
+                term.reduce0(Terminal::Thresh(Threshold::new(k, subs).map_err(Error::Threshold)?))?;
             }
             Some(NonTerm::EndIf) => {
                 match_token!(

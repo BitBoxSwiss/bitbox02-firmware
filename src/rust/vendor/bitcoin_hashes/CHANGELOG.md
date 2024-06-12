@@ -1,3 +1,24 @@
+# 0.14.0 - 2024-03-21
+
+* Bump MSRV to Rust version 1.56.1 [#2188](https://github.com/rust-bitcoin/rust-bitcoin/pull/2188)
+
+## API improvemnts
+
+* Add support for SHA384 [#2538](https://github.com/rust-bitcoin/rust-bitcoin/pull/2538)
+* Make from_hex inherent for byte-like types [#2491](https://github.com/rust-bitcoin/rust-bitcoin/pull/2491)
+* Add `Hash::from_bytes_iter` to construct hashes from iterators [#2272](https://github.com/rust-bitcoin/rust-bitcoin/pull/2272)
+* Make some constructors `const` [#2446](https://github.com/rust-bitcoin/rust-bitcoin/pull/2446)
+
+## Features/dependencies changes
+
+* Removed `core2` dependency in favour of the new `bitcoin-io` crate [#2066](https://github.com/rust-bitcoin/rust-bitcoin/pull/2066)
+* Remove "serde-std" [#2384](https://github.com/rust-bitcoin/rust-bitcoin/pull/2384)
+
+## Error handling improvements
+
+* Improve leaf errors [#2530](https://github.com/rust-bitcoin/rust-bitcoin/pull/2530)
+* Implement `From<Infallible>` for errors [#2516](https://github.com/rust-bitcoin/rust-bitcoin/pull/2516)
+
 # 0.13.0 - 2023-06-29
 
 The main improvement in this version is removal of the `hex` module in favour of the new
@@ -6,7 +27,6 @@ bumped the Minimum Supported Rust Version across the `rust-bitcoin` ecosystem to
 
 * Bump MSRV to 1.48.0 [#1729](https://github.com/rust-bitcoin/rust-bitcoin/pull/1729).
 * Depend on new `hex-conservative` crate and remove `hex` module [#1883](https://github.com/rust-bitcoin/rust-bitcoin/pull/1833).
-* Convert enum `crate::Error` to struct `crate::FromSliceError`.
 * Make `sha256t_hash_newtype!` evocative of the output [#1773](https://github.com/rust-bitcoin/rust-bitcoin/pull/1773).
 * Implement computing SHA256 in const context [#1769](https://github.com/rust-bitcoin/rust-bitcoin/pull/1769).
 * Add `from_bytes_ref` and `from_bytes_mut` to all hash types [#1761](https://github.com/rust-bitcoin/rust-bitcoin/pull/1761).

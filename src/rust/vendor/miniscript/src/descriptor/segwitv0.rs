@@ -5,9 +5,10 @@
 //! Implementation of Segwit Descriptors. Contains the implementation
 //! of wsh, wpkh and sortedmulti inside wsh.
 
+use core::convert::TryFrom;
 use core::fmt;
 
-use bitcoin::{Address, Network, ScriptBuf};
+use bitcoin::{Address, Network, ScriptBuf, Weight};
 
 use super::checksum::verify_checksum;
 use super::SortedMultiVec;
@@ -20,8 +21,8 @@ use crate::policy::{semantic, Liftable};
 use crate::prelude::*;
 use crate::util::varint_len;
 use crate::{
-    Error, ForEachKey, Miniscript, MiniscriptKey, Satisfier, Segwitv0, ToPublicKey, TranslateErr,
-    TranslatePk, Translator,
+    Error, ForEachKey, FromStrKey, Miniscript, MiniscriptKey, Satisfier, Segwitv0, ToPublicKey,
+    TranslateErr, TranslatePk, Translator,
 };
 /// A Segwitv0 wsh descriptor
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
@@ -72,7 +73,7 @@ impl<Pk: MiniscriptKey> Wsh<Pk> {
     ///
     /// # Errors
     /// When the descriptor is impossible to safisfy (ex: sh(OP_FALSE)).
-    pub fn max_weight_to_satisfy(&self) -> Result<usize, Error> {
+    pub fn max_weight_to_satisfy(&self) -> Result<Weight, Error> {
         let (redeem_script_size, max_sat_elems, max_sat_size) = match self.inner {
             WshInner::SortedMulti(ref smv) => (
                 smv.script_size(),
@@ -89,7 +90,10 @@ impl<Pk: MiniscriptKey> Wsh<Pk> {
         // `max_sat_elems` is inclusive of the "witness script" (redeem script)
         let stack_varint_diff = varint_len(max_sat_elems) - varint_len(0);
 
-        Ok(stack_varint_diff + varint_len(redeem_script_size) + redeem_script_size + max_sat_size)
+        Ok(Weight::from_wu(
+            (stack_varint_diff + varint_len(redeem_script_size) + redeem_script_size + max_sat_size)
+                as u64,
+        ))
     }
 
     /// Computes an upper bound on the weight of a satisfying witness to the
@@ -101,7 +105,10 @@ impl<Pk: MiniscriptKey> Wsh<Pk> {
     ///
     /// # Errors
     /// When the descriptor is impossible to safisfy (ex: sh(OP_FALSE)).
-    #[deprecated(note = "use max_weight_to_satisfy instead")]
+    #[deprecated(
+        since = "10.0.0",
+        note = "Use max_weight_to_satisfy instead. The method to count bytes was redesigned and the results will differ from max_weight_to_satisfy. For more details check rust-bitcoin/rust-miniscript#476."
+    )]
     pub fn max_satisfaction_weight(&self) -> Result<usize, Error> {
         let (script_size, max_sat_elems, max_sat_size) = match self.inner {
             WshInner::SortedMulti(ref smv) => (
@@ -228,8 +235,7 @@ impl<Pk: MiniscriptKey> Liftable<Pk> for Wsh<Pk> {
     }
 }
 
-impl_from_tree!(
-    Wsh<Pk>,
+impl<Pk: FromStrKey> crate::expression::FromTree for Wsh<Pk> {
     fn from_tree(top: &expression::Tree) -> Result<Self, Error> {
         if top.name == "wsh" && top.args.len() == 1 {
             let top = &top.args[0];
@@ -247,7 +253,7 @@ impl_from_tree!(
             )))
         }
     }
-);
+}
 
 impl<Pk: MiniscriptKey> fmt::Debug for Wsh<Pk> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -267,15 +273,14 @@ impl<Pk: MiniscriptKey> fmt::Display for Wsh<Pk> {
     }
 }
 
-impl_from_str!(
-    Wsh<Pk>,
-    type Err = Error;,
+impl<Pk: FromStrKey> core::str::FromStr for Wsh<Pk> {
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let desc_str = verify_checksum(s)?;
         let top = expression::Tree::from_str(desc_str)?;
         Wsh::<Pk>::from_tree(&top)
     }
-);
+}
 
 impl<Pk: MiniscriptKey> ForEachKey<Pk> for Wsh<Pk> {
     fn for_each_key<'a, F: FnMut(&'a Pk) -> bool>(&'a self, pred: F) -> bool {
@@ -346,12 +351,12 @@ impl<Pk: MiniscriptKey> Wpkh<Pk> {
     ///
     /// Assumes all ec-signatures are 73 bytes, including push opcode and
     /// sighash suffix.
-    pub fn max_weight_to_satisfy(&self) -> usize {
+    pub fn max_weight_to_satisfy(&self) -> Weight {
         // stack items: <varint(sig+sigHash)> <sig(71)+sigHash(1)> <varint(pubkey)> <pubkey>
         let stack_items_size = 73 + Segwitv0::pk_len(&self.pk);
         // stackLen varint difference between non-satisfied (0) and satisfied
         let stack_varint_diff = varint_len(2) - varint_len(0);
-        stack_varint_diff + stack_items_size
+        Weight::from_wu((stack_varint_diff + stack_items_size) as u64)
     }
 
     /// Computes an upper bound on the weight of a satisfying witness to the
@@ -360,21 +365,31 @@ impl<Pk: MiniscriptKey> Wpkh<Pk> {
     /// Assumes all ec-signatures are 73 bytes, including push opcode and
     /// sighash suffix. Includes the weight of the VarInts encoding the
     /// scriptSig and witness stack length.
+    #[deprecated(
+        since = "10.0.0",
+        note = "Use max_weight_to_satisfy instead. The method to count bytes was redesigned and the results will differ from max_weight_to_satisfy. For more details check rust-bitcoin/rust-miniscript#476."
+    )]
     pub fn max_satisfaction_weight(&self) -> usize { 4 + 1 + 73 + Segwitv0::pk_len(&self.pk) }
 }
 
 impl<Pk: MiniscriptKey + ToPublicKey> Wpkh<Pk> {
     /// Obtains the corresponding script pubkey for this descriptor.
     pub fn script_pubkey(&self) -> ScriptBuf {
-        let addr = Address::p2wpkh(&self.pk.to_public_key(), Network::Bitcoin)
+        let pk = self.pk.to_public_key();
+        let compressed = bitcoin::key::CompressedPublicKey::try_from(pk)
             .expect("wpkh descriptors have compressed keys");
+
+        let addr = Address::p2wpkh(&compressed, Network::Bitcoin);
         addr.script_pubkey()
     }
 
     /// Obtains the corresponding script pubkey for this descriptor.
     pub fn address(&self, network: Network) -> Address {
-        Address::p2wpkh(&self.pk.to_public_key(), network)
-            .expect("Rust Miniscript types don't allow uncompressed pks in segwit descriptors")
+        let pk = self.pk.to_public_key();
+        let compressed = bitcoin::key::CompressedPublicKey::try_from(pk)
+            .expect("Rust Miniscript types don't allow uncompressed pks in segwit descriptors");
+
+        Address::p2wpkh(&compressed, network)
     }
 
     /// Obtains the underlying miniscript for this descriptor.
@@ -386,7 +401,7 @@ impl<Pk: MiniscriptKey + ToPublicKey> Wpkh<Pk> {
         // the previous txo's scriptPubKey.
         // The item 5:
         //     - For P2WPKH witness program, the scriptCode is `0x1976a914{20-byte-pubkey-hash}88ac`.
-        let addr = Address::p2pkh(&self.pk.to_public_key(), Network::Bitcoin);
+        let addr = Address::p2pkh(self.pk.to_public_key(), Network::Bitcoin);
         addr.script_pubkey()
     }
 
@@ -468,8 +483,7 @@ impl<Pk: MiniscriptKey> Liftable<Pk> for Wpkh<Pk> {
     }
 }
 
-impl_from_tree!(
-    Wpkh<Pk>,
+impl<Pk: FromStrKey> crate::expression::FromTree for Wpkh<Pk> {
     fn from_tree(top: &expression::Tree) -> Result<Self, Error> {
         if top.name == "wpkh" && top.args.len() == 1 {
             Ok(Wpkh::new(expression::terminal(&top.args[0], |pk| Pk::from_str(pk))?)?)
@@ -481,17 +495,16 @@ impl_from_tree!(
             )))
         }
     }
-);
+}
 
-impl_from_str!(
-    Wpkh<Pk>,
-    type Err = Error;,
+impl<Pk: FromStrKey> core::str::FromStr for Wpkh<Pk> {
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let desc_str = verify_checksum(s)?;
         let top = expression::Tree::from_str(desc_str)?;
         Self::from_tree(&top)
     }
-);
+}
 
 impl<Pk: MiniscriptKey> ForEachKey<Pk> for Wpkh<Pk> {
     fn for_each_key<'a, F: FnMut(&'a Pk) -> bool>(&'a self, mut pred: F) -> bool { pred(&self.pk) }

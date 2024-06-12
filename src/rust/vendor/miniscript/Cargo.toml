@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "miniscript"
-version = "11.0.0"
+version = "12.0.0"
 authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>, Sanket Kanjalkar <sanket1729@gmail.com>"]
 description = "Miniscript: a subset of Bitcoin Script designed for analysis"
 homepage = "https://github.com/rust-bitcoin/rust-miniscript/"
@@ -63,30 +63,33 @@ required-features = [
     "base64",
 ]
 
+[[example]]
+name = "big"
+required-features = [
+    "std",
+    "base64",
+    "compiler",
+]
+
 [dependencies.actual-serde]
 version = "1.0.103"
 optional = true
 package = "serde"
 
 [dependencies.bech32]
-version = "0.10.0-beta"
+version = "0.11.0"
 default-features = false
 
 [dependencies.bitcoin]
-version = "0.31.0"
+version = "0.32.0"
 default-features = false
 
-[dependencies.internals]
-version = "0.2.0"
-default_features = false
-package = "bitcoin-internals"
-
 [dev-dependencies.bitcoin]
-version = "0.31.0"
+version = "0.32.0"
 features = ["base64"]
 
 [dev-dependencies.secp256k1]
-version = "0.28.0"
+version = "0.29.0"
 features = ["rand-std"]
 
 [dev-dependencies.serde_test]
@@ -96,10 +99,7 @@ version = "1.0.147"
 base64 = ["bitcoin/base64"]
 compiler = []
 default = ["std"]
-no-std = [
-    "bitcoin/no-std",
-    "bech32/alloc",
-]
+no-std = ["bech32/alloc"]
 rand = ["bitcoin/rand"]
 serde = [
     "actual-serde",

@@ -17,10 +17,19 @@ use crate::{FromSliceError, Hash, HashEngine};
 
 /// A hash computed from a RFC 2104 HMAC. Parameterized by the underlying hash function.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
-#[cfg_attr(feature = "schemars", schemars(transparent))]
 #[repr(transparent)]
 pub struct Hmac<T: Hash>(T);
+
+#[cfg(feature = "schemars")]
+impl<T: Hash + schemars::JsonSchema> schemars::JsonSchema for Hmac<T> {
+    fn is_referenceable() -> bool { <T as schemars::JsonSchema>::is_referenceable() }
+
+    fn schema_name() -> std::string::String { <T as schemars::JsonSchema>::schema_name() }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        <T as schemars::JsonSchema>::json_schema(gen)
+    }
+}
 
 impl<T: Hash + str::FromStr> str::FromStr for Hmac<T> {
     type Err = <T as str::FromStr>::Err;
@@ -35,7 +44,7 @@ pub struct HmacMidState<T: Hash> {
     pub outer: <T::Engine as HashEngine>::MidState,
 }
 
-/// Pair of underyling hash engines, used for the inner and outer hash of HMAC.
+/// Pair of underlying hash engines, used for the inner and outer hash of HMAC.
 #[derive(Clone)]
 pub struct HmacEngine<T: Hash> {
     iengine: T::Engine,

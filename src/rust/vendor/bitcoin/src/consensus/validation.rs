@@ -51,13 +51,14 @@ pub fn verify_script_with_flags<F: Into<u32>>(
     spending_tx: &[u8],
     flags: F,
 ) -> Result<(), BitcoinconsensusError> {
-    Ok(bitcoinconsensus::verify_with_flags(
+    bitcoinconsensus::verify_with_flags(
         script.as_bytes(),
         amount.to_sat(),
         spending_tx,
         index,
         flags.into(),
-    )?)
+    )
+    .map_err(BitcoinconsensusError)
 }
 
 /// Verifies that this transaction is able to spend its inputs.
@@ -198,10 +199,6 @@ impl std::error::Error for BitcoinconsensusError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> { None }
 }
 
-impl From<bitcoinconsensus::Error> for BitcoinconsensusError {
-    fn from(e: bitcoinconsensus::Error) -> Self { Self(e) }
-}
-
 /// An error during transaction validation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
@@ -211,6 +208,8 @@ pub enum TxVerifyError {
     /// Can not find the spent output.
     UnknownSpentOutput(OutPoint),
 }
+
+internals::impl_from_infallible!(TxVerifyError);
 
 impl fmt::Display for TxVerifyError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

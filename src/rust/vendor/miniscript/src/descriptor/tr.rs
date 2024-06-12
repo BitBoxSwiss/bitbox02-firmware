@@ -3,11 +3,13 @@
 use core::str::FromStr;
 use core::{cmp, fmt, hash};
 
+#[cfg(not(test))] // https://github.com/rust-lang/rust/issues/121684
+use bitcoin::secp256k1;
 use bitcoin::taproot::{
     LeafVersion, TaprootBuilder, TaprootSpendInfo, TAPROOT_CONTROL_BASE_SIZE,
     TAPROOT_CONTROL_MAX_NODE_COUNT, TAPROOT_CONTROL_NODE_SIZE,
 };
-use bitcoin::{opcodes, secp256k1, Address, Network, ScriptBuf};
+use bitcoin::{opcodes, Address, Network, ScriptBuf, Weight};
 use sync::Arc;
 
 use super::checksum::{self, verify_checksum};
@@ -21,8 +23,8 @@ use crate::policy::Liftable;
 use crate::prelude::*;
 use crate::util::{varint_len, witness_size};
 use crate::{
-    errstr, Error, ForEachKey, MiniscriptKey, Satisfier, ScriptContext, Tap, ToPublicKey,
-    TranslateErr, TranslatePk, Translator,
+    errstr, Error, ForEachKey, FromStrKey, MiniscriptKey, Satisfier, ScriptContext, Tap, Threshold,
+    ToPublicKey, TranslateErr, TranslatePk, Translator,
 };
 
 /// A Taproot Tree representation.
@@ -259,7 +261,7 @@ impl<Pk: MiniscriptKey> Tr<Pk> {
     ///
     /// # Errors
     /// When the descriptor is impossible to safisfy (ex: sh(OP_FALSE)).
-    pub fn max_weight_to_satisfy(&self) -> Result<usize, Error> {
+    pub fn max_weight_to_satisfy(&self) -> Result<Weight, Error> {
         let tree = match self.tap_tree() {
             None => {
                 // key spend path
@@ -268,13 +270,14 @@ impl<Pk: MiniscriptKey> Tr<Pk> {
                 // 1 stack item
                 let stack_varint_diff = varint_len(1) - varint_len(0);
 
-                return Ok(stack_varint_diff + item_sig_size);
+                return Ok(Weight::from_wu((stack_varint_diff + item_sig_size) as u64));
             }
             // script path spend..
             Some(tree) => tree,
         };
 
-        tree.iter()
+        let wu = tree
+            .iter()
             .filter_map(|(depth, ms)| {
                 let script_size = ms.script_size();
                 let max_sat_elems = ms.max_satisfaction_witness_elements().ok()?;
@@ -297,7 +300,9 @@ impl<Pk: MiniscriptKey> Tr<Pk> {
                 )
             })
             .max()
-            .ok_or(Error::ImpossibleSatisfaction)
+            .ok_or(Error::ImpossibleSatisfaction)?;
+
+        Ok(Weight::from_wu(wu as u64))
     }
 
     /// Computes an upper bound on the weight of a satisfying witness to the
@@ -309,7 +314,10 @@ impl<Pk: MiniscriptKey> Tr<Pk> {
     ///
     /// # Errors
     /// When the descriptor is impossible to safisfy (ex: sh(OP_FALSE)).
-    #[deprecated(note = "use max_weight_to_satisfy instead")]
+    #[deprecated(
+        since = "10.0.0",
+        note = "Use max_weight_to_satisfy instead. The method to count bytes was redesigned and the results will differ from max_weight_to_satisfy. For more details check rust-bitcoin/rust-miniscript#476."
+    )]
     pub fn max_satisfaction_weight(&self) -> Result<usize, Error> {
         let tree = match self.tap_tree() {
             // key spend path:
@@ -462,8 +470,7 @@ where
 }
 
 #[rustfmt::skip]
-impl_block_str!(
-    Tr<Pk>,
+impl<Pk: FromStrKey> Tr<Pk> {
     // Helper function to parse taproot script path
     fn parse_tr_script_spend(tree: &expression::Tree,) -> Result<TapTree<Pk>, Error> {
         match tree {
@@ -482,10 +489,9 @@ impl_block_str!(
             )),
         }
     }
-);
+}
 
-impl_from_tree!(
-    Tr<Pk>,
+impl<Pk: FromStrKey> crate::expression::FromTree for Tr<Pk> {
     fn from_tree(top: &expression::Tree) -> Result<Self, Error> {
         if top.name == "tr" {
             match top.args.len() {
@@ -525,17 +531,16 @@ impl_from_tree!(
             )))
         }
     }
-);
+}
 
-impl_from_str!(
-    Tr<Pk>,
-    type Err = Error;,
+impl<Pk: FromStrKey> core::str::FromStr for Tr<Pk> {
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let desc_str = verify_checksum(s)?;
         let top = parse_tr_tree(desc_str)?;
         Self::from_tree(&top)
     }
-);
+}
 
 impl<Pk: MiniscriptKey> fmt::Debug for Tr<Pk> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -614,9 +619,9 @@ impl<Pk: MiniscriptKey> Liftable<Pk> for TapTree<Pk> {
     fn lift(&self) -> Result<Policy<Pk>, Error> {
         fn lift_helper<Pk: MiniscriptKey>(s: &TapTree<Pk>) -> Result<Policy<Pk>, Error> {
             match *s {
-                TapTree::Tree { ref left, ref right, height: _ } => {
-                    Ok(Policy::Threshold(1, vec![lift_helper(left)?, lift_helper(right)?]))
-                }
+                TapTree::Tree { ref left, ref right, height: _ } => Ok(Policy::Thresh(
+                    Threshold::or(Arc::new(lift_helper(left)?), Arc::new(lift_helper(right)?)),
+                )),
                 TapTree::Leaf(ref leaf) => leaf.lift(),
             }
         }
@@ -629,9 +634,10 @@ impl<Pk: MiniscriptKey> Liftable<Pk> for TapTree<Pk> {
 impl<Pk: MiniscriptKey> Liftable<Pk> for Tr<Pk> {
     fn lift(&self) -> Result<Policy<Pk>, Error> {
         match &self.tree {
-            Some(root) => {
-                Ok(Policy::Threshold(1, vec![Policy::Key(self.internal_key.clone()), root.lift()?]))
-            }
+            Some(root) => Ok(Policy::Thresh(Threshold::or(
+                Arc::new(Policy::Key(self.internal_key.clone())),
+                Arc::new(root.lift()?),
+            ))),
             None => Ok(Policy::Key(self.internal_key.clone())),
         }
     }

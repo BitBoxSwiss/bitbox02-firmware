@@ -9,7 +9,6 @@ use crate::blockdata::transaction::Transaction;
 use crate::consensus::encode;
 use crate::prelude::*;
 use crate::psbt::raw;
-use crate::{hashes, io};
 
 /// Enum for marking psbt hash error.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -58,7 +57,7 @@ pub enum Error {
     NonStandardSighashType(u32),
     /// Invalid hash when parsing slice.
     InvalidHash(hashes::FromSliceError),
-    /// The pre-image must hash to the correponding psbt hash
+    /// The pre-image must hash to the corresponding psbt hash
     InvalidPreimageHashPair {
         /// Hash-type
         hash_type: PsbtHash,
@@ -77,7 +76,7 @@ pub enum Error {
     /// Integer overflow in fee calculation
     FeeOverflow,
     /// Parsing error indicating invalid public keys
-    InvalidPublicKey(crate::crypto::key::Error),
+    InvalidPublicKey(crate::crypto::key::FromSliceError),
     /// Parsing error indicating invalid secp256k1 public keys
     InvalidSecp256k1PublicKey(secp256k1::Error),
     /// Parsing error indicating invalid xonly public keys
@@ -104,6 +103,8 @@ pub enum Error {
     Io(io::Error),
 }
 
+internals::impl_from_infallible!(Error);
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Error::*;
@@ -127,8 +128,8 @@ impl fmt::Display for Error {
             UnexpectedUnsignedTx { expected: ref e, actual: ref a } => write!(
                 f,
                 "different unsigned transaction: expected {}, actual {}",
-                e.txid(),
-                a.txid()
+                e.compute_txid(),
+                a.compute_txid()
             ),
             NonStandardSighashType(ref sht) => write!(f, "non-standard sighash type: {}", sht),
             InvalidHash(ref e) => write_err!(f, "invalid hash when parsing slice"; e),

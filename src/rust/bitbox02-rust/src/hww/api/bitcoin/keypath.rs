@@ -80,9 +80,15 @@ fn validate_account_multisig(
     }
 }
 
+#[derive(PartialEq, Copy, Clone)]
+pub enum ReceiveSpend {
+    Receive,
+    Spend,
+}
+
 /// Validates that change is 0 or 1 and address is less than 10000.
-fn validate_change_address(change: u32, address: u32) -> Result<(), ()> {
-    if change <= 1 && address <= BIP44_ADDRESS_MAX {
+fn validate_change_address(change: u32, address: u32, mode: ReceiveSpend) -> Result<(), ()> {
+    if change <= 1 && (mode == ReceiveSpend::Spend || address <= BIP44_ADDRESS_MAX) {
         Ok(())
     } else {
         Err(())
@@ -98,10 +104,12 @@ fn validate_change_address(change: u32, address: u32) -> Result<(), ()> {
 /// The account-level keypath is also not validated (except that it is not empty), as there is no
 /// standard for policy keypaths, and the keypaths pointing to our own account-level xpubs are
 /// verified by the user during policy registration.
-pub fn validate_address_policy(keypath: &[u32]) -> Result<(), ()> {
+pub fn validate_address_policy(keypath: &[u32], mode: ReceiveSpend) -> Result<(), ()> {
     if keypath.len() >= 2 {
         let (keypath_account, keypath_rest) = keypath.split_at(keypath.len() - 2);
-        if !keypath_account.is_empty() && keypath_rest[1] <= BIP44_ADDRESS_MAX {
+        if !keypath_account.is_empty()
+            && (mode == ReceiveSpend::Spend || keypath_rest[1] <= BIP44_ADDRESS_MAX)
+        {
             Ok(())
         } else {
             Err(())
@@ -140,11 +148,12 @@ pub fn validate_address_simple(
     expected_coin: u32,
     script_type: SimpleType,
     taproot_support: bool,
+    mode: ReceiveSpend,
 ) -> Result<(), ()> {
     if keypath.len() >= 2 {
         let (keypath_account, keypath_rest) = keypath.split_at(keypath.len() - 2);
         validate_account_simple(keypath_account, expected_coin, script_type, taproot_support)?;
-        validate_change_address(keypath_rest[0], keypath_rest[1])
+        validate_change_address(keypath_rest[0], keypath_rest[1], mode)
     } else {
         Err(())
     }
@@ -259,155 +268,181 @@ mod tests {
         let bip44_account = 99 + HARDENED;
         let bip44_coin = 1 + HARDENED;
         let taproot_support = true;
-        // valid p2wpkh-p2sh; receive
-        assert!(validate_address_simple(
-            &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
-            bip44_coin,
-            SimpleType::P2wpkhP2sh,
-            taproot_support,
-        )
-        .is_ok());
+        for mode in [ReceiveSpend::Receive, ReceiveSpend::Spend] {
+            // valid p2wpkh-p2sh; receive
+            assert!(validate_address_simple(
+                &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                bip44_coin,
+                SimpleType::P2wpkhP2sh,
+                taproot_support,
+                mode,
+            )
+            .is_ok());
 
-        // valid p2wpkh-p2sh; receive on high address
-        assert!(validate_address_simple(
-            &[49 + HARDENED, bip44_coin, bip44_account, 0, 9999],
-            bip44_coin,
-            SimpleType::P2wpkhP2sh,
-            taproot_support,
-        )
-        .is_ok());
+            // valid p2wpkh-p2sh; receive on high address
+            assert!(validate_address_simple(
+                &[49 + HARDENED, bip44_coin, bip44_account, 0, 9999],
+                bip44_coin,
+                SimpleType::P2wpkhP2sh,
+                taproot_support,
+                mode,
+            )
+            .is_ok());
 
-        // invalid p2wpkh-p2sh; receive on too high address
-        assert!(validate_address_simple(
-            &[49 + HARDENED, bip44_coin, bip44_account, 0, 10000],
-            bip44_coin,
-            SimpleType::P2wpkhP2sh,
-            taproot_support,
-        )
-        .is_err());
+            // invalid p2wpkh-p2sh; receive on too high address - only allowed when spending
+            assert_eq!(
+                validate_address_simple(
+                    &[49 + HARDENED, bip44_coin, bip44_account, 0, 10000],
+                    bip44_coin,
+                    SimpleType::P2wpkhP2sh,
+                    taproot_support,
+                    mode,
+                )
+                .is_ok(),
+                mode == ReceiveSpend::Spend
+            );
 
-        // valid p2wpkh-p2sh; change
-        assert!(validate_address_simple(
-            &[49 + HARDENED, bip44_coin, bip44_account, 1, 0],
-            bip44_coin,
-            SimpleType::P2wpkhP2sh,
-            taproot_support,
-        )
-        .is_ok());
+            // valid p2wpkh-p2sh; change
+            assert!(validate_address_simple(
+                &[49 + HARDENED, bip44_coin, bip44_account, 1, 0],
+                bip44_coin,
+                SimpleType::P2wpkhP2sh,
+                taproot_support,
+                mode,
+            )
+            .is_ok());
 
-        // valid p2wpkh-p2sh; invalid bip44 change values
-        assert!(validate_address_simple(
-            &[49 + HARDENED, bip44_coin, bip44_account, 2, 0],
-            bip44_coin,
-            SimpleType::P2wpkhP2sh,
-            taproot_support,
-        )
-        .is_err());
-        assert!(validate_address_simple(
-            &[49 + HARDENED, bip44_coin, bip44_account, 0 + HARDENED, 0],
-            bip44_coin,
-            SimpleType::P2wpkhP2sh,
-            taproot_support,
-        )
-        .is_err());
-        assert!(validate_address_simple(
-            &[49 + HARDENED, bip44_coin, bip44_account, 1 + HARDENED, 0],
-            bip44_coin,
-            SimpleType::P2wpkhP2sh,
-            taproot_support,
-        )
-        .is_err());
+            // valid p2wpkh-p2sh; invalid bip44 change values
+            assert!(validate_address_simple(
+                &[49 + HARDENED, bip44_coin, bip44_account, 2, 0],
+                bip44_coin,
+                SimpleType::P2wpkhP2sh,
+                taproot_support,
+                mode,
+            )
+            .is_err());
+            assert!(validate_address_simple(
+                &[49 + HARDENED, bip44_coin, bip44_account, 0 + HARDENED, 0],
+                bip44_coin,
+                SimpleType::P2wpkhP2sh,
+                taproot_support,
+                mode,
+            )
+            .is_err());
+            assert!(validate_address_simple(
+                &[49 + HARDENED, bip44_coin, bip44_account, 1 + HARDENED, 0],
+                bip44_coin,
+                SimpleType::P2wpkhP2sh,
+                taproot_support,
+                mode,
+            )
+            .is_err());
 
-        // invalid p2wpkh-p2sh; wrong purpose
-        assert!(validate_address_simple(
-            &[84 + HARDENED, bip44_coin, bip44_account, 0, 0],
-            bip44_coin,
-            SimpleType::P2wpkhP2sh,
-            taproot_support,
-        )
-        .is_err());
+            // invalid p2wpkh-p2sh; wrong purpose
+            assert!(validate_address_simple(
+                &[84 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                bip44_coin,
+                SimpleType::P2wpkhP2sh,
+                taproot_support,
+                mode,
+            )
+            .is_err());
 
-        // invalid p2wpkh-p2sh; account too high
-        assert!(validate_address_simple(
-            &[49 + HARDENED, bip44_coin, 100 + HARDENED, 0, 0],
-            bip44_coin,
-            SimpleType::P2wpkhP2sh,
-            taproot_support,
-        )
-        .is_err());
+            // invalid p2wpkh-p2sh; account too high
+            assert!(validate_address_simple(
+                &[49 + HARDENED, bip44_coin, 100 + HARDENED, 0, 0],
+                bip44_coin,
+                SimpleType::P2wpkhP2sh,
+                taproot_support,
+                mode,
+            )
+            .is_err());
 
-        // invalid p2wpkh-p2sh; account too low
-        assert!(validate_address_simple(
-            &[49 + HARDENED, bip44_coin, HARDENED - 1, 0, 0],
-            bip44_coin,
-            SimpleType::P2wpkhP2sh,
-            taproot_support,
-        )
-        .is_err());
+            // invalid p2wpkh-p2sh; account too low
+            assert!(validate_address_simple(
+                &[49 + HARDENED, bip44_coin, HARDENED - 1, 0, 0],
+                bip44_coin,
+                SimpleType::P2wpkhP2sh,
+                taproot_support,
+                mode,
+            )
+            .is_err());
 
-        // invalid p2wpkh-p2sh; expected coin mismatch
-        assert!(validate_address_simple(
-            &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
-            bip44_coin + 1,
-            SimpleType::P2wpkhP2sh,
-            taproot_support,
-        )
-        .is_err());
+            // invalid p2wpkh-p2sh; expected coin mismatch
+            assert!(validate_address_simple(
+                &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                bip44_coin + 1,
+                SimpleType::P2wpkhP2sh,
+                taproot_support,
+                mode,
+            )
+            .is_err());
 
-        // valid p2wpkh
-        assert!(validate_address_simple(
-            &[84 + HARDENED, bip44_coin, bip44_account, 0, 0],
-            bip44_coin,
-            SimpleType::P2wpkh,
-            taproot_support,
-        )
-        .is_ok());
+            // valid p2wpkh
+            assert!(validate_address_simple(
+                &[84 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                bip44_coin,
+                SimpleType::P2wpkh,
+                taproot_support,
+                mode,
+            )
+            .is_ok());
 
-        // invalid p2wpkh; wrong purpose
-        assert!(validate_address_simple(
-            &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
-            bip44_coin,
-            SimpleType::P2wpkh,
-            taproot_support,
-        )
-        .is_err());
+            // invalid p2wpkh; wrong purpose
+            assert!(validate_address_simple(
+                &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                bip44_coin,
+                SimpleType::P2wpkh,
+                taproot_support,
+                mode,
+            )
+            .is_err());
 
-        // valid p2tr
-        assert!(validate_address_simple(
-            &[86 + HARDENED, bip44_coin, bip44_account, 0, 0],
-            bip44_coin,
-            SimpleType::P2tr,
-            taproot_support,
-        )
-        .is_ok());
+            // valid p2tr
+            assert!(validate_address_simple(
+                &[86 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                bip44_coin,
+                SimpleType::P2tr,
+                taproot_support,
+                mode,
+            )
+            .is_ok());
 
-        // invalid p2tr, taproot not supported
-        assert!(validate_address_simple(
-            &[86 + HARDENED, bip44_coin, bip44_account, 0, 0],
-            bip44_coin,
-            SimpleType::P2tr,
-            false,
-        )
-        .is_err());
+            // invalid p2tr, taproot not supported
+            assert!(validate_address_simple(
+                &[86 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                bip44_coin,
+                SimpleType::P2tr,
+                false,
+                mode,
+            )
+            .is_err());
 
-        // invalid p2tr; wrong purpose
-        assert!(validate_address_simple(
-            &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
-            bip44_coin,
-            SimpleType::P2tr,
-            taproot_support,
-        )
-        .is_err());
+            // invalid p2tr; wrong purpose
+            assert!(validate_address_simple(
+                &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                bip44_coin,
+                SimpleType::P2tr,
+                taproot_support,
+                mode,
+            )
+            .is_err());
+        }
     }
 
     #[test]
     fn test_validate_address_policy() {
-        assert!(validate_address_policy(&[523, 2342, 0]).is_ok());
-        assert!(validate_address_policy(&[523, 2342, 9999]).is_ok());
-        // Address too high.
-        assert!(validate_address_policy(&[523, 2342, 10000]).is_err());
-        // No account-level part.
-        assert!(validate_address_policy(&[2342, 0]).is_err());
+        for mode in [ReceiveSpend::Receive, ReceiveSpend::Spend] {
+            assert!(validate_address_policy(&[523, 2342, 0], mode).is_ok());
+            assert!(validate_address_policy(&[523, 2342, 9999], mode).is_ok());
+            // No account-level part.
+            assert!(validate_address_policy(&[2342, 0], mode).is_err());
+        }
+
+        // Address too high when receiving.
+        assert!(validate_address_policy(&[523, 2342, 10000], ReceiveSpend::Receive).is_err());
+        // Ok when spending.
+        assert!(validate_address_policy(&[523, 2342, 10000], ReceiveSpend::Spend).is_ok());
     }
 
     #[test]

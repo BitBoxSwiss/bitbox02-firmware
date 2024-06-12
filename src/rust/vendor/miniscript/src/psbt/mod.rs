@@ -14,10 +14,12 @@ use std::error;
 
 use bitcoin::hashes::{hash160, sha256d, Hash};
 use bitcoin::psbt::{self, Psbt};
-use bitcoin::secp256k1::{self, Secp256k1, VerifyOnly};
+#[cfg(not(test))] // https://github.com/rust-lang/rust/issues/121684
+use bitcoin::secp256k1;
+use bitcoin::secp256k1::{Secp256k1, VerifyOnly};
 use bitcoin::sighash::{self, SighashCache};
 use bitcoin::taproot::{self, ControlBlock, LeafVersion, TapLeafHash};
-use bitcoin::{absolute, bip32, transaction, Script, ScriptBuf, Sequence};
+use bitcoin::{absolute, bip32, relative, transaction, Script, ScriptBuf};
 
 use crate::miniscript::context::SigType;
 use crate::prelude::*;
@@ -86,7 +88,7 @@ pub enum InputError {
     /// Get the secp Errors directly
     SecpErr(bitcoin::secp256k1::Error),
     /// Key errors
-    KeyErr(bitcoin::key::Error),
+    KeyErr(bitcoin::key::FromSliceError),
     /// Could not satisfy taproot descriptor
     /// This error is returned when both script path and key paths could not be
     /// satisfied. We cannot return a detailed error because we try all miniscripts
@@ -229,8 +231,8 @@ impl From<bitcoin::secp256k1::Error> for InputError {
 }
 
 #[doc(hidden)]
-impl From<bitcoin::key::Error> for InputError {
-    fn from(e: bitcoin::key::Error) -> InputError { InputError::KeyErr(e) }
+impl From<bitcoin::key::FromSliceError> for InputError {
+    fn from(e: bitcoin::key::FromSliceError) -> InputError { InputError::KeyErr(e) }
 }
 
 /// Psbt satisfier for at inputs at a particular index
@@ -322,14 +324,8 @@ impl<'psbt, Pk: MiniscriptKey + ToPublicKey> Satisfier<Pk> for PsbtInputSatisfie
         <dyn Satisfier<Pk>>::check_after(&lock_time, n)
     }
 
-    fn check_older(&self, n: Sequence) -> bool {
+    fn check_older(&self, n: relative::LockTime) -> bool {
         let seq = self.psbt.unsigned_tx.input[self.index].sequence;
-
-        // https://github.com/bitcoin/bips/blob/master/bip-0112.mediawiki
-        // Disable flag set => return true.
-        if !n.is_relative_lock_time() {
-            return true;
-        }
 
         if self.psbt.unsigned_tx.version < transaction::Version::TWO || !seq.is_relative_lock_time()
         {
@@ -343,32 +339,32 @@ impl<'psbt, Pk: MiniscriptKey + ToPublicKey> Satisfier<Pk> for PsbtInputSatisfie
         self.psbt.inputs[self.index]
             .hash160_preimages
             .get(&Pk::to_hash160(h))
-            .and_then(try_vec_as_preimage32)
+            .and_then(|x: &Vec<u8>| try_vec_as_preimage32(x))
     }
 
     fn lookup_sha256(&self, h: &Pk::Sha256) -> Option<Preimage32> {
         self.psbt.inputs[self.index]
             .sha256_preimages
             .get(&Pk::to_sha256(h))
-            .and_then(try_vec_as_preimage32)
+            .and_then(|x: &Vec<u8>| try_vec_as_preimage32(x))
     }
 
     fn lookup_hash256(&self, h: &Pk::Hash256) -> Option<Preimage32> {
         self.psbt.inputs[self.index]
             .hash256_preimages
             .get(&sha256d::Hash::from_byte_array(Pk::to_hash256(h).to_byte_array())) // upstream psbt operates on hash256
-            .and_then(try_vec_as_preimage32)
+            .and_then(|x: &Vec<u8>| try_vec_as_preimage32(x))
     }
 
     fn lookup_ripemd160(&self, h: &Pk::Ripemd160) -> Option<Preimage32> {
         self.psbt.inputs[self.index]
             .ripemd160_preimages
             .get(&Pk::to_ripemd160(h))
-            .and_then(try_vec_as_preimage32)
+            .and_then(|x: &Vec<u8>| try_vec_as_preimage32(x))
     }
 }
 
-fn try_vec_as_preimage32(vec: &Vec<u8>) -> Option<Preimage32> {
+fn try_vec_as_preimage32(vec: &[u8]) -> Option<Preimage32> {
     if vec.len() == 32 {
         let mut arr = [0u8; 32];
         arr.copy_from_slice(vec);
@@ -399,16 +395,15 @@ fn sanity_check(psbt: &Psbt) -> Result<(), Error> {
             None => sighash::EcdsaSighashType::All,
         };
         for (key, ecdsa_sig) in &input.partial_sigs {
-            let flag = sighash::EcdsaSighashType::from_standard(ecdsa_sig.hash_ty as u32).map_err(
-                |_| {
+            let flag = sighash::EcdsaSighashType::from_standard(ecdsa_sig.sighash_type as u32)
+                .map_err(|_| {
                     Error::InputError(
                         InputError::Interpreter(interpreter::Error::NonStandardSighash(
                             ecdsa_sig.to_vec(),
                         )),
                         index,
                     )
-                },
-            )?;
+                })?;
             if target_ecdsa_sighash_ty != flag {
                 return Err(Error::InputError(
                     InputError::WrongSighashFlag {
@@ -567,7 +562,7 @@ pub trait PsbtExt {
     ///
     /// Based on the sighash
     /// flag specified in the [`Psbt`] sighash field. If the input sighash flag psbt field is `None`
-    /// the [`sighash::TapSighashType::Default`](bitcoin::sighash::TapSighashType::Default) is chosen
+    /// the [`sighash::TapSighashType::Default`] is chosen
     /// for for taproot spends, otherwise [`EcdsaSighashType::All`](bitcoin::sighash::EcdsaSighashType::All) is chosen.
     /// If the utxo at `idx` is a taproot output, returns a [`PsbtSighashMsg::TapSighash`] variant.
     /// If the utxo at `idx` is a pre-taproot segwit output, returns a [`PsbtSighashMsg::SegwitV0Sighash`] variant.
@@ -740,7 +735,7 @@ impl PsbtExt for Psbt {
         let desc_type = desc.desc_type();
 
         if let Some(non_witness_utxo) = &input.non_witness_utxo {
-            if txin.previous_output.txid != non_witness_utxo.txid() {
+            if txin.previous_output.txid != non_witness_utxo.compute_txid() {
                 return Err(UtxoUpdateError::UtxoCheck);
             }
         }
@@ -878,7 +873,7 @@ impl PsbtExt for Psbt {
                         .redeem_script
                         .as_ref()
                         .expect("redeem script non-empty checked earlier");
-                    cache.p2wpkh_signature_hash(idx, &script_code, amt, hash_ty)?
+                    cache.p2wpkh_signature_hash(idx, script_code, amt, hash_ty)?
                 } else {
                     let witness_script = inp
                         .witness_script
@@ -1010,7 +1005,9 @@ trait PsbtFields {
     fn tap_key_origins(
         &mut self,
     ) -> &mut BTreeMap<bitcoin::key::XOnlyPublicKey, (Vec<TapLeafHash>, bip32::KeySource)>;
+    #[allow(dead_code)]
     fn proprietary(&mut self) -> &mut BTreeMap<psbt::raw::ProprietaryKey, Vec<u8>>;
+    #[allow(dead_code)]
     fn unknown(&mut self) -> &mut BTreeMap<psbt::raw::Key, Vec<u8>>;
 
     // `tap_tree` only appears in psbt::Output, so it's returned as an option of a mutable ref
@@ -1037,9 +1034,11 @@ impl PsbtFields for psbt::Input {
     ) -> &mut BTreeMap<bitcoin::key::XOnlyPublicKey, (Vec<TapLeafHash>, bip32::KeySource)> {
         &mut self.tap_key_origins
     }
+    #[allow(dead_code)]
     fn proprietary(&mut self) -> &mut BTreeMap<psbt::raw::ProprietaryKey, Vec<u8>> {
         &mut self.proprietary
     }
+    #[allow(dead_code)]
     fn unknown(&mut self) -> &mut BTreeMap<psbt::raw::Key, Vec<u8>> { &mut self.unknown }
 
     fn tap_scripts(&mut self) -> Option<&mut BTreeMap<ControlBlock, (ScriptBuf, LeafVersion)>> {
@@ -1064,9 +1063,11 @@ impl PsbtFields for psbt::Output {
     ) -> &mut BTreeMap<bitcoin::key::XOnlyPublicKey, (Vec<TapLeafHash>, bip32::KeySource)> {
         &mut self.tap_key_origins
     }
+    #[allow(dead_code)]
     fn proprietary(&mut self) -> &mut BTreeMap<psbt::raw::ProprietaryKey, Vec<u8>> {
         &mut self.proprietary
     }
+    #[allow(dead_code)]
     fn unknown(&mut self) -> &mut BTreeMap<psbt::raw::Key, Vec<u8>> { &mut self.unknown }
 
     fn tap_tree(&mut self) -> Option<&mut Option<taproot::TapTree>> { Some(&mut self.tap_tree) }
@@ -1313,10 +1314,12 @@ pub enum SighashError {
     MissingSpendUtxos,
     /// Invalid Sighash type
     InvalidSighashType,
-    /// Sighash computation error
-    /// Only happens when single does not have corresponding output as psbts
-    /// already have information to compute the sighash
-    SighashComputationError(sighash::Error),
+    /// Computation error for taproot sighash.
+    SighashTaproot(sighash::TaprootError),
+    /// Computation error for P2WPKH sighash.
+    SighashP2wpkh(sighash::P2wpkhError),
+    /// Computation error for P2WSH sighash.
+    TransactionInputsIndex(transaction::InputsIndexError),
     /// Missing Witness script
     MissingWitnessScript,
     /// Missing Redeem script,
@@ -1332,11 +1335,11 @@ impl fmt::Display for SighashError {
             SighashError::MissingInputUtxo => write!(f, "Missing input utxo in pbst"),
             SighashError::MissingSpendUtxos => write!(f, "Missing Psbt spend utxos"),
             SighashError::InvalidSighashType => write!(f, "Invalid Sighash type"),
-            SighashError::SighashComputationError(e) => {
-                write!(f, "Sighash computation error : {}", e)
-            }
             SighashError::MissingWitnessScript => write!(f, "Missing Witness Script"),
             SighashError::MissingRedeemScript => write!(f, "Missing Redeem Script"),
+            SighashError::SighashTaproot(ref e) => write!(f, "sighash taproot: {}", e),
+            SighashError::SighashP2wpkh(ref e) => write!(f, "sighash p2wpkh: {}", e),
+            SighashError::TransactionInputsIndex(ref e) => write!(f, "tx inputs index: {}", e),
         }
     }
 }
@@ -1353,13 +1356,23 @@ impl error::Error for SighashError {
             | InvalidSighashType
             | MissingWitnessScript
             | MissingRedeemScript => None,
-            SighashComputationError(e) => Some(e),
+            SighashTaproot(ref e) => Some(e),
+            SighashP2wpkh(ref e) => Some(e),
+            TransactionInputsIndex(ref e) => Some(e),
         }
     }
 }
 
-impl From<sighash::Error> for SighashError {
-    fn from(e: sighash::Error) -> Self { SighashError::SighashComputationError(e) }
+impl From<sighash::TaprootError> for SighashError {
+    fn from(e: sighash::TaprootError) -> Self { SighashError::SighashTaproot(e) }
+}
+
+impl From<sighash::P2wpkhError> for SighashError {
+    fn from(e: sighash::P2wpkhError) -> Self { SighashError::SighashP2wpkh(e) }
+}
+
+impl From<transaction::InputsIndexError> for SighashError {
+    fn from(e: transaction::InputsIndexError) -> Self { SighashError::TransactionInputsIndex(e) }
 }
 
 /// Sighash message(signing data) for a given psbt transaction input.
@@ -1397,7 +1410,7 @@ mod tests {
     use bitcoin::hashes::hex::FromHex;
     use bitcoin::key::XOnlyPublicKey;
     use bitcoin::secp256k1::PublicKey;
-    use bitcoin::{absolute, Amount, OutPoint, TxIn, TxOut};
+    use bitcoin::{Amount, OutPoint, TxIn, TxOut};
 
     use super::*;
     use crate::Miniscript;
@@ -1492,7 +1505,7 @@ mod tests {
             let (leaf_hashes, (key_fingerprint, deriv_path)) =
                 psbt_input.tap_key_origins.get(&key_0_1).unwrap();
             assert_eq!(key_fingerprint, &fingerprint);
-            assert_eq!(&deriv_path.to_string(), "m/86'/0'/0'/0/1");
+            assert_eq!(&deriv_path.to_string(), "86'/0'/0'/0/1");
             assert_eq!(leaf_hashes.len(), 2);
             assert!(leaf_hashes.contains(&first_leaf_hash));
         }
@@ -1506,7 +1519,7 @@ mod tests {
             let (leaf_hashes, (key_fingerprint, deriv_path)) =
                 psbt_input.tap_key_origins.get(&key_1_0).unwrap();
             assert_eq!(key_fingerprint, &fingerprint);
-            assert_eq!(&deriv_path.to_string(), "m/86'/0'/0'/1/0");
+            assert_eq!(&deriv_path.to_string(), "86'/0'/0'/1/0");
             assert_eq!(leaf_hashes.len(), 1);
             assert!(!leaf_hashes.contains(&first_leaf_hash));
         }
@@ -1584,7 +1597,7 @@ mod tests {
     #[test]
     fn test_update_input_checks() {
         let desc = "tr([73c5da0a/86'/0'/0']xpub6BgBgsespWvERF3LHQu6CnqdvfEvtMcQjYrcRzx53QJjSxarj2afYWcLteoGVky7D3UKDP9QyrLprQ3VCECoY49yfdDEHGCtMMj92pReUsQ/0/0)";
-        let desc = Descriptor::<DefiniteDescriptorKey>::from_str(&desc).unwrap();
+        let desc = Descriptor::<DefiniteDescriptorKey>::from_str(desc).unwrap();
 
         let mut non_witness_utxo = bitcoin::Transaction {
             version: transaction::Version::ONE,
@@ -1603,7 +1616,7 @@ mod tests {
             version: transaction::Version::ONE,
             lock_time: absolute::LockTime::ZERO,
             input: vec![TxIn {
-                previous_output: OutPoint { txid: non_witness_utxo.txid(), vout: 0 },
+                previous_output: OutPoint { txid: non_witness_utxo.compute_txid(), vout: 0 },
                 ..Default::default()
             }],
             output: vec![],
@@ -1646,7 +1659,7 @@ mod tests {
     #[test]
     fn test_update_output_checks() {
         let desc = "tr([73c5da0a/86'/0'/0']xpub6BgBgsespWvERF3LHQu6CnqdvfEvtMcQjYrcRzx53QJjSxarj2afYWcLteoGVky7D3UKDP9QyrLprQ3VCECoY49yfdDEHGCtMMj92pReUsQ/0/0)";
-        let desc = Descriptor::<DefiniteDescriptorKey>::from_str(&desc).unwrap();
+        let desc = Descriptor::<DefiniteDescriptorKey>::from_str(desc).unwrap();
 
         let tx = bitcoin::Transaction {
             version: transaction::Version::ONE,

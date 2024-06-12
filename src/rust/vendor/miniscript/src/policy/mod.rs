@@ -23,7 +23,9 @@ pub use self::semantic::Policy as Semantic;
 use crate::descriptor::Descriptor;
 use crate::miniscript::{Miniscript, ScriptContext};
 use crate::sync::Arc;
-use crate::{Error, MiniscriptKey, Terminal};
+#[cfg(all(not(feature = "std"), not(test)))]
+use crate::Vec;
+use crate::{Error, MiniscriptKey, Terminal, Threshold};
 
 /// Policy entailment algorithm maximum number of terminals allowed.
 const ENTAILMENT_MAX_TERMINALS: usize = 20;
@@ -50,7 +52,7 @@ pub trait Liftable<Pk: MiniscriptKey> {
 }
 
 /// Error occurring during lifting.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub enum LiftError {
     /// Cannot lift policies that have a combination of height and timelocks.
     HeightTimelockCombination,
@@ -136,28 +138,38 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Liftable<Pk> for Terminal<Pk, Ctx> {
             | Terminal::NonZero(ref sub)
             | Terminal::ZeroNotEqual(ref sub) => sub.node.lift()?,
             Terminal::AndV(ref left, ref right) | Terminal::AndB(ref left, ref right) => {
-                Semantic::Threshold(2, vec![left.node.lift()?, right.node.lift()?])
+                Semantic::Thresh(Threshold::and(
+                    Arc::new(left.node.lift()?),
+                    Arc::new(right.node.lift()?),
+                ))
             }
-            Terminal::AndOr(ref a, ref b, ref c) => Semantic::Threshold(
-                1,
-                vec![
-                    Semantic::Threshold(2, vec![a.node.lift()?, b.node.lift()?]),
-                    c.node.lift()?,
-                ],
-            ),
+            Terminal::AndOr(ref a, ref b, ref c) => Semantic::Thresh(Threshold::or(
+                Arc::new(Semantic::Thresh(Threshold::and(
+                    Arc::new(a.node.lift()?),
+                    Arc::new(b.node.lift()?),
+                ))),
+                Arc::new(c.node.lift()?),
+            )),
             Terminal::OrB(ref left, ref right)
             | Terminal::OrD(ref left, ref right)
             | Terminal::OrC(ref left, ref right)
-            | Terminal::OrI(ref left, ref right) => {
-                Semantic::Threshold(1, vec![left.node.lift()?, right.node.lift()?])
-            }
-            Terminal::Thresh(k, ref subs) => {
-                let semantic_subs: Result<_, Error> = subs.iter().map(|s| s.node.lift()).collect();
-                Semantic::Threshold(k, semantic_subs?)
-            }
-            Terminal::Multi(k, ref keys) | Terminal::MultiA(k, ref keys) => {
-                Semantic::Threshold(k, keys.iter().map(|k| Semantic::Key(k.clone())).collect())
-            }
+            | Terminal::OrI(ref left, ref right) => Semantic::Thresh(Threshold::or(
+                Arc::new(left.node.lift()?),
+                Arc::new(right.node.lift()?),
+            )),
+            Terminal::Thresh(ref thresh) => thresh
+                .translate_ref(|sub| sub.lift().map(Arc::new))
+                .map(Semantic::Thresh)?,
+            Terminal::Multi(ref thresh) => Semantic::Thresh(
+                thresh
+                    .map_ref(|key| Arc::new(Semantic::Key(key.clone())))
+                    .forget_maximum(),
+            ),
+            Terminal::MultiA(ref thresh) => Semantic::Thresh(
+                thresh
+                    .map_ref(|key| Arc::new(Semantic::Key(key.clone())))
+                    .forget_maximum(),
+            ),
         }
         .normalized();
         Ok(ret)
@@ -197,17 +209,19 @@ impl<Pk: MiniscriptKey> Liftable<Pk> for Concrete<Pk> {
             Concrete::Ripemd160(ref h) => Semantic::Ripemd160(h.clone()),
             Concrete::Hash160(ref h) => Semantic::Hash160(h.clone()),
             Concrete::And(ref subs) => {
-                let semantic_subs: Result<_, Error> = subs.iter().map(Liftable::lift).collect();
-                Semantic::Threshold(2, semantic_subs?)
+                let semantic_subs: Result<Vec<Semantic<Pk>>, Error> =
+                    subs.iter().map(Liftable::lift).collect();
+                let semantic_subs = semantic_subs?.into_iter().map(Arc::new).collect();
+                Semantic::Thresh(Threshold::new(2, semantic_subs).unwrap())
             }
             Concrete::Or(ref subs) => {
-                let semantic_subs: Result<_, Error> =
+                let semantic_subs: Result<Vec<Semantic<Pk>>, Error> =
                     subs.iter().map(|(_p, sub)| sub.lift()).collect();
-                Semantic::Threshold(1, semantic_subs?)
+                let semantic_subs = semantic_subs?.into_iter().map(Arc::new).collect();
+                Semantic::Thresh(Threshold::new(1, semantic_subs).unwrap())
             }
-            Concrete::Threshold(k, ref subs) => {
-                let semantic_subs: Result<_, Error> = subs.iter().map(Liftable::lift).collect();
-                Semantic::Threshold(k, semantic_subs?)
+            Concrete::Thresh(ref thresh) => {
+                Semantic::Thresh(thresh.translate_ref(|sub| Liftable::lift(sub).map(Arc::new))?)
             }
         }
         .normalized();
@@ -222,18 +236,14 @@ impl<Pk: MiniscriptKey> Liftable<Pk> for Arc<Concrete<Pk>> {
 mod tests {
     use core::str::FromStr;
 
-    use bitcoin::Sequence;
-    #[cfg(feature = "compiler")]
-    use sync::Arc;
-
-    use super::super::miniscript::context::Segwitv0;
-    use super::super::miniscript::Miniscript;
-    use super::{Concrete, Liftable, Semantic};
+    use super::*;
     #[cfg(feature = "compiler")]
     use crate::descriptor::Tr;
+    use crate::miniscript::context::Segwitv0;
     use crate::prelude::*;
+    use crate::RelLockTime;
     #[cfg(feature = "compiler")]
-    use crate::{descriptor::TapTree, Descriptor, Tap};
+    use crate::{descriptor::TapTree, Tap};
 
     type ConcretePol = Concrete<String>;
     type SemanticPol = Semantic<String>;
@@ -291,13 +301,13 @@ mod tests {
             ConcretePol::from_str("thresh(2,pk(),thresh(0))")
                 .unwrap_err()
                 .to_string(),
-            "Threshold k must be greater than 0 and less than or equal to n 0<k<=n"
+            "thresholds in Miniscript must be nonempty",
         );
         assert_eq!(
             ConcretePol::from_str("thresh(2,pk(),thresh(0,pk()))")
                 .unwrap_err()
                 .to_string(),
-            "Threshold k must be greater than 0 and less than or equal to n 0<k<=n"
+            "thresholds in Miniscript must have k > 0",
         );
         assert_eq!(
             ConcretePol::from_str("and(pk())").unwrap_err().to_string(),
@@ -307,18 +317,20 @@ mod tests {
             ConcretePol::from_str("or(pk())").unwrap_err().to_string(),
             "Or policy fragment must take 2 arguments"
         );
+        // these weird "unexpected" wrapping of errors will go away in a later PR
+        // which rewrites the expression parser
         assert_eq!(
             ConcretePol::from_str("thresh(3,after(0),pk(),pk())")
                 .unwrap_err()
                 .to_string(),
-            "Time must be greater than 0; n > 0"
+            "unexpected «absolute locktimes in Miniscript have a minimum value of 1»",
         );
 
         assert_eq!(
             ConcretePol::from_str("thresh(2,older(2147483650),pk(),pk())")
                 .unwrap_err()
                 .to_string(),
-            "Relative/Absolute time must be less than 2^31; n < 2^31"
+            "unexpected «locktime value 2147483650 is not a valid BIP68 relative locktime»"
         );
     }
 
@@ -345,19 +357,13 @@ mod tests {
                 .parse()
                 .unwrap();
         assert_eq!(
-            Semantic::Threshold(
-                1,
-                vec![
-                    Semantic::Threshold(
-                        2,
-                        vec![
-                            Semantic::Key(key_a),
-                            Semantic::Older(Sequence::from_height(42))
-                        ]
-                    ),
-                    Semantic::Key(key_b)
-                ]
-            ),
+            Semantic::Thresh(Threshold::or(
+                Arc::new(Semantic::Thresh(Threshold::and(
+                    Arc::new(Semantic::Key(key_a)),
+                    Arc::new(Semantic::Older(RelLockTime::from_height(42)))
+                ))),
+                Arc::new(Semantic::Key(key_b))
+            )),
             ms_str.lift().unwrap()
         );
     }
@@ -440,7 +446,7 @@ mod tests {
                 .iter()
                 .zip(node_probabilities.iter())
                 .collect::<Vec<_>>();
-            sorted_policy_prob.sort_by(|a, b| (a.1).partial_cmp(&b.1).unwrap());
+            sorted_policy_prob.sort_by(|a, b| (a.1).partial_cmp(b.1).unwrap());
             let sorted_policies = sorted_policy_prob
                 .into_iter()
                 .map(|(x, _prob)| x)
@@ -492,12 +498,12 @@ mod tests {
                 Tr::<String>::from_str(
                     "tr(UNSPEND ,{
                 {
-                    {multi_a(7,B,C,D,E,F,G,H),multi_a(7,A,C,D,E,F,G,H)},
-                    {multi_a(7,A,B,D,E,F,G,H),multi_a(7,A,B,C,E,F,G,H)}
+                    {and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:pk(B),pk(C)),pk(D)),pk(E)),pk(F)),pk(G)),pk(H)),and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:pk(A),pk(C)),pk(D)),pk(E)),pk(F)),pk(G)),pk(H))},
+                    {and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:pk(A),pk(B)),pk(D)),pk(E)),pk(F)),pk(G)),pk(H)),and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:pk(A),pk(B)),pk(C)),pk(E)),pk(F)),pk(G)),pk(H))}
                 },
                 {
-                    {multi_a(7,A,B,C,D,F,G,H),multi_a(7,A,B,C,D,E,G,H)}
-                   ,{multi_a(7,A,B,C,D,E,F,H),multi_a(7,A,B,C,D,E,F,G)}
+                    {and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:pk(A),pk(B)),pk(C)),pk(D)),pk(F)),pk(G)),pk(H)),and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:pk(A),pk(B)),pk(C)),pk(D)),pk(E)),pk(G)),pk(H))},
+                    {and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:pk(A),pk(B)),pk(C)),pk(D)),pk(E)),pk(F)),pk(H)),and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:pk(A),pk(B)),pk(C)),pk(D)),pk(E)),pk(F)),pk(G))}
                 }})"
                     .replace(&['\t', ' ', '\n'][..], "")
                     .as_str(),
@@ -513,18 +519,19 @@ mod tests {
             let desc = pol
                 .compile_tr_private_experimental(Some(unspendable_key.clone()))
                 .unwrap();
+            println!("{}", desc);
             let expected_desc = Descriptor::Tr(
                 Tr::<String>::from_str(
                     "tr(UNSPEND,
                     {{
-                        {multi_a(3,A,D,E),multi_a(3,A,C,E)},
-                        {multi_a(3,A,C,D),multi_a(3,A,B,E)}\
+                        {and_v(v:and_v(v:pk(A),pk(D)),pk(E)),and_v(v:and_v(v:pk(A),pk(C)),pk(E))},
+                        {and_v(v:and_v(v:pk(A),pk(C)),pk(D)),and_v(v:and_v(v:pk(A),pk(B)),pk(E))}
                     },
                     {
-                        {multi_a(3,A,B,D),multi_a(3,A,B,C)},
+                        {and_v(v:and_v(v:pk(A),pk(B)),pk(D)),and_v(v:and_v(v:pk(A),pk(B)),pk(C))},
                         {
-                            {multi_a(3,C,D,E),multi_a(3,B,D,E)},
-                            {multi_a(3,B,C,E),multi_a(3,B,C,D)}
+                            {and_v(v:and_v(v:pk(C),pk(D)),pk(E)),and_v(v:and_v(v:pk(B),pk(D)),pk(E))},
+                            {and_v(v:and_v(v:pk(B),pk(C)),pk(E)),and_v(v:and_v(v:pk(B),pk(C)),pk(D))}
                     }}})"
                         .replace(&['\t', ' ', '\n'][..], "")
                         .as_str(),

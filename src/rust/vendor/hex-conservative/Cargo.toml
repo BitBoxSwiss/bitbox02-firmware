@@ -12,8 +12,11 @@
 [package]
 edition = "2018"
 name = "hex-conservative"
-version = "0.1.1"
-authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>"]
+version = "0.2.1"
+authors = [
+    "Martin Habovštiak <martin.habovstiak@gmail.com>",
+    "Andrew Poelstra <apoelstra@wpsoftware.net>",
+]
 exclude = [
     "tests",
     "contrib",
@@ -49,12 +52,33 @@ name = "wrap_array_display_hex_trait"
 [[example]]
 name = "wrap_array_fmt_traits"
 
+[[example]]
+name = "serde"
+required-features = [
+    "std",
+    "serde",
+]
+
+[dependencies.arrayvec]
+version = "0.7.2"
+default-features = false
+
 [dependencies.core2]
 version = "0.3.2"
 optional = true
-default_features = false
+default-features = false
 
-[dev-dependencies]
+[dependencies.serde]
+version = "1.0"
+optional = true
+default-features = false
+
+[dev-dependencies.serde]
+version = "1.0"
+features = ["derive"]
+
+[dev-dependencies.serde_json]
+version = "1.0"
 
 [features]
 alloc = []

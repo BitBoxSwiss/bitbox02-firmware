@@ -7,13 +7,14 @@
 //!
 
 use hashes::sha256d;
+use io::{BufRead, Write};
 
 use crate::consensus::{encode, Decodable, Encodable, ReadExt};
 use crate::internal_macros::impl_consensus_encoding;
+use crate::p2p;
 use crate::p2p::address::Address;
 use crate::p2p::ServiceFlags;
 use crate::prelude::*;
-use crate::{io, p2p};
 
 /// Some simple messages
 
@@ -31,6 +32,13 @@ pub struct VersionMessage {
     /// The network address of the peer sending the message
     pub sender: Address,
     /// A random nonce used to detect loops in the network
+    ///
+    /// The nonce can be used to detect situations when a node accidentally
+    /// connects to itself. Set it to a random value and, in case of incoming
+    /// connections, compare the value - same values mean self-connection.
+    ///
+    /// If your application uses P2P to only fetch the data and doesn't listen
+    /// you may just set it to 0.
     pub nonce: u64,
     /// A string describing the peer's software
     pub user_agent: String,
@@ -102,14 +110,14 @@ pub enum RejectReason {
 }
 
 impl Encodable for RejectReason {
-    fn consensus_encode<W: io::Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         w.write_all(&[*self as u8])?;
         Ok(1)
     }
 }
 
 impl Decodable for RejectReason {
-    fn consensus_decode<R: io::Read + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
+    fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
         Ok(match r.read_u8()? {
             0x01 => RejectReason::Malformed,
             0x10 => RejectReason::Invalid,

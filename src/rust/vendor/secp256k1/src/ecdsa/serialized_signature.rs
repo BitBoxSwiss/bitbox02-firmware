@@ -7,6 +7,7 @@
 //! unable to run on platforms without allocator. We implement a special type to encapsulate
 //! serialized signatures and since it's a bit more complicated it has its own module.
 
+use core::borrow::Borrow;
 use core::{fmt, ops};
 
 pub use into_iter::IntoIter;
@@ -41,9 +42,50 @@ impl PartialEq for SerializedSignature {
     fn eq(&self, other: &SerializedSignature) -> bool { **self == **other }
 }
 
+impl PartialEq<[u8]> for SerializedSignature {
+    #[inline]
+    fn eq(&self, other: &[u8]) -> bool { **self == *other }
+}
+
+impl PartialEq<SerializedSignature> for [u8] {
+    #[inline]
+    fn eq(&self, other: &SerializedSignature) -> bool { *self == **other }
+}
+
+impl PartialOrd for SerializedSignature {
+    fn partial_cmp(&self, other: &SerializedSignature) -> Option<core::cmp::Ordering> {
+        Some((**self).cmp(&**other))
+    }
+}
+
+impl Ord for SerializedSignature {
+    fn cmp(&self, other: &SerializedSignature) -> core::cmp::Ordering { (**self).cmp(&**other) }
+}
+
+impl PartialOrd<[u8]> for SerializedSignature {
+    fn partial_cmp(&self, other: &[u8]) -> Option<core::cmp::Ordering> {
+        (**self).partial_cmp(other)
+    }
+}
+
+impl PartialOrd<SerializedSignature> for [u8] {
+    fn partial_cmp(&self, other: &SerializedSignature) -> Option<core::cmp::Ordering> {
+        self.partial_cmp(&**other)
+    }
+}
+
+impl core::hash::Hash for SerializedSignature {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) { (**self).hash(state) }
+}
+
 impl AsRef<[u8]> for SerializedSignature {
     #[inline]
     fn as_ref(&self) -> &[u8] { self }
+}
+
+impl Borrow<[u8]> for SerializedSignature {
+    #[inline]
+    fn borrow(&self) -> &[u8] { self }
 }
 
 impl ops::Deref for SerializedSignature {
@@ -71,6 +113,28 @@ impl<'a> IntoIterator for &'a SerializedSignature {
     fn into_iter(self) -> Self::IntoIter { self.iter() }
 }
 
+impl From<Signature> for SerializedSignature {
+    fn from(value: Signature) -> Self { Self::from_signature(&value) }
+}
+
+impl<'a> From<&'a Signature> for SerializedSignature {
+    fn from(value: &'a Signature) -> Self { Self::from_signature(value) }
+}
+
+impl TryFrom<SerializedSignature> for Signature {
+    type Error = Error;
+
+    fn try_from(value: SerializedSignature) -> Result<Self, Self::Error> { value.to_signature() }
+}
+
+impl<'a> TryFrom<&'a SerializedSignature> for Signature {
+    type Error = Error;
+
+    fn try_from(value: &'a SerializedSignature) -> Result<Self, Self::Error> {
+        value.to_signature()
+    }
+}
+
 impl SerializedSignature {
     /// Creates `SerializedSignature` from data and length.
     ///
@@ -84,6 +148,7 @@ impl SerializedSignature {
     }
 
     /// Get the capacity of the underlying data buffer.
+    #[deprecated = "This always returns 72"]
     #[inline]
     pub fn capacity(&self) -> usize { self.data.len() }
 
@@ -106,6 +171,7 @@ impl SerializedSignature {
     pub fn from_signature(sig: &Signature) -> SerializedSignature { sig.serialize_der() }
 
     /// Check if the space is zero.
+    #[deprecated = "This always returns false"]
     #[inline]
     pub fn is_empty(&self) -> bool { self.len() == 0 }
 }
@@ -205,10 +271,8 @@ mod tests {
     #[test]
     fn iterator_ops_are_homomorphic() {
         let mut fake_signature_data = [0; MAX_LEN];
-        // fill it with numbers 0 - 71
         for (i, byte) in fake_signature_data.iter_mut().enumerate() {
-            // up to MAX_LEN
-            *byte = i as u8;
+            *byte = i as u8; // cast ok because MAX_LEN fits in  u8.
         }
 
         let fake_signature = SerializedSignature { data: fake_signature_data, len: MAX_LEN };

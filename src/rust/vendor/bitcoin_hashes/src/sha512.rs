@@ -3,14 +3,45 @@
 //! SHA512 implementation.
 //!
 
-use core::convert::TryInto;
 use core::ops::Index;
 use core::slice::SliceIndex;
 use core::{cmp, str};
 
 use crate::{FromSliceError, HashEngine as _};
 
-crate::internal_macros::hash_trait_impls!(512, false);
+crate::internal_macros::hash_type! {
+    512,
+    false,
+    "Output of the SHA512 hash function."
+}
+
+#[cfg(not(hashes_fuzz))]
+pub(crate) fn from_engine(mut e: HashEngine) -> Hash {
+    // pad buffer with a single 1-bit then all 0s, until there are exactly 16 bytes remaining
+    let data_len = e.length as u64;
+
+    let zeroes = [0; BLOCK_SIZE - 16];
+    e.input(&[0x80]);
+    if e.length % BLOCK_SIZE > zeroes.len() {
+        e.input(&zeroes);
+    }
+    let pad_length = zeroes.len() - (e.length % BLOCK_SIZE);
+    e.input(&zeroes[..pad_length]);
+    debug_assert_eq!(e.length % BLOCK_SIZE, zeroes.len());
+
+    e.input(&[0; 8]);
+    e.input(&(8 * data_len).to_be_bytes());
+    debug_assert_eq!(e.length % BLOCK_SIZE, 0);
+
+    Hash(e.midstate())
+}
+
+#[cfg(hashes_fuzz)]
+pub(crate) fn from_engine(e: HashEngine) -> Hash {
+    let mut hash = e.midstate();
+    hash[0] ^= 0xff; // Make this distinct from SHA-256
+    Hash(hash)
+}
 
 pub(crate) const BLOCK_SIZE: usize = 128;
 
@@ -49,6 +80,19 @@ impl HashEngine {
             buffer: [0; BLOCK_SIZE],
         }
     }
+
+    /// Constructs a hash engine suitable for use inside the default `sha384::HashEngine`.
+    #[rustfmt::skip]
+    pub(crate) fn sha384() -> Self {
+        HashEngine {
+            h: [
+                0xcbbb9d5dc1059ed8, 0x629a292a367cd507, 0x9159015a3070dd17, 0x152fecd8f70e5939,
+                0x67332667ffc00b31, 0x8eb44a8768581511, 0xdb0c2e0d64f98fa7, 0x47b5481dbefa4fa4,
+            ],
+            length: 0,
+            buffer: [0; BLOCK_SIZE],
+        }
+    }
 }
 
 impl crate::HashEngine for HashEngine {
@@ -75,52 +119,6 @@ impl crate::HashEngine for HashEngine {
     fn n_bytes_hashed(&self) -> usize { self.length }
 
     engine_input_impl!();
-}
-
-/// Output of the SHA512 hash function.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
-#[repr(transparent)]
-pub struct Hash(
-    #[cfg_attr(
-        feature = "schemars",
-        schemars(schema_with = "crate::util::json_hex_string::len_64")
-    )]
-    [u8; 64],
-);
-
-impl Hash {
-    fn internal_new(arr: [u8; 64]) -> Self { Hash(arr) }
-
-    fn internal_engine() -> HashEngine { Default::default() }
-}
-
-#[cfg(not(hashes_fuzz))]
-pub(crate) fn from_engine(mut e: HashEngine) -> Hash {
-    // pad buffer with a single 1-bit then all 0s, until there are exactly 16 bytes remaining
-    let data_len = e.length as u64;
-
-    let zeroes = [0; BLOCK_SIZE - 16];
-    e.input(&[0x80]);
-    if e.length % BLOCK_SIZE > zeroes.len() {
-        e.input(&zeroes);
-    }
-    let pad_length = zeroes.len() - (e.length % BLOCK_SIZE);
-    e.input(&zeroes[..pad_length]);
-    debug_assert_eq!(e.length % BLOCK_SIZE, zeroes.len());
-
-    e.input(&[0; 8]);
-    e.input(&(8 * data_len).to_be_bytes());
-    debug_assert_eq!(e.length % BLOCK_SIZE, 0);
-
-    Hash(e.midstate())
-}
-
-#[cfg(hashes_fuzz)]
-pub(crate) fn from_engine(e: HashEngine) -> Hash {
-    let mut hash = e.midstate();
-    hash[0] ^= 0xff; // Make this distinct from SHA-256
-    Hash(hash)
 }
 
 #[allow(non_snake_case)]

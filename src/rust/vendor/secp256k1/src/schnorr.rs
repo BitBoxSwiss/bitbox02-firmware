@@ -12,9 +12,7 @@ use crate::ffi::{self, CPtr};
 use crate::key::{Keypair, XOnlyPublicKey};
 #[cfg(feature = "global-context")]
 use crate::SECP256K1;
-use crate::{
-    constants, from_hex, impl_array_newtype, Error, Message, Secp256k1, Signing, Verification,
-};
+use crate::{constants, from_hex, Error, Message, Secp256k1, Signing, Verification};
 
 /// Represents a schnorr signature.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -181,7 +179,7 @@ impl<C: Verification> Secp256k1<C> {
             if ret == 1 {
                 Ok(())
             } else {
-                Err(Error::InvalidSignature)
+                Err(Error::IncorrectSignature)
             }
         }
     }

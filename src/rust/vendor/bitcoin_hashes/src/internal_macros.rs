@@ -71,22 +71,6 @@ pub(crate) use arr_newtype_fmt_impl;
 macro_rules! hash_trait_impls {
     ($bits:expr, $reverse:expr $(, $gen:ident: $gent:ident)*) => {
         impl<$($gen: $gent),*> Hash<$($gen),*> {
-            /// Displays hex forwards, regardless of how this type would display it naturally.
-            ///
-            /// This is mainly intended as an internal method and you shouldn't need it unless
-            /// you're doing something special.
-            pub fn forward_hex(&self) -> impl '_ + core::fmt::LowerHex + core::fmt::UpperHex {
-                $crate::hex::DisplayHex::as_hex(&self.0)
-            }
-
-            /// Displays hex backwards, regardless of how this type would display it naturally.
-            ///
-            /// This is mainly intended as an internal method and you shouldn't need it unless
-            /// you're doing something special.
-            pub fn backward_hex(&self) -> impl '_ + core::fmt::LowerHex + core::fmt::UpperHex {
-                $crate::hex::display::DisplayArray::<_, [u8; $bits / 8 * 2]>::new(self.0.iter().rev())
-            }
-
             /// Zero cost conversion between a fixed length byte array shared reference and
             /// a shared reference to this Hash type.
             pub fn from_bytes_ref(bytes: &[u8; $bits / 8]) -> &Self {
@@ -104,16 +88,14 @@ macro_rules! hash_trait_impls {
 
         impl<$($gen: $gent),*> str::FromStr for Hash<$($gen),*> {
             type Err = $crate::hex::HexToArrayError;
-            fn from_str(s: &str) -> Result<Self, Self::Err> {
-                use $crate::hex::{FromHex, HexToBytesIter};
-                use $crate::Hash;
+            fn from_str(s: &str) -> $crate::_export::_core::result::Result<Self, Self::Err> {
+                use $crate::{Hash, hex::{FromHex}};
 
-                let inner: [u8; $bits / 8] = if $reverse {
-                    FromHex::from_byte_iter(HexToBytesIter::new(s)?.rev())?
-                } else {
-                    FromHex::from_byte_iter(HexToBytesIter::new(s)?)?
-                };
-                Ok(Self::from_byte_array(inner))
+                let mut bytes = <[u8; $bits / 8]>::from_hex(s)?;
+                if $reverse {
+                    bytes.reverse();
+                }
+                Ok(Self::from_byte_array(bytes))
             }
         }
 
@@ -151,7 +133,7 @@ macro_rules! hash_trait_impls {
                 from_engine(e)
             }
 
-            fn from_slice(sl: &[u8]) -> Result<Hash<$($gen),*>, FromSliceError> {
+            fn from_slice(sl: &[u8]) -> $crate::_export::_core::result::Result<Hash<$($gen),*>, FromSliceError> {
                 if sl.len() != $bits / 8 {
                     Err(FromSliceError{expected: Self::LEN, got: sl.len()})
                 } else {
@@ -196,19 +178,32 @@ pub(crate) use hash_trait_impls;
 /// The `from_engine` free-standing function is still required with this macro. See the doc of
 /// [`hash_trait_impls`].
 macro_rules! hash_type {
-    ($bits:expr, $reverse:expr, $doc:literal, $schemars:literal) => {
+    ($bits:expr, $reverse:expr, $doc:literal) => {
         #[doc = $doc]
         #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        #[cfg_attr(feature = "schemars", derive(crate::schemars::JsonSchema))]
         #[repr(transparent)]
-        pub struct Hash(
-            #[cfg_attr(feature = "schemars", schemars(schema_with = $schemars))] [u8; $bits / 8],
-        );
+        pub struct Hash([u8; $bits / 8]);
 
         impl Hash {
             fn internal_new(arr: [u8; $bits / 8]) -> Self { Hash(arr) }
 
             fn internal_engine() -> HashEngine { Default::default() }
+        }
+
+        #[cfg(feature = "schemars")]
+        impl schemars::JsonSchema for Hash {
+            fn schema_name() -> String { "Hash".to_owned() }
+
+            fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+                let len = $bits / 8;
+                let mut schema: schemars::schema::SchemaObject = <String>::json_schema(gen).into();
+                schema.string = Some(Box::new(schemars::schema::StringValidation {
+                    max_length: Some(len * 2),
+                    min_length: Some(len * 2),
+                    pattern: Some("[0-9a-fA-F]+".to_owned()),
+                }));
+                schema.into()
+            }
         }
 
         crate::internal_macros::hash_trait_impls!($bits, $reverse);

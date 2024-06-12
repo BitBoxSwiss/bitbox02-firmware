@@ -7,17 +7,16 @@
 //!
 //! [BIP141]: <https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki>
 
-use core::convert::TryFrom;
 use core::fmt;
 use core::str::FromStr;
 
 use bech32::Fe32;
 use internals::write_err;
+use units::{parse, ParseIntError};
 
 use crate::blockdata::opcodes::all::*;
 use crate::blockdata::opcodes::Opcode;
 use crate::blockdata::script::Instruction;
-use crate::error::ParseIntError;
 
 /// Version of the segregated witness program.
 ///
@@ -88,7 +87,7 @@ impl FromStr for WitnessVersion {
     type Err = FromStrError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let version: u8 = crate::parse::int(s).map_err(FromStrError::Unparsable)?;
+        let version: u8 = parse::int(s)?;
         Ok(WitnessVersion::try_from(version)?)
     }
 }
@@ -176,6 +175,8 @@ pub enum FromStrError {
     Invalid(TryFromError),
 }
 
+internals::impl_from_infallible!(FromStrError);
+
 impl fmt::Display for FromStrError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use FromStrError::*;
@@ -199,6 +200,10 @@ impl std::error::Error for FromStrError {
     }
 }
 
+impl From<ParseIntError> for FromStrError {
+    fn from(e: ParseIntError) -> Self { Self::Unparsable(e) }
+}
+
 impl From<TryFromError> for FromStrError {
     fn from(e: TryFromError) -> Self { Self::Invalid(e) }
 }
@@ -212,6 +217,8 @@ pub enum TryFromInstructionError {
     /// Cannot create a witness version from non-zero data push.
     DataPush,
 }
+
+internals::impl_from_infallible!(TryFromInstructionError);
 
 impl fmt::Display for TryFromInstructionError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -242,10 +249,14 @@ impl From<TryFromError> for TryFromInstructionError {
 
 /// Error attempting to create a [`WitnessVersion`] from an integer.
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[non_exhaustive]
 pub struct TryFromError {
     /// The invalid non-witness version integer.
-    pub invalid: u8,
+    invalid: u8,
+}
+
+impl TryFromError {
+    /// Returns the invalid non-witness version integer.
+    pub fn invalid_version(&self) -> u8 { self.invalid }
 }
 
 impl fmt::Display for TryFromError {
@@ -255,6 +266,4 @@ impl fmt::Display for TryFromError {
 }
 
 #[cfg(feature = "std")]
-impl std::error::Error for TryFromError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> { None }
-}
+impl std::error::Error for TryFromError {}

@@ -16,7 +16,9 @@ use core::ops::Range;
 use core::str::{self, FromStr};
 
 use bitcoin::hashes::{hash160, ripemd160, sha256};
-use bitcoin::{secp256k1, Address, Network, Script, ScriptBuf, TxIn, Witness, WitnessVersion};
+use bitcoin::{
+    secp256k1, Address, Network, Script, ScriptBuf, TxIn, Weight, Witness, WitnessVersion,
+};
 use sync::Arc;
 
 use self::checksum::verify_checksum;
@@ -25,8 +27,8 @@ use crate::miniscript::{satisfy, Legacy, Miniscript, Segwitv0};
 use crate::plan::{AssetProvider, Plan};
 use crate::prelude::*;
 use crate::{
-    expression, hash256, BareCtx, Error, ForEachKey, MiniscriptKey, Satisfier, ToPublicKey,
-    TranslateErr, TranslatePk, Translator,
+    expression, hash256, BareCtx, Error, ForEachKey, FromStrKey, MiniscriptKey, Satisfier,
+    ToPublicKey, TranslateErr, TranslatePk, Translator,
 };
 
 mod bare;
@@ -320,7 +322,7 @@ impl<Pk: MiniscriptKey> Descriptor<Pk> {
     ///
     /// # Errors
     /// When the descriptor is impossible to safisfy (ex: sh(OP_FALSE)).
-    pub fn max_weight_to_satisfy(&self) -> Result<usize, Error> {
+    pub fn max_weight_to_satisfy(&self) -> Result<Weight, Error> {
         let weight = match *self {
             Descriptor::Bare(ref bare) => bare.max_weight_to_satisfy()?,
             Descriptor::Pkh(ref pkh) => pkh.max_weight_to_satisfy(),
@@ -341,7 +343,10 @@ impl<Pk: MiniscriptKey> Descriptor<Pk> {
     ///
     /// # Errors
     /// When the descriptor is impossible to safisfy (ex: sh(OP_FALSE)).
-    #[deprecated(note = "use max_weight_to_satisfy instead")]
+    #[deprecated(
+        since = "10.0.0",
+        note = "Use max_weight_to_satisfy instead. The method to count bytes was redesigned and the results will differ from max_weight_to_satisfy. For more details check rust-bitcoin/rust-miniscript#476."
+    )]
     #[allow(deprecated)]
     pub fn max_satisfaction_weight(&self) -> Result<usize, Error> {
         let weight = match *self {
@@ -509,7 +514,7 @@ impl Descriptor<DefiniteDescriptorKey> {
                 descriptor: self,
                 template: stack,
                 absolute_timelock: satisfaction.absolute_timelock.map(Into::into),
-                relative_timelock: satisfaction.relative_timelock,
+                relative_timelock: satisfaction.relative_timelock.map(Into::into),
             })
         } else {
             Err(self)
@@ -537,7 +542,8 @@ impl Descriptor<DefiniteDescriptorKey> {
                 descriptor: self,
                 template: stack,
                 absolute_timelock: satisfaction.absolute_timelock.map(Into::into),
-                relative_timelock: satisfaction.relative_timelock,
+                // unwrap to be removed in a later commit
+                relative_timelock: satisfaction.relative_timelock.map(Into::into),
             })
         } else {
             Err(self)
@@ -807,7 +813,7 @@ impl Descriptor<DescriptorPublicKey> {
     ///
     /// For multipath descriptors it will return as many descriptors as there is
     /// "parallel" paths. For regular descriptors it will just return itself.
-    #[allow(clippy::blocks_in_if_conditions)]
+    #[allow(clippy::blocks_in_conditions)]
     pub fn into_single_descriptors(self) -> Result<Vec<Descriptor<DescriptorPublicKey>>, Error> {
         // All single-path descriptors contained in this descriptor.
         let mut descriptors = Vec::new();
@@ -915,8 +921,7 @@ impl Descriptor<DefiniteDescriptorKey> {
     }
 }
 
-impl_from_tree!(
-    Descriptor<Pk>,
+impl<Pk: FromStrKey> crate::expression::FromTree for Descriptor<Pk> {
     /// Parse an expression tree into a descriptor.
     fn from_tree(top: &expression::Tree) -> Result<Descriptor<Pk>, Error> {
         Ok(match (top.name, top.args.len() as u32) {
@@ -928,11 +933,10 @@ impl_from_tree!(
             _ => Descriptor::Bare(Bare::from_tree(top)?),
         })
     }
-);
+}
 
-impl_from_str!(
-    Descriptor<Pk>,
-    type Err = Error;,
+impl<Pk: FromStrKey> FromStr for Descriptor<Pk> {
+    type Err = Error;
     fn from_str(s: &str) -> Result<Descriptor<Pk>, Error> {
         // tr tree parsing has special code
         // Tr::from_str will check the checksum
@@ -947,7 +951,7 @@ impl_from_str!(
 
         Ok(desc)
     }
-);
+}
 
 impl<Pk: MiniscriptKey> fmt::Debug for Descriptor<Pk> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -995,25 +999,21 @@ pub(crate) use write_descriptor;
 #[cfg(test)]
 mod tests {
     use core::convert::TryFrom;
-    use core::str::FromStr;
 
     use bitcoin::blockdata::opcodes::all::{OP_CLTV, OP_CSV};
     use bitcoin::blockdata::script::Instruction;
     use bitcoin::blockdata::{opcodes, script};
     use bitcoin::hashes::hex::FromHex;
-    use bitcoin::hashes::{hash160, sha256, Hash};
+    use bitcoin::hashes::Hash;
     use bitcoin::script::PushBytes;
     use bitcoin::sighash::EcdsaSighashType;
-    use bitcoin::{self, bip32, secp256k1, PublicKey, Sequence};
+    use bitcoin::{bip32, PublicKey, Sequence};
 
     use super::checksum::desc_checksum;
-    use super::tr::Tr;
     use super::*;
-    use crate::descriptor::key::Wildcard;
-    use crate::descriptor::{DescriptorPublicKey, DescriptorXKey, SinglePub};
+    use crate::hex_script;
     #[cfg(feature = "compiler")]
     use crate::policy;
-    use crate::{hex_script, Descriptor, Error, Miniscript, Satisfier};
 
     type StdDescriptor = Descriptor<PublicKey>;
     const TEST_PK: &str = "pk(020000000000000000000000000000000000000000000000000000000000000002)";
@@ -1042,18 +1042,17 @@ mod tests {
         StdDescriptor::from_str("(\u{7f}()3").unwrap_err();
         StdDescriptor::from_str("pk()").unwrap_err();
         StdDescriptor::from_str("nl:0").unwrap_err(); //issue 63
-        let compressed_pk = String::from("");
         assert_eq!(
             StdDescriptor::from_str("sh(sortedmulti)")
                 .unwrap_err()
                 .to_string(),
-            "unexpected «no arguments given for sortedmulti»"
+            "expected threshold, found terminal",
         ); //issue 202
         assert_eq!(
-            StdDescriptor::from_str(&format!("sh(sortedmulti(2,{}))", compressed_pk))
+            StdDescriptor::from_str(&format!("sh(sortedmulti(2,{}))", &TEST_PK[3..69]))
                 .unwrap_err()
                 .to_string(),
-            "unexpected «higher threshold than there were keys in sortedmulti»"
+            "invalid threshold 2-of-1; cannot have k > n",
         ); //issue 202
 
         StdDescriptor::from_str(TEST_PK).unwrap();
@@ -1112,7 +1111,7 @@ mod tests {
                 .push_opcode(opcodes::all::OP_DUP)
                 .push_opcode(opcodes::all::OP_HASH160)
                 .push_slice(
-                    &hash160::Hash::from_str("84e9ed95a38613f0527ff685a9928abe2d4754d4",)
+                    hash160::Hash::from_str("84e9ed95a38613f0527ff685a9928abe2d4754d4",)
                         .unwrap()
                         .to_byte_array()
                 )
@@ -1136,7 +1135,7 @@ mod tests {
             script::Builder::new()
                 .push_opcode(opcodes::all::OP_PUSHBYTES_0)
                 .push_slice(
-                    &hash160::Hash::from_str("84e9ed95a38613f0527ff685a9928abe2d4754d4",)
+                    hash160::Hash::from_str("84e9ed95a38613f0527ff685a9928abe2d4754d4",)
                         .unwrap()
                         .to_byte_array()
                 )
@@ -1158,7 +1157,7 @@ mod tests {
             script::Builder::new()
                 .push_opcode(opcodes::all::OP_HASH160)
                 .push_slice(
-                    &hash160::Hash::from_str("f1c3b9a431134cb90a500ec06e0067cfa9b8bba7",)
+                    hash160::Hash::from_str("f1c3b9a431134cb90a500ec06e0067cfa9b8bba7",)
                         .unwrap()
                         .to_byte_array()
                 )
@@ -1181,7 +1180,7 @@ mod tests {
             script::Builder::new()
                 .push_opcode(opcodes::all::OP_HASH160)
                 .push_slice(
-                    &hash160::Hash::from_str("aa5282151694d3f2f32ace7d00ad38f927a33ac8",)
+                    hash160::Hash::from_str("aa5282151694d3f2f32ace7d00ad38f927a33ac8",)
                         .unwrap()
                         .to_byte_array()
                 )
@@ -1204,7 +1203,7 @@ mod tests {
             script::Builder::new()
                 .push_opcode(opcodes::all::OP_PUSHBYTES_0)
                 .push_slice(
-                    &sha256::Hash::from_str(
+                    sha256::Hash::from_str(
                         "\
                          f9379edc8983152dc781747830075bd5\
                          3896e4b0ce5bff73777fd77d124ba085\
@@ -1231,7 +1230,7 @@ mod tests {
             script::Builder::new()
                 .push_opcode(opcodes::all::OP_HASH160)
                 .push_slice(
-                    &hash160::Hash::from_str("4bec5d7feeed99e1d0a23fe32a4afe126a7ff07e",)
+                    hash160::Hash::from_str("4bec5d7feeed99e1d0a23fe32a4afe126a7ff07e",)
                         .unwrap()
                         .to_byte_array()
                 )
@@ -1268,8 +1267,8 @@ mod tests {
             ) -> Option<bitcoin::ecdsa::Signature> {
                 if *pk == self.pk {
                     Some(bitcoin::ecdsa::Signature {
-                        sig: self.sig,
-                        hash_ty: bitcoin::sighash::EcdsaSighashType::All,
+                        signature: self.sig,
+                        sighash_type: bitcoin::sighash::EcdsaSighashType::All,
                     })
                 } else {
                     None
@@ -1326,7 +1325,7 @@ mod tests {
                 previous_output: bitcoin::OutPoint::default(),
                 script_sig: bitcoin::ScriptBuf::new(),
                 sequence: Sequence::from_height(100),
-                witness: Witness::from_slice(&vec![sigser.clone(), pk.to_bytes(),]),
+                witness: Witness::from_slice(&[sigser.clone(), pk.to_bytes()]),
             }
         );
         assert_eq!(wpkh.unsigned_script_sig(), bitcoin::ScriptBuf::new());
@@ -1336,7 +1335,7 @@ mod tests {
         let redeem_script = script::Builder::new()
             .push_opcode(opcodes::all::OP_PUSHBYTES_0)
             .push_slice(
-                &hash160::Hash::from_str("d1b2a1faf62e73460af885c687dee3b7189cd8ab")
+                hash160::Hash::from_str("d1b2a1faf62e73460af885c687dee3b7189cd8ab")
                     .unwrap()
                     .to_byte_array(),
             )
@@ -1349,7 +1348,7 @@ mod tests {
                     .push_slice(<&PushBytes>::try_from(redeem_script.as_bytes()).unwrap())
                     .into_script(),
                 sequence: Sequence::from_height(100),
-                witness: Witness::from_slice(&vec![sigser.clone(), pk.to_bytes(),]),
+                witness: Witness::from_slice(&[sigser.clone(), pk.to_bytes()]),
             }
         );
         assert_eq!(
@@ -1386,7 +1385,7 @@ mod tests {
                 previous_output: bitcoin::OutPoint::default(),
                 script_sig: bitcoin::ScriptBuf::new(),
                 sequence: Sequence::from_height(100),
-                witness: Witness::from_slice(&vec![sigser.clone(), ms.encode().into_bytes(),]),
+                witness: Witness::from_slice(&[sigser.clone(), ms.encode().into_bytes()]),
             }
         );
         assert_eq!(wsh.unsigned_script_sig(), bitcoin::ScriptBuf::new());
@@ -1401,7 +1400,7 @@ mod tests {
                     .push_slice(<&PushBytes>::try_from(ms.encode().to_p2wsh().as_bytes()).unwrap())
                     .into_script(),
                 sequence: Sequence::from_height(100),
-                witness: Witness::from_slice(&vec![sigser.clone(), ms.encode().into_bytes(),]),
+                witness: Witness::from_slice(&[sigser.clone(), ms.encode().into_bytes()]),
             }
         );
         assert_eq!(
@@ -1493,13 +1492,13 @@ mod tests {
     #[test]
     fn roundtrip_tests() {
         let descriptor = Descriptor::<bitcoin::PublicKey>::from_str("multi");
-        assert_eq!(descriptor.unwrap_err().to_string(), "unexpected «no arguments given»")
+        assert_eq!(descriptor.unwrap_err().to_string(), "expected threshold, found terminal",);
     }
 
     #[test]
     fn empty_thresh() {
         let descriptor = Descriptor::<bitcoin::PublicKey>::from_str("thresh");
-        assert_eq!(descriptor.unwrap_err().to_string(), "unexpected «no arguments given»")
+        assert_eq!(descriptor.unwrap_err().to_string(), "expected threshold, found terminal");
     }
 
     #[test]
@@ -1535,11 +1534,11 @@ mod tests {
 
             satisfier.insert(
                 a,
-                bitcoin::ecdsa::Signature { sig: sig_a, hash_ty: EcdsaSighashType::All },
+                bitcoin::ecdsa::Signature { signature: sig_a, sighash_type: EcdsaSighashType::All },
             );
             satisfier.insert(
                 b,
-                bitcoin::ecdsa::Signature { sig: sig_b, hash_ty: EcdsaSighashType::All },
+                bitcoin::ecdsa::Signature { signature: sig_b, sighash_type: EcdsaSighashType::All },
             );
 
             satisfier

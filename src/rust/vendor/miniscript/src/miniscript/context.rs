@@ -10,9 +10,8 @@ use bitcoin::Weight;
 
 use super::decode::ParseableKey;
 use crate::miniscript::limits::{
-    MAX_OPS_PER_SCRIPT, MAX_PUBKEYS_PER_MULTISIG, MAX_SCRIPTSIG_SIZE, MAX_SCRIPT_ELEMENT_SIZE,
-    MAX_SCRIPT_SIZE, MAX_STACK_SIZE, MAX_STANDARD_P2WSH_SCRIPT_SIZE,
-    MAX_STANDARD_P2WSH_STACK_ITEMS,
+    MAX_OPS_PER_SCRIPT, MAX_SCRIPTSIG_SIZE, MAX_SCRIPT_ELEMENT_SIZE, MAX_SCRIPT_SIZE,
+    MAX_STACK_SIZE, MAX_STANDARD_P2WSH_SCRIPT_SIZE, MAX_STANDARD_P2WSH_STACK_ITEMS,
 };
 use crate::miniscript::types;
 use crate::prelude::*;
@@ -61,8 +60,6 @@ pub enum ScriptContextError {
     TaprootMultiDisabled,
     /// Stack size exceeded in script execution
     StackSizeLimitExceeded { actual: usize, limit: usize },
-    /// More than 20 keys in a Multi fragment
-    CheckMultiSigLimitExceeded,
     /// MultiA is only allowed in post tapscript
     MultiANotAllowed,
 }
@@ -87,7 +84,6 @@ impl error::Error for ScriptContextError {
             | ImpossibleSatisfaction
             | TaprootMultiDisabled
             | StackSizeLimitExceeded { .. }
-            | CheckMultiSigLimitExceeded
             | MultiANotAllowed => None,
         }
     }
@@ -149,9 +145,6 @@ impl fmt::Display for ScriptContextError {
                     actual, limit
                 )
             }
-            ScriptContextError::CheckMultiSigLimitExceeded => {
-                write!(f, "CHECkMULTISIG ('multi()' descriptor) only supports up to 20 pubkeys")
-            }
             ScriptContextError::MultiANotAllowed => {
                 write!(f, "Multi a(CHECKSIGADD) only allowed post tapscript")
             }
@@ -188,7 +181,7 @@ where
     /// Check whether the given satisfaction is valid under the ScriptContext
     /// For example, segwit satisfactions may fail if the witness len is more
     /// 3600 or number of stack elements are more than 100.
-    fn check_witness<Pk: MiniscriptKey>(_witness: &[Vec<u8>]) -> Result<(), ScriptContextError> {
+    fn check_witness(_witness: &[Vec<u8>]) -> Result<(), ScriptContextError> {
         // Only really need to do this for segwitv0 and legacy
         // Bare is already restrcited by standardness rules
         // and would reach these limits.
@@ -387,7 +380,7 @@ impl ScriptContext for Legacy {
         }
     }
 
-    fn check_witness<Pk: MiniscriptKey>(witness: &[Vec<u8>]) -> Result<(), ScriptContextError> {
+    fn check_witness(witness: &[Vec<u8>]) -> Result<(), ScriptContextError> {
         // In future, we could avoid by having a function to count only
         // len of script instead of converting it.
         if witness_to_scriptsig(witness).len() > MAX_SCRIPTSIG_SIZE {
@@ -405,11 +398,8 @@ impl ScriptContext for Legacy {
 
         match ms.node {
             Terminal::PkK(ref pk) => Self::check_pk(pk),
-            Terminal::Multi(_k, ref pks) => {
-                if pks.len() > MAX_PUBKEYS_PER_MULTISIG {
-                    return Err(ScriptContextError::CheckMultiSigLimitExceeded);
-                }
-                for pk in pks.iter() {
+            Terminal::Multi(ref thresh) => {
+                for pk in thresh.iter() {
                     Self::check_pk(pk)?;
                 }
                 Ok(())
@@ -487,7 +477,7 @@ impl ScriptContext for Segwitv0 {
         }
     }
 
-    fn check_witness<Pk: MiniscriptKey>(witness: &[Vec<u8>]) -> Result<(), ScriptContextError> {
+    fn check_witness(witness: &[Vec<u8>]) -> Result<(), ScriptContextError> {
         if witness.len() > MAX_STANDARD_P2WSH_STACK_ITEMS {
             return Err(ScriptContextError::MaxWitnessItemssExceeded {
                 actual: witness.len(),
@@ -506,11 +496,8 @@ impl ScriptContext for Segwitv0 {
 
         match ms.node {
             Terminal::PkK(ref pk) => Self::check_pk(pk),
-            Terminal::Multi(_k, ref pks) => {
-                if pks.len() > MAX_PUBKEYS_PER_MULTISIG {
-                    return Err(ScriptContextError::CheckMultiSigLimitExceeded);
-                }
-                for pk in pks.iter() {
+            Terminal::Multi(ref thresh) => {
+                for pk in thresh.iter() {
                     Self::check_pk(pk)?;
                 }
                 Ok(())
@@ -595,7 +582,7 @@ impl ScriptContext for Tap {
         }
     }
 
-    fn check_witness<Pk: MiniscriptKey>(witness: &[Vec<u8>]) -> Result<(), ScriptContextError> {
+    fn check_witness(witness: &[Vec<u8>]) -> Result<(), ScriptContextError> {
         // Note that tapscript has a 1000 limit compared to 100 of segwitv0
         if witness.len() > MAX_STACK_SIZE {
             return Err(ScriptContextError::MaxWitnessItemssExceeded {
@@ -620,8 +607,8 @@ impl ScriptContext for Tap {
 
         match ms.node {
             Terminal::PkK(ref pk) => Self::check_pk(pk),
-            Terminal::MultiA(_, ref keys) => {
-                for pk in keys.iter() {
+            Terminal::MultiA(ref thresh) => {
+                for pk in thresh.iter() {
                     Self::check_pk(pk)?;
                 }
                 Ok(())
@@ -716,11 +703,8 @@ impl ScriptContext for BareCtx {
         }
         match ms.node {
             Terminal::PkK(ref key) => Self::check_pk(key),
-            Terminal::Multi(_k, ref pks) => {
-                if pks.len() > MAX_PUBKEYS_PER_MULTISIG {
-                    return Err(ScriptContextError::CheckMultiSigLimitExceeded);
-                }
-                for pk in pks.iter() {
+            Terminal::Multi(ref thresh) => {
+                for pk in thresh.iter() {
                     Self::check_pk(pk)?;
                 }
                 Ok(())
@@ -749,7 +733,7 @@ impl ScriptContext for BareCtx {
                 Terminal::PkK(_pk) | Terminal::PkH(_pk) => Ok(()),
                 _ => Err(Error::NonStandardBareScript),
             },
-            Terminal::Multi(_k, subs) if subs.len() <= 3 => Ok(()),
+            Terminal::Multi(ref thresh) if thresh.n() <= 3 => Ok(()),
             _ => Err(Error::NonStandardBareScript),
         }
     }
@@ -828,7 +812,7 @@ impl ScriptContext for NoChecks {
         "NochecksEcdsa"
     }
 
-    fn check_witness<Pk: MiniscriptKey>(_witness: &[Vec<u8>]) -> Result<(), ScriptContextError> {
+    fn check_witness(_witness: &[Vec<u8>]) -> Result<(), ScriptContextError> {
         // Only really need to do this for segwitv0 and legacy
         // Bare is already restrcited by standardness rules
         // and would reach these limits.

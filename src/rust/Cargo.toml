@@ -27,7 +27,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-bitcoin = { version = "0.31.0", default-features = false, features = ["no-std"] }
+bitcoin = { version = "0.32.2", default-features = false }
 hex = { version = "0.4", default-features = false, features = ["alloc"] }
 lazy_static = { version = "1.4.0" }
 num-bigint = { version = "0.4.3", default-features = false }

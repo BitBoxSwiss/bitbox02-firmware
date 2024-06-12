@@ -9,8 +9,15 @@ rustc --version
 
 # Cache the toolchain we are using.
 NIGHTLY=false
+MSRV=false
 if cargo --version | grep nightly; then
     NIGHTLY=true
+elif cargo --version | grep "1\.56"; then
+    MSRV=true
+fi
+
+if [ "$MSRV" = true ]; then
+    cargo update -p cc --precise 1.0.79
 fi
 
 # Format if told to
@@ -18,19 +25,6 @@ if [ "$DO_FMT" = true ]
 then
     rustup component add rustfmt
     cargo fmt -- --check
-fi
-
-# Pin dependencies required to build with Rust 1.48.0
-if cargo --version | grep "1\.48\.0"; then
-    cargo update -p once_cell --precise 1.13.1
-    cargo update -p quote --precise 1.0.28
-    cargo update -p syn --precise 2.0.32
-    cargo update -p proc-macro2 --precise 1.0.63
-    cargo update -p serde_json --precise 1.0.99
-    cargo update -p serde --precise 1.0.152
-    cargo update -p log --precise 0.4.18
-    cargo update -p serde_test --precise 1.0.152
-    cargo update -p memchr --precise 2.5.0
 fi
 
 # Test bitcoind integration tests if told to (this only works with the stable toolchain)
@@ -45,6 +39,14 @@ fi
 
 # Defaults / sanity checks
 cargo test
+
+if [ "$DO_LINT" = true ]; then
+    clippy="cargo +nightly clippy"
+
+    $clippy --all-features --all-targets -- -D warnings
+    $clippy --all-targets -- -D warnings
+    $clippy --no-default-features --features=no-std --all-targets -- -D warnings
+fi
 
 if [ "$DO_FEATURE_MATRIX" = true ]
 then

@@ -100,11 +100,11 @@ where
     }
 }
 
-pub fn sdcard_create<'a, F>(_insert: bool, mut continue_callback: F) -> Component<'a>
+pub fn sdcard_create<'a, F>(_insert: bool, mut callback: F) -> Component<'a>
 where
-    F: FnMut() + 'a,
+    F: FnMut(bool) + 'a,
 {
-    continue_callback();
+    callback(true);
     Component {
         is_pushed: false,
         _p: PhantomData,

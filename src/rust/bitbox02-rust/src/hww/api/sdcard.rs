@@ -34,7 +34,7 @@ pub async fn process(
     {
         return Ok(Response::Success(pb::Success {}));
     }
-    sdcard::sdcard(action == SdCardAction::InsertCard).await;
+    sdcard::sdcard(action == SdCardAction::InsertCard).await?;
     Ok(Response::Success(pb::Success {}))
 }
 

@@ -22,9 +22,6 @@
  * @param[in] insert if true, the user is asked to insert the sdcard. Otherwise the user is asked to
  *            remove it.
  */
-component_t* sdcard_create(
-    bool insert,
-    void (*continue_callback)(void*),
-    void* continue_callback_param);
+component_t* sdcard_create(bool insert, void (*callback)(bool, void*), void* callback_param);
 
 #endif

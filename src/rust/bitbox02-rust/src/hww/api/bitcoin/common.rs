@@ -155,8 +155,8 @@ impl Payload {
         keypath: &[u32],
     ) -> Result<Self, Error> {
         let witness_script = policy.witness_script_at_keypath(keypath)?;
-        match policy {
-            super::policies::ParsedPolicy::Wsh { .. } => Ok(Payload {
+        match &policy.descriptor {
+            super::policies::Descriptor::Wsh { .. } => Ok(Payload {
                 data: Sha256::digest(witness_script).to_vec(),
                 output_type: BtcOutputType::P2wsh,
             }),

@@ -174,26 +174,26 @@ impl<'a> miniscript::Translator<String, bitcoin::PublicKey, Error>
 
 /// See `ParsedPolicy`.
 #[derive(Debug)]
-pub struct Wsh<'a> {
-    policy: &'a Policy,
+pub struct Wsh {
     miniscript_expr: miniscript::Miniscript<String, miniscript::Segwitv0>,
+}
+
+/// See `ParsedPolicy`.
+#[derive(Debug)]
+pub enum Descriptor {
+    // `wsh(...)` policies
+    Wsh(Wsh),
+    // `tr(...)` Taproot etc. in the future.
 }
 
 /// Result of `parse()`.
 #[derive(Debug)]
-pub enum ParsedPolicy<'a> {
-    // `wsh(...)` policies
-    Wsh(Wsh<'a>),
-    // `tr(...)` Taproot etc. in the future.
+pub struct ParsedPolicy<'a> {
+    policy: &'a Policy,
+    pub descriptor: Descriptor,
 }
 
 impl<'a> ParsedPolicy<'a> {
-    fn get_policy(&self) -> &Policy {
-        match self {
-            Self::Wsh(Wsh { policy, .. }) => policy,
-        }
-    }
-
     /// Check that it is impossible to create a derivation with duplicate pubkeys, assuming all the
     /// keys in the key vector are distinct.
     ///
@@ -204,16 +204,13 @@ impl<'a> ParsedPolicy<'a> {
     /// Also checks that each key is used, e.g. if there are 3 keys in the key vector, @0, @1 and @2
     /// must be present.
     fn validate_keys(&self) -> Result<(), Error> {
-        match self {
-            Self::Wsh(Wsh {
-                policy,
-                miniscript_expr,
-            }) => {
+        match &self.descriptor {
+            Descriptor::Wsh(Wsh { miniscript_expr }) => {
                 // in "@key_index/<left;right>", keeps track of (key_index,left) and
                 // (key_index,right) to check for duplicates.
                 let mut derivations_seen: Vec<(usize, u32)> = Vec::new();
 
-                let mut keys_seen: Vec<bool> = vec![false; policy.keys.len()];
+                let mut keys_seen: Vec<bool> = vec![false; self.policy.keys.len()];
 
                 for pk in miniscript_expr.iter_pk() {
                     let (key_index, multipath_index_left, multipath_index_right) =
@@ -248,7 +245,7 @@ impl<'a> ParsedPolicy<'a> {
     pub fn validate(&self, coin: BtcCoin) -> Result<(), Error> {
         check_enabled(coin)?;
 
-        let policy = self.get_policy();
+        let policy = self.policy;
 
         if policy.keys.len() > MAX_KEYS {
             return Err(Error::InvalidInput);
@@ -297,13 +294,10 @@ impl<'a> ParsedPolicy<'a> {
     /// wsh(and_v(v:pk(@0/0/5),pk(@1/20/5))).
     /// The same derived using `is_change=true` derives: wsh(and_v(v:pk(@0/1/5),pk(@1/21/5)))
     pub fn witness_script(&self, is_change: bool, address_index: u32) -> Result<Vec<u8>, Error> {
-        match self {
-            Self::Wsh(Wsh {
-                policy,
-                miniscript_expr,
-            }) => {
+        match &self.descriptor {
+            Descriptor::Wsh(Wsh { miniscript_expr }) => {
                 let mut translator = WalletPolicyPkTranslator {
-                    keys: policy.keys.as_ref(),
+                    keys: self.policy.keys.as_ref(),
                     is_change,
                     address_index,
                 };
@@ -322,13 +316,13 @@ impl<'a> ParsedPolicy<'a> {
     /// derived using keypath m/48'/1'/0'/3'/11/5 derives:
     /// wsh(and_v(v:pk(@0/11/5),pk(@1/21/5))).
     pub fn witness_script_at_keypath(&self, keypath: &[u32]) -> Result<Vec<u8>, Error> {
-        match self {
-            Self::Wsh(Wsh {
-                policy,
-                miniscript_expr,
-            }) => {
-                let (is_change, address_index) =
-                    get_change_and_address_index(miniscript_expr.iter_pk(), &policy.keys, keypath)?;
+        match &self.descriptor {
+            Descriptor::Wsh(Wsh { miniscript_expr }) => {
+                let (is_change, address_index) = get_change_and_address_index(
+                    miniscript_expr.iter_pk(),
+                    &self.policy.keys,
+                    keypath,
+                )?;
                 self.witness_script(is_change, address_index)
             }
         }
@@ -336,13 +330,13 @@ impl<'a> ParsedPolicy<'a> {
 
     /// Returns true if the address-level keypath points to a change address.
     pub fn is_change_keypath(&self, keypath: &[u32]) -> Result<bool, Error> {
-        match self {
-            Self::Wsh(Wsh {
-                policy,
-                miniscript_expr,
-            }) => {
-                let (is_change, _) =
-                    get_change_and_address_index(miniscript_expr.iter_pk(), &policy.keys, keypath)?;
+        match &self.descriptor {
+            Descriptor::Wsh(Wsh { miniscript_expr }) => {
+                let (is_change, _) = get_change_and_address_index(
+                    miniscript_expr.iter_pk(),
+                    &self.policy.keys,
+                    keypath,
+                )?;
                 Ok(is_change)
             }
         }
@@ -364,10 +358,10 @@ pub fn parse(policy: &Policy) -> Result<ParsedPolicy, Error> {
                 miniscript::Miniscript::from_str(&desc[4..desc.len() - 1])
                     .or(Err(Error::InvalidInput))?;
 
-            Ok(ParsedPolicy::Wsh(Wsh {
+            Ok(ParsedPolicy {
                 policy,
-                miniscript_expr,
-            }))
+                descriptor: Descriptor::Wsh(Wsh { miniscript_expr }),
+            })
         }
         _ => Err(Error::InvalidInput),
     }
@@ -595,10 +589,9 @@ mod tests {
     fn test_parse_wsh_miniscript() {
         // Parse a valid example and check that the keys are collected as is as strings.
         let policy = make_policy("wsh(pk(@0/**))", &[]);
-        match parse(&policy).unwrap() {
-            ParsedPolicy::Wsh(Wsh {
-                ref miniscript_expr,
-                ..
+        match &parse(&policy).unwrap().descriptor {
+            Descriptor::Wsh(Wsh {
+                miniscript_expr, ..
             }) => {
                 assert_eq!(
                     miniscript_expr.iter_pk().collect::<Vec<String>>(),
@@ -609,10 +602,9 @@ mod tests {
 
         // Parse another valid example and check that the keys are collected as is as strings.
         let policy = make_policy("wsh(or_b(pk(@0/**),s:pk(@1/**)))", &[]);
-        match parse(&policy).unwrap() {
-            ParsedPolicy::Wsh(Wsh {
-                ref miniscript_expr,
-                ..
+        match &parse(&policy).unwrap().descriptor {
+            Descriptor::Wsh(Wsh {
+                miniscript_expr, ..
             }) => {
                 assert_eq!(
                     miniscript_expr.iter_pk().collect::<Vec<String>>(),

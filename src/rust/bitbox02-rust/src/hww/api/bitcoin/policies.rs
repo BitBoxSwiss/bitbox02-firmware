@@ -137,6 +137,47 @@ fn get_change_and_address_index<R: core::convert::AsRef<str>, T: core::iter::Ite
     Err(Error::InvalidInput)
 }
 
+/// Check that it is impossible to create a derivation with duplicate pubkeys, assuming all the keys
+/// in the key vector are distinct.
+///
+/// Even though the rust-miniscript library checks for duplicate keys, it does so on the raw
+/// miniscript, which would not catch e.g. that `wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<2;1>/*)))` has a
+/// duplicate change derivation if we derive at the receive path.
+///
+/// Also checks that each key is used, e.g. if there are 3 keys in the key vector, @0, @1 and @2
+/// must be present.
+fn check_dups<R: core::convert::AsRef<str>, T: core::iter::Iterator<Item = R>>(
+    pubkeys: T,
+    keys: &[pb::KeyOriginInfo],
+) -> Result<(), Error> {
+    // in "@key_index/<left;right>", keeps track of (key_index,left) and
+    // (key_index,right) to check for duplicates.
+    let mut derivations_seen: Vec<(usize, u32)> = Vec::new();
+
+    let mut keys_seen: Vec<bool> = vec![false; keys.len()];
+
+    for pk in pubkeys {
+        let (key_index, multipath_index_left, multipath_index_right) =
+            parse_wallet_policy_pk(pk.as_ref()).or(Err(Error::InvalidInput))?;
+
+        if derivations_seen.contains(&(key_index, multipath_index_left)) {
+            return Err(Error::InvalidInput);
+        }
+        derivations_seen.push((key_index, multipath_index_left));
+        if derivations_seen.contains(&(key_index, multipath_index_right)) {
+            return Err(Error::InvalidInput);
+        }
+        derivations_seen.push((key_index, multipath_index_right));
+
+        *keys_seen.get_mut(key_index).ok_or(Error::InvalidInput)? = true;
+    }
+
+    if !keys_seen.into_iter().all(|b| b) {
+        return Err(Error::InvalidInput);
+    }
+    Ok(())
+}
+
 struct WalletPolicyPkTranslator<'a> {
     keys: &'a [pb::KeyOriginInfo],
     is_change: bool,
@@ -194,44 +235,10 @@ pub struct ParsedPolicy<'a> {
 }
 
 impl<'a> ParsedPolicy<'a> {
-    /// Check that it is impossible to create a derivation with duplicate pubkeys, assuming all the
-    /// keys in the key vector are distinct.
-    ///
-    /// Even though the rust-miniscript library checks for duplicate keys, it does so on the raw
-    /// miniscript, which would not catch e.g. that `wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<2;1>/*)))` has
-    /// a duplicate change derivation if we derive at the receive path.
-    ///
-    /// Also checks that each key is used, e.g. if there are 3 keys in the key vector, @0, @1 and @2
-    /// must be present.
     fn validate_keys(&self) -> Result<(), Error> {
         match &self.descriptor {
             Descriptor::Wsh(Wsh { miniscript_expr }) => {
-                // in "@key_index/<left;right>", keeps track of (key_index,left) and
-                // (key_index,right) to check for duplicates.
-                let mut derivations_seen: Vec<(usize, u32)> = Vec::new();
-
-                let mut keys_seen: Vec<bool> = vec![false; self.policy.keys.len()];
-
-                for pk in miniscript_expr.iter_pk() {
-                    let (key_index, multipath_index_left, multipath_index_right) =
-                        parse_wallet_policy_pk(&pk).or(Err(Error::InvalidInput))?;
-
-                    if derivations_seen.contains(&(key_index, multipath_index_left)) {
-                        return Err(Error::InvalidInput);
-                    }
-                    derivations_seen.push((key_index, multipath_index_left));
-                    if derivations_seen.contains(&(key_index, multipath_index_right)) {
-                        return Err(Error::InvalidInput);
-                    }
-                    derivations_seen.push((key_index, multipath_index_right));
-
-                    *keys_seen.get_mut(key_index).ok_or(Error::InvalidInput)? = true;
-                }
-
-                if !keys_seen.into_iter().all(|b| b) {
-                    return Err(Error::InvalidInput);
-                }
-                Ok(())
+                check_dups(miniscript_expr.iter_pk(), &self.policy.keys)
             }
         }
     }
@@ -762,8 +769,8 @@ mod tests {
         assert!(parse(&pol).unwrap().validate(coin).is_ok());
 
         // Duplicate path, one time in change, one time in receive. While the keys technically are
-        // never duplicate in the final miniscript with the pubkeys inserted, we still prohibit, as
-        // it does not look like there would be a sane use case for this and would likely be an
+        // never duplicate in the final miniscript with the pubkeys inserted, we still prohibit it,
+        // as it does not look like there would be a sane use case for this and would likely be an
         // accident.
         let pol = make_policy(
             "wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<1;2>/*)))",

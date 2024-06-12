@@ -24,6 +24,7 @@ use pb::btc_script_config::SimpleType;
 pub use pb::btc_sign_init_request::FormatUnit;
 pub use pb::{BtcCoin, BtcOutputType};
 
+use super::script_configs::{ValidatedScriptConfig, ValidatedScriptConfigWithKeypath};
 use super::{multisig, params::Params, script};
 
 use sha2::{Digest, Sha256};
@@ -155,8 +156,8 @@ impl Payload {
         keypath: &[u32],
     ) -> Result<Self, Error> {
         let witness_script = policy.witness_script_at_keypath(keypath)?;
-        match policy {
-            super::policies::ParsedPolicy::Wsh { .. } => Ok(Payload {
+        match &policy.descriptor {
+            super::policies::Descriptor::Wsh { .. } => Ok(Payload {
                 data: Sha256::digest(witness_script).to_vec(),
                 output_type: BtcOutputType::P2wsh,
             }),
@@ -169,39 +170,19 @@ impl Payload {
         xpub_cache: &mut Bip32XpubCache,
         params: &Params,
         keypath: &[u32],
-        script_config_account: &pb::BtcScriptConfigWithKeypath,
+        script_config_account: &ValidatedScriptConfigWithKeypath,
     ) -> Result<Self, Error> {
-        match script_config_account {
-            pb::BtcScriptConfigWithKeypath {
-                script_config:
-                    Some(pb::BtcScriptConfig {
-                        config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
-                    }),
-                ..
-            } => {
-                let simple_type = pb::btc_script_config::SimpleType::try_from(*simple_type)?;
-                Self::from_simple(xpub_cache, params, simple_type, keypath)
+        match &script_config_account.config {
+            ValidatedScriptConfig::SimpleType(simple_type) => {
+                Self::from_simple(xpub_cache, params, *simple_type, keypath)
             }
-            pb::BtcScriptConfigWithKeypath {
-                script_config:
-                    Some(pb::BtcScriptConfig {
-                        config: Some(pb::btc_script_config::Config::Multisig(multisig)),
-                    }),
-                ..
-            } => Self::from_multisig(
+            ValidatedScriptConfig::Multisig(multisig) => Self::from_multisig(
                 params,
                 multisig,
                 keypath[keypath.len() - 2],
                 keypath[keypath.len() - 1],
             ),
-            pb::BtcScriptConfigWithKeypath {
-                script_config:
-                    Some(pb::BtcScriptConfig {
-                        config: Some(pb::btc_script_config::Config::Policy(policy)),
-                    }),
-                ..
-            } => Self::from_policy(&super::policies::parse(policy)?, keypath),
-            _ => Err(Error::InvalidInput),
+            ValidatedScriptConfig::Policy(policy) => Self::from_policy(policy, keypath),
         }
     }
 

@@ -93,13 +93,13 @@ where
     }
 }
 
-pub fn sdcard_create<'a, F>(insert: bool, mut continue_callback: F) -> Component<'a>
+pub fn sdcard_create<'a, F>(insert: bool, mut callback: F) -> Component<'a>
 where
-    F: FnMut() + 'a,
+    F: FnMut(bool) + 'a,
 {
     let data = crate::testing::DATA.0.borrow();
     assert_eq!(data.ui_sdcard_create_arg.unwrap(), insert);
-    continue_callback();
+    callback(true);
     Component {
         is_pushed: false,
         _p: PhantomData,

@@ -312,7 +312,10 @@ class SendMessage:
         print(f"SD Card inserted: {self._device.check_sdcard()}")
 
     def _insert_sdcard(self) -> None:
-        self._device.insert_sdcard()
+        try:
+            self._device.insert_sdcard()
+        except UserAbortException:
+            print("Aborted by user")
 
     def _remove_sdcard(self) -> None:
         self._device.remove_sdcard()

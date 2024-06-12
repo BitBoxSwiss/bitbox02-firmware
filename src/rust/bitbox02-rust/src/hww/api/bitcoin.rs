@@ -25,6 +25,7 @@ mod payment_request;
 mod policies;
 mod registration;
 mod script;
+mod script_configs;
 pub mod signmsg;
 pub mod signtx;
 

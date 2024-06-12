@@ -1,4 +1,4 @@
-// Copyright 2022 Shift Crypto AG
+// Copyright 2022-2024 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ use super::Error;
 use super::common::format_amount;
 use super::payment_request;
 use super::script::serialize_varint;
+use super::script_configs::{ValidatedScriptConfig, ValidatedScriptConfigWithKeypath};
 use super::{bip143, bip341, common, keypath};
 
 use crate::workflow::{confirm, status, transaction};
@@ -28,6 +29,7 @@ use alloc::vec::Vec;
 use pb::request::Request;
 use pb::response::Response;
 
+use pb::btc_script_config::SimpleType;
 use pb::btc_sign_init_request::FormatUnit;
 use pb::btc_sign_next_response::Type as NextType;
 use sha2::{Digest, Sha256};
@@ -201,41 +203,30 @@ async fn get_antiklepto_host_nonce(
 
 fn validate_keypath(
     params: &super::params::Params,
-    script_config_account: &pb::BtcScriptConfigWithKeypath,
+    script_config_account: &ValidatedScriptConfigWithKeypath,
     keypath: &[u32],
     mode: keypath::ReceiveSpend,
 ) -> Result<(), Error> {
-    match &script_config_account.script_config {
-        Some(pb::BtcScriptConfig {
-            config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
-        }) => {
-            let simple_type = pb::btc_script_config::SimpleType::try_from(*simple_type)?;
+    match &script_config_account.config {
+        ValidatedScriptConfig::SimpleType(simple_type) => {
             keypath::validate_address_simple(
                 keypath,
                 params.bip44_coin,
-                simple_type,
+                *simple_type,
                 params.taproot_support,
                 mode,
             )
             .or(Err(Error::InvalidInput))?;
         }
-        Some(pb::BtcScriptConfig {
-            config: Some(pb::btc_script_config::Config::Multisig(_)),
-        }) => {
+        ValidatedScriptConfig::Multisig(_) | ValidatedScriptConfig::Policy(_) => {
             keypath::validate_address_policy(keypath, mode).or(Err(Error::InvalidInput))?;
         }
-        Some(pb::BtcScriptConfig {
-            config: Some(pb::btc_script_config::Config::Policy(_)),
-        }) => {
-            keypath::validate_address_policy(keypath, mode).or(Err(Error::InvalidInput))?;
-        }
-        _ => return Err(Error::InvalidInput),
     }
     // Check that keypath_account is a prefix to keypath with two elements left (change, address).
     if script_config_account.keypath.len() + 2 != keypath.len() {
         return Err(Error::InvalidInput);
     }
-    if keypath[..script_config_account.keypath.len()] != script_config_account.keypath {
+    if &keypath[..script_config_account.keypath.len()] != script_config_account.keypath {
         return Err(Error::InvalidInput);
     }
     Ok(())
@@ -244,7 +235,7 @@ fn validate_keypath(
 fn validate_input(
     input: &pb::BtcSignInputRequest,
     params: &super::params::Params,
-    script_config_account: &pb::BtcScriptConfigWithKeypath,
+    script_config_account: &ValidatedScriptConfigWithKeypath,
 ) -> Result<(), Error> {
     if input.prev_out_value == 0 {
         return Err(Error::InvalidInput);
@@ -257,17 +248,11 @@ fn validate_input(
     )
 }
 
-fn is_taproot(script_config_account: &pb::BtcScriptConfigWithKeypath) -> bool {
-    match script_config_account {
-        pb::BtcScriptConfigWithKeypath {
-            script_config:
-                Some(pb::BtcScriptConfig {
-                    config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
-                }),
-            ..
-        } => *simple_type == pb::btc_script_config::SimpleType::P2tr as i32,
-        _ => false,
-    }
+fn is_taproot(script_config_account: &ValidatedScriptConfigWithKeypath) -> bool {
+    matches!(
+        script_config_account.config,
+        ValidatedScriptConfig::SimpleType(SimpleType::P2tr)
+    )
 }
 
 /// Generates the subscript (scriptCode without the length prefix) used in the bip143 sighash algo.
@@ -275,20 +260,16 @@ fn is_taproot(script_config_account: &pb::BtcScriptConfigWithKeypath) -> bool {
 /// See https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification, item 5:
 fn sighash_script(
     xpub_cache: &mut Bip32XpubCache,
-    script_config_account: &pb::BtcScriptConfigWithKeypath,
+    script_config_account: &ValidatedScriptConfigWithKeypath,
     keypath: &[u32],
 ) -> Result<Vec<u8>, Error> {
     match script_config_account {
-        pb::BtcScriptConfigWithKeypath {
-            script_config:
-                Some(pb::BtcScriptConfig {
-                    config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
-                }),
+        ValidatedScriptConfigWithKeypath {
+            config: ValidatedScriptConfig::SimpleType(simple_type),
             ..
         } => {
-            match pb::btc_script_config::SimpleType::try_from(*simple_type)? {
-                pb::btc_script_config::SimpleType::P2wpkhP2sh
-                | pb::btc_script_config::SimpleType::P2wpkh => {
+            match simple_type {
+                SimpleType::P2wpkhP2sh | SimpleType::P2wpkh => {
                     // See https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification, item 5:
                     // > For P2WPKH witness program, the scriptCode is 0x1976a914{20-byte-pubkey-hash}88ac.
                     let pubkey_hash160 = xpub_cache.get_xpub(keypath)?.pubkey_hash160();
@@ -301,25 +282,18 @@ fn sighash_script(
                 _ => Err(Error::Generic),
             }
         }
-        pb::BtcScriptConfigWithKeypath {
-            script_config:
-                Some(pb::BtcScriptConfig {
-                    config: Some(pb::btc_script_config::Config::Multisig(multisig)),
-                }),
+        ValidatedScriptConfigWithKeypath {
+            config: ValidatedScriptConfig::Multisig(multisig),
             ..
         } => Ok(super::multisig::pkscript(
             multisig,
             keypath[keypath.len() - 2],
             keypath[keypath.len() - 1],
         )?),
-        pb::BtcScriptConfigWithKeypath {
-            script_config:
-                Some(pb::BtcScriptConfig {
-                    config: Some(pb::btc_script_config::Config::Policy(policy)),
-                }),
+        ValidatedScriptConfigWithKeypath {
+            config: ValidatedScriptConfig::Policy(policy),
             ..
-        } => super::policies::parse(policy)?.witness_script_at_keypath(keypath),
-        _ => Err(Error::InvalidInput),
+        } => policy.witness_script_at_keypath(keypath),
     }
 }
 
@@ -393,10 +367,10 @@ async fn handle_prevtx(
     Ok(())
 }
 
-async fn validate_script_configs(
+async fn validate_script_configs<'a>(
     coin_params: &super::params::Params,
-    script_configs: &[pb::BtcScriptConfigWithKeypath],
-) -> Result<(), Error> {
+    script_configs: &'a [pb::BtcScriptConfigWithKeypath],
+) -> Result<Vec<ValidatedScriptConfigWithKeypath<'a>>, Error> {
     if script_configs.is_empty() {
         return Err(Error::InvalidInput);
     }
@@ -419,7 +393,10 @@ async fn validate_script_configs(
         let name = super::multisig::get_name(coin_params.coin, multisig, keypath)?
             .ok_or(Error::InvalidInput)?;
         super::multisig::confirm("Spend from", coin_params, &name, multisig).await?;
-        return Ok(());
+        return Ok(vec![ValidatedScriptConfigWithKeypath {
+            keypath,
+            config: ValidatedScriptConfig::Multisig(multisig),
+        }]);
     }
 
     // Then we get policies out of the way.
@@ -429,10 +406,11 @@ async fn validate_script_configs(
             Some(pb::BtcScriptConfig {
                 config: Some(pb::btc_script_config::Config::Policy(policy)),
             }),
-        keypath: _,
+        keypath,
     }] = script_configs
     {
-        super::policies::parse(policy)?.validate(coin_params.coin)?;
+        let parsed_policy = super::policies::parse(policy)?;
+        parsed_policy.validate(coin_params.coin)?;
         let name =
             super::policies::get_name(coin_params.coin, policy)?.ok_or(Error::InvalidInput)?;
 
@@ -451,38 +429,49 @@ async fn validate_script_configs(
         )
         .await?;
 
-        return Ok(());
+        return Ok(vec![ValidatedScriptConfigWithKeypath {
+            keypath,
+            config: ValidatedScriptConfig::Policy(parsed_policy),
+        }]);
     }
 
-    for script_config in script_configs.iter() {
-        // Only allow simple single sig configs here.
-        match script_config {
-            pb::BtcScriptConfigWithKeypath {
-                script_config:
-                    Some(pb::BtcScriptConfig {
-                        config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
-                    }),
-                keypath,
-            } => {
-                keypath::validate_account_simple(
+    let validated: Vec<ValidatedScriptConfigWithKeypath> = script_configs
+        .iter()
+        .map(|script_config| {
+            // Only allow simple single sig configs here.
+            match script_config {
+                pb::BtcScriptConfigWithKeypath {
+                    script_config:
+                        Some(pb::BtcScriptConfig {
+                            config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
+                        }),
                     keypath,
-                    coin_params.bip44_coin,
-                    pb::btc_script_config::SimpleType::try_from(*simple_type)?,
-                    coin_params.taproot_support,
-                )
-                .or(Err(Error::InvalidInput))?;
+                } => {
+                    let simple_type = SimpleType::try_from(*simple_type)?;
+                    keypath::validate_account_simple(
+                        keypath,
+                        coin_params.bip44_coin,
+                        simple_type,
+                        coin_params.taproot_support,
+                    )
+                    .or(Err(Error::InvalidInput))?;
 
-                // Check that the bip44 account is the same for all. While we allow mixing input
-                // types (bip44 purpose), we do not allow mixing accounts.
+                    // Check that the bip44 account is the same for all. While we allow mixing input
+                    // types (bip44 purpose), we do not allow mixing accounts.
 
-                if keypath[2] != script_configs[0].keypath[2] {
-                    return Err(Error::InvalidInput);
+                    if keypath[2] != script_configs[0].keypath[2] {
+                        return Err(Error::InvalidInput);
+                    }
+                    Ok(ValidatedScriptConfigWithKeypath {
+                        keypath,
+                        config: ValidatedScriptConfig::SimpleType(simple_type),
+                    })
                 }
+                _ => Err(Error::InvalidInput),
             }
-            _ => return Err(Error::InvalidInput),
-        }
-    }
-    Ok(())
+        })
+        .collect::<Result<Vec<ValidatedScriptConfigWithKeypath>, Error>>()?;
+    Ok(validated)
 }
 
 // We configure the xpub cache to cache up to change/receive level. If e.g. there is an input/change
@@ -585,7 +574,8 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     if request.num_inputs < 1 || request.num_outputs < 1 {
         return Err(Error::InvalidInput);
     }
-    validate_script_configs(coin_params, &request.script_configs).await?;
+    let validated_script_configs =
+        validate_script_configs(coin_params, &request.script_configs).await?;
 
     let mut xpub_cache = Bip32XpubCache::new();
     setup_xpub_cache(&mut xpub_cache, &request.script_configs);
@@ -626,7 +616,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     let mut hasher_scriptpubkeys = Sha256::new();
 
     // Are all inputs taproot?
-    let taproot_only = request.script_configs.iter().all(is_taproot);
+    let taproot_only = validated_script_configs.iter().all(is_taproot);
 
     for input_index in 0..request.num_inputs {
         // Update progress.
@@ -636,8 +626,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         );
 
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
-        let script_config_account = request
-            .script_configs
+        let script_config_account = validated_script_configs
             .get(tx_input.script_config_index as usize)
             .ok_or(Error::InvalidInput)?;
         validate_input(&tx_input, coin_params, script_config_account)?;
@@ -736,8 +725,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         // otherwise it is provided in tx_output.payload.
         let payload: common::Payload = if tx_output.ours {
             // Compute the payload from the keystore.
-            let script_config_account = request
-                .script_configs
+            let script_config_account = validated_script_configs
                 .get(tx_output.script_config_index as usize)
                 .ok_or(Error::InvalidInput)?;
 
@@ -763,16 +751,15 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         };
 
         let is_change = if tx_output.ours {
-            let script_config_account = request
-                .script_configs
+            let script_config_account = validated_script_configs
                 .get(tx_output.script_config_index as usize)
                 .ok_or(Error::InvalidInput)?;
 
-            match &script_config_account.script_config {
+            match &script_config_account.config {
                 // Policy.
-                Some(pb::BtcScriptConfig {
-                    config: Some(pb::btc_script_config::Config::Policy(policy)),
-                }) => super::policies::parse(policy)?.is_change_keypath(&tx_output.keypath)?,
+                ValidatedScriptConfig::Policy(policy) => {
+                    policy.is_change_keypath(&tx_output.keypath)?
+                }
                 // Everything else.
                 _ => {
                     let change = tx_output.keypath[tx_output.keypath.len() - 2];
@@ -928,10 +915,10 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     let mut inputs_sum_pass2: u64 = 0;
     for input_index in 0..request.num_inputs {
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
-        let script_config_account = request
-            .script_configs
+        let script_config_account = validated_script_configs
             .get(tx_input.script_config_index as usize)
             .ok_or(Error::InvalidInput)?;
+
         validate_input(&tx_input, coin_params, script_config_account)?;
 
         inputs_sum_pass2 = inputs_sum_pass2
@@ -1337,7 +1324,7 @@ mod tests {
                 script_configs: vec![pb::BtcScriptConfigWithKeypath {
                     script_config: Some(pb::BtcScriptConfig {
                         config: Some(pb::btc_script_config::Config::SimpleType(
-                            pb::btc_script_config::SimpleType::P2wpkh as _,
+                            SimpleType::P2wpkh as _,
                         )),
                     }),
                     keypath: vec![
@@ -1454,7 +1441,7 @@ mod tests {
             script_configs: vec![pb::BtcScriptConfigWithKeypath {
                 script_config: Some(pb::BtcScriptConfig {
                     config: Some(pb::btc_script_config::Config::SimpleType(
-                        pb::btc_script_config::SimpleType::P2wpkh as _,
+                        SimpleType::P2wpkh as _,
                     )),
                 }),
                 keypath: vec![84 + HARDENED, 0 + HARDENED, 10 + HARDENED],
@@ -1556,7 +1543,7 @@ mod tests {
                 pb::BtcScriptConfigWithKeypath {
                     script_config: Some(pb::BtcScriptConfig {
                         config: Some(pb::btc_script_config::Config::SimpleType(
-                            pb::btc_script_config::SimpleType::P2wpkh as _,
+                            SimpleType::P2wpkh as _,
                         )),
                     }),
                     keypath: vec![84 + HARDENED, 0 + HARDENED, 10 + HARDENED],
@@ -1564,7 +1551,7 @@ mod tests {
                 pb::BtcScriptConfigWithKeypath {
                     script_config: Some(pb::BtcScriptConfig {
                         config: Some(pb::btc_script_config::Config::SimpleType(
-                            pb::btc_script_config::SimpleType::P2wpkhP2sh as _,
+                            SimpleType::P2wpkhP2sh as _,
                         )),
                     }),
                     keypath: vec![49 + HARDENED, 0 + HARDENED, 0 + HARDENED],
@@ -1623,7 +1610,7 @@ mod tests {
                     script_configs: vec![pb::BtcScriptConfigWithKeypath {
                         script_config: Some(pb::BtcScriptConfig {
                             config: Some(pb::btc_script_config::Config::SimpleType(
-                                pb::btc_script_config::SimpleType::P2tr as _,
+                                SimpleType::P2tr as _,
                             )),
                         }),
                         keypath: vec![84 + HARDENED, 2 + HARDENED, 10 + HARDENED],
@@ -1871,7 +1858,7 @@ mod tests {
         init_request.script_configs[0] = pb::BtcScriptConfigWithKeypath {
             script_config: Some(pb::BtcScriptConfig {
                 config: Some(pb::btc_script_config::Config::SimpleType(
-                    pb::btc_script_config::SimpleType::P2wpkhP2sh as _,
+                    SimpleType::P2wpkhP2sh as _,
                 )),
             }),
             keypath: vec![49 + HARDENED, 0 + HARDENED, 10 + HARDENED],
@@ -1919,7 +1906,7 @@ mod tests {
         init_request.script_configs[0] = pb::BtcScriptConfigWithKeypath {
             script_config: Some(pb::BtcScriptConfig {
                 config: Some(pb::btc_script_config::Config::SimpleType(
-                    pb::btc_script_config::SimpleType::P2tr as _,
+                    SimpleType::P2tr as _,
                 )),
             }),
             keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
@@ -1964,7 +1951,7 @@ mod tests {
             .push(pb::BtcScriptConfigWithKeypath {
                 script_config: Some(pb::BtcScriptConfig {
                     config: Some(pb::btc_script_config::Config::SimpleType(
-                        pb::btc_script_config::SimpleType::P2tr as _,
+                        SimpleType::P2tr as _,
                     )),
                 }),
                 keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
@@ -2118,7 +2105,7 @@ mod tests {
             .push(pb::BtcScriptConfigWithKeypath {
                 script_config: Some(pb::BtcScriptConfig {
                     config: Some(pb::btc_script_config::Config::SimpleType(
-                        pb::btc_script_config::SimpleType::P2wpkhP2sh as _,
+                        SimpleType::P2wpkhP2sh as _,
                     )),
                 }),
                 keypath: vec![49 + HARDENED, 0 + HARDENED, 10 + HARDENED],

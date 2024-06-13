@@ -215,15 +215,22 @@ impl<'a> miniscript::Translator<String, bitcoin::PublicKey, Error>
 
 /// See `ParsedPolicy`.
 #[derive(Debug)]
-pub struct Wsh {
-    miniscript_expr: miniscript::Miniscript<String, miniscript::Segwitv0>,
+pub struct Wsh<T: miniscript::MiniscriptKey> {
+    miniscript_expr: miniscript::Miniscript<T, miniscript::Segwitv0>,
+}
+
+impl Wsh<bitcoin::PublicKey> {
+    /// Return the witness script of this concrete wsh() descriptor.
+    pub fn witness_script(&self) -> Vec<u8> {
+        self.miniscript_expr.encode().as_bytes().to_vec()
+    }
 }
 
 /// See `ParsedPolicy`.
 #[derive(Debug)]
-pub enum Descriptor {
+pub enum Descriptor<T: miniscript::MiniscriptKey> {
     // `wsh(...)` policies
-    Wsh(Wsh),
+    Wsh(Wsh<T>),
     // `tr(...)` Taproot etc. in the future.
 }
 
@@ -231,7 +238,9 @@ pub enum Descriptor {
 #[derive(Debug)]
 pub struct ParsedPolicy<'a> {
     policy: &'a Policy,
-    pub descriptor: Descriptor,
+    // String for pubkeys so we can parse and process the placeholder wallet policy keys like
+    // `@0/**` etc.
+    pub descriptor: Descriptor<String>,
 }
 
 impl<'a> ParsedPolicy<'a> {
@@ -294,35 +303,44 @@ impl<'a> ParsedPolicy<'a> {
         Ok(())
     }
 
-    /// Derive the witness script of the policy derived at a receive or change path.
-    /// If is_change is false, the witness script for the receive address is derived.
-    /// If is_change is true, the witness script for the change address is derived.
+    /// Derive the descriptor of the policy at a receive or change path.
+    /// This turns key placeholders into actual pubkeys.
+    /// If is_change is false, the descriptor for the receive address is derived.
+    /// If is_change is true, the descriptor for the change address is derived.
     /// Example: wsh(and_v(v:pk(@0/**),pk(@1/<20;21>/*))) derived using `is_change=false, address_index=5` derives
     /// wsh(and_v(v:pk(@0/0/5),pk(@1/20/5))).
     /// The same derived using `is_change=true` derives: wsh(and_v(v:pk(@0/1/5),pk(@1/21/5)))
-    pub fn witness_script(&self, is_change: bool, address_index: u32) -> Result<Vec<u8>, Error> {
+    pub fn derive(
+        &self,
+        is_change: bool,
+        address_index: u32,
+    ) -> Result<Descriptor<bitcoin::PublicKey>, Error> {
+        let mut translator = WalletPolicyPkTranslator {
+            keys: self.policy.keys.as_ref(),
+            is_change,
+            address_index,
+        };
         match &self.descriptor {
             Descriptor::Wsh(Wsh { miniscript_expr }) => {
-                let mut translator = WalletPolicyPkTranslator {
-                    keys: self.policy.keys.as_ref(),
-                    is_change,
-                    address_index,
-                };
                 let miniscript_expr = match miniscript_expr.translate_pk(&mut translator) {
                     Ok(m) => m,
                     Err(miniscript::TranslateErr::TranslatorErr(e)) => return Err(e),
                     Err(miniscript::TranslateErr::OuterError(_)) => return Err(Error::Generic),
                 };
-                Ok(miniscript_expr.encode().as_bytes().to_vec())
+                Ok(Descriptor::Wsh(Wsh { miniscript_expr }))
             }
         }
     }
 
-    /// Derive the witness script of the policy derived at the given full keypath.
+    /// Derive the descriptor of the policy derived at the given full keypath.
+    /// This turns key placeholders into actual pubkeys.
     /// Example: wsh(and_v(v:pk(@0/<10;11>/*),pk(@1/<20;21>/*))) with our key [fp/48'/1'/0'/3']xpub...]
     /// derived using keypath m/48'/1'/0'/3'/11/5 derives:
     /// wsh(and_v(v:pk(@0/11/5),pk(@1/21/5))).
-    pub fn witness_script_at_keypath(&self, keypath: &[u32]) -> Result<Vec<u8>, Error> {
+    pub fn derive_at_keypath(
+        &self,
+        keypath: &[u32],
+    ) -> Result<Descriptor<bitcoin::PublicKey>, Error> {
         match &self.descriptor {
             Descriptor::Wsh(Wsh { miniscript_expr }) => {
                 let (is_change, address_index) = get_change_and_address_index(
@@ -330,7 +348,7 @@ impl<'a> ParsedPolicy<'a> {
                     &self.policy.keys,
                     keypath,
                 )?;
-                self.witness_script(is_change, address_index)
+                self.derive(is_change, address_index)
             }
         }
     }
@@ -899,7 +917,7 @@ mod tests {
     }
 
     #[test]
-    fn test_witness_script() {
+    fn test_wsh_witness_script() {
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
@@ -913,20 +931,22 @@ mod tests {
         let address_index = 5;
 
         let witness_script = |pol: &str, keys: &[pb::KeyOriginInfo], is_change: bool| {
-            hex::encode(
-                parse(&make_policy(pol, keys))
-                    .unwrap()
-                    .witness_script(is_change, address_index)
-                    .unwrap(),
-            )
+            let derived = parse(&make_policy(pol, keys))
+                .unwrap()
+                .derive(is_change, address_index)
+                .unwrap();
+            match derived {
+                Descriptor::Wsh(wsh) => hex::encode(wsh.witness_script()),
+            }
         };
         let witness_script_at_keypath = |pol: &str, keys: &[pb::KeyOriginInfo], keypath: &[u32]| {
-            hex::encode(
-                parse(&make_policy(pol, keys))
-                    .unwrap()
-                    .witness_script_at_keypath(keypath)
-                    .unwrap(),
-            )
+            let derived = parse(&make_policy(pol, keys))
+                .unwrap()
+                .derive_at_keypath(keypath)
+                .unwrap();
+            match derived {
+                Descriptor::Wsh(wsh) => hex::encode(wsh.witness_script()),
+            }
         };
 
         // pk(key) => <key> OP_CHECKSIG

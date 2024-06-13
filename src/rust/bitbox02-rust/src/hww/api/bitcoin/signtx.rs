@@ -293,7 +293,9 @@ fn sighash_script(
         ValidatedScriptConfigWithKeypath {
             config: ValidatedScriptConfig::Policy(policy),
             ..
-        } => policy.witness_script_at_keypath(keypath),
+        } => match policy.derive_at_keypath(keypath)? {
+            super::policies::Descriptor::Wsh(wsh) => Ok(wsh.witness_script()),
+        },
     }
 }
 

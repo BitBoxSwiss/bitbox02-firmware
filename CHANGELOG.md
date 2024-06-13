@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Support for Taproot wallet policies and Miniscript on Taproot (MiniTapscript)
 
 ### 9.19.0
 - Display device name on screen before unlock

@@ -108,6 +108,7 @@ fn parse_wallet_policy_pk(pk: &str) -> Result<(usize, u32, u32), ()> {
 fn get_change_and_address_index<R: core::convert::AsRef<str>, T: core::iter::Iterator<Item = R>>(
     pubkeys: T,
     keys: &[pb::KeyOriginInfo],
+    is_our_key: &[bool],
     keypath: &[u32],
 ) -> Result<(bool, u32), Error> {
     for pk in pubkeys {
@@ -118,7 +119,8 @@ fn get_change_and_address_index<R: core::convert::AsRef<str>, T: core::iter::Ite
             Some(pb::KeyOriginInfo {
                 keypath: keypath_account,
                 ..
-            }) if keypath.starts_with(keypath_account)
+            }) if is_our_key[key_index]
+                && keypath.starts_with(keypath_account)
                 && keypath.len() == keypath_account.len() + 2 =>
             {
                 let keypath_change = keypath[keypath.len() - 2];
@@ -424,6 +426,7 @@ impl<'a> ParsedPolicy<'a> {
                 let (is_change, address_index) = get_change_and_address_index(
                     miniscript_expr.iter_pk(),
                     &self.policy.keys,
+                    &self.is_our_key,
                     keypath,
                 )?;
                 self.derive(is_change, address_index)
@@ -438,6 +441,7 @@ impl<'a> ParsedPolicy<'a> {
                 let (is_change, _) = get_change_and_address_index(
                     miniscript_expr.iter_pk(),
                     &self.policy.keys,
+                    &self.is_our_key,
                     keypath,
                 )?;
                 Ok(is_change)
@@ -836,6 +840,7 @@ mod tests {
             get_change_and_address_index(
                 ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
                 &[our_key.clone(), some_key.clone()],
+                &[true, false],
                 &[
                     48 + HARDENED,
                     1 + HARDENED,
@@ -852,6 +857,7 @@ mod tests {
             get_change_and_address_index(
                 ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
                 &[our_key.clone(), some_key.clone()],
+                &[true, false],
                 &[
                     48 + HARDENED,
                     1 + HARDENED,
@@ -868,6 +874,7 @@ mod tests {
         assert!(get_change_and_address_index(
             ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
             &[our_key.clone(), some_key.clone()],
+            &[true, false],
             &[
                 48 + HARDENED,
                 1 + HARDENED,
@@ -883,6 +890,7 @@ mod tests {
         assert!(get_change_and_address_index(
             ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
             &[our_key.clone(), some_key.clone()],
+            &[true, false],
             &[
                 48 + HARDENED,
                 1 + HARDENED,
@@ -898,6 +906,7 @@ mod tests {
         assert!(get_change_and_address_index(
             ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
             &[our_key.clone(), some_key.clone()],
+            &[true, false],
             &[
                 48 + HARDENED,
                 1 + HARDENED,
@@ -914,7 +923,24 @@ mod tests {
         assert!(get_change_and_address_index(
             ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
             &[our_key.clone(), some_key.clone()],
+            &[true, false],
             &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED, 10,],
+        )
+        .is_err());
+
+        // Keypath is valid but uses a key in the policy that is not ours.
+        assert!(get_change_and_address_index(
+            ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
+            &[
+                our_key.clone(),
+                pb::KeyOriginInfo {
+                    root_fingerprint: b"aaaa".to_vec(),
+                    keypath: vec![99 + HARDENED],
+                    xpub: Some(parse_xpub(SOME_XPUB_1).unwrap()),
+                }
+            ],
+            &[true, false],
+            &[99 + HARDENED, 20, 0],
         )
         .is_err());
     }

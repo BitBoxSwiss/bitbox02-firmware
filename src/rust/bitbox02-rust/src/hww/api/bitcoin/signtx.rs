@@ -941,11 +941,11 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
             let sighash = bip341::sighash(&bip341::Args {
                 version: request.version,
                 locktime: request.locktime,
-                hash_prevouts: hash_prevouts.as_slice().try_into().unwrap(),
-                hash_amounts: hash_amounts.as_slice().try_into().unwrap(),
-                hash_scriptpubkeys: hash_scriptpubkeys.as_slice().try_into().unwrap(),
-                hash_sequences: hash_sequence.as_slice().try_into().unwrap(),
-                hash_outputs: hash_outputs.as_slice().try_into().unwrap(),
+                hash_prevouts: hash_prevouts.into(),
+                hash_amounts: hash_amounts.into(),
+                hash_scriptpubkeys: hash_scriptpubkeys.into(),
+                hash_sequences: hash_sequence.into(),
+                hash_outputs: hash_outputs.into(),
                 input_index,
             });
             next_response.next.has_signature = true;

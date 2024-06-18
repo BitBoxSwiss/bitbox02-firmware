@@ -251,14 +251,8 @@ impl<'a> ParsedPolicy<'a> {
     /// - At least one of the keys is ours
     /// - There are no duplicate or missing xpubs
     /// - No duplicate keys in the policy
-    fn validate(&self, coin: BtcCoin) -> Result<(), Error> {
-        check_enabled(coin)?;
-
+    fn validate(&self) -> Result<(), Error> {
         let policy = self.policy;
-
-        if policy.keys.len() > MAX_KEYS {
-            return Err(Error::InvalidInput);
-        }
 
         self.validate_keys()?;
 
@@ -368,6 +362,11 @@ impl<'a> ParsedPolicy<'a> {
 /// The parsed output keeps the key strings as is (e.g. "@0/**"). They will be processed and
 /// replaced with actual pubkeys in a later step.
 pub fn parse(policy: &Policy, coin: BtcCoin) -> Result<ParsedPolicy, Error> {
+    check_enabled(coin)?;
+    if policy.keys.len() > MAX_KEYS {
+        return Err(Error::InvalidInput);
+    }
+
     let desc = policy.policy.as_str();
     let parsed = match desc.as_bytes() {
         // Match wsh(...).
@@ -383,7 +382,7 @@ pub fn parse(policy: &Policy, coin: BtcCoin) -> Result<ParsedPolicy, Error> {
         }
         _ => return Err(Error::InvalidInput),
     };
-    parsed.validate(coin)?;
+    parsed.validate()?;
     Ok(parsed)
 }
 

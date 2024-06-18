@@ -149,7 +149,7 @@ pub async fn process_register_script_config(
             let coin = BtcCoin::try_from(*coin)?;
             let coin_params = params::get(coin);
             let name = get_name(request).await?;
-            super::policies::parse(policy)?.validate(coin)?;
+            super::policies::parse(policy, coin)?;
             super::policies::confirm(
                 title,
                 coin_params,

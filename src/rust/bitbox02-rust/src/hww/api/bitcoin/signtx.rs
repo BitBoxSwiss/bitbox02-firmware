@@ -411,8 +411,7 @@ async fn validate_script_configs<'a>(
         keypath,
     }] = script_configs
     {
-        let parsed_policy = super::policies::parse(policy)?;
-        parsed_policy.validate(coin_params.coin)?;
+        let parsed_policy = super::policies::parse(policy, coin_params.coin)?;
         let name =
             super::policies::get_name(coin_params.coin, policy)?.ok_or(Error::InvalidInput)?;
 

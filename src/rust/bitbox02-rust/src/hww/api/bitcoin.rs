@@ -239,8 +239,7 @@ async fn address_policy(
     keypath::validate_address_policy(keypath, keypath::ReceiveSpend::Receive)
         .or(Err(Error::InvalidInput))?;
 
-    let parsed = policies::parse(policy)?;
-    parsed.validate(coin)?;
+    let parsed = policies::parse(policy, coin)?;
 
     let name = match policies::get_name(coin, policy)? {
         Some(name) => name,

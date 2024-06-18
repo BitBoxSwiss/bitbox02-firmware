@@ -249,7 +249,9 @@ async fn address_policy(
     let title = "Receive to";
 
     if display {
-        policies::confirm(title, coin_params, &name, policy, policies::Mode::Basic).await?;
+        parsed
+            .confirm(title, coin_params, &name, policies::Mode::Basic)
+            .await?;
     }
 
     let address = common::Payload::from_policy(&parsed, keypath)?.address(coin_params)?;

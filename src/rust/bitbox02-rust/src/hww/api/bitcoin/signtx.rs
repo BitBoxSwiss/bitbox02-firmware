@@ -421,14 +421,14 @@ async fn validate_script_configs<'a>(
         // the input keypath, and the computation of the pk_script checks that full keypath is
         // valid.
 
-        super::policies::confirm(
-            "Spend from",
-            coin_params,
-            &name,
-            policy,
-            super::policies::Mode::Basic,
-        )
-        .await?;
+        parsed_policy
+            .confirm(
+                "Spend from",
+                coin_params,
+                &name,
+                super::policies::Mode::Basic,
+            )
+            .await?;
 
         return Ok(vec![ValidatedScriptConfigWithKeypath {
             keypath,

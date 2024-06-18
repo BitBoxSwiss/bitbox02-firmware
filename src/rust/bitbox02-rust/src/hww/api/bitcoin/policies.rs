@@ -197,6 +197,9 @@ pub enum Descriptor<T: miniscript::MiniscriptKey> {
 #[derive(Debug)]
 pub struct ParsedPolicy<'a> {
     policy: &'a Policy,
+    // Cached flags for which keys in `policy.keys` are ours.
+    // is_our_key[i] is true if policy.keys[i] is our key.
+    is_our_key: Vec<bool>,
     // String for pubkeys so we can parse and process the placeholder wallet policy keys like
     // `@0/**` etc.
     pub descriptor: Descriptor<String>,
@@ -256,17 +259,8 @@ impl<'a> ParsedPolicy<'a> {
 
         self.validate_keys()?;
 
-        let our_root_fingerprint = crate::keystore::root_fingerprint()?;
-
         // Check that at least one key is ours.
-        let has_our_key = 'block: {
-            for key in policy.keys.iter() {
-                if is_our_key(key, &our_root_fingerprint)? {
-                    break 'block true;
-                }
-            }
-            false
-        };
+        let has_our_key = self.is_our_key.iter().any(|&b| b);
         if !has_our_key {
             return Err(Error::InvalidInput);
         }
@@ -287,6 +281,103 @@ impl<'a> ParsedPolicy<'a> {
             return Err(Error::InvalidInput);
         }
 
+        Ok(())
+    }
+
+    /// Confirm the policy. In advanced mode, all details are shown. In basic mode, the advanced
+    /// details are optional. Used to verify the policy during account registration (advanced mode),
+    /// creating a receive address (basic mode) and signing a transaction (basic mode).
+    pub async fn confirm(
+        &self,
+        title: &str,
+        params: &Params,
+        name: &str,
+        mode: Mode,
+    ) -> Result<(), Error> {
+        let policy = self.policy;
+        confirm::confirm(&confirm::Params {
+            title,
+            body: &format!("{}\npolicy with\n{} keys", params.name, policy.keys.len(),),
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+
+        confirm::confirm(&confirm::Params {
+            title: "Name",
+            body: name,
+            scrollable: true,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+
+        if matches!(mode, Mode::Basic) {
+            if let Err(confirm::UserAbort) = confirm::confirm(&confirm::Params {
+                body: "Show policy\ndetails?",
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await
+            {
+                return Ok(());
+            }
+        }
+
+        confirm::confirm(&confirm::Params {
+            title: "Policy",
+            body: &policy.policy,
+            scrollable: true,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+
+        let output_xpub_type = match params.coin {
+            BtcCoin::Btc | BtcCoin::Ltc => bip32::XPubType::Xpub,
+            BtcCoin::Tbtc | BtcCoin::Tltc => bip32::XPubType::Tpub,
+        };
+        let num_keys = policy.keys.len();
+        for (i, key) in policy.keys.iter().enumerate() {
+            let key_str = match key {
+                pb::KeyOriginInfo {
+                    root_fingerprint,
+                    keypath,
+                    xpub: Some(xpub),
+                } => {
+                    let xpub_str = bip32::Xpub::from(xpub)
+                        .serialize_str(output_xpub_type)
+                        .or(Err(Error::InvalidInput))?;
+                    if root_fingerprint.is_empty() {
+                        xpub_str
+                    } else if root_fingerprint.len() != 4 {
+                        return Err(Error::InvalidInput);
+                    } else {
+                        format!(
+                            "[{}/{}]{}",
+                            hex::encode(root_fingerprint),
+                            util::bip32::to_string_no_prefix(keypath),
+                            xpub_str
+                        )
+                    }
+                }
+                _ => return Err(Error::InvalidInput),
+            };
+            confirm::confirm(&confirm::Params {
+                title: &format!("Key {}/{}", i + 1, num_keys),
+                body: (if self.is_our_key[i] {
+                    format!("This device: {}", key_str)
+                } else {
+                    key_str
+                })
+                .as_str(),
+                scrollable: true,
+                longtouch: i == num_keys - 1 && matches!(mode, Mode::Advanced),
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
+        }
         Ok(())
     }
 
@@ -368,6 +459,14 @@ pub fn parse(policy: &Policy, coin: BtcCoin) -> Result<ParsedPolicy, Error> {
     }
 
     let desc = policy.policy.as_str();
+    let our_root_fingerprint = crate::keystore::root_fingerprint()?;
+
+    let is_our_key: Vec<bool> = policy
+        .keys
+        .iter()
+        .map(|key| is_our_key(key, &our_root_fingerprint))
+        .collect::<Result<Vec<bool>, ()>>()?;
+
     let parsed = match desc.as_bytes() {
         // Match wsh(...).
         [b'w', b's', b'h', b'(', .., b')'] => {
@@ -377,6 +476,7 @@ pub fn parse(policy: &Policy, coin: BtcCoin) -> Result<ParsedPolicy, Error> {
 
             ParsedPolicy {
                 policy,
+                is_our_key,
                 descriptor: Descriptor::Wsh(Wsh { miniscript_expr }),
             }
         }
@@ -392,104 +492,6 @@ pub enum Mode {
     Basic,
     /// Confirm coin, number of keys, account name, the policy string, and the key origin infos.
     Advanced,
-}
-
-/// Confirm the policy. In advanced mode, all details are shown. In basic mode, the advanced details
-/// are optional. Used to verify the policy during account registration (advanced mode), creating a
-/// receive address (basic mode) and signing a transaction (basic mode).
-pub async fn confirm(
-    title: &str,
-    params: &Params,
-    name: &str,
-    policy: &Policy,
-    mode: Mode,
-) -> Result<(), Error> {
-    confirm::confirm(&confirm::Params {
-        title,
-        body: &format!("{}\npolicy with\n{} keys", params.name, policy.keys.len(),),
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
-
-    confirm::confirm(&confirm::Params {
-        title: "Name",
-        body: name,
-        scrollable: true,
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
-
-    if matches!(mode, Mode::Basic) {
-        if let Err(confirm::UserAbort) = confirm::confirm(&confirm::Params {
-            body: "Show policy\ndetails?",
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await
-        {
-            return Ok(());
-        }
-    }
-
-    confirm::confirm(&confirm::Params {
-        title: "Policy",
-        body: &policy.policy,
-        scrollable: true,
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
-
-    let our_root_fingerprint = crate::keystore::root_fingerprint()?;
-
-    let output_xpub_type = match params.coin {
-        BtcCoin::Btc | BtcCoin::Ltc => bip32::XPubType::Xpub,
-        BtcCoin::Tbtc | BtcCoin::Tltc => bip32::XPubType::Tpub,
-    };
-    let num_keys = policy.keys.len();
-    for (i, key) in policy.keys.iter().enumerate() {
-        let key_str = match key {
-            pb::KeyOriginInfo {
-                root_fingerprint,
-                keypath,
-                xpub: Some(xpub),
-            } => {
-                let xpub_str = bip32::Xpub::from(xpub)
-                    .serialize_str(output_xpub_type)
-                    .or(Err(Error::InvalidInput))?;
-                if root_fingerprint.is_empty() {
-                    xpub_str
-                } else if root_fingerprint.len() != 4 {
-                    return Err(Error::InvalidInput);
-                } else {
-                    format!(
-                        "[{}/{}]{}",
-                        hex::encode(root_fingerprint),
-                        util::bip32::to_string_no_prefix(keypath),
-                        xpub_str
-                    )
-                }
-            }
-            _ => return Err(Error::InvalidInput),
-        };
-        confirm::confirm(&confirm::Params {
-            title: &format!("Key {}/{}", i + 1, num_keys),
-            body: (if is_our_key(key, &our_root_fingerprint)? {
-                format!("This device: {}", key_str)
-            } else {
-                key_str
-            })
-            .as_str(),
-            scrollable: true,
-            longtouch: i == num_keys - 1 && matches!(mode, Mode::Advanced),
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
-    }
-    Ok(())
 }
 
 /// Creates a hash of this policy config, useful for registration and identification.

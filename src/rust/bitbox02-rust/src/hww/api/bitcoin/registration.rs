@@ -149,15 +149,10 @@ pub async fn process_register_script_config(
             let coin = BtcCoin::try_from(*coin)?;
             let coin_params = params::get(coin);
             let name = get_name(request).await?;
-            super::policies::parse(policy, coin)?;
-            super::policies::confirm(
-                title,
-                coin_params,
-                &name,
-                policy,
-                super::policies::Mode::Advanced,
-            )
-            .await?;
+            let parsed = super::policies::parse(policy, coin)?;
+            parsed
+                .confirm(title, coin_params, &name, super::policies::Mode::Advanced)
+                .await?;
             let hash = super::policies::get_hash(coin, policy)?;
             match bitbox02::memory::multisig_set_by_hash(&hash, &name) {
                 Ok(()) => {

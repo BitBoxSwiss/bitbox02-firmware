@@ -58,7 +58,7 @@ pub async fn process(request: &pb::EthSignMessageRequest) -> Result<Response, Er
     msg.extend(format!("{}", request.msg.len()).as_bytes());
     msg.extend(&request.msg);
 
-    let sighash: [u8; 32] = sha3::Keccak256::digest(&msg).as_slice().try_into().unwrap();
+    let sighash: [u8; 32] = sha3::Keccak256::digest(&msg).into();
 
     let host_nonce = match request.host_nonce_commitment {
         // Engage in the anti-klepto protocol if the host sends a host nonce commitment.

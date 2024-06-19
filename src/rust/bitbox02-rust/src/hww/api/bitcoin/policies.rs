@@ -108,6 +108,7 @@ fn parse_wallet_policy_pk(pk: &str) -> Result<(usize, u32, u32), ()> {
 fn get_change_and_address_index<R: core::convert::AsRef<str>, T: core::iter::Iterator<Item = R>>(
     pubkeys: T,
     keys: &[pb::KeyOriginInfo],
+    is_our_key: &[bool],
     keypath: &[u32],
 ) -> Result<(bool, u32), Error> {
     for pk in pubkeys {
@@ -118,7 +119,8 @@ fn get_change_and_address_index<R: core::convert::AsRef<str>, T: core::iter::Ite
             Some(pb::KeyOriginInfo {
                 keypath: keypath_account,
                 ..
-            }) if keypath.starts_with(keypath_account)
+            }) if is_our_key[key_index]
+                && keypath.starts_with(keypath_account)
                 && keypath.len() == keypath_account.len() + 2 =>
             {
                 let keypath_change = keypath[keypath.len() - 2];
@@ -135,47 +137,6 @@ fn get_change_and_address_index<R: core::convert::AsRef<str>, T: core::iter::Ite
         }
     }
     Err(Error::InvalidInput)
-}
-
-/// Check that it is impossible to create a derivation with duplicate pubkeys, assuming all the keys
-/// in the key vector are distinct.
-///
-/// Even though the rust-miniscript library checks for duplicate keys, it does so on the raw
-/// miniscript, which would not catch e.g. that `wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<2;1>/*)))` has a
-/// duplicate change derivation if we derive at the receive path.
-///
-/// Also checks that each key is used, e.g. if there are 3 keys in the key vector, @0, @1 and @2
-/// must be present.
-fn check_dups<R: core::convert::AsRef<str>, T: core::iter::Iterator<Item = R>>(
-    pubkeys: T,
-    keys: &[pb::KeyOriginInfo],
-) -> Result<(), Error> {
-    // in "@key_index/<left;right>", keeps track of (key_index,left) and
-    // (key_index,right) to check for duplicates.
-    let mut derivations_seen: Vec<(usize, u32)> = Vec::new();
-
-    let mut keys_seen: Vec<bool> = vec![false; keys.len()];
-
-    for pk in pubkeys {
-        let (key_index, multipath_index_left, multipath_index_right) =
-            parse_wallet_policy_pk(pk.as_ref()).or(Err(Error::InvalidInput))?;
-
-        if derivations_seen.contains(&(key_index, multipath_index_left)) {
-            return Err(Error::InvalidInput);
-        }
-        derivations_seen.push((key_index, multipath_index_left));
-        if derivations_seen.contains(&(key_index, multipath_index_right)) {
-            return Err(Error::InvalidInput);
-        }
-        derivations_seen.push((key_index, multipath_index_right));
-
-        *keys_seen.get_mut(key_index).ok_or(Error::InvalidInput)? = true;
-    }
-
-    if !keys_seen.into_iter().all(|b| b) {
-        return Err(Error::InvalidInput);
-    }
-    Ok(())
 }
 
 struct WalletPolicyPkTranslator<'a> {
@@ -238,16 +199,53 @@ pub enum Descriptor<T: miniscript::MiniscriptKey> {
 #[derive(Debug)]
 pub struct ParsedPolicy<'a> {
     policy: &'a Policy,
+    // Cached flags for which keys in `policy.keys` are ours.
+    // is_our_key[i] is true if policy.keys[i] is our key.
+    is_our_key: Vec<bool>,
     // String for pubkeys so we can parse and process the placeholder wallet policy keys like
     // `@0/**` etc.
     pub descriptor: Descriptor<String>,
 }
 
 impl<'a> ParsedPolicy<'a> {
+    /// Check that it is impossible to create a derivation with duplicate pubkeys, assuming all the
+    /// keys in the key vector are distinct.
+    ///
+    /// Even though the rust-miniscript library checks for duplicate keys, it does so on the raw
+    /// miniscript, which would not catch e.g. that `wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<2;1>/*)))` has
+    /// a duplicate change derivation if we derive at the receive path.
+    ///
+    /// Also checks that each key is used, e.g. if there are 3 keys in the key vector, @0, @1 and @2
+    /// must be present.
     fn validate_keys(&self) -> Result<(), Error> {
         match &self.descriptor {
             Descriptor::Wsh(Wsh { miniscript_expr }) => {
-                check_dups(miniscript_expr.iter_pk(), &self.policy.keys)
+                // in "@key_index/<left;right>", keeps track of (key_index,left) and
+                // (key_index,right) to check for duplicates.
+                let mut derivations_seen: Vec<(usize, u32)> = Vec::new();
+
+                let mut keys_seen: Vec<bool> = vec![false; self.policy.keys.len()];
+
+                for pk in miniscript_expr.iter_pk() {
+                    let (key_index, multipath_index_left, multipath_index_right) =
+                        parse_wallet_policy_pk(&pk).or(Err(Error::InvalidInput))?;
+
+                    if derivations_seen.contains(&(key_index, multipath_index_left)) {
+                        return Err(Error::InvalidInput);
+                    }
+                    derivations_seen.push((key_index, multipath_index_left));
+                    if derivations_seen.contains(&(key_index, multipath_index_right)) {
+                        return Err(Error::InvalidInput);
+                    }
+                    derivations_seen.push((key_index, multipath_index_right));
+
+                    *keys_seen.get_mut(key_index).ok_or(Error::InvalidInput)? = true;
+                }
+
+                if !keys_seen.into_iter().all(|b| b) {
+                    return Err(Error::InvalidInput);
+                }
+                Ok(())
             }
         }
     }
@@ -258,28 +256,13 @@ impl<'a> ParsedPolicy<'a> {
     /// - At least one of the keys is ours
     /// - There are no duplicate or missing xpubs
     /// - No duplicate keys in the policy
-    pub fn validate(&self, coin: BtcCoin) -> Result<(), Error> {
-        check_enabled(coin)?;
-
+    fn validate(&self) -> Result<(), Error> {
         let policy = self.policy;
-
-        if policy.keys.len() > MAX_KEYS {
-            return Err(Error::InvalidInput);
-        }
 
         self.validate_keys()?;
 
-        let our_root_fingerprint = crate::keystore::root_fingerprint()?;
-
         // Check that at least one key is ours.
-        let has_our_key = 'block: {
-            for key in policy.keys.iter() {
-                if is_our_key(key, &our_root_fingerprint)? {
-                    break 'block true;
-                }
-            }
-            false
-        };
+        let has_our_key = self.is_our_key.iter().any(|&b| b);
         if !has_our_key {
             return Err(Error::InvalidInput);
         }
@@ -300,6 +283,103 @@ impl<'a> ParsedPolicy<'a> {
             return Err(Error::InvalidInput);
         }
 
+        Ok(())
+    }
+
+    /// Confirm the policy. In advanced mode, all details are shown. In basic mode, the advanced
+    /// details are optional. Used to verify the policy during account registration (advanced mode),
+    /// creating a receive address (basic mode) and signing a transaction (basic mode).
+    pub async fn confirm(
+        &self,
+        title: &str,
+        params: &Params,
+        name: &str,
+        mode: Mode,
+    ) -> Result<(), Error> {
+        let policy = self.policy;
+        confirm::confirm(&confirm::Params {
+            title,
+            body: &format!("{}\npolicy with\n{} keys", params.name, policy.keys.len(),),
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+
+        confirm::confirm(&confirm::Params {
+            title: "Name",
+            body: name,
+            scrollable: true,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+
+        if matches!(mode, Mode::Basic) {
+            if let Err(confirm::UserAbort) = confirm::confirm(&confirm::Params {
+                body: "Show policy\ndetails?",
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await
+            {
+                return Ok(());
+            }
+        }
+
+        confirm::confirm(&confirm::Params {
+            title: "Policy",
+            body: &policy.policy,
+            scrollable: true,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+
+        let output_xpub_type = match params.coin {
+            BtcCoin::Btc | BtcCoin::Ltc => bip32::XPubType::Xpub,
+            BtcCoin::Tbtc | BtcCoin::Tltc => bip32::XPubType::Tpub,
+        };
+        let num_keys = policy.keys.len();
+        for (i, key) in policy.keys.iter().enumerate() {
+            let key_str = match key {
+                pb::KeyOriginInfo {
+                    root_fingerprint,
+                    keypath,
+                    xpub: Some(xpub),
+                } => {
+                    let xpub_str = bip32::Xpub::from(xpub)
+                        .serialize_str(output_xpub_type)
+                        .or(Err(Error::InvalidInput))?;
+                    if root_fingerprint.is_empty() {
+                        xpub_str
+                    } else if root_fingerprint.len() != 4 {
+                        return Err(Error::InvalidInput);
+                    } else {
+                        format!(
+                            "[{}/{}]{}",
+                            hex::encode(root_fingerprint),
+                            util::bip32::to_string_no_prefix(keypath),
+                            xpub_str
+                        )
+                    }
+                }
+                _ => return Err(Error::InvalidInput),
+            };
+            confirm::confirm(&confirm::Params {
+                title: &format!("Key {}/{}", i + 1, num_keys),
+                body: (if self.is_our_key[i] {
+                    format!("This device: {}", key_str)
+                } else {
+                    key_str
+                })
+                .as_str(),
+                scrollable: true,
+                longtouch: i == num_keys - 1 && matches!(mode, Mode::Advanced),
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
+        }
         Ok(())
     }
 
@@ -346,6 +426,7 @@ impl<'a> ParsedPolicy<'a> {
                 let (is_change, address_index) = get_change_and_address_index(
                     miniscript_expr.iter_pk(),
                     &self.policy.keys,
+                    &self.is_our_key,
                     keypath,
                 )?;
                 self.derive(is_change, address_index)
@@ -360,6 +441,7 @@ impl<'a> ParsedPolicy<'a> {
                 let (is_change, _) = get_change_and_address_index(
                     miniscript_expr.iter_pk(),
                     &self.policy.keys,
+                    &self.is_our_key,
                     keypath,
                 )?;
                 Ok(is_change)
@@ -374,22 +456,38 @@ impl<'a> ParsedPolicy<'a> {
 ///
 /// The parsed output keeps the key strings as is (e.g. "@0/**"). They will be processed and
 /// replaced with actual pubkeys in a later step.
-pub fn parse(policy: &Policy) -> Result<ParsedPolicy, Error> {
+pub fn parse(policy: &Policy, coin: BtcCoin) -> Result<ParsedPolicy, Error> {
+    check_enabled(coin)?;
+    if policy.keys.len() > MAX_KEYS {
+        return Err(Error::InvalidInput);
+    }
+
     let desc = policy.policy.as_str();
-    match desc.as_bytes() {
+    let our_root_fingerprint = crate::keystore::root_fingerprint()?;
+
+    let is_our_key: Vec<bool> = policy
+        .keys
+        .iter()
+        .map(|key| is_our_key(key, &our_root_fingerprint))
+        .collect::<Result<Vec<bool>, ()>>()?;
+
+    let parsed = match desc.as_bytes() {
         // Match wsh(...).
         [b'w', b's', b'h', b'(', .., b')'] => {
             let miniscript_expr: miniscript::Miniscript<String, miniscript::Segwitv0> =
                 miniscript::Miniscript::from_str(&desc[4..desc.len() - 1])
                     .or(Err(Error::InvalidInput))?;
 
-            Ok(ParsedPolicy {
+            ParsedPolicy {
                 policy,
+                is_our_key,
                 descriptor: Descriptor::Wsh(Wsh { miniscript_expr }),
-            })
+            }
         }
-        _ => Err(Error::InvalidInput),
-    }
+        _ => return Err(Error::InvalidInput),
+    };
+    parsed.validate()?;
+    Ok(parsed)
 }
 
 /// Confirmation mode.
@@ -398,104 +496,6 @@ pub enum Mode {
     Basic,
     /// Confirm coin, number of keys, account name, the policy string, and the key origin infos.
     Advanced,
-}
-
-/// Confirm the policy. In advanced mode, all details are shown. In basic mode, the advanced details
-/// are optional. Used to verify the policy during account registration (advanced mode), creating a
-/// receive address (basic mode) and signing a transaction (basic mode).
-pub async fn confirm(
-    title: &str,
-    params: &Params,
-    name: &str,
-    policy: &Policy,
-    mode: Mode,
-) -> Result<(), Error> {
-    confirm::confirm(&confirm::Params {
-        title,
-        body: &format!("{}\npolicy with\n{} keys", params.name, policy.keys.len(),),
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
-
-    confirm::confirm(&confirm::Params {
-        title: "Name",
-        body: name,
-        scrollable: true,
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
-
-    if matches!(mode, Mode::Basic) {
-        if let Err(confirm::UserAbort) = confirm::confirm(&confirm::Params {
-            body: "Show policy\ndetails?",
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await
-        {
-            return Ok(());
-        }
-    }
-
-    confirm::confirm(&confirm::Params {
-        title: "Policy",
-        body: &policy.policy,
-        scrollable: true,
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
-
-    let our_root_fingerprint = crate::keystore::root_fingerprint()?;
-
-    let output_xpub_type = match params.coin {
-        BtcCoin::Btc | BtcCoin::Ltc => bip32::XPubType::Xpub,
-        BtcCoin::Tbtc | BtcCoin::Tltc => bip32::XPubType::Tpub,
-    };
-    let num_keys = policy.keys.len();
-    for (i, key) in policy.keys.iter().enumerate() {
-        let key_str = match key {
-            pb::KeyOriginInfo {
-                root_fingerprint,
-                keypath,
-                xpub: Some(xpub),
-            } => {
-                let xpub_str = bip32::Xpub::from(xpub)
-                    .serialize_str(output_xpub_type)
-                    .or(Err(Error::InvalidInput))?;
-                if root_fingerprint.is_empty() {
-                    xpub_str
-                } else if root_fingerprint.len() != 4 {
-                    return Err(Error::InvalidInput);
-                } else {
-                    format!(
-                        "[{}/{}]{}",
-                        hex::encode(root_fingerprint),
-                        util::bip32::to_string_no_prefix(keypath),
-                        xpub_str
-                    )
-                }
-            }
-            _ => return Err(Error::InvalidInput),
-        };
-        confirm::confirm(&confirm::Params {
-            title: &format!("Key {}/{}", i + 1, num_keys),
-            body: (if is_our_key(key, &our_root_fingerprint)? {
-                format!("This device: {}", key_str)
-            } else {
-                key_str
-            })
-            .as_str(),
-            scrollable: true,
-            longtouch: i == num_keys - 1 && matches!(mode, Mode::Advanced),
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
-    }
-    Ok(())
 }
 
 /// Creates a hash of this policy config, useful for registration and identification.
@@ -612,9 +612,11 @@ mod tests {
 
     #[test]
     fn test_parse_wsh_miniscript() {
+        let coin = BtcCoin::Tbtc;
+        let our_key = make_our_key(KEYPATH_ACCOUNT);
         // Parse a valid example and check that the keys are collected as is as strings.
-        let policy = make_policy("wsh(pk(@0/**))", &[]);
-        match &parse(&policy).unwrap().descriptor {
+        let policy = make_policy("wsh(pk(@0/**))", &[our_key.clone()]);
+        match &parse(&policy, coin).unwrap().descriptor {
             Descriptor::Wsh(Wsh {
                 miniscript_expr, ..
             }) => {
@@ -626,8 +628,11 @@ mod tests {
         }
 
         // Parse another valid example and check that the keys are collected as is as strings.
-        let policy = make_policy("wsh(or_b(pk(@0/**),s:pk(@1/**)))", &[]);
-        match &parse(&policy).unwrap().descriptor {
+        let policy = make_policy(
+            "wsh(or_b(pk(@0/**),s:pk(@1/**)))",
+            &[our_key.clone(), make_key(SOME_XPUB_1)],
+        );
+        match &parse(&policy, coin).unwrap().descriptor {
             Descriptor::Wsh(Wsh {
                 miniscript_expr, ..
             }) => {
@@ -640,125 +645,127 @@ mod tests {
 
         // Unknown top-level fragment.
         assert_eq!(
-            parse(&make_policy("unknown(pk(@0/**))", &[])).unwrap_err(),
+            parse(&make_policy("unknown(pk(@0/**))", &[our_key.clone()]), coin).unwrap_err(),
             Error::InvalidInput,
         );
 
         // Unknown script fragment.
         assert_eq!(
-            parse(&make_policy("wsh(unknown(@0/**))", &[])).unwrap_err(),
+            parse(
+                &make_policy("wsh(unknown(@0/**))", &[our_key.clone()]),
+                coin
+            )
+            .unwrap_err(),
             Error::InvalidInput,
         );
 
         // Miniscript type-check fails (should be `or_b(pk(@0/**),s:pk(@1/**))`).
         assert_eq!(
-            parse(&make_policy("wsh(or_b(pk(@0/**),pk(@1/**)))", &[])).unwrap_err(),
+            parse(
+                &make_policy(
+                    "wsh(or_b(pk(@0/**),pk(@1/**)))",
+                    &[our_key.clone(), make_key(SOME_XPUB_1)]
+                ),
+                coin
+            )
+            .unwrap_err(),
             Error::InvalidInput,
         );
     }
 
     #[test]
-    fn test_parse_validate() {
+    fn test_parse() {
         mock_unlocked();
 
         let our_key = make_our_key(KEYPATH_ACCOUNT);
+        let coin = BtcCoin::Tbtc;
 
         // All good.
-        assert!(parse(&make_policy("wsh(pk(@0/**))", &[our_key.clone()]))
-            .unwrap()
-            .validate(BtcCoin::Tbtc)
-            .is_ok());
+        assert!(parse(&make_policy("wsh(pk(@0/**))", &[our_key.clone()]), coin).is_ok());
 
         // Unsupported coins
         for coin in [BtcCoin::Ltc, BtcCoin::Tltc] {
-            assert_eq!(
-                parse(&make_policy("wsh(pk(@0/**))", &[our_key.clone()]))
-                    .unwrap()
-                    .validate(coin),
+            assert!(matches!(
+                parse(&make_policy("wsh(pk(@0/**))", &[our_key.clone()]), coin),
                 Err(Error::InvalidInput)
-            );
+            ));
         }
 
         // Too many keys.
         let many_keys: Vec<pb::KeyOriginInfo> = (0..=20)
             .map(|i| make_our_key(&[48 + HARDENED, 1 + HARDENED, i + HARDENED, 3 + HARDENED]))
             .collect();
-        assert_eq!(
-            parse(&make_policy("wsh(pk(@0/**))", &many_keys))
-                .unwrap()
-                .validate(BtcCoin::Tbtc),
+        assert!(matches!(
+            parse(&make_policy("wsh(pk(@0/**))", &many_keys), coin),
             Err(Error::InvalidInput)
-        );
+        ));
 
         // Our key is not present - fingerprint missing.
-        assert_eq!(
-            parse(&make_policy("wsh(pk(@0/**))", &[make_key(SOME_XPUB_1)]))
-                .unwrap()
-                .validate(BtcCoin::Tbtc),
+        assert!(matches!(
+            parse(
+                &make_policy("wsh(pk(@0/**))", &[make_key(SOME_XPUB_1)]),
+                coin
+            ),
             Err(Error::InvalidInput)
-        );
+        ));
 
         // Our key is not present - fingerprint and keypath exit but xpub does not match.
         let mut wrong_key = our_key.clone();
         wrong_key.xpub = Some(parse_xpub(SOME_XPUB_1).unwrap());
-        assert_eq!(
-            parse(&make_policy("wsh(pk(@0/**))", &[wrong_key]))
-                .unwrap()
-                .validate(BtcCoin::Tbtc),
+        assert!(matches!(
+            parse(&make_policy("wsh(pk(@0/**))", &[wrong_key]), coin),
             Err(Error::InvalidInput)
-        );
+        ));
 
         // Contains duplicate keys.
-        assert_eq!(
-            parse(&make_policy(
-                "wsh(multi(2,@0/**,@1/**,@2/**))",
-                &[
-                    make_key(SOME_XPUB_1),
-                    our_key.clone(),
-                    make_key(SOME_XPUB_1)
-                ]
-            ))
-            .unwrap()
-            .validate(BtcCoin::Tbtc),
+        assert!(matches!(
+            parse(
+                &make_policy(
+                    "wsh(multi(2,@0/**,@1/**,@2/**))",
+                    &[
+                        make_key(SOME_XPUB_1),
+                        our_key.clone(),
+                        make_key(SOME_XPUB_1)
+                    ]
+                ),
+                coin
+            ),
             Err(Error::InvalidInput)
-        );
+        ));
 
         // Contains a key with missing xpub.
-        assert_eq!(
-            parse(&make_policy(
-                "wsh(multi(2,@0/**,@1/**))",
-                &[
-                    our_key.clone(),
-                    pb::KeyOriginInfo {
-                        root_fingerprint: vec![],
-                        keypath: vec![],
-                        xpub: None // missing
-                    }
-                ]
-            ))
-            .unwrap()
-            .validate(BtcCoin::Tbtc),
+        assert!(matches!(
+            parse(
+                &make_policy(
+                    "wsh(multi(2,@0/**,@1/**))",
+                    &[
+                        our_key.clone(),
+                        pb::KeyOriginInfo {
+                            root_fingerprint: vec![],
+                            keypath: vec![],
+                            xpub: None // missing
+                        }
+                    ]
+                ),
+                coin
+            ),
             Err(Error::InvalidInput)
-        );
+        ));
 
         // Not all keys are used.
-        assert_eq!(
-            parse(&make_policy(
-                "wsh(pk(@0/**))",
-                &[our_key.clone(), make_key(SOME_XPUB_1)]
-            ))
-            .unwrap()
-            .validate(BtcCoin::Tbtc),
+        assert!(matches!(
+            parse(
+                &make_policy("wsh(pk(@0/**))", &[our_key.clone(), make_key(SOME_XPUB_1)]),
+                coin
+            ),
             Err(Error::InvalidInput)
-        );
+        ));
 
         // Referenced key does not exist
-        assert_eq!(
-            parse(&make_policy("wsh(pk(@1/**))", &[our_key.clone()]))
-                .unwrap()
-                .validate(BtcCoin::Tbtc),
+        assert!(matches!(
+            parse(&make_policy("wsh(pk(@1/**))", &[our_key.clone()]), coin),
             Err(Error::InvalidInput)
-        );
+        ));
     }
 
     #[test]
@@ -770,21 +777,21 @@ mod tests {
 
         // Ok, one key.
         let pol = make_policy("wsh(pk(@0/**))", &[our_key.clone()]);
-        assert!(parse(&pol).unwrap().validate(coin).is_ok());
+        assert!(parse(&pol, coin).is_ok());
 
         // Ok, two keys.
         let pol = make_policy(
             "wsh(or_b(pk(@0/**),s:pk(@1/**)))",
             &[our_key.clone(), make_key(SOME_XPUB_1)],
         );
-        assert!(parse(&pol).unwrap().validate(coin).is_ok());
+        assert!(parse(&pol, coin).is_ok());
 
         // Ok, one key with different derivations
         let pol = make_policy(
             "wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<2;3>/*)))",
             &[our_key.clone()],
         );
-        assert!(parse(&pol).unwrap().validate(coin).is_ok());
+        assert!(parse(&pol, coin).is_ok());
 
         // Duplicate path, one time in change, one time in receive. While the keys technically are
         // never duplicate in the final miniscript with the pubkeys inserted, we still prohibit it,
@@ -794,33 +801,33 @@ mod tests {
             "wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<1;2>/*)))",
             &[our_key.clone()],
         );
-        assert!(parse(&pol).unwrap().validate(coin).is_err());
+        assert!(parse(&pol, coin).is_err());
 
         // Duplicate key inside policy.
         let pol = make_policy("wsh(or_b(pk(@0/**),s:pk(@0/**)))", &[our_key.clone()]);
-        assert!(parse(&pol).is_err());
+        assert!(parse(&pol, coin).is_err());
 
         // Duplicate key inside policy (same change and receive).
         let pol = make_policy("wsh(pk(@0/<0;0>/*))", &[our_key.clone()]);
-        assert!(parse(&pol).unwrap().validate(coin).is_err());
+        assert!(parse(&pol, coin).is_err());
 
         // Duplicate key inside policy, using different notations for the same thing.
         let pol = make_policy("wsh(or_b(pk(@0/**),s:pk(@0/<0;1>/*)))", &[our_key.clone()]);
-        assert!(parse(&pol).unwrap().validate(coin).is_err());
+        assert!(parse(&pol, coin).is_err());
 
         // Duplicate key inside policy, using same receive but different change.
         let pol = make_policy(
             "wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<0;2>/*)))",
             &[our_key.clone()],
         );
-        assert!(parse(&pol).unwrap().validate(coin).is_err());
+        assert!(parse(&pol, coin).is_err());
 
         // Duplicate key inside policy, using same change but different receive.
         let pol = make_policy(
             "wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<2;1>/*)))",
             &[our_key.clone()],
         );
-        assert!(parse(&pol).unwrap().validate(coin).is_err());
+        assert!(parse(&pol, coin).is_err());
     }
 
     #[test]
@@ -833,6 +840,7 @@ mod tests {
             get_change_and_address_index(
                 ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
                 &[our_key.clone(), some_key.clone()],
+                &[true, false],
                 &[
                     48 + HARDENED,
                     1 + HARDENED,
@@ -849,6 +857,7 @@ mod tests {
             get_change_and_address_index(
                 ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
                 &[our_key.clone(), some_key.clone()],
+                &[true, false],
                 &[
                     48 + HARDENED,
                     1 + HARDENED,
@@ -865,6 +874,7 @@ mod tests {
         assert!(get_change_and_address_index(
             ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
             &[our_key.clone(), some_key.clone()],
+            &[true, false],
             &[
                 48 + HARDENED,
                 1 + HARDENED,
@@ -880,6 +890,7 @@ mod tests {
         assert!(get_change_and_address_index(
             ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
             &[our_key.clone(), some_key.clone()],
+            &[true, false],
             &[
                 48 + HARDENED,
                 1 + HARDENED,
@@ -895,6 +906,7 @@ mod tests {
         assert!(get_change_and_address_index(
             ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
             &[our_key.clone(), some_key.clone()],
+            &[true, false],
             &[
                 48 + HARDENED,
                 1 + HARDENED,
@@ -911,7 +923,24 @@ mod tests {
         assert!(get_change_and_address_index(
             ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
             &[our_key.clone(), some_key.clone()],
+            &[true, false],
             &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED, 10,],
+        )
+        .is_err());
+
+        // Keypath is valid but uses a key in the policy that is not ours.
+        assert!(get_change_and_address_index(
+            ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
+            &[
+                our_key.clone(),
+                pb::KeyOriginInfo {
+                    root_fingerprint: b"aaaa".to_vec(),
+                    keypath: vec![99 + HARDENED],
+                    xpub: Some(parse_xpub(SOME_XPUB_1).unwrap()),
+                }
+            ],
+            &[true, false],
+            &[99 + HARDENED, 20, 0],
         )
         .is_err());
     }
@@ -929,9 +958,10 @@ mod tests {
         let some_key = make_key(SOME_XPUB_1);
         let some_xpub = bip32::Xpub::from(some_key.xpub.as_ref().unwrap());
         let address_index = 5;
+        let coin = BtcCoin::Tbtc;
 
         let witness_script = |pol: &str, keys: &[pb::KeyOriginInfo], is_change: bool| {
-            let derived = parse(&make_policy(pol, keys))
+            let derived = parse(&make_policy(pol, keys), coin)
                 .unwrap()
                 .derive(is_change, address_index)
                 .unwrap();
@@ -940,7 +970,7 @@ mod tests {
             }
         };
         let witness_script_at_keypath = |pol: &str, keys: &[pb::KeyOriginInfo], keypath: &[u32]| {
-            let derived = parse(&make_policy(pol, keys))
+            let derived = parse(&make_policy(pol, keys), coin)
                 .unwrap()
                 .derive_at_keypath(keypath)
                 .unwrap();

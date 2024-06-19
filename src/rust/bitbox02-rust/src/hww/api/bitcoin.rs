@@ -239,8 +239,7 @@ async fn address_policy(
     keypath::validate_address_policy(keypath, keypath::ReceiveSpend::Receive)
         .or(Err(Error::InvalidInput))?;
 
-    let parsed = policies::parse(policy)?;
-    parsed.validate(coin)?;
+    let parsed = policies::parse(policy, coin)?;
 
     let name = match policies::get_name(coin, policy)? {
         Some(name) => name,
@@ -250,7 +249,9 @@ async fn address_policy(
     let title = "Receive to";
 
     if display {
-        policies::confirm(title, coin_params, &name, policy, policies::Mode::Basic).await?;
+        parsed
+            .confirm(title, coin_params, &name, policies::Mode::Basic)
+            .await?;
     }
 
     let address = common::Payload::from_policy(&parsed, keypath)?.address(coin_params)?;

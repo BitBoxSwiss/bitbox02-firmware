@@ -411,8 +411,7 @@ async fn validate_script_configs<'a>(
         keypath,
     }] = script_configs
     {
-        let parsed_policy = super::policies::parse(policy)?;
-        parsed_policy.validate(coin_params.coin)?;
+        let parsed_policy = super::policies::parse(policy, coin_params.coin)?;
         let name =
             super::policies::get_name(coin_params.coin, policy)?.ok_or(Error::InvalidInput)?;
 
@@ -422,14 +421,14 @@ async fn validate_script_configs<'a>(
         // the input keypath, and the computation of the pk_script checks that full keypath is
         // valid.
 
-        super::policies::confirm(
-            "Spend from",
-            coin_params,
-            &name,
-            policy,
-            super::policies::Mode::Basic,
-        )
-        .await?;
+        parsed_policy
+            .confirm(
+                "Spend from",
+                coin_params,
+                &name,
+                super::policies::Mode::Basic,
+            )
+            .await?;
 
         return Ok(vec![ValidatedScriptConfigWithKeypath {
             keypath,

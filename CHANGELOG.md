@@ -7,6 +7,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+
+### 9.19.0
 - Display device name on screen before unlock
 - Bitcoin: add support for payment requests
 - Bitcoin: allow multisig accounts at arbitrary keypaths

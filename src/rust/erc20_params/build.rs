@@ -14,7 +14,7 @@
 
 #![allow(clippy::format_collect)]
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, Write};
 use std::path::Path;
@@ -53,7 +53,7 @@ fn main() {
     }
 
     // Group tokens by decimals
-    let mut grouped_tokens: HashMap<(u8, u8), Vec<&Token>> = HashMap::new();
+    let mut grouped_tokens: BTreeMap<(u8, u8), Vec<&Token>> = BTreeMap::new();
     for token in &tokens {
         grouped_tokens
             .entry((token.decimals, token.unit.len().try_into().unwrap()))

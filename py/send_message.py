@@ -1572,7 +1572,7 @@ class U2FApp:
         return 0
 
 
-def connect_to_simulator_bitbox(debug: bool) -> int:
+def connect_to_simulator_bitbox(debug: bool, port: int) -> int:
     """
     Connects and runs the main menu on host computer,
     simulating a BitBox02 connected over USB.
@@ -1586,7 +1586,6 @@ def connect_to_simulator_bitbox(debug: bool) -> int:
 
         def __init__(self) -> None:
             self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            port = 15423
             self.client_socket.connect(("127.0.0.1", port))
             if debug:
                 print("Connected to the simulator")
@@ -1714,6 +1713,12 @@ def main() -> int:
         help="Connect to the BitBox02 simulator instead of a real BitBox02",
     )
     parser.add_argument(
+        "--simulator-port",
+        default=15423,
+        type=int,
+        help="Simulator port",
+    )
+    parser.add_argument(
         "--no-cache", action="store_true", help="Don't use cached or store noise keys"
     )
     args = parser.parse_args()
@@ -1734,7 +1739,7 @@ def main() -> int:
         return 1
 
     if args.simulator:
-        return connect_to_simulator_bitbox(args.debug)
+        return connect_to_simulator_bitbox(args.debug, args.simulator_port)
 
     return connect_to_usb_bitbox(args.debug, not args.no_cache)
 

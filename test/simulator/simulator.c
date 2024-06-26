@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <getopt.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -63,8 +64,25 @@ void simulate_firmware_execution(const uint8_t* input)
     usb_processing_process(usb_processing_hww());
 }
 
-int main(void)
+int main(int argc, char* argv[])
 {
+    // Default port number
+    int portno = 15423;
+
+    struct option long_options[] = {{"port", required_argument, 0, 'p'}, {0, 0, 0, 0}};
+
+    int opt;
+    while ((opt = getopt_long(argc, argv, "", long_options, NULL)) != -1) {
+        switch (opt) {
+        case 'p':
+            portno = atoi(optarg);
+            break;
+        default:
+            fprintf(stderr, "Usage: %s --port <port number>\n", argv[0]);
+            return 1;
+        }
+    }
+
     // BitBox02 simulation initialization
     usb_processing_init();
     usb_processing_set_send(usb_processing_hww(), send_usb_message_socket);
@@ -96,7 +114,6 @@ int main(void)
     idle_workflow_blocking();
 
     // Establish socket connection with client
-    int portno = 15423;
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         perror("ERROR opening socket");
@@ -115,6 +132,9 @@ int main(void)
         perror("ERROR listening on socket");
         return 1;
     }
+
+    printf("Listening on port %d\n", portno);
+
     while (1) {
         if ((commfd = accept(sockfd, (struct sockaddr*)&serv_addr, (socklen_t*)&serv_addr_len)) <
             0) {

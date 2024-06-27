@@ -27,11 +27,14 @@
 #include <sd.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <version.h>
 
 #include <getopt.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+
+static const char* _simulator_version = "1.0.0";
 
 #define BUFFER_SIZE 1024
 
@@ -69,7 +72,8 @@ int main(int argc, char* argv[])
     // Default port number
     int portno = 15423;
 
-    struct option long_options[] = {{"port", required_argument, 0, 'p'}, {0, 0, 0, 0}};
+    struct option long_options[] = {
+        {"port", required_argument, 0, 'p'}, {"version", no_argument, 0, 'v'}, {0, 0, 0, 0}};
 
     int opt;
     while ((opt = getopt_long(argc, argv, "", long_options, NULL)) != -1) {
@@ -77,6 +81,12 @@ int main(int argc, char* argv[])
         case 'p':
             portno = atoi(optarg);
             break;
+        case 'v':
+            printf(
+                "bitbox02-multi-%s-simulator-%s-linux-amd64\n",
+                DIGITAL_BITBOX_VERSION_SHORT,
+                _simulator_version);
+            return 0;
         default:
             fprintf(stderr, "Usage: %s --port <port number>\n", argv[0]);
             return 1;

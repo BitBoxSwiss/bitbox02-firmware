@@ -16,6 +16,7 @@ use crate::bb02_async::option_no_screensaver;
 use core::cell::RefCell;
 
 use alloc::boxed::Box;
+use alloc::string::String;
 
 pub struct UserAbort;
 
@@ -31,6 +32,10 @@ pub async fn verify_recipient(recipient: &str, amount: &str) -> Result<(), UserA
     );
     component.screen_stack_push();
     option_no_screensaver(&result).await
+}
+
+fn format_percentage(p: f64) -> String {
+    format!("{:.1}", p)
 }
 
 pub async fn verify_total_fee(
@@ -57,7 +62,10 @@ pub async fn verify_total_fee(
     if let Some(fee_percentage) = fee_percentage {
         match super::confirm::confirm(&super::confirm::Params {
             title: "High fee",
-            body: &format!("The fee is {:.1}%\nthe send amount.\nProceed?", fee_percentage),
+            body: &format!(
+                "The fee is {}%\nthe send amount.\nProceed?",
+                format_percentage(fee_percentage)
+            ),
             longtouch: true,
             ..Default::default()
         })
@@ -68,4 +76,18 @@ pub async fn verify_total_fee(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_percentage() {
+        assert_eq!(format_percentage(0.), "0.0");
+        assert_eq!(format_percentage(10.0), "10.0");
+        assert_eq!(format_percentage(10.1), "10.1");
+        assert_eq!(format_percentage(10.14), "10.1");
+        assert_eq!(format_percentage(10.15), "10.2");
+    }
 }

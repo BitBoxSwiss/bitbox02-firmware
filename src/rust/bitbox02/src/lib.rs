@@ -255,6 +255,19 @@ pub fn println_stdout(msg: &str) {
     }
 }
 
+pub fn sha512(msg: &[u8]) -> [u8; 64] {
+    let mut result = [0u8; 64];
+    unsafe {
+        bitbox02_sys::wally_sha512(
+            msg.as_ptr(),
+            msg.len() as _,
+            result.as_mut_ptr(),
+            result.len() as _,
+        );
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.60"
 name = "ed25519-dalek"
-version = "2.0.0"
+version = "2.1.1"
 authors = [
     "isis lovecruft <isis@patternsinthevoid.net>",
     "Tony Arcieri <bascule@gmail.com>",
@@ -26,6 +26,7 @@ exclude = [
     "res/*",
 ]
 description = "Fast and efficient ed25519 EdDSA key generations, signing, and verification in pure Rust."
+homepage = "https://github.com/dalek-cryptography/curve25519-dalek"
 documentation = "https://docs.rs/ed25519-dalek"
 readme = "README.md"
 keywords = [
@@ -40,7 +41,7 @@ categories = [
     "no-std",
 ]
 license = "BSD-3-Clause"
-repository = "https://github.com/dalek-cryptography/ed25519-dalek"
+repository = "https://github.com/dalek-cryptography/curve25519-dalek/tree/main/ed25519-dalek"
 
 [package.metadata.docs.rs]
 features = [
@@ -91,8 +92,12 @@ version = "0.10"
 default-features = false
 
 [dependencies.signature]
-version = ">=2.0, <2.1"
+version = ">=2.0, <2.3"
 optional = true
+default-features = false
+
+[dependencies.subtle]
+version = "2.3.0"
 default-features = false
 
 [dependencies.zeroize]
@@ -107,7 +112,7 @@ version = "1.0"
 version = "0.10"
 
 [dev-dependencies.criterion]
-version = "0.4"
+version = "0.5"
 features = ["html_reports"]
 
 [dev-dependencies.curve25519-dalek]
@@ -122,7 +127,7 @@ default-features = false
 version = "0.4"
 
 [dev-dependencies.hex-literal]
-version = "0.3"
+version = "0.4"
 
 [dev-dependencies.rand]
 version = "0.8"
@@ -142,7 +147,12 @@ version = "1.0"
 version = "0.10"
 
 [dev-dependencies.toml]
-version = "0.5"
+version = "0.7"
+
+[dev-dependencies.x25519-dalek]
+version = "2"
+features = ["static_secrets"]
+default-features = false
 
 [features]
 alloc = [

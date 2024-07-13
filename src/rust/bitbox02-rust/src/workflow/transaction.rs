@@ -35,7 +35,8 @@ pub async fn verify_recipient(recipient: &str, amount: &str) -> Result<(), UserA
 }
 
 fn format_percentage(p: f64) -> String {
-    format!("{:.1}", p)
+    let int: u64 = num_traits::float::FloatCore::round(p * 10.) as _;
+    util::decimal::format_no_trim(int, 1)
 }
 
 pub async fn verify_total_fee(

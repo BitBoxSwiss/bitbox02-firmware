@@ -174,7 +174,7 @@ mod tests {
         mock(Data {
             sdcard_inserted: Some(true),
             ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.body, "<date>");
+                assert_eq!(params.body, "Mon 2020-09-28");
                 true
             })),
             ..Default::default()

@@ -373,7 +373,7 @@ mod tests {
                     UI_COUNTER += 1;
                     UI_COUNTER
                 } {
-                    1 => assert_eq!(params.body, "<date>"),
+                    1 => assert_eq!(params.body, "Mon 2020-09-28"),
                     2 => assert_eq!(params.body, "Proceed to upgrade?"),
                     _ => panic!("too many dialogs"),
                 }
@@ -467,7 +467,7 @@ mod tests {
                         UI_COUNTER += 1;
                         UI_COUNTER
                     } {
-                        1 => assert_eq!(params.body, "<date>"),
+                        1 => assert_eq!(params.body, "Mon 2020-09-28"),
                         2 => assert_eq!(params.title, "RESET"),
                         3 => assert_eq!(params.body, "Restore backup?"),
                         4 => assert!(params.body.starts_with("Name: test device name.")),

@@ -75,16 +75,10 @@ pub async fn create(
         timezone_offset,
     }: &pb::CreateBackupRequest,
 ) -> Result<Response, Error> {
-    const MAX_EAST_UTC_OFFSET: i32 = 50400; // 14 hours in seconds
-    const MAX_WEST_UTC_OFFSET: i32 = -43200; // 12 hours in seconds
-
-    if !(MAX_WEST_UTC_OFFSET..=MAX_EAST_UTC_OFFSET).contains(&timezone_offset) {
-        return Err(Error::InvalidInput);
-    }
-
     confirm::confirm(&confirm::Params {
         title: "Is today?",
-        body: &bitbox02::format_datetime(timestamp, timezone_offset, true),
+        body: &bitbox02::format_datetime(timestamp, timezone_offset, true)
+            .map_err(|_| Error::InvalidInput)?,
         ..Default::default()
     })
     .await?;

@@ -135,15 +135,26 @@ pub fn strftime(timestamp: u32, format: &str) -> String {
 /// timestamp is the unix timestamp in seconds.
 /// timezone_offset is added to the timestamp, timezone part.
 /// date_only: if true, only the date is formatted. If false, both date and time are.
-pub fn format_datetime(timestamp: u32, timezone_offset: i32, date_only: bool) -> String {
-    strftime(
+pub fn format_datetime(
+    timestamp: u32,
+    timezone_offset: i32,
+    date_only: bool,
+) -> Result<String, ()> {
+    const MAX_EAST_UTC_OFFSET: i32 = 50400; // 14 hours in seconds
+    const MAX_WEST_UTC_OFFSET: i32 = -43200; // 12 hours in seconds
+
+    if !(MAX_WEST_UTC_OFFSET..=MAX_EAST_UTC_OFFSET).contains(&timezone_offset) {
+        return Err(());
+    }
+
+    Ok(strftime(
         ((timestamp as i64) + (timezone_offset as i64)) as u32,
         if date_only {
             "%a %Y-%m-%d"
         } else {
             "%a %Y-%m-%d\n%H:%M"
         },
-    )
+    ))
 }
 
 #[cfg(not(feature = "testing"))]
@@ -199,18 +210,24 @@ mod tests {
 
     #[test]
     fn test_format_datetime() {
-        assert_eq!(format_datetime(1601281809, 0, true), "Mon 2020-09-28");
+        assert_eq!(
+            format_datetime(1601281809, 0, true),
+            Ok("Mon 2020-09-28".into())
+        );
         assert_eq!(
             format_datetime(1601281809, 0, false),
-            "Mon 2020-09-28\n08:30"
+            Ok("Mon 2020-09-28\n08:30".into()),
         );
         assert_eq!(
             format_datetime(1601281809, 18000, false),
-            "Mon 2020-09-28\n13:30"
+            Ok("Mon 2020-09-28\n13:30".into()),
         );
         assert_eq!(
             format_datetime(1601281809, -32400, false),
-            "Sun 2020-09-27\n23:30"
+            Ok("Sun 2020-09-27\n23:30".into()),
         );
+
+        assert!(format_datetime(1601281809, 50401, false).is_err());
+        assert!(format_datetime(1601281809, -43201, false).is_err());
     }
 }

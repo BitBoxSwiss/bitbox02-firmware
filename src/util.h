@@ -145,18 +145,4 @@ typedef struct {
  */
 typedef enum { ASYNC_OP_TRUE, ASYNC_OP_FALSE, ASYNC_OP_NOT_READY } async_op_result_t;
 
-/**
- * Formats the timestamp in the local timezone.
- * @param[in] timestamp unix timestamp in seconds.
- * @param[in] timezone_offset is added to the timestamp, timezone part.
- * @param[in] date_only if true, only the date is formatted. If false, both date and time are
- * formatted.
- */
-void util_format_datetime(
-    uint32_t timestamp,
-    int32_t timezone_offset,
-    bool date_only,
-    char* out,
-    size_t out_size);
-
 #endif

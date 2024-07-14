@@ -131,20 +131,19 @@ pub fn strftime(timestamp: u32, format: &str) -> String {
         .into()
 }
 
+/// Formats the timestamp in the local timezone.
+/// timestamp is the unix timestamp in seconds.
+/// timezone_offset is added to the timestamp, timezone part.
+/// date_only: if true, only the date is formatted. If false, both date and time are.
 pub fn format_datetime(timestamp: u32, timezone_offset: i32, date_only: bool) -> String {
-    let mut out = [0u8; 100];
-    unsafe {
-        bitbox02_sys::util_format_datetime(
-            timestamp,
-            timezone_offset,
-            date_only,
-            out.as_mut_ptr(),
-            out.len() as _,
-        )
-    }
-    crate::util::str_from_null_terminated(&out[..])
-        .unwrap()
-        .into()
+    strftime(
+        ((timestamp as i64) + (timezone_offset as i64)) as u32,
+        if date_only {
+            "%a %Y-%m-%d"
+        } else {
+            "%a %Y-%m-%d\n%H:%M"
+        },
+    )
 }
 
 #[cfg(not(feature = "testing"))]
@@ -195,6 +194,23 @@ mod tests {
         assert_eq!(
             strftime(1601281809, "%a %Y-%m-%d\n%H:%M").as_str(),
             "Mon 2020-09-28\n08:30",
+        );
+    }
+
+    #[test]
+    fn test_format_datetime() {
+        assert_eq!(format_datetime(1601281809, 0, true), "Mon 2020-09-28");
+        assert_eq!(
+            format_datetime(1601281809, 0, false),
+            "Mon 2020-09-28\n08:30"
+        );
+        assert_eq!(
+            format_datetime(1601281809, 18000, false),
+            "Mon 2020-09-28\n13:30"
+        );
+        assert_eq!(
+            format_datetime(1601281809, -32400, false),
+            "Sun 2020-09-27\n23:30"
         );
     }
 }

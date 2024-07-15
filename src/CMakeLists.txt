@@ -296,7 +296,6 @@ add_custom_target(rust-bindgen
     --with-derive-default
     --ctypes-prefix util::c_types
     --allowlist-function bip32_derive_xpub
-    --allowlist-function strftime
     --allowlist-function localtime
     --allowlist-function wally_free_string
     --allowlist-function mock_memory_factoryreset

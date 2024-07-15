@@ -228,12 +228,20 @@ pub fn create(
     let dir = id(seed);
     let files = bitbox02::sd::list_subdir(Some(&dir)).or(Err(Error::SdList))?;
 
+    let filename_datetime = {
+        let tm = bitbox02::get_datetime(backup_create_timestamp).map_err(|_| Error::Generic)?;
+        format!(
+            "{}_{}T{}-{}-{}Z",
+            tm.weekday(),
+            tm.date(),
+            tm.hour(),
+            tm.minute(),
+            tm.second()
+        )
+    };
+
     for i in 0..3 {
-        let filename = format!(
-            "backup_{}_{}.bin",
-            bitbox02::strftime(backup_create_timestamp, "%a_%Y-%m-%dT%H-%M-%SZ"),
-            i,
-        );
+        let filename = format!("backup_{}_{}.bin", filename_datetime, i,);
         // Timestamp must be different from an existing backup when recreating a backup, otherwise
         // we might end up corrupting the existing backup.
         if files.contains(&filename) {

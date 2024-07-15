@@ -48,6 +48,7 @@ pub mod secp256k1;
 pub mod securechip;
 pub mod ui;
 
+use ::util::c_types::c_int;
 use core::time::Duration;
 
 pub use bitbox02_sys::buffer_t;
@@ -116,19 +117,73 @@ pub fn reset(status: bool) {
     unsafe { bitbox02_sys::reset_reset(status) }
 }
 
-pub fn strftime(timestamp: u32, format: &str) -> String {
-    let mut out = [0u8; 100];
-    unsafe {
-        bitbox02_sys::strftime(
-            out.as_mut_ptr(),
-            out.len() as _,
-            crate::util::str_to_cstr_vec(format).unwrap().as_ptr(),
-            bitbox02_sys::localtime(&(timestamp as bitbox02_sys::time_t)),
-        );
+pub struct Tm {
+    tm: bitbox02_sys::tm,
+}
+
+fn range(low: c_int, item: c_int, high: c_int) -> c_int {
+    core::cmp::max(low, core::cmp::min(item, high))
+}
+
+impl Tm {
+    /// Returns the weekday, one of "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+    pub fn weekday(&self) -> String {
+        // Same as '%a' in strftime:
+        // https://github.com/arnoldrobbins/strftime/blob/2011b7e82365d25220b8949e252eb5f28c0994cd/strftime.c#435
+        let wday = self.tm.tm_wday;
+        if !(0..=6).contains(&wday) {
+            return "?".into();
+        }
+        ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][wday as usize].into()
     }
-    crate::util::str_from_null_terminated(&out[..])
-        .unwrap()
-        .into()
+
+    /// Returns 'year-month-day', e.g. 2024-07-16, equivalent of '%Y-%m-%d' in strftime.
+    pub fn date(&self) -> String {
+        // Same as strftime:
+        // %Y - https://github.com/arnoldrobbins/strftime/blob/2011b7e82365d25220b8949e252eb5f28c0994cd/strftime.c#L712
+        // %m - https://github.com/arnoldrobbins/strftime/blob/2011b7e82365d25220b8949e252eb5f28c0994cd/strftime.c#L600
+        // %d - https://github.com/arnoldrobbins/strftime/blob/2011b7e82365d25220b8949e252eb5f28c0994cd/strftime.c#L498
+        format!(
+            "{}-{:02}-{:02}",
+            1900 + self.tm.tm_year,
+            range(0, self.tm.tm_mon, 11) + 1,
+            range(1, self.tm.tm_mday, 31)
+        )
+    }
+
+    /// Returns the zero-padded hour from 00-23, e.g. "07".
+    pub fn hour(&self) -> String {
+        // Same as '%H' in strftime:
+        // https://github.com/arnoldrobbins/strftime/blob/2011b7e82365d25220b8949e252eb5f28c0994cd/strftime.c#582
+        format!("{:02}", range(0, self.tm.tm_hour, 23))
+    }
+
+    /// Returns the zero-padded minute from 00-59, e.g. "07".
+    pub fn minute(&self) -> String {
+        // Same as '%M' in strftime:
+        // https://github.com/arnoldrobbins/strftime/blob/2011b7e82365d25220b8949e252eb5f28c0994cd/strftime.c#L605
+        format!("{:02}", range(0, self.tm.tm_min, 59))
+    }
+
+    /// Returns the zero-padded second from 00-60, e.g. "07".
+    pub fn second(&self) -> String {
+        // Same as '%S' in strftime:
+        // https://github.com/arnoldrobbins/strftime/blob/2011b7e82365d25220b8949e252eb5f28c0994cd/strftime.c#L645
+        format!("{:02}", range(0, self.tm.tm_sec, 60))
+    }
+}
+
+pub fn get_datetime(timestamp: u32) -> Result<Tm, ()> {
+    Ok(Tm {
+        tm: unsafe {
+            let localtime = bitbox02_sys::localtime(&(timestamp as bitbox02_sys::time_t));
+            if localtime.is_null() {
+                return Err(());
+            }
+
+            *localtime
+        },
+    })
 }
 
 /// Formats the timestamp in the local timezone.
@@ -146,15 +201,19 @@ pub fn format_datetime(
     if !(MAX_WEST_UTC_OFFSET..=MAX_EAST_UTC_OFFSET).contains(&timezone_offset) {
         return Err(());
     }
-
-    Ok(strftime(
-        ((timestamp as i64) + (timezone_offset as i64)) as u32,
-        if date_only {
-            "%a %Y-%m-%d"
-        } else {
-            "%a %Y-%m-%d\n%H:%M"
-        },
-    ))
+    let ts = ((timestamp as i64) + (timezone_offset as i64)) as u32;
+    let tm = get_datetime(ts)?;
+    Ok(if date_only {
+        format!("{} {}", tm.weekday(), tm.date())
+    } else {
+        format!(
+            "{} {}\n{}:{}",
+            tm.weekday(),
+            tm.date(),
+            tm.hour(),
+            tm.minute()
+        )
+    })
 }
 
 #[cfg(not(feature = "testing"))]
@@ -199,14 +258,6 @@ pub fn println_stdout(msg: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_strftime() {
-        assert_eq!(
-            strftime(1601281809, "%a %Y-%m-%d\n%H:%M").as_str(),
-            "Mon 2020-09-28\n08:30",
-        );
-    }
 
     #[test]
     fn test_format_datetime() {

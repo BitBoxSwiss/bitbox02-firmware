@@ -59,6 +59,10 @@ if arm-none-eabi-nm build/bin/firmware.elf | grep -q "float_to_decimal_common_sh
     echo "Use something simpler like (float*10).round() as u64, then format with util::decimal::format"
     exit 1
 fi
+if arm-none-eabi-nm build/bin/firmware.elf | grep -q "strftime"; then
+    echo "strftime adds significant binary bloat. Use custom formatting like in `format_dateimte()`."
+    exit 1
+fi
 
 (cd tools/atecc608; go test ./...)
 

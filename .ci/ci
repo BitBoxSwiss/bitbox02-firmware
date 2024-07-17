@@ -53,6 +53,13 @@ make -j8 factory-setup
 make -j8 bootloader-semihosting
 make -j8 firmware-semihosting
 
+# Disallow some symbols in the final binary that we don't want.
+if arm-none-eabi-nm build/bin/firmware.elf | grep -q "float_to_decimal_common_shortest"; then
+    echo "Rust fmt float formatting like {.1} adds significant binary bloat."
+    echo "Use something simpler like (float*10).round() as u64, then format with util::decimal::format"
+    exit 1
+fi
+
 (cd tools/atecc608; go test ./...)
 
 # Don't generate graphics in CI

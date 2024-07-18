@@ -15,8 +15,8 @@ use alloc::boxed::Box;
 use core::convert::TryInto;
 
 use core::ops::{Deref, DerefMut};
-use hmac::{Hmac, Mac};
-use sha2::Sha512;
+use digest::{core_api::BlockSizeUser, typenum::U64, Digest};
+use hmac::{Mac, SimpleHmac};
 use zeroize::{Zeroize, Zeroizing};
 
 use curve25519_dalek::{
@@ -36,13 +36,21 @@ fn to_public_key(secret_key: &[u8; ED25519_SECRET_KEY_SIZE]) -> EdwardsPoint {
     Scalar::from_bytes_mod_order(*secret_key) * curve25519_dalek::constants::ED25519_BASEPOINT_POINT
 }
 
-#[derive(Clone, PartialEq)]
-pub struct Xpub {
+/// The `D` digest type param must implement SHA512. Use `sha2::Sha512` if in doubt.
+#[derive(Clone)]
+pub struct Xpub<D: Digest<OutputSize = U64> + BlockSizeUser> {
     /// Ed25519 public key, 32 byte compressed encoded. Use
     /// `public_key.decompress()` to get an uncompressed public key for point
     /// operations.
     public_key: CompressedEdwardsY,
     chain_code: [u8; CHAIN_CODE_SIZE],
+    marker: core::marker::PhantomData<D>,
+}
+
+impl<D: Digest<OutputSize = U64> + BlockSizeUser> core::cmp::PartialEq for Xpub<D> {
+    fn eq(&self, other: &Self) -> bool {
+        self.public_key == other.public_key && self.chain_code == other.chain_code
+    }
 }
 
 /// Computes `(8 * sk[:28])*G` where `sk` is a little-endian encoded
@@ -58,12 +66,13 @@ pub enum DerivationError {
     ExpectedSoftDerivation,
 }
 
-impl Xpub {
+impl<D: Digest<OutputSize = U64> + BlockSizeUser> Xpub<D> {
     /// Creates an Xpub from a public key and a chain code.
     fn from(public_key: EdwardsPoint, chain_code: &[u8; CHAIN_CODE_SIZE]) -> Self {
         Xpub {
             public_key: public_key.compress(),
             chain_code: *chain_code,
+            marker: Default::default(),
         }
     }
 
@@ -77,15 +86,15 @@ impl Xpub {
 
     /// Derives a child extended public key. Only soft derivation is
     /// possible, i.e. `index` must be smaller than `HARDENED_OFFSET`.
-    pub fn derive(&self, index: u32) -> Result<Xpub, DerivationError> {
+    pub fn derive(&self, index: u32) -> Result<Xpub<D>, DerivationError> {
         if index >= HARDENED_OFFSET {
             return Err(DerivationError::ExpectedSoftDerivation);
         }
         let pk = &self.public_key;
         let pk_encoded = pk.as_bytes();
 
-        let mut zmac = Hmac::<Sha512>::new_from_slice(&self.chain_code).unwrap();
-        let mut imac = Hmac::<Sha512>::new_from_slice(&self.chain_code).unwrap();
+        let mut zmac = SimpleHmac::<D>::new_from_slice(&self.chain_code).unwrap();
+        let mut imac = SimpleHmac::<D>::new_from_slice(&self.chain_code).unwrap();
         let i_serialized = index.to_le_bytes();
         zmac.update(&[0x2]);
         zmac.update(pk_encoded);
@@ -94,13 +103,13 @@ impl Xpub {
         imac.update(pk_encoded);
         imac.update(&i_serialized);
 
-        let zout = zmac.finalize_reset().into_bytes();
+        let zout = zmac.finalize().into_bytes();
         let zl = &zout[0..32];
 
         // left = kl + 8 * trunc28(zl)
         let left = pk.decompress().unwrap() + point_of_trunc28_mul8(zl);
 
-        let iout = imac.finalize_reset().into_bytes();
+        let iout = imac.finalize().into_bytes();
         let chain_code = &iout[32..];
         Ok(Xpub::from(left, chain_code.try_into().unwrap()))
     }
@@ -124,12 +133,22 @@ struct XprvData {
     chain_code: [u8; CHAIN_CODE_SIZE],
 }
 
-// The data is boxed so that moving an `Xprv` does not accidentally
-// leave copies of the data on the stack.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Xprv(Box<XprvData>);
+/// The `D` digest type param must implement SHA512. Use `sha2::Sha512` if in doubt.
+#[derive(Clone, Debug)]
+pub struct Xprv<D: Digest<OutputSize = U64> + BlockSizeUser + Clone>(
+    // The data is boxed so that moving an `Xprv` does not accidentally
+    // leave copies of the data on the stack.
+    Box<XprvData>,
+    core::marker::PhantomData<D>,
+);
 
-impl Xprv {
+impl<D: Digest<OutputSize = U64> + BlockSizeUser + Clone> core::cmp::PartialEq for Xprv<D> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<D: Digest<OutputSize = U64> + BlockSizeUser + Clone> Xprv<D> {
     /// Creates an Xprv from the raw components.
     ///
     /// NOTE: the caller is responsible for ensuring the secret key is
@@ -143,11 +162,14 @@ impl Xprv {
         expanded_secret_key_right: &[u8],
         chain_code: &[u8],
     ) -> Self {
-        let mut result = Xprv(Box::new(XprvData {
-            expanded_secret_key_left: [0; ED25519_SECRET_KEY_SIZE],
-            expanded_secret_key_right: [0; ED25519_SECRET_KEY_SIZE],
-            chain_code: [0; CHAIN_CODE_SIZE],
-        }));
+        let mut result = Xprv(
+            Box::new(XprvData {
+                expanded_secret_key_left: [0; ED25519_SECRET_KEY_SIZE],
+                expanded_secret_key_right: [0; ED25519_SECRET_KEY_SIZE],
+                chain_code: [0; CHAIN_CODE_SIZE],
+            }),
+            Default::default(),
+        );
 
         result
             .0
@@ -198,7 +220,7 @@ impl Xprv {
     }
 
     /// Computes the corresponding extended public key.
-    pub fn public(&self) -> Xpub {
+    pub fn public(&self) -> Xpub<D> {
         Xpub::from(
             to_public_key(&self.0.expanded_secret_key_left),
             &self.0.chain_code,
@@ -218,11 +240,11 @@ impl Xprv {
     }
 
     /// Derives a child extended private key.
-    pub fn derive(&self, index: u32) -> Xprv {
+    pub fn derive(&self, index: u32) -> Xprv<D> {
         let kl = &self.0.expanded_secret_key_left;
         let kr = &self.0.expanded_secret_key_right;
-        let mut zmac = Hmac::<Sha512>::new_from_slice(&self.0.chain_code).unwrap();
-        let mut imac = Hmac::<Sha512>::new_from_slice(&self.0.chain_code).unwrap();
+        let mut zmac = SimpleHmac::<D>::new_from_slice(&self.0.chain_code).unwrap();
+        let mut imac = SimpleHmac::<D>::new_from_slice(&self.0.chain_code).unwrap();
         let i_serialized = index.to_le_bytes();
         if index >= HARDENED_OFFSET {
             zmac.update(&[0x0]);
@@ -244,7 +266,7 @@ impl Xprv {
             imac.update(&i_serialized);
         }
 
-        let zout = zmac.finalize_reset().into_bytes();
+        let zout = zmac.finalize().into_bytes();
         let zl = &zout[0..32];
         let zr = &zout[32..64];
         // left = kl + 8 * trunc28(zl)
@@ -261,13 +283,13 @@ impl Xprv {
         // n = 2^252 + 27742317777372353535851937790883648493
         // The only multiple of the order n which is also a multiple of 8 in 0..2^256 is 8*n, and 8*n >= 2^255.
 
-        let iout = imac.finalize_reset().into_bytes();
+        let iout = imac.finalize().into_bytes();
         let chain_code = &iout[32..];
         Xprv::from(left.deref(), &right, chain_code)
     }
 
     // Derives a child extended private key.
-    pub fn derive_path(&self, path: &[u32]) -> Xprv {
+    pub fn derive_path(&self, path: &[u32]) -> Xprv<D> {
         let mut k = self.clone();
         for index in path {
             k = k.derive(*index);
@@ -280,10 +302,11 @@ impl Xprv {
 mod tests {
     use super::*;
     use crate::arbitrary::{Arbitrary32, Arbitrary64};
+    use sha2::Sha512;
 
     #[quickcheck]
     fn xpub_matches_xprv(key: Arbitrary64, chain_code: Arbitrary32) -> bool {
-        let mut xprv = Xprv::from_normalize(&key.0, &chain_code.0);
+        let mut xprv = Xprv::<Sha512>::from_normalize(&key.0, &chain_code.0);
         let mut xpub = xprv.public();
         for index in 0..10 {
             xprv = xprv.derive(index);
@@ -303,7 +326,7 @@ mod tests {
     // - Highest bit is cleared
     // - Second-highest bit is set
     // - Three lowest bits are cleared
-    fn ed25519_bits_correct(xprv: &Xprv) -> bool {
+    fn ed25519_bits_correct(xprv: &Xprv<Sha512>) -> bool {
         let s = xprv.expanded_secret_key();
         s[31] & 0b1000_0000 == 0 && s[31] & 0b0100_0000 != 0 && s[0] & 0b0000_0111 == 0
     }
@@ -325,10 +348,10 @@ mod tests {
 
     #[test]
     fn test_derive_path() {
-        let xprv = Xprv::from_normalize(KEY, CHAIN_CODE);
+        let xprv = Xprv::<Sha512>::from_normalize(KEY, CHAIN_CODE);
 
         let derived = xprv.derive_path(&[]);
-        assert_eq!(derived, xprv);
+        assert_eq!(derived.0, xprv.0);
 
         let derived = xprv.derive_path(&[
             44 + HARDENED_OFFSET,
@@ -348,15 +371,15 @@ mod tests {
 
     #[test]
     fn xpub_hard_derivation_fails() {
-        assert!(Xprv::from_normalize(KEY, CHAIN_CODE)
+        assert!(Xprv::<Sha512>::from_normalize(KEY, CHAIN_CODE)
             .public()
             .derive(HARDENED_OFFSET - 1)
             .is_ok());
-        assert!(Xprv::from_normalize(KEY, CHAIN_CODE)
+        assert!(Xprv::<Sha512>::from_normalize(KEY, CHAIN_CODE)
             .public()
             .derive(HARDENED_OFFSET)
             .is_err());
-        assert!(Xprv::from_normalize(KEY, CHAIN_CODE)
+        assert!(Xprv::<Sha512>::from_normalize(KEY, CHAIN_CODE)
             .public()
             .derive(u32::MAX)
             .is_err());
@@ -364,7 +387,7 @@ mod tests {
 
     #[test]
     fn ed25519_sign_verify() {
-        let mut xprv = Xprv::from_normalize(KEY, CHAIN_CODE)
+        let mut xprv = Xprv::<Sha512>::from_normalize(KEY, CHAIN_CODE)
             .derive(HARDENED_OFFSET)
             .derive(0);
         let sk = ed25519_dalek::hazmat::ExpandedSecretKey::from_bytes(&xprv.expanded_secret_key());

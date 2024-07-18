@@ -1,4 +1,4 @@
-// Copyright 2021 Shift Crypto AG
+// Copyright 2021, 2024 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,22 +15,61 @@
 use alloc::vec::Vec;
 
 use bip32_ed25519::{Xprv, Xpub, ED25519_EXPANDED_SECRET_KEY_SIZE};
-use sha2::Sha512;
+
+/// Implements the digest traits for Sha512 backing it with the wally_sha512 C function. This is
+/// done to avoid using a second sha512 implementation like `sha2::Sha512`, which bloats the binary
+/// by an additional ~12.7kB (at the time of writing).
+///
+/// This implementation accumulates the data to be hashed in heap, it does **not** hash in a
+/// streaming fashion, even when using `update()`. This is okay for the use within this module, as
+/// bip32_ed25519 and sign_raw() do not hash a lot of data.
+#[derive(Default, Clone)]
+pub struct Sha512(Vec<u8>);
+
+impl digest::HashMarker for Sha512 {}
+
+impl digest::OutputSizeUser for Sha512 {
+    type OutputSize = digest::typenum::U64;
+}
+
+impl digest::FixedOutput for Sha512 {
+    fn finalize_into(self, out: &mut digest::Output<Self>) {
+        // use digest::Digest;
+        // out.copy_from_slice(&sha2::Sha512::digest(&self.0));
+        out.copy_from_slice(&bitbox02::sha512(&self.0));
+    }
+}
+
+impl digest::Update for Sha512 {
+    fn update(&mut self, data: &[u8]) {
+        self.0.extend(data);
+    }
+}
+
+impl digest::Reset for Sha512 {
+    fn reset(&mut self) {
+        self.0 = vec![];
+    }
+}
+
+impl digest::core_api::BlockSizeUser for Sha512 {
+    type BlockSize = digest::typenum::U128;
+}
 
 fn get_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     bitbox02::keystore::get_ed25519_seed()
 }
 
-fn get_xprv(keypath: &[u32]) -> Result<Xprv, ()> {
+fn get_xprv(keypath: &[u32]) -> Result<Xprv<Sha512>, ()> {
     let root = get_seed()?;
-    Ok(Xprv::from_normalize(
+    Ok(Xprv::<Sha512>::from_normalize(
         &root[..ED25519_EXPANDED_SECRET_KEY_SIZE],
         &root[ED25519_EXPANDED_SECRET_KEY_SIZE..],
     )
     .derive_path(keypath))
 }
 
-pub fn get_xpub(keypath: &[u32]) -> Result<Xpub, ()> {
+pub fn get_xpub(keypath: &[u32]) -> Result<Xpub<Sha512>, ()> {
     Ok(get_xprv(keypath)?.public())
 }
 
@@ -57,6 +96,24 @@ mod tests {
 
     use bip32_ed25519::HARDENED_OFFSET;
     use bitbox02::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
+    use digest::Digest;
+
+    #[test]
+    fn test_sha512() {
+        assert_eq!(Sha512::digest(b"foobar"), sha2::Sha512::digest(b"foobar"));
+
+        let mut hasher: Sha512 = Default::default();
+        hasher.update(b"foo");
+        hasher.update(b"bar");
+        assert_eq!(hasher.finalize(), sha2::Sha512::digest(b"foobar"));
+
+        hasher = Default::default();
+        hasher.update(b"foo");
+        hasher.update(b"bar");
+        hasher.reset();
+        hasher.update(b"baz");
+        assert_eq!(hasher.finalize(), sha2::Sha512::digest(b"baz"));
+    }
 
     #[test]
     fn test_get_seed() {

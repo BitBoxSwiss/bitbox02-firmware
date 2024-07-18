@@ -54,12 +54,12 @@ checksum = "383d29d513d8764dcdc42ea295d979eb99c3c9f00607b3692cf68a431f7dca72"
 
 [[package]]
 name = "bip32-ed25519"
-version = "0.1.2"
-source = "git+https://github.com/digitalbitbox/rust-bip32-ed25519?tag=v0.1.2#a94181781274ba8277bea720ffc8d3fab6e34c41"
+version = "0.2.0"
+source = "git+https://github.com/digitalbitbox/rust-bip32-ed25519?tag=v0.2.0#805cc066f9aba9022f8d4f74d82d59b7741336d8"
 dependencies = [
  "curve25519-dalek",
+ "digest",
  "hmac",
- "sha2",
  "zeroize",
 ]
 
@@ -334,13 +334,15 @@ dependencies = [
 
 [[package]]
 name = "ed25519-dalek"
-version = "2.0.0"
+version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7277392b266383ef8396db7fdeb1e77b6c52fed775f5df15bb24f35b72156980"
+checksum = "4a3daa8e81a3963a60642bcc1f90a670680bd4a77535faa384e9d1c79d620871"
 dependencies = [
  "curve25519-dalek",
  "ed25519",
  "sha2",
+ "signature",
+ "subtle",
 ]
 
 [[package]]
@@ -646,6 +648,9 @@ name = "signature"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
+dependencies = [
+ "digest",
+]
 
 [[package]]
 name = "subtle"

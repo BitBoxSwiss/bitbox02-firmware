@@ -65,7 +65,7 @@ fn table_test() {
         k[..32].copy_from_slice(&test.kl);
         k[32..].copy_from_slice(&test.kr);
         for derivation in test.private_derivations.iter() {
-            let mut xprv = Xprv::from_normalize(&k, &test.chain_code);
+            let mut xprv = Xprv::<sha2::Sha512>::from_normalize(&k, &test.chain_code);
             let mut xprv_other = mk_other_xprv(&k, &test.chain_code);
             for index in derivation.path.iter() {
                 xprv = xprv.derive(*index);
@@ -99,7 +99,7 @@ fn table_test() {
             );
         }
         for derivation in test.public_derivations.iter() {
-            let mut xpub = Xprv::from_normalize(&k, &test.chain_code).public();
+            let mut xpub = Xprv::<sha2::Sha512>::from_normalize(&k, &test.chain_code).public();
             let mut xpub_other = mk_other_xprv(&k, &test.chain_code).public();
             for index in derivation.path.iter() {
                 xpub = xpub.derive(*index).unwrap();

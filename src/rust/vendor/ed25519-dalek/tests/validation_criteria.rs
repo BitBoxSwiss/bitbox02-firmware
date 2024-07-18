@@ -22,7 +22,7 @@ const VERIFY_ALLOWED_EDGECASES: &[Flag] = &[
 const VERIFY_STRICT_ALLOWED_EDGECASES: &[Flag] =
     &[Flag::LowOrderComponentA, Flag::LowOrderComponentR];
 
-/// Each variant describes a specfiic edge case that can occur in an Ed25519 signature. Refer to
+/// Each variant describes a specific edge case that can occur in an Ed25519 signature. Refer to
 /// the test vector [README][] for more info.
 ///
 /// [README]: https://github.com/C2SP/CCTV/blob/5ea85644bd035c555900a2f707f7e4c31ea65ced/ed25519vectors/README.md
@@ -89,7 +89,7 @@ impl From<IntermediateTestVector> for TestVector {
         let msg = tv.msg.as_bytes().to_vec();
 
         // Unwrap the Option<Set<Flag>>
-        let flags = tv.flags.unwrap_or_else(Default::default);
+        let flags = tv.flags.unwrap_or_default();
 
         Self {
             number,

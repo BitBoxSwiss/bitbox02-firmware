@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "bip32-ed25519"
-version = "0.1.2"
+version = "0.2.0"
 authors = ["Shift Crypto AG <support@shiftcrypto.ch>"]
 description = "BIP32-Ed25519"
 readme = "README.md"
@@ -27,13 +27,13 @@ license = "MIT OR Apache-2.0"
 version = "4"
 default-features = false
 
+[dependencies.digest]
+version = "0.10"
+default-features = false
+
 [dependencies.hmac]
 version = "0.12"
 features = ["reset"]
-default-features = false
-
-[dependencies.sha2]
-version = "0.10"
 default-features = false
 
 [dependencies.zeroize]
@@ -59,3 +59,7 @@ features = ["serde"]
 [dev-dependencies.serde]
 version = "1.0.104"
 features = ["derive"]
+
+[dev-dependencies.sha2]
+version = "0.10"
+default-features = false

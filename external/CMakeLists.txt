@@ -25,12 +25,10 @@ endif()
 if(SANITIZE_UNDEFINED)
   set(LIBWALLY_CFLAGS "${LIBWALLY_CFLAGS} -fsanitize=undefined")
 endif()
-# USE_BASIC_CONFIG is for secp256k1
 # _DEFAULT_SOURCE enables the BSD explicit_bzero function referenced by libwally.
 set(LIBWALLY_CFLAGS  "\
   ${LIBWALLY_CFLAGS} \
   ${MODIFIED_C_FLAGS} ${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE}} \
-  -DUSE_BASIC_CONFIG=1 \
   -D_DEFAULT_SOURCE \
   -fno-strict-aliasing \
 ")
@@ -48,16 +46,15 @@ set(LIBWALLY_LDFLAGS "${LIBWALLY_LDFLAGS} ${CMAKE_C_LINK_FLAGS}")
 
 ExternalProject_Add(libwally-core
   PREFIX          ${CMAKE_CURRENT_BINARY_DIR}/libwally-core
-  STEP_TARGETS   build-libwally
+  STEP_TARGETS    build-libwally
   SOURCE_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core
-  CONFIGURE_COMMAND autoreconf --install --force ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core
+  CONFIGURE_COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core tools/autogen.sh
   COMMAND         ${CMAKE_COMMAND} -E env
                   "CFLAGS=${LIBWALLY_CFLAGS}"
                   "LDFLAGS=${LIBWALLY_LDFLAGS}"
                   ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core/configure
                   ${CONFIGURE_FLAGS}
                   ${LIBWALLY_CONFIGURE_FLAGS}
-  # TODO: Add darwin hack to libwally repo
   BUILD_COMMAND   ${CMAKE_MAKE_PROGRAM}
   INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}
   COMMAND         ${CMAKE_COMMAND} -E copy

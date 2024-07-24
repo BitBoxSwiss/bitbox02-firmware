@@ -788,7 +788,9 @@ class BitBox02(BitBoxCommonAPI):
         )
         return self._eth_msg_query(request, expected_response="pub").pub.pub
 
-    def eth_sign(self, transaction: bytes, keypath: Sequence[int], chain_id: int = 1) -> bytes:
+    def eth_sign(
+        self, transaction: bytes, keypath: Sequence[int], case: eth.AddressCase.ValueType, chain_id: int = 1
+    ) -> bytes:
         """
         transaction should be given as a full rlp encoded eth transaction.
         """
@@ -853,12 +855,14 @@ class BitBox02(BitBoxCommonAPI):
                     recipient=recipient,
                     value=value,
                     data=data,
+                    case=case,
                 )
             )
             return handle_antiklepto(request)
 
         nonce, gas_price, gas_limit, recipient, value, data, _, _, _ = rlp.decode(transaction)
         request = eth.ETHRequest()
+        print(recipient)
         # pylint: disable=no-member
         request.sign.CopyFrom(
             eth.ETHSignRequest(
@@ -871,6 +875,7 @@ class BitBox02(BitBoxCommonAPI):
                 recipient=recipient,
                 value=value,
                 data=data,
+                case=case,
             )
         )
 

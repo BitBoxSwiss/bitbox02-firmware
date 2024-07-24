@@ -40,6 +40,23 @@ RinkebyETH: ETHCoin.ValueType  # 2
 global___ETHCoin = ETHCoin
 
 
+class _AddressCase:
+    ValueType = typing.NewType('ValueType', builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+class _AddressCaseEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_AddressCase.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    UPPER: _AddressCase.ValueType  # 0
+    LOWER: _AddressCase.ValueType  # 1
+    MIXED: _AddressCase.ValueType  # 2
+class AddressCase(_AddressCase, metaclass=_AddressCaseEnumTypeWrapper):
+    pass
+
+UPPER: AddressCase.ValueType  # 0
+LOWER: AddressCase.ValueType  # 1
+MIXED: AddressCase.ValueType  # 2
+global___AddressCase = AddressCase
+
+
 class ETHPubRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
     class _OutputType:
@@ -97,6 +114,7 @@ class ETHSignRequest(google.protobuf.message.Message):
     DATA_FIELD_NUMBER: builtins.int
     HOST_NONCE_COMMITMENT_FIELD_NUMBER: builtins.int
     CHAIN_ID_FIELD_NUMBER: builtins.int
+    CASE_FIELD_NUMBER: builtins.int
     coin: global___ETHCoin.ValueType
     """Deprecated: use chain_id instead."""
 
@@ -123,6 +141,7 @@ class ETHSignRequest(google.protobuf.message.Message):
     chain_id: builtins.int
     """If non-zero, `coin` is ignored and `chain_id` is used to identify the network."""
 
+    case: global___AddressCase.ValueType
     def __init__(self,
         *,
         coin: global___ETHCoin.ValueType = ...,
@@ -135,9 +154,10 @@ class ETHSignRequest(google.protobuf.message.Message):
         data: builtins.bytes = ...,
         host_nonce_commitment: typing.Optional[antiklepto_pb2.AntiKleptoHostNonceCommitment] = ...,
         chain_id: builtins.int = ...,
+        case: global___AddressCase.ValueType = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["host_nonce_commitment",b"host_nonce_commitment"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["chain_id",b"chain_id","coin",b"coin","data",b"data","gas_limit",b"gas_limit","gas_price",b"gas_price","host_nonce_commitment",b"host_nonce_commitment","keypath",b"keypath","nonce",b"nonce","recipient",b"recipient","value",b"value"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["case",b"case","chain_id",b"chain_id","coin",b"coin","data",b"data","gas_limit",b"gas_limit","gas_price",b"gas_price","host_nonce_commitment",b"host_nonce_commitment","keypath",b"keypath","nonce",b"nonce","recipient",b"recipient","value",b"value"]) -> None: ...
 global___ETHSignRequest = ETHSignRequest
 
 class ETHSignEIP1559Request(google.protobuf.message.Message):
@@ -153,6 +173,7 @@ class ETHSignEIP1559Request(google.protobuf.message.Message):
     VALUE_FIELD_NUMBER: builtins.int
     DATA_FIELD_NUMBER: builtins.int
     HOST_NONCE_COMMITMENT_FIELD_NUMBER: builtins.int
+    CASE_FIELD_NUMBER: builtins.int
     chain_id: builtins.int
     @property
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
@@ -177,6 +198,7 @@ class ETHSignEIP1559Request(google.protobuf.message.Message):
     data: builtins.bytes
     @property
     def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment: ...
+    case: global___AddressCase.ValueType
     def __init__(self,
         *,
         chain_id: builtins.int = ...,
@@ -189,9 +211,10 @@ class ETHSignEIP1559Request(google.protobuf.message.Message):
         value: builtins.bytes = ...,
         data: builtins.bytes = ...,
         host_nonce_commitment: typing.Optional[antiklepto_pb2.AntiKleptoHostNonceCommitment] = ...,
+        case: global___AddressCase.ValueType = ...,
         ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["host_nonce_commitment",b"host_nonce_commitment"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["chain_id",b"chain_id","data",b"data","gas_limit",b"gas_limit","host_nonce_commitment",b"host_nonce_commitment","keypath",b"keypath","max_fee_per_gas",b"max_fee_per_gas","max_priority_fee_per_gas",b"max_priority_fee_per_gas","nonce",b"nonce","recipient",b"recipient","value",b"value"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["case",b"case","chain_id",b"chain_id","data",b"data","gas_limit",b"gas_limit","host_nonce_commitment",b"host_nonce_commitment","keypath",b"keypath","max_fee_per_gas",b"max_fee_per_gas","max_priority_fee_per_gas",b"max_priority_fee_per_gas","nonce",b"nonce","recipient",b"recipient","value",b"value"]) -> None: ...
 global___ETHSignEIP1559Request = ETHSignEIP1559Request
 
 class ETHSignMessageRequest(google.protobuf.message.Message):

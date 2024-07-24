@@ -1023,6 +1023,7 @@ class SendMessage:
             sig = self._device.eth_sign(
                 tx,
                 keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
+                case=bitbox02.eth.AddressCase.MIXED,
                 chain_id=chain_id,
             )
             print("Signature: {}".format(sig.hex()))

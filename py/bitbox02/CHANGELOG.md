@@ -4,6 +4,7 @@
 
 # 7.0.0
 - get_info: add optional device initialized boolean to returned tuple
+- eth_sign: add address_case field, which should be initialized by the client
 
 # 6.3.0
 - Allow infering product and version via API call instead of via USB descriptor

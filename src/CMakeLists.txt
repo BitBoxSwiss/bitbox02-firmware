@@ -334,6 +334,7 @@ add_custom_target(rust-bindgen
     --allowlist-function keystore_lock
     --allowlist-function keystore_create_and_store_seed
     --allowlist-function keystore_copy_seed
+    --allowlist-function keystore_secp256k1_get_private_key
     --allowlist-function keystore_get_bip39_mnemonic
     --allowlist-function keystore_get_bip39_word
     --allowlist-function keystore_get_ed25519_seed
@@ -418,6 +419,8 @@ add_custom_target(rust-bindgen
     --allowlist-function wally_hash160
     --allowlist-function wally_sha512
     --allowlist-function printf
+    --allowlist-function bitbox_secp256k1_dleq_prove
+    --allowlist-function bitbox_secp256k1_dleq_verify
     ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
     -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums ${RUST_BINDGEN_FLAGS} ${RUST_INCLUDES}
   COMMAND

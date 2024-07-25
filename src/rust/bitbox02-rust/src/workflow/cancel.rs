@@ -41,7 +41,7 @@ pub fn set_result<R>(result_cell: &ResultCell<R>, result: R) {
 /// * `title` - title to show in the cancel confirm prompt.
 /// * `component` - component to process
 /// * `result_cell` - result var to synchronize the result on. Pass the same to `cancel` and
-/// `set_result`.
+///   `set_result`.
 pub async fn with_cancel<R>(
     title: &str,
     component: &mut bitbox02::ui::Component<'_>,

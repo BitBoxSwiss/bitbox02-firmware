@@ -9,11 +9,20 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+bench = []
+
 [package]
 edition = "2021"
 name = "bip32-ed25519"
 version = "0.2.0"
 authors = ["Shift Crypto AG <support@shiftcrypto.ch>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "BIP32-Ed25519"
 readme = "README.md"
 keywords = ["no_std"]
@@ -22,6 +31,14 @@ categories = [
     "no-std",
 ]
 license = "MIT OR Apache-2.0"
+
+[lib]
+name = "bip32_ed25519"
+path = "src/lib.rs"
+
+[[test]]
+name = "table_test"
+path = "tests/table_test.rs"
 
 [dependencies.curve25519-dalek]
 version = "4"

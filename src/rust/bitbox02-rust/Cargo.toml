@@ -57,9 +57,9 @@ bitcoin_hashes = { version = "0.14.0", default-features = false, features = ["sm
 
 [dependencies.prost]
 # keep version in sync with tools/prost-build/Cargo.toml.
-version = "0.12.1"
+version = "0.13.1"
 default-features = false
-features = ["prost-derive"]
+features = ["derive"]
 
 [features]
 ed25519 = [

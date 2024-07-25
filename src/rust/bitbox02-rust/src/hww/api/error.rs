@@ -1,4 +1,4 @@
-// Copyright 2020 Shift Crypto AG
+// Copyright 2020-2024 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -113,8 +113,8 @@ impl core::convert::From<UnlockError> for Error {
     }
 }
 
-impl core::convert::From<prost::DecodeError> for Error {
-    fn from(_error: prost::DecodeError) -> Self {
+impl core::convert::From<prost::UnknownEnumValue> for Error {
+    fn from(_error: prost::UnknownEnumValue) -> Self {
         Error::InvalidInput
     }
 }

@@ -249,8 +249,8 @@ pub async fn confirm_extended(
 /// - our designated xpub is actually ours (corresponds to the xpub of the currenty unlocked
 ///   keystore).
 /// - no two xpubs are the same.
+///
 /// keypath: account-level keypath, e.g. m/48'/0'/10'/2'
-/// expected:_coin expected bip44 coin in the keypath.
 pub fn validate(multisig: &Multisig, keypath: &[u32]) -> Result<(), Error> {
     if multisig.xpubs.len() < 2 || multisig.xpubs.len() > MAX_SIGNERS {
         return Err(Error::InvalidInput);

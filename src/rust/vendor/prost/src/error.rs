@@ -1,7 +1,9 @@
 //! Protobuf encoding and decoding errors.
 
 use alloc::borrow::Cow;
+#[cfg(not(feature = "std"))]
 use alloc::boxed::Box;
+#[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
 use core::fmt;
@@ -129,3 +131,20 @@ impl From<EncodeError> for std::io::Error {
         std::io::Error::new(std::io::ErrorKind::InvalidInput, error)
     }
 }
+
+/// An error indicating that an unknown enumeration value was encountered.
+///
+/// The Protobuf spec mandates that enumeration value sets are ‘open’, so this
+/// error's value represents an integer value unrecognized by the
+/// presently used enum definition.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct UnknownEnumValue(pub i32);
+
+impl fmt::Display for UnknownEnumValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "unknown enumeration value {}", self.0)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for UnknownEnumValue {}

@@ -1,4 +1,4 @@
-// Copyright 2020 Shift Crypto AG
+// Copyright 2020-2024 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,9 +37,14 @@ pub struct SafeData(pub RefCell<Data>);
 // Safety: must not be accessed concurrently.
 unsafe impl Sync for SafeData {}
 
-lazy_static! {
-    pub static ref DATA: SafeData = SafeData(RefCell::new(Default::default()));
-}
+pub static DATA: SafeData = SafeData(RefCell::new(Data {
+    ui_confirm_create: None,
+    sdcard_inserted: None,
+    ui_sdcard_create_arg: None,
+    ui_transaction_address_create: None,
+    ui_transaction_fee_create: None,
+    ui_trinary_input_string_create: None,
+}));
 
 /// Provide mock implementations and data. This also locks the keystore - use `mock_unlocked()` to mock a seeded and unlocked keystore.
 pub fn mock(data: Data) {

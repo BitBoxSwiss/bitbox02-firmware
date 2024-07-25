@@ -51,20 +51,17 @@ pub struct SafeData<T>(T);
 unsafe impl<T> Sync for SafeData<T> {}
 
 #[cfg(feature = "testing")]
-lazy_static! {
-    pub static ref MOCK_NEXT_REQUEST: SafeData<
-        core::cell::RefCell<
-            Option<
-                alloc::boxed::Box<
-                    dyn Fn(
-                        crate::pb::response::Response,
-                    )
-                        -> Result<crate::pb::request::Request, api::error::Error>,
-                >,
+pub static MOCK_NEXT_REQUEST: SafeData<
+    core::cell::RefCell<
+        Option<
+            alloc::boxed::Box<
+                dyn Fn(
+                    crate::pb::response::Response,
+                ) -> Result<crate::pb::request::Request, api::error::Error>,
             >,
         >,
-    > = SafeData(core::cell::RefCell::new(None));
-}
+    >,
+> = SafeData(core::cell::RefCell::new(None));
 
 /// Set `MOCK_NEXT_REQUEST` to mock requests from the host.
 #[cfg(feature = "testing")]

@@ -43,10 +43,6 @@ mod xpubcache;
 #[macro_use]
 extern crate alloc;
 
-#[cfg(feature = "testing")]
-#[macro_use]
-extern crate lazy_static;
-
 #[cfg(test)]
 mod test {
     use super::*;

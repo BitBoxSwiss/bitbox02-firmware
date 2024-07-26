@@ -31,10 +31,6 @@ extern crate alloc;
 use alloc::string::String;
 
 #[cfg(feature = "testing")]
-#[macro_use]
-extern crate lazy_static;
-
-#[cfg(feature = "testing")]
 pub mod testing;
 
 pub mod bip32;

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copyright 2019 Shift Cryptosecurity AG
-# Copyright 2020 Shift Crypto AG
+# Copyright 2020-2024 Shift Crypto AG
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@
 set -e
 set -x
 
-CONTAINER=shiftcrypto/firmware_v2:39
+CONTAINER=shiftcrypto/firmware_v2:40
 
 if [ "$1" == "pull" ] ; then
 	docker pull "$CONTAINER"

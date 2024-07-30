@@ -92,7 +92,7 @@ fn compute_checksum(
     if data.seed.len() != 32 {
         return Err(());
     }
-    hasher.update(&padded_seed(&data.seed));
+    hasher.update(padded_seed(&data.seed));
     hasher.update(data.birthdate.to_le_bytes());
     let padded_generator: [u8; 20] = {
         let mut result = [0u8; 20];

@@ -125,7 +125,7 @@ fn compute_sighash(
     // recipientName
     hash_data_lenprefixed(&mut sighash, payment_request.recipient_name.as_bytes());
     // memos
-    sighash.update(&serialize_varint(payment_request.memos.len() as u64));
+    sighash.update(serialize_varint(payment_request.memos.len() as u64));
     for memo in payment_request.memos.iter() {
         match memo {
             Memo {

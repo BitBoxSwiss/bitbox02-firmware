@@ -416,8 +416,11 @@ impl<'a> ParsedPolicy<'a> {
             BtcCoin::Tbtc | BtcCoin::Rbtc | BtcCoin::Tltc => bip32::XPubType::Tpub,
         };
         let num_keys = policy.keys.len();
+
+        let taproot_unspendable_internal_key_index = self.taproot_is_unspendable_internal_key()?;
+
         for (i, key) in policy.keys.iter().enumerate() {
-            let key_str = match key {
+            let mut key_str = match key {
                 pb::KeyOriginInfo {
                     root_fingerprint,
                     keypath,
@@ -441,14 +444,14 @@ impl<'a> ParsedPolicy<'a> {
                 }
                 _ => return Err(Error::InvalidInput),
             };
+            if self.is_our_key[i] {
+                key_str = format!("This device: {}", key_str)
+            } else if Some(i) == taproot_unspendable_internal_key_index {
+                key_str = format!("Provably unspendable: {}", key_str)
+            }
             confirm::confirm(&confirm::Params {
                 title: &format!("Key {}/{}", i + 1, num_keys),
-                body: (if self.is_our_key[i] {
-                    format!("This device: {}", key_str)
-                } else {
-                    key_str
-                })
-                .as_str(),
+                body: key_str.as_str(),
                 scrollable: true,
                 longtouch: i == num_keys - 1 && matches!(mode, Mode::Advanced),
                 accept_is_nextarrow: true,
@@ -560,6 +563,77 @@ impl<'a> ParsedPolicy<'a> {
                 }
             }
             _ => Err(Error::Generic),
+        }
+    }
+
+    /// Returns `Some(index of internal key)` if this is a Taproot policy and the Taproot internal
+    /// key is provably unspendable, and `None` otherwise.
+    ///
+    /// We consider it provably unspendable if the internal xpub's public key is the NUMS point and
+    /// the xpub's chain code is the sha256() of the concatenation of all the public keys (33 byte
+    /// compressed) in the taptree left-to-right.
+    ///
+    /// See https://delvingbitcoin.org/t/unspendable-keys-in-descriptors/304/21
+    ///
+    /// This is not a standard yet, but it is provably unspendable in any case, so showing this info
+    /// to the user can't hurt.
+    fn taproot_is_unspendable_internal_key(&self) -> Result<Option<usize>, Error> {
+        match &self.descriptor {
+            Descriptor::Tr(tr) => {
+                let (internal_key_index, _, _) = parse_wallet_policy_pk(tr.inner.internal_key())
+                    .map_err(|_| Error::InvalidInput)?;
+                let internal_xpub = self
+                    .policy
+                    .keys
+                    .get(internal_key_index)
+                    .ok_or(Error::InvalidInput)?
+                    .xpub
+                    .as_ref()
+                    .ok_or(Error::InvalidInput)?;
+
+                // See
+                // https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki#constructing-and-spending-taproot-outputs:
+                // > One example of such a point is H =
+                // > lift_x(0x50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0) which is constructed
+                // > by taking the hash of the standard uncompressed encoding of the secp256k1 base point G as X
+                // > coordinate.
+                const NUMS: [u8; 33] = [
+                    0x02, 0x50, 0x92, 0x9b, 0x74, 0xc1, 0xa0, 0x49, 0x54, 0xb7, 0x8b, 0x4b, 0x60,
+                    0x35, 0xe9, 0x7a, 0x5e, 0x07, 0x8a, 0x5a, 0x0f, 0x28, 0xec, 0x96, 0xd5, 0x47,
+                    0xbf, 0xee, 0x9a, 0xce, 0x80, 0x3a, 0xc0,
+                ];
+
+                if internal_xpub.depth != [0u8; 1]
+                    || internal_xpub.parent_fingerprint.as_slice() != [0u8; 4]
+                    || internal_xpub.child_num != 0
+                    || internal_xpub.public_key.as_slice() != NUMS
+                {
+                    return Ok(None);
+                }
+
+                let chain_code: [u8; 32] = {
+                    let mut hasher = Sha256::new();
+                    for pk in tr.inner.iter_scripts().flat_map(|(_, ms)| ms.iter_pk()) {
+                        let (key_index, _, _) =
+                            parse_wallet_policy_pk(&pk).map_err(|_| Error::InvalidInput)?;
+                        let key_info =
+                            self.policy.keys.get(key_index).ok_or(Error::InvalidInput)?;
+                        hasher.update(
+                            &key_info
+                                .xpub
+                                .as_ref()
+                                .ok_or(Error::InvalidInput)?
+                                .public_key,
+                        );
+                    }
+                    hasher.finalize().into()
+                };
+                if chain_code != internal_xpub.chain_code.as_slice() {
+                    return Ok(None);
+                }
+                Ok(Some(internal_key_index))
+            }
+            _ => Ok(None),
         }
     }
 }
@@ -1498,5 +1572,49 @@ mod tests {
             hex::encode(get_hash(BtcCoin::Tltc, &pol).unwrap()).as_str(),
             "6160dc5cf72b79380e9e715c75ae54573b81dcb4ed8ab2e90fde5d661e443781",
         );
+    }
+
+    #[test]
+    fn test_tr_unspendable_internal_key() {
+        mock_unlocked_using_mnemonic(
+            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
+            "",
+        );
+
+        let k0 = pb::KeyOriginInfo {
+            root_fingerprint: vec![],
+            keypath: vec![],
+            xpub: Some(parse_xpub("tpubD6NzVbkrYhZ4WNrreqKvZr3qeJR7meg2BgaGP9upLkt7bp5SY6AAhY8vaN8ThfCjVcK6ZzE6kZbinszppNoGKvypeTmhyQ6uvUptXEXqknv").unwrap()),
+        };
+        let k1 = pb::KeyOriginInfo {
+            root_fingerprint: hex::decode("ffd63c8d").unwrap(),
+            keypath: vec![48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 2 + HARDENED],
+            xpub: Some(parse_xpub("tpubDExA3EC3iAsPxPhFn4j6gMiVup6V2eH3qKyk69RcTc9TTNRfFYVPad8bJD5FCHVQxyBT4izKsvr7Btd2R4xmQ1hZkvsqGBaeE82J71uTK4N").unwrap()),
+        };
+        let k2 = make_our_key(KEYPATH_ACCOUNT);
+
+        {
+            let policy_str = "tr(@0/<0;1>/*,{and_v(v:multi_a(1,@1/<2;3>/*,@2/<2;3>/*),older(2)),multi_a(2,@1/<0;1>/*,@2/<0;1>/*)})";
+            let policy = make_policy(policy_str, &[k0.clone(), k1.clone(), k2.clone()]);
+            let parsed_policy = parse(&policy, BtcCoin::Tbtc).unwrap();
+            assert_eq!(
+                parsed_policy.taproot_is_unspendable_internal_key(),
+                Ok(Some(0))
+            );
+        }
+
+        {
+            // Different order is allowed, BIP-388 merely says "should" enforce ordered keys, not
+            // "must".
+            // See https://github.com/bitcoin/bips/blob/master/bip-0388.mediawiki#additional-rules
+            let policy_str = "tr(@1/<0;1>/*,{and_v(v:multi_a(1,@0/<2;3>/*,@2/<2;3>/*),older(2)),multi_a(2,@0/<0;1>/*,@2/<0;1>/*)})";
+
+            let policy = make_policy(policy_str, &[k1.clone(), k0.clone(), k2.clone()]);
+            let parsed_policy = parse(&policy, BtcCoin::Tbtc).unwrap();
+            assert_eq!(
+                parsed_policy.taproot_is_unspendable_internal_key(),
+                Ok(Some(1))
+            );
+        }
     }
 }

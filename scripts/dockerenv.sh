@@ -41,7 +41,7 @@ dockerdev () {
 
     if ! $RUNTIME images --filter "reference=${CONTAINER_IMAGE}" | grep -q "${CONTAINER_IMAGE}"; then
         echo "No '${CONTAINER_IMAGE}' ${RUNTIME} image found! Maybe you need to run
-              '${RUNTIME} build --pull -t ${CONTAINER_IMAGE} .'?" >&2
+              '${RUNTIME} build --platform linux/amd64  --pull -t ${CONTAINER_IMAGE} .'?" >&2
         exit 1
     fi
 
@@ -74,8 +74,11 @@ dockerdev () {
         # Use same user/group id as on the host, so that files are not created as root in the
         # mounted volume. Only needed for Docker. On rootless podman, the host user maps to the
         # container root user.
-        $RUNTIME exec -it "$CONTAINER_NAME" groupadd -o -g "$(id -g)" dockergroup
-        $RUNTIME exec -it "$CONTAINER_NAME" useradd -u "$(id -u)" -m -g dockergroup dockeruser
+        # If group already exists, don't create it
+        if ! $RUNTIME exec -it "$CONTAINER_NAME" getent group "$(id -g)" > /dev/null ; then
+            $RUNTIME exec -it "$CONTAINER_NAME" groupadd -o -g "$(id -g)" dockergroup
+        fi
+        $RUNTIME exec -it "$CONTAINER_NAME" useradd -u "$(id -u)" -m -g "$(id -g)" dockeruser
     fi
 
     # Call a second time to enter the container.

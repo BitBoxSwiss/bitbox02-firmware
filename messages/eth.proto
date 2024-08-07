@@ -27,6 +27,12 @@ enum ETHCoin {
   RinkebyETH = 2;
 }
 
+enum ETHAddressCase {
+  ETH_ADDRESS_CASE_MIXED = 0;
+  ETH_ADDRESS_CASE_UPPER = 1;
+  ETH_ADDRESS_CASE_LOWER = 2;
+}
+
 message ETHPubRequest {
   repeated uint32 keypath = 1;
   // Deprecated: use chain_id instead.
@@ -56,6 +62,7 @@ message ETHSignRequest {
   AntiKleptoHostNonceCommitment host_nonce_commitment = 9;
   // If non-zero, `coin` is ignored and `chain_id` is used to identify the network.
   uint64 chain_id = 10;
+  ETHAddressCase address_case = 11;
 }
 
 // TX payload for an EIP-1559 (type 2) transaction: https://eips.ethereum.org/EIPS/eip-1559
@@ -70,6 +77,7 @@ message ETHSignEIP1559Request {
   bytes value = 8; // smallest big endian serialization, max. 32 bytes
   bytes data = 9;
   AntiKleptoHostNonceCommitment host_nonce_commitment = 10;
+  ETHAddressCase address_case = 11;
 }
 
 message ETHSignMessageRequest {

@@ -1248,6 +1248,8 @@ pub struct EthSignRequest {
     /// If non-zero, `coin` is ignored and `chain_id` is used to identify the network.
     #[prost(uint64, tag = "10")]
     pub chain_id: u64,
+    #[prost(enumeration = "EthAddressCase", tag = "11")]
+    pub address_case: i32,
 }
 /// TX payload for an EIP-1559 (type 2) transaction: <https://eips.ethereum.org/EIPS/eip-1559>
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -1279,6 +1281,8 @@ pub struct EthSignEip1559Request {
     pub data: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "10")]
     pub host_nonce_commitment: ::core::option::Option<AntiKleptoHostNonceCommitment>,
+    #[prost(enumeration = "EthAddressCase", tag = "11")]
+    pub address_case: i32,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -1539,6 +1543,35 @@ impl EthCoin {
             "ETH" => Some(Self::Eth),
             "RopstenETH" => Some(Self::RopstenEth),
             "RinkebyETH" => Some(Self::RinkebyEth),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum EthAddressCase {
+    Mixed = 0,
+    Upper = 1,
+    Lower = 2,
+}
+impl EthAddressCase {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            EthAddressCase::Mixed => "ETH_ADDRESS_CASE_MIXED",
+            EthAddressCase::Upper => "ETH_ADDRESS_CASE_UPPER",
+            EthAddressCase::Lower => "ETH_ADDRESS_CASE_LOWER",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "ETH_ADDRESS_CASE_MIXED" => Some(Self::Mixed),
+            "ETH_ADDRESS_CASE_UPPER" => Some(Self::Upper),
+            "ETH_ADDRESS_CASE_LOWER" => Some(Self::Lower),
             _ => None,
         }
     }

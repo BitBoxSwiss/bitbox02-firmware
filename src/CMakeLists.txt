@@ -205,7 +205,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(RUST_PROFILE "debug")
 else()
   set(RUST_PROFILE "release")
-  set(RUST_CARGO_FLAG "--release")
+  set(RUST_CARGO_FLAGS "--release")
   # For binary reproducibility, strip path prefixes that can be different depending on environment (e.g. /home/<user>, etc.).
   set(RUSTFLAGS "--remap-path-prefix=${CMAKE_CURRENT_SOURCE_DIR}/rust=src --remap-path-prefix=$ENV{HOME}=")
 endif()
@@ -231,6 +231,7 @@ if(CMAKE_CROSSCOMPILING)
   set(RUST_TARGET_ARCH thumbv7em-none-eabi)
   set(RUST_TARGET_ARCH_DIR ${RUST_TARGET_ARCH})
   set(RUST_TARGET_ARCH_ARG --target ${RUST_TARGET_ARCH})
+  set(RUST_CARGO_FLAGS ${RUST_CARGO_FLAGS} -Zbuild-std=core,alloc -Zbuild-std-features=panic_immediate_abort,optimize_for_size)
 else()
   set(RUST_TARGET_ARCH_DIR .)
 endif()
@@ -436,7 +437,7 @@ if(NOT CMAKE_CROSSCOMPILING)
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
         FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
         # only one test thread because of unsafe concurrent access to `SafeData`, `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex poisoning and very messy output in case of a unit test failure.
-        ${CARGO} test $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --all-features --target-dir ${RUST_BINARY_DIR}/all-features ${RUST_CARGO_FLAG} -- --nocapture --test-threads 1
+        ${CARGO} test $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --all-features --target-dir ${RUST_BINARY_DIR}/all-features ${RUST_CARGO_FLAGS} -- --nocapture --test-threads 1
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
   add_dependencies(rust-test bitbox_merged generate-protobufs)
@@ -518,7 +519,8 @@ foreach(type ${RUST_LIBS})
       RUSTFLAGS=${RUSTFLAGS}
       FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
       $<$<BOOL:${SCCACHE_PROGRAM}>:RUSTC_WRAPPER=${SCCACHE_PROGRAM}>
-      ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv> --offline --features target-${type} --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAG} ${RUST_TARGET_ARCH_ARG}
+      RUSTC_BOOTSTRAP=1
+      ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv> --offline --features target-${type} --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAGS} ${RUST_TARGET_ARCH_ARG}
     COMMAND
       ${CMAKE_COMMAND} -E copy_if_different ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
     # DEPFILES are only supported with the Ninja build tool
@@ -544,7 +546,7 @@ if(CMAKE_CROSSCOMPILING)
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
       SYSROOT=${CMAKE_SYSROOT}
       INCLUDES="${RUST_INCLUDES}"
-      ${CARGO} doc --document-private-items --target-dir ${CMAKE_BINARY_DIR}/docs-rust ${RUST_CARGO_FLAG} --target thumbv7em-none-eabi
+      ${CARGO} doc --document-private-items --target-dir ${CMAKE_BINARY_DIR}/docs-rust --target thumbv7em-none-eabi
     COMMAND
       ${CMAKE_COMMAND} -E echo "See docs at file://${CMAKE_BINARY_DIR}/docs-rust/thumbv7em-none-eabi/doc/bitbox02_rust/index.html"
     WORKING_DIRECTORY ${LIBBITBOX02_RUST_SOURCE_DIR}

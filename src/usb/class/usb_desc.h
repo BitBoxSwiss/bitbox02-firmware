@@ -139,6 +139,24 @@
         'i', 0, 'A', 0, 'P', 0, ' ', 0, 'I', 0, 'n', 0, 't', 0, 'e', 0, 'r', 0, 'f', 0, 'a', 0, \
         'c', 0, 'e', 0,
 
+#define USB_DESC_CONF 5
+#define USB_DESC_CONF_STR_DESC                                                                  \
+    10, /* bLength */                                                                           \
+        0x03, /* bDescriptorType */                                                             \
+        'c', 0, 'o', 0, 'n', 0, 'f', 0,
+
+#define USB_DESC_IHWW 6
+#define USB_DESC_IHWW_STR_DESC                                                                  \
+    8, /* bLength */                                                                           \
+        0x03, /* bDescriptorType */                                                             \
+        'h', 0, 'w', 0, 'w', 0,
+
+#define USB_DESC_IU2F 7
+#define USB_DESC_IU2F_STR_DESC                                                                  \
+    10, /* bLength */                                                                           \
+        0x03, /* bDescriptorType */                                                             \
+        'u', 0, '2', 0, 'f', 0,
+
 #define USB_STR_DESC             \
     USB_DESC_LANGID_DESC         \
     USB_DESC_IMANUFACT_STR_DESC  \
@@ -195,7 +213,7 @@
         HID_CLASS, /* iface.bInterfaceClass */                              \
         USB_SUBCLASS_NO, /* iface.bInterfaceSubClass */                     \
         USB_PROTOCOL_NO, /* iface.bInterfaceProtocol */                     \
-        0x00, /* iface.iInterface */                                        \
+        0x06, /* iface.iInterface */                                        \
         9, /* hid.bLength */                                                \
         USB_DT_HID, /* hid.bDescriptorType: HID */                          \
         USB_DESC_LE16(USB_HID_BDC_V1_11), /* hid.bcdHID */                  \
@@ -249,7 +267,7 @@
         HID_CLASS, /* iface.bInterfaceClass */                              \
         USB_SUBCLASS_NO, /* iface.bInterfaceSubClass */                     \
         USB_PROTOCOL_NO, /* iface.bInterfaceProtocol */                     \
-        0x00, /* iface.iInterface */                                        \
+        0x07, /* iface.iInterface */                                        \
         9, /* hid.bLength */                                                \
         USB_DT_HID, /* hid.bDescriptorType: HID */                          \
         USB_DESC_LE16(USB_HID_BDC_V1_11), /* hid.bcdHID */                  \
@@ -277,7 +295,7 @@
         USB_DESC_LE16(USB_DESC_WTOTALLEN), /* wTotalLength */        \
         3, /* bNumInterfaces */ \
         USB_DESC_BCONFIGVAL, /* bConfigurationValue */               \
-        0x00, /* iConfiguration */                                   \
+        0x05, /* iConfiguration */                                   \
         USB_DESC_BMATTRI, /* bmAttributes */                         \
         USB_DESC_BMAXPOWER /* bMaxPower */
 

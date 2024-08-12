@@ -67,7 +67,7 @@ static int32_t _enable(struct usbd_descriptors* desc, struct usbdf_driver* drv)
     } else { // Not supported by this function driver
         return ERR_NOT_FOUND;
     }
-    traceln("%s", "enable");
+    // traceln("%s", "enable");
 
     // Install endpoints
     for (i = 0; i < 2; i++) {
@@ -75,7 +75,7 @@ static int32_t _enable(struct usbd_descriptors* desc, struct usbdf_driver* drv)
         desc->sod = ep;
         if (NULL != ep) {
             ep_desc.bEndpointAddress = ep[2];
-            traceln("Found endpoint 0x%02x for interface", ep_desc.bEndpointAddress);
+            // traceln("Found endpoint 0x%02x for interface", ep_desc.bEndpointAddress);
             ep_desc.bmAttributes = ep[3];
             ep_desc.wMaxPacketSize = usb_get_u16(ep + 4);
             if (usb_d_ep_init(
@@ -97,7 +97,7 @@ static int32_t _enable(struct usbd_descriptors* desc, struct usbdf_driver* drv)
             }
             usb_d_ep_enable(ep_desc.bEndpointAddress);
         } else {
-            traceln("%s", "ep not found");
+            // traceln("%s", "ep not found");
             return ERR_NOT_FOUND;
         }
     }
@@ -127,7 +127,7 @@ static int32_t _disable(const struct usbd_descriptors* desc, struct usbdf_driver
             return ERR_NOT_FOUND;
         }
     }
-    traceln("%s", "disable");
+    // traceln("%s", "disable");
 
     if (func_data->func_iface != 0xFF) {
         func_data->func_iface = 0xFF;
@@ -163,7 +163,7 @@ static int32_t _ctrl(struct usbdf_driver* drv, enum usbdf_control ctrl, void* pa
         return _disable((const struct usbd_descriptors*)param, drv);
 
     case USBDF_GET_IFACE:
-        traceln("%s", "get iface");
+        // traceln("%s", "get iface");
         return ERR_UNSUPPORTED_OP;
 
     default:
@@ -175,9 +175,14 @@ static int _req_handler(uint8_t ep, struct usb_req* req, enum usb_ctrl_stage sta
 {
     (void)ep;
 
+    // traceln("0x%02x 0x%02x val; %i idx: %i len: %i", req->bmRequestType, req->bRequest,
+    // req->V.wValue, req->I.wIndex, req->L.wLength);
+
     if (0x02 != ((req->bmRequestType >> 5) & 0x03)) { /* vendor request */
+        // traceln("%s", "not for me");
         return ERR_NOT_FOUND;
     }
+    traceln("%s", "vendor request");
 
     if (req->I.wIndex == _iap2_func_data.func_iface && 0 == req->bRequest) {
         if (USB_EP_DIR_IN == (0x80 & req->bmRequestType)) {
@@ -192,6 +197,7 @@ static int _req_handler(uint8_t ep, struct usb_req* req, enum usb_ctrl_stage sta
             return ERR_NONE;
         }
     } else {
+        // traceln("%s", "not for me");
         return ERR_NOT_FOUND;
     }
 }

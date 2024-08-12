@@ -35,3 +35,8 @@ The bottom-most layer are bindings generated from C header files:
 
 We generate one header file `rust.h` and ever product specific function is `#ifdeffed` with
 `RUST_PRODUCT_*` macro.
+
+# Vendoring
+
+Run the vendoring script `vendor.sh` to vendor dependencies from crates.io. The
+script will ensure that also rust std libs dependencies are vendored.

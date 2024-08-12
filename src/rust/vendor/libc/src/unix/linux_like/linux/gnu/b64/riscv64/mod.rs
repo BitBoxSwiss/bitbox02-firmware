@@ -432,6 +432,7 @@ pub const PTRACE_GETREGS: ::c_uint = 12;
 pub const PTRACE_SETREGS: ::c_uint = 13;
 pub const MCL_CURRENT: ::c_int = 1;
 pub const MCL_FUTURE: ::c_int = 2;
+pub const MCL_ONFAULT: ::c_int = 4;
 pub const SIGSTKSZ: ::size_t = 8192;
 pub const MINSIGSTKSZ: ::size_t = 2048;
 pub const CBAUD: ::tcflag_t = 4111;
@@ -538,6 +539,14 @@ pub const REG_S1: usize = 9;
 pub const REG_A0: usize = 10;
 pub const REG_S2: usize = 18;
 pub const REG_NARGS: usize = 8;
+
+pub const COMPAT_HWCAP_ISA_I: ::c_ulong = 1 << (b'I' - b'A');
+pub const COMPAT_HWCAP_ISA_M: ::c_ulong = 1 << (b'M' - b'A');
+pub const COMPAT_HWCAP_ISA_A: ::c_ulong = 1 << (b'A' - b'A');
+pub const COMPAT_HWCAP_ISA_F: ::c_ulong = 1 << (b'F' - b'A');
+pub const COMPAT_HWCAP_ISA_D: ::c_ulong = 1 << (b'D' - b'A');
+pub const COMPAT_HWCAP_ISA_C: ::c_ulong = 1 << (b'C' - b'A');
+pub const COMPAT_HWCAP_ISA_V: ::c_ulong = 1 << (b'V' - b'A');
 
 pub const SYS_read: ::c_long = 63;
 pub const SYS_write: ::c_long = 64;

@@ -7,11 +7,14 @@ use std::string::String;
 // need to know all the possible cfgs that this script will set. If you need to set another cfg
 // make sure to add it to this list as well.
 const ALLOWED_CFGS: &'static [&'static str] = &[
+    "emscripten_new_stat_abi",
+    "espidf_time64",
     "freebsd10",
     "freebsd11",
     "freebsd12",
     "freebsd13",
     "freebsd14",
+    "freebsd15",
     "libc_align",
     "libc_cfg_target_vendor",
     "libc_const_extern_fn",
@@ -32,9 +35,12 @@ const ALLOWED_CFGS: &'static [&'static str] = &[
 
 // Extra values to allow for check-cfg.
 const CHECK_CFG_EXTRA: &'static [(&'static str, &'static [&'static str])] = &[
-    ("target_os", &["switch", "aix", "ohos"]),
+    ("target_os", &["switch", "aix", "ohos", "hurd", "visionos"]),
     ("target_env", &["illumos", "wasi", "aix", "ohos"]),
-    ("target_arch", &["loongarch64"]),
+    (
+        "target_arch",
+        &["loongarch64", "mips32r6", "mips64r6", "csky"],
+    ),
 ];
 
 fn main() {
@@ -46,7 +52,7 @@ fn main() {
     let align_cargo_feature = env::var("CARGO_FEATURE_ALIGN").is_ok();
     let const_extern_fn_cargo_feature = env::var("CARGO_FEATURE_CONST_EXTERN_FN").is_ok();
     let libc_ci = env::var("LIBC_CI").is_ok();
-    let libc_check_cfg = env::var("LIBC_CHECK_CFG").is_ok();
+    let libc_check_cfg = env::var("LIBC_CHECK_CFG").is_ok() || rustc_minor_ver >= 80;
 
     if env::var("CARGO_FEATURE_USE_STD").is_ok() {
         println!(
@@ -55,18 +61,25 @@ fn main() {
         );
     }
 
-    // The ABI of libc used by libstd is backward compatible with FreeBSD 10.
+    // The ABI of libc used by std is backward compatible with FreeBSD 12.
     // The ABI of libc from crates.io is backward compatible with FreeBSD 11.
     //
     // On CI, we detect the actual FreeBSD version and match its ABI exactly,
     // running tests to ensure that the ABI is correct.
     match which_freebsd() {
-        Some(10) if libc_ci || rustc_dep_of_std => set_cfg("freebsd10"),
+        Some(10) if libc_ci => set_cfg("freebsd10"),
         Some(11) if libc_ci => set_cfg("freebsd11"),
-        Some(12) if libc_ci => set_cfg("freebsd12"),
+        Some(12) if libc_ci || rustc_dep_of_std => set_cfg("freebsd12"),
         Some(13) if libc_ci => set_cfg("freebsd13"),
         Some(14) if libc_ci => set_cfg("freebsd14"),
+        Some(15) if libc_ci => set_cfg("freebsd15"),
         Some(_) | None => set_cfg("freebsd11"),
+    }
+
+    match emcc_version_code() {
+        Some(v) if (v >= 30142) => set_cfg("emscripten_new_stat_abi"),
+        // Non-Emscripten or version < 3.1.42.
+        Some(_) | None => (),
     }
 
     // On CI: deny all warnings
@@ -157,11 +170,19 @@ fn main() {
     // https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#check-cfg
     if libc_check_cfg {
         for cfg in ALLOWED_CFGS {
-            println!("cargo:rustc-check-cfg=values({})", cfg);
+            if rustc_minor_ver >= 75 {
+                println!("cargo:rustc-check-cfg=cfg({})", cfg);
+            } else {
+                println!("cargo:rustc-check-cfg=values({})", cfg);
+            }
         }
         for &(name, values) in CHECK_CFG_EXTRA {
             let values = values.join("\",\"");
-            println!("cargo:rustc-check-cfg=values({},\"{}\")", name, values);
+            if rustc_minor_ver >= 75 {
+                println!("cargo:rustc-check-cfg=cfg({},values(\"{}\"))", name, values);
+            } else {
+                println!("cargo:rustc-check-cfg=values({},\"{}\")", name, values);
+            }
         }
     }
 }
@@ -234,8 +255,39 @@ fn which_freebsd() -> Option<i32> {
         s if s.starts_with("12") => Some(12),
         s if s.starts_with("13") => Some(13),
         s if s.starts_with("14") => Some(14),
+        s if s.starts_with("15") => Some(15),
         _ => None,
     }
+}
+
+fn emcc_version_code() -> Option<u64> {
+    let output = std::process::Command::new("emcc")
+        .arg("-dumpversion")
+        .output()
+        .ok();
+    if output.is_none() {
+        return None;
+    }
+    let output = output.unwrap();
+    if !output.status.success() {
+        return None;
+    }
+
+    let stdout = String::from_utf8(output.stdout).ok();
+    if stdout.is_none() {
+        return None;
+    }
+    let version = stdout.unwrap();
+
+    // Some Emscripten versions come with `-git` attached, so split the
+    // version string also on the `-` char.
+    let mut pieces = version.trim().split(|c| c == '.' || c == '-');
+
+    let major = pieces.next().and_then(|x| x.parse().ok()).unwrap_or(0);
+    let minor = pieces.next().and_then(|x| x.parse().ok()).unwrap_or(0);
+    let patch = pieces.next().and_then(|x| x.parse().ok()).unwrap_or(0);
+
+    Some(major * 10000 + minor * 100 + patch)
 }
 
 fn set_cfg(cfg: &str) {

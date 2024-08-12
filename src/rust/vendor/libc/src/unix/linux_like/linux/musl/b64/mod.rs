@@ -134,10 +134,6 @@ pub const __SIZEOF_PTHREAD_RWLOCK_T: usize = 56;
 pub const __SIZEOF_PTHREAD_MUTEX_T: usize = 40;
 pub const __SIZEOF_PTHREAD_BARRIER_T: usize = 32;
 
-pub const SOCK_NONBLOCK: ::c_int = 2048;
-
-pub const SOCK_SEQPACKET: ::c_int = 5;
-
 extern "C" {
     pub fn getrandom(buf: *mut ::c_void, buflen: ::size_t, flags: ::c_uint) -> ::ssize_t;
 }
@@ -161,6 +157,9 @@ cfg_if! {
     } else if #[cfg(any(target_arch = "riscv64"))] {
         mod riscv64;
         pub use self::riscv64::*;
+    } else if #[cfg(any(target_arch = "loongarch64"))] {
+        mod loongarch64;
+        pub use self::loongarch64::*;
     } else {
         // Unknown target_arch
     }

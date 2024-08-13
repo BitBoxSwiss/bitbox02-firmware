@@ -33,15 +33,16 @@ else
 fi
 
 CONTAINER_IMAGE=shiftcrypto/firmware_v2
+CONTAINER_VERSION=${CONTAINER_VERSION:-latest}
 PROJECT_NAME="$(basename "$(realpath "$DIR/..")")"
 CONTAINER_NAME="$PROJECT_NAME-$CONTAINER_NAME_SUFFIX"
 
 dockerdev () {
     local repo_path="$DIR/.."
 
-    if ! $RUNTIME images --filter "reference=${CONTAINER_IMAGE}" | grep -q "${CONTAINER_IMAGE}"; then
-        echo "No '${CONTAINER_IMAGE}' ${RUNTIME} image found! Maybe you need to run
-              '${RUNTIME} build --platform linux/amd64  --pull -t ${CONTAINER_IMAGE} .'?" >&2
+    if ! $RUNTIME images --filter "reference=${CONTAINER_IMAGE}" | grep -q "${CONTAINER_IMAGE} *${CONTAINER_VERSION}"; then
+        echo "No '${CONTAINER_IMAGE}:${CONTAINER_VERSION}' ${RUNTIME} image found! Maybe you need to run
+              '${RUNTIME} pull ${CONTAINER_IMAGE}:${CONTAINER_VERSION}'?" >&2
         exit 1
     fi
 
@@ -53,8 +54,18 @@ dockerdev () {
 
     # If already running, enter the container.
     if $RUNTIME ps --filter "name=^${CONTAINER_NAME}$" | grep -q "$CONTAINER_NAME"; then
-        $RUNTIME exec $USERFLAG --workdir="$MOUNT_DIR" -it "$CONTAINER_NAME" bash
-        return
+        id_running=$(${RUNTIME} inspect ${CONTAINER_NAME} | jq -r '.[0].Image')
+        id_wanted=$(${RUNTIME} inspect ${CONTAINER_IMAGE}:${CONTAINER_VERSION} | jq -r '.[0].Id')
+        # If requested version is same as running version, enter container
+        if ! [ $id_wanted == $id_running ] ; then
+            echo "Currently running container is not the same version as the requested version"
+            echo "Requested version ${CONTAINER_IMAGE}:${CONTAINER_VERSION} ($id_wanted)"
+            echo "Current version $(${RUNTIME} inspect ${CONTAINER_NAME} | jq -r '.[0].Config.Image') ($id_running)"
+            exit 1
+        else
+            $RUNTIME exec $USERFLAG --workdir="$MOUNT_DIR" -it "$CONTAINER_NAME" bash
+            return
+        fi
     fi
 
     if $RUNTIME ps --all --filter "name=^${CONTAINER_NAME}$" | grep -q "$CONTAINER_NAME"; then
@@ -68,7 +79,7 @@ dockerdev () {
            --name="$CONTAINER_NAME" \
            -v "$repo_path":"$MOUNT_DIR" \
            --cap-add SYS_PTRACE \
-           ${CONTAINER_IMAGE} bash
+           ${CONTAINER_IMAGE}:${CONTAINER_VERSION} bash
 
     if [ "$RUNTIME" = "docker" ] ; then
         # Use same user/group id as on the host, so that files are not created as root in the

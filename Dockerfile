@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Latest Ubuntu LTS
-FROM ubuntu:22.04
+FROM ubuntu:22.04 as build1
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y wget nano rsync curl gnupg2 jq unzip bzip2
@@ -32,7 +32,8 @@ RUN mkdir ~/Downloads &&\
     cd ~/Downloads &&\
     tar -xjvf gcc.tar.bz2 &&\
     rm -f gcc.tar.bz2 &&\
-    cd ~/Downloads && rsync -a gcc-arm-none-eabi-8-2018-q4-major/ /usr/local/
+    cd ~/Downloads && rsync -a gcc-arm-none-eabi-8-2018-q4-major/ /usr/local/ &&\
+    rm -rf gcc-arm-none-eabi-8-2018-q4-major
 
 # Tools for building
 RUN apt-get update && apt-get install -y \
@@ -98,7 +99,8 @@ RUN python3 -m pip install --upgrade \
 #Install protoc from release, because the version available on the repo is too old
 RUN mkdir -p /opt/protoc && \
     curl -L0 https://github.com/protocolbuffers/protobuf/releases/download/v21.2/protoc-21.2-linux-x86_64.zip -o /tmp/protoc-21.2-linux-x86_64.zip && \
-    unzip /tmp/protoc-21.2-linux-x86_64.zip -d /opt/protoc
+    unzip /tmp/protoc-21.2-linux-x86_64.zip -d /opt/protoc &&\
+    rm /tmp/protoc-21.2-linux-x86_64.zip
 ENV PATH /opt/protoc/bin:$PATH
 
 # Make Python3 the default
@@ -118,7 +120,7 @@ RUN mkdir -p /opt/go_dist && \
     curl https://dl.google.com/go/go1.19.3.linux-amd64.tar.gz | tar -xz -C /opt/go_dist
 
 # Install lcov from release (the one from the repos is too old).
-RUN cd /opt && wget https://github.com/linux-test-project/lcov/releases/download/v1.14/lcov-1.14.tar.gz && tar -xf lcov-1.14.tar.gz
+RUN curl -L https://github.com/linux-test-project/lcov/releases/download/v1.14/lcov-1.14.tar.gz | tar -xz -C /opt
 ENV PATH /opt/lcov-1.14/bin:$PATH
 
 # Install rust compiler
@@ -142,7 +144,11 @@ RUN cp "$(rustc --print=sysroot)/lib/rustlib/src/rust/Cargo.lock" "$(rustc --pri
 RUN chmod 777 $(rustc --print=sysroot)/lib/rustlib/src/rust/library/test/Cargo.lock
 
 COPY tools/prost-build-proto prost-build-proto
-RUN CARGO_HOME=/opt/cargo cargo install --path prost-build-proto --locked
+RUN CARGO_HOME=/opt/cargo cargo install --path prost-build-proto --locked && rm -r prost-build-proto
 
 # Clean temporary files to reduce image size
-RUN rm -rf /var/lib/apt/lists/*
+RUN rm -r /var/lib/apt/lists/*
+RUN rm -r /root/.cache
+
+FROM ubuntu:22.04
+COPY --from=build1 / /

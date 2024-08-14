@@ -51,6 +51,15 @@ brew tap osx-cross/arm
 brew install arm-gcc-bin
 ```
 
+If you are on macOS ARM also edit your `~/.zshenv` and add this line
+```:
+export HOMEBREW_PATH=<YOUR PATH HERE>
+```
+You can find your homebrew path by running following command:
+```sh
+brew --prefix
+```
+
 ## Instructions
 
 Connect the J-Link to the debug pins on the BitBox02 prototype board.

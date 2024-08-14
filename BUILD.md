@@ -36,11 +36,27 @@ make dockerinit
 make dockerdev
 ```
 
+If you do not want to build the docker image locally, or are not working on it, it may be more straightforward to
+pull the image from docker instead of building it. This should be a bit faster and there should not be any issues with
+`make dockerdev` expecting specific version of the image.
+
+```sh
+make dockerpull
+make dockerdev
+```
+
+
 The docker container will not allow you to access the hosts USB devices by default which means that
 it is necessary to flash the device in a terminal not running in docker.
 
 > [!NOTE]
 > Current development container is defined in the file `.containerversion`
+
+The docker container mounts the repo it was launched from, so you can freely edit your fork in your preferred IDE and
+the changes will be reflected in the docker container.
+
+**It is highly recommended you develop using this docker container as not all of local setup is completely up to date
+with every Operating system.**
 
 ### Install development environment on macOS
 

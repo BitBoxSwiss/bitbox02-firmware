@@ -17,36 +17,48 @@ use sha3::digest::Digest;
 use alloc::string::String;
 use core::convert::TryInto;
 
+use super::pb;
+
 /// Generates a checksummed ethereum hex address from a 20 byte recipient.
 /// `recipient` - 20 byte tail (last 20 bytes of the pubkeyhash).
-pub fn from_pubkey_hash(recipient: &[u8; 20]) -> String {
-    let mut hex = [0u8; 40];
-    hex::encode_to_slice(recipient, &mut hex).unwrap();
-    let hash = sha3::Keccak256::digest(&hex[..]);
-    for (i, e) in hex.iter_mut().enumerate() {
-        let hash_byte = {
-            let b = hash[i / 2];
-            if i % 2 == 0 {
-                b >> 4
-            } else {
-                b & 0xf
+pub fn from_pubkey_hash(recipient: &[u8; 20], address_case: pb::EthAddressCase) -> String {
+    match address_case {
+        pb::EthAddressCase::Mixed => {
+            let mut hex = [0u8; 40];
+            hex::encode_to_slice(recipient, &mut hex).unwrap();
+            let hash = sha3::Keccak256::digest(&hex[..]);
+            for (i, e) in hex.iter_mut().enumerate() {
+                let hash_byte = {
+                    let b = hash[i / 2];
+                    if i % 2 == 0 {
+                        b >> 4
+                    } else {
+                        b & 0xf
+                    }
+                };
+                if *e > b'9' && hash_byte > 7 {
+                    *e -= 32; // convert to uppercase
+                }
             }
-        };
-        if *e > b'9' && hash_byte > 7 {
-            *e -= 32; // convert to uppercase
+            format!("0x{}", unsafe {
+                // valid utf8 because hex and the uppercasing above is correct.
+                core::str::from_utf8_unchecked(&hex[..])
+            })
+        },
+        pb::EthAddressCase::Upper => {
+            format!("0x{}", hex::encode_upper(recipient))
+        },
+        pb::EthAddressCase::Lower => {
+            format!("0x{}", hex::encode(recipient))
         }
     }
-    format!("0x{}", unsafe {
-        // valid utf8 because hex and the uppercasing above is correct.
-        core::str::from_utf8_unchecked(&hex[..])
-    })
 }
 
 /// Generates a checksummed ethereum hex address from a 65 byte pubkey.
 /// `recipient` - 20 byte tail (last 20 bytes of the pubkeyhash).
 pub fn from_pubkey(pubkey_uncompressed: &[u8; 65]) -> String {
     let hash = sha3::Keccak256::digest(&pubkey_uncompressed[1..]);
-    from_pubkey_hash(hash[hash.len() - 20..].try_into().unwrap())
+    from_pubkey_hash(hash[hash.len() - 20..].try_into().unwrap(), pb::EthAddressCase::Mixed)
 }
 
 #[cfg(test)]
@@ -58,8 +70,23 @@ mod tests {
         assert_eq!(
             from_pubkey_hash(
                 b"\xf4\xc2\x17\x10\xef\x8b\x5a\x5e\xc4\xbd\x37\x80\xa6\x87\xfe\x08\x34\x46\xe6\x7b",
+                pb::EthAddressCase::Mixed,
             ),
             "0xF4C21710Ef8b5a5Ec4bd3780A687FE083446e67B"
+        );
+        assert_eq!(
+            from_pubkey_hash(
+                b"\xf4\xc2\x17\x10\xef\x8b\x5a\x5e\xc4\xbd\x37\x80\xa6\x87\xfe\x08\x34\x46\xe6\x7b",
+                pb::EthAddressCase::Upper,
+            ),
+            "0xF4C21710EF8B5A5EC4BD3780A687FE083446E67B"
+        );
+        assert_eq!(
+            from_pubkey_hash(
+                b"\xf4\xc2\x17\x10\xef\x8b\x5a\x5e\xc4\xbd\x37\x80\xa6\x87\xfe\x08\x34\x46\xe6\x7b",
+                pb::EthAddressCase::Lower,
+            ),
+            "0xf4c21710ef8b5a5ec4bd3780a687fe083446e67b"
         );
     }
 

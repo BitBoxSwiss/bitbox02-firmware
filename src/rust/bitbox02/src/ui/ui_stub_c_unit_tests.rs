@@ -130,6 +130,10 @@ pub fn confirm_transaction_address_create<'a, 'b>(
     _address: &'a str,
     mut callback: AcceptRejectCb<'b>,
 ) -> Component<'b> {
+    crate::print_stdout(&format!(
+        "CONFIRM TRANSACTION ADDRESS SCREEN START\nAMOUNT: {}\nADDRESS: {}\nCONFIRM TRANSACTION ADDRESS SCREEN END\n",
+        _amount, _address
+    ));
     callback(true);
     Component {
         is_pushed: false,
@@ -143,6 +147,10 @@ pub fn confirm_transaction_fee_create<'a, 'b>(
     _longtouch: bool,
     mut callback: AcceptRejectCb<'b>,
 ) -> Component<'b> {
+    crate::print_stdout(&format!(
+        "CONFIRM TRANSACTION FEE SCREEN START\nAMOUNT: {}\nFEE: {}\nCONFIRM TRANSACTION FEE SCREEN END\n",
+        _amount, _fee
+    ));
     callback(true);
     Component {
         is_pushed: false,

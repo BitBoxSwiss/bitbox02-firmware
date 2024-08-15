@@ -129,8 +129,17 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/
 RUN rustup target add thumbv7em-none-eabi
 RUN rustup component add rustfmt
 RUN rustup component add clippy
+RUN rustup component add rust-src
 RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.26.0 --locked
 RUN CARGO_HOME=/opt/cargo cargo install bindgen-cli --version 0.69.4 --locked
+
+# Until cargo vendor supports vendoring dependencies of the rust std libs we
+# need a copy of this file next to the toml file. It also has to be world
+# writable so that invocations of `cargo vendor` can update it. Below is the
+# tracking issue for `cargo vendor` to support rust std libs.
+# https://github.com/rust-lang/wg-cargo-std-aware/issues/23
+RUN cp "$(rustc --print=sysroot)/lib/rustlib/src/rust/Cargo.lock" "$(rustc --print=sysroot)/lib/rustlib/src/rust/library/test/"
+RUN chmod 777 $(rustc --print=sysroot)/lib/rustlib/src/rust/library/test/Cargo.lock
 
 COPY tools/prost-build-proto prost-build-proto
 RUN CARGO_HOME=/opt/cargo cargo install --path prost-build-proto --locked

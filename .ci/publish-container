@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e
+
+CONTAINER_REPO=shiftcrypto/firmware_v2
+CONTAINER_VERSION=$(cat .containerversion)
+
+docker push $CONTAINER_REPO:latest
+docker push $CONTAINER_REPO:$CONTAINER_VERSION

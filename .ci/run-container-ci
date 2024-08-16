@@ -29,11 +29,6 @@ CONTAINER_REPO=shiftcrypto/firmware_v2
 CONTAINER_VERSION=$(cat .containerversion)
 CONTAINER=$CONTAINER_REPO:${CONTAINER_VERSION}
 
-if [ "$1" == "pull" ] ; then
-	docker pull "$CONTAINER"
-	exit 0
-fi
-
 WORKSPACE_DIR="$1"
 if [ -z "${WORKSPACE_DIR}" ]; then
   echo "Workspace dir path is empty."

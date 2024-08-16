@@ -1,10 +1,14 @@
 # See reference docs at
 # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
-name: ci
-on: [push, pull_request]
+name: Master branch ci
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
 
 jobs:
-  linux-docker:
+  ci:
     runs-on: ubuntu-22.04
     steps:
       - name: Clone the repo
@@ -13,8 +17,22 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
           submodules: recursive
+
+      - name: Check if container should be published
+        id: pre-publish
+        run: ./.ci/pre-publish-container > $GITHUB_OUTPUT
+
+      - name: Build container
+        if: steps.pre-publish.outputs.exists == 'false'
+        run: ./.ci/build-container
+
+      - name: Publish container
+        if: steps.pre-publish.outputs.exists == 'false'
+        run: ./.ci/publish-container
+
       - name: Pull CI container image
         run: ./.ci/pull-container
+
       - name: Run CI in container
         env:
           COMPARE_REV: ${{ github.base_ref != null && github.base_ref || github.event.before }}

@@ -41,9 +41,6 @@ if [ -z "${WORKSPACE_DIR}" ]; then
 fi
 
 TARGET_BRANCH="${2:-master}"
-if [ "${TRAVIS}" == "true" ] && [ "${TRAVIS_PULL_REQUEST}" != "false" ] ; then
-	TARGET_BRANCH=${TRAVIS_BRANCH}
-fi
 
 # Fetch origin/master so that we can diff when checking coding style.
 git remote set-branches --add origin ${TARGET_BRANCH}

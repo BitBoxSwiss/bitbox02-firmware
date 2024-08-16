@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e
+
+CONTAINER_REPO=shiftcrypto/firmware_v2
+CONTAINER_VERSION=$(cat .containerversion)
+
+# docker manifest returns 1 (error) if the container doesn't exist and 0 (success) if it does.
+if docker manifest inspect $CONTAINER_REPO:$CONTAINER_VERSION > /dev/null; then
+	 >&2 echo Container version \'$CONTAINER_VERSION\' exists.
+	 echo true
+	 exit
+fi
+echo false

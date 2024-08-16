@@ -14,7 +14,23 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Check if container files was modified and if container version already exists
+        id: checks
+        run: |
+          echo modified=$(./.ci/check-container-sources-modified) >> "$GITHUB_OUTPUT"
+          echo container-published=$(./.ci/check-container-version-published) >> "$GITHUB_OUTPUT"
+
+      - name: Build container image
+        if: steps.checks.outputs.modified == 'true'
+        run: |
+          if "${{ steps.checks.outputs.container-published }}" == "true"; then
+            echo "::error::Container modified but version $(cat .containerversion) already published"
+            exit 1
+          fi
+          ./.ci/build-container
+
       - name: Pull container image
+        if: steps.checks.outputs.modified == 'false'
         run: ./.ci/pull-container
 
       - name: Run CI in container
@@ -66,7 +82,23 @@ jobs:
           # get the .ci scripts from there as well.
           git checkout -f ${{ github.event.pull_request.merge_commit_sha }} -- .ci .github
 
+      - name: Check if container files was modified and if container version already exists
+        id: checks
+        run: |
+          echo modified=$(./.ci/check-container-sources-modified) >> "$GITHUB_OUTPUT"
+          echo container-published=$(./.ci/check-container-version-published) >> "$GITHUB_OUTPUT"
+
+      - name: Build container image
+        if: steps.checks.outputs.modified == 'true'
+        run: |
+          if "${{ steps.checks.outputs.container-published }}" == "true"; then
+            echo "::error::Container modified but version $(cat .containerversion) already published"
+            exit 1
+          fi
+          ./.ci/build-container
+
       - name: Pull container image
+        if: steps.checks.outputs.modified == 'false'
         run: ./.ci/pull-container
 
       - name: Run CI in container

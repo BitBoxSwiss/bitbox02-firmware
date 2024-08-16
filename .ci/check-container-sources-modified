@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# This script works on merge commits. <rev>^1 means the first parent of <rev>.
+#
+# When the github action creates a temporary merge commit for a pull request, the first parent will
+# be the base (the branch being merged into).
+
+set -e
+
+if git diff --name-only HEAD^1 HEAD | grep -E '^(\.containerversion|Dockerfile)' >/dev/null; then
+	echo "true"
+	exit
+fi
+echo "false"

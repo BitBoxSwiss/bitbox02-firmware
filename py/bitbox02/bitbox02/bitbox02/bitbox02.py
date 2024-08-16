@@ -49,7 +49,7 @@ try:
     # We export it in __init__.py
     from bitbox02.communication.generated import system_pb2 as system
 except ModuleNotFoundError:
-    print("Run `make py` to generate the protobuf messages")
+    print('Run `make py` to generate the protobuf messages')
     sys.exit()
 
 try:

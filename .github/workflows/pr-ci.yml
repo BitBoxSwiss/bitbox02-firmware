@@ -1,0 +1,39 @@
+# See reference docs at
+# https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
+name: ci
+on: pull_request
+
+jobs:
+  pr-ci:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          # It would be enough to put "fetch-depth: 2" here. But fetch-tags if fetch-depth != 0 in
+          # actions/checkout@v4 is broken :'(
+          # https://github.com/actions/checkout/issues/1471
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: recursive
+
+      - name: Check if container files was modified and if container version already exists
+        id: checks
+        run: |
+          ./.ci/pre-pr-container-build >> "$GITHUB_OUTPUT"
+          ./.ci/pre-publish-container >> "$GITHUB_OUTPUT"
+
+      - name: Build container image
+        if: steps.checks.outputs.modified == 'true'
+        run: |
+          if "${{ steps.checks.outputs.exists }}" == "true"; then
+            echo "::error::Container modified but version $(cat .containerversion) already published"
+            exit 1
+          fi
+          ./.ci/build-container
+
+      - name: Pull container image
+        run: ./.ci/pull-container
+
+      - name: Run CI in container
+        run: ./.ci/run-container-ci ${{github.workspace}} ${{github.base_ref}}

@@ -25,12 +25,9 @@
 set -e
 set -x
 
-CONTAINER=shiftcrypto/firmware_v2:41
-
-if [ "$1" == "pull" ] ; then
-	docker pull "$CONTAINER"
-	exit 0
-fi
+CONTAINER_REPO=shiftcrypto/firmware_v2
+CONTAINER_VERSION=$(cat .containerversion)
+CONTAINER=$CONTAINER_REPO:${CONTAINER_VERSION}
 
 WORKSPACE_DIR="$1"
 if [ -z "${WORKSPACE_DIR}" ]; then
@@ -38,20 +35,9 @@ if [ -z "${WORKSPACE_DIR}" ]; then
   exit 1
 fi
 
-TARGET_BRANCH="${2:-master}"
-if [ "${TRAVIS}" == "true" ] && [ "${TRAVIS_PULL_REQUEST}" != "false" ] ; then
-	TARGET_BRANCH=${TRAVIS_BRANCH}
-fi
-
-# Fetch origin/master so that we can diff when checking coding style.
-git remote set-branches --add origin ${TARGET_BRANCH}
-git fetch origin
-
-TARGET_BRANCH=origin/${TARGET_BRANCH}
-
 # The safe.directory config is so that git commands work. even though the repo folder mounted in
 # Docker is owned by root, which can be different from the owner on the host.
-docker run -e TARGET_BRANCH="${TARGET_BRANCH}" \
+docker run -e COMPARE_REV="${COMPARE_REV}" \
 	--cap-add SYS_PTRACE \
 	--volume ${WORKSPACE_DIR}:/bitbox02-firmware/ \
 	--workdir /bitbox02-firmware \

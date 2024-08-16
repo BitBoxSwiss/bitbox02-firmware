@@ -39,6 +39,9 @@ make dockerdev
 The docker container will not allow you to access the hosts USB devices by default which means that
 it is necessary to flash the device in a terminal not running in docker.
 
+> [!NOTE]
+> Current development container is defined in the file `.containerversion`
+
 ### Install development environment on macOS
 
 Make sure you have [Homebrew](https://brew.sh) installed.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# This script checks only that the modified files follow pep8
+# This script checks pep8 on files that was modified between $COMPARE_REV and HEAD
 
 # Fail on error
 set -e
@@ -11,7 +11,7 @@ set -o pipefail
 command -v git >/dev/null 2>&1 || { echo >&2 "git is missing"; exit 1; }
 
 # grep will exit with 1 if no lines are found
-FILES=$(git --no-pager diff --diff-filter=d --name-only ${TARGET_BRANCH} | grep -v -e "old/" -e "generated/" -e "rust/vendor/" | grep -E ".py\$" || exit 0)
+FILES=$(git --no-pager diff --diff-filter=d --name-only ${COMPARE_REV} HEAD | grep -v -e "old/" -e "generated/" -e "rust/vendor/" | grep -E ".py\$" || exit 0)
 if [ -z "${FILES}" ] ; then
        exit 0
 fi

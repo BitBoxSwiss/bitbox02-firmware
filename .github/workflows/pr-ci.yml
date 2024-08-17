@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 0
 
       - name: Pull container image
-        run: ./.ci/run-container-ci pull
+        run: ./.ci/pull-container
 
       - name: Run CI in container
         run: ./.ci/run-container-ci ${{github.workspace}} ${{ github.event.pull_request.base.sha }}
@@ -67,7 +67,7 @@ jobs:
           git checkout -f ${{ github.event.pull_request.merge_commit_sha }} -- .ci .github
 
       - name: Pull container image
-        run: ./.ci/run-container-ci pull
+        run: ./.ci/pull-container
 
       - name: Run CI in container
         run: ./.ci/run-container-ci ${{github.workspace}} ${{ github.event.pull_request.base.sha }}

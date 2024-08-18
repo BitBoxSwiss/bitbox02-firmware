@@ -48,7 +48,7 @@ crc = { version = "3.0.1", optional = true }
 ed25519-dalek = { version = "2.1.1", default-features = false, features = ["hazmat", "digest"], optional = true }
 hmac = { version = "0.12.1", default-features = false, features = ["reset"] }
 
-miniscript = { version = "12.0.0", default-features = false, features = ["no-std"], optional = true }
+miniscript = { version = "12.2.0", default-features = false, features = ["no-std"], optional = true }
 bitcoin = { workspace = true, optional = true }
 # We don't rely on this dep directly, the miniscript/bitcoin deps do. We list it here to enable the
 # small-hash feature to reduce the binary size, saving around 2784 bytes (as measured at time of

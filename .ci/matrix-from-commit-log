@@ -1,0 +1,13 @@
+#!/usr/bin/python
+
+import subprocess
+import sys
+import json
+
+range = sys.argv[1]
+
+commits = subprocess.run(f'git log --format="%H" {range}', shell=True, text=True, capture_output=True)
+commits = commits.stdout.strip().split()
+
+if len(commits) > 0:
+  print(json.dumps({'commit': commits}))

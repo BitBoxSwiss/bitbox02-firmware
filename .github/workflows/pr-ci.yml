@@ -1,0 +1,34 @@
+# See reference docs at
+# https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
+name: Pull request CI
+on: pull_request
+
+jobs:
+  pr-ci:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      # HEAD^2~ because PR branch is second parent and we want to skip the last commit
+      - name: Dispatch jobs for commits in PR history
+        run: |
+          for commit in $(git log --format="%H" origin/${{github.base_ref}}..HEAD^2~); do
+            echo ::notice::Dispatching job for $commit
+            curl -L -s \
+              -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              ${{ github.api_url }}/repos/${{ github.repository }}/actions/workflows/commit-ci.yml/dispatches \
+              -d "{\"ref\":\"${{ github.event.pull_request.head.ref }}\",\"inputs\":{\"sha\":\"$commit\",\"base_ref\":\"${{ github.base_ref}}\"}}"
+          done
+
+      - name: Pull container image
+        run: ./.ci/run-container-ci pull
+
+      - name: Run CI in container
+        run: ./.ci/run-container-ci ${{github.workspace}} ${{ github.base_ref }}

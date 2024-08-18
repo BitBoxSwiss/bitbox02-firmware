@@ -1,3 +1,12 @@
+# # 12.2.0 - July 20, 2024
+
+- Fix panics while decoding large miniscripts from script [#712](https://github.com/rust-bitcoin/rust-miniscript/pull/712)
+
+# 12.1.0 - July 9, 2024
+
+- Make `LoggerAssetProvider` constructible [#697](https://github.com/rust-bitcoin/rust-miniscript/pull/697)
+- Explicitly track recursion depth in fragments [#704](https://github.com/rust-bitcoin/rust-miniscript/pull/704)
+
 # 12.0.0 - May 22, 2024
 
 - Update MSRV to Rust `v1.56.1` [#639](https://github.com/rust-bitcoin/rust-miniscript/pull/639)

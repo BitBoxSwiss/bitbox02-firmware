@@ -55,7 +55,7 @@ checksum = "383d29d513d8764dcdc42ea295d979eb99c3c9f00607b3692cf68a431f7dca72"
 [[package]]
 name = "bip32-ed25519"
 version = "0.2.0"
-source = "git+https://github.com/digitalbitbox/rust-bip32-ed25519?tag=v0.2.0#805cc066f9aba9022f8d4f74d82d59b7741336d8"
+source = "git+https://github.com/BitBoxSwiss/rust-bip32-ed25519?tag=v0.2.0#805cc066f9aba9022f8d4f74d82d59b7741336d8"
 dependencies = [
  "curve25519-dalek",
  "digest",
@@ -457,9 +457,9 @@ dependencies = [
 
 [[package]]
 name = "miniscript"
-version = "12.0.0"
+version = "12.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b59c67956fd276ceec0cf194fbf80754ef4d88a496d5cf5e4fdf33561466183d"
+checksum = "add2d4aee30e4291ce5cffa3a322e441ff4d4bc57b38c8d9bf0e94faa50ab626"
 dependencies = [
  "bech32",
  "bitcoin",

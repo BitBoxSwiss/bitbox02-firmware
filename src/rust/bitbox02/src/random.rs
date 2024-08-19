@@ -17,7 +17,7 @@ pub fn mcu_32_bytes(out: &mut [u8; 32]) {
     unsafe { bitbox02_sys::random_32_bytes_mcu(out.as_mut_ptr()) }
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(not(target_arch = "arm"))]
 pub fn mcu_32_bytes(out: &mut [u8; 32]) {
     extern "C" {
         fn rand() -> util::c_types::c_int;

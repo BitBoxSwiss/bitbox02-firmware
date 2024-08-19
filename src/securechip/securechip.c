@@ -220,7 +220,7 @@ static ATCA_STATUS _lock_slot(securechip_slot_t slot)
 static ATCA_STATUS _factory_setup(void)
 {
     if (_interface_functions == NULL) {
-        return SC_ERR_IFS;
+        return (ATCA_STATUS)SC_ERR_IFS;
     }
     bool is_config_locked = false;
     ATCA_STATUS result = atcab_is_locked(LOCK_ZONE_CONFIG, &is_config_locked);

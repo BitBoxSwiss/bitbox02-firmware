@@ -27,15 +27,21 @@ pub type c_int = i32;
 
 #[cfg(target_arch = "x86_64")]
 pub type c_uint = u64;
+#[cfg(target_arch = "aarch64")]
+pub type c_uint = u64;
 #[cfg(target_arch = "arm")]
 pub type c_uint = u32;
 
 #[cfg(target_arch = "x86_64")]
 pub type c_long = i64;
+#[cfg(target_arch = "aarch64")]
+pub type c_long = i64;
 #[cfg(target_arch = "arm")]
 pub type c_long = i32;
 
 #[cfg(target_arch = "x86_64")]
+pub type c_ulong = u64;
+#[cfg(target_arch = "aarch64")]
 pub type c_ulong = u64;
 #[cfg(target_arch = "arm")]
 pub type c_ulong = u32;

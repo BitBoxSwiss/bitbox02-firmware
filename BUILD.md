@@ -54,6 +54,25 @@ brew tap osx-cross/arm
 brew install arm-gcc-bin
 ```
 
+## Simulator
+
+The Multi edition firmware can be built as a simulator for linux-amd64. To build it, run:
+
+    make -j simulator
+
+Run it with:
+
+    ./build-build/bin/simulator
+
+This launches a server simulating the firmware. The send_message tool can connect to it with:
+
+    ./py/send_message.py --simulator
+
+If you choose to create a wallet by restoring a mnemonic, the simulator will automatically use this
+mnemonic:
+
+    boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide
+
 ## Instructions
 
 Connect the J-Link to the debug pins on the BitBox02 prototype board.

@@ -40,7 +40,7 @@ struct Identity {
 
 const IDENTITIES: &[Identity] = &[
     Identity {
-        name: "Pocket Bitcoin",
+        name: "POCKET",
         public_key: b"\x02\x29\x02\xb4\xed\xe4\x82\xa9\x07\xce\x16\xa1\xc6\x34\x14\x5e\x72\x8f\x1d\xe4\xf2\x49\x04\x3a\x8b\xe4\x7d\xf2\x7d\xb9\x32\x0c\x2c",
     },
     #[cfg(feature = "testing")]

@@ -48,7 +48,7 @@ pub async fn process(request: &pb::EthSignMessageRequest) -> Result<Response, Er
     // abort errors.
     super::pubrequest::process(&pub_request).await?;
 
-    verify_message::verify(&request.msg).await?;
+    verify_message::verify("Sign message", "Sign", &request.msg, true).await?;
 
     // Construct message to be signed. There is no standard for this. We match what MyEtherWallet,
     // Trezor, etc. do, e.g.:
@@ -121,6 +121,7 @@ mod tests {
                     2 => {
                         assert_eq!(params.title, "Sign message");
                         assert_eq!(params.body.as_bytes(), MESSAGE);
+                        assert!(params.longtouch);
                         true
                     }
                     _ => panic!("too many user confirmations"),

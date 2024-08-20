@@ -24,7 +24,7 @@ use super::script::serialize_varint;
 use pb::btc_payment_request_request::{memo, Memo};
 use pb::btc_sign_init_request::FormatUnit;
 
-use crate::workflow::{confirm, transaction};
+use crate::workflow::{confirm, transaction, verify_message};
 
 use sha2::{Digest, Sha256};
 
@@ -74,20 +74,20 @@ pub async fn user_verify(
             Memo {
                 memo: Some(memo::Memo::TextMemo(text_memo)),
             } => {
-                if !util::ascii::is_printable_ascii(&text_memo.note, util::ascii::Charset::All) {
+                if !util::ascii::is_printable_ascii(
+                    &text_memo.note,
+                    util::ascii::Charset::AllNewline,
+                ) {
                     return Err(Error::InvalidInput);
                 }
                 confirm::confirm(&confirm::Params {
                     title: "",
-                    body: &format!(
-                        "Memo from {}: {}",
-                        payment_request.recipient_name, text_memo.note,
-                    ),
-                    scrollable: true,
+                    body: &format!("Memo from\n\n{}", payment_request.recipient_name),
                     accept_is_nextarrow: true,
                     ..Default::default()
                 })
                 .await?;
+                verify_message::verify("Memo", "Memo", text_memo.note.as_bytes(), false).await?;
             }
             _ => return Err(Error::InvalidInput),
         }

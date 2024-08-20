@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // This file is based on the snippet from cryptoauthlib/README.md:
-// https://github.com/digitalbitbox/cryptoauthlib/tree/v3.2.5#configuration
+// https://github.com/BitBoxSwiss/cryptoauthlib/tree/v3.2.5#configuration
 
 /* Cryptoauthlib Configuration File */
 #ifndef ATCA_CONFIG_H

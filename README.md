@@ -1,11 +1,11 @@
 <img src="./doc/BB02_logo_github.svg" width="345px"/>
 
-![CI](https://github.com/digitalbitbox/bitbox02-firmware/workflows/ci/badge.svg?branch=master)
+![CI](https://github.com/BitBoxSwiss/bitbox02-firmware/workflows/ci/badge.svg?branch=master)
 
 The BitBox02 is a hardware wallet that simplifies secure handling of crypto coins through storing
 private keys and signing transactions. The content of this repository is the bootloader and firmware
 used on the device. The BitBox02 is meant to be used primarily with the
-[BitBoxApp](https://github.com/digitalbitbox/bitbox-wallet-app), although third party integration is
+[BitBoxApp](https://github.com/BitBoxSwiss/bitbox-wallet-app), although third party integration is
 possible through the BitBox02 API.
 
 The main functionality of the firmware is the following:
@@ -63,7 +63,7 @@ Please also read our [CONTRIBUTING.md](CONTRIBUTING.md) before filing issues and
 
 There are two main ways to install or upgrade firmware on a BitBox02:
 
-1. by running the [BitBoxApp](https://github.com/digitalbitbox/bitbox-wallet-app/)
+1. by running the [BitBoxApp](https://github.com/BitBoxSwiss/bitbox-wallet-app/)
 2. by running [./py/load_firmware.py](./py/load_firmware.py) after installing the [bitbox02](./py)
    Python package, e.g. `./py/load_firmware.py firmware-btc.v9.12.0.signed.bin`.
 

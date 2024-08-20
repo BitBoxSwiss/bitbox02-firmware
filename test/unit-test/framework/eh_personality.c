@@ -20,7 +20,7 @@
 //
 // One could get rid of this and also considerably shrink the binary size by compiling core instead
 // of using pre-built binaries. See a proof of concept implementation here:
-// https://github.com/digitalbitbox/bitbox02-firmware/tree/build-std-PoC.  We decided against doing
+// https://github.com/BitBoxSwiss/bitbox02-firmware/tree/build-std-PoC.  We decided against doing
 // this for now as the feature seems immature and because of the warnings against using it in
 // production:
 // https://github.com/rust-lang/wg-cargo-std-aware/tree/81765f0eb744b9c47840c16f43a32c9f61fd7f0c#mvp-implementation

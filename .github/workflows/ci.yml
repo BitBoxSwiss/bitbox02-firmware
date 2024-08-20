@@ -20,4 +20,4 @@ jobs:
       - name: Pull CI container image
         run: ./.ci/run-container-ci pull
       - name: Run CI in container
-        run: ./.ci/run-container-ci ${{github.workspace}}
+        run: ./.ci/run-container-ci ${{github.workspace}} ${{ github.event.before }}

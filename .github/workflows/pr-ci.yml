@@ -18,7 +18,7 @@ jobs:
         run: ./.ci/run-container-ci pull
 
       - name: Run CI in container
-        run: ./.ci/run-container-ci ${{github.workspace}} ${{ github.base_ref }}
+        run: ./.ci/run-container-ci ${{github.workspace}} ${{ github.event.pull_request.base.sha }}
 
   # Generate a list of commits to run CI on
   generate-matrix:
@@ -35,7 +35,7 @@ jobs:
       - name: Create jobs for commits in PR history
         id: set-matrix
         run: |
-          echo matrix=$(.ci/matrix-from-commit-log origin/${{github.base_ref}}..${{ github.event.pull_request.head.sha}}~) >> $GITHUB_OUTPUT
+          echo matrix=$(.ci/matrix-from-commit-log ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}~) >> $GITHUB_OUTPUT
 
   # Run this job for every commit in the PR except HEAD.
   pr-commit-ci:
@@ -70,4 +70,4 @@ jobs:
         run: ./.ci/run-container-ci pull
 
       - name: Run CI in container
-        run: ./.ci/run-container-ci ${{github.workspace}} ${{ github.base_ref }}
+        run: ./.ci/run-container-ci ${{github.workspace}} ${{ github.event.pull_request.base.sha }}

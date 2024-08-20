@@ -58,10 +58,12 @@ jobs:
           GIT_COMMITTER_NAME: Bot
           GIT_COMMITTER_EMAIL: bot@bitbox.swiss
         run: |
-          git fetch origin ${{ matrix.commit }}
+          git fetch origin ${{ matrix.commit }} ${{ github.event.pull_request.merge_commit_sha }}
           git merge --no-ff --no-edit ${{ matrix.commit }}
-          echo "merge commit parents:"
           git log -1 --format="Head %H, Parents %P"
+          # Since the workflow definition is taken from the pull request merge commit, we need to
+          # get the .ci scripts from there as well.
+          git checkout -f ${{ github.event.pull_request.merge_commit_sha }} -- .ci .github
 
       - name: Pull container image
         run: ./.ci/run-container-ci pull

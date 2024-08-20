@@ -328,6 +328,12 @@ string(APPEND CMAKE_C_FLAGS " -Wno-cast-function-type")
 
 # Hardening
 string(APPEND CMAKE_C_FLAGS " -fstack-protector-all")
+if(CMAKE_CROSSCOMPILING)
+  # Path to empty dummy libssp and libssp_shared. '-llibssp -llibssp_shared' is automatically added
+  # with '-fstack-protector-all', but we don't need them as we have our own custom
+  # `__stack_chk_fail`. See https://wiki.osdev.org/Stack_Smashing_Protector.
+  set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -L${CMAKE_CURRENT_SOURCE_DIR}/external/lib/ssp")
+endif()
 
 # Disallow duplicate definitions, which is the default since GCC
 # 10. It was not default in gcc-arm-none-eabi-8-2018-q4.

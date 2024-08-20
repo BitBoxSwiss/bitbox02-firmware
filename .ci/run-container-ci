@@ -41,11 +41,6 @@ if [ -z "${WORKSPACE_DIR}" ]; then
 fi
 
 TARGET_BRANCH="${2:-master}"
-
-# Fetch origin/master so that we can diff when checking coding style.
-git remote set-branches --add origin ${TARGET_BRANCH}
-git fetch origin
-
 TARGET_BRANCH=origin/${TARGET_BRANCH}
 
 # The safe.directory config is so that git commands work. even though the repo folder mounted in

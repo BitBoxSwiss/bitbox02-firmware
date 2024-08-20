@@ -7,7 +7,7 @@
 rm -rf temp
 
 # Copying repo at the specified version into `./temp`
-git clone --depth 1 --branch $1 --recurse-submodules https://github.com/digitalbitbox/bitbox02-firmware temp
+git clone --depth 1 --branch $1 --recurse-submodules https://github.com/BitBoxSwiss/bitbox02-firmware temp
 
 cd temp;
 

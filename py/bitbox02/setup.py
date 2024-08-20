@@ -42,14 +42,14 @@ setup(
     description="Python library for bitbox02 communication",
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
-    url="https://github.com/digitalbitbox/bitbox02-firmware",
+    url="https://github.com/BitBoxSwiss/bitbox02-firmware",
     python_requires=">=3.6",
     classifiers=[
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Programming Language :: Python :: 3.6",
     ],
-    keywords="digitalbitbox bitbox bitbox02 bitcoin litecoin ethereum erc20 u2f",
+    keywords="digitalbitbox BitBoxSwiss bitbox bitbox02 bitcoin litecoin ethereum erc20 u2f",
     # https://mypy.readthedocs.io/en/stable/installed_packages.html#installed-packages
     zip_safe=False,
     package_data={

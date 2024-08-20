@@ -33,7 +33,7 @@ else
 fi
 
 CONTAINER_IMAGE=shiftcrypto/firmware_v2
-CONTAINER_VERSION=${CONTAINER_VERSION:-latest}
+CONTAINER_VERSION=${CONTAINER_VERSION:-$(cat .containerversion)}
 PROJECT_NAME="$(basename "$(realpath "$DIR/..")")"
 CONTAINER_NAME="$PROJECT_NAME-$CONTAINER_NAME_SUFFIX"
 

@@ -24,17 +24,15 @@ pub async fn process(
     &pb::InsertRemoveSdCardRequest { action }: &pb::InsertRemoveSdCardRequest,
 ) -> Result<Response, Error> {
     let inserted = bitbox02::sd::sdcard_inserted();
-    let action = match SdCardAction::try_from(action) {
-        Ok(action) => action,
-        Err(_) => return Ok(Response::Success(pb::Success {})),
+    match SdCardAction::try_from(action) {
+        Ok(SdCardAction::InsertCard) => {},
+        _ => return Ok(Response::Success(pb::Success {})),
     };
-    // No action required, already inserted (INSERT request) or not inserted (REMOVE request)
-    if (action == SdCardAction::InsertCard && inserted)
-        || (action == SdCardAction::RemoveCard && !inserted)
+    if inserted
     {
         return Ok(Response::Success(pb::Success {}));
     }
-    sdcard::sdcard(action == SdCardAction::InsertCard).await?;
+    sdcard::sdcard().await?;
     Ok(Response::Success(pb::Success {}))
 }
 
@@ -75,7 +73,6 @@ mod tests {
         // insert
         mock(Data {
             sdcard_inserted: Some(false),
-            ui_sdcard_create_arg: Some(true),
             ..Default::default()
         });
         assert_eq!(
@@ -88,7 +85,6 @@ mod tests {
         // remove
         mock(Data {
             sdcard_inserted: Some(true),
-            ui_sdcard_create_arg: Some(false),
             ..Default::default()
         });
         assert_eq!(

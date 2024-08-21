@@ -220,7 +220,6 @@ class SendMessage:
                 return
             print("Backup created sucessfully")
             print("Please Remove SD Card")
-            self._device.remove_sdcard()
 
         def backup_mnemonic() -> None:
             if self._device.version < semver.VersionInfo(9, 13, 0):
@@ -284,7 +283,6 @@ class SendMessage:
             eprint("Restoring backup failed")
             return
         print("Please Remove SD Card")
-        self._device.remove_sdcard()
 
     def _restore_from_mnemonic(self) -> None:
         try:
@@ -316,9 +314,6 @@ class SendMessage:
             self._device.insert_sdcard()
         except UserAbortException:
             print("Aborted by user")
-
-    def _remove_sdcard(self) -> None:
-        self._device.remove_sdcard()
 
     def _get_root_fingerprint(self) -> None:
         print(f"Root fingerprint: {self._device.root_fingerprint().hex()}")
@@ -1390,7 +1385,6 @@ class SendMessage:
             ("Reboot into bootloader", self._reboot),
             ("Check if SD card inserted", self._check_sd_presence),
             ("Insert SD card", self._insert_sdcard),
-            ("Remove SD card", self._remove_sdcard),
             ("Toggle BIP39 Mnemonic Passphrase", self._toggle_mnemonic_passphrase),
             ("Retrieve Ethereum xpub", self._get_eth_xpub),
             ("Retrieve Ethereum address", self._display_eth_address),

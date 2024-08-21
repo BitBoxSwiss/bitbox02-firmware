@@ -197,7 +197,7 @@ where
     }
 }
 
-pub fn sdcard_create<'a, F>(insert: bool, callback: F) -> Component<'a>
+pub fn sdcard_create<'a, F>(callback: F) -> Component<'a>
 where
     // Callback must outlive component.
     F: FnMut(bool) + 'a,
@@ -214,7 +214,6 @@ where
 
     let component = unsafe {
         bitbox02_sys::sdcard_create(
-            insert,
             Some(c_callback::<F>),
             // passed to the C callback as `param`
             Box::into_raw(Box::new(callback)) as *mut _,

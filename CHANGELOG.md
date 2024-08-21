@@ -12,6 +12,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Bitcoin: UX improvements for payment request confirmations
 - Ethereum: display the addresses on device in the same case as the user input
 - Allow exiting the screen asking to insert the microSD card
+- SD card: Remove API to prompt removal of the microSD card
+- SD card: add auto-detection of insertion
 
 ### 9.19.0
 - Display device name on screen before unlock

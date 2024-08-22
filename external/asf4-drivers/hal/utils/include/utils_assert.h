@@ -44,6 +44,8 @@
 #ifndef _ASSERT_H_INCLUDED
 #define _ASSERT_H_INCLUDED
 
+#undef assert
+
 #ifdef __cplusplus
 extern "C" {
 #endif

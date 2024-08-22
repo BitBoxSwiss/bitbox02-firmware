@@ -35,7 +35,8 @@ fi
 
 
 # Build the Docker image (this can take a while):
-docker build --pull --force-rm --no-cache -t bitbox02-firmware .
+# -  The firmware is only reproducible with the same host compiler. For now we force linux/amd64.
+docker build --pull --platform linux/amd64 --force-rm --no-cache -t bitbox02-firmware .
 
 # Revert the above local patch to the Dockerfile again to have a clean state.
 git checkout -- Dockerfile

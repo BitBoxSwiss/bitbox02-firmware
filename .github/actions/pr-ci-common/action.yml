@@ -1,0 +1,33 @@
+name: Pull request CI common
+
+inputs:
+  base-sha:
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Check if container files was modified and if container version already exists
+      id: checks
+      shell: bash
+      run: |
+        echo modified=$(./.ci/check-container-sources-modified) >> "$GITHUB_OUTPUT"
+        echo container-published=$(./.ci/check-container-version-published) >> "$GITHUB_OUTPUT"
+
+    - name: Build container image
+      if: steps.checks.outputs.modified == 'true'
+      shell: bash
+      run: |
+        if "${{ steps.checks.outputs.container-published }}" == "true"; then
+          echo "::error::Container modified but version $(cat .containerversion) already published"
+          exit 1
+        fi
+        ./.ci/build-container
+
+    - name: Pull container image
+      if: steps.checks.outputs.modified == 'false'
+      shell: bash
+      run: ./.ci/pull-container
+
+    - name: Run CI in container
+      shell: bash
+      run: ./.ci/run-container-ci ${{github.workspace}} ${{ inputs.base-sha }}

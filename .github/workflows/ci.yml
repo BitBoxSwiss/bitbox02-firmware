@@ -8,14 +8,37 @@ on:
       - master
 
 jobs:
-  linux-docker:
+  ci:
     runs-on: ubuntu-22.04
     steps:
       - name: Clone the repo
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
+          fetch-tags: true
           submodules: recursive
+
+      - name: Check if container should be published
+        id: checks
+        run: echo container-published=$(./.ci/check-container-version-published) >> $GITHUB_OUTPUT
+
+      - name: Build container
+        if: steps.checks.outputs.container-published == 'false'
+        run: ./.ci/build-container
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Publish container
+        if: steps.checks.outputs.container-published == 'false'
+        run: ./.ci/publish-container
+
       - name: Pull CI container image
-        run: ./.ci/run-container-ci pull
+        if: steps.checks.outputs.container-published == 'true'
+        run: ./.ci/pull-container
+
       - name: Run CI in container
-        run: ./.ci/run-container-ci ${{github.workspace}}
+        run: ./.ci/run-container-ci ${{github.workspace}} ${{ github.event.before }}

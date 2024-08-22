@@ -16,11 +16,9 @@
 
 # The script runs all CI builds and checks in a Docker container.
 # It accepts two positional arguments:
-# 1. A workspace dir, the root of the git repo clone, or "pull" literal.
-#    In the latter case, CI container image is pulled from a registry.
-# 2. An optional target branch for code style diffs. Defaults to "master" for
-#    push commits and overwritten with TRAVIS_BRANCH env var for pull requests
-#    when run on Travis CI.
+# 1. A workspace dir, the root of the git repo clone, to be mounted in the container.
+# 2. A git revision (see man gitrevisions) to compare against HEAD to filter out modified and new
+#    files. Some scripts only run on that subset.
 
 set -e
 set -x
@@ -29,28 +27,13 @@ CONTAINER_REPO=shiftcrypto/firmware_v2
 CONTAINER_VERSION=$(cat .containerversion)
 CONTAINER=$CONTAINER_REPO:${CONTAINER_VERSION}
 
-if [ "$1" == "pull" ] ; then
-	docker pull "$CONTAINER"
-	exit 0
-fi
-
 WORKSPACE_DIR="$1"
 if [ -z "${WORKSPACE_DIR}" ]; then
   echo "Workspace dir path is empty."
   exit 1
 fi
 
-TARGET_BRANCH="${2:-master}"
-if [ "${TRAVIS}" == "true" ] && [ "${TRAVIS_PULL_REQUEST}" != "false" ] ; then
-	TARGET_BRANCH=${TRAVIS_BRANCH}
-fi
-
-# Fetch origin/master so that we can diff when checking coding style.
-git remote set-branches --add origin ${TARGET_BRANCH}
-git fetch origin
-
-TARGET_BRANCH=origin/${TARGET_BRANCH}
-
+TARGET_BRANCH="$2"
 # The safe.directory config is so that git commands work. even though the repo folder mounted in
 # Docker is owned by root, which can be different from the owner on the host.
 docker run -e TARGET_BRANCH="${TARGET_BRANCH}" \

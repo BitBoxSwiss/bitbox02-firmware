@@ -14,27 +14,10 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Check if container files was modified and if container version already exists
-        id: checks
-        run: |
-          echo modified=$(./.ci/check-container-sources-modified) >> "$GITHUB_OUTPUT"
-          echo container-published=$(./.ci/check-container-version-published) >> "$GITHUB_OUTPUT"
-
-      - name: Build container image
-        if: steps.checks.outputs.modified == 'true'
-        run: |
-          if "${{ steps.checks.outputs.container-published }}" == "true"; then
-            echo "::error::Container modified but version $(cat .containerversion) already published"
-            exit 1
-          fi
-          ./.ci/build-container
-
-      - name: Pull container image
-        if: steps.checks.outputs.modified == 'false'
-        run: ./.ci/pull-container
-
-      - name: Run CI in container
-        run: ./.ci/run-container-ci ${{github.workspace}} ${{ github.event.pull_request.base.sha }}
+      - name: CI
+        uses: ./.github/actions/pr-ci-common
+        with:
+          base-sha: ${{ github.event.pull_request.base.sha }}
 
   # Generate a list of commits to run CI on
   generate-matrix:
@@ -54,6 +37,12 @@ jobs:
           echo matrix=$(.ci/matrix-from-commit-log ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}~) >> $GITHUB_OUTPUT
 
   # Run this job for every commit in the PR except HEAD.
+  # This job simulates what github does for the PR HEAD commit but for every other commit in the
+  # PR. So for every commit, it creates a merge commit between that commit and the base branch.
+  # Then it runs the CI on that merge commit.
+  # The only caveat is that this file (pr-ci.yml) is already loaded from the PR HEAD merge commit,
+  # and therefore we need to load the `.ci` scripts from the PR HEAD merge commit. The outcome of
+  # that is that changes to the CI is not tested per commit. All commits use the final version.
   pr-commit-ci:
     runs-on: ubuntu-22.04
     needs: [ generate-matrix ]
@@ -82,24 +71,7 @@ jobs:
           # get the .ci scripts from there as well.
           git checkout -f ${{ github.event.pull_request.merge_commit_sha }} -- .ci .github
 
-      - name: Check if container files was modified and if container version already exists
-        id: checks
-        run: |
-          echo modified=$(./.ci/check-container-sources-modified) >> "$GITHUB_OUTPUT"
-          echo container-published=$(./.ci/check-container-version-published) >> "$GITHUB_OUTPUT"
-
-      - name: Build container image
-        if: steps.checks.outputs.modified == 'true'
-        run: |
-          if "${{ steps.checks.outputs.container-published }}" == "true"; then
-            echo "::error::Container modified but version $(cat .containerversion) already published"
-            exit 1
-          fi
-          ./.ci/build-container
-
-      - name: Pull container image
-        if: steps.checks.outputs.modified == 'false'
-        run: ./.ci/pull-container
-
-      - name: Run CI in container
-        run: ./.ci/run-container-ci ${{github.workspace}} ${{ github.event.pull_request.base.sha }}
+      - name: CI
+        uses: ./.github/actions/pr-ci-common
+        with:
+          base-sha: ${{ github.event.pull_request.base.sha }}

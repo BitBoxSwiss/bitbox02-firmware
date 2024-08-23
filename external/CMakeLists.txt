@@ -52,6 +52,7 @@ ExternalProject_Add(libwally-core
   COMMAND         ${CMAKE_COMMAND} -E env
                   "CFLAGS=${LIBWALLY_CFLAGS}"
                   "LDFLAGS=${LIBWALLY_LDFLAGS}"
+                  PYTHON_VERSION=3
                   ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core/configure
                   ${CONFIGURE_FLAGS}
                   ${LIBWALLY_CONFIGURE_FLAGS}

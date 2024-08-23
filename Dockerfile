@@ -121,9 +121,6 @@ RUN if [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
     rm /tmp/protoc-21.2.zip
 ENV PATH /opt/protoc/bin:$PATH
 
-# Make Python3 the default
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
-
 # Developer tools
 RUN apt-get update && apt-get install -y \
     bash-completion

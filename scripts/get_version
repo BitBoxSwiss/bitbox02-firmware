@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Parse the tags and strip the prefix
 First argument should be prefix to match against

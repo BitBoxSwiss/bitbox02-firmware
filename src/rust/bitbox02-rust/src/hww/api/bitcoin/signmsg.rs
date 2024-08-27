@@ -77,7 +77,7 @@ pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Er
     };
     confirm::confirm(&confirm_params).await?;
 
-    verify_message::verify(&request.msg).await?;
+    verify_message::verify("Sign message", "Sign", &request.msg, true).await?;
 
     // See
     // https://github.com/spesmilo/electrum/blob/84dc181b6e7bb20e88ef6b98fb8925c5f645a765/electrum/ecc.py#L355-L358.
@@ -303,6 +303,7 @@ mod tests {
                     3 => {
                         assert_eq!(params.title, "Sign message");
                         assert_eq!(params.body.as_bytes(), MESSAGE);
+                        assert!(params.longtouch);
                         false
                     }
                     _ => panic!("too many user confirmations"),

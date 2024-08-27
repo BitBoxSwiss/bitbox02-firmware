@@ -24,7 +24,7 @@ use super::script::serialize_varint;
 use pb::btc_payment_request_request::{memo, Memo};
 use pb::btc_sign_init_request::FormatUnit;
 
-use crate::workflow::{confirm, transaction};
+use crate::workflow::{confirm, transaction, verify_message};
 
 use sha2::{Digest, Sha256};
 
@@ -40,7 +40,7 @@ struct Identity {
 
 const IDENTITIES: &[Identity] = &[
     Identity {
-        name: "Pocket Bitcoin",
+        name: "POCKET",
         public_key: b"\x02\x29\x02\xb4\xed\xe4\x82\xa9\x07\xce\x16\xa1\xc6\x34\x14\x5e\x72\x8f\x1d\xe4\xf2\x49\x04\x3a\x8b\xe4\x7d\xf2\x7d\xb9\x32\x0c\x2c",
     },
     #[cfg(feature = "testing")]
@@ -74,20 +74,20 @@ pub async fn user_verify(
             Memo {
                 memo: Some(memo::Memo::TextMemo(text_memo)),
             } => {
-                if !util::ascii::is_printable_ascii(&text_memo.note, util::ascii::Charset::All) {
+                if !util::ascii::is_printable_ascii(
+                    &text_memo.note,
+                    util::ascii::Charset::AllNewline,
+                ) {
                     return Err(Error::InvalidInput);
                 }
                 confirm::confirm(&confirm::Params {
                     title: "",
-                    body: &format!(
-                        "Memo from {}: {}",
-                        payment_request.recipient_name, text_memo.note,
-                    ),
-                    scrollable: true,
+                    body: &format!("Memo from\n\n{}", payment_request.recipient_name),
                     accept_is_nextarrow: true,
                     ..Default::default()
                 })
                 .await?;
+                verify_message::verify("Memo", "Memo", text_memo.note.as_bytes(), false).await?;
             }
             _ => return Err(Error::InvalidInput),
         }

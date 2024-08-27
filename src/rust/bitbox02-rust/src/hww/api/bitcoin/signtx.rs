@@ -3178,14 +3178,14 @@ mod tests {
         {
             let mut tx = transaction.borrow_mut();
             // An additional confirmation for the text memo.
-            tx.total_confirmations += 1;
+            tx.total_confirmations += 3;
             let payment_request_output_index = 1;
             let output_value = tx.outputs[payment_request_output_index].value;
             let mut payment_request = pb::BtcPaymentRequestRequest {
                 recipient_name: "Test Merchant".into(),
                 memos: vec![Memo {
                     memo: Some(memo::Memo::TextMemo(memo::TextMemo {
-                        note: "Test memo".into(),
+                        note: "Test memo line1\nTest memo line2".into(),
                     })),
                 }],
                 nonce: vec![],
@@ -3222,12 +3222,12 @@ mod tests {
                         assert_eq!(amount, "12.34567890 BTC");
                         true
                     }
-                    4 => {
+                    6 => {
                         assert_eq!(address, "bc1qxvenxvenxvenxvenxvenxvenxvenxven2ymjt8");
                         assert_eq!(amount, "0.00006000 BTC");
                         true
                     }
-                    5 => {
+                    7 => {
                         assert_eq!(
                             address,
                             "bc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqd8sxw4"
@@ -3243,7 +3243,7 @@ mod tests {
                     UI_COUNTER += 1;
                     UI_COUNTER
                 } {
-                    7 => {
+                    9 => {
                         assert_eq!(total, "13.39999900 BTC");
                         assert_eq!(fee, "0.05419010 BTC");
                         true
@@ -3257,10 +3257,26 @@ mod tests {
                     UI_COUNTER
                 } {
                     3 => {
-                        assert_eq!(params.body, "Memo from Test Merchant: Test memo");
+                        assert_eq!(params.body, "Memo from\n\nTest Merchant");
+                        assert!(params.accept_is_nextarrow);
+                        assert!(!params.longtouch);
                         true
                     }
-                    6 => {
+                    4 => {
+                        assert_eq!(params.title, "Memo 1/2");
+                        assert_eq!(params.body, "Test memo line1");
+                        assert!(params.accept_is_nextarrow);
+                        assert!(!params.longtouch);
+                        true
+                    }
+                    5 => {
+                        assert_eq!(params.title, "Memo 2/2");
+                        assert_eq!(params.body, "Test memo line2");
+                        assert!(params.accept_is_nextarrow);
+                        assert!(!params.longtouch);
+                        true
+                    }
+                    8 => {
                         assert_eq!(params.title, "Warning");
                         assert_eq!(params.body, "There are 2\nchange outputs.\nProceed?");
                         true

@@ -8,6 +8,11 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 
+### 9.20.0
+- Bitcoin: UX improvements for payment request confirmations
+- Ethereum: display the addresses on device in the same case as the user input
+- Allow exiting the screen asking to insert the microSD card
+
 ### 9.19.0
 - Display device name on screen before unlock
 - Bitcoin: add support for payment requests
@@ -15,8 +20,6 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Bitcoin: allow spendung UTXOs at very high BIP-44 address indices
 - Ethereum: allow signing EIP-712 messages containing multi-line strings
 - Ethereum: display the addresses on device in the same case as the user input
-- Allow exiting the screen asking to insert the microSD card
-- HWW: add initialized status byte to _api_info response
 
 ### 9.18.0
 - Add support for deriving BIP-39 mnemonics according to BIP-85

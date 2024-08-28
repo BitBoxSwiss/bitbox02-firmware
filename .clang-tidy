@@ -1,0 +1,22 @@
+Checks: >-
+  clang-analyzer-*,
+  -clang-analyzer-cplusplus*,
+  bugprone-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -readability-braces-around-statements,
+  -readability-magic-numbers,
+  -readability-isolate-declaration,
+  -readability-identifier-length,
+  -readability-function-cognitive-complexity,
+  -bugprone-reserved-identifier,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -performance-no-int-to-ptr,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  -readability-avoid-unconditional-preprocessor-if
+HeaderFilterRegex: '.*'
+ExtraArgs:
+  - -Wno-unknown-warning-option
+  - -Qunused-arguments

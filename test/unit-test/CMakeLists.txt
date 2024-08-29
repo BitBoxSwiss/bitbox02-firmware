@@ -99,7 +99,6 @@ add_custom_target(bitbox_merged DEPENDS ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbit
 target_include_directories(
   bitbox_objects
   SYSTEM PUBLIC
-  ${SYSTEMINCLUDES}
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/ctaes
   ${CMAKE_SOURCE_DIR}/external/fatfs/source
@@ -119,7 +118,6 @@ target_include_directories(
 target_include_directories(
   bitbox
   SYSTEM PUBLIC
-  ${SYSTEMINCLUDES}
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/ctaes
   ${CMAKE_SOURCE_DIR}/external/fatfs/source
@@ -190,7 +188,6 @@ add_library(u2f-util
 target_include_directories(
   u2f-util
   SYSTEM PUBLIC
-  ${SYSTEMINCLUDES}
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 target_include_directories(

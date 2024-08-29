@@ -107,9 +107,9 @@ static void _test_memory_attestation(void** state)
     uint8_t expected_pubkey[64];
     memset(expected_pubkey, 0x55, sizeof(expected_pubkey));
     uint8_t expected_certificate[64];
-    memset(expected_pubkey, 0x66, sizeof(expected_certificate));
+    memset(expected_certificate, 0x66, sizeof(expected_certificate));
     uint8_t expected_root_pubkey_identifier[32];
-    memset(expected_pubkey, 0x77, sizeof(expected_root_pubkey_identifier));
+    memset(expected_root_pubkey_identifier, 0x77, sizeof(expected_root_pubkey_identifier));
 
     uint8_t pubkey[64];
     uint8_t certificate[64];

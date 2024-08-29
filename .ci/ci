@@ -6,10 +6,14 @@ set -e
 # Deny warnings in rust. CI will fail to compile any code with warnings in it.
 export RUSTFLAGS="-Dwarnings"
 
-# Check style
-
+# Check style for C
 ./.ci/check-style
+
+# Check that we can generate protobuf definitions for python
+make -C py clean
 make -C py
+
+# Check style for python
 ./.ci/check-pep8
 
 # check ./releases sigs

@@ -171,11 +171,6 @@ set(INCLUDES
 )
 set(INCLUDES ${INCLUDES} PARENT_SCOPE)
 
-set(SYSTEMINCLUDES
-  ${CMAKE_BINARY_DIR}/messages
-)
-set(SYSTEMINCLUDES ${SYSTEMINCLUDES} PARENT_SCOPE)
-
 #-----------------------------------------------------------------------------
 # Build embedded firmware
 
@@ -268,7 +263,7 @@ endif()
 get_property(WALLY_INCLUDES TARGET wallycore PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
 get_property(SECP256k1_INCLUDES TARGET secp256k1 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
 
-foreach(include ${INCLUDES} ${SYSTEMINCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDES} ${ASF4_MIN_INCLUDES} ${CMSIS_INCLUDES} ${WALLY_INCLUDES} ${SECP256k1_INCLUDES})
+foreach(include ${INCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDES} ${ASF4_MIN_INCLUDES} ${CMSIS_INCLUDES} ${WALLY_INCLUDES} ${SECP256k1_INCLUDES})
   list(APPEND RUST_INCLUDES -I${include})
 endforeach()
 if(NOT CMAKE_CROSSCOMPILING)
@@ -563,7 +558,6 @@ if(CMAKE_CROSSCOMPILING)
     add_executable(${elf} ${BOOTLOADER-SOURCES})
     target_link_libraries(${elf} PRIVATE c asf4-drivers-min samd51a-ds -Wl,-u,exception_table)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
-    target_include_directories(${elf} SYSTEM PRIVATE ${SYSTEMINCLUDES})
     target_compile_definitions(${elf} PRIVATE BOOTLOADER "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
     # needed to find version.h
     target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
@@ -622,7 +616,6 @@ if(CMAKE_CROSSCOMPILING)
         asf4-drivers
         -Wl,-u,exception_table)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
-    target_include_directories(${elf} SYSTEM PRIVATE ${SYSTEMINCLUDES})
 
     # needed to find version.h
     target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

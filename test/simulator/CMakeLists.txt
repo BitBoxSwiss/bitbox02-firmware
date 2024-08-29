@@ -93,7 +93,6 @@ add_custom_target(bitbox_merged-simulator DEPENDS ${CMAKE_ARCHIVE_OUTPUT_DIRECTO
 target_include_directories(
   bitbox_objects-simulator
   SYSTEM PUBLIC
-  ${SYSTEMINCLUDES}
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/ctaes
   ${CMAKE_SOURCE_DIR}/external/fatfs/source
@@ -113,7 +112,6 @@ target_include_directories(
 target_include_directories(
   bitbox-simulator
   SYSTEM PUBLIC
-  ${SYSTEMINCLUDES}
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/ctaes
   ${CMAKE_SOURCE_DIR}/external/fatfs/source

@@ -20,13 +20,20 @@ make -C py
 ./.ci/check-release-sigs
 
 # Make build directories so we can do some static analysis
+#  - prepare-tidy will create build dirs and more importantly the
+#    compile_commands.json needed for clang-tidy
 make prepare-tidy
 ./.ci/check-tidy
 
 # Build and run Unit tests
-make -j8 unit-test SANITIZE=OFF
+make -j8 unit-test
 make -j8 run-unit-tests
 make -j8 run-rust-unit-tests
+
+# Delete the build directories so that SANITIZE=OFF will take effect
+# Valgrind cannot run programs compiled with address sanitizing on.
+make clean
+make -j8 unit-test SANITIZE=OFF
 make -j8 run-valgrind-on-unit-tests
 
 # BUild simulator

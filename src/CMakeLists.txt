@@ -544,7 +544,7 @@ if(CMAKE_CROSSCOMPILING)
       ${CARGO} doc --document-private-items --target-dir ${CMAKE_BINARY_DIR}/docs-rust --target thumbv7em-none-eabi
     COMMAND
       ${CMAKE_COMMAND} -E echo "See docs at file://${CMAKE_BINARY_DIR}/docs-rust/thumbv7em-none-eabi/doc/bitbox02_rust/index.html"
-    WORKING_DIRECTORY ${LIBBITBOX02_RUST_SOURCE_DIR}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust
   )
   add_dependencies(rust-docs rust-bindgen)
 

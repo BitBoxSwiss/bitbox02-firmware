@@ -20,8 +20,4 @@
 // Can be removed once https://github.com/rust-lang/rust-bindgen/issues/1651 is resolved.
 #![allow(deref_nullptr)]
 // include our generated bindings
-include!(concat!(
-    env!("CMAKE_CURRENT_BINARY_DIR"),
-    "/rust",
-    "/bindings.rs"
-));
+include!(concat!(env!("OUT_DIR"), "/bindings.rs"));

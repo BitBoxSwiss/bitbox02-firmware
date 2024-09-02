@@ -480,7 +480,7 @@ static void _register_continue(const USB_APDU* apdu, Packet* out_packet)
         if (!_keyhandle_gen(reg_request->appId, nonce, privkey, mac)) {
             continue;
         }
-        if (securechip_ecc_generate_public_key(privkey, (uint8_t*)&response->pubKey.x)) {
+        if (atecc_ecc_generate_public_key(privkey, (uint8_t*)&response->pubKey.x)) {
             break;
         }
     }
@@ -504,7 +504,7 @@ static void _register_continue(const USB_APDU* apdu, Packet* out_packet)
     uint8_t hash[SHA256_LEN] = {0};
     wally_sha256((uint8_t*)&sig_base, sizeof(sig_base), hash, SHA256_LEN);
 
-    if (!securechip_ecc_unsafe_sign(U2F_ATT_PRIV_KEY, hash, sig)) {
+    if (!atecc_ecc_unsafe_sign(U2F_ATT_PRIV_KEY, hash, sig)) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
@@ -666,7 +666,7 @@ static void _authenticate_continue(const USB_APDU* apdu, Packet* out_packet)
     U2F_AUTHENTICATE_RESP* response = (U2F_AUTHENTICATE_RESP*)&buf;
 
     uint32_t counter;
-    if (!securechip_u2f_counter_inc(&counter)) {
+    if (!atecc_u2f_counter_inc(&counter)) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
@@ -687,7 +687,7 @@ static void _authenticate_continue(const USB_APDU* apdu, Packet* out_packet)
     uint8_t hash[SHA256_LEN] = {0};
     wally_sha256((uint8_t*)&sig_base, sizeof(sig_base), hash, SHA256_LEN);
 
-    if (!securechip_ecc_unsafe_sign(privkey, hash, sig)) {
+    if (!atecc_ecc_unsafe_sign(privkey, hash, sig)) {
         _error(U2F_SW_WRONG_DATA, out_packet);
         return;
     }

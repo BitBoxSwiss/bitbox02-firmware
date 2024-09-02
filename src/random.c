@@ -72,8 +72,8 @@ static void random_32_bytes_sec(uint8_t* buf)
         random[i] = rand();
     }
 #else
-    if (!securechip_random(random)) {
-        Abort("Abort: securechip_random");
+    if (!atecc_random(random)) {
+        Abort("Abort: atecc_random");
     }
 #endif
     for (size_t i = 0; i < sizeof(random); i++) {

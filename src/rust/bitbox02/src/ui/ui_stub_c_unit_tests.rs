@@ -100,7 +100,7 @@ where
     }
 }
 
-pub fn sdcard_create<'a, F>(_insert: bool, mut callback: F) -> Component<'a>
+pub fn sdcard_create<'a, F>(mut callback: F) -> Component<'a>
 where
     F: FnMut(bool) + 'a,
 {

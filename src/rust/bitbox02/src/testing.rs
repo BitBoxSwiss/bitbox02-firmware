@@ -25,7 +25,6 @@ use crate::keystore;
 pub struct Data {
     pub ui_confirm_create: Option<Box<dyn Fn(&super::ui::ConfirmParams) -> bool>>,
     pub sdcard_inserted: Option<bool>,
-    pub ui_sdcard_create_arg: Option<bool>,
     pub ui_transaction_address_create: Option<Box<dyn Fn(&str, &str) -> bool>>,
     pub ui_transaction_fee_create: Option<Box<dyn Fn(&str, &str, bool) -> bool>>,
     pub ui_trinary_input_string_create:
@@ -40,7 +39,6 @@ unsafe impl Sync for SafeData {}
 pub static DATA: SafeData = SafeData(RefCell::new(Data {
     ui_confirm_create: None,
     sdcard_inserted: None,
-    ui_sdcard_create_arg: None,
     ui_transaction_address_create: None,
     ui_transaction_fee_create: None,
     ui_trinary_input_string_create: None,

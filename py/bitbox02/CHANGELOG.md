@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+# 8.0.0
+- SD card: Remove API to prompt removal of the microSD card from the device
+
 # 7.0.0
 - get_info: add optional device initialized boolean to returned tuple
 - eth_sign: add address_case field, which should be initialized by the client

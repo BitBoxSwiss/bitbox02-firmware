@@ -648,16 +648,6 @@ class BitBox02(BitBoxCommonAPI):
         )
         self._msg_query(request, expected_response="success")
 
-    def remove_sdcard(self) -> None:
-        # pylint: disable=no-member
-        request = hww.Request()
-        request.insert_remove_sdcard.CopyFrom(
-            bitbox02_system.InsertRemoveSDCardRequest(
-                action=bitbox02_system.InsertRemoveSDCardRequest.REMOVE_CARD
-            )
-        )
-        self._msg_query(request, expected_response="success")
-
     def root_fingerprint(self) -> bytes:
         """
         Get the root fingerprint from the bitbox02

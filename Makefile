@@ -105,7 +105,7 @@ coverage: | build-build
 #./build/bin/test_ui_component_gestures;
 run-valgrind-on-unit-tests:
 	$(MAKE) unit-test
-	bash -c 'find build-build/bin/ -name "test_*" -exec valgrind --leak-check=yes --track-origins=yes {} \;'
+	bash -ec 'for exe in build-build/bin/test_*; do  valgrind --leak-check=yes --track-origins=yes --error-exitcode=1 --exit-on-first-error=yes $$exe; done'
 flash-dev-firmware:
 	./py/load_firmware.py build/bin/firmware.bin --debug
 jlink-flash-bootloader-development: | build

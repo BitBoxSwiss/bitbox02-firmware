@@ -1,4 +1,4 @@
-// Copyright 2022 Shift Cryptosecurity AG
+// Copyright 2024 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Firmware version, short format, e.g. "v9.12.0".
-// We don't want this to be a hard error during development so that rust tools are happy.
-pub static FIRMWARE_VERSION_SHORT: &str = {
+// Emit a warning if FIRMWARE_VERSION_SHORT isn't set. We don't want this to be a hard error during
+// development so that rust tools are happy.
+fn main() {
     let version = option_env!("FIRMWARE_VERSION_SHORT");
     if let Some(version) = version {
-        version
+        if version.is_empty() {
+            println!("cargo::warning=FIRMWARE_VERSION_SHORT is empty");
+        }
     } else {
-        ""
+        println!("cargo::warning=FIRMWARE_VERSION_SHORT is not set");
     }
-};
+}

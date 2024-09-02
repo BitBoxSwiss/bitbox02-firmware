@@ -696,7 +696,8 @@ static void _authenticate_continue(const USB_APDU* apdu, Packet* out_packet)
     size_t auth_packet_len = sizeof(U2F_AUTHENTICATE_RESP) - U2F_MAX_EC_SIG_SIZE + der_len;
 
     // Append success bytes
-    memcpy(buf + auth_packet_len, "\x90\x00", 2);
+    uint8_t success_bytes[] = {0x90, 0x00};
+    memcpy(buf + auth_packet_len, success_bytes, sizeof(success_bytes));
 
     _fill_message(buf, auth_packet_len + 2, out_packet);
 }

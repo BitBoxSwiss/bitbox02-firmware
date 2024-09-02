@@ -50,6 +50,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [ generate-matrix ]
     strategy:
+      fail-fast: false
       matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
     if: needs.generate-matrix.outputs.matrix != ''
     steps:

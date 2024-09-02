@@ -188,9 +188,6 @@ set(BOOTLOADER-SOURCES
   ${DRIVER-SOURCES}
 )
 
-# rust-bindgen to generate rust declarations from c-headers.
-# The compiled binary to avoid recompiling bindgen on every clean build
-find_program(BINDGEN bindgen)
 # cbindgen is used to generate the c-headers from rust code.
 find_program(CBINDGEN cbindgen)
 # cargo is the rust build system and dependency manager
@@ -270,156 +267,6 @@ if(NOT CMAKE_CROSSCOMPILING)
   list(APPEND RUST_INCLUDES -I${CMAKE_SOURCE_DIR}/test/unit-test/framework/includes)
 endif()
 
-if(CMAKE_CROSSCOMPILING)
-  set(RUST_BINDGEN_FLAGS -D__SAMD51J20A__ --target=thumbv7em-none-eabi -mcpu=cortex-m4 -mthumb -mfloat-abi=soft --sysroot=${CMAKE_SYSROOT}
-    # APP_ vars active when compiling C code to be used in Rust.  It
-    # is okay to activate all of them here - Rust's 'app-' features
-    # control usage/compilation in Rust.
-    -DAPP_U2F=1 # needed to wrap securechip_u2f_counter_set() in Rust.
-    )
-else()
-  set(RUST_BINDGEN_FLAGS -DTESTING=1)
-endif()
-
-add_custom_target(rust-bindgen
-  # Generate rust bindings
-  COMMAND
-    ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/rust
-  COMMAND
-    ${BINDGEN}
-    --output ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs.out
-    --use-core
-    --with-derive-default
-    --ctypes-prefix util::c_types
-    --allowlist-function bip32_derive_xpub
-    --allowlist-function localtime
-    --allowlist-function wally_free_string
-    --allowlist-function mock_memory_factoryreset
-    --allowlist-function memory_setup
-    --allowlist-function memory_is_initialized
-    --allowlist-function memory_set_initialized
-    --allowlist-function memory_is_seeded
-    --allowlist-function memory_is_mnemonic_passphrase_enabled
-    --allowlist-function memory_get_attestation_pubkey_and_certificate
-    --allowlist-function memory_get_attestation_bootloader_hash
-    --allowlist-function memory_bootloader_hash
-    --allowlist-function memory_get_noise_static_private_key
-    --allowlist-function memory_check_noise_remote_static_pubkey
-    --allowlist-function memory_add_noise_remote_static_pubkey
-    --allowlist-function memory_get_device_name
-    --allowlist-function memory_set_device_name
-    --allowlist-function memory_set_mnemonic_passphrase_enabled
-    --allowlist-var MEMORY_MULTISIG_NAME_MAX_LEN
-    --allowlist-function memory_set_seed_birthdate
-    --allowlist-function memory_get_seed_birthdate
-    --allowlist-function memory_multisig_get_by_hash
-    --allowlist-function memory_multisig_set_by_hash
-    --allowlist-function smarteeprom_bb02_config
-    --allowlist-function bitbox02_smarteeprom_init
-    --rustified-enum memory_result_t
-    --allowlist-var MEMORY_DEVICE_NAME_MAX_LEN
-    --allowlist-function securechip_attestation_sign
-    --allowlist-function securechip_monotonic_increments_remaining
-    --allowlist-function securechip_u2f_counter_set
-    --allowlist-function securechip_model
-    --rustified-enum securechip_model_t
-    --allowlist-var KEYSTORE_MAX_SEED_LENGTH
-    --allowlist-function keystore_is_locked
-    --allowlist-function keystore_unlock
-    --allowlist-function keystore_unlock_bip39
-    --allowlist-function keystore_lock
-    --allowlist-function keystore_create_and_store_seed
-    --allowlist-function keystore_copy_seed
-    --allowlist-function keystore_get_bip39_mnemonic
-    --allowlist-function keystore_get_bip39_word
-    --allowlist-function keystore_get_ed25519_seed
-    --allowlist-function keystore_bip85_bip39
-    --allowlist-function keystore_bip85_ln
-    --allowlist-function keystore_secp256k1_compressed_to_uncompressed
-    --allowlist-function keystore_secp256k1_nonce_commit
-    --allowlist-function keystore_secp256k1_sign
-    --allowlist-function keystore_secp256k1_schnorr_bip86_sign
-    --allowlist-function keystore_bip39_mnemonic_to_seed
-    --allowlist-function keystore_mock_unlocked
-    --allowlist-var EC_PUBLIC_KEY_UNCOMPRESSED_LEN
-    --allowlist-var EC_PUBLIC_KEY_LEN
-    --allowlist-function keystore_encode_xpub_at_keypath
-    --allowlist-function keystore_encrypt_and_store_seed
-    --allowlist-var XPUB_ENCODED_LEN
-    --allowlist-var BIP32_SERIALIZED_LEN
-    --allowlist-function lock_animation_start
-    --allowlist-function lock_animation_stop
-    --allowlist-function delay_us
-    --rustified-enum keystore_error_t
-    --rustified-enum keystore_secp256k1_pubkey_format
-    --allowlist-function keystore_secp256k1_schnorr_bip86_pubkey
-    --allowlist-function util_format_datetime
-    --allowlist-type buffer_t
-    --allowlist-function delay_ms
-    --allowlist-function UG_PutString
-    --allowlist-function UG_FontSelect
-    --allowlist-function UG_ClearBuffer
-    --allowlist-function UG_SendBuffer
-    --allowlist-function screen_print_debug
-    --allowlist-function ui_screen_stack_push
-    --allowlist-function ui_screen_stack_pop
-    --allowlist-function ui_screen_stack_pop_all
-    --allowlist-function screen_saver_disable
-    --allowlist-function screen_saver_enable
-    --allowlist-function screen_process
-    --allowlist-function label_create
-    --allowlist-function confirm_create
-    --allowlist-function status_create
-    --allowlist-function sdcard_create
-    --allowlist-function menu_create
-    --allowlist-function trinary_choice_create
-    --rustified-enum trinary_choice_t
-    --allowlist-var BASE58_CHECKSUM_LEN
-    --allowlist-function random_32_bytes_mcu
-    --allowlist-function random_mock_reset
-    --allowlist-type component_t
-    --allowlist-type confirm_params_t
-    --allowlist-var MAX_LABEL_SIZE
-    --allowlist-var font_font_a_9X9
-    --allowlist-var font_font_a_11X10
-    --allowlist-var font_monogram_5X9
-    --allowlist-var font_password_11X12
-    --allowlist-type trinary_input_string_params_t
-    --allowlist-var INPUT_STRING_MAX_SIZE
-    --allowlist-function trinary_input_string_create
-    --allowlist-function trinary_input_string_set_input
-    --allowlist-function confirm_transaction_address_create
-    --allowlist-function confirm_transaction_fee_create
-    --allowlist-function progress_create
-    --allowlist-function progress_set
-    --allowlist-function empty_create
-    --allowlist-function reset_reset
-    --allowlist-function sd_card_inserted
-    --allowlist-function sd_format
-    --allowlist-function sd_list_subdir
-    --allowlist-function sd_erase_file_in_subdir
-    --allowlist-function sd_load_bin
-    --allowlist-function sd_write_bin
-    --allowlist-var SD_MAX_FILE_SIZE
-    --allowlist-function sd_free_list
-    --allowlist-var BIP39_WORDLIST_LEN
-    --rustified-enum simple_type_t
-    --rustified-enum multisig_script_type_t
-    --rustified-enum output_type_t
-    --allowlist-var MAX_VARINT_SIZE
-    --allowlist-var MAX_PK_SCRIPT_SIZE
-    --allowlist-function reboot
-    --allowlist-function secp256k1_ecdsa_anti_exfil_host_commit
-    --allowlist-function wally_get_secp_context
-    --allowlist-function wally_hash160
-    --allowlist-function wally_sha512
-    --allowlist-function printf
-    ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-sys/wrapper.h --
-    -DPB_NO_PACKED_STRUCTS=1 -DPB_FIELD_16BIT=1 -fshort-enums ${RUST_BINDGEN_FLAGS} ${RUST_INCLUDES}
-  COMMAND
-    ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs.out ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs
-  )
-
 
 # Test rust crates that contain business logic. Avoid testing crates that depend on hardware.
 if(NOT CMAKE_CROSSCOMPILING)
@@ -429,6 +276,7 @@ if(NOT CMAKE_CROSSCOMPILING)
   add_custom_target(rust-test
     COMMAND
       ${CMAKE_COMMAND} -E env
+        CMAKE_SYSROOT=${CMAKE_SYSROOT}
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
         FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
         # only one test thread because of unsafe concurrent access to `SafeData`, `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex poisoning and very messy output in case of a unit test failure.
@@ -443,6 +291,7 @@ if(NOT CMAKE_CROSSCOMPILING)
       ${CARGO} clean --target-dir ${RUST_BINARY_DIR}
     COMMAND
       ${CMAKE_COMMAND} -E env
+        CMAKE_SYSROOT=${CMAKE_SYSROOT}
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
         FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
         ${CARGO} clippy
@@ -465,7 +314,7 @@ if(NOT CMAKE_CROSSCOMPILING)
             -A clippy::forget_non_drop
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
-  add_dependencies(rust-clippy rust-bindgen generate-protobufs)
+  add_dependencies(rust-clippy generate-protobufs)
 endif()
 
 # If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
@@ -510,6 +359,7 @@ foreach(type ${RUST_LIBS})
     OUTPUT ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a dummy
     COMMAND
       ${CMAKE_COMMAND} -E env
+      CMAKE_SYSROOT=${CMAKE_SYSROOT}
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
       RUSTFLAGS=${RUSTFLAGS}
       FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
@@ -521,7 +371,6 @@ foreach(type ${RUST_LIBS})
     # DEPFILES are only supported with the Ninja build tool
     #DEPFILE ${RUST_BINARY_DIR}/feature-${type}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.d
     WORKING_DIRECTORY ${LIBBITBOX02_RUST_SOURCE_DIR}
-    DEPENDS rust-bindgen
     COMMENT "Building Rust library lib${type}_rust_c.a"
   )
   add_custom_target(${type}-rust-target DEPENDS ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a)
@@ -536,17 +385,14 @@ endforeach()
 if(CMAKE_CROSSCOMPILING)
   add_custom_target(rust-docs
     COMMAND
+      CMAKE_SYSROOT=${CMAKE_SYSROOT}
       ${CMAKE_COMMAND} -E env
       FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
-      CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
-      SYSROOT=${CMAKE_SYSROOT}
-      INCLUDES="${RUST_INCLUDES}"
       ${CARGO} doc --document-private-items --target-dir ${CMAKE_BINARY_DIR}/docs-rust --target thumbv7em-none-eabi
     COMMAND
       ${CMAKE_COMMAND} -E echo "See docs at file://${CMAKE_BINARY_DIR}/docs-rust/thumbv7em-none-eabi/doc/bitbox02_rust/index.html"
-    WORKING_DIRECTORY ${LIBBITBOX02_RUST_SOURCE_DIR}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust
   )
-  add_dependencies(rust-docs rust-bindgen)
 
   set(STACK_SIZE "0x10000" CACHE STRING "Specify stack size for bootloader/firmware")
   set(STACK_SIZE ${STACK_SIZE} PARENT_SCOPE)

@@ -45,10 +45,6 @@ target-bootloader-btc-production = ["bootloader", "platform-bitbox02"]
 target-firmware = ["firmware", "platform-bitbox02", "app-bitcoin", "app-litecoin", "app-ethereum", "app-u2f", "app-cardano"]
 target-firmware-btc = ["firmware", "platform-bitbox02", "app-bitcoin"]
 target-factory-setup = [
-  # enable these features in dependencies
-  # enable the bitcoin dep as workaround, because the bitbox02-rust::bip32 crate etc. are not
-  # currently needed in the factorysetup, but not explicitly excluded from compilation.
-  "bitbox02-rust/bitcoin",
   # enable these features
   "firmware",
   "platform-bitbox02",

@@ -13,13 +13,12 @@
 // limitations under the License.
 
 /// Firmware version, short format, e.g. "v9.12.0".
-// This is evaluated at compile time, if the env var is missing or not set, there will be a compiler error.
+// We don't want this to be a hard error during development so that rust tools are happy.
 pub static FIRMWARE_VERSION_SHORT: &str = {
-    let version = env!("FIRMWARE_VERSION_SHORT");
-    // Need explicit check as the env var could be set to an empty string accidentally (env!() only
-    // panics if it is not set at all).
-    if version.is_empty() {
-        panic!("FIRMWARE_VERSION_SHORT is not set");
+    let version = option_env!("FIRMWARE_VERSION_SHORT");
+    if let Some(version) = version {
+        version
+    } else {
+        ""
     }
-    version
 };

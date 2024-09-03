@@ -182,7 +182,7 @@ class CardanoSignTransactionRequest(google.protobuf.message.Message):
         def ClearField(self, field_name: typing_extensions.Literal["asset_groups",b"asset_groups","encoded_address",b"encoded_address","script_config",b"script_config","value",b"value"]) -> None: ...
 
     class Certificate(google.protobuf.message.Message):
-        """See https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L150"""
+        """See https://github.com/IntersectMBO/cardano-ledger/blob/cardano-ledger-conway-1.12.0.0/eras/conway/impl/cddl-files/conway.cddl#L273"""
         DESCRIPTOR: google.protobuf.descriptor.Descriptor
         class StakeDelegation(google.protobuf.message.Message):
             DESCRIPTOR: google.protobuf.descriptor.Descriptor
@@ -198,24 +198,66 @@ class CardanoSignTransactionRequest(google.protobuf.message.Message):
                 ) -> None: ...
             def ClearField(self, field_name: typing_extensions.Literal["keypath",b"keypath","pool_keyhash",b"pool_keyhash"]) -> None: ...
 
+        class VoteDelegation(google.protobuf.message.Message):
+            DESCRIPTOR: google.protobuf.descriptor.Descriptor
+            class _CardanoDRepType:
+                ValueType = typing.NewType('ValueType', builtins.int)
+                V: typing_extensions.TypeAlias = ValueType
+            class _CardanoDRepTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[CardanoSignTransactionRequest.Certificate.VoteDelegation._CardanoDRepType.ValueType], builtins.type):
+                DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+                KEY_HASH: CardanoSignTransactionRequest.Certificate.VoteDelegation._CardanoDRepType.ValueType  # 0
+                SCRIPT_HASH: CardanoSignTransactionRequest.Certificate.VoteDelegation._CardanoDRepType.ValueType  # 1
+                ALWAYS_ABSTAIN: CardanoSignTransactionRequest.Certificate.VoteDelegation._CardanoDRepType.ValueType  # 2
+                ALWAYS_NO_CONFIDENCE: CardanoSignTransactionRequest.Certificate.VoteDelegation._CardanoDRepType.ValueType  # 3
+            class CardanoDRepType(_CardanoDRepType, metaclass=_CardanoDRepTypeEnumTypeWrapper):
+                pass
+
+            KEY_HASH: CardanoSignTransactionRequest.Certificate.VoteDelegation.CardanoDRepType.ValueType  # 0
+            SCRIPT_HASH: CardanoSignTransactionRequest.Certificate.VoteDelegation.CardanoDRepType.ValueType  # 1
+            ALWAYS_ABSTAIN: CardanoSignTransactionRequest.Certificate.VoteDelegation.CardanoDRepType.ValueType  # 2
+            ALWAYS_NO_CONFIDENCE: CardanoSignTransactionRequest.Certificate.VoteDelegation.CardanoDRepType.ValueType  # 3
+
+            KEYPATH_FIELD_NUMBER: builtins.int
+            TYPE_FIELD_NUMBER: builtins.int
+            DREP_CREDHASH_FIELD_NUMBER: builtins.int
+            @property
+            def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]:
+                """keypath in this instance refers to stake credential"""
+                pass
+            type: global___CardanoSignTransactionRequest.Certificate.VoteDelegation.CardanoDRepType.ValueType
+            drep_credhash: builtins.bytes
+            def __init__(self,
+                *,
+                keypath: typing.Optional[typing.Iterable[builtins.int]] = ...,
+                type: global___CardanoSignTransactionRequest.Certificate.VoteDelegation.CardanoDRepType.ValueType = ...,
+                drep_credhash: typing.Optional[builtins.bytes] = ...,
+                ) -> None: ...
+            def HasField(self, field_name: typing_extensions.Literal["_drep_credhash",b"_drep_credhash","drep_credhash",b"drep_credhash"]) -> builtins.bool: ...
+            def ClearField(self, field_name: typing_extensions.Literal["_drep_credhash",b"_drep_credhash","drep_credhash",b"drep_credhash","keypath",b"keypath","type",b"type"]) -> None: ...
+            def WhichOneof(self, oneof_group: typing_extensions.Literal["_drep_credhash",b"_drep_credhash"]) -> typing.Optional[typing_extensions.Literal["drep_credhash"]]: ...
+
         STAKE_REGISTRATION_FIELD_NUMBER: builtins.int
         STAKE_DEREGISTRATION_FIELD_NUMBER: builtins.int
         STAKE_DELEGATION_FIELD_NUMBER: builtins.int
+        VOTE_DELEGATION_FIELD_NUMBER: builtins.int
         @property
         def stake_registration(self) -> common_pb2.Keypath: ...
         @property
         def stake_deregistration(self) -> common_pb2.Keypath: ...
         @property
         def stake_delegation(self) -> global___CardanoSignTransactionRequest.Certificate.StakeDelegation: ...
+        @property
+        def vote_delegation(self) -> global___CardanoSignTransactionRequest.Certificate.VoteDelegation: ...
         def __init__(self,
             *,
             stake_registration: typing.Optional[common_pb2.Keypath] = ...,
             stake_deregistration: typing.Optional[common_pb2.Keypath] = ...,
             stake_delegation: typing.Optional[global___CardanoSignTransactionRequest.Certificate.StakeDelegation] = ...,
+            vote_delegation: typing.Optional[global___CardanoSignTransactionRequest.Certificate.VoteDelegation] = ...,
             ) -> None: ...
-        def HasField(self, field_name: typing_extensions.Literal["cert",b"cert","stake_delegation",b"stake_delegation","stake_deregistration",b"stake_deregistration","stake_registration",b"stake_registration"]) -> builtins.bool: ...
-        def ClearField(self, field_name: typing_extensions.Literal["cert",b"cert","stake_delegation",b"stake_delegation","stake_deregistration",b"stake_deregistration","stake_registration",b"stake_registration"]) -> None: ...
-        def WhichOneof(self, oneof_group: typing_extensions.Literal["cert",b"cert"]) -> typing.Optional[typing_extensions.Literal["stake_registration","stake_deregistration","stake_delegation"]]: ...
+        def HasField(self, field_name: typing_extensions.Literal["cert",b"cert","stake_delegation",b"stake_delegation","stake_deregistration",b"stake_deregistration","stake_registration",b"stake_registration","vote_delegation",b"vote_delegation"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing_extensions.Literal["cert",b"cert","stake_delegation",b"stake_delegation","stake_deregistration",b"stake_deregistration","stake_registration",b"stake_registration","vote_delegation",b"vote_delegation"]) -> None: ...
+        def WhichOneof(self, oneof_group: typing_extensions.Literal["cert",b"cert"]) -> typing.Optional[typing_extensions.Literal["stake_registration","stake_deregistration","stake_delegation","vote_delegation"]]: ...
 
     class Withdrawal(google.protobuf.message.Message):
         DESCRIPTOR: google.protobuf.descriptor.Descriptor

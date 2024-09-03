@@ -21,7 +21,7 @@ use alloc::vec::Vec;
 
 use pb::cardano_sign_transaction_request::{
     certificate,
-    certificate::Cert::{StakeDelegation, StakeDeregistration, StakeRegistration},
+    certificate::Cert::{StakeDelegation, StakeDeregistration, StakeRegistration, VoteDelegation},
     Certificate,
 };
 
@@ -87,6 +87,48 @@ pub async fn verify<'a>(
                     ..Default::default()
                 })
                 .await?;
+            }
+            VoteDelegation(certificate::VoteDelegation {
+                keypath,
+                r#type,
+                drep_credhash,
+            }) => {
+                validate_address_shelley_stake(keypath, Some(bip44_account))?;
+                signing_keypaths.push(keypath);
+                let drep_type_name =  match certificate::vote_delegation::CardanoDRepType::try_from(*r#type)? {
+                   certificate::vote_delegation::CardanoDRepType::KeyHash => "Key Hash",
+                   certificate::vote_delegation::CardanoDRepType::ScriptHash => "Script Hash",
+                   certificate::vote_delegation::CardanoDRepType::AlwaysAbstain => "Always Abstain",
+                   certificate::vote_delegation::CardanoDRepType::AlwaysNoConfidence => "Always No Confidence",
+                };
+                match drep_credhash {
+                    Some(hash) => { confirm::confirm(&confirm::Params {
+                        title: params.name,
+                        body: &format!(
+                            "Delegate voting for account #{} to type {} and drep {}?",
+                            keypath[2] + 1 - HARDENED,
+                            drep_type_name,
+                            hex::encode(hash),
+                        ),
+                        scrollable: true,
+                        accept_is_nextarrow: true,
+                        ..Default::default()
+                    })
+                    .await?; }
+                    None => { confirm::confirm(&confirm::Params {
+                        title: params.name,
+                        body: &format!(
+                            "Delegate voting for account #{} to type {}?",
+                            keypath[2] + 1 - HARDENED,
+                            drep_type_name,
+                        ),
+                        scrollable: true,
+                        accept_is_nextarrow: true,
+                        ..Default::default()
+                    })
+                    .await?; }
+                }
+
             }
         };
     }

@@ -702,6 +702,104 @@ mod tests {
     }
 
     #[test]
+    fn test_sign_vote_delegation() {
+        let tx = pb::CardanoSignTransactionRequest {
+            network: CardanoNetwork::CardanoMainnet as _,
+            inputs: vec![
+                pb::cardano_sign_transaction_request::Input {
+                    keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 1, 0],
+                    prev_out_hash: b"\xb7\xb2\x33\x3e\x72\xf2\x67\x0a\xb8\x20\x51\xf4\x26\xcc\x84\x00\x04\x31\x97\x5a\x34\xe7\x1d\x5e\xdf\x70\xea\x6c\x0d\xdc\x9b\xf8".to_vec(),
+                    prev_out_index: 0,
+                },
+            ],
+            outputs: vec![
+                // change
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs".into(),
+                    value: 2741512,
+                    script_config: Some(CardanoScriptConfig{
+                        config: Some(pb::cardano_script_config::Config::PkhSkh(pb::cardano_script_config::PkhSkh {
+                            keypath_payment: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                            keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
+                        }))
+                    }),
+                    asset_groups: vec![],
+                },
+            ],
+            fee: 191681,
+            ttl: 41539125,
+            allow_zero_ttl: false,
+            certificates: vec![
+                Certificate{
+                    cert: Some(Cert::VoteDelegation(
+                        certificate::VoteDelegation{
+                            keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
+                            r#type: certificate::vote_delegation::CardanoDRepType::AlwaysAbstain.into(),
+                            drep_credhash: None,
+                        }
+                    )),
+                },
+            ],
+            withdrawals: vec![],
+            validity_interval_start: 0,
+        };
+
+        static mut CONFIRM_COUNTER: u32 = 0;
+
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(params.title, "Cardano");
+                        assert_eq!(params.body, "Can be mined until\nslot 326325 in\nepoch 293");
+                        true
+                    }
+                    2 => {
+                        assert_eq!(params.title, "Cardano");
+                        assert!(params.body.starts_with(
+                            "Delegate voting for account #1 to type Always Abstain?"
+                        ));
+                        true
+                    }
+                    3 => {
+                        assert_eq!(params.title, "Cardano");
+                        assert_eq!(params.body, "Fee\n0.191681 ADA");
+                        true
+                    }
+                    4 => {
+                        assert_eq!(params.title, "High fee");
+                        true
+                    }
+                    _ => panic!("too many user confirmations"),
+                }
+            })),
+            ..Default::default()
+        });
+        mock_unlocked();
+
+        let result = block_on(process(&tx)).unwrap();
+        assert_eq!(
+            result,
+            Response::SignTransaction(pb::CardanoSignTransactionResponse {
+                shelley_witnesses: vec![
+                    ShelleyWitness {
+                         public_key: b"\x32\x49\xff\x97\x5d\xbd\x08\x51\x4e\x34\xc7\x1e\x03\x2b\xec\x8d\x53\xdb\x1a\xf1\x13\xbb\x06\x52\x86\xd7\x1d\xe6\xbb\xe0\x15\x5b".to_vec(),
+                        signature: b"\x07\xb6\x6b\x40\xd7\x80\xd6\x3f\x10\xf9\x11\xd0\x49\x54\x72\xb5\x0b\x06\x37\xfc\xcb\x2e\x10\xf4\x27\x11\x5d\x6d\x0b\x53\xae\x57\x1d\x8e\xa6\x01\xd6\x9e\x5c\xcd\xe1\x00\xea\xce\x03\x8f\x75\x0d\x6b\x50\x49\xec\xcb\xfa\xef\x26\xc1\xde\x0a\x32\x0b\x0a\x98\x0f".to_vec(),
+                    },
+                    ShelleyWitness {
+                        public_key: b"\xb0\xdc\x73\x13\xca\xbf\x4a\x4b\x07\x15\x14\xf4\x86\xd0\xd9\x97\x75\x86\x4e\x73\x77\x70\x0f\xb9\x93\x98\xb3\xf8\x23\x01\x06\x60".to_vec(),
+                        signature: b"\x6f\x32\x48\x4a\x17\x99\xf3\xcc\x4f\xd9\xc5\xd8\x5c\x10\xa7\xdb\xb0\x01\xf9\xa3\x37\xb8\x3c\x23\xc6\x6e\x19\xa8\x94\xc9\x17\xbc\x93\xff\x60\xf5\x4a\x48\x17\xfc\xb3\x34\x32\x37\x49\xdf\x86\x5b\xa1\xdd\xe0\x3c\xfd\xd4\x89\xcb\x3e\xdc\xab\xe5\xd9\xcc\xa6\x08".to_vec(),
+                    },
+                ]
+            })
+        );
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 3);
+    }
+
+    #[test]
     fn test_sign_withdrawal() {
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,

@@ -9,6 +9,7 @@ set -e
 set -o pipefail
 
 CLANGFORMAT=${CLANGFORMAT:-clang-format-18}
+RUSTFMT=${RUSTFMT:-rustfmt}
 
 command -v git >/dev/null 2>&1 || { echo >&2 "git is missing"; exit 1; }
 command -v xargs >/dev/null 2>&1 || { echo >&2 "xargs is missing"; exit 1; }
@@ -36,4 +37,10 @@ if git --no-pager diff --diff-filter=d --name-only ${TARGET_BRANCH} HEAD | grep 
 	echo -e "Detailed git diff"
 	git --no-pager diff
 	exit 1
+fi
+
+RUST_SOURCES=$(git --no-pager diff --diff-filter=d --name-only ${TARGET_BRANCH} HEAD | grep -E "^src/rust.*\.rs\$" | grep -v -E "^src/rust/vendor" || true)
+if [ -n "$RUST_SOURCES" ] ; then
+        echo $RUST_SOURCES
+	"$RUSTFMT" --check $RUST_SOURCES
 fi

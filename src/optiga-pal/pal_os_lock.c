@@ -73,12 +73,12 @@ void pal_os_lock_release(pal_os_lock_t* p_lock)
     }
 }
 
-void pal_os_lock_enter_critical_section()
+void pal_os_lock_enter_critical_section(void)
 {
     // For safety critical systems it is recommended to implement a critical section entry
 }
 
-void pal_os_lock_exit_critical_section()
+void pal_os_lock_exit_critical_section(void)
 {
     // For safety critical systems it is recommended to implement a critical section exit
 }

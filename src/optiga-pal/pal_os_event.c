@@ -75,7 +75,7 @@ void pal_os_event_trigger_registered_callback(void)
 
     if (pal_os_event_0.callback_registered) {
         callback = pal_os_event_0.callback_registered;
-        callback((void*)pal_os_event_0.callback_ctx);
+        callback(pal_os_event_0.callback_ctx);
     }
 }
 

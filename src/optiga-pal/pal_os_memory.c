@@ -5,7 +5,7 @@
 void* pal_os_malloc(uint32_t block_size)
 {
     void* res = malloc(block_size);
-    traceln("Allocating %lu at %p", block_size, res);
+    traceln("Allocating %u at %p", block_size, res);
     return res;
 }
 

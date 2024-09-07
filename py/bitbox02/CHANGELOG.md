@@ -4,6 +4,7 @@
 
 # 8.0.0
 - SD card: Remove API to prompt removal of the microSD card from the device
+- Add support for regtest (supported from firmware version v9.21.0)
 
 # 7.0.0
 - get_info: add optional device initialized boolean to returned tuple

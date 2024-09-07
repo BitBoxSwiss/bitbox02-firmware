@@ -55,6 +55,7 @@ pub fn get_hash(
             BtcCoin::Tbtc => 0x01,
             BtcCoin::Ltc => 0x02,
             BtcCoin::Tltc => 0x03,
+            BtcCoin::Rbtc => 0x04,
         };
         hasher.update(byte.to_le_bytes());
     }
@@ -204,14 +205,14 @@ pub async fn confirm_extended(
                 ScriptType::P2wsh => bip32::XPubType::CapitalZpub,
                 ScriptType::P2wshP2sh => bip32::XPubType::CapitalYpub,
             },
-            BtcCoin::Tbtc | BtcCoin::Tltc => match script_type {
+            BtcCoin::Tbtc | BtcCoin::Rbtc | BtcCoin::Tltc => match script_type {
                 ScriptType::P2wsh => bip32::XPubType::CapitalVpub,
                 ScriptType::P2wshP2sh => bip32::XPubType::CapitalUpub,
             },
         },
         XPubType::AutoXpubTpub => match params.coin {
             BtcCoin::Btc | BtcCoin::Ltc => bip32::XPubType::Xpub,
-            BtcCoin::Tbtc | BtcCoin::Tltc => bip32::XPubType::Tpub,
+            BtcCoin::Tbtc | BtcCoin::Rbtc | BtcCoin::Tltc => bip32::XPubType::Tpub,
         },
     };
     let num_cosigners = multisig.xpubs.len();

@@ -24,6 +24,8 @@ enum BTCCoin {
   TBTC = 1;
   LTC = 2;
   TLTC = 3;
+  // Regtest
+  RBTC = 4;
 };
 
 

@@ -337,7 +337,7 @@ impl<'a> ParsedPolicy<'a> {
 
         let output_xpub_type = match params.coin {
             BtcCoin::Btc | BtcCoin::Ltc => bip32::XPubType::Xpub,
-            BtcCoin::Tbtc | BtcCoin::Tltc => bip32::XPubType::Tpub,
+            BtcCoin::Tbtc | BtcCoin::Rbtc | BtcCoin::Tltc => bip32::XPubType::Tpub,
         };
         let num_keys = policy.keys.len();
         for (i, key) in policy.keys.iter().enumerate() {
@@ -513,6 +513,7 @@ pub fn get_hash(coin: BtcCoin, policy: &Policy) -> Result<Vec<u8>, ()> {
             BtcCoin::Tbtc => 0x01,
             BtcCoin::Ltc => 0x02,
             BtcCoin::Tltc => 0x03,
+            BtcCoin::Rbtc => 0x04,
         };
         hasher.update(byte.to_le_bytes());
     }

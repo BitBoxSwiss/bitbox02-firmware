@@ -51,9 +51,7 @@ target-factory-setup = [
 ]
 # add Rust features which are called in the C unit tests (currently there is only one target for C tests).
 target-c-unit-tests = [
-  # enable this dependency
-  "bitcoin", # for rust_base58_encode_check()
-  # enable these features
+  "dep:bitcoin", # for rust_base58_encode_check()
   "app-bitcoin",
   "app-ethereum",
   "app-cardano",

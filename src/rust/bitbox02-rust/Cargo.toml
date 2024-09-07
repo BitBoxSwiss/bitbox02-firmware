@@ -63,52 +63,40 @@ features = ["derive"]
 
 [features]
 ed25519 = [
-  # enable these dependencies
-  "bip32-ed25519",
-  "ed25519-dalek"
+  "dep:bip32-ed25519",
+  "dep:ed25519-dalek"
 ]
 
 app-ethereum = [
-  # enable these dependencies
-  "erc20_params",
-  "sha3",
-  "num-bigint",
-  # enable this feature in the deps
+  "dep:erc20_params",
+  "dep:sha3",
+  "dep:num-bigint",
   "bitbox02/app-ethereum",
 ]
 
 app-bitcoin = [
-  # enable these dependencies
-  "bech32",
-  "miniscript",
-  # enable this feature in the deps
+  "dep:bech32",
+  "dep:miniscript",
   "bitbox02/app-bitcoin",
 ]
 app-litecoin = [
-  # enable these dependencies
-  "bech32",
-  # enable this feature in the deps
+  "dep:bech32",
   "bitbox02/app-litecoin",
 ]
 
 app-u2f = [
-  # enable this feature in the deps
   "bitbox02/app-u2f",
 ]
 
 app-cardano = [
-  # enable these deps
-  "bech32",
-  "blake2",
-  "minicbor",
-  "crc",
-
-  # enable these features
+  "dep:bech32",
+  "dep:blake2",
+  "dep:minicbor",
+  "dep:crc",
   "ed25519"
 ]
 
 testing = [
-  # enable these features
   "bitbox02/testing"
 ]
 

@@ -23,6 +23,9 @@ class _BTCCoinEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTy
     TBTC: _BTCCoin.ValueType  # 1
     LTC: _BTCCoin.ValueType  # 2
     TLTC: _BTCCoin.ValueType  # 3
+    RBTC: _BTCCoin.ValueType  # 4
+    """Regtest"""
+
 class BTCCoin(_BTCCoin, metaclass=_BTCCoinEnumTypeWrapper):
     pass
 
@@ -30,6 +33,9 @@ BTC: BTCCoin.ValueType  # 0
 TBTC: BTCCoin.ValueType  # 1
 LTC: BTCCoin.ValueType  # 2
 TLTC: BTCCoin.ValueType  # 3
+RBTC: BTCCoin.ValueType  # 4
+"""Regtest"""
+
 global___BTCCoin = BTCCoin
 
 

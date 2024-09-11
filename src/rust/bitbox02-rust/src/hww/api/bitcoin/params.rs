@@ -60,6 +60,16 @@ const PARAMS_TBTC: Params = Params {
     rbf_support: true,
     taproot_support: true,
 };
+const PARAMS_RBTC: Params = Params {
+    coin: BtcCoin::Rbtc,
+    bip44_coin: 1 + HARDENED,
+    base58_version_p2pkh: 0x6f, // starts with m or n
+    base58_version_p2sh: 0xc4,  // starts with 2
+    bech32_hrp: "bcrt",
+    name: "BTC Regtest",
+    rbf_support: true,
+    taproot_support: true,
+};
 
 const PARAMS_LTC: Params = Params {
     coin: BtcCoin::Ltc,
@@ -88,6 +98,7 @@ pub fn get(coin: BtcCoin) -> &'static Params {
     match coin {
         Btc => &PARAMS_BTC,
         Tbtc => &PARAMS_TBTC,
+        Rbtc => &PARAMS_RBTC,
         Ltc => &PARAMS_LTC,
         Tltc => &PARAMS_TLTC,
     }

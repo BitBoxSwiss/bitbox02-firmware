@@ -47,6 +47,10 @@ pub fn format_amount(
             FormatUnit::Default => (8, "TBTC"),
             FormatUnit::Sat => (0, "tsat"),
         },
+        BtcCoin::Rbtc => match format_unit {
+            FormatUnit::Default => (8, "RBTC"),
+            FormatUnit::Sat => (0, "rsat"),
+        },
         BtcCoin::Ltc => match format_unit {
             FormatUnit::Default => (8, "LTC"),
             _ => return Err(Error::InvalidInput),

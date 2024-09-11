@@ -88,7 +88,7 @@ pub async fn antiklepto_get_host_nonce(
 fn coin_enabled(coin: pb::BtcCoin) -> Result<(), Error> {
     use pb::BtcCoin::*;
     #[cfg(feature = "app-bitcoin")]
-    if let Btc | Tbtc = coin {
+    if let Btc | Tbtc | Rbtc = coin {
         return Ok(());
     }
     #[cfg(feature = "app-litecoin")]
@@ -580,7 +580,7 @@ mod tests {
         assert!(block_on(process_pub(&req_invalid)).is_err());
         // -- Wrong coin: MAX + 1
         let mut req_invalid = req.clone();
-        req_invalid.coin = BtcCoin::Tltc as i32 + 1;
+        req_invalid.coin = BtcCoin::Rbtc as i32 + 1;
         assert!(block_on(process_pub(&req_invalid)).is_err());
     }
 
@@ -689,6 +689,15 @@ mod tests {
                 simple_type: SimpleType::P2wpkh,
                 expected_address: "tb1qnlyrq9pshg0v0lsuudjgga4nvmjxhcvketqwdg",
                 expected_display_title: "BTC Testnet",
+            },
+            // RBTC P2WPKH
+            Test {
+                mnemonic: TEST_MNEMONIC,
+                coin: BtcCoin::Rbtc,
+                keypath: &[84 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
+                simple_type: SimpleType::P2wpkh,
+                expected_address: "bcrt1qnlyrq9pshg0v0lsuudjgga4nvmjxhcvkmzer6p",
+                expected_display_title: "BTC Regtest",
             },
             // LTC P2WPKH-P2SH
             Test {

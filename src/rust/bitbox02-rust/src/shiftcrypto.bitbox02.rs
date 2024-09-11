@@ -846,6 +846,8 @@ pub enum BtcCoin {
     Tbtc = 1,
     Ltc = 2,
     Tltc = 3,
+    /// Regtest
+    Rbtc = 4,
 }
 impl BtcCoin {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -858,6 +860,7 @@ impl BtcCoin {
             BtcCoin::Tbtc => "TBTC",
             BtcCoin::Ltc => "LTC",
             BtcCoin::Tltc => "TLTC",
+            BtcCoin::Rbtc => "RBTC",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -867,6 +870,7 @@ impl BtcCoin {
             "TBTC" => Some(Self::Tbtc),
             "LTC" => Some(Self::Ltc),
             "TLTC" => Some(Self::Tltc),
+            "RBTC" => Some(Self::Rbtc),
             _ => None,
         }
     }

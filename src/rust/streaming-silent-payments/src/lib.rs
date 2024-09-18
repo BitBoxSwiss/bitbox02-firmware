@@ -169,6 +169,10 @@ impl SilentPayment {
         }
     }
 
+    pub fn get_secp(&self) -> &Secp256k1<secp256k1::All> {
+        &self.secp
+    }
+
     /// This must be called for *every* input of the transaction.
     ///
     /// Important: if the input type cannot be represented by `InputType`, the transaction must be

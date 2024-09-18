@@ -308,13 +308,11 @@ USE_RESULT bool keystore_secp256k1_schnorr_bip86_sign(
  *
  * @param[in] keypath derivation keypath
  * @param[in] keypath_len number of elements in keypath
- * @param[in] tweak_bip86 if true, the resulting private key is tweaked with the BIP-86 tweak.
  * @param[out] key_out resulting private key, must be 32 bytes.
  */
 USE_RESULT bool keystore_secp256k1_get_private_key(
     const uint32_t* keypath,
     size_t keypath_len,
-    bool tweak_bip86,
     uint8_t* key_out);
 
 #ifdef TESTING

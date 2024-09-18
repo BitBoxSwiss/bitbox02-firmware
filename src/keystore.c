@@ -1003,18 +1003,8 @@ bool keystore_secp256k1_schnorr_bip86_sign(
 bool keystore_secp256k1_get_private_key(
     const uint32_t* keypath,
     const size_t keypath_len,
-    bool tweak_bip86,
     uint8_t* key_out)
 {
-    if (tweak_bip86) {
-        secp256k1_keypair __attribute__((__cleanup__(_cleanup_keypair))) keypair = {0};
-        secp256k1_xonly_pubkey pubkey = {0};
-        if (!_schnorr_bip86_keypair(keypath, keypath_len, &keypair, &pubkey)) {
-            return false;
-        }
-        const secp256k1_context* ctx = wally_get_secp_context();
-        return secp256k1_keypair_sec(ctx, key_out, &keypair) == 1;
-    }
     struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
     if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
         return false;

@@ -1066,11 +1066,11 @@ pub mod cardano_sign_transaction_request {
         #[prost(message, repeated, tag = "4")]
         pub asset_groups: ::prost::alloc::vec::Vec<AssetGroup>,
     }
-    /// See <https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L150>
+    /// See <https://github.com/IntersectMBO/cardano-ledger/blob/cardano-ledger-conway-1.12.0.0/eras/conway/impl/cddl-files/conway.cddl#L273>
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Certificate {
-        #[prost(oneof = "certificate::Cert", tags = "1, 2, 3")]
+        #[prost(oneof = "certificate::Cert", tags = "1, 2, 3, 10")]
         pub cert: ::core::option::Option<certificate::Cert>,
     }
     /// Nested message and enum types in `Certificate`.
@@ -1084,6 +1084,62 @@ pub mod cardano_sign_transaction_request {
             pub pool_keyhash: ::prost::alloc::vec::Vec<u8>,
         }
         #[allow(clippy::derive_partial_eq_without_eq)]
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct VoteDelegation {
+            /// keypath in this instance refers to stake credential
+            #[prost(uint32, repeated, tag = "1")]
+            pub keypath: ::prost::alloc::vec::Vec<u32>,
+            #[prost(enumeration = "vote_delegation::CardanoDRepType", tag = "2")]
+            pub r#type: i32,
+            #[prost(bytes = "vec", optional, tag = "3")]
+            pub drep_credhash: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
+        }
+        /// Nested message and enum types in `VoteDelegation`.
+        pub mod vote_delegation {
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                PartialEq,
+                Eq,
+                Hash,
+                PartialOrd,
+                Ord,
+                ::prost::Enumeration
+            )]
+            #[repr(i32)]
+            pub enum CardanoDRepType {
+                KeyHash = 0,
+                ScriptHash = 1,
+                AlwaysAbstain = 2,
+                AlwaysNoConfidence = 3,
+            }
+            impl CardanoDRepType {
+                /// String value of the enum field names used in the ProtoBuf definition.
+                ///
+                /// The values are not transformed in any way and thus are considered stable
+                /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+                pub fn as_str_name(&self) -> &'static str {
+                    match self {
+                        CardanoDRepType::KeyHash => "KEY_HASH",
+                        CardanoDRepType::ScriptHash => "SCRIPT_HASH",
+                        CardanoDRepType::AlwaysAbstain => "ALWAYS_ABSTAIN",
+                        CardanoDRepType::AlwaysNoConfidence => "ALWAYS_NO_CONFIDENCE",
+                    }
+                }
+                /// Creates an enum from field names used in the ProtoBuf definition.
+                pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                    match value {
+                        "KEY_HASH" => Some(Self::KeyHash),
+                        "SCRIPT_HASH" => Some(Self::ScriptHash),
+                        "ALWAYS_ABSTAIN" => Some(Self::AlwaysAbstain),
+                        "ALWAYS_NO_CONFIDENCE" => Some(Self::AlwaysNoConfidence),
+                        _ => None,
+                    }
+                }
+            }
+        }
+        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Oneof)]
         pub enum Cert {
             #[prost(message, tag = "1")]
@@ -1092,6 +1148,8 @@ pub mod cardano_sign_transaction_request {
             StakeDeregistration(super::super::Keypath),
             #[prost(message, tag = "3")]
             StakeDelegation(StakeDelegation),
+            #[prost(message, tag = "10")]
+            VoteDelegation(VoteDelegation),
         }
     }
     #[allow(clippy::derive_partial_eq_without_eq)]

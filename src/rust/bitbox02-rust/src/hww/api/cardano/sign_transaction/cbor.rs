@@ -165,6 +165,45 @@ pub fn encode_transaction_body<W: Write>(
                     encode_stake_credential(&mut encoder, keypath)?;
                     encoder.bytes(pool_keyhash)?;
                 }
+                certificate::Cert::VoteDelegation(certificate::VoteDelegation {
+                    keypath,
+                    r#type,
+                    drep_credhash,
+                }) => {
+                    encoder.array(3)?.u8(9)?;
+                    encode_stake_credential(&mut encoder, keypath)?;
+                    let drep_type = certificate::vote_delegation::CardanoDRepType::try_from(*r#type)?;
+                    match drep_type {
+                        certificate::vote_delegation::CardanoDRepType::KeyHash => {
+                            encoder.array(2)?.u8(0)?;
+                            match drep_credhash {
+                                Some(hash) if hash.len() == 28 => { encoder.bytes(hash)?;}
+                                Some(_hash) => return Err(Error::InvalidInput),
+                                None => return Err(Error::InvalidInput),
+                            }
+                        }
+                        certificate::vote_delegation::CardanoDRepType::ScriptHash => {
+                            encoder.array(2)?.u8(1)?;
+                            match drep_credhash {
+                                Some(hash) if hash.len() == 28 => { encoder.bytes(hash)?;}
+                                Some(_hash) => return Err(Error::InvalidInput),
+                                None => return Err(Error::InvalidInput),
+                            }
+                        }
+                        certificate::vote_delegation::CardanoDRepType::AlwaysAbstain => {
+                            if !drep_credhash.is_none() {
+                                return Err(Error::InvalidInput);
+                            }
+                            encoder.array(1)?.u8(2)?;
+                        }
+                        certificate::vote_delegation::CardanoDRepType::AlwaysNoConfidence => {
+                            if !drep_credhash.is_none() {
+                                return Err(Error::InvalidInput);
+                            }
+                            encoder.array(1)?.u8(3)?;
+                        }
+                    }
+                }
             }
         }
     }

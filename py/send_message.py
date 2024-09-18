@@ -1289,6 +1289,41 @@ class SendMessage:
             )
             print(response)
 
+        def delegate_vote() -> None:
+            response = self._device.cardano_sign_transaction(
+                transaction=bitbox02.cardano.CardanoSignTransactionRequest(
+                    network=bitbox02.cardano.CardanoMainnet,
+                    inputs=[
+                        bitbox02.cardano.CardanoSignTransactionRequest.Input(
+                            keypath=[2147485500, 2147485463, 2147483648, 0, 0],
+                            prev_out_hash=bytes.fromhex(
+                                "b7b2333e72f2670ab82051f426cc84000431975a34e71d5edf70ea6c0ddc9bf8"
+                            ),
+                            prev_out_index=0,
+                        ),
+                    ],
+                    outputs=[
+                        bitbox02.cardano.CardanoSignTransactionRequest.Output(
+                            encoded_address=get_address(False),
+                            value=2741512,
+                            script_config=script_config,
+                        )
+                    ],
+                    fee=191681,
+                    ttl=41539125,
+                    certificates=[
+                        bitbox02.cardano.CardanoSignTransactionRequest.Certificate(
+                            vote_delegation=bitbox02.cardano.CardanoSignTransactionRequest.Certificate.VoteDelegation(
+                                # keypath used here is the stake credential
+                                keypath=[2147485500, 2147485463, 2147483648, 2, 0],
+                                type=bitbox02.cardano.CardanoSignTransactionRequest.Certificate.VoteDelegation.CardanoDRepType.ALWAYS_ABSTAIN,
+                            )
+                        ),
+                    ],
+                )
+            )
+            print(response)
+
         def withdraw() -> None:
             response = self._device.cardano_sign_transaction(
                 transaction=bitbox02.cardano.CardanoSignTransactionRequest(
@@ -1328,6 +1363,7 @@ class SendMessage:
             ("Sign a transaction with TTL=0", sign_zero_ttl),
             ("Sign a transaction sending tokens", sign_tokens),
             ("Delegate staking to a pool", delegate),
+            ("Delegate vote to a dRep", delegate_vote),
             ("Withdraw staking rewards", withdraw),
         )
         choice = ask_user(choices)

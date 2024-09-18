@@ -85,16 +85,30 @@ message CardanoSignTransactionRequest {
     repeated AssetGroup asset_groups = 4;
   }
 
-  // See https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L150
+  // See https://github.com/IntersectMBO/cardano-ledger/blob/cardano-ledger-conway-1.12.0.0/eras/conway/impl/cddl-files/conway.cddl#L273
   message Certificate {
     message StakeDelegation {
       repeated uint32 keypath = 1;
       bytes pool_keyhash = 2;
     }
+    message VoteDelegation {
+      enum CardanoDRepType {
+        KEY_HASH = 0;
+        SCRIPT_HASH = 1;
+        ALWAYS_ABSTAIN = 2;
+        ALWAYS_NO_CONFIDENCE = 3;
+      }
+
+      // keypath in this instance refers to stake credential
+      repeated uint32 keypath = 1;
+      CardanoDRepType type = 2;
+      optional bytes drep_credhash = 3;
+    }
     oneof cert {
       Keypath stake_registration = 1;
       Keypath stake_deregistration = 2;
       StakeDelegation stake_delegation = 3;
+      VoteDelegation vote_delegation = 10;
     }
   }
 

@@ -93,7 +93,9 @@ impl<'a> Transaction<'a> {
     fn case(&self) -> Result<pb::EthAddressCase, Error> {
         match self {
             Transaction::Legacy(legacy) => Ok(pb::EthAddressCase::try_from(legacy.address_case)?),
-            Transaction::Eip1559(eip1559) => Ok(pb::EthAddressCase::try_from(eip1559.address_case)?),
+            Transaction::Eip1559(eip1559) => {
+                Ok(pb::EthAddressCase::try_from(eip1559.address_case)?)
+            }
         }
     }
 }
@@ -268,7 +270,7 @@ async fn verify_standard_transaction(
         })
         .await?;
     }
-    
+
     let address = super::address::from_pubkey_hash(&recipient, request.case()?);
     let amount = Amount {
         unit: params.unit,

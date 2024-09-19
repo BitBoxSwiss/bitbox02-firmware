@@ -30,9 +30,6 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
     let words = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
     bitbox02::println_stdout("Restored from recovery words below:");
     bitbox02::println_stdout(words);
-    
-    Ok(zeroize::Zeroizing::new(
-        words
-        .to_string()
-    ))
+
+    Ok(zeroize::Zeroizing::new(words.to_string()))
 }

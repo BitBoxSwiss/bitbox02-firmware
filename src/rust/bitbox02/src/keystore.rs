@@ -224,16 +224,12 @@ pub fn encode_xpub_at_keypath(keypath: &[u32]) -> Result<Vec<u8>, ()> {
     }
 }
 
-pub fn secp256k1_get_private_key(
-    keypath: &[u32],
-    tweak_bip86: bool,
-) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+pub fn secp256k1_get_private_key(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let mut key = zeroize::Zeroizing::new(vec![0u8; 32]);
     match unsafe {
         bitbox02_sys::keystore_secp256k1_get_private_key(
             keypath.as_ptr(),
             keypath.len() as _,
-            tweak_bip86,
             key.as_mut_ptr(),
         )
     } {
@@ -558,7 +554,7 @@ mod tests {
     fn test_secp256k1_get_private_key() {
         lock();
         let keypath = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
-        assert!(secp256k1_get_private_key(keypath, false).is_err());
+        assert!(secp256k1_get_private_key(keypath).is_err());
 
         mock_unlocked_using_mnemonic(
             "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
@@ -566,19 +562,8 @@ mod tests {
         );
 
         assert_eq!(
-            hex::encode(secp256k1_get_private_key(keypath, false).unwrap()),
+            hex::encode(secp256k1_get_private_key(keypath).unwrap()),
             "4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"
-        );
-
-        // See first test vector in
-        // https://github.com/bitcoin/bips/blob/edffe529056f6dfd33d8f716fb871467c3c09263/bip-0086.mediawiki#test-vectors
-        // The below privte key's public key is: a60869f0dbcf1dc659c9cecbaf8050135ea9e8cdc487053f1dc6880949dc684c.
-        assert_eq!(
-            hex::encode(
-                secp256k1_get_private_key(&[86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0], true)
-                    .unwrap()
-            ),
-            "eaac016f36e8c18347fbacf05ab7966708fbfce7ce3bf1dc32a09dd0645db038",
         );
     }
 }

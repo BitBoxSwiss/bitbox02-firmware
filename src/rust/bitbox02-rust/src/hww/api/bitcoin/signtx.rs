@@ -35,6 +35,7 @@ use pb::btc_sign_next_response::Type as NextType;
 use sha2::{Digest, Sha256};
 
 use bitcoin::hashes::Hash;
+use bitcoin::key::TapTweak;
 
 use streaming_silent_payments::SilentPayment;
 
@@ -720,13 +721,22 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         }
 
         if let Some(ref mut silent_payment) = silent_payment {
-            let private_key = bitcoin::secp256k1::SecretKey::from_slice(
-                &bitbox02::keystore::secp256k1_get_private_key(
-                    &tx_input.keypath,
-                    is_taproot(script_config_account),
-                )?,
+            let keypair = bitcoin::key::UntweakedKeypair::from_seckey_slice(
+                silent_payment.get_secp(),
+                &bitbox02::keystore::secp256k1_get_private_key(&tx_input.keypath)?,
             )
-            .map_err(|_| Error::Generic)?;
+            .unwrap();
+            // For Taproot, only key path spends are allowed in silent payments, and we need to
+            // provide the key path spend private key, which means the internal key plus the tap
+            // tweak.
+            let private_key = if is_taproot(script_config_account) {
+                keypair
+                    .tap_tweak(silent_payment.get_secp(), None)
+                    .to_inner()
+                    .secret_key()
+            } else {
+                keypair.secret_key()
+            };
 
             silent_payment
                 .add_input(

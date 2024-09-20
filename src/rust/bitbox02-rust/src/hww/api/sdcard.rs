@@ -25,11 +25,10 @@ pub async fn process(
 ) -> Result<Response, Error> {
     let inserted = bitbox02::sd::sdcard_inserted();
     match SdCardAction::try_from(action) {
-        Ok(SdCardAction::InsertCard) => {},
+        Ok(SdCardAction::InsertCard) => {}
         _ => return Ok(Response::Success(pb::Success {})),
     };
-    if inserted
-    {
+    if inserted {
         return Ok(Response::Success(pb::Success {}));
     }
     sdcard::sdcard().await?;

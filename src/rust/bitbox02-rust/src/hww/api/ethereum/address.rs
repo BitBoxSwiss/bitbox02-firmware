@@ -44,10 +44,10 @@ pub fn from_pubkey_hash(recipient: &[u8; 20], address_case: pb::EthAddressCase) 
                 // valid utf8 because hex and the uppercasing above is correct.
                 core::str::from_utf8_unchecked(&hex[..])
             })
-        },
+        }
         pb::EthAddressCase::Upper => {
             format!("0x{}", hex::encode_upper(recipient))
-        },
+        }
         pb::EthAddressCase::Lower => {
             format!("0x{}", hex::encode(recipient))
         }
@@ -58,7 +58,10 @@ pub fn from_pubkey_hash(recipient: &[u8; 20], address_case: pb::EthAddressCase) 
 /// `recipient` - 20 byte tail (last 20 bytes of the pubkeyhash).
 pub fn from_pubkey(pubkey_uncompressed: &[u8; 65]) -> String {
     let hash = sha3::Keccak256::digest(&pubkey_uncompressed[1..]);
-    from_pubkey_hash(hash[hash.len() - 20..].try_into().unwrap(), pb::EthAddressCase::Mixed)
+    from_pubkey_hash(
+        hash[hash.len() - 20..].try_into().unwrap(),
+        pb::EthAddressCase::Mixed,
+    )
 }
 
 #[cfg(test)]

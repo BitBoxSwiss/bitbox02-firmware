@@ -23,7 +23,9 @@ fn main() {
         } else {
             // This is useful in case project is built by tool that doesn't need to link the final
             // target, like rust-analyzer and clippy.
-            println!("cargo::warning=Missing env variable CMAKE_CURRENT_BINARY_DIR, linking will fail");
+            println!(
+                "cargo::warning=Missing env variable CMAKE_CURRENT_BINARY_DIR, linking will fail"
+            );
         }
     }
 }

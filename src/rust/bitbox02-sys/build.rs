@@ -12,10 +12,148 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::process::Command;
 use std::env;
-use std::path::PathBuf;
 use std::io::ErrorKind;
+use std::path::PathBuf;
+use std::process::Command;
+
+const ALLOWLIST_VARS: &[&str] = &[
+    "BASE58_CHECKSUM_LEN",
+    "BIP32_SERIALIZED_LEN",
+    "BIP39_WORDLIST_LEN",
+    "EC_PUBLIC_KEY_LEN",
+    "EC_PUBLIC_KEY_UNCOMPRESSED_LEN",
+    "INPUT_STRING_MAX_SIZE",
+    "KEYSTORE_MAX_SEED_LENGTH",
+    "MAX_LABEL_SIZE",
+    "MAX_PK_SCRIPT_SIZE",
+    "MAX_VARINT_SIZE",
+    "MEMORY_DEVICE_NAME_MAX_LEN",
+    "MEMORY_MULTISIG_NAME_MAX_LEN",
+    "SD_MAX_FILE_SIZE",
+    "XPUB_ENCODED_LEN",
+    "font_font_a_11X10",
+    "font_font_a_9X9",
+    "font_monogram_5X9",
+    "font_password_11X12",
+];
+
+const ALLOWLIST_TYPES: &[&str] = &[
+    "buffer_t",
+    "component_t",
+    "confirm_params_t",
+    "trinary_input_string_params_t",
+];
+
+const ALLOWLIST_FNS: &[&str] = &[
+    "UG_ClearBuffer",
+    "UG_FontSelect",
+    "UG_PutString",
+    "UG_SendBuffer",
+    "bip32_derive_xpub",
+    "bitbox02_smarteeprom_init",
+    "bitbox_secp256k1_dleq_prove",
+    "bitbox_secp256k1_dleq_verify",
+    "confirm_create",
+    "confirm_transaction_address_create",
+    "confirm_transaction_fee_create",
+    "delay_ms",
+    "delay_us",
+    "empty_create",
+    "keystore_bip39_mnemonic_to_seed",
+    "keystore_bip85_bip39",
+    "keystore_bip85_ln",
+    "keystore_copy_seed",
+    "keystore_create_and_store_seed",
+    "keystore_encode_xpub_at_keypath",
+    "keystore_encrypt_and_store_seed",
+    "keystore_get_bip39_mnemonic",
+    "keystore_get_bip39_word",
+    "keystore_get_ed25519_seed",
+    "keystore_is_locked",
+    "keystore_lock",
+    "keystore_mock_unlocked",
+    "keystore_secp256k1_compressed_to_uncompressed",
+    "keystore_secp256k1_get_private_key",
+    "keystore_secp256k1_nonce_commit",
+    "keystore_secp256k1_schnorr_bip86_pubkey",
+    "keystore_secp256k1_schnorr_bip86_sign",
+    "keystore_secp256k1_sign",
+    "keystore_unlock",
+    "keystore_unlock_bip39",
+    "label_create",
+    "localtime",
+    "lock_animation_start",
+    "lock_animation_stop",
+    "memory_add_noise_remote_static_pubkey",
+    "memory_bootloader_hash",
+    "memory_check_noise_remote_static_pubkey",
+    "memory_get_attestation_bootloader_hash",
+    "memory_get_attestation_pubkey_and_certificate",
+    "memory_get_device_name",
+    "memory_get_noise_static_private_key",
+    "memory_get_seed_birthdate",
+    "memory_is_initialized",
+    "memory_is_mnemonic_passphrase_enabled",
+    "memory_is_seeded",
+    "memory_multisig_get_by_hash",
+    "memory_multisig_set_by_hash",
+    "memory_set_device_name",
+    "memory_set_initialized",
+    "memory_set_mnemonic_passphrase_enabled",
+    "memory_set_seed_birthdate",
+    "memory_setup",
+    "menu_create",
+    "mock_memory_factoryreset",
+    "printf",
+    "progress_create",
+    "progress_set",
+    "random_32_bytes_mcu",
+    "random_mock_reset",
+    "reboot",
+    "reset_reset",
+    "screen_print_debug",
+    "screen_process",
+    "screen_saver_disable",
+    "screen_saver_enable",
+    "sd_card_inserted",
+    "sd_erase_file_in_subdir",
+    "sd_format",
+    "sd_free_list",
+    "sd_list_subdir",
+    "sd_load_bin",
+    "sd_write_bin",
+    "sdcard_create",
+    "secp256k1_ecdsa_anti_exfil_host_commit",
+    "securechip_attestation_sign",
+    "securechip_model",
+    "securechip_monotonic_increments_remaining",
+    "securechip_u2f_counter_set",
+    "smarteeprom_bb02_config",
+    "status_create",
+    "trinary_choice_create",
+    "trinary_input_string_create",
+    "trinary_input_string_set_input",
+    "ui_screen_stack_pop",
+    "ui_screen_stack_pop_all",
+    "ui_screen_stack_push",
+    "util_format_datetime",
+    "wally_free_string",
+    "wally_get_secp_context",
+    "wally_hash160",
+    "wally_sha512",
+];
+
+const RUSTIFIED_ENUMS: &[&str] = &[
+    "keystore_error_t",
+    "keystore_secp256k1_pubkey_format",
+    "memory_result_t",
+    "multisig_script_type_t",
+    "output_type_t",
+    "securechip_model_t",
+    "simple_type_t",
+    "trinary_choice_t",
+];
 
 pub fn main() -> Result<(), &'static str> {
     // We could theoretically list every header file that we end up depending on, but that is hard
@@ -25,7 +163,7 @@ pub fn main() -> Result<(), &'static str> {
     // Check if we have `bindgen` executable
     if let Err(e) = Command::new("bindgen").spawn() {
         if e.kind() == ErrorKind::NotFound {
-            return Err("`bindgen` was not found! Check your PATH!")
+            return Err("`bindgen` was not found! Check your PATH!");
         }
     }
 
@@ -38,8 +176,15 @@ pub fn main() -> Result<(), &'static str> {
     let extra_flags = if cross_compiling {
         // APP_ vars active when generating rust declarations from C headers.  It is okay to
         // activate all of them here - Rust's 'app-' features control usage/compilation.
-        vec!["-D__SAMD51J20A__", "--target=thumbv7em-none-eabi", "-mcpu=cortex-m4", "-mthumb",
-         "-mfloat-abi=soft", &arm_sysroot, "-DAPP_U2F=1"]
+        vec![
+            "-D__SAMD51J20A__",
+            "--target=thumbv7em-none-eabi",
+            "-mcpu=cortex-m4",
+            "-mthumb",
+            "-mfloat-abi=soft",
+            &arm_sysroot,
+            "-DAPP_U2F=1",
+        ]
     } else {
         vec!["-DTESTING=1"]
     };
@@ -101,132 +246,14 @@ pub fn main() -> Result<(), &'static str> {
         .arg("--use-core")
         .arg("--with-derive-default")
         .args(["--ctypes-prefix", "util::c_types"])
-        .args(["--allowlist-function", "bip32_derive_xpub"])
-        .args(["--allowlist-function", "localtime"])
-        .args(["--allowlist-function", "wally_free_string"])
-        .args(["--allowlist-function", "mock_memory_factoryreset"])
-        .args(["--allowlist-function", "memory_setup"])
-        .args(["--allowlist-function", "memory_is_initialized"])
-        .args(["--allowlist-function", "memory_set_initialized"])
-        .args(["--allowlist-function", "memory_is_seeded"])
-        .args(["--allowlist-function", "memory_is_mnemonic_passphrase_enabled"])
-        .args(["--allowlist-function", "memory_get_attestation_pubkey_and_certificate"])
-        .args(["--allowlist-function", "memory_get_attestation_bootloader_hash"])
-        .args(["--allowlist-function", "memory_bootloader_hash"])
-        .args(["--allowlist-function", "memory_get_noise_static_private_key"])
-        .args(["--allowlist-function", "memory_check_noise_remote_static_pubkey"])
-        .args(["--allowlist-function", "memory_add_noise_remote_static_pubkey"])
-        .args(["--allowlist-function", "memory_get_device_name"])
-        .args(["--allowlist-function", "memory_set_device_name"])
-        .args(["--allowlist-function", "memory_set_mnemonic_passphrase_enabled"])
-        .args(["--allowlist-var", "MEMORY_MULTISIG_NAME_MAX_LEN"])
-        .args(["--allowlist-function", "memory_set_seed_birthdate"])
-        .args(["--allowlist-function", "memory_get_seed_birthdate"])
-        .args(["--allowlist-function", "memory_multisig_get_by_hash"])
-        .args(["--allowlist-function", "memory_multisig_set_by_hash"])
-        .args(["--allowlist-function", "smarteeprom_bb02_config"])
-        .args(["--allowlist-function", "bitbox02_smarteeprom_init"])
-        .args(["--rustified-enum", "memory_result_t"])
-        .args(["--allowlist-var", "MEMORY_DEVICE_NAME_MAX_LEN"])
-        .args(["--allowlist-function", "securechip_attestation_sign"])
-        .args(["--allowlist-function", "securechip_monotonic_increments_remaining"])
-        .args(["--allowlist-function", "securechip_u2f_counter_set"])
-        .args(["--allowlist-function", "securechip_model"])
-        .args(["--rustified-enum", "securechip_model_t"])
-        .args(["--allowlist-var", "KEYSTORE_MAX_SEED_LENGTH"])
-        .args(["--allowlist-function", "keystore_is_locked"])
-        .args(["--allowlist-function", "keystore_unlock"])
-        .args(["--allowlist-function", "keystore_unlock_bip39"])
-        .args(["--allowlist-function", "keystore_lock"])
-        .args(["--allowlist-function", "keystore_create_and_store_seed"])
-        .args(["--allowlist-function", "keystore_copy_seed"])
-        .args(["--allowlist-function", "keystore_secp256k1_get_private_key"])
-        .args(["--allowlist-function", "keystore_get_bip39_mnemonic"])
-        .args(["--allowlist-function", "keystore_get_bip39_word"])
-        .args(["--allowlist-function", "keystore_get_ed25519_seed"])
-        .args(["--allowlist-function", "keystore_bip85_bip39"])
-        .args(["--allowlist-function", "keystore_bip85_ln"])
-        .args(["--allowlist-function", "keystore_secp256k1_compressed_to_uncompressed"])
-        .args(["--allowlist-function", "keystore_secp256k1_nonce_commit"])
-        .args(["--allowlist-function", "keystore_secp256k1_sign"])
-        .args(["--allowlist-function", "keystore_secp256k1_schnorr_bip86_sign"])
-        .args(["--allowlist-function", "keystore_bip39_mnemonic_to_seed"])
-        .args(["--allowlist-function", "keystore_mock_unlocked"])
-        .args(["--allowlist-var", "EC_PUBLIC_KEY_UNCOMPRESSED_LEN"])
-        .args(["--allowlist-var", "EC_PUBLIC_KEY_LEN"])
-        .args(["--allowlist-function", "keystore_encode_xpub_at_keypath"])
-        .args(["--allowlist-function", "keystore_encrypt_and_store_seed"])
-        .args(["--allowlist-var", "XPUB_ENCODED_LEN"])
-        .args(["--allowlist-var", "BIP32_SERIALIZED_LEN"])
-        .args(["--allowlist-function", "lock_animation_start"])
-        .args(["--allowlist-function", "lock_animation_stop"])
-        .args(["--allowlist-function", "delay_us"])
-        .args(["--rustified-enum", "keystore_error_t"])
-        .args(["--rustified-enum", "keystore_secp256k1_pubkey_format"])
-        .args(["--allowlist-function", "keystore_secp256k1_schnorr_bip86_pubkey"])
-        .args(["--allowlist-function", "util_format_datetime"])
-        .args(["--allowlist-type", "buffer_t"])
-        .args(["--allowlist-function", "delay_ms"])
-        .args(["--allowlist-function", "UG_PutString"])
-        .args(["--allowlist-function", "UG_FontSelect"])
-        .args(["--allowlist-function", "UG_ClearBuffer"])
-        .args(["--allowlist-function", "UG_SendBuffer"])
-        .args(["--allowlist-function", "screen_print_debug"])
-        .args(["--allowlist-function", "ui_screen_stack_push"])
-        .args(["--allowlist-function", "ui_screen_stack_pop"])
-        .args(["--allowlist-function", "ui_screen_stack_pop_all"])
-        .args(["--allowlist-function", "screen_saver_disable"])
-        .args(["--allowlist-function", "screen_saver_enable"])
-        .args(["--allowlist-function", "screen_process"])
-        .args(["--allowlist-function", "label_create"])
-        .args(["--allowlist-function", "confirm_create"])
-        .args(["--allowlist-function", "status_create"])
-        .args(["--allowlist-function", "sdcard_create"])
-        .args(["--allowlist-function", "menu_create"])
-        .args(["--allowlist-function", "trinary_choice_create"])
-        .args(["--rustified-enum", "trinary_choice_t"])
-        .args(["--allowlist-var", "BASE58_CHECKSUM_LEN"])
-        .args(["--allowlist-function", "random_32_bytes_mcu"])
-        .args(["--allowlist-function", "random_mock_reset"])
-        .args(["--allowlist-type", "component_t"])
-        .args(["--allowlist-type", "confirm_params_t"])
-        .args(["--allowlist-var", "MAX_LABEL_SIZE"])
-        .args(["--allowlist-var", "font_font_a_9X9"])
-        .args(["--allowlist-var", "font_font_a_11X10"])
-        .args(["--allowlist-var", "font_monogram_5X9"])
-        .args(["--allowlist-var", "font_password_11X12"])
-        .args(["--allowlist-type", "trinary_input_string_params_t"])
-        .args(["--allowlist-var", "INPUT_STRING_MAX_SIZE"])
-        .args(["--allowlist-function", "trinary_input_string_create"])
-        .args(["--allowlist-function", "trinary_input_string_set_input"])
-        .args(["--allowlist-function", "confirm_transaction_address_create"])
-        .args(["--allowlist-function", "confirm_transaction_fee_create"])
-        .args(["--allowlist-function", "progress_create"])
-        .args(["--allowlist-function", "progress_set"])
-        .args(["--allowlist-function", "empty_create"])
-        .args(["--allowlist-function", "reset_reset"])
-        .args(["--allowlist-function", "sd_card_inserted"])
-        .args(["--allowlist-function", "sd_format"])
-        .args(["--allowlist-function", "sd_list_subdir"])
-        .args(["--allowlist-function", "sd_erase_file_in_subdir"])
-        .args(["--allowlist-function", "sd_load_bin"])
-        .args(["--allowlist-function", "sd_write_bin"])
-        .args(["--allowlist-var", "SD_MAX_FILE_SIZE"])
-        .args(["--allowlist-function", "sd_free_list"])
-        .args(["--allowlist-var", "BIP39_WORDLIST_LEN"])
-        .args(["--rustified-enum", "simple_type_t"])
-        .args(["--rustified-enum", "multisig_script_type_t"])
-        .args(["--rustified-enum", "output_type_t"])
-        .args(["--allowlist-var", "MAX_VARINT_SIZE"])
-        .args(["--allowlist-var", "MAX_PK_SCRIPT_SIZE"])
-        .args(["--allowlist-function", "reboot"])
-        .args(["--allowlist-function", "secp256k1_ecdsa_anti_exfil_host_commit"])
-        .args(["--allowlist-function", "wally_get_secp_context"])
-        .args(["--allowlist-function", "wally_hash160"])
-        .args(["--allowlist-function", "wally_sha512"])
-        .args(["--allowlist-function", "printf"])
-        .args(["--allowlist-function", "bitbox_secp256k1_dleq_prove"])
-        .args(["--allowlist-function", "bitbox_secp256k1_dleq_verify"])
+        .args(
+            ALLOWLIST_FNS
+                .iter()
+                .flat_map(|s| ["--allowlist-function", s]),
+        )
+        .args(ALLOWLIST_TYPES.iter().flat_map(|s| ["--allowlist-type", s]))
+        .args(ALLOWLIST_VARS.iter().flat_map(|s| ["--allowlist-var", s]))
+        .args(RUSTIFIED_ENUMS.iter().flat_map(|s| ["--rustified-enum", s]))
         .arg("wrapper.h")
         .arg("--")
         .arg("-DPB_NO_PACKED_STRUCTS=1")
@@ -236,8 +263,12 @@ pub fn main() -> Result<(), &'static str> {
         .args(includes.iter().map(|s| format!("-I{s}")))
         .output()
         .expect("Failed to run bindgen");
-    if ! res.status.success() {
-        println!("bindgen-out:\n{}\n\nbindgen-err:\n{}", std::str::from_utf8(&res.stdout).unwrap(), std::str::from_utf8(&res.stderr).unwrap());
+    if !res.status.success() {
+        println!(
+            "bindgen-out:\n{}\n\nbindgen-err:\n{}",
+            std::str::from_utf8(&res.stdout).unwrap(),
+            std::str::from_utf8(&res.stderr).unwrap()
+        );
         return Err("Bindgen failed");
     }
     Ok(())

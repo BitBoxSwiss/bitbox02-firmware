@@ -7,6 +7,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+
+### 9.21.0
 - Bitcoin: add support for sending to silent payment (BIP-352) addresses
 - Bitcoin: add support for Taproot wallet policies and Miniscript on Taproot (MiniTapscript)
 - Bitcoin: add support for regtest

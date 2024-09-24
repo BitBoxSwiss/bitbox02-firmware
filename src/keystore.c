@@ -960,16 +960,13 @@ static bool _schnorr_keypair(
     if (!secp256k1_keypair_create(ctx, keypair_out, secret_key)) {
         return false;
     }
-    if (!secp256k1_keypair_xonly_pub(ctx, pubkey_out, NULL, keypair_out)) {
-        return false;
-    }
     if (tweak != NULL) {
         if (secp256k1_keypair_xonly_tweak_add(ctx, keypair_out, tweak) != 1) {
             return false;
         }
-        if (!secp256k1_keypair_xonly_pub(ctx, pubkey_out, NULL, keypair_out)) {
-            return false;
-        }
+    }
+    if (!secp256k1_keypair_xonly_pub(ctx, pubkey_out, NULL, keypair_out)) {
+        return false;
     }
     return true;
 }

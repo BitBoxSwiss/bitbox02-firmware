@@ -77,7 +77,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "keystore_secp256k1_get_private_key",
     "keystore_secp256k1_nonce_commit",
     "keystore_secp256k1_schnorr_bip86_pubkey",
-    "keystore_secp256k1_schnorr_bip86_sign",
+    "keystore_secp256k1_schnorr_sign",
     "keystore_secp256k1_sign",
     "keystore_unlock",
     "keystore_unlock_bip39",

@@ -8,6 +8,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 - Bitcoin: add support for sending to silent payment (BIP-352) addresses
+- Bitcoin: add support for Taproot wallet policies and Miniscript on Taproot (MiniTapscript)
 - Bitcoin: add support for regtest
 - Cardano: add support for vote delegation
 

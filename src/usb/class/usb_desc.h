@@ -60,10 +60,10 @@
 
 #define USB_DESC_IMANUFACT 1
 #define USB_DESC_IMANUFACT_STR_DESC                                                             \
-    30, /* bLength */                                                                           \
+    26, /* bLength */                                                                           \
         0x03, /* bDescriptorType */                                                             \
-        's', 0, 'h', 0, 'i', 0, 'f', 0, 't', 0, 'c', 0, 'r', 0, 'y', 0, 'p', 0, 't', 0, 'o', 0, \
-        '.', 0, 'c', 0, 'h', 0,
+        'b', 0, 'i', 0, 't', 0, 'b', 0, 'o', 0, 'x', 0, '.', 0, 's', 0, 'w', 0, 'i', 0, 's', 0, \
+        's', 0,
 
 #define USB_DESC_IPRODUCT 2
 #if defined(BOOTLOADER)

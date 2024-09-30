@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Update manufacturer HID descriptor to bitbox.swiss
 
 ### 9.21.0
 - Bitcoin: add support for sending to silent payment (BIP-352) addresses
@@ -146,6 +147,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Multisig script type and derivation keypath are now also verified during account regisration.
 
 ## Bootloader
+
+### v1.0.7
+- Update manufacturer HID descriptor to bitbox.swiss
 
 ### v1.0.6
 - Replace root pubkeys

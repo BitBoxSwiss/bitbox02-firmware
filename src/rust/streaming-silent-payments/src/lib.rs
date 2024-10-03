@@ -77,8 +77,7 @@ fn decode_address(address: &str, expected_hrp: &str) -> Result<SilentPaymentAddr
             .map_err(|_| ())?;
 
     let hrp = decoded_addr.hrp();
-    let hrp: &str = hrp.as_str();
-    if hrp != expected_hrp {
+    if hrp.as_str() != expected_hrp {
         return Err(());
     }
     let witness_version = decoded_addr.remove_witness_version().unwrap();

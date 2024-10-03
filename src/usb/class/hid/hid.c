@@ -17,6 +17,7 @@
 #if !defined(TESTING)
 #include "usb_protocol.h"
 #endif
+#include "util.h"
 #include <string.h>
 
 /**
@@ -52,6 +53,8 @@ static int32_t _enable(struct usbd_descriptors* desc, struct usbdf_driver* drv)
         return ERR_NOT_FOUND;
     }
 
+    // traceln("%s", "enable");
+
     // Install HID descriptor
     func_data->hid_desc = usb_find_desc(usb_desc_next(desc->sod), desc->eod, USB_DT_HID);
 
@@ -61,6 +64,7 @@ static int32_t _enable(struct usbd_descriptors* desc, struct usbdf_driver* drv)
         desc->sod = ep;
         if (NULL != ep) {
             ep_desc.bEndpointAddress = ep[2];
+            // traceln("Found endpoint 0x%02x for interface",ep_desc.bEndpointAddress);
             ep_desc.bmAttributes = ep[3];
             ep_desc.wMaxPacketSize = usb_get_u16(ep + 4);
             if (usb_d_ep_init(
@@ -106,6 +110,7 @@ static int32_t _disable(const struct usbd_descriptors* desc, struct usbdf_driver
             return ERR_NOT_FOUND;
         }
     }
+    // traceln("%s", "disable");
 
     if (func_data->func_iface != 0xFF) {
         func_data->func_iface = 0xFF;
@@ -185,9 +190,11 @@ int32_t hid_req(
 
     if ((0x81 == req->bmRequestType) && (0x06 == req->bRequest) &&
         (req->I.wIndex == func_data->func_iface)) {
+        traceln("(%u) %s", ep, "Get HID Descriptor");
         return _get_descriptor(drv, ep, req);
     }
     if (0x01 != ((req->bmRequestType >> 5) & 0x03)) { // class request
+        // traceln("%s", "not for me");
         return ERR_NOT_FOUND;
     }
     if (req->I.wIndex == func_data->func_iface) {
@@ -196,11 +203,14 @@ int32_t hid_req(
         }
         switch (req->bRequest) {
         case 0x03: /* Get Protocol */
+            traceln("%s", "Get HID Protocol");
             return usbdc_xfer(ep, &func_data->protocol, 1, 0);
         case 0x0B: /* Set Protocol */
+            traceln("%s", "Set HID Protocol");
             func_data->protocol = req->V.wValue;
             return usbdc_xfer(ep, NULL, 0, 0);
         case USB_REQ_HID_SET_REPORT:
+            traceln("%s", "Set HID Report");
             if (USB_SETUP_STAGE == stage) {
                 return usbdc_xfer(ep, ctrl_buf, len, false);
             } else {
@@ -213,6 +223,7 @@ int32_t hid_req(
             return ERR_INVALID_ARG;
         }
     } else {
+        // traceln("%s", "not for me");
         return ERR_NOT_FOUND;
     }
 }

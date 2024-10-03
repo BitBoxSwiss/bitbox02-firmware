@@ -42,6 +42,7 @@
  */
 
 #include "usbdc.h"
+#include "stdio.h"
 
 #define USBDC_VERSION 0x00000001u
 
@@ -201,6 +202,7 @@ static bool usbdc_get_str_desc(const uint8_t ep, struct usb_req *req)
 	if (NULL == str_desc) {
 		return false;
 	}
+        printf("about to return %u %.*ls\n", str_desc[0], str_desc[0]-2, (wchar_t*)&str_desc[2]);
 	if (length <= str_desc[0]) {
 		need_zlp = false;
 	} else {
@@ -296,8 +298,10 @@ static bool usbdc_get_desc_req(const uint8_t ep, struct usb_req *req)
 	uint8_t type = (uint8_t)(req->V.wValue >> 8);
 	switch (type) {
 	case USB_DT_DEVICE:
+            printf("idx: %i len: %u lang: 0x%x Get standard device descriptor\n", req->V.wValue & 0xff, req->L.wLength, req->I.wIndex);
 		return usbdc_get_dev_desc(ep, req);
 	case USB_DT_CONFIG:
+            printf("Get standard config descriptor\n");
 		return usbdc_get_cfg_desc(ep, req);
 #if CONF_USBD_HS_SP
 	case USB_DT_DEVICE_QUALIFIER:
@@ -306,6 +310,7 @@ static bool usbdc_get_desc_req(const uint8_t ep, struct usb_req *req)
 		return usbdc_get_othspdcfg_desc(ep, req);
 #endif
 	case USB_DT_STRING:
+            printf("idx: %i len: %u lang: 0x%x Get standard string descriptor\n", req->V.wValue & 0xff, req->L.wLength, req->I.wIndex);
 		return usbdc_get_str_desc(ep, req);
 	default:
 		break;
@@ -721,6 +726,12 @@ static void usbd_sof_cb(void)
  */
 static bool usbdc_cb_ctl_req(const uint8_t ep, struct usb_req *req)
 {
+    //printf("ctrl req ep: 0x%u, raw: ", ep);
+    //for(size_t i=0; i<sizeof(struct usb_req); ++i) {
+    //    printf("%02x", ((uint8_t*)req)[i]);
+    //}
+    //printf("\n");
+    //printf("0x%02x 0x%02x val; %i idx: %i len: %i\n", req->bmRequestType, req->bRequest, swap_u16(req->V.wValue), swap_u16(req->I.wIndex), swap_u16(req->L.wLength));
 	switch (usbdc_request_handler(ep, req, USB_SETUP_STAGE)) {
 	case true:
 		return true;
@@ -737,6 +748,13 @@ static bool usbdc_cb_ctl_req(const uint8_t ep, struct usb_req *req)
 	case (USB_REQT_TYPE_STANDARD | USB_REQT_DIR_IN):
 		return usbdc_get_req(ep, req);
 	default:
+                printf("nobody wanted it\n");
+                printf("ctrl req ep: 0x%u, raw: ", ep);
+                //for(size_t i=0; i<sizeof(struct usb_req); ++i) {
+                //    printf("%02x", ((uint8_t*)req)[i]);
+                //}
+                //printf("\n");
+                printf("0x%02x 0x%02x val; %i idx: %i len: %i\n", req->bmRequestType, req->bRequest, req->V.wValue, req->I.wIndex, req->L.wLength);
 		return false;
 	}
 }
@@ -752,11 +770,13 @@ static void usbdc_ctrl_status_end(const struct usb_req *req)
 	}
 	switch (req->bRequest) {
 	case USB_REQ_SET_CONFIG:
+            printf("set config\n");
 		usbdc.cfg_value = req->V.wValue;
 		usbdc.state     = req->V.wValue ? USBD_S_CONFIG : USBD_S_ADDRESS;
 		usbdc_change_notify(USBDC_C_STATE, usbdc.state);
 		break;
 	case USB_REQ_SET_ADDRESS:
+            //printf("set address %u %x\n", req->V.wValue, req->V.wValue);
 		usbdc_set_address(req->V.wValue);
 		usbdc.state = req->V.wValue ? USBD_S_ADDRESS : USBD_S_DEFAULT;
 		usbdc_change_notify(USBDC_C_STATE, usbdc.state);

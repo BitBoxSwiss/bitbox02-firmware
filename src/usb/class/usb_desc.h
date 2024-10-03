@@ -18,28 +18,37 @@
 #include <bootloader/bootloader_version.h>
 #include <version.h>
 #ifndef TESTING
+#include "usb/usb_protocol_iap2.h"
 #include "usb_protocol.h"
 #include "usb_protocol_hid.h"
+#include "vendor/usb_protocol_vendor.h"
 #endif
 
 #define USB_DESC_LE16(a) ((uint8_t)(a)), ((uint8_t)((a) >> 8))
 
 #define USB_DESC_IDVENDER 0x03eb
 #define USB_DESC_IDPRODUCT 0x2403
+// USB Endpoint with index 0 is pre-allocated for "control"
 #define USB_DESC_HWW_EP_IN (1 | USB_EP_DIR_IN)
 #define USB_DESC_HWW_EP_OUT (2 | USB_EP_DIR_OUT)
+#define USB_DESC_IAP2_EP_IN (3 | USB_EP_DIR_IN)
+#define USB_DESC_IAP2_EP_OUT (4 | USB_EP_DIR_OUT)
 #if APP_U2F == 1
-#define USB_DESC_U2F_EP_IN (3 | USB_EP_DIR_IN)
-#define USB_DESC_U2F_EP_OUT (4 | USB_EP_DIR_OUT)
-#define USB_DESC_IFACE_NUM_U2F 1
-#define USB_DESC_NUM_IFACES 2
+#define USB_DESC_U2F_EP_IN (5 | USB_EP_DIR_IN)
+#define USB_DESC_U2F_EP_OUT (6 | USB_EP_DIR_OUT)
+#define USB_DESC_IFACE_NUM_U2F 2
+#define USB_DESC_NUM_HID_IFACES 2
 #else
-#define USB_DESC_NUM_IFACES 1
+#define USB_DESC_NUM_HID_IFACES 1
 #endif
 #define USB_DESC_IFACE_NUM_HWW 0
-#define USB_DESC_IFACE_LEN 32
+#define USB_DESC_IFACE_NUM_IAP2 1
+#define USB_DESC_IFACE_IAP2_LEN 23
+#define USB_DESC_IFACE_HID_LEN 32
 #define USB_DESC_CONFIG_LEN 9
-#define USB_DESC_WTOTALLEN (USB_DESC_CONFIG_LEN + USB_DESC_IFACE_LEN * USB_DESC_NUM_IFACES)
+#define USB_DESC_WTOTALLEN                           \
+    (USB_DESC_CONFIG_LEN + USB_DESC_IFACE_IAP2_LEN + \
+     USB_DESC_IFACE_HID_LEN * USB_DESC_NUM_HID_IFACES)
 #define USB_DESC_BMAXPKSZ0 0x40
 #define USB_DESC_BCDUSB 0x200 // 0x0200 => USB 2.0 version; 0x0210 => USB 2.1 version
 #define USB_DESC_BCDDEVICE 0x100
@@ -123,11 +132,37 @@
         DIGITAL_BITBOX_VERSION_W16
 #endif
 
-#define USB_STR_DESC            \
-    USB_DESC_LANGID_DESC        \
-    USB_DESC_IMANUFACT_STR_DESC \
-    USB_DESC_IPRODUCT_STR_DESC  \
-    USB_DESC_ISERIALNUM_STR_DESC
+#define USB_DESC_IAP2 4
+#define USB_DESC_IAP2_STR_DESC                                                                  \
+    28, /* bLength */                                                                           \
+        0x03, /* bDescriptorType */                                                             \
+        'i', 0, 'A', 0, 'P', 0, ' ', 0, 'I', 0, 'n', 0, 't', 0, 'e', 0, 'r', 0, 'f', 0, 'a', 0, \
+        'c', 0, 'e', 0,
+
+#define USB_DESC_CONF 5
+#define USB_DESC_CONF_STR_DESC                                                                  \
+    10, /* bLength */                                                                           \
+        0x03, /* bDescriptorType */                                                             \
+        'c', 0, 'o', 0, 'n', 0, 'f', 0,
+
+#define USB_DESC_IHWW 6
+#define USB_DESC_IHWW_STR_DESC                                                                  \
+    8, /* bLength */                                                                           \
+        0x03, /* bDescriptorType */                                                             \
+        'h', 0, 'w', 0, 'w', 0,
+
+#define USB_DESC_IU2F 7
+#define USB_DESC_IU2F_STR_DESC                                                                  \
+    10, /* bLength */                                                                           \
+        0x03, /* bDescriptorType */                                                             \
+        'u', 0, '2', 0, 'f', 0,
+
+#define USB_STR_DESC             \
+    USB_DESC_LANGID_DESC         \
+    USB_DESC_IMANUFACT_STR_DESC  \
+    USB_DESC_IPRODUCT_STR_DESC   \
+    USB_DESC_ISERIALNUM_STR_DESC \
+    USB_DESC_IAP2_STR_DESC
 
 #define USB_DESC_HWW_REPORT_LEN 34
 #define USB_DESC_HWW_REPORT                                        \
@@ -178,7 +213,7 @@
         HID_CLASS, /* iface.bInterfaceClass */                              \
         USB_SUBCLASS_NO, /* iface.bInterfaceSubClass */                     \
         USB_PROTOCOL_NO, /* iface.bInterfaceProtocol */                     \
-        0x00, /* iface.iInterface */                                        \
+        0x06, /* iface.iInterface */                                        \
         9, /* hid.bLength */                                                \
         USB_DT_HID, /* hid.bDescriptorType: HID */                          \
         USB_DESC_LE16(USB_HID_BDC_V1_11), /* hid.bcdHID */                  \
@@ -199,6 +234,29 @@
         USB_DESC_LE16(USB_DESC_HID_EP_SIZE), /* ep_out.wMaxPacketSize */    \
         4 /* ep_out.bInterval */
 
+#define USB_DESC_IFACE_IAP2                                              \
+    9, /* iface.bLength */                                               \
+        0x04, /* iface.bDescriptorType: INTERFACE */                     \
+        USB_DESC_IFACE_NUM_IAP2, /* iface.bInterfaceNumber */            \
+        0x00, /* iface.bAlternateSetting */                              \
+        0x02, /* iface.bNumEndpoints */                                  \
+        VENDOR_CLASS, /* iface.bInterfaceClass */                        \
+        MFI_SUBCLASS, /* iface.bInterfaceSubClass */                     \
+        USB_PROTOCOL_NO, /* iface.bInterfaceProtocol */                  \
+        USB_DESC_IAP2, /* iface.iInterface */                            \
+        7, /* ep_in.bLength */                                           \
+        0x05, /* ep_in.bDescriptorType: ENDPOINT */                      \
+        USB_DESC_IAP2_EP_IN, /* ep_in.bEndpointAddress */                \
+        0x02, /* ep_in.bmAttributes */                                   \
+        USB_DESC_LE16(USB_DESC_HID_EP_SIZE), /* ep_in.wMaxPacketSize */  \
+        0, /* ep_in.bInterval */                                         \
+        7, /* ep_out.bLength */                                          \
+        0x05, /* ep_out.bDescriptorType: ENDPOINT */                     \
+        USB_DESC_IAP2_EP_OUT, /* ep_out.bEndpointAddress */              \
+        0x02, /* ep_out.bmAttributes */                                  \
+        USB_DESC_LE16(USB_DESC_HID_EP_SIZE), /* ep_out.wMaxPacketSize */ \
+        0 /* ep_out.bInterval */
+
 #if APP_U2F == 1
 #define USB_DESC_IFACE_U2F                                                  \
     9, /* iface.bLength */                                                  \
@@ -209,7 +267,7 @@
         HID_CLASS, /* iface.bInterfaceClass */                              \
         USB_SUBCLASS_NO, /* iface.bInterfaceSubClass */                     \
         USB_PROTOCOL_NO, /* iface.bInterfaceProtocol */                     \
-        0x00, /* iface.iInterface */                                        \
+        0x07, /* iface.iInterface */                                        \
         9, /* hid.bLength */                                                \
         USB_DT_HID, /* hid.bDescriptorType: HID */                          \
         USB_DESC_LE16(USB_HID_BDC_V1_11), /* hid.bcdHID */                  \
@@ -231,14 +289,14 @@
         4 /* ep_out.bInterval */
 #endif
 
-#define USB_DESC_CONFIG                                       \
-    USB_DESC_CONFIG_LEN, /* bLength */                        \
-        0x02, /* bDescriptorType: CONFIGURATION */            \
-        USB_DESC_LE16(USB_DESC_WTOTALLEN), /* wTotalLength */ \
-        USB_DESC_NUM_IFACES, /* bNumInterfaces */             \
-        USB_DESC_BCONFIGVAL, /* bConfigurationValue */        \
-        0x00, /* iConfiguration */                            \
-        USB_DESC_BMATTRI, /* bmAttributes */                  \
+#define USB_DESC_CONFIG                                              \
+    USB_DESC_CONFIG_LEN, /* bLength */                               \
+        0x02, /* bDescriptorType: CONFIGURATION */                   \
+        USB_DESC_LE16(USB_DESC_WTOTALLEN), /* wTotalLength */        \
+        3, /* bNumInterfaces */ \
+        USB_DESC_BCONFIGVAL, /* bConfigurationValue */               \
+        0x05, /* iConfiguration */                                   \
+        USB_DESC_BMATTRI, /* bmAttributes */                         \
         USB_DESC_BMAXPOWER /* bMaxPower */
 
 #define USB_DEV_DESC                                       \
@@ -262,10 +320,12 @@
 // (= supported endpoints) - is that the one that needs to change?
 //  ** If add more endpoints, adjust USB_DESC_D_MAX_EP_N  **
 #if APP_U2F == 0
-#define USB_DESC_FS USB_DEV_DESC, USB_DESC_CONFIG, USB_DESC_IFACE_HWW, USB_STR_DESC
-#else
 #define USB_DESC_FS \
-    USB_DEV_DESC, USB_DESC_CONFIG, USB_DESC_IFACE_HWW, USB_DESC_IFACE_U2F, USB_STR_DESC
+    USB_DEV_DESC, USB_DESC_CONFIG, USB_DESC_IFACE_HWW, USB_DESC_IFACE_IAP2, USB_STR_DESC
+#else
+#define USB_DESC_FS                                                                             \
+    USB_DEV_DESC, USB_DESC_CONFIG, USB_DESC_IFACE_HWW, USB_DESC_IFACE_IAP2, USB_DESC_IFACE_U2F, \
+        USB_STR_DESC
 #endif
 
 #endif

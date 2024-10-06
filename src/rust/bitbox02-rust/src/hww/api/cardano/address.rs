@@ -43,9 +43,8 @@ pub const ADDRESS_HASH_SIZE: usize = 28;
 fn decode_shelley_payment_address(params: &params::Params, address: &str) -> Result<Vec<u8>, ()> {
     let result =
         bech32::primitives::decode::CheckedHrpstring::new::<bech32::Bech32>(address).or(Err(()))?;
-    // TODO: use `result.hrp().as_str()` once bech32 has a new release.
-    let hrp: String = result.hrp().char_iter().collect();
-    if hrp != params.bech32_hrp_payment {
+    let hrp = result.hrp();
+    if hrp.as_str() != params.bech32_hrp_payment {
         return Err(());
     }
     let data: Vec<u8> = result.byte_iter().collect();

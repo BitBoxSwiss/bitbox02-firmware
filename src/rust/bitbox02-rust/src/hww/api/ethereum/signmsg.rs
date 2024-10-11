@@ -158,12 +158,12 @@ mod tests {
                     CONFIRM_COUNTER
                 } {
                     1 => {
-                        assert_eq!(params.title, "Goerli");
+                        assert_eq!(params.title, "Sepolia");
                         assert_eq!(params.body, "Warning: unusual keypath m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
                         true
                     }
                     2 => {
-                        assert_eq!(params.title, "Goerli");
+                        assert_eq!(params.title, "Sepolia");
                         assert_eq!(params.body, EXPECTED_ADDRESS);
                         true
                     }
@@ -183,7 +183,7 @@ mod tests {
             keypath: KEYPATH.to_vec(),
             msg: MESSAGE.to_vec(),
             host_nonce_commitment: None,
-            chain_id: 5,
+            chain_id: 11155111,
         }))
         .unwrap();
         assert_eq!(unsafe { CONFIRM_COUNTER }, 3);

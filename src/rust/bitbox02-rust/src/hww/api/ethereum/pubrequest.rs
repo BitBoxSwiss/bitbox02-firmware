@@ -207,11 +207,11 @@ mod tests {
                     CONFIRM_COUNTER
                 } {
                     1 => {
-                        assert_eq!(params.title, "Goerli");
+                        assert_eq!(params.title, "Sepolia");
                         assert_eq!(params.body, "Warning: unusual keypath m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
                     }
                     2 => {
-                        assert_eq!(params.title, "Goerli");
+                        assert_eq!(params.title, "Sepolia");
                         assert_eq!(params.body, ADDRESS);
                     }
                     _ => panic!("too many user confirmations"),
@@ -228,7 +228,7 @@ mod tests {
                 coin: pb::EthCoin::Eth as _,
                 display: true,
                 contract_address: b"".to_vec(),
-                chain_id: 5,
+                chain_id: 11155111,
             })),
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()

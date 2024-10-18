@@ -8,6 +8,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 - Update manufacturer HID descriptor to bitbox.swiss
+- Ethereum: remove deprecated Goerli network
 
 ### 9.21.0
 - Bitcoin: add support for sending to silent payment (BIP-352) addresses

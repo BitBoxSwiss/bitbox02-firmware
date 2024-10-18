@@ -186,7 +186,6 @@ mod tests {
         var nets = []*params.ChainConfig{
             params.MainnetChainConfig,
             params.SepoliaChainConfig,
-            params.GoerliChainConfig,
             &params.ChainConfig{
                 ChainID:     big.NewInt(200),
                 LondonBlock: big.NewInt(12965000),

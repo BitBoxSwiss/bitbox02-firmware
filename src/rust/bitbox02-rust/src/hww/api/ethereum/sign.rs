@@ -630,7 +630,7 @@ mod tests {
         assert_eq!(unsafe { UI_COUNTER }, 1);
     }
 
-    /// Standard ETH transaction on an unusual keypath (Goerli on mainnet keypath)
+    /// Standard ETH transaction on an unusual keypath (Sepolia on mainnet keypath)
     #[test]
     pub fn test_process_warn_unusual_keypath() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
@@ -643,7 +643,7 @@ mod tests {
                     CONFIRM_COUNTER
                 } {
                     1 => {
-                        assert_eq!(params.title, "Goerli");
+                        assert_eq!(params.title, "Sepolia");
                         assert_eq!(params.body, "Warning: unusual keypath m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
                         true
                     }
@@ -651,13 +651,13 @@ mod tests {
                 }
             })),
             ui_transaction_address_create: Some(Box::new(|amount, address| {
-                assert_eq!(amount, "0.530564 GOETH");
+                assert_eq!(amount, "0.530564 SEPETH");
                 assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
                 true
             })),
             ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                assert_eq!(total, "0.53069 GOETH");
-                assert_eq!(fee, "0.000126 GOETH");
+                assert_eq!(total, "0.53069 SEPETH");
+                assert_eq!(fee, "0.000126 SEPETH");
                 assert!(longtouch);
                 true
             })),
@@ -677,7 +677,7 @@ mod tests {
             value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
             data: b"".to_vec(),
             host_nonce_commitment: None,
-            chain_id: 5,
+            chain_id: 11155111,
             address_case: pb::EthAddressCase::Mixed as _,
         })))
         .unwrap();

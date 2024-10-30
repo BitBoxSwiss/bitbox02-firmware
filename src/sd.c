@@ -20,6 +20,7 @@
 #ifndef TESTING
 #include "driver_init.h"
 #include "sd_mmc.h"
+#include "sd_mmc/sd_mmc_start.h"
 #endif
 
 #include "flags.h"
@@ -107,7 +108,14 @@ static bool _mount(void)
     sd_mmc_resume_clock();
 #endif
     memset(&fs, 0, sizeof(FATFS));
-    if (f_mount(&fs, "SD", 1) == FR_INVALID_DRIVE) {
+    int res = f_mount(&fs, "", 1);
+    if (res == FR_DISK_ERR) {
+#ifndef TESTING
+        sd_mmc_start();
+#endif
+        res = f_mount(&fs, "", 1);
+    }
+    if (res == FR_INVALID_DRIVE) {
 #ifndef TESTING
         sd_mmc_pause_clock();
 #endif
@@ -117,11 +125,11 @@ static bool _mount(void)
 }
 
 /**
- * Unmunts an SD card and pauses the bus clock.
+ * Unmounts an SD card and pauses the bus clock.
  */
 static void _unmount(void)
 {
-    f_mount(NULL, "SD", 1);
+    f_unmount("");
 #ifndef TESTING
     sd_mmc_pause_clock();
 #endif
@@ -268,7 +276,8 @@ bool sd_list_subdir(sd_list_t* list_out, const char* subdir)
         if (list_out->num_files == allocated_files) {
             char** new_list_out_files;
             allocated_files *= 2;
-            new_list_out_files = (char**)realloc(list_out->files, sizeof(char*) * allocated_files);
+            new_list_out_files =
+                (char**)realloc((void*)list_out->files, sizeof(char*) * allocated_files);
             if (new_list_out_files == NULL) {
                 sd_free_list(list_out);
                 Abort("Error: realloc sd_list_subdir");
@@ -295,7 +304,7 @@ void sd_free_list(sd_list_t* list)
         util_zero(list->files[i], strlen(list->files[i]));
         free(list->files[i]);
     }
-    free(list->files);
+    free((void*)list->files);
     list->files = NULL;
 }
 

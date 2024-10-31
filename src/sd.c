@@ -108,14 +108,14 @@ static bool _mount(void)
     sd_mmc_resume_clock();
 #endif
     memset(&fs, 0, sizeof(FATFS));
-    int res = f_mount(&fs, "", 1);
+    FRESULT res = f_mount(&fs, "", 1);
     if (res == FR_DISK_ERR) {
 #ifndef TESTING
         sd_mmc_start();
 #endif
         res = f_mount(&fs, "", 1);
     }
-    if (res == FR_INVALID_DRIVE) {
+    if (res != FR_OK) {
 #ifndef TESTING
         sd_mmc_pause_clock();
 #endif

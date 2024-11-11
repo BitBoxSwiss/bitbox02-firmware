@@ -38,11 +38,6 @@ build-build-rust-unit-tests/Makefile:
 	cd build-build-rust-unit-tests && cmake .. -DCOVERAGE=OFF -DSANITIZE_ADDRESS=OFF -DSANITIZE_UNDEFINED=OFF
 	$(MAKE) -C py/bitbox02
 
-build-semihosting/Makefile:
-	mkdir -p build-semihosting
-	cd build-semihosting && cmake .. -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DSEMIHOSTING=ON
-	${MAKE} -C py/bitbox02
-
 # Directory for building for "host" machine according to gcc convention
 build: build/Makefile
 
@@ -54,20 +49,13 @@ build-build: build-build/Makefile
 # address santizers when they link code compiled with gcc.
 build-build-rust-unit-tests: build-build-rust-unit-tests/Makefile
 
-# Directory for building for "host" machine but with semihosting enbled
-build-semihosting: build-semihosting/Makefile
-
 firmware: | build
 # Generate python bindings for protobuf for test scripts
 	$(MAKE) -C build firmware.elf
-firmware-semihosting: | build-semihosting
-	$(MAKE) -C build-semihosting firmware.elf
 firmware-btc: | build
 	$(MAKE) -C build firmware-btc.elf
 bootloader: | build
 	$(MAKE) -C build bootloader.elf
-bootloader-semihosting: | build-semihosting
-	$(MAKE) -C build-semihosting bootloader-development.elf
 bootloader-development: | build
 	$(MAKE) -C build bootloader-development.elf
 bootloader-development-locked: | build
@@ -110,8 +98,6 @@ flash-dev-firmware:
 	./py/load_firmware.py build/bin/firmware.bin --debug
 jlink-flash-bootloader-development: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-development.jlink
-jlink-flash-bootloader-semihosting: | build-semihosting
-	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-semihosting/scripts/bootloader-development.jlink
 jlink-flash-bootloader-development-locked: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-development-locked.jlink
 jlink-flash-bootloader: | build
@@ -126,8 +112,6 @@ jlink-flash-firmware-btc: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-btc.jlink
 jlink-flash-factory-setup: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/factory-setup.jlink
-jlink-flash-firmware-semihosting: | build-semihosting
-	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-semihosting/scripts/firmware.jlink
 dockerinit:
 	./scripts/container.sh build --pull --force-rm --no-cache -t shiftcrypto/firmware_v2:$(shell cat .containerversion) .
 dockerpull:
@@ -144,4 +128,4 @@ prepare-tidy: | build build-build
 	make -C build rust-cbindgen
 	make -C build-build rust-cbindgen
 clean:
-	rm -rf build build-build build-semihosting build-build-rust-unit-tests
+	rm -rf build build-build build-build-rust-unit-tests

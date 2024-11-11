@@ -66,3 +66,25 @@ void util_cleanup_64(uint8_t** buf)
 {
     util_zero(*buf, 64);
 }
+
+// Max message size is MAX_LOG_LENGTH-1, becuase vsnprintf will always print a null character
+#define MAX_LOG_LENGTH 101
+
+void util_log(const char* fmt, ...)
+{
+#if !defined(NDEBUG)
+    char buf[MAX_LOG_LENGTH] = "";
+
+    va_list va;
+    va_start(va, fmt);
+    int res = vsnprintf(buf, MAX_LOG_LENGTH, fmt, va);
+    va_end(va);
+
+    rust_log(buf);
+    if (res > MAX_LOG_LENGTH - 1) {
+        rust_log("The complete log line didn't fit\n");
+    }
+#else
+    (void)fmt;
+#endif
+}

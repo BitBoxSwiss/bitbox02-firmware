@@ -370,7 +370,7 @@ foreach(type ${RUST_LIBS})
       FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
       $<$<BOOL:${SCCACHE_PROGRAM}>:RUSTC_WRAPPER=${SCCACHE_PROGRAM}>
       RUSTC_BOOTSTRAP=1
-      ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv> --offline --features target-${type} --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAGS} ${RUST_TARGET_ARCH_ARG}
+      ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv> --offline --features target-${type}$<$<STREQUAL:${CMAKE_BUILD_TYPE},DEBUG>:,rtt> --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAGS} ${RUST_TARGET_ARCH_ARG}
     COMMAND
       ${CMAKE_COMMAND} -E copy_if_different ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
     # DEPFILES are only supported with the Ninja build tool

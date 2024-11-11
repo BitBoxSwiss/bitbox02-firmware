@@ -17,11 +17,16 @@ pub mod ascii;
 pub mod bip32;
 pub mod c_types;
 pub mod decimal;
+pub mod log;
 pub mod name;
 
 // for `format!`
 #[macro_use]
 extern crate alloc;
+
+// include critical section implementation, needed by rtt-target
+#[cfg(feature = "rtt")]
+extern crate cortex_m;
 
 /// Guaranteed to wipe the provided buffer
 pub fn zero(dst: &mut [u8]) {

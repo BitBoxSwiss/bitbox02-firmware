@@ -35,7 +35,6 @@ void MemManage_Handler(void)
 void Abort(const char* msg)
 {
     screen_print_debug(msg, 0);
-    traceln("Aborted: %s", msg);
     usb_stop();
 #if !defined(TESTING)
 #if defined(BOOTLOADER)

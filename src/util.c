@@ -29,7 +29,15 @@ void util_zero(volatile void* dst, size_t len)
 // the data type.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
+// ifdef here so that we don't have to use -Wno-unknown-pragmas on GCC
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wincompatible-pointer-types-discards-qualifiers"
+#endif
     rust_util_zero(rust_util_bytes_mut(dst, len));
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 #pragma GCC diagnostic pop
 }
 
@@ -38,16 +46,6 @@ void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
     rust_util_uint8_to_hex(
         rust_util_bytes(in_bin, in_len), rust_util_bytes_mut((uint8_t*)out, in_len * 2 + 1));
 }
-
-#if defined(SEMIHOSTING)
-char* util_uint8_to_hex_alloc(const uint8_t* in_bin, const size_t in_len)
-{
-    void* out = malloc(in_len * 2 + 1);
-    rust_util_uint8_to_hex(
-        rust_util_bytes(in_bin, in_len), rust_util_bytes_mut((uint8_t*)out, in_len * 2 + 1));
-    return (char*)out;
-}
-#endif
 
 void util_cleanup_str(char** str)
 {

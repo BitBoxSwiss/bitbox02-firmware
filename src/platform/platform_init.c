@@ -18,16 +18,9 @@
 #if !defined(BOOTLOADER)
 #include "sd_mmc/sd_mmc_start.h"
 #endif
-#include "util.h"
-
-extern void initialise_monitor_handles(void);
 
 void platform_init(void)
 {
-#if defined(SEMIHOSTING)
-    initialise_monitor_handles();
-    traceln("%s", "Semihosting enabled");
-#endif
     oled_init();
 #if !defined(BOOTLOADER)
     sd_mmc_start();

@@ -22,7 +22,6 @@
 #include "qtouch.h"
 #include "screen.h"
 #include "ui/screen_stack.h"
-#include "util.h"
 #include "workflow/idle_workflow.h"
 #include "workflow/orientation_screen.h"
 
@@ -39,7 +38,6 @@ int main(void)
     qtouch_init();
     common_main();
     bitbox02_smarteeprom_init();
-    traceln("%s", "Device initialized");
     orientation_screen_blocking();
     idle_workflow_blocking();
     firmware_main_loop();

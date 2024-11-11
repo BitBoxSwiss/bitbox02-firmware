@@ -61,10 +61,6 @@ void util_zero(volatile void* dst, size_t len);
 // `out` must be of size in_len*2+1. Use BB_HEX_SIZE() to compute the size.
 void util_uint8_to_hex(const uint8_t* in_bin, size_t in_len, char* out);
 
-// This function is only compiled when we compile with SEMIHOSTING, it is convenient when debugging
-// to print byte arrays as hex.
-char* util_uint8_to_hex_alloc(const uint8_t* in_bin, size_t in_len);
-
 #define BB_HEX_SIZE(in_bin) (sizeof((in_bin)) * 2 + 1)
 
 void util_cleanup_str(char** str);
@@ -84,38 +80,6 @@ void util_cleanup_64(uint8_t** buf);
 #define UTIL_CLEANUP_64(var)                                                                     \
     uint8_t* __attribute__((__cleanup__(util_cleanup_64))) var##_clean __attribute__((unused)) = \
         var;
-
-/**
- * Tracing tools. Only enabled in semihosting builds
- *
- * Since we are using C99 it is necessary to provide at least 1 argument to "...". To print a
- * string, provide the format string "%s" and your string as the second argument.
- *
- * "do {} while" is a hack to make a macro work like a function in some cases.
- *
- * stderr is not buffered and takes forever to print stdout is used instead.
- *
- * SOURCE_PATH_SIZE is a definition provided from the command line which is the length of the path
- * to the project directory.
- */
-
-#if defined(SEMIHOSTING)
-#define LOG_LEVEL 1
-#else
-#define LOG_LEVEL 0
-#endif
-#define FILENAME (&__FILE__[SOURCE_PATH_SIZE])
-
-#define trace(format, ...)                                                                     \
-    do {                                                                                       \
-        if (LOG_LEVEL > 0) fprintf(stdout, "%s:%d: " format, FILENAME, __LINE__, __VA_ARGS__); \
-    } while (0)
-
-#define traceln(format, ...)                                                         \
-    do {                                                                             \
-        if (LOG_LEVEL > 0)                                                           \
-            fprintf(stdout, "%s:%d: " format "\n", FILENAME, __LINE__, __VA_ARGS__); \
-    } while (0)
 
 /**
  * Struct definining a rw buffer (buffer + length).

@@ -61,13 +61,8 @@ option(COVERAGE "Compile with test coverage flags." OFF)
 option(SANITIZE_ADDRESS "Compile with asan." OFF)
 option(SANITIZE_UNDEFINED "Compile with ubsan." OFF)
 option(CMAKE_VERBOSE_MAKEFILE "Verbose build." OFF)
-option(SEMIHOSTING "Enable semihosting." OFF)
 # Generate compile_command.json (for tidy and other tools)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-if(SEMIHOSTING AND NOT CMAKE_CROSSCOMPILING)
-  message(FATAL_ERROR "It doesn't make sense to semihost for the build machine")
-endif()
 
 #-----------------------------------------------------------------------------
 # Force out-of-source build

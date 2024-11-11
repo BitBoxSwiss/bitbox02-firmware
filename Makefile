@@ -121,6 +121,14 @@ jlink-flash-firmware-btc: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-btc.jlink
 jlink-flash-factory-setup: | build
 	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/factory-setup.jlink
+jlink-flash-firmware-debug: | build
+	JLinkExe -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-debug/scripts/firmware.jlink
+jlink-gdb-server:
+	JLinkGDBServer -nogui -if SWD -device ATSAMD51J20 -speed 4000
+rtt-client:
+	telnet localhost 19021
+run-debug:
+	arm-none-eabi-gdb -x scripts/jlink.gdb build-debug/bin/firmware.elf
 dockerinit:
 	./scripts/container.sh build --pull --force-rm --no-cache -t shiftcrypto/firmware_v2:$(shell cat .containerversion) .
 dockerpull:

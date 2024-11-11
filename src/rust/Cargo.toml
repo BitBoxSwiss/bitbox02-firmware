@@ -40,11 +40,27 @@ zeroize = "1.7.0"
 # This only affects the .elf output. Debug info is stripped from the final .bin.
 # Paths to source code can still appear in the final bin, as they are part of the panic!() output.
 debug = true
-
+# Optmimize maximally for size, 'z' should produce even less code than 's'
 opt-level = 'z'
+# 1 gives smaller binaries (16 is default in release mode)
 codegen-units = 1
+# Abort on panics in release builds.
 panic = 'abort'
+# LTO gives smaller binaries due to cross-crate optimizations
 lto = true
 
+# Mimic the release profile to save as much space as possible
 [profile.dev]
 opt-level = 'z'
+# Set lto="thin" to get faster builds
+lto = true
+# Enabling debug assertions will increase binary size
+debug-assertions = false
+# Enabling overflow checks will increase binary size
+overflow-checks = false
+# Set to maximally 256 to compile more in parallel
+codegen-units = 1
+# Set to 'abort' to save space
+panic = 'unwind'
+# Set to false to potentially reduce binary size
+incremental = true

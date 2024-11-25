@@ -451,6 +451,7 @@ if(CMAKE_CROSSCOMPILING)
     # Must manually link against C so that malloc can find _sbrk
     target_link_libraries(${elf}
       PRIVATE
+        optiga
         cryptoauthlib
         fatfs
         ctaes
@@ -477,6 +478,12 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
 
     target_link_libraries(${elf} PRIVATE ${firmware}_rust_c)
+
+    # Optiga config must be defined both when compiling the optiga lib, and also when compiling our
+    # sources. We can verify this include is indeed used by our sources - when you point it to a
+    # non-existing file, compilation fails.
+    # This definition is also added in external/CMakeLists.txt for the optiga lib.
+    target_compile_definitions(${elf} PRIVATE OPTIGA_LIB_EXTERNAL="optiga_config.h")
   endforeach(firmware)
 
   target_sources(firmware.elf PRIVATE firmware.c)

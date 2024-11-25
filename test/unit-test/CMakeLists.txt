@@ -68,7 +68,7 @@ add_library(bitbox_objects
   framework/mock_gestures.c
   framework/mock_component.c
   framework/mock_smarteeprom.c
-  framework/mock_securechip.c
+  framework/mock_atecc.c
   framework/mock_delay.c
 )
 

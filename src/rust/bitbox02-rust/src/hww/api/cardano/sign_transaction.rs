@@ -759,9 +759,9 @@ mod tests {
                     }
                     2 => {
                         assert_eq!(params.title, "Cardano");
-                        assert!(params.body.starts_with(
-                            "Delegate voting for account #1 to type Always Abstain?"
-                        ));
+                        assert!(params
+                            .body
+                            .starts_with("Delegate voting for account #1 to type Always Abstain?"));
                         true
                     }
                     3 => {

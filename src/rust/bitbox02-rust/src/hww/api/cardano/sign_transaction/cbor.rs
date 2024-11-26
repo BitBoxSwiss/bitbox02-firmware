@@ -172,12 +172,15 @@ pub fn encode_transaction_body<W: Write>(
                 }) => {
                     encoder.array(3)?.u8(9)?;
                     encode_stake_credential(&mut encoder, keypath)?;
-                    let drep_type = certificate::vote_delegation::CardanoDRepType::try_from(*r#type)?;
+                    let drep_type =
+                        certificate::vote_delegation::CardanoDRepType::try_from(*r#type)?;
                     match drep_type {
                         certificate::vote_delegation::CardanoDRepType::KeyHash => {
                             encoder.array(2)?.u8(0)?;
                             match drep_credhash {
-                                Some(hash) if hash.len() == 28 => { encoder.bytes(hash)?;}
+                                Some(hash) if hash.len() == 28 => {
+                                    encoder.bytes(hash)?;
+                                }
                                 Some(_hash) => return Err(Error::InvalidInput),
                                 None => return Err(Error::InvalidInput),
                             }
@@ -185,7 +188,9 @@ pub fn encode_transaction_body<W: Write>(
                         certificate::vote_delegation::CardanoDRepType::ScriptHash => {
                             encoder.array(2)?.u8(1)?;
                             match drep_credhash {
-                                Some(hash) if hash.len() == 28 => { encoder.bytes(hash)?;}
+                                Some(hash) if hash.len() == 28 => {
+                                    encoder.bytes(hash)?;
+                                }
                                 Some(_hash) => return Err(Error::InvalidInput),
                                 None => return Err(Error::InvalidInput),
                             }

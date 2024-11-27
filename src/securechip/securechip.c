@@ -13,9 +13,11 @@
 // limitations under the License.
 
 #include "securechip.h"
-#include "atecc/atecc.h"
-#include "hardfault.h"
-#include "memory/memory_shared.h"
+
+#include <atecc/atecc.h>
+#include <hardfault.h>
+#include <memory/memory_shared.h>
+#include <optiga/optiga.h>
 
 typedef struct {
     int (*setup)(const securechip_interface_functions_t* fns);
@@ -42,7 +44,21 @@ bool securechip_init(void)
 {
     switch (memory_get_securechip_type()) {
     case MEMORY_SECURECHIP_TYPE_OPTIGA:
-        Abort("Not implemented");
+        _fns.setup = optiga_setup;
+        _fns.update_keys = optiga_update_keys;
+        _fns.kdf = optiga_kdf_external;
+        _fns.kdf_rollkey = optiga_kdf_internal;
+        _fns.gen_attestation_key = optiga_gen_attestation_key;
+        _fns.attestation_sign = optiga_attestation_sign;
+        _fns.monotonic_increments_remaining = optiga_monotonic_increments_remaining;
+        _fns.random = optiga_random;
+#if APP_U2F == 1 || FACTORYSETUP == 1
+        _fns.u2f_counter_set = optiga_u2f_counter_set;
+#endif
+#if APP_U2F == 1
+        _fns.u2f_counter_inc = optiga_u2f_counter_inc;
+#endif
+        _fns.model = optiga_model;
         break;
     case MEMORY_SECURECHIP_TYPE_ATECC:
     default:

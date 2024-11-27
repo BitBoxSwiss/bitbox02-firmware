@@ -37,6 +37,9 @@ mod sha2;
 #[cfg(feature = "firmware")]
 mod workflow;
 
+#[cfg(feature = "firmware")]
+mod der;
+
 // Whenever execution reaches somewhere it isn't supposed to rust code will "panic". Our panic
 // handler will print the available information on the screen and over RTT. If we compile with
 // `panic=abort` this code will never get executed.

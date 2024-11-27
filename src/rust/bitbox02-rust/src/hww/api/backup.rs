@@ -89,6 +89,24 @@ pub async fn create(
     })
     .await?;
 
+    let is_vfat_formatted = bitbox02::sd::sdcard_vfat_formatted();
+    if !is_vfat_formatted {
+        confirm::confirm(&confirm::Params {
+            title: "SD card\nformatting needed",
+            body: "This will erase all\ndata on the SD card.",
+            ..Default::default()
+        })
+        .await?;
+        confirm::confirm(&confirm::Params {
+            title: "WARNING!",
+            body: "PERMANENT DATA\nLOSS IF NOT\nBACKED UP",
+            longtouch: true,
+            ..Default::default()
+        })
+        .await?;
+        bitbox02::sd::format()?;
+    }
+
     let is_initialized = bitbox02::memory::is_initialized();
 
     if is_initialized {

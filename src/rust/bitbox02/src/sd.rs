@@ -30,6 +30,23 @@ pub fn sdcard_inserted() -> bool {
     data.sdcard_inserted.unwrap()
 }
 
+#[cfg(not(feature = "testing"))]
+pub fn sdcard_vfat_formatted() -> bool {
+    unsafe { bitbox02_sys::sd_card_vfat_formatted() }
+}
+
+#[cfg(feature = "testing")]
+pub fn sdcard_vfat_formatted() -> bool {
+    true
+}
+
+pub fn format() -> Result<(), ()> {
+    match unsafe { bitbox02_sys::sd_format() } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
+
 struct SdList(bitbox02_sys::sd_list_t);
 
 impl Drop for SdList {

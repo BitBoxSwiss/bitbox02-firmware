@@ -23,14 +23,23 @@
 #include <stdint.h>
 
 typedef enum {
-    SC_ERR_ZONE_UNLOCKED_CONFIG = -1,
-    SC_ERR_ZONE_UNLOCKED_DATA = -2,
+    // Errors common to any securechip implementation
+    SC_ERR_IFS = -1,
+    SC_ERR_INVALID_ARGS = -2,
     SC_ERR_CONFIG_MISMATCH = -3,
-    SC_ERR_SLOT_UNLOCKED_IO = -4,
-    SC_ERR_SLOT_UNLOCKED_AUTH = -5,
-    SC_ERR_SLOT_UNLOCKED_ENC = -6,
-    SC_ERR_IFS = -7,
-    SC_ERR_INVALID_ARGS = -8,
+
+    // Errors specific to the ATECC
+    SC_ATECC_ERR_ZONE_UNLOCKED_CONFIG = -100,
+    SC_ATECC_ERR_ZONE_UNLOCKED_DATA = -101,
+    SC_ATECC_ERR_SLOT_UNLOCKED_IO = -103,
+    SC_ATECC_ERR_SLOT_UNLOCKED_AUTH = -104,
+    SC_ATECC_ERR_SLOT_UNLOCKED_ENC = -105,
+
+    // Errors specific to the Optiga
+    SC_OPTIGA_ERR_CREATE = -201,
+    SC_OPTIGA_ERR_UNEXPECTED_METADATA = -204,
+    SC_OPTIGA_ERR_PAL = -205,
+    SC_OPTIGA_ERR_UNEXPECTED_LEN = -206,
 } securechip_error_t;
 
 typedef struct {
@@ -61,15 +70,15 @@ USE_RESULT bool securechip_init(void);
  * communication interface/bridge to cryptoauthlib. On first call, the chip
  * is configured and locked.
  * @param[in] ifs Interface functions.
- * @return values of `securechip_error_t` if negative, values of `ATCA_STATUS` if positive, 0 on
- * success.
+ * @return 0 on success. Values of `securechip_error_t` if negative. If positive, values of
+ * `ATCA_STATUS` for ATECC, values of optiga_lib_return_codes.h for Optiga.
  */
 USE_RESULT int securechip_setup(const securechip_interface_functions_t* ifs);
 
 /**
  * Updates the two KDF keys (rollkey and kdf key). The previous keys are lost
  * and cannot be restored. Calling this function does not increment the
- * monotonic counter Counter0.
+ * monotonic counter.
  * @return true on success.
  */
 USE_RESULT bool securechip_update_keys(void);
@@ -80,7 +89,8 @@ USE_RESULT bool securechip_update_keys(void);
  * @param[in] len Must be <= 127.
  * @param[out] kdf_out Must have size 32. Result of the kdf will be stored here.
  * Cannot be the same as `msg`.
- * @return values of `securechip_error_t` if negative, values of `ATCA_STATUS` if positive, 0 on
+ * @return 0 on success. Values of `securechip_error_t` if negative. If positive, values of
+ * `ATCA_STATUS` for ATECC, values of optiga_lib_return_codes.h for Optiga.
  */
 USE_RESULT int securechip_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out);
 
@@ -91,7 +101,8 @@ USE_RESULT int securechip_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out);
  * @param[in] len Must be <= 127.
  * @param[out] kdf_out Must have size 32. Result of the kdf will be stored here.
  * Cannot be the same as `msg`.
- * @return values of `securechip_error_t` if negative, values of `ATCA_STATUS` if positive, 0 on
+ * @return 0 on success. Values of `securechip_error_t` if negative. If positive, values of
+ * `ATCA_STATUS` for ATECC, values of optiga_lib_return_codes.h for Optiga.
  */
 USE_RESULT int securechip_kdf_rollkey(const uint8_t* msg, size_t len, uint8_t* kdf_out);
 
@@ -108,7 +119,7 @@ USE_RESULT bool securechip_gen_attestation_key(uint8_t* pubkey_out);
 USE_RESULT bool securechip_attestation_sign(const uint8_t* challenge, uint8_t* signature_out);
 
 /**
- * Retrieves the number of remaining possible counter increments (max value - Counter0).
+ * Retrieves the number of remaining possible counter increments (max value - Counter).
  * The counter is increment when using `securechip_kdf()` (see its docstring).
  * @param[out] remaining_out current value of the monotonic counter.
  * @return false if there was a communication error with the SC.
@@ -141,6 +152,7 @@ USE_RESULT bool securechip_u2f_counter_inc(uint32_t* counter);
 typedef enum {
     ATECC_ATECC608A,
     ATECC_ATECC608B,
+    OPTIGA_TRUST_M_V3,
 } securechip_model_t;
 
 /**

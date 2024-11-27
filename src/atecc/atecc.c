@@ -234,7 +234,7 @@ static ATCA_STATUS _lock_slot(atecc_slot_t slot)
 static ATCA_STATUS _factory_setup(void)
 {
     if (_interface_functions == NULL) {
-        return (ATCA_STATUS)ATECC_ERR_IFS;
+        return (ATCA_STATUS)SC_ERR_IFS;
     }
     bool is_config_locked = false;
     ATCA_STATUS result = atcab_is_locked(LOCK_ZONE_CONFIG, &is_config_locked);
@@ -336,14 +336,14 @@ static int _verify_config(void)
         return result;
     }
     if (!is_locked) {
-        return ATECC_ERR_ZONE_UNLOCKED_CONFIG;
+        return SC_ATECC_ERR_ZONE_UNLOCKED_CONFIG;
     }
     result = atcab_is_locked(LOCK_ZONE_DATA, &is_locked);
     if (result != ATCA_SUCCESS) {
         return result;
     }
     if (!is_locked) {
-        return ATECC_ERR_ZONE_UNLOCKED_DATA;
+        return SC_ATECC_ERR_ZONE_UNLOCKED_DATA;
     }
 
     bool same_config = false;
@@ -352,7 +352,7 @@ static int _verify_config(void)
         return result;
     }
     if (!same_config) {
-        return ATECC_ERR_CONFIG_MISMATCH;
+        return SC_ERR_CONFIG_MISMATCH;
     }
 
     // Check that the slots are individually locked.
@@ -361,21 +361,21 @@ static int _verify_config(void)
         return result;
     }
     if (!is_locked) {
-        return ATECC_ERR_SLOT_UNLOCKED_IO;
+        return SC_ATECC_ERR_SLOT_UNLOCKED_IO;
     }
     result = atcab_is_slot_locked(ATECC_SLOT_AUTHKEY, &is_locked);
     if (result != ATCA_SUCCESS) {
         return result;
     }
     if (!is_locked) {
-        return ATECC_ERR_SLOT_UNLOCKED_AUTH;
+        return SC_ATECC_ERR_SLOT_UNLOCKED_AUTH;
     }
     result = atcab_is_slot_locked(ATECC_SLOT_ENCRYPTION_KEY, &is_locked);
     if (result != ATCA_SUCCESS) {
         return result;
     }
     if (!is_locked) {
-        return ATECC_ERR_SLOT_UNLOCKED_ENC;
+        return SC_ATECC_ERR_SLOT_UNLOCKED_ENC;
     }
     return ATCA_SUCCESS;
 }
@@ -383,7 +383,7 @@ static int _verify_config(void)
 int atecc_setup(const securechip_interface_functions_t* ifs)
 {
     if (ifs == NULL) {
-        return ATECC_ERR_IFS;
+        return SC_ERR_IFS;
     }
     _interface_functions = ifs;
     ATCA_STATUS result = atcab_init(&cfg);
@@ -527,10 +527,10 @@ bool atecc_update_keys(void)
 static int _atecc_kdf(atecc_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out)
 {
     if (len > 127 || (slot != ATECC_SLOT_ROLLKEY && slot != ATECC_SLOT_KDF)) {
-        return ATECC_ERR_INVALID_ARGS;
+        return SC_ERR_INVALID_ARGS;
     }
     if (msg == kdf_out) {
-        return ATECC_ERR_INVALID_ARGS;
+        return SC_ERR_INVALID_ARGS;
     }
 
     ATCA_STATUS result = _authorize_key();

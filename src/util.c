@@ -47,6 +47,16 @@ void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
         rust_util_bytes(in_bin, in_len), rust_util_bytes_mut((uint8_t*)out, in_len * 2 + 1));
 }
 
+const char* util_dbg_hex(const uint8_t* bin, const size_t len)
+{
+    if (len > UTIL_DBG_HEX_MAX_LEN) {
+        util_log("len too large, %zu > %d", len, UTIL_DBG_HEX_MAX_LEN);
+    }
+    static char buf[UTIL_DBG_HEX_MAX_LEN * 2 + 1] = {0};
+    util_uint8_to_hex(bin, len, buf);
+    return buf;
+}
+
 void util_cleanup_str(char** str)
 {
     util_zero(*str, strlens(*str));

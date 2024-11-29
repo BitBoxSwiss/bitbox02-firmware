@@ -61,6 +61,22 @@ void util_zero(volatile void* dst, size_t len);
 // `out` must be of size in_len*2+1. Use BB_HEX_SIZE() to compute the size.
 void util_uint8_to_hex(const uint8_t* in_bin, size_t in_len, char* out);
 
+#define UTIL_DBG_HEX_MAX_LEN 64
+/// This function is for debug purposes only!
+///
+/// Don't use this in production, the returned pointer is only valid until this function is called
+/// again. This function is not thread safe.
+///
+/// Returns a null terminated string, suitable for printing with printf in C.
+///
+/// Max `len` is UTIL_DBG_HEX_MAX_LEN. This function panics if `len` is to large.
+///
+/// Usage:
+///    uint8_t arr[2] = {1,2};
+///    util_log("%s", util_dbg_hex(arr, sizeof(arr)));
+///
+const char* util_dbg_hex(const uint8_t* bin, size_t len);
+
 #define BB_HEX_SIZE(in_bin) (sizeof((in_bin)) * 2 + 1)
 
 void util_cleanup_str(char** str);

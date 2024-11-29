@@ -900,7 +900,12 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
     UG_PutString(0, 0, "    <Enter bootloader>", false);
     UG_PutString(0, SCREEN_HEIGHT / 2 - 11, "DEV DEVICE", false);
     UG_PutString(0, SCREEN_HEIGHT / 2 + 2, "NOT FOR VALUE", false);
-    UG_PutString(0, SCREEN_HEIGHT - 9, "        <Continue>", false);
+    // Check that the firmware's reset handler isn't invalid.
+    if (((uint32_t*)FLASH_APP_START)[1] != 0xffffffff) {
+        UG_PutString(0, SCREEN_HEIGHT - 9, "        <Continue>", false);
+    } else {
+        UG_PutString(0, SCREEN_HEIGHT - 9, "    No firmware found", false);
+    }
     uint16_t ypos = SCREEN_HEIGHT / 2 - 4;
     uint16_t xpos = SCREEN_WIDTH - 10;
     if (firmware_verified != sectrue_u32) {
@@ -921,7 +926,8 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
         if (qtouch_is_scroller_active(top_slider)) {
             return true;
         }
-        if (qtouch_is_scroller_active(bottom_slider)) {
+        if (qtouch_is_scroller_active(bottom_slider) &&
+            ((uint32_t*)FLASH_APP_START)[1] != 0xffffffff) {
             return false;
         }
     }

@@ -190,15 +190,18 @@ static void _render_bootloader_finished_marker(void)
     delay_ms(30);
 }
 
-void _binExec(void* l_code_addr) __attribute__((noreturn));
+// See `exception_table` in `startup_samd51.c` for description of the content at `l_code_addr`.
+void _binExec(void* l_code_addr) __attribute__((noreturn, noinline));
 void _binExec(void* l_code_addr)
 {
     __asm__(
-        "mov   r1, r0        \n"
-        "ldr   r0, [r1, #4]  \n"
-        "ldr   sp, [r1]      \n"
-        "blx   r0");
-    (void)l_code_addr;
+        "mov   r1, %0        \n" // Copy l_code_addr to r1
+        "ldr   r0, [r1, #4]  \n" // Load l_code_addr+4 (address of Reset Handler) to r0
+        "ldr   sp, [r1]      \n" // Load l_code_addr (address of Initial Stack Pointer) to SP
+        "blx   r0" // Jump to r0
+        : /* no outputs */
+        : "r"(l_code_addr) /* input: l_code_addr */
+        : "r0", "r1", "sp") /* clobber: r0, r1, sp */;
     __builtin_unreachable();
 }
 

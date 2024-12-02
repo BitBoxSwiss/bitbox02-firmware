@@ -408,10 +408,8 @@ static size_t _api_write_chunk(const uint8_t* buf, uint8_t chunknum, uint8_t* ou
 
     // Erase is handled inside of flash_write
     if (flash_write(
-            &FLASH_0,
-            FLASH_APP_START + (chunknum * FIRMWARE_CHUNK_LEN),
-            (const uint8_t*)buf,
-            FIRMWARE_CHUNK_LEN) != ERR_NONE) {
+            &FLASH_0, FLASH_APP_START + (chunknum * FIRMWARE_CHUNK_LEN), buf, FIRMWARE_CHUNK_LEN) !=
+        ERR_NONE) {
         return _report_status(OP_STATUS_ERR_WRITE, output);
     }
 

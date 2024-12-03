@@ -70,6 +70,10 @@ RUN apt-get update && apt-get install -y \
     doxygen \
     graphviz
 
+# Dependencies of ARM Toolchain (specifically GDB)
+RUN apt-get update && apt-get install -y \
+    libncurses5
+
 # Set gcc-10 as the default gcc
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100
 RUN update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-10 100

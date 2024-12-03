@@ -34,7 +34,8 @@ typedef enum {
     ATECC_SLOT_ROLLKEY = 3,
     ATECC_SLOT_KDF = 4,
     ATECC_SLOT_ATTESTATION = 5,
-    ATECC_SLOT_ECC_UNSAFE_SIGN = 6,
+    // Deprecated as the equivalent does not exist in the Optiga chip.
+    ATECC_SLOT_ECC_UNSAFE_SIGN_DEPRECATED = 6,
     ATECC_SLOT_DATA0 = 9,
     // The other slots are currently not in use.
 } atecc_slot_t;
@@ -629,74 +630,6 @@ bool atecc_random(uint8_t* rand_out)
         }
     }
     return false;
-}
-
-// Length of priv_key must be 32 bytes
-static bool _ecc_write_priv_key(const uint8_t* priv_key)
-{
-    uint8_t atca_priv_key[36] = {0};
-    memcpy(atca_priv_key + 4, priv_key, 32);
-
-    uint8_t encryption_key[32] = {0};
-    UTIL_CLEANUP_32(encryption_key);
-    _interface_functions->get_encryption_key(encryption_key);
-
-    uint8_t nonce_contribution[32] = {0};
-    UTIL_CLEANUP_32(nonce_contribution);
-    _interface_functions->random_32_bytes(nonce_contribution);
-#if NONCE_NUMIN_SIZE > 32
-#error "size mismatch"
-#endif
-
-    ATCA_STATUS result = _authorize_key();
-    if (result != ATCA_SUCCESS) {
-        return false;
-    }
-
-    return atcab_priv_write(
-               ATECC_SLOT_ECC_UNSAFE_SIGN,
-               atca_priv_key,
-               ATECC_SLOT_ENCRYPTION_KEY,
-               encryption_key,
-               nonce_contribution) == ATCA_SUCCESS;
-}
-
-bool atecc_ecc_generate_public_key(uint8_t* priv_key, uint8_t* pub_key)
-{
-    if (!_ecc_write_priv_key(priv_key)) {
-        return false;
-    }
-
-    ATCA_STATUS result = _authorize_key();
-    if (result != ATCA_SUCCESS) {
-        return false;
-    }
-
-    result = atcab_get_pubkey(ATECC_SLOT_ECC_UNSAFE_SIGN, pub_key);
-    if (result != ATCA_SUCCESS) {
-        return false;
-    }
-
-    return true;
-}
-
-bool atecc_ecc_unsafe_sign(const uint8_t* priv_key, const uint8_t* msg, uint8_t* sig)
-{
-    if (!_ecc_write_priv_key(priv_key)) {
-        return false;
-    }
-
-    ATCA_STATUS result = _authorize_key();
-    if (result != ATCA_SUCCESS) {
-        return false;
-    }
-
-    result = atcab_sign(ATECC_SLOT_ECC_UNSAFE_SIGN, msg, sig);
-    if (result != ATCA_SUCCESS) {
-        return false;
-    }
-
-    return true;
 }
 
 #if APP_U2F == 1 || FACTORYSETUP == 1

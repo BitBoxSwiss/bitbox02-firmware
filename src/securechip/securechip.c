@@ -26,8 +26,6 @@ typedef struct {
     bool (*attestation_sign)(const uint8_t* challenge, uint8_t* signature_out);
     bool (*monotonic_increments_remaining)(uint32_t* remaining_out);
     bool (*random)(uint8_t* rand_out);
-    bool (*ecc_generate_public_key)(uint8_t* priv_key, uint8_t* pub_key);
-    bool (*ecc_unsafe_sign)(const uint8_t* priv_key, const uint8_t* msg, uint8_t* sig);
 #if APP_U2F == 1 || FACTORYSETUP == 1
     bool (*u2f_counter_set)(uint32_t counter);
 #endif
@@ -56,8 +54,6 @@ bool securechip_init(void)
         _fns.attestation_sign = atecc_attestation_sign;
         _fns.monotonic_increments_remaining = atecc_monotonic_increments_remaining;
         _fns.random = atecc_random;
-        _fns.ecc_generate_public_key = atecc_ecc_generate_public_key;
-        _fns.ecc_unsafe_sign = atecc_ecc_unsafe_sign;
 #if APP_U2F == 1 || FACTORYSETUP == 1
         _fns.u2f_counter_set = atecc_u2f_counter_set;
 #endif
@@ -123,18 +119,6 @@ bool securechip_random(uint8_t* rand_out)
 {
     ABORT_IF_NULL(random);
     return _fns.random(rand_out);
-}
-
-bool securechip_ecc_generate_public_key(uint8_t* priv_key, uint8_t* pub_key)
-{
-    ABORT_IF_NULL(ecc_generate_public_key);
-    return _fns.ecc_generate_public_key(priv_key, pub_key);
-}
-
-bool securechip_ecc_unsafe_sign(const uint8_t* priv_key, const uint8_t* msg, uint8_t* sig)
-{
-    ABORT_IF_NULL(ecc_unsafe_sign);
-    return _fns.ecc_unsafe_sign(priv_key, msg, sig);
 }
 
 #if APP_U2F == 1 || FACTORYSETUP == 1

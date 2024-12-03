@@ -120,27 +120,6 @@ USE_RESULT bool securechip_monotonic_increments_remaining(uint32_t* remaining_ou
  */
 USE_RESULT bool securechip_random(uint8_t* rand_out);
 
-/**
- * Generates the matching public key to the provided private key. Will put private key in unsafe
- * ECC slot.
- * @param[in] priv_key Private key (32 bytes).
- * @param[out] pub_key Public key. Format will be the X and Y coordinates in big-endian (64 bytes).
- * @return True if success
- */
-USE_RESULT bool securechip_ecc_generate_public_key(uint8_t* priv_key, uint8_t* pub_key);
-
-/**
- * Sign hash with private key. Will put private key in unsafe ECC slot.
- * @param[in] priv_key Private key to use for signing (32 bytes)
- * @param[in] msg Message to sign (32 bytes)
- * @param[out] sig Signature (64 bytes)
- * @return True if success
- */
-USE_RESULT bool securechip_ecc_unsafe_sign(
-    const uint8_t* priv_key,
-    const uint8_t* msg,
-    uint8_t* sig);
-
 #if APP_U2F == 1 || FACTORYSETUP == 1
 /**
  * Set the u2f counter to `counter`. Should only be used for initialization.

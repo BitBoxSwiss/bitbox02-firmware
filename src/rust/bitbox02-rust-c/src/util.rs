@@ -101,8 +101,10 @@ impl AsMut<[u8]> for BytesMut {
 ///
 /// * `buf` - Must be a valid pointer to an array of bytes
 /// * `len` - Length of buffer, `buf[len-1]` must be a valid dereference
+///
+/// SAFTEY: buf must not be NULL and point to a valid memory area of size `len`.
 #[no_mangle]
-pub extern "C" fn rust_util_bytes(buf: *const c_uchar, len: usize) -> Bytes {
+pub unsafe extern "C" fn rust_util_bytes(buf: *const c_uchar, len: usize) -> Bytes {
     Bytes { buf, len }
 }
 
@@ -110,18 +112,17 @@ pub extern "C" fn rust_util_bytes(buf: *const c_uchar, len: usize) -> Bytes {
 ///
 /// * `buf` - Must be a valid pointer to an array of bytes
 /// * `len` - Length of buffer, `buf[len-1]` must be a valid dereference
+///
+/// SAFTEY: buf must not be NULL and point to a valid memory area of size `len`.
 #[no_mangle]
 pub unsafe extern "C" fn rust_util_bytes_mut(buf: *mut c_uchar, len: usize) -> BytesMut {
     BytesMut { buf, len }
 }
 
 /// Base58Check-encode the input.
-///
-/// #Safety
-/// buf and out must not be NULL and point to valid memory areas.
 #[cfg(feature = "c-unit-testing")]
 #[no_mangle]
-pub unsafe extern "C" fn rust_base58_encode_check(buf: Bytes, mut out: BytesMut) -> bool {
+pub extern "C" fn rust_base58_encode_check(buf: Bytes, mut out: BytesMut) -> bool {
     if buf.len == 0 {
         return false;
     }
@@ -168,23 +169,25 @@ mod tests {
     #[should_panic]
     fn create_invalid_bytes_ref() {
         // Calling `as_ref()` will panic because it tries to create an invalid rust slice.
-        rust_util_bytes(core::ptr::null(), 1).as_ref();
+        (unsafe { rust_util_bytes(core::ptr::null(), 1) }).as_ref();
     }
 
     #[test]
     fn test_uint8_to_hex() {
         let buf = [1u8, 2, 3, 14, 15, 255];
         let mut string = String::from("xxxxxxxxxxxxx");
-        rust_util_uint8_to_hex(rust_util_bytes(buf.as_ptr(), buf.len()), unsafe {
-            rust_util_bytes_mut(string.as_mut_ptr(), string.len())
-        });
+        rust_util_uint8_to_hex(
+            unsafe { rust_util_bytes(buf.as_ptr(), buf.len()) },
+            unsafe { rust_util_bytes_mut(string.as_mut_ptr(), string.len()) },
+        );
         assert_eq!(string, "0102030e0fff\0");
 
         // Bigger buffer also works.
         let mut string = String::from("\0xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-        rust_util_uint8_to_hex(rust_util_bytes(buf.as_ptr(), buf.len()), unsafe {
-            rust_util_bytes_mut(string.as_mut_ptr(), string.len())
-        });
+        rust_util_uint8_to_hex(
+            unsafe { rust_util_bytes(buf.as_ptr(), buf.len()) },
+            unsafe { rust_util_bytes_mut(string.as_mut_ptr(), string.len()) },
+        );
         assert_eq!(string, "0102030e0fff\0xxxxxxxxxxxxxxxxxxxxxxx");
     }
 
@@ -192,12 +195,10 @@ mod tests {
     fn test_rust_base58_encode_check() {
         let buf = b"test";
         let mut result_buf = [0u8; 100];
-        assert!(unsafe {
-            rust_base58_encode_check(
-                rust_util_bytes(buf.as_ptr(), buf.len()),
-                rust_util_bytes_mut(result_buf.as_mut_ptr(), result_buf.len()),
-            )
-        });
+        assert!(rust_base58_encode_check(
+            unsafe { rust_util_bytes(buf.as_ptr(), buf.len()) },
+            unsafe { rust_util_bytes_mut(result_buf.as_mut_ptr(), result_buf.len()) },
+        ));
         let expected = b"LUC1eAJa5jW\0";
         assert_eq!(&result_buf[..expected.len()], expected);
     }

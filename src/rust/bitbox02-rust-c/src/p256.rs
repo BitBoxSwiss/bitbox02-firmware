@@ -58,7 +58,7 @@ mod tests {
         let privkey = b"\x50\x3e\x32\xee\xb9\xca\xb8\x67\x3f\x78\x47\xc0\x47\xfa\x57\xad\x2b\xe0\x48\x5d\x07\x59\x94\x84\x13\xcc\x8c\x00\x2b\x52\x9f\xe4";
         let mut pubkey = [0u8; 64];
         rust_p256_pubkey(
-            crate::util::rust_util_bytes(privkey.as_ptr(), privkey.len()),
+            unsafe { crate::util::rust_util_bytes(privkey.as_ptr(), privkey.len()) },
             unsafe { crate::util::rust_util_bytes_mut(pubkey.as_mut_ptr(), pubkey.len()) },
         );
     }
@@ -75,8 +75,8 @@ mod tests {
         let msg = Sha256::digest(b"msg");
         let mut sig = [0u8; 64];
         rust_p256_sign(
-            crate::util::rust_util_bytes(privkey.as_ptr(), privkey.len()),
-            crate::util::rust_util_bytes(msg.as_ptr(), msg.len()),
+            unsafe { crate::util::rust_util_bytes(privkey.as_ptr(), privkey.len()) },
+            unsafe { crate::util::rust_util_bytes(msg.as_ptr(), msg.len()) },
             unsafe { crate::util::rust_util_bytes_mut(sig.as_mut_ptr(), sig.len()) },
         );
         assert_eq!(

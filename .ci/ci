@@ -59,6 +59,7 @@ make -j8 bootloader-btc-production
 make -j8 firmware
 make -j8 firmware-btc
 make -j8 factory-setup
+make -j8 firmware-debug
 
 # Disallow some symbols in the final binary that we don't want.
 if arm-none-eabi-nm build/bin/firmware.elf | grep -q "float_to_decimal_common_shortest"; then

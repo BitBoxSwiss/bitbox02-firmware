@@ -36,14 +36,37 @@ mod sha2;
 mod workflow;
 
 // Whenever execution reaches somewhere it isn't supposed to rust code will "panic". Our panic
-// handler will print the available information on the screen. If we compile with `panic=abort`
-// this code will never get executed.
+// handler will print the available information on the screen and over RTT. If we compile with
+// `panic=abort` this code will never get executed.
 #[cfg(not(test))]
 #[cfg(not(feature = "testing"))]
 #[cfg_attr(feature = "bootloader", allow(unused_variables))]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
+    ::util::log::log!("{}", info);
     #[cfg(feature = "firmware")]
     bitbox02_rust::print_debug!(0, "Error: {}", info);
     loop {}
+}
+
+#[no_mangle]
+pub extern "C" fn rust_rtt_init() {
+    ::util::log::rtt_init();
+}
+
+/// # Safety
+///
+/// The pointer `ptr` must point to a null terminated string
+#[no_mangle]
+#[cfg_attr(not(feature = "rtt"), allow(unused))]
+pub unsafe extern "C" fn rust_log(ptr: *const ::util::c_types::c_char) {
+    #[cfg(feature = "rtt")]
+    {
+        if ptr.is_null() {
+            panic!("`ptr` must be a valid pointer");
+        }
+        let s = unsafe { core::ffi::CStr::from_ptr(ptr as _) };
+        let s = unsafe { core::str::from_utf8_unchecked(s.to_bytes()) };
+        ::util::log::rtt_target::rprintln!("{}", s);
+    }
 }

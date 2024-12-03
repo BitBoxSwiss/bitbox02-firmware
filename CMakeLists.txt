@@ -233,8 +233,9 @@ endif()
 
 # Optimize for size by default
 set(CMAKE_C_FLAGS_RELEASE "-Os -DNDEBUG")
-# Allow gdb extensions if available
-set(CMAKE_C_FLAGS_DEBUG "-Og -ggdb")
+# (-ggdb) Allow gdb extensions if available
+# Optimize debug build for size, optimizing for debug takes to much space.
+set(CMAKE_C_FLAGS_DEBUG "-Os -ggdb")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "-Os -ggdb -DNDEBUG")
 
 #-----------------------------------------------------------------------------
@@ -321,13 +322,15 @@ string(APPEND CMAKE_C_FLAGS " -Wundef -Wmissing-include-dirs")
 # Disable builtin warning
 string(APPEND CMAKE_C_FLAGS " -Wno-cast-function-type")
 
-# Hardening
-string(APPEND CMAKE_C_FLAGS " -fstack-protector-all")
-if(CMAKE_CROSSCOMPILING)
-  # Path to empty dummy libssp and libssp_shared. '-llibssp -llibssp_shared' is automatically added
-  # with '-fstack-protector-all', but we don't need them as we have our own custom
-  # `__stack_chk_fail`. See https://wiki.osdev.org/Stack_Smashing_Protector.
-  set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -L${CMAKE_CURRENT_SOURCE_DIR}/external/lib/ssp")
+# Enable stack protection on release builds
+if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+  string(APPEND CMAKE_C_FLAGS " -fstack-protector-all")
+  if(CMAKE_CROSSCOMPILING)
+    # Path to empty dummy libssp and libssp_shared. '-llibssp -llibssp_shared' is automatically added
+    # with '-fstack-protector-all', but we don't need them as we have our own custom
+    # `__stack_chk_fail`. See https://wiki.osdev.org/Stack_Smashing_Protector.
+    set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -L${CMAKE_CURRENT_SOURCE_DIR}/external/lib/ssp")
+  endif()
 endif()
 
 # Disallow duplicate definitions, which is the default since GCC

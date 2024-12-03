@@ -97,3 +97,5 @@ app-cardano = [
  # enable this feature in the deps
   "bitbox02-rust/app-cardano",
 ]
+
+rtt = [ "util/rtt" ]

@@ -13,7 +13,6 @@
 // limitations under the License.
 #include "u2f.h"
 #include "u2f/u2f_app.h"
-
 #include <stdio.h>
 #include <string.h>
 
@@ -480,9 +479,10 @@ static void _register_continue(const USB_APDU* apdu, Packet* out_packet)
         if (!_keyhandle_gen(reg_request->appId, nonce, privkey, mac)) {
             continue;
         }
-        if (securechip_ecc_generate_public_key(privkey, (uint8_t*)&response->pubKey.x)) {
-            break;
-        }
+        rust_p256_pubkey(
+            rust_util_bytes(privkey, sizeof(privkey)),
+            rust_util_bytes_mut((uint8_t*)&response->pubKey.x, 64));
+        break;
     }
 
     response->pubKey.format = U2F_UNCOMPRESSED_POINT;
@@ -504,10 +504,10 @@ static void _register_continue(const USB_APDU* apdu, Packet* out_packet)
     uint8_t hash[SHA256_LEN] = {0};
     wally_sha256((uint8_t*)&sig_base, sizeof(sig_base), hash, SHA256_LEN);
 
-    if (!securechip_ecc_unsafe_sign(U2F_ATT_PRIV_KEY, hash, sig)) {
-        _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
-        return;
-    }
+    rust_p256_sign(
+        rust_util_bytes(U2F_ATT_PRIV_KEY, sizeof(U2F_ATT_PRIV_KEY)),
+        rust_util_bytes(hash, sizeof(hash)),
+        rust_util_bytes_mut(sig, sizeof(sig)));
 
     uint8_t* resp_sig = response->keyHandleCertSig + response->keyHandleLen + sizeof(U2F_ATT_CERT);
     int der_len = _sig_to_der(sig, resp_sig);
@@ -687,11 +687,10 @@ static void _authenticate_continue(const USB_APDU* apdu, Packet* out_packet)
     uint8_t hash[SHA256_LEN] = {0};
     wally_sha256((uint8_t*)&sig_base, sizeof(sig_base), hash, SHA256_LEN);
 
-    if (!securechip_ecc_unsafe_sign(privkey, hash, sig)) {
-        _error(U2F_SW_WRONG_DATA, out_packet);
-        return;
-    }
-
+    rust_p256_sign(
+        rust_util_bytes(privkey, sizeof(privkey)),
+        rust_util_bytes(hash, sizeof(hash)),
+        rust_util_bytes_mut(sig, sizeof(sig)));
     int der_len = _sig_to_der(sig, response->sig);
     size_t auth_packet_len = sizeof(U2F_AUTHENTICATE_RESP) - U2F_MAX_EC_SIG_SIZE + der_len;
 

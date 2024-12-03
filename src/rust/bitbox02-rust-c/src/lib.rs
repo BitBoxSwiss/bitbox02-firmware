@@ -31,6 +31,8 @@ mod async_usb;
 #[cfg(feature = "firmware")]
 mod noise;
 #[cfg(feature = "firmware")]
+mod p256;
+#[cfg(feature = "firmware")]
 mod sha2;
 #[cfg(feature = "firmware")]
 mod workflow;

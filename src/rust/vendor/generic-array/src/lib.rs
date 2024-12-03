@@ -68,9 +68,13 @@
 #![deny(missing_docs)]
 #![deny(meta_variable_misuse)]
 #![no_std]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 #[cfg(feature = "serde")]
 extern crate serde;
+
+#[cfg(feature = "zeroize")]
+extern crate zeroize;
 
 #[cfg(test)]
 extern crate bincode;
@@ -82,6 +86,9 @@ mod impls;
 
 #[cfg(feature = "serde")]
 mod impl_serde;
+
+#[cfg(feature = "zeroize")]
+mod impl_zeroize;
 
 use core::iter::FromIterator;
 use core::marker::PhantomData;
@@ -201,7 +208,7 @@ where
 /// Creates an array one element at a time using a mutable iterator
 /// you can write to with `ptr::write`.
 ///
-/// Incremenent the position while iterating to mark off created elements,
+/// Increment the position while iterating to mark off created elements,
 /// which will be dropped if `into_inner` is not called.
 #[doc(hidden)]
 pub struct ArrayBuilder<T, N: ArrayLength<T>> {
@@ -535,7 +542,9 @@ where
 
     /// Converts slice to a generic array reference with inferred length;
     ///
-    /// Length of the slice must be equal to the length of the array.
+    /// # Panics
+    ///
+    /// Panics if the slice is not equal to the length of the array.
     #[inline]
     pub fn from_slice(slice: &[T]) -> &GenericArray<T, N> {
         slice.into()
@@ -543,7 +552,9 @@ where
 
     /// Converts mutable slice to a mutable generic array reference
     ///
-    /// Length of the slice must be equal to the length of the array.
+    /// # Panics
+    ///
+    /// Panics if the slice is not equal to the length of the array.
     #[inline]
     pub fn from_mut_slice(slice: &mut [T]) -> &mut GenericArray<T, N> {
         slice.into()
@@ -553,7 +564,9 @@ where
 impl<'a, T, N: ArrayLength<T>> From<&'a [T]> for &'a GenericArray<T, N> {
     /// Converts slice to a generic array reference with inferred length;
     ///
-    /// Length of the slice must be equal to the length of the array.
+    /// # Panics
+    ///
+    /// Panics if the slice is not equal to the length of the array.
     #[inline]
     fn from(slice: &[T]) -> &GenericArray<T, N> {
         assert_eq!(slice.len(), N::USIZE);
@@ -565,7 +578,9 @@ impl<'a, T, N: ArrayLength<T>> From<&'a [T]> for &'a GenericArray<T, N> {
 impl<'a, T, N: ArrayLength<T>> From<&'a mut [T]> for &'a mut GenericArray<T, N> {
     /// Converts mutable slice to a mutable generic array reference
     ///
-    /// Length of the slice must be equal to the length of the array.
+    /// # Panics
+    ///
+    /// Panics if the slice is not equal to the length of the array.
     #[inline]
     fn from(slice: &mut [T]) -> &mut GenericArray<T, N> {
         assert_eq!(slice.len(), N::USIZE);
@@ -580,7 +595,9 @@ where
 {
     /// Construct a `GenericArray` from a slice by cloning its content
     ///
-    /// Length of the slice must be equal to the length of the array
+    /// # Panics
+    ///
+    /// Panics if the slice is not equal to the length of the array.
     #[inline]
     pub fn clone_from_slice(list: &[T]) -> GenericArray<T, N> {
         Self::from_exact_iter(list.iter().cloned())
@@ -644,7 +661,7 @@ mod test {
     // cargo rustc --lib --profile test --release --
     //      -C target-cpu=native -C opt-level=3 --emit asm
     // and view the assembly to make sure test_assembly generates
-    // SIMD instructions instead of a niave loop.
+    // SIMD instructions instead of a naive loop.
 
     #[inline(never)]
     pub fn black_box<T>(val: T) -> T {

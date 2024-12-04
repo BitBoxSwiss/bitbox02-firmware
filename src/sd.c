@@ -370,7 +370,16 @@ bool sd_erase_file_in_subdir(const char* fn, const char* subdir)
     return status;
 }
 
-#ifdef TESTING
+bool sd_card_vfat_formatted(void)
+{
+    if (!_mount()) {
+        return false;
+    }
+    int result = fs.fs_type == FS_FAT32;
+    _unmount();
+    return result;
+}
+
 bool sd_format(void)
 {
     const MKFS_PARM params = {
@@ -384,4 +393,3 @@ bool sd_format(void)
     uint8_t work[FF_MAX_SS] = {0};
     return f_mkfs("SD", &params, work, sizeof(work)) == FR_OK;
 }
-#endif

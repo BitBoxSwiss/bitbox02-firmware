@@ -19,6 +19,7 @@ use pb::response::Response;
 
 use crate::workflow::{confirm, mnemonic, password, status, unlock};
 
+#[allow(clippy::empty_loop)]
 pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, Error> {
     // This is a separate screen because 'Restore backup?' does not fit in the title field.
     confirm::confirm(&confirm::Params {
@@ -75,7 +76,13 @@ pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, E
     }
 
     bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
-    bitbox02::keystore::unlock(&password).expect("restore_from_file: unlock failed");
+    match bitbox02::keystore::unlock(&password) {
+        Err(_) => {
+            print_debug!(0, "restore_from_file: unlock failed");
+            loop {}
+        }
+        _ => (),
+    };
 
     // Ignore non-critical error.
     let _ = bitbox02::memory::set_device_name(&metadata.name);
@@ -84,6 +91,7 @@ pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, E
     Ok(Response::Success(pb::Success {}))
 }
 
+#[allow(clippy::empty_loop)]
 pub async fn from_mnemonic(
     #[cfg_attr(not(feature = "app-u2f"), allow(unused_variables))]
     &pb::RestoreFromMnemonicRequest {
@@ -144,9 +152,15 @@ pub async fn from_mnemonic(
     }
 
     bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
-
     // This should never fail.
-    bitbox02::keystore::unlock(&password).expect("restore_from_mnemonic: unlock failed");
+    match bitbox02::keystore::unlock(&password) {
+        Err(_) => {
+            print_debug!(0, "restore_from_mnemonic: unlock failed");
+            loop {}
+        }
+        _ => (),
+    };
+
     unlock::unlock_bip39().await;
     Ok(Response::Success(pb::Success {}))
 }

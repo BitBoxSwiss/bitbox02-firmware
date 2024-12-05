@@ -95,6 +95,7 @@ pub async fn unlock_keystore(
 
 /// Performs the BIP39 keystore unlock, including unlock animation. If the optional passphrase
 /// feature is enabled, the user will be asked for the passphrase.
+#[allow(clippy::empty_loop)]
 pub async fn unlock_bip39() {
     // Empty passphrase by default.
     let mut mnemonic_passphrase = SafeInputString::new();
@@ -116,9 +117,16 @@ pub async fn unlock_bip39() {
         }
     }
 
-    bitbox02::ui::with_lock_animation(|| {
-        keystore::unlock_bip39(&mnemonic_passphrase).expect("bip39 unlock failed");
-    });
+    bitbox02::ui::lock_animation_start();
+    let result = keystore::unlock_bip39(&mnemonic_passphrase);
+    bitbox02::ui::lock_animation_stop();
+    match result {
+        Err(_) => {
+            print_debug!(0, "bip39 unlock failed");
+            loop {}
+        }
+        _ => (),
+    }
 }
 
 /// Invokes the unlock workflow. This function does not finish until the keystore is unlocked, or

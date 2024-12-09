@@ -306,7 +306,10 @@ void bootloader_init(void)
     _oled_set_pins();
     _ptc_clock_init();
 
+#ifdef BOOTLOADER_DEVDEVICE
+    // Only needed for qtouch, which is only needed in the devdevice bootloader.
     _timer_peripheral_init();
+#endif
     _delay_driver_init();
 
     // OLED

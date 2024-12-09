@@ -78,6 +78,7 @@ static void _timer_peripheral_init(void)
 {
     hri_mclk_set_APBAMASK_RTC_bit(MCLK);
     timer_init(&TIMER_0, RTC, _rtc_get_timer());
+    timer_start(&TIMER_0);
 }
 
 /**

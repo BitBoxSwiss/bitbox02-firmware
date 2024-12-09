@@ -125,11 +125,15 @@ set(DBB-BOOTLOADER-SOURCES ${DBB-BOOTLOADER-SOURCES} PARENT_SCOPE)
 set(DRIVER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/platform/platform_init.c
   ${CMAKE_SOURCE_DIR}/src/platform/driver_init.c
-  ${CMAKE_SOURCE_DIR}/src/qtouch/qtouch.c
   ${CMAKE_SOURCE_DIR}/src/ui/oled/oled.c
   ${CMAKE_SOURCE_DIR}/src/ui/oled/oled_writer.c
 )
 set(DRIVER-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
+
+set(QTOUCH-SOURCES
+  ${CMAKE_SOURCE_DIR}/src/qtouch/qtouch.c
+)
+set(QTOUCH-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
 
 set(PLATFORM-BITBOX02-SOURCES
   ${CMAKE_SOURCE_DIR}/src/sd_mmc/sd_mmc_start.c
@@ -180,6 +184,7 @@ set(FIRMWARE-SOURCES
   ${DBB-FIRMWARE-UI-SOURCES}
   ${FIRMWARE-DRIVER-SOURCES}
   ${DRIVER-SOURCES}
+  ${QTOUCH-SOURCES}
   ${SECURECHIP-SOURCES}
   ${CMAKE_SOURCE_DIR}/src/common_main.c
 )
@@ -337,6 +342,12 @@ set(BOOTLOADERS
   )
 set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
 
+set(DEVDEVICE-BOOTLOADERS
+  bootloader-development
+  bootloader-development-locked
+  bootloader-btc-development
+)
+
 set(FIRMWARES
   firmware # Firmware MULTI
   firmware-btc # Firmware BTC-ONLY
@@ -416,7 +427,6 @@ if(CMAKE_CROSSCOMPILING)
     target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/bootloader)
     target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${bootloader}.map\" -T\"${CMAKE_SOURCE_DIR}/bootloader.ld\"")
     target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
-    target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
 
     target_link_libraries(${elf} PRIVATE ${bootloader}_rust_c)
 
@@ -425,6 +435,12 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE --specs=nano.specs)
     target_compile_options(${elf} PRIVATE --specs=nosys.specs)
     target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
+  endforeach(bootloader)
+
+  foreach(bootloader ${DEVDEVICE-BOOTLOADERS})
+    set(elf ${bootloader}.elf)
+    target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
+    target_sources(${elf} PRIVATE ${QTOUCH-SOURCES})
   endforeach(bootloader)
 
   foreach(bootloader ${BOOTLOADERS-BITBOX02})

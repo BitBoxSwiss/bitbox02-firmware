@@ -13,4 +13,5 @@ monitor reset
 #break MemManage_Handler
 
 # start running
-stepi
+# change `continue` to `stepi` to stop execution at the start if you want to set breakpoints etc.
+continue

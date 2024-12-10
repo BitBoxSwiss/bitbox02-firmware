@@ -23,7 +23,7 @@
 
 void HardFault_Handler(void)
 {
-    Abort("Hard Fault");
+    Abort("Unexpected error.\nPlease contact support.");
 }
 
 void MemManage_Handler(void)

@@ -520,7 +520,6 @@ void qtouch_timer_config(void)
     Timer_task.mode = TIMER_TASK_REPEAT;
 
     timer_add_task(&TIMER_0, &Timer_task);
-    timer_start(&TIMER_0);
 }
 
 uint16_t qtouch_get_sensor_node_signal(uint16_t sensor_node)

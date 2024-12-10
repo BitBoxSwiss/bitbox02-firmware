@@ -152,6 +152,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### v1.0.7
 - Update manufacturer HID descriptor to bitbox.swiss
+- Remove qtouch code from production bootloader
 
 ### v1.0.6
 - Replace root pubkeys

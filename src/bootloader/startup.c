@@ -19,7 +19,9 @@
 
 #include <driver_init.h>
 #include <hardfault.h>
+#ifdef BOOTLOADER_DEVDEVICE
 #include <qtouch.h>
+#endif
 #include <screen.h>
 #include <string.h>
 #include <usb/usb_processing.h>
@@ -49,7 +51,9 @@ int main(void)
     platform_init();
     __stack_chk_guard = rand_sync_read32(&RAND_0);
     screen_init();
+#ifdef BOOTLOADER_DEVDEVICE
     qtouch_init();
+#endif
     bootloader_jump();
 
     // If did not jump to firmware code, begin USB processing

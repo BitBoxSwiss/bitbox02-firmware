@@ -25,6 +25,7 @@ import "eth.proto";
 import "keystore.proto";
 import "mnemonic.proto";
 import "system.proto";
+import "shamir.proto";
 
 import "perform_attestation.proto";
 
@@ -67,6 +68,9 @@ message Request {
         ElectrumEncryptionKeyRequest electrum_encryption_key = 26;
         CardanoRequest cardano = 27;
         BIP85Request bip85 = 28;
+        ShowShamirRequest show_shamir = 29;
+        RestoreFromShamirRequest restore_from_shamir = 30;
+
     }
 }
 

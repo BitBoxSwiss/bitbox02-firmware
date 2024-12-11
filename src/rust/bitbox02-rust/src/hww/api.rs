@@ -38,6 +38,7 @@ mod set_mnemonic_passphrase_enabled;
 mod set_password;
 mod show_mnemonic;
 mod system;
+mod show_shamir;
 
 use alloc::vec::Vec;
 
@@ -120,6 +121,7 @@ fn can_call(request: &Request) -> bool {
         Request::RestoreFromMnemonic(_) => matches!(state, State::Uninitialized | State::Seeded),
         Request::CreateBackup(_) => matches!(state, State::Seeded | State::Initialized),
         Request::ShowMnemonic(_) => matches!(state, State::Seeded | State::Initialized),
+        Request::ShowShamir(_) => matches!(state, State::Seeded | State::Initialized),
         Request::Fingerprint(_) => matches!(state, State::Initialized),
         Request::ElectrumEncryptionKey(_) => matches!(state, State::Initialized),
         Request::BtcPub(_) | Request::Btc(_) | Request::BtcSignInit(_) => {
@@ -160,6 +162,7 @@ async fn process_api(request: &Request) -> Result<Response, Error> {
         Request::ShowMnemonic(_) => show_mnemonic::process().await,
         Request::RestoreFromMnemonic(ref request) => restore::from_mnemonic(request).await,
         Request::ElectrumEncryptionKey(ref request) => electrum::process(request).await,
+        Request::ShowShamir(_) => show_shamir::process().await,
 
         #[cfg(feature = "app-ethereum")]
         Request::Eth(pb::EthRequest {

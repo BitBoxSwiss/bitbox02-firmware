@@ -50,6 +50,8 @@ ed25519-dalek = { version = "2.1.1", default-features = false, features = ["hazm
 hmac = { version = "0.12.1", default-features = false, features = ["reset"] }
 
 miniscript = { version = "12.2.0", default-features = false, features = ["no-std"], optional = true }
+sharks = { version = "0.5.0", default-features = false, optional = true }
+rand_chacha = { version = "0.3.1", default-features = false, optional = true }
 bitcoin = { workspace = true }
 # We don't rely on this dep directly, the miniscript/bitcoin deps do. We list it here to enable the
 # small-hash feature to reduce the binary size, saving around 2784 bytes (as measured at time of
@@ -79,6 +81,8 @@ app-bitcoin = [
   "dep:bech32",
   "dep:miniscript",
   "dep:streaming-silent-payments",
+  "dep:sharks",
+  "dep:rand_chacha",
   "bitbox02/app-bitcoin",
 ]
 app-litecoin = [

@@ -564,6 +564,27 @@ bool keystore_get_bip39_mnemonic(char* mnemonic_out, size_t mnemonic_out_size)
     return snprintf_result >= 0 && snprintf_result < (int)mnemonic_out_size;
 }
 
+bool keystore_get_bip39_mnemonic_from_bytes(const uint8_t* bytes, size_t len, char* mnemonic_out, size_t mnemonic_out_size)
+{
+    if (keystore_is_locked()) {
+        return false;
+    }
+
+    if (len > KEYSTORE_MAX_SEED_LENGTH) {
+        return false;
+    }
+    char* mnemonic = NULL;
+    if (bip39_mnemonic_from_bytes(NULL, bytes, len, &mnemonic) != WALLY_OK) {
+        return false;
+    }
+    int snprintf_result = snprintf(mnemonic_out, mnemonic_out_size, "%s", mnemonic);
+    util_cleanup_str(&mnemonic);
+    free(mnemonic);
+    return snprintf_result >= 0 && snprintf_result < (int)mnemonic_out_size;
+}
+
+
+
 bool keystore_bip39_mnemonic_to_seed(const char* mnemonic, uint8_t* seed_out, size_t* seed_len_out)
 {
     return bip39_mnemonic_to_bytes(NULL, mnemonic, seed_out, 32, seed_len_out) == WALLY_OK;

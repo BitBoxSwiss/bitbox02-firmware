@@ -898,6 +898,13 @@ class SendMessage:
             print("Success")
         except UserAbortException:
             print("Aborted by user")
+    def _show_shamir_seed(self) -> None:
+        print("Your BitBox02 will now show the Shamir seed mnemonics")
+        try:
+            self._device.show_shamir()
+            print("Success")
+        except UserAbortException:
+            print("Aborted by user")
 
     def _create_backup(self) -> None:
         if self._device.check_backup(silent=True) is not None:
@@ -1417,6 +1424,7 @@ class SendMessage:
             ("List backups", self._print_backups),
             ("Check backup", self._check_backup),
             ("Show mnemonic", self._show_mnemnoic_seed),
+            ("Show shamir", self._show_shamir_seed),
             ("Create backup", self._create_backup),
             ("Reboot into bootloader", self._reboot),
             ("Check if SD card inserted", self._check_sd_presence),

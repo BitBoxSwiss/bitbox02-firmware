@@ -14,6 +14,7 @@ import google.protobuf.message
 from . import keystore_pb2
 from . import mnemonic_pb2
 from . import perform_attestation_pb2
+from . import shamir_pb2
 from . import system_pb2
 import typing
 import typing_extensions
@@ -68,6 +69,8 @@ class Request(google.protobuf.message.Message):
     ELECTRUM_ENCRYPTION_KEY_FIELD_NUMBER: builtins.int
     CARDANO_FIELD_NUMBER: builtins.int
     BIP85_FIELD_NUMBER: builtins.int
+    SHOW_SHAMIR_FIELD_NUMBER: builtins.int
+    RESTORE_FROM_SHAMIR_FIELD_NUMBER: builtins.int
     @property
     def device_name(self) -> bitbox02_system_pb2.SetDeviceNameRequest:
         """removed: RandomNumberRequest random_number = 1;"""
@@ -124,6 +127,10 @@ class Request(google.protobuf.message.Message):
     def cardano(self) -> cardano_pb2.CardanoRequest: ...
     @property
     def bip85(self) -> keystore_pb2.BIP85Request: ...
+    @property
+    def show_shamir(self) -> shamir_pb2.ShowShamirRequest: ...
+    @property
+    def restore_from_shamir(self) -> shamir_pb2.RestoreFromShamirRequest: ...
     def __init__(self,
         *,
         device_name: typing.Optional[bitbox02_system_pb2.SetDeviceNameRequest] = ...,
@@ -152,10 +159,12 @@ class Request(google.protobuf.message.Message):
         electrum_encryption_key: typing.Optional[keystore_pb2.ElectrumEncryptionKeyRequest] = ...,
         cardano: typing.Optional[cardano_pb2.CardanoRequest] = ...,
         bip85: typing.Optional[keystore_pb2.BIP85Request] = ...,
+        show_shamir: typing.Optional[shamir_pb2.ShowShamirRequest] = ...,
+        restore_from_shamir: typing.Optional[shamir_pb2.RestoreFromShamirRequest] = ...,
         ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["bip85",b"bip85","btc",b"btc","btc_pub",b"btc_pub","btc_sign_init",b"btc_sign_init","btc_sign_input",b"btc_sign_input","btc_sign_output",b"btc_sign_output","cardano",b"cardano","check_backup",b"check_backup","check_sdcard",b"check_sdcard","create_backup",b"create_backup","device_info",b"device_info","device_language",b"device_language","device_name",b"device_name","electrum_encryption_key",b"electrum_encryption_key","eth",b"eth","fingerprint",b"fingerprint","insert_remove_sdcard",b"insert_remove_sdcard","list_backups",b"list_backups","perform_attestation",b"perform_attestation","reboot",b"reboot","request",b"request","reset",b"reset","restore_backup",b"restore_backup","restore_from_mnemonic",b"restore_from_mnemonic","set_mnemonic_passphrase_enabled",b"set_mnemonic_passphrase_enabled","set_password",b"set_password","show_mnemonic",b"show_mnemonic"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["bip85",b"bip85","btc",b"btc","btc_pub",b"btc_pub","btc_sign_init",b"btc_sign_init","btc_sign_input",b"btc_sign_input","btc_sign_output",b"btc_sign_output","cardano",b"cardano","check_backup",b"check_backup","check_sdcard",b"check_sdcard","create_backup",b"create_backup","device_info",b"device_info","device_language",b"device_language","device_name",b"device_name","electrum_encryption_key",b"electrum_encryption_key","eth",b"eth","fingerprint",b"fingerprint","insert_remove_sdcard",b"insert_remove_sdcard","list_backups",b"list_backups","perform_attestation",b"perform_attestation","reboot",b"reboot","request",b"request","reset",b"reset","restore_backup",b"restore_backup","restore_from_mnemonic",b"restore_from_mnemonic","set_mnemonic_passphrase_enabled",b"set_mnemonic_passphrase_enabled","set_password",b"set_password","show_mnemonic",b"show_mnemonic"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing_extensions.Literal["request",b"request"]) -> typing.Optional[typing_extensions.Literal["device_name","device_language","device_info","set_password","create_backup","show_mnemonic","btc_pub","btc_sign_init","btc_sign_input","btc_sign_output","insert_remove_sdcard","check_sdcard","set_mnemonic_passphrase_enabled","list_backups","restore_backup","perform_attestation","reboot","check_backup","eth","reset","restore_from_mnemonic","fingerprint","btc","electrum_encryption_key","cardano","bip85"]]: ...
+    def HasField(self, field_name: typing_extensions.Literal["bip85",b"bip85","btc",b"btc","btc_pub",b"btc_pub","btc_sign_init",b"btc_sign_init","btc_sign_input",b"btc_sign_input","btc_sign_output",b"btc_sign_output","cardano",b"cardano","check_backup",b"check_backup","check_sdcard",b"check_sdcard","create_backup",b"create_backup","device_info",b"device_info","device_language",b"device_language","device_name",b"device_name","electrum_encryption_key",b"electrum_encryption_key","eth",b"eth","fingerprint",b"fingerprint","insert_remove_sdcard",b"insert_remove_sdcard","list_backups",b"list_backups","perform_attestation",b"perform_attestation","reboot",b"reboot","request",b"request","reset",b"reset","restore_backup",b"restore_backup","restore_from_mnemonic",b"restore_from_mnemonic","restore_from_shamir",b"restore_from_shamir","set_mnemonic_passphrase_enabled",b"set_mnemonic_passphrase_enabled","set_password",b"set_password","show_mnemonic",b"show_mnemonic","show_shamir",b"show_shamir"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["bip85",b"bip85","btc",b"btc","btc_pub",b"btc_pub","btc_sign_init",b"btc_sign_init","btc_sign_input",b"btc_sign_input","btc_sign_output",b"btc_sign_output","cardano",b"cardano","check_backup",b"check_backup","check_sdcard",b"check_sdcard","create_backup",b"create_backup","device_info",b"device_info","device_language",b"device_language","device_name",b"device_name","electrum_encryption_key",b"electrum_encryption_key","eth",b"eth","fingerprint",b"fingerprint","insert_remove_sdcard",b"insert_remove_sdcard","list_backups",b"list_backups","perform_attestation",b"perform_attestation","reboot",b"reboot","request",b"request","reset",b"reset","restore_backup",b"restore_backup","restore_from_mnemonic",b"restore_from_mnemonic","restore_from_shamir",b"restore_from_shamir","set_mnemonic_passphrase_enabled",b"set_mnemonic_passphrase_enabled","set_password",b"set_password","show_mnemonic",b"show_mnemonic","show_shamir",b"show_shamir"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["request",b"request"]) -> typing.Optional[typing_extensions.Literal["device_name","device_language","device_info","set_password","create_backup","show_mnemonic","btc_pub","btc_sign_init","btc_sign_input","btc_sign_output","insert_remove_sdcard","check_sdcard","set_mnemonic_passphrase_enabled","list_backups","restore_backup","perform_attestation","reboot","check_backup","eth","reset","restore_from_mnemonic","fingerprint","btc","electrum_encryption_key","cardano","bip85","show_shamir","restore_from_shamir"]]: ...
 global___Request = Request
 
 class Response(google.protobuf.message.Message):

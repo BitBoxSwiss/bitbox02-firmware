@@ -68,6 +68,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "keystore_encode_xpub_at_keypath",
     "keystore_encrypt_and_store_seed",
     "keystore_get_bip39_mnemonic",
+    "keystore_get_bip39_mnemonic_from_bytes",
     "keystore_get_bip39_word",
     "keystore_get_ed25519_seed",
     "keystore_is_locked",

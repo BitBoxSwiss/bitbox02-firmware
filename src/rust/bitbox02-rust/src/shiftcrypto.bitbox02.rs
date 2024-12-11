@@ -135,17 +135,7 @@ pub struct InsertRemoveSdCardRequest {
 }
 /// Nested message and enum types in `InsertRemoveSDCardRequest`.
 pub mod insert_remove_sd_card_request {
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum SdCardAction {
         RemoveCard = 0,
@@ -238,15 +228,7 @@ pub mod btc_script_config {
     /// Nested message and enum types in `Multisig`.
     pub mod multisig {
         #[derive(
-            Clone,
-            Copy,
-            Debug,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            ::prost::Enumeration
+            Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration,
         )]
         #[repr(i32)]
         pub enum ScriptType {
@@ -287,17 +269,7 @@ pub mod btc_script_config {
         pub keys: ::prost::alloc::vec::Vec<super::KeyOriginInfo>,
     }
     /// SimpleType is a "simple" script: one public key, no additional inputs.
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum SimpleType {
         P2wpkhP2sh = 0,
@@ -351,17 +323,7 @@ pub struct BtcPubRequest {
 }
 /// Nested message and enum types in `BTCPubRequest`.
 pub mod btc_pub_request {
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum XPubType {
         Tpub = 0,
@@ -459,17 +421,7 @@ pub struct BtcSignInitRequest {
 }
 /// Nested message and enum types in `BTCSignInitRequest`.
 pub mod btc_sign_init_request {
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum FormatUnit {
         /// According to `coin` (BTC, LTC, etc.).
@@ -516,9 +468,7 @@ pub struct BtcSignNextResponse {
     #[prost(uint32, tag = "5")]
     pub prev_index: u32,
     #[prost(message, optional, tag = "6")]
-    pub anti_klepto_signer_commitment: ::core::option::Option<
-        AntiKleptoSignerCommitment,
-    >,
+    pub anti_klepto_signer_commitment: ::core::option::Option<AntiKleptoSignerCommitment>,
     /// Generated output. The host *must* verify its correctness using `silent_payment_dleq_proof`.
     #[prost(bytes = "vec", tag = "7")]
     pub generated_output_pkscript: ::prost::alloc::vec::Vec<u8>,
@@ -527,17 +477,7 @@ pub struct BtcSignNextResponse {
 }
 /// Nested message and enum types in `BTCSignNextResponse`.
 pub mod btc_sign_next_response {
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum Type {
         Input = 0,
@@ -675,22 +615,15 @@ pub struct BtcRegisterScriptConfigRequest {
     /// If empty, the name is entered on the device instead.
     #[prost(string, tag = "2")]
     pub name: ::prost::alloc::string::String,
-    #[prost(enumeration = "btc_register_script_config_request::XPubType", tag = "3")]
+    #[prost(
+        enumeration = "btc_register_script_config_request::XPubType",
+        tag = "3"
+    )]
     pub xpub_type: i32,
 }
 /// Nested message and enum types in `BTCRegisterScriptConfigRequest`.
 pub mod btc_register_script_config_request {
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum XPubType {
         /// Automatically choose to match Electrum's xpub format (e.g. Zpub/Vpub for p2wsh multisig mainnet/testnet).
@@ -1007,13 +940,9 @@ pub struct CardanoSignTransactionRequest {
     #[prost(uint64, tag = "5")]
     pub ttl: u64,
     #[prost(message, repeated, tag = "6")]
-    pub certificates: ::prost::alloc::vec::Vec<
-        cardano_sign_transaction_request::Certificate,
-    >,
+    pub certificates: ::prost::alloc::vec::Vec<cardano_sign_transaction_request::Certificate>,
     #[prost(message, repeated, tag = "7")]
-    pub withdrawals: ::prost::alloc::vec::Vec<
-        cardano_sign_transaction_request::Withdrawal,
-    >,
+    pub withdrawals: ::prost::alloc::vec::Vec<cardano_sign_transaction_request::Withdrawal>,
     #[prost(uint64, tag = "8")]
     pub validity_interval_start: u64,
     /// include ttl even if it is zero
@@ -1097,15 +1026,7 @@ pub mod cardano_sign_transaction_request {
         /// Nested message and enum types in `VoteDelegation`.
         pub mod vote_delegation {
             #[derive(
-                Clone,
-                Copy,
-                Debug,
-                PartialEq,
-                Eq,
-                Hash,
-                PartialOrd,
-                Ord,
-                ::prost::Enumeration
+                Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration,
             )]
             #[repr(i32)]
             pub enum CardanoDRepType {
@@ -1165,9 +1086,8 @@ pub mod cardano_sign_transaction_request {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CardanoSignTransactionResponse {
     #[prost(message, repeated, tag = "1")]
-    pub shelley_witnesses: ::prost::alloc::vec::Vec<
-        cardano_sign_transaction_response::ShelleyWitness,
-    >,
+    pub shelley_witnesses:
+        ::prost::alloc::vec::Vec<cardano_sign_transaction_response::ShelleyWitness>,
 }
 /// Nested message and enum types in `CardanoSignTransactionResponse`.
 pub mod cardano_sign_transaction_response {
@@ -1264,17 +1184,7 @@ pub struct EthPubRequest {
 }
 /// Nested message and enum types in `ETHPubRequest`.
 pub mod eth_pub_request {
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum OutputType {
         Address = 0,
@@ -1437,17 +1347,7 @@ pub mod eth_sign_typed_message_request {
         #[prost(message, repeated, tag = "2")]
         pub members: ::prost::alloc::vec::Vec<Member>,
     }
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum DataType {
         Unknown = 0,
@@ -1498,24 +1398,17 @@ pub mod eth_sign_typed_message_request {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EthTypedMessageValueResponse {
-    #[prost(enumeration = "eth_typed_message_value_response::RootObject", tag = "1")]
+    #[prost(
+        enumeration = "eth_typed_message_value_response::RootObject",
+        tag = "1"
+    )]
     pub root_object: i32,
     #[prost(uint32, repeated, tag = "2")]
     pub path: ::prost::alloc::vec::Vec<u32>,
 }
 /// Nested message and enum types in `ETHTypedMessageValueResponse`.
 pub mod eth_typed_message_value_response {
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum RootObject {
         Unknown = 0,
@@ -1730,6 +1623,12 @@ pub struct SetMnemonicPassphraseEnabledRequest {
     pub enabled: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ShowShamirRequest {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RestoreFromShamirRequest {}
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct RebootRequest {
     #[prost(enumeration = "reboot_request::Purpose", tag = "1")]
@@ -1737,17 +1636,7 @@ pub struct RebootRequest {
 }
 /// Nested message and enum types in `RebootRequest`.
 pub mod reboot_request {
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum Purpose {
         Upgrade = 0,
@@ -1813,7 +1702,7 @@ pub struct Success {}
 pub struct Request {
     #[prost(
         oneof = "request::Request",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29"
     )]
     pub request: ::core::option::Option<request::Request>,
 }
@@ -1876,6 +1765,8 @@ pub mod request {
         Cardano(super::CardanoRequest),
         #[prost(message, tag = "28")]
         Bip85(super::Bip85Request),
+        #[prost(message, tag = "29")]
+        ShowShamir(super::ShowShamirRequest),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]

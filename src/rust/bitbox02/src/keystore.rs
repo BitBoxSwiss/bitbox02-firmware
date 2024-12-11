@@ -132,6 +132,28 @@ pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
     }
 }
 
+pub fn get_bip39_mnemonic_from_bytes(
+    bytes: *const u8,
+    len: usize,
+) -> Result<zeroize::Zeroizing<String>, ()> {
+    let mut mnemonic = zeroize::Zeroizing::new([0u8; 256]);
+    match unsafe {
+        bitbox02_sys::keystore_get_bip39_mnemonic_from_bytes(
+            bytes,
+            len,
+            mnemonic.as_mut_ptr(),
+            mnemonic.len() as _,
+        )
+    } {
+        false => Err(()),
+        true => Ok(zeroize::Zeroizing::new(
+            crate::util::str_from_null_terminated(&mnemonic[..])
+                .unwrap()
+                .into(),
+        )),
+    }
+}
+
 /// `idx` must be smaller than BIP39_WORDLIST_LEN.
 pub fn get_bip39_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
     let mut word_ptr: *mut u8 = core::ptr::null_mut();

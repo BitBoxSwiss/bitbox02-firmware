@@ -277,12 +277,12 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
         screen_print_debug("DONE", 0);
         break;
     case OP_SC_ROLLKEYS:
-        if (!securechip_update_keys()) {
-            screen_print_debug("rollkeys: failed", 0);
+        if (!securechip_reset_keys()) {
+            screen_print_debug("resetting securechip keys: failed", 0);
             result = ERR_FAILED;
             break;
         }
-        screen_print_debug("rollkeys: success", 100);
+        screen_print_debug("resetting securechip keys: success", 100);
         if (!securechip_u2f_counter_set(0)) {
             screen_print_debug("reset u2f counter", 0);
             result = ERR_FAILED;

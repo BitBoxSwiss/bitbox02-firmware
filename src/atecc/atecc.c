@@ -522,14 +522,6 @@ static ATCA_STATUS _update_kdf_key(void)
         ATECC_SLOT_KDF, 0, new_key, encryption_key, ATECC_SLOT_ENCRYPTION_KEY, nonce_contribution);
 }
 
-bool atecc_update_keys(void)
-{
-    if (_rollkey() != ATCA_SUCCESS) {
-        return false;
-    }
-    return _update_kdf_key() == ATCA_SUCCESS;
-}
-
 static int _atecc_kdf(atecc_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out)
 {
     if (len > 127 || (slot != ATECC_SLOT_ROLLKEY && slot != ATECC_SLOT_KDF)) {
@@ -592,6 +584,15 @@ int atecc_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out)
     return _atecc_kdf(ATECC_SLOT_KDF, msg, len, kdf_out);
 }
 
+int atecc_init_new_password(const char* password)
+{
+    (void)password;
+    if (!atecc_reset_keys()) {
+        return SC_ATECC_ERR_RESET_KEYS;
+    }
+    return 0;
+}
+
 int atecc_stretch_password(const char* password, uint8_t* stretched_out)
 {
     uint8_t password_salted_hashed[32] = {0};
@@ -639,6 +640,14 @@ int atecc_stretch_password(const char* password, uint8_t* stretched_out)
         return SC_ERR_HASH;
     }
     return 0;
+}
+
+bool atecc_reset_keys(void)
+{
+    if (_rollkey() != ATCA_SUCCESS) {
+        return false;
+    }
+    return _update_kdf_key() == ATCA_SUCCESS;
 }
 
 bool atecc_gen_attestation_key(uint8_t* pubkey_out)

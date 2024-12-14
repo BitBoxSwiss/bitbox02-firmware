@@ -181,10 +181,17 @@ static keystore_error_t _get_and_decrypt_seed(
     uint8_t secret[32];
     UTIL_CLEANUP_32(secret);
     int stretch_result = securechip_stretch_password(password, secret);
-    if (securechip_result_out != NULL) {
-        *securechip_result_out = stretch_result;
-    }
     if (stretch_result) {
+        if (stretch_result == SC_ERR_INCORRECT_PASSWORD) {
+            // Our Optiga securechip implementation fails password stretching if the password is
+            // wrong, so we can early-abort here. The ATECC stretches the password without checking
+            // if the password is correct, and we determine if it is correct in the seed decryption
+            // step below.
+            return KEYSTORE_ERR_INCORRECT_PASSWORD;
+        }
+        if (securechip_result_out != NULL) {
+            *securechip_result_out = stretch_result;
+        }
         return KEYSTORE_ERR_SECURECHIP;
     }
     if (encrypted_len < 49) {
@@ -239,10 +246,7 @@ keystore_error_t keystore_encrypt_and_store_seed(
     if (!_validate_seed_length(seed_length)) {
         return KEYSTORE_ERR_SEED_SIZE;
     }
-    // Update the two kdf keys before setting a new password. This already
-    // happens on a device reset, but we do it here again anyway so the keys are
-    // initialized also on first use, reducing trust in the factory setup.
-    if (!securechip_update_keys()) {
+    if (securechip_init_new_password(password)) {
         return KEYSTORE_ERR_SECURECHIP;
     }
     uint8_t secret[32] = {0};

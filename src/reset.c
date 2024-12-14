@@ -48,14 +48,14 @@ void reset_reset(bool status)
 {
     keystore_lock();
 #if !defined(TESTING)
-    bool sc_result_update_keys = false;
+    bool sc_result_reset_keys = false;
     for (int retries = 0; retries < 5; retries++) {
-        sc_result_update_keys = securechip_update_keys();
-        if (sc_result_update_keys) {
+        sc_result_reset_keys = securechip_reset_keys();
+        if (sc_result_reset_keys) {
             break;
         }
     }
-    if (!sc_result_update_keys) {
+    if (!sc_result_reset_keys) {
         Abort("Could not reset secure chip.");
     }
 #if APP_U2F == 1

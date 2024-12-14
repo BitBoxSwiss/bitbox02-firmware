@@ -26,11 +26,6 @@
 
 static uint32_t _u2f_counter;
 
-bool securechip_update_keys(void)
-{
-    return true;
-}
-
 // Mocked contents of the secure chip rollkey slot.
 static const uint8_t _rollkey[32] =
     "\x9d\xd1\x34\x1f\x6b\x4b\x26\xb1\x72\x89\xa1\xa3\x92\x71\x5c\xf0\xd0\x57\x8c\x84\xdb\x9a\x51"
@@ -49,6 +44,11 @@ int securechip_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out)
 int securechip_kdf_rollkey(const uint8_t* msg, size_t len, uint8_t* kdf_out)
 {
     wally_hmac_sha256(_rollkey, 32, msg, len, kdf_out, 32);
+    return 0;
+}
+int securechip_init_new_password(const char* password)
+{
+    (void)password;
     return 0;
 }
 int securechip_stretch_password(const char* password, uint8_t* stretched_out)

@@ -20,6 +20,7 @@
 
 #include <hal_delay.h>
 #include <hardfault.h>
+#include <memory/bitbox02_smarteeprom.h>
 #include <optiga_crypt.h>
 #include <optiga_util.h>
 #include <rust/rust.h>
@@ -34,10 +35,14 @@
 // Must be 0 for the production firmware releases.
 #define FACTORY_DURING_PROD 0
 
-// Number of times the first kdf slot can be used.
+// Number of times the first kdf slot can be used over the lifetime of the device.
 // The maxmimum does not seem to be specified, so we use something a little below the endurance
 // indication of 600000 updates. See Solution Reference Manual Figure 32.
 #define MONOTONIC_COUNTER_MAX_USE (590000)
+
+// Number of times the password can be entered incorrectly before further password stretching fails.
+// The counter is reset when the correct password is entered.
+#define SMALL_MONOTONIC_COUNTER_MAX_USE (MAX_UNLOCK_ATTEMPTS)
 
 // Maximum size of metadata. See "Metadata Update Identifier":
 // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#linka946a953_def2_41cf_850a_74fb7899fe11
@@ -65,6 +70,21 @@
 // increments the counter. When the threshold `MONOTONIC_COUNTER_MAX_USE` is reached, further CMAC
 // computations return an error.
 #define OID_COUNTER 0xE120
+
+// The three objects below (`OID_PASSWORD_SECRET`, `OID_PASSWORD`, `OID_COUNTER_PASSWORD`) deal with
+// implementing the small monotonic counter that limits the number of unlocks to a small number.
+
+// A random shared key which authorizes updating `OID_PASSWORD` and `OID_COUNTER_PASSWORD`.
+// It is also part of the password stretching.
+#define OID_PASSWORD_SECRET 0xF1D2
+// A hmac digest of the device password.
+// Authorizes reading `OID_PASSWORD`. Monotonic counter `OID_COUNTER_PASSWORD`  attached to
+// authorization, which limits the number of unlock attempts to a small number.
+#define OID_PASSWORD 0xF1D3
+// Monotonic counter with a small limit.  Every password stretch increments the counter. A correct
+// password resets the counter. When the threshold `SMALL_MONOTONIC_COUNTER_MAX_USE` is reached,
+// further password stretches return an error.
+#define OID_COUNTER_PASSWORD 0xE121
 
 // See Solution Reference Manual Table 79 "Data structure arbitrary data object".
 #define ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE 140
@@ -308,6 +328,133 @@ static const uint8_t _counter_metadata[] = {
     0x01,
     0x00,
 };
+
+static const uint8_t _password_secret_metadata[] = {
+    // Metadata tag in the data object
+    0x20,
+    // Number of bytes that follow
+    25,
+    // Set LcsO. Refer to macro to see the value or some more notes.
+    0xC0,
+    0x01,
+    FINAL_LCSO_STATE,
+    // Allow writes, enforce shielded connection.
+    0xD0,
+    0x03,
+    0x20,
+    0xE1,
+    0x40,
+    // Allow reads, auth referencing 0xF1D3 (`OID_PASSWORD`), enforce shielded connection
+    0xD1,
+    0x07,
+    0x23,
+    0xF1,
+    0xD3,
+    // &&
+    0xFD,
+    0x20,
+    0xE1,
+    0x40,
+    // Execute: enforce shielded connection
+    0xD3,
+    0x03,
+    0x20,
+    0xE1,
+    0x40,
+    // Data object type set to AUTOREF
+    0xE8,
+    0x01,
+    0x31,
+};
+
+static const uint8_t _password_metadata[] = {
+    // Metadata tag in the data object
+    0x20,
+    // Number of bytes that follow
+    27,
+    // Set LcsO. Refer to macro to see the value or some more notes.
+    0xC0,
+    0x01,
+    FINAL_LCSO_STATE,
+    // Allow writes, auth referencing 0xF1D2 (`OID_PASSWORD_SECRET`), enforce shielded connection.
+    0xD0,
+    0x07,
+    0x23,
+    0xF1,
+    0xD2,
+    // &&
+    0xFD,
+    0x20,
+    0xE1,
+    0x40,
+    // Disallow reads
+    0xD1,
+    0x01,
+    0xFF,
+    // Attach execution to counter at 0xE121 (`OID_COUNTER_PASSWORD`) and enforce shielded
+    // connection.
+    0xD3,
+    0x07,
+    0x40,
+    0xE1,
+    0x21,
+    // &&
+    0xFD,
+    // Enforce shielded connection. According to 4.4.1.7 "EncryptSym" shielded protection is
+    // enforced anyway, but better to be explicit.
+    0x20,
+    0xE1,
+    0x40,
+    // Data object type set to AUTOREF
+    0xE8,
+    0x01,
+    0x31,
+};
+
+#if SMALL_MONOTONIC_COUNTER_MAX_USE > 255
+#error Max unlock attempts does not fit in one byte
+#endif
+// The intial/reset buffer for the small monotonic counter. Initial value: 0, threshold:
+// `SMALL_MONOTONIC_COUNTER_MAX_USE`. Table "Common data structures" -> "Counter":
+// https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#link24b48059_db81_40f5_8b65_7afca4918ab1
+// Bytes 0-3 are the initial counter value, set to 0.
+// Bytes 4-7 are the threshold.
+// Ints are encoded as uint32 big endian.
+static const uint8_t _counter_password_reset_buf[8] =
+    {0, 0, 0, 0, 0, 0, 0, SMALL_MONOTONIC_COUNTER_MAX_USE};
+
+static const uint8_t _counter_password_metadata[] = {
+    // Metadata tag in the data object
+    0x20,
+    // Number of bytes that follow
+    20,
+    // Set LcsO. Refer to macro to see the value or some more notes.
+    0xC0,
+    0x01,
+    FINAL_LCSO_STATE,
+    // Allow writes, auth referencing 0xF1D2 (`OID_PASSWORD_SECRET`), enforce shielded connection.
+    0xD0,
+    0x07,
+    0x23,
+    0xF1,
+    0xD2,
+    // &&
+    0xFD,
+    0x20,
+    0xE1,
+    0x40,
+    // Allow reads, enforce shielded connection
+    0xD1,
+    0x03,
+    0x20,
+    0xE1,
+    0x40,
+    // Allow exe
+    0xD3,
+    0x01,
+    0x00,
+};
+
 //
 // Sync wrappers around optiga util/crypt functions
 //
@@ -519,6 +666,79 @@ static optiga_lib_status_t _optiga_crypt_symmetric_generate_key_sync(
         me, key_type, key_usage, export_symmetric_key, symmetric_key);
     _WAIT(res, _optiga_lib_status);
     return res;
+}
+
+static optiga_lib_status_t _optiga_crypt_generate_auth_code_sync(
+    optiga_crypt_t* me,
+    optiga_rng_type_t rng_type,
+    const uint8_t* optional_data,
+    uint16_t optional_data_length,
+    uint8_t* random_data,
+    uint16_t random_data_length)
+{
+    _optiga_lib_status = OPTIGA_LIB_BUSY;
+    optiga_lib_status_t res = optiga_crypt_generate_auth_code(
+        me, rng_type, optional_data, optional_data_length, random_data, random_data_length);
+    _WAIT(res, _optiga_lib_status);
+    return res;
+}
+
+static optiga_lib_status_t _optiga_crypt_clear_auto_state_sync(optiga_crypt_t* me, uint16_t secret)
+{
+    _optiga_lib_status = OPTIGA_LIB_BUSY;
+    optiga_lib_status_t res = optiga_crypt_clear_auto_state(me, secret);
+    _WAIT(res, _optiga_lib_status);
+    return res;
+}
+
+static optiga_lib_status_t _optiga_crypt_hmac_verify_sync(
+    optiga_crypt_t* me,
+    optiga_hmac_type_t type,
+    uint16_t secret,
+    const uint8_t* input_data,
+    uint32_t input_data_length,
+    const uint8_t* hmac,
+    uint32_t hmac_length)
+{
+    _optiga_lib_status = OPTIGA_LIB_BUSY;
+    optiga_lib_status_t res = optiga_crypt_hmac_verify(
+        me, type, secret, input_data, input_data_length, hmac, hmac_length);
+    _WAIT(res, _optiga_lib_status);
+    return res;
+}
+
+static int _authorize(uint16_t oid_auth, const uint8_t* auth_secret, size_t auth_secret_len)
+{
+    optiga_lib_status_t res;
+
+    uint8_t random_data[32] = {0};
+
+    res = _optiga_crypt_generate_auth_code_sync(
+        _crypt, OPTIGA_RNG_TYPE_TRNG, NULL, 0, random_data, sizeof(random_data));
+    if (res != OPTIGA_CRYPT_SUCCESS) {
+        util_log("generate auth code failed: %x", res);
+        return res;
+    }
+
+    uint8_t hmac[32] = {0};
+    if (wally_hmac_sha256(
+            auth_secret, auth_secret_len, random_data, sizeof(random_data), hmac, sizeof(hmac)) !=
+        WALLY_OK) {
+        return 1;
+    }
+    res = _optiga_crypt_hmac_verify_sync(
+        _crypt,
+        OPTIGA_HMAC_SHA_256,
+        oid_auth,
+        random_data,
+        sizeof(random_data),
+        hmac,
+        sizeof(hmac));
+    if (res != OPTIGA_CRYPT_SUCCESS) {
+        util_log("auth failed: %x %x", oid_auth, res);
+        return res;
+    }
+    return 0;
 }
 
 #if APP_U2F == 1 || FACTORYSETUP == 1
@@ -833,6 +1053,61 @@ static int _configure_object_attestation(void)
         _util, oid, _attestation_metadata, sizeof(_attestation_metadata));
 }
 
+static int _configure_object_password_secret(void)
+{
+    const uint16_t oid = OID_PASSWORD_SECRET;
+
+    uint8_t lcso = 0;
+    optiga_lib_status_t res = _read_lcso_of_object(oid, &lcso, false);
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+    if (lcso >= LCSO_STATE_OPERATIONAL) {
+        util_log("_configure_object_password_secret: already setup");
+        return 0;
+    }
+    util_log("_configure_object_password_secret: setting up");
+    return _optiga_util_write_metadata_sync(
+        _util, oid, _password_secret_metadata, sizeof(_password_secret_metadata));
+}
+
+static int _configure_object_password(void)
+{
+    const uint16_t oid = OID_PASSWORD;
+
+    uint8_t lcso = 0;
+    optiga_lib_status_t res = _read_lcso_of_object(oid, &lcso, false);
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+    if (lcso >= LCSO_STATE_OPERATIONAL) {
+        util_log("_configure_object_password: already setup");
+        return 0;
+    }
+    util_log("_configure_object_password: setting up");
+    return _optiga_util_write_metadata_sync(
+        _util, oid, _password_metadata, sizeof(_password_metadata));
+}
+
+static int _configure_object_counter_password(void)
+{
+    const uint16_t oid = OID_COUNTER_PASSWORD;
+
+    uint8_t lcso = 0;
+    optiga_lib_status_t res = _read_lcso_of_object(oid, &lcso, false);
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+    if (lcso >= LCSO_STATE_OPERATIONAL) {
+        util_log("_configure_object_counter_password: already setup");
+        return 0;
+    }
+    util_log("_configure_object_counter_password: setting up");
+
+    return _optiga_util_write_metadata_sync(
+        _util, oid, _counter_password_metadata, sizeof(_counter_password_metadata));
+}
+
 static int _factory_write_config(void)
 {
     int res_shielded = _setup_shielded_communication();
@@ -863,6 +1138,21 @@ static int _factory_write_config(void)
     }
 
     res = _configure_object_attestation();
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+
+    res = _configure_object_password_secret();
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+
+    res = _configure_object_password();
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+
+    res = _configure_object_counter_password();
     if (res != OPTIGA_LIB_SUCCESS) {
         return res;
     }
@@ -969,6 +1259,168 @@ static int _verify_metadata(
     return 0;
 }
 
+static int _set_password(
+    const uint8_t* password_secret,
+    size_t password_secret_len,
+    const uint8_t* data,
+    size_t data_len)
+{
+    optiga_lib_status_t res = _authorize(OID_PASSWORD_SECRET, password_secret, password_secret_len);
+    if (res != OPTIGA_UTIL_SUCCESS) {
+        goto cleanup;
+    }
+
+    res = _optiga_util_write_data_sync(
+        _util, OID_PASSWORD, OPTIGA_UTIL_ERASE_AND_WRITE, 0x00, data, data_len);
+    if (res != OPTIGA_UTIL_SUCCESS) {
+        goto cleanup;
+    }
+
+    res = _optiga_util_write_data_sync(
+        _util,
+        OID_COUNTER_PASSWORD,
+        OPTIGA_UTIL_ERASE_AND_WRITE,
+        0,
+        _counter_password_reset_buf,
+        sizeof(_counter_password_reset_buf));
+    if (res != OPTIGA_LIB_SUCCESS) {
+        goto cleanup;
+    }
+
+cleanup: {
+    optiga_lib_status_t res_clear =
+        _optiga_crypt_clear_auto_state_sync(_crypt, OID_PASSWORD_SECRET);
+    if (res != OPTIGA_UTIL_SUCCESS) {
+        return res;
+    }
+    return res_clear;
+}
+}
+
+int optiga_init_new_password(const char* password)
+{
+    // Set new hmac key.
+    uint8_t new_hmac_key[32] = {0};
+    _ifs->random_32_bytes(new_hmac_key);
+    optiga_lib_status_t res = _optiga_util_write_data_sync(
+        _util, OID_HMAC, OPTIGA_UTIL_ERASE_AND_WRITE, 0x00, new_hmac_key, sizeof(new_hmac_key));
+    if (res != OPTIGA_UTIL_SUCCESS) {
+        util_log("failed updating the hmac key: %x", res);
+        return res;
+    }
+
+    // Set new symmetric key.
+    optiga_key_id_t keyid = OPTIGA_KEY_ID_SECRET_BASED;
+    res = _optiga_crypt_symmetric_generate_key_sync(
+        _crypt, OPTIGA_SYMMETRIC_AES_256, OPTIGA_KEY_USAGE_ENCRYPTION, false, &keyid);
+    if (res != OPTIGA_UTIL_SUCCESS) {
+        util_log("failed updating the sym key: %x", res);
+        return res;
+    }
+
+    uint8_t password_secret[32] = {0};
+    _ifs->random_32_bytes(password_secret);
+
+    res = _optiga_util_write_data_sync(
+        _util,
+        OID_PASSWORD_SECRET,
+        OPTIGA_UTIL_ERASE_AND_WRITE,
+        0x00,
+        password_secret,
+        sizeof(password_secret));
+    if (res != OPTIGA_UTIL_SUCCESS) {
+        return res;
+    }
+
+    uint8_t password_salted_hashed[32] = {0};
+    UTIL_CLEANUP_32(password_salted_hashed);
+    if (!salt_hash_data(
+            (const uint8_t*)password,
+            strlen(password),
+            "optiga_password",
+            password_salted_hashed)) {
+        return 1;
+    }
+
+    res = _set_password(
+        password_secret,
+        sizeof(password_secret),
+        password_salted_hashed,
+        sizeof(password_salted_hashed));
+    if (res) {
+        return res;
+    }
+    return 0;
+}
+
+bool optiga_reset_keys(void)
+{
+    // This resets the OID_AES_SYMKEY and OID_HMAC keys, as well as the OID_PASSWORD_SECRET and
+    // OID_PASSWORD keys. A password is needed because updating the OID_PASSWORD key requires
+    // auth using the OID_PASSWORD_SECRET key, but any password is fine for the purpose of resetting
+    // the keys.
+    return optiga_init_new_password("") == 0;
+}
+
+static int _optiga_verify_password(const char* password, uint8_t* password_secret_out)
+{
+    uint8_t password_salted_hashed[32] = {0};
+    UTIL_CLEANUP_32(password_salted_hashed);
+    if (!salt_hash_data(
+            (const uint8_t*)password,
+            strlen(password),
+            "optiga_password",
+            password_salted_hashed)) {
+        return 1;
+    }
+
+    optiga_lib_status_t res =
+        _authorize(OID_PASSWORD, password_salted_hashed, sizeof(password_salted_hashed));
+    if (res != OPTIGA_LIB_SUCCESS) {
+        goto cleanup;
+    }
+
+    uint16_t password_secret_size = 32;
+    res = _optiga_util_read_data_sync(
+        _util, OID_PASSWORD_SECRET, 0, password_secret_out, &password_secret_size);
+    if (res != OPTIGA_LIB_SUCCESS) {
+        goto cleanup;
+    }
+    if (password_secret_size != 32) {
+        res = SC_OPTIGA_ERR_UNEXPECTED_LEN;
+        goto cleanup;
+    }
+
+    res = _authorize(OID_PASSWORD_SECRET, password_secret_out, password_secret_size);
+    if (res != OPTIGA_LIB_SUCCESS) {
+        goto cleanup;
+    }
+
+    res = _optiga_util_write_data_sync(
+        _util,
+        OID_COUNTER_PASSWORD,
+        OPTIGA_UTIL_ERASE_AND_WRITE,
+        0,
+        _counter_password_reset_buf,
+        sizeof(_counter_password_reset_buf));
+    if (res != OPTIGA_LIB_SUCCESS) {
+        goto cleanup;
+    }
+
+cleanup: {
+    optiga_lib_status_t res_clear1 = _optiga_crypt_clear_auto_state_sync(_crypt, OID_PASSWORD);
+    optiga_lib_status_t res_clear2 =
+        _optiga_crypt_clear_auto_state_sync(_crypt, OID_PASSWORD_SECRET);
+    if (res != OPTIGA_UTIL_SUCCESS) {
+        return res;
+    }
+    if (res_clear1) {
+        return res_clear1;
+    }
+    return res_clear2;
+}
+}
+
 static int _verify_config(void)
 {
     int res;
@@ -1062,6 +1514,43 @@ static int _verify_config(void)
             return res;
         }
     }
+    {
+        const uint8_t check_tags[] = {0xC0, 0xD0, 0xD1, 0xD3, 0xE8};
+        res = _verify_metadata(
+            OID_PASSWORD_SECRET,
+            _password_secret_metadata,
+            sizeof(_password_secret_metadata),
+            check_tags,
+            sizeof(check_tags));
+        if (res) {
+            return res;
+        }
+    }
+    {
+        const uint8_t check_tags[] = {0xC0, 0xD0, 0xD1, 0xD3, 0xE8};
+        res = _verify_metadata(
+            OID_PASSWORD,
+            _password_metadata,
+            sizeof(_password_metadata),
+            check_tags,
+            sizeof(check_tags));
+        if (res) {
+            return res;
+        }
+    }
+    {
+        const uint8_t check_tags[] = {0xC0, 0xD0, 0xD1, 0xD3};
+        res = _verify_metadata(
+            OID_COUNTER_PASSWORD,
+            _counter_password_metadata,
+            sizeof(_counter_password_metadata),
+            check_tags,
+            sizeof(check_tags));
+        if (res) {
+            return res;
+        }
+    }
+
     return 0;
 }
 
@@ -1097,29 +1586,6 @@ int optiga_setup(const securechip_interface_functions_t* ifs)
     }
 
     return _verify_config();
-}
-
-bool optiga_update_keys(void)
-{
-    uint8_t new_key[32] = {0};
-    _ifs->random_32_bytes(new_key);
-
-    optiga_lib_status_t res = _optiga_util_write_data_sync(
-        _util, OID_HMAC, OPTIGA_UTIL_ERASE_AND_WRITE, 0x00, new_key, sizeof(new_key));
-    if (res != OPTIGA_UTIL_SUCCESS) {
-        util_log("failed updating the hmac key: %x", res);
-        return false;
-    }
-
-    optiga_key_id_t keyid = OPTIGA_KEY_ID_SECRET_BASED;
-    res = _optiga_crypt_symmetric_generate_key_sync(
-        _crypt, OPTIGA_SYMMETRIC_AES_256, OPTIGA_KEY_USAGE_ENCRYPTION, false, &keyid);
-    if (res != OPTIGA_UTIL_SUCCESS) {
-        util_log("failed updating the sym key: %x", res);
-        return false;
-    }
-
-    return true;
 }
 
 int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out)
@@ -1206,6 +1672,23 @@ int optiga_stretch_password(const char* password, uint8_t* stretched_out)
         if (securechip_result) {
             return securechip_result;
         }
+    }
+
+    // Verify password incrementing the small monotonic counter.
+    // We do this after the above KDF stretch so the big monotonic counter is also incremented.
+    uint8_t password_secret[32] = {0};
+    int res = _optiga_verify_password(password, password_secret);
+    if (res) {
+        if (res == 0x802F) {
+            return SC_ERR_INCORRECT_PASSWORD;
+        }
+        return res;
+    }
+
+    if (wally_hmac_sha256(
+            password_secret, sizeof(password_secret), stretched_out, 32, stretched_out, 32) !=
+        WALLY_OK) {
+        return SC_ERR_HASH;
     }
 
     if (!salt_hash_data(

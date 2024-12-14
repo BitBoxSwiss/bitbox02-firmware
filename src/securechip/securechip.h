@@ -29,6 +29,10 @@ typedef enum {
     SC_ERR_CONFIG_MISMATCH = -3,
     SC_ERR_SALT = -4,
     SC_ERR_HASH = -5,
+    // Currently only used by Optiga, but it is in the common errors so that the API of the
+    // securechip is consistent and the caller does not need to distinguish between the chips at the
+    // callsite.
+    SC_ERR_INCORRECT_PASSWORD = -6,
 
     // Errors specific to the ATECC
     SC_ATECC_ERR_ZONE_UNLOCKED_CONFIG = -100,
@@ -36,6 +40,7 @@ typedef enum {
     SC_ATECC_ERR_SLOT_UNLOCKED_IO = -103,
     SC_ATECC_ERR_SLOT_UNLOCKED_AUTH = -104,
     SC_ATECC_ERR_SLOT_UNLOCKED_ENC = -105,
+    SC_ATECC_ERR_RESET_KEYS = -106,
 
     // Errors specific to the Optiga
     SC_OPTIGA_ERR_CREATE = -201,
@@ -78,14 +83,6 @@ USE_RESULT bool securechip_init(void);
 USE_RESULT int securechip_setup(const securechip_interface_functions_t* ifs);
 
 /**
- * Updates the two KDF keys (rollkey and kdf key). The previous keys are lost
- * and cannot be restored. Calling this function does not increment the
- * monotonic counter.
- * @return true on success.
- */
-USE_RESULT bool securechip_update_keys(void);
-
-/**
  * Perform KDF using the key in kdf slot with the input msg.
  * This must not increment a monotonic counter.
  * @param[in] msg Use this msg as input
@@ -98,6 +95,16 @@ USE_RESULT bool securechip_update_keys(void);
 USE_RESULT int securechip_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out);
 
 /**
+ * Prepare the securechip for a new password: re-initialize keys used in the derivation,
+ * set up monotonic counters, etc.
+ * @param[in] password The user password.
+ * @return For ATECC: values of `atecc_error_t` if negative, values of `ATCA_STATUS` if positive, 0
+ * on success. For Optiga: values of `optiga_error_t` if negative, values of
+ * optiga_lib_return_codes.h if positive, 0 on success.
+ */
+USE_RESULT int securechip_init_new_password(const char* password);
+
+/**
  * Stretch password using secrets in the secure chip.
  * Calling this function increments the monotonic counter.
  * @param[in] msg Use this msg as input
@@ -108,6 +115,12 @@ USE_RESULT int securechip_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out);
  * `ATCA_STATUS` for ATECC, values of optiga_lib_return_codes.h for Optiga.
  */
 USE_RESULT int securechip_stretch_password(const char* password, uint8_t* stretched_out);
+
+/**
+ * Reset the securechip objects involved in the password stretching.
+ * @return true on success, false on failure.
+ */
+USE_RESULT bool securechip_reset_keys(void);
 
 /**
  * Generates a new attestation device key and outputs the public key.

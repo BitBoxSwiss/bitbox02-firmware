@@ -24,11 +24,6 @@
 
 static uint32_t _u2f_counter;
 
-bool securechip_update_keys(void)
-{
-    return true;
-}
-
 // Mocked contents of the securechip kdf slot.
 static const uint8_t _kdfkey[32] =
     "\xd2\xe1\xe6\xb1\x8b\x6c\x6b\x08\x43\x3e\xdb\xc1\xd1\x68\xc1\xa0\x04\x37\x74\xa4\x22\x18\x77"
@@ -37,6 +32,11 @@ static const uint8_t _kdfkey[32] =
 int securechip_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out)
 {
     wally_hmac_sha256(_kdfkey, 32, msg, len, kdf_out, 32);
+    return 0;
+}
+int securechip_init_new_password(const char* password)
+{
+    (void)password;
     return 0;
 }
 int securechip_stretch_password(const char* password, uint8_t* stretched_out)

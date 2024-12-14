@@ -21,9 +21,10 @@
 
 typedef struct {
     int (*setup)(const securechip_interface_functions_t* fns);
-    bool (*update_keys)(void);
     int (*kdf)(const uint8_t* msg, size_t msg_len, uint8_t* kdf_out);
+    int (*init_new_password)(const char* password);
     int (*stretch_password)(const char* password, uint8_t* stretched_out);
+    bool (*reset_keys)(void);
     bool (*gen_attestation_key)(uint8_t* pubkey_out);
     bool (*attestation_sign)(const uint8_t* challenge, uint8_t* signature_out);
     bool (*monotonic_increments_remaining)(uint32_t* remaining_out);
@@ -45,9 +46,10 @@ bool securechip_init(void)
     switch (memory_get_securechip_type()) {
     case MEMORY_SECURECHIP_TYPE_OPTIGA:
         _fns.setup = optiga_setup;
-        _fns.update_keys = optiga_update_keys;
         _fns.kdf = optiga_kdf_external;
+        _fns.init_new_password = optiga_init_new_password;
         _fns.stretch_password = optiga_stretch_password;
+        _fns.reset_keys = optiga_reset_keys;
         _fns.gen_attestation_key = optiga_gen_attestation_key;
         _fns.attestation_sign = optiga_attestation_sign;
         _fns.monotonic_increments_remaining = optiga_monotonic_increments_remaining;
@@ -63,9 +65,10 @@ bool securechip_init(void)
     case MEMORY_SECURECHIP_TYPE_ATECC:
     default:
         _fns.setup = atecc_setup;
-        _fns.update_keys = atecc_update_keys;
         _fns.kdf = atecc_kdf;
+        _fns.init_new_password = atecc_init_new_password;
         _fns.stretch_password = atecc_stretch_password;
+        _fns.reset_keys = atecc_reset_keys;
         _fns.gen_attestation_key = atecc_gen_attestation_key;
         _fns.attestation_sign = atecc_attestation_sign;
         _fns.monotonic_increments_remaining = atecc_monotonic_increments_remaining;
@@ -95,22 +98,28 @@ int securechip_setup(const securechip_interface_functions_t* ifs)
     return _fns.setup(ifs);
 }
 
-bool securechip_update_keys(void)
-{
-    ABORT_IF_NULL(update_keys);
-    return _fns.update_keys();
-}
-
 int securechip_kdf(const uint8_t* msg, size_t msg_len, uint8_t* mac_out)
 {
     ABORT_IF_NULL(kdf);
     return _fns.kdf(msg, msg_len, mac_out);
 }
 
+int securechip_init_new_password(const char* password)
+{
+    ABORT_IF_NULL(init_new_password);
+    return _fns.init_new_password(password);
+}
+
 int securechip_stretch_password(const char* password, uint8_t* stretched_out)
 {
     ABORT_IF_NULL(stretch_password);
     return _fns.stretch_password(password, stretched_out);
+}
+
+bool securechip_reset_keys(void)
+{
+    ABORT_IF_NULL(reset_keys);
+    return _fns.reset_keys();
 }
 
 bool securechip_gen_attestation_key(uint8_t* pubkey_out)

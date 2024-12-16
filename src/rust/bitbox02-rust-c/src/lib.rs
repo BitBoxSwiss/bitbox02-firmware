@@ -47,7 +47,7 @@ mod workflow;
 fn panic(info: &core::panic::PanicInfo) -> ! {
     ::util::log::log!("{}", info);
     #[cfg(feature = "firmware")]
-    bitbox02_rust::print_debug!(0, "Error: {}", info);
+    bitbox02_rust::print_screen!(0, "Error: {}", info);
     loop {}
 }
 

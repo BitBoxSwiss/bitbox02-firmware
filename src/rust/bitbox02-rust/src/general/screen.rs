@@ -31,11 +31,11 @@ pub fn print_debug_internal(duration: Duration, msg: &str) {
 /// ```no_run
 /// # #[macro_use] extern crate bitbox02_rust; fn main() {
 /// let my_str = "abc";
-/// print_debug!(1000, "{}", &my_str);
+/// print_screen!(1000, "{}", &my_str);
 /// # }
 /// ```
 #[macro_export]
-macro_rules! print_debug {
+macro_rules! print_screen {
     ($duration:expr, $($arg:tt)*) => ({
         extern crate alloc;
         let duration = core::time::Duration::from_millis($duration);

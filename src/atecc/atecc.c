@@ -16,7 +16,9 @@
 #include "hardfault.h"
 #include "securechip/securechip.h"
 #include <i2c_ecc.h>
+#include <salt.h>
 #include <util.h>
+#include <wally_crypto.h>
 
 // disabling some warnings, as it's an external library.
 #pragma GCC diagnostic push
@@ -74,6 +76,10 @@ static uint8_t _configuration[ATCA_ECC_CONFIG_SIZE] = {
 
 // Number of times the first kdf slot can be used.
 #define MONOTONIC_COUNTER_MAX_USE (730500)
+
+// This number of KDF iterations on the 2nd kdf slot when stretching the device
+// password.
+#define KDF_NUM_ITERATIONS (2)
 
 // The total individual size of the public key data slots (slots 9-15) is 72 bytes. Using encrypted
 // read/write it is only possible to transmit 32 bytes. The last block is therefore 8 (72 =
@@ -586,9 +592,53 @@ int atecc_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out)
     return _atecc_kdf(ATECC_SLOT_KDF, msg, len, kdf_out);
 }
 
-int atecc_kdf_rollkey(const uint8_t* msg, size_t len, uint8_t* kdf_out)
+int atecc_stretch_password(const char* password, uint8_t* stretched_out)
 {
-    return _atecc_kdf(ATECC_SLOT_ROLLKEY, msg, len, kdf_out);
+    uint8_t password_salted_hashed[32] = {0};
+    UTIL_CLEANUP_32(password_salted_hashed);
+    if (!salt_hash_data(
+            (const uint8_t*)password,
+            strlen(password),
+            "keystore_seed_access_in",
+            password_salted_hashed)) {
+        return SC_ERR_SALT;
+    }
+
+    uint8_t kdf_in[32] = {0};
+    UTIL_CLEANUP_32(kdf_in);
+    memcpy(kdf_in, password_salted_hashed, 32);
+
+    // First KDF on rollkey increments the monotonic counter. Call only once!
+    int securechip_result = _atecc_kdf(ATECC_SLOT_ROLLKEY, kdf_in, 32, stretched_out);
+    if (securechip_result) {
+        return securechip_result;
+    }
+    // Second KDF does not use the counter and we call it multiple times.
+    for (int i = 0; i < KDF_NUM_ITERATIONS; i++) {
+        memcpy(kdf_in, stretched_out, 32);
+        securechip_result = securechip_kdf(kdf_in, 32, stretched_out);
+        if (securechip_result) {
+            return securechip_result;
+        }
+    }
+
+    if (!salt_hash_data(
+            (const uint8_t*)password,
+            strlen(password),
+            "keystore_seed_access_out",
+            password_salted_hashed)) {
+        return SC_ERR_SALT;
+    }
+    if (wally_hmac_sha256(
+            password_salted_hashed,
+            sizeof(password_salted_hashed),
+            stretched_out,
+            32,
+            stretched_out,
+            32) != WALLY_OK) {
+        return SC_ERR_HASH;
+    }
+    return 0;
 }
 
 bool atecc_gen_attestation_key(uint8_t* pubkey_out)

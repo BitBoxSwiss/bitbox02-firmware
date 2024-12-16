@@ -23,7 +23,7 @@ typedef struct {
     int (*setup)(const securechip_interface_functions_t* fns);
     bool (*update_keys)(void);
     int (*kdf)(const uint8_t* msg, size_t msg_len, uint8_t* kdf_out);
-    int (*kdf_rollkey)(const uint8_t* msg, size_t msg_len, uint8_t* kdf_out);
+    int (*stretch_password)(const char* password, uint8_t* stretched_out);
     bool (*gen_attestation_key)(uint8_t* pubkey_out);
     bool (*attestation_sign)(const uint8_t* challenge, uint8_t* signature_out);
     bool (*monotonic_increments_remaining)(uint32_t* remaining_out);
@@ -47,7 +47,7 @@ bool securechip_init(void)
         _fns.setup = optiga_setup;
         _fns.update_keys = optiga_update_keys;
         _fns.kdf = optiga_kdf_external;
-        _fns.kdf_rollkey = optiga_kdf_internal;
+        _fns.stretch_password = optiga_stretch_password;
         _fns.gen_attestation_key = optiga_gen_attestation_key;
         _fns.attestation_sign = optiga_attestation_sign;
         _fns.monotonic_increments_remaining = optiga_monotonic_increments_remaining;
@@ -65,7 +65,7 @@ bool securechip_init(void)
         _fns.setup = atecc_setup;
         _fns.update_keys = atecc_update_keys;
         _fns.kdf = atecc_kdf;
-        _fns.kdf_rollkey = atecc_kdf_rollkey;
+        _fns.stretch_password = atecc_stretch_password;
         _fns.gen_attestation_key = atecc_gen_attestation_key;
         _fns.attestation_sign = atecc_attestation_sign;
         _fns.monotonic_increments_remaining = atecc_monotonic_increments_remaining;
@@ -107,10 +107,10 @@ int securechip_kdf(const uint8_t* msg, size_t msg_len, uint8_t* mac_out)
     return _fns.kdf(msg, msg_len, mac_out);
 }
 
-int securechip_kdf_rollkey(const uint8_t* msg, size_t msg_len, uint8_t* mac_out)
+int securechip_stretch_password(const char* password, uint8_t* stretched_out)
 {
-    ABORT_IF_NULL(kdf_rollkey);
-    return _fns.kdf_rollkey(msg, msg_len, mac_out);
+    ABORT_IF_NULL(stretch_password);
+    return _fns.stretch_password(password, stretched_out);
 }
 
 bool securechip_gen_attestation_key(uint8_t* pubkey_out)

@@ -18,6 +18,7 @@
 #include <stddef.h>
 #include <cmocka.h>
 
+#include <salt.h>
 #include <securechip/securechip.h>
 #include <stdio.h>
 #include <string.h>
@@ -50,7 +51,13 @@ int securechip_kdf_rollkey(const uint8_t* msg, size_t len, uint8_t* kdf_out)
     wally_hmac_sha256(_rollkey, 32, msg, len, kdf_out, 32);
     return 0;
 }
-
+int securechip_stretch_password(const char* password, uint8_t* stretched_out)
+{
+    uint8_t key[9] = "unit-test";
+    wally_hmac_sha256(
+        key, sizeof(key), (const uint8_t*)password, strlen(password), stretched_out, 32);
+    return 0;
+}
 bool securechip_u2f_counter_set(uint32_t counter)
 {
     _u2f_counter = counter;

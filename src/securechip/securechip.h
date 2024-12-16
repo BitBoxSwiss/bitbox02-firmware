@@ -27,6 +27,8 @@ typedef enum {
     SC_ERR_IFS = -1,
     SC_ERR_INVALID_ARGS = -2,
     SC_ERR_CONFIG_MISMATCH = -3,
+    SC_ERR_SALT = -4,
+    SC_ERR_HASH = -5,
 
     // Errors specific to the ATECC
     SC_ATECC_ERR_ZONE_UNLOCKED_CONFIG = -100,
@@ -85,6 +87,7 @@ USE_RESULT bool securechip_update_keys(void);
 
 /**
  * Perform KDF using the key in kdf slot with the input msg.
+ * This must not increment a monotonic counter.
  * @param[in] msg Use this msg as input
  * @param[in] len Must be <= 127.
  * @param[out] kdf_out Must have size 32. Result of the kdf will be stored here.
@@ -95,7 +98,7 @@ USE_RESULT bool securechip_update_keys(void);
 USE_RESULT int securechip_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out);
 
 /**
- * Perform KDF using the key in rollkey slot with the input msg.
+ * Stretch password using secrets in the secure chip.
  * Calling this function increments the monotonic counter.
  * @param[in] msg Use this msg as input
  * @param[in] len Must be <= 127.
@@ -104,7 +107,7 @@ USE_RESULT int securechip_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out);
  * @return 0 on success. Values of `securechip_error_t` if negative. If positive, values of
  * `ATCA_STATUS` for ATECC, values of optiga_lib_return_codes.h for Optiga.
  */
-USE_RESULT int securechip_kdf_rollkey(const uint8_t* msg, size_t len, uint8_t* kdf_out);
+USE_RESULT int securechip_stretch_password(const char* password, uint8_t* stretched_out);
 
 /**
  * Generates a new attestation device key and outputs the public key.

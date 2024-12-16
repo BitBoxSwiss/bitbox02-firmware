@@ -14,6 +14,7 @@
 
 use super::Error;
 use crate::pb;
+use alloc::vec::Vec;
 
 use pb::response::Response;
 
@@ -132,6 +133,98 @@ pub async fn from_mnemonic(
     };
 
     if let Err(err) = bitbox02::keystore::encrypt_and_store_seed(&seed, &password) {
+        status::status(&format!("Could not\nrestore backup\n{:?}", err), false).await;
+        return Err(Error::Generic);
+    };
+
+    #[cfg(feature = "app-u2f")]
+    {
+        // Ignore error - the U2f counter not being set can lead to problems with U2F, but it should
+        // not fail the recovery, so the user can access their coins.
+        let _ = bitbox02::securechip::u2f_counter_set(timestamp);
+    }
+
+    bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
+
+    // This should never fail.
+    bitbox02::keystore::unlock(&password).expect("restore_from_mnemonic: unlock failed");
+    unlock::unlock_bip39().await;
+    Ok(Response::Success(pb::Success {}))
+}
+
+pub async fn from_shamir(
+    #[cfg_attr(not(feature = "app-u2f"), allow(unused_variables))] &pb::RestoreFromShamirRequest {
+        timestamp,
+        timezone_offset,
+    }: &pb::RestoreFromShamirRequest,
+) -> Result<Response, Error> {
+    #[cfg(feature = "app-u2f")]
+    {
+        let datetime_string = bitbox02::format_datetime(timestamp, timezone_offset, false)
+            .map_err(|_| Error::InvalidInput)?;
+        confirm::confirm(&confirm::Params {
+            title: "Is now?",
+            body: &datetime_string,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+    }
+
+    let mnemonics = mnemonic::get_shamir().await?;
+    let mut shares: Vec<sharks::Share> = Vec::new();
+    for mnemonic in mnemonics {
+        let bytes = match bitbox02::keystore::bip39_mnemonic_to_bytes(&mnemonic, 36) {
+            Ok(bytes) => bytes,
+            Err(()) => {
+                status::status("Recovery words\ninvalid", false).await;
+                return Err(Error::Generic);
+            }
+        };
+        let s = sharks::Share::try_from(&bytes[3..]).unwrap();
+        shares.push(s);
+        // let share = Vec::from(&s);
+        // bitbox02::print_stdout(&format!("share: {}, len: {}\n", hex::encode(share.clone()), share.len()));
+    }
+
+    let sharks = sharks::Sharks(2);
+    let seed = match sharks.recover(shares.as_slice()) {
+        Ok(seed) => seed,
+        Err(_) => {
+            status::status("Recovery words\ninvalid", false).await;
+            // bitbox02::print_stdout(format!("Err: {}\n", err_str).as_str());
+            return Err(Error::Generic);
+        }
+    };
+
+    status::status("Recovery words\nvalid", true).await;
+
+    // bitbox02::print_stdout(&format!(
+    //     "seed: {}, len: {}\n",
+    //     hex::encode(seed.clone()),
+    //     seed.len()
+    // ));
+    // let mnemonic_sentence = bitbox02::keystore::get_bip39_mnemonic_from_bytes(seed.as_ptr(), seed.len())?;
+    // bitbox02::print_stdout(format!("mnemonic: {}\n", mnemonic_sentence.as_str()).as_str());
+
+    // If entering password fails (repeat password does not match the first), we don't want to abort
+    // the process immediately. We break out only if the user confirms.
+    let password = loop {
+        match password::enter_twice().await {
+            Err(password::EnterTwiceError::DoNotMatch) => {
+                confirm::confirm(&confirm::Params {
+                    title: "",
+                    body: "Passwords\ndo not match.\nTry again?",
+                    ..Default::default()
+                })
+                .await?;
+            }
+            Err(password::EnterTwiceError::Cancelled) => return Err(Error::UserAbort),
+            Ok(password) => break password,
+        }
+    };
+
+    if let Err(err) = bitbox02::keystore::encrypt_and_store_seed(seed.as_slice(), &password) {
         status::status(&format!("Could not\nrestore backup\n{:?}", err), false).await;
         return Err(Error::Generic);
     };

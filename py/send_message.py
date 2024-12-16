@@ -291,6 +291,13 @@ class SendMessage:
         except UserAbortException:
             print("Aborted by user")
 
+    def _restore_from_shamir(self) -> None:
+        try:
+            self._device.restore_from_shamir()
+            print("Restore successful")
+        except UserAbortException:
+            print("Aborted by user")
+
     def _list_device_info(self) -> None:
         print(f"All info: {self._device.device_info()}")
 
@@ -1397,6 +1404,7 @@ class SendMessage:
             ("Set up a new wallet", self._setup_workflow),
             ("Restore from backup", self._restore_backup_workflow),
             ("Restore from mnemonic", self._restore_from_mnemonic),
+            ("Restore from shamir", self._restore_from_shamir),
             ("List device info", self._list_device_info),
             ("Reboot into bootloader", self._reboot),
             ("Check if SD card inserted", self._check_sd_presence),

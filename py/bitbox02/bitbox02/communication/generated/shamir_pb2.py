@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0cshamir.proto\x12\x14shiftcrypto.bitbox02\"\x13\n\x11ShowShamirRequest\"\x1a\n\x18RestoreFromShamirRequestb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0cshamir.proto\x12\x14shiftcrypto.bitbox02\"\x13\n\x11ShowShamirRequest\"F\n\x18RestoreFromShamirRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\r\x12\x17\n\x0ftimezone_offset\x18\x02 \x01(\x05\x62\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'shamir_pb2', globals())
@@ -23,5 +23,5 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _SHOWSHAMIRREQUEST._serialized_start=38
   _SHOWSHAMIRREQUEST._serialized_end=57
   _RESTOREFROMSHAMIRREQUEST._serialized_start=59
-  _RESTOREFROMSHAMIRREQUEST._serialized_end=85
+  _RESTOREFROMSHAMIRREQUEST._serialized_end=129
 # @@protoc_insertion_point(module_scope)

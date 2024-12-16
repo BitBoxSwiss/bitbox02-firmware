@@ -61,6 +61,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "delay_us",
     "empty_create",
     "keystore_bip39_mnemonic_to_seed",
+    "keystore_bip39_mnemonic_to_bytes",
     "keystore_bip85_bip39",
     "keystore_bip85_ln",
     "keystore_copy_seed",

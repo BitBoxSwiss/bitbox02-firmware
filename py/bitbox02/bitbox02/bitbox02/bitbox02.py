@@ -1148,6 +1148,19 @@ class BitBox02(BitBoxCommonAPI):
         )
         self._msg_query(request)
 
+    def restore_from_shamir(self) -> None:
+        """
+        Restore from shamir backup. Raises a Bitbox02Exception on failure.
+        """
+        request = hww.Request()
+        # pylint: disable=no-member
+        request.restore_from_shamir.CopyFrom(
+            shamir.RestoreFromShamirRequest(
+                timestamp=int(time.time()), timezone_offset=time.localtime().tm_gmtoff
+            )
+        )
+        self._msg_query(request)
+
     def _cardano_msg_query(
         self, cardano_request: cardano.CardanoRequest, expected_response: Optional[str] = None
     ) -> cardano.CardanoResponse:

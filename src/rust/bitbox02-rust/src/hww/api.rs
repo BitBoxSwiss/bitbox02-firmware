@@ -119,6 +119,7 @@ fn can_call(request: &Request) -> bool {
         Request::SetPassword(_) => matches!(state, State::Uninitialized | State::Seeded),
         Request::RestoreBackup(_) => matches!(state, State::Uninitialized | State::Seeded),
         Request::RestoreFromMnemonic(_) => matches!(state, State::Uninitialized | State::Seeded),
+        Request::RestoreFromShamir(_) => matches!(state, State::Uninitialized | State::Seeded),
         Request::CreateBackup(_) => matches!(state, State::Seeded | State::Initialized),
         Request::ShowMnemonic(_) => matches!(state, State::Seeded | State::Initialized),
         Request::ShowShamir(_) => matches!(state, State::Seeded | State::Initialized),
@@ -163,6 +164,7 @@ async fn process_api(request: &Request) -> Result<Response, Error> {
         Request::RestoreFromMnemonic(ref request) => restore::from_mnemonic(request).await,
         Request::ElectrumEncryptionKey(ref request) => electrum::process(request).await,
         Request::ShowShamir(_) => show_shamir::process().await,
+        Request::RestoreFromShamir(ref request) => restore::from_shamir(request).await,
 
         #[cfg(feature = "app-ethereum")]
         Request::Eth(pb::EthRequest {

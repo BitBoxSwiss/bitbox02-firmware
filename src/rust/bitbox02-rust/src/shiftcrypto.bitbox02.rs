@@ -1627,7 +1627,12 @@ pub struct SetMnemonicPassphraseEnabledRequest {
 pub struct ShowShamirRequest {}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RestoreFromShamirRequest {}
+pub struct RestoreFromShamirRequest {
+    #[prost(uint32, tag = "1")]
+    pub timestamp: u32,
+    #[prost(int32, tag = "2")]
+    pub timezone_offset: i32,
+}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct RebootRequest {
@@ -1702,7 +1707,7 @@ pub struct Success {}
 pub struct Request {
     #[prost(
         oneof = "request::Request",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30"
     )]
     pub request: ::core::option::Option<request::Request>,
 }
@@ -1767,6 +1772,8 @@ pub mod request {
         Bip85(super::Bip85Request),
         #[prost(message, tag = "29")]
         ShowShamir(super::ShowShamirRequest),
+        #[prost(message, tag = "30")]
+        RestoreFromShamir(super::RestoreFromShamirRequest),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]

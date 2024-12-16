@@ -289,14 +289,11 @@ async fn get_12th_18th_word(
     }
 }
 
-/// Retrieve a BIP39 mnemonic sentence of 12, 18 or 24 words from the user.
-pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
-    let num_words: usize = match choose("How many words?", "12", "18", "24").await {
-        TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
-        TrinaryChoice::TRINARY_CHOICE_MIDDLE => 18,
-        TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,
-    };
-
+// FIXME: autocomplete should work always.
+async fn get_mnemonic_phrase(
+    num_words: usize,
+    autocomplete: bool,
+) -> Result<zeroize::Zeroizing<String>, CancelError> {
     status(&format!("Enter {} words", num_words), true).await;
 
     // Provide all bip39 words to restrict the keyboard entry.
@@ -318,7 +315,7 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
         let preset = entered_words[word_idx].as_str();
 
         let user_entry: Result<zeroize::Zeroizing<String>, CancelError> =
-            if word_idx == num_words - 1 {
+            if word_idx == num_words - 1 && autocomplete {
                 // For the last word, we can restrict to a subset of bip39 words that fulfil the
                 // checksum requirement. This special case exists so that users can generate a seed
                 // using only the device and no external software, allowing seed generation via dice
@@ -401,6 +398,37 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
     Ok(zeroize::Zeroizing::new(
         as_str_vec(&entered_words[..num_words]).join(" "),
     ))
+}
+
+/// Retrieve a BIP39 mnemonic sentence of 12, 18 or 24 words from the user.
+pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
+    let num_words: usize = match choose("How many words?", "12", "18", "24").await {
+        TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
+        TrinaryChoice::TRINARY_CHOICE_MIDDLE => 18,
+        TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,
+    };
+    get_mnemonic_phrase(num_words, true).await
+}
+
+///
+/// Retrieve a BIP39 mnemonic sentence of 12, 18 or 24 words from the user.
+pub async fn get_shamir() -> Result<Vec<zeroize::Zeroizing<String>>, CancelError> {
+    let num_words: usize = match choose("How many words?", "15", "21", "27").await {
+        TrinaryChoice::TRINARY_CHOICE_LEFT => 15,
+        TrinaryChoice::TRINARY_CHOICE_MIDDLE => 21,
+        TrinaryChoice::TRINARY_CHOICE_RIGHT => 27,
+    };
+
+    //FIXME have a proper constant
+    let num_shards: usize = 2;
+    let mut result: Vec<zeroize::Zeroizing<String>> = Vec::new();
+    for _s in 0..num_shards {
+        match get_mnemonic_phrase(num_words, false).await {
+            Ok(shard) => result.push(shard),
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(result)
 }
 
 #[cfg(test)]

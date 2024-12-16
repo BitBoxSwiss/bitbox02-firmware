@@ -570,9 +570,9 @@ bool keystore_get_bip39_mnemonic_from_bytes(const uint8_t* bytes, size_t len, ch
         return false;
     }
 
-    if (len > KEYSTORE_MAX_SEED_LENGTH) {
-        return false;
-    }
+    /* if (len > KEYSTORE_MAX_SEED_LENGTH) { */
+    /*     return false; */
+    /* } */
     char* mnemonic = NULL;
     if (bip39_mnemonic_from_bytes(NULL, bytes, len, &mnemonic) != WALLY_OK) {
         return false;
@@ -588,6 +588,11 @@ bool keystore_get_bip39_mnemonic_from_bytes(const uint8_t* bytes, size_t len, ch
 bool keystore_bip39_mnemonic_to_seed(const char* mnemonic, uint8_t* seed_out, size_t* seed_len_out)
 {
     return bip39_mnemonic_to_bytes(NULL, mnemonic, seed_out, 32, seed_len_out) == WALLY_OK;
+}
+
+bool keystore_bip39_mnemonic_to_bytes(const char* mnemonic, uint8_t* bytes_out, size_t bytes_len, size_t* bytes_len_out)
+{
+    return bip39_mnemonic_to_bytes(NULL, mnemonic, bytes_out, bytes_len, bytes_len_out) == WALLY_OK;
 }
 
 static bool _get_xprv(const uint32_t* keypath, const size_t keypath_len, struct ext_key* xprv_out)

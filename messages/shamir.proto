@@ -18,4 +18,6 @@ package shiftcrypto.bitbox02;
 message ShowShamirRequest {
 }
 message RestoreFromShamirRequest {
+  uint32 timestamp = 1;
+  int32 timezone_offset = 2;
 }

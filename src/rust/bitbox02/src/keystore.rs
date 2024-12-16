@@ -132,15 +132,12 @@ pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
     }
 }
 
-pub fn get_bip39_mnemonic_from_bytes(
-    bytes: *const u8,
-    len: usize,
-) -> Result<zeroize::Zeroizing<String>, ()> {
+pub fn get_bip39_mnemonic_from_bytes(bytes: Vec<u8>) -> Result<zeroize::Zeroizing<String>, ()> {
     let mut mnemonic = zeroize::Zeroizing::new([0u8; 256]);
     match unsafe {
         bitbox02_sys::keystore_get_bip39_mnemonic_from_bytes(
-            bytes,
-            len,
+            bytes.as_ptr(),
+            bytes.len(),
             mnemonic.as_mut_ptr(),
             mnemonic.len() as _,
         )
@@ -318,6 +315,26 @@ pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u
         bitbox02_sys::keystore_bip39_mnemonic_to_seed(
             mnemonic.as_ptr(),
             seed.as_mut_ptr(),
+            &mut seed_len,
+        )
+    } {
+        true => Ok(zeroize::Zeroizing::new(seed[..seed_len].to_vec())),
+        false => Err(()),
+    }
+}
+
+pub fn bip39_mnemonic_to_bytes(
+    mnemonic: &str,
+    bytes_len: usize,
+) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let mnemonic = zeroize::Zeroizing::new(crate::util::str_to_cstr_vec(mnemonic)?);
+    let mut seed = zeroize::Zeroizing::new(vec![0u8; bytes_len]);
+    let mut seed_len: usize = 0;
+    match unsafe {
+        bitbox02_sys::keystore_bip39_mnemonic_to_bytes(
+            mnemonic.as_ptr(),
+            seed.as_mut_ptr(),
+            bytes_len,
             &mut seed_len,
         )
     } {

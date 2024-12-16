@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::general::abort;
 use crate::workflow::confirm;
 use crate::workflow::password;
 use crate::workflow::status::status;
@@ -116,9 +117,10 @@ pub async fn unlock_bip39() {
         }
     }
 
-    bitbox02::ui::with_lock_animation(|| {
-        keystore::unlock_bip39(&mnemonic_passphrase).expect("bip39 unlock failed");
-    });
+    let result = bitbox02::ui::with_lock_animation(|| keystore::unlock_bip39(&mnemonic_passphrase));
+    if result.is_err() {
+        abort("bip39 unlock failed");
+    }
 }
 
 /// Invokes the unlock workflow. This function does not finish until the keystore is unlocked, or

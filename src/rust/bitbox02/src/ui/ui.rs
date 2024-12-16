@@ -422,10 +422,11 @@ pub fn trinary_input_string_set_input(component: &mut Component, word: &str) {
     }
 }
 
-pub fn with_lock_animation<F: Fn()>(f: F) {
+pub fn with_lock_animation<F: Fn() -> R, R>(f: F) -> R {
     unsafe { bitbox02_sys::lock_animation_start() };
-    f();
+    let result = f();
     unsafe { bitbox02_sys::lock_animation_stop() };
+    result
 }
 
 pub fn screen_stack_pop_all() {

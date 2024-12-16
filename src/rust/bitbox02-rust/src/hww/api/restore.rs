@@ -17,6 +17,7 @@ use crate::pb;
 
 use pb::response::Response;
 
+use crate::general::abort;
 use crate::workflow::{confirm, mnemonic, password, status, unlock};
 
 pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, Error> {
@@ -75,7 +76,9 @@ pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, E
     }
 
     bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
-    bitbox02::keystore::unlock(&password).expect("restore_from_file: unlock failed");
+    if bitbox02::keystore::unlock(&password).is_err() {
+        abort("restore_from_file: unlock failed");
+    };
 
     // Ignore non-critical error.
     let _ = bitbox02::memory::set_device_name(&metadata.name);
@@ -144,9 +147,11 @@ pub async fn from_mnemonic(
     }
 
     bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
-
     // This should never fail.
-    bitbox02::keystore::unlock(&password).expect("restore_from_mnemonic: unlock failed");
+    if bitbox02::keystore::unlock(&password).is_err() {
+        abort("restore_from_mnemonic: unlock failed");
+    };
+
     unlock::unlock_bip39().await;
     Ok(Response::Success(pb::Success {}))
 }

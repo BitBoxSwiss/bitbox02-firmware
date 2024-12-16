@@ -23,8 +23,10 @@
 #include <optiga_crypt.h>
 #include <optiga_util.h>
 #include <rust/rust.h>
+#include <salt.h>
 #include <securechip/securechip.h>
 #include <util.h>
+#include <wally_crypto.h>
 
 // Set this to 1 for a more convenience during development.
 // Factory setup will be performed in the normal firmware, which makes it easier to tinker with the
@@ -66,6 +68,10 @@
 
 // See Solution Reference Manual Table 79 "Data structure arbitrary data object".
 #define ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE 140
+
+// This number of KDF iterations on the external kdf slot when stretching the device
+// password.
+#define KDF_NUM_ITERATIONS (2)
 
 // Struct stored in the arbitrary data object.
 #pragma GCC diagnostic push
@@ -1140,7 +1146,7 @@ int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out)
     return 0;
 }
 
-int optiga_kdf_internal(const uint8_t* msg, size_t len, uint8_t* kdf_out)
+static int _kdf_internal(const uint8_t* msg, size_t len, uint8_t* kdf_out)
 {
     if (len != 32) {
         return SC_ERR_INVALID_ARGS;
@@ -1169,6 +1175,55 @@ int optiga_kdf_internal(const uint8_t* msg, size_t len, uint8_t* kdf_out)
         return SC_OPTIGA_ERR_UNEXPECTED_LEN;
     }
     rust_sha256(mac_out, mac_out_len, kdf_out);
+    return 0;
+}
+
+int optiga_stretch_password(const char* password, uint8_t* stretched_out)
+{
+    uint8_t password_salted_hashed[32] = {0};
+    UTIL_CLEANUP_32(password_salted_hashed);
+    if (!salt_hash_data(
+            (const uint8_t*)password,
+            strlen(password),
+            "optiga_password_stretch_in",
+            password_salted_hashed)) {
+        return SC_ERR_SALT;
+    }
+
+    uint8_t kdf_in[32] = {0};
+    UTIL_CLEANUP_32(kdf_in);
+    memcpy(kdf_in, password_salted_hashed, 32);
+
+    // First KDF on internal key increments the monotonic counter. Call only once!
+    int securechip_result = _kdf_internal(kdf_in, 32, stretched_out);
+    if (securechip_result) {
+        return securechip_result;
+    }
+    // Second KDF does not use the counter and we call it multiple times.
+    for (int i = 0; i < KDF_NUM_ITERATIONS; i++) {
+        memcpy(kdf_in, stretched_out, 32);
+        securechip_result = optiga_kdf_external(kdf_in, 32, stretched_out);
+        if (securechip_result) {
+            return securechip_result;
+        }
+    }
+
+    if (!salt_hash_data(
+            (const uint8_t*)password,
+            strlen(password),
+            "optiga_password_stretch_out",
+            password_salted_hashed)) {
+        return SC_ERR_SALT;
+    }
+    if (wally_hmac_sha256(
+            password_salted_hashed,
+            sizeof(password_salted_hashed),
+            stretched_out,
+            32,
+            stretched_out,
+            32) != WALLY_OK) {
+        return SC_ERR_HASH;
+    }
     return 0;
 }
 

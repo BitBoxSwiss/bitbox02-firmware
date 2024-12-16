@@ -161,69 +161,6 @@ static bool _copy_bip39_seed(uint8_t* bip39_seed_out)
 }
 
 /**
- * Stretch the user password using the securechip, putting the result in `kdf_out`, which must be 32
- * bytes. `securechip_result_out`, if not NULL, will contain the error code from `securechip_kdf()`
- * if there was a secure chip error, and 0 otherwise.
- */
-static keystore_error_t _stretch_password(
-    const char* password,
-    uint8_t* kdf_out,
-    int* securechip_result_out)
-{
-    if (securechip_result_out != NULL) {
-        *securechip_result_out = 0;
-    }
-    uint8_t password_salted_hashed[32] = {0};
-    UTIL_CLEANUP_32(password_salted_hashed);
-    if (!salt_hash_data(
-            (const uint8_t*)password,
-            strlen(password),
-            "keystore_seed_access_in",
-            password_salted_hashed)) {
-        return KEYSTORE_ERR_SALT;
-    }
-
-    uint8_t kdf_in[32] = {0};
-    UTIL_CLEANUP_32(kdf_in);
-    memcpy(kdf_in, password_salted_hashed, 32);
-
-    // First KDF on rollkey increments the monotonic counter. Call only once!
-    int securechip_result = securechip_kdf_rollkey(kdf_in, 32, kdf_out);
-    if (securechip_result) {
-        if (securechip_result_out != NULL) {
-            *securechip_result_out = securechip_result;
-        }
-        return KEYSTORE_ERR_SECURECHIP;
-    }
-    // Second KDF does not use the counter and we call it multiple times.
-    for (int i = 0; i < KDF_NUM_ITERATIONS; i++) {
-        memcpy(kdf_in, kdf_out, 32);
-        securechip_result = securechip_kdf(kdf_in, 32, kdf_out);
-        if (securechip_result) {
-            if (securechip_result_out != NULL) {
-                *securechip_result_out = securechip_result;
-            }
-            return KEYSTORE_ERR_SECURECHIP;
-        }
-    }
-
-    if (!salt_hash_data(
-            (const uint8_t*)password,
-            strlen(password),
-            "keystore_seed_access_out",
-            password_salted_hashed)) {
-        return KEYSTORE_ERR_SALT;
-    }
-    if (wally_hmac_sha256(
-            password_salted_hashed, sizeof(password_salted_hashed), kdf_out, 32, kdf_out, 32) !=
-        WALLY_OK) {
-        return KEYSTORE_ERR_HASH;
-    }
-
-    return KEYSTORE_OK;
-}
-
-/**
  * Retrieves the encrypted seed and attempts to decrypt it using the password.
  *
  * `securechip_result_out`, if not NULL, will contain the error code from `securechip_kdf()` if
@@ -243,9 +180,12 @@ static keystore_error_t _get_and_decrypt_seed(
     }
     uint8_t secret[32];
     UTIL_CLEANUP_32(secret);
-    keystore_error_t result = _stretch_password(password, secret, securechip_result_out);
-    if (result != KEYSTORE_OK) {
-        return result;
+    int stretch_result = securechip_stretch_password(password, secret);
+    if (securechip_result_out != NULL) {
+        *securechip_result_out = stretch_result;
+    }
+    if (stretch_result) {
+        return KEYSTORE_ERR_SECURECHIP;
     }
     if (encrypted_len < 49) {
         Abort("_get_and_decrypt_seed: underflow / zero size");
@@ -307,9 +247,8 @@ keystore_error_t keystore_encrypt_and_store_seed(
     }
     uint8_t secret[32] = {0};
     UTIL_CLEANUP_32(secret);
-    keystore_error_t res = _stretch_password(password, secret, NULL);
-    if (res != KEYSTORE_OK) {
-        return res;
+    if (securechip_stretch_password(password, secret)) {
+        return KEYSTORE_ERR_SECURECHIP;
     }
 
     size_t encrypted_seed_len = seed_length + 64;

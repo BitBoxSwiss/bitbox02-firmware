@@ -28,7 +28,7 @@
 USE_RESULT int atecc_setup(const securechip_interface_functions_t* ifs);
 USE_RESULT bool atecc_update_keys(void);
 USE_RESULT int atecc_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out);
-USE_RESULT int atecc_kdf_rollkey(const uint8_t* msg, size_t len, uint8_t* kdf_out);
+USE_RESULT int atecc_stretch_password(const char* password, uint8_t* stretched_out);
 USE_RESULT bool atecc_gen_attestation_key(uint8_t* pubkey_out);
 USE_RESULT bool atecc_attestation_sign(const uint8_t* challenge, uint8_t* signature_out);
 USE_RESULT bool atecc_monotonic_increments_remaining(uint32_t* remaining_out);

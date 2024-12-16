@@ -28,7 +28,7 @@
 USE_RESULT int optiga_setup(const securechip_interface_functions_t* ifs);
 USE_RESULT bool optiga_update_keys(void);
 USE_RESULT int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out);
-USE_RESULT int optiga_kdf_internal(const uint8_t* msg, size_t len, uint8_t* mac_out);
+USE_RESULT int optiga_stretch_password(const char* password, uint8_t* stretched_out);
 USE_RESULT bool optiga_gen_attestation_key(uint8_t* pubkey_out);
 USE_RESULT bool optiga_attestation_sign(const uint8_t* challenge, uint8_t* signature_out);
 USE_RESULT bool optiga_monotonic_increments_remaining(uint32_t* remaining_out);

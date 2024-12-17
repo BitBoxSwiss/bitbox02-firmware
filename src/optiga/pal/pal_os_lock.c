@@ -37,6 +37,8 @@
 
 #include "pal_os_lock.h"
 
+#include <hal_atomic.h>
+
 void pal_os_lock_create(pal_os_lock_t* p_lock, uint8_t lock_type)
 {
     p_lock->type = lock_type;
@@ -73,14 +75,16 @@ void pal_os_lock_release(pal_os_lock_t* p_lock)
     }
 }
 
+static volatile hal_atomic_t _atomic;
+
 void pal_os_lock_enter_critical_section(void)
 {
-    // For safety critical systems it is recommended to implement a critical section entry
+    atomic_enter_critical(&_atomic);
 }
 
 void pal_os_lock_exit_critical_section(void)
 {
-    // For safety critical systems it is recommended to implement a critical section exit
+    atomic_leave_critical(&_atomic);
 }
 
 /**

@@ -16,7 +16,9 @@
 #include "hardfault.h"
 #include "securechip/securechip.h"
 #include <i2c_ecc.h>
+#include <salt.h>
 #include <util.h>
+#include <wally_crypto.h>
 
 // disabling some warnings, as it's an external library.
 #pragma GCC diagnostic push
@@ -74,6 +76,10 @@ static uint8_t _configuration[ATCA_ECC_CONFIG_SIZE] = {
 
 // Number of times the first kdf slot can be used.
 #define MONOTONIC_COUNTER_MAX_USE (730500)
+
+// This number of KDF iterations on the 2nd kdf slot when stretching the device
+// password.
+#define KDF_NUM_ITERATIONS (2)
 
 // The total individual size of the public key data slots (slots 9-15) is 72 bytes. Using encrypted
 // read/write it is only possible to transmit 32 bytes. The last block is therefore 8 (72 =
@@ -234,7 +240,7 @@ static ATCA_STATUS _lock_slot(atecc_slot_t slot)
 static ATCA_STATUS _factory_setup(void)
 {
     if (_interface_functions == NULL) {
-        return (ATCA_STATUS)ATECC_ERR_IFS;
+        return (ATCA_STATUS)SC_ERR_IFS;
     }
     bool is_config_locked = false;
     ATCA_STATUS result = atcab_is_locked(LOCK_ZONE_CONFIG, &is_config_locked);
@@ -336,14 +342,14 @@ static int _verify_config(void)
         return result;
     }
     if (!is_locked) {
-        return ATECC_ERR_ZONE_UNLOCKED_CONFIG;
+        return SC_ATECC_ERR_ZONE_UNLOCKED_CONFIG;
     }
     result = atcab_is_locked(LOCK_ZONE_DATA, &is_locked);
     if (result != ATCA_SUCCESS) {
         return result;
     }
     if (!is_locked) {
-        return ATECC_ERR_ZONE_UNLOCKED_DATA;
+        return SC_ATECC_ERR_ZONE_UNLOCKED_DATA;
     }
 
     bool same_config = false;
@@ -352,7 +358,7 @@ static int _verify_config(void)
         return result;
     }
     if (!same_config) {
-        return ATECC_ERR_CONFIG_MISMATCH;
+        return SC_ERR_CONFIG_MISMATCH;
     }
 
     // Check that the slots are individually locked.
@@ -361,21 +367,21 @@ static int _verify_config(void)
         return result;
     }
     if (!is_locked) {
-        return ATECC_ERR_SLOT_UNLOCKED_IO;
+        return SC_ATECC_ERR_SLOT_UNLOCKED_IO;
     }
     result = atcab_is_slot_locked(ATECC_SLOT_AUTHKEY, &is_locked);
     if (result != ATCA_SUCCESS) {
         return result;
     }
     if (!is_locked) {
-        return ATECC_ERR_SLOT_UNLOCKED_AUTH;
+        return SC_ATECC_ERR_SLOT_UNLOCKED_AUTH;
     }
     result = atcab_is_slot_locked(ATECC_SLOT_ENCRYPTION_KEY, &is_locked);
     if (result != ATCA_SUCCESS) {
         return result;
     }
     if (!is_locked) {
-        return ATECC_ERR_SLOT_UNLOCKED_ENC;
+        return SC_ATECC_ERR_SLOT_UNLOCKED_ENC;
     }
     return ATCA_SUCCESS;
 }
@@ -383,7 +389,7 @@ static int _verify_config(void)
 int atecc_setup(const securechip_interface_functions_t* ifs)
 {
     if (ifs == NULL) {
-        return ATECC_ERR_IFS;
+        return SC_ERR_IFS;
     }
     _interface_functions = ifs;
     ATCA_STATUS result = atcab_init(&cfg);
@@ -516,21 +522,13 @@ static ATCA_STATUS _update_kdf_key(void)
         ATECC_SLOT_KDF, 0, new_key, encryption_key, ATECC_SLOT_ENCRYPTION_KEY, nonce_contribution);
 }
 
-bool atecc_update_keys(void)
-{
-    if (_rollkey() != ATCA_SUCCESS) {
-        return false;
-    }
-    return _update_kdf_key() == ATCA_SUCCESS;
-}
-
 static int _atecc_kdf(atecc_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out)
 {
     if (len > 127 || (slot != ATECC_SLOT_ROLLKEY && slot != ATECC_SLOT_KDF)) {
-        return ATECC_ERR_INVALID_ARGS;
+        return SC_ERR_INVALID_ARGS;
     }
     if (msg == kdf_out) {
-        return ATECC_ERR_INVALID_ARGS;
+        return SC_ERR_INVALID_ARGS;
     }
 
     ATCA_STATUS result = _authorize_key();
@@ -586,9 +584,70 @@ int atecc_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out)
     return _atecc_kdf(ATECC_SLOT_KDF, msg, len, kdf_out);
 }
 
-int atecc_kdf_rollkey(const uint8_t* msg, size_t len, uint8_t* kdf_out)
+int atecc_init_new_password(const char* password)
 {
-    return _atecc_kdf(ATECC_SLOT_ROLLKEY, msg, len, kdf_out);
+    (void)password;
+    if (!atecc_reset_keys()) {
+        return SC_ATECC_ERR_RESET_KEYS;
+    }
+    return 0;
+}
+
+int atecc_stretch_password(const char* password, uint8_t* stretched_out)
+{
+    uint8_t password_salted_hashed[32] = {0};
+    UTIL_CLEANUP_32(password_salted_hashed);
+    if (!salt_hash_data(
+            (const uint8_t*)password,
+            strlen(password),
+            "keystore_seed_access_in",
+            password_salted_hashed)) {
+        return SC_ERR_SALT;
+    }
+
+    uint8_t kdf_in[32] = {0};
+    UTIL_CLEANUP_32(kdf_in);
+    memcpy(kdf_in, password_salted_hashed, 32);
+
+    // First KDF on rollkey increments the monotonic counter. Call only once!
+    int securechip_result = _atecc_kdf(ATECC_SLOT_ROLLKEY, kdf_in, 32, stretched_out);
+    if (securechip_result) {
+        return securechip_result;
+    }
+    // Second KDF does not use the counter and we call it multiple times.
+    for (int i = 0; i < KDF_NUM_ITERATIONS; i++) {
+        memcpy(kdf_in, stretched_out, 32);
+        securechip_result = securechip_kdf(kdf_in, 32, stretched_out);
+        if (securechip_result) {
+            return securechip_result;
+        }
+    }
+
+    if (!salt_hash_data(
+            (const uint8_t*)password,
+            strlen(password),
+            "keystore_seed_access_out",
+            password_salted_hashed)) {
+        return SC_ERR_SALT;
+    }
+    if (wally_hmac_sha256(
+            password_salted_hashed,
+            sizeof(password_salted_hashed),
+            stretched_out,
+            32,
+            stretched_out,
+            32) != WALLY_OK) {
+        return SC_ERR_HASH;
+    }
+    return 0;
+}
+
+bool atecc_reset_keys(void)
+{
+    if (_rollkey() != ATCA_SUCCESS) {
+        return false;
+    }
+    return _update_kdf_key() == ATCA_SUCCESS;
 }
 
 bool atecc_gen_attestation_key(uint8_t* pubkey_out)

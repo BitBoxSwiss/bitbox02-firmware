@@ -67,6 +67,7 @@ message Request {
         ElectrumEncryptionKeyRequest electrum_encryption_key = 26;
         CardanoRequest cardano = 27;
         BIP85Request bip85 = 28;
+        ChangePasswordRequest change_password = 29;
     }
 }
 

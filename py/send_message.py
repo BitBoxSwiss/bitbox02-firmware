@@ -184,6 +184,12 @@ class SendMessage:
             info = self._device.device_info()
             print(f"New device name: {info['name']}")
 
+    def _change_password_worklow(self) -> None:
+        if not self._device.change_password():
+            print("Failed to change password")
+            return
+        print("Successfully changed password")
+
     def _setup_workflow(self) -> None:
         """TODO: Document"""
         self._change_name_workflow()
@@ -1407,6 +1413,7 @@ class SendMessage:
         choices = (
             ("List device info", self._list_device_info),
             ("Change device name", self._change_name_workflow),
+            ("Change device password", self._change_password_worklow),
             ("Get root fingerprint", self._get_root_fingerprint),
             ("Retrieve zpub of first account", self._display_zpub),
             ("Retrieve a BTC address", self._btc_address),

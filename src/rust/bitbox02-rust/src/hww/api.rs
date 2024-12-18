@@ -27,6 +27,7 @@ mod cardano;
 
 mod backup;
 mod bip85;
+mod change_password;
 mod device_info;
 mod electrum;
 mod reset;
@@ -115,6 +116,7 @@ fn can_call(request: &Request) -> bool {
         Request::CheckSdcard(_) => true,
         Request::InsertRemoveSdcard(_) => true,
         Request::ListBackups(_) => true,
+        Request::ChangePassword(_) => true,
         Request::SetPassword(_) => matches!(state, State::Uninitialized | State::Seeded),
         Request::RestoreBackup(_) => matches!(state, State::Uninitialized | State::Seeded),
         Request::RestoreFromMnemonic(_) => matches!(state, State::Uninitialized | State::Seeded),
@@ -145,6 +147,7 @@ async fn process_api(request: &Request) -> Result<Response, Error> {
         Request::DeviceInfo(_) => device_info::process(),
         Request::DeviceName(ref request) => set_device_name::process(request).await,
         Request::SetPassword(ref request) => set_password::process(request).await,
+        Request::ChangePassword(_) => change_password::process().await,
         Request::Reset(_) => reset::process().await,
         Request::SetMnemonicPassphraseEnabled(ref request) => {
             set_mnemonic_passphrase_enabled::process(request).await

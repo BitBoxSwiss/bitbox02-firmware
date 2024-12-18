@@ -234,18 +234,11 @@ static bool _verify_seed(
     return true;
 }
 
-keystore_error_t keystore_encrypt_and_store_seed(
+static keystore_error_t _set_new_password(
     const uint8_t* seed,
     size_t seed_length,
     const char* password)
 {
-    if (memory_is_initialized()) {
-        return KEYSTORE_ERR_MEMORY;
-    }
-    keystore_lock();
-    if (!_validate_seed_length(seed_length)) {
-        return KEYSTORE_ERR_SEED_SIZE;
-    }
     if (securechip_init_new_password(password)) {
         return KEYSTORE_ERR_SECURECHIP;
     }
@@ -275,6 +268,21 @@ keystore_error_t keystore_encrypt_and_store_seed(
         return KEYSTORE_ERR_MEMORY;
     }
     return KEYSTORE_OK;
+}
+
+keystore_error_t keystore_encrypt_and_store_seed(
+    const uint8_t* seed,
+    size_t seed_length,
+    const char* password)
+{
+    if (memory_is_initialized()) {
+        return KEYSTORE_ERR_MEMORY;
+    }
+    keystore_lock();
+    if (!_validate_seed_length(seed_length)) {
+        return KEYSTORE_ERR_SEED_SIZE;
+    }
+    return _set_new_password(seed, seed_length, password);
 }
 
 keystore_error_t keystore_create_and_store_seed(
@@ -378,6 +386,50 @@ static void _delete_retained_seeds(void)
         sizeof(_unstretched_retained_seed_encryption_key));
     util_zero(_retained_bip39_seed_encrypted, sizeof(_retained_bip39_seed_encrypted));
     _retained_bip39_seed_encrypted_len = 0;
+}
+
+keystore_error_t keystore_change_password(const char* old_password, const char* new_password)
+{
+    uint8_t bip39_seed[64];
+    UTIL_CLEANUP_64(bip39_seed);
+    if (!_copy_bip39_seed(bip39_seed)) {
+        return KEYSTORE_ERR_MEMORY;
+    }
+
+    uint8_t encrypted_seed_and_hmac[96];
+    UTIL_CLEANUP_32(encrypted_seed_and_hmac);
+    uint8_t encrypted_len;
+    if (!memory_get_encrypted_seed_and_hmac(encrypted_seed_and_hmac, &encrypted_len)) {
+        return KEYSTORE_ERR_MEMORY;
+    }
+
+    uint8_t secret[32];
+    UTIL_CLEANUP_32(secret);
+    if (securechip_stretch_password(old_password, secret)) {
+        return KEYSTORE_ERR_SECURECHIP;
+    }
+
+    size_t decrypted_len = encrypted_len - 48;
+    uint8_t decrypted[decrypted_len];
+    if (!cipher_aes_hmac_decrypt(
+            encrypted_seed_and_hmac, encrypted_len, decrypted, &decrypted_len, secret)) {
+        return KEYSTORE_ERR_INCORRECT_PASSWORD;
+    }
+
+    keystore_error_t result = _set_new_password(decrypted, decrypted_len, new_password);
+    if (result != KEYSTORE_OK) {
+        return result;
+    }
+
+    keystore_error_t retain_seed_result = _retain_seed(decrypted, decrypted_len);
+    if (retain_seed_result != KEYSTORE_OK) {
+        return retain_seed_result;
+    }
+    if (!_retain_bip39_seed(bip39_seed)) {
+        return KEYSTORE_ERR_MEMORY;
+    }
+
+    return KEYSTORE_OK;
 }
 
 keystore_error_t keystore_unlock(

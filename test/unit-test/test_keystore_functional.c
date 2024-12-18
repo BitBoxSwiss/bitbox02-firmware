@@ -262,6 +262,35 @@ static void _test_fixtures(void** state)
     }
 }
 
+static void _test_passwords(void** state)
+{
+    _smarteeprom_reset();
+    assert_true(keystore_is_locked());
+
+    will_return(__wrap_memory_is_initialized, false);
+    assert_int_equal(keystore_encrypt_and_store_seed(_seed, 32, _some_password), KEYSTORE_OK);
+
+    uint8_t remaining_attempts;
+    will_return(__wrap_memory_is_seeded, true);
+    assert_int_equal(KEYSTORE_OK, keystore_unlock(_some_password, &remaining_attempts, NULL));
+    assert_true(keystore_unlock_bip39(""));
+
+    assert_int_equal(KEYSTORE_OK, keystore_change_password(_some_password, _some_other_password));
+
+    keystore_lock();
+    assert_true(keystore_is_locked());
+
+    will_return(__wrap_memory_is_seeded, true);
+    assert_int_equal(
+        KEYSTORE_ERR_INCORRECT_PASSWORD,
+        keystore_unlock(_some_password, &remaining_attempts, NULL));
+
+    will_return(__wrap_memory_is_seeded, true);
+    assert_int_equal(KEYSTORE_OK, keystore_unlock(_some_other_password, &remaining_attempts, NULL));
+
+    keystore_lock();
+}
+
 int main(void)
 {
     mock_memory_set_salt_root(_salt_root);
@@ -269,6 +298,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_seeds),
         cmocka_unit_test(_test_fixtures),
+        cmocka_unit_test(_test_passwords),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

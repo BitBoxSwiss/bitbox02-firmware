@@ -77,6 +77,14 @@ USE_RESULT keystore_error_t keystore_create_and_store_seed(
     const uint8_t* host_entropy,
     size_t host_entropy_size);
 
+/**
+ * Changes the password of the keystore.
+ * @param[in] old_password The old password.
+ * @param[in] new_password The new password.
+ */
+USE_RESULT keystore_error_t
+keystore_change_password(const char* old_password, const char* new_password);
+
 /** Unlocks the keystore seed or checks the password:
  * If the keystore is locked, it decrypts and loads the seed, unlocking the keystore:
  * 1) loads the stored seed and tries to decrypt using password.

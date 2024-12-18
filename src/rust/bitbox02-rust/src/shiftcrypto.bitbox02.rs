@@ -194,6 +194,9 @@ pub struct SetPasswordRequest {
     pub entropy: ::prost::alloc::vec::Vec<u8>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ChangePasswordRequest {}
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AntiKleptoHostNonceCommitment {
     #[prost(bytes = "vec", tag = "1")]
@@ -1815,7 +1818,7 @@ pub struct Success {}
 pub struct Request {
     #[prost(
         oneof = "request::Request",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29"
     )]
     pub request: ::core::option::Option<request::Request>,
 }
@@ -1878,6 +1881,8 @@ pub mod request {
         Cardano(super::CardanoRequest),
         #[prost(message, tag = "28")]
         Bip85(super::Bip85Request),
+        #[prost(message, tag = "29")]
+        ChangePassword(super::ChangePasswordRequest),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]

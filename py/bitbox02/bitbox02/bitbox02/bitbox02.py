@@ -190,6 +190,17 @@ class BitBox02(BitBoxCommonAPI):
             raise
         return True
 
+    def change_password(self) -> bool:
+        request = hww.Request()
+        request.change_password.CopyFrom(bitbox02_system.ChangePasswordRequest())
+        try:
+            self._msg_query(request, expected_response="success")
+        except Bitbox02Exception as err:
+            if err.code == ERR_GENERIC:
+                return False
+            raise
+        return True
+
     def create_backup(self) -> bool:
         """
         Returns True if the backup was created successfully.

@@ -117,6 +117,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "screen_saver_disable",
     "screen_saver_enable",
     "sd_card_inserted",
+    "sd_card_vfat_formatted",
     "sd_erase_file_in_subdir",
     "sd_format",
     "sd_free_list",

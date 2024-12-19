@@ -32,6 +32,7 @@
 #include <getopt.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <signal.h>
 #include <sys/socket.h>
 
 static const char* _simulator_version = "1.0.0";
@@ -40,6 +41,8 @@ static const char* _simulator_version = "1.0.0";
 
 int data_len;
 int commfd;
+
+static int sockfd;
 
 int get_usb_message_socket(uint8_t* input)
 {
@@ -67,8 +70,15 @@ void simulate_firmware_execution(const uint8_t* input)
     usb_processing_process(usb_processing_hww());
 }
 
+static void _int_handler(int _signum)
+{
+    printf("\n\nGot Ctrl-C, exiting\n\n");
+    close(sockfd);
+}
+
 int main(int argc, char* argv[])
 {
+    signal(SIGINT, _int_handler);
     // Default port number
     int portno = 15423;
 
@@ -124,7 +134,7 @@ int main(int argc, char* argv[])
     idle_workflow_blocking();
 
     // Establish socket connection with client
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         perror("ERROR opening socket");
         return 1;

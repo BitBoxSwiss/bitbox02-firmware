@@ -62,72 +62,201 @@ fn decode_shelley_payment_address(params: &params::Params, address: &str) -> Res
     Ok(data)
 }
 
-/// Decode a base58-encoded Byron payment address, validate it's checksum and that it was encoded for the right network.
-///
-/// A byron address is cbor encoded data: https://raw.githubusercontent.com/cardano-foundation/CIPs/0081c890995ff94618145ae5beb7f288c029a86a/CIP-0019/CIP-0019-byron-addresses.cddl
-///
-/// See also:
-/// - https://github.com/input-output-hk/cardano-ledger/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L134-L135
-/// - https://github.com/input-output-hk/technical-docs/blob/8d4f08bc05ec611f3943cdc09a4ae18e72a0eb3c/cardano-components/cardano-wallet/doc/About-Address-Format---Byron.md
-fn decode_byron_payment_address(params: &params::Params, address: &str) -> Result<Vec<u8>, ()> {
-    let base58_decoded = bitcoin::base58::decode(address).or(Err(()))?;
-    let payload = {
-        let mut decoder = minicbor::Decoder::new(&base58_decoded);
-        if decoder.array().or(Err(()))?.ok_or(())? != 2 {
-            return Err(());
-        }
-        if decoder.tag().or(Err(()))? != minicbor::data::IanaTag::Cbor.tag() {
-            return Err(());
-        }
-        let payload = decoder.bytes().or(Err(()))?;
-        let address_crc = decoder.u32().or(Err(()))?;
-        if crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC).checksum(payload) != address_crc {
-            return Err(());
-        }
-        payload
-    };
+use crc::Crc;
 
-    let mut decoder = minicbor::Decoder::new(payload);
-    // Array with three elements.
-    if decoder.array().or(Err(()))?.ok_or(())? != 3 {
-        return Err(());
+/// CBOR major types
+const MAJOR_TYPE_UNSIGNED: u8 = 0x00; // 0x00..0x1b
+const MAJOR_TYPE_BYTES: u8 = 0x40; // 0x40..0x5b
+const MAJOR_TYPE_ARRAY: u8 = 0x80; // 0x80..0x9b
+const MAJOR_TYPE_MAP: u8 = 0xa0; // 0xa0..0xbb
+const MAJOR_TYPE_TAG: u8 = 0xc0; // 0xc0..0xdb
+
+struct Reader<'a> {
+    buf: &'a [u8],
+}
+
+impl<'a> Reader<'a> {
+    fn new(buf: &'a [u8]) -> Self {
+        Self { buf }
     }
-    // First element: address root digest.
-    if decoder.bytes().or(Err(()))?.len() != 28 {
-        return Err(());
+
+    fn read_u8(&mut self) -> Result<u8, ()> {
+        if self.buf.is_empty() {
+            return Err(());
+        }
+        let b = self.buf[0];
+        self.buf = &self.buf[1..];
+        Ok(b)
     }
-    // Second element: address attributes map.  Item with key 2 is the network magic. If absent, it
-    // is mainnet. If present, must not be mainnet.
-    let mut magic: Option<u32> = None;
-    for item in decoder
-        .map_iter::<u32, minicbor::bytes::ByteVec>()
-        .or(Err(()))?
-    {
-        let (key, value) = item.or(Err(()))?;
-        if key == 2 {
-            magic = Some(minicbor::decode(&value).or(Err(()))?);
-            break;
+
+    fn read_uint(&mut self, initial: u8) -> Result<u64, ()> {
+        let additional = initial & 0x1f;
+        match additional {
+            n @ 0..=23 => Ok(n as u64),
+            24 => {
+                let b = self.read_u8()? as u64;
+                Ok(b)
+            }
+            25 => {
+                if self.buf.len() < 2 {
+                    return Err(());
+                }
+                let val = u16::from_be_bytes([self.buf[0], self.buf[1]]) as u64;
+                self.buf = &self.buf[2..];
+                Ok(val)
+            }
+            26 => {
+                if self.buf.len() < 4 {
+                    return Err(());
+                }
+                let val =
+                    u32::from_be_bytes([self.buf[0], self.buf[1], self.buf[2], self.buf[3]]) as u64;
+                self.buf = &self.buf[4..];
+                Ok(val)
+            }
+            27 => {
+                if self.buf.len() < 8 {
+                    return Err(());
+                }
+                let val = u64::from_be_bytes([
+                    self.buf[0],
+                    self.buf[1],
+                    self.buf[2],
+                    self.buf[3],
+                    self.buf[4],
+                    self.buf[5],
+                    self.buf[6],
+                    self.buf[7],
+                ]);
+                self.buf = &self.buf[8..];
+                Ok(val)
+            }
+            _ => Err(()),
         }
     }
+
+    fn read_tag(&mut self) -> Result<u64, ()> {
+        let b = self.read_u8()?;
+        if (b & 0xe0) != MAJOR_TYPE_TAG {
+            return Err(());
+        }
+        self.read_uint(b)
+    }
+
+    fn read_bytes(&mut self) -> Result<&'a [u8], ()> {
+        let b = self.read_u8()?;
+        if (b & 0xe0) != MAJOR_TYPE_BYTES {
+            return Err(());
+        }
+        let len = self.read_uint(b)? as usize;
+        if self.buf.len() < len {
+            return Err(());
+        }
+        let out = &self.buf[..len];
+        self.buf = &self.buf[len..];
+        Ok(out)
+    }
+
+    fn read_array_len(&mut self) -> Result<usize, ()> {
+        let b = self.read_u8()?;
+        if (b & 0xe0) != MAJOR_TYPE_ARRAY {
+            return Err(());
+        }
+        let len = self.read_uint(b)? as usize;
+        Ok(len)
+    }
+
+    fn read_map_len(&mut self) -> Result<usize, ()> {
+        let b = self.read_u8()?;
+        if (b & 0xe0) != MAJOR_TYPE_MAP {
+            return Err(());
+        }
+        let len = self.read_uint(b)? as usize;
+        Ok(len)
+    }
+
+    fn read_u32(&mut self) -> Result<u32, ()> {
+        let b = self.read_u8()?;
+        if (b & 0xe0) != MAJOR_TYPE_UNSIGNED {
+            return Err(());
+        }
+        let val = self.read_uint(b)?;
+        if val > u32::MAX as u64 {
+            return Err(());
+        }
+        Ok(val as u32)
+    }
+}
+
+fn decode_u32_from_cbor_bytes(data: &[u8]) -> Result<u32, ()> {
+    let mut r = Reader::new(data);
+    r.read_u32()
+}
+
+pub fn decode_byron_payment_address(params: &params::Params, address: &str) -> Result<Vec<u8>, ()> {
+    let base58_decoded = bitcoin::base58::decode(address).or(Err(()))?;
+    let mut top = Reader::new(&base58_decoded);
+
+    // Top-level array: [ (tag=24) bytes, crc_u32 ]
+    if top.read_array_len()? != 2 {
+        return Err(());
+    }
+
+    let tag = top.read_tag()?;
+    if tag != 24 {
+        return Err(());
+    }
+
+    let payload_slice = top.read_bytes()?;
+    let payload = payload_slice.to_vec(); // copy to own it, avoid borrow issues
+    let address_crc = top.read_u32()?;
+
+    if Crc::<u32>::new(&crc::CRC_32_ISO_HDLC).checksum(&payload) != address_crc {
+        return Err(());
+    }
+
+    let mut p = Reader::new(&payload);
+    // payload: [rootDigest: bytes(28), attributes: map, type: u32]
+    if p.read_array_len()? != 3 {
+        return Err(());
+    }
+
+    let root = p.read_bytes()?;
+    if root.len() != 28 {
+        return Err(());
+    }
+
+    let map_len = p.read_map_len()?;
+    let mut magic: Option<u32> = None;
+    for _ in 0..map_len {
+        let key = p.read_u32()?;
+        let val = p.read_bytes()?;
+        if key == 2 {
+            let m = decode_u32_from_cbor_bytes(val)?;
+            magic = Some(m);
+        }
+    }
+
     match magic {
         None => {
             if params.network != CardanoNetwork::CardanoMainnet {
                 return Err(());
             }
         }
-        Some(magic) => {
+        Some(m) => {
             if params.network == CardanoNetwork::CardanoMainnet
-                || magic != params.protocol_magic.ok_or(())?
+                || m != params.protocol_magic.ok_or(())?
             {
                 return Err(());
             }
         }
     }
-    // Third element: address type
-    let typ = decoder.u32().or(Err(()))?;
+
+    let typ = p.read_u32()?;
     if typ != 0 && typ != 2 {
         return Err(());
     }
+
     Ok(base58_decoded)
 }
 

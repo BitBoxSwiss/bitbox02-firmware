@@ -18,9 +18,12 @@ import typing
 import io
 import math
 import hashlib
+import enum
+from typing import TypedDict
 
 from bitbox02.communication import TransportLayer
-from bitbox02.communication.devices import DeviceInfo
+
+from bitbox02.communication.devices import DeviceInfo, parse_device_version
 
 BOOTLOADER_CMD = 0x80 + 0x40 + 0x03
 NUM_ROOT_KEYS = 3
@@ -42,6 +45,19 @@ VERSION_LEN = 4
 SIGNING_PUBKEYS_DATA_LEN = VERSION_LEN + NUM_SIGNING_KEYS * 64 + NUM_ROOT_KEYS * 64
 FIRMWARE_DATA_LEN = VERSION_LEN + NUM_SIGNING_KEYS * 64
 SIGDATA_LEN = SIGNING_PUBKEYS_DATA_LEN + FIRMWARE_DATA_LEN
+
+
+class SecureChipModel(enum.Enum):
+    """Secure chip model variants for the BitBox02 platform."""
+
+    ATECC = "ATECC"
+    OPTIGA = "Optiga"
+
+
+class Hardware(TypedDict):
+    """Hardware configuration containing secure chip model information."""
+
+    secure_chip_model: SecureChipModel
 
 
 def parse_signed_firmware(firmware: bytes) -> typing.Tuple[bytes, bytes, bytes]:
@@ -75,6 +91,10 @@ class Bootloader:
             "bb02btc-bootloader": SIGDATA_MAGIC_BTCONLY,
             "bitboxbase-bootloader": SIGDATA_MAGIC_BITBOXBASE_STANDARD,
         }.get(device_info["product_string"])
+        self.version = parse_device_version(device_info["serial_number"])
+        # Delete the prelease part, as it messes with the comparison (e.g. 3.0.0-pre < 3.0.0 is
+        # True, but the 3.0.0-pre has already the same API breaking changes like 3.0.0...).
+        self.version = self.version.replace(prerelease=None)
         assert self.expected_magic
 
     def _query(self, msg: bytes) -> bytes:
@@ -93,6 +113,25 @@ class Bootloader:
         response = self._query(b"v")
         firmware_v, signing_pubkeys_v = struct.unpack("<II", response[:8])
         return firmware_v, signing_pubkeys_v
+
+    def hardware(self) -> Hardware:
+        """
+        Returns (hardware variant).
+        """
+        secure_chip: SecureChipModel = SecureChipModel.ATECC
+
+        # Previous bootloader versions do not support the call and have ATECC SC.
+        if self.version >= "1.1.0":
+            response = self._query(b"W")
+            response_code = response[:1]
+
+            if response_code == b"\x00":
+                secure_chip = SecureChipModel.ATECC
+            elif response_code == b"\x01":
+                secure_chip = SecureChipModel.OPTIGA
+            else:
+                raise ValueError(f"Unrecognized securechip model: {response_code!r}")
+        return {"secure_chip_model": secure_chip}
 
     def get_hashes(
         self, display_firmware_hash: bool = False, display_signing_keydata_hash: bool = False

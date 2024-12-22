@@ -94,6 +94,15 @@ class Bootloader:
         firmware_v, signing_pubkeys_v = struct.unpack("<II", response[:8])
         return firmware_v, signing_pubkeys_v
 
+    def hardware(self) -> str:
+        """
+        Returns (Hardware variant).
+        """
+        response = self._query(b"W")
+        if response[:1] == b"\x00":
+            return "ATECC"
+        return "Optiga"
+
     def get_hashes(
         self, display_firmware_hash: bool = False, display_signing_keydata_hash: bool = False
     ) -> typing.Tuple[bytes, bytes]:

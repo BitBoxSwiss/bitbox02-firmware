@@ -126,6 +126,9 @@ message CardanoSignTransactionRequest {
   repeated Withdrawal withdrawals = 7;
   uint64 validity_interval_start = 8;
   bool allow_zero_ttl = 9; // include ttl even if it is zero
+  // Tag arrays in the transaction serialization with the 258 tag.
+  // See https://github.com/IntersectMBO/cardano-ledger/blob/6e2d37cc0f47bd02e89b4ce9f78b59c35c958e96/eras/conway/impl/cddl-files/extra.cddl#L5
+  bool tag_cbor_sets = 10;
 }
 
 message CardanoSignTransactionResponse {

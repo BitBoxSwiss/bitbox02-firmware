@@ -1019,6 +1019,8 @@ pub struct CardanoSignTransactionRequest {
     /// include ttl even if it is zero
     #[prost(bool, tag = "9")]
     pub allow_zero_ttl: bool,
+    #[prost(bool, tag = "10")]
+    pub tag_cbor_sets: bool,
 }
 /// Nested message and enum types in `CardanoSignTransactionRequest`.
 pub mod cardano_sign_transaction_request {

@@ -33,6 +33,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <sys/socket.h>
 
 static const char* _simulator_version = "1.0.0";
@@ -42,6 +43,7 @@ static const char* _simulator_version = "1.0.0";
 int data_len;
 int commfd;
 
+static volatile sig_atomic_t sigint_called = false;
 static int sockfd;
 
 int get_usb_message_socket(uint8_t* input)
@@ -72,7 +74,7 @@ void simulate_firmware_execution(const uint8_t* input)
 
 static void _int_handler(int _signum)
 {
-    printf("\n\nGot Ctrl-C, exiting\n\n");
+    sigint_called = true;
     close(sockfd);
 }
 
@@ -158,6 +160,9 @@ int main(int argc, char* argv[])
     while (1) {
         if ((commfd = accept(sockfd, (struct sockaddr*)&serv_addr, (socklen_t*)&serv_addr_len)) <
             0) {
+            if (sigint_called) {
+                printf("\nGot Ctrl-C, exiting\n");
+            }
             perror("accept");
             return 1;
         }

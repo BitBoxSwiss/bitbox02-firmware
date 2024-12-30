@@ -1482,6 +1482,10 @@ class SendMessageBootloader:
             version = self._device.versions()
             print(f"Firmware version: {version[0]}, Pubkeys version: {version[1]}")
 
+    def _get_hardware(self) -> None:
+        hw = self._device.hardware()
+        print(f"Hardware variant: {hw}")
+
     def _erase(self) -> None:
         self._device.erase()
 
@@ -1506,6 +1510,7 @@ class SendMessageBootloader:
         choices = (
             ("Boot", self._boot),
             ("Print versions", self._get_versions),
+            ("Print hardware variant", self._get_hardware),
             ("Erase firmware", self._erase),
             ("Show firmware hash at startup", self._show_fw_hash),
             ("Don't show firmware hash at startup", self._dont_show_fw_hash),

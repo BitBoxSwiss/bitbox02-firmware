@@ -400,10 +400,7 @@ mod tests {
             ],
             fee: 170499,
             ttl: 41115811,
-            allow_zero_ttl: false,
-            certificates: vec![],
-            withdrawals: vec![],
-            validity_interval_start: 0,
+            ..Default::default()
         };
 
         static mut TOTAL_CONFIRMED: bool = false;
@@ -511,7 +508,6 @@ mod tests {
             ],
             fee: 191681,
             ttl: 41539125,
-            allow_zero_ttl: false,
             certificates: vec![
                 Certificate{
                     cert: Some(Cert::StakeRegistration(
@@ -529,8 +525,7 @@ mod tests {
                     )),
                 },
             ],
-            withdrawals: vec![],
-            validity_interval_start: 0,
+            ..Default::default()
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -632,7 +627,6 @@ mod tests {
             ],
             fee: 191681,
             ttl: 41539125,
-            allow_zero_ttl: false,
             certificates: vec![
                 Certificate{
                     cert: Some(Cert::StakeDeregistration(
@@ -642,8 +636,7 @@ mod tests {
                     )),
                 },
             ],
-            withdrawals: vec![],
-            validity_interval_start: 0,
+            ..Default::default()
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -728,7 +721,6 @@ mod tests {
             ],
             fee: 191681,
             ttl: 41539125,
-            allow_zero_ttl: false,
             certificates: vec![
                 Certificate{
                     cert: Some(Cert::VoteDelegation(
@@ -740,8 +732,7 @@ mod tests {
                     )),
                 },
             ],
-            withdrawals: vec![],
-            validity_interval_start: 0,
+            ..Default::default()
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -826,15 +817,13 @@ mod tests {
             ],
             fee: 175157,
             ttl: 41788708,
-            allow_zero_ttl: false,
-            certificates: vec![],
             withdrawals: vec![
                 pb::cardano_sign_transaction_request::Withdrawal {
                     keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
                     value: 1234567,
                 },
             ],
-            validity_interval_start: 0,
+            ..Default::default()
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -920,11 +909,7 @@ mod tests {
                 },
             ],
             fee: 170499,
-            ttl: 0,
-            allow_zero_ttl: false,
-            certificates: vec![],
-            withdrawals: vec![],
-            validity_interval_start: 0,
+            ..Default::default()
         };
 
         mock(Data {
@@ -981,9 +966,7 @@ mod tests {
             fee: 170499,
             ttl: 0,
             allow_zero_ttl: true,
-            certificates: vec![],
-            withdrawals: vec![],
-            validity_interval_start: 0,
+            ..Default::default()
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -1055,11 +1038,8 @@ mod tests {
                 },
             ],
             fee: 170499,
-            ttl: 0,
-            allow_zero_ttl: false,
-            certificates: vec![],
-            withdrawals: vec![],
             validity_interval_start: 41115811,
+            ..Default::default()
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -1121,10 +1101,9 @@ mod tests {
             ],
             fee: 170499,
             ttl: 41115810,
-            allow_zero_ttl: false,
-            certificates: vec![],
-            withdrawals: vec![],
             validity_interval_start: 41115811, // start > ttl, invalid
+            ..Default::default()
+
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -1218,11 +1197,8 @@ mod tests {
                 },
             ],
             fee: 170499,
-            ttl: 0,
-            allow_zero_ttl: false,
-            certificates: vec![],
-            withdrawals: vec![],
-            validity_interval_start: 0,
+            ..Default::default()
+
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
@@ -1325,12 +1301,8 @@ mod tests {
                 },
             ],
             fee: 170499,
-            ttl: 0,
-            allow_zero_ttl: false,
-            certificates: vec![],
-            withdrawals: vec![],
-            validity_interval_start: 0,
-        };
+            ..Default::default()
+            };
 
         static mut CONFIRM_COUNTER: u32 = 0;
         mock(Data {
@@ -1362,6 +1334,59 @@ mod tests {
 
         assert!(block_on(process(&tx)).is_ok());
         assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
+    }
+
+    #[test]
+    fn test_sign_tx_tag_cbor_sets() {
+        let tx = pb::CardanoSignTransactionRequest {
+            network: CardanoNetwork::CardanoMainnet as _,
+            inputs: vec![pb::cardano_sign_transaction_request::Input {
+                keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                prev_out_hash: b"\x59\x86\x4e\xe7\x3c\xa5\xd9\x10\x98\xa3\x2b\x3c\xe9\x81\x1b\xac\x19\x96\xdc\xba\xef\xa6\xb6\x24\x7d\xca\xaf\xb5\x77\x9c\x25\x38".to_vec(),
+                prev_out_index: 0,
+            }],
+            outputs: vec![
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
+                    value: 1000000,
+                    script_config: None,
+                    asset_groups: vec![],
+                },
+                // change
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs".into(),
+                    value: 4829501,
+                    script_config: Some(CardanoScriptConfig{
+                        config: Some(pb::cardano_script_config::Config::PkhSkh(pb::cardano_script_config::PkhSkh {
+                            keypath_payment: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                            keypath_stake: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
+                        }))
+                    }),
+                    asset_groups: vec![],
+                },
+            ],
+            fee: 170499,
+            tag_cbor_sets: true,
+            ..Default::default()
+        };
+
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|_params| true)),
+            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
+            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
+            ..Default::default()
+        });
+        mock_unlocked();
+        let result = block_on(process(&tx)).unwrap();
+        assert_eq!(
+            result,
+            Response::SignTransaction(pb::CardanoSignTransactionResponse {
+                shelley_witnesses: vec![ShelleyWitness {
+                    public_key: b"\x1f\x17\xaf\xff\xe8\x05\x29\x7f\x8e\xc6\x54\x45\x82\xb7\xea\x91\xc3\x0d\xc1\xf9\x11\x9c\x5c\x2b\x26\x3e\x58\xfa\x36\x59\x31\x7d".to_vec(),
+                    signature: b"\xa1\x53\x67\x4e\xa7\x65\xf3\x49\x27\x5d\x3f\xe4\x76\x01\x0a\x17\x5f\xbb\x73\xa1\x81\x21\x04\x71\x8f\xb8\xd0\x6d\xb4\x6a\xf7\x69\x46\x85\x56\x49\x36\x86\x54\xb8\x6b\x41\x9e\x65\x5c\xfe\x6f\xda\x67\xeb\x1f\x6a\xab\x40\xf1\xff\xdf\xcc\x6c\x3e\x93\x39\xa7\x07".to_vec(),
+                }]
+            })
+        );
     }
 
     #[test]

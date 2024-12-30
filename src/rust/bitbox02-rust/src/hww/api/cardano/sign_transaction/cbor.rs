@@ -69,6 +69,21 @@ pub fn encode_withdrawal_address(
     Ok(encoded)
 }
 
+/// Start encoding a set:
+/// https://github.com/IntersectMBO/cardano-ledger/blob/6e2d37cc0f47bd02e89b4ce9f78b59c35c958e96/eras/conway/impl/cddl-files/extra.cddl#L5
+/// tag258 indicates whether to use the tagged version or the untagged version.
+fn encode_set_header<W: Write>(
+    encoder: &mut Encoder<W>,
+    len: u64,
+    tag258: bool,
+) -> Result<(), Error> {
+    if tag258 {
+        encoder.tag(minicbor::data::Tag::new(258))?;
+    }
+    encoder.array(len)?;
+    Ok(())
+}
+
 /// CBOR encoding for Cardano transactions.
 ///
 /// The transaction must be verified/validated before calling this function.
@@ -99,7 +114,8 @@ pub fn encode_transaction_body<W: Write>(
 
     encoder.map(num_map_entries)?;
     // Map entry 0 is an array of inputs.
-    encoder.u8(0)?.array(tx.inputs.len() as _)?;
+    encoder.u8(0)?;
+    encode_set_header(&mut encoder, tx.inputs.len() as _, tx.tag_cbor_sets)?;
     for input in tx.inputs.iter() {
         if input.prev_out_hash.len() != 32 {
             return Err(Error::InvalidInput);
@@ -143,7 +159,8 @@ pub fn encode_transaction_body<W: Write>(
     }
     // Optional map entry 4 are the certificates:
     if !tx.certificates.is_empty() {
-        encoder.u8(4)?.array(tx.certificates.len() as _)?;
+        encoder.u8(4)?;
+        encode_set_header(&mut encoder, tx.certificates.len() as _, tx.tag_cbor_sets)?;
         for Certificate { cert } in tx.certificates.iter() {
             match cert.as_ref().ok_or(Error::InvalidInput)? {
                 certificate::Cert::StakeRegistration(pb::Keypath { keypath }) => {

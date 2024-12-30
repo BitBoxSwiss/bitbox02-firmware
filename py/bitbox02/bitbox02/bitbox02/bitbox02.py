@@ -1174,6 +1174,8 @@ class BitBox02(BitBoxCommonAPI):
     def cardano_sign_transaction(
         self, transaction: cardano.CardanoSignTransactionRequest
     ) -> cardano.CardanoSignTransactionResponse:
+        if transaction.tag_cbor_sets:
+            self._require_atleast(semver.VersionInfo(9, 22, 0))
         request = cardano.CardanoRequest(sign_transaction=transaction)
         return self._cardano_msg_query(
             request, expected_response="sign_transaction"

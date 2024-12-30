@@ -10,6 +10,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Update manufacturer HID descriptor to bitbox.swiss
 - Ethereum: remove deprecated Goerli network
 - SD card: solve backup bug when sd card is re-inserted
+- Cardano: allow serialization using 258-tagged sets
 
 ### 9.21.0
 - Bitcoin: add support for sending to silent payment (BIP-352) addresses

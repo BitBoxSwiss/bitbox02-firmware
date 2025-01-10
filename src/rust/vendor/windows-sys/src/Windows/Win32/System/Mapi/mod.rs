@@ -1,4 +1,4 @@
-::windows_targets::link!("mapi32.dll" "system" fn MAPIFreeBuffer(pv : *mut ::core::ffi::c_void) -> u32);
+windows_targets::link!("mapi32.dll" "system" fn MAPIFreeBuffer(pv : *mut core::ffi::c_void) -> u32);
 pub const MAPI_AB_NOMODIFY: u32 = 1024u32;
 pub const MAPI_BCC: u32 = 3u32;
 pub const MAPI_BODY_AS_FILE: u32 = 512u32;
@@ -55,36 +55,27 @@ pub const MAPI_UNREAD_ONLY: u32 = 32u32;
 pub const MAPI_USER_ABORT: u32 = 1u32;
 pub const SUCCESS_SUCCESS: u32 = 0u32;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MapiFileDesc {
     pub ulReserved: u32,
     pub flFlags: u32,
     pub nPosition: u32,
-    pub lpszPathName: ::windows_sys::core::PSTR,
-    pub lpszFileName: ::windows_sys::core::PSTR,
-    pub lpFileType: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for MapiFileDesc {}
-impl ::core::clone::Clone for MapiFileDesc {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub lpszPathName: windows_sys::core::PSTR,
+    pub lpszFileName: windows_sys::core::PSTR,
+    pub lpFileType: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MapiFileDescW {
     pub ulReserved: u32,
     pub flFlags: u32,
     pub nPosition: u32,
-    pub lpszPathName: ::windows_sys::core::PWSTR,
-    pub lpszFileName: ::windows_sys::core::PWSTR,
-    pub lpFileType: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for MapiFileDescW {}
-impl ::core::clone::Clone for MapiFileDescW {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub lpszPathName: windows_sys::core::PWSTR,
+    pub lpszFileName: windows_sys::core::PWSTR,
+    pub lpFileType: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MapiFileTagExt {
     pub ulReserved: u32,
     pub cbTag: u32,
@@ -92,20 +83,15 @@ pub struct MapiFileTagExt {
     pub cbEncoding: u32,
     pub lpEncoding: *mut u8,
 }
-impl ::core::marker::Copy for MapiFileTagExt {}
-impl ::core::clone::Clone for MapiFileTagExt {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MapiMessage {
     pub ulReserved: u32,
-    pub lpszSubject: ::windows_sys::core::PSTR,
-    pub lpszNoteText: ::windows_sys::core::PSTR,
-    pub lpszMessageType: ::windows_sys::core::PSTR,
-    pub lpszDateReceived: ::windows_sys::core::PSTR,
-    pub lpszConversationID: ::windows_sys::core::PSTR,
+    pub lpszSubject: windows_sys::core::PSTR,
+    pub lpszNoteText: windows_sys::core::PSTR,
+    pub lpszMessageType: windows_sys::core::PSTR,
+    pub lpszDateReceived: windows_sys::core::PSTR,
+    pub lpszConversationID: windows_sys::core::PSTR,
     pub flFlags: u32,
     pub lpOriginator: *mut MapiRecipDesc,
     pub nRecipCount: u32,
@@ -113,20 +99,15 @@ pub struct MapiMessage {
     pub nFileCount: u32,
     pub lpFiles: *mut MapiFileDesc,
 }
-impl ::core::marker::Copy for MapiMessage {}
-impl ::core::clone::Clone for MapiMessage {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MapiMessageW {
     pub ulReserved: u32,
-    pub lpszSubject: ::windows_sys::core::PWSTR,
-    pub lpszNoteText: ::windows_sys::core::PWSTR,
-    pub lpszMessageType: ::windows_sys::core::PWSTR,
-    pub lpszDateReceived: ::windows_sys::core::PWSTR,
-    pub lpszConversationID: ::windows_sys::core::PWSTR,
+    pub lpszSubject: windows_sys::core::PWSTR,
+    pub lpszNoteText: windows_sys::core::PWSTR,
+    pub lpszMessageType: windows_sys::core::PWSTR,
+    pub lpszDateReceived: windows_sys::core::PWSTR,
+    pub lpszConversationID: windows_sys::core::PWSTR,
     pub flFlags: u32,
     pub lpOriginator: *mut MapiRecipDescW,
     pub nRecipCount: u32,
@@ -134,52 +115,36 @@ pub struct MapiMessageW {
     pub nFileCount: u32,
     pub lpFiles: *mut MapiFileDescW,
 }
-impl ::core::marker::Copy for MapiMessageW {}
-impl ::core::clone::Clone for MapiMessageW {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MapiRecipDesc {
     pub ulReserved: u32,
     pub ulRecipClass: u32,
-    pub lpszName: ::windows_sys::core::PSTR,
-    pub lpszAddress: ::windows_sys::core::PSTR,
+    pub lpszName: windows_sys::core::PSTR,
+    pub lpszAddress: windows_sys::core::PSTR,
     pub ulEIDSize: u32,
-    pub lpEntryID: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for MapiRecipDesc {}
-impl ::core::clone::Clone for MapiRecipDesc {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub lpEntryID: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MapiRecipDescW {
     pub ulReserved: u32,
     pub ulRecipClass: u32,
-    pub lpszName: ::windows_sys::core::PWSTR,
-    pub lpszAddress: ::windows_sys::core::PWSTR,
+    pub lpszName: windows_sys::core::PWSTR,
+    pub lpszAddress: windows_sys::core::PWSTR,
     pub ulEIDSize: u32,
-    pub lpEntryID: *mut ::core::ffi::c_void,
+    pub lpEntryID: *mut core::ffi::c_void,
 }
-impl ::core::marker::Copy for MapiRecipDescW {}
-impl ::core::clone::Clone for MapiRecipDescW {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-pub type LPMAPIADDRESS = ::core::option::Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpszcaption: ::windows_sys::core::PCSTR, neditfields: u32, lpszlabels: ::windows_sys::core::PCSTR, nrecips: u32, lprecips: *mut MapiRecipDesc, flflags: u32, ulreserved: u32, lpnnewrecips: *mut u32, lppnewrecips: *mut *mut MapiRecipDesc) -> u32>;
-pub type LPMAPIDELETEMAIL = ::core::option::Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpszmessageid: ::windows_sys::core::PCSTR, flflags: u32, ulreserved: u32) -> u32>;
-pub type LPMAPIDETAILS = ::core::option::Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lprecip: *mut MapiRecipDesc, flflags: u32, ulreserved: u32) -> u32>;
-pub type LPMAPIFINDNEXT = ::core::option::Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpszmessagetype: ::windows_sys::core::PCSTR, lpszseedmessageid: ::windows_sys::core::PCSTR, flflags: u32, ulreserved: u32, lpszmessageid: ::windows_sys::core::PCSTR) -> u32>;
-pub type LPMAPIFREEBUFFER = ::core::option::Option<unsafe extern "system" fn(pv: *mut ::core::ffi::c_void) -> u32>;
-pub type LPMAPILOGOFF = ::core::option::Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, flflags: u32, ulreserved: u32) -> u32>;
-pub type LPMAPILOGON = ::core::option::Option<unsafe extern "system" fn(uluiparam: usize, lpszprofilename: ::windows_sys::core::PCSTR, lpszpassword: ::windows_sys::core::PCSTR, flflags: u32, ulreserved: u32, lplhsession: *mut usize) -> u32>;
-pub type LPMAPIREADMAIL = ::core::option::Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpszmessageid: ::windows_sys::core::PCSTR, flflags: u32, ulreserved: u32, lppmessage: *mut *mut MapiMessage) -> u32>;
-pub type LPMAPIRESOLVENAME = ::core::option::Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpszname: ::windows_sys::core::PCSTR, flflags: u32, ulreserved: u32, lpprecip: *mut *mut MapiRecipDesc) -> u32>;
-pub type LPMAPISAVEMAIL = ::core::option::Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpmessage: *mut MapiMessage, flflags: u32, ulreserved: u32, lpszmessageid: ::windows_sys::core::PCSTR) -> u32>;
-pub type LPMAPISENDDOCUMENTS = ::core::option::Option<unsafe extern "system" fn(uluiparam: usize, lpszdelimchar: ::windows_sys::core::PCSTR, lpszfilepaths: ::windows_sys::core::PCSTR, lpszfilenames: ::windows_sys::core::PCSTR, ulreserved: u32) -> u32>;
-pub type LPMAPISENDMAIL = ::core::option::Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpmessage: *mut MapiMessage, flflags: u32, ulreserved: u32) -> u32>;
-pub type LPMAPISENDMAILW = ::core::option::Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpmessage: *const MapiMessageW, flflags: u32, ulreserved: u32) -> u32>;
+pub type LPMAPIADDRESS = Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpszcaption: windows_sys::core::PCSTR, neditfields: u32, lpszlabels: windows_sys::core::PCSTR, nrecips: u32, lprecips: *mut MapiRecipDesc, flflags: u32, ulreserved: u32, lpnnewrecips: *mut u32, lppnewrecips: *mut *mut MapiRecipDesc) -> u32>;
+pub type LPMAPIDELETEMAIL = Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpszmessageid: windows_sys::core::PCSTR, flflags: u32, ulreserved: u32) -> u32>;
+pub type LPMAPIDETAILS = Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lprecip: *mut MapiRecipDesc, flflags: u32, ulreserved: u32) -> u32>;
+pub type LPMAPIFINDNEXT = Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpszmessagetype: windows_sys::core::PCSTR, lpszseedmessageid: windows_sys::core::PCSTR, flflags: u32, ulreserved: u32, lpszmessageid: windows_sys::core::PCSTR) -> u32>;
+pub type LPMAPIFREEBUFFER = Option<unsafe extern "system" fn(pv: *mut core::ffi::c_void) -> u32>;
+pub type LPMAPILOGOFF = Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, flflags: u32, ulreserved: u32) -> u32>;
+pub type LPMAPILOGON = Option<unsafe extern "system" fn(uluiparam: usize, lpszprofilename: windows_sys::core::PCSTR, lpszpassword: windows_sys::core::PCSTR, flflags: u32, ulreserved: u32, lplhsession: *mut usize) -> u32>;
+pub type LPMAPIREADMAIL = Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpszmessageid: windows_sys::core::PCSTR, flflags: u32, ulreserved: u32, lppmessage: *mut *mut MapiMessage) -> u32>;
+pub type LPMAPIRESOLVENAME = Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpszname: windows_sys::core::PCSTR, flflags: u32, ulreserved: u32, lpprecip: *mut *mut MapiRecipDesc) -> u32>;
+pub type LPMAPISAVEMAIL = Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpmessage: *mut MapiMessage, flflags: u32, ulreserved: u32, lpszmessageid: windows_sys::core::PCSTR) -> u32>;
+pub type LPMAPISENDDOCUMENTS = Option<unsafe extern "system" fn(uluiparam: usize, lpszdelimchar: windows_sys::core::PCSTR, lpszfilepaths: windows_sys::core::PCSTR, lpszfilenames: windows_sys::core::PCSTR, ulreserved: u32) -> u32>;
+pub type LPMAPISENDMAIL = Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpmessage: *mut MapiMessage, flflags: u32, ulreserved: u32) -> u32>;
+pub type LPMAPISENDMAILW = Option<unsafe extern "system" fn(lhsession: usize, uluiparam: usize, lpmessage: *const MapiMessageW, flflags: u32, ulreserved: u32) -> u32>;

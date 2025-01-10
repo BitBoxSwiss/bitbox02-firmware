@@ -12,8 +12,14 @@
 [package]
 edition = "2021"
 name = "unwinding"
-version = "0.2.1"
+version = "0.2.3"
 authors = ["Gary Guo <gary@garyguo.net>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Unwinding library in Rust and for Rust"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
@@ -25,6 +31,14 @@ features = ["panic-handler"]
 [profile.release]
 debug = 2
 
+[lib]
+name = "unwinding"
+path = "src/lib.rs"
+
+[[test]]
+name = "compile_tests"
+path = "tests/compile_tests.rs"
+
 [dependencies.compiler_builtins]
 version = "0.1.2"
 optional = true
@@ -35,7 +49,7 @@ optional = true
 package = "rustc-std-workspace-core"
 
 [dependencies.gimli]
-version = "0.28"
+version = "0.31"
 features = ["read-core"]
 default-features = false
 

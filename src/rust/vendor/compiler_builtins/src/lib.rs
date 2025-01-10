@@ -1,18 +1,14 @@
 #![cfg_attr(feature = "compiler-builtins", compiler_builtins)]
-#![cfg_attr(not(feature = "no-asm"), feature(asm))]
 #![feature(abi_unadjusted)]
 #![feature(asm_experimental_arch)]
-#![cfg_attr(not(feature = "no-asm"), feature(global_asm))]
 #![feature(cfg_target_has_atomic)]
 #![feature(compiler_builtins)]
-#![feature(core_ffi_c)]
 #![feature(core_intrinsics)]
-#![feature(inline_const)]
-#![feature(lang_items)]
 #![feature(linkage)]
 #![feature(naked_functions)]
 #![feature(repr_simd)]
-#![feature(c_unwind)]
+#![cfg_attr(f16_enabled, feature(f16))]
+#![cfg_attr(f128_enabled, feature(f128))]
 #![no_builtins]
 #![no_std]
 #![allow(unused_features)]
@@ -45,14 +41,22 @@ mod macros;
 pub mod float;
 pub mod int;
 
-#[cfg(any(
-    all(target_family = "wasm", target_os = "unknown"),
-    target_os = "uefi",
-    target_os = "none",
-    target_os = "xous",
-    all(target_vendor = "fortanix", target_env = "sgx"),
-    target_os = "windows"
-))]
+// Disable for any of the following:
+// - x86 without sse2 due to ABI issues
+//   - <https://github.com/rust-lang/rust/issues/114479>
+//   - but exclude UEFI since it is a soft-float target
+//     - <https://github.com/rust-lang/rust/issues/128533>
+// - All unix targets (linux, macos, freebsd, android, etc)
+// - wasm with known target_os
+#[cfg(not(any(
+    all(
+        target_arch = "x86",
+        not(target_feature = "sse2"),
+        not(target_os = "uefi"),
+    ),
+    unix,
+    all(target_family = "wasm", not(target_os = "unknown"))
+)))]
 pub mod math;
 pub mod mem;
 

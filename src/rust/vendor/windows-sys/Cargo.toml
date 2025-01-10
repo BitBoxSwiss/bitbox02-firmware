@@ -11,10 +11,16 @@
 
 [package]
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.60"
 name = "windows-sys"
-version = "0.52.0"
+version = "0.59.0"
 authors = ["Microsoft"]
+build = false
+exclude = ["features.json"]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Rust for Windows"
 readme = "readme.md"
 categories = ["os::windows-apis"]
@@ -26,25 +32,38 @@ all-features = true
 default-target = "x86_64-pc-windows-msvc"
 targets = []
 
+[lib]
+name = "windows_sys"
+path = "src/lib.rs"
+test = false
+doctest = false
+
 [dependencies.windows-targets]
-version = "0.52.0"
+version = "0.52.6"
 
 [features]
-Wdk = []
+Wdk = ["Win32_Foundation"]
+Wdk_Devices = ["Wdk"]
+Wdk_Devices_Bluetooth = ["Wdk_Devices"]
+Wdk_Devices_HumanInterfaceDevice = ["Wdk_Devices"]
 Wdk_Foundation = ["Wdk"]
 Wdk_Graphics = ["Wdk"]
 Wdk_Graphics_Direct3D = ["Wdk_Graphics"]
+Wdk_NetworkManagement = ["Wdk"]
+Wdk_NetworkManagement_Ndis = ["Wdk_NetworkManagement"]
+Wdk_NetworkManagement_WindowsFilteringPlatform = ["Wdk_NetworkManagement"]
 Wdk_Storage = ["Wdk"]
 Wdk_Storage_FileSystem = ["Wdk_Storage"]
 Wdk_Storage_FileSystem_Minifilters = ["Wdk_Storage_FileSystem"]
 Wdk_System = ["Wdk"]
 Wdk_System_IO = ["Wdk_System"]
+Wdk_System_Memory = ["Wdk_System"]
 Wdk_System_OfflineRegistry = ["Wdk_System"]
 Wdk_System_Registry = ["Wdk_System"]
 Wdk_System_SystemInformation = ["Wdk_System"]
 Wdk_System_SystemServices = ["Wdk_System"]
 Wdk_System_Threading = ["Wdk_System"]
-Win32 = []
+Win32 = ["Win32_Foundation"]
 Win32_Data = ["Win32"]
 Win32_Data_HtmlHelp = ["Win32_Data"]
 Win32_Data_RightsManagement = ["Win32_Data"]
@@ -184,6 +203,7 @@ Win32_System_Diagnostics_Debug_Extensions = ["Win32_System_Diagnostics_Debug"]
 Win32_System_Diagnostics_Etw = ["Win32_System_Diagnostics"]
 Win32_System_Diagnostics_ProcessSnapshotting = ["Win32_System_Diagnostics"]
 Win32_System_Diagnostics_ToolHelp = ["Win32_System_Diagnostics"]
+Win32_System_Diagnostics_TraceLogging = ["Win32_System_Diagnostics"]
 Win32_System_DistributedTransactionCoordinator = ["Win32_System"]
 Win32_System_Environment = ["Win32_System"]
 Win32_System_ErrorReporting = ["Win32_System"]
@@ -255,6 +275,7 @@ Win32_UI_Input_XboxController = ["Win32_UI_Input"]
 Win32_UI_InteractionContext = ["Win32_UI"]
 Win32_UI_Magnification = ["Win32_UI"]
 Win32_UI_Shell = ["Win32_UI"]
+Win32_UI_Shell_Common = ["Win32_UI_Shell"]
 Win32_UI_Shell_PropertiesSystem = ["Win32_UI_Shell"]
 Win32_UI_TabletPC = ["Win32_UI"]
 Win32_UI_TextServices = ["Win32_UI"]
@@ -263,3 +284,15 @@ Win32_Web = ["Win32"]
 Win32_Web_InternetExplorer = ["Win32_Web"]
 default = []
 docs = []
+
+[lints.rust]
+missing_docs = "warn"
+
+[lints.rust.rust_2018_idioms]
+level = "warn"
+priority = -1
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+priority = 0
+check-cfg = ["cfg(windows_raw_dylib, windows_debugger_visualizer, windows_slim_errors)"]

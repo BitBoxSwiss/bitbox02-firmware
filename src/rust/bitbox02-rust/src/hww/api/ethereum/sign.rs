@@ -35,7 +35,7 @@ pub enum Transaction<'a> {
     Eip1559(&'a pb::EthSignEip1559Request),
 }
 
-impl<'a> Transaction<'a> {
+impl Transaction<'_> {
     fn nonce(&self) -> &[u8] {
         match self {
             Transaction::Legacy(legacy) => &legacy.nonce,

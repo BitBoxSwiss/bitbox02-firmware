@@ -1,5 +1,5 @@
 use gimli::{
-    BaseAddresses, CfaRule, Expression, Register, RegisterRule, UnwindContext, UnwindTableRow,
+    BaseAddresses, CfaRule, Register, RegisterRule, UnwindContext, UnwindExpression, UnwindTableRow,
 };
 #[cfg(feature = "dwarf-expr")]
 use gimli::{Evaluation, EvaluationResult, Location, Value};
@@ -25,9 +25,9 @@ const fn next_value(x: usize) -> usize {
     192
 }
 
-impl<R: gimli::Reader> gimli::UnwindContextStorage<R> for StoreOnStack {
-    type Rules = [(Register, RegisterRule<R>); next_value(MAX_REG_RULES)];
-    type Stack = [UnwindTableRow<R, Self>; 2];
+impl<O: gimli::ReaderOffset> gimli::UnwindContextStorage<O> for StoreOnStack {
+    type Rules = [(Register, RegisterRule<O>); next_value(MAX_REG_RULES)];
+    type Stack = [UnwindTableRow<O, Self>; 2];
 }
 
 #[cfg(feature = "dwarf-expr")]
@@ -40,7 +40,7 @@ impl<R: gimli::Reader> gimli::EvaluationStorage<R> for StoreOnStack {
 #[derive(Debug)]
 pub struct Frame {
     fde_result: FDESearchResult,
-    row: UnwindTableRow<StaticSlice, StoreOnStack>,
+    row: UnwindTableRow<usize, StoreOnStack>,
 }
 
 impl Frame {
@@ -79,8 +79,9 @@ impl Frame {
     fn evaluate_expression(
         &self,
         ctx: &Context,
-        expr: Expression<StaticSlice>,
+        expr: UnwindExpression<usize>,
     ) -> Result<usize, gimli::Error> {
+        let expr = expr.get(&self.fde_result.eh_frame).unwrap();
         let mut eval =
             Evaluation::<_, StoreOnStack>::new_in(expr.0, self.fde_result.fde.cie().encoding());
         let mut result = eval.evaluate()?;
@@ -120,7 +121,7 @@ impl Frame {
     fn evaluate_expression(
         &self,
         _ctx: &Context,
-        _expr: Expression<StaticSlice>,
+        _expr: UnwindExpression<usize>,
     ) -> Result<usize, gimli::Error> {
         Err(gimli::Error::UnsupportedEvaluation)
     }

@@ -1,4 +1,3 @@
-use core::arch::asm;
 use core::fmt;
 use core::ops;
 use gimli::{AArch64, Register};
@@ -58,22 +57,22 @@ impl ops::IndexMut<gimli::Register> for Context {
     }
 }
 
-#[naked]
-pub extern "C-unwind" fn save_context(f: extern "C" fn(&mut Context, *mut ()), ptr: *mut ()) {
-    // No need to save caller-saved registers here.
-    unsafe {
-        asm!(
+macro_rules! save {
+    (gp$(, $fp:ident)?) => {
+        // No need to save caller-saved registers here.
+        core::arch::naked_asm!(
             "
             stp x29, x30, [sp, -16]!
+            .cfi_def_cfa_offset 16
+            .cfi_offset x29, -16
+            .cfi_offset x30, -8
             sub sp, sp, 512
+            .cfi_def_cfa_offset 528
             mov x8, x0
             mov x0, sp
-
-            stp d8, d9, [sp, 0x140]
-            stp d10, d11, [sp, 0x150]
-            stp d12, d13, [sp, 0x160]
-            stp d14, d15, [sp, 0x170]
-
+            ",
+            save!(maybesavefp($($fp)?)),
+            "
             str x19, [sp, 0x98]
             stp x20, x21, [sp, 0xA0]
             stp x22, x23, [sp, 0xB0]
@@ -86,36 +85,41 @@ pub extern "C-unwind" fn save_context(f: extern "C" fn(&mut Context, *mut ()), p
             blr x8
 
             add sp, sp, 512
+            .cfi_def_cfa_offset 16
             ldp x29, x30, [sp], 16
+            .cfi_def_cfa_offset 0
+            .cfi_restore x29
+            .cfi_restore x30
             ret
             ",
-            options(noreturn)
         );
-    }
+    };
+    (maybesavefp(fp)) => {
+        "
+        stp d8, d9, [sp, 0x140]
+        stp d10, d11, [sp, 0x150]
+        stp d12, d13, [sp, 0x160]
+        stp d14, d15, [sp, 0x170]
+        "
+    };
+    (maybesavefp()) => { "" };
 }
 
 #[naked]
-pub unsafe extern "C" fn restore_context(ctx: &Context) -> ! {
+pub extern "C-unwind" fn save_context(f: extern "C" fn(&mut Context, *mut ()), ptr: *mut ()) {
     unsafe {
-        asm!(
-            "
-            ldp d0, d1, [x0, 0x100]
-            ldp d2, d3, [x0, 0x110]
-            ldp d4, d5, [x0, 0x120]
-            ldp d6, d7, [x0, 0x130]
-            ldp d8, d9, [x0, 0x140]
-            ldp d10, d11, [x0, 0x150]
-            ldp d12, d13, [x0, 0x160]
-            ldp d14, d15, [x0, 0x170]
-            ldp d16, d17, [x0, 0x180]
-            ldp d18, d19, [x0, 0x190]
-            ldp d20, d21, [x0, 0x1A0]
-            ldp d22, d23, [x0, 0x1B0]
-            ldp d24, d25, [x0, 0x1C0]
-            ldp d26, d27, [x0, 0x1D0]
-            ldp d28, d29, [x0, 0x1E0]
-            ldp d30, d31, [x0, 0x1F0]
+        #[cfg(target_feature = "neon")]
+        save!(gp, fp);
+        #[cfg(not(target_feature = "neon"))]
+        save!(gp);
+    }
+}
 
+macro_rules! restore {
+    ($ctx:expr, gp$(, $fp:ident)?) => {
+        core::arch::asm!(
+            restore!(mayberestore($($fp)?)),
+            "
             ldp x2, x3, [x0, 0x10]
             ldp x4, x5, [x0, 0x20]
             ldp x6, x7, [x0, 0x30]
@@ -136,7 +140,38 @@ pub unsafe extern "C" fn restore_context(ctx: &Context) -> ! {
             ldp x0, x1, [x0, 0x00]
             ret
             ",
+            in("x0") $ctx,
             options(noreturn)
         );
+    };
+    (mayberestore(fp)) => {
+        "
+        ldp d0, d1, [x0, 0x100]
+        ldp d2, d3, [x0, 0x110]
+        ldp d4, d5, [x0, 0x120]
+        ldp d6, d7, [x0, 0x130]
+        ldp d8, d9, [x0, 0x140]
+        ldp d10, d11, [x0, 0x150]
+        ldp d12, d13, [x0, 0x160]
+        ldp d14, d15, [x0, 0x170]
+        ldp d16, d17, [x0, 0x180]
+        ldp d18, d19, [x0, 0x190]
+        ldp d20, d21, [x0, 0x1A0]
+        ldp d22, d23, [x0, 0x1B0]
+        ldp d24, d25, [x0, 0x1C0]
+        ldp d26, d27, [x0, 0x1D0]
+        ldp d28, d29, [x0, 0x1E0]
+        ldp d30, d31, [x0, 0x1F0]
+        "
+    };
+    (mayberestore()) => { "" };
+}
+
+pub unsafe fn restore_context(ctx: &Context) -> ! {
+    unsafe {
+        #[cfg(target_feature = "neon")]
+        restore!(ctx, gp, fp);
+        #[cfg(not(target_feature = "neon"))]
+        restore!(ctx, gp);
     }
 }

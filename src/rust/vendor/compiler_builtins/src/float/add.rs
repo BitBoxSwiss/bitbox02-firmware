@@ -1,5 +1,5 @@
 use crate::float::Float;
-use crate::int::{CastInto, Int};
+use crate::int::{CastInto, Int, MinInt};
 
 /// Returns `a + b`
 fn add<F: Float>(a: F, b: F) -> F
@@ -25,8 +25,8 @@ where
     let quiet_bit = implicit_bit >> 1;
     let qnan_rep = exponent_mask | quiet_bit;
 
-    let mut a_rep = a.repr();
-    let mut b_rep = b.repr();
+    let mut a_rep = a.to_bits();
+    let mut b_rep = b.to_bits();
     let a_abs = a_rep & abs_mask;
     let b_abs = b_rep & abs_mask;
 
@@ -34,17 +34,17 @@ where
     if a_abs.wrapping_sub(one) >= inf_rep - one || b_abs.wrapping_sub(one) >= inf_rep - one {
         // NaN + anything = qNaN
         if a_abs > inf_rep {
-            return F::from_repr(a_abs | quiet_bit);
+            return F::from_bits(a_abs | quiet_bit);
         }
         // anything + NaN = qNaN
         if b_abs > inf_rep {
-            return F::from_repr(b_abs | quiet_bit);
+            return F::from_bits(b_abs | quiet_bit);
         }
 
         if a_abs == inf_rep {
             // +/-infinity + -/+infinity = qNaN
-            if (a.repr() ^ b.repr()) == sign_bit {
-                return F::from_repr(qnan_rep);
+            if (a.to_bits() ^ b.to_bits()) == sign_bit {
+                return F::from_bits(qnan_rep);
             } else {
                 // +/-infinity + anything remaining = +/- infinity
                 return a;
@@ -57,17 +57,17 @@ where
         }
 
         // zero + anything = anything
-        if a_abs == Int::ZERO {
+        if a_abs == MinInt::ZERO {
             // but we need to get the sign right for zero + zero
-            if b_abs == Int::ZERO {
-                return F::from_repr(a.repr() & b.repr());
+            if b_abs == MinInt::ZERO {
+                return F::from_bits(a.to_bits() & b.to_bits());
             } else {
                 return b;
             }
         }
 
         // anything + zero = anything
-        if b_abs == Int::ZERO {
+        if b_abs == MinInt::ZERO {
             return a;
         }
     }
@@ -113,10 +113,10 @@ where
     // Shift the significand of b by the difference in exponents, with a sticky
     // bottom bit to get rounding correct.
     let align = a_exponent.wrapping_sub(b_exponent).cast();
-    if align != Int::ZERO {
+    if align != MinInt::ZERO {
         if align < bits {
             let sticky =
-                F::Int::from_bool(b_significand << bits.wrapping_sub(align).cast() != Int::ZERO);
+                F::Int::from_bool(b_significand << bits.wrapping_sub(align).cast() != MinInt::ZERO);
             b_significand = (b_significand >> align.cast()) | sticky;
         } else {
             b_significand = one; // sticky; b is known to be non-zero.
@@ -125,8 +125,8 @@ where
     if subtraction {
         a_significand = a_significand.wrapping_sub(b_significand);
         // If a == -b, return +zero.
-        if a_significand == Int::ZERO {
-            return F::from_repr(Int::ZERO);
+        if a_significand == MinInt::ZERO {
+            return F::from_bits(MinInt::ZERO);
         }
 
         // If partial cancellation occured, we need to left-shift the result
@@ -143,8 +143,8 @@ where
 
         // If the addition carried up, we need to right-shift the result and
         // adjust the exponent:
-        if a_significand & implicit_bit << 4 != Int::ZERO {
-            let sticky = F::Int::from_bool(a_significand & one != Int::ZERO);
+        if a_significand & implicit_bit << 4 != MinInt::ZERO {
+            let sticky = F::Int::from_bool(a_significand & one != MinInt::ZERO);
             a_significand = a_significand >> 1 | sticky;
             a_exponent += 1;
         }
@@ -152,7 +152,7 @@ where
 
     // If we have overflowed the type, return +/- infinity:
     if a_exponent >= max_exponent as i32 {
-        return F::from_repr(inf_rep | result_sign);
+        return F::from_bits(inf_rep | result_sign);
     }
 
     if a_exponent <= 0 {
@@ -160,7 +160,7 @@ where
         // need to shift the significand.
         let shift = (1 - a_exponent).cast();
         let sticky =
-            F::Int::from_bool((a_significand << bits.wrapping_sub(shift).cast()) != Int::ZERO);
+            F::Int::from_bool((a_significand << bits.wrapping_sub(shift).cast()) != MinInt::ZERO);
         a_significand = a_significand >> shift.cast() | sticky;
         a_exponent = 0;
     }
@@ -185,29 +185,27 @@ where
         result += result & one;
     }
 
-    F::from_repr(result)
+    F::from_bits(result)
 }
 
 intrinsics! {
+    #[avr_skip]
     #[aapcs_on_arm]
     #[arm_aeabi_alias = __aeabi_fadd]
     pub extern "C" fn __addsf3(a: f32, b: f32) -> f32 {
         add(a, b)
     }
 
+    #[avr_skip]
     #[aapcs_on_arm]
     #[arm_aeabi_alias = __aeabi_dadd]
     pub extern "C" fn __adddf3(a: f64, b: f64) -> f64 {
         add(a, b)
     }
 
-    #[cfg(target_arch = "arm")]
-    pub extern "C" fn __addsf3vfp(a: f32, b: f32) -> f32 {
-        a + b
-    }
-
-    #[cfg(target_arch = "arm")]
-    pub extern "C" fn __adddf3vfp(a: f64, b: f64) -> f64 {
-        a + b
+    #[ppc_alias = __addkf3]
+    #[cfg(f128_enabled)]
+    pub extern "C" fn __addtf3(a: f128, b: f128) -> f128 {
+        add(a, b)
     }
 }

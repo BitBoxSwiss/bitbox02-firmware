@@ -187,6 +187,49 @@ impl ReaderOffset for usize {
     }
 }
 
+/// A trait for addresses within a DWARF section.
+///
+/// Currently this is a simple extension trait for `u64`, but it may be expanded
+/// in the future to support user-defined address types.
+pub(crate) trait ReaderAddress: Sized {
+    /// Add a length to an address of the given size.
+    ///
+    /// Returns an error for overflow.
+    fn add_sized(self, length: u64, size: u8) -> Result<Self>;
+
+    /// Add a length to an address of the given size.
+    ///
+    /// Wraps the result to the size of the address to allow for the possibility
+    /// that the length is a negative value.
+    fn wrapping_add_sized(self, length: u64, size: u8) -> Self;
+
+    /// The all-ones value of an address of the given size.
+    fn ones_sized(size: u8) -> Self;
+}
+
+impl ReaderAddress for u64 {
+    #[inline]
+    fn add_sized(self, length: u64, size: u8) -> Result<Self> {
+        let address = self.checked_add(length).ok_or(Error::AddressOverflow)?;
+        let mask = Self::ones_sized(size);
+        if address & !mask != 0 {
+            return Err(Error::AddressOverflow);
+        }
+        Ok(address)
+    }
+
+    #[inline]
+    fn wrapping_add_sized(self, length: u64, size: u8) -> Self {
+        let mask = Self::ones_sized(size);
+        self.wrapping_add(length) & mask
+    }
+
+    #[inline]
+    fn ones_sized(size: u8) -> Self {
+        !0 >> (64 - size * 8)
+    }
+}
+
 #[cfg(not(feature = "read"))]
 pub(crate) mod seal_if_no_alloc {
     #[derive(Debug)]
@@ -274,7 +317,7 @@ pub trait Reader: Debug + Clone {
     ///
     /// Does not advance the reader.
     #[cfg(feature = "read")]
-    fn to_slice(&self) -> Result<Cow<[u8]>>;
+    fn to_slice(&self) -> Result<Cow<'_, [u8]>>;
 
     /// Convert all remaining data to a clone-on-write string.
     ///
@@ -285,7 +328,7 @@ pub trait Reader: Debug + Clone {
     ///
     /// Returns an error if the data contains invalid characters.
     #[cfg(feature = "read")]
-    fn to_string(&self) -> Result<Cow<str>>;
+    fn to_string(&self) -> Result<Cow<'_, str>>;
 
     /// Convert all remaining data to a clone-on-write string, including invalid characters.
     ///
@@ -294,7 +337,7 @@ pub trait Reader: Debug + Clone {
     ///
     /// Does not advance the reader.
     #[cfg(feature = "read")]
-    fn to_string_lossy(&self) -> Result<Cow<str>>;
+    fn to_string_lossy(&self) -> Result<Cow<'_, str>>;
 
     /// Read exactly `buf.len()` bytes into `buf`.
     fn read_slice(&mut self, buf: &mut [u8]) -> Result<()>;
@@ -449,6 +492,15 @@ pub trait Reader: Debug + Clone {
             Ok((val, Format::Dwarf64))
         } else {
             Err(Error::UnknownReservedLength)
+        }
+    }
+
+    /// Read a byte and validate it as an address size.
+    fn read_address_size(&mut self) -> Result<u8> {
+        let size = self.read_u8()?;
+        match size {
+            1 | 2 | 4 | 8 => Ok(size),
+            _ => Err(Error::UnsupportedAddressSize(size)),
         }
     }
 

@@ -1,4 +1,6 @@
 #[allow(dead_code)]
+#[allow(unused_imports)]
+#[allow(clippy::all)]
 #[path = "../libm/src/math/mod.rs"]
 mod libm;
 
@@ -7,7 +9,6 @@ macro_rules! no_mangle {
     ($(fn $fun:ident($($iid:ident : $ity:ty),+) -> $oty:ty;)+) => {
         intrinsics! {
             $(
-                #[cfg_attr(all(not(windows), not(target_vendor = "apple")), weak)]
                 pub extern "C" fn $fun($($iid: $ity),+) -> $oty {
                     self::libm::$fun($($iid),+)
                 }
@@ -16,7 +17,7 @@ macro_rules! no_mangle {
     }
 }
 
-#[cfg(all(not(windows), not(target_vendor = "apple")))]
+#[cfg(not(windows))]
 no_mangle! {
     fn acos(x: f64) -> f64;
     fn asin(x: f64) -> f64;
@@ -91,15 +92,14 @@ no_mangle! {
     fn fmodf(x: f32, y: f32) -> f32;
 }
 
+// allow for windows (and other targets)
 intrinsics! {
-    #[cfg_attr(all(not(windows), not(target_vendor = "apple")), weak)]
     pub extern "C" fn lgamma_r(x: f64, s: &mut i32) -> f64 {
         let r = self::libm::lgamma_r(x);
         *s = r.1;
         r.0
     }
 
-    #[cfg_attr(all(not(windows), not(target_vendor = "apple")), weak)]
     pub extern "C" fn lgammaf_r(x: f32, s: &mut i32) -> f32 {
         let r = self::libm::lgammaf_r(x);
         *s = r.1;

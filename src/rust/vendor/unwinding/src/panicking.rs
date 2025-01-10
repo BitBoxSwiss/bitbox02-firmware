@@ -19,7 +19,7 @@ pub fn begin_panic<E: Exception>(exception: E) -> UnwindReasonCode {
 
     let ex = E::wrap(exception);
     unsafe {
-        (*ex).exception_class = u64::from_be_bytes(E::CLASS);
+        (*ex).exception_class = u64::from_ne_bytes(E::CLASS);
         (*ex).exception_cleanup = Some(exception_cleanup::<E>);
         _Unwind_RaiseException(ex)
     }
@@ -39,7 +39,7 @@ pub fn catch_unwind<E: Exception, R, F: FnOnce() -> R>(f: F) -> Result<R, Option
 
     let data_ptr = &mut data as *mut _ as *mut u8;
     unsafe {
-        return if core::intrinsics::r#try(do_call::<F, R>, data_ptr, do_catch::<E>) == 0 {
+        return if core::intrinsics::catch_unwind(do_call::<F, R>, data_ptr, do_catch::<E>) == 0 {
             Ok(ManuallyDrop::into_inner(data.r))
         } else {
             Err(ManuallyDrop::into_inner(data.p))
@@ -60,7 +60,7 @@ pub fn catch_unwind<E: Exception, R, F: FnOnce() -> R>(f: F) -> Result<R, Option
         unsafe {
             let data = &mut *(data as *mut ManuallyDrop<Option<E>>);
             let exception = exception as *mut UnwindException;
-            if (*exception).exception_class != u64::from_be_bytes(E::CLASS) {
+            if (*exception).exception_class != u64::from_ne_bytes(E::CLASS) {
                 _Unwind_DeleteException(exception);
                 *data = ManuallyDrop::new(None);
                 return;

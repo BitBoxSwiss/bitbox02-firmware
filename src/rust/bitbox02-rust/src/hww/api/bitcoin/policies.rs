@@ -149,9 +149,7 @@ struct WalletPolicyPkTranslator<'a> {
     address_index: u32,
 }
 
-impl<'a> miniscript::Translator<String, bitcoin::PublicKey, Error>
-    for WalletPolicyPkTranslator<'a>
-{
+impl miniscript::Translator<String, bitcoin::PublicKey, Error> for WalletPolicyPkTranslator<'_> {
     fn pk(&mut self, pk: &String) -> Result<bitcoin::PublicKey, Error> {
         let (key_index, multipath_index_left, multipath_index_right) =
             parse_wallet_policy_pk(pk).or(Err(Error::InvalidInput))?;
@@ -273,7 +271,7 @@ pub struct ParsedPolicy<'a> {
     pub descriptor: Descriptor<String>,
 }
 
-impl<'a> ParsedPolicy<'a> {
+impl ParsedPolicy<'_> {
     /// Iterates over the placeholder keys in this descriptor. For tr() descriptors, this covers the
     /// internal key and every key in every leaf script.
     /// This iterates the keys "left-to-right" in the descriptor.

@@ -16,6 +16,10 @@
 //! usb message proessing is not ported to Rust. If that happens, the `async_usb` module can be
 //! used and this can be deleted.
 
+// TODO: figure out how to deal with the static muts below.
+// https://doc.rust-lang.org/nightly/edition-guide/rust-2024/static-mut-references.html
+#![allow(static_mut_refs)]
+
 extern crate alloc;
 
 use alloc::boxed::Box;

@@ -185,23 +185,23 @@ mod tests {
         };
         if verification_required {
             // Verify pairing code.
-            static mut EXPECTED_PAIRING_CODE: Option<String> = None;
+            static EXPECTED_PAIRING_CODE: bitbox02::testing::UnsafeSyncRefCell<Option<String>> =
+                bitbox02::testing::UnsafeSyncRefCell::new(None);
 
             // Handshake hash as computed by the host. Should be the same as computed on the device. The
             // pairing code is derived from that.
             let handshake_hash: bitbox02_noise::HandshakeHash =
                 host_noise.get_hash().try_into().unwrap();
-            unsafe {
-                EXPECTED_PAIRING_CODE =
-                    Some(crate::workflow::pairing::format_hash(&handshake_hash));
-            }
+            *EXPECTED_PAIRING_CODE.borrow_mut() =
+                Some(crate::workflow::pairing::format_hash(&handshake_hash));
             static mut PAIRING_CONFIRMED: bool = false;
             mock(Data {
                 ui_confirm_create: Some(Box::new(|params| {
                     assert_eq!(params.title, "Pairing code");
-                    assert_eq!(params.body, unsafe {
-                        EXPECTED_PAIRING_CODE.as_ref().unwrap().as_str()
-                    });
+                    assert_eq!(
+                        params.body,
+                        EXPECTED_PAIRING_CODE.borrow().as_ref().unwrap().as_str()
+                    );
                     unsafe {
                         PAIRING_CONFIRMED = true;
                     }

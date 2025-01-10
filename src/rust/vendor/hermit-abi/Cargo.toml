@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "hermit-abi"
-version = "0.3.9"
+version = "0.4.0"
 authors = ["Stefan Lankes"]
 description = "Hermit system calls definitions."
 readme = "README.md"

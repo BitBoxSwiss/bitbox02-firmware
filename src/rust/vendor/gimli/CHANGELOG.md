@@ -2,6 +2,175 @@
 
 --------------------------------------------------------------------------------
 
+## 0.31.1
+
+Released 2024/10/04.
+
+### Changed
+
+* Changed `read::Evaluation::evaluate` to validate `DW_OP_deref_size`.
+  [#739](https://github.com/gimli-rs/gimli/pull/739)
+
+* Changed `write::LineProgram` to allow use of file index 0 for DWARF version 5.
+  [#740](https://github.com/gimli-rs/gimli/pull/740)
+
+* Improved the workaround for reading zero length entries in `.debug_frame`.
+  [#741](https://github.com/gimli-rs/gimli/pull/741)
+
+* Implemented `Default` for `read::DwarfSections` and `read::DwarfPackageSections`.
+  [#742](https://github.com/gimli-rs/gimli/pull/742)
+
+* Changed `read::ArangeEntryIter` to handle tombstones in `.debug_aranges`.
+  [#743](https://github.com/gimli-rs/gimli/pull/743)
+
+* Improved handling handling of 0 for tombstones in `DW_LNE_set_address`
+  and address pairs in ranges and locations.
+  [#750](https://github.com/gimli-rs/gimli/pull/750)
+
+* Changed the `read::ArrayLike` trait implementation to use const generics.
+  [#752](https://github.com/gimli-rs/gimli/pull/752)
+
+### Added
+
+* Added `MIPS::HI` and `MIPS::LO`.
+  [#749](https://github.com/gimli-rs/gimli/pull/749)
+
+--------------------------------------------------------------------------------
+
+## 0.31.0
+
+Released 2024/07/16.
+
+### Breaking changes
+
+* Deleted support for segment selectors.
+  [#720](https://github.com/gimli-rs/gimli/pull/720)
+
+* Added `read::FileEntry::source` and deleted `Copy` implementation.
+  [#728](https://github.com/gimli-rs/gimli/pull/728)
+
+* Changed `read::LineRow::execute` to return a `Result`.
+  [#731](https://github.com/gimli-rs/gimli/pull/731)
+
+* Deleted `Display` implementation for `read::LineInstruction`.
+  [#734](https://github.com/gimli-rs/gimli/pull/734)
+
+* Changed `read::Error` to be non-exhaustive.
+
+### Changed
+
+* Fixed `Hash` implementation for `read::EndianReader`.
+  [#723](https://github.com/gimli-rs/gimli/pull/723)
+
+* Changed `read::EhFrameHdr::parse` to validate the FDE count encoding.
+  [#725](https://github.com/gimli-rs/gimli/pull/725)
+
+* Changed address overflow to be an error for `read::UnwindTableRow`,
+  `read::LineRow`, and `read::ArangeEntry`.
+  [#730](https://github.com/gimli-rs/gimli/pull/730)
+  [#731](https://github.com/gimli-rs/gimli/pull/731)
+  [#732](https://github.com/gimli-rs/gimli/pull/732)
+
+* Changed wrapping addition for 32-bit addresses to wrap at 32 bits instead of
+  at 64 bits.
+  [#733](https://github.com/gimli-rs/gimli/pull/733)
+
+* Added earlier validation of address sizes.
+  [#733](https://github.com/gimli-rs/gimli/pull/733)
+
+### Added
+
+* Added `read::IndexSectionId::section_id`.
+  [#719](https://github.com/gimli-rs/gimli/pull/719)
+
+* Added `read::FrameDescriptionEntry::end_address`.
+  [#727](https://github.com/gimli-rs/gimli/pull/727)
+
+* Added support for `DW_LNCT_LLVM_source`.
+  [#728](https://github.com/gimli-rs/gimli/pull/728)
+
+--------------------------------------------------------------------------------
+
+## 0.30.0
+
+Released 2024/05/26.
+
+### Breaking changes
+
+* Added context to some `read::Error` variants.
+  [#703](https://github.com/gimli-rs/gimli/pull/703)
+
+* Changed type of `read::UnitIndexSection::section` to `IndexSectionId`.
+  [#716](https://github.com/gimli-rs/gimli/pull/716)
+
+### Changed
+
+* Fixed `write::Operation::ImplicitPointer::size`.
+  [#712](https://github.com/gimli-rs/gimli/pull/712)
+
+* Changed `read::RngListIter` and `read::LocListIter` to skip ranges where
+  the end is before the beginning, instead of returning an error.
+  [#715](https://github.com/gimli-rs/gimli/pull/715)
+
+* Fixed clippy warnings.
+  [#713](https://github.com/gimli-rs/gimli/pull/713)
+
+### Added
+
+* Added `read::UnitRef`.
+  [#711](https://github.com/gimli-rs/gimli/pull/711)
+
+--------------------------------------------------------------------------------
+
+## 0.29.0
+
+Released 2024/04/11.
+
+### Breaking changes
+
+* Changed `Reader` type parameter to `ReaderOffset` for `read::UnwindContext` and related types.
+  Replaced `Expression` with `UnwindExpression` in unwind information types.
+  [#703](https://github.com/gimli-rs/gimli/pull/703)
+
+### Changed
+
+* Changed `write::Sections::for_each` and `for_each_mut` to specify section lifetime.
+  [#699](https://github.com/gimli-rs/gimli/pull/699)
+
+* Fixed writing unwind information with an LSDA encoding that is not `DW_EH_PE_absptr`.
+  [#704](https://github.com/gimli-rs/gimli/pull/704)
+
+* Fixed parsing for an empty DWP index.
+  [#706](https://github.com/gimli-rs/gimli/pull/706)
+
+* Improved error handling in `read::Unit::dwo_name`.
+  [#693](https://github.com/gimli-rs/gimli/pull/693)
+
+* Fixed warnings.
+  [#692](https://github.com/gimli-rs/gimli/pull/692)
+  [#694](https://github.com/gimli-rs/gimli/pull/694)
+  [#695](https://github.com/gimli-rs/gimli/pull/695)
+  [#696](https://github.com/gimli-rs/gimli/pull/696)
+
+### Added
+
+* Added MIPS register definitions.
+  [#690](https://github.com/gimli-rs/gimli/pull/690)
+
+* Added PowerPC register definitions.
+  [#691](https://github.com/gimli-rs/gimli/pull/691)
+
+* Added `read::DwarfSections` and `read::DwarfPackageSections`.
+  [#698](https://github.com/gimli-rs/gimli/pull/698)
+
+* Implemented `BitOr` for `DwEhPe`.
+  [#709](https://github.com/gimli-rs/gimli/pull/709)
+
+* Added `read::Relocate`, `read::RelocateReader`, and `write::RelocateWriter`.
+  [#709](https://github.com/gimli-rs/gimli/pull/709)
+
+--------------------------------------------------------------------------------
+
 ## 0.28.1
 
 Released 2023/11/24.

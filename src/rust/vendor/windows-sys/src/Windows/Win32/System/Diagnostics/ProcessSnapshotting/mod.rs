@@ -1,16 +1,13 @@
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("kernel32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn PssCaptureSnapshot(processhandle : super::super::super::Foundation:: HANDLE, captureflags : PSS_CAPTURE_FLAGS, threadcontextflags : u32, snapshothandle : *mut HPSS) -> u32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("kernel32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn PssDuplicateSnapshot(sourceprocesshandle : super::super::super::Foundation:: HANDLE, snapshothandle : HPSS, targetprocesshandle : super::super::super::Foundation:: HANDLE, targetsnapshothandle : *mut HPSS, flags : PSS_DUPLICATE_FLAGS) -> u32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("kernel32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn PssFreeSnapshot(processhandle : super::super::super::Foundation:: HANDLE, snapshothandle : HPSS) -> u32);
-::windows_targets::link!("kernel32.dll" "system" fn PssQuerySnapshot(snapshothandle : HPSS, informationclass : PSS_QUERY_INFORMATION_CLASS, buffer : *mut ::core::ffi::c_void, bufferlength : u32) -> u32);
-::windows_targets::link!("kernel32.dll" "system" fn PssWalkMarkerCreate(allocator : *const PSS_ALLOCATOR, walkmarkerhandle : *mut HPSSWALK) -> u32);
-::windows_targets::link!("kernel32.dll" "system" fn PssWalkMarkerFree(walkmarkerhandle : HPSSWALK) -> u32);
-::windows_targets::link!("kernel32.dll" "system" fn PssWalkMarkerGetPosition(walkmarkerhandle : HPSSWALK, position : *mut usize) -> u32);
-::windows_targets::link!("kernel32.dll" "system" fn PssWalkMarkerSeekToBeginning(walkmarkerhandle : HPSSWALK) -> u32);
-::windows_targets::link!("kernel32.dll" "system" fn PssWalkMarkerSetPosition(walkmarkerhandle : HPSSWALK, position : usize) -> u32);
-::windows_targets::link!("kernel32.dll" "system" fn PssWalkSnapshot(snapshothandle : HPSS, informationclass : PSS_WALK_INFORMATION_CLASS, walkmarkerhandle : HPSSWALK, buffer : *mut ::core::ffi::c_void, bufferlength : u32) -> u32);
+windows_targets::link!("kernel32.dll" "system" fn PssCaptureSnapshot(processhandle : super::super::super::Foundation:: HANDLE, captureflags : PSS_CAPTURE_FLAGS, threadcontextflags : u32, snapshothandle : *mut HPSS) -> u32);
+windows_targets::link!("kernel32.dll" "system" fn PssDuplicateSnapshot(sourceprocesshandle : super::super::super::Foundation:: HANDLE, snapshothandle : HPSS, targetprocesshandle : super::super::super::Foundation:: HANDLE, targetsnapshothandle : *mut HPSS, flags : PSS_DUPLICATE_FLAGS) -> u32);
+windows_targets::link!("kernel32.dll" "system" fn PssFreeSnapshot(processhandle : super::super::super::Foundation:: HANDLE, snapshothandle : HPSS) -> u32);
+windows_targets::link!("kernel32.dll" "system" fn PssQuerySnapshot(snapshothandle : HPSS, informationclass : PSS_QUERY_INFORMATION_CLASS, buffer : *mut core::ffi::c_void, bufferlength : u32) -> u32);
+windows_targets::link!("kernel32.dll" "system" fn PssWalkMarkerCreate(allocator : *const PSS_ALLOCATOR, walkmarkerhandle : *mut HPSSWALK) -> u32);
+windows_targets::link!("kernel32.dll" "system" fn PssWalkMarkerFree(walkmarkerhandle : HPSSWALK) -> u32);
+windows_targets::link!("kernel32.dll" "system" fn PssWalkMarkerGetPosition(walkmarkerhandle : HPSSWALK, position : *mut usize) -> u32);
+windows_targets::link!("kernel32.dll" "system" fn PssWalkMarkerSeekToBeginning(walkmarkerhandle : HPSSWALK) -> u32);
+windows_targets::link!("kernel32.dll" "system" fn PssWalkMarkerSetPosition(walkmarkerhandle : HPSSWALK, position : usize) -> u32);
+windows_targets::link!("kernel32.dll" "system" fn PssWalkSnapshot(snapshothandle : HPSS, informationclass : PSS_WALK_INFORMATION_CLASS, walkmarkerhandle : HPSSWALK, buffer : *mut core::ffi::c_void, bufferlength : u32) -> u32);
 pub const PSS_CAPTURE_HANDLES: PSS_CAPTURE_FLAGS = 4u32;
 pub const PSS_CAPTURE_HANDLE_BASIC_INFORMATION: PSS_CAPTURE_FLAGS = 16u32;
 pub const PSS_CAPTURE_HANDLE_NAME_INFORMATION: PSS_CAPTURE_FLAGS = 8u32;
@@ -76,51 +73,32 @@ pub type PSS_PROCESS_FLAGS = i32;
 pub type PSS_QUERY_INFORMATION_CLASS = i32;
 pub type PSS_THREAD_FLAGS = i32;
 pub type PSS_WALK_INFORMATION_CLASS = i32;
-pub type HPSS = isize;
-pub type HPSSWALK = isize;
+pub type HPSS = *mut core::ffi::c_void;
+pub type HPSSWALK = *mut core::ffi::c_void;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PSS_ALLOCATOR {
-    pub Context: *mut ::core::ffi::c_void,
+    pub Context: *mut core::ffi::c_void,
     pub AllocRoutine: isize,
     pub FreeRoutine: isize,
 }
-impl ::core::marker::Copy for PSS_ALLOCATOR {}
-impl ::core::clone::Clone for PSS_ALLOCATOR {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PSS_AUXILIARY_PAGES_INFORMATION {
     pub AuxPagesCaptured: u32,
 }
-impl ::core::marker::Copy for PSS_AUXILIARY_PAGES_INFORMATION {}
-impl ::core::clone::Clone for PSS_AUXILIARY_PAGES_INFORMATION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Memory\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Memory"))]
+#[cfg(feature = "Win32_System_Memory")]
+#[derive(Clone, Copy)]
 pub struct PSS_AUXILIARY_PAGE_ENTRY {
-    pub Address: *mut ::core::ffi::c_void,
+    pub Address: *mut core::ffi::c_void,
     pub BasicInformation: super::super::Memory::MEMORY_BASIC_INFORMATION,
     pub CaptureTime: super::super::super::Foundation::FILETIME,
-    pub PageContents: *mut ::core::ffi::c_void,
+    pub PageContents: *mut core::ffi::c_void,
     pub PageSize: u32,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Memory"))]
-impl ::core::marker::Copy for PSS_AUXILIARY_PAGE_ENTRY {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Memory"))]
-impl ::core::clone::Clone for PSS_AUXILIARY_PAGE_ENTRY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct PSS_HANDLE_ENTRY {
     pub Handle: super::super::super::Foundation::HANDLE,
     pub Flags: PSS_HANDLE_FLAGS,
@@ -134,22 +112,13 @@ pub struct PSS_HANDLE_ENTRY {
     pub NonPagedPoolCharge: u32,
     pub CreationTime: super::super::super::Foundation::FILETIME,
     pub TypeNameLength: u16,
-    pub TypeName: ::windows_sys::core::PCWSTR,
+    pub TypeName: windows_sys::core::PCWSTR,
     pub ObjectNameLength: u16,
-    pub ObjectName: ::windows_sys::core::PCWSTR,
+    pub ObjectName: windows_sys::core::PCWSTR,
     pub TypeSpecificInformation: PSS_HANDLE_ENTRY_0,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for PSS_HANDLE_ENTRY {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for PSS_HANDLE_ENTRY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub union PSS_HANDLE_ENTRY_0 {
     pub Process: PSS_HANDLE_ENTRY_0_2,
     pub Thread: PSS_HANDLE_ENTRY_0_5,
@@ -158,144 +127,69 @@ pub union PSS_HANDLE_ENTRY_0 {
     pub Section: PSS_HANDLE_ENTRY_0_3,
     pub Semaphore: PSS_HANDLE_ENTRY_0_4,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for PSS_HANDLE_ENTRY_0 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for PSS_HANDLE_ENTRY_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct PSS_HANDLE_ENTRY_0_0 {
     pub ManualReset: super::super::super::Foundation::BOOL,
     pub Signaled: super::super::super::Foundation::BOOL,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for PSS_HANDLE_ENTRY_0_0 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for PSS_HANDLE_ENTRY_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct PSS_HANDLE_ENTRY_0_1 {
     pub CurrentCount: i32,
     pub Abandoned: super::super::super::Foundation::BOOL,
     pub OwnerProcessId: u32,
     pub OwnerThreadId: u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for PSS_HANDLE_ENTRY_0_1 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for PSS_HANDLE_ENTRY_0_1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct PSS_HANDLE_ENTRY_0_2 {
     pub ExitStatus: u32,
-    pub PebBaseAddress: *mut ::core::ffi::c_void,
+    pub PebBaseAddress: *mut core::ffi::c_void,
     pub AffinityMask: usize,
     pub BasePriority: i32,
     pub ProcessId: u32,
     pub ParentProcessId: u32,
     pub Flags: u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for PSS_HANDLE_ENTRY_0_2 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for PSS_HANDLE_ENTRY_0_2 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct PSS_HANDLE_ENTRY_0_3 {
-    pub BaseAddress: *mut ::core::ffi::c_void,
+    pub BaseAddress: *mut core::ffi::c_void,
     pub AllocationAttributes: u32,
     pub MaximumSize: i64,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for PSS_HANDLE_ENTRY_0_3 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for PSS_HANDLE_ENTRY_0_3 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct PSS_HANDLE_ENTRY_0_4 {
     pub CurrentCount: i32,
     pub MaximumCount: i32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for PSS_HANDLE_ENTRY_0_4 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for PSS_HANDLE_ENTRY_0_4 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct PSS_HANDLE_ENTRY_0_5 {
     pub ExitStatus: u32,
-    pub TebBaseAddress: *mut ::core::ffi::c_void,
+    pub TebBaseAddress: *mut core::ffi::c_void,
     pub ProcessId: u32,
     pub ThreadId: u32,
     pub AffinityMask: usize,
     pub Priority: i32,
     pub BasePriority: i32,
-    pub Win32StartAddress: *mut ::core::ffi::c_void,
-}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for PSS_HANDLE_ENTRY_0_5 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for PSS_HANDLE_ENTRY_0_5 {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub Win32StartAddress: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PSS_HANDLE_INFORMATION {
     pub HandlesCaptured: u32,
 }
-impl ::core::marker::Copy for PSS_HANDLE_INFORMATION {}
-impl ::core::clone::Clone for PSS_HANDLE_INFORMATION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct PSS_HANDLE_TRACE_INFORMATION {
     pub SectionHandle: super::super::super::Foundation::HANDLE,
     pub Size: u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for PSS_HANDLE_TRACE_INFORMATION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for PSS_HANDLE_TRACE_INFORMATION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PSS_PERFORMANCE_COUNTERS {
     pub TotalCycleCount: u64,
     pub TotalWallClockPeriod: u64,
@@ -310,18 +204,11 @@ pub struct PSS_PERFORMANCE_COUNTERS {
     pub ThreadsCycleCount: u64,
     pub ThreadsWallClockPeriod: u64,
 }
-impl ::core::marker::Copy for PSS_PERFORMANCE_COUNTERS {}
-impl ::core::clone::Clone for PSS_PERFORMANCE_COUNTERS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct PSS_PROCESS_INFORMATION {
     pub ExitStatus: u32,
-    pub PebBaseAddress: *mut ::core::ffi::c_void,
+    pub PebBaseAddress: *mut core::ffi::c_void,
     pub AffinityMask: usize,
     pub BasePriority: i32,
     pub ProcessId: u32,
@@ -347,75 +234,46 @@ pub struct PSS_PROCESS_INFORMATION {
     pub ExecuteFlags: u32,
     pub ImageFileName: [u16; 260],
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for PSS_PROCESS_INFORMATION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for PSS_PROCESS_INFORMATION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Diagnostics_Debug\"`, `\"Win32_System_Kernel\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Diagnostics_Debug", feature = "Win32_System_Kernel"))]
+#[cfg(all(feature = "Win32_System_Diagnostics_Debug", feature = "Win32_System_Kernel"))]
+#[derive(Clone, Copy)]
 pub struct PSS_THREAD_ENTRY {
     pub ExitStatus: u32,
-    pub TebBaseAddress: *mut ::core::ffi::c_void,
+    pub TebBaseAddress: *mut core::ffi::c_void,
     pub ProcessId: u32,
     pub ThreadId: u32,
     pub AffinityMask: usize,
     pub Priority: i32,
     pub BasePriority: i32,
-    pub LastSyscallFirstArgument: *mut ::core::ffi::c_void,
+    pub LastSyscallFirstArgument: *mut core::ffi::c_void,
     pub LastSyscallNumber: u16,
     pub CreateTime: super::super::super::Foundation::FILETIME,
     pub ExitTime: super::super::super::Foundation::FILETIME,
     pub KernelTime: super::super::super::Foundation::FILETIME,
     pub UserTime: super::super::super::Foundation::FILETIME,
-    pub Win32StartAddress: *mut ::core::ffi::c_void,
+    pub Win32StartAddress: *mut core::ffi::c_void,
     pub CaptureTime: super::super::super::Foundation::FILETIME,
     pub Flags: PSS_THREAD_FLAGS,
     pub SuspendCount: u16,
     pub SizeOfContextRecord: u16,
     pub ContextRecord: *mut super::Debug::CONTEXT,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Diagnostics_Debug", feature = "Win32_System_Kernel"))]
-impl ::core::marker::Copy for PSS_THREAD_ENTRY {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Diagnostics_Debug", feature = "Win32_System_Kernel"))]
-impl ::core::clone::Clone for PSS_THREAD_ENTRY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PSS_THREAD_INFORMATION {
     pub ThreadsCaptured: u32,
     pub ContextLength: u32,
 }
-impl ::core::marker::Copy for PSS_THREAD_INFORMATION {}
-impl ::core::clone::Clone for PSS_THREAD_INFORMATION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct PSS_VA_CLONE_INFORMATION {
     pub VaCloneHandle: super::super::super::Foundation::HANDLE,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for PSS_VA_CLONE_INFORMATION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for PSS_VA_CLONE_INFORMATION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PSS_VA_SPACE_ENTRY {
-    pub BaseAddress: *mut ::core::ffi::c_void,
-    pub AllocationBase: *mut ::core::ffi::c_void,
+    pub BaseAddress: *mut core::ffi::c_void,
+    pub AllocationBase: *mut core::ffi::c_void,
     pub AllocationProtect: u32,
     pub RegionSize: usize,
     pub State: u32,
@@ -423,24 +281,13 @@ pub struct PSS_VA_SPACE_ENTRY {
     pub Type: u32,
     pub TimeDateStamp: u32,
     pub SizeOfImage: u32,
-    pub ImageBase: *mut ::core::ffi::c_void,
+    pub ImageBase: *mut core::ffi::c_void,
     pub CheckSum: u32,
     pub MappedFileNameLength: u16,
-    pub MappedFileName: ::windows_sys::core::PCWSTR,
-}
-impl ::core::marker::Copy for PSS_VA_SPACE_ENTRY {}
-impl ::core::clone::Clone for PSS_VA_SPACE_ENTRY {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub MappedFileName: windows_sys::core::PCWSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PSS_VA_SPACE_INFORMATION {
     pub RegionCount: u32,
-}
-impl ::core::marker::Copy for PSS_VA_SPACE_INFORMATION {}
-impl ::core::clone::Clone for PSS_VA_SPACE_INFORMATION {
-    fn clone(&self) -> Self {
-        *self
-    }
 }

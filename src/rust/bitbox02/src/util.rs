@@ -86,6 +86,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::manual_c_str_literals)]
     fn test_str_from_null_terminated_ptr() {
         assert_eq!(
             unsafe { str_from_null_terminated_ptr(b"\0".as_ptr()) },

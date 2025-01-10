@@ -32,7 +32,7 @@ unsafe fn lock_global_state() -> impl ops::DerefMut<Target = GlobalState> {
     #[cfg(feature = "libc")]
     {
         static mut MUTEX: libc::pthread_mutex_t = libc::PTHREAD_MUTEX_INITIALIZER;
-        unsafe { libc::pthread_mutex_lock(&mut MUTEX) };
+        unsafe { libc::pthread_mutex_lock(core::ptr::addr_of_mut!(MUTEX)) };
 
         static mut STATE: GlobalState = GlobalState {
             object: ptr::null_mut(),
@@ -41,20 +41,22 @@ unsafe fn lock_global_state() -> impl ops::DerefMut<Target = GlobalState> {
         struct LockGuard;
         impl Drop for LockGuard {
             fn drop(&mut self) {
-                unsafe { libc::pthread_mutex_unlock(&mut MUTEX) };
+                unsafe { libc::pthread_mutex_unlock(core::ptr::addr_of_mut!(MUTEX)) };
             }
         }
 
         impl ops::Deref for LockGuard {
             type Target = GlobalState;
+
+            #[allow(static_mut_refs)]
             fn deref(&self) -> &GlobalState {
-                unsafe { &STATE }
+                unsafe { &*core::ptr::addr_of!(STATE) }
             }
         }
 
         impl ops::DerefMut for LockGuard {
             fn deref_mut(&mut self) -> &mut GlobalState {
-                unsafe { &mut STATE }
+                unsafe { &mut *core::ptr::addr_of_mut!(STATE) }
             }
         }
 

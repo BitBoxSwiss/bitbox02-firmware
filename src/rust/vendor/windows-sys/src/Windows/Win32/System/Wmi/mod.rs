@@ -1,74 +1,4 @@
-::windows_targets::link!("mi.dll" "cdecl" fn MI_Application_InitializeV1(flags : u32, applicationid : *const u16, extendederror : *mut *mut MI_Instance, application : *mut MI_Application) -> MI_Result);
-pub type IEnumWbemClassObject = *mut ::core::ffi::c_void;
-pub type IMofCompiler = *mut ::core::ffi::c_void;
-pub type ISWbemDateTime = *mut ::core::ffi::c_void;
-pub type ISWbemEventSource = *mut ::core::ffi::c_void;
-pub type ISWbemLastError = *mut ::core::ffi::c_void;
-pub type ISWbemLocator = *mut ::core::ffi::c_void;
-pub type ISWbemMethod = *mut ::core::ffi::c_void;
-pub type ISWbemMethodSet = *mut ::core::ffi::c_void;
-pub type ISWbemNamedValue = *mut ::core::ffi::c_void;
-pub type ISWbemNamedValueSet = *mut ::core::ffi::c_void;
-pub type ISWbemObject = *mut ::core::ffi::c_void;
-pub type ISWbemObjectEx = *mut ::core::ffi::c_void;
-pub type ISWbemObjectPath = *mut ::core::ffi::c_void;
-pub type ISWbemObjectSet = *mut ::core::ffi::c_void;
-pub type ISWbemPrivilege = *mut ::core::ffi::c_void;
-pub type ISWbemPrivilegeSet = *mut ::core::ffi::c_void;
-pub type ISWbemProperty = *mut ::core::ffi::c_void;
-pub type ISWbemPropertySet = *mut ::core::ffi::c_void;
-pub type ISWbemQualifier = *mut ::core::ffi::c_void;
-pub type ISWbemQualifierSet = *mut ::core::ffi::c_void;
-pub type ISWbemRefreshableItem = *mut ::core::ffi::c_void;
-pub type ISWbemRefresher = *mut ::core::ffi::c_void;
-pub type ISWbemSecurity = *mut ::core::ffi::c_void;
-pub type ISWbemServices = *mut ::core::ffi::c_void;
-pub type ISWbemServicesEx = *mut ::core::ffi::c_void;
-pub type ISWbemSink = *mut ::core::ffi::c_void;
-pub type ISWbemSinkEvents = *mut ::core::ffi::c_void;
-pub type IUnsecuredApartment = *mut ::core::ffi::c_void;
-pub type IWMIExtension = *mut ::core::ffi::c_void;
-pub type IWbemAddressResolution = *mut ::core::ffi::c_void;
-pub type IWbemBackupRestore = *mut ::core::ffi::c_void;
-pub type IWbemBackupRestoreEx = *mut ::core::ffi::c_void;
-pub type IWbemCallResult = *mut ::core::ffi::c_void;
-pub type IWbemClassObject = *mut ::core::ffi::c_void;
-pub type IWbemClientConnectionTransport = *mut ::core::ffi::c_void;
-pub type IWbemClientTransport = *mut ::core::ffi::c_void;
-pub type IWbemConfigureRefresher = *mut ::core::ffi::c_void;
-pub type IWbemConnectorLogin = *mut ::core::ffi::c_void;
-pub type IWbemConstructClassObject = *mut ::core::ffi::c_void;
-pub type IWbemContext = *mut ::core::ffi::c_void;
-pub type IWbemDecoupledBasicEventProvider = *mut ::core::ffi::c_void;
-pub type IWbemDecoupledRegistrar = *mut ::core::ffi::c_void;
-pub type IWbemEventConsumerProvider = *mut ::core::ffi::c_void;
-pub type IWbemEventProvider = *mut ::core::ffi::c_void;
-pub type IWbemEventProviderQuerySink = *mut ::core::ffi::c_void;
-pub type IWbemEventProviderSecurity = *mut ::core::ffi::c_void;
-pub type IWbemEventSink = *mut ::core::ffi::c_void;
-pub type IWbemHiPerfEnum = *mut ::core::ffi::c_void;
-pub type IWbemHiPerfProvider = *mut ::core::ffi::c_void;
-pub type IWbemLevel1Login = *mut ::core::ffi::c_void;
-pub type IWbemLocator = *mut ::core::ffi::c_void;
-pub type IWbemObjectAccess = *mut ::core::ffi::c_void;
-pub type IWbemObjectSink = *mut ::core::ffi::c_void;
-pub type IWbemObjectSinkEx = *mut ::core::ffi::c_void;
-pub type IWbemObjectTextSrc = *mut ::core::ffi::c_void;
-pub type IWbemPath = *mut ::core::ffi::c_void;
-pub type IWbemPathKeyList = *mut ::core::ffi::c_void;
-pub type IWbemPropertyProvider = *mut ::core::ffi::c_void;
-pub type IWbemProviderIdentity = *mut ::core::ffi::c_void;
-pub type IWbemProviderInit = *mut ::core::ffi::c_void;
-pub type IWbemProviderInitSink = *mut ::core::ffi::c_void;
-pub type IWbemQualifierSet = *mut ::core::ffi::c_void;
-pub type IWbemQuery = *mut ::core::ffi::c_void;
-pub type IWbemRefresher = *mut ::core::ffi::c_void;
-pub type IWbemServices = *mut ::core::ffi::c_void;
-pub type IWbemShutdown = *mut ::core::ffi::c_void;
-pub type IWbemStatusCodeText = *mut ::core::ffi::c_void;
-pub type IWbemTransport = *mut ::core::ffi::c_void;
-pub type IWbemUnboundObjectSink = *mut ::core::ffi::c_void;
-pub type IWbemUnsecuredApartment = *mut ::core::ffi::c_void;
+windows_targets::link!("mi.dll" "cdecl" fn MI_Application_InitializeV1(flags : u32, applicationid : *const u16, extendederror : *mut *mut MI_Instance, application : *mut MI_Application) -> MI_Result);
 pub const CIM_BOOLEAN: CIMTYPE_ENUMERATION = 11i32;
 pub const CIM_CHAR16: CIMTYPE_ENUMERATION = 103i32;
 pub const CIM_DATETIME: CIMTYPE_ENUMERATION = 101i32;
@@ -249,8 +179,8 @@ pub const MI_SINT8: MI_Type = 2i32;
 pub const MI_SINT8A: MI_Type = 18i32;
 pub const MI_STRING: MI_Type = 13i32;
 pub const MI_STRINGA: MI_Type = 29i32;
-pub const MI_SUBSCRIBE_BOOKMARK_NEWEST: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("MI_SUBSCRIBE_BOOKMARK_NEWEST");
-pub const MI_SUBSCRIBE_BOOKMARK_OLDEST: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("MI_SUBSCRIBE_BOOKMARK_OLDEST");
+pub const MI_SUBSCRIBE_BOOKMARK_NEWEST: windows_sys::core::PCWSTR = windows_sys::core::w!("MI_SUBSCRIBE_BOOKMARK_NEWEST");
+pub const MI_SUBSCRIBE_BOOKMARK_OLDEST: windows_sys::core::PCWSTR = windows_sys::core::w!("MI_SUBSCRIBE_BOOKMARK_OLDEST");
 pub const MI_SubscriptionDeliveryType_Pull: MI_SubscriptionDeliveryType = 1i32;
 pub const MI_SubscriptionDeliveryType_Push: MI_SubscriptionDeliveryType = 2i32;
 pub const MI_UINT16: MI_Type = 3i32;
@@ -264,32 +194,6 @@ pub const MI_UINT8A: MI_Type = 17i32;
 pub const MI_WRITEMESSAGE_CHANNEL_DEBUG: u32 = 2u32;
 pub const MI_WRITEMESSAGE_CHANNEL_VERBOSE: u32 = 1u32;
 pub const MI_WRITEMESSAGE_CHANNEL_WARNING: u32 = 0u32;
-pub const MofCompiler: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x6daf9757_2e37_11d2_aec9_00c04fb68820);
-pub const SWbemDateTime: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x47dfbe54_cf76_11d3_b38f_00105a1f473a);
-pub const SWbemEventSource: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x04b83d58_21ae_11d2_8b33_00600806d9b6);
-pub const SWbemLastError: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xc2feeeac_cfcd_11d1_8b05_00600806d9b6);
-pub const SWbemLocator: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x76a64158_cb41_11d1_8b02_00600806d9b6);
-pub const SWbemMethod: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x04b83d5b_21ae_11d2_8b33_00600806d9b6);
-pub const SWbemMethodSet: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x04b83d5a_21ae_11d2_8b33_00600806d9b6);
-pub const SWbemNamedValue: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x04b83d60_21ae_11d2_8b33_00600806d9b6);
-pub const SWbemNamedValueSet: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9aed384e_ce8b_11d1_8b05_00600806d9b6);
-pub const SWbemObject: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x04b83d62_21ae_11d2_8b33_00600806d9b6);
-pub const SWbemObjectEx: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xd6bdafb2_9435_491f_bb87_6aa0f0bc31a2);
-pub const SWbemObjectPath: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x5791bc26_ce9c_11d1_97bf_0000f81e849c);
-pub const SWbemObjectSet: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x04b83d61_21ae_11d2_8b33_00600806d9b6);
-pub const SWbemPrivilege: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x26ee67bc_5804_11d2_8b4a_00600806d9b6);
-pub const SWbemPrivilegeSet: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x26ee67be_5804_11d2_8b4a_00600806d9b6);
-pub const SWbemProperty: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x04b83d5d_21ae_11d2_8b33_00600806d9b6);
-pub const SWbemPropertySet: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x04b83d5c_21ae_11d2_8b33_00600806d9b6);
-pub const SWbemQualifier: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x04b83d5f_21ae_11d2_8b33_00600806d9b6);
-pub const SWbemQualifierSet: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x04b83d5e_21ae_11d2_8b33_00600806d9b6);
-pub const SWbemRefreshableItem: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x8c6854bc_de4b_11d3_b390_00105a1f473a);
-pub const SWbemRefresher: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xd269bf5c_d9c1_11d3_b38f_00105a1f473a);
-pub const SWbemSecurity: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xb54d66e9_2287_11d2_8b33_00600806d9b6);
-pub const SWbemServices: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x04b83d63_21ae_11d2_8b33_00600806d9b6);
-pub const SWbemServicesEx: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x62e522dc_8cf3_40a8_8b2e_37d595651e40);
-pub const SWbemSink: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x75718c9a_f029_11d1_a1ac_00c04fb6c223);
-pub const UnsecuredApartment: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x49bd2028_1523_11d1_ad79_00c04fd8fdff);
 pub const WBEMESS_E_AUTHZ_NOT_PRIVILEGED: WBEMSTATUS = -2147213309i32;
 pub const WBEMESS_E_REGISTRATION_TOO_BROAD: WBEMSTATUS = -2147213311i32;
 pub const WBEMESS_E_REGISTRATION_TOO_PRECISE: WBEMSTATUS = -2147213310i32;
@@ -653,7 +557,6 @@ pub const WBEM_S_SOURCE_NOT_AVAILABLE: WBEMSTATUS = 262167i32;
 pub const WBEM_S_SUBJECT_TO_SDS: WBEM_EXTRA_RETURN_CODES = 274435i32;
 pub const WBEM_S_TIMEDOUT: WBEMSTATUS = 262148i32;
 pub const WBEM_WRITE_PROVIDER: WBEM_SECURITY_FLAGS = 16i32;
-pub const WMIExtension: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xf0975afe_5c7f_11d2_8b74_00104b2afb41);
 pub const WMIQ_ANALYSIS_ASSOC_QUERY: WMIQ_ANALYSIS_TYPE = 2i32;
 pub const WMIQ_ANALYSIS_PROP_ANALYSIS_MATRIX: WMIQ_ANALYSIS_TYPE = 3i32;
 pub const WMIQ_ANALYSIS_QUERY_TEXT: WMIQ_ANALYSIS_TYPE = 4i32;
@@ -772,24 +675,6 @@ pub const WMI_OBJ_TEXT_WMI_EXT6: WMI_OBJ_TEXT = 8i32;
 pub const WMI_OBJ_TEXT_WMI_EXT7: WMI_OBJ_TEXT = 9i32;
 pub const WMI_OBJ_TEXT_WMI_EXT8: WMI_OBJ_TEXT = 10i32;
 pub const WMI_OBJ_TEXT_WMI_EXT9: WMI_OBJ_TEXT = 11i32;
-pub const WbemAdministrativeLocator: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xcb8555cc_9128_11d1_ad9b_00c04fd8fdff);
-pub const WbemAuthenticatedLocator: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xcd184336_9128_11d1_ad9b_00c04fd8fdff);
-pub const WbemBackupRestore: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xc49e32c6_bc8b_11d2_85d4_00105a1f8304);
-pub const WbemClassObject: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9a653086_174f_11d2_b5f9_00104b703efd);
-pub const WbemContext: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x674b6698_ee92_11d0_ad71_00c04fd8fdff);
-pub const WbemDCOMTransport: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xf7ce2e13_8c90_11d1_9e7b_00c04fc324a8);
-pub const WbemDecoupledBasicEventProvider: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xf5f75737_2843_4f22_933d_c76a97cda62f);
-pub const WbemDecoupledRegistrar: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x4cfc7932_0f9d_4bef_9c32_8ea2a6b56fcb);
-pub const WbemDefPath: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xcf4cc405_e2c5_4ddd_b3ce_5e7582d8c9fa);
-pub const WbemLevel1Login: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x8bc3f05e_d86b_11d0_a075_00c04fb68820);
-pub const WbemLocalAddrRes: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xa1044801_8f7e_11d1_9e7c_00c04fc324a8);
-pub const WbemLocator: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x4590f811_1d3a_11d0_891f_00aa004b2e24);
-pub const WbemObjectTextSrc: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x8d1c559d_84f0_4bb3_a7d5_56a7435a9ba6);
-pub const WbemQuery: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xeac8a024_21e2_4523_ad73_a71a0aa2f56a);
-pub const WbemRefresher: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xc71566f2_561e_11d1_ad87_00c04fd8fdff);
-pub const WbemStatusCodeText: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xeb87e1bd_3233_11d2_aec9_00c04fb68820);
-pub const WbemUnauthenticatedLocator: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x443e7b79_de31_11d2_b340_00104bcc4b4a);
-pub const WbemUninitializedClassObject: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x7a0227f6_7108_11d1_ad90_00c04fd8fdff);
 pub const wbemAuthenticationLevelCall: WbemAuthenticationLevelEnum = 3i32;
 pub const wbemAuthenticationLevelConnect: WbemAuthenticationLevelEnum = 2i32;
 pub const wbemAuthenticationLevelDefault: WbemAuthenticationLevelEnum = 0i32;
@@ -1073,18 +958,14 @@ pub type WbemQueryFlagEnum = i32;
 pub type WbemTextFlagEnum = i32;
 pub type WbemTimeout = i32;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Application {
     pub reserved1: u64,
     pub reserved2: isize,
     pub ft: *const MI_ApplicationFT,
 }
-impl ::core::marker::Copy for MI_Application {}
-impl ::core::clone::Clone for MI_Application {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ApplicationFT {
     pub Close: isize,
     pub NewSession: isize,
@@ -1098,106 +979,61 @@ pub struct MI_ApplicationFT {
     pub NewInstanceFromClass: isize,
     pub NewClass: isize,
 }
-impl ::core::marker::Copy for MI_ApplicationFT {}
-impl ::core::clone::Clone for MI_ApplicationFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Array {
-    pub data: *mut ::core::ffi::c_void,
+    pub data: *mut core::ffi::c_void,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_Array {}
-impl ::core::clone::Clone for MI_Array {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ArrayField {
     pub value: MI_Array,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ArrayField {}
-impl ::core::clone::Clone for MI_ArrayField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_BooleanA {
     pub data: *mut u8,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_BooleanA {}
-impl ::core::clone::Clone for MI_BooleanA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_BooleanAField {
     pub value: MI_BooleanA,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_BooleanAField {}
-impl ::core::clone::Clone for MI_BooleanAField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_BooleanField {
     pub value: u8,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_BooleanField {}
-impl ::core::clone::Clone for MI_BooleanField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Char16A {
     pub data: *mut u16,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_Char16A {}
-impl ::core::clone::Clone for MI_Char16A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Char16AField {
     pub value: MI_Char16A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Char16AField {}
-impl ::core::clone::Clone for MI_Char16AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Char16Field {
     pub value: u16,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Char16Field {}
-impl ::core::clone::Clone for MI_Char16Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Class {
     pub ft: *const MI_ClassFT,
     pub classDecl: *const MI_ClassDecl,
@@ -1205,13 +1041,8 @@ pub struct MI_Class {
     pub serverName: *const u16,
     pub reserved: [isize; 4],
 }
-impl ::core::marker::Copy for MI_Class {}
-impl ::core::clone::Clone for MI_Class {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ClassDecl {
     pub flags: u32,
     pub code: u32,
@@ -1229,13 +1060,8 @@ pub struct MI_ClassDecl {
     pub providerFT: *const MI_ProviderFT,
     pub owningClass: *mut MI_Class,
 }
-impl ::core::marker::Copy for MI_ClassDecl {}
-impl ::core::clone::Clone for MI_ClassDecl {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ClassFT {
     pub GetClassNameA: isize,
     pub GetNameSpace: isize,
@@ -1252,13 +1078,8 @@ pub struct MI_ClassFT {
     pub Delete: isize,
     pub Clone: isize,
 }
-impl ::core::marker::Copy for MI_ClassFT {}
-impl ::core::clone::Clone for MI_ClassFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ClientFT_V1 {
     pub applicationFT: *const MI_ApplicationFT,
     pub sessionFT: *const MI_SessionFT,
@@ -1271,584 +1092,334 @@ pub struct MI_ClientFT_V1 {
     pub operationOptionsFT: *const MI_OperationOptionsFT,
     pub utilitiesFT: *const MI_UtilitiesFT,
 }
-impl ::core::marker::Copy for MI_ClientFT_V1 {}
-impl ::core::clone::Clone for MI_ClientFT_V1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstBooleanA {
     pub data: *const u8,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstBooleanA {}
-impl ::core::clone::Clone for MI_ConstBooleanA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstBooleanAField {
     pub value: MI_ConstBooleanA,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstBooleanAField {}
-impl ::core::clone::Clone for MI_ConstBooleanAField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstBooleanField {
     pub value: u8,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstBooleanField {}
-impl ::core::clone::Clone for MI_ConstBooleanField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstChar16A {
     pub data: *const u16,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstChar16A {}
-impl ::core::clone::Clone for MI_ConstChar16A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstChar16AField {
     pub value: MI_ConstChar16A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstChar16AField {}
-impl ::core::clone::Clone for MI_ConstChar16AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstChar16Field {
     pub value: u16,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstChar16Field {}
-impl ::core::clone::Clone for MI_ConstChar16Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstDatetimeA {
     pub data: *const MI_Datetime,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstDatetimeA {}
-impl ::core::clone::Clone for MI_ConstDatetimeA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstDatetimeAField {
     pub value: MI_ConstDatetimeA,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstDatetimeAField {}
-impl ::core::clone::Clone for MI_ConstDatetimeAField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstDatetimeField {
     pub value: MI_Datetime,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstDatetimeField {}
-impl ::core::clone::Clone for MI_ConstDatetimeField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstInstanceA {
     pub data: *const *const MI_Instance,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstInstanceA {}
-impl ::core::clone::Clone for MI_ConstInstanceA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstInstanceAField {
     pub value: MI_ConstInstanceA,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstInstanceAField {}
-impl ::core::clone::Clone for MI_ConstInstanceAField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstInstanceField {
     pub value: *const MI_Instance,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstInstanceField {}
-impl ::core::clone::Clone for MI_ConstInstanceField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstReal32A {
     pub data: *const f32,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstReal32A {}
-impl ::core::clone::Clone for MI_ConstReal32A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstReal32AField {
     pub value: MI_ConstReal32A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstReal32AField {}
-impl ::core::clone::Clone for MI_ConstReal32AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstReal32Field {
     pub value: f32,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstReal32Field {}
-impl ::core::clone::Clone for MI_ConstReal32Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstReal64A {
     pub data: *const f64,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstReal64A {}
-impl ::core::clone::Clone for MI_ConstReal64A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstReal64AField {
     pub value: MI_ConstReal64A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstReal64AField {}
-impl ::core::clone::Clone for MI_ConstReal64AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstReal64Field {
     pub value: f64,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstReal64Field {}
-impl ::core::clone::Clone for MI_ConstReal64Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstReferenceA {
     pub data: *const *const MI_Instance,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstReferenceA {}
-impl ::core::clone::Clone for MI_ConstReferenceA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstReferenceAField {
     pub value: MI_ConstReferenceA,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstReferenceAField {}
-impl ::core::clone::Clone for MI_ConstReferenceAField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstReferenceField {
     pub value: *const MI_Instance,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstReferenceField {}
-impl ::core::clone::Clone for MI_ConstReferenceField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstSint16A {
     pub data: *const i16,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstSint16A {}
-impl ::core::clone::Clone for MI_ConstSint16A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstSint16AField {
     pub value: MI_ConstSint16A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstSint16AField {}
-impl ::core::clone::Clone for MI_ConstSint16AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstSint16Field {
     pub value: i16,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstSint16Field {}
-impl ::core::clone::Clone for MI_ConstSint16Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstSint32A {
     pub data: *const i32,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstSint32A {}
-impl ::core::clone::Clone for MI_ConstSint32A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstSint32AField {
     pub value: MI_ConstSint32A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstSint32AField {}
-impl ::core::clone::Clone for MI_ConstSint32AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstSint32Field {
     pub value: i32,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstSint32Field {}
-impl ::core::clone::Clone for MI_ConstSint32Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstSint64A {
     pub data: *const i64,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstSint64A {}
-impl ::core::clone::Clone for MI_ConstSint64A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstSint64AField {
     pub value: MI_ConstSint64A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstSint64AField {}
-impl ::core::clone::Clone for MI_ConstSint64AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstSint64Field {
     pub value: i64,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstSint64Field {}
-impl ::core::clone::Clone for MI_ConstSint64Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstSint8A {
     pub data: *const i8,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstSint8A {}
-impl ::core::clone::Clone for MI_ConstSint8A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstSint8AField {
     pub value: MI_ConstSint8A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstSint8AField {}
-impl ::core::clone::Clone for MI_ConstSint8AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstSint8Field {
     pub value: i8,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstSint8Field {}
-impl ::core::clone::Clone for MI_ConstSint8Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstStringA {
     pub data: *const *const u16,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstStringA {}
-impl ::core::clone::Clone for MI_ConstStringA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstStringAField {
     pub value: MI_ConstStringA,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstStringAField {}
-impl ::core::clone::Clone for MI_ConstStringAField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstStringField {
     pub value: *const u16,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstStringField {}
-impl ::core::clone::Clone for MI_ConstStringField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstUint16A {
     pub data: *const u16,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstUint16A {}
-impl ::core::clone::Clone for MI_ConstUint16A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstUint16AField {
     pub value: MI_ConstUint16A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstUint16AField {}
-impl ::core::clone::Clone for MI_ConstUint16AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstUint16Field {
     pub value: u16,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstUint16Field {}
-impl ::core::clone::Clone for MI_ConstUint16Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstUint32A {
     pub data: *const u32,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstUint32A {}
-impl ::core::clone::Clone for MI_ConstUint32A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstUint32AField {
     pub value: MI_ConstUint32A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstUint32AField {}
-impl ::core::clone::Clone for MI_ConstUint32AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstUint32Field {
     pub value: u32,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstUint32Field {}
-impl ::core::clone::Clone for MI_ConstUint32Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstUint64A {
     pub data: *const u64,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstUint64A {}
-impl ::core::clone::Clone for MI_ConstUint64A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstUint64AField {
     pub value: MI_ConstUint64A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstUint64AField {}
-impl ::core::clone::Clone for MI_ConstUint64AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstUint64Field {
     pub value: u64,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstUint64Field {}
-impl ::core::clone::Clone for MI_ConstUint64Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstUint8A {
     pub data: *const u8,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ConstUint8A {}
-impl ::core::clone::Clone for MI_ConstUint8A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstUint8AField {
     pub value: MI_ConstUint8A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstUint8AField {}
-impl ::core::clone::Clone for MI_ConstUint8AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ConstUint8Field {
     pub value: u8,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ConstUint8Field {}
-impl ::core::clone::Clone for MI_ConstUint8Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Context {
     pub ft: *const MI_ContextFT,
     pub reserved: [isize; 3],
 }
-impl ::core::marker::Copy for MI_Context {}
-impl ::core::clone::Clone for MI_Context {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ContextFT {
     pub PostResult: isize,
     pub PostInstance: isize,
@@ -1881,81 +1452,46 @@ pub struct MI_ContextFT {
     pub PostCimError: isize,
     pub WriteError: isize,
 }
-impl ::core::marker::Copy for MI_ContextFT {}
-impl ::core::clone::Clone for MI_ContextFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Datetime {
     pub isTimestamp: u32,
     pub u: MI_Datetime_0,
 }
-impl ::core::marker::Copy for MI_Datetime {}
-impl ::core::clone::Clone for MI_Datetime {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union MI_Datetime_0 {
     pub timestamp: MI_Timestamp,
     pub interval: MI_Interval,
 }
-impl ::core::marker::Copy for MI_Datetime_0 {}
-impl ::core::clone::Clone for MI_Datetime_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_DatetimeA {
     pub data: *mut MI_Datetime,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_DatetimeA {}
-impl ::core::clone::Clone for MI_DatetimeA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_DatetimeAField {
     pub value: MI_DatetimeA,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_DatetimeAField {}
-impl ::core::clone::Clone for MI_DatetimeAField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_DatetimeField {
     pub value: MI_Datetime,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_DatetimeField {}
-impl ::core::clone::Clone for MI_DatetimeField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Deserializer {
     pub reserved1: u64,
     pub reserved2: isize,
 }
-impl ::core::marker::Copy for MI_Deserializer {}
-impl ::core::clone::Clone for MI_Deserializer {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_DeserializerFT {
     pub Close: isize,
     pub DeserializeClass: isize,
@@ -1964,25 +1500,15 @@ pub struct MI_DeserializerFT {
     pub DeserializeInstance: isize,
     pub Instance_GetClassName: isize,
 }
-impl ::core::marker::Copy for MI_DeserializerFT {}
-impl ::core::clone::Clone for MI_DeserializerFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_DestinationOptions {
     pub reserved1: u64,
     pub reserved2: isize,
     pub ft: *const MI_DestinationOptionsFT,
 }
-impl ::core::marker::Copy for MI_DestinationOptions {}
-impl ::core::clone::Clone for MI_DestinationOptions {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_DestinationOptionsFT {
     pub Delete: isize,
     pub SetString: isize,
@@ -2000,13 +1526,8 @@ pub struct MI_DestinationOptionsFT {
     pub SetInterval: isize,
     pub GetInterval: isize,
 }
-impl ::core::marker::Copy for MI_DestinationOptionsFT {}
-impl ::core::clone::Clone for MI_DestinationOptionsFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_FeatureDecl {
     pub flags: u32,
     pub code: u32,
@@ -2014,58 +1535,33 @@ pub struct MI_FeatureDecl {
     pub qualifiers: *const *const MI_Qualifier,
     pub numQualifiers: u32,
 }
-impl ::core::marker::Copy for MI_FeatureDecl {}
-impl ::core::clone::Clone for MI_FeatureDecl {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Filter {
     pub ft: *const MI_FilterFT,
     pub reserved: [isize; 3],
 }
-impl ::core::marker::Copy for MI_Filter {}
-impl ::core::clone::Clone for MI_Filter {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_FilterFT {
     pub Evaluate: isize,
     pub GetExpression: isize,
 }
-impl ::core::marker::Copy for MI_FilterFT {}
-impl ::core::clone::Clone for MI_FilterFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_HostedProvider {
     pub reserved1: u64,
     pub reserved2: isize,
     pub ft: *const MI_HostedProviderFT,
 }
-impl ::core::marker::Copy for MI_HostedProvider {}
-impl ::core::clone::Clone for MI_HostedProvider {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_HostedProviderFT {
     pub Close: isize,
     pub GetApplication: isize,
 }
-impl ::core::marker::Copy for MI_HostedProviderFT {}
-impl ::core::clone::Clone for MI_HostedProviderFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Instance {
     pub ft: *const MI_InstanceFT,
     pub classDecl: *const MI_ClassDecl,
@@ -2073,47 +1569,27 @@ pub struct MI_Instance {
     pub nameSpace: *const u16,
     pub reserved: [isize; 4],
 }
-impl ::core::marker::Copy for MI_Instance {}
-impl ::core::clone::Clone for MI_Instance {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_InstanceA {
     pub data: *mut *mut MI_Instance,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_InstanceA {}
-impl ::core::clone::Clone for MI_InstanceA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_InstanceAField {
     pub value: MI_InstanceA,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_InstanceAField {}
-impl ::core::clone::Clone for MI_InstanceAField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_InstanceExFT {
     pub parent: MI_InstanceFT,
     pub Normalize: isize,
 }
-impl ::core::marker::Copy for MI_InstanceExFT {}
-impl ::core::clone::Clone for MI_InstanceExFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_InstanceFT {
     pub Clone: isize,
     pub Destruct: isize,
@@ -2134,25 +1610,15 @@ pub struct MI_InstanceFT {
     pub SetServerName: isize,
     pub GetClass: isize,
 }
-impl ::core::marker::Copy for MI_InstanceFT {}
-impl ::core::clone::Clone for MI_InstanceFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_InstanceField {
     pub value: *mut MI_Instance,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_InstanceField {}
-impl ::core::clone::Clone for MI_InstanceField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Interval {
     pub days: u32,
     pub hours: u32,
@@ -2163,13 +1629,8 @@ pub struct MI_Interval {
     pub __padding2: u32,
     pub __padding3: u32,
 }
-impl ::core::marker::Copy for MI_Interval {}
-impl ::core::clone::Clone for MI_Interval {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_MethodDecl {
     pub flags: u32,
     pub code: u32,
@@ -2185,13 +1646,8 @@ pub struct MI_MethodDecl {
     pub schema: *const MI_SchemaDecl,
     pub function: MI_MethodDecl_Invoke,
 }
-impl ::core::marker::Copy for MI_MethodDecl {}
-impl ::core::clone::Clone for MI_MethodDecl {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Module {
     pub version: u32,
     pub generatorVersion: u32,
@@ -2202,14 +1658,9 @@ pub struct MI_Module {
     pub Unload: MI_Module_Unload,
     pub dynamicProviderFT: *const MI_ProviderFT,
 }
-impl ::core::marker::Copy for MI_Module {}
-impl ::core::clone::Clone for MI_Module {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 pub type MI_Module_Self = isize;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ObjectDecl {
     pub flags: u32,
     pub code: u32,
@@ -2220,27 +1671,17 @@ pub struct MI_ObjectDecl {
     pub numProperties: u32,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ObjectDecl {}
-impl ::core::clone::Clone for MI_ObjectDecl {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Operation {
     pub reserved1: u64,
     pub reserved2: isize,
     pub ft: *const MI_OperationFT,
 }
-impl ::core::marker::Copy for MI_Operation {}
-impl ::core::clone::Clone for MI_Operation {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_OperationCallbacks {
-    pub callbackContext: *mut ::core::ffi::c_void,
+    pub callbackContext: *mut core::ffi::c_void,
     pub promptUser: MI_OperationCallback_PromptUser,
     pub writeError: MI_OperationCallback_WriteError,
     pub writeMessage: MI_OperationCallback_WriteMessage,
@@ -2250,13 +1691,8 @@ pub struct MI_OperationCallbacks {
     pub classResult: MI_OperationCallback_Class,
     pub streamedParameterResult: MI_OperationCallback_StreamedParameter,
 }
-impl ::core::marker::Copy for MI_OperationCallbacks {}
-impl ::core::clone::Clone for MI_OperationCallbacks {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_OperationFT {
     pub Close: isize,
     pub Cancel: isize,
@@ -2265,25 +1701,15 @@ pub struct MI_OperationFT {
     pub GetIndication: isize,
     pub GetClass: isize,
 }
-impl ::core::marker::Copy for MI_OperationFT {}
-impl ::core::clone::Clone for MI_OperationFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_OperationOptions {
     pub reserved1: u64,
     pub reserved2: isize,
     pub ft: *const MI_OperationOptionsFT,
 }
-impl ::core::marker::Copy for MI_OperationOptions {}
-impl ::core::clone::Clone for MI_OperationOptions {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_OperationOptionsFT {
     pub Delete: isize,
     pub SetString: isize,
@@ -2299,13 +1725,8 @@ pub struct MI_OperationOptionsFT {
     pub SetInterval: isize,
     pub GetInterval: isize,
 }
-impl ::core::marker::Copy for MI_OperationOptionsFT {}
-impl ::core::clone::Clone for MI_OperationOptionsFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ParameterDecl {
     pub flags: u32,
     pub code: u32,
@@ -2317,38 +1738,23 @@ pub struct MI_ParameterDecl {
     pub subscript: u32,
     pub offset: u32,
 }
-impl ::core::marker::Copy for MI_ParameterDecl {}
-impl ::core::clone::Clone for MI_ParameterDecl {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ParameterSet {
     pub reserved1: u64,
     pub reserved2: isize,
     pub ft: *const MI_ParameterSetFT,
 }
-impl ::core::marker::Copy for MI_ParameterSet {}
-impl ::core::clone::Clone for MI_ParameterSet {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ParameterSetFT {
     pub GetMethodReturnType: isize,
     pub GetParameterCount: isize,
     pub GetParameterAt: isize,
     pub GetParameter: isize,
 }
-impl ::core::marker::Copy for MI_ParameterSetFT {}
-impl ::core::clone::Clone for MI_ParameterSetFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_PropertyDecl {
     pub flags: u32,
     pub code: u32,
@@ -2361,26 +1767,16 @@ pub struct MI_PropertyDecl {
     pub offset: u32,
     pub origin: *const u16,
     pub propagator: *const u16,
-    pub value: *const ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for MI_PropertyDecl {}
-impl ::core::clone::Clone for MI_PropertyDecl {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub value: *const core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_PropertySet {
     pub ft: *const MI_PropertySetFT,
     pub reserved: [isize; 3],
 }
-impl ::core::marker::Copy for MI_PropertySet {}
-impl ::core::clone::Clone for MI_PropertySet {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_PropertySetFT {
     pub GetElementCount: isize,
     pub ContainsElement: isize,
@@ -2391,13 +1787,8 @@ pub struct MI_PropertySetFT {
     pub Delete: isize,
     pub Clone: isize,
 }
-impl ::core::marker::Copy for MI_PropertySetFT {}
-impl ::core::clone::Clone for MI_PropertySetFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ProviderFT {
     pub Load: MI_ProviderFT_Load,
     pub Unload: MI_ProviderFT_Unload,
@@ -2414,206 +1805,121 @@ pub struct MI_ProviderFT {
     pub Unsubscribe: MI_ProviderFT_Unsubscribe,
     pub Invoke: MI_ProviderFT_Invoke,
 }
-impl ::core::marker::Copy for MI_ProviderFT {}
-impl ::core::clone::Clone for MI_ProviderFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Qualifier {
     pub name: *const u16,
     pub r#type: u32,
     pub flavor: u32,
-    pub value: *const ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for MI_Qualifier {}
-impl ::core::clone::Clone for MI_Qualifier {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub value: *const core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_QualifierDecl {
     pub name: *const u16,
     pub r#type: u32,
     pub scope: u32,
     pub flavor: u32,
     pub subscript: u32,
-    pub value: *const ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for MI_QualifierDecl {}
-impl ::core::clone::Clone for MI_QualifierDecl {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub value: *const core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_QualifierSet {
     pub reserved1: u64,
     pub reserved2: isize,
     pub ft: *const MI_QualifierSetFT,
 }
-impl ::core::marker::Copy for MI_QualifierSet {}
-impl ::core::clone::Clone for MI_QualifierSet {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_QualifierSetFT {
     pub GetQualifierCount: isize,
     pub GetQualifierAt: isize,
     pub GetQualifier: isize,
 }
-impl ::core::marker::Copy for MI_QualifierSetFT {}
-impl ::core::clone::Clone for MI_QualifierSetFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Real32A {
     pub data: *mut f32,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_Real32A {}
-impl ::core::clone::Clone for MI_Real32A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Real32AField {
     pub value: MI_Real32A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Real32AField {}
-impl ::core::clone::Clone for MI_Real32AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Real32Field {
     pub value: f32,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Real32Field {}
-impl ::core::clone::Clone for MI_Real32Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Real64A {
     pub data: *mut f64,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_Real64A {}
-impl ::core::clone::Clone for MI_Real64A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Real64AField {
     pub value: MI_Real64A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Real64AField {}
-impl ::core::clone::Clone for MI_Real64AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Real64Field {
     pub value: f64,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Real64Field {}
-impl ::core::clone::Clone for MI_Real64Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ReferenceA {
     pub data: *mut *mut MI_Instance,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_ReferenceA {}
-impl ::core::clone::Clone for MI_ReferenceA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ReferenceAField {
     pub value: MI_ReferenceA,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ReferenceAField {}
-impl ::core::clone::Clone for MI_ReferenceAField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ReferenceField {
     pub value: *mut MI_Instance,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_ReferenceField {}
-impl ::core::clone::Clone for MI_ReferenceField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_SchemaDecl {
     pub qualifierDecls: *const *const MI_QualifierDecl,
     pub numQualifierDecls: u32,
     pub classDecls: *const *const MI_ClassDecl,
     pub numClassDecls: u32,
 }
-impl ::core::marker::Copy for MI_SchemaDecl {}
-impl ::core::clone::Clone for MI_SchemaDecl {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Serializer {
     pub reserved1: u64,
     pub reserved2: isize,
 }
-impl ::core::marker::Copy for MI_Serializer {}
-impl ::core::clone::Clone for MI_Serializer {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_SerializerFT {
     pub Close: isize,
     pub SerializeClass: isize,
     pub SerializeInstance: isize,
 }
-impl ::core::marker::Copy for MI_SerializerFT {}
-impl ::core::clone::Clone for MI_SerializerFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Server {
     pub serverFT: *const MI_ServerFT,
     pub contextFT: *const MI_ContextFT,
@@ -2621,48 +1927,28 @@ pub struct MI_Server {
     pub propertySetFT: *const MI_PropertySetFT,
     pub filterFT: *const MI_FilterFT,
 }
-impl ::core::marker::Copy for MI_Server {}
-impl ::core::clone::Clone for MI_Server {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_ServerFT {
     pub GetVersion: isize,
     pub GetSystemName: isize,
 }
-impl ::core::marker::Copy for MI_ServerFT {}
-impl ::core::clone::Clone for MI_ServerFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Session {
     pub reserved1: u64,
     pub reserved2: isize,
     pub ft: *const MI_SessionFT,
 }
-impl ::core::marker::Copy for MI_Session {}
-impl ::core::clone::Clone for MI_Session {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_SessionCallbacks {
-    pub callbackContext: *mut ::core::ffi::c_void,
+    pub callbackContext: *mut core::ffi::c_void,
     pub writeMessage: isize,
     pub writeError: isize,
 }
-impl ::core::marker::Copy for MI_SessionCallbacks {}
-impl ::core::clone::Clone for MI_SessionCallbacks {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_SessionFT {
     pub Close: isize,
     pub GetApplication: isize,
@@ -2680,200 +1966,115 @@ pub struct MI_SessionFT {
     pub EnumerateClasses: isize,
     pub TestConnection: isize,
 }
-impl ::core::marker::Copy for MI_SessionFT {}
-impl ::core::clone::Clone for MI_SessionFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Sint16A {
     pub data: *mut i16,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_Sint16A {}
-impl ::core::clone::Clone for MI_Sint16A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Sint16AField {
     pub value: MI_Sint16A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Sint16AField {}
-impl ::core::clone::Clone for MI_Sint16AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Sint16Field {
     pub value: i16,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Sint16Field {}
-impl ::core::clone::Clone for MI_Sint16Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Sint32A {
     pub data: *mut i32,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_Sint32A {}
-impl ::core::clone::Clone for MI_Sint32A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Sint32AField {
     pub value: MI_Sint32A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Sint32AField {}
-impl ::core::clone::Clone for MI_Sint32AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Sint32Field {
     pub value: i32,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Sint32Field {}
-impl ::core::clone::Clone for MI_Sint32Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Sint64A {
     pub data: *mut i64,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_Sint64A {}
-impl ::core::clone::Clone for MI_Sint64A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Sint64AField {
     pub value: MI_Sint64A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Sint64AField {}
-impl ::core::clone::Clone for MI_Sint64AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Sint64Field {
     pub value: i64,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Sint64Field {}
-impl ::core::clone::Clone for MI_Sint64Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Sint8A {
     pub data: *mut i8,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_Sint8A {}
-impl ::core::clone::Clone for MI_Sint8A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Sint8AField {
     pub value: MI_Sint8A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Sint8AField {}
-impl ::core::clone::Clone for MI_Sint8AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Sint8Field {
     pub value: i8,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Sint8Field {}
-impl ::core::clone::Clone for MI_Sint8Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_StringA {
     pub data: *mut *mut u16,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_StringA {}
-impl ::core::clone::Clone for MI_StringA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_StringAField {
     pub value: MI_StringA,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_StringAField {}
-impl ::core::clone::Clone for MI_StringAField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_StringField {
     pub value: *mut u16,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_StringField {}
-impl ::core::clone::Clone for MI_StringField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_SubscriptionDeliveryOptions {
     pub reserved1: u64,
     pub reserved2: isize,
     pub ft: *const MI_SubscriptionDeliveryOptionsFT,
 }
-impl ::core::marker::Copy for MI_SubscriptionDeliveryOptions {}
-impl ::core::clone::Clone for MI_SubscriptionDeliveryOptions {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_SubscriptionDeliveryOptionsFT {
     pub SetString: isize,
     pub SetNumber: isize,
@@ -2893,13 +2094,8 @@ pub struct MI_SubscriptionDeliveryOptionsFT {
     pub GetCredentialsPasswordAt: isize,
     pub Clone: isize,
 }
-impl ::core::marker::Copy for MI_SubscriptionDeliveryOptionsFT {}
-impl ::core::clone::Clone for MI_SubscriptionDeliveryOptionsFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Timestamp {
     pub year: u32,
     pub month: u32,
@@ -2910,198 +2106,113 @@ pub struct MI_Timestamp {
     pub microseconds: u32,
     pub utc: i32,
 }
-impl ::core::marker::Copy for MI_Timestamp {}
-impl ::core::clone::Clone for MI_Timestamp {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Uint16A {
     pub data: *mut u16,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_Uint16A {}
-impl ::core::clone::Clone for MI_Uint16A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Uint16AField {
     pub value: MI_Uint16A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Uint16AField {}
-impl ::core::clone::Clone for MI_Uint16AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Uint16Field {
     pub value: u16,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Uint16Field {}
-impl ::core::clone::Clone for MI_Uint16Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Uint32A {
     pub data: *mut u32,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_Uint32A {}
-impl ::core::clone::Clone for MI_Uint32A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Uint32AField {
     pub value: MI_Uint32A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Uint32AField {}
-impl ::core::clone::Clone for MI_Uint32AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Uint32Field {
     pub value: u32,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Uint32Field {}
-impl ::core::clone::Clone for MI_Uint32Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Uint64A {
     pub data: *mut u64,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_Uint64A {}
-impl ::core::clone::Clone for MI_Uint64A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Uint64AField {
     pub value: MI_Uint64A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Uint64AField {}
-impl ::core::clone::Clone for MI_Uint64AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Uint64Field {
     pub value: u64,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Uint64Field {}
-impl ::core::clone::Clone for MI_Uint64Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Uint8A {
     pub data: *mut u8,
     pub size: u32,
 }
-impl ::core::marker::Copy for MI_Uint8A {}
-impl ::core::clone::Clone for MI_Uint8A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Uint8AField {
     pub value: MI_Uint8A,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Uint8AField {}
-impl ::core::clone::Clone for MI_Uint8AField {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_Uint8Field {
     pub value: u8,
     pub exists: u8,
     pub flags: u8,
 }
-impl ::core::marker::Copy for MI_Uint8Field {}
-impl ::core::clone::Clone for MI_Uint8Field {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_UserCredentials {
     pub authenticationType: *const u16,
     pub credentials: MI_UserCredentials_0,
 }
-impl ::core::marker::Copy for MI_UserCredentials {}
-impl ::core::clone::Clone for MI_UserCredentials {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union MI_UserCredentials_0 {
     pub usernamePassword: MI_UsernamePasswordCreds,
     pub certificateThumbprint: *const u16,
 }
-impl ::core::marker::Copy for MI_UserCredentials_0 {}
-impl ::core::clone::Clone for MI_UserCredentials_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_UsernamePasswordCreds {
     pub domain: *const u16,
     pub username: *const u16,
     pub password: *const u16,
 }
-impl ::core::marker::Copy for MI_UsernamePasswordCreds {}
-impl ::core::clone::Clone for MI_UsernamePasswordCreds {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MI_UtilitiesFT {
     pub MapErrorToMiErrorCategory: isize,
     pub CimErrorFromErrorCode: isize,
 }
-impl ::core::marker::Copy for MI_UtilitiesFT {}
-impl ::core::clone::Clone for MI_UtilitiesFT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union MI_Value {
     pub boolean: u8,
     pub uint8: u8,
@@ -3137,95 +2248,77 @@ pub union MI_Value {
     pub instancea: MI_InstanceA,
     pub array: MI_Array,
 }
-impl ::core::marker::Copy for MI_Value {}
-impl ::core::clone::Clone for MI_Value {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
+pub const MofCompiler: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x6daf9757_2e37_11d2_aec9_00c04fb68820);
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct SWbemAnalysisMatrix {
     pub m_uVersion: u32,
     pub m_uMatrixType: u32,
-    pub m_pszProperty: ::windows_sys::core::PCWSTR,
+    pub m_pszProperty: windows_sys::core::PCWSTR,
     pub m_uPropertyType: u32,
     pub m_uEntries: u32,
-    pub m_pValues: *mut *mut ::core::ffi::c_void,
+    pub m_pValues: *mut *mut core::ffi::c_void,
     pub m_pbTruthTable: *mut super::super::Foundation::BOOL,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for SWbemAnalysisMatrix {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for SWbemAnalysisMatrix {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct SWbemAnalysisMatrixList {
     pub m_uVersion: u32,
     pub m_uMatrixType: u32,
     pub m_uNumMatrices: u32,
     pub m_pMatrices: *mut SWbemAnalysisMatrix,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for SWbemAnalysisMatrixList {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for SWbemAnalysisMatrixList {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SWbemAssocQueryInf {
     pub m_uVersion: u32,
     pub m_uAnalysisType: u32,
     pub m_uFeatureMask: u32,
-    pub m_pPath: IWbemPath,
-    pub m_pszPath: ::windows_sys::core::PWSTR,
-    pub m_pszQueryText: ::windows_sys::core::PWSTR,
-    pub m_pszResultClass: ::windows_sys::core::PWSTR,
-    pub m_pszAssocClass: ::windows_sys::core::PWSTR,
-    pub m_pszRole: ::windows_sys::core::PWSTR,
-    pub m_pszResultRole: ::windows_sys::core::PWSTR,
-    pub m_pszRequiredQualifier: ::windows_sys::core::PWSTR,
-    pub m_pszRequiredAssocQualifier: ::windows_sys::core::PWSTR,
+    pub m_pPath: *mut core::ffi::c_void,
+    pub m_pszPath: windows_sys::core::PWSTR,
+    pub m_pszQueryText: windows_sys::core::PWSTR,
+    pub m_pszResultClass: windows_sys::core::PWSTR,
+    pub m_pszAssocClass: windows_sys::core::PWSTR,
+    pub m_pszRole: windows_sys::core::PWSTR,
+    pub m_pszResultRole: windows_sys::core::PWSTR,
+    pub m_pszRequiredQualifier: windows_sys::core::PWSTR,
+    pub m_pszRequiredAssocQualifier: windows_sys::core::PWSTR,
 }
-impl ::core::marker::Copy for SWbemAssocQueryInf {}
-impl ::core::clone::Clone for SWbemAssocQueryInf {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
+pub const SWbemDateTime: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x47dfbe54_cf76_11d3_b38f_00105a1f473a);
+pub const SWbemEventSource: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x04b83d58_21ae_11d2_8b33_00600806d9b6);
+pub const SWbemLastError: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xc2feeeac_cfcd_11d1_8b05_00600806d9b6);
+pub const SWbemLocator: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x76a64158_cb41_11d1_8b02_00600806d9b6);
+pub const SWbemMethod: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x04b83d5b_21ae_11d2_8b33_00600806d9b6);
+pub const SWbemMethodSet: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x04b83d5a_21ae_11d2_8b33_00600806d9b6);
+pub const SWbemNamedValue: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x04b83d60_21ae_11d2_8b33_00600806d9b6);
+pub const SWbemNamedValueSet: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x9aed384e_ce8b_11d1_8b05_00600806d9b6);
+pub const SWbemObject: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x04b83d62_21ae_11d2_8b33_00600806d9b6);
+pub const SWbemObjectEx: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xd6bdafb2_9435_491f_bb87_6aa0f0bc31a2);
+pub const SWbemObjectPath: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x5791bc26_ce9c_11d1_97bf_0000f81e849c);
+pub const SWbemObjectSet: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x04b83d61_21ae_11d2_8b33_00600806d9b6);
+pub const SWbemPrivilege: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x26ee67bc_5804_11d2_8b4a_00600806d9b6);
+pub const SWbemPrivilegeSet: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x26ee67be_5804_11d2_8b4a_00600806d9b6);
+pub const SWbemProperty: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x04b83d5d_21ae_11d2_8b33_00600806d9b6);
+pub const SWbemPropertySet: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x04b83d5c_21ae_11d2_8b33_00600806d9b6);
+pub const SWbemQualifier: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x04b83d5f_21ae_11d2_8b33_00600806d9b6);
+pub const SWbemQualifierSet: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x04b83d5e_21ae_11d2_8b33_00600806d9b6);
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct SWbemQueryQualifiedName {
     pub m_uVersion: u32,
     pub m_uTokenType: u32,
     pub m_uNameListSize: u32,
-    pub m_ppszNameList: *const ::windows_sys::core::PCWSTR,
+    pub m_ppszNameList: *const windows_sys::core::PCWSTR,
     pub m_bArraysUsed: super::super::Foundation::BOOL,
     pub m_pbArrayElUsed: *mut super::super::Foundation::BOOL,
     pub m_puArrayIndex: *mut u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for SWbemQueryQualifiedName {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for SWbemQueryQualifiedName {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
+pub const SWbemRefreshableItem: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x8c6854bc_de4b_11d3_b390_00105a1f473a);
+pub const SWbemRefresher: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xd269bf5c_d9c1_11d3_b38f_00105a1f473a);
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub union SWbemRpnConst {
-    pub m_pszStrVal: ::windows_sys::core::PCWSTR,
+    pub m_pszStrVal: windows_sys::core::PCWSTR,
     pub m_bBoolVal: super::super::Foundation::BOOL,
     pub m_lLongVal: i32,
     pub m_uLongVal: u32,
@@ -3233,17 +2326,8 @@ pub union SWbemRpnConst {
     pub m_lVal64: i64,
     pub m_uVal64: i64,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for SWbemRpnConst {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for SWbemRpnConst {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct SWbemRpnEncodedQuery {
     pub m_uVersion: u32,
     pub m_uTokenType: u32,
@@ -3253,28 +2337,19 @@ pub struct SWbemRpnEncodedQuery {
     pub m_uSelectListSize: u32,
     pub m_ppSelectList: *mut *mut SWbemQueryQualifiedName,
     pub m_uFromTargetType: u32,
-    pub m_pszOptionalFromPath: ::windows_sys::core::PCWSTR,
+    pub m_pszOptionalFromPath: windows_sys::core::PCWSTR,
     pub m_uFromListSize: u32,
-    pub m_ppszFromList: *const ::windows_sys::core::PCWSTR,
+    pub m_ppszFromList: *const windows_sys::core::PCWSTR,
     pub m_uWhereClauseSize: u32,
     pub m_ppRpnWhereClause: *mut *mut SWbemRpnQueryToken,
     pub m_dblWithinPolling: f64,
     pub m_dblWithinWindow: f64,
     pub m_uOrderByListSize: u32,
-    pub m_ppszOrderByList: *const ::windows_sys::core::PCWSTR,
+    pub m_ppszOrderByList: *const windows_sys::core::PCWSTR,
     pub m_uOrderDirectionEl: *mut u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for SWbemRpnEncodedQuery {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for SWbemRpnEncodedQuery {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct SWbemRpnQueryToken {
     pub m_uVersion: u32,
     pub m_uTokenType: u32,
@@ -3286,69 +2361,75 @@ pub struct SWbemRpnQueryToken {
     pub m_Const: SWbemRpnConst,
     pub m_uConst2ApparentType: u32,
     pub m_Const2: SWbemRpnConst,
-    pub m_pszRightFunc: ::windows_sys::core::PCWSTR,
-    pub m_pszLeftFunc: ::windows_sys::core::PCWSTR,
-}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for SWbemRpnQueryToken {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for SWbemRpnQueryToken {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub m_pszRightFunc: windows_sys::core::PCWSTR,
+    pub m_pszLeftFunc: windows_sys::core::PCWSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SWbemRpnTokenList {
     pub m_uVersion: u32,
     pub m_uTokenType: u32,
     pub m_uNumTokens: u32,
 }
-impl ::core::marker::Copy for SWbemRpnTokenList {}
-impl ::core::clone::Clone for SWbemRpnTokenList {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
+pub const SWbemSecurity: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xb54d66e9_2287_11d2_8b33_00600806d9b6);
+pub const SWbemServices: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x04b83d63_21ae_11d2_8b33_00600806d9b6);
+pub const SWbemServicesEx: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x62e522dc_8cf3_40a8_8b2e_37d595651e40);
+pub const SWbemSink: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x75718c9a_f029_11d1_a1ac_00c04fb6c223);
+pub const UnsecuredApartment: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x49bd2028_1523_11d1_ad79_00c04fd8fdff);
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WBEM_COMPILE_STATUS_INFO {
     pub lPhaseError: i32,
-    pub hRes: ::windows_sys::core::HRESULT,
+    pub hRes: windows_sys::core::HRESULT,
     pub ObjectNum: i32,
     pub FirstLine: i32,
     pub LastLine: i32,
     pub dwOutFlags: u32,
 }
-impl ::core::marker::Copy for WBEM_COMPILE_STATUS_INFO {}
-impl ::core::clone::Clone for WBEM_COMPILE_STATUS_INFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-pub type MI_CancelCallback = ::core::option::Option<unsafe extern "system" fn(reason: MI_CancellationReason, callbackdata: *const ::core::ffi::c_void) -> ()>;
-pub type MI_Deserializer_ClassObjectNeeded = ::core::option::Option<unsafe extern "system" fn(context: *const ::core::ffi::c_void, servername: *const u16, namespacename: *const u16, classname: *const u16, requestedclassobject: *mut *mut MI_Class) -> MI_Result>;
-pub type MI_MainFunction = ::core::option::Option<unsafe extern "system" fn(server: *mut MI_Server) -> *mut MI_Module>;
-pub type MI_MethodDecl_Invoke = ::core::option::Option<unsafe extern "system" fn(self_: *const ::core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, methodname: *const u16, instancename: *const MI_Instance, parameters: *const MI_Instance) -> ()>;
-pub type MI_Module_Load = ::core::option::Option<unsafe extern "system" fn(self_: *mut *mut MI_Module_Self, context: *const MI_Context) -> ()>;
-pub type MI_Module_Unload = ::core::option::Option<unsafe extern "system" fn(self_: *const MI_Module_Self, context: *const MI_Context) -> ()>;
-pub type MI_OperationCallback_Class = ::core::option::Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const ::core::ffi::c_void, classresult: *const MI_Class, moreresults: u8, resultcode: MI_Result, errorstring: *const u16, errordetails: *const MI_Instance, resultacknowledgement: isize) -> ()>;
-pub type MI_OperationCallback_Indication = ::core::option::Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const ::core::ffi::c_void, instance: *const MI_Instance, bookmark: *const u16, machineid: *const u16, moreresults: u8, resultcode: MI_Result, errorstring: *const u16, errordetails: *const MI_Instance, resultacknowledgement: isize) -> ()>;
-pub type MI_OperationCallback_Instance = ::core::option::Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const ::core::ffi::c_void, instance: *const MI_Instance, moreresults: u8, resultcode: MI_Result, errorstring: *const u16, errordetails: *const MI_Instance, resultacknowledgement: isize) -> ()>;
-pub type MI_OperationCallback_PromptUser = ::core::option::Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const ::core::ffi::c_void, message: *const u16, prompttype: MI_PromptType, promptuserresult: isize) -> ()>;
-pub type MI_OperationCallback_StreamedParameter = ::core::option::Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const ::core::ffi::c_void, parametername: *const u16, resulttype: MI_Type, result: *const MI_Value, resultacknowledgement: isize) -> ()>;
-pub type MI_OperationCallback_WriteError = ::core::option::Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const ::core::ffi::c_void, instance: *const MI_Instance, writeerrorresult: isize) -> ()>;
-pub type MI_OperationCallback_WriteMessage = ::core::option::Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const ::core::ffi::c_void, channel: u32, message: *const u16) -> ()>;
-pub type MI_OperationCallback_WriteProgress = ::core::option::Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const ::core::ffi::c_void, activity: *const u16, currentoperation: *const u16, statusdescription: *const u16, percentagecomplete: u32, secondsremaining: u32) -> ()>;
-pub type MI_ProviderFT_AssociatorInstances = ::core::option::Option<unsafe extern "system" fn(self_: *const ::core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, instancename: *const MI_Instance, resultclass: *const u16, role: *const u16, resultrole: *const u16, propertyset: *const MI_PropertySet, keysonly: u8, filter: *const MI_Filter) -> ()>;
-pub type MI_ProviderFT_CreateInstance = ::core::option::Option<unsafe extern "system" fn(self_: *const ::core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, newinstance: *const MI_Instance) -> ()>;
-pub type MI_ProviderFT_DeleteInstance = ::core::option::Option<unsafe extern "system" fn(self_: *const ::core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, instancename: *const MI_Instance) -> ()>;
-pub type MI_ProviderFT_DisableIndications = ::core::option::Option<unsafe extern "system" fn(self_: *const ::core::ffi::c_void, indicationscontext: *const MI_Context, namespace: *const u16, classname: *const u16) -> ()>;
-pub type MI_ProviderFT_EnableIndications = ::core::option::Option<unsafe extern "system" fn(self_: *const ::core::ffi::c_void, indicationscontext: *const MI_Context, namespace: *const u16, classname: *const u16) -> ()>;
-pub type MI_ProviderFT_EnumerateInstances = ::core::option::Option<unsafe extern "system" fn(self_: *const ::core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, propertyset: *const MI_PropertySet, keysonly: u8, filter: *const MI_Filter) -> ()>;
-pub type MI_ProviderFT_GetInstance = ::core::option::Option<unsafe extern "system" fn(self_: *const ::core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, instancename: *const MI_Instance, propertyset: *const MI_PropertySet) -> ()>;
-pub type MI_ProviderFT_Invoke = ::core::option::Option<unsafe extern "system" fn(self_: *const ::core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, methodname: *const u16, instancename: *const MI_Instance, inputparameters: *const MI_Instance) -> ()>;
-pub type MI_ProviderFT_Load = ::core::option::Option<unsafe extern "system" fn(self_: *mut *mut ::core::ffi::c_void, selfmodule: *const MI_Module_Self, context: *const MI_Context) -> ()>;
-pub type MI_ProviderFT_ModifyInstance = ::core::option::Option<unsafe extern "system" fn(self_: *mut ::core::ffi::c_void, context: *mut MI_Context, namespace: *const u16, classname: *const u16, modifiedinstance: *const MI_Instance, propertyset: *const MI_PropertySet) -> ()>;
-pub type MI_ProviderFT_ReferenceInstances = ::core::option::Option<unsafe extern "system" fn(self_: *const ::core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, instancename: *const MI_Instance, role: *const u16, propertyset: *const MI_PropertySet, keysonly: u8, filter: *const MI_Filter) -> ()>;
-pub type MI_ProviderFT_Subscribe = ::core::option::Option<unsafe extern "system" fn(self_: *const ::core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, filter: *const MI_Filter, bookmark: *const u16, subscriptionid: u64, subscriptionself: *mut *mut ::core::ffi::c_void) -> ()>;
-pub type MI_ProviderFT_Unload = ::core::option::Option<unsafe extern "system" fn(self_: *const ::core::ffi::c_void, context: *const MI_Context) -> ()>;
-pub type MI_ProviderFT_Unsubscribe = ::core::option::Option<unsafe extern "system" fn(self_: *const ::core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, subscriptionid: u64, subscriptionself: *const ::core::ffi::c_void) -> ()>;
+pub const WMIExtension: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xf0975afe_5c7f_11d2_8b74_00104b2afb41);
+pub const WbemAdministrativeLocator: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xcb8555cc_9128_11d1_ad9b_00c04fd8fdff);
+pub const WbemAuthenticatedLocator: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xcd184336_9128_11d1_ad9b_00c04fd8fdff);
+pub const WbemBackupRestore: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xc49e32c6_bc8b_11d2_85d4_00105a1f8304);
+pub const WbemClassObject: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x9a653086_174f_11d2_b5f9_00104b703efd);
+pub const WbemContext: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x674b6698_ee92_11d0_ad71_00c04fd8fdff);
+pub const WbemDCOMTransport: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xf7ce2e13_8c90_11d1_9e7b_00c04fc324a8);
+pub const WbemDecoupledBasicEventProvider: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xf5f75737_2843_4f22_933d_c76a97cda62f);
+pub const WbemDecoupledRegistrar: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x4cfc7932_0f9d_4bef_9c32_8ea2a6b56fcb);
+pub const WbemDefPath: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xcf4cc405_e2c5_4ddd_b3ce_5e7582d8c9fa);
+pub const WbemLevel1Login: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x8bc3f05e_d86b_11d0_a075_00c04fb68820);
+pub const WbemLocalAddrRes: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xa1044801_8f7e_11d1_9e7c_00c04fc324a8);
+pub const WbemLocator: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x4590f811_1d3a_11d0_891f_00aa004b2e24);
+pub const WbemObjectTextSrc: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x8d1c559d_84f0_4bb3_a7d5_56a7435a9ba6);
+pub const WbemQuery: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xeac8a024_21e2_4523_ad73_a71a0aa2f56a);
+pub const WbemRefresher: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xc71566f2_561e_11d1_ad87_00c04fd8fdff);
+pub const WbemStatusCodeText: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xeb87e1bd_3233_11d2_aec9_00c04fb68820);
+pub const WbemUnauthenticatedLocator: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x443e7b79_de31_11d2_b340_00104bcc4b4a);
+pub const WbemUninitializedClassObject: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x7a0227f6_7108_11d1_ad90_00c04fd8fdff);
+pub type MI_CancelCallback = Option<unsafe extern "system" fn(reason: MI_CancellationReason, callbackdata: *const core::ffi::c_void)>;
+pub type MI_Deserializer_ClassObjectNeeded = Option<unsafe extern "system" fn(context: *const core::ffi::c_void, servername: *const u16, namespacename: *const u16, classname: *const u16, requestedclassobject: *mut *mut MI_Class) -> MI_Result>;
+pub type MI_MainFunction = Option<unsafe extern "system" fn(server: *mut MI_Server) -> *mut MI_Module>;
+pub type MI_MethodDecl_Invoke = Option<unsafe extern "system" fn(self_: *const core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, methodname: *const u16, instancename: *const MI_Instance, parameters: *const MI_Instance)>;
+pub type MI_Module_Load = Option<unsafe extern "system" fn(self_: *mut *mut MI_Module_Self, context: *const MI_Context)>;
+pub type MI_Module_Unload = Option<unsafe extern "system" fn(self_: *const MI_Module_Self, context: *const MI_Context)>;
+pub type MI_OperationCallback_Class = Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const core::ffi::c_void, classresult: *const MI_Class, moreresults: u8, resultcode: MI_Result, errorstring: *const u16, errordetails: *const MI_Instance, resultacknowledgement: isize)>;
+pub type MI_OperationCallback_Indication = Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const core::ffi::c_void, instance: *const MI_Instance, bookmark: *const u16, machineid: *const u16, moreresults: u8, resultcode: MI_Result, errorstring: *const u16, errordetails: *const MI_Instance, resultacknowledgement: isize)>;
+pub type MI_OperationCallback_Instance = Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const core::ffi::c_void, instance: *const MI_Instance, moreresults: u8, resultcode: MI_Result, errorstring: *const u16, errordetails: *const MI_Instance, resultacknowledgement: isize)>;
+pub type MI_OperationCallback_PromptUser = Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const core::ffi::c_void, message: *const u16, prompttype: MI_PromptType, promptuserresult: isize)>;
+pub type MI_OperationCallback_StreamedParameter = Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const core::ffi::c_void, parametername: *const u16, resulttype: MI_Type, result: *const MI_Value, resultacknowledgement: isize)>;
+pub type MI_OperationCallback_WriteError = Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const core::ffi::c_void, instance: *const MI_Instance, writeerrorresult: isize)>;
+pub type MI_OperationCallback_WriteMessage = Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const core::ffi::c_void, channel: u32, message: *const u16)>;
+pub type MI_OperationCallback_WriteProgress = Option<unsafe extern "system" fn(operation: *const MI_Operation, callbackcontext: *const core::ffi::c_void, activity: *const u16, currentoperation: *const u16, statusdescription: *const u16, percentagecomplete: u32, secondsremaining: u32)>;
+pub type MI_ProviderFT_AssociatorInstances = Option<unsafe extern "system" fn(self_: *const core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, instancename: *const MI_Instance, resultclass: *const u16, role: *const u16, resultrole: *const u16, propertyset: *const MI_PropertySet, keysonly: u8, filter: *const MI_Filter)>;
+pub type MI_ProviderFT_CreateInstance = Option<unsafe extern "system" fn(self_: *const core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, newinstance: *const MI_Instance)>;
+pub type MI_ProviderFT_DeleteInstance = Option<unsafe extern "system" fn(self_: *const core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, instancename: *const MI_Instance)>;
+pub type MI_ProviderFT_DisableIndications = Option<unsafe extern "system" fn(self_: *const core::ffi::c_void, indicationscontext: *const MI_Context, namespace: *const u16, classname: *const u16)>;
+pub type MI_ProviderFT_EnableIndications = Option<unsafe extern "system" fn(self_: *const core::ffi::c_void, indicationscontext: *const MI_Context, namespace: *const u16, classname: *const u16)>;
+pub type MI_ProviderFT_EnumerateInstances = Option<unsafe extern "system" fn(self_: *const core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, propertyset: *const MI_PropertySet, keysonly: u8, filter: *const MI_Filter)>;
+pub type MI_ProviderFT_GetInstance = Option<unsafe extern "system" fn(self_: *const core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, instancename: *const MI_Instance, propertyset: *const MI_PropertySet)>;
+pub type MI_ProviderFT_Invoke = Option<unsafe extern "system" fn(self_: *const core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, methodname: *const u16, instancename: *const MI_Instance, inputparameters: *const MI_Instance)>;
+pub type MI_ProviderFT_Load = Option<unsafe extern "system" fn(self_: *mut *mut core::ffi::c_void, selfmodule: *const MI_Module_Self, context: *const MI_Context)>;
+pub type MI_ProviderFT_ModifyInstance = Option<unsafe extern "system" fn(self_: *mut core::ffi::c_void, context: *mut MI_Context, namespace: *const u16, classname: *const u16, modifiedinstance: *const MI_Instance, propertyset: *const MI_PropertySet)>;
+pub type MI_ProviderFT_ReferenceInstances = Option<unsafe extern "system" fn(self_: *const core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, instancename: *const MI_Instance, role: *const u16, propertyset: *const MI_PropertySet, keysonly: u8, filter: *const MI_Filter)>;
+pub type MI_ProviderFT_Subscribe = Option<unsafe extern "system" fn(self_: *const core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, filter: *const MI_Filter, bookmark: *const u16, subscriptionid: u64, subscriptionself: *mut *mut core::ffi::c_void)>;
+pub type MI_ProviderFT_Unload = Option<unsafe extern "system" fn(self_: *const core::ffi::c_void, context: *const MI_Context)>;
+pub type MI_ProviderFT_Unsubscribe = Option<unsafe extern "system" fn(self_: *const core::ffi::c_void, context: *const MI_Context, namespace: *const u16, classname: *const u16, subscriptionid: u64, subscriptionself: *const core::ffi::c_void)>;

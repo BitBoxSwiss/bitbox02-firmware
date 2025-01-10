@@ -771,27 +771,27 @@ pub const O_NOFOLLOW: ::c_int = 0x00080000;
 pub const O_NOCACHE: ::c_int = 0x00100000;
 pub const O_DIRECTORY: ::c_int = 0x00200000;
 
-pub const S_IFIFO: ::mode_t = 4096;
-pub const S_IFCHR: ::mode_t = 8192;
-pub const S_IFBLK: ::mode_t = 24576;
-pub const S_IFDIR: ::mode_t = 16384;
-pub const S_IFREG: ::mode_t = 32768;
-pub const S_IFLNK: ::mode_t = 40960;
-pub const S_IFSOCK: ::mode_t = 49152;
-pub const S_IFMT: ::mode_t = 61440;
+pub const S_IFIFO: ::mode_t = 0o1_0000;
+pub const S_IFCHR: ::mode_t = 0o2_0000;
+pub const S_IFBLK: ::mode_t = 0o6_0000;
+pub const S_IFDIR: ::mode_t = 0o4_0000;
+pub const S_IFREG: ::mode_t = 0o10_0000;
+pub const S_IFLNK: ::mode_t = 0o12_0000;
+pub const S_IFSOCK: ::mode_t = 0o14_0000;
+pub const S_IFMT: ::mode_t = 0o17_0000;
 
-pub const S_IRWXU: ::mode_t = 0o00700;
-pub const S_IRUSR: ::mode_t = 0o00400;
-pub const S_IWUSR: ::mode_t = 0o00200;
-pub const S_IXUSR: ::mode_t = 0o00100;
-pub const S_IRWXG: ::mode_t = 0o00070;
-pub const S_IRGRP: ::mode_t = 0o00040;
-pub const S_IWGRP: ::mode_t = 0o00020;
-pub const S_IXGRP: ::mode_t = 0o00010;
-pub const S_IRWXO: ::mode_t = 0o00007;
-pub const S_IROTH: ::mode_t = 0o00004;
-pub const S_IWOTH: ::mode_t = 0o00002;
-pub const S_IXOTH: ::mode_t = 0o00001;
+pub const S_IRWXU: ::mode_t = 0o0700;
+pub const S_IRUSR: ::mode_t = 0o0400;
+pub const S_IWUSR: ::mode_t = 0o0200;
+pub const S_IXUSR: ::mode_t = 0o0100;
+pub const S_IRWXG: ::mode_t = 0o0070;
+pub const S_IRGRP: ::mode_t = 0o0040;
+pub const S_IWGRP: ::mode_t = 0o0020;
+pub const S_IXGRP: ::mode_t = 0o0010;
+pub const S_IRWXO: ::mode_t = 0o0007;
+pub const S_IROTH: ::mode_t = 0o0004;
+pub const S_IWOTH: ::mode_t = 0o0002;
+pub const S_IXOTH: ::mode_t = 0o0001;
 
 pub const F_OK: ::c_int = 0;
 pub const R_OK: ::c_int = 4;
@@ -1791,6 +1791,7 @@ extern "C" {
         lock: *mut pthread_mutex_t,
         abstime: *const ::timespec,
     ) -> ::c_int;
+    pub fn pthread_sigqueue(thread: ::pthread_t, sig: ::c_int, value: ::sigval) -> ::c_int;
     pub fn pthread_spin_init(lock: *mut ::pthread_spinlock_t, pshared: ::c_int) -> ::c_int;
     pub fn pthread_spin_destroy(lock: *mut ::pthread_spinlock_t) -> ::c_int;
     pub fn pthread_spin_lock(lock: *mut ::pthread_spinlock_t) -> ::c_int;
@@ -2092,6 +2093,8 @@ extern "C" {
         length: ::size_t,
         locale: ::locale_t,
     ) -> ::c_int;
+
+    pub fn getentropy(buf: *mut ::c_void, buflen: ::size_t) -> ::c_int;
 }
 
 #[link(name = "bsd")]
@@ -2132,6 +2135,10 @@ extern "C" {
         >,
         data: *mut ::c_void,
     ) -> ::c_int;
+
+    pub fn arc4random() -> u32;
+    pub fn arc4random_uniform(upper_bound: u32) -> u32;
+    pub fn arc4random_buf(buf: *mut ::c_void, n: ::size_t);
 }
 
 #[link(name = "gnu")]

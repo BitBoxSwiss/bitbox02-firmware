@@ -62,6 +62,166 @@ fn decode_shelley_payment_address(params: &params::Params, address: &str) -> Res
     Ok(data)
 }
 
+/// CBOR major type for unsigned integers (major type 0).
+/// See [RFC 7049 §2.1](https://www.rfc-editor.org/rfc/rfc7049#section-2.1).
+const MAJOR_TYPE_UNSIGNED: u8 = 0x00; // 0x00..0x1b
+
+/// CBOR major type for byte strings (major type 2).
+/// See [RFC 7049 §2.1](https://www.rfc-editor.org/rfc/rfc7049#section-2.1).
+const MAJOR_TYPE_BYTES: u8 = 0x40; // 0x40..0x5b
+
+/// CBOR major type for arrays (major type 4).
+/// See [RFC 7049 §2.1](https://www.rfc-editor.org/rfc/rfc7049#section-2.1).
+const MAJOR_TYPE_ARRAY: u8 = 0x80; // 0x80..0x9b
+
+/// CBOR major type for maps (major type 5).
+/// See [RFC 7049 §2.1](https://www.rfc-editor.org/rfc/rfc7049#section-2.1).
+const MAJOR_TYPE_MAP: u8 = 0xa0; // 0xa0..0xbb
+
+/// CBOR major type for tags (major type 6).
+/// See [RFC 7049 §2.1](https://www.rfc-editor.org/rfc/rfc7049#section-2.1).
+const MAJOR_TYPE_TAG: u8 = 0xc0; // 0xc0..0xdb
+
+// We use a custom CborReader instead of the minicbor library as it saves almost 3kB of binary
+// space.
+struct CborReader<'a> {
+    buf: &'a [u8],
+}
+
+impl<'a> CborReader<'a> {
+    fn new(buf: &'a [u8]) -> Self {
+        Self { buf }
+    }
+
+    /// Reads the next byte from the internal buffer.
+    /// Returns an error if the buffer is empty.
+    fn read_u8(&mut self) -> Result<u8, ()> {
+        if self.buf.is_empty() {
+            return Err(());
+        }
+        let b = self.buf[0];
+        self.buf = &self.buf[1..];
+        Ok(b)
+    }
+
+    /// Reads a CBOR unsigned integer, interpreting the `initial` byte's lower 5 bits
+    /// to determine how many additional bytes to consume.
+    /// See [RFC 7049 §2.1](https://www.rfc-editor.org/rfc/rfc7049#section-2.1) for details.
+    fn read_uint(&mut self, initial: u8) -> Result<u64, ()> {
+        let additional = initial & 0x1f;
+        match additional {
+            n @ 0..=23 => Ok(n as u64),
+            24 => {
+                let b = self.read_u8()? as u64;
+                Ok(b)
+            }
+            25 => {
+                if self.buf.len() < 2 {
+                    return Err(());
+                }
+                let val = u16::from_be_bytes([self.buf[0], self.buf[1]]) as u64;
+                self.buf = &self.buf[2..];
+                Ok(val)
+            }
+            26 => {
+                if self.buf.len() < 4 {
+                    return Err(());
+                }
+                let val =
+                    u32::from_be_bytes([self.buf[0], self.buf[1], self.buf[2], self.buf[3]]) as u64;
+                self.buf = &self.buf[4..];
+                Ok(val)
+            }
+            27 => {
+                if self.buf.len() < 8 {
+                    return Err(());
+                }
+                let val = u64::from_be_bytes([
+                    self.buf[0],
+                    self.buf[1],
+                    self.buf[2],
+                    self.buf[3],
+                    self.buf[4],
+                    self.buf[5],
+                    self.buf[6],
+                    self.buf[7],
+                ]);
+                self.buf = &self.buf[8..];
+                Ok(val)
+            }
+            _ => Err(()),
+        }
+    }
+
+    /// Reads and returns a CBOR tag (major type 6) as a `u64`.
+    /// See [RFC 7049 §2.4](https://www.rfc-editor.org/rfc/rfc7049#section-2.4).
+    fn read_tag(&mut self) -> Result<u64, ()> {
+        let b = self.read_u8()?;
+        if (b & 0xe0) != MAJOR_TYPE_TAG {
+            return Err(());
+        }
+        self.read_uint(b)
+    }
+
+    /// Reads and returns a byte string (major type 2). Returns a slice of the
+    /// requested length, advancing the reader.
+    /// See [RFC 7049 §2.1](https://www.rfc-editor.org/rfc/rfc7049#section-2.1).
+    fn read_bytes(&mut self) -> Result<&'a [u8], ()> {
+        let b = self.read_u8()?;
+        if (b & 0xe0) != MAJOR_TYPE_BYTES {
+            return Err(());
+        }
+        let len = self.read_uint(b)? as usize;
+        if self.buf.len() < len {
+            return Err(());
+        }
+        let out = &self.buf[..len];
+        self.buf = &self.buf[len..];
+        Ok(out)
+    }
+
+    /// Reads and returns the length of an array (major type 4).
+    /// See [RFC 7049 §2.1](https://www.rfc-editor.org/rfc/rfc7049#section-2.1).
+    fn read_array_len(&mut self) -> Result<usize, ()> {
+        let b = self.read_u8()?;
+        if (b & 0xe0) != MAJOR_TYPE_ARRAY {
+            return Err(());
+        }
+        let len = self.read_uint(b)? as usize;
+        Ok(len)
+    }
+
+    /// Reads and returns the length of a map (major type 5).
+    /// See [RFC 7049 §2.1](https://www.rfc-editor.org/rfc/rfc7049#section-2.1).
+    fn read_map_len(&mut self) -> Result<usize, ()> {
+        let b = self.read_u8()?;
+        if (b & 0xe0) != MAJOR_TYPE_MAP {
+            return Err(());
+        }
+        let len = self.read_uint(b)? as usize;
+        Ok(len)
+    }
+
+    /// Reads a 32-bit unsigned integer from the buffer,
+    /// expecting a CBOR major type 0 (unsigned integer).
+    fn read_u32(&mut self) -> Result<u32, ()> {
+        let b = self.read_u8()?;
+        if (b & 0xe0) != MAJOR_TYPE_UNSIGNED {
+            return Err(());
+        }
+        let val = self.read_uint(b)?;
+        if val > u32::MAX as u64 {
+            return Err(());
+        }
+        Ok(val as u32)
+    }
+}
+
+fn decode_u32_from_cbor_bytes(data: &[u8]) -> Result<u32, ()> {
+    let mut r = CborReader::new(data);
+    r.read_u32()
+}
+
 /// Decode a base58-encoded Byron payment address, validate it's checksum and that it was encoded for the right network.
 ///
 /// A byron address is cbor encoded data: https://raw.githubusercontent.com/cardano-foundation/CIPs/0081c890995ff94618145ae5beb7f288c029a86a/CIP-0019/CIP-0019-byron-addresses.cddl
@@ -69,43 +229,48 @@ fn decode_shelley_payment_address(params: &params::Params, address: &str) -> Res
 /// See also:
 /// - https://github.com/input-output-hk/cardano-ledger/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L134-L135
 /// - https://github.com/input-output-hk/technical-docs/blob/8d4f08bc05ec611f3943cdc09a4ae18e72a0eb3c/cardano-components/cardano-wallet/doc/About-Address-Format---Byron.md
-fn decode_byron_payment_address(params: &params::Params, address: &str) -> Result<Vec<u8>, ()> {
+pub fn decode_byron_payment_address(params: &params::Params, address: &str) -> Result<Vec<u8>, ()> {
     let base58_decoded = bitcoin::base58::decode(address).or(Err(()))?;
-    let payload = {
-        let mut decoder = minicbor::Decoder::new(&base58_decoded);
-        if decoder.array().or(Err(()))?.ok_or(())? != 2 {
-            return Err(());
-        }
-        if decoder.tag().or(Err(()))? != minicbor::data::IanaTag::Cbor.tag() {
-            return Err(());
-        }
-        let payload = decoder.bytes().or(Err(()))?;
-        let address_crc = decoder.u32().or(Err(()))?;
-        if crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC).checksum(payload) != address_crc {
-            return Err(());
-        }
-        payload
-    };
+    let mut top = CborReader::new(&base58_decoded);
 
-    let mut decoder = minicbor::Decoder::new(payload);
-    // Array with three elements.
-    if decoder.array().or(Err(()))?.ok_or(())? != 3 {
+    // Top-level array: [ (tag=24) bytes, crc_u32 ]
+    if top.read_array_len()? != 2 {
         return Err(());
     }
+
+    let tag = top.read_tag()?;
+    if tag != 24 {
+        return Err(());
+    }
+
+    let payload_slice = top.read_bytes()?;
+    let address_crc = top.read_u32()?;
+
+    if crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC).checksum(payload_slice) != address_crc {
+        return Err(());
+    }
+
+    let mut p = CborReader::new(payload_slice);
+    // payload: [rootDigest: bytes(28), attributes: map, type: u32]
+    if p.read_array_len()? != 3 {
+        return Err(());
+    }
+
     // First element: address root digest.
-    if decoder.bytes().or(Err(()))?.len() != 28 {
+    if p.read_bytes()?.len() != 28 {
         return Err(());
     }
+
     // Second element: address attributes map.  Item with key 2 is the network magic. If absent, it
     // is mainnet. If present, must not be mainnet.
+    let map_len = p.read_map_len()?;
     let mut magic: Option<u32> = None;
-    for item in decoder
-        .map_iter::<u32, minicbor::bytes::ByteVec>()
-        .or(Err(()))?
-    {
-        let (key, value) = item.or(Err(()))?;
+    for _ in 0..map_len {
+        let key = p.read_u32()?;
+        let val = p.read_bytes()?;
         if key == 2 {
-            magic = Some(minicbor::decode(&value).or(Err(()))?);
+            let m = decode_u32_from_cbor_bytes(val)?;
+            magic = Some(m);
             break;
         }
     }
@@ -123,15 +288,17 @@ fn decode_byron_payment_address(params: &params::Params, address: &str) -> Resul
             }
         }
     }
+
     // Third element: address type
-    let typ = decoder.u32().or(Err(()))?;
+    let typ = p.read_u32()?;
     if typ != 0 && typ != 2 {
         return Err(());
     }
     Ok(base58_decoded)
 }
 
-/// Decode a Byron or Shelley payment address string and check that it was encoded for the right network.
+/// Decode a Byron or Shelley payment address string and check that it was encoded for the right
+/// network.
 pub fn decode_payment_address(params: &params::Params, address: &str) -> Result<Vec<u8>, Error> {
     if let Ok(address) = decode_shelley_payment_address(params, address) {
         return Ok(address);
